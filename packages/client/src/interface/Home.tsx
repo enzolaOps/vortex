@@ -22,7 +22,6 @@ import MdAddCircle from "@material-design-icons/svg/filled/add_circle.svg?compon
 import MdExplore from "@material-design-icons/svg/filled/explore.svg?component-solid";
 import MdGroups3 from "@material-design-icons/svg/filled/groups_3.svg?component-solid";
 import MdHome from "@material-design-icons/svg/filled/home.svg?component-solid";
-import MdPayments from "@material-design-icons/svg/filled/payments.svg?component-solid";
 import MdRateReview from "@material-design-icons/svg/filled/rate_review.svg?component-solid";
 import MdSettings from "@material-design-icons/svg/filled/settings.svg?component-solid";
 
@@ -175,16 +174,6 @@ export function HomePage() {
                 </CategoryButton>
               </Match>
             </Switch>
-            <CategoryButton
-              variant="tertiary"
-              onClick={() => window.open("https://ko-fi.com/stoatchat")}
-              description={
-                <Trans>Support the project by donating - thank you!</Trans>
-              }
-              icon={<MdPayments />}
-            >
-              <Trans>Donate to Stoat</Trans>
-            </CategoryButton>
           </SeparatedColumn>
           <SeparatedColumn>
             <Show when={CONFIGURATION.IS_STOAT}>
@@ -200,23 +189,25 @@ export function HomePage() {
                 <Trans>Discover Stoat</Trans>
               </CategoryButton>
             </Show>
-            <CategoryButton
-              onClick={() =>
-                openModal({
-                  type: "settings",
-                  config: "user",
-                  context: { page: "feedback" },
-                })
-              }
-              description={
-                <Trans>
-                  Let us know how we can improve our app by giving us feedback.
-                </Trans>
-              }
-              icon={<MdRateReview {...iconSize(22)} />}
-            >
-              <Trans>Give feedback on Stoat</Trans>
-            </CategoryButton>
+            <Show when={CONFIGURATION.IS_STOAT}>
+              <CategoryButton
+                onClick={() =>
+                  openModal({
+                    type: "settings",
+                    config: "user",
+                    context: { page: "feedback" },
+                  })
+                }
+                description={
+                  <Trans>
+                    Let us know how we can improve our app by giving us feedback.
+                  </Trans>
+                }
+                icon={<MdRateReview {...iconSize(22)} />}
+              >
+                <Trans>Give feedback on Stoat</Trans>
+              </CategoryButton>
+            </Show>
             <CategoryButton
               onClick={() => openModal({ type: "settings", config: "user" })}
               description={

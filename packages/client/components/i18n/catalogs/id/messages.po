@@ -1249,7 +1249,7 @@ msgstr "Discord RPC"
 
 #: src/interface/Home.tsx
 msgid "Discover Stoat"
-msgstr "Temukan Stoat"
+msgstr "Temukan Vortex"
 
 #: components/app/interface/settings/user/appearance/AppearanceMenu.tsx
 msgid "Display & Text"
@@ -1292,11 +1292,11 @@ msgstr "Donasi"
 
 #: src/interface/Home.tsx
 msgid "Donate to Stoat"
-msgstr "Donasi untuk Stoat"
+msgstr "Donasi untuk Vortex"
 
 #: components/ui/components/features/profiles/ProfileBadges.tsx
 msgid "Donated to Stoat"
-msgstr "Didonasikan kepada Stoat"
+msgstr "Didonasikan kepada Vortex"
 
 #: components/modal/modals/MFARecovery.tsx
 msgid "Done"
@@ -1465,7 +1465,7 @@ msgstr "Kekerasan ekstrem, adegan berdarah, atau kekejaman terhadap hewan"
 
 #: components/client/NotificationsController.ts
 msgid "Failed to enable notifications. Stoat does not have notification permission."
-msgstr ""
+msgstr "Failed to enable notifications. Vortex does not have notification permission."
 
 #: components/client/NotificationsController.ts
 msgid "Failed to enable push notifications. Please try again later."
@@ -1580,7 +1580,7 @@ msgstr ""
 
 #: src/interface/Home.tsx
 msgid "Give feedback on Stoat"
-msgstr "Berikan umpan balik terhadap Stoat"
+msgstr "Berikan umpan balik terhadap Vortex"
 
 #: components/modal/modals/ReportContent.tsx
 msgid "Give us some detail"
@@ -1606,7 +1606,7 @@ msgstr "Pergi ke pengaturan akun untuk menyunting nama pengguna kamu"
 #: src/interface/Home.tsx
 #: components/app/interface/settings/user/Feedback.tsx
 msgid "Go to the Stoat Lounge"
-msgstr "Pergi ke Lounge Stoat"
+msgstr "Pergi ke Lounge Vortex"
 
 #~ msgid "Go to the testers server"
 #~ msgstr "Pergi ke server penguji"
@@ -1660,7 +1660,7 @@ msgstr "Bantu berkontribusi terhadap bahasa baru atau yang sudah ada"
 
 #: components/ui/components/features/profiles/ProfileBadges.tsx
 msgid "Helped translate Stoat"
-msgstr "Membantu menerjemahkan Stoat"
+msgstr "Membantu menerjemahkan Vortex"
 
 #. placeholder {0}: link()
 #: components/modal/modals/CreateInvite.tsx
@@ -1713,11 +1713,11 @@ msgstr "Peniruan"
 
 #: src/AndroidNag.tsx
 msgid "In the meantime, install Stoat from Google Play for a faster, smoother experience designed for Android."
-msgstr ""
+msgstr "In the meantime, install Vortex from Google Play for a faster, smoother experience designed for Android."
 
 #: components/app/interface/settings/user/Native.tsx
 msgid "Instead of closing, Stoat will hide in your tray."
-msgstr "Daripada menutup, Stoat akan bersembunyi dalam tray kamu."
+msgstr "Daripada menutup, Vortex akan bersembunyi dalam tray kamu."
 
 #: components/app/interface/settings/user/appearance/AppearanceMenu.tsx
 msgid "Interface Font"
@@ -1783,7 +1783,7 @@ msgstr "Bergabung ke server"
 #: src/interface/Home.tsx
 #: components/app/interface/settings/user/Feedback.tsx
 msgid "Join the Stoat Lounge"
-msgstr "Bergabung ke Longue Stoat"
+msgstr "Bergabung ke Longue Vortex"
 
 #: src/interface/channels/ChannelHeader.tsx
 #: components/ui/components/features/voice/callCard/VoiceCallCardPreview.tsx
@@ -1842,7 +1842,7 @@ msgstr "Terbaru"
 
 #: components/app/interface/settings/user/Native.tsx
 msgid "Launch Stoat when you log into your computer."
-msgstr "Luncurkan Stoat ketika kamu masuk ke komputermu."
+msgstr "Luncurkan Vortex ketika kamu masuk ke komputermu."
 
 #: components/ui/components/features/messaging/composition/picker/GifPicker.tsx
 msgid "Learn more"
@@ -2185,7 +2185,7 @@ msgstr "Kata Sandi Baru"
 
 #: components/app/interface/channels/text/Message.tsx
 msgid "New to Stoat"
-msgstr "Pendatang Baru di Stoat"
+msgstr "Pendatang Baru di Vortex"
 
 #: components/app/interface/channels/text/Message.tsx
 msgid "New to the server"
@@ -2579,7 +2579,7 @@ msgstr "Ubah Nama Sesi"
 
 #: components/app/interface/settings/user/Native.tsx
 msgid "Rep Stoat using Discord rich presence."
-msgstr "Rep Stoat menggunakan Discord rich presence."
+msgstr "Rep Vortex menggunakan Discord rich presence."
 
 #: components/app/menus/MessageContextMenu.tsx
 msgid "Reply"
@@ -2901,7 +2901,7 @@ msgstr "Tampilkan tombol kirim pesan"
 
 #: components/auth/src/flows/FlowLogin.tsx
 msgid "Sign into Stoat"
-msgstr "Masuk ke dalam Stoat"
+msgstr "Masuk ke dalam Vortex"
 
 #: components/auth/src/flows/FlowHome.tsx
 msgid "Sign Up"
@@ -2988,27 +2988,27 @@ msgstr "Status"
 
 #: components/ui/components/features/profiles/ProfileBadges.tsx
 msgid "Stoat Developer"
-msgstr "Pengembang Stoat"
+msgstr "Pengembang Vortex"
 
 #: components/app/interface/settings/user/Native.tsx
 msgid "Stoat for Desktop"
-msgstr "Stoat untuk Desktop"
+msgstr "Vortex untuk Desktop"
 
 #: components/ui/components/features/profiles/ProfileBadges.tsx
 msgid "Stoat Founder"
-msgstr "Pendiri Stoat"
+msgstr "Pendiri Vortex"
 
 #: components/auth/src/flows/FlowHome.tsx
 msgid "Stoat is one of the best ways to stay connected with your friends and community, anywhere, anytime."
-msgstr "Stoat adalah salah satu cara terbaik untuk tetap terhubung dengan temen dan komunitas kamu, dimana pun, kapan pun."
+msgstr "Vortex adalah salah satu cara terbaik untuk tetap terhubung dengan temen dan komunitas kamu, dimana pun, kapan pun."
 
 #: components/app/interface/settings/user/Native.tsx
 msgid "Stoat will start in the system tray."
-msgstr ""
+msgstr "Vortex will start in the system tray."
 
 #: src/AndroidNag.tsx
 msgid "Stoat works best as an app"
-msgstr ""
+msgstr "Vortex works best as an app"
 
 #: components/ui/components/features/voice/callCard/VoiceCallCardActions.tsx
 msgid "Stop camera"
@@ -3044,7 +3044,7 @@ msgstr "Langganan"
 
 #: components/app/interface/settings/user/Feedback.tsx
 msgid "Suggest new Stoat features on GitHub discussions."
-msgstr "Sarankan fitur Stoat baru di diskusi GitHub."
+msgstr "Sarankan fitur Vortex baru di diskusi GitHub."
 
 #: src/interface/Home.tsx
 msgid "Support the project by donating - thank you!"
@@ -3251,7 +3251,7 @@ msgstr "Buka Blokir"
 #. placeholder {0}: err.type
 #: components/i18n/errors.tsx
 msgid "Uncaught Stoat error: {0}"
-msgstr "Kegalatan Stoat: {0}"
+msgstr "Kegalatan Vortex: {0}"
 
 #: components/ui/components/features/voice/callCard/VoiceCallCardActions.tsx
 #: components/app/interface/settings/user/notifications/Sounds.tsx
@@ -3683,7 +3683,7 @@ msgstr "Kamu telah diundang untuk bergabung ke server ini.<0/>Apakah kamu ingin 
 
 #: components/modal/modals/SignedOut.tsx
 msgid "You've been signed out of Stoat!"
-msgstr "Kamu telah keluar dari Stoat!"
+msgstr "Kamu telah keluar dari Vortex!"
 
 #: components/i18n/errors.tsx
 msgid "You've reached your personal bot limit."

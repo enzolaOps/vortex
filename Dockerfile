@@ -1,7 +1,11 @@
 # ============================================
 # Stage 1: Build the web client
 # ============================================
-FROM node:24-alpine AS builder
+# Pinned to the BUILD platform, not the target. This stage only produces static
+# JS and CSS, which is architecture independent, so it runs natively on the
+# amd64 CI runner even when the image being built is arm64. Without this the
+# whole pnpm install and vite build would run under QEMU and take about an hour.
+FROM --platform=$BUILDPLATFORM node:24-alpine AS builder
 
 RUN apk add --no-cache git python3 make g++
 
@@ -54,6 +58,9 @@ RUN pnpm --filter client exec vite build
 # ============================================
 # Stage 2: Minimal runtime image
 # ============================================
+# This one DOES follow the target platform: it is the image that ships. The only
+# dependency is sirv-cli, which is pure JavaScript, so the install below is
+# cheap even when emulated.
 FROM node:24-alpine
 
 WORKDIR /app

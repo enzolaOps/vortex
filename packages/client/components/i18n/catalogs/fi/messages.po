@@ -1465,7 +1465,7 @@ msgstr "Äärimmäistä väkivaltaa, raakaa/veristä kuvastoa tai eläinrääkk�
 
 #: components/client/NotificationsController.ts
 msgid "Failed to enable notifications. Stoat does not have notification permission."
-msgstr ""
+msgstr "Failed to enable notifications. Vortex does not have notification permission."
 
 #: components/client/NotificationsController.ts
 msgid "Failed to enable push notifications. Please try again later."
@@ -1713,11 +1713,11 @@ msgstr ""
 
 #: src/AndroidNag.tsx
 msgid "In the meantime, install Stoat from Google Play for a faster, smoother experience designed for Android."
-msgstr ""
+msgstr "In the meantime, install Vortex from Google Play for a faster, smoother experience designed for Android."
 
 #: components/app/interface/settings/user/Native.tsx
 msgid "Instead of closing, Stoat will hide in your tray."
-msgstr "Sulkeutumisen sijaan, Stoat piiloutuu tehtäväpalkkiisi."
+msgstr "Sulkeutumisen sijaan, Vortex piiloutuu tehtäväpalkkiisi."
 
 #: components/app/interface/settings/user/appearance/AppearanceMenu.tsx
 msgid "Interface Font"
@@ -1783,7 +1783,7 @@ msgstr "Liity palvelimelle"
 #: src/interface/Home.tsx
 #: components/app/interface/settings/user/Feedback.tsx
 msgid "Join the Stoat Lounge"
-msgstr "Liity Stoat Loungeen"
+msgstr "Liity Vortex Loungeen"
 
 #: src/interface/channels/ChannelHeader.tsx
 #: components/ui/components/features/voice/callCard/VoiceCallCardPreview.tsx
@@ -1842,7 +1842,7 @@ msgstr "Viimeisin"
 
 #: components/app/interface/settings/user/Native.tsx
 msgid "Launch Stoat when you log into your computer."
-msgstr "Käynnistä Stoat kun kirjaudut tietokoneellesi."
+msgstr "Käynnistä Vortex kun kirjaudut tietokoneellesi."
 
 #: components/ui/components/features/messaging/composition/picker/GifPicker.tsx
 msgid "Learn more"
@@ -2992,7 +2992,7 @@ msgstr "Stoatin kehittäjä"
 
 #: components/app/interface/settings/user/Native.tsx
 msgid "Stoat for Desktop"
-msgstr "Stoat-työpöytäsovellus"
+msgstr "Vortex-työpöytäsovellus"
 
 #: components/ui/components/features/profiles/ProfileBadges.tsx
 msgid "Stoat Founder"
@@ -3000,15 +3000,15 @@ msgstr "Stoatin Perustaja"
 
 #: components/auth/src/flows/FlowHome.tsx
 msgid "Stoat is one of the best ways to stay connected with your friends and community, anywhere, anytime."
-msgstr "Stoat on yksi parhaista tavoista pysyä yhteydessä ystäviisi ja yhteisöihisi missä vain, milloin vain."
+msgstr "Vortex on yksi parhaista tavoista pysyä yhteydessä ystäviisi ja yhteisöihisi missä vain, milloin vain."
 
 #: components/app/interface/settings/user/Native.tsx
 msgid "Stoat will start in the system tray."
-msgstr ""
+msgstr "Vortex will start in the system tray."
 
 #: src/AndroidNag.tsx
 msgid "Stoat works best as an app"
-msgstr ""
+msgstr "Vortex works best as an app"
 
 #: components/ui/components/features/voice/callCard/VoiceCallCardActions.tsx
 msgid "Stop camera"
@@ -3251,7 +3251,7 @@ msgstr "Poista käyttäjän esto"
 #. placeholder {0}: err.type
 #: components/i18n/errors.tsx
 msgid "Uncaught Stoat error: {0}"
-msgstr "Käsittelemätön Stoat virhe: {0}"
+msgstr "Käsittelemätön Vortex virhe: {0}"
 
 #: components/ui/components/features/voice/callCard/VoiceCallCardActions.tsx
 #: components/app/interface/settings/user/notifications/Sounds.tsx

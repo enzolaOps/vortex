@@ -1245,7 +1245,7 @@ msgstr "Discord RPC"
 
 #: src/interface/Home.tsx
 msgid "Discover Stoat"
-msgstr "Oppdag Stoat"
+msgstr "Oppdag Vortex"
 
 #: components/app/interface/settings/user/appearance/AppearanceMenu.tsx
 msgid "Display & Text"
@@ -1288,11 +1288,11 @@ msgstr "Doner"
 
 #: src/interface/Home.tsx
 msgid "Donate to Stoat"
-msgstr "Doner til Stoat"
+msgstr "Doner til Vortex"
 
 #: components/ui/components/features/profiles/ProfileBadges.tsx
 msgid "Donated to Stoat"
-msgstr "Donerte til Stoat"
+msgstr "Donerte til Vortex"
 
 #: components/modal/modals/MFARecovery.tsx
 msgid "Done"
@@ -1461,7 +1461,7 @@ msgstr "Ekstrem vold, blod eller dyremishandling"
 
 #: components/client/NotificationsController.ts
 msgid "Failed to enable notifications. Stoat does not have notification permission."
-msgstr ""
+msgstr "Failed to enable notifications. Vortex does not have notification permission."
 
 #: components/client/NotificationsController.ts
 msgid "Failed to enable push notifications. Please try again later."
@@ -1576,7 +1576,7 @@ msgstr ""
 
 #: src/interface/Home.tsx
 msgid "Give feedback on Stoat"
-msgstr "Gi oss tilbakemeldinger for Stoat"
+msgstr "Gi oss tilbakemeldinger for Vortex"
 
 #: components/modal/modals/ReportContent.tsx
 msgid "Give us some detail"
@@ -1602,7 +1602,7 @@ msgstr "Gå til kontoinstillinger for å redigere brukernavnet ditt"
 #: src/interface/Home.tsx
 #: components/app/interface/settings/user/Feedback.tsx
 msgid "Go to the Stoat Lounge"
-msgstr "Gå til Stoat Lounge"
+msgstr "Gå til Vortex Lounge"
 
 #~ msgid "Go to the testers server"
 #~ msgstr "Gå til tester serveren"
@@ -1656,7 +1656,7 @@ msgstr "Hjelp å bidra til et eksisterende eller nytt språk"
 
 #: components/ui/components/features/profiles/ProfileBadges.tsx
 msgid "Helped translate Stoat"
-msgstr "Hjalp å oversette Stoat"
+msgstr "Hjalp å oversette Vortex"
 
 #. placeholder {0}: link()
 #: components/modal/modals/CreateInvite.tsx
@@ -1709,11 +1709,11 @@ msgstr "Utgi deg for å være noen andre"
 
 #: src/AndroidNag.tsx
 msgid "In the meantime, install Stoat from Google Play for a faster, smoother experience designed for Android."
-msgstr ""
+msgstr "In the meantime, install Vortex from Google Play for a faster, smoother experience designed for Android."
 
 #: components/app/interface/settings/user/Native.tsx
 msgid "Instead of closing, Stoat will hide in your tray."
-msgstr "I stedet for å lukke, Stoat vil gjemme seg i systemskuffen."
+msgstr "I stedet for å lukke, Vortex vil gjemme seg i systemskuffen."
 
 #: components/app/interface/settings/user/appearance/AppearanceMenu.tsx
 msgid "Interface Font"
@@ -1779,7 +1779,7 @@ msgstr "Bli med i en server"
 #: src/interface/Home.tsx
 #: components/app/interface/settings/user/Feedback.tsx
 msgid "Join the Stoat Lounge"
-msgstr "Bli med i Stoat Lounge"
+msgstr "Bli med i Vortex Lounge"
 
 #: src/interface/channels/ChannelHeader.tsx
 #: components/ui/components/features/voice/callCard/VoiceCallCardPreview.tsx
@@ -1838,7 +1838,7 @@ msgstr "Seneste"
 
 #: components/app/interface/settings/user/Native.tsx
 msgid "Launch Stoat when you log into your computer."
-msgstr "Start Stoat når du logger inn på datamaskinen din."
+msgstr "Start Vortex når du logger inn på datamaskinen din."
 
 #: components/ui/components/features/messaging/composition/picker/GifPicker.tsx
 msgid "Learn more"
@@ -1870,7 +1870,7 @@ msgstr "Forlat server"
 
 #: components/app/interface/settings/user/Native.tsx
 msgid "Let Stoat use its own custom titlebar."
-msgstr "La Stoat bruke sin egne tittelbar."
+msgstr "La Vortex bruke sin egne tittelbar."
 
 #: src/interface/Home.tsx
 msgid "Let us know how we can improve our app by giving us feedback."
@@ -2181,7 +2181,7 @@ msgstr "Nytt Passord"
 
 #: components/app/interface/channels/text/Message.tsx
 msgid "New to Stoat"
-msgstr "Ny til Stoat"
+msgstr "Ny til Vortex"
 
 #: components/app/interface/channels/text/Message.tsx
 msgid "New to the server"
@@ -2575,7 +2575,7 @@ msgstr "Gi nytt navn til økten"
 
 #: components/app/interface/settings/user/Native.tsx
 msgid "Rep Stoat using Discord rich presence."
-msgstr "Representer Stoat ved å bruke Discord RPC."
+msgstr "Representer Vortex ved å bruke Discord RPC."
 
 #: components/app/menus/MessageContextMenu.tsx
 msgid "Reply"
@@ -2897,7 +2897,7 @@ msgstr "Vis \"Send melding\" knappen"
 
 #: components/auth/src/flows/FlowLogin.tsx
 msgid "Sign into Stoat"
-msgstr "Logg inn på Stoat"
+msgstr "Logg inn på Vortex"
 
 #: components/auth/src/flows/FlowHome.tsx
 msgid "Sign Up"
@@ -2988,7 +2988,7 @@ msgstr "Stoatutvikler"
 
 #: components/app/interface/settings/user/Native.tsx
 msgid "Stoat for Desktop"
-msgstr "Stoat for Stasjonær"
+msgstr "Vortex for Stasjonær"
 
 #: components/ui/components/features/profiles/ProfileBadges.tsx
 msgid "Stoat Founder"
@@ -2996,15 +2996,15 @@ msgstr "Stoatgrunnlegger"
 
 #: components/auth/src/flows/FlowHome.tsx
 msgid "Stoat is one of the best ways to stay connected with your friends and community, anywhere, anytime."
-msgstr "Stoat er en av de beste måtene å holde seg tilkoblet med vennene dine og samfunnet ditt, hvor som helst, når som helst."
+msgstr "Vortex er en av de beste måtene å holde seg tilkoblet med vennene dine og samfunnet ditt, hvor som helst, når som helst."
 
 #: components/app/interface/settings/user/Native.tsx
 msgid "Stoat will start in the system tray."
-msgstr ""
+msgstr "Vortex will start in the system tray."
 
 #: src/AndroidNag.tsx
 msgid "Stoat works best as an app"
-msgstr ""
+msgstr "Vortex works best as an app"
 
 #: components/ui/components/features/voice/callCard/VoiceCallCardActions.tsx
 msgid "Stop camera"
@@ -3040,7 +3040,7 @@ msgstr "Abonnomenter"
 
 #: components/app/interface/settings/user/Feedback.tsx
 msgid "Suggest new Stoat features on GitHub discussions."
-msgstr "Foreslå nye funksjoner for Stoat på Github-diskusjoner."
+msgstr "Foreslå nye funksjoner for Vortex på Github-diskusjoner."
 
 #: src/interface/Home.tsx
 msgid "Support the project by donating - thank you!"
@@ -3247,7 +3247,7 @@ msgstr "Avblokker bruker"
 #. placeholder {0}: err.type
 #: components/i18n/errors.tsx
 msgid "Uncaught Stoat error: {0}"
-msgstr "Ufanget Stoat error: {0}"
+msgstr "Ufanget Vortex error: {0}"
 
 #: components/ui/components/features/voice/callCard/VoiceCallCardActions.tsx
 #: components/app/interface/settings/user/notifications/Sounds.tsx
@@ -3679,7 +3679,7 @@ msgstr "Du har blitt invitert til å bli med i denne sørveren.<0/>Har du lyst t
 
 #: components/modal/modals/SignedOut.tsx
 msgid "You've been signed out of Stoat!"
-msgstr "Du har blitt logget ut av Stoat!"
+msgstr "Du har blitt logget ut av Vortex!"
 
 #: components/i18n/errors.tsx
 msgid "You've reached your personal bot limit."
