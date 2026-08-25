@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop">
+  <id>io.github.enzolaOps.Vortex</id>
+  <launchable type="desktop-id">io.github.enzolaOps.Vortex.desktop</launchable>
+  <name>Vortex</name>
+  <developer id="io.github.enzolaOps">
+    <name>enzolaOps</name>
+  </developer>
+  <summary>Desktop shell for the Vortex chat platform</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>AGPL-3.0-or-later</project_license>
+  <description>
+    <p>Vortex is a self-hosted chat platform. Send messages, share images,
+      mention users, and join voice channels — all from a native desktop
+      application.</p>
+    <p>This is a modified version of Stoat for Desktop, not affiliated with or
+      endorsed by the Stoat project.</p>
+  </description>
+  <releases>
+    <release date="2026-08-25" version="0.1.0">
+      <description>
+        <p>First Vortex release. Forked from Stoat for Desktop 1.5.3, rebranded,
+          with Discord Rich Presence and the GitHub auto-updater removed.</p>
+      </description>
+    </release>
+  </releases>
+  <url type="bugtracker">https://github.com/enzolaOps/vortex/issues</url>
+  <url type="vcs-browser">https://github.com/enzolaOps/vortex</url>
+  <content_rating type="oars-1.1">
+    <content_attribute id="social-chat">intense</content_attribute>
+    <content_attribute id="social-info">intense</content_attribute>
+    <content_attribute id="social-audio">intense</content_attribute>
+    <content_attribute id="social-contacts">intense</content_attribute>
+  </content_rating>
+  <requires>
+    <display_length compare="ge">940</display_length>
+    <internet>always</internet>
+  </requires>
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </supports>
+</component>

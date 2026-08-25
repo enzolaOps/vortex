@@ -1,2 +1,2 @@
-export const sinkName = "stoat-virtual-sink";
-export const sourceName = "stoat-virtual-source";
+export const sinkName = "vortex-virtual-sink";
+export const sourceName = "vortex-virtual-source";

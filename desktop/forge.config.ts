@@ -1,12 +1,8 @@
-import { MakerAppX } from "@electron-forge/maker-appx";
 import { MakerDeb } from "@electron-forge/maker-deb";
 import { MakerFlatpak } from "@electron-forge/maker-flatpak";
 import { MakerFlatpakOptionsConfig } from "@electron-forge/maker-flatpak/dist/Config";
-import { MakerSquirrel } from "@electron-forge/maker-squirrel";
-import { MakerZIP } from "@electron-forge/maker-zip";
 import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import { VitePlugin } from "@electron-forge/plugin-vite";
-import { PublisherGithub } from "@electron-forge/publisher-github";
 import type { ForgeConfig } from "@electron-forge/shared-types";
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
 import fs from "node:fs";
@@ -15,34 +11,23 @@ import path from "node:path";
 // import { globSync } from "node:fs";
 
 const STRINGS = {
-  author: "Revolt Platforms LTD",
-  name: "Stoat",
-  execName: "stoat-desktop",
-  description: "Open source user-first chat platform.",
+  author: "enzolaOps",
+  name: "Vortex",
+  execName: "vortex-desktop",
+  description: "Desktop shell for the Vortex chat platform.",
 };
 
-const ASSET_DIR = "assets/desktop";
+const APP_ID = "io.github.enzolaOps.Vortex";
+
+const ASSET_DIR = "assets";
 
 /**
  * Build targets for the desktop app
  */
 const makers: ForgeConfig["makers"] = [
-  new MakerSquirrel({
-    name: STRINGS.name,
-    authors: STRINGS.author,
-    // todo: hoist this
-    iconUrl: `https://stoat.chat/app/assets/icon-DUSNE-Pb.ico`,
-    // todo: loadingGif
-    setupIcon: `${ASSET_DIR}/icon.ico`,
-    description: STRINGS.description,
-    exe: `${STRINGS.execName}.exe`,
-    setupExe: `${STRINGS.execName}-setup.exe`,
-    copyright: "Copyright (C) 2025 Revolt Platforms LTD",
-  }),
-  new MakerZIP({}),
   new MakerFlatpak({
     options: {
-      id: "chat.stoat.StoatDesktop",
+      id: APP_ID,
       description: STRINGS.description,
       productName: STRINGS.name,
       productDescription: STRINGS.description,
@@ -92,7 +77,7 @@ const makers: ForgeConfig["makers"] = [
         "--talk-name=com.canonical.Unity",
         "--env=XCURSOR_PATH=/run/host/user-share/icons:/run/host/share/icons",
         "--env=ELECTRON_TRASH=gio",
-        "--env=TMPDIR=xdg-run/app/chat.stoat.StoatDesktop",
+        `--env=TMPDIR=xdg-run/app/${APP_ID}`,
       ],
       files: [],
     } as MakerFlatpakOptionsConfig,
@@ -102,13 +87,6 @@ const makers: ForgeConfig["makers"] = [
 // skip these makers in CI/CD
 if (!process.env.PLATFORM) {
   makers.push(
-    // must be manually built (freezes CI process)
-    // not much use in being published anyhow
-    new MakerAppX({
-      certPass: "",
-      packageExecutable: `app\\${STRINGS.execName}.exe`,
-      publisher: "CN=B040CC7E-0016-4AF5-957F-F8977A6CFA3B",
-    }),
     // testing purposes
     new MakerDeb({
       options: {
@@ -193,14 +171,6 @@ const config: ForgeConfig = {
       [FuseV1Options.EnableNodeCliInspectArguments]: false,
       [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
       [FuseV1Options.OnlyLoadAppFromAsar]: true,
-    }),
-  ],
-  publishers: [
-    new PublisherGithub({
-      repository: {
-        owner: "stoatchat",
-        name: "for-desktop",
-      },
     }),
   ],
 };

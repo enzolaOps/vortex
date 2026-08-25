@@ -3,7 +3,6 @@ import { type JSONSchema } from "json-schema-typed";
 import { ipcMain } from "electron";
 import Store from "electron-store";
 
-import { destroyDiscordRpc, initDiscordRpc } from "./discordRpc";
 import { mainWindow } from "./window";
 
 const schema = {
@@ -23,9 +22,6 @@ const schema = {
     type: "boolean",
   } as JSONSchema.Boolean,
   hardwareAcceleration: {
-    type: "boolean",
-  } as JSONSchema.Boolean,
-  discordRpc: {
     type: "boolean",
   } as JSONSchema.Boolean,
   windowState: {
@@ -59,7 +55,6 @@ const store = new Store({
     startMinimisedToTray: false,
     spellchecker: true,
     hardwareAcceleration: true,
-    discordRpc: true,
     windowState: {
       x: 0,
       y: 0,
@@ -82,7 +77,6 @@ class Config {
       startMinimisedToTray: this.startMinimisedToTray,
       spellchecker: this.spellchecker,
       hardwareAcceleration: this.hardwareAcceleration,
-      discordRpc: this.discordRpc,
       windowState: this.windowState,
     });
   }
@@ -167,25 +161,6 @@ class Config {
   set hardwareAcceleration(value: boolean) {
     (store as never as { set(k: string, value: boolean): void }).set(
       "hardwareAcceleration",
-      value,
-    );
-
-    this.sync();
-  }
-
-  get discordRpc() {
-    return (store as never as { get(k: string): boolean }).get("discordRpc");
-  }
-
-  set discordRpc(value: boolean) {
-    if (value) {
-      initDiscordRpc();
-    } else {
-      destroyDiscordRpc();
-    }
-
-    (store as never as { set(k: string, value: boolean): void }).set(
-      "discordRpc",
       value,
     );
 

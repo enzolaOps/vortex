@@ -14,8 +14,6 @@ contextBridge.exposeInMainWorld("native", {
   maximise: () => ipcRenderer.send("maximise"),
   close: () => ipcRenderer.send("close"),
 
-  setBadgeCount: (count: number) => ipcRenderer.send("setBadgeCount", count),
-
   onceScreenPicker: (
     onScreenPick: (
       sources: {

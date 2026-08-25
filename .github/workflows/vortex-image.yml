@@ -23,6 +23,8 @@ on:
       - main
     paths-ignore:
       - "**/*.md"
+      # The Electron shell is built by hand; it shares no build with the image.
+      - "desktop/**"
   workflow_dispatch:
 
 concurrency:

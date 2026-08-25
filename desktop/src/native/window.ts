@@ -11,7 +11,7 @@ import {
   session,
 } from "electron";
 
-import windowIconAsset from "../../assets/desktop/icon.png?asset";
+import windowIconAsset from "../../assets/icon.png?asset";
 
 import { config } from "./config";
 import { updateTrayMenu } from "./tray";
@@ -23,7 +23,7 @@ export let mainWindow: BrowserWindow;
 export const BUILD_URL = new URL(
   app.commandLine.hasSwitch("force-server")
     ? app.commandLine.getSwitchValue("force-server")
-    : /*MAIN_WINDOW_VITE_DEV_SERVER_URL ??*/ "https://stoat.chat/app",
+    : __VORTEX_APP_URL__,
 );
 
 // internal window state
@@ -262,8 +262,6 @@ export function createMainWindow() {
 
   // mainWindow.webContents.openDevTools();
 
-  // let i = 0;
-  // setInterval(() => setBadgeCount((++i % 30) + 1), 1000);
 }
 
 /**

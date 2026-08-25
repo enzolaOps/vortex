@@ -4,7 +4,6 @@ declare type DesktopConfig = {
   minimiseToTray: boolean;
   spellchecker: boolean;
   hardwareAcceleration: boolean;
-  discordRpc: boolean;
   windowState: {
     x: number;
     y: number;
@@ -13,3 +12,6 @@ declare type DesktopConfig = {
     isMaximised: boolean;
   };
 };
+
+/** Instance URL baked in at build time from `VORTEX_APP_URL`. */
+declare const __VORTEX_APP_URL__: string;

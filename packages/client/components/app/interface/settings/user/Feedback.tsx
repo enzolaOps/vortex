@@ -44,7 +44,7 @@ export function Feedback() {
           </CategoryButton>
         </Link> */}
         <Link
-          href="https://github.com/orgs/stoatchat/discussions/categories/feature-suggestions"
+          href="https://github.com/enzolaOps/vortex/issues/new"
           target="_blank"
         >
           <CategoryButton
@@ -52,14 +52,14 @@ export function Feedback() {
             icon={<MdStar {...iconSize(22)} />}
             ignoreClick
             description={
-              <Trans>Suggest new Stoat features on GitHub discussions.</Trans>
+              <Trans>Suggest new Vortex features on GitHub.</Trans>
             }
           >
             <Trans>Submit feature suggestion</Trans>
           </CategoryButton>
         </Link>
         <Link
-          href="https://github.com/orgs/stoatchat/discussions/categories/feedback"
+          href="https://github.com/enzolaOps/vortex/issues/new"
           target="_blank"
         >
           <CategoryButton
@@ -72,7 +72,7 @@ export function Feedback() {
           </CategoryButton>
         </Link>
         <Link
-          href="https://github.com/stoatchat/for-web/issues?q=is%3Aissue%20state%3Aopen%20type%3ABug"
+          href="https://github.com/enzolaOps/vortex/issues?q=is%3Aissue%20state%3Aopen%20label%3Abug"
           target="_blank"
         >
           <CategoryButton

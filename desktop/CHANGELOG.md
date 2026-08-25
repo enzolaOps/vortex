@@ -1,5 +1,9 @@
 # Changelog
 
+Everything below `1.5.3` is upstream's history, kept for attribution — this
+directory is a subtree of stoatchat/for-desktop at that tag. Vortex versions
+start at `0.1.0`; see `../VORTEX.md`.
+
 ## [1.5.3](https://github.com/stoatchat/for-desktop/compare/v1.5.2...v1.5.3) (2026-08-19)
 
 

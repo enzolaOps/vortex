@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Vortex
+Comment=Chat platform
+Exec=vortex-desktop
+Terminal=false
+Type=Application
+Icon=io.github.enzolaOps.Vortex
+Categories=Network;InstantMessaging
+StartupWMClass=vortex-desktop
+X-Desktop-File-Install-Version=0.26
+X-Flatpak=io.github.enzolaOps.Vortex

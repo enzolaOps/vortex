@@ -12,7 +12,6 @@ declare type DesktopConfig = {
   startMinimisedToTray: boolean;
   spellchecker: boolean;
   hardwareAcceleration: boolean;
-  discordRpc: boolean;
   windowState: {
     isMaximised: boolean;
   };
@@ -58,11 +57,13 @@ declare global {
 export default function Native() {
   const { t } = useLingui();
   const [autostart, setAutostart] = createSignal(false);
-  const [config, setConfig] = createSignal(window.desktopConfig.get());
+  const [config, setConfig] = createSignal<DesktopConfig>(
+    window.desktopConfig.get(),
+  );
 
   function set(config: Partial<DesktopConfig>) {
     window.desktopConfig.set(config);
-    setConfig((conf) => ({ ...conf, ...config }));
+    setConfig((conf: DesktopConfig) => ({ ...conf, ...config }));
   }
 
   onMount(async () => {
@@ -81,7 +82,6 @@ export default function Native() {
     startMinimisedToTray: () =>
       set({ startMinimisedToTray: !config().startMinimisedToTray }),
     customFrame: () => set({ customFrame: !config().customFrame }),
-    discordRpc: () => set({ discordRpc: !config().discordRpc }),
     spellchecker: () => set({ spellchecker: !config().spellchecker }),
     hardwareAcceleration: () =>
       set({ hardwareAcceleration: !config().hardwareAcceleration }),
@@ -140,12 +140,6 @@ export default function Native() {
       </CategoryButton.Group>
 
       <CategoryButton.Group>
-        {CheckboxButton(
-          "discordRpc",
-          "groups_2",
-          t`Discord RPC`,
-          t`Rep Stoat using Discord rich presence.`,
-        )}
         {CheckboxButton(
           "spellchecker",
           "spellcheck",

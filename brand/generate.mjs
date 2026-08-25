@@ -93,3 +93,25 @@ copyFileSync(resolve(here, "wordmark.svg"), resolve(out, "wordmark.svg"));
 console.log("monochrome.svg, wordmark.svg");
 
 console.log(`\nWrote to ${out}`);
+
+// --- Desktop assets ---------------------------------------------------------
+// The Electron shell in desktop/ has the same problem as the web client: the
+// upstream icons live in a private submodule. forge.config.ts and the tray
+// read these paths.
+const desktopOut = resolve(root, "desktop/assets");
+mkdirSync(resolve(desktopOut, "hicolor"), { recursive: true });
+
+for (const size of [16, 32, 64, 128, 256, 512]) {
+  await render(size).toFile(resolve(desktopOut, `hicolor/${size}x${size}.png`));
+}
+await render(512).toFile(resolve(desktopOut, "icon.png"));
+copyFileSync(resolve(out, "icon.ico"), resolve(desktopOut, "icon.ico"));
+
+// macOS tray icon: a template image is tinted by the OS, so only the alpha
+// channel matters. Rendered from the monochrome mark at 2x for retina.
+await sharp(readFileSync(resolve(here, "monochrome.svg")), { density: 900 })
+  .resize(40, 40)
+  .png({ compressionLevel: 9 })
+  .toFile(resolve(desktopOut, "iconTemplate.png"));
+
+console.log(`Wrote to ${desktopOut}`);

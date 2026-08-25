@@ -1,7 +1,7 @@
 import { Show } from "solid-js";
 
 import { Trans } from "@lingui-solid/solid/macro";
-import { Server } from "stoat.js";
+import type { Server } from "stoat.js";
 import { css } from "styled-system/css";
 
 import { useClient, useClientLifecycle } from "@revolt/client";
@@ -14,7 +14,6 @@ import { Symbol } from "@revolt/ui/components/utils/Symbol";
 
 import MdAccountCircle from "@material-design-icons/svg/outlined/account_circle.svg?component-solid";
 import MdCampaign from "@material-design-icons/svg/outlined/campaign.svg?component-solid";
-import MdCoffee from "@material-design-icons/svg/outlined/coffee.svg?component-solid";
 import MdLanguage from "@material-design-icons/svg/outlined/language.svg?component-solid";
 import MdLogout from "@material-design-icons/svg/outlined/logout.svg?component-solid";
 import MdMemory from "@material-design-icons/svg/outlined/memory.svg?component-solid";
@@ -29,7 +28,7 @@ import MdWorkspacePremium from "@material-design-icons/svg/outlined/workspace_pr
 
 import pkg from "../../../../../../package.json";
 
-import { SettingsConfiguration } from ".";
+import type { SettingsConfiguration } from ".";
 import { AccountCard, BackCard } from "./user/_AccountCard";
 import { MyAccount } from "./user/Account";
 import AdvancedSettings from "./user/Advanced";
@@ -140,7 +139,7 @@ const Config: SettingsConfiguration<{ server: Server }> = {
           </Text>
           <Show when={window.native}>
             <Text class="label">
-              Stoat for Desktop {window.native.versions.desktop()}
+              Vortex for Desktop {window.native.versions.desktop()}
             </Text>
             <Text class="label">
               <span
@@ -228,7 +227,7 @@ const Config: SettingsConfiguration<{ server: Server }> = {
           ],
         },
         {
-          title: "Stoat",
+          title: "Vortex",
           entries: [
             {
               id: "bots",
@@ -333,7 +332,7 @@ const Config: SettingsConfiguration<{ server: Server }> = {
               title: <Trans>What's New</Trans>,
             },
             {
-              href: "https://github.com/stoatchat",
+              href: "https://github.com/enzolaOps/vortex",
               icon: <MdMemory {...iconSize(20)} />,
               title: <Trans>Source Code</Trans>,
             },
@@ -341,11 +340,6 @@ const Config: SettingsConfiguration<{ server: Server }> = {
               id: "advanced",
               icon: <MdScience {...iconSize(20)} />,
               title: <Trans>Advanced</Trans>,
-            },
-            {
-              href: "https://ko-fi.com/stoatchat",
-              icon: <MdCoffee {...iconSize(20)} />,
-              title: <Trans>Donate</Trans>,
             },
             {
               id: "logout",

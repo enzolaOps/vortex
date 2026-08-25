@@ -1,7 +1,7 @@
 import { Menu, Tray, nativeImage } from "electron";
 
-import trayIconAsset from "../../assets/desktop/icon.png?asset";
-import macOsTrayIconAsset from "../../assets/desktop/iconTemplate.png?asset";
+import trayIconAsset from "../../assets/icon.png?asset";
+import macOsTrayIconAsset from "../../assets/iconTemplate.png?asset";
 import { version } from "../../package.json";
 
 import { mainWindow, quitApp } from "./window";
@@ -25,7 +25,7 @@ export function initTray() {
   const trayIcon = createTrayIcon();
   tray = new Tray(trayIcon);
   updateTrayMenu();
-  tray.setToolTip("Stoat for Desktop");
+  tray.setToolTip("Vortex");
   tray.setImage(trayIcon);
   tray.on("click", () => {
     if (mainWindow.isVisible()) {
@@ -40,7 +40,7 @@ export function initTray() {
 export function updateTrayMenu() {
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      { label: "Stoat for Desktop", type: "normal", enabled: false },
+      { label: "Vortex", type: "normal", enabled: false },
       {
         label: "Version",
         type: "submenu",
