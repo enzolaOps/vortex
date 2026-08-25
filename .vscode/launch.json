@@ -7,7 +7,7 @@
       "request": "launch",
       "reAttach": true,
       "url": "http://localhost:5174",
-      "webRoot": "${workspaceFolder}/packages/client"
+      "webRoot": "${workspaceFolder}/web/packages/client"
     }
   ]
 }

@@ -1,0 +1,13 @@
+allowBuilds:
+  electron: true
+  esbuild: true
+  node-pipewire: true
+
+nodeLinker: hoisted
+
+# @electron/rebuild pulls @electron/node-gyp straight from a git repository.
+blockExoticSubdeps: false
+
+# Override for node 26 bug
+overrides:
+  yauzl: ^3.3.1

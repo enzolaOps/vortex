@@ -3,9 +3,5 @@
   "extends": [
     "config:recommended"
   ],
-  "cloneSubmodules": true,
-  "cloneSubmodulesFilter": [
-    "*",
-    "!packages/client/assets"
-  ]
+  "cloneSubmodules": true
 }

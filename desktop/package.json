@@ -1,0 +1,57 @@
+{
+  "name": "vortex-desktop",
+  "productName": "Vortex",
+  "version": "0.1.0",
+  "description": "Desktop shell for the Vortex chat platform",
+  "license": "AGPL-3.0-or-later",
+  "main": ".vite/build/main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/enzolaOps/vortex.git",
+    "directory": "desktop"
+  },
+  "scripts": {
+    "start": "electron-forge start -- --no-sandbox",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "lint": "eslint --ext .ts,.tsx .",
+    "lint:fix": "eslint --ext --fix .ts,.tsx .",
+    "fmt": "prettier --check 'src/**/*.{ts,tsx,json}'",
+    "fmt:fix": "prettier --write 'src/**/*.{ts,tsx,json}'",
+    "install:flatpak": "flatpak --user install out/make/flatpak/*/io.github.enzolaOps.Vortex_*.flatpak",
+    "run:flatpak": "flatpak run --socket=session-bus io.github.enzolaOps.Vortex",
+    "run:nix": "/usr/bin/env electron-nix ."
+  },
+  "author": {
+    "name": "enzolaOps",
+    "url": "https://github.com/enzolaOps"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.11.2",
+    "@electron-forge/maker-deb": "^7.11.2",
+    "@electron-forge/maker-flatpak": "^7.11.2",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.11.2",
+    "@electron-forge/plugin-fuses": "^7.11.2",
+    "@electron-forge/plugin-vite": "^7.11.2",
+    "@electron/fuses": "^1.8.0",
+    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+    "@types/auto-launch": "^5.0.5",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
+    "electron": "43.4.0",
+    "eslint": "^8.57.1",
+    "eslint-plugin-import": "^2.32.0",
+    "json-schema-typed": "^8.0.1",
+    "prettier": "^3.6.2",
+    "typescript": "~4.5.4",
+    "vite": "^5.4.20"
+  },
+  "dependencies": {
+    "auto-launch": "^5.0.6",
+    "electron-store": "^10.1.0"
+  },
+  "optionalDependencies": {
+    "node-pipewire": "1.1.0"
+  },
+  "packageManager": "pnpm@11.17.0+sha512.cca3cea332ad254bb84145f966d19f4879615210346fc92c79a047f23a0d7b3cca3c3792f0076ba1f1831d277efbcf0a9119b31a9a60eca7fb3d6231f331ef72"
+}
