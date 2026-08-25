@@ -7,13 +7,50 @@ Two upstreams live here:
 
 | Path | Upstream | Remote |
 |---|---|---|
-| `packages/`, `Dockerfile`, root | [stoatchat/for-web](https://github.com/stoatchat/for-web) at `stoat-for-web-v0.14.1` | `upstream` |
+| `web/` | [stoatchat/for-web](https://github.com/stoatchat/for-web) at `stoat-for-web-v0.14.1` | `upstream` |
 | `desktop/` | [stoatchat/for-desktop](https://github.com/stoatchat/for-desktop) at `v1.5.3` | `desktop-upstream` |
 | — | the backend is unmodified upstream, run from their images by pi-infra | — |
 
 The web client is this repository's own history; `desktop/` was imported as a
 subtree. Both keep their upstream as a read-only remote: security fixes and
 protocol changes get cherry-picked, features and branding never do.
+
+## Layout
+
+```text
+vortex/
+├── web/        pnpm workspace, nodeLinker: isolated · ships as a container
+├── desktop/    pnpm workspace, nodeLinker: hoisted   · built by hand
+├── brand/      mark.svg + the generator both of them consume
+├── .github/    one workflow: the web image
+└── VORTEX.md
+```
+
+Each top-level directory is an island: its own lockfile, its own toolchain, its
+own build. They share only `brand/`. Nothing at the root belongs to one of them
+— that is the rule that keeps the root readable.
+
+A backend fork, if it ever happens, is another island — `server/`, cargo rather
+than pnpm — and it does not change anything above. But do not create it for
+tidiness: today the backend is upstream's, run unmodified from their images, and
+the only Vortex-side backend artefact is deployment config, which lives in
+`pi-infra`. Fork it when you actually need to change authentication,
+permissions, the protocol or storage; at that point web and server start
+changing together, and one repository begins to pay for itself.
+
+### The web client used to be at the root
+
+It was moved into `web/` wholesale, which means **upstream merges no longer line
+up by path**. Rename detection handles it, but only if you let git see the whole
+tree at once:
+
+```bash
+git fetch upstream
+git merge -X find-renames=40% upstream/main    # not a subtree merge
+```
+
+If a merge produces upstream's files back at the root, it lost the rename —
+abort, do not "fix" it by hand.
 
 Base: tag `stoat-for-web-v0.14.1` (`0c31cf0`). That is the client version the
 upstream self-hosted stack pairs with backend `v0.15.1`, which is what the
@@ -38,19 +75,19 @@ Kept deliberately small, so merging upstream stays cheap.
 | Area | Change |
 |---|---|
 | `brand/` | Source artwork plus the two scripts below. New directory. |
-| `packages/client/scripts/assets_fallback/web/` | Icons regenerated from `brand/mark.svg`. |
-| `packages/client/index.html` | Tab title. |
-| `packages/client/vite.config.ts` | PWA manifest name, short name, description. |
-| `packages/client/src/serviceWorker.ts` | Fallback push-notification title. |
-| `packages/client/components/common/lib/env.ts` | Last-resort API URL is same-origin `/api` instead of stoat.chat production. |
-| `packages/client/src/index.tsx` | Removed the Android app nag, which advertises upstream's Google Play listing. |
-| `packages/client/src/interface/Home.tsx` | Removed the upstream donation link; put the feedback entry behind `IS_STOAT`, which is how upstream already gates its own community surfaces. |
-| `components/i18n/catalogs/*/messages.po` | `msgstr` renamed by script. |
-| `.gitmodules` | Dropped the private `packages/client/assets` submodule. |
+| `web/packages/client/scripts/assets_fallback/web/` | Icons regenerated from `brand/mark.svg`. |
+| `web/packages/client/index.html` | Tab title. |
+| `web/packages/client/vite.config.ts` | PWA manifest name, short name, description. |
+| `web/packages/client/src/serviceWorker.ts` | Fallback push-notification title. |
+| `web/packages/client/components/common/lib/env.ts` | Last-resort API URL is same-origin `/api` instead of stoat.chat production. |
+| `web/packages/client/src/index.tsx` | Removed the Android app nag, which advertises upstream's Google Play listing. |
+| `web/packages/client/src/interface/Home.tsx` | Removed the upstream donation link; put the feedback entry behind `IS_STOAT`, which is how upstream already gates its own community surfaces. |
+| `web/packages/client/components/i18n/catalogs/*/messages.po` | `msgstr` renamed by script. |
+| `.gitmodules` | Dropped the private `web/packages/client/assets` submodule. |
 | `.github/workflows/vortex-image.yml` | Cross-builds arm64 and pushes to GHCR. |
 | `.github/workflows/` | Every other upstream workflow deleted — see below. |
-| `Dockerfile` | Builder stage pinned to `$BUILDPLATFORM` so it is not emulated. |
-| `packages/client/components/app/interface/settings/` | Settings surfaces: "Source Code" points here (AGPL §13), feedback and bug links point at this repo's issues, the upstream donation link is gone, the desktop version line reads Vortex. |
+| `web/Dockerfile` | Builder stage pinned to `$BUILDPLATFORM` so it is not emulated. |
+| `web/packages/client/components/app/interface/settings/` | Settings surfaces: "Source Code" points here (AGPL §13), feedback and bug links point at this repo's issues, the upstream donation link is gone, the desktop version line reads Vortex. |
 | `desktop/` | The Electron shell, imported as a subtree. See below. |
 
 Most visible Stoat surfaces needed no change: upstream already hides the Lounge,
@@ -90,8 +127,8 @@ That regenerates every PNG and the `.ico`, for the web client **and** for
 `brand/monochrome.svg` and `brand/wordmark.svg` are copied as-is, so update
 those by hand too.
 
-Where each file lands is decided by `packages/client/scripts/copyAssets.mjs`: it
-links `packages/client/assets/` into `public/assets` when that directory exists
+Where each file lands is decided by `web/packages/client/scripts/copyAssets.mjs`: it
+links `web/packages/client/assets/` into `public/assets` when that directory exists
 and is non-empty, and otherwise falls back to `scripts/assets_fallback/`. This
 fork has no `assets/` directory, so the fallback is the real path — which is why
 the generator writes there.
@@ -191,12 +228,12 @@ everything the remaining workflow uses.
 Three are required and all are public:
 
 ```text
-packages/stoat.js                 stoatchat/javascript-client-sdk
-packages/solid-livekit-components revoltchat/solid-livekit-components
-packages/js-lingui-solid          revoltchat/js-lingui-solid
+web/packages/stoat.js                 stoatchat/javascript-client-sdk
+web/packages/solid-livekit-components revoltchat/solid-livekit-components
+web/packages/js-lingui-solid          revoltchat/js-lingui-solid
 ```
 
-Upstream has a fourth, `packages/client/assets`, pointing at a private brand
+Upstream has a fourth, `web/packages/client/assets`, pointing at a private brand
 host. It is removed here on purpose. So is `desktop/assets`, which was the same
 submodule again; it is a plain directory now, generated by `brand/generate.mjs`.
 
@@ -211,7 +248,7 @@ MODULE_NOT_FOUND. The workflow checks for this before building.
 If they are ever lost again, the commits for this base are:
 
 ```bash
-git update-index --add --cacheinfo 160000,a1aeb40396176249b1cb8dffc1a3529d1b5d40ff,packages/js-lingui-solid
-git update-index --add --cacheinfo 160000,a67176da7f0580ea9fdad22e58a963668f047fca,packages/solid-livekit-components
-git update-index --add --cacheinfo 160000,30b8505bc967d2de80bd170e861a2d062284c988,packages/stoat.js
+git update-index --add --cacheinfo 160000,a1aeb40396176249b1cb8dffc1a3529d1b5d40ff,web/packages/js-lingui-solid
+git update-index --add --cacheinfo 160000,a67176da7f0580ea9fdad22e58a963668f047fca,web/packages/solid-livekit-components
+git update-index --add --cacheinfo 160000,30b8505bc967d2de80bd170e861a2d062284c988,web/packages/stoat.js
 ```

@@ -21,10 +21,13 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - "**/*.md"
-      # The Electron shell is built by hand; it shares no build with the image.
-      - "desktop/**"
+    # Only the web client goes into this image. The Electron shell in desktop/
+    # is built by hand and shares nothing with it.
+    paths:
+      - "web/**"
+      - "!web/**/*.md"
+      - "brand/**"
+      - ".github/workflows/vortex-image.yml"
   workflow_dispatch:
 
 concurrency:
@@ -53,7 +56,7 @@ jobs:
       # surfaces much later as MODULE_NOT_FOUND while loading lingui.config.ts.
       - name: Verify the submodules were checked out
         run: |
-          for d in packages/stoat.js packages/solid-livekit-components packages/js-lingui-solid; do
+          for d in web/packages/stoat.js web/packages/solid-livekit-components web/packages/js-lingui-solid; do
             if [ -z "$(ls -A "$d" 2>/dev/null)" ]; then
               echo "Submodule $d is empty — the gitlink or .gitmodules entry is missing." >&2
               exit 1
@@ -87,7 +90,7 @@ jobs:
         id: push
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./web
           # amd64 costs almost nothing here (the builder stage is shared) and
           # lets the client be run locally for debugging.
           platforms: linux/arm64,linux/amd64

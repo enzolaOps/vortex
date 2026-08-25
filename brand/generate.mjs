@@ -4,8 +4,8 @@
  *   npm i -D sharp        # not a repo dependency: assets are committed
  *   node brand/generate.mjs
  *
- * Output goes to packages/client/scripts/assets_fallback/web/, which is what
- * scripts/copyAssets.mjs links into public/assets when packages/client/assets
+ * Output goes to web/packages/client/scripts/assets_fallback/web/, which is what
+ * scripts/copyAssets.mjs links into public/assets when web/packages/client/assets
  * is absent — and it is absent in this fork, because upstream keeps its brand
  * assets in a private submodule we neither have nor are allowed to use.
  *
@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..");
-const out = resolve(root, "packages/client/scripts/assets_fallback/web");
+const out = resolve(root, "web/packages/client/scripts/assets_fallback/web");
 
 let sharp;
 try {

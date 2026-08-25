@@ -1,7 +1,7 @@
 {
-  "name": "stoat-for-web",
-  "version": "0.14.1",
-  "description": "Stoat for Web: frontend software for Stoat",
+  "name": "vortex-web",
+  "version": "0.1.0",
+  "description": "Vortex web client",
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "eslint": "^9.26.0",

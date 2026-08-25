@@ -1,5 +1,9 @@
 # Changelog
 
+Everything below is upstream's history — this directory is a fork of
+stoatchat/for-web at `stoat-for-web-v0.14.1`. Vortex versions start at `0.1.0`;
+see `../VORTEX.md`.
+
 ## [0.14.1](https://github.com/stoatchat/for-web/compare/stoat-for-web-v0.14.0...stoat-for-web-v0.14.1) (2026-08-01)
 
 
