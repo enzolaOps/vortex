@@ -92,7 +92,7 @@ jobs:
           push: true
           provenance: false
           tags: |
-            ${{ steps.image.outputs.name }}:vortex
+            ${{ steps.image.outputs.name }}:main
             ${{ steps.image.outputs.name }}:${{ github.sha }}
           labels: |
             org.opencontainers.image.title=Vortex web client
