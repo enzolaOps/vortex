@@ -235,7 +235,13 @@ class Voice {
     const selected = await Promise.any(
       this.getClient().configuration!.features.livekit.nodes.map(
         async (node) => {
-          return fetch(node.public_url.replace("wss", "https")).then(() => {
+          // Upstream replaces the literal "wss", which silently leaves a
+          // plain "ws://" node untouched — fetch then rejects the unsupported
+          // scheme, every probe fails, and Promise.any throws AggregateError
+          // before joinCall is ever reached. Anchoring the replace covers both
+          // wss -> https and ws -> http, so an instance served over plain HTTP
+          // can still connect to voice.
+          return fetch(node.public_url.replace(/^ws/, "http")).then(() => {
             return node.name;
           });
         },
