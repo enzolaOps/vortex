@@ -547,7 +547,40 @@ não tinha resolução para vê-las. As duas mais baratas (máscara no ponto de
 presença, menu por linha) foram removidas ou viraram pendência mesmo assim,
 porque custam de qualquer jeito.
 
-### Fase 4 — Customização · **próxima**
+### Fase 4 — Customização · **em andamento**
+
+Sistema de slots, modo edição, preset versionado e compartilhável, picker de
+paleta com validação de contraste. Ver `layout-customization.md`.
+
+**Fundação pronta.** Não é a feature — é o que a referência manda construir
+antes dela, e o que o `enforcement.md` marcava como "Fase 4" desde a fase 2:
+
+- **Schema do preset**, com o tipo fazendo o trabalho pesado. `PainelId` é
+  união fechada de TIPOS de painel, então "os membros do servidor X" não é
+  representável — dado de sessão não precisa ser filtrado porque não pode
+  existir. Preset já compartilhado não volta atrás; é a única regra do projeto
+  cujo erro não tem conserto.
+- **Slot é POSIÇÃO, não objeto com lado.** A referência descreve slots com uma
+  propriedade `lado`; aqui o lado é a identidade do slot. Sem `lado` guardado
+  não existe o estado inconsistente "slot da coluna 1 do lado fim", então não
+  há o que validar. Trocar de lado vira trocar qual painel ocupa qual slot — a
+  mesma liberdade com metade dos estados possíveis. A âncora não é um `SlotId`:
+  nunca mover deixou de ser regra e virou tipo.
+- **Chave desconhecida preservada em profundidade**, mesclando o conhecido
+  sobre o bruto de origem, e não com um campo `extras` — que só preservaria
+  onde alguém lembrou de colocá-lo.
+- **`TokenName` fechado e conferido contra `tokens.css` por teste**, nos dois
+  sentidos: token da lista que sumiu do CSS reprova, e cor nova no CSS que
+  ninguém classificou também. O default de uma decisão esquecida é "pare".
+- **Store de layout** module-level, com o slot assinando sozinho — arrastar uma
+  borda vai acordar aquele slot, não os quatro, e nunca a âncora.
+- **Shell dirigido por dados.** Verificado em navegador: trocar rail e membros
+  de lado dá `240px 240px 1048px 72px`, esconder tudo dá `0px 0px 1600px 0px`
+  sem espaço morto, e a 700px o colapso segue o PAINEL membros para onde quer
+  que ele tenha ido.
+
+Falta o que o usuário vê: modo edição com manipulação direta, e o picker de
+paleta com validação de contraste.
 
 Sistema de slots, modo edição, preset versionado e compartilhável, picker de
 paleta com validação de contraste. Ver `layout-customization.md`.

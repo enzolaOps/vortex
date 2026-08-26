@@ -1,6 +1,56 @@
-import type { ReactNode } from "react";
+import { useSyncExternalStore, type ReactNode } from "react";
 
+import type { PainelId, SlotId } from "../preset/schema";
+import { assinarLayout, lerLayout } from "../store/layout";
 import css from "./Shell.module.css";
+
+/**
+ * Ordem das colunas no grid. Estática, e a âncora fica no meio.
+ *
+ * A âncora — coluna de mensagem + composer — não é um slot e não aparece aqui.
+ * Não ser representável é o que garante que ela nunca vai mudar de lado, o que
+ * é o que protege a virtualização.
+ */
+const ANTES: readonly SlotId[] = ["a", "b"];
+const DEPOIS: readonly SlotId[] = ["d"];
+
+export type Paineis = Readonly<Record<PainelId, ReactNode>>;
+
+function Slot({
+  id,
+  lado,
+  paineis,
+}: {
+  id: SlotId;
+  lado: "inicio" | "fim";
+  paineis: Paineis;
+}) {
+  const layout = useSyncExternalStore(assinarLayout, lerLayout);
+  const slot = layout.layout.slots[id];
+  const ocupado = slot.painel !== null && slot.visivel;
+
+  return (
+    <div
+      className={`${css.coluna} ${css.slot}`}
+      data-slot={id}
+      data-painel={ocupado ? slot.painel : "vazio"}
+      data-lado={lado}
+      /**
+       * A largura vive no elemento, não na lista de trilhas do grid.
+       *
+       * Custom property inline, e isso NÃO é arbitrary value: o valor vem do
+       * store, é dado do usuário, e é exatamente o que a fase 4 existe para
+       * deixar ele escolher. O que a lei nº 4 proíbe é número mágico escrito
+       * por quem programa.
+       *
+       * `inline-size` e não `width`: o slot precisa funcionar nos dois lados.
+       */
+      style={{ inlineSize: ocupado ? `${slot.largura}px` : 0 }}
+    >
+      {slot.painel !== null && slot.visivel ? paineis[slot.painel] : null}
+    </div>
+  );
+}
 
 /**
  * O shell de quatro colunas.
@@ -8,35 +58,32 @@ import css from "./Shell.module.css";
  * Existe desde a fase 1, porque retrofitar layout raiz é reescrever tela — a
  * mesma razão pela qual a virtualização veio antes de tudo na fase 0.
  *
- * As colunas laterais deixaram de ser placeholders na fase 3, e o shell
- * ganhou a forma que a fase 4 precisa: ele não SABE o que vai em cada coluna,
- * só onde as colunas ficam. Rail, canais e membros entram como slots.
+ * Na fase 4 ele parou de saber o que vai em cada coluna. Recebe um mapa de
+ * painéis por TIPO e pergunta ao store qual slot ocupa qual posição, com que
+ * largura, visível ou não. Trocar dois painéis de lado deixou de ser uma
+ * mudança de código.
  *
- * Isso não é abstração antecipada — é o que a lei nº 6 pede em troca de nada:
- * o shell já não podia assumir o conteúdo dos painéis, e ter os componentes
- * importados aqui dentro seria exatamente a premissa de irmão que a lei
- * proíbe. Trocar dois slots de lugar vira mudar duas props.
+ * Cada `Slot` assina o store por conta própria em vez de o shell assinar e
+ * repassar: é a lei nº 1 na granularidade certa. Arrastar a borda de um slot
+ * acorda aquele slot, não os quatro — e não acorda a âncora, que é onde a
+ * lista de mensagens mora.
  */
 export function Shell({
-  rail,
-  canais,
+  paineis,
   ferramentas,
   conteudo,
   composer,
-  membros,
 }: {
-  rail: ReactNode;
-  canais: ReactNode;
+  paineis: Paineis;
   ferramentas: ReactNode;
   conteudo: ReactNode;
   composer?: ReactNode;
-  membros: ReactNode;
 }) {
   return (
     <div className={css.shell}>
-      <div className={`${css.coluna} ${css.rail}`}>{rail}</div>
-
-      <div className={`${css.coluna} ${css.canais}`}>{canais}</div>
+      {ANTES.map((id) => (
+        <Slot key={id} id={id} lado="inicio" paineis={paineis} />
+      ))}
 
       <main className={`${css.coluna} ${css.conteudo}`}>
         {ferramentas}
@@ -48,7 +95,9 @@ export function Shell({
         {composer}
       </main>
 
-      <aside className={`${css.coluna} ${css.membros}`}>{membros}</aside>
+      {DEPOIS.map((id) => (
+        <Slot key={id} id={id} lado="fim" paineis={paineis} />
+      ))}
     </div>
   );
 }

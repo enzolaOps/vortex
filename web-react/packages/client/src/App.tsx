@@ -430,9 +430,13 @@ export function App() {
           ) : null}
         </header>
       }
-      rail={<Rail />}
-      canais={<ListaDeCanais />}
-      membros={<ListaDeMembros />}
+      /* O shell recebe painéis por TIPO e pergunta ao store quem ocupa qual
+         slot. Trocar dois de lado deixou de ser mudança de código. */
+      paineis={{
+        rail: <Rail />,
+        canais: <ListaDeCanais />,
+        membros: <ListaDeMembros />,
+      }}
       /*
         `key` no canal: trocar de canal REMONTA a lista.
 

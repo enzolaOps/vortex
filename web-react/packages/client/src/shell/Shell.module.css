@@ -2,7 +2,7 @@
    O shell — grid raiz de quatro colunas
    ------------------------------------------------------------
    CSS Module e não utilities, pelo critério do styling.md:
-   `grid-template-columns` com clamp() só existiria na className
+   `grid-template-columns` com minmax() só existiria na className
    como arbitrary value, que é valor mágico com outra sintaxe.
    ============================================================ */
 
@@ -10,23 +10,19 @@
   display: grid;
 
   /*
-    A largura de membros sai da lista de trilhas e vira variável LOCAL.
+    Trilhas `auto` para os slots, e a largura vive no PRÓPRIO slot.
 
-    Não é organização: é o que permite colapsar a trilha em um lugar só.
-    Com o valor embutido no `grid-template-columns`, colapsar exigiria
-    repetir a lista inteira dentro da media query — e uma lista de
-    trilhas duplicada diverge da original no primeiro ajuste.
+    A versão da fase 1 tinha a largura de cada coluna na lista de trilhas.
+    Funcionava com colunas fixas e não sobrevive à fase 4: com o usuário
+    escolhendo qual painel ocupa qual slot, a largura passa a ser
+    propriedade do slot, não da posição — e esconder um painel teria que
+    reescrever a lista inteira de trilhas de dentro de uma media query.
 
-    Sem prefixo `--vx-` de propósito: aquele namespace é a camada 1, e
-    isto não é token do sistema, é geometria deste componente.
+    Com `auto`, o slot cujo conteúdo saiu colapsa a zero sozinho. É a mesma
+    geometria com metade do mecanismo, e é o que faz "slot vazio colapsa"
+    deixar de ser código para virar consequência.
   */
-  --membros-w: clamp(0px, 20vw, 340px);
-
-  grid-template-columns:
-    var(--vx-rail-w) /* rail de servidores, fixo */
-    clamp(240px, 18vw, 320px) /* canais */
-    minmax(0, 1fr) /* conteúdo */
-    var(--membros-w); /* membros, colapsável */
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
   block-size: 100dvh;
   padding-block-start: var(--vx-titlebar-h);
   background: var(--vx-surface-0);
@@ -52,18 +48,69 @@
 
     É o que faz o mesmo componente funcionar em janela pequena,
     ultrawide e popout de janela separada sem condicional espalhada —
-    e é a lei nº 6 deixando de ser prosa.
+    e é a lei nº 6 deixando de ser prosa. Na fase 4 ganha a causa que
+    faltava: o usuário arrastando a borda do slot.
   */
   container-type: inline-size;
 }
 
-.rail {
+/*
+  Cada slot mora numa coluna FIXA, declarada. Não é redundância com a
+  ordem no JSX — é o que impede o auto-placement de reorganizar tudo
+  quando um slot some.
+
+  Encontrado verificando em navegador, e o sintoma era pior que o bug:
+  esconder a lista de canais colapsava a COLUNA DE MENSAGEM a zero. Com
+  `display: none` o item sai do grid, o auto-placement puxa os
+  seguintes uma coluna para trás, e a âncora — que devia estar na 3 —
+  caía numa trilha `auto` sem conteúdo próprio.
+
+  A âncora nunca move: está escrito no tipo (`c` não é um `SlotId`) e
+  agora também aqui, onde o navegador pode obedecer.
+*/
+.slot[data-slot="a"] {
+  grid-column: 1;
+}
+
+.slot[data-slot="b"] {
+  grid-column: 2;
+}
+
+.conteudo {
+  grid-column: 3;
+}
+
+.slot[data-slot="d"] {
+  grid-column: 4;
+}
+
+/*
+  Slot vazio ou escondido some da árvore, e a trilha `auto` colapsa
+  junto. Sem `display: none` a borda ficaria como risco órfão sobre uma
+  coluna de largura zero — foi assim que a fase 1 deixou 140px mortos
+  numa janela de 700px.
+*/
+.slot[data-painel="vazio"] {
+  display: none;
+}
+
+/* Bordas por LADO do slot, não por painel: o painel pode mudar de lado. */
+.slot[data-lado="inicio"] {
   border-inline-end: 1px solid var(--vx-border-subtle);
+}
+
+.slot[data-lado="fim"] {
+  border-inline-start: 1px solid var(--vx-border-subtle);
+}
+
+/* Fundo por PAINEL, não por posição: é identidade do painel, e viaja
+   com ele quando o usuário o move. */
+.slot[data-painel="rail"] {
   background: var(--vx-surface-0);
 }
 
-.canais {
-  border-inline-end: 1px solid var(--vx-border-subtle);
+.slot[data-painel="canais"],
+.slot[data-painel="membros"] {
   background: var(--vx-surface-1);
 }
 
@@ -79,34 +126,18 @@
   grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
-.membros {
-  border-inline-start: 1px solid var(--vx-border-subtle);
-  background: var(--vx-surface-1);
-}
-
 /*
-  Membros some abaixo de 1000px — e a TRILHA some junto.
+  Membros some abaixo de 1000px — onde quer que ele esteja.
 
-  A versão anterior escondia só o painel e deixava a trilha de pé,
-  porque partia de uma premissa que nunca foi verdade: que o clamp
-  chegaria no piso sozinho. Não chega. Em 999px de janela,
-  `clamp(0px, 20vw, 340px)` vale ~200px, então o `display: none`
-  escondia o conteúdo e a coluna continuava reservando o espaço.
-  Resultado medido: janela de 700px, trilhas
-  `72px 240px 248px 140px` — 140px mortos no fim, exatamente o "vazio
-  morto" que a regra de layout proíbe.
+  A regra é sobre o PAINEL e não sobre a coluna, e essa distinção nasceu
+  com a fase 4: o usuário pode ter movido membros para a outra ponta, e
+  uma regra posicional esconderia o painel errado.
 
-  As duas linhas são necessárias e fazem coisas diferentes: o `0px`
-  devolve o espaço para a coluna de conteúdo, e o `display: none`
-  impede que a borda de início fique como risco órfão sobre uma coluna
-  de largura zero.
+  Uma linha só faz o trabalho que na fase 1 precisava de duas — zerar a
+  trilha e esconder o conteúdo. Com trilha `auto`, esconder já zera.
 */
 @media (width < 1000px) {
-  .shell {
-    --membros-w: 0px;
-  }
-
-  .membros {
+  .slot[data-painel="membros"] {
     display: none;
   }
 }

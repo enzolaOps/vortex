@@ -513,11 +513,34 @@ já cobre a maior parte.
 | Concordância de número em rótulo de a11y | Teste | Fase 3 |
 | Carga em massa fora do caminho de evento | Teste | Fase 0 |
 | Corrida de firehose colada no fim | Check no arnês | Fase 0 |
-| Preset sem dado de sessão | Tipo + teste | **Fase 4, tipo desde a 2** |
-| Preset round-trip | Teste | Fase 4 |
+| Preset sem dado de sessão | Tipo + teste | **Fase 4 — instalado** |
+| Preset round-trip | Teste | **Fase 4 — instalado** |
+| Chave desconhecida preservada em profundidade | Teste | Fase 4 |
+| `TokenName` fechado, conferido contra tokens.css | Teste | Fase 4 |
+| Largura de slot limitada na escrita | Teste | Fase 4 |
+| Âncora do shell em coluna declarada | CSS + verificação em navegador | Fase 4 |
 
 **Fase 0 e 1 não são opcionais.** São as que protegem as leis 1 a 4, e o custo de
 adicioná-las depois é auditar código já escrito.
+
+## Uma armadilha de grid que o tipo não pega
+
+`display: none` num item de grid não colapsa só aquele item: ele SAI do grid, e
+o auto-placement puxa todos os seguintes uma coluna para trás.
+
+Encontrado na fase 4, verificando em navegador, e o sintoma era pior que a
+causa: esconder a lista de canais colapsava a **coluna de mensagem** a zero. A
+âncora, que devia estar na coluna 3, caía numa trilha `auto` sem conteúdo
+próprio — e a tela inteira do produto sumia porque um painel lateral foi
+escondido.
+
+Mecanismo: **toda coluna do shell é declarada** (`grid-column: N`), inclusive a
+da âncora. Placement explícito torna o auto-placement irrelevante, e o slot
+escondido colapsa sozinho sem mover ninguém.
+
+Não há tipo que pegue isto e não há teste em jsdom que pegue — jsdom não tem
+engine de layout, que é o mesmo motivo pelo qual a âncora da lista vive no
+arnês. Entra na lista de assertions que só o navegador exercita.
 
 ## Regra sobre esta lista
 
