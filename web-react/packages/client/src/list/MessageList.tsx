@@ -33,8 +33,14 @@ const LIMIAR_DE_FIM = 80;
  * trabalho de compensação a cada rolagem. Trocar 44 por 73 NÃO mudou o gate;
  * está aqui por correção, não por performance, e o relatório do arnês existe
  * para que o dia em que a linha mudar de forma isso apareça.
+ *
+ * **E apareceu, que é o ponto de o relatório existir.** O conserto do ritmo de
+ * agrupamento (`py-0.5` era classe morta: a escala vai de 1 a 6 e
+ * `--spacing-0.5` não existe, então a lista rodava com 0px dentro do grupo)
+ * acrescentou 4px por linha, e o arnês passou a medir 75,6px em duas janelas
+ * seguidas. 73 → 76.
  */
-const ALTURA_ESTIMADA = 73;
+const ALTURA_ESTIMADA = 76;
 
 /**
  * Lista de mensagens virtualizada, em modo chat.

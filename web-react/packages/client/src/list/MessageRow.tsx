@@ -14,6 +14,7 @@ import { cn } from "../lib/cn";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
 import { useMessage } from "../store/hooks";
+import css from "./MessageRow.module.css";
 
 /**
  * Divisor de data.
@@ -66,7 +67,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
   if (!message) {
     return (
       <article aria-hidden className="flex gap-3 px-4 py-2">
-        <div className="mt-1 size-5 shrink-0 rounded-4 bg-surface-2" />
+        <div className={cn(css.calha, "mt-1 rounded-4 bg-surface-2")} />
         <div className="min-w-0 flex-1 text-md leading-message">&nbsp;</div>
       </article>
     );
@@ -78,10 +79,24 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
     <article
           className={cn(
             "flex gap-3 px-4 data-[state=open]:bg-surface-1",
-            // Espaço acima só quando o grupo abre. Linha de continuação cola na
-            // anterior — é o que faz a lista parecer conversa em vez de log, e
-            // o que devolve altura para caber histórico.
-            message.iniciaGrupo ? "pt-3 pb-0.5" : "py-0.5",
+            // O ritmo de agrupamento: 4px dentro do grupo, 16px entre grupos.
+            // Três níveis de separação no total (o terceiro é o divisor), cada
+            // um pelo menos 2× o anterior — é o que os faz lerem como distintos
+            // em rolagem rápida, e é o que faz a lista parecer conversa em vez
+            // de log.
+            //
+            // Só `padding-block-start`, nunca simétrico: com 4px em cima e
+            // embaixo o espaço entre duas linhas agrupadas somaria 8px, e o
+            // degrau de 4px não existe na escala para ser dividido. O espaço
+            // pertence à linha que vem depois — que é também por que o realce
+            // de hover/menu cobre esse espaço, e não termina rente ao texto.
+            //
+            // Aqui estava `pt-3 pb-0.5` / `py-0.5`. A escala do projeto vai de
+            // 1 a 6 e o `@theme` faz `--spacing-*: initial`, então
+            // `--spacing-0.5` NÃO EXISTE e a utility nunca foi gerada: o ritmo
+            // real era 0px dentro do grupo, contra os 4px que este comentário
+            // afirmava. Não deu erro nenhum. Agora há lint contra fracionária.
+            message.iniciaGrupo ? "pt-4" : "pt-1",
             // Envio pendente esmaece a linha inteira; falha marca a borda de
             // início. Nunca só cor: o rótulo ao lado da hora diz o que houve.
             message.sendState === "pending" && "opacity-60",
@@ -90,10 +105,10 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
         >
           {/* A calha do avatar existe mesmo na continuação: é o que mantém o
               texto alinhado ao longo do grupo inteiro. */}
-          <div className="relative mt-1 size-5 shrink-0">
+          <div className={cn(css.calha, "relative mt-1")}>
             {message.iniciaGrupo ? (
               <>
-                <div className="size-5 rounded-4 bg-surface-3" />
+                <div className={cn(css.calha, "rounded-4 bg-surface-3")} />
                 {/* Presença nunca só por cor — a silhueta do ponto muda com
                     o estado. Sem rótulo aqui: o nome já está escrito ao lado,
                     e anunciar presença a cada linha seria ruído no leitor. */}
