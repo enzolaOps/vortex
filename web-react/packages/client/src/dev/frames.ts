@@ -16,6 +16,27 @@ export type FrameReport = {
   worst: number;
   /** Frames que estouraram 16,6ms. */
   dropped: number;
+  /**
+   * Intervalo de refresh do display, estimado dos próprios deltas.
+   *
+   * Existe porque a ausência dele custou três corridas de 30s e três hipóteses
+   * erradas. O delta do rAF NÃO é o custo do frame: é o INTERVALO até o
+   * próximo vsync, e portanto um múltiplo do refresh. Num display de 160Hz os
+   * valores possíveis são 6,25 · 12,5 · 18,75 — não existe nada entre eles.
+   *
+   * O p95 tinha dado 18,7ms em três corridas seguidas, idêntico até a casa
+   * decimal, enquanto mudanças reais no código moviam o p99 e não moviam o
+   * p95. Não era o código sendo insensível: era o percentil pousado num
+   * degrau. E o teto do gate, 16,7ms, cai ENTRE o segundo e o terceiro degrau
+   * — o que transforma "p95 ≤ 16,7ms" em "p95 ≤ 12,5ms" nesta máquina, sem
+   * que nada no relatório diga isso.
+   *
+   * Reportar o intervalo e o percentil EM INTERVALOS é o que impede a próxima
+   * pessoa de caçar milissegundos que não existem.
+   */
+  intervalo: number;
+  /** p95 em múltiplos de refresh — o número que não mente em display rápido. */
+  p95EmIntervalos: number;
   /** Tarefas longas (>50ms) — bloqueio de main thread. */
   longTasks: number;
   longTaskMs: number;
@@ -122,6 +143,17 @@ export function createFrameRecorder() {
       const sorted = [...deltas].sort((a, b) => a - b);
       const at = (q: number) => sorted[Math.floor(sorted.length * q)] ?? 0;
 
+      /**
+       * O intervalo de refresh, estimado do 1º percentil.
+       *
+       * Não da MÉDIA nem da mediana: num app saudável a mediana é um
+       * intervalo, mas num app engasgado ela já é dois, e a estimativa
+       * dobraria junto — escondendo exatamente o problema que se quer ver. O
+       * frame mais rápido é sempre um intervalo; o 1º percentil é isso com
+       * resistência a um outlier de relógio.
+       */
+      const intervalo = Math.max(at(0.01), 1);
+
       return {
         seconds: Number(seconds.toFixed(1)),
         frames: deltas.length,
@@ -135,6 +167,8 @@ export function createFrameRecorder() {
         p99: Number(at(0.99).toFixed(2)),
         worst: Number((sorted.at(-1) ?? 0).toFixed(2)),
         dropped: deltas.filter((d) => d > 16.7).length,
+        intervalo: Number(intervalo.toFixed(2)),
+        p95EmIntervalos: Number((at(0.95) / intervalo).toFixed(2)),
         longTasks,
         longTaskMs: Number(longTaskMs.toFixed(1)),
         suspended,
@@ -174,7 +208,24 @@ export function verdict(report: FrameReport, opcoes: { throttled: boolean }) {
       ok: report.suspended === 0,
       got: `${report.suspended} suspensões`,
     },
-    { name: "p95 ≤ 16,7ms", ok: report.p95 <= 16.7, got: `${report.p95}ms` },
+    /**
+     * O critério NÃO mudou — e a nota existe justamente para que mudá-lo seja
+     * uma decisão explícita, nunca uma reação a um resultado ruim.
+     *
+     * Num display de refresh alto este teto é mais duro do que a frase que ele
+     * traduz. A 160Hz os degraus são 12,5 e 18,75; como 16,7 cai entre eles,
+     * passar exige p95 ≤ 12,5ms — ou seja, 95% dos frames dentro de DOIS
+     * refreshes, e não dentro do orçamento de 60fps. O mesmo código num
+     * monitor de 60Hz reportaria 16,7ms e passaria.
+     *
+     * `got` carrega o número em intervalos para que isso apareça no veredito
+     * em vez de ficar escondido num comentário.
+     */
+    {
+      name: "p95 ≤ 16,7ms",
+      ok: report.p95 <= 16.7,
+      got: `${report.p95}ms (${report.p95EmIntervalos}× o refresh de ${report.intervalo}ms)`,
+    },
     { name: "sem long task", ok: report.longTasks === 0, got: `${report.longTasks}` },
   ];
 

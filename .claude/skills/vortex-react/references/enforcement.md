@@ -168,6 +168,39 @@ compensação zero, não funciona. Sem separar os dois, o número não decide na
 Verificado depois do conserto: compensação de 1436px contra 1441px de
 crescimento real, salto máximo de 1px.
 
+**Delta de rAF é intervalo de vsync, não custo de frame.**
+
+Invariante do instrumento, e a terceira desta família — depois da linha de
+base do prepend e do dev server. Custou três corridas de 30s e três hipóteses
+erradas.
+
+O `requestAnimationFrame` entrega o tempo até o PRÓXIMO vsync, então o delta é
+sempre um múltiplo do refresh do display. Num monitor de 160Hz os valores
+possíveis são 6,25 · 12,5 · 18,75 — e nada entre eles. Um percentil pousado
+num degrau fica imóvel enquanto o código muda de verdade: o p95 deu 18,7ms em
+três corridas idênticas até a decimal, enquanto tirar a máscara do ponto de
+presença e o menu de contexto por linha moviam o p99 e a cauda.
+
+Pior: o teto de 16,7ms cai ENTRE o segundo e o terceiro degrau. Nessa máquina
+"p95 ≤ 16,7ms" significa "p95 ≤ 12,5ms" — 95% dos frames dentro de dois
+refreshes, e não dentro do orçamento de 60fps que a frase queria dizer. O
+mesmo código num monitor de 60Hz reportaria 16,7ms e passaria.
+
+**O critério não foi alterado.** O que mudou é que o relatório agora estima o
+intervalo de refresh (1º percentil dos deltas — o frame mais rápido é sempre
+um intervalo; a mediana já seria dois num app engasgado) e mostra o p95 também
+em MÚLTIPLOS de refresh. O veredito carrega os dois números.
+
+A regra que fica: percentil de uma grandeza quantizada precisa reportar o
+quantum junto, senão a diferença entre "não mudou nada" e "mudou menos que um
+degrau" é invisível — e as duas levam a conclusões opostas sobre o que fazer
+em seguida.
+
+Consequência prática para comparar corridas: `dropped` (frames acima de
+16,7ms) é contagem, não percentil, e por isso mede diferença pequena onde o
+p95 não mede. Fase 0: 2,9%. Depois da fase 3: 6,0%. Sem o menu por linha:
+5,4%.
+
 **Corrida de firehose só vale colada no fim.**
 No arnês: ao fechar a janela de medição, medir a distância da lista até o
 fim; acima do `scrollEndThreshold`, a corrida é marcada INVÁLIDA — junto com
@@ -433,6 +466,7 @@ já cobre a maior parte.
 | Composer alinhado à coluna de mensagem | Assertion em dev | Fase 3 |
 | Linha virtualizada medindo 0px | Assertion em dev | Fase 0 |
 | Publicação de coleção por frame | Teste | Fase 0 |
+| Quantum de vsync reportado junto do p95 | Arnês | Fase 3 |
 | Não-lida ignora o canal aberto | Teste | Fase 3 |
 | Abrir canal baixa só a parcela dele no servidor | Teste | Fase 3 |
 | Presença no mesmo balde não republica membros | Teste | Fase 3 |

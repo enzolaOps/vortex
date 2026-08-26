@@ -290,9 +290,12 @@ export function App() {
 
           {report ? (
             <span className="text-xs text-text-2">
-              {report.fps} fps · p50 {report.p50}ms · p95 {report.p95}ms · p99{" "}
+              {report.fps} fps · refresh {report.intervalo}ms · p50 {report.p50}ms ·{" "}
+              p95 {report.p95}ms ({report.p95EmIntervalos}×) · p99{" "}
               {report.p99}ms · pior {report.worst}ms · {report.dropped}/
-              {report.frames} perdidos · {report.longTasks} long tasks (
+              {report.frames} perdidos (
+              {((report.dropped / Math.max(report.frames, 1)) * 100).toFixed(1)}%) ·{" "}
+              {report.longTasks} long tasks (
               {report.longTaskMs}ms)
               {report.suspended > 0
                 ? ` · ⚠ ${report.suspended} suspensões de rAF — rode com a janela visível e em foco`
