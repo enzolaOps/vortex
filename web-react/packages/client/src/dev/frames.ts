@@ -37,6 +37,21 @@ export type FrameReport = {
   intervalo: number;
   /** p95 em múltiplos de refresh — o número que não mente em display rápido. */
   p95EmIntervalos: number;
+  /**
+   * Quantos frames couberam em 1, 2, 3 e 4+ intervalos de refresh.
+   *
+   * `dropped` conta frames acima de 16,7ms, e portanto responde "segura
+   * 60fps?". Não responde "segura o monitor DESTE usuário?" — num display de
+   * 160Hz um frame de 12,5ms já perdeu um vsync, e some do relatório inteiro.
+   *
+   * A distinção não é acadêmica: quem compra monitor de 144Hz ou 165Hz comprou
+   * exatamente a sensibilidade a esse frame, e cliente de chat com sessão de
+   * 8h passa boa parte do tempo rolando lista — que é onde o custo aparece.
+   *
+   * `um` é o frame entregue no vsync seguinte: o alvo. `dois` é imperceptível
+   * a 60Hz e perceptível a 160Hz. `tresOuMais` é engasgo em qualquer display.
+   */
+  intervalos: { um: number; dois: number; tres: number; quatroOuMais: number };
   /** Tarefas longas (>50ms) — bloqueio de main thread. */
   longTasks: number;
   longTaskMs: number;
@@ -168,6 +183,19 @@ export function createFrameRecorder() {
         worst: Number((sorted.at(-1) ?? 0).toFixed(2)),
         dropped: deltas.filter((d) => d > 16.7).length,
         intervalo: Number(intervalo.toFixed(2)),
+        intervalos: deltas.reduce(
+          (acc, d) => {
+            // Meio intervalo de tolerância: o vsync tem jitter, e um frame de
+            // 6,4ms num refresh de 6,25 é o frame bom, não um perdido.
+            const n = Math.max(1, Math.round(d / intervalo));
+            if (n === 1) acc.um += 1;
+            else if (n === 2) acc.dois += 1;
+            else if (n === 3) acc.tres += 1;
+            else acc.quatroOuMais += 1;
+            return acc;
+          },
+          { um: 0, dois: 0, tres: 0, quatroOuMais: 0 },
+        ),
         p95EmIntervalos: Number((at(0.95) / intervalo).toFixed(2)),
         longTasks,
         longTaskMs: Number(longTaskMs.toFixed(1)),

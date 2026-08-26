@@ -313,6 +313,21 @@ export function App() {
           {/* Colunas laterais em linha própria: somadas às da lista, viram
               média e não atribuem nada — que foi exatamente o que aconteceu
               na primeira corrida depois da fase 3. */}
+          {/* A distribuição responde a pergunta que `perdidos` não responde:
+              quanto disto um usuário de monitor rápido enxerga. */}
+          {report ? (
+            <span className="text-xs text-text-3">
+              frames por refresh: {report.intervalos.um} em 1× ·{" "}
+              {report.intervalos.dois} em 2× · {report.intervalos.tres} em 3× ·{" "}
+              {report.intervalos.quatroOuMais} em 4×+ · dentro do orçamento de{" "}
+              {report.intervalo}ms:{" "}
+              {(
+                (report.intervalos.um / Math.max(report.frames, 1)) *
+                100
+              ).toFixed(1)}
+              %
+            </span>
+          ) : null}
           {stats ? (
             <span className="text-xs text-text-3">
               lateral: {stats.membrosListRenders} member list ·{" "}
