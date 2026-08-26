@@ -11,21 +11,41 @@
    ============================================================ */
 
 .rodape {
-  padding: var(--vx-space-3) var(--vx-space-4) var(--vx-space-4);
+  padding-block: var(--vx-space-3) var(--vx-space-4);
   border-block-start: 1px solid var(--vx-border-subtle);
   background: var(--vx-surface-0);
+
+  /*
+    A calha da barra de rolagem, reservada aqui também.
+
+    A lista reserva a dela com `scrollbar-gutter: stable`, e isso encolhe a
+    coluna de mensagem por dentro. O composer está FORA do container de
+    scroll — sem reservar o mesmo espaço, ele fica mais largo que a lista
+    por exatamente a largura da barra, e sobra por cima da borda de fim.
+
+    `scrollbar-gutter` só vale em container de scroll, e `overflow: hidden`
+    conta como um. Quem calcula a largura é o navegador, com o mesmo número
+    que usou na lista — que é melhor que eu chutar um valor e ele mudar de
+    plataforma.
+  */
+  overflow: hidden;
+  scrollbar-gutter: stable;
 }
 
 /*
-  Mesma largura da coluna de mensagem, e alinhada do mesmo lado.
+  A MESMA caixa da coluna de mensagem: mesmo teto, mesmo lado, mesmo recuo
+  interno.
 
-  O token é o mesmo (`--vx-message-max-w`) de propósito: composer e lista
-  desalinhados é o erro visual mais perceptível da tela principal, e
-  duplicar o valor garantiria que um dia os dois divergissem.
+  O token do teto é o mesmo (`--vx-message-max-w`) de propósito — duplicar o
+  valor garantiria que um dia os dois divergissem. E o `padding-inline` casa
+  com o `px-4` da linha de mensagem, então a borda do campo nasce onde nasce
+  o avatar. Alinhar pelo TEXTO da mensagem seria o erro: o campo é o análogo
+  da linha inteira, não do parágrafo dentro dela.
 */
 .coluna {
   max-inline-size: var(--vx-message-max-w);
   margin-inline: 0;
+  padding-inline: var(--vx-space-4);
 
   /* Lei nº 6: o composer reage ao PRÓPRIO tamanho. Em popout estreito ou
      com um painel de thread aberto ao lado, ele encolhe sem que a janela

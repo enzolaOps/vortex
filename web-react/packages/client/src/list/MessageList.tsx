@@ -1,6 +1,7 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useRef } from "react";
 
+import { ATRIBUTO_DE_COLUNA } from "../dev/alinhamento";
 import { count } from "../dev/stats";
 import { ouvirFimDaLista } from "../store/comandos";
 import { useChannelMessageIds } from "../store/hooks";
@@ -227,8 +228,11 @@ export function MessageList({ channelId }: { channelId: string }) {
       className={css.scroll}
     >
       {/* Teto de linha legível. Sem isto o texto estica até 3000px em
-          ultrawide, que é o bug de layout que motivou o redesign. */}
-      <div className={css.coluna}>
+          ultrawide, que é o bug de layout que motivou o redesign.
+
+          O marcador é o contrato com o composer, que precisa ocupar esta
+          mesma caixa — verificado em dev, não confiado à disciplina. */}
+      <div className={css.coluna} {...{ [ATRIBUTO_DE_COLUNA]: "mensagem" }}>
         <div
           className="relative w-full"
           style={{ height: `${virtualizer.getTotalSize()}px` }}

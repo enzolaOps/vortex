@@ -270,6 +270,24 @@ arrastando a borda de um slot. Mas as causas já existem no spike: janela
 redimensionada, sidebar colapsada, popout, painel de thread abrindo. A
 invariante é a mesma nos dois casos.
 
+**Composer e coluna de mensagem são a mesma caixa.**
+Assertion em dev que MEDE as duas caixas e avisa se início ou largura
+divergirem mais de 1px.
+
+`design-system.md` dizia isto em prosa desde a fase 1 — "desalinhar os dois é
+o erro visual mais perceptível da tela principal" — e a prosa não segurou: a
+primeira versão do composer saiu 16px fora e mais estreita que a lista, com o
+token do teto correto nos dois lados.
+
+É por isso que a checagem é sobre geometria medida e não sobre valor
+declarado. Comparar `max-inline-size` aprovaria exatamente o bug que
+aconteceu: o teto estava igual, o que divergia era o padding e a reserva da
+calha da barra de rolagem. A lista reserva a calha com `scrollbar-gutter:
+stable` por estar dentro do container de scroll; o composer está fora e
+precisa reservar a mesma coisa, senão fica mais largo pela largura da barra.
+
+Verificada reproduzindo o bug original no DOM: início 16px, largura −32px.
+
 **Reancoragem após mudança de ALTURA do container.**
 No wrapper do virtualizador, em dev: se a altura encolher, a lista estava no
 fim e ela terminar além do limiar, avisar alto.
@@ -332,6 +350,7 @@ já cobre a maior parte.
 | Gitlinks de `stoat.js` em lockstep | Check em CI | Fase 0 |
 | Remedir após resize de largura | Assertion em dev | Fase 0 |
 | Reancorar após resize de altura | Assertion em dev | Fase 3 |
+| Composer alinhado à coluna de mensagem | Assertion em dev | Fase 3 |
 | Linha virtualizada medindo 0px | Assertion em dev | Fase 0 |
 | Publicação de coleção por frame | Teste | Fase 0 |
 | Carga em massa fora do caminho de evento | Teste | Fase 0 |

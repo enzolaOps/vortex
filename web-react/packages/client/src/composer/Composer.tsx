@@ -1,7 +1,11 @@
 import { PaperPlaneRight } from "@phosphor-icons/react";
-import type { KeyboardEvent } from "react";
+import { useEffect, type KeyboardEvent } from "react";
 
 import { Tooltip } from "../components/ui/Tooltip";
+import {
+  ATRIBUTO_DE_COLUNA,
+  verificarAlinhamentoDeColuna,
+} from "../dev/alinhamento";
 import { digitacao, enviarMensagem } from "../sdk/adapter";
 import { LIMITE_DE_CONTEUDO } from "../sdk/domain";
 import { cn } from "../lib/cn";
@@ -39,6 +43,19 @@ export function Composer({ channelId }: { channelId: string }) {
 
   const excedido = valor.length > LIMITE_DE_CONTEUDO;
   const podeEnviar = valor.trim().length > 0 && !excedido;
+
+  /**
+   * O composer segue a coluna de mensagem — verificado, não prometido.
+   *
+   * Mede depois do layout valer. É dev-only e roda uma vez na montagem: o
+   * caso que interessa é alguém mexer no padding ou na calha de um dos dois
+   * lados, não uma regressão que apareça só em certa largura.
+   */
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const id = requestAnimationFrame(verificarAlinhamentoDeColuna);
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   function alterar(texto: string) {
     escreverRascunho(channelId, texto);
@@ -80,7 +97,7 @@ export function Composer({ channelId }: { channelId: string }) {
 
   return (
     <div className={css.rodape}>
-      <div className={css.coluna}>
+      <div className={css.coluna} {...{ [ATRIBUTO_DE_COLUNA]: "composer" }}>
         <Digitando channelId={channelId} />
 
         <div className="flex items-end gap-2">

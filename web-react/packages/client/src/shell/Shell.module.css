@@ -8,11 +8,25 @@
 
 .shell {
   display: grid;
+
+  /*
+    A largura de membros sai da lista de trilhas e vira variável LOCAL.
+
+    Não é organização: é o que permite colapsar a trilha em um lugar só.
+    Com o valor embutido no `grid-template-columns`, colapsar exigiria
+    repetir a lista inteira dentro da media query — e uma lista de
+    trilhas duplicada diverge da original no primeiro ajuste.
+
+    Sem prefixo `--vx-` de propósito: aquele namespace é a camada 1, e
+    isto não é token do sistema, é geometria deste componente.
+  */
+  --membros-w: clamp(0px, 20vw, 340px);
+
   grid-template-columns:
     var(--vx-rail-w) /* rail de servidores, fixo */
     clamp(240px, 18vw, 320px) /* canais */
     minmax(0, 1fr) /* conteúdo */
-    clamp(0px, 20vw, 340px); /* membros, colapsável */
+    var(--membros-w); /* membros, colapsável */
   block-size: 100dvh;
   padding-block-start: var(--vx-titlebar-h);
   background: var(--vx-surface-0);
@@ -71,11 +85,27 @@
 }
 
 /*
-  Abaixo de ~1100px de painel disponível, a coluna de membros já entrou
-  no piso do clamp (0px) e some sozinha. O `display: none` evita que a
-  borda fique como risco órfão.
+  Membros some abaixo de 1000px — e a TRILHA some junto.
+
+  A versão anterior escondia só o painel e deixava a trilha de pé,
+  porque partia de uma premissa que nunca foi verdade: que o clamp
+  chegaria no piso sozinho. Não chega. Em 999px de janela,
+  `clamp(0px, 20vw, 340px)` vale ~200px, então o `display: none`
+  escondia o conteúdo e a coluna continuava reservando o espaço.
+  Resultado medido: janela de 700px, trilhas
+  `72px 240px 248px 140px` — 140px mortos no fim, exatamente o "vazio
+  morto" que a regra de layout proíbe.
+
+  As duas linhas são necessárias e fazem coisas diferentes: o `0px`
+  devolve o espaço para a coluna de conteúdo, e o `display: none`
+  impede que a borda de início fique como risco órfão sobre uma coluna
+  de largura zero.
 */
 @media (width < 1000px) {
+  .shell {
+    --membros-w: 0px;
+  }
+
   .membros {
     display: none;
   }
