@@ -148,6 +148,26 @@ no dev reprova o ambiente, não o código. `vite preview`, nunca `vite dev`.
 Regressão de escopo **nunca aparece em uso normal de desenvolvimento**. Este é o
 único mecanismo que a pega.
 
+**Medição comparada contra a linha de base certa.**
+
+Não é uma invariante do produto: é uma do instrumento, e ganhou lugar aqui
+porque já produziu dois diagnósticos falsos neste projeto.
+
+O caso do prepend: a fase de remedição comparava o movimento da linha contra o
+`scrollTop` LÍQUIDO — que já embute a compensação do virtualizador. Rolando
+260px com as linhas acima crescendo X, compensação funcionando dá líquido
+`260−X` e movimento `260`; compensação falhando dá líquido `260` e movimento
+`260+X`. Contra o líquido, os dois casos devolvem `X`. O instrumento acusou
+"SALTOU 242px" sem conseguir distinguir sucesso de falha.
+
+A regra que fica: quando a coisa medida reage à medição, a linha de base é a
+**intenção**, não o resultado observado — e o quanto o sistema compensou vira
+número próprio. Com salto zero e compensação alta, funciona; com salto alto e
+compensação zero, não funciona. Sem separar os dois, o número não decide nada.
+
+Verificado depois do conserto: compensação de 1436px contra 1441px de
+crescimento real, salto máximo de 1px.
+
 **Corrida de firehose só vale colada no fim.**
 No arnês: ao fechar a janela de medição, medir a distância da lista até o
 fim; acima do `scrollEndThreshold`, a corrida é marcada INVÁLIDA — junto com
