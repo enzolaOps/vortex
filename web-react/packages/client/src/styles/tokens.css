@@ -1,0 +1,204 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Vortex — camada 1: tokens
+   ------------------------------------------------------------
+   CSS custom properties puras. Esta é a fonte única.
+   Temas de usuário sobrescrevem AQUI, em runtime.
+   O Tailwind (camada 2) apenas projeta utilities em cima.
+
+   PREFIXO `--vx-`, e ele não é cosmético.
+   O Tailwind v4 reserva os namespaces --color-*, --spacing-*,
+   --radius-*, --text-*, --font-*, --leading-* e --ease-*. Sem
+   prefixo, a camada 1 cai dentro deles e o mapeamento vira
+   autorreferência (`--radius-1: var(--radius-1)`), que é
+   inválido em CSS. O prefixo é o que mantém as duas camadas
+   realmente separadas.
+
+   ⚠ AS CORES SÃO PLACEHOLDER, NÃO IDENTIDADE.
+   A paleta do Vortex é pendência aberta (ver CLAUDE.md). O
+   cinza neutro abaixo existe só para o spike renderizar com
+   alturas de linha realistas. Não é decisão de design.
+
+   As escalas de espaço, raio, tipo e movimento são as
+   definitivas.
+   ============================================================ */
+
+:root {
+  /* --- Superfícies (PLACEHOLDER) -----------------------------
+     Profundidade em dark UI vem de camada, não de sombra. */
+  --vx-surface-0: #0e0f11;
+  --vx-surface-1: #15171a;
+  --vx-surface-2: #1c1f23;
+  --vx-surface-3: #24282d;
+
+  /* --- Texto (PLACEHOLDER) -----------------------------------
+     1 = primário. Contraste 4.5:1 sobre a superfície em que
+     cada um for de fato usado. */
+  --vx-text-1: #e8eaed;
+  --vx-text-2: #a8adb4;
+  --vx-text-3: #6f757d;
+
+  /* --- Bordas (PLACEHOLDER) ---------------------------------- */
+  --vx-border-subtle: #24282d;
+  --vx-border-strong: #343a41;
+
+  /* --- Ação (PLACEHOLDER) ------------------------------------ */
+  --vx-accent: #4f7cff;
+  --vx-accent-hover: #6b90ff;
+  --vx-on-accent: #ffffff;
+
+  /* --- Semânticos (PLACEHOLDER) ------------------------------ */
+  --vx-danger: #e5534b;
+  --vx-warning: #d2a03c;
+  --vx-success: #46a758;
+
+  /* --- Presença (PLACEHOLDER) --------------------------------
+     Nunca comunicada só por cor: cor + forma no ícone. */
+  --vx-status-online: #46a758;
+  --vx-status-idle: #d2a03c;
+  --vx-status-dnd: #e5534b;
+  --vx-status-offline: #6f757d;
+
+  /* --- Espaço ------------------------------------------------ */
+  --vx-space-1: 4px;
+  --vx-space-2: 8px;
+  --vx-space-3: 12px;
+  --vx-space-4: 16px;
+  --vx-space-5: 24px;
+  --vx-space-6: 32px;
+
+  /* --- Raio -------------------------------------------------- */
+  --vx-radius-1: 4px;
+  --vx-radius-2: 8px;
+  --vx-radius-3: 12px;
+  --vx-radius-4: 16px;
+
+  /* --- Tipo --------------------------------------------------
+     `size` e não `text`: na camada 1, texto já nomeia cor. */
+  --vx-size-xs: 12px;
+  --vx-size-sm: 13px;
+  --vx-size-md: 14px;
+  --vx-size-lg: 16px;
+  --vx-size-xl: 20px;
+  --vx-size-2xl: 24px;
+
+  --vx-leading-message: 1.375;
+  --vx-leading-title: 1.2;
+
+  --vx-font-ui: system-ui, sans-serif;
+  --vx-font-mono: ui-monospace, monospace;
+
+  /* --- Movimento ---------------------------------------------
+     120–180ms, ease-out. Só transform e opacity. */
+  --vx-duration-fast: 120ms;
+  --vx-duration-base: 160ms;
+  --vx-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* --- Casca -------------------------------------------------
+     Zerado na web; definido pelo Electron. */
+  --vx-titlebar-h: 0px;
+
+  /* --- Layout ------------------------------------------------ */
+  --vx-rail-w: 72px;
+  --vx-message-max-w: 1100px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --vx-duration-fast: 0ms;
+    --vx-duration-base: 0ms;
+  }
+}
+
+/* ============================================================
+   Camada 2 — ponte para o Tailwind
+   ------------------------------------------------------------
+   @theme apenas MAPEIA. Nenhum valor literal aqui: token novo
+   entra na camada 1, nunca direto neste bloco.
+
+   Os `initial` são mecanismo da lei nº 4, não estilo: apagam as
+   escalas default do Tailwind. `bg-zinc-800` e `p-5` deixam de
+   existir, então não há o que proibir por lint.
+   Tornar impossível > proibir.
+   ============================================================ */
+
+@theme {
+  --color-*: initial;
+  --spacing-*: initial;
+  --radius-*: initial;
+  --text-*: initial;
+  --font-*: initial;
+  --leading-*: initial;
+  --ease-*: initial;
+
+  --color-surface-0: var(--vx-surface-0);
+  --color-surface-1: var(--vx-surface-1);
+  --color-surface-2: var(--vx-surface-2);
+  --color-surface-3: var(--vx-surface-3);
+
+  --color-text-1: var(--vx-text-1);
+  --color-text-2: var(--vx-text-2);
+  --color-text-3: var(--vx-text-3);
+
+  --color-border-subtle: var(--vx-border-subtle);
+  --color-border-strong: var(--vx-border-strong);
+
+  --color-accent: var(--vx-accent);
+  --color-accent-hover: var(--vx-accent-hover);
+  --color-on-accent: var(--vx-on-accent);
+
+  --color-danger: var(--vx-danger);
+  --color-warning: var(--vx-warning);
+  --color-success: var(--vx-success);
+
+  --color-status-online: var(--vx-status-online);
+  --color-status-idle: var(--vx-status-idle);
+  --color-status-dnd: var(--vx-status-dnd);
+  --color-status-offline: var(--vx-status-offline);
+
+  --spacing-1: var(--vx-space-1);
+  --spacing-2: var(--vx-space-2);
+  --spacing-3: var(--vx-space-3);
+  --spacing-4: var(--vx-space-4);
+  --spacing-5: var(--vx-space-5);
+  --spacing-6: var(--vx-space-6);
+
+  --radius-1: var(--vx-radius-1);
+  --radius-2: var(--vx-radius-2);
+  --radius-3: var(--vx-radius-3);
+  --radius-4: var(--vx-radius-4);
+
+  --text-xs: var(--vx-size-xs);
+  --text-sm: var(--vx-size-sm);
+  --text-md: var(--vx-size-md);
+  --text-lg: var(--vx-size-lg);
+  --text-xl: var(--vx-size-xl);
+  --text-2xl: var(--vx-size-2xl);
+
+  --leading-message: var(--vx-leading-message);
+  --leading-title: var(--vx-leading-title);
+
+  --font-sans: var(--vx-font-ui);
+  --font-mono: var(--vx-font-mono);
+
+  --ease-out: var(--vx-ease-out);
+
+  /* max-w-* lê do namespace --container-* no Tailwind v4. Sem esta linha o
+     teto de linha só existiria como arbitrary value — que é banido. */
+  --container-*: initial;
+  --container-message: var(--vx-message-max-w);
+}
+
+html,
+body,
+#root {
+  block-size: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--vx-surface-0);
+  color: var(--vx-text-1);
+  font-family: var(--vx-font-ui);
+}

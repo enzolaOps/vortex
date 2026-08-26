@@ -7,3 +7,6 @@
 [submodule "web/packages/js-lingui-solid"]
 	path = web/packages/js-lingui-solid
 	url = https://github.com/revoltchat/js-lingui-solid
+[submodule "web-react/packages/stoat.js"]
+	path = web-react/packages/stoat.js
+	url = https://github.com/stoatchat/javascript-client-sdk

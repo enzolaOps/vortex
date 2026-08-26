@@ -1,0 +1,45 @@
+# As duas ilhas consomem o mesmo SDK, pinado no mesmo commit.
+#
+# Se um gitlink subir e o outro não, web/ e web-react/ passam a rodar versões
+# diferentes do stoat.js. Isso não dá erro em lugar nenhum — as duas compilam,
+# as duas sobem, e o comportamento diverge em silêncio. Durante o porte, em que
+# comparar web/ com web-react/ lado a lado é o método de verificação, essa
+# divergência é indistinguível de bug de porte.
+#
+# O gitlink já está na árvore: não é preciso clonar os submodules para comparar.
+
+name: SDK lockstep
+
+on:
+  pull_request:
+    paths:
+      - "web/packages/stoat.js"
+      - "web-react/packages/stoat.js"
+      - ".gitmodules"
+      - ".github/workflows/sdk-lockstep.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "web/packages/stoat.js"
+      - "web-react/packages/stoat.js"
+      - ".gitmodules"
+
+jobs:
+  lockstep:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Os gitlinks de stoat.js precisam ser idênticos
+        run: |
+          web=$(git rev-parse HEAD:web/packages/stoat.js)
+          react=$(git rev-parse HEAD:web-react/packages/stoat.js)
+          echo "web/       $web"
+          echo "web-react/ $react"
+          if [ "$web" != "$react" ]; then
+            echo "::error::Gitlinks de stoat.js divergiram. As duas ilhas precisam do mesmo commit do SDK — suba os dois no mesmo commit."
+            exit 1
+          fi

@@ -1,0 +1,155 @@
+/* ============================================================
+   Vortex — camada 1: tokens
+   ------------------------------------------------------------
+   CSS custom properties puras. Esta é a fonte única.
+   Temas de usuário sobrescrevem AQUI, em runtime.
+   O Tailwind (camada 2) apenas projeta utilities em cima.
+
+   Os VALORES abaixo são placeholders estruturais.
+   A identidade visual do Vortex ainda não foi decidida —
+   paleta, par tipográfico e elemento de assinatura são
+   pendência aberta. A ESTRUTURA já é a definitiva.
+   ============================================================ */
+
+:root {
+  /* --- Superfícies -------------------------------------------
+     Profundidade em dark UI vem de camada, não de sombra.
+     0 = mais ao fundo. Empilhe; não use box-shadow para separar. */
+  --surface-0: /* TODO */ #000;
+  --surface-1: /* TODO */ #000;
+  --surface-2: /* TODO */ #000;
+  --surface-3: /* TODO */ #000;
+
+  /* --- Texto -------------------------------------------------
+     1 = primário. Contraste 4.5:1 mínimo sobre a superfície
+     em que cada um for de fato usado — inclusive --text-3
+     sobre --surface-3, que é onde costuma falhar. */
+  --text-1: /* TODO */ #fff;
+  --text-2: /* TODO */ #fff;
+  --text-3: /* TODO */ #fff;
+
+  /* --- Bordas ------------------------------------------------ */
+  --border-subtle: /* TODO */ #000;
+  --border-strong: /* TODO */ #000;
+
+  /* --- Ação -------------------------------------------------- */
+  --accent: /* TODO */ #000;
+  --accent-hover: /* TODO */ #000;
+  --on-accent: /* TODO */ #fff;
+
+  /* --- Semânticos -------------------------------------------- */
+  --danger: /* TODO */ #000;
+  --warning: /* TODO */ #000;
+  --success: /* TODO */ #000;
+
+  /* --- Presença ----------------------------------------------
+     Nunca comunicada só por cor: cor + forma no ícone. */
+  --status-online: /* TODO */ #000;
+  --status-idle: /* TODO */ #000;
+  --status-dnd: /* TODO */ #000;
+  --status-offline: /* TODO */ #000;
+
+  /* --- Espaço ------------------------------------------------ */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  /* --- Raio -------------------------------------------------- */
+  --radius-1: 4px;
+  --radius-2: 8px;
+  --radius-3: 12px;
+  --radius-4: 16px;
+
+  /* --- Tipo -------------------------------------------------- */
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+
+  --leading-message: 1.375;
+  --leading-title: 1.2;
+
+  --font-ui: /* TODO */ system-ui, sans-serif;
+  --font-mono: /* TODO */ ui-monospace, monospace;
+
+  /* --- Movimento ---------------------------------------------
+     120–180ms, ease-out. Só transform e opacity. */
+  --duration-fast: 120ms;
+  --duration-base: 160ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* --- Casca -------------------------------------------------
+     Zerado na web; definido pelo Electron. */
+  --titlebar-h: 0px;
+
+  /* --- Layout ------------------------------------------------ */
+  --rail-w: 72px;
+  --message-max-w: 1100px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+  }
+}
+
+/* ============================================================
+   Camada 2 — ponte para o Tailwind
+   ------------------------------------------------------------
+   @theme apenas MAPEIA. Nenhum valor literal aqui:
+   token novo entra na camada 1, nunca direto neste bloco.
+
+   @theme precisa ser top-level — não funciona dentro de
+   @media. Valores responsivos vão em :root com media query
+   e são referenciados aqui.
+   ============================================================ */
+
+@theme {
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+
+  --color-text-1: var(--text-1);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-on-accent: var(--on-accent);
+
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+
+  --color-status-online: var(--status-online);
+  --color-status-idle: var(--status-idle);
+  --color-status-dnd: var(--status-dnd);
+  --color-status-offline: var(--status-offline);
+
+  --font-sans: var(--font-ui);
+  --font-mono: var(--font-mono);
+}
+
+/* ============================================================
+   Tema de usuário
+   ------------------------------------------------------------
+   Sobrescreve a camada 1. O Tailwind não precisa saber que
+   existe — as utilities já apontam para as vars.
+   ============================================================ */
+
+/*
+[data-theme="algum-tema"] {
+  --surface-0: …;
+  --accent: …;
+}
+*/

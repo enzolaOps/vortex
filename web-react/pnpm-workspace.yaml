@@ -1,0 +1,17 @@
+packages:
+  - packages/client
+  - packages/stoat.js
+
+# Mesma escolha de `web/`: cada pacote enxerga só o que declarou.
+# Dependência fantasma vira erro de build, não bug em produção.
+nodeLinker: isolated
+
+allowBuilds:
+  esbuild: true
+
+# O SDK pina a versão do protocolo. Não deixar flutuar — ela acompanha
+# o backend que a instância roda, não o latest do npm.
+minimumReleaseAgeExclude:
+  - stoat-api
+
+strictPeerDependencies: false
