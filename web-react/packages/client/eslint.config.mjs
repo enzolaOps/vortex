@@ -24,6 +24,29 @@ import tseslint from "typescript-eslint";
  */
 const SINTAXE_GERAL = [
         {
+          /**
+           * Utility de espaçamento fracionária — `py-0.5`, `mt-1.5`, `gap-2.5`.
+           *
+           * Estas NÃO EXISTEM neste projeto e, pior, não falham: o `@theme` faz
+           * `--spacing-*: initial` e define apenas `1..6`, então a utility
+           * simplesmente não é gerada e o elemento fica sem o espaçamento que o
+           * código diz ter.
+           *
+           * Foi assim que o ritmo de agrupamento da lista de mensagens ficou
+           * escrito no comentário e ausente da tela: `py-0.5` prometia 4px
+           * dentro do grupo e entregava 0px, durante toda a fase 3 e a 4.
+           * Descoberto comparando com o Discord, não usando o app — o que é
+           * exatamente a definição de degradação silenciosa.
+           *
+           * Valor fora da escala precisa de justificativa; valor fora da escala
+           * que some sem avisar não precisa de justificativa, precisa de lint.
+           */
+          selector:
+            "Literal[value=/(^|\\s)(p|px|py|pt|pb|ps|pe|m|mx|my|mt|mb|ms|me|gap|gap-x|gap-y|size|w|h|min-w|min-h|max-w|max-h|inset|top|right|bottom|left|start|end|space-x|space-y|translate-x|translate-y)-\\d+\\.\\d+($|\\s)/]",
+          message:
+            "Utility de espaçamento fracionária não existe aqui: a escala é 1–6 e `--spacing-*: initial` apaga o resto, então esta classe NÃO gera CSS e some sem erro. Use um degrau da escala, ou CSS Module se o valor for legítimo e fora dela.",
+        },
+        {
           selector:
             "JSXAttribute[name.name='key'] > JSXExpressionContainer > Identifier[name=/^(i|idx|index)$/]",
           message:
