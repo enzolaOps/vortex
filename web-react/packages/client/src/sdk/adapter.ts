@@ -24,8 +24,10 @@ import { createEphemeralStore } from "../store/ephemeral";
 import { client, conectado } from "./client";
 import {
   baldeDe,
+  usuarioDaChave,
   type Balde,
   type ChannelSnapshot,
+  type ChaveDeMembro,
   type MemberSnapshot,
   type MessageSnapshot,
   type PresenceStatus,
@@ -743,23 +745,42 @@ export const channels = createEntityStore<ChannelSnapshot>((id) => {
 });
 
 /**
- * Membro, keyed por ID de USUÁRIO.
+ * Membro, keyed por SERVIDOR + USUÁRIO.
  *
- * Pendência conhecida e deliberada: apelido é por servidor (`ServerMember`), e
- * uma chave de usuário não sabe de qual servidor se fala. `toMemberSnapshot`
- * já aceita o apelido — a costura existe; no dia em que a chave virar
- * composta, só este bloco muda.
+ * A pendência que este bloco fecha estava escrita assim: *"apelido é por
+ * servidor (`ServerMember`), e uma chave de usuário não sabe de qual servidor
+ * se fala"*. Era verdade e custava três campos de uma vez — apelido, cor de
+ * cargo e castigo, todos moram no `ServerMember` e nenhum no `User`.
+ *
+ * A chave é marcada no domínio (`ChaveDeMembro`), então passar um ID de
+ * usuário aqui não compila. Sem isso, o erro seria `getSnapshot(userId)`
+ * devolvendo `undefined` para sempre, calado.
+ *
+ * **Duas fontes numa subscrição só, e é de propósito.** `User` muda quando a
+ * pessoa troca de nome; `ServerMember`, quando trocam o apelido dela ou lhe
+ * dão um cargo. Um `createEffect` lendo os dois reage aos dois — e a
+ * granularidade continua sendo a linha, não a lista.
  */
-export const members = createEntityStore<MemberSnapshot>((id) => {
-  const inicial = client.users.get(id);
-  if (inicial) members.set(id, toMemberSnapshot(inicial, undefined));
+export const members = createEntityStore<MemberSnapshot>((chave) => {
+  const userId = usuarioDaChave(chave as ChaveDeMembro);
+  const serverId = chave.slice(0, chave.length - userId.length - 1);
+
+  const ler = () => {
+    const user = client.users.get(userId);
+    if (!user) return;
+    // `getByKey` e não `get`: a coleção do SDK indexa por objeto composto, e
+    // passar a nossa chave direto acharia nada — silenciosamente.
+    const membro = serverId
+      ? client.serverMembers.getByKey({ server: serverId, user: userId })
+      : undefined;
+    members.set(chave, toMemberSnapshot(user, membro));
+  };
+
+  ler();
 
   count("membroEfeitos");
   return createRoot((dispose) => {
-    createEffect(() => {
-      const user = client.users.get(id);
-      if (user) members.set(id, toMemberSnapshot(user, undefined));
-    });
+    createEffect(ler);
     return dispose;
   });
 });

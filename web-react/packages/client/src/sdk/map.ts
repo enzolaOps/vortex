@@ -4,7 +4,7 @@
  * Tudo o que o resto do app enxerga passa por aqui. Derivação acontece nesta
  * escrita — uma vez, quando a entidade muda — e nunca no `getSnapshot`.
  */
-import type { Channel, Message, Server, User } from "stoat.js";
+import type { Channel, Message, Server, ServerMember, User } from "stoat.js";
 
 import type { Layout } from "./agrupamento";
 import type {
@@ -159,17 +159,36 @@ export function toChannelSnapshot(
 
 /**
  * O apelido do servidor ganha do username — é o nome que a pessoa escolheu
- * naquele lugar. Entra por parâmetro porque mora no `ServerMember`, não no
- * `User`, e este módulo traduz uma entidade de cada vez.
+ * naquele lugar.
+ *
+ * O `ServerMember` entra por parâmetro, e não é buscado aqui, porque este
+ * módulo traduz uma entidade de cada vez: quem sabe de qual servidor se fala é
+ * o adapter, que é dono da chave composta.
+ *
+ * `membro` é opcional porque nem todo usuário renderizado é membro de servidor
+ * — autor de DM não é. Sem ele, cai no username e em nenhum cargo, que é a
+ * resposta certa e não um estado degradado.
  */
 export function toMemberSnapshot(
   user: User,
-  apelido: string | undefined,
+  membro: ServerMember | undefined,
 ): MemberSnapshot {
-  const displayName = apelido || user.username;
+  const displayName = membro?.nickname || user.username;
+
+  // `roleColour` pode vir `null` do protocolo — sem cargo colorido. `null` e
+  // `undefined` significam a mesma coisa para o domínio, e carregar os dois
+  // faria todo consumidor testar duas ausências diferentes.
+  const cor = membro?.roleColour ?? undefined;
+
+  // `getTime()` aqui, e não o `Date`: o snapshot precisa ser comparável por
+  // valor. Guardar o objeto faria toda republicação parecer mudança.
+  const silenciadoAte = membro?.timeout?.getTime();
+
   return {
     id: user.id,
     displayName,
     sigla: sigla(displayName),
+    cor,
+    silenciadoAte,
   };
 }

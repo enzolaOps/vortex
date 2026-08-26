@@ -119,9 +119,57 @@ export type ChannelSnapshot = {
   readonly mencoes: number;
 };
 
+/**
+ * A chave de um membro: servidor MAIS usuário.
+ *
+ * Marcada (`branded`) de propósito. A pendência que isto fecha era descrita
+ * assim: *"o snapshot de membro é keyed por ID de USUÁRIO, e apelido mora no
+ * ServerMember — uma chave de usuário não sabe de qual servidor se fala"*.
+ *
+ * Trocar a chave por uma string composta resolveria o dado e deixaria o erro
+ * possível: `members.getSnapshot(userId)` continuaria compilando e devolvendo
+ * `undefined` para sempre, sem erro nenhum. Com a marca, passar um ID de
+ * usuário onde se espera uma chave de membro **não compila**.
+ *
+ * Tornar impossível > tipo > lint. Aqui o tipo é o mecanismo inteiro.
+ */
+export type ChaveDeMembro = string & { readonly __chaveDeMembro: unique symbol };
+
+export function chaveDeMembro(serverId: string, userId: string): ChaveDeMembro {
+  return `${serverId}:${userId}` as ChaveDeMembro;
+}
+
+/** O lado de volta, para quem tem a chave e precisa assinar presença. */
+export function usuarioDaChave(chave: ChaveDeMembro): string {
+  return chave.slice(chave.indexOf(":") + 1);
+}
+
 export type MemberSnapshot = ComSigla & {
+  /**
+   * ID de USUÁRIO, não a chave.
+   *
+   * Presença é do usuário, não do membro: a mesma pessoa aparece online nos
+   * cinco servidores dela ao mesmo tempo. `PontoDePresenca` assina por este
+   * campo, e é por isso que ele sobrevive à chave composta.
+   */
   readonly id: string;
   readonly displayName: string;
+  /**
+   * Cor do cargo que hasteia a pessoa. `undefined` = cor de texto normal.
+   *
+   * Vem crua do protocolo (é escolha de quem administra o servidor, não do
+   * nosso sistema de tokens), então é o único lugar do app onde uma cor
+   * literal é legítima — e por isso ela nunca pinta fundo, só texto sobre
+   * superfície conhecida.
+   */
+  readonly cor: string | undefined;
+  /**
+   * Fim do castigo, em epoch ms. `undefined` = sem castigo.
+   *
+   * Número e não `Date`: `getSnapshot` precisa devolver referência estável, e
+   * um `Date` novo a cada leitura é exatamente o erro nº 1 do briefing.
+   */
+  readonly silenciadoAte: number | undefined;
 };
 
 /**

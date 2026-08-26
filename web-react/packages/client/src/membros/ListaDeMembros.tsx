@@ -1,8 +1,10 @@
+import { ProhibitInset } from "@phosphor-icons/react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { memo, useEffect, useMemo, useRef } from "react";
 
 import { count } from "../dev/stats";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
+import { chaveDeMembro } from "../sdk/domain";
 import {
   useMembro,
   useMembrosOffline,
@@ -36,13 +38,15 @@ type Linha =
  * recriados a cada render da lista.
  */
 const LinhaDeMembro = memo(function LinhaDeMembro({
+  serverId,
   id,
   offline,
 }: {
+  serverId: string;
   id: string;
   offline: boolean;
 }) {
-  const membro = useMembro(id);
+  const membro = useMembro(chaveDeMembro(serverId, id));
   count("membrosRowRenders");
 
   // Nunca `null`: linha não resolvida mede 0px, o total encolhe, a janela
@@ -55,15 +59,56 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
     );
   }
 
+  /*
+    O castigo é a PRESENÇA do campo, não uma comparação com o relógio local.
+
+    A primeira versão fazia `silenciadoAte > Date.now()` aqui, e o lint do
+    React Compiler reprovou: "Cannot call impure function during render". Ele
+    está certo, e a regra do projeto diz que compiler reclamando é código
+    errado, não regra para desligar.
+
+    A correção é melhor que o código original, e não só mais pura: quem sabe
+    que um castigo acabou é o SERVIDOR, que limpa o campo e manda o evento.
+    Comparar com o relógio do cliente seria uma segunda fonte de verdade,
+    discordando da primeira toda vez que os relógios divergissem.
+  */
+  const silenciado = membro.silenciadoAte !== undefined;
+
   return (
-    <button type="button" className={css.membro} data-offline={offline}>
+    <button
+      type="button"
+      className={css.membro}
+      data-offline={offline}
+      data-silenciado={silenciado}
+    >
       <span className={css.avatar} aria-hidden>
         {membro.sigla}
         {/* Rotulado aqui, ao contrário da lista de mensagens: nesta coluna a
             presença É o dado, não enfeite ao lado de um nome. */}
         <PontoDePresenca userId={id} rotular />
       </span>
-      <span className={css.nome}>{membro.displayName}</span>
+
+      {/* A cor do cargo é dado do servidor, não token — ver `NomeDoAutor`. */}
+      <span
+        className={css.nome}
+        style={membro.cor ? { color: membro.cor } : undefined}
+      >
+        {membro.displayName}
+      </span>
+
+      {/*
+        Castigo nunca só por opacidade.
+
+        Esmaecer é o que a linha offline já faz, e as duas coisas juntas ficam
+        indistinguíveis. O ícone carrega o estado e o texto o nomeia — mesma
+        regra da presença: cor e forma, nunca só uma.
+      */}
+      {silenciado ? (
+        <>
+          <ProhibitInset size={20} aria-hidden className={css.castigo} />
+          <span className="sr-only">em castigo</span>
+        </>
+      ) : null}
     </button>
   );
 });
@@ -212,7 +257,11 @@ export function ListaDeMembros() {
                   <span className={css.total}>— {linha.total}</span>
                 </h2>
               ) : (
-                <LinhaDeMembro id={linha.id} offline={linha.offline} />
+                <LinhaDeMembro
+                  serverId={serverId}
+                  id={linha.id}
+                  offline={linha.offline}
+                />
               )}
             </div>
           );

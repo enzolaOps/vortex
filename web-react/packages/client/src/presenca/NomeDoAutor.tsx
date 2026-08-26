@@ -1,4 +1,5 @@
-import { useMembro } from "../store/hooks";
+import { chaveDeMembro } from "../sdk/domain";
+import { useMembro, useServidorAtivo } from "../store/hooks";
 
 /**
  * O nome de quem escreveu.
@@ -12,11 +13,38 @@ import { useMembro } from "../store/hooks";
  * sempre, porque não havia store de membro. Agora há, e o ID só aparece
  * enquanto a entidade não resolveu — que é o mesmo contrato do placeholder da
  * linha, um nível abaixo.
+ *
+ * **O servidor vem da navegação, não de uma prop.** A lista só mostra o canal
+ * ativo, que está no servidor ativo — então os dois são o mesmo, e `serverId`
+ * atravessando `MessageList → MessageRow → aqui` só existiria para dizer o que
+ * o store já sabe. `useServidorAtivo` assina a navegação, que muda quando
+ * alguém troca de canal e em mais nenhuma ocasião.
+ *
+ * Fica a nota para a fase 6: DM não tem servidor. Quando ela existir, o
+ * fallback correto é o `User`, que é exatamente o que `toMemberSnapshot`
+ * devolve sem `ServerMember`.
  */
 export function NomeDoAutor({ userId }: { userId: string }) {
-  const membro = useMembro(userId);
+  const serverId = useServidorAtivo();
+  const membro = useMembro(chaveDeMembro(serverId, userId));
+
   return (
-    <span className="text-md font-medium text-text-1">
+    <span
+      className="text-md font-medium text-text-1"
+      /*
+        A única cor literal legítima do app.
+
+        Ela é escolha de quem administra o servidor, não do nosso sistema de
+        tokens — um cargo "Moderação" verde é dado, não decisão de design. Vai
+        por `style` e não por utility justamente porque é runtime: não há
+        classe a gerar, então não é arbitrary value nem furo na lei nº 4.
+
+        Só texto, nunca preenchimento: sobre `--vx-surface-*` conhecida o
+        contraste de um texto colorido é previsível; um fundo com cor arbitrária
+        não seria, e levaria junto o texto por cima.
+      */
+      style={membro?.cor ? { color: membro.cor } : undefined}
+    >
       {membro?.displayName ?? userId}
     </span>
   );

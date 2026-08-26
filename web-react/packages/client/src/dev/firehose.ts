@@ -181,9 +181,39 @@ function ensureWorld() {
       default_permissions: 0,
     } as never);
 
+    /*
+      Os `ServerMember`, que é onde moram apelido, cargo e castigo.
+
+      Sem isto a member list mostraria username para todo mundo e nenhum dos
+      três campos apareceria — e o pior: pareceria funcionando. O arnês precisa
+      exercitar a chave composta, senão ela é só tipo bonito.
+
+      A coleção do SDK indexa por `server + user` CONCATENADO, sem separador.
+      A nossa `ChaveDeMembro` usa `:` de propósito — é chave do domínio, não do
+      protocolo, e misturar as duas é como o resto do app perderia a fronteira.
+    */
+    const membros = userIds.slice(0, servidor.membros);
+    membros.forEach((userId, i) => {
+      client.serverMembers.getOrCreate(
+        { server: servidor.id, user: userId },
+        {
+          _id: { server: servidor.id, user: userId },
+          joined_at: new Date(0).toISOString(),
+          // Um em cada três tem apelido: o suficiente para ver a mistura de
+          // apelido e username na mesma coluna, que é o caso real.
+          ...(i % 3 === 0 ? { nickname: `${NOMES[i % NOMES.length]!}-vx` } : {}),
+          // Um em cada onze em castigo, sempre no futuro — no passado o estado
+          // é indistinguível de "sem castigo" e não exercitaria nada.
+          ...(i % 11 === 5
+            ? { timeout: new Date(Date.now() + 36e5).toISOString() }
+            : {}),
+        },
+      );
+    });
+
     // Registro, não evento: é setup em massa, e o caminho de evento existe
     // para chegada incremental. A mesma separação do `seedChannel`.
-    registrarServidor(servidor.id, userIds.slice(0, servidor.membros));
+    registrarServidor(servidor.id, membros);
   }
 }
 

@@ -20,6 +20,7 @@ import {
 } from "../sdk/adapter";
 import type {
   ChannelSnapshot,
+  ChaveDeMembro,
   MemberSnapshot,
   MessageSnapshot,
   PresenceStatus,
@@ -140,10 +141,18 @@ export function useChannel(id: string): ChannelSnapshot | undefined {
   return useSyncExternalStore(channels.subscriber(id), getSnapshot);
 }
 
-export function useMembro(id: string): MemberSnapshot | undefined {
-  const getSnapshot = () => members.getSnapshot(id);
-  if (import.meta.env.DEV) assertStable(getSnapshot, `useMembro(${id})`);
-  return useSyncExternalStore(members.subscriber(id), getSnapshot);
+/**
+ * Um membro, pela chave composta.
+ *
+ * O parâmetro é `ChaveDeMembro` e não `string` de propósito: apelido, cor de
+ * cargo e castigo são POR SERVIDOR, e um ID de usuário sozinho não sabe de
+ * qual servidor se fala. Com o tipo marcado, `useMembro(userId)` não compila —
+ * sem ele, compilaria e devolveria `undefined` para sempre.
+ */
+export function useMembro(chave: ChaveDeMembro): MemberSnapshot | undefined {
+  const getSnapshot = () => members.getSnapshot(chave);
+  if (import.meta.env.DEV) assertStable(getSnapshot, `useMembro(${chave})`);
+  return useSyncExternalStore(members.subscriber(chave), getSnapshot);
 }
 
 /**

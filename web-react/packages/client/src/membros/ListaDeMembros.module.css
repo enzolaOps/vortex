@@ -104,6 +104,23 @@
   font-size: var(--vx-size-md);
 }
 
+/*
+  Castigo (`ServerMember.timeout`).
+
+  NÃO esmaece: offline já usa opacidade, e as duas juntas ficariam
+  indistinguíveis — alguém em castigo e online pareceria só ausente. O ícone é
+  o estado, e o `sr-only` ao lado o nomeia; a cor é o reforço, nunca o portador.
+*/
+.castigo {
+  flex: none;
+  color: var(--vx-warning);
+}
+
+/* O nome recua um degrau para o ícone caber sem empurrar a linha. */
+.membro[data-silenciado="true"] .nome {
+  color: var(--vx-text-3);
+}
+
 .vazio {
   padding: var(--vx-space-4) var(--vx-space-3);
   color: var(--vx-text-3);
