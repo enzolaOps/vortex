@@ -126,20 +126,45 @@ export function App() {
             Carregar histórico
           </button>
 
+          {/* As duas fases aparecem separadas de propósito: um veredito único
+              esconderia qual delas falhou, e elas falham por motivos
+              diferentes — inserção é compensação sobre estimativa, remedição é
+              compensação durante o scroll. */}
           {prepend ? (
-            <span
-              className={`rounded-2 px-2 py-1 text-xs ${
-                prepend.motivo
-                  ? "bg-surface-3 text-text-2"
-                  : prepend.ok
-                    ? "bg-success text-surface-0"
-                    : "bg-danger text-on-accent"
-              }`}
-            >
-              {prepend.motivo
-                ? `âncora: ${prepend.motivo}`
-                : `âncora ${prepend.ok ? "OK" : "SALTOU"} · deslocou ${prepend.deslocamentoVisual}px · ` +
-                  `total +${prepend.crescimentoDoTotal}px · scroll +${prepend.deslocamentoDoScroll}px`}
+            <span className="flex flex-wrap items-center gap-2 text-xs">
+              <span
+                className={`rounded-2 px-2 py-1 ${
+                  prepend.motivo
+                    ? "bg-surface-3 text-text-2"
+                    : Math.abs(prepend.deslocamentoVisual) <= 2
+                      ? "bg-success text-surface-0"
+                      : "bg-danger text-on-accent"
+                }`}
+              >
+                {prepend.motivo
+                  ? `inserção: ${prepend.motivo}`
+                  : `inserção ${Math.abs(prepend.deslocamentoVisual) <= 2 ? "OK" : "SALTOU"} · ` +
+                    `deslocou ${prepend.deslocamentoVisual}px · total +${prepend.crescimentoDoTotal}px · ` +
+                    `scroll +${prepend.deslocamentoDoScroll}px`}
+              </span>
+
+              {prepend.remedicao ? (
+                <span
+                  className={`rounded-2 px-2 py-1 ${
+                    prepend.remedicao.motivo
+                      ? "bg-surface-3 text-text-2"
+                      : prepend.remedicao.ok
+                        ? "bg-success text-surface-0"
+                        : "bg-danger text-on-accent"
+                  }`}
+                >
+                  {prepend.remedicao.motivo
+                    ? `remedição: ${prepend.remedicao.motivo}`
+                    : `remedição ${prepend.remedicao.ok ? "OK" : "SALTOU"} · ` +
+                      `pior salto ${prepend.remedicao.piorSalto}px em ${prepend.remedicao.passos} passos · ` +
+                      `altura real somou ${prepend.remedicao.crescimentoPorRemedicao}px`}
+                </span>
+              ) : null}
             </span>
           ) : null}
 
