@@ -147,19 +147,28 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                 {message.editedAt ? (
                   <span className="text-xs text-text-3">(editada)</span>
                 ) : null}
-                {message.sendState !== "sent" ? (
-                  <span
-                    className={`text-xs ${falhou ? "text-danger" : "text-text-3"}`}
-                  >
-                    {falhou ? "não enviada" : "enviando…"}
-                  </span>
-                ) : null}
               </div>
             ) : null}
 
             <p className="text-md leading-message wrap-anywhere text-text-2">
               {message.content}
             </p>
+
+            {/*
+              Estado de envio FORA do cabeçalho.
+
+              Ele morava ao lado da hora, e o cabeçalho só existe quando a
+              linha abre grupo — então mensagem enviada logo depois da sua
+              anterior ficava só com a borda vermelha e nenhum texto. Cor
+              sozinha não comunica nada para quem não a distingue, e o caso
+              não é raro: é o mais comum que existe, duas mensagens suas
+              seguidas.
+            */}
+            {message.sendState !== "sent" ? (
+              <p className={cn("text-xs", falhou ? "text-danger" : "text-text-3")}>
+                {falhou ? "não enviada" : "enviando…"}
+              </p>
+            ) : null}
 
             {message.reactions.size > 0 ? (
               <div className="mt-1 flex flex-wrap gap-1">
