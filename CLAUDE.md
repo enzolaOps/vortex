@@ -513,9 +513,17 @@ ninguém de lugar, então a member list não reordena — e presença é 55% da 
 do firehose. Com uma seção por estado, toda piscada custaria `n log n`. É a lei
 nº 1 aplicada à ordenação em vez de à subscrição.
 
-**Não-lidas e menções são do cliente.** O protocolo tem `unread` booleano; o
-Vortex conta. É a terceira coisa que a camada anticorrupção comporta sem tocar
-em componente, depois de `sendState` e do agrupamento.
+**Não-lidas e menções são do cliente.** É a terceira coisa que a camada
+anticorrupção comporta sem tocar em componente, depois de `sendState` e do
+agrupamento.
+
+⚠ **A justificativa dada aqui estava errada, e a varredura de protocolo em
+`concorrentes.md` desmentiu.** Escrevi que "o protocolo tem `unread` booleano; o
+Vortex conta". O protocolo tem **`ChannelUnread.lastMessageId`** — o cursor de
+leitura, persistido no servidor — e **`messageMentionIds`**, um conjunto de IDs.
+O booleano é um getter derivado. Contar no cliente continua certo como
+arquitetura; o que não existe é o incremento `+1` por evento ser a fonte da
+verdade. Ele nunca viu offline, e a semeadura no `Ready` é item de fase 6.
 
 Duas armadilhas do SDK encontradas verificando em navegador, e mortas na camada
 de tradução: `channel.isVoice` não quer dizer "canal de voz do servidor" (é
@@ -630,7 +638,13 @@ Sistema de slots, modo edição, preset versionado e compartilhável, picker de
 paleta com validação de contraste. Ver `layout-customization.md`.
 
 
-### Fase 5 — Acabamento · **próxima**
+### Fase 5 — Acabamento e superfície de produto · **próxima**
+
+Nasceu como fase de acabamento e **deixou de ser**, por decisão explícita: a
+varredura de protocolo em `concorrentes.md` mostrou que dezesseis campos já
+chegam pelo fio e são ignorados, e a escolha foi trazer **todos**, features
+inclusive. O acabamento continua sendo o esqueleto da fase; o resto pendura
+nele.
 
 A fase que o roadmap nunca teve. O polimento era suposto acontecer dentro de
 cada fase, e a suposição falhou de forma visível na fase 4: quatro controles
@@ -655,6 +669,38 @@ O alvo concreto, em ordem de valor:
   canais, no segmentado e no painel de edição; falta decidir se ela marca
   também mensagem não lida e canal com menção.
 
+**A fase deixou de ser só polimento.** A análise de concorrentes
+(`concorrentes.md`) foi lida e três itens foram **aceitos** como escopo, porque
+são baratos e mudam mais a sensação do produto que qualquer ajuste de espaçamento:
+
+- **A paleta de comandos** (`Cmd+K` sobre servidores, canais e pessoas). T1, sem
+  rede. Num app denso, a sidebar orienta e a paleta move.
+- **Leitura como posição** — primeira não lida, linha de novas mensagens
+  persistente, ir para a próxima menção. **T2**: o cursor já existe no protocolo
+  (`ChannelUnread.lastMessageId`) e as menções são IDs, não contagem.
+- **O canal de voz como sala.** No Stoat um canal de voz é uma *chamada*; aqui
+  vira um *lugar*. `Ready.voice_states` já entrega quem está dentro de cada canal
+  antes de entrar em qualquer um, e `VoiceChannelJoin`/`Leave` mantêm ao vivo —
+  então mostrar a sala é **T2**, não fork de backend. É a única escolhida que
+  muda o produto, e não a superfície.
+
+⚠ **A armadilha de escopo do canal de voz:** a lista de participantes muda por
+ação humana (baixa frequência, store normal), mas **quem está falando** vem do
+LiveKit dezenas de vezes por segundo — é o estado efêmero que a lei nº 1 nomeia.
+Anel de fala em store separado e com throttle na fronteira, nunca no store de
+canais. Sem isso, canal de voz movimentado repinta a coluna inteira.
+
+Ouvir de fato fica de fora desta fase: é `@livekit/components-react` e sessão de
+mídia. Trabalho real, mas os serviços `voice-ingress` e `livekit` já estão de pé
+no compose — não é fork.
+
+Os sete itens **T0** da mesma análise também entraram: divisor carregando
+contexto em vez de só data (prepara tópico de graça), o ritmo de agrupamento
+medido e não chutado, separação por espaço em vez de régua, disciplina contável
+de acento, empty state que é o começo do canal, timestamp no gutter em hover — e
+a resposta à pergunta aberta abaixo: **a lâmina marca não-lida e não marca
+menção**, porque não-lida é posicional e menção é contagem.
+
 **A regra de método que a fase 4 ensinou, e que vale mais que a lista:**
 checklist é o penúltimo degrau da ordem de preferência do `enforcement.md`.
 Toda vez que um item desta fase puder virar lint, tipo ou teste, ele deve —
@@ -667,6 +713,52 @@ reconexão. Polir antes significa retrabalho em algumas delas. A ordem foi
 escolhida assim de propósito: o app fica aberto o dia inteiro na frente de
 quem o constrói, e incômodo diário cobra juros que retrabalho estimável não
 cobra.
+
+#### Os dezesseis campos, e por que a ordem é esta
+
+`T2` responde **de onde vem o dado**, não quanto custa a feature — a
+classificação em quatro custos está em `concorrentes.md`. A ordem abaixo é
+ditada por duas coisas: o que anda junto com o passe de polimento, e o que
+ameaça o gate.
+
+1. **Os sete campos baratos, dentro do passe de cada superfície.** `roleColour`
+   e `editedAt` na linha; `nickname`/`avatar` por servidor, `timeout` e
+   `hoistedRole` na member list; `orderedChannels` na coluna de canais. Fazê-los
+   depois significaria tocar cada superfície duas vezes.
+2. **A sala de voz.** Está no grupo barato mas é a maior dele: a linha do canal
+   deixa de ser um item e vira um container com participantes.
+3. **Cabeçalho de canal e cartão de perfil.** Duas superfícies inéditas, que
+   destravam `description`, `banner`, `pronouns` e `status.text` de uma vez. O
+   `HoverCard` da fase 2 é o primitivo, ainda sem uso. Nascem movíveis.
+4. **`systemMessage`** antes das reações, porque é o mais barato dos itens que
+   mudam a altura da linha — e força **uma vez** o trabalho de estimativa de
+   altura por tipo, que a pendência de append já pedia.
+5. **Respostas com citação.** Mexe na altura da linha e no composer.
+6. **Reações.** Por último entre as da linha: é o maior custo de render no
+   componente mais quente do app.
+7. **Painel de fixados.** `PainelId` novo. Fica por último por ser o mais
+   isolado — não encosta no caminho quente.
+
+A **paleta de comandos** é independente e entra em qualquer ponto. **Leitura
+como posição** vem depois que a lista parar de mudar de forma.
+
+#### A regra de processo desta fase, e ela não é opcional
+
+**Rodar o firehose a cada item que toca a linha de mensagem — não uma vez no
+fim.** Três dos itens acima (`systemMessage`, citação, reações) somam custo ao
+componente mais quente, e o patamar sob CPU 4x já está em ~6% contra teto de 5%.
+Em lote, não há como saber qual deles pagou. E a fase 3 já provou que efeito
+pequeno exige mediana de 3 janelas para ser visto: o espalhamento entre corridas
+(0,9pp) foi maior que o efeito procurado (0,72pp).
+
+`havePermission()` não entra como item: vira **regra** — nunca renderizar ação
+que a pessoa não pode executar. Custa zero adotada agora, e é varredura em todo
+componente se adotada depois. Candidata a virar mecanismo, pela ordem do
+`enforcement.md`.
+
+**O risco desta escolha, dito uma vez:** a fase cresceu de acabamento para
+produto, e o retrabalho da fase 6 cresce junto — reações, citação e perfil todos
+mudam quando o dado real chegar. Foi decidido com isso à vista.
 
 ### Fase 6 — Rede
 
@@ -724,8 +816,11 @@ salva o cliente web não transfere para Rust.
 | Menu de contexto no nível da lista | **Fase 5. Medido, não conserta o gate, e vale mesmo assim.** Hoje cada `MessageRow` monta um `ContextMenu` do Radix inteiro — Root, Trigger, Portal, Content — e linha monta e desmonta na velocidade do scroll. A/B com a mesma `<article>` nos dois lados: p99 de 24,9ms para 18,9ms e frames perdidos de 6,0% para 5,4% ao desligá-lo. O conserto é um Root para a lista, posicionado no ponteiro, com o id da linha alvo no store. |
 | Custo de pintura | **Hipótese nova, com evidência.** O mesmo build, no mesmo throttle de 4x, dá 0,4–0,5% de frames perdidos em Chrome headless (`pnpm gate`) e 5,4–6,3% em display real — e o espalhamento entre corridas cai de 0,9pp para 0,1pp. Headless não pinta numa superfície de verdade; a diferença é quase toda rasterização e composição. Isso reabre a remoção da máscara do ponto de presença, arquivada como "não moveu o p95" quando o p95 daquela máquina não conseguia ver mudança daquele tamanho. |
 | Patamar de CPU 4x em ~6% | Contra o teto de 5%. Não bloqueia — o patamar que mede o app (sem throttle) passa com folga de 10×. A fase 0 media 2,9% sob 4x com uma `MessageRow` que era um `<article>` de className estática: sem agrupamento, divisor de data, estado de envio, menu, composer ou colunas laterais. Parte da diferença é o produto existindo; quanto exatamente, só um A/B com mediana de 3 janelas responde — e agora ele decide, porque a contagem enxerga onde o percentil não enxergava. |
-| Apelido por servidor na member list | **Fase 5.** O snapshot de membro é keyed por ID de USUÁRIO, e apelido mora no `ServerMember` — uma chave de usuário não sabe de qual servidor se fala. `toMemberSnapshot` já aceita o apelido; falta a chave composta. |
-| Categorias de canal | **Fase 5.** `server.categories` existe no protocolo e a coluna ignora, separando só texto de voz. Categoria de verdade pede ordem própria, colapso persistido e arrastar-e-soltar. |
+| Apelido por servidor na member list | **Resolvido.** A chave virou `ChaveDeMembro` — tipo MARCADO, não string composta: passar um ID de usuário onde se espera chave de membro não compila (provado com arquivo-sonda). Destravou apelido, cor de cargo e castigo de uma vez. |
+| Categorias de canal | **Fase 5, e menor do que parecia.** Além de `server.categories`, o SDK já expõe **`orderedChannels`** — a ordenação por categoria vem pronta. Sobra o colapso persistido e o arrastar-e-soltar. |
+| Semear não-lidas no `Ready` | **Fase 6, e é regressão garantida sem isso.** O adapter incrementa `+1` por mensagem que chega e nunca consulta `client.channelUnreads`. No firehose funciona porque tudo chega ao vivo; com rede, o que chegou offline não passou pelo incremento e o app abre zerado. Semear de `ChannelUnread.lastMessageId` + `messageMentionIds`, e escrever de volta com `Message.ack()`. |
+| Seções de cargo na member list | **Fase 5, e o SDK já computa.** `ServerMember.hoistedRole` entrega o cargo que separa a pessoa na lista, e `ranking`/`orderedRoles` a hierarquia. Não briga com os dois baldes de presença: cargo não pisca, presença pisca — secciona por cargo, bucketiza presença dentro. |
+| Campos de protocolo ainda ignorados | Levantados em `concorrentes.md` § segunda passada: `reactions`, `replyIds`, `pinned`, `roleColour`, `editedAt`, `systemMessage`, `channel.description`, `muted`, `havePermission`, `pronouns` (em `User` **e** `ServerMember`), `timeout`, `banner`, `status.text`. Nenhum precisa de backend. |
 | Lado lógico no wrapper de Tooltip | **Fase 5.** O Radix só fala `side` físico. Hoje o `avoidCollisions` cobre o caso real (rail movido = sem espaço daquele lado = vira sozinho), mas o mapeamento logical→physical deveria viver no wrapper. |
 
 ---

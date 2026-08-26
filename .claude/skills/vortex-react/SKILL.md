@@ -149,6 +149,7 @@ Leia sob demanda, não todas de uma vez:
 | `references/design-system.md` | Tokens, cores, layout, shell, ultrawide, estados, a11y, motion |
 | `references/styling.md` | Escrever CSS, escolher entre utility e CSS Module, adicionar token, tema |
 | `references/layout-customization.md` | Slots, modo edição, preset, tema de usuário, painel movível |
+| `references/concorrentes.md` | Decidir se uma feature entra, e em que fase; "por que assim e não como o Discord"; escopo de produto |
 | `references/electron.md` | Titlebar, janelas, IPC, tray, badge, diferenças web↔desktop |
 | `references/review-checklist.md` | Antes de fechar qualquer entrega |
 | `references/enforcement.md` | Configurar lint, teste ou assertion; registrar invariante nova |
