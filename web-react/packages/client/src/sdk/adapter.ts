@@ -24,11 +24,13 @@ import { createEphemeralStore } from "../store/ephemeral";
 import { client, conectado } from "./client";
 import {
   baldeDe,
+  SEM_CARGO,
   usuarioDaChave,
   type Balde,
   type ChannelSnapshot,
   type ChaveDeMembro,
   type MemberSnapshot,
+  type SecaoDeMembros,
   type MessageSnapshot,
   type PresenceStatus,
   type SendState,
@@ -590,6 +592,19 @@ export const membrosOnline = createEntityStore<readonly string[]>();
 export const membrosOffline = createEntityStore<readonly string[]>();
 
 /**
+ * As seções de cargo do lado online.
+ *
+ * Store SEPARADO de `membrosOnline`, e não um substituto, por duas razões: um
+ * painel estreito que só mostra avatares não precisa de seção nenhuma e não
+ * deve acordar quando um cargo mudar de nome; e a lista achatada continua
+ * sendo a forma que a member list virtualizada consome hoje.
+ *
+ * Quem publica os dois é a mesma função, no mesmo frame — não há como
+ * divergirem.
+ */
+export const secoesOnline = createEntityStore<readonly SecaoDeMembros[]>();
+
+/**
  * Canais publicados JÁ SEPARADOS por tipo, e não numa lista só.
  *
  * A tentação é publicar um array e deixar a coluna dividir no render. Não dá,
@@ -887,8 +902,51 @@ function atualizarBalde(userId: string, status: PresenceStatus): void {
 // Um colator por sessão, não um por comparação — mesma razão do DateTimeFormat.
 const COLATOR = new Intl.Collator("pt-BR", { sensitivity: "base" });
 
-function nomeDe(userId: string): string {
-  return client.users.get(userId)?.username ?? userId;
+/**
+ * O nome pelo qual a lista ORDENA — que precisa ser o mesmo que ela mostra.
+ *
+ * Era `username` cru, e passou a estar errado no instante em que o apelido
+ * entrou: a coluna exibiria "Ana-vx" e ordenaria por "Ana", então uma pessoa
+ * apelidada apareceria fora de ordem alfabética sem nada explicando por quê.
+ * Bug introduzido pela feature anterior e morto aqui.
+ */
+function nomeDe(serverId: string, userId: string): string {
+  const apelido = client.serverMembers.getByKey({
+    server: serverId,
+    user: userId,
+  })?.nickname;
+  return apelido || client.users.get(userId)?.username || userId;
+}
+
+/**
+ * Os cargos HASTEADOS do servidor, achatados uma vez por publicação.
+ *
+ * A alternativa óbvia era `membro.hoistedRole` por membro — e ela é uma
+ * armadilha: o getter chama `orderedRoles`, que faz `map` + `filter` + `sort`
+ * a CADA chamada. Numa lista de 10 mil membros isso é dez mil ordenações por
+ * publicação, e a member list publica sempre que alguém cruza de balde.
+ *
+ * Com o mapa, o custo vira O(cargos) uma vez mais O(cargos por membro) na
+ * varredura, sem alocar nada por membro.
+ */
+type CargoHasteado = { rank: number; nome: string; cor: string | undefined };
+
+function cargosHasteados(serverId: string): Map<string, CargoHasteado> {
+  const out = new Map<string, CargoHasteado>();
+  const servidor = client.servers.get(serverId);
+  if (!servidor) return out;
+
+  for (const [id, cargo] of servidor.roles) {
+    if (!cargo.hoist) continue;
+    out.set(id, {
+      // `rank` menor = mais sênior, e o SDK documenta assim. Sem cargo, vai
+      // para o fim junto com quem não tem nenhum.
+      rank: cargo.rank ?? Number.MAX_SAFE_INTEGER,
+      nome: cargo.name,
+      cor: cargo.colour ?? undefined,
+    });
+  }
+  return out;
 }
 
 function publicarMembros(serverId: string): void {
@@ -896,6 +954,7 @@ function publicarMembros(serverId: string): void {
   if (!membros) {
     membrosOnline.set(serverId, []);
     membrosOffline.set(serverId, []);
+    secoesOnline.set(serverId, []);
     return;
   }
 
@@ -906,9 +965,67 @@ function publicarMembros(serverId: string): void {
   }
 
   const comparar = (a: string, b: string) =>
-    COLATOR.compare(nomeDe(a), nomeDe(b));
-  membrosOnline.set(serverId, online.sort(comparar));
-  membrosOffline.set(serverId, offline.sort(comparar));
+    COLATOR.compare(nomeDe(serverId, a), nomeDe(serverId, b));
+  online.sort(comparar);
+  offline.sort(comparar);
+
+  membrosOnline.set(serverId, online);
+  membrosOffline.set(serverId, offline);
+
+  /*
+    As seções, só do lado online.
+
+    Offline continua um balde único de propósito: seccionar os ausentes por
+    cargo dobraria o número de cabeçalhos para mostrar quem não está lá.
+  */
+  const cargos = cargosHasteados(serverId);
+  const porCargo = new Map<string, string[]>();
+
+  for (const userId of online) {
+    const membro = client.serverMembers.getByKey({
+      server: serverId,
+      user: userId,
+    });
+
+    // Entre os cargos hasteados da pessoa, o MAIS SÊNIOR — menor `rank`.
+    let escolhido = SEM_CARGO;
+    let melhor = Number.MAX_SAFE_INTEGER;
+    for (const roleId of membro?.roles ?? []) {
+      const cargo = cargos.get(roleId);
+      if (cargo && cargo.rank < melhor) {
+        melhor = cargo.rank;
+        escolhido = roleId;
+      }
+    }
+
+    const lista = porCargo.get(escolhido);
+    if (lista) lista.push(userId);
+    else porCargo.set(escolhido, [userId]);
+  }
+
+  // `online` já veio ordenado, então cada balde de cargo herda a ordem sem
+  // ordenar de novo — a varredura acima preserva a sequência de entrada.
+  const secoes: SecaoDeMembros[] = [];
+  for (const [id, ids] of porCargo) {
+    const cargo = cargos.get(id);
+    secoes.push({
+      id,
+      rotulo: cargo?.nome ?? "online",
+      cor: cargo?.cor,
+      ids,
+    });
+  }
+
+  secoes.sort((a, b) => {
+    // Sem cargo sempre por último, qualquer que seja o rank dos outros.
+    if (a.id === SEM_CARGO) return 1;
+    if (b.id === SEM_CARGO) return -1;
+    return (
+      (cargos.get(a.id)?.rank ?? 0) - (cargos.get(b.id)?.rank ?? 0)
+    );
+  });
+
+  secoesOnline.set(serverId, secoes);
 }
 
 /* ---------------------------------------------------------------- registro */

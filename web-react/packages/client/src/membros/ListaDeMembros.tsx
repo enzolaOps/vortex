@@ -8,7 +8,7 @@ import { chaveDeMembro } from "../sdk/domain";
 import {
   useMembro,
   useMembrosOffline,
-  useMembrosOnline,
+  useSecoesOnline,
   useServidorAtivo,
 } from "../store/hooks";
 import css from "./ListaDeMembros.module.css";
@@ -26,7 +26,13 @@ const ALTURA_MEMBRO = 32;
 const ALTURA_SECAO = 32;
 
 type Linha =
-  | { tipo: "secao"; chave: string; rotulo: string; total: number }
+  | {
+      tipo: "secao";
+      chave: string;
+      rotulo: string;
+      cor: string | undefined;
+      total: number;
+    }
   | { tipo: "membro"; chave: string; id: string; offline: boolean };
 
 /**
@@ -131,7 +137,7 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
 export function ListaDeMembros() {
   const serverId = useServidorAtivo();
   count("membrosListRenders");
-  const online = useMembrosOnline(serverId);
+  const secoes = useSecoesOnline(serverId);
   const offline = useMembrosOffline(serverId);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -145,22 +151,37 @@ export function ListaDeMembros() {
    */
   const linhas = useMemo<Linha[]>(() => {
     const out: Linha[] = [];
-    if (online.length > 0) {
+
+    /*
+      Uma seção por cargo hasteado, do lado online — e offline num balde só.
+
+      Seccionar os ausentes por cargo dobraria o número de cabeçalhos para
+      mostrar quem NÃO está lá, que é o inverso da hierarquia de atenção de uma
+      coluna que fica aberta o dia inteiro.
+
+      A ordem das seções e a de cada balde vêm prontas do adapter. Aqui não se
+      ordena nada: ordenar no render seria refazer, a cada re-render da lista,
+      o trabalho que a publicação já fez uma vez.
+    */
+    for (const secao of secoes) {
       out.push({
         tipo: "secao",
-        chave: "@online",
-        rotulo: "online",
-        total: online.length,
+        chave: `@${secao.id}`,
+        rotulo: secao.rotulo,
+        cor: secao.cor,
+        total: secao.ids.length,
       });
-      for (const id of online) {
+      for (const id of secao.ids) {
         out.push({ tipo: "membro", chave: id, id, offline: false });
       }
     }
+
     if (offline.length > 0) {
       out.push({
         tipo: "secao",
         chave: "@offline",
         rotulo: "offline",
+        cor: undefined,
         total: offline.length,
       });
       for (const id of offline) {
@@ -168,7 +189,7 @@ export function ListaDeMembros() {
       }
     }
     return out;
-  }, [online, offline]);
+  }, [secoes, offline]);
 
   const virtualizer = useVirtualizer({
     count: linhas.length,
@@ -252,7 +273,12 @@ export function ListaDeMembros() {
               role="listitem"
             >
               {linha.tipo === "secao" ? (
-                <h2 className={css.secao}>
+                <h2
+                  className={css.secao}
+                  /* Cor do cargo, pelo mesmo argumento de `NomeDoAutor`: é
+                     dado de quem administra o servidor, não token nosso. */
+                  style={linha.cor ? { color: linha.cor } : undefined}
+                >
                   {linha.rotulo}
                   <span className={css.total}>— {linha.total}</span>
                 </h2>

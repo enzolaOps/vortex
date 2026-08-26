@@ -185,6 +185,28 @@ export type MemberSnapshot = ComSigla & {
  */
 export type Balde = "online" | "offline";
 
+/**
+ * Uma seção da member list.
+ *
+ * Seção por CARGO, e só do lado online — que é o que o Discord faz, e não por
+ * imitação: é o que preserva a decisão dos dois baldes. Presença muda o tempo
+ * todo (55% da carga do firehose) e **cargo não pisca**, então seccionar por
+ * cargo não reordena nada; `online → idle → dnd` continua não movendo ninguém,
+ * porque os três caem na mesma seção. Offline permanece um balde só,
+ * independente de cargo, pelo mesmo motivo.
+ *
+ * A lei nº 1 não proíbe seção. Proíbe seção sobre estado de alta frequência.
+ */
+export type SecaoDeMembros = {
+  /** ID do cargo, ou `SEM_CARGO` para quem não tem cargo hasteado. */
+  readonly id: string;
+  readonly rotulo: string;
+  readonly cor: string | undefined;
+  readonly ids: readonly string[];
+};
+
+export const SEM_CARGO = "@sem-cargo";
+
 export function baldeDe(status: PresenceStatus): Balde {
   return status === "offline" ? "offline" : "online";
 }

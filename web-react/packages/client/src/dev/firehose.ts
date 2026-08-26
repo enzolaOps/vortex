@@ -93,6 +93,36 @@ const MUNDO: Servidor[] = [
  */
 const PRESENCAS: PresenceStatus[] = ["online", "online", "idle", "dnd", "offline"];
 
+/**
+ * Cargos do arnês.
+ *
+ * IDs no mesmo formato ULID do resto — 26 caracteres. Não é preciosismo: um ID
+ * curto aqui já produziu confusão antes, quando o ID de usuário colidiu com o
+ * de canal e só apareceu na detecção de menção.
+ */
+const CARGOS = {
+  fundacao: "01JQR0000000000000FUNDACAO",
+  moderacao: "01JQR0000000000000MODERACAO",
+  veterano: "01JQR0000000000000VETERANO0",
+} as const;
+
+/**
+ * Quem tem qual cargo.
+ *
+ * A distribuição importa mais que os números: a maioria SEM cargo, para que a
+ * seção "sem cargo" exista e se possa conferir que ela cai por último; e
+ * `veterano` cobrindo gente que também é moderação, porque o desempate entre
+ * dois cargos da mesma pessoa é justamente o que a lógica de "mais sênior"
+ * decide.
+ */
+function cargosDe(i: number): string[] {
+  const out: string[] = [];
+  if (i === 0) out.push(CARGOS.fundacao);
+  else if (i % 7 === 3) out.push(CARGOS.moderacao);
+  if (i % 5 === 2) out.push(CARGOS.veterano);
+  return out;
+}
+
 const WORDS =
   "vortex canal mensagem servidor presença digitando reação âncora scroll virtualização adapter store snapshot render frame orçamento escopo".split(
     " ",
@@ -179,6 +209,39 @@ function ensureWorld() {
       name: servidor.nome,
       channels: servidor.canais.map((c) => c.id),
       default_permissions: 0,
+      /*
+        Cargos, e um deles NÃO é hasteado de propósito.
+
+        `hoist: false` significa "colore o nome mas não abre seção" — é a
+        distinção que o protocolo faz e que um arnês só com cargos hasteados
+        nunca exercitaria. Sem ela, um bug que tratasse todo cargo como seção
+        passaria despercebido aqui e apareceria num servidor real.
+
+        `rank` menor = mais sênior, conforme o SDK documenta.
+      */
+      roles: {
+        [CARGOS.fundacao]: {
+          name: "fundação",
+          colour: "#bcaef2",
+          hoist: true,
+          rank: 0,
+          permissions: { a: 0, d: 0 },
+        },
+        [CARGOS.moderacao]: {
+          name: "moderação",
+          colour: "#9bdcb4",
+          hoist: true,
+          rank: 1,
+          permissions: { a: 0, d: 0 },
+        },
+        [CARGOS.veterano]: {
+          name: "veterano",
+          colour: "#f0cd8d",
+          hoist: false,
+          rank: 2,
+          permissions: { a: 0, d: 0 },
+        },
+      },
     } as never);
 
     /*
@@ -207,6 +270,10 @@ function ensureWorld() {
           ...(i % 11 === 5
             ? { timeout: new Date(Date.now() + 36e5).toISOString() }
             : {}),
+          // Poucos com cargo, e a maioria sem — a proporção de um servidor
+          // real. Uma lista onde todo mundo tem cargo não mostra se a seção
+          // "sem cargo" cai no lugar certo, que é o último.
+          roles: cargosDe(i),
         },
       );
     });

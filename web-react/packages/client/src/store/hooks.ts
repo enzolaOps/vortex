@@ -11,6 +11,7 @@ import {
   members,
   membrosOffline,
   membrosOnline,
+  secoesOnline,
   messages,
   presence,
   RAIZ,
@@ -22,6 +23,7 @@ import type {
   ChannelSnapshot,
   ChaveDeMembro,
   MemberSnapshot,
+  SecaoDeMembros,
   MessageSnapshot,
   PresenceStatus,
   ServerSnapshot,
@@ -34,6 +36,7 @@ import {
 import { rascunhos, RASCUNHO_VAZIO } from "./rascunhos";
 
 const NO_IDS: readonly string[] = [];
+const NO_SECOES: readonly SecaoDeMembros[] = [];
 
 /**
  * Assertion de dev para a armadilha nº 1 do projeto.
@@ -168,6 +171,20 @@ export function useMembrosOnline(serverId: string): readonly string[] {
     assertStable(getSnapshot, `useMembrosOnline(${serverId})`);
   }
   return useSyncExternalStore(membrosOnline.subscriber(serverId), getSnapshot);
+}
+
+/**
+ * As seções de cargo do lado online.
+ *
+ * Assina separado dos baldes: um painel estreito que só mostra avatares não
+ * renderiza seção nenhuma e não precisa acordar quando um cargo é renomeado.
+ */
+export function useSecoesOnline(serverId: string): readonly SecaoDeMembros[] {
+  const getSnapshot = () => secoesOnline.getSnapshot(serverId) ?? NO_SECOES;
+  if (import.meta.env.DEV) {
+    assertStable(getSnapshot, `useSecoesOnline(${serverId})`);
+  }
+  return useSyncExternalStore(secoesOnline.subscriber(serverId), getSnapshot);
 }
 
 export function useMembrosOffline(serverId: string): readonly string[] {

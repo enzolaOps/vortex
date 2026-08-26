@@ -7,9 +7,13 @@ import {
   marcarCanalLido,
   membrosOffline,
   membrosOnline,
+  registrarServidor,
+  secoesOnline,
+  semearPresenca,
   servers,
 } from "./adapter";
 import { client } from "./client";
+import { SEM_CARGO } from "./domain";
 
 /**
  * As invariantes das colunas laterais.
@@ -20,6 +24,8 @@ import { client } from "./client";
  * list a cada evento de presença produz jank que só aparece em servidor grande
  * — invisível em desenvolvimento, exatamente como diz o briefing.
  */
+
+const PRESENCAS_DO_ARNES = ["online", "online", "idle", "dnd", "offline"] as const;
 
 const GERAL = "01JQ0000000000000000000010";
 const LINKS = "01JQ0000000000000000000011";
@@ -157,13 +163,34 @@ describe("member list e presença", () => {
     expect(online.length + offline.length).toBe(40);
   });
 
-  it("cada balde sai ordenado por nome", () => {
+  /**
+   * Ordena pelo nome EXIBIDO, não pelo username.
+   *
+   * A versão anterior deste teste comparava `username`, e continuou passando
+   * depois de o apelido entrar — porque o apelido do arnês é o username mais um
+   * sufixo, e sufixo não muda a ordem relativa. Passava por sorte, guardando
+   * uma invariante que já não era a certa.
+   *
+   * O que quebra de verdade: a coluna mostrar "Ana-vx" e ordenar por outra
+   * coisa faz a pessoa apelidada aparecer fora de ordem alfabética, sem nada
+   * na tela explicando por quê.
+   */
+  it("cada balde sai ordenado pelo nome EXIBIDO, apelido incluído", () => {
     const online = membrosOnline.peek(SERVER_ID) ?? [];
-    const nomes = online.map((id) => client.users.get(id)?.username ?? "");
+    const exibido = (id: string) =>
+      client.serverMembers.getByKey({ server: SERVER_ID, user: id })
+        ?.nickname ||
+      client.users.get(id)?.username ||
+      id;
+
+    const nomes = online.map(exibido);
     const ordenados = [...nomes].sort((a, b) =>
       new Intl.Collator("pt-BR", { sensitivity: "base" }).compare(a, b),
     );
     expect(nomes).toEqual(ordenados);
+
+    // O arnês precisa REALMENTE ter apelidos, senão o teste acima é vácuo.
+    expect(nomes.some((n) => n.endsWith("-vx"))).toBe(true);
   });
 
   it("presença que NÃO troca de balde não republica a lista", () => {
@@ -205,5 +232,147 @@ describe("member list e presença", () => {
     // Duas saídas, UMA publicação.
     expect(notificado).toHaveBeenCalledTimes(1);
     expect((membrosOnline.peek(SERVER_ID) ?? []).length).toBe(antes - 2);
+  });
+});
+
+/**
+ * Seções de cargo na member list.
+ *
+ * A pergunta que estas asserções respondem não é "aparece?" — é "a seção
+ * sobrevive à decisão dos dois baldes?". Presença é 55% da carga do firehose,
+ * e uma seção por ESTADO faria toda piscada reordenar. Cargo não pisca, e é
+ * por isso que seccionar por cargo é seguro onde seccionar por presença não
+ * seria.
+ */
+describe("seções de cargo", () => {
+  /**
+   * A presença é RESTAURADA aqui, e a razão foi cara de descobrir.
+   *
+   * Os `describe` anteriores deixam gente offline de propósito, e o estado é
+   * module-level: sobrevive ao bloco que o produziu. A primeira versão destes
+   * testes rodava sobre esse resto, e a seção `fundação` — que tem um membro
+   * só — simplesmente não existia. `comCargo` ficava com UM elemento, e
+   * "está ordenado" sobre uma lista de um item é verdade para qualquer
+   * ordenação.
+   *
+   * Passava. E continuou passando quando a ordenação foi invertida de
+   * propósito para testar o teste — que é como isto apareceu. Asserção de
+   * ordem precisa provar que tem mais de um item para ordenar.
+   */
+  beforeEach(async () => {
+    await seed(4);
+
+    const todos = [
+      ...(membrosOnline.peek(SERVER_ID) ?? []),
+      ...(membrosOffline.peek(SERVER_ID) ?? []),
+    ];
+    for (const id of todos) {
+      // O índice sai do próprio ID: o arnês os gera sequenciais, e derivar
+      // daqui evita repetir o total de membros em dois lugares que podem
+      // divergir.
+      const i = Number(id.slice(-6));
+      semearPresenca(id, i === 0 ? "online" : PRESENCAS_DO_ARNES[i % 5]!);
+    }
+    // `semearPresenca` só mexe nos mapas; quem republica é o registro.
+    registrarServidor(SERVER_ID, todos);
+    virarFrame();
+  });
+
+  it("sai ordenado por rank, e sem-cargo por último", () => {
+    const secoes = secoesOnline.peek(SERVER_ID) ?? [];
+
+    const servidor = client.servers.get(SERVER_ID)!;
+    const rank = (id: string) => servidor.roles.get(id)?.rank ?? -1;
+
+    const comCargo = secoes.filter((s) => s.id !== SEM_CARGO);
+    // Sem isto a asserção de ordem abaixo é vácua — ver o comentário do
+    // `beforeEach`. Duas seções de cargo é o mínimo para haver ordem.
+    expect(comCargo.length).toBeGreaterThan(1);
+
+    const ranks = comCargo.map((s) => rank(s.id));
+    expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
+
+    // Sem cargo é a última, sempre — qualquer que seja o rank das outras.
+    expect(secoes[secoes.length - 1]!.id).toBe(SEM_CARGO);
+  });
+
+  /**
+   * A distinção que o protocolo faz e que é fácil perder.
+   *
+   * `hoist: false` significa "colore o nome mas NÃO abre seção". Um código que
+   * tratasse todo cargo como seção passaria em qualquer arnês que só tivesse
+   * cargos hasteados — por isso o arnês tem um que não é.
+   */
+  it("cargo NÃO hasteado não abre seção", () => {
+    const servidor = client.servers.get(SERVER_ID)!;
+    const naoHasteados = [...servidor.roles.entries()]
+      .filter(([, cargo]) => !cargo.hoist)
+      .map(([id]) => id);
+
+    expect(naoHasteados.length).toBeGreaterThan(0);
+
+    const secoes = secoesOnline.peek(SERVER_ID) ?? [];
+    for (const id of naoHasteados) {
+      expect(secoes.some((s) => s.id === id)).toBe(false);
+    }
+  });
+
+  it("as seções cobrem exatamente o balde online, sem sobra nem repetição", () => {
+    const online = membrosOnline.peek(SERVER_ID) ?? [];
+    const secoes = secoesOnline.peek(SERVER_ID) ?? [];
+    const nas = secoes.flatMap((s) => [...s.ids]);
+
+    expect(nas.length).toBe(online.length);
+    expect(new Set(nas).size).toBe(online.length);
+    expect([...nas].sort()).toEqual([...online].sort());
+  });
+
+  it("offline continua um balde só, com cargo ou sem", () => {
+    const offline = membrosOffline.peek(SERVER_ID) ?? [];
+    const comCargo = offline.filter(
+      (id) =>
+        (client.serverMembers.getByKey({ server: SERVER_ID, user: id })?.roles
+          ?.length ?? 0) > 0,
+    );
+
+    // Há gente com cargo entre os ausentes — senão a asserção seria vácua.
+    expect(comCargo.length).toBeGreaterThan(0);
+
+    // E nenhuma seção os reivindica: seção é do lado online e de mais nenhum.
+    const nas = new Set(
+      (secoesOnline.peek(SERVER_ID) ?? []).flatMap((s) => [...s.ids]),
+    );
+    for (const id of offline) expect(nas.has(id)).toBe(false);
+  });
+
+  /**
+   * A invariante que a fase 3 comprou com os dois baldes, agora sob seções.
+   *
+   * `online → idle → dnd` não muda o balde NEM o cargo, então não pode mexer
+   * nas seções. Se mexesse, cada piscada de presença republicaria a estrutura
+   * inteira da member list — que é o custo que os dois baldes existem para não
+   * pagar.
+   */
+  it("presença dentro do balde online não republica as seções", () => {
+    const notificado = assinar(secoesOnline, SERVER_ID);
+    const alguem = (membrosOnline.peek(SERVER_ID) ?? [])[0]!;
+    const user = client.users.get(alguem)!;
+
+    // O `emit` não é decoração: sem ele nada percorre o caminho de presença, e
+    // "não republicou" passaria por não ter acontecido nada. Asserção negativa
+    // sem o gatilho é asserção vácua.
+    for (const estado of ["Idle", "Busy", "Online"] as const) {
+      client.users.updateUnderlyingObject(alguem, {
+        status: { presence: estado },
+      } as never);
+      client.emit("userUpdate", user, {} as never);
+    }
+    virarFrame();
+
+    expect(notificado).not.toHaveBeenCalled();
+
+    // E o balde continua o mesmo — prova de que o gatilho de fato rodou e a
+    // pessoa não saiu do online por acidente.
+    expect(membrosOnline.peek(SERVER_ID)).toContain(alguem);
   });
 });
