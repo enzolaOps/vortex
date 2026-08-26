@@ -21,12 +21,26 @@ import { Shell } from "./shell/Shell";
 import { useCanalAtivo } from "./store/hooks";
 import { selecionarServidor } from "./store/navegacao";
 
-const SEED_COUNT = 10_000;
+/**
+ * Tamanhos de semeadura, para o teste de LENGTH.
+ *
+ * A pergunta que isto responde: o custo por frame escala com o total da lista
+ * ou só com a janela visível? Publicar a lista de IDs copia o array inteiro —
+ * `[...idsOf(channelId)]` — e a 10k isso mediu 0,57ms por publicação. Se o p95
+ * cair um degrau ao semear 1.000, o total é o driver e carregamento
+ * progressivo paga; se não cair, janela deslizante resolveria memória e não
+ * resolveria o gate.
+ *
+ * Um seletor de duas opções é infinitamente mais barato que construir a
+ * janela para descobrir isso depois.
+ */
+const TAMANHOS = [1_000, 10_000] as const;
 const EVENTS_PER_SECOND = 500;
 const WINDOW_SECONDS = 30;
 const WARMUP_SECONDS = 1.5;
 
 export function App() {
+  const [seedCount, setSeedCount] = useState<number>(TAMANHOS[1]);
   const [seeded, setSeeded] = useState(0);
   const [seeding, setSeeding] = useState(false);
   const [running, setRunning] = useState(false);
@@ -86,7 +100,7 @@ export function App() {
   async function handleSeed() {
     setSeeding(true);
     const started = performance.now();
-    ids.current = await seed(SEED_COUNT);
+    ids.current = await seed(seedCount);
     setSeeded(ids.current.length);
     // Abre o servidor semeado. `selecionarServidor` escolhe o primeiro canal
     // de TEXTO dele, que é o canal com as 10k mensagens.
@@ -142,8 +156,24 @@ export function App() {
             disabled={seeded > 0 || seeding || running}
             className="rounded-2 bg-surface-3 px-3 py-1 text-sm text-text-1 disabled:text-text-3"
           >
-            {seeding ? "semeando…" : `Semear ${SEED_COUNT.toLocaleString("pt-BR")}`}
+            {seeding ? "semeando…" : `Semear ${seedCount.toLocaleString("pt-BR")}`}
           </button>
+
+          {/* Condição da corrida, como o CPU 4x: fica ao lado do botão que a
+              usa, e trava depois de semear — trocar o tamanho com a lista
+              carregada mediria uma coisa e diria outra. */}
+          <select
+            value={seedCount}
+            onChange={(e) => setSeedCount(Number(e.target.value))}
+            disabled={seeded > 0 || seeding || running}
+            className="rounded-2 bg-surface-2 px-2 py-1 text-sm text-text-1 disabled:text-text-3"
+          >
+            {TAMANHOS.map((n) => (
+              <option key={n} value={n}>
+                {n.toLocaleString("pt-BR")} mensagens
+              </option>
+            ))}
+          </select>
 
           <button
             onClick={handleRun}
@@ -306,8 +336,12 @@ export function App() {
             <span className="text-xs text-text-3">
               {stats.listRenders} lista · {stats.rowRenders} linha ·{" "}
               {stats.presenceRenders} presença · {stats.snapshots} snapshots ·{" "}
-              {stats.publishes} publicações ({stats.publishMs}ms) · gerador{" "}
-              {(stats.tickMs ?? 0).toFixed(0)}ms (pior tick {(stats.maxTickMs ?? 0).toFixed(1)}ms)
+              {stats.publishes} publicações ({stats.publishMs}ms ·{" "}
+              {(stats.publishMs / Math.max(stats.publishes, 1)).toFixed(2)}ms cada) ·
+              gerador {(stats.tickMs ?? 0).toFixed(0)}ms (pior tick{" "}
+              {(stats.maxTickMs ?? 0).toFixed(1)}ms) · vazão{" "}
+              {report ? Math.round((stats.eventos ?? 0) / Math.max(report.seconds, 1)) : "?"}{" "}
+              ev/s de {EVENTS_PER_SECOND}
             </span>
           ) : null}
           {/* Colunas laterais em linha própria: somadas às da lista, viram

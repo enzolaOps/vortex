@@ -46,6 +46,18 @@ export type Counters = {
   /** Custo do PRÓPRIO gerador do firehose — para atribuir long tasks. */
   tickMs: number;
   maxTickMs: number;
+  /**
+   * Eventos que o gerador REALMENTE entregou na janela.
+   *
+   * O arnês pede 500/s e reporta o custo do gerador, mas nunca reportou a
+   * vazão. `setInterval(16)` não é garantia de 62 ticks por segundo — sob
+   * throttle de 4x o relógio escorrega, e um gate que entrega 250/s enquanto
+   * afirma 500/s aprova metade da carga que diz aprovar.
+   *
+   * Custa um incremento por evento e transforma a premissa central do gate em
+   * número verificável.
+   */
+  eventos: number;
 };
 
 const zero = (): Counters => ({
@@ -62,6 +74,7 @@ const zero = (): Counters => ({
   snapshots: 0,
   tickMs: 0,
   maxTickMs: 0,
+  eventos: 0,
 });
 
 let counters = zero();

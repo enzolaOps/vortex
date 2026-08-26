@@ -499,6 +499,7 @@ export function startFirehose(
         }
       }
     }
+    count("eventos", perTick);
     const custo = performance.now() - inicioDoTick;
     count("tickMs", custo);
     countMax("maxTickMs", custo);
