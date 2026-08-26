@@ -40,7 +40,7 @@ const LIMIAR_DE_FIM = 80;
  * acrescentou 4px por linha, e o arnês passou a medir 75,6px em duas janelas
  * seguidas. 73 → 76.
  */
-const ALTURA_ESTIMADA = 76;
+export const ALTURA_ESTIMADA = 76;
 
 /**
  * Lista de mensagens virtualizada, em modo chat.

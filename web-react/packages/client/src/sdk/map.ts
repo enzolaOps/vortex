@@ -4,7 +4,17 @@
  * Tudo o que o resto do app enxerga passa por aqui. Derivação acontece nesta
  * escrita — uma vez, quando a entidade muda — e nunca no `getSnapshot`.
  */
-import type { Channel, Message, Server, ServerMember, User } from "stoat.js";
+import type {
+  Channel,
+  ChannelRenamedSystemMessage,
+  Message,
+  Server,
+  ServerMember,
+  TextSystemMessage,
+  User,
+  UserModeratedSystemMessage,
+  UserSystemMessage,
+} from "stoat.js";
 
 import type { Layout } from "./agrupamento";
 import type {
@@ -14,6 +24,7 @@ import type {
   PresenceStatus,
   SendState,
   ServerSnapshot,
+  SistemaSnapshot,
 } from "./domain";
 
 /**
@@ -37,6 +48,66 @@ const HORA = new Intl.DateTimeFormat("pt-BR", {
 });
 
 /**
+ * Tipos do protocolo que este cliente ainda não estrutura.
+ *
+ * Rotulados em português aqui, e não deixados vazar como `"message_pinned"`:
+ * string de protocolo na interface é vazamento da forma do Stoat para dentro
+ * do produto, que é exatamente o que esta camada existe para impedir.
+ */
+const ROTULO_BRUTO: Record<string, string> = {
+  channel_description_changed: "mudou a descrição do canal",
+  channel_icon_changed: "mudou o ícone do canal",
+  channel_ownership_changed: "transferiu o canal",
+  message_pinned: "fixou uma mensagem",
+  message_unpinned: "desafixou uma mensagem",
+  call_started: "iniciou uma chamada",
+};
+
+/**
+ * SDK → domínio, para linha de sistema.
+ *
+ * As cinco estruturadas cobrem o que um servidor produz o dia inteiro. O resto
+ * cai em `texto`, com rótulo em português — e o `type` cru no fim é a última
+ * defesa, para um tipo novo do upstream aparecer como algo em vez de nada.
+ */
+function toSistema(message: Message): SistemaSnapshot | undefined {
+  const sm = message.systemMessage;
+  if (!sm) return undefined;
+
+  switch (sm.type) {
+    case "user_joined":
+      return { tipo: "entrou", userId: (sm as UserSystemMessage).userId };
+    case "user_left":
+      return { tipo: "saiu", userId: (sm as UserSystemMessage).userId };
+    case "user_added":
+      return {
+        tipo: "adicionou",
+        userId: (sm as UserModeratedSystemMessage).userId,
+        porId: (sm as UserModeratedSystemMessage).byId,
+      };
+    case "user_remove":
+      return {
+        tipo: "removeu",
+        userId: (sm as UserModeratedSystemMessage).userId,
+        porId: (sm as UserModeratedSystemMessage).byId,
+      };
+    case "channel_renamed":
+      return {
+        tipo: "renomeou",
+        porId: (sm as ChannelRenamedSystemMessage).byId,
+        nome: (sm as ChannelRenamedSystemMessage).name,
+      };
+    case "text":
+      return { tipo: "texto", texto: (sm as TextSystemMessage).content };
+    default:
+      return {
+        tipo: "texto",
+        texto: ROTULO_BRUTO[sm.type] ?? "evento do sistema",
+      };
+  }
+}
+
+/**
  * O layout e o estado de envio entram por parâmetro, não são calculados aqui.
  *
  * Este módulo traduz UMA entidade e não conhece vizinho nem histórico de
@@ -57,6 +128,7 @@ export function toMessageSnapshot(
     createdAt: message.createdAt.getTime(),
     createdAtText: HORA.format(message.createdAt),
     editedAt: message.editedAt?.getTime(),
+    sistema: toSistema(message),
     reactions: flattenReactions(message),
     // O protocolo não carrega isto: quem mantém é o adapter, e mensagem que
     // veio do servidor nasce "sent". É a camada anticorrupção fazendo o

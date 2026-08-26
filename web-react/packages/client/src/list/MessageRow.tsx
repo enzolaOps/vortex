@@ -1,4 +1,10 @@
-import { ArrowBendUpLeft, Copy, PencilSimple, Trash } from "@phosphor-icons/react";
+import {
+  ArrowBendUpLeft,
+  Copy,
+  Info,
+  PencilSimple,
+  Trash,
+} from "@phosphor-icons/react";
 import { memo } from "react";
 
 import {
@@ -13,8 +19,60 @@ import { count } from "../dev/stats";
 import { cn } from "../lib/cn";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
+import type { SistemaSnapshot } from "../sdk/domain";
 import { useMessage } from "../store/hooks";
 import css from "./MessageRow.module.css";
+
+/**
+ * A frase da linha de sistema, montada AQUI e não no snapshot.
+ *
+ * Guardar a frase pronta no domínio congelaria o idioma no instante em que o
+ * evento chegou: quem trocasse de idioma veria o histórico antigo na língua
+ * antiga, e o `i18n` não teria onde encostar. O domínio guarda o FATO —
+ * `{ tipo: "entrou", userId }` —, a frase é apresentação.
+ *
+ * `NomeDoAutor` assina o membro por conta própria, então trocar o apelido de
+ * alguém atualiza a frase sem a linha inteira re-renderizar.
+ */
+function FraseDeSistema({ sistema }: { sistema: SistemaSnapshot }) {
+  switch (sistema.tipo) {
+    case "entrou":
+      return (
+        <>
+          <NomeDoAutor userId={sistema.userId} /> entrou no canal
+        </>
+      );
+    case "saiu":
+      return (
+        <>
+          <NomeDoAutor userId={sistema.userId} /> saiu do canal
+        </>
+      );
+    case "adicionou":
+      return (
+        <>
+          <NomeDoAutor userId={sistema.porId} /> adicionou{" "}
+          <NomeDoAutor userId={sistema.userId} />
+        </>
+      );
+    case "removeu":
+      return (
+        <>
+          <NomeDoAutor userId={sistema.porId} /> removeu{" "}
+          <NomeDoAutor userId={sistema.userId} />
+        </>
+      );
+    case "renomeou":
+      return (
+        <>
+          <NomeDoAutor userId={sistema.porId} /> renomeou o canal para{" "}
+          {sistema.nome}
+        </>
+      );
+    case "texto":
+      return <>{sistema.texto}</>;
+  }
+}
 
 /**
  * Divisor de data.
@@ -70,6 +128,32 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
         <div className={cn(css.calha, "mt-1 rounded-4 bg-surface-2")} />
         <div className="min-w-0 flex-1 text-md leading-message">&nbsp;</div>
       </article>
+    );
+  }
+
+  /*
+    Linha de sistema: outro papel, não uma mensagem esmaecida.
+
+    Sem avatar, sem cabeçalho de autor, sem menu de contexto — não há o que
+    responder nem o que apagar. Antes desta mudança ela renderizava como fala:
+    avatar, nome e conteúdo VAZIO, porque o protocolo põe o texto em `system`
+    e não em `content`. Uma linha em branco com foto, que ninguém identificava
+    como bug porque parecia mensagem apagada.
+
+    A hora fica: é o dado que faz "entrou" ser útil quando se rola histórico.
+  */
+  if (message.sistema) {
+    return (
+      <>
+        {message.dia ? <DivisorDeDia rotulo={message.dia} /> : null}
+        <article className="flex items-baseline gap-2 px-4 pt-4 text-xs text-text-3">
+          <Info size={20} aria-hidden className="shrink-0 self-center" />
+          <p className="min-w-0 flex-1 wrap-anywhere">
+            <FraseDeSistema sistema={message.sistema} />
+          </p>
+          <time className="shrink-0">{message.createdAtText}</time>
+        </article>
+      </>
     );
   }
 

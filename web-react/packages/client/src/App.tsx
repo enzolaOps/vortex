@@ -13,7 +13,7 @@ import { Segmentado } from "./components/ui/Segmentado";
 import { createFrameRecorder, verdict, type FrameReport } from "./dev/frames";
 import { medirPrepend, type ResultadoPrepend } from "./dev/prepend";
 import { readCounters, resetCounters, type Counters } from "./dev/stats";
-import { MessageList } from "./list/MessageList";
+import { ALTURA_ESTIMADA, MessageList } from "./list/MessageList";
 import { PainelDeEdicao } from "./layout/PainelDeEdicao";
 import { ListaDeMembros } from "./membros/ListaDeMembros";
 import { Rail } from "./rail/Rail";
@@ -421,7 +421,10 @@ export function App() {
               {report ? Math.round((stats.eventos ?? 0) / Math.max(report.seconds, 1)) : "?"}{" "}
               ev/s de {EVENTS_PER_SECOND} · altura real{" "}
               {(stats.alturaSoma / Math.max(stats.alturaAmostras, 1)).toFixed(1)}px
-              (estimando 73px)
+              {/* Importado, nunca repetido: escrito à mão aqui, o relatório
+                  passou a dizer 73 depois de a estimativa virar 76, e o
+                  instrumento mediria uma coisa afirmando outra. */}
+              (estimando {ALTURA_ESTIMADA}px)
             </span>
           ) : null}
           {/* Colunas laterais em linha própria: somadas às da lista, viram

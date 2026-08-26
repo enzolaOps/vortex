@@ -77,7 +77,14 @@ function vizinho(id: string | undefined) {
   if (!id) return null;
   const m = client.messages.get(id);
   if (!m) return null;
-  return { authorId: m.authorId, createdAt: m.createdAt.getTime() };
+  return {
+    authorId: m.authorId,
+    createdAt: m.createdAt.getTime(),
+    // `!!` e não o objeto: o `Vizinho` é comparado por campo, e carregar a
+    // instância do SDK aqui vazaria o protocolo para dentro do módulo de
+    // agrupamento, que é puro de propósito.
+    ehSistema: Boolean(m.systemMessage),
+  };
 }
 
 /**

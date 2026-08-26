@@ -18,6 +18,8 @@ export const JANELA_DE_GRUPO_MS = 7 * 60 * 1000;
 export type Vizinho = {
   readonly authorId: string | undefined;
   readonly createdAt: number;
+  /** Linha do sistema — "entrou", "saiu", "renomeou". */
+  readonly ehSistema?: boolean;
 } | null;
 
 const DIA_MS = 24 * 60 * 60 * 1000;
@@ -67,7 +69,11 @@ export type Layout = {
  * layout sem ter mudado de conteúdo.
  */
 export function calcularLayout(
-  atual: { authorId: string | undefined; createdAt: number },
+  atual: {
+    authorId: string | undefined;
+    createdAt: number;
+    ehSistema?: boolean;
+  },
   anterior: Vizinho,
   agora = Date.now(),
 ): Layout {
@@ -80,10 +86,24 @@ export function calcularLayout(
   const passouDaJanela =
     atual.createdAt - anterior.createdAt > JANELA_DE_GRUPO_MS;
 
+  /*
+    Linha de sistema quebra o grupo dos DOIS lados.
+
+    Ela mesma nunca é continuação de fala — "Ana entrou" não pertence ao bloco
+    da Ana falando —, e a mensagem DEPOIS dela também não pode continuar o
+    bloco de antes: o cabeçalho ficaria acima de um evento estranho, e a fala
+    voltaria sem nome, parecendo que o sistema falou.
+
+    Só o teste pega isso. `user_joined` carrega o `authorId` da própria pessoa
+    que entrou, então `mudouDeAutor` é FALSO no caso mais comum — alguém entra
+    e fala em seguida — e sem esta regra a fala se agruparia sob o evento.
+  */
+  const cruzaSistema = Boolean(atual.ehSistema) || Boolean(anterior.ehSistema);
+
   return {
     // Dia novo sempre abre grupo: um cabeçalho continuando por cima de um
     // divisor de data leria como se a fala tivesse atravessado a meia-noite.
-    iniciaGrupo: mudouDeDia || mudouDeAutor || passouDaJanela,
+    iniciaGrupo: mudouDeDia || mudouDeAutor || passouDaJanela || cruzaSistema,
     dia: mudouDeDia ? rotuloDeDia(atual.createdAt, agora) : undefined,
   };
 }

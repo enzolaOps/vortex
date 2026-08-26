@@ -331,16 +331,54 @@ function autorDe(seed: number): string {
   return userIds[bloco % userIds.length]!;
 }
 
+/**
+ * De vez em quando, uma linha do SISTEMA em vez de fala.
+ *
+ * Uma a cada 97 — raro como no uso real, e o número é primo de propósito: com
+ * um divisor da corrida de autores (1 a 5) ou do passo de tempo, os eventos
+ * cairiam sempre na mesma posição relativa do grupo e o caso "alguém entra e
+ * fala em seguida" nunca apareceria. É exatamente o caso que a regra de
+ * agrupamento existe para cobrir.
+ *
+ * Os quatro tipos cobrem as duas formas do domínio: as estruturadas com um
+ * usuário, a estruturada com dois, e a de canal renomeado.
+ */
+function sistemaDe(seed: number, autor: string): object | undefined {
+  if (seed % 97 !== 0 || seed === 0) return undefined;
+
+  const outro = autorDe(seed + 7);
+  switch ((seed / 97) % 4) {
+    case 0:
+      return { type: "user_joined", id: autor, by: outro };
+    case 1:
+      return { type: "user_left", id: autor, by: outro };
+    case 2:
+      return { type: "user_added", id: autor, by: outro };
+    default:
+      return { type: "channel_renamed", name: "spike", by: autor };
+  }
+}
+
 function createMessage(seed: number, quando?: number): string {
   const id = quando === undefined ? nextId() : nextId(quando);
+  const author = autorDe(seed);
+  const system = sistemaDe(seed, author);
+
   client.messages.getOrCreate(
     id,
     {
       _id: id,
       channel: CHANNEL_ID,
-      author: autorDe(seed),
-      content: body(seed),
-    },
+      author,
+      // O protocolo põe o texto da linha de sistema em `system`, NÃO em
+      // `content` — e é por isso que a linha renderizava vazia antes: o
+      // componente lia `content` e encontrava string vazia.
+      content: system ? "" : body(seed),
+      ...(system ? { system } : {}),
+      // `as never` como o resto das semeaduras deste arquivo: o payload de
+      // hidratação é do PROTOCOLO, e o arnês não pode importar `stoat.js`
+      // para nomear o tipo — a fronteira proíbe, com razão.
+    } as never,
     true,
   );
   return id;

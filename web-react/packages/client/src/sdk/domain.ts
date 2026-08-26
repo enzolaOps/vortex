@@ -34,6 +34,20 @@ export type MessageSnapshot = {
    */
   readonly createdAtText: string;
   readonly editedAt: number | undefined;
+  /**
+   * Presente = a linha é do SISTEMA, não de alguém.
+   *
+   * "Entrou", "saiu", "renomeou o canal". O protocolo carrega isso como
+   * mensagem com `system`, e o cliente hoje renderiza como se fosse fala —
+   * com avatar, nome e conteúdo vazio.
+   *
+   * É um campo do snapshot e não um tipo de linha separado por decisão de
+   * arquitetura: no protocolo é a MESMA entidade, ocupa a mesma posição no
+   * histórico e tem o mesmo ID. Um segundo tipo de item na lista faria os
+   * índices do virtualizador deixarem de casar com os de mensagem — o mesmo
+   * motivo pelo qual o divisor de data é parte da linha e não um item próprio.
+   */
+  readonly sistema: SistemaSnapshot | undefined;
   /** emoji → quantidade. Achatado no adapter; o componente não itera Set. */
   readonly reactions: ReadonlyMap<string, number>;
 
@@ -107,6 +121,30 @@ export type ServerSnapshot = ComSigla & {
   readonly naoLidas: number;
   readonly mencoes: number;
 };
+
+/**
+ * Uma linha do SISTEMA — "entrou", "saiu", "renomeou o canal".
+ *
+ * União fechada, e o texto é montado no COMPONENTE, não aqui. Guardar a frase
+ * pronta no snapshot congelaria o idioma no momento em que o evento chegou: a
+ * pessoa que troca de idioma veria o histórico antigo na língua antiga, e o
+ * `i18n` não teria onde encostar. O domínio guarda o FATO; a frase é
+ * apresentação.
+ *
+ * `texto` é a válvula de escape para os tipos do protocolo que este cliente
+ * ainda não estrutura (fixar mensagem, chamada iniciada, troca de dono). Sem
+ * ela, um tipo novo do upstream renderizaria uma linha vazia — que é pior que
+ * uma linha genérica, porque não dá para diferenciar de bug.
+ */
+export type SistemaSnapshot =
+  | { readonly tipo: "entrou" | "saiu"; readonly userId: string }
+  | {
+      readonly tipo: "adicionou" | "removeu";
+      readonly userId: string;
+      readonly porId: string;
+    }
+  | { readonly tipo: "renomeou"; readonly porId: string; readonly nome: string }
+  | { readonly tipo: "texto"; readonly texto: string };
 
 export type CanalTipo = "texto" | "voz";
 
