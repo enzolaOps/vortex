@@ -1,0 +1,541 @@
+# Vortex — briefing do projeto
+
+> Contexto consolidado das decisões de arquitetura. Leia antes de começar
+> qualquer trabalho no repositório. As regras executáveis estão na skill
+> `vortex-react`; este documento explica **o porquê** por trás delas, que é o que
+> impede alguém de "otimizar" uma decisão sem entender o que ela protege.
+
+---
+
+## O que é
+
+**Vortex** — cliente de chat em tempo real, fork do Stoat (ex-Revolt).
+
+App shell persistente de 4 colunas, denso, dark-first, sessões de 8h+. Não é
+landing page nem dashboard. É ferramenta que fica aberta o dia inteiro:
+legibilidade e baixo ruído visual ganham de impacto.
+
+Duas plataformas, **um front-end**: web e Electron desktop compartilham 100% dos
+componentes.
+
+## Estado atual e objetivo
+
+O upstream é Solid.js. Está sendo portado para **React**, com redesign completo
+do front-end.
+
+Três problemas concretos que motivaram o trabalho:
+
+1. Design pobre e inconsistente
+2. Layout quebra em ultrawide — texto esticando até 3000px
+3. Ausência de sistema de tokens; valores hardcoded espalhados
+
+---
+
+## Stack do upstream — confirmado
+
+Levantado de `web/packages/client`. Inventário do que vai ser substituído — e,
+mais útil, do que não precisa ser.
+
+### Os problemas 1 e 3 têm a mesma causa
+
+O upstream usa **Panda CSS** (`jsxFramework: "solid"`). Mas o `panda.config.ts`
+**não define token nenhum**: o `theme.extend` contém só `keyframes`.
+
+Quem faz papel de token é o **Material Design 3**, via três dependências
+sobrepostas — `@material/material-color-utilities` (gera `--md-sys-color-*` em
+runtime), `@material/web` e `mdui` (duas implementações de Material no mesmo
+app). Os componentes consomem `var(--md-sys-color-primary-container)` direto.
+
+A paleta não é escolhida, é **derivada em runtime por um algoritmo**. Não há
+identidade a inconsistir — há Material Design genérico parafusado num cliente de
+chat. E o problema 3 é literal: os tokens não existem na camada de estilo.
+
+Consequência: essa camada não é migrada, é **descartada**. `tokens.css` não é
+refinamento do que existe — é a primeira vez que o projeto tem tokens.
+
+### O que atravessa sem reescrita
+
+Conferir antes de reimplementar qualquer um destes. São agnósticos de framework
+e custam um wrapper:
+
+- **Composer:** ProseMirror (10 pacotes) + CodeMirror 6 (6)
+- **Markdown:** pipeline `unified` (remark/rehype), `shiki`/`lowlight`, `katex`
+- **SDK:** `stoat.js`, atrás do adapter
+
+É a maior economia escondida do port, e some do orçamento se alguém começar a
+reescrever composer e markdown por reflexo.
+
+### O que não atravessa
+
+Panda, `@material/web`, `mdui`, `material-color-utilities`,
+`@minht11/solid-virtual-container`, `@tanstack/solid-query` (troca 1:1 pelo
+`react-query`) e os **quatro** sets de ícone que convivem hoje:
+`@material-design-icons/svg`, `@material-symbols/svg-400`, `material-symbols` e
+`solid-icons`. Misturar sets de ícone é dívida herdada aqui, não risco
+hipotético.
+
+Os 23 pacotes `@fontsource/*` são fontes escolhíveis pelo usuário, não a
+identidade do produto — decisão independente do par tipográfico do Vortex.
+
+### Submodules
+
+Três no upstream, todos em `web/packages/`:
+
+| Path | Upstream | Atravessa? |
+|---|---|---|
+| `stoat.js` | `stoatchat/javascript-client-sdk` | **Sim — é o SDK** |
+| `solid-livekit-components` | `revoltchat/solid-livekit-components` | Não → `@livekit/components-react` |
+| `js-lingui-solid` | `revoltchat/js-lingui-solid` | Não → `@lingui/react` |
+
+Dois dos três existem só para adaptar bibliotecas ao Solid. O port os elimina,
+trocando por pacotes oficiais e mantidos — o fork sai do port com **menos**
+superfície de manutenção do que tem hoje. É argumento a favor que não estava na
+lista original.
+
+`stoat.js` fica, e **mantém reatividade Solid internamente**. Isso não é problema
+a resolver, é a premissa da ponte. Encapsular no adapter, nunca remover.
+
+**Existe agora um quarto gitlink:** `web-react/packages/stoat.js`, mesmo upstream
+e mesmo commit que o de `web/`. Cada ilha carrega o próprio SDK — cruzar a
+fronteira quebraria o lockfile independente. Os dois precisam subir de versão
+juntos, e um check em CI falha se divergirem. Ver `enforcement.md` e o README da
+ilha.
+
+### Onde o código está
+
+```text
+web/packages/client/
+├── src/                 entrada, Auth, Interface, LoadingScreen
+├── components/          app · auth · client · common · i18n · keybinds
+│                        markdown · modal · routing · rtc · state · ui
+├── panda.config.ts      descartado no port
+└── vite.config.ts
+```
+
+`components/state/` e `components/client/` são leitura obrigatória antes do
+spike: é onde a reatividade Solid encosta na UI, e portanto o que o adapter
+substitui.
+
+---
+
+## Decisões tomadas (e por quê)
+
+### Portar Solid → React
+
+Avaliado a fundo, não assumido. O argumento contra era forte: `stoat.js` tem
+reatividade nativa Solid embutida nos objetos do modelo, e o upstream continuaria
+mergeável.
+
+Decidido a favor porque: (a) o dev domina React, (b) haverá divergência pesada do
+upstream de qualquer forma, então merge tinha valor baixo, (c) ferramental de
+profiling do React é muito superior, (d) assistentes de código produzem React
+significativamente melhor que Solid.
+
+**O que isso custa e onde pode dar errado:** a ponte `stoat.js` → React é a única
+peça capaz de arruinar a decisão. Ver abaixo.
+
+### Radix, não Base UI
+
+O shadcn passou a usar Base UI por padrão em projeto novo. Aqui, não.
+
+Base UI ainda não tem **Context Menu, Hover Card e Toast** — exatamente os três
+primitivos que um cliente de chat mais usa. Seguir o default significaria
+escrever as três peças mais difíceis à mão.
+
+Reavaliar quando Base UI cobrir os três; a migração é progressiva.
+
+### TanStack Virtual, modo chat
+
+Lista de chat inverte o contrato da virtualização normal. O TanStack Virtual
+passou a cobrir essa física diretamente: `anchorTo: 'end'`, `followOnAppend`,
+`scrollEndThreshold`, em ordem e container normais.
+
+⚠️ **Pendência aberta:** houve relato de incompatibilidade com o React Compiler,
+que é regra do projeto. **Confirmar no spike.** Se conflitar, a alternativa é
+`react-virtuoso`.
+
+### React Compiler ativo desde o dia 1
+
+Memoização automática em build. Consequência prática: **pare de otimizar
+preventivamente** — escreva código idiomático, meça, intervenha onde o profiler
+apontar. Em troca, siga as Rules of React. Lint do compiler reclamando = código
+errado, não regra pra desativar.
+
+### Divergência de produto — e o que ela implica no backend
+
+**Decidido:** o Vortex diverge do Stoat como **produto**, continuando a falar o
+protocolo Stoat. Não é um cliente Stoat reestilizado, e não é um protocolo novo.
+
+Consequência direta: feature que o protocolo não suporta exige mexer no backend.
+Isso não é hipótese remota — é o caminho previsto.
+
+#### O que o backend é hoje
+
+Oito serviços upstream, todos pinados por digest em `v0.15.1`
+(`pi-infra/compose/compose.vortex.yml`):
+
+```
+api · events · file-server · proxy · crond · pushd · voice-ingress · livekit
+```
+
+mais Mongo, Valkey, RabbitMQ, MinIO e Caddy. A única imagem própria hoje é a do
+cliente web (`ghcr.io/enzolaops/vortex-web`).
+
+**Não é um monolito.** O VORTEX.md descreve um eventual `server/` como ilha
+única, cargo em vez de pnpm. A stack real é outra coisa, e isso é boa notícia:
+forkar significa forkar **o serviço dono daquela superfície** e continuar pinando
+os outros. Feature de API → `api`. Evento novo no websocket → `events`, quase
+sempre com `api` junto. É bem menor que "forkar o backend", e mantém as
+atualizações de segurança dos outros serviços vindo de graça.
+
+#### Não construir agora
+
+O VORTEX.md já diz: *"do not create it for tidiness"*. Vale literalmente. **Todo
+o roadmap — fases 0 a 4 — é front-end.** Nada nele precisa de backend, inclusive
+a fase 4: preset é string que o usuário copia, tema é CSS custom property,
+layout vive em store local.
+
+Manter o backend como está não é dívida, é a escolha barata: oito serviços
+pinados por digest, correção de segurança de upstream chegando de graça, nada
+para construir e nada para manter. O fork é o caminho para **quando** uma
+feature forçar — não um item de roadmap.
+
+#### A restrição a conhecer antes de commitar com uma feature de backend
+
+**Tudo roda em `linux/arm64`** — o alvo é um Raspberry Pi, e repositório privado
+não recebe runner arm64 nativo.
+
+O cliente web já contorna isso, e o truque está documentado no VORTEX.md: o
+Dockerfile pina o estágio de build em `$BUILDPLATFORM` porque esse estágio *"only
+emits static JS and CSS, which is the same on every architecture"*. Roda nativo
+no runner amd64 e só o runtime, JS puro, é emulado.
+
+**Esse truque não transfere para Rust.** Binário Rust é específico de
+arquitetura — não existe estágio neutro para rodar nativo. Sobra cross-compile,
+runner próprio ou build no próprio Pi.
+
+Não bloqueia nada hoje. Só não descubra isso no meio da primeira feature de
+backend.
+
+#### Por que isso não muda o front-end
+
+Enquanto o backend for upstream não modificado, `stoat.js` continua sendo o
+transporte certo — e quando um serviço for forkado, continua sendo, porque o
+protocolo é o mesmo com superfície a mais.
+
+A camada anticorrupção em `src/sdk/` é o que faz esse fork seletivo caber depois
+sem tocar em componente: endpoint novo entra no adapter, o tipo de domínio já
+existe. É exatamente o cenário para o qual ela foi instalada.
+
+### Estilização: Tailwind v4 sobre tokens em CSS puro
+
+A restrição que decidiu: o Stoat suporta **temas de usuário**, trocados em
+runtime sem rebuild. Isso eliminou build-time (vanilla-extract, Panda — exigiriam
+machinery extra) e runtime JS (styled-components, Emotion — pagam custo por
+render, inaceitável na lista virtualizada).
+
+CSS custom properties são a única resposta natural, e o Tailwind v4 é construído
+em torno delas.
+
+Arquitetura em três camadas:
+
+```
+1. tokens.css        CSS custom properties puras ← tema de usuário sobrescreve aqui
+2. @theme            mapeia utilities → as vars da camada 1
+3. componentes       utilities; CSS Module onde utility fica ruim
+```
+
+**Os tokens não moram no Tailwind.** Ele só projeta utilities em cima. Assim o
+tema de usuário nem precisa saber que o Tailwind existe, e trocar de ferramenta
+de estilo no futuro não toca a camada cara.
+
+Três regras com lint bloqueando: arbitrary values proibidos; escala de cor
+default do Tailwind desativada; espaçamento e raio limitados às escalas do
+projeto.
+
+CSS Module quando a `className` passa de ~2 linhas ou exigiria arbitrary value —
+grid do shell, container queries densas, keyframes.
+
+### Layout customizável pelo usuário (fase 4, decidido agora)
+
+O cliente terá layout reorganizável, tema escolhível e preset compartilhável.
+Demanda comprovada — o BetterDiscord existe porque milhões de pessoas instalam
+um mod de cliente só para ter tema e layout.
+
+**Modelo: slots com docking, não posição livre.** Uma HUD de jogo é feita de
+widgets independentes; um cliente de chat é um shell de restrições acopladas —
+largura da coluna depende das sidebars, composer alinha a ela, virtualização
+exige container estável. Drag-anywhere quebra os três.
+
+Coluna de mensagem + composer é **âncora fixa**. Os painéis laterais são slots
+que o usuário reordena, troca de lado, redimensiona, esconde e preenche. Slot
+vazio colapsa — o que resolve de quebra o aproveitamento de ultrawide.
+
+**Tema: picker no nível do token, nunca do componente.** Cor por componente
+destruiria o sistema de tokens, tornaria contraste impossível de garantir e
+geraria bugs irreproduzíveis. O usuário escolhe a paleta; o app deriva o resto —
+que é exatamente a camada 1 do sistema de estilo, com validação de contraste no
+momento da escolha.
+
+**Não construir antes da fundação.** A decisão está registrada agora porque muda
+como as fases 2 e 3 são escritas — é toda a lei nº 6.
+
+---
+
+## As seis leis
+
+Determinam se o projeto escala ou apodrece. Colidiu com uma delas, pare e
+levante a questão em vez de contornar.
+
+1. **Estado fora do React, com subscrição por entidade.** Store module-level,
+   `useSyncExternalStore` keyed por ID. Nunca dado de entidade em Context.
+2. **Virtualização desde a primeira linha.** Retrofit é reescrita da tela.
+3. **`minmax(0, 1fr)` no grid, `max-inline-size` na coluna de mensagem.**
+4. **Zero valor mágico em componente.** Só tokens semânticos, sem arbitrary
+   values.
+5. **Biblioteca resolve o genérico; você escreve o específico.**
+6. **Todo componente nasce movível.** Container query, sem premissa de irmão ou
+   de lado, sem dimensão fixa, estado vindo do store.
+
+---
+
+## A ponte stoat.js → React
+
+A peça mais crítica. Não é overhead de migração — é a camada onde a
+granularidade de update é decidida, e portanto onde a performance do app é
+definida.
+
+```
+stoat.js (signals Solid)
+   ↓  adapter — assina o SDK, normaliza, emite por ID
+store externo (Map<id, snapshot> + emitters)
+   ↓  useSyncExternalStore
+componentes React
+```
+
+**Regra de granularidade:** coleção assina lista de IDs; entidade assina a si
+mesma. Editar uma mensagem toca uma linha, não a lista.
+
+**A armadilha:** `getSnapshot` precisa devolver referência cacheada. Montar o
+objeto ali dentro = loop infinito, que se manifesta como aba travando, não como
+erro. Sem `.map()`, `.filter()` ou spread dentro do getter.
+
+**Estado efêmero** (typing, presença, quem está falando) vai em store separado
+com throttle na fronteira do adapter — nunca no store de mensagens.
+
+**O SDK é transporte, não fundação.** O Vortex é produto separado do Stoat, com
+features que o Stoat não tem — o `stoat.js` é só como o app fala com o backend
+hoje. Por isso os tipos de domínio são **declarados pelo app**, nunca derivados
+dos tipos do SDK, e o `stoat.js` só pode ser importado dentro de `src/sdk/`
+(lint de boundary, igual ao que confina o Radix). O adapter é camada
+anticorrupção: SDK entra, domínio sai.
+
+Sem isso a desvinculação é intenção. A forma do protocolo vaza para todo
+componente, não dá erro nenhum, e cobra o preço na primeira feature que o Stoat
+não suporta.
+
+Feita direito, isso reconstrói fine-grained reactivity na granularidade de
+componente e a diferença pro Solid vira irrelevante. Feita preguiçosamente
+(Context com o canal inteiro), jank em servidor grande — invisível em dev.
+
+---
+
+## Performance
+
+60fps = 16,6ms por frame. Render de linha em React é sub-milissegundo.
+
+**O problema nunca é custo unitário de render. É update não-escopado atingindo
+milhares de componentes.** Toda otimização real aqui é sobre escopo.
+
+Ordem de investigação quando algo estiver lento:
+
+1. Escopo de update
+2. Virtualização e ancoragem
+3. Reparse de markdown
+4. Decodificação e layout de mídia
+5. Bundle
+
+**Gate de merge:** script de firehose sintético — 500 eventos/s de
+presença/mensagem/typing/reaction contra o store, com canal de 10k mensagens
+carregado, segurando 60fps. Rodar antes de qualquer merge que toque store, lista
+ou linha de mensagem.
+
+Regressão de escopo **nunca aparece em uso normal de desenvolvimento**. Só em
+servidor grande com usuário real. O firehose é a única forma de pegá-la antes.
+
+---
+
+## Layout — a causa raiz do bug de ultrawide
+
+```css
+.shell {
+  display: grid;
+  grid-template-columns:
+    72px                          /* rail */
+    clamp(240px, 18vw, 320px)     /* canais */
+    minmax(0, 1fr)                /* conteúdo */
+    clamp(0px, 20vw, 340px);      /* membros */
+}
+
+.message-column { max-inline-size: 1100px; }  /* composer alinhado a isto */
+```
+
+`1fr` sozinho é `minmax(auto, 1fr)`, e `auto` respeita o `min-content` do filho —
+uma URL longa estoura o grid. **Essa é a causa do comportamento atual.**
+
+Acima de ~2560px, o espaço extra vira função (thread, fixados, perfil), nunca
+vazio morto nem texto esticado.
+
+Painéis reagem por container query ao próprio tamanho, não ao da janela. É isso
+que faz o mesmo componente funcionar em janela pequena, ultrawide e popout sem
+condicional espalhada.
+
+---
+
+## Electron
+
+Casca fina, não segunda aplicação. Divergência atrás de flag de plataforma
+resolvido em um lugar só. **No momento em que existir `MessageRow.desktop.tsx`,
+o projeto tem dois front-ends e o design diverge em semanas.**
+
+Segurança inegociável — o app renderiza conteúdo enviado por qualquer pessoa:
+`contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, preload com
+API estreita e enumerada, IPC validado no main, navegação externa bloqueada, CSP
+sem `unsafe-inline`.
+
+Titlebar custom: todo interativo dentro da região de arraste precisa de `no-drag`
+explícito, senão para de responder sem erro.
+
+Websocket vive no processo main, compartilhado. Uma conexão por app, não por
+janela.
+
+---
+
+## Roadmap sugerido
+
+### Fase 0 — Spike de de-risco · **concluída**
+
+Antes de commitar meses. Só a lista de mensagens:
+
+- Ponte `stoat.js` → store externo
+- Virtualização com âncora
+- Firehose sintético
+
+Alvo: 500 eventos/s a 60fps com 10k mensagens carregadas.
+**Confirmar aqui a compatibilidade TanStack Virtual + React Compiler.**
+
+No mesmo passo, ligar o enforcement de base (`enforcement.md`): lint contra
+índice como `key` e `any` na fronteira do SDK, assertion de estabilidade de
+`getSnapshot`, assertion de remedição após mudança de largura do container, e o
+firehose como gate de merge. São baratos agora e caros de retrofitar sobre
+código já escrito.
+
+A assertion de remedição foi antecipada da fase 2 para cá: ela envolve o mesmo
+wrapper de virtualizador que o spike escreve, e mecanismo que chega depois do
+código que guarda não guarda nada. A recompensa maior é na fase 4 — mas as
+causas de mudança de largura já existem no spike.
+
+A sexta invariante de fase 0 — lockstep dos gitlinks do SDK entre as duas ilhas
+— já está mecanizada em CI.
+
+**Segurou.** Resultado no gate (build de produção, CPU 4x, janela válida):
+p95 12,5ms · p99 18,8ms · zero long tasks. As duas perguntas que o spike
+existia para responder estão respondidas — TanStack Virtual convive com o
+React Compiler, e a arquitetura de escopo aguenta a carga.
+
+O que o spike encontrou vale mais que o veredito, e virou invariante com
+mecanismo em `enforcement.md`: linha não resolvida medindo 0px, publicação de
+coleção por evento (quadrática na carga), carga em massa pelo caminho de
+evento (destrói a âncora), corrida de firehose medindo lista parada, e
+medição no dev server reprovando o ambiente em vez do código.
+
+**Concluída não é o mesmo que tudo verificado.** Prepend de histórico, mídia,
+reconexão, container query e o test runner seguem em aberto — todos listados
+em Pendências, nenhum bloqueia a fase 1.
+
+### Fase 1 — Fundação visual (~1 semana)
+
+Preencher `tokens.css` com a paleta real, montar o `@theme`, ligar o lint contra
+arbitrary values. Depois o grid do shell, `minmax(0,1fr)` e teto de linha.
+
+Resolve provavelmente 70% do "feio + quebrado no ultrawide" sem tocar em lógica.
+
+### Fase 2 — Primitivos
+
+Wrappers Radix em `components/ui/`, reestilizados pros tokens. Context menu,
+dropdown, dialog, popover, tooltip, hover card, toast.
+
+### Fase 3 — Superfícies específicas
+
+Message list completa (agrupamento, divisores, estados de envio), rail, member
+list, composer.
+
+**Escritas sob a lei nº 6** — todo componente já nasce movível.
+
+### Fase 4 — Customização
+
+Sistema de slots, modo edição, preset versionado e compartilhável, picker de
+paleta com validação de contraste. Ver `layout-customization.md`.
+
+---
+
+## Pendências abertas
+
+| Item | Precisa de |
+|---|---|
+| Identidade visual | Paleta (4–6 hex nomeados), par tipográfico, elemento de assinatura. A estrutura de tokens está pronta em `tokens.css`; faltam os valores. |
+| TanStack Virtual + React Compiler | **Resolvido no spike.** Compatíveis: o compiler reconhece `useVirtualizer` e pula a memoização daquele componente (`react-hooks/incompatible-library`), sem crash nem UI velha. O custo — os filhos da lista deixam de ser memoizados — é cortado com `memo` no `MessageRow`. Não trocar por `react-virtuoso`. |
+| Licença AGPL-3.0 | **Resolvido.** Uso privado — o dev e amigos, todos com acesso ao repositório, que é o que a cláusula de rede da AGPL pede. Reabrir a questão se o Vortex for exposto a terceiros sem acesso ao fonte. Não é aconselhamento jurídico. |
+| Brand assets | **Resolvido.** `brand/` é diretório rastreado deste repo, não submodule: `mark.svg`, `wordmark.svg`, `monochrome.svg` + `generate.mjs`. O `.gitmodules` só tem os três de `web/packages/`. `web-react/` consome daí, como `web/` e `desktop/`. |
+| Imagem arm64 do backend | **Não bloqueia nada hoje** — todo o roadmap é front-end. Antes de commitar com a primeira feature que precise de backend: como sair imagem `linux/arm64` de serviço Rust forkado. O truque do `$BUILDPLATFORM` que salva o cliente web não transfere para Rust. Ver § Divergência de produto. |
+| Cauda do frame de append | Sob CPU 4x, ~2,9% dos frames estouram 16,7ms na montagem de linha de altura variável (medir altura real + reancorar no mesmo frame). Dentro do critério do gate, listado por honestidade. Alavancas: `overscan` menor, estimativa por tipo de mensagem, pré-medição de conteúdo previsível. |
+| Prepend de histórico | **Nunca testado.** O firehose só faz append. Carregar mensagem antiga sem mover o viewport é requisito central de lista de chat e a razão de existir do `anchorTo: 'end'`. Maior buraco de comportamento da fase 0. |
+| Mídia na linha | **Nunca testada.** Sem imagem no spike. Reservar espaço com `aspect-ratio` a partir do metadata do anexo é o que impede layout shift quebrar a ancoragem. |
+| Test runner | **Não existe.** Nem vitest nem playwright. Quatro invariantes de fase 0 no `enforcement.md` estão como "Teste" e hoje são prosa: firehose como gate de CI, publicação por frame, carga em massa, corrida colada no fim. |
+| Assertions que nunca dispararam | `getSnapshot` estável, remedição após resize e linha medindo 0px existem e nunca foram exercitadas. Mecanismo não testado é prosa com sintaxe de código. |
+| Reconexão, sessão longa, container query | Sem rede no spike; vazamento de 8h precisa ser medido em horas; a lei nº 6 exige container query e não há nenhuma no código ainda. |
+
+---
+
+## Enforcement
+
+Regra escrita depende de alguém lembrar; mecanismo não. Toda invariante crítica
+tem lint, tipo, teste ou assertion em dev que a faz falhar sozinha. Detalhe e
+cronograma em `references/enforcement.md`.
+
+Ordem de preferência: **tornar impossível > tipo > lint > teste > assertion em
+dev > checklist > prosa.**
+
+Três valem desde já, embora a feature seja de fase futura:
+
+- Preset nunca carrega dado de sessão — privacidade, e preset já compartilhado
+  não volta atrás
+- Chave desconhecida em preset é preservada, nunca descartada
+- Largura de container mudou = virtualizador remede e reancora
+
+---
+
+## Como trabalhar
+
+Antes de escrever código, em até 10 linhas: superfície a alterar · arquivos que
+vai abrir e por quê · tokens e componentes reutilizados · o que muda em cada
+breakpoint · menor patch possível.
+
+Depois, passos pequenos e verificáveis. Padrão existente preservado. Dependência
+nova precisa de justificativa. Problema fora do escopo vira **pendência
+listada**, não correção silenciosa.
+
+Entrega: arquivos alterados · resumo objetivo · comportamento por breakpoint ·
+pendências. Sem log completo, sem despejar código inteiro quando o diff basta.
+
+---
+
+## Os cinco erros que mais quebram este projeto
+
+Nenhum deles dá erro. Todos degradam em silêncio.
+
+1. `getSnapshot` alocando objeto novo → loop de render, aba travando
+2. Dado de entidade em Context → jank em servidor grande, invisível em dev
+3. `minmax(0, 1fr)` faltando → grid estoura com URL longa
+4. Markdown reparseado no render → lento só quando a presença começa a piscar
+5. Listener sem cleanup → vazamento que só aparece na sexta hora de sessão

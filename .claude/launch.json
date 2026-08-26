@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "vortex-react-spike",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["-C", "web-react/packages/client", "dev", "--port", "5173", "--strictPort"],
+      "port": 5173
+    }
+  ]
+}
