@@ -295,6 +295,34 @@
 }
 
 /* ============================================================
+   Utilities de movimento
+   ------------------------------------------------------------
+   `duration-[120ms]` é arbitrary value, e o lint reprova com
+   razão: o valor já existe como token. O Tailwind v4 não expõe
+   namespace de tema para `duration-*`, então a projeção é feita
+   com `@utility` em vez de `@theme`.
+
+   Só transform e opacity — as duas propriedades que o compositor
+   anima sem relayout.
+
+   `prefers-reduced-motion` não precisa de variante aqui: a
+   camada 1 já zera as durações, então a utility segue o token e
+   a animação simplesmente não acontece.
+   ============================================================ */
+
+@utility anim-fast {
+  transition-property: opacity, transform;
+  transition-duration: var(--vx-duration-fast);
+  transition-timing-function: var(--vx-ease-out);
+}
+
+@utility anim-base {
+  transition-property: opacity, transform;
+  transition-duration: var(--vx-duration-base);
+  transition-timing-function: var(--vx-ease-out);
+}
+
+/* ============================================================
    Calibração
    ------------------------------------------------------------
    A família é metade da decisão. A outra metade é como ela é

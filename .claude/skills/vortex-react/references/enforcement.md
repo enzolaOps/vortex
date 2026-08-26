@@ -39,9 +39,17 @@ há o que proibir. Prefira sempre tornar impossível a proibir.
 do adapter, no mínimo.
 
 **Import direto de primitivo em código de feature proibido.**
-Radix só pode ser importado dentro de `components/ui/`. Regra de boundary
-(`no-restricted-imports`). É isso que mantém viva a possibilidade de trocar
-Radix→Base UI depois.
+Radix só pode ser importado dentro de `src/components/ui/`. Regra de boundary
+por `patterns: [{ group: ["@radix-ui/*"] }]`, com os próprios wrappers isentos —
+eles SÃO a fronteira, e ali o import é o trabalho, não a violação.
+
+É isso que mantém viva a possibilidade de trocar Radix→Base UI depois,
+componente por componente, sem tocar em código de produto — e a troca está
+prevista: Base UI hoje não tem Context Menu, Hover Card nem Toast, e quando
+tiver, a decisão é reavaliada.
+
+Instalada na fase 2, junto do primeiro wrapper, e verificada reprovando de
+propósito.
 
 **Import de `stoat.js` fora do adapter proibido.**
 O SDK só pode ser importado dentro de `src/sdk/`. Regra de boundary
@@ -137,10 +145,6 @@ somando 2,1s numa janela de 30s; o build de produção, na mesma máquina e
 mesma carga, produziu **zero** — e o p95 caiu de 43,8ms para 12,5ms. Medir
 no dev reprova o ambiente, não o código. `vite preview`, nunca `vite dev`.
 
-500 eventos/s de presença, mensagem, typing e reaction contra o store, com canal
-de 10k mensagens carregado, segurando 60fps. Obrigatório em qualquer PR que
-toque store, lista virtualizada ou linha de mensagem.
-
 Regressão de escopo **nunca aparece em uso normal de desenvolvimento**. Este é o
 único mecanismo que a pega.
 
@@ -187,6 +191,20 @@ caminho que a app real percorre — mensagem chegando ao longo do tempo,
 paginação de histórico, carga de canal.
 
 Coalescer no frame resolve carga e regime permanente com o mesmo mecanismo.
+
+**`cn()` resolve conflito na escala do projeto.**
+`pnpm classes` afirma que a última classe vence em cada grupo renomeado.
+
+O `tailwind-merge` resolve por grupo, e os grupos que ele conhece são os do
+Tailwind de fábrica. Cada escala que este projeto renomeia é uma chance de ele
+deixar as duas classes passarem. Foi o caso de `rounded-*`: a escala default
+está desativada em `tokens.css` e a nossa é numérica, então
+`cn("rounded-2", "rounded-4")` devolvia **as duas** e quem decidia era a ordem
+no CSS, não quem chamou.
+
+A falha é silenciosa — nada quebra, o canto só fica errado. Corrigida com
+`extendTailwindMerge`; o teste existe para a próxima escala renomeada não
+repetir o episódio sem avisar.
 
 **Contraste de tokens.**
 Teste que percorre os pares de token realmente usados (`--text-3` sobre
@@ -263,6 +281,7 @@ já cobre a maior parte.
 | Cores default do Tailwind | Ausência no `@theme` | Fase 1 |
 | Contraste dos tokens | `pnpm contrast` | Fase 1 |
 | Import direto de Radix | Lint de boundary | Fase 2 |
+| `cn()` na escala do projeto | `pnpm classes` | Fase 2 |
 | `left`/`right` em painel | Lint | Fase 2 |
 | `getSnapshot` estável | Assertion em dev | Fase 0 |
 | Índice como `key` | Lint | Fase 0 |

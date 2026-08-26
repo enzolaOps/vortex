@@ -460,10 +460,22 @@ arbitrary values. Depois o grid do shell, `minmax(0,1fr)` e teto de linha.
 
 Resolve provavelmente 70% do "feio + quebrado no ultrawide" sem tocar em lógica.
 
-### Fase 2 — Primitivos
+### Fase 2 — Primitivos · **em andamento**
 
-Wrappers Radix em `components/ui/`, reestilizados pros tokens. Context menu,
-dropdown, dialog, popover, tooltip, hover card, toast.
+Wrappers Radix em `src/components/ui/`, reestilizados pros tokens.
+
+Prontos: **context menu** (o primitivo que decidiu a escolha por Radix, e o
+que um cliente de chat mais usa), **tooltip** e **dialog**. Faltam dropdown,
+popover, hover card e toast.
+
+A fronteira já é mecanismo: `@radix-ui/*` só pode ser importado dentro de
+`components/ui/`, com os wrappers isentos. Sem isso, a migração progressiva
+para Base UI vira varredura do app inteiro no dia em que ela cobrir os três
+primitivos que faltam.
+
+`cn()` usa `extendTailwindMerge` porque a escala de raio deste projeto é
+numérica e o `tailwind-merge` de fábrica não a resolve — `pnpm classes`
+guarda isso.
 
 ### Fase 3 — Superfícies específicas
 

@@ -1,4 +1,13 @@
+import { ArrowBendUpLeft, Copy, PencilSimple, Trash } from "@phosphor-icons/react";
 import { memo } from "react";
+
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "../components/ui/ContextMenu";
 
 import { count } from "../dev/stats";
 import { useMessage, usePresence } from "../store/hooks";
@@ -77,47 +86,72 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
   }
 
   return (
-    <article className="flex gap-3 px-4 py-2">
-      <div className="relative mt-1 size-5 shrink-0">
-        <div className="size-5 rounded-4 bg-surface-3" />
-        {/* Presença nunca só por cor: o anel de fundo dá a forma. */}
-        <PresenceDot userId={message.authorId ?? ""} />
-      </div>
-
-      {/* minmax(0,1fr) do lado flex: sem isto uma URL de 400 chars estoura. */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-2">
-          <span className="text-md font-medium text-text-1">
-            {message.authorId ?? "desconhecido"}
-          </span>
-          <time className="text-xs text-text-3">
-            {message.createdAtText}
-          </time>
-          {message.editedAt ? (
-            <span className="text-xs text-text-3">(editada)</span>
-          ) : null}
-          {message.sendState !== "sent" ? (
-            <span className="text-xs text-warning">{message.sendState}</span>
-          ) : null}
-        </div>
-
-        <p className="text-md leading-message wrap-anywhere text-text-2">
-          {message.content}
-        </p>
-
-        {message.reactions.size > 0 ? (
-          <div className="mt-1 flex flex-wrap gap-1">
-            {[...message.reactions].map(([emoji, count]) => (
-              <span
-                key={emoji}
-                className="rounded-2 bg-surface-2 px-2 text-xs text-text-2"
-              >
-                {emoji} {count}
-              </span>
-            ))}
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <article className="flex gap-3 px-4 py-2 data-[state=open]:bg-surface-1">
+          <div className="relative mt-1 size-5 shrink-0">
+            <div className="size-5 rounded-4 bg-surface-3" />
+            {/* Presença nunca só por cor: o anel de fundo dá a forma. */}
+            <PresenceDot userId={message.authorId ?? ""} />
           </div>
-        ) : null}
-      </div>
-    </article>
+
+          {/* minmax(0,1fr) do lado flex: sem isto uma URL de 400 chars estoura. */}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline gap-2">
+              <span className="text-md font-medium text-text-1">
+                {message.authorId ?? "desconhecido"}
+              </span>
+              <time className="text-xs text-text-3">
+                {message.createdAtText}
+              </time>
+              {message.editedAt ? (
+                <span className="text-xs text-text-3">(editada)</span>
+              ) : null}
+              {message.sendState !== "sent" ? (
+                <span className="text-xs text-warning">{message.sendState}</span>
+              ) : null}
+            </div>
+
+            <p className="text-md leading-message wrap-anywhere text-text-2">
+              {message.content}
+            </p>
+
+            {message.reactions.size > 0 ? (
+              <div className="mt-1 flex flex-wrap gap-1">
+                {[...message.reactions].map(([emoji, count]) => (
+                  <span
+                    key={emoji}
+                    className="rounded-2 bg-surface-2 px-2 text-xs text-text-2"
+                  >
+                    {emoji} {count}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </article>
+      </ContextMenuTrigger>
+
+      {/* Ícones Phosphor, weight regular, 20px — um set só, sem exceção. */}
+      <ContextMenuContent>
+        <ContextMenuItem>
+          <ArrowBendUpLeft size={20} aria-hidden />
+          Responder
+        </ContextMenuItem>
+        <ContextMenuItem>
+          <Copy size={20} aria-hidden />
+          Copiar texto
+        </ContextMenuItem>
+        <ContextMenuItem>
+          <PencilSimple size={20} aria-hidden />
+          Editar
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem perigo>
+          <Trash size={20} aria-hidden />
+          Apagar
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 });

@@ -91,6 +91,26 @@ export default tseslint.config(
       "no-restricted-imports": [
         "error",
         {
+          patterns: [
+            {
+              /**
+               * Radix só existe dentro de `components/ui/`.
+               *
+               * É isso que mantém viva a possibilidade de trocar Radix por
+               * Base UI depois, componente por componente, sem tocar em código
+               * de produto — e a troca está prevista: Base UI hoje não tem
+               * Context Menu, Hover Card nem Toast, e quando tiver, a decisão
+               * é reavaliada.
+               *
+               * Sem a regra, o primeiro `import * as Dialog from
+               * "@radix-ui/react-dialog"` dentro de uma feature transforma uma
+               * migração progressiva em varredura do app inteiro.
+               */
+              group: ["@radix-ui/*"],
+              message:
+                "Radix só pode ser importado em src/components/ui/. Feature usa o wrapper, nunca o primitivo — é o que mantém a troca por Base UI viável.",
+            },
+          ],
           paths: [
             {
               name: "stoat.js",
@@ -127,5 +147,11 @@ export default tseslint.config(
     // languageOptions e sobrescreveria este.
     files: ["scripts/**/*.mjs"],
     languageOptions: { globals: globals.node },
+  },
+  {
+    // Os wrappers SAO a fronteira: aqui o import de Radix e o trabalho,
+    // nao a violacao.
+    files: ["src/components/ui/**/*.tsx"],
+    rules: { "no-restricted-imports": "off" },
   },
 );
