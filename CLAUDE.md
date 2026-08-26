@@ -453,12 +453,20 @@ medição no dev server reprovando o ambiente em vez do código.
 reconexão, container query e o test runner seguem em aberto — todos listados
 em Pendências, nenhum bloqueia a fase 1.
 
-### Fase 1 — Fundação visual (~1 semana)
+### Fase 1 — Fundação visual · **concluída**
 
-Preencher `tokens.css` com a paleta real, montar o `@theme`, ligar o lint contra
-arbitrary values. Depois o grid do shell, `minmax(0,1fr)` e teto de linha.
+`tokens.css` com a paleta real, `@theme` mapeando, lint contra arbitrary values,
+grid do shell, `minmax(0,1fr)` e teto de linha.
 
-Resolve provavelmente 70% do "feio + quebrado no ultrawide" sem tocar em lógica.
+Verificado em navegador, não prometido: em janela de 3000px a coluna de mensagem
+trava em **1100px exatos** e não há scroll horizontal; em 700px as trilhas ficam
+`72px 240px 388px 0px` — a coluna de membros colapsa a zero em vez de deixar
+espaço morto, que era o bug que motivou o redesign. Contraste 76/76 pares por
+`pnpm contrast`.
+
+Falta só o **elemento de assinatura** da identidade — paleta e par tipográfico
+estão fechados. É item de identidade visual, não de fundação, e está nas
+pendências.
 
 ### Fase 2 — Primitivos · **concluída**
 
@@ -514,6 +522,31 @@ de tradução: `channel.isVoice` não quer dizer "canal de voz do servidor" (é
 `true` para DM e Grupo, e depende de um objeto `voice`), e o protocolo **não
 tem** `channel_type: "VoiceChannel"` — canal de voz é TextChannel com `voice`.
 
+**Passou no gate.** Sem throttle, mediana de 3 janelas com 10k mensagens e 500
+eventos/s: p95 6,4ms (1,05× o refresh), 98,1% dos frames dentro de um intervalo,
+**0,1% de frames perdidos contra o teto de 1%**, zero long tasks, vazão cheia.
+Espalhamento entre janelas: 0,1% a 0,1%.
+
+Sob CPU 4x fica em ~6% contra o teto de 5% — segue como acompanhamento, não
+como bloqueio, e a razão está nas pendências.
+
+**O que a caçada ao gate ensinou vale mais que o veredito**, e virou quatro
+invariantes de INSTRUMENTO em `enforcement.md` — dobrando as que já existiam:
+
+- Delta de rAF é intervalo de vsync, não custo de frame. Num display de 160Hz o
+  percentil só assume 6,25 · 12,5 · 18,75, e o teto de 16,7ms cai entre degraus.
+- Uma janela só não decide diferença pequena. Sob throttle o espalhamento entre
+  corridas (0,9pp) ficou maior que o efeito procurado (0,72pp).
+- O critério do gate foi reescrito como contagem — `perdidos ≤ 5%` é o mesmo que
+  `p95 ≤ 16,7ms`, com prova e teste, e sem a patologia do degrau.
+- A vazão do gerador precisa ser reportada: sob 4x ele entregava 441 de 500
+  eventos/s, e o gate reprovava com menos carga do que anunciava.
+
+Três hipóteses plausíveis foram testadas e nenhuma foi refutada — o instrumento
+não tinha resolução para vê-las. As duas mais baratas (máscara no ponto de
+presença, menu por linha) foram removidas ou viraram pendência mesmo assim,
+porque custam de qualquer jeito.
+
 ### Fase 4 — Customização · **próxima**
 
 Sistema de slots, modo edição, preset versionado e compartilhável, picker de
@@ -540,6 +573,8 @@ paleta com validação de contraste. Ver `layout-customization.md`.
 | Assertions que só o navegador exercita | A de `getSnapshot` estável agora tem teste e dispara nos quatro casos. Faltam duas, e as duas dependem de layout: **remedir após resize** e **linha medindo 0px**. jsdom não serve — é o mesmo motivo pelo qual a âncora vive no arnês. Vão junto com o runner de navegador. |
 | Reconexão e sessão longa | Sem rede no spike; vazamento de 8h precisa ser medido em horas. **Container query resolvida** — shell, composer, rail, lista de canais e member list têm a sua; a do painel de membros (<140px) só é alcançável por slot da fase 4, não por largura de janela. |
 | Firehose depois da fase 3 | **Rodado. Passa sem throttle, reprova sob CPU 4x.** Sem throttle, mediana de 3 janelas: p95 6,4ms (1,05× o refresh), 98,1% dos frames em um intervalo, **0,1% de frames perdidos contra o teto de 1%**, zero long tasks, vazão cheia de 500 ev/s — e espalhamento de 0,1% a 0,1% entre janelas. Sob CPU 4x fica em ~6% contra o teto de 5%, e ali a vazão do próprio gerador cai para 441/500. A fase 0 media 2,9% sob 4x com uma `MessageRow` que era um `<article>` de className estática — sem agrupamento, divisor de data, estado de envio, menu, composer ou colunas laterais. Parte da diferença é o produto existindo; quanto exatamente, só um A/B com mediana de 3 janelas responde. |
+| Menu de contexto no nível da lista | **Medido, não conserta o gate, e vale mesmo assim.** Hoje cada `MessageRow` monta um `ContextMenu` do Radix inteiro — Root, Trigger, Portal, Content — e linha monta e desmonta na velocidade do scroll. A/B com a mesma `<article>` nos dois lados: p99 de 24,9ms para 18,9ms e frames perdidos de 6,0% para 5,4% ao desligá-lo. O conserto é um Root para a lista, posicionado no ponteiro, com o id da linha alvo no store. |
+| Patamar de CPU 4x em ~6% | Contra o teto de 5%. Não bloqueia — o patamar que mede o app (sem throttle) passa com folga de 10×. A fase 0 media 2,9% sob 4x com uma `MessageRow` que era um `<article>` de className estática: sem agrupamento, divisor de data, estado de envio, menu, composer ou colunas laterais. Parte da diferença é o produto existindo; quanto exatamente, só um A/B com mediana de 3 janelas responde — e agora ele decide, porque a contagem enxerga onde o percentil não enxergava. |
 | Apelido por servidor na member list | O snapshot de membro é keyed por ID de USUÁRIO, e apelido mora no `ServerMember` — uma chave de usuário não sabe de qual servidor se fala. `toMemberSnapshot` já aceita o apelido; falta a chave composta. |
 | Categorias de canal | `server.categories` existe no protocolo e a coluna ignora, separando só texto de voz. Categoria de verdade pede ordem própria, colapso persistido e arrastar-e-soltar. |
 | Lado lógico no wrapper de Tooltip | O Radix só fala `side` físico. Hoje o `avoidCollisions` cobre o caso real (rail movido = sem espaço daquele lado = vira sozinho), mas o mapeamento logical→physical deveria viver no wrapper. |

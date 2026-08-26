@@ -50,14 +50,7 @@ function DivisorDeDia({ rotulo }: { rotulo: string }) {
  * Como `id` é string estável, `memo` corta a cascata. É a fronteira onde a
  * memoização automática parou, não otimização preventiva.
  */
-export const MessageRow = memo(function MessageRow({
-  id,
-  semMenu = false,
-}: {
-  id: string;
-  /** Chave do arnês, não do produto. Ver `dev/opcoes.ts`. */
-  semMenu?: boolean;
-}) {
+export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
   const message = useMessage(id);
   count("rowRenders");
 
@@ -170,16 +163,15 @@ export const MessageRow = memo(function MessageRow({
       {message.dia ? <DivisorDeDia rotulo={message.dia} /> : null}
 
       {/*
-        A chave do arnês NÃO muda a linha, só o que a envolve.
+        O menu é montado POR LINHA, e isso é pendência medida, não descuido.
 
-        É o que torna o A/B honesto: com `semMenu` a `<article>` renderizada é
-        byte a byte a mesma, então a diferença de p95 entre as duas corridas é
-        o custo do `ContextMenu` por linha e mais nada.
+        Um A/B com a mesma `<article>` nos dois lados mostrou o custo: p99 de
+        24,9ms para 18,9ms e frames perdidos de 6,0% para 5,4% ao desligá-lo.
+        Real, e não é o que reprova o gate. O conserto é menu no nível da
+        LISTA, posicionado no ponteiro, com o id da linha alvo no store — e aí
+        é um Root para a lista inteira em vez de um por linha montada.
       */}
-      {semMenu ? (
-        linha
-      ) : (
-        <ContextMenu>
+      <ContextMenu>
           <ContextMenuTrigger asChild>{linha}</ContextMenuTrigger>
 
           {/* Ícones Phosphor, weight regular, 20px — um set só, sem exceção. */}
@@ -202,8 +194,7 @@ export const MessageRow = memo(function MessageRow({
               Apagar
             </ContextMenuItem>
           </ContextMenuContent>
-        </ContextMenu>
-      )}
+      </ContextMenu>
     </>
   );
 });

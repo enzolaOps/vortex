@@ -1,8 +1,7 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef } from "react";
 
 import { ATRIBUTO_DE_COLUNA } from "../dev/alinhamento";
-import { assinarOpcoes, lerOpcoes } from "../dev/opcoes";
 import { count } from "../dev/stats";
 import { ouvirFimDaLista } from "../store/comandos";
 import { useChannelMessageIds } from "../store/hooks";
@@ -21,14 +20,20 @@ import { MessageRow } from "./MessageRow";
 const LIMIAR_DE_FIM = 80;
 
 /**
- * O chute original da fase 0, e a altura REAL média medida no prepend.
+ * Altura estimada de linha — MEDIDA, não chutada.
  *
- * Os 44px nunca foram medidos — foram estimados antes de existir linha com
- * agrupamento, divisor de data e estado de envio. A medição do prepend
- * mostrou 1441px de crescimento em 50 linhas: ~73px cada.
+ * Os 44px da fase 0 nunca foram medidos: foram estimados antes de existir
+ * linha com agrupamento, divisor de data e estado de envio. O arnês mede a
+ * altura real das linhas visíveis e reporta ao lado da estimada; deu 72,6px e
+ * 72,7px em corridas distintas.
+ *
+ * Errar a estimativa não quebra nada — a compensação do virtualizador absorve
+ * —, mas faz a barra de rolagem mentir sobre o tamanho do histórico e dá
+ * trabalho de compensação a cada rolagem. Trocar 44 por 73 NÃO mudou o gate;
+ * está aqui por correção, não por performance, e o relatório do arnês existe
+ * para que o dia em que a linha mudar de forma isso apareça.
  */
-const ALTURA_CHUTADA = 44;
-const ALTURA_MEDIDA = 73;
+const ALTURA_ESTIMADA = 73;
 
 /**
  * Lista de mensagens virtualizada, em modo chat.
@@ -40,26 +45,13 @@ const ALTURA_MEDIDA = 73;
  */
 export function MessageList({ channelId }: { channelId: string }) {
   const ids = useChannelMessageIds(channelId);
-  // Lido UMA vez aqui e repassado por prop: assinar dentro da linha
-  // acrescentaria uma subscrição por linha à medição que a chave existe para
-  // fazer. Ver `dev/opcoes.ts`.
-  const { semMenuPorLinha, estimativaMedida } = useSyncExternalStore(
-    assinarOpcoes,
-    lerOpcoes,
-  );
   count("listRenders");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const virtualizer = useVirtualizer({
     count: ids.length,
     getScrollElement: () => scrollRef.current,
-    // A MEDIDA é o default agora. Não porque acelerou — ela não moveu o gate
-    // — mas porque está certa: 72,6px reais contra 73 estimados, medido no
-    // arnês. A estimativa antiga errava ~38px por linha, o que faz a barra de
-    // rolagem mentir sobre o tamanho do histórico e dá trabalho de compensação
-    // ao virtualizador a cada rolagem. Correção vale por si; a chave inverte
-    // para o chute antigo quando alguém quiser refazer o A/B.
-    estimateSize: () => (estimativaMedida ? ALTURA_CHUTADA : ALTURA_MEDIDA),
+    estimateSize: () => ALTURA_ESTIMADA,
     // ID de entidade, nunca índice: índice corrompe o estado da linha a cada
     // inserção no topo.
     getItemKey: (i) => ids[i] ?? i,
@@ -279,7 +271,7 @@ export function MessageList({ channelId }: { channelId: string }) {
               className="absolute inset-x-0 top-0"
               style={{ transform: `translateY(${item.start}px)` }}
             >
-              <MessageRow id={String(item.key)} semMenu={semMenuPorLinha} />
+              <MessageRow id={String(item.key)} />
             </div>
           ))}
         </div>

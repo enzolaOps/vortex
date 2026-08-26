@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ListaDeCanais } from "./canais/ListaDeCanais";
 import { Composer } from "./composer/Composer";
@@ -10,7 +10,6 @@ import {
   startFirehose,
 } from "./dev/firehose";
 import { createFrameRecorder, verdict, type FrameReport } from "./dev/frames";
-import { alternar, assinarOpcoes, lerOpcoes } from "./dev/opcoes";
 import { medirPrepend, type ResultadoPrepend } from "./dev/prepend";
 import { readCounters, resetCounters, type Counters } from "./dev/stats";
 import { MessageList } from "./list/MessageList";
@@ -86,18 +85,6 @@ export function App() {
    * canais, como no app de verdade.
    */
   const canal = useCanalAtivo();
-
-  /**
-   * A chave do A/B. Ver `dev/opcoes.ts` para o porquê de ela existir.
-   *
-   * Fica ao lado do "CPU 4x" de propósito: as duas descrevem a CONDIÇÃO da
-   * corrida, e condição de corrida pertence ao mesmo canto do arnês que o
-   * veredito.
-   */
-  const { semMenuPorLinha, estimativaMedida } = useSyncExternalStore(
-    assinarOpcoes,
-    lerOpcoes,
-  );
 
   const ids = useRef<readonly string[]>([]);
   const recorder = useRef(createFrameRecorder());
@@ -363,25 +350,6 @@ export function App() {
             falhar envio
           </label>
 
-          <label className="flex items-center gap-2 text-xs text-text-2">
-            <input
-              type="checkbox"
-              checked={semMenuPorLinha}
-              onChange={() => alternar("semMenuPorLinha")}
-              disabled={running}
-            />
-            sem menu por linha (A/B)
-          </label>
-
-          <label className="flex items-center gap-2 text-xs text-text-2">
-            <input
-              type="checkbox"
-              checked={estimativaMedida}
-              onChange={() => alternar("estimativaMedida")}
-              disabled={running}
-            />
-            voltar a 44px (A/B)
-          </label>
 
           {naoSeguia ? (
             <span className="rounded-2 bg-danger px-2 py-1 text-xs text-on-accent">
@@ -431,7 +399,7 @@ export function App() {
               {report ? Math.round((stats.eventos ?? 0) / Math.max(report.seconds, 1)) : "?"}{" "}
               ev/s de {EVENTS_PER_SECOND} · altura real{" "}
               {(stats.alturaSoma / Math.max(stats.alturaAmostras, 1)).toFixed(1)}px
-              (estimando {estimativaMedida ? 44 : 73}px)
+              (estimando 73px)
             </span>
           ) : null}
           {/* Colunas laterais em linha própria: somadas às da lista, viram
