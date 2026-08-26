@@ -9,3 +9,12 @@ dist
 .vercel
 
 .idea
+
+# `npm i -D sharp` na raiz, que brand/generate.mjs exige, deixa um manifesto
+# aqui. Ignorado de proposito: a regra do VORTEX.md e que nada na raiz
+# pertence a uma ilha, e um manifesto de raiz carregando uma unica ferramenta
+# de build e exatamente a bagunca que a regra evita. Ignorar em vez de apagar
+# porque apagar so faz o arquivo voltar na proxima vez que alguem regenerar a
+# marca.
+/package.json
+/package-lock.json

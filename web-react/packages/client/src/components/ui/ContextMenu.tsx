@@ -2,6 +2,14 @@ import * as Primitivo from "@radix-ui/react-context-menu";
 import type { ComponentProps, ReactNode } from "react";
 
 import { cn } from "../../lib/cn";
+import {
+  menuContent,
+  menuItem,
+  menuItemNormal,
+  menuItemPerigo,
+  menuLabel,
+  menuSeparator,
+} from "./menu";
 
 /**
  * Context menu — o primitivo que decidiu a escolha por Radix.
@@ -10,24 +18,25 @@ import { cn } from "../../lib/cn";
  * que um cliente de chat mais usa. Seguir o default do shadcn deixaria as três
  * peças mais difíceis para escrever à mão.
  *
- * Aqui o Radix entrega o que é difícil e igual em todo app: roving tabindex,
- * foco devolvido ao lugar certo no Esc, posicionamento contra a borda do
- * viewport, long-press no toque, leitor de tela. Nada disso é específico do
- * Vortex, e escrever à mão é desperdício com a11y quebrada.
+ * O Radix entrega o que é difícil e igual em todo app: roving tabindex, foco
+ * devolvido ao lugar certo no Esc, posicionamento contra a borda do viewport,
+ * long-press no toque, leitor de tela. Escrever isso à mão é desperdício com
+ * acessibilidade quebrada. O estilo é o específico, e é nosso.
  *
- * O estilo é o específico, e é nosso.
+ * ⚠ O Radix trava o scroll ao abrir overlay (react-remove-scroll). Abrir este
+ * menu sobre a lista virtualizada não pode perder a âncora nem provocar salto
+ * ao fechar — é bug que só aparece com histórico longo carregado, e o firehose
+ * com 10k é onde se testa.
  */
 
 export const ContextMenu = Primitivo.Root;
 export const ContextMenuTrigger = Primitivo.Trigger;
 
 /**
- * Estado vem por data-attribute, não por classe condicional em JS.
- *
- * Menos re-render, e o estado fica no DOM onde dá para inspecionar. O Radix
- * expõe `data-state`, `data-side`, `data-highlighted` e `data-disabled`; a
- * largura do gatilho e a altura disponível até a borda do viewport vêm como
- * CSS var, então constranger é declarativo em vez de calculado na mão.
+ * Estado vem por data-attribute, não por classe condicional em JS: menos
+ * re-render, e o estado fica no DOM onde dá para inspecionar. A altura
+ * disponível até a borda do viewport vem como CSS var, então constranger é
+ * declarativo em vez de calculado na mão.
  */
 export function ContextMenuContent({
   className,
@@ -39,13 +48,8 @@ export function ContextMenuContent({
       <Primitivo.Content
         {...props}
         className={cn(
-          "z-50 min-w-48 rounded-2 border border-border-subtle bg-surface-2 p-1",
-          "text-md text-text-1",
-          // Profundidade por camada, não por sombra: sombra em fundo escuro é
-          // quase invisível e custa pintura.
-          "max-h-(--radix-context-menu-content-available-height) overflow-y-auto",
-          "data-[state=closed]:opacity-0 data-[state=open]:opacity-100",
-          "anim-fast",
+          menuContent,
+          "max-h-(--radix-context-menu-content-available-height)",
           className,
         )}
       >
@@ -63,13 +67,7 @@ export function ContextMenuItem({
   return (
     <Primitivo.Item
       {...props}
-      className={cn(
-        "flex cursor-default items-center gap-2 rounded-1 px-2 py-1 outline-none select-none",
-        "data-highlighted:bg-surface-3",
-        "data-disabled:pointer-events-none data-disabled:text-text-3",
-        perigo ? "text-danger data-highlighted:text-danger" : "text-text-2",
-        className,
-      )}
+      className={cn(menuItem, perigo ? menuItemPerigo : menuItemNormal, className)}
     />
   );
 }
@@ -78,18 +76,9 @@ export function ContextMenuSeparator({
   className,
   ...props
 }: ComponentProps<typeof Primitivo.Separator>) {
-  return (
-    <Primitivo.Separator
-      {...props}
-      className={cn("my-1 h-px bg-border-subtle", className)}
-    />
-  );
+  return <Primitivo.Separator {...props} className={cn(menuSeparator, className)} />;
 }
 
 export function ContextMenuLabel({ children }: { children: ReactNode }) {
-  return (
-    <Primitivo.Label className="px-2 py-1 text-xs text-text-3">
-      {children}
-    </Primitivo.Label>
-  );
+  return <Primitivo.Label className={menuLabel}>{children}</Primitivo.Label>;
 }

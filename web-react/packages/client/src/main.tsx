@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { App } from "./App";
+import { Toaster } from "./components/ui/Toast";
 import { TooltipProvider } from "./components/ui/Tooltip";
 import "./styles/tokens.css";
 
@@ -14,6 +15,9 @@ createRoot(root).render(
         tooltips. Um por tooltip devolveria o atraso cheio a cada ícone. */}
     <TooltipProvider delayDuration={400} skipDelayDuration={300}>
       <App />
+      {/* Montado uma vez na raiz: a viewport e a regiao aria-live que o
+          leitor de tela anuncia. Os toasts vem do store, nao de props. */}
+      <Toaster />
     </TooltipProvider>
   </StrictMode>,
 );

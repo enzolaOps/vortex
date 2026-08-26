@@ -460,18 +460,23 @@ arbitrary values. Depois o grid do shell, `minmax(0,1fr)` e teto de linha.
 
 Resolve provavelmente 70% do "feio + quebrado no ultrawide" sem tocar em lógica.
 
-### Fase 2 — Primitivos · **em andamento**
+### Fase 2 — Primitivos · **concluída**
 
-Wrappers Radix em `src/components/ui/`, reestilizados pros tokens.
+Wrappers Radix em `src/components/ui/`, reestilizados pros tokens: context
+menu, dropdown, dialog, popover, tooltip, hover card e toast.
 
-Prontos: **context menu** (o primitivo que decidiu a escolha por Radix, e o
-que um cliente de chat mais usa), **tooltip** e **dialog**. Faltam dropdown,
-popover, hover card e toast.
+Os três que o Base UI ainda não tem — context menu, hover card e toast — são
+justamente os que um cliente de chat mais usa, e são a razão da escolha por
+Radix. Quando o Base UI cobrir os três, a decisão é reavaliada; a fronteira de
+import é o que mantém essa migração progressiva possível.
 
-A fronteira já é mecanismo: `@radix-ui/*` só pode ser importado dentro de
-`components/ui/`, com os wrappers isentos. Sem isso, a migração progressiva
-para Base UI vira varredura do app inteiro no dia em que ela cobrir os três
-primitivos que faltam.
+O toast guarda estado em store module-level com `useSyncExternalStore`, não em
+Context: quem dispara um toast é um handler de erro ou um caminho de
+reconexão, e nada disso está numa árvore de componentes. É a lei nº 1 aplicada
+fora da lista de mensagens.
+
+A fronteira é mecanismo, não convenção: `@radix-ui/*` só pode ser importado
+dentro de `components/ui/`, com os próprios wrappers isentos.
 
 `cn()` usa `extendTailwindMerge` porque a escala de raio deste projeto é
 numérica e o `tailwind-merge` de fábrica não a resolve — `pnpm classes`
