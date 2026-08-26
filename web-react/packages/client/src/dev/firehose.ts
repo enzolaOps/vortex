@@ -13,7 +13,12 @@
 import { monotonicFactory } from "ulid";
 
 import { count, countMax } from "./stats";
-import { diagnostico, seedChannel, startAdapter } from "../sdk/adapter";
+import {
+  diagnostico,
+  prependHistory,
+  seedChannel,
+  startAdapter,
+} from "../sdk/adapter";
 import { client } from "../sdk/client";
 
 const nextId = monotonicFactory();
@@ -173,6 +178,35 @@ export function editarUltima() {
   // aplicou' de 'a escrita aplicou mas meu efeito não rastreia'.
   const d = diagnostico(id);
   return { id, conteudo, ...d, escritaAplicou: d.noSdk === conteudo, storeAcompanhou: d.noStore === conteudo };
+}
+
+
+/**
+ * Carrega uma pagina de historico ANTIGO.
+ *
+ * Os ids sao gerados com timestamp anterior ao do seed, para a ordem ULID
+ * bater com a posicao na lista — carregar historico com id mais novo que o
+ * que ja esta na tela mentiria sobre a ordenacao.
+ */
+export function carregarHistorico(quantas = 50): string[] {
+  const base = Date.now() - 86_400_000;
+  const antigas: string[] = [];
+
+  for (let i = quantas - 1; i >= 0; i--) {
+    const id = nextId(base + i);
+    client.messages.getOrCreate(id, {
+      _id: id,
+      channel: CHANNEL_ID,
+      author: userIds[i % userIds.length]!,
+      content: `historico ${quantas - i} — ` + body(i + 7),
+    });
+    antigas.push(id);
+  }
+
+  antigas.reverse();
+  prependHistory(CHANNEL_ID, antigas);
+  ultimaLista = antigas.concat(ultimaLista);
+  return antigas;
 }
 
 export type FirehoseMix = {

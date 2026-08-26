@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 
-import { CHANNEL_ID, editarUltima, seed, startFirehose } from "./dev/firehose";
+import {
+  CHANNEL_ID,
+  editarUltima,
+  seed,
+  startFirehose,
+} from "./dev/firehose";
 import { createFrameRecorder, verdict, type FrameReport } from "./dev/frames";
+import { medirPrepend, type ResultadoPrepend } from "./dev/prepend";
 import { readCounters, resetCounters, type Counters } from "./dev/stats";
 import { MessageList } from "./list/MessageList";
 import { Shell } from "./shell/Shell";
@@ -17,6 +23,7 @@ export function App() {
   const [running, setRunning] = useState(false);
   const [report, setReport] = useState<FrameReport | null>(null);
   const [stats, setStats] = useState<Counters | null>(null);
+  const [prepend, setPrepend] = useState<ResultadoPrepend | null>(null);
   const [distanciaDoFim, setDistanciaDoFim] = useState<number | null>(null);
   // Quem roda declara a condição — o gate não tem como detectar throttle de
   // CPU, e inferir daria um critério que muda sozinho conforme o resultado.
@@ -105,6 +112,36 @@ export function App() {
               ? `aquecendo + medindo ${WINDOW_SECONDS}s…`
               : `Firehose ${EVENTS_PER_SECOND}/s`}
           </button>
+
+          <button
+            onClick={() => {
+              void medirPrepend(50).then((r) => {
+                setPrepend(r);
+                console.info("[vortex] prepend:", r);
+              });
+            }}
+            disabled={seeded === 0}
+            className="rounded-2 bg-surface-3 px-3 py-1 text-sm text-text-1 disabled:text-text-3"
+          >
+            Carregar histórico
+          </button>
+
+          {prepend ? (
+            <span
+              className={`rounded-2 px-2 py-1 text-xs ${
+                prepend.motivo
+                  ? "bg-surface-3 text-text-2"
+                  : prepend.ok
+                    ? "bg-success text-surface-0"
+                    : "bg-danger text-on-accent"
+              }`}
+            >
+              {prepend.motivo
+                ? `âncora: ${prepend.motivo}`
+                : `âncora ${prepend.ok ? "OK" : "SALTOU"} · deslocou ${prepend.deslocamentoVisual}px · ` +
+                  `total +${prepend.crescimentoDoTotal}px · scroll +${prepend.deslocamentoDoScroll}px`}
+            </span>
+          ) : null}
 
           <button
             onClick={() => console.info("[vortex] editada:", JSON.stringify(editarUltima()))}

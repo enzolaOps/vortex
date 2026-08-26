@@ -193,3 +193,28 @@ export function seedChannel(channelId: string, ids: readonly string[]) {
   target.push(...ids);
   publishNow(channelId);
 }
+
+/**
+ * Histórico: mensagens ANTIGAS entram na frente da lista.
+ *
+ * É o contrato invertido da virtualização normal, e a razão de o virtualizador
+ * rodar em modo chat. O usuário está lendo algo no meio do histórico; carregar
+ * uma página anterior aumenta o total acima do viewport, e se nada compensar,
+ * o conteúdo que ele está lendo desce e ele perde o lugar.
+ *
+ * Quem compensa é o TanStack: ao ver as chaves de borda mudarem, ele guarda a
+ * chave do item sob o scroll e o offset relativo, e depois de remedir devolve
+ * o scroll para o mesmo ponto daquele item. Por isso `getItemKey` precisa ser
+ * ID de entidade — com índice, a chave sob o viewport muda de significado a
+ * cada prepend e a âncora aponta para outra mensagem.
+ *
+ * Vai pelo mesmo `publish` coalescido do append: paginação dispara em rajada
+ * quando o usuário rola rápido para cima, e uma publicação por página seria o
+ * mesmo custo quadrático da carga.
+ */
+export function prependHistory(channelId: string, antigas: readonly string[]) {
+  if (antigas.length === 0) return;
+  const target = idsOf(channelId);
+  target.unshift(...antigas);
+  publish(channelId);
+}
