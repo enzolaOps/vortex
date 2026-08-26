@@ -1,0 +1,129 @@
+/* ============================================================
+   Member list
+   ------------------------------------------------------------
+   A única das três colunas laterais que é virtualizada, e não
+   por simetria: um servidor grande tem dezenas de milhares de
+   membros, e presença — o evento mais volumoso do app — encosta
+   exatamente aqui.
+   ============================================================ */
+
+.painel {
+  block-size: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  /* O anel do ponto de presença precisa saber sobre o que está pousado.
+     Sem isto ele desenharia o anel na cor da coluna de mensagem e
+     apareceria um halo errado sobre o painel de membros. */
+  --anel: var(--vx-surface-1);
+}
+
+.pista {
+  position: relative;
+  inline-size: 100%;
+}
+
+.linha {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+}
+
+.secao {
+  display: flex;
+  align-items: baseline;
+  gap: var(--vx-space-1);
+  padding-inline: var(--vx-space-3);
+  padding-block: var(--vx-space-3) var(--vx-space-1);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.total {
+  font-variant-numeric: tabular-nums;
+}
+
+.membro {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  inline-size: 100%;
+  min-inline-size: 0;
+  padding-inline: var(--vx-space-2);
+  padding-block: var(--vx-space-1);
+  margin-inline: var(--vx-space-1);
+  border-radius: var(--vx-radius-2);
+  color: var(--vx-text-2);
+  background: transparent;
+  cursor: pointer;
+  text-align: start;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.membro:hover {
+  background: var(--vx-surface-2);
+  color: var(--vx-text-1);
+}
+
+/*
+  Offline esmaece — mas o nome continua legível.
+
+  `opacity` sobre a linha inteira, e não uma cor de texto mais fraca: com
+  cor, o contraste do nome cairia abaixo do mínimo e a lista teria uma
+  metade ilegível. Com opacidade em 0.55 sobre `--vx-text-2` o par ainda
+  passa, e o ponto vazado já diz o estado sem depender disso.
+*/
+.membro[data-offline="true"] {
+  opacity: 0.55;
+}
+
+.avatar {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: var(--vx-avatar-sm);
+  block-size: var(--vx-avatar-sm);
+  border-radius: var(--vx-radius-4);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  font-variant-ligatures: none;
+}
+
+.nome {
+  min-inline-size: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--vx-size-md);
+}
+
+.vazio {
+  padding: var(--vx-space-4) var(--vx-space-3);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+}
+
+/*
+  Painel apertado: só o avatar.
+
+  O nome some, o rótulo de seção some, e a coluna vira uma tira de
+  presenças. É o mesmo componente — a decisão é do CONTAINER, não da
+  janela, então funciona igual num slot estreito da fase 4.
+*/
+@container (inline-size < 140px) {
+  .nome,
+  .secao {
+    display: none;
+  }
+
+  .membro {
+    justify-content: center;
+  }
+}

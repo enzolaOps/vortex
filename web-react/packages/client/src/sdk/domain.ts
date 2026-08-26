@@ -78,3 +78,65 @@ export type UserSnapshot = {
   readonly username: string;
   readonly status: PresenceStatus;
 };
+
+/* ------------------------------------------------------- colunas laterais */
+
+/**
+ * Iniciais de um nome, para o avatar sem imagem.
+ *
+ * Vive no snapshot e não no render pela mesma razão de `createdAtText`: é
+ * derivação de escrita. Uma member list de servidor grande rola milhares de
+ * linhas, e recalcular isto por render multiplicaria um `split`/`slice` por
+ * cada passagem de scroll.
+ */
+export type ComSigla = {
+  readonly sigla: string;
+};
+
+export type ServerSnapshot = ComSigla & {
+  readonly id: string;
+  readonly name: string;
+  /**
+   * Não-lidas e menções são do CLIENTE, como `sendState`.
+   *
+   * O protocolo tem `unread` booleano por canal; o Vortex conta. Contagem é
+   * produto — é o que diferencia "tem coisa nova" de "tem 300 coisas novas" —
+   * e é exatamente o tipo de divergência que a camada anticorrupção existe
+   * para comportar sem tocar em componente.
+   */
+  readonly naoLidas: number;
+  readonly mencoes: number;
+};
+
+export type CanalTipo = "texto" | "voz";
+
+export type ChannelSnapshot = {
+  readonly id: string;
+  readonly serverId: string | undefined;
+  readonly name: string;
+  readonly tipo: CanalTipo;
+  readonly naoLidas: number;
+  readonly mencoes: number;
+};
+
+export type MemberSnapshot = ComSigla & {
+  readonly id: string;
+  readonly displayName: string;
+};
+
+/**
+ * Balde de ordenação da member list.
+ *
+ * Dois, não quatro: separar `idle` e `dnd` em seções próprias faria toda
+ * mudança de presença reordenar a lista, e presença é o evento mais volumoso
+ * do app. Com dois baldes, `online → idle → dnd` não move ninguém — só o
+ * pontinho muda, e ele assina sozinho.
+ *
+ * É a mesma decisão de escopo da lei nº 1, aplicada à ordenação em vez de à
+ * subscrição.
+ */
+export type Balde = "online" | "offline";
+
+export function baldeDe(status: PresenceStatus): Balde {
+  return status === "offline" ? "offline" : "online";
+}

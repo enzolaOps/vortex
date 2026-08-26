@@ -243,6 +243,86 @@ indistinguível de bug de porte.
 
 O gitlink já está na árvore, então o check não precisa clonar submodule nenhum.
 
+
+**Não-lida nunca conta o canal aberto, e abrir zera só aquele canal.**
+
+Testes: mensagem no canal aberto não incrementa; mensagem em canal fechado
+incrementa o canal E o total do servidor; abrir o canal zera aquele contador e
+BAIXA o total do servidor sem zerar os outros canais.
+
+Nenhum dos três dá erro quando quebra, e o modo de falha é pior que parecer:
+um badge que não zera ensina a pessoa a ignorar o badge, e aí a feature inteira
+deixa de existir mesmo continuando na tela. O terceiro caso — zerar o servidor
+inteiro ao abrir um canal — é o bug clássico de rollup, e some sozinho em uso
+normal porque quem testa costuma ter só um canal com não-lidas.
+
+Instalado na fase 3, junto da lista de canais.
+
+**Presença que não troca de balde não republica a member list.**
+
+Teste: assinar a lista de membros, emitir `online → idle → dnd` para um membro,
+virar o frame, e afirmar que a lista NÃO foi publicada. E o complemento: duas
+saídas para offline no mesmo tick publicam UMA vez.
+
+É o que faz a member list sobreviver ao firehose. Presença é 55% da mistura e a
+esmagadora maioria é troca entre estados que moram no mesmo balde — reordenar
+neles seria `n log n` por frame num painel onde nada mudou de lugar. A escolha
+de ter DOIS baldes em vez de quatro é essa invariante virando estrutura de
+dados: com uma seção por estado, toda piscada de presença reordena.
+
+O ponto de presença continua correto porque assina sozinho, um nível abaixo da
+linha — a mesma granularidade do `MessageRow`.
+
+Instalado na fase 3, junto da member list.
+
+**Concordância de número nos rótulos de leitor de tela.**
+
+Teste sobre `plural()` e `rotuloDeNaoLidas()`. Parece pequeno demais para ter
+mecanismo, e é justamente por isso que tem: "1 menções" saiu na primeira
+verificação em navegador, num texto que só leitor de tela lê. Texto que ninguém
+relê é o que mais precisa de teste em vez de atenção.
+
+O teste também registra uma surpresa em vez de escondê-la: o CLDR põe o ZERO na
+categoria `one` em português (`i = 0..1`), então `Intl.PluralRules` devolve
+"0 menção". Fica assim — o rótulo nunca renderiza com zero, e divergir do
+padrão para cobrir um caso inalcançável seria trocar regra por exceção.
+
+**Fila de rAF do teste não é zerada entre casos.**
+
+Não é invariante do produto: é do instrumento, e entra aqui pelo mesmo motivo
+que a linha de base do prepend entrou.
+
+O `flushHandle` do adapter é module-level e sobrevive ao teste que o agendou.
+Substituir a fila de callbacks por uma nova no `beforeEach` dessincroniza os
+dois: o adapter continua achando que tem frame pendente, `agendarFlush` vira
+`??=` sobre valor definido, e nenhuma publicação seguinte é agendada. O teste
+seguinte mede um sistema que parou de publicar e conclui que o CÓDIGO está
+errado.
+
+A regra que fica: quando o instrumento guarda estado compartilhado com o
+sistema medido, resetar metade dele é pior que não resetar nada. Drene a fila
+(`splice`), não a substitua.
+
+**Medição em aba sem composição estável mede o ambiente.**
+
+Irmã da regra "medir no dev server reprova o ambiente, não o código", e
+descoberta do mesmo jeito: perdendo tempo.
+
+Numa aba que não compõe frames de forma estável — navegador headless, pane
+oculta, janela minimizada — o `requestAnimationFrame` dispara com intervalos de
+segundos e o `setTimeout(0)` é estrangulado. Sintomas observados: a semeadura de
+10k mensagens passou de 0,6s para 14s, e a publicação coalescida ficou pendurada
+com a lista vazia enquanto o contador de não-lidas — que é síncrono — estava
+correto. O diagnóstico natural, e errado, é "bug de escopo no adapter".
+
+A sonda `__fila()` existe para separar os dois casos em uma leitura:
+`canaisSujos: []` significa que nada aconteceu; `canaisSujos: [id],
+frameAgendado: 4` significa que aconteceu e o frame é que não veio.
+
+O arnês do firehose já tinha a defesa certa para a corrida medida — a contagem
+de suspensões de rAF invalida a janela. Esta entrada estende o aviso para a
+verificação FUNCIONAL, que não tem gate nenhum.
+
 ---
 
 ## Assertions em dev — falham alto, cedo
@@ -353,6 +433,10 @@ já cobre a maior parte.
 | Composer alinhado à coluna de mensagem | Assertion em dev | Fase 3 |
 | Linha virtualizada medindo 0px | Assertion em dev | Fase 0 |
 | Publicação de coleção por frame | Teste | Fase 0 |
+| Não-lida ignora o canal aberto | Teste | Fase 3 |
+| Abrir canal baixa só a parcela dele no servidor | Teste | Fase 3 |
+| Presença no mesmo balde não republica membros | Teste | Fase 3 |
+| Concordância de número em rótulo de a11y | Teste | Fase 3 |
 | Carga em massa fora do caminho de evento | Teste | Fase 0 |
 | Corrida de firehose colada no fim | Check no arnês | Fase 0 |
 | Preset sem dado de sessão | Tipo + teste | **Fase 4, tipo desde a 2** |

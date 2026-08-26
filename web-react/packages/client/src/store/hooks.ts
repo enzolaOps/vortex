@@ -4,12 +4,32 @@
 import { useSyncExternalStore } from "react";
 
 import {
+  canaisDeTexto,
+  canaisDeVoz,
   channelMessageIds,
+  channels,
+  members,
+  membrosOffline,
+  membrosOnline,
   messages,
   presence,
+  RAIZ,
+  serverIds,
+  servers,
   typing,
 } from "../sdk/adapter";
-import type { MessageSnapshot, PresenceStatus } from "../sdk/domain";
+import type {
+  ChannelSnapshot,
+  MemberSnapshot,
+  MessageSnapshot,
+  PresenceStatus,
+  ServerSnapshot,
+} from "../sdk/domain";
+import {
+  assinarNavegacao,
+  lerCanalAtivo,
+  lerServidorAtivo,
+} from "./navegacao";
 import { rascunhos, RASCUNHO_VAZIO } from "./rascunhos";
 
 const NO_IDS: readonly string[] = [];
@@ -78,4 +98,83 @@ export function useRascunho(channelId: string): string {
   const getSnapshot = () => rascunhos.getSnapshot(channelId) ?? RASCUNHO_VAZIO;
   if (import.meta.env.DEV) assertStable(getSnapshot, `useRascunho(${channelId})`);
   return useSyncExternalStore(rascunhos.subscriber(channelId), getSnapshot);
+}
+
+/* ------------------------------------------------------- colunas laterais */
+
+export function useServerIds(): readonly string[] {
+  const getSnapshot = () => serverIds.getSnapshot(RAIZ) ?? NO_IDS;
+  if (import.meta.env.DEV) assertStable(getSnapshot, "useServerIds");
+  return useSyncExternalStore(serverIds.subscriber(RAIZ), getSnapshot);
+}
+
+export function useServer(id: string): ServerSnapshot | undefined {
+  const getSnapshot = () => servers.getSnapshot(id);
+  if (import.meta.env.DEV) assertStable(getSnapshot, `useServer(${id})`);
+  return useSyncExternalStore(servers.subscriber(id), getSnapshot);
+}
+
+/**
+ * Texto e voz assinam separado, pelo mesmo motivo dos baldes de membro: canal
+ * de voz criado não republica a seção de texto, e vice-versa.
+ */
+export function useCanaisDeTexto(serverId: string): readonly string[] {
+  const getSnapshot = () => canaisDeTexto.getSnapshot(serverId) ?? NO_IDS;
+  if (import.meta.env.DEV) {
+    assertStable(getSnapshot, `useCanaisDeTexto(${serverId})`);
+  }
+  return useSyncExternalStore(canaisDeTexto.subscriber(serverId), getSnapshot);
+}
+
+export function useCanaisDeVoz(serverId: string): readonly string[] {
+  const getSnapshot = () => canaisDeVoz.getSnapshot(serverId) ?? NO_IDS;
+  if (import.meta.env.DEV) {
+    assertStable(getSnapshot, `useCanaisDeVoz(${serverId})`);
+  }
+  return useSyncExternalStore(canaisDeVoz.subscriber(serverId), getSnapshot);
+}
+
+export function useChannel(id: string): ChannelSnapshot | undefined {
+  const getSnapshot = () => channels.getSnapshot(id);
+  if (import.meta.env.DEV) assertStable(getSnapshot, `useChannel(${id})`);
+  return useSyncExternalStore(channels.subscriber(id), getSnapshot);
+}
+
+export function useMembro(id: string): MemberSnapshot | undefined {
+  const getSnapshot = () => members.getSnapshot(id);
+  if (import.meta.env.DEV) assertStable(getSnapshot, `useMembro(${id})`);
+  return useSyncExternalStore(members.subscriber(id), getSnapshot);
+}
+
+/**
+ * Os dois baldes assinam separado.
+ *
+ * Alguém ficar offline republica UM dos dois arrays na maior parte das vezes —
+ * e mesmo quando republica os dois, quem re-renderiza é a member list, não as
+ * linhas: elas assinam a si mesmas por ID.
+ */
+export function useMembrosOnline(serverId: string): readonly string[] {
+  const getSnapshot = () => membrosOnline.getSnapshot(serverId) ?? NO_IDS;
+  if (import.meta.env.DEV) {
+    assertStable(getSnapshot, `useMembrosOnline(${serverId})`);
+  }
+  return useSyncExternalStore(membrosOnline.subscriber(serverId), getSnapshot);
+}
+
+export function useMembrosOffline(serverId: string): readonly string[] {
+  const getSnapshot = () => membrosOffline.getSnapshot(serverId) ?? NO_IDS;
+  if (import.meta.env.DEV) {
+    assertStable(getSnapshot, `useMembrosOffline(${serverId})`);
+  }
+  return useSyncExternalStore(membrosOffline.subscriber(serverId), getSnapshot);
+}
+
+/* ------------------------------------------------------------- navegação */
+
+export function useServidorAtivo(): string {
+  return useSyncExternalStore(assinarNavegacao, lerServidorAtivo);
+}
+
+export function useCanalAtivo(): string {
+  return useSyncExternalStore(assinarNavegacao, lerCanalAtivo);
 }

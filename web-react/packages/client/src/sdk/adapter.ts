@@ -22,10 +22,26 @@ import { count } from "../dev/stats";
 import { createEntityStore } from "../store/entities";
 import { createEphemeralStore } from "../store/ephemeral";
 import { client, conectado } from "./client";
-import type { MessageSnapshot, PresenceStatus, SendState } from "./domain";
+import {
+  baldeDe,
+  type Balde,
+  type ChannelSnapshot,
+  type MemberSnapshot,
+  type MessageSnapshot,
+  type PresenceStatus,
+  type SendState,
+  type ServerSnapshot,
+} from "./domain";
 import { calcularLayout, type Layout } from "./agrupamento";
 import { criarNotificadorDeDigitacao } from "./digitando";
-import { toMessageSnapshot, toPresence } from "./map";
+import {
+  ehCanalDeVoz,
+  toChannelSnapshot,
+  toMemberSnapshot,
+  toMessageSnapshot,
+  toPresence,
+  toServerSnapshot,
+} from "./map";
 
 /* ----------------------------------------------------------- layout */
 
@@ -196,6 +212,14 @@ function idsOf(channelId: string): string[] {
  * não por evento.
  */
 const dirty = new Set<string>();
+/**
+ * Servidores cuja member list precisa reordenar.
+ *
+ * Mesmo frame, mesmo flush. Duas filas de rAF concorrentes publicariam a lista
+ * de mensagens e a de membros em frames diferentes — dois relayouts onde um
+ * basta, e num painel que divide o mesmo grid do shell.
+ */
+const membrosSujos = new Set<string>();
 let flushHandle: number | undefined;
 
 function flushPublications() {
@@ -206,12 +230,44 @@ function flushPublications() {
     count("publishes");
   }
   dirty.clear();
+  for (const serverId of membrosSujos) {
+    publicarMembros(serverId);
+    count("publishes");
+  }
+  membrosSujos.clear();
   count("publishMs", performance.now() - started);
+}
+
+function agendarFlush() {
+  flushHandle ??= requestAnimationFrame(flushPublications);
+}
+
+/**
+ * SONDA: o que está esperando o próximo frame?
+ *
+ * Fica porque respondeu a uma pergunta que o DOM não responde e que custou
+ * caro: "a lista está vazia porque o dado não chegou, ou porque a publicação
+ * ainda não foi liberada?" — os dois casos renderizam nada.
+ *
+ * O caso real: numa aba sem composição estável, o `requestAnimationFrame`
+ * dispara com intervalos de segundos. A publicação coalescida ficava
+ * pendurada, e o sintoma — lista vazia, contador de não-lida correto — parecia
+ * exatamente um bug de escopo no adapter. Era o ambiente. Esta sonda é a
+ * diferença entre ver `canaisSujos: []` (nada aconteceu) e
+ * `canaisSujos: [id], frameAgendado: 4` (aconteceu, o frame é que não veio).
+ */
+export function estadoDaFila() {
+  return {
+    canaisSujos: [...dirty],
+    membrosSujos: [...membrosSujos],
+    frameAgendado: flushHandle ?? "nenhum",
+    adapterLigado: started,
+  };
 }
 
 function publish(channelId: string) {
   dirty.add(channelId);
-  flushHandle ??= requestAnimationFrame(flushPublications);
+  agendarFlush();
 }
 
 /** Publicação imediata, para setup — não há frame para esperar. */
@@ -248,6 +304,9 @@ export function startAdapter() {
     // olha para ela. É o caminho quente, e é O(1).
     recalcularLayout(message.channelId, ids.length - 1, ids.length - 1);
     publish(message.channelId);
+    // Depois do publish, não antes: contabilizar é trabalho da coluna
+    // lateral, e o caminho quente da lista não deve esperar por ele.
+    contabilizarNaoLida(message.channelId, message.content);
   });
 
   client.on("messageDelete", (message) => {
@@ -267,7 +326,52 @@ export function startAdapter() {
     // Presença vai para o store efêmero, com throttle na fronteira do adapter.
     // Nunca para o store de mensagens: um servidor grande emite centenas
     // destes por segundo e a lista inteira acordaria a cada piscada.
-    presence.set(user.id, toPresence(user.status?.presence));
+    const status = toPresence(user.status?.presence);
+    presence.set(user.id, status);
+    // A member list só reordena se o BALDE mudou — online↔idle↔dnd não move
+    // ninguém, e é a esmagadora maioria destes eventos.
+    atualizarBalde(user.id, status);
+  });
+
+  client.on("serverCreate", (server) => {
+    const lista = serverIds.peek(RAIZ) ?? [];
+    if (lista.includes(server.id)) return;
+    serverIds.set(RAIZ, [...lista, server.id]);
+    canaisPorServidor.set(server.id, [...server.channelIds]);
+    publicarCanais(server.id);
+  });
+
+  client.on("channelCreate", (channel) => {
+    const serverId = channel.serverId;
+    if (!serverId) return;
+    const ids = canaisPorServidor.get(serverId) ?? [];
+    if (ids.includes(channel.id)) return;
+    ids.push(channel.id);
+    canaisPorServidor.set(serverId, ids);
+    publicarCanais(serverId);
+  });
+
+  client.on("channelDelete", (channel) => {
+    const serverId = channel.serverId;
+    if (!serverId) return;
+    const ids = canaisPorServidor.get(serverId);
+    const at = ids?.indexOf(channel.id) ?? -1;
+    if (!ids || at === -1) return;
+    ids.splice(at, 1);
+    publicarCanais(serverId);
+  });
+
+  // Entrada e saída de membro passam pelo flush coalescido: um servidor
+  // sincronizando membros emite estes em rajada, e reordenar por evento seria
+  // o mesmo custo quadrático que a carga de mensagens já ensinou.
+  client.on("serverMemberJoin", (member) => {
+    registrarMembro(member.id.server, member.id.user);
+    agendarFlush();
+  });
+
+  client.on("serverMemberLeave", (member) => {
+    removerMembro(member.id.server, member.id.user);
+    agendarFlush();
   });
 
   client.on("channelStartTyping", (channel, user) => {
@@ -447,3 +551,367 @@ export const digitacao = criarNotificadorDeDigitacao({
     if (conectado()) client.channels.get(channelId)?.stopTyping();
   },
 });
+
+/* ==========================================================================
+   Colunas laterais — servidores, canais e membros
+   ==========================================================================
+
+   Mesmas duas granularidades da lista de mensagens, pelas mesmas razões:
+
+     coleção  → lista de IDs, publicada coalescida por frame
+     entidade → assina a si mesma, via efeito Solid sobre os getters do SDK
+
+   O que muda é o volume. Um servidor grande tem dezenas de milhares de
+   membros, e a presença — o evento mais volumoso que existe — encosta
+   justamente na member list. Por isso a ordenação usa dois baldes e não
+   quatro: `online → idle → dnd` não move ninguém de lugar, então a lista não
+   republica e só o pontinho de presença acorda.
+   ========================================================================== */
+
+/**
+ * A lista de servidores é uma coleção só, não uma por chave.
+ *
+ * Reusar o `EntityStore` com uma chave constante evita um segundo tipo de
+ * store só para guardar um array — e mantém a mesma disciplina de referência
+ * cacheada que o `useSyncExternalStore` exige.
+ */
+export const RAIZ = "@raiz";
+
+export const serverIds = createEntityStore<readonly string[]>();
+export const membrosOnline = createEntityStore<readonly string[]>();
+export const membrosOffline = createEntityStore<readonly string[]>();
+
+/**
+ * Canais publicados JÁ SEPARADOS por tipo, e não numa lista só.
+ *
+ * A tentação é publicar um array e deixar a coluna dividir no render. Não dá,
+ * e o motivo é a lei nº 1: a lista de canais assina IDs, não entidades — quem
+ * conhece o tipo de um canal é a linha, que assina a si mesma. Para partir no
+ * render, a lista teria que ler o snapshot de cada canal sem assinar nenhum,
+ * que é ler dado por fora do mecanismo que garante que ele está atualizado.
+ *
+ * A saída é a mesma dos baldes de presença: quem sabe, publica. A separação
+ * acontece na ESCRITA, uma vez, e cada seção é uma referência cacheada que o
+ * `useSyncExternalStore` pode comparar.
+ */
+export const canaisDeTexto = createEntityStore<readonly string[]>();
+export const canaisDeVoz = createEntityStore<readonly string[]>();
+
+/* ------------------------------------------------------------- não-lidas */
+
+type Contagem = { naoLidas: number; mencoes: number };
+
+const ZERO: Contagem = { naoLidas: 0, mencoes: 0 };
+
+const contagemPorCanal = new Map<string, Contagem>();
+const contagemPorServidor = new Map<string, Contagem>();
+
+function contagemDe(mapa: Map<string, Contagem>, id: string): Contagem {
+  return mapa.get(id) ?? ZERO;
+}
+
+/**
+ * O canal aberto nunca acumula não-lidas.
+ *
+ * Vive aqui, e não no store de navegação, porque quem decide é o caminho de
+ * ESCRITA: perguntar ao React "qual canal está aberto?" de dentro do handler
+ * de `messageCreate` inverteria a direção do dado. A navegação empurra para cá.
+ */
+let canalAberto: string | undefined;
+
+export function definirCanalAberto(channelId: string | undefined): void {
+  if (canalAberto === channelId) return;
+  canalAberto = channelId;
+  if (channelId) marcarCanalLido(channelId);
+}
+
+export function marcarCanalLido(channelId: string): void {
+  const atual = contagemPorCanal.get(channelId);
+  if (!atual) return;
+
+  contagemPorCanal.delete(channelId);
+
+  const serverId = client.channels.get(channelId)?.serverId;
+  if (serverId) {
+    const servidor = contagemDe(contagemPorServidor, serverId);
+    const restante = {
+      naoLidas: Math.max(0, servidor.naoLidas - atual.naoLidas),
+      mencoes: Math.max(0, servidor.mencoes - atual.mencoes),
+    };
+    if (restante.naoLidas === 0 && restante.mencoes === 0) {
+      contagemPorServidor.delete(serverId);
+    } else {
+      contagemPorServidor.set(serverId, restante);
+    }
+    reemitirServidor(serverId);
+  }
+
+  reemitirCanal(channelId);
+}
+
+/**
+ * Menção é do app, não do protocolo.
+ *
+ * O Stoat carrega `mentions` na mensagem; o Vortex decide o que conta como
+ * menção SUA. Hoje é o teu ID no texto — quando existirem menção de cargo e
+ * `@everyone`, a regra muda AQUI e nenhum componente fica sabendo.
+ */
+function ehMencao(conteudo: string): boolean {
+  return usuarioLocal !== undefined && conteudo.includes(`<@${usuarioLocal}>`);
+}
+
+function contabilizarNaoLida(channelId: string, conteudo: string): void {
+  if (channelId === canalAberto) return;
+
+  const canal = contagemDe(contagemPorCanal, channelId);
+  const mencao = ehMencao(conteudo) ? 1 : 0;
+  contagemPorCanal.set(channelId, {
+    naoLidas: canal.naoLidas + 1,
+    mencoes: canal.mencoes + mencao,
+  });
+  reemitirCanal(channelId);
+
+  const serverId = client.channels.get(channelId)?.serverId;
+  if (!serverId) return;
+  const servidor = contagemDe(contagemPorServidor, serverId);
+  contagemPorServidor.set(serverId, {
+    naoLidas: servidor.naoLidas + 1,
+    mencoes: servidor.mencoes + mencao,
+  });
+  reemitirServidor(serverId);
+}
+
+/* -------------------------------------------------------------- entidades */
+
+/** Só re-emite o que alguém está olhando — a mesma regra do `recalcularLayout`. */
+function reemitirCanal(channelId: string): void {
+  if (channels.subscriberCount(channelId) === 0) return;
+  const canal = client.channels.get(channelId);
+  if (!canal) return;
+  const c = contagemDe(contagemPorCanal, channelId);
+  channels.set(channelId, toChannelSnapshot(canal, c.naoLidas, c.mencoes));
+}
+
+function reemitirServidor(serverId: string): void {
+  if (servers.subscriberCount(serverId) === 0) return;
+  const servidor = client.servers.get(serverId);
+  if (!servidor) return;
+  const c = contagemDe(contagemPorServidor, serverId);
+  servers.set(serverId, toServerSnapshot(servidor, c.naoLidas, c.mencoes));
+}
+
+export const servers = createEntityStore<ServerSnapshot>((id) => {
+  const inicial = client.servers.get(id);
+  if (inicial) {
+    const c = contagemDe(contagemPorServidor, id);
+    servers.set(id, toServerSnapshot(inicial, c.naoLidas, c.mencoes));
+  }
+
+  return createRoot((dispose) => {
+    createEffect(() => {
+      const servidor = client.servers.get(id);
+      if (!servidor) return;
+      const c = contagemDe(contagemPorServidor, id);
+      servers.set(id, toServerSnapshot(servidor, c.naoLidas, c.mencoes));
+    });
+    return dispose;
+  });
+});
+
+export const channels = createEntityStore<ChannelSnapshot>((id) => {
+  const inicial = client.channels.get(id);
+  if (inicial) {
+    const c = contagemDe(contagemPorCanal, id);
+    channels.set(id, toChannelSnapshot(inicial, c.naoLidas, c.mencoes));
+  }
+
+  return createRoot((dispose) => {
+    createEffect(() => {
+      const canal = client.channels.get(id);
+      if (!canal) return;
+      const c = contagemDe(contagemPorCanal, id);
+      channels.set(id, toChannelSnapshot(canal, c.naoLidas, c.mencoes));
+    });
+    return dispose;
+  });
+});
+
+/**
+ * Membro, keyed por ID de USUÁRIO.
+ *
+ * Pendência conhecida e deliberada: apelido é por servidor (`ServerMember`), e
+ * uma chave de usuário não sabe de qual servidor se fala. `toMemberSnapshot`
+ * já aceita o apelido — a costura existe; no dia em que a chave virar
+ * composta, só este bloco muda.
+ */
+export const members = createEntityStore<MemberSnapshot>((id) => {
+  const inicial = client.users.get(id);
+  if (inicial) members.set(id, toMemberSnapshot(inicial, undefined));
+
+  return createRoot((dispose) => {
+    createEffect(() => {
+      const user = client.users.get(id);
+      if (user) members.set(id, toMemberSnapshot(user, undefined));
+    });
+    return dispose;
+  });
+});
+
+/* -------------------------------------------------------------- canais */
+
+const canaisPorServidor = new Map<string, string[]>();
+
+/**
+ * Publica imediatamente, sem passar pelo flush por frame.
+ *
+ * A coalescência existe para eventos que chegam aos milhares — mensagem e
+ * presença. Canal criado e canal apagado são raros e vêm um de cada vez;
+ * enfileirar num rAF só adiaria um frame o que já é barato, e esconderia o
+ * efeito de quem estivesse depurando.
+ */
+function publicarCanais(serverId: string): void {
+  const ids = canaisPorServidor.get(serverId) ?? [];
+  const texto: string[] = [];
+  const voz: string[] = [];
+  for (const id of ids) {
+    // Mesma função que o snapshot usa. Partir aqui por um critério e rotular
+    // a linha por outro daria uma seção "voz" cheia de ícones de `#`.
+    const canal = client.channels.get(id);
+    (canal && ehCanalDeVoz(canal) ? voz : texto).push(id);
+  }
+  canaisDeTexto.set(serverId, texto);
+  canaisDeVoz.set(serverId, voz);
+}
+
+/* ----------------------------------------------------- baldes de presença */
+
+const membrosPorServidor = new Map<string, Set<string>>();
+const servidoresDoUsuario = new Map<string, Set<string>>();
+/** Em qual balde cada usuário está HOJE — a comparação que evita o re-sort. */
+const baldePorUsuario = new Map<string, Balde>();
+
+function conjunto(mapa: Map<string, Set<string>>, chave: string): Set<string> {
+  let set = mapa.get(chave);
+  if (!set) {
+    set = new Set();
+    mapa.set(chave, set);
+  }
+  return set;
+}
+
+/**
+ * Semeia a presença inicial de um usuário.
+ *
+ * Existe porque presença chega por EVENTO (`userUpdate`), e na carga inicial
+ * não houve evento nenhum — sem isto, um servidor recém-carregado mostra os
+ * 40 membros offline até a primeira piscada de cada um.
+ *
+ * Recebe o tipo de DOMÍNIO, não o do protocolo: quem chama é o arnês, que não
+ * pode conhecer `stoat.js`. Quando existir login, quem chama isto é o
+ * `ready` do SDK, e a assinatura não muda.
+ */
+export function semearPresenca(userId: string, status: PresenceStatus): void {
+  presence.set(userId, status);
+  baldePorUsuario.set(userId, baldeDe(status));
+}
+
+export function registrarMembro(serverId: string, userId: string): void {
+  const membros = conjunto(membrosPorServidor, serverId);
+  if (membros.has(userId)) return;
+  membros.add(userId);
+  conjunto(servidoresDoUsuario, userId).add(serverId);
+  baldePorUsuario.set(userId, baldeDe(presence.getSnapshot(userId) ?? "offline"));
+  membrosSujos.add(serverId);
+}
+
+export function removerMembro(serverId: string, userId: string): void {
+  const membros = membrosPorServidor.get(serverId);
+  if (!membros?.delete(userId)) return;
+  servidoresDoUsuario.get(userId)?.delete(serverId);
+  baldePorUsuario.delete(userId);
+  membrosSujos.add(serverId);
+}
+
+/**
+ * Presença mudou — a lista só reordena se o BALDE mudou.
+ *
+ * É a decisão que faz a member list sobreviver ao firehose. Presença é 55% da
+ * mistura, e a esmagadora maioria é `online ↔ idle ↔ dnd`, que não troca de
+ * balde. Sem esta comparação a lista republicaria a cada frame, pagando
+ * `n log n` num painel onde nada mudou de lugar — e as linhas visíveis
+ * re-renderizariam junto.
+ *
+ * O pontinho continua correto: ele assina `usePresence` sozinho, um nível
+ * abaixo da linha, exatamente como no `MessageRow`.
+ */
+function atualizarBalde(userId: string, status: PresenceStatus): void {
+  const servidores = servidoresDoUsuario.get(userId);
+  if (!servidores || servidores.size === 0) return;
+
+  const novo = baldeDe(status);
+  if (baldePorUsuario.get(userId) === novo) return;
+
+  baldePorUsuario.set(userId, novo);
+  for (const serverId of servidores) membrosSujos.add(serverId);
+  agendarFlush();
+}
+
+// Um colator por sessão, não um por comparação — mesma razão do DateTimeFormat.
+const COLATOR = new Intl.Collator("pt-BR", { sensitivity: "base" });
+
+function nomeDe(userId: string): string {
+  return client.users.get(userId)?.username ?? userId;
+}
+
+function publicarMembros(serverId: string): void {
+  const membros = membrosPorServidor.get(serverId);
+  if (!membros) {
+    membrosOnline.set(serverId, []);
+    membrosOffline.set(serverId, []);
+    return;
+  }
+
+  const online: string[] = [];
+  const offline: string[] = [];
+  for (const id of membros) {
+    (baldePorUsuario.get(id) === "offline" ? offline : online).push(id);
+  }
+
+  const comparar = (a: string, b: string) =>
+    COLATOR.compare(nomeDe(a), nomeDe(b));
+  membrosOnline.set(serverId, online.sort(comparar));
+  membrosOffline.set(serverId, offline.sort(comparar));
+}
+
+/* ---------------------------------------------------------------- registro */
+
+/**
+ * Registra servidor, canais e membros SEM passar pelo caminho de evento.
+ *
+ * É a mesma separação do `seedChannel`, pela mesma razão: carga em massa e
+ * chegada incremental são caminhos diferentes, e misturá-los dá duas fontes
+ * competindo pela mesma lista. Publica na hora — não há frame para esperar
+ * durante o setup.
+ */
+export function registrarServidor(
+  serverId: string,
+  membros: readonly string[],
+): void {
+  const servidor = client.servers.get(serverId);
+  if (!servidor) return;
+
+  const lista = serverIds.peek(RAIZ) ?? [];
+  if (!lista.includes(serverId)) serverIds.set(RAIZ, [...lista, serverId]);
+
+  canaisPorServidor.set(serverId, [...servidor.channelIds]);
+  publicarCanais(serverId);
+
+  for (const userId of membros) registrarMembro(serverId, userId);
+  membrosSujos.delete(serverId);
+  publicarMembros(serverId);
+}
+
+/** Canal de texto preferido ao entrar num servidor — voz não abre sozinha. */
+export function primeiroCanalDe(serverId: string): string | undefined {
+  return canaisDeTexto.peek(serverId)?.[0] ?? canaisDeVoz.peek(serverId)?.[0];
+}

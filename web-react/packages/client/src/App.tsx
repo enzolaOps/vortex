@@ -1,18 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 
+import { ListaDeCanais } from "./canais/ListaDeCanais";
 import { Composer } from "./composer/Composer";
 import {
-  CHANNEL_ID,
   editarUltima,
+  falarEmOutroCanal,
   seed,
+  SERVER_ID,
   startFirehose,
 } from "./dev/firehose";
 import { createFrameRecorder, verdict, type FrameReport } from "./dev/frames";
 import { medirPrepend, type ResultadoPrepend } from "./dev/prepend";
 import { readCounters, resetCounters, type Counters } from "./dev/stats";
 import { MessageList } from "./list/MessageList";
+import { ListaDeMembros } from "./membros/ListaDeMembros";
+import { Rail } from "./rail/Rail";
 import { configurarSimulacaoDeEnvio } from "./sdk/adapter";
 import { Shell } from "./shell/Shell";
+import { useCanalAtivo } from "./store/hooks";
+import { selecionarServidor } from "./store/navegacao";
 
 const SEED_COUNT = 10_000;
 const EVENTS_PER_SECOND = 500;
@@ -54,6 +60,15 @@ export function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = tema;
   }, [tema]);
+  /**
+   * O canal aberto vem do store de navegação, não de uma constante.
+   *
+   * O arnês continua semeando e medindo o CHANNEL_ID — é o canal que tem 10k
+   * mensagens — mas quem decide o que a coluna do meio mostra é a lista de
+   * canais, como no app de verdade.
+   */
+  const canal = useCanalAtivo();
+
   const ids = useRef<readonly string[]>([]);
   const recorder = useRef(createFrameRecorder());
 
@@ -63,6 +78,9 @@ export function App() {
     const started = performance.now();
     ids.current = await seed(SEED_COUNT);
     setSeeded(ids.current.length);
+    // Abre o servidor semeado. `selecionarServidor` escolhe o primeiro canal
+    // de TEXTO dele, que é o canal com as 10k mensagens.
+    selecionarServidor(SERVER_ID);
     setSeeding(false);
     console.info(
       `[vortex] semeadas ${ids.current.length} mensagens em ` +
@@ -183,6 +201,19 @@ export function App() {
             </span>
           ) : null}
 
+          {/*
+            Não-lida é observável só em canal FECHADO — e o firehose fala
+            sempre no canal aberto, de propósito: mexer na mistura medida
+            mudaria o gate. Este botão exercita a contabilidade sem tocar nela.
+          */}
+          <button
+            onClick={() => falarEmOutroCanal()}
+            disabled={seeded === 0}
+            className="rounded-2 bg-surface-3 px-3 py-1 text-sm text-text-1 disabled:text-text-3"
+          >
+            Falar em outro canal
+          </button>
+
           <button
             onClick={() => console.info("[vortex] editada:", JSON.stringify(editarUltima()))}
             disabled={seeded === 0}
@@ -258,8 +289,30 @@ export function App() {
           ) : null}
         </header>
       }
-      conteudo={<MessageList channelId={CHANNEL_ID} />}
-      composer={<Composer channelId={CHANNEL_ID} />}
+      rail={<Rail />}
+      canais={<ListaDeCanais />}
+      membros={<ListaDeMembros />}
+      /*
+        `key` no canal: trocar de canal REMONTA a lista.
+
+        Não é atalho — é o comportamento correto, e de graça. O virtualizador
+        guarda cache de medição e âncora por instância; reaproveitá-los entre
+        canais faria a lista nova abrir na posição de rolagem da anterior, com
+        alturas medidas de mensagens que não existem mais. Remontar zera os
+        dois e o `scrollToEnd` inicial roda de novo.
+
+        O composer NÃO é remontado: o rascunho vive no store, keyed por canal,
+        então ele troca de texto sem perder o que estava escrito em nenhum dos
+        dois.
+      */
+      conteudo={
+        canal ? (
+          <MessageList key={canal} channelId={canal} />
+        ) : (
+          <p className="p-4 text-md text-text-3">nenhum canal aberto</p>
+        )
+      }
+      composer={canal ? <Composer channelId={canal} /> : undefined}
     />
   );
 }

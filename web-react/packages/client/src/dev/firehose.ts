@@ -14,21 +14,84 @@ import { monotonicFactory } from "ulid";
 
 import { count, countMax } from "./stats";
 import {
+  channelMessageIds,
   definirUsuarioLocal,
+  estadoDaFila,
   diagnostico,
   prependHistory,
+  registrarServidor,
   seedChannel,
+  semearPresenca,
   startAdapter,
 } from "../sdk/adapter";
+import type { PresenceStatus } from "../sdk/domain";
 import { client } from "../sdk/client";
 
 const nextId = monotonicFactory();
 
 export const CHANNEL_ID = "01JQ0000000000000000000000";
-const SERVER_ID = "01JQ0000000000000000000001";
+export const SERVER_ID = "01JQ0000000000000000000001";
 const USER_COUNT = 40;
 
 const userIds: string[] = [];
+
+/**
+ * O mundo do arnês: três servidores, com canais e membros.
+ *
+ * Um servidor só provava metade das colunas laterais. Rail com um item não
+ * exercita estado ativo nem não-lidas; e não-lidas SÓ existem em canal que
+ * não está aberto — com um canal, o contador nunca sairia de zero e a
+ * contabilidade passaria despercebida quebrada.
+ *
+ * Os IDs são fixos e legíveis de propósito: aparecem no DOM durante depuração,
+ * e ULID aleatório num arnês é ruído sem benefício.
+ */
+type Servidor = {
+  id: string;
+  nome: string;
+  canais: { id: string; nome: string; voz?: boolean }[];
+  /** Quantos dos `userIds` pertencem a ele. */
+  membros: number;
+};
+
+const MUNDO: Servidor[] = [
+  {
+    id: SERVER_ID,
+    nome: "Vortex",
+    canais: [
+      { id: CHANNEL_ID, nome: "spike" },
+      { id: "01JQ0000000000000000000010", nome: "geral" },
+      { id: "01JQ0000000000000000000011", nome: "links" },
+      { id: "01JQ0000000000000000000012", nome: "voz-geral", voz: true },
+    ],
+    membros: USER_COUNT,
+  },
+  {
+    id: "01JQ0000000000000000000002",
+    nome: "Ponte de Estado",
+    canais: [
+      { id: "01JQ0000000000000000000020", nome: "adapter" },
+      { id: "01JQ0000000000000000000021", nome: "medições" },
+    ],
+    membros: 12,
+  },
+  {
+    id: "01JQ0000000000000000000003",
+    nome: "Rascunhos",
+    canais: [{ id: "01JQ0000000000000000000030", nome: "ideias" }],
+    membros: 5,
+  },
+];
+
+/**
+ * Presença inicial variada.
+ *
+ * Todo mundo online mediria só metade da member list: os dois baldes, a
+ * ordenação dentro de cada um e as quatro silhuetas do ponto ficariam sem
+ * exercício. A distribuição é fixa por índice — arnês que sorteia produz
+ * captura de tela diferente a cada execução.
+ */
+const PRESENCAS: PresenceStatus[] = ["online", "online", "idle", "dnd", "offline"];
 
 const WORDS =
   "vortex canal mensagem servidor presença digitando reação âncora scroll virtualização adapter store snapshot render frame orçamento escopo".split(
@@ -48,16 +111,39 @@ function body(seed: number): string {
   return out.join(" ");
 }
 
+/**
+ * Nomes de gente, não `user0..user39`.
+ *
+ * A member list ordena por nome e mostra iniciais no avatar — com `user0` a
+ * ordenação é trivialmente correta por acidente (prefixo comum, sufixo
+ * numérico) e as siglas são todas "U". Nomes reais exercitam o colator, a
+ * acentuação e a sigla de duas letras.
+ */
+const NOMES =
+  "Ana Bruno Camila Diego Elisa Fábio Gabriela Henrique Íris João Kátia Lucas Mariana Nuno Olívia Pedro Quirino Renata Sofia Tiago Úrsula Vitor Wanda Xavier Yara Zeca Alice Bento Clara Davi Emília Felipe Giulia Hugo Isabel Joana Kauê Laura Miguel Nina".split(
+    " ",
+  );
+
+let mundoPronto = false;
+
 function ensureWorld() {
-  client.channels.getOrCreate(CHANNEL_ID, {
-    _id: CHANNEL_ID,
-    channel_type: "TextChannel",
-    server: SERVER_ID,
-    name: "spike",
-  } as never);
+  // Idempotente: `seed()` pode ser chamado de novo pelo arnês, e recriar o
+  // mundo duplicaria membros em cada servidor.
+  if (mundoPronto) return;
+  mundoPronto = true;
 
   for (let i = 0; i < USER_COUNT; i++) {
-    const id = `01JQ00000000000000000${String(i).padStart(5, "0")}`;
+    /**
+     * Prefixo próprio para usuário.
+     *
+     * O prefixo anterior produzia, para `i === 0`, exatamente a string do
+     * `CHANNEL_ID` — 26 caracteres idênticos. Passava despercebido porque
+     * usuário e canal vivem em coleções separadas do SDK, mas deixou de ser
+     * inofensivo com a detecção de menção: `<@id>` no conteúdo passa a
+     * carregar um ID que também nomeia um canal, e qualquer depuração por
+     * busca de string no DOM mistura os dois.
+     */
+    const id = `01JQ0000000000000001${String(i).padStart(6, "0")}`;
     userIds.push(id);
     // O primeiro é "eu". Placeholder honesto enquanto não há sessão: o
     // composer precisa de autor, e mensagem sem autor renderiza sem cabeçalho
@@ -65,11 +151,39 @@ function ensureWorld() {
     if (i === 0) definirUsuarioLocal(id);
     client.users.getOrCreate(id, {
       _id: id,
-      username: `user${i}`,
+      username: NOMES[i % NOMES.length]!,
       discriminator: "0001",
       online: true,
       relationship: "None",
     } as never);
+    // O "eu" está sempre online — a própria presença nunca é ausente.
+    semearPresenca(id, i === 0 ? "online" : PRESENCAS[i % PRESENCAS.length]!);
+  }
+
+  for (const servidor of MUNDO) {
+    for (const canal of servidor.canais) {
+      // Canal de voz é TextChannel COM objeto `voice` — o protocolo não tem
+      // um `channel_type` de voz. Ver `ehCanalDeVoz` em `map.ts`.
+      client.channels.getOrCreate(canal.id, {
+        _id: canal.id,
+        channel_type: "TextChannel",
+        server: servidor.id,
+        name: canal.nome,
+        ...(canal.voz ? { voice: {} } : {}),
+      } as never);
+    }
+
+    client.servers.getOrCreate(servidor.id, {
+      _id: servidor.id,
+      owner: userIds[0],
+      name: servidor.nome,
+      channels: servidor.canais.map((c) => c.id),
+      default_permissions: 0,
+    } as never);
+
+    // Registro, não evento: é setup em massa, e o caminho de evento existe
+    // para chegada incremental. A mesma separação do `seedChannel`.
+    registrarServidor(servidor.id, userIds.slice(0, servidor.membros));
   }
 }
 
@@ -233,6 +347,48 @@ export function carregarHistorico(quantas = 50): string[] {
   return antigas;
 }
 
+/**
+ * Manda uma mensagem para um canal que NÃO está aberto.
+ *
+ * Existe porque não-lida é, por definição, o que acontece longe dos olhos: o
+ * firehose fala sempre no canal aberto, e ali `contabilizarNaoLida` sai na
+ * primeira linha. Sem este caminho, a contabilidade inteira — contador do
+ * canal, rollup do servidor, menção, zerar ao abrir — poderia estar quebrada
+ * e o arnês passaria verde.
+ *
+ * Uma a cada três menciona o usuário local, para o badge de menção sair do
+ * zero sem que toda mensagem vire menção.
+ */
+let falas = 0;
+
+export function falarEmOutroCanal(): string | undefined {
+  const outros = MUNDO.flatMap((s) =>
+    s.canais.filter((c) => !c.voz && c.id !== CHANNEL_ID).map((c) => c.id),
+  );
+  const alvo = outros[falas % outros.length];
+  if (!alvo) return undefined;
+
+  falas++;
+  const id = nextId();
+  const mencao = falas % 3 === 0 ? `<@${userIds[0]!}> ` : "";
+  client.messages.getOrCreate(
+    id,
+    {
+      _id: id,
+      channel: alvo,
+      author: autorDe(falas),
+      content: `${mencao}${body(falas)}`,
+    },
+    true,
+  );
+  return alvo;
+}
+
+/** Quantas mensagens o índice do canal tem? `null` = nunca publicado. */
+function tamanhoDaLista(id: string): number | null {
+  return channelMessageIds.getSnapshot(id)?.length ?? null;
+}
+
 export type FirehoseMix = {
   message: number;
   update: number;
@@ -356,4 +512,13 @@ export function startFirehose(
 if (import.meta.env.DEV) {
   (globalThis as never as Record<string, unknown>).__editarId = editarId;
   (globalThis as never as Record<string, unknown>).__diagnostico = diagnostico;
+  /**
+   * Sonda de coleção: o canal tem índice? quantas mensagens?
+   *
+   * Existe porque a pergunta "a lista está vazia porque a mensagem não entrou
+   * no índice, ou porque o componente não leu?" não tem resposta pelo DOM — os
+   * dois casos renderizam a mesma coisa: nada.
+   */
+  (globalThis as never as Record<string, unknown>).__fila = estadoDaFila;
+  (globalThis as never as Record<string, unknown>).__lista = tamanhoDaLista;
 }

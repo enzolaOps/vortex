@@ -482,14 +482,39 @@ dentro de `components/ui/`, com os próprios wrappers isentos.
 numérica e o `tailwind-merge` de fábrica não a resolve — `pnpm classes`
 guarda isso.
 
-### Fase 3 — Superfícies específicas
+### Fase 3 — Superfícies específicas · **concluída**
 
-Message list completa (agrupamento, divisores, estados de envio), rail, member
-list, composer.
+Message list completa (agrupamento, divisores, estados de envio), composer
+(rascunho por canal, envio otimista, digitação), rail de servidores, lista de
+canais e member list.
 
-**Escritas sob a lei nº 6** — todo componente já nasce movível.
+**Escritas sob a lei nº 6** — todo componente já nasce movível, e o shell virou
+slots por causa disso: ele não importa mais nenhum painel, só declara onde as
+colunas ficam. Cada painel traz a própria container query.
 
-### Fase 4 — Customização
+Três decisões que valem além da fase:
+
+**A member list é a única das três colunas laterais virtualizada.** Não é
+simetria: rail e lista de canais têm dezenas de itens, esta tem dezenas de
+milhares. As duas não virtualizadas renderizam IDs com linha assinando a própria
+entidade — a forma que um `useVirtualizer` consome — então o retrofit é trocar o
+`.map()`, não reescrever o componente.
+
+**Dois baldes de presença, não quatro seções.** `online → idle → dnd` não move
+ninguém de lugar, então a member list não reordena — e presença é 55% da carga
+do firehose. Com uma seção por estado, toda piscada custaria `n log n`. É a lei
+nº 1 aplicada à ordenação em vez de à subscrição.
+
+**Não-lidas e menções são do cliente.** O protocolo tem `unread` booleano; o
+Vortex conta. É a terceira coisa que a camada anticorrupção comporta sem tocar
+em componente, depois de `sendState` e do agrupamento.
+
+Duas armadilhas do SDK encontradas verificando em navegador, e mortas na camada
+de tradução: `channel.isVoice` não quer dizer "canal de voz do servidor" (é
+`true` para DM e Grupo, e depende de um objeto `voice`), e o protocolo **não
+tem** `channel_type: "VoiceChannel"` — canal de voz é TextChannel com `voice`.
+
+### Fase 4 — Customização · **próxima**
 
 Sistema de slots, modo edição, preset versionado e compartilhável, picker de
 paleta com validação de contraste. Ver `layout-customization.md`.
@@ -510,7 +535,11 @@ paleta com validação de contraste. Ver `layout-customization.md`.
 | Mídia na linha | **Nunca testada.** Sem imagem no spike. Reservar espaço com `aspect-ratio` a partir do metadata do anexo é o que impede layout shift quebrar a ancoragem. |
 | Teste de navegador | **vitest instalado**, 19 testes cobrindo store, adapter e toast. Falta runner de NAVEGADOR: jsdom não tem engine de layout, então âncora, remedição e o firehose seguem medidos à mão no arnês. O `web/` já usa Playwright — é o candidato natural. |
 | Assertions que só o navegador exercita | A de `getSnapshot` estável agora tem teste e dispara nos quatro casos. Faltam duas, e as duas dependem de layout: **remedir após resize** e **linha medindo 0px**. jsdom não serve — é o mesmo motivo pelo qual a âncora vive no arnês. Vão junto com o runner de navegador. |
-| Reconexão, sessão longa, container query | Sem rede no spike; vazamento de 8h precisa ser medido em horas; a lei nº 6 exige container query e não há nenhuma no código ainda. |
+| Reconexão e sessão longa | Sem rede no spike; vazamento de 8h precisa ser medido em horas. **Container query resolvida** — shell, composer, rail, lista de canais e member list têm a sua; a do painel de membros (<140px) só é alcançável por slot da fase 4, não por largura de janela. |
+| Firehose depois da fase 3 | **Não rodado.** A fase 3 tocou store, adapter e linha de mensagem — os três gatilhos que obrigam o gate. Não dá para rodá-lo daqui: numa aba sem composição estável o rAF dispara em intervalos de segundos e a medição reprova o ambiente. Rodar local, `vite preview`, CPU 4x. |
+| Apelido por servidor na member list | O snapshot de membro é keyed por ID de USUÁRIO, e apelido mora no `ServerMember` — uma chave de usuário não sabe de qual servidor se fala. `toMemberSnapshot` já aceita o apelido; falta a chave composta. |
+| Categorias de canal | `server.categories` existe no protocolo e a coluna ignora, separando só texto de voz. Categoria de verdade pede ordem própria, colapso persistido e arrastar-e-soltar. |
+| Lado lógico no wrapper de Tooltip | O Radix só fala `side` físico. Hoje o `avoidCollisions` cobre o caso real (rail movido = sem espaço daquele lado = vira sozinho), mas o mapeamento logical→physical deveria viver no wrapper. |
 
 ---
 

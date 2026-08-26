@@ -1,0 +1,61 @@
+/* ============================================================
+   Presença — forma, não só cor
+   ------------------------------------------------------------
+   O código já afirmava "presença nunca só por cor", mas o que
+   diferenciava online de ausente e ocupado era exclusivamente o
+   matiz. Para quem não distingue verde de amarelo de vermelho,
+   os três estados eram o mesmo ponto.
+
+   Aqui cada estado tem uma SILHUETA: cheio, recortado, barrado,
+   vazado. Funciona em escala de cinza, e continua funcionando
+   quando o tema do usuário trocar a paleta inteira na fase 4 —
+   que é justamente o cenário onde depender de cor quebra.
+
+   CSS Module e não utilities pelo critério do styling.md: são
+   pseudo-elementos e máscara, que na className só existiriam
+   como propriedade arbitrária.
+   ============================================================ */
+
+.ponto {
+  position: absolute;
+  inset-inline-end: calc(var(--vx-space-1) * -1);
+  inset-block-end: calc(var(--vx-space-1) * -1);
+  /* A escala de tipo NÃO serve de escala de caixa: `--vx-size-*` é
+     tamanho de fonte. Ponto de presença é respiro visual sobre o
+     avatar, e aí a escala de espaçamento é a certa. */
+  inline-size: var(--vx-space-2);
+  block-size: var(--vx-space-2);
+  border-radius: var(--vx-radius-4);
+  /* O anel separa o ponto do avatar sem depender de contraste de cor.
+     A cor vem de fora, pela var — é o painel que sabe sobre o que está. */
+  box-shadow: 0 0 0 2px var(--anel, var(--vx-surface-0));
+}
+
+.online {
+  background: var(--vx-status-online);
+}
+
+/* Ausente: disco recortado. A meia-lua é legível a 10px. */
+.idle {
+  background: var(--vx-status-idle);
+  mask-image: radial-gradient(circle at 30% 30%, transparent 42%, #000 43%);
+}
+
+/* Ocupado: barra atravessada — a convenção de "não perturbe". */
+.dnd {
+  background: var(--vx-status-dnd);
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0 34%,
+    transparent 34% 66%,
+    #000 66% 100%
+  );
+}
+
+/* Offline: vazado. Ausência de preenchimento lê como ausência. */
+.offline {
+  background: transparent;
+  box-shadow:
+    0 0 0 2px var(--anel, var(--vx-surface-0)),
+    inset 0 0 0 2px var(--vx-status-offline);
+}

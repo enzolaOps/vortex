@@ -112,11 +112,11 @@
 }
 
 /*
-  Estado compacto por container query: o painel decide sozinho, sem
-  saber o tamanho da janela.
+  As container queries dos painéis mudaram de lugar na fase 3.
+
+  Elas moravam aqui porque o conteúdo das colunas morava no `Shell.tsx`.
+  Agora cada painel traz a própria — o rail decide quando esconder o
+  nome, a member list decide quando virar tira de avatares — e é isso
+  que a lei nº 6 quer dizer com "sem premissa de irmão": o shell
+  fornece o container, o painel decide o que fazer com o tamanho dele.
 */
-@container (inline-size < 200px) {
-  .rotulo {
-    display: none;
-  }
-}

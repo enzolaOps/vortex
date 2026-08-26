@@ -126,6 +126,15 @@
   --vx-rail-w: 72px;
   --vx-message-max-w: 1100px;
 
+  /* Avatar: escala própria, e não a de espaçamento.
+     Um avatar é uma CAIXA DE CONTEÚDO, não um respiro entre coisas.
+     Compartilhar a escala de espaçamento amarra as duas — mexer no
+     respiro da lista mudaria o tamanho da foto de todo mundo, e o
+     dia em que o avatar precisar de 44px não haveria degrau para ele
+     sem inventar um espaçamento que ninguém usa. */
+  --vx-avatar-sm: 24px; /* linha de mensagem, member list */
+  --vx-avatar-lg: 40px; /* rail de servidores */
+
   /* Teto do composer: ~10 linhas. Acima disso ele passa a rolar sozinho
      em vez de continuar comendo a lista. Sem teto, colar um texto longo
      engole a conversa inteira e a pessoa perde o contexto do que estava

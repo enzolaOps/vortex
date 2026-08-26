@@ -11,38 +11,9 @@ import {
 
 import { count } from "../dev/stats";
 import { cn } from "../lib/cn";
-import { useMessage, usePresence } from "../store/hooks";
-
-const STATUS_CLASS: Record<string, string> = {
-  online: "bg-status-online",
-  idle: "bg-status-idle",
-  dnd: "bg-status-dnd",
-  offline: "bg-status-offline",
-};
-
-/**
- * O ponto de presença assina sozinho.
- *
- * Assinar presença dentro do MessageRow fazia uma rajada de presença
- * re-renderizar a linha INTEIRA — texto, reações, timestamp — para mudar um
- * ponto de 8px. Era o maior custo do firehose: 265 renders de linha por
- * segundo, quase todos por causa disto.
- *
- * É a regra de granularidade da lei nº 1 aplicada um nível abaixo: quem assina
- * é quem muda. A linha volta a re-renderizar só quando a MENSAGEM muda.
- */
-function PresenceDot({ userId }: { userId: string }) {
-  const status = usePresence(userId);
-  count("presenceRenders");
-
-  return (
-    <span
-      className={`absolute -end-1 -bottom-1 size-2 rounded-4 ring-2 ring-surface-0 ${
-        STATUS_CLASS[status] ?? "bg-status-offline"
-      }`}
-    />
-  );
-}
+import { NomeDoAutor } from "../presenca/NomeDoAutor";
+import { PontoDePresenca } from "../presenca/PontoDePresenca";
+import { useMessage } from "../store/hooks";
 
 /**
  * Divisor de data.
@@ -128,8 +99,10 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             {message.iniciaGrupo ? (
               <>
                 <div className="size-5 rounded-4 bg-surface-3" />
-                {/* Presença nunca só por cor: o anel de fundo dá a forma. */}
-                <PresenceDot userId={message.authorId ?? ""} />
+                {/* Presença nunca só por cor — a silhueta do ponto muda com
+                    o estado. Sem rótulo aqui: o nome já está escrito ao lado,
+                    e anunciar presença a cada linha seria ruído no leitor. */}
+                <PontoDePresenca userId={message.authorId ?? ""} />
               </>
             ) : null}
           </div>
@@ -138,9 +111,13 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
           <div className="min-w-0 flex-1">
             {message.iniciaGrupo ? (
               <div className="flex items-baseline gap-2">
-                <span className="text-md font-medium text-text-1">
-                  {message.authorId ?? "desconhecido"}
-                </span>
+                {message.authorId ? (
+                  <NomeDoAutor userId={message.authorId} />
+                ) : (
+                  <span className="text-md font-medium text-text-1">
+                    desconhecido
+                  </span>
+                )}
                 <time className="text-xs text-text-3">
                   {message.createdAtText}
                 </time>
