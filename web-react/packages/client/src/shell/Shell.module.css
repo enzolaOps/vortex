@@ -56,7 +56,13 @@
 .conteudo {
   background: var(--vx-surface-0);
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  /* cabeçalho · lista · composer.
+
+     `minmax(0, 1fr)` na linha do meio pela mesma razão da coluna: `1fr` puro é
+     `minmax(auto, 1fr)`, e `auto` respeita o min-content da lista — que numa
+     lista virtualizada é o total inteiro. Sem o `0`, o composer é empurrado
+     para fora da tela assim que o histórico cresce. */
+  grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
 .membros {

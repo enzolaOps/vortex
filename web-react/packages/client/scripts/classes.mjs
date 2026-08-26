@@ -22,6 +22,12 @@ const casos = [
   ["rounded-1 rounded-2 rounded-3", "rounded-3", "raio, três em sequência"],
   ["border-border-subtle border-border-strong", "border-border-strong", "borda"],
   ["bg-surface-1 text-text-1", "bg-surface-1 text-text-1", "não conflitam"],
+  [
+    "text-xs text-danger",
+    "text-xs text-danger",
+    "tamanho + cor: mesmo prefixo, grupos diferentes",
+  ],
+  ["text-xs text-md text-danger", "text-md text-danger", "só o tamanho colide"],
   ["gap-2 gap-4", "gap-4", "gap"],
 ];
 

@@ -14,6 +14,7 @@ import { monotonicFactory } from "ulid";
 
 import { count, countMax } from "./stats";
 import {
+  definirUsuarioLocal,
   diagnostico,
   prependHistory,
   seedChannel,
@@ -58,6 +59,10 @@ function ensureWorld() {
   for (let i = 0; i < USER_COUNT; i++) {
     const id = `01JQ00000000000000000${String(i).padStart(5, "0")}`;
     userIds.push(id);
+    // O primeiro é "eu". Placeholder honesto enquanto não há sessão: o
+    // composer precisa de autor, e mensagem sem autor renderiza sem cabeçalho
+    // em vez de dar erro — bug caro de enxergar.
+    if (i === 0) definirUsuarioLocal(id);
     client.users.getOrCreate(id, {
       _id: id,
       username: `user${i}`,

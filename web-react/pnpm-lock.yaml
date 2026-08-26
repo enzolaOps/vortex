@@ -64,6 +64,9 @@ importers:
       tailwind-merge:
         specifier: ^3.6.0
         version: 3.6.0
+      ulid:
+        specifier: ^3.0.2
+        version: 3.0.2
     devDependencies:
       '@eslint/js':
         specifier: 10.0.1
@@ -101,9 +104,6 @@ importers:
       typescript-eslint:
         specifier: 8.68.0
         version: 8.68.0(eslint@10.9.1(jiti@2.7.0))(typescript@6.0.3)
-      ulid:
-        specifier: ^3.0.2
-        version: 3.0.2
       vite:
         specifier: 8.2.2
         version: 8.2.2(@types/node@22.20.1)(jiti@2.7.0)(yaml@2.9.0)

@@ -12,6 +12,15 @@
 /** Estado de envio. Vive no cliente; o protocolo não tem esse conceito. */
 export type SendState = "sent" | "pending" | "failed";
 
+/**
+ * Teto de caracteres de uma mensagem.
+ *
+ * Declarado pelo Vortex, não lido do SDK — mesmo que hoje coincida com o do
+ * Stoat. É limite de produto: o dia em que o backend divergir, quem manda é
+ * esta linha, e o composer não precisa saber que houve divergência.
+ */
+export const LIMITE_DE_CONTEUDO = 2000;
+
 export type MessageSnapshot = {
   readonly id: string;
   readonly channelId: string;

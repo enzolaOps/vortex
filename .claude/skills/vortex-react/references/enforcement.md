@@ -270,6 +270,27 @@ arrastando a borda de um slot. Mas as causas já existem no spike: janela
 redimensionada, sidebar colapsada, popout, painel de thread abrindo. A
 invariante é a mesma nos dois casos.
 
+**Reancoragem após mudança de ALTURA do container.**
+No wrapper do virtualizador, em dev: se a altura encolher, a lista estava no
+fim e ela terminar além do limiar, avisar alto.
+
+É a irmã da regra acima, e nasceu com o composer. O campo cresce uma linha, o
+container de scroll encolhe a mesma linha, e o navegador PRESERVA o
+`scrollTop` — então a distância até o fim aumenta exatamente pela altura que
+sumiu. Duas ou três linhas digitadas passam do `scrollEndThreshold` e o
+`followOnAppend` desliga em silêncio: a pessoa digita e as mensagens dos
+outros param de aparecer.
+
+Não dá para perguntar "estava no fim?" dentro do ResizeObserver: quando ele
+dispara, o layout novo já valeu. O estado tem que ser lido no scroll e
+guardado — é a mesma regra da medição comparada contra a linha de base certa,
+uma seção acima.
+
+O limiar é UM número, usado pelo `scrollEndThreshold` do virtualizador e pela
+nossa noção de estar colado. Divergirem significa a lista se achar no fim
+enquanto o virtualizador já desistiu de seguir — exatamente o estado que
+aprovou uma corrida de firehose contra um app parado na fase 0.
+
 **Linha virtualizada medindo zero.**
 No wrapper do virtualizador, em dev: se um item medir 0px, erro no console.
 
@@ -309,7 +330,8 @@ já cobre a maior parte.
 | Import de `stoat.js` fora do adapter | Lint de boundary | Fase 0 |
 | Firehose 60fps | Teste, gate de merge | Fase 0 |
 | Gitlinks de `stoat.js` em lockstep | Check em CI | Fase 0 |
-| Remedir após resize | Assertion em dev | Fase 0 |
+| Remedir após resize de largura | Assertion em dev | Fase 0 |
+| Reancorar após resize de altura | Assertion em dev | Fase 3 |
 | Linha virtualizada medindo 0px | Assertion em dev | Fase 0 |
 | Publicação de coleção por frame | Teste | Fase 0 |
 | Carga em massa fora do caminho de evento | Teste | Fase 0 |

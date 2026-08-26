@@ -1,0 +1,166 @@
+/* ============================================================
+   Composer
+   ------------------------------------------------------------
+   CSS Module e não utilities por duas coisas que o Tailwind só
+   expressaria como arbitrary value — que é valor mágico com
+   outra sintaxe, e o lint reprova:
+
+     · o teto de altura, que é token
+     · a réplica invisível que faz o campo crescer
+
+   ============================================================ */
+
+.rodape {
+  padding: var(--vx-space-3) var(--vx-space-4) var(--vx-space-4);
+  border-block-start: 1px solid var(--vx-border-subtle);
+  background: var(--vx-surface-0);
+}
+
+/*
+  Mesma largura da coluna de mensagem, e alinhada do mesmo lado.
+
+  O token é o mesmo (`--vx-message-max-w`) de propósito: composer e lista
+  desalinhados é o erro visual mais perceptível da tela principal, e
+  duplicar o valor garantiria que um dia os dois divergissem.
+*/
+.coluna {
+  max-inline-size: var(--vx-message-max-w);
+  margin-inline: 0;
+
+  /* Lei nº 6: o composer reage ao PRÓPRIO tamanho. Em popout estreito ou
+     com um painel de thread aberto ao lado, ele encolhe sem que a janela
+     tenha mudado de tamanho. */
+  container-type: inline-size;
+}
+
+/* ------------------------------------------------------------
+   O campo que cresce
+   ------------------------------------------------------------
+   Textarea não cresce sozinha. A saída clássica é medir
+   `scrollHeight` num efeito e escrever `style.height` a cada
+   tecla — uma leitura e uma escrita de layout forçadas por
+   tecla, no componente mais quente do app.
+
+   Aqui quem cresce é o GRID: uma réplica invisível do texto
+   ocupa a mesma célula da textarea e dita a altura da linha. O
+   navegador resolve em layout, sem JavaScript, sem medição e
+   sem frame extra.
+
+   As duas precisam ter métrica de texto idêntica — família,
+   tamanho, entrelinha, quebra. Divergir aqui faz o campo errar
+   a altura por uma linha, e só em texto longo.
+   ------------------------------------------------------------ */
+
+.campo {
+  display: grid;
+  max-block-size: var(--vx-composer-max-h);
+  padding: var(--vx-space-2) var(--vx-space-3);
+  border-radius: var(--vx-radius-3);
+  background: var(--vx-surface-2);
+
+  /* `--vx-border-strong`, e não a sutil.
+
+     Não é peso visual gratuito: WCAG 1.4.11 pede 3:1 para o limite de um
+     controle, e `--vx-border-subtle` sobre `--vx-surface-2` fica em ~1,05:1.
+     A diferença de superfície sozinha também não salva (surface-2 sobre
+     surface-0 dá ~1,5:1) — quem enxerga pouco não acharia onde escrever.
+
+     O par `--vx-border-strong` sobre cada superfície já é verificado pelo
+     `pnpm contrast`, então isto não depende de eu ter feito a conta certa. */
+  border: 1px solid var(--vx-border-strong);
+}
+
+/* O foco vive quase o tempo todo aqui: indicador claro, sem anel piscante a
+   cada clique na conversa. Borda + outline de 1px dá 2px de contorno sem
+   deslocar nada — outline não participa do layout. */
+.campo:focus-within {
+  border-color: var(--vx-accent);
+  outline: 1px solid var(--vx-accent);
+}
+
+.campo[data-excedido="true"],
+.campo[data-excedido="true"]:focus-within {
+  border-color: var(--vx-danger);
+  outline-color: var(--vx-danger);
+}
+
+.entrada,
+.replica {
+  grid-area: 1 / 1;
+  min-inline-size: 0;
+  min-block-size: 0;
+  font-family: var(--vx-font-ui);
+  font-size: var(--vx-size-md);
+  line-height: var(--vx-leading-message);
+  white-space: pre-wrap;
+
+  /* Mesma quebra da linha de mensagem: uma URL de 400 caracteres sem
+     espaço não pode empurrar o campo. */
+  overflow-wrap: anywhere;
+}
+
+.entrada {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  resize: none;
+  overflow-y: auto;
+  background: transparent;
+  color: var(--vx-text-1);
+}
+
+.entrada:focus {
+  /* O indicador é do campo inteiro, não da textarea nua por dentro dele. */
+  outline: none;
+}
+
+.entrada::placeholder {
+  color: var(--vx-text-3);
+}
+
+.replica {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------
+   Rodapé do campo
+   ------------------------------------------------------------ */
+
+.dica {
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+}
+
+/*
+  Abaixo disso a dica sai. Não é decoração: quem está num painel estreito
+  já não tem espaço para uma linha de instrução, e o atalho que ela
+  descreve continua funcionando.
+*/
+@container (inline-size < 480px) {
+  .dica {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------
+   Indicador de digitação
+   ------------------------------------------------------------
+   A altura é RESERVADA sempre, mesmo vazio.
+
+   Sem reserva, cada pessoa que começa e para de digitar muda a
+   altura do composer, e a lista inteira sobe e desce junto. Num
+   canal movimentado isso é estroboscópio — e é a lista de
+   mensagens tremendo por causa de um evento efêmero, que é
+   exatamente o que a separação dos dois stores existe para
+   evitar.
+   ------------------------------------------------------------ */
+
+.digitando {
+  min-block-size: calc(var(--vx-size-xs) * var(--vx-leading-message));
+  margin: 0 0 var(--vx-space-1);
+  padding-inline: var(--vx-space-1);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  line-height: var(--vx-leading-message);
+}

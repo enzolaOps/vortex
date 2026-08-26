@@ -125,6 +125,12 @@
   /* --- Layout ------------------------------------------------ */
   --vx-rail-w: 72px;
   --vx-message-max-w: 1100px;
+
+  /* Teto do composer: ~10 linhas. Acima disso ele passa a rolar sozinho
+     em vez de continuar comendo a lista. Sem teto, colar um texto longo
+     engole a conversa inteira e a pessoa perde o contexto do que estava
+     respondendo. */
+  --vx-composer-max-h: 200px;
 }
 
 @media (prefers-reduced-motion: reduce) {

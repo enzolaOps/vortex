@@ -2,9 +2,21 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useRef } from "react";
 
 import { count } from "../dev/stats";
+import { ouvirFimDaLista } from "../store/comandos";
 import { useChannelMessageIds } from "../store/hooks";
 import css from "./MessageList.module.css";
 import { MessageRow } from "./MessageRow";
+
+/**
+ * Quão longe do fim ainda conta como "no fim".
+ *
+ * Um número só, usado nos dois lugares que precisam concordar: o
+ * `followOnAppend` do virtualizador e a nossa própria noção de estar colado.
+ * Divergirem significaria a lista se achar colada enquanto o virtualizador já
+ * desistiu de seguir — o estado exato que aprovou uma corrida de firehose
+ * contra um app parado, na fase 0.
+ */
+const LIMIAR_DE_FIM = 80;
 
 /**
  * Lista de mensagens virtualizada, em modo chat.
@@ -28,7 +40,7 @@ export function MessageList({ channelId }: { channelId: string }) {
     getItemKey: (i) => ids[i] ?? i,
     anchorTo: "end",
     followOnAppend: true,
-    scrollEndThreshold: 80,
+    scrollEndThreshold: LIMIAR_DE_FIM,
     overscan: 6,
     // NÃO passar `useFlushSync: false`. Medido no spike: sem o flush
     // síncrono a compensação estimativa→real não segura a âncora — o
@@ -41,40 +53,134 @@ export function MessageList({ channelId }: { channelId: string }) {
   });
 
   /**
-   * Lei nº 6, antecipada para a fase 0.
+   * Estava colado no fim ANTES da mudança?
    *
-   * Largura do container mudou = remedir e reancorar. Na fase 4 a causa será o
-   * usuário arrastando a borda de um slot, mas as causas já existem: janela
-   * redimensionada, sidebar colapsando, popout, painel de thread abrindo.
-   *
-   * A assertion existe para o dia em que alguém mexer aqui e esquecer o
-   * `measure()` — falha alto em dev, custa zero em produção.
+   * Precisa ser lido no scroll e guardado, não perguntado depois: quando o
+   * ResizeObserver dispara, o layout novo já valeu e a distância até o fim já
+   * é a de depois. Perguntar tarde responde sempre a pergunta errada — é a
+   * mesma armadilha da medição do prepend, onde a linha de base tinha que ser
+   * a intenção e não o resultado observado.
    */
-  const lastWidth = useRef(0);
+  const colado = useRef(true);
   useEffect(() => {
     const element = scrollRef.current;
     if (!element) return;
 
-    const observer = new ResizeObserver(([entry]) => {
-      const width = entry?.contentRect.width ?? 0;
-      if (width === lastWidth.current) return;
-      lastWidth.current = width;
-      virtualizer.measure();
+    const aoRolar = () => {
+      colado.current =
+        element.scrollHeight - element.clientHeight - element.scrollTop <=
+        LIMIAR_DE_FIM;
+    };
 
-      if (import.meta.env.DEV && virtualizer.getVirtualItems().length > 0) {
-        const measured = virtualizer.measurementsCache.length;
-        if (measured !== ids.length) {
-          console.warn(
-            "[vortex] largura do container mudou e a remedição não cobriu " +
-              `todas as linhas (${measured}/${ids.length}). A âncora vai saltar.`,
-          );
+    element.addEventListener("scroll", aoRolar, { passive: true });
+    return () => element.removeEventListener("scroll", aoRolar);
+  }, []);
+
+  /**
+   * Lei nº 6, antecipada para a fase 0 — e agora nas duas dimensões.
+   *
+   * LARGURA mudou = remedir. Na fase 4 a causa será o usuário arrastando a
+   * borda de um slot, mas as causas já existem: janela redimensionada, sidebar
+   * colapsando, popout, painel de thread abrindo.
+   *
+   * ALTURA mudou = reancorar. Esta causa nasceu com o composer, que cresce
+   * enquanto a pessoa escreve.
+   *
+   * As assertions existem para o dia em que alguém mexer aqui e esquecer uma
+   * das duas — falham alto em dev, custam zero em produção.
+   */
+  const ultimaLargura = useRef(0);
+  const ultimaAltura = useRef(0);
+  useEffect(() => {
+    const element = scrollRef.current;
+    if (!element) return;
+
+    let ativo = true;
+
+    const observer = new ResizeObserver(([entry]) => {
+      const largura = entry?.contentRect.width ?? 0;
+      const altura = entry?.contentRect.height ?? 0;
+
+      if (largura !== ultimaLargura.current) {
+        ultimaLargura.current = largura;
+        virtualizer.measure();
+
+        if (import.meta.env.DEV && virtualizer.getVirtualItems().length > 0) {
+          const medidas = virtualizer.measurementsCache.length;
+          const total = virtualizer.options.count;
+          if (medidas !== total) {
+            console.warn(
+              "[vortex] largura do container mudou e a remedição não cobriu " +
+                `todas as linhas (${medidas}/${total}). A âncora vai saltar.`,
+            );
+          }
+        }
+      }
+
+      /**
+       * ALTURA mudou — e o navegador não devolve a âncora sozinho.
+       *
+       * O composer crescendo uma linha encolhe este container. O `scrollTop`
+       * continua válido e é preservado, então a distância até o fim AUMENTA
+       * pela altura que sumiu. Duas ou três linhas digitadas bastam para
+       * passar do `LIMIAR_DE_FIM`, e aí `followOnAppend` desliga em silêncio:
+       * a pessoa digita e as mensagens dos outros param de aparecer.
+       *
+       * É o mesmo modo de falha que fez uma bateria de PASS medir uma lista
+       * parada na fase 0, por outra causa. Por isso a defesa é a mesma: quem
+       * estava no fim, volta ao fim.
+       */
+      if (altura !== ultimaAltura.current) {
+        const encolheu = altura < ultimaAltura.current;
+        ultimaAltura.current = altura;
+
+        if (colado.current) {
+          virtualizer.scrollToEnd();
+
+          if (import.meta.env.DEV && encolheu) {
+            // Dois frames: um para o scroll valer, outro para a remedição.
+            requestAnimationFrame(() =>
+              requestAnimationFrame(() => {
+                if (!ativo) return;
+                const distancia =
+                  element.scrollHeight -
+                  element.clientHeight -
+                  element.scrollTop;
+                if (distancia > LIMIAR_DE_FIM) {
+                  console.warn(
+                    "[vortex] a altura do container encolheu, a lista estava " +
+                      `no fim e terminou a ${Math.round(distancia)}px dele. ` +
+                      "followOnAppend vai desligar em silêncio.",
+                  );
+                }
+              }),
+            );
+          }
         }
       }
     });
 
     observer.observe(element);
-    return () => observer.disconnect();
-  }, [virtualizer, ids.length]);
+    return () => {
+      ativo = false;
+      observer.disconnect();
+    };
+    // `ids.length` NÃO entra aqui: durante o firehose isso desconectaria e
+    // reconectaria o observer a cada frame. A contagem vem do virtualizador,
+    // que já a conhece.
+  }, [virtualizer]);
+
+  /**
+   * "Enviei — me leva para o fim."
+   *
+   * Effect é o uso correto aqui: sincronizar com um sistema externo. O
+   * composer não conhece esta lista, e continua não conhecendo quando os dois
+   * estiverem em painéis diferentes.
+   */
+  useEffect(
+    () => ouvirFimDaLista(channelId, () => virtualizer.scrollToEnd()),
+    [channelId, virtualizer],
+  );
 
   /**
    * `scrollToEnd()` após a carga inicial — a regra de component-primitives.md

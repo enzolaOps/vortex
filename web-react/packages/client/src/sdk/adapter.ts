@@ -16,13 +16,15 @@
  * `stoat.js`. O lint de boundary garante isso.
  */
 import { createEffect, createRoot } from "solid-js";
+import { monotonicFactory } from "ulid";
 
 import { count } from "../dev/stats";
 import { createEntityStore } from "../store/entities";
 import { createEphemeralStore } from "../store/ephemeral";
-import { client } from "./client";
-import type { MessageSnapshot, PresenceStatus } from "./domain";
+import { client, conectado } from "./client";
+import type { MessageSnapshot, PresenceStatus, SendState } from "./domain";
 import { calcularLayout, type Layout } from "./agrupamento";
+import { criarNotificadorDeDigitacao } from "./digitando";
 import { toMessageSnapshot, toPresence } from "./map";
 
 /* ----------------------------------------------------------- layout */
@@ -86,8 +88,41 @@ function recalcularLayout(channelId: string, de: number, ate: number) {
     // janela é recalculado quando a linha montar.
     const message = client.messages.get(id);
     if (message && messages.subscriberCount(id) > 0) {
-      messages.set(id, toMessageSnapshot(message, novo));
+      messages.set(id, toMessageSnapshot(message, novo, estadoDeEnvioDe(id)));
     }
+  }
+}
+
+/* ------------------------------------------------------- estado de envio */
+
+/**
+ * Estado de envio por mensagem.
+ *
+ * O protocolo não tem esse conceito: para o servidor, ou a mensagem existe ou
+ * não existe. "Pendente" e "falhou" são estados do CLIENTE, e é exatamente o
+ * tipo de coisa que a camada anticorrupção existe para comportar — o modelo do
+ * Vortex é mais rico que o do Stoat, e essa diferença fica aqui, num Map, em
+ * vez de virar um campo opcional espalhado pelo app.
+ *
+ * Vive fora do snapshot pelo mesmo motivo do layout: é derivação de escrita.
+ * A linha continua assinando só a si mesma.
+ */
+const estadosDeEnvio = new Map<string, SendState>();
+
+/** Mensagem que veio do servidor não está no Map — e "sent" é a verdade. */
+function estadoDeEnvioDe(id: string): SendState {
+  return estadosDeEnvio.get(id) ?? "sent";
+}
+
+function marcarEnvio(id: string, estado: SendState) {
+  if (estadoDeEnvioDe(id) === estado) return;
+
+  if (estado === "sent") estadosDeEnvio.delete(id);
+  else estadosDeEnvio.set(id, estado);
+
+  const message = client.messages.get(id);
+  if (message && messages.subscriberCount(id) > 0) {
+    messages.set(id, toMessageSnapshot(message, layoutDe(id), estado));
   }
 }
 
@@ -106,13 +141,18 @@ export const messages = createEntityStore<MessageSnapshot>((id) => {
   // que monta antes dele roda um render com `undefined` — que numa lista
   // virtualizada vira altura zero e realimenta a medição.
   const initial = client.messages.get(id);
-  if (initial) messages.set(id, toMessageSnapshot(initial, layoutDe(id)));
+  if (initial) {
+    messages.set(id, toMessageSnapshot(initial, layoutDe(id), estadoDeEnvioDe(id)));
+  }
 
   return createRoot((dispose) => {
     createEffect(() => {
       const message = client.messages.get(id);
       if (message) {
-        messages.set(id, toMessageSnapshot(message, layoutDe(id)));
+        messages.set(
+          id,
+          toMessageSnapshot(message, layoutDe(id), estadoDeEnvioDe(id)),
+        );
         count("snapshots");
       }
     });
@@ -297,3 +337,113 @@ export function prependHistory(channelId: string, antigas: readonly string[]) {
   recalcularLayout(channelId, 0, antigas.length);
   publish(channelId);
 }
+
+/* ------------------------------------------------------------------ envio */
+
+/**
+ * Identidade local.
+ *
+ * Placeholder honesto: não existe sessão ainda, e a mensagem enviada precisa
+ * de autor. Um `undefined` silencioso aqui produziria mensagem sem autor, que
+ * é bug difícil de ver — a linha renderiza, só fica sem cabeçalho.
+ */
+let usuarioLocal: string | undefined;
+
+export function definirUsuarioLocal(id: string): void {
+  usuarioLocal = id;
+}
+
+const proximoId = monotonicFactory();
+
+/**
+ * Simulação de round-trip. Temporária, e nomeada para não passar despercebida.
+ *
+ * Existe porque o caminho de rede NÃO está escrito, e não está por decisão:
+ * `Channel.sendMessage` é round-trip completo — POST, o servidor atribui o
+ * `_id`, e o SDK só materializa a mensagem quando a resposta volta. Não há
+ * inserção otimista nenhuma no SDK.
+ *
+ * Escrever esse caminho agora seria escrever código que nunca rodou (não há
+ * backend conectado), e ele carrega o problema real: a mensagem otimista tem
+ * ID local e a que volta tem ID do servidor. Numa lista virtualizada com
+ * `getItemKey` por ID de entidade, isso é a chave da linha mudando debaixo do
+ * virtualizador. A reconciliação por nonce é pendência aberta e resolve-se
+ * AQUI, no adapter, sem o componente saber.
+ */
+export type SimulacaoDeEnvio = {
+  falhar?: boolean;
+  latenciaMs?: number;
+};
+
+let simulacao: SimulacaoDeEnvio = {};
+
+export function configurarSimulacaoDeEnvio(nova: SimulacaoDeEnvio): void {
+  simulacao = nova;
+}
+
+/**
+ * Envia uma mensagem. Devolve o ID otimista, ou `undefined` se não deu.
+ *
+ * `undefined` em vez de exceção porque isto roda num handler de tecla: quebrar
+ * a árvore do React por causa de um canal que ainda não carregou seria trocar
+ * um problema por outro pior. Quem chama mantém o rascunho e a pessoa não
+ * perde o que escreveu.
+ */
+export function enviarMensagem(
+  channelId: string,
+  conteudo: string,
+): string | undefined {
+  const texto = conteudo.trim();
+  if (!texto) return undefined;
+
+  if (!usuarioLocal || !client.channels.get(channelId)) {
+    if (import.meta.env.DEV) {
+      console.error(
+        "[vortex] envio recusado: " +
+          (usuarioLocal ? `canal ${channelId} não carregado` : "sem usuário local") +
+          ". O rascunho foi preservado.",
+      );
+    }
+    return undefined;
+  }
+
+  const id = proximoId();
+
+  // Pendente ANTES de criar: o `messageCreate` já vai construir o snapshot, e
+  // marcar depois faria a linha nascer "enviada" e piscar para pendente.
+  estadosDeEnvio.set(id, "pending");
+
+  client.messages.getOrCreate(
+    id,
+    { _id: id, channel: channelId, author: usuarioLocal, content: texto },
+    true,
+  );
+
+  digitacao.aoParar(channelId);
+
+  setTimeout(
+    () => marcarEnvio(id, simulacao.falhar ? "failed" : "sent"),
+    simulacao.latenciaMs ?? 600,
+  );
+
+  return id;
+}
+
+/* -------------------------------------------------------------- digitação */
+
+/**
+ * O lado de saída do estado efêmero, com o transporte injetado.
+ *
+ * O guard de conexão não é defensivo por hábito: `EventClient.send` LANÇA
+ * quando não há socket, e digitar num app desconectado é o caso mais comum
+ * que existe — é o que a pessoa faz enquanto espera a reconexão. Um throw
+ * dentro do `onChange` do campo derrubaria a digitação inteira.
+ */
+export const digitacao = criarNotificadorDeDigitacao({
+  iniciar: (channelId) => {
+    if (conectado()) client.channels.get(channelId)?.startTyping();
+  },
+  parar: (channelId) => {
+    if (conectado()) client.channels.get(channelId)?.stopTyping();
+  },
+});

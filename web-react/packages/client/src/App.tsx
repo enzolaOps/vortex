@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+import { Composer } from "./composer/Composer";
 import {
   CHANNEL_ID,
   editarUltima,
@@ -10,6 +11,7 @@ import { createFrameRecorder, verdict, type FrameReport } from "./dev/frames";
 import { medirPrepend, type ResultadoPrepend } from "./dev/prepend";
 import { readCounters, resetCounters, type Counters } from "./dev/stats";
 import { MessageList } from "./list/MessageList";
+import { configurarSimulacaoDeEnvio } from "./sdk/adapter";
 import { Shell } from "./shell/Shell";
 
 const SEED_COUNT = 10_000;
@@ -28,6 +30,18 @@ export function App() {
   // Quem roda declara a condição — o gate não tem como detectar throttle de
   // CPU, e inferir daria um critério que muda sozinho conforme o resultado.
   const [throttled, setThrottled] = useState(true);
+
+  /**
+   * Falha de envio precisa ser VISÍVEL, não só representável.
+   *
+   * `sendState: "failed"` existe no domínio desde o primeiro dia, e um estado
+   * que nunca foi renderizado é tipo, não comportamento. Enquanto não há rede
+   * para falhar de verdade, o arnês falha por decreto.
+   */
+  const [falharEnvio, setFalharEnvio] = useState(false);
+  useEffect(() => {
+    configurarSimulacaoDeEnvio({ falhar: falharEnvio });
+  }, [falharEnvio]);
 
   /**
    * Troca de tema é sobrescrever a camada 1 e nada mais.
@@ -198,6 +212,15 @@ export function App() {
             CPU 4x
           </label>
 
+          <label className="flex items-center gap-2 text-xs text-text-2">
+            <input
+              type="checkbox"
+              checked={falharEnvio}
+              onChange={(e) => setFalharEnvio(e.target.checked)}
+            />
+            falhar envio
+          </label>
+
           {naoSeguia ? (
             <span className="rounded-2 bg-danger px-2 py-1 text-xs text-on-accent">
               INVÁLIDA — lista a {distanciaDoFim}px do fim, followOnAppend desligado
@@ -236,6 +259,7 @@ export function App() {
         </header>
       }
       conteudo={<MessageList channelId={CHANNEL_ID} />}
+      composer={<Composer channelId={CHANNEL_ID} />}
     />
   );
 }

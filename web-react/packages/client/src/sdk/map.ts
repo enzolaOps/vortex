@@ -7,7 +7,7 @@
 import type { Message } from "stoat.js";
 
 import type { Layout } from "./agrupamento";
-import type { MessageSnapshot, PresenceStatus } from "./domain";
+import type { MessageSnapshot, PresenceStatus, SendState } from "./domain";
 
 /**
  * `reactions` chega como ReactiveMap<emoji, ReactiveSet<userId>>. Achatar aqui
@@ -30,15 +30,17 @@ const HORA = new Intl.DateTimeFormat("pt-BR", {
 });
 
 /**
- * O layout entra por parâmetro, não é calculado aqui.
+ * O layout e o estado de envio entram por parâmetro, não são calculados aqui.
  *
- * Este módulo traduz UMA entidade e não conhece vizinho — quem sabe a ordem
- * da lista é o adapter. Passar o layout de fora mantém a tradução pura e
- * deixa a única parte que depende de posição num lugar só.
+ * Este módulo traduz UMA entidade e não conhece vizinho nem histórico de
+ * envio — quem sabe a ordem da lista e o que já chegou no servidor é o
+ * adapter. Passar os dois de fora mantém a tradução pura e deixa as únicas
+ * partes que dependem de contexto num lugar só.
  */
 export function toMessageSnapshot(
   message: Message,
   layout: Layout,
+  sendState: SendState,
 ): MessageSnapshot {
   return {
     id: message.id,
@@ -49,9 +51,10 @@ export function toMessageSnapshot(
     createdAtText: HORA.format(message.createdAt),
     editedAt: message.editedAt?.getTime(),
     reactions: flattenReactions(message),
-    // O protocolo não carrega isto. Default no adapter — é a camada
-    // anticorrupção fazendo o trabalho para o qual existe.
-    sendState: "sent",
+    // O protocolo não carrega isto: quem mantém é o adapter, e mensagem que
+    // veio do servidor nasce "sent". É a camada anticorrupção fazendo o
+    // trabalho para o qual existe.
+    sendState,
     iniciaGrupo: layout.iniciaGrupo,
     dia: layout.dia,
   };

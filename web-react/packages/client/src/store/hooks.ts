@@ -10,6 +10,7 @@ import {
   typing,
 } from "../sdk/adapter";
 import type { MessageSnapshot, PresenceStatus } from "../sdk/domain";
+import { rascunhos, RASCUNHO_VAZIO } from "./rascunhos";
 
 const NO_IDS: readonly string[] = [];
 
@@ -64,4 +65,17 @@ export function useTyping(channelId: string): readonly string[] {
     typing.subscriber(channelId),
     () => typing.getSnapshot(channelId) ?? NO_IDS,
   );
+}
+
+/**
+ * Rascunho do canal.
+ *
+ * Muda uma vez por tecla — é o valor mais quente do app. Assinado por canal, é
+ * o composer que acorda e mais ninguém: a lista de mensagens não re-renderiza
+ * porque alguém está escrevendo.
+ */
+export function useRascunho(channelId: string): string {
+  const getSnapshot = () => rascunhos.getSnapshot(channelId) ?? RASCUNHO_VAZIO;
+  if (import.meta.env.DEV) assertStable(getSnapshot, `useRascunho(${channelId})`);
+  return useSyncExternalStore(rascunhos.subscriber(channelId), getSnapshot);
 }
