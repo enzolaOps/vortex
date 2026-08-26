@@ -50,7 +50,14 @@ function DivisorDeDia({ rotulo }: { rotulo: string }) {
  * Como `id` é string estável, `memo` corta a cascata. É a fronteira onde a
  * memoização automática parou, não otimização preventiva.
  */
-export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
+export const MessageRow = memo(function MessageRow({
+  id,
+  semMenu = false,
+}: {
+  id: string;
+  /** Chave do arnês, não do produto. Ver `dev/opcoes.ts`. */
+  semMenu?: boolean;
+}) {
   const message = useMessage(id);
   count("rowRenders");
 
@@ -74,13 +81,8 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
 
   const falhou = message.sendState === "failed";
 
-  return (
-    <>
-      {message.dia ? <DivisorDeDia rotulo={message.dia} /> : null}
-
-      <ContextMenu>
-      <ContextMenuTrigger asChild>
-        <article
+  const linha = (
+    <article
           className={cn(
             "flex gap-3 px-4 data-[state=open]:bg-surface-1",
             // Espaço acima só quando o grupo abre. Linha de continuação cola na
@@ -160,11 +162,28 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
               </div>
             ) : null}
           </div>
-        </article>
-      </ContextMenuTrigger>
+    </article>
+  );
 
-      {/* Ícones Phosphor, weight regular, 20px — um set só, sem exceção. */}
-      <ContextMenuContent>
+  return (
+    <>
+      {message.dia ? <DivisorDeDia rotulo={message.dia} /> : null}
+
+      {/*
+        A chave do arnês NÃO muda a linha, só o que a envolve.
+
+        É o que torna o A/B honesto: com `semMenu` a `<article>` renderizada é
+        byte a byte a mesma, então a diferença de p95 entre as duas corridas é
+        o custo do `ContextMenu` por linha e mais nada.
+      */}
+      {semMenu ? (
+        linha
+      ) : (
+        <ContextMenu>
+          <ContextMenuTrigger asChild>{linha}</ContextMenuTrigger>
+
+          {/* Ícones Phosphor, weight regular, 20px — um set só, sem exceção. */}
+          <ContextMenuContent>
         <ContextMenuItem>
           <ArrowBendUpLeft size={20} aria-hidden />
           Responder
@@ -178,12 +197,13 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
           Editar
         </ContextMenuItem>
         <ContextMenuSeparator />
-        <ContextMenuItem perigo>
-          <Trash size={20} aria-hidden />
-          Apagar
-        </ContextMenuItem>
-      </ContextMenuContent>
-      </ContextMenu>
+            <ContextMenuItem perigo>
+              <Trash size={20} aria-hidden />
+              Apagar
+            </ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
+      )}
     </>
   );
 });

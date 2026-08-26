@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { ListaDeCanais } from "./canais/ListaDeCanais";
 import { Composer } from "./composer/Composer";
@@ -10,6 +10,7 @@ import {
   startFirehose,
 } from "./dev/firehose";
 import { createFrameRecorder, verdict, type FrameReport } from "./dev/frames";
+import { alternar, assinarOpcoes, lerOpcoes } from "./dev/opcoes";
 import { medirPrepend, type ResultadoPrepend } from "./dev/prepend";
 import { readCounters, resetCounters, type Counters } from "./dev/stats";
 import { MessageList } from "./list/MessageList";
@@ -68,6 +69,15 @@ export function App() {
    * canais, como no app de verdade.
    */
   const canal = useCanalAtivo();
+
+  /**
+   * A chave do A/B. Ver `dev/opcoes.ts` para o porquê de ela existir.
+   *
+   * Fica ao lado do "CPU 4x" de propósito: as duas descrevem a CONDIÇÃO da
+   * corrida, e condição de corrida pertence ao mesmo canto do arnês que o
+   * veredito.
+   */
+  const { semMenuPorLinha } = useSyncExternalStore(assinarOpcoes, lerOpcoes);
 
   const ids = useRef<readonly string[]>([]);
   const recorder = useRef(createFrameRecorder());
@@ -250,6 +260,16 @@ export function App() {
               onChange={(e) => setFalharEnvio(e.target.checked)}
             />
             falhar envio
+          </label>
+
+          <label className="flex items-center gap-2 text-xs text-text-2">
+            <input
+              type="checkbox"
+              checked={semMenuPorLinha}
+              onChange={() => alternar("semMenuPorLinha")}
+              disabled={running}
+            />
+            sem menu por linha (A/B)
           </label>
 
           {naoSeguia ? (

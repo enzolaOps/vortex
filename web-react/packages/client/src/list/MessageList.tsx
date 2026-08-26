@@ -1,7 +1,8 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 
 import { ATRIBUTO_DE_COLUNA } from "../dev/alinhamento";
+import { assinarOpcoes, lerOpcoes } from "../dev/opcoes";
 import { count } from "../dev/stats";
 import { ouvirFimDaLista } from "../store/comandos";
 import { useChannelMessageIds } from "../store/hooks";
@@ -29,6 +30,10 @@ const LIMIAR_DE_FIM = 80;
  */
 export function MessageList({ channelId }: { channelId: string }) {
   const ids = useChannelMessageIds(channelId);
+  // Lido UMA vez aqui e repassado por prop: assinar dentro da linha
+  // acrescentaria uma subscrição por linha à medição que a chave existe para
+  // fazer. Ver `dev/opcoes.ts`.
+  const { semMenuPorLinha } = useSyncExternalStore(assinarOpcoes, lerOpcoes);
   count("listRenders");
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -246,7 +251,7 @@ export function MessageList({ channelId }: { channelId: string }) {
               className="absolute inset-x-0 top-0"
               style={{ transform: `translateY(${item.start}px)` }}
             >
-              <MessageRow id={String(item.key)} />
+              <MessageRow id={String(item.key)} semMenu={semMenuPorLinha} />
             </div>
           ))}
         </div>
