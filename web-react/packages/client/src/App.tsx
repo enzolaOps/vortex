@@ -91,7 +91,10 @@ export function App() {
    * corrida, e condição de corrida pertence ao mesmo canto do arnês que o
    * veredito.
    */
-  const { semMenuPorLinha } = useSyncExternalStore(assinarOpcoes, lerOpcoes);
+  const { semMenuPorLinha, estimativaMedida } = useSyncExternalStore(
+    assinarOpcoes,
+    lerOpcoes,
+  );
 
   const ids = useRef<readonly string[]>([]);
   const recorder = useRef(createFrameRecorder());
@@ -302,6 +305,16 @@ export function App() {
             sem menu por linha (A/B)
           </label>
 
+          <label className="flex items-center gap-2 text-xs text-text-2">
+            <input
+              type="checkbox"
+              checked={estimativaMedida}
+              onChange={() => alternar("estimativaMedida")}
+              disabled={running}
+            />
+            altura 73px (A/B)
+          </label>
+
           {naoSeguia ? (
             <span className="rounded-2 bg-danger px-2 py-1 text-xs text-on-accent">
               INVÁLIDA — lista a {distanciaDoFim}px do fim, followOnAppend desligado
@@ -341,7 +354,9 @@ export function App() {
               gerador {(stats.tickMs ?? 0).toFixed(0)}ms (pior tick{" "}
               {(stats.maxTickMs ?? 0).toFixed(1)}ms) · vazão{" "}
               {report ? Math.round((stats.eventos ?? 0) / Math.max(report.seconds, 1)) : "?"}{" "}
-              ev/s de {EVENTS_PER_SECOND}
+              ev/s de {EVENTS_PER_SECOND} · altura real{" "}
+              {(stats.alturaSoma / Math.max(stats.alturaAmostras, 1)).toFixed(1)}px
+              (estimando {estimativaMedida ? 73 : 44}px)
             </span>
           ) : null}
           {/* Colunas laterais em linha própria: somadas às da lista, viram

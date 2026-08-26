@@ -58,6 +58,16 @@ export type Counters = {
    * número verificável.
    */
   eventos: number;
+  /**
+   * Altura real das linhas visíveis, somada e contada.
+   *
+   * O `estimateSize` da lista era 44px desde a fase 0 e nunca foi conferido
+   * contra a linha que existe hoje — com agrupamento, divisor de data e
+   * estado de envio. Estimativa não medida é como se chega a errar 29px por
+   * linha sem ninguém perceber por três fases.
+   */
+  alturaSoma: number;
+  alturaAmostras: number;
 };
 
 const zero = (): Counters => ({
@@ -75,6 +85,8 @@ const zero = (): Counters => ({
   tickMs: 0,
   maxTickMs: 0,
   eventos: 0,
+  alturaSoma: 0,
+  alturaAmostras: 0,
 });
 
 let counters = zero();

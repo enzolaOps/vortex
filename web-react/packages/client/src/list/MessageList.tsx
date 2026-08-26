@@ -21,6 +21,16 @@ import { MessageRow } from "./MessageRow";
 const LIMIAR_DE_FIM = 80;
 
 /**
+ * O chute original da fase 0, e a altura REAL média medida no prepend.
+ *
+ * Os 44px nunca foram medidos — foram estimados antes de existir linha com
+ * agrupamento, divisor de data e estado de envio. A medição do prepend
+ * mostrou 1441px de crescimento em 50 linhas: ~73px cada.
+ */
+const ALTURA_CHUTADA = 44;
+const ALTURA_MEDIDA = 73;
+
+/**
  * Lista de mensagens virtualizada, em modo chat.
  *
  * Ordem normal e container de scroll normal — nada de `column-reverse`,
@@ -33,14 +43,17 @@ export function MessageList({ channelId }: { channelId: string }) {
   // Lido UMA vez aqui e repassado por prop: assinar dentro da linha
   // acrescentaria uma subscrição por linha à medição que a chave existe para
   // fazer. Ver `dev/opcoes.ts`.
-  const { semMenuPorLinha } = useSyncExternalStore(assinarOpcoes, lerOpcoes);
+  const { semMenuPorLinha, estimativaMedida } = useSyncExternalStore(
+    assinarOpcoes,
+    lerOpcoes,
+  );
   count("listRenders");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const virtualizer = useVirtualizer({
     count: ids.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => 44,
+    estimateSize: () => (estimativaMedida ? ALTURA_MEDIDA : ALTURA_CHUTADA),
     // ID de entidade, nunca índice: índice corrompe o estado da linha a cada
     // inserção no topo.
     getItemKey: (i) => ids[i] ?? i,
@@ -205,6 +218,15 @@ export function MessageList({ channelId }: { channelId: string }) {
   }, [ids.length, virtualizer]);
 
   const items = virtualizer.getVirtualItems();
+
+  // Altura real das linhas na tela, para o relatório dizer se a estimativa
+  // escolhida está perto. Chutar 73 e não conferir seria repetir o erro dos 44.
+  for (const item of items) {
+    if (item.size > 0) {
+      count("alturaSoma", item.size);
+      count("alturaAmostras");
+    }
+  }
 
   /**
    * Linha medindo zero é bug, não estado.

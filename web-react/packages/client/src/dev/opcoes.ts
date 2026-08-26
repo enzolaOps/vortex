@@ -25,9 +25,24 @@ type Ouvinte = () => void;
 export type Opcoes = {
   /** Desliga o `ContextMenu` por linha. Só o menu; o resto da linha é igual. */
   readonly semMenuPorLinha: boolean;
+  /**
+   * Usa a altura de linha MEDIDA em vez do chute original de 44px.
+   *
+   * O briefing registra desde a fase 0 que `estimateSize: () => 44` erra ~29px
+   * por linha — a altura real média é ~73px, e o prepend só funciona porque a
+   * compensação do virtualizador absorve o erro. Estava classificado como
+   * "não é bug, é ajuste", com o custo descrito como "trabalho extra a cada
+   * rolagem".
+   *
+   * Esse trabalho extra é candidato ao que separa o gate de passar: a cada
+   * linha que monta, a altura real chega 29px acima da estimada, o total do
+   * virtualizador salta e a âncora precisa compensar — no mesmo frame do
+   * append, que é exatamente o frame lento.
+   */
+  readonly estimativaMedida: boolean;
 };
 
-let opcoes: Opcoes = { semMenuPorLinha: false };
+let opcoes: Opcoes = { semMenuPorLinha: false, estimativaMedida: false };
 
 const ouvintes = new Set<Ouvinte>();
 
