@@ -1,0 +1,160 @@
+/* ============================================================
+   Painel do modo edição
+   ------------------------------------------------------------
+   Sobreposto, não no fluxo. Se entrasse no grid, ligar o modo
+   mudaria a largura da coluna de mensagem — e o "preview ao
+   vivo" mostraria um layout diferente do que vai ser salvo.
+   ============================================================ */
+
+.painel {
+  position: fixed;
+  inset-block-end: var(--vx-space-4);
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  z-index: 40;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-3);
+  inline-size: min(560px, calc(100vw - var(--vx-space-6)));
+  max-block-size: min(60vh, 520px);
+  overflow-y: auto;
+
+  padding: var(--vx-space-4);
+  border: 1px solid var(--vx-border-strong);
+  border-radius: var(--vx-radius-3);
+  background: var(--vx-surface-2);
+  box-shadow: 0 8px 32px rgb(0 0 0 / 0.32);
+}
+
+.cabecalho {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vx-space-3);
+}
+
+.titulo {
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-lg);
+  font-weight: 500;
+  line-height: var(--vx-leading-title);
+}
+
+.dica {
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+}
+
+.slots {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+}
+
+.linha {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+  min-inline-size: 0;
+  padding: var(--vx-space-2);
+  border-radius: var(--vx-radius-2);
+  background: var(--vx-surface-1);
+}
+
+.rotulo {
+  flex: none;
+  inline-size: var(--vx-space-5);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.campo {
+  min-inline-size: 0;
+  flex: 1;
+  padding: var(--vx-space-1) var(--vx-space-2);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-1);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-md);
+  font-family: inherit;
+}
+
+.medida {
+  flex: none;
+  inline-size: var(--vx-space-6);
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-xs);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.acao {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-1);
+  padding: var(--vx-space-1) var(--vx-space-2);
+  border-radius: var(--vx-radius-2);
+  border: 1px solid var(--vx-border-subtle);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-xs);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.acao:hover {
+  color: var(--vx-text-1);
+  border-color: var(--vx-border-strong);
+}
+
+.rodape {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--vx-space-2);
+  padding-block-start: var(--vx-space-2);
+  border-block-start: 1px solid var(--vx-border-subtle);
+}
+
+.rodape .esquerda {
+  margin-inline-end: auto;
+}
+
+.primario {
+  background: var(--vx-accent);
+  border-color: var(--vx-accent);
+  color: var(--vx-on-accent);
+  font-size: var(--vx-size-md);
+  padding: var(--vx-space-2) var(--vx-space-4);
+}
+
+.primario:hover {
+  background: var(--vx-accent-hover);
+  border-color: var(--vx-accent-hover);
+  color: var(--vx-on-accent);
+}
+
+.secundario {
+  font-size: var(--vx-size-md);
+  padding: var(--vx-space-2) var(--vx-space-4);
+}
+
+.caixa {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-sm);
+}
+
+/* Painel estreito: o rótulo do slot some antes do resto. */
+@container (inline-size < 420px) {
+  .rotulo {
+    display: none;
+  }
+}

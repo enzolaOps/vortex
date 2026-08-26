@@ -1,6 +1,8 @@
-import { useSyncExternalStore, type ReactNode } from "react";
+import { useRef, useSyncExternalStore, type ReactNode } from "react";
 
+import { AlcaDeSlot } from "../layout/AlcaDeSlot";
 import type { PainelId, SlotId } from "../preset/schema";
+import { assinarEdicao, lerEdicao } from "../store/edicao";
 import { assinarLayout, lerLayout } from "../store/layout";
 import css from "./Shell.module.css";
 
@@ -26,11 +28,25 @@ function Slot({
   paineis: Paineis;
 }) {
   const layout = useSyncExternalStore(assinarLayout, lerLayout);
+  const editando = useSyncExternalStore(assinarEdicao, lerEdicao);
   const slot = layout.layout.slots[id];
   const ocupado = slot.painel !== null && slot.visivel;
+  const elemento = useRef<HTMLDivElement>(null);
+
+  /**
+   * Escreve a largura direto no DOM, pulando o React de propósito.
+   *
+   * Vive AQUI, e não na alça, porque quem é dono do elemento é este
+   * componente — a alça recebe a função, não a ref. Mutar ref recebida por
+   * prop é o que o React Compiler reprova, com razão.
+   */
+  function aplicarLargura(px: number) {
+    if (elemento.current) elemento.current.style.inlineSize = `${px}px`;
+  }
 
   return (
     <div
+      ref={elemento}
       className={`${css.coluna} ${css.slot}`}
       data-slot={id}
       data-painel={ocupado ? slot.painel : "vazio"}
@@ -48,6 +64,18 @@ function Slot({
       style={{ inlineSize: ocupado ? `${slot.largura}px` : 0 }}
     >
       {slot.painel !== null && slot.visivel ? paineis[slot.painel] : null}
+
+      {/* A alça só existe no modo edição. Fora dele o slot não tem nada
+          sobreposto na borda, e a borda volta a ser só uma linha. */}
+      {editando && ocupado && slot.painel ? (
+        <AlcaDeSlot
+          id={id}
+          painel={slot.painel}
+          largura={slot.largura}
+          lado={lado}
+          aplicar={aplicarLargura}
+        />
+      ) : null}
     </div>
   );
 }
@@ -73,11 +101,14 @@ export function Shell({
   ferramentas,
   conteudo,
   composer,
+  sobreposto,
 }: {
   paineis: Paineis;
   ferramentas: ReactNode;
   conteudo: ReactNode;
   composer?: ReactNode;
+  /** Camada acima do grid — modo edição, e mais nada no fluxo. */
+  sobreposto?: ReactNode;
 }) {
   return (
     <div className={css.shell}>
@@ -98,6 +129,8 @@ export function Shell({
       {DEPOIS.map((id) => (
         <Slot key={id} id={id} lado="fim" paineis={paineis} />
       ))}
+
+      {sobreposto}
     </div>
   );
 }

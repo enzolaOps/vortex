@@ -579,8 +579,32 @@ antes dela, e o que o `enforcement.md` marcava como "Fase 4" desde a fase 2:
   sem espaço morto, e a 700px o colapso segue o PAINEL membros para onde quer
   que ele tenha ido.
 
-Falta o que o usuário vê: modo edição com manipulação direta, e o picker de
-paleta com validação de contraste.
+**Modo edição pronto.** Manipulação direta: alça na borda de cada slot,
+visibilidade, qual painel vai em qual slot, repor por slot e repor tudo. Sem
+botão de aplicar — tudo já vale enquanto se mexe —, então cancelar guarda um
+retrato tirado na entrada, e o retrato inclui o bruto de origem: um desfazer
+que preserva o que entende e perde o que não entende é pior que não ter
+desfazer, porque o dano fica invisível.
+
+As duas armadilhas técnicas da referência estão mecanizadas, e medidas em
+navegador:
+
+- **O store não é tocado durante o arraste.** A largura vai direto ao DOM por
+  callback do dono do elemento. Medido: arrastando de 240 para 320px, o DOM
+  acompanha frame a frame (240 → 280 → 320) e o store fica em **240 o tempo
+  todo**; um único commit no drop. Sem isso, cada `pointermove` re-renderizaria
+  a lista de mensagens.
+- **A lista não remede durante o arraste.** O `ResizeObserver` dela já existia
+  e dispararia a cada frame; agora ele adia e `aoTerminarArraste` faz o
+  trabalho uma vez. Precisa de evento próprio porque o commit não muda tamanho
+  nenhum — a largura já estava no DOM. Confirmado pela altura média das linhas
+  mudando com a largura (84 → 87 → 79px).
+
+Teclado faz o mesmo que o ponteiro: `separator` com `aria-valuenow`, setas com
+passo de 8px, Shift para salto, Home/End nos extremos. Layout que só se ajusta
+com mouse exclui gente do produto inteiro, não de um botão.
+
+Falta o **picker de paleta com validação de contraste**.
 
 Sistema de slots, modo edição, preset versionado e compartilhável, picker de
 paleta com validação de contraste. Ver `layout-customization.md`.

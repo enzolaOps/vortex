@@ -519,9 +519,31 @@ já cobre a maior parte.
 | `TokenName` fechado, conferido contra tokens.css | Teste | Fase 4 |
 | Largura de slot limitada na escrita | Teste | Fase 4 |
 | Âncora do shell em coluna declarada | CSS + verificação em navegador | Fase 4 |
+| Store não é escrito durante o arraste | Verificação em navegador | Fase 4 |
+| Lista não remede durante o arraste | `store/arraste.ts` + teste | Fase 4 |
+| Sair do modo edição sem salvar reverte | Teste | Fase 4 |
+| Extremos da faixa são paradas exatas | Teste | Fase 4 |
 
 **Fase 0 e 1 não são opcionais.** São as que protegem as leis 1 a 4, e o custo de
 adicioná-las depois é auditar código já escrito.
+
+## O compiler avisando que a arquitetura estava errada
+
+Na fase 4 a alça de redimensionamento recebia a `ref` do slot por prop e
+escrevia no `style` do elemento — a forma óbvia de mexer no DOM sem passar
+pelo React. O React Compiler reprovou: `react-hooks/immutability`, "`alvo`
+cannot be modified".
+
+Ele estava certo, e não sobre performance. Uma `ref` recebida por prop
+continua sendo prop, props são imutáveis, e um filho escrevendo no elemento do
+pai é acoplamento invertido. O conserto — o pai expõe uma função `aplicar`, o
+filho chama — é melhor por conta própria: quem é dono do elemento é quem
+escreve nele, e a alça deixou de precisar LER o DOM para saber a largura que
+ela mesma acabou de escrever.
+
+Vale como registro do que a regra "lint do compiler reclamando = código
+errado, não regra pra desativar" significa na prática: a reclamação apontou um
+problema de desenho, não um falso positivo a contornar.
 
 ## Uma armadilha de grid que o tipo não pega
 

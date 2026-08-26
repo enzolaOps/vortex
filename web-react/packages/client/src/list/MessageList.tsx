@@ -2,6 +2,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useRef } from "react";
 
 import { ATRIBUTO_DE_COLUNA } from "../dev/alinhamento";
+import { aoTerminarArraste, estaArrastando } from "../store/arraste";
 import { count } from "../dev/stats";
 import { ouvirFimDaLista } from "../store/comandos";
 import { useChannelMessageIds } from "../store/hooks";
@@ -120,6 +121,21 @@ export function MessageList({ channelId }: { channelId: string }) {
 
       if (largura !== ultimaLargura.current) {
         ultimaLargura.current = largura;
+
+        /**
+         * Durante o arraste de um slot, NÃO remede.
+         *
+         * A regra vem da referência da fase 4 — "remedir e reancorar após o
+         * commit, nunca durante o arraste" — e o motivo é o custo: a coluna
+         * muda de largura a cada frame do arraste, e este callback remede
+         * todas as linhas. Somados, viram uma remedição completa por frame
+         * enquanto alguém segura o mouse.
+         *
+         * O trabalho não é descartado, é adiado: `aoTerminarArraste` abaixo
+         * faz a mesma coisa uma vez só, quando o commit acontece.
+         */
+        if (estaArrastando()) return;
+
         virtualizer.measure();
 
         if (import.meta.env.DEV && virtualizer.getVirtualItems().length > 0) {
@@ -186,6 +202,24 @@ export function MessageList({ channelId }: { channelId: string }) {
     // reconectaria o observer a cada frame. A contagem vem do virtualizador,
     // que já a conhece.
   }, [virtualizer]);
+
+  /**
+   * Fim do arraste de slot: remede agora, uma vez.
+   *
+   * Precisa de evento próprio porque o commit no store não muda tamanho
+   * nenhum — a largura já foi escrita no DOM durante o arraste, então o
+   * `ResizeObserver` não dispara de novo. Sem isto, a remedição adiada
+   * simplesmente nunca aconteceria, e a lista ficaria com alturas medidas
+   * numa largura que não existe mais.
+   */
+  useEffect(
+    () =>
+      aoTerminarArraste(() => {
+        virtualizer.measure();
+        if (colado.current) virtualizer.scrollToEnd();
+      }),
+    [virtualizer],
+  );
 
   /**
    * "Enviei — me leva para o fim."

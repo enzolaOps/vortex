@@ -124,15 +124,14 @@ export function resetar(): void {
 }
 
 /**
- * Sonda do arnês, enquanto o modo edição não existe.
+ * Sonda do arnês.
  *
- * A fase 4 vai ganhar manipulação direta — arrastar borda, trocar painel de
- * lado, esconder. Até lá o store não tem como ser exercitado por ninguém, e
- * layout dirigido por dados que nunca foi dirigido é layout hardcoded com
- * passos a mais.
+ * Nasceu como substituta do modo edição, que agora existe — e fica porque
+ * mudou de função: é o que permite verificar o layout em navegador sem
+ * simular ponteiro. As medições da fase 4 (troca de lado, colapso sem espaço
+ * morto, colapso seguindo o painel) foram feitas por aqui.
  *
- * Sai do bundle de produção junto com o resto do `import.meta.env.DEV`, e sai
- * do código no dia em que o modo edição chegar.
+ * Sai do bundle de produção junto com o resto do `import.meta.env.DEV`.
  */
 if (import.meta.env.DEV) {
   (globalThis as never as Record<string, unknown>).__layout = {

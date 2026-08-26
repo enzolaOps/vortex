@@ -68,6 +68,14 @@
   A âncora nunca move: está escrito no tipo (`c` não é um `SlotId`) e
   agora também aqui, onde o navegador pode obedecer.
 */
+/* `relative` para a alça de redimensionamento se posicionar sobre a borda
+   sem entrar no fluxo do grid — entrar mudaria a largura da coluna de
+   mensagem só de ligar o modo edição, e o preview mostraria um layout
+   diferente do que vai ser salvo. */
+.slot {
+  position: relative;
+}
+
 .slot[data-slot="a"] {
   grid-column: 1;
 }

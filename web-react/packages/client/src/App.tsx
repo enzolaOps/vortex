@@ -13,11 +13,13 @@ import { createFrameRecorder, verdict, type FrameReport } from "./dev/frames";
 import { medirPrepend, type ResultadoPrepend } from "./dev/prepend";
 import { readCounters, resetCounters, type Counters } from "./dev/stats";
 import { MessageList } from "./list/MessageList";
+import { PainelDeEdicao } from "./layout/PainelDeEdicao";
 import { ListaDeMembros } from "./membros/ListaDeMembros";
 import { Rail } from "./rail/Rail";
 import { configurarSimulacaoDeEnvio } from "./sdk/adapter";
 import { Shell } from "./shell/Shell";
 import { useCanalAtivo } from "./store/hooks";
+import { entrar } from "./store/edicao";
 import { selecionarServidor } from "./store/navegacao";
 
 /**
@@ -324,6 +326,16 @@ export function App() {
             {seeded > 0 ? `${seeded.toLocaleString("pt-BR")} carregadas` : "vazio"}
           </span>
 
+          {/* Entrada do modo edição.
+              Mora no cabeçalho do arnês porque o produto ainda não tem menu de
+              configuração; no cliente de verdade é de lá que ela sai. */}
+          <button
+            onClick={() => entrar()}
+            className="rounded-2 border border-border-subtle bg-surface-2 px-3 py-1 text-sm text-text-1"
+          >
+            editar layout
+          </button>
+
           <button
             onClick={() => setTema((t) => (t === "dark" ? "light" : "dark"))}
             className="rounded-2 border border-border-subtle bg-surface-2 px-3 py-1 text-sm text-text-1"
@@ -458,6 +470,7 @@ export function App() {
         )
       }
       composer={canal ? <Composer channelId={canal} /> : undefined}
+      sobreposto={<PainelDeEdicao />}
     />
   );
 }
