@@ -215,6 +215,41 @@ Consequência prática para comparar corridas: `dropped` (frames acima de
 p95 não mede. Fase 0: 2,9%. Depois da fase 3: 6,0%. Sem o menu por linha:
 5,4%.
 
+**Headless mede JS e layout; não mede pintura.**
+
+`pnpm gate` roda o firehose num Chrome headless por CDP, com throttle de CPU
+aplicado programaticamente. É barato, reprodutível e automatizável — e NÃO
+substitui a corrida em display real.
+
+Medido lado a lado, mesmo build, mesmo throttle nominal de 4x:
+
+| | headless | display real (160Hz) |
+|---|---|---|
+| p95 | 12,5ms | 18,7ms |
+| frames perdidos | 0,4–0,5% | 5,4–6,3% |
+| espalhamento entre corridas | 0,1pp | 0,9pp |
+
+Nenhum dos dois está errado: eles medem coisas diferentes. Headless não pinta
+numa superfície de verdade, então mede JS, layout e escopo de update. O display
+mede isso MAIS rasterização e composição.
+
+A distância entre eles é, muito provavelmente, o custo de PINTURA — e o
+espalhamento também: o ruído que inviabilizou três A/B seguidos praticamente
+some em headless. Isso reabre uma conclusão anterior. A remoção da máscara do
+ponto de presença mirava exatamente pintura, e foi arquivada como "não moveu o
+p95"; agora se sabe que o p95 daquela máquina não conseguia ver mudança
+daquele tamanho, e que pintura é o termo dominante ali.
+
+**Regra: use `pnpm gate` para A/B — dentro do mesmo ambiente a comparação vale
+e custa 40 segundos. Não o use para declarar que o app passa no gate.** Essa
+declaração continua exigindo tela de verdade, e o arnês continua tendo os
+botões para ela.
+
+Detalhe do throttle que muda a leitura: `Emulation.setCPUThrottlingRate` — o
+mesmo comando do DevTools — estrangula o AGENDAMENTO entre tarefas, não cada
+instrução. Uma cópia de array de 10k dentro de uma tarefa só quase não sente
+(0,04ms medido), enquanto uma semeadura com yields fica 4,8x mais lenta.
+
 **Uma janela só não decide diferença pequena.**
 
 A quarta invariante de INSTRUMENTO, e a que encerra uma investigação inteira.
@@ -506,6 +541,7 @@ já cobre a maior parte.
 | Publicação de coleção por frame | Teste | Fase 0 |
 | Quantum de vsync reportado junto do p95 | Arnês | Fase 3 |
 | Mediana de N janelas, com faixa min–max | Arnês | Fase 3 |
+| Gate headless por CDP, para A/B | `pnpm gate` | Fase 4 |
 | Equivalência p95 ≤ 16,7ms ⇔ perdidos ≤ 5% | Teste | Fase 3 |
 | Não-lida ignora o canal aberto | Teste | Fase 3 |
 | Abrir canal baixa só a parcela dele no servidor | Teste | Fase 3 |
