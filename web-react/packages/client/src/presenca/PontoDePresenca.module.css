@@ -11,9 +11,23 @@
    quando o tema do usuário trocar a paleta inteira na fase 4 —
    que é justamente o cenário onde depender de cor quebra.
 
-   CSS Module e não utilities pelo critério do styling.md: são
-   pseudo-elementos e máscara, que na className só existiriam
-   como propriedade arbitrária.
+   ------------------------------------------------------------
+   POR QUE PSEUDO-ELEMENTO E NÃO `mask-image`
+
+   A primeira versão desenhava o recorte e a barra com
+   `mask-image` (radial e linear gradient). Correto visualmente,
+   caro de rasterizar: a máscara é uma imagem gerada por
+   elemento, e há até ~50 pontos na tela ao mesmo tempo — 25 na
+   lista de mensagens, 25 na member list — repintados a cada
+   frame enquanto a lista rola com `followOnAppend`.
+
+   Suspeito nº 1 do p95 que subiu de 12,5ms para 18,7ms na
+   primeira corrida do firehose depois da fase 3.
+
+   A silhueta agora sai de um `::after` de COR SÓLIDA na cor do
+   painel: mesma leitura, custo de pintura de um retângulo. Se a
+   forma precisar ficar mais elaborada um dia, a conta a fazer é
+   esta, não a estética.
    ============================================================ */
 
 .ponto {
@@ -25,37 +39,62 @@
      avatar, e aí a escala de espaçamento é a certa. */
   inline-size: var(--vx-space-2);
   block-size: var(--vx-space-2);
+  box-sizing: border-box;
   border-radius: var(--vx-radius-4);
   /* O anel separa o ponto do avatar sem depender de contraste de cor.
      A cor vem de fora, pela var — é o painel que sabe sobre o que está. */
   box-shadow: 0 0 0 2px var(--anel, var(--vx-surface-0));
 }
 
+.ponto::after {
+  content: "";
+  position: absolute;
+  background: var(--anel, var(--vx-surface-0));
+}
+
 .online {
   background: var(--vx-status-online);
 }
 
-/* Ausente: disco recortado. A meia-lua é legível a 10px. */
+/* Cheio não tem recorte: uma caixa a menos para compor, vezes o número de
+   pontos na tela. `content: none` remove o pseudo-elemento de verdade —
+   deixá-lo com tamanho zero ainda o mantém na árvore de layout. */
+.online::after {
+  content: none;
+}
+
+/* Ausente: disco recortado por um segundo círculo na cor do painel.
+   A meia-lua é legível a 8px. */
 .idle {
   background: var(--vx-status-idle);
-  mask-image: radial-gradient(circle at 30% 30%, transparent 42%, #000 43%);
+}
+
+.idle::after {
+  inset-inline-start: -30%;
+  inset-block-start: -30%;
+  inline-size: 80%;
+  block-size: 80%;
+  border-radius: var(--vx-radius-4);
 }
 
 /* Ocupado: barra atravessada — a convenção de "não perturbe". */
 .dnd {
   background: var(--vx-status-dnd);
-  mask-image: linear-gradient(
-    to bottom,
-    #000 0 34%,
-    transparent 34% 66%,
-    #000 66% 100%
-  );
 }
 
-/* Offline: vazado. Ausência de preenchimento lê como ausência. */
+.dnd::after {
+  inset-inline: 12%;
+  inset-block-start: 37%;
+  block-size: 26%;
+}
+
+/* Offline: vazado. Ausência de preenchimento lê como ausência.
+   `border` em vez de sombra interna: uma caixa a menos para compor. */
 .offline {
   background: transparent;
-  box-shadow:
-    0 0 0 2px var(--anel, var(--vx-surface-0)),
-    inset 0 0 0 2px var(--vx-status-offline);
+  border: 2px solid var(--vx-status-offline);
+}
+
+.offline::after {
+  content: none;
 }

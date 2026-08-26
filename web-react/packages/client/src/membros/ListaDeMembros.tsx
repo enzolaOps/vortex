@@ -1,6 +1,7 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { memo, useEffect, useMemo, useRef } from "react";
 
+import { count } from "../dev/stats";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
 import {
   useMembro,
@@ -42,6 +43,7 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
   offline: boolean;
 }) {
   const membro = useMembro(id);
+  count("membrosRowRenders");
 
   // Nunca `null`: linha não resolvida mede 0px, o total encolhe, a janela
   // visível muda e o ciclo se realimenta. Placeholder com a mesma caixa.
@@ -83,6 +85,7 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
  */
 export function ListaDeMembros() {
   const serverId = useServidorAtivo();
+  count("membrosListRenders");
   const online = useMembrosOnline(serverId);
   const offline = useMembrosOffline(serverId);
   const scrollRef = useRef<HTMLDivElement>(null);

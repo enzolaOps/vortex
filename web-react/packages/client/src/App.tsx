@@ -287,6 +287,17 @@ export function App() {
               {(stats.tickMs ?? 0).toFixed(0)}ms (pior tick {(stats.maxTickMs ?? 0).toFixed(1)}ms)
             </span>
           ) : null}
+          {/* Colunas laterais em linha própria: somadas às da lista, viram
+              média e não atribuem nada — que foi exatamente o que aconteceu
+              na primeira corrida depois da fase 3. */}
+          {stats ? (
+            <span className="text-xs text-text-3">
+              lateral: {stats.membrosListRenders} member list ·{" "}
+              {stats.membrosRowRenders} linha de membro ·{" "}
+              {stats.membrosPublishes} publicações ({stats.membrosPublishMs}ms) ·{" "}
+              {stats.membroEfeitos} efeitos de membro
+            </span>
+          ) : null}
         </header>
       }
       rail={<Rail />}

@@ -230,12 +230,18 @@ function flushPublications() {
     count("publishes");
   }
   dirty.clear();
+  count("publishMs", performance.now() - started);
+
+  // Cronometrado em separado, e não somado ao de canal: são dois caminhos com
+  // custos de natureza diferente — cópia de array de um lado, ordenação de
+  // toda a member list do outro. Somados, o relatório do gate não atribui.
+  const membrosDe = performance.now();
   for (const serverId of membrosSujos) {
     publicarMembros(serverId);
-    count("publishes");
+    count("membrosPublishes");
   }
   membrosSujos.clear();
-  count("publishMs", performance.now() - started);
+  count("membrosPublishMs", performance.now() - membrosDe);
 }
 
 function agendarFlush() {
@@ -748,6 +754,7 @@ export const members = createEntityStore<MemberSnapshot>((id) => {
   const inicial = client.users.get(id);
   if (inicial) members.set(id, toMemberSnapshot(inicial, undefined));
 
+  count("membroEfeitos");
   return createRoot((dispose) => {
     createEffect(() => {
       const user = client.users.get(id);
