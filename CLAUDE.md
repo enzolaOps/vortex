@@ -629,6 +629,77 @@ Falta só o que sempre foi de fase futura — painéis que ainda não existem
 Sistema de slots, modo edição, preset versionado e compartilhável, picker de
 paleta com validação de contraste. Ver `layout-customization.md`.
 
+
+### Fase 5 — Acabamento · **próxima**
+
+A fase que o roadmap nunca teve. O polimento era suposto acontecer dentro de
+cada fase, e a suposição falhou de forma visível na fase 4: quatro controles
+nativos sem estilo em superfície de produto, uma sombra que o design system
+proíbe em letras, `:hover` como único dos oito estados num painel e nenhum no
+outro.
+
+**O que ela é:** o `review-checklist.md` aplicado superfície por superfície nas
+telas da fase 3 — rail, lista de canais, member list, linha de mensagem,
+composer. Nenhuma delas passou por essa auditoria.
+
+O alvo concreto, em ordem de valor:
+
+- **Os oito estados** (`default · hover · active · focus-visible · disabled ·
+  loading · empty · error`) em cada superfície. Hoje quase nenhuma tem os oito,
+  e `empty` e `error` praticamente não existem no app — a lista de mensagens de
+  um canal sem histórico renderiza nada, e falha de envio só tem a linha.
+- **Ritmo de espaçamento e escala tipográfica** revisados juntos. É o que a
+  referência chama de origem de personalidade num app denso, e o que não dá
+  para consertar com token novo depois.
+- **A lâmina onde ela ainda não chegou.** A assinatura existe no rail, nos
+  canais, no segmentado e no painel de edição; falta decidir se ela marca
+  também mensagem não lida e canal com menção.
+
+**A regra de método que a fase 4 ensinou, e que vale mais que a lista:**
+checklist é o penúltimo degrau da ordem de preferência do `enforcement.md`.
+Toda vez que um item desta fase puder virar lint, tipo ou teste, ele deve —
+foi o que aconteceu com o controle nativo, que virou regra de lint em vez de
+mais uma linha para alguém lembrar de conferir.
+
+**Risco aceito nesta ordenação:** parte destas superfícies vai mudar quando o
+dado real chegar na fase 6 — mensagem com anexo, avatar de verdade, estado de
+reconexão. Polir antes significa retrabalho em algumas delas. A ordem foi
+escolhida assim de propósito: o app fica aberto o dia inteiro na frente de
+quem o constrói, e incômodo diário cobra juros que retrabalho estimável não
+cobra.
+
+### Fase 6 — Rede
+
+Aqui o app fala com um servidor pela primeira vez. **Nada do que existe hoje
+já viu um backend:** não há login, não há websocket, e todo dado sai do
+firehose sintético. Isso foi escopo declarado — o `CLAUDE.md` diz que as fases
+0 a 4 são front-end — e não esquecimento.
+
+É a única fase com risco **desconhecido**. Tudo o mais no projeto é trabalho
+conhecido com custo estimável; conectar é onde moram as surpresas.
+
+O que ela cobre, e as armadilhas já mapeadas:
+
+- **Login e sessão.** `definirUsuarioLocal` é placeholder honesto desde a fase
+  0; o composer precisa de autor e hoje ele vem do arnês.
+- **A mensagem otimista com ID que muda.** Já documentada em `adapter.ts`: o
+  SDK só materializa a mensagem quando a resposta volta, com o ID do servidor,
+  enquanto a otimista tem ID local. Numa lista com `getItemKey` por ID de
+  entidade, isso é a chave da linha mudando debaixo do virtualizador. A
+  reconciliação por nonce resolve-se no adapter, sem componente saber.
+- **Reconexão.** Sem rede no spike. `conectado()` existe e é consultado nos
+  caminhos de fire-and-forget justamente porque `EventClient.send` LANÇA sem
+  socket — mas o caminho de volta nunca rodou.
+- **Mídia na linha.** Nunca testada. Reservar espaço com `aspect-ratio` a
+  partir do metadata do anexo é o que impede layout shift quebrar a ancoragem.
+- **Sessão de 8h.** Vazamento só é medível em horas, e o refcount do store
+  existe para isso desde a fase 0 sem nunca ter sido exercitado de verdade.
+
+O fork de serviço de backend continua **não sendo item de roadmap** — é o
+caminho para QUANDO uma feature forçar. Antes disso, ver a restrição de
+`linux/arm64` na § Divergência de produto: o truque do `$BUILDPLATFORM` que
+salva o cliente web não transfere para Rust.
+
 ---
 
 ## Pendências abertas
@@ -645,17 +716,17 @@ paleta com validação de contraste. Ver `layout-customization.md`.
 | Vazão real do firehose | O arnês pedia 500 ev/s e nunca reportou quanto entregou. `setInterval(16)` não garante 62 ticks/s sob throttle de 4x, e um gate que entrega metade da carga aprova metade do que afirma. Agora a vazão aparece no relatório — conferir na próxima corrida. |
 | Cauda do frame de append | **Quantificada.** Distribuição por refresh a 1.000 mensagens: 86,1% dos frames em 1× · 8,2% em 2× · 4,6% em 3× · 1,1% em 4×+. O p95 cai no balde de 3× por **0,72pp** — 29 frames de 3970. Converter esses 29 para 2× faz o gate passar. Sob CPU 4x, ~2,9% dos frames estouram 16,7ms na montagem de linha de altura variável (medir altura real + reancorar no mesmo frame). Dentro do critério do gate, listado por honestidade. Alavancas: `overscan` menor, estimativa por tipo de mensagem, pré-medição de conteúdo previsível. |
 | Estimativa de altura de linha | **Corrigida.** `estimateSize` passou de 44px, que nunca foi medido, para 73px — a altura real medida no arnês é 72,6px. Não acelerou nada (o p95 não se moveu), e a razão de ficar é outra: a estimativa antiga errava ~38px por linha, o que faz a barra de rolagem mentir sobre o tamanho do histórico e dá trabalho de compensação ao virtualizador a cada rolagem. Correção de correção, não de performance. |
-| Mídia na linha | **Nunca testada.** Sem imagem no spike. Reservar espaço com `aspect-ratio` a partir do metadata do anexo é o que impede layout shift quebrar a ancoragem. |
+| Mídia na linha | **Fase 6.** Nunca testada. Sem imagem no spike. Reservar espaço com `aspect-ratio` a partir do metadata do anexo é o que impede layout shift quebrar a ancoragem. |
 | Teste de navegador | **vitest instalado**, 19 testes cobrindo store, adapter e toast. Falta runner de NAVEGADOR: jsdom não tem engine de layout, então âncora, remedição e o firehose seguem medidos à mão no arnês. O `web/` já usa Playwright — é o candidato natural. |
 | Assertions que só o navegador exercita | A de `getSnapshot` estável agora tem teste e dispara nos quatro casos. Faltam duas, e as duas dependem de layout: **remedir após resize** e **linha medindo 0px**. jsdom não serve — é o mesmo motivo pelo qual a âncora vive no arnês. Vão junto com o runner de navegador. |
-| Reconexão e sessão longa | Sem rede no spike; vazamento de 8h precisa ser medido em horas. **Container query resolvida** — shell, composer, rail, lista de canais e member list têm a sua; a do painel de membros (<140px) só é alcançável por slot da fase 4, não por largura de janela. |
+| Reconexão e sessão longa | **Fase 6.** Sem rede no spike; vazamento de 8h precisa ser medido em horas. **Container query resolvida** — shell, composer, rail, lista de canais e member list têm a sua; a do painel de membros (<140px) só é alcançável por slot da fase 4, não por largura de janela. |
 | Firehose depois da fase 3 | **Rodado. Passa sem throttle, reprova sob CPU 4x.** Sem throttle, mediana de 3 janelas: p95 6,4ms (1,05× o refresh), 98,1% dos frames em um intervalo, **0,1% de frames perdidos contra o teto de 1%**, zero long tasks, vazão cheia de 500 ev/s — e espalhamento de 0,1% a 0,1% entre janelas. Sob CPU 4x fica em ~6% contra o teto de 5%, e ali a vazão do próprio gerador cai para 441/500. A fase 0 media 2,9% sob 4x com uma `MessageRow` que era um `<article>` de className estática — sem agrupamento, divisor de data, estado de envio, menu, composer ou colunas laterais. Parte da diferença é o produto existindo; quanto exatamente, só um A/B com mediana de 3 janelas responde. |
-| Menu de contexto no nível da lista | **Medido, não conserta o gate, e vale mesmo assim.** Hoje cada `MessageRow` monta um `ContextMenu` do Radix inteiro — Root, Trigger, Portal, Content — e linha monta e desmonta na velocidade do scroll. A/B com a mesma `<article>` nos dois lados: p99 de 24,9ms para 18,9ms e frames perdidos de 6,0% para 5,4% ao desligá-lo. O conserto é um Root para a lista, posicionado no ponteiro, com o id da linha alvo no store. |
+| Menu de contexto no nível da lista | **Fase 5. Medido, não conserta o gate, e vale mesmo assim.** Hoje cada `MessageRow` monta um `ContextMenu` do Radix inteiro — Root, Trigger, Portal, Content — e linha monta e desmonta na velocidade do scroll. A/B com a mesma `<article>` nos dois lados: p99 de 24,9ms para 18,9ms e frames perdidos de 6,0% para 5,4% ao desligá-lo. O conserto é um Root para a lista, posicionado no ponteiro, com o id da linha alvo no store. |
 | Custo de pintura | **Hipótese nova, com evidência.** O mesmo build, no mesmo throttle de 4x, dá 0,4–0,5% de frames perdidos em Chrome headless (`pnpm gate`) e 5,4–6,3% em display real — e o espalhamento entre corridas cai de 0,9pp para 0,1pp. Headless não pinta numa superfície de verdade; a diferença é quase toda rasterização e composição. Isso reabre a remoção da máscara do ponto de presença, arquivada como "não moveu o p95" quando o p95 daquela máquina não conseguia ver mudança daquele tamanho. |
 | Patamar de CPU 4x em ~6% | Contra o teto de 5%. Não bloqueia — o patamar que mede o app (sem throttle) passa com folga de 10×. A fase 0 media 2,9% sob 4x com uma `MessageRow` que era um `<article>` de className estática: sem agrupamento, divisor de data, estado de envio, menu, composer ou colunas laterais. Parte da diferença é o produto existindo; quanto exatamente, só um A/B com mediana de 3 janelas responde — e agora ele decide, porque a contagem enxerga onde o percentil não enxergava. |
-| Apelido por servidor na member list | O snapshot de membro é keyed por ID de USUÁRIO, e apelido mora no `ServerMember` — uma chave de usuário não sabe de qual servidor se fala. `toMemberSnapshot` já aceita o apelido; falta a chave composta. |
-| Categorias de canal | `server.categories` existe no protocolo e a coluna ignora, separando só texto de voz. Categoria de verdade pede ordem própria, colapso persistido e arrastar-e-soltar. |
-| Lado lógico no wrapper de Tooltip | O Radix só fala `side` físico. Hoje o `avoidCollisions` cobre o caso real (rail movido = sem espaço daquele lado = vira sozinho), mas o mapeamento logical→physical deveria viver no wrapper. |
+| Apelido por servidor na member list | **Fase 5.** O snapshot de membro é keyed por ID de USUÁRIO, e apelido mora no `ServerMember` — uma chave de usuário não sabe de qual servidor se fala. `toMemberSnapshot` já aceita o apelido; falta a chave composta. |
+| Categorias de canal | **Fase 5.** `server.categories` existe no protocolo e a coluna ignora, separando só texto de voz. Categoria de verdade pede ordem própria, colapso persistido e arrastar-e-soltar. |
+| Lado lógico no wrapper de Tooltip | **Fase 5.** O Radix só fala `side` físico. Hoje o `avoidCollisions` cobre o caso real (rail movido = sem espaço daquele lado = vira sozinho), mas o mapeamento logical→physical deveria viver no wrapper. |
 
 ---
 
