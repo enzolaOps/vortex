@@ -139,6 +139,62 @@ describe("largura fica dentro dos limites", () => {
   });
 });
 
+describe("a semente de tema", () => {
+  it("sobrevive a um ciclo ler → escrever", () => {
+    const original = {
+      version: 1,
+      layout: { slots: {} },
+      tema: { modo: "claro", matiz: 120, croma: 1.5, acento: "#00aa55" },
+    };
+
+    const { preset, bruto } = lerPreset(JSON.stringify(original));
+    expect(preset.tema).toEqual(original.tema);
+
+    const saida = JSON.parse(escreverPreset(preset, bruto)) as typeof original;
+    expect(saida.tema).toEqual(original.tema);
+  });
+
+  it("campo inválido cai no padrão em vez de explodir num render", () => {
+    // `acento` é a única string livre do schema inteiro, e um hex que não é hex
+    // viraria exceção lá na frente, dentro de `hexParaOklch`, longe daqui.
+    const { preset } = lerPreset(
+      JSON.stringify({
+        version: 1,
+        layout: { slots: {} },
+        tema: { modo: "escuro", matiz: "roxo", croma: -5, acento: "javascript:alert(1)" },
+      }),
+    );
+
+    expect(preset.tema?.acento).toBe("#bcaef2");
+    expect(preset.tema?.matiz).toBe(295);
+    expect(preset.tema?.croma).toBe(0);
+  });
+
+  it("matiz fora de volta é normalizado, não rejeitado", () => {
+    const { preset } = lerPreset(
+      JSON.stringify({ version: 1, layout: {}, tema: { modo: "escuro", matiz: 725 } }),
+    );
+    expect(preset.tema?.matiz).toBe(5);
+  });
+
+  it("a semente também não tem onde guardar dado de sessão", () => {
+    const texto = escreverPreset({
+      ...PRESET_PADRAO,
+      tema: { modo: "escuro", matiz: 295, croma: 1, acento: "#bcaef2" },
+    });
+    const saida = JSON.parse(texto) as { tema: Record<string, unknown> };
+
+    // Quatro campos, e o tipo não admite um quinto. Uma string de ID não teria
+    // onde entrar nem se alguém quisesse.
+    expect(Object.keys(saida.tema).sort()).toEqual([
+      "acento",
+      "croma",
+      "matiz",
+      "modo",
+    ]);
+  });
+});
+
 describe("nenhum dado de sessão sai daqui", () => {
   /**
    * O teste feio que transforma privacidade em algo que não pode ser violado

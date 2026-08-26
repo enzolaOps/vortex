@@ -1,0 +1,120 @@
+/* ============================================================
+   Picker de paleta
+   ------------------------------------------------------------
+   Quatro controles para vinte tokens. A proporção É o design:
+   o usuário mexe em matiz e saturação, o app decide toda a
+   luminosidade, e é a luminosidade que carrega o contraste.
+   ============================================================ */
+
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+  padding-block-start: var(--vx-space-3);
+  border-block-start: 1px solid var(--vx-border-subtle);
+}
+
+.linha {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+  min-inline-size: 0;
+}
+
+.rotulo {
+  flex: none;
+  inline-size: var(--vx-space-6);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.grupo {
+  display: flex;
+  gap: var(--vx-space-1);
+}
+
+.opcao {
+  padding: var(--vx-space-1) var(--vx-space-3);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-2);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-sm);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.opcao[aria-pressed="true"] {
+  background: var(--vx-accent);
+  border-color: var(--vx-accent);
+  color: var(--vx-on-accent);
+}
+
+.cor {
+  flex: none;
+  inline-size: var(--vx-space-6);
+  block-size: var(--vx-space-5);
+  padding: 0;
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-1);
+  background: none;
+  cursor: pointer;
+}
+
+.faixa {
+  flex: 1;
+  min-inline-size: 0;
+  accent-color: var(--vx-accent);
+}
+
+.medida {
+  flex: none;
+  inline-size: var(--vx-space-6);
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-xs);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.dica {
+  min-inline-size: 0;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+}
+
+.amostras {
+  display: flex;
+  gap: var(--vx-space-1);
+}
+
+.amostra {
+  flex: 1;
+  block-size: var(--vx-space-5);
+  border-radius: var(--vx-radius-1);
+  /* A borda existe para a amostra de fundo não sumir sobre o próprio fundo —
+     que é exatamente a amostra mais importante de conseguir ver. */
+  border: 1px solid var(--vx-border-subtle);
+}
+
+.veredito {
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.veredito[data-ok="false"] {
+  color: var(--vx-danger);
+}
+
+.veredito code {
+  font-family: var(--vx-font-mono);
+}
+
+/* Painel estreito: a dica sai antes dos controles. */
+@container (inline-size < 420px) {
+  .dica {
+    display: none;
+  }
+}

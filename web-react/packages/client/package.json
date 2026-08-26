@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "contrast": "node scripts/contrast.mjs",
+    "contrast": "vitest run src/tema/contraste.test.ts",
     "check": "pnpm typecheck && pnpm lint && pnpm contrast && pnpm classes && pnpm test",
     "classes": "node scripts/classes.mjs",
     "test": "vitest run",

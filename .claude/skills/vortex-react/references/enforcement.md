@@ -489,7 +489,7 @@ já cobre a maior parte.
 |---|---|---|
 | Arbitrary values | Lint (erro) | Fase 1 |
 | Cores default do Tailwind | Ausência no `@theme` | Fase 1 |
-| Contraste dos tokens | `pnpm contrast` | Fase 1 |
+| Contraste dos tokens | `pnpm contrast` (teste, pares compartilhados) | Fase 1 |
 | Import direto de Radix | Lint de boundary | Fase 2 |
 | `cn()` na escala do projeto | `pnpm classes` | Fase 2 |
 | `left`/`right` em painel | Lint | Fase 2 |
@@ -523,9 +523,47 @@ já cobre a maior parte.
 | Lista não remede durante o arraste | `store/arraste.ts` + teste | Fase 4 |
 | Sair do modo edição sem salvar reverte | Teste | Fase 4 |
 | Extremos da faixa são paradas exatas | Teste | Fase 4 |
+| Semente padrão reproduz tokens.css nos 20 tokens | Teste | Fase 4 |
+| Nenhuma escolha do picker reprova contraste | Teste de varredura | Fase 4 |
+| Uma lista de pares só, para CI e runtime | `tema/pares.ts` | Fase 4 |
+| Semente de preset validada campo a campo | Teste | Fase 4 |
 
 **Fase 0 e 1 não são opcionais.** São as que protegem as leis 1 a 4, e o custo de
 adicioná-las depois é auditar código já escrito.
+
+## Contraste garantido por construção, não por aviso
+
+A referência pede "validar contraste no momento da escolha, avisando ou
+corrigindo antes de aplicar". O picker de paleta foi além, e a diferença é
+grande: **avisar protege quem lê o aviso; construir de modo que não dê para
+errar protege todo mundo.**
+
+O mecanismo é a divisão de responsabilidade. O usuário escolhe matiz, croma e
+cor de ação; o app decide **toda a luminosidade**, a partir de rampas fixas. Em
+OKLCH o L é perceptualmente uniforme, então a mesma rampa entrega o mesmo
+contraste em qualquer matiz. Uma varredura em teste — matiz do neutro × matiz
+do acento × croma × modo — prova que nenhuma combinação possível reprova.
+
+Duas consequências que valem mais que a feature:
+
+**A varredura encontrou folga zero na paleta que já estava no ar.**
+`--vx-border-strong` sobre `--vx-surface-3` media exatamente 3,00:1 no tema
+escuro. Passava no `pnpm contrast` e passava por sorte — qualquer matiz
+diferente do violáceo original derrubava o par, e mesmo sem picker qualquer
+ajuste futuro quebraria. A luminosidade subiu, e a folga real hoje é 3,45:1.
+Um verificador que só diz "passou" esconde o quanto passou raspando; por isso
+o relatório imprime sempre o par mais apertado.
+
+**Uma lista de pares só.** Ela vivia dentro de `scripts/contrast.mjs`. Duas
+listas que precisam concordar sempre divergem — e a divergência aqui teria a
+forma pior possível: o CI aprovando por uma régua e a paleta do usuário por
+outra. `pnpm contrast` virou teste e importa `tema/pares.ts`, o mesmo módulo
+que o picker usa em runtime.
+
+O preset carrega a SEMENTE, não os 20 tokens derivados. Tokens crus num preset
+podem ter sido editados à mão para qualquer coisa, e quem abrisse aplicaria uma
+paleta que ninguém validou; com a semente, quem recebe deriva, e a garantia da
+varredura vale para o preset de qualquer pessoa.
 
 ## O compiler avisando que a arquitetura estava errada
 

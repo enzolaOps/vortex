@@ -547,7 +547,7 @@ não tinha resolução para vê-las. As duas mais baratas (máscara no ponto de
 presença, menu por linha) foram removidas ou viraram pendência mesmo assim,
 porque custam de qualquer jeito.
 
-### Fase 4 — Customização · **em andamento**
+### Fase 4 — Customização · **concluída**
 
 Sistema de slots, modo edição, preset versionado e compartilhável, picker de
 paleta com validação de contraste. Ver `layout-customization.md`.
@@ -604,7 +604,27 @@ Teclado faz o mesmo que o ponteiro: `separator` com `aria-valuenow`, setas com
 passo de 8px, Shift para salto, Home/End nos extremos. Layout que só se ajusta
 com mouse exclui gente do produto inteiro, não de um botão.
 
-Falta o **picker de paleta com validação de contraste**.
+**Picker de paleta pronto**, e ele não valida contraste — ele torna contraste
+ruim impossível. Quatro controles para vinte tokens: o usuário escolhe matiz,
+saturação e cor de ação, o app decide **toda a luminosidade**. Em OKLCH o L é
+perceptualmente uniforme, então rampa fixa de L entrega o mesmo contraste em
+qualquer matiz, e uma varredura em teste (matiz × matiz de acento × croma ×
+modo) prova que nenhuma combinação reprova. Avisar protege quem lê o aviso;
+construir assim protege todo mundo.
+
+A varredura achou folga zero na paleta que já estava no ar: `--vx-border-strong`
+sobre `--vx-surface-3` media 3,00:1 exatos no escuro — aprovado por sorte, e
+qualquer matiz diferente do violáceo original derrubava. Corrigido; a folga
+real hoje é 3,45:1.
+
+A lista de pares de contraste era duplicada entre o `pnpm contrast` e o que o
+picker precisaria. Agora é uma só (`tema/pares.ts`), e o `pnpm contrast` virou
+teste que a importa. O preset carrega a SEMENTE, não os tokens derivados: com
+tokens crus, quem recebesse aplicaria uma paleta que ninguém validou.
+
+A fase 4 está **completa**: slots, modo edição, preset versionado e picker.
+Falta só o que sempre foi de fase futura — painéis que ainda não existem
+(thread, fixados, perfil, voz) entrando na união `PainelId`.
 
 Sistema de slots, modo edição, preset versionado e compartilhável, picker de
 paleta com validação de contraste. Ver `layout-customization.md`.

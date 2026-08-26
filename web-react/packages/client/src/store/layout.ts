@@ -14,6 +14,7 @@
  * O snapshot é o objeto `Preset`, guardado por referência e trocado inteiro na
  * escrita — a armadilha nº 1 continua valendo: nada é montado no getter.
  */
+import { SEMENTE_PADRAO, type Semente } from "../tema/derivar";
 import {
   limitarLargura,
   PRESET_PADRAO,
@@ -117,6 +118,39 @@ export function slotDe(painel: PainelId): SlotId | undefined {
   return (Object.keys(slots) as SlotId[]).find((id) => slots[id].painel === painel);
 }
 
+/**
+ * A semente de tema em vigor. Nunca `undefined` para quem lê.
+ *
+ * Preset sem tema é preset que não opinou sobre cor, e a resposta certa é a
+ * paleta de fábrica — não um estado especial que todo componente precise
+ * tratar.
+ */
+export function lerSemente(): Semente {
+  return preset.tema ?? SEMENTE_PADRAO.escuro;
+}
+
+/**
+ * Troca a semente.
+ *
+ * NÃO pinta: quem pinta é `tema/pintor.ts`, assinando este store. A primeira
+ * versão escrevia no `document` daqui e o teste reprovou com `document is not
+ * defined` — store que depende de DOM é store sem teste.
+ */
+export function definirSemente(nova: Semente): void {
+  if (
+    preset.tema &&
+    preset.tema.modo === nova.modo &&
+    preset.tema.matiz === nova.matiz &&
+    preset.tema.croma === nova.croma &&
+    preset.tema.acento === nova.acento
+  ) {
+    return;
+  }
+
+  preset = { ...preset, tema: nova };
+  emitir();
+}
+
 export function resetar(): void {
   preset = PRESET_PADRAO;
   bruto = {};
@@ -140,5 +174,7 @@ if (import.meta.env.DEV) {
     trocar: trocarSlots,
     resetar,
     onde: slotDe,
+    semente: lerSemente,
+    definirSemente,
   };
 }

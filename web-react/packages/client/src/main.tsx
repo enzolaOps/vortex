@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+import { iniciarPintura } from "./tema/pintor";
 import { App } from "./App";
 import { Toaster } from "./components/ui/Toast";
 import { TooltipProvider } from "./components/ui/Tooltip";
@@ -8,6 +9,8 @@ import "./styles/tokens.css";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("#root ausente no index.html");
+
+iniciarPintura();
 
 createRoot(root).render(
   <StrictMode>

@@ -23,7 +23,37 @@ import {
   type SlotConfig,
   type SlotId,
 } from "./schema";
+import { LIMITES_DA_SEMENTE, SEMENTE_PADRAO, type Modo, type Semente } from "../tema/derivar";
 import { ehTokenDeTema, type TemaValido } from "./tokens";
+
+const HEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
+/**
+ * Lê a semente de tema, ou devolve `undefined`.
+ *
+ * Valida campo a campo em vez de confiar na forma: um preset vem de fora, e
+ * `acento` é a única string livre do schema inteiro. Hex que não é hex viraria
+ * `hexParaOklch` lançando lá na frente, longe daqui, num render.
+ */
+function lerSemente(v: unknown): Semente | undefined {
+  if (!ehObjeto(v)) return undefined;
+
+  const modo: Modo = v.modo === "claro" ? "claro" : "escuro";
+  const padrao = SEMENTE_PADRAO[modo];
+  const acento = typeof v.acento === "string" && HEX.test(v.acento) ? v.acento : padrao.acento;
+
+  const matiz =
+    typeof v.matiz === "number" && Number.isFinite(v.matiz)
+      ? ((v.matiz % 360) + 360) % 360
+      : padrao.matiz;
+
+  const croma =
+    typeof v.croma === "number" && Number.isFinite(v.croma)
+      ? Math.min(LIMITES_DA_SEMENTE.croma.max, Math.max(LIMITES_DA_SEMENTE.croma.min, v.croma))
+      : padrao.croma;
+
+  return { modo, matiz, croma, acento };
+}
 
 /**
  * O preset lido, mais o objeto BRUTO de onde ele veio.
@@ -171,6 +201,7 @@ export function lerPreset(texto: string): PresetLido {
     slots[id] = lerSlot(slotsBruto[id], PRESET_PADRAO.layout.slots[id]);
   }
 
+  const semente = "tema" in bruto ? lerSemente(bruto.tema) : undefined;
   const { tema, ignoradas } = lerTema(bruto.theme);
   if (ignoradas.length > 0) {
     avisos.push(
@@ -183,6 +214,7 @@ export function lerPreset(texto: string): PresetLido {
     preset: {
       version: versao,
       layout: { slots },
+      ...(semente ? { tema: semente } : {}),
       ...(Object.keys(tema).length > 0 ? { theme: tema } : {}),
     },
     bruto,
@@ -224,6 +256,7 @@ export function escreverPreset(
   const conhecido: Record<string, unknown> = {
     version: preset.version,
     layout: { slots: preset.layout.slots },
+    ...(preset.tema ? { tema: preset.tema } : {}),
     ...(preset.theme ? { theme: preset.theme } : {}),
   };
   return JSON.stringify(mesclar(bruto, conhecido), null, 2);

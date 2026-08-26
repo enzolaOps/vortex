@@ -13,6 +13,7 @@
  * Preset já compartilhado não volta atrás. É a única regra deste projeto cujo
  * erro é irreversível.
  */
+import type { Semente } from "../tema/derivar";
 import type { TokenName } from "./tokens";
 
 /** A versão que este código escreve. Migração explícita entre versões. */
@@ -71,6 +72,24 @@ export type TemaPreset = Partial<Record<TokenName, string>>;
 export type Preset = {
   readonly version: number;
   readonly layout: LayoutPreset;
+  /**
+   * A SEMENTE, não a paleta inteira.
+   *
+   * Carregar os 20 tokens derivados seria maior, redundante, e — o que
+   * importa — abriria mão da garantia: um preset com tokens crus pode ter sido
+   * editado à mão para qualquer coisa, e quem abrisse aplicaria uma paleta que
+   * ninguém validou. Com a semente, o app que recebe DERIVA, e a varredura de
+   * contraste vale para o preset de qualquer pessoa.
+   *
+   * A semente também não tem onde esconder dado de sessão: quatro campos,
+   * todos números ou enum, nenhum deles string livre além de um hex.
+   */
+  readonly tema?: Semente;
+  /**
+   * Override cru de token — a escotilha que a referência prevê para "se
+   * depois for preciso dar mais poder". Aplicado POR CIMA da semente e
+   * deliberadamente não validado: quem usa, assume.
+   */
   readonly theme?: TemaPreset;
 };
 

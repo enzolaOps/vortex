@@ -54,7 +54,7 @@
 
   /* --- Bordas ------------------------------------------------ */
   --vx-border-subtle: #2b2934;
-  --vx-border-strong: #7b7492;
+  --vx-border-strong: #857e9d;
 
   /* --- Ação --------------------------------------------------
      Lilás pastel. No escuro o pastel é o preenchimento e o texto
@@ -189,7 +189,7 @@
   --vx-text-3: #625b73;
 
   --vx-border-subtle: #e4dff0;
-  --vx-border-strong: #8c85a0;
+  --vx-border-strong: #867e99;
 
   --vx-accent: #5b45c4;
   --vx-accent-hover: #4a35ad;
@@ -223,7 +223,7 @@
     --vx-text-3: #625b73;
 
     --vx-border-subtle: #e4dff0;
-    --vx-border-strong: #8c85a0;
+    --vx-border-strong: #867e99;
 
     --vx-accent: #5b45c4;
     --vx-accent-hover: #4a35ad;

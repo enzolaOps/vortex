@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { ListaDeCanais } from "./canais/ListaDeCanais";
 import { Composer } from "./composer/Composer";
@@ -20,6 +20,8 @@ import { configurarSimulacaoDeEnvio } from "./sdk/adapter";
 import { Shell } from "./shell/Shell";
 import { useCanalAtivo } from "./store/hooks";
 import { entrar } from "./store/edicao";
+import { assinarLayout, definirSemente, lerSemente } from "./store/layout";
+import { SEMENTE_PADRAO } from "./tema/derivar";
 import { selecionarServidor } from "./store/navegacao";
 
 /**
@@ -71,14 +73,16 @@ export function App() {
   /**
    * Troca de tema é sobrescrever a camada 1 e nada mais.
    *
-   * O Tailwind não sabe que temas existem: as utilities apontam para as
-   * mesmas vars, e trocar `data-theme` no elemento raiz reflui tudo de
-   * graça. É a razão de os tokens não morarem no `@theme`.
+   * O Tailwind não sabe que temas existem: as utilities apontam para as mesmas
+   * vars, e trocar a semente reescreve as vars na raiz de graça. É a razão de
+   * os tokens não morarem no `@theme`.
+   *
+   * Desde o picker, o botão mexe na SEMENTE em vez de no `data-theme`: duas
+   * fontes decidindo o modo dariam um botão que troca o tema e um picker que o
+   * troca de volta.
    */
-  const [tema, setTema] = useState<"dark" | "light">("dark");
-  useEffect(() => {
-    document.documentElement.dataset.theme = tema;
-  }, [tema]);
+  const semente = useSyncExternalStore(assinarLayout, lerSemente);
+
   /**
    * O canal aberto vem do store de navegação, não de uma constante.
    *
@@ -337,10 +341,16 @@ export function App() {
           </button>
 
           <button
-            onClick={() => setTema((t) => (t === "dark" ? "light" : "dark"))}
+            onClick={() =>
+              definirSemente({
+                ...SEMENTE_PADRAO[semente.modo === "escuro" ? "claro" : "escuro"],
+                matiz: semente.matiz,
+                croma: semente.croma,
+              })
+            }
             className="rounded-2 border border-border-subtle bg-surface-2 px-3 py-1 text-sm text-text-1"
           >
-            {tema === "dark" ? "tema: escuro" : "tema: claro"}
+            {semente.modo === "escuro" ? "tema: escuro" : "tema: claro"}
           </button>
 
           <label className="flex items-center gap-2 text-xs text-text-2">

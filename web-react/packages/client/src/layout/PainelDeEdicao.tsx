@@ -11,6 +11,7 @@ import {
 import { iniciarArraste, terminarArraste } from "../store/arraste";
 import { assinarEdicao, lerEdicao, sair, temMudanca } from "../store/edicao";
 import { assinarLayout, definirSlot, lerLayout } from "../store/layout";
+import { PickerDePaleta } from "./PickerDePaleta";
 import css from "./PainelDeEdicao.module.css";
 
 const NOME: Record<PainelId, string> = {
@@ -169,6 +170,8 @@ export function PainelDeEdicao() {
           );
         })}
       </div>
+
+      <PickerDePaleta />
 
       <footer className={css.rodape}>
         <button
