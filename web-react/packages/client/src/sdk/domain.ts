@@ -36,6 +36,30 @@ export type MessageSnapshot = {
    * preenche com default; quando existir backend para isso, só o adapter muda.
    */
   readonly sendState: SendState;
+
+  /**
+   * Primeira mensagem do autor naquela janela: mostra avatar, nome e hora.
+   *
+   * Mensagens consecutivas do mesmo autor dentro de uma janela curta agrupam
+   * sem repetir avatar e nome. É o que faz a lista parecer conversa em vez de
+   * log — e é densidade, não enfeite: repetir o cabeçalho a cada linha custa
+   * ~28px de altura por mensagem num app onde caber histórico é o ponto.
+   */
+  readonly iniciaGrupo: boolean;
+
+  /**
+   * Rótulo do divisor de data, quando esta linha abre um dia novo.
+   *
+   * Vive no snapshot, e não no render, porque depende da mensagem ANTERIOR — e
+   * a lei nº 1 diz que a linha assina apenas a si mesma. Ler o vizinho no
+   * render faria a linha re-renderizar quando o vizinho mudasse.
+   *
+   * O que torna isso possível: `authorId` e `createdAt` são imutáveis depois
+   * da criação, então agrupamento e divisor só mudam em INSERÇÃO e REMOÇÃO,
+   * nunca em edição ou reaction. O adapter recalcula nesses dois momentos e o
+   * campo se comporta como qualquer outro do snapshot.
+   */
+  readonly dia: string | undefined;
 };
 
 export type PresenceStatus = "online" | "idle" | "dnd" | "offline";

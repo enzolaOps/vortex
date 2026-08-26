@@ -6,6 +6,7 @@
  */
 import type { Message } from "stoat.js";
 
+import type { Layout } from "./agrupamento";
 import type { MessageSnapshot, PresenceStatus } from "./domain";
 
 /**
@@ -28,7 +29,17 @@ const HORA = new Intl.DateTimeFormat("pt-BR", {
   second: "2-digit",
 });
 
-export function toMessageSnapshot(message: Message): MessageSnapshot {
+/**
+ * O layout entra por parâmetro, não é calculado aqui.
+ *
+ * Este módulo traduz UMA entidade e não conhece vizinho — quem sabe a ordem
+ * da lista é o adapter. Passar o layout de fora mantém a tradução pura e
+ * deixa a única parte que depende de posição num lugar só.
+ */
+export function toMessageSnapshot(
+  message: Message,
+  layout: Layout,
+): MessageSnapshot {
   return {
     id: message.id,
     channelId: message.channelId,
@@ -41,6 +52,8 @@ export function toMessageSnapshot(message: Message): MessageSnapshot {
     // O protocolo não carrega isto. Default no adapter — é a camada
     // anticorrupção fazendo o trabalho para o qual existe.
     sendState: "sent",
+    iniciaGrupo: layout.iniciaGrupo,
+    dia: layout.dia,
   };
 }
 

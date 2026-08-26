@@ -10,6 +10,7 @@ import {
 } from "../components/ui/ContextMenu";
 
 import { count } from "../dev/stats";
+import { cn } from "../lib/cn";
 import { useMessage, usePresence } from "../store/hooks";
 
 const STATUS_CLASS: Record<string, string> = {
@@ -19,13 +20,6 @@ const STATUS_CLASS: Record<string, string> = {
   offline: "bg-status-offline",
 };
 
-/**
- * Assina APENAS a própria mensagem.
- *
- * É aqui que a lei nº 1 se paga: editar uma mensagem, somar uma reaction ou
- * resolver um upload toca esta linha e nenhuma outra. A lista acima só conhece
- * IDs e não re-renderiza por causa disto.
- */
 /**
  * O ponto de presença assina sozinho.
  *
@@ -51,17 +45,39 @@ function PresenceDot({ userId }: { userId: string }) {
 }
 
 /**
- * `memo` aqui NÃO é brigar com o React Compiler.
+ * Divisor de data.
  *
- * O compiler declarou explicitamente que pula o `MessageList`
- * (`react-hooks/incompatible-library`, por causa do `useVirtualizer`). Sem
- * compilação, os elementos filhos são recriados a cada render da lista e as
- * ~25 linhas visíveis re-renderizam junto — medido: 300 renders de lista
- * viraram 7.500 de linha, exatamente 25x.
+ * Faz parte da MESMA linha virtualizada, não é um item separado da lista.
+ * Item próprio significaria que os índices do virtualizador deixam de
+ * casar com os índices de mensagem, e o `getItemKey` por ID de entidade —
+ * que é o que segura a âncora no prepend — perderia o sentido.
+ */
+function DivisorDeDia({ rotulo }: { rotulo: string }) {
+  return (
+    <div className="flex items-center gap-3 px-4 pt-5 pb-1" role="separator">
+      <span className="h-px flex-1 bg-border-subtle" />
+      <span className="text-xs text-text-3">{rotulo}</span>
+      <span className="h-px flex-1 bg-border-subtle" />
+    </div>
+  );
+}
+
+/**
+ * Assina APENAS a própria mensagem — inclusive o agrupamento.
  *
- * Como `id` é string estável, `memo` corta a cascata e a linha volta a
- * re-renderizar só quando a própria mensagem muda. É a fronteira onde a
- * memoização automática parou, não uma otimização preventiva.
+ * É aqui que a lei nº 1 se paga: editar, reagir ou resolver um upload toca
+ * esta linha e nenhuma outra. A lista acima só conhece IDs.
+ *
+ * Agrupamento e divisor de data dependem do vizinho, mas chegam prontos no
+ * snapshot: a derivação acontece no adapter, na escrita. A linha continua sem
+ * saber que existe uma linha antes dela.
+ *
+ * `memo` NÃO é brigar com o React Compiler. Ele declarou que pula o
+ * `MessageList` (`react-hooks/incompatible-library`, por causa do
+ * `useVirtualizer`), e sem compilação os filhos são recriados a cada render da
+ * lista — medido: 300 renders de lista viraram 7.500 de linha, exatamente 25x.
+ * Como `id` é string estável, `memo` corta a cascata. É a fronteira onde a
+ * memoização automática parou, não otimização preventiva.
  */
 export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
   const message = useMessage(id);
@@ -85,32 +101,61 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
     );
   }
 
+  const falhou = message.sendState === "failed";
+
   return (
-    <ContextMenu>
+    <>
+      {message.dia ? <DivisorDeDia rotulo={message.dia} /> : null}
+
+      <ContextMenu>
       <ContextMenuTrigger asChild>
-        <article className="flex gap-3 px-4 py-2 data-[state=open]:bg-surface-1">
+        <article
+          className={cn(
+            "flex gap-3 px-4 data-[state=open]:bg-surface-1",
+            // Espaço acima só quando o grupo abre. Linha de continuação cola na
+            // anterior — é o que faz a lista parecer conversa em vez de log, e
+            // o que devolve altura para caber histórico.
+            message.iniciaGrupo ? "pt-3 pb-0.5" : "py-0.5",
+            // Envio pendente esmaece a linha inteira; falha marca a borda de
+            // início. Nunca só cor: o rótulo ao lado da hora diz o que houve.
+            message.sendState === "pending" && "opacity-60",
+            falhou && "border-s-2 border-danger",
+          )}
+        >
+          {/* A calha do avatar existe mesmo na continuação: é o que mantém o
+              texto alinhado ao longo do grupo inteiro. */}
           <div className="relative mt-1 size-5 shrink-0">
-            <div className="size-5 rounded-4 bg-surface-3" />
-            {/* Presença nunca só por cor: o anel de fundo dá a forma. */}
-            <PresenceDot userId={message.authorId ?? ""} />
+            {message.iniciaGrupo ? (
+              <>
+                <div className="size-5 rounded-4 bg-surface-3" />
+                {/* Presença nunca só por cor: o anel de fundo dá a forma. */}
+                <PresenceDot userId={message.authorId ?? ""} />
+              </>
+            ) : null}
           </div>
 
           {/* minmax(0,1fr) do lado flex: sem isto uma URL de 400 chars estoura. */}
           <div className="min-w-0 flex-1">
-            <div className="flex items-baseline gap-2">
-              <span className="text-md font-medium text-text-1">
-                {message.authorId ?? "desconhecido"}
-              </span>
-              <time className="text-xs text-text-3">
-                {message.createdAtText}
-              </time>
-              {message.editedAt ? (
-                <span className="text-xs text-text-3">(editada)</span>
-              ) : null}
-              {message.sendState !== "sent" ? (
-                <span className="text-xs text-warning">{message.sendState}</span>
-              ) : null}
-            </div>
+            {message.iniciaGrupo ? (
+              <div className="flex items-baseline gap-2">
+                <span className="text-md font-medium text-text-1">
+                  {message.authorId ?? "desconhecido"}
+                </span>
+                <time className="text-xs text-text-3">
+                  {message.createdAtText}
+                </time>
+                {message.editedAt ? (
+                  <span className="text-xs text-text-3">(editada)</span>
+                ) : null}
+                {message.sendState !== "sent" ? (
+                  <span
+                    className={`text-xs ${falhou ? "text-danger" : "text-text-3"}`}
+                  >
+                    {falhou ? "não enviada" : "enviando…"}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
 
             <p className="text-md leading-message wrap-anywhere text-text-2">
               {message.content}
@@ -152,6 +197,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
           Apagar
         </ContextMenuItem>
       </ContextMenuContent>
-    </ContextMenu>
+      </ContextMenu>
+    </>
   );
 });

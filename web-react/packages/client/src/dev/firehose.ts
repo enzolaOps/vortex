@@ -68,14 +68,26 @@ function ensureWorld() {
   }
 }
 
-function createMessage(seed: number): string {
-  const id = nextId();
+/**
+ * Uma pessoa fala algumas vezes seguidas, depois outra assume.
+ *
+ * Trocar de autor a cada mensagem faria TODA linha abrir grupo, e o
+ * agrupamento não seria exercitado nem visto. Corridas de 1 a 5 aproximam
+ * conversa — que é a distribuição que a lista precisa aguentar.
+ */
+function autorDe(seed: number): string {
+  const bloco = Math.floor(seed / 3) + (seed % 7 === 0 ? 1 : 0);
+  return userIds[bloco % userIds.length]!;
+}
+
+function createMessage(seed: number, quando?: number): string {
+  const id = quando === undefined ? nextId() : nextId(quando);
   client.messages.getOrCreate(
     id,
     {
       _id: id,
       channel: CHANNEL_ID,
-      author: userIds[seed % userIds.length]!,
+      author: autorDe(seed),
       content: body(seed),
     },
     true,
@@ -107,8 +119,15 @@ export async function seed(count: number, chunk = 250): Promise<string[]> {
   ensureWorld();
 
   const ids: string[] = [];
+
+  // Espalhado por ~5 dias, terminando agora: o passo de ~43s fica dentro da
+  // janela de 7 minutos, então quem agrupa é a corrida de autor, e as
+  // viradas de meia-noite produzem divisores de data de verdade.
+  const inicio = Date.now() - 5 * 86_400_000;
+  const passo = Math.max(1, Math.floor((5 * 86_400_000) / count));
+
   for (let i = 0; i < count; i++) {
-    ids.push(createMessage(i));
+    ids.push(createMessage(i, inicio + i * passo));
     if (i % chunk === chunk - 1) {
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
