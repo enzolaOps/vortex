@@ -1,24 +1,17 @@
 <!--
-  Horizontal lockup: mark plus name. Rendered as an <img>, so the text uses a
-  generic sans stack and will look slightly different per platform. Replace with
-  real outlined type when the logo is designed.
+  Lockup horizontal: marca mais nome.
+
+  O texto ainda e <text> com pilha de fonte, nao contorno vetorial: renderiza
+  ligeiramente diferente por plataforma. Trocar por tipo contornado quando
+  houver ferramenta para isso — esta e a unica peca da marca que depende da
+  fonte estar instalada.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 128" width="520" height="128">
-  <defs>
-    <linearGradient id="blade" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#7AE7FF"/>
-      <stop offset="1" stop-color="#6C7CFF"/>
-    </linearGradient>
-  </defs>
-
-  <g transform="translate(4 4) scale(0.234)" fill="url(#blade)">
-    <path d="M256 256 C 268 186, 328 140, 402 140 C 402 214, 344 262, 256 256 Z"/>
-    <path d="M256 256 C 268 186, 328 140, 402 140 C 402 214, 344 262, 256 256 Z" transform="rotate(120 256 256)"/>
-    <path d="M256 256 C 268 186, 328 140, 402 140 C 402 214, 344 262, 256 256 Z" transform="rotate(240 256 256)"/>
+  <g transform="translate(4 4) scale(0.234)" fill="#bcaef2">
+    <path d="M462 256C455.7 263.5 437.5 288.7 424.5 301C411.5 313.3 397.3 322.4 384 329.6C370.6 336.8 357 341.2 344.6 344.2C332.1 347.2 320 347.8 309.2 347.5C298.3 347.2 288.3 345 279.5 342.4C270.7 339.8 262.9 335.9 256.3 331.8C249.7 327.8 244.2 322.8 239.7 318.1C235.1 313.3 231.8 308.1 229.1 303.2C226.4 298.3 224.6 291.1 223.7 288.7L223.7 288.7C224 290.8 224.6 296.8 225.9 301.2C227.2 305.7 228.8 310.4 231.3 315.3C233.8 320.1 236.8 325.2 240.7 330.3C244.7 335.3 249.3 340.6 255.1 345.6C260.8 350.5 267.4 355.6 275.1 360.1C282.9 364.5 291.7 368.9 301.7 372.3C311.7 375.8 322.8 378.9 335.2 380.6C347.6 382.3 361.2 383.4 376 382.6C390.7 381.8 415.7 376.8 423.7 375.7Z" opacity="1"/>
+    <path d="M462 256C455.7 263.5 437.5 288.7 424.5 301C411.5 313.3 397.3 322.4 384 329.6C370.6 336.8 357 341.2 344.6 344.2C332.1 347.2 320 347.8 309.2 347.5C298.3 347.2 288.3 345 279.5 342.4C270.7 339.8 262.9 335.9 256.3 331.8C249.7 327.8 244.2 322.8 239.7 318.1C235.1 313.3 231.8 308.1 229.1 303.2C226.4 298.3 224.6 291.1 223.7 288.7L223.7 288.7C224 290.8 224.6 296.8 225.9 301.2C227.2 305.7 228.8 310.4 231.3 315.3C233.8 320.1 236.8 325.2 240.7 330.3C244.7 335.3 249.3 340.6 255.1 345.6C260.8 350.5 267.4 355.6 275.1 360.1C282.9 364.5 291.7 368.9 301.7 372.3C311.7 375.8 322.8 378.9 335.2 380.6C347.6 382.3 361.2 383.4 376 382.6C390.7 381.8 415.7 376.8 423.7 375.7Z" transform="rotate(120 256 256)" opacity=".82"/>
+    <path d="M462 256C455.7 263.5 437.5 288.7 424.5 301C411.5 313.3 397.3 322.4 384 329.6C370.6 336.8 357 341.2 344.6 344.2C332.1 347.2 320 347.8 309.2 347.5C298.3 347.2 288.3 345 279.5 342.4C270.7 339.8 262.9 335.9 256.3 331.8C249.7 327.8 244.2 322.8 239.7 318.1C235.1 313.3 231.8 308.1 229.1 303.2C226.4 298.3 224.6 291.1 223.7 288.7L223.7 288.7C224 290.8 224.6 296.8 225.9 301.2C227.2 305.7 228.8 310.4 231.3 315.3C233.8 320.1 236.8 325.2 240.7 330.3C244.7 335.3 249.3 340.6 255.1 345.6C260.8 350.5 267.4 355.6 275.1 360.1C282.9 364.5 291.7 368.9 301.7 372.3C311.7 375.8 322.8 378.9 335.2 380.6C347.6 382.3 361.2 383.4 376 382.6C390.7 381.8 415.7 376.8 423.7 375.7Z" transform="rotate(240 256 256)" opacity=".64"/>
   </g>
 
-  <text x="146" y="86"
-        font-family="Inter, 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif"
-        font-size="72" font-weight="600" letter-spacing="-1.5"
-        fill="currentColor">Vortex</text>
+  <text x="146" y="86" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="64" font-weight="600" letter-spacing="-1" fill="#bcaef2">Vortex</text>
 </svg>

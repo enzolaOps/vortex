@@ -1,34 +1,32 @@
 <!--
-  Vortex app mark — PLACEHOLDER.
+  Vortex app mark.
 
-  This is the single source of truth for every raster icon in the client.
-  Replace this file with the real logo and run `node brand/generate.mjs`;
-  every PNG and the .ico are regenerated from it.
+  Tres pas espiralando para dentro. A curva e uma espiral logaritmica
+  (r = R0 * e^(k*t), varredura de 135 graus, afinando de 35 graus na borda
+  ate a ponta) — a mesma curva de redemoinho e concha, e a razao de a marca
+  ler como vortice e nao como ventoinha.
 
-  Keep the 512x512 viewBox and keep the artwork inside it. The rounded
-  rectangle is part of the mark and is used for the favicon and the standard
-  PWA icons; the maskable icon is generated separately with padding, because
-  Android crops it to its own shape.
+  Chapado de proposito: gradiente roxo/azul e antipadrao declarado do
+  projeto, e era exatamente o que o placeholder anterior fazia. A leitura de
+  profundidade vem da opacidade escalonada entre as pas, que sobrevive em
+  monocromatico e a 16px.
+
+  Fonte unica de todo icone raster do cliente. Ao trocar, rode
+  `node brand/generate.mjs` e espelhe a arte em monochrome.svg e
+  wordmark.svg.
+
+  Mantenha o viewBox 512x512. O retangulo arredondado faz parte da marca e
+  e usado no favicon e nos icones PWA padrao; o maskable e gerado a parte,
+  com folga, porque o Android recorta na propria forma.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#1B2436"/>
-      <stop offset="1" stop-color="#0C1120"/>
-    </linearGradient>
-    <linearGradient id="blade" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#7AE7FF"/>
-      <stop offset="1" stop-color="#6C7CFF"/>
-    </linearGradient>
-  </defs>
+  <rect width="512" height="512" rx="116" fill="#16151c"/>
 
-  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
-
-  <g fill="url(#blade)">
-    <path d="M256 256 C 268 186, 328 140, 402 140 C 402 214, 344 262, 256 256 Z"/>
-    <path d="M256 256 C 268 186, 328 140, 402 140 C 402 214, 344 262, 256 256 Z" transform="rotate(120 256 256)"/>
-    <path d="M256 256 C 268 186, 328 140, 402 140 C 402 214, 344 262, 256 256 Z" transform="rotate(240 256 256)"/>
+  <g fill="#bcaef2">
+    <path d="M462 256C455.7 263.5 437.5 288.7 424.5 301C411.5 313.3 397.3 322.4 384 329.6C370.6 336.8 357 341.2 344.6 344.2C332.1 347.2 320 347.8 309.2 347.5C298.3 347.2 288.3 345 279.5 342.4C270.7 339.8 262.9 335.9 256.3 331.8C249.7 327.8 244.2 322.8 239.7 318.1C235.1 313.3 231.8 308.1 229.1 303.2C226.4 298.3 224.6 291.1 223.7 288.7L223.7 288.7C224 290.8 224.6 296.8 225.9 301.2C227.2 305.7 228.8 310.4 231.3 315.3C233.8 320.1 236.8 325.2 240.7 330.3C244.7 335.3 249.3 340.6 255.1 345.6C260.8 350.5 267.4 355.6 275.1 360.1C282.9 364.5 291.7 368.9 301.7 372.3C311.7 375.8 322.8 378.9 335.2 380.6C347.6 382.3 361.2 383.4 376 382.6C390.7 381.8 415.7 376.8 423.7 375.7Z" opacity="1"/>
+    <path d="M462 256C455.7 263.5 437.5 288.7 424.5 301C411.5 313.3 397.3 322.4 384 329.6C370.6 336.8 357 341.2 344.6 344.2C332.1 347.2 320 347.8 309.2 347.5C298.3 347.2 288.3 345 279.5 342.4C270.7 339.8 262.9 335.9 256.3 331.8C249.7 327.8 244.2 322.8 239.7 318.1C235.1 313.3 231.8 308.1 229.1 303.2C226.4 298.3 224.6 291.1 223.7 288.7L223.7 288.7C224 290.8 224.6 296.8 225.9 301.2C227.2 305.7 228.8 310.4 231.3 315.3C233.8 320.1 236.8 325.2 240.7 330.3C244.7 335.3 249.3 340.6 255.1 345.6C260.8 350.5 267.4 355.6 275.1 360.1C282.9 364.5 291.7 368.9 301.7 372.3C311.7 375.8 322.8 378.9 335.2 380.6C347.6 382.3 361.2 383.4 376 382.6C390.7 381.8 415.7 376.8 423.7 375.7Z" transform="rotate(120 256 256)" opacity=".82"/>
+    <path d="M462 256C455.7 263.5 437.5 288.7 424.5 301C411.5 313.3 397.3 322.4 384 329.6C370.6 336.8 357 341.2 344.6 344.2C332.1 347.2 320 347.8 309.2 347.5C298.3 347.2 288.3 345 279.5 342.4C270.7 339.8 262.9 335.9 256.3 331.8C249.7 327.8 244.2 322.8 239.7 318.1C235.1 313.3 231.8 308.1 229.1 303.2C226.4 298.3 224.6 291.1 223.7 288.7L223.7 288.7C224 290.8 224.6 296.8 225.9 301.2C227.2 305.7 228.8 310.4 231.3 315.3C233.8 320.1 236.8 325.2 240.7 330.3C244.7 335.3 249.3 340.6 255.1 345.6C260.8 350.5 267.4 355.6 275.1 360.1C282.9 364.5 291.7 368.9 301.7 372.3C311.7 375.8 322.8 378.9 335.2 380.6C347.6 382.3 361.2 383.4 376 382.6C390.7 381.8 415.7 376.8 423.7 375.7Z" transform="rotate(240 256 256)" opacity=".64"/>
   </g>
 
-  <circle cx="256" cy="256" r="26" fill="#0C1120"/>
+  <circle cx="256" cy="256" r="34" fill="#16151c"/>
 </svg>
