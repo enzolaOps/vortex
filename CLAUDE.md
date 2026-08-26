@@ -509,7 +509,7 @@ paleta com validação de contraste. Ver `layout-customization.md`.
 | Estimativa de altura de linha | **Não é bug, é ajuste.** O prepend está verificado nas duas fases: inserção compensou 2200px com deslocamento 0, e a remedição compensou 1436px de 1441px de crescimento real, com salto máximo de 1px. Mas 1441px em 50 linhas significa que `estimateSize: () => 44` erra ~29px por linha — a altura real média é ~73px. Funciona porque a compensação absorve, ao custo de trabalho extra a cada rolagem e de uma barra de scroll que mente sobre o tamanho do histórico. |
 | Mídia na linha | **Nunca testada.** Sem imagem no spike. Reservar espaço com `aspect-ratio` a partir do metadata do anexo é o que impede layout shift quebrar a ancoragem. |
 | Teste de navegador | **vitest instalado**, 19 testes cobrindo store, adapter e toast. Falta runner de NAVEGADOR: jsdom não tem engine de layout, então âncora, remedição e o firehose seguem medidos à mão no arnês. O `web/` já usa Playwright — é o candidato natural. |
-| Assertions que nunca dispararam | `getSnapshot` estável, remedição após resize e linha medindo 0px existem e nunca foram exercitadas. Mecanismo não testado é prosa com sintaxe de código. |
+| Assertions que só o navegador exercita | A de `getSnapshot` estável agora tem teste e dispara nos quatro casos. Faltam duas, e as duas dependem de layout: **remedir após resize** e **linha medindo 0px**. jsdom não serve — é o mesmo motivo pelo qual a âncora vive no arnês. Vão junto com o runner de navegador. |
 | Reconexão, sessão longa, container query | Sem rede no spike; vazamento de 8h precisa ser medido em horas; a lei nº 6 exige container query e não há nenhuma no código ainda. |
 
 ---

@@ -71,6 +71,30 @@ export default tseslint.config(
           message:
             "Arbitrary value proibido (lei nº 4). Token novo entra em tokens.css e é projetado no @theme; se a className exigiu colchete, o lugar é um CSS Module.",
         },
+        {
+          /**
+           * Direção física proibida — lei nº 6.
+           *
+           * `left`, `right`, `ml`, `mr`, `pl`, `pr`, `border-l/r`,
+           * `rounded-l/r`, `text-left/right` assumem um lado. O equivalente
+           * lógico (`start`/`end`, `ms`/`me`, `ps`/`pe`, `border-s/e`,
+           * `rounded-s/e`, `text-start/end`) funciona nos dois sentidos.
+           *
+           * Não é sobre RTL apenas: a lei nº 6 exige que todo componente
+           * funcione à esquerda E à direita, porque na fase 4 o usuário
+           * reordena os painéis. Um componente que assume o lado vira
+           * reescrita naquele dia; escrito com propriedade lógica desde
+           * agora, custa a mesma coisa.
+           *
+           * Cuidado ao ler: `rounded-l` (elle, físico) e `rounded-1` (um, a
+           * escala do projeto) são visualmente parecidos e semanticamente
+           * opostos.
+           */
+          selector:
+            "JSXAttribute[name.name='className'] Literal[value=/(^|[\\s:])-?(ml-|mr-|pl-|pr-|left-|right-|border-[lr]($|[\\s-])|rounded-[lr]($|[\\s-])|text-(left|right)($|\\s))/]",
+          message:
+            "Direção física proibida (lei nº 6). Use a propriedade lógica: start/end, ms/me, ps/pe, border-s/e, rounded-s/e, text-start/end. Painel que assume lado vira reescrita quando o usuário puder reordenar.",
+        },
       ],
     },
   },

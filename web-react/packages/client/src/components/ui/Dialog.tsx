@@ -45,7 +45,10 @@ export function DialogContent({
       <Primitivo.Content
         {...props}
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2",
+          // Centralizado por margem automática, não por `left-1/2` mais
+          // translate: o idioma clássico assume lado, e a lei nº 6 diz que
+          // nada pode. `inset-x-0` é simétrico, então não escolhe direção.
+          "fixed top-1/2 inset-x-0 z-50 mx-auto w-full max-w-lg -translate-y-1/2",
           "rounded-3 border border-border-subtle bg-surface-2 p-5",
           "anim-base",
           className,

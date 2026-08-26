@@ -23,7 +23,7 @@ const NO_IDS: readonly string[] = [];
  *
  * Cinco linhas que se pagam na primeira ocorrência. Some em produção.
  */
-function assertStable<T>(getSnapshot: () => T, label: string) {
+export function assertStable<T>(getSnapshot: () => T, label: string) {
   const first = getSnapshot();
   const second = getSnapshot();
   if (!Object.is(first, second)) {
