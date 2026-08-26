@@ -123,9 +123,23 @@ gate não adivinha throttle, e ajustar limiar em silêncio conforme o resultado
 | | com CPU 4x | sem throttle |
 |---|---|---|
 | janela válida (sem suspensão de rAF, lista colada no fim) | exigido | exigido |
-| p95 ≤ 16,7ms | exigido | exigido |
+| frames perdidos (>16,7ms) | ≤ 5% | ≤ 1% |
 | zero long tasks | exigido | exigido |
-| ≤1% de frames perdidos | **não se aplica** | exigido |
+
+**O teto de 5% é o antigo `p95 ≤ 16,7ms`, reescrito — não afrouxado.** A
+equivalência é aritmética e tem teste: o 95º percentil dentro de 16,7ms
+significa que no máximo 5% dos deltas passam de 16,7ms. Mesmo conjunto de
+corridas aprovadas.
+
+O que muda é a resolução, e a razão é a entrada sobre quantização de vsync
+acima. Num display de 160Hz o percentil só assume 6,25 · 12,5 · 18,75 e salta
+entre degraus: o p95 deu 18,7ms em quatro corridas seguidas enquanto os frames
+perdidos variavam de 217 a 248 — sem ver uma diferença de 30 frames, quando a
+diferença que separava o gate de passar era de 29. Contagem anda de frame em
+frame; percentil de grandeza quantizada anda de degrau em degrau.
+
+O antigo quarto critério virou o patamar deste: sem throttle o teto continua
+1%, que é mais duro e portanto o único que vale ali.
 
 O teto de frames perdidos é mais duro que o briefing — que pede "500
 eventos/s segurando 60fps" — e foi calibração nossa. A 4x, o que resta da
@@ -492,6 +506,7 @@ já cobre a maior parte.
 | Publicação de coleção por frame | Teste | Fase 0 |
 | Quantum de vsync reportado junto do p95 | Arnês | Fase 3 |
 | Mediana de N janelas, com faixa min–max | Arnês | Fase 3 |
+| Equivalência p95 ≤ 16,7ms ⇔ perdidos ≤ 5% | Teste | Fase 3 |
 | Não-lida ignora o canal aberto | Teste | Fase 3 |
 | Abrir canal baixa só a parcela dele no servidor | Teste | Fase 3 |
 | Presença no mesmo balde não republica membros | Teste | Fase 3 |

@@ -237,33 +237,43 @@ export function verdict(report: FrameReport, opcoes: { throttled: boolean }) {
       got: `${report.suspended} suspensões`,
     },
     /**
-     * O critério NÃO mudou — e a nota existe justamente para que mudá-lo seja
-     * uma decisão explícita, nunca uma reação a um resultado ruim.
+     * O MESMO critério, reescrito para parar de ser função degrau.
      *
-     * Num display de refresh alto este teto é mais duro do que a frase que ele
-     * traduz. A 160Hz os degraus são 12,5 e 18,75; como 16,7 cai entre eles,
-     * passar exige p95 ≤ 12,5ms — ou seja, 95% dos frames dentro de DOIS
-     * refreshes, e não dentro do orçamento de 60fps. O mesmo código num
-     * monitor de 60Hz reportaria 16,7ms e passaria.
+     * Isto não afrouxa nada, e a equivalência é aritmética: `p95 ≤ 16,7ms`
+     * quer dizer que o 95º percentil dos deltas está dentro de 16,7ms, o que
+     * quer dizer que NO MÁXIMO 5% dos deltas passam de 16,7ms — que é
+     * exatamente `dropped / frames ≤ 5%`. Mesmo conjunto de corridas aprovadas,
+     * mesma frase do briefing ("500 ev/s segurando 60fps").
      *
-     * `got` carrega o número em intervalos para que isso apareça no veredito
-     * em vez de ficar escondido num comentário.
+     * O que muda é a resolução. O delta do rAF é quantizado pelo refresh do
+     * display: num monitor de 160Hz os valores possíveis são 6,25 · 12,5 ·
+     * 18,75, então o PERCENTIL só assume esses valores e salta entre eles. O p95
+     * deu 18,7ms em quatro corridas seguidas, idêntico até a decimal, enquanto
+     * o número de frames perdidos variava de 217 a 248 — o percentil não
+     * conseguia ver diferença de 30 frames, e a diferença que separava o gate
+     * de passar era de 29.
+     *
+     * Contagem anda de frame em frame. Percentil de grandeza quantizada anda de
+     * degrau em degrau, e nenhum A/B decide nada quando o efeito procurado é
+     * menor que um degrau.
+     *
+     * Os dois patamares continuam: 5% com throttle, 1% sem. O de 1% é o teto
+     * que o briefing já cobrava sem throttle, e ele é mais duro — então
+     * continua sendo o único que vale ali.
      */
     {
-      name: "p95 ≤ 16,7ms",
-      ok: report.p95 <= 16.7,
-      got: `${report.p95}ms (${report.p95EmIntervalos}× o refresh de ${report.intervalo}ms)`,
+      name: `perdidos ≤ ${opcoes.throttled ? "5%" : "1%"} (= p95 ≤ 16,7ms)`,
+      ok: perdidos <= (opcoes.throttled ? 0.05 : 0.01),
+      got:
+        `${(perdidos * 100).toFixed(1)}% · p95 ${report.p95}ms ` +
+        `(${report.p95EmIntervalos}× o refresh de ${report.intervalo}ms)`,
     },
     { name: "sem long task", ok: report.longTasks === 0, got: `${report.longTasks}` },
   ];
 
-  if (!opcoes.throttled) {
-    checks.push({
-      name: "≤1% de frames perdidos (só sem throttle)",
-      ok: perdidos <= 0.01,
-      got: `${(perdidos * 100).toFixed(1)}%`,
-    });
-  }
+  // O antigo quarto check virou o patamar do terceiro: sem throttle o teto é
+  // 1%, com throttle é 5%. Dois checks contando a mesma coisa em tetos
+  // diferentes seria redundância que esconde qual deles reprovou.
 
   return { pass: checks.every((c) => c.ok), checks, perdidos };
 }
