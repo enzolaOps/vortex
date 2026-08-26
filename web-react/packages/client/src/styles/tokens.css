@@ -118,6 +118,26 @@
   --vx-duration-base: 160ms;
   --vx-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
+  /* --- Assinatura --------------------------------------------
+     A marca do Vortex são três lâminas espiralando para dentro,
+     afinando, com opacidade escalonada. Profundidade vem da
+     opacidade, não de sombra — a mesma regra que o design system
+     já exigia da interface, aqui virando identidade.
+
+     Estes três valores SÃO os da marca (`brand/mark.svg`). Uma
+     série de elementos irmãos que precise de profundidade usa
+     esta escala em vez de inventar opacidade por componente; é o
+     que faz a interface e o ícone parecerem a mesma coisa. */
+  --vx-lamina-1: 1;
+  --vx-lamina-2: 0.82;
+  --vx-lamina-3: 0.64;
+
+  /* Geometria da lâmina como indicador de foco. O arco da marca
+     varre 135°; o indicador usa o mesmo afinamento numa peça de
+     3px, que é o que sobra dele em escala de interface. */
+  --vx-lamina-w: 3px;
+  --vx-lamina-h: 20px;
+
   /* --- Casca -------------------------------------------------
      Zerado na web; definido pelo Electron. */
   --vx-titlebar-h: 0px;

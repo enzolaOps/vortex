@@ -57,31 +57,18 @@
 }
 
 /*
-  A pílula do estado ativo mora na borda de INÍCIO, não à esquerda.
+  A lâmina do estado ativo mora na borda de INÍCIO, não à esquerda.
 
   É a diferença entre um rail que sobrevive à fase 4 e um que precisa ser
   reescrito no dia em que o usuário arrastar a coluna para o outro lado.
+
+  A forma vem da marca — ver `components/ui/Lamina`. A pílula reta que
+  estava aqui é o indicador de todo cliente de chat que existe, e não é
+  de ninguém.
 */
-.pilula {
-  position: absolute;
+.lamina {
   inset-inline-start: calc(var(--vx-space-2) * -1);
-  inset-block-start: 50%;
-  translate: 0 -50%;
-  inline-size: var(--vx-space-1);
-  block-size: 0;
-  border-start-end-radius: var(--vx-radius-1);
-  border-end-end-radius: var(--vx-radius-1);
-  background: var(--vx-text-1);
-  transition: block-size var(--vx-duration-base) var(--vx-ease-out);
-}
-
-.item[aria-current="true"] .pilula {
-  block-size: var(--vx-space-5);
-}
-
-/* Não-lida sem estar ativo: pílula curta. Ativo já mostra a longa. */
-.item[data-naolidas="true"]:not([aria-current="true"]) .pilula {
-  block-size: var(--vx-space-2);
+  color: var(--vx-accent);
 }
 
 .marca {

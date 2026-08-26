@@ -59,7 +59,13 @@
   padding-block-start: 0;
 }
 
+.lamina {
+  inset-inline-start: calc(var(--vx-space-2) * -1);
+  color: var(--vx-accent);
+}
+
 .canal {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--vx-space-2);

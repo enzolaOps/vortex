@@ -1,192 +1,235 @@
-import { useSyncExternalStore } from "react";
+import { CaretDown } from "@phosphor-icons/react";
+import { useState, useSyncExternalStore } from "react";
 
-import { PARES, verificar } from "../tema/pares";
-import { LIMITES_DA_SEMENTE, SEMENTE_PADRAO, type Modo } from "../tema/derivar";
-import { paletaFinal } from "../tema/aplicar";
+import { Deslizante } from "../components/ui/Deslizante";
+import { Segmentado } from "../components/ui/Segmentado";
 import { assinarLayout, definirSemente, lerSemente } from "../store/layout";
+import { paletaFinal } from "../tema/aplicar";
+import { LIMITES_DA_SEMENTE, SEMENTE_PADRAO, type Modo } from "../tema/derivar";
+import { PALETAS, paletaDe } from "../tema/paletas";
+import { verificar } from "../tema/pares";
 import css from "./PickerDePaleta.module.css";
 
-const MODOS: { id: Modo; rotulo: string }[] = [
-  { id: "escuro", rotulo: "escuro" },
-  { id: "claro", rotulo: "claro" },
+const MODOS = [
+  { id: "escuro" as Modo, rotulo: "escuro" },
+  { id: "claro" as Modo, rotulo: "claro" },
 ];
 
-/** Amostras da paleta, na ordem em que a interface as usa. */
-const AMOSTRAS = [
-  { token: "--vx-surface-0", rotulo: "fundo" },
-  { token: "--vx-surface-2", rotulo: "painel" },
-  { token: "--vx-text-1", rotulo: "texto" },
-  { token: "--vx-text-3", rotulo: "apagado" },
-  { token: "--vx-accent", rotulo: "ação" },
-  { token: "--vx-danger", rotulo: "erro" },
-  { token: "--vx-warning", rotulo: "aviso" },
-  { token: "--vx-success", rotulo: "ok" },
-] as const;
+/**
+ * Miniatura do shell, com a paleta aplicada.
+ *
+ * Substitui oito quadradinhos de cor, que era a versão anterior. A diferença
+ * não é enfeite: quadradinho mostra a cor, miniatura mostra a RELAÇÃO — quanto
+ * a lista de canais se separa do fundo, se o texto apagado ainda se lê, se o
+ * acento aparece ou some. Ninguém escolhe paleta olhando para um `#16151c`.
+ *
+ * Cinco retângulos e três linhas de texto falso. Custo de pintura irrisório, e
+ * comunica o que a paleta faz na tela em que ela vai viver.
+ */
+function Miniatura({ paleta }: { paleta: Record<string, string> }) {
+  const cor = (t: string) => paleta[t] ?? "transparent";
+
+  return (
+    <div
+      className={css.miniatura}
+      style={{ background: cor("--vx-surface-0") }}
+      aria-hidden
+    >
+      <span className={css.miniRail} style={{ background: cor("--vx-surface-1") }}>
+        <span className={css.miniMarca} style={{ background: cor("--vx-accent") }} />
+        <span className={css.miniMarca} style={{ background: cor("--vx-surface-3") }} />
+      </span>
+
+      <span className={css.miniCanais} style={{ background: cor("--vx-surface-1") }}>
+        <span className={css.miniLinha} style={{ background: cor("--vx-text-3") }} />
+        <span
+          className={css.miniLinhaAtiva}
+          style={{ background: cor("--vx-accent-soft"), color: cor("--vx-accent") }}
+        />
+        <span className={css.miniLinha} style={{ background: cor("--vx-text-3") }} />
+      </span>
+
+      <span className={css.miniConteudo}>
+        <span className={css.miniNome} style={{ background: cor("--vx-text-1") }} />
+        <span className={css.miniTexto} style={{ background: cor("--vx-text-2") }} />
+        <span className={css.miniTextoCurto} style={{ background: cor("--vx-text-2") }} />
+        <span className={css.miniMeta} style={{ background: cor("--vx-text-3") }} />
+      </span>
+
+      <span className={css.miniMembros} style={{ background: cor("--vx-surface-1") }}>
+        <span className={css.miniPonto} style={{ background: cor("--vx-status-online") }} />
+        <span className={css.miniPonto} style={{ background: cor("--vx-status-idle") }} />
+        <span className={css.miniPonto} style={{ background: cor("--vx-status-dnd") }} />
+      </span>
+    </div>
+  );
+}
 
 /**
  * O picker de paleta.
  *
- * Quatro controles para vinte tokens, e essa proporção é a decisão de design
- * inteira. A referência descarta color picker por componente por quatro
- * motivos, e o mais duro deles é que acessibilidade vira impossível de
- * garantir. A saída não é validar mais — é dar ao usuário só os eixos que não
- * quebram nada.
+ * Reescrito. A primeira versão expunha matiz e croma como controles de topo —
+ * os parâmetros da derivação virando interface. Agora o topo é escolha de
+ * paleta com preview, e os parâmetros ficam atrás de "ajuste fino", onde
+ * pertencem: são a escotilha de quem quer sair das seis, não o caminho normal.
  *
- * O usuário escolhe MATIZ e CROMA; o app decide toda a LUMINOSIDADE. Em OKLCH
- * é a luminosidade que carrega o contraste, então a rampa fixa entrega o mesmo
- * contraste em qualquer matiz. Uma varredura de matiz × croma × modo prova
- * isso em teste — por isso este painel mostra a folga de contraste como
- * informação, e não como alerta: não há escolha aqui que produza uma paleta
- * ilegível.
- *
- * O que ele NÃO tem, e a ausência é a feature: nenhum campo para editar um
- * token individual. Essa é a escotilha `theme` do preset, que existe no tipo e
- * não tem UI — quem quiser usá-la sabe o que está fazendo.
+ * A garantia de contraste não mudou e continua sendo o ponto: o usuário escolhe
+ * matiz e croma, o app decide toda a luminosidade, e a varredura em teste prova
+ * que nenhuma combinação reprova. Por isso a folga aparece como informação, e
+ * não como alerta.
  */
 export function PickerDePaleta() {
-  /**
-   * Assina a SEMENTE, não o layout inteiro.
-   *
-   * A primeira versão assinava o layout e chamava `lerSemente()` solto logo
-   * depois. As cores mudavam na tela — o pintor é quem escreve no documento —
-   * mas o veredito de contraste ficava congelado, porque para o React (e para
-   * o compiler) aquela leitura não dependia de nada e podia ser reaproveitada
-   * entre renders.
-   *
-   * Ler estado externo fora de `useSyncExternalStore` é quebrar as Rules of
-   * React, e o sintoma foi o mais traiçoeiro possível: metade da tela
-   * atualizando e a outra metade não.
-   */
   const semente = useSyncExternalStore(assinarLayout, lerSemente);
+  const [ajustando, setAjustando] = useState(false);
 
   const paleta = paletaFinal(semente);
   const veredito = verificar(paleta);
   const apertado = veredito.maisApertado;
+  const escolhida = paletaDe(semente.matiz, semente.croma, semente.acento);
 
   return (
     <section className={css.picker} aria-label="Paleta">
-      <div className={css.linha}>
-        <span className={css.rotulo}>modo</span>
-        <div className={css.grupo} role="group" aria-label="Modo do tema">
-          {MODOS.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              className={css.opcao}
-              aria-pressed={semente.modo === m.id}
-              onClick={() =>
-                // Trocar de modo troca a RAMPA inteira, então o resto da
-                // semente vem do padrão daquele modo — manter o matiz de um
-                // acento pensado para fundo escuro sobre fundo claro dá uma
-                // paleta que passa no contraste e parece errada.
-                definirSemente({
-                  ...SEMENTE_PADRAO[m.id],
-                  matiz: semente.matiz,
-                  croma: semente.croma,
-                })
-              }
-            >
-              {m.rotulo}
-            </button>
-          ))}
+      <div className={css.topo}>
+        <Miniatura paleta={paleta} />
+
+        <div className={css.controles}>
+          <Segmentado
+            rotulo="Modo do tema"
+            valor={semente.modo}
+            opcoes={MODOS}
+            aoEscolher={(modo) =>
+              // Trocar de modo troca a RAMPA inteira; matiz e croma seguem,
+              // o resto vem do padrão daquele modo.
+              definirSemente({
+                ...SEMENTE_PADRAO[modo],
+                matiz: semente.matiz,
+                croma: semente.croma,
+                acento: semente.acento,
+              })
+            }
+          />
+
+          <p className={css.veredito} data-ok={veredito.ok}>
+            {veredito.ok && apertado ? (
+              <>
+                contraste ok · mais apertado{" "}
+                <strong>{apertado.razao.toFixed(2)}:1</strong> (mín {apertado.par.min})
+              </>
+            ) : (
+              <>{veredito.falhas.length} pares abaixo do mínimo — bug da derivação</>
+            )}
+          </p>
         </div>
       </div>
 
-      <div className={css.linha}>
-        <label className={css.rotulo} htmlFor="picker-acento">
-          ação
-        </label>
-        <input
-          id="picker-acento"
-          type="color"
-          className={css.cor}
-          value={paleta["--vx-accent"]}
-          onChange={(e) => definirSemente({ ...semente, acento: e.target.value })}
-        />
-        <span className={css.dica}>
-          o matiz é seu; a luminosidade é do app — é o que garante o contraste
-        </span>
+      <div className={css.paletas} role="radiogroup" aria-label="Paleta de cores">
+        {PALETAS.map((p) => {
+          const previa = paletaFinal({ ...semente, ...p });
+          const ativa = escolhida === p.id;
+
+          return (
+            <button
+              key={p.id}
+              type="button"
+              role="radio"
+              aria-checked={ativa}
+              className={css.swatch}
+              onClick={() => definirSemente({ ...semente, ...p })}
+            >
+              {/* Cinco barras, como um swatch de tema do Slack: reconhecimento
+                  instantâneo, sem abstração nenhuma no caminho. */}
+              <span className={css.barras}>
+                {[
+                  "--vx-surface-0",
+                  "--vx-surface-2",
+                  "--vx-accent",
+                  "--vx-text-2",
+                  "--vx-text-1",
+                ].map((t) => (
+                  <span
+                    key={t}
+                    className={css.barra}
+                    style={{ background: previa[t as keyof typeof previa] }}
+                  />
+                ))}
+              </span>
+              <span className={css.nome}>{p.nome}</span>
+            </button>
+          );
+        })}
       </div>
 
-      <div className={css.linha}>
-        <label className={css.rotulo} htmlFor="picker-matiz">
-          neutro
-        </label>
-        <input
-          id="picker-matiz"
-          type="range"
-          className={css.faixa}
-          min={LIMITES_DA_SEMENTE.matiz.min}
-          max={LIMITES_DA_SEMENTE.matiz.max}
-          step={1}
-          value={semente.matiz}
-          aria-valuetext={`matiz ${Math.round(semente.matiz)} graus`}
-          onChange={(e) => definirSemente({ ...semente, matiz: Number(e.target.value) })}
-        />
-        <span className={css.medida}>{Math.round(semente.matiz)}°</span>
+      <div className={css.fino}>
+        <button
+          type="button"
+          className={css.disclosure}
+          aria-expanded={ajustando}
+          onClick={() => setAjustando((v) => !v)}
+        >
+          <CaretDown size={20} aria-hidden data-aberto={ajustando} className={css.caret} />
+          ajuste fino
+        </button>
+
+        {ajustando ? (
+          <div className={css.finoCorpo}>
+            <div className={css.linha}>
+              <label className={css.rotulo} htmlFor="picker-acento">
+                ação
+              </label>
+              {/*
+                O `type="color"` continua nativo, e é o único que fica.
+
+                É o controle que abre o seletor de cor DO SISTEMA — reimplementar
+                isso significaria escrever um color picker inteiro, que é a
+                definição de "genérico que a biblioteca resolve". O que dá para
+                fazer é o gatilho parecer nosso, e é o que a classe faz.
+              */}
+              <input
+                id="picker-acento"
+                type="color"
+                className={css.cor}
+                value={paleta["--vx-accent"]}
+                onChange={(e) => definirSemente({ ...semente, acento: e.target.value })}
+              />
+              <span className={css.medida}>{paleta["--vx-accent"]}</span>
+            </div>
+
+            <div className={css.linha}>
+              <label className={css.rotulo} htmlFor="picker-matiz">
+                matiz
+              </label>
+              <Deslizante
+                id="picker-matiz"
+                rotulo="Matiz do neutro"
+                texto={`${Math.round(semente.matiz)} graus`}
+                valor={semente.matiz}
+                min={LIMITES_DA_SEMENTE.matiz.min}
+                max={LIMITES_DA_SEMENTE.matiz.max}
+                passo={1}
+                aoMudar={(matiz) => definirSemente({ ...semente, matiz })}
+              />
+              <span className={css.medida}>{Math.round(semente.matiz)}°</span>
+            </div>
+
+            <div className={css.linha}>
+              <label className={css.rotulo} htmlFor="picker-croma">
+                cor no cinza
+              </label>
+              <Deslizante
+                id="picker-croma"
+                rotulo="Saturação do neutro"
+                texto={`${Math.round(semente.croma * 100)} por cento`}
+                valor={semente.croma}
+                min={LIMITES_DA_SEMENTE.croma.min}
+                max={LIMITES_DA_SEMENTE.croma.max}
+                passo={0.05}
+                aoMudar={(croma) => definirSemente({ ...semente, croma })}
+              />
+              <span className={css.medida}>{Math.round(semente.croma * 100)}%</span>
+            </div>
+          </div>
+        ) : null}
       </div>
-
-      <div className={css.linha}>
-        <label className={css.rotulo} htmlFor="picker-croma">
-          saturação
-        </label>
-        <input
-          id="picker-croma"
-          type="range"
-          className={css.faixa}
-          min={LIMITES_DA_SEMENTE.croma.min}
-          max={LIMITES_DA_SEMENTE.croma.max}
-          step={0.05}
-          value={semente.croma}
-          aria-valuetext={`${Math.round(semente.croma * 100)} por cento`}
-          onChange={(e) => definirSemente({ ...semente, croma: Number(e.target.value) })}
-        />
-        <span className={css.medida}>{Math.round(semente.croma * 100)}%</span>
-      </div>
-
-      <div className={css.amostras}>
-        {AMOSTRAS.map((a) => (
-          <span
-            key={a.token}
-            className={css.amostra}
-            style={{ background: paleta[a.token] }}
-            title={`${a.rotulo} · ${paleta[a.token]}`}
-          >
-            <span className="sr-only">
-              {a.rotulo}: {paleta[a.token]}
-            </span>
-          </span>
-        ))}
-      </div>
-
-      {/*
-        A folga aparece como INFORMAÇÃO, não como alerta.
-
-        Um aviso aqui seria teatro: a varredura em teste prova que nenhuma
-        combinação destes controles reprova. O que vale mostrar é quanta folga
-        a escolha tem — quem quiser uma paleta confortável e não só aprovada
-        tem o número para decidir.
-      */}
-      <p className={css.veredito} data-ok={veredito.ok}>
-        {veredito.ok ? (
-          <>
-            {PARES.length} pares verificados
-            {apertado ? (
-              <>
-                {" · "}mais apertado {apertado.razao.toFixed(2)}:1 em{" "}
-                <code>{apertado.par.fg.replace("--vx-", "")}</code> sobre{" "}
-                <code>{apertado.par.bg.replace("--vx-", "")}</code> (mín{" "}
-                {apertado.par.min})
-              </>
-            ) : null}
-          </>
-        ) : (
-          <>
-            {veredito.falhas.length} de {PARES.length} pares abaixo do mínimo —
-            isto não deveria acontecer, e é bug da derivação, não escolha ruim
-          </>
-        )}
-      </p>
     </section>
   );
 }

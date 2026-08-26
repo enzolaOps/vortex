@@ -559,6 +559,8 @@ já cobre a maior parte.
 | Lista não remede durante o arraste | `store/arraste.ts` + teste | Fase 4 |
 | Sair do modo edição sem salvar reverte | Teste | Fase 4 |
 | Extremos da faixa são paradas exatas | Teste | Fase 4 |
+| Toda paleta curada passa nos 76 pares | Teste | Fase 4 |
+| Os oito estados vivem no primitivo | `components/ui/` | Fase 4 |
 | Semente padrão reproduz tokens.css nos 20 tokens | Teste | Fase 4 |
 | Nenhuma escolha do picker reprova contraste | Teste de varredura | Fase 4 |
 | Uma lista de pares só, para CI e runtime | `tema/pares.ts` | Fase 4 |
@@ -600,6 +602,52 @@ O preset carrega a SEMENTE, não os 20 tokens derivados. Tokens crus num preset
 podem ter sido editados à mão para qualquer coisa, e quem abrisse aplicaria uma
 paleta que ninguém validou; com a semente, quem recebe deriva, e a garantia da
 varredura vale para o preset de qualquer pessoa.
+
+## Controle nativo é onde a identidade do produto termina
+
+`<select>`, `<input type="range">` e `<input type="color">` são desenhados pelo
+SISTEMA, não pelo app. Num cliente dark no Windows eles chegam com cromo claro,
+e a diferença é imediata mesmo para quem não sabe nomear o problema — é o mesmo
+efeito de misturar dois sets de ícone, que este projeto já proíbe.
+
+A fase 4 entregou quatro deles em superfícies de produto, mais um `box-shadow`
+que o design system proíbe em letras, mais `:hover` como único dos oito estados
+num painel e ZERO estados no outro. Pelo padrão do próprio projeto — "os oito
+estados são o que separa protótipo de produto" — aquilo era protótipo.
+
+O que ficou como mecanismo:
+
+- Os primitivos com os oito estados vivem em `components/ui/` (`Botao`,
+  `Segmentado`, `Deslizante`). Centralizar é a diferença entre lembrar dos
+  estados e não conseguir esquecê-los.
+- `type="color"` é a ÚNICA exceção e ela é justificada: o que ele abre é o
+  seletor do sistema operacional, e reimplementá-lo seria escrever um color
+  picker inteiro — a definição de "genérico que a biblioteca resolve". O que dá
+  para estilizar é o gatilho, e está estilizado.
+- Nenhuma dependência nova: o `Deslizante` é um `range` nativo pintado. O Radix
+  resolveria arrastar, teclado e ARIA — que o nativo já entrega correto. Trazer
+  biblioteca para pintar um trilho seria pagar bundle e fronteira de import por
+  CSS.
+
+E uma lição de método que vale mais que a lista: **os wrappers Radix da fase 2
+já existiam e a fase 4 usou `<select>` mesmo assim.** Construir o primitivo não
+garante que ele seja usado; a auditoria é que garante.
+
+## O parâmetro da implementação não é a interface
+
+O picker de paleta nasceu pedindo MATIZ e CROMA ao usuário — os parâmetros da
+derivação, expostos como se fossem o produto. Nenhum app pergunta o croma do
+neutro. Era o modelo mental de quem implementou vazando para quem usa, e foi a
+causa real da sensação de "rústico": não faltava acabamento, faltava a
+abstração certa.
+
+O conserto não foi estilizar os sliders. Foi trocá-los por paletas curadas com
+preview do shell, e mandar os parâmetros para trás de "ajuste fino" — onde eles
+são a escotilha de quem quer sair das seis, não o caminho normal.
+
+Regra: quando um controle expõe uma variável interna, pergunte que DECISÃO o
+usuário está tomando. "Quero a verde" é a decisão; "matiz 150" é a
+implementação dela.
 
 ## O compiler avisando que a arquitetura estava errada
 

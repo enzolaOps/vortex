@@ -15,16 +15,48 @@
 
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-3);
-  inline-size: min(560px, calc(100vw - var(--vx-space-6)));
-  max-block-size: min(60vh, 520px);
+  gap: var(--vx-space-4);
+  inline-size: min(580px, calc(100vw - var(--vx-space-6)));
+  max-block-size: min(72vh, 620px);
   overflow-y: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
 
   padding: var(--vx-space-4);
   border: 1px solid var(--vx-border-strong);
   border-radius: var(--vx-radius-3);
+
+  /*
+    Profundidade por CAMADA, não por sombra.
+
+    A primeira versão tinha `box-shadow: 0 8px 32px rgb(0 0 0 / .32)`, o que
+    o design system proíbe em letras: "profundidade em dark UI vem de camada
+    de superfície, não de sombra. Sombra em fundo escuro é quase invisível e
+    custa pintura."
+
+    O que separa o painel do fundo agora: a superfície mais alta da escala, a
+    borda forte, e o véu abaixo. Nenhum pixel borrado envolvido.
+  */
   background: var(--vx-surface-2);
-  box-shadow: 0 8px 32px rgb(0 0 0 / 0.32);
+
+  /* Container próprio: o painel decide seu layout pelo tamanho DELE. */
+  container-type: inline-size;
+}
+
+/*
+  O véu.
+
+  Não escurece para criar sombra — separa o painel do que está atrás sem
+  bloquear a leitura do preview ao vivo, que é o ponto do modo edição.
+  Opacidade da escala da marca, não um valor inventado.
+*/
+.veu {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  background: var(--vx-surface-0);
+  opacity: calc(1 - var(--vx-lamina-2));
+  pointer-events: none;
 }
 
 .cabecalho {
@@ -46,115 +78,123 @@
   font-size: var(--vx-size-xs);
 }
 
+/* --- slots ---------------------------------------------------- */
+
 .slots {
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-1);
 }
 
 .linha {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--vx-space-3);
   min-inline-size: 0;
-  padding: var(--vx-space-2);
+  padding-inline: var(--vx-space-3) var(--vx-space-1);
+  padding-block: var(--vx-space-1);
   border-radius: var(--vx-radius-2);
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.linha:hover {
   background: var(--vx-surface-1);
+}
+
+/* Slot oculto continua legível — esmaecer é estado, não punição. */
+.linha[data-oculto="true"] .rotulo,
+.linha[data-oculto="true"] .campo,
+.linha[data-oculto="true"] .medida {
+  opacity: var(--vx-lamina-3);
 }
 
 .rotulo {
   flex: none;
-  inline-size: var(--vx-space-5);
+  inline-size: 46px;
   color: var(--vx-text-3);
   font-size: var(--vx-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
+/* O gatilho do menu de painel. Parece campo, é botão. */
 .campo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   min-inline-size: 0;
   flex: 1;
-  padding: var(--vx-space-1) var(--vx-space-2);
+  padding-inline: var(--vx-space-2);
+  padding-block: var(--vx-space-1);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-1);
   background: var(--vx-surface-3);
   color: var(--vx-text-1);
-  font-size: var(--vx-size-md);
   font-family: inherit;
+  font-size: var(--vx-size-md);
+  text-align: start;
+  cursor: pointer;
+  transition: border-color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.campo:hover {
+  border-color: var(--vx-border-strong);
+}
+
+.campo:focus-visible,
+.campo[data-state="open"] {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 1px;
+}
+
+.campoValor[data-vazio="true"] {
+  color: var(--vx-text-3);
+  font-style: italic;
+}
+
+/* A marca de seleção ocupa lugar sempre — sem ela os rótulos dançam ao abrir. */
+.marca {
+  flex: none;
+  opacity: 0;
+}
+
+.marca[data-visivel="true"] {
+  opacity: var(--vx-lamina-1);
 }
 
 .medida {
   flex: none;
-  inline-size: var(--vx-space-6);
+  inline-size: 52px;
   color: var(--vx-text-2);
   font-size: var(--vx-size-xs);
+  font-family: var(--vx-font-mono);
   font-variant-numeric: tabular-nums;
   text-align: end;
 }
 
-.acao {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--vx-space-1);
-  padding: var(--vx-space-1) var(--vx-space-2);
-  border-radius: var(--vx-radius-2);
-  border: 1px solid var(--vx-border-subtle);
-  background: var(--vx-surface-3);
-  color: var(--vx-text-2);
-  font-size: var(--vx-size-xs);
-  font-family: inherit;
-  cursor: pointer;
-}
-
-.acao:hover {
-  color: var(--vx-text-1);
-  border-color: var(--vx-border-strong);
-}
+/* --- rodapé --------------------------------------------------- */
 
 .rodape {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: var(--vx-space-2);
-  padding-block-start: var(--vx-space-2);
+  padding-block-start: var(--vx-space-3);
   border-block-start: 1px solid var(--vx-border-subtle);
 }
 
-.rodape .esquerda {
+.esquerda {
   margin-inline-end: auto;
 }
 
-.primario {
-  background: var(--vx-accent);
-  border-color: var(--vx-accent);
-  color: var(--vx-on-accent);
-  font-size: var(--vx-size-md);
-  padding: var(--vx-space-2) var(--vx-space-4);
-}
-
-.primario:hover {
-  background: var(--vx-accent-hover);
-  border-color: var(--vx-accent-hover);
-  color: var(--vx-on-accent);
-}
-
-.secundario {
-  font-size: var(--vx-size-md);
-  padding: var(--vx-space-2) var(--vx-space-4);
-}
-
-.caixa {
-  display: flex;
-  align-items: center;
-  gap: var(--vx-space-2);
-  color: var(--vx-text-2);
-  font-size: var(--vx-size-sm);
-}
-
-/* Painel estreito: o rótulo do slot some antes do resto. */
+/* Painel estreito: o rótulo do slot some antes de qualquer controle. */
 @container (inline-size < 420px) {
   .rotulo {
+    display: none;
+  }
+
+  .dica {
     display: none;
   }
 }

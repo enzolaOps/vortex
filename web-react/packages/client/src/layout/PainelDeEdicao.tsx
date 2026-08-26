@@ -1,5 +1,14 @@
-import { ArrowsLeftRight, Eye, EyeSlash } from "@phosphor-icons/react";
+import { ArrowCounterClockwise, Check, Eye, EyeSlash } from "@phosphor-icons/react";
 import { useEffect, useSyncExternalStore } from "react";
+
+import { Botao } from "../components/ui/Botao";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../components/ui/DropdownMenu";
+import { Lamina } from "../components/ui/Lamina";
 
 import {
   PAINEIS,
@@ -88,7 +97,11 @@ export function PainelDeEdicao() {
   const slots = layout.layout.slots;
 
   return (
-    <div
+    <>
+      {/* O véu separa o painel do fundo sem borrar nada — ver o CSS. */}
+      <div className={css.veu} aria-hidden />
+
+      <div
       className={css.painel}
       role="dialog"
       aria-label="Editar layout"
@@ -111,61 +124,91 @@ export function PainelDeEdicao() {
             slot.visivel === padrao.visivel;
 
           return (
-            <div key={id} className={css.linha}>
+            <div key={id} className={css.linha} data-oculto={!slot.visivel}>
+              {/* A lamina marca o slot preenchido: a assinatura repetindo
+                  o mesmo gesto do rail e do segmentado. */}
+              <Lamina ativa={slot.painel !== null && slot.visivel} />
               <span className={css.rotulo}>{ROTULO_DO_SLOT[id]}</span>
 
-              <select
-                className={css.campo}
-                value={slot.painel ?? ""}
-                aria-label={`Painel do slot ${ROTULO_DO_SLOT[id]}`}
-                onChange={(e) =>
-                  escolherPainel(id, (e.target.value || null) as PainelId | null)
-                }
-              >
-                <option value="">— vazio —</option>
-                {PAINEIS.map((p) => (
-                  <option key={p} value={p}>
-                    {NOME[p]}
-                  </option>
-                ))}
-              </select>
+              {/*
+                Menu do Radix, e não `<select>`.
+
+                O nativo é desenhado pelo SISTEMA: num app dark no Windows ele
+                chega com cromo claro, e a identidade do produto termina na
+                borda dele. Nós construímos este wrapper na fase 2 e a fase 4
+                não o usou — o componente certo já existia.
+              */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className={css.campo}
+                    aria-label={`Painel do slot ${ROTULO_DO_SLOT[id]}`}
+                  >
+                    <span className={css.campoValor} data-vazio={slot.painel === null}>
+                      {slot.painel ? NOME[slot.painel] : "vazio"}
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+
+                <DropdownMenuContent>
+                  {PAINEIS.map((p) => (
+                    <DropdownMenuItem key={p} onSelect={() => escolherPainel(id, p)}>
+                      <Check
+                        size={20}
+                        aria-hidden
+                        className={css.marca}
+                        data-visivel={slot.painel === p}
+                      />
+                      {NOME[p]}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuItem onSelect={() => escolherPainel(id, null)}>
+                    <Check
+                      size={20}
+                      aria-hidden
+                      className={css.marca}
+                      data-visivel={slot.painel === null}
+                    />
+                    deixar vazio
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               <span className={css.medida}>
                 {slot.painel ? `${slot.largura}px` : "—"}
               </span>
 
-              <button
-                type="button"
-                className={css.acao}
+              <Botao
+                variante="sutil"
                 disabled={slot.painel === null}
                 aria-pressed={slot.visivel}
+                aria-label={slot.visivel ? "Esconder painel" : "Mostrar painel"}
+                icone={
+                  slot.visivel ? (
+                    <Eye size={20} aria-hidden />
+                  ) : (
+                    <EyeSlash size={20} aria-hidden />
+                  )
+                }
                 onClick={() => {
                   iniciarArraste();
                   definirSlot(id, { visivel: !slot.visivel });
                   terminarArraste();
                 }}
-              >
-                {slot.visivel ? (
-                  <Eye size={20} aria-hidden />
-                ) : (
-                  <EyeSlash size={20} aria-hidden />
-                )}
-                {slot.visivel ? "visível" : "oculto"}
-              </button>
+              />
 
-              <button
-                type="button"
-                className={css.acao}
+              <Botao
+                variante="sutil"
                 disabled={igualAoPadrao}
+                aria-label="Repor este slot"
+                icone={<ArrowCounterClockwise size={20} aria-hidden />}
                 onClick={() => {
                   iniciarArraste();
                   definirSlot(id, padrao);
                   terminarArraste();
                 }}
-              >
-                <ArrowsLeftRight size={20} aria-hidden />
-                repor
-              </button>
+              />
             </div>
           );
         })}
@@ -174,9 +217,10 @@ export function PainelDeEdicao() {
       <PickerDePaleta />
 
       <footer className={css.rodape}>
-        <button
-          type="button"
-          className={`${css.acao} ${css.esquerda}`}
+        <Botao
+          variante="sutil"
+          className={css.esquerda}
+          icone={<ArrowCounterClockwise size={20} aria-hidden />}
           onClick={() => {
             iniciarArraste();
             for (const id of SLOTS) definirSlot(id, PRESET_PADRAO.layout.slots[id]);
@@ -184,25 +228,18 @@ export function PainelDeEdicao() {
           }}
         >
           repor tudo
-        </button>
+        </Botao>
 
         {/* "Cancelar" só promete desfazer quando há o que desfazer. */}
-        <button
-          type="button"
-          className={`${css.acao} ${css.secundario}`}
-          onClick={() => sair(false)}
-        >
+        <Botao variante="neutro" onClick={() => sair(false)}>
           {temMudanca() ? "cancelar" : "fechar"}
-        </button>
+        </Botao>
 
-        <button
-          type="button"
-          className={`${css.acao} ${css.primario}`}
-          onClick={() => sair(true)}
-        >
+        <Botao variante="primario" onClick={() => sair(true)}>
           concluir
-        </button>
+        </Botao>
       </footer>
-    </div>
+      </div>
+    </>
   );
 }

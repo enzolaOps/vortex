@@ -1,5 +1,6 @@
 import { memo } from "react";
 
+import { Lamina } from "../components/ui/Lamina";
 import { Tooltip } from "../components/ui/Tooltip";
 import { contagem, rotuloDeNaoLidas } from "../lib/plural";
 import { useServer, useServerIds, useServidorAtivo } from "../store/hooks";
@@ -56,9 +57,10 @@ const ItemDeServidor = memo(function ItemDeServidor({
         data-naolidas={temNaoLidas}
         onClick={() => selecionarServidor(id)}
       >
-        {/* A pílula é decorativa: `aria-current` já diz qual está aberto, e
-            a contagem tem texto próprio. */}
-        <span className={css.pilula} aria-hidden />
+        {/* A lâmina é decorativa: `aria-current` já diz qual está aberto, e
+            a contagem tem texto próprio. Ela substituiu uma pílula reta —
+            que é o indicador de todo cliente de chat e não é de ninguém. */}
+        <Lamina ativa={ativo} className={css.lamina} />
 
         <span className={css.marca} aria-hidden>
           {servidor.sigla}

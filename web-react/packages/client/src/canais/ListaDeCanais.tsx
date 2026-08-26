@@ -7,6 +7,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "../components/ui/ContextMenu";
+import { Lamina } from "../components/ui/Lamina";
 import { contagem, rotuloDeNaoLidas } from "../lib/plural";
 import { marcarCanalLido } from "../sdk/adapter";
 import type { CanalTipo } from "../sdk/domain";
@@ -53,6 +54,10 @@ const Canal = memo(function Canal({ id, ativo }: { id: string; ativo: boolean })
           data-naolidas={temNaoLidas}
           onClick={() => selecionarCanal(id)}
         >
+          {/* A mesma lâmina do rail. Assinatura só é assinatura quando
+              repete — um gesto que aparece uma vez é um acidente. */}
+          <Lamina ativa={ativo} className={css.lamina} />
+
           {/* Ícones Phosphor, weight regular, 20px — um set só, sem exceção. */}
           <Icone size={20} className={css.icone} aria-hidden />
           <span className={css.nome}>{canal.name}</span>
