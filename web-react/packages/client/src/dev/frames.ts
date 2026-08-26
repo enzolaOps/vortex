@@ -55,6 +55,9 @@ export type FrameReport = {
   /** Tarefas longas (>50ms) — bloqueio de main thread. */
   longTasks: number;
   longTaskMs: number;
+  /** Tarefas longas na PARTIDA — fora da janela medida, contadas à parte. */
+  longTasksAquecimento: number;
+  longTaskAquecimentoMs: number;
   /**
    * Frames em que o rAF foi SUSPENSO (aba oculta, pane sem composição), e não
    * frames lentos. Excluídos dos percentis e contabilizados aqui em separado —
@@ -72,6 +75,8 @@ export function createFrameRecorder() {
   let onVisibility: (() => void) | undefined;
   let longTasks = 0;
   let longTaskMs = 0;
+  let longTasksAquecimento = 0;
+  let longTaskAquecimentoMs = 0;
   let raf = 0;
   let last = 0;
   let startedAt = 0;
@@ -125,12 +130,33 @@ export function createFrameRecorder() {
       deltas = [];
       longTasks = 0;
       longTaskMs = 0;
+      longTasksAquecimento = 0;
+      longTaskAquecimentoMs = 0;
       last = 0;
       startedAt = performance.now();
 
       try {
+        /*
+          O aquecimento descartava frames e NÃO descartava long tasks.
+
+          `start()` liga o observer e a janela de aquecimento ao mesmo tempo,
+          mas o `tick` só começa a guardar deltas depois de `warmupUntil`.
+          Resultado: uma tarefa de 50ms na PARTIDA — montagem da primeira
+          lista, primeira publicação, hidratação tardia — some dos percentis e
+          continua contando no veredito. O gate reprovava por trabalho que ele
+          próprio já tinha decidido não medir.
+
+          Não são descartadas em silêncio: ficam separadas, porque "houve um
+          bloqueio na partida" é informação real sobre o app, só não é a
+          pergunta que este gate faz.
+        */
         observer = new PerformanceObserver((list) => {
           for (const entry of list.getEntries()) {
+            if (entry.startTime < warmupUntil) {
+              longTasksAquecimento += 1;
+              longTaskAquecimentoMs += entry.duration;
+              continue;
+            }
             longTasks += 1;
             longTaskMs += entry.duration;
           }
@@ -199,6 +225,8 @@ export function createFrameRecorder() {
         p95EmIntervalos: Number((at(0.95) / intervalo).toFixed(2)),
         longTasks,
         longTaskMs: Number(longTaskMs.toFixed(1)),
+        longTasksAquecimento,
+        longTaskAquecimentoMs: Number(longTaskAquecimentoMs.toFixed(1)),
         suspended,
       };
     },

@@ -29,6 +29,8 @@ function relatorio(deltas: number[]): FrameReport {
     dropped: deltas.filter((d) => d > 16.7).length,
     longTasks: 0,
     longTaskMs: 0,
+    longTasksAquecimento: 0,
+    longTaskAquecimentoMs: 0,
     suspended: 0,
     intervalo,
     p95EmIntervalos: at(0.95) / intervalo,
