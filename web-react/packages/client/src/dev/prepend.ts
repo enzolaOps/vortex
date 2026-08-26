@@ -31,6 +31,21 @@ export type FaseRemedicao = {
   ondeSaltou: string;
   /** Quanto o total mudou por altura real substituir estimativa. */
   crescimentoPorRemedicao: number;
+  /**
+   * Quanto o virtualizador mexeu no scroll por conta própria, somado.
+   *
+   * É o discriminador do diagnóstico, e a razão de este campo existir.
+   * Rolando 260px com as linhas acima crescendo X:
+   *
+   *   compensação funciona → scroll líquido 260−X, movimento visual 260
+   *   compensação falha    → scroll líquido 260,   movimento visual 260+X
+   *
+   * Medir o salto contra o scroll LÍQUIDO devolve X nos dois casos, e os dois
+   * viram indistinguíveis. Por isso o esperado é a INTENÇÃO de rolagem, e a
+   * compensação é reportada à parte: com salto zero e compensação alta, o
+   * virtualizador está fazendo o trabalho.
+   */
+  compensacaoAplicada: number;
   passos: number;
 };
 
@@ -72,9 +87,17 @@ async function medirRemedicao(
   let piorSalto = 0;
   let ondeSaltou = "";
   let passosReais = 0;
+  let compensacaoAplicada = 0;
+  let houveMovimento = false;
 
   for (let i = 0; i < passos; i++) {
-    if (el.scrollTop <= 0) break;
+    const scrollAntes = el.scrollTop;
+
+    // A INTENÇÃO de rolagem é o que o usuário pediu, e é contra ela que o
+    // movimento visual tem que bater. O scroll líquido não serve de
+    // referência: ele já embute a compensação.
+    const intencao = Math.min(passoPx, scrollAntes);
+    if (intencao === 0) break;
 
     const topo = el.getBoundingClientRect().top;
     const ref = referencia(el);
@@ -82,39 +105,40 @@ async function medirRemedicao(
 
     const mid = ref.dataset.mid;
     const offsetAntes = ref.getBoundingClientRect().top - topo;
-    const scrollAntes = el.scrollTop;
 
-    el.scrollTop = Math.max(0, el.scrollTop - passoPx);
+    el.scrollTop = scrollAntes - intencao;
     await quadro();
     await quadro();
-
-    const rolou = scrollAntes - el.scrollTop;
-    if (rolou === 0) {
-      return {
-        ok: false,
-        motivo: "o scroll não se moveu — medição inválida",
-        piorSalto: 0,
-        ondeSaltou: "",
-        crescimentoPorRemedicao: 0,
-        passos: passosReais,
-      };
-    }
 
     passosReais += 1;
+    compensacaoAplicada += Math.round(intencao - (scrollAntes - el.scrollTop));
 
     const depois = document.querySelector<HTMLElement>(`[data-mid="${mid}"]`);
     // Rolando para cima a referência desce e pode sair da janela: isso é
     // esperado, não é falha.
     if (!depois) continue;
 
-    const esperado = offsetAntes + rolou;
     const real = depois.getBoundingClientRect().top - topo;
-    const salto = Math.round(real - esperado);
+    if (Math.abs(real - offsetAntes) > 1) houveMovimento = true;
+
+    const salto = Math.round(real - (offsetAntes + intencao));
 
     if (Math.abs(salto) > Math.abs(piorSalto)) {
       piorSalto = salto;
       ondeSaltou = mid;
     }
+  }
+
+  if (passosReais > 0 && !houveMovimento) {
+    return {
+      ok: false,
+      motivo: "nada se moveu na tela — o scroll não está sendo aplicado",
+      piorSalto: 0,
+      ondeSaltou: "",
+      crescimentoPorRemedicao: Math.round(el.scrollHeight - totalAntes),
+      compensacaoAplicada,
+      passos: passosReais,
+    };
   }
 
   const crescimentoPorRemedicao = Math.round(el.scrollHeight - totalAntes);
@@ -126,6 +150,7 @@ async function medirRemedicao(
       piorSalto: 0,
       ondeSaltou: "",
       crescimentoPorRemedicao,
+      compensacaoAplicada,
       passos: 0,
     };
   }
@@ -140,6 +165,7 @@ async function medirRemedicao(
       piorSalto,
       ondeSaltou,
       crescimentoPorRemedicao,
+      compensacaoAplicada,
       passos: passosReais,
     };
   }
@@ -150,6 +176,7 @@ async function medirRemedicao(
     piorSalto,
     ondeSaltou,
     crescimentoPorRemedicao,
+    compensacaoAplicada,
     passos: passosReais,
   };
 }

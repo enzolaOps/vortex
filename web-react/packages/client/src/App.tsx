@@ -162,7 +162,8 @@ export function App() {
                     ? `remedição: ${prepend.remedicao.motivo}`
                     : `remedição ${prepend.remedicao.ok ? "OK" : "SALTOU"} · ` +
                       `pior salto ${prepend.remedicao.piorSalto}px em ${prepend.remedicao.passos} passos · ` +
-                      `altura real somou ${prepend.remedicao.crescimentoPorRemedicao}px`}
+                      `altura real somou ${prepend.remedicao.crescimentoPorRemedicao}px · ` +
+                      `virtualizador compensou ${prepend.remedicao.compensacaoAplicada}px`}
                 </span>
               ) : null}
             </span>
