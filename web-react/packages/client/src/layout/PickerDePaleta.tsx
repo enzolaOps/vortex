@@ -2,6 +2,7 @@ import { CaretDown } from "@phosphor-icons/react";
 import { useState, useSyncExternalStore } from "react";
 
 import { Deslizante } from "../components/ui/Deslizante";
+import { SeletorDeCor } from "../components/ui/SeletorDeCor";
 import { Segmentado } from "../components/ui/Segmentado";
 import { assinarLayout, definirSemente, lerSemente } from "../store/layout";
 import { paletaFinal } from "../tema/aplicar";
@@ -176,20 +177,11 @@ export function PickerDePaleta() {
               <label className={css.rotulo} htmlFor="picker-acento">
                 ação
               </label>
-              {/*
-                O `type="color"` continua nativo, e é o único que fica.
-
-                É o controle que abre o seletor de cor DO SISTEMA — reimplementar
-                isso significaria escrever um color picker inteiro, que é a
-                definição de "genérico que a biblioteca resolve". O que dá para
-                fazer é o gatilho parecer nosso, e é o que a classe faz.
-              */}
-              <input
+              <SeletorDeCor
                 id="picker-acento"
-                type="color"
-                className={css.cor}
-                value={paleta["--vx-accent"]}
-                onChange={(e) => definirSemente({ ...semente, acento: e.target.value })}
+                rotulo="Cor de ação"
+                valor={paleta["--vx-accent"]}
+                aoMudar={(acento) => definirSemente({ ...semente, acento })}
               />
               <span className={css.medida}>{paleta["--vx-accent"]}</span>
             </div>

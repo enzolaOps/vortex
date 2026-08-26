@@ -21,11 +21,13 @@ export function Segmentado<T extends string>({
   opcoes,
   aoEscolher,
   rotulo,
+  desabilitado = false,
 }: {
   valor: T;
   opcoes: readonly { readonly id: T; readonly rotulo: string }[];
   aoEscolher: (id: T) => void;
   rotulo: string;
+  desabilitado?: boolean;
 }) {
   function aoTeclar(e: React.KeyboardEvent, i: number) {
     const passo = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
@@ -36,7 +38,12 @@ export function Segmentado<T extends string>({
   }
 
   return (
-    <div className={css.grupo} role="radiogroup" aria-label={rotulo}>
+    <div
+      className={css.grupo}
+      role="radiogroup"
+      aria-label={rotulo}
+      aria-disabled={desabilitado || undefined}
+    >
       {opcoes.map((o, i) => (
         <button
           key={o.id}
@@ -45,6 +52,7 @@ export function Segmentado<T extends string>({
           aria-checked={o.id === valor}
           tabIndex={o.id === valor ? 0 : -1}
           className={css.opcao}
+          disabled={desabilitado}
           onClick={() => aoEscolher(o.id)}
           onKeyDown={(e) => aoTeclar(e, i)}
         >

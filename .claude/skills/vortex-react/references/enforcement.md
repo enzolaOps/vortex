@@ -64,6 +64,29 @@ quando alguém tentar adicionar a primeira feature que o Stoat não tem.
 
 Vale para valor **e** para tipo — `import type` acopla igual.
 
+**Controle nativo proibido em código de feature.**
+`<select>`, `<input type="range">` e `<input type="color">` são desenhados pelo
+SISTEMA, não pelo app: num cliente dark no Windows chegam com cromo claro, e a
+identidade do produto termina na borda deles. Regra de `no-restricted-syntax`,
+com `components/ui/` isento — é lá que os primitivos ENVOLVEM o nativo, mesma
+forma da fronteira do Radix.
+
+`checkbox` fica de fora da lista: `accent-color` o traz para o sistema de cor
+com uma linha, e ele não abre superfície própria. A régua é "o sistema desenha
+algo que o nosso CSS não alcança".
+
+Instalada na fase 4, DEPOIS de a fase 4 ter entregue quatro deles em
+superfícies de produto. O `review-checklist.md` já cobria isso e não foi
+rodado — e a ordem de preferência deste documento coloca checklist no penúltimo
+degrau justamente por isso. A regra sobe o degrau, e verificada reprovando de
+propósito: três violações em código de feature, zero dentro de `components/ui`.
+
+Cuidado ao mexer: `no-restricted-syntax` NÃO soma entre blocos de config — o
+último a casar vence. As listas são compostas (`SINTAXE_GERAL` +
+`CONTROLE_NATIVO`) por isso; declarar só a lista nova no bloco de feature
+desligaria arbitrary value e direção física em todo `src/`, sem aviso. Há
+prova em ambos os sentidos no histórico desta linha.
+
 **`left`/`right` proibidos em componente de painel** — só propriedades lógicas
 (`inline-start`/`inline-end`). Sustenta a lei nº 6 mecanicamente em vez de
 depender de disciplina.
@@ -526,6 +549,7 @@ já cobre a maior parte.
 | Cores default do Tailwind | Ausência no `@theme` | Fase 1 |
 | Contraste dos tokens | `pnpm contrast` (teste, pares compartilhados) | Fase 1 |
 | Import direto de Radix | Lint de boundary | Fase 2 |
+| Controle nativo fora de components/ui | Lint | Fase 4 |
 | `cn()` na escala do projeto | `pnpm classes` | Fase 2 |
 | `left`/`right` em painel | Lint | Fase 2 |
 | `getSnapshot` estável | Assertion em dev | Fase 0 |

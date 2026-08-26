@@ -14,33 +14,15 @@ import tseslint from "typescript-eslint";
  * resolvida por ausência no `@theme` (`--color-*: initial`), não por proibição.
  * Tornar impossível > proibir.
  */
-export default tseslint.config(
-  { ignores: ["dist", "node_modules"] },
-
-  js.configs.recommended,
-  tseslint.configs.recommendedTypeChecked,
-  // configs.flat: as regras do React Compiler vivem aqui (immutability, refs,
-  // purity, incompatible-library). É o compiler falando por lint.
-  reactHooks.configs.flat["recommended-latest"],
-
-  {
-    files: ["**/*.{ts,tsx}"],
-    languageOptions: {
-      globals: globals.browser,
-      parserOptions: {
-        projectService: true,
-        tsconfigRootDir: import.meta.dirname,
-      },
-    },
-    rules: {
-      /**
-       * Índice como `key` proibido.
-       *
-       * Em lista de chat, índice corrompe o estado da linha a cada inserção no
-       * topo — e o histórico carrega justamente por cima.
-       */
-      "no-restricted-syntax": [
-        "error",
+/**
+ * As regras de sintaxe que valem em TODO arquivo.
+ *
+ * Extraídas para constante porque a fase 4 acrescentou um segundo conjunto
+ * que vale só em código de feature — e `no-restricted-syntax` não soma entre
+ * blocos de config: o último a casar vence. Compor as listas é o que evita
+ * que ligar a regra nova desligue as antigas em metade do projeto.
+ */
+const SINTAXE_GERAL = [
         {
           selector:
             "JSXAttribute[name.name='key'] > JSXExpressionContainer > Identifier[name=/^(i|idx|index)$/]",
@@ -95,7 +77,78 @@ export default tseslint.config(
           message:
             "Direção física proibida (lei nº 6). Use a propriedade lógica: start/end, ms/me, ps/pe, border-s/e, rounded-s/e, text-start/end. Painel que assume lado vira reescrita quando o usuário puder reordenar.",
         },
-      ],
+];
+
+/**
+ * Controle NATIVO proibido em código de feature.
+ *
+ * `<select>`, `<input type="range"> `e `<input type="color">` são desenhados
+ * pelo SISTEMA, não pelo app. Num cliente dark no Windows eles chegam com
+ * cromo claro, e a identidade do produto termina na borda deles — o mesmo
+ * efeito de misturar dois sets de ícone, que este projeto já proíbe.
+ *
+ * A fase 4 entregou quatro deles em superfícies de produto. O checklist de
+ * revisão já cobria isso (`review-checklist.md`, os oito estados) e não foi
+ * rodado — e a ordem de preferência do enforcement.md coloca checklist no
+ * penúltimo degrau justamente por isso. Esta regra sobe o degrau.
+ *
+ * `components/ui/` é isento: é lá que os primitivos ENVOLVEM o nativo, e ali
+ * o import é o trabalho, não a violação. Mesma forma da fronteira do Radix.
+ *
+ * `checkbox` NÃO está na lista: `accent-color` o deixa dentro do sistema de
+ * cor com uma linha, e ele não abre superfície própria. A régua é "o sistema
+ * desenha algo que o nosso CSS não alcança".
+ *
+ * `type="color"` é o caso limite e continua proibido em feature: o seletor
+ * que ele abre é do SO e é insubstituível, mas o GATILHO é nosso — por isso
+ * ele vive envolvido em `components/ui`, com o gatilho estilizado.
+ */
+const CONTROLE_NATIVO = [
+  {
+    selector: "JSXOpeningElement[name.name='select']",
+    message:
+      "`<select>` nativo é desenhado pelo sistema, não pelo app. Use `Segmentado` (poucas opções visíveis) ou `DropdownMenu` (muitas). Ambos já existem em components/ui.",
+  },
+  {
+    selector:
+      "JSXOpeningElement[name.name='input']:has(JSXAttribute[name.name='type'][value.value='range'])",
+    message:
+      "`<input type=\"range\">` cru chega com cromo do sistema. Use `Deslizante` de components/ui, que é este mesmo input pintado.",
+  },
+  {
+    selector:
+      "JSXOpeningElement[name.name='input']:has(JSXAttribute[name.name='type'][value.value='color'])",
+    message:
+      "`<input type=\"color\">` só pode aparecer dentro de components/ui, com o gatilho estilizado. O seletor que ele abre é do SO e não dá para substituir; o gatilho dá.",
+  },
+];
+
+export default tseslint.config(
+  { ignores: ["dist", "node_modules"] },
+
+  js.configs.recommended,
+  tseslint.configs.recommendedTypeChecked,
+  // configs.flat: as regras do React Compiler vivem aqui (immutability, refs,
+  // purity, incompatible-library). É o compiler falando por lint.
+  reactHooks.configs.flat["recommended-latest"],
+
+  {
+    files: ["**/*.{ts,tsx}"],
+    languageOptions: {
+      globals: globals.browser,
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      /**
+       * Índice como `key` proibido.
+       *
+       * Em lista de chat, índice corrompe o estado da linha a cada inserção no
+       * topo — e o histórico carrega justamente por cima.
+       */
+      "no-restricted-syntax": ["error", ...SINTAXE_GERAL],
     },
   },
 
@@ -172,6 +225,22 @@ export default tseslint.config(
     files: ["scripts/**/*.mjs"],
     languageOptions: { globals: globals.node },
   },
+
+  {
+    /**
+     * Código de feature: as regras gerais MAIS a proibição de controle nativo.
+     *
+     * A lista geral é repetida de propósito — `no-restricted-syntax` não soma
+     * entre blocos, então declarar só a lista nova aqui desligaria a proibição
+     * de arbitrary value e de direção física em todo `src/`, silenciosamente.
+     */
+    files: ["src/**/*.tsx"],
+    ignores: ["src/components/ui/**"],
+    rules: {
+      "no-restricted-syntax": ["error", ...SINTAXE_GERAL, ...CONTROLE_NATIVO],
+    },
+  },
+
   {
     // Os wrappers SAO a fronteira: aqui o import de Radix e o trabalho,
     // nao a violacao.

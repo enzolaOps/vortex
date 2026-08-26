@@ -9,6 +9,7 @@ import {
   SERVER_ID,
   startFirehose,
 } from "./dev/firehose";
+import { Segmentado } from "./components/ui/Segmentado";
 import { createFrameRecorder, verdict, type FrameReport } from "./dev/frames";
 import { medirPrepend, type ResultadoPrepend } from "./dev/prepend";
 import { readCounters, resetCounters, type Counters } from "./dev/stats";
@@ -213,18 +214,16 @@ export function App() {
           {/* Condição da corrida, como o CPU 4x: fica ao lado do botão que a
               usa, e trava depois de semear — trocar o tamanho com a lista
               carregada mediria uma coisa e diria outra. */}
-          <select
-            value={seedCount}
-            onChange={(e) => setSeedCount(Number(e.target.value))}
-            disabled={seeded > 0 || seeding || running}
-            className="rounded-2 bg-surface-2 px-2 py-1 text-sm text-text-1 disabled:text-text-3"
-          >
-            {TAMANHOS.map((n) => (
-              <option key={n} value={n}>
-                {n.toLocaleString("pt-BR")} mensagens
-              </option>
-            ))}
-          </select>
+          <Segmentado
+            rotulo="Tamanho da semeadura"
+            valor={String(seedCount)}
+            desabilitado={seeded > 0 || seeding || running}
+            opcoes={TAMANHOS.map((n) => ({
+              id: String(n),
+              rotulo: `${n.toLocaleString("pt-BR")} msgs`,
+            }))}
+            aoEscolher={(id) => setSeedCount(Number(id))}
+          />
 
           <button
             onClick={() => void handleRun()}
@@ -239,15 +238,16 @@ export function App() {
           {/* Repetição é condição de corrida, como o CPU 4x. Uma janela só
               deixou de decidir quando o ruído entre corridas passou o efeito
               procurado. */}
-          <select
-            value={repeticoes}
-            onChange={(e) => setRepeticoes(Number(e.target.value))}
-            disabled={running}
-            className="rounded-2 bg-surface-2 px-2 py-1 text-sm text-text-1 disabled:text-text-3"
-          >
-            <option value={1}>1 janela</option>
-            <option value={3}>3 janelas (mediana)</option>
-          </select>
+          <Segmentado
+            rotulo="Janelas de medição"
+            valor={String(repeticoes)}
+            desabilitado={running}
+            opcoes={[
+              { id: "1", rotulo: "1 janela" },
+              { id: "3", rotulo: "3 janelas" },
+            ]}
+            aoEscolher={(id) => setRepeticoes(Number(id))}
+          />
 
           <button
             onClick={() => {
