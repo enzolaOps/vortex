@@ -1,3 +1,11 @@
+/* Fontes empacotadas, nunca de CDN: a instância é privada, o Electron roda
+   com CSP sem origem externa, e uma família que depende de rede é uma
+   família que some quando a rede cai. O fontsource fatia por subset com
+   unicode-range, então só o que a página usa é baixado. */
+@import "@fontsource-variable/ibm-plex-sans";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
 @import "tailwindcss";
 
 /* ============================================================
@@ -25,40 +33,52 @@
    ============================================================ */
 
 :root {
-  /* --- Superfícies (PLACEHOLDER) -----------------------------
-     Profundidade em dark UI vem de camada, não de sombra. */
-  --vx-surface-0: #0e0f11;
-  --vx-surface-1: #15171a;
-  --vx-surface-2: #1c1f23;
-  --vx-surface-3: #24282d;
+  color-scheme: dark;
 
-  /* --- Texto (PLACEHOLDER) -----------------------------------
-     1 = primário. Contraste 4.5:1 sobre a superfície em que
-     cada um for de fato usado. */
-  --vx-text-1: #e8eaed;
-  --vx-text-2: #a8adb4;
-  --vx-text-3: #6f757d;
+  /* --- Superfícies -------------------------------------------
+     Neutro com um traço de violeta, baixíssima croma: é o que
+     amarra a família pastel sem virar interface roxa.
+     0 = mais ao fundo. Profundidade vem de camada, não de sombra. */
+  --vx-surface-0: #16151c;
+  --vx-surface-1: #1d1c25;
+  --vx-surface-2: #26242f;
+  --vx-surface-3: #312e3b;
 
-  /* --- Bordas (PLACEHOLDER) ---------------------------------- */
-  --vx-border-subtle: #24282d;
-  --vx-border-strong: #343a41;
+  /* --- Texto -------------------------------------------------
+     1 = primário. O par que mais aperta é --vx-text-3 sobre
+     --vx-surface-3: metadata apagada sobre a superfície mais
+     clara. Verificado, não estimado. */
+  --vx-text-1: #eceaf2;
+  --vx-text-2: #bdb8cc;
+  --vx-text-3: #a29cb3;
 
-  /* --- Ação (PLACEHOLDER) ------------------------------------ */
-  --vx-accent: #4f7cff;
-  --vx-accent-hover: #6b90ff;
-  --vx-on-accent: #ffffff;
+  /* --- Bordas ------------------------------------------------ */
+  --vx-border-subtle: #2b2934;
+  --vx-border-strong: #7b7492;
 
-  /* --- Semânticos (PLACEHOLDER) ------------------------------ */
-  --vx-danger: #e5534b;
-  --vx-warning: #d2a03c;
-  --vx-success: #46a758;
+  /* --- Ação --------------------------------------------------
+     Lilás pastel. No escuro o pastel é o preenchimento e o texto
+     em cima é escuro — é assim que pastel funciona sem perder
+     contraste. */
+  --vx-accent: #bcaef2;
+  --vx-accent-hover: #cfc4f7;
+  --vx-on-accent: #1a1622;
+  /* Preenchimento tingido: menção, chip, destaque de linha. */
+  --vx-accent-soft: #2b2540;
 
-  /* --- Presença (PLACEHOLDER) --------------------------------
+  /* --- Semânticos --------------------------------------------
+     Mesma família pastel, matizes separados o suficiente para
+     não dependerem de distinção vermelho/verde. */
+  --vx-danger: #ffa3b3;
+  --vx-warning: #f0cd8d;
+  --vx-success: #9bdcb4;
+
+  /* --- Presença ----------------------------------------------
      Nunca comunicada só por cor: cor + forma no ícone. */
-  --vx-status-online: #46a758;
-  --vx-status-idle: #d2a03c;
-  --vx-status-dnd: #e5534b;
-  --vx-status-offline: #6f757d;
+  --vx-status-online: #9bdcb4;
+  --vx-status-idle: #f0cd8d;
+  --vx-status-dnd: #ffa3b3;
+  --vx-status-offline: #7b7490;
 
   /* --- Espaço ------------------------------------------------ */
   --vx-space-1: 4px;
@@ -86,8 +106,11 @@
   --vx-leading-message: 1.375;
   --vx-leading-title: 1.2;
 
-  --vx-font-ui: system-ui, sans-serif;
-  --vx-font-mono: ui-monospace, monospace;
+  /* IBM Plex Sans: humanista, desenhada para interface e para conviver com a
+     mono da mesma mão. A pilha de fallback existe para o primeiro paint e para
+     quando o arquivo falhar — nunca deixar o texto sem família. */
+  --vx-font-ui: "IBM Plex Sans Variable", "IBM Plex Sans", system-ui, sans-serif;
+  --vx-font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
   /* --- Movimento ---------------------------------------------
      120–180ms, ease-out. Só transform e opacity. */
@@ -123,6 +146,86 @@
    Tornar impossível > proibir.
    ============================================================ */
 
+
+/* ============================================================
+   Tema claro
+   ------------------------------------------------------------
+   Não é o escuro invertido. Pastel sobre branco não alcança
+   4,5:1 em nenhuma combinação — então o MATIZ se mantém e a
+   luminosidade troca de lado: o que era pastel claro sobre
+   fundo escuro vira tom profundo sobre fundo claro, e o pastel
+   sobrevive nos preenchimentos (--vx-accent-soft).
+
+   Elevação segue a mesma direção nos dois temas: N maior é
+   mais à frente. No escuro isso é mais claro; no claro, mais
+   branco.
+   ============================================================ */
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --vx-surface-0: #f2eff8;
+  --vx-surface-1: #f8f6fc;
+  --vx-surface-2: #fcfbfe;
+  --vx-surface-3: #ffffff;
+
+  --vx-text-1: #201d29;
+  --vx-text-2: #4a4459;
+  --vx-text-3: #625b73;
+
+  --vx-border-subtle: #e4dff0;
+  --vx-border-strong: #8c85a0;
+
+  --vx-accent: #5b45c4;
+  --vx-accent-hover: #4a35ad;
+  --vx-on-accent: #ffffff;
+  --vx-accent-soft: #ebe5fb;
+
+  --vx-danger: #b3273f;
+  --vx-warning: #7d5200;
+  --vx-success: #1b6e45;
+
+  --vx-status-online: #1b6e45;
+  --vx-status-idle: #7d5200;
+  --vx-status-dnd: #b3273f;
+  --vx-status-offline: #6f6885;
+}
+
+/* Sem escolha explícita, segue o sistema. A troca em runtime
+   continua sendo sobrescrever a camada 1 — o Tailwind não
+   precisa saber que temas existem. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+
+    --vx-surface-0: #f2eff8;
+    --vx-surface-1: #f8f6fc;
+    --vx-surface-2: #fcfbfe;
+    --vx-surface-3: #ffffff;
+
+    --vx-text-1: #201d29;
+    --vx-text-2: #4a4459;
+    --vx-text-3: #625b73;
+
+    --vx-border-subtle: #e4dff0;
+    --vx-border-strong: #8c85a0;
+
+    --vx-accent: #5b45c4;
+    --vx-accent-hover: #4a35ad;
+    --vx-on-accent: #ffffff;
+    --vx-accent-soft: #ebe5fb;
+
+    --vx-danger: #b3273f;
+    --vx-warning: #7d5200;
+    --vx-success: #1b6e45;
+
+    --vx-status-online: #1b6e45;
+    --vx-status-idle: #7d5200;
+    --vx-status-dnd: #b3273f;
+    --vx-status-offline: #6f6885;
+  }
+}
+
 @theme {
   --color-*: initial;
   --spacing-*: initial;
@@ -146,6 +249,7 @@
 
   --color-accent: var(--vx-accent);
   --color-accent-hover: var(--vx-accent-hover);
+  --color-accent-soft: var(--vx-accent-soft);
   --color-on-accent: var(--vx-on-accent);
 
   --color-danger: var(--vx-danger);
@@ -188,6 +292,28 @@
      teto de linha só existiria como arbitrary value — que é banido. */
   --container-*: initial;
   --container-message: var(--vx-message-max-w);
+}
+
+/* ============================================================
+   Calibração
+   ------------------------------------------------------------
+   A família é metade da decisão. A outra metade é como ela é
+   usada, e é a que mais afeta legibilidade em rolagem rápida.
+   ============================================================ */
+
+html {
+  /* Números de largura fixa em toda a interface.
+
+     Sem isto cada timestamp tem largura diferente e a coluna de
+     metadata treme durante o scroll. Custa uma linha e é o tipo
+     de detalhe que ninguém nomeia mas todo mundo sente. */
+  font-variant-numeric: tabular-nums;
+
+  /* Ligaduras desligadas em interface: `fi` e `fl` colados
+     atrapalham leitura de nome de usuário e de identificador. */
+  font-variant-ligatures: none;
+
+  -webkit-font-smoothing: antialiased;
 }
 
 html,
