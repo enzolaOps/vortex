@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 
 import { count } from "../dev/stats";
 import { useChannelMessageIds } from "../store/hooks";
+import css from "./MessageList.module.css";
 import { MessageRow } from "./MessageRow";
 
 /**
@@ -117,11 +118,11 @@ export function MessageList({ channelId }: { channelId: string }) {
       role="log"
       aria-live="polite"
       aria-relevant="additions"
-      className="h-full overflow-y-auto overscroll-contain [scrollbar-gutter:stable]"
+      className={css.scroll}
     >
       {/* Teto de linha legível. Sem isto o texto estica até 3000px em
           ultrawide, que é o bug de layout que motivou o redesign. */}
-      <div className="max-w-message">
+      <div className={css.coluna}>
         <div
           className="relative w-full"
           style={{ height: `${virtualizer.getTotalSize()}px` }}

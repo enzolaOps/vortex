@@ -1,0 +1,86 @@
+/* ============================================================
+   O shell — grid raiz de quatro colunas
+   ------------------------------------------------------------
+   CSS Module e não utilities, pelo critério do styling.md:
+   `grid-template-columns` com clamp() só existiria na className
+   como arbitrary value, que é valor mágico com outra sintaxe.
+   ============================================================ */
+
+.shell {
+  display: grid;
+  grid-template-columns:
+    var(--vx-rail-w) /* rail de servidores, fixo */
+    clamp(240px, 18vw, 320px) /* canais */
+    minmax(0, 1fr) /* conteúdo */
+    clamp(0px, 20vw, 340px); /* membros, colapsável */
+  block-size: 100dvh;
+  padding-block-start: var(--vx-titlebar-h);
+  background: var(--vx-surface-0);
+}
+
+/*
+  `minmax(0, 1fr)` não é opcional, e é a causa raiz do bug que motivou
+  o redesign.
+
+  O default de `1fr` é `minmax(auto, 1fr)`, e `auto` respeita o
+  `min-content` do filho: uma URL de 400 caracteres sem espaço empurra a
+  coluna e estoura o grid inteiro. A mesma armadilha vale para filho de
+  flex, onde a defesa é `min-inline-size: 0`.
+*/
+.coluna {
+  /* Filho de grid também tem min-width auto por default. */
+  min-inline-size: 0;
+  block-size: 100%;
+  overflow: hidden;
+
+  /*
+    Painel reage ao PRÓPRIO tamanho, não ao da janela.
+
+    É o que faz o mesmo componente funcionar em janela pequena,
+    ultrawide e popout de janela separada sem condicional espalhada —
+    e é a lei nº 6 deixando de ser prosa.
+  */
+  container-type: inline-size;
+}
+
+.rail {
+  border-inline-end: 1px solid var(--vx-border-subtle);
+  background: var(--vx-surface-0);
+}
+
+.canais {
+  border-inline-end: 1px solid var(--vx-border-subtle);
+  background: var(--vx-surface-1);
+}
+
+.conteudo {
+  background: var(--vx-surface-0);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.membros {
+  border-inline-start: 1px solid var(--vx-border-subtle);
+  background: var(--vx-surface-1);
+}
+
+/*
+  Abaixo de ~1100px de painel disponível, a coluna de membros já entrou
+  no piso do clamp (0px) e some sozinha. O `display: none` evita que a
+  borda fique como risco órfão.
+*/
+@media (width < 1000px) {
+  .membros {
+    display: none;
+  }
+}
+
+/*
+  Estado compacto por container query: o painel decide sozinho, sem
+  saber o tamanho da janela.
+*/
+@container (inline-size < 200px) {
+  .rotulo {
+    display: none;
+  }
+}

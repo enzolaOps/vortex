@@ -483,7 +483,7 @@ paleta com validação de contraste. Ver `layout-customization.md`.
 
 | Item | Precisa de |
 |---|---|
-| Identidade visual | Paleta (4–6 hex nomeados), par tipográfico, elemento de assinatura. A estrutura de tokens está pronta em `tokens.css`; faltam os valores. |
+| Identidade visual | **Paleta feita** — família pastel em lilás, menta, pêssego e rosa sobre neutro violáceo de croma baixa, tema claro e escuro, 76/76 pares dentro do mínimo de contraste (`pnpm contrast`). **Par tipográfico feito** — IBM Plex Sans variável + IBM Plex Mono, empacotadas (72 KB em pt-BR, o resto servido por `unicode-range`), com números tabulares e ligaduras desligadas. Falta o **elemento de assinatura**. |
 | TanStack Virtual + React Compiler | **Resolvido no spike.** Compatíveis: o compiler reconhece `useVirtualizer` e pula a memoização daquele componente (`react-hooks/incompatible-library`), sem crash nem UI velha. O custo — os filhos da lista deixam de ser memoizados — é cortado com `memo` no `MessageRow`. Não trocar por `react-virtuoso`. |
 | Licença AGPL-3.0 | **Resolvido.** Uso privado — o dev e amigos, todos com acesso ao repositório, que é o que a cláusula de rede da AGPL pede. Reabrir a questão se o Vortex for exposto a terceiros sem acesso ao fonte. Não é aconselhamento jurídico. |
 | Brand assets | **Resolvido.** `brand/` é diretório rastreado deste repo, não submodule: `mark.svg`, `wordmark.svg`, `monochrome.svg` + `generate.mjs`. O `.gitmodules` só tem os três de `web/packages/`. `web-react/` consome daí, como `web/` e `desktop/`. |

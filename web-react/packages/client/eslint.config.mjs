@@ -47,6 +47,30 @@ export default tseslint.config(
           message:
             "key deve ser ID de entidade, nunca índice: índice corrompe o estado da linha a cada inserção no topo.",
         },
+        {
+          /**
+           * Arbitrary value do Tailwind proibido — lei nº 4.
+           *
+           * `bg-[#2b2d31]`, `p-[13px]`, `max-w-[--vx-message-max-w]` são valor
+           * mágico com outra sintaxe. O último foi escrito por mim durante a
+           * fase 0 e passou despercebido porque esta regra ainda não existia;
+           * além de proibido, não funcionava — a coluna corria a viewport
+           * inteira e só apareceu numa captura de tela.
+           *
+           * O lookahead negativo preserva variante arbitrária, que é sintaxe
+           * legítima e documentada: `data-[state=open]:opacity-100` e
+           * `[&>svg]:size-4` terminam em `:` e passam. O que não passa é
+           * colchete que carrega VALOR.
+           *
+           * Propriedade arbitrária (`[scrollbar-gutter:stable]`) também cai
+           * aqui, e é o comportamento certo: styling.md manda isso para CSS
+           * Module, não para a className.
+           */
+          selector:
+            "JSXAttribute[name.name='className'] Literal[value=/\\[[^\\]]*\\](?!:)/]",
+          message:
+            "Arbitrary value proibido (lei nº 4). Token novo entra em tokens.css e é projetado no @theme; se a className exigiu colchete, o lugar é um CSS Module.",
+        },
       ],
     },
   },
@@ -93,7 +117,15 @@ export default tseslint.config(
   },
 
   {
-    files: ["eslint.config.mjs", "vite.config.ts"],
+    // Ferramenta de linha de comando, fora do projeto TypeScript do app.
+    files: ["eslint.config.mjs", "vite.config.ts", "scripts/**/*.mjs"],
     ...tseslint.configs.disableTypeChecked,
+  },
+  {
+    // O verificador de contraste roda no Node, nao no browser: precisa dos
+    // globais de la. Bloco separado porque disableTypeChecked traz o proprio
+    // languageOptions e sobrescreveria este.
+    files: ["scripts/**/*.mjs"],
+    languageOptions: { globals: globals.node },
   },
 );

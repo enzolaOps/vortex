@@ -13,7 +13,21 @@ checklist > prosa.
 ## Lint — bloqueia no editor e no CI
 
 **Arbitrary values do Tailwind proibidos**
-`bg-[#2b2d31]`, `p-[13px]`, `text-[13px]`. Regra de lint com erro, não warning.
+`bg-[#2b2d31]`, `p-[13px]`, `max-w-[--vx-message-max-w]`. Regra de lint com
+erro, não warning.
+
+O seletor precisa de um lookahead negativo: variante arbitrária é sintaxe
+legítima e documentada (`data-[state=open]:opacity-100`, `[&>svg]:size-4`) e
+termina em `:`. O que se proíbe é colchete que carrega VALOR.
+
+Propriedade arbitrária (`[scrollbar-gutter:stable]`) cai na regra de propósito:
+o lugar dela é um CSS Module, como manda `styling.md`.
+
+Instalada na fase 1, pegou três violações que já estavam no código — uma delas
+escrita na fase 0 por quem estava justamente enunciando a regra. Além de
+proibida, ela não funcionava: a coluna corria a viewport inteira e só apareceu
+numa captura de tela. É o argumento para instalar mecanismo cedo, e não depois
+de escrever o código que ele deveria ter guardado.
 
 **Escala de cor default do Tailwind desativada**
 Não é lint: remova as cores default do `@theme`. Se `bg-zinc-800` não existe, não
@@ -247,7 +261,7 @@ já cobre a maior parte.
 |---|---|---|
 | Arbitrary values | Lint (erro) | Fase 1 |
 | Cores default do Tailwind | Ausência no `@theme` | Fase 1 |
-| Contraste dos tokens | Teste | Fase 1 |
+| Contraste dos tokens | `pnpm contrast` | Fase 1 |
 | Import direto de Radix | Lint de boundary | Fase 2 |
 | `left`/`right` em painel | Lint | Fase 2 |
 | `getSnapshot` estável | Assertion em dev | Fase 0 |

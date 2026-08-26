@@ -1,9 +1,10 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { CHANNEL_ID, editarUltima, seed, startFirehose } from "./dev/firehose";
 import { createFrameRecorder, verdict, type FrameReport } from "./dev/frames";
 import { readCounters, resetCounters, type Counters } from "./dev/stats";
 import { MessageList } from "./list/MessageList";
+import { Shell } from "./shell/Shell";
 
 const SEED_COUNT = 10_000;
 const EVENTS_PER_SECOND = 500;
@@ -20,6 +21,18 @@ export function App() {
   // Quem roda declara a condição — o gate não tem como detectar throttle de
   // CPU, e inferir daria um critério que muda sozinho conforme o resultado.
   const [throttled, setThrottled] = useState(true);
+
+  /**
+   * Troca de tema é sobrescrever a camada 1 e nada mais.
+   *
+   * O Tailwind não sabe que temas existem: as utilities apontam para as
+   * mesmas vars, e trocar `data-theme` no elemento raiz reflui tudo de
+   * graça. É a razão de os tokens não morarem no `@theme`.
+   */
+  const [tema, setTema] = useState<"dark" | "light">("dark");
+  useEffect(() => {
+    document.documentElement.dataset.theme = tema;
+  }, [tema]);
   const ids = useRef<readonly string[]>([]);
   const recorder = useRef(createFrameRecorder());
 
@@ -72,89 +85,94 @@ export function App() {
   const result = report ? verdict(report, { throttled }) : null;
 
   return (
-    <div className="grid h-full grid-rows-[auto_minmax(0,1fr)]">
-      <header className="flex flex-wrap items-center gap-3 border-b border-border-subtle bg-surface-1 px-4 py-2">
-        <button
-          onClick={() => void handleSeed()}
-          disabled={seeded > 0 || seeding || running}
-          className="rounded-2 bg-surface-3 px-3 py-1 text-sm text-text-1 disabled:text-text-3"
-        >
-          {seeding ? "semeando…" : `Semear ${SEED_COUNT.toLocaleString("pt-BR")}`}
-        </button>
-
-        <button
-          onClick={handleRun}
-          disabled={seeded === 0 || seeding || running}
-          className="rounded-2 bg-accent px-3 py-1 text-sm text-on-accent disabled:bg-surface-3 disabled:text-text-3"
-        >
-          {running
-            ? `aquecendo + medindo ${WINDOW_SECONDS}s…`
-            : `Firehose ${EVENTS_PER_SECOND}/s`}
-        </button>
-
-        <button
-          onClick={() => console.info("[vortex] editada:", JSON.stringify(editarUltima()))}
-          disabled={seeded === 0}
-          className="rounded-2 bg-surface-3 px-3 py-1 text-sm text-text-1 disabled:text-text-3"
-        >
-          Editar a última
-        </button>
-
-        <span className="text-xs text-text-3">
-          {seeded > 0 ? `${seeded.toLocaleString("pt-BR")} carregadas` : "vazio"}
-        </span>
-
-        <label className="flex items-center gap-2 text-xs text-text-2">
-          <input
-            type="checkbox"
-            checked={throttled}
-            onChange={(e) => setThrottled(e.target.checked)}
-            disabled={running}
-          />
-          CPU 4x
-        </label>
-
-        {naoSeguia ? (
-          <span className="rounded-2 bg-danger px-2 py-1 text-xs text-on-accent">
-            INVÁLIDA — lista a {distanciaDoFim}px do fim, followOnAppend desligado
-          </span>
-        ) : null}
-
-        {result ? (
-          <span
-            className={`rounded-2 px-2 py-1 text-xs ${
-              result.pass ? "bg-success text-surface-0" : "bg-danger text-on-accent"
-            }`}
+    <Shell
+      ferramentas={
+        <header className="flex flex-wrap items-center gap-3 border-b border-border-subtle bg-surface-1 px-4 py-2">
+          <button
+            onClick={() => void handleSeed()}
+            disabled={seeded > 0 || seeding || running}
+            className="rounded-2 bg-surface-3 px-3 py-1 text-sm text-text-1 disabled:text-text-3"
           >
-            {result.pass ? "PASS" : "FAIL"}
-          </span>
-        ) : null}
+            {seeding ? "semeando…" : `Semear ${SEED_COUNT.toLocaleString("pt-BR")}`}
+          </button>
 
-        {report ? (
-          <span className="text-xs text-text-2">
-            {report.fps} fps · p50 {report.p50}ms · p95 {report.p95}ms · p99{" "}
-            {report.p99}ms · pior {report.worst}ms · {report.dropped}/
-            {report.frames} perdidos · {report.longTasks} long tasks (
-            {report.longTaskMs}ms)
-            {report.suspended > 0
-              ? ` · ⚠ ${report.suspended} suspensões de rAF — rode com a janela visível e em foco`
-              : ""}
-          </span>
-        ) : null}
-        {stats ? (
+          <button
+            onClick={handleRun}
+            disabled={seeded === 0 || seeding || running}
+            className="rounded-2 bg-accent px-3 py-1 text-sm text-on-accent disabled:bg-surface-3 disabled:text-text-3"
+          >
+            {running
+              ? `aquecendo + medindo ${WINDOW_SECONDS}s…`
+              : `Firehose ${EVENTS_PER_SECOND}/s`}
+          </button>
+
+          <button
+            onClick={() => console.info("[vortex] editada:", JSON.stringify(editarUltima()))}
+            disabled={seeded === 0}
+            className="rounded-2 bg-surface-3 px-3 py-1 text-sm text-text-1 disabled:text-text-3"
+          >
+            Editar a última
+          </button>
+
           <span className="text-xs text-text-3">
-            {stats.listRenders} lista · {stats.rowRenders} linha ·{" "}
-            {stats.presenceRenders} presença · {stats.snapshots} snapshots ·{" "}
-            {stats.publishes} publicações ({stats.publishMs}ms) · gerador{" "}
-            {(stats.tickMs ?? 0).toFixed(0)}ms (pior tick {(stats.maxTickMs ?? 0).toFixed(1)}ms)
+            {seeded > 0 ? `${seeded.toLocaleString("pt-BR")} carregadas` : "vazio"}
           </span>
-        ) : null}
-      </header>
 
-      {/* minmax(0,1fr) na linha: sem isto o conteúdo empurra e o grid estoura. */}
-      <main className="min-h-0">
-        <MessageList channelId={CHANNEL_ID} />
-      </main>
-    </div>
+          <button
+            onClick={() => setTema((t) => (t === "dark" ? "light" : "dark"))}
+            className="rounded-2 border border-border-subtle bg-surface-2 px-3 py-1 text-sm text-text-1"
+          >
+            {tema === "dark" ? "tema: escuro" : "tema: claro"}
+          </button>
+
+          <label className="flex items-center gap-2 text-xs text-text-2">
+            <input
+              type="checkbox"
+              checked={throttled}
+              onChange={(e) => setThrottled(e.target.checked)}
+              disabled={running}
+            />
+            CPU 4x
+          </label>
+
+          {naoSeguia ? (
+            <span className="rounded-2 bg-danger px-2 py-1 text-xs text-on-accent">
+              INVÁLIDA — lista a {distanciaDoFim}px do fim, followOnAppend desligado
+            </span>
+          ) : null}
+
+          {result ? (
+            <span
+              className={`rounded-2 px-2 py-1 text-xs ${
+                result.pass ? "bg-success text-surface-0" : "bg-danger text-on-accent"
+              }`}
+            >
+              {result.pass ? "PASS" : "FAIL"}
+            </span>
+          ) : null}
+
+          {report ? (
+            <span className="text-xs text-text-2">
+              {report.fps} fps · p50 {report.p50}ms · p95 {report.p95}ms · p99{" "}
+              {report.p99}ms · pior {report.worst}ms · {report.dropped}/
+              {report.frames} perdidos · {report.longTasks} long tasks (
+              {report.longTaskMs}ms)
+              {report.suspended > 0
+                ? ` · ⚠ ${report.suspended} suspensões de rAF — rode com a janela visível e em foco`
+                : ""}
+            </span>
+          ) : null}
+          {stats ? (
+            <span className="text-xs text-text-3">
+              {stats.listRenders} lista · {stats.rowRenders} linha ·{" "}
+              {stats.presenceRenders} presença · {stats.snapshots} snapshots ·{" "}
+              {stats.publishes} publicações ({stats.publishMs}ms) · gerador{" "}
+              {(stats.tickMs ?? 0).toFixed(0)}ms (pior tick {(stats.maxTickMs ?? 0).toFixed(1)}ms)
+            </span>
+          ) : null}
+        </header>
+      }
+      conteudo={<MessageList channelId={CHANNEL_ID} />}
+    />
   );
 }
