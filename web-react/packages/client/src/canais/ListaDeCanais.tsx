@@ -1,4 +1,10 @@
-import { Check, Hash, SpeakerHigh } from "@phosphor-icons/react";
+import {
+  Check,
+  Hash,
+  Monitor,
+  SpeakerHigh,
+  VideoCamera,
+} from "@phosphor-icons/react";
 import { memo } from "react";
 
 import {
@@ -10,17 +16,34 @@ import {
 import { Lamina } from "../components/ui/Lamina";
 import { contagem, rotuloDeNaoLidas } from "../lib/plural";
 import { marcarCanalLido } from "../sdk/adapter";
-import type { CanalTipo } from "../sdk/domain";
+import {
+  chaveDeMembro,
+  type CanalTipo,
+  type EstadoDeVoz,
+  type ParticipanteDeVoz,
+} from "../sdk/domain";
 import {
   useCanaisDeTexto,
   useCanaisDeVoz,
   useCanalAtivo,
   useChannel,
+  useMembro,
   useServer,
   useServidorAtivo,
+  useVozDoCanal,
 } from "../store/hooks";
 import { selecionarCanal } from "../store/navegacao";
 import css from "./ListaDeCanais.module.css";
+
+/**
+ * Ícone por estado de publicação. Voz simples não tem ícone de propósito —
+ * ver o comentário em `NaSala`.
+ */
+const ICONE_DE_VOZ: Record<EstadoDeVoz, typeof VideoCamera> = {
+  voz: SpeakerHigh,
+  video: VideoCamera,
+  tela: Monitor,
+};
 
 const ROTULO_DE_SECAO: Record<CanalTipo, string> = {
   texto: "canais de texto",
@@ -96,6 +119,85 @@ const Canal = memo(function Canal({ id, ativo }: { id: string; ativo: boolean })
 });
 
 /**
+ * Uma pessoa DENTRO da sala. Assina a si mesma.
+ *
+ * Reusa a chave composta de membro: quem está na sala é membro do servidor, e
+ * o nome que vale ali é o apelido daquele servidor — não o username global.
+ * O trabalho da feature anterior aparece de graça aqui.
+ */
+const NaSala = memo(function NaSala({
+  serverId,
+  participante,
+}: {
+  serverId: string;
+  participante: ParticipanteDeVoz;
+}) {
+  const membro = useMembro(chaveDeMembro(serverId, participante.userId));
+  const Icone = ICONE_DE_VOZ[participante.estado];
+
+  return (
+    <li className={css.naSala}>
+      <span className={css.avatarDeVoz} aria-hidden>
+        {membro?.sigla ?? "?"}
+      </span>
+      <span
+        className={css.nomeNaSala}
+        style={membro?.cor ? { color: membro.cor } : undefined}
+      >
+        {membro?.displayName ?? participante.userId}
+      </span>
+      {/*
+        Tela e câmera ganham ícone; voz simples não ganha nada.
+
+        Um ícone em cada linha viraria ruído numa sala cheia, e "está aqui
+        ouvindo" é o caso comum — o padrão não precisa de marca. O rótulo
+        acompanha porque estado nunca é só forma.
+      */}
+      {participante.estado !== "voz" ? (
+        <>
+          <Icone size={20} aria-hidden className={css.estadoDeVoz} />
+          <span className="sr-only">
+            {participante.estado === "tela"
+              ? "compartilhando a tela"
+              : "com a câmera ligada"}
+          </span>
+        </>
+      ) : null}
+    </li>
+  );
+});
+
+/**
+ * A sala de um canal de voz.
+ *
+ * É isto que separa sala de chamada: a linha do canal deixa de ser um botão de
+ * ligar e passa a mostrar quem está lá dentro — visível ANTES de entrar,
+ * porque o protocolo entrega `Ready.voice_states` no login.
+ *
+ * Sala vazia não renderiza nada. Um cabeçalho "ninguém aqui" em cada canal de
+ * voz gastaria altura permanente da coluna para dizer que não há nada — e a
+ * ausência já é visível pela linha sozinha.
+ */
+const Sala = memo(function Sala({
+  channelId,
+  serverId,
+}: {
+  channelId: string;
+  serverId: string;
+}) {
+  const dentro = useVozDoCanal(channelId);
+  if (dentro.length === 0) return null;
+
+  return (
+    <ul className={css.sala}>
+      {dentro.map((p) => (
+        <NaSala key={p.userId} serverId={serverId} participante={p} />
+      ))}
+    </ul>
+  );
+});
+
+/**
  * A lista de canais do servidor ativo.
  *
  * A separação texto/voz é derivada do tipo do canal, não das CATEGORIAS do
@@ -143,9 +245,19 @@ export function ListaDeCanais() {
               secoes[tipo].length === 0 ? null : (
                 <div key={tipo}>
                   <h2 className={css.secao}>{ROTULO_DE_SECAO[tipo]}</h2>
-                  {secoes[tipo].map((id) => (
-                    <Canal key={id} id={id} ativo={id === canalAtivo} />
-                  ))}
+                  {secoes[tipo].map((id) =>
+                    tipo === "voz" ? (
+                      // Canal de voz é um CONTAINER, não uma linha: a sala
+                      // pendura embaixo dele. É a mudança estrutural que
+                      // "sala em vez de chamada" exige.
+                      <div key={id} className={css.grupoDeVoz}>
+                        <Canal id={id} ativo={id === canalAtivo} />
+                        <Sala channelId={id} serverId={serverId} />
+                      </div>
+                    ) : (
+                      <Canal key={id} id={id} ativo={id === canalAtivo} />
+                    ),
+                  )}
                 </div>
               ),
             )}

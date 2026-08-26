@@ -18,6 +18,7 @@ import {
   serverIds,
   servers,
   typing,
+  vozPorCanal,
 } from "../sdk/adapter";
 import type {
   ChannelSnapshot,
@@ -25,6 +26,7 @@ import type {
   MemberSnapshot,
   SecaoDeMembros,
   MessageSnapshot,
+  ParticipanteDeVoz,
   PresenceStatus,
   ServerSnapshot,
 } from "../sdk/domain";
@@ -37,6 +39,7 @@ import { rascunhos, RASCUNHO_VAZIO } from "./rascunhos";
 
 const NO_IDS: readonly string[] = [];
 const NO_SECOES: readonly SecaoDeMembros[] = [];
+const NO_VOZ: readonly ParticipanteDeVoz[] = [];
 
 /**
  * Assertion de dev para a armadilha nº 1 do projeto.
@@ -193,6 +196,19 @@ export function useMembrosOffline(serverId: string): readonly string[] {
     assertStable(getSnapshot, `useMembrosOffline(${serverId})`);
   }
   return useSyncExternalStore(membrosOffline.subscriber(serverId), getSnapshot);
+}
+
+/**
+ * Quem está dentro de um canal de voz.
+ *
+ * Assina por CANAL: alguém entrando na sala A não acorda a linha da sala B.
+ */
+export function useVozDoCanal(channelId: string): readonly ParticipanteDeVoz[] {
+  const getSnapshot = () => vozPorCanal.getSnapshot(channelId) ?? NO_VOZ;
+  if (import.meta.env.DEV) {
+    assertStable(getSnapshot, `useVozDoCanal(${channelId})`);
+  }
+  return useSyncExternalStore(vozPorCanal.subscriber(channelId), getSnapshot);
 }
 
 /* ------------------------------------------------------------- navegação */

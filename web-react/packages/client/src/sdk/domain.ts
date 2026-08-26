@@ -207,6 +207,30 @@ export type SecaoDeMembros = {
 
 export const SEM_CARGO = "@sem-cargo";
 
+/**
+ * O que a pessoa está publicando na sala. Tela ganha de vídeo, vídeo de voz —
+ * a mesma precedência que o SDK aplica, mantida aqui porque é regra de
+ * apresentação e o domínio é quem a declara.
+ */
+export type EstadoDeVoz = "voz" | "video" | "tela";
+
+/**
+ * Alguém DENTRO de um canal de voz.
+ *
+ * A peça que separa sala de chamada. No Stoat um canal de voz é uma chamada
+ * que se faz; aqui é um lugar onde há gente, visível antes de entrar — e o
+ * protocolo sempre soube disso: `Ready.voice_states` entrega quem está em cada
+ * canal no login, antes de entrar em qualquer um.
+ *
+ * `desde` é epoch ms, e não `Date`, pela mesma razão de `silenciadoAte`:
+ * `getSnapshot` precisa devolver referência estável.
+ */
+export type ParticipanteDeVoz = {
+  readonly userId: string;
+  readonly estado: EstadoDeVoz;
+  readonly desde: number;
+};
+
 export function baldeDe(status: PresenceStatus): Balde {
   return status === "offline" ? "offline" : "online";
 }

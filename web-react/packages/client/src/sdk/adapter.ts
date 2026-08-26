@@ -17,6 +17,7 @@
  */
 import { createEffect, createRoot } from "solid-js";
 import { monotonicFactory } from "ulid";
+import { VoiceParticipant } from "stoat.js";
 
 import { count } from "../dev/stats";
 import { createEntityStore } from "../store/entities";
@@ -29,7 +30,9 @@ import {
   type Balde,
   type ChannelSnapshot,
   type ChaveDeMembro,
+  type EstadoDeVoz,
   type MemberSnapshot,
+  type ParticipanteDeVoz,
   type SecaoDeMembros,
   type MessageSnapshot,
   type PresenceStatus,
@@ -605,6 +608,66 @@ export const membrosOffline = createEntityStore<readonly string[]>();
 export const secoesOnline = createEntityStore<readonly SecaoDeMembros[]>();
 
 /**
+ * Quem está DENTRO de cada canal de voz.
+ *
+ * Assina o `ReactiveMap` do SDK por `createEffect`, e não um evento do cliente
+ * — porque **não existe evento**: os handlers de `VoiceChannelJoin`,
+ * `VoiceChannelLeave` e `UserVoiceStateUpdate` em `events/v1.ts` mutam
+ * `channel.voiceParticipants` e trazem um `// todo: event` no lugar do
+ * `client.emit`. A reatividade Solid do SDK é a única superfície de observação
+ * que existe, e encapsulá-la aqui é literalmente o trabalho para o qual esta
+ * camada foi instalada.
+ *
+ * **Um store por canal, com os participantes inteiros — não dois.** A lei nº 1
+ * mandaria separar "lista de IDs" de "estado de cada um", e ela existe contra
+ * *update não-escopado atingindo milhares de componentes*. Uma sala tem
+ * dezenas de pessoas e a câmera é ligada por ação humana; separar aqui seria
+ * otimizar preventivamente, que o briefing proíbe com todas as letras.
+ *
+ * ⚠ **O que NÃO pode entrar neste store:** quem está FALANDO. Esse sinal vem
+ * do LiveKit dezenas de vezes por segundo e é o estado efêmero que o briefing
+ * nomeia. Ele vai em store separado, com throttle na fronteira
+ * (`createEphemeralStore`, o mesmo do typing). Enfiá-lo aqui repintaria a
+ * coluna de canais inteira a cada sílaba.
+ */
+export const vozPorCanal = createEntityStore<readonly ParticipanteDeVoz[]>(
+  (channelId) => {
+    const ler = () => {
+      const canal = client.channels.get(channelId);
+      if (!canal) return;
+
+      const out: ParticipanteDeVoz[] = [];
+      for (const [userId, p] of canal.voiceParticipants) {
+        // Ler os três acessores DENTRO do efeito é o que faz ligar a câmera
+        // republicar a sala. Fora dele, o snapshot congelaria no estado de
+        // quando a pessoa entrou.
+        const estado: EstadoDeVoz = p.isScreensharing()
+          ? "tela"
+          : p.isCamera()
+            ? "video"
+            : "voz";
+        out.push({ userId, estado, desde: p.joinedAt.getTime() });
+      }
+
+      // Por ordem de chegada, não alfabética. Duas razões, e as duas são de
+      // estabilidade: renomear alguém não reordena a sala, e ligar a câmera
+      // também não — a lista só muda quando alguém entra ou sai, que é a
+      // única mudança que a pessoa olhando espera ver.
+      out.sort((a, b) => a.desde - b.desde);
+      vozPorCanal.set(channelId, out);
+    };
+
+    ler();
+
+    count("vozEfeitos");
+    return createRoot((dispose) => {
+      createEffect(ler);
+      return dispose;
+    });
+  },
+);
+
+/**
  * Canais publicados JÁ SEPARADOS por tipo, e não numa lista só.
  *
  * A tentação é publicar um array e deixar a coluna dividir no render. Não dá,
@@ -856,6 +919,42 @@ function conjunto(mapa: Map<string, Set<string>>, chave: string): Set<string> {
 export function semearPresenca(userId: string, status: PresenceStatus): void {
   presence.set(userId, status);
   baldePorUsuario.set(userId, baldeDe(status));
+}
+
+/**
+ * Semeia ocupantes de uma sala de voz — setup em massa, como `registrarServidor`.
+ *
+ * Existe porque o arnês NÃO pode importar `stoat.js`: a fronteira de import
+ * proíbe, e o lint pegou a primeira versão disto tentando construir
+ * `VoiceParticipant` lá fora. A regra estava certa por um motivo além da
+ * fronteira — o arnês não tem por que conhecer a forma do protocolo, e um dia
+ * em que `UserVoiceState` mudar de campo, quem conserta é este arquivo.
+ */
+export function semearVoz(
+  channelId: string,
+  dentro: readonly {
+    userId: string;
+    desde: number;
+    tela?: boolean;
+    camera?: boolean;
+  }[],
+): void {
+  const canal = client.channels.get(channelId);
+  if (!canal) return;
+
+  for (const p of dentro) {
+    canal.voiceParticipants.set(
+      p.userId,
+      new VoiceParticipant(client, {
+        id: p.userId,
+        joined_at: new Date(p.desde).toISOString(),
+        is_receiving: true,
+        is_publishing: true,
+        screensharing: p.tela ?? false,
+        camera: p.camera ?? false,
+      } as never),
+    );
+  }
 }
 
 export function registrarMembro(serverId: string, userId: string): void {

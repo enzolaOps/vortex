@@ -163,3 +163,94 @@
     padding-block: var(--vx-space-2);
   }
 }
+
+/* ============================================================
+   A sala de um canal de voz
+   ------------------------------------------------------------
+   Sala, não chamada: quem está dentro fica visível antes de
+   entrar. A lista pendura sob a linha do canal, recuada até a
+   calha do ícone — o mesmo alinhamento que a linha de mensagem
+   usa para agrupar, e pela mesma razão: um filho alinhado à
+   calha do pai lê como continuação, não como item novo.
+   ============================================================ */
+
+.sala {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  /* Alinhado ao NOME do canal, não à borda: o recuo é o que diz
+     "isto pertence àquela linha". */
+  padding-inline-start: var(--vx-space-6);
+  padding-block-end: var(--vx-space-1);
+  list-style: none;
+}
+
+.naSala {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  min-inline-size: 0;
+  padding-inline: var(--vx-space-2);
+  padding-block: 2px;
+  border-radius: var(--vx-radius-1);
+  color: var(--vx-text-2);
+}
+
+/*
+  Avatar menor que o da member list, e é decisão, não descuido.
+
+  Aqui ele é acessório de uma linha subordinada; na member list é
+  a âncora da linha. Dois papéis, dois tamanhos — mesma razão por
+  que o rail tem escala própria.
+*/
+.avatarDeVoz {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: var(--vx-space-4);
+  block-size: var(--vx-space-4);
+  border-radius: var(--vx-radius-4);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-3);
+  font-size: 9px;
+  font-variant-ligatures: none;
+}
+
+.nomeNaSala {
+  min-inline-size: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--vx-size-sm);
+}
+
+.estadoDeVoz {
+  flex: none;
+  color: var(--vx-accent);
+}
+
+/*
+  Painel estreito: a sala vira só avatares, em linha.
+
+  Container query, não viewport — a coluna pode virar um slot
+  fino da fase 4 sem a janela ter mudado de tamanho.
+
+  Mesmo limiar de 180px do resto do painel, de propósito: dois
+  limiares de "estreito" no mesmo componente dariam um estado
+  intermediário que ninguém desenhou.
+*/
+@container (inline-size < 180px) {
+  .sala {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--vx-space-1);
+    padding-inline-start: var(--vx-space-5);
+  }
+
+  .nomeNaSala,
+  .estadoDeVoz {
+    display: none;
+  }
+}

@@ -35,6 +35,8 @@ export type Counters = {
    * velocidade do scroll. Este contador é o que mostra se está acontecendo.
    */
   membroEfeitos: number;
+  /** Efeitos de sala de voz vivos — um por canal de voz observado. */
+  vozEfeitos: number;
   /** Renders do MessageList. É o componente que o React Compiler NÃO memoiza. */
   listRenders: number;
   /** Renders de linha. Deveria acompanhar só as mensagens que mudaram. */
@@ -78,6 +80,7 @@ const zero = (): Counters => ({
   membrosListRenders: 0,
   membrosRowRenders: 0,
   membroEfeitos: 0,
+  vozEfeitos: 0,
   listRenders: 0,
   rowRenders: 0,
   presenceRenders: 0,

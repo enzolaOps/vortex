@@ -50,4 +50,28 @@ export default defineConfig({
     tailwindcss(),
     marcaDoVortex(),
   ],
+
+  /**
+   * O `solid-js` do TESTE precisa ser o de navegador, não o de servidor.
+   *
+   * Em Node, `solid-js` resolve para `dist/server.cjs` — o build de SSR, onde
+   * **`createEffect` é no-op por design**. Medido: um efeito sobre um
+   * `createSignal` simples não roda nem uma vez.
+   *
+   * Consequência, e ela é maior que qualquer teste: metade da ponte
+   * `stoat.js → React` — a metade REATIVA, que é a razão de o adapter existir —
+   * nunca esteve sob teste e silenciosamente não podia estar. Tudo o que
+   * passava, passava pelo caminho de evento (`client.on`) e pelas leituras
+   * ansiosas, nunca pelo `createEffect`.
+   *
+   * Não dá para arrumar em `resolve.conditions` do topo: isso vale para o
+   * build de produção também, e trocar as condições lá derrubaria a condição
+   * `production`. O `ssr.resolve.conditions` atinge só o pipeline que o Vitest
+   * usa.
+   */
+  ssr: {
+    resolve: {
+      conditions: ["browser", "development"],
+    },
+  },
 });

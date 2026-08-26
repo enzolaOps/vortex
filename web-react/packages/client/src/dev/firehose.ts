@@ -21,6 +21,7 @@ import {
   prependHistory,
   registrarServidor,
   seedChannel,
+  semearVoz,
   semearPresenca,
   startAdapter,
 } from "../sdk/adapter";
@@ -49,7 +50,7 @@ const userIds: string[] = [];
 type Servidor = {
   id: string;
   nome: string;
-  canais: { id: string; nome: string; voz?: boolean }[];
+  canais: { id: string; nome: string; voz?: boolean; dentro?: number }[];
   /** Quantos dos `userIds` pertencem a ele. */
   membros: number;
 };
@@ -62,7 +63,12 @@ const MUNDO: Servidor[] = [
       { id: CHANNEL_ID, nome: "spike" },
       { id: "01JQ0000000000000000000010", nome: "geral" },
       { id: "01JQ0000000000000000000011", nome: "links" },
-      { id: "01JQ0000000000000000000012", nome: "voz-geral", voz: true },
+      { id: "01JQ0000000000000000000012", nome: "voz-geral", voz: true, dentro: 2 },
+      { id: "01JQ0000000000000000000013", nome: "voz-jogos", voz: true, dentro: 3 },
+      // Sala VAZIA, e ela é o caso mais fácil de quebrar sem perceber: se o
+      // componente renderizasse um cabeçalho "ninguém aqui" por canal, cada
+      // servidor pagaria altura permanente para dizer que não há nada.
+      { id: "01JQ0000000000000000000014", nome: "voz-silencio", voz: true, dentro: 0 },
     ],
     membros: USER_COUNT,
   },
@@ -277,6 +283,35 @@ function ensureWorld() {
         },
       );
     });
+
+    /*
+      Gente DENTRO dos canais de voz, desde a semeadura.
+
+      É o ponto inteiro da sala: `Ready.voice_states` entrega os ocupantes no
+      login, antes de entrar em canal nenhum. Semear só quando alguém "entra"
+      exercitaria o caminho de evento e deixaria de fora justamente o que
+      diferencia sala de chamada.
+
+      Um dos ocupantes com a tela ligada, para o estado não-padrão existir.
+    */
+    servidor.canais
+      .filter((c) => c.voz)
+      .forEach((canal, n) => {
+        // Fatias disjuntas: ninguém em duas salas ao mesmo tempo, que é o que
+        // o protocolo garante e o que a coluna assume.
+        const dentro = membros.slice(n * 4, n * 4 + (canal.dentro ?? 0));
+        semearVoz(
+          canal.id,
+          dentro.map((userId, k) => ({
+            userId,
+            // Fixo, não `Date.now()`: a ordem da sala é por chegada, e um
+            // arnês com relógio real produz captura diferente a cada corrida.
+            desde: 1700000000000 + k * 60000,
+            tela: n === 0 && k === 0,
+            camera: n === 1 && k === 1,
+          })),
+        );
+      });
 
     // Registro, não evento: é setup em massa, e o caminho de evento existe
     // para chegada incremental. A mesma separação do `seedChannel`.
