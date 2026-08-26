@@ -53,7 +53,13 @@ export function MessageList({ channelId }: { channelId: string }) {
   const virtualizer = useVirtualizer({
     count: ids.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => (estimativaMedida ? ALTURA_MEDIDA : ALTURA_CHUTADA),
+    // A MEDIDA é o default agora. Não porque acelerou — ela não moveu o gate
+    // — mas porque está certa: 72,6px reais contra 73 estimados, medido no
+    // arnês. A estimativa antiga errava ~38px por linha, o que faz a barra de
+    // rolagem mentir sobre o tamanho do histórico e dá trabalho de compensação
+    // ao virtualizador a cada rolagem. Correção vale por si; a chave inverte
+    // para o chute antigo quando alguém quiser refazer o A/B.
+    estimateSize: () => (estimativaMedida ? ALTURA_CHUTADA : ALTURA_MEDIDA),
     // ID de entidade, nunca índice: índice corrompe o estado da linha a cada
     // inserção no topo.
     getItemKey: (i) => ids[i] ?? i,

@@ -45,6 +45,9 @@ export function App() {
   const [seeding, setSeeding] = useState(false);
   const [running, setRunning] = useState(false);
   const [report, setReport] = useState<FrameReport | null>(null);
+  const [faixa, setFaixa] = useState<{ min: number; max: number } | null>(null);
+  const [progresso, setProgresso] = useState(0);
+  const [repeticoes, setRepeticoes] = useState(1);
   const [stats, setStats] = useState<Counters | null>(null);
   const [prepend, setPrepend] = useState<ResultadoPrepend | null>(null);
   const [distanciaDoFim, setDistanciaDoFim] = useState<number | null>(null);
@@ -115,36 +118,88 @@ export function App() {
     );
   }
 
-  function handleRun() {
+  /**
+   * Uma janela de medição. Devolve o relatório e os contadores.
+   *
+   * Extraída de `handleRun` para poder repetir — ver `REPETICOES`.
+   */
+  function medirUmaJanela(): Promise<{ report: FrameReport; stats: Counters }> {
+    return new Promise((resolve) => {
+      const stop = startFirehose(EVENTS_PER_SECOND, ids.current);
+      // Aquecimento de 1,5s: a janela mede regime permanente, não a ligada do
+      // firehose nem o que sobrou do render de setup na fila.
+      recorder.current.start(WARMUP_SECONDS * 1000);
+      // Contadores começam junto com a medição, não com o firehose: o
+      // aquecimento não deve entrar na conta.
+      setTimeout(() => resetCounters(), WARMUP_SECONDS * 1000);
+
+      setTimeout(
+        () => {
+          stop();
+          const report = recorder.current.stop();
+          const stats = readCounters();
+          // Validade: se a lista não estava colada no fim, o followOnAppend
+          // esteve desligado e a corrida mediu um app parado. Foi exatamente
+          // assim que uma sequência de PASS sem throttle aprovou uma lista
+          // ociosa enquanto a corrida real, a 4x, reprovava.
+          const el = document.querySelector('div[role="log"]');
+          setDistanciaDoFim(
+            el ? Math.round(el.scrollHeight - el.clientHeight - el.scrollTop) : null,
+          );
+          resolve({ report, stats });
+        },
+        (WARMUP_SECONDS + WINDOW_SECONDS) * 1000,
+      );
+    });
+  }
+
+  /**
+   * Roda N janelas e fica com a MEDIANA.
+   *
+   * Existe porque uma corrida só não decide mais nada. Cinco configurações
+   * medidas deram entre 5,4% e 6,3% de frames perdidos — 0,9 ponto percentual
+   * de espalhamento — enquanto a diferença que separa o gate de passar é 0,72
+   * ponto. O ruído entre corridas ficou MAIOR que o efeito procurado, e a
+   * partir daí todo A/B de corrida única vira cara ou coroa com aparência de
+   * medição.
+   *
+   * Mediana e não média: uma janela azarada — um pico do próprio gerador, uma
+   * coleta de lixo — desloca a média e não desloca a mediana. E a faixa
+   * min–max é reportada junto, porque esconder o espalhamento é como se chegou
+   * aqui.
+   */
+  async function handleRun() {
     setRunning(true);
     setReport(null);
     setStats(null);
-    const stop = startFirehose(EVENTS_PER_SECOND, ids.current);
-    // Aquecimento de 1,5s: a janela mede regime permanente, não a ligada do
-    // firehose nem o que sobrou do render de setup na fila.
-    recorder.current.start(WARMUP_SECONDS * 1000);
-    // Contadores começam junto com a medição, não com o firehose: o
-    // aquecimento não deve entrar na conta.
-    setTimeout(() => resetCounters(), WARMUP_SECONDS * 1000);
+    setFaixa(null);
 
-    setTimeout(() => {
-      stop();
-      const result = recorder.current.stop();
-      const counters = readCounters();
-      // Validade: se a lista não estava colada no fim, o followOnAppend
-      // esteve desligado e a corrida mediu um app parado. Foi exatamente
-      // assim que uma sequência de PASS sem throttle aprovou uma lista
-      // ociosa enquanto a corrida real, a 4x, reprovava.
-      const el = document.querySelector('div[role="log"]');
-      setDistanciaDoFim(
-        el ? Math.round(el.scrollHeight - el.clientHeight - el.scrollTop) : null,
-      );
-      setReport(result);
-      setStats(counters);
-      console.table(counters);
-      setRunning(false);
-      console.table(result);
-    }, (WARMUP_SECONDS + WINDOW_SECONDS) * 1000);
+    const corridas: { report: FrameReport; stats: Counters }[] = [];
+    for (let i = 0; i < repeticoes; i++) {
+      setProgresso(i + 1);
+      corridas.push(await medirUmaJanela());
+    }
+    setProgresso(0);
+
+    // Mediana pelo critério que decide o gate: frames perdidos.
+    const perda = (c: { report: FrameReport }) =>
+      c.report.dropped / Math.max(c.report.frames, 1);
+    const ordenadas = [...corridas].sort((a, b) => perda(a) - perda(b));
+    const meio = ordenadas[Math.floor(ordenadas.length / 2)]!;
+
+    setReport(meio.report);
+    setStats(meio.stats);
+    setFaixa(
+      corridas.length > 1
+        ? {
+            min: Math.min(...corridas.map(perda)) * 100,
+            max: Math.max(...corridas.map(perda)) * 100,
+          }
+        : null,
+    );
+    setRunning(false);
+    console.table(corridas.map((c) => c.report));
+    console.table(meio.stats);
   }
 
   const naoSeguia = distanciaDoFim !== null && distanciaDoFim > 120;
@@ -179,14 +234,27 @@ export function App() {
           </select>
 
           <button
-            onClick={handleRun}
+            onClick={() => void handleRun()}
             disabled={seeded === 0 || seeding || running}
             className="rounded-2 bg-accent px-3 py-1 text-sm text-on-accent disabled:bg-surface-3 disabled:text-text-3"
           >
             {running
-              ? `aquecendo + medindo ${WINDOW_SECONDS}s…`
+              ? `janela ${progresso}/${repeticoes} — ${WINDOW_SECONDS}s`
               : `Firehose ${EVENTS_PER_SECOND}/s`}
           </button>
+
+          {/* Repetição é condição de corrida, como o CPU 4x. Uma janela só
+              deixou de decidir quando o ruído entre corridas passou o efeito
+              procurado. */}
+          <select
+            value={repeticoes}
+            onChange={(e) => setRepeticoes(Number(e.target.value))}
+            disabled={running}
+            className="rounded-2 bg-surface-2 px-2 py-1 text-sm text-text-1 disabled:text-text-3"
+          >
+            <option value={1}>1 janela</option>
+            <option value={3}>3 janelas (mediana)</option>
+          </select>
 
           <button
             onClick={() => {
@@ -312,7 +380,7 @@ export function App() {
               onChange={() => alternar("estimativaMedida")}
               disabled={running}
             />
-            altura 73px (A/B)
+            voltar a 44px (A/B)
           </label>
 
           {naoSeguia ? (
@@ -328,6 +396,13 @@ export function App() {
               }`}
             >
               {result.pass ? "PASS" : "FAIL"}
+            </span>
+          ) : null}
+
+          {faixa ? (
+            <span className="text-xs text-text-3">
+              espalhamento entre janelas: {faixa.min.toFixed(1)}%–
+              {faixa.max.toFixed(1)}% de frames perdidos
             </span>
           ) : null}
 
@@ -356,7 +431,7 @@ export function App() {
               {report ? Math.round((stats.eventos ?? 0) / Math.max(report.seconds, 1)) : "?"}{" "}
               ev/s de {EVENTS_PER_SECOND} · altura real{" "}
               {(stats.alturaSoma / Math.max(stats.alturaAmostras, 1)).toFixed(1)}px
-              (estimando {estimativaMedida ? 73 : 44}px)
+              (estimando {estimativaMedida ? 44 : 73}px)
             </span>
           ) : null}
           {/* Colunas laterais em linha própria: somadas às da lista, viram

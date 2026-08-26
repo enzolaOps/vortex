@@ -26,7 +26,7 @@ export type Opcoes = {
   /** Desliga o `ContextMenu` por linha. Só o menu; o resto da linha é igual. */
   readonly semMenuPorLinha: boolean;
   /**
-   * Usa a altura de linha MEDIDA em vez do chute original de 44px.
+   * Volta ao CHUTE original de 44px. O default passou a ser a altura medida.
    *
    * O briefing registra desde a fase 0 que `estimateSize: () => 44` erra ~29px
    * por linha — a altura real média é ~73px, e o prepend só funciona porque a

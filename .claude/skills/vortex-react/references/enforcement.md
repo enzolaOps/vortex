@@ -201,6 +201,30 @@ Consequência prática para comparar corridas: `dropped` (frames acima de
 p95 não mede. Fase 0: 2,9%. Depois da fase 3: 6,0%. Sem o menu por linha:
 5,4%.
 
+**Uma janela só não decide diferença pequena.**
+
+A quarta invariante de INSTRUMENTO, e a que encerra uma investigação inteira.
+
+Cinco configurações medidas — com e sem menu de contexto por linha, com e sem
+máscara no ponto de presença, 1.000 contra 10.000 mensagens, estimativa de
+altura chutada contra medida — deram entre 5,4% e 6,3% de frames perdidos.
+**0,9 ponto percentual de espalhamento.** A diferença que separava o gate de
+passar era **0,72 ponto**.
+
+Ruído maior que o efeito procurado. A partir daí todo A/B de corrida única é
+cara ou coroa com aparência de medição, e foi exatamente assim que três
+hipóteses plausíveis foram testadas, cada uma "não mudou nada", sem que
+nenhuma delas tivesse sido de fato refutada.
+
+O arnês passou a rodar N janelas e reportar a MEDIANA, com a faixa min–max ao
+lado. Mediana e não média: uma janela azarada — pico do próprio gerador,
+coleta de lixo — desloca a média e não a mediana. A faixa aparece junto porque
+esconder o espalhamento é como se chegou aqui.
+
+**Regra: antes de acreditar numa diferença medida, compare-a com o
+espalhamento entre janelas da MESMA configuração.** Se for menor, não há
+diferença — há ruído.
+
 **Corrida de firehose só vale colada no fim.**
 No arnês: ao fechar a janela de medição, medir a distância da lista até o
 fim; acima do `scrollEndThreshold`, a corrida é marcada INVÁLIDA — junto com
@@ -467,6 +491,7 @@ já cobre a maior parte.
 | Linha virtualizada medindo 0px | Assertion em dev | Fase 0 |
 | Publicação de coleção por frame | Teste | Fase 0 |
 | Quantum de vsync reportado junto do p95 | Arnês | Fase 3 |
+| Mediana de N janelas, com faixa min–max | Arnês | Fase 3 |
 | Não-lida ignora o canal aberto | Teste | Fase 3 |
 | Abrir canal baixa só a parcela dele no servidor | Teste | Fase 3 |
 | Presença no mesmo balde não republica membros | Teste | Fase 3 |
