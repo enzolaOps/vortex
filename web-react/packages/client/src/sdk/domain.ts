@@ -48,6 +48,18 @@ export type MessageSnapshot = {
    * motivo pelo qual o divisor de data é parte da linha e não um item próprio.
    */
   readonly sistema: SistemaSnapshot | undefined;
+  /**
+   * IDs das mensagens a que esta responde.
+   *
+   * Array e não um ID só porque o protocolo permite responder a várias — raro,
+   * mas representável, e achatar para uma perderia dado sem avisar. A linha
+   * renderiza uma citação por item; na prática é sempre uma.
+   *
+   * Guarda o ID, nunca o conteúdo citado. Copiar o texto no momento da
+   * resposta congelaria a citação: editar o original deixaria a citação
+   * mentindo, e apagar deixaria uma cópia órfã de algo que não existe mais.
+   */
+  readonly respostas: readonly string[];
   /** emoji → quantidade. Achatado no adapter; o componente não itera Set. */
   readonly reactions: ReadonlyMap<string, number>;
 

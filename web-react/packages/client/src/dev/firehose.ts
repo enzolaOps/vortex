@@ -406,6 +406,8 @@ function sistemaDe(seed: number, autor: string): object | undefined {
   }
 }
 
+let ultimoId = "";
+
 function createMessage(seed: number, quando?: number): string {
   const id = quando === undefined ? nextId() : nextId(quando);
   const author = autorDe(seed);
@@ -421,6 +423,12 @@ function createMessage(seed: number, quando?: number): string {
       // `content` — e é por isso que a linha renderizava vazia antes: o
       // componente lia `content` e encontrava string vazia.
       content: system ? "" : body(seed),
+      // Uma em cada 13 é resposta à anterior — o suficiente para a citação
+      // aparecer na janela visível sem dominar a lista, e para o teste de
+      // altura de linha ver os dois casos.
+      ...(seed % 13 === 6 && seed > 0
+        ? { replies: [ultimoId] }
+        : {}),
       ...(system ? { system } : {}),
       // `as never` como o resto das semeaduras deste arquivo: o payload de
       // hidratação é do PROTOCOLO, e o arnês não pode importar `stoat.js`
@@ -428,6 +436,7 @@ function createMessage(seed: number, quando?: number): string {
     } as never,
     true,
   );
+  ultimoId = id;
   return id;
 }
 

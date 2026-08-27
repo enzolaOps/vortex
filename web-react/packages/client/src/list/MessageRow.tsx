@@ -21,7 +21,9 @@ import { NomeDoAutor } from "../presenca/NomeDoAutor";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
 import type { SistemaSnapshot } from "../sdk/domain";
 import { reenviar } from "../sdk/adapter";
+import { responderA } from "../store/resposta";
 import { useMessage } from "../store/hooks";
+import { Citacao } from "./Citacao";
 import css from "./MessageRow.module.css";
 
 /**
@@ -215,6 +217,14 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
 
           {/* minmax(0,1fr) do lado flex: sem isto uma URL de 400 chars estoura. */}
           <div className="min-w-0 flex-1">
+            {/* A citação abre a linha, acima do cabeçalho: é o contexto que
+                torna a mensagem legível, e lê-la depois do texto seria ler a
+                resposta antes da pergunta. Alinhada à coluna de conteúdo e
+                não à calha — ela pertence ao que foi escrito, não ao avatar. */}
+            {message.respostas.map((alvo) => (
+              <Citacao key={alvo} channelId={message.channelId} messageId={alvo} />
+            ))}
+
             {message.iniciaGrupo ? (
               <div className="flex items-baseline gap-2">
                 {message.authorId ? (
@@ -310,7 +320,9 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
 
           {/* Ícones Phosphor, weight regular, 20px — um set só, sem exceção. */}
           <ContextMenuContent>
-        <ContextMenuItem>
+        <ContextMenuItem
+          onSelect={() => responderA(message.channelId, message.id)}
+        >
           <ArrowBendUpLeft size={20} aria-hidden />
           Responder
         </ContextMenuItem>

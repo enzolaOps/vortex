@@ -41,6 +41,15 @@ function flattenReactions(message: Message): ReadonlyMap<string, number> {
 
 // Um formatter por sessão, não um por chamada — criar Intl.DateTimeFormat é
 // caro; usar é barato.
+/**
+ * Um array vazio COMPARTILHADO.
+ *
+ * `?? []` alocaria um array novo a cada tradução, e o snapshot precisa ser
+ * comparável por referência — é a armadilha nº 1 do briefing, na sua forma
+ * mais fácil de escrever sem perceber.
+ */
+const VAZIO: readonly string[] = [];
+
 const HORA = new Intl.DateTimeFormat("pt-BR", {
   hour: "2-digit",
   minute: "2-digit",
@@ -129,6 +138,7 @@ export function toMessageSnapshot(
     createdAtText: HORA.format(message.createdAt),
     editedAt: message.editedAt?.getTime(),
     sistema: toSistema(message),
+    respostas: message.replyIds ?? VAZIO,
     reactions: flattenReactions(message),
     // O protocolo não carrega isto: quem mantém é o adapter, e mensagem que
     // veio do servidor nasce "sent". É a camada anticorrupção fazendo o

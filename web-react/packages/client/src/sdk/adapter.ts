@@ -544,6 +544,14 @@ export function configurarSimulacaoDeEnvio(nova: SimulacaoDeEnvio): void {
 export function enviarMensagem(
   channelId: string,
   conteudo: string,
+  /**
+   * A quem esta mensagem responde.
+   *
+   * Entra por parâmetro e não é lido do store aqui: o adapter não conhece
+   * `store/resposta`, e não deve — a dependência correta aponta de dentro para
+   * fora, como já acontece com o rascunho.
+   */
+  respondendoA?: string,
 ): string | undefined {
   const texto = conteudo.trim();
   if (!texto) return undefined;
@@ -567,7 +575,15 @@ export function enviarMensagem(
 
   client.messages.getOrCreate(
     id,
-    { _id: id, channel: channelId, author: usuarioLocal, content: texto },
+    {
+      _id: id,
+      channel: channelId,
+      author: usuarioLocal,
+      content: texto,
+        // `replies` é do PROTOCOLO; o snapshot expõe como `respostas`. A
+      // tradução acontece no `map.ts`, como tudo o mais.
+      ...(respondendoA ? { replies: [respondendoA] } : {}),
+    },
     true,
   );
 

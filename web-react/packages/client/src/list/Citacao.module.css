@@ -1,0 +1,66 @@
+/* ============================================================
+   Citação de resposta
+   ------------------------------------------------------------
+   Uma linha, sempre. O trecho trunca em vez de quebrar: a citação
+   é referência, não leitura — quem quer o texto inteiro clica e
+   vai até ele. Deixá-la crescer daria a uma resposta a três
+   parágrafos a altura de quatro linhas de contexto acima do que
+   a pessoa realmente escreveu.
+   ============================================================ */
+
+.citacao {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-1);
+  min-inline-size: 0;
+  inline-size: 100%;
+  padding-block-end: 2px;
+  border: 0;
+  background: transparent;
+  color: var(--vx-text-3);
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  text-align: start;
+  cursor: pointer;
+}
+
+/*
+  O nome do autor citado herda o tamanho da citação.
+
+  `NomeDoAutor` traz `text-md` do seu próprio contexto — na linha de
+  mensagem ele é o cabeçalho. Aqui é referência, e um nome em 14px
+  sobre um trecho em 12px faria a citação competir com a mensagem
+  que ela introduz.
+*/
+.citacao :global(span) {
+  font-size: inherit;
+}
+
+.seta {
+  flex: none;
+  color: var(--vx-text-3);
+  /* A seta aponta para cima-esquerda; virada, ela lê como "vem daqui". */
+  rotate: 180deg;
+  scale: -1 1;
+}
+
+.trecho {
+  min-inline-size: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ausente {
+  font-style: italic;
+}
+
+.citacao:hover .trecho,
+.citacao:hover .ausente {
+  color: var(--vx-text-2);
+}
+
+.citacao:focus-visible {
+  outline-offset: -2px;
+}

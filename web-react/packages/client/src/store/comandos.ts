@@ -85,3 +85,40 @@ export function ouvirFocoNoComposer(
     if (atual.size === 0) focadores.delete(channelId);
   };
 }
+
+/* --------------------------------------------------- ir para uma mensagem */
+
+/**
+ * Leva a lista até uma mensagem específica.
+ *
+ * O gatilho é a citação de uma resposta: clicar nela tem que levar ao
+ * original, senão a citação é só um texto menor em cinza. Mesmo barramento de
+ * `pedirFimDaLista`, e pela mesma razão — quem clica é a LINHA, e a linha não
+ * conhece o virtualizador (lei nº 1: ela assina só a si mesma).
+ */
+const saltadores = new Map<string, Set<(messageId: string) => void>>();
+
+export function pedirIrParaMensagem(channelId: string, messageId: string): void {
+  const set = saltadores.get(channelId);
+  if (!set) return;
+  for (const ouvinte of set) ouvinte(messageId);
+}
+
+export function ouvirIrParaMensagem(
+  channelId: string,
+  ouvinte: (messageId: string) => void,
+): () => void {
+  let set = saltadores.get(channelId);
+  if (!set) {
+    set = new Set();
+    saltadores.set(channelId, set);
+  }
+  set.add(ouvinte);
+
+  return () => {
+    const atual = saltadores.get(channelId);
+    if (!atual) return;
+    atual.delete(ouvinte);
+    if (atual.size === 0) saltadores.delete(channelId);
+  };
+}

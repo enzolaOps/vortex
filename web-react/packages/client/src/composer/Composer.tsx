@@ -1,5 +1,10 @@
 import { PaperPlaneRight } from "@phosphor-icons/react";
-import { useEffect, useRef, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useSyncExternalStore,
+  type KeyboardEvent,
+} from "react";
 
 import { Tooltip } from "../components/ui/Tooltip";
 import {
@@ -10,9 +15,15 @@ import { digitacao, enviarMensagem } from "../sdk/adapter";
 import { LIMITE_DE_CONTEUDO } from "../sdk/domain";
 import { cn } from "../lib/cn";
 import { ouvirFocoNoComposer, pedirFimDaLista } from "../store/comandos";
+import {
+  alvoDeResposta,
+  assinarResposta,
+  cancelarResposta,
+} from "../store/resposta";
 import { useRascunho } from "../store/hooks";
 import { escreverRascunho, limparRascunho } from "../store/rascunhos";
 import css from "./Composer.module.css";
+import { BarraDeResposta } from "./BarraDeResposta";
 import { Digitando } from "./Digitando";
 
 /** Mostra a contagem só quando ela passa a importar. */
@@ -65,6 +76,18 @@ export function Composer({ channelId }: { channelId: string }) {
    * sincronizar com um sistema externo, e a lista não conhece este componente
    * (lei nº 6) — os dois podem estar em painéis diferentes na fase 4.
    */
+  /**
+   * A quem esta mensagem responde.
+   *
+   * Assina o store de resposta, não o de rascunho: os dois descrevem "o que
+   * está sendo escrito", mas o rascunho muda a cada TECLA e o alvo muda por
+   * clique. Juntos, escolher uma mensagem republicaria o rascunho.
+   */
+  const respondendoA = useSyncExternalStore(
+    (l) => assinarResposta(channelId, l),
+    () => alvoDeResposta(channelId),
+  );
+
   const entradaRef = useRef<HTMLTextAreaElement>(null);
   useEffect(
     () => ouvirFocoNoComposer(channelId, () => entradaRef.current?.focus()),
@@ -82,12 +105,16 @@ export function Composer({ channelId }: { channelId: string }) {
   function enviar() {
     if (!podeEnviar) return;
 
-    const id = enviarMensagem(channelId, valor);
+    const id = enviarMensagem(channelId, valor, respondendoA);
     // Não saiu (canal não carregado, sem sessão): o rascunho FICA. Limpar aqui
     // apagaria o texto da pessoa por causa de um erro que não é dela.
     if (!id) return;
 
     limparRascunho(channelId);
+    // A resposta só é desarmada depois do envio ACEITO: se o envio falhar, o
+    // alvo continua armado junto com o rascunho, e a pessoa não precisa
+    // procurar a mensagem de novo.
+    cancelarResposta(channelId);
     // Enviou com a lista rolada para cima? Volta para o fim. O
     // `followOnAppend` não faz isso de propósito — ele só segue quem já estava
     // lá, que é o comportamento certo para mensagem dos outros.
@@ -95,6 +122,16 @@ export function Composer({ channelId }: { channelId: string }) {
   }
 
   function aoTeclar(evento: KeyboardEvent<HTMLTextAreaElement>) {
+    // Escape desarma a resposta antes de qualquer outra coisa.
+    //
+    // É o gesto que a pessoa já tem no dedo, e sem ele a única saída seria
+    // mirar um X de 20px — caro para desfazer algo feito por engano.
+    if (evento.key === "Escape" && respondendoA) {
+      evento.preventDefault();
+      cancelarResposta(channelId);
+      return;
+    }
+
     if (evento.key !== "Enter" || evento.shiftKey) return;
 
     // Enter durante composição de IME é "aceitar o candidato", não "enviar".
@@ -113,6 +150,22 @@ export function Composer({ channelId }: { channelId: string }) {
     <div className={css.rodape}>
       <div className={css.coluna} {...{ [ATRIBUTO_DE_COLUNA]: "composer" }}>
         <Digitando channelId={channelId} />
+
+        {/*
+          A barra de resposta, ACIMA do campo.
+
+          Acima e não dentro: ela some quando a resposta é desarmada, e um
+          elemento que aparece e some DENTRO do campo mudaria a altura da
+          caixa de texto — que é justamente o que faz a lista reancorar.
+          Fora dela, o composer cresce como um todo e o `ResizeObserver` da
+          lista trata isso como qualquer outro crescimento.
+        */}
+        {respondendoA ? (
+          <BarraDeResposta
+            messageId={respondendoA}
+            aoCancelar={() => cancelarResposta(channelId)}
+          />
+        ) : null}
 
         <div className="flex items-end gap-2">
           <div

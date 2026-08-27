@@ -86,6 +86,22 @@
 */
 .coluna {
   display: grid;
-  min-block-size: 0;
   grid-template-rows: auto minmax(0, 1fr);
+
+  /*
+    `block-size: 100%` NÃO é decoração — sem ele a virtualização morre.
+
+    Este wrapper é filho de bloco da célula do shell, e filho de bloco tem
+    altura AUTO. O `.scroll` da lista pede `block-size: 100%`, que contra um
+    pai auto resolve para auto: o container de scroll deixa de ter teto, o
+    virtualizador conclui que a janela visível é a lista inteira e monta as
+    dez mil linhas.
+
+    Medido, não deduzido: 10.000 `<article>` no DOM e
+    `scrollHeight === clientHeight === 736403`. Nenhum erro, nenhum aviso — a
+    lista só ficava lenta. É o modo de falha que este projeto mais teme, e
+    apareceu no navegador porque a auditoria olhou.
+  */
+  block-size: 100%;
+  min-block-size: 0;
 }

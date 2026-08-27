@@ -6,7 +6,11 @@ import { ATRIBUTO_DE_COLUNA } from "../dev/alinhamento";
 import { aoTerminarArraste, estaArrastando } from "../store/arraste";
 import { count } from "../dev/stats";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
-import { ouvirFimDaLista, pedirFocoNoComposer } from "../store/comandos";
+import {
+  ouvirFimDaLista,
+  ouvirIrParaMensagem,
+  pedirFocoNoComposer,
+} from "../store/comandos";
 import { useChannelMessageIds } from "../store/hooks";
 import css from "./MessageList.module.css";
 import { MessageRow } from "./MessageRow";
@@ -239,6 +243,30 @@ export function MessageList({ channelId }: { channelId: string }) {
   useEffect(
     () => ouvirFimDaLista(channelId, () => virtualizer.scrollToEnd()),
     [channelId, virtualizer],
+  );
+
+  /**
+   * "Me leva até a mensagem citada."
+   *
+   * O índice é procurado NA HORA, não guardado: a lista muda de tamanho o
+   * tempo todo, e um índice memoizado apontaria para a linha errada depois do
+   * primeiro prepend. `indexOf` num array de 10 mil é microssegundos, e isto
+   * roda por clique humano.
+   *
+   * `align: "center"` e não `"start"`: quem salta quer LER o contexto em volta
+   * da mensagem, e encostá-la no topo esconde justamente o que veio antes
+   * dela — que é metade da razão de ter clicado.
+   */
+  useEffect(
+    () =>
+      ouvirIrParaMensagem(channelId, (messageId) => {
+        const indice = ids.indexOf(messageId);
+        // Fora do histórico carregado: silêncio é a resposta certa por ora.
+        // Buscar o trecho anterior é caminho de rede, e é fase 6.
+        if (indice === -1) return;
+        virtualizer.scrollToIndex(indice, { align: "center" });
+      }),
+    [channelId, ids, virtualizer],
   );
 
   /**
