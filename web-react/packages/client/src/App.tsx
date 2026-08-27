@@ -466,6 +466,16 @@ export function App() {
                 100
               ).toFixed(1)}
               %
+              {/*
+                Delta menor que um vsync é impossível, então este número
+                deveria ser zero. Quando não é, o relógio da máquina está
+                perturbado — e foi uma rajada desses que quebrou o estimador
+                de intervalo antes. Aparece no relatório para que a próxima
+                corrida estranha se explique sozinha.
+              */}
+              {report.subIntervalo > 0
+                ? ` · ⚠ ${report.subIntervalo} delta(s) abaixo de um vsync`
+                : null}
             </span>
           ) : null}
           {stats ? (

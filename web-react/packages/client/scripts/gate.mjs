@@ -170,6 +170,7 @@ r({
  veredito: spans.find(t=>t==='PASS'||t==='FAIL') ?? '(sem veredito)',
  frames: spans.find(t=>/fps · refresh/.test(t)) ?? '',
  distribuicao: spans.find(t=>/frames por refresh/.test(t)) ?? '',
+ subVsync: spans.find(t=>/abaixo de um vsync/.test(t)) ? 'SIM — ver distribuicao' : 'nao',
  contadores: spans.find(t=>/lista ·/.test(t)) ?? '',
  lateral: spans.find(t=>/^lateral:/.test(t)) ?? '',
  espalhamento: spans.find(t=>/espalhamento/.test(t)) ?? '',
