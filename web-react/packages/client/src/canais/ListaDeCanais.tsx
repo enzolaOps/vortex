@@ -2,6 +2,7 @@ import {
   CaretRight,
   Check,
   Hash,
+  MagnifyingGlass,
   Monitor,
   SpeakerHigh,
   VideoCamera,
@@ -25,6 +26,7 @@ import {
   type ParticipanteDeVoz,
 } from "../sdk/domain";
 import { alternarColapso } from "../store/colapso";
+import { abrirPaleta } from "../store/paleta";
 import {
   useCanalAtivo,
   useCategorias,
@@ -43,6 +45,19 @@ import css from "./ListaDeCanais.module.css";
  * Ícone por estado de publicação. Voz simples não tem ícone de propósito —
  * ver o comentário em `NaSala`.
  */
+/**
+ * A tecla, escrita como a plataforma a chama.
+ *
+ * `⌘K` num Mac e `Ctrl K` no resto. Mostrar "Ctrl" a quem usa Mac ensina o
+ * atalho errado, e quem tenta e não funciona não tenta de novo — o custo de
+ * errar aqui é maior que o de não mostrar nada.
+ *
+ * `navigator.platform` está deprecado mas continua sendo o que funciona em
+ * todo navegador; `userAgentData` ainda não é universal. Fora do render de
+ * propósito: é constante da máquina, não estado.
+ */
+const TECLA_DA_PALETA = /mac/i.test(navigator.platform) ? "⌘K" : "Ctrl K";
+
 const ICONE_DE_VOZ: Record<EstadoDeVoz, typeof VideoCamera> = {
   voz: SpeakerHigh,
   video: VideoCamera,
@@ -330,6 +345,34 @@ export function ListaDeCanais() {
     <div className={css.painel}>
       <header className={css.cabecalho}>
         <span>{servidor?.name ?? "…"}</span>
+
+        {/*
+          O único lugar da interface que diz que a paleta existe.
+
+          A tese do produto é "teclado é a navegação primária" e a paleta faz
+          isso desde a fase 5 — mas nada na tela contava. Atalho que não se
+          anuncia serve a quem já sabe, e a auditoria deu a nota mais baixa do
+          relatório justamente aqui: não havia onde DESCOBRIR atalho nenhum.
+
+          Botão de verdade, não texto de dica, e é o que conserta o segundo
+          problema junto: um recurso só por teclado é inalcançável em toque.
+
+          O rótulo carrega a tecla porque ensinar é o trabalho dele. Quem
+          aprendeu para de clicar, e o botão passa a ser só um lembrete que não
+          atrapalha.
+        */}
+        <button
+          type="button"
+          className={css.buscar}
+          onClick={abrirPaleta}
+          aria-keyshortcuts="Control+K Meta+K"
+        >
+          <MagnifyingGlass size={20} aria-hidden />
+          <span className={css.buscarRotulo}>buscar</span>
+          <kbd className={css.tecla} aria-hidden>
+            {TECLA_DA_PALETA}
+          </kbd>
+        </button>
       </header>
 
       {/* Ver `MessageList`: rolável sem foco é inoperável por teclado. */}

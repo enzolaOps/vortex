@@ -36,6 +36,76 @@
   white-space: nowrap;
 }
 
+/*
+  O gatilho da paleta, no cabeçalho.
+
+  `margin-inline-start: auto` e não `justify-content: space-between`: o nome do
+  servidor precisa continuar sendo o que trunca quando falta espaço, e
+  `space-between` daria a largura ao botão primeiro.
+*/
+.buscar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-1);
+  margin-inline-start: auto;
+  padding-inline: var(--vx-space-1);
+  padding-block: var(--vx-space-1);
+  border-radius: var(--vx-radius-1);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.buscar:hover {
+  background: var(--vx-surface-2);
+  color: var(--vx-text-1);
+}
+
+.buscar:active {
+  scale: 0.96;
+}
+
+.buscar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 1px;
+}
+
+/*
+  Painel estreito: fica só o ícone.
+
+  A tecla é a primeira a sair porque é a parte que só serve UMA vez — quem
+  aprendeu não precisa mais dela, e quem não aprendeu ainda tem o alvo.
+*/
+.buscarRotulo,
+.tecla {
+  white-space: nowrap;
+}
+
+@container (inline-size < 220px) {
+  .buscarRotulo,
+  .tecla {
+    display: none;
+  }
+}
+
+/*
+  A tecla desenhada como tecla.
+
+  `<kbd>` é o elemento certo e o navegador o entrega em monoespaçada — que
+  aqui é a fonte do projeto, não a do sistema.
+*/
+.tecla {
+  padding-inline: var(--vx-space-1);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-1);
+  background: var(--vx-surface-2);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  line-height: 1.4;
+}
+
 .rolagem {
   overflow-y: auto;
   overflow-x: hidden;
