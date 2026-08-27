@@ -389,6 +389,10 @@ export function MessageList({ channelId }: { channelId: string }) {
       role="log"
       aria-live="polite"
       aria-relevant="additions"
+      // Região que rola e não recebe foco é inoperável por teclado: setas e
+      // Page Down agem sobre o que está focado. Zero e não menos um — a
+      // parada de tabulação É o recurso.
+      tabIndex={0}
       className={css.scroll}
     >
       {/* Fora do container rolável não dá: ela precisa flutuar SOBRE a lista,

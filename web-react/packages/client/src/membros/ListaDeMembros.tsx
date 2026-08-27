@@ -305,7 +305,8 @@ export function ListaDeMembros() {
   }
 
   return (
-    <div ref={scrollRef} className={css.painel}>
+    // Ver `MessageList`: rolável sem foco é inoperável por teclado.
+    <div ref={scrollRef} className={css.painel} tabIndex={0}>
       <div
         className={css.pista}
         style={{ height: `${virtualizer.getTotalSize()}px` }}
@@ -323,7 +324,18 @@ export function ListaDeMembros() {
               ref={virtualizer.measureElement}
               className={css.linha}
               style={{ transform: `translateY(${item.start}px)` }}
-              role="listitem"
+              /*
+                Cabeçalho de seção NÃO é item de lista.
+
+                Todas as linhas levavam `role="listitem"`, inclusive as que
+                envolvem um `<h2>` — e aí o leitor de tela anuncia "item 1 de
+                40: fundação". O cabeçalho vira entrada da lista, e a contagem
+                de membros passa a incluir os títulos.
+
+                Sem papel, o `<h2>` volta a ser anunciado como cabeçalho, que é
+                o que ele é e o que permite pular de seção em seção.
+              */
+              role={linha.tipo === "secao" ? undefined : "listitem"}
             >
               {linha.tipo === "secao" ? (
                 <CabecalhoDeSecao

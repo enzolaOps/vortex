@@ -332,7 +332,8 @@ export function ListaDeCanais() {
         <span>{servidor?.name ?? "…"}</span>
       </header>
 
-      <div className={css.rolagem}>
+      {/* Ver `MessageList`: rolável sem foco é inoperável por teclado. */}
+      <div className={css.rolagem} tabIndex={0}>
         {vazio ? (
           <EstadoVazio
             compacto

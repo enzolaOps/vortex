@@ -30,11 +30,23 @@
   color: var(--vx-text-3);
 }
 
-/* O anel do campo sairia POR FORA do painel arredondado e vazaria pela
-   borda. Aqui o foco já é implícito — a paleta abre com o cursor no
-   campo, e não há outro destino de Tab dentro dela. */
+/*
+  O anel POR DENTRO, e não anel nenhum.
+
+  Estava `outline: none`, com o argumento de que o anel vazaria pelo canto
+  arredondado do painel e de que o foco já é implícito na abertura. A primeira
+  metade era verdade; a segunda, não: quem sai do campo com Tab e volta com
+  Shift+Tab fica sem nenhuma indicação de onde está — e este é o alvo de
+  teclado do app inteiro, o que torna a omissão pior aqui do que em qualquer
+  outro campo.
+
+  `outline-offset` negativo desenha o anel para dentro da própria caixa, então
+  ele nunca alcança a borda do painel. O problema real era o transbordo, não o
+  anel.
+*/
 .campo:focus-visible {
-  outline: none;
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
 }
 
 .lista {
