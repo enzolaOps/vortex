@@ -128,14 +128,63 @@ await dorme(2500);
 // Cadência de frame ANTES de qualquer medição: se o ambiente não entrega
 // frames, o resto do relatório descreve o ambiente e não o código.
 const cadencia = await av(`
-new Promise(r=>{const t0=performance.now();let n=0;
-const tick=()=>{n++;if(performance.now()-t0<2000)requestAnimationFrame(tick)};
+new Promise(r=>{const t0=performance.now();let ultimo=t0;const d=[];
+const tick=()=>{const agora=performance.now();d.push(agora-ultimo);ultimo=agora;
+if(agora-t0<2000)requestAnimationFrame(tick)};
 requestAnimationFrame(tick);
-setTimeout(()=>r({frames:n,fps:Math.round(n/2)}),2200)})`);
+setTimeout(()=>{const o=[...d].sort((a,b)=>a-b);
+const med=o[Math.floor(o.length/2)]||16.7;
+const b=new Map();for(const x of o){const k=Math.floor(x/0.5);b.set(k,(b.get(k)||0)+1)}
+const piso=Math.max(1,Math.floor(o.length*0.02));
+const base=[...b.entries()].filter(([,n])=>n>=piso).map(([k])=>k).sort((p,q)=>p-q)[0];
+const vsync=base===undefined?med:(base+0.5)*0.5;
+r({frames:d.length,fps:Math.round(d.length/2),
+mediana:Number(med.toFixed(2)),vsync:Number(vsync.toFixed(2)),
+regulares:d.filter(x=>x<vsync*1.5).length})},2200)})`);
 console.log("cadência sem carga:", JSON.stringify(cadencia));
 
 if (cadencia.fps < 30) {
   console.log("AMBIENTE INVÁLIDO — headless não está compondo frames.");
+  ws.close();
+  chrome.kill();
+  process.exit(1);
+}
+
+/*
+  A máquina está OCIOSA de verdade?
+
+  O check acima só reprova "headless não compõe frames". Ele passa numa máquina
+  que está rodando um jogo em cinco núcleos — e foi o que aconteceu: uma corrida
+  reprovou com 6,6% de frames perdidos, vazão de 414 de 500 ev/s e uma
+  população inteira de deltas mais curtos que um vsync, enquanto um processo
+  fora deste projeto consumia 512% de CPU.
+
+  Nada nesse relatório era sobre o código. Um gate que produz FAIL de aparência
+  confiável medindo o ambiente é pior que um gate que se recusa a medir, porque
+  o FAIL vira caçada.
+
+  SEM CARGA e sem throttle, quase todo frame deve cair num intervalo único. Se
+  15% deles não caem enquanto NADA acontece na tela, a máquina não é a máquina
+  que se quer medir.
+
+  **A régua é o vsync, nunca a mediana**, e a primeira versão errou nisso: ela
+  media a regularidade contra a própria mediana dos deltas em repouso, o que é
+  autorreferente. Numa máquina disputada a mediana já vem inflada — mediu 10,5ms
+  num display de 164Hz — e aí tudo parece regular em volta de um número errado.
+  O check passou justamente na corrida que ele existia para reprovar.
+
+  O vsync sai do mesmo jeito que em `frames.ts`: o balde mais baixo onde uma
+  fatia real dos frames pousa.
+*/
+const regularidade = cadencia.regulares / Math.max(cadencia.frames, 1);
+if (regularidade < 0.85) {
+  console.log(
+    `AMBIENTE INVÁLIDO — cadência irregular em repouso: ` +
+      `${(regularidade * 100).toFixed(0)}% dos frames no vsync de ` +
+      `${cadencia.vsync}ms, e a MEDIANA em repouso é ${cadencia.mediana}ms — ` +
+      `quase o dobro. Algo fora deste projeto está disputando a CPU; o ` +
+      `relatório descreveria a máquina, não o código.`,
+  );
   ws.close();
   chrome.kill();
   process.exit(1);
