@@ -2,10 +2,8 @@ import {
   ArrowBendUpLeft,
   Copy,
   Info,
-  PencilSimple,
   PushPin,
   PushPinSlash,
-  Trash,
 } from "@phosphor-icons/react";
 import { memo } from "react";
 
@@ -18,6 +16,7 @@ import {
 } from "../components/ui/ContextMenu";
 
 import { count } from "../dev/stats";
+import { copiarTexto } from "../lib/copiar";
 import { rotuloDeReacao } from "../lib/plural";
 import { cn } from "../lib/cn";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
@@ -416,19 +415,24 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
           {message.fixada ? "Desafixar" : "Fixar no canal"}
         </ContextMenuItem>
 
-        <ContextMenuItem>
+        {/*
+          Copiar é a única das três que não escreve no protocolo — e por isso
+          é a única que existe hoje.
+
+          `Editar` e `Apagar` estavam aqui como itens INERTES: apareciam no
+          menu, recebiam foco, fechavam ao serem escolhidos e não faziam nada.
+          Item que não faz nada é pior que item ausente, porque ensina a pessoa
+          a não confiar no menu inteiro. Saíram, e voltam na fase 6 com
+          `Message.edit()` e `Message.delete()` por trás — a mesma razão pela
+          qual reordenar canal arrastando ficou de fora.
+        */}
+        <ContextMenuItem
+          onSelect={() => void copiarTexto(message.content, "Texto")}
+          disabled={message.content.length === 0}
+        >
           <Copy size={20} aria-hidden />
           Copiar texto
         </ContextMenuItem>
-        <ContextMenuItem>
-          <PencilSimple size={20} aria-hidden />
-          Editar
-        </ContextMenuItem>
-        <ContextMenuSeparator />
-            <ContextMenuItem perigo>
-              <Trash size={20} aria-hidden />
-              Apagar
-            </ContextMenuItem>
           </ContextMenuContent>
       </ContextMenu>
     </>

@@ -126,6 +126,32 @@ const SINTAXE_GERAL = [
  * que ele abre é do SO e é insubstituível, mas o GATILHO é nosso — por isso
  * ele vive envolvido em `components/ui`, com o gatilho estilizado.
  */
+/**
+ * Item de menu que não faz nada.
+ *
+ * Nasceu de três itens reais — `Copiar texto`, `Editar` e `Apagar` — que
+ * ficaram meses no menu de mensagem sem `onSelect`. Apareciam, recebiam foco,
+ * fechavam o menu ao serem escolhidos e não faziam absolutamente nada.
+ *
+ * Nada falha: o item é válido, o Radix o renderiza, o typecheck aprova, o teste
+ * não existe. E o dano não é o item — é a CONFIANÇA no menu inteiro, que a
+ * pessoa deixa de ter depois da segunda vez que escolhe algo e nada acontece.
+ *
+ * `disabled` conta como resposta: um item desligado DIZ que não dá, e dizer não
+ * é uma resposta. Silêncio não é.
+ *
+ * A regra é da mesma família do controle nativo e do `pnpm utilities`: falha
+ * silenciosa que só aparece olhando, virando mecanismo que falha sozinho.
+ */
+const ITEM_INERTE = [
+  {
+    selector:
+      "JSXOpeningElement[name.name=/^(ContextMenu|DropdownMenu)Item$/]:not(:has(JSXAttribute[name.name=/^(onSelect|disabled|asChild)$/]))",
+    message:
+      "Item de menu sem `onSelect`. Item que não faz nada é pior que item ausente: ensina a pessoa a não confiar no menu. Ligue a ação, marque `disabled`, ou remova até a ação existir.",
+  },
+];
+
 const CONTROLE_NATIVO = [
   {
     selector: "JSXOpeningElement[name.name='select']",
@@ -260,7 +286,12 @@ export default tseslint.config(
     files: ["src/**/*.tsx"],
     ignores: ["src/components/ui/**"],
     rules: {
-      "no-restricted-syntax": ["error", ...SINTAXE_GERAL, ...CONTROLE_NATIVO],
+      "no-restricted-syntax": [
+        "error",
+        ...SINTAXE_GERAL,
+        ...CONTROLE_NATIVO,
+        ...ITEM_INERTE,
+      ],
     },
   },
 

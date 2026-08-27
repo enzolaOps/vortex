@@ -26,11 +26,27 @@ export function Toaster() {
         <Primitivo.Root
           key={t.id}
           open
+          /*
+            Erro NÃO some sozinho.
+
+            Cinco segundos é tempo de confirmar algo que deu certo, e é o tempo
+            errado para relatar algo que deu errado: quem estava lendo outra
+            coisa perde o aviso inteiro, e a mensagem já passou.
+
+            Aqui a diferença é literal, não filosófica. O toast de falha ao
+            copiar carrega o TEXTO que a pessoa precisa selecionar à mão — é a
+            saída que o erro oferece. Um aviso que expira antes de ser lido
+            leva a saída junto.
+          */
+          duration={t.tipo === "erro" ? Infinity : 5000}
           onOpenChange={(aberto) => {
             if (!aberto) dispensarToast(t.id);
           }}
           className={cn(
-            "rounded-3 border p-3",
+            // `relative`: o `Close` é `absolute`, e sem contexto de
+            // posicionamento ele ancoraria na VIEWPORT — todo botão de
+            // fechar empilhado no mesmo canto, longe do próprio toast.
+            "relative rounded-3 border p-3",
             "data-[state=closed]:opacity-0 data-[state=open]:opacity-100 anim-base",
             // Erro leva borda semântica; o resto fica no neutro. Cor sozinha
             // não carrega o significado — o título diz o que aconteceu.
@@ -63,6 +79,19 @@ export function Toaster() {
         fluxo, e por isso é o único lugar do app onde `fixed` é o certo.
       */}
       <Primitivo.Viewport
+        /*
+          O rótulo da região, em português.
+
+          O default do Radix é `"Notifications ({hotkey})"`, e ele estava no ar:
+          a região anunciava em inglês num app inteiro em português. String que
+          só leitor de tela lê não aparece em revisão de tela nenhuma — foi
+          preciso ler os atributos no DOM para vê-la.
+
+          `{hotkey}` é obrigatório: o Radix substitui pela tecla que move o foco
+          para os toasts, e sem isso a região perde o único jeito de ser
+          alcançada por teclado.
+        */
+        label="Notificações ({hotkey})"
         className={cn(
           css.viewport,
           "fixed end-4 bottom-4 z-50 flex flex-col gap-2 outline-none",
