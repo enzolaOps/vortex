@@ -45,8 +45,14 @@ const LIMIAR_DE_FIM = 80;
  * `--spacing-0.5` não existe, então a lista rodava com 0px dentro do grupo)
  * acrescentou 4px por linha, e o arnês passou a medir 75,6px em duas janelas
  * seguidas. 73 → 76.
+ *
+ * **E de novo com as reações.** Os chips deixaram de ser `<span>` e viraram
+ * botões com borda e respiro; a média subiu para 78,3px. 76 → 78. É a terceira
+ * vez que este número se move por mudança de forma da linha, e as três foram
+ * pegas pelo mesmo relatório — a estimativa errada não quebra nada, mas faz a
+ * barra de rolagem mentir sobre o tamanho do histórico.
  */
-export const ALTURA_ESTIMADA = 76;
+export const ALTURA_ESTIMADA = 78;
 
 /**
  * Lista de mensagens virtualizada, em modo chat.

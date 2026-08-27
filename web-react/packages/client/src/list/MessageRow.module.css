@@ -16,3 +16,92 @@
   block-size: var(--vx-avatar-sm);
   flex: none;
 }
+
+/* ============================================================
+   Chips de reação
+   ------------------------------------------------------------
+   Botões de dois estados, não etiquetas. O aceso é o meu voto —
+   e ele NÃO é comunicado só por cor: a borda muda junto, e o
+   rótulo de leitor de tela diz "incluindo você".
+   ============================================================ */
+
+.reacoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-1);
+  margin-block-start: var(--vx-space-1);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-1);
+  padding-inline: var(--vx-space-2);
+  padding-block: 1px;
+  border: 1px solid transparent;
+  border-radius: var(--vx-radius-2);
+  background: var(--vx-surface-2);
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    border-color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.chip:hover {
+  background: var(--vx-surface-3);
+}
+
+/* Minha reação: preenchimento tingido MAIS borda de acento. Duas
+   pistas, porque uma diferença só de fundo entre `surface-2` e um
+   tingido escuro é sutil demais para quem não distingue bem. */
+.chip[data-minha="true"] {
+  border-color: var(--vx-accent);
+  background: var(--vx-accent-soft);
+  color: var(--vx-text-1);
+}
+
+.chip:active {
+  background: var(--vx-surface-3);
+}
+
+.chip:focus-visible {
+  outline-offset: 1px;
+}
+
+.total {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Conjunto rápido, no topo do menu de contexto. Uma fileira e não
+   uma lista: seis itens empilhados fariam o menu ter o dobro da
+   altura para oferecer o gesto mais barato que existe. */
+.rapidas {
+  display: flex;
+  gap: var(--vx-space-1);
+  padding: var(--vx-space-1);
+}
+
+.rapida {
+  display: grid;
+  place-items: center;
+  inline-size: var(--vx-space-5);
+  block-size: var(--vx-space-5);
+  border: 0;
+  border-radius: var(--vx-radius-1);
+  background: transparent;
+  font-size: var(--vx-size-lg);
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.rapida:hover {
+  background: var(--vx-surface-3);
+}
+
+.rapida:active {
+  background: var(--vx-accent-soft);
+}

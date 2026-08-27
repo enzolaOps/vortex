@@ -18,6 +18,23 @@
 import { createEffect, createRoot } from "solid-js";
 import { monotonicFactory } from "ulid";
 import { VoiceParticipant } from "stoat.js";
+/**
+ * `ReactiveSet` do SDK, construído aqui.
+ *
+ * Dependência DIRETA acrescentada de propósito, e a justificativa é a mesma
+ * que já vale para `VoiceParticipant`: esta camada constrói coleções reativas
+ * com a forma que o `stoat.js` espera, e é o único lugar do app autorizado a
+ * conhecer essa forma.
+ *
+ * A alternativa era um `Set` comum. Ele passaria no typecheck e funcionaria
+ * para a MINHA reação otimista — e falharia calado depois: uma reação de
+ * outra pessoa naquele mesmo emoji não dispararia o efeito, porque `Set` não
+ * é reativo. Um chip que para de contar sem erro é exatamente o tipo de bug
+ * que este projeto persegue.
+ *
+ * Já estava no lockfile como transitiva do SDK: não há superfície nova.
+ */
+import { ReactiveSet } from "@solid-primitives/set";
 
 import { count } from "../dev/stats";
 import { createEntityStore } from "../store/entities";
@@ -120,7 +137,7 @@ function recalcularLayout(channelId: string, de: number, ate: number) {
     // janela é recalculado quando a linha montar.
     const message = client.messages.get(id);
     if (message && messages.subscriberCount(id) > 0) {
-      messages.set(id, toMessageSnapshot(message, novo, estadoDeEnvioDe(id)));
+      messages.set(id, toMessageSnapshot(message, novo, estadoDeEnvioDe(id), usuarioLocal));
     }
   }
 }
@@ -154,7 +171,7 @@ function marcarEnvio(id: string, estado: SendState) {
 
   const message = client.messages.get(id);
   if (message && messages.subscriberCount(id) > 0) {
-    messages.set(id, toMessageSnapshot(message, layoutDe(id), estado));
+    messages.set(id, toMessageSnapshot(message, layoutDe(id), estado, usuarioLocal));
   }
 }
 
@@ -184,6 +201,40 @@ export function reenviar(id: string): void {
   );
 }
 
+/**
+ * Adiciona ou remove a MINHA reação. Otimista, e por enquanto só otimista.
+ *
+ * Mexe direto no `ReactiveMap` do SDK, que é o mesmo caminho que os eventos de
+ * reação usariam — então quando a rede existir, a reação de outra pessoa cai
+ * no mesmo lugar e a linha republica pelo mesmo efeito. Não há um segundo
+ * caminho a reconciliar.
+ *
+ * ⚠ Fase 6: aqui entra o `POST /messages/:id/reactions/:emoji` (e o DELETE), e
+ * com ele a possibilidade de o servidor recusar. O rollback é escrever de
+ * volta o estado anterior — que é barato justamente porque a operação é um
+ * toggle sobre um Set, e não um patch.
+ */
+export function alternarReacao(messageId: string, emoji: string): void {
+  if (!usuarioLocal) return;
+
+  const message = client.messages.get(messageId);
+  if (!message) return;
+
+  const quem = message.reactions.get(emoji);
+
+  if (quem?.has(usuarioLocal)) {
+    quem.delete(usuarioLocal);
+    // Set vazio é removido: o `map.ts` já pula emoji sem ninguém, mas deixar a
+    // chave viva faria a ORDEM dos chips guardar um fantasma — reagir de novo
+    // com o mesmo emoji o traria de volta à posição antiga em vez do fim.
+    if (quem.size === 0) message.reactions.delete(emoji);
+  } else if (quem) {
+    quem.add(usuarioLocal);
+  } else {
+    message.reactions.set(emoji, new ReactiveSet([usuarioLocal]));
+  }
+}
+
 /* -------------------------------------------------------------- entidade */
 
 /**
@@ -200,7 +251,7 @@ export const messages = createEntityStore<MessageSnapshot>((id) => {
   // virtualizada vira altura zero e realimenta a medição.
   const initial = client.messages.get(id);
   if (initial) {
-    messages.set(id, toMessageSnapshot(initial, layoutDe(id), estadoDeEnvioDe(id)));
+    messages.set(id, toMessageSnapshot(initial, layoutDe(id), estadoDeEnvioDe(id), usuarioLocal));
   }
 
   return createRoot((dispose) => {
@@ -209,7 +260,7 @@ export const messages = createEntityStore<MessageSnapshot>((id) => {
       if (message) {
         messages.set(
           id,
-          toMessageSnapshot(message, layoutDe(id), estadoDeEnvioDe(id)),
+          toMessageSnapshot(message, layoutDe(id), estadoDeEnvioDe(id), usuarioLocal),
         );
         count("snapshots");
       }

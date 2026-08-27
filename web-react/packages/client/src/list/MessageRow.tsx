@@ -16,11 +16,13 @@ import {
 } from "../components/ui/ContextMenu";
 
 import { count } from "../dev/stats";
+import { rotuloDeReacao } from "../lib/plural";
 import { cn } from "../lib/cn";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
 import type { SistemaSnapshot } from "../sdk/domain";
 import { reenviar } from "../sdk/adapter";
+import { alternarReacao } from "../sdk/adapter";
 import { responderA } from "../store/resposta";
 import { useMessage } from "../store/hooks";
 import { Citacao } from "./Citacao";
@@ -85,6 +87,16 @@ function FraseDeSistema({ sistema }: { sistema: SistemaSnapshot }) {
  * casar com os índices de mensagem, e o `getItemKey` por ID de entidade —
  * que é o que segura a âncora no prepend — perderia o sentido.
  */
+/**
+ * As seis do conjunto rápido.
+ *
+ * Escolhidas por FUNÇÃO, não por gosto: concordar, celebrar, discordar, achar
+ * graça, registrar que leu, e marcar o que precisa de atenção. Uma lista de
+ * favoritos pessoais entraria como preferência do usuário, não como default do
+ * produto.
+ */
+const REACOES_RAPIDAS = ["👍", "🎉", "👎", "😄", "👀", "🔥"] as const;
+
 function DivisorDeDia({ rotulo }: { rotulo: string }) {
   return (
     <div className="flex items-center gap-3 px-4 pt-5 pb-1" role="separator">
@@ -286,15 +298,29 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
               </p>
             ) : null}
 
-            {message.reactions.size > 0 ? (
-              <div className="mt-1 flex flex-wrap gap-1">
-                {[...message.reactions].map(([emoji, count]) => (
-                  <span
-                    key={emoji}
-                    className="rounded-2 bg-surface-2 px-2 text-xs text-text-2"
+            {/*
+              Os chips eram `<span>`: reação renderizada, não usável. Agora
+              são botões de dois estados — clicar no chip aceso remove a minha,
+              no apagado acrescenta. É o gesto mais barato que existe, e é por
+              isso que reagir precisa custar um clique e não um menu.
+            */}
+            {message.reactions.length > 0 ? (
+              <div className={css.reacoes}>
+                {message.reactions.map((r) => (
+                  <button
+                    key={r.emoji}
+                    type="button"
+                    className={css.chip}
+                    data-minha={r.minha}
+                    onClick={() => alternarReacao(message.id, r.emoji)}
+                    aria-pressed={r.minha}
+                    aria-label={rotuloDeReacao(r)}
                   >
-                    {emoji} {count}
-                  </span>
+                    <span aria-hidden>{r.emoji}</span>
+                    <span className={css.total} aria-hidden>
+                      {r.total}
+                    </span>
+                  </button>
                 ))}
               </div>
             ) : null}
@@ -320,6 +346,33 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
 
           {/* Ícones Phosphor, weight regular, 20px — um set só, sem exceção. */}
           <ContextMenuContent>
+        {/*
+          Conjunto RÁPIDO, não picker completo.
+
+          Picker de emoji é dependência pesada e decisão própria — e a cauda
+          longa de emojis é minoria do uso real: reação é gesto de um clique, e
+          um clique que abre uma grade de mil ícones deixa de ser gesto. Estes
+          seis cobrem o comum; o picker completo fica listado.
+
+          `onSelect` sem `preventDefault`: fechar o menu depois de reagir é o
+          certo, porque reagir é a ação inteira.
+        */}
+        <div className={css.rapidas} role="group" aria-label="Reagir">
+          {REACOES_RAPIDAS.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              className={css.rapida}
+              aria-label={`Reagir com `}
+              onClick={() => alternarReacao(message.id, emoji)}
+            >
+              <span aria-hidden>{emoji}</span>
+            </button>
+          ))}
+        </div>
+
+        <ContextMenuSeparator />
+
         <ContextMenuItem
           onSelect={() => responderA(message.channelId, message.id)}
         >

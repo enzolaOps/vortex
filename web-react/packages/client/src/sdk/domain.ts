@@ -60,8 +60,18 @@ export type MessageSnapshot = {
    * mentindo, e apagar deixaria uma cópia órfã de algo que não existe mais.
    */
   readonly respostas: readonly string[];
-  /** emoji → quantidade. Achatado no adapter; o componente não itera Set. */
-  readonly reactions: ReadonlyMap<string, number>;
+  /**
+   * As reações, já achatadas e ordenadas.
+   *
+   * Array e não `Map<emoji, número>`: a contagem sozinha não diz se EU reagi,
+   * e sem isso o chip não sabe se está aceso nem o clique sabe se adiciona ou
+   * remove. Era o que faltava para as reações saírem de "renderizadas" para
+   * "usáveis".
+   *
+   * Ordem de primeira reação, herdada da iteração do Map do SDK — estável, e
+   * é o que impede os chips de dançarem quando alguém reage.
+   */
+  readonly reactions: readonly ReacaoSnapshot[];
 
   /**
    * Campo do Vortex que o protocolo não carrega.
@@ -95,6 +105,13 @@ export type MessageSnapshot = {
    * campo se comporta como qualquer outro do snapshot.
    */
   readonly dia: string | undefined;
+};
+
+/** Uma reação agregada. `minha` é o que faz o chip ser um botão de dois estados. */
+export type ReacaoSnapshot = {
+  readonly emoji: string;
+  readonly total: number;
+  readonly minha: boolean;
 };
 
 export type PresenceStatus = "online" | "idle" | "dnd" | "offline";

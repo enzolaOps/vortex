@@ -36,6 +36,9 @@ const USER_COUNT = 40;
 
 const userIds: string[] = [];
 
+/** O "eu" do arnês, fixo — o mesmo que `definirUsuarioLocal` recebe. */
+const USUARIO_LOCAL = "01JQ0000000000000001000000";
+
 /**
  * O mundo do arnês: três servidores, com canais e membros.
  *
@@ -426,8 +429,17 @@ function createMessage(seed: number, quando?: number): string {
       // Uma em cada 13 é resposta à anterior — o suficiente para a citação
       // aparecer na janela visível sem dominar a lista, e para o teste de
       // altura de linha ver os dois casos.
-      ...(seed % 13 === 6 && seed > 0
-        ? { replies: [ultimoId] }
+      ...(seed % 13 === 6 && seed > 0 ? { replies: [ultimoId] } : {}),
+      // Reações em parte das mensagens, e uma delas COM o usuário local: sem
+      // isso o chip aceso nunca apareceria, e o estado que decide se o clique
+      // adiciona ou remove ficaria sem exercício.
+      ...(seed % 17 === 4
+        ? {
+            reactions: {
+              "👍": seed % 34 === 4 ? [autorDe(seed + 1), USUARIO_LOCAL] : [autorDe(seed + 1)],
+              ...(seed % 51 === 4 ? { "🔥": [autorDe(seed + 2), autorDe(seed + 3)] } : {}),
+            },
+          }
         : {}),
       ...(system ? { system } : {}),
       // `as never` como o resto das semeaduras deste arquivo: o payload de

@@ -23,6 +23,7 @@ import type {
   MessageSnapshot,
   PresenceStatus,
   SendState,
+  ReacaoSnapshot,
   ServerSnapshot,
   SistemaSnapshot,
 } from "./domain";
@@ -31,13 +32,26 @@ import type {
  * `reactions` chega como ReactiveMap<emoji, ReactiveSet<userId>>. Achatar aqui
  * é deliberado: o componente recebe contagem pronta e não itera Set no render.
  */
-function flattenReactions(message: Message): ReadonlyMap<string, number> {
-  const out = new Map<string, number>();
+function flattenReactions(
+  message: Message,
+  euId: string | undefined,
+): readonly ReacaoSnapshot[] {
+  const out: ReacaoSnapshot[] = [];
   for (const [emoji, users] of message.reactions) {
-    out.set(emoji, users.size);
+    // Reação sem ninguém não é reação: o SDK pode deixar a chave com Set
+    // vazio depois da última remoção, e um chip com "0" seria pior que nada.
+    if (users.size === 0) continue;
+    out.push({
+      emoji,
+      total: users.size,
+      minha: euId !== undefined && users.has(euId),
+    });
   }
-  return out;
+  return out.length === 0 ? SEM_REACOES : out;
 }
+
+/** Referência compartilhada: a maioria das mensagens não tem reação nenhuma. */
+const SEM_REACOES: readonly ReacaoSnapshot[] = [];
 
 // Um formatter por sessão, não um por chamada — criar Intl.DateTimeFormat é
 // caro; usar é barato.
@@ -128,6 +142,8 @@ export function toMessageSnapshot(
   message: Message,
   layout: Layout,
   sendState: SendState,
+  /** Quem sou eu — para saber quais reações são minhas. Vem de fora, como tudo. */
+  euId: string | undefined,
 ): MessageSnapshot {
   return {
     id: message.id,
@@ -139,7 +155,7 @@ export function toMessageSnapshot(
     editedAt: message.editedAt?.getTime(),
     sistema: toSistema(message),
     respostas: message.replyIds ?? VAZIO,
-    reactions: flattenReactions(message),
+    reactions: flattenReactions(message, euId),
     // O protocolo não carrega isto: quem mantém é o adapter, e mensagem que
     // veio do servidor nasce "sent". É a camada anticorrupção fazendo o
     // trabalho para o qual existe.

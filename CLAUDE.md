@@ -744,8 +744,15 @@ como posição** vem depois que a lista parar de mudar de forma.
 
 #### A regra de processo desta fase, e ela não é opcional
 
-**Rodar o firehose a cada item que toca a linha de mensagem — não uma vez no
-fim.** Três dos itens acima (`systemMessage`, citação, reações) somam custo ao
+**Rodar o firehose a cada item que toca a linha de mensagem OU O CONTAINER
+DELA — não uma vez no fim.**
+
+⚠ A regra nasceu estreita demais e cobrou por isso. O passo 3 (cabeçalho de
+canal) não tocava a linha, então não pediu firehose — mas tocou o WRAPPER da
+lista, e um `block-size` faltando ali fez o container de scroll perder o teto:
+o virtualizador montou as dez mil linhas de uma vez. Passou por typecheck,
+lint e 145 testes sem um ruído, e só apareceu porque a verificação seguinte
+olhou o DOM. Container conta. Três dos itens acima (`systemMessage`, citação, reações) somam custo ao
 componente mais quente, e o patamar sob CPU 4x já está em ~6% contra teto de 5%.
 Em lote, não há como saber qual deles pagou. E a fase 3 já provou que efeito
 pequeno exige mediana de 3 janelas para ser visto: o espalhamento entre corridas
