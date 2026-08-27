@@ -52,8 +52,38 @@
   Não-ativo mas presente: um toco, no terceiro degrau da escala da
   marca. É a opacidade escalonada do ícone virando estado de interface —
   mesmo mecanismo, mesma leitura, e nenhuma sombra envolvida.
+
+  NEUTRO, e não acento. Os dois consumidores pintam `color: var(--vx-accent)`
+  no elemento, então o toco herdava acento junto: medido no navegador, nove
+  lâminas de acento na tela ao mesmo tempo, sete delas tocos permanentes.
+  Acento que aparece em todo item da lista deixa de significar "aqui" — ele
+  não marca mais nada, só colore.
+
+  O toco continua existindo pelas duas razões pelas quais foi desenhado: ele é
+  de onde a transição cresce, e é a pista de que aquela borda é o lugar do
+  indicador. Nenhuma das duas precisa da cor de ação.
 */
 .lamina[data-ativa="false"] {
   scale: 1 0.3;
   opacity: var(--vx-lamina-3);
+  background: var(--vx-text-3);
+}
+
+/*
+  E o hover ganha o degrau do meio.
+
+  Com o toco neutro sobrou um vão entre "existe" e "é aqui", e hover é
+  exatamente o que ocupa esse vão: a lâmina volta ao acento e cresce até a
+  metade, dizendo "aqui SE você clicar". Três degraus legíveis onde antes
+  havia dois, e o acento volta a significar posição — atual ou pretendida.
+
+  `:hover > .lamina` e não uma classe do consumidor: o seletor de pai é o que
+  mantém a decisão dentro deste arquivo. Se dependesse do `.canal` e do
+  `.servidor`, cada consumidor novo teria que lembrar de repetir a regra, e o
+  primeiro que esquecesse voltaria ao toco sem hover sem que nada falhasse.
+*/
+:hover > .lamina[data-ativa="false"] {
+  scale: 1 0.6;
+  opacity: var(--vx-lamina-2);
+  background: currentColor;
 }
