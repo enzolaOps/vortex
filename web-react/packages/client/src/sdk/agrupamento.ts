@@ -57,6 +57,14 @@ export function rotuloDeDia(ms: number, agora = Date.now()): string {
 export type Layout = {
   readonly iniciaGrupo: boolean;
   readonly dia: string | undefined;
+  /**
+   * Primeira não lida — o divisor de "novas mensagens" vai acima dela.
+   *
+   * Não é calculado por `calcularLayout`: depende do CURSOR do canal, que é
+   * estado do cliente e não do vizinho. Entra por composição no adapter, que é
+   * quem conhece os dois.
+   */
+  readonly primeiraNaoLida: boolean;
 };
 
 /**
@@ -78,7 +86,11 @@ export function calcularLayout(
   agora = Date.now(),
 ): Layout {
   if (!anterior) {
-    return { iniciaGrupo: true, dia: rotuloDeDia(atual.createdAt, agora) };
+    return {
+      iniciaGrupo: true,
+      dia: rotuloDeDia(atual.createdAt, agora),
+      primeiraNaoLida: false,
+    };
   }
 
   const mudouDeDia = inicioDoDia(atual.createdAt) !== inicioDoDia(anterior.createdAt);
@@ -105,5 +117,8 @@ export function calcularLayout(
     // divisor de data leria como se a fala tivesse atravessado a meia-noite.
     iniciaGrupo: mudouDeDia || mudouDeAutor || passouDaJanela || cruzaSistema,
     dia: mudouDeDia ? rotuloDeDia(atual.createdAt, agora) : undefined,
+    // Quem decide é o adapter, com o cursor em mãos. Este módulo é puro e não
+    // conhece estado de leitura.
+    primeiraNaoLida: false,
   };
 }

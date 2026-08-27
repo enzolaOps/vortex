@@ -85,10 +85,75 @@ import {
  */
 const layouts = new Map<string, Layout>();
 
-const PADRAO: Layout = { iniciaGrupo: true, dia: undefined };
+const PADRAO: Layout = {
+  iniciaGrupo: true,
+  dia: undefined,
+  primeiraNaoLida: false,
+};
 
 export function layoutDe(id: string): Layout {
   return layouts.get(id) ?? PADRAO;
+}
+
+/* -------------------------------------------------------- cursor de leitura */
+
+/**
+ * Onde a pessoa PAROU de ler, por canal.
+ *
+ * Guarda o ID da última mensagem lida — posição, não contagem. É a diferença
+ * entre "tem 47 coisas novas" e "você parou AQUI", e é a segunda que faz
+ * alguém conseguir voltar a um canal movimentado sem desistir.
+ *
+ * ⚠ Fase 6: isto EXISTE no protocolo — `ChannelUnread.lastMessageId`, e
+ * `Message.ack()` escreve de volta. Hoje é local; a semeadura a partir de
+ * `channelUnreads` no `Ready` já está listada como pendência, e quando ela
+ * chegar o cursor passa a sobreviver entre dispositivos de graça.
+ */
+const cursorDeLeitura = new Map<string, string>();
+
+/**
+ * A primeira não lida de um canal — a que recebe o divisor.
+ *
+ * `undefined` quando não há cursor (nunca visitado) ou quando o cursor já é a
+ * última: nos dois casos não existe "primeira não lida", e desenhar o divisor
+ * no topo do histórico seria dizer que TUDO é novo.
+ */
+function primeiraNaoLidaDe(channelId: string): string | undefined {
+  const cursor = cursorDeLeitura.get(channelId);
+  if (!cursor) return undefined;
+
+  const ids = idsOf(channelId);
+  const indice = ids.indexOf(cursor);
+  if (indice === -1) return undefined;
+
+  return ids[indice + 1];
+}
+
+/**
+ * Avança o cursor até o fim do canal.
+ *
+ * Chamado ao SAIR do canal, não ao entrar — e essa é a decisão que faz o
+ * divisor servir para alguma coisa. Avançando na entrada, ele sumiria no
+ * mesmo frame em que apareceu: a pessoa abriria o canal e veria a lista sem
+ * marca nenhuma de onde tinha parado.
+ *
+ * Discord faz assim, e a razão é essa: "lido" é o que você JÁ viu, e você só
+ * viu quando saiu.
+ */
+function avancarCursor(channelId: string): void {
+  const ids = idsOf(channelId);
+  const ultima = ids[ids.length - 1];
+  if (!ultima) return;
+
+  const anterior = cursorDeLeitura.get(channelId);
+  if (anterior === ultima) return;
+
+  cursorDeLeitura.set(channelId, ultima);
+
+  // A linha que era a primeira não lida deixa de ser: recalcula o trecho e
+  // re-emite só quem mudou.
+  const antiga = anterior ? ids.indexOf(anterior) : -1;
+  recalcularLayout(channelId, antiga, ids.length - 1);
 }
 
 /** Dados que o agrupamento precisa, lidos do SDK. */
@@ -125,9 +190,21 @@ function recalcularLayout(channelId: string, de: number, ate: number) {
     const atual = vizinho(id);
     if (!atual) continue;
 
-    const novo = calcularLayout(atual, vizinho(ids[i - 1]));
+    const base = calcularLayout(atual, vizinho(ids[i - 1]));
+    // O cursor entra POR COMPOSIÇÃO: `calcularLayout` é puro sobre dois
+    // vizinhos e não conhece estado de leitura, que é do cliente.
+    const novo: Layout = {
+      ...base,
+      primeiraNaoLida: id === primeiraNaoLidaDe(channelId),
+    };
+
     const velho = layouts.get(id);
-    if (velho && velho.iniciaGrupo === novo.iniciaGrupo && velho.dia === novo.dia) {
+    if (
+      velho &&
+      velho.iniciaGrupo === novo.iniciaGrupo &&
+      velho.dia === novo.dia &&
+      velho.primeiraNaoLida === novo.primeiraNaoLida
+    ) {
       continue;
     }
 
@@ -867,8 +944,28 @@ let canalAberto: string | undefined;
 
 export function definirCanalAberto(channelId: string | undefined): void {
   if (canalAberto === channelId) return;
+
+  // SAINDO: o canal anterior passa a estar lido até o fim. É aqui que o
+  // divisor de "novas mensagens" do PRÓXIMO retorno é decidido.
+  if (canalAberto) avancarCursor(canalAberto);
+
   canalAberto = channelId;
-  if (channelId) marcarCanalLido(channelId);
+
+  if (channelId) {
+    marcarCanalLido(channelId);
+    // Canal nunca visitado começa lido a partir de onde está: sem isto, abrir
+    // um canal pela primeira vez marcaria as dez mil como novas.
+    if (!cursorDeLeitura.has(channelId)) {
+      const ids = idsOf(channelId);
+      const ultima = ids[ids.length - 1];
+      if (ultima) cursorDeLeitura.set(channelId, ultima);
+    }
+  }
+}
+
+/** O ponto onde a leitura parou. Para a lista saber até onde rolar. */
+export function primeiraNaoLida(channelId: string): string | undefined {
+  return primeiraNaoLidaDe(channelId);
 }
 
 export function marcarCanalLido(channelId: string): void {

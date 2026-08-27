@@ -31,3 +31,36 @@
   max-inline-size: var(--vx-message-max-w);
   margin-inline: 0;
 }
+
+/*
+  Barra de "ir para a primeira não lida".
+
+  Flutua SOBRE a lista, não no fluxo: uma barra que ocupa altura empurraria
+  a primeira linha para baixo, e numa lista ancorada isso é a âncora se
+  movendo por causa de um aviso.
+
+  `sticky` e não `fixed`: ela pertence a esta coluna, e a coluna pode ser um
+  slot estreito na fase 4 ou uma janela destacada no Electron.
+*/
+.barraNaoLidas {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  inline-size: 100%;
+  padding-block: var(--vx-space-1);
+  border: 0;
+  background: var(--vx-accent);
+  color: var(--vx-on-accent);
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.barraNaoLidas:hover {
+  background: var(--vx-accent-hover);
+}
+
+.barraNaoLidas:focus-visible {
+  outline-offset: -2px;
+}

@@ -163,6 +163,7 @@ export function toMessageSnapshot(
     sendState,
     iniciaGrupo: layout.iniciaGrupo,
     dia: layout.dia,
+    primeiraNaoLida: layout.primeiraNaoLida,
   };
 }
 

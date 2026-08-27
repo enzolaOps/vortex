@@ -107,6 +107,18 @@ export type MessageSnapshot = {
    * campo se comporta como qualquer outro do snapshot.
    */
   readonly dia: string | undefined;
+
+  /**
+   * Esta é a PRIMEIRA mensagem que ainda não foi lida.
+   *
+   * A linha desenha o divisor de "novas mensagens" acima dela. É posição, não
+   * contagem — e é a diferença entre "tem 47 coisas novas" e "você parou
+   * AQUI", que é a informação de que alguém precisa ao voltar a um canal.
+   *
+   * Campo do snapshot pelo mesmo motivo de `dia`: depende do cursor do canal,
+   * que a linha não conhece nem deve conhecer.
+   */
+  readonly primeiraNaoLida: boolean;
 };
 
 /** Uma reação agregada. `minha` é o que faz o chip ser um botão de dois estados. */

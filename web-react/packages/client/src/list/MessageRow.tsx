@@ -99,6 +99,27 @@ function FraseDeSistema({ sistema }: { sistema: SistemaSnapshot }) {
  */
 const REACOES_RAPIDAS = ["👍", "🎉", "👎", "😄", "👀", "🔥"] as const;
 
+/**
+ * "Novas mensagens" — onde a leitura parou.
+ *
+ * Diferente do divisor de data em tudo o que importa: ele é sobre O QUE
+ * aconteceu, este é sobre VOCÊ. Por isso usa o acento em vez de borda
+ * discreta, e por isso o rótulo fica à direita — a linha atravessa a coluna e
+ * o olho a encontra rolando, sem precisar ler nada.
+ *
+ * Sobrevive à sessão porque o cursor sobrevive: ele só avança quando a pessoa
+ * SAI do canal. Avançar na entrada faria o divisor sumir no mesmo frame em que
+ * apareceu.
+ */
+function DivisorDeNovas() {
+  return (
+    <div className={css.novas} role="separator">
+      <span className={css.novasLinha} />
+      <span className={css.novasRotulo}>novas mensagens</span>
+    </div>
+  );
+}
+
 function DivisorDeDia({ rotulo }: { rotulo: string }) {
   return (
     <div className="flex items-center gap-3 px-4 pt-5 pb-1" role="separator">
@@ -162,6 +183,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
   if (message.sistema) {
     return (
       <>
+        {message.primeiraNaoLida ? <DivisorDeNovas /> : null}
         {message.dia ? <DivisorDeDia rotulo={message.dia} /> : null}
         <article className="flex items-baseline gap-2 px-4 pt-4 text-xs text-text-3">
           <Info size={20} aria-hidden className="shrink-0 self-center" />
@@ -332,6 +354,10 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
 
   return (
     <>
+      {/* Antes do divisor de data: "parei aqui" vem antes de "e este é outro
+          dia", porque o primeiro é sobre a pessoa e o segundo sobre o
+          histórico. */}
+      {message.primeiraNaoLida ? <DivisorDeNovas /> : null}
       {message.dia ? <DivisorDeDia rotulo={message.dia} /> : null}
 
       {/*

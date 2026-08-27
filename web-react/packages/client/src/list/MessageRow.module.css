@@ -105,3 +105,43 @@
 .rapida:active {
   background: var(--vx-accent-soft);
 }
+
+/* ============================================================
+   Divisor de "novas mensagens"
+   ------------------------------------------------------------
+   Diferente do divisor de data em tudo o que importa: aquele é
+   sobre O QUE aconteceu, este é sobre VOCÊ. Por isso o acento em
+   vez da borda discreta — é a única linha da lista que responde
+   "onde eu parei", e ela precisa ser encontrada rolando, sem ler.
+   ============================================================ */
+
+.novas {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  padding-inline: var(--vx-space-4);
+  padding-block-start: var(--vx-space-4);
+}
+
+.novasLinha {
+  flex: 1;
+  block-size: 1px;
+  background: var(--vx-accent);
+  /* A opacidade da marca, não um valor inventado: a linha é presente sem
+     competir com o texto que ela introduz. */
+  opacity: var(--vx-lamina-2);
+}
+
+/*
+  O rótulo fica à DIREITA, ao contrário do divisor de data.
+
+  Data é um título e se lê no centro; "novas mensagens" é uma marca de
+  posição, e no fim da linha ela não interrompe a varredura vertical do
+  olho pela coluna de texto.
+*/
+.novasRotulo {
+  flex: none;
+  color: var(--vx-accent);
+  font-size: var(--vx-size-xs);
+  font-weight: 500;
+}

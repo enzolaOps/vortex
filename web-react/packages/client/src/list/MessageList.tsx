@@ -11,6 +11,7 @@ import {
   ouvirIrParaMensagem,
   pedirFocoNoComposer,
 } from "../store/comandos";
+import { primeiraNaoLida } from "../sdk/adapter";
 import { useChannelMessageIds } from "../store/hooks";
 import css from "./MessageList.module.css";
 import { MessageRow } from "./MessageRow";
@@ -291,6 +292,21 @@ export function MessageList({ channelId }: { channelId: string }) {
     virtualizer.scrollToEnd();
   }, [ids.length, virtualizer]);
 
+  /**
+   * A barra de "ir para a primeira não lida".
+   *
+   * Sem ela o divisor existe e ninguém o alcança: num canal com dez mil
+   * mensagens, "você parou aqui" a quatro mil linhas de distância é a mesma
+   * coisa que não saber. A barra é o que transforma posição em NAVEGAÇÃO — e
+   * é a metade que o Discord tem e quase todo clone não.
+   *
+   * Lido a cada render e não assinado: o cursor muda ao SAIR do canal, e a
+   * lista é remontada por `key` quando o canal troca. Não há atualização a
+   * perder enquanto ela está montada.
+   */
+  const alvoNaoLida = primeiraNaoLida(channelId);
+  const indiceNaoLida = alvoNaoLida ? ids.indexOf(alvoNaoLida) : -1;
+
   const items = virtualizer.getVirtualItems();
 
   // Altura real das linhas na tela, para o relatório dizer se a estimativa
@@ -362,6 +378,20 @@ export function MessageList({ channelId }: { channelId: string }) {
       aria-relevant="additions"
       className={css.scroll}
     >
+      {/* Fora do container rolável não dá: ela precisa flutuar SOBRE a lista,
+          e uma barra no fluxo empurraria a primeira linha para baixo — numa
+          lista ancorada, isso é a âncora se movendo por causa de um aviso. */}
+      {indiceNaoLida !== -1 ? (
+        <button
+          type="button"
+          className={css.barraNaoLidas}
+          onClick={() =>
+            virtualizer.scrollToIndex(indiceNaoLida, { align: "start" })
+          }
+        >
+          novas mensagens · ir para a primeira
+        </button>
+      ) : null}
       {/* Teto de linha legível. Sem isto o texto estica até 3000px em
           ultrawide, que é o bug de layout que motivou o redesign.
 
