@@ -13,6 +13,7 @@ import {
 } from "../dev/alinhamento";
 import { digitacao, enviarMensagem } from "../sdk/adapter";
 import { LIMITE_DE_CONTEUDO } from "../sdk/domain";
+import { pode } from "../sdk/permissoes";
 import { cn } from "../lib/cn";
 import { ouvirFocoNoComposer, pedirFimDaLista } from "../store/comandos";
 import {
@@ -53,7 +54,16 @@ export function Composer({ channelId }: { channelId: string }) {
   const valor = useRascunho(channelId);
 
   const excedido = valor.length > LIMITE_DE_CONTEUDO;
-  const podeEnviar = valor.trim().length > 0 && !excedido;
+  /*
+    A permissão entra AQUI e não num terceiro lugar.
+
+    `podeEnviar` já era a única porta pela qual o envio passa — o atalho de
+    teclado e o botão consultam os dois a mesma variável. Pendurar a permissão
+    nela é o que garante que ninguém envie por um caminho que esqueceu de
+    perguntar; ver `sdk/permissoes.ts`.
+  */
+  const temPermissao = pode(channelId, "enviar");
+  const podeEnviar = valor.trim().length > 0 && !excedido && temPermissao;
 
   /**
    * O composer segue a coluna de mensagem — verificado, não prometido.
@@ -195,7 +205,20 @@ export function Composer({ channelId }: { channelId: string }) {
               onBlur={() => digitacao.aoParar(channelId)}
               rows={1}
               aria-label="Mensagem"
-              placeholder="Escreva uma mensagem…"
+              /*
+                Sem permissão o campo é DESLIGADO e diz por quê.
+
+                Deixá-lo aceitando texto que nunca vai sair seria a pior das
+                versões: a pessoa escreve, aperta Enter e nada acontece. Campo
+                desligado com um rótulo que explica é a resposta — o oitavo dos
+                oito estados, e o único que não existia nesta superfície.
+              */
+              disabled={!temPermissao}
+              placeholder={
+                temPermissao
+                  ? "Escreva uma mensagem…"
+                  : "Você não pode escrever neste canal"
+              }
             />
           </div>
 

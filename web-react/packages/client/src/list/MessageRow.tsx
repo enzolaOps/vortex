@@ -27,6 +27,7 @@ import {
   definirAlvoDoMenu,
   lerAlvoDoMenu,
 } from "../store/menuDeMensagem";
+import { pode } from "../sdk/permissoes";
 import { responderA } from "../store/resposta";
 import { useMessage } from "../store/hooks";
 import { Citacao } from "./Citacao";
@@ -320,41 +321,56 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             teclado sem poluir a tabulação exige roving tabindex gerenciado
             pela lista — trabalho real, e está listado.
           */}
+          {/*
+            Cada alvo pergunta ANTES de existir, não depois de ser clicado.
+
+            É a regra do briefing: nunca renderizar ação que a pessoa não pode
+            executar. Hoje `pode()` responde sempre `true` — não há sessão —, e
+            o valor está na FORMA: a fase 6 liga `havePermission` num lugar só e
+            estes alvos somem sozinhos. Adotada depois, seria uma passada por
+            cada botão do app com a garantia de esquecer um.
+          */}
           <div className={css.acoes} role="group" aria-label="Ações da mensagem">
-            {REACOES_DA_BARRA.map((emoji) => (
-              <button
-                key={emoji}
-                type="button"
-                className={css.acao}
-                aria-label={`Reagir com ${emoji}`}
-                onClick={() => alternarReacao(message.id, emoji)}
-              >
-                <span aria-hidden>{emoji}</span>
-              </button>
-            ))}
+            {pode(message.channelId, "reagir")
+              ? REACOES_DA_BARRA.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    className={css.acao}
+                    aria-label={`Reagir com ${emoji}`}
+                    onClick={() => alternarReacao(message.id, emoji)}
+                  >
+                    <span aria-hidden>{emoji}</span>
+                  </button>
+                ))
+              : null}
 
             <span className={css.acoesDivisa} aria-hidden />
 
-            <button
-              type="button"
-              className={css.acao}
-              aria-label="Responder"
-              onClick={() => responderA(message.channelId, message.id)}
-            >
-              <ArrowBendUpLeft size={20} aria-hidden />
-            </button>
-            <button
-              type="button"
-              className={css.acao}
-              aria-label={message.fixada ? "Desafixar" : "Fixar no canal"}
-              onClick={() => alternarFixada(message.id)}
-            >
-              {message.fixada ? (
-                <PushPinSlash size={20} aria-hidden />
-              ) : (
-                <PushPin size={20} aria-hidden />
-              )}
-            </button>
+            {pode(message.channelId, "responder") ? (
+              <button
+                type="button"
+                className={css.acao}
+                aria-label="Responder"
+                onClick={() => responderA(message.channelId, message.id)}
+              >
+                <ArrowBendUpLeft size={20} aria-hidden />
+              </button>
+            ) : null}
+            {pode(message.channelId, "fixar") ? (
+              <button
+                type="button"
+                className={css.acao}
+                aria-label={message.fixada ? "Desafixar" : "Fixar no canal"}
+                onClick={() => alternarFixada(message.id)}
+              >
+                {message.fixada ? (
+                  <PushPinSlash size={20} aria-hidden />
+                ) : (
+                  <PushPin size={20} aria-hidden />
+                )}
+              </button>
+            ) : null}
           </div>
 
           {/* A calha do avatar existe mesmo na continuação: é o que mantém o
@@ -471,6 +487,15 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                     className={css.chip}
                     data-minha={r.minha}
                     onClick={() => alternarReacao(message.id, r.emoji)}
+                    /*
+                      Chip existente NÃO some sem permissão — ele vira leitura.
+
+                      A reação de outra pessoa é conteúdo, não ação: escondê-la
+                      apagaria informação da conversa. O que a permissão tira é
+                      o poder de MEXER nela, e `disabled` é como se diz isso —
+                      a contagem continua legível.
+                    */
+                    disabled={!pode(message.channelId, "reagir")}
                     aria-pressed={r.minha}
                     aria-label={rotuloDeReacao(r)}
                   >
@@ -531,35 +556,40 @@ export function MenuDaMensagem() {
           certo, porque reagir é a ação inteira.
         */}
         <div className={css.rapidas} role="group" aria-label="Reagir">
-          {REACOES_RAPIDAS.map((emoji) => (
-            <button
-              key={emoji}
-              type="button"
-              className={css.rapida}
-              aria-label={`Reagir com ${emoji}`}
-              onClick={() => alternarReacao(message.id, emoji)}
-            >
-              <span aria-hidden>{emoji}</span>
-            </button>
-          ))}
+          {pode(message.channelId, "reagir") &&
+            REACOES_RAPIDAS.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                className={css.rapida}
+                aria-label={`Reagir com ${emoji}`}
+                onClick={() => alternarReacao(message.id, emoji)}
+              >
+                <span aria-hidden>{emoji}</span>
+              </button>
+            ))}
         </div>
 
         <ContextMenuSeparator />
 
-        <ContextMenuItem
-          onSelect={() => responderA(message.channelId, message.id)}
-        >
-          <ArrowBendUpLeft size={20} aria-hidden />
-          Responder
-        </ContextMenuItem>
-        <ContextMenuItem onSelect={() => alternarFixada(message.id)}>
-          {message.fixada ? (
-            <PushPinSlash size={20} aria-hidden />
-          ) : (
-            <PushPin size={20} aria-hidden />
-          )}
-          {message.fixada ? "Desafixar" : "Fixar no canal"}
-        </ContextMenuItem>
+        {pode(message.channelId, "responder") ? (
+          <ContextMenuItem
+            onSelect={() => responderA(message.channelId, message.id)}
+          >
+            <ArrowBendUpLeft size={20} aria-hidden />
+            Responder
+          </ContextMenuItem>
+        ) : null}
+        {pode(message.channelId, "fixar") ? (
+          <ContextMenuItem onSelect={() => alternarFixada(message.id)}>
+            {message.fixada ? (
+              <PushPinSlash size={20} aria-hidden />
+            ) : (
+              <PushPin size={20} aria-hidden />
+            )}
+            {message.fixada ? "Desafixar" : "Fixar no canal"}
+          </ContextMenuItem>
+        ) : null}
 
         {/*
           Copiar é a única das três que não escreve no protocolo — e por isso

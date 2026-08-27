@@ -119,6 +119,18 @@
   overflow-wrap: anywhere;
 }
 
+/*
+  Campo desligado: cursor que diz não, e nada além disso.
+
+  Sem `opacity`. A textarea desligada mostra o placeholder que EXPLICA a
+  ausência de permissão, e esmaecer justamente o texto que carrega a razão é o
+  contrário do que o estado precisa fazer. O `not-allowed` já responde ao
+  ponteiro; o rótulo responde à pergunta.
+*/
+.entrada:disabled {
+  cursor: not-allowed;
+}
+
 .entrada {
   margin: 0;
   padding: 0;

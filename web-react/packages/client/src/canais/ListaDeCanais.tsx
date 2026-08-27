@@ -19,6 +19,7 @@ import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { Lamina } from "../components/ui/Lamina";
 import { contagem, rotuloDeNaoLidas } from "../lib/plural";
 import { marcarCanalLido } from "../sdk/adapter";
+import { pode } from "../sdk/permissoes";
 import {
   chaveDeMembro,
   type CategoriaDeCanais,
@@ -138,9 +139,11 @@ const Canal = memo(function Canal({
       </ContextMenuTrigger>
 
       <ContextMenuContent>
+        {/* Regra do briefing: ação que a pessoa não pode executar não é
+            renderizada. Ver `sdk/permissoes.ts`. */}
         <ContextMenuItem
           onSelect={() => marcarCanalLido(id)}
-          disabled={!temNaoLidas}
+          disabled={!temNaoLidas || !pode(id, "marcarLida")}
         >
           <Check size={20} aria-hidden />
           Marcar como lida
