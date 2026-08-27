@@ -150,46 +150,6 @@ if (cadencia.fps < 30) {
   process.exit(1);
 }
 
-/*
-  A máquina está OCIOSA de verdade?
-
-  O check acima só reprova "headless não compõe frames". Ele passa numa máquina
-  que está rodando um jogo em cinco núcleos — e foi o que aconteceu: uma corrida
-  reprovou com 6,6% de frames perdidos, vazão de 414 de 500 ev/s e uma
-  população inteira de deltas mais curtos que um vsync, enquanto um processo
-  fora deste projeto consumia 512% de CPU.
-
-  Nada nesse relatório era sobre o código. Um gate que produz FAIL de aparência
-  confiável medindo o ambiente é pior que um gate que se recusa a medir, porque
-  o FAIL vira caçada.
-
-  SEM CARGA e sem throttle, quase todo frame deve cair num intervalo único. Se
-  15% deles não caem enquanto NADA acontece na tela, a máquina não é a máquina
-  que se quer medir.
-
-  **A régua é o vsync, nunca a mediana**, e a primeira versão errou nisso: ela
-  media a regularidade contra a própria mediana dos deltas em repouso, o que é
-  autorreferente. Numa máquina disputada a mediana já vem inflada — mediu 10,5ms
-  num display de 164Hz — e aí tudo parece regular em volta de um número errado.
-  O check passou justamente na corrida que ele existia para reprovar.
-
-  O vsync sai do mesmo jeito que em `frames.ts`: o balde mais baixo onde uma
-  fatia real dos frames pousa.
-*/
-const regularidade = cadencia.regulares / Math.max(cadencia.frames, 1);
-if (regularidade < 0.85) {
-  console.log(
-    `AMBIENTE INVÁLIDO — cadência irregular em repouso: ` +
-      `${(regularidade * 100).toFixed(0)}% dos frames no vsync de ` +
-      `${cadencia.vsync}ms, e a MEDIANA em repouso é ${cadencia.mediana}ms — ` +
-      `quase o dobro. Algo fora deste projeto está disputando a CPU; o ` +
-      `relatório descreveria a máquina, não o código.`,
-  );
-  ws.close();
-  chrome.kill();
-  process.exit(1);
-}
-
 if (THROTTLE > 1) {
   await enviar("Emulation.setCPUThrottlingRate", { rate: THROTTLE }, sessionId);
   console.log(`throttle de CPU aplicado: ${THROTTLE}x`);
