@@ -40,15 +40,16 @@ const ItemDeServidor = memo(function ItemDeServidor({
 
   return (
     /*
-      `lado` é físico porque o Radix só fala em `side` físico — e aqui isso
-      não viola a lei nº 6 por um detalhe que vale registrar: com
-      `avoidCollisions` (default), o lado é uma PREFERÊNCIA. Rail movido para
-      a borda oposta na fase 4 = sem espaço à direita = o Radix vira sozinho.
+      `fim`, não `right`.
 
-      O mapeamento logical→physical no wrapper é pendência aberta; até lá, a
-      colisão cobre o caso real.
+      O Radix só fala `side` físico, e por isso este componente carregava um
+      `lado="right"` com uma nota dizendo que a colisão automática cobria o
+      caso real. Cobria — mas a premissa de lado ficava escrita aqui, que é o
+      que a lei nº 6 proíbe. O mapeamento lógico→físico agora vive no wrapper,
+      lê a direção real do documento, e o rail volta a não saber de que lado
+      da tela ele está.
     */
-    <Tooltip texto={servidor.name} lado="right">
+    <Tooltip texto={servidor.name} lado="fim">
       <button
         type="button"
         className={css.item}

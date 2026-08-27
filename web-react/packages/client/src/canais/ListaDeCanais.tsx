@@ -1,4 +1,5 @@
 import {
+  CaretRight,
   Check,
   Hash,
   Monitor,
@@ -19,14 +20,15 @@ import { contagem, rotuloDeNaoLidas } from "../lib/plural";
 import { marcarCanalLido } from "../sdk/adapter";
 import {
   chaveDeMembro,
-  type CanalTipo,
+  type CategoriaDeCanais,
   type EstadoDeVoz,
   type ParticipanteDeVoz,
 } from "../sdk/domain";
+import { alternarColapso } from "../store/colapso";
 import {
-  useCanaisDeTexto,
-  useCanaisDeVoz,
   useCanalAtivo,
+  useCategorias,
+  useColapso,
   useChannel,
   useMembro,
   useServer,
@@ -46,11 +48,6 @@ const ICONE_DE_VOZ: Record<EstadoDeVoz, typeof VideoCamera> = {
   tela: Monitor,
 };
 
-const ROTULO_DE_SECAO: Record<CanalTipo, string> = {
-  texto: "canais de texto",
-  voz: "canais de voz",
-};
-
 /**
  * Um canal. Assina a si mesmo.
  *
@@ -58,7 +55,15 @@ const ROTULO_DE_SECAO: Record<CanalTipo, string> = {
  * contagem daquele canal e mais nada. Sem isto, a lista inteira re-renderizaria
  * a cada mensagem de cada canal — e num servidor movimentado isso é constante.
  */
-const Canal = memo(function Canal({ id, ativo }: { id: string; ativo: boolean }) {
+const Canal = memo(function Canal({
+  id,
+  serverId,
+  ativo,
+}: {
+  id: string;
+  serverId: string;
+  ativo: boolean;
+}) {
   const canal = useChannel(id);
 
   if (!canal) {
@@ -69,6 +74,7 @@ const Canal = memo(function Canal({ id, ativo }: { id: string; ativo: boolean })
   const Icone = canal.tipo === "voz" ? SpeakerHigh : Hash;
 
   return (
+    <>
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <button
@@ -116,6 +122,14 @@ const Canal = memo(function Canal({ id, ativo }: { id: string; ativo: boolean })
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
+
+    {/* A sala pendura no CANAL, não na categoria: só o canal sabe o próprio
+        tipo, e montar `Sala` em canal de texto criaria um efeito Solid por
+        canal que nunca dispararia. Fora do `ContextMenu` de propósito: ela
+        tem alvos próprios, e herdar o menu do canal daria "Marcar como lida"
+        ao clicar com o direito numa pessoa. */}
+    {canal.tipo === "voz" ? <Sala channelId={id} serverId={serverId} /> : null}
+    </>
   );
 });
 
@@ -199,6 +213,66 @@ const Sala = memo(function Sala({
 });
 
 /**
+ * Uma categoria, com os canais dela.
+ *
+ * O cabeçalho é um `<button>` de verdade e não um `<div>` com `onClick`:
+ * colapsar é ação, e ação precisa alcançar quem navega por teclado. `aria-expanded`
+ * é o que diz ao leitor de tela que aquilo abre e fecha — sem ele, o botão
+ * anuncia um nome e nenhum estado.
+ *
+ * A categoria padrão não tem título e por isso não tem cabeçalho: os canais
+ * fora de grupo aparecem soltos no topo. Colapsar "nada" não faria sentido, e
+ * inventar um rótulo criaria um grupo que o servidor não tem.
+ */
+const Categoria = memo(function Categoria({
+  categoria,
+  serverId,
+  canalAtivo,
+}: {
+  categoria: CategoriaDeCanais;
+  serverId: string;
+  canalAtivo: string;
+}) {
+  const colapsada = useColapso(categoria.id);
+  const temCabecalho = categoria.titulo !== undefined;
+  const mostrar = !temCabecalho || !colapsada;
+
+  return (
+    <div className={css.categoria}>
+      {temCabecalho ? (
+        <button
+          type="button"
+          className={css.secao}
+          aria-expanded={!colapsada}
+          onClick={() => alternarColapso(categoria.id)}
+        >
+          <CaretRight
+            size={20}
+            aria-hidden
+            className={css.chevron}
+            data-aberta={!colapsada}
+          />
+          {categoria.titulo}
+        </button>
+      ) : null}
+
+      {mostrar
+        ? categoria.canais.map((id) => (
+            // Canal de voz é um CONTAINER, não uma linha: a sala pendura
+            // embaixo dele. É a mudança estrutural que "sala em vez de
+            // chamada" exige — e `Sala` decide sozinha se há o que mostrar,
+            // então a coluna não precisa saber o tipo do canal aqui.
+            <div key={id} className={css.grupoDeVoz}>
+              <Canal id={id} serverId={serverId} ativo={id === canalAtivo} />
+              <Sala channelId={id} serverId={serverId} />
+            </div>
+          ))
+        : null}
+    </div>
+  );
+});
+
+/**
  * A lista de canais do servidor ativo.
  *
  * A separação texto/voz é derivada do tipo do canal, não das CATEGORIAS do
@@ -214,14 +288,12 @@ const Sala = memo(function Sala({
 export function ListaDeCanais() {
   const serverId = useServidorAtivo();
   const servidor = useServer(serverId);
-  const texto = useCanaisDeTexto(serverId);
-  const voz = useCanaisDeVoz(serverId);
+  const grupos = useCategorias(serverId);
   const canalAtivo = useCanalAtivo();
 
-  // Já vêm separados do adapter — a coluna não parte nada no render, porque
-  // partir exigiria ler o tipo de canais que ela não assina.
-  const secoes = { texto, voz };
-  const vazio = texto.length === 0 && voz.length === 0;
+  // Já vêm agrupadas e ordenadas do adapter — a coluna não organiza nada no
+  // render, porque organizar exigiria ler entidades que ela não assina.
+  const vazio = grupos.length === 0;
 
   if (!serverId) {
     return (
@@ -250,26 +322,14 @@ export function ListaDeCanais() {
           />
         ) : (
           <nav aria-label="Canais">
-            {(["texto", "voz"] as const).map((tipo) =>
-              secoes[tipo].length === 0 ? null : (
-                <div key={tipo}>
-                  <h2 className={css.secao}>{ROTULO_DE_SECAO[tipo]}</h2>
-                  {secoes[tipo].map((id) =>
-                    tipo === "voz" ? (
-                      // Canal de voz é um CONTAINER, não uma linha: a sala
-                      // pendura embaixo dele. É a mudança estrutural que
-                      // "sala em vez de chamada" exige.
-                      <div key={id} className={css.grupoDeVoz}>
-                        <Canal id={id} ativo={id === canalAtivo} />
-                        <Sala channelId={id} serverId={serverId} />
-                      </div>
-                    ) : (
-                      <Canal key={id} id={id} ativo={id === canalAtivo} />
-                    ),
-                  )}
-                </div>
-              ),
-            )}
+            {grupos.map((grupo) => (
+              <Categoria
+                key={grupo.id}
+                categoria={grupo}
+                serverId={serverId}
+                canalAtivo={canalAtivo}
+              />
+            ))}
           </nav>
         )}
       </div>

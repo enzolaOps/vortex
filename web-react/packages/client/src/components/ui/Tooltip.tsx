@@ -14,22 +14,51 @@ import { cn } from "../../lib/cn";
  */
 export const TooltipProvider = Primitivo.Provider;
 
+/**
+ * Lado LÓGICO, não físico.
+ *
+ * O Radix só fala `side` físico — `left` e `right` —, e o projeto inteiro usa
+ * propriedades lógicas por causa da lei nº 6: um painel movido para a borda
+ * oposta, ou uma interface em árabe, invertem o que "à direita" significa.
+ * Espalhar `side="right"` pelos componentes é plantar uma premissa de lado em
+ * cada chamada.
+ *
+ * O mapeamento vive AQUI, num lugar só, e é lido da direção real do documento
+ * em vez de assumida — é a mesma razão pela qual `padding-inline-start` existe.
+ *
+ * `top` e `bottom` atravessam sem tradução: o eixo de bloco não inverte em
+ * nenhum dos idiomas que este app pretende falar.
+ */
+export type LadoLogico = "acima" | "abaixo" | "inicio" | "fim";
+
+function ladoFisico(lado: LadoLogico): "top" | "bottom" | "left" | "right" {
+  if (lado === "acima") return "top";
+  if (lado === "abaixo") return "bottom";
+
+  const rtl =
+    typeof document !== "undefined" &&
+    getComputedStyle(document.documentElement).direction === "rtl";
+
+  if (lado === "inicio") return rtl ? "right" : "left";
+  return rtl ? "left" : "right";
+}
+
 export function Tooltip({
   texto,
   children,
-  lado = "top",
+  lado = "acima",
   ...props
 }: {
   texto: ReactNode;
   children: ReactNode;
-  lado?: ComponentProps<typeof Primitivo.Content>["side"];
+  lado?: LadoLogico;
 } & Omit<ComponentProps<typeof Primitivo.Root>, "children">) {
   return (
     <Primitivo.Root {...props}>
       <Primitivo.Trigger asChild>{children}</Primitivo.Trigger>
       <Primitivo.Portal>
         <Primitivo.Content
-          side={lado}
+          side={ladoFisico(lado)}
           sideOffset={6}
           className={cn(
             "z-50 rounded-2 border border-border-subtle bg-surface-3 px-2 py-1",

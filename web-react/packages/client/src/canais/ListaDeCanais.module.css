@@ -45,17 +45,51 @@
   padding-inline: var(--vx-space-2);
 }
 
+/*
+  O cabeçalho de categoria virou BOTÃO — colapsar é ação.
+
+  Botão traz consigo `background`, `border`, `font` e `text-align` do
+  navegador, e nenhum deles pertence a este design. O reset é a parte
+  chata de trocar um `<h2>` por um `<button>`, e esquecê-lo é como
+  um cabeçalho vira, silenciosamente, um retângulo cinza centralizado.
+*/
 .secao {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-1);
+  inline-size: 100%;
   padding-inline: var(--vx-space-2);
   padding-block: var(--vx-space-3) var(--vx-space-1);
+  border: 0;
+  border-radius: var(--vx-radius-1);
+  background: transparent;
   color: var(--vx-text-3);
+  font-family: inherit;
   font-size: var(--vx-size-xs);
   font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  text-align: start;
+  cursor: pointer;
+  transition: color var(--vx-duration-fast) var(--vx-ease-out);
 }
 
-.secao:first-child {
+.secao:hover {
+  color: var(--vx-text-1);
+}
+
+/* Pressionado não muda cor de fundo aqui: o cabeçalho não é uma
+   linha selecionável, e um retângulo cheio na largura toda pesaria
+   mais que o grupo que ele nomeia. */
+.secao:active {
+  color: var(--vx-text-2);
+}
+
+.secao:focus-visible {
+  outline-offset: -2px;
+}
+
+.categoria:first-child .secao {
   padding-block-start: 0;
 }
 
@@ -286,4 +320,36 @@
 */
 .canal:focus-visible {
   outline-offset: -2px;
+}
+
+/* ============================================================
+   Categorias
+   ------------------------------------------------------------
+   A coluna partia por TIPO — texto e voz — e isso era
+   placeholder: o protocolo tem categorias, e quem administra o
+   servidor decide os grupos. Partir por tipo impunha uma
+   organização que ninguém pediu e escondia a que alguém pediu.
+   ============================================================ */
+
+.categoria {
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+  O chevron gira; a lista não desliza.
+
+  Animar altura obrigaria a medir o conteúdo a cada frame, e esta
+  coluna vai virar lista virtualizada quando um servidor com 400
+  canais aparecer. `rotate` roda no compositor e diz a mesma coisa:
+  isto abre e fecha.
+*/
+.chevron {
+  flex: none;
+  rotate: 0deg;
+  transition: rotate var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.chevron[data-aberta="true"] {
+  rotate: 90deg;
 }

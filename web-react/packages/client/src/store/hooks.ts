@@ -5,6 +5,7 @@ import { useSyncExternalStore } from "react";
 
 import {
   canaisDeTexto,
+  categorias,
   canaisDeVoz,
   channelMessageIds,
   channels,
@@ -21,6 +22,7 @@ import {
   vozPorCanal,
 } from "../sdk/adapter";
 import type {
+  CategoriaDeCanais,
   ChannelSnapshot,
   ChaveDeMembro,
   MemberSnapshot,
@@ -35,11 +37,13 @@ import {
   lerCanalAtivo,
   lerServidorAtivo,
 } from "./navegacao";
+import { assinarColapso, estaColapsada } from "./colapso";
 import { rascunhos, RASCUNHO_VAZIO } from "./rascunhos";
 
 const NO_IDS: readonly string[] = [];
 const NO_SECOES: readonly SecaoDeMembros[] = [];
 const NO_VOZ: readonly ParticipanteDeVoz[] = [];
+const NO_CATEGORIAS: readonly CategoriaDeCanais[] = [];
 
 /**
  * Assertion de dev para a armadilha nº 1 do projeto.
@@ -125,6 +129,25 @@ export function useServer(id: string): ServerSnapshot | undefined {
  * Texto e voz assinam separado, pelo mesmo motivo dos baldes de membro: canal
  * de voz criado não republica a seção de texto, e vice-versa.
  */
+/**
+ * Uma categoria está colapsada?
+ *
+ * Assina o store inteiro e devolve um booleano — e isso é seguro justamente
+ * porque é booleano: `Object.is` compara por valor, então uma categoria só
+ * re-renderiza quando o PRÓPRIO estado dela muda, mesmo o store notificando
+ * todas. Guardar preferência de leitura por categoria num store por chave
+ * seria maquinário para dezenas de itens que mudam por clique humano.
+ */
+export function useColapso(categoriaId: string): boolean {
+  return useSyncExternalStore(assinarColapso, () => estaColapsada(categoriaId));
+}
+
+export function useCategorias(serverId: string): readonly CategoriaDeCanais[] {
+  const getSnapshot = () => categorias.getSnapshot(serverId) ?? NO_CATEGORIAS;
+  if (import.meta.env.DEV) assertStable(getSnapshot, `useCategorias(${serverId})`);
+  return useSyncExternalStore(categorias.subscriber(serverId), getSnapshot);
+}
+
 export function useCanaisDeTexto(serverId: string): readonly string[] {
   const getSnapshot = () => canaisDeTexto.getSnapshot(serverId) ?? NO_IDS;
   if (import.meta.env.DEV) {

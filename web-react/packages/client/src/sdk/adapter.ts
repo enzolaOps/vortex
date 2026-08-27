@@ -29,6 +29,8 @@ import {
   usuarioDaChave,
   type Balde,
   type ChannelSnapshot,
+  CATEGORIA_PADRAO,
+  type CategoriaDeCanais,
   type ChaveDeMembro,
   type EstadoDeVoz,
   type MemberSnapshot,
@@ -640,6 +642,9 @@ export const membrosOffline = createEntityStore<readonly string[]>();
  */
 export const secoesOnline = createEntityStore<readonly SecaoDeMembros[]>();
 
+/** As categorias de canal do servidor, na ordem que ele define. */
+export const categorias = createEntityStore<readonly CategoriaDeCanais[]>();
+
 /**
  * Quem está DENTRO de cada canal de voz.
  *
@@ -920,6 +925,44 @@ function publicarCanais(serverId: string): void {
   }
   canaisDeTexto.set(serverId, texto);
   canaisDeVoz.set(serverId, voz);
+
+  publicarCategorias(serverId);
+}
+
+/**
+ * As categorias, na ordem que o servidor define.
+ *
+ * `server.orderedChannels` faz o trabalho pesado — casa `categories` com os
+ * canais, e força uma categoria "default" para o que sobrou fora de grupo. Era
+ * a parte que parecia cara nesta pendência e já vinha pronta.
+ *
+ * A tradução aqui é pequena e é toda anticorrupção: IDs em vez de objetos do
+ * SDK, e o título `"Default"` — string em inglês vinda do protocolo — vira
+ * `undefined`, que é o que o domínio quer dizer com "sem grupo". Deixar
+ * `"Default"` passar poria uma palavra do Stoat na interface do Vortex.
+ */
+function publicarCategorias(serverId: string): void {
+  const servidor = client.servers.get(serverId);
+  if (!servidor) {
+    categorias.set(serverId, []);
+    return;
+  }
+
+  const out: CategoriaDeCanais[] = [];
+  for (const grupo of servidor.orderedChannels) {
+    // Categoria vazia não vira cabeçalho órfão. O SDK já pula a `default`
+    // vazia; as outras podem existir sem canal visível para quem tem
+    // permissão limitada.
+    if (grupo.channels.length === 0) continue;
+
+    out.push({
+      id: grupo.id,
+      titulo: grupo.id === CATEGORIA_PADRAO ? undefined : grupo.title,
+      canais: grupo.channels.map((c) => c.id),
+    });
+  }
+
+  categorias.set(serverId, out);
 }
 
 /* ----------------------------------------------------- baldes de presença */

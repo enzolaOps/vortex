@@ -148,6 +148,32 @@ export type SistemaSnapshot =
 
 export type CanalTipo = "texto" | "voz";
 
+/**
+ * Uma categoria de canais.
+ *
+ * A coluna partia por TIPO — texto de um lado, voz do outro — e isso era
+ * placeholder assumido: o protocolo tem `server.categories`, e quem administra
+ * o servidor decide os grupos. Partir por tipo impunha uma organização que
+ * ninguém pediu, e escondia a que alguém pediu.
+ *
+ * O tipo do canal não some: ele continua no `ChannelSnapshot`, decidindo o
+ * ícone e se a linha carrega uma sala. O que muda é que ele não organiza mais
+ * a coluna.
+ *
+ * `titulo` é `undefined` na categoria padrão — a cesta dos canais que ninguém
+ * categorizou. Sem título, ela renderiza sem cabeçalho, no topo: é o que
+ * significa "não está em grupo nenhum", e inventar um rótulo ("Geral",
+ * "Outros") criaria um grupo que o servidor não tem.
+ */
+export type CategoriaDeCanais = {
+  readonly id: string;
+  readonly titulo: string | undefined;
+  readonly canais: readonly string[];
+};
+
+/** O `id` que o protocolo dá à cesta dos não categorizados. */
+export const CATEGORIA_PADRAO = "default";
+
 export type ChannelSnapshot = {
   readonly id: string;
   readonly serverId: string | undefined;

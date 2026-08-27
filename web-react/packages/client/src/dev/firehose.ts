@@ -51,6 +51,7 @@ type Servidor = {
   id: string;
   nome: string;
   canais: { id: string; nome: string; voz?: boolean; dentro?: number }[];
+  categorias?: { id: string; title: string; channels: string[] }[];
   /** Quantos dos `userIds` pertencem a ele. */
   membros: number;
 };
@@ -69,6 +70,22 @@ const MUNDO: Servidor[] = [
       // componente renderizasse um cabeçalho "ninguém aqui" por canal, cada
       // servidor pagaria altura permanente para dizer que não há nada.
       { id: "01JQ0000000000000000000014", nome: "voz-silencio", voz: true, dentro: 0 },
+    ],
+    categorias: [
+      {
+        id: "01JQC000000000000000CONVERSA",
+        title: "conversa",
+        channels: ["01JQ0000000000000000000010", "01JQ0000000000000000000011"],
+      },
+      {
+        id: "01JQC0000000000000000000VOZ",
+        title: "voz",
+        channels: [
+          "01JQ0000000000000000000012",
+          "01JQ0000000000000000000013",
+          "01JQ0000000000000000000014",
+        ],
+      },
     ],
     membros: USER_COUNT,
   },
@@ -215,6 +232,15 @@ function ensureWorld() {
       name: servidor.nome,
       channels: servidor.canais.map((c) => c.id),
       default_permissions: 0,
+      /*
+        Categorias — e uma delas deixa canal DE FORA de propósito.
+
+        O protocolo força uma categoria "default" para o que sobrou fora de
+        grupo, e ela renderiza sem cabeçalho. Um arnês onde todo canal está
+        categorizado nunca exercitaria esse caminho, que é justamente o mais
+        comum num servidor real recém-criado.
+      */
+      ...(servidor.categorias ? { categories: servidor.categorias } : {}),
       /*
         Cargos, e um deles NÃO é hasteado de propósito.
 
