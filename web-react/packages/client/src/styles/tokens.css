@@ -204,6 +204,48 @@
   --vx-rail-w: 72px;
   --vx-message-max-w: 1100px;
 
+  /*
+    A MEDIDA de leitura — quantos caracteres cabem numa linha de texto.
+
+    Não é a mesma coisa que a largura da coluna, e confundir as duas é o que
+    produzia o problema que a auditoria descreveu como "com mensagens longas a
+    coluna vira um bloco indiferenciado".
+
+    Medido: no teto de 1100px, uma linha de 14px cabe **cerca de 155
+    caracteres** — mais que o dobro da faixa confortável de leitura, que é de
+    45 a 75. Acima disso o olho perde o lugar ao voltar para o início da linha
+    seguinte, e um parágrafo vira parede.
+
+    O briefing já dizia a intenção — o espaço extra "nunca vazio morto NEM
+    TEXTO ESTICADO". O teto de 1100px era o mecanismo, e a 14px ele não
+    bastava: ele impede a coluna de esticar, não o texto.
+
+    **Em `rem`, e não em `ch` — a primeira versão usava `ch` e estava errada.**
+    `ch` é a largura do glifo `0` DO ELEMENTO QUE CONSOME o token. Medido: o
+    mesmo `62ch` deu 521px no parágrafo de 14px e **595px** no divisor de dia,
+    que herda 16px. Um token de medida que muda de valor conforme quem o usa
+    não é uma medida.
+
+    `rem` é ancorado na raiz, então vale o mesmo em toda parte — e de quebra
+    acompanha o ajuste de tamanho de fonte do navegador, que é exatamente quem
+    deveria mover uma medida de leitura.
+
+    O número saiu de medição, não de gosto: **80 caracteres de prosa** no
+    tamanho da mensagem. A média de prosa nesta face mede 6,47px a 14px, então
+    80 caracteres são ~518px, ou 32,5rem. E vale dizer por que 80 e não 75: `ch`
+    tem 1,3× a largura de um caractere médio aqui, então a intuição de "75ch"
+    daria 97 caracteres reais — a faixa confortável termina em 75, e 80 é o teto
+    prático de um app onde a maioria das mensagens tem duas linhas.
+
+    **O composer NÃO usa esta variável**, e a assimetria é deliberada. A
+    invariante do briefing é "composer alinhado à COLUNA de mensagem", e ela
+    continua literal: ele segue `--vx-message-max-w`. A medida governa o que se
+    LÊ em varredura — parágrafos de outra pessoa, empilhados, por horas. O que
+    se escreve é curto e some ao ser enviado; estreitar o campo custaria linhas
+    quebradas sem devolver legibilidade nenhuma.
+  */
+  --vx-medida: 32.5rem;
+
   /* Avatar: escala própria, e não a de espaçamento.
      Um avatar é uma CAIXA DE CONTEÚDO, não um respiro entre coisas.
      Compartilhar a escala de espaçamento amarra as duas — mexer no

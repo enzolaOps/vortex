@@ -161,7 +161,11 @@ function DivisorDeNovas() {
 function DivisorDeDia({ rotulo }: { rotulo: string }) {
   return (
     <div className={css.dia} role="separator">
-      <span className={css.diaRotulo}>{rotulo}</span>
+      {/* A caixa carrega a medida; o rótulo centraliza dentro dela. Duas
+          camadas porque centralizar e limitar são coisas diferentes. */}
+      <div className={cn(css.diaRotuloCaixa, "flex flex-1 justify-center")}>
+        <span className={css.diaRotulo}>{rotulo}</span>
+      </div>
     </div>
   );
 }
@@ -429,7 +433,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
               qual dos dois ganha a atenção quando os dois estão na tela, que é
               sempre.
             */}
-            <p className="text-md leading-message wrap-anywhere text-text-1">
+            <p className={cn(css.corpo, "text-md leading-message wrap-anywhere text-text-1")}>
               {message.content}
             </p>
 

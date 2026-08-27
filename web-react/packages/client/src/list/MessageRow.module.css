@@ -176,10 +176,34 @@
 
 .dia {
   display: flex;
-  justify-content: center;
-  padding-inline: var(--vx-space-4);
+  /*
+    Sem `justify-content: center` aqui, e o erro que ele causava vale
+    registrar: com a caixa limitada pela medida, centralizar o CONTAINER
+    empurrava a caixa 256px para dentro do espaço livre — o rótulo ficava
+    centralizado na coluna de novo, que era exatamente o que este recuo veio
+    consertar. Quem centraliza é a caixa, sobre a própria largura.
+  */
+  /*
+    Centralizado sobre o TEXTO, não sobre a coluna.
+
+    A coluna vai até 1100px e o texto para na medida de leitura — em janela
+    larga isso são 521px de texto num container de 1100px. Um rótulo
+    centralizado na coluna aparecia deslocado para a direita do bloco que ele
+    introduz, e a distância crescia com a janela.
+
+    O recuo replica o que a linha de mensagem faz: a calha do avatar mais o
+    vão. É o mesmo alinhamento, escrito com os mesmos tokens.
+  */
+  padding-inline-start: calc(
+    var(--vx-space-4) + var(--vx-avatar-sm) + var(--vx-space-3)
+  );
+  padding-inline-end: var(--vx-space-4);
   /* Muito acima, pouco abaixo: o rótulo pertence ao dia que ABRE. */
   padding-block: var(--vx-space-6) var(--vx-space-1);
+}
+
+.diaRotuloCaixa {
+  max-inline-size: var(--vx-medida);
 }
 
 .diaRotulo {
@@ -285,4 +309,20 @@
   block-size: var(--vx-space-4);
   margin-inline: var(--vx-space-1);
   background: var(--vx-border-subtle);
+}
+
+/* ============================================================
+   A medida de leitura
+   ------------------------------------------------------------
+   O texto tem largura própria, menor que a da coluna. Ver o
+   comentário de `--vx-medida` em tokens.css: a coluna cabe 155
+   caracteres por linha e a faixa confortável termina em 75.
+
+   Vale para o TEXTO, não para a linha inteira: avatar, hora,
+   chips de reação e a barra de ações continuam usando a coluna,
+   porque nenhum deles é lido em varredura horizontal.
+   ============================================================ */
+
+.corpo {
+  max-inline-size: var(--vx-medida);
 }
