@@ -74,16 +74,30 @@ export const ALTURA_ESTIMADA = 78;
  * escrever a constante e conferir depois — é como o `estimateSize: 44`
  * sobreviveu três fases errando 34px por linha.
  *
+ * Medido no arnês, com o mesmo build e a mesma janela do gate: **92,5px abre
+ * grupo · 60,6px continua · 37,1px sistema**. A constante única de 78px
+ * superestimava a linha de continuação em quase 30% e a de sistema em mais do
+ * DOBRO — e linha de sistema é a que mais aparece em servidor movimentado,
+ * onde entra e sai gente o tempo todo.
+ *
+ * ⚠ **Estes números dependem da LARGURA da coluna**, e é honesto dizer isso:
+ * a mesma medição no painel estreito do navegador embutido, com a coluna em
+ * 538px em vez do teto de 1100px, deu 143px e 83px — o texto quebra em mais
+ * linhas. A constante única tinha o mesmo problema e ninguém o havia
+ * escrito. O que a torna aceitável é o que ela serve: a barra de rolagem
+ * enquanto o histórico ainda não foi visto. Assim que a linha aparece, o
+ * virtualizador mede a real. Um erro por largura é pequeno; a diferença entre
+ * 37 e 78 numa linha de sistema não era.
+ *
  * O que NÃO entra aqui: reações, citação e divisores. Todos mudam a altura, e
  * todos são condicionais que o virtualizador remede de qualquer jeito assim
- * que a linha aparece. Estimativa existe para a barra de rolagem não mentir
- * sobre o que ainda não foi visto; encher a fórmula de casos raros troca um
- * erro pequeno e constante por um erro pequeno e imprevisível.
+ * que a linha aparece. Encher a fórmula de casos raros troca um erro pequeno e
+ * constante por um erro pequeno e imprevisível.
  */
 const ALTURA_POR_TIPO = {
-  sistema: 0,
-  abreGrupo: 0,
-  continua: 0,
+  sistema: 37,
+  abreGrupo: 93,
+  continua: 61,
 };
 
 /**
