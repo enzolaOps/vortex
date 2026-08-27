@@ -58,10 +58,21 @@ const ItemDeServidor = memo(function ItemDeServidor({
         data-naolidas={temNaoLidas}
         onClick={() => selecionarServidor(id)}
       >
-        {/* A lâmina é decorativa: `aria-current` já diz qual está aberto, e
-            a contagem tem texto próprio. Ela substituiu uma pílula reta —
-            que é o indicador de todo cliente de chat e não é de ninguém. */}
-        <Lamina estado={ativo ? "ativa" : "repouso"} className={css.lamina} />
+        {/*
+          A lâmina é decorativa: `aria-current` já diz qual está aberto, e a
+          contagem tem texto próprio. Ela substituiu uma pílula reta — que é o
+          indicador de todo cliente de chat e não é de ninguém.
+
+          A escala é a MESMA da lista de canais, e agora carrega não-lida aqui
+          também. `data-naolidas` era escrito neste botão e nenhuma regra o
+          lia: não-lida de SERVIDOR era invisível, e o rail é justamente onde
+          ela mais importa — é a coluna que responde "para onde eu vou agora"
+          sem abrir nada.
+        */}
+        <Lamina
+          estado={ativo ? "ativa" : temNaoLidas ? "atencao" : "repouso"}
+          className={css.lamina}
+        />
 
         <span className={css.marca} aria-hidden>
           {servidor.sigla}

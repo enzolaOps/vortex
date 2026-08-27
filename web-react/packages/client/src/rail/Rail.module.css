@@ -51,6 +51,23 @@
   color: var(--vx-text-1);
 }
 
+/*
+  Não lido, e é o mesmo tratamento da lista de canais.
+
+  `data-naolidas` era escrito no botão e NENHUMA regra o lia — não-lida de
+  servidor era invisível, no lugar onde ela mais importa: o rail é a coluna
+  que responde "para onde eu vou agora" sem abrir nada.
+
+  Peso e cor, nunca tamanho. Um item que muda de ALTURA ao ficar não lido
+  reflui a coluna enquanto a pessoa mira o clique, e mensagem chegando é o
+  evento mais frequente que existe aqui. A lâmina faz o resto, na mesma escala
+  de três degraus da lista de canais.
+*/
+.item[data-naolidas="true"] {
+  color: var(--vx-text-1);
+  font-weight: 500;
+}
+
 .item[aria-current="true"] {
   background: var(--vx-accent-soft);
   color: var(--vx-text-1);
