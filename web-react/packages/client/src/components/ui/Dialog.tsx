@@ -24,6 +24,7 @@ export const DialogClose = Primitivo.Close;
 export function DialogContent({
   titulo,
   descricao,
+  tituloOculto = false,
   className,
   children,
   ...props
@@ -31,6 +32,18 @@ export function DialogContent({
   titulo: ReactNode;
   /** Some visualmente, mas o leitor de tela anuncia. */
   descricao?: ReactNode;
+  /**
+   * Título só para leitor de tela.
+   *
+   * Existe para o diálogo cujo PRÓPRIO conteúdo já é o cabeçalho — a paleta
+   * de comandos abre com um campo de busca em corpo grande, e um "Buscar"
+   * acima dele seria a mesma palavra duas vezes ocupando uma linha.
+   *
+   * O título continua existindo no DOM: `Dialog.Title` é o que o leitor de
+   * tela anuncia ao abrir, e um diálogo sem ele é anunciado como "diálogo" e
+   * mais nada. Esconder não é remover.
+   */
+  tituloOculto?: boolean;
 }) {
   return (
     <Primitivo.Portal>
@@ -54,7 +67,13 @@ export function DialogContent({
           className,
         )}
       >
-        <Primitivo.Title className="text-lg leading-title font-medium text-text-1">
+        <Primitivo.Title
+          className={cn(
+            tituloOculto
+              ? "sr-only"
+              : "text-lg leading-title font-medium text-text-1",
+          )}
+        >
           {titulo}
         </Primitivo.Title>
 
@@ -68,7 +87,7 @@ export function DialogContent({
           <Primitivo.Description className="sr-only">{titulo}</Primitivo.Description>
         )}
 
-        <div className="mt-4">{children}</div>
+        <div className={tituloOculto ? undefined : "mt-4"}>{children}</div>
       </Primitivo.Content>
     </Primitivo.Portal>
   );

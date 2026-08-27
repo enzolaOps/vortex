@@ -20,6 +20,13 @@ import { ALTURA_ESTIMADA, MessageList } from "./list/MessageList";
 import { PainelDeEdicao } from "./layout/PainelDeEdicao";
 import { ListaDeMembros } from "./membros/ListaDeMembros";
 import { PainelDeFixados } from "./fixados/PainelDeFixados";
+import { Paleta } from "./paleta/Paleta";
+import {
+  assinarPaleta,
+  fecharPaleta,
+  ligarAtalhoDaPaleta,
+  paletaAberta,
+} from "./store/paleta";
 import { Rail } from "./rail/Rail";
 import { configurarSimulacaoDeEnvio } from "./sdk/adapter";
 import { Shell } from "./shell/Shell";
@@ -96,6 +103,18 @@ export function App() {
    * canais, como no app de verdade.
    */
   const canal = useCanalAtivo();
+
+  /**
+   * A paleta, e o atalho que a abre.
+   *
+   * `ligarAtalhoDaPaleta` é module-level e idempotente — chamá-lo aqui é só
+   * garantir que aconteça uma vez. O listener NÃO vive num `useEffect` deste
+   * componente: um atalho de teclado no `document` não pertence a árvore de
+   * componente nenhuma, e prendê-lo aqui faria o App re-renderizar a cada
+   * abertura.
+   */
+  ligarAtalhoDaPaleta();
+  const paletaVisivel = useSyncExternalStore(assinarPaleta, paletaAberta);
 
   const ids = useRef<readonly string[]>([]);
   const recorder = useRef(createFrameRecorder());
@@ -500,7 +519,12 @@ export function App() {
         )
       }
       composer={canal ? <Composer channelId={canal} /> : undefined}
-      sobreposto={<PainelDeEdicao />}
+      sobreposto={
+        <>
+          <PainelDeEdicao />
+          {paletaVisivel ? <Paleta aoFechar={fecharPaleta} /> : null}
+        </>
+      }
     />
   );
 }
