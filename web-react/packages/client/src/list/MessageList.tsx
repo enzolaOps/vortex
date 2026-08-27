@@ -2,7 +2,6 @@ import { At, ChatCircleDots } from "@phosphor-icons/react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useRef } from "react";
 
-import { ATRIBUTO_DE_COLUNA } from "../dev/alinhamento";
 import { aoTerminarArraste, estaArrastando } from "../store/arraste";
 import {
   ContextMenu,
@@ -580,7 +579,7 @@ export function MessageList({ channelId }: { channelId: string }) {
   if (ids.length === 0) {
     return (
       <div className={css.scroll}>
-        <div className={css.coluna} {...{ [ATRIBUTO_DE_COLUNA]: "mensagem" }}>
+        <div className={css.coluna}>
           <EstadoVazio
             icone={<ChatCircleDots size={20} />}
             titulo="Este é o começo do canal."
@@ -689,9 +688,11 @@ export function MessageList({ channelId }: { channelId: string }) {
       {/* Teto de linha legível. Sem isto o texto estica até 3000px em
           ultrawide, que é o bug de layout que motivou o redesign.
 
-          O marcador é o contrato com o composer, que precisa ocupar esta
-          mesma caixa — verificado em dev, não confiado à disciplina. */}
-      <div className={css.coluna} {...{ [ATRIBUTO_DE_COLUNA]: "mensagem" }}>
+          O marcador do alinhamento NÃO fica aqui: esta faixa cobre a trilha
+          inteira, e o composer também. O que precisa concordar é o CONTEÚDO
+          das duas — o texto da linha e o campo —, e é lá que o marcador
+          mora. Comparar as faixas passaria sempre e não guardaria nada. */}
+      <div className={css.coluna}>
         <div
           className="relative w-full"
           style={{ height: `${virtualizer.getTotalSize()}px` }}

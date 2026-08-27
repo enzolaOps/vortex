@@ -27,8 +27,24 @@
   centralizada — o composer segue exatamente esta mesma largura, e desalinhar
   os dois é o erro visual mais perceptível da tela principal.
 */
+/*
+  A coluna PREENCHE a trilha; quem tem teto é o conteúdo dentro dela.
+
+  Antes o teto estava aqui, e o resultado era uma faixa morta: medido em janela
+  de 2560px, a trilha de conteúdo tinha 2008px e a coluna parava em 1100 —
+  **908px de vazio, todo do lado direito**, porque a coluna era encostada ao
+  início. Não lia como coluna de leitura, lia como alinhamento quebrado.
+
+  O teto mudou de lugar, não desapareceu: `--vx-message-max-w` agora limita o
+  CONTEÚDO da linha (ver `MessageRow.module.css`), e o realce de hover, o
+  divisor e o alvo do menu passam a cobrir a trilha inteira. É a diferença
+  entre uma coluna de texto e uma faixa de linha — o Slack e o Discord fazem
+  assim, e a razão é esta.
+
+  E o texto continua com a medida de leitura de `--vx-medida`, que é o
+  mecanismo certo para legibilidade: limitar a LINHA nunca foi.
+*/
 .coluna {
-  max-inline-size: var(--vx-message-max-w);
   margin-inline: 0;
 }
 

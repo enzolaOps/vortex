@@ -343,3 +343,28 @@
 .mencionaVoce:hover {
   background: color-mix(in oklab, var(--vx-accent-soft) 75%, transparent);
 }
+
+/* ============================================================
+   O conteúdo da linha
+   ------------------------------------------------------------
+   A faixa cobre a trilha; o conteúdo para no teto. Ver o
+   comentário de `.coluna` em MessageList.module.css.
+   ============================================================ */
+
+.conteudo {
+  /* Desconta a calha do avatar e o vão, para que o teto descreva a LINHA
+     inteira e não só a coluna de texto — é o que mantém `--vx-message-max-w`
+     significando a mesma coisa que significava antes. */
+  max-inline-size: calc(
+    var(--vx-message-max-w) - var(--vx-avatar-sm) - var(--vx-space-3) -
+      var(--vx-space-4) * 2
+  );
+  /*
+    A barra de ações ancora AQUI, não na faixa.
+
+    Ancorada na faixa, ela iria para o fim da trilha — a 2560px, mil e
+    quinhentos pixels longe do texto a que pertence. Um controle que se afasta
+    do seu alvo conforme a tela cresce é pior que não existir.
+  */
+  position: relative;
+}

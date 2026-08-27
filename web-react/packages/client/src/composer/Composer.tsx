@@ -9,7 +9,7 @@ import {
 import { Tooltip } from "../components/ui/Tooltip";
 import {
   ATRIBUTO_DE_COLUNA,
-  verificarAlinhamentoDeColuna,
+  observarAlinhamentoDeColuna,
 } from "../dev/alinhamento";
 import { digitacao, enviarMensagem } from "../sdk/adapter";
 import { LIMITE_DE_CONTEUDO } from "../sdk/domain";
@@ -74,8 +74,19 @@ export function Composer({ channelId }: { channelId: string }) {
    */
   useEffect(() => {
     if (!import.meta.env.DEV) return;
-    const id = requestAnimationFrame(verificarAlinhamentoDeColuna);
-    return () => cancelAnimationFrame(id);
+    // Um frame para o layout assentar, e depois observa: a janela muda
+    // depois da montagem, que é a definição de layout responsivo.
+    let parar: (() => void) | undefined;
+    const id = requestAnimationFrame(() => {
+      parar = observarAlinhamentoDeColuna();
+    });
+    // Cancela o frame E desconecta o observador: sem o segundo, cada
+    // remontagem do composer deixa um `ResizeObserver` vivo — erro nº 5 do
+    // briefing, o vazamento que só aparece na sexta hora.
+    return () => {
+      cancelAnimationFrame(id);
+      parar?.();
+    };
   }, []);
 
   /**
@@ -158,7 +169,10 @@ export function Composer({ channelId }: { channelId: string }) {
 
   return (
     <div className={css.rodape}>
-      <div className={css.coluna} {...{ [ATRIBUTO_DE_COLUNA]: "composer" }}>
+      <div className={css.coluna}>
+        {/* O marcador vai no CONTEÚDO, não na faixa: é ele que a assertion
+            compara com o conteúdo da linha de mensagem. */}
+        <div className={css.conteudo} {...{ [ATRIBUTO_DE_COLUNA]: "composer" }}>
         <Digitando channelId={channelId} />
 
         {/*
@@ -257,6 +271,7 @@ export function Composer({ channelId }: { channelId: string }) {
               {valor.length} / {LIMITE_DE_CONTEUDO}
             </span>
           ) : null}
+        </div>
         </div>
       </div>
     </div>

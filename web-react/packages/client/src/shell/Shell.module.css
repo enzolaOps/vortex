@@ -151,6 +151,31 @@
 }
 
 /*
+  Canais some abaixo de 640px, e isto é um GUARDA, não um layout de celular.
+
+  A conta: rail 72 + canais 240 = 312. Numa janela de 375 sobravam **63px para
+  a conversa** — a coluna que é a razão de o app existir, espremida a um
+  décimo do que a lateral ocupa. Medido, não estimado.
+
+  Celular não é plataforma deste produto: o briefing diz web e Electron
+  desktop, shell denso de quatro colunas, sessões de 8h. Mas janela estreita
+  acontece no desktop também, e degradar para "conversa legível sem lista de
+  canais" é muito melhor que degradar para "63px de conversa".
+
+  ⚠ O que este guarda NÃO resolve: com a lista escondida, some também o
+  gatilho da paleta de comandos, que mora no cabeçalho dela. Por teclado a
+  paleta continua (Ctrl+K); por TOQUE, abaixo de 640px, não há navegação. Um
+  modelo de navegação para telas estreitas é trabalho de produto que este
+  projeto nunca escopou, e inventá-lo aqui seria decidir sozinho uma coisa
+  grande dentro de um passe de correção.
+*/
+@media (width < 640px) {
+  .slot[data-painel="canais"] {
+    display: none;
+  }
+}
+
+/*
   As container queries dos painéis mudaram de lugar na fase 3.
 
   Elas moravam aqui porque o conteúdo das colunas morava no `Shell.tsx`.

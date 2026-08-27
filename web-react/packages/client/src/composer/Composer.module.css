@@ -43,7 +43,18 @@
   da linha inteira, não do parágrafo dentro dela.
 */
 .coluna {
-  max-inline-size: var(--vx-message-max-w);
+  /*
+    A MESMA regra da lista, e é o que mantém os dois alinhados de verdade.
+
+    O teto saiu daqui pelo mesmo motivo que saiu de lá: acima de 1100px a
+    linha ficava com 1100 e o campo com 990, e a assertion de alinhamento não
+    pegava porque só roda na montagem — ela nasceu cega justamente nas
+    resoluções onde o desalinho aparece.
+
+    Agora os dois preenchem a trilha e o teto vive no conteúdo, com a mesma
+    conta. Alinhamento por construção em vez de por dois valores que precisam
+    concordar.
+  */
   margin-inline: 0;
   padding-inline: var(--vx-space-4);
 
@@ -51,6 +62,13 @@
      com um painel de thread aberto ao lado, ele encolhe sem que a janela
      tenha mudado de tamanho. */
   container-type: inline-size;
+}
+
+/* O conteúdo do composer para onde o conteúdo da linha para. */
+.conteudo {
+  max-inline-size: calc(
+    var(--vx-message-max-w) - var(--vx-space-4) * 2
+  );
 }
 
 /* ------------------------------------------------------------

@@ -13,6 +13,7 @@ import {
   ContextMenuSeparator,
 } from "../components/ui/ContextMenu";
 
+import { ATRIBUTO_DE_COLUNA } from "../dev/alinhamento";
 import { count } from "../dev/stats";
 import { copiarTexto } from "../lib/copiar";
 import { rotuloDeReacao } from "../lib/plural";
@@ -340,6 +341,27 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             teclado sem poluir a tabulação exige roving tabindex gerenciado
             pela lista — trabalho real, e está listado.
           */}
+          {/* A calha do avatar existe mesmo na continuação: é o que mantém o
+              texto alinhado ao longo do grupo inteiro. */}
+          <div className={cn(css.calha, "relative mt-1")}>
+            {message.iniciaGrupo ? (
+              <>
+                <div className={cn(css.calha, "rounded-4 bg-surface-3")} />
+                {/* Presença nunca só por cor — a silhueta do ponto muda com
+                    o estado. Sem rótulo aqui: o nome já está escrito ao lado,
+                    e anunciar presença a cada linha seria ruído no leitor. */}
+                <PontoDePresenca userId={message.authorId ?? ""} />
+              </>
+            ) : null}
+          </div>
+
+          {/* minmax(0,1fr) do lado flex: sem isto uma URL de 400 chars estoura. */}
+          {/* O marcador do alinhamento com o composer. Vive aqui e não na
+              faixa: é esta caixa que precisa casar com a do campo. */}
+          <div
+            className={cn(css.minZero, css.conteudo, "flex-1")}
+            {...{ [ATRIBUTO_DE_COLUNA]: "mensagem" }}
+          >
           {/*
             Cada alvo pergunta ANTES de existir, não depois de ser clicado.
 
@@ -392,22 +414,6 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             ) : null}
           </div>
 
-          {/* A calha do avatar existe mesmo na continuação: é o que mantém o
-              texto alinhado ao longo do grupo inteiro. */}
-          <div className={cn(css.calha, "relative mt-1")}>
-            {message.iniciaGrupo ? (
-              <>
-                <div className={cn(css.calha, "rounded-4 bg-surface-3")} />
-                {/* Presença nunca só por cor — a silhueta do ponto muda com
-                    o estado. Sem rótulo aqui: o nome já está escrito ao lado,
-                    e anunciar presença a cada linha seria ruído no leitor. */}
-                <PontoDePresenca userId={message.authorId ?? ""} />
-              </>
-            ) : null}
-          </div>
-
-          {/* minmax(0,1fr) do lado flex: sem isto uma URL de 400 chars estoura. */}
-          <div className={cn(css.minZero, "flex-1")}>
             {/* A citação abre a linha, acima do cabeçalho: é o contexto que
                 torna a mensagem legível, e lê-la depois do texto seria ler a
                 resposta antes da pergunta. Alinhada à coluna de conteúdo e

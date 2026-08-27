@@ -12,9 +12,24 @@
   block-size: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  /* A barra reserva a calha desde sempre: aparecer só quando dá scroll
-     desloca o conteúdo 15px de lado no meio da leitura. */
-  scrollbar-gutter: stable;
+  /*
+    SEM calha reservada, e a conta é o motivo.
+
+    O rail tem 72px. A calha comia 10,4 e o padding da lista mais 16, sobrando
+    44,8 para um avatar que precisa de 48 — o item transbordava e o flex o
+    centrava na sobra, parando em x=6,4 em vez dos 8 do padding. A lâmina, que
+    se posiciona 8px à esquerda do item para alcançar a borda do painel,
+    aterrissava em **x = −1,6 e era cortada pelo `overflow-x`**: metade do
+    indicador de servidor ativo, invisível.
+
+    Pior que o corte: a posição dela passava a depender da LARGURA DA BARRA DE
+    ROLAGEM do navegador, que muda entre sistemas. Alinhamento por acidente.
+
+    Reservar a calha protegia contra um deslocamento de 10px que acontece
+    quando a lista cresce; não reservar custa esse deslocamento e devolve o
+    indicador. Num rail de dezenas de itens, o scroll é raro e o indicador é
+    permanente.
+  */
   scrollbar-width: thin;
   /* O anel do ponto de presença precisa saber sobre o que está pousado. */
   --anel: var(--vx-surface-0);
@@ -26,12 +41,23 @@
   gap: var(--vx-space-1);
   padding-block: var(--vx-space-2);
   padding-inline: var(--vx-space-2);
+  /*
+    O item ocupa a largura da lista, e centra o próprio conteúdo.
+
+    Sem isto ele é dimensionado pelo conteúdo e centrado na sobra — e aí a
+    borda de início dele, que é de onde a lâmina se posiciona, depende de
+    quanto sobrou. Esticando, a borda é sempre o padding da lista: a lâmina
+    aterrissa em zero por construção, e não por coincidência de aritmética.
+  */
+  align-items: stretch;
 }
 
 .item {
   position: relative;
   display: flex;
   align-items: center;
+  /* A marca fica no centro do rail; o item é que se estica. */
+  justify-content: center;
   gap: var(--vx-space-2);
   /* `min-inline-size: 0` porque o nome trunca, e filho de flex tem
      min-width auto por default — a mesma armadilha do grid do shell. */
