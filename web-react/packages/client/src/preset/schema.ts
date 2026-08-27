@@ -31,6 +31,24 @@ export const PAINEIS = ["rail", "canais", "membros", "fixados"] as const;
 export type PainelId = (typeof PAINEIS)[number];
 
 /**
+ * O nome de cada painel, em português, para a interface.
+ *
+ * Mora JUNTO do tipo e não no componente que primeiro precisou dele. O painel
+ * de edição tinha esta lista; o limite de erro precisou da mesma, e duas
+ * listas que precisam concordar acabam divergindo — a que diverge é a que
+ * alguém esqueceu de atualizar ao acrescentar um `PainelId`.
+ *
+ * Aqui o `Record<PainelId, string>` faz o trabalho: painel novo na união não
+ * compila até ganhar nome.
+ */
+export const NOME_DO_PAINEL: Record<PainelId, string> = {
+  rail: "servidores",
+  canais: "canais",
+  membros: "membros",
+  fixados: "fixados",
+};
+
+/**
  * Slot é POSIÇÃO, não objeto com lado.
  *
  * A referência descreve slots com uma propriedade `lado`. Aqui o lado é a

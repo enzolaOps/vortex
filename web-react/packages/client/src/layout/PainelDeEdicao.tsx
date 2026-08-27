@@ -11,6 +11,7 @@ import {
 import { Lamina } from "../components/ui/Lamina";
 
 import {
+  NOME_DO_PAINEL,
   PAINEIS,
   PRESET_PADRAO,
   SLOTS,
@@ -22,13 +23,6 @@ import { assinarEdicao, lerEdicao, sair, temMudanca } from "../store/edicao";
 import { assinarLayout, definirSlot, lerLayout } from "../store/layout";
 import { PickerDePaleta } from "./PickerDePaleta";
 import css from "./PainelDeEdicao.module.css";
-
-const NOME: Record<PainelId, string> = {
-  rail: "servidores",
-  canais: "canais",
-  membros: "membros",
-  fixados: "fixados",
-};
 
 const ROTULO_DO_SLOT: Record<SlotId, string> = {
   a: "início",
@@ -151,7 +145,7 @@ export function PainelDeEdicao() {
                     aria-label={`Painel do slot ${ROTULO_DO_SLOT[id]}`}
                   >
                     <span className={css.campoValor} data-vazio={slot.painel === null}>
-                      {slot.painel ? NOME[slot.painel] : "vazio"}
+                      {slot.painel ? NOME_DO_PAINEL[slot.painel] : "vazio"}
                     </span>
                   </button>
                 </DropdownMenuTrigger>
@@ -165,7 +159,7 @@ export function PainelDeEdicao() {
                         className={css.marca}
                         data-visivel={slot.painel === p}
                       />
-                      {NOME[p]}
+                      {NOME_DO_PAINEL[p]}
                     </DropdownMenuItem>
                   ))}
                   <DropdownMenuItem onSelect={() => escolherPainel(id, null)}>

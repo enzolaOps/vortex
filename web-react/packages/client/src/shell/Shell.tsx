@@ -1,7 +1,8 @@
 import { useRef, useSyncExternalStore, type ReactNode } from "react";
 
 import { AlcaDeSlot } from "../layout/AlcaDeSlot";
-import type { PainelId, SlotId } from "../preset/schema";
+import { NOME_DO_PAINEL, type PainelId, type SlotId } from "../preset/schema";
+import { LimiteDeErro } from "../components/ui/LimiteDeErro";
 import { assinarEdicao, lerEdicao } from "../store/edicao";
 import { assinarLayout, lerLayout } from "../store/layout";
 import css from "./Shell.module.css";
@@ -63,7 +64,23 @@ function Slot({
        */
       style={{ inlineSize: ocupado ? `${slot.largura}px` : 0 }}
     >
-      {slot.painel !== null && slot.visivel ? paineis[slot.painel] : null}
+      {/*
+        Cada painel dentro do próprio limite de erro.
+
+        Não é defensividade genérica: é a lei nº 6 sendo verdadeira em vez de
+        aspiracional. O shell é feito de slots, e a promessa da fase 4 é que
+        cada painel é peça independente. Um painel que lança e leva os outros
+        quatro junto desmente isso — a independência era só de posição.
+
+        A chave é o painel: trocar qual painel ocupa o slot remonta o limite, e
+        um limite que herda o erro do painel anterior mostraria falha de algo
+        que nem está mais ali.
+      */}
+      {slot.painel !== null && slot.visivel ? (
+        <LimiteDeErro key={slot.painel} oQue={`O painel de ${NOME_DO_PAINEL[slot.painel]}`}>
+          {paineis[slot.painel]}
+        </LimiteDeErro>
+      ) : null}
 
       {/* A alça só existe no modo edição. Fora dele o slot não tem nada
           sobreposto na borda, e a borda volta a ser só uma linha. */}
