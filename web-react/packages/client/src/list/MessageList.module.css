@@ -81,3 +81,56 @@
   inset-inline: 0;
   inset-block-start: 0;
 }
+
+/* ============================================================
+   Ir para a próxima menção
+   ------------------------------------------------------------
+   Flutua no canto, ao contrário da barra de não lidas que
+   atravessa a coluna. A barra aparece uma vez e é sobre o canal;
+   este é um controle de uso repetido, e um alvo que atravessa a
+   tela a cada clique vira ruído. As duas coexistem.
+   ============================================================ */
+
+.irParaMencao {
+  position: sticky;
+  /* `inset-block-start: 0` colidiria com a barra de não lidas quando as duas
+     aparecem. O deslocamento é a altura dela mais um respiro. */
+  inset-block-start: var(--vx-space-5);
+  z-index: var(--vx-z-realce);
+
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-1);
+  /* `margin-inline-start: auto` com largura própria: gruda no fim da coluna
+     sem precisar saber a largura dela. */
+  inline-size: fit-content;
+  margin-inline-start: auto;
+  margin-inline-end: var(--vx-space-4);
+  padding-inline: var(--vx-space-2);
+  padding-block: var(--vx-space-1);
+
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-2);
+  /* Superfície elevada, não acento: o acento marca POSIÇÃO nesta interface, e
+     este é um controle. A barra de não lidas usa acento porque ela é a
+     posição — "você parou aqui". */
+  background: var(--vx-surface-3);
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  cursor: pointer;
+}
+
+.irParaMencao:hover {
+  border-color: var(--vx-border-strong);
+  color: var(--vx-text-1);
+}
+
+.irParaMencao:active {
+  scale: 0.97;
+}
+
+.irParaMencao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}

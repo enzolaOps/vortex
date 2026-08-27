@@ -21,6 +21,7 @@ import type {
   ChannelSnapshot,
   MemberSnapshot,
   MessageSnapshot,
+  ParteDeMensagem,
   PresenceStatus,
   SendState,
   ReacaoSnapshot,
@@ -138,6 +139,34 @@ function toSistema(message: Message): SistemaSnapshot | undefined {
  * adapter. Passar os dois de fora mantém a tradução pura e deixa as únicas
  * partes que dependem de contexto num lugar só.
  */
+/**
+ * Parte o texto em trechos, separando as menções.
+ *
+ * Devolve o texto inteiro num array de um elemento quando não há menção
+ * nenhuma, que é o caso comum — assim quem renderiza tem um caminho só.
+ *
+ * O nome do usuário NÃO é resolvido aqui. Quem sabe o nome é a member list, e
+ * puxá-la para dentro do mapeamento de mensagem acoplaria as duas coleções por
+ * uma linha de texto. O componente resolve, porque ele já assina o membro.
+ */
+export function fatiarMencoes(texto: string): readonly ParteDeMensagem[] {
+  if (!texto.includes("<@")) return [{ tipo: "texto", valor: texto }];
+
+  const out: ParteDeMensagem[] = [];
+  const padrao = /<@([0-9A-Za-z]+)>/g;
+  let ultimo = 0;
+  for (const m of texto.matchAll(padrao)) {
+    const i = m.index;
+    if (i > ultimo) out.push({ tipo: "texto", valor: texto.slice(ultimo, i) });
+    out.push({ tipo: "mencao", valor: m[1]!, de: i });
+    ultimo = i + m[0].length;
+  }
+  if (ultimo < texto.length) {
+    out.push({ tipo: "texto", valor: texto.slice(ultimo) });
+  }
+  return out;
+}
+
 export function toMessageSnapshot(
   message: Message,
   layout: Layout,
@@ -150,6 +179,20 @@ export function toMessageSnapshot(
     channelId: message.channelId,
     authorId: message.authorId,
     content: message.content,
+    /*
+      Fatiado UMA VEZ, na escrita — nunca no render.
+
+      Uma menção é `<@id>` no texto cru, e transformar isso em `@nome` exige
+      partir a string. Fazer isso no render seria refazer o mesmo trabalho a
+      cada re-render da linha mais quente do app — o mesmo erro que fez
+      `toLocaleTimeString` sair do render e virar `createdAtText`.
+
+      A esmagadora maioria das mensagens não menciona ninguém, e para elas o
+      custo é um `includes` que falha e um array de um elemento.
+    */
+    partes: fatiarMencoes(message.content),
+    /** Menciona VOCÊ — a linha inteira se destaca por isso. */
+    mencionaVoce: euId !== undefined && message.content.includes(`<@${euId}>`),
     createdAt: message.createdAt.getTime(),
     createdAtText: HORA.format(message.createdAt),
     editedAt: message.editedAt?.getTime(),

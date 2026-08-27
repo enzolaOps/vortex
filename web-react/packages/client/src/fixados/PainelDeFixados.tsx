@@ -7,6 +7,7 @@ import { alternarFixada } from "../sdk/adapter";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
 import { pedirIrParaMensagem } from "../store/comandos";
 import { useCanalAtivo, useFixadas, useMessage } from "../store/hooks";
+import { TextoDaMensagem } from "../list/TextoDaMensagem";
 import css from "./PainelDeFixados.module.css";
 
 /**
@@ -47,7 +48,9 @@ const Fixada = memo(function Fixada({
 
         {/* Duas linhas e corta. O painel é índice, não leitura — quem quer o
             texto inteiro clica e vai até ele, que é o que o botão faz. */}
-        <span className={css.trecho}>{message.content}</span>
+        <span className={css.trecho}>
+            <TextoDaMensagem partes={message.partes} compacto />
+          </span>
       </button>
 
       <Tooltip texto="Desafixar" lado="inicio">

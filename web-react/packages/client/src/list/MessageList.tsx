@@ -1,4 +1,4 @@
-import { ChatCircleDots } from "@phosphor-icons/react";
+import { At, ChatCircleDots } from "@phosphor-icons/react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useRef } from "react";
 
@@ -16,7 +16,7 @@ import {
   ouvirIrParaMensagem,
   pedirFocoNoComposer,
 } from "../store/comandos";
-import { messages, primeiraNaoLida } from "../sdk/adapter";
+import { messages, primeiraNaoLida, proximaMencao } from "../sdk/adapter";
 import { useChannelMessageIds } from "../store/hooks";
 import css from "./MessageList.module.css";
 import { MenuDaMensagem, MessageRow } from "./MessageRow";
@@ -409,6 +409,16 @@ export function MessageList({ channelId }: { channelId: string }) {
   const alvoNaoLida = primeiraNaoLida(channelId);
   const indiceNaoLida = alvoNaoLida ? ids.indexOf(alvoNaoLida) : -1;
 
+  /**
+   * A última menção para a qual pulamos, para "próxima" significar próxima.
+   *
+   * `useRef` e não estado: mudar de menção não muda nada na tela — a rolagem é
+   * imperativa e o botão continua idêntico. Estado aqui seria um re-render da
+   * lista inteira por clique, e a lista é o componente mais caro do app.
+   */
+  const ultimaMencao = useRef<string | undefined>(undefined);
+  const temMencao = proximaMencao(channelId, undefined) !== undefined;
+
   const items = virtualizer.getVirtualItems();
 
   /*
@@ -574,6 +584,40 @@ export function MessageList({ channelId }: { channelId: string }) {
           }
         >
           novas mensagens · ir para a primeira
+        </button>
+      ) : null}
+
+      {/*
+        Ir para a próxima menção.
+
+        É a terceira perna de "leitura como posição", e a que faltava. As outras
+        duas — primeira não lida e linha de novas mensagens — respondem "onde eu
+        parei"; esta responde "onde falaram comigo", que é a pergunta que faz
+        alguém abrir um canal de 10 mil mensagens.
+
+        O badge de menção continua sendo CONTAGEM, e é a divisão certa: número
+        responde "quantas", posição responde "onde", e o número nunca vai
+        conseguir responder a segunda por mais que cresça.
+
+        Flutua no canto em vez de ocupar a largura como a barra de não lidas: a
+        barra é sobre o canal inteiro e aparece uma vez; este é um controle que
+        se usa repetidamente, e um alvo que atravessa a coluna toda a cada uso
+        seria ruído. As duas podem coexistir na tela.
+      */}
+      {temMencao ? (
+        <button
+          type="button"
+          className={css.irParaMencao}
+          onClick={() => {
+            const alvo = proximaMencao(channelId, ultimaMencao.current);
+            if (!alvo) return;
+            ultimaMencao.current = alvo;
+            const i = ids.indexOf(alvo);
+            if (i !== -1) virtualizer.scrollToIndex(i, { align: "center" });
+          }}
+        >
+          <At size={20} aria-hidden />
+          próxima menção
         </button>
       ) : null}
       {/* Teto de linha legível. Sem isto o texto estica até 3000px em

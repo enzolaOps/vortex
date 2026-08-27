@@ -326,3 +326,20 @@
 .corpo {
   max-inline-size: var(--vx-medida);
 }
+
+
+/*
+  A linha que menciona você.
+
+  Tingida de ponta a ponta, e por isso mais fraca que a menção dentro do
+  texto: pintar uma área grande com a mesma intensidade de um alvo pequeno
+  faria a linha gritar mais que a palavra. `color-mix` mantém a relação com o
+  token em vez de inventar uma cor nova — trocar a paleta leva esta junto.
+*/
+.mencionaVoce {
+  background: color-mix(in oklab, var(--vx-accent-soft) 55%, transparent);
+}
+
+.mencionaVoce:hover {
+  background: color-mix(in oklab, var(--vx-accent-soft) 75%, transparent);
+}

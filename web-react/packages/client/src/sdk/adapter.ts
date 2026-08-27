@@ -111,6 +111,7 @@ export function layoutDe(id: string): Layout {
  */
 const cursorDeLeitura = new Map<string, string>();
 
+
 /**
  * A primeira não lida de um canal — a que recebe o divisor.
  *
@@ -1001,6 +1002,45 @@ export function marcarCanalLido(channelId: string): void {
  */
 function ehMencao(conteudo: string): boolean {
   return usuarioLocal !== undefined && conteudo.includes(`<@${usuarioLocal}>`);
+}
+
+/**
+ * A próxima menção depois de uma posição, ou a primeira se não houver posição.
+ *
+ * **Derivada na hora, e não acumulada — e a primeira versão errou nisso.** Ela
+ * mantinha uma lista alimentada pelo evento `message`, o que parecia natural e
+ * era cego para metade do app: `seed()` CONTORNA o caminho de evento de
+ * propósito ("carga em massa e chegada incremental são caminhos diferentes"),
+ * então nenhuma menção do histórico existia para a lista. É a mesma família da
+ * pendência de semear não-lidas no `Ready` — contador que só sabe do que
+ * chegou ao vivo abre zerado sobre um histórico cheio.
+ *
+ * Derivar não tem esse estado para sincronizar. O custo é uma passada pelos
+ * IDs do canal por CLIQUE, não por frame — alguns milissegundos em 10 mil
+ * mensagens, num caminho que a pessoa aciona com o dedo.
+ *
+ * `depoisDe` é um ID e não um índice: índice muda quando chega histórico pelo
+ * topo, e quem chama não sabe nada sobre prepend. Mesma razão do `getItemKey`.
+ *
+ * Dá a volta ao chegar no fim. Um botão de "próxima" que para de funcionar na
+ * última obriga a rolar de volta à mão — e quem aperta três vezes seguidas
+ * quer varrer as três, não descobrir onde acaba a fila.
+ */
+export function proximaMencao(
+  channelId: string,
+  depoisDe: string | undefined,
+): string | undefined {
+  const ids = idsOf(channelId);
+  const vivas = ids.filter((id) => {
+    const m = client.messages.get(id) as { content?: string } | undefined;
+    return m?.content !== undefined && ehMencao(m.content);
+  });
+  if (vivas.length === 0) return undefined;
+
+  if (!depoisDe) return vivas[0];
+  const atual = vivas.indexOf(depoisDe);
+  if (atual === -1) return vivas[0];
+  return vivas[(atual + 1) % vivas.length];
 }
 
 function contabilizarNaoLida(channelId: string, conteudo: string): void {

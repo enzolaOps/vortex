@@ -1,0 +1,18 @@
+/*
+  A menção, dentro do texto.
+
+  Preenchimento tingido e não cor de texto: uma menção é um ALVO no meio da
+  frase, e cor sozinha some numa parede de texto — que é justamente onde ela
+  precisa ser achada. `--vx-accent-soft` é a leitura certa do token, "o acento
+  encostou aqui", e não disputa com a lâmina, que marca posição.
+
+  `inline-block` não: quebra a menção fora do fluxo da linha e estraga o
+  espaçamento entre palavras.
+*/
+.mencao {
+  padding-inline: var(--vx-space-0);
+  border-radius: var(--vx-radius-0);
+  background: var(--vx-accent-soft);
+  color: var(--vx-text-1);
+  font-weight: 500;
+}

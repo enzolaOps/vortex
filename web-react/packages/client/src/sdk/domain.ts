@@ -21,11 +21,43 @@ export type SendState = "sent" | "pending" | "failed";
  */
 export const LIMITE_DE_CONTEUDO = 2000;
 
+/**
+ * Um trecho de mensagem: texto corrido ou uma menção.
+ *
+ * `valor` na menção é o ID de quem foi mencionado, não o nome — quem resolve
+ * nome é o componente, que já assina o membro. Guardar o nome aqui congelaria
+ * um apelido que muda.
+ */
+export type ParteDeMensagem =
+  | { readonly tipo: "texto"; readonly valor: string }
+  | {
+      readonly tipo: "mencao";
+      readonly valor: string;
+      /**
+       * Onde a menção começa no texto — a identidade da parte.
+       *
+       * Existe por causa do lint que proíbe índice como `key`, e a regra tem
+       * razão mesmo aqui, onde as partes não reordenam: o deslocamento vem do
+       * DADO e o índice vem da posição no array. Dois `<@fulano>` na mesma
+       * frase são coisas diferentes, e só o deslocamento sabe disso.
+       */
+      readonly de: number;
+    };
+
 export type MessageSnapshot = {
   readonly id: string;
   readonly channelId: string;
   readonly authorId: string | undefined;
   readonly content: string;
+  /**
+   * O texto já partido em trechos, com as menções separadas.
+   *
+   * Derivação na ESCRITA, como `createdAtText`: partir a string no render
+   * repetiria o trabalho a cada re-render da linha mais quente do app.
+   */
+  readonly partes: readonly ParteDeMensagem[];
+  /** Menciona VOCÊ. A linha inteira se destaca. */
+  readonly mencionaVoce: boolean;
   readonly createdAt: number;
   /**
    * Hora já formatada. Derivação acontece no adapter, uma vez na escrita —

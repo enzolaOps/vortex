@@ -3,6 +3,7 @@ import { ArrowBendUpLeft } from "@phosphor-icons/react";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
 import { pedirIrParaMensagem } from "../store/comandos";
 import { useMessage } from "../store/hooks";
+import { TextoDaMensagem } from "./TextoDaMensagem";
 import css from "./Citacao.module.css";
 
 /**
@@ -44,7 +45,9 @@ export function Citacao({
       {citada ? (
         <>
           <NomeDoAutor userId={citada.authorId ?? ""} />
-          <span className={css.trecho}>{citada.content}</span>
+          <span className={css.trecho}>
+            <TextoDaMensagem partes={citada.partes} compacto />
+          </span>
         </>
       ) : (
         /*

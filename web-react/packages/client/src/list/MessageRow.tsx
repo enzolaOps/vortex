@@ -31,6 +31,7 @@ import { pode } from "../sdk/permissoes";
 import { responderA } from "../store/resposta";
 import { useMessage } from "../store/hooks";
 import { Citacao } from "./Citacao";
+import { TextoDaMensagem } from "./TextoDaMensagem";
 import css from "./MessageRow.module.css";
 
 /**
@@ -297,6 +298,19 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             // início. Nunca só cor: o rótulo ao lado da hora diz o que houve.
             message.sendState === "pending" && "opacity-60",
             falhou && "border-s-2 border-danger",
+            /*
+              Menção a VOCÊ destaca a linha inteira.
+
+              A menção dentro do texto marca a palavra; isto marca a LINHA, que
+              é o que faz a mensagem ser encontrada rolando sem ler. As duas
+              coisas respondem perguntas diferentes — "onde no texto" e "qual
+              das cinquenta linhas" — e é a segunda que o botão de próxima
+              menção existe para automatizar.
+
+              Fundo tingido e não borda: borda competiria com a marca de envio
+              falhado, que já usa a borda de início.
+            */
+            message.mencionaVoce && css.mencionaVoce,
           )}
         >
           {/*
@@ -434,7 +448,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
               sempre.
             */}
             <p className={cn(css.corpo, "text-md leading-message wrap-anywhere text-text-1")}>
-              {message.content}
+              <TextoDaMensagem partes={message.partes} />
             </p>
 
             {/*

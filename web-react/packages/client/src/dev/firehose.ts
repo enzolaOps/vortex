@@ -174,6 +174,23 @@ function body(seed: number): string {
   if (seed % 23 === 0) {
     out.push(`https://exemplo.invalid/${"x".repeat(300)}`);
   }
+
+  /*
+    Uma em cada 31 menciona VOCÊ.
+
+    Faltava, e a ausência era invisível: `ehMencao` existe no adapter desde a
+    fase 3 e NUNCA devolveu `true` no arnês, porque nenhum corpo gerado continha
+    `<@id>`. O contador de menções do canal e do servidor estava implementado,
+    testado por leitura e jamais visto na tela.
+
+    Uma em 31 é o suficiente para haver várias num canal de 10 mil e raro o
+    bastante para não virar o caso comum — que é justamente o que faz "ir para
+    a próxima" valer alguma coisa. Menção em toda mensagem seria a mesma coisa
+    que menção em nenhuma.
+  */
+  if (seed % 31 === 5) {
+    out.push(`<@${USUARIO_LOCAL}>`);
+  }
   return out.join(" ");
 }
 
