@@ -15,7 +15,7 @@
  * Este é o ÚNICO módulo, junto de `map.ts` e `client.ts`, que importa
  * `stoat.js`. O lint de boundary garante isso.
  */
-import { createEffect, createRoot } from "solid-js";
+import { createEffect, createRoot, createSignal } from "solid-js";
 import { monotonicFactory } from "ulid";
 import { VoiceParticipant } from "stoat.js";
 /**
@@ -40,6 +40,7 @@ import { count } from "../dev/stats";
 import { createEntityStore } from "../store/entities";
 import { createEphemeralStore } from "../store/ephemeral";
 import { client, conectado } from "./client";
+import { aguardar, desistir, reconciliar } from "./nonce";
 import {
   baldeDe,
   SEM_CARGO,
@@ -236,6 +237,75 @@ function recalcularLayout(channelId: string, de: number, ate: number) {
  */
 const estadosDeEnvio = new Map<string, SendState>();
 
+/**
+ * ID do servidor → ID local, para as mensagens que ESTE cliente enviou.
+ *
+ * A mensagem otimista nasce com ID local e é isso que o virtualizador usa como
+ * chave. Quando a confirmação volta, o servidor manda o ID dele — e a partir
+ * daí toda edição, reação e exclusão daquela mensagem chega com esse ID.
+ *
+ * Traduzir na ENTRADA é o que mantém a chave estável pelo resto da sessão. O
+ * mapa só cresce com o que a própria pessoa enviou, então é pequeno por
+ * construção: um dia inteiro de conversa cabe em algumas centenas de entradas.
+ */
+const apelidos = new Map<string, string>();
+
+/** O caminho de volta: a chave que o app usa → o ID que o SDK guarda. */
+const apelidosInversos = new Map<string, string>();
+
+/**
+ * Um sinal, e ele é o que faz a reconciliação chegar na tela.
+ *
+ * O efeito que constrói o snapshot lê o objeto do SDK pela chave local. Depois
+ * da confirmação, o objeto que o SERVIDOR vai continuar atualizando é outro —
+ * edição, reação e fixar chegam no ID dele, e o SDK os aplica lá.
+ *
+ * Um `Map` comum não acordaria o efeito: ele releria a chave local para sempre
+ * e a linha congelaria no conteúdo do instante do envio, sem nada falhar. O
+ * sinal faz o efeito voltar a rodar no momento em que o apelido nasce, e a
+ * partir dali ele lê o objeto certo.
+ *
+ * Um sinal só para todos os apelidos, e não um por mensagem: apelido aparece
+ * quando VOCÊ envia, algumas dezenas de vezes por hora. Reprocessar os
+ * snapshots visíveis nesse momento é mais barato que manter um sinal por
+ * mensagem enviada na sessão inteira.
+ */
+const [versaoDeApelidos, bumpApelidos] = createSignal(0);
+
+/**
+ * O ID pelo qual o app conhece esta mensagem.
+ *
+ * Identidade para tudo que não passou por aqui, que é a esmagadora maioria.
+ */
+function chaveLocal(id: string): string {
+  return apelidos.get(id) ?? id;
+}
+
+/** O ID que o SDK guarda para esta chave. Reativo: ver `versaoDeApelidos`. */
+function idDoSdk(chave: string): string {
+  versaoDeApelidos();
+  return apelidosInversos.get(chave) ?? chave;
+}
+
+/** Liga os dois lados de uma mensagem confirmada. */
+function registrarApelido(idDoServidor: string, idLocal: string): void {
+  apelidos.set(idDoServidor, idLocal);
+  apelidosInversos.set(idLocal, idDoServidor);
+  bumpApelidos((n) => n + 1);
+}
+
+/**
+ * O nonce que o servidor devolveu, se devolveu.
+ *
+ * O tipo do SDK não expõe `nonce` — ele é campo do protocolo que o modelo não
+ * promove. Ler assim, aqui dentro, é exatamente o trabalho da camada
+ * anticorrupção: o formato do protocolo para de existir na saída desta função.
+ */
+function nonceDe(message: unknown): string | undefined {
+  const n = (message as { nonce?: unknown }).nonce;
+  return typeof n === "string" ? n : undefined;
+}
+
 /** Mensagem que veio do servidor não está no Map — e "sent" é a verdade. */
 function estadoDeEnvioDe(id: string): SendState {
   return estadosDeEnvio.get(id) ?? "sent";
@@ -247,7 +317,7 @@ function marcarEnvio(id: string, estado: SendState) {
   if (estado === "sent") estadosDeEnvio.delete(id);
   else estadosDeEnvio.set(id, estado);
 
-  const message = client.messages.get(id);
+  const message = client.messages.get(idDoSdk(id));
   if (message && messages.subscriberCount(id) > 0) {
     messages.set(id, toMessageSnapshot(message, layoutDe(id), estado, usuarioLocal));
   }
@@ -273,10 +343,16 @@ export function reenviar(id: string): void {
   if (estadoDeEnvioDe(id) !== "failed") return;
 
   marcarEnvio(id, "pending");
-  setTimeout(
-    () => marcarEnvio(id, simulacao.falhar ? "failed" : "sent"),
-    simulacao.latenciaMs ?? 600,
-  );
+  setTimeout(() => {
+    if (simulacao.falhar) {
+      // Desiste do nonce: sem isto o mapa cresce para sempre numa sessão de
+      // 8h com rede instável, que é o erro nº 5 do briefing.
+      desistir(id);
+      marcarEnvio(id, "failed");
+    } else {
+      marcarEnvio(id, "sent");
+    }
+  }, simulacao.latenciaMs ?? 600);
 }
 
 /**
@@ -327,14 +403,17 @@ export const messages = createEntityStore<MessageSnapshot>((id) => {
   // Resolve JÁ, não no próximo tick. O efeito Solid é agendado, e uma linha
   // que monta antes dele roda um render com `undefined` — que numa lista
   // virtualizada vira altura zero e realimenta a medição.
-  const initial = client.messages.get(id);
+  const initial = client.messages.get(idDoSdk(id));
   if (initial) {
     messages.set(id, toMessageSnapshot(initial, layoutDe(id), estadoDeEnvioDe(id), usuarioLocal));
   }
 
   return createRoot((dispose) => {
     createEffect(() => {
-      const message = client.messages.get(id);
+      // `idDoSdk` e não `id`: depois da confirmação, quem o servidor atualiza
+      // é o objeto DELE. Ler pela chave local congelaria a linha no conteúdo
+      // do instante do envio, sem nada falhar.
+      const message = client.messages.get(idDoSdk(id));
       if (message) {
         messages.set(
           id,
@@ -514,6 +593,25 @@ export function startAdapter() {
   started = true;
 
   client.on("messageCreate", (message) => {
+    /*
+      Esta mensagem é a confirmação de uma que já está na tela?
+
+      Se for, ela NÃO entra na lista: a linha otimista continua onde está, com
+      o ID local que já é a chave dela no virtualizador. Trocar a chave aqui
+      desmontaria e remontaria a linha no instante seguinte ao Enter — a
+      pessoa veria a própria mensagem piscar, e num histórico longo a âncora
+      iria junto.
+
+      É a razão de o nonce existir no protocolo, e o único lugar do app que
+      precisa saber disso.
+    */
+    const confirmada = reconciliar(nonceDe(message), message.id);
+    if (confirmada) {
+      registrarApelido(message.id, confirmada.idLocal);
+      marcarEnvio(confirmada.idLocal, "sent");
+      return;
+    }
+
     const ids = idsOf(message.channelId);
     ids.push(message.id);
     // Só a recém-chegada muda de layout: ela olha para trás, e ninguém
@@ -529,7 +627,9 @@ export function startAdapter() {
     const channelId = message.channelId;
     if (!channelId) return;
     const ids = idsOf(channelId);
-    const at = ids.indexOf(message.id);
+    // `chaveLocal`: se esta mensagem foi enviada por aqui, a lista a conhece
+    // pelo ID otimista, e o servidor está falando do ID dele.
+    const at = ids.indexOf(chaveLocal(message.id));
     if (at === -1) return;
     ids.splice(at, 1);
     // A que vinha depois passa a olhar para outro vizinho — pode deixar de
@@ -740,6 +840,21 @@ export function enviarMensagem(
 
   const id = proximoId();
 
+  /*
+    O nonce, e ele é o contrato com o servidor.
+
+    Vai no corpo do POST e volta no evento de criação; é assim que as duas
+    pontas concordam sobre qual mensagem é qual sem depender do ID, que só o
+    servidor conhece. Reusar o ID local é a escolha certa: ele já é único, já
+    é ordenável, e uma segunda fonte de unicidade seria mais uma coisa para
+    manter em sincronia com a primeira.
+
+    Registrado ANTES da criação: com rede rápida, a confirmação pode chegar no
+    mesmo tick, e um nonce registrado depois chegaria tarde demais para a
+    reconciliação encontrá-lo.
+  */
+  aguardar(id, id, channelId);
+
   // Pendente ANTES de criar: o `messageCreate` já vai construir o snapshot, e
   // marcar depois faria a linha nascer "enviada" e piscar para pendente.
   estadosDeEnvio.set(id, "pending");
@@ -751,6 +866,9 @@ export function enviarMensagem(
       channel: channelId,
       author: usuarioLocal,
       content: texto,
+      // O nonce viaja no objeto para o teste poder exercitar o caminho de
+      // volta sem rede — é o mesmo campo que o protocolo devolve.
+      nonce: id,
         // `replies` é do PROTOCOLO; o snapshot expõe como `respostas`. A
       // tradução acontece no `map.ts`, como tudo o mais.
       ...(respondendoA ? { replies: [respondendoA] } : {}),
@@ -760,10 +878,16 @@ export function enviarMensagem(
 
   digitacao.aoParar(channelId);
 
-  setTimeout(
-    () => marcarEnvio(id, simulacao.falhar ? "failed" : "sent"),
-    simulacao.latenciaMs ?? 600,
-  );
+  setTimeout(() => {
+    if (simulacao.falhar) {
+      // Desiste do nonce: sem isto o mapa cresce para sempre numa sessão de
+      // 8h com rede instável, que é o erro nº 5 do briefing.
+      desistir(id);
+      marcarEnvio(id, "failed");
+    } else {
+      marcarEnvio(id, "sent");
+    }
+  }, simulacao.latenciaMs ?? 600);
 
   return id;
 }
