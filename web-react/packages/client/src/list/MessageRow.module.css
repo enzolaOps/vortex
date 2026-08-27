@@ -196,3 +196,93 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+
+/* ============================================================
+   Barra de ações — flutua, nunca reserva espaço
+   ------------------------------------------------------------
+   Ver o comentário do componente: mudar a ALTURA da linha no
+   hover destrói a âncora do virtualizador, então ela sobrepõe.
+   ============================================================ */
+
+.acoes {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: var(--vx-space-4);
+  /* Montada na borda de cima, no espaço que o ritmo de agrupamento
+     já deixa entre as linhas. Zero de layout. */
+  transform: translateY(-50%);
+
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-1);
+  padding: var(--vx-space-1);
+
+  /*
+    Superfície ELEVADA, e é aqui que a rampa nova se paga.
+
+    A barra pousa sobre uma linha que já está em `surface-1` por causa do
+    hover. Com os degraus antigos de 1,075:1 ela seria um retângulo
+    invisível em cima de outro; o degrau de agora é o que a separa.
+  */
+  background: var(--vx-surface-3);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-2);
+
+  /*
+    `visibility`, não `opacity`.
+
+    Elemento com `visibility: hidden` sai da ordem de tabulação e da
+    árvore de acessibilidade. Com opacidade zero, cada linha somaria
+    cinco paradas de tabulação invisíveis — dez mil linhas, cinquenta
+    mil paradas.
+  */
+  visibility: hidden;
+}
+
+/*
+  O seletor de pai mantém a regra aqui dentro.
+
+  `:focus-within` faz o segundo trabalho: uma vez visível, o foco pode
+  entrar na barra — e sem esta linha o ponteiro sairia, a barra sumiria
+  e arrancaria o foco do elemento em uso.
+*/
+:hover > .acoes,
+:focus-within > .acoes {
+  visibility: visible;
+}
+
+.acao {
+  display: grid;
+  place-items: center;
+  inline-size: var(--vx-space-5);
+  block-size: var(--vx-space-5);
+  border-radius: var(--vx-radius-1);
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-sm);
+  cursor: pointer;
+}
+
+.acao:hover {
+  background: var(--vx-accent-soft);
+  color: var(--vx-text-1);
+}
+
+.acao:active {
+  /* Só `scale`: o design system permite `transform` e `opacity`, e nada
+     mais roda no compositor. */
+  scale: 0.92;
+}
+
+.acao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/* Separa reagir de agir. Duas famílias de ação no mesmo alvo pedem uma
+   pausa, e a pausa é mais barata que um segundo container. */
+.acoesDivisa {
+  inline-size: 1px;
+  block-size: var(--vx-space-4);
+  margin-inline: var(--vx-space-1);
+  background: var(--vx-border-subtle);
+}

@@ -99,6 +99,23 @@ function FraseDeSistema({ sistema }: { sistema: SistemaSnapshot }) {
 const REACOES_RAPIDAS = ["👍", "🎉", "👎", "😄", "👀", "🔥"] as const;
 
 /**
+ * As três da barra de hover — um subconjunto, não uma segunda lista.
+ *
+ * A barra flutua sobre a linha e cada alvo a mais é largura que ela rouba do
+ * texto por baixo. Três é o que cabe sem cobrir palavra, e são as três de
+ * função mais comum: concordar, celebrar, achar graça. O conjunto inteiro
+ * continua a um clique direito de distância.
+ *
+ * Derivado do array acima em vez de escrito de novo: duas listas de emoji que
+ * precisam concordar acabam divergindo, e a que diverge é sempre a menor.
+ */
+const REACOES_DA_BARRA = [
+  REACOES_RAPIDAS[0],
+  REACOES_RAPIDAS[1],
+  REACOES_RAPIDAS[3],
+] as const;
+
+/**
  * "Novas mensagens" — onde a leitura parou.
  *
  * Diferente do divisor de data em tudo o que importa: ele é sobre O QUE
@@ -227,7 +244,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             // A auditoria dos oito estados achou a linha de mensagem sem
             // hover NENHUM — a superfície mais usada do app inteiro, sem
             // resposta ao ponteiro.
-            "flex gap-3 px-4 hover:bg-surface-1 data-[state=open]:bg-surface-1",
+            "relative flex gap-3 px-4 hover:bg-surface-1 data-[state=open]:bg-surface-1",
             // O ritmo de agrupamento: 4px dentro do grupo, 16px entre grupos.
             // Três níveis de separação no total (o terceiro é o divisor), cada
             // um pelo menos 2× o anterior — é o que os faz lerem como distintos
@@ -252,6 +269,69 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             falhou && "border-s-2 border-danger",
           )}
         >
+          {/*
+            A barra de ações, flutuando.
+
+            Reagir era só pelo botão direito, num menu de onze alvos — e reagir
+            é o gesto mais frequente que existe num cliente de chat. Gesto
+            frequente atrás de menu é a definição de "lembrar em vez de
+            reconhecer", e foi a nota mais baixa da auditoria.
+
+            Ela SOBREPÕE em vez de reservar espaço, e isso não é estética: o
+            comentário do `article` acima já diz por quê — qualquer tratamento
+            de hover que mude a ALTURA da linha destrói a âncora do
+            virtualizador. `translateY(-50%)` a põe montada na borda de cima,
+            no espaço que o ritmo de agrupamento já deixa.
+
+            `visibility` e não `opacity` para esconder: elemento com
+            `visibility: hidden` sai da ordem de tabulação E da árvore de
+            acessibilidade. Com opacidade zero, cada linha da lista somaria
+            cinco paradas de tabulação invisíveis — dez mil linhas, cinquenta
+            mil paradas.
+
+            É afordância de PONTEIRO, dita assim de propósito. O caminho
+            completo por teclado continua sendo o menu de contexto, que o
+            Radix abre com Shift+F10 e tem tudo. Uma barra alcançável por
+            teclado sem poluir a tabulação exige roving tabindex gerenciado
+            pela lista — trabalho real, e está listado.
+          */}
+          <div className={css.acoes} role="group" aria-label="Ações da mensagem">
+            {REACOES_DA_BARRA.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                className={css.acao}
+                aria-label={`Reagir com ${emoji}`}
+                onClick={() => alternarReacao(message.id, emoji)}
+              >
+                <span aria-hidden>{emoji}</span>
+              </button>
+            ))}
+
+            <span className={css.acoesDivisa} aria-hidden />
+
+            <button
+              type="button"
+              className={css.acao}
+              aria-label="Responder"
+              onClick={() => responderA(message.channelId, message.id)}
+            >
+              <ArrowBendUpLeft size={20} aria-hidden />
+            </button>
+            <button
+              type="button"
+              className={css.acao}
+              aria-label={message.fixada ? "Desafixar" : "Fixar no canal"}
+              onClick={() => alternarFixada(message.id)}
+            >
+              {message.fixada ? (
+                <PushPinSlash size={20} aria-hidden />
+              ) : (
+                <PushPin size={20} aria-hidden />
+              )}
+            </button>
+          </div>
+
           {/* A calha do avatar existe mesmo na continuação: é o que mantém o
               texto alinhado ao longo do grupo inteiro. */}
           <div className={cn(css.calha, "relative mt-1")}>
