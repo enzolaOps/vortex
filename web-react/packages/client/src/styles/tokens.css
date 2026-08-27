@@ -96,6 +96,20 @@
   --vx-status-offline: #7b7490;
 
   /* --- Espaço ------------------------------------------------ */
+  /*
+    O meio-degrau, e ele existe porque JÁ ERA usado.
+
+    A escala começava em 4px, e oito lugares precisavam de menos: o recuo de
+    uma trilha em volta do seu polegar, o vão entre amostras de cor, o
+    respiro de um chip. Todos escreveram `2px` cru, e a lei nº 4 valia em
+    `className` — onde há lint — e não dentro de módulo, onde não havia.
+
+    Legitimar o valor é melhor que proibi-lo: a alternativa era empurrar
+    esses oito para 4px, que dobra um recuo desenhado para desaparecer.
+    Meio-degrau é o piso: abaixo de 2px a diferença some no arredondamento
+    de qualquer densidade de tela.
+  */
+  --vx-space-0: 2px;
   --vx-space-1: 4px;
   --vx-space-2: 8px;
   --vx-space-3: 12px;
@@ -104,6 +118,9 @@
   --vx-space-6: 32px;
 
   /* --- Raio -------------------------------------------------- */
+  /* O par do meio-degrau: raio de peça pequena, dentro de outra já
+     arredondada — amostra de cor, polegar de trilha. */
+  --vx-radius-0: 2px;
   --vx-radius-1: 4px;
   --vx-radius-2: 8px;
   --vx-radius-3: 12px;
@@ -337,6 +354,7 @@
   --color-status-dnd: var(--vx-status-dnd);
   --color-status-offline: var(--vx-status-offline);
 
+  --spacing-0: var(--vx-space-0);
   --spacing-1: var(--vx-space-1);
   --spacing-2: var(--vx-space-2);
   --spacing-3: var(--vx-space-3);
@@ -352,6 +370,7 @@
   --z-index-sistema: var(--vx-z-sistema);
   --z-index-flutuante: var(--vx-z-flutuante);
 
+  --radius-0: var(--vx-radius-0);
   --radius-1: var(--vx-radius-1);
   --radius-2: var(--vx-radius-2);
   --radius-3: var(--vx-radius-3);

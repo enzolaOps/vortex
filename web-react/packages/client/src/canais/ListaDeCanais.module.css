@@ -282,7 +282,7 @@
   gap: var(--vx-space-2);
   min-inline-size: 0;
   padding-inline: var(--vx-space-2);
-  padding-block: 2px;
+  padding-block: var(--vx-space-0);
   border-radius: var(--vx-radius-1);
   color: var(--vx-text-2);
 }

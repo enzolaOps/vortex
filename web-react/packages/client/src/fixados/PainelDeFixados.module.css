@@ -65,7 +65,7 @@
 .abrir {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--vx-space-0);
   min-inline-size: 0;
   flex: 1;
   padding: var(--vx-space-2);

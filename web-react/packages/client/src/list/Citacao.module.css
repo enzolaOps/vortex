@@ -14,7 +14,7 @@
   gap: var(--vx-space-1);
   min-inline-size: 0;
   inline-size: 100%;
-  padding-block-end: 2px;
+  padding-block-end: var(--vx-space-0);
   border: 0;
   background: transparent;
   color: var(--vx-text-3);
