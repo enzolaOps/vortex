@@ -22,6 +22,7 @@ import {
   proximaMencao,
   temMencao,
 } from "../sdk/adapter";
+import type { AnexoSnapshot } from "../sdk/domain";
 import { useChannelMessageIds } from "../store/hooks";
 import css from "./MessageList.module.css";
 import { MenuDaMensagem, MessageRow } from "./MessageRow";
@@ -79,8 +80,18 @@ export const ALTURA_ESTIMADA = 78;
  * escrever a constante e conferir depois — é como o `estimateSize: 44`
  * sobreviveu três fases errando 34px por linha.
  *
- * Medido no arnês, com o mesmo build e a mesma janela do gate: **92,5px abre
- * grupo · 60,6px continua · 37,1px sistema**. A constante única de 78px
+ * Medido no arnês, com o mesmo build e a mesma janela do gate: **119,4px abre
+ * grupo · 90,0px continua · 37,1px sistema**.
+ *
+ * **Quinta vez que este número se move, e a primeira em que o detector o
+ * pegou.** Os valores anteriores (92,5 · 60,6) eram de antes da medida de
+ * leitura: com o texto limitado a 520px em vez da largura da coluna, ele
+ * quebra em mais linhas e a linha cresce. Nada falhou — a barra de rolagem
+ * apenas passou a mentir 30%, e quem contou foi o relatório do arnês.
+ *
+ * De quebra, a medida tornou estes números MAIS estáveis: enquanto a coluna
+ * for mais larga que 520px, a largura do texto não muda com a janela, e a
+ * altura da linha para de depender do tamanho da tela. A constante única de 78px
  * superestimava a linha de continuação em quase 30% e a de sistema em mais do
  * DOBRO — e linha de sistema é a que mais aparece em servidor movimentado,
  * onde entra e sai gente o tempo todo.
@@ -101,8 +112,8 @@ export const ALTURA_ESTIMADA = 78;
  */
 const ALTURA_POR_TIPO = {
   sistema: 37,
-  abreGrupo: 93,
-  continua: 61,
+  abreGrupo: 119,
+  continua: 90,
 };
 
 /**
@@ -121,6 +132,41 @@ const ALTURA_POR_TIPO = {
  * que ganhou borda, um respiro que apareceu —, não a variação natural de
  * conteúdo. Uma vez por tipo por sessão, senão vira ruído a 150fps.
  */
+/**
+ * A altura que os anexos acrescentam — CALCULADA, não estimada.
+ *
+ * É o caso raro em que a estimativa pode ser exata: a caixa da mídia não
+ * depende do arquivo, depende do metadata que o protocolo já mandou. Os mesmos
+ * três termos do `min` do CSS, em número.
+ *
+ * Sem isto, uma linha com imagem é subestimada em algumas centenas de pixels.
+ * Com anexo em uma mensagem a cada dezessete, a barra de rolagem passaria a
+ * mentir sobre o histórico inteiro na proporção dessa frequência — que é
+ * exatamente o problema que a estimativa existe para não ter.
+ */
+const TETO_DE_LARGURA = 400;
+const TETO_DE_ALTURA = 340;
+const ALTURA_DE_ARQUIVO = 41;
+const RESPIRO_DE_ANEXO = 8;
+
+function alturaDeAnexos(anexos: readonly AnexoSnapshot[]): number {
+  if (anexos.length === 0) return 0;
+
+  let total = RESPIRO_DE_ANEXO;
+  for (const a of anexos) {
+    if (!a.largura || !a.altura) {
+      total += ALTURA_DE_ARQUIVO;
+      continue;
+    }
+    const proporcao = a.largura / a.altura;
+    // A mesma conta do CSS: a largura é o menor dos três limites, e a altura
+    // sai dela pela proporção.
+    const largura = Math.min(TETO_DE_LARGURA, TETO_DE_ALTURA * proporcao);
+    total += largura / proporcao;
+  }
+  return Math.round(total);
+}
+
 const AVISADO = new Set<string>();
 
 function conferirEstimativa(tipo: keyof typeof ALTURA_POR_TIPO, media: number) {
@@ -171,13 +217,16 @@ export function MessageList({ channelId }: { channelId: string }) {
           ? ALTURA_POR_TIPO.abreGrupo
           : ALTURA_POR_TIPO.continua;
 
+      // Anexo é exato, não estimado: a caixa vem do metadata, não do arquivo.
+      const comAnexos = porTipo > 0 ? porTipo + alturaDeAnexos(m.anexos) : 0;
+
       /*
         Nunca zero, e isto não é paranoia: `estimateSize` devolvendo 0 é a
         MESMA armadilha da linha que mede 0px — o total encolhe, a janela
         visível muda e o ciclo se realimenta. Uma constante ainda não medida
         cai na média única, que é o valor que existia antes.
       */
-      return porTipo > 0 ? porTipo : ALTURA_ESTIMADA;
+      return comAnexos > 0 ? comAnexos : ALTURA_ESTIMADA;
     },
     // ID de entidade, nunca índice: índice corrompe o estado da linha a cada
     // inserção no topo.
@@ -444,6 +493,16 @@ export function MessageList({ channelId }: { channelId: string }) {
 
     const m = messages.getSnapshot(String(item.key));
     if (!m) continue;
+    /*
+      Linha com anexo fica FORA da amostra por tipo.
+
+      As constantes descrevem a linha sem anexo — a parte que precisa ser
+      estimada. Misturar as duas faria a média saltar com a frequência de
+      imagens no canal, e a assertion de deriva acusaria mudança de forma que
+      não houve. Foi o que o gate mostrou no minuto em que anexo passou a
+      existir: 139px de média contra uma constante de 93 que continuava certa.
+    */
+    if (m.anexos.length > 0) continue;
     if (m.sistema) {
       count("alturaSistemaSoma", item.size);
       count("alturaSistemaAmostras");
