@@ -701,6 +701,29 @@ de acento, empty state que é o começo do canal, timestamp no gutter em hover �
 a resposta à pergunta aberta abaixo: **a lâmina marca não-lida e não marca
 menção**, porque não-lida é posicional e menção é contagem.
 
+#### O que a auditoria de design mudou no método
+
+Uma auditoria completa das superfícies da fase 3 e 4 foi rodada e deu **25/40**,
+com quatro P1. Os quatro estão fechados, e os três P2 de paleta também. O
+relatório está persistido; o que ficou de fora está na tabela de pendências,
+cada item com a medição que decidiu.
+
+O que vale além dos consertos são três regras que a caçada produziu:
+
+- **A auditoria achou mais bug do que design ruim, e todos eram silenciosos.**
+  Ritmo de agrupamento em 0px, overlay de modal medindo 0×0, `.ponto` montado
+  duas vezes, `aria-label` vazio. Nenhum quebrava nada. É a mesma família do
+  `py-0.5`, e a resposta continua sendo mecanismo, não olho.
+- **Guarda que passa de primeira precisa de mutação, igual a teste.** O
+  `pnpm utilities` estendido aprovou tudo em duas versões seguidas — uma
+  varrendo uma lista vazia, outra acusando de morta a regra que segura a
+  virtualização. As duas foram pegas plantando uma classe morta de propósito.
+  Guarda não testada é decoração com custo de manutenção.
+- **Direção de mudança de paleta se decide por orçamento medido, não por
+  gosto.** Rankear os pares de contraste por folga sobre o mínimo disse
+  exatamente para que lado a rampa podia abrir, e quanto. Sem isso a escolha
+  teria sido simétrica e teria estourado o par mais apertado.
+
 **A regra de método que a fase 4 ensinou, e que vale mais que a lista:**
 checklist é o penúltimo degrau da ordem de preferência do `enforcement.md`.
 Toda vez que um item desta fase puder virar lint, tipo ou teste, ele deve —
@@ -826,12 +849,23 @@ salva o cliente web não transfere para Rust.
 | Firehose depois da fase 3 | **Rodado. Passa sem throttle, reprova sob CPU 4x.** Sem throttle, mediana de 3 janelas: p95 6,4ms (1,05× o refresh), 98,1% dos frames em um intervalo, **0,1% de frames perdidos contra o teto de 1%**, zero long tasks, vazão cheia de 500 ev/s — e espalhamento de 0,1% a 0,1% entre janelas. Sob CPU 4x fica em ~6% contra o teto de 5%, e ali a vazão do próprio gerador cai para 441/500. A fase 0 media 2,9% sob 4x com uma `MessageRow` que era um `<article>` de className estática — sem agrupamento, divisor de data, estado de envio, menu, composer ou colunas laterais. Parte da diferença é o produto existindo; quanto exatamente, só um A/B com mediana de 3 janelas responde. |
 | Menu de contexto no nível da lista | **Fase 5. Medido, não conserta o gate, e vale mesmo assim.** Hoje cada `MessageRow` monta um `ContextMenu` do Radix inteiro — Root, Trigger, Portal, Content — e linha monta e desmonta na velocidade do scroll. A/B com a mesma `<article>` nos dois lados: p99 de 24,9ms para 18,9ms e frames perdidos de 6,0% para 5,4% ao desligá-lo. O conserto é um Root para a lista, posicionado no ponteiro, com o id da linha alvo no store. |
 | Custo de pintura | **Hipótese nova, com evidência.** O mesmo build, no mesmo throttle de 4x, dá 0,4–0,5% de frames perdidos em Chrome headless (`pnpm gate`) e 5,4–6,3% em display real — e o espalhamento entre corridas cai de 0,9pp para 0,1pp. Headless não pinta numa superfície de verdade; a diferença é quase toda rasterização e composição. Isso reabre a remoção da máscara do ponto de presença, arquivada como "não moveu o p95" quando o p95 daquela máquina não conseguia ver mudança daquele tamanho. |
+| Auditoria de design da fase 5 | **Rodada, com relatório.** Nota 25/40 e quatro P1, todos fechados: ritmo de agrupamento em 0px (`py-0.5` não emitia CSS), overlay de modal medindo 0×0 (`inset-0` idem), cor de cargo sem clamp, itens de menu inertes. Os P2 de paleta também: rampa, disciplina de acento e classificação de tokens. O que sobrou da auditoria e NÃO foi feito está nas linhas próprias desta tabela, cada um com a medição que decidiu. Retrato persistido em `.impeccable/critique/`. |
+| Escala de z-index sem token | Levantado na auditoria, não feito. Valores de `z-index` espalhados sem escala nomeada. Custa pouco e é a mesma família do "zero valor mágico" — mas ainda não mordeu ninguém, então entra quando alguém empilhar duas camadas erradas. |
+| Valores fora de escala em CSS Module | ~8 ocorrências. O `pnpm utilities` guarda `className`; dentro de módulo o projeto ainda depende de disciplina. Candidato natural a mecanismo, pela ordem do `enforcement.md`. |
 | Patamar de CPU 4x em ~6% | Contra o teto de 5%. Não bloqueia — o patamar que mede o app (sem throttle) passa com folga de 10×. A fase 0 media 2,9% sob 4x com uma `MessageRow` que era um `<article>` de className estática: sem agrupamento, divisor de data, estado de envio, menu, composer ou colunas laterais. Parte da diferença é o produto existindo; quanto exatamente, só um A/B com mediana de 3 janelas responde — e agora ele decide, porque a contagem enxerga onde o percentil não enxergava. |
 | Apelido por servidor na member list | **Resolvido.** A chave virou `ChaveDeMembro` — tipo MARCADO, não string composta: passar um ID de usuário onde se espera chave de membro não compila (provado com arquivo-sonda). Destravou apelido, cor de cargo e castigo de uma vez. |
 | Categorias de canal | **Resolvido.** A coluna deixou de partir por TIPO — que era placeholder — e passa a usar `server.orderedChannels`. Colapso persistido em store LOCAL, nunca no preset: ID de categoria é dado de servidor, a mesma família que o schema do preset torna irrepresentável de propósito. Arrastar-e-soltar fica para a fase 6: reordenar ESCREVE no protocolo. |
 | Semear não-lidas no `Ready` | **Fase 6, e é regressão garantida sem isso.** O adapter incrementa `+1` por mensagem que chega e nunca consulta `client.channelUnreads`. No firehose funciona porque tudo chega ao vivo; com rede, o que chegou offline não passou pelo incremento e o app abre zerado. Semear de `ChannelUnread.lastMessageId` + `messageMentionIds`, e escrever de volta com `Message.ack()`. |
 | Seções de cargo na member list | **Resolvido** (1598a096). Lado online seccionado por cargo hasteado em ordem de rank, sem-cargo por último, offline num balde só. Não briga com os dois baldes: cargo não pisca. |
 | Campos de protocolo ainda ignorados | Levantados em `concorrentes.md` § segunda passada: `reactions`, `replyIds`, `pinned`, `roleColour`, `editedAt`, `systemMessage`, `channel.description`, `muted`, `havePermission`, `pronouns` (em `User` **e** `ServerMember`), `timeout`, `banner`, `status.text`. Nenhum precisa de backend. |
+| Cor de cargo sem clamp | **Resolvida.** Era o último furo da garantia de contraste: o cargo colorido vem do servidor e ia direto ao DOM por `style`, onde o `pnpm contrast` não podia vê-lo porque não é token. Medido antes, no navegador: **22 de 22 nomes reprovavam 4,5:1 no tema claro**, pior 1,33:1. Agora matiz e croma são do usuário e a LUMINOSIDADE é do app, como em `derivar.ts` — medido depois, claro pior 7,77:1 e escuro pior 8,60:1, zero reprovando. Varredura em teste de 24 matizes × 4 cromas × 2 modos × 4 superfícies, verificada por mutação. |
+| Itens de menu inertes | **Resolvidos, e virou lint.** `Copiar texto`, `Editar` e `Apagar` ficaram meses no menu de mensagem sem `onSelect`: apareciam, recebiam foco, fechavam o menu e não faziam nada. Copiar existe agora; as outras duas escrevem no protocolo e voltam na fase 6. `no-restricted-syntax` reprova `ContextMenuItem`/`DropdownMenuItem` sem `onSelect`, `disabled` ou `asChild` — provado com arquivo-sonda. |
+| Regra de CSS Module sem consumidor | **Resolvida.** O `pnpm utilities` conferia `className` que não produz CSS e não o inverso. Agora faz os dois, resolvendo quem importa cada módulo e com que alias. **Ele mesmo precisou de mutação duas vezes**: a primeira versão varria `.module.css` numa lista que só tem `.tsx` (laço rodava zero vezes e relatava sucesso); a segunda conferia só o TSX irmão e acusou de morta a `.coluna` usada de `App.tsx` — justamente a regra do `block-size: 100%` sem a qual o virtualizador monta as dez mil linhas. Três órfãs reais saíram. |
+| Token sem classificação de contraste | **Resolvido.** A auditoria perguntou por que `--vx-border-subtle` não estava na lista de pares. A resposta era boa e não estava escrita: token ausente de propósito e token esquecido são indistinguíveis olhando. `SEM_PAR` guarda o motivo e um teste exige que todo token esteja num dos dois lugares, **nos dois sentidos** — motivo que sobrou também reprova. Pegou meu erro na primeira execução. |
+| Peso óptico dos semânticos | **Medido, e não vale fazer.** `--vx-success` aparece SÓ no arnês de desenvolvimento, `--vx-warning` em dois ícones de castigo, `--vx-danger` em dezesseis lugares do produto. Diferenciar peso entre os três seria trabalho sem nada na tela para mostrar. Reabrir quando `success` tiver um consumidor de produto. |
+| Toast de erro expirando | **Resolvido.** Cinco segundos é o tempo de confirmar um acerto e o errado de relatar um erro — e aqui era literal, porque o toast de falha ao copiar carrega o texto que a pessoa precisa selecionar à mão. Erro agora não some sozinho. No mesmo passo: `relative` no Root (o `Close` era `absolute` sem contexto e ancorava na viewport) e o rótulo da região, que anunciava `"Notifications (F8)"` — o default do Radix, num app em português. String que só leitor de tela lê não aparece em revisão de tela nenhuma. |
+| Rampa de superfície achatada | **Resolvida.** Quatro superfícies somavam 1,368:1 no escuro e 1,137:1 no claro de ponta a ponta, e no claro os degraus ENCOLHIAM a cada passo. Agora passo constante em ΔL — o certo, porque em OKLCH o L é perceptualmente uniforme. **A direção foi ditada pelo orçamento:** uma sonda rankeou os pares por folga, e ela disse que no escuro subir a superfície de topo era caro (`text-3/surface-3` a 1,11×) e abrir para baixo quase de graça. Escuro 1,075 · 1,105 · 1,152 → 1,09 · 1,14 · 1,15; claro 1,060 · 1,040 · 1,031 → 1,081 · 1,069 · 1,067. |
+| Disciplina de acento | **Resolvida.** Nove lâminas de acento na tela ao mesmo tempo, sete delas tocos permanentes de item NÃO ativo — os consumidores pintam `color: var(--vx-accent)` e o toco herdava junto. O toco ficou neutro e o hover ganhou o degrau do meio. Acento na tela: 9 → 2, o servidor ativo e o canal ativo. |
 | Lado lógico no wrapper de Tooltip | **Resolvido.** `LadoLogico` = acima / abaixo / inicio / fim, com o mapeamento lógico→físico lendo a direção real do documento dentro do wrapper. O rail era o único chamador físico e voltou a não saber de que lado da tela está. |
 
 ---
