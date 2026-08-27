@@ -1,3 +1,4 @@
+import { CartaoDePerfil } from "../membros/CartaoDePerfil";
 import { chaveDeMembro } from "../sdk/domain";
 import { useMembro, useServidorAtivo } from "../store/hooks";
 
@@ -29,6 +30,10 @@ export function NomeDoAutor({ userId }: { userId: string }) {
   const membro = useMembro(chaveDeMembro(serverId, userId));
 
   return (
+    // O cartão de perfil pendura AQUI e não na linha: o gatilho é o nome, e
+    // este componente já é o dono dele. A linha continua sem saber que
+    // perfis existem.
+    <CartaoDePerfil serverId={serverId} userId={userId}>
     <span
       className="text-md font-medium text-text-1"
       /*
@@ -47,5 +52,6 @@ export function NomeDoAutor({ userId }: { userId: string }) {
     >
       {membro?.displayName ?? userId}
     </span>
+    </CartaoDePerfil>
   );
 }

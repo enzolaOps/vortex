@@ -6,6 +6,7 @@ import { count } from "../dev/stats";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
 import { chaveDeMembro } from "../sdk/domain";
+import { CartaoDePerfil } from "./CartaoDePerfil";
 import {
   useMembro,
   useMembrosOffline,
@@ -82,6 +83,7 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
   const silenciado = membro.silenciadoAte !== undefined;
 
   return (
+    <CartaoDePerfil serverId={serverId} userId={id}>
     <button
       type="button"
       className={css.membro}
@@ -117,6 +119,7 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
         </>
       ) : null}
     </button>
+    </CartaoDePerfil>
   );
 });
 

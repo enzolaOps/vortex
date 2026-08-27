@@ -6,6 +6,7 @@ import {
   definirCanalAberto,
   marcarCanalLido,
   membrosOffline,
+  members,
   membrosOnline,
   registrarServidor,
   secoesOnline,
@@ -13,6 +14,7 @@ import {
   servers,
 } from "./adapter";
 import { client } from "./client";
+import { chaveDeMembro } from "./domain";
 import { SEM_CARGO } from "./domain";
 
 /**
@@ -374,5 +376,59 @@ describe("seções de cargo", () => {
     // E o balde continua o mesmo — prova de que o gatilho de fato rodou e a
     // pessoa não saiu do online por acidente.
     expect(membrosOnline.peek(SERVER_ID)).toContain(alguem);
+  });
+});
+
+/**
+ * Os campos que só existem porque a superfície passou a existir.
+ *
+ * `pronouns`, `status.text` e o `username` por baixo do apelido vinham pelo
+ * fio desde sempre e não tinham onde aparecer — a varredura de protocolo os
+ * classificou juntos como "o custo é a SUPERFÍCIE, não o campo". O cartão de
+ * perfil é essa superfície.
+ *
+ * O teste é do MAPEAMENTO, não do cartão: hover do Radix tem atraso
+ * compartilhado e não cede a evento sintético, então provar a renderização no
+ * navegador custaria mais do que vale. O que pode quebrar em silêncio é a
+ * tradução — e é ela que está aqui.
+ */
+describe("campos de perfil", () => {
+  beforeEach(async () => {
+    await seed(4);
+    virarFrame();
+  });
+
+  it("apelido, username, pronomes e status chegam ao snapshot", () => {
+    const todos = [
+      ...(membrosOnline.peek(SERVER_ID) ?? []),
+      ...(membrosOffline.peek(SERVER_ID) ?? []),
+    ];
+
+    const snaps = todos.map((id) => {
+      const chave = chaveDeMembro(SERVER_ID, id);
+      members.subscriber(chave)(() => {});
+      return members.peek(chave);
+    });
+
+    // Apelido e username DIVERGEM em parte das pessoas — é o que faz o cartão
+    // mostrar os dois. Se coincidissem sempre, a linha do username seria
+    // código morto que ninguém veria falhar.
+    expect(snaps.some((s) => s && s.displayName !== s.username)).toBe(true);
+    expect(snaps.some((s) => s?.pronomes !== undefined)).toBe(true);
+    expect(snaps.some((s) => s?.statusTexto !== undefined)).toBe(true);
+
+    // E a AUSÊNCIA também precisa existir: campo opcional que vem sempre
+    // preenchido não prova que o caso vazio foi tratado.
+    expect(snaps.some((s) => s?.pronomes === undefined)).toBe(true);
+    expect(snaps.some((s) => s?.statusTexto === undefined)).toBe(true);
+  });
+
+  it("o tópico do canal chega ao snapshot, e a ausência dele também", () => {
+    channels.subscriber(CHANNEL_ID)(() => {});
+    channels.subscriber(GERAL)(() => {});
+
+    expect(channels.peek(CHANNEL_ID)?.topico).toContain("firehose");
+    // `geral` não tem tópico no arnês — o cabeçalho sem tópico é o caso comum.
+    expect(channels.peek(GERAL)?.topico).toBeUndefined();
   });
 });

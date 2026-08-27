@@ -179,6 +179,14 @@ export type ChannelSnapshot = {
   readonly serverId: string | undefined;
   readonly name: string;
   readonly tipo: CanalTipo;
+  /**
+   * O tópico do canal (`description` no protocolo).
+   *
+   * `topico` e não `descricao`: no produto isto é o assunto do canal, e é
+   * assim que quem usa chama. Nome de campo do protocolo não é nome de
+   * conceito do domínio.
+   */
+  readonly topico: string | undefined;
   readonly naoLidas: number;
   readonly mencoes: number;
 };
@@ -226,6 +234,12 @@ export type MemberSnapshot = ComSigla & {
    * literal é legítima — e por isso ela nunca pinta fundo, só texto sobre
    * superfície conhecida.
    */
+  /** Username global — o que a pessoa é fora deste servidor. */
+  readonly username: string;
+  /** `undefined` quando não declarados. Nunca inventar um valor. */
+  readonly pronomes: string | undefined;
+  /** Status escrito pela pessoa. Vazio é ausência, não string vazia. */
+  readonly statusTexto: string | undefined;
   readonly cor: string | undefined;
   /**
    * Fim do castigo, em epoch ms. `undefined` = sem castigo.

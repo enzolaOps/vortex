@@ -50,7 +50,13 @@ const userIds: string[] = [];
 type Servidor = {
   id: string;
   nome: string;
-  canais: { id: string; nome: string; voz?: boolean; dentro?: number }[];
+  canais: {
+    id: string;
+    nome: string;
+    voz?: boolean;
+    dentro?: number;
+    topico?: string;
+  }[];
   categorias?: { id: string; title: string; channels: string[] }[];
   /** Quantos dos `userIds` pertencem a ele. */
   membros: number;
@@ -61,7 +67,11 @@ const MUNDO: Servidor[] = [
     id: SERVER_ID,
     nome: "Vortex",
     canais: [
-      { id: CHANNEL_ID, nome: "spike" },
+      {
+        id: CHANNEL_ID,
+        nome: "spike",
+        topico: "Onde o firehose despeja 10 mil mensagens e a âncora tem que aguentar.",
+      },
       { id: "01JQ0000000000000000000010", nome: "geral" },
       { id: "01JQ0000000000000000000011", nome: "links" },
       { id: "01JQ0000000000000000000012", nome: "voz-geral", voz: true, dentro: 2 },
@@ -206,6 +216,14 @@ function ensureWorld() {
       _id: id,
       username: NOMES[i % NOMES.length]!,
       discriminator: "0001",
+      // Pronomes e status em parte das pessoas: o cartão de perfil precisa
+      // mostrar tanto o caso com quanto o sem — campo opcional que aparece
+      // sempre não prova que a ausência foi tratada.
+      ...(i % 4 === 1 ? { pronouns: "ela/dela" } : {}),
+      ...(i % 4 === 2 ? { pronouns: "ele/dele" } : {}),
+      ...(i % 6 === 3
+        ? { status: { text: "focada, volto mais tarde", presence: "Busy" } }
+        : {}),
       online: true,
       relationship: "None",
     } as never);
@@ -222,6 +240,9 @@ function ensureWorld() {
         channel_type: "TextChannel",
         server: servidor.id,
         name: canal.nome,
+        // Tópico só em alguns: um arnês onde todo canal tem descrição nunca
+        // exercitaria o cabeçalho sem tópico, que é o caso comum.
+        ...(canal.topico ? { description: canal.topico } : {}),
         ...(canal.voz ? { voice: {} } : {}),
       } as never);
     }

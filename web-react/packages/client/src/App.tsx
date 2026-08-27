@@ -13,6 +13,9 @@ import { Segmentado } from "./components/ui/Segmentado";
 import { createFrameRecorder, verdict, type FrameReport } from "./dev/frames";
 import { medirPrepend, type ResultadoPrepend } from "./dev/prepend";
 import { readCounters, resetCounters, type Counters } from "./dev/stats";
+import { CabecalhoDeCanal } from "./canais/CabecalhoDeCanal";
+import cssCabecalho from "./canais/CabecalhoDeCanal.module.css";
+import { EstadoVazio } from "./components/ui/EstadoVazio";
 import { ALTURA_ESTIMADA, MessageList } from "./list/MessageList";
 import { PainelDeEdicao } from "./layout/PainelDeEdicao";
 import { ListaDeMembros } from "./membros/ListaDeMembros";
@@ -477,9 +480,21 @@ export function App() {
       */
       conteudo={
         canal ? (
-          <MessageList key={canal} channelId={canal} />
+          /*
+            O cabeçalho vive DENTRO do conteúdo, e não na linha `ferramentas`
+            do shell, porque aquela linha é a barra do arnês. Num app sem
+            arnês os dois trocariam de lugar — e o `min-h-0` que o shell põe
+            nesta célula continua valendo, com o grid interno abaixo.
+          */
+          <div className={cssCabecalho.coluna}>
+            <CabecalhoDeCanal channelId={canal} />
+            <MessageList key={canal} channelId={canal} />
+          </div>
         ) : (
-          <p className="p-4 text-md text-text-3">nenhum canal aberto</p>
+          <EstadoVazio
+            titulo="Nenhum canal aberto"
+            detalhe="Escolha um canal na coluna à esquerda para começar a ler."
+          />
         )
       }
       composer={canal ? <Composer channelId={canal} /> : undefined}

@@ -1,0 +1,91 @@
+/* ============================================================
+   Cabeçalho do canal
+   ------------------------------------------------------------
+   Altura FIXA, e isso não é preguiça de responsivo: a lista de
+   mensagens abaixo é ancorada, e um cabeçalho que cresce com o
+   tópico moveria a âncora por causa de metadado. Uma linha, sempre
+   a mesma altura, com o tópico truncando.
+   ============================================================ */
+
+.cabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  min-inline-size: 0;
+  block-size: var(--vx-space-6);
+  padding-inline: var(--vx-space-4);
+  border-block-end: 1px solid var(--vx-border-subtle);
+  background: var(--vx-surface-0);
+
+  /* Container próprio: o cabeçalho decide o que mostrar pelo tamanho DELE,
+     não pelo da janela — a coluna de conteúdo muda de largura quando um
+     painel lateral colapsa, sem a janela ter mexido. */
+  container-type: inline-size;
+}
+
+.icone {
+  flex: none;
+  color: var(--vx-text-3);
+}
+
+.nome {
+  flex: none;
+  margin: 0;
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-md);
+  font-weight: 500;
+  line-height: var(--vx-leading-title);
+}
+
+.divisa {
+  flex: none;
+  inline-size: 1px;
+  block-size: var(--vx-space-4);
+  background: var(--vx-border-subtle);
+}
+
+/*
+  O tópico trunca — ele pode ter parágrafos.
+
+  `title` no elemento entrega o texto inteiro em hover, e é o caso
+  raro em que o tooltip nativo serve: o conteúdo é do servidor, pode
+  ser longo, e um HoverCard aqui competiria com a leitura da conversa
+  logo abaixo.
+*/
+.topico {
+  min-inline-size: 0;
+  flex: 1;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+}
+
+/* Coluna estreita: o tópico sai antes do nome. Nome é identidade;
+   tópico é contexto, e contexto é o primeiro a ceder espaço. */
+@container (inline-size < 420px) {
+  .divisa,
+  .topico {
+    display: none;
+  }
+}
+
+/*
+  A coluna de conteúdo QUANDO tem cabeçalho.
+
+  Duas linhas: cabeçalho `auto`, lista `minmax(0, 1fr)`. O `minmax(0, …)` não
+  é opcional — é a lei nº 3 uma camada abaixo do shell: com `1fr` sozinho, uma
+  mensagem com URL de 400 caracteres empurraria a linha e a lista cresceria
+  para fora da célula do grid pai.
+
+  Aqui e não como utility com colchete: o lint da lei nº 4 reprovou
+  `grid-rows-[auto_minmax(0,1fr)]`, e com razão — colchete é valor mágico com
+  outra sintaxe.
+*/
+.coluna {
+  display: grid;
+  min-block-size: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+}

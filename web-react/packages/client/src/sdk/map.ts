@@ -224,6 +224,7 @@ export function toChannelSnapshot(
     serverId: channel.serverId || undefined,
     name: channel.name,
     tipo: ehCanalDeVoz(channel) ? "voz" : "texto",
+    topico: channel.description || undefined,
     naoLidas,
     mencoes,
   };
@@ -260,6 +261,11 @@ export function toMemberSnapshot(
     id: user.id,
     displayName,
     sigla: sigla(displayName),
+    username: user.username,
+    // Pronomes do MEMBRO ganham dos do usuário: o protocolo permite declarar
+    // diferente por servidor, e quem faz isso está dizendo algo naquele lugar.
+    pronomes: membro?.pronouns || user.pronouns || undefined,
+    statusTexto: user.status?.text || undefined,
     cor,
     silenciadoAte,
   };
