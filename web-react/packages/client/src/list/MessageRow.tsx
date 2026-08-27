@@ -164,7 +164,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
     return (
       <article aria-hidden className="flex gap-3 px-4 py-2">
         <div className={cn(css.calha, "mt-1 rounded-4 bg-surface-2")} />
-        <div className="min-w-0 flex-1 text-md leading-message">&nbsp;</div>
+        <div className={cn(css.minZero, "flex-1 text-md leading-message")}>&nbsp;</div>
       </article>
     );
   }
@@ -187,7 +187,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
         {message.dia ? <DivisorDeDia rotulo={message.dia} /> : null}
         <article className="flex items-baseline gap-2 px-4 pt-4 text-xs text-text-3">
           <Info size={20} aria-hidden className="shrink-0 self-center" />
-          <p className="min-w-0 flex-1 wrap-anywhere">
+          <p className={cn(css.minZero, "flex-1 wrap-anywhere")}>
             <FraseDeSistema sistema={message.sistema} />
           </p>
           <time className="shrink-0">{message.createdAtText}</time>
@@ -252,7 +252,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
           </div>
 
           {/* minmax(0,1fr) do lado flex: sem isto uma URL de 400 chars estoura. */}
-          <div className="min-w-0 flex-1">
+          <div className={cn(css.minZero, "flex-1")}>
             {/* A citação abre a linha, acima do cabeçalho: é o contexto que
                 torna a mensagem legível, e lê-la depois do texto seria ler a
                 resposta antes da pergunta. Alinhada à coluna de conteúdo e
@@ -391,7 +391,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
               key={emoji}
               type="button"
               className={css.rapida}
-              aria-label={`Reagir com `}
+              aria-label={`Reagir com ${emoji}`}
               onClick={() => alternarReacao(message.id, emoji)}
             >
               <span aria-hidden>{emoji}</span>

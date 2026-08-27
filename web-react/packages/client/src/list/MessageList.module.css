@@ -64,3 +64,20 @@
 .barraNaoLidas:focus-visible {
   outline-offset: -2px;
 }
+
+/*
+  A linha virtualizada.
+
+  Estava como `absolute inset-x-0 top-0` — e `inset-x-0` e `top-0` não
+  existem neste projeto. O elemento absoluto caía na "posição estática", que
+  por acaso coincide com o topo e com a largura do pai, então o `translateY`
+  do virtualizador funcionava e nada parecia errado.
+
+  Por acaso não é contrato: bastaria o pai ganhar padding, ou a linha
+  anterior deixar de medir zero, para as linhas empilharem fora do lugar.
+*/
+.linhaVirtual {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+}

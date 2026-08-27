@@ -1,0 +1,13 @@
+/*
+  Largura do cartão.
+
+  Estava como `w-72` no `className` e não gerava CSS — o cartão sizava pelo
+  conteúdo, então parecia funcionar e variava de largura conforme o nome de
+  quem estava dentro.
+
+  `min()` em vez de largura fixa: numa coluna estreita ou num popout, 288px
+  fixos ultrapassariam a janela.
+*/
+.cartao {
+  inline-size: min(288px, calc(100vw - var(--vx-space-5)));
+}

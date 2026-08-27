@@ -145,3 +145,25 @@
   font-size: var(--vx-size-xs);
   font-weight: 500;
 }
+
+/*
+  `min-inline-size: 0` — a lei nº 3 do lado flex.
+
+  Estava como `min-w-0` no `className`, e essa utility NÃO EXISTE neste
+  projeto: o `@theme` faz `--spacing-*: initial`, que remove a base
+  `--spacing` do Tailwind v4, e toda utility computada como
+  `calc(var(--spacing) * N)` deixa de ser emitida. `min-w-0`, `min-h-0` e
+  `w-80` sumiram juntas.
+
+  A consequência era a que o redesign inteiro existe para evitar: sem o
+  mínimo zerado, o filho flex adota `min-width: auto` — mínimo baseado em
+  conteúdo — e a citação com `white-space: nowrap` empurrava a coluna de
+  mensagem a 1828px dentro de um teto de 1100px, com barra horizontal na
+  superfície principal de leitura.
+
+  Quarta vez que uma utility morta passa por typecheck, lint e testes sem
+  um ruído. Agora há `pnpm utilities` para a classe inteira do problema.
+*/
+.minZero {
+  min-inline-size: 0;
+}

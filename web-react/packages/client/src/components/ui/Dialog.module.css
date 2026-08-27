@@ -1,0 +1,34 @@
+/* ============================================================
+   Dialog — posicionamento
+   ------------------------------------------------------------
+   Estava tudo em utilities, e TRÊS delas não existiam neste
+   projeto: `inset-0`, `inset-x-0` e `max-w-lg`. O `@theme` faz
+   `--spacing-*: initial`, e utility computada sobre a base
+   `--spacing` do Tailwind v4 deixa de ser emitida.
+
+   O overlay era `fixed inset-0` sem o `inset-0`: um elemento
+   fixo de 0×0. O modal não tinha véu nenhum — e ninguém notou,
+   porque um véu ausente não parece defeito, parece decisão.
+   ============================================================ */
+
+.veu {
+  position: fixed;
+  inset: 0;
+}
+
+/*
+  Centralizado por margem automática, não por `left-1/2` mais translate.
+
+  O idioma clássico assume lado, e a lei nº 6 diz que nada pode:
+  `inset-inline` é simétrico e não escolhe direção — funciona igual em
+  RTL sem uma linha a mais.
+*/
+.painel {
+  position: fixed;
+  inset-block-start: 50%;
+  inset-inline: 0;
+  margin-inline: auto;
+  translate: 0 -50%;
+  inline-size: 100%;
+  max-inline-size: 32rem;
+}

@@ -119,7 +119,7 @@ export function Shell({
       <main className={`${css.coluna} ${css.conteudo}`}>
         {ferramentas}
         {/* minmax(0,1fr) na linha: sem isto o conteúdo empurra e o grid estoura. */}
-        <div className="min-h-0">{conteudo}</div>
+        <div className={css.celulaDeConteudo}>{conteudo}</div>
         {/* Terceira linha `auto`: o composer cresce e a lista encolhe, nunca o
             contrário. Sem a linha própria, um campo de dez linhas empurraria a
             lista para fora do grid em vez de tomar espaço dela. */}

@@ -408,7 +408,7 @@ export function MessageList({ channelId }: { channelId: string }) {
               data-index={item.index}
               data-mid={String(item.key)}
               ref={virtualizer.measureElement}
-              className="absolute inset-x-0 top-0"
+              className={css.linhaVirtual}
               style={{ transform: `translateY(${item.start}px)` }}
             >
               <MessageRow id={String(item.key)} />

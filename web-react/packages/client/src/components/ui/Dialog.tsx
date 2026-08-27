@@ -2,6 +2,7 @@ import * as Primitivo from "@radix-ui/react-dialog";
 import type { ComponentProps, ReactNode } from "react";
 
 import { cn } from "../../lib/cn";
+import css from "./Dialog.module.css";
 
 /**
  * Dialog.
@@ -49,7 +50,8 @@ export function DialogContent({
     <Primitivo.Portal>
       <Primitivo.Overlay
         className={cn(
-          "fixed inset-0 z-50 bg-surface-0/70",
+          css.veu,
+          "z-50 bg-surface-0/70",
           // Sem backdrop-filter: custa GPU continuamente, não só na transição,
           // e isto é painel de produtividade aberto o dia inteiro.
           "anim-base",
@@ -58,11 +60,8 @@ export function DialogContent({
       <Primitivo.Content
         {...props}
         className={cn(
-          // Centralizado por margem automática, não por `left-1/2` mais
-          // translate: o idioma clássico assume lado, e a lei nº 6 diz que
-          // nada pode. `inset-x-0` é simétrico, então não escolhe direção.
-          "fixed top-1/2 inset-x-0 z-50 mx-auto w-full max-w-lg -translate-y-1/2",
-          "rounded-3 border border-border-subtle bg-surface-2 p-5",
+          css.painel,
+          "z-50 rounded-3 border border-border-subtle bg-surface-2 p-5",
           "anim-base",
           className,
         )}

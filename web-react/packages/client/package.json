@@ -10,8 +10,9 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "contrast": "vitest run src/tema/contraste.test.ts",
-    "check": "pnpm typecheck && pnpm lint && pnpm contrast && pnpm classes && pnpm test",
+    "check": "pnpm typecheck && pnpm lint && pnpm contrast && pnpm classes && pnpm build && pnpm utilities && pnpm test",
     "classes": "node scripts/classes.mjs",
+    "utilities": "node scripts/utilities.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "gate": "node scripts/gate.mjs"

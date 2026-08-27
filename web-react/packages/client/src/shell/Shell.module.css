@@ -159,3 +159,17 @@
   que a lei nº 6 quer dizer com "sem premissa de irmão": o shell
   fornece o container, o painel decide o que fazer com o tamanho dele.
 */
+
+/*
+  `min-block-size: 0` na célula de conteúdo do grid.
+
+  Estava como `min-h-0`, e essa utility não existe neste projeto pelo mesmo
+  motivo de `min-w-0`: `--spacing-*: initial` remove a base do Tailwind v4.
+
+  É load-bearing: sem o mínimo zerado, a linha `minmax(0, 1fr)` do grid
+  perde efeito no filho e o conteúdo empurra em vez de rolar — o que a
+  virtualização já provou ser fatal quando o container de scroll perde teto.
+*/
+.celulaDeConteudo {
+  min-block-size: 0;
+}

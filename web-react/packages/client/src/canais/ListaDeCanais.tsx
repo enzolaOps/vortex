@@ -256,16 +256,24 @@ const Categoria = memo(function Categoria({
         </button>
       ) : null}
 
+      {/*
+        A sala NÃO é montada aqui — quem a monta é o `Canal`, que é o único
+        que sabe o próprio tipo.
+
+        Esta linha já montou uma segunda cópia, e o resultado era cada
+        ocupante aparecendo duas vezes em toda sala de voz. Aconteceu porque
+        dois comentários deste mesmo arquivo reivindicavam a posse, cada um
+        afirmando ser o dono — e nada falhou: `Sala` é idempotente, então o
+        bug só existia na tela.
+      */}
       {mostrar
         ? categoria.canais.map((id) => (
-            // Canal de voz é um CONTAINER, não uma linha: a sala pendura
-            // embaixo dele. É a mudança estrutural que "sala em vez de
-            // chamada" exige — e `Sala` decide sozinha se há o que mostrar,
-            // então a coluna não precisa saber o tipo do canal aqui.
-            <div key={id} className={css.grupoDeVoz}>
-              <Canal id={id} serverId={serverId} ativo={id === canalAtivo} />
-              <Sala channelId={id} serverId={serverId} />
-            </div>
+            <Canal
+              key={id}
+              id={id}
+              serverId={serverId}
+              ativo={id === canalAtivo}
+            />
           ))
         : null}
     </div>

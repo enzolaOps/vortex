@@ -1,0 +1,14 @@
+/*
+  A viewport do toast.
+
+  `w-80` estava no `className` e NÃO GERA CSS neste projeto — a viewport
+  media 0px de largura. O toast é primitivo construído, testado e ainda sem
+  chamador, então o defeito nunca apareceu; apareceria inteiro no dia em que
+  o primeiro caminho de erro o usasse.
+
+  `min()` em vez de largura fixa: numa janela estreita, 320px fixos
+  encostariam nas duas bordas.
+*/
+.viewport {
+  inline-size: min(320px, calc(100vw - var(--vx-space-6)));
+}

@@ -2,6 +2,7 @@ import * as Primitivo from "@radix-ui/react-toast";
 import { useSyncExternalStore } from "react";
 
 import { cn } from "../../lib/cn";
+import css from "./Toast.module.css";
 import { assinarToasts, dispensarToast, lerToasts } from "./toastStore";
 
 export { toast, dispensarToast } from "./toastStore";
@@ -61,7 +62,12 @@ export function Toaster() {
         A viewport é a região que o leitor de tela anuncia. Fica fixa e fora do
         fluxo, e por isso é o único lugar do app onde `fixed` é o certo.
       */}
-      <Primitivo.Viewport className="fixed end-4 bottom-4 z-50 flex w-80 flex-col gap-2 outline-none" />
+      <Primitivo.Viewport
+        className={cn(
+          css.viewport,
+          "fixed end-4 bottom-4 z-50 flex flex-col gap-2 outline-none",
+        )}
+      />
     </Primitivo.Provider>
   );
 }
