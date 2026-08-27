@@ -84,6 +84,30 @@ function montar(): Par[] {
 
 export const PARES: readonly Par[] = montar();
 
+/**
+ * Os tokens que NÃO aparecem em par nenhum, e a razão de cada um.
+ *
+ * Existe porque a auditoria de design perguntou "cadê o `--vx-border-subtle`
+ * na lista?" — e a resposta certa era "de propósito", mas nada no código dizia
+ * isso. Um token ausente da lista e um token esquecido da lista são
+ * indistinguíveis olhando, e o segundo é um furo de contraste que ninguém vê.
+ *
+ * O teste em `pares.test.ts` exige que TODO token esteja num dos dois lugares:
+ * usado em algum par, ou aqui com motivo escrito. Token novo que ninguém
+ * classificou reprova — o default de uma decisão esquecida é "pare", como no
+ * `TokenName` conferido contra o `tokens.css`.
+ */
+export const SEM_PAR: Readonly<Record<string, string>> = {
+  "--vx-accent-soft":
+    "Preenchimento de estado, nunca texto nem borda. O que é lido em cima " +
+    "dela é `--vx-text-1`, e esse par é o mesmo de qualquer superfície.",
+  "--vx-border-subtle":
+    "Hairline decorativa, e a ausência é a decisão. O mínimo de 3:1 vale para " +
+    "borda que CARREGA informação — limite de controle, foco. Esta separa " +
+    "blocos que o espaçamento já separa; puxá-la para 3:1 a transformaria na " +
+    "borda forte, que é o token ao lado e existe para isso.",
+};
+
 export type Falha = {
   readonly par: Par;
   readonly razao: number;
