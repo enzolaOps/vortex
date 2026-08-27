@@ -4,7 +4,6 @@
    unicode-range, então só o que a página usa é baixado. */
 @import "@fontsource-variable/ibm-plex-sans";
 @import "@fontsource/ibm-plex-mono/400.css";
-@import "@fontsource/ibm-plex-mono/500.css";
 
 @import "tailwindcss";
 
@@ -142,6 +141,18 @@
      mono da mesma mão. A pilha de fallback existe para o primeiro paint e para
      quando o arquivo falhar — nunca deixar o texto sem família. */
   --vx-font-ui: "IBM Plex Sans Variable", "IBM Plex Sans", system-ui, sans-serif;
+  /*
+    UM peso, e é o que se usa.
+
+    O 500 era importado ao lado do 400 e nenhum elemento o alcançava — medido
+    varrendo a tela: quatro nós em monoespaçada, os quatro em 400. Peso extra é
+    um arquivo de fonte baixado para não ser desenhado.
+
+    Faz sentido além do byte: a monoespaçada aqui existe para números e teclas
+    (largura de slot, `Ctrl K`, pronomes), onde o que importa é o alinhamento
+    de coluna e não a ênfase. Ênfase em monoespaçada num app cuja fonte de
+    interface tem dois pesos seria uma terceira voz sem nada para dizer.
+  */
   --vx-font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
   /* --- Movimento ---------------------------------------------
