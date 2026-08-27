@@ -28,6 +28,7 @@ import { alternarColapso } from "../store/colapso";
 import {
   useCanalAtivo,
   useCategorias,
+  useCorDeCargo,
   useColapso,
   useChannel,
   useMembro,
@@ -148,6 +149,7 @@ const NaSala = memo(function NaSala({
   participante: ParticipanteDeVoz;
 }) {
   const membro = useMembro(chaveDeMembro(serverId, participante.userId));
+  const corDeCargo = useCorDeCargo(membro?.cor);
   const Icone = ICONE_DE_VOZ[participante.estado];
 
   return (
@@ -157,7 +159,7 @@ const NaSala = memo(function NaSala({
       </span>
       <span
         className={css.nomeNaSala}
-        style={membro?.cor ? { color: membro.cor } : undefined}
+        style={corDeCargo ? { color: corDeCargo } : undefined}
       >
         {membro?.displayName ?? participante.userId}
       </span>

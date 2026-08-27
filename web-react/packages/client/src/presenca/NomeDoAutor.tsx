@@ -1,6 +1,6 @@
 import { CartaoDePerfil } from "../membros/CartaoDePerfil";
 import { chaveDeMembro } from "../sdk/domain";
-import { useMembro, useServidorAtivo } from "../store/hooks";
+import { useCorDeCargo, useMembro, useServidorAtivo } from "../store/hooks";
 
 /**
  * O nome de quem escreveu.
@@ -28,6 +28,7 @@ import { useMembro, useServidorAtivo } from "../store/hooks";
 export function NomeDoAutor({ userId }: { userId: string }) {
   const serverId = useServidorAtivo();
   const membro = useMembro(chaveDeMembro(serverId, userId));
+  const corDeCargo = useCorDeCargo(membro?.cor);
 
   return (
     // O cartão de perfil pendura AQUI e não na linha: o gatilho é o nome, e
@@ -48,7 +49,7 @@ export function NomeDoAutor({ userId }: { userId: string }) {
         contraste de um texto colorido é previsível; um fundo com cor arbitrária
         não seria, e levaria junto o texto por cima.
       */
-      style={membro?.cor ? { color: membro.cor } : undefined}
+      style={corDeCargo ? { color: corDeCargo } : undefined}
     >
       {membro?.displayName ?? userId}
     </span>

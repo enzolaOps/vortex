@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { PerfilHoverCard } from "../components/ui/HoverCard";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
 import { chaveDeMembro } from "../sdk/domain";
-import { useMembro } from "../store/hooks";
+import { useCorDeCargo, useMembro } from "../store/hooks";
 import css from "./CartaoDePerfil.module.css";
 
 /**
@@ -43,6 +43,8 @@ export function CartaoDePerfil({
 
 function Corpo({ serverId, userId }: { serverId: string; userId: string }) {
   const membro = useMembro(chaveDeMembro(serverId, userId));
+  // Antes do retorno antecipado: hook não pode ficar atrás de condicional.
+  const corDeCargo = useCorDeCargo(membro?.cor);
 
   if (!membro) {
     return <p className={css.carregando}>carregando…</p>;
@@ -64,7 +66,7 @@ function Corpo({ serverId, userId }: { serverId: string; userId: string }) {
         <div className={css.identidade}>
           <p
             className={css.nome}
-            style={membro.cor ? { color: membro.cor } : undefined}
+            style={corDeCargo ? { color: corDeCargo } : undefined}
           >
             {membro.displayName}
           </p>

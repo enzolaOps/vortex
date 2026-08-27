@@ -8,6 +8,7 @@ import { PontoDePresenca } from "../presenca/PontoDePresenca";
 import { chaveDeMembro } from "../sdk/domain";
 import { CartaoDePerfil } from "./CartaoDePerfil";
 import {
+  useCorDeCargo,
   useMembro,
   useMembrosOffline,
   useSecoesOnline,
@@ -38,6 +39,34 @@ type Linha =
   | { tipo: "membro"; chave: string; id: string; offline: boolean };
 
 /**
+ * O cabeçalho de uma seção de cargo.
+ *
+ * Componente próprio porque a cor precisa passar pelo clamp de luminosidade, e
+ * isso é um HOOK — não pode ser chamado dentro do `map` de render da lista
+ * virtualizada. Extrair era o conserto certo de qualquer forma: o cabeçalho
+ * tinha markup inline no meio do laço de itens.
+ */
+const CabecalhoDeSecao = memo(function CabecalhoDeSecao({
+  rotulo,
+  cor,
+  total,
+}: {
+  rotulo: string;
+  cor: string | undefined;
+  total: number;
+}) {
+  const corDeCargo = useCorDeCargo(cor);
+
+  return (
+    // A cor é do servidor; a LUMINOSIDADE é do app — ver `tema/cargo.ts`.
+    <h2 className={css.secao} style={corDeCargo ? { color: corDeCargo } : undefined}>
+      {rotulo}
+      <span className={css.total}>— {total}</span>
+    </h2>
+  );
+});
+
+/**
  * Uma linha de membro. Assina a si mesma.
  *
  * `memo` pelo mesmo motivo do `MessageRow`, e aqui a razão é literalmente a
@@ -55,6 +84,9 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
   offline: boolean;
 }) {
   const membro = useMembro(chaveDeMembro(serverId, id));
+  // Antes do retorno antecipado do placeholder — hook não pode ficar atrás
+  // de condicional.
+  const corDeCargo = useCorDeCargo(membro?.cor);
   count("membrosRowRenders");
 
   // Nunca `null`: linha não resolvida mede 0px, o total encolhe, a janela
@@ -100,7 +132,7 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
       {/* A cor do cargo é dado do servidor, não token — ver `NomeDoAutor`. */}
       <span
         className={css.nome}
-        style={membro.cor ? { color: membro.cor } : undefined}
+        style={corDeCargo ? { color: corDeCargo } : undefined}
       >
         {membro.displayName}
       </span>
@@ -281,15 +313,11 @@ export function ListaDeMembros() {
               role="listitem"
             >
               {linha.tipo === "secao" ? (
-                <h2
-                  className={css.secao}
-                  /* Cor do cargo, pelo mesmo argumento de `NomeDoAutor`: é
-                     dado de quem administra o servidor, não token nosso. */
-                  style={linha.cor ? { color: linha.cor } : undefined}
-                >
-                  {linha.rotulo}
-                  <span className={css.total}>— {linha.total}</span>
-                </h2>
+                <CabecalhoDeSecao
+                  rotulo={linha.rotulo}
+                  cor={linha.cor}
+                  total={linha.total}
+                />
               ) : (
                 <LinhaDeMembro
                   serverId={serverId}

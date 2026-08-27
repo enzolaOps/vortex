@@ -40,6 +40,9 @@ import {
 } from "./navegacao";
 import { assinarColapso, estaColapsada } from "./colapso";
 import { rascunhos, RASCUNHO_VAZIO } from "./rascunhos";
+import { assinarLayout, lerSemente } from "./layout";
+import { corDeCargo } from "../tema/cargo";
+import type { Modo } from "../tema/derivar";
 
 const NO_IDS: readonly string[] = [];
 const NO_SECOES: readonly SecaoDeMembros[] = [];
@@ -249,4 +252,34 @@ export function useServidorAtivo(): string {
 
 export function useCanalAtivo(): string {
   return useSyncExternalStore(assinarNavegacao, lerCanalAtivo);
+}
+
+/* ----------------------------------------------------------------- tema */
+
+/**
+ * O modo do tema — claro ou escuro.
+ *
+ * Devolve a STRING, não a semente. `lerSemente()` devolve referência estável
+ * hoje (o preset é o mesmo objeto), mas depender disso amarraria a estabilidade
+ * de todo consumidor a um detalhe do store de layout. Uma string é comparada
+ * por valor pelo `Object.is`, e aí a garantia é do próprio React.
+ */
+export function useModoDoTema(): Modo {
+  return useSyncExternalStore(assinarLayout, () => lerSemente().modo);
+}
+
+/**
+ * A cor de cargo, já com a luminosidade decidida pelo app.
+ *
+ * Hook e não função pura porque o resultado depende do TEMA: a mesma cor de
+ * servidor tem que sair mais clara no escuro e mais escura no claro, senão o
+ * nome fica ilegível num dos dois — que era exatamente o bug, com 22 de 22
+ * nomes reprovando 4,5:1 no tema claro.
+ *
+ * `undefined` entra e sai: cargo sem cor é ausência, e o componente cai na cor
+ * de texto normal.
+ */
+export function useCorDeCargo(bruta: string | undefined): string | undefined {
+  const modo = useModoDoTema();
+  return corDeCargo(bruta, modo);
 }
