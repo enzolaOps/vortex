@@ -7,7 +7,20 @@
  */
 import { Client, ConnectionState } from "stoat.js";
 
-export const client = new Client();
+import { estaSilenciado } from "../store/silencio";
+
+export const client = new Client({
+  /*
+    Silenciar é decisão do CLIENTE, e o SDK diz isso na forma da API: ele expõe
+    `channel.muted` como uma pergunta que o app responde. Não há escrita para
+    silenciar — o protocolo guarda em configuração de usuário, e o modelo
+    delega.
+
+    Ligar aqui é o que faz `channel.muted` valer em todo lugar que o SDK o
+    consulta, em vez de o app ter uma segunda verdade paralela à do modelo.
+  */
+  channelIsMuted: (channel) => estaSilenciado(channel.id),
+});
 
 /**
  * Há socket aberto?

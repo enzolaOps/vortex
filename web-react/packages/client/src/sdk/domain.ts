@@ -287,6 +287,14 @@ export type ChannelSnapshot = {
   readonly topico: string | undefined;
   readonly naoLidas: number;
   readonly mencoes: number;
+  /**
+   * Silenciado.
+   *
+   * Não esconde o canal e não zera a contagem — apaga o REALCE. Quem silencia
+   * quer parar de ser chamado, não parar de saber; esconder seria decidir pela
+   * pessoa que aquele canal deixou de existir.
+   */
+  readonly silenciado: boolean;
 };
 
 /**

@@ -1,4 +1,6 @@
 import {
+  BellSimple,
+  BellSimpleSlash,
   CaretRight,
   Check,
   Hash,
@@ -27,6 +29,7 @@ import {
   type ParticipanteDeVoz,
 } from "../sdk/domain";
 import { alternarColapso } from "../store/colapso";
+import { alternarSilencio } from "../store/silencio";
 import { abrirPaleta } from "../store/paleta";
 import {
   useCanalAtivo,
@@ -98,7 +101,8 @@ const Canal = memo(function Canal({
           type="button"
           className={css.canal}
           aria-current={ativo}
-          data-naolidas={temNaoLidas}
+          data-naolidas={temNaoLidas && !canal.silenciado}
+          data-silenciado={canal.silenciado}
           onClick={() => selecionarCanal(id)}
         >
           {/*
@@ -112,7 +116,20 @@ const Canal = memo(function Canal({
             contagem continua ao lado, em número.
           */}
           <Lamina
-            estado={ativo ? "ativa" : temNaoLidas ? "atencao" : "repouso"}
+            /*
+              Silenciado não acende a lâmina.
+
+              A lâmina é o que faz o olho parar naquela linha varrendo a
+              coluna, e é exatamente disso que quem silenciou quer distância. A
+              contagem ao lado continua, para quem for procurar.
+            */
+            estado={
+              ativo
+                ? "ativa"
+                : temNaoLidas && !canal.silenciado
+                  ? "atencao"
+                  : "repouso"
+            }
             className={css.lamina}
           />
 
@@ -120,8 +137,18 @@ const Canal = memo(function Canal({
           <Icone size={20} className={css.icone} aria-hidden />
           <span className={css.nome}>{canal.name}</span>
 
+          {/*
+            Silenciado mantém a CONTAGEM e perde o realce.
+
+            Quem silencia quer parar de ser chamado, não parar de saber.
+            Esconder o número seria decidir pela pessoa que aquele canal deixou
+            de existir — e ela silenciou justamente porque ele continua
+            existindo e ela quer olhar na hora dela.
+          */}
           {canal.mencoes > 0 ? (
-            <span className={css.contador}>{contagem(canal.mencoes)}</span>
+            <span className={css.contador} data-silenciado={canal.silenciado}>
+              {contagem(canal.mencoes)}
+            </span>
           ) : null}
 
           {/*
@@ -147,6 +174,17 @@ const Canal = memo(function Canal({
         >
           <Check size={20} aria-hidden />
           Marcar como lida
+        </ContextMenuItem>
+
+        {/* Silenciar é preferência de LEITURA, não permissão: qualquer pessoa
+            pode silenciar qualquer canal que enxerga. */}
+        <ContextMenuItem onSelect={() => alternarSilencio(id)}>
+          {canal.silenciado ? (
+            <BellSimple size={20} aria-hidden />
+          ) : (
+            <BellSimpleSlash size={20} aria-hidden />
+          )}
+          {canal.silenciado ? "Reativar avisos" : "Silenciar canal"}
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

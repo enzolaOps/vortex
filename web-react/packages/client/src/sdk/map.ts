@@ -337,6 +337,15 @@ export function toChannelSnapshot(
     topico: channel.description || undefined,
     naoLidas,
     mencoes,
+    /*
+      Lido do MODELO, não do store.
+
+      O store é a fonte, mas quem responde é `channel.muted` — e ele passa pela
+      opção `channelIsMuted` que o cliente registrou. Ler do modelo é o que
+      garante uma verdade só: no dia em que silêncio herdar do servidor, a
+      regra muda numa função e o snapshot continua certo.
+    */
+    silenciado: channel.muted,
   };
 }
 

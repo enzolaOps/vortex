@@ -42,6 +42,7 @@ import { createEphemeralStore } from "../store/ephemeral";
 import { client, conectado } from "./client";
 import { aguardar, desistir, reconciliar } from "./nonce";
 import { definirConexao } from "../store/conexao";
+import { assinarSilencio } from "../store/silencio";
 import {
   baldeDe,
   SEM_CARGO,
@@ -589,6 +590,38 @@ let started = false;
  * A defesa é estrutural: a subscrição vive aqui, module-level, não num
  * `useEffect` por componente.
  */
+/**
+ * Permissão mudou. As linhas na tela precisam reperguntar.
+ *
+ * **A nota que eu mesmo escrevi em `permissoes.ts` dizia "republicar o canal",
+ * e estava errada.** Republicar o canal troca o array de IDs, o que acorda a
+ * LISTA — mas `MessageRow` é `memo` com a mesma prop `id`, então nenhuma linha
+ * re-renderiza. A pessoa continuaria vendo o botão de fixar depois de perder o
+ * cargo, e nada falharia.
+ *
+ * O que funciona é reescrever os SNAPSHOTS: eles são comparados por
+ * `Object.is`, e um objeto novo com o mesmo conteúdo é o suficiente para o
+ * `useSyncExternalStore` acordar quem assina.
+ *
+ * Só os ASSINADOS, que são as linhas na tela — algumas dezenas num histórico
+ * de dez mil. Varrer o canal inteiro seria pagar pelo que ninguém está vendo,
+ * e o gatilho é raro: alguém editar um cargo.
+ *
+ * A alternativa era `pode()` virar hook com store, e ela é pior: três
+ * subscrições por linha, para sempre, por um evento que acontece uma vez por
+ * semana.
+ */
+function repensarPermissoes(): void {
+  for (const id of messages.assinados()) {
+    const message = client.messages.get(idDoSdk(id));
+    if (!message) continue;
+    messages.set(
+      id,
+      toMessageSnapshot(message, layoutDe(id), estadoDeEnvioDe(id), usuarioLocal),
+    );
+  }
+}
+
 export function startAdapter() {
   if (started) return;
   started = true;
@@ -627,6 +660,29 @@ export function startAdapter() {
   client.on("connected", () => definirConexao("conectado"));
   client.on("connecting", () => definirConexao("reconectando"));
   client.on("disconnected", () => definirConexao("sem-conexao"));
+
+  /*
+    Silêncio mudou: os canais na tela precisam reperguntar.
+
+    Mesma forma da permissão, e pela mesma razão: o store é a fonte, mas quem
+    responde é `channel.muted` — e o snapshot só é reconstruído quando alguém o
+    reemite. Sem isto, silenciar não mudaria nada na tela até o canal ser
+    tocado por outro motivo.
+
+    Todos os assinados e não só o alterado: silêncio pode herdar do servidor um
+    dia, e aí um clique muda vários. Assinados são as dezenas de canais
+    visíveis, não os milhares de mensagens — a varredura é barata aqui de um
+    jeito que não seria lá.
+  */
+  assinarSilencio(() => {
+    for (const id of channels.assinados()) reemitirCanal(id);
+  });
+
+  // Permissão mudou: as linhas na tela precisam reperguntar. Ver
+  // `repensarPermissoes`.
+  client.on("serverRoleUpdate", repensarPermissoes);
+  client.on("serverRoleDelete", repensarPermissoes);
+  client.on("serverMemberUpdate", repensarPermissoes);
 
   client.on("ready", () => {
     for (const unread of client.channelUnreads.toList()) {

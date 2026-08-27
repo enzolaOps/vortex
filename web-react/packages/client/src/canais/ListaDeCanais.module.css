@@ -409,3 +409,34 @@
 .chevron[data-aberta="true"] {
   rotate: 90deg;
 }
+
+/* ============================================================
+   Canal silenciado
+   ------------------------------------------------------------
+   Perde o REALCE, mantém o dado. Quem silencia quer parar de
+   ser chamado, não parar de saber.
+   ============================================================ */
+
+/*
+  A linha inteira esmaece — é o mesmo gesto do membro offline, e por uma razão
+  parecida: os dois continuam ali, só deixaram de pedir atenção.
+
+  Opacidade e não cor: cor exigiria um token novo para dizer "presente mas
+  quieto", e a escala de lâmina já diz isso. `--vx-lamina-2` é o degrau do
+  meio — legível de perto, invisível de longe, que é exatamente o contrato.
+*/
+.canal[data-silenciado="true"] {
+  opacity: var(--vx-lamina-2);
+}
+
+/*
+  O contador de menção perde o preenchimento de acento e vira número simples.
+
+  Menção num canal silenciado ainda é menção — o número fica. O que sai é a
+  pílula, que é o que faz o olho parar. É a disciplina de acento aplicada ao
+  caso em que a pessoa PEDIU para não ser chamada.
+*/
+.contador[data-silenciado="true"] {
+  background: none;
+  color: var(--vx-text-3);
+}

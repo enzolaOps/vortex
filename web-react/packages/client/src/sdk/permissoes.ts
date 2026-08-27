@@ -26,16 +26,19 @@
  * negar `reagir` em tempo de execução não mexeu em nada até a linha
  * re-renderizar por outro motivo.
  *
- * A resposta NÃO é transformar isto em hook com store. Seriam três subscrições
- * por linha para um valor que muda quando alguém edita um cargo — meses de
- * custo por um evento raro. A resposta é o modelo que o projeto já usa:
- * mudança de permissão é evento do protocolo, e o adapter REPUBLICA o canal
- * afetado. As linhas re-renderizam porque o snapshot mudou, que é como tudo
- * mais aqui funciona.
+ * A resposta NÃO é transformar isto em hook com store: seriam três subscrições
+ * por linha, para sempre, por um valor que muda quando alguém edita um cargo.
  *
- * Está escrito aqui porque é o tipo de coisa que, esquecida, vira um bug de
- * "o botão continua aparecendo depois que me tiraram o cargo" — e ninguém
- * ligaria isso a este arquivo.
+ * ⚠ **E a resposta que eu havia escrito aqui — "o adapter republica o canal" —
+ * estava ERRADA.** Republicar o canal troca o array de IDs, o que acorda a
+ * lista; mas `MessageRow` é `memo` com a mesma prop `id`, e nenhuma linha
+ * re-renderiza. O botão continuaria aparecendo depois de a pessoa perder o
+ * cargo, e nada falharia.
+ *
+ * O que funciona está em `repensarPermissoes`, no adapter: reescrever os
+ * SNAPSHOTS dos assinados. Eles são comparados por `Object.is`, então um
+ * objeto novo com o mesmo conteúdo basta para acordar quem os assina — e
+ * "assinados" são as linhas na tela, algumas dezenas num histórico de dez mil.
  */
 
 /**
