@@ -469,6 +469,16 @@ function createMessage(seed: number, quando?: number): string {
     true,
   );
   ultimoId = id;
+  /*
+    O canal passa a saber qual é a última mensagem.
+
+    É o que um servidor de verdade mantém (`Channel.lastMessageId`), e sem isso
+    o arnês não conseguia exercitar a semeadura de não lidas no `Ready`: sem
+    saber onde a conversa está, não há como dizer se o cursor de leitura ficou
+    para trás. O arnês estava mais pobre que o protocolo, e o teste é que
+    mostrou.
+  */
+  client.channels.updateUnderlyingObject(CHANNEL_ID, { lastMessageId: id });
   return id;
 }
 

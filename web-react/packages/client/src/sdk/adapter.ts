@@ -592,6 +592,58 @@ export function startAdapter() {
   if (started) return;
   started = true;
 
+  /**
+   * O estado de leitura que o SERVIDOR conhece, na entrada.
+   *
+   * Sem isto o app abre zerado sobre um histórico cheio, e o briefing já
+   * chamava a ausência de "regressão garantida": a contagem só sabia do que
+   * chegou AO VIVO, pelo caminho de evento. O que chegou enquanto o app estava
+   * fechado — que é a maior parte do que interessa ao abrir — nunca passou por
+   * ali.
+   *
+   * O protocolo entrega as duas coisas prontas: `lastMessageId` é o cursor, e
+   * `messageMentionIds` é um CONJUNTO DE IDS. Contar aqui é derivar do que já
+   * veio, não inventar.
+   *
+   * ⚠ Isto não conta as não lidas com precisão, e a imprecisão é honesta: o
+   * cliente não tem o histórico entre o cursor e o fim antes de carregá-lo.
+   * O que ele sabe é que EXISTEM — o cursor não é a última — e quantas
+   * menções, porque essas vêm por ID. Uma bolinha "tem coisa nova" com a
+   * contagem exata de menções é mais verdadeiro que um número inventado.
+   */
+  client.on("ready", () => {
+    for (const unread of client.channelUnreads.toList()) {
+      const channelId = unread.id;
+      // `ReactiveSet`, não array: o SDK expõe o conjunto do protocolo como
+      // estrutura reativa do Solid. Ler `size` aqui dentro é o contrato.
+      const mencoes = unread.messageMentionIds?.size ?? 0;
+      cursorDeLeitura.set(channelId, unread.lastMessageId ?? "");
+
+      const canal = client.channels.get(channelId);
+      const ultima = canal?.lastMessageId;
+      // Sem cursor, ou cursor já na última: nada por ler.
+      const temNaoLida =
+        ultima !== undefined && ultima !== null && ultima !== unread.lastMessageId;
+      if (!temNaoLida && mencoes === 0) continue;
+
+      contagemPorCanal.set(channelId, {
+        // 1 é "existe", não "uma". Ver a ressalva acima.
+        naoLidas: temNaoLida ? 1 : 0,
+        mencoes,
+      });
+      reemitirCanal(channelId);
+
+      const serverId = canal?.serverId;
+      if (!serverId) continue;
+      const servidor = contagemDe(contagemPorServidor, serverId);
+      contagemPorServidor.set(serverId, {
+        naoLidas: servidor.naoLidas + (temNaoLida ? 1 : 0),
+        mencoes: servidor.mencoes + mencoes,
+      });
+      reemitirServidor(serverId);
+    }
+  });
+
   client.on("messageCreate", (message) => {
     /*
       Esta mensagem é a confirmação de uma que já está na tela?
@@ -1094,6 +1146,23 @@ export function primeiraNaoLida(channelId: string): string | undefined {
 }
 
 export function marcarCanalLido(channelId: string): void {
+  /*
+    Avisa o SERVIDOR, e não só a si mesmo.
+
+    Sem isto a leitura é local: a pessoa lê no desktop, abre no celular e
+    encontra tudo não lido de novo. O cursor de leitura é do protocolo
+    (`ChannelUnread.lastMessageId`), e `ack` é como se escreve nele.
+
+    Fire-and-forget com guarda de conexão, como digitação e presença: marcar
+    lido é confirmação de algo que a pessoa já fez, e falhar por falta de
+    socket não pode derrubar nada. O servidor reconcilia no próximo `Ready`.
+  */
+  if (conectado()) {
+    const ids = channelMessageIds.peek(channelId);
+    const ultima = ids?.[ids.length - 1];
+    if (ultima) void client.channels.get(channelId)?.ack(idDoSdk(ultima));
+  }
+
   const atual = contagemPorCanal.get(channelId);
   if (!atual) return;
 
