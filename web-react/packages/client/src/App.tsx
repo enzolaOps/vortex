@@ -19,6 +19,7 @@ import { EstadoVazio } from "./components/ui/EstadoVazio";
 import { ALTURA_ESTIMADA, MessageList } from "./list/MessageList";
 import { PainelDeEdicao } from "./layout/PainelDeEdicao";
 import { ListaDeMembros } from "./membros/ListaDeMembros";
+import { PainelDeFixados } from "./fixados/PainelDeFixados";
 import { Rail } from "./rail/Rail";
 import { configurarSimulacaoDeEnvio } from "./sdk/adapter";
 import { Shell } from "./shell/Shell";
@@ -464,6 +465,7 @@ export function App() {
         rail: <Rail />,
         canais: <ListaDeCanais />,
         membros: <ListaDeMembros />,
+        fixados: <PainelDeFixados />,
       }}
       /*
         `key` no canal: trocar de canal REMONTA a lista.

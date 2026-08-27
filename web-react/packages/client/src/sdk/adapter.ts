@@ -369,6 +369,45 @@ function publish(channelId: string) {
   agendarFlush();
 }
 
+/**
+ * Recalcula a lista de fixadas de um canal.
+ *
+ * Varre os IDs do canal em vez de manter um índice incremental. É O(n) por
+ * chamada, e roda só quando alguém fixa ou desafixa — ação humana, raríssima
+ * comparada a mensagem nova. Um índice incremental seria mais rápido e teria
+ * que ser mantido correto em cinco caminhos (criar, apagar, fixar, desafixar,
+ * carregar histórico); a varredura não pode divergir da verdade porque ELA é
+ * a verdade lida de novo.
+ */
+function publicarFixadas(channelId: string): void {
+  const out: string[] = [];
+  for (const id of idsOf(channelId)) {
+    if (client.messages.get(id)?.pinned) out.push(id);
+  }
+  fixadas.set(channelId, out);
+}
+
+/**
+ * Fixa ou desafixa. Otimista, como a reação.
+ *
+ * ⚠ Fase 6: `PUT /channels/:c/messages/:m/pin` e o DELETE. O servidor pode
+ * recusar por permissão — fixar costuma ser privilégio —, e aí o rollback é
+ * escrever `pinned` de volta e republicar. Barato porque é booleano.
+ */
+export function alternarFixada(messageId: string): void {
+  const message = client.messages.get(messageId);
+  if (!message) return;
+
+  // `updateUnderlyingObject` e não um campo nosso: `pinned` é do PROTOCOLO, e
+  // manter a verdade lá é o que faz o evento de outra pessoa e a nossa ação
+  // otimista chegarem no mesmo lugar.
+  client.messages.updateUnderlyingObject(messageId, {
+    pinned: !message.pinned,
+  } as never);
+
+  publicarFixadas(message.channelId);
+}
+
 /** Publicação imediata, para setup — não há frame para esperar. */
 function publishNow(channelId: string) {
   dirty.delete(channelId);
@@ -510,6 +549,9 @@ export function seedChannel(channelId: string, ids: readonly string[]) {
   target.push(...ids);
   recalcularLayout(channelId, 0, target.length - 1);
   publishNow(channelId);
+  // A lista de fixadas é derivada dos IDs do canal — sem isto ela nasceria
+  // vazia e só apareceria depois do primeiro fixar/desafixar.
+  publicarFixadas(channelId);
 }
 
 /**
@@ -711,6 +753,19 @@ export const secoesOnline = createEntityStore<readonly SecaoDeMembros[]>();
 
 /** As categorias de canal do servidor, na ordem que ele define. */
 export const categorias = createEntityStore<readonly CategoriaDeCanais[]>();
+
+/**
+ * IDs das mensagens fixadas de um canal.
+ *
+ * Coleção de IDs, não de snapshots — a mesma disciplina da lista de mensagens,
+ * e pela mesma razão: o painel assina a LISTA, cada item assina a própria
+ * mensagem. Editar uma fixada toca uma linha do painel, não o painel.
+ *
+ * Derivada, não guardada em paralelo: a verdade é `message.pinned`, e manter
+ * uma segunda lista sincronizada à mão daria duas fontes divergindo no
+ * primeiro evento que uma delas perdesse.
+ */
+export const fixadas = createEntityStore<readonly string[]>();
 
 /**
  * Quem está DENTRO de cada canal de voz.

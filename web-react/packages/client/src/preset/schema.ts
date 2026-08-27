@@ -26,7 +26,7 @@ export const VERSAO_ATUAL = 1;
  * quando existirem — e vão entrar como tipo também: "thread" e não "a thread
  * da mensagem 01JQ…".
  */
-export const PAINEIS = ["rail", "canais", "membros"] as const;
+export const PAINEIS = ["rail", "canais", "membros", "fixados"] as const;
 
 export type PainelId = (typeof PAINEIS)[number];
 
@@ -108,6 +108,9 @@ export const LARGURA = {
   rail: { min: 56, max: 240, padrao: 72 },
   canais: { min: 180, max: 420, padrao: 240 },
   membros: { min: 140, max: 420, padrao: 240 },
+  // Mais largo por padrão que os outros: fixado é MENSAGEM, e mensagem numa
+  // coluna de 240px quebra em quatro linhas por item.
+  fixados: { min: 220, max: 480, padrao: 300 },
 } as const satisfies Record<PainelId, { min: number; max: number; padrao: number }>;
 
 export function limitarLargura(painel: PainelId | null, largura: number): number {

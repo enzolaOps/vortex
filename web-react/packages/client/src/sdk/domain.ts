@@ -60,6 +60,8 @@ export type MessageSnapshot = {
    * mentindo, e apagar deixaria uma cópia órfã de algo que não existe mais.
    */
   readonly respostas: readonly string[];
+  /** Fixada no canal. Vem do protocolo; a lista de fixadas é derivada disto. */
+  readonly fixada: boolean;
   /**
    * As reações, já achatadas e ordenadas.
    *

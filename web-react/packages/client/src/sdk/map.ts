@@ -155,6 +155,7 @@ export function toMessageSnapshot(
     editedAt: message.editedAt?.getTime(),
     sistema: toSistema(message),
     respostas: message.replyIds ?? VAZIO,
+    fixada: message.pinned,
     reactions: flattenReactions(message, euId),
     // O protocolo não carrega isto: quem mantém é o adapter, e mensagem que
     // veio do servidor nasce "sent". É a camada anticorrupção fazendo o

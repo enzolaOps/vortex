@@ -9,6 +9,7 @@ import {
   canaisDeVoz,
   channelMessageIds,
   channels,
+  fixadas,
   members,
   membrosOffline,
   membrosOnline,
@@ -226,6 +227,12 @@ export function useMembrosOffline(serverId: string): readonly string[] {
  *
  * Assina por CANAL: alguém entrando na sala A não acorda a linha da sala B.
  */
+export function useFixadas(channelId: string): readonly string[] {
+  const getSnapshot = () => fixadas.getSnapshot(channelId) ?? NO_IDS;
+  if (import.meta.env.DEV) assertStable(getSnapshot, `useFixadas(${channelId})`);
+  return useSyncExternalStore(fixadas.subscriber(channelId), getSnapshot);
+}
+
 export function useVozDoCanal(channelId: string): readonly ParticipanteDeVoz[] {
   const getSnapshot = () => vozPorCanal.getSnapshot(channelId) ?? NO_VOZ;
   if (import.meta.env.DEV) {

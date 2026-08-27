@@ -3,6 +3,8 @@ import {
   Copy,
   Info,
   PencilSimple,
+  PushPin,
+  PushPinSlash,
   Trash,
 } from "@phosphor-icons/react";
 import { memo } from "react";
@@ -22,7 +24,7 @@ import { NomeDoAutor } from "../presenca/NomeDoAutor";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
 import type { SistemaSnapshot } from "../sdk/domain";
 import { reenviar } from "../sdk/adapter";
-import { alternarReacao } from "../sdk/adapter";
+import { alternarFixada, alternarReacao } from "../sdk/adapter";
 import { responderA } from "../store/resposta";
 import { useMessage } from "../store/hooks";
 import { Citacao } from "./Citacao";
@@ -379,6 +381,15 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
           <ArrowBendUpLeft size={20} aria-hidden />
           Responder
         </ContextMenuItem>
+        <ContextMenuItem onSelect={() => alternarFixada(message.id)}>
+          {message.fixada ? (
+            <PushPinSlash size={20} aria-hidden />
+          ) : (
+            <PushPin size={20} aria-hidden />
+          )}
+          {message.fixada ? "Desafixar" : "Fixar no canal"}
+        </ContextMenuItem>
+
         <ContextMenuItem>
           <Copy size={20} aria-hidden />
           Copiar texto

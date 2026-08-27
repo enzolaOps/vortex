@@ -433,6 +433,9 @@ function createMessage(seed: number, quando?: number): string {
       // Reações em parte das mensagens, e uma delas COM o usuário local: sem
       // isso o chip aceso nunca apareceria, e o estado que decide se o clique
       // adiciona ou remove ficaria sem exercício.
+      // Algumas fixadas — o painel precisa nascer com conteúdo, e o item
+      // desafixar precisa de alvo.
+      ...(seed % 211 === 40 ? { pinned: true } : {}),
       ...(seed % 17 === 4
         ? {
             reactions: {

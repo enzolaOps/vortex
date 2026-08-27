@@ -27,6 +27,7 @@ const NOME: Record<PainelId, string> = {
   rail: "servidores",
   canais: "canais",
   membros: "membros",
+  fixados: "fixados",
 };
 
 const ROTULO_DO_SLOT: Record<SlotId, string> = {
