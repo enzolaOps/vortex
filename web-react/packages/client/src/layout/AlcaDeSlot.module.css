@@ -13,7 +13,7 @@
   /* Alvo de ponteiro maior que o traço visível: 2px é impossível de
      acertar, e a área de clique não precisa ser a área desenhada. */
   inline-size: var(--vx-space-3);
-  z-index: 2;
+  z-index: var(--vx-z-alca);
   cursor: col-resize;
   /* `touch-action` sem isto o navegador rola a página no lugar de arrastar. */
   touch-action: none;

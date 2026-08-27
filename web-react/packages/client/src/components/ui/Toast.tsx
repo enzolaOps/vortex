@@ -94,7 +94,7 @@ export function Toaster() {
         label="Notificações ({hotkey})"
         className={cn(
           css.viewport,
-          "fixed end-4 bottom-4 z-50 flex flex-col gap-2 outline-none",
+          "fixed end-4 bottom-4 z-flutuante flex flex-col gap-2 outline-none",
         )}
       />
     </Primitivo.Provider>

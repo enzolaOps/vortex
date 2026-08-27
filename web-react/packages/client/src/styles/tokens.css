@@ -63,7 +63,22 @@
   --vx-accent: #bcaef2;
   --vx-accent-hover: #cfc4f7;
   --vx-on-accent: #1a1622;
-  /* Preenchimento tingido: menção, chip, destaque de linha. */
+  /*
+    O acento em voz baixa. PREENCHIMENTO, nunca texto nem borda.
+
+    Uma leitura só, e vale conferir contra os seis usos reais antes de
+    acrescentar o sétimo: canal escolhido, servidor escolhido, cursor da
+    paleta, minha reação, e hover nos dois controles que vivem sobre
+    superfície elevada. Todos dizem a mesma coisa — "o acento encostou aqui" —
+    e por isso nenhum alvo tem dois deles disputando.
+
+    Isto substitui um comentário que dizia "menção, chip, destaque de linha":
+    três usos, dos quais um não existe e dois não são os que existem. Menção
+    NÃO usa este token e não deve passar a usar — a decisão da fase 5 é que
+    menção é CONTAGEM e não posição, então ela é um número, e a lâmina é que
+    marca não-lida. Comentário que descreve o que o código não faz é a mesma
+    família do `py-0.5`.
+  */
   --vx-accent-soft: #2b2540;
 
   /* --- Semânticos --------------------------------------------
@@ -129,6 +144,32 @@
      esta escala em vez de inventar opacidade por componente; é o
      que faz a interface e o ícone parecerem a mesma coisa. */
   --vx-lamina-1: 1;
+  /* ----------------------------------------------------------
+     Empilhamento
+
+     A última disciplina do projeto que ainda era número solto:
+     havia `39` ao lado de `40` em arquivos diferentes, e nada
+     dizia qual vinha na frente de qual sem abrir os dois.
+
+     Nomeados por PAPEL e não por altura. "Qual número é maior"
+     é a pergunta errada; "o quê fica na frente do quê" é a
+     certa, e é a que o nome responde.
+
+     Os saltos são grandes de propósito: camada nova entre duas
+     existentes cabe sem renumerar as de cima.
+     ---------------------------------------------------------- */
+
+  /* Levantado dentro do próprio painel — nunca sai dele. */
+  --vx-z-realce: 1;
+  /* Controle montado na borda de um slot. */
+  --vx-z-alca: 2;
+  /* O véu que apaga o resto por trás de um painel de sistema. */
+  --vx-z-veu: 30;
+  /* Painel de sistema: modo edição, picker. */
+  --vx-z-sistema: 40;
+  /* Tudo que vai ao portal: diálogo, popover, tooltip, toast. */
+  --vx-z-flutuante: 50;
+
   --vx-lamina-2: 0.82;
   --vx-lamina-3: 0.64;
 
@@ -302,6 +343,14 @@
   --spacing-4: var(--vx-space-4);
   --spacing-5: var(--vx-space-5);
   --spacing-6: var(--vx-space-6);
+
+  /* Sem `initial` acima: o Tailwind não reserva `--z-index-*`, então
+     não há escala default para apagar — só a nossa para acrescentar. */
+  --z-index-realce: var(--vx-z-realce);
+  --z-index-alca: var(--vx-z-alca);
+  --z-index-veu: var(--vx-z-veu);
+  --z-index-sistema: var(--vx-z-sistema);
+  --z-index-flutuante: var(--vx-z-flutuante);
 
   --radius-1: var(--vx-radius-1);
   --radius-2: var(--vx-radius-2);

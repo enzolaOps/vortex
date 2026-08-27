@@ -11,7 +11,7 @@
   inset-block-end: var(--vx-space-4);
   inset-inline-start: 50%;
   translate: -50% 0;
-  z-index: 40;
+  z-index: var(--vx-z-sistema);
 
   display: flex;
   flex-direction: column;
@@ -53,7 +53,7 @@
 .veu {
   position: fixed;
   inset: 0;
-  z-index: 39;
+  z-index: var(--vx-z-veu);
   background: var(--vx-surface-0);
   opacity: calc(1 - var(--vx-lamina-2));
   pointer-events: none;
