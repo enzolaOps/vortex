@@ -269,7 +269,20 @@ export function ListaDeMembros() {
 
   // Linha medindo zero é bug, não estado — a mesma assertion da lista de
   // mensagens, pelo mesmo motivo: zero realimenta a medição e trava a aba.
-  if (import.meta.env.DEV) {
+  /*
+    Painel NÃO EXIBIDO não é linha quebrada.
+
+    A coluna colapsa a `display: none` por container query — em 768px a de
+    membros some inteira — e a lista continua MONTADA ali dentro. Sem caixa,
+    tudo mede 0, e a assertion acusava dezenas de linhas quebradas num painel
+    que ninguém está vendo.
+
+    Guarda que grita à toa é guarda que alguém desliga, e essa é a única que
+    protege a invariante que trava a aba. `offsetParent === null` é o teste
+    certo e não "tamanho zero": ele distingue NÃO RENDERIZADO de renderizado
+    com zero, e é o segundo que é bug.
+  */
+  if (import.meta.env.DEV && scrollRef.current?.offsetParent) {
     const zero = items.find((item) => item.size === 0);
     if (zero) {
       console.error(
