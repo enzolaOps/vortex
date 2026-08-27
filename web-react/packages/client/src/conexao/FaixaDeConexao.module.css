@@ -1,0 +1,70 @@
+/* ============================================================
+   Faixa de conexão
+   ------------------------------------------------------------
+   Flutua no topo, nunca no fluxo: empurrar o layout mudaria a
+   altura do container da lista virtualizada, e isso é a âncora
+   se movendo por causa de um aviso.
+   ============================================================ */
+
+.faixa {
+  position: fixed;
+  inset-block-start: var(--vx-space-3);
+  /* Centralizada sem saber a largura de nada: as duas âncoras iguais mais
+     `margin-inline: auto` resolvem, e continuam valendo em RTL. */
+  inset-inline: 0;
+  z-index: var(--vx-z-flutuante);
+
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  inline-size: fit-content;
+  margin-inline: auto;
+  padding-inline: var(--vx-space-3);
+  padding-block: var(--vx-space-2);
+
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-2);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-sm);
+}
+
+/*
+  Sem conexão ganha a borda semântica; reconectando fica no neutro.
+
+  A distinção é a mesma do toast: "espere" e "não deu" são coisas diferentes, e
+  pintar as duas de vermelho gastaria o vermelho na mais comum das duas — que é
+  justamente a que quase sempre se resolve sozinha.
+*/
+.faixa[data-estado="sem-conexao"] {
+  border-color: var(--vx-danger);
+}
+
+/*
+  A pulsação diz "está acontecendo".
+
+  Só `opacity`, que é o que a regra de movimento do design system permite junto
+  com `transform` — roda no compositor e não toca layout. E ela some para quem
+  pediu menos movimento: uma animação infinita é exatamente o que essa
+  preferência existe para desligar, e o ícone sozinho continua dizendo o
+  estado.
+*/
+.pulsando {
+  animation: respirar 1.4s var(--vx-ease-out) infinite;
+}
+
+@keyframes respirar {
+  0%,
+  100% {
+    opacity: var(--vx-lamina-3);
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulsando {
+    animation: none;
+  }
+}

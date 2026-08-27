@@ -41,6 +41,7 @@ import { createEntityStore } from "../store/entities";
 import { createEphemeralStore } from "../store/ephemeral";
 import { client, conectado } from "./client";
 import { aguardar, desistir, reconciliar } from "./nonce";
+import { definirConexao } from "../store/conexao";
 import {
   baldeDe,
   SEM_CARGO,
@@ -611,6 +612,22 @@ export function startAdapter() {
    * menções, porque essas vêm por ID. Uma bolinha "tem coisa nova" com a
    * contagem exata de menções é mais verdadeiro que um número inventado.
    */
+  /*
+    A conexão vira estado da interface.
+
+    Traduzido aqui e não lido direto: `ConnectionState` é enum do SDK, e o app
+    fala de "reconectando" e "sem conexão" — que são respostas de interface,
+    não estados de socket. É a camada anticorrupção no caso mais simples que
+    existe, e é o que permite o componente da faixa não importar nada do SDK.
+
+    `Connecting` e `Disconnected` são coisas diferentes para quem olha: a
+    primeira diz "espere", a segunda diz "não deu". O SDK religa sozinho, então
+    a segunda é rara e quase sempre significa rede da máquina, não do servidor.
+  */
+  client.on("connected", () => definirConexao("conectado"));
+  client.on("connecting", () => definirConexao("reconectando"));
+  client.on("disconnected", () => definirConexao("sem-conexao"));
+
   client.on("ready", () => {
     for (const unread of client.channelUnreads.toList()) {
       const channelId = unread.id;

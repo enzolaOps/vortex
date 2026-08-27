@@ -29,6 +29,7 @@ import {
 } from "./store/paleta";
 import { Rail } from "./rail/Rail";
 import { configurarSimulacaoDeEnvio } from "./sdk/adapter";
+import { definirConexao, lerConexao } from "./store/conexao";
 import { Shell } from "./shell/Shell";
 import { useCanalAtivo } from "./store/hooks";
 import { entrar } from "./store/edicao";
@@ -385,6 +386,25 @@ export function App() {
             className="rounded-2 border border-border-subtle bg-surface-2 px-3 py-1 text-sm text-text-1"
           >
             {semente.modo === "escuro" ? "tema: escuro" : "tema: claro"}
+          </button>
+
+          {/*
+            Derruba a conexão à mão.
+
+            Sem backend a conexão nunca cai sozinha, e uma faixa que só
+            aparece contra um servidor que não existe é uma faixa que ninguém
+            olhou. Isto é do arnês e não do produto — mesma família do "falhar
+            envio" ao lado.
+          */}
+          <button
+            onClick={() =>
+              definirConexao(
+                lerConexao() === "conectado" ? "reconectando" : "conectado",
+              )
+            }
+            className="rounded-2 border border-border-subtle bg-surface-2 px-3 py-1 text-sm text-text-1"
+          >
+            derrubar conexão
           </button>
 
           <label className="flex items-center gap-2 text-xs text-text-2">

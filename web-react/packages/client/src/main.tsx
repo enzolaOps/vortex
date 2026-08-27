@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { iniciarPintura } from "./tema/pintor";
 import { App } from "./App";
 import { Toaster } from "./components/ui/Toast";
+import { FaixaDeConexao } from "./conexao/FaixaDeConexao";
 import { TooltipProvider } from "./components/ui/Tooltip";
 import "./styles/tokens.css";
 
@@ -21,6 +22,10 @@ createRoot(root).render(
       {/* Montado uma vez na raiz: a viewport e a regiao aria-live que o
           leitor de tela anuncia. Os toasts vem do store, nao de props. */}
       <Toaster />
+      {/* Como o Toaster: superfície global, montada uma vez, alimentada por
+          store. Flutua — faixa no fluxo mudaria a altura do container da
+          lista virtualizada. */}
+      <FaixaDeConexao />
     </TooltipProvider>
   </StrictMode>,
 );
