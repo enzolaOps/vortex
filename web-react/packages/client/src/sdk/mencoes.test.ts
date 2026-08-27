@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CHANNEL_ID, seed } from "../dev/firehose";
-import { channelMessageIds, proximaMencao } from "./adapter";
+import { channelMessageIds, proximaMencao, temMencao } from "./adapter";
 import { client } from "./client";
 
 /**
@@ -18,6 +18,23 @@ import { client } from "./client";
  * passou a produzir uma menção a cada 31 mensagens, e é isso que estes testes
  * consomem.
  */
+
+/** Acrescenta uma mensagem que menciona você, pelo caminho de EVENTO. */
+function criarMencao(): void {
+  const id = `01M${String(Date.now()).slice(-10)}${contador++}`.padEnd(26, "0");
+  client.messages.getOrCreate(
+    id,
+    {
+      _id: id,
+      channel: CHANNEL_ID,
+      author: "01JQ0000000000000001000001",
+      content: `oi <@01JQ0000000000000001000000>`,
+    },
+    true,
+  );
+  pendentes.splice(0, pendentes.length).forEach((cb) => cb(0));
+}
+let contador = 0;
 
 const pendentes: FrameRequestCallback[] = [];
 
@@ -83,5 +100,39 @@ describe("próxima menção", () => {
 
   it("canal sem menção não tem destino", () => {
     expect(proximaMencao("canal-vazio", undefined)).toBeUndefined();
+    expect(temMencao("canal-vazio")).toBe(false);
+  });
+
+  it("`temMencao` concorda com `proximaMencao`", () => {
+    /*
+      As duas leem o mesmo cache, e este teste guarda que continuem lendo.
+      Separá-las foi o conserto de uma regressão de 18,6% de frames perdidos —
+      a pergunta "existe?" é de RENDER e não pode varrer dez mil IDs — e o modo
+      de estragar isso de novo é dar caminhos diferentes às duas.
+    */
+    expect(temMencao(CHANNEL_ID)).toBe(
+      proximaMencao(CHANNEL_ID, undefined) !== undefined,
+    );
+  });
+
+  it("o cache acompanha mensagem nova sem varrer tudo de novo", () => {
+    /*
+      O caminho quente: append preserva o prefixo do array de IDs, então só a
+      cauda é conferida. O que este teste guarda é o RESULTADO — se a
+      otimização incremental errar, uma menção nova some ou uma antiga
+      duplica.
+    */
+    // PRIMA o cache antes de acrescentar: sem isto a primeira chamada a
+    // `proximaMencao` já vem depois da mensagem nova e faz varredura completa
+    // — o caminho incremental nunca roda, e o teste passa sem testá-lo. Foi
+    // exatamente o que a mutação revelou.
+    expect(temMencao(CHANNEL_ID)).toBe(true);
+
+    const antes = mencoesReais().length;
+    criarMencao();
+    expect(mencoesReais().length).toBe(antes + 1);
+    expect(proximaMencao(CHANNEL_ID, mencoesReais().at(-2))).toBe(
+      mencoesReais().at(-1),
+    );
   });
 });

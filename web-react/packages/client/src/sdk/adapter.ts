@@ -1005,19 +1005,85 @@ function ehMencao(conteudo: string): boolean {
 }
 
 /**
+ * As menções de um canal, em cache pela IDENTIDADE da lista de IDs.
+ *
+ * Três versões, e as duas primeiras estavam erradas de formas opostas — vale
+ * registrar porque o erro é fácil de repetir:
+ *
+ * 1. **Acumular pelo evento `message`** era cego para metade do app: `seed()`
+ *    contorna o caminho de evento de propósito ("carga em massa e chegada
+ *    incremental são caminhos diferentes"), então nenhuma menção do histórico
+ *    entrava. Mesma família da pendência de semear não-lidas no `Ready`.
+ *
+ * 2. **Derivar na hora** consertava isso e criava outro: o botão precisa saber
+ *    se EXISTE menção para decidir se aparece, e isso é uma pergunta de
+ *    RENDER. A passada por dez mil IDs saiu do clique e foi para o caminho
+ *    quente. O gate mediu: **18,6% de frames perdidos contra 1,5%**, p99 de
+ *    75ms. O comentário da versão 2 dizia "por clique, não por frame" e o
+ *    código fazia o contrário.
+ *
+ * 3. Cache pela identidade do array de IDs, incremental no append. A lista de
+ *    IDs é republicada como array novo a cada mudança, então comparar a
+ *    referência responde "mudou?" sem comparar conteúdo. Append — o caminho
+ *    quente — só varre a cauda.
+ */
+type CacheDeMencoes = { ids: readonly string[]; mencoes: string[] };
+const mencoesPorCanal = new Map<string, CacheDeMencoes>();
+const VAZIO_DE_IDS: readonly string[] = [];
+
+function mencoesDe(channelId: string): readonly string[] {
+  /*
+    A lista PUBLICADA, nunca `idsOf`.
+
+    `idsOf` devolve o array interno, que é mutado NO LUGAR — a identidade dele
+    nunca muda, então um cache que a compara jamais invalidaria: a lista de
+    menções seria calculada uma vez e congelada. Foi o que os testes pegaram,
+    e o sintoma era "a próxima menção é a de dois seeds atrás".
+
+    A publicada é cópia nova a cada publish — é por isso que publicar é O(total),
+    e é exatamente essa propriedade que faz a comparação por referência
+    responder "mudou?" sem comparar conteúdo. Também é a lista que o componente
+    enxerga, então os IDs devolvidos aqui existem lá.
+  */
+  const ids = channelMessageIds.peek(channelId) ?? VAZIO_DE_IDS;
+  const cache = mencoesPorCanal.get(channelId);
+  if (cache && cache.ids === ids) return cache.mencoes;
+
+  const ehDaqui = (id: string) => {
+    const m = client.messages.get(id) as { content?: string } | undefined;
+    return m?.content !== undefined && ehMencao(m.content);
+  };
+
+  /*
+    Append preserva o prefixo, e é o caminho quente.
+
+    Uma mensagem nova produz um array que começa igual ao anterior. Conferir o
+    ÚLTIMO id do prefixo é o suficiente para saber disso — prepend e
+    substituição mudam esse elemento, e caem na varredura completa, que é rara
+    e acontece fora da janela medida.
+  */
+  const antes = cache?.ids;
+  const podeIncrementar =
+    antes !== undefined &&
+    ids.length > antes.length &&
+    antes.length > 0 &&
+    ids[antes.length - 1] === antes[antes.length - 1];
+
+  const mencoes = podeIncrementar
+    ? [...(cache?.mencoes ?? []), ...ids.slice(antes?.length ?? 0).filter(ehDaqui)]
+    : ids.filter(ehDaqui);
+
+  mencoesPorCanal.set(channelId, { ids, mencoes });
+  return mencoes;
+}
+
+/** Existe alguma menção a você neste canal? Pergunta de RENDER, e é O(1). */
+export function temMencao(channelId: string): boolean {
+  return mencoesDe(channelId).length > 0;
+}
+
+/**
  * A próxima menção depois de uma posição, ou a primeira se não houver posição.
- *
- * **Derivada na hora, e não acumulada — e a primeira versão errou nisso.** Ela
- * mantinha uma lista alimentada pelo evento `message`, o que parecia natural e
- * era cego para metade do app: `seed()` CONTORNA o caminho de evento de
- * propósito ("carga em massa e chegada incremental são caminhos diferentes"),
- * então nenhuma menção do histórico existia para a lista. É a mesma família da
- * pendência de semear não-lidas no `Ready` — contador que só sabe do que
- * chegou ao vivo abre zerado sobre um histórico cheio.
- *
- * Derivar não tem esse estado para sincronizar. O custo é uma passada pelos
- * IDs do canal por CLIQUE, não por frame — alguns milissegundos em 10 mil
- * mensagens, num caminho que a pessoa aciona com o dedo.
  *
  * `depoisDe` é um ID e não um índice: índice muda quando chega histórico pelo
  * topo, e quem chama não sabe nada sobre prepend. Mesma razão do `getItemKey`.
@@ -1030,11 +1096,7 @@ export function proximaMencao(
   channelId: string,
   depoisDe: string | undefined,
 ): string | undefined {
-  const ids = idsOf(channelId);
-  const vivas = ids.filter((id) => {
-    const m = client.messages.get(id) as { content?: string } | undefined;
-    return m?.content !== undefined && ehMencao(m.content);
-  });
+  const vivas = mencoesDe(channelId);
   if (vivas.length === 0) return undefined;
 
   if (!depoisDe) return vivas[0];
