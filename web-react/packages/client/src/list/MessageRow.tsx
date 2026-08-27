@@ -20,6 +20,7 @@ import { cn } from "../lib/cn";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
 import type { SistemaSnapshot } from "../sdk/domain";
+import { reenviar } from "../sdk/adapter";
 import { useMessage } from "../store/hooks";
 import css from "./MessageRow.module.css";
 
@@ -247,8 +248,31 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
               seguidas.
             */}
             {message.sendState !== "sent" ? (
-              <p className={cn("text-xs", falhou ? "text-danger" : "text-text-3")}>
+              /*
+                Erro diz o que houve E como resolver.
+
+                "não enviada" era só a primeira metade, e a segunda não
+                existia no app inteiro: a linha ficava vermelha para sempre.
+                O botão é o resto da frase, e fica na mesma linha do rótulo
+                para não acrescentar altura — a âncora do virtualizador não
+                perdoa hover nem estado que muda a caixa.
+              */
+              <p
+                className={cn(
+                  "flex items-center gap-2 text-xs",
+                  falhou ? "text-danger" : "text-text-3",
+                )}
+              >
                 {falhou ? "não enviada" : "enviando…"}
+                {falhou ? (
+                  <button
+                    type="button"
+                    className="rounded-1 underline underline-offset-2 hover:text-text-1"
+                    onClick={() => reenviar(message.id)}
+                  >
+                    Tentar de novo
+                  </button>
+                ) : null}
               </p>
             ) : null}
 

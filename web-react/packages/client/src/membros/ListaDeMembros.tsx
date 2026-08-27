@@ -3,6 +3,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { memo, useEffect, useMemo, useRef } from "react";
 
 import { count } from "../dev/stats";
+import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
 import { chaveDeMembro } from "../sdk/domain";
 import {
@@ -246,7 +247,11 @@ export function ListaDeMembros() {
   if (linhas.length === 0) {
     return (
       <div className={css.painel}>
-        <p className={css.vazio}>sem membros</p>
+        <EstadoVazio
+          compacto
+          titulo="Nenhum membro para mostrar"
+          detalhe="A lista aparece quando o servidor carregar."
+        />
       </div>
     );
   }

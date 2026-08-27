@@ -1,0 +1,73 @@
+/* ============================================================
+   Estado vazio
+   ------------------------------------------------------------
+   Não é uma tela de consolo. Uma linha, um detalhe opcional e a
+   ação — e nada mais. O que o design system proíbe aqui é
+   ilustração genérica, e a razão é de densidade: num app aberto
+   8h por dia, cada vazio é visto centenas de vezes, e o que
+   encanta na primeira semana irrita na terceira.
+   ============================================================ */
+
+.vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--vx-space-3);
+  padding: var(--vx-space-6) var(--vx-space-4);
+  text-align: center;
+  /* O texto respira num teto legível mesmo quando o painel é largo. */
+  max-inline-size: 44ch;
+  margin-inline: auto;
+}
+
+/*
+  Compacto: coluna lateral estreita.
+
+  Centralizar num painel de 240px empurra o texto para o meio de uma
+  faixa fina e o deixa parecendo perdido. Alinhado ao início, ele
+  segue a mesma calha das linhas que estariam ali se houvesse dado.
+*/
+.vazio[data-compacto="true"] {
+  align-items: flex-start;
+  gap: var(--vx-space-2);
+  padding: var(--vx-space-4) var(--vx-space-3);
+  text-align: start;
+}
+
+/*
+  O ícone é ÍCONE, não ilustração.
+
+  20px, o mesmo de toda a interface. A tentação aqui é crescer para
+  48px e virar mascote; o que segura é lembrar que este bloco compete
+  por atenção com uma conversa ao lado.
+*/
+.icone {
+  display: grid;
+  place-items: center;
+  inline-size: var(--vx-space-6);
+  block-size: var(--vx-space-6);
+  border-radius: var(--vx-radius-4);
+  background: var(--vx-surface-2);
+  color: var(--vx-text-3);
+}
+
+.titulo {
+  margin: 0;
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-md);
+  line-height: var(--vx-leading-message);
+  text-wrap: balance;
+}
+
+.vazio[data-compacto="true"] .titulo {
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+.detalhe {
+  margin: 0;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+  line-height: var(--vx-leading-message);
+  text-wrap: balance;
+}

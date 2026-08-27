@@ -1,10 +1,12 @@
+import { ChatCircleDots } from "@phosphor-icons/react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useRef } from "react";
 
 import { ATRIBUTO_DE_COLUNA } from "../dev/alinhamento";
 import { aoTerminarArraste, estaArrastando } from "../store/arraste";
 import { count } from "../dev/stats";
-import { ouvirFimDaLista } from "../store/comandos";
+import { EstadoVazio } from "../components/ui/EstadoVazio";
+import { ouvirFimDaLista, pedirFocoNoComposer } from "../store/comandos";
 import { useChannelMessageIds } from "../store/hooks";
 import css from "./MessageList.module.css";
 import { MessageRow } from "./MessageRow";
@@ -282,6 +284,40 @@ export function MessageList({ channelId }: { channelId: string }) {
           `medição e trava a aba.`,
       );
     }
+  }
+
+  /*
+    Canal sem histórico: o vazio É o começo do canal.
+
+    Antes, renderizava NADA — uma coluna em branco, indistinguível de "ainda
+    carregando" e de "quebrou". É o melhor padrão da categoria, e a razão de
+    ele ser o melhor é que não trata a ausência como falta: o canal começou
+    aqui, e essa é uma informação verdadeira e útil, não um consolo.
+
+    A ação leva de fato ao composer — `pedirFocoNoComposer` atravessa o mesmo
+    barramento de `pedirFimDaLista`, porque a lista não alcança o composer pelo
+    nome (lei nº 6) e na fase 4 os dois podem estar em painéis diferentes.
+
+    FORA do container de scroll virtualizado, de propósito: dentro, ele viraria
+    conteúdo com altura que o virtualizador não mede e a `getTotalSize` passaria
+    a mentir.
+  */
+  if (ids.length === 0) {
+    return (
+      <div className={css.scroll}>
+        <div className={css.coluna} {...{ [ATRIBUTO_DE_COLUNA]: "mensagem" }}>
+          <EstadoVazio
+            icone={<ChatCircleDots size={20} />}
+            titulo="Este é o começo do canal."
+            detalhe="Ainda não há nada aqui — o que você escrever será a primeira mensagem."
+            acao={{
+              rotulo: "Escrever a primeira",
+              aoClicar: () => pedirFocoNoComposer(channelId),
+            }}
+          />
+        </div>
+      </div>
+    );
   }
 
   return (

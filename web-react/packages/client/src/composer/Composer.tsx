@@ -1,5 +1,5 @@
 import { PaperPlaneRight } from "@phosphor-icons/react";
-import { useEffect, type KeyboardEvent } from "react";
+import { useEffect, useRef, type KeyboardEvent } from "react";
 
 import { Tooltip } from "../components/ui/Tooltip";
 import {
@@ -9,7 +9,7 @@ import {
 import { digitacao, enviarMensagem } from "../sdk/adapter";
 import { LIMITE_DE_CONTEUDO } from "../sdk/domain";
 import { cn } from "../lib/cn";
-import { pedirFimDaLista } from "../store/comandos";
+import { ouvirFocoNoComposer, pedirFimDaLista } from "../store/comandos";
 import { useRascunho } from "../store/hooks";
 import { escreverRascunho, limparRascunho } from "../store/rascunhos";
 import css from "./Composer.module.css";
@@ -56,6 +56,20 @@ export function Composer({ channelId }: { channelId: string }) {
     const id = requestAnimationFrame(verificarAlinhamentoDeColuna);
     return () => cancelAnimationFrame(id);
   }, []);
+
+  /**
+   * "Escrever a primeira" — o convite do canal vazio termina AQUI.
+   *
+   * Estado vazio que diz "escreva algo" e deixa a pessoa procurar o campo é
+   * decoração; o convite tem que levar o cursor. Effect é o uso correto:
+   * sincronizar com um sistema externo, e a lista não conhece este componente
+   * (lei nº 6) — os dois podem estar em painéis diferentes na fase 4.
+   */
+  const entradaRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(
+    () => ouvirFocoNoComposer(channelId, () => entradaRef.current?.focus()),
+    [channelId],
+  );
 
   function alterar(texto: string) {
     escreverRascunho(channelId, texto);
@@ -120,6 +134,7 @@ export function Composer({ channelId }: { channelId: string }) {
             </div>
 
             <textarea
+              ref={entradaRef}
               className={css.entrada}
               value={valor}
               onChange={(evento) => alterar(evento.target.value)}

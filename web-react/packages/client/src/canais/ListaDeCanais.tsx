@@ -13,6 +13,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "../components/ui/ContextMenu";
+import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { Lamina } from "../components/ui/Lamina";
 import { contagem, rotuloDeNaoLidas } from "../lib/plural";
 import { marcarCanalLido } from "../sdk/adapter";
@@ -225,7 +226,11 @@ export function ListaDeCanais() {
   if (!serverId) {
     return (
       <div className={css.painel}>
-        <p className={css.vazio}>escolha um servidor</p>
+        <EstadoVazio
+          compacto
+          titulo="Nenhum servidor aberto"
+          detalhe="Escolha um na coluna ao lado para ver os canais dele."
+        />
       </div>
     );
   }
@@ -238,7 +243,11 @@ export function ListaDeCanais() {
 
       <div className={css.rolagem}>
         {vazio ? (
-          <p className={css.vazio}>este servidor não tem canais</p>
+          <EstadoVazio
+            compacto
+            titulo="Este servidor não tem canais"
+            detalhe="Quem administra o servidor pode criar o primeiro."
+          />
         ) : (
           <nav aria-label="Canais">
             {(["texto", "voz"] as const).map((tipo) =>

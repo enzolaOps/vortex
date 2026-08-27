@@ -156,6 +156,32 @@ function marcarEnvio(id: string, estado: SendState) {
   }
 }
 
+/**
+ * Tenta enviar de novo uma mensagem que falhou.
+ *
+ * O design system diz que erro **explica o que aconteceu E como resolver**. A
+ * linha falhada dizia "não enviada" — a primeira metade — e a segunda não
+ * existia em lugar nenhum do app: a mensagem ficava lá, vermelha, para sempre.
+ *
+ * O conteúdo não é reenviado nem recriado: a mensagem já existe localmente com
+ * o texto certo. Reenviar é voltar ao estado pendente e tentar de novo, o que
+ * mantém a posição dela no histórico — recriar produziria um ID novo e a linha
+ * saltaria para o fim, perdendo o lugar onde a pessoa a escreveu.
+ *
+ * ⚠ Fase 6: com rede, isto vira um POST novo com o MESMO nonce, e a
+ * reconciliação por nonce (já documentada aqui) é o que impede a mensagem de
+ * aparecer duas vezes se a primeira tentativa tiver chegado ao servidor.
+ */
+export function reenviar(id: string): void {
+  if (estadoDeEnvioDe(id) !== "failed") return;
+
+  marcarEnvio(id, "pending");
+  setTimeout(
+    () => marcarEnvio(id, simulacao.falhar ? "failed" : "sent"),
+    simulacao.latenciaMs ?? 600,
+  );
+}
+
 /* -------------------------------------------------------------- entidade */
 
 /**
