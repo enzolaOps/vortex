@@ -43,6 +43,7 @@ import { client, conectado } from "./client";
 import { aguardar, desistir, reconciliar } from "./nonce";
 import { definirConexao } from "../store/conexao";
 import { assinarSilencio } from "../store/silencio";
+import { dentro } from "../store/sessao";
 import {
   baldeDe,
   SEM_CARGO,
@@ -899,6 +900,19 @@ let usuarioLocal: string | undefined;
 
 export function definirUsuarioLocal(id: string): void {
   usuarioLocal = id;
+  /*
+    O arnês entra sem senha, e é assim que ele deve entrar.
+
+    Não há backend alcançável daqui, então exigir login travaria o
+    desenvolvimento inteiro — e uma tela de entrada que não tem servidor para
+    responder não é uma porta, é uma parede.
+
+    Isto NÃO é um atalho de autenticação: `definirUsuarioLocal` só é chamada
+    pelo firehose e pelo caminho de login de verdade. O que ela faz aqui é
+    dizer ao portão que já se sabe quem é a pessoa, que é literalmente a
+    pergunta que ele faz.
+  */
+  dentro(id);
 }
 
 const proximoId = monotonicFactory();

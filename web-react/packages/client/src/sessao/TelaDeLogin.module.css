@@ -1,0 +1,116 @@
+/* ============================================================
+   Tela de entrada
+   ------------------------------------------------------------
+   A primeira coisa que alguém vê, e a única superfície onde a
+   pessoa ainda não investiu nada. Curta de propósito.
+   ============================================================ */
+
+.tela {
+  display: grid;
+  place-items: center;
+  min-block-size: 100dvh;
+  padding: var(--vx-space-4);
+  background: var(--vx-surface-0);
+}
+
+.cartao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-4);
+  /* A medida de leitura não vale aqui: formulário curto é lido em coluna
+     estreita, e 32rem seria um campo de e-mail atravessando a tela. */
+  inline-size: min(360px, 100%);
+  padding: var(--vx-space-6);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-3);
+  background: var(--vx-surface-1);
+}
+
+.titulo {
+  margin: 0;
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-2xl);
+  font-weight: 500;
+  /* A entreletra da marca, e é o único lugar do app onde ela aparece em
+     tamanho grande — a tela de entrada é onde a identidade se apresenta. */
+  letter-spacing: -0.02em;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+}
+
+.rotulo {
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-sm);
+}
+
+.entrada {
+  padding-inline: var(--vx-space-3);
+  padding-block: var(--vx-space-2);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-2);
+  background: var(--vx-surface-0);
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+}
+
+.entrada:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  /* Para DENTRO: o anel por fora encostaria na borda do cartão. Mesma
+     correção do campo da paleta. */
+  outline-offset: -2px;
+}
+
+/*
+  Campo travado durante o envio.
+
+  Sem `opacity`: o texto que a pessoa digitou continua sendo o dado mais
+  importante da tela, e esmaecê-lo enquanto ela espera é apagar justamente o
+  que ela vai querer conferir se der errado.
+*/
+.entrada:disabled {
+  cursor: not-allowed;
+  border-color: var(--vx-border-subtle);
+}
+
+.erro {
+  margin: 0;
+  padding-inline: var(--vx-space-3);
+  padding-block: var(--vx-space-2);
+  border: 1px solid var(--vx-danger);
+  border-radius: var(--vx-radius-2);
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-sm);
+}
+
+/*
+  A entrada de desenvolvimento.
+
+  Discreta e não escondida: quem trabalha aqui precisa dela todo dia, e quem
+  olha a tela precisa entender na hora que ela não é parte do produto. Some do
+  bundle de produção — ver o comentário no componente.
+*/
+.semServidor {
+  padding-block: var(--vx-space-1);
+  border: 0;
+  background: none;
+  color: var(--vx-text-3);
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.semServidor:hover {
+  color: var(--vx-text-1);
+}
+
+.semServidor:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
