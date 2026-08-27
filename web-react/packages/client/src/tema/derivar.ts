@@ -88,13 +88,51 @@ type Rampa = {
   readonly offline: Degrau;
 };
 
+/**
+ * A rampa de superfície tem PASSO CONSTANTE em L — e isso é o conserto de um
+ * problema medido, não gosto.
+ *
+ * A rampa original tinha degraus de 1,075 · 1,105 · 1,152 no escuro e 1,060 ·
+ * 1,040 · 1,031 no claro. Quatro superfícies que somavam 1,368:1 e 1,137:1 de
+ * ponta a ponta: elevação que existia no token e quase não existia no olho —
+ * e num app onde profundidade vem de CAMADA e não de sombra, isso é a única
+ * pista de profundidade que existe.
+ *
+ * Passo constante em L é a escolha certa porque em OKLCH o L é perceptualmente
+ * uniforme: `surface-1 → surface-2` tem que parecer o mesmo salto que
+ * `surface-2 → surface-3`, e é isso que passo constante entrega. Em razão WCAG
+ * os degraus saem desiguais (1,10 · 1,14 · 1,15 no escuro) porque a razão não é
+ * linear no L — o número desigual é o sintoma de estar certo, não de errado.
+ *
+ * Pelo mesmo motivo, o passo foi escolhido pelo ΔL e não pela razão: no
+ * extremo escuro a razão WCAG é dominada pelo termo de flare (`+0,05`) e
+ * comprime tudo perto de 1,1 por mais que se abra. Abrir até L 0,150 na base
+ * levava o span a 1,53 e dava um `#0b0a11` mais escuro que a base de qualquer
+ * app da categoria, sem melhorar o primeiro degrau. O ΔL é a medida honesta
+ * aqui; a razão é o piso de segurança.
+ *
+ * **A direção foi ditada pelo orçamento, não escolhida.** Os pares de
+ * `pares.ts` dizem onde há folga: no escuro o par mais apertado é `text-3 /
+ * surface-3` (era 1,11× o mínimo), então SUBIR a superfície mais alta é caro e
+ * abrir para baixo é quase de graça — a base foi de L 0,200 para 0,180 e a
+ * superfície de topo quase não se moveu. No claro o topo é branco puro e não
+ * sobe, então a abertura desce também, e o par apertado ali era
+ * `border-strong / surface-0`: a borda escureceu de L 0,610 para 0,580 para
+ * pagar por isso.
+ *
+ * Resultado medido: no escuro os degraus vão de 1,075 · 1,105 · 1,152 para
+ * 1,10 · 1,14 · 1,15 e o span de 1,368 para 1,447; no claro, de 1,060 · 1,040 ·
+ * 1,031 para 1,081 · 1,069 · 1,067 e o span de 1,137 para 1,233. O ganho maior
+ * é no claro, e é o de EVENNESS: o degrau lá ENCOLHIA a cada passo. O pior par
+ * segue em 1,10× e 1,12× do mínimo.
+ */
 const RAMPAS: Record<Modo, Rampa> = {
   escuro: {
     superficie: [
-      { l: 0.200146, c: 0.013939, dh: -3.362 },
-      { l: 0.231638, c: 0.017258, dh: -4.926 },
-      { l: 0.267284, c: 0.020429, dh: -1.696 },
-      { l: 0.309759, c: 0.023372, dh: 0.582 },
+      { l: 0.18, c: 0.013939, dh: -3.362 },
+      { l: 0.225, c: 0.017258, dh: -4.926 },
+      { l: 0.27, c: 0.020429, dh: -1.696 },
+      { l: 0.315, c: 0.023372, dh: 0.582 },
     ],
     texto: [
       { l: 0.940893, c: 0.010882, dh: 2.619 },
@@ -114,9 +152,9 @@ const RAMPAS: Record<Modo, Rampa> = {
   },
   claro: {
     superficie: [
-      { l: 0.957021, c: 0.012361, dh: 2.285 },
-      { l: 0.976375, c: 0.008196, dh: 2.358 },
-      { l: 0.989689, c: 0.004082, dh: 2.427 },
+      { l: 0.93, c: 0.012361, dh: 2.285 },
+      { l: 0.953333, c: 0.008196, dh: 2.358 },
+      { l: 0.976667, c: 0.004082, dh: 2.427 },
       { l: 1, c: 0, dh: 0 },
     ],
     texto: [
@@ -125,7 +163,7 @@ const RAMPAS: Record<Modo, Rampa> = {
       { l: 0.486767, c: 0.038825, dh: -0.7 },
     ],
     bordaSutil: { l: 0.912599, c: 0.023491, dh: 0.343 },
-    bordaForte: { l: 0.609573, c: 0.041331, dh: -0.28 },
+    bordaForte: { l: 0.58, c: 0.041331, dh: -0.28 },
     acento: { l: 0.489427, c: 0.188565, dh: 0 },
     acentoHover: { l: 0.43063, c: 0.180921, dh: -1.184 },
     acentoSuave: { l: 0.933132, c: 0.030146, dh: 13.301 },

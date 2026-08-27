@@ -39,10 +39,10 @@
      Neutro com um traço de violeta, baixíssima croma: é o que
      amarra a família pastel sem virar interface roxa.
      0 = mais ao fundo. Profundidade vem de camada, não de sombra. */
-  --vx-surface-0: #16151c;
-  --vx-surface-1: #1d1c25;
-  --vx-surface-2: #26242f;
-  --vx-surface-3: #312e3b;
+  --vx-surface-0: #121117;
+  --vx-surface-1: #1b1a23;
+  --vx-surface-2: #272530;
+  --vx-surface-3: #322f3c;
 
   /* --- Texto -------------------------------------------------
      1 = primário. O par que mais aperta é --vx-text-3 sobre
@@ -199,9 +199,9 @@
 [data-theme="light"] {
   color-scheme: light;
 
-  --vx-surface-0: #f2eff8;
-  --vx-surface-1: #f8f6fc;
-  --vx-surface-2: #fcfbfe;
+  --vx-surface-0: #e9e6ef;
+  --vx-surface-1: #f0eef4;
+  --vx-surface-2: #f8f7fa;
   --vx-surface-3: #ffffff;
 
   --vx-text-1: #201d29;
@@ -209,7 +209,7 @@
   --vx-text-3: #625b73;
 
   --vx-border-subtle: #e4dff0;
-  --vx-border-strong: #867e99;
+  --vx-border-strong: #7d7590;
 
   --vx-accent: #5b45c4;
   --vx-accent-hover: #4a35ad;
@@ -233,9 +233,9 @@
   :root:not([data-theme="dark"]) {
     color-scheme: light;
 
-    --vx-surface-0: #f2eff8;
-    --vx-surface-1: #f8f6fc;
-    --vx-surface-2: #fcfbfe;
+    --vx-surface-0: #e9e6ef;
+    --vx-surface-1: #f0eef4;
+    --vx-surface-2: #f8f7fa;
     --vx-surface-3: #ffffff;
 
     --vx-text-1: #201d29;
@@ -243,7 +243,7 @@
     --vx-text-3: #625b73;
 
     --vx-border-subtle: #e4dff0;
-    --vx-border-strong: #867e99;
+    --vx-border-strong: #7d7590;
 
     --vx-accent: #5b45c4;
     --vx-accent-hover: #4a35ad;
