@@ -428,6 +428,54 @@ function sistemaDe(seed: number, autor: string): object | undefined {
 
 let ultimoId = "";
 
+/**
+ * Anexos, em proporções que exercitam os dois tetos.
+ *
+ * Uma em 17 leva imagem, e as proporções são escolhidas para cobrir os casos
+ * que quebram a reserva de espaço: paisagem larga, retrato muito alto (que o
+ * teto de ALTURA precisa segurar, senão a linha vira uma coluna de milhares de
+ * pixels) e quadrado. Uma em 41 leva arquivo sem dimensão, que é o outro
+ * caminho de render.
+ *
+ * A URL aponta para um host que não existe — não há servidor de arquivos aqui.
+ * E isso é adequado: o que precisa ser verificado é que a CAIXA está certa
+ * antes de qualquer byte chegar, e imagem que nunca carrega é o teste mais
+ * duro possível dessa propriedade.
+ */
+const PROPORCOES = [
+  { largura: 1600, altura: 900 },
+  { largura: 600, altura: 1600 },
+  { largura: 800, altura: 800 },
+] as const;
+
+function anexosDe(seed: number) {
+  if (seed % 41 === 7) {
+    return {
+      attachments: [
+        {
+          _id: `f${seed}`,
+          tag: "attachments",
+          filename: `relatorio-${seed}.pdf`,
+          metadata: { type: "File" },
+        },
+      ],
+    };
+  }
+  if (seed % 17 !== 3) return {};
+
+  const p = PROPORCOES[seed % PROPORCOES.length]!;
+  return {
+    attachments: [
+      {
+        _id: `f${seed}`,
+        tag: "attachments",
+        filename: `imagem-${seed}.png`,
+        metadata: { type: "Image", width: p.largura, height: p.altura },
+      },
+    ],
+  };
+}
+
 function createMessage(seed: number, quando?: number): string {
   const id = quando === undefined ? nextId() : nextId(quando);
   const author = autorDe(seed);
@@ -447,6 +495,7 @@ function createMessage(seed: number, quando?: number): string {
       // aparecer na janela visível sem dominar a lista, e para o teste de
       // altura de linha ver os dois casos.
       ...(seed % 13 === 6 && seed > 0 ? { replies: [ultimoId] } : {}),
+      ...anexosDe(seed),
       // Reações em parte das mensagens, e uma delas COM o usuário local: sem
       // isso o chip aceso nunca apareceria, e o estado que decide se o clique
       // adiciona ou remove ficaria sem exercício.

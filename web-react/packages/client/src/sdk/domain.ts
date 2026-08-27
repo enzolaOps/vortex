@@ -44,6 +44,27 @@ export type ParteDeMensagem =
       readonly de: number;
     };
 
+/**
+ * Um anexo, já reduzido ao que a linha precisa.
+ *
+ * `largura` e `altura` são o ponto do tipo inteiro. Sem eles a imagem carrega
+ * e MUDA a altura da linha depois de o virtualizador já a ter medido — o
+ * layout shift clássico, que aqui não é só feio: a lista está ancorada, e uma
+ * linha que cresce acima da âncora empurra tudo o que está sendo lido.
+ *
+ * O protocolo entrega os dois em `Metadata` para imagem e vídeo. Para arquivo
+ * e áudio não entrega, e não precisa — eles têm altura própria e fixa.
+ */
+export type AnexoSnapshot = {
+  readonly id: string;
+  readonly nome: string;
+  readonly url: string;
+  readonly tipo: "imagem" | "video" | "arquivo";
+  /** Só para imagem e vídeo, e é o que reserva o espaço. */
+  readonly largura: number | undefined;
+  readonly altura: number | undefined;
+};
+
 export type MessageSnapshot = {
   readonly id: string;
   readonly channelId: string;
@@ -58,6 +79,8 @@ export type MessageSnapshot = {
   readonly partes: readonly ParteDeMensagem[];
   /** Menciona VOCÊ. A linha inteira se destaca. */
   readonly mencionaVoce: boolean;
+  /** Anexos, já traduzidos. Vazio é o caso comum. */
+  readonly anexos: readonly AnexoSnapshot[];
   readonly createdAt: number;
   /**
    * Hora já formatada. Derivação acontece no adapter, uma vez na escrita —

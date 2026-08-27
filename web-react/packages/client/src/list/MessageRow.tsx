@@ -30,6 +30,7 @@ import {
 import { pode } from "../sdk/permissoes";
 import { responderA } from "../store/resposta";
 import { useMessage } from "../store/hooks";
+import { Anexos } from "./Anexos";
 import { Citacao } from "./Citacao";
 import { TextoDaMensagem } from "./TextoDaMensagem";
 import css from "./MessageRow.module.css";
@@ -496,6 +497,12 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
               no apagado acrescenta. É o gesto mais barato que existe, e é por
               isso que reagir precisa custar um clique e não um menu.
             */}
+            {/* Depois do texto e ANTES das reações: o anexo faz parte do que
+                foi dito; a reação é o que os outros responderam. */}
+            {message.anexos.length > 0 ? (
+              <Anexos anexos={message.anexos} />
+            ) : null}
+
             {message.reactions.length > 0 ? (
               <div className={css.reacoes}>
                 {message.reactions.map((r) => (

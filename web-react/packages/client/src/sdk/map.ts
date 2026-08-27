@@ -20,6 +20,7 @@ import type { Layout } from "./agrupamento";
 import type {
   ChannelSnapshot,
   MemberSnapshot,
+  AnexoSnapshot,
   MessageSnapshot,
   ParteDeMensagem,
   PresenceStatus,
@@ -167,6 +168,43 @@ export function fatiarMencoes(texto: string): readonly ParteDeMensagem[] {
   return out;
 }
 
+const SEM_ANEXOS: readonly AnexoSnapshot[] = [];
+
+/**
+ * Os anexos, reduzidos ao que a linha precisa.
+ *
+ * A dimensão é o que importa aqui e é o que o protocolo dá: `Metadata` carrega
+ * `width` e `height` para imagem e vídeo. Sem eles a linha só descobre a
+ * altura quando o arquivo carrega — e aí ela já foi medida com a altura
+ * errada, num container ancorado.
+ *
+ * `type` do protocolo tem cinco valores e o app tem três. "Text" e "Audio"
+ * caem em `arquivo` porque a interface faz com eles a mesma coisa: uma caixa
+ * de altura fixa com nome e tamanho. Colapsar aqui é o trabalho da camada
+ * anticorrupção — o componente não deve conhecer cinco casos para desenhar
+ * três.
+ */
+function toAnexos(message: Message): readonly AnexoSnapshot[] {
+  const arquivos = message.attachments;
+  if (!arquivos || arquivos.length === 0) return SEM_ANEXOS;
+
+  return arquivos.map((f) => {
+    const m = f.metadata;
+    const dimensionado = m.type === "Image" || m.type === "Video";
+    return {
+      id: f.id,
+      nome: f.filename ?? f.id,
+      // `originalUrl` e não `previewUrl`: a miniatura é decisão de
+      // apresentação, e ela entra quando houver servidor para servi-la.
+      url: f.originalUrl,
+      tipo:
+        m.type === "Image" ? "imagem" : m.type === "Video" ? "video" : "arquivo",
+      largura: dimensionado ? m.width : undefined,
+      altura: dimensionado ? m.height : undefined,
+    } as const;
+  });
+}
+
 export function toMessageSnapshot(
   message: Message,
   layout: Layout,
@@ -191,6 +229,7 @@ export function toMessageSnapshot(
       custo é um `includes` que falha e um array de um elemento.
     */
     partes: fatiarMencoes(message.content),
+    anexos: toAnexos(message),
     /** Menciona VOCÊ — a linha inteira se destaca por isso. */
     mencionaVoce: euId !== undefined && message.content.includes(`<@${euId}>`),
     createdAt: message.createdAt.getTime(),
