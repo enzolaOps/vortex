@@ -75,11 +75,24 @@ function candidatos(codigo) {
   const blocos = codigo.match(/className=(?:"[^"]*"|{[^}]*})/gs) ?? [];
 
   for (const bloco of blocos) {
+    /*
+      COMENTÁRIO não é código, e a guarda lia os dois.
+
+      Um comentário dentro do `cn()` explicando a regra — e este arquivo os tem
+      aos montes, de propósito — carrega aspas em português. A guarda extraía
+      `"onde no texto"` e acusava `onde`, `no` e `texto` de serem utilities
+      mortas. Sete falsos positivos de uma vez, e falso positivo derruba a
+      confiança na guarda inteira, que é o que a torna inútil.
+
+      Some antes de qualquer outra coisa: `/* *\/` e `//` até o fim da linha.
+    */
+    const semComentario = bloco
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/[^\n]*/g, "");
+
     // Operandos de COMPARAÇÃO não são classes: `estado === "pending" &&
-    // "opacity-60"` tem duas literais e só a segunda vira CSS. Sem isto a
-    // guarda acusa "pending" e "erro", e falso positivo derruba a confiança
-    // nela inteira — que é o que a torna inútil.
-    const limpo = bloco.replace(/[!=]==?\s*"[^"]*"/g, "");
+    // "opacity-60"` tem duas literais e só a segunda vira CSS.
+    const limpo = semComentario.replace(/[!=]==?\s*"[^"]*"/g, "");
 
     for (const literal of limpo.match(/"[^"$]*"/g) ?? []) {
       for (const bruto of literal.slice(1, -1).split(/\s+/)) {
