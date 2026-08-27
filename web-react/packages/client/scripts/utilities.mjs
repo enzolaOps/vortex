@@ -25,7 +25,9 @@
  * Tailwind realmente emitiu.
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
+
+const BARRA = new RegExp(String.fromCharCode(92,92), "g");
 
 const RAIZ = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const FONTE = join(RAIZ, "src");
@@ -121,8 +123,106 @@ for (const arquivo of arquivos(FONTE)) {
   }
 }
 
+/*
+  E o sentido INVERSO: classe de CSS Module que perdeu o consumidor.
+
+  A guarda acima pega `className` que não produz CSS. Este bloco pega CSS que
+  nenhum `className` consome — o outro lado da mesma moeda, e um que a guarda
+  original não via.
+
+  Nasceu na hora: a lâmina passou a carregar "não lida" na lista de canais, o
+  `.ponto` de 8px que fazia esse trabalho saiu do TSX, e o CSS dele ficou.
+  Typecheck, lint, 177 testes e a própria guarda de utilities passaram sem um
+  ruído — regra morta não quebra nada, só engorda a folha e mente sobre o que a
+  interface faz para quem for ler o arquivo depois.
+
+  A busca é por `css.nome` e `css["nome"]` no TSX irmão. Acesso dinâmico
+  (`css[variavel]`) não é rastreável, então um módulo que faça isso é
+  dispensado inteiro em vez de gerar acusação falsa — guarda que erra é guarda
+  que alguém desliga.
+*/
+const orfas = new Map();
+
+/*
+  Quem importa cada `.module.css`, e com que nome local.
+
+  A primeira versao conferia so o TSX IRMAO, e isso e um falso positivo
+  esperando para acontecer: `CabecalhoDeCanal.module.css` tem uma `.coluna`
+  usada de `App.tsx`, via `import cssCabecalho from "..."`. A guarda a acusou
+  de morta — e a regra em questao e justamente a que carrega o `block-size:
+  100%` sem o qual o virtualizador monta as dez mil linhas de uma vez.
+
+  Guarda que erra e guarda que alguem desliga, e essa teria sido desligada com
+  razao. O alias importa porque ninguem e obrigado a chamar de `css`.
+*/
+const importadores = new Map();
+const fontes = new Map();
+for (const arquivo of arquivos(FONTE)) {
+  const codigo = readFileSync(arquivo, "utf8");
+  fontes.set(arquivo, codigo);
+  for (const m of codigo.matchAll(
+    /import\s+(\w+)\s+from\s+"([^"]+\.module\.css)"/g,
+  )) {
+    const alvo = resolve(dirname(arquivo), m[2]);
+    if (!importadores.has(alvo)) importadores.set(alvo, []);
+    importadores.get(alvo).push({ arquivo, alias: m[1] });
+  }
+}
+
+for (const [modulo, usos] of importadores) {
+  let regras;
+  try {
+    regras = readFileSync(modulo, "utf8");
+  } catch {
+    continue;
+  }
+
+  // Acesso dinamico nao e rastreavel: dispensa o modulo inteiro em vez de
+  // gerar acusacao falsa.
+  const dinamico = usos.some((u) =>
+    new RegExp(String.raw`\b${u.alias}\[(?!["'])`).test(fontes.get(u.arquivo)),
+  );
+  if (dinamico) continue;
+
+  const declaradas = new Set();
+  for (const m of regras.matchAll(/^\s*\.([A-Za-z][\w-]*)/gm)) {
+    declaradas.add(m[1]);
+  }
+
+  for (const nome of declaradas) {
+    const usada = usos.some((u) => {
+      const codigo = fontes.get(u.arquivo);
+      return (
+        new RegExp(String.raw`\b${u.alias}\.${nome}\b`).test(codigo) ||
+        codigo.includes(`${u.alias}["${nome}"]`)
+      );
+    });
+    if (usada) continue;
+    const curto = modulo.slice(RAIZ.length).replace(BARRA, "/");
+    if (!orfas.has(curto)) orfas.set(curto, []);
+    orfas.get(curto).push(nome);
+  }
+}
+
+if (orfas.size > 0) {
+  console.error("\nutilities: classe(s) de CSS Module sem consumidor.\n");
+  for (const [arq, nomes] of orfas) {
+    console.error(`  ${arq}`);
+    for (const n of nomes) console.error(`      .${n}`);
+  }
+  console.error(
+    "\nNenhum `className` do TSX irmão referencia essas regras. Regra morta\n" +
+      "não quebra nada — só engorda a folha e mente sobre o que a interface\n" +
+      "faz. Apague, ou ligue ao elemento que deveria usá-la.\n",
+  );
+  process.exit(1);
+}
+
 if (mortas.size === 0) {
-  console.log(`utilities: ${total} classes conferidas, todas emitiram CSS.`);
+  console.log(
+    `utilities: ${total} classes conferidas, todas emitiram CSS; ` +
+      `nenhuma regra de módulo sem consumidor.`,
+  );
   process.exit(0);
 }
 

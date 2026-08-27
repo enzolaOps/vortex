@@ -291,44 +291,6 @@
   text-align: end;
 }
 
-/*
-  O gatilho do seletor de cor do sistema.
-
-  O `<input type="color">` continua nativo porque o que ele abre é o color
-  picker do SO — reimplementar seria escrever um color picker inteiro, que
-  é a definição de "genérico que a biblioteca resolve". O que dá para
-  fazer é o gatilho não parecer de outro app, e é o que estas regras
-  fazem: sem cromo, sem padding do sistema, borda nossa.
-*/
-.cor {
-  flex: none;
-  inline-size: var(--vx-space-6);
-  block-size: var(--vx-space-5);
-  padding: 0;
-  border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-1);
-  background: none;
-  cursor: pointer;
-  appearance: none;
-}
-
-.cor::-webkit-color-swatch-wrapper {
-  padding: 2px;
-}
-
-.cor::-webkit-color-swatch {
-  border: 0;
-  border-radius: 2px;
-}
-
-.cor:hover {
-  border-color: var(--vx-border-strong);
-}
-
-.cor:focus-visible {
-  outline: 2px solid var(--vx-accent);
-  outline-offset: 2px;
-}
 
 /* Painel estreito: a miniatura sai da linha e vira largura cheia. */
 @container (inline-size < 460px) {

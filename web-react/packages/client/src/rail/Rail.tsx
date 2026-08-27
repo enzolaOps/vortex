@@ -61,7 +61,7 @@ const ItemDeServidor = memo(function ItemDeServidor({
         {/* A lâmina é decorativa: `aria-current` já diz qual está aberto, e
             a contagem tem texto próprio. Ela substituiu uma pílula reta —
             que é o indicador de todo cliente de chat e não é de ninguém. */}
-        <Lamina ativa={ativo} className={css.lamina} />
+        <Lamina estado={ativo ? "ativa" : "repouso"} className={css.lamina} />
 
         <span className={css.marca} aria-hidden>
           {servidor.sigla}

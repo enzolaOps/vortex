@@ -128,7 +128,11 @@ export function PainelDeEdicao() {
             <div key={id} className={css.linha} data-oculto={!slot.visivel}>
               {/* A lamina marca o slot preenchido: a assinatura repetindo
                   o mesmo gesto do rail e do segmentado. */}
-              <Lamina ativa={slot.painel !== null && slot.visivel} />
+              <Lamina
+                estado={
+                  slot.painel !== null && slot.visivel ? "ativa" : "repouso"
+                }
+              />
               <span className={css.rotulo}>{ROTULO_DO_SLOT[id]}</span>
 
               {/*

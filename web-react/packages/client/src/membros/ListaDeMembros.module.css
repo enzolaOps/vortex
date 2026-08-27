@@ -121,12 +121,6 @@
   color: var(--vx-text-3);
 }
 
-.vazio {
-  padding: var(--vx-space-4) var(--vx-space-3);
-  color: var(--vx-text-3);
-  font-size: var(--vx-size-sm);
-}
-
 /*
   Painel apertado: só o avatar.
 

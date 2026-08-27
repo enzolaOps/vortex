@@ -43,9 +43,28 @@
     opacity var(--vx-duration-fast) var(--vx-ease-out);
 }
 
-.lamina[data-ativa="true"] {
+.lamina[data-estado="ativa"] {
   scale: 1 1;
   opacity: var(--vx-lamina-1);
+}
+
+/*
+  Não lido: altura CHEIA, cor de texto.
+
+  Altura cheia porque não lido tem que ser encontrável varrendo a coluna sem
+  ler — é o mesmo trabalho que o divisor de "novas mensagens" faz dentro do
+  canal, feito na lista de canais. Cor de texto e não acento porque o acento
+  ficou reservado para POSIÇÃO: "você está aqui" e, no hover, "você estaria
+  aqui". Não lido é informação sobre o canal, não um destino.
+
+  Isto substitui um ponto de 8px na borda de fim da linha. O ponto obrigava o
+  olho a caçar num limite direito irregular, que é onde os nomes de canal
+  terminam; a lâmina põe todos os avisos na mesma vertical.
+*/
+.lamina[data-estado="atencao"] {
+  scale: 1 1;
+  opacity: var(--vx-lamina-1);
+  background: var(--vx-text-1);
 }
 
 /*
@@ -63,7 +82,7 @@
   de onde a transição cresce, e é a pista de que aquela borda é o lugar do
   indicador. Nenhuma das duas precisa da cor de ação.
 */
-.lamina[data-ativa="false"] {
+.lamina[data-estado="repouso"] {
   scale: 1 0.3;
   opacity: var(--vx-lamina-3);
   background: var(--vx-text-3);
@@ -82,7 +101,7 @@
   `.servidor`, cada consumidor novo teria que lembrar de repetir a regra, e o
   primeiro que esquecesse voltaria ao toco sem hover sem que nada falhasse.
 */
-:hover > .lamina[data-ativa="false"] {
+:hover > .lamina[data-estado="repouso"] {
   scale: 1 0.6;
   opacity: var(--vx-lamina-2);
   background: currentColor;

@@ -166,20 +166,6 @@
 }
 
 /* Ponto de não lida sem menção: sinal calmo, sem número. */
-.ponto {
-  flex: none;
-  inline-size: var(--vx-space-2);
-  block-size: var(--vx-space-2);
-  border-radius: var(--vx-radius-4);
-  background: var(--vx-text-1);
-}
-
-.vazio {
-  padding: var(--vx-space-4) var(--vx-space-3);
-  color: var(--vx-text-3);
-  font-size: var(--vx-size-sm);
-}
-
 /*
   Painel estreito: some o rótulo de seção e o cabeçalho encolhe.
 

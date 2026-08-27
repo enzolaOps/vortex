@@ -85,9 +85,20 @@ const Canal = memo(function Canal({
           data-naolidas={temNaoLidas}
           onClick={() => selecionarCanal(id)}
         >
-          {/* A mesma lâmina do rail. Assinatura só é assinatura quando
-              repete — um gesto que aparece uma vez é um acidente. */}
-          <Lamina ativa={ativo} className={css.lamina} />
+          {/*
+            A mesma lâmina do rail. Assinatura só é assinatura quando repete —
+            um gesto que aparece uma vez é um acidente.
+
+            E aqui ela carrega DUAS coisas, porque a escala comporta as duas
+            sem ambiguidade: posição em acento, não lido em cor de texto. É a
+            decisão já registrada no briefing — a lâmina marca não lida e NÃO
+            marca menção, porque não lida é posicional e menção é contagem. A
+            contagem continua ao lado, em número.
+          */}
+          <Lamina
+            estado={ativo ? "ativa" : temNaoLidas ? "atencao" : "repouso"}
+            className={css.lamina}
+          />
 
           {/* Ícones Phosphor, weight regular, 20px — um set só, sem exceção. */}
           <Icone size={20} className={css.icone} aria-hidden />
@@ -95,8 +106,6 @@ const Canal = memo(function Canal({
 
           {canal.mencoes > 0 ? (
             <span className={css.contador}>{contagem(canal.mencoes)}</span>
-          ) : temNaoLidas ? (
-            <span className={css.ponto} aria-hidden />
           ) : null}
 
           {/*

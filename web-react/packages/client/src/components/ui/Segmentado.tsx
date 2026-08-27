@@ -56,7 +56,10 @@ export function Segmentado<T extends string>({
           onClick={() => aoEscolher(o.id)}
           onKeyDown={(e) => aoTeclar(e, i)}
         >
-          <Lamina ativa={o.id === valor} className={css.lamina} />
+          <Lamina
+            estado={o.id === valor ? "ativa" : "repouso"}
+            className={css.lamina}
+          />
           {o.rotulo}
         </button>
       ))}
