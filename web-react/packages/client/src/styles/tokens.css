@@ -391,3 +391,79 @@ body {
   color: var(--vx-text-1);
   font-family: var(--vx-font-ui);
 }
+
+/* ============================================================
+   As superfícies que o navegador desenha
+   ------------------------------------------------------------
+   Anel de foco, seleção de texto, cursor e barra de rolagem
+   chegam com default do navegador — que não pertence a sistema
+   de design nenhum. Num app escuro, a seleção padrão é um azul
+   que não existe na nossa paleta e a barra é cromo claro.
+
+   É a parte mais barata de assinar e a que mais some da lista
+   de alguém: ninguém "desenha" uma seleção de texto, então
+   ninguém lembra dela.
+   ============================================================ */
+
+/*
+  Foco como DEFAULT GLOBAL, não como item de checklist.
+
+  O design system exige `focus-visible` visível em todo
+  interativo desde a fase 1, e a auditoria dos oito estados
+  encontrou ZERO nas cinco superfícies de feature — rail, canais,
+  membros, linha de mensagem e composer. Os wrappers de
+  `components/ui/` tinham o seu; o passe de polimento que os
+  arrumou nunca chegou às telas da fase 3.
+
+  Escrito aqui, uma vez, um componente novo não consegue NASCER
+  sem anel de foco: teria que apagá-lo de propósito. É a ordem do
+  enforcement.md — tornar impossível ganha de lembrar de conferir.
+
+  Especificidade de pseudo-classe sozinha (0,1,0) perde para
+  `.botao:focus-visible` (0,2,0), então os primitivos continuam
+  mandando no próprio anel.
+*/
+:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* Quem já tem `outline: none` explícito não é revivido às cegas:
+   o Radix aplica isso em trigger que delega foco ao filho. */
+[data-radix-focus-guard]:focus-visible {
+  outline: none;
+}
+
+/*
+  Seleção de texto.
+
+  `--vx-accent-soft` é o preenchimento tingido da paleta, e o
+  texto por cima continua sendo `--vx-text-1` — pintar a seleção
+  com o acento cheio inverteria o contraste e tornaria o trecho
+  selecionado o mais difícil de ler da tela, que é o oposto do
+  que selecionar quer dizer.
+*/
+::selection {
+  background: var(--vx-accent-soft);
+  color: var(--vx-text-1);
+}
+
+/*
+  Barra de rolagem.
+
+  `scrollbar-gutter: stable` já estava nos containers de scroll —
+  o que faltava era a COR. Fina e sem faixa: numa lista de 10 mil
+  mensagens a barra fica visível o tempo todo, e uma faixa clara
+  vertical divide a tela ao meio.
+*/
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--vx-border-strong) transparent;
+}
+
+/* O cursor de texto acompanha o acento — é o único pixel que
+   pisca na tela, e piscar em branco puro num app escuro é o tipo
+   de detalhe que cansa em sessão de 8h. */
+:where(input, textarea, [contenteditable]) {
+  caret-color: var(--vx-accent);
+}

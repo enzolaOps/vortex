@@ -162,7 +162,18 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
   const linha = (
     <article
           className={cn(
-            "flex gap-3 px-4 data-[state=open]:bg-surface-1",
+            // Hover na linha, e ele custa ZERO de layout — só cor.
+            //
+            // Não é preferência: qualquer tratamento de hover que mude a
+            // ALTURA da linha destrói a âncora do virtualizador. É por isso
+            // que o Discord flutua a barra de ações sobrepondo para cima em
+            // vez de reservar espaço, e é a razão técnica por trás do que
+            // parecia escolha estética.
+            //
+            // A auditoria dos oito estados achou a linha de mensagem sem
+            // hover NENHUM — a superfície mais usada do app inteiro, sem
+            // resposta ao ponteiro.
+            "flex gap-3 px-4 hover:bg-surface-1 data-[state=open]:bg-surface-1",
             // O ritmo de agrupamento: 4px dentro do grupo, 16px entre grupos.
             // Três níveis de separação no total (o terceiro é o divisor), cada
             // um pelo menos 2× o anterior — é o que os faz lerem como distintos

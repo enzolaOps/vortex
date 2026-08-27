@@ -254,3 +254,36 @@
     display: none;
   }
 }
+
+/* ============================================================
+   Pressionado e foco
+   ------------------------------------------------------------
+   A auditoria dos oito estados encontrou `:active` e
+   `focus-visible` em ZERO das cinco superfícies de feature. Os
+   wrappers de `components/ui/` tinham os dois; o passe que os
+   arrumou nunca chegou às telas da fase 3.
+   ============================================================ */
+
+/*
+  Pressionado sobe UMA camada, não escala.
+
+  `scale` funciona no botão de components/ui porque ele é uma
+  caixa pequena; numa linha de largura total o encolhimento lê
+  como falha de layout. Camada de superfície é o mecanismo de
+  profundidade deste projeto, e aqui ela também é o de pressão.
+*/
+.canal:active {
+  background: var(--vx-surface-3);
+}
+
+/*
+  Anel POR DENTRO nesta lista.
+
+  O default global usa `outline-offset: 2px`, que é certo onde há
+  respiro. Aqui as linhas ficam a 4px uma da outra: um anel por
+  fora encostaria na vizinha e leria como se duas estivessem
+  focadas. Por dentro, ele acompanha o raio da própria linha.
+*/
+.canal:focus-visible {
+  outline-offset: -2px;
+}
