@@ -54,6 +54,17 @@ const EVENTS_PER_SECOND = 500;
 const WINDOW_SECONDS = 30;
 const WARMUP_SECONDS = 1.5;
 
+/**
+ * Média com "—" quando não há amostra.
+ *
+ * `0.0px` seria uma medição que não aconteceu se passando por uma que deu
+ * zero, e o relatório do arnês é lido para decidir constante — mentira ali
+ * vira número no código.
+ */
+function media(soma: number, amostras: number): string {
+  return amostras > 0 ? `${(soma / amostras).toFixed(1)}px` : "—";
+}
+
 export function App() {
   const [seedCount, setSeedCount] = useState<number>(TAMANHOS[1]);
   const [seeded, setSeeded] = useState(0);
@@ -448,6 +459,20 @@ export function App() {
                   passou a dizer 73 depois de a estimativa virar 76, e o
                   instrumento mediria uma coisa afirmando outra. */}
               (estimando {ALTURA_ESTIMADA}px)
+              {/* Por tipo, que é o que permite estimar por tipo em vez de por
+                  média. Só aparece quando há amostra: zero dividido por zero
+                  no relatório seria pior que a ausência da linha. */}
+              {stats.alturaAmostras > 0 ? (
+                <>
+                  {" · por tipo: "}
+                  {media(stats.alturaGrupoSoma, stats.alturaGrupoAmostras)}
+                  {" abre grupo · "}
+                  {media(stats.alturaContinuaSoma, stats.alturaContinuaAmostras)}
+                  {" continua · "}
+                  {media(stats.alturaSistemaSoma, stats.alturaSistemaAmostras)}
+                  {" sistema"}
+                </>
+              ) : null}
             </span>
           ) : null}
           {/* Colunas laterais em linha própria: somadas às da lista, viram

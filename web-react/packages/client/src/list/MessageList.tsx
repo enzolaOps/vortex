@@ -4,17 +4,22 @@ import { useEffect, useRef } from "react";
 
 import { ATRIBUTO_DE_COLUNA } from "../dev/alinhamento";
 import { aoTerminarArraste, estaArrastando } from "../store/arraste";
-import { count } from "../dev/stats";
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+} from "../components/ui/ContextMenu";
+import { definirAlvoDoMenu } from "../store/menuDeMensagem";
+import { count, readCounters } from "../dev/stats";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import {
   ouvirFimDaLista,
   ouvirIrParaMensagem,
   pedirFocoNoComposer,
 } from "../store/comandos";
-import { primeiraNaoLida } from "../sdk/adapter";
+import { messages, primeiraNaoLida } from "../sdk/adapter";
 import { useChannelMessageIds } from "../store/hooks";
 import css from "./MessageList.module.css";
-import { MessageRow } from "./MessageRow";
+import { MenuDaMensagem, MessageRow } from "./MessageRow";
 
 /**
  * Quão longe do fim ainda conta como "no fim".
@@ -56,6 +61,67 @@ const LIMIAR_DE_FIM = 80;
 export const ALTURA_ESTIMADA = 78;
 
 /**
+ * A estimativa por TIPO de linha.
+ *
+ * A média única de 78px era um compromisso entre coisas que não se parecem:
+ * uma linha de sistema é uma frase de uma linha com ícone, e uma linha que
+ * abre grupo carrega nome, hora e o respiro de 16px que a continuação não tem.
+ * Estimar as três pelo mesmo número faz a barra de rolagem errar na proporção
+ * da frequência de cada tipo — e essa frequência muda com a conversa.
+ *
+ * **Os três números foram medidos, não escolhidos.** O arnês passou a reportar
+ * a altura real partida por tipo justamente para isto: a ordem inversa —
+ * escrever a constante e conferir depois — é como o `estimateSize: 44`
+ * sobreviveu três fases errando 34px por linha.
+ *
+ * O que NÃO entra aqui: reações, citação e divisores. Todos mudam a altura, e
+ * todos são condicionais que o virtualizador remede de qualquer jeito assim
+ * que a linha aparece. Estimativa existe para a barra de rolagem não mentir
+ * sobre o que ainda não foi visto; encher a fórmula de casos raros troca um
+ * erro pequeno e constante por um erro pequeno e imprevisível.
+ */
+const ALTURA_POR_TIPO = {
+  sistema: 0,
+  abreGrupo: 0,
+  continua: 0,
+};
+
+/**
+ * A estimativa ainda descreve a linha que existe?
+ *
+ * Este número já se moveu quatro vezes — 44 → 73 → 76 → 78 — e nas quatro
+ * quem percebeu foi uma pessoa lendo o relatório do arnês e reparando na
+ * diferença. Relatório depende de alguém olhar; assertion não.
+ *
+ * Sobe um degrau na ordem do `enforcement.md`, de "checklist" para "assertion
+ * em dev", e o custo é uma divisão por frame com 30 linhas na tela. Some em
+ * produção.
+ *
+ * 15% é frouxo de propósito: mensagem longa e mensagem curta variam muito
+ * dentro do mesmo tipo, e o alvo aqui é mudança de FORMA da linha — um chip
+ * que ganhou borda, um respiro que apareceu —, não a variação natural de
+ * conteúdo. Uma vez por tipo por sessão, senão vira ruído a 150fps.
+ */
+const AVISADO = new Set<string>();
+
+function conferirEstimativa(tipo: keyof typeof ALTURA_POR_TIPO, media: number) {
+  if (AVISADO.has(tipo)) return;
+  const esperada = ALTURA_POR_TIPO[tipo];
+  if (esperada <= 0) return;
+  const erro = Math.abs(media - esperada) / esperada;
+  if (erro < 0.15) return;
+
+  AVISADO.add(tipo);
+  console.error(
+    `[vortex] a estimativa de altura da linha "${tipo}" está a ` +
+      `${(erro * 100).toFixed(0)}% do real: estima ${esperada}px, mede ` +
+      `${media.toFixed(1)}px. A linha mudou de forma. Estimativa errada não ` +
+      `quebra nada — só faz a barra de rolagem mentir sobre o tamanho do ` +
+      `histórico, a cada rolagem, para sempre.`,
+  );
+}
+
+/**
  * Lista de mensagens virtualizada, em modo chat.
  *
  * Ordem normal e container de scroll normal — nada de `column-reverse`,
@@ -71,7 +137,29 @@ export function MessageList({ channelId }: { channelId: string }) {
   const virtualizer = useVirtualizer({
     count: ids.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => ALTURA_ESTIMADA,
+    /*
+      Lê o snapshot direto do store, e isso é seguro: `getSnapshot` de um
+      `EntityStore` é uma leitura de `Map`, não um hook. O virtualizador chama
+      isto fora do render, para índices que ainda não estão na tela — é
+      exatamente o caso onde não há componente para perguntar.
+    */
+    estimateSize: (i) => {
+      const m = messages.getSnapshot(ids[i] ?? "");
+      if (!m) return ALTURA_ESTIMADA;
+      const porTipo = m.sistema
+        ? ALTURA_POR_TIPO.sistema
+        : m.iniciaGrupo
+          ? ALTURA_POR_TIPO.abreGrupo
+          : ALTURA_POR_TIPO.continua;
+
+      /*
+        Nunca zero, e isto não é paranoia: `estimateSize` devolvendo 0 é a
+        MESMA armadilha da linha que mede 0px — o total encolhe, a janela
+        visível muda e o ciclo se realimenta. Uma constante ainda não medida
+        cai na média única, que é o valor que existia antes.
+      */
+      return porTipo > 0 ? porTipo : ALTURA_ESTIMADA;
+    },
     // ID de entidade, nunca índice: índice corrompe o estado da linha a cada
     // inserção no topo.
     getItemKey: (i) => ids[i] ?? i,
@@ -309,12 +397,46 @@ export function MessageList({ channelId }: { channelId: string }) {
 
   const items = virtualizer.getVirtualItems();
 
-  // Altura real das linhas na tela, para o relatório dizer se a estimativa
-  // escolhida está perto. Chutar 73 e não conferir seria repetir o erro dos 44.
+  /*
+    Altura real das linhas na tela, para o relatório dizer se a estimativa está
+    perto. Chutar 73 e não conferir seria repetir o erro dos 44.
+
+    Partida por TIPO desde agora, e é o que permite estimar por tipo em vez de
+    por média: uma média só esconde que linha de sistema é uma fração de uma
+    linha de fala. Os números vêm da tela antes de virarem constante — a ordem
+    inversa é como o `estimateSize: 44` sobreviveu três fases.
+  */
   for (const item of items) {
-    if (item.size > 0) {
-      count("alturaSoma", item.size);
-      count("alturaAmostras");
+    if (item.size <= 0) continue;
+    count("alturaSoma", item.size);
+    count("alturaAmostras");
+
+    const m = messages.getSnapshot(String(item.key));
+    if (!m) continue;
+    if (m.sistema) {
+      count("alturaSistemaSoma", item.size);
+      count("alturaSistemaAmostras");
+    } else if (m.iniciaGrupo) {
+      count("alturaGrupoSoma", item.size);
+      count("alturaGrupoAmostras");
+    } else {
+      count("alturaContinuaSoma", item.size);
+      count("alturaContinuaAmostras");
+    }
+  }
+
+  if (import.meta.env.DEV) {
+    // Precisa de amostra o bastante para a média significar algo: com dez
+    // linhas, uma mensagem longa sozinha desloca o número.
+    const c = readCounters();
+    if (c.alturaGrupoAmostras > 200) {
+      conferirEstimativa("abreGrupo", c.alturaGrupoSoma / c.alturaGrupoAmostras);
+    }
+    if (c.alturaContinuaAmostras > 200) {
+      conferirEstimativa("continua", c.alturaContinuaSoma / c.alturaContinuaAmostras);
+    }
+    if (c.alturaSistemaAmostras > 200) {
+      conferirEstimativa("sistema", c.alturaSistemaSoma / c.alturaSistemaAmostras);
     }
   }
 
@@ -384,11 +506,42 @@ export function MessageList({ channelId }: { channelId: string }) {
   }
 
   return (
+    /*
+      UM `ContextMenu` para a lista inteira.
+
+      Ele estava em cada `MessageRow` — Root, Trigger, Portal e Content por
+      linha — e linha monta e desmonta na velocidade do scroll. Eram dezenas de
+      árvores de menu do Radix criadas e destruídas por segundo enquanto
+      ninguém tinha aberto menu nenhum.
+
+      O `Trigger` envolve o container rolável, então o clique direito abre no
+      ponteiro como antes. Quem é o alvo vem do store, escrito pela linha.
+    */
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
     <div
       ref={scrollRef}
       role="log"
       aria-live="polite"
       aria-relevant="additions"
+      /*
+        Limpa o alvo na CAPTURA, antes de a linha escrever o seu na bolha.
+
+        Sem isto, clique direito no vão entre linhas abriria o menu com o alvo
+        do clique anterior, e "Copiar texto" copiaria outra mensagem. Bug que
+        não dá erro e só aparece quando alguém repara que colou coisa errada.
+
+        E fora de uma linha o menu não abre. Isto é decidível AQUI, na captura,
+        porque a pergunta é sobre o alvo do evento e não sobre o que a bolha
+        vai escrever — sem `preventDefault` o Radix abriria uma caixa vazia,
+        que é pior que nenhuma resposta.
+      */
+      onContextMenuCapture={(evento) => {
+        definirAlvoDoMenu(null);
+        if (!(evento.target as Element).closest("article")) {
+          evento.preventDefault();
+        }
+      }}
       // Região que rola e não recebe foco é inoperável por teclado: setas e
       // Page Down agem sobre o que está focado. Zero e não menos um — a
       // parada de tabulação É o recurso.
@@ -434,5 +587,9 @@ export function MessageList({ channelId }: { channelId: string }) {
         </div>
       </div>
     </div>
+      </ContextMenuTrigger>
+
+      <MenuDaMensagem />
+    </ContextMenu>
   );
 }

@@ -5,14 +5,12 @@ import {
   PushPin,
   PushPinSlash,
 } from "@phosphor-icons/react";
-import { memo } from "react";
+import { memo, useSyncExternalStore } from "react";
 
 import {
-  ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
-  ContextMenuTrigger,
 } from "../components/ui/ContextMenu";
 
 import { count } from "../dev/stats";
@@ -24,6 +22,11 @@ import { PontoDePresenca } from "../presenca/PontoDePresenca";
 import type { SistemaSnapshot } from "../sdk/domain";
 import { reenviar } from "../sdk/adapter";
 import { alternarFixada, alternarReacao } from "../sdk/adapter";
+import {
+  assinarMenuDeMensagem,
+  definirAlvoDoMenu,
+  lerAlvoDoMenu,
+} from "../store/menuDeMensagem";
 import { responderA } from "../store/resposta";
 import { useMessage } from "../store/hooks";
 import { Citacao } from "./Citacao";
@@ -181,6 +184,18 @@ function DivisorDeDia({ rotulo }: { rotulo: string }) {
  */
 export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
   const message = useMessage(id);
+  /*
+    Booleano, e é o que torna esta subscrição barata.
+
+    Toda linha montada assina o alvo do menu, mas `useSyncExternalStore` compara
+    por `Object.is` — então mudar o alvo acorda exatamente DUAS linhas: a que
+    deixou de ser e a que passou a ser. É o mesmo padrão do `useColapso`, e o
+    motivo pelo qual dar um valor derivado ao getter é seguro aqui.
+  */
+  const ehAlvo = useSyncExternalStore(
+    assinarMenuDeMensagem,
+    () => lerAlvoDoMenu() === id,
+  );
   count("rowRenders");
 
   // Linha ainda não resolvida NUNCA devolve `null`.
@@ -232,6 +247,16 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
 
   const linha = (
     <article
+          /*
+            A linha só DIZ quem ela é; quem abre o menu é a lista.
+
+            Sem `preventDefault`: o `Trigger` do Radix está no container e
+            precisa receber o mesmo evento para abrir no ponteiro. Aqui só se
+            escreve o alvo, e a ordem faz o resto — o container limpa na
+            captura, a linha escreve na bolha.
+          */
+          onContextMenu={() => definirAlvoDoMenu(message.id)}
+          data-alvo={ehAlvo}
           className={cn(
             // Hover na linha, e ele custa ZERO de layout — só cor.
             //
@@ -244,7 +269,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             // A auditoria dos oito estados achou a linha de mensagem sem
             // hover NENHUM — a superfície mais usada do app inteiro, sem
             // resposta ao ponteiro.
-            "relative flex gap-3 px-4 hover:bg-surface-1 data-[state=open]:bg-surface-1",
+            "relative flex gap-3 px-4 hover:bg-surface-1 data-[alvo=true]:bg-surface-1",
             // O ritmo de agrupamento: 4px dentro do grupo, 16px entre grupos.
             // Três níveis de separação no total (o terceiro é o divisor), cada
             // um pelo menos 2× o anterior — é o que os faz lerem como distintos
@@ -469,20 +494,31 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
       {message.primeiraNaoLida ? <DivisorDeNovas /> : null}
       {message.dia ? <DivisorDeDia rotulo={message.dia} /> : null}
 
-      {/*
-        O menu é montado POR LINHA, e isso é pendência medida, não descuido.
+      {linha}
+    </>
+  );
+});
 
-        Um A/B com a mesma `<article>` nos dois lados mostrou o custo: p99 de
-        24,9ms para 18,9ms e frames perdidos de 6,0% para 5,4% ao desligá-lo.
-        Real, e não é o que reprova o gate. O conserto é menu no nível da
-        LISTA, posicionado no ponteiro, com o id da linha alvo no store — e aí
-        é um Root para a lista inteira em vez de um por linha montada.
-      */}
-      <ContextMenu>
-          <ContextMenuTrigger asChild>{linha}</ContextMenuTrigger>
+/**
+ * O corpo do menu — montado UMA vez pela lista, nunca por linha.
+ *
+ * Antes cada `MessageRow` montava um `ContextMenu` do Radix inteiro: Root,
+ * Trigger, Portal e Content. Linha monta e desmonta na velocidade do scroll,
+ * então eram dezenas de árvores de menu criadas e destruídas por segundo
+ * enquanto ninguém tinha aberto menu nenhum.
+ *
+ * Ele assina o alvo e a mensagem do alvo. Quando não há alvo — clique direito
+ * no vão entre linhas — não renderiza item nenhum: menu vazio é melhor que
+ * menu agindo sobre a mensagem do clique anterior.
+ */
+export function MenuDaMensagem() {
+  const alvo = useSyncExternalStore(assinarMenuDeMensagem, lerAlvoDoMenu);
+  const message = useMessage(alvo ?? "");
 
-          {/* Ícones Phosphor, weight regular, 20px — um set só, sem exceção. */}
-          <ContextMenuContent>
+  if (!message) return <ContextMenuContent />;
+
+  return (
+    <ContextMenuContent>
         {/*
           Conjunto RÁPIDO, não picker completo.
 
@@ -544,7 +580,5 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
           Copiar texto
         </ContextMenuItem>
           </ContextMenuContent>
-      </ContextMenu>
-    </>
   );
-});
+}
