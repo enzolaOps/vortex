@@ -458,10 +458,20 @@ em Pendências, nenhum bloqueia a fase 1.
 `tokens.css` com a paleta real, `@theme` mapeando, lint contra arbitrary values,
 grid do shell, `minmax(0,1fr)` e teto de linha.
 
-Verificado em navegador, não prometido: em janela de 3000px a coluna de mensagem
-trava em **1100px exatos** e não há scroll horizontal; em 700px as trilhas ficam
+Verificado em navegador, não prometido: em 700px as trilhas ficam
 `72px 240px 388px 0px` — a coluna de membros colapsa a zero em vez de deixar
-espaço morto, que era o bug que motivou o redesign. Contraste 76/76 pares por
+espaço morto, que era o bug que motivou o redesign. Isso continua valendo.
+
+⚠ **O teto de 1100px na coluna MUDOU DE LUGAR, e a verificação original desta
+fase envelheceu.** Ela celebrava "a coluna de mensagem trava em 1100px exatos"
+— e travar a COLUNA produzia uma faixa morta: medido em 2560px, a trilha tinha
+2008 e a coluna parava em 1100, com **908px de vazio, todo do lado direito**,
+porque ela era encostada ao início. Não lia como coluna de leitura; lia como
+alinhamento quebrado, e foi assim que quem usa relatou.
+
+O teto agora limita o CONTEÚDO da linha; a faixa cobre a trilha. Foi a medida
+de leitura (`--vx-medida`) que tornou isso possível — ela é o mecanismo certo
+para legibilidade, e limitar a linha inteira nunca foi. Contraste 76/76 pares por
 `pnpm contrast`.
 
 Falta só o **elemento de assinatura** da identidade — paleta e par tipográfico
@@ -828,6 +838,7 @@ salva o cliente web não transfere para Rust.
 
 | Item | Precisa de |
 |---|---|
+| Navegação em janela estreita | **Lacuna, não bug — e dita.** Abaixo de 640px a lista de canais colapsa, senão a conversa fica com 63px numa tela de 375 (rail 72 + canais 240 = 312). O guarda devolve 303px de conversa. O que ele NÃO resolve: com a lista escondida some o gatilho da paleta, que mora no cabeçalho dela — por teclado a paleta continua, por TOQUE não há navegação. Celular não é plataforma deste produto (o briefing diz web e Electron desktop), e um modelo de navegação para telas estreitas é trabalho de produto que nunca foi escopado. |
 | Identidade visual | **Resolvida.** Paleta pastel em lilás, menta, pêssego e rosa sobre neutro violáceo de croma baixa, claro e escuro, 76/76 pares acima do mínimo. Par tipográfico IBM Plex Sans variável + IBM Plex Mono. E o **elemento de assinatura**, que faltava: a **lâmina** — o traço que afina, tirado da pá da marca (`brand/mark.svg` são três espirais logarítmicas convergindo, com opacidade escalonada 1 / 0,82 / 0,64). A escala de opacidade da marca virou token (`--vx-lamina-1..3`) e é o mecanismo de profundidade em toda a interface, o que faz a regra "profundidade vem de camada, não de sombra" e a identidade serem a mesma coisa. A lâmina marca foco no rail, na lista de canais, no controle segmentado e no painel de edição. |
 | TanStack Virtual + React Compiler | **Resolvido no spike.** Compatíveis: o compiler reconhece `useVirtualizer` e pula a memoização daquele componente (`react-hooks/incompatible-library`), sem crash nem UI velha. O custo — os filhos da lista deixam de ser memoizados — é cortado com `memo` no `MessageRow`. Não trocar por `react-virtuoso`. |
 | Licença AGPL-3.0 | **Resolvido.** Uso privado — o dev e amigos, todos com acesso ao repositório, que é o que a cláusula de rede da AGPL pede. Reabrir a questão se o Vortex for exposto a terceiros sem acesso ao fonte. Não é aconselhamento jurídico. |
