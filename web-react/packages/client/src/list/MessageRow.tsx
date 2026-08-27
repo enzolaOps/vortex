@@ -119,12 +119,28 @@ function DivisorDeNovas() {
   );
 }
 
+/**
+ * Divisor de dia — separação por ESPAÇO, não por régua.
+ *
+ * Tinha duas hairlines ladeando o rótulo, que é o desenho genérico. Saíram, e
+ * o item T0 da fase 5 já dizia por quê: numa coluna densa, régua horizontal é
+ * o recurso mais caro que existe — ela corta a varredura vertical do olho e
+ * cobra esse preço uma vez por dia de histórico, para cada dia.
+ *
+ * O espaço faz o mesmo trabalho sem cortar nada. `space-6` acima e `space-1`
+ * abaixo prende o rótulo ao dia que ele ABRE em vez de deixá-lo boiando entre
+ * os dois — a mesma lógica do ritmo de agrupamento, que é `pt-4` entre autores
+ * e `pt-1` dentro de um.
+ *
+ * E há um efeito de segunda ordem que vale mais que a limpeza: com estas
+ * saindo, a linha de acento do "novas mensagens" passa a ser a ÚNICA régua
+ * horizontal da coluna inteira. Ela existe para ser encontrada rolando sem
+ * ler, e agora nada mais compete com ela por esse papel.
+ */
 function DivisorDeDia({ rotulo }: { rotulo: string }) {
   return (
-    <div className="flex items-center gap-3 px-4 pt-5 pb-1" role="separator">
-      <span className="h-px flex-1 bg-border-subtle" />
-      <span className="text-xs text-text-3">{rotulo}</span>
-      <span className="h-px flex-1 bg-border-subtle" />
+    <div className={css.dia} role="separator">
+      <span className={css.diaRotulo}>{rotulo}</span>
     </div>
   );
 }
@@ -265,7 +281,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                 {message.authorId ? (
                   <NomeDoAutor userId={message.authorId} />
                 ) : (
-                  <span className="text-md font-medium text-text-1">
+                  <span className="text-md font-medium text-text-2">
                     desconhecido
                   </span>
                 )}
@@ -278,7 +294,21 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
               </div>
             ) : null}
 
-            <p className="text-md leading-message wrap-anywhere text-text-2">
+            {/*
+              O CONTEÚDO é `text-1`; o autor é `text-2`. Era o contrário.
+
+              A hierarquia estava invertida, e num app que fica aberto o dia
+              inteiro isso custa caro: o texto mais claro da interface era o
+              RÓTULO, e a coisa que se lê por oito horas vinha um degrau
+              apagada. Você lê a mensagem e RELANCEIA o nome — tanto que o
+              agrupamento existe exatamente para não repetir o nome.
+
+              O nome não se perde por isso: `font-medium` continua separando, e
+              cargo colorido sobrescreve a cor de qualquer forma. O que muda é
+              qual dos dois ganha a atenção quando os dois estão na tela, que é
+              sempre.
+            */}
+            <p className="text-md leading-message wrap-anywhere text-text-1">
               {message.content}
             </p>
 

@@ -167,3 +167,32 @@
 .minZero {
   min-inline-size: 0;
 }
+
+/* ============================================================
+   Divisor de dia
+   ------------------------------------------------------------
+   Sem régua: o espaço separa. Ver o comentário do componente.
+   ============================================================ */
+
+.dia {
+  display: flex;
+  justify-content: center;
+  padding-inline: var(--vx-space-4);
+  /* Muito acima, pouco abaixo: o rótulo pertence ao dia que ABRE. */
+  padding-block: var(--vx-space-6) var(--vx-space-1);
+}
+
+.diaRotulo {
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  /*
+    Versalete de caixa alta em vez de peso.
+
+    Sem as réguas, o rótulo precisa de alguma marca própria para não ser
+    lido como uma mensagem curta de alguém. Negrito o faria competir com
+    nome de autor, que é o outro texto forte da coluna; caixa alta pequena
+    com entreletra diz "isto é rótulo, não fala" sem disputar hierarquia.
+  */
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

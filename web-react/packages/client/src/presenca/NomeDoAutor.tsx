@@ -36,7 +36,7 @@ export function NomeDoAutor({ userId }: { userId: string }) {
     // perfis existem.
     <CartaoDePerfil serverId={serverId} userId={userId}>
     <span
-      className="text-md font-medium text-text-1"
+      className="text-md font-medium text-text-2"
       /*
         A única cor literal legítima do app.
 
