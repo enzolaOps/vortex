@@ -49,7 +49,7 @@ const Fixada = memo(function Fixada({
         {/* Duas linhas e corta. O painel é índice, não leitura — quem quer o
             texto inteiro clica e vai até ele, que é o que o botão faz. */}
         <span className={css.trecho}>
-            <TextoDaMensagem partes={message.partes} compacto />
+            <TextoDaMensagem blocos={message.blocos} compacto />
           </span>
       </button>
 

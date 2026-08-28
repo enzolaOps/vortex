@@ -22,27 +22,83 @@ export type SendState = "sent" | "pending" | "failed";
 export const LIMITE_DE_CONTEUDO = 2000;
 
 /**
- * Um trecho de mensagem: texto corrido ou uma menção.
+ * Onde o pedaço começa no texto original — a identidade dele.
+ *
+ * Existe por causa do lint que proíbe índice como `key`, e a regra tem razão
+ * mesmo aqui, onde os pedaços não reordenam: o deslocamento vem do DADO e o
+ * índice vem da posição no array. Dois `<@fulano>` na mesma frase são coisas
+ * diferentes, e só o deslocamento sabe disso.
+ */
+type ComPosicao = { readonly de: number };
+
+/**
+ * Um trecho INLINE de mensagem.
  *
  * `valor` na menção é o ID de quem foi mencionado, não o nome — quem resolve
  * nome é o componente, que já assina o membro. Guardar o nome aqui congelaria
  * um apelido que muda.
+ *
+ * `enfase`, `forte`, `riscado` e `link` carregam filhos porque markdown
+ * aninha: `**negrito com [link](…)**` é uma coisa só, e uma lista plana não
+ * sabe representá-la. Quem monta esta árvore é `markdown/analisar.ts`.
  */
-export type ParteDeMensagem =
-  | { readonly tipo: "texto"; readonly valor: string }
-  | {
-      readonly tipo: "mencao";
-      readonly valor: string;
+export type TrechoDeMensagem =
+  | (ComPosicao & { readonly tipo: "texto"; readonly valor: string })
+  | (ComPosicao & { readonly tipo: "mencao"; readonly valor: string })
+  | (ComPosicao & { readonly tipo: "codigo"; readonly valor: string })
+  | (ComPosicao & { readonly tipo: "quebra" })
+  | (ComPosicao & {
+      readonly tipo: "enfase" | "forte" | "riscado";
+      readonly filhos: readonly TrechoDeMensagem[];
+    })
+  | (ComPosicao & {
+      readonly tipo: "link";
       /**
-       * Onde a menção começa no texto — a identidade da parte.
-       *
-       * Existe por causa do lint que proíbe índice como `key`, e a regra tem
-       * razão mesmo aqui, onde as partes não reordenam: o deslocamento vem do
-       * DADO e o índice vem da posição no array. Dois `<@fulano>` na mesma
-       * frase são coisas diferentes, e só o deslocamento sabe disso.
+       * Já validada em `hrefSeguro`. Só `http:`, `https:` e `mailto:` chegam
+       * aqui — o resto virou texto antes, e o tipo não carrega o inseguro.
        */
-      readonly de: number;
-    };
+      readonly href: string;
+      readonly filhos: readonly TrechoDeMensagem[];
+    });
+
+export type ItemDeLista = ComPosicao & {
+  readonly filhos: readonly BlocoDeMensagem[];
+};
+
+/**
+ * Um bloco de mensagem — o nível de cima da árvore.
+ *
+ * A separação entre bloco e trecho não é cerimônia: bloco ocupa linha e muda a
+ * ALTURA da linha de mensagem, e altura é o que o virtualizador estima. Ter os
+ * dois no mesmo tipo faria a estimativa ter de decidir caso a caso o que é
+ * empilhado e o que é corrido.
+ */
+export type BlocoDeMensagem =
+  | (ComPosicao & {
+      readonly tipo: "paragrafo";
+      readonly filhos: readonly TrechoDeMensagem[];
+    })
+  | (ComPosicao & {
+      readonly tipo: "titulo";
+      readonly nivel: 1 | 2 | 3;
+      readonly filhos: readonly TrechoDeMensagem[];
+    })
+  | (ComPosicao & {
+      readonly tipo: "blocoDeCodigo";
+      readonly valor: string;
+      readonly lingua: string | undefined;
+    })
+  | (ComPosicao & {
+      readonly tipo: "citacao";
+      readonly filhos: readonly BlocoDeMensagem[];
+    })
+  | (ComPosicao & {
+      readonly tipo: "lista";
+      readonly ordenada: boolean;
+      readonly inicio: number;
+      readonly itens: readonly ItemDeLista[];
+    })
+  | (ComPosicao & { readonly tipo: "regra" });
 
 /**
  * Um anexo, já reduzido ao que a linha precisa.
@@ -71,12 +127,14 @@ export type MessageSnapshot = {
   readonly authorId: string | undefined;
   readonly content: string;
   /**
-   * O texto já partido em trechos, com as menções separadas.
+   * O conteúdo já em árvore: markdown analisado e menções separadas.
    *
-   * Derivação na ESCRITA, como `createdAtText`: partir a string no render
-   * repetiria o trabalho a cada re-render da linha mais quente do app.
+   * Derivação na ESCRITA, como `createdAtText` — analisar no render repetiria
+   * o trabalho a cada re-render da linha mais quente do app. E como a escrita
+   * do snapshot também se repete (layout, envio, permissão, reação), quem
+   * segura o custo de verdade é o cache por conteúdo em `markdown/analisar.ts`.
    */
-  readonly partes: readonly ParteDeMensagem[];
+  readonly blocos: readonly BlocoDeMensagem[];
   /** Menciona VOCÊ. A linha inteira se destaca. */
   readonly mencionaVoce: boolean;
   /** Anexos, já traduzidos. Vazio é o caso comum. */
@@ -244,7 +302,20 @@ export type SistemaSnapshot =
   | { readonly tipo: "renomeou"; readonly porId: string; readonly nome: string }
   | { readonly tipo: "texto"; readonly texto: string };
 
-export type CanalTipo = "texto" | "voz";
+/**
+ * O que uma linha da coluna representa.
+ *
+ * Cresceu na etapa 3 e a diferença não é cosmética: `texto` e `voz` são canais
+ * DE SERVIDOR, e os três novos não pertencem a servidor nenhum. É por isso que
+ * `ChannelSnapshot.serverId` sempre foi opcional — o domínio já comportava a
+ * conversa antes de existir coluna que a mostrasse.
+ *
+ * `notas` é o `SavedMessages` do protocolo: a conversa consigo mesmo, que todo
+ * mundo tem uma. Fica no tipo porque a coluna a trata diferente — ela não tem
+ * destinatário nem presença, e chamá-la de `dm` faria a interface procurar um
+ * "outro lado" que não existe.
+ */
+export type CanalTipo = "texto" | "voz" | "dm" | "grupo" | "notas";
 
 /**
  * Uma categoria de canais.
@@ -295,6 +366,50 @@ export type ChannelSnapshot = {
    * pessoa que aquele canal deixou de existir.
    */
   readonly silenciado: boolean;
+  /**
+   * O outro lado de uma conversa direta. Só existe em `dm`.
+   *
+   * Calculado no adapter a partir de `recipientIds` menos eu, e NÃO lido de
+   * `channel.recipient` — o getter do SDK faz `client.user!.id`, que estoura
+   * antes do `Ready`. Este cliente precisa desenhar a coluna de conversas na
+   * abertura, que é exatamente o momento em que `client.user` ainda não existe.
+   */
+  readonly destinatarioId: string | undefined;
+  /** Quantas pessoas há num grupo. `0` fora dele. */
+  readonly participantes: number;
+  /**
+   * Quando a última mensagem chegou, para ordenar a coluna de conversas.
+   *
+   * Vem do ULID da última mensagem, que carrega o tempo — não é campo próprio
+   * do protocolo. Zero quando o canal nunca teve mensagem: conversa recém-aberta
+   * vai para o fim, e não para um topo que ela não merece.
+   */
+  readonly ultimaEm: number;
+};
+
+/**
+ * A relação com outra pessoa.
+ *
+ * Vocabulário do app: o protocolo diz `Friend | Incoming | Outgoing | Blocked |
+ * BlockedOther | None | User`, e as duas últimas são "ninguém" e "eu mesmo".
+ * Colapsar aqui é o trabalho da camada anticorrupção — a tela de amigos tem
+ * quatro abas, não sete.
+ */
+export type Relacao =
+  | "amigo"
+  | "recebido"
+  | "enviado"
+  | "bloqueado"
+  /** Bloqueou VOCÊ. Some da interface; existe para não virar "nenhuma". */
+  | "bloqueadoPor"
+  | "nenhuma";
+
+export type RelacaoSnapshot = ComSigla & {
+  readonly id: string;
+  readonly displayName: string;
+  readonly username: string;
+  readonly relacao: Relacao;
+  readonly status: PresenceStatus;
 };
 
 /**

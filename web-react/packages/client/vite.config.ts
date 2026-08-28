@@ -3,7 +3,10 @@ import { fileURLToPath } from "node:url";
 
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig, type Plugin } from "vite";
+import type { Plugin } from "vite";
+// `vitest/config` e não `vite`: é o que acrescenta a chave `test` ao tipo da
+// configuração. Com o `defineConfig` do Vite, o bloco abaixo não compila.
+import { defineConfig } from "vitest/config";
 
 /**
  * Serve `brand/mark.svg` como `/mark.svg`, em dev e no build.
@@ -51,27 +54,53 @@ export default defineConfig({
     marcaDoVortex(),
   ],
 
-  /**
-   * O `solid-js` do TESTE precisa ser o de navegador, não o de servidor.
-   *
-   * Em Node, `solid-js` resolve para `dist/server.cjs` — o build de SSR, onde
-   * **`createEffect` é no-op por design**. Medido: um efeito sobre um
-   * `createSignal` simples não roda nem uma vez.
-   *
-   * Consequência, e ela é maior que qualquer teste: metade da ponte
-   * `stoat.js → React` — a metade REATIVA, que é a razão de o adapter existir —
-   * nunca esteve sob teste e silenciosamente não podia estar. Tudo o que
-   * passava, passava pelo caminho de evento (`client.on`) e pelas leituras
-   * ansiosas, nunca pelo `createEffect`.
-   *
-   * Não dá para arrumar em `resolve.conditions` do topo: isso vale para o
-   * build de produção também, e trocar as condições lá derrubaria a condição
-   * `production`. O `ssr.resolve.conditions` atinge só o pipeline que o Vitest
-   * usa.
-   */
   ssr: {
     resolve: {
+      /**
+       * O `solid-js` do TESTE precisa ser o de navegador, não o de servidor.
+       *
+       * Em Node, `solid-js` resolve para `dist/server.js` — o build de SSR,
+       * onde **`createEffect` é no-op por design**. Medido: um efeito sobre um
+       * `createSignal` simples não roda nem uma vez. Sem isto, metade da ponte
+       * `stoat.js → React` — a metade REATIVA, que é a razão de o adapter
+       * existir — nunca esteve sob teste e silenciosamente não podia estar.
+       *
+       * Não dá para arrumar no `resolve.conditions` do topo: aquilo vale para
+       * o build de produção também, e trocar as condições lá derrubaria a
+       * condição `production`. O `ssr.resolve.conditions` atinge só o pipeline
+       * que o Vitest usa.
+       *
+       * ⚠ **Tentei duas vezes trocar isto por algo mais estreito, e as duas
+       * falharam de um jeito que vale registrar** — as duas passariam por
+       * "mais limpo" numa revisão de código:
+       *
+       * 1. `environment: "jsdom"`. Com ambiente de navegador o Vitest troca o
+       *    pipeline de transformação, ESTAS CONDIÇÕES DEIXAM DE VALER, e o
+       *    `solid-js` volta a ser o de servidor. Quatro suítes de efeito
+       *    (`fixadas`, `reacoes`, `reconciliacao`, `voz`) passaram a falhar: o
+       *    conserto desfazia em silêncio o conserto que devia preservar.
+       * 2. Alias nominal do `solid-js` no `test.alias`. O Vitest EXTERNALIZA
+       *    dependências de `node_modules`, então o Node as resolve por conta
+       *    própria e o alias nem é consultado.
+       *
+       * A condição é ampla porque a resolução é ampla. O preço dela está logo
+       * abaixo, em `setupFiles`.
+       */
       conditions: ["browser", "development"],
     },
+  },
+
+  test: {
+    /**
+     * Um `document` para quem resolve como navegador e roda em Node.
+     *
+     * É o preço da condição acima, e ele só apareceu quando o markdown entrou:
+     * o `decode-named-character-reference`, que o micromark usa para
+     * decodificar entidades, tem uma build de navegador que toca `document` no
+     * ESCOPO DO MÓDULO. Como `sdk/map.ts` passou a importar o analisador,
+     * quinze suítes que nada têm com markdown quebravam todas no mesmo
+     * `import`.
+     */
+    setupFiles: ["./src/testes/documento.ts"],
   },
 });

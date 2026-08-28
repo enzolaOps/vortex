@@ -4,6 +4,8 @@
  * Tudo o que o resto do app enxerga passa por aqui. Derivação acontece nesta
  * escrita — uma vez, quando a entidade muda — e nunca no `getSnapshot`.
  */
+import { decodeTime } from "ulid";
+
 import type {
   Channel,
   ChannelRenamedSystemMessage,
@@ -16,16 +18,18 @@ import type {
   UserSystemMessage,
 } from "stoat.js";
 
+import { analisar } from "../markdown/analisar";
 import type { Layout } from "./agrupamento";
 import type {
   ChannelSnapshot,
   MemberSnapshot,
   AnexoSnapshot,
   MessageSnapshot,
-  ParteDeMensagem,
   PresenceStatus,
   SendState,
   ReacaoSnapshot,
+  Relacao,
+  RelacaoSnapshot,
   ServerSnapshot,
   SistemaSnapshot,
 } from "./domain";
@@ -140,34 +144,6 @@ function toSistema(message: Message): SistemaSnapshot | undefined {
  * adapter. Passar os dois de fora mantém a tradução pura e deixa as únicas
  * partes que dependem de contexto num lugar só.
  */
-/**
- * Parte o texto em trechos, separando as menções.
- *
- * Devolve o texto inteiro num array de um elemento quando não há menção
- * nenhuma, que é o caso comum — assim quem renderiza tem um caminho só.
- *
- * O nome do usuário NÃO é resolvido aqui. Quem sabe o nome é a member list, e
- * puxá-la para dentro do mapeamento de mensagem acoplaria as duas coleções por
- * uma linha de texto. O componente resolve, porque ele já assina o membro.
- */
-export function fatiarMencoes(texto: string): readonly ParteDeMensagem[] {
-  if (!texto.includes("<@")) return [{ tipo: "texto", valor: texto }];
-
-  const out: ParteDeMensagem[] = [];
-  const padrao = /<@([0-9A-Za-z]+)>/g;
-  let ultimo = 0;
-  for (const m of texto.matchAll(padrao)) {
-    const i = m.index;
-    if (i > ultimo) out.push({ tipo: "texto", valor: texto.slice(ultimo, i) });
-    out.push({ tipo: "mencao", valor: m[1]!, de: i });
-    ultimo = i + m[0].length;
-  }
-  if (ultimo < texto.length) {
-    out.push({ tipo: "texto", valor: texto.slice(ultimo) });
-  }
-  return out;
-}
-
 const SEM_ANEXOS: readonly AnexoSnapshot[] = [];
 
 /**
@@ -218,17 +194,19 @@ export function toMessageSnapshot(
     authorId: message.authorId,
     content: message.content,
     /*
-      Fatiado UMA VEZ, na escrita — nunca no render.
+      Analisado UMA VEZ por CONTEÚDO — nunca no render, e nunca de novo aqui.
 
-      Uma menção é `<@id>` no texto cru, e transformar isso em `@nome` exige
-      partir a string. Fazer isso no render seria refazer o mesmo trabalho a
-      cada re-render da linha mais quente do app — o mesmo erro que fez
-      `toLocaleTimeString` sair do render e virar `createdAtText`.
+      Esta função não roda uma vez por mensagem: ela roda de novo a cada
+      mudança de layout, de estado de envio, de permissão e a cada reação, para
+      toda linha assinada. Analisar markdown aqui dentro sem cache seria o erro
+      nº 4 do briefing mudado de lugar, e ele degrada exatamente onde dói —
+      quando a presença começa a piscar.
 
-      A esmagadora maioria das mensagens não menciona ninguém, e para elas o
-      custo é um `includes` que falha e um array de um elemento.
+      O cache mora em `markdown/analisar.ts`, chaveado pelo texto: mensagem
+      editada troca de chave sozinha, e "ok" digitado por trinta pessoas divide
+      uma árvore só.
     */
-    partes: fatiarMencoes(message.content),
+    blocos: analisar(message.content),
     anexos: toAnexos(message),
     /** Menciona VOCÊ — a linha inteira se destaca por isso. */
     mencionaVoce: euId !== undefined && message.content.includes(`<@${euId}>`),
@@ -321,11 +299,54 @@ export function ehCanalDeVoz(channel: Channel): boolean {
   );
 }
 
+/**
+ * O tipo do protocolo → o tipo do produto.
+ *
+ * `SavedMessages | DirectMessage | Group | TextChannel` mais a detecção de voz,
+ * colapsados nos cinco que a coluna sabe desenhar. O caso torto é `TextChannel`
+ * com objeto `voice` — ver `ehCanalDeVoz`.
+ */
+function tipoDoCanal(channel: Channel): ChannelSnapshot["tipo"] {
+  if (channel.type === "SavedMessages") return "notas";
+  if (channel.type === "DirectMessage") return "dm";
+  if (channel.type === "Group") return "grupo";
+  return ehCanalDeVoz(channel) ? "voz" : "texto";
+}
+
 export function toChannelSnapshot(
   channel: Channel,
   naoLidas: number,
   mencoes: number,
+  /** Quem sou eu — para achar o OUTRO lado de uma conversa direta. */
+  euId: string | undefined,
 ): ChannelSnapshot {
+  const tipo = tipoDoCanal(channel);
+
+  /*
+    O destinatário sai de `recipientIds` menos eu, e NÃO de `channel.recipient`.
+
+    O getter do SDK faz `client.user!.id` — estoura antes do `Ready`. E a coluna
+    de conversas precisa ser desenhada na abertura, que é exatamente o momento
+    em que `client.user` ainda não existe.
+  */
+  let destinatarioId: string | undefined;
+  if (tipo === "dm") {
+    for (const id of channel.recipientIds) {
+      if (id !== euId) {
+        destinatarioId = id;
+        break;
+      }
+    }
+  }
+
+  /*
+    O tempo vem do ULID da última mensagem — o protocolo não tem campo de
+    "última atividade". Zero quando nunca houve mensagem: conversa recém-aberta
+    vai para o fim, e não para um topo que ela não merece.
+  */
+  const ultimo = channel.lastMessageId;
+  const ultimaEm = ultimo ? decodeTime(ultimo) : 0;
+
   return {
     id: channel.id,
     // `serverId` é string no SDK mesmo para canal de DM, onde vem vazia. O
@@ -333,7 +354,10 @@ export function toChannelSnapshot(
     // string vazia, e é o que impede um `if (serverId)` errado lá na frente.
     serverId: channel.serverId || undefined,
     name: channel.name,
-    tipo: ehCanalDeVoz(channel) ? "voz" : "texto",
+    tipo,
+    destinatarioId,
+    participantes: tipo === "grupo" ? channel.recipientIds.size : 0,
+    ultimaEm,
     topico: channel.description || undefined,
     naoLidas,
     mencoes,
@@ -361,6 +385,35 @@ export function toChannelSnapshot(
  * — autor de DM não é. Sem ele, cai no username e em nenhum cargo, que é a
  * resposta certa e não um estado degradado.
  */
+/**
+ * `Friend | Incoming | Outgoing | Blocked | BlockedOther | None | User` → as
+ * seis do produto.
+ *
+ * `User` é EU MESMO — o protocolo usa a mesma palavra para "relação com você
+ * próprio". Cai em `nenhuma` porque a tela de amigos não deve me listar entre
+ * meus amigos, e um sétimo caso só para isso seria um estado que nenhuma aba
+ * mostra.
+ */
+const RELACAO: Record<string, Relacao> = {
+  Friend: "amigo",
+  Incoming: "recebido",
+  Outgoing: "enviado",
+  Blocked: "bloqueado",
+  BlockedOther: "bloqueadoPor",
+};
+
+export function toRelacaoSnapshot(user: User): RelacaoSnapshot {
+  const displayName = user.displayName || user.username;
+  return {
+    id: user.id,
+    displayName,
+    sigla: sigla(displayName),
+    username: user.username,
+    relacao: RELACAO[user.relationship] ?? "nenhuma",
+    status: toPresence(user.status?.presence),
+  };
+}
+
 export function toMemberSnapshot(
   user: User,
   membro: ServerMember | undefined,

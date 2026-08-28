@@ -46,7 +46,7 @@ export function Citacao({
         <>
           <NomeDoAutor userId={citada.authorId ?? ""} />
           <span className={css.trecho}>
-            <TextoDaMensagem partes={citada.partes} compacto />
+            <TextoDaMensagem blocos={citada.blocos} compacto />
           </span>
         </>
       ) : (

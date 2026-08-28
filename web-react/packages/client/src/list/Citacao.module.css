@@ -14,7 +14,15 @@
   gap: var(--vx-space-1);
   min-inline-size: 0;
   inline-size: 100%;
-  padding-block-end: var(--vx-space-0);
+  /*
+    24px de altura, e o meio-degrau é o que faltava.
+
+    Media 22px — abaixo do mínimo de alvo apontado pela auditoria, e o único
+    alvo do produto que ficava abaixo dele. O respiro vai nas duas pontas em
+    vez de dobrar embaixo: a citação encosta no texto da resposta, e afastá-la
+    só de um lado a soltaria do que ela introduz.
+  */
+  padding-block: var(--vx-space-0);
   border: 0;
   background: transparent;
   color: var(--vx-text-3);
