@@ -18,6 +18,7 @@ import { count, readCounters } from "../dev/stats";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import {
   definirLongeDoFim,
+  esquecerLongeDoFim,
   ouvirFimDaLista,
   ouvirIrParaMensagem,
   pedirFocoNoComposer,
@@ -411,6 +412,24 @@ export function MessageList({ channelId }: { channelId: string }) {
    * a intenção e não o resultado observado.
    */
   const colado = useRef(true);
+
+  /** O `div` cuja altura é `getTotalSize()` — cresce quando o conteúdo cresce. */
+  const medidaRef = useRef<HTMLDivElement | null>(null);
+
+  /**
+   * A pessoa está dirigindo a rolagem AGORA?
+   *
+   * ⚠ **Sem esta distinção, `colado` não é intenção — é posição, e posição
+   * mente.** A lista se afasta do fim por duas razões completamente
+   * diferentes: alguém rolou para ler o histórico, ou o conteúdo cresceu
+   * embaixo (linha nova medindo mais que a estimativa). Um `scroll` listener
+   * vê as duas do mesmo jeito.
+   *
+   * Marcado por gesto — roda, toque, tecla — e apagado no quadro seguinte.
+   * Não existe forma de perguntar ao evento `scroll` quem o causou.
+   */
+  const dirigindo = useRef(false);
+
   useEffect(() => {
     const element = scrollRef.current;
     if (!element) return;
@@ -425,10 +444,45 @@ export function MessageList({ channelId }: { channelId: string }) {
     let pendente = false;
     let quadro = 0;
 
+    /*
+      Gesto humano: marca por um quadro. Passivo, e só isso — não decide nada
+      sozinho, apenas autoriza o `scroll` seguinte a DESCOLAR.
+    */
+    let limpeza = 0;
+    const aoDirigir = () => {
+      dirigindo.current = true;
+      if (limpeza !== 0) clearTimeout(limpeza);
+      // 150ms: uma roda de mouse emite uma rajada de eventos com o `scroll`
+      // vindo atrás. Zerar no mesmo quadro perderia o fim da rajada.
+      limpeza = window.setTimeout(() => {
+        dirigindo.current = false;
+      }, 150);
+    };
+
+    const TECLAS_DE_ROLAGEM = new Set([
+      "ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " ",
+    ]);
+    const aoTeclar = (evento: KeyboardEvent) => {
+      if (TECLAS_DE_ROLAGEM.has(evento.key)) aoDirigir();
+    };
+
     const aoRolar = () => {
-      colado.current =
+      const noFim =
         element.scrollHeight - element.clientHeight - element.scrollTop <=
         LIMIAR_DE_FIM;
+
+      /*
+        ⚠ **DESCOLAR exige gesto; COLAR não.**
+
+        Era `colado = noFim` puro, e era o mesmo limiar de 80px que o
+        `followOnAppend` do virtualizador usa. Quando ele desistia, a nossa
+        rede de segurança já tinha desistido junto — as duas medindo posição,
+        nenhuma medindo intenção. Chegar ao fim sempre significa "quero
+        seguir"; afastar-se dele só significa isso quando foi a PESSOA que
+        se afastou.
+      */
+      if (noFim) colado.current = true;
+      else if (dirigindo.current) colado.current = false;
 
       /*
         Conta ao composer se estamos longe do fim — o "Ir para o presente".
@@ -464,13 +518,106 @@ export function MessageList({ channelId }: { channelId: string }) {
     };
 
     element.addEventListener("scroll", aoRolar, { passive: true });
+    element.addEventListener("wheel", aoDirigir, { passive: true });
+    element.addEventListener("touchstart", aoDirigir, { passive: true });
+    element.addEventListener("keydown", aoTeclar);
     return () => {
       element.removeEventListener("scroll", aoRolar);
+      element.removeEventListener("wheel", aoDirigir);
+      element.removeEventListener("touchstart", aoDirigir);
+      element.removeEventListener("keydown", aoTeclar);
+      if (limpeza !== 0) clearTimeout(limpeza);
       // Erro nº 5 do briefing: quadro agendado sem cancelamento publica num
       // canal que já saiu da tela.
       if (quadro !== 0) cancelAnimationFrame(quadro);
+      /*
+        Quem escreve é quem esquece.
+
+        A lista está saindo da tela — trocou de canal, ou o painel fechou. Sem
+        isto, voltar ao canal mostraria "Ir para o presente" sobre uma lista
+        que já está no fim, porque a última resposta ficaria guardada.
+      */
+      esquecerLongeDoFim(channelId);
     };
   }, [channelId]);
+
+  /**
+   * O CONTEÚDO cresceu — reancora, mesmo que o virtualizador já tenha desistido.
+   *
+   * ⚠ **Esta é a metade que faltava, e a falta reprovava o gate.** O
+   * `followOnAppend` do TanStack só engata se, no instante em que `setOptions`
+   * roda, a lista estiver a menos de `scrollEndThreshold` do fim. Passou disso
+   * uma vez, ele não volta — e a lista só precisa passar UMA vez.
+   *
+   * Como ela passa: linha nova nasce com a altura ESTIMADA, é medida logo
+   * depois, e a diferença cresce o conteúdo embaixo sem mover o `scrollTop`.
+   * Sob carga alta chegam várias por quadro, e o erro soma. Medido no
+   * navegador, com o firehose e a lista partindo de zero: 0 · 0 · 1.816 ·
+   * 6.211 · 10.800 · 15.013px em 11 segundos — uma reta de ~2.000px/s. O gate
+   * reprovava com `lista a 54.173px do fim, followOnAppend desligado`, e o
+   * mesmo número em corridas diferentes porque o firehose é determinístico.
+   *
+   * ⚠ **Melhorar a estimativa NÃO resolve — só adia.** Ela corrige o tamanho
+   * do erro por linha, não o fato de o engate ser irreversível; basta um pico
+   * de carga para cruzar o limiar de novo. Foi por isso que a correção das
+   * constantes (92→125, 60→86), que era devida por outros motivos, não moveu o
+   * veredito.
+   *
+   * ⚠ **A/B de uma linha, mesma máquina e mesma condição (2x, vazão 497/500).**
+   * Desligando só a chamada abaixo, o gate volta a reprovar com
+   * `INVÁLIDA — lista a 55.361px do fim`, e a trilha mostra o mecanismo cru:
+   *
+   * ```
+   * 3,0s d=0     st=998367 sh=998851
+   * 4,0s d=974   st=999651 sh=1001109   ← cruzou o limiar
+   * 5,0s d=2937  st=999673 sh=1003094
+   * 6,0s d=5001  st=999704 sh=1005189
+   * ```
+   *
+   * O `scrollTop` CONGELA em ~999.700 enquanto o conteúdo segue crescendo.
+   * Não é lentidão: é o engate desligado. Com a chamada ligada, a mesma
+   * corrida diz `âncora ok` e a distância fica em zero as 30 janelas inteiras.
+   *
+   * O `ResizeObserver` é sobre o elemento MEDIDOR — o `div` cuja altura é
+   * `getTotalSize()` —, não sobre o container. São eventos diferentes: o
+   * container muda quando a JANELA muda, o medidor muda quando o CONTEÚDO
+   * muda. O de container já existia logo abaixo e nunca dispararia aqui.
+   */
+  useEffect(() => {
+    const medidor = medidaRef.current;
+    const rolagem = scrollRef.current;
+    if (!medidor || !rolagem) return;
+
+    let ultimaAltura = medidor.getBoundingClientRect().height;
+
+    const observador = new ResizeObserver(() => {
+      const altura = medidor.getBoundingClientRect().height;
+      const cresceu = altura > ultimaAltura;
+      ultimaAltura = altura;
+
+      /*
+        Só quando CRESCE e só quem quer estar no fim.
+
+        Encolher é caso de mensagem apagada, e ali a posição de leitura de quem
+        está no histórico é mais importante que a âncora. E sem o `colado`
+        isto arrastaria para o fim alguém que está lendo o histórico enquanto o
+        canal recebe mensagem — que é o pior defeito que uma lista de chat tem.
+      */
+      if (!cresceu || !colado.current) return;
+
+      /*
+        `scrollToEnd` do virtualizador e não `scrollTop = scrollHeight`.
+
+        O virtualizador mantém um offset próprio e ajustes pendentes; escrever
+        no DOM por fora deixa os dois discordando, e a discordância aparece
+        como um salto no próximo quadro em que ele reconcilia.
+      */
+      virtualizer.scrollToEnd();
+    });
+
+    observador.observe(medidor);
+    return () => observador.disconnect();
+  }, [virtualizer]);
 
   /**
    * Lei nº 6, antecipada para a fase 0 — e agora nas duas dimensões.
@@ -1039,6 +1186,7 @@ export function MessageList({ channelId }: { channelId: string }) {
           mora. Comparar as faixas passaria sempre e não guardaria nada. */}
       <div className={css.coluna}>
         <div
+          ref={medidaRef}
           className="relative w-full"
           style={{ height: `${virtualizer.getTotalSize()}px` }}
         >

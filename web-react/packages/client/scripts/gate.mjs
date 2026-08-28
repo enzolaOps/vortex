@@ -62,6 +62,26 @@ const chrome = spawn(
     "--no-default-browser-check",
     "--disable-features=CalculateNativeWinOcclusion",
     "--hide-scrollbars",
+    /*
+      ⚠ **Compositação por software, e é OPT-IN por uma razão medida.**
+
+      Numa máquina onde o caminho de GPU do headless para de produzir frames,
+      o gate reprova o AMBIENTE em vez do código: medido aqui, 11 fps e mediana
+      de 100,8ms em QUALQUER página, inclusive a tela de login. `--disable-gpu`
+      devolve uma cadência real (53 fps, mediana 16,8ms).
+
+      Não é o default porque troca um problema por dois, e os dois foram
+      medidos na mesma sessão: (1) compositar por software custa CPU, e sob
+      throttle de 4x a vazão do gerador cai de 93–98% para **89%** — abaixo do
+      piso de 90%, então a corrida vira inválida pelo outro lado; (2) o
+      contador de frames perdidos passa a se contradizer — 43,8% de perdidos
+      com `100,0% dentro do orçamento` e `1801 em 1× · 0 em 2×`, que não podem
+      ser as duas verdade.
+
+      Ou seja: serve para DIAGNOSTICAR (a trilha da âncora saiu daqui), não
+      para dar veredito. Ligue com `VORTEX_GATE_SW=1` sabendo disso.
+    */
+    ...(process.env.VORTEX_GATE_SW === "1" ? ["--disable-gpu"] : []),
   ],
   { stdio: "ignore" },
 );
@@ -211,6 +231,29 @@ const b=[...document.querySelectorAll('button')].find(x=>x.textContent.startsWit
 if((b&&b.disabled)||Date.now()-t0>240000){clearInterval(iv);r(Date.now()-t0)}},500)})`);
 console.log(`semeadura: ${semeou}ms`);
 
+/*
+  TRILHA DA ÂNCORA — diagnóstico da corrida inválida.
+
+  O relatório dizia "lista a 54.173px do fim" e mais nada: um número no FIM
+  não distingue "derivou devagar a corrida inteira" de "saltou de uma vez".
+  Esta trilha amostra a cada 250ms e guarda scrollTop, scrollHeight e
+  clientHeight separados — com os três dá para dizer se o conteúdo cresceu sem
+  o scroll acompanhar, ou se algo nos rolou para trás.
+*/
+await av(`(()=>{
+  const el = document.querySelector('div[role="log"]');
+  window.__trilha = [];
+  window.__trilhaIv = setInterval(() => {
+    window.__trilha.push([
+      Math.round(performance.now()),
+      Math.round(el.scrollTop),
+      Math.round(el.scrollHeight),
+      Math.round(el.clientHeight),
+    ]);
+  }, 250);
+  return 1;
+})()`);
+
 await av(`(()=>{[...document.querySelectorAll('button')].find(x=>x.textContent.startsWith('Firehose')).click();return 1})()`);
 
 const relatorio = await av(
@@ -228,6 +271,17 @@ r({
  lateral: spans.find(t=>/^lateral:/.test(t)) ?? '',
  espalhamento: spans.find(t=>/espalhamento/.test(t)) ?? '',
  invalida: spans.find(t=>/INVÁLIDA/.test(t)) ?? '',
+ trilha: (()=>{clearInterval(window.__trilhaIv);
+   // Só quando a corrida foi INVÁLIDA pela âncora: 30 linhas de trilha em
+   // toda corrida é ruído, e um número solto no fim ("54.173px") não
+   // distingue deriva lenta de salto único. Aparece quando serve.
+   if(!spans.some(t=>/INVÁLIDA/.test(t))) return '(âncora ok)';
+   const t=window.__trilha||[]; if(t.length===0) return '(vazia)';
+   const t0=t[0][0];
+   return t.filter((_,i)=>i%4===0||i===t.length-1)
+     .map(function(a){var ms=a[0],st=a[1],sh=a[2],ch=a[3];
+       return ((ms-t0)/1000).toFixed(1)+'s d='+(sh-ch-st)+' st='+st+' sh='+sh+' ch='+ch;})
+     .join(String.fromCharCode(10)+'   ');})(),
 })}},1000)})`,
   400_000,
 );

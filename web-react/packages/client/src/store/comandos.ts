@@ -95,14 +95,30 @@ export function assinarLongeDoFim(
     const atual = ouvintesDeLonge.get(channelId);
     if (!atual) return;
     atual.delete(ouvinte);
-    if (atual.size === 0) {
-      ouvintesDeLonge.delete(channelId);
-      // A resposta some junto com o último ouvinte: uma lista desmontada não
-      // tem posição de rolagem, e guardar a última faria o botão reaparecer
-      // ao voltar ao canal, sobre uma lista que já está no fim.
-      longe.delete(channelId);
-    }
+    if (atual.size === 0) ouvintesDeLonge.delete(channelId);
   };
+}
+
+/**
+ * A lista saiu da tela — esquece a resposta dela.
+ *
+ * ⚠ **Isto MORAVA no cancelamento da assinatura, e era um defeito com cara de
+ * zelo.** O raciocínio era "sem ouvinte, a resposta não vale"; o que ele
+ * ignorava é que `useSyncExternalStore` re-assina sempre que a função de
+ * assinatura muda de identidade — ou seja, a cada render do componente. O
+ * ciclo desassina-e-assina esvaziava o conjunto por um instante, e o valor era
+ * apagado nesse instante.
+ *
+ * Efeito na tela: o botão "Ir para o presente" NUNCA aparecia. Medido a
+ * 5.130px do fim — `colado` correto, `aoRolar` rodando, e o botão ausente.
+ * Nenhum erro, porque ler um `Map` vazio é uma resposta perfeitamente válida.
+ *
+ * Quem tem o direito de esquecer é quem ESCREVE, não quem lê: a lista sabe
+ * quando desmonta, e o ouvinte não sabe nada sobre a vida dela.
+ */
+export function esquecerLongeDoFim(channelId: string): void {
+  definirLongeDoFim(channelId, false);
+  longe.delete(channelId);
 }
 
 /* ----------------------------------------------------------- foco no composer */
