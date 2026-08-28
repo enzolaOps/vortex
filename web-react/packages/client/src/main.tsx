@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+import { ligarRota } from "./rota/rota";
 import { iniciarPintura } from "./tema/pintor";
 import { App } from "./App";
 import { PortaoDeSessao } from "./sessao/PortaoDeSessao";
@@ -13,6 +14,18 @@ const root = document.getElementById("root");
 if (!root) throw new Error("#root ausente no index.html");
 
 iniciarPintura();
+
+/*
+  A rota, antes do primeiro render.
+
+  Aplicar depois faria o app abrir na casa e SALTAR para o lugar da URL um
+  quadro adiante — visível em toda abertura de link, e pior numa lista
+  virtualizada, que montaria duas vezes.
+
+  Module-level e não `useEffect`: `history` e `popstate` não pertencem a árvore
+  de componente nenhuma. Mesmo padrão de `ligarAtalhoDaPaleta`.
+*/
+ligarRota();
 
 createRoot(root).render(
   <StrictMode>
