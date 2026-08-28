@@ -1,10 +1,18 @@
+import { GearSix, House, Plus } from "@phosphor-icons/react";
 import { memo } from "react";
 
 import { Lamina } from "../components/ui/Lamina";
 import { Tooltip } from "../components/ui/Tooltip";
 import { contagem, rotuloDeNaoLidas } from "../lib/plural";
-import { useServer, useServerIds, useServidorAtivo } from "../store/hooks";
-import { selecionarServidor } from "../store/navegacao";
+import {
+  useLocal,
+  useServer,
+  useServerIds,
+  useServidorAtivo,
+} from "../store/hooks";
+import { abrirConfig } from "../store/config";
+import { abrirModal } from "../store/modais";
+import { irParaCasa, selecionarServidor } from "../store/navegacao";
 import css from "./Rail.module.css";
 
 /**
@@ -116,9 +124,35 @@ const ItemDeServidor = memo(function ItemDeServidor({
 export function Rail() {
   const ids = useServerIds();
   const ativo = useServidorAtivo();
+  const local = useLocal();
+  const naCasa = local.tipo === "casa" || local.tipo === "amigos" || local.tipo === "dm";
 
   return (
     <nav className={css.rail} aria-label="Servidores">
+      {/*
+        A casa, e ela é a primeira coisa do rail por um motivo estrutural: sem
+        este botão, DM, grupo e amigos não têm por onde ser alcançados. O rail
+        listava SÓ servidores, e essa ausência derrubava quatro superfícies de
+        uma vez — foi assim que o mapa de superfícies a classificou.
+      */}
+      <Tooltip texto="Conversas" lado="fim">
+        <button
+          type="button"
+          className={css.item}
+          aria-current={naCasa}
+          aria-label="Conversas"
+          onClick={irParaCasa}
+        >
+          <Lamina estado={naCasa ? "ativa" : "repouso"} className={css.lamina} />
+          <span className={css.marca} aria-hidden>
+            {/* `fill` só no ativo: é a variação SEMÂNTICA do Phosphor, não
+                decorativa — a mesma regra do resto do app. */}
+            <House size={22} weight={naCasa ? "fill" : "regular"} />
+          </span>
+          <span className={css.nome}>Conversas</span>
+        </button>
+      </Tooltip>
+
       {ids.length === 0 ? (
         <p className={css.vazio}>sem servidores</p>
       ) : (
@@ -128,6 +162,46 @@ export function Rail() {
           ))}
         </div>
       )}
+
+      {/*
+        O `+`, e ele é o único ponto de entrada para criar OU entrar num
+        servidor. Sem ele, as duas coisas não têm por onde acontecer — foi
+        assim que o mapa de superfícies classificou a ausência.
+      */}
+      {/*
+        Configurações, no rodapé do rail.
+
+        Aqui e não num menu de usuário porque o rail é a única coluna sempre
+        visível — e porque até agora a única entrada para o picker de paleta e o
+        modo de edição era o cabeçalho do ARNÊS, que não existe no produto.
+      */}
+      <Tooltip texto="Configurações" lado="fim">
+        <button
+          type="button"
+          className={css.item}
+          aria-label="Configurações"
+          onClick={() => abrirConfig("perfil")}
+        >
+          <span className={css.marca} aria-hidden>
+            <GearSix size={20} />
+          </span>
+          <span className={css.nome}>Configurações</span>
+        </button>
+      </Tooltip>
+
+      <Tooltip texto="Adicionar servidor" lado="fim">
+        <button
+          type="button"
+          className={css.item}
+          aria-label="Adicionar servidor"
+          onClick={() => abrirModal("adicionarServidor")}
+        >
+          <span className={css.marca} aria-hidden>
+            <Plus size={20} />
+          </span>
+          <span className={css.nome}>Adicionar</span>
+        </button>
+      </Tooltip>
     </nav>
   );
 }

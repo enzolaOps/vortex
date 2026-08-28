@@ -1,0 +1,186 @@
+/* ============================================================
+   Coluna da casa — conversas
+   ------------------------------------------------------------
+   Divide a geometria com a lista de canais de propósito: é o
+   MESMO slot do shell, e uma coluna que muda de largura de
+   respiro ao trocar de contexto leria como troca de app.
+
+   O que muda é a densidade da linha: aqui cada item carrega
+   avatar e presença, então a altura é maior que a de um canal.
+   ============================================================ */
+
+.painel {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  block-size: 100%;
+  /* O anel do ponto de presença é desenhado sobre esta superfície. */
+  --anel: var(--vx-surface-1);
+  container-type: inline-size;
+}
+
+.cabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  min-inline-size: 0;
+  padding-inline: var(--vx-space-3);
+  padding-block: var(--vx-space-3);
+  border-block-end: 1px solid var(--vx-border-subtle);
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-lg);
+  font-weight: 500;
+  line-height: var(--vx-leading-title);
+}
+
+.rolagem {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  padding-block: var(--vx-space-2);
+  padding-inline: var(--vx-space-2);
+}
+
+/* --- as linhas ------------------------------------------------ */
+
+.conversa,
+.amigos {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+  inline-size: 100%;
+  min-inline-size: 0;
+  padding-inline: var(--vx-space-2);
+  padding-block: var(--vx-space-2);
+  border: 0;
+  border-radius: var(--vx-radius-2);
+  background: transparent;
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  text-align: start;
+  cursor: pointer;
+}
+
+/* A linha de amigos fica fora da rolagem, então precisa do recuo dela. */
+.amigos {
+  inline-size: auto;
+  margin-inline: var(--vx-space-2);
+  margin-block-start: var(--vx-space-2);
+}
+
+.conversa:hover,
+.amigos:hover {
+  background: var(--vx-surface-2);
+  color: var(--vx-text-1);
+}
+
+.conversa:active,
+.amigos:active {
+  background: var(--vx-surface-3);
+}
+
+.conversa:focus-visible,
+.amigos:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/*
+  Aberto.
+
+  Peso e superfície, e o acento SÓ aqui: a disciplina de acento do projeto é
+  contável, e a coluna já tem o servidor ativo marcado no rail. Dois acentos
+  na mesma varredura de olho competem em vez de orientar.
+*/
+.conversa[aria-current="true"],
+.amigos[aria-current="true"] {
+  background: var(--vx-surface-2);
+  color: var(--vx-accent);
+  font-weight: 500;
+}
+
+/*
+  Não-lida é PESO, não cor.
+
+  A mesma regra da lista de canais e da linha de mensagem: três estados do
+  mesmo texto — apagado, normal, forte — sobrevivem a daltonismo e não
+  acrescentam decoração.
+*/
+.conversa[data-naolidas="true"] .nome {
+  color: var(--vx-text-1);
+  font-weight: 600;
+}
+
+.marca {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  inline-size: var(--vx-avatar-sm);
+  block-size: var(--vx-avatar-sm);
+  border-radius: var(--vx-radius-4);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+}
+
+/* O ponto encosta no canto do avatar; o anel o separa da superfície. */
+.ponto {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-end: 0;
+}
+
+.texto {
+  display: grid;
+  min-inline-size: 0;
+}
+
+/*
+  `min-inline-size: 0` no filho e `overflow` aqui.
+
+  Sem os dois, um nome de grupo longo empurra o contador para fora da coluna —
+  é o mesmo `min-width: 0` da lei nº 3, um nível abaixo do grid do shell.
+*/
+.nome {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detalhe {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+/*
+  A contagem é de MENÇÃO, não de não-lida.
+
+  Não-lida sem menção já é dita pelo peso do nome; um número ali competiria
+  com o que de fato pede ação. Mesma decisão da lista de canais.
+*/
+.contador {
+  flex: 0 0 auto;
+  padding-inline: var(--vx-space-1);
+  border-radius: var(--vx-radius-4);
+  background: var(--vx-accent);
+  color: var(--vx-on-accent);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+  Coluna estreita: o detalhe do grupo sai antes do nome.
+
+  Container query e não media query — o painel é movível, e ele reage ao
+  próprio tamanho. É a invariante nº 1 de componente.
+*/
+@container (inline-size < 180px) {
+  .detalhe {
+    display: none;
+  }
+}

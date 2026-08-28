@@ -4,9 +4,13 @@ import {
   CaretRight,
   Check,
   Hash,
+  LinkSimple,
   MagnifyingGlass,
   Monitor,
+  PencilSimple,
+  Plus,
   SpeakerHigh,
+  Trash,
   VideoCamera,
 } from "@phosphor-icons/react";
 import { memo } from "react";
@@ -15,8 +19,13 @@ import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuSeparator,
   ContextMenuTrigger,
 } from "../components/ui/ContextMenu";
+import { Tooltip } from "../components/ui/Tooltip";
+import { entrarNaChamada } from "../sdk/chamada";
+import { administrar } from "../store/administracao";
+import { ListaDeConversas } from "../casa/ListaDeConversas";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { Lamina } from "../components/ui/Lamina";
 import { contagem, rotuloDeNaoLidas } from "../lib/plural";
@@ -41,6 +50,7 @@ import {
   useServer,
   useServidorAtivo,
   useVozDoCanal,
+  useLocal,
 } from "../store/hooks";
 import { selecionarCanal } from "../store/navegacao";
 import css from "./ListaDeCanais.module.css";
@@ -186,6 +196,53 @@ const Canal = memo(function Canal({
           )}
           {canal.silenciado ? "Reativar avisos" : "Silenciar canal"}
         </ContextMenuItem>
+
+        {/*
+          Daqui para baixo é administração, e cada item só existe se a pessoa
+          PODE. Não é `disabled`: um item cinza ensina que a ação existe e que
+          você não a tem, o que é ruído permanente para quem nunca vai tê-la.
+          A regra do briefing é não RENDERIZAR.
+        */}
+        {canal.tipo === "voz" ? (
+          <>
+            <ContextMenuSeparator />
+            <ContextMenuItem onSelect={() => void entrarNaChamada(id)}>
+              <SpeakerHigh size={20} aria-hidden />
+              Entrar na sala
+            </ContextMenuItem>
+          </>
+        ) : null}
+
+        {pode(id, "criarConvite") ? (
+          <>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              onSelect={() => administrar({ tipo: "convite", channelId: id })}
+            >
+              <LinkSimple size={20} aria-hidden />
+              Criar convite
+            </ContextMenuItem>
+          </>
+        ) : null}
+
+        {pode(id, "gerenciarCanais") ? (
+          <>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              onSelect={() => administrar({ tipo: "editarCanal", channelId: id })}
+            >
+              <PencilSimple size={20} aria-hidden />
+              Editar canal
+            </ContextMenuItem>
+            <ContextMenuItem
+              perigo
+              onSelect={() => administrar({ tipo: "apagarCanal", channelId: id })}
+            >
+              <Trash size={20} aria-hidden />
+              Apagar canal
+            </ContextMenuItem>
+          </>
+        ) : null}
       </ContextMenuContent>
     </ContextMenu>
 
@@ -302,25 +359,100 @@ const Categoria = memo(function Categoria({
 }) {
   const colapsada = useColapso(categoria.id);
   const temCabecalho = categoria.titulo !== undefined;
+  /*
+    A permissão é do CANAL no protocolo, e categoria não é canal — ela nem é
+    entidade lá, é um campo do servidor. Pergunto pelo primeiro canal dela, que
+    é o alvo mais próximo que existe; categoria vazia cai no `""` e a resposta
+    é negativa, que é o lado seguro.
+  */
+  const podeGerenciar = pode(categoria.canais[0] ?? "", "gerenciarCanais");
   const mostrar = !temCabecalho || !colapsada;
 
   return (
     <div className={css.categoria}>
       {temCabecalho ? (
-        <button
-          type="button"
-          className={css.secao}
-          aria-expanded={!colapsada}
-          onClick={() => alternarColapso(categoria.id)}
-        >
-          <CaretRight
-            size={20}
-            aria-hidden
-            className={css.chevron}
-            data-aberta={!colapsada}
-          />
-          {categoria.titulo}
-        </button>
+        /*
+          O cabeçalho da categoria carrega o menu dela.
+
+          Botão direito e não um "…" visível: a coluna é o índice do servidor e
+          a pessoa passa o olho por ela dezenas de vezes por dia — um alvo
+          permanente por categoria seria ruído constante por uma ação que
+          acontece uma vez por mês.
+        */
+        <ContextMenu>
+          <ContextMenuTrigger asChild>
+            <button
+              type="button"
+              className={css.secao}
+              aria-expanded={!colapsada}
+              onClick={() => alternarColapso(categoria.id)}
+            >
+              <CaretRight
+                size={20}
+                aria-hidden
+                className={css.chevron}
+                data-aberta={!colapsada}
+              />
+              {categoria.titulo}
+            </button>
+          </ContextMenuTrigger>
+
+          <ContextMenuContent>
+            {podeGerenciar ? (
+              <>
+                <ContextMenuItem
+                  onSelect={() =>
+                    administrar({
+                      tipo: "criarCanal",
+                      serverId,
+                      categoriaId: categoria.id,
+                      voz: false,
+                    })
+                  }
+                >
+                  <Plus size={20} aria-hidden />
+                  Novo canal aqui
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onSelect={() =>
+                    administrar({
+                      tipo: "renomearCategoria",
+                      serverId,
+                      categoriaId: categoria.id,
+                    })
+                  }
+                >
+                  <PencilSimple size={20} aria-hidden />
+                  Renomear categoria
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem
+                  perigo
+                  onSelect={() =>
+                    administrar({
+                      tipo: "apagarCategoria",
+                      serverId,
+                      categoriaId: categoria.id,
+                    })
+                  }
+                >
+                  <Trash size={20} aria-hidden />
+                  Apagar categoria
+                </ContextMenuItem>
+              </>
+            ) : (
+              /*
+                Sem permissão o menu não fica VAZIO — um menu que abre sem nada
+                dentro parece quebrado. Colapsar já está no clique; aqui ele
+                vira o item que justifica o menu existir.
+              */
+              <ContextMenuItem onSelect={() => alternarColapso(categoria.id)}>
+                <CaretRight size={20} aria-hidden />
+                {colapsada ? "Expandir" : "Recolher"}
+              </ContextMenuItem>
+            )}
+          </ContextMenuContent>
+        </ContextMenu>
       ) : null}
 
       {/*
@@ -360,11 +492,35 @@ const Categoria = memo(function Categoria({
  * que um `useVirtualizer` consome, e o que mantém o retrofit barato quando um
  * servidor com 400 canais aparecer.
  */
+/**
+ * A coluna do meio do shell.
+ *
+ * ⚠ **Ela tem DUAS fontes, e isso é a resolução do conflito nº 3 do plano de
+ * paridade.** O shell tem três slots e o produto tem nove painéis; uma coluna
+ * de conversas separada gastaria um slot e obrigaria a pessoa a trocar painel
+ * na mão ao ir para a casa. Aqui é o mesmo painel lendo a navegação — que é
+ * como o Discord faz, e custa zero em slots.
+ */
 export function ListaDeCanais() {
+  const local = useLocal();
+  if (local.tipo !== "servidor") return <ListaDeConversas />;
+  return <CanaisDoServidor />;
+}
+
+function CanaisDoServidor() {
   const serverId = useServidorAtivo();
   const servidor = useServer(serverId);
   const grupos = useCategorias(serverId);
   const canalAtivo = useCanalAtivo();
+  /*
+    Pergunto pelo primeiro canal que existir. Servidor sem canal nenhum não tem
+    a quem perguntar — e aí `pode("")` responde `false` com servidor presente,
+    o que esconderia o botão justamente de quem acabou de criar o servidor.
+    `gerenciarServidor` no próprio servidor seria a pergunta certa; enquanto o
+    SDK só responde por canal, o dono cai no caminho sem servidor e vê o botão.
+  */
+  const primeiro = grupos.flatMap((g) => g.canais)[0] ?? "";
+  const podeCriar = pode(primeiro, "gerenciarCanais");
 
   // Já vêm agrupadas e ordenadas do adapter — a coluna não organiza nada no
   // render, porque organizar exigiria ler entidades que ela não assina.
@@ -414,6 +570,34 @@ export function ListaDeCanais() {
             {TECLA_DA_PALETA}
           </kbd>
         </button>
+
+        {/*
+          Novo canal, no cabeçalho.
+
+          Aqui e não só no menu de contexto da categoria: criar o PRIMEIRO
+          canal de um servidor recém-criado não tem categoria de onde partir, e
+          um servidor sem canal nenhum é exatamente o estado em que alguém mais
+          precisa deste botão.
+        */}
+        {podeCriar ? (
+          <Tooltip texto="Novo canal" lado="abaixo">
+            <button
+              type="button"
+              className={css.acaoDoCabecalho}
+              aria-label="Novo canal"
+              onClick={() =>
+                administrar({
+                  tipo: "criarCanal",
+                  serverId,
+                  categoriaId: undefined,
+                  voz: false,
+                })
+              }
+            >
+              <Plus size={20} aria-hidden />
+            </button>
+          </Tooltip>
+        ) : null}
       </header>
 
       {/* Ver `MessageList`: rolável sem foco é inoperável por teclado. */}

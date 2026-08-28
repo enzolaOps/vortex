@@ -33,14 +33,34 @@
   scrollbar-width: thin;
   /* O anel do ponto de presença precisa saber sobre o que está pousado. */
   --anel: var(--vx-surface-0);
+
+  /*
+    ⚠ **O recuo mora AQUI, e não na lista — senão metade do rail desalinha.**
+
+    A casa, o `+` e as configurações são filhos diretos do rail; os servidores
+    vivem dentro de `.lista`, que tinha o recuo só para si. Medido: a marca dos
+    servidores em x=16 e a dos outros três em x=4. **Doze pixels**, numa coluna
+    de 72 — e três dos seis itens fora do eixo.
+
+    Não era invisível: é o primeiro elemento da tela, e quem comparou com outro
+    cliente viu na hora. Nenhuma guarda pegaria — as duas caixas estão corretas
+    isoladamente, e o defeito só existe na relação entre elas.
+
+    Com o recuo no rail, os seis itens são irmãos do mesmo container e o eixo é
+    um só por construção, não por dois valores que precisam concordar.
+  */
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+  padding: var(--vx-space-2);
 }
 
 .lista {
   display: flex;
   flex-direction: column;
   gap: var(--vx-space-1);
-  padding-block: var(--vx-space-2);
-  padding-inline: var(--vx-space-2);
+  /* Sem recuo próprio: ele é do rail, para os servidores ficarem no mesmo
+     eixo da casa, do `+` e das configurações. */
   /*
     O item ocupa a largura da lista, e centra o próprio conteúdo.
 
@@ -157,9 +177,19 @@
     display: none;
   }
 
-  .lista {
-    align-items: center;
-  }
+  /*
+    ⚠ Aqui havia `.lista { align-items: center }`, e ele desfazia o `stretch`
+    logo acima — o item encolhia para o conteúdo e era centrado na sobra.
+
+    Consequência medida: a borda de início do item deixava de ser o recuo do
+    painel, então a lâmina — posicionada 8px antes dela para alcançar a borda
+    do rail — aterrissava a 3,5px da borda em vez de zero. A marca de servidor
+    não lido ficava boiando no vão em vez de encostar no canto, que é onde
+    todo cliente de chat a põe e é o que a torna encontrável sem olhar.
+
+    O comentário do `stretch` já explicava por que ele existe. Esta regra o
+    anulava justamente na largura padrão do rail, que é 72px.
+  */
 }
 
 .contador {
