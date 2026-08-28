@@ -47,6 +47,29 @@ const SINTAXE_GERAL = [
             "Utility de espaçamento fracionária não existe aqui: a escala é 1–6 e `--spacing-*: initial` apaga o resto, então esta classe NÃO gera CSS e some sem erro. Use um degrau da escala, ou CSS Module se o valor for legítimo e fora dela.",
         },
         {
+          /**
+           * `aria-pressed` com rótulo que muda de AÇÃO junto do estado.
+           *
+           * O par tem que ser nome estável + estado no `aria-pressed`, como o
+           * botão de negrito: "Negrito, pressionado". Quando o rótulo também
+           * muda, os dois dizem a mesma coisa duas vezes e o leitor de tela
+           * anuncia o INVERSO da verdade.
+           *
+           * Não é hipótese: com o microfone aberto, o cartão de chamada dizia
+           * `aria-label="Silenciar microfone"` e `aria-pressed="true"` —
+           * "silenciar está ativo", ou seja, mudo. Os quatro controles da
+           * chamada e os três do painel de edição tinham a mesma forma, e havia
+           * um comentário no código explicando por que o `aria-pressed` estava
+           * ali. Não faltou atenção; faltou mecanismo.
+           *
+           * O rótulo de ação continua existindo onde ele serve — no tooltip.
+           */
+          selector:
+            "JSXOpeningElement:has(JSXAttribute[name.name='aria-pressed']) JSXAttribute[name.name='aria-label'] > JSXExpressionContainer > ConditionalExpression",
+          message:
+            "aria-pressed exige nome ESTÁVEL: rótulo que alterna junto do estado faz o leitor de tela anunciar o inverso (\"Silenciar microfone, pressionado\" com o microfone aberto). Nomeie o recurso e deixe o estado no aria-pressed; a ação vai no tooltip.",
+        },
+        {
           selector:
             "JSXAttribute[name.name='key'] > JSXExpressionContainer > Identifier[name=/^(i|idx|index)$/]",
           message:
