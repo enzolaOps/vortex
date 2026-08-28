@@ -150,3 +150,15 @@
   outline: 2px solid var(--vx-accent);
   outline-offset: 2px;
 }
+
+/*
+  A escala de ícone da cromagem que flutua sobre a lista — ver `--vx-icon-1`.
+
+  "Ir para a próxima menção" e o botão de voltar ao presente. Não é a linha de
+  mensagem: são controles sobrepostos, e o design os desenha na mesma escala
+  do resto da cromagem.
+*/
+.irParaMencao svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}

@@ -280,13 +280,68 @@
    evitar.
    ------------------------------------------------------------ */
 
+/*
+  A faixa de avisos: digitação à esquerda, "ir para o presente" à direita.
+
+  Altura mínima no FILHO e não aqui, porque o botão aparece e some: com a
+  altura na faixa, ela seria a mesma nos dois casos — que é o ponto. O
+  indicador de digitação já reserva a linha, e é por isso que ele mantém
+  `min-block-size` mesmo vazio: sem reserva, a faixa surgiria e sumiria e o
+  composer inteiro mudaria de altura, que é a âncora da lista se movendo por
+  causa de alguém digitando.
+*/
+.avisos {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-2);
+  margin-block-end: var(--vx-space-1);
+}
+
 .digitando {
+  min-inline-size: 0;
   min-block-size: calc(var(--vx-size-xs) * var(--vx-leading-message));
-  margin: 0 0 var(--vx-space-1);
+  margin: 0;
   padding-inline: var(--vx-space-1);
   color: var(--vx-text-3);
   font-size: var(--vx-size-xs);
   line-height: var(--vx-leading-message);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+  "Ir para o presente ↓", em acento.
+
+  ⚠ Isto GASTA acento, e a disciplina do projeto tem teto de dois na tela. Ele
+  cabe porque é raro e efêmero: só existe quando a pessoa está a mais de uma
+  tela do fim, some sozinho ao chegar lá, e quando aparece é a única coisa da
+  tela que ela provavelmente quer clicar. Um atalho de fuga em cor de texto
+  seria um atalho que ninguém vê.
+*/
+.aoPresente {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-1);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--vx-accent-text);
+  font: inherit;
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.aoPresente:hover {
+  color: var(--vx-accent);
+}
+
+.aoPresente svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
 }
 
 /* ============================================================
@@ -412,4 +467,16 @@
   align-items: center;
   gap: var(--vx-space-3);
   min-inline-size: 0;
+}
+
+/*
+  A escala de ícone desta superfície — ver `--vx-icon-1` em `tokens.css`.
+
+  Cromagem: o design desenha 13–14px aqui, e o `size={20}` do Phosphor vinha
+  de um default copiado de componente para componente. O dono do tamanho é a
+  superfície, não a chamada.
+*/
+.rodape svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
 }

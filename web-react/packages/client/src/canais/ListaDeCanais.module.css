@@ -54,6 +54,9 @@
   min-inline-size: 0;
   block-size: 50px;
   padding-inline: var(--vx-space-3);
+  /* O botão ocupa a faixa inteira: a seta ancora na borda final, e o alvo de
+     abrir o menu é toda a largura do cabeçalho — não os 92px do nome. */
+  justify-content: space-between;
   border-block-end: 1px solid var(--vx-border-subtle);
   color: var(--vx-text-1);
 }
@@ -328,9 +331,33 @@
   está olhando. Deixá-lo na mesma cor do nome faz cada linha ter dois pesos
   disputando.
 */
+/*
+  O `#` e o alto-falante, em 14px.
+
+  ⚠ Estavam em 20px — do tamanho do NOME do canal, disputando atenção com
+  ele. O design os desenha em 13px, apagados: o glifo diz o TIPO do canal, e
+  o tipo é a coisa menos procurada da linha (quem varre a coluna procura o
+  nome). `--vx-icon-1` é o degrau da cromagem densa.
+*/
 .icone {
   flex: none;
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
   color: var(--vx-text-4);
+}
+
+/*
+  ⚠ **A escala de ícone da COLUNA inteira, num lugar só.**
+
+  Tudo aqui é cromagem densa — cadeado, sino cortado, seta de categoria,
+  lupa, ações da linha. Sem esta regra cada um carregaria o `size={20}` que
+  vem do Phosphor, que é o que fazia a coluna parecer mais pesada que o
+  design. As exceções acima (`.icone`) já declaram o próprio tamanho e
+  vencem por especificidade.
+*/
+.painel svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
 }
 
 .canal[aria-current="true"] .icone,
@@ -579,10 +606,19 @@
   O `pnpm utilities` acusou a regra órfã na mesma corrida em que o botão saiu.
 */
 
+/*
+  ⚠ **O botão ESTICA, e a seta vai para a ponta.** Medido antes: ele tinha
+  92px numa coluna de 247, com nome, tag e seta grudados à esquerda — o design
+  põe nome e tag num grupo à esquerda e a seta encostada na borda final, com
+  `space-between`. É o que dá ao cabeçalho a leitura de "isto tudo é um
+  controle", e sem isso a seta parece pertencer à tag.
+*/
 .servidor {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-1);
+  justify-content: space-between;
+  gap: var(--vx-space-2);
+  flex: 1;
   min-inline-size: 0;
   padding: 0;
   border: 0;
@@ -605,16 +641,44 @@
   outline-offset: 2px;
 }
 
+/*
+  ⚠ **15px / 600, e estava herdando 16px / 400 do corpo.** Medido, e era o
+  desvio mais visível do cabeçalho: o nome do servidor saía MAIOR e mais leve
+  que no design, o que o fazia ler como texto de corpo em vez de título de
+  coluna. O design escreve 15/600 — um degrau abaixo do corpo e bem mais
+  encorpado.
+
+  `--vx-size-lg` é o 15px da escala.
+*/
 .nomeDoServidor {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: var(--vx-size-lg);
+  font-weight: 600;
+}
+
+/* Nome e tag andam juntos; a seta é que se afasta. */
+.identidade {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  min-inline-size: 0;
 }
 
 /* Discreta: ela diz que há mais, não compete com o nome. */
+/*
+  A seta, pequena e na ponta.
+
+  Estava em 20px com o resto dos ícones — do tamanho do `#` de um canal, para
+  dizer algo que é puro affordance. O design a desenha em 11px: ela existe para
+  informar que aquilo abre, não para ser encontrada.
+*/
 .divisaDoMenu {
   flex: none;
-  color: var(--vx-text-3);
+  inline-size: var(--vx-space-3);
+  block-size: var(--vx-space-3);
+  color: var(--vx-text-2);
 }
 
 /* ============================================================
@@ -625,16 +689,30 @@
    TSX.
    ============================================================ */
 
+/*
+  A tag, com os números do design: caixa de 16px, 10px em peso 700.
+
+  Estava em 11px / 500 e 17,6px de altura — perto, e o suficiente para ela
+  competir com o nome em vez de acompanhá-lo. Uma tag é etiqueta: ela precisa
+  ser nitidamente menor e nitidamente mais densa que o que etiqueta.
+
+  ⚠ `font-size: 10px` está FORA da escala tipográfica, e é deliberado — o
+  degrau mais baixo é 11px (`xs`), e o design usa 10 só aqui e na tecla do
+  campo de busca. Legitimar um degrau de 10px na escala convidaria a usá-lo em
+  texto corrido, que é onde ele seria ilegível.
+*/
 .tag {
   flex: none;
+  display: flex;
+  align-items: center;
+  block-size: var(--vx-space-4);
   padding-inline: var(--vx-space-1);
   border-radius: var(--vx-radius-1);
   background: var(--vx-accent-soft);
   color: var(--vx-accent-text);
   font-family: var(--vx-font-mono);
-  font-size: var(--vx-size-xs);
-  font-weight: 500;
-  line-height: 1.6;
+  font-size: 10px;
+  font-weight: 700;
   letter-spacing: 0.04em;
 }
 

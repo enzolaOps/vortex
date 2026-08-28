@@ -770,9 +770,12 @@ function CanaisDoServidor() {
               className={css.servidor}
               aria-label={`Opções de ${servidor?.name ?? "servidor"}`}
             >
-              <span className={css.nomeDoServidor}>
-                {servidor?.name ?? "…"}
-              </span>
+              {/* Nome e tag num grupo; a seta fica fora dele e ancora na
+                  ponta. Ver `.servidor` e `.identidade`. */}
+              <span className={css.identidade}>
+                <span className={css.nomeDoServidor}>
+                  {servidor?.name ?? "…"}
+                </span>
 
               {/*
                 O badge de identificador curto, ao lado do nome — é do design.
@@ -784,10 +787,11 @@ function CanaisDoServidor() {
                 substitui isto sem mexer no layout.
               */}
               {servidor ? (
-                <span className={css.tag} aria-hidden>
-                  {servidor.sigla}
-                </span>
-              ) : null}
+                  <span className={css.tag} aria-hidden>
+                    {servidor.sigla}
+                  </span>
+                ) : null}
+              </span>
 
               <CaretDown size={20} aria-hidden className={css.divisaDoMenu} />
             </button>

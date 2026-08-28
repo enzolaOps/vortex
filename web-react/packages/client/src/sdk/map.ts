@@ -6,6 +6,8 @@
  */
 import { decodeTime } from "ulid";
 
+import { TextEmbed, WebsiteEmbed } from "stoat.js";
+
 import type {
   Channel,
   ChannelRenamedSystemMessage,
@@ -18,11 +20,12 @@ import type {
   UserSystemMessage,
 } from "stoat.js";
 
-import { analisar } from "../markdown/analisar";
+import { analisar, hrefSeguro } from "../markdown/analisar";
 import type { Layout } from "./agrupamento";
 import type {
   CanalTipo,
   ChannelSnapshot,
+  EmbedSnapshot,
   MemberSnapshot,
   AnexoSnapshot,
   MessageSnapshot,
@@ -244,6 +247,7 @@ export function toMessageSnapshot(
     respostas: message.replyIds ?? VAZIO,
     fixada: message.pinned,
     reactions: flattenReactions(message, euId),
+    embeds: aplanarEmbeds(message),
     // O protocolo não carrega isto: quem mantém é o adapter, e mensagem que
     // veio do servidor nasce "sent". É a camada anticorrupção fazendo o
     // trabalho para o qual existe.
@@ -500,6 +504,74 @@ export function toRelacaoSnapshot(user: User): RelacaoSnapshot {
     relacao: RELACAO[user.relationship] ?? "nenhuma",
     status: toPresence(user.status?.presence),
   };
+}
+
+/**
+ * Os embeds do protocolo → os cartões do domínio.
+ *
+ * ⚠ **Só `Website` e `Text` viram cartão.** `Image` e `Video` são o embed que
+ * o protocolo gera quando a mensagem é só um link de mídia — e o app já tem
+ * caminho para mídia (`anexos`, com reserva de espaço a partir do metadata).
+ * Desenhá-los aqui também daria duas superfícies para a mesma coisa, com duas
+ * reservas de altura que precisariam concordar.
+ *
+ * ⚠ **A URL passa por `hrefSeguro`, e não é zelo abstrato.** O embed vem do
+ * SERVIDOR, mas o servidor o gerou a partir de um link que outra pessoa
+ * escreveu — a cadeia começa em conteúdo de terceiro. É a mesma regra do link
+ * de markdown: `javascript:` e `data:` não viram destino, e o token deste app
+ * mora em `localStorage`.
+ *
+ * Cartão sem título E sem descrição é DESCARTADO. O protocolo entrega embed
+ * vazio quando não conseguiu resolver o link, e uma caixa com um domínio
+ * dentro é pior que nenhuma caixa: parece que algo falhou em carregar.
+ */
+function aplanarEmbeds(message: Message): readonly EmbedSnapshot[] {
+  const brutos = message.embeds;
+  if (!brutos || brutos.length === 0) return VAZIO_EMBEDS;
+
+  const cartoes: EmbedSnapshot[] = [];
+  for (const e of brutos) {
+    if (!(e instanceof WebsiteEmbed) && !(e instanceof TextEmbed)) continue;
+    if (!e.title && !e.description) continue;
+
+    const url = hrefSeguro(e.url);
+    const origem = e instanceof WebsiteEmbed ? e.siteName : undefined;
+
+    cartoes.push({
+      // A URL é a chave: o protocolo não dá id ao embed, e duas mensagens com
+      // o mesmo link geram cartões idênticos — que é o comportamento certo.
+      id: e.url ?? `${cartoes.length}`,
+      url,
+      // Sem `siteName`, o host da própria URL. É o que o cartão precisa dizer
+      // ("de onde isto veio"), e o protocolo nem sempre resolve o nome.
+      origem: origem ?? hostDe(url),
+      titulo: e.title || undefined,
+      descricao: e.description || undefined,
+      imagemUrl: e instanceof WebsiteEmbed ? e.image?.url : undefined,
+      cor: e.colour || undefined,
+    });
+  }
+
+  return cartoes.length > 0 ? cartoes : VAZIO_EMBEDS;
+}
+
+/** Referência estável para a ausência — armadilha nº 1. */
+const VAZIO_EMBEDS: readonly EmbedSnapshot[] = [];
+
+/**
+ * O host de uma URL já validada, para o cartão sem `siteName`.
+ *
+ * `try` porque `hrefSeguro` garante o ESQUEMA, não que `new URL` aceite tudo o
+ * que passou por ele — e uma exceção aqui derrubaria a tradução da mensagem
+ * inteira, não só o cartão.
+ */
+function hostDe(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  try {
+    return new URL(url).host;
+  } catch {
+    return undefined;
+  }
 }
 
 export function toMemberSnapshot(

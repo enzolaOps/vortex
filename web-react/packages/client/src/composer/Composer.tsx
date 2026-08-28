@@ -28,6 +28,7 @@ import { escreverRascunho, limparRascunho } from "../store/rascunhos";
 import css from "./Composer.module.css";
 import { BarraDeResposta } from "./BarraDeResposta";
 import { Digitando } from "./Digitando";
+import { IrParaOPresente } from "./IrParaOPresente";
 
 /** Mostra a contagem só quando ela passa a importar. */
 const AVISAR_A_PARTIR_DE = LIMITE_DE_CONTEUDO * 0.9;
@@ -185,7 +186,18 @@ export function Composer({ channelId }: { channelId: string }) {
         {/* O marcador vai no CONTEÚDO, não na faixa: é ele que a assertion
             compara com o conteúdo da linha de mensagem. */}
         <div className={css.conteudo} {...{ [ATRIBUTO_DE_COLUNA]: "composer" }}>
-        <Digitando channelId={channelId} />
+        {/*
+          ⚠ **Digitação e "Ir para o presente" na MESMA linha — é o design, e a
+          faixa não existia.** O indicador era um `<p>` solto; o botão de voltar
+          ao fim não existia em lugar nenhum do app. Descoberto porque o
+          `pnpm utilities` reprovou uma classe que eu inventei para ele antes de
+          o botão existir: a guarda de regra sem consumidor acusou o componente
+          ausente, não uma folha suja.
+        */}
+        <div className={css.avisos}>
+          <Digitando channelId={channelId} />
+          <IrParaOPresente channelId={channelId} />
+        </div>
 
         {/*
           A barra de resposta, ACIMA do campo.

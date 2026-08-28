@@ -38,8 +38,15 @@
   padding-block: var(--vx-space-3) var(--vx-space-1);
   color: var(--vx-text-3);
   font-size: var(--vx-size-xs);
-  font-weight: 500;
-  letter-spacing: 0.04em;
+  /*
+    600 e `0.08em`, os números do design — estava em 500 e `0.04em`.
+
+    Num cabeçalho de seção em caixa alta e 11px, o espaçamento entre letras é o
+    que separa "rótulo" de "palavra apertada": maiúsculas coladas leem como um
+    bloco. E o peso é o que faz ele ancorar a lista de trinta linhas abaixo.
+  */
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -64,8 +71,19 @@
   transition: background var(--vx-duration-fast) var(--vx-ease-out);
 }
 
+/*
+  ⚠ **Camada de estado, e era `--vx-surface-2` — uma superfície opaca.**
+
+  A diferença é visível: `surface-2` é um degrau de ELEVAÇÃO, e usá-la como
+  hover fazia a linha parecer promovida a cartão em vez de destacada. O design
+  usa `rgba(255,255,255,0.045)` — um véu, que é exatamente o que
+  `--vx-state-hover` é, e o que a coluna de canais já usava.
+
+  Duas superfícies com nome de estado e um estado com nome de superfície era a
+  inconsistência; agora as duas colunas dizem hover do mesmo jeito.
+*/
 .membro:hover {
-  background: var(--vx-surface-2);
+  background: var(--vx-state-hover);
   color: var(--vx-text-1);
 }
 
@@ -98,13 +116,20 @@
      separaria em dois blocos em vez de uma identidade só. */
 }
 
-/* 14px, o número do `Vortex App` para nome de membro. Ver `--vx-size-base`. */
+/*
+  14px em peso 600 — os números do `Vortex App`. Ver `--vx-size-base`.
+
+  O peso estava herdado (400) e é o que fazia a coluna ler como uma lista de
+  texto em vez de uma lista de PESSOAS. Num painel onde cada linha é um nome
+  próprio, o nome é o conteúdo, não o rótulo de algo.
+*/
 .nome {
   min-inline-size: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: var(--vx-size-base);
+  font-weight: 600;
 }
 
 /*
@@ -206,4 +231,15 @@
 */
 .alvo {
   display: contents;
+}
+
+/*
+  A escala de ícone desta superfície — ver `--vx-icon-1` em `tokens.css`.
+
+  Cromagem densa: o design desenha 12–14px aqui, e o `size={20}` do Phosphor
+  vinha de um default copiado. O dono do tamanho é a superfície, não a chamada.
+*/
+.painel svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
 }

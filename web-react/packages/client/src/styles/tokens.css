@@ -74,7 +74,7 @@
   --vx-text-4: #4c5563;
 
   /* --- Bordas ------------------------------------------------ */
-  --vx-border-subtle: #292f39;
+  --vx-border-subtle: #1d232d;
   --vx-border-strong: #6b7684;
 
   /* --- Ação --------------------------------------------------
@@ -385,6 +385,28 @@
      Um avatar é uma CAIXA DE CONTEÚDO, não um respiro entre coisas.
      Compartilhar a escala de espaçamento amarra as duas — mexer no
      respiro da lista mudaria o tamanho da foto de todo mundo. */
+  /* ------------------------------------------------------------- ícones */
+
+  /*
+    ⚠ **Três tamanhos, e a falta deles era o maior desvio do design.** Medido:
+    **79 dos 83 ícones da tela estavam em 20px**, porque `size={20}` virou o
+    default copiado de componente para componente. O design usa 12–14px em
+    toda a cromagem densa — coluna de canais, ações do cabeçalho, faixa de
+    voz, painel de usuário — e o resultado eram ícones pesados demais em toda
+    parte, que é o que quem usa descreveu como "os ícones não estão iguais".
+
+    A regra do projeto sempre foi "um set só, sem exceção"; faltava a metade
+    que diz o TAMANHO. Sem ela, "um set só" garante a forma e não a escala.
+
+    Aplicados pelo CSS do container (`svg { inline-size: … }`), não pela prop
+    `size` do Phosphor: o dono do tamanho é a superfície, e o componente que
+    passa `size={20}` continua compilando sem que ninguém precise varrer 79
+    chamadas. É a mesma técnica que `.marcador` já usava.
+  */
+  --vx-icon-1: 14px; /* cromagem densa: coluna, ações, faixa, painel */
+  --vx-icon-2: 16px; /* alvos de leitura: linha de mensagem, composer */
+  --vx-icon-3: 20px; /* raro: quando o ícone É o alvo, sem rótulo ao lado */
+
   --vx-avatar-xs: 20px; /* linha de sala de voz, chip */
   --vx-avatar-sm: 32px; /* member list, lista de conversas */
   --vx-avatar-md: 40px; /* linha de mensagem, rail */

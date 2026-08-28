@@ -144,7 +144,23 @@ const RAMPAS: Record<Modo, Rampa> = {
       { l: 0.597175, c: 0.023874, dh: 1.19 },
       { l: 0.44693, c: 0.025712, dh: 1.175 },
     ],
-    bordaSutil: { l: 0.305, c: 0.02, dh: 1.5 },
+    /*
+      ⚠ **0,255 e era 0,305 — a hairline saía CLARA demais em toda divisória.**
+
+      O design escreve a divisória como `rgba(255,255,255,0.06)`, um véu, e não
+      uma cor. Um véu compõe certo sobre qualquer fundo; uma cor chapada só
+      acerta a superfície para a qual foi escolhida. Medido: `#292f39` é o que
+      6% de branco dá sobre `--vx-surface-3` — e as divisórias deste app vivem
+      sobre `surface-0`, `surface-1` e `surface-2`, onde o mesmo véu compõe
+      `#17181a`, `#1d2126` e `#22262c`. Ou seja, o token estava calibrado para
+      a superfície onde ele quase não aparece.
+
+      Um valor OPACO não pode acertar as quatro, e ele continua opaco porque a
+      derivação inteira é de cores opacas — trocar por `color-mix` aqui tiraria
+      a hairline do picker de paleta, que deriva TODOS os tokens da semente.
+      0,255 é o meio das duas superfícies onde as divisórias de fato estão.
+    */
+    bordaSutil: { l: 0.255, c: 0.02, dh: 1.5 },
     bordaForte: { l: 0.561559, c: 0.025425, dh: -3.51 },
     acento: { l: 0.746311, c: 0.115375, dh: 0 },
     acentoHover: { l: 0.801338, c: 0.114854, dh: -0.675 },

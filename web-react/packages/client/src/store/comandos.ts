@@ -46,6 +46,65 @@ export function ouvirFimDaLista(channelId: string, ouvinte: Ouvinte): () => void
   };
 }
 
+/* --------------------------------------------------- longe do fim da lista */
+
+/**
+ * A lista daquele canal está longe do fim?
+ *
+ * ⚠ **Isto É estado, ao contrário dos dois eventos acima** — e por isso passa
+ * por `useSyncExternalStore`, com snapshot e emissão. Quem pergunta é o
+ * composer, para decidir se mostra "Ir para o presente"; quem responde é a
+ * lista, que é a única que sabe onde a rolagem está.
+ *
+ * ⚠ **Publica só quando MUDA, e a diferença não é estética.** A lista consulta
+ * a distância até o fim a cada evento de rolagem — dezenas por segundo. Se
+ * cada consulta emitisse, o composer re-renderizaria em toda rolagem, e o
+ * composer contém a `textarea` onde alguém está digitando. Escrever o mesmo
+ * booleano de novo não emite nada.
+ *
+ * Keyed por canal pelo mesmo motivo de tudo mais aqui: a lei nº 6 não deixa o
+ * composer saber que existe uma lista, quanto mais qual.
+ */
+const longe = new Map<string, boolean>();
+const ouvintesDeLonge = new Map<string, Set<Ouvinte>>();
+
+export function definirLongeDoFim(channelId: string, valor: boolean): void {
+  if ((longe.get(channelId) ?? false) === valor) return;
+  longe.set(channelId, valor);
+  const set = ouvintesDeLonge.get(channelId);
+  if (!set) return;
+  for (const ouvinte of set) ouvinte();
+}
+
+export function lerLongeDoFim(channelId: string): boolean {
+  return longe.get(channelId) ?? false;
+}
+
+export function assinarLongeDoFim(
+  channelId: string,
+  ouvinte: Ouvinte,
+): () => void {
+  let set = ouvintesDeLonge.get(channelId);
+  if (!set) {
+    set = new Set();
+    ouvintesDeLonge.set(channelId, set);
+  }
+  set.add(ouvinte);
+
+  return () => {
+    const atual = ouvintesDeLonge.get(channelId);
+    if (!atual) return;
+    atual.delete(ouvinte);
+    if (atual.size === 0) {
+      ouvintesDeLonge.delete(channelId);
+      // A resposta some junto com o último ouvinte: uma lista desmontada não
+      // tem posição de rolagem, e guardar a última faria o botão reaparecer
+      // ao voltar ao canal, sobre uma lista que já está no fim.
+      longe.delete(channelId);
+    }
+  };
+}
+
 /* ----------------------------------------------------------- foco no composer */
 
 /**

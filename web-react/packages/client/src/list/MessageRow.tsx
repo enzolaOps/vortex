@@ -55,6 +55,7 @@ import { useMessage } from "../store/hooks";
 import { Anexos } from "./Anexos";
 import { aindaNao } from "../pendente/pendencias";
 import { Citacao } from "./Citacao";
+import { Embeds } from "./Embeds";
 import { CrachaDeCargo } from "../presenca/NomeDoAutor";
 import { TextoDaMensagem } from "./TextoDaMensagem";
 import css from "./MessageRow.module.css";
@@ -717,6 +718,13 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                 foi dito; a reação é o que os outros responderam. */}
             {message.anexos.length > 0 ? (
               <Anexos anexos={message.anexos} />
+            ) : null}
+
+            {/* O cartão de link vem DEPOIS do anexo e antes das reações: o
+                anexo é o que a pessoa mandou, o cartão é o que o servidor
+                achou sobre o que ela escreveu. */}
+            {message.embeds.length > 0 ? (
+              <Embeds embeds={message.embeds} />
             ) : null}
 
             {message.reactions.length > 0 ? (

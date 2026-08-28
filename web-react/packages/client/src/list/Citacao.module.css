@@ -72,3 +72,15 @@
 .citacao:focus-visible {
   outline-offset: -2px;
 }
+
+/*
+  A escala de ícone desta superfície — ver `--vx-icon-1` em `tokens.css`.
+
+  Cromagem: o design desenha 13–14px aqui, e o `size={20}` do Phosphor vinha
+  de um default copiado de componente para componente. O dono do tamanho é a
+  superfície, não a chamada.
+*/
+.citacao svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}

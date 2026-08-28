@@ -37,7 +37,13 @@ import { join } from "node:path";
 const CHROME =
   "C:\\Users\\lagun\\.cache\\puppeteer\\chrome\\win64-151.0.7922.47\\chrome-win64\\chrome.exe";
 const PORT = 9333;
-const URL_APP = process.argv[2] ?? "http://localhost:4174";
+/*
+  ⚠ **`/dev`, e o caminho é obrigatório.** O arnês deixou de ser o `App` quando
+  o cliente de produto passou a existir; ele agora mora numa rota própria, e o
+  gate media a tela de login sem dizer isso — estourava procurando a caixa de
+  seleção da condição.
+*/
+const URL_APP = process.argv[2] ?? "http://localhost:4174/dev";
 const THROTTLE = Number(process.argv[3] ?? 4);
 
 const perfil = mkdtempSync(join(tmpdir(), "vortex-gate-"));
@@ -177,6 +183,23 @@ if (THROTTLE > 1) {
 }
 
 // A caixa "CPU 4x" do arnês declara a CONDIÇÃO, e é ela que escolhe o teto.
+/*
+  A barra do arnês tem de estar na tela ANTES de qualquer clique.
+
+  Sem esta guarda o gate falhava com `Cannot read properties of undefined` — a
+  mensagem descreve o sintoma (não achou a caixa) e esconde a causa (não estava
+  no arnês). Guarda que explica o próprio erro é a diferença entre corrigir em
+  um minuto e procurar por meia hora.
+*/
+await av(`(()=>{
+  if (!document.querySelector('input[type=checkbox]'))
+    throw new Error('ARNÊS AUSENTE — a barra de ferramentas não está na tela. '
+      + 'Confira se a URL termina em /dev e se o build inclui o arnês '
+      + '(ver src/dev/arnesAtivo.ts). Tela atual: '
+      + document.body.innerText.slice(0, 120).replace(/ +/g, ' '));
+  return 1;
+})()`);
+
 await av(`(()=>{const c=[...document.querySelectorAll('input[type=checkbox]')][0];
 if(c.checked !== ${THROTTLE > 1}) c.click(); return c.checked})()`);
 

@@ -69,7 +69,8 @@ const ESQUEMAS_PERMITIDOS = new Set(["http:", "https:", "mailto:"]);
  * lança, cai no `catch` e vira texto — que é a resposta certa para um
  * protocolo onde link relativo não significa nada.
  */
-function hrefSeguro(url: string): string | undefined {
+export function hrefSeguro(url: string | undefined): string | undefined {
+  if (!url) return undefined;
   try {
     const u = new URL(url);
     return ESQUEMAS_PERMITIDOS.has(u.protocol) ? u.href : undefined;

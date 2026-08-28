@@ -55,3 +55,16 @@
 .ferramenta:disabled:hover {
   background: transparent;
 }
+
+/*
+  A escala de ícone das ferramentas do composer — ver `--vx-icon-1`.
+
+  ⚠ **14 e não 16, embora o composer seja alvo de leitura.** O design põe as
+  seis ferramentas em 14px dentro de caixas de 28 — elas são cromagem que
+  ladeia o campo, não conteúdo dele. O que segue em 16 é o texto que se
+  escreve, e ele não é ícone.
+*/
+.ferramentas svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}

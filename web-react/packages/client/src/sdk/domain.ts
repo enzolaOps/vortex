@@ -133,6 +133,48 @@ export type AnexoSnapshot = {
   readonly tamanhoTexto: string | undefined;
 };
 
+/**
+ * O cartão de um link — o embed que o design desenha sob a mensagem do Rafa.
+ *
+ * ⚠ **Não é o embed do protocolo, e a distância é de propósito.** O protocolo
+ * tem quatro variantes (`Website`, `Image`, `Video`, `Text`) com dezenas de
+ * campos entre elas; a interface desenha UMA coisa — um cartão com origem,
+ * título, resumo e miniatura. Trazer as quatro para o componente faria a forma
+ * do protocolo vazar para a linha mais quente do app, que é exatamente o que a
+ * camada anticorrupção existe para impedir.
+ *
+ * Quem gera o embed é o SERVIDOR, a partir do link — o cliente não pede nada e
+ * não busca nada. É por isso que o cartão não tem estado de carregamento: ou
+ * ele veio no snapshot da mensagem, ou não existe.
+ *
+ * ⚠ **A miniatura NÃO é buscada.** `imagemUrl` é desenhado, mas o mesmo
+ * argumento da imagem de markdown vale aqui com força menor: a URL vem de um
+ * terceiro. A diferença é que quem a resolveu foi o servidor, não o autor da
+ * mensagem — o autor escreveu um link, e o servidor decidiu o que mostrar. Por
+ * isso ela passa, e a de markdown não.
+ */
+export type EmbedSnapshot = {
+  /** Chave de lista. O protocolo não dá id ao embed; é a URL, que é única. */
+  readonly id: string;
+  /** Para onde o cartão leva. `undefined` = cartão sem link, só texto. */
+  readonly url: string | undefined;
+  /** "vortex.dev" — a origem, e é o que ancora a confiança no cartão. */
+  readonly origem: string | undefined;
+  readonly titulo: string | undefined;
+  readonly descricao: string | undefined;
+  /** Miniatura à direita. `undefined` = cartão só de texto. */
+  readonly imagemUrl: string | undefined;
+  /**
+   * A cor da barra à esquerda, escolhida por quem publicou.
+   *
+   * ⚠ **Passa pelo mesmo tratamento do cargo colorido**, e pela mesma razão: é
+   * cor CRUA de terceiro, e o projeto garante contraste. Aqui ela só pinta uma
+   * barra de 2px, então o risco é menor — mas a barra encosta na superfície do
+   * cartão, e uma cor que suma nela é uma barra que não existe.
+   */
+  readonly cor: string | undefined;
+};
+
 export type MessageSnapshot = {
   readonly id: string;
   readonly channelId: string;
@@ -199,6 +241,13 @@ export type MessageSnapshot = {
    * é o que impede os chips de dançarem quando alguém reage.
    */
   readonly reactions: readonly ReacaoSnapshot[];
+  /**
+   * Cartões de link, gerados pelo servidor.
+   *
+   * Array vazio quando não há — nunca `undefined`. Duas ausências diferentes
+   * fariam a linha testar as duas, e a linha é o componente mais quente do app.
+   */
+  readonly embeds: readonly EmbedSnapshot[];
 
   /**
    * Campo do Vortex que o protocolo não carrega.

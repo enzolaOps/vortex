@@ -593,3 +593,18 @@
   inline-size: var(--vx-space-3);
   block-size: var(--vx-space-3);
 }
+
+/*
+  A escala de ícone desta superfície — ver `--vx-icon-1` em `tokens.css`.
+
+  Cromagem: o design desenha 13–14px aqui, e o `size={20}` do Phosphor vinha
+  de um default copiado de componente para componente. O dono do tamanho é a
+  superfície, não a chamada.
+*/
+/* A barra de ações no hover: cinco alvos de 24px com glifos de 14, como o
+   design desenha (28 com 13). O `.fixada svg` acima já declara o próprio e
+   vence por ordem — os dois valem 14, então não há conflito real. */
+.acao svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}

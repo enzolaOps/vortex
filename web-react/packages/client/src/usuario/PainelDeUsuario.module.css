@@ -249,3 +249,15 @@
 .recado {
   padding: var(--vx-space-2);
 }
+
+/*
+  A escala de ícone deste painel — ver `--vx-icon-1` em `tokens.css`.
+
+  Microfone, fone e engrenagem em 14px dentro de alvos de 24. O design usa 12
+  em caixas de 26; o alvo aqui já é da escala, e o que estava errado era o
+  glifo, que vinha em 20 e enchia o botão.
+*/
+.painel svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}

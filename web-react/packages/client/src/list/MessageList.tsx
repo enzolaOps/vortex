@@ -17,6 +17,7 @@ import {
 import { count, readCounters } from "../dev/stats";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import {
+  definirLongeDoFim,
   ouvirFimDaLista,
   ouvirIrParaMensagem,
   pedirFocoNoComposer,
@@ -27,7 +28,11 @@ import {
   proximaMencao,
   temMencao,
 } from "../sdk/adapter";
-import type { AnexoSnapshot, BlocoDeMensagem } from "../sdk/domain";
+import type {
+  AnexoSnapshot,
+  BlocoDeMensagem,
+  EmbedSnapshot,
+} from "../sdk/domain";
 import { useChannelMessageIds } from "../store/hooks";
 import css from "./MessageList.module.css";
 import { MenuDaMensagem, MessageRow } from "./MessageRow";
@@ -42,6 +47,19 @@ import { MenuDaMensagem, MessageRow } from "./MessageRow";
  * contra um app parado, na fase 0.
  */
 const LIMIAR_DE_FIM = 80;
+
+/**
+ * A partir de quantos pixels do fim o "Ir para o presente" aparece.
+ *
+ * Uma tela inteira, aproximadamente. É a distância a partir da qual voltar ao
+ * fim deixa de ser um gesto de rolagem e passa a valer um atalho — abaixo
+ * disso o botão seria ruído que aparece e some a cada movimento do dedo.
+ *
+ * Deliberadamente MUITO maior que `LIMIAR_DE_FIM`: os dois respondem perguntas
+ * diferentes, e usar o mesmo número faria o botão piscar junto do
+ * `followOnAppend`.
+ */
+const LIMIAR_DE_LONGE = 800;
 
 /**
  * Altura estimada de linha — MEDIDA, não chutada.
@@ -132,8 +150,32 @@ export const ALTURA_ESTIMADA = 99;
  */
 const ALTURA_POR_TIPO = {
   sistema: 37,
-  abreGrupo: 92,
-  continua: 60,
+  /*
+    ⚠ **Sétima vez que estes números se movem, e desta vez a defasagem tinha
+    CONSEQUÊNCIA MEDIDA — não era só a barra de rolagem mentindo.**
+
+    O gate reprovou três corridas seguidas com `CORRIDA INVÁLIDA — lista a
+    ~54.000px do fim, followOnAppend desligado`, e o relatório trazia a causa
+    na mesma linha: `altura real 125,3px (estimando 99px)`.
+
+    O mecanismo: com `anchorTo: "end"`, cada linha que MEDE mais do que
+    estimava empurra o conteúdo para baixo, e a compensação do virtualizador
+    tem um frame de atraso. A 26px de erro por linha e ~80 mensagens/s, isso é
+    ~2.000px/s. Medido no navegador, com o firehose rodando e a lista partindo
+    de zero: 0 · 0 · 1.816 · 6.211 · 10.800 · 15.013px em 11 segundos — uma
+    reta. Passado o limiar de 80px, `followOnAppend` desliga e não volta: a
+    lista para de seguir e o gate mede um app PARADO, que é exatamente o modo
+    de falha que aprovou uma bateria inteira na fase 0.
+
+    Os números vieram do próprio relatório do gate, medindo a linha atual:
+    **125,1px abre grupo · 85,9px continua**. Cresceram porque a linha
+    cresceu — crachá de cargo, indicador de fixada e o nome em peso maior.
+
+    Isto NÃO é otimização, é correção: a estimativa descreve a linha que
+    existe, e quando ela para de descrever, quem quebra é a âncora.
+  */
+  abreGrupo: 125,
+  continua: 86,
 };
 
 /**
@@ -185,6 +227,43 @@ function alturaDeAnexos(anexos: readonly AnexoSnapshot[]): number {
     total += largura / proporcao;
   }
   return Math.round(total);
+}
+
+/**
+ * A altura que um cartão de link acrescenta.
+ *
+ * ⚠ **CÁLCULO exato, não estimativa — e é o que faz o embed caber na lista
+ * virtualizada sem mover a âncora.** A caixa do cartão é fixa por construção:
+ * a miniatura é 72×56, a descrição é cortada em duas linhas, e o padding é da
+ * escala. Nada aqui depende de um byte chegar da rede, ao contrário da imagem
+ * de anexo — que também é exata, mas a partir do metadata do protocolo.
+ *
+ * ⚠ **O número foi MEDIDO, e a conta a priori errou por 21px.** Somando o que
+ * o CSS declara — 12px de padding nos dois lados, mais origem (16) + título
+ * (21) + duas linhas de descrição (2 × 19) e os respiros — dava 84. A régua no
+ * navegador deu **105px**, com e sem miniatura (o texto é mais alto que os
+ * 56px dela nos dois casos).
+ *
+ * Escrever a constante e conferir depois é exatamente como o `estimateSize: 44`
+ * sobreviveu três fases errando 34px por linha, e a diferença é que aqui o erro
+ * era para BAIXO: subestimar faz a linha crescer depois de medida, e altura
+ * crescendo debaixo do virtualizador desloca a âncora. Superestimar só erra a
+ * barra de rolagem.
+ *
+ * Cartão sem título ou sem descrição é menor, e a conta não desce por isso —
+ * pelo mesmo motivo: o erro seguro é para cima.
+ */
+const ALTURA_DE_CARTAO = 105;
+const RESPIRO_DE_CARTAO = 8;
+
+function alturaDeEmbeds(embeds: readonly EmbedSnapshot[]): number {
+  if (embeds.length === 0) return 0;
+  return (
+    RESPIRO_DE_CARTAO +
+    embeds.length * ALTURA_DE_CARTAO +
+    // O `gap` entre cartões, quando há mais de um: `--vx-space-1`.
+    (embeds.length - 1) * 4
+  );
 }
 
 /**
@@ -291,7 +370,10 @@ export function MessageList({ channelId }: { channelId: string }) {
       // Bloco de código e lista entram pelo mesmo critério de magnitude.
       const comAnexos =
         porTipo > 0
-          ? porTipo + alturaDeAnexos(m.anexos) + alturaDeBlocos(m.blocos)
+          ? porTipo +
+            alturaDeAnexos(m.anexos) +
+            alturaDeBlocos(m.blocos) +
+            alturaDeEmbeds(m.embeds)
           : 0;
 
       /*
@@ -333,15 +415,62 @@ export function MessageList({ channelId }: { channelId: string }) {
     const element = scrollRef.current;
     if (!element) return;
 
+    /*
+      O valor mais recente e o quadro agendado.
+
+      `let` de closure e não `useRef`: eles vivem exatamente o tempo deste
+      efeito, e um ref sobreviveria à troca de canal carregando o quadro do
+      canal anterior.
+    */
+    let pendente = false;
+    let quadro = 0;
+
     const aoRolar = () => {
       colado.current =
         element.scrollHeight - element.clientHeight - element.scrollTop <=
         LIMIAR_DE_FIM;
+
+      /*
+        Conta ao composer se estamos longe do fim — o "Ir para o presente".
+
+        ⚠ **`LIMIAR_DE_LONGE` e não `LIMIAR_DE_FIM`, e os dois limiares são
+        perguntas diferentes.** `colado` decide se a lista SEGUE mensagem nova,
+        e 80px é o certo para isso: quem rolou um dedo ainda quer seguir. O
+        botão responde outra coisa — "você está longe o bastante para precisar
+        de um atalho de volta" —, e aparecer a 80px do fim seria um botão
+        piscando a cada rolagem pequena.
+
+        ⚠ **Coalescido em `requestAnimationFrame`, e a primeira versão NÃO
+        era — ela travou a aba.** Publicar aqui dentro é publicar no meio do
+        `flushSync` do virtualizador: o React entra em render enquanto já está
+        renderizando, o console enche de `flushSync was called from inside a
+        lifecycle method`, e o renderizador para de responder. Não deu erro
+        nenhum — deu uma aba morta, que é o modo de falha que este projeto
+        documenta como o mais caro.
+
+        Isto não é caso especial: distância-até-o-fim muda dezenas de vezes por
+        segundo e é exatamente a família que a lei nº 1 nomeia — presença,
+        digitação, quem está falando. Todas coalescem na fronteira. O padrão é
+        o mesmo do `flushPublications` do adapter.
+      */
+      pendente = element.scrollHeight - element.clientHeight - element.scrollTop >
+        LIMIAR_DE_LONGE;
+      if (quadro === 0) {
+        quadro = requestAnimationFrame(() => {
+          quadro = 0;
+          definirLongeDoFim(channelId, pendente);
+        });
+      }
     };
 
     element.addEventListener("scroll", aoRolar, { passive: true });
-    return () => element.removeEventListener("scroll", aoRolar);
-  }, []);
+    return () => {
+      element.removeEventListener("scroll", aoRolar);
+      // Erro nº 5 do briefing: quadro agendado sem cancelamento publica num
+      // canal que já saiu da tela.
+      if (quadro !== 0) cancelAnimationFrame(quadro);
+    };
+  }, [channelId]);
 
   /**
    * Lei nº 6, antecipada para a fase 0 — e agora nas duas dimensões.

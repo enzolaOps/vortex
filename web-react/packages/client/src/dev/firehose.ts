@@ -713,6 +713,45 @@ function createMessage(seed: number, quando?: number): string {
       // Algumas fixadas — o painel precisa nascer com conteúdo, e o item
       // desafixar precisa de alvo.
       ...(seed % 211 === 40 ? { pinned: true } : {}),
+      /*
+        Um cartão de link a cada 29 mensagens.
+
+        ⚠ **O arnês mais pobre que o protocolo, SEXTA vez** — e desta a
+        superfície inteira era código que ninguém tinha visto rodar. O embed
+        vem do SERVIDOR, então nada no cliente o produziria por acidente.
+
+        Três formas, e não uma: com miniatura, sem miniatura, e sem `site_name`
+        (para o caminho que deriva a origem do host da URL). Um arnês com uma
+        forma só provaria que a mais comum funciona.
+
+        Um dos três traz `colour`, que é a barra colorida passando pelo clamp —
+        o caminho que garante que cor de terceiro não some na superfície.
+      */
+      ...(seed % 29 === 7
+        ? {
+            embeds: [
+              {
+                type: "Website",
+                url: `https://exemplo.invalid/spec/${seed}`,
+                title: `Resolução de permissões — v${(seed % 9) + 1}`,
+                description:
+                  "Cadeia completa de @everyone até override de membro, com exemplos de conflito e hierarquia.",
+                ...(seed % 87 === 7 ? {} : { site_name: "exemplo.invalid" }),
+                ...(seed % 58 === 7
+                  ? {
+                      image: {
+                        url: `https://exemplo.invalid/og/${seed}.png`,
+                        width: 1200,
+                        height: 630,
+                        size: "Preview",
+                      },
+                    }
+                  : {}),
+                ...(seed % 116 === 7 ? { colour: "#f0cd8d" } : {}),
+              },
+            ],
+          }
+        : {}),
       ...(seed % 17 === 4
         ? {
             reactions: {
