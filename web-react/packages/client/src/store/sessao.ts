@@ -24,8 +24,33 @@ export type EstadoDaSessao =
   | "desconhecida"
   | "fora"
   | "entrando"
+  /** O servidor pediu segundo fator. Ver `metodos`. */
+  | "mfa"
+  /** Conta nova, autenticada, ainda sem nome de usuário escolhido. */
+  | "nome"
   | "dentro"
-  | "erro";
+  | "erro"
+  /** A conta existe e foi desativada. Não é erro de senha. */
+  | "desativada";
+
+/**
+ * Os segundos fatores que o Vortex sabe responder.
+ *
+ * Vocabulário do app, não do protocolo — `Password | Recovery` é a grafia do
+ * Stoat, e traduzir na fronteira é a mesma regra que fez `PresenceStatus`
+ * existir em vez de o app falar `"Busy"`.
+ *
+ * ⚠ **`Totp` NÃO está aqui, e é escolha de produto, não lacuna.** Aplicativo
+ * autenticador ficou fora do Vortex. A consequência é dita e tem tratamento: se
+ * o servidor desafiar com um método que este cliente não conhece, `concluir`
+ * cai no ramo de lista vazia e a tela DIZ que não dá — em vez de mostrar um
+ * formulário que só pode falhar.
+ *
+ * `recuperacao` fica porque não custa nada e é a saída de quem tenha ativado o
+ * autenticador por outro cliente: sem ela, essa conta ficaria sem nenhum
+ * caminho de entrada.
+ */
+export type MetodoDeMfa = "senha" | "recuperacao";
 
 export type Sessao = {
   readonly estado: EstadoDaSessao;
@@ -33,7 +58,28 @@ export type Sessao = {
   readonly userId: string | undefined;
   /** O que deu errado, para a tela dizer. Só existe em `erro`. */
   readonly motivo: string | undefined;
+  /**
+   * Quais fatores servem. Só tem conteúdo em `mfa`.
+   *
+   * Vem do servidor: uma conta pode ter TOTP e códigos de recuperação e outra
+   * só senha. Oferecer um método que o servidor não aceita é um formulário que
+   * só pode falhar.
+   */
+  readonly metodos: readonly MetodoDeMfa[];
+  /**
+   * Há uma chamada de rede em voo AGORA.
+   *
+   * Separado do estado porque a espera não é um lugar: quem está no segundo
+   * fator e aperta "Verificar" continua no segundo fator. A primeira versão
+   * disto reusava o estado `entrando`, e o efeito era a pessoa com MFA ser
+   * jogada de volta à tela de senha a cada tentativa — sem erro nenhum, só a
+   * tela errada.
+   */
+  readonly ocupada: boolean;
 };
+
+/** Referência compartilhada: quase todo estado tem lista vazia. */
+const SEM_METODOS: readonly MetodoDeMfa[] = [];
 
 /**
  * A chave do armazenamento.
@@ -58,6 +104,8 @@ const INICIAL: Sessao = {
   estado: "desconhecida",
   userId: undefined,
   motivo: undefined,
+  metodos: SEM_METODOS,
+  ocupada: false,
 };
 
 let sessao: Sessao = INICIAL;
@@ -146,15 +194,90 @@ export function esquecerToken(): void {
 /* ------------------------------------------------------- transições */
 
 export function entrando(): void {
-  publicar({ estado: "entrando", userId: undefined, motivo: undefined });
+  publicar({
+    estado: "entrando",
+    userId: undefined,
+    motivo: undefined,
+    metodos: SEM_METODOS,
+    ocupada: true,
+  });
 }
 
 export function dentro(userId: string): void {
-  publicar({ estado: "dentro", userId, motivo: undefined });
+  publicar({
+    estado: "dentro",
+    userId,
+    motivo: undefined,
+    metodos: SEM_METODOS,
+    ocupada: false,
+  });
 }
 
 export function fora(): void {
-  publicar({ estado: "fora", userId: undefined, motivo: undefined });
+  publicar({
+    estado: "fora",
+    userId: undefined,
+    motivo: undefined,
+    metodos: SEM_METODOS,
+    ocupada: false,
+  });
+}
+
+/**
+ * O servidor pediu segundo fator.
+ *
+ * Estado próprio e não um sinalizador dentro de `entrando`: a tela que pede o
+ * código não se parece com a que pede a senha, e o portão decide o que
+ * renderizar por um `Record` exaustivo sobre este tipo.
+ */
+export function precisaDeMfa(
+  metodos: readonly MetodoDeMfa[],
+  opcoes?: { readonly motivo?: string; readonly ocupada?: boolean },
+): void {
+  publicar({
+    estado: "mfa",
+    userId: undefined,
+    motivo: opcoes?.motivo,
+    metodos,
+    ocupada: opcoes?.ocupada ?? false,
+  });
+}
+
+/**
+ * Autenticado, mas a conta ainda não tem nome de usuário.
+ *
+ * Estado próprio entre `entrando` e `dentro`, e a posição é o ponto: a sessão
+ * JÁ vale (o token está instalado e o socket aberto), mas entrar no app agora
+ * mostraria as mensagens da pessoa sem autor legível e um ID na member list.
+ *
+ * `userId` sobrevive porque a tela de nome precisa dele para concluir — é a
+ * única transição do arquivo que carrega identidade sem estar `dentro`.
+ */
+export function precisaDeNome(userId: string, motivo?: string): void {
+  publicar({
+    estado: "nome",
+    userId,
+    motivo,
+    metodos: SEM_METODOS,
+    ocupada: false,
+  });
+}
+
+/**
+ * A conta foi desativada.
+ *
+ * Separado de `erro` porque a ação é outra: senha errada se resolve tentando de
+ * novo, conta desativada não se resolve em tela nenhuma. O upstream trata isto
+ * com um `alert()` e um `// TODO`.
+ */
+export function desativada(): void {
+  publicar({
+    estado: "desativada",
+    userId: undefined,
+    motivo: undefined,
+    metodos: SEM_METODOS,
+    ocupada: false,
+  });
 }
 
 /**
@@ -166,7 +289,13 @@ export function fora(): void {
  * errada.
  */
 export function erro(motivo: string): void {
-  publicar({ estado: "erro", userId: undefined, motivo });
+  publicar({
+    estado: "erro",
+    userId: undefined,
+    motivo,
+    metodos: SEM_METODOS,
+    ocupada: false,
+  });
 }
 
 /** Estado limpo entre testes. */

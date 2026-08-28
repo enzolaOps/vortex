@@ -1,50 +1,94 @@
-import { useEffect, useSyncExternalStore } from "react";
-import type { ReactNode } from "react";
+import { useEffect, useSyncExternalStore, type ReactNode } from "react";
 
 import { ligarLogoutDoServidor, restaurarSessao } from "../sdk/autenticacao";
-import { assinarSessao, lerSessao } from "../store/sessao";
-import { TelaDeLogin } from "./TelaDeLogin";
+import { lerEntrada } from "../store/entrada";
+import { abrirModal } from "../store/modais";
+import { assinarSessao, lerSessao, type EstadoDaSessao } from "../store/sessao";
+import { Autenticacao } from "./Autenticacao";
+import { TelaDeContaDesativada } from "./TelaDeContaDesativada";
+import { TelaDeMfa } from "./TelaDeMfa";
+import { TelaDeNome } from "./TelaDeNome";
 
 /**
- * Quem entra e quem espera.
+ * O portão: sem sessão não há canal, autor nem permissão.
  *
- * Envolve o app inteiro: sem sessão não há canal, não há autor para a mensagem
- * e não há a quem perguntar permissão. Um app que renderiza o shell antes de
- * saber quem é a pessoa passa o resto da vida checando `undefined`.
- *
- * ⚠ **O caminho de servidor real nunca rodou** — não há backend alcançável
- * deste repositório. Ver `sdk/autenticacao.ts`.
+ * Vem antes do shell de propósito. Montar o app e esconder o conteúdo faria
+ * cada painel assinar entidades que não existem, e o adapter abrir subscrições
+ * para uma sessão que não há.
  */
 export function PortaoDeSessao({ children }: { children: ReactNode }) {
   const sessao = useSyncExternalStore(assinarSessao, lerSessao);
 
   useEffect(() => {
     /*
-      Uma vez, na abertura, e nesta ordem.
-
-      Ligar o `logout` ANTES de restaurar: `useExistingSession` conecta, e um
-      token revogado é recusado durante essa conexão. Ligar depois perderia
-      exatamente o evento que a restauração existe para descobrir.
+      A ORDEM importa e está medida: `ligarLogoutDoServidor` ANTES de
+      `restaurarSessao`. A restauração abre o socket, e um token revogado é
+      recusado durante essa abertura — com o ouvinte instalado depois, o evento
+      passaria antes de haver quem o escutasse, e o app ficaria numa tela viva
+      com socket morto.
     */
     ligarLogoutDoServidor();
     restaurarSessao();
   }, []);
 
   /*
-    `desconhecida` não renderiza NADA, e é isso que evita o flash.
+    O convite sobrevive ao login.
 
-    A pergunta ao armazenamento é síncrona mas acontece no efeito, depois do
-    primeiro render. Mostrar a tela de login nesse instante a faria piscar em
-    toda abertura de quem já está logado — que é a maioria das aberturas.
+    Sem isto, quem abre `/convite/abc` sem conta vê a prévia, entra, e cai no
+    app sem nenhuma pista de para onde ia — teria de pedir o link de novo. O
+    código fica no store de entrada e o modal o consome assim que a sessão
+    vale; o `useEffect` depende do estado para rodar na TRANSIÇÃO, não a cada
+    render.
   */
-  if (sessao.estado === "desconhecida") return null;
+  useEffect(() => {
+    if (sessao.estado !== "dentro") return;
+    if (lerEntrada().tipo !== "convite") return;
+    abrirModal("adicionarServidor");
+  }, [sessao.estado]);
 
-  if (sessao.estado === "dentro") return <>{children}</>;
+  /*
+    O `Record` fica DENTRO para enxergar o snapshot sem virar prop-drilling, e
+    é reconstruído por render — o que custa um objeto de sete funções numa
+    árvore que só re-renderiza quando a sessão muda, ou seja, quase nunca.
 
-  return (
-    <TelaDeLogin
-      entrando={sessao.estado === "entrando"}
-      motivo={sessao.motivo}
-    />
-  );
+    ⚠ **A exaustividade é o ponto, e ela não existia.** Isto era um `if`/`else`
+    encadeado: `desconhecida` devolvia `null`, `dentro` devolvia o app, e TODO O
+    RESTO caía no login. Quando a etapa 2 acrescentou `mfa` e `desativada`, os
+    dois teriam caído calados na tela de senha — a pessoa com segundo fator
+    veria o formulário de novo, sem explicação, para sempre.
+
+    Com `Record<EstadoDaSessao, …>`, estado novo não compila até ter tela.
+    Mesma mecânica de `NOME_DO_PAINEL` sobre `PainelId` e do registro de modais.
+  */
+  const TELA: Record<EstadoDaSessao, () => ReactNode> = {
+    /*
+      Nada, e não um carregando.
+
+      A primeira pergunta do app é ao armazenamento local: síncrona, mas não
+      instantânea. Renderizar a tela de login enquanto se descobre que já há
+      sessão faria a tela piscar em toda abertura, e um spinner de 8ms pisca
+      igual.
+    */
+    desconhecida: () => null,
+    dentro: () => <>{children}</>,
+    /*
+      As três caem no mesmo lugar de propósito: quem escolhe entre entrar,
+      criar conta e recuperar senha é o store de entrada, não o de sessão.
+      `entrando` e `erro` são a MESMA tela em outro momento.
+    */
+    fora: () => <Autenticacao entrando={false} motivo={undefined} />,
+    entrando: () => <Autenticacao entrando motivo={undefined} />,
+    erro: () => <Autenticacao entrando={false} motivo={sessao.motivo} />,
+    mfa: () => (
+      <TelaDeMfa
+        metodos={sessao.metodos}
+        entrando={sessao.ocupada}
+        motivo={sessao.motivo}
+      />
+    ),
+    nome: () => <TelaDeNome motivo={sessao.motivo} />,
+    desativada: () => <TelaDeContaDesativada />,
+  };
+
+  return TELA[sessao.estado]();
 }

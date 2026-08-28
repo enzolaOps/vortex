@@ -1,6 +1,8 @@
 import { useState } from "react";
 
 import { Botao } from "../components/ui/Botao";
+import { Campo } from "../components/ui/Campo";
+import { definirEntrada } from "../store/entrada";
 import { definirUsuarioLocal } from "../sdk/adapter";
 import { entrar } from "../sdk/autenticacao";
 
@@ -52,37 +54,31 @@ export function TelaDeLogin({
       >
         <h1 className={css.titulo}>Vortex</h1>
 
-        <label className={css.campo}>
-          <span className={css.rotulo}>E-mail</span>
-          <input
-            className={css.entrada}
-            type="email"
-            /* `username` e não `email`: é o que os gerenciadores de senha
-               procuram, e errar aqui faz o preenchimento automático não
-               oferecer nada. */
-            autoComplete="username"
-            /* O foco começa aqui: abrir a tela já pronta para digitar poupa um
-               clique em cada abertura, e é o primeiro gesto de qualquer um. */
-            autoFocus
-            required
-            disabled={entrando}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </label>
+        <Campo
+          rotulo="E-mail"
+          type="email"
+          /* `username` e não `email`: é o que os gerenciadores de senha
+             procuram, e errar aqui faz o preenchimento automático não
+             oferecer nada. */
+          autoComplete="username"
+          /* O foco começa aqui: abrir a tela já pronta para digitar poupa um
+             clique em cada abertura, e é o primeiro gesto de qualquer um. */
+          autoFocus
+          required
+          disabled={entrando}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
-        <label className={css.campo}>
-          <span className={css.rotulo}>Senha</span>
-          <input
-            className={css.entrada}
-            type="password"
-            autoComplete="current-password"
-            required
-            disabled={entrando}
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-          />
-        </label>
+        <Campo
+          rotulo="Senha"
+          type="password"
+          autoComplete="current-password"
+          required
+          disabled={entrando}
+          value={senha}
+          onChange={(e) => setSenha(e.target.value)}
+        />
 
         {/*
           O erro fica ACIMA do botão, não abaixo.
@@ -104,6 +100,34 @@ export function TelaDeLogin({
         <Botao variante="primario" type="submit" disabled={!podeEnviar}>
           {entrando ? "Entrando…" : "Entrar"}
         </Botao>
+
+        {/*
+          As duas saídas da tela, e elas não são enfeite.
+
+          Sem "Criar conta", o app só serve a quem já tem conta feita por outro
+          cliente — o que o mapa de superfícies registrou como a consequência
+          mais grave da autenticação incompleta. Sem "Esqueci a senha", quem
+          perdeu o acesso não tem nada a fazer aqui.
+
+          `sutil` e não `primario`: a ação principal desta tela é entrar, e três
+          botões com o mesmo peso não têm ação principal nenhuma.
+        */}
+        <div className={css.saidas}>
+          <Botao
+            variante="sutil"
+            disabled={entrando}
+            onClick={() => definirEntrada({ tipo: "criar" })}
+          >
+            Criar conta
+          </Botao>
+          <Botao
+            variante="sutil"
+            disabled={entrando}
+            onClick={() => definirEntrada({ tipo: "recuperar" })}
+          >
+            Esqueci a senha
+          </Botao>
+        </div>
 
         {/*
           A entrada de desenvolvimento, VISÍVEL.

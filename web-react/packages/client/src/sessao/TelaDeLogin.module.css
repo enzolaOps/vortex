@@ -36,47 +36,6 @@
   letter-spacing: -0.02em;
 }
 
-.campo {
-  display: flex;
-  flex-direction: column;
-  gap: var(--vx-space-1);
-}
-
-.rotulo {
-  color: var(--vx-text-2);
-  font-size: var(--vx-size-sm);
-}
-
-.entrada {
-  padding-inline: var(--vx-space-3);
-  padding-block: var(--vx-space-2);
-  border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-2);
-  background: var(--vx-surface-0);
-  color: var(--vx-text-1);
-  font-family: inherit;
-  font-size: var(--vx-size-md);
-}
-
-.entrada:focus-visible {
-  outline: 2px solid var(--vx-accent);
-  /* Para DENTRO: o anel por fora encostaria na borda do cartão. Mesma
-     correção do campo da paleta. */
-  outline-offset: -2px;
-}
-
-/*
-  Campo travado durante o envio.
-
-  Sem `opacity`: o texto que a pessoa digitou continua sendo o dado mais
-  importante da tela, e esmaecê-lo enquanto ela espera é apagar justamente o
-  que ela vai querer conferir se der errado.
-*/
-.entrada:disabled {
-  cursor: not-allowed;
-  border-color: var(--vx-border-subtle);
-}
-
 .erro {
   margin: 0;
   padding-inline: var(--vx-space-3);
@@ -113,4 +72,48 @@
 .semServidor:focus-visible {
   outline: 2px solid var(--vx-accent);
   outline-offset: 2px;
+}
+
+/*
+  Recado de uma tela sem formulário.
+
+  A conta desativada não tem campo para preencher — o que sobra é texto, e ele
+  precisa da mesma medida de leitura do resto do app para não virar uma linha
+  larga demais dentro de um cartão estreito.
+*/
+.recado {
+  margin: 0;
+  font-size: var(--vx-size-md);
+  line-height: var(--vx-leading-message);
+  color: var(--vx-text-2);
+}
+
+/*
+  Uma opção de caixa, na mesma coluna do formulário.
+
+  `accent-color` é o que traz a caixa nativa para o sistema de cor do app — é
+  por isso que `checkbox` é o único controle nativo que o lint permite fora de
+  `components/ui/`.
+*/
+.opcao {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-2);
+  accent-color: var(--vx-accent);
+}
+
+/*
+  As duas saídas, lado a lado.
+
+  Em linha e não empilhadas: são alternativas do mesmo peso, e empilhá-las
+  faria a de cima parecer mais importante que a de baixo sem que isso seja
+  verdade. `wrap` porque em cartão estreito duas palavras longas não cabem.
+*/
+.saidas {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--vx-space-2);
 }
