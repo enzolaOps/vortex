@@ -4,6 +4,15 @@ import { useChannel } from "../store/hooks";
 import css from "./CabecalhoDeCanal.module.css";
 
 /**
+ * O id do nome do canal, para quem precisa se nomear por ele.
+ *
+ * Constante exportada e não string solta nos dois lados: `aria-labelledby` que
+ * aponta para um id inexistente não dá erro — só deixa o elemento sem nome, em
+ * silêncio, que é a forma que este projeto já viu esse defeito tomar.
+ */
+export const ID_DO_NOME_DO_CANAL = "vx-nome-do-canal";
+
+/**
  * O cabeçalho do canal aberto: nome e tópico.
  *
  * `channel.description` — o tópico — já vinha pelo fio desde sempre e não
@@ -36,7 +45,19 @@ export function CabecalhoDeCanal({ channelId }: { channelId: string }) {
   return (
     <header className={css.cabecalho}>
       <Icone size={20} aria-hidden className={css.icone} />
-      <h1 className={css.nome}>{canal.name}</h1>
+      {/*
+        O id existe para a LISTA se nomear por ele.
+
+        `role="log"` sem nome é anunciado como "log", sem dizer de que canal — e
+        a lista é a região mais importante do app. Nomear por `aria-labelledby`
+        e não por `aria-label` é o que torna isso de graça: a lista não pode
+        assinar o snapshot do canal só para saber o nome, porque o snapshot
+        muda a cada não-lida e isso re-renderizaria as dez mil linhas 500 vezes
+        por segundo sob o firehose.
+      */}
+      <h1 id={ID_DO_NOME_DO_CANAL} className={css.nome}>
+        {canal.name}
+      </h1>
 
       {canal.topico ? (
         <>

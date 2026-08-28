@@ -1,55 +1,42 @@
 /**
- * O que a pessoa pode fazer neste canal.
+ * O que a pessoa pode fazer.
  *
  * **Isto é a REGRA do briefing virando código: nunca renderizar ação que a
  * pessoa não pode executar.** Ela foi registrada assim, com a razão explícita:
- * custa zero adotada agora e é varredura em todo componente se adotada depois.
- * Este arquivo é o "agora".
+ * custa zero adotada cedo e é varredura em todo componente se adotada depois.
  *
- * Hoje toda resposta é `true`, e isso não é um TODO — é o estado honesto de um
- * app sem sessão. O que importa é a FORMA: quando a fase 6 trouxer login, o
- * `channel.havePermission()` do SDK é ligado aqui dentro, num lugar só, e
- * nenhum componente muda. Sem isto, a mesma feature seria uma passada por cada
- * botão, menu e atalho do app, com a garantia de esquecer um.
- *
- * Mora em `src/sdk/` porque é tradução de protocolo: `havePermission` é
- * conceito do Stoat, e `Acao` é conceito do Vortex. A camada anticorrupção
- * existe exatamente para essa troca — SDK entra, domínio sai.
+ * Mora em `src/sdk/` porque é tradução de protocolo: `havePermission` e
+ * `ManageChannel` são conceitos do Stoat, e `Acao` é conceito do Vortex. A
+ * camada anticorrupção existe exatamente para essa troca.
  *
  * A união fechada é o mecanismo. Não existe `pode(canal, "qualquer string")`:
- * ação nova precisa entrar em `Acao`, e entrar em `Acao` sem ser mapeada na
- * fase 6 é erro de compilação lá, não bug silencioso aqui.
+ * ação nova precisa entrar em `Acao`, e entrar em `Acao` sem ser mapeada é
+ * erro de compilação, não bug silencioso.
  *
- * ⚠ **É leitura no render, não subscrição — e isso tem uma consequência que a
- * fase 6 precisa resolver no lugar certo.** `MessageRow` é `memo`, então uma
- * permissão que mudasse hoje não repintaria as linhas já montadas. Foi medido:
- * negar `reagir` em tempo de execução não mexeu em nada até a linha
- * re-renderizar por outro motivo.
+ * ⚠ **Até a etapa 4 isto devolvia `true` para tudo**, com um comentário
+ * dizendo que viraria uma linha quando houvesse login. Virou — e a linha tinha
+ * uma armadilha que o comentário não previa: **o default de "não sei" agora é
+ * `false`**, e sem cuidado isso esconderia a interface inteira de si mesma
+ * durante o desenvolvimento, onde não há servidor para responder. Ver
+ * `SEM_SERVIDOR`.
  *
- * A resposta NÃO é transformar isto em hook com store: seriam três subscrições
- * por linha, para sempre, por um valor que muda quando alguém edita um cargo.
- *
- * ⚠ **E a resposta que eu havia escrito aqui — "o adapter republica o canal" —
- * estava ERRADA.** Republicar o canal troca o array de IDs, o que acorda a
- * lista; mas `MessageRow` é `memo` com a mesma prop `id`, e nenhuma linha
- * re-renderiza. O botão continuaria aparecendo depois de a pessoa perder o
- * cargo, e nada falharia.
- *
- * O que funciona está em `repensarPermissoes`, no adapter: reescrever os
- * SNAPSHOTS dos assinados. Eles são comparados por `Object.is`, então um
- * objeto novo com o mesmo conteúdo basta para acordar quem os assina — e
- * "assinados" são as linhas na tela, algumas dezenas num histórico de dez mil.
+ * ⚠ **É leitura no render, não subscrição.** `MessageRow` é `memo`, então uma
+ * permissão que mudasse não repintaria as linhas montadas. A resposta NÃO é
+ * transformar isto em hook com store — seriam três subscrições por linha, para
+ * sempre, por um valor que muda quando alguém edita um cargo. O que funciona é
+ * `repensarPermissoes`, no adapter: reescrever os SNAPSHOTS dos assinados.
  */
+import { client } from "./client";
 
 /**
- * As ações que a interface oferece hoje.
+ * As ações que a interface oferece.
  *
- * Cada uma corresponde a um alvo real na tela. Não há entrada especulativa: o
- * dia em que "banir" existir na interface é o dia em que ela entra aqui, e a
+ * Cada uma corresponde a um alvo real na tela. Não há entrada especulativa: a
  * ausência é o que impede este arquivo de virar uma cópia otimista da tabela
  * de permissões do protocolo.
  */
 export type Acao =
+  /* --- mensagem ------------------------------------------------------- */
   /** Escrever no composer e enviar. */
   | "enviar"
   /** Responder a uma mensagem — no protocolo é o mesmo direito de enviar. */
@@ -59,29 +46,100 @@ export type Acao =
   /** Fixar e desafixar no canal. `ManageMessages`. */
   | "fixar"
   /** Marcar como lida. Não é permissão de servidor — é do próprio usuário. */
-  | "marcarLida";
+  | "marcarLida"
+  /* --- administração -------------------------------------------------- */
+  /** Criar, renomear e apagar canal; mexer nas categorias. */
+  | "gerenciarCanais"
+  /** Editar nome, descrição e ícone do servidor. */
+  | "gerenciarServidor"
+  /** Criar convite para o canal. */
+  | "criarConvite"
+  /** Expulsar alguém do servidor. */
+  | "expulsar"
+  /** Banir e desbanir. */
+  | "banir"
+  /** Deixar alguém de castigo. */
+  | "silenciarMembro";
+
+/**
+ * A permissão do protocolo por trás de cada ação.
+ *
+ * `Record<Acao, …>` e não um `switch`: ação nova não compila até ser mapeada,
+ * que é a mesma mecânica de `NOME_DO_PAINEL` sobre `PainelId`.
+ *
+ * `undefined` marca as que NÃO são permissão de servidor. `marcarLida` é do
+ * próprio usuário sobre o próprio estado de leitura — perguntar ao servidor
+ * seria inventar uma pergunta que o protocolo não faz.
+ */
+const PERMISSAO: Record<Acao, string | undefined> = {
+  enviar: "SendMessage",
+  responder: "SendMessage",
+  reagir: "React",
+  fixar: "ManageMessages",
+  marcarLida: undefined,
+
+  gerenciarCanais: "ManageChannel",
+  gerenciarServidor: "ManageServer",
+  criarConvite: "InviteOthers",
+  expulsar: "KickMembers",
+  banir: "BanMembers",
+  silenciarMembro: "TimeoutMembers",
+};
+
+/**
+ * O que responder quando não há servidor para perguntar.
+ *
+ * ⚠ **Esta constante é a diferença entre um app utilizável e uma tela morta
+ * durante todo o desenvolvimento.** Sem sessão e sem socket, `havePermission`
+ * não tem tabela de cargos para consultar: ele responderia `false` para tudo,
+ * e o arnês — onde este projeto é construído e medido — perderia composer,
+ * reação, resposta, menu e a coluna inteira de administração.
+ *
+ * O default de "não sei" continua sendo `false` **onde há servidor**, que é o
+ * correto. Isto é a exceção explícita para o caso em que não há, e ela é
+ * estreita de propósito: uma condição só, verificável, e não um `||` espalhado
+ * por cada chamada.
+ */
+function semServidorParaPerguntar(): boolean {
+  /*
+    `client.user` é o sinal mais honesto de "há sessão de verdade".
+
+    Não é `conectado()`: o socket cai o tempo todo e as permissões não somem
+    junto — a tabela de cargos continua no cliente. O que define se há a quem
+    perguntar é ter havido um `Ready`.
+  */
+  return client.user === undefined;
+}
 
 /**
  * A pessoa pode fazer isto neste canal?
  *
- * `channelId` entra mesmo sem ser usado hoje, e de propósito: a assinatura é o
- * contrato que a fase 6 vai preencher, e uma função que só ganha o parâmetro
- * depois obriga a mexer em todo chamador — que é justamente a varredura que
- * adotar a regra agora existe para evitar.
+ * O `channelId` decide sozinho o escopo: o SDK resolve a permissão do canal
+ * subindo para o servidor quando é canal de servidor, e usa o padrão de DM
+ * quando não é. É por isso que não há uma função separada para servidor —
+ * perguntar "posso banir neste canal" é a mesma pergunta que "posso banir
+ * neste servidor", e ter as duas convidaria a divergirem.
  */
 export function pode(channelId: string, acao: Acao): boolean {
-  void channelId;
-  void acao;
+  const permissao = PERMISSAO[acao];
+  // Não é permissão de servidor — ninguém precisa autorizar você a ler o que
+  // já está na sua tela.
+  if (permissao === undefined) return true;
 
-  /*
-    Sem sessão não há permissão para consultar, e `false` seria pior que
-    `true`: esconderia a interface inteira de si mesma durante todo o
-    desenvolvimento, e ninguém veria o que está construindo.
+  if (semServidorParaPerguntar()) return true;
 
-    Na fase 6 isto vira, em uma linha:
-      return canalDoSdk(channelId)?.havePermission(MAPA[acao]) ?? false;
-    E aí o default de "não sei" passa a ser `false`, que é o correto quando há
-    um servidor para perguntar.
-  */
-  return true;
+  const canal = client.channels.get(channelId);
+  if (!canal) return false;
+
+  try {
+    return canal.havePermission(permissao as never);
+  } catch {
+    /*
+      O SDK estoura quando falta contexto — servidor ainda não hidratado, cargo
+      que sumiu no meio da consulta. Com servidor presente, "não sei" é `false`:
+      é melhor esconder uma ação que existia do que oferecer uma que o servidor
+      vai recusar, porque a segunda vira erro depois do clique.
+    */
+    return false;
+  }
 }

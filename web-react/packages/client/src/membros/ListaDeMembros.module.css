@@ -171,3 +171,18 @@
 .membro:focus-visible {
   outline-offset: -2px;
 }
+
+/*
+  O alvo do menu de contexto, entre o gatilho do Radix e o cartão de perfil.
+
+  Existe porque `ContextMenuTrigger asChild` precisa de UM filho que aceite
+  `ref` e handlers, e o `CartaoDePerfil` já usa o `asChild` dele para o hover.
+  Encaixar os dois no mesmo elemento faria um sobrescrever os handlers do
+  outro — o cartão pararia de abrir, sem erro.
+
+  `display: contents` para não criar caixa: a linha continua sendo o que o
+  virtualizador mede, e um wrapper com layout próprio mudaria a altura medida.
+*/
+.alvo {
+  display: contents;
+}

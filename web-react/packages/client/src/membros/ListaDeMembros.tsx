@@ -1,11 +1,20 @@
-import { ProhibitInset } from "@phosphor-icons/react";
+import { Hammer, ProhibitInset, SignOut } from "@phosphor-icons/react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { memo, useEffect, useMemo, useRef } from "react";
 
 import { count } from "../dev/stats";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "../components/ui/ContextMenu";
 import { chaveDeMembro } from "../sdk/domain";
+import { primeiroCanalDe } from "../sdk/adapter";
+import { pode } from "../sdk/permissoes";
+import { administrar } from "../store/administracao";
 import { CartaoDePerfil } from "./CartaoDePerfil";
 import {
   useCorDeCargo,
@@ -114,8 +123,21 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
   */
   const silenciado = membro.silenciadoAte !== undefined;
 
-  return (
-    <CartaoDePerfil serverId={serverId} userId={id}>
+  /*
+    A moderação pergunta pelo primeiro canal do servidor.
+
+    `havePermission` responde por CANAL, e expulsar/banir são direitos de
+    servidor — o SDK os resolve subindo do canal para o servidor, então
+    qualquer canal serve como ponto de consulta. Sem canal nenhum não há a quem
+    perguntar; ver `sdk/permissoes.ts`.
+  */
+  const canal = primeiroCanalDe(serverId) ?? "";
+  const podeModerar =
+    pode(canal, "expulsar") ||
+    pode(canal, "banir") ||
+    pode(canal, "silenciarMembro");
+
+  const linha = (
     <button
       type="button"
       className={css.membro}
@@ -151,7 +173,73 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
         </>
       ) : null}
     </button>
-    </CartaoDePerfil>
+  );
+
+  /*
+    O menu só EXISTE para quem pode moderar.
+
+    Não é um menu com itens desabilitados: a member list de um servidor grande
+    tem dezenas de milhares de linhas, e montar `ContextMenu` (Root, Trigger,
+    Portal) em cada uma para quase ninguém poder usá-lo é exatamente o custo
+    que o menu no nível da lista veio remover da lista de mensagens. Aqui a
+    condição resolve os dois problemas de uma vez — o de permissão e o de
+    montagem.
+  */
+  if (!podeModerar) {
+    return (
+      <CartaoDePerfil serverId={serverId} userId={id}>
+        {linha}
+      </CartaoDePerfil>
+    );
+  }
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <span className={css.alvo}>
+          <CartaoDePerfil serverId={serverId} userId={id}>
+            {linha}
+          </CartaoDePerfil>
+        </span>
+      </ContextMenuTrigger>
+
+      <ContextMenuContent>
+        {pode(canal, "silenciarMembro") ? (
+          <ContextMenuItem
+            onSelect={() =>
+              administrar({ tipo: "moderar", serverId, userId: id, acao: "castigo" })
+            }
+          >
+            <ProhibitInset size={20} aria-hidden />
+            {silenciado ? "Rever castigo" : "Deixar de castigo"}
+          </ContextMenuItem>
+        ) : null}
+
+        {pode(canal, "expulsar") ? (
+          <ContextMenuItem
+            perigo
+            onSelect={() =>
+              administrar({ tipo: "moderar", serverId, userId: id, acao: "expulsar" })
+            }
+          >
+            <SignOut size={20} aria-hidden />
+            Expulsar
+          </ContextMenuItem>
+        ) : null}
+
+        {pode(canal, "banir") ? (
+          <ContextMenuItem
+            perigo
+            onSelect={() =>
+              administrar({ tipo: "moderar", serverId, userId: id, acao: "banir" })
+            }
+          >
+            <Hammer size={20} aria-hidden />
+            Banir
+          </ContextMenuItem>
+        ) : null}
+      </ContextMenuContent>
+    </ContextMenu>
   );
 });
 
