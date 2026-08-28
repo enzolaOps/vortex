@@ -1,0 +1,100 @@
+/*
+  O campo e o que o acompanha.
+
+  `grid` e não `flex` com margens: rótulo, entrada e a linha de dica/erro são
+  três irmãos com ritmo próprio, e `gap` não colapsa nem duplica — que é a
+  regra de layout deste projeto.
+*/
+.campo {
+  display: grid;
+  gap: var(--vx-space-1);
+  min-inline-size: 0;
+}
+
+/*
+  O rótulo.
+
+  Peso e não caixa alta: caixa alta pequena é o tratamento de metadado neste
+  app (a hora na linha, o nome da seção na member list), e um rótulo de
+  formulário é conteúdo, não metadado.
+*/
+.rotulo {
+  font-size: var(--vx-size-sm);
+  font-weight: 500;
+  color: var(--vx-text-2);
+}
+
+.entrada {
+  inline-size: 100%;
+  min-inline-size: 0;
+  padding-inline: var(--vx-space-3);
+  padding-block: var(--vx-space-2);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-2);
+  background: var(--vx-surface-0);
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+}
+
+.entrada::placeholder {
+  color: var(--vx-text-3);
+}
+
+.entrada:hover:not(:disabled) {
+  border-color: var(--vx-border-strong);
+}
+
+/*
+  O anel POR DENTRO.
+
+  `outline-offset` negativo desenha para dentro da própria caixa, então ele
+  nunca encosta na borda do cartão ou do painel que contém o campo. O problema
+  que fez alguém escrever `outline: none` na paleta era o transbordo, não o
+  anel — e a correção certa é esta, não tirar o anel.
+*/
+.entrada:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+  border-color: var(--vx-accent);
+}
+
+/*
+  Travado.
+
+  Sem `opacity`: o texto que a pessoa digitou continua sendo o dado mais
+  importante da tela, e esmaecê-lo enquanto ela espera é apagar justamente o
+  que ela vai querer conferir se der errado.
+*/
+.entrada:disabled {
+  cursor: not-allowed;
+  color: var(--vx-text-2);
+}
+
+/*
+  Inválido.
+
+  Borda E `aria-invalid` no componente: cor sozinha não comunica nada para quem
+  não a distingue. O seletor é o atributo e não uma classe porque o estado já
+  está no DOM — estilizar por `data`/`aria` é a regra de integração dos
+  primitivos, e vale igual aqui.
+*/
+.entrada[aria-invalid] {
+  border-color: var(--vx-danger);
+}
+
+.entrada[aria-invalid]:focus-visible {
+  outline-color: var(--vx-danger);
+}
+
+.dica {
+  margin: 0;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+.erro {
+  margin: 0;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-danger);
+}

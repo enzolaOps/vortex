@@ -213,7 +213,19 @@
 
   /* --- Layout ------------------------------------------------ */
   --vx-rail-w: 72px;
-  --vx-message-max-w: 1100px;
+  /*
+    Sem teto de coluna, e é decisão, não esquecimento.
+
+    `--vx-message-max-w: 1100px` viveu aqui da fase 1 até a verificação de
+    design. Ele existia para o texto não esticar em ultrawide — e falhava nas
+    duas pontas: travava a LINHA (produzindo faixa morta, 908px de vazio numa
+    janela de 2560) sem travar o TEXTO, que a 1100px ainda cabia 155 caracteres
+    por linha, o dobro do confortável.
+
+    `--vx-medida` resolve o problema de verdade, limitando o texto em ~80
+    caracteres. Manter os dois era resolver a mesma coisa duas vezes e pagar
+    com espaço morto.
+  */
 
   /*
     A MEDIDA de leitura — quantos caracteres cabem numa linha de texto.
@@ -248,12 +260,21 @@
     daria 97 caracteres reais — a faixa confortável termina em 75, e 80 é o teto
     prático de um app onde a maioria das mensagens tem duas linhas.
 
-    **O composer NÃO usa esta variável**, e a assimetria é deliberada. A
-    invariante do briefing é "composer alinhado à COLUNA de mensagem", e ela
-    continua literal: ele segue `--vx-message-max-w`. A medida governa o que se
-    LÊ em varredura — parágrafos de outra pessoa, empilhados, por horas. O que
-    se escreve é curto e some ao ser enviado; estreitar o campo custaria linhas
-    quebradas sem devolver legibilidade nenhuma.
+    **O composer NÃO usa esta variável, e a assimetria é deliberada.** A frase
+    que estava aqui dizia que ele "segue `--vx-message-max-w`" — um token já
+    deletado quando ela foi escrita, ou seja, prosa afirmando um mecanismo
+    inexistente. Isso era defeito e foi corrigido.
+
+    O que não era defeito é a assimetria em si. Estreitei o campo para esta
+    medida por um ciclo, e o retorno de quem usa foi imediato: "a barra de
+    escrever mensagem só cobrindo um pedaço". A medida protege o que se LÊ em
+    varredura — parágrafos de outra pessoa, empilhados, por horas. O que se
+    escreve é curto e some ao ser enviado, e um campo estreito não devolve
+    legibilidade nenhuma em troca de parecer inacabado.
+
+    A invariante do briefing é "composer alinhado à COLUNA de mensagem", e
+    continua literal: os dois compartilham a caixa que leva o marcador de
+    alinhamento, e é ela que a assertion compara.
   */
   --vx-medida: 32.5rem;
 
@@ -444,10 +465,23 @@
 
   --ease-out: var(--vx-ease-out);
 
-  /* max-w-* lê do namespace --container-* no Tailwind v4. Sem esta linha o
-     teto de linha só existiria como arbitrary value — que é banido. */
+  /*
+    `--container-*: initial` apaga a escala de container do Tailwind, pela
+    mesma razão que `--spacing-*` e as cores default: utility que este projeto
+    não escolheu não deve existir.
+
+    ⚠ **Aqui havia `--container-message: var(--vx-message-max-w)`, apontando
+    para uma variável DELETADA** — o teto de coluna saiu da camada 1 e o
+    mapeamento ficou. Ele resolvia para vazio, e `max-w-message` não tem
+    consumidor nenhum hoje, então nada quebrou: quem escrevesse essa classe
+    amanhã é que receberia CSS nenhum, em silêncio.
+
+    E o `pnpm utilities` NÃO pega este caso. Ele confere classe usada contra
+    CSS emitido; `max-w-message` emitiria uma regra sintaticamente válida com
+    um valor vazio. O que falha é a resolução em runtime, que é justamente o
+    que nenhuma das guardas olha.
+  */
   --container-*: initial;
-  --container-message: var(--vx-message-max-w);
 }
 
 /* ============================================================
