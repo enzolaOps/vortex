@@ -116,8 +116,7 @@ ignores `desktop/**`.
 
 ## Replacing the logo
 
-The current mark is a placeholder. Replace `brand/mark.svg`, keeping the
-512×512 viewBox, then:
+Replace `brand/mark.svg`, keeping the 512×512 viewBox, then:
 
 ```bash
 npm i -D sharp
@@ -128,6 +127,16 @@ That regenerates every PNG and the `.ico`, for the web client **and** for
 `desktop/assets/` (which upstream keeps in the same private submodule).
 `brand/monochrome.svg` and `brand/wordmark.svg` are copied as-is, so update
 those by hand too.
+
+`npm i -D sharp` leaves a `package.json` and a `package-lock.json` at the root.
+Both are gitignored deliberately: nothing at the root belongs to one island,
+and a root manifest carrying a single build-time tool is exactly the clutter
+that rule exists to prevent. Leave them where they are — deleting them only
+means recreating them the next time the mark changes.
+
+`web-react/` does not consume the rasters. It serves `brand/mark.svg` straight
+as its favicon through a small Vite plugin, so there is no fourth copy to keep
+in sync.
 
 Where each file lands is decided by `web/packages/client/scripts/copyAssets.mjs`: it
 links `web/packages/client/assets/` into `public/assets` when that directory exists

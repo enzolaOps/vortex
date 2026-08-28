@@ -1,0 +1,33 @@
+/*
+  Container de scroll da lista.
+
+  Em CSS Module porque `scrollbar-gutter` não tem utility no Tailwind e só
+  existiria na className como propriedade arbitrária — que o lint da lei nº 4
+  reprova, com razão.
+*/
+.scroll {
+  block-size: 100%;
+  overflow-y: auto;
+
+  /* Reserva a calha da barra sempre: sem isto o conteúdo salta lateralmente
+     no instante em que a barra aparece, e numa lista virtualizada esse salto
+     acontece durante o scroll. */
+  scrollbar-gutter: stable;
+
+  /* O scroll não vaza para o container pai ao chegar no fim — em app de
+     painéis, vazar significa a página inteira rolar por baixo. */
+  overscroll-behavior: contain;
+}
+
+/*
+  Teto de linha legível.
+
+  O problema do ultrawide nunca foi o app não preencher a tela: é a linha de
+  texto ficando ilegível em 3000px de largura. Alinhada à esquerda, não
+  centralizada — o composer segue exatamente esta mesma largura, e desalinhar
+  os dois é o erro visual mais perceptível da tela principal.
+*/
+.coluna {
+  max-inline-size: var(--vx-message-max-w);
+  margin-inline: 0;
+}

@@ -1,0 +1,59 @@
+/* ============================================================
+   A lâmina — assinatura
+   ------------------------------------------------------------
+   Um traço que AFINA nas pontas, tirado da pá da marca. A
+   diferença para a pílula reta do Discord é pequena de descrever
+   e imediata de ver: a pílula é neutra, a lâmina tem direção.
+   ============================================================ */
+
+.lamina {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-start: 50%;
+  inline-size: var(--vx-lamina-w);
+  block-size: var(--vx-lamina-h);
+  background: currentColor;
+
+  /*
+    O afinamento.
+
+    `clip-path` e não `border-radius`: raio arredonda o canto e mantém a
+    largura constante no meio — é exatamente por isso que a pílula lê
+    como neutra. Aqui o lado de dentro é reto (encosta na borda do
+    painel) e o de fora arqueia, que é a silhueta da pá: larga onde
+    nasce, em ponta onde termina.
+  */
+  clip-path: path("M0,0 C2,3 3,6 3,10 C3,14 2,17 0,20 Z");
+
+  /*
+    A altura é FIXA e o que anima é `scale`.
+
+    A primeira versão transicionava `block-size`, o que dispara layout a
+    cada frame — e a regra de movimento do design system é explícita:
+    120–180ms, ease-out, apenas `transform` e `opacity`. Escala roda no
+    compositor e não toca layout nenhum.
+
+    De quebra conserta um bug de forma: o `clip-path` tem coordenadas
+    absolutas, então com a altura variando o recorte cortaria a peça pela
+    metade no meio da transição.
+  */
+  scale: 1 0;
+  transition:
+    scale var(--vx-duration-base) var(--vx-ease-out),
+    opacity var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.lamina[data-ativa="true"] {
+  scale: 1 1;
+  opacity: var(--vx-lamina-1);
+}
+
+/*
+  Não-ativo mas presente: um toco, no terceiro degrau da escala da
+  marca. É a opacidade escalonada do ícone virando estado de interface —
+  mesmo mecanismo, mesma leitura, e nenhuma sombra envolvida.
+*/
+.lamina[data-ativa="false"] {
+  scale: 1 0.3;
+  opacity: var(--vx-lamina-3);
+}

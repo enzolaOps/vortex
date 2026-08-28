@@ -16,9 +16,48 @@ export type FrameReport = {
   worst: number;
   /** Frames que estouraram 16,6ms. */
   dropped: number;
+  /**
+   * Intervalo de refresh do display, estimado dos próprios deltas.
+   *
+   * Existe porque a ausência dele custou três corridas de 30s e três hipóteses
+   * erradas. O delta do rAF NÃO é o custo do frame: é o INTERVALO até o
+   * próximo vsync, e portanto um múltiplo do refresh. Num display de 160Hz os
+   * valores possíveis são 6,25 · 12,5 · 18,75 — não existe nada entre eles.
+   *
+   * O p95 tinha dado 18,7ms em três corridas seguidas, idêntico até a casa
+   * decimal, enquanto mudanças reais no código moviam o p99 e não moviam o
+   * p95. Não era o código sendo insensível: era o percentil pousado num
+   * degrau. E o teto do gate, 16,7ms, cai ENTRE o segundo e o terceiro degrau
+   * — o que transforma "p95 ≤ 16,7ms" em "p95 ≤ 12,5ms" nesta máquina, sem
+   * que nada no relatório diga isso.
+   *
+   * Reportar o intervalo e o percentil EM INTERVALOS é o que impede a próxima
+   * pessoa de caçar milissegundos que não existem.
+   */
+  intervalo: number;
+  /** p95 em múltiplos de refresh — o número que não mente em display rápido. */
+  p95EmIntervalos: number;
+  /**
+   * Quantos frames couberam em 1, 2, 3 e 4+ intervalos de refresh.
+   *
+   * `dropped` conta frames acima de 16,7ms, e portanto responde "segura
+   * 60fps?". Não responde "segura o monitor DESTE usuário?" — num display de
+   * 160Hz um frame de 12,5ms já perdeu um vsync, e some do relatório inteiro.
+   *
+   * A distinção não é acadêmica: quem compra monitor de 144Hz ou 165Hz comprou
+   * exatamente a sensibilidade a esse frame, e cliente de chat com sessão de
+   * 8h passa boa parte do tempo rolando lista — que é onde o custo aparece.
+   *
+   * `um` é o frame entregue no vsync seguinte: o alvo. `dois` é imperceptível
+   * a 60Hz e perceptível a 160Hz. `tresOuMais` é engasgo em qualquer display.
+   */
+  intervalos: { um: number; dois: number; tres: number; quatroOuMais: number };
   /** Tarefas longas (>50ms) — bloqueio de main thread. */
   longTasks: number;
   longTaskMs: number;
+  /** Tarefas longas na PARTIDA — fora da janela medida, contadas à parte. */
+  longTasksAquecimento: number;
+  longTaskAquecimentoMs: number;
   /**
    * Frames em que o rAF foi SUSPENSO (aba oculta, pane sem composição), e não
    * frames lentos. Excluídos dos percentis e contabilizados aqui em separado —
@@ -36,6 +75,8 @@ export function createFrameRecorder() {
   let onVisibility: (() => void) | undefined;
   let longTasks = 0;
   let longTaskMs = 0;
+  let longTasksAquecimento = 0;
+  let longTaskAquecimentoMs = 0;
   let raf = 0;
   let last = 0;
   let startedAt = 0;
@@ -89,12 +130,33 @@ export function createFrameRecorder() {
       deltas = [];
       longTasks = 0;
       longTaskMs = 0;
+      longTasksAquecimento = 0;
+      longTaskAquecimentoMs = 0;
       last = 0;
       startedAt = performance.now();
 
       try {
+        /*
+          O aquecimento descartava frames e NÃO descartava long tasks.
+
+          `start()` liga o observer e a janela de aquecimento ao mesmo tempo,
+          mas o `tick` só começa a guardar deltas depois de `warmupUntil`.
+          Resultado: uma tarefa de 50ms na PARTIDA — montagem da primeira
+          lista, primeira publicação, hidratação tardia — some dos percentis e
+          continua contando no veredito. O gate reprovava por trabalho que ele
+          próprio já tinha decidido não medir.
+
+          Não são descartadas em silêncio: ficam separadas, porque "houve um
+          bloqueio na partida" é informação real sobre o app, só não é a
+          pergunta que este gate faz.
+        */
         observer = new PerformanceObserver((list) => {
           for (const entry of list.getEntries()) {
+            if (entry.startTime < warmupUntil) {
+              longTasksAquecimento += 1;
+              longTaskAquecimentoMs += entry.duration;
+              continue;
+            }
             longTasks += 1;
             longTaskMs += entry.duration;
           }
@@ -122,6 +184,17 @@ export function createFrameRecorder() {
       const sorted = [...deltas].sort((a, b) => a - b);
       const at = (q: number) => sorted[Math.floor(sorted.length * q)] ?? 0;
 
+      /**
+       * O intervalo de refresh, estimado do 1º percentil.
+       *
+       * Não da MÉDIA nem da mediana: num app saudável a mediana é um
+       * intervalo, mas num app engasgado ela já é dois, e a estimativa
+       * dobraria junto — escondendo exatamente o problema que se quer ver. O
+       * frame mais rápido é sempre um intervalo; o 1º percentil é isso com
+       * resistência a um outlier de relógio.
+       */
+      const intervalo = Math.max(at(0.01), 1);
+
       return {
         seconds: Number(seconds.toFixed(1)),
         frames: deltas.length,
@@ -135,8 +208,25 @@ export function createFrameRecorder() {
         p99: Number(at(0.99).toFixed(2)),
         worst: Number((sorted.at(-1) ?? 0).toFixed(2)),
         dropped: deltas.filter((d) => d > 16.7).length,
+        intervalo: Number(intervalo.toFixed(2)),
+        intervalos: deltas.reduce(
+          (acc, d) => {
+            // Meio intervalo de tolerância: o vsync tem jitter, e um frame de
+            // 6,4ms num refresh de 6,25 é o frame bom, não um perdido.
+            const n = Math.max(1, Math.round(d / intervalo));
+            if (n === 1) acc.um += 1;
+            else if (n === 2) acc.dois += 1;
+            else if (n === 3) acc.tres += 1;
+            else acc.quatroOuMais += 1;
+            return acc;
+          },
+          { um: 0, dois: 0, tres: 0, quatroOuMais: 0 },
+        ),
+        p95EmIntervalos: Number((at(0.95) / intervalo).toFixed(2)),
         longTasks,
         longTaskMs: Number(longTaskMs.toFixed(1)),
+        longTasksAquecimento,
+        longTaskAquecimentoMs: Number(longTaskAquecimentoMs.toFixed(1)),
         suspended,
       };
     },
@@ -174,17 +264,44 @@ export function verdict(report: FrameReport, opcoes: { throttled: boolean }) {
       ok: report.suspended === 0,
       got: `${report.suspended} suspensões`,
     },
-    { name: "p95 ≤ 16,7ms", ok: report.p95 <= 16.7, got: `${report.p95}ms` },
+    /**
+     * O MESMO critério, reescrito para parar de ser função degrau.
+     *
+     * Isto não afrouxa nada, e a equivalência é aritmética: `p95 ≤ 16,7ms`
+     * quer dizer que o 95º percentil dos deltas está dentro de 16,7ms, o que
+     * quer dizer que NO MÁXIMO 5% dos deltas passam de 16,7ms — que é
+     * exatamente `dropped / frames ≤ 5%`. Mesmo conjunto de corridas aprovadas,
+     * mesma frase do briefing ("500 ev/s segurando 60fps").
+     *
+     * O que muda é a resolução. O delta do rAF é quantizado pelo refresh do
+     * display: num monitor de 160Hz os valores possíveis são 6,25 · 12,5 ·
+     * 18,75, então o PERCENTIL só assume esses valores e salta entre eles. O p95
+     * deu 18,7ms em quatro corridas seguidas, idêntico até a decimal, enquanto
+     * o número de frames perdidos variava de 217 a 248 — o percentil não
+     * conseguia ver diferença de 30 frames, e a diferença que separava o gate
+     * de passar era de 29.
+     *
+     * Contagem anda de frame em frame. Percentil de grandeza quantizada anda de
+     * degrau em degrau, e nenhum A/B decide nada quando o efeito procurado é
+     * menor que um degrau.
+     *
+     * Os dois patamares continuam: 5% com throttle, 1% sem. O de 1% é o teto
+     * que o briefing já cobrava sem throttle, e ele é mais duro — então
+     * continua sendo o único que vale ali.
+     */
+    {
+      name: `perdidos ≤ ${opcoes.throttled ? "5%" : "1%"} (= p95 ≤ 16,7ms)`,
+      ok: perdidos <= (opcoes.throttled ? 0.05 : 0.01),
+      got:
+        `${(perdidos * 100).toFixed(1)}% · p95 ${report.p95}ms ` +
+        `(${report.p95EmIntervalos}× o refresh de ${report.intervalo}ms)`,
+    },
     { name: "sem long task", ok: report.longTasks === 0, got: `${report.longTasks}` },
   ];
 
-  if (!opcoes.throttled) {
-    checks.push({
-      name: "≤1% de frames perdidos (só sem throttle)",
-      ok: perdidos <= 0.01,
-      got: `${(perdidos * 100).toFixed(1)}%`,
-    });
-  }
+  // O antigo quarto check virou o patamar do terceiro: sem throttle o teto é
+  // 1%, com throttle é 5%. Dois checks contando a mesma coisa em tetos
+  // diferentes seria redundância que esconde qual deles reprovou.
 
   return { pass: checks.every((c) => c.ok), checks, perdidos };
 }

@@ -1,0 +1,342 @@
+/* ============================================================
+   Picker de paleta
+   ------------------------------------------------------------
+   Escolha primeiro, parâmetro depois. A versão anterior tinha a
+   ordem invertida: matiz e croma no topo, que é o modelo mental
+   de quem implementou a derivação.
+   ============================================================ */
+
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-3);
+  padding-block-start: var(--vx-space-3);
+  border-block-start: 1px solid var(--vx-border-subtle);
+}
+
+.topo {
+  display: flex;
+  align-items: stretch;
+  gap: var(--vx-space-3);
+  min-inline-size: 0;
+}
+
+/* --- miniatura ------------------------------------------------ */
+
+.miniatura {
+  display: grid;
+  grid-template-columns: 10px 22px minmax(0, 1fr) 12px;
+  gap: 2px;
+  flex: none;
+  inline-size: 132px;
+  block-size: 76px;
+  padding: 3px;
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-2);
+  overflow: hidden;
+}
+
+.miniRail,
+.miniCanais,
+.miniMembros {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 3px;
+  border-radius: var(--vx-radius-1);
+}
+
+.miniRail {
+  align-items: center;
+}
+
+.miniMarca {
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.miniLinha,
+.miniLinhaAtiva {
+  block-size: 3px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.miniLinha {
+  inline-size: 80%;
+  opacity: var(--vx-lamina-3);
+}
+
+/* A linha ativa mostra o acento SOBRE o preenchimento suave — o par que
+   a interface mais usa e o que menos aparece num quadradinho de cor. */
+.miniLinhaAtiva {
+  inline-size: 100%;
+  block-size: 7px;
+  position: relative;
+}
+
+.miniLinhaAtiva::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: 2px;
+  inset-block: 2px;
+  inline-size: 60%;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+.miniConteudo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: flex-end;
+  padding: 4px;
+  min-inline-size: 0;
+}
+
+.miniNome {
+  inline-size: 34%;
+  block-size: 4px;
+  border-radius: 2px;
+}
+
+.miniTexto,
+.miniTextoCurto,
+.miniMeta {
+  block-size: 3px;
+  border-radius: 2px;
+}
+
+.miniTexto {
+  inline-size: 92%;
+}
+
+.miniTextoCurto {
+  inline-size: 64%;
+}
+
+.miniMeta {
+  inline-size: 28%;
+  opacity: var(--vx-lamina-3);
+}
+
+.miniMembros {
+  align-items: center;
+}
+
+.miniPonto {
+  inline-size: 5px;
+  block-size: 5px;
+  border-radius: var(--vx-radius-4);
+  flex: none;
+}
+
+/* --- controles ao lado da miniatura --------------------------- */
+
+.controles {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--vx-space-2);
+  min-inline-size: 0;
+}
+
+.veredito {
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.veredito strong {
+  color: var(--vx-text-2);
+  font-weight: 500;
+}
+
+.veredito[data-ok="false"] {
+  color: var(--vx-danger);
+}
+
+/* --- swatches de paleta --------------------------------------- */
+
+.paletas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: var(--vx-space-2);
+}
+
+.swatch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+  padding: var(--vx-space-1);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-2);
+  background: var(--vx-surface-1);
+  color: var(--vx-text-3);
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  cursor: pointer;
+  transition:
+    border-color var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.swatch:hover {
+  border-color: var(--vx-border-strong);
+  color: var(--vx-text-2);
+}
+
+.swatch:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.swatch:active {
+  scale: 0.98;
+}
+
+.swatch[aria-checked="true"] {
+  border-color: var(--vx-accent);
+  color: var(--vx-text-1);
+}
+
+.barras {
+  display: flex;
+  gap: 1px;
+  block-size: var(--vx-space-5);
+  border-radius: var(--vx-radius-1);
+  overflow: hidden;
+}
+
+.barra {
+  flex: 1;
+}
+
+.nome {
+  text-align: start;
+  padding-inline-start: 2px;
+}
+
+/* --- ajuste fino ---------------------------------------------- */
+
+.fino {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+}
+
+.disclosure {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-1);
+  align-self: flex-start;
+  padding: var(--vx-space-1) var(--vx-space-2);
+  margin-inline-start: calc(var(--vx-space-2) * -1);
+  border: 0;
+  border-radius: var(--vx-radius-2);
+  background: transparent;
+  color: var(--vx-text-3);
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  cursor: pointer;
+}
+
+.disclosure:hover {
+  color: var(--vx-text-1);
+  background: var(--vx-surface-2);
+}
+
+.disclosure:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 1px;
+}
+
+.caret {
+  transition: rotate var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.caret[data-aberto="true"] {
+  rotate: 180deg;
+}
+
+.finoCorpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+}
+
+.linha {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+  min-inline-size: 0;
+}
+
+.rotulo {
+  flex: none;
+  inline-size: 84px;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+}
+
+.medida {
+  flex: none;
+  inline-size: 68px;
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-xs);
+  font-family: var(--vx-font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+/*
+  O gatilho do seletor de cor do sistema.
+
+  O `<input type="color">` continua nativo porque o que ele abre é o color
+  picker do SO — reimplementar seria escrever um color picker inteiro, que
+  é a definição de "genérico que a biblioteca resolve". O que dá para
+  fazer é o gatilho não parecer de outro app, e é o que estas regras
+  fazem: sem cromo, sem padding do sistema, borda nossa.
+*/
+.cor {
+  flex: none;
+  inline-size: var(--vx-space-6);
+  block-size: var(--vx-space-5);
+  padding: 0;
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-1);
+  background: none;
+  cursor: pointer;
+  appearance: none;
+}
+
+.cor::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.cor::-webkit-color-swatch {
+  border: 0;
+  border-radius: 2px;
+}
+
+.cor:hover {
+  border-color: var(--vx-border-strong);
+}
+
+.cor:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* Painel estreito: a miniatura sai da linha e vira largura cheia. */
+@container (inline-size < 460px) {
+  .topo {
+    flex-direction: column;
+  }
+
+  .miniatura {
+    inline-size: 100%;
+  }
+}

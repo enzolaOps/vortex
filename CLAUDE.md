@@ -453,29 +453,344 @@ medição no dev server reprovando o ambiente em vez do código.
 reconexão, container query e o test runner seguem em aberto — todos listados
 em Pendências, nenhum bloqueia a fase 1.
 
-### Fase 1 — Fundação visual (~1 semana)
+### Fase 1 — Fundação visual · **concluída**
 
-Preencher `tokens.css` com a paleta real, montar o `@theme`, ligar o lint contra
-arbitrary values. Depois o grid do shell, `minmax(0,1fr)` e teto de linha.
+`tokens.css` com a paleta real, `@theme` mapeando, lint contra arbitrary values,
+grid do shell, `minmax(0,1fr)` e teto de linha.
 
-Resolve provavelmente 70% do "feio + quebrado no ultrawide" sem tocar em lógica.
+Verificado em navegador, não prometido: em janela de 3000px a coluna de mensagem
+trava em **1100px exatos** e não há scroll horizontal; em 700px as trilhas ficam
+`72px 240px 388px 0px` — a coluna de membros colapsa a zero em vez de deixar
+espaço morto, que era o bug que motivou o redesign. Contraste 76/76 pares por
+`pnpm contrast`.
 
-### Fase 2 — Primitivos
+Falta só o **elemento de assinatura** da identidade — paleta e par tipográfico
+estão fechados. É item de identidade visual, não de fundação, e está nas
+pendências.
 
-Wrappers Radix em `components/ui/`, reestilizados pros tokens. Context menu,
-dropdown, dialog, popover, tooltip, hover card, toast.
+### Fase 2 — Primitivos · **concluída**
 
-### Fase 3 — Superfícies específicas
+Wrappers Radix em `src/components/ui/`, reestilizados pros tokens: context
+menu, dropdown, dialog, popover, tooltip, hover card e toast.
 
-Message list completa (agrupamento, divisores, estados de envio), rail, member
-list, composer.
+Os três que o Base UI ainda não tem — context menu, hover card e toast — são
+justamente os que um cliente de chat mais usa, e são a razão da escolha por
+Radix. Quando o Base UI cobrir os três, a decisão é reavaliada; a fronteira de
+import é o que mantém essa migração progressiva possível.
 
-**Escritas sob a lei nº 6** — todo componente já nasce movível.
+O toast guarda estado em store module-level com `useSyncExternalStore`, não em
+Context: quem dispara um toast é um handler de erro ou um caminho de
+reconexão, e nada disso está numa árvore de componentes. É a lei nº 1 aplicada
+fora da lista de mensagens.
 
-### Fase 4 — Customização
+A fronteira é mecanismo, não convenção: `@radix-ui/*` só pode ser importado
+dentro de `components/ui/`, com os próprios wrappers isentos.
+
+`cn()` usa `extendTailwindMerge` porque a escala de raio deste projeto é
+numérica e o `tailwind-merge` de fábrica não a resolve — `pnpm classes`
+guarda isso.
+
+### Fase 3 — Superfícies específicas · **concluída**
+
+Message list completa (agrupamento, divisores, estados de envio), composer
+(rascunho por canal, envio otimista, digitação), rail de servidores, lista de
+canais e member list.
+
+**Escritas sob a lei nº 6** — todo componente já nasce movível, e o shell virou
+slots por causa disso: ele não importa mais nenhum painel, só declara onde as
+colunas ficam. Cada painel traz a própria container query.
+
+Três decisões que valem além da fase:
+
+**A member list é a única das três colunas laterais virtualizada.** Não é
+simetria: rail e lista de canais têm dezenas de itens, esta tem dezenas de
+milhares. As duas não virtualizadas renderizam IDs com linha assinando a própria
+entidade — a forma que um `useVirtualizer` consome — então o retrofit é trocar o
+`.map()`, não reescrever o componente.
+
+**Dois baldes de presença, não quatro seções.** `online → idle → dnd` não move
+ninguém de lugar, então a member list não reordena — e presença é 55% da carga
+do firehose. Com uma seção por estado, toda piscada custaria `n log n`. É a lei
+nº 1 aplicada à ordenação em vez de à subscrição.
+
+**Não-lidas e menções são do cliente.** É a terceira coisa que a camada
+anticorrupção comporta sem tocar em componente, depois de `sendState` e do
+agrupamento.
+
+⚠ **A justificativa dada aqui estava errada, e a varredura de protocolo em
+`concorrentes.md` desmentiu.** Escrevi que "o protocolo tem `unread` booleano; o
+Vortex conta". O protocolo tem **`ChannelUnread.lastMessageId`** — o cursor de
+leitura, persistido no servidor — e **`messageMentionIds`**, um conjunto de IDs.
+O booleano é um getter derivado. Contar no cliente continua certo como
+arquitetura; o que não existe é o incremento `+1` por evento ser a fonte da
+verdade. Ele nunca viu offline, e a semeadura no `Ready` é item de fase 6.
+
+Duas armadilhas do SDK encontradas verificando em navegador, e mortas na camada
+de tradução: `channel.isVoice` não quer dizer "canal de voz do servidor" (é
+`true` para DM e Grupo, e depende de um objeto `voice`), e o protocolo **não
+tem** `channel_type: "VoiceChannel"` — canal de voz é TextChannel com `voice`.
+
+**Passou no gate.** Sem throttle, mediana de 3 janelas com 10k mensagens e 500
+eventos/s: p95 6,4ms (1,05× o refresh), 98,1% dos frames dentro de um intervalo,
+**0,1% de frames perdidos contra o teto de 1%**, zero long tasks, vazão cheia.
+Espalhamento entre janelas: 0,1% a 0,1%.
+
+Sob CPU 4x fica em ~6% contra o teto de 5% — segue como acompanhamento, não
+como bloqueio, e a razão está nas pendências.
+
+**O que a caçada ao gate ensinou vale mais que o veredito**, e virou quatro
+invariantes de INSTRUMENTO em `enforcement.md` — dobrando as que já existiam:
+
+- Delta de rAF é intervalo de vsync, não custo de frame. Num display de 160Hz o
+  percentil só assume 6,25 · 12,5 · 18,75, e o teto de 16,7ms cai entre degraus.
+- Uma janela só não decide diferença pequena. Sob throttle o espalhamento entre
+  corridas (0,9pp) ficou maior que o efeito procurado (0,72pp).
+- O critério do gate foi reescrito como contagem — `perdidos ≤ 5%` é o mesmo que
+  `p95 ≤ 16,7ms`, com prova e teste, e sem a patologia do degrau.
+- A vazão do gerador precisa ser reportada: sob 4x ele entregava 441 de 500
+  eventos/s, e o gate reprovava com menos carga do que anunciava.
+
+Três hipóteses plausíveis foram testadas e nenhuma foi refutada — o instrumento
+não tinha resolução para vê-las. As duas mais baratas (máscara no ponto de
+presença, menu por linha) foram removidas ou viraram pendência mesmo assim,
+porque custam de qualquer jeito.
+
+### Fase 4 — Customização · **concluída**
 
 Sistema de slots, modo edição, preset versionado e compartilhável, picker de
 paleta com validação de contraste. Ver `layout-customization.md`.
+
+**Fundação pronta.** Não é a feature — é o que a referência manda construir
+antes dela, e o que o `enforcement.md` marcava como "Fase 4" desde a fase 2:
+
+- **Schema do preset**, com o tipo fazendo o trabalho pesado. `PainelId` é
+  união fechada de TIPOS de painel, então "os membros do servidor X" não é
+  representável — dado de sessão não precisa ser filtrado porque não pode
+  existir. Preset já compartilhado não volta atrás; é a única regra do projeto
+  cujo erro não tem conserto.
+- **Slot é POSIÇÃO, não objeto com lado.** A referência descreve slots com uma
+  propriedade `lado`; aqui o lado é a identidade do slot. Sem `lado` guardado
+  não existe o estado inconsistente "slot da coluna 1 do lado fim", então não
+  há o que validar. Trocar de lado vira trocar qual painel ocupa qual slot — a
+  mesma liberdade com metade dos estados possíveis. A âncora não é um `SlotId`:
+  nunca mover deixou de ser regra e virou tipo.
+- **Chave desconhecida preservada em profundidade**, mesclando o conhecido
+  sobre o bruto de origem, e não com um campo `extras` — que só preservaria
+  onde alguém lembrou de colocá-lo.
+- **`TokenName` fechado e conferido contra `tokens.css` por teste**, nos dois
+  sentidos: token da lista que sumiu do CSS reprova, e cor nova no CSS que
+  ninguém classificou também. O default de uma decisão esquecida é "pare".
+- **Store de layout** module-level, com o slot assinando sozinho — arrastar uma
+  borda vai acordar aquele slot, não os quatro, e nunca a âncora.
+- **Shell dirigido por dados.** Verificado em navegador: trocar rail e membros
+  de lado dá `240px 240px 1048px 72px`, esconder tudo dá `0px 0px 1600px 0px`
+  sem espaço morto, e a 700px o colapso segue o PAINEL membros para onde quer
+  que ele tenha ido.
+
+**Modo edição pronto.** Manipulação direta: alça na borda de cada slot,
+visibilidade, qual painel vai em qual slot, repor por slot e repor tudo. Sem
+botão de aplicar — tudo já vale enquanto se mexe —, então cancelar guarda um
+retrato tirado na entrada, e o retrato inclui o bruto de origem: um desfazer
+que preserva o que entende e perde o que não entende é pior que não ter
+desfazer, porque o dano fica invisível.
+
+As duas armadilhas técnicas da referência estão mecanizadas, e medidas em
+navegador:
+
+- **O store não é tocado durante o arraste.** A largura vai direto ao DOM por
+  callback do dono do elemento. Medido: arrastando de 240 para 320px, o DOM
+  acompanha frame a frame (240 → 280 → 320) e o store fica em **240 o tempo
+  todo**; um único commit no drop. Sem isso, cada `pointermove` re-renderizaria
+  a lista de mensagens.
+- **A lista não remede durante o arraste.** O `ResizeObserver` dela já existia
+  e dispararia a cada frame; agora ele adia e `aoTerminarArraste` faz o
+  trabalho uma vez. Precisa de evento próprio porque o commit não muda tamanho
+  nenhum — a largura já estava no DOM. Confirmado pela altura média das linhas
+  mudando com a largura (84 → 87 → 79px).
+
+Teclado faz o mesmo que o ponteiro: `separator` com `aria-valuenow`, setas com
+passo de 8px, Shift para salto, Home/End nos extremos. Layout que só se ajusta
+com mouse exclui gente do produto inteiro, não de um botão.
+
+**Picker de paleta pronto**, e ele não valida contraste — ele torna contraste
+ruim impossível. Quatro controles para vinte tokens: o usuário escolhe matiz,
+saturação e cor de ação, o app decide **toda a luminosidade**. Em OKLCH o L é
+perceptualmente uniforme, então rampa fixa de L entrega o mesmo contraste em
+qualquer matiz, e uma varredura em teste (matiz × matiz de acento × croma ×
+modo) prova que nenhuma combinação reprova. Avisar protege quem lê o aviso;
+construir assim protege todo mundo.
+
+A varredura achou folga zero na paleta que já estava no ar: `--vx-border-strong`
+sobre `--vx-surface-3` media 3,00:1 exatos no escuro — aprovado por sorte, e
+qualquer matiz diferente do violáceo original derrubava. Corrigido; a folga
+real hoje é 3,45:1.
+
+A lista de pares de contraste era duplicada entre o `pnpm contrast` e o que o
+picker precisaria. Agora é uma só (`tema/pares.ts`), e o `pnpm contrast` virou
+teste que a importa. O preset carrega a SEMENTE, não os tokens derivados: com
+tokens crus, quem recebesse aplicaria uma paleta que ninguém validou.
+
+A fase 4 está **completa**: slots, modo edição, preset versionado e picker.
+Falta só o que sempre foi de fase futura — painéis que ainda não existem
+(thread, fixados, perfil, voz) entrando na união `PainelId`.
+
+Sistema de slots, modo edição, preset versionado e compartilhável, picker de
+paleta com validação de contraste. Ver `layout-customization.md`.
+
+
+### Fase 5 — Acabamento e superfície de produto · **próxima**
+
+Nasceu como fase de acabamento e **deixou de ser**, por decisão explícita: a
+varredura de protocolo em `concorrentes.md` mostrou que dezesseis campos já
+chegam pelo fio e são ignorados, e a escolha foi trazer **todos**, features
+inclusive. O acabamento continua sendo o esqueleto da fase; o resto pendura
+nele.
+
+A fase que o roadmap nunca teve. O polimento era suposto acontecer dentro de
+cada fase, e a suposição falhou de forma visível na fase 4: quatro controles
+nativos sem estilo em superfície de produto, uma sombra que o design system
+proíbe em letras, `:hover` como único dos oito estados num painel e nenhum no
+outro.
+
+**O que ela é:** o `review-checklist.md` aplicado superfície por superfície nas
+telas da fase 3 — rail, lista de canais, member list, linha de mensagem,
+composer. Nenhuma delas passou por essa auditoria.
+
+O alvo concreto, em ordem de valor:
+
+- **Os oito estados** (`default · hover · active · focus-visible · disabled ·
+  loading · empty · error`) em cada superfície. Hoje quase nenhuma tem os oito,
+  e `empty` e `error` praticamente não existem no app — a lista de mensagens de
+  um canal sem histórico renderiza nada, e falha de envio só tem a linha.
+- **Ritmo de espaçamento e escala tipográfica** revisados juntos. É o que a
+  referência chama de origem de personalidade num app denso, e o que não dá
+  para consertar com token novo depois.
+- **A lâmina onde ela ainda não chegou.** A assinatura existe no rail, nos
+  canais, no segmentado e no painel de edição; falta decidir se ela marca
+  também mensagem não lida e canal com menção.
+
+**A fase deixou de ser só polimento.** A análise de concorrentes
+(`concorrentes.md`) foi lida e três itens foram **aceitos** como escopo, porque
+são baratos e mudam mais a sensação do produto que qualquer ajuste de espaçamento:
+
+- **A paleta de comandos** (`Cmd+K` sobre servidores, canais e pessoas). T1, sem
+  rede. Num app denso, a sidebar orienta e a paleta move.
+- **Leitura como posição** — primeira não lida, linha de novas mensagens
+  persistente, ir para a próxima menção. **T2**: o cursor já existe no protocolo
+  (`ChannelUnread.lastMessageId`) e as menções são IDs, não contagem.
+- **O canal de voz como sala.** No Stoat um canal de voz é uma *chamada*; aqui
+  vira um *lugar*. `Ready.voice_states` já entrega quem está dentro de cada canal
+  antes de entrar em qualquer um, e `VoiceChannelJoin`/`Leave` mantêm ao vivo —
+  então mostrar a sala é **T2**, não fork de backend. É a única escolhida que
+  muda o produto, e não a superfície.
+
+⚠ **A armadilha de escopo do canal de voz:** a lista de participantes muda por
+ação humana (baixa frequência, store normal), mas **quem está falando** vem do
+LiveKit dezenas de vezes por segundo — é o estado efêmero que a lei nº 1 nomeia.
+Anel de fala em store separado e com throttle na fronteira, nunca no store de
+canais. Sem isso, canal de voz movimentado repinta a coluna inteira.
+
+Ouvir de fato fica de fora desta fase: é `@livekit/components-react` e sessão de
+mídia. Trabalho real, mas os serviços `voice-ingress` e `livekit` já estão de pé
+no compose — não é fork.
+
+Os sete itens **T0** da mesma análise também entraram: divisor carregando
+contexto em vez de só data (prepara tópico de graça), o ritmo de agrupamento
+medido e não chutado, separação por espaço em vez de régua, disciplina contável
+de acento, empty state que é o começo do canal, timestamp no gutter em hover — e
+a resposta à pergunta aberta abaixo: **a lâmina marca não-lida e não marca
+menção**, porque não-lida é posicional e menção é contagem.
+
+**A regra de método que a fase 4 ensinou, e que vale mais que a lista:**
+checklist é o penúltimo degrau da ordem de preferência do `enforcement.md`.
+Toda vez que um item desta fase puder virar lint, tipo ou teste, ele deve —
+foi o que aconteceu com o controle nativo, que virou regra de lint em vez de
+mais uma linha para alguém lembrar de conferir.
+
+**Risco aceito nesta ordenação:** parte destas superfícies vai mudar quando o
+dado real chegar na fase 6 — mensagem com anexo, avatar de verdade, estado de
+reconexão. Polir antes significa retrabalho em algumas delas. A ordem foi
+escolhida assim de propósito: o app fica aberto o dia inteiro na frente de
+quem o constrói, e incômodo diário cobra juros que retrabalho estimável não
+cobra.
+
+#### Os dezesseis campos, e por que a ordem é esta
+
+`T2` responde **de onde vem o dado**, não quanto custa a feature — a
+classificação em quatro custos está em `concorrentes.md`. A ordem abaixo é
+ditada por duas coisas: o que anda junto com o passe de polimento, e o que
+ameaça o gate.
+
+1. **Os sete campos baratos, dentro do passe de cada superfície.** `roleColour`
+   e `editedAt` na linha; `nickname`/`avatar` por servidor, `timeout` e
+   `hoistedRole` na member list; `orderedChannels` na coluna de canais. Fazê-los
+   depois significaria tocar cada superfície duas vezes.
+2. **A sala de voz.** Está no grupo barato mas é a maior dele: a linha do canal
+   deixa de ser um item e vira um container com participantes.
+3. **Cabeçalho de canal e cartão de perfil.** Duas superfícies inéditas, que
+   destravam `description`, `banner`, `pronouns` e `status.text` de uma vez. O
+   `HoverCard` da fase 2 é o primitivo, ainda sem uso. Nascem movíveis.
+4. **`systemMessage`** antes das reações, porque é o mais barato dos itens que
+   mudam a altura da linha — e força **uma vez** o trabalho de estimativa de
+   altura por tipo, que a pendência de append já pedia.
+5. **Respostas com citação.** Mexe na altura da linha e no composer.
+6. **Reações.** Por último entre as da linha: é o maior custo de render no
+   componente mais quente do app.
+7. **Painel de fixados.** `PainelId` novo. Fica por último por ser o mais
+   isolado — não encosta no caminho quente.
+
+A **paleta de comandos** é independente e entra em qualquer ponto. **Leitura
+como posição** vem depois que a lista parar de mudar de forma.
+
+#### A regra de processo desta fase, e ela não é opcional
+
+**Rodar o firehose a cada item que toca a linha de mensagem — não uma vez no
+fim.** Três dos itens acima (`systemMessage`, citação, reações) somam custo ao
+componente mais quente, e o patamar sob CPU 4x já está em ~6% contra teto de 5%.
+Em lote, não há como saber qual deles pagou. E a fase 3 já provou que efeito
+pequeno exige mediana de 3 janelas para ser visto: o espalhamento entre corridas
+(0,9pp) foi maior que o efeito procurado (0,72pp).
+
+`havePermission()` não entra como item: vira **regra** — nunca renderizar ação
+que a pessoa não pode executar. Custa zero adotada agora, e é varredura em todo
+componente se adotada depois. Candidata a virar mecanismo, pela ordem do
+`enforcement.md`.
+
+**O risco desta escolha, dito uma vez:** a fase cresceu de acabamento para
+produto, e o retrabalho da fase 6 cresce junto — reações, citação e perfil todos
+mudam quando o dado real chegar. Foi decidido com isso à vista.
+
+### Fase 6 — Rede
+
+Aqui o app fala com um servidor pela primeira vez. **Nada do que existe hoje
+já viu um backend:** não há login, não há websocket, e todo dado sai do
+firehose sintético. Isso foi escopo declarado — o `CLAUDE.md` diz que as fases
+0 a 4 são front-end — e não esquecimento.
+
+É a única fase com risco **desconhecido**. Tudo o mais no projeto é trabalho
+conhecido com custo estimável; conectar é onde moram as surpresas.
+
+O que ela cobre, e as armadilhas já mapeadas:
+
+- **Login e sessão.** `definirUsuarioLocal` é placeholder honesto desde a fase
+  0; o composer precisa de autor e hoje ele vem do arnês.
+- **A mensagem otimista com ID que muda.** Já documentada em `adapter.ts`: o
+  SDK só materializa a mensagem quando a resposta volta, com o ID do servidor,
+  enquanto a otimista tem ID local. Numa lista com `getItemKey` por ID de
+  entidade, isso é a chave da linha mudando debaixo do virtualizador. A
+  reconciliação por nonce resolve-se no adapter, sem componente saber.
+- **Reconexão.** Sem rede no spike. `conectado()` existe e é consultado nos
+  caminhos de fire-and-forget justamente porque `EventClient.send` LANÇA sem
+  socket — mas o caminho de volta nunca rodou.
+- **Mídia na linha.** Nunca testada. Reservar espaço com `aspect-ratio` a
+  partir do metadata do anexo é o que impede layout shift quebrar a ancoragem.
+- **Sessão de 8h.** Vazamento só é medível em horas, e o refcount do store
+  existe para isso desde a fase 0 sem nunca ter sido exercitado de verdade.
+
+O fork de serviço de backend continua **não sendo item de roadmap** — é o
+caminho para QUANDO uma feature forçar. Antes disso, ver a restrição de
+`linux/arm64` na § Divergência de produto: o truque do `$BUILDPLATFORM` que
+salva o cliente web não transfere para Rust.
 
 ---
 
@@ -483,17 +798,33 @@ paleta com validação de contraste. Ver `layout-customization.md`.
 
 | Item | Precisa de |
 |---|---|
-| Identidade visual | Paleta (4–6 hex nomeados), par tipográfico, elemento de assinatura. A estrutura de tokens está pronta em `tokens.css`; faltam os valores. |
+| Identidade visual | **Resolvida.** Paleta pastel em lilás, menta, pêssego e rosa sobre neutro violáceo de croma baixa, claro e escuro, 76/76 pares acima do mínimo. Par tipográfico IBM Plex Sans variável + IBM Plex Mono. E o **elemento de assinatura**, que faltava: a **lâmina** — o traço que afina, tirado da pá da marca (`brand/mark.svg` são três espirais logarítmicas convergindo, com opacidade escalonada 1 / 0,82 / 0,64). A escala de opacidade da marca virou token (`--vx-lamina-1..3`) e é o mecanismo de profundidade em toda a interface, o que faz a regra "profundidade vem de camada, não de sombra" e a identidade serem a mesma coisa. A lâmina marca foco no rail, na lista de canais, no controle segmentado e no painel de edição. |
 | TanStack Virtual + React Compiler | **Resolvido no spike.** Compatíveis: o compiler reconhece `useVirtualizer` e pula a memoização daquele componente (`react-hooks/incompatible-library`), sem crash nem UI velha. O custo — os filhos da lista deixam de ser memoizados — é cortado com `memo` no `MessageRow`. Não trocar por `react-virtuoso`. |
 | Licença AGPL-3.0 | **Resolvido.** Uso privado — o dev e amigos, todos com acesso ao repositório, que é o que a cláusula de rede da AGPL pede. Reabrir a questão se o Vortex for exposto a terceiros sem acesso ao fonte. Não é aconselhamento jurídico. |
 | Brand assets | **Resolvido.** `brand/` é diretório rastreado deste repo, não submodule: `mark.svg`, `wordmark.svg`, `monochrome.svg` + `generate.mjs`. O `.gitmodules` só tem os três de `web/packages/`. `web-react/` consome daí, como `web/` e `desktop/`. |
 | Imagem arm64 do backend | **Não bloqueia nada hoje** — todo o roadmap é front-end. Antes de commitar com a primeira feature que precise de backend: como sair imagem `linux/arm64` de serviço Rust forkado. O truque do `$BUILDPLATFORM` que salva o cliente web não transfere para Rust. Ver § Divergência de produto. |
-| Cauda do frame de append | Sob CPU 4x, ~2,9% dos frames estouram 16,7ms na montagem de linha de altura variável (medir altura real + reancorar no mesmo frame). Dentro do critério do gate, listado por honestidade. Alavancas: `overscan` menor, estimativa por tipo de mensagem, pré-medição de conteúdo previsível. |
-| Prepend de histórico | **Nunca testado.** O firehose só faz append. Carregar mensagem antiga sem mover o viewport é requisito central de lista de chat e a razão de existir do `anchorTo: 'end'`. Maior buraco de comportamento da fase 0. |
-| Mídia na linha | **Nunca testada.** Sem imagem no spike. Reservar espaço com `aspect-ratio` a partir do metadata do anexo é o que impede layout shift quebrar a ancoragem. |
-| Test runner | **Não existe.** Nem vitest nem playwright. Quatro invariantes de fase 0 no `enforcement.md` estão como "Teste" e hoje são prosa: firehose como gate de CI, publicação por frame, carga em massa, corrida colada no fim. |
-| Assertions que nunca dispararam | `getSnapshot` estável, remedição após resize e linha medindo 0px existem e nunca foram exercitadas. Mecanismo não testado é prosa com sintaxe de código. |
-| Reconexão, sessão longa, container query | Sem rede no spike; vazamento de 8h precisa ser medido em horas; a lei nº 6 exige container query e não há nenhuma no código ainda. |
+| Monitor acima de 60Hz | **Pergunta aberta, com dado a caminho.** A 160Hz o orçamento por frame é 6,25ms, não 16,7ms — o mesmo trabalho que sobrava tempo a 60Hz estoura. Cliente de chat só paga isso enquanto algo se move (rolagem, append, composer crescendo), e a mediana medida já cabe em um intervalo sob CPU 4x. O que faltava era contar os frames de DOIS intervalos, invisíveis a 60Hz e visíveis a 160Hz: o arnês passou a reportar a distribuição por refresh. Decidir se vira critério depois de ver o número, não antes. |
+| Carregamento progressivo (janela deslizante) | **Medido: não resolve o gate.** Semear 1.000 em vez de 10.000 baixou o custo de publicação de 0,57ms para 0,12ms por frame — confirmando que a cópia do array de IDs é O(total) — e o p95 **não se moveu**: 18,7ms nas duas. Logo o driver do gate é custo por frame na janela visível, não o tamanho da lista. Continua valendo como feature por outro motivo: memória de sessão de 8h, `measurementsCache` limitado, e o erro nº 5 do briefing. Não como conserto de performance. |
+| Vazão real do firehose | O arnês pedia 500 ev/s e nunca reportou quanto entregou. `setInterval(16)` não garante 62 ticks/s sob throttle de 4x, e um gate que entrega metade da carga aprova metade do que afirma. Agora a vazão aparece no relatório — conferir na próxima corrida. |
+| Cauda do frame de append | **Quantificada.** Distribuição por refresh a 1.000 mensagens: 86,1% dos frames em 1× · 8,2% em 2× · 4,6% em 3× · 1,1% em 4×+. O p95 cai no balde de 3× por **0,72pp** — 29 frames de 3970. Converter esses 29 para 2× faz o gate passar. Sob CPU 4x, ~2,9% dos frames estouram 16,7ms na montagem de linha de altura variável (medir altura real + reancorar no mesmo frame). Dentro do critério do gate, listado por honestidade. Alavancas: `overscan` menor, estimativa por tipo de mensagem, pré-medição de conteúdo previsível. |
+| Estimativa de altura de linha | **Corrigida.** `estimateSize` passou de 44px, que nunca foi medido, para 73px — a altura real medida no arnês é 72,6px. Não acelerou nada (o p95 não se moveu), e a razão de ficar é outra: a estimativa antiga errava ~38px por linha, o que faz a barra de rolagem mentir sobre o tamanho do histórico e dá trabalho de compensação ao virtualizador a cada rolagem. Correção de correção, não de performance. |
+| Mídia na linha | **Fase 6.** Nunca testada. Sem imagem no spike. Reservar espaço com `aspect-ratio` a partir do metadata do anexo é o que impede layout shift quebrar a ancoragem. |
+| Caminho REATIVO da ponte, sem teste até agora | **Resolvido, e era um buraco.** Em Node o `solid-js` resolve para `dist/server.cjs` — o build de SSR, onde `createEffect` é **no-op por design**. Medido com um `createSignal` simples: o efeito não rodava nem uma vez. Metade da ponte `stoat.js → React`, a metade que é a razão de o adapter existir, nunca esteve sob teste e silenciosamente não podia estar; tudo passava pelo caminho de evento (`client.on`) e pelas leituras ansiosas. Corrigido com `ssr.resolve.conditions` no `vite.config.ts` — mexer no `resolve.conditions` do topo derrubaria a condição `production` do build real. Nenhum teste existente quebrou quando a reatividade acordou. |
+| Testes do caminho reativo em `members` e `messages` | **Agora possível, e ainda não escrito.** Os efeitos desses dois stores nunca foram exercitados por teste — o que passava era a leitura ansiosa no momento da subscrição. A sala de voz já tem os seus (`voz.test.ts`, verificados por mutação); os outros dois merecem os mesmos. |
+| Estimativa de altura por TIPO de linha | Sem urgência enquanto linha de sistema for rara, mas o relatório do arnês passou a ser o detector: a estimativa única de 76px sobrestima uma linha de sistema, e a barra de rolagem exagera na proporção da frequência delas. |
+| Teste de navegador | **vitest instalado**, 19 testes cobrindo store, adapter e toast. Falta runner de NAVEGADOR: jsdom não tem engine de layout, então âncora, remedição e o firehose seguem medidos à mão no arnês. O `web/` já usa Playwright — é o candidato natural. |
+| Assertions que só o navegador exercita | A de `getSnapshot` estável agora tem teste e dispara nos quatro casos. Faltam duas, e as duas dependem de layout: **remedir após resize** e **linha medindo 0px**. jsdom não serve — é o mesmo motivo pelo qual a âncora vive no arnês. Vão junto com o runner de navegador. |
+| Reconexão e sessão longa | **Fase 6.** Sem rede no spike; vazamento de 8h precisa ser medido em horas. **Container query resolvida** — shell, composer, rail, lista de canais e member list têm a sua; a do painel de membros (<140px) só é alcançável por slot da fase 4, não por largura de janela. |
+| Firehose depois da fase 3 | **Rodado. Passa sem throttle, reprova sob CPU 4x.** Sem throttle, mediana de 3 janelas: p95 6,4ms (1,05× o refresh), 98,1% dos frames em um intervalo, **0,1% de frames perdidos contra o teto de 1%**, zero long tasks, vazão cheia de 500 ev/s — e espalhamento de 0,1% a 0,1% entre janelas. Sob CPU 4x fica em ~6% contra o teto de 5%, e ali a vazão do próprio gerador cai para 441/500. A fase 0 media 2,9% sob 4x com uma `MessageRow` que era um `<article>` de className estática — sem agrupamento, divisor de data, estado de envio, menu, composer ou colunas laterais. Parte da diferença é o produto existindo; quanto exatamente, só um A/B com mediana de 3 janelas responde. |
+| Menu de contexto no nível da lista | **Fase 5. Medido, não conserta o gate, e vale mesmo assim.** Hoje cada `MessageRow` monta um `ContextMenu` do Radix inteiro — Root, Trigger, Portal, Content — e linha monta e desmonta na velocidade do scroll. A/B com a mesma `<article>` nos dois lados: p99 de 24,9ms para 18,9ms e frames perdidos de 6,0% para 5,4% ao desligá-lo. O conserto é um Root para a lista, posicionado no ponteiro, com o id da linha alvo no store. |
+| Custo de pintura | **Hipótese nova, com evidência.** O mesmo build, no mesmo throttle de 4x, dá 0,4–0,5% de frames perdidos em Chrome headless (`pnpm gate`) e 5,4–6,3% em display real — e o espalhamento entre corridas cai de 0,9pp para 0,1pp. Headless não pinta numa superfície de verdade; a diferença é quase toda rasterização e composição. Isso reabre a remoção da máscara do ponto de presença, arquivada como "não moveu o p95" quando o p95 daquela máquina não conseguia ver mudança daquele tamanho. |
+| Patamar de CPU 4x em ~6% | Contra o teto de 5%. Não bloqueia — o patamar que mede o app (sem throttle) passa com folga de 10×. A fase 0 media 2,9% sob 4x com uma `MessageRow` que era um `<article>` de className estática: sem agrupamento, divisor de data, estado de envio, menu, composer ou colunas laterais. Parte da diferença é o produto existindo; quanto exatamente, só um A/B com mediana de 3 janelas responde — e agora ele decide, porque a contagem enxerga onde o percentil não enxergava. |
+| Apelido por servidor na member list | **Resolvido.** A chave virou `ChaveDeMembro` — tipo MARCADO, não string composta: passar um ID de usuário onde se espera chave de membro não compila (provado com arquivo-sonda). Destravou apelido, cor de cargo e castigo de uma vez. |
+| Categorias de canal | **Fase 5, e menor do que parecia.** Além de `server.categories`, o SDK já expõe **`orderedChannels`** — a ordenação por categoria vem pronta. Sobra o colapso persistido e o arrastar-e-soltar. |
+| Semear não-lidas no `Ready` | **Fase 6, e é regressão garantida sem isso.** O adapter incrementa `+1` por mensagem que chega e nunca consulta `client.channelUnreads`. No firehose funciona porque tudo chega ao vivo; com rede, o que chegou offline não passou pelo incremento e o app abre zerado. Semear de `ChannelUnread.lastMessageId` + `messageMentionIds`, e escrever de volta com `Message.ack()`. |
+| Seções de cargo na member list | **Fase 5, e o SDK já computa.** `ServerMember.hoistedRole` entrega o cargo que separa a pessoa na lista, e `ranking`/`orderedRoles` a hierarquia. Não briga com os dois baldes de presença: cargo não pisca, presença pisca — secciona por cargo, bucketiza presença dentro. |
+| Campos de protocolo ainda ignorados | Levantados em `concorrentes.md` § segunda passada: `reactions`, `replyIds`, `pinned`, `roleColour`, `editedAt`, `systemMessage`, `channel.description`, `muted`, `havePermission`, `pronouns` (em `User` **e** `ServerMember`), `timeout`, `banner`, `status.text`. Nenhum precisa de backend. |
+| Lado lógico no wrapper de Tooltip | **Fase 5.** O Radix só fala `side` físico. Hoje o `avoidCollisions` cobre o caso real (rail movido = sem espaço daquele lado = vira sozinho), mas o mapeamento logical→physical deveria viver no wrapper. |
 
 ---
 

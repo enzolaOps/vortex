@@ -13,7 +13,21 @@ checklist > prosa.
 ## Lint — bloqueia no editor e no CI
 
 **Arbitrary values do Tailwind proibidos**
-`bg-[#2b2d31]`, `p-[13px]`, `text-[13px]`. Regra de lint com erro, não warning.
+`bg-[#2b2d31]`, `p-[13px]`, `max-w-[--vx-message-max-w]`. Regra de lint com
+erro, não warning.
+
+O seletor precisa de um lookahead negativo: variante arbitrária é sintaxe
+legítima e documentada (`data-[state=open]:opacity-100`, `[&>svg]:size-4`) e
+termina em `:`. O que se proíbe é colchete que carrega VALOR.
+
+Propriedade arbitrária (`[scrollbar-gutter:stable]`) cai na regra de propósito:
+o lugar dela é um CSS Module, como manda `styling.md`.
+
+Instalada na fase 1, pegou três violações que já estavam no código — uma delas
+escrita na fase 0 por quem estava justamente enunciando a regra. Além de
+proibida, ela não funcionava: a coluna corria a viewport inteira e só apareceu
+numa captura de tela. É o argumento para instalar mecanismo cedo, e não depois
+de escrever o código que ele deveria ter guardado.
 
 **Escala de cor default do Tailwind desativada**
 Não é lint: remova as cores default do `@theme`. Se `bg-zinc-800` não existe, não
@@ -25,9 +39,17 @@ há o que proibir. Prefira sempre tornar impossível a proibir.
 do adapter, no mínimo.
 
 **Import direto de primitivo em código de feature proibido.**
-Radix só pode ser importado dentro de `components/ui/`. Regra de boundary
-(`no-restricted-imports`). É isso que mantém viva a possibilidade de trocar
-Radix→Base UI depois.
+Radix só pode ser importado dentro de `src/components/ui/`. Regra de boundary
+por `patterns: [{ group: ["@radix-ui/*"] }]`, com os próprios wrappers isentos —
+eles SÃO a fronteira, e ali o import é o trabalho, não a violação.
+
+É isso que mantém viva a possibilidade de trocar Radix→Base UI depois,
+componente por componente, sem tocar em código de produto — e a troca está
+prevista: Base UI hoje não tem Context Menu, Hover Card nem Toast, e quando
+tiver, a decisão é reavaliada.
+
+Instalada na fase 2, junto do primeiro wrapper, e verificada reprovando de
+propósito.
 
 **Import de `stoat.js` fora do adapter proibido.**
 O SDK só pode ser importado dentro de `src/sdk/`. Regra de boundary
@@ -41,6 +63,29 @@ um componente acopla o app ao protocolo, não dá erro nenhum, e só cobra o pre
 quando alguém tentar adicionar a primeira feature que o Stoat não tem.
 
 Vale para valor **e** para tipo — `import type` acopla igual.
+
+**Controle nativo proibido em código de feature.**
+`<select>`, `<input type="range">` e `<input type="color">` são desenhados pelo
+SISTEMA, não pelo app: num cliente dark no Windows chegam com cromo claro, e a
+identidade do produto termina na borda deles. Regra de `no-restricted-syntax`,
+com `components/ui/` isento — é lá que os primitivos ENVOLVEM o nativo, mesma
+forma da fronteira do Radix.
+
+`checkbox` fica de fora da lista: `accent-color` o traz para o sistema de cor
+com uma linha, e ele não abre superfície própria. A régua é "o sistema desenha
+algo que o nosso CSS não alcança".
+
+Instalada na fase 4, DEPOIS de a fase 4 ter entregue quatro deles em
+superfícies de produto. O `review-checklist.md` já cobria isso e não foi
+rodado — e a ordem de preferência deste documento coloca checklist no penúltimo
+degrau justamente por isso. A regra sobe o degrau, e verificada reprovando de
+propósito: três violações em código de feature, zero dentro de `components/ui`.
+
+Cuidado ao mexer: `no-restricted-syntax` NÃO soma entre blocos de config — o
+último a casar vence. As listas são compostas (`SINTAXE_GERAL` +
+`CONTROLE_NATIVO`) por isso; declarar só a lista nova no bloco de feature
+desligaria arbitrary value e direção física em todo `src/`, sem aviso. Há
+prova em ambos os sentidos no histórico desta linha.
 
 **`left`/`right` proibidos em componente de painel** — só propriedades lógicas
 (`inline-start`/`inline-end`). Sustenta a lei nº 6 mecanicamente em vez de
@@ -101,9 +146,23 @@ gate não adivinha throttle, e ajustar limiar em silêncio conforme o resultado
 | | com CPU 4x | sem throttle |
 |---|---|---|
 | janela válida (sem suspensão de rAF, lista colada no fim) | exigido | exigido |
-| p95 ≤ 16,7ms | exigido | exigido |
+| frames perdidos (>16,7ms) | ≤ 5% | ≤ 1% |
 | zero long tasks | exigido | exigido |
-| ≤1% de frames perdidos | **não se aplica** | exigido |
+
+**O teto de 5% é o antigo `p95 ≤ 16,7ms`, reescrito — não afrouxado.** A
+equivalência é aritmética e tem teste: o 95º percentil dentro de 16,7ms
+significa que no máximo 5% dos deltas passam de 16,7ms. Mesmo conjunto de
+corridas aprovadas.
+
+O que muda é a resolução, e a razão é a entrada sobre quantização de vsync
+acima. Num display de 160Hz o percentil só assume 6,25 · 12,5 · 18,75 e salta
+entre degraus: o p95 deu 18,7ms em quatro corridas seguidas enquanto os frames
+perdidos variavam de 217 a 248 — sem ver uma diferença de 30 frames, quando a
+diferença que separava o gate de passar era de 29. Contagem anda de frame em
+frame; percentil de grandeza quantizada anda de degrau em degrau.
+
+O antigo quarto critério virou o patamar deste: sem throttle o teto continua
+1%, que é mais duro e portanto o único que vale ali.
 
 O teto de frames perdidos é mais duro que o briefing — que pede "500
 eventos/s segurando 60fps" — e foi calibração nossa. A 4x, o que resta da
@@ -123,12 +182,120 @@ somando 2,1s numa janela de 30s; o build de produção, na mesma máquina e
 mesma carga, produziu **zero** — e o p95 caiu de 43,8ms para 12,5ms. Medir
 no dev reprova o ambiente, não o código. `vite preview`, nunca `vite dev`.
 
-500 eventos/s de presença, mensagem, typing e reaction contra o store, com canal
-de 10k mensagens carregado, segurando 60fps. Obrigatório em qualquer PR que
-toque store, lista virtualizada ou linha de mensagem.
-
 Regressão de escopo **nunca aparece em uso normal de desenvolvimento**. Este é o
 único mecanismo que a pega.
+
+**Medição comparada contra a linha de base certa.**
+
+Não é uma invariante do produto: é uma do instrumento, e ganhou lugar aqui
+porque já produziu dois diagnósticos falsos neste projeto.
+
+O caso do prepend: a fase de remedição comparava o movimento da linha contra o
+`scrollTop` LÍQUIDO — que já embute a compensação do virtualizador. Rolando
+260px com as linhas acima crescendo X, compensação funcionando dá líquido
+`260−X` e movimento `260`; compensação falhando dá líquido `260` e movimento
+`260+X`. Contra o líquido, os dois casos devolvem `X`. O instrumento acusou
+"SALTOU 242px" sem conseguir distinguir sucesso de falha.
+
+A regra que fica: quando a coisa medida reage à medição, a linha de base é a
+**intenção**, não o resultado observado — e o quanto o sistema compensou vira
+número próprio. Com salto zero e compensação alta, funciona; com salto alto e
+compensação zero, não funciona. Sem separar os dois, o número não decide nada.
+
+Verificado depois do conserto: compensação de 1436px contra 1441px de
+crescimento real, salto máximo de 1px.
+
+**Delta de rAF é intervalo de vsync, não custo de frame.**
+
+Invariante do instrumento, e a terceira desta família — depois da linha de
+base do prepend e do dev server. Custou três corridas de 30s e três hipóteses
+erradas.
+
+O `requestAnimationFrame` entrega o tempo até o PRÓXIMO vsync, então o delta é
+sempre um múltiplo do refresh do display. Num monitor de 160Hz os valores
+possíveis são 6,25 · 12,5 · 18,75 — e nada entre eles. Um percentil pousado
+num degrau fica imóvel enquanto o código muda de verdade: o p95 deu 18,7ms em
+três corridas idênticas até a decimal, enquanto tirar a máscara do ponto de
+presença e o menu de contexto por linha moviam o p99 e a cauda.
+
+Pior: o teto de 16,7ms cai ENTRE o segundo e o terceiro degrau. Nessa máquina
+"p95 ≤ 16,7ms" significa "p95 ≤ 12,5ms" — 95% dos frames dentro de dois
+refreshes, e não dentro do orçamento de 60fps que a frase queria dizer. O
+mesmo código num monitor de 60Hz reportaria 16,7ms e passaria.
+
+**O critério não foi alterado.** O que mudou é que o relatório agora estima o
+intervalo de refresh (1º percentil dos deltas — o frame mais rápido é sempre
+um intervalo; a mediana já seria dois num app engasgado) e mostra o p95 também
+em MÚLTIPLOS de refresh. O veredito carrega os dois números.
+
+A regra que fica: percentil de uma grandeza quantizada precisa reportar o
+quantum junto, senão a diferença entre "não mudou nada" e "mudou menos que um
+degrau" é invisível — e as duas levam a conclusões opostas sobre o que fazer
+em seguida.
+
+Consequência prática para comparar corridas: `dropped` (frames acima de
+16,7ms) é contagem, não percentil, e por isso mede diferença pequena onde o
+p95 não mede. Fase 0: 2,9%. Depois da fase 3: 6,0%. Sem o menu por linha:
+5,4%.
+
+**Headless mede JS e layout; não mede pintura.**
+
+`pnpm gate` roda o firehose num Chrome headless por CDP, com throttle de CPU
+aplicado programaticamente. É barato, reprodutível e automatizável — e NÃO
+substitui a corrida em display real.
+
+Medido lado a lado, mesmo build, mesmo throttle nominal de 4x:
+
+| | headless | display real (160Hz) |
+|---|---|---|
+| p95 | 12,5ms | 18,7ms |
+| frames perdidos | 0,4–0,5% | 5,4–6,3% |
+| espalhamento entre corridas | 0,1pp | 0,9pp |
+
+Nenhum dos dois está errado: eles medem coisas diferentes. Headless não pinta
+numa superfície de verdade, então mede JS, layout e escopo de update. O display
+mede isso MAIS rasterização e composição.
+
+A distância entre eles é, muito provavelmente, o custo de PINTURA — e o
+espalhamento também: o ruído que inviabilizou três A/B seguidos praticamente
+some em headless. Isso reabre uma conclusão anterior. A remoção da máscara do
+ponto de presença mirava exatamente pintura, e foi arquivada como "não moveu o
+p95"; agora se sabe que o p95 daquela máquina não conseguia ver mudança
+daquele tamanho, e que pintura é o termo dominante ali.
+
+**Regra: use `pnpm gate` para A/B — dentro do mesmo ambiente a comparação vale
+e custa 40 segundos. Não o use para declarar que o app passa no gate.** Essa
+declaração continua exigindo tela de verdade, e o arnês continua tendo os
+botões para ela.
+
+Detalhe do throttle que muda a leitura: `Emulation.setCPUThrottlingRate` — o
+mesmo comando do DevTools — estrangula o AGENDAMENTO entre tarefas, não cada
+instrução. Uma cópia de array de 10k dentro de uma tarefa só quase não sente
+(0,04ms medido), enquanto uma semeadura com yields fica 4,8x mais lenta.
+
+**Uma janela só não decide diferença pequena.**
+
+A quarta invariante de INSTRUMENTO, e a que encerra uma investigação inteira.
+
+Cinco configurações medidas — com e sem menu de contexto por linha, com e sem
+máscara no ponto de presença, 1.000 contra 10.000 mensagens, estimativa de
+altura chutada contra medida — deram entre 5,4% e 6,3% de frames perdidos.
+**0,9 ponto percentual de espalhamento.** A diferença que separava o gate de
+passar era **0,72 ponto**.
+
+Ruído maior que o efeito procurado. A partir daí todo A/B de corrida única é
+cara ou coroa com aparência de medição, e foi exatamente assim que três
+hipóteses plausíveis foram testadas, cada uma "não mudou nada", sem que
+nenhuma delas tivesse sido de fato refutada.
+
+O arnês passou a rodar N janelas e reportar a MEDIANA, com a faixa min–max ao
+lado. Mediana e não média: uma janela azarada — pico do próprio gerador,
+coleta de lixo — desloca a média e não a mediana. A faixa aparece junto porque
+esconder o espalhamento é como se chegou aqui.
+
+**Regra: antes de acreditar numa diferença medida, compare-a com o
+espalhamento entre janelas da MESMA configuração.** Se for menor, não há
+diferença — há ruído.
 
 **Corrida de firehose só vale colada no fim.**
 No arnês: ao fechar a janela de medição, medir a distância da lista até o
@@ -174,6 +341,20 @@ paginação de histórico, carga de canal.
 
 Coalescer no frame resolve carga e regime permanente com o mesmo mecanismo.
 
+**`cn()` resolve conflito na escala do projeto.**
+`pnpm classes` afirma que a última classe vence em cada grupo renomeado.
+
+O `tailwind-merge` resolve por grupo, e os grupos que ele conhece são os do
+Tailwind de fábrica. Cada escala que este projeto renomeia é uma chance de ele
+deixar as duas classes passarem. Foi o caso de `rounded-*`: a escala default
+está desativada em `tokens.css` e a nossa é numérica, então
+`cn("rounded-2", "rounded-4")` devolvia **as duas** e quem decidia era a ordem
+no CSS, não quem chamou.
+
+A falha é silenciosa — nada quebra, o canto só fica errado. Corrigida com
+`extendTailwindMerge`; o teste existe para a próxima escala renomeada não
+repetir o episódio sem avisar.
+
 **Contraste de tokens.**
 Teste que percorre os pares de token realmente usados (`--text-3` sobre
 `--surface-3` inclusive) e afirma 4.5:1 em texto e 3:1 em borda. Roda sobre o
@@ -190,6 +371,86 @@ sobem, e o comportamento diverge em silêncio. Durante o porte, em que comparar
 indistinguível de bug de porte.
 
 O gitlink já está na árvore, então o check não precisa clonar submodule nenhum.
+
+
+**Não-lida nunca conta o canal aberto, e abrir zera só aquele canal.**
+
+Testes: mensagem no canal aberto não incrementa; mensagem em canal fechado
+incrementa o canal E o total do servidor; abrir o canal zera aquele contador e
+BAIXA o total do servidor sem zerar os outros canais.
+
+Nenhum dos três dá erro quando quebra, e o modo de falha é pior que parecer:
+um badge que não zera ensina a pessoa a ignorar o badge, e aí a feature inteira
+deixa de existir mesmo continuando na tela. O terceiro caso — zerar o servidor
+inteiro ao abrir um canal — é o bug clássico de rollup, e some sozinho em uso
+normal porque quem testa costuma ter só um canal com não-lidas.
+
+Instalado na fase 3, junto da lista de canais.
+
+**Presença que não troca de balde não republica a member list.**
+
+Teste: assinar a lista de membros, emitir `online → idle → dnd` para um membro,
+virar o frame, e afirmar que a lista NÃO foi publicada. E o complemento: duas
+saídas para offline no mesmo tick publicam UMA vez.
+
+É o que faz a member list sobreviver ao firehose. Presença é 55% da mistura e a
+esmagadora maioria é troca entre estados que moram no mesmo balde — reordenar
+neles seria `n log n` por frame num painel onde nada mudou de lugar. A escolha
+de ter DOIS baldes em vez de quatro é essa invariante virando estrutura de
+dados: com uma seção por estado, toda piscada de presença reordena.
+
+O ponto de presença continua correto porque assina sozinho, um nível abaixo da
+linha — a mesma granularidade do `MessageRow`.
+
+Instalado na fase 3, junto da member list.
+
+**Concordância de número nos rótulos de leitor de tela.**
+
+Teste sobre `plural()` e `rotuloDeNaoLidas()`. Parece pequeno demais para ter
+mecanismo, e é justamente por isso que tem: "1 menções" saiu na primeira
+verificação em navegador, num texto que só leitor de tela lê. Texto que ninguém
+relê é o que mais precisa de teste em vez de atenção.
+
+O teste também registra uma surpresa em vez de escondê-la: o CLDR põe o ZERO na
+categoria `one` em português (`i = 0..1`), então `Intl.PluralRules` devolve
+"0 menção". Fica assim — o rótulo nunca renderiza com zero, e divergir do
+padrão para cobrir um caso inalcançável seria trocar regra por exceção.
+
+**Fila de rAF do teste não é zerada entre casos.**
+
+Não é invariante do produto: é do instrumento, e entra aqui pelo mesmo motivo
+que a linha de base do prepend entrou.
+
+O `flushHandle` do adapter é module-level e sobrevive ao teste que o agendou.
+Substituir a fila de callbacks por uma nova no `beforeEach` dessincroniza os
+dois: o adapter continua achando que tem frame pendente, `agendarFlush` vira
+`??=` sobre valor definido, e nenhuma publicação seguinte é agendada. O teste
+seguinte mede um sistema que parou de publicar e conclui que o CÓDIGO está
+errado.
+
+A regra que fica: quando o instrumento guarda estado compartilhado com o
+sistema medido, resetar metade dele é pior que não resetar nada. Drene a fila
+(`splice`), não a substitua.
+
+**Medição em aba sem composição estável mede o ambiente.**
+
+Irmã da regra "medir no dev server reprova o ambiente, não o código", e
+descoberta do mesmo jeito: perdendo tempo.
+
+Numa aba que não compõe frames de forma estável — navegador headless, pane
+oculta, janela minimizada — o `requestAnimationFrame` dispara com intervalos de
+segundos e o `setTimeout(0)` é estrangulado. Sintomas observados: a semeadura de
+10k mensagens passou de 0,6s para 14s, e a publicação coalescida ficou pendurada
+com a lista vazia enquanto o contador de não-lidas — que é síncrono — estava
+correto. O diagnóstico natural, e errado, é "bug de escopo no adapter".
+
+A sonda `__fila()` existe para separar os dois casos em uma leitura:
+`canaisSujos: []` significa que nada aconteceu; `canaisSujos: [id],
+frameAgendado: 4` significa que aconteceu e o frame é que não veio.
+
+O arnês do firehose já tinha a defesa certa para a corrida medida — a contagem
+de suspensões de rAF invalida a janela. Esta entrada estende o aviso para a
+verificação FUNCIONAL, que não tem gate nenhum.
 
 ---
 
@@ -217,6 +478,45 @@ A recompensa maior é na fase 4, onde a causa da mudança de largura é o usuár
 arrastando a borda de um slot. Mas as causas já existem no spike: janela
 redimensionada, sidebar colapsada, popout, painel de thread abrindo. A
 invariante é a mesma nos dois casos.
+
+**Composer e coluna de mensagem são a mesma caixa.**
+Assertion em dev que MEDE as duas caixas e avisa se início ou largura
+divergirem mais de 1px.
+
+`design-system.md` dizia isto em prosa desde a fase 1 — "desalinhar os dois é
+o erro visual mais perceptível da tela principal" — e a prosa não segurou: a
+primeira versão do composer saiu 16px fora e mais estreita que a lista, com o
+token do teto correto nos dois lados.
+
+É por isso que a checagem é sobre geometria medida e não sobre valor
+declarado. Comparar `max-inline-size` aprovaria exatamente o bug que
+aconteceu: o teto estava igual, o que divergia era o padding e a reserva da
+calha da barra de rolagem. A lista reserva a calha com `scrollbar-gutter:
+stable` por estar dentro do container de scroll; o composer está fora e
+precisa reservar a mesma coisa, senão fica mais largo pela largura da barra.
+
+Verificada reproduzindo o bug original no DOM: início 16px, largura −32px.
+
+**Reancoragem após mudança de ALTURA do container.**
+No wrapper do virtualizador, em dev: se a altura encolher, a lista estava no
+fim e ela terminar além do limiar, avisar alto.
+
+É a irmã da regra acima, e nasceu com o composer. O campo cresce uma linha, o
+container de scroll encolhe a mesma linha, e o navegador PRESERVA o
+`scrollTop` — então a distância até o fim aumenta exatamente pela altura que
+sumiu. Duas ou três linhas digitadas passam do `scrollEndThreshold` e o
+`followOnAppend` desliga em silêncio: a pessoa digita e as mensagens dos
+outros param de aparecer.
+
+Não dá para perguntar "estava no fim?" dentro do ResizeObserver: quando ele
+dispara, o layout novo já valeu. O estado tem que ser lido no scroll e
+guardado — é a mesma regra da medição comparada contra a linha de base certa,
+uma seção acima.
+
+O limiar é UM número, usado pelo `scrollEndThreshold` do virtualizador e pela
+nossa noção de estar colado. Divergirem significa a lista se achar no fim
+enquanto o virtualizador já desistiu de seguir — exatamente o estado que
+aprovou uma corrida de firehose contra um app parado na fase 0.
 
 **Linha virtualizada medindo zero.**
 No wrapper do virtualizador, em dev: se um item medir 0px, erro no console.
@@ -247,8 +547,10 @@ já cobre a maior parte.
 |---|---|---|
 | Arbitrary values | Lint (erro) | Fase 1 |
 | Cores default do Tailwind | Ausência no `@theme` | Fase 1 |
-| Contraste dos tokens | Teste | Fase 1 |
+| Contraste dos tokens | `pnpm contrast` (teste, pares compartilhados) | Fase 1 |
 | Import direto de Radix | Lint de boundary | Fase 2 |
+| Controle nativo fora de components/ui | Lint | Fase 4 |
+| `cn()` na escala do projeto | `pnpm classes` | Fase 2 |
 | `left`/`right` em painel | Lint | Fase 2 |
 | `getSnapshot` estável | Assertion em dev | Fase 0 |
 | Índice como `key` | Lint | Fase 0 |
@@ -256,16 +558,157 @@ já cobre a maior parte.
 | Import de `stoat.js` fora do adapter | Lint de boundary | Fase 0 |
 | Firehose 60fps | Teste, gate de merge | Fase 0 |
 | Gitlinks de `stoat.js` em lockstep | Check em CI | Fase 0 |
-| Remedir após resize | Assertion em dev | Fase 0 |
+| Remedir após resize de largura | Assertion em dev | Fase 0 |
+| Reancorar após resize de altura | Assertion em dev | Fase 3 |
+| Composer alinhado à coluna de mensagem | Assertion em dev | Fase 3 |
 | Linha virtualizada medindo 0px | Assertion em dev | Fase 0 |
 | Publicação de coleção por frame | Teste | Fase 0 |
+| Quantum de vsync reportado junto do p95 | Arnês | Fase 3 |
+| Mediana de N janelas, com faixa min–max | Arnês | Fase 3 |
+| Gate headless por CDP, para A/B | `pnpm gate` | Fase 4 |
+| Equivalência p95 ≤ 16,7ms ⇔ perdidos ≤ 5% | Teste | Fase 3 |
+| Não-lida ignora o canal aberto | Teste | Fase 3 |
+| Abrir canal baixa só a parcela dele no servidor | Teste | Fase 3 |
+| Presença no mesmo balde não republica membros | Teste | Fase 3 |
+| Concordância de número em rótulo de a11y | Teste | Fase 3 |
 | Carga em massa fora do caminho de evento | Teste | Fase 0 |
 | Corrida de firehose colada no fim | Check no arnês | Fase 0 |
-| Preset sem dado de sessão | Tipo + teste | **Fase 4, tipo desde a 2** |
-| Preset round-trip | Teste | Fase 4 |
+| Preset sem dado de sessão | Tipo + teste | **Fase 4 — instalado** |
+| Preset round-trip | Teste | **Fase 4 — instalado** |
+| Chave desconhecida preservada em profundidade | Teste | Fase 4 |
+| `TokenName` fechado, conferido contra tokens.css | Teste | Fase 4 |
+| Largura de slot limitada na escrita | Teste | Fase 4 |
+| Âncora do shell em coluna declarada | CSS + verificação em navegador | Fase 4 |
+| Store não é escrito durante o arraste | Verificação em navegador | Fase 4 |
+| Lista não remede durante o arraste | `store/arraste.ts` + teste | Fase 4 |
+| Sair do modo edição sem salvar reverte | Teste | Fase 4 |
+| Extremos da faixa são paradas exatas | Teste | Fase 4 |
+| Toda paleta curada passa nos 76 pares | Teste | Fase 4 |
+| Os oito estados vivem no primitivo | `components/ui/` | Fase 4 |
+| Semente padrão reproduz tokens.css nos 20 tokens | Teste | Fase 4 |
+| Nenhuma escolha do picker reprova contraste | Teste de varredura | Fase 4 |
+| Uma lista de pares só, para CI e runtime | `tema/pares.ts` | Fase 4 |
+| Semente de preset validada campo a campo | Teste | Fase 4 |
 
 **Fase 0 e 1 não são opcionais.** São as que protegem as leis 1 a 4, e o custo de
 adicioná-las depois é auditar código já escrito.
+
+## Contraste garantido por construção, não por aviso
+
+A referência pede "validar contraste no momento da escolha, avisando ou
+corrigindo antes de aplicar". O picker de paleta foi além, e a diferença é
+grande: **avisar protege quem lê o aviso; construir de modo que não dê para
+errar protege todo mundo.**
+
+O mecanismo é a divisão de responsabilidade. O usuário escolhe matiz, croma e
+cor de ação; o app decide **toda a luminosidade**, a partir de rampas fixas. Em
+OKLCH o L é perceptualmente uniforme, então a mesma rampa entrega o mesmo
+contraste em qualquer matiz. Uma varredura em teste — matiz do neutro × matiz
+do acento × croma × modo — prova que nenhuma combinação possível reprova.
+
+Duas consequências que valem mais que a feature:
+
+**A varredura encontrou folga zero na paleta que já estava no ar.**
+`--vx-border-strong` sobre `--vx-surface-3` media exatamente 3,00:1 no tema
+escuro. Passava no `pnpm contrast` e passava por sorte — qualquer matiz
+diferente do violáceo original derrubava o par, e mesmo sem picker qualquer
+ajuste futuro quebraria. A luminosidade subiu, e a folga real hoje é 3,45:1.
+Um verificador que só diz "passou" esconde o quanto passou raspando; por isso
+o relatório imprime sempre o par mais apertado.
+
+**Uma lista de pares só.** Ela vivia dentro de `scripts/contrast.mjs`. Duas
+listas que precisam concordar sempre divergem — e a divergência aqui teria a
+forma pior possível: o CI aprovando por uma régua e a paleta do usuário por
+outra. `pnpm contrast` virou teste e importa `tema/pares.ts`, o mesmo módulo
+que o picker usa em runtime.
+
+O preset carrega a SEMENTE, não os 20 tokens derivados. Tokens crus num preset
+podem ter sido editados à mão para qualquer coisa, e quem abrisse aplicaria uma
+paleta que ninguém validou; com a semente, quem recebe deriva, e a garantia da
+varredura vale para o preset de qualquer pessoa.
+
+## Controle nativo é onde a identidade do produto termina
+
+`<select>`, `<input type="range">` e `<input type="color">` são desenhados pelo
+SISTEMA, não pelo app. Num cliente dark no Windows eles chegam com cromo claro,
+e a diferença é imediata mesmo para quem não sabe nomear o problema — é o mesmo
+efeito de misturar dois sets de ícone, que este projeto já proíbe.
+
+A fase 4 entregou quatro deles em superfícies de produto, mais um `box-shadow`
+que o design system proíbe em letras, mais `:hover` como único dos oito estados
+num painel e ZERO estados no outro. Pelo padrão do próprio projeto — "os oito
+estados são o que separa protótipo de produto" — aquilo era protótipo.
+
+O que ficou como mecanismo:
+
+- Os primitivos com os oito estados vivem em `components/ui/` (`Botao`,
+  `Segmentado`, `Deslizante`). Centralizar é a diferença entre lembrar dos
+  estados e não conseguir esquecê-los.
+- `type="color"` é a ÚNICA exceção e ela é justificada: o que ele abre é o
+  seletor do sistema operacional, e reimplementá-lo seria escrever um color
+  picker inteiro — a definição de "genérico que a biblioteca resolve". O que dá
+  para estilizar é o gatilho, e está estilizado.
+- Nenhuma dependência nova: o `Deslizante` é um `range` nativo pintado. O Radix
+  resolveria arrastar, teclado e ARIA — que o nativo já entrega correto. Trazer
+  biblioteca para pintar um trilho seria pagar bundle e fronteira de import por
+  CSS.
+
+E uma lição de método que vale mais que a lista: **os wrappers Radix da fase 2
+já existiam e a fase 4 usou `<select>` mesmo assim.** Construir o primitivo não
+garante que ele seja usado; a auditoria é que garante.
+
+## O parâmetro da implementação não é a interface
+
+O picker de paleta nasceu pedindo MATIZ e CROMA ao usuário — os parâmetros da
+derivação, expostos como se fossem o produto. Nenhum app pergunta o croma do
+neutro. Era o modelo mental de quem implementou vazando para quem usa, e foi a
+causa real da sensação de "rústico": não faltava acabamento, faltava a
+abstração certa.
+
+O conserto não foi estilizar os sliders. Foi trocá-los por paletas curadas com
+preview do shell, e mandar os parâmetros para trás de "ajuste fino" — onde eles
+são a escotilha de quem quer sair das seis, não o caminho normal.
+
+Regra: quando um controle expõe uma variável interna, pergunte que DECISÃO o
+usuário está tomando. "Quero a verde" é a decisão; "matiz 150" é a
+implementação dela.
+
+## O compiler avisando que a arquitetura estava errada
+
+Na fase 4 a alça de redimensionamento recebia a `ref` do slot por prop e
+escrevia no `style` do elemento — a forma óbvia de mexer no DOM sem passar
+pelo React. O React Compiler reprovou: `react-hooks/immutability`, "`alvo`
+cannot be modified".
+
+Ele estava certo, e não sobre performance. Uma `ref` recebida por prop
+continua sendo prop, props são imutáveis, e um filho escrevendo no elemento do
+pai é acoplamento invertido. O conserto — o pai expõe uma função `aplicar`, o
+filho chama — é melhor por conta própria: quem é dono do elemento é quem
+escreve nele, e a alça deixou de precisar LER o DOM para saber a largura que
+ela mesma acabou de escrever.
+
+Vale como registro do que a regra "lint do compiler reclamando = código
+errado, não regra pra desativar" significa na prática: a reclamação apontou um
+problema de desenho, não um falso positivo a contornar.
+
+## Uma armadilha de grid que o tipo não pega
+
+`display: none` num item de grid não colapsa só aquele item: ele SAI do grid, e
+o auto-placement puxa todos os seguintes uma coluna para trás.
+
+Encontrado na fase 4, verificando em navegador, e o sintoma era pior que a
+causa: esconder a lista de canais colapsava a **coluna de mensagem** a zero. A
+âncora, que devia estar na coluna 3, caía numa trilha `auto` sem conteúdo
+próprio — e a tela inteira do produto sumia porque um painel lateral foi
+escondido.
+
+Mecanismo: **toda coluna do shell é declarada** (`grid-column: N`), inclusive a
+da âncora. Placement explícito torna o auto-placement irrelevante, e o slot
+escondido colapsa sozinho sem mover ninguém.
+
+Não há tipo que pegue isto e não há teste em jsdom que pegue — jsdom não tem
+engine de layout, que é o mesmo motivo pelo qual a âncora da lista vive no
+arnês. Entra na lista de assertions que só o navegador exercita.
 
 ## Regra sobre esta lista
 

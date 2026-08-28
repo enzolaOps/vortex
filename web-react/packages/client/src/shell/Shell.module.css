@@ -1,0 +1,161 @@
+/* ============================================================
+   O shell — grid raiz de quatro colunas
+   ------------------------------------------------------------
+   CSS Module e não utilities, pelo critério do styling.md:
+   `grid-template-columns` com minmax() só existiria na className
+   como arbitrary value, que é valor mágico com outra sintaxe.
+   ============================================================ */
+
+.shell {
+  display: grid;
+
+  /*
+    Trilhas `auto` para os slots, e a largura vive no PRÓPRIO slot.
+
+    A versão da fase 1 tinha a largura de cada coluna na lista de trilhas.
+    Funcionava com colunas fixas e não sobrevive à fase 4: com o usuário
+    escolhendo qual painel ocupa qual slot, a largura passa a ser
+    propriedade do slot, não da posição — e esconder um painel teria que
+    reescrever a lista inteira de trilhas de dentro de uma media query.
+
+    Com `auto`, o slot cujo conteúdo saiu colapsa a zero sozinho. É a mesma
+    geometria com metade do mecanismo, e é o que faz "slot vazio colapsa"
+    deixar de ser código para virar consequência.
+  */
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  block-size: 100dvh;
+  padding-block-start: var(--vx-titlebar-h);
+  background: var(--vx-surface-0);
+}
+
+/*
+  `minmax(0, 1fr)` não é opcional, e é a causa raiz do bug que motivou
+  o redesign.
+
+  O default de `1fr` é `minmax(auto, 1fr)`, e `auto` respeita o
+  `min-content` do filho: uma URL de 400 caracteres sem espaço empurra a
+  coluna e estoura o grid inteiro. A mesma armadilha vale para filho de
+  flex, onde a defesa é `min-inline-size: 0`.
+*/
+.coluna {
+  /* Filho de grid também tem min-width auto por default. */
+  min-inline-size: 0;
+  block-size: 100%;
+  overflow: hidden;
+
+  /*
+    Painel reage ao PRÓPRIO tamanho, não ao da janela.
+
+    É o que faz o mesmo componente funcionar em janela pequena,
+    ultrawide e popout de janela separada sem condicional espalhada —
+    e é a lei nº 6 deixando de ser prosa. Na fase 4 ganha a causa que
+    faltava: o usuário arrastando a borda do slot.
+  */
+  container-type: inline-size;
+}
+
+/*
+  Cada slot mora numa coluna FIXA, declarada. Não é redundância com a
+  ordem no JSX — é o que impede o auto-placement de reorganizar tudo
+  quando um slot some.
+
+  Encontrado verificando em navegador, e o sintoma era pior que o bug:
+  esconder a lista de canais colapsava a COLUNA DE MENSAGEM a zero. Com
+  `display: none` o item sai do grid, o auto-placement puxa os
+  seguintes uma coluna para trás, e a âncora — que devia estar na 3 —
+  caía numa trilha `auto` sem conteúdo próprio.
+
+  A âncora nunca move: está escrito no tipo (`c` não é um `SlotId`) e
+  agora também aqui, onde o navegador pode obedecer.
+*/
+/* `relative` para a alça de redimensionamento se posicionar sobre a borda
+   sem entrar no fluxo do grid — entrar mudaria a largura da coluna de
+   mensagem só de ligar o modo edição, e o preview mostraria um layout
+   diferente do que vai ser salvo. */
+.slot {
+  position: relative;
+}
+
+.slot[data-slot="a"] {
+  grid-column: 1;
+}
+
+.slot[data-slot="b"] {
+  grid-column: 2;
+}
+
+.conteudo {
+  grid-column: 3;
+}
+
+.slot[data-slot="d"] {
+  grid-column: 4;
+}
+
+/*
+  Slot vazio ou escondido some da árvore, e a trilha `auto` colapsa
+  junto. Sem `display: none` a borda ficaria como risco órfão sobre uma
+  coluna de largura zero — foi assim que a fase 1 deixou 140px mortos
+  numa janela de 700px.
+*/
+.slot[data-painel="vazio"] {
+  display: none;
+}
+
+/* Bordas por LADO do slot, não por painel: o painel pode mudar de lado. */
+.slot[data-lado="inicio"] {
+  border-inline-end: 1px solid var(--vx-border-subtle);
+}
+
+.slot[data-lado="fim"] {
+  border-inline-start: 1px solid var(--vx-border-subtle);
+}
+
+/* Fundo por PAINEL, não por posição: é identidade do painel, e viaja
+   com ele quando o usuário o move. */
+.slot[data-painel="rail"] {
+  background: var(--vx-surface-0);
+}
+
+.slot[data-painel="canais"],
+.slot[data-painel="membros"] {
+  background: var(--vx-surface-1);
+}
+
+.conteudo {
+  background: var(--vx-surface-0);
+  display: grid;
+  /* cabeçalho · lista · composer.
+
+     `minmax(0, 1fr)` na linha do meio pela mesma razão da coluna: `1fr` puro é
+     `minmax(auto, 1fr)`, e `auto` respeita o min-content da lista — que numa
+     lista virtualizada é o total inteiro. Sem o `0`, o composer é empurrado
+     para fora da tela assim que o histórico cresce. */
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+/*
+  Membros some abaixo de 1000px — onde quer que ele esteja.
+
+  A regra é sobre o PAINEL e não sobre a coluna, e essa distinção nasceu
+  com a fase 4: o usuário pode ter movido membros para a outra ponta, e
+  uma regra posicional esconderia o painel errado.
+
+  Uma linha só faz o trabalho que na fase 1 precisava de duas — zerar a
+  trilha e esconder o conteúdo. Com trilha `auto`, esconder já zera.
+*/
+@media (width < 1000px) {
+  .slot[data-painel="membros"] {
+    display: none;
+  }
+}
+
+/*
+  As container queries dos painéis mudaram de lugar na fase 3.
+
+  Elas moravam aqui porque o conteúdo das colunas morava no `Shell.tsx`.
+  Agora cada painel traz a própria — o rail decide quando esconder o
+  nome, a member list decide quando virar tira de avatares — e é isso
+  que a lei nº 6 quer dizer com "sem premissa de irmão": o shell
+  fornece o container, o painel decide o que fazer com o tamanho dele.
+*/

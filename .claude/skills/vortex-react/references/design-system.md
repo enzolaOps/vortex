@@ -176,6 +176,42 @@ respiro suficiente para agrupar por autor de forma legível.
 Mensagens consecutivas do mesmo autor dentro de uma janela curta agrupam sem
 repetir avatar e nome. Isso é o que faz a lista parecer conversa em vez de log.
 
+### Três níveis de separação, e não mais
+
+Cada um **pelo menos 2× o anterior** — é o que os faz lerem como distintos em
+rolagem rápida, e é regra testável, não gosto.
+
+| Separação | Valor | Por quê |
+|---|---|---|
+| Dentro do grupo | `space-1` · 4px | Cola as linhas sem encostar |
+| Entre grupos | `space-4` · 16px | A mudança de autor precisa ser óbvia |
+| Divisor de contexto | `space-5` acima, `space-3` abaixo | Assimétrico: o divisor pertence ao que vem **depois** |
+
+⚠ **Utility fracionária não existe neste projeto.** O `@theme` faz
+`--spacing-*: initial` e define só `1..6`, então `py-0.5` **não gera CSS
+nenhum** — some sem erro. Foi assim que o ritmo de agrupamento ficou escrito no
+comentário e ausente da tela. É item de lint.
+
+### Regras que a comparação com Discord, Slack, Zulip e Signal fixou
+
+→ análise completa em `concorrentes.md` § terceira passada
+
+- **Hover custa zero de layout.** A barra de ações sobrepõe, nunca reserva
+  altura. Não é estética: hover que muda a altura da linha destrói a âncora do
+  virtualizador.
+- **Skeleton tem a geometria real da linha.** O estado de loading e a invariante
+  "linha nunca mede 0px" são a mesma peça — skeleton com altura diferente da
+  estimativa faz a lista pular na hidratação.
+- **Leitura se codifica em PESO, não em cor.** Três estados do mesmo texto —
+  apagado, normal, forte. Sobrevive a daltonismo e não acrescenta decoração.
+- **Menção é linha tingida com borda de início**, e é o único uso de
+  `--vx-accent-soft`.
+- **No máximo duas escalas de tipo dentro da linha:** corpo e metadata.
+- **Régua só em separação rara.** O divisor merece; lista de canais e de membros,
+  não — ali a separação é espaço e peso.
+- **Avatar tem escala própria.** Nunca `size-N` da escala de espaço: são
+  `--vx-avatar-sm` e `--vx-avatar-lg`, e o motivo está no comentário do token.
+
 ## As quatro invariantes de componente
 
 O layout será customizável pelo usuário (slots com docking, fase 4). Isso não se

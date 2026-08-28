@@ -1,0 +1,73 @@
+/* ============================================================
+   Deslizante
+   ------------------------------------------------------------
+   O trilho e o polegar precisam ser escritos à mão: o range
+   nativo é desenhado pelo SISTEMA, e num app dark ele chega com
+   cromo claro. Era um dos quatro controles nativos que faziam a
+   fase 4 parecer um painel de depuração.
+   ============================================================ */
+
+.deslizante {
+  inline-size: 100%;
+  min-inline-size: 0;
+  block-size: var(--vx-space-5);
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  /* Sem isto o navegador desenha o controle dele por baixo do nosso. */
+  appearance: none;
+}
+
+.deslizante::-webkit-slider-runnable-track {
+  block-size: var(--vx-space-1);
+  border-radius: var(--vx-radius-4);
+  background: var(--vx-surface-3);
+}
+
+.deslizante::-moz-range-track {
+  block-size: var(--vx-space-1);
+  border-radius: var(--vx-radius-4);
+  background: var(--vx-surface-3);
+}
+
+.deslizante::-webkit-slider-thumb {
+  appearance: none;
+  inline-size: var(--vx-space-4);
+  block-size: var(--vx-space-4);
+  /* Centraliza o polegar no trilho: (trilho − polegar) / 2. */
+  margin-block-start: calc((var(--vx-space-1) - var(--vx-space-4)) / 2);
+  border-radius: var(--vx-radius-4);
+  border: 2px solid var(--vx-surface-0);
+  background: var(--vx-accent);
+  transition:
+    scale var(--vx-duration-fast) var(--vx-ease-out),
+    background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.deslizante::-moz-range-thumb {
+  inline-size: var(--vx-space-4);
+  block-size: var(--vx-space-4);
+  border-radius: var(--vx-radius-4);
+  border: 2px solid var(--vx-surface-0);
+  background: var(--vx-accent);
+}
+
+.deslizante:hover::-webkit-slider-thumb {
+  background: var(--vx-accent-hover);
+}
+
+/* Agarrar cresce o polegar: confirma o alvo sem mover nada de layout. */
+.deslizante:active::-webkit-slider-thumb {
+  scale: 1.15;
+}
+
+.deslizante:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 4px;
+  border-radius: var(--vx-radius-2);
+}
+
+.deslizante:disabled {
+  cursor: not-allowed;
+  opacity: var(--vx-lamina-3);
+}

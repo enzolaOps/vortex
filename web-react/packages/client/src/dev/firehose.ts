@@ -13,16 +13,121 @@
 import { monotonicFactory } from "ulid";
 
 import { count, countMax } from "./stats";
-import { diagnostico, seedChannel, startAdapter } from "../sdk/adapter";
+import {
+  channelMessageIds,
+  definirUsuarioLocal,
+  estadoDaFila,
+  diagnostico,
+  prependHistory,
+  registrarServidor,
+  seedChannel,
+  semearVoz,
+  semearPresenca,
+  startAdapter,
+} from "../sdk/adapter";
+import type { PresenceStatus } from "../sdk/domain";
 import { client } from "../sdk/client";
 
 const nextId = monotonicFactory();
 
 export const CHANNEL_ID = "01JQ0000000000000000000000";
-const SERVER_ID = "01JQ0000000000000000000001";
+export const SERVER_ID = "01JQ0000000000000000000001";
 const USER_COUNT = 40;
 
 const userIds: string[] = [];
+
+/**
+ * O mundo do arnês: três servidores, com canais e membros.
+ *
+ * Um servidor só provava metade das colunas laterais. Rail com um item não
+ * exercita estado ativo nem não-lidas; e não-lidas SÓ existem em canal que
+ * não está aberto — com um canal, o contador nunca sairia de zero e a
+ * contabilidade passaria despercebida quebrada.
+ *
+ * Os IDs são fixos e legíveis de propósito: aparecem no DOM durante depuração,
+ * e ULID aleatório num arnês é ruído sem benefício.
+ */
+type Servidor = {
+  id: string;
+  nome: string;
+  canais: { id: string; nome: string; voz?: boolean; dentro?: number }[];
+  /** Quantos dos `userIds` pertencem a ele. */
+  membros: number;
+};
+
+const MUNDO: Servidor[] = [
+  {
+    id: SERVER_ID,
+    nome: "Vortex",
+    canais: [
+      { id: CHANNEL_ID, nome: "spike" },
+      { id: "01JQ0000000000000000000010", nome: "geral" },
+      { id: "01JQ0000000000000000000011", nome: "links" },
+      { id: "01JQ0000000000000000000012", nome: "voz-geral", voz: true, dentro: 2 },
+      { id: "01JQ0000000000000000000013", nome: "voz-jogos", voz: true, dentro: 3 },
+      // Sala VAZIA, e ela é o caso mais fácil de quebrar sem perceber: se o
+      // componente renderizasse um cabeçalho "ninguém aqui" por canal, cada
+      // servidor pagaria altura permanente para dizer que não há nada.
+      { id: "01JQ0000000000000000000014", nome: "voz-silencio", voz: true, dentro: 0 },
+    ],
+    membros: USER_COUNT,
+  },
+  {
+    id: "01JQ0000000000000000000002",
+    nome: "Ponte de Estado",
+    canais: [
+      { id: "01JQ0000000000000000000020", nome: "adapter" },
+      { id: "01JQ0000000000000000000021", nome: "medições" },
+    ],
+    membros: 12,
+  },
+  {
+    id: "01JQ0000000000000000000003",
+    nome: "Rascunhos",
+    canais: [{ id: "01JQ0000000000000000000030", nome: "ideias" }],
+    membros: 5,
+  },
+];
+
+/**
+ * Presença inicial variada.
+ *
+ * Todo mundo online mediria só metade da member list: os dois baldes, a
+ * ordenação dentro de cada um e as quatro silhuetas do ponto ficariam sem
+ * exercício. A distribuição é fixa por índice — arnês que sorteia produz
+ * captura de tela diferente a cada execução.
+ */
+const PRESENCAS: PresenceStatus[] = ["online", "online", "idle", "dnd", "offline"];
+
+/**
+ * Cargos do arnês.
+ *
+ * IDs no mesmo formato ULID do resto — 26 caracteres. Não é preciosismo: um ID
+ * curto aqui já produziu confusão antes, quando o ID de usuário colidiu com o
+ * de canal e só apareceu na detecção de menção.
+ */
+const CARGOS = {
+  fundacao: "01JQR0000000000000FUNDACAO",
+  moderacao: "01JQR0000000000000MODERACAO",
+  veterano: "01JQR0000000000000VETERANO0",
+} as const;
+
+/**
+ * Quem tem qual cargo.
+ *
+ * A distribuição importa mais que os números: a maioria SEM cargo, para que a
+ * seção "sem cargo" exista e se possa conferir que ela cai por último; e
+ * `veterano` cobrindo gente que também é moderação, porque o desempate entre
+ * dois cargos da mesma pessoa é justamente o que a lógica de "mais sênior"
+ * decide.
+ */
+function cargosDe(i: number): string[] {
+  const out: string[] = [];
+  if (i === 0) out.push(CARGOS.fundacao);
+  else if (i % 7 === 3) out.push(CARGOS.moderacao);
+  if (i % 5 === 2) out.push(CARGOS.veterano);
+  return out;
+}
 
 const WORDS =
   "vortex canal mensagem servidor presença digitando reação âncora scroll virtualização adapter store snapshot render frame orçamento escopo".split(
@@ -42,37 +147,238 @@ function body(seed: number): string {
   return out.join(" ");
 }
 
+/**
+ * Nomes de gente, não `user0..user39`.
+ *
+ * A member list ordena por nome e mostra iniciais no avatar — com `user0` a
+ * ordenação é trivialmente correta por acidente (prefixo comum, sufixo
+ * numérico) e as siglas são todas "U". Nomes reais exercitam o colator, a
+ * acentuação e a sigla de duas letras.
+ */
+const NOMES =
+  "Ana Bruno Camila Diego Elisa Fábio Gabriela Henrique Íris João Kátia Lucas Mariana Nuno Olívia Pedro Quirino Renata Sofia Tiago Úrsula Vitor Wanda Xavier Yara Zeca Alice Bento Clara Davi Emília Felipe Giulia Hugo Isabel Joana Kauê Laura Miguel Nina".split(
+    " ",
+  );
+
+let mundoPronto = false;
+
 function ensureWorld() {
-  client.channels.getOrCreate(CHANNEL_ID, {
-    _id: CHANNEL_ID,
-    channel_type: "TextChannel",
-    server: SERVER_ID,
-    name: "spike",
-  } as never);
+  // Idempotente: `seed()` pode ser chamado de novo pelo arnês, e recriar o
+  // mundo duplicaria membros em cada servidor.
+  if (mundoPronto) return;
+  mundoPronto = true;
 
   for (let i = 0; i < USER_COUNT; i++) {
-    const id = `01JQ00000000000000000${String(i).padStart(5, "0")}`;
+    /**
+     * Prefixo próprio para usuário.
+     *
+     * O prefixo anterior produzia, para `i === 0`, exatamente a string do
+     * `CHANNEL_ID` — 26 caracteres idênticos. Passava despercebido porque
+     * usuário e canal vivem em coleções separadas do SDK, mas deixou de ser
+     * inofensivo com a detecção de menção: `<@id>` no conteúdo passa a
+     * carregar um ID que também nomeia um canal, e qualquer depuração por
+     * busca de string no DOM mistura os dois.
+     */
+    const id = `01JQ0000000000000001${String(i).padStart(6, "0")}`;
     userIds.push(id);
+    // O primeiro é "eu". Placeholder honesto enquanto não há sessão: o
+    // composer precisa de autor, e mensagem sem autor renderiza sem cabeçalho
+    // em vez de dar erro — bug caro de enxergar.
+    if (i === 0) definirUsuarioLocal(id);
     client.users.getOrCreate(id, {
       _id: id,
-      username: `user${i}`,
+      username: NOMES[i % NOMES.length]!,
       discriminator: "0001",
       online: true,
       relationship: "None",
     } as never);
+    // O "eu" está sempre online — a própria presença nunca é ausente.
+    semearPresenca(id, i === 0 ? "online" : PRESENCAS[i % PRESENCAS.length]!);
+  }
+
+  for (const servidor of MUNDO) {
+    for (const canal of servidor.canais) {
+      // Canal de voz é TextChannel COM objeto `voice` — o protocolo não tem
+      // um `channel_type` de voz. Ver `ehCanalDeVoz` em `map.ts`.
+      client.channels.getOrCreate(canal.id, {
+        _id: canal.id,
+        channel_type: "TextChannel",
+        server: servidor.id,
+        name: canal.nome,
+        ...(canal.voz ? { voice: {} } : {}),
+      } as never);
+    }
+
+    client.servers.getOrCreate(servidor.id, {
+      _id: servidor.id,
+      owner: userIds[0],
+      name: servidor.nome,
+      channels: servidor.canais.map((c) => c.id),
+      default_permissions: 0,
+      /*
+        Cargos, e um deles NÃO é hasteado de propósito.
+
+        `hoist: false` significa "colore o nome mas não abre seção" — é a
+        distinção que o protocolo faz e que um arnês só com cargos hasteados
+        nunca exercitaria. Sem ela, um bug que tratasse todo cargo como seção
+        passaria despercebido aqui e apareceria num servidor real.
+
+        `rank` menor = mais sênior, conforme o SDK documenta.
+      */
+      roles: {
+        [CARGOS.fundacao]: {
+          name: "fundação",
+          colour: "#bcaef2",
+          hoist: true,
+          rank: 0,
+          permissions: { a: 0, d: 0 },
+        },
+        [CARGOS.moderacao]: {
+          name: "moderação",
+          colour: "#9bdcb4",
+          hoist: true,
+          rank: 1,
+          permissions: { a: 0, d: 0 },
+        },
+        [CARGOS.veterano]: {
+          name: "veterano",
+          colour: "#f0cd8d",
+          hoist: false,
+          rank: 2,
+          permissions: { a: 0, d: 0 },
+        },
+      },
+    } as never);
+
+    /*
+      Os `ServerMember`, que é onde moram apelido, cargo e castigo.
+
+      Sem isto a member list mostraria username para todo mundo e nenhum dos
+      três campos apareceria — e o pior: pareceria funcionando. O arnês precisa
+      exercitar a chave composta, senão ela é só tipo bonito.
+
+      A coleção do SDK indexa por `server + user` CONCATENADO, sem separador.
+      A nossa `ChaveDeMembro` usa `:` de propósito — é chave do domínio, não do
+      protocolo, e misturar as duas é como o resto do app perderia a fronteira.
+    */
+    const membros = userIds.slice(0, servidor.membros);
+    membros.forEach((userId, i) => {
+      client.serverMembers.getOrCreate(
+        { server: servidor.id, user: userId },
+        {
+          _id: { server: servidor.id, user: userId },
+          joined_at: new Date(0).toISOString(),
+          // Um em cada três tem apelido: o suficiente para ver a mistura de
+          // apelido e username na mesma coluna, que é o caso real.
+          ...(i % 3 === 0 ? { nickname: `${NOMES[i % NOMES.length]!}-vx` } : {}),
+          // Um em cada onze em castigo, sempre no futuro — no passado o estado
+          // é indistinguível de "sem castigo" e não exercitaria nada.
+          ...(i % 11 === 5
+            ? { timeout: new Date(Date.now() + 36e5).toISOString() }
+            : {}),
+          // Poucos com cargo, e a maioria sem — a proporção de um servidor
+          // real. Uma lista onde todo mundo tem cargo não mostra se a seção
+          // "sem cargo" cai no lugar certo, que é o último.
+          roles: cargosDe(i),
+        },
+      );
+    });
+
+    /*
+      Gente DENTRO dos canais de voz, desde a semeadura.
+
+      É o ponto inteiro da sala: `Ready.voice_states` entrega os ocupantes no
+      login, antes de entrar em canal nenhum. Semear só quando alguém "entra"
+      exercitaria o caminho de evento e deixaria de fora justamente o que
+      diferencia sala de chamada.
+
+      Um dos ocupantes com a tela ligada, para o estado não-padrão existir.
+    */
+    servidor.canais
+      .filter((c) => c.voz)
+      .forEach((canal, n) => {
+        // Fatias disjuntas: ninguém em duas salas ao mesmo tempo, que é o que
+        // o protocolo garante e o que a coluna assume.
+        const dentro = membros.slice(n * 4, n * 4 + (canal.dentro ?? 0));
+        semearVoz(
+          canal.id,
+          dentro.map((userId, k) => ({
+            userId,
+            // Fixo, não `Date.now()`: a ordem da sala é por chegada, e um
+            // arnês com relógio real produz captura diferente a cada corrida.
+            desde: 1700000000000 + k * 60000,
+            tela: n === 0 && k === 0,
+            camera: n === 1 && k === 1,
+          })),
+        );
+      });
+
+    // Registro, não evento: é setup em massa, e o caminho de evento existe
+    // para chegada incremental. A mesma separação do `seedChannel`.
+    registrarServidor(servidor.id, membros);
   }
 }
 
-function createMessage(seed: number): string {
-  const id = nextId();
+/**
+ * Uma pessoa fala algumas vezes seguidas, depois outra assume.
+ *
+ * Trocar de autor a cada mensagem faria TODA linha abrir grupo, e o
+ * agrupamento não seria exercitado nem visto. Corridas de 1 a 5 aproximam
+ * conversa — que é a distribuição que a lista precisa aguentar.
+ */
+function autorDe(seed: number): string {
+  const bloco = Math.floor(seed / 3) + (seed % 7 === 0 ? 1 : 0);
+  return userIds[bloco % userIds.length]!;
+}
+
+/**
+ * De vez em quando, uma linha do SISTEMA em vez de fala.
+ *
+ * Uma a cada 97 — raro como no uso real, e o número é primo de propósito: com
+ * um divisor da corrida de autores (1 a 5) ou do passo de tempo, os eventos
+ * cairiam sempre na mesma posição relativa do grupo e o caso "alguém entra e
+ * fala em seguida" nunca apareceria. É exatamente o caso que a regra de
+ * agrupamento existe para cobrir.
+ *
+ * Os quatro tipos cobrem as duas formas do domínio: as estruturadas com um
+ * usuário, a estruturada com dois, e a de canal renomeado.
+ */
+function sistemaDe(seed: number, autor: string): object | undefined {
+  if (seed % 97 !== 0 || seed === 0) return undefined;
+
+  const outro = autorDe(seed + 7);
+  switch ((seed / 97) % 4) {
+    case 0:
+      return { type: "user_joined", id: autor, by: outro };
+    case 1:
+      return { type: "user_left", id: autor, by: outro };
+    case 2:
+      return { type: "user_added", id: autor, by: outro };
+    default:
+      return { type: "channel_renamed", name: "spike", by: autor };
+  }
+}
+
+function createMessage(seed: number, quando?: number): string {
+  const id = quando === undefined ? nextId() : nextId(quando);
+  const author = autorDe(seed);
+  const system = sistemaDe(seed, author);
+
   client.messages.getOrCreate(
     id,
     {
       _id: id,
       channel: CHANNEL_ID,
-      author: userIds[seed % userIds.length]!,
-      content: body(seed),
-    },
+      author,
+      // O protocolo põe o texto da linha de sistema em `system`, NÃO em
+      // `content` — e é por isso que a linha renderizava vazia antes: o
+      // componente lia `content` e encontrava string vazia.
+      content: system ? "" : body(seed),
+      ...(system ? { system } : {}),
+      // `as never` como o resto das semeaduras deste arquivo: o payload de
+      // hidratação é do PROTOCOLO, e o arnês não pode importar `stoat.js`
+      // para nomear o tipo — a fronteira proíbe, com razão.
+    } as never,
     true,
   );
   return id;
@@ -102,8 +408,15 @@ export async function seed(count: number, chunk = 250): Promise<string[]> {
   ensureWorld();
 
   const ids: string[] = [];
+
+  // Espalhado por ~5 dias, terminando agora: o passo de ~43s fica dentro da
+  // janela de 7 minutos, então quem agrupa é a corrida de autor, e as
+  // viradas de meia-noite produzem divisores de data de verdade.
+  const inicio = Date.now() - 5 * 86_400_000;
+  const passo = Math.max(1, Math.floor((5 * 86_400_000) / count));
+
   for (let i = 0; i < count; i++) {
-    ids.push(createMessage(i));
+    ids.push(createMessage(i, inicio + i * passo));
     if (i % chunk === chunk - 1) {
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
@@ -173,6 +486,77 @@ export function editarUltima() {
   // aplicou' de 'a escrita aplicou mas meu efeito não rastreia'.
   const d = diagnostico(id);
   return { id, conteudo, ...d, escritaAplicou: d.noSdk === conteudo, storeAcompanhou: d.noStore === conteudo };
+}
+
+
+/**
+ * Carrega uma pagina de historico ANTIGO.
+ *
+ * Os ids sao gerados com timestamp anterior ao do seed, para a ordem ULID
+ * bater com a posicao na lista — carregar historico com id mais novo que o
+ * que ja esta na tela mentiria sobre a ordenacao.
+ */
+export function carregarHistorico(quantas = 50): string[] {
+  const base = Date.now() - 86_400_000;
+  const antigas: string[] = [];
+
+  for (let i = quantas - 1; i >= 0; i--) {
+    const id = nextId(base + i);
+    client.messages.getOrCreate(id, {
+      _id: id,
+      channel: CHANNEL_ID,
+      author: userIds[i % userIds.length]!,
+      content: `historico ${quantas - i} — ` + body(i + 7),
+    });
+    antigas.push(id);
+  }
+
+  antigas.reverse();
+  prependHistory(CHANNEL_ID, antigas);
+  ultimaLista = antigas.concat(ultimaLista);
+  return antigas;
+}
+
+/**
+ * Manda uma mensagem para um canal que NÃO está aberto.
+ *
+ * Existe porque não-lida é, por definição, o que acontece longe dos olhos: o
+ * firehose fala sempre no canal aberto, e ali `contabilizarNaoLida` sai na
+ * primeira linha. Sem este caminho, a contabilidade inteira — contador do
+ * canal, rollup do servidor, menção, zerar ao abrir — poderia estar quebrada
+ * e o arnês passaria verde.
+ *
+ * Uma a cada três menciona o usuário local, para o badge de menção sair do
+ * zero sem que toda mensagem vire menção.
+ */
+let falas = 0;
+
+export function falarEmOutroCanal(): string | undefined {
+  const outros = MUNDO.flatMap((s) =>
+    s.canais.filter((c) => !c.voz && c.id !== CHANNEL_ID).map((c) => c.id),
+  );
+  const alvo = outros[falas % outros.length];
+  if (!alvo) return undefined;
+
+  falas++;
+  const id = nextId();
+  const mencao = falas % 3 === 0 ? `<@${userIds[0]!}> ` : "";
+  client.messages.getOrCreate(
+    id,
+    {
+      _id: id,
+      channel: alvo,
+      author: autorDe(falas),
+      content: `${mencao}${body(falas)}`,
+    },
+    true,
+  );
+  return alvo;
+}
+
+/** Quantas mensagens o índice do canal tem? `null` = nunca publicado. */
+function tamanhoDaLista(id: string): number | null {
+  return channelMessageIds.getSnapshot(id)?.length ?? null;
 }
 
 export type FirehoseMix = {
@@ -285,6 +669,7 @@ export function startFirehose(
         }
       }
     }
+    count("eventos", perTick);
     const custo = performance.now() - inicioDoTick;
     count("tickMs", custo);
     countMax("maxTickMs", custo);
@@ -298,4 +683,13 @@ export function startFirehose(
 if (import.meta.env.DEV) {
   (globalThis as never as Record<string, unknown>).__editarId = editarId;
   (globalThis as never as Record<string, unknown>).__diagnostico = diagnostico;
+  /**
+   * Sonda de coleção: o canal tem índice? quantas mensagens?
+   *
+   * Existe porque a pergunta "a lista está vazia porque a mensagem não entrou
+   * no índice, ou porque o componente não leu?" não tem resposta pelo DOM — os
+   * dois casos renderizam a mesma coisa: nada.
+   */
+  (globalThis as never as Record<string, unknown>).__fila = estadoDaFila;
+  (globalThis as never as Record<string, unknown>).__lista = tamanhoDaLista;
 }

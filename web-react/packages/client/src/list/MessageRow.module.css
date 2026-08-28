@@ -1,0 +1,18 @@
+/*
+  A calha do avatar da linha de mensagem.
+
+  Em CSS Module, e não como utility, porque avatar tem ESCALA PRÓPRIA — não a
+  de espaçamento. O `size-5` que estava aqui resolvia para `--vx-space-5` e
+  dava 24px por coincidência de valor com `--vx-avatar-sm`; o comentário do
+  próprio token diz por que a coincidência não pode virar acoplamento:
+  "mexer no respiro da lista mudaria o tamanho da foto de todo mundo".
+
+  Uma utility `size-avatar-sm` exigiria enfiar o avatar dentro do namespace
+  `--spacing-*` do Tailwind, que é exatamente o acoplamento que se quer
+  evitar. Mesmo caminho já seguido por `ListaDeMembros.module.css`.
+*/
+.calha {
+  inline-size: var(--vx-avatar-sm);
+  block-size: var(--vx-avatar-sm);
+  flex: none;
+}

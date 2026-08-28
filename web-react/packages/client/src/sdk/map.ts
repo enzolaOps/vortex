@@ -4,9 +4,28 @@
  * Tudo o que o resto do app enxerga passa por aqui. Derivação acontece nesta
  * escrita — uma vez, quando a entidade muda — e nunca no `getSnapshot`.
  */
-import type { Message } from "stoat.js";
+import type {
+  Channel,
+  ChannelRenamedSystemMessage,
+  Message,
+  Server,
+  ServerMember,
+  TextSystemMessage,
+  User,
+  UserModeratedSystemMessage,
+  UserSystemMessage,
+} from "stoat.js";
 
-import type { MessageSnapshot, PresenceStatus } from "./domain";
+import type { Layout } from "./agrupamento";
+import type {
+  ChannelSnapshot,
+  MemberSnapshot,
+  MessageSnapshot,
+  PresenceStatus,
+  SendState,
+  ServerSnapshot,
+  SistemaSnapshot,
+} from "./domain";
 
 /**
  * `reactions` chega como ReactiveMap<emoji, ReactiveSet<userId>>. Achatar aqui
@@ -28,7 +47,79 @@ const HORA = new Intl.DateTimeFormat("pt-BR", {
   second: "2-digit",
 });
 
-export function toMessageSnapshot(message: Message): MessageSnapshot {
+/**
+ * Tipos do protocolo que este cliente ainda não estrutura.
+ *
+ * Rotulados em português aqui, e não deixados vazar como `"message_pinned"`:
+ * string de protocolo na interface é vazamento da forma do Stoat para dentro
+ * do produto, que é exatamente o que esta camada existe para impedir.
+ */
+const ROTULO_BRUTO: Record<string, string> = {
+  channel_description_changed: "mudou a descrição do canal",
+  channel_icon_changed: "mudou o ícone do canal",
+  channel_ownership_changed: "transferiu o canal",
+  message_pinned: "fixou uma mensagem",
+  message_unpinned: "desafixou uma mensagem",
+  call_started: "iniciou uma chamada",
+};
+
+/**
+ * SDK → domínio, para linha de sistema.
+ *
+ * As cinco estruturadas cobrem o que um servidor produz o dia inteiro. O resto
+ * cai em `texto`, com rótulo em português — e o `type` cru no fim é a última
+ * defesa, para um tipo novo do upstream aparecer como algo em vez de nada.
+ */
+function toSistema(message: Message): SistemaSnapshot | undefined {
+  const sm = message.systemMessage;
+  if (!sm) return undefined;
+
+  switch (sm.type) {
+    case "user_joined":
+      return { tipo: "entrou", userId: (sm as UserSystemMessage).userId };
+    case "user_left":
+      return { tipo: "saiu", userId: (sm as UserSystemMessage).userId };
+    case "user_added":
+      return {
+        tipo: "adicionou",
+        userId: (sm as UserModeratedSystemMessage).userId,
+        porId: (sm as UserModeratedSystemMessage).byId,
+      };
+    case "user_remove":
+      return {
+        tipo: "removeu",
+        userId: (sm as UserModeratedSystemMessage).userId,
+        porId: (sm as UserModeratedSystemMessage).byId,
+      };
+    case "channel_renamed":
+      return {
+        tipo: "renomeou",
+        porId: (sm as ChannelRenamedSystemMessage).byId,
+        nome: (sm as ChannelRenamedSystemMessage).name,
+      };
+    case "text":
+      return { tipo: "texto", texto: (sm as TextSystemMessage).content };
+    default:
+      return {
+        tipo: "texto",
+        texto: ROTULO_BRUTO[sm.type] ?? "evento do sistema",
+      };
+  }
+}
+
+/**
+ * O layout e o estado de envio entram por parâmetro, não são calculados aqui.
+ *
+ * Este módulo traduz UMA entidade e não conhece vizinho nem histórico de
+ * envio — quem sabe a ordem da lista e o que já chegou no servidor é o
+ * adapter. Passar os dois de fora mantém a tradução pura e deixa as únicas
+ * partes que dependem de contexto num lugar só.
+ */
+export function toMessageSnapshot(
+  message: Message,
+  layout: Layout,
+  sendState: SendState,
+): MessageSnapshot {
   return {
     id: message.id,
     channelId: message.channelId,
@@ -37,10 +128,14 @@ export function toMessageSnapshot(message: Message): MessageSnapshot {
     createdAt: message.createdAt.getTime(),
     createdAtText: HORA.format(message.createdAt),
     editedAt: message.editedAt?.getTime(),
+    sistema: toSistema(message),
     reactions: flattenReactions(message),
-    // O protocolo não carrega isto. Default no adapter — é a camada
-    // anticorrupção fazendo o trabalho para o qual existe.
-    sendState: "sent",
+    // O protocolo não carrega isto: quem mantém é o adapter, e mensagem que
+    // veio do servidor nasce "sent". É a camada anticorrupção fazendo o
+    // trabalho para o qual existe.
+    sendState,
+    iniciaGrupo: layout.iniciaGrupo,
+    dia: layout.dia,
   };
 }
 
@@ -55,4 +150,117 @@ const PRESENCE: Record<string, PresenceStatus> = {
 
 export function toPresence(raw: string | null | undefined): PresenceStatus {
   return (raw && PRESENCE[raw]) || "offline";
+}
+
+/* ------------------------------------------------------- colunas laterais */
+
+/**
+ * Iniciais para o avatar sem imagem.
+ *
+ * Uma letra por palavra, no máximo duas. `Intl.Segmenter` seria o correto para
+ * emoji e escrita complexa; `[...nome]` já resolve par substituto, que é o caso
+ * que quebra `charAt` em nome com emoji.
+ */
+function sigla(nome: string): string {
+  const partes = nome.trim().split(/[\s_.-]+/).filter(Boolean);
+  const letras = partes.slice(0, 2).map((parte) => [...parte][0] ?? "");
+  return letras.join("").toUpperCase() || "?";
+}
+
+/**
+ * As contagens entram por parâmetro pelo mesmo motivo de `sendState`: elas não
+ * existem no protocolo, quem as mantém é o adapter, e este módulo traduz uma
+ * entidade sem saber o que aconteceu antes dela.
+ */
+export function toServerSnapshot(
+  server: Server,
+  naoLidas: number,
+  mencoes: number,
+): ServerSnapshot {
+  return {
+    id: server.id,
+    name: server.name,
+    sigla: sigla(server.name),
+    naoLidas,
+    mencoes,
+  };
+}
+
+/**
+ * Canal de voz.
+ *
+ * O protocolo NÃO tem `channel_type: "VoiceChannel"` — a união é
+ * `SavedMessages | DirectMessage | Group | TextChannel`. Canal de voz é um
+ * TextChannel que carrega um objeto `voice` ("voice chats v2"), e é isso que
+ * `isVoice` detecta.
+ *
+ * Descoberto verificando em navegador: o arnês criava `"VoiceChannel"`, a
+ * hidratação aceitava calada (o campo entra como string qualquer) e o canal
+ * aparecia entre os de texto. Nenhum erro, nenhum aviso — só a seção errada.
+ *
+ * A restrição a DM e Grupo é deliberada: para eles `isVoice` é `true` no
+ * sentido de "pode ter chamada", não de "é um canal de voz". O snapshot é do
+ * domínio e vale em toda parte, então a diferença fica explícita aqui em vez
+ * de virar surpresa na primeira tela de DMs.
+ */
+export function ehCanalDeVoz(channel: Channel): boolean {
+  return (
+    channel.isVoice &&
+    channel.type !== "DirectMessage" &&
+    channel.type !== "Group"
+  );
+}
+
+export function toChannelSnapshot(
+  channel: Channel,
+  naoLidas: number,
+  mencoes: number,
+): ChannelSnapshot {
+  return {
+    id: channel.id,
+    // `serverId` é string no SDK mesmo para canal de DM, onde vem vazia. O
+    // domínio prefere `undefined` — "não pertence a servidor" é ausência, não
+    // string vazia, e é o que impede um `if (serverId)` errado lá na frente.
+    serverId: channel.serverId || undefined,
+    name: channel.name,
+    tipo: ehCanalDeVoz(channel) ? "voz" : "texto",
+    naoLidas,
+    mencoes,
+  };
+}
+
+/**
+ * O apelido do servidor ganha do username — é o nome que a pessoa escolheu
+ * naquele lugar.
+ *
+ * O `ServerMember` entra por parâmetro, e não é buscado aqui, porque este
+ * módulo traduz uma entidade de cada vez: quem sabe de qual servidor se fala é
+ * o adapter, que é dono da chave composta.
+ *
+ * `membro` é opcional porque nem todo usuário renderizado é membro de servidor
+ * — autor de DM não é. Sem ele, cai no username e em nenhum cargo, que é a
+ * resposta certa e não um estado degradado.
+ */
+export function toMemberSnapshot(
+  user: User,
+  membro: ServerMember | undefined,
+): MemberSnapshot {
+  const displayName = membro?.nickname || user.username;
+
+  // `roleColour` pode vir `null` do protocolo — sem cargo colorido. `null` e
+  // `undefined` significam a mesma coisa para o domínio, e carregar os dois
+  // faria todo consumidor testar duas ausências diferentes.
+  const cor = membro?.roleColour ?? undefined;
+
+  // `getTime()` aqui, e não o `Date`: o snapshot precisa ser comparável por
+  // valor. Guardar o objeto faria toda republicação parecer mudança.
+  const silenciadoAte = membro?.timeout?.getTime();
+
+  return {
+    id: user.id,
+    displayName,
+    sigla: sigla(displayName),
+    cor,
+    silenciadoAte,
+  };
 }
