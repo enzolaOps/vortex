@@ -117,7 +117,7 @@ export type Preset = {
  * Limites de largura por slot, em px.
  *
  * Não é escala de espaçamento: é geometria de layout, da mesma família de
- * `--vx-rail-w` e `--vx-message-max-w`. O mínimo existe para que um slot
+ * `--vx-rail-w` e `--vx-medida`. O mínimo existe para que um slot
  * arrastado até quase zero não vire uma tira inútil que ninguém consegue mais
  * agarrar — abaixo dele a intenção é esconder, e esconder tem controle
  * próprio.

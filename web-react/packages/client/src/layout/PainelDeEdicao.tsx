@@ -19,8 +19,20 @@ import {
   type SlotId,
 } from "../preset/schema";
 import { iniciarArraste, terminarArraste } from "../store/arraste";
-import { assinarEdicao, lerEdicao, sair, temMudanca } from "../store/edicao";
-import { assinarLayout, definirSlot, lerLayout } from "../store/layout";
+import {
+  assinarEdicao,
+  lerEdicao,
+  reaplicarRetrato,
+  sair,
+  temMudanca,
+} from "../store/edicao";
+import { toast } from "../components/ui/Toast";
+import {
+  assinarLayout,
+  definirSlot,
+  lerBruto,
+  lerLayout,
+} from "../store/layout";
 import { PickerDePaleta } from "./PickerDePaleta";
 import css from "./PainelDeEdicao.module.css";
 
@@ -73,6 +85,34 @@ export function PainelDeEdicao() {
   const layout = useSyncExternalStore(assinarLayout, lerLayout);
 
   /**
+   * Descartar, com saída.
+   *
+   * Um caminho só para o botão e para o Esc — a versão anterior tinha dois
+   * `sair(false)` soltos, e só um deles teria ganhado o desfazer. Dois donos da
+   * mesma decisão é como o comportamento diverge sem ninguém notar.
+   *
+   * O retrato é lido ANTES de sair, porque `sair` o joga fora; e o estado
+   * atual é capturado ANTES também, porque é ele que o desfazer reaplica.
+   */
+  function descartar() {
+    const havia = temMudanca(lerLayout(), lerBruto());
+    const atual = havia ? { preset: lerLayout(), bruto: lerBruto() } : null;
+    sair(false);
+    if (atual === null) return;
+    toast({
+      tipo: "info",
+      titulo: "Layout descartado",
+      descricao: "Voltou ao que estava quando você abriu a edição.",
+      acao: {
+        rotulo: "desfazer",
+        descricaoAlternativa:
+          "Desfazer o descarte e voltar ao layout que você tinha montado",
+        aoAtivar: () => reaplicarRetrato(atual),
+      },
+    });
+  }
+
+  /**
    * Esc cancela. Effect é o uso certo: teclado é sistema externo.
    *
    * Só enquanto o modo está ligado — um listener global permanente roubaria o
@@ -81,7 +121,7 @@ export function PainelDeEdicao() {
   useEffect(() => {
     if (!editando) return;
     const aoTeclar = (e: KeyboardEvent) => {
-      if (e.key === "Escape") sair(false);
+      if (e.key === "Escape") descartar();
     };
     window.addEventListener("keydown", aoTeclar);
     return () => window.removeEventListener("keydown", aoTeclar);
@@ -105,7 +145,7 @@ export function PainelDeEdicao() {
       <header className={css.cabecalho}>
         <h2 className={css.titulo}>Editar layout</h2>
         <span className={css.dica}>
-          arraste as bordas · setas ajustam · Esc cancela
+          arraste as bordas · setas ajustam · Esc descarta
         </span>
       </header>
 
@@ -181,8 +221,17 @@ export function PainelDeEdicao() {
               <Botao
                 variante="sutil"
                 disabled={slot.painel === null}
+                /*
+                  Nome ESTÁVEL, estado no `aria-pressed` — o mesmo conserto do
+                  cartão de chamada, e o mesmo defeito.
+
+                  Era `aria-label` de AÇÃO ("Esconder painel") junto de
+                  `aria-pressed` de ESTADO: com os três painéis visíveis, o
+                  leitor anunciava "Esconder painel, pressionado" nos três, que
+                  se lê como "esconder está ativo" — todos escondidos.
+                */
                 aria-pressed={slot.visivel}
-                aria-label={slot.visivel ? "Esconder painel" : "Mostrar painel"}
+                aria-label={`Mostrar painel ${ROTULO_DO_SLOT[id]}`}
                 icone={
                   slot.visivel ? (
                     <Eye size={20} aria-hidden />
@@ -229,9 +278,21 @@ export function PainelDeEdicao() {
           repor tudo
         </Botao>
 
-        {/* "Cancelar" só promete desfazer quando há o que desfazer. */}
-        <Botao variante="neutro" onClick={() => sair(false)}>
-          {temMudanca() ? "cancelar" : "fechar"}
+        {/*
+          A palavra carrega a consequência, e há saída depois dela.
+
+          ⚠ Era "cancelar"/"fechar", e "cancelar" ainda é ambíguo ao lado de
+          "concluir": os dois podem ser lidos como "terminei". Quem passou dois
+          minutos ajustando matiz e larguras perdia tudo num clique de aparência
+          inofensiva — e a explicação de que sair desfaz mora em `/config/
+          aparencia`, outra tela.
+
+          Confirmação antes seria pior: ela cobra de todo mundo, sempre, para
+          proteger o arrependimento raro. O desfazer cobra só de quem errou. O
+          retrato já existia — faltava oferecê-lo.
+        */}
+        <Botao variante="neutro" onClick={descartar}>
+          {temMudanca(layout, lerBruto()) ? "descartar" : "fechar"}
         </Botao>
 
         <Botao variante="primario" onClick={() => sair(true)}>

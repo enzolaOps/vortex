@@ -1,0 +1,113 @@
+/* ============================================================
+   Uma seção de configurações
+   ------------------------------------------------------------
+   Compartilhado pelas sete. Uma folha só porque a geometria é a
+   mesma em todas — formulário estreito, blocos separados por
+   régua, lista de linhas com ação no fim. Sete folhas quase
+   iguais divergiriam na primeira que alguém mexesse.
+   ============================================================ */
+
+.forma {
+  display: grid;
+  gap: var(--vx-space-5);
+  /*
+    A medida de leitura, e não a largura da coluna.
+
+    Configuração é texto de instrução e campo de formulário: os dois viram
+    ilegíveis esticados. É a mesma razão de `--vx-medida` existir na linha de
+    mensagem, aplicada a uma superfície que também é lida.
+  */
+  max-inline-size: var(--vx-medida);
+}
+
+.bloco {
+  display: grid;
+  gap: var(--vx-space-3);
+}
+
+.subtitulo {
+  margin: 0;
+  font-size: var(--vx-size-lg);
+  font-weight: 600;
+  line-height: var(--vx-leading-title);
+  color: var(--vx-text-1);
+}
+
+/*
+  O texto que explica o bloco.
+
+  Ele diz o que ACONTECE, não o que o campo é — "trocar exige a senha" vale
+  mais que "campo de nome de usuário". Instrução que repete o rótulo é ruído.
+*/
+.recado {
+  margin: 0;
+  font-size: var(--vx-size-md);
+  line-height: var(--vx-leading-message);
+  color: var(--vx-text-2);
+}
+
+/*
+  A régua entre blocos.
+
+  O sistema de design reserva régua para separação RARA, e aqui ela é isso:
+  separa operações INDEPENDENTES, cada uma com o próprio botão e o próprio
+  jeito de falhar. Entre campos do mesmo formulário a separação é espaço.
+*/
+.divisor {
+  margin: 0;
+  border: 0;
+  border-block-start: 1px solid var(--vx-border-subtle);
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-2);
+}
+
+/* --- listas de linhas (dispositivos, convites, banimentos) ----- */
+
+.lista {
+  display: grid;
+  gap: var(--vx-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.linha {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+  min-inline-size: 0;
+  padding-inline: var(--vx-space-3);
+  padding-block: var(--vx-space-2);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-2);
+  background: var(--vx-surface-1);
+}
+
+.texto {
+  display: grid;
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+.nome {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-md);
+  font-weight: 500;
+}
+
+.detalhe {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+}
