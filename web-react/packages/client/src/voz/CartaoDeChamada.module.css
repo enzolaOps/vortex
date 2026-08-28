@@ -100,28 +100,6 @@
   min-inline-size: 0;
 }
 
-.avatar {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  inline-size: var(--vx-avatar-sm);
-  block-size: var(--vx-avatar-sm);
-  border-radius: var(--vx-radius-4);
-  background: var(--vx-surface-3);
-  color: var(--vx-text-2);
-  font-size: var(--vx-size-xs);
-  font-weight: 600;
-  /*
-    O anel de fala.
-
-    `box-shadow` e não `border`: borda mudaria a caixa e faria a linha inteira
-    pular a cada sílaba — que é a mesma razão pela qual a barra de ações da
-    mensagem sobrepõe em vez de reservar espaço. Aqui o custo seria pior:
-    o evento chega dezenas de vezes por segundo.
-  */
-  box-shadow: 0 0 0 0 transparent;
-  transition: box-shadow var(--vx-duration-fast) var(--vx-ease-out);
-}
 
 .pessoa[data-falando="true"] .avatar {
   box-shadow: 0 0 0 2px var(--vx-accent);

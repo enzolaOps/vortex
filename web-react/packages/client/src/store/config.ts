@@ -37,6 +37,27 @@ export const SECOES = [
 
 export type SecaoId = (typeof SECOES)[number];
 
+/**
+ * O nome de cada seção, e ele mora AQUI e não na tela.
+ *
+ * A casca de configurações tinha a lista para si. Com a porta do servidor
+ * abrindo as mesmas seções por fora, duas listas passariam a precisar
+ * concordar — e a que diverge é sempre a que ninguém abriu naquela semana.
+ * `Record<SecaoId, string>` mantém a exaustividade: seção nova não compila até
+ * ganhar nome.
+ */
+export const NOME_DA_SECAO: Record<SecaoId, string> = {
+  perfil: "Perfil",
+  conta: "Conta",
+  sessoes: "Dispositivos",
+  aparencia: "Aparência",
+  servidor: "Visão geral",
+  cargos: "Cargos",
+  convites: "Convites",
+  banimentos: "Banimentos",
+  emojis: "Emojis",
+};
+
 /** As que falam de um servidor, e por isso precisam de um. */
 export const DE_SERVIDOR: readonly SecaoId[] = [
   "servidor",

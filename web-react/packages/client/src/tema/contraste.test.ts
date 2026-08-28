@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import { TOKENS_DE_TEMA, type TokenName } from "../preset/tokens";
-import { PARES, verificar } from "./pares";
+import { dispensado, EXCECOES, PARES, verificar } from "./pares";
 
 /**
  * O contraste do `tokens.css`. Era `scripts/contrast.mjs`.
@@ -60,11 +60,34 @@ describe("contraste dos tokens", () => {
     it(`${nome}: ${PARES.length} pares dentro do mínimo`, () => {
       const v = verificar(tema(seletor));
 
+      /*
+        Falha FORA da lista de exceções reprova, como sempre reprovou.
+
+        A lista existe porque a paleta do design viola o mínimo em alguns pares
+        e a decisão foi seguir o design exatamente. O que ela não pode virar é
+        um cheque em branco: tudo o que não está enumerado continua guardado.
+      */
       const detalhe = v.falhas
+        .filter((f) => !dispensado(f.par, nome))
         .map((f) => `${f.par.fg} sobre ${f.par.bg} = ${f.razao.toFixed(2)}:1 (mín ${f.par.min})`)
         .join("\n");
 
       expect(detalhe).toBe("");
+
+      /*
+        E a direção contrária, que é a que impede a lista de virar depósito.
+
+        Exceção que PAROU de falhar mente sobre uma decisão que ninguém tomou
+        mais — e a próxima pessoa lê "o design viola aqui" sobre um par que já
+        está em ordem. É o mesmo par de asserções de `SEM_PAR`, pela mesma
+        razão: o default de uma decisão esquecida tem de ser "pare".
+      */
+      const falhando = new Set(v.falhas.map((f) => `${f.par.fg}|${f.par.bg}`));
+      const obsoletas = EXCECOES.filter(
+        (e) => e.modo === nome && !falhando.has(`${e.fg}|${e.bg}`),
+      ).map((e) => `${e.fg} sobre ${e.bg}`);
+
+      expect(obsoletas, `${nome}: exceção que já passa`).toEqual([]);
 
       /**
        * O par mais apertado, sempre impresso.
@@ -75,8 +98,10 @@ describe("contraste dos tokens", () => {
        * por sorte. Um verificador que só diz "passou" esconde o quanto passou
        * raspando, e é aí que mora a próxima quebra.
        */
+      const dispensadas = EXCECOES.filter((e) => e.modo === nome).length;
       process.stdout.write(
-        `  ${nome}: ${PARES.length}/${PARES.length} ok — mais apertado ` +
+        `  ${nome}: ${PARES.length - dispensadas}/${PARES.length} ok, ` +
+          `${dispensadas} dispensados pelo design — mais apertado ` +
           `${v.maisApertado?.par.fg} sobre ${v.maisApertado?.par.bg} = ` +
           `${v.maisApertado?.razao.toFixed(2)}:1 (mín ${v.maisApertado?.par.min})
 `,

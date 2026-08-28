@@ -92,8 +92,14 @@
     color var(--vx-duration-fast) var(--vx-ease-out);
 }
 
+/*
+  ⚠ O hover NÃO pinta mais o fundo do item.
+
+  O ladrilho agora é preenchido, e um retângulo cinza atrás de um ladrilho
+  colorido de cantos arredondados lia como moldura solta. O design não tem
+  fundo de item no rail — quem responde ao ponteiro é o ladrilho.
+*/
 .item:hover {
-  background: var(--vx-surface-2);
   color: var(--vx-text-1);
 }
 
@@ -115,45 +121,140 @@
 }
 
 .item[aria-current="true"] {
-  background: var(--vx-accent-soft);
   color: var(--vx-text-1);
 }
 
-/*
-  A lâmina do estado ativo mora na borda de INÍCIO, não à esquerda.
+/* ============================================================
+   A barra de estado — o indicador do design
+   ------------------------------------------------------------
+   ⚠ Substituiu a lâmina. Ela era a assinatura da identidade
+   anterior (três espirais com opacidade escalonada, tiradas da
+   marca); a nova marca estado com uma barra sólida na borda de
+   início. Mesmo mecanismo, forma diferente.
 
-  É a diferença entre um rail que sobrevive à fase 4 e um que precisa ser
-  reescrito no dia em que o usuário arrastar a coluna para o outro lado.
+   `inset-inline-start` e não `left`: o rail continua sem saber
+   de que lado da tela ele está.
+   ============================================================ */
 
-  A forma vem da marca — ver `components/ui/Lamina`. A pílula reta que
-  estava aqui é o indicador de todo cliente de chat que existe, e não é
-  de ninguém.
-*/
-.lamina {
+.barra {
+  position: absolute;
   inset-inline-start: calc(var(--vx-space-2) * -1);
-  color: var(--vx-accent);
+  inline-size: var(--vx-lamina-w);
+  /* Cantos só do lado de fora: a barra nasce colada na borda do painel. */
+  border-start-end-radius: var(--vx-lamina-w);
+  border-end-end-radius: var(--vx-lamina-w);
+  background: var(--vx-text-1);
+  transition:
+    block-size var(--vx-duration-fast) var(--vx-ease-out),
+    opacity var(--vx-duration-fast) var(--vx-ease-out);
 }
+
+/* Repouso: não existe. `opacity` e não `display` — a caixa fica, então
+   acender e apagar não reflui a coluna. */
+.barra[data-estado="repouso"] {
+  block-size: var(--vx-space-2);
+  opacity: 0;
+}
+
+/* Não lido: um traço curto. O design usa um ponto; a barra curta diz a
+   mesma coisa e reusa a mesma peça, em vez de somar uma segunda forma. */
+.barra[data-estado="atencao"] {
+  block-size: var(--vx-space-2);
+  opacity: 1;
+}
+
+/* Ativo: a barra alta. */
+.barra[data-estado="ativa"] {
+  block-size: var(--vx-space-6);
+  opacity: 1;
+}
+
+/* ============================================================
+   O divisor entre conversas e servidores
+   ============================================================ */
+
+.divisor {
+  flex: none;
+  align-self: center;
+  inline-size: var(--vx-space-5);
+  block-size: 1px;
+  background: var(--vx-border-subtle);
+}
+
+/* ============================================================
+   O ladrilho
+   ------------------------------------------------------------
+   ⚠ **PREENCHIDO com gradiente, e era o que mais destoava.** Um
+   quadrado cinza com duas iniciais é igual para todo servidor;
+   o design dá a cada um o seu. O gradiente vem do ID (ver
+   `lib/gradiente.ts`) e chega por `style` inline, porque é
+   valor de DADO — a mesma regra da cor de cargo.
+
+   44px é o tamanho do design. `--vx-avatar-md` (40) era o
+   anterior e ficava pequeno demais para a sigla em 700.
+
+   O raio de 14px do design não está na escala e não entra: 12
+   (`--vx-radius-4`) é o degrau mais próximo, e é o que a própria
+   Foundations do design lista. Diferença de 2px num ladrilho de
+   44 não é perceptível; um degrau fora da escala é.
+   ============================================================ */
 
 .marca {
   position: relative;
   display: grid;
   place-items: center;
   flex: none;
-  inline-size: var(--vx-avatar-lg);
-  block-size: var(--vx-avatar-lg);
-  border-radius: var(--vx-radius-3);
-  background: var(--vx-surface-3);
+  inline-size: 44px;
+  block-size: 44px;
+  border-radius: var(--vx-radius-4);
   color: var(--vx-text-2);
-  font-size: var(--vx-size-sm);
-  font-weight: 500;
+  font-size: var(--vx-size-lg);
+  font-weight: 700;
   /* Sigla é o fallback do ícone; números tabulares não ajudam aqui, mas
      ligadura em iniciais como "fi" viraria glifo único. */
   font-variant-ligatures: none;
+  transition: box-shadow var(--vx-duration-fast) var(--vx-ease-out);
 }
 
+/*
+  Ladrilho sem gradiente: conversas, configurações.
+
+  Eles não têm ID de onde derivar cor, e não deveriam ter — um ícone de sistema
+  colorido competiria com os servidores, que são o conteúdo desta coluna.
+*/
+.marcaNeutra {
+  background: var(--vx-surface-4);
+  color: var(--vx-text-2);
+}
+
+.item:hover .marcaNeutra {
+  color: var(--vx-text-1);
+}
+
+/*
+  O `+` é tracejado — do design, e a escolha é boa: borda tracejada é a
+  convenção de "aqui cabe mais um", e distingue o alvo de criação dos
+  ladrilhos que representam coisas que já existem.
+*/
+.marcaAdicionar {
+  border: 1px dashed var(--vx-border-strong);
+  color: var(--vx-text-3);
+}
+
+.item:hover .marcaAdicionar {
+  border-color: var(--vx-accent);
+  color: var(--vx-accent-text);
+}
+
+/*
+  O anel do servidor ATIVO.
+
+  `box-shadow` e não `border`: borda entraria na caixa e encolheria o ladrilho
+  em 2px ao ficar ativo, fazendo a coluna inteira tremer a cada troca de
+  servidor. Sombra não ocupa espaço.
+*/
 .item[aria-current="true"] .marca {
-  background: var(--vx-accent);
-  color: var(--vx-on-accent);
+  box-shadow: 0 0 0 2px var(--vx-state-selected);
 }
 
 .nome {
@@ -204,13 +305,22 @@
   text-align: center;
 }
 
-/* Com o rail estreito o contador não cabe ao lado: vira selo sobre a marca. */
+/*
+  Com o rail estreito o contador vira selo sobre o ladrilho — no canto
+  INFERIOR, como no design.
+
+  Inferior e não superior: a barra de estado vive na borda de início e a
+  contagem no fim oposto, o que evita os dois indicadores disputarem o mesmo
+  canto. A borda na cor do rail é o que separa o selo do gradiente por baixo
+  sem depender de contraste entre eles.
+*/
 @container (inline-size < 140px) {
   .contador {
     position: absolute;
     inset-inline-end: 0;
-    inset-block-start: 0;
-    translate: 25% -25%;
+    inset-block-end: 0;
+    translate: 25% 25%;
+    border: 2px solid var(--vx-surface-0);
   }
 }
 
@@ -238,8 +348,8 @@
   como falha de layout. Camada de superfície é o mecanismo de
   profundidade deste projeto, e aqui ela também é o de pressão.
 */
-.item:active {
-  background: var(--vx-surface-3);
+.item:active .marca {
+  scale: 0.94;
 }
 
 /*
@@ -252,4 +362,145 @@
 */
 .item:focus-visible {
   outline-offset: -2px;
+}
+
+/*
+  O ladrilho do rodapé é MENOR — 36px contra 44.
+
+  É do design, e a diferença de tamanho é o que diz que ele não pertence à
+  mesma família: os de 44 são lugares para onde se vai, este é uma ação sobre
+  o próprio cliente. Régua acima dele reforça a mesma leitura.
+*/
+.marcaRodape {
+  inline-size: var(--vx-space-6);
+  block-size: var(--vx-space-6);
+  border-radius: var(--vx-radius-3);
+  background: var(--vx-surface-2);
+  color: var(--vx-text-3);
+}
+
+.item:hover .marcaRodape {
+  color: var(--vx-text-1);
+}
+
+/* ============================================================
+   Pasta do rail
+   ------------------------------------------------------------
+   Caixa tingida de acento com os ladrilhos dentro e o nome
+   embaixo — é o design.
+
+   ⚠ Pasta é conceito de CLIENTE: o protocolo não a tem. Ver
+   `store/pastas.ts`.
+   ============================================================ */
+
+.pasta {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--vx-space-1);
+  padding: var(--vx-space-1);
+  border-radius: var(--vx-radius-4);
+  background: var(--vx-state-selected);
+}
+
+/*
+  A alça é o alvo de colapsar — e o de abrir o menu da pasta.
+
+  Pequena de propósito: ela divide a coluna de 72px com os ladrilhos de 44, e
+  um alvo do mesmo tamanho competiria com eles pela atenção. Quem procura a
+  pasta procura o grupo, não o botão.
+*/
+.alcaDaPasta {
+  display: grid;
+  place-items: center;
+  inline-size: var(--vx-space-5);
+  block-size: var(--vx-space-5);
+  border: 0;
+  border-radius: var(--vx-radius-2);
+  background: var(--vx-state-selected);
+  color: var(--vx-accent-text);
+  cursor: pointer;
+  transition: background var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.alcaDaPasta:hover {
+  background: var(--vx-accent-soft);
+}
+
+.setaDaPasta {
+  transition: rotate var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.setaDaPasta[data-aberta="false"] {
+  rotate: -90deg;
+}
+
+.conteudoDaPasta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--vx-space-1);
+}
+
+/*
+  Colapsada: os ladrilhos continuam MONTADOS e são recortados.
+
+  Desmontá-los faria a pasta perder o realce de não-lida ao fechar — e
+  não-lida escondida é exatamente o que faz alguém parar de usar pastas.
+
+  `block-size: 0` com `overflow: hidden` em vez de `display: none` pela mesma
+  razão do `visibility` nas ações de linha: o conteúdo continua existindo para
+  quem lê a árvore, e a caixa colapsa sem reflow de irmãos.
+*/
+.pasta[data-colapsada="true"] .conteudoDaPasta {
+  block-size: 0;
+  overflow: hidden;
+}
+
+/*
+  O nome, embaixo do grupo.
+
+  Minúsculo e em caixa alta — é do design, e a razão é que ele precisa caber
+  em 72px sem competir com os ladrilhos. Trunca: nome de pasta é livre, e uma
+  palavra longa esticaria o rail inteiro.
+*/
+.nomeDaPasta {
+  max-inline-size: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/*
+  Ladrilho DENTRO de pasta é menor — 40px contra 44.
+
+  É do design, e a diferença de tamanho é o que diz "estes pertencem ao grupo":
+  sem ela a caixa tingida seria a única pista, e ela é sutil demais para
+  carregar sozinha a hierarquia.
+*/
+.item[data-napasta="true"] .marca {
+  inline-size: var(--vx-avatar-md);
+  block-size: var(--vx-avatar-md);
+  font-size: var(--vx-size-md);
+}
+
+/*
+  A ponte entre `ContextMenuTrigger asChild` e o `Tooltip`.
+
+  Os dois primitivos usam `asChild`, e no mesmo elemento um sobrescreve os
+  handlers do outro — aqui o `Tooltip` é um `Root` que não renderiza DOM, então
+  os handlers do menu não pousavam em lugar nenhum e o botão direito não fazia
+  nada, sem erro. É a mesma armadilha já registrada na member list.
+
+  `display: contents` para não criar caixa: o rail é um flex, e um wrapper com
+  layout próprio mudaria o alinhamento dos ladrilhos.
+*/
+.ponte {
+  display: contents;
 }

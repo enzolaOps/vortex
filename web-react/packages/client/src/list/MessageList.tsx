@@ -68,8 +68,13 @@ const LIMIAR_DE_FIM = 80;
  * vez que este número se move por mudança de forma da linha, e as três foram
  * pegas pelo mesmo relatório — a estimativa errada não quebra nada, mas faz a
  * barra de rolagem mentir sobre o tamanho do histórico.
+ *
+ * **78 → 99**, com a remoção da medida de leitura: o arnês mede 98,7px de média
+ * agora. Este número é só o piso de quem ainda não resolveu — a estimativa que
+ * vale para linha resolvida é a por TIPO, logo abaixo —, mas ele estava 27%
+ * errado e é o que a barra de rolagem usa enquanto o histórico não chegou.
  */
-export const ALTURA_ESTIMADA = 78;
+export const ALTURA_ESTIMADA = 99;
 
 /**
  * A estimativa por TIPO de linha.
@@ -85,18 +90,28 @@ export const ALTURA_ESTIMADA = 78;
  * escrever a constante e conferir depois — é como o `estimateSize: 44`
  * sobreviveu três fases errando 34px por linha.
  *
- * Medido no arnês, com o mesmo build e a mesma janela do gate: **119,4px abre
- * grupo · 90,0px continua · 37,1px sistema**.
+ * Medido no arnês, com o mesmo build e a mesma janela do gate: **92,4px abre
+ * grupo · 59,7px continua · 37,1px sistema**.
  *
- * **Quinta vez que este número se move, e a primeira em que o detector o
- * pegou.** Os valores anteriores (92,5 · 60,6) eram de antes da medida de
- * leitura: com o texto limitado a 520px em vez da largura da coluna, ele
- * quebra em mais linhas e a linha cresce. Nada falhou — a barra de rolagem
- * apenas passou a mentir 30%, e quem contou foi o relatório do arnês.
+ * **Sexta vez que estes números se movem, e a segunda seguida por causa da
+ * largura do TEXTO — que é o que este comentário já avisava.** A medida de
+ * leitura foi removida da linha a pedido de quem usa (o texto de 520px numa
+ * trilha de 2000 lia como alinhamento quebrado), o texto voltou a ocupar a
+ * coluna, e a linha voltou a quebrar em menos linhas. Os valores caíram de
+ * volta para praticamente os de antes da medida: 119,4 → 92,4 e 90,0 → 59,7,
+ * contra os 92,5 · 60,6 originais.
  *
- * De quebra, a medida tornou estes números MAIS estáveis: enquanto a coluna
- * for mais larga que 520px, a largura do texto não muda com a janela, e a
- * altura da linha para de depender do tamanho da tela. A constante única de 78px
+ * Que eles tenham voltado ao ponto de partida é a confirmação de que o driver
+ * é mesmo a largura do texto, e não outra coisa que mudou no meio.
+ *
+ * ⚠ E o preço da remoção está aqui, em número: sem a medida, a altura da linha
+ * volta a DEPENDER DO TAMANHO DA JANELA. Enquanto havia teto de 520px, o texto
+ * tinha largura fixa em qualquer tela; agora estas três constantes descrevem a
+ * janela do gate e erram em telas muito mais estreitas ou mais largas. O que as
+ * mantém aceitáveis é o que elas servem — a barra de rolagem antes de o
+ * histórico ser visto —, e a assertion abaixo avisa quando a forma mudar.
+ *
+ * A constante única de 78px
  * superestimava a linha de continuação em quase 30% e a de sistema em mais do
  * DOBRO — e linha de sistema é a que mais aparece em servidor movimentado,
  * onde entra e sai gente o tempo todo.
@@ -117,8 +132,8 @@ export const ALTURA_ESTIMADA = 78;
  */
 const ALTURA_POR_TIPO = {
   sistema: 37,
-  abreGrupo: 119,
-  continua: 90,
+  abreGrupo: 92,
+  continua: 60,
 };
 
 /**

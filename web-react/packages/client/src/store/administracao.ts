@@ -40,6 +40,13 @@ export type Alvo =
       readonly serverId: string;
       readonly categoriaId: string;
     }
+  /*
+    Pasta do rail. `pastaId` ausente = criar, presente = renomear — a mesma
+    forma de `criarCategoria`/`renomearCategoria`, porque é o mesmo FORMULÁRIO:
+    um campo de nome. Dois alvos e um componente, como o resto desta união.
+  */
+  | { readonly tipo: "criarPasta"; readonly serverId: string }
+  | { readonly tipo: "renomearPasta"; readonly pastaId: string; readonly nome: string }
   | { readonly tipo: "convite"; readonly channelId: string }
   | { readonly tipo: "apagarMensagem"; readonly messageId: string }
   | {
@@ -108,6 +115,8 @@ const MODAL_DE: Record<
   editarCanal: "canal",
   criarCategoria: "canal",
   renomearCategoria: "canal",
+  criarPasta: "canal",
+  renomearPasta: "canal",
   apagarCanal: "exclusao",
   apagarMensagem: "exclusao",
   verImagem: "imagem",

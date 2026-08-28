@@ -1,5 +1,6 @@
 import { Hash, SpeakerHigh } from "@phosphor-icons/react";
 
+import { AcoesDoCanal } from "./AcoesDoCanal";
 import { useChannel } from "../store/hooks";
 import css from "./CabecalhoDeCanal.module.css";
 
@@ -70,6 +71,15 @@ export function CabecalhoDeCanal({ channelId }: { channelId: string }) {
           </p>
         </>
       ) : null}
+
+      {/*
+        As ações ancoram na borda FINAL da coluna, e é por isso que o cabeçalho
+        virou linha própria do shell em vez de morar dentro da prancha: numa
+        janela de 3440 a coluna de leitura trava em 1040 e centra, e ações
+        presas a ela flutuariam no meio da tela, longe de onde a mão as
+        procura.
+      */}
+      <AcoesDoCanal channelId={channelId} nome={canal.name} />
     </header>
   );
 }

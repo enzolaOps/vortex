@@ -11,9 +11,20 @@
   `--spacing-*` do Tailwind, que é exatamente o acoplamento que se quer
   evitar. Mesmo caminho já seguido por `ListaDeMembros.module.css`.
 */
+/*
+  A calha do avatar — 40px, que é o do design.
+
+  Era `--vx-avatar-sm` (32). O design usa 40 na linha de mensagem e 32 na
+  member list, e a diferença é deliberada: a timeline é a superfície de
+  LEITURA, onde a pessoa identifica quem falou de relance enquanto rola; a
+  coluna lateral é índice, onde cabem mais linhas.
+
+  A calha existe mesmo na continuação de grupo — é o que mantém o texto
+  alinhado ao longo do grupo inteiro.
+*/
 .calha {
-  inline-size: var(--vx-avatar-sm);
-  block-size: var(--vx-avatar-sm);
+  inline-size: var(--vx-avatar-md);
+  block-size: var(--vx-avatar-md);
   flex: none;
 }
 
@@ -32,14 +43,23 @@
   margin-block-start: var(--vx-space-1);
 }
 
+/*
+  ⚠ **Pílula, e era retângulo de 4px.** O design desenha `border-radius: 999px`
+  e 24px de altura; a versão anterior tinha `--vx-radius-2` e ~20px. A forma
+  importa mais aqui que na maioria dos lugares: a pílula é o que distingue um
+  chip CLICÁVEL de um rótulo, e a fileira de reações fica encostada no texto da
+  mensagem, onde nada mais é clicável.
+
+  `--vx-radius-5` é o degrau de "totalmente arredondado" da escala.
+*/
 .chip {
   display: inline-flex;
   align-items: center;
   gap: var(--vx-space-1);
+  block-size: var(--vx-space-5);
   padding-inline: var(--vx-space-2);
-  padding-block: 1px;
   border: 1px solid transparent;
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-5);
   background: var(--vx-surface-2);
   color: var(--vx-text-2);
   font-family: inherit;
@@ -60,7 +80,9 @@
 .chip[data-minha="true"] {
   border-color: var(--vx-accent);
   background: var(--vx-accent-soft);
-  color: var(--vx-text-1);
+  /* O NÚMERO em acento claro, como o design — não `text-1`. A diferença entre
+     "eu reagi" e "alguém reagiu" fica no dado, não só na moldura. */
+  color: var(--vx-accent-text);
 }
 
 .chip:active {
@@ -123,13 +145,21 @@
   padding-block-start: var(--vx-space-4);
 }
 
+/*
+  ⚠ **A régua é DANGER, não acento — e a troca é do design.**
+
+  O acento é a cor de "isto está ativo": canal aberto, servidor aberto, minha
+  reação. "Onde você parou" não é um estado ativo, é um AVISO de posição, e o
+  design o pinta de vermelho justamente para ele não se confundir com os
+  outros seis lugares onde o teal aparece.
+
+  Sem opacidade: o design a quer cheia. A régua é uma linha de 1px e não
+  compete com texto nenhum — a opacidade a apagava sem motivo.
+*/
 .novasLinha {
   flex: 1;
   block-size: 1px;
-  background: var(--vx-accent);
-  /* A opacidade da marca, não um valor inventado: a linha é presente sem
-     competir com o texto que ela introduz. */
-  opacity: var(--vx-lamina-2);
+  background: var(--vx-danger);
 }
 
 /*
@@ -139,11 +169,36 @@
   posição, e no fim da linha ela não interrompe a varredura vertical do
   olho pela coluna de texto.
 */
+/*
+  O rótulo é um BADGE, não texto solto — do design.
+
+  Preenchimento tingido em vez de cor sobre o fundo da lista: a régua já
+  atravessa a coluna, e um rótulo sem caixa no fim dela lê como continuação da
+  linha em vez de etiqueta. Caixa fecha a leitura.
+*/
 .novasRotulo {
   flex: none;
-  color: var(--vx-accent);
+  padding-inline: var(--vx-space-1);
+  border-radius: var(--vx-radius-1);
+  /*
+    Tingido de DANGER, e por `color-mix` em vez de um token novo.
+
+    Não há `--vx-danger-soft`, e criar um custaria uma entrada em `TokenName`,
+    uma classificação em `pares.ts` e um par de contraste — para um
+    preenchimento que só existe atrás deste rótulo. `color-mix` é o mesmo
+    mecanismo de `--vx-state-selected`: compõe com o que está atrás e
+    acompanha o token se ele mudar.
+
+    ⚠ Usei `--vx-accent-soft` aqui na primeira versão — teal atrás de texto
+    vermelho. Passou em todas as guardas, porque nenhuma delas sabe que as
+    duas cores deveriam ser da mesma família.
+  */
+  background: color-mix(in oklab, var(--vx-danger) 14%, transparent);
+  color: var(--vx-danger);
   font-size: var(--vx-size-xs);
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 /*
@@ -473,4 +528,68 @@
 .linha:focus-visible {
   outline: 2px solid var(--vx-accent);
   outline-offset: -2px;
+}
+
+/* ------------------------------------------------------------ fixada */
+
+/*
+  "📌 fixada" no cabeçalho da mensagem.
+
+  Metadado, não conteúdo: `text-4` e o mesmo tamanho do timestamp. O ícone é o
+  Phosphor de sempre, reduzido por `inline-size` — o set é um só e o tamanho
+  nominal também.
+
+  ⚠ Não usa acento. Fixada é um FATO sobre a mensagem, não um chamado — e a
+  disciplina de acento deste projeto tem teto de dois na tela. Uma conversa com
+  seis fixadas na janela acenderia seis.
+*/
+.fixada {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-0);
+  color: var(--vx-text-4);
+  font-size: var(--vx-size-xs);
+}
+
+.fixada svg {
+  inline-size: var(--vx-space-3);
+  block-size: var(--vx-space-3);
+}
+
+/*
+  O "＋" que abre o seletor de emoji, no fim da fileira.
+
+  Mesma altura e mesmo raio dos chips — ele pertence à fileira, não flutua
+  ao lado dela. Mais estreito porque não tem contagem: um `＋` num alvo da
+  largura de "👍 12" leria como um chip vazio.
+
+  Só aparece quando JÁ HÁ reações, que é onde o design o põe. Numa mensagem
+  sem nenhuma, o caminho é a barra de ações do hover — e um `＋` permanente
+  em dez mil linhas seria dez mil alvos a mais na coluna.
+*/
+.adicionarReacao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--vx-space-5);
+  block-size: var(--vx-space-5);
+  border: 1px solid transparent;
+  border-radius: var(--vx-radius-5);
+  background: var(--vx-surface-2);
+  color: var(--vx-text-3);
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.adicionarReacao:hover {
+  background: var(--vx-surface-3);
+  color: var(--vx-text-1);
+}
+
+.adicionarReacao svg {
+  inline-size: var(--vx-space-3);
+  block-size: var(--vx-space-3);
 }

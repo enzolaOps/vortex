@@ -47,8 +47,8 @@ export type Semente = {
 };
 
 export const SEMENTE_PADRAO: Record<Modo, Semente> = {
-  escuro: { modo: "escuro", matiz: 295, croma: 1, acento: "#bcaef2" },
-  claro: { modo: "claro", matiz: 299, croma: 1, acento: "#5b45c4" },
+  escuro: { modo: "escuro", matiz: 258, croma: 1, acento: "#35c2cc" },
+  claro: { modo: "claro", matiz: 258, croma: 1, acento: "#0e7c86" },
 };
 
 export const LIMITES_DA_SEMENTE = {
@@ -74,17 +74,20 @@ type Degrau = { l: number; c: number; dh: number };
 type Semantica = { l: number; c: number; h: number };
 
 type Rampa = {
-  readonly superficie: readonly [Degrau, Degrau, Degrau, Degrau];
-  readonly texto: readonly [Degrau, Degrau, Degrau];
+  readonly superficie: readonly [Degrau, Degrau, Degrau, Degrau, Degrau];
+  readonly texto: readonly [Degrau, Degrau, Degrau, Degrau];
   readonly bordaSutil: Degrau;
   readonly bordaForte: Degrau;
   readonly acento: Degrau;
   readonly acentoHover: Degrau;
+  readonly acentoPress: Degrau;
+  readonly acentoTexto: Degrau;
   readonly acentoSuave: Degrau;
   readonly sobreAcento: Degrau;
   readonly perigo: Semantica;
   readonly aviso: Semantica;
   readonly sucesso: Semantica;
+  readonly neutro: Degrau;
   readonly offline: Degrau;
 };
 
@@ -129,51 +132,61 @@ type Rampa = {
 const RAMPAS: Record<Modo, Rampa> = {
   escuro: {
     superficie: [
-      { l: 0.18, c: 0.013939, dh: -3.362 },
-      { l: 0.225, c: 0.017258, dh: -4.926 },
-      { l: 0.27, c: 0.020429, dh: -1.696 },
-      { l: 0.315, c: 0.023372, dh: 0.582 },
+      { l: 0.139451, c: 0.004826, dh: 4.802 },
+      { l: 0.184827, c: 0.012048, dh: -3.869 },
+      { l: 0.207604, c: 0.013453, dh: 0.368 },
+      { l: 0.242084, c: 0.017048, dh: 1.761 },
+      { l: 0.275873, c: 0.022189, dh: 4.481 },
     ],
     texto: [
-      { l: 0.940893, c: 0.010882, dh: 2.619 },
-      { l: 0.792904, c: 0.028461, dh: 2.185 },
-      { l: 0.705315, c: 0.033772, dh: 2.463 },
+      { l: 0.935727, c: 0.009173, dh: 0.336 },
+      { l: 0.747799, c: 0.021265, dh: -0.514 },
+      { l: 0.597175, c: 0.023874, dh: 1.19 },
+      { l: 0.44693, c: 0.025712, dh: 1.175 },
     ],
-    bordaSutil: { l: 0.287719, c: 0.020055, dh: -1.565 },
-    bordaForte: { l: 0.610259, c: 0.047018, dh: 0.323 },
-    acento: { l: 0.78681, c: 0.096395, dh: 0 },
-    acentoHover: { l: 0.846115, c: 0.071206, dh: 1.216 },
-    acentoSuave: { l: 0.284447, c: 0.049093, dh: -0.273 },
-    sobreAcento: { l: 0.210728, c: 0.024018, dh: 4.623 },
-    perigo: { l: 0.811323, c: 0.110353, h: 8.496 },
-    aviso: { l: 0.863762, c: 0.090457, h: 82.071 },
-    sucesso: { l: 0.839823, c: 0.086609, h: 156.952 },
-    offline: { l: 0.575265, c: 0.043215, dh: 1.473 },
+    bordaSutil: { l: 0.305, c: 0.02, dh: 1.5 },
+    bordaForte: { l: 0.561559, c: 0.025425, dh: -3.51 },
+    acento: { l: 0.746311, c: 0.115375, dh: 0 },
+    acentoHover: { l: 0.801338, c: 0.114854, dh: -0.675 },
+    acentoPress: { l: 0.612283, c: 0.096094, dh: 3.724 },
+    acentoTexto: { l: 0.856754, c: 0.095046, dh: -1.601 },
+    acentoSuave: { l: 0.28, c: 0.035, dh: 3.5 },
+    sobreAcento: { l: 0.16, c: 0.008, dh: 0 },
+    perigo: { l: 0.655027, c: 0.176981, h: 15.968 },
+    aviso: { l: 0.788215, c: 0.117607, h: 79.445 },
+    sucesso: { l: 0.748358, c: 0.146918, h: 158.512 },
+    neutro: { l: 0.565837, c: 0.02148, dh: -2.401 },
+    offline: { l: 0.565837, c: 0.02148, dh: -2.401 },
   },
   claro: {
     superficie: [
-      { l: 0.93, c: 0.012361, dh: 2.285 },
-      { l: 0.953333, c: 0.008196, dh: 2.358 },
-      { l: 0.976667, c: 0.004082, dh: 2.427 },
+      { l: 0.939683, c: 0.005795, dh: 6.532 },
+      { l: 0.966482, c: 0.004545, dh: 0.325 },
+      { l: 0.990591, c: 0.001703, dh: -10.161 },
+      { l: 1, c: 0, dh: 0 },
       { l: 1, c: 0, dh: 0 },
     ],
     texto: [
-      { l: 0.239641, c: 0.023036, dh: -2.919 },
-      { l: 0.400967, c: 0.035615, dh: -1.134 },
-      { l: 0.486767, c: 0.038825, dh: -0.7 },
+      { l: 0.203692, c: 0.011029, dh: 2.665 },
+      { l: 0.453359, c: 0.022719, dh: -2.365 },
+      { l: 0.593431, c: 0.022555, dh: -0.499 },
+      { l: 0.66, c: 0.021, dh: 1.5 },
     ],
-    bordaSutil: { l: 0.912599, c: 0.023491, dh: 0.343 },
-    bordaForte: { l: 0.58, c: 0.041331, dh: -0.28 },
-    acento: { l: 0.489427, c: 0.188565, dh: 0 },
-    acentoHover: { l: 0.43063, c: 0.180921, dh: -1.184 },
-    acentoSuave: { l: 0.933132, c: 0.030146, dh: 13.301 },
+    bordaSutil: { l: 0.905, c: 0.008, dh: 1.5 },
+    bordaForte: { l: 0.607821, c: 0.018614, dh: 1.421 },
+    acento: { l: 0.536185, c: 0.08876, dh: 0 },
+    acentoHover: { l: 0.45, c: 0.08, dh: -0.704 },
+    acentoPress: { l: 0.4, c: 0.072, dh: -0.704 },
+    acentoTexto: { l: 0.536185, c: 0.08876, dh: 0 },
+    acentoSuave: { l: 0.945, c: 0.03, dh: 3.5 },
     sobreAcento: { l: 1, c: 0, dh: 0 },
-    perigo: { l: 0.506756, c: 0.174791, h: 17.182 },
-    aviso: { l: 0.474597, c: 0.100491, h: 74.2 },
-    sucesso: { l: 0.478729, c: 0.102331, h: 156.821 },
-    offline: { l: 0.534453, c: 0.045534, dh: -3.112 },
-  },};
-
+    perigo: { l: 0.538347, c: 0.184859, h: 18.141 },
+    aviso: { l: 0.472782, c: 0.098779, h: 77.361 },
+    sucesso: { l: 0.480897, c: 0.113976, h: 154.976 },
+    neutro: { l: 0.565837, c: 0.02148, dh: -2.401 },
+    offline: { l: 0.565837, c: 0.02148, dh: -2.401 },
+  },
+};
 
 
 
@@ -186,7 +199,7 @@ const RAMPAS: Record<Modo, Rampa> = {
  * contraste deixaria de valer para alguns matizes. O valor saiu da varredura
  * de todos os matizes no teste, não de tentativa e erro na tela.
  */
-const TETO_DE_CROMA: Record<Modo, number> = { escuro: 0.11, claro: 0.19 };
+const TETO_DE_CROMA: Record<Modo, number> = { escuro: 0.12, claro: 0.19 };
 
 function neutro(degrau: Degrau, s: Semente): string {
   return oklchParaHex({
@@ -213,16 +226,20 @@ export function derivar(s: Semente): Record<TokenName, string> {
     "--vx-surface-1": neutro(r.superficie[1], s),
     "--vx-surface-2": neutro(r.superficie[2], s),
     "--vx-surface-3": neutro(r.superficie[3], s),
+    "--vx-surface-4": neutro(r.superficie[4], s),
 
     "--vx-text-1": neutro(r.texto[0], s),
     "--vx-text-2": neutro(r.texto[1], s),
     "--vx-text-3": neutro(r.texto[2], s),
+    "--vx-text-4": neutro(r.texto[3], s),
 
     "--vx-border-subtle": neutro(r.bordaSutil, s),
     "--vx-border-strong": neutro(r.bordaForte, s),
 
     "--vx-accent": daAcao(r.acento),
     "--vx-accent-hover": daAcao(r.acentoHover),
+    "--vx-accent-press": daAcao(r.acentoPress),
+    "--vx-accent-text": daAcao(r.acentoTexto),
     "--vx-accent-soft": daAcao(r.acentoSuave),
     // `on-accent` é NEUTRO, não derivado do acento: ele precisa contrastar com
     // o acento, e uma cor tirada do mesmo matiz corre atrás dele.
@@ -231,6 +248,10 @@ export function derivar(s: Semente): Record<TokenName, string> {
     "--vx-danger": semantica(r.perigo),
     "--vx-warning": semantica(r.aviso),
     "--vx-success": semantica(r.sucesso),
+    // Neutro semântico: "herdar" na matriz tri-state, mudo, offline. Cinza da
+    // família do neutro, e não um quarto matiz — ele quer dizer AUSÊNCIA de
+    // estado, e uma cor própria transformaria ausência em mais um estado.
+    "--vx-neutral": neutro(r.neutro, s),
 
     // Presença repete os semânticos de propósito: "ocupado" e "erro" são o
     // mesmo vermelho no produto, e separá-los aqui criaria duas fontes para a

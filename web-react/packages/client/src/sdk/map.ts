@@ -21,6 +21,7 @@ import type {
 import { analisar } from "../markdown/analisar";
 import type { Layout } from "./agrupamento";
 import type {
+  CanalTipo,
   ChannelSnapshot,
   MemberSnapshot,
   AnexoSnapshot,
@@ -160,6 +161,31 @@ const SEM_ANEXOS: readonly AnexoSnapshot[] = [];
  * anticorrupção — o componente não deve conhecer cinco casos para desenhar
  * três.
  */
+/**
+ * Bytes em algo que se lê.
+ *
+ * Base 1000 e não 1024: o rótulo é "KB", e é o que todo sistema operacional
+ * de mesa mostra hoje. Usar 1024 e escrever "KB" é o erro que faz um arquivo
+ * de 284.000 bytes aparecer como "277 KB" e não bater com o Finder nem com o
+ * Explorador.
+ *
+ * Uma casa decimal só abaixo de 10 — "1,4 MB" ajuda, "284,0 KB" é ruído.
+ */
+function formatarBytes(bytes: number | undefined | null): string | undefined {
+  if (bytes === undefined || bytes === null || bytes < 0) return undefined;
+  if (bytes < 1000) return `${bytes} B`;
+
+  const unidades = ["KB", "MB", "GB", "TB"] as const;
+  let valor = bytes / 1000;
+  let i = 0;
+  while (valor >= 1000 && i < unidades.length - 1) {
+    valor /= 1000;
+    i += 1;
+  }
+  const casas = valor < 10 ? 1 : 0;
+  return `${valor.toFixed(casas).replace(".", ",")} ${unidades[i]}`;
+}
+
 function toAnexos(message: Message): readonly AnexoSnapshot[] {
   const arquivos = message.attachments;
   if (!arquivos || arquivos.length === 0) return SEM_ANEXOS;
@@ -177,6 +203,7 @@ function toAnexos(message: Message): readonly AnexoSnapshot[] {
         m.type === "Image" ? "imagem" : m.type === "Video" ? "video" : "arquivo",
       largura: dimensionado ? m.width : undefined,
       altura: dimensionado ? m.height : undefined,
+      tamanhoTexto: formatarBytes(f.size),
     } as const;
   });
 }
@@ -313,12 +340,52 @@ function tipoDoCanal(channel: Channel): ChannelSnapshot["tipo"] {
   return ehCanalDeVoz(channel) ? "voz" : "texto";
 }
 
+/**
+ * Canal restrito — o cadeado do design.
+ *
+ * ⚠ **NÃO usa `potentiallyRestrictedChannel`, e a primeira versão usava.**
+ * Aquele getter responde "isto pode estar escondido de ALGUÉM", somando três
+ * perguntas: o canal nega ver, o SERVIDOR não concede ver, ou algum cargo
+ * nega. As duas últimas fazem o cadeado aparecer em canal público — medido no
+ * arnês, onde o servidor não declara `default_permissions`: **os sete canais
+ * apareceram restritos**, inclusive `#geral`.
+ *
+ * A pergunta que o cadeado responde na coluna é mais estreita: *este canal
+ * nega ver ao cargo padrão?* — ou seja, "é do time todo ou de um grupo?". É a
+ * primeira cláusula sozinha.
+ *
+ * Bit 0 do `Permission` do protocolo é `ViewChannel`; `d` é a máscara de
+ * NEGADO. `BigInt` e não `number` porque as permissões deste protocolo passam
+ * do bit 31 e os operadores bitwise do JavaScript truncam em 32 — a mesma
+ * armadilha já registrada no editor de cargos.
+ */
+const VER_CANAL = 1n;
+
+function ehRestrito(channel: Channel, tipo: CanalTipo): boolean {
+  if (tipo !== "texto" && tipo !== "voz") return false;
+  const negado = channel.defaultPermissions?.d;
+  return typeof negado === "bigint" && (negado & VER_CANAL) === VER_CANAL;
+}
+
 export function toChannelSnapshot(
   channel: Channel,
   naoLidas: number,
   mencoes: number,
   /** Quem sou eu — para achar o OUTRO lado de uma conversa direta. */
   euId: string | undefined,
+  /**
+   * O teto de gente na sala — o `8` de "3/8".
+   *
+   * ⚠ **Entra por parâmetro porque o `Channel` do SDK NÃO expõe o objeto
+   * `voice`.** Ele tem `isVoice`, que é derivado dele, e mais nada; o campo
+   * mora no objeto hidratado, atrás de uma coleção privada. A primeira versão
+   * casteou o `Channel` e leu `undefined` em silêncio — o "3/8" simplesmente
+   * não apareceu, sem erro nenhum.
+   *
+   * Quem tem a coleção é o adapter. É a mesma razão de `naoLidas` e `euId`
+   * entrarem por aqui: este módulo traduz uma entidade, não busca dados.
+   */
+  teto: number | undefined,
 ): ChannelSnapshot {
   const tipo = tipoDoCanal(channel);
 
@@ -370,6 +437,27 @@ export function toChannelSnapshot(
       regra muda numa função e o snapshot continua certo.
     */
     silenciado: channel.muted,
+    /*
+      `potentiallyRestrictedChannel` devolve `string | boolean | undefined` —
+      o `find` de cargo vaza um id quando acha. Normalizado a booleano aqui,
+      porque o domínio responde uma PERGUNTA e o id de qual cargo restringe
+      não interessa a nenhuma superfície.
+    */
+    privado: ehRestrito(channel, tipo),
+    /*
+      Só de canal de voz, e só quando há teto de verdade.
+
+      O SDK já normaliza `max_users: 0` para `undefined` na hidratação; a
+      guarda de tipo é para não expor teto em DM, onde `isVoice` é `true` por
+      outra razão (ver `ehCanalDeVoz`).
+    */
+    limite: tipo === "voz" ? teto : undefined,
+    /*
+      `slowmode` é getter público e devolve `0` quando não há — sem
+      normalização a fazer. É o raro campo do protocolo cujo nome e forma já
+      são os do domínio.
+    */
+    modoLento: channel.slowmode,
   };
 }
 
@@ -425,6 +513,15 @@ export function toMemberSnapshot(
   // faria todo consumidor testar duas ausências diferentes.
   const cor = membro?.roleColour ?? undefined;
 
+  /*
+    O cargo que HASTEIA, o mesmo de onde a cor sai.
+
+    `hoistedRole` devolve `null` quando nenhum cargo hasteia — normalizado a
+    `undefined` pela mesma razão de `cor`: duas ausências diferentes fariam
+    todo consumidor testar as duas.
+  */
+  const cargo = membro?.hoistedRole?.name || undefined;
+
   // `getTime()` aqui, e não o `Date`: o snapshot precisa ser comparável por
   // valor. Guardar o objeto faria toda republicação parecer mudança.
   const silenciadoAte = membro?.timeout?.getTime();
@@ -439,6 +536,7 @@ export function toMemberSnapshot(
     pronomes: membro?.pronouns || user.pronouns || undefined,
     statusTexto: user.status?.text || undefined,
     cor,
+    cargo,
     silenciadoAte,
   };
 }

@@ -20,22 +20,27 @@ export const TOKENS_DE_TEMA = [
   "--vx-surface-1",
   "--vx-surface-2",
   "--vx-surface-3",
+  "--vx-surface-4",
 
   "--vx-text-1",
   "--vx-text-2",
   "--vx-text-3",
+  "--vx-text-4",
 
   "--vx-border-subtle",
   "--vx-border-strong",
 
   "--vx-accent",
   "--vx-accent-hover",
+  "--vx-accent-press",
+  "--vx-accent-text",
   "--vx-accent-soft",
   "--vx-on-accent",
 
   "--vx-danger",
   "--vx-warning",
   "--vx-success",
+  "--vx-neutral",
 
   "--vx-status-online",
   "--vx-status-idle",

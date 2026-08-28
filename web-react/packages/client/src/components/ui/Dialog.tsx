@@ -51,7 +51,7 @@ export function DialogContent({
       <Primitivo.Overlay
         className={cn(
           css.veu,
-          "z-flutuante bg-surface-0/70",
+          "z-flutuante bg-scrim",
           // Sem backdrop-filter: custa GPU continuamente, não só na transição,
           // e isto é painel de produtividade aberto o dia inteiro.
           "anim-base",
@@ -81,7 +81,7 @@ export function DialogContent({
         {...(descricao ? {} : { "aria-describedby": undefined })}
         className={cn(
           css.painel,
-          "z-flutuante rounded-3 border border-border-strong bg-surface-2 p-5",
+          "z-flutuante rounded-4 border border-border-subtle bg-surface-4 p-5 shadow-e3",
           "anim-base",
           className,
         )}

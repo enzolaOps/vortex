@@ -119,6 +119,18 @@ export type AnexoSnapshot = {
   /** Só para imagem e vídeo, e é o que reserva o espaço. */
   readonly largura: number | undefined;
   readonly altura: number | undefined;
+  /**
+   * O tamanho do arquivo, JÁ FORMATADO.
+   *
+   * Derivação na escrita, como `createdAtText` e `sigla` — formatar bytes no
+   * render multiplicaria um `Intl.NumberFormat` por cada re-render da linha
+   * mais quente do app, e ele apareceu no firehose a 4x quando a hora era
+   * formatada assim.
+   *
+   * `undefined` quando o protocolo não manda: o rodapé some, em vez de mostrar
+   * "0 B" para um arquivo que existe.
+   */
+  readonly tamanhoTexto: string | undefined;
 };
 
 export type MessageSnapshot = {
@@ -242,6 +254,31 @@ export type ReacaoSnapshot = {
 };
 
 export type PresenceStatus = "online" | "idle" | "dnd" | "offline";
+
+/**
+ * O status que EU escolho — e ele não é o mesmo tipo que o status EXIBIDO.
+ *
+ * A diferença é `invisivel`, e ela é a razão de existirem dois tipos em vez de
+ * um. Quem escolhe invisível continua conectado, recebendo mensagem e podendo
+ * responder; o que muda é que todo mundo vê `offline`. Colapsar os dois num
+ * tipo só produz o defeito clássico desta tela: o menu abre com "Online"
+ * marcado porque `PresenceStatus` nunca teve como dizer "invisível", e a
+ * pessoa não consegue saber se a escolha dela pegou.
+ *
+ * `offline` NÃO está aqui de propósito: ninguém escolhe estar offline, isso é
+ * consequência de fechar o app. Um item de menu que não pode ser escolhido é
+ * ruído; um estado que não pode ser escolhido não deve ser representável na
+ * união da escolha.
+ */
+export type PresencaEscolhida = "online" | "idle" | "dnd" | "invisivel";
+
+/*
+  ⚠ Não há função de conversão `PresencaEscolhida → PresenceStatus` aqui, e a
+  ausência é decisão: quem faz essa conversão é o SERVIDOR. Ele recebe
+  `Invisible` e passa a mandar `Offline` para todo mundo, inclusive de volta
+  para mim na member list. Escrever a conversão no cliente daria um segundo
+  dono da mesma regra, e o cliente perderia se os dois discordassem.
+*/
 
 export type UserSnapshot = {
   readonly id: string;
@@ -367,6 +404,41 @@ export type ChannelSnapshot = {
    */
   readonly silenciado: boolean;
   /**
+   * Canal restrito — o cadeado que o design desenha ao lado de "liderança".
+   *
+   * ⚠ **É "pode estar escondido de alguém", não "escondido de você".** Vem de
+   * `potentiallyRestrictedChannel`, que responde se ALGUM cargo tem
+   * `ViewChannel` negado — inclusive o cargo padrão. Um canal que você não
+   * pode ver nem chega na sessão, então a pergunta útil na coluna é a outra:
+   * "isto aqui é do time todo ou de um grupo?".
+   *
+   * Nome do domínio e não do protocolo, como `topico`: quem usa chama de
+   * privado.
+   */
+  readonly privado: boolean;
+  /**
+   * Teto de gente na sala de voz — o `8` de "3/8" no design.
+   *
+   * `undefined` em canal que não é de voz E em sala sem teto: o protocolo trata
+   * `max_users: 0` como ausência, e a coluna precisa saber a diferença entre
+   * "cabem oito" e "cabe quem vier". Mostrar "3/0" seria pior que não mostrar.
+   */
+  readonly limite: number | undefined;
+  /**
+   * Modo lento, em segundos entre mensagens — o "Modo lento · 30 s" do design.
+   *
+   * `0` é o normal e significa desligado; o protocolo usa zero e não ausência,
+   * e o domínio preserva isso porque a pergunta "quantos segundos" tem uma
+   * resposta numérica sempre. Quem desenha decide que zero não mostra nada.
+   *
+   * ⚠ **É informativo aqui, não regra.** O composer NÃO bloqueia por conta
+   * própria: quem conta o intervalo é o servidor, e um cliente que bloqueia
+   * sozinho erra nos dois sentidos — trava quem já podia enviar (relógios
+   * diferentes) e libera quem não podia (recarregar a página zera o contador
+   * local). Dizer a regra é útil; fingir aplicá-la é pior que nada.
+   */
+  readonly modoLento: number;
+  /**
    * O outro lado de uma conversa direta. Só existe em `dm`.
    *
    * Calculado no adapter a partir de `recipientIds` menos eu, e NÃO lido de
@@ -462,6 +534,18 @@ export type MemberSnapshot = ComSigla & {
   /** Status escrito pela pessoa. Vazio é ausência, não string vazia. */
   readonly statusTexto: string | undefined;
   readonly cor: string | undefined;
+  /**
+   * O nome do cargo que hasteia a pessoa — o "VTX" e o "MOD" do design.
+   *
+   * `undefined` quando ninguém a hasteia, que é o caso da maioria: o crachá é
+   * do design justamente porque marca a MINORIA. Um crachá em toda linha não
+   * distinguiria ninguém, e roubaria a largura do nome.
+   *
+   * Mesmo cargo de `cor` — `hoistedRole` é um só —, então o crachá e a cor do
+   * nome nunca discordam. Se viessem de cargos diferentes, a linha diria duas
+   * coisas sobre a mesma pessoa.
+   */
+  readonly cargo: string | undefined;
   /**
    * Fim do castigo, em epoch ms. `undefined` = sem castigo.
    *

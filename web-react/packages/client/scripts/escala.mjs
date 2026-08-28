@@ -74,8 +74,8 @@ if (fora.length === 0) {
 console.error(`\nescala: ${fora.length} valor(es) fora da escala.\n`);
 for (const f of fora) console.error(`  ${f.arquivo}:${f.linha}  ${f.texto}`);
 console.error(
-  "\nEspaçamento e raio vêm da escala do projeto (`--vx-space-0..6`,\n" +
-    "`--vx-radius-0..4`). Se o degrau que você precisa não existe, essa é a\n" +
+  "\nEspaçamento e raio vêm da escala do projeto (`--vx-space-0..7`,\n" +
+    "`--vx-radius-0..5`). Se o degrau que você precisa não existe, essa é a\n" +
     "conversa — acrescentar o degrau, não escapar dele em um arquivo.\n\n" +
     "`1px` passa: hairline não é degrau de escala.\n",
 );

@@ -26,13 +26,22 @@ export type Paleta = {
 };
 
 export const PALETAS: readonly Paleta[] = [
-  // A de fábrica. Os números são os do `tokens.css`, não uma aproximação.
-  { id: "vortex", nome: "Vortex", matiz: 295, croma: 1, acento: "#bcaef2" },
-  { id: "grafite", nome: "Grafite", matiz: 280, croma: 0.15, acento: "#b9b6c4" },
-  { id: "mare", nome: "Maré", matiz: 245, croma: 1, acento: "#a8c6f0" },
-  { id: "musgo", nome: "Musgo", matiz: 155, croma: 0.9, acento: "#9bdcb4" },
-  { id: "ambar", nome: "Âmbar", matiz: 70, croma: 0.8, acento: "#f0cd8d" },
-  { id: "rose", nome: "Rosé", matiz: 350, croma: 1.1, acento: "#f0aec2" },
+  /*
+    A de fábrica. Os números são os do `tokens.css`, não uma aproximação — e
+    isso tem teste, porque uma curadoria que não contém a paleta ATIVA faz o
+    picker abrir sem nada selecionado num app recém-instalado.
+
+    ⚠ O neutro saiu de 295 (violáceo) para 258 (azul-ardósia) com a identidade
+    nova, e o acento de lilás pastel para teal. As cinco variações abaixo
+    foram re-escolhidas em volta do neutro novo: manter as antigas deixaria
+    "Grafite" e "Maré" descrevendo uma família que não existe mais.
+  */
+  { id: "vortex", nome: "Vortex", matiz: 258, croma: 1, acento: "#35c2cc" },
+  { id: "grafite", nome: "Grafite", matiz: 258, croma: 0.12, acento: "#9aa3ad" },
+  { id: "indigo", nome: "Índigo", matiz: 265, croma: 1, acento: "#7f8ff5" },
+  { id: "musgo", nome: "Musgo", matiz: 200, croma: 0.9, acento: "#46c98a" },
+  { id: "ambar", nome: "Âmbar", matiz: 250, croma: 0.9, acento: "#e2b15c" },
+  { id: "rose", nome: "Rosé", matiz: 300, croma: 1, acento: "#f16f95" },
 ];
 
 /** A paleta que casa com a semente atual, se alguma casar. */

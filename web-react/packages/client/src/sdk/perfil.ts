@@ -6,6 +6,12 @@
  * é e derrubar dispositivos.
  */
 import { client } from "./client";
+import type { PresencaEscolhida } from "./domain";
+import {
+  definirMeuStatusLocal,
+  definirMeuTextoLocal,
+  semearMeuStatus,
+} from "../store/meuStatus";
 import { toast } from "../components/ui/toastStore";
 
 export type MeuPerfil = {
@@ -139,6 +145,92 @@ export async function trocarEmail(novo: string, senha: string): Promise<boolean>
     falhou("Não deu para trocar o e-mail.", e);
     return false;
   }
+}
+
+/* --------------------------------------------------------------- status */
+
+/**
+ * A grafia do protocolo para cada escolha. Não sai daqui.
+ *
+ * `Focus` existe no protocolo e NÃO é oferecido: ele é um quinto estado que o
+ * upstream desenha como "não perturbe mas diferente", sem nada na interface
+ * que explique a diferença. Quatro opções que alguém consegue escolher com
+ * confiança valem mais que cinco em que uma é adivinhação.
+ */
+const GRAFIA: Record<PresencaEscolhida, string> = {
+  online: "Online",
+  idle: "Idle",
+  dnd: "Busy",
+  invisivel: "Invisible",
+};
+
+/**
+ * Escolhe a presença.
+ *
+ * ⚠ **Isto não existia, e a ausência era um dos buracos da varredura de
+ * escopo:** `PresenceStatus` era lido, mapeado, pintado no pontinho de todo
+ * mundo — e não havia como mudar o próprio. O status era uma coisa que o app
+ * observava nas outras pessoas e que a pessoa dona da sessão não controlava.
+ *
+ * Escreve no store ANTES da rede, e a ordem é a decisão: o pontinho acende no
+ * clique. Quem escolhe "não perturbe" quer a certeza imediata de ter parado de
+ * aparecer disponível, e um quadro de latência dizendo "online" é exatamente a
+ * dúvida que a ação existe para tirar.
+ */
+export async function definirPresenca(p: PresencaEscolhida): Promise<boolean> {
+  definirMeuStatusLocal(p);
+  try {
+    await client.user?.edit({ status: { presence: GRAFIA[p] as never } });
+    return true;
+  } catch (e) {
+    falhou("Não deu para mudar seu status.", e);
+    return false;
+  }
+}
+
+/**
+ * Escreve o status personalizado.
+ *
+ * Vazio REMOVE, não vira string vazia — a mesma regra dos pronomes e pelo
+ * mesmo motivo: `""` mostraria uma linha em branco embaixo do nome, e "não
+ * declarado" some. O protocolo tem `remove: ["StatusText"]` justamente porque
+ * as duas coisas são diferentes.
+ */
+export async function definirStatusTexto(texto: string): Promise<boolean> {
+  const limpo = texto.trim();
+  definirMeuTextoLocal(limpo || undefined);
+  try {
+    await client.user?.edit(
+      limpo
+        ? { status: { text: limpo } }
+        : ({ remove: ["StatusText"] } as never),
+    );
+    return true;
+  } catch (e) {
+    falhou("Não deu para salvar o recado.", e);
+    return false;
+  }
+}
+
+/**
+ * Semeia o status do que o servidor já mandou.
+ *
+ * Chamado na abertura. Sem isto o painel abre sempre dizendo "Online" — o
+ * default do store —, e quem tinha escolhido invisível na sessão anterior
+ * veria a interface afirmar o contrário do que o servidor sabe. É a mesma
+ * família da semeadura de não-lidas no `Ready`.
+ */
+export function semearStatusDoServidor(): void {
+  const eu = client.user;
+  if (!eu) return;
+  const bruto = eu.status?.presence;
+  const escolha = (Object.keys(GRAFIA) as PresencaEscolhida[]).find(
+    (k) => GRAFIA[k] === bruto,
+  );
+  semearMeuStatus({
+    presenca: escolha ?? "online",
+    texto: eu.status?.text || undefined,
+  });
 }
 
 /* ----------------------------------------------------------- dispositivos */

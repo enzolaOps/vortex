@@ -3,6 +3,7 @@ import {
   Copy,
   Info,
   PencilSimple,
+  Plus,
   PushPin,
   PushPinSlash,
   Trash,
@@ -20,8 +21,8 @@ import { count } from "../dev/stats";
 import { copiarTexto } from "../lib/copiar";
 import { rotuloDeReacao } from "../lib/plural";
 import { cn } from "../lib/cn";
+import { AvatarDoAutor } from "../presenca/AvatarDoAutor";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
-import { PontoDePresenca } from "../presenca/PontoDePresenca";
 import type { SistemaSnapshot } from "../sdk/domain";
 import { reenviar } from "../sdk/adapter";
 import {
@@ -52,7 +53,9 @@ import {
 import { responderA } from "../store/resposta";
 import { useMessage } from "../store/hooks";
 import { Anexos } from "./Anexos";
+import { aindaNao } from "../pendente/pendencias";
 import { Citacao } from "./Citacao";
+import { CrachaDeCargo } from "../presenca/NomeDoAutor";
 import { TextoDaMensagem } from "./TextoDaMensagem";
 import css from "./MessageRow.module.css";
 
@@ -366,7 +369,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
     return (
       <article aria-hidden className="flex gap-3 px-4 py-2">
         <div className={cn(css.calha, "mt-1 rounded-4 bg-surface-2")} />
-        <div className={cn(css.minZero, "flex-1 text-md leading-message")}>&nbsp;</div>
+        <div className={cn(css.minZero, "flex-1 text-lg leading-message")}>&nbsp;</div>
       </article>
     );
   }
@@ -513,13 +516,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
               texto alinhado ao longo do grupo inteiro. */}
           <div className={cn(css.calha, "relative mt-1")}>
             {message.iniciaGrupo ? (
-              <>
-                <div className={cn(css.calha, "rounded-4 bg-surface-3")} />
-                {/* Presença nunca só por cor — a silhueta do ponto muda com
-                    o estado. Sem rótulo aqui: o nome já está escrito ao lado,
-                    e anunciar presença a cada linha seria ruído no leitor. */}
-                <PontoDePresenca userId={message.authorId ?? ""} />
-              </>
+              <AvatarDoAutor userId={message.authorId ?? ""} />
             ) : null}
           </div>
 
@@ -593,9 +590,14 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             {message.iniciaGrupo ? (
               <div className="flex items-baseline gap-2">
                 {message.authorId ? (
-                  <NomeDoAutor userId={message.authorId} />
+                  <>
+                    <NomeDoAutor userId={message.authorId} />
+                    {/* O crachá de cargo — "VTX", "MOD". Assina o membro
+                        sozinho; ver `CrachaDeCargo`. */}
+                    <CrachaDeCargo userId={message.authorId} />
+                  </>
                 ) : (
-                  <span className="text-md font-medium text-text-2">
+                  <span className="text-lg font-semibold text-text-2">
                     desconhecido
                   </span>
                 )}
@@ -604,6 +606,26 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                 </time>
                 {message.editedAt ? (
                   <span className="text-xs text-text-3">(editada)</span>
+                ) : null}
+
+                {/*
+                  "📌 fixada" na linha de cabeçalho, como o design.
+
+                  ⚠ **Fixar já existia e era INVISÍVEL na linha.** O estado
+                  vivia no menu de contexto e na barra de hover — dois lugares
+                  que só respondem a quem já foi procurar. Uma mensagem fixada
+                  passava por fixada em lugar nenhum, e o painel de fixados era
+                  a única prova de que a ação tinha funcionado.
+
+                  Só no cabeçalho do GRUPO, que é onde o design a põe: numa
+                  sequência da mesma pessoa, uma linha continuada fixada é caso
+                  raro o bastante para o painel resolver.
+                */}
+                {message.fixada ? (
+                  <span className={css.fixada}>
+                    <PushPin size={20} aria-hidden />
+                    fixada
+                  </span>
                 ) : null}
               </div>
             ) : null}
@@ -639,7 +661,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
               <div
                 className={cn(
                   css.corpo,
-                  "text-md leading-message wrap-anywhere text-text-1",
+                  "text-lg leading-message wrap-anywhere text-text-1",
                 )}
               >
                 <TextoDaMensagem blocos={message.blocos} />
@@ -724,6 +746,24 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                     </span>
                   </button>
                 ))}
+
+                {/*
+                  O "＋" do design, no fim da fileira.
+
+                  Desenhado sem implementação — o seletor de emoji é a
+                  pendência `emoji`. Sob a mesma permissão dos chips: quem não
+                  pode reagir não ganha um botão que abre um seletor inútil.
+                */}
+                {pode(message.channelId, "reagir") ? (
+                  <button
+                    type="button"
+                    className={css.adicionarReacao}
+                    aria-label="Adicionar reação"
+                    onClick={aindaNao("emoji")}
+                  >
+                    <Plus size={20} aria-hidden />
+                  </button>
+                ) : null}
               </div>
             ) : null}
           </div>

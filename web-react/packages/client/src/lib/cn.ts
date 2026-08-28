@@ -6,7 +6,7 @@ import { extendTailwindMerge } from "tailwind-merge";
  *
  * Ele resolve conflito por grupo de classe, e os grupos que conhece são os do
  * Tailwind de fábrica. A escala default de raio foi desativada em `tokens.css`
- * (`--radius-*: initial`) e substituída por `rounded-1..4`, que ele não
+ * (`--radius-*: initial`) e substituída por `rounded-0..5`, que ele não
  * reconhece — sem esta extensão, `cn("rounded-2", "rounded-4")` devolve AS
  * DUAS e quem ganha é a ordem no CSS, não a intenção de quem chamou.
  *
@@ -19,7 +19,7 @@ import { extendTailwindMerge } from "tailwind-merge";
 const merge = extendTailwindMerge({
   extend: {
     classGroups: {
-      rounded: [{ rounded: ["1", "2", "3", "4"] }],
+      rounded: [{ rounded: ["0", "1", "2", "3", "4", "5"] }],
     },
   },
 });

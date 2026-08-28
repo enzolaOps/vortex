@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { PerfilHoverCard } from "../components/ui/HoverCard";
+import { Avatar } from "../components/ui/Avatar";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
 import { chaveDeMembro } from "../sdk/domain";
 import { useCorDeCargo, useMembro } from "../store/hooks";
@@ -58,10 +59,9 @@ function Corpo({ serverId, userId }: { serverId: string; userId: string }) {
   return (
     <div className={css.cartao}>
       <div className={css.topo}>
-        <span className={css.avatar} aria-hidden>
-          {membro.sigla}
+        <Avatar id={userId} sigla={membro.sigla} tamanho="lg">
           <PontoDePresenca userId={userId} rotular />
-        </span>
+        </Avatar>
 
         <div className={css.identidade}>
           <p

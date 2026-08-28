@@ -1,0 +1,121 @@
+/* ============================================================
+   Ações do cabeçalho de canal
+   ------------------------------------------------------------
+   Ícones sem rótulo, e por isso cada um carrega tooltip e
+   `aria-label`. Um alvo de 32px numa barra de 32px de altura é
+   o mínimo confortável para ponteiro; abaixo disso a pessoa
+   erra e clica no nome do canal.
+   ============================================================ */
+
+.acoes {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-0);
+  /* Empurra para a borda final. O tópico fica com o espaço do meio, e é ele
+     que deve ceder primeiro — identidade e ação ancoram nas pontas. */
+  margin-inline-start: auto;
+}
+
+.acao {
+  inline-size: var(--vx-space-6);
+  block-size: var(--vx-space-6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border: none;
+  border-radius: var(--vx-radius-2);
+  background: transparent;
+  color: var(--vx-text-2);
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-instant) var(--vx-ease-out),
+    color var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.acao:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.acao:active {
+  background: var(--vx-state-press);
+}
+
+/*
+  Ativo é ACENTO, não véu mais forte.
+
+  A diferença importa porque o botão tem dois estados que precisam ser
+  distinguíveis em repouso: "o painel está aberto" e "o ponteiro está em cima".
+  Se os dois fossem véu, hover num botão desligado leria igual a um ligado.
+
+  ⚠ Isto gasta acento na tela, e a disciplina de acento é regra do projeto —
+  nove lâminas simultâneas foi um defeito real da auditoria. Aqui o teto é
+  baixo e conhecido: no máximo dois botões ligados ao mesmo tempo, porque a
+  ponta final abriga um painel de cada vez.
+*/
+.acaoAtiva {
+  background: var(--vx-accent-soft);
+  color: var(--vx-accent-text);
+}
+
+.acaoAtiva:hover {
+  color: var(--vx-accent-text);
+}
+
+/* ------------------------------------------------------------ busca */
+
+/*
+  A busca do cabeçalho, desenhada como CAMPO.
+
+  `--vx-surface-1` e não `surface-0` como o campo da coluna: são superfícies
+  diferentes por baixo — a coluna é `surface-1` e o cabeçalho é `surface-2`,
+  então o mesmo "um degrau abaixo do que o contém" dá tokens diferentes. É a
+  regra que o design segue nos dois lugares, e é por isso que os dois valores
+  batem com `#08090B` e `#0F1318`.
+
+  Largura FIXA de 180px, o número do design. Não é valor mágico escapando da
+  escala: `inline-size` não é espaçamento nem raio, e é a dimensão de um
+  componente — a mesma classe que o `pnpm escala` deixa passar de propósito
+  no cartão de perfil.
+*/
+.busca {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  flex: none;
+  inline-size: 180px;
+  min-inline-size: 0;
+  block-size: var(--vx-space-6);
+  padding-inline: var(--vx-space-2);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-2);
+  background: var(--vx-surface-1);
+  color: var(--vx-text-3);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.busca:hover {
+  border-color: var(--vx-border-strong);
+}
+
+.lupaDaBusca {
+  flex: none;
+}
+
+/*
+  O rótulo trunca em vez de esticar o campo.
+
+  Nome de canal pode ser longo, e um campo que cresce empurraria as outras
+  cinco ações para fora do cabeçalho — que é o alvo que a pessoa usa mais.
+*/
+.buscaRotulo {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--vx-size-sm);
+}

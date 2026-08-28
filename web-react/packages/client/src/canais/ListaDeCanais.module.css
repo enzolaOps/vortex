@@ -8,26 +8,54 @@
    lista pular a cada mensagem que chega.
    ============================================================ */
 
+/*
+  A COLUNA — a estrutura, que sobrevive à troca de fonte.
+
+  Ela tem duas fontes (canais do servidor, conversas da casa) e um rodapé que é
+  o mesmo nas duas. Sem este wrapper o painel de usuário teria de ser montado
+  dentro de cada uma, e a cópia que diverge é sempre a que ninguém abriu naquela
+  semana.
+
+  `minmax(0, 1fr)` na primeira linha pela razão de sempre: `1fr` puro é
+  `minmax(auto, 1fr)`, e `auto` respeita o min-content da lista — o rodapé seria
+  empurrado para fora da coluna assim que o servidor tivesse canais demais.
+*/
+.coluna {
+  display: grid;
+  /* lista · faixa de voz · painel de usuário. As duas últimas são `auto`, e a
+     faixa devolve `null` fora da chamada — a linha colapsa sozinha. */
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  block-size: 100%;
+  min-block-size: 0;
+}
+
 .painel {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  /* cabeçalho · busca · lista. A busca ganhou linha própria — ver o
+     comentário no TSX; ela era um botão apertado no canto do cabeçalho. */
+  grid-template-rows: auto auto minmax(0, 1fr);
+  min-block-size: 0;
   block-size: 100%;
   /* Membro tem ponto de presença nesta coluna também (canal de voz). */
   --anel: var(--vx-surface-1);
 }
 
+/*
+  O cabeçalho da coluna, e ele tem a MESMA altura do cabeçalho do canal.
+
+  50px nos dois, e não é simetria gratuita: são vizinhos diretos no grid do
+  shell, e uma diferença de altura ali produz um degrau na linha que atravessa
+  a tela inteira — o defeito de alinhamento mais visível que um app de colunas
+  consegue ter.
+*/
 .cabecalho {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
   min-inline-size: 0;
+  block-size: 50px;
   padding-inline: var(--vx-space-3);
-  padding-block: var(--vx-space-3);
   border-block-end: 1px solid var(--vx-border-subtle);
   color: var(--vx-text-1);
-  font-size: var(--vx-size-lg);
-  font-weight: 500;
-  line-height: var(--vx-leading-title);
 }
 
 .cabecalho > span {
@@ -36,55 +64,74 @@
   white-space: nowrap;
 }
 
-/*
-  O gatilho da paleta, no cabeçalho.
+/* ============================================================
+   A faixa de busca — linha própria da coluna
+   ------------------------------------------------------------
+   Era um botão apertado no canto do cabeçalho, disputando
+   espaço com o nome do servidor. O design lhe dá a largura
+   inteira, logo abaixo do nome.
 
-  `margin-inline-start: auto` e não `justify-content: space-between`: o nome do
-  servidor precisa continuar sendo o que trunca quando falta espaço, e
-  `space-between` daria a largura ao botão primeiro.
-*/
-.buscar {
+   Continua sendo `button`, não `input` — ver o comentário no
+   TSX. O que ele PARECE é campo; o que ele faz é abrir a
+   paleta, que é um campo de verdade.
+   ============================================================ */
+
+.faixaDeBusca {
+  padding-inline: var(--vx-space-2);
+  padding-block: var(--vx-space-2);
+}
+
+.busca {
   display: flex;
-  flex: none;
   align-items: center;
-  gap: var(--vx-space-1);
-  margin-inline-start: auto;
-  padding-inline: var(--vx-space-1);
-  padding-block: var(--vx-space-1);
-  border-radius: var(--vx-radius-1);
+  gap: var(--vx-space-2);
+  inline-size: 100%;
+  min-inline-size: 0;
+  block-size: var(--vx-space-6);
+  padding-inline: var(--vx-space-2);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-2);
+  /* Mais FUNDO que a coluna, como todo campo do design: o que recebe entrada
+     afunda, o que é conteúdo flutua. */
+  background: var(--vx-surface-0);
   color: var(--vx-text-3);
-  font-size: var(--vx-size-xs);
-  font-weight: 400;
+  font-family: inherit;
   cursor: pointer;
+  transition:
+    border-color var(--vx-duration-instant) var(--vx-ease-out),
+    color var(--vx-duration-instant) var(--vx-ease-out);
 }
 
-.buscar:hover {
-  background: var(--vx-surface-2);
-  color: var(--vx-text-1);
+.busca:hover {
+  border-color: var(--vx-border-strong);
+  color: var(--vx-text-2);
 }
 
-.buscar:active {
-  scale: 0.96;
-}
-
-.buscar:focus-visible {
-  outline: 2px solid var(--vx-accent);
+.busca:focus-visible {
   outline-offset: 1px;
 }
 
-/*
-  Painel estreito: fica só o ícone.
-
-  A tecla é a primeira a sair porque é a parte que só serve UMA vez — quem
-  aprendeu não precisa mais dela, e quem não aprendeu ainda tem o alvo.
-*/
-.buscarRotulo,
-.tecla {
-  white-space: nowrap;
+.lupa {
+  flex: none;
 }
 
-@container (inline-size < 220px) {
-  .buscarRotulo,
+.buscaRotulo {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--vx-size-md);
+}
+
+/*
+  Coluna estreita: a tecla sai primeiro.
+
+  Ela é a parte que só serve UMA vez — quem aprendeu não precisa mais dela, e
+  quem não aprendeu ainda tem o alvo e o rótulo.
+*/
+@container (inline-size < 200px) {
   .tecla {
     display: none;
   }
@@ -163,9 +210,46 @@
   padding-block-start: 0;
 }
 
-.lamina {
+/* ============================================================
+   A barra de estado — a MESMA peça do rail
+   ------------------------------------------------------------
+   Repetir o gesto é o que faz dele assinatura: um indicador que
+   aparece numa coluna só é um acidente.
+
+   Aqui ela é de ACENTO (no rail é de texto), porque no rail o
+   ladrilho já tem cor própria e a barra precisa contrastar com
+   ele; aqui a linha é neutra e o acento é o que diz "aberto".
+   ============================================================ */
+
+.barra {
+  position: absolute;
   inset-inline-start: calc(var(--vx-space-2) * -1);
-  color: var(--vx-accent);
+  inline-size: var(--vx-lamina-w);
+  border-start-end-radius: var(--vx-lamina-w);
+  border-end-end-radius: var(--vx-lamina-w);
+  background: var(--vx-accent);
+  transition:
+    block-size var(--vx-duration-fast) var(--vx-ease-out),
+    opacity var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.barra[data-estado="repouso"] {
+  block-size: var(--vx-space-2);
+  opacity: 0;
+}
+
+/* Não lido usa cor de TEXTO, não acento: acento é "aberto", e os dois
+   estados precisam ser distinguíveis sem ler. É a disciplina de acento
+   registrada no briefing — nove lâminas simultâneas já foi defeito real. */
+.barra[data-estado="atencao"] {
+  block-size: var(--vx-space-2);
+  background: var(--vx-text-1);
+  opacity: 1;
+}
+
+.barra[data-estado="ativa"] {
+  block-size: var(--vx-space-5);
+  opacity: 1;
 }
 
 .canal {
@@ -176,9 +260,27 @@
   inline-size: 100%;
   min-inline-size: 0;
   padding-inline: var(--vx-space-2);
-  padding-block: var(--vx-space-1);
+  /*
+    30px de altura — o número do design, e ele NÃO está na escala.
+
+    `min-block-size` e não `block-size` porque a linha precisa poder crescer:
+    nome longo quebra e a sala de voz pendura embaixo.
+
+    30 não é degrau de espaçamento e não deve virar um: é a DIMENSÃO deste
+    componente, a mesma classe que o `pnpm escala` deixa passar de propósito
+    na largura do cartão de perfil e no campo de busca de 180px. `space-6`
+    (32px) foi a primeira tentativa e mediu 32 na tela — perto, e errado.
+  */
+  min-block-size: 30px;
   border-radius: var(--vx-radius-2);
-  color: var(--vx-text-3);
+  /*
+    `--vx-text-2` e não `--vx-text-3`, e a diferença é do design.
+
+    O terciário é o tom de METADADO — timestamp, hint, cabeçalho de grupo. Nome
+    de canal é conteúdo: é a lista que a pessoa varre dezenas de vezes por dia
+    procurando um nome. Em `text-3` a coluna inteira lia como desativada.
+  */
+  color: var(--vx-text-2);
   background: transparent;
   cursor: pointer;
   text-align: start;
@@ -188,8 +290,9 @@
 }
 
 .canal:hover {
-  background: var(--vx-surface-2);
-  color: var(--vx-text-2);
+  /* Véu, não tinta — funciona sobre a coluna e sobre o item ativo. */
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
 }
 
 /*
@@ -204,23 +307,45 @@
   font-weight: 500;
 }
 
+/*
+  Ativo: véu de ACENTO, como no design (`rgba(53,194,204,0.10)`).
+
+  `--vx-state-selected` e não `--vx-accent-soft`: o primeiro é o acento a 10%
+  compondo com o que está atrás, o segundo é um teal sólido escuro. Sobre a
+  coluna a diferença é pequena; sobre qualquer outra superfície o sólido
+  denuncia que foi pintado para UM fundo só.
+*/
 .canal[aria-current="true"] {
-  background: var(--vx-accent-soft);
+  background: var(--vx-state-selected);
   color: var(--vx-text-1);
 }
 
+/*
+  O glifo `#` é MAIS apagado que o nome — `text-4`, o tom de desativado.
+
+  É do design, e a hierarquia é a certa: o `#` é pontuação, não informação. Ele
+  diz "isto é um canal de texto", o que a pessoa já sabe pela coluna em que
+  está olhando. Deixá-lo na mesma cor do nome faz cada linha ter dois pesos
+  disputando.
+*/
 .icone {
   flex: none;
-  color: var(--vx-text-3);
+  color: var(--vx-text-4);
 }
 
+.canal[aria-current="true"] .icone,
+.canal[data-naolidas="true"] .icone {
+  color: var(--vx-text-2);
+}
+
+/* 14px e altura de 30px: os números do `Vortex App`. Ver `--vx-size-base`. */
 .nome {
   min-inline-size: 0;
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--vx-size-md);
+  font-size: var(--vx-size-base);
 }
 
 .contador {
@@ -388,6 +513,7 @@
    ============================================================ */
 
 .categoria {
+  position: relative;
   display: flex;
   flex-direction: column;
 }
@@ -442,31 +568,240 @@
 }
 
 /*
-  Uma ação de ícone no cabeçalho da coluna.
+  ⚠ **`.acaoDoCabecalho` viveu aqui e SAIU.**
 
-  Alvo de 32px e não do tamanho do ícone: o mínimo de toque é maior que o
-  desenho, e um `+` de 20px é confortável de acertar com mouse e impossível com
-  o polegar.
+  Era o `+` de "Novo canal" no cabeçalho da coluna. O design não tem `+` ali —
+  ele põe um por CATEGORIA, e "Criar canal" no menu do servidor. A ação não se
+  perdeu: mudou para o dropdown, junto com "Criar categoria", e continua
+  alcançável no caso que justificava o botão (servidor recém-criado, sem
+  categoria de onde partir).
+
+  O `pnpm utilities` acusou a regra órfã na mesma corrida em que o botão saiu.
 */
-.acaoDoCabecalho {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  inline-size: 32px;
-  block-size: 32px;
+
+.servidor {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-1);
+  min-inline-size: 0;
+  padding: 0;
   border: 0;
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-1);
   background: transparent;
-  color: var(--vx-text-3);
+  color: inherit;
+  font: inherit;
   cursor: pointer;
 }
 
-.acaoDoCabecalho:hover {
-  background: var(--vx-surface-2);
+.servidor:hover {
   color: var(--vx-text-1);
 }
 
-.acaoDoCabecalho:focus-visible {
-  outline: 2px solid var(--vx-accent);
+.servidor:hover .divisaDoMenu {
+  color: var(--vx-text-2);
+}
+
+.servidor:focus-visible {
+  outline-offset: 2px;
+}
+
+.nomeDoServidor {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Discreta: ela diz que há mais, não compete com o nome. */
+.divisaDoMenu {
+  flex: none;
+  color: var(--vx-text-3);
+}
+
+/* ============================================================
+   O badge de identificador curto, ao lado do nome
+   ------------------------------------------------------------
+   ⚠ Mostra a SIGLA, não a "tag do servidor" do protocolo — que
+   é campo configurável e não existe aqui. Ver o comentário no
+   TSX.
+   ============================================================ */
+
+.tag {
+  flex: none;
+  padding-inline: var(--vx-space-1);
+  border-radius: var(--vx-radius-1);
+  background: var(--vx-accent-soft);
+  color: var(--vx-accent-text);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  font-weight: 500;
+  line-height: 1.6;
+  letter-spacing: 0.04em;
+}
+
+/* ============================================================
+   Ações da linha de canal
+   ------------------------------------------------------------
+   Aparecem no hover e no canal ativo — é o design.
+
+   `visibility` e NUNCA `opacity`: com opacidade zero os alvos
+   continuariam recebendo tabulação, e numa coluna de quarenta
+   canais seriam oitenta paradas invisíveis antes do rodapé. É a
+   mesma regra da barra de ações da mensagem.
+
+   Sobrepostas e não no fluxo: entrar e sair do layout mudaria a
+   largura disponível para o nome a cada passagem de ponteiro, e
+   o nome trunca — o texto dançaria.
+   ============================================================ */
+
+.acoesDaLinha {
+  position: absolute;
+  inset-inline-end: var(--vx-space-1);
+  inset-block: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-0);
+  visibility: hidden;
+}
+
+/*
+  Visíveis no hover, no foco E no canal ATIVO — os três, como no design.
+
+  O ativo entra porque é onde a pessoa está: as ações dele são as que ela vai
+  querer sem ter de procurar o ponteiro. `:has()` em vez de um `data-` extra
+  na linha — o estado já está no `aria-current` do botão, e duplicá-lo num
+  atributo do pai daria duas fontes para o mesmo fato.
+*/
+.linhaDeCanal:hover .acoesDaLinha,
+.linhaDeCanal:focus-within .acoesDaLinha,
+.linhaDeCanal:has([aria-current="true"]) .acoesDaLinha {
+  visibility: visible;
+}
+
+.acaoDaLinha {
+  display: grid;
+  place-items: center;
+  inline-size: var(--vx-space-5);
+  block-size: var(--vx-space-5);
+  border: 0;
+  border-radius: var(--vx-radius-1);
+  background: transparent;
+  color: var(--vx-text-3);
+  cursor: pointer;
+  transition: color var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.acaoDaLinha:hover {
+  color: var(--vx-text-1);
+}
+
+.acaoDaLinha:focus-visible {
   outline-offset: -2px;
+}
+
+/* ============================================================
+   O `+` da categoria
+   ------------------------------------------------------------
+   Do design, e é o caminho curto: a ação existia só no menu de
+   contexto, atrás de um clique com o botão direito.
+
+   Some quando o ponteiro não está no grupo — a coluna é o índice
+   do servidor, e um alvo permanente por categoria seria ruído
+   constante por uma ação que acontece uma vez por mês.
+   ============================================================ */
+
+.adicionarNaSecao {
+  position: absolute;
+  inset-inline-end: var(--vx-space-1);
+  inset-block-start: var(--vx-space-3);
+  display: grid;
+  place-items: center;
+  inline-size: var(--vx-space-5);
+  block-size: var(--vx-space-5);
+  border: 0;
+  border-radius: var(--vx-radius-1);
+  background: transparent;
+  color: var(--vx-text-3);
+  cursor: pointer;
+  visibility: hidden;
+  transition: color var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.categoria:hover .adicionarNaSecao,
+.adicionarNaSecao:focus-visible {
+  visibility: visible;
+}
+
+.adicionarNaSecao:hover {
+  color: var(--vx-text-1);
+}
+
+.tituloDaSecao {
+  min-inline-size: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+  O wrapper da linha: o botão do canal E as ações dele.
+
+  Existe porque as ações NÃO podem morar dentro do botão — botão dentro de
+  botão é HTML inválido — e porque o `ContextMenuTrigger asChild` do Radix
+  aceita um filho só. Ele é a caixa contra a qual as ações se posicionam e o
+  alvo do `:hover` que as revela.
+*/
+.linhaDeCanal {
+  position: relative;
+}
+
+/* --------------------------------------------------- marcadores da linha */
+
+/*
+  Cadeado e sino cortado: o design os põe depois do nome, menores e apagados.
+
+  `--vx-text-4` e não `text-3`: eles são metadado permanente da linha, não
+  conteúdo. Um cadeado com o mesmo peso do nome competiria com ele em toda
+  varredura da coluna — e a informação que ele carrega ("é de um grupo") só é
+  procurada de vez em quando.
+
+  O ícone Phosphor vem em 20px e é reduzido por `inline-size`, não por prop:
+  o set é um só e o tamanho nominal também, como manda a regra de ícones.
+*/
+.marcador {
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: var(--vx-text-4);
+}
+
+.marcador svg {
+  inline-size: var(--vx-space-3);
+  block-size: var(--vx-space-3);
+}
+
+/*
+  "3/8" — a lotação da sala.
+
+  Mono, porque é número e a coluna tem várias salas: com fonte proporcional as
+  contagens dançam de linha para linha e o olho não consegue compará-las
+  varrendo. É o mesmo argumento da tecla `⌘K` no campo de busca.
+*/
+.teto {
+  flex: none;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+  Sala cheia é AVISO, não erro.
+
+  Quem vê "8/8" e clica não consegue entrar — e descobrir isso pelo silêncio da
+  chamada que não conecta é a pior forma de saber. `--vx-warning` é o token de
+  "isto vai te barrar", e a diferença de cor é a segunda pista: o número já diz.
+*/
+.teto[data-cheia="true"] {
+  color: var(--vx-warning);
 }

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { paletaFinal } from "./aplicar";
 import { SEMENTE_PADRAO, type Modo } from "./derivar";
 import { PALETAS, paletaDe } from "./paletas";
-import { verificar } from "./pares";
+import { falhasQueContam, verificar } from "./pares";
 
 /**
  * As paletas curadas.
@@ -22,7 +22,9 @@ describe("paletas curadas", () => {
       for (const p of PALETAS) {
         const v = verificar(paletaFinal({ ...SEMENTE_PADRAO[modo], ...p }));
         expect(
-          v.falhas.map((f) => `${f.par.fg}/${f.par.bg} ${f.razao.toFixed(2)}`),
+          falhasQueContam(v.falhas, modo).map(
+            (f) => `${f.par.fg}/${f.par.bg} ${f.razao.toFixed(2)}`,
+          ),
           `${modo} · ${p.nome}`,
         ).toEqual([]);
       }

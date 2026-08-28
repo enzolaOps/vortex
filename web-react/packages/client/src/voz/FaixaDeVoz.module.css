@@ -1,0 +1,144 @@
+/* ============================================================
+   Faixa de voz conectada
+   ------------------------------------------------------------
+   Rodapé da coluna, logo acima do painel de usuário. Fica
+   enquanto a chamada dura e responde "estou conectado onde, e
+   como está a linha" sem a pessoa procurar.
+
+   Tingida de SUCCESS por padrão, e é o design: a faixa é a
+   única superfície permanente do app que diz "algo está
+   funcionando agora". Verde é o vocabulário certo para isso, e
+   ela troca para danger quando deixa de ser verdade.
+   ============================================================ */
+
+.faixa {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  padding-inline: var(--vx-space-3);
+  padding-block: var(--vx-space-2);
+  background: color-mix(in oklab, var(--vx-success) 8%, transparent);
+  border-block-start: 1px solid var(--vx-border-subtle);
+}
+
+/*
+  Conexão ruim ou reconectando.
+
+  Muda o TINGIDO e o ponto, não o texto — o texto já diz o que houve. Duas
+  pistas para o mesmo fato, e nenhuma delas sozinha.
+*/
+.faixaRuim {
+  background: color-mix(in oklab, var(--vx-danger) 8%, transparent);
+}
+
+.destino {
+  flex: 1;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.destino:focus-visible {
+  outline-offset: 2px;
+}
+
+.estado {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-1);
+  color: var(--vx-success);
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+}
+
+.faixaRuim .estado {
+  color: var(--vx-danger);
+}
+
+/*
+  O ponto é a segunda pista, nunca a única.
+
+  Qualidade de conexão comunicada só por cor some para quem não distingue
+  verde de vermelho — e é justamente quem mais precisa saber que a linha caiu.
+  O texto ao lado carrega o dado.
+*/
+.ponto {
+  flex: none;
+  inline-size: var(--vx-space-1);
+  block-size: var(--vx-space-1);
+  border-radius: var(--vx-radius-5);
+  background: currentcolor;
+}
+
+/*
+  Onde a chamada está: canal / servidor.
+
+  Trunca em uma linha. Nome de servidor pode ser longo, e uma faixa que cresce
+  empurraria a lista de canais para cima a cada chamada.
+*/
+.lugar {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+}
+
+.controles {
+  flex: none;
+  display: flex;
+  gap: var(--vx-space-0);
+}
+
+.controle {
+  display: grid;
+  place-items: center;
+  inline-size: var(--vx-space-6);
+  block-size: var(--vx-space-6);
+  border: none;
+  border-radius: var(--vx-radius-2);
+  background: transparent;
+  color: var(--vx-text-2);
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-instant) var(--vx-ease-out),
+    color var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.controle:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.controle:active {
+  background: var(--vx-state-press);
+}
+
+/* Compartilhando é estado ATIVO, não destrutivo: acento, não danger. */
+.controleAtivo {
+  color: var(--vx-accent-text);
+}
+
+/*
+  Desligar é destrutivo e fica em danger desde o repouso.
+
+  Não é alarme exagerado: é a única ação da faixa que não se desfaz com outro
+  clique — voltar exige entrar na sala de novo, e quem estava falando perdeu a
+  vez. O ícone já é um telefone cortado; a cor é a segunda pista.
+*/
+.desligar {
+  color: var(--vx-danger);
+}
+
+.desligar:hover {
+  background: color-mix(in oklab, var(--vx-danger) 14%, transparent);
+  color: var(--vx-danger);
+}

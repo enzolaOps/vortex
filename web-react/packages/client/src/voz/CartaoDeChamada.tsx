@@ -10,6 +10,7 @@ import {
 } from "@phosphor-icons/react";
 import { memo, useSyncExternalStore } from "react";
 
+import { Avatar } from "../components/ui/Avatar";
 import { Tooltip } from "../components/ui/Tooltip";
 import {
   alternarCamera,
@@ -54,9 +55,10 @@ const Falante = memo(function Falante({ userId }: { userId: string }) {
 
   return (
     <span className={css.pessoa} data-falando={ativo}>
-      <span className={css.avatar} aria-hidden>
-        {pessoa?.sigla ?? "?"}
-      </span>
+      {/* `data-falando` no PAI: o anel de fala é do container, não do
+          avatar — é ele que ganha a sombra, e o avatar continua sendo a
+          mesma peça de sempre. */}
+      <Avatar id={userId} sigla={pessoa?.sigla} tamanho="sm" />
       <span className={css.nomeDaPessoa}>
         {pessoa?.displayName ?? "alguém"}
       </span>

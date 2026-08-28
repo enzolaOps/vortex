@@ -6,6 +6,7 @@ import {
   abrirConfig,
   assinarConfig,
   DE_SERVIDOR,
+  NOME_DA_SECAO as NOME,
   fecharConfig,
   lerConfig,
   type SecaoId,
@@ -37,17 +38,7 @@ import css from "./Configuracoes.module.css";
  */
 
 /** O rótulo de cada seção. `Record` fechado: seção nova não compila sem nome. */
-const NOME: Record<SecaoId, string> = {
-  perfil: "Perfil",
-  conta: "Conta",
-  sessoes: "Dispositivos",
-  aparencia: "Aparência",
-  servidor: "Visão geral",
-  cargos: "Cargos",
-  convites: "Convites",
-  banimentos: "Banimentos",
-  emojis: "Emojis",
-};
+
 
 const DE_USUARIO: readonly SecaoId[] = ["perfil", "conta", "sessoes", "aparencia"];
 

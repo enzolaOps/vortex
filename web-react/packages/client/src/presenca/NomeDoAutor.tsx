@@ -1,6 +1,7 @@
 import { CartaoDePerfil } from "../membros/CartaoDePerfil";
 import { chaveDeMembro } from "../sdk/domain";
 import { useCorDeCargo, useMembro, useServidorAtivo } from "../store/hooks";
+import css from "./NomeDoAutor.module.css";
 
 /**
  * O nome de quem escreveu.
@@ -36,7 +37,7 @@ export function NomeDoAutor({ userId }: { userId: string }) {
     // perfis existem.
     <CartaoDePerfil serverId={serverId} userId={userId}>
     <span
-      className="text-md font-medium text-text-2"
+      className="text-lg font-semibold text-text-2"
       /*
         A única cor literal legítima do app.
 
@@ -54,5 +55,47 @@ export function NomeDoAutor({ userId }: { userId: string }) {
       {membro?.displayName ?? userId}
     </span>
     </CartaoDePerfil>
+  );
+}
+
+/**
+ * O crachá de cargo — o "VTX" e o "MOD" do design.
+ *
+ * ⚠ **Componente separado do nome, e a separação é de subscrição, não de
+ * arrumação.** Se ele morasse dentro de `NomeDoAutor`, precisaria do mesmo
+ * `useMembro` — o que já acontece — mas o desenho fica mais claro assim: o
+ * crachá é irmão do nome na linha de cabeçalho, com o mesmo alinhamento de
+ * baseline do timestamp. Aninhado, herdaria o tamanho do nome.
+ *
+ * ⚠ **Fundo com cor de cargo, e é a EXCEÇÃO à regra do `NomeDoAutor`.** Lá
+ * está escrito "só texto, nunca preenchimento", porque contraste sobre cor
+ * arbitrária é imprevisível. Aqui o preenchimento é a cor a 18% sobre a
+ * superfície conhecida, e o TEXTO continua sendo a cor cheia — que é
+ * exatamente a mesma garantia do nome, com um véu por trás. O `color-mix` em
+ * `oklab` é o que mantém o véu previsível em qualquer matiz.
+ *
+ * Sem cargo hasteado não há crachá: ele existe para marcar a minoria.
+ */
+export function CrachaDeCargo({ userId }: { userId: string }) {
+  const serverId = useServidorAtivo();
+  const membro = useMembro(chaveDeMembro(serverId, userId));
+  const corDeCargo = useCorDeCargo(membro?.cor);
+
+  if (!membro?.cargo) return null;
+
+  return (
+    <span
+      className={css.cracha}
+      style={
+        corDeCargo
+          ? {
+              color: corDeCargo,
+              background: `color-mix(in oklab, ${corDeCargo} 18%, transparent)`,
+            }
+          : undefined
+      }
+    >
+      {membro.cargo}
+    </span>
   );
 }

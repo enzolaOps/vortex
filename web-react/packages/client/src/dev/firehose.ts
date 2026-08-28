@@ -65,6 +65,16 @@ type Servidor = {
     voz?: boolean;
     dentro?: number;
     topico?: string;
+    /*
+      ⚠ **O arnês mais pobre que o protocolo, quarta vez.** `privado` e `teto`
+      são campos reais — `default_permissions` e `voice.max_users` — e sem eles
+      o cadeado e o "3/8" da coluna seriam intestáveis, exatamente como
+      `ehMencao` passou três fases sem devolver `true`.
+    */
+    privado?: boolean;
+    teto?: number;
+    /** Segundos entre mensagens. O "Modo lento · 30 s" do design. */
+    lento?: number;
   }[];
   categorias?: { id: string; title: string; channels: string[] }[];
   /** Quantos dos `userIds` pertencem a ele. */
@@ -82,9 +92,17 @@ const MUNDO: Servidor[] = [
         topico: "Onde o firehose despeja 10 mil mensagens e a âncora tem que aguentar.",
       },
       { id: "01JQ0000000000000000000010", nome: "geral" },
-      { id: "01JQ0000000000000000000011", nome: "links" },
-      { id: "01JQ0000000000000000000012", nome: "voz-geral", voz: true, dentro: 2 },
-      { id: "01JQ0000000000000000000013", nome: "voz-jogos", voz: true, dentro: 3 },
+      // Modo lento num canal só: a faixa do composer precisa do caso COM e do
+      // caso SEM. Com em todos, o ramo `0` nunca renderizaria.
+      { id: "01JQ0000000000000000000011", nome: "links", lento: 30 },
+      // Restrito: o cadeado do design. Um canal só, porque o marcador tem de
+      // se distinguir varrendo — se todos tivessem, ele não diria nada.
+      { id: "01JQ000000000000000000001P", nome: "liderança", privado: true },
+      // Sala COM teto e sala SEM: o "3/8" e a ausência dele. Com teto em todas,
+      // o caso `undefined` nunca renderizaria.
+      { id: "01JQ0000000000000000000012", nome: "voz-geral", voz: true, dentro: 2, teto: 8 },
+      // Cheia: 3 de 3. É o estado de aviso, e é o que barra quem clica.
+      { id: "01JQ0000000000000000000013", nome: "voz-jogos", voz: true, dentro: 3, teto: 3 },
       // Sala VAZIA, e ela é o caso mais fácil de quebrar sem perceber: se o
       // componente renderizasse um cabeçalho "ninguém aqui" por canal, cada
       // servidor pagaria altura permanente para dizer que não há nada.
@@ -94,7 +112,11 @@ const MUNDO: Servidor[] = [
       {
         id: "01JQC000000000000000CONVERSA",
         title: "conversa",
-        channels: ["01JQ0000000000000000000010", "01JQ0000000000000000000011"],
+        channels: [
+          "01JQ0000000000000000000010",
+          "01JQ0000000000000000000011",
+          "01JQ000000000000000000001P",
+        ],
       },
       {
         id: "01JQC0000000000000000000VOZ",
@@ -197,7 +219,52 @@ function body(seed: number): string {
   if (seed % 31 === 5) {
     out.push(`<@${USUARIO_LOCAL}>`);
   }
-  return out.join(" ");
+
+  /*
+    ⚠ **Markdown, e a ausência dele era o buraco mais fundo deste arnês.**
+
+    O corpo gerado era só palavras soltas com uma URL ocasional — então o
+    pipeline inteiro de `markdown/analisar.ts` (32 testes, cache por conteúdo,
+    três decisões de segurança sobre link) NUNCA tinha sido visto na tela. O
+    bloco de código com cabeçalho, a lista com marcador, a citação, o título e
+    o negrito existiam, compilavam, tinham teste — e não havia como olhar.
+
+    É a mesma família do `ehMencao` que passou três fases sem devolver `true`,
+    e a sexta vez que este arnês fica mais pobre que o protocolo.
+
+    Frequências baixas e PRIMAS entre si: cada forma aparece o bastante para
+    ser encontrada rolando, e raro o suficiente para a lista continuar
+    parecendo conversa em vez de documentação.
+  */
+  const texto = out.join(" ");
+
+  if (seed % 29 === 4) {
+    return `${texto}
+
+\`\`\`ts
+const allow = base | roles;
+if (memberOverride) return memberOverride;
+\`\`\``;
+  }
+  if (seed % 37 === 6) {
+    return `${texto}
+
+- primeiro item
+- segundo item
+- terceiro item`;
+  }
+  if (seed % 43 === 8) {
+    return `> ${texto}`;
+  }
+  if (seed % 47 === 9) {
+    return `## ${WORDS[seed % WORDS.length]!}
+
+${texto}`;
+  }
+  if (seed % 19 === 2) {
+    return `**${WORDS[seed % WORDS.length]!}** ${texto} _${WORDS[(seed + 3) % WORDS.length]!}_`;
+  }
+  return texto;
 }
 
 /**
@@ -237,6 +304,21 @@ function ensureWorld() {
   if (mundoPronto) return;
   mundoPronto = true;
 
+/**
+ * Recados de exemplo para a segunda linha da member list.
+ *
+ * Comprimentos diferentes de propósito: a linha trunca em uma só, e uma
+ * amostra de string única não prova nem o truncamento nem o caso longo.
+ */
+const RECADOS = [
+  "no deep work",
+  "Spotify · Khruangbin",
+  "Jogando Factorio",
+  "focada, volto mais tarde",
+  "em reunião até as 16h, mande recado que eu leio depois",
+  "☕",
+];
+
   for (let i = 0; i < USER_COUNT; i++) {
     /**
      * Prefixo próprio para usuário.
@@ -263,8 +345,20 @@ function ensureWorld() {
       // sempre não prova que a ausência foi tratada.
       ...(i % 4 === 1 ? { pronouns: "ela/dela" } : {}),
       ...(i % 4 === 2 ? { pronouns: "ele/dele" } : {}),
-      ...(i % 6 === 3
-        ? { status: { text: "focada, volto mais tarde", presence: "Busy" } }
+      /*
+        Recados VARIADOS, e não um só repetido.
+
+        Um em cada quatro, com textos de comprimentos diferentes — a segunda
+        linha da member list trunca, e uma amostra de string única não prova
+        que o truncamento funciona nem que a coluna aguenta o caso longo.
+      */
+      ...(i % 4 === 3
+        ? {
+            status: {
+              text: RECADOS[i % RECADOS.length]!,
+              presence: i % 8 === 3 ? "Busy" : "Online",
+            },
+          }
         : {}),
       online: true,
       /*
@@ -293,7 +387,15 @@ function ensureWorld() {
         // Tópico só em alguns: um arnês onde todo canal tem descrição nunca
         // exercitaria o cabeçalho sem tópico, que é o caso comum.
         ...(canal.topico ? { description: canal.topico } : {}),
-        ...(canal.voz ? { voice: {} } : {}),
+        ...(canal.voz ? { voice: { max_users: canal.teto } } : {}),
+        /*
+          `default_permissions` com `ViewChannel` NEGADO — é assim que o
+          protocolo diz "restrito", e é o que `potentiallyRestrictedChannel`
+          lê. Bit 0 (`ViewChannel`), em string porque o protocolo transporta
+          permissão como string decimal.
+        */
+        ...(canal.privado ? { default_permissions: { a: "0", d: "1" } } : {}),
+        ...(canal.lento ? { slowmode: canal.lento } : {}),
       } as never);
     }
 
@@ -301,8 +403,25 @@ function ensureWorld() {
       _id: servidor.id,
       owner: userIds[0],
       name: servidor.nome,
+      /*
+        ⚠ **O servidor CONCEDE ver canal por padrão, e sem isto o arnês mentia
+        sobre o produto.** Servidor real declara `default_permissions`; o
+        arnês não declarava, e nada dependia disso até o cadeado existir.
+
+        É a quinta vez que o arnês aparece mais pobre que o protocolo. As
+        outras quatro estão no `CLAUDE.md`, e o padrão é sempre o mesmo:
+        campo que o protocolo tem, o arnês não gera, e a superfície que
+        depende dele é intestável ou testa o caso errado.
+
+        Estava `0` — nenhuma permissão concedida —, e isso fez a primeira
+        versão do cadeado marcar os SETE canais como restritos, `#geral`
+        incluído. O defeito era do arnês E do critério: ver `ehRestrito`.
+
+        `ViewChannel` é o bit 0. Os outros permanecem como estão — `pode()`
+        já tem a exceção documentada para o desenvolvimento sem sessão.
+      */
+      default_permissions: 1,
       channels: servidor.canais.map((c) => c.id),
-      default_permissions: 0,
       /*
         Categorias — e uma delas deixa canal DE FORA de propósito.
 
@@ -541,6 +660,10 @@ function anexosDe(seed: number) {
           _id: `f${seed}`,
           tag: "attachments",
           filename: `relatorio-${seed}.pdf`,
+          // `size` em bytes, e ele NÃO existia: o rodapé do anexo mostra
+          // nome · peso, e sem este campo a metade direita nunca aparecia.
+          // Quinta vez que o arnês fica mais pobre que o protocolo.
+          size: 120_000 + (seed % 900) * 1_000,
           metadata: { type: "File" },
         },
       ],
@@ -555,6 +678,9 @@ function anexosDe(seed: number) {
         _id: `f${seed}`,
         tag: "attachments",
         filename: `imagem-${seed}.png`,
+        // Faixa larga de propósito: o formatador troca de unidade em 1.000,
+        // e uma amostra que nunca passa de KB não exerce o caminho de MB.
+        size: 3_000 + (seed % 5_000) * 1_100,
         metadata: { type: "Image", width: p.largura, height: p.altura },
       },
     ],

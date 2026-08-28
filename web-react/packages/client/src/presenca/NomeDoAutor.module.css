@@ -1,0 +1,42 @@
+/* ============================================================
+   Crachá de cargo
+   ------------------------------------------------------------
+   O "VTX" e o "MOD" do design, ao lado do nome de quem
+   escreveu. Marca a MINORIA: sem cargo hasteado não aparece.
+   ============================================================ */
+
+/*
+  Sem cor de cargo, ele é neutro — e continua existindo.
+
+  Cargo hasteado sem cor é comum ("Moderação" sem cor definida), e o crachá
+  ainda diz algo verdadeiro. Cair para invisível nesse caso esconderia o dado
+  por falta de uma decoração.
+*/
+.cracha {
+  flex: none;
+  /* `align-self` e não `vertical-align`: a linha de cabeçalho é flex com
+     `items-baseline`, e o crachá é uma caixa — alinhá-lo pela baseline do
+     texto dentro dele o empurraria para baixo do nome. */
+  align-self: center;
+  padding-inline: var(--vx-space-1);
+  border-radius: var(--vx-radius-1);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  /*
+    Maiúsculas por CSS, não por dado.
+
+    O design escreve "VTX" e "MOD", mas o nome do cargo vem do servidor e pode
+    ser "Moderação". Fazer o caixa-alta aqui mantém o dado intacto — o leitor
+    de tela anuncia o nome que quem administra escreveu, e a tela mostra a
+    forma curta que o design pede.
+  */
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  /* Cargo com nome longo não empurra o timestamp para fora da linha. */
+  max-inline-size: 12ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

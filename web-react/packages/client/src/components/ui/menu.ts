@@ -11,30 +11,43 @@
  * primitivo (`--radix-context-menu-content-available-height` contra
  * `--radix-dropdown-menu-content-available-height`). Cada wrapper passa a sua.
  *
- * ⚠ **Duas correções que valem para toda camada flutuante do app**, e as duas
- * saíram da auditoria de design:
+ * ⚠ **A separação da camada flutuante mudou de mecanismo, e a razão anterior
+ * caiu junto com a rampa antiga.**
  *
- * 1. `border-border-strong` e não a sutil. `--vx-border-subtle` sobre
- *    `--vx-surface-2` mede **1,05:1** — invisível. Com `box-shadow` proibido
- *    por regra do projeto ("profundidade vem de camada, não de sombra"), a
- *    borda é a ÚNICA separação que sobra, e o degrau de superfície sozinho dá
- *    ~1,29:1. A regra está certa; era o degrau que estava curto para a camada
- *    que flutua sobre conteúdo arbitrário. Mesma troca em `Dialog`,
- *    `Popover`, `HoverCard`, `Tooltip` e `Toast`.
- * 2. `z-flutuante` e não `z-50` cru. A escala de z virou token nomeado por
- *    PAPEL justamente para "o que fica na frente do quê" ser legível; este era
- *    o último número solto, e ficava ao lado de um `40` em outro arquivo sem
- *    nada dizer qual vencia.
+ * O que estava escrito aqui: `border-border-strong` porque a sutil sobre
+ * `--vx-surface-2` media 1,05:1, e `box-shadow` era proibido pela regra
+ * "profundidade vem de camada, não de sombra". Os dois pressupostos morreram
+ * com a identidade nova:
+ *
+ * 1. **O menu não mora mais em `surface-2`.** Aquela era a superfície mais alta
+ *    de uma rampa de QUATRO, e ela também era o conteúdo — daí o 1,05:1. A
+ *    rampa tem cinco degraus agora e `surface-4` existe só para o que flutua.
+ * 2. **Sombra deixou de ser proibida, e por medição.** No tema claro do design
+ *    `surface-3` e `surface-4` são os dois branco puro: um menu sobre um card
+ *    não tem degrau de luminosidade nenhum, e sem sombra a camada some. É a
+ *    razão de `--vx-elev-1..3` existir.
+ *
+ * Com o degrau de superfície E a sombra fazendo o trabalho, a borda volta a ser
+ * a hairline que o design desenha. Mesma troca em `Dialog` (e3), `Popover`,
+ * `HoverCard`, `Tooltip` (e2) e `Toast` (e3).
+ *
+ * O realce do item passou de `bg-surface-3` para `bg-state-hover`: véu em vez
+ * de tinta. Um item realçado dentro de um menu que já está em `surface-4`
+ * precisaria de um sexto degrau para se destacar por superfície — a camada de
+ * estado funciona sobre qualquer fundo e é o que o design usa.
+ *
+ * `z-flutuante` e não `z-50` cru: a escala de z é nomeada por PAPEL, para "o
+ * que fica na frente do quê" ser legível sem abrir dois arquivos.
  */
 
 export const menuContent =
-  "z-flutuante min-w-48 rounded-2 border border-border-strong bg-surface-2 p-1 " +
+  "z-flutuante min-w-48 rounded-3 border border-border-subtle bg-surface-4 p-1 shadow-e2 " +
   "text-md text-text-1 overflow-y-auto " +
   "data-[state=closed]:opacity-0 data-[state=open]:opacity-100 anim-fast";
 
 export const menuItem =
   "flex cursor-default items-center gap-2 rounded-1 px-2 py-1 outline-none select-none " +
-  "data-highlighted:bg-surface-3 " +
+  "data-highlighted:bg-state-hover " +
   "data-disabled:pointer-events-none data-disabled:text-text-3";
 
 /** Ação destrutiva. Cor sozinha não basta, mas ajuda quem enxerga cor. */

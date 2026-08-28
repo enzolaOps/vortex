@@ -81,27 +81,48 @@
   opacity: 0.55;
 }
 
-.avatar {
-  position: relative;
-  flex: none;
-  display: grid;
-  place-items: center;
-  inline-size: var(--vx-avatar-sm);
-  block-size: var(--vx-avatar-sm);
-  border-radius: var(--vx-radius-4);
-  background: var(--vx-surface-3);
-  color: var(--vx-text-3);
-  font-size: var(--vx-size-xs);
-  font-variant-ligatures: none;
-}
 
-.nome {
+/*
+  Nome e recado empilhados.
+
+  O `flex: 1` saiu do nome e veio para o container: o nome precisa truncar
+  contra a largura da COLUNA, e um `flex: 1` numa das duas linhas empilhadas
+  faria cada uma disputar a altura em vez da largura.
+*/
+.textos {
   min-inline-size: 0;
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  /* Sem `gap`: as duas linhas já têm entrelinha, e um vão entre elas as
+     separaria em dois blocos em vez de uma identidade só. */
+}
+
+/* 14px, o número do `Vortex App` para nome de membro. Ver `--vx-size-base`. */
+.nome {
+  min-inline-size: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--vx-size-md);
+  font-size: var(--vx-size-base);
+}
+
+/*
+  O recado — o status personalizado, embaixo do nome.
+
+  Terciário e um degrau menor: é metadado sobre a pessoa, e competir em peso
+  com o nome inverteria a hierarquia numa coluna que existe para achar gente.
+  Trunca em uma linha: recado pode ter 128 caracteres, e uma coluna de 232px
+  não os comporta sem virar parágrafo.
+*/
+.recado {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+  line-height: var(--vx-leading-compact);
 }
 
 /*

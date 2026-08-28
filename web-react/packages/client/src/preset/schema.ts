@@ -124,8 +124,17 @@ export type Preset = {
  */
 export const LARGURA = {
   rail: { min: 56, max: 240, padrao: 72 },
-  canais: { min: 180, max: 420, padrao: 240 },
-  membros: { min: 140, max: 420, padrao: 240 },
+  /*
+    248 e 232 são os números do design no breakpoint PADRÃO (1440).
+
+    ⚠ O design lista larguras por breakpoint — 216/0 em 1024, 248/232 em 1440,
+    264/256 em 1920. Aqui elas são o PADRÃO e não a regra: a largura de coluna
+    é escolha de quem usa desde a fase 4, e um CSS que a reescrevesse por media
+    query desfaria em silêncio o arrasto que a pessoa acabou de fazer. O
+    default segue o design; o que vem depois é dela.
+  */
+  canais: { min: 180, max: 420, padrao: 248 },
+  membros: { min: 140, max: 420, padrao: 232 },
   // Mais largo por padrão que os outros: fixado é MENSAGEM, e mensagem numa
   // coluna de 240px quebra em quatro linhas por item.
   fixados: { min: 220, max: 480, padrao: 300 },

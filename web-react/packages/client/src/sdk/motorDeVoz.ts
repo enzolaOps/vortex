@@ -28,13 +28,17 @@
 import {
   ConnectionState,
   Room,
+  ConnectionQuality,
   RoomEvent,
   Track,
   type RemoteTrack,
 } from "livekit-client";
 
 import { client } from "./client";
+import type { QualidadeDeVoz } from "../store/chamada";
 import {
+  alternarMudoNoStore,
+  alternarSurdoNoStore,
   definirChamada,
   definirFalantes,
   encerrarChamada,
@@ -132,6 +136,22 @@ function ligarEventos(r: Room, channelId: string): void {
   r.on(RoomEvent.Disconnected, () => encerrarChamada());
   r.on(RoomEvent.Reconnecting, () => definirChamada({ estado: "reconectando" }));
   r.on(RoomEvent.Reconnected, () => definirChamada({ estado: "dentro" }));
+
+  /*
+    A qualidade da conexão, do LiveKit.
+
+    Só a do participante LOCAL: a do outro lado é problema dele, e mostrar a
+    pior de todas faria o painel acusar a sua rede quando quem está mal é
+    alguém do outro continente.
+
+    `ConnectionQuality` é classificação, não número — ver `QualidadeDeVoz` no
+    store. O design mostra "42 ms"; derivar milissegundos de "good" seria dado
+    falso numa superfície onde a pessoa decide se sai da chamada.
+  */
+  r.on(RoomEvent.ConnectionQualityChanged, (qualidade, participante) => {
+    if (participante?.identity !== r.localParticipant.identity) return;
+    definirChamada({ qualidade: traduzirQualidade(qualidade) });
+  });
 
   r.on(RoomEvent.ParticipantConnected, publicar);
   r.on(RoomEvent.ParticipantDisconnected, publicar);
@@ -232,9 +252,32 @@ export async function sairDaChamada(): Promise<void> {
   encerrarChamada();
 }
 
+/**
+ * A grafia do LiveKit para a nossa. Não sai daqui.
+ *
+ * `Unknown` e `Lost` são estados diferentes e o produto os trata igual? Não:
+ * `perdida` é a única que muda a cor do painel para danger, porque é a única
+ * em que a pessoa provavelmente já parou de ser ouvida.
+ */
+function traduzirQualidade(q: ConnectionQuality): QualidadeDeVoz {
+  switch (q) {
+    case ConnectionQuality.Excellent:
+      return "otima";
+    case ConnectionQuality.Good:
+      return "boa";
+    case ConnectionQuality.Poor:
+      return "ruim";
+    case ConnectionQuality.Lost:
+      return "perdida";
+    default:
+      return "desconhecida";
+  }
+}
+
 export async function alternarMudo(): Promise<void> {
-  const mudo = !lerChamada().mudo;
-  definirChamada({ mudo });
+  // A regra é do store; aqui só se APLICA no transporte. Ver
+  // `alternarMudoNoStore`.
+  const mudo = alternarMudoNoStore();
   await sala?.localParticipant.setMicrophoneEnabled(!mudo);
 }
 
@@ -247,9 +290,8 @@ export async function alternarMudo(): Promise<void> {
  * estava muda antes, voltar a transmitir seria uma decisão que ela não tomou.
  */
 export async function alternarSurdo(): Promise<void> {
-  const surdo = !lerChamada().surdo;
-  definirChamada({ surdo, mudo: surdo ? true : lerChamada().mudo });
-  await sala?.localParticipant.setMicrophoneEnabled(!surdo && !lerChamada().mudo);
+  const { surdo, mudo } = alternarSurdoNoStore();
+  await sala?.localParticipant.setMicrophoneEnabled(!surdo && !mudo);
 
   const el = elementoDeAudio();
   for (const audio of el.querySelectorAll("audio")) audio.muted = surdo;

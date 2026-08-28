@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+import { ARNES_ATIVO } from "./dev/arnesAtivo";
 import { ligarRota } from "./rota/rota";
 import { iniciarPintura } from "./tema/pintor";
 import { App } from "./App";
@@ -25,7 +26,12 @@ iniciarPintura();
   Module-level e não `useEffect`: `history` e `popstate` não pertencem a árvore
   de componente nenhuma. Mesmo padrão de `ligarAtalhoDaPaleta`.
 */
-ligarRota();
+/*
+  ⚠ **Não no arnês.** Ele vive em `/dev`, que não é um lugar do produto — e
+  `ligarRota` abre fazendo `replaceState` para o caminho do `Local` atual, que
+  para `/dev` é `/`. O rig perderia o próprio endereço em todo F5.
+*/
+if (!ARNES_ATIVO) ligarRota();
 
 createRoot(root).render(
   <StrictMode>

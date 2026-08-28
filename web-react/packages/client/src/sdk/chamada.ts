@@ -10,7 +10,12 @@
  * A fachada existe para que o resto do app (menu de canal, cartão de chamada)
  * chame `entrarNaChamada` sem arrastar o WebRTC junto.
  */
-import { encerrarChamada, lerChamada } from "../store/chamada";
+import {
+  alternarMudoNoStore,
+  alternarSurdoNoStore,
+  encerrarChamada,
+  lerChamada,
+} from "../store/chamada";
 
 type Motor = typeof import("./motorDeVoz");
 
@@ -48,13 +53,31 @@ export async function sairDaChamada(): Promise<void> {
   await motor.sairDaChamada();
 }
 
+/**
+ * Mudo e surdo funcionam FORA da chamada, e é o que o painel de usuário pede.
+ *
+ * ⚠ Antes o guarda era `return` seco: fora da sala o botão não fazia nada. Com
+ * os controles no rodapé da coluna — onde o design os põe, e onde eles ficam o
+ * dia inteiro — isso seria um botão morto na superfície mais visível do app.
+ *
+ * Fora da chamada só o STORE muda, e o motor não é carregado: mudo é
+ * preferência, e `entrarNaChamada` já a lê para decidir se abre o microfone.
+ * Baixar meio megabyte de WebRTC para virar um booleano seria o oposto da
+ * razão de esta fachada existir.
+ */
 export async function alternarMudo(): Promise<void> {
-  if (lerChamada().estado === "fora") return;
+  if (lerChamada().estado === "fora") {
+    alternarMudoNoStore();
+    return;
+  }
   await (await carregar()).alternarMudo();
 }
 
 export async function alternarSurdo(): Promise<void> {
-  if (lerChamada().estado === "fora") return;
+  if (lerChamada().estado === "fora") {
+    alternarSurdoNoStore();
+    return;
+  }
   await (await carregar()).alternarSurdo();
 }
 

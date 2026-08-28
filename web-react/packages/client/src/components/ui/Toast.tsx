@@ -51,8 +51,8 @@ export function Toaster() {
             // Erro leva borda semântica; o resto fica no neutro. Cor sozinha
             // não carrega o significado — o título diz o que aconteceu.
             t.tipo === "erro"
-              ? "border-danger bg-surface-2"
-              : "border-border-strong bg-surface-2",
+              ? "border-danger bg-surface-4 shadow-e3"
+              : "border-border-subtle bg-surface-4 shadow-e3",
           )}
         >
           <Primitivo.Title className="text-md font-medium text-text-1">
@@ -77,7 +77,7 @@ export function Toaster() {
             <Primitivo.Action
               altText={t.acao.descricaoAlternativa}
               onClick={t.acao.aoAtivar}
-              className="mt-2 rounded-2 border border-border-strong px-2 py-1 text-sm text-text-1 hover:bg-surface-3"
+              className="mt-2 rounded-2 border border-border-strong px-2 py-1 text-sm text-text-1 hover:bg-state-hover"
             >
               {t.acao.rotulo}
             </Primitivo.Action>

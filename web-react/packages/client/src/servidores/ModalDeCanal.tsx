@@ -2,6 +2,7 @@ import { useState, useSyncExternalStore } from "react";
 
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
+import { criarPasta, renomearPasta } from "../store/pastas";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { Segmentado } from "../components/ui/Segmentado";
 import {
@@ -54,6 +55,14 @@ export function ModalDeCanal({ aoFechar }: { aoFechar: () => void }) {
             serverId={alvo.serverId}
             categoriaId={alvo.categoriaId}
           />
+        ) : alvo?.tipo === "criarPasta" ? (
+          <FormaDePasta aoFechar={aoFechar} servidorInicial={alvo.serverId} />
+        ) : alvo?.tipo === "renomearPasta" ? (
+          <FormaDePasta
+            aoFechar={aoFechar}
+            pastaId={alvo.pastaId}
+            nomeAtual={alvo.nome}
+          />
         ) : null}
       </DialogContent>
     </Dialog>
@@ -64,7 +73,66 @@ function titulo(tipo: string | undefined): string {
   if (tipo === "editarCanal") return "Editar canal";
   if (tipo === "criarCategoria") return "Nova categoria";
   if (tipo === "renomearCategoria") return "Renomear categoria";
+  if (tipo === "criarPasta") return "Nova pasta";
+  if (tipo === "renomearPasta") return "Renomear pasta";
   return "Novo canal";
+}
+
+/**
+ * O nome de uma pasta do rail.
+ *
+ * Mesmo formulário para criar e renomear, como em categoria — e pela mesma
+ * razão registrada lá: dois modais seriam dois formulários que precisam
+ * concordar, e o primeiro a divergir seria o que ninguém abriu naquela semana.
+ *
+ * ⚠ **Não é assíncrono**, ao contrário dos irmãos: pasta é conceito de
+ * CLIENTE e a escrita é local. Não há promessa a esperar nem falha de rede a
+ * traduzir — ver `store/pastas.ts`.
+ */
+function FormaDePasta({
+  aoFechar,
+  pastaId,
+  nomeAtual,
+  servidorInicial,
+}: {
+  aoFechar: () => void;
+  pastaId?: string;
+  nomeAtual?: string;
+  servidorInicial?: string;
+}) {
+  const [nome, setNome] = useState(nomeAtual ?? "");
+  const limpo = nome.trim();
+
+  return (
+    <form
+      className={css.corpo}
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (limpo.length === 0) return;
+        if (pastaId) renomearPasta(pastaId, limpo);
+        else criarPasta(limpo, servidorInicial ? [servidorInicial] : []);
+        aoFechar();
+      }}
+    >
+      <Campo
+        rotulo="Nome da pasta"
+        dica="Aparece embaixo do grupo, no rail."
+        autoFocus
+        maxLength={32}
+        value={nome}
+        onChange={(e) => setNome(e.target.value)}
+      />
+
+      <div className={css.acoes}>
+        <Botao variante="neutro" type="button" onClick={aoFechar}>
+          Cancelar
+        </Botao>
+        <Botao variante="primario" type="submit" disabled={limpo.length === 0}>
+          {pastaId ? "Renomear" : "Criar pasta"}
+        </Botao>
+      </div>
+    </form>
+  );
 }
 
 function FormaDeCanal({

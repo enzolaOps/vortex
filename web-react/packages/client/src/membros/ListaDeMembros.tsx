@@ -4,6 +4,7 @@ import { memo, useEffect, useMemo, useRef } from "react";
 
 import { count } from "../dev/stats";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
+import { Avatar } from "../components/ui/Avatar";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
 import {
   ContextMenu,
@@ -103,7 +104,7 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
   if (!membro) {
     return (
       <span className={css.membro} aria-hidden>
-        <span className={css.avatar} />
+        <Avatar id={id} />
       </span>
     );
   }
@@ -144,19 +145,41 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
       data-offline={offline}
       data-silenciado={silenciado}
     >
-      <span className={css.avatar} aria-hidden>
-        {membro.sigla}
+      <Avatar id={id} sigla={membro.sigla}>
         {/* Rotulado aqui, ao contrário da lista de mensagens: nesta coluna a
             presença É o dado, não enfeite ao lado de um nome. */}
         <PontoDePresenca userId={id} rotular />
-      </span>
+      </Avatar>
 
-      {/* A cor do cargo é dado do servidor, não token — ver `NomeDoAutor`. */}
-      <span
-        className={css.nome}
-        style={corDeCargo ? { color: corDeCargo } : undefined}
-      >
-        {membro.displayName}
+      {/*
+        Nome e recado empilhados — é o design.
+
+        A linha era só o nome; o design põe o status personalizado embaixo
+        ("no deep work", "Spotify · Khruangbin", "Jogando Factorio"), e o dado
+        já existia: `statusTexto` chega no `MemberSnapshot` desde a fase 5 e
+        NUNCA tinha sido renderizado. Um campo lido, mapeado e nunca desenhado
+        é a mesma família do `ehMencao` que passou três fases sem devolver
+        `true`.
+
+        ⚠ A segunda linha só aparece quando HÁ recado, e por isso a altura da
+        linha varia. Isto é permitido aqui e não seria na lista de mensagens:
+        esta coluna é virtualizada com `estimateSize` por tipo, e o snapshot
+        que decide a altura é o mesmo que traz o recado — trocar de recado
+        publica o membro, e o `ResizeObserver` remede. Na timeline a mesma
+        variação moveria a âncora.
+      */}
+      <span className={css.textos}>
+        {/* A cor do cargo é dado do servidor, não token — ver `NomeDoAutor`. */}
+        <span
+          className={css.nome}
+          style={corDeCargo ? { color: corDeCargo } : undefined}
+        >
+          {membro.displayName}
+        </span>
+
+        {membro.statusTexto ? (
+          <span className={css.recado}>{membro.statusTexto}</span>
+        ) : null}
       </span>
 
       {/*

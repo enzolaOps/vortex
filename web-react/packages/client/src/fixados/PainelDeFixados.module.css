@@ -55,6 +55,25 @@
   /* Altura mínima de um item real: o placeholder não pode encolher, ou a
      lista pula durante a hidratação. */
   min-block-size: var(--vx-space-6);
+
+  /*
+    ⚠ **`flex: none`, e sem ele o painel inteiro renderizava errado.**
+
+    `.lista` é flex column com altura limitada e `overflow-y: auto`. Filho de
+    flex column tem `flex-shrink: 1` por padrão: quando a soma dos itens passa
+    da altura disponível, o navegador ENCOLHE cada um em vez de rolar. O
+    `min-block-size` acima então virou o piso, e todo item colapsou nele.
+
+    Medido: item com `height` 32px e `scrollHeight` 72 — o conteúdo vazando por
+    baixo e escrevendo por cima do item seguinte. A prévia de duas linhas
+    sozinha pede 36px.
+
+    O defeito estava LATENTE desde que o painel foi construído: `fixados` não
+    está no preset de fábrica, então ele só chegava à tela para quem o
+    posicionasse à mão no modo edição. Apareceu no primeiro clique do botão do
+    cabeçalho, que é o primeiro caminho normal até ele.
+  */
+  flex: none;
   transition: background var(--vx-duration-fast) var(--vx-ease-out);
 }
 

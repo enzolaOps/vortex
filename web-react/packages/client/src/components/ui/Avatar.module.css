@@ -1,0 +1,52 @@
+/* ============================================================
+   Avatar
+   ------------------------------------------------------------
+   Preenchido com gradiente derivado do ID — ver
+   `lib/gradiente.ts`. É o fallback até haver upload de imagem,
+   e um fallback que IDENTIFICA vale mais que um que só ocupa
+   espaço: duas iniciais em cinza são iguais para todo mundo.
+
+   `position: relative` porque o ponto de presença é sobreposto
+   e se posiciona contra esta caixa.
+   ============================================================ */
+
+.avatar {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  /* Círculo. O design usa círculo para pessoa e retângulo arredondado só
+     para servidor — a distinção é o que separa "quem" de "onde". */
+  border-radius: var(--vx-radius-5);
+  font-weight: 600;
+  /* Ligadura em iniciais como "fi" viraria glifo único. */
+  font-variant-ligatures: none;
+  /* A sigla nunca deve vazar da caixa, nem com três letras num avatar de
+     20px — o overflow aqui é recorte, não rolagem. */
+  overflow: hidden;
+  user-select: none;
+}
+
+.xs {
+  inline-size: var(--vx-avatar-xs);
+  block-size: var(--vx-avatar-xs);
+  font-size: var(--vx-size-xs);
+}
+
+.sm {
+  inline-size: var(--vx-avatar-sm);
+  block-size: var(--vx-avatar-sm);
+  font-size: var(--vx-size-sm);
+}
+
+.md {
+  inline-size: var(--vx-avatar-md);
+  block-size: var(--vx-avatar-md);
+  font-size: var(--vx-size-md);
+}
+
+.lg {
+  inline-size: var(--vx-avatar-lg);
+  block-size: var(--vx-avatar-lg);
+  font-size: var(--vx-size-xl);
+}

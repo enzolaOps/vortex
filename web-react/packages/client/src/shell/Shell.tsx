@@ -116,12 +116,24 @@ function Slot({
 export function Shell({
   paineis,
   ferramentas,
+  cabecalho,
   conteudo,
   composer,
   sobreposto,
 }: {
   paineis: Paineis;
-  ferramentas: ReactNode;
+  /** A barra do arnês. `undefined` no cliente de produto. */
+  ferramentas?: ReactNode;
+  /**
+   * O cabeçalho do canal.
+   *
+   * Linha PRÓPRIA do grid, largura cheia, e não dentro da prancha — é o que o
+   * design pede e é o que ele precisa: as ações dele (fixados, membros, busca)
+   * ancoram na borda da coluna, não na borda da coluna de leitura. Um
+   * cabeçalho centrado em 1040 deixaria os ícones flutuando no meio da tela
+   * numa janela ultrawide.
+   */
+  cabecalho?: ReactNode;
   conteudo: ReactNode;
   composer?: ReactNode;
   /** Camada acima do grid — modo edição, e mais nada no fluxo. */
@@ -135,12 +147,33 @@ export function Shell({
 
       <main className={`${css.coluna} ${css.conteudo}`}>
         {ferramentas}
-        {/* minmax(0,1fr) na linha: sem isto o conteúdo empurra e o grid estoura. */}
-        <div className={css.celulaDeConteudo}>{conteudo}</div>
-        {/* Terceira linha `auto`: o composer cresce e a lista encolhe, nunca o
-            contrário. Sem a linha própria, um campo de dez linhas empurraria a
-            lista para fora do grid em vez de tomar espaço dela. */}
-        {composer}
+        {cabecalho}
+        {/*
+          A PRANCHA: a moldura que resolve o ultrawide.
+
+          Ela ocupa a trilha inteira e pinta o fundo de gutter; dentro dela, a
+          coluna de leitura trava em `--vx-timeline-max-w` e CENTRA. É a
+          correção da fase 1, que travava a coluna sem centrá-la e produzia
+          908px de vazio só do lado direito — que lê como alinhamento
+          quebrado, não como coluna de leitura.
+
+          Lista e composer moram os dois aqui dentro, e é o que mantém a
+          invariante do briefing literal: "composer alinhado à coluna de
+          mensagem". Eles compartilham a mesma caixa, então não há como um
+          divergir do outro.
+        */}
+        <div className={css.prancha}>
+          <div className={css.pranchaInterna}>
+            {/* minmax(0,1fr) na linha: sem isto o conteúdo empurra e o grid
+                estoura. */}
+            <div className={css.celulaDeConteudo}>{conteudo}</div>
+            {/* Linha `auto`: o composer cresce e a lista encolhe, nunca o
+                contrário. Sem a linha própria, um campo de dez linhas
+                empurraria a lista para fora do grid em vez de tomar espaço
+                dela. */}
+            {composer}
+          </div>
+        </div>
       </main>
 
       {DEPOIS.map((id) => (

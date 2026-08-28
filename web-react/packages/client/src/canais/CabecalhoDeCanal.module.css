@@ -12,7 +12,18 @@
   align-items: center;
   gap: var(--vx-space-2);
   min-inline-size: 0;
-  block-size: var(--vx-space-6);
+  /*
+    50px é o número do design, e é DIMENSÃO de componente, não degrau de
+    escala — a mesma família de `--vx-rail-w` e da largura do hover card. O
+    `pnpm escala` governa padding, margin, gap e raio de propósito, e deixa
+    `block-size` de fora justamente para não empurrar geometria de layout para
+    uma escala de respiro.
+
+    Estava em `--vx-space-6` (32px), que era apertado antes e virou impossível
+    agora: os botões de ação medem 32px, e um cabeçalho de 32 não tem onde
+    pousá-los.
+  */
+  block-size: 50px;
   padding-inline: var(--vx-space-4);
   border-block-end: 1px solid var(--vx-border-subtle);
   background: var(--vx-surface-0);
@@ -28,12 +39,14 @@
   color: var(--vx-text-3);
 }
 
+/* `type.title` do design: 17/600. Era 13/500 — o nome do canal é a
+   identidade do lugar onde a pessoa está, e competia em peso com o tópico. */
 .nome {
   flex: none;
   margin: 0;
   color: var(--vx-text-1);
-  font-size: var(--vx-size-md);
-  font-weight: 500;
+  font-size: var(--vx-size-xl);
+  font-weight: 600;
   line-height: var(--vx-leading-title);
 }
 
@@ -73,35 +86,19 @@
 }
 
 /*
-  A coluna de conteúdo QUANDO tem cabeçalho.
+  ⚠ **`.coluna` viveu aqui e SAIU, e vale dizer para onde foi.**
 
-  Duas linhas: cabeçalho `auto`, lista `minmax(0, 1fr)`. O `minmax(0, …)` não
-  é opcional — é a lei nº 3 uma camada abaixo do shell: com `1fr` sozinho, uma
-  mensagem com URL de 400 caracteres empurraria a linha e a lista cresceria
-  para fora da célula do grid pai.
+  Ela era o grid de duas linhas — cabeçalho `auto`, lista `minmax(0, 1fr)` —
+  que embrulhava os dois quando o cabeçalho era irmão da lista. Com a prancha,
+  o cabeçalho virou linha PRÓPRIA do shell e a lista passou a ser filha direta
+  da célula de conteúdo; o wrapper ficou sem consumidor, e o `pnpm utilities`
+  acusou na mesma corrida.
 
-  Aqui e não como utility com colchete: o lint da lei nº 4 reprovou
-  `grid-rows-[auto_minmax(0,1fr)]`, e com razão — colchete é valor mágico com
-  outra sintaxe.
+  O que ela carregava não some: o `block-size: 100%` era load-bearing — sem
+  ele o container de scroll perde o teto e o virtualizador monta as dez mil
+  linhas de uma vez, sem erro nenhum. Agora quem garante a altura é o grid da
+  prancha, porque item de grid estica para a trilha. **Medido antes de apagar:**
+  44 linhas montadas com 1.000 semeadas, scroller com `clientHeight` 702 contra
+  `scrollHeight` 990.388. O raciocínio mudou de lugar junto com a regra, e está
+  em `.celulaDeConteudo` no `Shell.module.css`.
 */
-.coluna {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-
-  /*
-    `block-size: 100%` NÃO é decoração — sem ele a virtualização morre.
-
-    Este wrapper é filho de bloco da célula do shell, e filho de bloco tem
-    altura AUTO. O `.scroll` da lista pede `block-size: 100%`, que contra um
-    pai auto resolve para auto: o container de scroll deixa de ter teto, o
-    virtualizador conclui que a janela visível é a lista inteira e monta as
-    dez mil linhas.
-
-    Medido, não deduzido: 10.000 `<article>` no DOM e
-    `scrollHeight === clientHeight === 736403`. Nenhum erro, nenhum aviso — a
-    lista só ficava lenta. É o modo de falha que este projeto mais teme, e
-    apareceu no navegador porque a auditoria olhou.
-  */
-  block-size: 100%;
-  min-block-size: 0;
-}

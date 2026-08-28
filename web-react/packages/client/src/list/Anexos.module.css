@@ -99,3 +99,85 @@
   outline: 2px solid var(--vx-accent);
   outline-offset: 2px;
 }
+
+/* ============================================================
+   O pacote: mídia + rodapé
+   ------------------------------------------------------------
+   O rodapé precisa da mesma largura da mídia, e a mídia calcula
+   a largura a partir da proporção. Envolver os dois é o que faz
+   o rodapé acompanhar sem repetir a conta.
+
+   `inline-size: fit-content` porque a mídia é mais estreita que
+   a coluna: sem isto o pacote ocuparia a linha inteira e o
+   rodapé ficaria pendurado no vazio à direita da imagem.
+   ============================================================ */
+
+.pacote {
+  margin: 0;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-3);
+  overflow: hidden;
+}
+
+/*
+  O rodapé — `densidades.png · 284 KB` de um lado, ações do outro.
+
+  Superfície mais funda que a mídia: ele é chassi, não conteúdo. É a mesma
+  leitura do rodapé da coluna de canais.
+*/
+.rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-2);
+  min-inline-size: 0;
+  padding-inline: var(--vx-space-2);
+  padding-block: var(--vx-space-1);
+  background: var(--vx-surface-1);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+}
+
+/*
+  Nome em MONOESPAÇADA.
+
+  É nome de arquivo: o alinhamento de extensão ajuda a varrer uma conversa
+  cheia de anexos, e é o mesmo argumento que põe ID e atalho em mono no resto
+  do app.
+*/
+.identificacao {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--vx-font-mono);
+}
+
+.acoes {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+}
+
+.acao {
+  display: flex;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--vx-text-3);
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  transition: color var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.acao:hover {
+  color: var(--vx-text-1);
+}
+
+.acao:focus-visible {
+  outline-offset: 1px;
+}

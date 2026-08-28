@@ -1,15 +1,18 @@
 import {
+  CaretDown,
   BellSimple,
   BellSimpleSlash,
   CaretRight,
   Check,
   Hash,
   LinkSimple,
+  Lock,
   MagnifyingGlass,
   Monitor,
   PencilSimple,
   Plus,
   SpeakerHigh,
+  UserPlus,
   Trash,
   VideoCamera,
 } from "@phosphor-icons/react";
@@ -22,15 +25,26 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "../components/ui/ContextMenu";
-import { Tooltip } from "../components/ui/Tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../components/ui/DropdownMenu";
+import {
+  abrirConfig,
+  DE_SERVIDOR,
+  NOME_DA_SECAO,
+  type SecaoId,
+} from "../store/config";
 import { entrarNaChamada } from "../sdk/chamada";
 import { administrar } from "../store/administracao";
 import { ListaDeConversas } from "../casa/ListaDeConversas";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
-import { Lamina } from "../components/ui/Lamina";
 import { contagem, rotuloDeNaoLidas } from "../lib/plural";
 import { marcarCanalLido } from "../sdk/adapter";
-import { pode } from "../sdk/permissoes";
+import { pode, type Acao } from "../sdk/permissoes";
 import {
   chaveDeMembro,
   type CategoriaDeCanais,
@@ -52,6 +66,10 @@ import {
   useVozDoCanal,
   useLocal,
 } from "../store/hooks";
+import { Avatar } from "../components/ui/Avatar";
+import { aindaNao } from "../pendente/pendencias";
+import { FaixaDeVoz } from "../voz/FaixaDeVoz";
+import { PainelDeUsuario } from "../usuario/PainelDeUsuario";
 import { selecionarCanal } from "../store/navegacao";
 import css from "./ListaDeCanais.module.css";
 
@@ -100,11 +118,21 @@ const Canal = memo(function Canal({
     return <span className={css.canal} aria-hidden />;
   }
 
+  const podeConvidar = pode(id, "criarConvite");
   const temNaoLidas = canal.naoLidas > 0;
+
+  /*
+    O ícone diz o TIPO; o cadeado diz o ACESSO — e o design os separa.
+
+    Um canal privado de voz continua sendo de voz. Trocar o alto-falante pelo
+    cadeado diria a coisa errada sobre o que acontece lá dentro, então o
+    cadeado vem depois do nome, como no design.
+  */
   const Icone = canal.tipo === "voz" ? SpeakerHigh : Hash;
 
   return (
     <>
+    <div className={css.linhaDeCanal}>
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <button
@@ -116,36 +144,59 @@ const Canal = memo(function Canal({
           onClick={() => selecionarCanal(id)}
         >
           {/*
-            A mesma lâmina do rail. Assinatura só é assinatura quando repete —
-            um gesto que aparece uma vez é um acidente.
+            A MESMA barra do rail, e o gesto repetido é o que faz dele
+            assinatura: um indicador que aparece numa coluna só é um acidente.
 
-            E aqui ela carrega DUAS coisas, porque a escala comporta as duas
-            sem ambiguidade: posição em acento, não lido em cor de texto. É a
-            decisão já registrada no briefing — a lâmina marca não lida e NÃO
-            marca menção, porque não lida é posicional e menção é contagem. A
-            contagem continua ao lado, em número.
+            Ela carrega duas coisas sem ambiguidade — posição no ativo, não
+            lido no degrau curto. É a decisão já registrada: a barra marca não
+            lida e NÃO marca menção, porque não lida é posicional e menção é
+            contagem. A contagem continua ao lado, em número.
+
+            ⚠ Silenciado não acende. A barra é o que faz o olho parar naquela
+            linha varrendo a coluna, e é exatamente disso que quem silenciou
+            quer distância; o número ao lado fica, para quem for procurar.
           */}
-          <Lamina
-            /*
-              Silenciado não acende a lâmina.
-
-              A lâmina é o que faz o olho parar naquela linha varrendo a
-              coluna, e é exatamente disso que quem silenciou quer distância. A
-              contagem ao lado continua, para quem for procurar.
-            */
-            estado={
+          <span
+            className={css.barra}
+            data-estado={
               ativo
                 ? "ativa"
                 : temNaoLidas && !canal.silenciado
                   ? "atencao"
                   : "repouso"
             }
-            className={css.lamina}
+            aria-hidden
           />
 
           {/* Ícones Phosphor, weight regular, 20px — um set só, sem exceção. */}
           <Icone size={20} className={css.icone} aria-hidden />
           <span className={css.nome}>{canal.name}</span>
+
+          {/*
+            Cadeado, sino cortado e teto de sala — os três marcadores que o
+            design põe depois do nome.
+
+            Todos com `sr-only` ao lado, e não `aria-label` no ícone: o ícone
+            está dentro de um botão que já tem nome acessível, e um `label`
+            aninhado não é anunciado. O texto é o que chega ao leitor.
+          */}
+          {canal.privado ? (
+            <span className={css.marcador}>
+              <Lock size={20} aria-hidden />
+              <span className="sr-only">canal restrito</span>
+            </span>
+          ) : null}
+
+          {canal.silenciado ? (
+            <span className={css.marcador}>
+              <BellSimpleSlash size={20} aria-hidden />
+              <span className="sr-only">silenciado</span>
+            </span>
+          ) : null}
+
+          {canal.tipo === "voz" && canal.limite !== undefined ? (
+            <TetoDaSala channelId={id} limite={canal.limite} />
+          ) : null}
 
           {/*
             Silenciado mantém a CONTAGEM e perde o realce.
@@ -173,6 +224,7 @@ const Canal = memo(function Canal({
           </span>
         ) : null}
         </button>
+
       </ContextMenuTrigger>
 
       <ContextMenuContent>
@@ -246,6 +298,43 @@ const Canal = memo(function Canal({
       </ContextMenuContent>
     </ContextMenu>
 
+          {/*
+            As ações da linha, do design — visíveis no hover e no canal ativo.
+
+            ⚠ **Fora do `<button>` da linha, e isso não é escolha de estilo:**
+            botão dentro de botão é HTML inválido, o navegador reestrutura a
+            árvore sozinho e o clique interno passa a acionar os dois. Elas são
+            irmãs da linha e se posicionam sobre ela.
+
+            `visibility` e nunca `opacity`: com opacidade zero os alvos
+            continuariam recebendo TABULAÇÃO — numa coluna de quarenta canais
+            seriam oitenta paradas invisíveis antes de chegar ao rodapé. É a
+            mesma regra da barra de ações da mensagem.
+          */}
+          <span className={css.acoesDaLinha}>
+            {podeConvidar ? (
+              <button
+                type="button"
+                className={css.acaoDaLinha}
+                aria-label={`Criar convite para ${canal.name}`}
+                onClick={() => administrar({ tipo: "convite", channelId: id })}
+              >
+                <UserPlus size={20} aria-hidden />
+              </button>
+            ) : null}
+
+            {/* Desenhado sem implementação — ver `pendente/pendencias.ts`. */}
+            <button
+              type="button"
+              className={css.acaoDaLinha}
+              aria-label={`Criar tópico em ${canal.name}`}
+              onClick={aindaNao("criarTopico")}
+            >
+              <Plus size={20} aria-hidden />
+            </button>
+          </span>
+    </div>
+
     {/* A sala pendura no CANAL, não na categoria: só o canal sabe o próprio
         tipo, e montar `Sala` em canal de texto criaria um efeito Solid por
         canal que nunca dispararia. Fora do `ContextMenu` de propósito: ela
@@ -276,9 +365,12 @@ const NaSala = memo(function NaSala({
 
   return (
     <li className={css.naSala}>
-      <span className={css.avatarDeVoz} aria-hidden>
-        {membro?.sigla ?? "?"}
-      </span>
+      <Avatar
+        id={participante.userId}
+        sigla={membro?.sigla}
+        tamanho="xs"
+        className={css.avatarDeVoz}
+      />
       <span
         className={css.nomeNaSala}
         style={corDeCargo ? { color: corDeCargo } : undefined}
@@ -317,6 +409,37 @@ const NaSala = memo(function NaSala({
  * voz gastaria altura permanente da coluna para dizer que não há nada — e a
  * ausência já é visível pela linha sozinha.
  */
+/**
+ * "3/8" — quantos estão na sala, e quantos cabem.
+ *
+ * ⚠ **Componente próprio porque ele assina a SALA, e a linha do canal não.**
+ * Alguém entrando numa chamada movimentada publica `vozPorCanal` daquele
+ * canal; se a contagem morasse no corpo de `Canal`, cada entrada e saída
+ * re-renderizaria a linha inteira — ícone, nome, contador, menu de contexto e
+ * as duas ações do hover. Aqui acorda um `<span>`.
+ *
+ * `memo` sobre a linha do canal não protegeria disto: o hook estaria DENTRO
+ * dela, e memo não impede re-render causado pela própria subscrição.
+ */
+const TetoDaSala = memo(function TetoDaSala({
+  channelId,
+  limite,
+}: {
+  channelId: string;
+  limite: number;
+}) {
+  const dentro = useVozDoCanal(channelId);
+
+  return (
+    <span className={css.teto} data-cheia={dentro.length >= limite}>
+      {dentro.length}/{limite}
+      <span className="sr-only">
+        {` na sala, de ${limite} lugares`}
+      </span>
+    </span>
+  );
+});
+
 const Sala = memo(function Sala({
   channelId,
   serverId,
@@ -379,6 +502,7 @@ const Categoria = memo(function Categoria({
           permanente por categoria seria ruído constante por uma ação que
           acontece uma vez por mês.
         */
+        <>
         <ContextMenu>
           <ContextMenuTrigger asChild>
             <button
@@ -393,7 +517,7 @@ const Categoria = memo(function Categoria({
                 className={css.chevron}
                 data-aberta={!colapsada}
               />
-              {categoria.titulo}
+              <span className={css.tituloDaSecao}>{categoria.titulo}</span>
             </button>
           </ContextMenuTrigger>
 
@@ -453,6 +577,36 @@ const Categoria = memo(function Categoria({
             )}
           </ContextMenuContent>
         </ContextMenu>
+
+        {/*
+          O `+` da categoria — do design, e ele é o caminho CURTO.
+
+          A ação já existia no menu de contexto, atrás de um clique com o botão
+          direito, que é a afordância que menos gente descobre. Aqui ela fica
+          no lugar onde a pessoa procura: ao lado do grupo onde o canal vai
+          nascer, e já com a categoria decidida.
+
+          Irmão do botão de colapsar e não filho: botão dentro de botão é HTML
+          inválido, e o navegador reestrutura a árvore sozinho.
+        */}
+        {podeGerenciar ? (
+          <button
+            type="button"
+            className={css.adicionarNaSecao}
+            aria-label={`Novo canal em ${categoria.titulo ?? "categoria"}`}
+            onClick={() =>
+              administrar({
+                tipo: "criarCanal",
+                serverId,
+                categoriaId: categoria.id,
+                voz: false,
+              })
+            }
+          >
+            <Plus size={20} aria-hidden />
+          </button>
+        ) : null}
+        </>
       ) : null}
 
       {/*
@@ -503,9 +657,56 @@ const Categoria = memo(function Categoria({
  */
 export function ListaDeCanais() {
   const local = useLocal();
-  if (local.tipo !== "servidor") return <ListaDeConversas />;
-  return <CanaisDoServidor />;
+
+  /*
+    O painel de usuário fica FORA do `if`, e é por isso que ele mora aqui e não
+    dentro de cada fonte.
+
+    A coluna tem duas fontes — canais do servidor e conversas da casa — e o
+    rodapé é o mesmo nas duas. Montá-lo lá dentro daria duas cópias que
+    precisam concordar, e uma delas some no dia em que alguém acrescentar a
+    terceira fonte. Aqui ele é estrutura da COLUNA, não conteúdo dela.
+  */
+  return (
+    <div className={css.coluna}>
+      {local.tipo !== "servidor" ? <ListaDeConversas /> : <CanaisDoServidor />}
+
+      {/*
+        A faixa de voz ACIMA do painel de usuário — a ordem é do design, e ela
+        tem razão: a chamada é temporária e a identidade é permanente. O que
+        aparece e some fica mais perto do conteúdo; o que está sempre lá é o
+        chão da coluna.
+
+        Ela devolve `null` fora da chamada, então a linha do grid colapsa
+        sozinha e o rodapé volta a ser só o painel.
+      */}
+      <FaixaDeVoz />
+      <PainelDeUsuario />
+    </div>
+  );
 }
+
+/**
+ * O que cada seção de servidor exige para APARECER no menu.
+ *
+ * `Record` sobre as seções de servidor: seção nova não compila até alguém
+ * decidir quem pode vê-la, que é a mesma mecânica de `NOME_DA_SECAO` e do
+ * registro de modais.
+ *
+ * `servidor` é `undefined` de propósito — todo mundo precisa dela, porque é
+ * onde mora "sair do servidor". Esconder a visão geral de quem não administra
+ * seria prender a pessoa dentro do servidor.
+ *
+ * Item sem permissão NÃO é renderizado, e não é `disabled`: item cinza ensina
+ * que a ação existe e que você não a tem, ruído permanente para quem nunca vai
+ * tê-la. É a regra que a etapa de administração já segue.
+ */
+const PERMISSAO_DA_SECAO: Partial<Record<SecaoId, Acao>> = {
+  cargos: "gerenciarServidor",
+  convites: "criarConvite",
+  banimentos: "banir",
+  emojis: "gerenciarServidor",
+};
 
 function CanaisDoServidor() {
   const serverId = useServidorAtivo();
@@ -541,64 +742,133 @@ function CanaisDoServidor() {
   return (
     <div className={css.painel}>
       <header className={css.cabecalho}>
-        <span>{servidor?.name ?? "…"}</span>
-
         {/*
-          O único lugar da interface que diz que a paleta existe.
+          ⚠ **A porta que faltava, e a falta era total.**
 
-          A tese do produto é "teclado é a navegação primária" e a paleta faz
-          isso desde a fase 5 — mas nada na tela contava. Atalho que não se
-          anuncia serve a quem já sabe, e a auditoria deu a nota mais baixa do
-          relatório justamente aqui: não havia onde DESCOBRIR atalho nenhum.
+          `abrirConfig` era chamado em UM lugar do app inteiro — a engrenagem do
+          rail, com `abrirConfig("perfil")` e sem `serverId`. E a casca de
+          configurações só desenha o grupo de servidor sob `{serverId ? … }`.
+          Resultado: visão geral, cargos, convites, banimentos e emojis
+          existiam, compilavam, estavam roteadas, e ninguém conseguia chegar
+          nelas. Junto ia `sairDoServidor`, que mora dentro da visão geral —
+          sair de um servidor era impossível pela interface.
 
-          Botão de verdade, não texto de dica, e é o que conserta o segundo
-          problema junto: um recurso só por teclado é inalcançável em toque.
+          Este era um `<span>` inerte. É onde toda a categoria põe a porta, e é
+          onde a pessoa procura: o nome do lugar é o botão para as opções do
+          lugar.
 
-          O rótulo carrega a tecla porque ensinar é o trabalho dele. Quem
-          aprendeu para de clicar, e o botão passa a ser só um lembrete que não
-          atrapalha.
+          Construído e inalcançável é pior que ausente — custa manutenção sem
+          entregar nada, e de fora as duas coisas são idênticas. A regra que
+          sai disto está em `superficies-ausentes.md`: superfície nova precisa
+          de porta no MESMO passo, e porta é alvo clicável numa tela que já
+          existe, não rota.
         */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className={css.servidor}
+              aria-label={`Opções de ${servidor?.name ?? "servidor"}`}
+            >
+              <span className={css.nomeDoServidor}>
+                {servidor?.name ?? "…"}
+              </span>
+
+              {/*
+                O badge de identificador curto, ao lado do nome — é do design.
+
+                ⚠ **Mostra a SIGLA, não a "tag do servidor" do protocolo.** A
+                tag é campo configurável de servidor (`Tag do servidor` nas
+                configurações do design) e não existe aqui; a sigla é derivada
+                do nome e é verdade sobre ele. Quando a tag existir, ela
+                substitui isto sem mexer no layout.
+              */}
+              {servidor ? (
+                <span className={css.tag} aria-hidden>
+                  {servidor.sigla}
+                </span>
+              ) : null}
+
+              <CaretDown size={20} aria-hidden className={css.divisaDoMenu} />
+            </button>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent>
+            {/*
+              Criar canal e categoria SAÍRAM do cabeçalho e vieram para cá.
+
+              O design não tem `+` no cabeçalho da coluna — ele tem um por
+              CATEGORIA, e o menu do servidor é onde "Criar canal" mora. O
+              motivo de o botão existir no cabeçalho continua válido (servidor
+              recém-criado não tem categoria de onde partir), e aqui ele
+              continua alcançável nesse caso.
+            */}
+            {podeCriar ? (
+              <>
+                <DropdownMenuItem
+                  onSelect={() =>
+                    administrar({
+                      tipo: "criarCanal",
+                      serverId,
+                      categoriaId: undefined,
+                      voz: false,
+                    })
+                  }
+                >
+                  Criar canal
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => administrar({ tipo: "criarCategoria", serverId })}
+                >
+                  Criar categoria
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            ) : null}
+
+            {DE_SERVIDOR.filter((secao) => {
+              const exigida = PERMISSAO_DA_SECAO[secao];
+              return exigida === undefined || pode(primeiro, exigida);
+            }).map((secao) => (
+              <DropdownMenuItem
+                key={secao}
+                onSelect={() => abrirConfig(secao, serverId)}
+              >
+                {NOME_DA_SECAO[secao]}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </header>
+
+      {/*
+        A busca é uma LINHA PRÓPRIA, e tem cara de campo — é o design.
+
+        Era um botão apertado no canto do cabeçalho, disputando espaço com o
+        nome do servidor. O design lhe dá a largura inteira da coluna logo
+        abaixo do nome, o que resolve o problema que a auditoria apontou por
+        outro caminho: um recurso que a tese do produto chama de navegação
+        primária não pode ser o menor alvo da tela.
+
+        Continua sendo `button` e não `input`. Digitar aqui abriria a paleta e
+        jogaria fora o primeiro caractere, ou exigiria um segundo campo
+        sincronizado com o de lá — dois donos do mesmo texto. O que ele parece
+        é campo; o que ele faz é abrir a paleta, que É um campo.
+      */}
+      <div className={css.faixaDeBusca}>
         <button
           type="button"
-          className={css.buscar}
+          className={css.busca}
           onClick={abrirPaleta}
           aria-keyshortcuts="Control+K Meta+K"
         >
-          <MagnifyingGlass size={20} aria-hidden />
-          <span className={css.buscarRotulo}>buscar</span>
+          <MagnifyingGlass size={20} aria-hidden className={css.lupa} />
+          <span className={css.buscaRotulo}>Buscar</span>
           <kbd className={css.tecla} aria-hidden>
             {TECLA_DA_PALETA}
           </kbd>
         </button>
-
-        {/*
-          Novo canal, no cabeçalho.
-
-          Aqui e não só no menu de contexto da categoria: criar o PRIMEIRO
-          canal de um servidor recém-criado não tem categoria de onde partir, e
-          um servidor sem canal nenhum é exatamente o estado em que alguém mais
-          precisa deste botão.
-        */}
-        {podeCriar ? (
-          <Tooltip texto="Novo canal" lado="abaixo">
-            <button
-              type="button"
-              className={css.acaoDoCabecalho}
-              aria-label="Novo canal"
-              onClick={() =>
-                administrar({
-                  tipo: "criarCanal",
-                  serverId,
-                  categoriaId: undefined,
-                  voz: false,
-                })
-              }
-            >
-              <Plus size={20} aria-hidden />
-            </button>
-          </Tooltip>
-        ) : null}
-      </header>
+      </div>
 
       {/* Ver `MessageList`: rolável sem foco é inoperável por teclado. */}
       <div className={css.rolagem} tabIndex={0}>

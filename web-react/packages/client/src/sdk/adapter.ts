@@ -40,6 +40,7 @@ import { count } from "../dev/stats";
 import { createEntityStore } from "../store/entities";
 import { createEphemeralStore } from "../store/ephemeral";
 import { client, conectado } from "./client";
+import { semearStatusDoServidor } from "./perfil";
 import { aguardar, desistir, reconciliar } from "./nonce";
 import { definirConexao } from "../store/conexao";
 import { assinarSilencio } from "../store/silencio";
@@ -777,6 +778,19 @@ export function startAdapter() {
     */
     publicarConversas();
     publicarRelacoes();
+
+    /*
+      O meu status vem do servidor, não do default do store.
+
+      Sem isto o painel de usuário abre sempre dizendo "Online" — e quem tinha
+      escolhido invisível na sessão anterior veria a interface afirmar o
+      contrário do que o servidor sabe, o que é pior que não mostrar nada: a
+      pessoa acha que está escondida e não está, ou o inverso.
+
+      Mesma família da semeadura de não-lidas logo abaixo: o `Ready` já traz o
+      dado, e o que faltava era alguém lê-lo.
+    */
+    semearStatusDoServidor();
 
     for (const unread of client.channelUnreads.toList()) {
       const channelId = unread.id;
@@ -1616,13 +1630,38 @@ function contabilizarNaoLida(channelId: string, conteudo: string): void {
 
 /* -------------------------------------------------------------- entidades */
 
+/**
+ * O teto de gente numa sala de voz — o `8` de "3/8" na coluna.
+ *
+ * ⚠ **Lê o objeto HIDRATADO, e é a única forma.** O `Channel` do SDK expõe
+ * `isVoice` mas não o objeto `voice` de onde ele deriva; o campo mora aqui,
+ * atrás de `getUnderlyingObject`, que é público na coleção e não na entidade.
+ *
+ * Vive no adapter e não em `map.ts` porque quem tem a coleção é este módulo —
+ * `map.ts` traduz uma entidade recebida, não busca dados. A leitura crua fica
+ * confinada nesta função, e o resto do app vê `ChannelSnapshot.limite`.
+ *
+ * A hidratação já normaliza `max_users: 0` para `undefined`, então "cabe quem
+ * vier" chega como ausência. A guarda de tipo é contra servidor forkado com
+ * outra forma: "3/NaN" na coluna seria pior que nenhum número.
+ */
+function tetoDaSala(channelId: string): number | undefined {
+  const bruto = client.channels.getUnderlyingObject(channelId) as unknown as {
+    voice?: { maxUsers?: number };
+  };
+  const teto = bruto.voice?.maxUsers;
+  return typeof teto === "number" && Number.isFinite(teto) && teto > 0
+    ? teto
+    : undefined;
+}
+
 /** Só re-emite o que alguém está olhando — a mesma regra do `recalcularLayout`. */
 function reemitirCanal(channelId: string): void {
   if (channels.subscriberCount(channelId) === 0) return;
   const canal = client.channels.get(channelId);
   if (!canal) return;
   const c = contagemDe(contagemPorCanal, channelId);
-  channels.set(channelId, toChannelSnapshot(canal, c.naoLidas, c.mencoes, usuarioLocal));
+  channels.set(channelId, toChannelSnapshot(canal, c.naoLidas, c.mencoes, usuarioLocal, tetoDaSala(channelId)));
 }
 
 function reemitirServidor(serverId: string): void {
@@ -1655,7 +1694,7 @@ export const channels = createEntityStore<ChannelSnapshot>((id) => {
   const inicial = client.channels.get(id);
   if (inicial) {
     const c = contagemDe(contagemPorCanal, id);
-    channels.set(id, toChannelSnapshot(inicial, c.naoLidas, c.mencoes, usuarioLocal));
+    channels.set(id, toChannelSnapshot(inicial, c.naoLidas, c.mencoes, usuarioLocal, tetoDaSala(id)));
   }
 
   return createRoot((dispose) => {
@@ -1663,7 +1702,7 @@ export const channels = createEntityStore<ChannelSnapshot>((id) => {
       const canal = client.channels.get(id);
       if (!canal) return;
       const c = contagemDe(contagemPorCanal, id);
-      channels.set(id, toChannelSnapshot(canal, c.naoLidas, c.mencoes, usuarioLocal));
+      channels.set(id, toChannelSnapshot(canal, c.naoLidas, c.mencoes, usuarioLocal, tetoDaSala(id)));
     });
     return dispose;
   });

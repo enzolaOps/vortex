@@ -8,6 +8,7 @@ import {
 } from "../sdk/domain";
 import { administrar } from "../store/administracao";
 import { useMembro, useServidorAtivo } from "../store/hooks";
+import { copiarTexto } from "../lib/copiar";
 import css from "./TextoDaMensagem.module.css";
 
 /**
@@ -230,12 +231,41 @@ function Bloco({ bloco }: { bloco: BlocoDeMensagem }) {
         grid inteiro.
       */
       return (
-        <pre className={css.bloco}>
-          {bloco.lingua ? (
-            <span className={css.lingua}>{bloco.lingua}</span>
-          ) : null}
-          <code>{bloco.valor}</code>
-        </pre>
+        /*
+          O bloco ganhou CABEÇALHO — língua de um lado, copiar do outro.
+
+          ⚠ A língua era um selo flutuando sobre o canto do código, e ela
+          disputava lugar com a primeira linha. O design põe uma barra própria
+          acima: a língua deixa de cobrir texto, e "copiar" ganha um alvo de
+          verdade em vez de a pessoa selecionar o bloco à mão.
+
+          Copiar é REAL — `copiarTexto` já existe e é o mesmo caminho do
+          "Copiar texto" do menu da mensagem.
+        */
+        <div className={css.blocoPacote}>
+          <div className={css.blocoCabecalho}>
+            {/* Sem língua o espaço fica: a barra tem altura fixa, e um
+                cabeçalho que aparece e some mudaria a altura da linha
+                conforme o markdown — numa lista ancorada isso move a âncora. */}
+            <span className={css.lingua}>{bloco.lingua ?? ""}</span>
+            <button
+              type="button"
+              className={css.copiar}
+              onClick={() => void copiarTexto(bloco.valor, "Código")}
+            >
+              copiar
+            </button>
+          </div>
+
+          {/*
+            A rolagem horizontal vive no `pre`, e isso é a lei nº 3: a coluna
+            é `minmax(0, 1fr)`, e uma linha de 400 caracteres sem espaço
+            empurraria a trilha e estouraria o grid.
+          */}
+          <pre className={css.bloco}>
+            <code>{bloco.valor}</code>
+          </pre>
+        </div>
       );
 
     case "citacao":

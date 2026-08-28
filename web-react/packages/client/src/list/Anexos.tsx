@@ -1,8 +1,9 @@
-import { FileArrowDown } from "@phosphor-icons/react";
+import { DownloadSimple, FileArrowDown } from "@phosphor-icons/react";
 import type { CSSProperties } from "react";
 
 import type { AnexoSnapshot } from "../sdk/domain";
 import { administrar } from "../store/administracao";
+import { aindaNao } from "../pendente/pendencias";
 import css from "./Anexos.module.css";
 
 /**
@@ -28,6 +29,51 @@ export function Anexos({ anexos }: { anexos: readonly AnexoSnapshot[] }) {
   );
 }
 
+/**
+ * O rodapé do anexo: nome, tamanho e as duas ações.
+ *
+ * ⚠ **Era invisível.** A imagem aparecia sem nome e sem peso, e o design põe
+ * `densidades.png · 284 KB` embaixo de toda mídia — que é a informação que
+ * decide se vale a pena abrir em tela cheia ou baixar numa conexão ruim.
+ *
+ * O nome em monoespaçada porque é NOME DE ARQUIVO: o alinhamento de extensão
+ * ajuda a varrer uma conversa cheia de anexos, e é o mesmo argumento que põe
+ * ID e atalho em mono no resto do app.
+ */
+function RodapeDoAnexo({ anexo }: { anexo: AnexoSnapshot }) {
+  return (
+    <div className={css.rodape}>
+      <span className={css.identificacao}>
+        {anexo.nome}
+        {anexo.tamanhoTexto ? ` · ${anexo.tamanhoTexto}` : null}
+      </span>
+
+      <span className={css.acoes}>
+        {/* Desenhado sem implementação — ver `pendente/pendencias.ts`. O
+            protocolo tem `description` no anexo; ler e escrever ainda não. */}
+        <button
+          type="button"
+          className={css.acao}
+          onClick={aindaNao("textoAlternativo")}
+        >
+          alt
+        </button>
+
+        {/* Baixar é REAL: o anexo tem URL, e `download` com o nome do arquivo
+            é tudo o que o navegador precisa. */}
+        <a
+          className={css.acao}
+          href={anexo.url}
+          download={anexo.nome}
+          aria-label={`Baixar ${anexo.nome}`}
+        >
+          <DownloadSimple size={20} aria-hidden />
+        </a>
+      </span>
+    </div>
+  );
+}
+
 function Anexo({ anexo }: { anexo: AnexoSnapshot }) {
   if (anexo.tipo === "arquivo" || !anexo.largura || !anexo.altura) {
     return (
@@ -40,6 +86,17 @@ function Anexo({ anexo }: { anexo: AnexoSnapshot }) {
 
   return (
     /*
+      A mídia e o rodapé numa CAIXA só.
+
+      O rodapé precisa da mesma largura da mídia, e a mídia tem a largura
+      calculada a partir da proporção — envolver os dois é o que faz o rodapé
+      acompanhar sem repetir a conta.
+
+      `figure` e não `div`: é conteúdo com legenda, que é exatamente o que o
+      elemento nomeia.
+    */
+    <figure className={css.pacote}>
+      {/*
       A caixa vem do `aspect-ratio` E de uma largura definida.
 
       `max-inline-size` sozinho não bastava, e a primeira versão errou nisso:
@@ -49,8 +106,8 @@ function Anexo({ anexo }: { anexo: AnexoSnapshot }) {
 
       `--proporcao` vai junto porque é ela que permite calcular a largura em
       que a altura bate no teto, sem classificar imagem por formato.
-    */
-    <div
+      */}
+      <div
       className={css.midia}
       style={
         {
@@ -104,6 +161,9 @@ function Anexo({ anexo }: { anexo: AnexoSnapshot }) {
         />
         </button>
       )}
-    </div>
+      </div>
+
+      <RodapeDoAnexo anexo={anexo} />
+    </figure>
   );
 }

@@ -1,4 +1,4 @@
-import { PaperPlaneRight } from "@phosphor-icons/react";
+import { PaperPlaneRight, Plus } from "@phosphor-icons/react";
 import {
   useEffect,
   useRef,
@@ -6,6 +6,8 @@ import {
   type KeyboardEvent,
 } from "react";
 
+import { aindaNao } from "../pendente/pendencias";
+import { FerramentasDoComposer } from "./FerramentasDoComposer";
 import { Tooltip } from "../components/ui/Tooltip";
 import {
   ATRIBUTO_DE_COLUNA,
@@ -21,7 +23,7 @@ import {
   assinarResposta,
   cancelarResposta,
 } from "../store/resposta";
-import { useRascunho } from "../store/hooks";
+import { useChannel, useRascunho } from "../store/hooks";
 import { escreverRascunho, limparRascunho } from "../store/rascunhos";
 import css from "./Composer.module.css";
 import { BarraDeResposta } from "./BarraDeResposta";
@@ -52,6 +54,16 @@ const AVISAR_A_PARTIR_DE = LIMITE_DE_CONTEUDO * 0.9;
  */
 export function Composer({ channelId }: { channelId: string }) {
   const valor = useRascunho(channelId);
+  /*
+    O canal, só pelo modo lento.
+
+    Assinar o snapshot do canal aqui é barato de um jeito que não seria na
+    linha de mensagem: o composer é UM componente, não dez mil. O snapshot
+    republica a cada não-lida, e um re-render do composer por mensagem nova é
+    invisível — a `textarea` não perde o cursor porque o valor mora no store.
+  */
+  const canal = useChannel(channelId);
+  const modoLento = canal?.modoLento ?? 0;
 
   const excedido = valor.length > LIMITE_DE_CONTEUDO;
   /*
@@ -191,86 +203,159 @@ export function Composer({ channelId }: { channelId: string }) {
           />
         ) : null}
 
-        <div className="flex items-end gap-2">
-          <div
-            className={cn(css.campo, "flex-1")}
-            data-excedido={String(excedido)}
-          >
-            {/*
-              A réplica invisível é quem dita a altura da célula do grid. Fica
-              antes da textarea na ordem do DOM porque é conteúdo de layout,
-              não de leitura — e `aria-hidden` a mantém fora da árvore de
-              acessibilidade.
+        {/*
+          A CAIXA, e ela contém tudo — é a estrutura do design.
 
-              O espaço no fim não é sobra: sem ele, um texto terminado em
-              quebra de linha não gera a última linha, e o campo fica uma
-              linha atrás do cursor.
+          Anexar, o campo, as ferramentas e a faixa de rodapé moram dentro da
+          mesma borda. A versão anterior tinha anexar e enviar fora dela, e a
+          diferença não é estética: com tudo dentro, o anel de foco de
+          `:focus-within` cobre a superfície inteira que a pessoa está usando,
+          em vez de acender só a caixa de texto enquanto o cursor está num
+          botão vizinho.
+        */}
+        <div className={cn(css.campo, "flex-1")} data-excedido={String(excedido)}>
+          <div className={css.linha}>
+            {/*
+              Anexar, na borda de INÍCIO — a posição é do design, e a razão é
+              semântica: é a única ação que abre um seletor do SISTEMA. O que
+              vem de fora entra por um lado; o que se compõe aqui dentro
+              (emoji, GIF, figurinha) fica do outro.
             */}
-            <div aria-hidden className={css.replica}>
-              {valor + " "}
+            <Tooltip texto="Anexar arquivo">
+              <button
+                type="button"
+                className={css.anexar}
+                aria-label="Anexar arquivo"
+                disabled={!temPermissao}
+                onClick={aindaNao("anexar")}
+              >
+                <Plus size={20} aria-hidden />
+              </button>
+            </Tooltip>
+
+            <div className={css.pilha}>
+              {/*
+                A réplica invisível é quem dita a altura da célula do grid. Fica
+                antes da textarea na ordem do DOM porque é conteúdo de layout,
+                não de leitura — e `aria-hidden` a mantém fora da árvore de
+                acessibilidade.
+
+                O espaço no fim não é sobra: sem ele, um texto terminado em
+                quebra de linha não gera a última linha, e o campo fica uma
+                linha atrás do cursor.
+              */}
+              <div aria-hidden className={css.replica}>
+                {valor + " "}
+              </div>
+
+              <textarea
+                ref={entradaRef}
+                className={css.entrada}
+                value={valor}
+                onChange={(evento) => alterar(evento.target.value)}
+                onKeyDown={aoTeclar}
+                onBlur={() => digitacao.aoParar(channelId)}
+                rows={1}
+                aria-label="Mensagem"
+                /*
+                  Sem permissão o campo é DESLIGADO e diz por quê.
+
+                  Deixá-lo aceitando texto que nunca vai sair seria a pior das
+                  versões: a pessoa escreve, aperta Enter e nada acontece. Campo
+                  desligado com um rótulo que explica é a resposta — o oitavo dos
+                  oito estados, e o único que não existia nesta superfície.
+                */
+                disabled={!temPermissao}
+                placeholder={
+                  temPermissao
+                    ? "Escreva uma mensagem…"
+                    : "Você não pode escrever neste canal"
+                }
+              />
             </div>
 
-            <textarea
-              ref={entradaRef}
-              className={css.entrada}
-              value={valor}
-              onChange={(evento) => alterar(evento.target.value)}
-              onKeyDown={aoTeclar}
-              onBlur={() => digitacao.aoParar(channelId)}
-              rows={1}
-              aria-label="Mensagem"
-              /*
-                Sem permissão o campo é DESLIGADO e diz por quê.
+            <FerramentasDoComposer desabilitado={!temPermissao} />
 
-                Deixá-lo aceitando texto que nunca vai sair seria a pior das
-                versões: a pessoa escreve, aperta Enter e nada acontece. Campo
-                desligado com um rótulo que explica é a resposta — o oitavo dos
-                oito estados, e o único que não existia nesta superfície.
-              */
-              disabled={!temPermissao}
-              placeholder={
-                temPermissao
-                  ? "Escreva uma mensagem…"
-                  : "Você não pode escrever neste canal"
-              }
-            />
+            {/*
+              ⚠ **O botão de enviar NÃO está no design, e fica mesmo assim.**
+
+              A composição do design assume Enter — a faixa de rodapé dele diz
+              "shift + ↵ nova linha" e não há alvo de envio. Manter o botão é a
+              única divergência 1:1 desta superfície, e é deliberada: sem ele
+              não existe afordância de PONTEIRO nem de TOQUE para enviar, e
+              enviar é a ação mais frequente do app inteiro.
+
+              Diga se prefere sem — é uma linha.
+            */}
+            <Tooltip texto="Enviar · Enter">
+              <button
+                type="button"
+                onClick={enviar}
+                disabled={!podeEnviar}
+                aria-label="Enviar mensagem"
+                className={css.enviar}
+              >
+                <PaperPlaneRight size={20} aria-hidden />
+              </button>
+            </Tooltip>
           </div>
 
-          <Tooltip texto="Enviar · Enter">
-            <button
-              type="button"
-              onClick={enviar}
-              disabled={!podeEnviar}
-              aria-label="Enviar mensagem"
-              className={cn(
-                "flex items-center gap-2 rounded-2 px-3 py-2 anim-fast",
-                "bg-accent text-on-accent hover:bg-accent-hover",
-                "disabled:bg-surface-3 disabled:text-text-3",
-              )}
-            >
-              <PaperPlaneRight size={20} aria-hidden />
-            </button>
-          </Tooltip>
-        </div>
+          {/*
+            A faixa de rodapé, DENTRO da caixa e separada por uma régua.
 
-        <div className="mt-1 flex items-center justify-between gap-3">
-          <span className={css.dica}>
-            Enter envia · Shift+Enter quebra linha
-          </span>
+            É uma das poucas separações que ainda merecem linha: os dois blocos
+            correm no mesmo eixo dentro de uma superfície só, e o espaço
+            sozinho não os separaria do texto acima.
+          */}
+          <div className={css.faixa}>
+            {/*
+              ESTADO à esquerda, ATALHO à direita — a divisão é do design.
 
-          {/* Contagem só perto do limite: um contador permanente é ruído em
-              99% das mensagens, e some justamente quando começa a importar. */}
-          {valor.length >= AVISAR_A_PARTIR_DE ? (
-            <span
-              role="status"
-              className={cn(
-                "text-xs",
-                excedido ? "text-danger" : "text-text-3",
-              )}
-            >
-              {valor.length} / {LIMITE_DE_CONTEUDO}
+              A versão anterior tinha "Enter envia · Shift+Enter quebra linha"
+              aqui e o mesmo atalho do outro lado: as duas pontas dizendo a
+              mesma coisa. O design põe estado do canal e do rascunho de um
+              lado, e a tecla do outro.
+
+              "Rascunho salvo" só quando há rascunho, e é verdade — o texto
+              vive no store keyed por canal desde a fase 3, e sobrevive a
+              trocar de canal e voltar. Um aviso permanente seria ruído; um
+              aviso que aparece quando há o que perder é informação.
+            */}
+            {/*
+              "Modo lento · 30 s" e "Rascunho salvo", nesta ordem — a do design.
+
+              ⚠ **O modo lento é DITO, não aplicado.** Quem conta o intervalo é
+              o servidor; um cliente que trave por conta própria erra nos dois
+              sentidos — o relógio local diverge do de lá, e recarregar a
+              página zeraria o contador. O valor da linha é a pessoa saber por
+              que a segunda mensagem foi recusada, e isso ela sabe lendo.
+
+              `<span>` vazio quando não há nada a dizer, e não ausência: a
+              faixa é `space-between`, e sem o primeiro filho o atalho pularia
+              para a esquerda quando o rascunho esvaziasse.
+            */}
+            <span className={css.estado}>
+              {modoLento > 0 ? (
+                <span className={css.dica}>Modo lento · {modoLento} s</span>
+              ) : null}
+              <span className={css.dica}>
+                {valor.length > 0 ? "Rascunho salvo" : null}
+              </span>
             </span>
-          ) : null}
+
+            {/* Contagem só perto do limite: um contador permanente é ruído em
+                99% das mensagens, e some justamente quando começa a importar. */}
+            {valor.length >= AVISAR_A_PARTIR_DE ? (
+              <span
+                role="status"
+                className={cn("text-xs", excedido ? "text-danger" : "text-text-3")}
+              >
+                {valor.length} / {LIMITE_DE_CONTEUDO}
+              </span>
+            ) : (
+              <span className={css.atalho}>shift + ↵ nova linha</span>
+            )}
+          </div>
         </div>
         </div>
       </div>

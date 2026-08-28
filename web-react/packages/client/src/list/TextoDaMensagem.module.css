@@ -94,13 +94,63 @@
   `min-inline-size: 0` porque o `pre` também é filho de um contexto flexível, e
   a mesma regra vale um nível abaixo.
 */
-.bloco {
-  position: relative;
+/* ============================================================
+   Bloco de código — pacote, cabeçalho e corpo
+   ------------------------------------------------------------
+   ⚠ A língua era um selo ABSOLUTO no canto do bloco, cobrindo a
+   primeira linha do código. O design lhe dá uma barra própria
+   acima, com "copiar" do outro lado — e aí a língua deixa de
+   disputar espaço e o copiar ganha um alvo em vez de a pessoa
+   selecionar o bloco à mão.
+   ============================================================ */
+
+.blocoPacote {
   margin-block: var(--vx-space-2);
-  padding: var(--vx-space-3);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-3);
   background: var(--vx-surface-3);
+  overflow: hidden;
+}
+
+.blocoPacote:first-child {
+  margin-block-start: 0;
+}
+
+.blocoCabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-2);
+  padding-inline: var(--vx-space-3);
+  padding-block: var(--vx-space-1);
+  border-block-end: 1px solid var(--vx-border-subtle);
+  color: var(--vx-text-3);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+}
+
+.copiar {
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  transition: color var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.copiar:hover {
+  color: var(--vx-text-1);
+}
+
+.copiar:focus-visible {
+  outline-offset: 1px;
+}
+
+.bloco {
+  margin: 0;
+  padding: var(--vx-space-3);
   font-family: var(--vx-font-mono);
   font-size: var(--vx-size-sm);
   line-height: var(--vx-leading-message);
@@ -115,10 +165,6 @@
   tab-size: 2;
 }
 
-.bloco:first-child {
-  margin-block-start: 0;
-}
-
 /*
   A linguagem declarada pelo autor.
 
@@ -126,15 +172,19 @@
   pipeline, e ele entra atrás de import dinâmico e não no bundle inicial.
   Posicionada fora do fluxo para não empurrar a primeira linha do código.
 */
+/*
+  A língua, agora no cabeçalho.
+
+  A caixa fica mesmo sem língua — a barra tem altura fixa, e um cabeçalho que
+  aparece e some mudaria a altura da linha conforme o markdown. Numa lista
+  ancorada isso move a âncora por causa de metadado.
+*/
 .lingua {
-  position: absolute;
-  inset-block-start: var(--vx-space-1);
-  inset-inline-end: var(--vx-space-2);
-  font-family: var(--vx-font-ui);
-  font-size: var(--vx-size-xs);
-  color: var(--vx-text-3);
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   user-select: none;
-  pointer-events: none;
 }
 
 /*
