@@ -1,46 +1,18 @@
 /**
- * A paleta está aberta?
+ * O atalho que abre a paleta de comandos.
  *
- * Store module-level, não estado de componente. A razão é a mesma do toast na
- * fase 2: **quem abre a paleta é um atalho de TECLADO no `document`**, e um
- * listener global não está dentro de árvore de componente nenhuma.
+ * ⚠ **Este arquivo já foi o store da paleta e deixou de ser.** O estado
+ * "aberta ou não" mora agora em `store/modais.ts`, junto com o de todo modal —
+ * a paleta foi só o primeiro, e o plano de paridade abre dezenas. Manter um
+ * store por overlay daria cinquenta e nove stores e cinquenta e nove
+ * condicionais no `App`.
  *
- * A alternativa seria um `useState` no App com um `useEffect` registrando o
- * listener — e aí o App re-renderiza a cada abertura, levando junto tudo o que
- * ele monta. É a lei nº 1 num lugar que não parece lista.
+ * O que sobra aqui é o que é REALMENTE da paleta: a tecla. Ela continua
+ * module-level pela razão de sempre — um listener de `document` não está
+ * dentro de árvore de componente nenhuma, e prendê-lo a uma faria o `App`
+ * re-renderizar a cada abertura, levando junto tudo o que ele monta.
  */
-
-type Ouvinte = () => void;
-
-let aberta = false;
-const ouvintes = new Set<Ouvinte>();
-
-function avisar(): void {
-  for (const ouvinte of ouvintes) ouvinte();
-}
-
-export function paletaAberta(): boolean {
-  return aberta;
-}
-
-export function abrirPaleta(): void {
-  if (aberta) return;
-  aberta = true;
-  avisar();
-}
-
-export function fecharPaleta(): void {
-  if (!aberta) return;
-  aberta = false;
-  avisar();
-}
-
-export function assinarPaleta(ouvinte: Ouvinte): () => void {
-  ouvintes.add(ouvinte);
-  return () => {
-    ouvintes.delete(ouvinte);
-  };
-}
+import { abrirModal, fecharModal, lerModal } from "./modais";
 
 /**
  * O atalho global. Registrado UMA vez, no módulo, não por componente.
@@ -70,7 +42,18 @@ export function ligarAtalhoDaPaleta(): void {
 
     // Alterna: apertar de novo fecha. É o que a mão espera de um atalho que
     // abre algo — e evita o estado de "apertei duas vezes e não sei se abriu".
-    if (aberta) fecharPaleta();
-    else abrirPaleta();
+    if (lerModal() === "paleta") fecharModal();
+    else abrirModal("paleta");
   });
+}
+
+/**
+ * Abre a paleta. Existe para o botão do cabeçalho da lista de canais.
+ *
+ * O botão é o que torna o recurso descobrível e alcançável por TOQUE — a tecla
+ * sozinha deixava a paleta invisível para quem não a conhece, e inacessível
+ * onde não há teclado.
+ */
+export function abrirPaleta(): void {
+  abrirModal("paleta");
 }

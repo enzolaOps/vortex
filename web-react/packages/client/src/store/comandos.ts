@@ -98,9 +98,26 @@ export function ouvirFocoNoComposer(
  */
 const saltadores = new Map<string, Set<(messageId: string) => void>>();
 
+/**
+ * O salto que chegou antes de haver lista, guardado.
+ *
+ * "Sem ouvinte é no-op" era a regra certa enquanto todo pedido nascia de um
+ * clique — se ninguém ouve, ninguém pediu. **O permalink quebra essa
+ * premissa:** abrir `/servidor/A/canal/B/01MENSAGEM` pede o salto no momento
+ * em que a rota é lida, e a lista daquele canal ainda nem montou. Sem esta
+ * gaveta o link abriria o canal certo na posição errada, sem erro nenhum.
+ *
+ * Um por canal, e o último ganha: dois pedidos antes de a lista existir
+ * significam que a pessoa trocou de ideia.
+ */
+const pendentes = new Map<string, string>();
+
 export function pedirIrParaMensagem(channelId: string, messageId: string): void {
   const set = saltadores.get(channelId);
-  if (!set) return;
+  if (!set || set.size === 0) {
+    pendentes.set(channelId, messageId);
+    return;
+  }
   for (const ouvinte of set) ouvinte(messageId);
 }
 
@@ -114,6 +131,15 @@ export function ouvirIrParaMensagem(
     saltadores.set(channelId, set);
   }
   set.add(ouvinte);
+
+  // Chegou alguém para ouvir o que já tinha sido pedido. Consome e esquece —
+  // guardar depois de entregue faria o salto repetir a cada remontagem da
+  // lista, e trocar de canal e voltar remonta.
+  const guardado = pendentes.get(channelId);
+  if (guardado !== undefined) {
+    pendentes.delete(channelId);
+    ouvinte(guardado);
+  }
 
   return () => {
     const atual = saltadores.get(channelId);
