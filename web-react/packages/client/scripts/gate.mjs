@@ -123,6 +123,27 @@ const av = async (expr, ms = 300_000) => {
 
 await enviar("Page.enable", {}, sessionId);
 await enviar("Page.navigate", { url: URL_APP }, sessionId);
+await dorme(1200);
+
+/*
+  O gate entra com SESSÃO, não com um botão.
+
+  O portão da fase 6 vem antes do shell — sem alguém logado não há canal, autor
+  nem permissão —, e a barra de ferramentas do arnês vive dentro do shell. Sem
+  isto o gate estourava procurando uma caixa de seleção numa tela de login.
+
+  E não dá para usar o botão de desenvolvimento: ele não existe no bundle de
+  produção, que é justamente o que o gate mede. O caminho honesto é escrever no
+  armazenamento a mesma sessão que uma pessoa logada teria, e deixar
+  `restaurarSessao` fazer o trabalho dela. Simula o ESTADO, não fura o portão.
+
+  O ID é o mesmo "eu" do firehose — sem isso o composer não teria autor e a
+  mensagem otimista nasceria sem cabeçalho.
+*/
+await av(`localStorage.setItem('vortex.sessao', JSON.stringify({
+  _id: 'gate', token: 'gate', user_id: '01JQ0000000000000001000000'
+})), 1`);
+await enviar("Page.navigate", { url: URL_APP }, sessionId);
 await dorme(2500);
 
 // Cadência de frame ANTES de qualquer medição: se o ambiente não entrega
@@ -187,6 +208,40 @@ r({
 })}},1000)})`,
   400_000,
 );
+
+/*
+  A corrida entregou a carga que anunciou?
+
+  Este é o detector de máquina disputada, e ele veio depois de eu construir o
+  errado — DUAS vezes, e a segunda foi restaurar a primeira sem perceber. A
+  tentativa que insiste em voltar exige que 85% dos frames EM REPOUSO caiam num
+  intervalo único: premissa boa para display real e FALSA para headless, que
+  não tem display e não compõe frame quando nada muda. Numa máquina a 23% de
+  carga ela reprovou três corridas seguidas, com a mediana ociosa em exatamente
+  2× o vsync — que é o comportamento normal de uma página parada.
+
+  A vazão é o sinal honesto porque mede TRABALHO FIXO: o gerador tem uma
+  quantidade determinada de eventos para despejar, e quanto disso ele entregou
+  na janela é medida direta de quanta CPU sobrou para o app.
+
+  O piso de 90% saiu dos dados: máquina limpa dá 93–98%, sob um jogo em cinco
+  núcleos deu 83–87%, e o corte cai no vão entre os dois grupos.
+*/
+const mVazao = String(relatorio.contadores).match(/vazão (\d+) ev\/s de (\d+)/);
+if (mVazao) {
+  const entregue = Number(mVazao[1]);
+  const pedida = Number(mVazao[2]);
+  if (entregue / pedida < 0.9) {
+    console.log(
+      `\nCORRIDA INVÁLIDA — o gerador entregou ${entregue} de ${pedida} ev/s ` +
+        `(${Math.round((entregue / pedida) * 100)}%). O app foi medido sob ` +
+        `menos carga do que o gate afirma cobrar, então nem PASS nem FAIL valem.`,
+    );
+    ws.close();
+    chrome.kill();
+    process.exit(1);
+  }
+}
 
 console.log("\n===== RESULTADO =====");
 for (const [k, v] of Object.entries(relatorio)) if (v) console.log(`${k}: ${v}`);

@@ -85,9 +85,24 @@ describe("estado do modo", () => {
 
   it("temMudanca só é verdade quando algo mudou", () => {
     entrar();
-    expect(temMudanca()).toBe(false);
+    expect(temMudanca(lerLayout(), lerBruto())).toBe(false);
     definirSlot("b", { largura: 400 });
-    expect(temMudanca()).toBe(true);
+    expect(temMudanca(lerLayout(), lerBruto())).toBe(true);
+  });
+
+  /*
+    O bruto conta como mudança.
+
+    Um preset de versão futura chega com chaves que este código não entende;
+    elas vivem no bruto e são preservadas. Se só o bruto mudar, o botão precisa
+    dizer "descartar" do mesmo jeito — senão a interface promete não perder
+    nada e perde exatamente o que ela não sabe nomear.
+  */
+  it("temMudanca vê o bruto, não só o preset", () => {
+    entrar();
+    expect(temMudanca(lerLayout(), lerBruto())).toBe(false);
+    aplicarPreset(lerLayout(), { versaoFutura: 1 });
+    expect(temMudanca(lerLayout(), lerBruto())).toBe(true);
   });
 
   it("lerEdicao devolve primitivo — sem armadilha de referência", () => {

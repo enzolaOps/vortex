@@ -16,7 +16,7 @@
  * `stoat.js`. O lint de boundary garante isso.
  */
 import { createEffect, createRoot, createSignal } from "solid-js";
-import { monotonicFactory } from "ulid";
+import { decodeTime, monotonicFactory } from "ulid";
 import { VoiceParticipant } from "stoat.js";
 /**
  * `ReactiveSet` do SDK, construído aqui.
@@ -59,6 +59,7 @@ import {
   type SecaoDeMembros,
   type MessageSnapshot,
   type PresenceStatus,
+  type RelacaoSnapshot,
   type SendState,
   type ServerSnapshot,
 } from "./domain";
@@ -67,6 +68,7 @@ import { criarNotificadorDeDigitacao } from "./digitando";
 import {
   ehCanalDeVoz,
   toChannelSnapshot,
+  toRelacaoSnapshot,
   toMemberSnapshot,
   toMessageSnapshot,
   toPresence,
@@ -379,7 +381,9 @@ export function alternarReacao(messageId: string, emoji: string): void {
 
   const quem = message.reactions.get(emoji);
 
-  if (quem?.has(usuarioLocal)) {
+  const tinha = quem?.has(usuarioLocal) === true;
+
+  if (quem && tinha) {
     quem.delete(usuarioLocal);
     // Set vazio é removido: o `map.ts` já pula emoji sem ninguém, mas deixar a
     // chave viva faria a ORDEM dos chips guardar um fantasma — reagir de novo
@@ -389,6 +393,76 @@ export function alternarReacao(messageId: string, emoji: string): void {
     quem.add(usuarioLocal);
   } else {
     message.reactions.set(emoji, new ReactiveSet([usuarioLocal]));
+  }
+
+  /*
+    ⚠ **A rede, que até a etapa 7 não existia.**
+
+    A mutação acima continua sendo otimista e imediata — é o que faz o chip
+    acender no clique, sem esperar ida e volta. O que faltava era CONTAR ao
+    servidor: até aqui a reação vivia só nesta aba, e sumia no F5.
+
+    Fire-and-forget atrás de `conectado()` pela mesma razão de `ack` e
+    `startTyping`: `EventClient.send` LANÇA sem socket, e uma reação não pode
+    derrubar o clique.
+
+    Reverter em caso de erro seria o correto, e não é o que está aqui: o
+    servidor reenvia o estado no próximo evento da mensagem, e um rollback
+    otimista que corre contra esse evento produz o chip piscando duas vezes.
+    Fica dito.
+  */
+  if (!conectado()) return;
+  const alvo = client.messages.get(idDoSdk(messageId));
+  if (tinha) void alvo?.unreact(emoji).catch(() => undefined);
+  else void alvo?.react(emoji).catch(() => undefined);
+}
+
+/**
+ * Edita o conteúdo de uma mensagem.
+ *
+ * ⚠ **`Editar` foi item INERTE no menu por três fases**, e saiu de lá por isso
+ * — item que aparece, recebe foco e não faz nada ensina a pessoa a não
+ * confiar no menu inteiro. Volta com `Message.edit()` por trás.
+ *
+ * Otimista: o texto novo entra na hora e `editedAt` também, senão a linha
+ * ficaria idêntica até a resposta voltar e a pessoa apertaria salvar de novo.
+ */
+export async function editarMensagem(
+  messageId: string,
+  conteudo: string,
+): Promise<boolean> {
+  const alvo = client.messages.get(idDoSdk(messageId));
+  if (!alvo) return false;
+
+  client.messages.updateUnderlyingObject(messageId, {
+    content: conteudo,
+    edited: new Date().toISOString(),
+  } as never);
+
+  if (!conectado()) return true;
+  try {
+    await alvo.edit({ content: conteudo });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Apaga.
+ *
+ * NÃO é otimista, ao contrário de editar e reagir: apagar é irreversível, e
+ * sumir com a linha antes da confirmação deixaria a pessoa achando que
+ * conseguiu quando o servidor recusou. A linha some quando o evento chega.
+ */
+export async function apagarMensagem(messageId: string): Promise<boolean> {
+  const alvo = client.messages.get(idDoSdk(messageId));
+  if (!alvo) return false;
+  try {
+    await alvo.delete();
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -561,11 +635,18 @@ export function alternarFixada(messageId: string): void {
   // `updateUnderlyingObject` e não um campo nosso: `pinned` é do PROTOCOLO, e
   // manter a verdade lá é o que faz o evento de outra pessoa e a nossa ação
   // otimista chegarem no mesmo lugar.
+  const fixando = !message.pinned;
   client.messages.updateUnderlyingObject(messageId, {
-    pinned: !message.pinned,
+    pinned: fixando,
   } as never);
 
   publicarFixadas(message.channelId);
+
+  // A rede, como na reação: otimista na tela, contado ao servidor depois.
+  if (!conectado()) return;
+  const alvo = client.messages.get(idDoSdk(messageId));
+  if (fixando) void alvo?.pin().catch(() => undefined);
+  else void alvo?.unpin().catch(() => undefined);
 }
 
 /** Publicação imediata, para setup — não há frame para esperar. */
@@ -686,6 +767,17 @@ export function startAdapter() {
   client.on("serverMemberUpdate", repensarPermissoes);
 
   client.on("ready", () => {
+    /*
+      A casa nasce pronta no `Ready`.
+
+      As conversas chegam no payload de abertura, não por evento: o protocolo
+      entrega DMs e grupos junto com o resto. Sem isto a coluna abriria vazia e
+      só se preencheria na primeira mensagem nova de cada conversa — que é o
+      mesmo defeito que a semeadura de não-lidas veio consertar.
+    */
+    publicarConversas();
+    publicarRelacoes();
+
     for (const unread of client.channelUnreads.toList()) {
       const channelId = unread.id;
       // `ReactiveSet`, não array: o SDK expõe o conjunto do protocolo como
@@ -773,6 +865,17 @@ export function startAdapter() {
     // A member list só reordena se o BALDE mudou — online↔idle↔dnd não move
     // ninguém, e é a esmagadora maioria destes eventos.
     atualizarBalde(user.id, status);
+
+    /*
+      A RELAÇÃO muda por evento humano — pedido aceito, pessoa bloqueada —, e é
+      raro. Republicar as abas aqui é seguro; republicar por presença não seria,
+      e é por isso que a comparação existe: `userUpdate` chega centenas de vezes
+      por segundo num servidor grande, e quase sempre só a presença mudou.
+    */
+    const antes = pessoas.peek(user.id)?.relacao;
+    if (antes !== undefined && antes !== toRelacaoSnapshot(user).relacao) {
+      publicarRelacoes();
+    }
   });
 
   client.on("serverCreate", (server) => {
@@ -785,7 +888,11 @@ export function startAdapter() {
 
   client.on("channelCreate", (channel) => {
     const serverId = channel.serverId;
-    if (!serverId) return;
+    // Conversa não tem servidor: ela entra na coluna da casa, não na de canais.
+    if (!serverId) {
+      publicarConversas();
+      return;
+    }
     const ids = canaisPorServidor.get(serverId) ?? [];
     if (ids.includes(channel.id)) return;
     ids.push(channel.id);
@@ -795,7 +902,10 @@ export function startAdapter() {
 
   client.on("channelDelete", (channel) => {
     const serverId = channel.serverId;
-    if (!serverId) return;
+    if (!serverId) {
+      publicarConversas();
+      return;
+    }
     const ids = canaisPorServidor.get(serverId);
     const at = ids?.indexOf(channel.id) ?? -1;
     if (!ids || at === -1) return;
@@ -897,6 +1007,18 @@ export function prependHistory(channelId: string, antigas: readonly string[]) {
  * é bug difícil de ver — a linha renderiza, só fica sem cabeçalho.
  */
 let usuarioLocal: string | undefined;
+
+/**
+ * Quem sou eu, para a interface.
+ *
+ * Lido daqui e não de `client.user`: o arnês define o usuário local sem que
+ * exista sessão, e o menu de mensagem precisa saber de quem é a mensagem para
+ * decidir se "Editar" aparece. Perguntar ao SDK devolveria `undefined` em todo
+ * o desenvolvimento.
+ */
+export function usuarioLocalId(): string | undefined {
+  return usuarioLocal;
+}
 
 export function definirUsuarioLocal(id: string): void {
   usuarioLocal = id;
@@ -1184,6 +1306,92 @@ export const vozPorCanal = createEntityStore<readonly ParticipanteDeVoz[]>(
 export const canaisDeTexto = createEntityStore<readonly string[]>();
 export const canaisDeVoz = createEntityStore<readonly string[]>();
 
+/**
+ * As conversas — DMs, grupos e as notas.
+ *
+ * Uma lista só, keyed por `RAIZ`, e não uma por tipo: a coluna da casa mostra
+ * as três misturadas e ordenadas por recência, que é como uma caixa de entrada
+ * funciona. Separá-las em três seções faria a conversa de ontem ficar abaixo de
+ * um grupo morto só porque grupo é outro tipo.
+ *
+ * Ordenada na ESCRITA, como os baldes de presença: a coluna recebe a ordem
+ * pronta e não chama `sort` no render. `ultimaEm` vem do ULID da última
+ * mensagem — o protocolo não tem campo de última atividade.
+ */
+export const conversas = createEntityStore<readonly string[]>();
+
+/**
+ * As pessoas, agrupadas pela relação.
+ *
+ * Keyed pela própria relação (`amigo`, `recebido`, …) e não por `RAIZ` com um
+ * objeto dentro: a tela de amigos tem abas, cada aba assina a sua, e trocar de
+ * aba não pode acordar as outras três. É a lei nº 1 aplicada a uma tela que
+ * ainda nem é lista longa — mas que vira, em conta antiga.
+ */
+export const relacoes = createEntityStore<readonly string[]>();
+
+/** Uma pessoa, para as telas que falam de gente e não de membro de servidor. */
+export const pessoas = createEntityStore<RelacaoSnapshot>((id) => {
+  const inicial = client.users.get(id);
+  if (inicial) pessoas.set(id, toRelacaoSnapshot(inicial));
+
+  return createRoot((dispose) => {
+    createEffect(() => {
+      const u = client.users.get(id);
+      if (u) pessoas.set(id, toRelacaoSnapshot(u));
+    });
+    return dispose;
+  });
+});
+
+/**
+ * Republica a coluna da casa e as abas de amigos.
+ *
+ * Varredura sobre todas as conversas e todas as pessoas — cara, e por isso
+ * chamada em EVENTO (conversa criada, relação mudou), nunca por mensagem. Uma
+ * mensagem só reordena; e reordenar a cada uma das 500 por segundo do firehose
+ * seria O(n log n) no caminho mais quente do app.
+ *
+ * A reordenação por recência acontece quando a pessoa ABRE a casa, que é o
+ * único momento em que ela é observável — ver `publicarConversas`.
+ */
+export function publicarConversas(): void {
+  const lista: { id: string; em: number }[] = [];
+  for (const canal of client.channels.toList()) {
+    const t = canal.type;
+    if (t !== "DirectMessage" && t !== "Group" && t !== "SavedMessages") continue;
+    const ultimo = canal.lastMessageId;
+    lista.push({ id: canal.id, em: ultimo ? decodeTime(ultimo) : 0 });
+  }
+  // Mais recente primeiro; empate pelo ID, que é estável e cronológico.
+  lista.sort((a, b) => b.em - a.em || b.id.localeCompare(a.id));
+  conversas.set(RAIZ, lista.map((c) => c.id));
+}
+
+export function publicarRelacoes(): void {
+  const baldes: Record<string, string[]> = {
+    amigo: [],
+    recebido: [],
+    enviado: [],
+    bloqueado: [],
+  };
+  for (const u of client.users.toList()) {
+    const r = toRelacaoSnapshot(u);
+    baldes[r.relacao]?.push(u.id);
+  }
+  for (const chave of Object.keys(baldes)) {
+    const ids = baldes[chave]!;
+    // Ordem alfabética: a tela de amigos é lida procurando um nome, não
+    // acompanhando o que mudou.
+    ids.sort((a, b) => {
+      const na = pessoas.peek(a)?.displayName ?? a;
+      const nb = pessoas.peek(b)?.displayName ?? b;
+      return na.localeCompare(nb);
+    });
+    relacoes.set(chave, ids);
+  }
+}
+
 /* ------------------------------------------------------------- não-lidas */
 
 type Contagem = { naoLidas: number; mencoes: number };
@@ -1414,7 +1622,7 @@ function reemitirCanal(channelId: string): void {
   const canal = client.channels.get(channelId);
   if (!canal) return;
   const c = contagemDe(contagemPorCanal, channelId);
-  channels.set(channelId, toChannelSnapshot(canal, c.naoLidas, c.mencoes));
+  channels.set(channelId, toChannelSnapshot(canal, c.naoLidas, c.mencoes, usuarioLocal));
 }
 
 function reemitirServidor(serverId: string): void {
@@ -1447,7 +1655,7 @@ export const channels = createEntityStore<ChannelSnapshot>((id) => {
   const inicial = client.channels.get(id);
   if (inicial) {
     const c = contagemDe(contagemPorCanal, id);
-    channels.set(id, toChannelSnapshot(inicial, c.naoLidas, c.mencoes));
+    channels.set(id, toChannelSnapshot(inicial, c.naoLidas, c.mencoes, usuarioLocal));
   }
 
   return createRoot((dispose) => {
@@ -1455,7 +1663,7 @@ export const channels = createEntityStore<ChannelSnapshot>((id) => {
       const canal = client.channels.get(id);
       if (!canal) return;
       const c = contagemDe(contagemPorCanal, id);
-      channels.set(id, toChannelSnapshot(canal, c.naoLidas, c.mencoes));
+      channels.set(id, toChannelSnapshot(canal, c.naoLidas, c.mencoes, usuarioLocal));
     });
     return dispose;
   });
@@ -1514,6 +1722,17 @@ const canaisPorServidor = new Map<string, string[]>();
  * enfileirar num rAF só adiaria um frame o que já é barato, e esconderia o
  * efeito de quem estivesse depurando.
  */
+/**
+ * Republica as colunas de um servidor. Exportado para as escritas.
+ *
+ * Criar e apagar canal chegam por evento quando há servidor; sem ele — e no
+ * arnês — o caminho de escrita precisa empurrar a mesma publicação, senão a
+ * coluna só muda no F5.
+ */
+export function publicarCanaisDe(serverId: string): void {
+  publicarCanais(serverId);
+}
+
 function publicarCanais(serverId: string): void {
   const ids = canaisPorServidor.get(serverId) ?? [];
   const texto: string[] = [];

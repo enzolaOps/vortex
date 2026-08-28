@@ -13,11 +13,29 @@
 
 export type TipoDeToast = "info" | "erro";
 
+/**
+ * A saída que o toast oferece.
+ *
+ * Existe para desfazer: quando a ação já aconteceu e reverter é barato, um
+ * botão aqui é melhor que uma confirmação antes — a confirmação cobra de todo
+ * mundo, sempre, para proteger o caso raro de arrependimento.
+ *
+ * `rotulo` é o que se lê no botão; `descricaoAlternativa` é o que o Radix
+ * exige para quem não vê o toast, e precisa dizer como fazer a mesma coisa sem
+ * ele. Toast some; instrução tem que sobreviver a isso.
+ */
+export type AcaoDeToast = {
+  readonly rotulo: string;
+  readonly descricaoAlternativa: string;
+  readonly aoAtivar: () => void;
+};
+
 export type Toast = {
   readonly id: string;
   readonly titulo: string;
   readonly descricao?: string;
   readonly tipo: TipoDeToast;
+  readonly acao?: AcaoDeToast;
 };
 
 const VAZIO: readonly Toast[] = [];

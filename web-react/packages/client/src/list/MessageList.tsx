@@ -7,7 +7,13 @@ import {
   ContextMenu,
   ContextMenuTrigger,
 } from "../components/ui/ContextMenu";
+import { ID_DO_NOME_DO_CANAL } from "../canais/CabecalhoDeCanal";
 import { definirAlvoDoMenu } from "../store/menuDeMensagem";
+import {
+  lerFocoDeMensagem,
+  limparFocoDeMensagem,
+  moverFocoDeMensagem,
+} from "../store/focoDeMensagem";
 import { count, readCounters } from "../dev/stats";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import {
@@ -21,7 +27,7 @@ import {
   proximaMencao,
   temMencao,
 } from "../sdk/adapter";
-import type { AnexoSnapshot } from "../sdk/domain";
+import type { AnexoSnapshot, BlocoDeMensagem } from "../sdk/domain";
 import { useChannelMessageIds } from "../store/hooks";
 import css from "./MessageList.module.css";
 import { MenuDaMensagem, MessageRow } from "./MessageRow";
@@ -166,6 +172,56 @@ function alturaDeAnexos(anexos: readonly AnexoSnapshot[]): number {
   return Math.round(total);
 }
 
+/**
+ * A altura que os blocos de markdown acrescentam.
+ *
+ * **Só bloco de código e lista entram, e a escolha segue a política que já
+ * estava escrita acima:** casos raros ficam de fora da fórmula porque o
+ * virtualizador remede assim que a linha aparece, e encher a conta troca um
+ * erro pequeno e constante por um erro pequeno e imprevisível. Título,
+ * citação, régua e parágrafo extra são deltas de uma linha — ficam de fora,
+ * como reação e citação já ficavam.
+ *
+ * Estes dois entram pelo mesmo critério que fez o anexo entrar, que é
+ * MAGNITUDE e não frequência: um bloco de vinte linhas mede ~440px contra uma
+ * linha de 119px. Errar isso é a barra de rolagem mentir na proporção da
+ * frequência de código no canal — e num canal de quem programa ela não é
+ * pequena.
+ *
+ * A conta é aproximada de propósito e não tenta ser o CSS: quebra de linha
+ * longa dentro do bloco não é contada porque o bloco NÃO quebra linha (ele
+ * rola na horizontal), então contar `\n` é exato para a altura.
+ */
+const LINHA_DE_CODIGO = 18;
+/** Recheio (12×2), borda (1×2) e margem (8×2) do `pre`. */
+const MOLDURA_DE_BLOCO = 42;
+const LINHA_DE_LISTA = 23;
+/** Margem de bloco (8×2) da lista. */
+const MOLDURA_DE_LISTA = 16;
+
+function alturaDeBlocos(blocos: readonly BlocoDeMensagem[]): number {
+  let extra = 0;
+  for (const b of blocos) {
+    if (b.tipo === "blocoDeCodigo") {
+      // `split` alocaria um array por linha por chamada, e isto roda para
+      // índices fora da tela a cada rolagem.
+      let linhas = 1;
+      for (let i = 0; i < b.valor.length; i++) {
+        if (b.valor.charCodeAt(i) === 10) linhas++;
+      }
+      extra += linhas * LINHA_DE_CODIGO + MOLDURA_DE_BLOCO;
+    } else if (b.tipo === "lista") {
+      extra += b.itens.length * LINHA_DE_LISTA + MOLDURA_DE_LISTA;
+    }
+  }
+  return extra;
+}
+
+/** A linha tem bloco que a fórmula estima? Decide a amostra por tipo. */
+function temBlocoPesado(blocos: readonly BlocoDeMensagem[]): boolean {
+  return blocos.some((b) => b.tipo === "blocoDeCodigo" || b.tipo === "lista");
+}
+
 const AVISADO = new Set<string>();
 
 function conferirEstimativa(tipo: keyof typeof ALTURA_POR_TIPO, media: number) {
@@ -217,7 +273,11 @@ export function MessageList({ channelId }: { channelId: string }) {
           : ALTURA_POR_TIPO.continua;
 
       // Anexo é exato, não estimado: a caixa vem do metadata, não do arquivo.
-      const comAnexos = porTipo > 0 ? porTipo + alturaDeAnexos(m.anexos) : 0;
+      // Bloco de código e lista entram pelo mesmo critério de magnitude.
+      const comAnexos =
+        porTipo > 0
+          ? porTipo + alturaDeAnexos(m.anexos) + alturaDeBlocos(m.blocos)
+          : 0;
 
       /*
         Nunca zero, e isto não é paranoia: `estimateSize` devolvendo 0 é a
@@ -474,6 +534,125 @@ export function MessageList({ channelId }: { channelId: string }) {
   // Perguntar isto com uma varredura custou 18,6% de frames perdidos.
   const há = temMencao(channelId);
 
+  /*
+    Trocou de canal: a lista é outra, e o id guardado não existe nela.
+
+    Sem isto, voltar para um canal deixaria a parada de tabulação num id de
+    outro — nenhuma linha montada teria `tabIndex=0`, e o Tab atravessaria a
+    lista inteira como se ela não fosse focável. Falha silenciosa, que é a
+    única forma que este bug tem de aparecer.
+  */
+  useEffect(() => {
+    limparFocoDeMensagem();
+    return limparFocoDeMensagem;
+  }, [channelId]);
+
+  /**
+   * As setas dentro da lista.
+   *
+   * Delegado no container e não por linha: um `onKeyDown` em cada `article`
+   * seria trabalho por linha no componente mais quente do app, e o evento sobe
+   * de graça. Quem decide é o alvo — `article` significa "estou numa linha",
+   * o próprio container significa "estou na lista, ainda fora das linhas".
+   *
+   * Qualquer outro alvo (um botão da barra de ações, um link do texto) não é
+   * tratado: ali as setas pertencem ao controle, não à navegação.
+   */
+  function aoTeclar(evento: React.KeyboardEvent<HTMLDivElement>) {
+    // Atalho de sistema passa direto. `Alt+Seta` é voltar no histórico.
+    if (evento.altKey || evento.ctrlKey || evento.metaKey) return;
+
+    const alvo = evento.target as HTMLElement;
+    const noContainer = alvo === evento.currentTarget;
+    const naLinha = alvo.tagName === "ARTICLE";
+    if (!noContainer && !naLinha) return;
+
+    /*
+      Sair da lista devolve o cursor ao container.
+
+      Sem uma saída, quem entrou nas linhas por seta só sai tabulando para
+      frente — e a lei do controle e liberdade não admite recurso sem porta de
+      saída. `Esc` é a tecla que a pessoa já tenta.
+    */
+    if (evento.key === "Escape" && naLinha) {
+      evento.preventDefault();
+      scrollRef.current?.focus();
+      return;
+    }
+
+    /*
+      Abrir o menu da linha focada, sem depender do navegador.
+
+      `Shift+F10` e a tecla de menu JÁ funcionam pelo caminho nativo: com o
+      `article` focável, o navegador dispara `contextmenu` nele, a linha escreve
+      o alvo e o `Trigger` abre. Mas isso é comportamento do navegador, e eu não
+      consegui exercitá-lo por automação — dispatch de tecla por CDP não passa
+      pela tradução que gera o evento.
+
+      Então o caminho garantido é este: `Enter` sintetiza o mesmo `contextmenu`
+      que o clique direito envia, no mesmo elemento. Nada de segundo menu e nada
+      de segunda lista de itens para manter em sincronia — é o mesmo evento pelo
+      mesmo caminho, e por isso não pode divergir do que o ponteiro faz.
+
+      As coordenadas são as da linha, não zero: o Radix ancora o menu no ponto
+      do evento, e `(0,0)` o jogaria no canto da janela, longe da mensagem que
+      ele age sobre.
+    */
+    if (naLinha && (evento.key === "Enter" || evento.key === "ContextMenu")) {
+      evento.preventDefault();
+      const caixa = alvo.getBoundingClientRect();
+      alvo.dispatchEvent(
+        new MouseEvent("contextmenu", {
+          bubbles: true,
+          cancelable: true,
+          clientX: Math.round(caixa.left + 8),
+          clientY: Math.round(caixa.top + 8),
+        }),
+      );
+      return;
+    }
+
+    if (ids.length === 0) return;
+
+    const atual = lerFocoDeMensagem();
+    const i = atual === null ? -1 : ids.indexOf(atual);
+    let destino: number;
+
+    if (noContainer) {
+      /*
+        Entrar na lista. As setas deixam de rolar o container e passam a andar
+        entre mensagens — é o que todo cliente de chat faz, e o que torna o
+        recurso descobrível sem tecla inventada. Page Up/Down, espaço e a barra
+        de rolagem continuam rolando, então nada se perde.
+      */
+      if (evento.key !== "ArrowUp" && evento.key !== "ArrowDown") return;
+      destino = i === -1 ? ids.length - 1 : i;
+    } else if (evento.key === "ArrowUp") {
+      destino = i <= 0 ? 0 : i - 1;
+    } else if (evento.key === "ArrowDown") {
+      destino = i === -1 || i >= ids.length - 1 ? ids.length - 1 : i + 1;
+    } else if (evento.key === "Home") {
+      destino = 0;
+    } else if (evento.key === "End") {
+      destino = ids.length - 1;
+    } else {
+      return;
+    }
+
+    evento.preventDefault();
+    moverFocoDeMensagem(ids[destino]!);
+    /*
+      `auto` e não `center`: a linha vizinha quase sempre já está na tela, e
+      recentralizar a cada seta faria a lista saltar sob quem está lendo.
+
+      A ordem não importa para o cursor. A linha pode nem estar montada ainda —
+      `scrollToIndex` rola agora e o virtualizador monta no quadro seguinte —, e
+      é por isso que o pedido de foco é um contador no store em vez de um
+      `.focus()` daqui: quem chama é a linha, quando ela existir.
+    */
+    virtualizer.scrollToIndex(destino, { align: "auto" });
+  }
+
   const items = virtualizer.getVirtualItems();
 
   /*
@@ -502,6 +681,11 @@ export function MessageList({ channelId }: { channelId: string }) {
       existir: 139px de média contra uma constante de 93 que continuava certa.
     */
     if (m.anexos.length > 0) continue;
+    // Mesma razão, para os blocos que a fórmula estima: uma linha com bloco de
+    // código de vinte linhas na amostra faria a média saltar com a frequência
+    // de código no canal, e a assertion acusaria mudança de forma que não
+    // houve.
+    if (temBlocoPesado(m.blocos)) continue;
     if (m.sistema) {
       count("alturaSistemaSoma", item.size);
       count("alturaSistemaAmostras");
@@ -578,7 +762,15 @@ export function MessageList({ channelId }: { channelId: string }) {
   */
   if (ids.length === 0) {
     return (
-      <div className={css.scroll}>
+      /*
+        O começo do canal encosta no COMPOSER, não flutua no terço de cima.
+
+        Numa lista que cresce de baixo para cima, a primeira mensagem vai nascer
+        rente ao campo — e o estado vazio é onde ela vai aparecer. Ele estava a
+        250px dali, com preto no meio, o que fazia o convite ("escreva a
+        primeira") apontar para um lugar diferente de onde a coisa acontece.
+      */
+      <div className={`${css.scroll} flex flex-col justify-end`}>
         <div className={css.coluna}>
           <EstadoVazio
             icone={<ChatCircleDots size={20} />}
@@ -611,6 +803,14 @@ export function MessageList({ channelId }: { channelId: string }) {
     <div
       ref={scrollRef}
       role="log"
+      /*
+        A região mais importante do app tinha nome nenhum: o leitor anunciava
+        "log" e pronto. `aria-labelledby` e não `aria-label` porque o nome do
+        canal mora no cabeçalho e a lista não pode assinar o snapshot do canal
+        para lê-lo — esse snapshot muda a cada não-lida, e sob o firehose isso
+        seria re-renderizar dez mil linhas 500 vezes por segundo.
+      */
+      aria-labelledby={ID_DO_NOME_DO_CANAL}
       aria-live="polite"
       aria-relevant="additions"
       /*
@@ -635,6 +835,7 @@ export function MessageList({ channelId }: { channelId: string }) {
       // Page Down agem sobre o que está focado. Zero e não menos um — a
       // parada de tabulação É o recurso.
       tabIndex={0}
+      onKeyDown={aoTeclar}
       className={css.scroll}
     >
       {/* Fora do container rolável não dá: ela precisa flutuar SOBRE a lista,

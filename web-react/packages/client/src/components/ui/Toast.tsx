@@ -52,7 +52,7 @@ export function Toaster() {
             // não carrega o significado — o título diz o que aconteceu.
             t.tipo === "erro"
               ? "border-danger bg-surface-2"
-              : "border-border-subtle bg-surface-2",
+              : "border-border-strong bg-surface-2",
           )}
         >
           <Primitivo.Title className="text-md font-medium text-text-1">
@@ -63,6 +63,24 @@ export function Toaster() {
             <Primitivo.Description className="mt-1 text-sm text-text-2">
               {t.descricao}
             </Primitivo.Description>
+          ) : null}
+
+          {t.acao ? (
+            /*
+              A ação fica ANTES do `Close` na ordem do DOM: quem chega por
+              teclado encontra a saída útil antes do botão de descartar o aviso.
+
+              `altText` é obrigatório no Radix e não é burocracia — o toast
+              expira, e quem usa leitor de tela precisa saber como fazer a mesma
+              coisa quando ele já tiver sumido.
+            */
+            <Primitivo.Action
+              altText={t.acao.descricaoAlternativa}
+              onClick={t.acao.aoAtivar}
+              className="mt-2 rounded-2 border border-border-strong px-2 py-1 text-sm text-text-1 hover:bg-surface-3"
+            >
+              {t.acao.rotulo}
+            </Primitivo.Action>
           ) : null}
 
           <Primitivo.Close

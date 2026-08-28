@@ -2,10 +2,12 @@ import {
   ArrowBendUpLeft,
   Copy,
   Info,
+  PencilSimple,
   PushPin,
   PushPinSlash,
+  Trash,
 } from "@phosphor-icons/react";
-import { memo, useSyncExternalStore } from "react";
+import { memo, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import {
   ContextMenuContent,
@@ -22,13 +24,31 @@ import { NomeDoAutor } from "../presenca/NomeDoAutor";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
 import type { SistemaSnapshot } from "../sdk/domain";
 import { reenviar } from "../sdk/adapter";
-import { alternarFixada, alternarReacao } from "../sdk/adapter";
+import {
+  alternarFixada,
+  alternarReacao,
+  editarMensagem,
+  usuarioLocalId,
+} from "../sdk/adapter";
 import {
   assinarMenuDeMensagem,
   definirAlvoDoMenu,
   lerAlvoDoMenu,
 } from "../store/menuDeMensagem";
+import {
+  adotarFocoDeMensagem,
+  assinarFocoDeMensagem,
+  consumirPedidoDeFoco,
+  lerSinalDeFoco,
+} from "../store/focoDeMensagem";
 import { pode } from "../sdk/permissoes";
+import { administrar } from "../store/administracao";
+import {
+  assinarEdicaoDeMensagem,
+  editar,
+  lerEdicaoDeMensagem,
+  pararDeEditar,
+} from "../store/edicaoDeMensagem";
 import { responderA } from "../store/resposta";
 import { useMessage } from "../store/hooks";
 import { Anexos } from "./Anexos";
@@ -136,7 +156,13 @@ const REACOES_DA_BARRA = [
  */
 function DivisorDeNovas() {
   return (
-    <div className={css.novas} role="separator">
+    /*
+      `role="separator"` só aceita nome do AUTOR: o texto dentro dele não é
+      anunciado. Sem `aria-label` a régua de novas mensagens — que é a única
+      régua horizontal da coluna, e existe para marcar onde a pessoa parou —
+      não existia para quem usa leitor de tela.
+    */
+    <div className={css.novas} role="separator" aria-label="novas mensagens">
       <span className={css.novasLinha} />
       <span className={css.novasRotulo}>novas mensagens</span>
     </div>
@@ -163,7 +189,11 @@ function DivisorDeNovas() {
  */
 function DivisorDeDia({ rotulo }: { rotulo: string }) {
   return (
-    <div className={css.dia} role="separator">
+    /*
+      Idem: "domingo, 23 de agosto" estava na tela e nunca era anunciado,
+      porque `separator` ignora o conteúdo e lê só o nome.
+    */
+    <div className={css.dia} role="separator" aria-label={rotulo}>
       {/* A caixa carrega a medida; o rótulo centraliza dentro dela. Duas
           camadas porque centralizar e limitar são coisas diferentes. */}
       <div className={cn(css.diaRotuloCaixa, "flex flex-1 justify-center")}>
@@ -190,6 +220,88 @@ function DivisorDeDia({ rotulo }: { rotulo: string }) {
  * Como `id` é string estável, `memo` corta a cascata. É a fronteira onde a
  * memoização automática parou, não otimização preventiva.
  */
+/**
+ * Editar sem sair da linha.
+ *
+ * In-line e não modal, e a razão é a mesma pela qual a barra de ações sobrepõe
+ * em vez de reservar espaço: a mensagem editada precisa continuar no CONTEXTO
+ * — o que veio antes e o que veio depois é metade do sentido do que se está
+ * corrigindo.
+ *
+ * O rascunho é estado local desta vez, e não do store: ele nasce e morre com a
+ * edição, e o store já guarda QUAL mensagem está sendo editada — que é o que
+ * sobrevive à desmontagem da linha pelo virtualizador.
+ */
+/** Quantas linhas o texto ocupa — o campo cresce até um teto. */
+function linhasDe(texto: string): number {
+  let n = 1;
+  for (let i = 0; i < texto.length; i++) {
+    if (texto.charCodeAt(i) === 10) n++;
+  }
+  return n;
+}
+
+function EditorDaLinha({
+  messageId,
+  inicial,
+}: {
+  messageId: string;
+  inicial: string;
+}) {
+  const [texto, setTexto] = useState(inicial);
+  const [salvando, setSalvando] = useState(false);
+
+  function salvar() {
+    const limpo = texto.trim();
+    if (!limpo || limpo === inicial) {
+      pararDeEditar();
+      return;
+    }
+    setSalvando(true);
+    void editarMensagem(messageId, limpo).finally(() => {
+      setSalvando(false);
+      pararDeEditar();
+    });
+  }
+
+  return (
+    <div className={css.editor}>
+      <textarea
+        className={css.campoDeEdicao}
+        autoFocus
+        rows={Math.min(8, linhasDe(texto))}
+        disabled={salvando}
+        value={texto}
+        onChange={(e) => setTexto(e.target.value)}
+        onKeyDown={(e) => {
+          /*
+            Enter salva, Shift+Enter quebra linha — o mesmo contrato do
+            composer. Duas convenções diferentes para o mesmo gesto no mesmo app
+            é o tipo de coisa que faz a pessoa mandar o texto pela metade.
+          */
+          if (e.key === "Escape") {
+            e.preventDefault();
+            pararDeEditar();
+          } else if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            salvar();
+          }
+        }}
+        /*
+          Sair do campo NÃO cancela nem salva.
+
+          Clicar fora para copiar algo e perder a edição é punição por um gesto
+          inocente. Sair é `Esc`, salvar é Enter — os dois explícitos.
+        */
+        aria-label="Editar mensagem"
+      />
+      <span className={css.dicaDeEdicao}>
+        Enter salva · Esc cancela · Shift+Enter quebra linha
+      </span>
+    </div>
+  );
+}
+
 export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
   const message = useMessage(id);
   /*
@@ -205,6 +317,41 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
     () => lerAlvoDoMenu() === id,
   );
   count("rowRenders");
+  /*
+    Booleano, como `ehAlvo` acima e pela mesma razão: toda linha montada assina
+    o store de edição, mas `Object.is` sobre um booleano faz a troca acordar
+    exatamente DUAS linhas — a que saiu e a que entrou.
+  */
+  const emEdicao = useSyncExternalStore(
+    assinarEdicaoDeMensagem,
+    () => lerEdicaoDeMensagem() === id,
+  );
+  /*
+    O sinal do roving tabindex. Zero = esta linha não é a parada de tabulação.
+
+    Número e não booleano, e o motivo está no store: sair da lista e voltar pela
+    MESMA linha precisa devolver o cursor, e `true → true` não notifica ninguém.
+    O `Object.is` continua fazendo o trabalho barato — mover o foco acorda duas
+    linhas, não dez mil.
+  */
+  const sinalDeFoco = useSyncExternalStore(assinarFocoDeMensagem, () =>
+    lerSinalDeFoco(id),
+  );
+  const elemento = useRef<HTMLElement>(null);
+
+  /*
+    Só um pedido de TECLADO move o cursor de verdade.
+
+    `consumirPedidoDeFoco` é global de propósito: a linha remonta a cada
+    reciclagem do virtualizador, e um efeito que chamasse `.focus()` toda vez
+    que ela monta arrancaria o cursor de quem estivesse digitando, a cada
+    rolagem. A remontagem vê um pedido já consumido e não faz nada.
+  */
+  useEffect(() => {
+    if (sinalDeFoco === 0) return;
+    if (!consumirPedidoDeFoco(sinalDeFoco)) return;
+    elemento.current?.focus();
+  }, [sinalDeFoco]);
 
   // Linha ainda não resolvida NUNCA devolve `null`.
   //
@@ -264,8 +411,24 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             captura, a linha escreve na bolha.
           */
           onContextMenu={() => definirAlvoDoMenu(message.id)}
+          ref={elemento}
+          /*
+            Roving tabindex: UMA linha por vez é parada de tabulação.
+
+            É o que torna teclado possível sem o custo que a barra de ações
+            evitou. Dez mil linhas com `tabIndex=0` seriam dez mil paradas;
+            assim a lista inteira custa uma, e as setas fazem o resto.
+          */
+          tabIndex={sinalDeFoco > 0 ? 0 : -1}
+          /*
+            Clique ou Tab vindo de fora: a parada acompanha, sem `.focus()` de
+            volta. `onFocus` do React é `focusin`, então focar um botão da barra
+            de ações também passa por aqui — e a linha certa é a mesma.
+          */
+          onFocus={() => adotarFocoDeMensagem(message.id)}
           data-alvo={ehAlvo}
           className={cn(
+            css.linha,
             // Hover na linha, e ele custa ZERO de layout — só cor.
             //
             // Não é preferência: qualquer tratamento de hover que mude a
@@ -336,10 +499,15 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             mil paradas.
 
             É afordância de PONTEIRO, dita assim de propósito. O caminho
-            completo por teclado continua sendo o menu de contexto, que o
-            Radix abre com Shift+F10 e tem tudo. Uma barra alcançável por
-            teclado sem poluir a tabulação exige roving tabindex gerenciado
-            pela lista — trabalho real, e está listado.
+            completo por teclado é o menu de contexto, aberto com `Enter` na
+            linha focada — e ele SÓ PASSOU A EXISTIR agora.
+
+            Esta frase dizia "o Radix abre com Shift+F10 e tem tudo", e era
+            falsa em duas pontas: sem `tabIndex` no `article` não havia o que
+            focar, então o navegador não tinha em quem disparar `contextmenu`,
+            e o alvo do menu teria sido `null` de qualquer forma. O roving
+            tabindex torna as duas verdadeiras, e o `Enter` da lista não deixa
+            o único caminho depender de uma tradução de tecla do navegador.
           */}
           {/* A calha do avatar existe mesmo na continuação: é o que mantém o
               texto alinhado ao longo do grupo inteiro. */}
@@ -454,9 +622,29 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
               qual dos dois ganha a atenção quando os dois estão na tela, que é
               sempre.
             */}
-            <p className={cn(css.corpo, "text-md leading-message wrap-anywhere text-text-1")}>
-              <TextoDaMensagem partes={message.partes} />
-            </p>
+            {/*
+              `div` e não `p`, desde que o markdown existe.
+
+              O conteúdo agora traz os próprios blocos — parágrafo, bloco de
+              código, citação, lista — e `<p>` dentro de `<p>` é inválido: o
+              navegador fecha o de fora sozinho, sem erro, e o resto da
+              mensagem vaza para fora da caixa que tinha a medida de leitura.
+            */}
+            {emEdicao ? (
+              <EditorDaLinha
+                messageId={message.id}
+                inicial={message.content}
+              />
+            ) : (
+              <div
+                className={cn(
+                  css.corpo,
+                  "text-md leading-message wrap-anywhere text-text-1",
+                )}
+              >
+                <TextoDaMensagem blocos={message.blocos} />
+              </div>
+            )}
 
             {/*
               Estado de envio FORA do cabeçalho.
@@ -570,6 +758,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
 export function MenuDaMensagem() {
   const alvo = useSyncExternalStore(assinarMenuDeMensagem, lerAlvoDoMenu);
   const message = useMessage(alvo ?? "");
+  const eu = usuarioLocalId();
 
   if (!message) return <ContextMenuContent />;
 
@@ -585,19 +774,34 @@ export function MenuDaMensagem() {
 
           `onSelect` sem `preventDefault`: fechar o menu depois de reagir é o
           certo, porque reagir é a ação inteira.
+
+          ⚠ **E `onSelect` só existe aqui a partir de agora.** Estes seis eram
+          `<button onClick>` crus dentro do menu — sem `role`, e portanto
+          invisíveis para o Radix, que navega só entre `menuitem`. O menu
+          abria, as setas passavam por cima deles e o Tab fechava o menu:
+          reagir por teclado não existia, mesmo com o menu alcançável. Este
+          comentário já dizia "onSelect" quando não havia nenhum.
+
+          `asChild` para manter o `<button>`: o alvo continua sendo um botão de
+          verdade para o ponteiro, e ganha `role="menuitem"` e a navegação por
+          seta do Radix por cima.
         */}
         <div className={css.rapidas} role="group" aria-label="Reagir">
           {pode(message.channelId, "reagir") &&
             REACOES_RAPIDAS.map((emoji) => (
-              <button
+              <ContextMenuItem
                 key={emoji}
-                type="button"
-                className={css.rapida}
-                aria-label={`Reagir com ${emoji}`}
-                onClick={() => alternarReacao(message.id, emoji)}
+                asChild
+                onSelect={() => alternarReacao(message.id, emoji)}
               >
-                <span aria-hidden>{emoji}</span>
-              </button>
+                <button
+                  type="button"
+                  className={css.rapida}
+                  aria-label={`Reagir com ${emoji}`}
+                >
+                  <span aria-hidden>{emoji}</span>
+                </button>
+              </ContextMenuItem>
             ))}
         </div>
 
@@ -622,17 +826,6 @@ export function MenuDaMensagem() {
           </ContextMenuItem>
         ) : null}
 
-        {/*
-          Copiar é a única das três que não escreve no protocolo — e por isso
-          é a única que existe hoje.
-
-          `Editar` e `Apagar` estavam aqui como itens INERTES: apareciam no
-          menu, recebiam foco, fechavam ao serem escolhidos e não faziam nada.
-          Item que não faz nada é pior que item ausente, porque ensina a pessoa
-          a não confiar no menu inteiro. Saíram, e voltam na fase 6 com
-          `Message.edit()` e `Message.delete()` por trás — a mesma razão pela
-          qual reordenar canal arrastando ficou de fora.
-        */}
         <ContextMenuItem
           onSelect={() => void copiarTexto(message.content, "Texto")}
           disabled={message.content.length === 0}
@@ -640,6 +833,39 @@ export function MenuDaMensagem() {
           <Copy size={20} aria-hidden />
           Copiar texto
         </ContextMenuItem>
+
+        {/*
+          `Editar` e `Apagar` VOLTARAM.
+
+          Eles estiveram aqui como itens INERTES por três fases: apareciam,
+          recebiam foco, fechavam o menu e não faziam nada. Saíram por isso —
+          item que não faz nada ensina a não confiar no menu inteiro — e o
+          `no-restricted-syntax` que exige `onSelect` foi instalado no mesmo
+          passo. Voltam com `Message.edit()` e `Message.delete()` por trás.
+
+          **Editar é só do AUTOR**, e a checagem não é de permissão de servidor:
+          o protocolo não deixa ninguém editar mensagem alheia, nem quem
+          administra. Apagar é do autor OU de quem gerencia mensagens.
+        */}
+        {message.authorId !== undefined && message.authorId === eu ? (
+          <ContextMenuItem onSelect={() => editar(message.id)}>
+            <PencilSimple size={20} aria-hidden />
+            Editar
+          </ContextMenuItem>
+        ) : null}
+
+        {(message.authorId !== undefined && message.authorId === eu) ||
+        pode(message.channelId, "fixar") ? (
+          <ContextMenuItem
+            perigo
+            onSelect={() =>
+              administrar({ tipo: "apagarMensagem", messageId: message.id })
+            }
+          >
+            <Trash size={20} aria-hidden />
+            Apagar
+          </ContextMenuItem>
+        ) : null}
           </ContextMenuContent>
   );
 }

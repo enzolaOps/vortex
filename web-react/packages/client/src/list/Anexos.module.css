@@ -78,3 +78,24 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/*
+  O alvo do clique na imagem.
+
+  `display: contents` para não criar caixa: a reserva de espaço vem do
+  container acima, calculada do metadata do protocolo, e um wrapper com layout
+  próprio a desfaria — que é exatamente o defeito que a primeira versão da
+  reserva teve (`max-inline-size` é teto, não tamanho).
+*/
+.alvoDaImagem {
+  display: contents;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: zoom-in;
+}
+
+.alvoDaImagem:focus-visible .arquivoDeMidia {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}

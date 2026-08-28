@@ -72,9 +72,9 @@ export function verificarAlinhamentoDeColuna(): void {
   console.warn(
     "[vortex] composer e conteúdo da mensagem não terminam na mesma vertical: " +
       `difere ${fim.toFixed(1)}px. ` +
-      "Os dois tetos saem de `--vx-message-max-w` descontando o recuo próprio " +
-      "de cada um; o que costuma divergir é esse desconto, ou a reserva da " +
-      "calha da barra de rolagem — a lista reserva, e o composer precisa " +
-      "reservar igual.",
+      "Nenhum dos dois tem teto: os dois cobrem a trilha, e o que os alinha " +
+      "é o recuo próprio de cada um. O que costuma divergir é esse recuo, ou " +
+      "a reserva da calha da barra de rolagem — a lista reserva, e o composer " +
+      "precisa reservar igual.",
   );
 }

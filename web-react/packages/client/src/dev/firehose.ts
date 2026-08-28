@@ -10,7 +10,13 @@
  * Regressão de escopo nunca aparece em uso normal de desenvolvimento. Só em
  * servidor grande com usuário real. Isto é o que a pega antes.
  */
-import { monotonicFactory } from "ulid";
+import { monotonicFactory, ulid } from "ulid";
+
+import {
+  definirChamada,
+  definirFalantes,
+  encerrarChamada,
+} from "../store/chamada";
 
 import { count, countMax } from "./stats";
 import {
@@ -202,6 +208,22 @@ function body(seed: number): string {
  * numérico) e as siglas são todas "U". Nomes reais exercitam o colator, a
  * acentuação e a sigla de duas letras.
  */
+/**
+ * A relação de cada pessoa comigo.
+ *
+ * Uma de cada quatro é amiga, uma em sete mandou pedido, uma em onze recebeu o
+ * meu, e uma em dezenove está bloqueada — números primos entre si para as
+ * faixas não se sobreporem sempre nos mesmos índices.
+ */
+function relacaoDe(i: number): string {
+  if (i === 0) return "User";
+  if (i % 19 === 5) return "Blocked";
+  if (i % 7 === 3) return "Incoming";
+  if (i % 11 === 4) return "Outgoing";
+  if (i % 4 === 1) return "Friend";
+  return "None";
+}
+
 const NOMES =
   "Ana Bruno Camila Diego Elisa Fábio Gabriela Henrique Íris João Kátia Lucas Mariana Nuno Olívia Pedro Quirino Renata Sofia Tiago Úrsula Vitor Wanda Xavier Yara Zeca Alice Bento Clara Davi Emília Felipe Giulia Hugo Isabel Joana Kauê Laura Miguel Nina".split(
     " ",
@@ -245,7 +267,15 @@ function ensureWorld() {
         ? { status: { text: "focada, volto mais tarde", presence: "Busy" } }
         : {}),
       online: true,
-      relationship: "None",
+      /*
+        A relação com cada pessoa, para a tela de amigos ter o que mostrar.
+
+        Distribuída por resto de divisão, e não toda "Friend": a tela tem
+        quatro abas e uma aba vazia não prova que ela funciona. Foi por não
+        haver dado assim que `ehMencao` passou três fases sem nunca devolver
+        `true` — o arnês mais pobre que o protocolo esconde a superfície.
+      */
+      relationship: relacaoDe(i),
     } as never);
     // O "eu" está sempre online — a própria presença nunca é ausente.
     semearPresenca(id, i === 0 ? "online" : PRESENCAS[i % PRESENCAS.length]!);
@@ -384,6 +414,61 @@ function ensureWorld() {
     // para chegada incremental. A mesma separação do `seedChannel`.
     registrarServidor(servidor.id, membros);
   }
+
+  semearConversas();
+}
+
+/**
+ * As conversas da casa: DMs, um grupo e as notas.
+ *
+ * Sem isto a coluna da casa abre vazia e nada da etapa 3 é verificável — o
+ * mesmo buraco que fez a semeadura de não-lidas existir: **o arnês mais pobre
+ * que o protocolo esconde a superfície**.
+ *
+ * `lastMessageId` é ULID de verdade e ESPAÇADO, porque a coluna ordena por
+ * recência decodificando o tempo dele. Todas com o mesmo carimbo dariam uma
+ * ordem estável por acidente, que é o pior tipo de teste: passa e não prova.
+ */
+function semearConversas(): void {
+  const eu = userIds[0]!;
+
+  // Notas: a conversa consigo mesmo, que todo mundo tem uma.
+  client.channels.getOrCreate(
+    "01JQ0000000000000009000000",
+    {
+      _id: "01JQ0000000000000009000000",
+      channel_type: "SavedMessages",
+      user: eu,
+    } as never,
+  );
+
+  // Cinco DMs com gente de relações diferentes, espaçadas no tempo.
+  for (let n = 0; n < 5; n++) {
+    const outro = userIds[1 + n * 3]!;
+    const id = `01JQ000000000000000A${String(n).padStart(6, "0")}`;
+    client.channels.getOrCreate(id, {
+      _id: id,
+      channel_type: "DirectMessage",
+      active: true,
+      recipients: [eu, outro],
+      // Uma hora de distância entre elas: a ordem por recência tem de ser
+      // observável, e não um empate resolvido pelo ID.
+      last_message_id: ulidEm(Date.now() - n * 3_600_000),
+    } as never);
+  }
+
+  // Um grupo, para a linha com contagem de participantes existir.
+  client.channels.getOrCreate(
+    "01JQ000000000000000B000000",
+    {
+      _id: "01JQ000000000000000B000000",
+      channel_type: "Group",
+      name: "spike — off",
+      owner: eu,
+      recipients: [eu, userIds[2]!, userIds[5]!, userIds[8]!],
+      last_message_id: ulidEm(Date.now() - 30 * 60_000),
+    } as never,
+  );
 }
 
 /**
@@ -542,6 +627,64 @@ function createMessage(seed: number, quando?: number): string {
  * Publica a lista UMA vez, no fim: publicar por fatia geraria renders de
  * setup que não interessam a ninguém.
  */
+/**
+ * Uma chamada FALSA, para o cartão de voz existir sem servidor.
+ *
+ * ⚠ **Quarta vez que o arnês está mais pobre que o protocolo**, e agora o
+ * padrão já tem nome no `CLAUDE.md`. Sem isto, o cartão de chamada, os
+ * controles e o anel de fala seriam código que ninguém nunca viu — e a etapa 6
+ * inteira dependeria de uma instância de LiveKit para ter a primeira captura de
+ * tela.
+ *
+ * O que ela NÃO simula, de propósito: WebRTC, faixas de áudio e o `Room`. Isto
+ * enche o STORE, que é a fronteira que o app enxerga — a mesma separação entre
+ * carga em massa e caminho de evento que `seedChannel` estabeleceu.
+ */
+export function chamadaFalsa(): () => void {
+  const canal = ensureWorld();
+  void canal;
+  const sala = "01JQ0000000000000000000004";
+  const dentro = [userIds[0]!, userIds[3]!, userIds[6]!, userIds[9]!];
+
+  definirChamada({
+    estado: "dentro",
+    channelId: sala,
+    participantes: dentro,
+    mudo: false,
+    surdo: false,
+    camera: false,
+    tela: false,
+  });
+
+  /*
+    Quem fala muda a cada ~700ms.
+
+    Rápido o bastante para o anel piscar como pisca de verdade, e devagar o
+    bastante para dar para ver. O evento real do LiveKit chega mais rápido que
+    isto — o throttle de 120ms do store efêmero é o que segura os dois casos.
+  */
+  const timer = setInterval(() => {
+    const quantos = 1 + Math.floor((Date.now() / 700) % 2);
+    const inicio = Math.floor(Date.now() / 700) % dentro.length;
+    const falantes = Array.from(
+      { length: quantos },
+      (_, i) => dentro[(inicio + i) % dentro.length]!,
+    );
+    definirFalantes(falantes);
+  }, 700);
+
+  return () => {
+    clearInterval(timer);
+    definirFalantes([]);
+    encerrarChamada();
+  };
+}
+
+/** Um ULID com o tempo pedido — a coluna da casa ordena decodificando isto. */
+function ulidEm(quando: number): string {
+  return ulid(quando);
+}
+
 export async function seed(count: number, chunk = 250): Promise<string[]> {
   // O adapter só entra DEPOIS da carga.
   //
@@ -572,7 +715,94 @@ export async function seed(count: number, chunk = 250): Promise<string[]> {
   ultimaLista = ids;
   // Agora sim: a partir daqui, mensagem nova chega por evento.
   startAdapter();
+
+  /*
+    ⚠ **O mundo nasce com não-lidas, e antes não nascia.**
+
+    Quarta vez que o arnês fica mais pobre que o protocolo, e o padrão já tem
+    nome nas pendências: `ehMencao` passou três fases sem devolver `true`, a
+    semeadura de não-lidas era intestável sem `lastMessageId`, e as quatro abas
+    de amigos abriam vazias. Aqui era o RAIL: o firehose fala sempre no canal
+    aberto, onde `contabilizarNaoLida` sai na primeira linha, e nenhum outro
+    servidor jamais recebia nada.
+
+    Consequência medida no navegador: os três servidores com
+    `data-naolidas="false"`, o estado `atencao` da lâmina nunca renderizado, e
+    quem usa relatando que a marca de não-lida "continua do mesmo jeito" — ela
+    estava correta e não tinha o que mostrar. `falarEmOutroCanal` existia e
+    exercitava o caminho, mas um clique por mensagem: o estado só aparecia para
+    quem já sabia que ele existia.
+
+    DEPOIS de `startAdapter`, de propósito: é o caminho de EVENTO que contabiliza,
+    e é justamente ele que precisa ser exercitado. E fora da janela de medição —
+    isto é estado, não vazão, então o gate não muda.
+
+    ⚠ **E depois de um macrotask, o que não é detalhe.** `reemitirServidor` sai
+    na primeira linha quando ninguém assina aquele servidor — a mesma regra de
+    escopo que segura o gate. Chamando isto de forma síncrona, as nove
+    mensagens caem antes de o rail montar e assinar: a contagem entra no mapa e
+    o snapshot nunca é republicado.
+
+    Medido: os três servidores em `data-naolidas="false"` depois da semeadura, e
+    UM clique em "Falar em outro canal" acendendo os três de uma vez — porque a
+    contagem acumulada estava lá esperando alguém reemitir. Guardar o dado sem
+    publicar é a forma que este defeito toma, e ela não dá erro.
+  */
   return ids;
+}
+
+/**
+ * Faz o mundo nascer com não-lidas.
+ *
+ * ⚠ **Quarta vez que o arnês fica mais pobre que o protocolo**, e o padrão já
+ * tem nome nas pendências: `ehMencao` passou três fases sem devolver `true`, a
+ * semeadura de não-lidas era intestável sem `lastMessageId`, e as quatro abas
+ * de amigos abriam vazias. Aqui era o RAIL: o firehose fala sempre no canal
+ * aberto, onde `contabilizarNaoLida` sai na primeira linha, e nenhum outro
+ * servidor jamais recebia nada.
+ *
+ * Consequência medida no navegador: os três servidores com
+ * `data-naolidas="false"`, o estado `atencao` da lâmina NUNCA renderizado, e
+ * quem usa relatando que a marca de não-lida "continua do mesmo jeito" — ela
+ * estava correta e não tinha o que mostrar. `falarEmOutroCanal` exercitava o
+ * caminho, mas um clique por mensagem: o estado só existia para quem já sabia
+ * que ele existia.
+ *
+ * ⚠ **Chamado DEPOIS de o arnês abrir o servidor, e isso não é preferência.**
+ * `reemitirServidor` sai na primeira linha quando ninguém assina aquele
+ * servidor — a mesma regra de escopo que segura o gate. Chamando isto dentro
+ * de `seed`, as nove mensagens caem na janela em que o rail ainda não assinou:
+ * a contagem entra no mapa e o snapshot nunca é republicado.
+ *
+ * Medido, e é o que fecha o diagnóstico: depois da semeadura os canais já
+ * mostravam "1 menção" e "2 não lidas", e os SERVIDORES continuavam em zero —
+ * então a contabilidade rodou e só a publicação do rollup faltou. Navegar para
+ * outro servidor acendia os três de uma vez, com a contagem acumulada
+ * intacta. Adiar por tempo não resolvia; o que resolve é a UI já estar
+ * assinando.
+ */
+export async function semearNaoLidas(quantas = 9): Promise<void> {
+  /*
+    Espera o shell assentar, e a razão é a regra de escopo.
+
+    `reemitirServidor` sai na primeira linha quando ninguém assina aquele
+    servidor — é a mesma economia que segura o gate. Chamando isto no mesmo
+    tique em que `selecionarServidor` roda, as mensagens caem antes de o rail
+    re-renderizar e assinar: a contagem entra no mapa e o rollup nunca é
+    publicado. Medido: canais com "1 menção" e "2 não lidas" enquanto os três
+    servidores seguiam em zero.
+
+    ⚠ **E uma lição de método que custou várias tentativas:** três leituras
+    minhas disseram "não funcionou" e as três foram tiradas ANTES do commit da
+    navegação. A mesma família do "medir no dev server" e do "medir com a aba
+    sem compor" que este projeto já registrou duas vezes — o instrumento
+    reprovando o momento em vez do código.
+
+    O valor é folgado de propósito: isto é setup de arnês, roda uma vez, e fora
+    de qualquer janela medida.
+  */
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  for (let i = 0; i < quantas; i++) falarEmOutroCanal();
 }
 
 let ultimaLista: readonly string[] = [];

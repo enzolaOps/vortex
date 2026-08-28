@@ -35,14 +35,14 @@
   **908px de vazio, todo do lado direito**, porque a coluna era encostada ao
   início. Não lia como coluna de leitura, lia como alinhamento quebrado.
 
-  O teto mudou de lugar, não desapareceu: `--vx-message-max-w` agora limita o
-  CONTEÚDO da linha (ver `MessageRow.module.css`), e o realce de hover, o
-  divisor e o alvo do menu passam a cobrir a trilha inteira. É a diferença
-  entre uma coluna de texto e uma faixa de linha — o Slack e o Discord fazem
-  assim, e a razão é esta.
+  O teto de 1100px foi REMOVIDO, e a legibilidade não dependia dele. Quem a
+  protege é `--vx-medida`, que limita o TEXTO em cerca de 80 caracteres — a
+  trava da linha era uma segunda tentativa de resolver o mesmo problema, e o
+  preço dela era a faixa morta.
 
-  E o texto continua com a medida de leitura de `--vx-medida`, que é o
-  mecanismo certo para legibilidade: limitar a LINHA nunca foi.
+  Agora a coluna, a faixa de hover, o divisor e o alvo do menu cobrem a trilha.
+  O que precisa de largura própria continua com ela: a mídia tem teto de 400px
+  e os chips têm o tamanho do que carregam.
 */
 .coluna {
   margin-inline: 0;

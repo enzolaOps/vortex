@@ -9,14 +9,17 @@ import {
   canaisDeVoz,
   channelMessageIds,
   channels,
+  conversas,
   fixadas,
   members,
   membrosOffline,
   membrosOnline,
   secoesOnline,
   messages,
+  pessoas,
   presence,
   RAIZ,
+  relacoes,
   serverIds,
   servers,
   typing,
@@ -31,12 +34,16 @@ import type {
   MessageSnapshot,
   ParticipanteDeVoz,
   PresenceStatus,
+  Relacao,
+  RelacaoSnapshot,
   ServerSnapshot,
 } from "../sdk/domain";
 import {
   assinarNavegacao,
   lerCanalAtivo,
+  lerLocal,
   lerServidorAtivo,
+  type Local,
 } from "./navegacao";
 import { assinarColapso, estaColapsada } from "./colapso";
 import { rascunhos, RASCUNHO_VAZIO } from "./rascunhos";
@@ -244,7 +251,52 @@ export function useVozDoCanal(channelId: string): readonly ParticipanteDeVoz[] {
   return useSyncExternalStore(vozPorCanal.subscriber(channelId), getSnapshot);
 }
 
+/* ------------------------------------------------------------------ casa */
+
+/**
+ * As conversas — DMs, grupos e notas — na ordem da coluna da casa.
+ *
+ * Uma lista só e já ordenada por recência: a ordenação acontece na ESCRITA,
+ * como os baldes de presença, e a coluna nunca chama `sort` no render.
+ */
+export function useConversas(): readonly string[] {
+  const getSnapshot = () => conversas.getSnapshot(RAIZ) ?? NO_IDS;
+  if (import.meta.env.DEV) assertStable(getSnapshot, "useConversas()");
+  return useSyncExternalStore(conversas.subscriber(RAIZ), getSnapshot);
+}
+
+/**
+ * Uma pessoa. Assinada por ID, como toda entidade.
+ *
+ * Diferente de `useMembro`: aquele é a pessoa DENTRO de um servidor (apelido,
+ * cor de cargo, castigo) e este é a pessoa em si. A tela de amigos e a coluna
+ * de conversas falam de gente, não de membro.
+ */
+export function usePessoa(userId: string): RelacaoSnapshot | undefined {
+  const getSnapshot = () => pessoas.getSnapshot(userId);
+  if (import.meta.env.DEV) assertStable(getSnapshot, `usePessoa(${userId})`);
+  return useSyncExternalStore(pessoas.subscriber(userId), getSnapshot);
+}
+
+/**
+ * Uma aba da tela de amigos.
+ *
+ * Keyed pela relação, e não uma lista só com filtro no componente: trocar de
+ * aba não pode acordar as outras três, e filtrar no render refaria a varredura
+ * a cada re-render.
+ */
+export function useRelacao(relacao: Relacao): readonly string[] {
+  const getSnapshot = () => relacoes.getSnapshot(relacao) ?? NO_IDS;
+  if (import.meta.env.DEV) assertStable(getSnapshot, `useRelacao(${relacao})`);
+  return useSyncExternalStore(relacoes.subscriber(relacao), getSnapshot);
+}
+
 /* ------------------------------------------------------------- navegação */
+
+/** O lugar inteiro. Quem só precisa do ID usa os dois hooks abaixo. */
+export function useLocal(): Local {
+  return useSyncExternalStore(assinarNavegacao, lerLocal);
+}
 
 export function useServidorAtivo(): string {
   return useSyncExternalStore(assinarNavegacao, lerServidorAtivo);

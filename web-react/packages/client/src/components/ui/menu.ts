@@ -10,10 +10,25 @@
  * O que NÃO é compartilhado: a var de altura disponível, que o Radix nomeia por
  * primitivo (`--radix-context-menu-content-available-height` contra
  * `--radix-dropdown-menu-content-available-height`). Cada wrapper passa a sua.
+ *
+ * ⚠ **Duas correções que valem para toda camada flutuante do app**, e as duas
+ * saíram da auditoria de design:
+ *
+ * 1. `border-border-strong` e não a sutil. `--vx-border-subtle` sobre
+ *    `--vx-surface-2` mede **1,05:1** — invisível. Com `box-shadow` proibido
+ *    por regra do projeto ("profundidade vem de camada, não de sombra"), a
+ *    borda é a ÚNICA separação que sobra, e o degrau de superfície sozinho dá
+ *    ~1,29:1. A regra está certa; era o degrau que estava curto para a camada
+ *    que flutua sobre conteúdo arbitrário. Mesma troca em `Dialog`,
+ *    `Popover`, `HoverCard`, `Tooltip` e `Toast`.
+ * 2. `z-flutuante` e não `z-50` cru. A escala de z virou token nomeado por
+ *    PAPEL justamente para "o que fica na frente do quê" ser legível; este era
+ *    o último número solto, e ficava ao lado de um `40` em outro arquivo sem
+ *    nada dizer qual vencia.
  */
 
 export const menuContent =
-  "z-50 min-w-48 rounded-2 border border-border-subtle bg-surface-2 p-1 " +
+  "z-flutuante min-w-48 rounded-2 border border-border-strong bg-surface-2 p-1 " +
   "text-md text-text-1 overflow-y-auto " +
   "data-[state=closed]:opacity-0 data-[state=open]:opacity-100 anim-fast";
 

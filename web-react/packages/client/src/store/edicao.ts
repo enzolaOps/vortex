@@ -16,7 +16,7 @@ import { aplicarPreset, lerBruto, lerLayout } from "./layout";
 
 type Ouvinte = () => void;
 
-type Retrato = { preset: Preset; bruto: Record<string, unknown> };
+export type Retrato = { preset: Preset; bruto: Record<string, unknown> };
 
 const ouvintes = new Set<Ouvinte>();
 
@@ -59,7 +59,36 @@ export function sair(salvar: boolean): void {
   emitir();
 }
 
-/** O layout tinha mudado desde que o modo abriu? Decide se "cancelar" descarta algo. */
-export function temMudanca(): boolean {
-  return retrato !== null && retrato.preset !== lerLayout();
+/**
+ * O layout tinha mudado desde que o modo abriu? Decide a palavra do botão.
+ *
+ * ⚠ **Recebe o estado atual por PARÂMETRO, e isso não é estilo.** A versão sem
+ * argumentos lia o store por dentro, e o React Compiler a tratava como pura:
+ * `temMudanca() ? "descartar" : "fechar"` não depende de nada que ele veja
+ * mudar, então o resultado ficava memoizado do primeiro render. Medido no
+ * navegador: com o painel do fim escondido e a trilha já em `0px`, o botão
+ * ainda dizia "fechar" — e clicar nele descartava de verdade e emitia o toast
+ * de desfazer. O rótulo mentia; a ação estava certa.
+ *
+ * Passar `atual` faz a expressão depender do valor que o componente assina, e
+ * aí não há o que hoistar. É a lei nº 1 pelo avesso: o que não entra no
+ * snapshot não acorda ninguém — inclusive o compilador.
+ *
+ * ⚠ E comparava só o preset. O bruto de origem — as chaves que esta versão do
+ * código não entende — podia ter mudado sem que ninguém notasse. É o mesmo
+ * raciocínio que fez o retrato incluir o bruto: um desfazer que preserva o que
+ * entende e perde o que não entende é pior que não ter desfazer, porque o dano
+ * fica invisível.
+ */
+export function temMudanca(
+  atual: Preset,
+  brutoAtual: Record<string, unknown>,
+): boolean {
+  if (retrato === null) return false;
+  return retrato.preset !== atual || retrato.bruto !== brutoAtual;
+}
+
+/** Reaplica um retrato guardado. É o desfazer do descarte. */
+export function reaplicarRetrato(r: Retrato): void {
+  aplicarPreset(r.preset, r.bruto);
 }

@@ -186,10 +186,15 @@
   /*
     Centralizado sobre o TEXTO, não sobre a coluna.
 
-    A coluna vai até 1100px e o texto para na medida de leitura — em janela
-    larga isso são 521px de texto num container de 1100px. Um rótulo
-    centralizado na coluna aparecia deslocado para a direita do bloco que ele
-    introduz, e a distância crescia com a janela.
+    A coluna ocupa a trilha inteira e o texto para na medida de leitura — numa
+    janela de 2560 isso são 520px de texto numa trilha de 2008. Um rótulo
+    centralizado na COLUNA apareceria a 692px do bloco que ele introduz, e a
+    distância cresce com a janela.
+
+    (Esta frase dizia "a coluna vai até 1100px". O teto foi removido e o
+    comentário ficou — o mesmo defeito que a auditoria achou em `tokens.css`
+    duas vezes. O NÚMERO envelheceu; o raciocínio não, e é por ele que o
+    rótulo continua centralizado sobre o texto.)
 
     O recuo replica o que a linha de mensagem faz: a calha do avatar mais o
     vão. É o mesmo alinhamento, escrito com os mesmos tokens.
@@ -203,7 +208,24 @@
 }
 
 .diaRotuloCaixa {
-  max-inline-size: var(--vx-medida);
+  /*
+    SEM medida de leitura, por decisão de quem usa.
+
+    `--vx-medida` limitava isto a ~80 caracteres, e numa trilha de 2000px o
+    texto virava uma fita de 520 com o resto vazio. A comparação lado a lado
+    com outro cliente foi direta: lê como alinhamento quebrado, não como
+    coluna de leitura.
+
+    O custo está aceito e dito: em ultrawide o texto volta a esticar até a
+    largura da trilha, que é o problema nº 2 dos três que motivaram o
+    redesign. O que continua segurando o caso patológico é `minmax(0, 1fr)`
+    no grid e `overflow-wrap` na linha — uma URL de 400 caracteres não estoura
+    o layout. O que volta é a linha longa, e essa é a troca escolhida.
+
+    O token continua existindo e continua certo onde a leitura é o produto:
+    configurações, tela de amigos, legenda do visualizador de imagem.
+  */
+  max-inline-size: none;
 }
 
 .diaRotulo {
@@ -324,7 +346,24 @@
    ============================================================ */
 
 .corpo {
-  max-inline-size: var(--vx-medida);
+  /*
+    SEM medida de leitura, por decisão de quem usa.
+
+    `--vx-medida` limitava isto a ~80 caracteres, e numa trilha de 2000px o
+    texto virava uma fita de 520 com o resto vazio. A comparação lado a lado
+    com outro cliente foi direta: lê como alinhamento quebrado, não como
+    coluna de leitura.
+
+    O custo está aceito e dito: em ultrawide o texto volta a esticar até a
+    largura da trilha, que é o problema nº 2 dos três que motivaram o
+    redesign. O que continua segurando o caso patológico é `minmax(0, 1fr)`
+    no grid e `overflow-wrap` na linha — uma URL de 400 caracteres não estoura
+    o layout. O que volta é a linha longa, e essa é a troca escolhida.
+
+    O token continua existindo e continua certo onde a leitura é o produto:
+    configurações, tela de amigos, legenda do visualizador de imagem.
+  */
+  max-inline-size: none;
 }
 
 
@@ -352,13 +391,19 @@
    ============================================================ */
 
 .conteudo {
-  /* Desconta a calha do avatar e o vão, para que o teto descreva a LINHA
-     inteira e não só a coluna de texto — é o que mantém `--vx-message-max-w`
-     significando a mesma coisa que significava antes. */
-  max-inline-size: calc(
-    var(--vx-message-max-w) - var(--vx-avatar-sm) - var(--vx-space-3) -
-      var(--vx-space-4) * 2
-  );
+  /*
+    SEM teto. O conteúdo usa a trilha inteira.
+
+    O teto de 1100px foi removido, não movido de novo: ele existia para
+    proteger a legibilidade, e quem faz isso agora é `--vx-medida`, que limita
+    o TEXTO em cerca de 80 caracteres. Duas travas para o mesmo objetivo é o
+    que produzia a faixa morta — e travar a linha nunca protegeu a leitura,
+    porque não era a linha que estava larga demais, era o texto.
+
+    O que continua com largura própria segue com ela: a mídia tem teto de 400px
+    (ver `Anexos.module.css`) e os chips de reação têm o tamanho do que
+    carregam. Nada disso precisava de uma trava por cima.
+  */
   /*
     A barra de ações ancora AQUI, não na faixa.
 
@@ -367,4 +412,65 @@
     do seu alvo conforme a tela cresce é pior que não existir.
   */
   position: relative;
+}
+
+/*
+  O editor in-line.
+
+  Ele ocupa o lugar do corpo, e a MESMA medida de leitura — trocar a largura ao
+  entrar em edição faria a linha inteira reflowar e a lista pular, que é
+  exatamente o que a âncora do virtualizador não perdoa.
+*/
+.editor {
+  display: grid;
+  gap: var(--vx-space-1);
+  /* O campo de edição ocupa o lugar do corpo, e agora a mesma largura dele. */
+  max-inline-size: none;
+}
+
+.campoDeEdicao {
+  inline-size: 100%;
+  min-inline-size: 0;
+  padding-inline: var(--vx-space-2);
+  padding-block: var(--vx-space-1);
+  border: 1px solid var(--vx-border-strong);
+  border-radius: var(--vx-radius-2);
+  background: var(--vx-surface-0);
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  line-height: var(--vx-leading-message);
+  resize: none;
+}
+
+.campoDeEdicao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/*
+  A dica de teclas.
+
+  Escrita e não escondida atrás de um tooltip: quem entra em edição precisa
+  saber como SAIR, e `Esc` não se descobre por tentativa quando a alternativa
+  é perder o que se digitou.
+*/
+.dicaDeEdicao {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+/*
+  A linha como parada de tabulação.
+
+  `outline-offset` negativo, igual ao `.canal` da lista de canais: a linha
+  encosta nas irmãs sem margem, e um anel para fora seria cortado pela de cima
+  ou desenharia por cima dela. Por dentro ele acompanha a caixa da linha.
+
+  Sem raio próprio de propósito — a linha não tem raio, e inventar um só para o
+  foco faria o anel discordar da forma que ele está marcando.
+*/
+.linha:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
 }

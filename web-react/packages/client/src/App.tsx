@@ -1,11 +1,16 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
+import { Amigos } from "./casa/Amigos";
+import { Configuracoes } from "./config/Configuracoes";
+import { CartaoDeChamada } from "./voz/CartaoDeChamada";
 import { ListaDeCanais } from "./canais/ListaDeCanais";
 import { Composer } from "./composer/Composer";
 import {
+  chamadaFalsa,
   editarUltima,
   falarEmOutroCanal,
   seed,
+  semearNaoLidas,
   SERVER_ID,
   startFirehose,
 } from "./dev/firehose";
@@ -20,18 +25,13 @@ import { ALTURA_ESTIMADA, MessageList } from "./list/MessageList";
 import { PainelDeEdicao } from "./layout/PainelDeEdicao";
 import { ListaDeMembros } from "./membros/ListaDeMembros";
 import { PainelDeFixados } from "./fixados/PainelDeFixados";
-import { Paleta } from "./paleta/Paleta";
-import {
-  assinarPaleta,
-  fecharPaleta,
-  ligarAtalhoDaPaleta,
-  paletaAberta,
-} from "./store/paleta";
+import { Modais } from "./components/ui/Modais";
+import { ligarAtalhoDaPaleta } from "./store/paleta";
 import { Rail } from "./rail/Rail";
 import { configurarSimulacaoDeEnvio } from "./sdk/adapter";
 import { definirConexao, lerConexao } from "./store/conexao";
 import { Shell } from "./shell/Shell";
-import { useCanalAtivo } from "./store/hooks";
+import { useCanalAtivo, useLocal } from "./store/hooks";
 import { entrar } from "./store/edicao";
 import { assinarLayout, definirSemente, lerSemente } from "./store/layout";
 import { SEMENTE_PADRAO } from "./tema/derivar";
@@ -115,21 +115,24 @@ export function App() {
    * canais, como no app de verdade.
    */
   const canal = useCanalAtivo();
+  const local = useLocal();
 
   /**
-   * A paleta, e o atalho que a abre.
+   * O atalho da paleta.
    *
    * `ligarAtalhoDaPaleta` é module-level e idempotente — chamá-lo aqui é só
    * garantir que aconteça uma vez. O listener NÃO vive num `useEffect` deste
    * componente: um atalho de teclado no `document` não pertence a árvore de
    * componente nenhuma, e prendê-lo aqui faria o App re-renderizar a cada
    * abertura.
+   *
+   * Quem MONTA a paleta é o `<Modais />`, e o App não sabe que ela existe.
    */
   ligarAtalhoDaPaleta();
-  const paletaVisivel = useSyncExternalStore(assinarPaleta, paletaAberta);
 
   const ids = useRef<readonly string[]>([]);
   const recorder = useRef(createFrameRecorder());
+  const pararChamada = useRef<(() => void) | null>(null);
 
 
   async function handleSeed() {
@@ -140,6 +143,9 @@ export function App() {
     // Abre o servidor semeado. `selecionarServidor` escolhe o primeiro canal
     // de TEXTO dele, que é o canal com as 10k mensagens.
     selecionarServidor(SERVER_ID);
+    // Só agora: o rail precisa estar assinando os servidores para o rollup de
+    // não-lidas ser publicado. Ver o comentário de `semearNaoLidas`.
+    await semearNaoLidas();
     setSeeding(false);
     console.info(
       `[vortex] semeadas ${ids.current.length} mensagens em ` +
@@ -396,6 +402,27 @@ export function App() {
             olhou. Isto é do arnês e não do produto — mesma família do "falhar
             envio" ao lado.
           */}
+          {/*
+            Chamada falsa.
+
+            Sem servidor de voz o cartão nunca apareceria, e a etapa 6 seria
+            código que ninguém viu. Mesma família do "falhar envio" e do
+            "derrubar conexão" ao lado — arnês, não produto.
+          */}
+          <button
+            onClick={() => {
+              if (pararChamada.current) {
+                pararChamada.current();
+                pararChamada.current = null;
+              } else {
+                pararChamada.current = chamadaFalsa();
+              }
+            }}
+            className="rounded-2 border border-border-subtle bg-surface-2 px-3 py-1 text-sm text-text-1"
+          >
+            chamada falsa
+          </button>
+
           <button
             onClick={() =>
               definirConexao(
@@ -555,7 +582,12 @@ export function App() {
         dois.
       */
       conteudo={
-        canal ? (
+        local.tipo === "amigos" ? (
+          /* A tela de pessoas ocupa a coluna de conteúdo, no lugar da lista.
+             Não é painel: não tem histórico nem composer, e gastar um dos três
+             slots do shell com ela seria caro para o que ela é. */
+          <Amigos />
+        ) : canal ? (
           /*
             O cabeçalho vive DENTRO do conteúdo, e não na linha `ferramentas`
             do shell, porque aquela linha é a barra do arnês. Num app sem
@@ -573,11 +605,31 @@ export function App() {
           />
         )
       }
-      composer={canal ? <Composer channelId={canal} /> : undefined}
+      composer={
+        canal && local.tipo !== "amigos" ? (
+          <Composer channelId={canal} />
+        ) : undefined
+      }
       sobreposto={
         <>
           <PainelDeEdicao />
-          {paletaVisivel ? <Paleta aoFechar={fecharPaleta} /> : null}
+          {/* Um ponto de montagem para os 59 do plano de paridade, em vez de
+              uma condicional por modal. O App não conhece nenhum deles. */}
+          <Modais />
+          {/* Tela cheia SOBRE o shell — a lista de mensagens continua montada
+              atrás, com as dez mil linhas medidas. Ver `store/config.ts`. */}
+          <Configuracoes />
+          {/*
+            O cartão de chamada vive AQUI, na camada sobreposta, e não dentro
+            da coluna de canal.
+
+            ⚠ Ele estava na coluna, e o defeito só apareceu no navegador: a
+            coluna só existe quando há canal aberto, então ir para a casa
+            durante uma chamada fazia o cartão SUMIR — exatamente o caso que o
+            modo compacto existia para cobrir. Uma chamada que desaparece é uma
+            chamada que a pessoa acha que caiu.
+          */}
+          <CartaoDeChamada />
         </>
       }
     />

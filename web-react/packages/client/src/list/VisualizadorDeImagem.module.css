@@ -1,0 +1,51 @@
+/* ============================================================
+   Visualizador de imagem
+   ------------------------------------------------------------
+   A imagem cabe na janela; não há zoom. O upstream usa uma
+   biblioteca de pan-zoom — aqui isso entra quando houver quem
+   peça, e não porque o upstream tem.
+   ============================================================ */
+
+.painel {
+  inline-size: auto;
+  max-inline-size: 90vw;
+}
+
+.figura {
+  display: grid;
+  gap: var(--vx-space-2);
+  margin: 0;
+  justify-items: center;
+}
+
+/*
+  `max-block-size` na viewport, e a proporção vem do metadata.
+
+  Sem os dois, uma imagem alta empurraria o diálogo para fora da tela e uma
+  imagem sem dimensão faria a caixa nascer com 0×0 e crescer ao carregar — a
+  mesma armadilha que a reserva de espaço do anexo já ensinou uma vez.
+*/
+.imagem {
+  max-inline-size: 100%;
+  max-block-size: 70vh;
+  inline-size: auto;
+  block-size: auto;
+  border-radius: var(--vx-radius-2);
+  background: var(--vx-surface-3);
+}
+
+.legenda {
+  max-inline-size: var(--vx-medida);
+  overflow-wrap: anywhere;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+  text-align: center;
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--vx-space-2);
+  margin-block-start: var(--vx-space-3);
+}

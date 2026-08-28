@@ -33,14 +33,14 @@
 }
 
 /*
-  A MESMA caixa da coluna de mensagem: mesmo teto, mesmo lado, mesmo recuo
-  interno.
+  A MESMA caixa da coluna de mensagem: mesma largura, mesmo recuo interno.
 
-  O token do teto é o mesmo (`--vx-message-max-w`) de propósito — duplicar o
-  valor garantiria que um dia os dois divergissem. E o `padding-inline` casa
-  com o `px-4` da linha de mensagem, então a borda do campo nasce onde nasce
-  o avatar. Alinhar pelo TEXTO da mensagem seria o erro: o campo é o análogo
-  da linha inteira, não do parágrafo dentro dela.
+  Não há mais teto em nenhum dos dois — a legibilidade é da medida de leitura,
+  que limita o texto e não a linha. O que os mantém iguais é o `padding-inline`
+  casando com o `px-4` da linha: a borda do campo nasce onde nasce o avatar.
+
+  Alinhar pelo TEXTO da mensagem seria o erro: o campo é o análogo da linha
+  inteira, não do parágrafo dentro dela.
 */
 .coluna {
   /*
@@ -64,11 +64,16 @@
   container-type: inline-size;
 }
 
-/* O conteúdo do composer para onde o conteúdo da linha para. */
+/*
+  O conteúdo do composer acompanha o da linha: sem teto.
+
+  Esta caixa é o marcador de alinhamento — ela e a `.conteudo` da linha ocupam
+  a trilha inteira, com o mesmo recuo, e é isso que a assertion compara. O teto
+  vive no CAMPO, uma camada abaixo, pelo mesmo motivo que o teto do texto vive
+  no parágrafo e não na faixa.
+*/
 .conteudo {
-  max-inline-size: calc(
-    var(--vx-message-max-w) - var(--vx-space-4) * 2
-  );
+  inline-size: 100%;
 }
 
 /* ------------------------------------------------------------
@@ -91,6 +96,26 @@
 
 .campo {
   display: grid;
+  /*
+    ⚠ **O campo cobre a TRILHA, e eu já errei isto nos dois sentidos.**
+
+    A auditoria de design apontou o campo em 1888px sobre um texto de 520 e
+    chamou de alinhamento quebrado. Estreitei o campo para a medida de leitura,
+    e a reação de quem usa foi imediata e mais forte: "a barra de escrever
+    mensagem só cobrindo um pedaço". Num cliente de chat o campo é a superfície
+    que convida — encolhê-lo faz a tela inteira parecer inacabada, e nenhum
+    cliente que serve de referência faz isso.
+
+    A assimetria é deliberada, e agora com o motivo certo: a MEDIDA protege o
+    que se lê em varredura por horas — parágrafos de outra pessoa, empilhados.
+    O que se escreve é curto, some ao ser enviado, e o campo largo é afordância
+    antes de ser texto.
+
+    O que continua valendo do conserto anterior é o que era mesmo defeito: os
+    comentários que afirmavam um teto deletado. A invariante do briefing é
+    "composer alinhado à COLUNA de mensagem", e é a coluna — a caixa que leva o
+    marcador de alinhamento — que os dois compartilham.
+  */
   max-block-size: var(--vx-composer-max-h);
   padding: var(--vx-space-2) var(--vx-space-3);
   border-radius: var(--vx-radius-3);

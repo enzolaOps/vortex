@@ -61,7 +61,7 @@ export function Tooltip({
           side={ladoFisico(lado)}
           sideOffset={6}
           className={cn(
-            "z-flutuante rounded-2 border border-border-subtle bg-surface-3 px-2 py-1",
+            "z-flutuante rounded-2 border border-border-strong bg-surface-3 px-2 py-1",
             "text-xs text-text-1",
             // Movimento explica de onde a coisa veio; não chama atenção.
             // 120ms, só opacity — e nada sob prefers-reduced-motion.

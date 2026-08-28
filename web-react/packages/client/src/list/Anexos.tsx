@@ -2,6 +2,7 @@ import { FileArrowDown } from "@phosphor-icons/react";
 import type { CSSProperties } from "react";
 
 import type { AnexoSnapshot } from "../sdk/domain";
+import { administrar } from "../store/administracao";
 import css from "./Anexos.module.css";
 
 /**
@@ -61,6 +62,29 @@ function Anexo({ anexo }: { anexo: AnexoSnapshot }) {
       {anexo.tipo === "video" ? (
         <video className={css.arquivoDeMidia} src={anexo.url} controls />
       ) : (
+        /*
+          `button` e não a `img` com `onClick`.
+
+          Imagem clicável sem botão em volta não recebe foco, não responde a
+          Enter e não é anunciada como acionável — clicar num anexo passaria a
+          existir só para quem usa mouse. O botão não tem caixa própria
+          (`display: contents` no CSS), então a reserva de espaço acima
+          continua sendo a mesma.
+        */
+        <button
+          type="button"
+          className={css.alvoDaImagem}
+          aria-label={`Ver ${anexo.nome} em tamanho grande`}
+          onClick={() =>
+            administrar({
+              tipo: "verImagem",
+              url: anexo.url,
+              nome: anexo.nome,
+              largura: anexo.largura,
+              altura: anexo.altura,
+            })
+          }
+        >
         <img
           className={css.arquivoDeMidia}
           src={anexo.url}
@@ -78,6 +102,7 @@ function Anexo({ anexo }: { anexo: AnexoSnapshot }) {
           loading="lazy"
           decoding="async"
         />
+        </button>
       )}
     </div>
   );

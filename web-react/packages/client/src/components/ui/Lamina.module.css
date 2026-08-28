@@ -10,6 +10,25 @@
   position: absolute;
   inset-inline-start: 0;
   inset-block-start: 50%;
+  /*
+    ⚠ **E sobe METADE da própria altura, senão ela não está no meio de nada.**
+
+    `inset-block-start: 50%` põe a BORDA DE CIMA no meio da linha, e a peça
+    cresce para baixo a partir dali. Medido no rail: item de 48px, centro em
+    24, e a lâmina ocupando de 24 a 44 — centro em 34, **dez pixels abaixo**
+    do centro do avatar que ela marca. O mesmo em toda linha da lista de
+    canais.
+
+    Foi assim desde que a lâmina existe, e nenhuma guarda pegaria: a peça está
+    posicionada, visível, com a cor e o tamanho certos. Só está no lugar
+    errado, e o erro é constante — o que faz a coluna inteira parecer
+    desalinhada em vez de fazer um item parecer quebrado.
+
+    `translate` e não `margin`: ele compõe com o `scale` da animação na mesma
+    transformação, roda no compositor e não toca layout. Com margem, a peça
+    mudaria de posição durante a transição de altura.
+  */
+  translate: 0 -50%;
   inline-size: var(--vx-lamina-w);
   block-size: var(--vx-lamina-h);
   background: currentColor;

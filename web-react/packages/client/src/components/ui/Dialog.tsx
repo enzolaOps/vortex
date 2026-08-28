@@ -59,9 +59,29 @@ export function DialogContent({
       />
       <Primitivo.Content
         {...props}
+        /*
+          ⚠ **Sem descrição, `aria-describedby` é REMOVIDO — não preenchido com
+          o título.**
+
+          A versão anterior renderizava uma `Description` sr-only com o mesmo
+          texto do título, para calar o aviso do Radix. O efeito era o leitor de
+          tela anunciar "Editar canal, Editar canal": o título e, logo em
+          seguida, a descrição, que era a mesma frase.
+
+          `undefined` explícito é a escotilha documentada do Radix justamente
+          para isto — diálogo sem texto de apoio não tem descrição, e inventar
+          uma repetindo o título é pior que não ter, porque soa como erro de
+          leitura para quem depende dela.
+
+          Espalhado e CONDICIONAL: passar `aria-describedby={undefined}` sempre
+          sobrescreveria o que o Radix liga quando existe `Description`, e aí o
+          diálogo COM texto de apoio perderia a descrição — o defeito inverso,
+          e mais difícil de ver.
+        */
+        {...(descricao ? {} : { "aria-describedby": undefined })}
         className={cn(
           css.painel,
-          "z-flutuante rounded-3 border border-border-subtle bg-surface-2 p-5",
+          "z-flutuante rounded-3 border border-border-strong bg-surface-2 p-5",
           "anim-base",
           className,
         )}
@@ -80,11 +100,7 @@ export function DialogContent({
           <Primitivo.Description className="mt-1 text-md text-text-2">
             {descricao}
           </Primitivo.Description>
-        ) : (
-          /* O Radix avisa em dev se o Content não tem Description. Quando não
-             há texto de apoio, a descrição existe só para o leitor de tela. */
-          <Primitivo.Description className="sr-only">{titulo}</Primitivo.Description>
-        )}
+        ) : null}
 
         <div className={tituloOculto ? undefined : "mt-4"}>{children}</div>
       </Primitivo.Content>
