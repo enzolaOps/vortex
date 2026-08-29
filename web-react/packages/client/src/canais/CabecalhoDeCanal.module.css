@@ -26,7 +26,20 @@
   block-size: 50px;
   padding-inline: var(--vx-space-16);
   border-block-end: 1px solid var(--vx-border-subtle);
-  background: var(--vx-surface-0);
+  /*
+    ⚠ **Canvas, e estava em `surface-0` — o terceiro lugar em que este mesmo
+    erro apareceu, depois da prancha e do rodapé do composer.**
+
+    O cabeçalho é a primeira linha da COLUNA DE CONTEÚDO, e o Foundations
+    reserva `surface.sunken` para rail e gutter ultrawide. Medido no
+    `Vortex App.dc.html`: a faixa de 50px do cabeçalho de canal não declara
+    fundo nenhum — ela herda `#14181E`, o canvas. Quem a separa da timeline é
+    a hairline de baixo, que já está aqui.
+
+    Foi este defeito que motivou o `pnpm superficies`, e foi ele o primeiro
+    que a guarda pegou.
+  */
+  background: var(--vx-surface-2);
 
   /* Container próprio: o cabeçalho decide o que mostrar pelo tamanho DELE,
      não pelo da janela — a coluna de conteúdo muda de largura quando um
