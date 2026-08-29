@@ -58,7 +58,9 @@ export function Avatar({
       */
       style={{ backgroundImage: gradienteDe(id), color: corDoTextoDe(id) }}
     >
-      {sigla}
+      {/* A sigla recortada; o ponto de presença (children) FORA do recorte.
+          Ver `.sigla` no módulo — o recorte no avatar comia o indicador. */}
+      <span className={css.sigla}>{sigla}</span>
       {children}
     </span>
   );

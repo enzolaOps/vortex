@@ -176,6 +176,9 @@ function vizinho(id: string | undefined) {
     // instância do SDK aqui vazaria o protocolo para dentro do módulo de
     // agrupamento, que é puro de propósito.
     ehSistema: Boolean(m.systemMessage),
+    // Responder quebra o grupo — ver `calcularLayout`. Booleano e não a lista:
+    // o agrupamento só precisa saber SE responde, não a quem.
+    responde: (m.replyIds?.length ?? 0) > 0,
   };
 }
 

@@ -21,10 +21,27 @@
   font-weight: 600;
   /* Ligadura em iniciais como "fi" viraria glifo único. */
   font-variant-ligatures: none;
-  /* A sigla nunca deve vazar da caixa, nem com três letras num avatar de
-     20px — o overflow aqui é recorte, não rolagem. */
-  overflow: hidden;
   user-select: none;
+}
+
+/*
+  ⚠ **O recorte saiu do avatar e foi para a SIGLA, e o motivo é o ponto de
+  presença.**
+
+  `.avatar` tinha `overflow: hidden` para a sigla nunca vazar da caixa. Só que
+  o ponto de presença é FILHO do avatar e mora a 4px fora dele, de propósito —
+  então o mesmo recorte que protegia a sigla comia o indicador. Medido: o
+  ponto tinha 12×12 e era cortado pelo `.avatar`, no chat e no painel de
+  usuário.
+
+  O fundo em gradiente não depende disso: `background` respeita
+  `border-radius` sem `overflow`. Quem precisava de recorte era só o texto, e
+  agora é o texto que o tem.
+*/
+.sigla {
+  overflow: hidden;
+  /* Herda o círculo do pai para o recorte acompanhar a forma. */
+  border-radius: inherit;
 }
 
 .xxs {

@@ -98,3 +98,40 @@ describe("layout da linha", () => {
     expect(dentro.dia).toBeUndefined();
   });
 });
+
+
+/**
+ * ⚠ Responder quebra o grupo, e o defeito que isto guarda foi relatado por
+ * quem usa: "em mensagens duplas assim, o ícone do usuário deve aparecer
+ * também e não somente o texto largado".
+ *
+ * Sem a regra, a prévia de resposta entrava entre duas falas do mesmo autor e
+ * a segunda vinha sem cabeçalho — parecendo do autor da CITAÇÃO.
+ */
+describe("resposta e agrupamento", () => {
+  const anterior = { authorId: "ana", createdAt: 1_000_000, ehSistema: false };
+
+  it("abre grupo mesmo com o mesmo autor e dentro da janela", () => {
+    expect(
+      calcularLayout({ authorId: "ana", createdAt: 1_000_100 }, anterior)
+        .iniciaGrupo,
+    ).toBe(false);
+
+    expect(
+      calcularLayout(
+        { authorId: "ana", createdAt: 1_000_100, responde: true },
+        anterior,
+      ).iniciaGrupo,
+    ).toBe(true);
+  });
+
+  it("NÃO quebra o grupo da mensagem seguinte", () => {
+    // A prévia pertence a quem responde; a fala depois dela pode continuar.
+    expect(
+      calcularLayout(
+        { authorId: "ana", createdAt: 1_000_200 },
+        { authorId: "ana", createdAt: 1_000_100, ehSistema: false },
+      ).iniciaGrupo,
+    ).toBe(false);
+  });
+});

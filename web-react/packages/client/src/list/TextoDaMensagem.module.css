@@ -148,7 +148,38 @@
   outline-offset: 1px;
 }
 
+/*
+  As cores do realce, ligadas aos NOSSOS tokens.
+
+  ⚠ **Nenhum hex aqui, e essa é a razão de o tema do shiki ser de variáveis
+  CSS.** Este app troca de paleta em runtime (fase 4); um bloco de código com
+  cores assadas seria a única superfície que ignora a escolha de quem usa.
+  `createCssVariablesTheme` emite `var(--shiki-*)` e estas linhas as amarram.
+
+  ⚠ **O design usa um roxo (`#8b7be8`) que a paleta DELE não tem** — a
+  Foundations lista teal, ardósia, danger, warning e success, e mais nada. O
+  roxo é artefato do mock, não decisão de sistema. Reproduzi-lo exigiria um
+  token de cor novo, que precisaria de classificação de contraste e de
+  derivação a partir da semente — trabalho real para uma cor que o próprio
+  design não assume.
+
+  O mapeamento usa o que já existe, com a lógica de sempre: o que é ESTRUTURA
+  (palavra-chave, função) fica em acento, o que é VALOR (string, número) em
+  success e warning, e o que é ruído (comentário, pontuação) desce para os
+  degraus apagados de texto.
+*/
 .bloco {
+  --shiki-foreground: var(--vx-text-1);
+  --shiki-token-keyword: var(--vx-accent-text);
+  --shiki-token-function: var(--vx-accent);
+  --shiki-token-string: var(--vx-success);
+  --shiki-token-string-expression: var(--vx-success);
+  --shiki-token-constant: var(--vx-warning);
+  --shiki-token-parameter: var(--vx-text-1);
+  --shiki-token-comment: var(--vx-text-3);
+  --shiki-token-punctuation: var(--vx-text-2);
+  --shiki-token-link: var(--vx-accent-text);
+
   margin: 0;
   padding: var(--vx-space-3);
   font-family: var(--vx-font-mono);
@@ -284,4 +315,16 @@ ol.lista {
 
 .link:hover {
   color: var(--vx-accent-hover);
+}
+
+/*
+  Uma linha de código.
+
+  `display: block` para a quebra do `<pre>` funcionar com os `<span>` por
+  linha, e nada mais — o realce não pode mudar métrica nenhuma do bloco, senão
+  a altura dele muda quando o highlighter chega e a âncora do virtualizador se
+  move junto.
+*/
+.linhaDeCodigo {
+  display: block;
 }

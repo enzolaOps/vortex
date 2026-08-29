@@ -1,6 +1,7 @@
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 
 import { achatar } from "../markdown/analisar";
+import { realcar, realceEmCache } from "../markdown/realce";
 import {
   chaveDeMembro,
   type BlocoDeMensagem,
@@ -182,6 +183,96 @@ function Trecho({
   }
 }
 
+/**
+ * A quebra de linha, como constante.
+ *
+ * O `<pre>` preserva espaço em branco, e os `<span>` por linha não trazem
+ * quebra nenhuma — sem isto o código inteiro sairia numa linha só.
+ */
+const QUEBRA = String.fromCharCode(10);
+
+/**
+ * O código, com realce carregado sob demanda.
+ *
+ * ⚠ **Pinta texto simples PRIMEIRO e colore depois, e a ordem é o que protege
+ * a âncora.** O realce não muda a contagem de linhas nem a largura do texto —
+ * é a mesma string com `<span>`s por dentro —, então trocar um pelo outro não
+ * mexe na altura do bloco. Se ele SUSPENDESSE até o highlighter chegar, a
+ * linha nasceria sem o `<pre>`, seria medida baixa, e cresceria um quadro
+ * depois: altura mudando debaixo do virtualizador é a âncora se movendo.
+ *
+ * Quando o realce já está em cache (o caso comum — a mesma mensagem
+ * re-renderiza muito), ele entra no PRIMEIRO quadro e não há troca nenhuma.
+ *
+ * `memo` porque isto vive na linha mais quente do app, e o efeito abaixo
+ * dispara por conteúdo, não por render.
+ */
+const Codigo = memo(function Codigo({
+  valor,
+  lingua,
+}: {
+  valor: string;
+  lingua: string | undefined;
+}) {
+  const [linhas, setLinhas] = useState(() => realceEmCache(valor, lingua));
+
+  useEffect(() => {
+    /*
+      Já veio do cache no primeiro render: não há trabalho a fazer, e disparar
+      o efeito só para reencontrar o mesmo valor acordaria a linha de novo.
+    */
+    if (linhas) return;
+
+    let vivo = true;
+    void realcar(valor, lingua).then((r) => {
+      // Desmontou, ou o conteúdo mudou enquanto o import estava em voo. Sem
+      // esta guarda é o erro nº 5 do briefing com forma de `setState`.
+      if (vivo && r) setLinhas(r);
+    });
+    return () => {
+      vivo = false;
+    };
+    // `linhas` fora das dependências de propósito: ele é o RESULTADO deste
+    // efeito, e incluí-lo faria o efeito se reagendar ao próprio sucesso.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [valor, lingua]);
+
+  return (
+    <pre className={css.bloco}>
+      <code>
+        {linhas
+          ? linhas.map((linha, i) => (
+              /*
+                ⚠ **Índice como chave, e a exceção é declarada — não escapada.**
+
+                O lint deste projeto proíbe `key={i}`, e a razão que ele dá é
+                exata: índice corrompe o estado da linha a cada inserção no
+                topo. Aqui essa inserção é ESTRUTURALMENTE impossível — o array
+                é derivado de uma string imutável por `split`, nunca é
+                reordenado, filtrado nem prefixado, e a linha 3 é a linha 3 até
+                o conteúdo mudar (e aí o componente inteiro remonta, porque a
+                chave do cache é o próprio conteúdo).
+
+                Renomear `i` para escapar do seletor seria burlar a guarda em
+                vez de discordar dela por escrito. Este comentário é a
+                discordância.
+              */
+              // eslint-disable-next-line no-restricted-syntax
+              <span key={i} className={css.linhaDeCodigo}>
+                {linha.map((t, j) => (
+                  <span key={j} style={t.cor ? { color: t.cor } : undefined}>
+                    {t.texto}
+                  </span>
+                ))}
+                {QUEBRA}
+              </span>
+            ))
+          : valor}
+      </code>
+    </pre>
+  );
+});
+
 function Blocos({
   blocos,
   prefixo,
@@ -288,9 +379,7 @@ function Bloco({
             é `minmax(0, 1fr)`, e uma linha de 400 caracteres sem espaço
             empurraria a trilha e estouraria o grid.
           */}
-          <pre className={css.bloco}>
-            <code>{bloco.valor}</code>
-          </pre>
+          <Codigo valor={bloco.valor} lingua={bloco.lingua} />
         </div>
       );
 
