@@ -51,25 +51,35 @@ type Linha =
 /**
  * O cabeçalho de uma seção de cargo.
  *
- * Componente próprio porque a cor precisa passar pelo clamp de luminosidade, e
- * isso é um HOOK — não pode ser chamado dentro do `map` de render da lista
- * virtualizada. Extrair era o conserto certo de qualquer forma: o cabeçalho
- * tinha markup inline no meio do laço de itens.
+ * ⚠ **Não recebe mais a COR do cargo, e o motivo está no corpo.** Ele existia
+ * como componente próprio porque a cor precisava passar por um hook de clamp
+ * de luminosidade, e hook não pode ser chamado dentro do `map` de render da
+ * lista virtualizada. Sem a cor, essa razão sumiu — mas ele fica: extrair o
+ * cabeçalho de dentro do laço de itens era o conserto certo de qualquer forma,
+ * e `memo` sobre ele evita re-render por mudança em linha vizinha.
  */
 const CabecalhoDeSecao = memo(function CabecalhoDeSecao({
   rotulo,
-  cor,
   total,
 }: {
   rotulo: string;
-  cor: string | undefined;
   total: number;
 }) {
-  const corDeCargo = useCorDeCargo(cor);
-
   return (
-    // A cor é do servidor; a LUMINOSIDADE é do app — ver `tema/cargo.ts`.
-    <h2 className={css.secao} style={corDeCargo ? { color: corDeCargo } : undefined}>
+    /*
+      ⚠ **O cabeçalho NÃO leva a cor do cargo, e ele levava.**
+
+      Medido no design: `NÚCLEO — 2`, `MODERAÇÃO — 1`, `ONLINE — 3` e
+      `OFFLINE — 18` saem todos em `#77808E` — o mesmo `text-3` de qualquer
+      rótulo de seção. A cor do cargo aparece no NOME das pessoas, que é onde
+      ela responde a alguma pergunta ("quem é da moderação?").
+
+      No cabeçalho ela não responde nada: o rótulo já diz o cargo por escrito,
+      e colorir a palavra "MODERAÇÃO" de verde é repetir o mesmo fato numa
+      segunda linguagem. O custo é uma coluna com quatro cores de rótulo
+      competindo entre si, que foi como quem usa a descreveu.
+    */
+    <h2 className={css.secao}>
       {rotulo}
       <span className={css.total}>— {total}</span>
     </h2>
@@ -449,11 +459,7 @@ export function ListaDeMembros() {
               role={linha.tipo === "secao" ? undefined : "listitem"}
             >
               {linha.tipo === "secao" ? (
-                <CabecalhoDeSecao
-                  rotulo={linha.rotulo}
-                  cor={linha.cor}
-                  total={linha.total}
-                />
+                <CabecalhoDeSecao rotulo={linha.rotulo} total={linha.total} />
               ) : (
                 <LinhaDeMembro
                   serverId={serverId}

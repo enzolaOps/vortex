@@ -40,6 +40,14 @@ export const CHANNEL_ID = "01JQ0000000000000000000000";
 export const SERVER_ID = "01JQ0000000000000000000001";
 const USER_COUNT = 40;
 
+/**
+ * Quantas pessoas distintas digitam sob o firehose.
+ *
+ * Três, para o indicador passar pelos três casos que o design desenha: uma
+ * com nome, duas com "e", e a contagem a partir daí. Ver o `case "typing"`.
+ */
+const QUEM_DIGITA = 3;
+
 const userIds: string[] = [];
 
 /** O "eu" do arnês, fixo — o mesmo que `definirUsuarioLocal` recebe. */
@@ -1243,8 +1251,24 @@ export function startFirehose(
         }
 
         case "typing": {
+          /*
+            ⚠ **Um punhado de pessoas, não as quarenta — oitava vez que o
+            arnês fica mais pobre que o protocolo, agora por EXCESSO.**
+
+            O ciclo antigo percorria `userIds` inteiro, então o conjunto de
+            quem digita saturava em 20 e nunca esvaziava: a faixa dizia "20
+            pessoas estão digitando…" para sempre. Os dois casos que o design
+            desenha — uma pessoa com nome, duas com "e" — eram inalcançáveis,
+            e foi assim que "alguém está digitando…" sobreviveu no ar depois
+            de a member list existir.
+
+            A VAZÃO não muda: a mesma fatia dos 500 ev/s continua sendo de
+            digitação. O que muda é o número de pessoas distintas, e um canal
+            onde três pessoas alternam é mais parecido com um canal de verdade
+            do que um onde vinte digitam sem parar.
+          */
           const channel = client.channels.get(CHANNEL_ID);
-          const user = client.users.get(userIds[n % userIds.length]!);
+          const user = client.users.get(userIds[n % QUEM_DIGITA]!);
           if (channel && user) {
             client.emit(n % 2 ? "channelStartTyping" : "channelStopTyping", channel, user);
           }

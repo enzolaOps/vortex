@@ -60,9 +60,15 @@
   gap: var(--vx-space-2);
   inline-size: 100%;
   min-inline-size: 0;
-  padding-inline: var(--vx-space-2);
+  /*
+    Recuo e margem do design: `5px 10px` de padding e `0 6px` de margem, que na
+    escala do projeto são `space-1`/`space-3` e `space-2`. A linha passa de 40
+    para 42px — a folga é o que separa o nome do recado na segunda linha sem
+    que os dois virem um bloco.
+  */
+  padding-inline: var(--vx-space-3);
   padding-block: var(--vx-space-1);
-  margin-inline: var(--vx-space-1);
+  margin-inline: var(--vx-space-2);
   border-radius: var(--vx-radius-2);
   color: var(--vx-text-2);
   background: transparent;

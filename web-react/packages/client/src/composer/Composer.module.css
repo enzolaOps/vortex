@@ -299,6 +299,9 @@
 }
 
 .digitando {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
   min-inline-size: 0;
   min-block-size: calc(var(--vx-size-xs) * var(--vx-leading-message));
   margin: 0;
@@ -357,17 +360,30 @@
    subiria sozinho e deixaria de parecer parte da linha.
    ============================================================ */
 
+/*
+  O `+` de anexar: pílula de VÉU, não superfície sólida.
+
+  ⚠ Estava em `--vx-surface-3` — a mesma cor do campo que o contém. Um botão
+  do tom exato do fundo em que está é um botão que não existe: ele só aparecia
+  pelo ícone. O design usa `rgba(255,255,255,0.04)`, que é o nosso
+  `--vx-state-hover` em repouso — véu compõe sobre o campo e continua certo
+  quando o tema muda.
+
+  24px e não 32: o design o desenha menor que os alvos da direita, e a
+  diferença diz algo — anexar abre um seletor de arquivo do sistema, as
+  ferramentas abrem painéis dentro do app.
+*/
 .anexar {
   flex: none;
   align-self: flex-end;
-  inline-size: var(--vx-space-6);
-  block-size: var(--vx-space-6);
+  inline-size: var(--vx-space-5);
+  block-size: var(--vx-space-5);
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
   border-radius: var(--vx-radius-5);
-  background: var(--vx-surface-3);
+  background: var(--vx-state-hover);
   color: var(--vx-text-2);
   cursor: pointer;
   transition:
@@ -479,4 +495,80 @@
 .rodape svg {
   inline-size: var(--vx-icon-1);
   block-size: var(--vx-icon-1);
+}
+
+/* --------------------------------------------- os três pontos que pulam */
+
+/*
+  A animação de "digitando", que não existia.
+
+  ⚠ **Três pontos e não um spinner**, e a diferença é semântica: spinner diz
+  "espere", e ninguém está esperando — a pessoa do outro lado está escrevendo,
+  e pode desistir. Os pontos são a convenção da categoria justamente por não
+  prometerem conclusão.
+
+  Só `transform` e `opacity`, que é a regra de movimento do design — as duas
+  propriedades que o compositor anima sem tocar em layout. Um `top` aqui
+  reflowaria a faixa do composer a cada 1,1s, e a faixa fica acima da lista.
+*/
+.pontos {
+  display: flex;
+  flex: none;
+  /* O design usa 3px; `--vx-space-1` (4) é o degrau que existe, e a diferença
+     é 2px na largura do trio inteiro. Acrescentar um degrau de 3px à escala
+     por causa de um vão seria exatamente o inchaço que a guarda evita. */
+  gap: var(--vx-space-1);
+}
+
+.pontos span {
+  inline-size: 5px;
+  block-size: 5px;
+  border-radius: var(--vx-radius-5);
+  background: var(--vx-text-2);
+  animation: vxDigitando 1100ms infinite;
+}
+
+/* O atraso escalonado é o que faz a onda: sem ele os três pulsam juntos e a
+   coisa lê como um alerta piscando, não como alguém escrevendo. */
+.pontos span:nth-child(2) {
+  animation-delay: 150ms;
+}
+
+.pontos span:nth-child(3) {
+  animation-delay: 300ms;
+}
+
+@keyframes vxDigitando {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
+/*
+  ⚠ **Quem se move precisa poder parar.**
+
+  `prefers-reduced-motion` não é acessibilidade opcional: movimento repetitivo
+  e permanente na periferia da tela é o gatilho clássico de desconforto
+  vestibular, e esta faixa fica visível o tempo todo numa jornada de oito
+  horas. Sem animação os pontos continuam ali, com a opacidade do repouso — a
+  informação não depende do movimento.
+*/
+@media (prefers-reduced-motion: reduce) {
+  .pontos span {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
+/* O nome de quem digita, destacado dentro da frase — do design. */
+.quemDigita {
+  color: var(--vx-text-1);
+  font-weight: 600;
 }
