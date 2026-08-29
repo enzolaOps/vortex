@@ -11,9 +11,24 @@
    ============================================================ */
 
 .rodape {
-  padding-block: var(--vx-space-12) var(--vx-space-16);
-  border-block-start: 1px solid var(--vx-border-subtle);
-  background: var(--vx-surface-0);
+  /*
+    ⚠ **Sem fundo e sem régua, e as duas coisas estavam erradas.**
+
+    Ele pintava `--vx-surface-0` — o tom do rail e do gutter ultrawide — logo
+    abaixo de uma timeline em `surface-2`. O resultado é uma faixa preta
+    contornando o campo de escrever, e foi assim que quem usa relatou. É a
+    mesma família do bug da prancha, no mesmo commit: `surface-0` usado onde o
+    design não o usa.
+
+    Medido no `Vortex App.dc.html`: o wrapper do composer tem
+    `padding: 0 20px 14px` e **nenhum** `background` — ele herda o canvas
+    (`#14181E`). Quem separa o campo do conteúdo é a superfície PRÓPRIA da
+    caixa (`surface-3`) mais a borda dela, não uma faixa atrás.
+
+    A régua de topo saiu junto e pelo mesmo motivo: o design não a tem, e com
+    a faixa preta fora ela passou a marcar uma divisão que não existe mais.
+  */
+  padding-block: 0 var(--vx-space-14);
 
   /*
     A calha da barra de rolagem, reservada aqui também.
@@ -126,8 +141,9 @@
     "composer alinhado à COLUNA de mensagem", e é a coluna — a caixa que leva o
     marcador de alinhamento — que os dois compartilham.
   */
-  padding: var(--vx-space-08) var(--vx-space-12);
-  border-radius: var(--vx-radius-08);
+  /* `8px 10px 6px` e raio 10 — a caixa do design, medida no arquivo. */
+  padding: var(--vx-space-08) var(--vx-space-10) var(--vx-space-06);
+  border-radius: var(--vx-radius-10);
 
   /*
     ⚠ **`--vx-surface-3`, e estava em `surface-2` — a MESMA cor da timeline.**
