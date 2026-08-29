@@ -96,7 +96,7 @@
   block-size: 30px;
   padding-inline: var(--vx-space-08);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   /* Mais FUNDO que a coluna, como todo campo do design: o que recebe entrada
      afunda, o que é conteúdo flutua. */
   background: var(--vx-surface-0);
@@ -185,7 +185,7 @@
 .tecla {
   padding-inline: var(--vx-space-04);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-1);
+  border-radius: var(--vx-radius-04);
   color: var(--vx-text-4);
   font-family: var(--vx-font-mono);
   font-size: 10px;
@@ -217,7 +217,7 @@
   padding-inline: var(--vx-space-08);
   padding-block: var(--vx-space-12) var(--vx-space-04);
   border: 0;
-  border-radius: var(--vx-radius-1);
+  border-radius: var(--vx-radius-04);
   background: transparent;
   color: var(--vx-text-3);
   font-family: inherit;
@@ -317,7 +317,7 @@
     (32px) foi a primeira tentativa e mediu 32 na tela — perto, e errado.
   */
   min-block-size: 30px;
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   /*
     `--vx-text-2` e não `--vx-text-3`, e a diferença é do design.
 
@@ -516,14 +516,14 @@
   decisão já registrada em `EXCECOES` de `tema/pares.ts`, e é uma linha para
   reverter se a leitura do número pesar mais que a fidelidade.
 
-  `--vx-radius-5` (pílula) e não o raio 4: o design usa `999px`, e num badge
+  `--vx-radius-pill` (pílula) e não o raio 4: o design usa `999px`, e num badge
   de um dígito a diferença entre 12px e pílula é visível.
 */
 .contador {
   flex: none;
   min-inline-size: var(--vx-space-16);
   padding-inline: var(--vx-space-04);
-  border-radius: var(--vx-radius-5);
+  border-radius: var(--vx-radius-pill);
   background: var(--vx-danger);
   color: #ffffff;
   font-size: 10px;
@@ -596,7 +596,7 @@
   min-block-size: 30px;
   padding-inline: var(--vx-space-08);
   padding-block: var(--vx-space-04);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   color: var(--vx-text-2);
 }
 
@@ -619,7 +619,7 @@
   flex: none;
   display: grid;
   place-items: center;
-  border-radius: var(--vx-radius-5);
+  border-radius: var(--vx-radius-pill);
   background: var(--vx-surface-3);
   color: var(--vx-text-3);
   font-size: 9px;
@@ -857,7 +857,7 @@
   min-inline-size: 0;
   padding: 0;
   border: 0;
-  border-radius: var(--vx-radius-1);
+  border-radius: var(--vx-radius-04);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -942,7 +942,7 @@
   align-items: center;
   block-size: var(--vx-space-16);
   padding-inline: var(--vx-space-04);
-  border-radius: var(--vx-radius-1);
+  border-radius: var(--vx-radius-04);
   background: var(--vx-accent-soft);
   color: var(--vx-accent-text);
   font-family: var(--vx-font-mono);
@@ -1012,7 +1012,7 @@
   inline-size: var(--vx-space-24);
   block-size: var(--vx-space-24);
   border: 0;
-  border-radius: var(--vx-radius-1);
+  border-radius: var(--vx-radius-04);
   background: transparent;
   color: var(--vx-text-3);
   cursor: pointer;
@@ -1054,7 +1054,7 @@
   inline-size: var(--vx-space-24);
   block-size: var(--vx-space-24);
   border: 0;
-  border-radius: var(--vx-radius-1);
+  border-radius: var(--vx-radius-04);
   background: transparent;
   color: var(--vx-text-3);
   cursor: pointer;

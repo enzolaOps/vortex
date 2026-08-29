@@ -55,7 +55,7 @@
   padding-inline: var(--vx-space-08);
   padding-block: var(--vx-space-08);
   border: 0;
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: transparent;
   color: var(--vx-text-2);
   font-family: inherit;
@@ -111,7 +111,7 @@
   inline-size: 32px;
   block-size: 32px;
   border: 0;
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: transparent;
   color: var(--vx-text-3);
   cursor: pointer;

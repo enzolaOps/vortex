@@ -35,7 +35,7 @@
   inline-size: 28px;
   block-size: 28px;
   flex: none;
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   color: var(--vx-text-3);
   cursor: pointer;
 }
@@ -89,7 +89,7 @@
   block-size: 36px;
   padding-inline: var(--vx-space-12);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: var(--vx-surface-3);
 }
 
@@ -140,7 +140,7 @@
   block-size: 34px;
   padding-inline: var(--vx-space-08);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: var(--vx-surface-3);
 }
 
@@ -203,7 +203,7 @@
   block-size: 34px;
   padding-inline: var(--vx-space-12);
   border: 1px dashed var(--vx-border-subtle);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   color: var(--vx-text-3);
   font-size: var(--vx-size-md);
   cursor: pointer;
@@ -220,7 +220,7 @@
 .campoGlifo:focus-visible {
   outline: 2px solid var(--vx-accent);
   outline-offset: 2px;
-  border-radius: var(--vx-radius-1);
+  border-radius: var(--vx-radius-04);
 }
 
 .duas {
@@ -249,7 +249,7 @@
   block-size: 32px;
   padding-inline: var(--vx-space-08);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: var(--vx-surface-3);
   color: var(--vx-text-1);
   font-family: inherit;
@@ -293,7 +293,7 @@
   block-size: 22px;
   flex: none;
   padding: var(--vx-space-02);
-  border-radius: var(--vx-radius-5);
+  border-radius: var(--vx-radius-pill);
   background: var(--vx-surface-0);
   border: 1px solid var(--vx-border-subtle);
   cursor: pointer;
@@ -314,7 +314,7 @@
   display: block;
   inline-size: 16px;
   block-size: 16px;
-  border-radius: var(--vx-radius-5);
+  border-radius: var(--vx-radius-pill);
   background: var(--vx-text-2);
   /* Só `translate` anima — a regra de movimento do projeto: nada além de
      `transform` e `opacity` roda no compositor. */
@@ -343,7 +343,7 @@
   margin-block-start: var(--vx-space-08);
   padding: var(--vx-space-16);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-4);
+  border-radius: var(--vx-radius-12);
   /*
     Um degrau ACIMA da timeline.
 
@@ -373,7 +373,7 @@
   align-items: center;
   block-size: 17px;
   padding-inline: var(--vx-space-08);
-  border-radius: var(--vx-radius-1);
+  border-radius: var(--vx-radius-04);
   background: color-mix(in oklab, var(--vx-success) 16%, transparent);
   /* `success-text` e não `success`: é LETRA sobre um preenchimento tingido do
      mesmo verde, e o design usa dois valores exatamente para esse par. */
@@ -398,7 +398,7 @@
   overflow: hidden;
   margin-block-end: var(--vx-space-04);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   /* Mais FUNDO que a caixa: a opção é um alvo dentro dela. */
   background: var(--vx-surface-2);
   cursor: pointer;

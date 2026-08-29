@@ -17,7 +17,7 @@
   place-items: center;
   /* Círculo. O design usa círculo para pessoa e retângulo arredondado só
      para servidor — a distinção é o que separa "quem" de "onde". */
-  border-radius: var(--vx-radius-5);
+  border-radius: var(--vx-radius-pill);
   font-weight: 600;
   /* Ligadura em iniciais como "fi" viraria glifo único. */
   font-variant-ligatures: none;

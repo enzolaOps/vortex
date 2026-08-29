@@ -49,7 +49,7 @@
   inline-size: var(--vx-space-12);
   block-size: var(--vx-space-12);
   box-sizing: border-box;
-  border-radius: var(--vx-radius-4);
+  border-radius: var(--vx-radius-12);
   /* O anel separa o ponto do avatar sem depender de contraste de cor.
      A cor vem de fora, pela var — é o painel que sabe sobre o que está. */
   box-shadow: 0 0 0 2px var(--anel, var(--vx-surface-0));
@@ -83,7 +83,7 @@
   inset-block-start: -30%;
   inline-size: 80%;
   block-size: 80%;
-  border-radius: var(--vx-radius-4);
+  border-radius: var(--vx-radius-12);
 }
 
 /* Ocupado: barra atravessada — a convenção de "não perturbe". */

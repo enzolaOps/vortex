@@ -237,7 +237,7 @@ export function Arnes() {
           <button
             onClick={() => void handleSeed()}
             disabled={seeded > 0 || seeding || running}
-            className="rounded-2 bg-surface-3 px-12 py-04 text-sm text-text-1 disabled:text-text-3"
+            className="rounded-06 bg-surface-3 px-12 py-04 text-sm text-text-1 disabled:text-text-3"
           >
             {seeding ? "semeando…" : `Semear ${seedCount.toLocaleString("pt-BR")}`}
           </button>
@@ -259,7 +259,7 @@ export function Arnes() {
           <button
             onClick={() => void handleRun()}
             disabled={seeded === 0 || seeding || running}
-            className="rounded-2 bg-accent px-12 py-04 text-sm text-on-accent disabled:bg-surface-3 disabled:text-text-3"
+            className="rounded-06 bg-accent px-12 py-04 text-sm text-on-accent disabled:bg-surface-3 disabled:text-text-3"
           >
             {running
               ? `janela ${progresso}/${repeticoes} — ${WINDOW_SECONDS}s`
@@ -288,7 +288,7 @@ export function Arnes() {
               });
             }}
             disabled={seeded === 0}
-            className="rounded-2 bg-surface-3 px-12 py-04 text-sm text-text-1 disabled:text-text-3"
+            className="rounded-06 bg-surface-3 px-12 py-04 text-sm text-text-1 disabled:text-text-3"
           >
             Carregar histórico
           </button>
@@ -300,7 +300,7 @@ export function Arnes() {
           {prepend ? (
             <span className="flex flex-wrap items-center gap-08 text-xs">
               <span
-                className={`rounded-2 px-08 py-04 ${
+                className={`rounded-06 px-08 py-04 ${
                   prepend.motivo
                     ? "bg-surface-3 text-text-2"
                     : Math.abs(prepend.deslocamentoVisual) <= 2
@@ -317,7 +317,7 @@ export function Arnes() {
 
               {prepend.remedicao ? (
                 <span
-                  className={`rounded-2 px-08 py-04 ${
+                  className={`rounded-06 px-08 py-04 ${
                     prepend.remedicao.motivo
                       ? "bg-surface-3 text-text-2"
                       : prepend.remedicao.ok
@@ -344,7 +344,7 @@ export function Arnes() {
           <button
             onClick={() => falarEmOutroCanal()}
             disabled={seeded === 0}
-            className="rounded-2 bg-surface-3 px-12 py-04 text-sm text-text-1 disabled:text-text-3"
+            className="rounded-06 bg-surface-3 px-12 py-04 text-sm text-text-1 disabled:text-text-3"
           >
             Falar em outro canal
           </button>
@@ -352,7 +352,7 @@ export function Arnes() {
           <button
             onClick={() => console.info("[vortex] editada:", JSON.stringify(editarUltima()))}
             disabled={seeded === 0}
-            className="rounded-2 bg-surface-3 px-12 py-04 text-sm text-text-1 disabled:text-text-3"
+            className="rounded-06 bg-surface-3 px-12 py-04 text-sm text-text-1 disabled:text-text-3"
           >
             Editar a última
           </button>
@@ -366,7 +366,7 @@ export function Arnes() {
               configuração; no cliente de verdade é de lá que ela sai. */}
           <button
             onClick={() => entrar()}
-            className="rounded-2 border border-border-subtle bg-surface-2 px-12 py-04 text-sm text-text-1"
+            className="rounded-06 border border-border-subtle bg-surface-2 px-12 py-04 text-sm text-text-1"
           >
             editar layout
           </button>
@@ -379,7 +379,7 @@ export function Arnes() {
                 croma: semente.croma,
               })
             }
-            className="rounded-2 border border-border-subtle bg-surface-2 px-12 py-04 text-sm text-text-1"
+            className="rounded-06 border border-border-subtle bg-surface-2 px-12 py-04 text-sm text-text-1"
           >
             {semente.modo === "escuro" ? "tema: escuro" : "tema: claro"}
           </button>
@@ -408,7 +408,7 @@ export function Arnes() {
                 pararChamada.current = chamadaFalsa();
               }
             }}
-            className="rounded-2 border border-border-subtle bg-surface-2 px-12 py-04 text-sm text-text-1"
+            className="rounded-06 border border-border-subtle bg-surface-2 px-12 py-04 text-sm text-text-1"
           >
             chamada falsa
           </button>
@@ -419,7 +419,7 @@ export function Arnes() {
                 lerConexao() === "conectado" ? "reconectando" : "conectado",
               )
             }
-            className="rounded-2 border border-border-subtle bg-surface-2 px-12 py-04 text-sm text-text-1"
+            className="rounded-06 border border-border-subtle bg-surface-2 px-12 py-04 text-sm text-text-1"
           >
             derrubar conexão
           </button>
@@ -445,14 +445,14 @@ export function Arnes() {
 
 
           {naoSeguia ? (
-            <span className="rounded-2 bg-danger px-08 py-04 text-xs text-on-accent">
+            <span className="rounded-06 bg-danger px-08 py-04 text-xs text-on-accent">
               INVÁLIDA — lista a {distanciaDoFim}px do fim, followOnAppend desligado
             </span>
           ) : null}
 
           {result ? (
             <span
-              className={`rounded-2 px-08 py-04 text-xs ${
+              className={`rounded-06 px-08 py-04 text-xs ${
                 result.pass ? "bg-success text-surface-0" : "bg-danger text-on-accent"
               }`}
             >

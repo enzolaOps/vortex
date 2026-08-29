@@ -13,7 +13,7 @@
   inline-size: 30px;
   block-size: 30px;
   flex: none;
-  border-radius: var(--vx-radius-3);
+  border-radius: var(--vx-radius-08);
   font-size: var(--vx-size-base);
   color: var(--vx-text-2);
   cursor: pointer;
@@ -57,7 +57,7 @@
   aspect-ratio: 1;
   display: grid;
   place-items: center;
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   /* 19px é o do design — glifo grande o bastante para distinguir de relance
      numa grade de oito colunas. Não é degrau de tipo: é TAMANHO DE ALVO. */
   font-size: 19px;
@@ -83,7 +83,7 @@
   inline-size: 26px;
   block-size: 26px;
   flex: none;
-  border-radius: var(--vx-radius-5);
+  border-radius: var(--vx-radius-pill);
   background: var(--vx-warning);
   border: 2px solid var(--vx-surface-4);
   box-shadow: 0 0 0 1px var(--vx-border-strong);
@@ -131,7 +131,7 @@
   block-size: 32px;
   flex: none;
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: var(--vx-surface-2);
   color: var(--vx-text-2);
   cursor: pointer;
@@ -162,7 +162,7 @@
   block-size: 24px;
   flex: none;
   padding-inline: var(--vx-space-12);
-  border-radius: var(--vx-radius-5);
+  border-radius: var(--vx-radius-pill);
   background: var(--vx-surface-3);
   color: var(--vx-text-2);
   font-size: var(--vx-size-sm);
@@ -202,7 +202,7 @@
   align-items: flex-end;
   margin-block-end: var(--vx-space-08);
   padding: var(--vx-space-08);
-  border-radius: var(--vx-radius-3);
+  border-radius: var(--vx-radius-08);
   cursor: pointer;
   /*
     O xadrez do placeholder.
@@ -249,7 +249,7 @@
   align-items: center;
   justify-content: center;
   margin-block-end: 0;
-  border-radius: var(--vx-radius-4);
+  border-radius: var(--vx-radius-12);
 }
 
 /*
@@ -261,7 +261,7 @@
 .bloqueio {
   padding: var(--vx-space-12);
   border: 1px dashed var(--vx-border-subtle);
-  border-radius: var(--vx-radius-3);
+  border-radius: var(--vx-radius-08);
   font-size: var(--vx-size-xs);
   color: var(--vx-text-3);
   text-align: center;
@@ -276,7 +276,7 @@
   padding: var(--vx-space-12);
   margin-block-end: var(--vx-space-12);
   border: 1px dashed var(--vx-border-subtle);
-  border-radius: var(--vx-radius-3);
+  border-radius: var(--vx-radius-08);
   font-size: var(--vx-size-xs);
   color: var(--vx-text-3);
   cursor: pointer;
@@ -306,7 +306,7 @@
   align-items: center;
   block-size: 20px;
   padding-inline: var(--vx-space-08);
-  border-radius: var(--vx-radius-1);
+  border-radius: var(--vx-radius-04);
   font-size: var(--vx-size-xs);
   font-weight: 700;
 }
@@ -337,7 +337,7 @@
   gap: var(--vx-space-04);
   padding: var(--vx-space-12) var(--vx-space-08);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-3);
+  border-radius: var(--vx-radius-08);
   background: var(--vx-surface-3);
   cursor: pointer;
 }

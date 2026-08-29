@@ -25,7 +25,7 @@
   justify-content: center;
   flex: none;
   border: none;
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: transparent;
   color: var(--vx-text-2);
   cursor: pointer;
@@ -90,7 +90,7 @@
   block-size: var(--vx-space-32);
   padding-inline: var(--vx-space-08);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: var(--vx-surface-1);
   color: var(--vx-text-3);
   font-family: inherit;

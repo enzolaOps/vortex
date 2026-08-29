@@ -28,7 +28,7 @@
   gap: var(--vx-space-08);
   padding: var(--vx-space-04);
   border: none;
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -63,7 +63,7 @@
   inline-size: var(--vx-space-12);
   block-size: var(--vx-space-12);
   box-sizing: border-box;
-  border-radius: var(--vx-radius-5);
+  border-radius: var(--vx-radius-pill);
   box-shadow: 0 0 0 2px var(--vx-surface-0);
 }
 
@@ -90,7 +90,7 @@
   inset-block-start: -30%;
   inline-size: 80%;
   block-size: 80%;
-  border-radius: var(--vx-radius-5);
+  border-radius: var(--vx-radius-pill);
 }
 
 .pontoDnd {
@@ -157,7 +157,7 @@
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: transparent;
   color: var(--vx-text-2);
   cursor: pointer;
@@ -203,7 +203,7 @@
   block-size: var(--vx-space-08);
   box-sizing: border-box;
   margin-block-start: var(--vx-space-04);
-  border-radius: var(--vx-radius-5);
+  border-radius: var(--vx-radius-pill);
 }
 
 .pontoDoMenu::after {

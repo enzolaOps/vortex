@@ -10,7 +10,7 @@
   block-size: 452px;
   display: flex;
   overflow: hidden;
-  border-radius: var(--vx-radius-4);
+  border-radius: var(--vx-radius-12);
   border: 1px solid var(--vx-border-subtle);
   background: var(--vx-surface-4);
   box-shadow: var(--vx-elev-3);
@@ -72,7 +72,7 @@
   border: 1px solid var(--vx-border-subtle);
   /* Mais FUNDO que o painel — campo é buraco, não relevo. */
   background: var(--vx-surface-2);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   color: var(--vx-text-3);
 }
 

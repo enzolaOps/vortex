@@ -6,7 +6,7 @@
  * ali, e o padrão foi o mesmo em todos: alguém precisou de menos que
  * `--vx-space-1` e escreveu `2px` cru, porque o meio-degrau não existia.
  *
- * O conserto foi das duas pontas: `--vx-space-0` e `--vx-radius-0` passaram a
+ * O conserto foi das duas pontas: `--vx-space-02` e `--vx-radius-02` passaram a
  * existir, e esta guarda impede que o nono apareça.
  *
  * **Ela confere PROPRIEDADE, não valor.** `inline-size: 288px` num hover card

@@ -20,13 +20,13 @@
 
 .deslizante::-webkit-slider-runnable-track {
   block-size: var(--vx-space-04);
-  border-radius: var(--vx-radius-4);
+  border-radius: var(--vx-radius-12);
   background: var(--vx-surface-3);
 }
 
 .deslizante::-moz-range-track {
   block-size: var(--vx-space-04);
-  border-radius: var(--vx-radius-4);
+  border-radius: var(--vx-radius-12);
   background: var(--vx-surface-3);
 }
 
@@ -36,7 +36,7 @@
   block-size: var(--vx-space-16);
   /* Centraliza o polegar no trilho: (trilho − polegar) / 2. */
   margin-block-start: calc((var(--vx-space-04) - var(--vx-space-16)) / 2);
-  border-radius: var(--vx-radius-4);
+  border-radius: var(--vx-radius-12);
   border: 2px solid var(--vx-surface-0);
   background: var(--vx-accent);
   transition:
@@ -47,7 +47,7 @@
 .deslizante::-moz-range-thumb {
   inline-size: var(--vx-space-16);
   block-size: var(--vx-space-16);
-  border-radius: var(--vx-radius-4);
+  border-radius: var(--vx-radius-12);
   border: 2px solid var(--vx-surface-0);
   background: var(--vx-accent);
 }
@@ -64,7 +64,7 @@
 .deslizante:focus-visible {
   outline: 2px solid var(--vx-accent);
   outline-offset: 4px;
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
 }
 
 .deslizante:disabled {

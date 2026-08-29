@@ -19,7 +19,7 @@
      texto dentro dele o empurraria para baixo do nome. */
   align-self: center;
   padding-inline: var(--vx-space-04);
-  border-radius: var(--vx-radius-1);
+  border-radius: var(--vx-radius-04);
   background: var(--vx-surface-3);
   color: var(--vx-text-3);
   font-size: var(--vx-size-xs);

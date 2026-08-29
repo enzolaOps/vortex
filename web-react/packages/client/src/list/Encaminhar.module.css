@@ -43,7 +43,7 @@
   inline-size: 28px;
   block-size: 28px;
   flex: none;
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   color: var(--vx-text-3);
   cursor: pointer;
 }
@@ -84,7 +84,7 @@
 */
 .previa {
   padding: var(--vx-space-12);
-  border-radius: var(--vx-radius-3);
+  border-radius: var(--vx-radius-08);
   border-inline-start: 3px solid var(--vx-accent);
   background: var(--vx-surface-0);
 }
@@ -130,7 +130,7 @@
   block-size: 34px;
   padding-inline: var(--vx-space-12);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: var(--vx-surface-3);
   color: var(--vx-text-3);
 }
@@ -170,7 +170,7 @@
   gap: var(--vx-space-04);
   block-size: 24px;
   padding-inline: var(--vx-space-08);
-  border-radius: var(--vx-radius-5);
+  border-radius: var(--vx-radius-pill);
   background: var(--vx-state-selected);
   color: var(--vx-accent-text);
   font-size: var(--vx-size-sm);
@@ -192,7 +192,7 @@
 .chipRemover:focus-visible {
   outline: 2px solid var(--vx-accent);
   outline-offset: 1px;
-  border-radius: var(--vx-radius-5);
+  border-radius: var(--vx-radius-pill);
 }
 
 /* ------------------------------------------------------ a lista */
@@ -202,7 +202,7 @@
   overflow-y: auto;
   /* O anel de foco do container rolável fica POR DENTRO: as linhas encostam
      na borda, e um anel para fora seria cortado pelo painel. */
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   outline-offset: -2px;
 }
 
@@ -212,7 +212,7 @@
   align-items: center;
   gap: var(--vx-space-08);
   padding: var(--vx-space-04) var(--vx-space-08);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   cursor: pointer;
   text-align: start;
 }
@@ -260,7 +260,7 @@
   block-size: 16px;
   flex: none;
   border: 1px solid var(--vx-border-strong);
-  border-radius: var(--vx-radius-1);
+  border-radius: var(--vx-radius-04);
 }
 
 .caixa[data-marcada] {
@@ -301,7 +301,7 @@
   block-size: 36px;
   padding-inline: var(--vx-space-12);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: var(--vx-surface-3);
   color: var(--vx-text-1);
   font-family: inherit;

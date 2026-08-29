@@ -12,7 +12,7 @@
   block-size: var(--vx-space-24);
   padding: 0;
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-1);
+  border-radius: var(--vx-radius-04);
   background: none;
   cursor: pointer;
   appearance: none;
@@ -26,12 +26,12 @@
 
 .seletor::-webkit-color-swatch {
   border: 0;
-  border-radius: var(--vx-radius-0);
+  border-radius: var(--vx-radius-02);
 }
 
 .seletor::-moz-color-swatch {
   border: 0;
-  border-radius: var(--vx-radius-0);
+  border-radius: var(--vx-radius-02);
 }
 
 .seletor:hover {

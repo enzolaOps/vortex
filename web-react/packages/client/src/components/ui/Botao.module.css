@@ -10,7 +10,7 @@
   padding-inline: var(--vx-space-12);
   padding-block: var(--vx-space-08);
   border: 1px solid transparent;
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   font-family: inherit;
   font-size: var(--vx-size-sm);
   line-height: 1;

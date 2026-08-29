@@ -127,7 +127,7 @@
     marcador de alinhamento — que os dois compartilham.
   */
   padding: var(--vx-space-08) var(--vx-space-12);
-  border-radius: var(--vx-radius-3);
+  border-radius: var(--vx-radius-08);
 
   /*
     ⚠ **`--vx-surface-3`, e estava em `surface-2` — a MESMA cor da timeline.**
@@ -382,7 +382,7 @@
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: var(--vx-radius-5);
+  border-radius: var(--vx-radius-pill);
   background: var(--vx-state-hover);
   color: var(--vx-text-2);
   cursor: pointer;
@@ -450,7 +450,7 @@
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: var(--vx-accent);
   color: var(--vx-on-accent);
   cursor: pointer;
@@ -523,7 +523,7 @@
 .pontos span {
   inline-size: 5px;
   block-size: 5px;
-  border-radius: var(--vx-radius-5);
+  border-radius: var(--vx-radius-pill);
   background: var(--vx-text-2);
   animation: vxDigitando 1100ms infinite;
 }

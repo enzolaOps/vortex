@@ -65,7 +65,7 @@
   min-inline-size: 0;
   padding-inline: var(--vx-space-12);
   padding-block: var(--vx-space-08);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   color: var(--vx-text-2);
   cursor: pointer;
 }

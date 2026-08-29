@@ -45,12 +45,12 @@
 
 /*
   ⚠ **Pílula, e era retângulo de 4px.** O design desenha `border-radius: 999px`
-  e 24px de altura; a versão anterior tinha `--vx-radius-2` e ~20px. A forma
+  e 24px de altura; a versão anterior tinha `--vx-radius-06` e ~20px. A forma
   importa mais aqui que na maioria dos lugares: a pílula é o que distingue um
   chip CLICÁVEL de um rótulo, e a fileira de reações fica encostada no texto da
   mensagem, onde nada mais é clicável.
 
-  `--vx-radius-5` é o degrau de "totalmente arredondado" da escala.
+  `--vx-radius-pill` é o degrau de "totalmente arredondado" da escala.
 */
 .chip {
   display: inline-flex;
@@ -59,7 +59,7 @@
   block-size: var(--vx-space-24);
   padding-inline: var(--vx-space-08);
   border: 1px solid transparent;
-  border-radius: var(--vx-radius-5);
+  border-radius: var(--vx-radius-pill);
   background: var(--vx-surface-2);
   color: var(--vx-text-2);
   font-family: inherit;
@@ -112,7 +112,7 @@
   inline-size: var(--vx-space-24);
   block-size: var(--vx-space-24);
   border: 0;
-  border-radius: var(--vx-radius-1);
+  border-radius: var(--vx-radius-04);
   background: transparent;
   font-size: var(--vx-size-lg);
   line-height: 1;
@@ -179,7 +179,7 @@
 .novasRotulo {
   flex: none;
   padding-inline: var(--vx-space-04);
-  border-radius: var(--vx-radius-1);
+  border-radius: var(--vx-radius-04);
   /*
     Tingido de DANGER, e por `color-mix` em vez de um token novo.
 
@@ -315,8 +315,16 @@
 
   display: flex;
   align-items: center;
-  gap: var(--vx-space-04);
-  padding: var(--vx-space-04);
+  /*
+    1px de vão e 2px de folga — o design escreve 1 e 3.
+
+    O vão passa exato: `1px` é hairline e o `pnpm escala` o permite. A folga
+    cai no degrau vizinho porque 3 não existe na escala, e é um dos ~29% que
+    sobraram depois de ela ganhar 6·10·14·18·20. Diferença de 1px numa caixa
+    de 34; registrada em vez de arredondada em silêncio.
+  */
+  gap: 1px;
+  padding: var(--vx-space-02);
 
   /*
     Superfície ELEVADA, e é aqui que a rampa nova se paga.
@@ -327,7 +335,7 @@
   */
   background: var(--vx-surface-4);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-3);
+  border-radius: var(--vx-radius-08);
   /*
     Sombra, e ela deixou de ser proibida por MEDIÇÃO — ver `menu.ts`.
 
@@ -399,7 +407,7 @@
   place-items: center;
   inline-size: 28px;
   block-size: 28px;
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   color: var(--vx-text-2);
   /* O EMOJI, que é o conteúdo direto do botão. O ícone vem em `.acao svg`. */
   font-size: var(--vx-size-lg);
@@ -436,7 +444,7 @@
 .acoesDivisa {
   inline-size: 1px;
   block-size: 18px;
-  margin-inline: var(--vx-space-04);
+  margin-inline: var(--vx-space-02);
   background: rgb(255 255 255 / 10%);
 }
 
@@ -541,7 +549,7 @@
   padding-inline: var(--vx-space-08);
   padding-block: var(--vx-space-04);
   border: 1px solid var(--vx-border-strong);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: var(--vx-surface-0);
   color: var(--vx-text-1);
   font-family: inherit;
@@ -637,7 +645,7 @@
   inline-size: var(--vx-space-24);
   block-size: var(--vx-space-24);
   border: 1px solid transparent;
-  border-radius: var(--vx-radius-5);
+  border-radius: var(--vx-radius-pill);
   background: var(--vx-surface-2);
   color: var(--vx-text-3);
   cursor: pointer;
@@ -760,6 +768,12 @@
 */
 .quemReagiu {
   inline-size: 250px;
+  /*
+    O `HoverCardContent` já traz `p-12` uniforme; o design pede 10 em cima e
+    embaixo. Só o eixo de bloco é corrigido — sobrescrever os quatro lados aqui
+    duplicaria a decisão que o wrapper já toma para todo cartão do app.
+  */
+  padding-block: var(--vx-space-10);
   display: grid;
   gap: var(--vx-space-04);
 }
@@ -819,7 +833,7 @@
   place-items: center;
   inline-size: 26px;
   block-size: 26px;
-  border-radius: var(--vx-radius-1);
+  border-radius: var(--vx-radius-04);
   color: var(--vx-text-2);
   cursor: pointer;
 }
@@ -883,7 +897,7 @@
   inline-size: 6px;
   block-size: 6px;
   flex: none;
-  border-radius: var(--vx-radius-5);
+  border-radius: var(--vx-radius-pill);
   background: currentcolor;
   animation: vxPulso 1.4s ease-in-out infinite;
 }
@@ -922,7 +936,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--vx-space-04);
-  border-radius: var(--vx-radius-1);
+  border-radius: var(--vx-radius-04);
   font-weight: 600;
   color: var(--vx-accent-text);
   cursor: pointer;

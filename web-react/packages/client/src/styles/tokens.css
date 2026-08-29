@@ -256,12 +256,36 @@
        3  item de lista, card
        4  modal, painel
        5  pill, avatar */
-  --vx-radius-0: 2px;
-  --vx-radius-1: 4px;
-  --vx-radius-2: 6px;
-  --vx-radius-3: 8px;
-  --vx-radius-4: 12px;
-  --vx-radius-5: 9999px;
+  /*
+    Nomeada pelo VALOR, e com os degraus que o design usa de fato.
+
+    Ela era ordinal (`--vx-radius-2` = 6px) e tinha seis degraus: 2·4·6·8·12 e
+    a pílula. Medido nos treze arquivos do Claude Design: dos 1.439 valores de
+    `border-radius`, 78% caíam num deles. O que faltava não era cauda — 5px
+    aparece 134 vezes e 10px, 91. Um em cada seis cantos do design exigia
+    arredondar, e a soma de arredondamentos defensáveis é a razão pela qual as
+    telas "nunca ficavam iguais".
+
+    Com 5, 10 e 14 a cobertura vai a 94,7%. O resto — 3, 7, 9, 11, 13 — é ajuste
+    óptico do designer, e o `pnpm escala` segue reprovando de propósito.
+
+    ⚠ 14 entrou depois de ter sido recusado uma vez: o ladrilho do rail pedia 14
+    e foi para 12 porque "um degrau fora da escala custa mais que 2px". O
+    argumento estava certo; o que mudou é que agora o degrau existe.
+
+    O nome é o valor pela mesma razão da escala de espaço — nome ordinal torna
+    caro inserir. A pílula é `pill` e não um número: 9999 não é medida, é
+    "arredonde tudo".
+  */
+  --vx-radius-02: 2px;
+  --vx-radius-04: 4px;
+  --vx-radius-05: 5px;
+  --vx-radius-06: 6px;
+  --vx-radius-08: 8px;
+  --vx-radius-10: 10px;
+  --vx-radius-12: 12px;
+  --vx-radius-14: 14px;
+  --vx-radius-pill: 9999px;
 
   /* --- Tipo --------------------------------------------------
      `size` e não `text`: na camada 1, texto já nomeia cor.
@@ -276,6 +300,18 @@
        lg   15  corpo de mensagem, autor
        xl   17  título de modal, header de canal
        2xl  22  título de página de configuração */
+  /*
+    10px é o menor degrau, e ele existe porque o design o usa 116 vezes.
+
+    Medido nos treze arquivos: 4,8% de todo texto do design é 10px — selo,
+    contador, tecla de atalho, rótulo de categoria. Sem o degrau, cada um deles
+    subia para 11 e a hierarquia entre metadado e conteúdo achatava um pouco a
+    cada tela.
+
+    9px (1,2%) NÃO entrou: é o limite onde a Instrument Sans começa a perder o
+    desenho das contraformas em tela, e a diferença para 10 não paga o degrau.
+  */
+  --vx-size-2xs: 10px;
   --vx-size-xs: 11px;
   --vx-size-sm: 12px;
   --vx-size-md: 13px;
@@ -717,13 +753,17 @@
   --z-index-sistema: var(--vx-z-sistema);
   --z-index-flutuante: var(--vx-z-flutuante);
 
-  --radius-0: var(--vx-radius-0);
-  --radius-1: var(--vx-radius-1);
-  --radius-2: var(--vx-radius-2);
-  --radius-3: var(--vx-radius-3);
-  --radius-4: var(--vx-radius-4);
-  --radius-5: var(--vx-radius-5);
+  --radius-02: var(--vx-radius-02);
+  --radius-04: var(--vx-radius-04);
+  --radius-05: var(--vx-radius-05);
+  --radius-06: var(--vx-radius-06);
+  --radius-08: var(--vx-radius-08);
+  --radius-10: var(--vx-radius-10);
+  --radius-12: var(--vx-radius-12);
+  --radius-14: var(--vx-radius-14);
+  --radius-pill: var(--vx-radius-pill);
 
+  --text-2xs: var(--vx-size-2xs);
   --text-xs: var(--vx-size-xs);
   --text-sm: var(--vx-size-sm);
   --text-md: var(--vx-size-md);

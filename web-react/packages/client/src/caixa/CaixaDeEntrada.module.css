@@ -56,7 +56,7 @@
   inline-size: 24px;
   block-size: 24px;
   flex: none;
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   color: var(--vx-text-3);
   cursor: pointer;
 }
@@ -79,7 +79,7 @@
 .marcarTudo {
   border: 0;
   background: transparent;
-  border-radius: var(--vx-radius-1);
+  border-radius: var(--vx-radius-04);
   color: var(--vx-accent-text);
   font-family: inherit;
   font-size: var(--vx-size-xs);
@@ -117,7 +117,7 @@
   gap: var(--vx-space-04);
   padding: var(--vx-space-04) var(--vx-space-08);
   border: 0;
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: transparent;
   color: var(--vx-text-3);
   font-family: inherit;
@@ -155,7 +155,7 @@
   min-inline-size: 16px;
   block-size: 16px;
   padding-inline: var(--vx-space-04);
-  border-radius: var(--vx-radius-5);
+  border-radius: var(--vx-radius-pill);
   background: var(--vx-danger);
   color: var(--vx-surface-0);
   font-size: var(--vx-size-xs);
@@ -195,7 +195,7 @@
   align-items: start;
   flex: none;
   border: 1px solid transparent;
-  border-radius: var(--vx-radius-3);
+  border-radius: var(--vx-radius-08);
 }
 
 
@@ -224,7 +224,7 @@
   padding: var(--vx-space-08);
   border: 0;
   background: transparent;
-  border-radius: var(--vx-radius-3);
+  border-radius: var(--vx-radius-08);
   font-family: inherit;
   text-align: start;
   cursor: pointer;
@@ -323,7 +323,7 @@
   block-size: 28px;
   padding-inline: var(--vx-space-12);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: var(--vx-surface-0);
   color: var(--vx-text-1);
   font-family: inherit;
@@ -342,7 +342,7 @@
   block-size: 28px;
   flex: none;
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: var(--vx-surface-0);
   color: var(--vx-text-2);
   cursor: pointer;
@@ -382,7 +382,7 @@
   min-inline-size: 16px;
   block-size: 16px;
   padding-inline: var(--vx-space-04);
-  border-radius: var(--vx-radius-5);
+  border-radius: var(--vx-radius-pill);
   background: var(--vx-danger);
   color: var(--vx-surface-0);
   font-size: var(--vx-size-xs);
@@ -397,7 +397,7 @@
   block-size: 28px;
   margin: var(--vx-space-08) var(--vx-space-08) 0 0;
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: var(--vx-surface-2);
   color: var(--vx-text-2);
   font-family: inherit;

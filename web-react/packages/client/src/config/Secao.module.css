@@ -83,7 +83,7 @@
   padding-inline: var(--vx-space-12);
   padding-block: var(--vx-space-08);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: var(--vx-surface-1);
 }
 

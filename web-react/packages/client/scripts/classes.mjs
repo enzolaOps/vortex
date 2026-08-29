@@ -7,7 +7,7 @@
  * passarem — e a falha é silenciosa: nada quebra, o estilo só sai errado
  * conforme a ordem no CSS.
  *
- * Foi assim que `rounded-2 rounded-4` apareceu, e é por isso que este arquivo
+ * Foi assim que `rounded-06 rounded-12` apareceu, e é por isso que este arquivo
  * existe em vez de uma nota no README.
  */
 import { cn } from "../src/lib/cn.ts";
@@ -18,8 +18,8 @@ const casos = [
   ["bg-surface-1 bg-surface-3", "bg-surface-3", "superfície"],
   ["text-text-2 text-text-1", "text-text-1", "cor de texto"],
   ["text-sm text-lg", "text-lg", "tamanho de tipo"],
-  ["rounded-2 rounded-4", "rounded-4", "raio — o que motivou o arquivo"],
-  ["rounded-1 rounded-2 rounded-3", "rounded-3", "raio, três em sequência"],
+  ["rounded-06 rounded-12", "rounded-12", "raio — o que motivou o arquivo"],
+  ["rounded-04 rounded-06 rounded-08", "rounded-08", "raio, três em sequência"],
   ["border-border-subtle border-border-strong", "border-border-strong", "borda"],
   ["bg-surface-1 text-text-1", "bg-surface-1 text-text-1", "não conflitam"],
   [

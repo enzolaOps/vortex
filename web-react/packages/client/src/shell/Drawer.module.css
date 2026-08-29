@@ -29,7 +29,7 @@
   display: grid;
   overflow: hidden;
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-4);
+  border-radius: var(--vx-radius-12);
   background: var(--vx-surface-1);
   box-shadow: var(--vx-elev-3);
   z-index: var(--vx-z-flutuante);

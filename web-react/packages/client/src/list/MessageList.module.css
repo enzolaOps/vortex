@@ -126,7 +126,7 @@
   padding-block: var(--vx-space-04);
 
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   /* Superfície elevada, não acento: o acento marca POSIÇÃO nesta interface, e
      este é um controle. A barra de não lidas usa acento porque ela é a
      posição — "você parou aqui". */

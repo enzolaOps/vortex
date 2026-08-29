@@ -158,7 +158,7 @@ function traduzirPx(prop, valor) {
 
   if (prop === "border-radius") {
     // Qualquer coisa acima de ~500 é pílula, e o design escreve 999.
-    if (n >= 500) return { ok: true, nota: "var(--vx-radius-5) — pílula" };
+    if (n >= 500) return { ok: true, nota: "var(--vx-radius-pill) — pílula" };
     const t = RAIO.get(n);
     return t
       ? { ok: true, nota: `var(${t})` }

@@ -72,7 +72,7 @@
   align-self: flex-end;
   border-block-start: 1px solid var(--vx-border-strong);
   border-inline-start: 1px solid var(--vx-border-strong);
-  border-start-start-radius: var(--vx-radius-2);
+  border-start-start-radius: var(--vx-radius-06);
 }
 
 .avatarCitado {

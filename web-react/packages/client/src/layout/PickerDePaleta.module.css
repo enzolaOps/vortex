@@ -32,7 +32,7 @@
   block-size: 76px;
   padding: var(--vx-space-02);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   overflow: hidden;
 }
 
@@ -43,7 +43,7 @@
   flex-direction: column;
   gap: var(--vx-space-02);
   padding: var(--vx-space-02);
-  border-radius: var(--vx-radius-1);
+  border-radius: var(--vx-radius-04);
 }
 
 .miniRail {
@@ -53,14 +53,14 @@
 .miniMarca {
   inline-size: 6px;
   block-size: 6px;
-  border-radius: var(--vx-radius-0);
+  border-radius: var(--vx-radius-02);
   flex: none;
 }
 
 .miniLinha,
 .miniLinhaAtiva {
   block-size: 3px;
-  border-radius: var(--vx-radius-0);
+  border-radius: var(--vx-radius-02);
   flex: none;
 }
 
@@ -99,14 +99,14 @@
 .miniNome {
   inline-size: 34%;
   block-size: 4px;
-  border-radius: var(--vx-radius-0);
+  border-radius: var(--vx-radius-02);
 }
 
 .miniTexto,
 .miniTextoCurto,
 .miniMeta {
   block-size: 3px;
-  border-radius: var(--vx-radius-0);
+  border-radius: var(--vx-radius-02);
 }
 
 .miniTexto {
@@ -129,7 +129,7 @@
 .miniPonto {
   inline-size: 5px;
   block-size: 5px;
-  border-radius: var(--vx-radius-4);
+  border-radius: var(--vx-radius-12);
   flex: none;
 }
 
@@ -172,7 +172,7 @@
   gap: var(--vx-space-04);
   padding: var(--vx-space-04);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: var(--vx-surface-1);
   color: var(--vx-text-3);
   font-family: inherit;
@@ -206,7 +206,7 @@
   display: flex;
   gap: 1px;
   block-size: var(--vx-space-24);
-  border-radius: var(--vx-radius-1);
+  border-radius: var(--vx-radius-04);
   overflow: hidden;
 }
 
@@ -235,7 +235,7 @@
   padding: var(--vx-space-04) var(--vx-space-08);
   margin-inline-start: calc(var(--vx-space-08) * -1);
   border: 0;
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: transparent;
   color: var(--vx-text-3);
   font-family: inherit;

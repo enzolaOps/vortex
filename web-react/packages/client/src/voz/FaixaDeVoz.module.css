@@ -75,7 +75,7 @@
   flex: none;
   inline-size: var(--vx-space-04);
   block-size: var(--vx-space-04);
-  border-radius: var(--vx-radius-5);
+  border-radius: var(--vx-radius-pill);
   background: currentcolor;
 }
 
@@ -106,7 +106,7 @@
   inline-size: var(--vx-space-32);
   block-size: var(--vx-space-32);
   border: none;
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: transparent;
   color: var(--vx-text-2);
   cursor: pointer;

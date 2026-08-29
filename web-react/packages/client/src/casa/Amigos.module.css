@@ -78,7 +78,7 @@
   min-inline-size: 0;
   padding-inline: var(--vx-space-08);
   padding-block: var(--vx-space-08);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
 }
 
 .pessoa:hover {
@@ -92,7 +92,7 @@
   flex: 0 0 auto;
   inline-size: var(--vx-avatar-lg);
   block-size: var(--vx-avatar-lg);
-  border-radius: var(--vx-radius-4);
+  border-radius: var(--vx-radius-12);
   background: var(--vx-surface-2);
   color: var(--vx-text-2);
   font-size: var(--vx-size-sm);

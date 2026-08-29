@@ -74,6 +74,40 @@ function candidatos(codigo) {
   // `className="..."` e `className={cn("...", "...")}` — pega as literais.
   const blocos = codigo.match(/className=(?:"[^"]*"|{[^}]*})/gs) ?? [];
 
+  /*
+    ⚠ **E as CONSTANTES de classe, que a guarda não via.**
+
+    `components/ui/menu.ts` guarda a lista de utilities de TODO menu do app em
+    `export const menuContent = "…"`. Nenhuma delas aparece dentro de um
+    `className=`, então a guarda passava por cima — e `min-w-48` estava morta
+    desde que foi escrita: `--spacing-48` nunca existiu neste projeto, o
+    Tailwind não emitiu a regra, e o menu simplesmente não tinha largura
+    mínima. Medido: 207px onde o design pede 264.
+
+    O teste para não pegar prosa é estrito de propósito: a constante só conta
+    se TODO token couber na forma de utility (minúscula, sem acento) e pelo
+    menos um deles tiver `-` ou `:`. Comentário em português tem acento ou não
+    tem hífen, e cai fora nos dois casos.
+  */
+  for (const m of codigo.matchAll(/=\s*((?:"[^"]*"\s*\+?\s*)+);/g)) {
+    for (const literal of m[1].match(/"[^"]*"/g) ?? []) {
+      const tokens = literal.slice(1, -1).trim().split(/\s+/).filter(Boolean);
+      /*
+        DUAS ou mais, e é o que separa lista de classe de string qualquer.
+
+        A primeira versão aceitava uma só e acusou cinco: chave de
+        `localStorage` (`vortex:densidade`), nome de data-attribute
+        (`data-vx-coluna`) e nome de var. Todas passam na forma de utility
+        sozinhas; nenhuma aparece ao lado de outra classe.
+      */
+      if (tokens.length < 2) continue;
+      const forma = /^[a-z@[][\w[\]().,%/:*-]*$/;
+      if (!tokens.every((t) => forma.test(t))) continue;
+      if (!tokens.some((t) => t.includes("-") || t.includes(":"))) continue;
+      for (const t of tokens) if (!NAO_E_UTILITY.has(t)) out.add(t);
+    }
+  }
+
   for (const bloco of blocos) {
     /*
       COMENTÁRIO não é código, e a guarda lia os dois.

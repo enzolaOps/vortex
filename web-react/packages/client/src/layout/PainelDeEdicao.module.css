@@ -24,7 +24,7 @@
 
   padding: var(--vx-space-16);
   border: 1px solid var(--vx-border-strong);
-  border-radius: var(--vx-radius-3);
+  border-radius: var(--vx-radius-08);
 
   /*
     Profundidade por CAMADA, não por sombra.
@@ -94,7 +94,7 @@
   min-inline-size: 0;
   padding-inline: var(--vx-space-12) var(--vx-space-04);
   padding-block: var(--vx-space-04);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   transition: background var(--vx-duration-fast) var(--vx-ease-out);
 }
 
@@ -128,7 +128,7 @@
   padding-inline: var(--vx-space-08);
   padding-block: var(--vx-space-04);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-1);
+  border-radius: var(--vx-radius-04);
   background: var(--vx-surface-3);
   color: var(--vx-text-1);
   font-family: inherit;

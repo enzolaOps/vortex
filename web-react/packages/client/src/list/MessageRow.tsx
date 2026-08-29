@@ -47,7 +47,7 @@ import { copiarTexto } from "../lib/copiar";
 import { plural, rotuloDeReacao } from "../lib/plural";
 import { cn } from "../lib/cn";
 import { Avatar } from "../components/ui/Avatar";
-import { menuAtalho } from "../components/ui/menu";
+import { menuAtalho, menuLargo } from "../components/ui/menu";
 import { AvatarDoAutor } from "../presenca/AvatarDoAutor";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
 import type {
@@ -658,7 +658,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
   if (!message) {
     return (
       <article aria-hidden className="flex gap-12 px-16 py-08">
-        <div className={cn(css.calha, "mt-04 rounded-4 bg-surface-2")} />
+        <div className={cn(css.calha, "mt-04 rounded-12 bg-surface-2")} />
         <div className={cn(css.minZero, "flex-1 text-lg leading-message")}>&nbsp;</div>
       </article>
     );
@@ -1503,7 +1503,7 @@ function ItensDoUsuario({ userId }: { userId: string }) {
   const canalId = local.tipo === "servidor" ? (local.channelId ?? "") : "";
 
   return (
-    <ContextMenuContent>
+    <ContextMenuContent className={menuLargo}>
       <div className={css.cabecalhoDoUsuario}>
         <Avatar sigla={membro?.sigla ?? "?"} tamanho="sm" id={userId} />
         <div className={css.identidade}>

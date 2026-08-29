@@ -15,7 +15,7 @@
   margin-block-start: var(--vx-space-08);
   padding: var(--vx-space-04) var(--vx-space-12) var(--vx-space-04) var(--vx-space-04);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-5);
+  border-radius: var(--vx-radius-pill);
   background: var(--vx-surface-3);
 }
 
@@ -25,7 +25,7 @@
   inline-size: 30px;
   block-size: 30px;
   flex: none;
-  border-radius: var(--vx-radius-5);
+  border-radius: var(--vx-radius-pill);
   background: var(--vx-accent);
   color: var(--vx-on-accent);
   cursor: pointer;
@@ -67,13 +67,13 @@
 .onda:focus-visible {
   outline: 2px solid var(--vx-accent);
   outline-offset: 3px;
-  border-radius: var(--vx-radius-1);
+  border-radius: var(--vx-radius-04);
 }
 
 .barra {
   inline-size: 3px;
   flex: none;
-  border-radius: var(--vx-radius-0);
+  border-radius: var(--vx-radius-02);
   /* Não tocada: o cinza da rampa, não `text-4` — é forma, não texto, e o
      mínimo de 4,5:1 não se aplica a um elemento decorativo de 3px. */
   background: var(--vx-neutral);
@@ -103,7 +103,7 @@
 .velocidade {
   flex: none;
   padding-inline: var(--vx-space-04);
-  border-radius: var(--vx-radius-1);
+  border-radius: var(--vx-radius-04);
   font-family: var(--vx-font-mono);
   font-size: var(--vx-size-xs);
   font-weight: 700;

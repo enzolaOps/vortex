@@ -22,7 +22,7 @@
   inline-size: min(360px, 100%);
   padding: var(--vx-space-32);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-3);
+  border-radius: var(--vx-radius-08);
   background: var(--vx-surface-1);
 }
 
@@ -41,7 +41,7 @@
   padding-inline: var(--vx-space-12);
   padding-block: var(--vx-space-08);
   border: 1px solid var(--vx-danger);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   color: var(--vx-text-1);
   font-size: var(--vx-size-sm);
 }

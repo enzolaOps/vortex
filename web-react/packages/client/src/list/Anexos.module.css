@@ -34,7 +34,7 @@
 .midia {
   overflow: hidden;
   inline-size: min(400px, 100%, calc(340px * var(--proporcao)));
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   /* Enquanto não carrega, a caixa é uma superfície e não um buraco: sem isto
      o espaço reservado fica invisível e a linha parece quebrada. */
   background: var(--vx-surface-2);
@@ -56,7 +56,7 @@
   padding-inline: var(--vx-space-12);
   padding-block: var(--vx-space-08);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: var(--vx-surface-2);
   color: var(--vx-text-2);
   font-size: var(--vx-size-sm);
@@ -117,7 +117,7 @@
   inline-size: fit-content;
   max-inline-size: 100%;
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-3);
+  border-radius: var(--vx-radius-08);
   overflow: hidden;
 }
 

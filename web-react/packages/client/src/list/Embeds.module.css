@@ -30,7 +30,7 @@
   max-inline-size: 460px;
   padding-block: var(--vx-space-12);
   padding-inline: var(--vx-space-12);
-  border-radius: var(--vx-radius-3);
+  border-radius: var(--vx-radius-08);
   border-inline-start: 3px solid var(--vx-accent);
   background: var(--vx-surface-1);
   color: inherit;
@@ -114,7 +114,7 @@ a.cartao:focus-visible {
   flex: none;
   inline-size: 72px;
   block-size: 56px;
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: var(--vx-surface-3);
   object-fit: cover;
 }
