@@ -8,7 +8,7 @@
 
 .faixa {
   position: fixed;
-  inset-block-start: var(--vx-space-3);
+  inset-block-start: var(--vx-space-12);
   /* Centralizada sem saber a largura de nada: as duas âncoras iguais mais
      `margin-inline: auto` resolvem, e continuam valendo em RTL. */
   inset-inline: 0;
@@ -16,11 +16,11 @@
 
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   inline-size: fit-content;
   margin-inline: auto;
-  padding-inline: var(--vx-space-3);
-  padding-block: var(--vx-space-2);
+  padding-inline: var(--vx-space-12);
+  padding-block: var(--vx-space-08);
 
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-2);

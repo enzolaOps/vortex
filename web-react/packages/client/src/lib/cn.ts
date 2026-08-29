@@ -14,7 +14,7 @@ import { extendTailwindMerge } from "tailwind-merge";
  * `pnpm classes`, que reprova de propósito quando a extensão sai.
  *
  * Espaço, tipo e cor não precisam de extensão — os grupos de fábrica já casam
- * com `p-3`, `text-lg` e `bg-surface-2`.
+ * com `p-12`, `text-lg` e `bg-surface-2`.
  */
 const merge = extendTailwindMerge({
   extend: {

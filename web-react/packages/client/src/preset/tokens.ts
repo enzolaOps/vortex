@@ -41,6 +41,7 @@ export const TOKENS_DE_TEMA = [
   "--vx-danger-text",
   "--vx-warning",
   "--vx-success",
+  "--vx-success-text",
   "--vx-neutral",
 
   "--vx-status-online",

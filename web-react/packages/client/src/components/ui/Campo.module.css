@@ -7,7 +7,7 @@
 */
 .campo {
   display: grid;
-  gap: var(--vx-space-1);
+  gap: var(--vx-space-04);
   min-inline-size: 0;
 }
 
@@ -27,8 +27,8 @@
 .entrada {
   inline-size: 100%;
   min-inline-size: 0;
-  padding-inline: var(--vx-space-3);
-  padding-block: var(--vx-space-2);
+  padding-inline: var(--vx-space-12);
+  padding-block: var(--vx-space-08);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-2);
   background: var(--vx-surface-0);

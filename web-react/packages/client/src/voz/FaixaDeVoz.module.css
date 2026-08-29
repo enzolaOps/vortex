@@ -15,9 +15,9 @@
   flex: none;
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
-  padding-inline: var(--vx-space-3);
-  padding-block: var(--vx-space-2);
+  gap: var(--vx-space-08);
+  padding-inline: var(--vx-space-12);
+  padding-block: var(--vx-space-08);
   background: color-mix(in oklab, var(--vx-success) 8%, transparent);
   border-block-start: 1px solid var(--vx-border-subtle);
 }
@@ -52,8 +52,10 @@
 .estado {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-1);
-  color: var(--vx-success);
+  gap: var(--vx-space-04);
+  /* Letra, então `success-text` — a mesma divisão de `danger-text`: o verde de
+     preenchimento (ponto de presença, selo) não é o verde de palavra. */
+  color: var(--vx-success-text);
   font-size: var(--vx-size-sm);
   font-weight: 600;
 }
@@ -71,8 +73,8 @@
 */
 .ponto {
   flex: none;
-  inline-size: var(--vx-space-1);
-  block-size: var(--vx-space-1);
+  inline-size: var(--vx-space-04);
+  block-size: var(--vx-space-04);
   border-radius: var(--vx-radius-5);
   background: currentcolor;
 }
@@ -95,14 +97,14 @@
 .controles {
   flex: none;
   display: flex;
-  gap: var(--vx-space-0);
+  gap: var(--vx-space-02);
 }
 
 .controle {
   display: grid;
   place-items: center;
-  inline-size: var(--vx-space-6);
-  block-size: var(--vx-space-6);
+  inline-size: var(--vx-space-32);
+  block-size: var(--vx-space-32);
   border: none;
   border-radius: var(--vx-radius-2);
   background: transparent;

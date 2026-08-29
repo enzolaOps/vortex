@@ -259,8 +259,8 @@ function DivisorDeNovas() {
  *
  * O espaço faz o mesmo trabalho sem cortar nada. `space-6` acima e `space-1`
  * abaixo prende o rótulo ao dia que ele ABRE em vez de deixá-lo boiando entre
- * os dois — a mesma lógica do ritmo de agrupamento, que é `pt-4` entre autores
- * e `pt-1` dentro de um.
+ * os dois — a mesma lógica do ritmo de agrupamento, que é `pt-16` entre autores
+ * e `pt-04` dentro de um.
  *
  * E há um efeito de segunda ordem que vale mais que a limpeza: com estas
  * saindo, a linha de acento do "novas mensagens" passa a ser a ÚNICA régua
@@ -657,8 +657,8 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
   // honesta enquanto o dado não chega.
   if (!message) {
     return (
-      <article aria-hidden className="flex gap-3 px-4 py-2">
-        <div className={cn(css.calha, "mt-1 rounded-4 bg-surface-2")} />
+      <article aria-hidden className="flex gap-12 px-16 py-08">
+        <div className={cn(css.calha, "mt-04 rounded-4 bg-surface-2")} />
         <div className={cn(css.minZero, "flex-1 text-lg leading-message")}>&nbsp;</div>
       </article>
     );
@@ -680,7 +680,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
       <>
         {message.primeiraNaoLida ? <DivisorDeNovas /> : null}
         {message.dia ? <DivisorDeDia rotulo={message.dia} /> : null}
-        <article className="flex items-baseline gap-2 px-4 pt-4 text-xs text-text-3">
+        <article className="flex items-baseline gap-08 px-16 pt-16 text-xs text-text-3">
           <Info size={20} aria-hidden className="shrink-0 self-center" />
           <p className={cn(css.minZero, "flex-1 wrap-anywhere")}>
             <FraseDeSistema sistema={message.sistema} />
@@ -767,7 +767,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
               Agora a barra ancora na LINHA DE MENSAGEM, que é filha, e a
               prévia fica acima dela, fora do alcance.
             */
-            "relative flex flex-col px-4 hover:bg-surface-1 data-[alvo=true]:bg-surface-1",
+            "relative flex flex-col px-16 hover:bg-surface-1 data-[alvo=true]:bg-surface-1",
             // O ritmo de agrupamento: 4px dentro do grupo, 16px entre grupos.
             // Três níveis de separação no total (o terceiro é o divisor), cada
             // um pelo menos 2× o anterior — é o que os faz lerem como distintos
@@ -780,12 +780,12 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             // pertence à linha que vem depois — que é também por que o realce
             // de hover/menu cobre esse espaço, e não termina rente ao texto.
             //
-            // Aqui estava `pt-3 pb-0.5` / `py-0.5`. A escala do projeto vai de
+            // Aqui estava `pt-12 pb-0.5` / `py-0.5`. A escala do projeto vai de
             // 1 a 6 e o `@theme` faz `--spacing-*: initial`, então
             // `--spacing-0.5` NÃO EXISTE e a utility nunca foi gerada: o ritmo
             // real era 0px dentro do grupo, contra os 4px que este comentário
             // afirmava. Não deu erro nenhum. Agora há lint contra fracionária.
-            message.iniciaGrupo ? "pt-4" : "pt-1",
+            message.iniciaGrupo ? "pt-16" : "pt-04",
             // Envio pendente esmaece a linha inteira; falha marca a borda de
             // início. Nunca só cor: o rótulo ao lado da hora diz o que houve.
             message.sendState === "pending" && "opacity-60",
@@ -859,7 +859,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             `relative` aqui e não só no `article` porque a barra de ações
             ancora NELA — ver o comentário de `flex-col` acima.
           */}
-          <div className={cn(css.linhaDaMensagem, "relative flex gap-3")}>
+          <div className={cn(css.linhaDaMensagem, "relative flex gap-12")}>
           {/* A calha do avatar existe mesmo na continuação: é o que mantém o
               texto alinhado ao longo do grupo inteiro. */}
           {/*
@@ -876,7 +876,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             endereçável, e por que o agrupamento some junto.
           */}
           <div
-            className={cn(css.calha, "relative mt-1")}
+            className={cn(css.calha, "relative mt-04")}
             data-menu-autor={message.authorId}
           >
             {compacto ? (
@@ -1006,7 +1006,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
 
 
             {!compacto && message.iniciaGrupo ? (
-              <div className="flex items-baseline gap-2">
+              <div className="flex items-baseline gap-08">
                 {message.authorId ? (
                   /* `display: contents` — a caixa não existe, só o atributo
                      que diz ao menu de contexto quem é o autor daqui. */
@@ -1168,7 +1168,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
               no modo confortável.
             */}
             {message.editedAt && !message.iniciaGrupo ? (
-              <span className="ms-2 text-xs text-text-3">(editada)</span>
+              <span className="ms-08 text-xs text-text-3">(editada)</span>
             ) : null}
 
             {/*

@@ -9,13 +9,13 @@
 .cartao {
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
 }
 
 .topo {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-3);
+  gap: var(--vx-space-12);
   min-inline-size: 0;
 }
 
@@ -75,7 +75,7 @@
 
 .castigo {
   margin: 0;
-  padding-block-start: var(--vx-space-2);
+  padding-block-start: var(--vx-space-08);
   border-block-start: 1px solid var(--vx-border-subtle);
   color: var(--vx-warning);
   font-size: var(--vx-size-xs);

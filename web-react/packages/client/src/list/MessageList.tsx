@@ -304,7 +304,7 @@ function alturaDeEmbeds(embeds: readonly EmbedSnapshot[]): number {
   return (
     RESPIRO_DE_CARTAO +
     embeds.length * ALTURA_DE_CARTAO +
-    // O `gap` entre cartões, quando há mais de um: `--vx-space-1`.
+    // O `gap` entre cartões, quando há mais de um: `--vx-space-04`.
     (embeds.length - 1) * 4
   );
 }

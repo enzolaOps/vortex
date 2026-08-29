@@ -83,6 +83,7 @@ function montar(): Par[] {
       "--vx-danger-text",
       "--vx-warning",
       "--vx-success",
+      "--vx-success-text",
     ] as const) {
       lista.push({ fg, bg, min: 4.5, tipo: "texto" });
     }

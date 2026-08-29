@@ -10,8 +10,8 @@
   flex: none;
   display: flex;
   align-items: center;
-  gap: var(--vx-space-1);
-  padding: var(--vx-space-2);
+  gap: var(--vx-space-04);
+  padding: var(--vx-space-08);
   /* Mais fundo que a coluna: o rodapé é chão, não conteúdo. É o mesmo
      token do rail, e a leitura é a mesma — "isto não é a lista". */
   background: var(--vx-surface-0);
@@ -25,8 +25,8 @@
   min-inline-size: 0;
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
-  padding: var(--vx-space-1);
+  gap: var(--vx-space-08);
+  padding: var(--vx-space-04);
   border: none;
   border-radius: var(--vx-radius-2);
   background: transparent;
@@ -58,10 +58,10 @@
 */
 .ponto {
   position: absolute;
-  inset-inline-end: calc(var(--vx-space-0) * -1);
-  inset-block-end: calc(var(--vx-space-0) * -1);
-  inline-size: var(--vx-space-3);
-  block-size: var(--vx-space-3);
+  inset-inline-end: calc(var(--vx-space-02) * -1);
+  inset-block-end: calc(var(--vx-space-02) * -1);
+  inline-size: var(--vx-space-12);
+  block-size: var(--vx-space-12);
   box-sizing: border-box;
   border-radius: var(--vx-radius-5);
   box-shadow: 0 0 0 2px var(--vx-surface-0);
@@ -147,12 +147,12 @@
 .controles {
   flex: none;
   display: flex;
-  gap: var(--vx-space-0);
+  gap: var(--vx-space-02);
 }
 
 .controle {
-  inline-size: var(--vx-space-6);
-  block-size: var(--vx-space-6);
+  inline-size: var(--vx-space-32);
+  block-size: var(--vx-space-32);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -193,16 +193,16 @@
   inline-size: 100%;
   display: flex;
   align-items: flex-start;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
 }
 
 .pontoDoMenu {
   position: relative;
   flex: none;
-  inline-size: var(--vx-space-2);
-  block-size: var(--vx-space-2);
+  inline-size: var(--vx-space-08);
+  block-size: var(--vx-space-08);
   box-sizing: border-box;
-  margin-block-start: var(--vx-space-1);
+  margin-block-start: var(--vx-space-04);
   border-radius: var(--vx-radius-5);
 }
 
@@ -247,7 +247,7 @@
 }
 
 .recado {
-  padding: var(--vx-space-2);
+  padding: var(--vx-space-08);
 }
 
 /*

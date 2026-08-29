@@ -11,7 +11,7 @@
    ============================================================ */
 
 .rodape {
-  padding-block: var(--vx-space-3) var(--vx-space-4);
+  padding-block: var(--vx-space-12) var(--vx-space-16);
   border-block-start: 1px solid var(--vx-border-subtle);
   background: var(--vx-surface-0);
 
@@ -56,7 +56,7 @@
     concordar.
   */
   margin-inline: 0;
-  padding-inline: var(--vx-space-4);
+  padding-inline: var(--vx-space-16);
 
   /* Lei nº 6: o composer reage ao PRÓPRIO tamanho. Em popout estreito ou
      com um painel de thread aberto ao lado, ele encolhe sem que a janela
@@ -126,7 +126,7 @@
     "composer alinhado à COLUNA de mensagem", e é a coluna — a caixa que leva o
     marcador de alinhamento — que os dois compartilham.
   */
-  padding: var(--vx-space-2) var(--vx-space-3);
+  padding: var(--vx-space-08) var(--vx-space-12);
   border-radius: var(--vx-radius-3);
 
   /*
@@ -192,7 +192,7 @@
 .linha {
   display: flex;
   align-items: flex-end;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   min-inline-size: 0;
 }
 
@@ -294,18 +294,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--vx-space-2);
-  margin-block-end: var(--vx-space-1);
+  gap: var(--vx-space-08);
+  margin-block-end: var(--vx-space-04);
 }
 
 .digitando {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   min-inline-size: 0;
   min-block-size: calc(var(--vx-size-xs) * var(--vx-leading-message));
   margin: 0;
-  padding-inline: var(--vx-space-1);
+  padding-inline: var(--vx-space-04);
   color: var(--vx-text-3);
   font-size: var(--vx-size-xs);
   line-height: var(--vx-leading-message);
@@ -327,7 +327,7 @@
   flex: none;
   display: inline-flex;
   align-items: center;
-  gap: var(--vx-space-1);
+  gap: var(--vx-space-04);
   padding: 0;
   border: 0;
   background: transparent;
@@ -376,8 +376,8 @@
 .anexar {
   flex: none;
   align-self: flex-end;
-  inline-size: var(--vx-space-5);
-  block-size: var(--vx-space-5);
+  inline-size: var(--vx-space-24);
+  block-size: var(--vx-space-24);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -419,9 +419,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--vx-space-3);
-  margin-block-start: var(--vx-space-1);
-  padding-block-start: var(--vx-space-1);
+  gap: var(--vx-space-12);
+  margin-block-start: var(--vx-space-04);
+  padding-block-start: var(--vx-space-04);
   border-block-start: 1px solid var(--vx-border-subtle);
 }
 
@@ -444,8 +444,8 @@
 .enviar {
   flex: none;
   align-self: flex-end;
-  inline-size: var(--vx-space-6);
-  block-size: var(--vx-space-6);
+  inline-size: var(--vx-space-32);
+  block-size: var(--vx-space-32);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -481,7 +481,7 @@
 .estado {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-3);
+  gap: var(--vx-space-12);
   min-inline-size: 0;
 }
 
@@ -514,10 +514,10 @@
 .pontos {
   display: flex;
   flex: none;
-  /* O design usa 3px; `--vx-space-1` (4) é o degrau que existe, e a diferença
+  /* O design usa 3px; `--vx-space-04` (4) é o degrau que existe, e a diferença
      é 2px na largura do trio inteiro. Acrescentar um degrau de 3px à escala
      por causa de um vão seria exatamente o inchaço que a guarda evita. */
-  gap: var(--vx-space-1);
+  gap: var(--vx-space-04);
 }
 
 .pontos span {

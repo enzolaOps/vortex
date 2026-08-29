@@ -10,5 +10,5 @@
   encostariam nas duas bordas.
 */
 .viewport {
-  inline-size: min(320px, calc(100vw - var(--vx-space-6)));
+  inline-size: min(320px, calc(100vw - var(--vx-space-32)));
 }

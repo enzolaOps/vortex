@@ -49,8 +49,8 @@
 .grade {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
-  gap: var(--vx-space-0);
-  margin-block-end: var(--vx-space-3);
+  gap: var(--vx-space-02);
+  margin-block-end: var(--vx-space-12);
 }
 
 .emoji {
@@ -153,15 +153,15 @@
 
 .tiras {
   display: flex;
-  gap: var(--vx-space-1);
-  padding-block-end: var(--vx-space-2);
+  gap: var(--vx-space-04);
+  padding-block-end: var(--vx-space-08);
   overflow-x: auto;
 }
 
 .tira {
   block-size: 24px;
   flex: none;
-  padding-inline: var(--vx-space-3);
+  padding-inline: var(--vx-space-12);
   border-radius: var(--vx-radius-5);
   background: var(--vx-surface-3);
   color: var(--vx-text-2);
@@ -190,8 +190,8 @@
 */
 .masonry {
   columns: 2;
-  column-gap: var(--vx-space-2);
-  padding-block-end: var(--vx-space-3);
+  column-gap: var(--vx-space-08);
+  padding-block-end: var(--vx-space-12);
 }
 
 .gif,
@@ -200,8 +200,8 @@
   break-inside: avoid;
   display: flex;
   align-items: flex-end;
-  margin-block-end: var(--vx-space-2);
-  padding: var(--vx-space-2);
+  margin-block-end: var(--vx-space-08);
+  padding: var(--vx-space-08);
   border-radius: var(--vx-radius-3);
   cursor: pointer;
   /*
@@ -240,8 +240,8 @@
 .gradeDeFigurinhas {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--vx-space-2);
-  margin-block-end: var(--vx-space-4);
+  gap: var(--vx-space-08);
+  margin-block-end: var(--vx-space-16);
 }
 
 .figurinha {
@@ -259,7 +259,7 @@
   o tracejado diz que a moldura é o conteúdo.
 */
 .bloqueio {
-  padding: var(--vx-space-3);
+  padding: var(--vx-space-12);
   border: 1px dashed var(--vx-border-subtle);
   border-radius: var(--vx-radius-3);
   font-size: var(--vx-size-xs);
@@ -272,9 +272,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--vx-space-2);
-  padding: var(--vx-space-3);
-  margin-block-end: var(--vx-space-3);
+  gap: var(--vx-space-08);
+  padding: var(--vx-space-12);
+  margin-block-end: var(--vx-space-12);
   border: 1px dashed var(--vx-border-subtle);
   border-radius: var(--vx-radius-3);
   font-size: var(--vx-size-xs);
@@ -305,7 +305,7 @@
   display: inline-flex;
   align-items: center;
   block-size: 20px;
-  padding-inline: var(--vx-space-2);
+  padding-inline: var(--vx-space-08);
   border-radius: var(--vx-radius-1);
   font-size: var(--vx-size-xs);
   font-weight: 700;
@@ -313,7 +313,9 @@
 
 .selo {
   background: color-mix(in oklab, var(--vx-success) 16%, transparent);
-  color: var(--vx-success);
+  /* `success-text` e não `success`: é LETRA sobre um preenchimento tingido do
+     mesmo verde, e o design usa dois valores exatamente para esse par. */
+  color: var(--vx-success-text);
 }
 
 .seloApagado {
@@ -324,16 +326,16 @@
 .gradeDeSons {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--vx-space-2);
-  padding-block-end: var(--vx-space-3);
+  gap: var(--vx-space-08);
+  padding-block-end: var(--vx-space-12);
 }
 
 .som {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--vx-space-1);
-  padding: var(--vx-space-3) var(--vx-space-2);
+  gap: var(--vx-space-04);
+  padding: var(--vx-space-12) var(--vx-space-08);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-3);
   background: var(--vx-surface-3);
@@ -374,7 +376,7 @@
 .volume {
   inline-size: 100%;
   display: grid;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
 }
 
 .volumeCabecalho {

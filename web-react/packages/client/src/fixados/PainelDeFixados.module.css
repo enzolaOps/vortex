@@ -32,15 +32,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   block-size: 50px;
-  padding-inline: var(--vx-space-3);
+  padding-inline: var(--vx-space-12);
   border-block-end: 1px solid var(--vx-border-subtle);
 }
 
 .tituloTexto {
   display: grid;
-  gap: var(--vx-space-0);
+  gap: var(--vx-space-02);
   min-inline-size: 0;
 }
 /*
@@ -91,9 +91,9 @@
 .lista {
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   margin: 0;
-  padding: var(--vx-space-2);
+  padding: var(--vx-space-08);
   overflow-y: auto;
   scrollbar-gutter: stable;
   overscroll-behavior: contain;
@@ -112,12 +112,12 @@
   position: relative;
   display: grid;
   min-inline-size: 0;
-  padding: var(--vx-space-1);
+  padding: var(--vx-space-04);
   border: 1px solid transparent;
   border-radius: var(--vx-radius-4);
   /* Altura mínima de um item real: o placeholder não pode encolher, ou a
      lista pula durante a hidratação. */
-  min-block-size: var(--vx-space-6);
+  min-block-size: var(--vx-space-32);
 
   /*
     ⚠ **`flex: none`, e sem ele o painel inteiro renderizava errado.**
@@ -166,9 +166,9 @@
 .abrir {
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-0);
+  gap: var(--vx-space-02);
   min-inline-size: 0;
-  padding: var(--vx-space-2);
+  padding: var(--vx-space-08);
   border: 0;
   border-radius: var(--vx-radius-2);
   background: transparent;
@@ -186,9 +186,9 @@
 .cabecalho {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   min-inline-size: 0;
-  margin-block-end: var(--vx-space-1);
+  margin-block-end: var(--vx-space-04);
 }
 
 /* O nome herda o tamanho do painel — `NomeDoAutor` traz `text-md` do
@@ -232,8 +232,8 @@
 */
 .acoes {
   display: flex;
-  gap: var(--vx-space-3);
-  padding: var(--vx-space-1) var(--vx-space-2) var(--vx-space-2);
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-04) var(--vx-space-08) var(--vx-space-08);
   visibility: hidden;
 }
 
@@ -281,7 +281,7 @@
   que a pessoa veio ver.
 */
 .rodape {
-  padding: var(--vx-space-2) var(--vx-space-3);
+  padding: var(--vx-space-08) var(--vx-space-12);
   border-block-start: 1px solid var(--vx-border-subtle);
   font-size: var(--vx-size-xs);
   color: var(--vx-text-4);

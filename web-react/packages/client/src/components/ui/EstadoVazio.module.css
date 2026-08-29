@@ -12,8 +12,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--vx-space-3);
-  padding: var(--vx-space-6) var(--vx-space-4);
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-32) var(--vx-space-16);
   text-align: center;
   /* O texto respira num teto legível mesmo quando o painel é largo. */
   max-inline-size: 44ch;
@@ -29,8 +29,8 @@
 */
 .vazio[data-compacto="true"] {
   align-items: flex-start;
-  gap: var(--vx-space-2);
-  padding: var(--vx-space-4) var(--vx-space-3);
+  gap: var(--vx-space-08);
+  padding: var(--vx-space-16) var(--vx-space-12);
   text-align: start;
 }
 
@@ -44,8 +44,8 @@
 .icone {
   display: grid;
   place-items: center;
-  inline-size: var(--vx-space-6);
-  block-size: var(--vx-space-6);
+  inline-size: var(--vx-space-32);
+  block-size: var(--vx-space-32);
   border-radius: var(--vx-radius-4);
   background: var(--vx-surface-2);
   color: var(--vx-text-3);

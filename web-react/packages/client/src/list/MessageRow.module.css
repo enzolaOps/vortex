@@ -2,7 +2,7 @@
   A calha do avatar da linha de mensagem.
 
   Em CSS Module, e não como utility, porque avatar tem ESCALA PRÓPRIA — não a
-  de espaçamento. O `size-5` que estava aqui resolvia para `--vx-space-5` e
+  de espaçamento. O `size-5` que estava aqui resolvia para `--vx-space-24` e
   dava 24px por coincidência de valor com `--vx-avatar-sm`; o comentário do
   próprio token diz por que a coincidência não pode virar acoplamento:
   "mexer no respiro da lista mudaria o tamanho da foto de todo mundo".
@@ -39,8 +39,8 @@
 .reacoes {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--vx-space-1);
-  margin-block-start: var(--vx-space-1);
+  gap: var(--vx-space-04);
+  margin-block-start: var(--vx-space-04);
 }
 
 /*
@@ -55,9 +55,9 @@
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: var(--vx-space-1);
-  block-size: var(--vx-space-5);
-  padding-inline: var(--vx-space-2);
+  gap: var(--vx-space-04);
+  block-size: var(--vx-space-24);
+  padding-inline: var(--vx-space-08);
   border: 1px solid transparent;
   border-radius: var(--vx-radius-5);
   background: var(--vx-surface-2);
@@ -102,15 +102,15 @@
    altura para oferecer o gesto mais barato que existe. */
 .rapidas {
   display: flex;
-  gap: var(--vx-space-1);
-  padding: var(--vx-space-1);
+  gap: var(--vx-space-04);
+  padding: var(--vx-space-04);
 }
 
 .rapida {
   display: grid;
   place-items: center;
-  inline-size: var(--vx-space-5);
-  block-size: var(--vx-space-5);
+  inline-size: var(--vx-space-24);
+  block-size: var(--vx-space-24);
   border: 0;
   border-radius: var(--vx-radius-1);
   background: transparent;
@@ -140,9 +140,9 @@
 .novas {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
-  padding-inline: var(--vx-space-4);
-  padding-block-start: var(--vx-space-4);
+  gap: var(--vx-space-08);
+  padding-inline: var(--vx-space-16);
+  padding-block-start: var(--vx-space-16);
 }
 
 /*
@@ -178,7 +178,7 @@
 */
 .novasRotulo {
   flex: none;
-  padding-inline: var(--vx-space-1);
+  padding-inline: var(--vx-space-04);
   border-radius: var(--vx-radius-1);
   /*
     Tingido de DANGER, e por `color-mix` em vez de um token novo.
@@ -255,11 +255,11 @@
     vão. É o mesmo alinhamento, escrito com os mesmos tokens.
   */
   padding-inline-start: calc(
-    var(--vx-space-4) + var(--vx-avatar-sm) + var(--vx-space-3)
+    var(--vx-space-16) + var(--vx-avatar-sm) + var(--vx-space-12)
   );
-  padding-inline-end: var(--vx-space-4);
+  padding-inline-end: var(--vx-space-16);
   /* Muito acima, pouco abaixo: o rótulo pertence ao dia que ABRE. */
-  padding-block: var(--vx-space-6) var(--vx-space-1);
+  padding-block: var(--vx-space-32) var(--vx-space-04);
 }
 
 .diaRotuloCaixa {
@@ -308,15 +308,15 @@
 .acoes {
   position: absolute;
   inset-block-start: 0;
-  inset-inline-end: var(--vx-space-4);
+  inset-inline-end: var(--vx-space-16);
   /* Montada na borda de cima, no espaço que o ritmo de agrupamento
      já deixa entre as linhas. Zero de layout. */
   transform: translateY(-50%);
 
   display: flex;
   align-items: center;
-  gap: var(--vx-space-1);
-  padding: var(--vx-space-1);
+  gap: var(--vx-space-04);
+  padding: var(--vx-space-04);
 
   /*
     Superfície ELEVADA, e é aqui que a rampa nova se paga.
@@ -385,7 +385,7 @@
 /*
   28×28, e o número é do design.
 
-  ⚠ **Estava em 24 (`--vx-space-5`), e o alvo não era o único errado.** Medido
+  ⚠ **Estava em 24 (`--vx-space-24`), e o alvo não era o único errado.** Medido
   antes: botão 24×24 com emoji em 12px e ícone em 14 — ou seja, o EMOJI menor
   que o ícone ao lado dele, numa fileira onde os dois são a mesma família de
   alvo. O design põe emoji em 15 e ícone em 13, e é essa relação que faz a
@@ -436,7 +436,7 @@
 .acoesDivisa {
   inline-size: 1px;
   block-size: 18px;
-  margin-inline: var(--vx-space-1);
+  margin-inline: var(--vx-space-04);
   background: rgb(255 255 255 / 10%);
 }
 
@@ -530,7 +530,7 @@
 */
 .editor {
   display: grid;
-  gap: var(--vx-space-1);
+  gap: var(--vx-space-04);
   /* O campo de edição ocupa o lugar do corpo, e agora a mesma largura dele. */
   max-inline-size: none;
 }
@@ -538,8 +538,8 @@
 .campoDeEdicao {
   inline-size: 100%;
   min-inline-size: 0;
-  padding-inline: var(--vx-space-2);
-  padding-block: var(--vx-space-1);
+  padding-inline: var(--vx-space-08);
+  padding-block: var(--vx-space-04);
   border: 1px solid var(--vx-border-strong);
   border-radius: var(--vx-radius-2);
   background: var(--vx-surface-0);
@@ -609,14 +609,14 @@
   flex: none;
   display: inline-flex;
   align-items: center;
-  gap: var(--vx-space-0);
+  gap: var(--vx-space-02);
   color: var(--vx-text-4);
   font-size: var(--vx-size-xs);
 }
 
 .fixada svg {
-  inline-size: var(--vx-space-3);
-  block-size: var(--vx-space-3);
+  inline-size: var(--vx-space-12);
+  block-size: var(--vx-space-12);
 }
 
 /*
@@ -634,8 +634,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  inline-size: var(--vx-space-5);
-  block-size: var(--vx-space-5);
+  inline-size: var(--vx-space-24);
+  block-size: var(--vx-space-24);
   border: 1px solid transparent;
   border-radius: var(--vx-radius-5);
   background: var(--vx-surface-2);
@@ -652,8 +652,8 @@
 }
 
 .adicionarReacao svg {
-  inline-size: var(--vx-space-3);
-  block-size: var(--vx-space-3);
+  inline-size: var(--vx-space-12);
+  block-size: var(--vx-space-12);
 }
 
 /*
@@ -711,7 +711,7 @@
 */
 .citacaoRecuada {
   min-inline-size: 0;
-  padding-inline-start: calc(var(--vx-avatar-md) + var(--vx-space-3));
+  padding-inline-start: calc(var(--vx-avatar-md) + var(--vx-space-12));
 }
 
 /* ---------------------------------------------------------- modo compacto */
@@ -734,7 +734,7 @@
 .horaCompacta {
   display: block;
   inline-size: 100%;
-  padding-block-start: var(--vx-space-0);
+  padding-block-start: var(--vx-space-02);
   color: var(--vx-text-4);
   font-family: var(--vx-font-mono);
   font-size: var(--vx-size-xs);
@@ -761,14 +761,14 @@
 .quemReagiu {
   inline-size: 250px;
   display: grid;
-  gap: var(--vx-space-1);
+  gap: var(--vx-space-04);
 }
 
 .quemTitulo {
-  margin-block-end: var(--vx-space-1);
+  margin-block-end: var(--vx-space-04);
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   font-size: var(--vx-size-sm);
   font-weight: 600;
   color: var(--vx-text-1);
@@ -803,15 +803,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--vx-space-2);
-  margin-block-start: var(--vx-space-2);
-  padding-block-start: var(--vx-space-2);
+  gap: var(--vx-space-08);
+  margin-block-start: var(--vx-space-08);
+  padding-block-start: var(--vx-space-08);
   border-block-start: 1px solid var(--vx-border-subtle);
 }
 
 .reguaAcoes {
   display: flex;
-  gap: var(--vx-space-0);
+  gap: var(--vx-space-02);
 }
 
 .reguaBotao {
@@ -857,7 +857,7 @@
 .envio {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   font-size: var(--vx-size-xs);
   color: var(--vx-text-3);
 }
@@ -908,7 +908,7 @@
 .envioAcoes {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-3);
+  gap: var(--vx-space-12);
 }
 
 /*
@@ -921,7 +921,7 @@
 .envioAcao {
   display: inline-flex;
   align-items: center;
-  gap: var(--vx-space-1);
+  gap: var(--vx-space-04);
   border-radius: var(--vx-radius-1);
   font-weight: 600;
   color: var(--vx-accent-text);
@@ -954,8 +954,8 @@
 .cabecalhoDoUsuario {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
-  padding: var(--vx-space-2);
+  gap: var(--vx-space-08);
+  padding: var(--vx-space-08);
 }
 
 .identidade {

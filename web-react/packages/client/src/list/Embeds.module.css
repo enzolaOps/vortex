@@ -8,8 +8,8 @@
 .cartoes {
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-1);
-  margin-block-start: var(--vx-space-2);
+  gap: var(--vx-space-04);
+  margin-block-start: var(--vx-space-08);
 }
 
 /*
@@ -26,10 +26,10 @@
 */
 .cartao {
   display: flex;
-  gap: var(--vx-space-3);
+  gap: var(--vx-space-12);
   max-inline-size: 460px;
-  padding-block: var(--vx-space-3);
-  padding-inline: var(--vx-space-3);
+  padding-block: var(--vx-space-12);
+  padding-inline: var(--vx-space-12);
   border-radius: var(--vx-radius-3);
   border-inline-start: 3px solid var(--vx-accent);
   background: var(--vx-surface-1);
@@ -59,7 +59,7 @@ a.cartao:focus-visible {
 .origem {
   color: var(--vx-text-3);
   font-size: var(--vx-size-xs);
-  margin-block-end: var(--vx-space-0);
+  margin-block-end: var(--vx-space-02);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -76,7 +76,7 @@ a.cartao:focus-visible {
   color: var(--vx-accent-text);
   font-size: var(--vx-size-base);
   font-weight: 600;
-  margin-block-end: var(--vx-space-1);
+  margin-block-end: var(--vx-space-04);
 }
 
 /*

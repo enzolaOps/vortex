@@ -10,7 +10,7 @@
   espaçamento entre palavras.
 */
 .mencao {
-  padding-inline: var(--vx-space-0);
+  padding-inline: var(--vx-space-02);
   border-radius: var(--vx-radius-0);
   background: var(--vx-accent-soft);
   color: var(--vx-text-1);
@@ -33,7 +33,7 @@
 }
 
 .paragrafo + .paragrafo {
-  margin-block-start: var(--vx-space-2);
+  margin-block-start: var(--vx-space-08);
 }
 
 /*
@@ -45,7 +45,7 @@
   ("leitura se codifica em peso, não em cor").
 */
 .titulo {
-  margin-block: var(--vx-space-3) var(--vx-space-1);
+  margin-block: var(--vx-space-12) var(--vx-space-04);
   font-weight: 600;
   line-height: var(--vx-leading-title);
   color: var(--vx-text-1);
@@ -72,8 +72,8 @@
   contável, e `--vx-accent` está reservado para foco, ativo e menção.
 */
 .codigo {
-  padding-inline: var(--vx-space-1);
-  padding-block: var(--vx-space-0);
+  padding-inline: var(--vx-space-04);
+  padding-block: var(--vx-space-02);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-1);
   background: var(--vx-surface-3);
@@ -105,7 +105,7 @@
    ============================================================ */
 
 .blocoPacote {
-  margin-block: var(--vx-space-2);
+  margin-block: var(--vx-space-08);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-3);
   background: var(--vx-surface-3);
@@ -120,9 +120,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--vx-space-2);
-  padding-inline: var(--vx-space-3);
-  padding-block: var(--vx-space-1);
+  gap: var(--vx-space-08);
+  padding-inline: var(--vx-space-12);
+  padding-block: var(--vx-space-04);
   border-block-end: 1px solid var(--vx-border-subtle);
   color: var(--vx-text-3);
   font-family: var(--vx-font-mono);
@@ -181,7 +181,7 @@
   --shiki-token-link: var(--vx-accent-text);
 
   margin: 0;
-  padding: var(--vx-space-3);
+  padding: var(--vx-space-12);
   font-family: var(--vx-font-mono);
   font-size: var(--vx-size-sm);
   line-height: var(--vx-leading-message);
@@ -229,9 +229,9 @@
   nascer do lado certo em qualquer direção de escrita.
 */
 .citacao {
-  margin-block: var(--vx-space-2);
+  margin-block: var(--vx-space-08);
   margin-inline: 0;
-  padding-inline-start: var(--vx-space-3);
+  padding-inline-start: var(--vx-space-12);
   border-inline-start: 2px solid var(--vx-border-strong);
   color: var(--vx-text-2);
 }
@@ -247,8 +247,8 @@
   muda de tamanho junto com a fonte escolhida pela pessoa.
 */
 .lista {
-  margin-block: var(--vx-space-2);
-  padding-inline-start: var(--vx-space-5);
+  margin-block: var(--vx-space-08);
+  padding-inline-start: var(--vx-space-24);
 }
 
 /*
@@ -279,7 +279,7 @@ ol.lista {
 }
 
 .lista li + li {
-  margin-block-start: var(--vx-space-1);
+  margin-block-start: var(--vx-space-04);
 }
 
 /*
@@ -290,7 +290,7 @@ ol.lista {
   membros ela seria decoração; aqui ela é o dado.
 */
 .regra {
-  margin-block: var(--vx-space-3);
+  margin-block: var(--vx-space-12);
   margin-inline: 0;
   border: 0;
   border-block-start: 1px solid var(--vx-border-subtle);

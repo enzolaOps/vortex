@@ -127,9 +127,9 @@ export function Encaminhar({ aoFechar }: { aoFechar: () => void }) {
   return (
     <Dialog open onOpenChange={(v) => !v && aoFechar()}>
       {/*
-        ⚠ **`tituloOculto` e `p-0`, e os dois consertam o MESMO defeito.**
+        ⚠ **`tituloOculto` e `p-02`, e os dois consertam o MESMO defeito.**
 
-        `DialogContent` embrulha os filhos num `<div class="mt-4">` e põe `p-5`
+        `DialogContent` embrulha os filhos num `<div class="mt-16">` e põe `p-24`
         no painel. Consequência medida: o `display:grid` do painel governava
         três filhos que não são meus (título, descrição, wrapper), então NENHUM
         `gap` chegava ao conteúdo — e o campo de comentário, um `<input>` solto
@@ -142,7 +142,7 @@ export function Encaminhar({ aoFechar }: { aoFechar: () => void }) {
       <DialogContent
         titulo="Encaminhar"
         tituloOculto
-        className={cn("p-0", css.painel)}
+        className={cn("p-02", css.painel)}
       >
         <header className={css.cabecalho}>
           <div>

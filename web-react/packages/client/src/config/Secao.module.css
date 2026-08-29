@@ -9,7 +9,7 @@
 
 .forma {
   display: grid;
-  gap: var(--vx-space-5);
+  gap: var(--vx-space-24);
   /*
     A medida de leitura, e não a largura da coluna.
 
@@ -22,7 +22,7 @@
 
 .bloco {
   display: grid;
-  gap: var(--vx-space-3);
+  gap: var(--vx-space-12);
 }
 
 .subtitulo {
@@ -62,14 +62,14 @@
 .acoes {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
 }
 
 /* --- listas de linhas (dispositivos, convites, banimentos) ----- */
 
 .lista {
   display: grid;
-  gap: var(--vx-space-1);
+  gap: var(--vx-space-04);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -78,10 +78,10 @@
 .linha {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-3);
+  gap: var(--vx-space-12);
   min-inline-size: 0;
-  padding-inline: var(--vx-space-3);
-  padding-block: var(--vx-space-2);
+  padding-inline: var(--vx-space-12);
+  padding-block: var(--vx-space-08);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-2);
   background: var(--vx-surface-1);

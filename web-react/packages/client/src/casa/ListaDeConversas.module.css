@@ -21,10 +21,10 @@
 .cabecalho {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   min-inline-size: 0;
-  padding-inline: var(--vx-space-3);
-  padding-block: var(--vx-space-3);
+  padding-inline: var(--vx-space-12);
+  padding-block: var(--vx-space-12);
   border-block-end: 1px solid var(--vx-border-subtle);
   color: var(--vx-text-1);
   font-size: var(--vx-size-lg);
@@ -37,8 +37,8 @@
   overflow-x: hidden;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
-  padding-block: var(--vx-space-2);
-  padding-inline: var(--vx-space-2);
+  padding-block: var(--vx-space-08);
+  padding-inline: var(--vx-space-08);
 }
 
 /* --- as linhas ------------------------------------------------ */
@@ -47,11 +47,11 @@
 .amigos {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-3);
+  gap: var(--vx-space-12);
   inline-size: 100%;
   min-inline-size: 0;
-  padding-inline: var(--vx-space-2);
-  padding-block: var(--vx-space-2);
+  padding-inline: var(--vx-space-08);
+  padding-block: var(--vx-space-08);
   border: 0;
   border-radius: var(--vx-radius-2);
   background: transparent;
@@ -65,8 +65,8 @@
 /* A linha de amigos fica fora da rolagem, então precisa do recuo dela. */
 .amigos {
   inline-size: auto;
-  margin-inline: var(--vx-space-2);
-  margin-block-start: var(--vx-space-2);
+  margin-inline: var(--vx-space-08);
+  margin-block-start: var(--vx-space-08);
 }
 
 .conversa:hover,
@@ -164,7 +164,7 @@
 */
 .contador {
   flex: 0 0 auto;
-  padding-inline: var(--vx-space-1);
+  padding-inline: var(--vx-space-04);
   border-radius: var(--vx-radius-4);
   background: var(--vx-accent);
   color: var(--vx-on-accent);

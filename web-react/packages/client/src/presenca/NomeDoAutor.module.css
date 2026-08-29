@@ -18,7 +18,7 @@
      `items-baseline`, e o crachá é uma caixa — alinhá-lo pela baseline do
      texto dentro dele o empurraria para baixo do nome. */
   align-self: center;
-  padding-inline: var(--vx-space-1);
+  padding-inline: var(--vx-space-04);
   border-radius: var(--vx-radius-1);
   background: var(--vx-surface-3);
   color: var(--vx-text-3);
@@ -52,7 +52,7 @@
   entre dois `span` vizinhos.
 */
 .nomeInline {
-  margin-inline-end: var(--vx-space-2);
+  margin-inline-end: var(--vx-space-08);
   color: var(--vx-text-1);
   font-size: var(--vx-size-lg);
   font-weight: 700;

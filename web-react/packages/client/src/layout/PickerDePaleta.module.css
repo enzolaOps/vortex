@@ -9,15 +9,15 @@
 .picker {
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-3);
-  padding-block-start: var(--vx-space-3);
+  gap: var(--vx-space-12);
+  padding-block-start: var(--vx-space-12);
   border-block-start: 1px solid var(--vx-border-subtle);
 }
 
 .topo {
   display: flex;
   align-items: stretch;
-  gap: var(--vx-space-3);
+  gap: var(--vx-space-12);
   min-inline-size: 0;
 }
 
@@ -26,11 +26,11 @@
 .miniatura {
   display: grid;
   grid-template-columns: 10px 22px minmax(0, 1fr) 12px;
-  gap: var(--vx-space-0);
+  gap: var(--vx-space-02);
   flex: none;
   inline-size: 132px;
   block-size: 76px;
-  padding: var(--vx-space-0);
+  padding: var(--vx-space-02);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-2);
   overflow: hidden;
@@ -41,8 +41,8 @@
 .miniMembros {
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-0);
-  padding: var(--vx-space-0);
+  gap: var(--vx-space-02);
+  padding: var(--vx-space-02);
   border-radius: var(--vx-radius-1);
 }
 
@@ -80,8 +80,8 @@
 .miniLinhaAtiva::after {
   content: "";
   position: absolute;
-  inset-inline-start: var(--vx-space-0);
-  inset-block: var(--vx-space-0);
+  inset-inline-start: var(--vx-space-02);
+  inset-block: var(--vx-space-02);
   inline-size: 60%;
   border-radius: 1px;
   background: currentColor;
@@ -90,9 +90,9 @@
 .miniConteudo {
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-1);
+  gap: var(--vx-space-04);
   justify-content: flex-end;
-  padding: var(--vx-space-1);
+  padding: var(--vx-space-04);
   min-inline-size: 0;
 }
 
@@ -139,7 +139,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   min-inline-size: 0;
 }
 
@@ -163,14 +163,14 @@
 .paletas {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
 }
 
 .swatch {
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-1);
-  padding: var(--vx-space-1);
+  gap: var(--vx-space-04);
+  padding: var(--vx-space-04);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-2);
   background: var(--vx-surface-1);
@@ -205,7 +205,7 @@
 .barras {
   display: flex;
   gap: 1px;
-  block-size: var(--vx-space-5);
+  block-size: var(--vx-space-24);
   border-radius: var(--vx-radius-1);
   overflow: hidden;
 }
@@ -216,7 +216,7 @@
 
 .nome {
   text-align: start;
-  padding-inline-start: var(--vx-space-0);
+  padding-inline-start: var(--vx-space-02);
 }
 
 /* --- ajuste fino ---------------------------------------------- */
@@ -224,16 +224,16 @@
 .fino {
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
 }
 
 .disclosure {
   display: inline-flex;
   align-items: center;
-  gap: var(--vx-space-1);
+  gap: var(--vx-space-04);
   align-self: flex-start;
-  padding: var(--vx-space-1) var(--vx-space-2);
-  margin-inline-start: calc(var(--vx-space-2) * -1);
+  padding: var(--vx-space-04) var(--vx-space-08);
+  margin-inline-start: calc(var(--vx-space-08) * -1);
   border: 0;
   border-radius: var(--vx-radius-2);
   background: transparent;
@@ -264,13 +264,13 @@
 .finoCorpo {
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
 }
 
 .linha {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-3);
+  gap: var(--vx-space-12);
   min-inline-size: 0;
 }
 

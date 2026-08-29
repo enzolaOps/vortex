@@ -11,12 +11,12 @@
   flex: none;
   display: flex;
   align-items: center;
-  gap: var(--vx-space-0);
+  gap: var(--vx-space-02);
 }
 
 .ferramenta {
-  inline-size: var(--vx-space-6);
-  block-size: var(--vx-space-6);
+  inline-size: var(--vx-space-32);
+  block-size: var(--vx-space-32);
   display: flex;
   align-items: center;
   justify-content: center;

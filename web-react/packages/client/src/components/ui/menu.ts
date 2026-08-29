@@ -47,12 +47,12 @@
   terminar num lugar diferente — e a coluna de atalhos deixa de ser coluna.
 */
 export const menuContent =
-  "z-flutuante min-w-56 rounded-3 border border-border-subtle bg-surface-4 p-1 shadow-e2 " +
+  "z-flutuante min-w-56 rounded-3 border border-border-subtle bg-surface-4 p-04 shadow-e2 " +
   "text-md text-text-1 overflow-y-auto " +
   "data-[state=closed]:opacity-0 data-[state=open]:opacity-100 anim-fast";
 
 export const menuItem =
-  "flex cursor-default items-center gap-2 rounded-1 px-2 py-1 outline-none select-none " +
+  "flex cursor-default items-center gap-08 rounded-1 px-08 py-04 outline-none select-none " +
   "data-highlighted:bg-state-hover " +
   "data-disabled:pointer-events-none data-disabled:text-text-3";
 
@@ -67,7 +67,7 @@ export const menuItem =
 export const menuItemPerigo = "text-danger-text data-highlighted:text-danger-text";
 export const menuItemNormal = "text-text-2";
 
-export const menuSeparator = "my-1 h-px bg-border-subtle";
+export const menuSeparator = "my-04 h-px bg-border-subtle";
 
 /**
  * A tecla de atalho à direita do item — o "R", o "E", o "⇧⌘C" do design.
@@ -81,6 +81,6 @@ export const menuSeparator = "my-1 h-px bg-border-subtle";
  * compete com o rótulo se tiver o mesmo peso. Quem procura o atalho já sabe
  * onde olhar.
  */
-export const menuAtalho = "ms-auto ps-4 font-mono text-xs text-text-4";
+export const menuAtalho = "ms-auto ps-16 font-mono text-xs text-text-4";
 
-export const menuLabel = "px-2 py-1 text-xs text-text-3";
+export const menuLabel = "px-08 py-04 text-xs text-text-3";

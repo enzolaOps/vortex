@@ -9,7 +9,7 @@
 .grupo {
   display: inline-flex;
   gap: 1px;
-  padding: var(--vx-space-0);
+  padding: var(--vx-space-02);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-2);
   background: var(--vx-surface-1);
@@ -19,9 +19,9 @@
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: var(--vx-space-2);
-  padding-inline: var(--vx-space-3);
-  padding-block: var(--vx-space-1);
+  gap: var(--vx-space-08);
+  padding-inline: var(--vx-space-12);
+  padding-block: var(--vx-space-04);
   border: 0;
   border-radius: var(--vx-radius-1);
   background: transparent;
@@ -36,7 +36,7 @@
 
 .lamina {
   /* A lâmina mora na borda de início do segmento, como no rail. */
-  inset-inline-start: var(--vx-space-0);
+  inset-inline-start: var(--vx-space-02);
 }
 
 .opcao:hover {

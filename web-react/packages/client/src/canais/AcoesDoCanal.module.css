@@ -11,15 +11,15 @@
   flex: none;
   display: flex;
   align-items: center;
-  gap: var(--vx-space-0);
+  gap: var(--vx-space-02);
   /* Empurra para a borda final. O tópico fica com o espaço do meio, e é ele
      que deve ceder primeiro — identidade e ação ancoram nas pontas. */
   margin-inline-start: auto;
 }
 
 .acao {
-  inline-size: var(--vx-space-6);
-  block-size: var(--vx-space-6);
+  inline-size: var(--vx-space-32);
+  block-size: var(--vx-space-32);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -83,12 +83,12 @@
 .busca {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   flex: none;
   inline-size: 180px;
   min-inline-size: 0;
-  block-size: var(--vx-space-6);
-  padding-inline: var(--vx-space-2);
+  block-size: var(--vx-space-32);
+  padding-inline: var(--vx-space-08);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-2);
   background: var(--vx-surface-1);

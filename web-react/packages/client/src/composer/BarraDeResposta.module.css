@@ -8,10 +8,10 @@
 .barra {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   min-inline-size: 0;
-  padding-inline: var(--vx-space-3);
-  padding-block: var(--vx-space-1);
+  padding-inline: var(--vx-space-12);
+  padding-block: var(--vx-space-04);
   /* Só os cantos de cima: ela encosta no campo, e cantos embaixo abririam
      uma fresta entre os dois que leria como dois elementos soltos. */
   border-radius: var(--vx-radius-2) var(--vx-radius-2) 0 0;

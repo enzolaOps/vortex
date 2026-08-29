@@ -20,11 +20,11 @@
   */
   position: fixed;
   z-index: var(--vx-z-flutuante);
-  inset-block-end: var(--vx-space-4);
-  inset-inline-end: var(--vx-space-4);
+  inset-block-end: var(--vx-space-16);
+  inset-inline-end: var(--vx-space-16);
   display: grid;
-  gap: var(--vx-space-3);
-  padding: var(--vx-space-3);
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-12);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-3);
   background: var(--vx-surface-2);
@@ -90,13 +90,13 @@
 .pessoas {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--vx-space-3);
+  gap: var(--vx-space-12);
 }
 
 .pessoa {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   min-inline-size: 0;
 }
 
@@ -117,7 +117,7 @@
 .controles {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-1);
+  gap: var(--vx-space-04);
 }
 
 .controle,

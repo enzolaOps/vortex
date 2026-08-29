@@ -96,6 +96,8 @@ type Rampa = {
   readonly perigoTexto: Semantica;
   readonly aviso: Semantica;
   readonly sucesso: Semantica;
+  /* O verde de TEXTO, pelo mesmo motivo de `perigoTexto`. Ver o token. */
+  readonly sucessoTexto: Semantica;
   readonly neutro: Degrau;
   readonly offline: Degrau;
 };
@@ -181,6 +183,7 @@ const RAMPAS: Record<Modo, Rampa> = {
     perigoTexto: { l: 0.727685, c: 0.137474, h: 13.749 },
     aviso: { l: 0.788215, c: 0.117607, h: 79.445 },
     sucesso: { l: 0.748358, c: 0.146918, h: 158.512 },
+    sucessoTexto: { l: 0.7933, c: 0.141339, h: 159.488 },
     neutro: { l: 0.565837, c: 0.02148, dh: -2.401 },
     offline: { l: 0.565837, c: 0.02148, dh: -2.401 },
   },
@@ -218,6 +221,8 @@ const RAMPAS: Record<Modo, Rampa> = {
     perigoTexto: { l: 0.538347, c: 0.184859, h: 18.141 },
     aviso: { l: 0.472782, c: 0.098779, h: 77.361 },
     sucesso: { l: 0.480897, c: 0.113976, h: 154.976 },
+    /* No claro os dois coincidem, como `perigoTexto` e `acentoTexto`. */
+    sucessoTexto: { l: 0.480897, c: 0.113976, h: 154.976 },
     neutro: { l: 0.565837, c: 0.02148, dh: -2.401 },
     offline: { l: 0.565837, c: 0.02148, dh: -2.401 },
   },
@@ -284,6 +289,7 @@ export function derivar(s: Semente): Record<TokenName, string> {
     "--vx-danger-text": semantica(r.perigoTexto),
     "--vx-warning": semantica(r.aviso),
     "--vx-success": semantica(r.sucesso),
+    "--vx-success-text": semantica(r.sucessoTexto),
     // Neutro semântico: "herdar" na matriz tri-state, mudo, offline. Cinza da
     // família do neutro, e não um quarto matiz — ele quer dizer AUSÊNCIA de
     // estado, e uma cor própria transformaria ausência em mais um estado.

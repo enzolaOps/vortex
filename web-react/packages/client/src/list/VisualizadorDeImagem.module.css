@@ -50,8 +50,8 @@
     tira de miniaturas mais o zoom; nos lados, as setas de 36px mais a margem
     delas. Encolher qualquer um faz a mídia passar por baixo do controle.
   */
-  padding: calc(var(--vx-space-4) + var(--vx-space-7))
-    calc(var(--vx-space-6) + var(--vx-space-7));
+  padding: calc(var(--vx-space-16) + var(--vx-space-40))
+    calc(var(--vx-space-32) + var(--vx-space-40));
   overflow: auto;
 }
 
@@ -81,8 +81,8 @@
   inset-inline: 0;
   display: flex;
   align-items: center;
-  gap: var(--vx-space-3);
-  padding: var(--vx-space-3) var(--vx-space-4);
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-12) var(--vx-space-16);
   z-index: var(--vx-z-realce);
 }
 
@@ -125,7 +125,7 @@
 .acoesDoTopo {
   margin-inline-start: auto;
   display: flex;
-  gap: var(--vx-space-0);
+  gap: var(--vx-space-02);
 }
 
 .acaoDoTopo {
@@ -180,11 +180,11 @@
 }
 
 .seta[data-lado="inicio"] {
-  inset-inline-start: var(--vx-space-4);
+  inset-inline-start: var(--vx-space-16);
 }
 
 .seta[data-lado="fim"] {
-  inset-inline-end: var(--vx-space-4);
+  inset-inline-end: var(--vx-space-16);
 }
 
 .seta svg {
@@ -216,7 +216,7 @@
 
 .miniaturas {
   display: flex;
-  gap: var(--vx-space-1);
+  gap: var(--vx-space-04);
   flex: none;
 }
 
@@ -257,7 +257,7 @@
 .zoom {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   flex: none;
 }
 

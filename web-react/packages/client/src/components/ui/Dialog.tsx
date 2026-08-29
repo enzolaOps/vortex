@@ -81,7 +81,7 @@ export function DialogContent({
         {...(descricao ? {} : { "aria-describedby": undefined })}
         className={cn(
           css.painel,
-          "z-flutuante rounded-4 border border-border-subtle bg-surface-4 p-5 shadow-e3",
+          "z-flutuante rounded-4 border border-border-subtle bg-surface-4 p-24 shadow-e3",
           "anim-base",
           className,
         )}
@@ -97,12 +97,12 @@ export function DialogContent({
         </Primitivo.Title>
 
         {descricao ? (
-          <Primitivo.Description className="mt-1 text-md text-text-2">
+          <Primitivo.Description className="mt-04 text-md text-text-2">
             {descricao}
           </Primitivo.Description>
         ) : null}
 
-        <div className={tituloOculto ? undefined : "mt-4"}>{children}</div>
+        <div className={tituloOculto ? undefined : "mt-16"}>{children}</div>
       </Primitivo.Content>
     </Primitivo.Portal>
   );

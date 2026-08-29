@@ -128,6 +128,15 @@
   --vx-warning: #e2b15c;
   --vx-success: #46c98a;
   /*
+    O verde de TEXTO — o par de `--vx-danger-text`, e pela mesma razão.
+
+    O design usa `#46C98A` como preenchimento (o ponto de presença, o selo
+    EM VOZ) e `#5BD79B` na palavra dentro de uma caixa tingida — o selo
+    RESULTADO da enquete encerrada, o `64 kbps` vencedor. 35 ocorrências nos
+    treze arquivos, e nenhuma delas era representável antes deste token.
+  */
+  --vx-success-text: #5bd79b;
+  /*
     O neutro semântico: "herdar" na matriz tri-state, mudo na voz, offline.
 
     Cinza da família do neutro, e não um quarto matiz — ele quer dizer
@@ -193,14 +202,42 @@
     telas de configuração e que a escala não tinha — o salto de 32 para 40 é
     o que separa dois blocos de formulário de duas seções diferentes.
   */
-  --vx-space-0: 2px;
-  --vx-space-1: 4px;
-  --vx-space-2: 8px;
-  --vx-space-3: 12px;
-  --vx-space-4: 16px;
-  --vx-space-5: 24px;
-  --vx-space-6: 32px;
-  --vx-space-7: 40px;
+  /*
+    Nomeada pelo VALOR, e com o passo do design.
+
+    ⚠ Ela era ordinal (`--vx-space-3` = 12px) e tinha oito degraus:
+    2·4·8·12·16·24·32·40. Medido nos treze arquivos do Claude Design: só 40%
+    dos 2.813 valores de espaçamento caíam num deles. O design foi desenhado
+    numa escala de 2px, a nossa era musical, e as duas não são compatíveis por
+    construção — cada arredondamento era defensável e a soma deles é a razão
+    pela qual as telas "nunca ficavam iguais".
+
+    Os cinco degraus novos (6, 10, 14, 18, 20) levam a cobertura a ~71%. O que
+    sobra — 5, 7, 9, 11 — é ajuste óptico, e o `pnpm escala` segue reprovando:
+    a guarda existe para forçar a conversa, não para ser satisfeita.
+
+    O nome é o valor porque nome ORDINAL torna caro inserir um degrau: com
+    ordinal, acrescentar 6px renumeraria todos os de cima e os 644 usos com
+    eles. Com valor, acrescentar é uma linha.
+
+    Dois dígitos, e isso foi o que tornou a renomeação segura: o nome antigo
+    tinha um dígito, então nenhum nome novo colide com um antigo. Referência
+    esquecida deixa de resolver e o `pnpm vars` reprova — em vez de resolver
+    para o valor errado calada.
+  */
+  --vx-space-02: 2px;
+  --vx-space-04: 4px;
+  --vx-space-06: 6px;
+  --vx-space-08: 8px;
+  --vx-space-10: 10px;
+  --vx-space-12: 12px;
+  --vx-space-14: 14px;
+  --vx-space-16: 16px;
+  --vx-space-18: 18px;
+  --vx-space-20: 20px;
+  --vx-space-24: 24px;
+  --vx-space-32: 32px;
+  --vx-space-40: 40px;
 
   /* --- Raio --------------------------------------------------
      ⚠ **Os valores mudaram; os nomes não.** A escala antiga era
@@ -520,6 +557,7 @@
   --vx-danger-text: #c22c43;
   --vx-warning: #7a5300;
   --vx-success: #0e7040;
+  --vx-success-text: #0e7040;
   --vx-neutral: #6e7783;
 
   --vx-status-online: #0e7040;
@@ -571,6 +609,7 @@
     --vx-danger-text: #c22c43;
     --vx-warning: #7a5300;
     --vx-success: #0e7040;
+    --vx-success-text: #0e7040;
     --vx-neutral: #6e7783;
 
     --vx-status-online: #0e7040;
@@ -636,6 +675,7 @@
   --color-danger-text: var(--vx-danger-text);
   --color-warning: var(--vx-warning);
   --color-success: var(--vx-success);
+  --color-success-text: var(--vx-success-text);
   --color-neutral: var(--vx-neutral);
 
   --color-status-online: var(--vx-status-online);
@@ -655,14 +695,19 @@
   --shadow-e2: var(--vx-elev-2);
   --shadow-e3: var(--vx-elev-3);
 
-  --spacing-0: var(--vx-space-0);
-  --spacing-1: var(--vx-space-1);
-  --spacing-2: var(--vx-space-2);
-  --spacing-3: var(--vx-space-3);
-  --spacing-4: var(--vx-space-4);
-  --spacing-5: var(--vx-space-5);
-  --spacing-6: var(--vx-space-6);
-  --spacing-7: var(--vx-space-7);
+  --spacing-02: var(--vx-space-02);
+  --spacing-04: var(--vx-space-04);
+  --spacing-06: var(--vx-space-06);
+  --spacing-08: var(--vx-space-08);
+  --spacing-10: var(--vx-space-10);
+  --spacing-12: var(--vx-space-12);
+  --spacing-14: var(--vx-space-14);
+  --spacing-16: var(--vx-space-16);
+  --spacing-18: var(--vx-space-18);
+  --spacing-20: var(--vx-space-20);
+  --spacing-24: var(--vx-space-24);
+  --spacing-32: var(--vx-space-32);
+  --spacing-40: var(--vx-space-40);
 
   /* Sem `initial` acima: o Tailwind não reserva `--z-index-*`, então
      não há escala default para apagar — só a nossa para acrescentar. */

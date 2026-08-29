@@ -32,8 +32,8 @@
 
 .ponto {
   position: absolute;
-  inset-inline-end: calc(var(--vx-space-1) * -1);
-  inset-block-end: calc(var(--vx-space-1) * -1);
+  inset-inline-end: calc(var(--vx-space-04) * -1);
+  inset-block-end: calc(var(--vx-space-04) * -1);
   /* A escala de tipo NÃO serve de escala de caixa: `--vx-size-*` é
      tamanho de fonte. Ponto de presença é respiro visual sobre o
      avatar, e aí a escala de espaçamento é a certa. */
@@ -46,8 +46,8 @@
 
     12 atende os dois casos dentro de um pixel, e é degrau da escala.
   */
-  inline-size: var(--vx-space-3);
-  block-size: var(--vx-space-3);
+  inline-size: var(--vx-space-12);
+  block-size: var(--vx-space-12);
   box-sizing: border-box;
   border-radius: var(--vx-radius-4);
   /* O anel separa o ponto do avatar sem depender de contraste de cor.

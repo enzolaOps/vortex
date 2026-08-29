@@ -6,9 +6,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--vx-space-2);
-  padding-inline: var(--vx-space-3);
-  padding-block: var(--vx-space-2);
+  gap: var(--vx-space-08);
+  padding-inline: var(--vx-space-12);
+  padding-block: var(--vx-space-08);
   border: 1px solid transparent;
   border-radius: var(--vx-radius-2);
   font-family: inherit;

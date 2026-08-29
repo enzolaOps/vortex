@@ -8,14 +8,14 @@
 
 .painel {
   display: grid;
-  gap: var(--vx-space-4);
+  gap: var(--vx-space-16);
   inline-size: 380px;
   max-inline-size: 100%;
 }
 
 .corpo {
   display: grid;
-  gap: var(--vx-space-3);
+  gap: var(--vx-space-12);
 }
 
 /* --- a prévia do convite -------------------------------------- */
@@ -23,8 +23,8 @@
 .previa {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-3);
-  padding: var(--vx-space-3);
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-12);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-2);
   background: var(--vx-surface-3);
@@ -45,7 +45,7 @@
 
 .sobre {
   display: grid;
-  gap: var(--vx-space-0);
+  gap: var(--vx-space-02);
   min-inline-size: 0;
 }
 

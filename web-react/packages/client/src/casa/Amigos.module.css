@@ -19,9 +19,9 @@
 
 .cabecalho {
   display: grid;
-  gap: var(--vx-space-3);
-  padding-inline: var(--vx-space-4);
-  padding-block: var(--vx-space-4);
+  gap: var(--vx-space-12);
+  padding-inline: var(--vx-space-16);
+  padding-block: var(--vx-space-16);
   border-block-end: 1px solid var(--vx-border-subtle);
 }
 
@@ -42,7 +42,7 @@
 .adicionar {
   display: flex;
   align-items: end;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   max-inline-size: var(--vx-medida);
 }
 
@@ -56,13 +56,13 @@
   scrollbar-gutter: stable;
   scrollbar-width: thin;
   overscroll-behavior: contain;
-  padding-inline: var(--vx-space-4);
-  padding-block: var(--vx-space-3);
+  padding-inline: var(--vx-space-16);
+  padding-block: var(--vx-space-12);
 }
 
 .lista {
   display: grid;
-  gap: var(--vx-space-1);
+  gap: var(--vx-space-04);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -74,10 +74,10 @@
 .pessoa {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-3);
+  gap: var(--vx-space-12);
   min-inline-size: 0;
-  padding-inline: var(--vx-space-2);
-  padding-block: var(--vx-space-2);
+  padding-inline: var(--vx-space-08);
+  padding-block: var(--vx-space-08);
   border-radius: var(--vx-radius-2);
 }
 
@@ -139,7 +139,7 @@
 .acoes {
   display: flex;
   flex: 0 0 auto;
-  gap: var(--vx-space-1);
+  gap: var(--vx-space-04);
 }
 
 /*

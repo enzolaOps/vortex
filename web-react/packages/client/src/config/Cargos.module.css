@@ -10,25 +10,25 @@
 .tela {
   display: grid;
   grid-template-columns: 200px minmax(0, 1fr);
-  gap: var(--vx-space-5);
+  gap: var(--vx-space-24);
   align-items: start;
   container-type: inline-size;
 }
 
 .coluna {
   display: grid;
-  gap: var(--vx-space-3);
+  gap: var(--vx-space-12);
   min-inline-size: 0;
 }
 
 .criar {
   display: grid;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
 }
 
 .cargos {
   display: grid;
-  gap: var(--vx-space-0);
+  gap: var(--vx-space-02);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -37,11 +37,11 @@
 .cargo {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   inline-size: 100%;
   min-inline-size: 0;
-  padding-inline: var(--vx-space-2);
-  padding-block: var(--vx-space-2);
+  padding-inline: var(--vx-space-08);
+  padding-block: var(--vx-space-08);
   border: 0;
   border-radius: var(--vx-radius-2);
   background: transparent;
@@ -85,7 +85,7 @@
 
 .editor {
   display: grid;
-  gap: var(--vx-space-4);
+  gap: var(--vx-space-16);
   min-inline-size: 0;
 }
 
@@ -98,7 +98,7 @@
 */
 .grupo {
   display: grid;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   margin: 0;
   padding: 0;
   border: 0;
@@ -117,7 +117,7 @@
 .permissao {
   display: flex;
   align-items: start;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   font-size: var(--vx-size-md);
   color: var(--vx-text-2);
   accent-color: var(--vx-accent);
@@ -125,7 +125,7 @@
 }
 
 .permissao {
-  padding-block: var(--vx-space-1);
+  padding-block: var(--vx-space-04);
 }
 
 .permissao input {
@@ -135,10 +135,10 @@
 
     O ajuste óptico exato seria ~3px — `(20px de linha − 13px de caixa) / 2` —
     e o `pnpm escala` reprovou, com razão: o recado dele é "acrescente o degrau,
-    não escape dele num arquivo". `--vx-space-0` (2px) resolve dentro da escala,
+    não escape dele num arquivo". `--vx-space-02` (2px) resolve dentro da escala,
     e 1px de diferença num alvo de 13px não é perceptível.
   */
-  margin-block-start: var(--vx-space-0);
+  margin-block-start: var(--vx-space-02);
 }
 
 .textoDaPermissao {

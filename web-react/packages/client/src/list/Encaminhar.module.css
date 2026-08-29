@@ -7,7 +7,7 @@
 */
 .painel {
   inline-size: 400px;
-  max-inline-size: calc(100vw - var(--vx-space-6));
+  max-inline-size: calc(100vw - var(--vx-space-32));
   overflow: hidden;
 }
 /* ------------------------------------------------- cabeçalho e rodapé
@@ -20,8 +20,8 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--vx-space-3);
-  padding: var(--vx-space-4) var(--vx-space-4) var(--vx-space-3);
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-16) var(--vx-space-16) var(--vx-space-12);
 }
 
 .tituloDoModal {
@@ -32,7 +32,7 @@
 }
 
 .descricaoDoModal {
-  margin-block-start: var(--vx-space-0);
+  margin-block-start: var(--vx-space-02);
   font-size: var(--vx-size-sm);
   color: var(--vx-text-3);
 }
@@ -67,9 +67,9 @@
    eram meus. */
 .corpo {
   display: grid;
-  gap: var(--vx-space-3);
-  padding-inline: var(--vx-space-4);
-  padding-block-end: var(--vx-space-4);
+  gap: var(--vx-space-12);
+  padding-inline: var(--vx-space-16);
+  padding-block-end: var(--vx-space-16);
 }
 
 
@@ -83,7 +83,7 @@
   `surface-4`) é o que a separa do formulário — ela é citação, não campo.
 */
 .previa {
-  padding: var(--vx-space-3);
+  padding: var(--vx-space-12);
   border-radius: var(--vx-radius-3);
   border-inline-start: 3px solid var(--vx-accent);
   background: var(--vx-surface-0);
@@ -92,8 +92,8 @@
 .previaCabecalho {
   display: flex;
   align-items: baseline;
-  gap: var(--vx-space-2);
-  margin-block-end: var(--vx-space-1);
+  gap: var(--vx-space-08);
+  margin-block-end: var(--vx-space-04);
   font-size: var(--vx-size-sm);
   font-weight: 600;
 }
@@ -126,9 +126,9 @@
 .busca {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   block-size: 34px;
-  padding-inline: var(--vx-space-3);
+  padding-inline: var(--vx-space-12);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-2);
   background: var(--vx-surface-3);
@@ -161,15 +161,15 @@
 .chips {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--vx-space-1);
+  gap: var(--vx-space-04);
 }
 
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: var(--vx-space-1);
+  gap: var(--vx-space-04);
   block-size: 24px;
-  padding-inline: var(--vx-space-2);
+  padding-inline: var(--vx-space-08);
   border-radius: var(--vx-radius-5);
   background: var(--vx-state-selected);
   color: var(--vx-accent-text);
@@ -210,8 +210,8 @@
   inline-size: 100%;
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
-  padding: var(--vx-space-1) var(--vx-space-2);
+  gap: var(--vx-space-08);
+  padding: var(--vx-space-04) var(--vx-space-08);
   border-radius: var(--vx-radius-2);
   cursor: pointer;
   text-align: start;
@@ -299,7 +299,7 @@
 
 .comentario {
   block-size: 36px;
-  padding-inline: var(--vx-space-3);
+  padding-inline: var(--vx-space-12);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-2);
   background: var(--vx-surface-3);
@@ -323,8 +323,8 @@
 .rodape {
   display: flex;
   justify-content: flex-end;
-  gap: var(--vx-space-2);
-  padding: var(--vx-space-3) var(--vx-space-4);
+  gap: var(--vx-space-08);
+  padding: var(--vx-space-12) var(--vx-space-16);
   border-block-start: 1px solid var(--vx-border-subtle);
   background: var(--vx-surface-3);
 }

@@ -8,8 +8,8 @@
 
 .seletor {
   flex: none;
-  inline-size: var(--vx-space-6);
-  block-size: var(--vx-space-5);
+  inline-size: var(--vx-space-32);
+  block-size: var(--vx-space-24);
   padding: 0;
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-1);
@@ -21,7 +21,7 @@
 
 /* Sem isto o Chrome desenha uma moldura interna de 2px que não é nossa. */
 .seletor::-webkit-color-swatch-wrapper {
-  padding: var(--vx-space-0);
+  padding: var(--vx-space-02);
 }
 
 .seletor::-webkit-color-swatch {

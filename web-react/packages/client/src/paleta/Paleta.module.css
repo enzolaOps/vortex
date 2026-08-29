@@ -9,7 +9,7 @@
 .painel {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  inline-size: min(560px, calc(100vw - var(--vx-space-6)));
+  inline-size: min(560px, calc(100vw - var(--vx-space-32)));
   max-block-size: min(60vh, 480px);
   padding: 0;
   overflow: hidden;
@@ -17,7 +17,7 @@
 
 .campo {
   inline-size: 100%;
-  padding: var(--vx-space-4);
+  padding: var(--vx-space-16);
   border: 0;
   border-block-end: 1px solid var(--vx-border-subtle);
   background: transparent;
@@ -51,7 +51,7 @@
 
 .lista {
   margin: 0;
-  padding: var(--vx-space-1);
+  padding: var(--vx-space-04);
   overflow-y: auto;
   scrollbar-gutter: stable;
   overscroll-behavior: contain;
@@ -61,10 +61,10 @@
 .item {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-3);
+  gap: var(--vx-space-12);
   min-inline-size: 0;
-  padding-inline: var(--vx-space-3);
-  padding-block: var(--vx-space-2);
+  padding-inline: var(--vx-space-12);
+  padding-block: var(--vx-space-08);
   border-radius: var(--vx-radius-2);
   color: var(--vx-text-2);
   cursor: pointer;
@@ -114,7 +114,7 @@
 
 .vazio {
   margin: 0;
-  padding: var(--vx-space-5) var(--vx-space-4);
+  padding: var(--vx-space-24) var(--vx-space-16);
   color: var(--vx-text-3);
   font-size: var(--vx-size-sm);
   text-align: center;

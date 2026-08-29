@@ -21,10 +21,10 @@
     Os dois números saem da escala somada, como o palco do lightbox: o topo é
     a altura do cabeçalho mais o respiro, e as outras três são o mesmo respiro.
   */
-  inset-block: calc(50px + var(--vx-space-3)) var(--vx-space-3);
-  inset-inline-end: var(--vx-space-3);
+  inset-block: calc(50px + var(--vx-space-12)) var(--vx-space-12);
+  inset-inline-end: var(--vx-space-12);
   inline-size: 400px;
-  max-inline-size: calc(100vw - var(--vx-space-6));
+  max-inline-size: calc(100vw - var(--vx-space-32));
 
   display: grid;
   overflow: hidden;
@@ -61,6 +61,6 @@
 @keyframes vxDrawerEntra {
   from {
     opacity: 0;
-    translate: var(--vx-space-4) 0;
+    translate: var(--vx-space-16) 0;
   }
 }

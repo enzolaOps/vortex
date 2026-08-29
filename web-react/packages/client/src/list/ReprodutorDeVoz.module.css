@@ -9,11 +9,11 @@
 .player {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-3);
+  gap: var(--vx-space-12);
   inline-size: fit-content;
   max-inline-size: 100%;
-  margin-block-start: var(--vx-space-2);
-  padding: var(--vx-space-1) var(--vx-space-3) var(--vx-space-1) var(--vx-space-1);
+  margin-block-start: var(--vx-space-08);
+  padding: var(--vx-space-04) var(--vx-space-12) var(--vx-space-04) var(--vx-space-04);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-5);
   background: var(--vx-surface-3);
@@ -57,7 +57,7 @@
 .onda {
   display: flex;
   align-items: flex-end;
-  gap: var(--vx-space-0);
+  gap: var(--vx-space-02);
   block-size: 22px;
   min-inline-size: 120px;
   flex: 1;
@@ -102,7 +102,7 @@
 
 .velocidade {
   flex: none;
-  padding-inline: var(--vx-space-1);
+  padding-inline: var(--vx-space-04);
   border-radius: var(--vx-radius-1);
   font-family: var(--vx-font-mono);
   font-size: var(--vx-size-xs);

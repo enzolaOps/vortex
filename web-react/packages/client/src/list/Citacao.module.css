@@ -11,7 +11,7 @@
 .citacao {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-1);
+  gap: var(--vx-space-04);
   min-inline-size: 0;
   inline-size: 100%;
   /*
@@ -22,7 +22,7 @@
     vez de dobrar embaixo: a citação encosta no texto da resposta, e afastá-la
     só de um lado a soltaria do que ela introduz.
   */
-  padding-block: var(--vx-space-0);
+  padding-block: var(--vx-space-02);
   border: 0;
   background: transparent;
   color: var(--vx-text-3);
@@ -66,7 +66,7 @@
   flex: none;
   inline-size: 22px;
   block-size: 9px;
-  margin-inline-start: var(--vx-space-0);
+  margin-inline-start: var(--vx-space-02);
   /* `align-self: flex-end` põe a curva na altura da linha de texto em vez de
      centrada: o cano tem que ENCOSTAR embaixo, é de lá que ele vem. */
   align-self: flex-end;

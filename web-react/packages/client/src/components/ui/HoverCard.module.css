@@ -9,5 +9,5 @@
   fixos ultrapassariam a janela.
 */
 .cartao {
-  inline-size: min(288px, calc(100vw - var(--vx-space-5)));
+  inline-size: min(288px, calc(100vw - var(--vx-space-24)));
 }

@@ -10,7 +10,7 @@
 .cabecalho {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   min-inline-size: 0;
   /*
     50px é o número do design, e é DIMENSÃO de componente, não degrau de
@@ -19,12 +19,12 @@
     `block-size` de fora justamente para não empurrar geometria de layout para
     uma escala de respiro.
 
-    Estava em `--vx-space-6` (32px), que era apertado antes e virou impossível
+    Estava em `--vx-space-32` (32px), que era apertado antes e virou impossível
     agora: os botões de ação medem 32px, e um cabeçalho de 32 não tem onde
     pousá-los.
   */
   block-size: 50px;
-  padding-inline: var(--vx-space-4);
+  padding-inline: var(--vx-space-16);
   border-block-end: 1px solid var(--vx-border-subtle);
   background: var(--vx-surface-0);
 
@@ -53,7 +53,7 @@
 .divisa {
   flex: none;
   inline-size: 1px;
-  block-size: var(--vx-space-4);
+  block-size: var(--vx-space-16);
   background: var(--vx-border-subtle);
 }
 

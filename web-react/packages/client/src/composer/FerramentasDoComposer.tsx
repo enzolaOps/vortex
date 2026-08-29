@@ -162,11 +162,11 @@ function SeletorEmPopover({
       </Tooltip>
 
       {/*
-        `p-0` porque a casca traz o próprio recheio, e `side="top"` porque o
+        `p-02` porque a casca traz o próprio recheio, e `side="top"` porque o
         composer mora no rodapé — um painel de 452px abrindo para baixo sairia
         da janela e o Radix o viraria sozinho, com um quadro de salto no meio.
       */}
-      <PopoverContent className="p-0" side="top" align="end">
+      <PopoverContent className="p-02" side="top" align="end">
         <PopoverFechavel render={ferramenta.painel} />
       </PopoverContent>
     </Popover>

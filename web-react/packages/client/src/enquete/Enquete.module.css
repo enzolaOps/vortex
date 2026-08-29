@@ -4,7 +4,7 @@
 
 .modal {
   inline-size: 420px;
-  max-inline-size: calc(100vw - var(--vx-space-6));
+  max-inline-size: calc(100vw - var(--vx-space-32));
   overflow: hidden;
 }
 /* ------------------------------------------------- cabeçalho e rodapé
@@ -17,8 +17,8 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--vx-space-3);
-  padding: var(--vx-space-4) var(--vx-space-4) var(--vx-space-3);
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-16) var(--vx-space-16) var(--vx-space-12);
 }
 
 .tituloDoModal {
@@ -59,15 +59,15 @@
    eram meus. */
 .corpo {
   display: grid;
-  gap: var(--vx-space-4);
-  padding-inline: var(--vx-space-4);
-  padding-block-end: var(--vx-space-4);
+  gap: var(--vx-space-16);
+  padding-inline: var(--vx-space-16);
+  padding-block-end: var(--vx-space-16);
 }
 
 
 .grupo {
   display: grid;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
 }
 
 .rotulo,
@@ -85,9 +85,9 @@
 .campo {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   block-size: 36px;
-  padding-inline: var(--vx-space-3);
+  padding-inline: var(--vx-space-12);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-2);
   background: var(--vx-surface-3);
@@ -130,15 +130,15 @@
 
 .respostas {
   display: grid;
-  gap: var(--vx-space-1);
+  gap: var(--vx-space-04);
 }
 
 .resposta {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   block-size: 34px;
-  padding-inline: var(--vx-space-2);
+  padding-inline: var(--vx-space-08);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-2);
   background: var(--vx-surface-3);
@@ -199,9 +199,9 @@
 .acrescentar {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   block-size: 34px;
-  padding-inline: var(--vx-space-3);
+  padding-inline: var(--vx-space-12);
   border: 1px dashed var(--vx-border-subtle);
   border-radius: var(--vx-radius-2);
   color: var(--vx-text-3);
@@ -226,12 +226,12 @@
 .duas {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--vx-space-3);
+  gap: var(--vx-space-12);
 }
 
 .selecao {
   display: grid;
-  gap: var(--vx-space-1);
+  gap: var(--vx-space-04);
 }
 
 /*
@@ -245,9 +245,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   block-size: 32px;
-  padding-inline: var(--vx-space-2);
+  padding-inline: var(--vx-space-08);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-2);
   background: var(--vx-surface-3);
@@ -274,7 +274,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--vx-space-3);
+  gap: var(--vx-space-12);
 }
 
 .interruptorTitulo {
@@ -292,7 +292,7 @@
   inline-size: 38px;
   block-size: 22px;
   flex: none;
-  padding: var(--vx-space-0);
+  padding: var(--vx-space-02);
   border-radius: var(--vx-radius-5);
   background: var(--vx-surface-0);
   border: 1px solid var(--vx-border-subtle);
@@ -329,8 +329,8 @@
 .rodapeDoModal {
   display: flex;
   justify-content: flex-end;
-  gap: var(--vx-space-2);
-  padding: var(--vx-space-3) var(--vx-space-4);
+  gap: var(--vx-space-08);
+  padding: var(--vx-space-12) var(--vx-space-16);
   border-block-start: 1px solid var(--vx-border-subtle);
   background: var(--vx-surface-3);
 }
@@ -340,8 +340,8 @@
    ============================================================ */
 
 .caixa {
-  margin-block-start: var(--vx-space-2);
-  padding: var(--vx-space-4);
+  margin-block-start: var(--vx-space-08);
+  padding: var(--vx-space-16);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-4);
   /*
@@ -359,8 +359,8 @@
 .tipo {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
-  margin-block-end: var(--vx-space-2);
+  gap: var(--vx-space-08);
+  margin-block-end: var(--vx-space-08);
   font-size: var(--vx-size-xs);
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -372,17 +372,19 @@
   display: inline-flex;
   align-items: center;
   block-size: 17px;
-  padding-inline: var(--vx-space-2);
+  padding-inline: var(--vx-space-08);
   border-radius: var(--vx-radius-1);
   background: color-mix(in oklab, var(--vx-success) 16%, transparent);
-  color: var(--vx-success);
+  /* `success-text` e não `success`: é LETRA sobre um preenchimento tingido do
+     mesmo verde, e o design usa dois valores exatamente para esse par. */
+  color: var(--vx-success-text);
   font-size: var(--vx-size-xs);
   font-weight: 700;
   letter-spacing: 0;
 }
 
 .pergunta {
-  margin-block-end: var(--vx-space-3);
+  margin-block-end: var(--vx-space-12);
   font-size: var(--vx-size-lg);
   font-weight: 600;
   color: var(--vx-text-1);
@@ -394,7 +396,7 @@
   position: relative;
   inline-size: 100%;
   overflow: hidden;
-  margin-block-end: var(--vx-space-1);
+  margin-block-end: var(--vx-space-04);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-2);
   /* Mais FUNDO que a caixa: a opção é um alvo dentro dela. */
@@ -447,8 +449,8 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
-  padding: var(--vx-space-2) var(--vx-space-3);
+  gap: var(--vx-space-08);
+  padding: var(--vx-space-08) var(--vx-space-12);
 }
 
 .opcaoMarca {
@@ -462,7 +464,7 @@
 .opcaoMarca svg {
   inline-size: var(--vx-icon-2);
   block-size: var(--vx-icon-2);
-  color: var(--vx-success);
+  color: var(--vx-success-text);
 }
 
 .opcaoTexto {
@@ -488,22 +490,22 @@
 }
 
 .opcao[data-venceu] .opcaoPct {
-  color: var(--vx-success);
+  color: var(--vx-success-text);
 }
 
 .rodape {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--vx-space-3);
-  margin-block-start: var(--vx-space-3);
+  gap: var(--vx-space-12);
+  margin-block-start: var(--vx-space-12);
   font-size: var(--vx-size-xs);
   color: var(--vx-text-3);
 }
 
 .rodapeDireita {
   display: flex;
-  gap: var(--vx-space-3);
+  gap: var(--vx-space-12);
 }
 
 .link {

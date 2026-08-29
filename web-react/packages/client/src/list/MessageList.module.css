@@ -63,7 +63,7 @@
   inset-block-start: 0;
   z-index: var(--vx-z-realce);
   inline-size: 100%;
-  padding-block: var(--vx-space-1);
+  padding-block: var(--vx-space-04);
   border: 0;
   background: var(--vx-accent);
   color: var(--vx-on-accent);
@@ -111,19 +111,19 @@
   position: sticky;
   /* `inset-block-start: 0` colidiria com a barra de não lidas quando as duas
      aparecem. O deslocamento é a altura dela mais um respiro. */
-  inset-block-start: var(--vx-space-5);
+  inset-block-start: var(--vx-space-24);
   z-index: var(--vx-z-realce);
 
   display: flex;
   align-items: center;
-  gap: var(--vx-space-1);
+  gap: var(--vx-space-04);
   /* `margin-inline-start: auto` com largura própria: gruda no fim da coluna
      sem precisar saber a largura dela. */
   inline-size: fit-content;
   margin-inline-start: auto;
-  margin-inline-end: var(--vx-space-4);
-  padding-inline: var(--vx-space-2);
-  padding-block: var(--vx-space-1);
+  margin-inline-end: var(--vx-space-16);
+  padding-inline: var(--vx-space-08);
+  padding-block: var(--vx-space-04);
 
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-2);

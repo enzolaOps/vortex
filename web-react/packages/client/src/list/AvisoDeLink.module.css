@@ -5,7 +5,7 @@
 
 .corpo {
   display: grid;
-  gap: var(--vx-space-3);
+  gap: var(--vx-space-12);
 }
 
 .rotulo {
@@ -22,7 +22,7 @@
 */
 .destino {
   margin: 0;
-  padding: var(--vx-space-2);
+  padding: var(--vx-space-08);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-2);
   background: var(--vx-surface-3);
@@ -34,7 +34,7 @@
 
 .alerta {
   margin: 0;
-  padding: var(--vx-space-3);
+  padding: var(--vx-space-12);
   border-inline-start: 3px solid var(--vx-danger);
   border-radius: var(--vx-radius-2);
   background: var(--vx-surface-1);
@@ -50,5 +50,5 @@
 .acoes {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
 }

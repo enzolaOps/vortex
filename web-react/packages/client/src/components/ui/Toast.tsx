@@ -46,7 +46,7 @@ export function Toaster() {
             // `relative`: o `Close` é `absolute`, e sem contexto de
             // posicionamento ele ancoraria na VIEWPORT — todo botão de
             // fechar empilhado no mesmo canto, longe do próprio toast.
-            "relative rounded-3 border p-3",
+            "relative rounded-3 border p-12",
             "data-[state=closed]:opacity-0 data-[state=open]:opacity-100 anim-base",
             // Erro leva borda semântica; o resto fica no neutro. Cor sozinha
             // não carrega o significado — o título diz o que aconteceu.
@@ -60,7 +60,7 @@ export function Toaster() {
           </Primitivo.Title>
 
           {t.descricao ? (
-            <Primitivo.Description className="mt-1 text-sm text-text-2">
+            <Primitivo.Description className="mt-04 text-sm text-text-2">
               {t.descricao}
             </Primitivo.Description>
           ) : null}
@@ -77,7 +77,7 @@ export function Toaster() {
             <Primitivo.Action
               altText={t.acao.descricaoAlternativa}
               onClick={t.acao.aoAtivar}
-              className="mt-2 rounded-2 border border-border-strong px-2 py-1 text-sm text-text-1 hover:bg-state-hover"
+              className="mt-08 rounded-2 border border-border-strong px-08 py-04 text-sm text-text-1 hover:bg-state-hover"
             >
               {t.acao.rotulo}
             </Primitivo.Action>
@@ -85,7 +85,7 @@ export function Toaster() {
 
           <Primitivo.Close
             aria-label="Dispensar"
-            className="absolute end-2 top-2 rounded-1 px-1 text-text-3 hover:text-text-1"
+            className="absolute end-08 top-08 rounded-1 px-04 text-text-3 hover:text-text-1"
           >
             ×
           </Primitivo.Close>
@@ -112,7 +112,7 @@ export function Toaster() {
         label="Notificações ({hotkey})"
         className={cn(
           css.viewport,
-          "fixed end-4 bottom-4 z-flutuante flex flex-col gap-2 outline-none",
+          "fixed end-16 bottom-16 z-flutuante flex flex-col gap-08 outline-none",
         )}
       />
     </Primitivo.Provider>

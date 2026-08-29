@@ -19,8 +19,8 @@
 
 .cabecalho {
   display: grid;
-  gap: var(--vx-space-2);
-  padding: var(--vx-space-3);
+  gap: var(--vx-space-08);
+  padding: var(--vx-space-12);
   border-block-end: 1px solid var(--vx-border-subtle);
 }
 
@@ -28,7 +28,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
 }
 
 .titulo {
@@ -40,7 +40,7 @@
 .acoesDoTitulo {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
 }
 
 /*
@@ -101,7 +101,7 @@
 
 .abas {
   display: flex;
-  gap: var(--vx-space-0);
+  gap: var(--vx-space-02);
 }
 
 /*
@@ -114,8 +114,8 @@
 .aba {
   display: inline-flex;
   align-items: center;
-  gap: var(--vx-space-1);
-  padding: var(--vx-space-1) var(--vx-space-2);
+  gap: var(--vx-space-04);
+  padding: var(--vx-space-04) var(--vx-space-08);
   border: 0;
   border-radius: var(--vx-radius-2);
   background: transparent;
@@ -154,7 +154,7 @@
   justify-content: center;
   min-inline-size: 16px;
   block-size: 16px;
-  padding-inline: var(--vx-space-1);
+  padding-inline: var(--vx-space-04);
   border-radius: var(--vx-radius-5);
   background: var(--vx-danger);
   color: var(--vx-surface-0);
@@ -173,8 +173,8 @@
 .lista {
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-1);
-  padding: var(--vx-space-2);
+  gap: var(--vx-space-04);
+  padding: var(--vx-space-08);
   overflow-y: auto;
   scrollbar-gutter: stable;
   overscroll-behavior: contain;
@@ -220,8 +220,8 @@
 .abrir {
   min-inline-size: 0;
   display: grid;
-  gap: var(--vx-space-2);
-  padding: var(--vx-space-2);
+  gap: var(--vx-space-08);
+  padding: var(--vx-space-08);
   border: 0;
   background: transparent;
   border-radius: var(--vx-radius-3);
@@ -238,7 +238,7 @@
 .contexto {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   min-inline-size: 0;
 }
 
@@ -274,13 +274,13 @@
 .mensagem {
   display: flex;
   align-items: flex-start;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   min-inline-size: 0;
 }
 
 .mensagemTexto {
   display: grid;
-  gap: var(--vx-space-0);
+  gap: var(--vx-space-02);
   min-inline-size: 0;
 }
 
@@ -313,15 +313,15 @@
   grid-column: 1 / -1;
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
-  padding: 0 var(--vx-space-2) var(--vx-space-2);
+  gap: var(--vx-space-08);
+  padding: 0 var(--vx-space-08) var(--vx-space-08);
 }
 
 .respostaCampo {
   flex: 1;
   min-inline-size: 0;
   block-size: 28px;
-  padding-inline: var(--vx-space-3);
+  padding-inline: var(--vx-space-12);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-2);
   background: var(--vx-surface-0);
@@ -381,7 +381,7 @@
   justify-content: center;
   min-inline-size: 16px;
   block-size: 16px;
-  padding-inline: var(--vx-space-1);
+  padding-inline: var(--vx-space-04);
   border-radius: var(--vx-radius-5);
   background: var(--vx-danger);
   color: var(--vx-surface-0);
@@ -395,7 +395,7 @@
   place-items: center;
   inline-size: 28px;
   block-size: 28px;
-  margin: var(--vx-space-2) var(--vx-space-2) 0 0;
+  margin: var(--vx-space-08) var(--vx-space-08) 0 0;
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-2);
   background: var(--vx-surface-2);

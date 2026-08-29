@@ -9,7 +9,7 @@
 .grade {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -18,10 +18,10 @@
 .item {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   min-inline-size: 0;
-  padding-inline: var(--vx-space-2);
-  padding-block: var(--vx-space-2);
+  padding-inline: var(--vx-space-08);
+  padding-block: var(--vx-space-08);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-2);
   background: var(--vx-surface-1);

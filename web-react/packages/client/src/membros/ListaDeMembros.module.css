@@ -33,9 +33,9 @@
 .secao {
   display: flex;
   align-items: baseline;
-  gap: var(--vx-space-1);
-  padding-inline: var(--vx-space-3);
-  padding-block: var(--vx-space-3) var(--vx-space-1);
+  gap: var(--vx-space-04);
+  padding-inline: var(--vx-space-12);
+  padding-block: var(--vx-space-12) var(--vx-space-04);
   color: var(--vx-text-3);
   font-size: var(--vx-size-xs);
   /*
@@ -57,7 +57,7 @@
 .membro {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   inline-size: 100%;
   min-inline-size: 0;
   /*
@@ -66,9 +66,9 @@
     para 42px — a folga é o que separa o nome do recado na segunda linha sem
     que os dois virem um bloco.
   */
-  padding-inline: var(--vx-space-3);
-  padding-block: var(--vx-space-1);
-  margin-inline: var(--vx-space-2);
+  padding-inline: var(--vx-space-12);
+  padding-block: var(--vx-space-04);
+  margin-inline: var(--vx-space-08);
   border-radius: var(--vx-radius-2);
   color: var(--vx-text-2);
   background: transparent;

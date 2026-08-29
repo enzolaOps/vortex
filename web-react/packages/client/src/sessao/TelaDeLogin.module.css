@@ -9,18 +9,18 @@
   display: grid;
   place-items: center;
   min-block-size: 100dvh;
-  padding: var(--vx-space-4);
+  padding: var(--vx-space-16);
   background: var(--vx-surface-0);
 }
 
 .cartao {
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-4);
+  gap: var(--vx-space-16);
   /* A medida de leitura não vale aqui: formulário curto é lido em coluna
      estreita, e 32rem seria um campo de e-mail atravessando a tela. */
   inline-size: min(360px, 100%);
-  padding: var(--vx-space-6);
+  padding: var(--vx-space-32);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-3);
   background: var(--vx-surface-1);
@@ -38,8 +38,8 @@
 
 .erro {
   margin: 0;
-  padding-inline: var(--vx-space-3);
-  padding-block: var(--vx-space-2);
+  padding-inline: var(--vx-space-12);
+  padding-block: var(--vx-space-08);
   border: 1px solid var(--vx-danger);
   border-radius: var(--vx-radius-2);
   color: var(--vx-text-1);
@@ -54,7 +54,7 @@
   bundle de produção — ver o comentário no componente.
 */
 .semServidor {
-  padding-block: var(--vx-space-1);
+  padding-block: var(--vx-space-04);
   border: 0;
   background: none;
   color: var(--vx-text-3);
@@ -98,7 +98,7 @@
 .opcao {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   font-size: var(--vx-size-sm);
   color: var(--vx-text-2);
   accent-color: var(--vx-accent);
@@ -115,5 +115,5 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
 }

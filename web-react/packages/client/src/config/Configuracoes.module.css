@@ -19,10 +19,10 @@
 .menu {
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-0);
+  gap: var(--vx-space-02);
   inline-size: 220px;
-  padding-inline: var(--vx-space-3);
-  padding-block: var(--vx-space-4);
+  padding-inline: var(--vx-space-12);
+  padding-block: var(--vx-space-16);
   border-inline-end: 1px solid var(--vx-border-subtle);
   background: var(--vx-surface-1);
   overflow-y: auto;
@@ -37,9 +37,9 @@
   virar mais um alvo clicável.
 */
 .grupo {
-  margin-block: var(--vx-space-3) var(--vx-space-1);
+  margin-block: var(--vx-space-12) var(--vx-space-04);
   margin-inline: 0;
-  padding-inline: var(--vx-space-2);
+  padding-inline: var(--vx-space-08);
   font-size: var(--vx-size-xs);
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -52,8 +52,8 @@
 }
 
 .item {
-  padding-inline: var(--vx-space-2);
-  padding-block: var(--vx-space-2);
+  padding-inline: var(--vx-space-08);
+  padding-block: var(--vx-space-08);
   border: 0;
   border-radius: var(--vx-radius-2);
   background: transparent;
@@ -90,9 +90,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--vx-space-3);
-  padding-inline: var(--vx-space-5);
-  padding-block: var(--vx-space-4);
+  gap: var(--vx-space-12);
+  padding-inline: var(--vx-space-24);
+  padding-block: var(--vx-space-16);
   border-block-end: 1px solid var(--vx-border-subtle);
 }
 
@@ -132,8 +132,8 @@
   scrollbar-gutter: stable;
   scrollbar-width: thin;
   overscroll-behavior: contain;
-  padding-inline: var(--vx-space-5);
-  padding-block: var(--vx-space-4);
+  padding-inline: var(--vx-space-24);
+  padding-block: var(--vx-space-16);
 }
 
 /*

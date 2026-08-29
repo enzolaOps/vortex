@@ -59,14 +59,14 @@
     encolhia o alvo de clique de 72 para 55px sem mudar nada do que se vê,
     porque o ladrilho tem 44 e é centrado de qualquer jeito.
   */
-  gap: var(--vx-space-2);
-  padding-block: var(--vx-space-2);
+  gap: var(--vx-space-08);
+  padding-block: var(--vx-space-08);
 }
 
 .lista {
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-1);
+  gap: var(--vx-space-04);
   /* Sem recuo próprio: ele é do rail, para os servidores ficarem no mesmo
      eixo da casa, do `+` e das configurações. */
   /*
@@ -86,11 +86,11 @@
   align-items: center;
   /* A marca fica no centro do rail; o item é que se estica. */
   justify-content: center;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   /* `min-inline-size: 0` porque o nome trunca, e filho de flex tem
      min-width auto por default — a mesma armadilha do grid do shell. */
   min-inline-size: 0;
-  padding: var(--vx-space-1);
+  padding: var(--vx-space-04);
   border-radius: var(--vx-radius-3);
   color: var(--vx-text-2);
   background: transparent;
@@ -146,7 +146,7 @@
 
 .barra {
   position: absolute;
-  inset-inline-start: calc(var(--vx-space-2) * -1);
+  inset-inline-start: calc(var(--vx-space-08) * -1);
   inline-size: var(--vx-lamina-w);
   /* Cantos só do lado de fora: a barra nasce colada na borda do painel. */
   border-start-end-radius: var(--vx-lamina-w);
@@ -160,20 +160,20 @@
 /* Repouso: não existe. `opacity` e não `display` — a caixa fica, então
    acender e apagar não reflui a coluna. */
 .barra[data-estado="repouso"] {
-  block-size: var(--vx-space-2);
+  block-size: var(--vx-space-08);
   opacity: 0;
 }
 
 /* Não lido: um traço curto. O design usa um ponto; a barra curta diz a
    mesma coisa e reusa a mesma peça, em vez de somar uma segunda forma. */
 .barra[data-estado="atencao"] {
-  block-size: var(--vx-space-2);
+  block-size: var(--vx-space-08);
   opacity: 1;
 }
 
 /* Ativo: a barra alta. */
 .barra[data-estado="ativa"] {
-  block-size: var(--vx-space-6);
+  block-size: var(--vx-space-32);
   opacity: 1;
 }
 
@@ -184,7 +184,7 @@
 .divisor {
   flex: none;
   align-self: center;
-  inline-size: var(--vx-space-5);
+  inline-size: var(--vx-space-24);
   block-size: 1px;
   background: var(--vx-border-subtle);
 }
@@ -330,8 +330,8 @@
 */
 .contador {
   flex: none;
-  min-inline-size: var(--vx-space-4);
-  padding-inline: var(--vx-space-1);
+  min-inline-size: var(--vx-space-16);
+  padding-inline: var(--vx-space-04);
   border-radius: var(--vx-radius-5);
   background: var(--vx-danger);
   color: #ffffff;
@@ -360,7 +360,7 @@
 }
 
 .vazio {
-  padding: var(--vx-space-3);
+  padding: var(--vx-space-12);
   color: var(--vx-text-3);
   font-size: var(--vx-size-xs);
   text-align: center;
@@ -409,7 +409,7 @@
 /*
   O ladrilho do rodapé — 36px, contra os 44 dos servidores.
 
-  ⚠ Estava em 32 (`--vx-space-6`). O tamanho menor É a mensagem, e ela é do
+  ⚠ Estava em 32 (`--vx-space-32`). O tamanho menor É a mensagem, e ela é do
   design: "baixar para desktop" não é um lugar para onde se vai, então o
   ladrilho diz isso sendo menor. Mas 32 contra 44 exagerava a diferença a
   ponto de ele parecer outra coisa; 36 mantém a leitura e a proporção.
@@ -446,7 +446,7 @@
   recuo `6px 4px`, vão de 6 — e ladrilhos de 40 dentro, contra os 44 soltos.
   A diferença de tamanho é o que diz "estes pertencem ao grupo".
 
-  Aqui: vão e recuo sobem para `--vx-space-2`/`--vx-space-1` (8/4), o raio
+  Aqui: vão e recuo sobem para `--vx-space-08`/`--vx-space-04` (8/4), o raio
   passa a ser o proporcional (52 × 31% ≈ 16, o número do design), e o fundo
   já era `--vx-state-selected`, que É o acento a 10%.
 */
@@ -455,9 +455,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--vx-space-2);
-  padding-block: var(--vx-space-1);
-  padding-inline: var(--vx-space-1);
+  gap: var(--vx-space-08);
+  padding-block: var(--vx-space-04);
+  padding-inline: var(--vx-space-04);
   border-radius: var(--vx-radius-ladrilho);
   background: var(--vx-state-selected);
 }
@@ -475,13 +475,13 @@
   retângulo invisível dentro de outro, que é o mesmo defeito que a rampa de
   superfícies veio consertar em outro lugar.
 
-  `--vx-space-5` (24) é o degrau mais próximo de 26 e é o que a escala tem.
+  `--vx-space-24` (24) é o degrau mais próximo de 26 e é o que a escala tem.
 */
 .alcaDaPasta {
   display: grid;
   place-items: center;
-  inline-size: var(--vx-space-5);
-  block-size: var(--vx-space-5);
+  inline-size: var(--vx-space-24);
+  block-size: var(--vx-space-24);
   border: 0;
   border-radius: var(--vx-radius-3);
   background: color-mix(in oklab, var(--vx-accent) 20%, transparent);
@@ -506,7 +506,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
 }
 
 /*
