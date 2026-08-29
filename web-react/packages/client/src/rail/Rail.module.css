@@ -51,8 +51,16 @@
   */
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-1);
-  padding: var(--vx-space-2);
+  /*
+    Vão de 8px e sem recuo lateral — os números do design.
+
+    Estava em 4px de vão e 8px de recuo nos quatro lados. O vão apertado fazia
+    os ladrilhos lerem como uma tira contínua em vez de itens; o recuo lateral
+    encolhia o alvo de clique de 72 para 55px sem mudar nada do que se vê,
+    porque o ladrilho tem 44 e é centrado de qualquer jeito.
+  */
+  gap: var(--vx-space-2);
+  padding-block: var(--vx-space-2);
 }
 
 .lista {
@@ -206,7 +214,10 @@
   flex: none;
   inline-size: 44px;
   block-size: 44px;
-  border-radius: var(--vx-radius-4);
+  /* 14px em 44 — ver `--vx-radius-ladrilho`. Era `--vx-radius-4` (12), o
+     degrau mais próximo da escala, e a divergência estava registrada como
+     aceita. Deixou de ser: o percentual acerta os quatro tamanhos do rail. */
+  border-radius: var(--vx-radius-ladrilho);
   color: var(--vx-text-2);
   font-size: var(--vx-size-lg);
   font-weight: 700;
@@ -222,12 +233,22 @@
   Eles não têm ID de onde derivar cor, e não deveriam ter — um ícone de sistema
   colorido competiria com os servidores, que são o conteúdo desta coluna.
 */
-.marcaNeutra {
-  background: var(--vx-surface-4);
+
+/*
+  A casa é um degrau MAIS CLARA que um servidor sem imagem.
+
+  `--vx-surface-3` contra o `surface-4` dos servidores — é do design, e a
+  diferença faz trabalho: "Conversas" não é um servidor, e o rail não tem
+  outra forma de dizer isso (o ladrilho tem o mesmo tamanho e a mesma posição
+  na tira). Um degrau de superfície é a pista mais barata que existe para
+  "isto pertence a outra categoria".
+*/
+.marcaCasa {
+  background: var(--vx-surface-3);
   color: var(--vx-text-2);
 }
 
-.item:hover .marcaNeutra {
+.item:hover .marcaCasa {
   color: var(--vx-text-1);
 }
 
@@ -236,8 +257,16 @@
   convenção de "aqui cabe mais um", e distingue o alvo de criação dos
   ladrilhos que representam coisas que já existem.
 */
+/*
+  O `+` tracejado.
+
+  Borda SUTIL e não forte: o design usa `rgba(255,255,255,0.14)`, um traço que
+  insinua a caixa sem competir com os ladrilhos preenchidos ao lado. Com
+  `--vx-border-strong` ele saía mais nítido que os servidores de verdade, o
+  que inverte a hierarquia — "criar servidor" é a ação mais rara da coluna.
+*/
 .marcaAdicionar {
-  border: 1px dashed var(--vx-border-strong);
+  border: 1px dashed var(--vx-border-subtle);
   color: var(--vx-text-3);
 }
 
@@ -293,14 +322,20 @@
   */
 }
 
+/*
+  Pílula vermelha com número BRANCO, 10px — os mesmos números do badge da
+  coluna de canais, e a mesma decisão registrada lá: branco sobre
+  `--vx-danger` dá 3,46:1 contra os 5,62:1 do quase-preto que estava aqui.
+  Segue o design, e as duas superfícies dizem a mesma coisa do mesmo jeito.
+*/
 .contador {
   flex: none;
   min-inline-size: var(--vx-space-4);
   padding-inline: var(--vx-space-1);
-  border-radius: var(--vx-radius-4);
+  border-radius: var(--vx-radius-5);
   background: var(--vx-danger);
-  color: var(--vx-on-accent);
-  font-size: var(--vx-size-xs);
+  color: #ffffff;
+  font-size: 10px;
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
@@ -371,10 +406,21 @@
   mesma família: os de 44 são lugares para onde se vai, este é uma ação sobre
   o próprio cliente. Régua acima dele reforça a mesma leitura.
 */
+/*
+  O ladrilho do rodapé — 36px, contra os 44 dos servidores.
+
+  ⚠ Estava em 32 (`--vx-space-6`). O tamanho menor É a mensagem, e ela é do
+  design: "baixar para desktop" não é um lugar para onde se vai, então o
+  ladrilho diz isso sendo menor. Mas 32 contra 44 exagerava a diferença a
+  ponto de ele parecer outra coisa; 36 mantém a leitura e a proporção.
+
+  `block-size` e `inline-size` são DIMENSÃO de componente, fora da escala de
+  espaçamento de propósito — é o mesmo caso da linha de canal em 30px.
+*/
 .marcaRodape {
-  inline-size: var(--vx-space-6);
-  block-size: var(--vx-space-6);
-  border-radius: var(--vx-radius-3);
+  inline-size: 36px;
+  block-size: 36px;
+  border-radius: var(--vx-radius-ladrilho);
   background: var(--vx-surface-2);
   color: var(--vx-text-3);
 }
@@ -393,14 +439,26 @@
    `store/pastas.ts`.
    ============================================================ */
 
+/*
+  A caixa da pasta, com os números do design.
+
+  Medido lá: 52px de largura, `rgba(53,194,204,0.10)` de fundo, raio 16,
+  recuo `6px 4px`, vão de 6 — e ladrilhos de 40 dentro, contra os 44 soltos.
+  A diferença de tamanho é o que diz "estes pertencem ao grupo".
+
+  Aqui: vão e recuo sobem para `--vx-space-2`/`--vx-space-1` (8/4), o raio
+  passa a ser o proporcional (52 × 31% ≈ 16, o número do design), e o fundo
+  já era `--vx-state-selected`, que É o acento a 10%.
+*/
 .pasta {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--vx-space-1);
-  padding: var(--vx-space-1);
-  border-radius: var(--vx-radius-4);
+  gap: var(--vx-space-2);
+  padding-block: var(--vx-space-1);
+  padding-inline: var(--vx-space-1);
+  border-radius: var(--vx-radius-ladrilho);
   background: var(--vx-state-selected);
 }
 
@@ -411,14 +469,22 @@
   um alvo do mesmo tamanho competiria com eles pela atenção. Quem procura a
   pasta procura o grupo, não o botão.
 */
+/*
+  A alça de colapsar: 26px no design, com fundo em acento a 20% — o DOBRO do
+  fundo da caixa. É o que a separa dela: uma alça do mesmo tom seria um
+  retângulo invisível dentro de outro, que é o mesmo defeito que a rampa de
+  superfícies veio consertar em outro lugar.
+
+  `--vx-space-5` (24) é o degrau mais próximo de 26 e é o que a escala tem.
+*/
 .alcaDaPasta {
   display: grid;
   place-items: center;
   inline-size: var(--vx-space-5);
   block-size: var(--vx-space-5);
   border: 0;
-  border-radius: var(--vx-radius-2);
-  background: var(--vx-state-selected);
+  border-radius: var(--vx-radius-3);
+  background: color-mix(in oklab, var(--vx-accent) 20%, transparent);
   color: var(--vx-accent-text);
   cursor: pointer;
   transition: background var(--vx-duration-instant) var(--vx-ease-out);
@@ -440,7 +506,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--vx-space-1);
+  gap: var(--vx-space-2);
 }
 
 /*

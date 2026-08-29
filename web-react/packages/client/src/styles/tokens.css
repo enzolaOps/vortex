@@ -403,6 +403,29 @@
     passa `size={20}` continua compilando sem que ninguém precise varrer 79
     chamadas. É a mesma técnica que `.marcador` já usava.
   */
+  /*
+    O raio dos ladrilhos do rail — PROPORCIONAL, não um degrau da escala.
+
+    ⚠ **É a regra que o design usa, e ela não cabe na escala de raio.** Medido
+    nos quatro tamanhos que o rail desenha: 14 num ladrilho de 44, 13 num de
+    40, 11 num de 36, 16 na caixa de pasta de 52. Todos ≈ **31% do lado** — o
+    desenhista não escolheu degraus, aplicou uma proporção.
+
+    Pôr 11, 13, 14 e 16 na escala de raio seria abandoná-la: ela tem seis
+    degraus (0/2/4/6/8/12/pill) e ganharia quatro que só o rail usa. E fixar
+    um degrau só erraria três dos quatro tamanhos, porque o valor certo
+    depende do lado.
+
+    Percentual resolve os quatro de uma vez e continua certo se um ladrilho
+    mudar de tamanho. Não é escape da guarda de escala: é outra GRANDEZA —
+    a escala governa distâncias absolutas, e isto é uma razão.
+
+    ⚠ A Foundations do design lista a escala de raio como 4/6/8/12/full, então
+    ela e a tela do App discordam aqui. Vale a mesma regra já aplicada ao
+    degrau de 14px de tipo: ganha a tela.
+  */
+  --vx-radius-ladrilho: 31%;
+
   --vx-icon-1: 14px; /* cromagem densa: coluna, ações, faixa, painel */
   --vx-icon-2: 16px; /* alvos de leitura: linha de mensagem, composer */
   --vx-icon-3: 20px; /* raro: quando o ícone É o alvo, sem rótulo ao lado */

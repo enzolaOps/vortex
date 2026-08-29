@@ -354,7 +354,7 @@ export function Rail() {
             data-estado={naCasa ? "ativa" : "repouso"}
             aria-hidden
           />
-          <span className={`${css.marca} ${css.marcaNeutra}`} aria-hidden>
+          <span className={`${css.marca} ${css.marcaCasa}`} aria-hidden>
             {/* Envelope, e é o ícone do design — não uma casa. A entrada
                 agrega DM, grupo e notas, e o desenho dela é correspondência.
                 `fill` só no ativo: é a variação SEMÂNTICA do Phosphor. */}
@@ -411,7 +411,7 @@ export function Rail() {
           aria-label="Configurações"
           onClick={() => abrirConfig("perfil")}
         >
-          <span className={`${css.marca} ${css.marcaNeutra}`} aria-hidden>
+          <span className={`${css.marca} ${css.marcaCasa}`} aria-hidden>
             <GearSix size={20} />
           </span>
           <span className={css.nome}>Configurações</span>
