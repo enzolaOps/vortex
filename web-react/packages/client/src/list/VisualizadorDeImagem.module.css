@@ -82,7 +82,8 @@
   display: flex;
   align-items: center;
   gap: var(--vx-space-12);
-  padding: var(--vx-space-12) var(--vx-space-16);
+  /* 18 no eixo inline, do design. */
+  padding: var(--vx-space-12) var(--vx-space-18);
   z-index: var(--vx-z-realce);
 }
 
@@ -223,7 +224,7 @@
 .miniatura {
   inline-size: 44px;
   block-size: 32px;
-  border-radius: var(--vx-radius-04);
+  border-radius: var(--vx-radius-05);
   cursor: pointer;
   /* Xadrez: a miniatura é o quadro, não a imagem — carregar N versões da mesma
      mídia para desenhar uma tira de 44px seria pagar a galeria duas vezes. */

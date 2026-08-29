@@ -50,12 +50,17 @@ import css from "./menu.module.css";
 
 export const menuContent =
   `${css.conteudo} ` +
-  "z-flutuante rounded-08 border border-border-subtle bg-surface-4 p-04 shadow-e2 " +
+  "z-flutuante rounded-08 border border-border-subtle bg-surface-4 p-05 shadow-e2 " +
   "text-md text-text-1 overflow-y-auto " +
   "data-[state=closed]:opacity-0 data-[state=open]:opacity-100 anim-fast";
 
+/*
+  `7px 9px` e raio 5 — os números do design, e o par mais repetido dele: 102
+  ocorrências de `padding: 7px 9px` nos treze arquivos. Era `8px 4px` com raio
+  4, e o item ficava 6px mais baixo que o desenhado.
+*/
 export const menuItem =
-  "flex cursor-default items-center gap-08 rounded-04 px-08 py-04 outline-none select-none " +
+  "flex cursor-default items-center gap-08 rounded-05 px-09 py-07 outline-none select-none " +
   "data-highlighted:bg-state-hover " +
   "data-disabled:pointer-events-none data-disabled:text-text-3";
 
@@ -67,10 +72,13 @@ export const menuItem =
  * `#F0808D` para a palavra "Excluir". Medido antes de o token existir — o item
  * saía em 4,28:1 sobre `surface-4`, contra os 6,1:1 do design.
  */
-export const menuItemPerigo = "text-danger-text data-highlighted:text-danger-text";
+export const menuItemPerigo =
+  `${css.itemPerigo} text-danger-text data-highlighted:text-danger-text`;
 export const menuItemNormal = "text-text-2";
 
-export const menuSeparator = "my-04 h-px bg-border-subtle";
+/* `margin: 5px 4px` no design: a régua não vai até a borda do menu, porque o
+   item também não vai — ela se alinha ao TEXTO, não à caixa. */
+export const menuSeparator = "mx-04 my-05 h-px bg-border-subtle";
 
 /**
  * A tecla de atalho à direita do item — o "R", o "E", o "⇧⌘C" do design.
@@ -86,6 +94,6 @@ export const menuSeparator = "my-04 h-px bg-border-subtle";
  */
 export const menuLargo = css.largo;
 
-export const menuAtalho = "ms-auto ps-16 font-mono text-xs text-text-4";
+export const menuAtalho = "ms-auto ps-16 font-mono text-2xs text-text-4";
 
 export const menuLabel = "px-08 py-04 text-xs text-text-3";

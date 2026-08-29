@@ -57,8 +57,9 @@
   flex: none;
   display: flex;
   align-items: center;
-  gap: var(--vx-space-08);
-  padding: var(--vx-space-12) var(--vx-space-12) var(--vx-space-08);
+  /* `10px 12px 8px` e `gap: 7px` — o cabeçalho do design. */
+  gap: var(--vx-space-07);
+  padding: var(--vx-space-10) var(--vx-space-12) var(--vx-space-08);
 }
 
 .busca {
@@ -68,7 +69,7 @@
   align-items: center;
   gap: var(--vx-space-08);
   block-size: 32px;
-  padding-inline: var(--vx-space-12);
+  padding-inline: var(--vx-space-10);
   border: 1px solid var(--vx-border-subtle);
   /* Mais FUNDO que o painel — campo é buraco, não relevo. */
   background: var(--vx-surface-2);

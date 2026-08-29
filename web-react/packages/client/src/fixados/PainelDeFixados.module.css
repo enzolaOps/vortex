@@ -91,7 +91,9 @@
 .lista {
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-08);
+  /* 10 entre cartões, do design — é o respiro que faz a pilha ler como
+     cartões e não como parágrafos. */
+  gap: var(--vx-space-10);
   margin: 0;
   padding: var(--vx-space-08);
   overflow-y: auto;
@@ -114,7 +116,7 @@
   min-inline-size: 0;
   padding: var(--vx-space-04);
   border: 1px solid transparent;
-  border-radius: var(--vx-radius-12);
+  border-radius: var(--vx-radius-10);
   /* Altura mínima de um item real: o placeholder não pode encolher, ou a
      lista pula durante a hidratação. */
   min-block-size: var(--vx-space-32);
@@ -166,11 +168,12 @@
 .abrir {
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-02);
+  /* 7 entre autor, prévia e ações — o cartão do design. */
+  gap: var(--vx-space-07);
   min-inline-size: 0;
   padding: var(--vx-space-08);
   border: 0;
-  border-radius: var(--vx-radius-06);
+  border-radius: var(--vx-radius-07);
   background: transparent;
   color: var(--vx-text-2);
   font-family: inherit;
@@ -194,7 +197,7 @@
 /* O nome herda o tamanho do painel — `NomeDoAutor` traz `text-md` do
    contexto da linha de mensagem, onde ele é cabeçalho. */
 .cabecalho :global(span) {
-  font-size: var(--vx-size-sm);
+  font-size: var(--vx-size-md);
 }
 
 .desconhecido {
@@ -216,7 +219,7 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   overflow-wrap: anywhere;
-  font-size: var(--vx-size-sm);
+  font-size: var(--vx-size-md);
   line-height: var(--vx-leading-message);
 }
 

@@ -36,3 +36,20 @@
 .largo {
   min-inline-size: 300px;
 }
+
+/*
+  O realce do item destrutivo — vermelho a 14%, como o design.
+
+  Não virou token pela mesma razão que o preenchimento do divisor de novas
+  mensagens não virou: `--vx-danger-soft` custaria entrada em `TokenName`,
+  classificação de contraste e um par para um fundo que só existe atrás deste
+  item. `color-mix` sobre `--vx-danger` diz de onde a cor vem e acompanha
+  qualquer paleta que o picker produza.
+
+  ⚠ Sobre `--vx-danger` e não `--vx-danger-text`: o tingido é PREENCHIMENTO, e
+  o projeto tem dois vermelhos exatamente para separar os dois papéis. A letra
+  por cima continua em `danger-text`.
+*/
+.itemPerigo[data-highlighted] {
+  background: color-mix(in oklab, var(--vx-danger) 14%, transparent);
+}

@@ -212,9 +212,24 @@
     construção — cada arredondamento era defensável e a soma deles é a razão
     pela qual as telas "nunca ficavam iguais".
 
-    Os cinco degraus novos (6, 10, 14, 18, 20) levam a cobertura a ~71%. O que
-    sobra — 5, 7, 9, 11 — é ajuste óptico, e o `pnpm escala` segue reprovando:
-    a guarda existe para forçar a conversa, não para ser satisfeita.
+    ⚠ **O Foundations do design declara "base 4" — 2·4·8·12·16·24·40 — que é
+    exatamente a escala que este projeto TINHA. E os mockups do mesmo design
+    não a seguem:** medidos os treze arquivos, 3.486 valores de espaçamento,
+    dos quais só 40% caíam nela. Os dois números mais usados fora dela são 7
+    (263×) e 9 (265×), e o par mais frequente do design inteiro é
+    `padding: 7px 9px`, 102 vezes — a altura de um botão de 30px, e não um
+    passo de ritmo.
+
+    Escolhido reproduzir os MOCKUPS, porque é contra eles que a semelhança é
+    julgada. Com 3·5·6·7·9·10·11·13·14·18·20 a cobertura vai a ~96%.
+
+    O que isso custa, dito uma vez: a escala deixou de impor RITMO. Ela ainda
+    impõe o que a lei nº 4 pede — valor nomeado e compartilhado, nunca literal
+    num componente —, e o `pnpm escala` continua reprovando 15, 17, 19 e
+    qualquer coisa entre 20 e 24. O que ele não faz mais é escolher por você
+    entre 8 e 12. Se um dia a fonte da verdade voltar a ser o Foundations em
+    vez dos mockups, esta lista encolhe e a guarda reprova o que sobrar — que é
+    exatamente o comportamento desejado nessa direção também.
 
     O nome é o valor porque nome ORDINAL torna caro inserir um degrau: com
     ordinal, acrescentar 6px renumeraria todos os de cima e os 644 usos com
@@ -226,11 +241,17 @@
     para o valor errado calada.
   */
   --vx-space-02: 2px;
+  --vx-space-03: 3px;
   --vx-space-04: 4px;
+  --vx-space-05: 5px;
   --vx-space-06: 6px;
+  --vx-space-07: 7px;
   --vx-space-08: 8px;
+  --vx-space-09: 9px;
   --vx-space-10: 10px;
+  --vx-space-11: 11px;
   --vx-space-12: 12px;
+  --vx-space-13: 13px;
   --vx-space-14: 14px;
   --vx-space-16: 16px;
   --vx-space-18: 18px;
@@ -266,8 +287,10 @@
     arredondar, e a soma de arredondamentos defensáveis é a razão pela qual as
     telas "nunca ficavam iguais".
 
-    Com 5, 10 e 14 a cobertura vai a 94,7%. O resto — 3, 7, 9, 11, 13 — é ajuste
-    óptico do designer, e o `pnpm escala` segue reprovando de propósito.
+    Com 5, 10 e 14 a cobertura vai a 94,7%, e com 3, 7 e 9 a 99,5%. Mesma
+    escolha da escala de espaço, e pela mesma razão: o Foundations do design
+    declara 4·6·8·12·full e os mockups do mesmo design usam nove valores. A
+    semelhança é julgada contra os mockups.
 
     ⚠ 14 entrou depois de ter sido recusado uma vez: o ladrilho do rail pedia 14
     e foi para 12 porque "um degrau fora da escala custa mais que 2px". O
@@ -278,10 +301,13 @@
     "arredonde tudo".
   */
   --vx-radius-02: 2px;
+  --vx-radius-03: 3px;
   --vx-radius-04: 4px;
   --vx-radius-05: 5px;
   --vx-radius-06: 6px;
+  --vx-radius-07: 7px;
   --vx-radius-08: 8px;
+  --vx-radius-09: 9px;
   --vx-radius-10: 10px;
   --vx-radius-12: 12px;
   --vx-radius-14: 14px;
@@ -732,11 +758,17 @@
   --shadow-e3: var(--vx-elev-3);
 
   --spacing-02: var(--vx-space-02);
+  --spacing-03: var(--vx-space-03);
   --spacing-04: var(--vx-space-04);
+  --spacing-05: var(--vx-space-05);
   --spacing-06: var(--vx-space-06);
+  --spacing-07: var(--vx-space-07);
   --spacing-08: var(--vx-space-08);
+  --spacing-09: var(--vx-space-09);
   --spacing-10: var(--vx-space-10);
+  --spacing-11: var(--vx-space-11);
   --spacing-12: var(--vx-space-12);
+  --spacing-13: var(--vx-space-13);
   --spacing-14: var(--vx-space-14);
   --spacing-16: var(--vx-space-16);
   --spacing-18: var(--vx-space-18);
@@ -754,10 +786,13 @@
   --z-index-flutuante: var(--vx-z-flutuante);
 
   --radius-02: var(--vx-radius-02);
+  --radius-03: var(--vx-radius-03);
   --radius-04: var(--vx-radius-04);
   --radius-05: var(--vx-radius-05);
   --radius-06: var(--vx-radius-06);
+  --radius-07: var(--vx-radius-07);
   --radius-08: var(--vx-radius-08);
+  --radius-09: var(--vx-radius-09);
   --radius-10: var(--vx-radius-10);
   --radius-12: var(--vx-radius-12);
   --radius-14: var(--vx-radius-14);

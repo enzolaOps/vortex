@@ -114,10 +114,12 @@
 .aba {
   display: inline-flex;
   align-items: center;
-  gap: var(--vx-space-04);
-  padding: var(--vx-space-04) var(--vx-space-08);
+  gap: var(--vx-space-06);
+  /* 28px de altura e `0 9px`, do design: a aba é pílula e não retângulo. */
+  block-size: 28px;
+  padding-inline: var(--vx-space-09);
   border: 0;
-  border-radius: var(--vx-radius-06);
+  border-radius: var(--vx-radius-pill);
   background: transparent;
   color: var(--vx-text-3);
   font-family: inherit;
@@ -154,16 +156,16 @@
   justify-content: center;
   min-inline-size: 16px;
   block-size: 16px;
-  padding-inline: var(--vx-space-04);
+  padding-inline: var(--vx-space-03);
   border-radius: var(--vx-radius-pill);
   background: var(--vx-danger);
   color: var(--vx-surface-0);
-  font-size: var(--vx-size-xs);
+  font-size: var(--vx-size-2xs);
   font-weight: 700;
 }
 
 .abaContagem {
-  font-size: var(--vx-size-xs);
+  font-size: var(--vx-size-2xs);
   font-weight: 500;
   color: var(--vx-text-4);
 }
@@ -173,7 +175,10 @@
 .lista {
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-04);
+  /* 10 entre cartões, como no painel de fixadas — os dois são a mesma
+     família de superfície e divergir aqui é o que faz um painel parecer
+     de outro produto. */
+  gap: var(--vx-space-10);
   padding: var(--vx-space-08);
   overflow-y: auto;
   scrollbar-gutter: stable;
@@ -195,7 +200,7 @@
   align-items: start;
   flex: none;
   border: 1px solid transparent;
-  border-radius: var(--vx-radius-08);
+  border-radius: var(--vx-radius-10);
 }
 
 
@@ -220,11 +225,12 @@
 .abrir {
   min-inline-size: 0;
   display: grid;
-  gap: var(--vx-space-08);
-  padding: var(--vx-space-08);
+  gap: var(--vx-space-10);
+  /* `11px 12px`, do design. */
+  padding: var(--vx-space-11) var(--vx-space-12);
   border: 0;
   background: transparent;
-  border-radius: var(--vx-radius-08);
+  border-radius: var(--vx-radius-10);
   font-family: inherit;
   text-align: start;
   cursor: pointer;

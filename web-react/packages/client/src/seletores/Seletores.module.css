@@ -57,7 +57,7 @@
   aspect-ratio: 1;
   display: grid;
   place-items: center;
-  border-radius: var(--vx-radius-06);
+  border-radius: var(--vx-radius-08);
   /* 19px é o do design — glifo grande o bastante para distinguir de relance
      numa grade de oito colunas. Não é degrau de tipo: é TAMANHO DE ALVO. */
   font-size: 19px;
@@ -161,7 +161,7 @@
 .tira {
   block-size: 24px;
   flex: none;
-  padding-inline: var(--vx-space-12);
+  padding-inline: var(--vx-space-10);
   border-radius: var(--vx-radius-pill);
   background: var(--vx-surface-3);
   color: var(--vx-text-2);
@@ -249,7 +249,7 @@
   align-items: center;
   justify-content: center;
   margin-block-end: 0;
-  border-radius: var(--vx-radius-12);
+  border-radius: var(--vx-radius-08);
 }
 
 /*
@@ -305,7 +305,7 @@
   display: inline-flex;
   align-items: center;
   block-size: 20px;
-  padding-inline: var(--vx-space-08);
+  padding-inline: var(--vx-space-07);
   border-radius: var(--vx-radius-04);
   font-size: var(--vx-size-xs);
   font-weight: 700;
@@ -334,10 +334,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--vx-space-04);
-  padding: var(--vx-space-12) var(--vx-space-08);
+  gap: var(--vx-space-06);
+  padding: var(--vx-space-10) var(--vx-space-08);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-08);
+  border-radius: var(--vx-radius-09);
   background: var(--vx-surface-3);
   cursor: pointer;
 }

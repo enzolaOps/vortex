@@ -55,15 +55,24 @@
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: var(--vx-space-04);
-  block-size: var(--vx-space-24);
+  gap: var(--vx-space-05);
+  /* 24 é DIMENSÃO do chip, não degrau de respiro — estava escrito como
+     `--vx-space-24`, que dá o mesmo pixel e diz a coisa errada. */
+  block-size: 24px;
   padding-inline: var(--vx-space-08);
   border: 1px solid transparent;
   border-radius: var(--vx-radius-pill);
-  background: var(--vx-surface-2);
+  /*
+    VÉU e não superfície: o chip pousa na timeline (`surface-2`), e um fundo
+    `surface-2` sobre `surface-2` é invisível. O design usa branco a 5% e sobe
+    para 8% no hover — que compõe sobre qualquer superfície, inclusive dentro
+    de um painel flutuante.
+  */
+  background: rgb(255 255 255 / 5%);
   color: var(--vx-text-2);
   font-family: inherit;
-  font-size: var(--vx-size-xs);
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
   cursor: pointer;
   transition:
     background var(--vx-duration-fast) var(--vx-ease-out),
@@ -71,7 +80,7 @@
 }
 
 .chip:hover {
-  background: var(--vx-surface-3);
+  background: rgb(255 255 255 / 8%);
 }
 
 /* Minha reação: preenchimento tingido MAIS borda de acento. Duas
@@ -86,7 +95,7 @@
 }
 
 .chip:active {
-  background: var(--vx-surface-3);
+  background: rgb(255 255 255 / 10%);
 }
 
 .chip:focus-visible {
@@ -109,10 +118,10 @@
 .rapida {
   display: grid;
   place-items: center;
-  inline-size: var(--vx-space-24);
-  block-size: var(--vx-space-24);
+  inline-size: 24px;
+  block-size: 24px;
   border: 0;
-  border-radius: var(--vx-radius-04);
+  border-radius: var(--vx-radius-05);
   background: transparent;
   font-size: var(--vx-size-lg);
   line-height: 1;
@@ -315,16 +324,9 @@
 
   display: flex;
   align-items: center;
-  /*
-    1px de vão e 2px de folga — o design escreve 1 e 3.
-
-    O vão passa exato: `1px` é hairline e o `pnpm escala` o permite. A folga
-    cai no degrau vizinho porque 3 não existe na escala, e é um dos ~29% que
-    sobraram depois de ela ganhar 6·10·14·18·20. Diferença de 1px numa caixa
-    de 34; registrada em vez de arredondada em silêncio.
-  */
+  /* 1 e 3, os dois do design. `1px` passa como hairline; 3 é degrau. */
   gap: 1px;
-  padding: var(--vx-space-02);
+  padding: var(--vx-space-03);
 
   /*
     Superfície ELEVADA, e é aqui que a rampa nova se paga.
@@ -407,7 +409,7 @@
   place-items: center;
   inline-size: 28px;
   block-size: 28px;
-  border-radius: var(--vx-radius-06);
+  border-radius: var(--vx-radius-05);
   color: var(--vx-text-2);
   /* O EMOJI, que é o conteúdo direto do botão. O ícone vem em `.acao svg`. */
   font-size: var(--vx-size-lg);
@@ -444,7 +446,7 @@
 .acoesDivisa {
   inline-size: 1px;
   block-size: 18px;
-  margin-inline: var(--vx-space-02);
+  margin-inline: var(--vx-space-03);
   background: rgb(255 255 255 / 10%);
 }
 
@@ -546,14 +548,17 @@
 .campoDeEdicao {
   inline-size: 100%;
   min-inline-size: 0;
-  padding-inline: var(--vx-space-08);
-  padding-block: var(--vx-space-04);
+  /* 9/11 e raio 8, do design. O campo substitui o CORPO da mensagem, então
+     ele herda o tamanho do corpo (15px) — em 13 o texto encolheria ao entrar
+     em edição e a linha mudaria de altura por causa do modo. */
+  padding-inline: var(--vx-space-11);
+  padding-block: var(--vx-space-09);
   border: 1px solid var(--vx-border-strong);
-  border-radius: var(--vx-radius-06);
-  background: var(--vx-surface-0);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-3);
   color: var(--vx-text-1);
   font-family: inherit;
-  font-size: var(--vx-size-md);
+  font-size: var(--vx-size-lg);
   line-height: var(--vx-leading-message);
   resize: none;
 }
@@ -775,7 +780,7 @@
   */
   padding-block: var(--vx-space-10);
   display: grid;
-  gap: var(--vx-space-04);
+  gap: var(--vx-space-06);
 }
 
 .quemTitulo {
@@ -825,7 +830,8 @@
 
 .reguaAcoes {
   display: flex;
-  gap: var(--vx-space-02);
+  /* 1px, como na barra de ações: os botões da régua são uma fileira só. */
+  gap: 1px;
 }
 
 .reguaBotao {
@@ -833,7 +839,7 @@
   place-items: center;
   inline-size: 26px;
   block-size: 26px;
-  border-radius: var(--vx-radius-04);
+  border-radius: var(--vx-radius-05);
   color: var(--vx-text-2);
   cursor: pointer;
 }

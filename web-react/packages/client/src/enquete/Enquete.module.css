@@ -18,7 +18,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--vx-space-12);
-  padding: var(--vx-space-16) var(--vx-space-16) var(--vx-space-12);
+  padding: var(--vx-space-16) var(--vx-space-18) var(--vx-space-12);
 }
 
 .tituloDoModal {
@@ -60,8 +60,9 @@
 .corpo {
   display: grid;
   gap: var(--vx-space-16);
-  padding-inline: var(--vx-space-16);
-  padding-block-end: var(--vx-space-16);
+  /* `0 18px 14px`, do design. */
+  padding-inline: var(--vx-space-18);
+  padding-block-end: var(--vx-space-14);
 }
 
 
@@ -341,7 +342,8 @@
 
 .caixa {
   margin-block-start: var(--vx-space-08);
-  padding: var(--vx-space-16);
+  /* `16px 18px`, do design. */
+  padding: var(--vx-space-16) var(--vx-space-18);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-12);
   /*
@@ -396,9 +398,11 @@
   position: relative;
   inline-size: 100%;
   overflow: hidden;
-  margin-block-end: var(--vx-space-04);
+  margin-block-end: var(--vx-space-08);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-06);
+  /* Raio 10, do design: a opção é um cartão dentro da caixa, e 6 a fazia
+     ler como um input. */
+  border-radius: var(--vx-radius-10);
   /* Mais FUNDO que a caixa: a opção é um alvo dentro dela. */
   background: var(--vx-surface-2);
   cursor: pointer;
@@ -450,7 +454,9 @@
   display: flex;
   align-items: center;
   gap: var(--vx-space-08);
-  padding: var(--vx-space-08) var(--vx-space-12);
+  /* 14px em volta: a opção do design é um cartão, e 8/12 a deixava apertada
+     contra a barra de resultado que a preenche. */
+  padding: var(--vx-space-14);
 }
 
 .opcaoMarca {

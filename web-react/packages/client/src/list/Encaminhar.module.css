@@ -21,7 +21,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--vx-space-12);
-  padding: var(--vx-space-16) var(--vx-space-16) var(--vx-space-12);
+  padding: var(--vx-space-16) var(--vx-space-18) var(--vx-space-12);
 }
 
 .tituloDoModal {
@@ -68,8 +68,8 @@
 .corpo {
   display: grid;
   gap: var(--vx-space-12);
-  padding-inline: var(--vx-space-16);
-  padding-block-end: var(--vx-space-16);
+  padding-inline: var(--vx-space-18);
+  padding-block-end: var(--vx-space-12);
 }
 
 
@@ -128,7 +128,7 @@
   align-items: center;
   gap: var(--vx-space-08);
   block-size: 34px;
-  padding-inline: var(--vx-space-12);
+  padding-inline: var(--vx-space-11);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-06);
   background: var(--vx-surface-3);
@@ -169,7 +169,7 @@
   align-items: center;
   gap: var(--vx-space-04);
   block-size: 24px;
-  padding-inline: var(--vx-space-08);
+  padding-inline: var(--vx-space-09);
   border-radius: var(--vx-radius-pill);
   background: var(--vx-state-selected);
   color: var(--vx-accent-text);
@@ -211,7 +211,7 @@
   display: flex;
   align-items: center;
   gap: var(--vx-space-08);
-  padding: var(--vx-space-04) var(--vx-space-08);
+  padding: var(--vx-space-07) var(--vx-space-08);
   border-radius: var(--vx-radius-06);
   cursor: pointer;
   text-align: start;
@@ -299,7 +299,7 @@
 
 .comentario {
   block-size: 36px;
-  padding-inline: var(--vx-space-12);
+  padding-inline: var(--vx-space-11);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-06);
   background: var(--vx-surface-3);
@@ -324,7 +324,7 @@
   display: flex;
   justify-content: flex-end;
   gap: var(--vx-space-08);
-  padding: var(--vx-space-12) var(--vx-space-16);
+  padding: var(--vx-space-12) var(--vx-space-18);
   border-block-start: 1px solid var(--vx-border-subtle);
   background: var(--vx-surface-3);
 }
