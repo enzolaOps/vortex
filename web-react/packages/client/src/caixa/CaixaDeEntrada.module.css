@@ -159,7 +159,7 @@
   padding-inline: var(--vx-space-03);
   border-radius: var(--vx-radius-pill);
   background: var(--vx-danger);
-  color: var(--vx-surface-0);
+  color: var(--vx-on-danger);
   font-size: var(--vx-size-2xs);
   font-weight: 700;
 }
@@ -390,7 +390,7 @@
   padding-inline: var(--vx-space-04);
   border-radius: var(--vx-radius-pill);
   background: var(--vx-danger);
-  color: var(--vx-surface-0);
+  color: var(--vx-on-danger);
   font-size: var(--vx-size-xs);
   font-weight: 700;
 }

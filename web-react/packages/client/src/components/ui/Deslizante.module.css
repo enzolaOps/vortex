@@ -21,13 +21,15 @@
 .deslizante::-webkit-slider-runnable-track {
   block-size: var(--vx-space-04);
   border-radius: var(--vx-radius-12);
-  background: var(--vx-surface-3);
+  /* O sexto neutro. Era `surface-3`, mais ESCURO que o painel onde o
+     deslizante mora — o trilho sumia sob o polegar. */
+  background: var(--vx-track);
 }
 
 .deslizante::-moz-range-track {
   block-size: var(--vx-space-04);
   border-radius: var(--vx-radius-12);
-  background: var(--vx-surface-3);
+  background: var(--vx-track);
 }
 
 .deslizante::-webkit-slider-thumb {

@@ -91,7 +91,29 @@
   --vx-accent-hover: #4ed4dd;
   --vx-accent-press: #2494a0;
   --vx-accent-text: #7ee3e9;
-  --vx-on-accent: #0b0d11;
+  /*
+    O que se escreve EM CIMA de cor — tingido, nunca neutro.
+
+    O design escreve `#04181B` sobre o acento, `#1A0507` sobre o vermelho e
+    `#04241A` sobre o verde: quase-pretos com o matiz da cor que está embaixo.
+    Nós usávamos `#0b0d11` (neutro) no acento e `--vx-surface-0` no badge de
+    menção — um furo cinza dentro da cor, e a diferença aparece em todo botão
+    primário e todo selo. São 72 usos nos treze arquivos do design.
+  */
+  --vx-on-accent: #04181b;
+  --vx-on-danger: #1a0507;
+  --vx-on-success: #04241a;
+
+  /*
+    O trilho — o sexto neutro, ACIMA de `surface-4`.
+
+    Trilho de deslizante, fundo de controle inerte e polegar de rolagem: 55
+    usos no design, treze deles em `999px` × 4px. Não é degrau da rampa de
+    superfície porque nada mora dentro dele; é uma peça que precisa aparecer
+    sobre a superfície mais alta. Usávamos `surface-3`, que é mais ESCURO que
+    o painel onde o deslizante mora — o trilho sumia sob o polegar.
+  */
+  --vx-track: #2a3038;
   /*
     O acento em voz baixa. PREENCHIMENTO, nunca texto nem borda.
 
@@ -613,6 +635,9 @@
   --vx-accent-press: #005259;
   --vx-accent-text: #0e7c86;
   --vx-on-accent: #ffffff;
+  --vx-on-danger: #ffffff;
+  --vx-on-success: #ffffff;
+  --vx-track: #d8dbe0;
   --vx-accent-soft: #d7f3f8;
 
   --vx-danger: #c22c43;
@@ -665,6 +690,9 @@
     --vx-accent-press: #005259;
     --vx-accent-text: #0e7c86;
     --vx-on-accent: #ffffff;
+    --vx-on-danger: #ffffff;
+    --vx-on-success: #ffffff;
+    --vx-track: #d8dbe0;
     --vx-accent-soft: #d7f3f8;
 
     --vx-danger: #c22c43;
@@ -732,6 +760,9 @@
   --color-accent-text: var(--vx-accent-text);
   --color-accent-soft: var(--vx-accent-soft);
   --color-on-accent: var(--vx-on-accent);
+  --color-on-danger: var(--vx-on-danger);
+  --color-on-success: var(--vx-on-success);
+  --color-track: var(--vx-track);
 
   --color-danger: var(--vx-danger);
   --color-danger-text: var(--vx-danger-text);

@@ -98,6 +98,11 @@ function montar(): Par[] {
     lista.push({ fg: "--vx-on-accent", bg, min: 4.5, tipo: "texto" });
   }
 
+  // O mesmo para o que se escreve sobre o vermelho e sobre o verde: o badge de
+  // menção, o selo de erro e o de sucesso são texto de 10px dentro da cor.
+  lista.push({ fg: "--vx-on-danger", bg: "--vx-danger", min: 4.5, tipo: "texto" });
+  lista.push({ fg: "--vx-on-success", bg: "--vx-success", min: 4.5, tipo: "texto" });
+
   // Presença: ponto pequeno, precisa se separar do fundo em que é desenhado.
   for (const fg of STATUS) {
     lista.push({ fg, bg: "--vx-surface-0", min: 3, tipo: "indicador" });
@@ -141,6 +146,12 @@ export const SEM_PAR: Readonly<Record<string, string>> = {
     "borda que CARREGA informação — limite de controle, foco. Esta separa " +
     "blocos que o espaçamento já separa; puxá-la para 3:1 a transformaria na " +
     "borda forte, que é o token ao lado e existe para isso.",
+  "--vx-track":
+    "PREENCHIMENTO de trilho, e a ausência é a decisão. Quem carrega a " +
+    "informação de um deslizante é a parte PREENCHIDA em acento e o polegar, " +
+    "que têm par próprio; o trilho é o vazio atrás deles. Puxá-lo para 3:1 " +
+    "sobre `surface-4` faria a barra vazia gritar mais que a cheia — e é " +
+    "exatamente por isso que o design o põe a um degrau de distância.",
   "--vx-text-4":
     "Texto de controle DESABILITADO, e a dispensa é a mesma que a WCAG dá: " +
     "componente inativo está fora do critério de contraste, porque o baixo " +

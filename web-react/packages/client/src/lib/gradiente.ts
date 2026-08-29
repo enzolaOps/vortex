@@ -20,9 +20,31 @@ import { oklchParaHex } from "../tema/cor";
  * hash produza. Um teste varre os 360 e prova.
  */
 
-/** Os dois pontos do gradiente e a cor do texto em cima. Fixos em L. */
-const CLARO = { l: 0.42, c: 0.06 };
-const ESCURO = { l: 0.27, c: 0.055 };
+/**
+ * Os dois pontos do gradiente e a cor do texto em cima. Fixos em L.
+ *
+ * ⚠ **O croma ENCOLHE ao longo do gradiente, e antes ele não encolhia.**
+ *
+ * Medidos os quatro gradientes que o design usa à mão, a razão croma-fim sobre
+ * croma-início é 0,77 (teal `#35C2CC→#1E7F92`), 0,85 (neutro
+ * `#3C4653→#222833`) e 0,62 (roxo `#4A3F6B→#241F38`). A nossa era **0,92** —
+ * praticamente reta, e um gradiente que não perde saturação lê como uma cor
+ * chapada com sombra, não como gradiente. Era a diferença mais visível entre a
+ * nossa tela e a do design, porque avatar e ladrilho são as caixas mais
+ * repetidas do app.
+ *
+ * 0,075 → 0,048 reproduz a família ROXA do design exatamente, e ela é a do
+ * meio das três. ⚠ **Não dá para reproduzir as três com um par de constantes**
+ * — o croma delas varia 4,4× (0,026 a 0,115) porque foram escolhidas uma a
+ * uma. A escolha aqui é manter a DERIVAÇÃO por ID (360 identidades em vez de
+ * quatro) e copiar a física; adotar as quatro exatas é decisão de produto, e
+ * custa a identificação por cor.
+ *
+ * A razão em L (0,64) já estava dentro da faixa do design (0,65–0,74), e o
+ * giro de matiz de +12° também — o design gira +12, +7 e −2.
+ */
+const CLARO = { l: 0.42, c: 0.075 };
+const ESCURO = { l: 0.27, c: 0.048 };
 const TEXTO = { l: 0.92, c: 0.04 };
 
 /**

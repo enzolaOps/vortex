@@ -21,6 +21,9 @@ export const TOKENS_DE_TEMA = [
   "--vx-surface-2",
   "--vx-surface-3",
   "--vx-surface-4",
+  /* O sexto neutro: trilho de deslizante e fundo de controle inerte. Não é
+     degrau da rampa de superfície — nada mora dentro dele. */
+  "--vx-track",
 
   "--vx-text-1",
   "--vx-text-2",
@@ -39,9 +42,11 @@ export const TOKENS_DE_TEMA = [
 
   "--vx-danger",
   "--vx-danger-text",
+  "--vx-on-danger",
   "--vx-warning",
   "--vx-success",
   "--vx-success-text",
+  "--vx-on-success",
   "--vx-neutral",
 
   "--vx-status-online",

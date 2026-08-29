@@ -84,6 +84,20 @@ type Rampa = {
   readonly acentoTexto: Degrau;
   readonly acentoSuave: Degrau;
   readonly sobreAcento: Degrau;
+  /*
+    O trilho — o SEXTO neutro, e ele está acima de `surface-4`.
+
+    Medido no design: `#2A3038` aparece 55 vezes, treze delas como
+    `border-radius: 999px; height: 4px`, que é trilho de deslizante; o resto é
+    fundo de controle inerte e o polegar da barra de rolagem. Em OKLCH ele dá
+    L 0,307 contra os 0,276 de `surface-4` — não é um degrau da rampa de
+    SUPERFÍCIE (nada mora "dentro" dele), é o tom de uma peça que precisa
+    aparecer em cima da mais alta delas.
+
+    Usávamos `surface-3` no trilho, que é L 0,242: mais escuro que o painel
+    onde o deslizante mora, então o trilho sumia sob o polegar.
+  */
+  readonly trilho: Degrau;
   readonly perigo: Semantica;
   /*
     O vermelho de TEXTO, separado do de preenchimento.
@@ -94,10 +108,14 @@ type Rampa = {
     superfície de 3px não é a que funciona como letra de 13px sobre ela.
   */
   readonly perigoTexto: Semantica;
+  /* O que se escreve EM CIMA do vermelho — ver `sobrePerigo` no derivar. */
+  readonly sobrePerigo: Semantica;
   readonly aviso: Semantica;
   readonly sucesso: Semantica;
   /* O verde de TEXTO, pelo mesmo motivo de `perigoTexto`. Ver o token. */
   readonly sucessoTexto: Semantica;
+  /* O que se escreve EM CIMA do verde. */
+  readonly sobreSucesso: Semantica;
   readonly neutro: Degrau;
   readonly offline: Degrau;
 };
@@ -178,12 +196,15 @@ const RAMPAS: Record<Modo, Rampa> = {
     acentoPress: { l: 0.612283, c: 0.096094, dh: 3.724 },
     acentoTexto: { l: 0.856754, c: 0.095046, dh: -1.601 },
     acentoSuave: { l: 0.28, c: 0.035, dh: 3.5 },
-    sobreAcento: { l: 0.16, c: 0.008, dh: 0 },
+    sobreAcento: { l: 0.193686, c: 0.027359, dh: 5.816 },
+    trilho: { l: 0.306721, c: 0.016703, dh: -2.353 },
     perigo: { l: 0.655027, c: 0.176981, h: 15.968 },
     perigoTexto: { l: 0.727685, c: 0.137474, h: 13.749 },
+    sobrePerigo: { l: 0.155772, c: 0.039295, h: 15.439 },
     aviso: { l: 0.788215, c: 0.117607, h: 79.445 },
     sucesso: { l: 0.748358, c: 0.146918, h: 158.512 },
     sucessoTexto: { l: 0.7933, c: 0.141339, h: 159.488 },
+    sobreSucesso: { l: 0.23354, c: 0.042346, h: 168.417 },
     neutro: { l: 0.565837, c: 0.02148, dh: -2.401 },
     offline: { l: 0.565837, c: 0.02148, dh: -2.401 },
   },
@@ -209,6 +230,15 @@ const RAMPAS: Record<Modo, Rampa> = {
     acentoTexto: { l: 0.536185, c: 0.08876, dh: 0 },
     acentoSuave: { l: 0.945, c: 0.03, dh: 3.5 },
     sobreAcento: { l: 1, c: 0, dh: 0 },
+    /*
+      No claro o trilho DESCE em vez de subir.
+
+      No escuro ele é mais claro que a superfície mais alta; aqui a mais alta é
+      branco puro, então a única direção que sobra é para baixo. É a mesma
+      inversão que `perigoTexto` e `acentoTexto` sofrem, e pelo mesmo motivo:
+      quem carrega a separação é a DISTÂNCIA em L, não o sinal dela.
+    */
+    trilho: { l: 0.89, c: 0.008, dh: 1 },
     perigo: { l: 0.538347, c: 0.184859, h: 18.141 },
     /*
       No CLARO os dois são o mesmo valor, e isso não é descuido.
@@ -219,10 +249,14 @@ const RAMPAS: Record<Modo, Rampa> = {
       repete `acento` no claro exatamente pelo mesmo motivo.
     */
     perigoTexto: { l: 0.538347, c: 0.184859, h: 18.141 },
+    /* Branco sobre os semânticos do claro, como `sobreAcento`: eles são
+       escuros o bastante e um tingido escuro sumiria dentro deles. */
+    sobrePerigo: { l: 1, c: 0, h: 0 },
     aviso: { l: 0.472782, c: 0.098779, h: 77.361 },
     sucesso: { l: 0.480897, c: 0.113976, h: 154.976 },
     /* No claro os dois coincidem, como `perigoTexto` e `acentoTexto`. */
     sucessoTexto: { l: 0.480897, c: 0.113976, h: 154.976 },
+    sobreSucesso: { l: 1, c: 0, h: 0 },
     neutro: { l: 0.565837, c: 0.02148, dh: -2.401 },
     offline: { l: 0.565837, c: 0.02148, dh: -2.401 },
   },
@@ -281,15 +315,31 @@ export function derivar(s: Semente): Record<TokenName, string> {
     "--vx-accent-press": daAcao(r.acentoPress),
     "--vx-accent-text": daAcao(r.acentoTexto),
     "--vx-accent-soft": daAcao(r.acentoSuave),
-    // `on-accent` é NEUTRO, não derivado do acento: ele precisa contrastar com
-    // o acento, e uma cor tirada do mesmo matiz corre atrás dele.
-    "--vx-on-accent": neutro(r.sobreAcento, s),
+    /*
+      ⚠ **`on-accent` é TINGIDO com o matiz do acento, e a versão anterior
+      dizia o contrário.**
+
+      O comentário que estava aqui era "ele é NEUTRO, porque uma cor tirada do
+      mesmo matiz corre atrás dele". O raciocínio vale para um par de LUZES
+      próximas; não vale quando a distância em L é de 0,55. O design escreve
+      `#04181B` sobre `#35C2CC` — L 0,194 contra 0,746, e o quase-preto é
+      verde-azulado porque tinta preta sobre tinta ciano nunca é neutra.
+      Neutro puro (o nosso `#0b0d11`) lê como um furo na cor, e é a diferença
+      que aparece em todo botão primário e todo selo sobre acento.
+    */
+    "--vx-on-accent": daAcao(r.sobreAcento),
+    /* O sexto neutro — trilho de deslizante e fundo de controle inerte. */
+    "--vx-track": neutro(r.trilho, s),
 
     "--vx-danger": semantica(r.perigo),
     "--vx-danger-text": semantica(r.perigoTexto),
+    /* Sobre o vermelho e sobre o verde, tingidos pelo mesmo argumento de
+       `on-accent`: o badge de menção usava `surface-0`, um preto NEUTRO. */
+    "--vx-on-danger": semantica(r.sobrePerigo),
     "--vx-warning": semantica(r.aviso),
     "--vx-success": semantica(r.sucesso),
     "--vx-success-text": semantica(r.sucessoTexto),
+    "--vx-on-success": semantica(r.sobreSucesso),
     // Neutro semântico: "herdar" na matriz tri-state, mudo, offline. Cinza da
     // família do neutro, e não um quarto matiz — ele quer dizer AUSÊNCIA de
     // estado, e uma cor própria transformaria ausência em mais um estado.

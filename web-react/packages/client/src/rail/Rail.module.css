@@ -334,7 +334,7 @@
   padding-inline: var(--vx-space-04);
   border-radius: var(--vx-radius-pill);
   background: var(--vx-danger);
-  color: #ffffff;
+  color: var(--vx-on-danger);
   font-size: 10px;
   font-variant-numeric: tabular-nums;
   text-align: center;

@@ -149,13 +149,32 @@
   dela, travada e centrada. É a peça que faltava na fase 1: lá o teto existia
   e a centralização não, então o excedente virava faixa morta de um lado só.
 
-  O fundo aqui é `surface-0` — o mesmo do rail. Não é coincidência de token: os
-  dois são "área que não é conteúdo", e pintá-los igual é o que faz a coluna de
-  leitura parecer uma folha sobre a mesa em vez de um bloco desalinhado.
+  ⚠ **O gutter só é PINTADO quando ele é gutter de verdade, e essa condição
+  faltava.**
+
+  O Foundations do design nomeia `surface.sunken` (#08090B) como "Rail, gutter
+  **ultrawide**" — a palavra está lá. Aqui a prancha pintava sempre, e o efeito
+  em janela comum é o oposto do que ela existe para resolver: numa janela de
+  1688px a trilha dá 1136 contra o teto de 1040, ou seja **48px de preto de
+  cada lado**. Largo demais para sumir, estreito demais para ler como margem —
+  o resultado é a timeline parecendo uma caixa preta com uma folha dentro, que
+  é a mesma queixa de "alinhamento quebrado" que motivou a prancha, com outra
+  forma. Foi assim que quem usa relatou.
+
+  O corte é 1440 = teto de leitura (1040) + 200 de cada lado, e 200 não é
+  arbitrário: é a ordem de grandeza do painel mais estreito do produto (membros
+  em 232). Abaixo disso o espaço não é um lugar onde algo poderia morar, é
+  sobra — e sobra deve ter a cor do conteúdo, não a do rail. Acima, ele é a
+  moldura que o design desenha em 3440.
+
+  Container query e não media query: a largura desta coluna depende das
+  sidebars, que quem usa arrasta desde a fase 4. Uma media query decidiria pela
+  janela e erraria toda vez que alguém alargasse a lista de canais.
 */
 .prancha {
   min-block-size: 0;
-  background: var(--vx-surface-0);
+  /* Sobra é conteúdo até virar moldura — ver acima. */
+  background: var(--vx-surface-2);
   display: grid;
   /*
     `justify-content: center` no GRID, e não `margin: auto` no filho.
@@ -168,6 +187,12 @@
   */
   grid-template-columns: minmax(0, var(--vx-timeline-max-w));
   justify-content: center;
+}
+
+@container (inline-size >= 1440px) {
+  .prancha {
+    background: var(--vx-surface-0);
+  }
 }
 
 /*

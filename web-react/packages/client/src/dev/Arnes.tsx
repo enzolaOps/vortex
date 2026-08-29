@@ -304,7 +304,7 @@ export function Arnes() {
                   prepend.motivo
                     ? "bg-surface-3 text-text-2"
                     : Math.abs(prepend.deslocamentoVisual) <= 2
-                      ? "bg-success text-surface-0"
+                      ? "bg-success text-on-success"
                       : "bg-danger text-on-accent"
                 }`}
               >
@@ -321,7 +321,7 @@ export function Arnes() {
                     prepend.remedicao.motivo
                       ? "bg-surface-3 text-text-2"
                       : prepend.remedicao.ok
-                        ? "bg-success text-surface-0"
+                        ? "bg-success text-on-success"
                         : "bg-danger text-on-accent"
                   }`}
                 >
@@ -453,7 +453,7 @@ export function Arnes() {
           {result ? (
             <span
               className={`rounded-06 px-08 py-04 text-xs ${
-                result.pass ? "bg-success text-surface-0" : "bg-danger text-on-accent"
+                result.pass ? "bg-success text-on-success" : "bg-danger text-on-accent"
               }`}
             >
               {result.pass ? "PASS" : "FAIL"}
