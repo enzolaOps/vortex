@@ -90,7 +90,10 @@
   gap: var(--vx-space-2);
   inline-size: 100%;
   min-inline-size: 0;
-  block-size: var(--vx-space-6);
+  /* 30px, o número do design — era `--vx-space-6` (32). Dois pixels, e eles
+     aparecem: o campo divide a faixa com o cabeçalho de 50px logo acima, e
+     `block-size` é dimensão de componente, fora da escala de propósito. */
+  block-size: 30px;
   padding-inline: var(--vx-space-2);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-2);
@@ -114,10 +117,30 @@
   outline-offset: 1px;
 }
 
-.lupa {
+/*
+  12px — a cromagem miúda. Ver `--vx-icon-0`.
+
+  ⚠ **Seletor de DOIS níveis de propósito.** A regra geral da coluna é
+  `.painel svg` (especificidade 0,1,1); um `.lupa` sozinho é 0,1,0 e PERDE,
+  independentemente da ordem no arquivo. Medido: a lupa continuava em 14px
+  depois de eu declarar 12 nela. `.busca .lupa` é 0,2,0 e ganha.
+
+  É o tipo de defeito que não dá erro e some numa inspeção rápida, porque a
+  declaração está lá, escrita e correta.
+*/
+.busca .lupa {
   flex: none;
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
 }
 
+/*
+  O placeholder é `text-4`, não `text-3` — e um degrau menor que o resto.
+
+  É o tom de "ainda não há nada aqui": o campo está vazio, e a palavra
+  "Buscar" é instrução, não conteúdo. Em `text-3` ela lê como um valor já
+  digitado, que é exatamente o que um placeholder não pode parecer.
+*/
 .buscaRotulo {
   flex: 1;
   min-inline-size: 0;
@@ -125,7 +148,8 @@
   text-align: start;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--vx-size-md);
+  color: var(--vx-text-4);
+  font-size: var(--vx-size-sm);
 }
 
 /*
@@ -146,13 +170,25 @@
   `<kbd>` é o elemento certo e o navegador o entrega em monoespaçada — que
   aqui é a fonte do projeto, não a do sistema.
 */
+/*
+  A tecla: SÓ contorno, sem preenchimento.
+
+  ⚠ Tinha `background: --vx-surface-2` — uma superfície mais CLARA que o campo
+  que a contém, o que fazia a tecla saltar mais que o próprio placeholder. O
+  design a desenha como um contorno de 10px sobre o mesmo fundo: ela é uma
+  legenda do atalho, não um botão.
+
+  10px está fora da escala tipográfica, como o da tag do servidor, e pelo
+  mesmo motivo: o degrau mais baixo é 11 e o design usa 10 só nestes dois
+  lugares. Legitimar 10 na escala convidaria a usá-lo em texto corrido.
+*/
 .tecla {
   padding-inline: var(--vx-space-1);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-1);
-  background: var(--vx-surface-2);
+  color: var(--vx-text-4);
   font-family: var(--vx-font-mono);
-  font-size: var(--vx-size-xs);
+  font-size: 10px;
   line-height: 1.4;
 }
 
@@ -364,7 +400,21 @@
   design. As exceções acima (`.icone`) já declaram o próprio tamanho e
   vencem por especificidade.
 */
-.painel svg {
+/*
+  ⚠ **Escopada às regiões DESTA coluna, e não a `.painel svg`.**
+
+  A versão anterior pegava qualquer `svg` dentro do painel — e o painel de
+  usuário e a faixa de voz têm o próprio `.painel svg`, com o mesmo peso de
+  especificidade (0,1,1). Qual das duas ganha passava a depender da ordem em
+  que os módulos entram na folha, que é ordem de import: dois ícones do
+  rodapé mediam 14px em vez de 12, e nada no CSS dizia por quê.
+
+  Componente não estiliza ícone de componente vizinho. Aqui listamos as três
+  regiões que são de fato desta coluna.
+*/
+.cabecalho svg,
+.faixaDeBusca svg,
+.rolagem svg {
   inline-size: var(--vx-icon-1);
   block-size: var(--vx-icon-1);
 }
@@ -915,4 +965,33 @@
 */
 .teto[data-cheia="true"] {
   color: var(--vx-warning);
+}
+
+/*
+  "Mostrar canais ocultos" — a última linha da coluna.
+
+  `text-4` e 12px: é a coisa menos importante da coluna, e precisa ficar
+  visivelmente abaixo até dos nomes de canal apagados. O design lhe dá
+  `10px 8px 4px` de recuo — mais folga em cima que embaixo, porque ela se
+  separa da última categoria e não introduz nada depois de si.
+
+  Sem fundo e sem raio: não é um item da lista, é um rodapé dela.
+*/
+.ocultos {
+  display: block;
+  inline-size: 100%;
+  padding-block: var(--vx-space-2) var(--vx-space-1);
+  padding-inline: var(--vx-space-2);
+  border: 0;
+  background: transparent;
+  color: var(--vx-text-4);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  text-align: start;
+  cursor: pointer;
+  transition: color var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.ocultos:hover {
+  color: var(--vx-text-2);
 }

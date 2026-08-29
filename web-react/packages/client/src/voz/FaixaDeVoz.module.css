@@ -149,7 +149,10 @@
   Cromagem densa: o design desenha 12–14px aqui, e o `size={20}` do Phosphor
   vinha de um default copiado. O dono do tamanho é a superfície, não a chamada.
 */
-.faixa svg {
-  inline-size: var(--vx-icon-1);
-  block-size: var(--vx-icon-1);
+.faixa .controle svg,
+.faixa .destino svg {
+  /* 12px: cromagem MIÚDA, o número do design para o rodapé da coluna.
+     Ver `--vx-icon-0`. */
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
 }

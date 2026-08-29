@@ -892,6 +892,30 @@ function CanaisDoServidor() {
                 canalAtivo={canalAtivo}
               />
             ))}
+
+            {/*
+              "Mostrar N canais ocultos" — a linha que fecha a coluna no design.
+
+              ⚠ **Desenhada sem implementação**, e a pendência `canaisOcultos`
+              já existia sem nunca ter tido um alvo na tela. É o caso exato que
+              o registro existe para cobrir: clicar diz o que ela fará e do que
+              depende, em vez de não fazer nada.
+
+              O número é o dos canais que o SERVIDOR tem e a sessão não recebeu
+              — e ele não existe: canal sem permissão de ver não chega ao
+              cliente, então não há o que contar. Por isso o rótulo é sem
+              número, e é honesto: prometer "6" seria inventar o 6.
+
+              `<button>` e não `<div>`: é ação, e ação precisa alcançar quem
+              navega por teclado.
+            */}
+            <button
+              type="button"
+              className={css.ocultos}
+              onClick={aindaNao("canaisOcultos")}
+            >
+              Mostrar canais ocultos
+            </button>
           </nav>
         )}
       </div>

@@ -426,7 +426,18 @@
   */
   --vx-radius-ladrilho: 31%;
 
-  --vx-icon-1: 14px; /* cromagem densa: coluna, ações, faixa, painel */
+  /*
+    ⚠ **12px, e ele existe porque o design usa DOIS tamanhos de cromagem, não
+    um.** Medidos na tela: lupa da busca 12, ícones da faixa de voz 12, do
+    painel de usuário 12 — contra 13–14 nas ações do cabeçalho, no glifo do
+    canal e nas ferramentas do composer.
+
+    A primeira versão colapsou tudo em 14 e ficou perto; a diferença aparece
+    justamente onde o ícone divide espaço com texto pequeno (o campo de busca
+    é 30px de altura, e um glifo de 14 nele come a folga).
+  */
+  --vx-icon-0: 12px; /* cromagem MIÚDA: campo de busca, faixa de voz, rodapé */
+  --vx-icon-1: 14px; /* cromagem densa: coluna, ações, composer */
   --vx-icon-2: 16px; /* alvos de leitura: linha de mensagem, composer */
   --vx-icon-3: 20px; /* raro: quando o ícone É o alvo, sem rótulo ao lado */
 
