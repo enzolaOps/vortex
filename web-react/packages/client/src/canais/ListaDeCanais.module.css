@@ -400,6 +400,29 @@
 }
 
 /*
+  A sala em que você ESTÁ conectado.
+
+  Mesma ênfase do canal aberto — nome em 600, glifo em acento — com uma
+  diferença que carrega todo o sentido: o fundo é VÉU neutro, não tinta de
+  acento. "Estou falando aqui" e "estou lendo aqui" são dois fatos, podem
+  valer em canais diferentes ao mesmo tempo, e a coluna precisa mostrar os
+  dois sem que um pareça o outro.
+
+  O véu é o mesmo do hover, permanente. Isso é de propósito: a sala conectada
+  se comporta como se estivesse sempre sob o ponteiro, que é uma forma barata
+  de dizer "este item está vivo" sem gastar mais um tom.
+*/
+.canal[data-conectado="true"] {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+  font-weight: 600;
+}
+
+.canal[data-conectado="true"] .icone {
+  color: var(--vx-accent-text);
+}
+
+/*
   O glifo `#` é MAIS apagado que o nome — `text-4`, o tom de desativado.
 
   É do design, e a hierarquia é a certa: o `#` é pontuação, não informação. Ele
@@ -1106,7 +1129,10 @@
   flex: none;
   font-family: var(--vx-font-mono);
   font-size: var(--vx-size-xs);
-  color: var(--vx-text-4);
+  /* `text-3` e não `text-4`: no design a lotação é metadado LEGÍVEL — quem
+     olha uma sala quer saber se cabe. O quarto degrau é o tom de desativado,
+     e aqui a informação não está desativada. */
+  color: var(--vx-text-3);
   font-variant-numeric: tabular-nums;
 }
 

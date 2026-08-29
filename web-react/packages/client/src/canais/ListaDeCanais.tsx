@@ -39,7 +39,7 @@ import {
   type SecaoId,
 } from "../store/config";
 import { entrarNaChamada } from "../sdk/chamada";
-import { falando } from "../store/chamada";
+import { assinarChamada, falando, lerChamada } from "../store/chamada";
 import { administrar } from "../store/administracao";
 import { ListaDeConversas } from "../casa/ListaDeConversas";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
@@ -114,12 +114,47 @@ const Canal = memo(function Canal({
 }) {
   const canal = useChannel(id);
 
+  /*
+    Estou conectado NESTA sala?
+
+    ⚠ **Estado que faltava, e ele é diferente de "canal aberto".** No design a
+    sala em que você está ganha véu permanente, nome em 600 e o glifo em
+    acento — a mesma ênfase do canal ativo, com fundo neutro em vez de tingido,
+    porque "estou falando aqui" e "estou lendo aqui" são duas coisas e podem
+    acontecer em canais diferentes ao mesmo tempo.
+
+    O getter devolve BOOLEANO, então `useSyncExternalStore` compara por
+    `Object.is`: entrar numa chamada acorda duas linhas — a que deixou de ser e
+    a que passou a ser — e nenhuma outra. É o mesmo padrão do `ehAlvo` na linha
+    de mensagem, e a razão de assinar aqui em vez de no `Sala`: quem muda de
+    forma é a LINHA do canal.
+  */
+  const conectadoAqui = useSyncExternalStore(
+    assinarChamada,
+    () => lerChamada().channelId === id,
+  );
+
+  /*
+    ⚠ **O hook fica ACIMA do early return, e a primeira versão não ficava.**
+
+    Havia um `if (!canal) return …` entre `useChannel` e este
+    `useSyncExternalStore`: no primeiro render o snapshot ainda não existe, a
+    linha volta cedo e chama UM hook; no seguinte ela chama dois. React
+    derruba com "Rendered more hooks than during the previous render", e quem
+    pegou foi o limite de erro por painel — a coluna inteira virou "o painel de
+    canais parou de funcionar".
+
+    Regra das Hooks não é estilo: é a razão pela qual o lint do compiler é
+    tratado como erro neste projeto.
+  */
+
   if (!canal) {
     return <span className={css.canal} aria-hidden />;
   }
 
   const podeConvidar = pode(id, "criarConvite");
   const temNaoLidas = canal.naoLidas > 0;
+
 
   /*
     O ícone diz o TIPO; o cadeado diz o ACESSO — e o design os separa.
@@ -139,6 +174,7 @@ const Canal = memo(function Canal({
           type="button"
           className={css.canal}
           aria-current={ativo}
+          data-conectado={conectadoAqui}
           data-naolidas={temNaoLidas && !canal.silenciado}
           data-silenciado={canal.silenciado}
           onClick={() => selecionarCanal(id)}
