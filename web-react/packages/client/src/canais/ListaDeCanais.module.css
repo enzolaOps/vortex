@@ -334,8 +334,20 @@
     color var(--vx-duration-fast) var(--vx-ease-out);
 }
 
-.canal:hover {
-  /* Véu, não tinta — funciona sobre a coluna e sobre o item ativo. */
+/*
+  ⚠ **O véu responde à LINHA, não ao botão — e a diferença nasceu agora.**
+
+  Com as ações no fluxo, a linha ficou maior que o botão: ele vai de x=80 a
+  251 e as ações de 251 a 301. Com o `:hover` no botão, passar o ponteiro
+  sobre as ações acendia os ícones e NÃO acendia a linha — dois pedaços do
+  mesmo alvo respondendo diferente ao mesmo gesto.
+
+  `.linhaDeCanal:hover .canal` faz os dois responderem juntos, que é o que a
+  pessoa percebe como "a linha está sob o ponteiro".
+
+  Véu e não tinta: funciona sobre a coluna e sobre o item ativo.
+*/
+.linhaDeCanal:hover .canal {
   background: var(--vx-state-hover);
   color: var(--vx-text-1);
 }
@@ -504,21 +516,37 @@
   flex-direction: column;
   gap: 1px;
   margin: 0;
-  /* Alinhado ao NOME do canal, não à borda: o recuo é o que diz
-     "isto pertence àquela linha". */
-  padding-inline-start: var(--vx-space-6);
+  /*
+    24px de recuo, alinhado ao NOME do canal e não à borda: o recuo é o que
+    diz "isto pertence àquela linha". Era `--vx-space-6` (32) — e cada pixel
+    de recuo sai do nome de quem está na sala, que é o dado.
+  */
+  padding-inline-start: var(--vx-space-5);
   padding-block-end: var(--vx-space-1);
   list-style: none;
 }
 
+/*
+  ⚠ **A pessoa na sala tem a MESMA altura de um canal — 30px —, e tinha 22.**
+
+  É o defeito relatado como "o tamanho dos itens não é igual, usuários e
+  canais", e o design confirma: participante e canal medem 30 lá. O que os
+  distingue é o RECUO e o tamanho do avatar, não a altura.
+
+  Altura desigual na mesma coluna quebra o ritmo vertical: o olho desce a
+  lista esperando um passo constante, e a sala introduzia um passo menor no
+  meio — o que fazia quem está na chamada ler como nota de rodapé em vez de
+  gente que está ali agora.
+*/
 .naSala {
   display: flex;
   align-items: center;
   gap: var(--vx-space-2);
   min-inline-size: 0;
+  min-block-size: 30px;
   padding-inline: var(--vx-space-2);
-  padding-block: var(--vx-space-0);
-  border-radius: var(--vx-radius-1);
+  padding-block: var(--vx-space-1);
+  border-radius: var(--vx-radius-2);
   color: var(--vx-text-2);
 }
 
@@ -529,13 +557,19 @@
   a âncora da linha. Dois papéis, dois tamanhos — mesma razão por
   que o rail tem escala própria.
 */
+/*
+  ⚠ **22px, e estava em 16 — o `Avatar` já entrega `xs` e esta regra o
+  ENCOLHIA.** O componente pedia `tamanho="xs"` (agora 22, o número do design)
+  e a folha local sobrescrevia para `--vx-space-4`. Duas fontes para o mesmo
+  tamanho, e a que valia era a que ninguém olhava.
+
+  O que sobra aqui é o que É local: o fundo de reserva e o corpo da sigla.
+*/
 .avatarDeVoz {
   flex: none;
   display: grid;
   place-items: center;
-  inline-size: var(--vx-space-4);
-  block-size: var(--vx-space-4);
-  border-radius: var(--vx-radius-4);
+  border-radius: var(--vx-radius-5);
   background: var(--vx-surface-3);
   color: var(--vx-text-3);
   font-size: 9px;
@@ -814,14 +848,30 @@
    o nome trunca — o texto dançaria.
    ============================================================ */
 
+/*
+  ⚠ **No FLUXO, e estavam SOBREPOSTAS — o defeito relatado como "informações
+  se sobrepondo".**
+
+  Eram `position: absolute` cobrindo os 50px finais da linha. Medido: a caixa
+  ia de x=247 a 297, e nesse intervalo moram o teto da sala ("2/8", 273→293),
+  o cadeado de canal restrito (281→293) e o fim do nome (até 293). Aparecer
+  sobre a linha ativa ou sob o ponteiro ESCONDIA o dado que estava ali.
+
+  Agora a linha é flex, o botão do canal ocupa o resto e as ações são irmãs
+  com largura própria: o nome encurta quando elas aparecem, que é o que o
+  design faz na linha ativa (`#produto ✉ ＋`).
+
+  ⚠ **`display: none` e não `visibility: hidden`.** O argumento original de
+  `visibility` era tirar as ações da ordem de tabulação, e `display: none` faz
+  isso igual. O que ele NÃO fazia era liberar o ESPAÇO — e no fluxo a caixa
+  oculta encurtaria o nome de todos os canais o tempo todo, para um alvo que
+  quase nunca está visível.
+*/
 .acoesDaLinha {
-  position: absolute;
-  inset-inline-end: var(--vx-space-1);
-  inset-block: 0;
-  display: flex;
+  flex: none;
+  display: none;
   align-items: center;
   gap: var(--vx-space-0);
-  visibility: hidden;
 }
 
 /*
@@ -835,7 +885,7 @@
 .linhaDeCanal:hover .acoesDaLinha,
 .linhaDeCanal:focus-within .acoesDaLinha,
 .linhaDeCanal:has([aria-current="true"]) .acoesDaLinha {
-  visibility: visible;
+  display: flex;
 }
 
 .acaoDaLinha {
@@ -913,7 +963,9 @@
   alvo do `:hover` que as revela.
 */
 .linhaDeCanal {
-  position: relative;
+  display: flex;
+  align-items: center;
+  min-inline-size: 0;
 }
 
 /* --------------------------------------------------- marcadores da linha */

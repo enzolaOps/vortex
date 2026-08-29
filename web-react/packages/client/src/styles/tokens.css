@@ -441,7 +441,10 @@
   --vx-icon-2: 16px; /* alvos de leitura: linha de mensagem, composer */
   --vx-icon-3: 20px; /* raro: quando o ícone É o alvo, sem rótulo ao lado */
 
-  --vx-avatar-xs: 20px; /* linha de sala de voz, chip */
+  /* 22px, o número do design para quem está numa sala de voz. Era 20 — e o
+     único consumidor é a linha da sala, então o degrau descreve exatamente
+     aquele lugar. */
+  --vx-avatar-xs: 22px; /* linha de sala de voz, chip */
   --vx-avatar-sm: 32px; /* member list, lista de conversas */
   --vx-avatar-md: 40px; /* linha de mensagem, rail */
   --vx-avatar-lg: 56px; /* cartão de perfil, cabeçalho de grupo */
