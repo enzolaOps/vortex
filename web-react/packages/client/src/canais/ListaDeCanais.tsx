@@ -57,7 +57,6 @@ import { abrirPaleta } from "../store/paleta";
 import {
   useCanalAtivo,
   useCategorias,
-  useCorDeCargo,
   useColapso,
   useChannel,
   useMembro,
@@ -360,7 +359,6 @@ const NaSala = memo(function NaSala({
   participante: ParticipanteDeVoz;
 }) {
   const membro = useMembro(chaveDeMembro(serverId, participante.userId));
-  const corDeCargo = useCorDeCargo(membro?.cor);
   const Icone = ICONE_DE_VOZ[participante.estado];
 
   return (
@@ -371,10 +369,16 @@ const NaSala = memo(function NaSala({
         tamanho="xs"
         className={css.avatarDeVoz}
       />
-      <span
-        className={css.nomeNaSala}
-        style={corDeCargo ? { color: corDeCargo } : undefined}
-      >
+      {/*
+        ⚠ **SEM cor de cargo aqui, e a ausência é do design.**
+
+        Medido nos dois lugares dele: `Marina` sai `#7EE3E9` na lista de
+        membros e `#E6EAF0` na sala de voz. A member list responde "quem é
+        quem neste servidor", onde hierarquia é o dado; a sala responde "quem
+        está aqui agora", onde ela não é. Colorir por cargo numa lista de três
+        pessoas transforma presença em organograma.
+      */}
+      <span className={css.nomeNaSala}>
         {membro?.displayName ?? participante.userId}
       </span>
       {/*

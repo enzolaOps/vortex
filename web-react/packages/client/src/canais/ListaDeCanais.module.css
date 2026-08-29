@@ -423,10 +423,18 @@
 
   Componente não estiliza ícone de componente vizinho. Aqui listamos as três
   regiões que são de fato desta coluna.
+
+  ⚠ **`:where()` e não a lista crua, porque isto é um DEFAULT.** Sem ele a
+  regra vale (0,1,1) e vence qualquer `.classe` que declare o próprio tamanho
+  — e venceu três vezes seguidas: a lupa pedia 12 e media 14, a seta da
+  categoria pedia 9 e media 14, o indicador de câmera pedia 12 e media 14. Nos
+  três casos a declaração estava escrita, correta, e não valia nada.
+
+  `:where()` zera a especificidade do que está dentro, então esta regra passa
+  a ser o piso: quem não diz nada herda 14, quem diz ganha. É o comportamento
+  que o nome "escala da superfície" já prometia.
 */
-.cabecalho svg,
-.faixaDeBusca svg,
-.rolagem svg {
+:where(.cabecalho, .faixaDeBusca, .rolagem) svg {
   inline-size: var(--vx-icon-1);
   block-size: var(--vx-icon-1);
 }
@@ -576,18 +584,47 @@
   font-variant-ligatures: none;
 }
 
+/*
+  O nome de quem está na sala: 13px, peso 600, `--vx-text-1`.
+
+  ⚠ **Sem cor de cargo, e a ausência é do design — não esquecimento.** Na
+  member list o mesmo nome sai colorido pelo cargo; aqui sai em texto
+  primário. Medido nos dois lugares do design: `Marina` é `#7EE3E9` na lista
+  de membros e `#E6EAF0` na sala de voz.
+
+  A distinção faz sentido: a member list responde "quem é quem neste
+  servidor", onde hierarquia é o dado; a sala responde "quem está aqui
+  agora", onde ela não é. Colorir por cargo numa lista de três pessoas
+  transforma presença em organograma.
+
+  Peso 600 e não 400: é o único texto da linha, e concorre com o avatar
+  colorido ao lado.
+*/
 .nomeNaSala {
   min-inline-size: 0;
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--vx-size-sm);
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-md);
+  font-weight: 600;
 }
 
+/*
+  Câmera / tela / microfone: 12px em `--vx-text-3`, como o design.
+
+  ⚠ **Era acento, e a troca custa ênfase de propósito.** Acento faria "está
+  compartilhando" saltar, e é informação útil — mas a disciplina de acento
+  deste projeto tem teto de dois na tela, e uma sala com quatro pessoas
+  compartilhando gastaria quatro. O design resolve pondo o indicador em
+  metadado: quem procura, acha; quem não procura, não é interrompido.
+*/
 .estadoDeVoz {
   flex: none;
-  color: var(--vx-accent);
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+  color: var(--vx-text-3);
 }
 
 /*
@@ -670,8 +707,22 @@
   canais aparecer. `rotate` roda no compositor e diz a mesma coisa:
   isto abre e fecha.
 */
+/*
+  A seta de colapsar, em 9px — e ela media 14.
+
+  ⚠ **É o menor glifo da coluna de propósito, e não pertence à escala de
+  ícone.** As duas escalas (`--vx-icon-0` e `-1`, 12 e 14) descrevem ícones que
+  são ALVO ou que rotulam algo; esta é um triângulo de divulgação, que tem o
+  papel de um sinal de pontuação ao lado de um rótulo de 11px. Em 14 ela ficava
+  MAIOR que o texto que acompanha, e era o que mais denunciava a categoria.
+
+  9px também é o tamanho do rótulo de pasta no rail — os dois casos em que o
+  design escreve algo abaixo do menor degrau tipográfico.
+*/
 .chevron {
   flex: none;
+  inline-size: 9px;
+  block-size: 9px;
   rotate: 0deg;
   transition: rotate var(--vx-duration-fast) var(--vx-ease-out);
 }
@@ -919,6 +970,13 @@
    do servidor, e um alvo permanente por categoria seria ruído
    constante por uma ação que acontece uma vez por mês.
    ============================================================ */
+
+.adicionarNaSecao > svg {
+  /* 13px no design — entre as duas escalas de ícone, e mais perto de `-0`.
+     O alvo continua com 24px; o que encolhe é o glifo. */
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+}
 
 .adicionarNaSecao {
   position: absolute;
