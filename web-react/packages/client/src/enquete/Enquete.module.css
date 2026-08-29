@@ -5,9 +5,65 @@
 .modal {
   inline-size: 420px;
   max-inline-size: calc(100vw - var(--vx-space-6));
+  overflow: hidden;
+}
+/* ------------------------------------------------- cabeçalho e rodapé
+
+   Meus, e não do `DialogContent` — ver a nota no TSX. É o que permite o
+   rodapé numa faixa própria, sangrando até a borda, como o design desenha.
+*/
+
+.cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--vx-space-3);
+  padding: var(--vx-space-4) var(--vx-space-4) var(--vx-space-3);
+}
+
+.tituloDoModal {
+  font-size: var(--vx-size-xl);
+  font-weight: 600;
+  line-height: var(--vx-leading-title);
+  color: var(--vx-text-1);
+}
+
+
+.fechar {
+  display: grid;
+  place-items: center;
+  inline-size: 28px;
+  block-size: 28px;
+  flex: none;
+  border-radius: var(--vx-radius-2);
+  color: var(--vx-text-3);
+  cursor: pointer;
+}
+
+.fechar svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+.fechar:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.fechar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/* O miolo, e é AQUI que o grid vale — no painel ele governava filhos que não
+   eram meus. */
+.corpo {
   display: grid;
   gap: var(--vx-space-4);
+  padding-inline: var(--vx-space-4);
+  padding-block-end: var(--vx-space-4);
 }
+
 
 .grupo {
   display: grid;
@@ -105,8 +161,27 @@
   cursor: grab;
 }
 
+.arrastar:active {
+  cursor: grabbing;
+}
+
+.arrastar:hover {
+  color: var(--vx-text-2);
+}
+
+/*
+  A linha em arraste fica ESMAECIDA, e não escondida.
+
+  Esconder a origem faz a lista encolher uma linha no instante em que a mão
+  começa a mover — e aí o alvo que a pessoa mirava já não está mais ali.
+*/
+.resposta[data-arrastando] {
+  opacity: 0.5;
+  border-color: var(--vx-accent);
+}
+
 .remover:hover {
-  color: var(--vx-danger);
+  color: var(--vx-danger-text);
 }
 
 .marca {
@@ -255,6 +330,9 @@
   display: flex;
   justify-content: flex-end;
   gap: var(--vx-space-2);
+  padding: var(--vx-space-3) var(--vx-space-4);
+  border-block-start: 1px solid var(--vx-border-subtle);
+  background: var(--vx-surface-3);
 }
 
 /* ============================================================

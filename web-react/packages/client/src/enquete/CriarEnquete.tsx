@@ -2,7 +2,8 @@ import { CaretDown, DotsSixVertical, Plus, Smiley, X } from "@phosphor-icons/rea
 import { useRef, useState } from "react";
 
 import { Botao } from "../components/ui/Botao";
-import { Dialog, DialogContent } from "../components/ui/Dialog";
+import { Dialog, DialogClose, DialogContent } from "../components/ui/Dialog";
+import { cn } from "../lib/cn";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,6 +57,8 @@ export function CriarEnquete({ aoFechar }: { aoFechar: () => void }) {
     { id: "r0", texto: "" },
     { id: "r1", texto: "" },
   ]);
+  /* Quem está sendo arrastada. `null` fora do arraste. */
+  const [arrastando, setArrastando] = useState<string | null>(null);
   const [duracao, setDuracao] = useState<string>(DURACOES[1]);
   const [multipla, setMultipla] = useState(false);
   const [resultadoNoFim, setResultadoNoFim] = useState(false);
@@ -64,13 +67,73 @@ export function CriarEnquete({ aoFechar }: { aoFechar: () => void }) {
     setRespostas((r) => r.map((v) => (v.id === id ? { ...v, texto } : v)));
   }
 
+  /**
+   * Move uma resposta para a posição de outra.
+   *
+   * Uma função só para o ponteiro e para o teclado — é o que garante que os
+   * dois cheguem ao mesmo lugar. Reordenar que só funciona com mouse é o
+   * defeito que a auditoria apontou na paleta de comandos, e é o mesmo
+   * argumento que fez a pasta de servidor nascer por MENU antes de nascer por
+   * arraste.
+   */
+  function mover(de: string, para: string) {
+    if (de === para) return;
+    setRespostas((atual) => {
+      const i = atual.findIndex((r) => r.id === de);
+      const j = atual.findIndex((r) => r.id === para);
+      if (i < 0 || j < 0) return atual;
+      const copia = [...atual];
+      const [movida] = copia.splice(i, 1);
+      copia.splice(j, 0, movida!);
+      return copia;
+    });
+  }
+
+  /** Sobe ou desce uma casa — o caminho de teclado. */
+  function empurrar(id: string, passo: number) {
+    setRespostas((atual) => {
+      const i = atual.findIndex((r) => r.id === id);
+      const j = i + passo;
+      if (i < 0 || j < 0 || j >= atual.length) return atual;
+      const copia = [...atual];
+      const [movida] = copia.splice(i, 1);
+      copia.splice(j, 0, movida!);
+      return copia;
+    });
+  }
+
   const completa =
     pergunta.trim().length > 0 &&
     respostas.filter((r) => r.texto.trim().length > 0).length >= 2;
 
   return (
     <Dialog open onOpenChange={(v) => !v && aoFechar()}>
-      <DialogContent titulo="Criar enquete" className={css.modal}>
+      {/*
+        ⚠ **`tituloOculto` e `p-0`, e os dois consertam o MESMO defeito.**
+
+        `DialogContent` embrulha os filhos num `<div class="mt-4">` e põe `p-5`
+        no painel. Consequência medida: o `display:grid` do painel governava
+        três filhos que não são meus (título, descrição, wrapper), então NENHUM
+        `gap` chegava ao conteúdo — e o campo de comentário, um `<input>` solto
+        dentro de um `div` de bloco, media 178px numa caixa de 400.
+
+        Com o padding zerado e o título só para leitor de tela, o cabeçalho, o
+        corpo e o rodapé passam a ser meus — que é o que o design desenha:
+        rodapé numa faixa própria, sangrando até a borda.
+      */}
+      <DialogContent
+        titulo="Criar enquete"
+        tituloOculto
+        className={cn("p-0", css.modal)}
+      >
+        <header className={css.cabecalho}>
+          <h2 className={css.tituloDoModal}>Criar enquete</h2>
+          <DialogClose className={css.fechar} aria-label="Fechar">
+            <X aria-hidden />
+          </DialogClose>
+        </header>
+
+        <div className={css.corpo}>
         <fieldset className={css.grupo}>
           <legend className={css.rotulo}>Pergunta</legend>
           <div className={css.campo}>
@@ -97,12 +160,55 @@ export function CriarEnquete({ aoFechar }: { aoFechar: () => void }) {
           <legend className={css.rotulo}>Respostas</legend>
           <div className={css.respostas}>
             {respostas.map((r, i) => (
-              <div key={r.id} className={css.resposta}>
+              /*
+                A LINHA inteira é o alvo do arraste, e a alça é o gatilho.
+
+                `draggable` na linha e não na alça: arrastar uma alça de 14px
+                move um fantasma de 14px, e o que a pessoa espera ver seguindo
+                o ponteiro é a resposta. O `onDragOver` reordena AO PASSAR, sem
+                esperar o soltar — assim a lista mostra o resultado enquanto a
+                mão ainda está no meio do caminho.
+              */
+              <div
+                key={r.id}
+                className={css.resposta}
+                draggable={arrastando === r.id}
+                data-arrastando={arrastando === r.id || undefined}
+                onDragStart={(e) => {
+                  e.dataTransfer.effectAllowed = "move";
+                  /* Firefox só inicia o arraste se houver carga. */
+                  e.dataTransfer.setData("text/plain", r.id);
+                }}
+                onDragOver={(e) => {
+                  if (!arrastando) return;
+                  e.preventDefault();
+                  mover(arrastando, r.id);
+                }}
+                onDragEnd={() => setArrastando(null)}
+              >
                 <button
                   type="button"
                   className={css.arrastar}
-                  aria-label={`Reordenar resposta ${i + 1}`}
-                  onClick={aindaNao("reordenarResposta")}
+                  aria-label={`Mover resposta ${i + 1}`}
+                  /*
+                    O `pointerdown` ARMA o arraste, e é o que faz a alça ser a
+                    alça: sem isto a linha inteira seria arrastável, e
+                    selecionar o texto de uma resposta viraria um arraste.
+                  */
+                  onPointerDown={() => setArrastando(r.id)}
+                  onPointerUp={() => setArrastando(null)}
+                  /*
+                    Teclado: Alt + setas. Sem Alt as setas navegam o campo, e
+                    com Alt elas não colidem com nada — é a combinação que
+                    editor de lista usa em toda parte.
+                  */
+                  onKeyDown={(e) => {
+                    const passo =
+                      e.key === "ArrowUp" ? -1 : e.key === "ArrowDown" ? 1 : 0;
+                    if (passo === 0 || !e.altKey) return;
+                    e.preventDefault();
+                    empurrar(r.id, passo);
+                  }}
                 >
                   <DotsSixVertical aria-hidden />
                 </button>
@@ -204,6 +310,8 @@ export function CriarEnquete({ aoFechar }: { aoFechar: () => void }) {
           >
             <span className={css.botaoDoInterruptor} />
           </button>
+        </div>
+
         </div>
 
         <div className={css.rodapeDoModal}>

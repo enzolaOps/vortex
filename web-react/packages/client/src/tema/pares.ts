@@ -80,6 +80,7 @@ function montar(): Par[] {
       "--vx-accent",
       "--vx-accent-text",
       "--vx-danger",
+      "--vx-danger-text",
       "--vx-warning",
       "--vx-success",
     ] as const) {

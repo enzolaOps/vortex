@@ -29,6 +29,24 @@
   inset-inline: 0;
   margin-inline: auto;
   translate: 0 -50%;
+}
+
+/*
+  ⚠ **A largura é PISO, e o `:where()` é o mecanismo.**
+
+  `32rem` é o certo para um formulário e errado para uma galeria; o modal de
+  encaminhar quer 400 e o de enquete 420. Sem o `:where()`, quem ganha é a
+  ordem em que os CSS Modules entram no bundle — que não é declarada em lugar
+  nenhum e muda quando alguém troca um import de linha.
+
+  Medido: com as duas regras em especificidade 0,1,0, o modal de encaminhar
+  saiu em 400 e o de enquete em 512, com a MESMA forma de override nos dois.
+  Um bug que aparece num arquivo e não no vizinho é o pior tipo de bug de CSS.
+
+  `:where()` zera a especificidade: qualquer classe do consumidor vence, e
+  quem não opinar continua ganhando os 32rem.
+*/
+:where(.painel) {
   inline-size: 100%;
   max-inline-size: 32rem;
 }

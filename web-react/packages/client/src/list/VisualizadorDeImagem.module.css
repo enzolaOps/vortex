@@ -83,7 +83,7 @@
   align-items: center;
   gap: var(--vx-space-3);
   padding: var(--vx-space-3) var(--vx-space-4);
-  z-index: var(--z-realce);
+  z-index: var(--vx-z-realce);
 }
 
 /*
@@ -176,7 +176,7 @@
   background: rgb(255 255 255 / 8%);
   color: var(--vx-text-1);
   cursor: pointer;
-  z-index: var(--z-realce);
+  z-index: var(--vx-z-realce);
 }
 
 .seta[data-lado="inicio"] {

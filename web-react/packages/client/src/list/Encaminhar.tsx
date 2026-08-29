@@ -3,7 +3,8 @@ import { Hash, LockSimple, MagnifyingGlass, X } from "@phosphor-icons/react";
 
 import { Avatar } from "../components/ui/Avatar";
 import { Botao } from "../components/ui/Botao";
-import { Dialog, DialogContent } from "../components/ui/Dialog";
+import { Dialog, DialogClose, DialogContent } from "../components/ui/Dialog";
+import { cn } from "../lib/cn";
 import { toast } from "../components/ui/toastStore";
 import { enviarMensagem } from "../sdk/adapter";
 import { pode } from "../sdk/permissoes";
@@ -125,11 +126,37 @@ export function Encaminhar({ aoFechar }: { aoFechar: () => void }) {
 
   return (
     <Dialog open onOpenChange={(v) => !v && aoFechar()}>
+      {/*
+        ⚠ **`tituloOculto` e `p-0`, e os dois consertam o MESMO defeito.**
+
+        `DialogContent` embrulha os filhos num `<div class="mt-4">` e põe `p-5`
+        no painel. Consequência medida: o `display:grid` do painel governava
+        três filhos que não são meus (título, descrição, wrapper), então NENHUM
+        `gap` chegava ao conteúdo — e o campo de comentário, um `<input>` solto
+        dentro de um `div` de bloco, media 178px numa caixa de 400.
+
+        Com o padding zerado e o título só para leitor de tela, o cabeçalho, o
+        corpo e o rodapé passam a ser meus — que é o que o design desenha:
+        rodapé numa faixa própria, sangrando até a borda.
+      */}
       <DialogContent
         titulo="Encaminhar"
-        descricao={`Escolha até ${TETO_DE_DESTINOS} destinos`}
-        className={css.painel}
+        tituloOculto
+        className={cn("p-0", css.painel)}
       >
+        <header className={css.cabecalho}>
+          <div>
+            <h2 className={css.tituloDoModal}>Encaminhar</h2>
+            <p className={css.descricaoDoModal}>
+              Escolha até {TETO_DE_DESTINOS} destinos
+            </p>
+          </div>
+          <DialogClose className={css.fechar} aria-label="Fechar">
+            <X aria-hidden />
+          </DialogClose>
+        </header>
+
+        <div className={css.corpo}>
         {/*
           A prévia do que vai ser mandado.
 
@@ -200,6 +227,8 @@ export function Encaminhar({ aoFechar }: { aoFechar: () => void }) {
           placeholder="Comentário opcional…"
           aria-label="Comentário opcional"
         />
+
+        </div>
 
         <div className={css.rodape}>
           <Botao onClick={aoFechar}>Cancelar</Botao>

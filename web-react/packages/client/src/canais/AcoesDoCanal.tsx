@@ -13,7 +13,12 @@ import { cn } from "../lib/cn";
 import { NOME_DO_PAINEL, type PainelId } from "../preset/schema";
 import { aindaNao, type PendenciaId } from "../pendente/pendencias";
 import { Tooltip } from "../components/ui/Tooltip";
-import { alternarPainel, assinarLayout, painelVisivel } from "../store/layout";
+import { assinarLayout, painelVisivel } from "../store/layout";
+import {
+  alternarSuperficie,
+  assinarDrawer,
+  superficieAberta,
+} from "../store/drawer";
 import { alternarSilencio, assinarSilencio, estaSilenciado } from "../store/silencio";
 import css from "./AcoesDoCanal.module.css";
 
@@ -25,7 +30,19 @@ import css from "./AcoesDoCanal.module.css";
  * valor, então quem não mudou não re-renderiza.
  */
 function BotaoDePainel({ painel, children }: { painel: PainelId; children: React.ReactNode }) {
-  const visivel = useSyncExternalStore(assinarLayout, () => painelVisivel(painel));
+  /*
+    DUAS subscrições, porque o painel pode estar em dois lugares.
+
+    Ancorado num slot ele responde ao layout; sem slot ele flutua e responde ao
+    drawer. `superficieAberta` junta as duas numa resposta só — sem isso o
+    `aria-pressed` mentiria em metade dos casos, que é justamente o defeito que
+    o lint de rótulo-que-alterna existe para evitar.
+  */
+  const noSlot = useSyncExternalStore(assinarLayout, () => painelVisivel(painel));
+  const flutuando = useSyncExternalStore(assinarDrawer, () =>
+    superficieAberta(painel, noSlot),
+  );
+  const visivel = flutuando;
   const nome = NOME_DO_PAINEL[painel];
 
   return (
@@ -38,7 +55,7 @@ function BotaoDePainel({ painel, children }: { painel: PainelId; children: React
            anunciar o inverso; a ação vai no tooltip. */
         aria-pressed={visivel}
         aria-label={nome.charAt(0).toUpperCase() + nome.slice(1)}
-        onClick={() => alternarPainel(painel)}
+        onClick={() => alternarSuperficie(painel)}
       >
         {children}
       </button>

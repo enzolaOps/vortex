@@ -1,16 +1,20 @@
+import { Check, PaperPlaneRight, X } from "@phosphor-icons/react";
 import { useState } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
-import { marcarCanalLido } from "../sdk/adapter";
+import { enviarMensagem, marcarCanalLido } from "../sdk/adapter";
 import { aindaNao } from "../pendente/pendencias";
 import { contagem } from "../lib/plural";
+import { NomeDoAutor } from "../presenca/NomeDoAutor";
 import { irPara } from "../store/navegacao";
 import {
   useCanaisDeTexto,
   useChannel,
+  useMessage,
   useServer,
   useServerIds,
+  useTotaisNaoLidos,
 } from "../store/hooks";
 import css from "./CaixaDeEntrada.module.css";
 
@@ -33,37 +37,86 @@ type Aba = "mencoes" | "naoLidos" | "topicos";
  * `topicos`) — esconder a aba faria parecer que não há tópicos, que é uma
  * afirmação diferente de "isto ainda não existe".
  */
-export function CaixaDeEntrada() {
+export function CaixaDeEntrada({ aoFechar }: { aoFechar?: () => void }) {
   const [aba, setAba] = useState<Aba>("mencoes");
   const servidores = useServerIds();
+  const totais = useTotaisNaoLidos();
 
   return (
     <div className={css.painel}>
       <header className={css.cabecalho}>
         <div className={css.linhaDoTitulo}>
           <span className={css.titulo}>Caixa de entrada</span>
-          <button
-            type="button"
-            className={css.marcarTudo}
-            onClick={aindaNao("marcarTudoLido")}
-          >
-            Marcar tudo como lido
-          </button>
+          <div className={css.acoesDoTitulo}>
+            <button
+              type="button"
+              className={css.marcarTudo}
+              onClick={aindaNao("marcarTudoLido")}
+            >
+              Marcar tudo como lido
+            </button>
+            {aoFechar ? (
+              <button
+                type="button"
+                className={css.fechar}
+                aria-label="Fechar caixa de entrada"
+                onClick={aoFechar}
+              >
+                <X aria-hidden />
+              </button>
+            ) : null}
+          </div>
         </div>
 
         {/*
-          As abas com CONTAGEM no rótulo.
+          As abas COM contagem, como o design.
 
-          `role="tablist"` de verdade e não três botões soltos: as setas
-          navegam entre abas, e é o que o teclado espera de um seletor
-          exclusivo. Cada painel é montado sob demanda — trocar de aba não
-          guarda a rolagem da anterior, e isso é certo aqui: a lista muda de
-          conteúdo, não de posição.
+          Sem o número, "Menções" e "Não lidos" prometem a mesma coisa, e a
+          pessoa precisa abrir as duas para descobrir onde está o que importa —
+          num painel cuja única função é dizer onde está o que importa.
+
+          O total vem do adapter (`totaisNaoLidos`) e não de uma soma daqui: a
+          contagem vive por servidor, o número de servidores varia, e somar no
+          componente exigiria hooks em laço.
         */}
         <div className={css.abas} role="tablist" aria-label="Filtro da caixa">
-          <BotaoDeAba id="mencoes" atual={aba} aoEscolher={setAba} rotulo="Menções" />
-          <BotaoDeAba id="naoLidos" atual={aba} aoEscolher={setAba} rotulo="Não lidos" />
-          <BotaoDeAba id="topicos" atual={aba} aoEscolher={setAba} rotulo="Tópicos" />
+          <button
+            type="button"
+            role="tab"
+            aria-selected={aba === "mencoes"}
+            className={css.aba}
+            onClick={() => setAba("mencoes")}
+          >
+            Menções
+            {totais.mencoes > 0 ? (
+              <span className={css.abaBadge}>{contagem(totais.mencoes)}</span>
+            ) : null}
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={aba === "naoLidos"}
+            className={css.aba}
+            onClick={() => setAba("naoLidos")}
+          >
+            Não lidos
+            {totais.naoLidas > 0 ? (
+              <span className={css.abaContagem}>
+                {contagem(totais.naoLidas)}
+              </span>
+            ) : null}
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={aba === "topicos"}
+            className={css.aba}
+            onClick={() => setAba("topicos")}
+          >
+            Tópicos
+          </button>
         </div>
       </header>
 
@@ -75,62 +128,16 @@ export function CaixaDeEntrada() {
             detalhe="Depende de threads no protocolo — ver o registro de pendências."
           />
         ) : (
-          <Conteudo servidores={servidores} aba={aba} />
+          servidores.map((id) => (
+            <GrupoDeServidor key={id} serverId={id} aba={aba} />
+          ))
         )}
       </div>
     </div>
   );
 }
 
-function BotaoDeAba({
-  id,
-  atual,
-  rotulo,
-  aoEscolher,
-}: {
-  id: Aba;
-  atual: Aba;
-  rotulo: string;
-  aoEscolher: (a: Aba) => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={id === atual}
-      className={css.aba}
-      onClick={() => aoEscolher(id)}
-    >
-      {rotulo}
-    </button>
-  );
-}
-
-/**
- * A lista, montada varrendo os servidores.
- *
- * ⚠ **A varredura acontece no RENDER e não por evento, e isso é decisão.**
- * Contar canais com menção sob o firehose seria pagá-la 500 vezes por segundo
- * para um painel que pode estar fechado. É a mesma regra de "ordenar quando é
- * observável" que a coluna de conversas e as abas de amigos já seguem.
- *
- * O custo real é pequeno: dezenas de canais por servidor, e cada linha assina
- * o próprio snapshot — o que muda com uma mensagem nova é UMA linha, não a
- * varredura.
- */
-function Conteudo({
-  servidores,
-  aba,
-}: {
-  servidores: readonly string[];
-  aba: Aba;
-}) {
-  const grupos = servidores.map((id) => (
-    <GrupoDeServidor key={id} serverId={id} aba={aba} />
-  ));
-
-  return <>{grupos}</>;
-}
+/* ----------------------------------------------------------- a lista */
 
 function GrupoDeServidor({ serverId, aba }: { serverId: string; aba: Aba }) {
   const servidor = useServer(serverId);
@@ -177,6 +184,15 @@ function LinhaDaCaixa({
   aba: Aba;
 }) {
   const canal = useChannel(channelId);
+  /*
+    A última mensagem, assinada por ID.
+
+    String vazia quando o canal não tem nenhuma — `useMessage("")` devolve
+    `undefined` e não assina coisa alguma, então a linha custa o mesmo de
+    antes nos canais sem histórico.
+  */
+  const ultima = useMessage(canal?.ultimaMensagemId ?? "");
+
   if (!canal) return null;
 
   const relevante = aba === "mencoes" ? canal.mencoes > 0 : canal.naoLidas > 0;
@@ -189,40 +205,128 @@ function LinhaDaCaixa({
         className={css.abrir}
         onClick={() => irPara(serverId, channelId)}
       >
+        {/*
+          A linha de CONTEXTO — servidor, canal, contagem e hora.
+
+          É o que o design põe em cima e a coluna de canais não tem: "isto é de
+          outro lugar". A hora vem da última MENSAGEM e não do canal:
+          `ultimaEm` é o instante decodificado do ID, e formatá-lo aqui
+          duplicaria o formatador que o snapshot da mensagem já traz pronto.
+        */}
         <span className={css.contexto}>
           <Avatar id={serverId} sigla={sigla} tamanho="xxs" />
           <span className={css.servidor}>{servidor}</span>
           <span className={css.canal}>#{canal.name}</span>
-        </span>
-
-        <span className={css.resumo}>
+          <span className={css.espaco} />
           {canal.mencoes > 0 ? (
             <span className={css.badge}>{contagem(canal.mencoes)}</span>
           ) : null}
-          <span className={css.contagem}>
-            {canal.naoLidas > 0
-              ? `${contagem(canal.naoLidas)} sem ler`
-              : "sem novidade"}
+          <span className={css.hora}>
+            {ultima?.createdAtCurto ?? `${contagem(canal.naoLidas)} sem ler`}
           </span>
         </span>
+
+        {/*
+          A MENSAGEM, que era o que faltava.
+
+          Sem ela a caixa dizia "há 4 menções em #produto" e obrigava a abrir o
+          canal para descobrir o que foi dito — ou seja, custava exatamente o
+          gesto que ela existe para poupar.
+
+          ⚠ Ela pode não existir, e isso é esperado: o store só materializa
+          mensagem que alguém assinou, então um canal que a sessão nunca abriu
+          cai no fallback da contagem, ali em cima. Degradação honesta, e não
+          um esqueleto que promete um texto que nunca vem.
+        */}
+        {ultima ? (
+          <span className={css.mensagem}>
+            <Avatar id={ultima.authorId ?? ""} tamanho="xs" />
+            <span className={css.mensagemTexto}>
+              {ultima.authorId ? (
+                <span className={css.mensagemAutor}>
+                  <NomeDoAutor userId={ultima.authorId} denso />
+                </span>
+              ) : null}
+              <span className={css.mensagemCorpo}>{ultima.content}</span>
+            </span>
+          </span>
+        ) : null}
       </button>
 
       {/*
-        "Marcar como lida" é a ação da linha, e ela é REAL.
+        A resposta rápida só na aba de MENÇÕES, e sempre visível ali.
 
-        O design desenha uma resposta rápida no lugar; ela depende de um
-        composer fora do canal — o que significa decidir para onde vai o
-        rascunho, o alvo de resposta e a digitação. Marcar como lida usa o
-        `ack` que já existe e resolve o gesto mais comum de uma caixa de
-        entrada: reconhecer sem entrar.
+        O design a desenha num cartão só, e a escolha de qual é a que importa:
+        menção é o que pede resposta; não-lida é o que pede leitura. Mostrá-la
+        nas duas abas encheria o painel de campos de texto, e escondê-la atrás
+        do hover daria um campo que some quando o ponteiro sai — inutilizável
+        justamente enquanto se digita.
       */}
+      {aba === "mencoes" ? <RespostaRapida channelId={channelId} /> : null}
+
       <button
         type="button"
         className={css.marcar}
         aria-label={`Marcar #${canal.name} como lido`}
         onClick={() => marcarCanalLido(channelId)}
       >
-        ✓
+        <Check aria-hidden />
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Responder sem entrar no canal.
+ *
+ * ⚠ **Ela ficou de fora na primeira versão, e a razão que eu dei era grande
+ * demais.** Escrevi que dependia de "decidir de quem é o rascunho, o alvo de
+ * resposta e a digitação", e nenhuma das três se aplica: o texto é ESTADO
+ * LOCAL (some ao fechar, que é o que se espera de uma resposta rápida), não há
+ * alvo de resposta (é uma mensagem nova no canal) e não há indicador de
+ * digitação, porque ninguém está olhando aquele canal.
+ *
+ * O que sobra é `enviarMensagem(channelId, texto)`, que já existe.
+ */
+function RespostaRapida({ channelId }: { channelId: string }) {
+  const [texto, setTexto] = useState("");
+  const vazio = texto.trim().length === 0;
+
+  function enviar() {
+    if (vazio) return;
+    // Não saiu (canal não carregado, sem sessão): o texto FICA. Limpar aqui
+    // apagaria o que a pessoa escreveu por causa de um erro que não é dela.
+    if (!enviarMensagem(channelId, texto.trim())) return;
+    setTexto("");
+    /* Marcar lido junto: quem respondeu leu. Deixar a linha acesa depois de
+       responder é a caixa de entrada discordando do que a pessoa acabou de
+       fazer. */
+    marcarCanalLido(channelId);
+  }
+
+  return (
+    <div className={css.resposta}>
+      <input
+        className={css.respostaCampo}
+        value={texto}
+        onChange={(e) => setTexto(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            enviar();
+          }
+        }}
+        placeholder="Responder rápido…"
+        aria-label="Responder rápido"
+      />
+      <button
+        type="button"
+        className={css.respostaEnviar}
+        aria-label="Enviar"
+        disabled={vazio}
+        onClick={enviar}
+      >
+        <PaperPlaneRight aria-hidden />
       </button>
     </div>
   );

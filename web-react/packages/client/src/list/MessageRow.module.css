@@ -382,14 +382,27 @@
   color: var(--vx-text-1);
 }
 
+/*
+  28×28, e o número é do design.
+
+  ⚠ **Estava em 24 (`--vx-space-5`), e o alvo não era o único errado.** Medido
+  antes: botão 24×24 com emoji em 12px e ícone em 14 — ou seja, o EMOJI menor
+  que o ícone ao lado dele, numa fileira onde os dois são a mesma família de
+  alvo. O design põe emoji em 15 e ícone em 13, e é essa relação que faz a
+  divisa separar duas coisas do mesmo peso.
+
+  `block-size` é DIMENSÃO de componente e não degrau de escala — é por isso que
+  o `pnpm escala` governa padding, margin, gap e raio, e deixa tamanho de fora.
+*/
 .acao {
   display: grid;
   place-items: center;
-  inline-size: var(--vx-space-5);
-  block-size: var(--vx-space-5);
-  border-radius: var(--vx-radius-1);
+  inline-size: 28px;
+  block-size: 28px;
+  border-radius: var(--vx-radius-2);
   color: var(--vx-text-2);
-  font-size: var(--vx-size-sm);
+  /* O EMOJI, que é o conteúdo direto do botão. O ícone vem em `.acao svg`. */
+  font-size: var(--vx-size-lg);
   cursor: pointer;
 }
 
@@ -409,13 +422,22 @@
   outline-offset: -2px;
 }
 
-/* Separa reagir de agir. Duas famílias de ação no mesmo alvo pedem uma
-   pausa, e a pausa é mais barata que um segundo container. */
+/*
+  Separa reagir de agir. Duas famílias de ação no mesmo alvo pedem uma pausa, e
+  a pausa é mais barata que um segundo container.
+
+  ⚠ **VÉU, e não a hairline de token.** `--vx-border-subtle` é calibrado para
+  divisórias sobre `surface-0..2`; esta divisa vive dentro de uma caixa em
+  `surface-4`, onde o token some — medido em `rgb(29,35,45)` contra um fundo
+  `rgb(34,40,51)`, ou seja, mais ESCURO que o que ele deveria dividir. O design
+  a escreve como `rgba(255,255,255,0.10)`, e véu compõe certo sobre qualquer
+  superfície, que é a razão pela qual `--vx-state-*` existem.
+*/
 .acoesDivisa {
   inline-size: 1px;
-  block-size: var(--vx-space-4);
+  block-size: 18px;
   margin-inline: var(--vx-space-1);
-  background: var(--vx-border-subtle);
+  background: rgb(255 255 255 / 10%);
 }
 
 /* ============================================================
@@ -641,12 +663,12 @@
   de um default copiado de componente para componente. O dono do tamanho é a
   superfície, não a chamada.
 */
-/* A barra de ações no hover: cinco alvos de 24px com glifos de 14, como o
-   design desenha (28 com 13). O `.fixada svg` acima já declara o próprio e
-   vence por ordem — os dois valem 14, então não há conflito real. */
+/* O glifo dentro do alvo de 28 — 13px, como o design. `--vx-icon-1` é 14 e
+   serve à cromagem densa das colunas; aqui o vizinho é um emoji de 15, e um
+   ícone de 14 ao lado dele lê como o mesmo tamanho em vez de como cromagem. */
 .acao svg {
-  inline-size: var(--vx-icon-1);
-  block-size: var(--vx-icon-1);
+  inline-size: 13px;
+  block-size: 13px;
 }
 
 /* ----------------------------------------- a linha e a prévia de resposta */
@@ -728,13 +750,22 @@
    própria. Ver `QuemReagiu` no TSX.
    ============================================================ */
 
+/*
+  ⚠ **O respiro era o dobro do desenhado.**
+
+  Três blocos com 8px entre eles davam um cartão que parece três avisos
+  separados; o design empilha nome e dica com 5px e só separa o TÍTULO. A
+  diferença some numa captura e aparece quando o cartão abre ao lado de um
+  chip de 24px — ele ficava mais alto que a linha inteira.
+*/
 .quemReagiu {
   inline-size: 250px;
   display: grid;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-1);
 }
 
 .quemTitulo {
+  margin-block-end: var(--vx-space-1);
   display: flex;
   align-items: center;
   gap: var(--vx-space-2);
@@ -831,8 +862,10 @@
   color: var(--vx-text-3);
 }
 
+/* `danger-text` e não `danger`: isto é uma frase de 11px, e o vermelho de
+   preenchimento não é o vermelho de letra. Ver o token em `tokens.css`. */
 .envioFalhou {
-  color: var(--vx-danger);
+  color: var(--vx-danger-text);
 }
 
 .envioNaFila {
@@ -911,7 +944,7 @@
 }
 
 .envioAcaoPerigo {
-  color: var(--vx-danger);
+  color: var(--vx-danger-text);
 }
 
 /* ============================================================

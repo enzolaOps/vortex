@@ -84,11 +84,6 @@ export const PENDENCIAS = {
     faz: "Publicar a enquete para todo mundo do canal poder votar.",
     depende: "enquete no protocolo (tipo de mensagem + evento de voto)",
   },
-  reordenarResposta: {
-    superficie: "Criar enquete",
-    faz: "Arrastar uma resposta para mudar a ordem.",
-    depende: "arrastar-e-soltar — hoje o app não tem nenhum",
-  },
   /*
     ⚠ **Tocar já EXISTE** — ver `list/ReprodutorDeVoz.tsx`. O que continua
     pendente é gravar, e a dependência é a mesma de `anexar`: sem upload, uma

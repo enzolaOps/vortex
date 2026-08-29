@@ -29,13 +29,53 @@
   um degrau na linha que atravessa a tela inteira.
 */
 .titulo {
-  display: grid;
-  align-content: center;
-  gap: var(--vx-space-0);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-2);
   block-size: 50px;
   padding-inline: var(--vx-space-3);
   border-block-end: 1px solid var(--vx-border-subtle);
 }
+
+.tituloTexto {
+  display: grid;
+  gap: var(--vx-space-0);
+  min-inline-size: 0;
+}
+/*
+  O `✕`, e ele só existe quando o painel FLUTUA.
+
+  Ancorado num slot, fechar é esconder a coluna — e quem a escondeu pelo `✕`
+  não teria como saber que o botão do cabeçalho a traz de volta. Flutuando, o
+  `✕` é a saída óbvia e não mexe no layout de ninguém.
+*/
+.fechar {
+  display: grid;
+  place-items: center;
+  inline-size: 24px;
+  block-size: 24px;
+  flex: none;
+  border-radius: var(--vx-radius-2);
+  color: var(--vx-text-3);
+  cursor: pointer;
+}
+
+.fechar svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+.fechar:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.fechar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
 
 .tituloNome {
   font-size: var(--vx-size-base);
@@ -100,10 +140,27 @@
   transition: background var(--vx-duration-fast) var(--vx-ease-out);
 }
 
+/*
+  ⚠ **Superfície em REPOUSO, e não só no hover.**
+
+  A versão anterior só pintava o cartão sob o ponteiro, e o resultado é o que
+  quem usa relatou: sem separação. Três prévias de duas linhas empilhadas com
+  8px de respiro leem como um bloco de texto contínuo — o cartão só existia
+  para quem já estivesse apontando para ele, que é a pessoa que menos precisa
+  da separação.
+
+  O design pinta o primeiro cartão e deixa os outros no hover; ali isso mostra
+  o estado, aqui produziria a mesma parede.
+*/
+.item {
+  background: var(--vx-surface-2);
+  border-color: var(--vx-border-subtle);
+}
+
 .item:hover,
 .item:focus-within {
   background: var(--vx-surface-3);
-  border-color: var(--vx-border-subtle);
+  border-color: var(--vx-border-strong);
 }
 
 .abrir {
@@ -201,7 +258,7 @@
 }
 
 .acaoPerigo {
-  color: var(--vx-danger);
+  color: var(--vx-danger-text);
 }
 
 .acao:hover,

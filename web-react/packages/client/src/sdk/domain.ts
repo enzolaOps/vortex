@@ -558,6 +558,21 @@ export type ChannelSnapshot = {
    * vai para o fim, e não para um topo que ela não merece.
    */
   readonly ultimaEm: number;
+  /**
+   * A última mensagem do canal, por ID.
+   *
+   * ⚠ **Só o ID, e não o conteúdo.** Quem quiser o texto assina a mensagem —
+   * `useMessage(id)` —, e é o que faz a caixa de entrada mostrar a prévia sem
+   * o snapshot do CANAL carregar texto que muda a cada mensagem nova. Copiar o
+   * conteúdo para cá republicaria o canal (e a coluna inteira, e o rail) a
+   * cada palavra digitada por qualquer pessoa.
+   *
+   * `undefined` em canal que nunca teve mensagem. E o snapshot da mensagem
+   * pode não existir: o store só materializa o que alguém assinou, então a
+   * prévia de um canal que a sessão nunca abriu simplesmente não aparece — que
+   * é a degradação honesta, e não um estado de carregamento mentiroso.
+   */
+  readonly ultimaMensagemId: string | undefined;
 };
 
 /**

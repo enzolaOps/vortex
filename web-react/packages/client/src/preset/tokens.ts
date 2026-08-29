@@ -38,6 +38,7 @@ export const TOKENS_DE_TEMA = [
   "--vx-on-accent",
 
   "--vx-danger",
+  "--vx-danger-text",
   "--vx-warning",
   "--vx-success",
   "--vx-neutral",

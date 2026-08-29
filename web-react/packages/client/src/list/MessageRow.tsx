@@ -1349,9 +1349,6 @@ function ItensDaMensagem({ messageId }: { messageId: string }) {
           <ContextMenuItem onSelect={aindaNao("emoji")}>
             <Smiley aria-hidden />
             Adicionar reação
-            <span className={menuAtalho} aria-hidden>
-              &rsaquo;
-            </span>
           </ContextMenuItem>
         </>
       ) : null}
@@ -1536,12 +1533,23 @@ function ItensDoUsuario({ userId }: { userId: string }) {
         </>
       ) : null}
 
+      {/*
+        ⚠ **Sem o `›`, e o design o desenha.**
+
+        A seta promete submenu, e submenu é o único desenho deste arquivo que o
+        app não pode cumprir hoje: "Cargos" precisaria da tabela de cargos
+        RESOLVIDA (quais são os do servidor E quais são os desta pessoa — e
+        `MemberSnapshot` não carrega os IDs), e "Mover para canal" precisaria
+        de `ServerMember.edit({ voice_channel })`, que é escrita de fase 6.
+
+        Quem usa relatou exatamente isso: "hover em cargos e em mover para o
+        canal não mostra nada". Uma seta que não abre nada é pior que a
+        ausência dela — é o mesmo defeito do item de menu sem `onSelect` que o
+        lint deste projeto existe para matar. Ela volta junto com o submenu.
+      */}
       <ContextMenuItem onSelect={aindaNao("cargosDoMembro")}>
         <UsersThree aria-hidden />
         Cargos
-        <span className={menuAtalho} aria-hidden>
-          &rsaquo;
-        </span>
       </ContextMenuItem>
       <ContextMenuItem onSelect={aindaNao("alterarApelido")}>
         <PencilSimple aria-hidden />
@@ -1558,9 +1566,6 @@ function ItensDoUsuario({ userId }: { userId: string }) {
           <ContextMenuItem onSelect={aindaNao("moverParaCanal")}>
             <Hash aria-hidden />
             Mover para canal
-            <span className={menuAtalho} aria-hidden>
-              &rsaquo;
-            </span>
           </ContextMenuItem>
           <ContextMenuItem onSelect={aindaNao("silenciarUsuario")}>
             <ProhibitInset aria-hidden />

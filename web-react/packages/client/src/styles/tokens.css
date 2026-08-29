@@ -116,6 +116,15 @@
      `tema/pares.ts`, não descuido: a decisão é seguir o design
      exatamente e tratar contraste junto com o editor de tema. */
   --vx-danger: #e8596b;
+  /*
+    O vermelho de TEXTO — ver `perigoTexto` em `derivar.ts`.
+
+    O design usa dois: este para a palavra dentro de um menu, e `--vx-danger`
+    para borda e fundo tingido. Medido no app antes de existir: "Excluir
+    mensagem" saía em `#e8596b` sobre `--vx-surface-4`, contra os `#f0808d` do
+    design — 4,28:1 onde o design entrega 6,1:1.
+  */
+  --vx-danger-text: #f0808d;
   --vx-warning: #e2b15c;
   --vx-success: #46c98a;
   /*
@@ -508,6 +517,7 @@
   --vx-accent-soft: #d7f3f8;
 
   --vx-danger: #c22c43;
+  --vx-danger-text: #c22c43;
   --vx-warning: #7a5300;
   --vx-success: #0e7040;
   --vx-neutral: #6e7783;
@@ -558,6 +568,7 @@
     --vx-accent-soft: #d7f3f8;
 
     --vx-danger: #c22c43;
+    --vx-danger-text: #c22c43;
     --vx-warning: #7a5300;
     --vx-success: #0e7040;
     --vx-neutral: #6e7783;
@@ -622,6 +633,7 @@
   --color-on-accent: var(--vx-on-accent);
 
   --color-danger: var(--vx-danger);
+  --color-danger-text: var(--vx-danger-text);
   --color-warning: var(--vx-warning);
   --color-success: var(--vx-success);
   --color-neutral: var(--vx-neutral);

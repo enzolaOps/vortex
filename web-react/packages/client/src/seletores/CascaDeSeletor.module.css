@@ -143,5 +143,5 @@
   position: sticky;
   inset-block-start: 0;
   background: var(--vx-surface-4);
-  z-index: var(--z-realce);
+  z-index: var(--vx-z-realce);
 }

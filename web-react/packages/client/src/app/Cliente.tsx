@@ -10,6 +10,7 @@ import { ListaDeCanais } from "../canais/ListaDeCanais";
 import { ListaDeMembros } from "../membros/ListaDeMembros";
 import { MessageList } from "../list/MessageList";
 import { Modais } from "../components/ui/Modais";
+import { Drawer } from "../shell/Drawer";
 import { PainelDeEdicao } from "../layout/PainelDeEdicao";
 import { PainelDeFixados } from "../fixados/PainelDeFixados";
 import { CaixaDeEntrada } from "../caixa/CaixaDeEntrada";
@@ -109,6 +110,7 @@ export function Cliente({ ferramentas }: { ferramentas?: ReactNode }) {
           {/* Um ponto de montagem para os modais do plano de paridade, em vez
               de uma condicional por modal. O cliente não conhece nenhum. */}
           <Modais />
+          <Drawer />
           {/* Tela cheia SOBRE o shell — a lista de mensagens continua montada
               atrás, com as linhas medidas. Ver `store/config.ts`. */}
           <Configuracoes />

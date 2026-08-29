@@ -874,6 +874,7 @@ export function startAdapter() {
         mencoes: servidor.mencoes + mencoes,
       });
       reemitirServidor(serverId);
+      reemitirTotais();
     }
   });
 
@@ -1461,12 +1462,61 @@ export function publicarRelacoes(): void {
 
 /* ------------------------------------------------------------- não-lidas */
 
-type Contagem = { naoLidas: number; mencoes: number };
+export type Contagem = { naoLidas: number; mencoes: number };
 
 const ZERO: Contagem = { naoLidas: 0, mencoes: 0 };
 
 const contagemPorCanal = new Map<string, Contagem>();
 const contagemPorServidor = new Map<string, Contagem>();
+
+/**
+ * A soma de TODOS os servidores — o número que a caixa de entrada põe na aba.
+ *
+ * ⚠ **Existe porque somar do lado do componente não tem forma boa.** A
+ * contagem vive no snapshot de cada servidor, e cada snapshot é assinado por
+ * quem o desenha; um componente que quisesse o total precisaria de uma
+ * subscrição por servidor, e o número de servidores é variável — ou seja,
+ * hooks em laço, que as Rules of React proíbem.
+ *
+ * Aqui a soma é do ADAPTER, publicada como qualquer coleção, chaveada por uma
+ * constante — a mesma forma de `serverIds` sobre `RAIZ`.
+ *
+ * A comparação antes de publicar não é otimização: sem ela, toda mensagem nova
+ * em qualquer canal reescreveria um objeto de dois números iguais, e o
+ * `useSyncExternalStore` acordaria a caixa a cada evento do firehose.
+ */
+export const TOTAIS = "@totais";
+
+/*
+  O `onFirstSubscribe` NÃO é cerimônia — sem ele a aba abria zerada.
+
+  A soma só é republicada quando uma contagem muda, e a caixa de entrada é
+  aberta DEPOIS da semeadura: quem chega tarde encontra o store vazio e mostra
+  "Menções" sem número, com três linhas listadas embaixo. Publicar na primeira
+  subscrição é a mesma correção que `messages` faz na hidratação, e pela mesma
+  razão — o estado já existe, faltava alguém dizê-lo.
+*/
+export const totaisNaoLidos = createEntityStore<Contagem>(() => {
+  somarTotais();
+});
+
+function reemitirTotais(): void {
+  if (totaisNaoLidos.subscriberCount(TOTAIS) === 0) return;
+  somarTotais();
+}
+
+function somarTotais(): void {
+  let naoLidas = 0;
+  let mencoes = 0;
+  for (const c of contagemPorServidor.values()) {
+    naoLidas += c.naoLidas;
+    mencoes += c.mencoes;
+  }
+  const atual = totaisNaoLidos.peek(TOTAIS);
+  if (atual && atual.naoLidas === naoLidas && atual.mencoes === mencoes) return;
+  totaisNaoLidos.set(TOTAIS, { naoLidas, mencoes });
+}
+
 
 function contagemDe(mapa: Map<string, Contagem>, id: string): Contagem {
   return mapa.get(id) ?? ZERO;
@@ -1543,6 +1593,7 @@ export function marcarCanalLido(channelId: string): void {
       contagemPorServidor.set(serverId, restante);
     }
     reemitirServidor(serverId);
+    reemitirTotais();
   }
 
   reemitirCanal(channelId);

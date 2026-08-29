@@ -1,3 +1,4 @@
+import { X } from "@phosphor-icons/react";
 import { memo } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
@@ -107,7 +108,7 @@ const Fixada = memo(function Fixada({
  * Nasce movível como todo o resto: assina o canal ativo por conta própria e
  * não recebe nada por prop, então funciona em qualquer slot.
  */
-export function PainelDeFixados() {
+export function PainelDeFixados({ aoFechar }: { aoFechar?: () => void }) {
   const channelId = useCanalAtivo();
   const ids = useFixadas(channelId);
   const canal = useChannel(channelId);
@@ -131,10 +132,22 @@ export function PainelDeFixados() {
         fixadas custa uma linha e responde a pergunta antes dela.
       */}
       <header className={css.titulo}>
-        <span className={css.tituloNome}>Fixadas</span>
-        <span className={css.tituloContexto}>
-          {ids.length} {canal ? `em #${canal.name}` : ""}
-        </span>
+        <div className={css.tituloTexto}>
+          <span className={css.tituloNome}>Fixadas</span>
+          <span className={css.tituloContexto}>
+            {ids.length} {canal ? `em #${canal.name}` : ""}
+          </span>
+        </div>
+        {aoFechar ? (
+          <button
+            type="button"
+            className={css.fechar}
+            aria-label="Fechar fixadas"
+            onClick={aoFechar}
+          >
+            <X aria-hidden />
+          </button>
+        ) : null}
       </header>
 
       {ids.length === 0 ? (

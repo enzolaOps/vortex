@@ -85,6 +85,15 @@ type Rampa = {
   readonly acentoSuave: Degrau;
   readonly sobreAcento: Degrau;
   readonly perigo: Semantica;
+  /*
+    O vermelho de TEXTO, separado do de preenchimento.
+
+    O design usa dois: `#E8596B` para borda e fundo tingido, `#F0808D` para a
+    palavra "Excluir" dentro de um menu. É a mesma divisão que `acento` e
+    `acentoTexto` já fazem, e pela mesma razão — a cor que funciona como
+    superfície de 3px não é a que funciona como letra de 13px sobre ela.
+  */
+  readonly perigoTexto: Semantica;
   readonly aviso: Semantica;
   readonly sucesso: Semantica;
   readonly neutro: Degrau;
@@ -169,6 +178,7 @@ const RAMPAS: Record<Modo, Rampa> = {
     acentoSuave: { l: 0.28, c: 0.035, dh: 3.5 },
     sobreAcento: { l: 0.16, c: 0.008, dh: 0 },
     perigo: { l: 0.655027, c: 0.176981, h: 15.968 },
+    perigoTexto: { l: 0.727685, c: 0.137474, h: 13.749 },
     aviso: { l: 0.788215, c: 0.117607, h: 79.445 },
     sucesso: { l: 0.748358, c: 0.146918, h: 158.512 },
     neutro: { l: 0.565837, c: 0.02148, dh: -2.401 },
@@ -197,6 +207,15 @@ const RAMPAS: Record<Modo, Rampa> = {
     acentoSuave: { l: 0.945, c: 0.03, dh: 3.5 },
     sobreAcento: { l: 1, c: 0, dh: 0 },
     perigo: { l: 0.538347, c: 0.184859, h: 18.141 },
+    /*
+      No CLARO os dois são o mesmo valor, e isso não é descuido.
+
+      No escuro o texto precisa ser mais CLARO que o preenchimento para se
+      separar dele; no claro seria o contrário, e `#c22c43` já está no limite
+      de baixo — clareá-lo derrubaria o contraste sobre branco. `acentoTexto`
+      repete `acento` no claro exatamente pelo mesmo motivo.
+    */
+    perigoTexto: { l: 0.538347, c: 0.184859, h: 18.141 },
     aviso: { l: 0.472782, c: 0.098779, h: 77.361 },
     sucesso: { l: 0.480897, c: 0.113976, h: 154.976 },
     neutro: { l: 0.565837, c: 0.02148, dh: -2.401 },
@@ -262,6 +281,7 @@ export function derivar(s: Semente): Record<TokenName, string> {
     "--vx-on-accent": neutro(r.sobreAcento, s),
 
     "--vx-danger": semantica(r.perigo),
+    "--vx-danger-text": semantica(r.perigoTexto),
     "--vx-warning": semantica(r.aviso),
     "--vx-success": semantica(r.sucesso),
     // Neutro semântico: "herdar" na matriz tri-state, mudo, offline. Cinza da

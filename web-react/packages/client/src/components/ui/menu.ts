@@ -40,8 +40,14 @@
  * que fica na frente do quê" ser legível sem abrir dois arquivos.
  */
 
+/*
+  ⚠ **`min-w-56` e não `min-w-48`.** O design desenha 264px no menu de mensagem
+  e 300 no do usuário; o nosso encolhia até o conteúdo e media 207. Num menu de
+  quinze itens onde a metade tem tecla à direita, largura curta faz cada linha
+  terminar num lugar diferente — e a coluna de atalhos deixa de ser coluna.
+*/
 export const menuContent =
-  "z-flutuante min-w-48 rounded-3 border border-border-subtle bg-surface-4 p-1 shadow-e2 " +
+  "z-flutuante min-w-56 rounded-3 border border-border-subtle bg-surface-4 p-1 shadow-e2 " +
   "text-md text-text-1 overflow-y-auto " +
   "data-[state=closed]:opacity-0 data-[state=open]:opacity-100 anim-fast";
 
@@ -50,8 +56,15 @@ export const menuItem =
   "data-highlighted:bg-state-hover " +
   "data-disabled:pointer-events-none data-disabled:text-text-3";
 
-/** Ação destrutiva. Cor sozinha não basta, mas ajuda quem enxerga cor. */
-export const menuItemPerigo = "text-danger data-highlighted:text-danger";
+/**
+ * Ação destrutiva. Cor sozinha não basta, mas ajuda quem enxerga cor.
+ *
+ * ⚠ **`danger-text` e não `danger`.** O design usa DOIS vermelhos, e o menu é
+ * exatamente onde a diferença aparece: `#E8596B` para borda e fundo tingido,
+ * `#F0808D` para a palavra "Excluir". Medido antes de o token existir — o item
+ * saía em 4,28:1 sobre `surface-4`, contra os 6,1:1 do design.
+ */
+export const menuItemPerigo = "text-danger-text data-highlighted:text-danger-text";
 export const menuItemNormal = "text-text-2";
 
 export const menuSeparator = "my-1 h-px bg-border-subtle";

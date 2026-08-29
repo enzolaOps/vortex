@@ -45,6 +45,7 @@ import {
   lerServidorAtivo,
   type Local,
 } from "./navegacao";
+import { TOTAIS, totaisNaoLidos, type Contagem } from "../sdk/adapter";
 import { assinarColapso, estaColapsada } from "./colapso";
 import { rascunhos, RASCUNHO_VAZIO } from "./rascunhos";
 import { assinarLayout, lerSemente } from "./layout";
@@ -129,6 +130,22 @@ export function useServerIds(): readonly string[] {
   if (import.meta.env.DEV) assertStable(getSnapshot, "useServerIds");
   return useSyncExternalStore(serverIds.subscriber(RAIZ), getSnapshot);
 }
+
+/**
+ * A soma de não-lidas e menções de TODOS os servidores.
+ *
+ * Uma subscrição só para um número que a caixa de entrada mostra em duas abas
+ * — ver `totaisNaoLidos` no adapter para por que a soma não pode morar no
+ * componente.
+ */
+export function useTotaisNaoLidos(): Contagem {
+  const getSnapshot = () => totaisNaoLidos.getSnapshot(TOTAIS) ?? SEM_TOTAIS;
+  if (import.meta.env.DEV) assertStable(getSnapshot, "useTotaisNaoLidos");
+  return useSyncExternalStore(totaisNaoLidos.subscriber(TOTAIS), getSnapshot);
+}
+
+/** Referência compartilhada — a armadilha nº 1. */
+const SEM_TOTAIS: Contagem = { naoLidas: 0, mencoes: 0 };
 
 export function useServer(id: string): ServerSnapshot | undefined {
   const getSnapshot = () => servers.getSnapshot(id);

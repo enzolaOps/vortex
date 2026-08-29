@@ -473,6 +473,7 @@ export function toChannelSnapshot(
     destinatarioId,
     participantes: tipo === "grupo" ? channel.recipientIds.size : 0,
     ultimaEm,
+    ultimaMensagemId: ultimo ?? undefined,
     topico: channel.description || undefined,
     naoLidas,
     mencoes,
