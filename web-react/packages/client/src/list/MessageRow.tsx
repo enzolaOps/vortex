@@ -666,8 +666,22 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                     desconhecido
                   </span>
                 )}
-                <time className="text-xs text-text-3">
-                  {message.createdAtText}
+                {/*
+                  ⚠ **Hora sem SEGUNDOS — mostrava `01:19:07`.**
+
+                  O design escreve `14:07`. Segundo numa conversa não responde
+                  pergunta nenhuma: ninguém decide nada com ele, e ele rouba
+                  três caracteres da linha de cabeçalho toda vez.
+
+                  O valor cheio fica no `dateTime`, que é onde ele serve — o
+                  leitor de tela e qualquer ferramenta leem o instante exato.
+                */}
+                <time
+                  className="text-xs text-text-3"
+                  dateTime={new Date(message.createdAt).toISOString()}
+                  title={message.createdAtText}
+                >
+                  {message.createdAtCurto}
                 </time>
                 {message.editedAt ? (
                   <span className="text-xs text-text-3">(editada)</span>
@@ -808,6 +822,23 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                 achou sobre o que ela escreveu. */}
             {message.embeds.length > 0 ? (
               <Embeds embeds={message.embeds} />
+            ) : null}
+
+            {/*
+              ⚠ **"(editada)" na CONTINUAÇÃO, e ela não aparecia.**
+
+              A marca morava só dentro do cabeçalho — e cabeçalho só existe na
+              linha que ABRE o grupo. Numa conversa agrupada a maioria das
+              linhas não abre grupo nenhum, então editar quase qualquer
+              mensagem não deixava rastro visível.
+
+              Aqui ela vai no fim do corpo, que é onde o próprio design a põe
+              no modo compacto (`… vortex.dev/specs/permissoes (editado)`).
+              No cabeçalho continua quando há cabeçalho: é onde o design a põe
+              no modo confortável.
+            */}
+            {message.editedAt && !message.iniciaGrupo ? (
+              <span className="ms-2 text-xs text-text-3">(editada)</span>
             ) : null}
 
             {message.reactions.length > 0 ? (

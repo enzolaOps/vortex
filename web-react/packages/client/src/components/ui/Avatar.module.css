@@ -27,6 +27,15 @@
   user-select: none;
 }
 
+.xxs {
+  inline-size: var(--vx-avatar-2xs);
+  block-size: var(--vx-avatar-2xs);
+  /* 9px: a sigla precisa caber em 16px de caixa, e o menor degrau da escala
+     (11) transborda. Fora da escala pelo mesmo motivo do rótulo de pasta no
+     rail — abaixo do último degrau, num lugar só. */
+  font-size: 9px;
+}
+
 .xs {
   inline-size: var(--vx-avatar-xs);
   block-size: var(--vx-avatar-xs);

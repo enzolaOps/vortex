@@ -37,8 +37,17 @@
   /* A escala de tipo NÃO serve de escala de caixa: `--vx-size-*` é
      tamanho de fonte. Ponto de presença é respiro visual sobre o
      avatar, e aí a escala de espaçamento é a certa. */
-  inline-size: var(--vx-space-2);
-  block-size: var(--vx-space-2);
+  /*
+    ⚠ **12px, e media 8 — por isso ele "não aparecia".**
+
+    Medido no design: 13px sobre o avatar de 40 da timeline, 12 sobre os de
+    32 nas colunas. Em 8px, sobre um avatar com gradiente, o ponto some — e
+    foi assim que quem usa o descreveu, como ausente e não como pequeno.
+
+    12 atende os dois casos dentro de um pixel, e é degrau da escala.
+  */
+  inline-size: var(--vx-space-3);
+  block-size: var(--vx-space-3);
   box-sizing: border-box;
   border-radius: var(--vx-radius-4);
   /* O anel separa o ponto do avatar sem depender de contraste de cor.

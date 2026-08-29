@@ -714,6 +714,20 @@ function createMessage(seed: number, quando?: number): string {
       // desafixar precisa de alvo.
       ...(seed % 211 === 40 ? { pinned: true } : {}),
       /*
+        ⚠ **Uma em 23 nasce EDITADA, e nenhuma nascia — sétima vez que o arnês
+        fica mais pobre que o protocolo.**
+
+        `editedAt` só era escrito pelo evento `update` do firehose (1 em 31,
+        e só durante a corrida) e pelo botão "Editar a última". Com a lista
+        semeada e parada, que é como a tela é olhada na maior parte do tempo,
+        NENHUMA mensagem tinha a marca — e o defeito de a marca não aparecer
+        em linha de continuação sobreviveu por causa disso.
+
+        `+ 1` no tempo para a edição ser depois do envio, que é o único
+        invariante que essa dupla de campos tem.
+      */
+      ...(seed % 23 === 5 ? { edited: new Date((quando ?? Date.now()) + 1).toISOString() } : {}),
+      /*
         Um cartão de link a cada 29 mensagens.
 
         ⚠ **O arnês mais pobre que o protocolo, SEXTA vez** — e desta a

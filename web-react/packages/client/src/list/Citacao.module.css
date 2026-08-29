@@ -27,7 +27,10 @@
   background: transparent;
   color: var(--vx-text-3);
   font-family: inherit;
-  font-size: var(--vx-size-xs);
+  /* 12px, o número do design — era `--vx-size-xs` (11). A prévia carrega
+     nome e trecho; um degrau abaixo do menor texto de interface a tornava
+     ilegível de relance, que é o único modo em que ela é lida. */
+  font-size: var(--vx-size-sm);
   text-align: start;
   cursor: pointer;
 }
@@ -44,12 +47,36 @@
   font-size: inherit;
 }
 
-.seta {
+/*
+  O cotovelo: um cano que sai da mensagem de cima e entra nesta.
+
+  ⚠ **Substituiu um ícone de seta, e a troca é de INFORMAÇÃO.** A seta dizia
+  "isto é uma resposta"; o cano diz "isto é uma resposta ÀQUELA ali em cima" —
+  ele encosta visualmente na linha anterior. Foi o que quem usa descreveu como
+  "responder difere muito do design".
+
+  Desenhado com duas bordas e um canto arredondado, como no design: 22×9,
+  `border-radius: 6px 0 0`. Não é ícone, então não entra na escala de ícone e
+  não vira SVG — é uma linha, e linha se desenha com borda.
+
+  A cor é `rgba(255,255,255,0.12)` no design; `--vx-border-strong` é o degrau
+  mais próximo que existe aqui e compõe parecido sobre a timeline.
+*/
+.cotovelo {
   flex: none;
-  color: var(--vx-text-3);
-  /* A seta aponta para cima-esquerda; virada, ela lê como "vem daqui". */
-  rotate: 180deg;
-  scale: -1 1;
+  inline-size: 22px;
+  block-size: 9px;
+  margin-inline-start: var(--vx-space-0);
+  /* `align-self: flex-end` põe a curva na altura da linha de texto em vez de
+     centrada: o cano tem que ENCOSTAR embaixo, é de lá que ele vem. */
+  align-self: flex-end;
+  border-block-start: 1px solid var(--vx-border-strong);
+  border-inline-start: 1px solid var(--vx-border-strong);
+  border-start-start-radius: var(--vx-radius-2);
+}
+
+.avatarCitado {
+  flex: none;
 }
 
 .trecho {

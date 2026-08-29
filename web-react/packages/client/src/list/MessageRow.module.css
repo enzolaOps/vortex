@@ -530,6 +530,16 @@
   outline-offset: -2px;
 }
 
+/*
+  A cor do anel do ponto de presença, para a TIMELINE.
+
+  ⚠ **Faltava, e o ponto ficava com anel quase preto.** `PontoDePresenca` lê
+  `var(--anel, --vx-surface-0)` — é o painel que sabe sobre o que o avatar
+  está pousado. Rail, coluna de canais, member list e conversas declaram o
+  seu; a linha de mensagem nunca declarou, então caía no `surface-0` do
+  fallback, sobre uma superfície `surface-2`. Anel escuro sobre fundo escuro é
+  anel que não existe.
+*/
 /* ------------------------------------------------------------ fixada */
 
 /*
@@ -622,6 +632,18 @@
 */
 .linhaDaMensagem {
   min-inline-size: 0;
+
+  /*
+    A cor do anel do ponto de presença, para a TIMELINE.
+
+    ⚠ **Faltava, e o ponto ficava com anel quase preto.** `PontoDePresenca` lê
+    `var(--anel, --vx-surface-0)` — é o painel que sabe sobre o que o avatar
+    está pousado. Rail, coluna de canais, member list e conversas declaram o
+    seu; a linha de mensagem nunca declarou, então caía no `surface-0` do
+    fallback, sobre uma superfície `surface-2`. Anel escuro sobre fundo escuro
+    é anel que não existe, e foi metade da razão de o ponto sumir.
+  */
+  --anel: var(--vx-surface-2);
 }
 
 /*

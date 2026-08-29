@@ -1,8 +1,8 @@
-import { ArrowBendUpLeft } from "@phosphor-icons/react";
-
+import { Avatar } from "../components/ui/Avatar";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
+import { chaveDeMembro } from "../sdk/domain";
 import { pedirIrParaMensagem } from "../store/comandos";
-import { useMessage } from "../store/hooks";
+import { useMembro, useMessage, useServidorAtivo } from "../store/hooks";
 import { TextoDaMensagem } from "./TextoDaMensagem";
 import css from "./Citacao.module.css";
 
@@ -30,6 +30,8 @@ export function Citacao({
   messageId: string;
 }) {
   const citada = useMessage(messageId);
+  const serverId = useServidorAtivo();
+  const autor = useMembro(chaveDeMembro(serverId, citada?.authorId ?? ""));
 
   return (
     <button
@@ -40,11 +42,37 @@ export function Citacao({
       // dentro dele. "Ir para a mensagem citada" sozinho perderia de quem é.
       aria-label="Ir para a mensagem citada"
     >
-      <ArrowBendUpLeft size={20} aria-hidden className={css.seta} />
+      {/*
+        ⚠ **O COTOVELO substituiu a seta, e a diferença é o que o design usa
+        para amarrar a prévia à mensagem.**
+
+        Era um ícone de seta curva (`ArrowBendUpLeft`) do lado do nome. O
+        design desenha uma linha de 22×9 com canto arredondado em cima e à
+        esquerda — um cano que sai da mensagem de cima e entra nesta. A seta
+        dizia "isto é uma resposta"; o cano diz "isto é uma resposta A AQUELA
+        ali em cima", que é a informação que faltava.
+
+        `aria-hidden` porque o `aria-label` do botão já diz o que ele faz —
+        um cano desenhado com bordas não tem nome para anunciar.
+      */}
+      <span className={css.cotovelo} aria-hidden />
 
       {citada ? (
         <>
-          <NomeDoAutor userId={citada.authorId ?? ""} />
+          {/*
+            O avatar de quem foi respondido — 16px, do design.
+
+            Sem ele a prévia é uma linha de texto cinza entre duas mensagens, e
+            quem varre a conversa não distingue "resposta" de "continuação". O
+            rosto é o que torna a relação legível sem ler.
+          */}
+          <Avatar
+            id={citada.authorId ?? ""}
+            sigla={autor?.sigla}
+            tamanho="xxs"
+            className={css.avatarCitado}
+          />
+          <NomeDoAutor userId={citada.authorId ?? ""} citado />
           <span className={css.trecho}>
             <TextoDaMensagem blocos={citada.blocos} compacto />
           </span>

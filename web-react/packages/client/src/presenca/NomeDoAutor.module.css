@@ -57,3 +57,17 @@
   font-size: var(--vx-size-lg);
   font-weight: 700;
 }
+
+/*
+  O nome dentro da prévia de resposta: 12px / 600, herdando a cor de cargo.
+
+  ⚠ Não reusa `.nomeInline` porque aquele é o do modo COMPACTO da timeline —
+  15px, peso 700, e uma margem que existe para separar o nome do texto que
+  corre depois dele. Aqui o nome é um item de uma linha flex de 12px, e a
+  margem viria do `gap`.
+*/
+.nomeCitado {
+  flex: none;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+}

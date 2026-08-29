@@ -444,6 +444,10 @@
   /* 22px, o número do design para quem está numa sala de voz. Era 20 — e o
      único consumidor é a linha da sala, então o degrau descreve exatamente
      aquele lugar. */
+  /* 16px — o avatar da prévia de resposta, e só ele. O design o desenha
+     dentro de uma linha de 16px de altura: qualquer coisa maior empurraria a
+     prévia e a faria competir com a mensagem que ela introduz. */
+  --vx-avatar-2xs: 16px;
   --vx-avatar-xs: 22px; /* linha de sala de voz, chip */
   --vx-avatar-sm: 32px; /* member list, lista de conversas */
   --vx-avatar-md: 40px; /* linha de mensagem, rail */

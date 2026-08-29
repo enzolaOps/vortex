@@ -29,8 +29,11 @@ import css from "./NomeDoAutor.module.css";
 export function NomeDoAutor({
   userId,
   denso = false,
+  citado = false,
 }: {
   userId: string;
+  /** Dentro da prévia de resposta: 12px / 600, cor de cargo mantida. */
+  citado?: boolean;
   /**
    * Modo compacto: o nome vai INLINE com o texto da mensagem.
    *
@@ -50,7 +53,13 @@ export function NomeDoAutor({
     // perfis existem.
     <CartaoDePerfil serverId={serverId} userId={userId}>
     <span
-      className={denso ? css.nomeInline : "text-lg font-semibold text-text-2"}
+      className={
+        citado
+          ? css.nomeCitado
+          : denso
+            ? css.nomeInline
+            : "text-lg font-semibold text-text-2"
+      }
       /*
         A única cor literal legítima do app.
 

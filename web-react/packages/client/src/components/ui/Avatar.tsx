@@ -39,7 +39,7 @@ export function Avatar({
   id: string;
   /** As iniciais. Ausente = caixa vazia, para placeholder. */
   sigla?: string;
-  tamanho?: "xs" | "sm" | "md" | "lg";
+  tamanho?: "xxs" | "xs" | "sm" | "md" | "lg";
   className?: string;
   children?: ReactNode;
 }) {
