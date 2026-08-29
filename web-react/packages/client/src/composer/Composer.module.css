@@ -71,7 +71,16 @@
     concordar.
   */
   margin-inline: 0;
-  padding-inline: var(--vx-space-16);
+  /*
+    20 e não 16 — o recuo lateral do design, na LISTA e no COMPOSER juntos.
+
+    Medido no `Vortex App.dc.html`: o container de rolagem da timeline tem
+    `padding: 16px 20px 4px` e o wrapper do composer, `0 20px 14px`. Os dois
+    são 20, e é por isso que os dois mudaram no mesmo passe: mexer em um só
+    quebraria a invariante do briefing — "composer alinhado à coluna de
+    mensagem" —, que é o que a assertion de `dev/alinhamento.ts` guarda.
+  */
+  padding-inline: var(--vx-space-20);
 
   /* Lei nº 6: o composer reage ao PRÓPRIO tamanho. Em popout estreito ou
      com um painel de thread aberto ao lado, ele encolhe sem que a janela

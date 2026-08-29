@@ -121,7 +121,7 @@
      sem precisar saber a largura dela. */
   inline-size: fit-content;
   margin-inline-start: auto;
-  margin-inline-end: var(--vx-space-16);
+  margin-inline-end: var(--vx-space-20);
   padding-inline: var(--vx-space-08);
   padding-block: var(--vx-space-04);
 

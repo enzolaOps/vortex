@@ -657,7 +657,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
   // honesta enquanto o dado não chega.
   if (!message) {
     return (
-      <article aria-hidden className="flex gap-12 px-16 py-08">
+      <article aria-hidden className="flex gap-12 px-20 py-08">
         <div className={cn(css.calha, "mt-04 rounded-12 bg-surface-2")} />
         <div className={cn(css.minZero, "flex-1 text-lg leading-message")}>&nbsp;</div>
       </article>
@@ -680,7 +680,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
       <>
         {message.primeiraNaoLida ? <DivisorDeNovas /> : null}
         {message.dia ? <DivisorDeDia rotulo={message.dia} /> : null}
-        <article className="flex items-baseline gap-08 px-16 pt-16 text-xs text-text-3">
+        <article className="flex items-baseline gap-08 px-20 pt-16 text-xs text-text-3">
           <Info size={20} aria-hidden className="shrink-0 self-center" />
           <p className={cn(css.minZero, "flex-1 wrap-anywhere")}>
             <FraseDeSistema sistema={message.sistema} />
@@ -767,7 +767,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
               Agora a barra ancora na LINHA DE MENSAGEM, que é filha, e a
               prévia fica acima dela, fora do alcance.
             */
-            "relative flex flex-col px-16 hover:bg-surface-1 data-[alvo=true]:bg-surface-1",
+            "relative flex flex-col px-20 hover:bg-surface-1 data-[alvo=true]:bg-surface-1",
             // O ritmo de agrupamento: 4px dentro do grupo, 16px entre grupos.
             // Três níveis de separação no total (o terceiro é o divisor), cada
             // um pelo menos 2× o anterior — é o que os faz lerem como distintos

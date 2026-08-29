@@ -150,7 +150,8 @@
   display: flex;
   align-items: center;
   gap: var(--vx-space-08);
-  padding-inline: var(--vx-space-16);
+  /* Acompanha o `px-20` da linha — ver a nota em `Composer.module.css`. */
+  padding-inline: var(--vx-space-20);
   padding-block-start: var(--vx-space-16);
 }
 
@@ -264,9 +265,9 @@
     vão. É o mesmo alinhamento, escrito com os mesmos tokens.
   */
   padding-inline-start: calc(
-    var(--vx-space-16) + var(--vx-avatar-sm) + var(--vx-space-12)
+    var(--vx-space-20) + var(--vx-avatar-sm) + var(--vx-space-12)
   );
-  padding-inline-end: var(--vx-space-16);
+  padding-inline-end: var(--vx-space-20);
   /* Muito acima, pouco abaixo: o rótulo pertence ao dia que ABRE. */
   padding-block: var(--vx-space-32) var(--vx-space-04);
 }
@@ -317,7 +318,9 @@
 .acoes {
   position: absolute;
   inset-block-start: 0;
-  inset-inline-end: var(--vx-space-16);
+  /* Ancorada no recuo da LINHA: em 16 ela flutuaria 4px fora da coluna de
+     conteúdo depois que o recuo foi para 20. */
+  inset-inline-end: var(--vx-space-20);
   /* Montada na borda de cima, no espaço que o ritmo de agrupamento
      já deixa entre as linhas. Zero de layout. */
   transform: translateY(-50%);
