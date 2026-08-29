@@ -81,6 +81,20 @@ const HORA = new Intl.DateTimeFormat("pt-BR", {
 });
 
 /**
+ * Sem segundos, para a coluna de hora do modo compacto.
+ *
+ * A coluna tem 40px de largura fixa — `14:02:35` em mono não cabe, e um
+ * timestamp truncado com reticências é pior que um sem segundos. O modo
+ * confortável continua com a hora cheia: lá ela mora numa linha de cabeçalho
+ * onde há espaço, e o segundo às vezes decide qual de duas mensagens veio
+ * antes.
+ */
+const HORA_CURTA = new Intl.DateTimeFormat("pt-BR", {
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+/**
  * Tipos do protocolo que este cliente ainda não estrutura.
  *
  * Rotulados em português aqui, e não deixados vazar como `"message_pinned"`:
@@ -242,6 +256,7 @@ export function toMessageSnapshot(
     mencionaVoce: euId !== undefined && message.content.includes(`<@${euId}>`),
     createdAt: message.createdAt.getTime(),
     createdAtText: HORA.format(message.createdAt),
+    createdAtCurto: HORA_CURTA.format(message.createdAt),
     editedAt: message.editedAt?.getTime(),
     sistema: toSistema(message),
     respostas: message.replyIds ?? VAZIO,

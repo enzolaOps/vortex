@@ -182,21 +182,47 @@ function Trecho({
   }
 }
 
-function Blocos({ blocos }: { blocos: readonly BlocoDeMensagem[] }) {
+function Blocos({
+  blocos,
+  prefixo,
+}: {
+  blocos: readonly BlocoDeMensagem[];
+  prefixo?: React.ReactNode;
+}) {
   return (
     <>
-      {blocos.map((b) => (
-        <Bloco key={chave(b)} bloco={b} />
+      {blocos.map((b, i) => (
+        <Bloco key={chave(b)} bloco={b} prefixo={i === 0 ? prefixo : undefined} />
       ))}
     </>
   );
 }
 
-function Bloco({ bloco }: { bloco: BlocoDeMensagem }) {
+function Bloco({
+  bloco,
+  prefixo,
+}: {
+  bloco: BlocoDeMensagem;
+  /**
+   * Conteúdo que entra ANTES do texto, dentro do primeiro parágrafo.
+   *
+   * ⚠ **Existe por causa do modo compacto, e ele precisa disto de verdade.**
+   * O design põe o nome de quem escreveu inline com a mensagem — `**Marina
+   * Alcântara** Fechamos o escopo…` numa linha só —, e um `<span>` antes do
+   * corpo ficaria em linha própria, porque o corpo abre com `<p>`.
+   *
+   * Só no PRIMEIRO bloco, e só quando ele é parágrafo: prefixar um bloco de
+   * código ou uma citação poria o nome dentro da caixa deles. Nesse caso o
+   * nome cai para fora, em linha própria — que é o comportamento correto, e é
+   * o que o design faz quando a mensagem abre com bloco.
+   */
+  prefixo?: React.ReactNode;
+}) {
   switch (bloco.tipo) {
     case "paragrafo":
       return (
         <p className={css.paragrafo}>
+          {prefixo}
           <Trechos trechos={bloco.filhos} compacto={false} />
         </p>
       );
@@ -302,10 +328,20 @@ function Bloco({ bloco }: { bloco: BlocoDeMensagem }) {
 export function TextoDaMensagem({
   blocos,
   compacto = false,
+  prefixo,
 }: {
   blocos: readonly BlocoDeMensagem[];
   /** Citação e painel de fixados: uma linha, sem estrutura de bloco. */
   compacto?: boolean;
+  /**
+   * Entra dentro do primeiro parágrafo — ver `Bloco`.
+   *
+   * ⚠ Não confundir com a prop `compacto` acima: aquela é "achate isto numa
+   * linha para uma prévia", esta é "o nome do autor vem inline". A densidade
+   * compacta da TIMELINE usa `prefixo` e NÃO usa `compacto`, porque lá a
+   * mensagem continua inteira, com bloco de código e lista.
+   */
+  prefixo?: React.ReactNode;
 }) {
   /*
     O compacto ACHATA em vez de renderizar blocos.
@@ -317,5 +353,5 @@ export function TextoDaMensagem({
   if (compacto) {
     return <Trechos trechos={achatar(blocos)} compacto />;
   }
-  return <Blocos blocos={blocos} />;
+  return <Blocos blocos={blocos} prefixo={prefixo} />;
 }

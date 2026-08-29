@@ -54,6 +54,7 @@ import { responderA } from "../store/resposta";
 import { useMessage } from "../store/hooks";
 import { Anexos } from "./Anexos";
 import { aindaNao } from "../pendente/pendencias";
+import { assinarDensidade, lerDensidade } from "../store/densidade";
 import { Citacao } from "./Citacao";
 import { Embeds } from "./Embeds";
 import { CrachaDeCargo } from "../presenca/NomeDoAutor";
@@ -316,6 +317,23 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
     deixou de ser e a que passou a ser. É o mesmo padrão do `useColapso`, e o
     motivo pelo qual dar um valor derivado ao getter é seguro aqui.
   */
+  /*
+    A densidade, assinada pela própria linha.
+
+    ⚠ **Não vem por prop da lista de propósito.** Uma prop faria a `MessageList`
+    assinar e repassar, e `memo` compararia a prop em toda linha montada — o
+    mesmo custo, com um acoplamento a mais. Aqui é o mesmo padrão de `ehAlvo`
+    logo abaixo: `useSyncExternalStore` compara por `Object.is` sobre uma
+    string estável, então trocar de densidade acorda exatamente as ~50 linhas
+    montadas, e nada mais.
+
+    E é APRESENTAÇÃO: o adapter continua calculando `iniciaGrupo` do mesmo
+    jeito, e o modo compacto simplesmente o ignora. Agrupar diferente no store
+    faria trocar de densidade republicar dez mil snapshots.
+  */
+  const compacto =
+    useSyncExternalStore(assinarDensidade, lerDensidade) === "compacto";
+
   const ehAlvo = useSyncExternalStore(
     assinarMenuDeMensagem,
     () => lerAlvoDoMenu() === id,
@@ -553,8 +571,23 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
           <div className={cn(css.linhaDaMensagem, "relative flex gap-3")}>
           {/* A calha do avatar existe mesmo na continuação: é o que mantém o
               texto alinhado ao longo do grupo inteiro. */}
+          {/*
+            A calha muda de PAPEL com a densidade, e é isto que o design quer
+            dizer com "compacto não é o confortável com padding menor".
+
+            Confortável: avatar de 40px, vazio na continuação do grupo — a
+            calha existe para manter o texto alinhado ao longo do grupo.
+
+            Compacto: a MESMA largura vira a coluna de hora, em mono e alinhada
+            à direita. O espaço não é economizado, é reaproveitado: em vez de
+            40px de identidade visual, 40px de endereço temporal, e toda
+            mensagem passa a ter o seu — que é o que faz cada linha ser
+            endereçável, e por que o agrupamento some junto.
+          */}
           <div className={cn(css.calha, "relative mt-1")}>
-            {message.iniciaGrupo ? (
+            {compacto ? (
+              <time className={css.horaCompacta}>{message.createdAtCurto}</time>
+            ) : message.iniciaGrupo ? (
               <AvatarDoAutor userId={message.authorId ?? ""} />
             ) : null}
           </div>
@@ -619,7 +652,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
           </div>
 
 
-            {message.iniciaGrupo ? (
+            {!compacto && message.iniciaGrupo ? (
               <div className="flex items-baseline gap-2">
                 {message.authorId ? (
                   <>
@@ -696,7 +729,26 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                   "text-lg leading-message wrap-anywhere text-text-1",
                 )}
               >
-                <TextoDaMensagem blocos={message.blocos} />
+                <TextoDaMensagem
+                  blocos={message.blocos}
+                  /*
+                    No compacto o nome entra DENTRO do primeiro parágrafo — o
+                    design o desenha inline com o texto, e um `<span>` antes do
+                    corpo cairia em linha própria porque o corpo abre com `<p>`.
+                    Ver a prop `prefixo` em `TextoDaMensagem`.
+
+                    O crachá de cargo vem junto: ele é parte da identidade de
+                    quem escreveu, não do cabeçalho que deixou de existir.
+                  */
+                  prefixo={
+                    compacto && message.authorId ? (
+                      <>
+                        <NomeDoAutor userId={message.authorId} denso />
+                        <CrachaDeCargo userId={message.authorId} />
+                      </>
+                    ) : undefined
+                  }
+                />
               </div>
             )}
 

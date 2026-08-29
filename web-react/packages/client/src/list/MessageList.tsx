@@ -1,6 +1,6 @@
 import { At, ChatCircleDots } from "@phosphor-icons/react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 
 import { aoTerminarArraste, estaArrastando } from "../store/arraste";
 import {
@@ -16,6 +16,7 @@ import {
 } from "../store/focoDeMensagem";
 import { count, readCounters } from "../dev/stats";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
+import { assinarDensidade, lerDensidade, type Densidade } from "../store/densidade";
 import {
   definirLongeDoFim,
   esquecerLongeDoFim,
@@ -149,8 +150,26 @@ export const ALTURA_ESTIMADA = 99;
  * que a linha aparece. Encher a fórmula de casos raros troca um erro pequeno e
  * constante por um erro pequeno e imprevisível.
  */
-const ALTURA_POR_TIPO = {
-  sistema: 37,
+const ALTURA_POR_TIPO: Record<
+  Densidade,
+  { sistema: number; abreGrupo: number; continua: number }
+> = {
+  /*
+    ⚠ **Por DENSIDADE, e sem isto a âncora quebraria no modo novo.**
+
+    O compacto não é o confortável apertado: ele não tem linha de cabeçalho
+    (o autor entra inline) e não tem avatar. Reusar as constantes do
+    confortável superestimaria cada linha em dezenas de pixels — e o gate
+    acabou de provar que erro de estimativa é o que faz `followOnAppend`
+    desengatar e a lista parar de seguir.
+
+    No compacto `abreGrupo` e `continua` são IGUAIS de propósito: o modo não
+    agrupa, então toda linha desenha a mesma coisa. Os dois campos ficam
+    porque o `estimateSize` pergunta pelo tipo antes de saber a densidade, e
+    um `Record` com a mesma resposta é mais honesto que um `if` a menos.
+  */
+  confortavel: {
+    sistema: 37,
   /*
     ⚠ **Sétima vez que estes números se movem, e desta vez a defasagem tinha
     CONSEQUÊNCIA MEDIDA — não era só a barra de rolagem mentindo.**
@@ -175,8 +194,31 @@ const ALTURA_POR_TIPO = {
     Isto NÃO é otimização, é correção: a estimativa descreve a linha que
     existe, e quando ela para de descrever, quem quebra é a âncora.
   */
-  abreGrupo: 125,
-  continua: 86,
+    abreGrupo: 125,
+    continua: 86,
+  },
+  /*
+    ⚠ **MEDIDOS, e o chute inicial errou 30% para BAIXO — que é o lado que
+    quebra a âncora.** Eu escrevi 60px raciocinando "sem avatar, sem cabeçalho,
+    logo bem menor". O gate reprovou na primeira corrida em compacto, com a
+    trilha aparecendo: subestimar faz cada linha crescer depois de medida, o
+    conteúdo empurra para baixo, `followOnAppend` desengata e não volta.
+
+    Os números do relatório, sobre 200+ amostras: **89,7 abre grupo · 79,6
+    continua · 39,5 sistema**.
+
+    ⚠ **Os dois primeiros diferem embora o compacto desenhe as duas linhas
+    IGUAIS.** Não é contradição: o modo não agrupa, então a forma é a mesma, e
+    o que difere é o CONTEÚDO das duas populações — no arnês, a mensagem que
+    abre grupo tende a ser mais longa. Forçá-los iguais seria trocar o que o
+    instrumento mediu por uma simetria que a estimativa não precisa ter; ela
+    prevê pixels, não justifica formas.
+  */
+  compacto: {
+    sistema: 40,
+    abreGrupo: 90,
+    continua: 80,
+  },
 };
 
 /**
@@ -319,16 +361,30 @@ function temBlocoPesado(blocos: readonly BlocoDeMensagem[]): boolean {
 
 const AVISADO = new Set<string>();
 
-function conferirEstimativa(tipo: keyof typeof ALTURA_POR_TIPO, media: number) {
-  if (AVISADO.has(tipo)) return;
-  const esperada = ALTURA_POR_TIPO[tipo];
+type TipoDeLinha = keyof (typeof ALTURA_POR_TIPO)["confortavel"];
+
+function conferirEstimativa(
+  densidade: Densidade,
+  tipo: TipoDeLinha,
+  media: number,
+) {
+  /*
+    A chave inclui a DENSIDADE.
+
+    Sem isso, avisar uma vez sobre `continua` no confortável calaria o aviso
+    sobre `continua` no compacto — que é outra constante, de outra forma de
+    linha, e o mais provável de estar errado justamente por ser o novo.
+  */
+  const chave = `${densidade}:${tipo}`;
+  if (AVISADO.has(chave)) return;
+  const esperada = ALTURA_POR_TIPO[densidade][tipo];
   if (esperada <= 0) return;
   const erro = Math.abs(media - esperada) / esperada;
   if (erro < 0.15) return;
 
-  AVISADO.add(tipo);
+  AVISADO.add(chave);
   console.error(
-    `[vortex] a estimativa de altura da linha "${tipo}" está a ` +
+    `[vortex] a estimativa de altura da linha "${tipo}" (${densidade}) está a ` +
       `${(erro * 100).toFixed(0)}% do real: estima ${esperada}px, mede ` +
       `${media.toFixed(1)}px. A linha mudou de forma. Estimativa errada não ` +
       `quebra nada — só faz a barra de rolagem mentir sobre o tamanho do ` +
@@ -349,6 +405,17 @@ export function MessageList({ channelId }: { channelId: string }) {
   count("listRenders");
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  /*
+    A densidade, assinada UMA vez pela lista.
+
+    Diferente da linha, que assina a sua: aqui quem precisa é o `estimateSize`
+    do virtualizador, e ele é opção do hook — não há como lê-la de dentro de
+    cada `MessageRow`. Trocar de densidade muda o resultado da estimativa, o
+    virtualizador remede, e é exatamente o que tem de acontecer: todas as
+    alturas mudaram de uma vez.
+  */
+  const densidade = useSyncExternalStore(assinarDensidade, lerDensidade);
+
   const virtualizer = useVirtualizer({
     count: ids.length,
     getScrollElement: () => scrollRef.current,
@@ -361,11 +428,12 @@ export function MessageList({ channelId }: { channelId: string }) {
     estimateSize: (i) => {
       const m = messages.getSnapshot(ids[i] ?? "");
       if (!m) return ALTURA_ESTIMADA;
+      const alturas = ALTURA_POR_TIPO[densidade];
       const porTipo = m.sistema
-        ? ALTURA_POR_TIPO.sistema
+        ? alturas.sistema
         : m.iniciaGrupo
-          ? ALTURA_POR_TIPO.abreGrupo
-          : ALTURA_POR_TIPO.continua;
+          ? alturas.abreGrupo
+          : alturas.continua;
 
       // Anexo é exato, não estimado: a caixa vem do metadata, não do arquivo.
       // Bloco de código e lista entram pelo mesmo critério de magnitude.
@@ -994,13 +1062,13 @@ export function MessageList({ channelId }: { channelId: string }) {
     // linhas, uma mensagem longa sozinha desloca o número.
     const c = readCounters();
     if (c.alturaGrupoAmostras > 200) {
-      conferirEstimativa("abreGrupo", c.alturaGrupoSoma / c.alturaGrupoAmostras);
+      conferirEstimativa(densidade, "abreGrupo", c.alturaGrupoSoma / c.alturaGrupoAmostras);
     }
     if (c.alturaContinuaAmostras > 200) {
-      conferirEstimativa("continua", c.alturaContinuaSoma / c.alturaContinuaAmostras);
+      conferirEstimativa(densidade, "continua", c.alturaContinuaSoma / c.alturaContinuaAmostras);
     }
     if (c.alturaSistemaAmostras > 200) {
-      conferirEstimativa("sistema", c.alturaSistemaSoma / c.alturaSistemaAmostras);
+      conferirEstimativa(densidade, "sistema", c.alturaSistemaSoma / c.alturaSistemaAmostras);
     }
   }
 

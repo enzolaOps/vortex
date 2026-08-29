@@ -200,6 +200,18 @@ export type MessageSnapshot = {
    * re-render de linha, e apareceu no firehose a 4x.
    */
   readonly createdAtText: string;
+  /**
+   * A hora sem segundos — "14:02" —, para a coluna do modo compacto.
+   *
+   * ⚠ **Campo próprio e não um `slice` de `createdAtText`.** Cortar string
+   * formatada por `Intl` é a armadilha clássica: o formato muda com o idioma
+   * (`2:02 PM`), e um corte por índice acerta em português e mente em inglês.
+   *
+   * Derivação na ESCRITA, como `createdAtText`, `sigla` e `tamanhoTexto` — um
+   * `Intl.DateTimeFormat` no render seria multiplicado por cada re-render da
+   * linha mais quente do app, que é exatamente o erro nº 4 do briefing.
+   */
+  readonly createdAtCurto: string;
   readonly editedAt: number | undefined;
   /**
    * Presente = a linha é do SISTEMA, não de alguém.

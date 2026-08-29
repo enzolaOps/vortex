@@ -45,6 +45,23 @@ function marcaDoVortex(): Plugin {
 }
 
 export default defineConfig({
+  /*
+    A porta vem do AMBIENTE, com o default do Vite como reserva.
+
+    O `launch.json` fixava `--port 5173 --strictPort`, e a porta ficou presa
+    num processo órfão — o servidor de desenvolvimento passou a não subir, com
+    uma mensagem sobre conflito de porta em vez de sobre o app. Nada aqui
+    precisa de 5173 em particular: este é um SPA que fala PARA um backend, não
+    um destino de callback de OAuth nem de webhook, então ninguém de fora
+    conhece o número.
+
+    `undefined` e não um número quando `PORT` não existe: assim o Vite escolhe,
+    e a configuração não reintroduz o valor fixo que causou o problema.
+  */
+  server: {
+    port: process.env.PORT ? Number(process.env.PORT) : undefined,
+  },
+
   plugins: [
     // Regra do projeto: React Compiler ativo desde o dia 1. Uma das duas
     // perguntas do spike é se ele convive com o TanStack Virtual — desligar

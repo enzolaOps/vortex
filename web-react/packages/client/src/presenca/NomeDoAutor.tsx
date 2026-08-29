@@ -26,7 +26,20 @@ import css from "./NomeDoAutor.module.css";
  * fallback correto é o `User`, que é exatamente o que `toMemberSnapshot`
  * devolve sem `ServerMember`.
  */
-export function NomeDoAutor({ userId }: { userId: string }) {
+export function NomeDoAutor({
+  userId,
+  denso = false,
+}: {
+  userId: string;
+  /**
+   * Modo compacto: o nome vai INLINE com o texto da mensagem.
+   *
+   * Peso 700 e não 600, que é o número do design — inline, o nome precisa de
+   * mais peso para se destacar do corpo do que precisaria numa linha própria,
+   * onde a posição já o separa.
+   */
+  denso?: boolean;
+}) {
   const serverId = useServidorAtivo();
   const membro = useMembro(chaveDeMembro(serverId, userId));
   const corDeCargo = useCorDeCargo(membro?.cor);
@@ -37,7 +50,7 @@ export function NomeDoAutor({ userId }: { userId: string }) {
     // perfis existem.
     <CartaoDePerfil serverId={serverId} userId={userId}>
     <span
-      className="text-lg font-semibold text-text-2"
+      className={denso ? css.nomeInline : "text-lg font-semibold text-text-2"}
       /*
         A única cor literal legítima do app.
 

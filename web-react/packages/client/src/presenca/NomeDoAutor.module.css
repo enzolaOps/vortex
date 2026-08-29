@@ -40,3 +40,20 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/*
+  O nome inline do modo compacto.
+
+  Peso 700 e o mesmo tamanho do corpo: ele corre DENTRO do parágrafo, e um
+  tamanho diferente ali quebraria a linha de base do texto que vem depois.
+
+  A margem no fim é o único espaço entre o nome e a primeira palavra — não há
+  `gap` porque não há flex: isto é conteúdo inline, e o navegador não põe vão
+  entre dois `span` vizinhos.
+*/
+.nomeInline {
+  margin-inline-end: var(--vx-space-2);
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-lg);
+  font-weight: 700;
+}

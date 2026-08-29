@@ -1,4 +1,12 @@
+import { useSyncExternalStore } from "react";
+
 import { Botao } from "../components/ui/Botao";
+import { Segmentado } from "../components/ui/Segmentado";
+import {
+  assinarDensidade,
+  definirDensidade,
+  lerDensidade,
+} from "../store/densidade";
 import { PickerDePaleta } from "../layout/PickerDePaleta";
 import { fecharConfig } from "../store/config";
 import { entrar } from "../store/edicao";
@@ -15,9 +23,43 @@ import css from "./Secao.module.css";
  * É o que o plano de paridade antecipou: a contagem de 42 páginas do upstream é
  * maior que o trabalho real, porque parte delas já existe sem casa.
  */
+/** Fora do componente: constante, não estado. */
+const OPCOES_DE_DENSIDADE = [
+  { id: "confortavel", rotulo: "Confortável" },
+  { id: "compacto", rotulo: "Compacto" },
+] as const;
+
 export function Aparencia() {
+  const densidade = useSyncExternalStore(assinarDensidade, lerDensidade);
+
   return (
     <div className={css.forma}>
+      {/*
+        Densidade PRIMEIRO, e a ordem não é arbitrária.
+
+        Ela muda a forma de toda linha da timeline — é o ajuste com o maior
+        efeito visível desta tela, e o que alguém vem procurar aqui na primeira
+        semana de uso. Paleta e layout são refinamento; densidade é conforto de
+        leitura numa jornada de oito horas.
+      */}
+      <section className={css.bloco}>
+        <h2 className={css.subtitulo}>Densidade</h2>
+        <p className={css.recado}>
+          Compacto não é o confortável apertado: ele troca o avatar por uma
+          coluna de hora e deixa de agrupar mensagens do mesmo autor, então
+          cada linha vira um endereço. Cabe mais conversa na tela; identifica-se
+          quem falou com menos relance.
+        </p>
+        <Segmentado
+          rotulo="Densidade da timeline"
+          valor={densidade}
+          opcoes={OPCOES_DE_DENSIDADE}
+          aoEscolher={definirDensidade}
+        />
+      </section>
+
+      <hr className={css.divisor} />
+
       <section className={css.bloco}>
         <h2 className={css.subtitulo}>Paleta</h2>
         <p className={css.recado}>

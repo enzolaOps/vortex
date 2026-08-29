@@ -639,3 +639,31 @@
   min-inline-size: 0;
   padding-inline-start: calc(var(--vx-avatar-md) + var(--vx-space-3));
 }
+
+/* ---------------------------------------------------------- modo compacto */
+
+/*
+  A coluna de hora, no lugar do avatar.
+
+  Mono e alinhada à DIREITA: alinhadas à esquerda, `09:05` e `14:02` deixam os
+  dois-pontos em posições diferentes e o olho perde a coluna descendo a lista.
+  Com mono e à direita, os dígitos formam uma grade — que é o motivo de o
+  design pedir mono aqui e não em mais lugar nenhum da timeline.
+
+  `--vx-text-4` porque é metadado permanente de TODA linha: no compacto ele
+  aparece cinquenta vezes na tela, e em `text-3` a coluna competiria com o que
+  se está lendo.
+
+  O respiro de cima alinha o dígito com a primeira linha do texto, que começa
+  mais abaixo por causa da entrelinha do corpo.
+*/
+.horaCompacta {
+  display: block;
+  inline-size: 100%;
+  padding-block-start: var(--vx-space-0);
+  color: var(--vx-text-4);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
