@@ -1,0 +1,121 @@
+/* ============================================================
+   Mensagem de voz — o player da timeline
+   ------------------------------------------------------------
+   Pílula, como o design: o áudio é um objeto único e contínuo,
+   e a forma arredondada é o que o separa do bloco de texto
+   acima sem gastar borda nem régua.
+   ============================================================ */
+
+.player {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  margin-block-start: var(--vx-space-2);
+  padding: var(--vx-space-1) var(--vx-space-3) var(--vx-space-1) var(--vx-space-1);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-5);
+  background: var(--vx-surface-3);
+}
+
+.tocar {
+  display: grid;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 30px;
+  flex: none;
+  border-radius: var(--vx-radius-5);
+  background: var(--vx-accent);
+  color: var(--vx-on-accent);
+  cursor: pointer;
+}
+
+.tocar svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+.tocar:hover {
+  background: var(--vx-accent-hover);
+}
+
+.tocar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* -------------------------------------------------- forma de onda */
+
+/*
+  Altura fixa e barras coladas ao FUNDO.
+
+  `align-items: flex-end` porque uma forma de onda cresce do chão: centrada,
+  ela vira um gráfico simétrico, que é outra coisa — e o design desenha barras
+  apoiadas na base.
+*/
+.onda {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--vx-space-0);
+  block-size: 22px;
+  min-inline-size: 120px;
+  flex: 1;
+  cursor: pointer;
+}
+
+.onda:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 3px;
+  border-radius: var(--vx-radius-1);
+}
+
+.barra {
+  inline-size: 3px;
+  flex: none;
+  border-radius: var(--vx-radius-0);
+  /* Não tocada: o cinza da rampa, não `text-4` — é forma, não texto, e o
+     mínimo de 4,5:1 não se aplica a um elemento decorativo de 3px. */
+  background: var(--vx-neutral);
+}
+
+.barra[data-tocada] {
+  background: var(--vx-accent);
+}
+
+/* -------------------------------------------------------- rodapé */
+
+/*
+  Mono, e com largura estável.
+
+  "0:08 / 0:22" muda o primeiro número a cada segundo; com fonte proporcional
+  isso empurra a velocidade para os lados uma vez por segundo, o tempo inteiro
+  em que o áudio toca.
+*/
+.tempo {
+  flex: none;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.velocidade {
+  flex: none;
+  padding-inline: var(--vx-space-1);
+  border-radius: var(--vx-radius-1);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  font-weight: 700;
+  color: var(--vx-text-2);
+  cursor: pointer;
+}
+
+.velocidade:hover {
+  color: var(--vx-text-1);
+}
+
+.velocidade:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}

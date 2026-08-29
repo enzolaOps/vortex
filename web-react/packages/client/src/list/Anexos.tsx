@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import type { AnexoSnapshot } from "../sdk/domain";
 import { administrar } from "../store/administracao";
 import { aindaNao } from "../pendente/pendencias";
+import { ReprodutorDeVoz } from "./ReprodutorDeVoz";
 import css from "./Anexos.module.css";
 
 /**
@@ -19,11 +20,22 @@ import css from "./Anexos.module.css";
  * conhecida antes do primeiro byte do arquivo. Arquivo e áudio não têm
  * dimensão e não precisam: são uma linha de altura fixa.
  */
-export function Anexos({ anexos }: { anexos: readonly AnexoSnapshot[] }) {
+export function Anexos({
+  anexos,
+  /*
+    De QUAL mensagem — o lightbox precisa dela para saber o autor, o canal e
+    quais são os outros anexos. Antes ele recebia a URL solta e não tinha como
+    derivar nenhum dos três.
+  */
+  messageId,
+}: {
+  anexos: readonly AnexoSnapshot[];
+  messageId: string;
+}) {
   return (
     <div className={css.anexos}>
       {anexos.map((a) => (
-        <Anexo key={a.id} anexo={a} />
+        <Anexo key={a.id} anexo={a} messageId={messageId} />
       ))}
     </div>
   );
@@ -74,7 +86,22 @@ function RodapeDoAnexo({ anexo }: { anexo: AnexoSnapshot }) {
   );
 }
 
-function Anexo({ anexo }: { anexo: AnexoSnapshot }) {
+function Anexo({
+  anexo,
+  messageId,
+}: {
+  anexo: AnexoSnapshot;
+  messageId: string;
+}) {
+  /*
+    Áudio vira PLAYER, e é a primeira coisa que o componente pergunta.
+
+    Antes desta linha ele caía no ramo de `arquivo` — um link com nome e ícone
+    de download, que é a resposta certa para um PDF e a errada para uma
+    mensagem de voz: ninguém baixa um áudio de oito segundos para ouvi-lo.
+  */
+  if (anexo.tipo === "audio") return <ReprodutorDeVoz anexo={anexo} />;
+
   if (anexo.tipo === "arquivo" || !anexo.largura || !anexo.altura) {
     return (
       <a className={css.arquivo} href={anexo.url} download={anexo.nome}>
@@ -135,10 +162,8 @@ function Anexo({ anexo }: { anexo: AnexoSnapshot }) {
           onClick={() =>
             administrar({
               tipo: "verImagem",
-              url: anexo.url,
-              nome: anexo.nome,
-              largura: anexo.largura,
-              altura: anexo.altura,
+              messageId,
+              anexoId: anexo.id,
             })
           }
         >

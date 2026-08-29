@@ -117,7 +117,16 @@ export type AnexoSnapshot = {
   readonly id: string;
   readonly nome: string;
   readonly url: string;
-  readonly tipo: "imagem" | "video" | "arquivo";
+  /**
+   * ⚠ **`audio` é tipo PRÓPRIO, e não um `arquivo` com extensão certa.**
+   *
+   * A diferença muda o que a linha desenha: arquivo vira um cartão com nome e
+   * peso, áudio vira um player com forma de onda e posição. Deduzir isso da
+   * extensão no render seria a forma do protocolo vazando para o componente
+   * mais quente do app — que é o que a camada anticorrupção existe para
+   * impedir. O protocolo já distingue: `Metadata.type === "Audio"`.
+   */
+  readonly tipo: "imagem" | "video" | "audio" | "arquivo";
   /** Só para imagem e vídeo, e é o que reserva o espaço. */
   readonly largura: number | undefined;
   readonly altura: number | undefined;

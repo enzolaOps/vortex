@@ -1144,7 +1144,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             {/* Depois do texto e ANTES das reações: o anexo faz parte do que
                 foi dito; a reação é o que os outros responderam. */}
             {message.anexos.length > 0 ? (
-              <Anexos anexos={message.anexos} />
+              <Anexos anexos={message.anexos} messageId={message.id} />
             ) : null}
 
             {/* O cartão de link vem DEPOIS do anexo e antes das reações: o

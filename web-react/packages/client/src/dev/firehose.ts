@@ -678,6 +678,30 @@ function anexosDe(seed: number) {
       ],
     };
   }
+  /*
+    ⚠ **Áudio, e ele NÃO existia — nona vez que o arnês fica mais pobre que o
+    protocolo.** `Metadata.type === "Audio"` é do protocolo desde sempre; o
+    firehose só sabia produzir imagem e arquivo, então o player de mensagem de
+    voz nasceria construído e inalcançável, que é a família de defeito que o
+    painel de fixadas já mostrou uma vez.
+
+    Primo com os outros dois (41 e 17) de propósito: períodos que se cruzam
+    pouco, para as três formas de anexo aparecerem na mesma janela.
+  */
+  if (seed % 29 === 5) {
+    return {
+      attachments: [
+        {
+          _id: `f${seed}`,
+          tag: "attachments",
+          filename: `recado-${seed}.ogg`,
+          size: 40_000 + (seed % 300) * 900,
+          metadata: { type: "Audio" },
+        },
+      ],
+    };
+  }
+
   if (seed % 17 !== 3) return {};
 
   const p = PROPORCOES[seed % PROPORCOES.length]!;

@@ -1,12 +1,12 @@
-import { PushPin, PushPinSlash } from "@phosphor-icons/react";
 import { memo } from "react";
 
+import { Avatar } from "../components/ui/Avatar";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
-import { Tooltip } from "../components/ui/Tooltip";
 import { alternarFixada } from "../sdk/adapter";
+import { pode } from "../sdk/permissoes";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
 import { pedirIrParaMensagem } from "../store/comandos";
-import { useCanalAtivo, useFixadas, useMessage } from "../store/hooks";
+import { useCanalAtivo, useChannel, useFixadas, useMessage } from "../store/hooks";
 import { TextoDaMensagem } from "../list/TextoDaMensagem";
 import css from "./PainelDeFixados.module.css";
 
@@ -20,9 +20,11 @@ import css from "./PainelDeFixados.module.css";
 const Fixada = memo(function Fixada({
   channelId,
   id,
+  podeDesafixar,
 }: {
   channelId: string;
   id: string;
+  podeDesafixar: boolean;
 }) {
   const message = useMessage(id);
 
@@ -32,6 +34,14 @@ const Fixada = memo(function Fixada({
 
   return (
     <li className={css.item}>
+      {/*
+        O cartão inteiro leva à mensagem, e as ações são IRMÃS do botão.
+
+        Botão dentro de botão é HTML inválido — o navegador reestrutura a
+        árvore sozinho e o clique interno aciona os dois. É o mesmo erro que a
+        linha de canal já registrou uma vez, e a correção é a mesma: um wrapper
+        que contém o alvo grande e os alvos pequenos lado a lado.
+      */}
       <button
         type="button"
         className={css.abrir}
@@ -39,30 +49,49 @@ const Fixada = memo(function Fixada({
       >
         <span className={css.cabecalho}>
           {message.authorId ? (
-            <NomeDoAutor userId={message.authorId} />
+            <>
+              <Avatar id={message.authorId} tamanho="xs" />
+              <NomeDoAutor userId={message.authorId} denso />
+            </>
           ) : (
             <span className={css.desconhecido}>desconhecido</span>
           )}
-          <time className={css.hora}>{message.createdAtText}</time>
+          <time className={css.hora}>{message.createdAtCurto}</time>
         </span>
 
         {/* Duas linhas e corta. O painel é índice, não leitura — quem quer o
             texto inteiro clica e vai até ele, que é o que o botão faz. */}
         <span className={css.trecho}>
-            <TextoDaMensagem blocos={message.blocos} compacto />
-          </span>
+          <TextoDaMensagem blocos={message.blocos} compacto />
+        </span>
       </button>
 
-      <Tooltip texto="Desafixar" lado="inicio">
+      {/*
+        As ações em TEXTO, como o design — e não um ícone no canto.
+
+        A diferença importa aqui: um cartão de fixada tem duas ações de peso
+        muito diferente ("pular para" é navegação, "desafixar" é destrutivo), e
+        dois ícones lado a lado não dizem qual é qual sem hover. Escritas, a
+        cor faz o resto.
+      */}
+      <span className={css.acoes}>
         <button
           type="button"
-          className={css.desafixar}
-          onClick={() => alternarFixada(id)}
-          aria-label="Desafixar mensagem"
+          className={css.acao}
+          onClick={() => pedirIrParaMensagem(channelId, id)}
         >
-          <PushPinSlash size={20} aria-hidden />
+          Pular para
         </button>
-      </Tooltip>
+        {podeDesafixar ? (
+          <button
+            type="button"
+            className={css.acaoPerigo}
+            onClick={() => alternarFixada(id)}
+          >
+            Desafixar
+          </button>
+        ) : null}
+      </span>
     </li>
   );
 });
@@ -73,12 +102,7 @@ const Fixada = memo(function Fixada({
  * É o primeiro painel a entrar na união `PainelId` depois da fase 4, e serve
  * de prova de que a extensão saiu barata: o tipo fechado enumerou sozinho os
  * quatro lugares que precisavam saber dele — o registro de painéis, os limites
- * de largura, o nome no modo edição e a alça de redimensionamento. Nenhum foi
- * descoberto em runtime.
- *
- * E **não precisou de versão nova do preset**: um preset v1 escrito antes
- * continua válido, porque nenhum campo mudou de forma — a união só ganhou um
- * membro. O caminho contrário é que seria caro, e é o que o schema impede.
+ * de largura, o nome no modo edição e a alça de redimensionamento.
  *
  * Nasce movível como todo o resto: assina o canal ativo por conta própria e
  * não recebe nada por prop, então funciona em qualquer slot.
@@ -86,6 +110,8 @@ const Fixada = memo(function Fixada({
 export function PainelDeFixados() {
   const channelId = useCanalAtivo();
   const ids = useFixadas(channelId);
+  const canal = useChannel(channelId);
+  const podeDesafixar = pode(channelId, "fixar");
 
   if (!channelId) {
     return (
@@ -97,9 +123,18 @@ export function PainelDeFixados() {
 
   return (
     <div className={css.painel}>
+      {/*
+        Cabeçalho com CONTAGEM e lugar — "4 em #produto", do design.
+
+        Um painel lateral pode estar aberto sobre um canal que não é o que a
+        pessoa estava olhando quando o abriu; dizer de qual canal são as
+        fixadas custa uma linha e responde a pergunta antes dela.
+      */}
       <header className={css.titulo}>
-        <PushPin size={20} aria-hidden />
-        fixadas
+        <span className={css.tituloNome}>Fixadas</span>
+        <span className={css.tituloContexto}>
+          {ids.length} {canal ? `em #${canal.name}` : ""}
+        </span>
       </header>
 
       {ids.length === 0 ? (
@@ -111,10 +146,28 @@ export function PainelDeFixados() {
       ) : (
         <ul className={css.lista}>
           {ids.map((id) => (
-            <Fixada key={id} channelId={channelId} id={id} />
+            <Fixada
+              key={id}
+              channelId={channelId}
+              id={id}
+              podeDesafixar={podeDesafixar}
+            />
           ))}
         </ul>
       )}
+
+      {/*
+        O rodapé que explica a ausência.
+
+        Sem ele, quem não tem a permissão vê cartões com uma ação a menos e não
+        tem como saber por quê — e "ações administrativas não são renderizadas
+        sem permissão" só funciona quando a ausência é óbvia. Aqui não é.
+      */}
+      {!podeDesafixar && ids.length > 0 ? (
+        <p className={css.rodape}>
+          Só quem tem "Fixar mensagens" vê as ações de desafixar.
+        </p>
+      ) : null}
     </div>
   );
 }

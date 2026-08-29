@@ -26,7 +26,13 @@ export const VERSAO_ATUAL = 1;
  * quando existirem — e vão entrar como tipo também: "thread" e não "a thread
  * da mensagem 01JQ…".
  */
-export const PAINEIS = ["rail", "canais", "membros", "fixados"] as const;
+export const PAINEIS = [
+  "rail",
+  "canais",
+  "membros",
+  "fixados",
+  "caixaDeEntrada",
+] as const;
 
 export type PainelId = (typeof PAINEIS)[number];
 
@@ -46,6 +52,7 @@ export const NOME_DO_PAINEL: Record<PainelId, string> = {
   canais: "canais",
   membros: "membros",
   fixados: "fixados",
+  caixaDeEntrada: "caixa de entrada",
 };
 
 /**
@@ -138,6 +145,13 @@ export const LARGURA = {
   // Mais largo por padrão que os outros: fixado é MENSAGEM, e mensagem numa
   // coluna de 240px quebra em quatro linhas por item.
   fixados: { min: 220, max: 480, padrao: 300 },
+  /*
+    Mais larga que fixados por padrão, e é o design que manda: 420 contra 400.
+    A linha dela carrega servidor, canal e contagem na mesma altura — três
+    informações de comprimento livre —, e abaixo de ~280 o nome do servidor
+    começa a truncar em toda linha.
+  */
+  caixaDeEntrada: { min: 260, max: 520, padrao: 340 },
 } as const satisfies Record<PainelId, { min: number; max: number; padrao: number }>;
 
 export function limitarLargura(painel: PainelId | null, largura: number): number {

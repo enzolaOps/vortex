@@ -138,9 +138,11 @@ export function AcoesDoCanal({ channelId, nome }: { channelId: string; nome: str
         <Users size={20} />
       </BotaoDePainel>
 
-      <BotaoPendente id="caixaDeEntrada" rotulo="Caixa de entrada">
+      {/* Deixou de ser pendência: o painel existe e o dado já estava no
+          snapshot do canal. Ver `caixa/CaixaDeEntrada.tsx`. */}
+      <BotaoDePainel painel="caixaDeEntrada">
         <Tray size={20} />
-      </BotaoPendente>
+      </BotaoDePainel>
 
       {/*
         ⚠ **CAMPO, e era um ícone — o design desenha uma caixa de 180px com

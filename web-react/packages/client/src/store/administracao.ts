@@ -49,12 +49,18 @@ export type Alvo =
   | { readonly tipo: "renomearPasta"; readonly pastaId: string; readonly nome: string }
   | { readonly tipo: "convite"; readonly channelId: string }
   | { readonly tipo: "apagarMensagem"; readonly messageId: string }
+  /*
+    ⚠ **O alvo é a MENSAGEM, não a URL — e a troca destrava metade do design.**
+
+    Com uma URL solta, o lightbox não tem como saber quem mandou, em que canal,
+    nem quais são os outros anexos: cabeçalho, setas e tira de miniaturas ficam
+    todos irrepresentáveis. Com a mensagem, os três saem do snapshot que já
+    existe, e o `anexoId` só diz por qual começar.
+  */
   | {
       readonly tipo: "verImagem";
-      readonly url: string;
-      readonly nome: string;
-      readonly largura: number | undefined;
-      readonly altura: number | undefined;
+      readonly messageId: string;
+      readonly anexoId: string;
     }
   | {
       readonly tipo: "linkExterno";

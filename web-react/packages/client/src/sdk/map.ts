@@ -237,7 +237,13 @@ function toAnexos(message: Message): readonly AnexoSnapshot[] {
       // apresentação, e ela entra quando houver servidor para servi-la.
       url: f.originalUrl,
       tipo:
-        m.type === "Image" ? "imagem" : m.type === "Video" ? "video" : "arquivo",
+        m.type === "Image"
+          ? "imagem"
+          : m.type === "Video"
+            ? "video"
+            : m.type === "Audio"
+              ? "audio"
+              : "arquivo",
       largura: dimensionado ? m.width : undefined,
       altura: dimensionado ? m.height : undefined,
       tamanhoTexto: formatarBytes(f.size),

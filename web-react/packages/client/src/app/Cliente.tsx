@@ -12,6 +12,7 @@ import { MessageList } from "../list/MessageList";
 import { Modais } from "../components/ui/Modais";
 import { PainelDeEdicao } from "../layout/PainelDeEdicao";
 import { PainelDeFixados } from "../fixados/PainelDeFixados";
+import { CaixaDeEntrada } from "../caixa/CaixaDeEntrada";
 import { Rail } from "../rail/Rail";
 import { Shell } from "../shell/Shell";
 import { useCanalAtivo, useLocal } from "../store/hooks";
@@ -62,6 +63,7 @@ export function Cliente({ ferramentas }: { ferramentas?: ReactNode }) {
         canais: <ListaDeCanais />,
         membros: <ListaDeMembros />,
         fixados: <PainelDeFixados />,
+        caixaDeEntrada: <CaixaDeEntrada />,
       }}
       /*
         O cabeçalho é LINHA PRÓPRIA do shell agora, e não mais um irmão da
