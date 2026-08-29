@@ -186,8 +186,14 @@
   color: var(--vx-text-3);
   font-family: inherit;
   font-size: var(--vx-size-xs);
-  font-weight: 500;
-  letter-spacing: 0.04em;
+  /*
+    600 e `0.08em`, medidos no design — estava em 500 e `0.04em`, os mesmos
+    números que a member list tinha antes e pelo mesmo motivo (copiei um do
+    outro). Em caixa alta a 11px, o espaçamento é o que separa "rótulo" de
+    "palavra apertada": maiúsculas coladas leem como um bloco só.
+  */
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   text-align: start;
   cursor: pointer;
@@ -307,7 +313,10 @@
 */
 .canal[data-naolidas="true"] {
   color: var(--vx-text-1);
-  font-weight: 500;
+  /* 600, medido no design. Estava em 500 — perto, e o bastante para a linha
+     não lida não se separar das outras varrendo a coluna, que é a única coisa
+     que ela precisa fazer. */
+  font-weight: 600;
 }
 
 /*
@@ -360,10 +369,17 @@
   block-size: var(--vx-icon-1);
 }
 
-.canal[aria-current="true"] .icone,
-.canal[data-naolidas="true"] .icone {
-  color: var(--vx-text-2);
-}
+/*
+  ⚠ **O glifo NÃO acompanha o estado, e a regra que o fazia acompanhar saiu.**
+
+  Havia aqui `.canal[aria-current] .icone, .canal[data-naolidas] .icone {
+  color: text-2 }`. Medido no design: o `#` é `#4C5563` (`--vx-text-4`) em
+  TODOS os estados — inativo, não lido e ativo. É coerente com a razão pela
+  qual ele é apagado: o glifo diz o TIPO do canal, e o tipo não muda porque
+  chegou mensagem. Clareá-lo dava duas pistas para o mesmo fato (o nome já
+  sobe para `text-1` e ganha peso 600) e gastava a única diferença que
+  distinguia pontuação de conteúdo na linha.
+*/
 
 /* 14px e altura de 30px: os números do `Vortex App`. Ver `--vx-size-base`. */
 .nome {
@@ -375,14 +391,31 @@
   font-size: var(--vx-size-base);
 }
 
+/*
+  O badge de não-lidas: pílula vermelha, número BRANCO, 10px em peso 700.
+
+  ⚠ **O branco é do design e ele CUSTA legibilidade — medido.** Branco sobre
+  `--vx-danger` (`#e8596b`) dá **3,46:1**; o `--vx-on-accent` que estava aqui
+  (quase preto) dá **5,62:1**. Para texto pequeno o mínimo é 4,5:1, então o
+  design reprova e o que havia antes passava.
+
+  Segue o design pela regra que quem toca o produto reafirmou duas vezes: a
+  paleta é a do design, exata, inclusive onde ela reprova contraste. É a mesma
+  decisão já registrada em `EXCECOES` de `tema/pares.ts`, e é uma linha para
+  reverter se a leitura do número pesar mais que a fidelidade.
+
+  `--vx-radius-5` (pílula) e não o raio 4: o design usa `999px`, e num badge
+  de um dígito a diferença entre 12px e pílula é visível.
+*/
 .contador {
   flex: none;
   min-inline-size: var(--vx-space-4);
   padding-inline: var(--vx-space-1);
-  border-radius: var(--vx-radius-4);
+  border-radius: var(--vx-radius-5);
   background: var(--vx-danger);
-  color: var(--vx-on-accent);
-  font-size: var(--vx-size-xs);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
