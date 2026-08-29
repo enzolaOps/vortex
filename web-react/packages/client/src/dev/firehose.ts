@@ -806,10 +806,27 @@ function createMessage(seed: number, quando?: number): string {
  * carga em massa e caminho de evento que `seedChannel` estabeleceu.
  */
 export function chamadaFalsa(): () => void {
-  const canal = ensureWorld();
-  void canal;
-  const sala = "01JQ0000000000000000000004";
-  const dentro = [userIds[0]!, userIds[3]!, userIds[6]!, userIds[9]!];
+  ensureWorld();
+
+  /*
+    ⚠ **A chamada acontece num canal que EXISTE no mundo, e não acontecia.**
+
+    Ela usava `01JQ…0004` — um id que nenhum canal do arnês tem — e uma lista
+    de participantes tirada de `userIds` por índice, sem relação com quem
+    `semearVoz` pôs nas salas. Resultado: o cartão flutuante mostrava quatro
+    pessoas falando, e as MESMAS salas na coluna de canais não acendiam
+    ninguém. O arnês descrevia dois mundos.
+
+    Não deu erro porque as duas metades estavam certas isoladamente: a
+    chamada tinha participantes válidos e a coluna tinha ocupantes válidos. O
+    defeito só existe na relação, que é a mesma família do recuo do rail.
+
+    Agora a sala é `voz-geral` e os falantes são exatamente quem `semearVoz`
+    pôs lá — o anel na coluna e o do cartão passam a descrever o mesmo fato.
+  */
+  const sala = SALA_DO_ARNES;
+  const dentro = ocupantesDe(sala);
+  if (dentro.length === 0) return () => {};
 
   definirChamada({
     estado: "dentro",
@@ -843,6 +860,32 @@ export function chamadaFalsa(): () => void {
     definirFalantes([]);
     encerrarChamada();
   };
+}
+
+/**
+ * A sala onde a chamada falsa acontece — `voz-geral`.
+ *
+ * A primeira das duas com gente, e a que tem teto (`3/8`), então o cartão, o
+ * anel na coluna e a contagem descrevem a mesma sala.
+ */
+const SALA_DO_ARNES = "01JQ0000000000000000000012";
+
+/**
+ * Quem `semearVoz` pôs naquela sala.
+ *
+ * Recalculado com a mesma conta de `ensureWorld` em vez de guardado: uma
+ * segunda cópia da regra é a fonte da divergência que esta função existe para
+ * fechar.
+ */
+function ocupantesDe(salaId: string): string[] {
+  const servidor = MUNDO[0];
+  if (!servidor) return [];
+  const membros = userIds.slice(0, servidor.membros);
+  const vozes = servidor.canais.filter((c) => c.voz);
+  const n = vozes.findIndex((c) => c.id === salaId);
+  const canal = vozes[n];
+  if (!canal) return [];
+  return membros.slice(n * 4, n * 4 + (canal.dentro ?? 0));
 }
 
 /** Um ULID com o tempo pedido — a coluna da casa ordena decodificando isto. */

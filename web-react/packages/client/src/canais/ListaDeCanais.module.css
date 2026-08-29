@@ -378,6 +378,25 @@
 .canal[aria-current="true"] {
   background: var(--vx-state-selected);
   color: var(--vx-text-1);
+  /* 600 no design, e estava herdando 400. O canal aberto é o único item da
+     coluna que a pessoa não precisa procurar — e era o mais leve dos três
+     estados, mais leve até que um canal com não-lidas. */
+  font-weight: 600;
+}
+
+/*
+  ⚠ **O glifo do canal ABERTO fica em acento — e eu tinha removido isso.**
+
+  Havia uma regra clareando o `#` em dois estados (não-lida e ativo). Medi o
+  não-lido no design, vi `#4C5563`, e apaguei a regra inteira. Metade estava
+  certa: no não-lido o glifo fica apagado mesmo. No ATIVO ele é `#7EE3E9`,
+  acento claro — a mesma cor do nome do servidor na lista de membros.
+
+  Removi por medir um caso e concluir sobre dois. É o mesmo erro do peso do
+  nome na sala de voz, no mesmo arquivo, no mesmo dia.
+*/
+.canal[aria-current="true"] .icone {
+  color: var(--vx-accent-text);
 }
 
 /*
@@ -606,9 +625,34 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--vx-text-1);
+  color: var(--vx-text-2);
   font-size: var(--vx-size-md);
+}
+
+/*
+  ⚠ **Falando: o nome sobe para primário e ganha peso — e eu tinha posto isso
+  em TODO MUNDO.**
+
+  Medi um participante do design (Marina, 600 em `#E6EAF0`) e generalizei a
+  regra a partir dele. Os outros dois da mesma sala estão em 400 e `#A5AEBB`:
+  Marina é a que está FALANDO, e o 600 é o estado, não o padrão. Uma amostra
+  não prova uma regra — é o mesmo erro que este projeto já registrou duas
+  vezes em outro lugar, e desta vez quem pegou foi quem usa.
+
+  O anel é `--vx-success` e não acento: no design ele é `rgb(70,201,138)`,
+  verde. Faz sentido — verde é o vocabulário de "algo está acontecendo agora",
+  e acento aqui competiria com o canal ativo, que está na mesma coluna.
+
+  `box-shadow` e não `border`: borda mudaria a caixa do avatar e reflowaria a
+  linha a cada sílaba. Sombra não ocupa espaço.
+*/
+.naSala[data-falando="true"] .nomeNaSala {
+  color: var(--vx-text-1);
   font-weight: 600;
+}
+
+.naSala[data-falando="true"] .avatarDeVoz {
+  box-shadow: 0 0 0 2px var(--vx-success);
 }
 
 /*

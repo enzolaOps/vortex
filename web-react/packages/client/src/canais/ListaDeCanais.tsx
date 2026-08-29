@@ -16,7 +16,7 @@ import {
   Trash,
   VideoCamera,
 } from "@phosphor-icons/react";
-import { memo } from "react";
+import { memo, useSyncExternalStore } from "react";
 
 import {
   ContextMenu,
@@ -39,6 +39,7 @@ import {
   type SecaoId,
 } from "../store/config";
 import { entrarNaChamada } from "../sdk/chamada";
+import { falando } from "../store/chamada";
 import { administrar } from "../store/administracao";
 import { ListaDeConversas } from "../casa/ListaDeConversas";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
@@ -361,8 +362,28 @@ const NaSala = memo(function NaSala({
   const membro = useMembro(chaveDeMembro(serverId, participante.userId));
   const Icone = ICONE_DE_VOZ[participante.estado];
 
+  /*
+    ⚠ **Quem está falando AGORA — e a coluna nunca soube disso.**
+
+    O store efêmero de fala existe desde a etapa de voz, com throttle de 120ms
+    na fronteira, e tinha um único consumidor: o cartão flutuante de chamada.
+    Aqui a linha mostrava todo mundo igual.
+
+    A subscrição é por USUÁRIO, que é a granularidade que o `CLAUDE.md`
+    manda: alguém começar a falar acorda ESTA linha e mais nada — nem a sala,
+    nem a coluna, nem a lista. É a mesma forma do `CartaoDeChamada`.
+
+    ⚠ Aqui a fala muda o NOME também (peso e cor), não só o anel, então o
+    re-render é da linha inteira e não de um `<span>`. É o que o design pede,
+    e o teto é o número de pessoas na sala — dezenas, não milhares.
+  */
+  const falandoAgora = useSyncExternalStore(
+    falando.subscriber(participante.userId),
+    () => falando.getSnapshot(participante.userId) ?? false,
+  );
+
   return (
-    <li className={css.naSala}>
+    <li className={css.naSala} data-falando={falandoAgora}>
       <Avatar
         id={participante.userId}
         sigla={membro?.sigla}
@@ -381,6 +402,9 @@ const NaSala = memo(function NaSala({
       <span className={css.nomeNaSala}>
         {membro?.displayName ?? participante.userId}
       </span>
+      {/* O anel é visual; para quem não vê, o texto é o que carrega o estado.
+          Presença e fala nunca só por cor ou forma. */}
+      {falandoAgora ? <span className="sr-only">falando</span> : null}
       {/*
         Tela e câmera ganham ícone; voz simples não ganha nada.
 
