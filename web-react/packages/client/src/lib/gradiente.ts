@@ -1,103 +1,121 @@
-import { oklchParaHex } from "../tema/cor";
-
 /**
- * Um gradiente estável por ID — o preenchimento de avatar e de ladrilho.
+ * Os gradientes de avatar e de ladrilho — os do design, exatos.
  *
- * ⚠ **Isto resolve o que mais destoava do design, e resolve sem upload.** O
- * design desenha todo servidor e toda pessoa como uma caixa PREENCHIDA com
- * gradiente; o app desenhava anéis vazios e quadrados cinza, e era a diferença
- * que mais fazia a tela parecer outro produto. Os gradientes do mock são
- * escolhidos à mão, um por servidor — aqui eles são derivados do ID, o que dá
- * a mesma leitura e ainda é estável entre sessões e entre pessoas.
+ * ⚠ **Isto era DERIVADO do ID e passou a ser CURADO, por decisão de quem toca
+ * o produto.** A versão anterior tirava o matiz de um hash e fixava L e C, o
+ * que dava 360 identidades de cor; media-se contra o design e sobrava sempre a
+ * mesma diferença, porque o croma dele varia 4,4× entre as famílias (0,026 a
+ * 0,115) e nenhum par de constantes reproduz três valores tão distantes.
+ *
+ * O que se ganha: semelhança 1:1 — são os hexes do design, sem aproximação.
+ * O que se perde, dito uma vez: **a identificação por cor encolheu de 360 para
+ * três.** Numa lista de vinte pessoas, sete compartilham cada gradiente. A cor
+ * deixa de ser um traço de quem é e vira variedade visual; quem identifica
+ * continua sendo a inicial e o nome. Foi decidido com isso à vista.
+ *
+ * ⚠ **São QUATRO gradientes no design e só TRÊS entram no sorteio.** O quarto
+ * — `#35C2CC → #1E7F92`, o acento — carrega `V` e `VX` em todas as 35
+ * ocorrências: é a MARCA, não um avatar. Sorteá-lo para pessoas poria a cor de
+ * "isto está ativo" em gente aleatória, que é a disciplina de acento que este
+ * projeto já teve de consertar uma vez (nove lâminas simultâneas na tela).
+ * Ele fica exportado à parte, no papel que o design lhe dá.
  *
  * Não é substituto de avatar de verdade: quando o upload existir, a imagem
- * cobre isto. É o fallback, e um fallback que identifica é melhor que um que
- * só ocupa espaço — duas iniciais em cinza são iguais para todo mundo.
- *
- * **A luminosidade é do app, o matiz é do ID.** É a mesma divisão do
- * `derivar.ts`, e pela mesma razão: em OKLCH o L carrega o contraste, então
- * fixar o L garante que as iniciais sejam legíveis sobre QUALQUER matiz que o
- * hash produza. Um teste varre os 360 e prova.
+ * cobre isto.
  */
 
-/**
- * Os dois pontos do gradiente e a cor do texto em cima. Fixos em L.
- *
- * ⚠ **O croma ENCOLHE ao longo do gradiente, e antes ele não encolhia.**
- *
- * Medidos os quatro gradientes que o design usa à mão, a razão croma-fim sobre
- * croma-início é 0,77 (teal `#35C2CC→#1E7F92`), 0,85 (neutro
- * `#3C4653→#222833`) e 0,62 (roxo `#4A3F6B→#241F38`). A nossa era **0,92** —
- * praticamente reta, e um gradiente que não perde saturação lê como uma cor
- * chapada com sombra, não como gradiente. Era a diferença mais visível entre a
- * nossa tela e a do design, porque avatar e ladrilho são as caixas mais
- * repetidas do app.
- *
- * 0,075 → 0,048 reproduz a família ROXA do design exatamente, e ela é a do
- * meio das três. ⚠ **Não dá para reproduzir as três com um par de constantes**
- * — o croma delas varia 4,4× (0,026 a 0,115) porque foram escolhidas uma a
- * uma. A escolha aqui é manter a DERIVAÇÃO por ID (360 identidades em vez de
- * quatro) e copiar a física; adotar as quatro exatas é decisão de produto, e
- * custa a identificação por cor.
- *
- * A razão em L (0,64) já estava dentro da faixa do design (0,65–0,74), e o
- * giro de matiz de +12° também — o design gira +12, +7 e −2.
- */
-const CLARO = { l: 0.42, c: 0.075 };
-const ESCURO = { l: 0.27, c: 0.048 };
-const TEXTO = { l: 0.92, c: 0.04 };
+import { razao } from "../tema/cor";
+
+/** Um gradiente do design, com a cor que se escreve em cima dele. */
+type Paleta = {
+  readonly gradiente: string;
+  readonly texto: string;
+  /**
+   * O ponto do gradiente onde a inicial contrasta PIOR — é contra ele que o
+   * contraste é medido.
+   *
+   * ⚠ **Não é "o mais claro", e essa suposição me custou um teste vermelho.**
+   * Com texto claro sobre os três fundos escuros, o pior ponto é de fato o
+   * claro. Na paleta da marca o texto é ESCURO sobre um teal brilhante, e ali
+   * a relação inverte: contra `#35C2CC` dá 8,46 e contra `#1E7F92`, 3,91. Um
+   * campo chamado "o mais claro" mediria o melhor caso e chamaria de garantia.
+   */
+  readonly fundo: string;
+};
+
+/*
+  A cor das iniciais é FIXA, e isso mudou junto.
+
+  Enquanto o gradiente era derivado, o texto era derivado com ele e o par
+  variava junto. Com o gradiente fixo, um texto que seguisse `--vx-text-1`
+  quebraria no tema claro — lá o `text-1` é quase preto, e estes três fundos
+  continuam escuros nos dois modos. Medido no design: `#E6EAF0` sobre os três
+  escuros (67 · 32 · 24 ocorrências) e `#04181B` sobre o acento (24).
+*/
+const TEXTO_CLARO = "#e6eaf0";
+const TEXTO_ESCURO = "#04181b";
+
+function paleta(de: string, para: string, texto: string): Paleta {
+  return {
+    // 140° é o ângulo do design, em todas as ocorrências.
+    gradiente: `linear-gradient(140deg, ${de}, ${para})`,
+    texto,
+    fundo: razao(texto, de) <= razao(texto, para) ? de : para,
+  };
+}
 
 /**
- * Matiz a partir do ID.
+ * As três famílias que uma entidade pode receber.
+ *
+ * A ordem é a do design por frequência — neutro (68 usos), teal escuro (34),
+ * roxo (25) —, e ela importa: com `hash % 3` o índice 0 é o mais provável de
+ * cair em qualquer amostra pequena, e o neutro é o que menos chama atenção
+ * quando repete.
+ */
+const FAMILIAS: readonly Paleta[] = [
+  paleta("#3c4653", "#222833", TEXTO_CLARO),
+  paleta("#2c6e7a", "#173c46", TEXTO_CLARO),
+  paleta("#4a3f6b", "#241f38", TEXTO_CLARO),
+];
+
+/** O quarto — reservado à marca. Ver o aviso no topo. */
+export const PALETA_DA_MARCA: Paleta = paleta("#35c2cc", "#1e7f92", TEXTO_ESCURO);
+
+/**
+ * O índice a partir do ID.
  *
  * FNV-1a de 32 bits, e não `charCodeAt` somado: soma simples colide em
  * anagrama, e IDs de servidor são ULIDs que compartilham prefixo de tempo —
- * exatamente o caso em que uma soma dá o mesmo matiz para tudo o que foi
- * criado no mesmo minuto.
+ * exatamente o caso em que uma soma dá a mesma cor para tudo o que foi criado
+ * no mesmo minuto. Com três famílias o hash importa MAIS, não menos: o espaço
+ * de saída é pequeno, então um hash que não espalhe bem os últimos caracteres
+ * põe o rail inteiro numa cor só.
  */
-export function matizDe(id: string): number {
+export function indiceDe(id: string): number {
   let h = 0x811c9dc5;
   for (let i = 0; i < id.length; i++) {
     h ^= id.charCodeAt(i);
     h = Math.imul(h, 0x01000193);
   }
-  return ((h >>> 0) % 360000) / 1000;
+  return (h >>> 0) % FAMILIAS.length;
 }
 
 /**
- * Cache por ID, e ele é OBRIGATÓRIO — não otimização preventiva.
+ * Cache por ID.
  *
- * Um dos consumidores é a linha de mensagem, o componente mais quente do app:
- * sob firehose ela re-renderiza dezenas de vezes por segundo, e sem cache cada
- * passagem pagaria um hash mais TRÊS conversões OKLCH→hex por avatar visível.
- * É o erro nº 4 do briefing — derivação cara no caminho de render — só que com
- * cor em vez de markdown.
- *
- * O ID não muda nunca, então o cache não invalida. Sem teto de tamanho pela
- * mesma razão: o número de entradas é o número de pessoas e servidores que a
- * sessão viu, não o de mensagens.
+ * ⚠ Ele existia porque a derivação custava um hash mais três conversões
+ * OKLCH→hex por avatar visível, e a linha de mensagem re-renderiza dezenas de
+ * vezes por segundo sob firehose. Com gradiente curado o custo caiu para um
+ * hash e um `%`, mas o cache FICA: `paletaDe` devolve o objeto, e sem cache ele
+ * seria um objeto NOVO a cada chamada — a mesma armadilha de referência que o
+ * `getSnapshot` do store tem, e o erro nº 1 do briefing.
  */
-type Paleta = {
-  readonly gradiente: string;
-  readonly texto: string;
-  readonly fundo: string;
-};
-
 const cache = new Map<string, Paleta>();
 
 function paletaDe(id: string): Paleta {
   const guardada = cache.get(id);
   if (guardada) return guardada;
-
-  const h = matizDe(id);
-  const clara = oklchParaHex({ l: CLARO.l, c: CLARO.c, h });
-  const escura = oklchParaHex({ l: ESCURO.l, c: ESCURO.c, h: (h + 12) % 360 });
-  const nova: Paleta = {
-    // 140° é o ângulo do design.
-    gradiente: `linear-gradient(140deg, ${clara}, ${escura})`,
-    texto: oklchParaHex({ l: TEXTO.l, c: TEXTO.c, h }),
-    fundo: clara,
-  };
+  const nova = FAMILIAS[indiceDe(id)] as Paleta;
   cache.set(id, nova);
   return nova;
 }
@@ -107,7 +125,7 @@ export function gradienteDe(id: string): string {
   return paletaDe(id).gradiente;
 }
 
-/** A cor das iniciais em cima dele. Mesmo matiz, L alto e fixo. */
+/** A cor das iniciais em cima dele. */
 export function corDoTextoDe(id: string): string {
   return paletaDe(id).texto;
 }
@@ -116,3 +134,6 @@ export function corDoTextoDe(id: string): string {
 export function corDeFundoDe(id: string): string {
   return paletaDe(id).fundo;
 }
+
+/** As quatro paletas, para o teste medir cada uma. */
+export const PALETAS: readonly Paleta[] = [...FAMILIAS, PALETA_DA_MARCA];
