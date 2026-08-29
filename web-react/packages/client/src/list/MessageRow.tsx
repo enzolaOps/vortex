@@ -444,7 +444,21 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             // A auditoria dos oito estados achou a linha de mensagem sem
             // hover NENHUM — a superfície mais usada do app inteiro, sem
             // resposta ao ponteiro.
-            "relative flex gap-3 px-4 hover:bg-surface-1 data-[alvo=true]:bg-surface-1",
+            /*
+              ⚠ **COLUNA, e era uma linha só — a prévia de resposta precisava
+              ser IRMÃ da mensagem, não filha do corpo.**
+
+              A razão está no próprio design, e é a mesma que ele dá: com a
+              prévia dentro do corpo, a barra de ações do hover pousa em cima
+              dela (ela ancora na borda de cima e sobe metade da própria
+              altura), e o alvo de "pular para a mensagem citada" fica coberto
+              justamente quando o ponteiro está na linha — ou seja, sempre que
+              alguém iria clicar nele.
+
+              Agora a barra ancora na LINHA DE MENSAGEM, que é filha, e a
+              prévia fica acima dela, fora do alcance.
+            */
+            "relative flex flex-col px-4 hover:bg-surface-1 data-[alvo=true]:bg-surface-1",
             // O ritmo de agrupamento: 4px dentro do grupo, 16px entre grupos.
             // Três níveis de separação no total (o terceiro é o divisor), cada
             // um pelo menos 2× o anterior — é o que os faz lerem como distintos
@@ -513,6 +527,30 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             tabindex torna as duas verdadeiras, e o `Enter` da lista não deixa
             o único caminho depender de uma tradução de tecla do navegador.
           */}
+          {/*
+            A citação abre a linha, acima do cabeçalho: é o contexto que torna
+            a mensagem legível, e lê-la depois do texto seria ler a resposta
+            antes da pergunta.
+
+            Recuada pela calha (`.citacaoRecuada`) para alinhar com a coluna de
+            conteúdo, e não com o avatar: ela pertence ao que foi ESCRITO. O
+            recuo agora é dela porque ela deixou de morar dentro da coluna.
+          */}
+          {message.respostas.length > 0 ? (
+            <div className={css.citacaoRecuada}>
+              {message.respostas.map((alvo) => (
+                <Citacao key={alvo} channelId={message.channelId} messageId={alvo} />
+              ))}
+            </div>
+          ) : null}
+
+          {/*
+            A LINHA de mensagem: calha e conteúdo.
+
+            `relative` aqui e não só no `article` porque a barra de ações
+            ancora NELA — ver o comentário de `flex-col` acima.
+          */}
+          <div className={cn(css.linhaDaMensagem, "relative flex gap-3")}>
           {/* A calha do avatar existe mesmo na continuação: é o que mantém o
               texto alinhado ao longo do grupo inteiro. */}
           <div className={cn(css.calha, "relative mt-1")}>
@@ -580,13 +618,6 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             ) : null}
           </div>
 
-            {/* A citação abre a linha, acima do cabeçalho: é o contexto que
-                torna a mensagem legível, e lê-la depois do texto seria ler a
-                resposta antes da pergunta. Alinhada à coluna de conteúdo e
-                não à calha — ela pertence ao que foi escrito, não ao avatar. */}
-            {message.respostas.map((alvo) => (
-              <Citacao key={alvo} channelId={message.channelId} messageId={alvo} />
-            ))}
 
             {message.iniciaGrupo ? (
               <div className="flex items-baseline gap-2">
@@ -774,6 +805,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                 ) : null}
               </div>
             ) : null}
+          </div>
           </div>
     </article>
   );

@@ -608,3 +608,34 @@
   inline-size: var(--vx-icon-1);
   block-size: var(--vx-icon-1);
 }
+
+/* ----------------------------------------- a linha e a prévia de resposta */
+
+/*
+  A LINHA de mensagem — calha e conteúdo — agora é filha do `article`, que
+  virou coluna para que a prévia de resposta possa ser IRMÃ dela.
+
+  Regra sem propriedade própria não existe: o que ela carrega é o papel de
+  bloco de contenção da barra de ações (`position: relative` vem da utility no
+  TSX). O `min-inline-size: 0` é o de sempre — sem ele uma URL longa estoura a
+  coluna, que é o erro nº 3 do briefing.
+*/
+.linhaDaMensagem {
+  min-inline-size: 0;
+}
+
+/*
+  A prévia recuada até a coluna de conteúdo.
+
+  Calha (`--vx-avatar-md`) mais o vão de 12px que separa calha e conteúdo — os
+  mesmos dois números que a linha de mensagem usa, escritos aqui porque a
+  prévia deixou de morar dentro dela e perdeu o alinhamento de graça.
+
+  ⚠ Se a calha mudar de tamanho, isto muda junto. É o preço de a prévia ser
+  irmã, e ele é menor que o de a barra de ações cobrir o alvo de "pular para a
+  mensagem citada" — que era o defeito que a mudança veio consertar.
+*/
+.citacaoRecuada {
+  min-inline-size: 0;
+  padding-inline-start: calc(var(--vx-avatar-md) + var(--vx-space-3));
+}
