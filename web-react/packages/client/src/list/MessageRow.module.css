@@ -325,9 +325,17 @@
     hover. Com os degraus antigos de 1,075:1 ela seria um retângulo
     invisível em cima de outro; o degrau de agora é o que a separa.
   */
-  background: var(--vx-surface-3);
+  background: var(--vx-surface-4);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-3);
+  /*
+    Sombra, e ela deixou de ser proibida por MEDIÇÃO — ver `menu.ts`.
+
+    A barra flutua sobre a linha e sobre a superfície da timeline. No tema
+    claro `surface-3` e `surface-4` são os dois branco puro, então sem sombra
+    a camada some inteira: ela vira um retângulo branco em cima de outro.
+  */
+  box-shadow: var(--vx-elev-2);
 
   /*
     `visibility`, não `opacity`.
@@ -348,8 +356,30 @@
   e arrancaria o foco do elemento em uso.
 */
 :hover > .acoes,
-:focus-within > .acoes {
+:focus-within > .acoes,
+/*
+  Enquanto o menu desta linha está aberto, a barra FICA.
+
+  É instrução do design ("permanece visível enquanto o menu ⋯ estiver
+  aberto"), e é consequência mecânica: abrir o menu leva o ponteiro para
+  dentro dele, o hover da linha se perde, e a barra sumiria por baixo do menu
+  que ela acabou de abrir. Ao fechar, o alvo do menu volta a `null` e ela
+  segue o ponteiro de novo.
+*/
+.acoes[data-menu-aberto] {
   visibility: visible;
+}
+
+/*
+  O `⋯` fica ACESO enquanto o menu dele está aberto.
+
+  O design o desenha permanentemente realçado; aqui o realce é o estado, e não
+  a decoração. Um alvo que parece pressionado sem estar pressionado ensina a
+  não confiar no realce dos outros sete.
+*/
+.acoes[data-menu-aberto] .acaoMais {
+  background: var(--vx-state-press);
+  color: var(--vx-text-1);
 }
 
 .acao {
@@ -688,4 +718,243 @@
   font-size: var(--vx-size-xs);
   font-variant-numeric: tabular-nums;
   text-align: end;
+}
+
+
+/* ============================================================
+   Quem reagiu — o cartão de hover sobre o chip
+   ------------------------------------------------------------
+   `HoverCard` e não `Tooltip`: duas linhas com hierarquia
+   própria. Ver `QuemReagiu` no TSX.
+   ============================================================ */
+
+.quemReagiu {
+  inline-size: 250px;
+  display: grid;
+  gap: var(--vx-space-2);
+}
+
+.quemTitulo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.quemEmoji {
+  font-size: var(--vx-size-lg);
+  line-height: 1;
+}
+
+/* Os nomes quebram; a caixa não cresce para os lados. */
+.quemNomes {
+  font-size: var(--vx-size-sm);
+  line-height: var(--vx-leading-compact);
+  color: var(--vx-text-2);
+}
+
+.quemDica {
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+/* ============================================================
+   A régua do editor in-line
+   ------------------------------------------------------------
+   DENTRO da caixa de edição, separada por hairline: com ela
+   fora, a borda de foco terminava antes dos controles que
+   pertencem ao campo.
+   ============================================================ */
+
+.reguaDeEdicao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-2);
+  margin-block-start: var(--vx-space-2);
+  padding-block-start: var(--vx-space-2);
+  border-block-start: 1px solid var(--vx-border-subtle);
+}
+
+.reguaAcoes {
+  display: flex;
+  gap: var(--vx-space-0);
+}
+
+.reguaBotao {
+  display: grid;
+  place-items: center;
+  inline-size: 26px;
+  block-size: 26px;
+  border-radius: var(--vx-radius-1);
+  color: var(--vx-text-2);
+  cursor: pointer;
+}
+
+.reguaBotao svg {
+  inline-size: var(--vx-icon-2);
+  block-size: var(--vx-icon-2);
+}
+
+.reguaBotao:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.reguaBotao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/*
+  A tecla, em mono.
+
+  `kbd` e não `span`: é uma TECLA, e o elemento existe para isso — leitor de
+  tela e ferramenta de atalho entendem sem precisar de `aria`.
+*/
+.tecla {
+  font-family: var(--vx-font-mono);
+  color: var(--vx-text-2);
+}
+
+/* ============================================================
+   Estado de envio — enviando · na fila · falhou
+   ============================================================ */
+
+.envio {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.envioFalhou {
+  color: var(--vx-danger);
+}
+
+.envioNaFila {
+  color: var(--vx-warning);
+}
+
+/*
+  O ponto pulsante da fila.
+
+  Só `opacity` anima — a regra de movimento do projeto —, e ele para sob
+  `prefers-reduced-motion`: movimento permanente na periferia é gatilho, e
+  esta linha pode ficar na tela por minutos.
+*/
+.pontoDeFila {
+  inline-size: 6px;
+  block-size: 6px;
+  flex: none;
+  border-radius: var(--vx-radius-5);
+  background: currentcolor;
+  animation: vxPulso 1.4s ease-in-out infinite;
+}
+
+@keyframes vxPulso {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pontoDeFila {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+.envioAcoes {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+}
+
+/*
+  As três ações do erro.
+
+  Sublinhado e não botão com caixa: elas moram DENTRO de uma linha de texto de
+  11px, e uma caixa aqui acrescentaria altura — que é o que a âncora do
+  virtualizador não perdoa.
+*/
+.envioAcao {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-1);
+  border-radius: var(--vx-radius-1);
+  font-weight: 600;
+  color: var(--vx-accent-text);
+  cursor: pointer;
+}
+
+.envioAcao svg {
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+}
+
+.envioAcao:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.envioAcao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.envioAcaoPerigo {
+  color: var(--vx-danger);
+}
+
+/* ============================================================
+   Menu: cabeçalho do usuário e o item de ID
+   ============================================================ */
+
+.cabecalhoDoUsuario {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  padding: var(--vx-space-2);
+}
+
+.identidade {
+  display: grid;
+  min-inline-size: 0;
+}
+
+.identidadeNome {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Mono: é o identificador GLOBAL, e mono é como o app escreve identificador. */
+.identidadeUsuario {
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+/*
+  "Copiar ID" — separado pelo PESO, não por régua.
+
+  Ferramenta de quem depura, não ação de quem conversa. Uma régua a mais
+  sugeriria um bloco de ações; o tom apagado diz que ele é de outra natureza
+  sem gastar uma linha da caixa.
+*/
+.itemDeId {
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
 }

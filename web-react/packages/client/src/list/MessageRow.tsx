@@ -1,29 +1,60 @@
 import {
   ArrowBendUpLeft,
+  ArrowBendUpRight,
+  ArrowClockwise,
+  ChatsCircle,
   Copy,
+  DotsThree,
+  EnvelopeSimple,
+  Hammer,
+  Hash,
   Info,
+  Link,
+  Note,
   PencilSimple,
+  Phone,
   Plus,
+  ProhibitInset,
   PushPin,
   PushPinSlash,
+  SignOut,
+  Smiley,
+  TextB,
+  TextItalic,
   Trash,
+  UserCircle,
+  UsersThree,
 } from "@phosphor-icons/react";
-import { memo, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  memo,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 
 import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
 } from "../components/ui/ContextMenu";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "../components/ui/HoverCard";
 
 import { ATRIBUTO_DE_COLUNA } from "../dev/alinhamento";
 import { count } from "../dev/stats";
 import { copiarTexto } from "../lib/copiar";
-import { rotuloDeReacao } from "../lib/plural";
+import { plural, rotuloDeReacao } from "../lib/plural";
 import { cn } from "../lib/cn";
+import { Avatar } from "../components/ui/Avatar";
+import { menuAtalho } from "../components/ui/menu";
 import { AvatarDoAutor } from "../presenca/AvatarDoAutor";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
-import type { SistemaSnapshot } from "../sdk/domain";
+import type {
+  MessageSnapshot,
+  ReacaoSnapshot,
+  SistemaSnapshot,
+} from "../sdk/domain";
 import { reenviar } from "../sdk/adapter";
 import {
   alternarFixada,
@@ -32,6 +63,7 @@ import {
   usuarioLocalId,
 } from "../sdk/adapter";
 import {
+  alvoDeMensagem,
   assinarMenuDeMensagem,
   definirAlvoDoMenu,
   lerAlvoDoMenu,
@@ -51,8 +83,14 @@ import {
   pararDeEditar,
 } from "../store/edicaoDeMensagem";
 import { responderA } from "../store/resposta";
+import { assinarConexao, lerConexao } from "../store/conexao";
+import { caminhoDe } from "../rota/rota";
+import { lerLocal } from "../store/navegacao";
+import { chaveDeMembro } from "../sdk/domain";
+import { useMembro, useServidorAtivo } from "../store/hooks";
 import { useMessage } from "../store/hooks";
 import { Anexos } from "./Anexos";
+import { EnqueteDaMensagem } from "../enquete/EnqueteDaMensagem";
 import { aindaNao } from "../pendente/pendencias";
 import { assinarDensidade, lerDensidade } from "../store/densidade";
 import { Citacao } from "./Citacao";
@@ -128,7 +166,15 @@ function FraseDeSistema({ sistema }: { sistema: SistemaSnapshot }) {
  * favoritos pessoais entraria como preferência do usuário, não como default do
  * produto.
  */
-const REACOES_RAPIDAS = ["👍", "🎉", "👎", "😄", "👀", "🔥"] as const;
+/**
+ * As reações rápidas — as do DESIGN, e a lista é semente, não curadoria.
+ *
+ * O próprio design diz o que ela deve virar: *"emojis frequentes do usuário,
+ * nunca curadoria do produto"*. Frequência por usuário é store que ainda não
+ * existe, então o que está aqui é o ponto de partida — e a nota fica para que
+ * ninguém confunda a semente com a decisão.
+ */
+const REACOES_RAPIDAS = ["✅", "🧠", "🔥", "👀"] as const;
 
 /**
  * As três da barra de hover — um subconjunto, não uma segunda lista.
@@ -144,8 +190,37 @@ const REACOES_RAPIDAS = ["👍", "🎉", "👎", "😄", "👀", "🔥"] as cons
 const REACOES_DA_BARRA = [
   REACOES_RAPIDAS[0],
   REACOES_RAPIDAS[1],
-  REACOES_RAPIDAS[3],
+  REACOES_RAPIDAS[2],
 ] as const;
+
+/**
+ * Abre o menu de contexto da lista a partir de um BOTÃO.
+ *
+ * O `⋯` do design faz por clique o que o botão direito já faz, e o menu é um
+ * só — o `ContextMenu` do Radix montado no nível da lista. Abrir esse mesmo
+ * menu por clique normalmente pediria um segundo primitivo (`DropdownMenu`)
+ * com o conteúdo duplicado; dois menus com os mesmos itens divergem no dia em
+ * que alguém acrescenta um item num só.
+ *
+ * Em vez disso, o botão despacha o evento que o `Trigger` já escuta. Ele
+ * BORBULHA: passa pela captura do container (que limpa o alvo) e pelo handler
+ * da linha (que escreve o alvo certo), então o alvo se resolve sozinho pelo
+ * mesmo caminho do clique direito. Nada de novo para manter em sincronia.
+ *
+ * As coordenadas são as do próprio botão, e não as do ponteiro: o menu pousa
+ * ancorado ao `⋯`, que é onde a pessoa está olhando.
+ */
+function abrirMenuDaLinha(botao: HTMLElement): void {
+  const r = botao.getBoundingClientRect();
+  botao.dispatchEvent(
+    new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      clientX: Math.round(r.left),
+      clientY: Math.round(r.bottom),
+    }),
+  );
+}
 
 /**
  * "Novas mensagens" — onde a leitura parou.
@@ -255,6 +330,7 @@ function EditorDaLinha({
 }) {
   const [texto, setTexto] = useState(inicial);
   const [salvando, setSalvando] = useState(false);
+  const campoRef = useRef<HTMLTextAreaElement>(null);
 
   function salvar() {
     const limpo = texto.trim();
@@ -269,9 +345,32 @@ function EditorDaLinha({
     });
   }
 
+  /**
+   * Envolve a seleção com um marcador de markdown.
+   *
+   * Escreve no ESTADO e devolve o cursor ao campo, em vez de mexer no valor do
+   * DOM: o campo é controlado, e mexer nele por fora produziria o clássico
+   * valor que aparece e some no próximo `setState`.
+   *
+   * Sem seleção o marcador é inserido vazio com o cursor no meio — que é o que
+   * todo editor faz, e o que permite marcar antes de escrever.
+   */
+  function envolver(marca: string) {
+    const campo = campoRef.current;
+    if (!campo) return;
+    const { selectionStart: a, selectionEnd: b } = campo;
+    setTexto(texto.slice(0, a) + marca + texto.slice(a, b) + marca + texto.slice(b));
+    /* Depois do commit do React, senão o cursor volta para o fim. */
+    queueMicrotask(() => {
+      campo.focus();
+      campo.setSelectionRange(a + marca.length, b + marca.length);
+    });
+  }
+
   return (
     <div className={css.editor}>
       <textarea
+        ref={campoRef}
         className={css.campoDeEdicao}
         autoFocus
         rows={Math.min(8, linhasDe(texto))}
@@ -300,10 +399,182 @@ function EditorDaLinha({
         */
         aria-label="Editar mensagem"
       />
-      <span className={css.dicaDeEdicao}>
-        Enter salva · Esc cancela · Shift+Enter quebra linha
-      </span>
+      {/*
+        A régua do editor — negrito, itálico, emoji, e a dica do outro lado.
+
+        O design a desenha DENTRO da caixa de edição, separada por uma
+        hairline, e a diferença não é decorativa: com a régua fora, a borda de
+        foco do campo terminava antes dos controles que pertencem a ele.
+
+        Negrito e itálico são REAIS, não desenho: o markdown já existe no
+        caminho de leitura desde que `markdown/analisar.ts` foi construído, e
+        `**` em volta da seleção é o mesmo texto que qualquer cliente Stoat
+        entende. O emoji é o seletor, que é pendência.
+      */}
+      <div className={css.reguaDeEdicao}>
+        <div className={css.reguaAcoes}>
+          <button
+            type="button"
+            className={css.reguaBotao}
+            aria-label="Negrito"
+            onClick={() => envolver("**")}
+          >
+            <TextB aria-hidden />
+          </button>
+          <button
+            type="button"
+            className={css.reguaBotao}
+            aria-label="Itálico"
+            onClick={() => envolver("*")}
+          >
+            <TextItalic aria-hidden />
+          </button>
+          <button
+            type="button"
+            className={css.reguaBotao}
+            aria-label="Emoji"
+            onClick={aindaNao("emoji")}
+          >
+            <Smiley aria-hidden />
+          </button>
+        </div>
+        <span className={css.dicaDeEdicao}>
+          <kbd className={css.tecla}>esc</kbd> cancela ·{" "}
+          <kbd className={css.tecla}>↵</kbd> salva
+        </span>
+      </div>
     </div>
+  );
+}
+
+/**
+ * O que aconteceu com uma mensagem que ainda não é do servidor.
+ *
+ * Três estados, os do design: **enviando**, **na fila · offline** e **falha no
+ * envio**. Os dois primeiros são o MESMO `sendState` (`pending`) — o que os
+ * separa é a conexão, e é a distinção que importa para quem está esperando:
+ * "está indo" e "não vai enquanto você não voltar" pedem paciências
+ * diferentes.
+ *
+ * ⚠ **Componente próprio para isolar a subscrição da conexão.** Ler o estado
+ * do socket dentro da `MessageRow` faria toda linha montada acordar a cada
+ * engasgo de rede — cinquenta re-renders por um evento que interessa a uma
+ * linha. Aqui só as pendentes assinam, e mensagem pendente é caso raro por
+ * construção: ela vira `sent` assim que o servidor responde.
+ *
+ * A barra de progresso do upload que o design desenha NÃO está aqui, e a
+ * ausência é honesta: não há upload no app (pendência `anexar`), então uma
+ * barra seria animação sobre um número inventado.
+ */
+function EstadoDoEnvio({ message }: { message: MessageSnapshot }) {
+  const conexao = useSyncExternalStore(assinarConexao, lerConexao);
+  const falhou = message.sendState === "failed";
+  const naFila = !falhou && conexao !== "conectado";
+
+  return (
+    <p
+      className={cn(
+        css.envio,
+        falhou && css.envioFalhou,
+        naFila && css.envioNaFila,
+      )}
+    >
+      {/*
+        Ponto pulsante só na FILA, e é o que o design marca com ele: enviando
+        é transitório e some sozinho; na fila pode durar minutos, e um estado
+        parado sem movimento nenhum lê como travado.
+      */}
+      {naFila ? <span className={css.pontoDeFila} aria-hidden /> : null}
+      {falhou ? "falha no envio" : naFila ? "na fila · offline" : "enviando…"}
+
+      {/*
+        Três ações no erro, como o design: tentar de novo, excluir, copiar.
+
+        A terceira é a que salva o texto — sem ela, uma mensagem longa que
+        falhou repetidamente só pode ser recuperada selecionando à mão dentro
+        de uma linha que já está esmaecida.
+      */}
+      {falhou ? (
+        <span className={css.envioAcoes}>
+          <button
+            type="button"
+            className={css.envioAcao}
+            onClick={() => reenviar(message.id)}
+          >
+            <ArrowClockwise aria-hidden />
+            Tentar de novo
+          </button>
+          <button
+            type="button"
+            className={cn(css.envioAcao, css.envioAcaoPerigo)}
+            onClick={() =>
+              administrar({ tipo: "apagarMensagem", messageId: message.id })
+            }
+          >
+            Excluir
+          </button>
+          <button
+            type="button"
+            className={css.envioAcao}
+            onClick={() => void copiarTexto(message.content, "Texto")}
+          >
+            Copiar texto
+          </button>
+        </span>
+      ) : null}
+    </p>
+  );
+}
+
+/**
+ * O tooltip de quem reagiu — "7 reagiram com ✅ · Marina, Téo, Júlia, Rafa".
+ *
+ * `HoverCard` e não `Tooltip`: o conteúdo tem duas linhas com hierarquia
+ * própria, e um tooltip é uma frase. É o primeiro consumidor do primitivo fora
+ * do cartão de perfil, e ele foi construído na fase 2 justamente porque um
+ * cliente de chat vive disto.
+ *
+ * ⚠ **Cada nome assina o próprio membro.** Ler os nomes aqui faria o chip
+ * re-renderizar quando qualquer uma das quatro pessoas trocasse de apelido —
+ * e chip de reação está no componente mais quente do app. É a mesma razão pela
+ * qual `NomeDoAutor` existe em vez de o nome vir no snapshot da mensagem.
+ *
+ * O card é montado só quando ABRE (`HoverCard` do Radix não renderiza conteúdo
+ * fechado), então dez mil chips não custam dez mil subscrições.
+ */
+function QuemReagiu({
+  reacao,
+  children,
+}: {
+  reacao: ReacaoSnapshot;
+  children: ReactNode;
+}) {
+  const restantes = reacao.total - reacao.quem.length;
+
+  return (
+    <HoverCard openDelay={400} closeDelay={80}>
+      <HoverCardTrigger asChild>{children}</HoverCardTrigger>
+      <HoverCardContent className={css.quemReagiu} side="top">
+        <div className={css.quemTitulo}>
+          <span className={css.quemEmoji} aria-hidden>
+            {reacao.emoji}
+          </span>
+          <span>{plural(reacao.total, "reagiu", "reagiram")}</span>
+        </div>
+        <p className={css.quemNomes}>
+          {reacao.quem.map((userId, i) => (
+            <span key={userId}>
+              {i > 0 ? ", " : ""}
+              <NomeDoAutor userId={userId} denso />
+            </span>
+          ))}
+        </p>
+        <p className={css.quemDica}>
+          {restantes > 0 ? `e outros ${restantes} · ` : ""}
+          {reacao.minha ? "clique para remover a sua" : "clique para reagir"}
+        </p>
+      </HoverCardContent>
+    </HoverCard>
   );
 }
 
@@ -336,7 +607,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
 
   const ehAlvo = useSyncExternalStore(
     assinarMenuDeMensagem,
-    () => lerAlvoDoMenu() === id,
+    () => alvoDeMensagem() === id,
   );
   count("rowRenders");
   /*
@@ -432,7 +703,27 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             escreve o alvo, e a ordem faz o resto — o container limpa na
             captura, a linha escreve na bolha.
           */
-          onContextMenu={() => definirAlvoDoMenu(message.id)}
+          /*
+            Dois menus, um `ContextMenu`.
+
+            O design tem menu de mensagem E menu do usuário na timeline. A
+            saída óbvia — um segundo `ContextMenu` em volta do autor — desfaria
+            a economia que o store inteiro existe para garantir: em vez de uma
+            árvore de menu por linha, duas.
+
+            Aqui um handler só decide qual alvo escrever, olhando de ONDE o
+            clique veio. `closest` num clique direito é barato e roda uma vez
+            por gesto humano, não por evento de firehose.
+          */
+          onContextMenu={(e) => {
+            const autor = (e.target as Element).closest?.("[data-menu-autor]");
+            const userId = autor?.getAttribute("data-menu-autor");
+            definirAlvoDoMenu(
+              userId
+                ? { tipo: "usuario", userId }
+                : { tipo: "mensagem", id: message.id },
+            );
+          }}
           ref={elemento}
           /*
             Roving tabindex: UMA linha por vez é parada de tabulação.
@@ -584,7 +875,10 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             mensagem passa a ter o seu — que é o que faz cada linha ser
             endereçável, e por que o agrupamento some junto.
           */}
-          <div className={cn(css.calha, "relative mt-1")}>
+          <div
+            className={cn(css.calha, "relative mt-1")}
+            data-menu-autor={message.authorId}
+          >
             {compacto ? (
               <time className={css.horaCompacta}>{message.createdAtCurto}</time>
             ) : message.iniciaGrupo ? (
@@ -608,9 +902,42 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             estes alvos somem sozinhos. Adotada depois, seria uma passada por
             cada botão do app com a garantia de esquecer um.
           */}
-          <div className={css.acoes} role="group" aria-label="Ações da mensagem">
-            {pode(message.channelId, "reagir")
-              ? REACOES_DA_BARRA.map((emoji) => (
+          {/*
+            Oito alvos, na ordem do design: três reações · divisa · seletor,
+            responder, encaminhar, tópico, `⋯`.
+
+            ⚠ **Fixar SAIU daqui, e é a única troca de conteúdo.** O design põe
+            tópico onde estava o alfinete, e fixar continua no menu e no
+            cabeçalho da linha — as duas superfícies onde ele já vivia. Um
+            oitavo alvo permanente custa largura sobre o texto por baixo, que é
+            a razão pela qual esta barra tem tamanho fixado no design.
+          */}
+          <div
+            className={css.acoes}
+            role="group"
+            aria-label="Ações da mensagem"
+            /* Ver `.acoes` no CSS: enquanto o menu desta linha está aberto o
+               ponteiro já saiu, e sem isto a barra sumiria por baixo dele. */
+            data-menu-aberto={ehAlvo || undefined}
+          >
+            {/*
+              ⚠ **Sem `Tooltip` do Radix aqui, e a ausência é medida em custo.**
+
+              A barra é MONTADA em toda linha (é `visibility: hidden`, não
+              desmontada — ver o CSS), então um `Tooltip.Root` por alvo seriam
+              oito árvores de primitivo por linha e ~400 com a janela cheia. É
+              exatamente a conta que fez o `ContextMenu` sair da linha e ir para
+              a lista, e aquele A/B mediu 1,7% → 1,2% de frames perdidos por
+              QUATRO componentes a menos por linha.
+
+              O design também não desenha tooltip nenhum nesta barra. O
+              `aria-label` fica, que é o que o leitor de tela lê; a descoberta
+              por ponteiro fica com o menu `⋯`, onde os mesmos alvos têm nome
+              escrito.
+            */}
+            {pode(message.channelId, "reagir") ? (
+              <>
+                {REACOES_DA_BARRA.map((emoji) => (
                   <button
                     key={emoji}
                     type="button"
@@ -620,10 +947,20 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                   >
                     <span aria-hidden>{emoji}</span>
                   </button>
-                ))
-              : null}
+                ))}
 
-            <span className={css.acoesDivisa} aria-hidden />
+                <span className={css.acoesDivisa} aria-hidden />
+
+                <button
+                  type="button"
+                  className={css.acao}
+                  aria-label="Adicionar reação"
+                  onClick={aindaNao("emoji")}
+                >
+                  <Smiley aria-hidden />
+                </button>
+              </>
+            ) : null}
 
             {pode(message.channelId, "responder") ? (
               <button
@@ -632,35 +969,53 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                 aria-label="Responder"
                 onClick={() => responderA(message.channelId, message.id)}
               >
-                <ArrowBendUpLeft size={20} aria-hidden />
+                <ArrowBendUpLeft aria-hidden />
               </button>
             ) : null}
-            {pode(message.channelId, "fixar") ? (
-              <button
-                type="button"
-                className={css.acao}
-                aria-label={message.fixada ? "Desafixar" : "Fixar no canal"}
-                onClick={() => alternarFixada(message.id)}
-              >
-                {message.fixada ? (
-                  <PushPinSlash size={20} aria-hidden />
-                ) : (
-                  <PushPin size={20} aria-hidden />
-                )}
-              </button>
-            ) : null}
+
+            <button
+              type="button"
+              className={css.acao}
+              aria-label="Encaminhar"
+              onClick={() =>
+                administrar({ tipo: "encaminhar", messageId: message.id })
+              }
+            >
+              <ArrowBendUpRight aria-hidden />
+            </button>
+
+            <button
+              type="button"
+              className={css.acao}
+              aria-label="Criar tópico"
+              onClick={aindaNao("topicoDaMensagem")}
+            >
+              <ChatsCircle aria-hidden />
+            </button>
+
+            <button
+              type="button"
+              className={cn(css.acao, css.acaoMais)}
+              aria-label="Mais ações"
+              aria-haspopup="menu"
+              onClick={(e) => abrirMenuDaLinha(e.currentTarget)}
+            >
+              <DotsThree aria-hidden />
+            </button>
           </div>
 
 
             {!compacto && message.iniciaGrupo ? (
               <div className="flex items-baseline gap-2">
                 {message.authorId ? (
-                  <>
+                  /* `display: contents` — a caixa não existe, só o atributo
+                     que diz ao menu de contexto quem é o autor daqui. */
+                  <span className="contents" data-menu-autor={message.authorId}>
                     <NomeDoAutor userId={message.authorId} />
                     {/* O crachá de cargo — "VTX", "MOD". Assina o membro
                         sozinho; ver `CrachaDeCargo`. */}
                     <CrachaDeCargo userId={message.authorId} />
-                  </>
+                  </span>
                 ) : (
                   <span className="text-lg font-semibold text-text-2">
                     desconhecido
@@ -777,32 +1132,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
               seguidas.
             */}
             {message.sendState !== "sent" ? (
-              /*
-                Erro diz o que houve E como resolver.
-
-                "não enviada" era só a primeira metade, e a segunda não
-                existia no app inteiro: a linha ficava vermelha para sempre.
-                O botão é o resto da frase, e fica na mesma linha do rótulo
-                para não acrescentar altura — a âncora do virtualizador não
-                perdoa hover nem estado que muda a caixa.
-              */
-              <p
-                className={cn(
-                  "flex items-center gap-2 text-xs",
-                  falhou ? "text-danger" : "text-text-3",
-                )}
-              >
-                {falhou ? "não enviada" : "enviando…"}
-                {falhou ? (
-                  <button
-                    type="button"
-                    className="rounded-1 underline underline-offset-2 hover:text-text-1"
-                    onClick={() => reenviar(message.id)}
-                  >
-                    Tentar de novo
-                  </button>
-                ) : null}
-              </p>
+              <EstadoDoEnvio message={message} />
             ) : null}
 
             {/*
@@ -841,11 +1171,25 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
               <span className="ms-2 text-xs text-text-3">(editada)</span>
             ) : null}
 
+            {/*
+              A enquete, entre o cartão de link e as reações.
+
+              É conteúdo da mensagem, como o anexo — vem depois do texto; e as
+              reações continuam por último, porque elas são o que os outros
+              responderam, não o que foi dito.
+            */}
+            {message.enquete ? (
+              <EnqueteDaMensagem
+                messageId={message.id}
+                enquete={message.enquete}
+              />
+            ) : null}
+
             {message.reactions.length > 0 ? (
               <div className={css.reacoes}>
                 {message.reactions.map((r) => (
+                  <QuemReagiu key={r.emoji} reacao={r}>
                   <button
-                    key={r.emoji}
                     type="button"
                     className={css.chip}
                     data-minha={r.minha}
@@ -867,6 +1211,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                       {r.total}
                     </span>
                   </button>
+                  </QuemReagiu>
                 ))}
 
                 {/*
@@ -920,38 +1265,64 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
  */
 export function MenuDaMensagem() {
   const alvo = useSyncExternalStore(assinarMenuDeMensagem, lerAlvoDoMenu);
-  const message = useMessage(alvo ?? "");
+
+  /*
+    Os dois menus, escolhidos pelo TIPO do alvo.
+
+    O componente é um só porque o `ContextMenu` é um só — ver
+    `store/menuDeMensagem.ts`. `alvo === null` (clique direito no vão entre
+    linhas) devolve conteúdo vazio, que é melhor que agir sobre a mensagem do
+    clique anterior.
+  */
+  if (alvo?.tipo === "usuario") return <ItensDoUsuario userId={alvo.userId} />;
+  return <ItensDaMensagem messageId={alvo?.tipo === "mensagem" ? alvo.id : ""} />;
+}
+
+/**
+ * O menu da mensagem, completo — os quinze alvos do design.
+ *
+ * Cinco blocos separados por régua, e a ordem não é arbitrária: reagir e
+ * responder (o que se faz com a mensagem dos outros), editar e fixar (o que se
+ * faz com a própria), copiar (o que se leva embora), e destrutivo por último.
+ * Ação destrutiva no fim é a regra que o design escreve por extenso.
+ */
+function ItensDaMensagem({ messageId }: { messageId: string }) {
+  const message = useMessage(messageId);
   const eu = usuarioLocalId();
+  const local = lerLocal();
 
   if (!message) return <ContextMenuContent />;
 
+  const souOAutor = message.authorId !== undefined && message.authorId === eu;
+  const gerencio = pode(message.channelId, "fixar");
+  /*
+    Permalink só existe onde a ROTA existe.
+
+    `/servidor/:s/canal/:c/:m` é a única forma de caminho que carrega uma
+    mensagem; conversa direta é `/dm/:c` e para por aí. Renderizar "Copiar
+    link" numa DM daria um link que abre o lugar certo na posição errada — que
+    é pior que não ter o item, porque quem cola não descobre.
+  */
+  const linkavel = local.tipo === "servidor" && local.channelId !== undefined;
+
   return (
     <ContextMenuContent>
-        {/*
-          Conjunto RÁPIDO, não picker completo.
+      {/*
+        Conjunto RÁPIDO, não picker completo.
 
-          Picker de emoji é dependência pesada e decisão própria — e a cauda
-          longa de emojis é minoria do uso real: reação é gesto de um clique, e
-          um clique que abre uma grade de mil ícones deixa de ser gesto. Estes
-          seis cobrem o comum; o picker completo fica listado.
+        Reação é gesto de um clique, e um clique que abre uma grade de mil
+        ícones deixa de ser gesto. Estes quatro cobrem o comum; o `+` no fim da
+        fila leva ao seletor, que é a pendência `emoji`.
 
-          `onSelect` sem `preventDefault`: fechar o menu depois de reagir é o
-          certo, porque reagir é a ação inteira.
-
-          ⚠ **E `onSelect` só existe aqui a partir de agora.** Estes seis eram
-          `<button onClick>` crus dentro do menu — sem `role`, e portanto
-          invisíveis para o Radix, que navega só entre `menuitem`. O menu
-          abria, as setas passavam por cima deles e o Tab fechava o menu:
-          reagir por teclado não existia, mesmo com o menu alcançável. Este
-          comentário já dizia "onSelect" quando não havia nenhum.
-
-          `asChild` para manter o `<button>`: o alvo continua sendo um botão de
-          verdade para o ponteiro, e ganha `role="menuitem"` e a navegação por
-          seta do Radix por cima.
-        */}
-        <div className={css.rapidas} role="group" aria-label="Reagir">
-          {pode(message.channelId, "reagir") &&
-            REACOES_RAPIDAS.map((emoji) => (
+        `asChild` para manter o `<button>`: o alvo continua sendo um botão de
+        verdade para o ponteiro, e ganha `role="menuitem"` e a navegação por
+        seta do Radix por cima. Sem isso as setas passam por cima deles e
+        reagir por teclado não existe.
+      */}
+      {pode(message.channelId, "reagir") ? (
+        <>
+          <div className={css.rapidas} role="group" aria-label="Reagir">
+            {REACOES_RAPIDAS.map((emoji) => (
               <ContextMenuItem
                 key={emoji}
                 asChild
@@ -966,69 +1337,274 @@ export function MenuDaMensagem() {
                 </button>
               </ContextMenuItem>
             ))}
-        </div>
+            <ContextMenuItem asChild onSelect={aindaNao("emoji")}>
+              <button type="button" className={css.rapida} aria-label="Mais emojis">
+                <Plus aria-hidden />
+              </button>
+            </ContextMenuItem>
+          </div>
 
-        <ContextMenuSeparator />
+          <ContextMenuSeparator />
 
-        {pode(message.channelId, "responder") ? (
+          <ContextMenuItem onSelect={aindaNao("emoji")}>
+            <Smiley aria-hidden />
+            Adicionar reação
+            <span className={menuAtalho} aria-hidden>
+              &rsaquo;
+            </span>
+          </ContextMenuItem>
+        </>
+      ) : null}
+
+      {pode(message.channelId, "responder") ? (
+        <>
           <ContextMenuItem
             onSelect={() => responderA(message.channelId, message.id)}
           >
-            <ArrowBendUpLeft size={20} aria-hidden />
+            <ArrowBendUpLeft aria-hidden />
             Responder
+            <span className={menuAtalho}>R</span>
           </ContextMenuItem>
-        ) : null}
-        {pode(message.channelId, "fixar") ? (
-          <ContextMenuItem onSelect={() => alternarFixada(message.id)}>
-            {message.fixada ? (
-              <PushPinSlash size={20} aria-hidden />
-            ) : (
-              <PushPin size={20} aria-hidden />
-            )}
-            {message.fixada ? "Desafixar" : "Fixar no canal"}
+          <ContextMenuItem onSelect={aindaNao("responderSemMencionar")}>
+            <ArrowBendUpLeft aria-hidden />
+            Responder sem mencionar
           </ContextMenuItem>
-        ) : null}
+        </>
+      ) : null}
 
-        <ContextMenuItem
-          onSelect={() => void copiarTexto(message.content, "Texto")}
-          disabled={message.content.length === 0}
-        >
-          <Copy size={20} aria-hidden />
-          Copiar texto
+      <ContextMenuItem
+        onSelect={() => administrar({ tipo: "encaminhar", messageId: message.id })}
+      >
+        <ArrowBendUpRight aria-hidden />
+        Encaminhar
+      </ContextMenuItem>
+
+      <ContextMenuItem onSelect={aindaNao("topicoDaMensagem")}>
+        <ChatsCircle aria-hidden />
+        Criar tópico
+      </ContextMenuItem>
+
+      <ContextMenuSeparator />
+
+      {/*
+        **Editar é só do AUTOR**, e a checagem não é de permissão de servidor:
+        o protocolo não deixa ninguém editar mensagem alheia, nem quem
+        administra. Apagar é do autor OU de quem gerencia mensagens.
+      */}
+      {souOAutor ? (
+        <ContextMenuItem onSelect={() => editar(message.id)}>
+          <PencilSimple aria-hidden />
+          Editar
+          <span className={menuAtalho}>E</span>
         </ContextMenuItem>
+      ) : null}
 
-        {/*
-          `Editar` e `Apagar` VOLTARAM.
+      {gerencio ? (
+        <ContextMenuItem onSelect={() => alternarFixada(message.id)}>
+          {message.fixada ? <PushPinSlash aria-hidden /> : <PushPin aria-hidden />}
+          {message.fixada ? "Desafixar mensagem" : "Fixar mensagem"}
+        </ContextMenuItem>
+      ) : null}
 
-          Eles estiveram aqui como itens INERTES por três fases: apareciam,
-          recebiam foco, fechavam o menu e não faziam nada. Saíram por isso —
-          item que não faz nada ensina a não confiar no menu inteiro — e o
-          `no-restricted-syntax` que exige `onSelect` foi instalado no mesmo
-          passo. Voltam com `Message.edit()` e `Message.delete()` por trás.
+      <ContextMenuItem onSelect={aindaNao("marcarNaoLida")}>
+        <EnvelopeSimple aria-hidden />
+        Marcar como não lida
+      </ContextMenuItem>
 
-          **Editar é só do AUTOR**, e a checagem não é de permissão de servidor:
-          o protocolo não deixa ninguém editar mensagem alheia, nem quem
-          administra. Apagar é do autor OU de quem gerencia mensagens.
-        */}
-        {message.authorId !== undefined && message.authorId === eu ? (
-          <ContextMenuItem onSelect={() => editar(message.id)}>
-            <PencilSimple size={20} aria-hidden />
-            Editar
+      <ContextMenuSeparator />
+
+      <ContextMenuItem
+        onSelect={() => void copiarTexto(message.content, "Texto")}
+        disabled={message.content.length === 0}
+      >
+        <Copy aria-hidden />
+        Copiar texto
+      </ContextMenuItem>
+
+      {linkavel ? (
+        <ContextMenuItem
+          onSelect={() =>
+            void copiarTexto(
+              `${location.origin}${caminhoDe(local)}/${message.id}`,
+              "Link",
+            )
+          }
+        >
+          <Link aria-hidden />
+          Copiar link
+          <span className={menuAtalho}>&#8679;&#8984;C</span>
+        </ContextMenuItem>
+      ) : null}
+
+      {/*
+        "Remover embed" só aparece quando HÁ embed.
+
+        O design o desenha sempre; aqui ele segue a regra do projeto, que é
+        mais forte que a composição da tela — item que não tem sobre o que agir
+        é ruído permanente para o caso mais comum, porque a maioria das
+        mensagens não tem cartão de link nenhum.
+      */}
+      {message.embeds.length > 0 && souOAutor ? (
+        <ContextMenuItem onSelect={aindaNao("removerEmbed")}>
+          <Info aria-hidden />
+          Remover embed
+        </ContextMenuItem>
+      ) : null}
+
+      <ContextMenuSeparator />
+
+      {souOAutor || gerencio ? (
+        <ContextMenuItem
+          perigo
+          onSelect={() =>
+            administrar({ tipo: "apagarMensagem", messageId: message.id })
+          }
+        >
+          <Trash aria-hidden />
+          Excluir mensagem
+          <span className={menuAtalho}>&#9003;</span>
+        </ContextMenuItem>
+      ) : null}
+
+      {/*
+        Copiar ID por último, em mono e apagado.
+
+        O design o separa do resto pelo peso visual em vez de por régua: é
+        ferramenta de quem depura, não ação de quem conversa, e um item de
+        moderação que parecesse igual aos outros seria ruído para todo mundo.
+      */}
+      <ContextMenuItem
+        className={css.itemDeId}
+        onSelect={() => void copiarTexto(message.id, "ID")}
+      >
+        Copiar ID
+      </ContextMenuItem>
+    </ContextMenuContent>
+  );
+}
+
+/**
+ * O menu do usuário na timeline.
+ *
+ * Ele existe porque o design o desenha, e porque o caminho que havia — o
+ * cartão de perfil no hover do avatar — responde "quem é" e não "o que eu faço
+ * com essa pessoa". São perguntas diferentes e pedem alvos diferentes.
+ *
+ * O que é de MODERAÇÃO segue a regra da member list e some sem permissão; o
+ * resto é do dia a dia e aparece para todo mundo. O item desabilitado com
+ * motivo que o design desenha ("acima da sua hierarquia") depende da tabela de
+ * cargos comparada, que é trabalho da fase 6 — e um item cinza com um motivo
+ * inventado seria pior que a ausência.
+ */
+function ItensDoUsuario({ userId }: { userId: string }) {
+  const serverId = useServidorAtivo();
+  const membro = useMembro(chaveDeMembro(serverId, userId));
+  const souEu = userId === usuarioLocalId();
+  /* Canal ativo para as permissões — moderação é resolvida por canal em todo
+     o resto do app, e este menu não pode ser a exceção. */
+  const local = lerLocal();
+  const canalId = local.tipo === "servidor" ? (local.channelId ?? "") : "";
+
+  return (
+    <ContextMenuContent>
+      <div className={css.cabecalhoDoUsuario}>
+        <Avatar sigla={membro?.sigla ?? "?"} tamanho="sm" id={userId} />
+        <div className={css.identidade}>
+          <span className={css.identidadeNome}>
+            {membro?.displayName ?? "desconhecido"}
+          </span>
+          <span className={css.identidadeUsuario}>{membro?.username ?? "—"}</span>
+        </div>
+      </div>
+
+      <ContextMenuSeparator />
+
+      <ContextMenuItem onSelect={aindaNao("perfilCompleto")}>
+        <UserCircle aria-hidden />
+        Ver perfil
+      </ContextMenuItem>
+      {!souEu ? (
+        <>
+          <ContextMenuItem onSelect={aindaNao("conversaDireta")}>
+            <EnvelopeSimple aria-hidden />
+            Mensagem
           </ContextMenuItem>
-        ) : null}
+          <ContextMenuItem onSelect={aindaNao("ligar")}>
+            <Phone aria-hidden />
+            Ligar
+          </ContextMenuItem>
+        </>
+      ) : null}
 
-        {(message.authorId !== undefined && message.authorId === eu) ||
-        pode(message.channelId, "fixar") ? (
+      <ContextMenuItem onSelect={aindaNao("cargosDoMembro")}>
+        <UsersThree aria-hidden />
+        Cargos
+        <span className={menuAtalho} aria-hidden>
+          &rsaquo;
+        </span>
+      </ContextMenuItem>
+      <ContextMenuItem onSelect={aindaNao("alterarApelido")}>
+        <PencilSimple aria-hidden />
+        Alterar apelido
+      </ContextMenuItem>
+      <ContextMenuItem onSelect={aindaNao("notaPrivada")}>
+        <Note aria-hidden />
+        Nota privada
+      </ContextMenuItem>
+
+      {!souEu ? (
+        <>
+          <ContextMenuSeparator />
+          <ContextMenuItem onSelect={aindaNao("moverParaCanal")}>
+            <Hash aria-hidden />
+            Mover para canal
+            <span className={menuAtalho} aria-hidden>
+              &rsaquo;
+            </span>
+          </ContextMenuItem>
+          <ContextMenuItem onSelect={aindaNao("silenciarUsuario")}>
+            <ProhibitInset aria-hidden />
+            Silenciar só para mim
+          </ContextMenuItem>
+        </>
+      ) : null}
+
+      {!souEu && pode(canalId, "silenciarMembro") ? (
+        <>
+          <ContextMenuSeparator />
           <ContextMenuItem
             perigo
             onSelect={() =>
-              administrar({ tipo: "apagarMensagem", messageId: message.id })
+              administrar({ tipo: "moderar", serverId, userId, acao: "castigo" })
             }
           >
-            <Trash size={20} aria-hidden />
-            Apagar
+            <ProhibitInset aria-hidden />
+            Castigar (timeout)
           </ContextMenuItem>
-        ) : null}
-          </ContextMenuContent>
+        </>
+      ) : null}
+      {!souEu && pode(canalId, "expulsar") ? (
+        <ContextMenuItem
+          perigo
+          onSelect={() =>
+            administrar({ tipo: "moderar", serverId, userId, acao: "expulsar" })
+          }
+        >
+          <SignOut aria-hidden />
+          Expulsar do servidor
+        </ContextMenuItem>
+      ) : null}
+      {!souEu && pode(canalId, "banir") ? (
+        <ContextMenuItem
+          perigo
+          onSelect={() =>
+            administrar({ tipo: "moderar", serverId, userId, acao: "banir" })
+          }
+        >
+          <Hammer aria-hidden />
+          Banir do servidor
+        </ContextMenuItem>
+      ) : null}
+    </ContextMenuContent>
   );
 }

@@ -1,0 +1,147 @@
+/*
+  A casca dos quatro seletores — 400×452, do design.
+
+  Números fixos e não tokens de escala: são DIMENSÕES de componente, da mesma
+  família de `--vx-avatar-*` e `--vx-rail-w`. O `pnpm escala` governa padding,
+  margin, gap e raio justamente porque `inline-size` não é respiro.
+*/
+.casca {
+  inline-size: 400px;
+  block-size: 452px;
+  display: flex;
+  overflow: hidden;
+  border-radius: var(--vx-radius-4);
+  border: 1px solid var(--vx-border-subtle);
+  background: var(--vx-surface-4);
+  box-shadow: var(--vx-elev-3);
+}
+
+/*
+  O soundboard: mais estreito e do tamanho do conteúdo.
+
+  Ele não tem rail nem grid rolável de milhares de itens — são nove botões e
+  um volume. Uma caixa de 452px de altura com 9 botões deixaria metade vazia,
+  e o design o desenha justamente sem altura fixa.
+*/
+.casca[data-estreita] {
+  inline-size: 352px;
+  block-size: auto;
+}
+
+/* ------------------------------------------------------------- o rail */
+
+.rail {
+  inline-size: 44px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--vx-space-1);
+  padding-block: var(--vx-space-2);
+  /* Um degrau ABAIXO do painel: o rail é chão, o grid é conteúdo. É a mesma
+     relação que a coluna de canais tem com a timeline. */
+  background: var(--vx-surface-3);
+  overflow-y: auto;
+}
+
+/* --------------------------------------------------------- o corpo */
+
+.corpo {
+  flex: 1;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.linhaDeBusca {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  padding: var(--vx-space-3) var(--vx-space-3) var(--vx-space-2);
+}
+
+.busca {
+  flex: 1;
+  min-inline-size: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  block-size: 32px;
+  padding-inline: var(--vx-space-3);
+  border: 1px solid var(--vx-border-subtle);
+  /* Mais FUNDO que o painel — campo é buraco, não relevo. */
+  background: var(--vx-surface-2);
+  border-radius: var(--vx-radius-2);
+  color: var(--vx-text-3);
+}
+
+.busca:focus-within {
+  border-color: var(--vx-accent);
+}
+
+.busca svg {
+  flex: none;
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+}
+
+.buscaCampo {
+  flex: 1;
+  min-inline-size: 0;
+  border: none;
+  background: none;
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  outline: none;
+}
+
+.rolagem {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  padding-inline: var(--vx-space-3);
+  outline-offset: -2px;
+}
+
+/*
+  O rodapé de prévia.
+
+  Fundo próprio e não `transparent`: ele é a única parte do painel que NÃO
+  rola, e sem um degrau a última linha do grid passa por baixo dele parecendo
+  cortada por acidente.
+*/
+.rodape {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+  padding: var(--vx-space-2) var(--vx-space-3);
+  border-block-start: 1px solid var(--vx-border-subtle);
+  background: var(--vx-surface-3);
+}
+
+/* ------------------------------------------------------ seções */
+
+.secao {
+  padding-block: var(--vx-space-2);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--vx-text-3);
+}
+
+/*
+  Só a primeira seção gruda — ver `SecaoDeSeletor`.
+
+  O fundo é obrigatório: sem ele o cabeçalho grudado fica transparente e o
+  grid rola POR BAIXO das letras.
+*/
+.secao[data-grude] {
+  position: sticky;
+  inset-block-start: 0;
+  background: var(--vx-surface-4);
+  z-index: var(--z-realce);
+}

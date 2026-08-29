@@ -12,6 +12,7 @@
  */
 import { monotonicFactory, ulid } from "ulid";
 
+import { definirEnquete } from "../store/enquetes";
 import {
   definirChamada,
   definirFalantes,
@@ -942,6 +943,7 @@ export async function seed(count: number, chunk = 250): Promise<string[]> {
     }
   }
   seedChannel(CHANNEL_ID, ids);
+  semearEnquetes(ids);
   ultimaLista = ids;
   // Agora sim: a partir daqui, mensagem nova chega por evento.
   startAdapter();
@@ -979,6 +981,54 @@ export async function seed(count: number, chunk = 250): Promise<string[]> {
     publicar é a forma que este defeito toma, e ela não dá erro.
   */
   return ids;
+}
+
+/**
+ * Duas enquetes no histórico — uma aberta e uma encerrada.
+ *
+ * ⚠ **Sétima vez que o arnês fica mais pobre que o protocolo, e desta vez o
+ * protocolo é que é mais pobre que o produto.** Enquete não existe no Stoat
+ * (ver `store/enquetes.ts`), então o dado não pode vir do SDK como o resto
+ * deste arquivo vem: ele é escrito direto no store de cliente, exatamente como
+ * `definirChamada` já é escrito para a chamada falsa.
+ *
+ * Sem isto a superfície ficaria construída e inalcançável — a família de
+ * defeito que o painel de fixadas já mostrou uma vez: custa manutenção, não
+ * entrega nada, e de fora é idêntica a ausente.
+ *
+ * As DUAS formas, porque elas diferem em cinco detalhes visuais e uma só não
+ * prova a outra: a aberta tem prazo, voto e barra neutra; a encerrada tem
+ * selo, troféu e barra verde.
+ */
+function semearEnquetes(ids: readonly string[]): void {
+  // Perto do fim, para caírem na primeira janela de leitura sem ninguém rolar.
+  const aberta = ids[ids.length - 6];
+  const encerrada = ids[ids.length - 3];
+  if (!aberta || !encerrada) return;
+
+  definirEnquete(aberta, {
+    pergunta: "Qual densidade vai como padrão?",
+    opcoes: [
+      { id: "a", marca: "🅰", texto: "Confortável", votos: 14 },
+      { id: "b", marca: "🅱", texto: "Compacto", votos: 9 },
+    ],
+    maximo: 1,
+    meuVoto: undefined,
+    fechaEm: Date.now() + 22 * 3_600_000,
+    resultadoNoFim: false,
+  });
+
+  definirEnquete(encerrada, {
+    pergunta: "Bitrate padrão das salas?",
+    opcoes: [
+      { id: "a", marca: "🅰", texto: "64 kbps", votos: 16 },
+      { id: "b", marca: "🅱", texto: "96 kbps", votos: 9 },
+    ],
+    maximo: 1,
+    meuVoto: "a",
+    fechaEm: undefined,
+    resultadoNoFim: false,
+  });
 }
 
 /**

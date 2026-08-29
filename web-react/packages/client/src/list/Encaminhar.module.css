@@ -1,0 +1,259 @@
+/*
+  O modal de encaminhar — 400px, como o design.
+
+  Largura FIXA e não `min-inline-size`: a lista de destinos tem nomes de
+  comprimentos muito diferentes, e um painel que muda de largura conforme o
+  filtro encolhe a lista faria a caixa pular a cada tecla digitada.
+*/
+.painel {
+  inline-size: 400px;
+  max-inline-size: calc(100vw - var(--vx-space-6));
+  display: grid;
+  gap: var(--vx-space-3);
+}
+
+/* ---------------------------------------------------------- a prévia */
+
+/*
+  Barra de acento à esquerda, e fundo mais FUNDO que o painel.
+
+  Mesma linguagem da prévia de resposta no composer: as duas respondem "esta
+  mensagem, esta aqui". O fundo recuado (`surface-0` dentro de um painel em
+  `surface-4`) é o que a separa do formulário — ela é citação, não campo.
+*/
+.previa {
+  padding: var(--vx-space-3);
+  border-radius: var(--vx-radius-3);
+  border-inline-start: 3px solid var(--vx-accent);
+  background: var(--vx-surface-0);
+}
+
+.previaCabecalho {
+  display: flex;
+  align-items: baseline;
+  gap: var(--vx-space-2);
+  margin-block-end: var(--vx-space-1);
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+}
+
+.previaCanal {
+  font-weight: 400;
+  color: var(--vx-text-3);
+}
+
+/*
+  Duas linhas e corta.
+
+  A mensagem encaminhada pode ter mil caracteres, e a prévia existe para
+  confirmar QUAL mensagem é — não para relê-la. Sem o teto, o modal cresceria
+  até empurrar o botão de confirmar para fora da janela.
+*/
+.previaCorpo {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: var(--vx-size-sm);
+  line-height: var(--vx-leading-compact);
+  color: var(--vx-text-2);
+  overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------- a busca */
+
+.busca {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  block-size: 34px;
+  padding-inline: var(--vx-space-3);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-2);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-3);
+}
+
+.busca:focus-within {
+  border-color: var(--vx-accent);
+}
+
+.busca svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+  flex: none;
+}
+
+.buscaCampo {
+  flex: 1;
+  min-inline-size: 0;
+  border: none;
+  background: none;
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  outline: none;
+}
+
+/* ---------------------------------------------------------- os chips */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-1);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-1);
+  block-size: 24px;
+  padding-inline: var(--vx-space-2);
+  border-radius: var(--vx-radius-5);
+  background: var(--vx-state-selected);
+  color: var(--vx-accent-text);
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+}
+
+.chipRemover {
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: inherit;
+}
+
+.chipRemover svg {
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+}
+
+.chipRemover:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 1px;
+  border-radius: var(--vx-radius-5);
+}
+
+/* ------------------------------------------------------ a lista */
+
+.lista {
+  max-block-size: 150px;
+  overflow-y: auto;
+  /* O anel de foco do container rolável fica POR DENTRO: as linhas encostam
+     na borda, e um anel para fora seria cortado pelo painel. */
+  border-radius: var(--vx-radius-2);
+  outline-offset: -2px;
+}
+
+.destino {
+  inline-size: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  padding: var(--vx-space-1) var(--vx-space-2);
+  border-radius: var(--vx-radius-2);
+  cursor: pointer;
+  text-align: start;
+}
+
+.destino:hover:not(:disabled) {
+  background: var(--vx-state-hover);
+}
+
+.destino:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.destino:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.destinoGlifo {
+  inline-size: var(--vx-icon-2);
+  block-size: var(--vx-icon-2);
+  flex: none;
+  color: var(--vx-text-4);
+}
+
+.destinoNome {
+  flex: 1;
+  min-inline-size: 0;
+  font-size: var(--vx-size-md);
+  color: var(--vx-text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+  A caixa de seleção, desenhada e não nativa.
+
+  `input[type=checkbox]` nativo é o controle que a auditoria da fase 4 pegou
+  sem estilo em superfície de produto, e o lint existe por causa dele. O
+  estado real vive no `aria-checked` do botão que a contém.
+*/
+.caixa {
+  inline-size: 16px;
+  block-size: 16px;
+  flex: none;
+  border: 1px solid var(--vx-border-strong);
+  border-radius: var(--vx-radius-1);
+}
+
+.caixa[data-marcada] {
+  border-color: var(--vx-accent);
+  background: var(--vx-accent);
+  /* O "visto", sem SVG: a marca é geometria, e uma borda em L girada custa
+     zero requisições e zero nós a mais. */
+  background-image: linear-gradient(
+      45deg,
+      transparent 44%,
+      var(--vx-on-accent) 44%,
+      var(--vx-on-accent) 56%,
+      transparent 56%
+    ),
+    linear-gradient(
+      -45deg,
+      transparent 44%,
+      var(--vx-on-accent) 44%,
+      var(--vx-on-accent) 56%,
+      transparent 56%
+    );
+  background-size: 60% 2px;
+  background-position:
+    22% 58%,
+    52% 52%;
+  background-repeat: no-repeat;
+}
+
+.semPermissao {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+  flex: none;
+}
+
+/* ------------------------------------------------------ comentário e rodapé */
+
+.comentario {
+  block-size: 36px;
+  padding-inline: var(--vx-space-3);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-2);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  outline: none;
+}
+
+.comentario:focus-visible {
+  border-color: var(--vx-accent);
+}
+
+.rodape {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--vx-space-2);
+}

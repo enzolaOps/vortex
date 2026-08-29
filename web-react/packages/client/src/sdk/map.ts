@@ -37,6 +37,8 @@ import type {
   ServerSnapshot,
   SistemaSnapshot,
 } from "./domain";
+import { NOMES_POR_REACAO } from "./domain";
+import type { Enquete } from "../store/enquetes";
 
 /**
  * `reactions` chega como ReactiveMap<emoji, ReactiveSet<userId>>. Achatar aqui
@@ -55,6 +57,14 @@ function flattenReactions(
       emoji,
       total: users.size,
       minha: euId !== undefined && users.has(euId),
+      /*
+        Uma AMOSTRA, com teto — ver `ReacaoSnapshot.quem`.
+
+        O laço para no teto em vez de `[...users].slice()`: espalhar o Set
+        inteiro para descartar quase tudo é alocação proporcional à contagem,
+        numa função que roda de novo a cada layout, envio, permissão e reação.
+      */
+      quem: primeiros(users, NOMES_POR_REACAO),
     });
   }
   return out.length === 0 ? SEM_REACOES : out;
@@ -62,6 +72,16 @@ function flattenReactions(
 
 /** Referência compartilhada: a maioria das mensagens não tem reação nenhuma. */
 const SEM_REACOES: readonly ReacaoSnapshot[] = [];
+
+/** Os `n` primeiros de um Set, sem materializar o resto. */
+function primeiros(users: ReadonlySet<string>, n: number): readonly string[] {
+  const out: string[] = [];
+  for (const id of users) {
+    out.push(id);
+    if (out.length === n) break;
+  }
+  return out;
+}
 
 // Um formatter por sessão, não um por chamada — criar Intl.DateTimeFormat é
 // caro; usar é barato.
@@ -231,6 +251,8 @@ export function toMessageSnapshot(
   sendState: SendState,
   /** Quem sou eu — para saber quais reações são minhas. Vem de fora, como tudo. */
   euId: string | undefined,
+  /** A enquete, pelo mesmo motivo de `sendState`: o protocolo não a carrega. */
+  enquete: Enquete | undefined,
 ): MessageSnapshot {
   return {
     id: message.id,
@@ -267,6 +289,7 @@ export function toMessageSnapshot(
     // veio do servidor nasce "sent". É a camada anticorrupção fazendo o
     // trabalho para o qual existe.
     sendState,
+    enquete,
     iniciaGrupo: layout.iniciaGrupo,
     dia: layout.dia,
     primeiraNaoLida: layout.primeiraNaoLida,

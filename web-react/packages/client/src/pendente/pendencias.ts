@@ -33,10 +33,30 @@ export const PENDENCIAS = {
     faz: "Escolher arquivos para enviar junto com a mensagem.",
     depende: "upload ao servidor de mídia (autumn)",
   },
+  /*
+    ⚠ **O seletor de emoji EXISTE e funciona.** O que sobrou pendente é o que
+    ele não alcança sozinho, e os três estão separados de propósito: um é
+    dado, um é dado do servidor, um é modificador de glifo.
+  */
   emoji: {
-    superficie: "Composer",
-    faz: "Seletor de emoji com recentes, frequentes e busca.",
-    depende: "seletor de emoji + emojis do servidor",
+    superficie: "Reação",
+    faz: "Escolher um emoji para reagir a esta mensagem.",
+    depende: "o seletor ancorado ao chip — hoje ele só abre pelo composer",
+  },
+  emojiCompleto: {
+    superficie: "Seletor de emoji",
+    faz: "Oferecer os ~3.800 emojis do Unicode com nome e alias.",
+    depende: "dataset de emoji (`emojibase`) carregado sob demanda",
+  },
+  emojiDoServidor: {
+    superficie: "Seletor de emoji",
+    faz: "Usar os emojis personalizados deste servidor.",
+    depende: "servidor de mídia (autumn) servindo os arquivos",
+  },
+  tomDePele: {
+    superficie: "Seletor de emoji",
+    faz: "Escolher o tom de pele padrão dos emojis de pessoa.",
+    depende: "modificadores Fitzpatrick no dataset de emoji",
   },
   gif: {
     superficie: "Composer",
@@ -53,10 +73,21 @@ export const PENDENCIAS = {
     faz: "Painel de efeitos sonoros do servidor.",
     depende: "soundboard no protocolo + upload",
   },
+  /*
+    ⚠ **A linha de enquete na timeline EXISTE agora**, e o que ficou pendente é
+    só criar — porque criar é o que precisa de um servidor que saiba guardar.
+    Ver `store/enquetes.ts`: uma enquete guardada só no cliente daria uma
+    contagem que só quem criou enxerga.
+  */
   enquete: {
-    superficie: "Composer",
-    faz: "Criar uma enquete com opções e voto.",
-    depende: "enquete no protocolo + linha de enquete na timeline",
+    superficie: "Criar enquete",
+    faz: "Publicar a enquete para todo mundo do canal poder votar.",
+    depende: "enquete no protocolo (tipo de mensagem + evento de voto)",
+  },
+  reordenarResposta: {
+    superficie: "Criar enquete",
+    faz: "Arrastar uma resposta para mudar a ordem.",
+    depende: "arrastar-e-soltar — hoje o app não tem nenhum",
   },
   mensagemDeVoz: {
     superficie: "Composer",
@@ -110,6 +141,70 @@ export const PENDENCIAS = {
     superficie: "Rail",
     faz: "Agrupar servidores em pasta, com nome e cor.",
     depende: "ordenação de servidor em configuração de usuário",
+  },
+
+  /* ------------------------------------------- ações da mensagem (fase 5) */
+  topicoDaMensagem: {
+    superficie: "Ações da mensagem",
+    faz: "Abrir um tópico a partir desta mensagem.",
+    depende: "threads no protocolo",
+  },
+  responderSemMencionar: {
+    superficie: "Menu da mensagem",
+    faz: "Responder sem que a pessoa receba uma menção.",
+    depende: "corpo de envio com `replies:[{ id, mention }]` — fase 6",
+  },
+  marcarNaoLida: {
+    superficie: "Menu da mensagem",
+    faz: "Voltar o cursor de leitura para antes desta mensagem.",
+    depende: "`ack` para trás — o protocolo só move o cursor para a frente",
+  },
+  removerEmbed: {
+    superficie: "Menu da mensagem",
+    faz: "Esconder o cartão de link gerado para esta mensagem.",
+    depende: "supressão de embed no protocolo",
+  },
+
+  /* ------------------------------------------- menu do usuário na timeline */
+  perfilCompleto: {
+    superficie: "Menu do usuário",
+    faz: "Abrir o perfil inteiro desta pessoa, com bio, cargos e histórico.",
+    depende: "página de perfil — o `HoverCard` de hoje é o resumo, não a página",
+  },
+  conversaDireta: {
+    superficie: "Menu do usuário",
+    faz: "Abrir (ou criar) a conversa direta com esta pessoa.",
+    depende: "`User.openDM()` + rota para a conversa recém-criada",
+  },
+  ligar: {
+    superficie: "Menu do usuário",
+    faz: "Começar uma chamada direta com esta pessoa.",
+    depende: "chamada em DM (`Channel.joinCall` fora de canal de servidor)",
+  },
+  cargosDoMembro: {
+    superficie: "Menu do usuário",
+    faz: "Dar e tirar cargos desta pessoa sem sair da conversa.",
+    depende: "`ServerMember.edit({ roles })` + submenu de cargos",
+  },
+  alterarApelido: {
+    superficie: "Menu do usuário",
+    faz: "Trocar o apelido desta pessoa neste servidor.",
+    depende: "`ServerMember.edit({ nickname })` + modal de campo único",
+  },
+  notaPrivada: {
+    superficie: "Menu do usuário",
+    faz: "Guardar uma anotação sobre esta pessoa, visível só para você.",
+    depende: "notas de usuário — conceito de cliente, sem store ainda",
+  },
+  moverParaCanal: {
+    superficie: "Menu do usuário",
+    faz: "Puxar esta pessoa para outro canal de voz.",
+    depende: "`ServerMember.edit({ voice_channel })` + submenu de canais",
+  },
+  silenciarUsuario: {
+    superficie: "Menu do usuário",
+    faz: "Esconder as mensagens desta pessoa só para você.",
+    depende: "lista de silenciados — conceito de cliente, sem store ainda",
   },
 } as const satisfies Record<
   string,

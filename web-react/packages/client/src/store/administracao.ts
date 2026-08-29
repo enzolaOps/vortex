@@ -62,6 +62,18 @@ export type Alvo =
       /** O que estava ESCRITO. Se difere do destino, o aviso endurece. */
       readonly texto: string;
     }
+  /*
+    Encaminhar. Alvo é a MENSAGEM, e o destino é escolhido dentro do modal —
+    a lista de canais e pessoas é grande demais para caber num submenu, e o
+    design a desenha com busca, chips de destino e comentário.
+  */
+  | { readonly tipo: "encaminhar"; readonly messageId: string }
+  /*
+    Criar enquete. Sem alvo além do canal, que o modal lê da navegação — e é
+    por isso que a variante não carrega campo nenhum: o alvo de "criar" é o
+    lugar onde se está, não um objeto que já existe.
+  */
+  | { readonly tipo: "enquete" }
   | {
       readonly tipo: "moderar";
       readonly serverId: string;
@@ -109,7 +121,14 @@ export function administrar(novo: Alvo): void {
  */
 const MODAL_DE: Record<
   Alvo["tipo"],
-  "canal" | "exclusao" | "convite" | "moderar" | "imagem" | "link"
+  | "canal"
+  | "exclusao"
+  | "convite"
+  | "moderar"
+  | "imagem"
+  | "link"
+  | "encaminhar"
+  | "enquete"
 > = {
   criarCanal: "canal",
   editarCanal: "canal",
@@ -124,6 +143,8 @@ const MODAL_DE: Record<
   apagarCategoria: "exclusao",
   convite: "convite",
   moderar: "moderar",
+  encaminhar: "encaminhar",
+  enquete: "enquete",
 };
 
 /** Estado limpo entre testes. O módulo é global e sobrevive. */

@@ -136,6 +136,26 @@ export function Composer({ channelId }: { channelId: string }) {
     else digitacao.aoParar(channelId);
   }
 
+  /**
+   * Insere texto na POSIÇÃO DO CURSOR — é assim que o emoji chega ao campo.
+   *
+   * Concatenar no fim seria o atalho, e estaria errado no caso mais comum:
+   * quem já escreveu a frase e volta para pôr um emoji no meio veria o glifo
+   * saltar para o final. A `textarea` guarda a seleção mesmo enquanto o
+   * seletor tem o foco, então `selectionStart` continua valendo.
+   */
+  function inserir(texto: string) {
+    const campo = entradaRef.current;
+    const a = campo?.selectionStart ?? valor.length;
+    const b = campo?.selectionEnd ?? valor.length;
+    alterar(valor.slice(0, a) + texto + valor.slice(b));
+    /* Depois do commit, senão o cursor volta para o fim junto com o valor. */
+    queueMicrotask(() => {
+      campo?.focus();
+      campo?.setSelectionRange(a + texto.length, a + texto.length);
+    });
+  }
+
   function enviar() {
     if (!podeEnviar) return;
 
@@ -286,7 +306,10 @@ export function Composer({ channelId }: { channelId: string }) {
               />
             </div>
 
-            <FerramentasDoComposer desabilitado={!temPermissao} />
+            <FerramentasDoComposer
+              desabilitado={!temPermissao}
+              aoInserir={inserir}
+            />
 
             {/*
               ⚠ **O botão de enviar NÃO está no design, e fica mesmo assim.**

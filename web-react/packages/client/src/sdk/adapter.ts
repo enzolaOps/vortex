@@ -40,6 +40,7 @@ import { count } from "../dev/stats";
 import { createEntityStore } from "../store/entities";
 import { createEphemeralStore } from "../store/ephemeral";
 import { client, conectado } from "./client";
+import { lerEnquete } from "../store/enquetes";
 import { semearStatusDoServidor } from "./perfil";
 import { aguardar, desistir, reconciliar } from "./nonce";
 import { definirConexao } from "../store/conexao";
@@ -225,7 +226,10 @@ function recalcularLayout(channelId: string, de: number, ate: number) {
     // janela é recalculado quando a linha montar.
     const message = client.messages.get(id);
     if (message && messages.subscriberCount(id) > 0) {
-      messages.set(id, toMessageSnapshot(message, novo, estadoDeEnvioDe(id), usuarioLocal));
+      messages.set(
+        id,
+        toMessageSnapshot(message, novo, estadoDeEnvioDe(id), usuarioLocal, lerEnquete(id)),
+      );
     }
   }
 }
@@ -328,7 +332,10 @@ function marcarEnvio(id: string, estado: SendState) {
 
   const message = client.messages.get(idDoSdk(id));
   if (message && messages.subscriberCount(id) > 0) {
-    messages.set(id, toMessageSnapshot(message, layoutDe(id), estado, usuarioLocal));
+    messages.set(
+      id,
+      toMessageSnapshot(message, layoutDe(id), estado, usuarioLocal, lerEnquete(id)),
+    );
   }
 }
 
@@ -486,7 +493,13 @@ export const messages = createEntityStore<MessageSnapshot>((id) => {
   // virtualizada vira altura zero e realimenta a medição.
   const initial = client.messages.get(idDoSdk(id));
   if (initial) {
-    messages.set(id, toMessageSnapshot(initial, layoutDe(id), estadoDeEnvioDe(id), usuarioLocal));
+    messages.set(id, toMessageSnapshot(
+        initial,
+        layoutDe(id),
+        estadoDeEnvioDe(id),
+        usuarioLocal,
+        lerEnquete(id),
+      ));
   }
 
   return createRoot((dispose) => {
@@ -498,7 +511,13 @@ export const messages = createEntityStore<MessageSnapshot>((id) => {
       if (message) {
         messages.set(
           id,
-          toMessageSnapshot(message, layoutDe(id), estadoDeEnvioDe(id), usuarioLocal),
+          toMessageSnapshot(
+            message,
+            layoutDe(id),
+            estadoDeEnvioDe(id),
+            usuarioLocal,
+            lerEnquete(id),
+          ),
         );
         count("snapshots");
       }
@@ -697,13 +716,44 @@ let started = false;
  * subscrições por linha, para sempre, por um evento que acontece uma vez por
  * semana.
  */
+/**
+ * A enquete de uma mensagem mudou — republica só ela.
+ *
+ * Mesma mecânica de `marcarEnvio` e de `repensarPermissoes`: o que acorda a
+ * linha é um SNAPSHOT novo, não o array de IDs — `MessageRow` é `memo` com a
+ * mesma prop `id`, então republicar a coleção não re-renderizaria linha
+ * nenhuma. Foi o erro que a nota de `permissoes.ts` já registrou uma vez.
+ *
+ * Só se houver quem assine: votar numa enquete fora da janela não existe.
+ */
+export function republicarEnquete(messageId: string): void {
+  const message = client.messages.get(idDoSdk(messageId));
+  if (!message || messages.subscriberCount(messageId) === 0) return;
+  messages.set(
+    messageId,
+    toMessageSnapshot(
+      message,
+      layoutDe(messageId),
+      estadoDeEnvioDe(messageId),
+      usuarioLocal,
+      lerEnquete(messageId),
+    ),
+  );
+}
+
 function repensarPermissoes(): void {
   for (const id of messages.assinados()) {
     const message = client.messages.get(idDoSdk(id));
     if (!message) continue;
     messages.set(
       id,
-      toMessageSnapshot(message, layoutDe(id), estadoDeEnvioDe(id), usuarioLocal),
+      toMessageSnapshot(
+            message,
+            layoutDe(id),
+            estadoDeEnvioDe(id),
+            usuarioLocal,
+            lerEnquete(id),
+          ),
     );
   }
 }

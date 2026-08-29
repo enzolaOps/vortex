@@ -7,6 +7,8 @@ import { ModalDeConvite } from "../../servidores/ModalDeConvite";
 import { ModalDeExclusao } from "../../servidores/ModalDeExclusao";
 import { ModalDeModeracao } from "../../servidores/ModalDeModeracao";
 import { AvisoDeLink } from "../../list/AvisoDeLink";
+import { Encaminhar } from "../../list/Encaminhar";
+import { CriarEnquete } from "../../enquete/CriarEnquete";
 import { VisualizadorDeImagem } from "../../list/VisualizadorDeImagem";
 import {
   assinarModal,
@@ -39,6 +41,8 @@ const REGISTRO: Record<ModalId, ComponentType<{ aoFechar: () => void }>> = {
   moderar: ModalDeModeracao,
   imagem: VisualizadorDeImagem,
   link: AvisoDeLink,
+  encaminhar: Encaminhar,
+  enquete: CriarEnquete,
 };
 
 /**

@@ -56,4 +56,18 @@ export const menuItemNormal = "text-text-2";
 
 export const menuSeparator = "my-1 h-px bg-border-subtle";
 
+/**
+ * A tecla de atalho à direita do item — o "R", o "E", o "⇧⌘C" do design.
+ *
+ * `ms-auto` porque o item já é `flex`: empurrar com margem automática é o que
+ * mantém rótulos de comprimentos diferentes alinhados sem grid nem largura
+ * fixa. Mono, porque é uma TECLA e não uma palavra — a mesma escolha da dica
+ * do editor e da faixa do composer.
+ *
+ * `text-4` e não `text-3`: é a informação menos importante da linha, e ela
+ * compete com o rótulo se tiver o mesmo peso. Quem procura o atalho já sabe
+ * onde olhar.
+ */
+export const menuAtalho = "ms-auto ps-4 font-mono text-xs text-text-4";
+
 export const menuLabel = "px-2 py-1 text-xs text-text-3";

@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CHANNEL_ID, seed } from "../dev/firehose";
-import { alternarReacao, channelMessageIds, messages } from "./adapter";
+import {
+  alternarReacao,
+  channelMessageIds,
+  messages,
+  usuarioLocalId,
+} from "./adapter";
 
 /**
  * Reações.
@@ -62,7 +67,12 @@ describe("reações", () => {
     virarFrame();
 
     const nova = messages.peek(id)?.reactions.find((r) => r.emoji === "🎉");
-    expect(nova).toEqual({ emoji: "🎉", total: 1, minha: true });
+    expect(nova).toMatchObject({ emoji: "🎉", total: 1, minha: true });
+    /*
+      E a amostra de QUEM reagiu traz você — é o dado que o tooltip de reação
+      nomeia, e sem esta linha ele passaria a vir vazio sem nada reprovar.
+    */
+    expect(nova?.quem).toEqual([usuarioLocalId()]);
   });
 
   it("clicar de novo remove, e não deixa o emoji para trás", () => {

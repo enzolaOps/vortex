@@ -10,6 +10,8 @@
  */
 
 /** Estado de envio. Vive no cliente; o protocolo não tem esse conceito. */
+import type { Enquete } from "../store/enquetes";
+
 export type SendState = "sent" | "pending" | "failed";
 
 /**
@@ -271,6 +273,20 @@ export type MessageSnapshot = {
   readonly sendState: SendState;
 
   /**
+   * A enquete desta mensagem, quando há.
+   *
+   * Campo do Vortex que o protocolo não carrega — o mesmo arranjo de
+   * `sendState`, das não-lidas e do agrupamento. Entra por parâmetro no
+   * `map.ts` e é o adapter que decide de onde vem; hoje vem de
+   * `store/enquetes.ts`, e o dia em que o protocolo tiver enquete só o adapter
+   * muda.
+   *
+   * `undefined` na esmagadora maioria das mensagens, que é o que o mantém
+   * barato: uma comparação de referência a mais no snapshot da linha.
+   */
+  readonly enquete: Enquete | undefined;
+
+  /**
    * Primeira mensagem do autor naquela janela: mostra avatar, nome e hora.
    *
    * Mensagens consecutivas do mesmo autor dentro de uma janela curta agrupam
@@ -312,7 +328,22 @@ export type ReacaoSnapshot = {
   readonly emoji: string;
   readonly total: number;
   readonly minha: boolean;
+  /**
+   * QUEM reagiu — os primeiros, não todos.
+   *
+   * O design mostra "Marina, Téo, Júlia, Rafa · e outros 3" ao pousar sobre o
+   * chip, e o protocolo entrega o conjunto inteiro de IDs. Trazê-lo inteiro
+   * seria copiar um `Set` de tamanho arbitrário para dentro do snapshot da
+   * linha mais quente do app, a cada reação, para desenhar quatro nomes.
+   *
+   * `total` continua sendo a contagem VERDADEIRA; esta lista é só a amostra
+   * que o tooltip nomeia. As duas juntas dão "e outros 3" sem custo.
+   */
+  readonly quem: readonly string[];
 };
+
+/** Quantos nomes o tooltip de reação chega a mostrar. Ver `ReacaoSnapshot.quem`. */
+export const NOMES_POR_REACAO = 4;
 
 export type PresenceStatus = "online" | "idle" | "dnd" | "offline";
 
