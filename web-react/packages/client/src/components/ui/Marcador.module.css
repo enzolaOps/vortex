@@ -36,6 +36,20 @@
   cursor: pointer;
 }
 
+/*
+  ⚠ **A CAIXA apaga o rótulo quando vazia; o PONTO não.** É do design, e a
+  distinção é real: caixa desmarcada é uma coisa que NÃO está valendo, e o tom
+  apagado diz isso; opção não escolhida continua sendo uma alternativa viva —
+  apagá-la faria a lista parecer meio desativada.
+*/
+.linhaCaixa {
+  color: var(--vx-text-2);
+}
+
+.linhaCaixa[aria-checked="true"] {
+  color: var(--vx-text-1);
+}
+
 .linha:disabled {
   color: var(--vx-text-4);
   cursor: not-allowed;

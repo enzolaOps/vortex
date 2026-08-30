@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 
 import { Botao } from "../components/ui/Botao";
-import { Segmentado } from "../components/ui/Segmentado";
+import { Opcao } from "../components/ui/Marcador";
 import {
   assinarDensidade,
   definirDensidade,
@@ -25,8 +25,16 @@ import css from "./Secao.module.css";
  */
 /** Fora do componente: constante, não estado. */
 const OPCOES_DE_DENSIDADE = [
-  { id: "confortavel", rotulo: "Confortável" },
-  { id: "compacto", rotulo: "Compacto" },
+  {
+    id: "confortavel",
+    rotulo: "Confortável",
+    detalhe: "Avatar 40, linhas com respiro",
+  },
+  {
+    id: "compacto",
+    rotulo: "Compacto",
+    detalhe: "Uma linha por mensagem, autor inline",
+  },
 ] as const;
 
 export function Aparencia() {
@@ -44,18 +52,30 @@ export function Aparencia() {
       */}
       <section className={css.bloco}>
         <h2 className={css.subtitulo}>Densidade</h2>
-        <p className={css.recado}>
-          Compacto não é o confortável apertado: ele troca o avatar por uma
-          coluna de hora e deixa de agrupar mensagens do mesmo autor, então
-          cada linha vira um endereço. Cabe mais conversa na tela; identifica-se
-          quem falou com menos relance.
-        </p>
-        <Segmentado
-          rotulo="Densidade da timeline"
-          valor={densidade}
-          opcoes={OPCOES_DE_DENSIDADE}
-          aoEscolher={definirDensidade}
-        />
+        {/*
+          ⚠ **Lista de opções, e não `Segmentado`** — é o que o design desenha,
+          e o motivo está na segunda linha de cada uma. Um segmentado só cabe o
+          RÓTULO, e "Confortável" e "Compacto" não dizem o que mudam: a escolha
+          exigia um parágrafo acima explicando as duas, que é justamente o que
+          ninguém lê antes de clicar. Com a descrição colada em cada opção, a
+          diferença se lê no lugar onde se decide.
+        */}
+        <div
+          className={css.escolhas}
+          role="radiogroup"
+          aria-label="Densidade da timeline"
+        >
+          {OPCOES_DE_DENSIDADE.map((o) => (
+            <Opcao
+              key={o.id}
+              marcado={densidade === o.id}
+              aoEscolher={() => definirDensidade(o.id)}
+            >
+              <span className={css.escolhaTitulo}>{o.rotulo}</span>
+              <span className={css.escolhaDetalhe}>{o.detalhe}</span>
+            </Opcao>
+          ))}
+        </div>
       </section>
 
       <hr className={css.divisor} />

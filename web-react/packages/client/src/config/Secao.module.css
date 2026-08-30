@@ -139,3 +139,35 @@
   color: var(--vx-text-3);
   font-size: var(--vx-size-sm);
 }
+
+/* ============================================================
+   Lista de opções com descrição
+   ------------------------------------------------------------
+   Do design: `gap:10px` entre as linhas, marca alinhada ao topo,
+   título 13/600 e descrição 12 em `text-3`. A descrição é o que
+   torna a escolha decidível sem um parágrafo acima dela.
+   ============================================================ */
+
+.escolhas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-10);
+}
+
+/* O texto empilha; a marca fica ao lado, alinhada à primeira linha. */
+.escolhas > button > span:last-child {
+  display: grid;
+  gap: var(--vx-space-02);
+}
+
+.escolhaTitulo {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.escolhaDetalhe {
+  font-size: var(--vx-size-sm);
+  font-weight: 400;
+  color: var(--vx-text-3);
+}

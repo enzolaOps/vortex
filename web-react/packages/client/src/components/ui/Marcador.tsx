@@ -48,7 +48,7 @@ function corpo(
     className:
       children === undefined
         ? cn(css.marcador, css[tipo], className)
-        : cn(css.linha, className),
+        : cn(css.linha, tipo === "caixa" && css.linhaCaixa, className),
     filhos:
       children === undefined ? (
         tipo === "caixa" ? (
