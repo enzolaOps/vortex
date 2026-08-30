@@ -47,6 +47,7 @@ import { copiarTexto } from "../lib/copiar";
 import { plural, rotuloDeReacao } from "../lib/plural";
 import { cn } from "../lib/cn";
 import { Avatar } from "../components/ui/Avatar";
+import { BotaoDeIcone } from "../components/ui/BotaoDeIcone";
 import { menuAtalho, menuLargo } from "../components/ui/menu";
 import { AvatarDoAutor } from "../presenca/AvatarDoAutor";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
@@ -938,70 +939,60 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             {pode(message.channelId, "reagir") ? (
               <>
                 {REACOES_DA_BARRA.map((emoji) => (
-                  <button
+                  <BotaoDeIcone
                     key={emoji}
-                    type="button"
-                    className={css.acao}
-                    aria-label={`Reagir com ${emoji}`}
+                    tamanho="sm"
+                    className={css.acaoEmoji}
+                    rotulo={`Reagir com ${emoji}`}
+                    icone={<span aria-hidden>{emoji}</span>}
                     onClick={() => alternarReacao(message.id, emoji)}
-                  >
-                    <span aria-hidden>{emoji}</span>
-                  </button>
+                  />
                 ))}
 
                 <span className={css.acoesDivisa} aria-hidden />
 
-                <button
-                  type="button"
-                  className={css.acao}
-                  aria-label="Adicionar reação"
+                <BotaoDeIcone
+                  tamanho="sm"
+                  rotulo="Adicionar reação"
+                  icone={<Smiley aria-hidden />}
                   onClick={aindaNao("emoji")}
-                >
-                  <Smiley aria-hidden />
-                </button>
+                />
               </>
             ) : null}
 
             {pode(message.channelId, "responder") ? (
-              <button
-                type="button"
-                className={css.acao}
-                aria-label="Responder"
+              <BotaoDeIcone
+                tamanho="sm"
+                rotulo="Responder"
+                icone={<ArrowBendUpLeft aria-hidden />}
                 onClick={() => responderA(message.channelId, message.id)}
-              >
-                <ArrowBendUpLeft aria-hidden />
-              </button>
+              />
             ) : null}
 
-            <button
-              type="button"
-              className={css.acao}
-              aria-label="Encaminhar"
+            <BotaoDeIcone
+              tamanho="sm"
+              rotulo="Encaminhar"
+              icone={<ArrowBendUpRight aria-hidden />}
               onClick={() =>
                 administrar({ tipo: "encaminhar", messageId: message.id })
               }
-            >
-              <ArrowBendUpRight aria-hidden />
-            </button>
+            />
 
-            <button
-              type="button"
-              className={css.acao}
-              aria-label="Criar tópico"
+            <BotaoDeIcone
+              tamanho="sm"
+              rotulo="Criar tópico"
+              icone={<ChatsCircle aria-hidden />}
               onClick={aindaNao("topicoDaMensagem")}
-            >
-              <ChatsCircle aria-hidden />
-            </button>
+            />
 
-            <button
-              type="button"
-              className={cn(css.acao, css.acaoMais)}
-              aria-label="Mais ações"
+            <BotaoDeIcone
+              tamanho="sm"
+              className={css.acaoMais}
+              rotulo="Mais ações"
+              icone={<DotsThree aria-hidden />}
               aria-haspopup="menu"
               onClick={(e) => abrirMenuDaLinha(e.currentTarget)}
-            >
-              <DotsThree aria-hidden />
-            </button>
+            />
           </div>
 
 

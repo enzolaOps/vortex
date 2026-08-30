@@ -1,0 +1,130 @@
+/* ============================================================
+   Botão de ícone — o primitivo que faltava
+   ------------------------------------------------------------
+   ⚠ Havia QUINZE cópias dele, em onze arquivos: barra de ações
+   da mensagem, ferramentas do composer, ações do cabeçalho,
+   rail dos seletores, lightbox, reprodutor de voz, cartão de
+   chamada, encaminhar, enquete, emojis. Cada uma com o próprio
+   tamanho, o próprio hover e o próprio anel de foco.
+
+   É a mesma história do `Avatar`, que tinha seis: trocar o
+   tratamento de foco exigiria quinze edições que ninguém
+   garantiria completas — e o `pnpm utilities` só acusa a regra
+   morta DEPOIS que o último consumidor sai.
+   ============================================================ */
+
+.botao {
+  display: grid;
+  place-items: center;
+  flex: none;
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-2);
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+/*
+  Os quatro tamanhos são os do design, medidos.
+
+  26 é o da régua de edição, 28 o da barra de ações e das ferramentas do
+  composer, 30 o das ações de cabeçalho, 34 o de alvo isolado. `inline-size` e
+  `block-size` iguais e explícitos: alvo quadrado é DIMENSÃO, e deixar a altura
+  vir do respiro faz o botão mudar de tamanho com o ícone dentro.
+*/
+.xs {
+  inline-size: 26px;
+  block-size: 26px;
+}
+
+.sm {
+  inline-size: 28px;
+  block-size: 28px;
+}
+
+.md {
+  inline-size: 30px;
+  block-size: 30px;
+}
+
+.lg {
+  inline-size: 34px;
+  block-size: 34px;
+}
+
+/* O glifo acompanha o alvo, mas não é o alvo: 13 dentro de 28 é o do design. */
+.xs svg,
+.sm svg {
+  inline-size: 13px;
+  block-size: 13px;
+}
+
+.md svg,
+.lg svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+/* ------------------------------------------------------------ tons */
+
+/*
+  O tom decide as DUAS cores — repouso e realce —, e é por isso que ele é uma
+  união e não dois props. Com cor e fundo separados dava para pedir "vermelho
+  com realce de acento", que não existe em desenho nenhum deste projeto.
+*/
+.padrao:hover:not(:disabled) {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.padrao[aria-pressed="true"] {
+  background: var(--vx-state-selected);
+  color: var(--vx-accent-text);
+}
+
+.acento {
+  color: var(--vx-accent-text);
+}
+
+.acento:hover:not(:disabled),
+.acento[aria-pressed="true"] {
+  background: var(--vx-state-selected);
+}
+
+.perigo {
+  color: var(--vx-danger-text);
+}
+
+.perigo:hover:not(:disabled),
+.perigo[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--vx-danger) 14%, transparent);
+}
+
+.sucesso {
+  color: var(--vx-success-text);
+}
+
+.sucesso:hover:not(:disabled),
+.sucesso[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--vx-success) 14%, transparent);
+}
+
+/* ------------------------------------------------------- estados */
+
+.botao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.botao:disabled {
+  cursor: default;
+  color: var(--vx-text-4);
+}
+
+/* Pílula em vez de quadrado — avatar, controle de chamada, seta do lightbox. */
+.redondo {
+  border-radius: var(--vx-radius-pill);
+}

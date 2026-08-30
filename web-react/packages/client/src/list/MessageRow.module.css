@@ -396,56 +396,19 @@
 }
 
 /*
-  28×28, e o número é do design.
+  ⚠ **`.acao` SAIU: quem desenha o alvo agora é `BotaoDeIcone`.**
 
-  ⚠ **Estava em 24 (`--vx-space-24`), e o alvo não era o único errado.** Medido
-  antes: botão 24×24 com emoji em 12px e ícone em 14 — ou seja, o EMOJI menor
-  que o ícone ao lado dele, numa fileira onde os dois são a mesma família de
-  alvo. O design põe emoji em 15 e ícone em 13, e é essa relação que faz a
-  divisa separar duas coisas do mesmo peso.
-
-  `block-size` é DIMENSÃO de componente e não degrau de escala — é por isso que
-  o `pnpm escala` governa padding, margin, gap e raio, e deixa tamanho de fora.
+  Ela era uma das quinze cópias à mão do mesmo botão quadrado — cada uma com o
+  próprio tamanho, hover e anel de foco. O que sobra aqui é só o que é DESTA
+  barra: o emoji das três reações rápidas, que o design põe em 15px enquanto os
+  ícones ao lado ficam em 13. Era o único ponto em que a barra discordava do
+  primitivo, e é informação: emoji e ícone são a mesma família de alvo com
+  pesos ópticos diferentes.
 */
-.acao {
-  display: grid;
-  place-items: center;
-  inline-size: 28px;
-  block-size: 28px;
-  border-radius: var(--vx-radius-05);
-  color: var(--vx-text-2);
-  /* O EMOJI, que é o conteúdo direto do botão. O ícone vem em `.acao svg`. */
+.acaoEmoji {
   font-size: var(--vx-size-lg);
-  cursor: pointer;
 }
 
-.acao:hover {
-  background: var(--vx-accent-soft);
-  color: var(--vx-text-1);
-}
-
-.acao:active {
-  /* Só `scale`: o design system permite `transform` e `opacity`, e nada
-     mais roda no compositor. */
-  scale: 0.92;
-}
-
-.acao:focus-visible {
-  outline: 2px solid var(--vx-accent);
-  outline-offset: -2px;
-}
-
-/*
-  Separa reagir de agir. Duas famílias de ação no mesmo alvo pedem uma pausa, e
-  a pausa é mais barata que um segundo container.
-
-  ⚠ **VÉU, e não a hairline de token.** `--vx-border-subtle` é calibrado para
-  divisórias sobre `surface-0..2`; esta divisa vive dentro de uma caixa em
-  `surface-4`, onde o token some — medido em `rgb(29,35,45)` contra um fundo
-  `rgb(34,40,51)`, ou seja, mais ESCURO que o que ele deveria dividir. O design
-  a escreve como `rgba(255,255,255,0.10)`, e véu compõe certo sobre qualquer
-  superfície, que é a razão pela qual `--vx-state-*` existem.
-*/
 .acoesDivisa {
   inline-size: 1px;
   block-size: 18px;
@@ -679,13 +642,10 @@
   de um default copiado de componente para componente. O dono do tamanho é a
   superfície, não a chamada.
 */
-/* O glifo dentro do alvo de 28 — 13px, como o design. `--vx-icon-1` é 14 e
-   serve à cromagem densa das colunas; aqui o vizinho é um emoji de 15, e um
-   ícone de 14 ao lado dele lê como o mesmo tamanho em vez de como cromagem. */
-.acao svg {
-  inline-size: 13px;
-  block-size: 13px;
-}
+/* O glifo de 13px foi junto com `.acao` para `BotaoDeIcone`: nos tamanhos
+   `xs` e `sm` ele já sai em 13, pela mesma razão que estava escrita aqui — o
+   vizinho é um emoji de 15, e um ícone de 14 ao lado dele lê como o mesmo
+   tamanho em vez de como cromagem. */
 
 /* ----------------------------------------- a linha e a prévia de resposta */
 
