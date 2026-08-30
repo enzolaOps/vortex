@@ -18,6 +18,7 @@ import { ALTURA_ESTIMADA } from "../list/MessageList";
 import { ligarAtalhoDaPaleta } from "../store/paleta";
 import { configurarSimulacaoDeEnvio } from "../sdk/adapter";
 import { definirConexao, lerConexao } from "../store/conexao";
+import { alternarCascaFalsa } from "./cascaFalsa";
 import { entrar } from "../store/edicao";
 import { assinarLayout, definirSemente, lerSemente } from "../store/layout";
 import { SEMENTE_PADRAO } from "../tema/derivar";
@@ -422,6 +423,26 @@ export function Arnes() {
             className="rounded-06 border border-border-subtle bg-surface-2 px-12 py-04 text-sm text-text-1"
           >
             derrubar conexão
+          </button>
+
+          {/*
+            ⚠ **Fingir a casca, e sem isto TODA a etapa 9 seria inalcançável.**
+
+            Barra de título, faixa de atualização e a seção Desktop só existem
+            quando `window.vortex` existe — e no navegador ele não existe. Sem
+            este botão, três telas nasceriam construídas e invisíveis: é a
+            família do painel de fixadas, que passou meses sem nunca ter sido
+            visto porque não estava no preset de fábrica.
+
+            A ponte falsa implementa os DEZ verbos do contrato, e é o teste
+            mais barato de que ele fecha: se um deles faltar, isto não compila.
+            Arnês, não produto — como o "falhar envio" e a "chamada falsa".
+          */}
+          <button
+            onClick={() => alternarCascaFalsa()}
+            className="rounded-06 border border-border-subtle bg-surface-2 px-12 py-04 text-sm text-text-1"
+          >
+            casca falsa
           </button>
 
           <label className="flex items-center gap-08 text-xs text-text-2">

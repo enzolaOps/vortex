@@ -10,6 +10,7 @@ import { Avatar } from "../components/ui/Avatar";
 import { cn } from "../lib/cn";
 import { Tooltip } from "../components/ui/Tooltip";
 import { sigla } from "../lib/sigla";
+import { assinarDesktop, lerDesktop } from "../store/desktop";
 import { lerMeuPerfil } from "../sdk/perfil";
 import { sair } from "../sdk/autenticacao";
 import { assinarSessao, lerSessao } from "../store/sessao";
@@ -27,6 +28,7 @@ import { useChannel, useServer, useServidorAtivo } from "../store/hooks";
 import { Aparencia } from "./Aparencia";
 import { Atalhos } from "./Atalhos";
 import { Avancado } from "./Avancado";
+import { Desktop } from "./Desktop";
 import { Privacidade } from "./Privacidade";
 import { VozEVideo } from "./VozEVideo";
 import { Notificacoes } from "./Notificacoes";
@@ -78,6 +80,17 @@ const DE_USUARIO: readonly (readonly SecaoId[])[] = [
   ["perfil", "conta", "sessoes", "privacidade"],
   ["vozEVideo", "notificacoes", "aparencia", "atalhos", "avancado"],
 ];
+
+/**
+ * As que só existem na casca.
+ *
+ * ⚠ **Fora do menu no navegador, e não desabilitadas.** Uma página de opções
+ * que não controlam nada é o defeito que o registro de pendências existe para
+ * evitar, e aqui ele seria a página inteira — não um botão. É a mesma regra
+ * dos itens de moderação da member list: o que você nunca vai poder usar é
+ * ruído permanente.
+ */
+const SO_NA_CASCA: readonly SecaoId[] = ["desktop"];
 
 function ItemDoMenu({
   id,
@@ -139,6 +152,8 @@ function Identidade() {
 
 export function Configuracoes() {
   const config = useSyncExternalStore(assinarConfig, lerConfig);
+  /* Do snapshot e não de `naDesktop()` — ver `store/desktop.ts`. */
+  const { naCasca } = useSyncExternalStore(assinarDesktop, lerDesktop);
   const servidorAtivo = useServidorAtivo();
   const servidor = useServer(config.serverId ?? servidorAtivo);
 
@@ -175,6 +190,7 @@ export function Configuracoes() {
     notificacoes: () => <Notificacoes />,
     atalhos: () => <Atalhos />,
     avancado: () => <Avancado />,
+    desktop: () => <Desktop />,
     servidor: () => <Servidor serverId={serverId} />,
     cargos: () => <Cargos serverId={serverId} />,
     convites: () => <Convites serverId={serverId} />,
@@ -210,7 +226,10 @@ export function Configuracoes() {
 
         <div className={css.lista}>
           <p className={css.grupo}>Configurações do usuário</p>
-          {DE_USUARIO.map((bloco, i) => (
+          {(naCasca
+            ? [...DE_USUARIO.slice(0, -1), [...DE_USUARIO[1]!, ...SO_NA_CASCA]]
+            : DE_USUARIO
+          ).map((bloco, i) => (
             <Fragment key={bloco[0]}>
               {/* A régua separa os blocos, nunca abre o primeiro. */}
               {i > 0 ? <hr className={css.regua} /> : null}

@@ -8,7 +8,9 @@
 
 .tela {
   position: fixed;
-  inset: 0;
+  /* Abaixo da barra de título: cobri-la tiraria os controles de janela
+     do alcance, e a barra é o único caminho para eles. */
+  inset: var(--vx-barra-h) 0 0 0;
   z-index: var(--vx-z-sistema);
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);

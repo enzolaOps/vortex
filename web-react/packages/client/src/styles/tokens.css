@@ -632,6 +632,21 @@
   --vx-config-rodape-h: 110px;
 
   /*
+    A altura da barra de título da casca.
+
+    ⚠ **Zero por padrão, e 34px só quando a barra existe** — quem a escreve é o
+    `BarraDeTitulo`, no `<html>`. Ela existe porque toda superfície de TELA
+    CHEIA precisa começar abaixo dela: `position: fixed; inset: 0` cobriria a
+    barra, e no Electron isso significa uma janela que não pode ser arrastada
+    nem fechada enquanto as configurações estiverem abertas.
+
+    Medido no arnês com a casca falsa: as configurações cobriam os três
+    controles. Nada falhava — a janela simplesmente parava de responder aos
+    únicos alvos que o sistema não oferece por outro caminho.
+  */
+  --vx-barra-h: 0px;
+
+  /*
     A MEDIDA de leitura — quantos caracteres cabem numa linha de texto.
 
     Não é a mesma coisa que a largura da coluna, e confundir as duas é o que

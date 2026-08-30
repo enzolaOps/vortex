@@ -74,6 +74,13 @@ const PERMITIDO = {
       "Tela cheia sem shell: aqui não há rail nem conteúdo, então ela É o " +
       "chão. Mesma família do `body`.",
   },
+  "desktop/BarraDeTitulo.module.css": {
+    ".barra":
+      "Cromo de JANELA, e nao conteudo — mesma familia do rail, que e o " +
+      "primeiro papel nomeado. Ela fica ACIMA do rail e continua a mesma " +
+      "superficie: um degrau mais claro ali desenharia uma faixa flutuando " +
+      "sobre o app em vez da moldura da janela, que e o que ela e.",
+  },
   "config/canal/Canal.module.css": {
     ".filtro":
       "Campo de BUSCA, e o design separa os dois papéis: o que recebe entrada " +

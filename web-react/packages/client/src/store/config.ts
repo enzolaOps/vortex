@@ -32,6 +32,7 @@ export const SECOES = [
   "aparencia",
   "notificacoes",
   "atalhos",
+  "desktop",
   "avancado",
   "servidor",
   "cargos",
@@ -70,6 +71,7 @@ export const NOME_DA_SECAO: Record<SecaoId, string> = {
   aparencia: "Aparência",
   notificacoes: "Notificações",
   atalhos: "Atalhos de teclado",
+  desktop: "Desktop",
   avancado: "Avançado",
   servidor: "Visão geral",
   cargos: "Cargos",
@@ -94,6 +96,7 @@ export const DESCRICAO_DA_SECAO: Partial<Record<SecaoId, string>> = {
   atalhos:
     "Combinações do app. Atalhos globais (mesmo em segundo plano) ficam em Voz e vídeo.",
   avancado: "Ferramentas para quem administra servidores e reporta problemas.",
+  desktop: "Opções que só existem no app instalado.",
 };
 
 /** As que falam de um servidor, e por isso precisam de um. */

@@ -8,6 +8,9 @@ import { App } from "./App";
 import { PortaoDeSessao } from "./sessao/PortaoDeSessao";
 import { Toaster } from "./components/ui/Toast";
 import { FaixaDeConexao } from "./conexao/FaixaDeConexao";
+import { Atualizacao } from "./desktop/Atualizacao";
+import { BarraDeTitulo } from "./desktop/BarraDeTitulo";
+import { hidratarDesktop } from "./store/desktop";
 import { TooltipProvider } from "./components/ui/Tooltip";
 import "./styles/tokens.css";
 
@@ -15,6 +18,21 @@ const root = document.getElementById("root");
 if (!root) throw new Error("#root ausente no index.html");
 
 iniciarPintura();
+
+/*
+  As preferências da casca, antes do primeiro render.
+
+  ⚠ Elas decidem se a barra de título custom aparece — e aplicá-las depois
+  faria o app abrir com a barra e removê-la um quadro adiante, empurrando o
+  conteúdo inteiro 34px para cima na frente de quem olha. Module-level pela
+  mesma razão da rota: preferência de processo não pertence a árvore de
+  componente nenhuma.
+
+  `void` e sem `await`: no navegador ela resolve na hora sem fazer nada, e
+  bloquear a montagem do app por um IPC que talvez nem exista seria pagar o
+  pior caso em toda abertura.
+*/
+void hidratarDesktop();
 
 /*
   A rota, antes do primeiro render.
@@ -38,6 +56,15 @@ createRoot(root).render(
     {/* Um Provider na raiz: ele coordena o atraso compartilhado entre
         tooltips. Um por tooltip devolveria o atraso cheio a cada ícone. */}
     <TooltipProvider delayDuration={400} skipDelayDuration={300}>
+      {/*
+        A barra de título e a faixa de atualização são da CASCA, e as duas
+        devolvem `null` no navegador. Montadas na raiz e FORA do portão de
+        sessão: minimizar e fechar a janela precisam funcionar na tela de
+        login — um app que só pode ser fechado depois de autenticar é um app
+        que trava a máquina de quem esqueceu a senha.
+      */}
+      <BarraDeTitulo />
+      <Atualizacao />
       {/*
         Sem sessão não há canal, autor nem permissão: o portão vem antes do
         shell. Ver `PortaoDeSessao`.
