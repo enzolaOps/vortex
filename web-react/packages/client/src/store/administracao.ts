@@ -89,6 +89,11 @@ export type Alvo =
   | { readonly tipo: "grupo"; readonly channelId: string }
   | { readonly tipo: "privacidadeDoServidor"; readonly serverId: string }
   | {
+      readonly tipo: "apelido";
+      readonly serverId: string;
+      readonly userId: string;
+    }
+  | {
       readonly tipo: "moderar";
       readonly serverId: string;
       readonly userId: string;
@@ -146,6 +151,7 @@ const MODAL_DE: Record<
   | "novoGrupo"
   | "grupo"
   | "privacidadeDoServidor"
+  | "apelido"
 > = {
   criarCanal: "canal",
   editarCanal: "canal",
@@ -165,6 +171,7 @@ const MODAL_DE: Record<
   novoGrupo: "novoGrupo",
   grupo: "grupo",
   privacidadeDoServidor: "privacidadeDoServidor",
+  apelido: "apelido",
 };
 
 /** Estado limpo entre testes. O módulo é global e sobrevive. */

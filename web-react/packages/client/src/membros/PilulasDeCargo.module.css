@@ -1,0 +1,43 @@
+/*
+  A pílula de cargo — geometria medida na referência.
+
+  `pad 0 10 0 6`, gap 6, pílula, 12/600, ponto de 6px. O recuo é assimétrico
+  de propósito: o ponto ocupa a esquerda, e um respiro igual dos dois lados
+  deixaria a bolinha boiando longe da borda.
+*/
+.pilulas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-06);
+  margin-block-start: var(--vx-space-08);
+}
+
+/*
+  ⚠ **Sem cor no CSS.** Ela é DADO — vem de quem administra o servidor — e
+  entra por `style` depois de passar pelo clamp de luminosidade. O que fica
+  aqui é o default de quem não tem cor: neutro, e não uma cor inventada.
+*/
+.pilula {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-06);
+  block-size: 20px;
+  padding-inline: var(--vx-space-06) var(--vx-space-10);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-state-hover);
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/*
+  O ponto herda a cor do texto — `currentColor` é o que faz a bolinha seguir o
+  clamp sem uma segunda passagem pela conversão de cor.
+*/
+.ponto {
+  inline-size: var(--vx-space-06);
+  block-size: var(--vx-space-06);
+  border-radius: var(--vx-radius-pill);
+  background: currentColor;
+}

@@ -613,6 +613,14 @@ function hostDe(url: string | undefined): string | undefined {
 export function toMemberSnapshot(
   user: User,
   membro: ServerMember | undefined,
+  /**
+   * EU, neste servidor.
+   *
+   * ⚠ Entra por PARÂMETRO e não é lido do `client` aqui: `map.ts` é tradução
+   * pura, sem estado — é o que permite testá-lo com objetos de mentira. Quem
+   * tem o cliente é o adapter, e é ele que sabe quem sou eu.
+   */
+  eu?: ServerMember,
 ): MemberSnapshot {
   const displayName = membro?.nickname || user.username;
 
@@ -634,6 +642,29 @@ export function toMemberSnapshot(
   // valor. Guardar o objeto faria toda republicação parecer mudança.
   const silenciadoAte = membro?.timeout?.getTime();
 
+  /*
+    Do mais ALTO para o mais baixo — `orderedRoles` do SDK devolve o contrário
+    ("from lowest to highest priority"), e a ordem importa: a pílula que
+    aparece primeiro é a que identifica a pessoa. Inverter aqui, uma vez na
+    escrita, é mais barato que todo consumidor lembrar de fazê-lo.
+  */
+  const cargosIds = membro
+    ? [...membro.orderedRoles].reverse().map((c) => c.id)
+    : [];
+
+  /*
+    ⚠ **Hierarquia, e o default de "não sei" é NÃO PODE.**
+
+    `inferiorTo` compara o rank do alvo com o meu. Sem sessão, sem membro meu
+    no servidor, ou comparando comigo mesmo, a resposta é `false` — e isso
+    esconde a ação de moderação em vez de oferecê-la. É a mesma disciplina de
+    `pode()`: o default de uma pergunta sem resposta é o lado seguro.
+  */
+  const abaixoDeMim =
+    eu !== undefined && membro !== undefined && eu.id.user !== membro.id.user
+      ? membro.inferiorTo(eu)
+      : false;
+
   return {
     id: user.id,
     displayName,
@@ -645,6 +676,8 @@ export function toMemberSnapshot(
     statusTexto: user.status?.text || undefined,
     cor,
     cargo,
+    cargosIds,
+    abaixoDeMim,
     silenciadoAte,
   };
 }

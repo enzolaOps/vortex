@@ -957,3 +957,19 @@
   color: var(--vx-text-3);
 }
 
+
+/*
+  O item barrado por HIERARQUIA — o único desabilitado deste menu.
+
+  ⚠ A distinção com o resto é o critério, não o gosto: o que falta por
+  PERMISSÃO some (permissão que você nunca vai ter é ruído permanente), o que
+  falta por hierarquia aparece cinza com o motivo, porque hierarquia muda
+  quando alguém troca de cargo. Esconder ali deixaria a pessoa procurando um
+  item que existe.
+
+  Sem `opacity` própria: o `disabled` do item de menu já a aplica, e somar duas
+  faria este ficar mais apagado que qualquer outro desabilitado do app.
+*/
+.barrado {
+  font-size: var(--vx-size-sm);
+}

@@ -672,6 +672,33 @@ export type MemberSnapshot = ComSigla & {
    */
   readonly cargo: string | undefined;
   /**
+   * TODOS os cargos desta pessoa neste servidor, do mais alto para o mais
+   * baixo.
+   *
+   * ⚠ **Isto é o que a fase 6 destravou, e a ausência dele bloqueava quatro
+   * superfícies de uma vez** — as pílulas de cargo, o submenu de cargos, o
+   * item "acima da sua hierarquia" e o crachá do cartão de perfil. O snapshot
+   * carregava só `cor` e `cargo`, que são do hasteado; "quais são os cargos
+   * dela" não era representável.
+   *
+   * IDs e não objetos: o nome e a cor de um cargo mudam quando quem administra
+   * os edita, e copiá-los para dentro do snapshot de CADA membro faria uma
+   * renomeação republicar a member list inteira. Quem resolve é
+   * `cargosDoServidor`, que assina o servidor uma vez.
+   */
+  readonly cargosIds: readonly string[];
+  /**
+   * Esta pessoa está ABAIXO de mim na hierarquia?
+   *
+   * ⚠ Campo e não cálculo no componente: a comparação é `inferiorTo` do SDK,
+   * e o `stoat.js` só pode ser importado dentro de `src/sdk/`. É a mesma razão
+   * de `podeExpulsar` não existir como pergunta solta na tela.
+   *
+   * `false` quando não dá para saber (sem sessão, sem membro): o default de
+   * "não sei" é NÃO PODE, que é o certo para uma ação de moderação.
+   */
+  readonly abaixoDeMim: boolean;
+  /**
    * Fim do castigo, em epoch ms. `undefined` = sem castigo.
    *
    * Número e não `Date`: `getSnapshot` precisa devolver referência estável, e

@@ -18,6 +18,7 @@ import {
 } from "../../store/modais";
 import { GerenciarGrupo } from "../../casa/GerenciarGrupo";
 import { NovoGrupo } from "../../casa/NovoGrupo";
+import { ModalDeApelido } from "../../membros/ModalDeApelido";
 import { PrivacidadeDoServidor } from "../../servidores/PrivacidadeDoServidor";
 
 /**
@@ -49,6 +50,7 @@ const REGISTRO: Record<ModalId, ComponentType<{ aoFechar: () => void }>> = {
   novoGrupo: NovoGrupo,
   grupo: GerenciarGrupo,
   privacidadeDoServidor: PrivacidadeDoServidor,
+  apelido: ModalDeApelido,
 };
 
 /**

@@ -59,7 +59,14 @@ export type Acao =
   /** Banir e desbanir. */
   | "banir"
   /** Deixar alguém de castigo. */
-  | "silenciarMembro";
+  | "silenciarMembro"
+  /* --- fase 6: as que a tabela de cargos resolvida destravou ----------- */
+  /** Dar e tirar cargo de alguém. `ManageRole`. */
+  | "gerenciarCargos"
+  /** Trocar o apelido de alguém neste servidor. */
+  | "gerenciarApelidos"
+  /** Puxar alguém de um canal de voz para outro. */
+  | "moverMembros";
 
 /**
  * A permissão do protocolo por trás de cada ação.
@@ -84,6 +91,16 @@ const PERMISSAO: Record<Acao, string | undefined> = {
   expulsar: "KickMembers",
   banir: "BanMembers",
   silenciarMembro: "TimeoutMembers",
+
+  gerenciarCargos: "ManageRole",
+  /*
+    ⚠ **`ManageNickname` e não `ChangeNickname`** — o protocolo tem os dois, e
+    a diferença é de quem: `Change` é mexer no PRÓPRIO apelido, `Manage` é no
+    dos outros. Este item do menu aparece sobre outra pessoa, então é o
+    segundo; o caso "eu mesmo" passa por fora da permissão.
+  */
+  gerenciarApelidos: "ManageNickname",
+  moverMembros: "MoveMembers",
 };
 
 /**

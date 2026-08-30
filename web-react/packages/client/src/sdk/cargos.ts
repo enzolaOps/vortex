@@ -156,6 +156,127 @@ export type Cargo = {
   readonly concedidas: readonly string[];
 };
 
+/**
+ * Os cargos do servidor, PRONTOS para desenhar — do mais alto ao mais baixo.
+ *
+ * ⚠ **Leitura síncrona do cache, e é o que separa esta função de
+ * `listarCargos`.** Aquela é `async` porque a página de configurações pode
+ * abrir antes do `Ready` e precisa esperar; esta é chamada por um menu de
+ * contexto que já está em cima de uma member list carregada. Uma promessa ali
+ * daria um submenu que abre vazio e preenche um quadro depois.
+ *
+ * `orderedRoles` do SDK já vem do mais alto para o mais baixo aqui (ao
+ * contrário do de MEMBRO, que vem invertido) — a assimetria é do protocolo, e
+ * está normalizada nos dois lugares.
+ */
+export function cargosDoServidor(serverId: string): readonly Cargo[] {
+  const servidor = client.servers.get(serverId);
+  if (!servidor) return [];
+  return servidor.orderedRoles.map((c) => ({
+    id: c.id,
+    nome: c.name,
+    cor: c.colour ?? undefined,
+    destacado: c.hoist ?? false,
+    rank: c.rank ?? 0,
+    /* Vazio de propósito: o submenu de cargos não desenha permissão, e
+       traduzir o bitmask de cada cargo a cada abertura de menu seria trabalho
+       por nada. Quem precisa delas é a página de configurações. */
+    concedidas: [],
+  }));
+}
+
+/**
+ * Dar ou tirar um cargo de alguém.
+ *
+ * ⚠ `ServerMember.edit({ roles })` substitui a LISTA inteira — o protocolo não
+ * tem "adicionar" nem "remover". Ler, mexer e reescrever é o único caminho, e
+ * é onde mora a corrida: duas pessoas mexendo nos cargos do mesmo membro ao
+ * mesmo tempo, a última escrita ganha e a primeira some sem aviso. O upstream
+ * tem exatamente o mesmo problema; registrar é o que dá para fazer hoje.
+ */
+export async function alternarCargo(
+  serverId: string,
+  userId: string,
+  roleId: string,
+): Promise<boolean> {
+  const membro = client.serverMembers.getByKey({
+    server: serverId,
+    user: userId,
+  });
+  if (!membro) return false;
+
+  const atuais = membro.roles;
+  const roles = atuais.includes(roleId)
+    ? atuais.filter((r) => r !== roleId)
+    : [...atuais, roleId];
+
+  try {
+    await membro.edit({ roles });
+    return true;
+  } catch (e) {
+    falhou("Não deu para mudar os cargos.", e);
+    return false;
+  }
+}
+
+/**
+ * O apelido desta pessoa NESTE servidor.
+ *
+ * ⚠ Vazio APAGA em vez de guardar string vazia: o protocolo distingue "sem
+ * apelido" de "apelido em branco", e a segunda daria uma linha sem nome
+ * nenhum na member list. `remove` é o campo que o `DataMemberEdit` usa para
+ * isso.
+ */
+export async function definirApelido(
+  serverId: string,
+  userId: string,
+  apelido: string,
+): Promise<boolean> {
+  const membro = client.serverMembers.getByKey({
+    server: serverId,
+    user: userId,
+  });
+  if (!membro) return false;
+
+  const limpo = apelido.trim();
+  try {
+    await membro.edit(
+      limpo.length === 0 ? { remove: ["Nickname"] } : { nickname: limpo },
+    );
+    return true;
+  } catch (e) {
+    falhou("Não deu para mudar o apelido.", e);
+    return false;
+  }
+}
+
+/**
+ * Puxar alguém para outro canal de voz.
+ *
+ * ⚠ Só funciona com a pessoa JÁ numa sala — `voice_channel` move, não convoca.
+ * O protocolo devolve 400 para quem não está em voz nenhuma, e é por isso que
+ * o submenu só aparece quando ela está.
+ */
+export async function moverParaCanalDeVoz(
+  serverId: string,
+  userId: string,
+  channelId: string,
+): Promise<boolean> {
+  const membro = client.serverMembers.getByKey({
+    server: serverId,
+    user: userId,
+  });
+  if (!membro) return false;
+
+  try {
+    await membro.edit({ voice_channel: channelId });
+    return true;
+  } catch (e) {
+    falhou("Não deu para mover.", e);
+    return false;
+  }
+}
+
 function motivo(e: unknown): string {
   const status = (e as { response?: { status?: number } })?.response?.status;
   if (status === 403) return "Você não pode mexer neste cargo.";

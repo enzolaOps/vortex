@@ -1510,6 +1510,22 @@ function republicarVoz(): void {
   for (const reler of releituraDeVoz.values()) reler();
 }
 
+/**
+ * Em qual canal de voz esta pessoa está, se estiver.
+ *
+ * ⚠ **Leitura direta e não store**, e é o que evita um índice invertido: o
+ * store de voz é keyed por CANAL, porque é assim que a sala é desenhada.
+ * "Onde está fulano" é pergunta de menu de contexto — acontece uma vez por
+ * abertura, sobre dezenas de canais —, e manter um segundo mapa em dia a cada
+ * `VoiceChannelJoin` custaria mais que a varredura.
+ */
+export function canalDeVozDe(userId: string): string | undefined {
+  for (const canal of client.channels.values()) {
+    if (canal.voiceParticipants.has(userId)) return canal.id;
+  }
+  return undefined;
+}
+
 export const vozPorCanal = createEntityStore<readonly ParticipanteDeVoz[]>(
   (channelId) => {
     const ler = () => {
@@ -2061,7 +2077,21 @@ export const members = createEntityStore<MemberSnapshot>((chave) => {
     const membro = serverId
       ? client.serverMembers.getByKey({ server: serverId, user: userId })
       : undefined;
-    members.set(chave, toMemberSnapshot(user, membro));
+    /*
+      EU, neste servidor — é o que responde a hierarquia.
+
+      Lido aqui e não em `map.ts` porque aquele é tradução pura e não conhece
+      o cliente. `undefined` sem sessão ou fora do servidor, e aí `inferiorTo`
+      não roda: o default de "não sei" é NÃO PODE.
+    */
+    const eu =
+      serverId && client.user
+        ? client.serverMembers.getByKey({
+            server: serverId,
+            user: client.user.id,
+          })
+        : undefined;
+    members.set(chave, toMemberSnapshot(user, membro, eu));
   };
 
   ler();

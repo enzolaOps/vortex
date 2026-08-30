@@ -7,7 +7,6 @@ import {
   DotsThree,
   EnvelopeSimple,
   Hammer,
-  Hash,
   Info,
   Link,
   Note,
@@ -23,7 +22,6 @@ import {
   TextItalic,
   Trash,
   UserCircle,
-  UsersThree,
 } from "@phosphor-icons/react";
 import {
   memo,
@@ -94,6 +92,11 @@ import { useMembro, useServidorAtivo } from "../store/hooks";
 import { useMessage } from "../store/hooks";
 import { Anexos } from "./Anexos";
 import { EnqueteDaMensagem } from "../enquete/EnqueteDaMensagem";
+import {
+  SubmenuDeCargos,
+  SubmenuDeVoz,
+} from "../membros/SubmenusDeMembro";
+import { canalDeVozDe } from "../sdk/adapter";
 import { aindaNao } from "../pendente/pendencias";
 import { assinarDensidade, lerDensidade } from "../store/densidade";
 import { Citacao } from "./Citacao";
@@ -1506,10 +1509,14 @@ function ItensDaMensagem({ messageId }: { messageId: string }) {
  * com essa pessoa". São perguntas diferentes e pedem alvos diferentes.
  *
  * O que é de MODERAÇÃO segue a regra da member list e some sem permissão; o
- * resto é do dia a dia e aparece para todo mundo. O item desabilitado com
- * motivo que o design desenha ("acima da sua hierarquia") depende da tabela de
- * cargos comparada, que é trabalho da fase 6 — e um item cinza com um motivo
- * inventado seria pior que a ausência.
+ * resto é do dia a dia e aparece para todo mundo.
+ *
+ * ⚠ **"Acima da sua hierarquia" existe agora, e é a ÚNICA coisa deste menu
+ * que aparece desabilitada.** A distinção com o resto é o critério, não o
+ * gosto: permissão que você nunca vai ter é ruído permanente e some;
+ * hierarquia muda quando alguém troca de cargo, então é informação — dizer
+ * "você não pode banir esta pessoa PORQUE ela está acima de você" é diferente
+ * de esconder o item e deixar a pessoa procurando.
  */
 function ItensDoUsuario({ userId }: { userId: string }) {
   const serverId = useServidorAtivo();
@@ -1519,6 +1526,41 @@ function ItensDoUsuario({ userId }: { userId: string }) {
      o resto do app, e este menu não pode ser a exceção. */
   const local = lerLocal();
   const canalId = local.tipo === "servidor" ? (local.channelId ?? "") : "";
+
+  /*
+    As três perguntas que a fase 6 destravou.
+
+    `abaixoDeMim` vem do snapshot — a comparação é `inferiorTo` do SDK e roda
+    na escrita, não aqui: `stoat.js` só pode ser importado dentro de `src/sdk/`.
+  */
+  const abaixo = membro?.abaixoDeMim === true;
+  const podeGerenciarCargos = !souEu && abaixo && pode(canalId, "gerenciarCargos");
+  const podeGerenciarApelido = souEu || (abaixo && pode(canalId, "gerenciarApelidos"));
+  const podeMover = !souEu && abaixo && pode(canalId, "moverMembros");
+  /*
+    ⚠ Em voz é pergunta do STORE EFÊMERO de voz, e ele é keyed por canal — não
+    há "onde está fulano". Varrer os canais aqui seria trabalho a cada abertura
+    de menu; o que existe é o snapshot do membro dizendo se ele está em alguma
+    sala, e ele já vem do adapter.
+  */
+  const emVoz = canalDeVozDe(userId) !== undefined;
+
+  /*
+    ⚠ **O item desabilitado com MOTIVO — e ele só existe quando o motivo é
+    hierarquia.** Sem permissão nenhuma o bloco de moderação simplesmente não
+    é renderizado (regra da member list); com permissão e hierarquia contra,
+    ele aparece cinza dizendo por quê. Um item cinza sem motivo ensinaria a
+    pessoa a tentar de novo.
+  */
+  /*
+    ⚠ **O aviso e os três itens de moderação são EXCLUDENTES, e a primeira
+    versão os deixou coexistir.** Medido no arnês: "Moderar · acima da sua
+    hierarquia" apareceu cinza logo acima de "Expulsar" e "Banir" habilitados
+    — a interface contradizendo a si mesma numa linha. `abaixo` gateia os três
+    agora, e o aviso ocupa o lugar deles.
+  */
+  const barradoPorHierarquia =
+    !souEu && !abaixo && membro !== undefined && pode(canalId, "expulsar");
 
   return (
     <ContextMenuContent className={menuLargo}>
@@ -1552,27 +1594,31 @@ function ItensDoUsuario({ userId }: { userId: string }) {
       ) : null}
 
       {/*
-        ⚠ **Sem o `›`, e o design o desenha.**
+        ⚠ **A seta VOLTOU, e com submenu de verdade.**
 
-        A seta promete submenu, e submenu é o único desenho deste arquivo que o
-        app não pode cumprir hoje: "Cargos" precisaria da tabela de cargos
-        RESOLVIDA (quais são os do servidor E quais são os desta pessoa — e
-        `MemberSnapshot` não carrega os IDs), e "Mover para canal" precisaria
-        de `ServerMember.edit({ voice_channel })`, que é escrita de fase 6.
+        Ela tinha saído porque prometia o que o app não podia cumprir: cargos
+        exigia a tabela RESOLVIDA (quais são os do servidor E quais são os
+        desta pessoa) e `MemberSnapshot` não carregava os IDs. `cargosIds`
+        entrou na fase 6, e com ele os dois submenus deste menu.
 
-        Quem usa relatou exatamente isso: "hover em cargos e em mover para o
-        canal não mostra nada". Uma seta que não abre nada é pior que a
-        ausência dela — é o mesmo defeito do item de menu sem `onSelect` que o
-        lint deste projeto existe para matar. Ela volta junto com o submenu.
+        Uma seta que não abre nada é pior que a ausência dela — é o mesmo
+        defeito do item sem `onSelect` que o lint deste projeto mata.
       */}
-      <ContextMenuItem onSelect={aindaNao("cargosDoMembro")}>
-        <UsersThree aria-hidden />
-        Cargos
-      </ContextMenuItem>
-      <ContextMenuItem onSelect={aindaNao("alterarApelido")}>
-        <PencilSimple aria-hidden />
-        Alterar apelido
-      </ContextMenuItem>
+      {podeGerenciarCargos ? (
+        <SubmenuDeCargos serverId={serverId} userId={userId} />
+      ) : null}
+
+      {podeGerenciarApelido ? (
+        <ContextMenuItem
+          onSelect={() =>
+            administrar({ tipo: "apelido", serverId, userId })
+          }
+        >
+          <PencilSimple aria-hidden />
+          Alterar apelido
+        </ContextMenuItem>
+      ) : null}
+
       <ContextMenuItem onSelect={aindaNao("notaPrivada")}>
         <Note aria-hidden />
         Nota privada
@@ -1581,10 +1627,15 @@ function ItensDoUsuario({ userId }: { userId: string }) {
       {!souEu ? (
         <>
           <ContextMenuSeparator />
-          <ContextMenuItem onSelect={aindaNao("moverParaCanal")}>
-            <Hash aria-hidden />
-            Mover para canal
-          </ContextMenuItem>
+          {/*
+            ⚠ **Só aparece com a pessoa JÁ em voz.** `voice_channel` MOVE, não
+            convoca — o protocolo devolve 400 para quem não está em sala
+            nenhuma, e um item que falha sempre é o mesmo defeito que a seta
+            sem submenu era.
+          */}
+          {emVoz && podeMover ? (
+            <SubmenuDeVoz serverId={serverId} userId={userId} />
+          ) : null}
           <ContextMenuItem onSelect={aindaNao("silenciarUsuario")}>
             <ProhibitInset aria-hidden />
             Silenciar só para mim
@@ -1592,7 +1643,17 @@ function ItensDoUsuario({ userId }: { userId: string }) {
         </>
       ) : null}
 
-      {!souEu && pode(canalId, "silenciarMembro") ? (
+      {barradoPorHierarquia ? (
+        <>
+          <ContextMenuSeparator />
+          <ContextMenuItem disabled className={css.barrado}>
+            <Hammer aria-hidden />
+            Moderar · acima da sua hierarquia
+          </ContextMenuItem>
+        </>
+      ) : null}
+
+      {!souEu && abaixo && pode(canalId, "silenciarMembro") ? (
         <>
           <ContextMenuSeparator />
           <ContextMenuItem
@@ -1606,7 +1667,7 @@ function ItensDoUsuario({ userId }: { userId: string }) {
           </ContextMenuItem>
         </>
       ) : null}
-      {!souEu && pode(canalId, "expulsar") ? (
+      {!souEu && abaixo && pode(canalId, "expulsar") ? (
         <ContextMenuItem
           perigo
           onSelect={() =>
@@ -1617,7 +1678,7 @@ function ItensDoUsuario({ userId }: { userId: string }) {
           Expulsar do servidor
         </ContextMenuItem>
       ) : null}
-      {!souEu && pode(canalId, "banir") ? (
+      {!souEu && abaixo && pode(canalId, "banir") ? (
         <ContextMenuItem
           perigo
           onSelect={() =>

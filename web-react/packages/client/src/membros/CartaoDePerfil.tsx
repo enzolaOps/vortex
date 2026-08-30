@@ -5,6 +5,7 @@ import { Avatar } from "../components/ui/Avatar";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
 import { chaveDeMembro } from "../sdk/domain";
 import { useCorDeCargo, useMembro } from "../store/hooks";
+import { PilulasDeCargo } from "./PilulasDeCargo";
 import css from "./CartaoDePerfil.module.css";
 
 /**
@@ -80,6 +81,15 @@ function Corpo({ serverId, userId }: { serverId: string; userId: string }) {
       {membro.pronomes ? (
         <p className={css.pronomes}>{membro.pronomes}</p>
       ) : null}
+
+      {/*
+        As pílulas de cargo — o que a fase 6 destravou.
+
+        Depois do status e antes do castigo: cargo é IDENTIDADE dentro do
+        servidor, e castigo é estado. A ordem do cartão vai do que a pessoa é
+        para o que está acontecendo com ela.
+      */}
+      <PilulasDeCargo serverId={serverId} cargosIds={membro.cargosIds} />
 
       {membro.statusTexto ? (
         <p className={css.status}>{membro.statusTexto}</p>

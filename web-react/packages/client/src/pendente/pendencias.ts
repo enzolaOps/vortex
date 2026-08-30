@@ -315,6 +315,14 @@ export const PENDENCIAS = {
   },
 
   /* ------------------------------------------- menu do usuário na timeline */
+  /*
+    ⚠ **Três saíram daqui na fase 6, e a causa das três era a MESMA:** a
+    tabela de cargos resolvida. `cargosDoMembro`, `alterarApelido` e
+    `moverParaCanal` dependiam de saber quais cargos a pessoa tem e onde ela
+    está na hierarquia — `MemberSnapshot` carregava a cor e o nome do cargo
+    HASTEADO, e nada mais. `cargosIds` e `abaixoDeMim` destravaram os três de
+    uma vez, junto com as pílulas de cargo e o item "acima da sua hierarquia".
+  */
   perfilCompleto: {
     superficie: "Menu do usuário",
     faz: "Abrir o perfil inteiro desta pessoa, com bio, cargos e histórico.",
@@ -330,25 +338,10 @@ export const PENDENCIAS = {
     faz: "Começar uma chamada direta com esta pessoa.",
     depende: "chamada em DM (`Channel.joinCall` fora de canal de servidor)",
   },
-  cargosDoMembro: {
-    superficie: "Menu do usuário",
-    faz: "Dar e tirar cargos desta pessoa sem sair da conversa.",
-    depende: "`ServerMember.edit({ roles })` + submenu de cargos",
-  },
-  alterarApelido: {
-    superficie: "Menu do usuário",
-    faz: "Trocar o apelido desta pessoa neste servidor.",
-    depende: "`ServerMember.edit({ nickname })` + modal de campo único",
-  },
   notaPrivada: {
     superficie: "Menu do usuário",
     faz: "Guardar uma anotação sobre esta pessoa, visível só para você.",
     depende: "notas de usuário — conceito de cliente, sem store ainda",
-  },
-  moverParaCanal: {
-    superficie: "Menu do usuário",
-    faz: "Puxar esta pessoa para outro canal de voz.",
-    depende: "`ServerMember.edit({ voice_channel })` + submenu de canais",
   },
   /* --------------------------------------------- configurações de canal */
   /*

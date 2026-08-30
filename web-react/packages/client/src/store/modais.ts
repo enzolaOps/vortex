@@ -42,6 +42,7 @@ export const MODAIS = [
   "novoGrupo",
   "grupo",
   "privacidadeDoServidor",
+  "apelido",
 ] as const;
 
 export type ModalId = (typeof MODAIS)[number];
