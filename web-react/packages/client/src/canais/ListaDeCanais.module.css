@@ -541,7 +541,22 @@
   do shell, num popout de janela separada e num slot redimensionado pelo
   usuário na fase 4, com a mesma folha de estilo.
 */
-@container (inline-size < 180px) {
+/*
+  ⚠ **`<=` e não `<`, e a diferença é a única coisa que torna este estado
+  alcançável.** O piso desta coluna é `canais.min = 180` em `preset/schema.ts`,
+  então a caixa de borda nunca desce abaixo de 180 — e com `<` o estado
+  compacto só disparava porque o slot tem uma hairline de 0,8px, o que deixa o
+  CONTENT BOX em 179,2. Medido: content box 178 esconde, 199 mostra.
+
+  Ou seja, ele funcionava por sorte de uma borda. Trocar a hairline por zero,
+  ou o `container-type` para a caixa de borda, e tudo aqui dentro deixaria de
+  existir sem um erro — a família do construído e inalcançável, com a agravante
+  de já ter sido construído e testado uma vez.
+
+  Com `<=` o limiar diz o que quer dizer: "na largura mais estreita que se pode
+  arrastar". Não depende de borda nenhuma.
+*/
+@container (inline-size <= 180px) {
   .secao {
     display: none;
   }
@@ -568,11 +583,16 @@
   gap: 1px;
   margin: 0;
   /*
-    24px de recuo, alinhado ao NOME do canal e não à borda: o recuo é o que
-    diz "isto pertence àquela linha". Era `--vx-space-32` (32) — e cada pixel
-    de recuo sai do nome de quem está na sala, que é o dado.
+    O recuo é o que diz "isto pertence àquela linha", e cada pixel dele sai do
+    nome de quem está na sala, que é o dado.
+
+    ⚠ **16 e não 24, porque a LINHA soma os próprios 8.** O design põe
+    `padding:4px 8px 4px 24px` na linha do participante e nada no `ul`; aqui o
+    `ul` carrega o recuo e a linha carrega o respiro, o que mantém o realce de
+    hover cobrindo a largura toda. Somando 24 nos dois, o avatar caía em 32 —
+    medido — contra os 24 do design. É o mesmo pixel, repartido em dois donos.
   */
-  padding-inline-start: var(--vx-space-24);
+  padding-inline-start: var(--vx-space-16);
   padding-block-end: var(--vx-space-04);
   list-style: none;
 }
@@ -705,12 +725,36 @@
   limiares de "estreito" no mesmo componente dariam um estado
   intermediário que ninguém desenhou.
 */
-@container (inline-size < 180px) {
+@container (inline-size <= 180px) {
   .sala {
     flex-direction: row;
     flex-wrap: wrap;
     gap: var(--vx-space-04);
-    padding-inline-start: var(--vx-space-24);
+    padding-inline-start: var(--vx-space-16);
+  }
+
+  /*
+    ⚠ **O selo CHEIO sai antes do nome do canal.** Medido a 140px de coluna: com
+    ele montado o nome ficava com 1px — o selo é largo (43) e `flex: none`, e
+    quem encolhia era o único elemento flexível da linha. Um selo legível ao
+    lado de um nome ilegível é a prioridade invertida: o nome é a identidade da
+    linha, o selo é metadado sobre ela.
+
+    Nada se perde. O contador ao lado já diz `3/3` na mesma cor de `danger`, em
+    18px contra 43 — a informação inteira num terço da largura, que é o que
+    torna a escolha barata.
+
+    É o limiar que a seção já usa, e de propósito: dois "estreitos" diferentes
+    no mesmo componente dariam um estado intermediário que ninguém desenhou.
+  */
+  /* ⚠ `.canal .cheio` e não `.cheio`: a regra BASE dele mora mais abaixo neste
+     mesmo arquivo, e com a especificidade igual quem ganha é a ordem de
+     origem — a última vence e a container query não valia nada. Medido: o
+     selo seguia em `display:flex` com o container em 140, enquanto
+     `.nomeNaSala` (cuja base vem ANTES) escondia normalmente. Especificidade
+     maior tira a regra da mão da ordem do arquivo. */
+  .canal .cheio {
+    display: none;
   }
 
   .nomeNaSala,
@@ -1128,7 +1172,11 @@
 */
 .teto {
   flex: none;
-  font-family: var(--vx-font-mono);
+  /* ⚠ SANS, e não mono — eu tinha posto mono aqui por simetria com o
+     cronômetro da chamada, e o design não faz isso: só `42:17` é mono, porque
+     ali os dígitos MUDAM e a largura fixa impede o número de tremer. `3/8`
+     muda por ação humana, uma vez a cada muitos minutos. `tabular-nums`
+     resolve o alinhamento na coluna sem trocar de família. */
   font-size: var(--vx-size-xs);
   /* `text-3` e não `text-4`: no design a lotação é metadado LEGÍVEL — quem
      olha uma sala quer saber se cabe. O quarto degrau é o tom de desativado,
@@ -1144,8 +1192,48 @@
   chamada que não conecta é a pior forma de saber. `--vx-warning` é o token de
   "isto vai te barrar", e a diferença de cor é a segunda pista: o número já diz.
 */
+/*
+  Sala cheia: o número vai para VERMELHO, não para o âmbar.
+
+  Era `--vx-warning`, e o design usa a família de `danger` — o selo "CHEIO" ao
+  lado é `#F0808D` sobre vermelho a 14%, e um número âmbar ao lado de um selo
+  vermelho lê como dois avisos diferentes sobre o mesmo fato.
+*/
 .teto[data-cheia="true"] {
-  color: var(--vx-warning);
+  color: var(--vx-danger-text);
+}
+
+/*
+  O selo CHEIO.
+
+  ⚠ **O design dima a LINHA INTEIRA para `text-4` com `cursor:not-allowed`, e
+  isso NÃO transfere para este protocolo.** Lá, a linha de canal de voz é o
+  botão de entrar na sala; aqui um canal de voz é um TextChannel com um objeto
+  `voice`, e clicar na linha ABRE O CANAL — as mensagens dele continuam
+  legíveis com a sala lotada. Entrar na chamada é outra ação, em outro lugar.
+
+  Dimar a linha e pôr `not-allowed` num alvo que continua funcionando e
+  continua sendo o único caminho para o histórico daquele canal é a mesma
+  família do controle inerte que o lint de `onSelect` existe para matar, com o
+  sinal trocado: em vez de parecer ativo e não fazer nada, pareceria morto e
+  faria. Quem carrega a informação é o selo, que é exato.
+
+  As medidas são as do design, byte a byte: 16 de altura, respiro 6, raio 4,
+  preenchimento em vermelho a 14% por `color-mix` — token novo custaria entrada
+  em `TokenName`, classificação e par de contraste para um fundo que só existe
+  atrás deste selo, a mesma decisão do realce do item destrutivo.
+*/
+.cheio {
+  flex: none;
+  display: flex;
+  align-items: center;
+  block-size: var(--vx-space-16);
+  padding-inline: var(--vx-space-06);
+  border-radius: var(--vx-radius-04);
+  background: color-mix(in srgb, var(--vx-danger) 14%, transparent);
+  color: var(--vx-danger-text);
+  font-size: var(--vx-size-2xs);
+  font-weight: 700;
 }
 
 /*

@@ -179,7 +179,7 @@
   Container query e não media query — o painel é movível, e ele reage ao
   próprio tamanho. É a invariante nº 1 de componente.
 */
-@container (inline-size < 180px) {
+@container (inline-size <= 180px) {
   .detalhe {
     display: none;
   }

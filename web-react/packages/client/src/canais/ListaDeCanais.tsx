@@ -509,14 +509,29 @@ const TetoDaSala = memo(function TetoDaSala({
   limite: number;
 }) {
   const dentro = useVozDoCanal(channelId);
+  const cheia = dentro.length >= limite;
 
   return (
-    <span className={css.teto} data-cheia={dentro.length >= limite}>
-      {dentro.length}/{limite}
-      <span className="sr-only">
-        {` na sala, de ${limite} lugares`}
+    <>
+      {/*
+        O selo vem ANTES do número, como no design: ele é o veredito e o
+        número é a prova. Invertido, o olho lê "4/4" e só depois descobre o
+        que isso significa.
+      */}
+      {cheia ? (
+        <span className={css.cheio} aria-hidden>
+          CHEIO
+        </span>
+      ) : null}
+      <span className={css.teto} data-cheia={cheia}>
+        {dentro.length}/{limite}
+        <span className="sr-only">
+          {cheia
+            ? ` na sala — sala cheia, de ${limite} lugares`
+            : ` na sala, de ${limite} lugares`}
+        </span>
       </span>
-    </span>
+    </>
   );
 });
 
