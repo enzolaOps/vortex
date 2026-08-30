@@ -81,6 +81,23 @@
   outline: none;
 }
 
+/*
+  ⚠ **`:focus-visible` e não só `.entrada`, e sem isto aparecem DOIS anéis.**
+
+  O anel global de `tokens.css` é `:focus-visible` puro (0,1,0), e um
+  `outline: none` sem estado tem a MESMA especificidade — quem ganhava era a
+  ordem da folha, que é a global. Resultado: o wrapper desenhava o anel do
+  design por `:focus-within` e o `input` desenhava o anel global por dentro,
+  os dois ao mesmo tempo.
+
+  A nota da regra global já prescreve a saída: primitivo que manda no próprio
+  anel escreve `(0,2,0)`. Aqui quem manda é o WRAPPER, porque o alvo visual é
+  a caixa inteira — o `input` não tem borda nem fundo próprios.
+*/
+.entrada:focus-visible {
+  outline: none;
+}
+
 .entrada::placeholder {
   color: var(--vx-text-4);
 }

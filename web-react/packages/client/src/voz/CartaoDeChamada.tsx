@@ -58,7 +58,15 @@ const Falante = memo(function Falante({ userId }: { userId: string }) {
       {/* `data-falando` no PAI: o anel de fala é do container, não do
           avatar — é ele que ganha a sombra, e o avatar continua sendo a
           mesma peça de sempre. */}
-      <Avatar id={userId} sigla={pessoa?.sigla} tamanho="sm" />
+      <Avatar
+        id={userId}
+        sigla={pessoa?.sigla}
+        tamanho="sm"
+        /* ⚠ A classe carrega o ANEL DE FALA (`.pessoa[data-falando] .avatar`),
+           e ela sumiu quando o avatar virou primitivo — o anel ficou morto
+           sem que nada falhasse. */
+        className={css.avatar}
+      />
       <span className={css.nomeDaPessoa}>
         {pessoa?.displayName ?? "alguém"}
       </span>

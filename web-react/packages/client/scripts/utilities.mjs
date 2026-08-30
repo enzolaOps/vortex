@@ -190,6 +190,9 @@ for (const arquivo of arquivos(FONTE)) {
 */
 const orfas = new Map();
 
+/** `css.X` sem `.X` no módulo — ver a nota da terceira direção. */
+const penduradas = new Map();
+
 /*
   Quem importa cada `.module.css`, e com que nome local.
 
@@ -231,9 +234,24 @@ for (const [modulo, usos] of importadores) {
   );
   if (dinamico) continue;
 
+  /*
+    TODAS as classes de cada seletor, e nao so a primeira.
+
+    `.forma.larga` declara duas; capturar so a inicial acusaria `.larga` de
+    inexistente — falso positivo que a terceira direcao, logo abaixo, produziu
+    em tres arquivos na primeira execucao.
+  */
   const declaradas = new Set();
-  for (const m of regras.matchAll(/^\s*\.([A-Za-z][\w-]*)/gm)) {
-    declaradas.add(m[1]);
+  /*
+    ⚠ Comentario fora ANTES, senao um `Canal.module.css` citado em prosa vira
+    duas classes declaradas (`.module` e `.css`). A primeira versao desta
+    varredura fez exatamente isso, e passou a inventar regras orfas.
+  */
+  const semComentario = regras.replace(/\/\*[\s\S]*?\*\//g, "");
+  for (const bloco of semComentario.matchAll(/([^{}]+)\{/g)) {
+    for (const m of bloco[1].matchAll(/\.([A-Za-z][\w-]*)/g)) {
+      declaradas.add(m[1]);
+    }
   }
 
   for (const nome of declaradas) {
@@ -249,6 +267,45 @@ for (const [modulo, usos] of importadores) {
     if (!orfas.has(curto)) orfas.set(curto, []);
     orfas.get(curto).push(nome);
   }
+
+  /*
+    A TERCEIRA direcao: `css.X` onde o modulo nao tem `.X`.
+
+    As duas de cima cobriam `className` sem CSS e regra sem consumidor.
+    Faltava a mais silenciosa das tres: um membro que nao existe resolve para
+    `undefined`, o React descarta o `className`, e o elemento fica SEM CLASSE
+    NENHUMA. Nao ha erro, nao ha aviso, e a tela renderiza com o default do
+    navegador dentro de um app escuro.
+
+    Achada por medicao e nao por suspeita: um commit que reescreveu
+    `Canal.module.css` apagou nove regras e deixou o TSX apontando para elas.
+    A secao de assunto do canal ficou sem estilo NENHUM, e as duas guardas
+    existentes passaram verdes.
+  */
+  for (const u of usos) {
+    const codigo = fontes.get(u.arquivo);
+    const busca = new RegExp(String.raw`\b${u.alias}\.([A-Za-z]\w*)`, "g");
+    for (const m of codigo.matchAll(busca)) {
+      if (declaradas.has(m[1])) continue;
+      const arq = u.arquivo.slice(RAIZ.length).replace(BARRA, "/");
+      if (!penduradas.has(arq)) penduradas.set(arq, new Set());
+      penduradas.get(arq).add(`${u.alias}.${m[1]}`);
+    }
+  }
+}
+
+if (penduradas.size > 0) {
+  console.error("\nutilities: referência(s) a classe que o módulo não tem.\n");
+  for (const [arq, nomes] of penduradas) {
+    console.error(`  ${arq}`);
+    for (const n of [...nomes].sort()) console.error(`      ${n}`);
+  }
+  console.error(
+    "\nO membro resolve para `undefined`, o React descarta o `className` e o\n" +
+      "elemento fica SEM CLASSE — sem erro e sem aviso. Ou a regra foi apagada\n" +
+      "e precisa voltar, ou o nome mudou e o TSX ficou para trás.\n",
+  );
+  process.exit(1);
 }
 
 if (orfas.size > 0) {

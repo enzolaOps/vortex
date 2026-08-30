@@ -35,7 +35,11 @@
   gap: var(--vx-space-08);
   block-size: 50px;
   padding-inline: var(--vx-space-12);
-  border-block-end: 1px solid var(--vx-border-subtle);
+  /* `hairline-06` e não o sólido: os três cabeçalhos de 50px são vizinhos
+     no grid, e a régua de baixo deles é UMA linha que atravessa a tela.
+     Com tokens diferentes ela tinha uma emenda visível onde as colunas
+     se encontram. É o degrau que o design reserva a divisória. */
+  border-block-end: 1px solid var(--vx-hairline-06);
 }
 
 .tituloTexto {

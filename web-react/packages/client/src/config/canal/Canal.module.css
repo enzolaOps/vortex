@@ -898,3 +898,122 @@
   outline: 2px solid var(--vx-accent);
   outline-offset: 2px;
 }
+
+/* ============================================================
+   Assunto do canal e cartão de voz
+   ------------------------------------------------------------
+   ⚠ **Estas nove regras foram APAGADAS por um commit que
+   reescreveu este arquivo, e o TSX ficou apontando para elas
+   durante todo esse tempo.** `css.areaDeTexto` resolvia para
+   `undefined`, o React descartava o `className`, e a seção
+   inteira renderizava com o default do navegador — textarea
+   branca de fonte monoespaçada dentro de um app escuro.
+
+   Nada falhou: nem o build, nem o typecheck, nem as duas
+   direções que o `pnpm utilities` tinha. A terceira direção,
+   escrita junto com esta restauração, é o que impede a próxima.
+
+   Os valores são os de antes, com os tokens de hoje —
+   `--vx-hairline-10` no lugar do alfa literal de 10%, e o mesmo
+   para os de 6% e 8%.
+   ============================================================ */
+
+/*
+  A caixa é quem tem a borda; a área de texto dentro é nua. Mesma anatomia do
+  composer, e a razão é a mesma: com borda nos dois, o foco desenha dois
+  contornos aninhados.
+*/
+.caixaDeTexto {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+}
+
+.caixaDeTexto:focus-within {
+  border-color: var(--vx-accent);
+}
+
+.regua {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: var(--vx-space-05) var(--vx-space-06);
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+.reguaBotao {
+  display: grid;
+  place-items: center;
+  min-inline-size: 28px;
+  block-size: 26px;
+  padding-inline: var(--vx-space-08);
+  border: 0;
+  border-radius: var(--vx-radius-05);
+  background: transparent;
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  cursor: pointer;
+}
+
+.reguaBotao:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+/* `outline` e não o anel: o botão vive dentro da caixa, que recorta. */
+.reguaBotao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.reguaDivisa {
+  inline-size: 1px;
+  block-size: 16px;
+  margin-inline: var(--vx-space-04);
+  background: var(--vx-hairline-10);
+}
+
+.reguaDica {
+  margin-inline-start: auto;
+  padding-inline-end: var(--vx-space-04);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
+}
+
+.areaDeTexto {
+  min-block-size: 109px;
+  padding: var(--vx-space-11) var(--vx-space-12);
+  border: 0;
+  background: transparent;
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  line-height: var(--vx-leading-message);
+  resize: vertical;
+  outline: none;
+}
+
+.cartaoDeVoz {
+  display: grid;
+  gap: var(--vx-space-18);
+  padding: var(--vx-space-18);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-10);
+  background: var(--vx-surface-1);
+}
+
+.vozTitulo {
+  margin: 0;
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.vozGrade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--vx-space-18);
+}

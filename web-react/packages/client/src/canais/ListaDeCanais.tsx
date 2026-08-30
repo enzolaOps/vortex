@@ -525,7 +525,17 @@ const TetoDaSala = memo(function TetoDaSala({
         que isso significa.
       */}
       {cheia ? (
-        <Selo forma="etiqueta" tom="perigoSuave" aria-hidden>
+        <Selo
+          forma="etiqueta"
+          tom="perigoSuave"
+          /* A classe é o que a container query de coluna estreita mira para
+             escondê-lo — o primitivo dá tom e forma, o consumidor dá o
+             comportamento responsivo. Sem ela a regra fica órfã e o selo
+             deixa de sair a 180px, que foi o que aconteceu na migração para
+             o `Selo` e o que a terceira direção da guarda pegou. */
+          className={css.cheio}
+          aria-hidden
+        >
           CHEIO
         </Selo>
       ) : null}

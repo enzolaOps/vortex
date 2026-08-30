@@ -92,3 +92,16 @@
   color: var(--vx-text-1);
   font-weight: 600;
 }
+
+/*
+  A fileira de ações do rodapé do modal.
+
+  ⚠ Ela era referenciada por `ModalDeCanal` e não existia — mesmo defeito das
+  nove de `Canal.module.css`, achado pela mesma guarda: os dois botões caíam
+  num `div` sem classe, encostados um no outro e alinhados à esquerda.
+*/
+.acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--vx-space-08);
+}
