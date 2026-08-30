@@ -10,8 +10,14 @@
   display: inline-flex;
   gap: 1px;
   padding: var(--vx-space-02);
-  border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-06);
+  /* Alfa e não o sólido `border-subtle`: a caixa é um trilho AFUNDADO, e a
+     borda dele precisa acompanhar a superfície em que a caixa pousa — que é
+     `surface-2` num painel e `surface-4` dentro de um modal. */
+  border: 1px solid var(--vx-hairline-10);
+  /* 7, e não 6: o item interno tem raio 5 mais 2 de respiro, e o design fecha
+     a conta — raio de fora igual ao de dentro mais o respiro é o que faz a
+     curva do item acompanhar a da caixa em vez de cortar. */
+  border-radius: var(--vx-radius-07);
   background: var(--vx-surface-1);
 }
 
@@ -32,37 +38,53 @@
      e 6−2=4 deixaria o canto interno reto. 5 é o que a referência usa. */
   border-radius: var(--vx-radius-05);
   background: transparent;
-  color: var(--vx-text-3);
+  /* `text-2` e não `text-3`: os segmentos NÃO escolhidos continuam sendo
+     alternativas vivas, e o terceiro degrau é o tom de metadado — a caixa
+     inteira lia como desativada. */
+  color: var(--vx-text-2);
   font-family: inherit;
   font-size: var(--vx-size-sm);
+  /* 600 — o design escreve `font-size:12px;font-weight:600` no item. Em 400 o
+     escolhido perdia metade do destaque que o preenchimento cheio dá, e os
+     não-escolhidos liam como texto corrido em vez de alvo. */
+  font-weight: 600;
   cursor: pointer;
   transition:
     color var(--vx-duration-fast) var(--vx-ease-out),
     background var(--vx-duration-fast) var(--vx-ease-out);
 }
 
-.lamina {
-  /* A lâmina mora na borda de início do segmento, como no rail. */
-  inset-inline-start: var(--vx-space-02);
-}
-
 .opcao:hover {
-  color: var(--vx-text-2);
-  background: var(--vx-surface-2);
+  color: var(--vx-text-1);
+  background: var(--vx-state-hover);
 }
 
 .opcao:active {
-  background: var(--vx-surface-3);
+  background: var(--vx-state-press);
 }
 
+/* `outline` e não o anel de `box-shadow`: o item vive DENTRO do trilho, que
+   recorta — é um dos 41 casos que mantêm o anel do design fora do global. */
 .opcao:focus-visible {
   outline: 2px solid var(--vx-accent);
-  outline-offset: 1px;
+  outline-offset: -2px;
 }
 
+/*
+  O escolhido é ACENTO SÓLIDO, e não uma superfície elevada com lâmina.
+
+  ⚠ **A lâmina saiu daqui, e é o único dos quatro lugares dela que o design
+  não confirma.** Ela é assinatura no rail, na coluna de canais e no menu de
+  configurações, onde marca POSIÇÃO numa lista vertical; num segmentado o item
+  escolhido não é uma posição numa lista, é o valor atual de um campo — e o
+  design o pinta cheio (`background:#35C2CC;color:#04181B`).
+
+  Isso soma um acento à tela, contra a disciplina que baixou de nove para dois.
+  Aceito: é UM controle, ele é o valor de um campo, e o design é explícito.
+*/
 .opcao[aria-checked="true"] {
-  color: var(--vx-text-1);
-  background: var(--vx-surface-3);
+  background: var(--vx-accent);
+  color: var(--vx-on-accent);
 }
 
 .opcao:disabled {

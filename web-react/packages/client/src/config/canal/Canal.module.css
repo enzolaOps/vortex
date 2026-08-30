@@ -614,8 +614,12 @@
   flex: none;
   display: flex;
   padding: var(--vx-space-02);
-  border: 1px solid rgb(255 255 255 / 8%);
-  border-radius: var(--vx-radius-06);
+  /* O mesmo trilho afundado do `Segmentado`, e agora com o mesmo token: eram
+     dois wrappers idênticos no desenho, um com alfa literal de 8% e o outro
+     com o sólido `border-subtle`. Dois trilhos vizinhos com bordas diferentes
+     é a divergência que este passe existe para tirar. */
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-07);
   background: var(--vx-surface-1);
 }
 

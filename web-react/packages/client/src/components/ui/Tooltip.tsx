@@ -61,8 +61,16 @@ export function Tooltip({
           side={ladoFisico(lado)}
           sideOffset={6}
           className={cn(
-            "z-flutuante rounded-06 border border-border-subtle bg-surface-4 px-10 py-06 shadow-e2",
-            "text-xs font-semibold text-text-1",
+            /*
+              ⚠ A borda é ALFA (`hairline-10`) e não o sólido `border-subtle`:
+              o tooltip pousa sobre qualquer superfície do app — timeline,
+              painel, modal — e um `#1d232d` fixo desaparece contra `surface-1`
+              e grita contra `surface-4`.
+            */
+            "z-flutuante rounded-06 border border-hairline-10 bg-surface-4 px-10 py-06 shadow-e2",
+            /* 12 e não 11: o degrau de 11 é o de SOBRANCELHA e selo, e o
+               tooltip é uma frase curta que alguém para para ler. */
+            "text-sm font-semibold text-text-1",
             // Movimento explica de onde a coisa veio; não chama atenção.
             // 120ms, só opacity — e nada sob prefers-reduced-motion.
             "anim-fast",
