@@ -14,33 +14,74 @@
  * booleano. Um store por chave seria maquinário para uma dúzia de itens.
  */
 
-/** Os oito eventos do design, na ordem dele. */
+/**
+ * Os oito eventos do design, na ordem dele — cada um com o PADRÃO dos três
+ * canais.
+ *
+ * ⚠ **O padrão é por EVENTO, e não uma regra global.** Ele carrega a única
+ * opinião de produto desta tela: o que interrompe (menção direta, DM, chamada)
+ * vale som e push; o resto fica no toast. Uma regra global daria bipe por
+ * mensagem em servidor movimentado, que é o motivo pelo qual as pessoas
+ * desligam notificação inteira em vez de ajustá-la.
+ *
+ * Evento do servidor é o único SEM toast: ele chega dez minutos antes, e um
+ * toast que aparece e some não é o que faz alguém não perder a hora.
+ */
 export const EVENTOS_DE_NOTIFICACAO = [
   {
     id: "mensagem",
     rotulo: "Mensagem em canal",
     detalhe: 'Canais com "todas as mensagens"',
+    padrao: ["toast"],
   },
   {
     id: "mencaoDireta",
     rotulo: "Menção direta",
     detalhe: "@você, resposta à sua mensagem",
+    padrao: ["toast", "som", "push"],
   },
-  { id: "mencaoDeCargo", rotulo: "Menção de cargo", detalhe: "@Design, @Moderação" },
-  { id: "dm", rotulo: "Mensagem direta", detalhe: "DM 1:1 e grupo" },
-  { id: "chamada", rotulo: "Chamada recebida", detalhe: "Voz e vídeo em DM" },
-  { id: "amizade", rotulo: "Pedido de amizade", detalhe: "Novos pedidos e aceites" },
+  {
+    id: "mencaoDeCargo",
+    rotulo: "Menção de cargo",
+    detalhe: "@Design, @Moderação",
+    padrao: ["toast"],
+  },
+  {
+    id: "dm",
+    rotulo: "Mensagem direta",
+    detalhe: "DM 1:1 e grupo",
+    padrao: ["toast", "som", "push"],
+  },
+  {
+    id: "chamada",
+    rotulo: "Chamada recebida",
+    detalhe: "Voz e vídeo em DM",
+    padrao: ["toast", "som", "push"],
+  },
+  {
+    id: "amizade",
+    rotulo: "Pedido de amizade",
+    detalhe: "Novos pedidos e aceites",
+    padrao: ["toast"],
+  },
   {
     id: "topico",
     rotulo: "Tópico seguido",
     detalhe: "Respostas em threads que você segue",
+    padrao: ["toast"],
   },
   {
     id: "evento",
     rotulo: "Evento do servidor",
     detalhe: "10 minutos antes de começar",
+    padrao: ["push"],
   },
-] as const;
+] as const satisfies readonly {
+  id: string;
+  rotulo: string;
+  detalhe: string;
+  padrao: readonly ("toast" | "som" | "push")[];
+}[];
 
 export type EventoDeNotificacao = (typeof EVENTOS_DE_NOTIFICACAO)[number]["id"];
 
@@ -69,33 +110,24 @@ export function chaveDaMatriz(
   return `${evento}:${canal}`;
 }
 
-/*
-  O padrão sai do design: toast em tudo, som só no que interrompe (menção
-  direta, DM, chamada), push no que não pode esperar você voltar.
-
-  ⚠ Som em "mensagem em canal" fica DESLIGADO de propósito — um bipe por
-  mensagem num servidor movimentado é o motivo pelo qual as pessoas desligam
-  notificação inteira em vez de ajustá-la.
-*/
-const PADRAO_DA_MATRIZ = new Set<string>([
-  ...EVENTOS_DE_NOTIFICACAO.map((e) => `${e.id}:toast`),
-  "mencaoDireta:som",
-  "dm:som",
-  "chamada:som",
-  "mencaoDireta:push",
-  "dm:push",
-  "chamada:push",
-]);
+/* Derivado das entradas acima: a lista é a fonte, não uma cópia dela. */
+const PADRAO_DA_MATRIZ: ReadonlySet<string> = new Set(
+  EVENTOS_DE_NOTIFICACAO.flatMap((e) =>
+    e.padrao.map((c) => chaveDaMatriz(e.id, c)),
+  ),
+);
 
 let prefs: Preferencias = {
   desktop: true,
   push: true,
   previa: true,
   badge: true,
-  silencioNoturno: false,
-  silencioDas: "23:00",
+  silencioNoturno: true,
+  silencioDas: "22:00",
   silencioAte: "08:00",
-  silencioDias: [0, 1, 2, 3, 4, 5, 6],
+  /* Segunda a sexta: quem trabalha acorda cedo nos dias úteis, e o fim de
+     semana é justamente quando a madrugada é escolha. */
+  silencioDias: [1, 2, 3, 4, 5],
   matriz: PADRAO_DA_MATRIZ,
 };
 

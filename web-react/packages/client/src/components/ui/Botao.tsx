@@ -21,7 +21,8 @@ export type VarianteDeBotao =
   | "neutro"
   | "sutil"
   | "perigo"
-  | "perigoSutil";
+  | "perigoSutil"
+  | "avisoSutil";
 
 export function Botao({
   variante = "neutro",

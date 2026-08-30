@@ -12,6 +12,18 @@
   z-index: var(--vx-z-sistema);
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
+  /*
+    ⚠ **A linha precisa de `minmax(0, 1fr)` explícito, e a falta dela deixou
+    esta tela SEM rolagem.** Sem `grid-template-rows`, a linha implícita é
+    `auto`, que cresce até o conteúdo: `.conteudo` esticava junto, o
+    `minmax(0, 1fr)` interno recebia altura infinita e o `.rolagem` media
+    `scrollHeight === clientHeight` — overflow declarado, nada para rolar.
+
+    Medido na tela de Notificações, a primeira mais alta que a janela: 1458px
+    de conteúdo numa viewport de 962, com o botão do último bloco em 1318 e
+    `scrollTop` travado em 0. É o erro nº 3 do briefing na direção de bloco.
+  */
+  grid-template-rows: minmax(0, 1fr);
   background: var(--vx-surface-0);
   container-type: inline-size;
 }

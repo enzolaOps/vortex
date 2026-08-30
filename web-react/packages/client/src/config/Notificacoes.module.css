@@ -1,158 +1,276 @@
 /* ============================================================
    Notificações
    ------------------------------------------------------------
-   Três blocos: os quatro interruptores, a matriz de oito eventos
-   por três canais, e o horário de silêncio.
+   ⚠ **Reescrita contra a referência.** A primeira versão tinha os
+   mesmos textos e a estrutura errada: linhas soltas onde ela usa
+   CARTÃO, `<table>` onde ela usa GRADE, e caixas de seleção onde
+   ela usa botões com ícone POR CANAL.
+
+   A diferença que mais muda a tela é a última: toast, som e push
+   têm cor e glifo próprios — acento, verde e âmbar. Numa matriz
+   de 24 células, a cor da coluna é o que deixa ler na diagonal
+   sem seguir o cabeçalho com o dedo.
    ============================================================ */
 
-.linhas {
+/*
+  840 é o teto da referência. Sem ele a matriz estica até a largura da janela
+  e as três colunas de controle ficam a meio metro do nome do evento.
+*/
+.pagina {
+  max-inline-size: 840px;
+}
+
+/* ------------------------------------ cabeçalho de seção */
+
+/*
+  Sobrancelha com uma régua que ocupa o resto da linha — da referência.
+
+  A régua faz o trabalho que um `<hr>` faria depois do bloco anterior, com a
+  vantagem de amarrar o título ao que vem ABAIXO dele em vez de separar do que
+  veio acima.
+*/
+.cabecalhoDeSecao {
   display: flex;
-  flex-direction: column;
-  gap: var(--vx-space-02);
+  align-items: center;
+  gap: var(--vx-space-10);
+  margin-block-end: var(--vx-space-12);
+}
+
+.tituloDeSecao {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  color: var(--vx-text-3);
+}
+
+.reguaDaSecao {
+  flex: 1;
+  block-size: 1px;
+  background: var(--vx-hairline-06);
 }
 
 /*
-  A linha de interruptor: texto à esquerda, controle na ponta.
-
-  `9px 10px` — o mesmo respiro da linha de permissão, e não é coincidência:
-  as duas são "um fato de duas linhas com um controle na ponta", e um respiro
-  diferente entre elas apareceria ao trocar de seção nas configurações.
+  Banner no fluxo da página. A moldura e a cor são do próprio `Banner`; aqui
+  só o respiro até o próximo bloco, o mesmo dos cartões.
 */
+.faixa {
+  margin-block-end: var(--vx-space-26);
+}
+
+/* ------------------------------------------- grupo de linhas */
+
+/*
+  O cartão dos interruptores: moldura única, `surface-1`, e divisória ENTRE as
+  linhas — nunca nas pontas, senão ela dobra com a borda do cartão.
+*/
+.grupo {
+  margin-block-end: var(--vx-space-26);
+  padding-inline: var(--vx-space-18);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-1);
+}
+
 .linha {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--vx-space-16);
-  padding: var(--vx-space-09) var(--vx-space-10);
-  border-radius: var(--vx-radius-06);
+  gap: var(--vx-space-20);
+  padding-block: var(--vx-space-14);
+  border-block-end: 1px solid var(--vx-hairline-06);
 }
 
-.linha:hover {
-  background: var(--vx-state-hover);
+.linha:last-child {
+  border-block-end: 0;
 }
 
 .texto {
-  display: grid;
-  gap: var(--vx-space-02);
   min-inline-size: 0;
 }
 
 .tituloDaLinha {
   font-size: var(--vx-size-md);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--vx-text-1);
 }
 
 .detalhe {
+  margin-block-start: var(--vx-space-02);
   font-size: var(--vx-size-xs);
   color: var(--vx-text-3);
+  text-wrap: pretty;
 }
 
-/* ------------------------------------------------- a matriz */
+.controle {
+  flex: none;
+}
 
+/* -------------------------------------------------- a matriz */
+
+/*
+  GRADE e não tabela, e a diferença é prática: `1.6fr 90px 90px 90px` mantém as
+  três colunas de controle na mesma posição em qualquer largura, e a coluna do
+  evento absorve o resto. Com `<table>` o navegador redistribui conforme o
+  conteúdo, e a matriz deixa de ler na vertical.
+*/
 .matriz {
-  inline-size: 100%;
-  border-collapse: collapse;
+  margin-block-end: var(--vx-space-26);
+  overflow: hidden;
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
 }
 
-/*
-  O cabeçalho da matriz usa a sobrancelha compartilhada — é rótulo de coluna,
-  não título. `composes` e não cópia: a definição mora num lugar só desde que
-  as dezesseis foram absorvidas.
-*/
-/*
-  ⚠ Classe própria e não `.matriz thead th`: `composes` só vale em seletor de
-  UMA classe local — o build falha em descendente, e a mensagem do postcss diz
-  isso por extenso. Sem ela, a sobrancelha voltaria a ser copiada aqui.
-*/
-.cabecalhoDaColuna {
-  composes: sobrancelha from "../styles/sobrancelha.module.css";
-  padding-block: var(--vx-space-08);
-  border-block-end: 1px solid var(--vx-hairline-06);
-  color: var(--vx-text-3);
-  text-align: start;
-}
-
-.colunaDeCanal {
-  composes: cabecalhoDaColuna;
-  /*
-    Largura fixa nas três colunas de controle: sem ela, a coluna do evento
-    empurra "Push" para fora e as caixas ficam desalinhadas entre linhas —
-    numa matriz, o alinhamento vertical É a leitura.
-  */
-  inline-size: 64px;
-  text-align: center;
-}
-
-.evento {
+.matrizCabecalho,
+.matrizLinha {
   display: grid;
-  gap: var(--vx-space-02);
-  padding-block: var(--vx-space-10);
-  padding-inline-end: var(--vx-space-16);
-  border-block-end: 1px solid var(--vx-hairline-06);
-  text-align: start;
-  font-weight: 400;
+  grid-template-columns: 1.6fr 90px 90px 90px;
+  align-items: center;
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-12) var(--vx-space-16);
+}
+
+/* O cabeçalho AFUNDA em relação às linhas: `surface-1` contra `surface-3`. */
+.matrizCabecalho {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  background: var(--vx-surface-1);
+  color: var(--vx-text-3);
+}
+
+.matrizLinha {
+  border-block-start: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-3);
+}
+
+.aoCentro {
+  text-align: center;
 }
 
 .eventoNome {
   font-size: var(--vx-size-md);
-  font-weight: 500;
   color: var(--vx-text-1);
 }
 
 .eventoDetalhe {
   font-size: var(--vx-size-xs);
+  font-weight: 400;
   color: var(--vx-text-3);
 }
 
 .celula {
-  border-block-end: 1px solid var(--vx-hairline-06);
-  text-align: center;
+  display: flex;
+  justify-content: center;
 }
 
-/* A caixa é `inline-grid`; centrá-la exige um contexto de alinhamento. */
-.celula > * {
-  margin-inline: auto;
+/*
+  A célula é um BOTÃO de 24 com glifo de 12 — não uma caixa de seleção.
+
+  ⚠ **Cada canal tem cor e ícone próprios**, e é o que faz a matriz ser lida:
+  acento no toast, verde no som, âmbar no push. Com 24 caixas idênticas, saber
+  em qual coluna se está exige seguir o cabeçalho com o dedo.
+*/
+.chave {
+  display: grid;
+  place-items: center;
+  inline-size: 24px;
+  block-size: 24px;
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  /* Desligado: o vazio do trilho, não uma superfície acesa. */
+  background: var(--vx-surface-2);
+  color: var(--vx-track-forte);
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
 }
 
-/* --------------------------------------- horário de silêncio */
+.chave:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
 
+.chave[data-canal="toast"][aria-checked="true"] {
+  background: color-mix(in oklab, var(--vx-accent) 14%, transparent);
+  color: var(--vx-accent-text);
+}
+
+.chave[data-canal="som"][aria-checked="true"] {
+  background: color-mix(in oklab, var(--vx-success) 14%, transparent);
+  color: var(--vx-success-text);
+}
+
+.chave[data-canal="push"][aria-checked="true"] {
+  background: color-mix(in oklab, var(--vx-warning) 14%, transparent);
+  color: var(--vx-warning);
+}
+
+/* ----------------------------------- horário de silêncio */
+
+.cartao {
+  margin-block-end: var(--vx-space-26);
+  padding: var(--vx-space-16) var(--vx-space-18);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-1);
+}
+
+.cartaoTopo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-16);
+}
+
+/*
+  A janela de horas vem SEPARADA por uma régua, não por espaço: ela é
+  consequência do interruptor acima, e a régua diz isso sem uma frase.
+*/
 .janela {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: var(--vx-space-16);
-  margin-block-start: var(--vx-space-12);
-  padding-inline: var(--vx-space-10);
+  gap: var(--vx-space-12);
+  margin-block-start: var(--vx-space-16);
+  padding-block-start: var(--vx-space-16);
+  border-block-start: 1px solid var(--vx-hairline-06);
 }
 
-.hora,
-.dias {
-  display: grid;
-  gap: var(--vx-space-06);
-}
+/*
+  ⚠ **Caixa BAIXA, e não a sobrancelha.** Foi o que a comparação com a
+  referência pegou: eu compus `sobrancelha` aqui, e "Das / Até / Dias" saiu em
+  CAIXA ALTA. Ela é o tratamento de TÍTULO DE SEÇÃO neste app; estes três são
+  rótulos de campo, e em versal eles competiam com "HORÁRIO DE SILÊNCIO" logo
+  acima — dois níveis de hierarquia com a mesma aparência.
 
+  O tamanho (11) e a cor (terciária) continuam os do metadado; o que sai é o
+  `text-transform` e o peso.
+*/
 .rotuloDaHora {
-  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  display: block;
+  margin-block-end: var(--vx-space-06);
+  font-size: var(--vx-size-xs);
+  font-weight: 400;
+  letter-spacing: 0.08em;
   color: var(--vx-text-3);
 }
 
 /*
-  ⚠ `<input type="time">` é o único controle nativo que sobrevive à regra de
-  não usar nativo em superfície de produto, e a exceção é deliberada: o
-  seletor de hora do sistema conhece o formato de 12/24 horas da máquina, o
-  teclado numérico do celular e a navegação por setas — reescrever isso à mão
-  entrega um campo pior em todos os três. O que se estiliza é a CAIXA.
+  ⚠ `<input type="time">` é o único nativo que sobrevive à regra de não usar
+  controle nativo em superfície de produto, e a exceção é deliberada: o
+  seletor do sistema conhece o formato de 12/24 h da máquina, o teclado
+  numérico do celular e a navegação por setas. Reescrever isso entrega um
+  campo pior nos três. O que se estiliza é a CAIXA.
+
+  Mono e 110px de largura: os dígitos mudam, e sem largura fixa o campo
+  respira diferente entre "09:00" e "22:30".
 */
 .campoDeHora {
-  block-size: 36px;
-  padding-inline: var(--vx-space-12);
+  inline-size: 110px;
+  block-size: 32px;
+  padding-inline: var(--vx-space-10);
   border: 1px solid var(--vx-hairline-10);
   border-radius: var(--vx-radius-06);
   background: var(--vx-surface-3);
   color: var(--vx-text-1);
-  font-family: inherit;
-  font-size: var(--vx-size-base);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-sm);
 }
 
 .campoDeHora:focus-visible {
@@ -161,24 +279,30 @@
   box-shadow: 0 0 0 3px var(--vx-accent-ring);
 }
 
+.dias {
+  flex: 1;
+}
+
 .diasLinha {
   display: flex;
   gap: var(--vx-space-04);
 }
 
 /*
-  Os sete dias: quadrado de 30, redondo, letra única.
+  Os sete dias: 30px, raio 7, letra única.
 
-  Redondo e não retangular porque são sete alvos idênticos numa fileira — a
-  pílula os lê como um conjunto, e o retângulo os faria parecer sete botões
-  independentes.
+  ⚠ Raio 7 e não pílula — é o que a referência escreve, e a razão aparece na
+  fileira: sete círculos leem como sete pontos soltos, e o quadrado arredondado
+  os mantém como um controle segmentado.
 */
 .dia {
+  display: grid;
+  place-items: center;
   inline-size: 30px;
   block-size: 30px;
-  border: 1px solid var(--vx-hairline-10);
-  border-radius: var(--vx-radius-pill);
-  background: transparent;
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-07);
+  background: var(--vx-surface-3);
   color: var(--vx-text-3);
   font-family: inherit;
   font-size: var(--vx-size-sm);
@@ -186,17 +310,13 @@
   cursor: pointer;
   transition:
     background var(--vx-duration-fast) var(--vx-ease-out),
+    border-color var(--vx-duration-fast) var(--vx-ease-out),
     color var(--vx-duration-fast) var(--vx-ease-out);
 }
 
-.dia:hover {
-  background: var(--vx-state-hover);
-  color: var(--vx-text-1);
-}
-
 .dia[aria-pressed="true"] {
-  border-color: transparent;
-  background: color-mix(in oklab, var(--vx-accent) 16%, transparent);
+  border-color: var(--vx-accent);
+  background: color-mix(in oklab, var(--vx-accent) 14%, transparent);
   color: var(--vx-accent-text);
 }
 
@@ -205,7 +325,9 @@
   outline-offset: 2px;
 }
 
-.acao {
-  display: flex;
-  margin-block-start: var(--vx-space-12);
+.recado {
+  margin: 0;
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+  text-wrap: pretty;
 }

@@ -42,6 +42,7 @@ const ICONE: Record<TomDeBanner, typeof Info> = {
 export function Banner({
   tom = "info",
   titulo,
+  acoes,
   children,
   className,
   ...props
@@ -49,6 +50,14 @@ export function Banner({
   tom?: TomDeBanner;
   /** Opcional: sem ele o banner é uma frase só, que é o caso mais comum. */
   titulo?: string;
+  /**
+   * O que resolve a condição — "Abrir ajustes", "Tentar de novo".
+   *
+   * ⚠ Irmã do corpo e não filha dele: uma ação empilhada embaixo do texto
+   * empurra o resto da página e o banner deixa de ler como faixa. O design a
+   * põe à direita, alinhada ao topo.
+   */
+  acoes?: ReactNode;
   children: ReactNode;
 } & HTMLAttributes<HTMLDivElement>) {
   const Glifo = ICONE[tom];
@@ -62,6 +71,7 @@ export function Banner({
         ) : null}
         {children}
       </div>
+      {acoes !== undefined ? <div className={css.acoes}>{acoes}</div> : null}
     </div>
   );
 }

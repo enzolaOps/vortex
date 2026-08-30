@@ -102,3 +102,21 @@
   font-size: var(--vx-size-md);
   font-weight: 600;
 }
+
+/*
+  As ações do banner, à direita e alinhadas ao topo.
+
+  ⚠ Elas ficam FORA do corpo, e não embaixo do texto: o banner responde a uma
+  condição, e a ação que a resolve é irmã do aviso, não continuação da frase.
+  Empilhada, ela empurra o texto seguinte para longe e o banner deixa de ler
+  como uma faixa.
+
+  `shrink: 0` porque o botão não deve encolher quando o texto for longo — quem
+  cede espaço é a frase, que reflui.
+*/
+.acoes {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-08);
+}

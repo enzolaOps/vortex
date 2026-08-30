@@ -220,3 +220,27 @@
 .perigoSutil:hover:not(:disabled) {
   background: var(--vx-danger-soft);
 }
+
+/*
+  Aviso SUTIL — a mesma forma do `perigoSutil` com a outra cor de estado.
+
+  ⚠ Ele existe porque o único caso de aviso do app não é destrutivo nem
+  neutro: "Abrir ajustes" dentro do banner de permissão do sistema responde ao
+  aviso que está acima dele, e um botão neutro ali não diria a qual banner
+  pertence.
+
+  `color-mix` à mão, sem token: é a única superfície do app com âmbar de
+  preenchimento, e a régua deste projeto é que a cor derivada só ganha nome ao
+  cruzar a linha de "existe atrás de UMA coisa" — foi o que aconteceu com
+  `danger-soft` na quarta cópia.
+*/
+.avisoSutil {
+  padding-inline: var(--vx-space-14);
+  border-color: color-mix(in oklab, var(--vx-warning) 35%, transparent);
+  background: transparent;
+  color: var(--vx-warning);
+}
+
+.avisoSutil:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--vx-warning) 14%, transparent);
+}
