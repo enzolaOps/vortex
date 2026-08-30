@@ -145,7 +145,17 @@ export function interpretarConfig(caminho: string): Config | undefined {
   // Seção desconhecida NÃO abre nada: uma URL digitada errada não deve abrir
   // uma tela de configuração vazia, que pareceria bug.
   if (!SECOES.includes(secao)) return undefined;
-  return { secao, serverId: m[2] };
+  /*
+    ⚠ O canal NÃO vem da URL, e é decisão.
+
+    As seções de canal precisam de um alvo, e a URL de configurações tem uma
+    posição só depois da seção — que já é o servidor. Dar duas exigiria um
+    formato novo (`/config/canal/:servidor/:canal`) para um caso que ninguém
+    linka: quem manda "veja as permissões do #geral" manda o link do canal, não
+    o das configurações dele. Entrar por URL numa seção de canal cai na tela de
+    "abra um canal", que é honesto.
+  */
+  return { secao, serverId: m[2], channelId: undefined };
 }
 
 /** O caminho que representa um lugar. A metade fácil da projeção. */

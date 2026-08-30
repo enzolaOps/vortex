@@ -33,6 +33,17 @@ export const SECOES = [
   "convites",
   "banimentos",
   "emojis",
+  /*
+    As de CANAL, e elas carregam o `channelId` pela mesma razão que as de
+    servidor carregam o `serverId`: "permissões" é uma seção, "as permissões
+    do canal X" é uma seção com um alvo. A união cresceria por instância se o
+    ID entrasse no tipo — o erro que o schema do preset torna irrepresentável
+    desde a fase 4.
+  */
+  "canal",
+  "canalPermissoes",
+  "canalConvites",
+  "canalAvancado",
 ] as const;
 
 export type SecaoId = (typeof SECOES)[number];
@@ -56,6 +67,10 @@ export const NOME_DA_SECAO: Record<SecaoId, string> = {
   convites: "Convites",
   banimentos: "Banimentos",
   emojis: "Emojis",
+  canal: "Visão geral",
+  canalPermissoes: "Permissões",
+  canalConvites: "Convites",
+  canalAvancado: "Avançado",
 };
 
 /** As que falam de um servidor, e por isso precisam de um. */
@@ -67,18 +82,28 @@ export const DE_SERVIDOR: readonly SecaoId[] = [
   "emojis",
 ];
 
+/** As que falam de um canal, e por isso precisam de um. */
+export const DE_CANAL: readonly SecaoId[] = [
+  "canal",
+  "canalPermissoes",
+  "canalConvites",
+  "canalAvancado",
+];
+
 export type Config = {
   /** `null` = fechadas. */
   readonly secao: SecaoId | null;
   /** Só existe nas seções de servidor. */
   readonly serverId: string | undefined;
+  /** Só existe nas seções de canal. */
+  readonly channelId: string | undefined;
 };
 
 type Ouvinte = () => void;
 
 const ouvintes = new Set<Ouvinte>();
 
-const FECHADA: Config = { secao: null, serverId: undefined };
+const FECHADA: Config = { secao: null, serverId: undefined, channelId: undefined };
 
 /** Referência cacheada — armadilha nº 1. */
 let config: Config = FECHADA;
@@ -93,13 +118,37 @@ export function lerConfig(): Config {
 }
 
 function publicar(nova: Config): void {
-  if (nova.secao === config.secao && nova.serverId === config.serverId) return;
+  if (
+    nova.secao === config.secao &&
+    nova.serverId === config.serverId &&
+    nova.channelId === config.channelId
+  ) {
+    return;
+  }
   config = nova;
   for (const ouvinte of ouvintes) ouvinte();
 }
 
 export function abrirConfig(secao: SecaoId, serverId?: string): void {
-  publicar({ secao, serverId });
+  /*
+    O canal é PRESERVADO ao trocar de seção dentro das de canal.
+
+    Sem isto, clicar em "Permissões" no menu esqueceria de qual canal se está
+    falando — e a tela abriria vazia sem dizer por quê. É o mesmo motivo pelo
+    qual `serverId` já era opcional aqui: quem navega DENTRO da casca não
+    reinforma o alvo.
+  */
+  const deCanal = DE_CANAL.includes(secao);
+  publicar({
+    secao,
+    serverId,
+    channelId: deCanal ? config.channelId : undefined,
+  });
+}
+
+/** Abre as configurações DE UM CANAL. O alvo entra aqui, não na navegação. */
+export function abrirConfigDeCanal(secao: SecaoId, channelId: string): void {
+  publicar({ secao, serverId: config.serverId, channelId });
 }
 
 /**

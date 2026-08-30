@@ -1,0 +1,316 @@
+/* ============================================================
+   Configurações de canal — o que as classes de `Secao` não cobrem
+   ------------------------------------------------------------
+   `Secao.module.css` já dá forma, bloco, subtítulo, recado,
+   divisor e ações. Aqui fica o que é desta superfície: a faixa
+   de não-salvo, as opções de rádio, a matriz tri-state e a cara
+   dos controles pendentes.
+   ============================================================ */
+
+.contador {
+  margin: 0;
+  text-align: end;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
+}
+
+/* --------------------------------------------- controle pendente */
+
+/*
+  A cara de um controle que ainda não escreve.
+
+  ⚠ Ele NÃO é `disabled`, e a diferença é a regra do projeto: item cinza e
+  inerte ensina que a ação existe e você não a tem — ruído permanente. Este
+  recebe foco, responde ao clique e DIZ o que fará e do que depende. É o
+  contrato de `pendente/pendencias.ts`.
+
+  Visualmente ele reproduz a `Escolha`, porque é isso que o design desenha no
+  lugar; o que muda é o que acontece ao acionar.
+*/
+.pendente {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-08);
+  inline-size: 100%;
+  block-size: 32px;
+  padding-inline: var(--vx-space-08);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  cursor: pointer;
+  text-align: start;
+}
+
+.pendente:hover {
+  border-color: var(--vx-border-strong);
+  color: var(--vx-text-1);
+}
+
+.pendente:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.selecao {
+  display: grid;
+  gap: var(--vx-space-04);
+  min-inline-size: 0;
+}
+
+.rotuloLeve {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+/*
+  Os quatro controles de voz em duas colunas.
+
+  `auto-fit` com mínimo em vez de `repeat(2, 1fr)`: a casca de configurações
+  vive dentro do shell e a coluna dela encolhe quando alguém alarga uma
+  sidebar. Duas colunas fixas produziriam campos de 90px.
+*/
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--vx-space-12);
+}
+
+/* ------------------------------------------------ opção de rádio */
+
+.opcao {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--vx-space-10);
+  inline-size: 100%;
+  padding: var(--vx-space-11) var(--vx-space-12);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-10);
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: start;
+}
+
+.opcao:hover {
+  background: var(--vx-state-hover);
+}
+
+.opcao[aria-checked="true"] {
+  border-color: var(--vx-accent);
+  background: var(--vx-state-selected);
+}
+
+.opcao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/*
+  A marca do rádio, desenhada e não nativa.
+
+  O ponto de dentro é um `box-shadow` interno em vez de um filho: um elemento
+  a mais só para um círculo de 8px é nó de DOM sem informação, e o
+  `box-shadow` anima sozinho quando a escolha muda.
+*/
+.marca {
+  flex: none;
+  inline-size: 16px;
+  block-size: 16px;
+  /* Alinha ao centro óptico da primeira linha do título (15px de corpo). */
+  margin-block-start: var(--vx-space-02);
+  border: 1px solid var(--vx-border-strong);
+  border-radius: var(--vx-radius-pill);
+  transition: box-shadow var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.opcao[aria-checked="true"] .marca {
+  border-color: var(--vx-accent);
+  box-shadow: inset 0 0 0 4px var(--vx-accent);
+}
+
+.opcaoTexto {
+  display: grid;
+  gap: var(--vx-space-03);
+  min-inline-size: 0;
+}
+
+.opcaoTitulo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.opcaoDetalhe {
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+.selo {
+  display: inline-flex;
+  align-items: center;
+  block-size: 18px;
+  padding-inline: var(--vx-space-06);
+  border-radius: var(--vx-radius-04);
+  background: color-mix(in oklab, var(--vx-danger) 16%, transparent);
+  color: var(--vx-danger-text);
+  font-size: var(--vx-size-2xs);
+  font-weight: 700;
+}
+
+/* --------------------------------------- faixa de não-salvo */
+
+/*
+  Ela GRUDA no fim da área rolável.
+
+  Sem `sticky`, um formulário mais alto que a janela esconderia o único par
+  salvar/descartar da tela — e a pessoa rolaria procurando um botão que ela
+  acabou de ver. `z-realce` porque ela passa por cima do conteúdo, e o fundo
+  é obrigatório pelo mesmo motivo do cabeçalho grudado do seletor.
+*/
+.faixa {
+  position: sticky;
+  inset-block-end: 0;
+  z-index: var(--vx-z-realce);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-12);
+  margin-block-start: var(--vx-space-08);
+  padding: var(--vx-space-12) var(--vx-space-14);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-10);
+  background: var(--vx-surface-4);
+  box-shadow: var(--vx-elev-2);
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-2);
+}
+
+.faixaAcoes {
+  display: flex;
+  gap: var(--vx-space-08);
+  flex: none;
+}
+
+/* ----------------------------------------- matriz de permissões */
+
+/*
+  A tabela rola sozinha no eixo inline.
+
+  Três colunas de estado mais o rótulo não cabem numa coluna de configurações
+  estreita, e deixar o BODY rolar na horizontal é o defeito que a lei nº 3
+  existe para impedir.
+*/
+.matriz {
+  overflow-x: auto;
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-10);
+}
+
+.grupoDePermissao {
+  padding: var(--vx-space-10) var(--vx-space-12) var(--vx-space-06);
+  font-size: var(--vx-size-2xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--vx-text-3);
+}
+
+.linhaDePermissao {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-09) var(--vx-space-12);
+  border-block-start: 1px solid var(--vx-border-subtle);
+}
+
+.permissaoTexto {
+  flex: 1;
+  min-inline-size: 0;
+  display: grid;
+  gap: var(--vx-space-02);
+}
+
+.permissaoNome {
+  font-size: var(--vx-size-md);
+  color: var(--vx-text-1);
+}
+
+.permissaoConsequencia {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+/*
+  O tri-state: negar · herdar · permitir.
+
+  Segmentado de três e não um interruptor, porque "herdar" não é um meio-termo
+  entre ligado e desligado — é a AUSÊNCIA de decisão neste canal, e ela tem de
+  ser alcançável de volta depois que alguém decidiu.
+*/
+.triEstado {
+  flex: none;
+  display: flex;
+  gap: var(--vx-space-02);
+  padding: var(--vx-space-02);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-track);
+}
+
+.triBotao {
+  display: grid;
+  place-items: center;
+  inline-size: 34px;
+  block-size: 26px;
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-3);
+  cursor: pointer;
+}
+
+.triBotao svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+.triBotao:hover {
+  color: var(--vx-text-1);
+}
+
+.triBotao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.triBotao[aria-pressed="true"] {
+  background: var(--vx-surface-4);
+  color: var(--vx-text-1);
+}
+
+/* Negar e permitir ganham cor; herdar fica neutro — é a ausência. */
+.triBotao[data-valor="negar"][aria-pressed="true"] {
+  color: var(--vx-danger-text);
+}
+
+.triBotao[data-valor="permitir"][aria-pressed="true"] {
+  color: var(--vx-success-text);
+}
+
+/* --------------------------------------------------- avançado */
+
+.identificador {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}

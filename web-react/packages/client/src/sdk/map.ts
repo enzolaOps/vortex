@@ -475,6 +475,8 @@ export function toChannelSnapshot(
     ultimaEm,
     ultimaMensagemId: ultimo ?? undefined,
     topico: channel.description || undefined,
+    /* `slowmode` chegava pelo fio e ninguém desenhava — ver o campo. */
+    modoLentoSegundos: channel.slowmode ?? 0,
     naoLidas,
     mencoes,
     /*

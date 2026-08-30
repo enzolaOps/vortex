@@ -4,6 +4,7 @@ import {
   BellSimpleSlash,
   CaretRight,
   Check,
+  GearSix,
   Hash,
   LinkSimple,
   Lock,
@@ -41,6 +42,7 @@ import {
 import { entrarNaChamada } from "../sdk/chamada";
 import { assinarChamada, falando, lerChamada } from "../store/chamada";
 import { administrar } from "../store/administracao";
+import { abrirConfigDeCanal } from "../store/config";
 import { ListaDeConversas } from "../casa/ListaDeConversas";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { contagem, rotuloDeNaoLidas } from "../lib/plural";
@@ -321,6 +323,20 @@ const Canal = memo(function Canal({
             >
               <PencilSimple size={20} aria-hidden />
               Editar canal
+            </ContextMenuItem>
+            {/*
+              ⚠ **Renomear e CONFIGURAR são dois destinos, e o design os
+              separa.** O modal de editar resolve o caso de um campo — trocar o
+              nome sem sair do lugar. As configurações são quatro telas com
+              permissões e exclusão, e enfiá-las num modal repetiria o erro que
+              o upstream comete com as 42 páginas dele: nada linkável, voltar
+              que não fecha e F5 que cai na inicial.
+            */}
+            <ContextMenuItem
+              onSelect={() => abrirConfigDeCanal("canal", id)}
+            >
+              <GearSix size={20} aria-hidden />
+              Configurações do canal
             </ContextMenuItem>
             <ContextMenuItem
               perigo

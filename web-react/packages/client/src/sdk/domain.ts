@@ -494,6 +494,15 @@ export type ChannelSnapshot = {
    * conceito do domínio.
    */
   readonly topico: string | undefined;
+  /**
+   * Modo lento, em segundos. `0` = desativado.
+   *
+   * ⚠ **Campo do protocolo que chegava e era ignorado — o mesmo padrão do
+   * `statusTexto` e do `ehMencao`.** Ele é de LEITURA apenas: `slowmode` está
+   * no objeto do canal mas não em `DataEditChannel`, então a interface o
+   * mostra e o controle de mudança é pendente. Ver `sdk/canal.ts`.
+   */
+  readonly modoLentoSegundos: number;
   readonly naoLidas: number;
   readonly mencoes: number;
   /**

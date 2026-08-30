@@ -178,6 +178,18 @@ function falhou(oQue: string, e: unknown): void {
  * `MentionRoles` (bit 38) sumiria. É o tipo de erro que só aparece nas
  * permissões do fim da lista, e passa despercebido nas primeiras.
  */
+/**
+ * O bit de uma permissão, pelo id do protocolo.
+ *
+ * Exportado porque as permissões POR CANAL precisam do bit cru: lá o estado
+ * não é "concedida ou não", é um par allow/deny em que a ausência nos dois
+ * significa herdar. `concedidasDe` colapsa isso num booleano e serve ao editor
+ * de cargos; a matriz de canal precisa do bit para montar o tri-state.
+ */
+export function bitDaPermissao(id: string): bigint {
+  return TABELA[id] ?? 0n;
+}
+
 function concedidasDe(valor: bigint, tabela: Record<string, bigint>): string[] {
   const out: string[] = [];
   for (const grupo of PERMISSOES) {

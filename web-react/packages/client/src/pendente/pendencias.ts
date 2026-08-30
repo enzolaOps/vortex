@@ -216,6 +216,45 @@ export const PENDENCIAS = {
     faz: "Puxar esta pessoa para outro canal de voz.",
     depende: "`ServerMember.edit({ voice_channel })` + submenu de canais",
   },
+  /* --------------------------------------------- configurações de canal */
+  /*
+    ⚠ **Os cinco de configuração de canal têm a MESMA causa e mereciam ficar
+    juntos: `DataEditChannel`.** O protocolo aceita `name`, `description`,
+    `nsfw` e `voice.max_users`, e mais nada. `slowmode` é o pior deles porque
+    ENGANA — o objeto do canal carrega o valor e o `stoat.js` expõe o getter,
+    então a tela mostra o estado real e o controle não move. A tabela medida
+    está em `sdk/canal.ts`.
+  */
+  modoLento: {
+    superficie: "Configurações do canal",
+    faz: "Limitar quanto tempo cada pessoa espera entre uma mensagem e outra.",
+    depende: "`slowmode` em `DataEditChannel` — hoje é só leitura",
+  },
+  canalDeSpoiler: {
+    superficie: "Configurações do canal",
+    faz: "Entrar com toda a mídia borrada, com clique para revelar.",
+    depende: "conceito de spoiler no protocolo — não há campo nem evento",
+  },
+  bitrateDeVoz: {
+    superficie: "Configurações do canal",
+    faz: "Escolher a qualidade de áudio da sala.",
+    depende: "bitrate no protocolo + repasse ao LiveKit",
+  },
+  regiaoDeVoz: {
+    superficie: "Configurações do canal",
+    faz: "Fixar a região do servidor de voz, em vez de deixar automática.",
+    depende: "região de voz no protocolo",
+  },
+  modoDeVideo: {
+    superficie: "Configurações do canal",
+    faz: "Fixar resolução e taxa de quadros do vídeo.",
+    depende: "modo de vídeo no protocolo + repasse ao LiveKit",
+  },
+  sincronizarComCategoria: {
+    superficie: "Permissões do canal",
+    faz: "Copiar as permissões da categoria para este canal e manter em sincronia.",
+    depende: "categoria não tem permissões no protocolo — ela é só um array de IDs",
+  },
   silenciarUsuario: {
     superficie: "Menu do usuário",
     faz: "Esconder as mensagens desta pessoa só para você.",

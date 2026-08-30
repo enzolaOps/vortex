@@ -5,13 +5,14 @@ import { Tooltip } from "../components/ui/Tooltip";
 import {
   abrirConfig,
   assinarConfig,
+  DE_CANAL,
   DE_SERVIDOR,
   NOME_DA_SECAO as NOME,
   fecharConfig,
   lerConfig,
   type SecaoId,
 } from "../store/config";
-import { useServer, useServidorAtivo } from "../store/hooks";
+import { useChannel, useServer, useServidorAtivo } from "../store/hooks";
 import { Aparencia } from "./Aparencia";
 import { Banimentos } from "./Banimentos";
 import { Cargos } from "./Cargos";
@@ -21,6 +22,10 @@ import { Emojis } from "./Emojis";
 import { Perfil } from "./Perfil";
 import { Servidor } from "./Servidor";
 import { Sessoes } from "./Sessoes";
+import { AvancadoDoCanal } from "./canal/AvancadoDoCanal";
+import { ConvitesDoCanal } from "./canal/ConvitesDoCanal";
+import { PermissoesDoCanal } from "./canal/PermissoesDoCanal";
+import { VisaoGeralDoCanal } from "./canal/VisaoGeralDoCanal";
 import css from "./Configuracoes.module.css";
 
 /**
@@ -81,6 +86,11 @@ export function Configuracoes() {
     return () => document.removeEventListener("keydown", aoTeclar);
   }, [config.secao]);
 
+  /* ANTES do `return null`: hook depois de saída antecipada muda a ordem
+     entre renders, e o lint das Rules of React reprova com razão. */
+  const channelId = config.channelId ?? "";
+  const canal = useChannel(channelId);
+
   if (config.secao === null) return null;
 
   const secao = config.secao;
@@ -96,6 +106,10 @@ export function Configuracoes() {
     convites: () => <Convites serverId={serverId} />,
     banimentos: () => <Banimentos serverId={serverId} />,
     emojis: () => <Emojis serverId={serverId} />,
+    canal: () => <VisaoGeralDoCanal channelId={channelId} />,
+    canalPermissoes: () => <PermissoesDoCanal channelId={channelId} />,
+    canalConvites: () => <ConvitesDoCanal channelId={channelId} />,
+    canalAvancado: () => <AvancadoDoCanal channelId={channelId} />,
   };
 
   return (
@@ -126,6 +140,22 @@ export function Configuracoes() {
                 ativa={id === secao}
                 serverId={serverId}
               />
+            ))}
+          </>
+        ) : null}
+
+        {/*
+          As de canal só aparecem quando há um canal ALVO — e o alvo entra por
+          `abrirConfigDeCanal`, do menu de contexto do canal. Elas não são
+          alcançáveis pela navegação porque não há de qual canal falar até
+          alguém escolher um; um grupo permanente no menu abriria sempre em
+          "abra um canal", que é um destino morto.
+        */}
+        {canal ? (
+          <>
+            <p className={css.grupo}>#{canal.name}</p>
+            {DE_CANAL.map((id) => (
+              <ItemDoMenu key={id} id={id} ativa={id === secao} />
             ))}
           </>
         ) : null}

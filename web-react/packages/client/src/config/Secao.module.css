@@ -20,6 +20,22 @@
   max-inline-size: var(--vx-medida);
 }
 
+/*
+  A largura do EDITOR, para o que não é prosa.
+
+  ⚠ O Foundations do design é explícito: *"o editor limitado a 880 e
+  centralizado no espaço restante"*. A medida de leitura acima continua certa
+  para formulário de texto — campo esticado fica ilegível pelo mesmo motivo que
+  um parágrafo. Mas a matriz de permissões tem rótulo, consequência e três
+  estados na mesma linha, e em 520px ela espreme os três num canto.
+
+  Modificador e não um valor novo em `.forma`: quem precisa de 880 pede, e o
+  default continua sendo a medida.
+*/
+.forma.larga {
+  max-inline-size: 880px;
+}
+
 .bloco {
   display: grid;
   gap: var(--vx-space-12);
