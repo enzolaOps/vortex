@@ -156,7 +156,7 @@
   nível de ênfase que não existe no desenho.
 */
 .neutro {
-  border-color: var(--vx-hairline-forte);
+  border-color: var(--vx-hairline-10);
   background: var(--vx-surface-3);
   color: var(--vx-text-1);
 }

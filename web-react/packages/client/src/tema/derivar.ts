@@ -98,6 +98,8 @@ type Rampa = {
     onde o deslizante mora, então o trilho sumia sob o polegar.
   */
   readonly trilho: Degrau;
+  /** O sétimo neutro: trilho ATIVO e desligado, um degrau acima do sexto. */
+  readonly trilhoForte: Degrau;
   readonly perigo: Semantica;
   /*
     O vermelho de TEXTO, separado do de preenchimento.
@@ -198,6 +200,7 @@ const RAMPAS: Record<Modo, Rampa> = {
     acentoSuave: { l: 0.28, c: 0.035, dh: 3.5 },
     sobreAcento: { l: 0.193686, c: 0.027359, dh: 5.816 },
     trilho: { l: 0.306721, c: 0.016703, dh: -2.353 },
+    trilhoForte: { l: 0.390404, c: 0.025721, dh: -2.924 },
     perigo: { l: 0.655027, c: 0.176981, h: 15.968 },
     perigoTexto: { l: 0.727685, c: 0.137474, h: 13.749 },
     sobrePerigo: { l: 0.155772, c: 0.039295, h: 15.439 },
@@ -239,6 +242,7 @@ const RAMPAS: Record<Modo, Rampa> = {
       quem carrega a separação é a DISTÂNCIA em L, não o sinal dela.
     */
     trilho: { l: 0.89, c: 0.008, dh: 1 },
+    trilhoForte: { l: 0.792015, c: 0.016723, dh: -5.805 },
     perigo: { l: 0.538347, c: 0.184859, h: 18.141 },
     /*
       No CLARO os dois são o mesmo valor, e isso não é descuido.
@@ -330,6 +334,7 @@ export function derivar(s: Semente): Record<TokenName, string> {
     "--vx-on-accent": daAcao(r.sobreAcento),
     /* O sexto neutro — trilho de deslizante e fundo de controle inerte. */
     "--vx-track": neutro(r.trilho, s),
+    "--vx-track-forte": neutro(r.trilhoForte, s),
 
     "--vx-danger": semantica(r.perigo),
     "--vx-danger-text": semantica(r.perigoTexto),

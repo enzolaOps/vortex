@@ -289,58 +289,6 @@
   color: var(--vx-text-3);
 }
 
-.interruptor {
-  inline-size: 38px;
-  block-size: 22px;
-  flex: none;
-  padding: var(--vx-space-03);
-  border-radius: var(--vx-radius-pill);
-  /*
-    Trilho, e ele estava em `--vx-surface-0`.
-
-    Medido na seção "Toggle, checkbox, radio" do Foundations:
-    `width:38px;height:22px;border-radius:999px;background:#2A3038;padding:3px`
-    com o polegar em `#6E7783`. O `#2A3038` é `--vx-track`, o sexto neutro que
-    passou a existir na varredura de cor — e este é o consumidor que provou
-    que ele fazia falta. `surface-0` é o CHÃO da janela; um controle dentro de
-    um modal em `surface-4` afundando até o chão é dois degraus a mais do que
-    o desenho pede.
-  */
-  background: var(--vx-track);
-  border: 1px solid var(--vx-border-subtle);
-  cursor: pointer;
-  transition: background var(--vx-duration-fast) var(--vx-ease-out);
-}
-
-.interruptor[aria-checked="true"] {
-  background: var(--vx-accent);
-  border-color: var(--vx-accent);
-}
-
-.interruptor:focus-visible {
-  outline: 2px solid var(--vx-accent);
-  outline-offset: 2px;
-}
-
-.botaoDoInterruptor {
-  display: block;
-  inline-size: 16px;
-  block-size: 16px;
-  border-radius: var(--vx-radius-pill);
-  /* `#6E7783` no design, que é `--vx-neutral` — o cinza semântico de
-     AUSÊNCIA de estado, e é exatamente o que um interruptor desligado é.
-     `text-2` é cor de LETRA e chegava mais claro que o desenhado. */
-  background: var(--vx-neutral);
-  /* Só `translate` anima — a regra de movimento do projeto: nada além de
-     `transform` e `opacity` roda no compositor. */
-  transition: translate var(--vx-duration-fast) var(--vx-ease-out);
-}
-
-.interruptor[aria-checked="true"] .botaoDoInterruptor {
-  translate: 16px 0;
-  background: var(--vx-on-accent);
-}
-
 .rodapeDoModal {
   display: flex;
   justify-content: flex-end;

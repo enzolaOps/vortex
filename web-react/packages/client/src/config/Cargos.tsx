@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { Botao } from "../components/ui/Botao";
+import { Caixa } from "../components/ui/Marcador";
 import { Campo } from "../components/ui/Campo";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { SeletorDeCor } from "../components/ui/SeletorDeCor";
@@ -175,15 +176,14 @@ function EditorDeCargo({
           onChange={(e) => setNome(e.target.value)}
         />
 
-        <label className={cargoCss.opcao}>
-          <input
-            type="checkbox"
-            checked={colorido}
-            disabled={salvando}
-            onChange={(e) => setColorido(e.target.checked)}
-          />
+        <Caixa
+          className={cargoCss.opcao}
+          marcado={colorido}
+          disabled={salvando}
+          aoAlternar={setColorido}
+        >
           Colorir o nome de quem tem este cargo
-        </label>
+        </Caixa>
 
         {/*
           A cor passa pelo mesmo clamp de luminosidade das cores de cargo na
@@ -199,15 +199,14 @@ function EditorDeCargo({
           />
         ) : null}
 
-        <label className={cargoCss.opcao}>
-          <input
-            type="checkbox"
-            checked={destacado}
-            disabled={salvando}
-            onChange={(e) => setDestacado(e.target.checked)}
-          />
+        <Caixa
+          className={cargoCss.opcao}
+          marcado={destacado}
+          disabled={salvando}
+          aoAlternar={setDestacado}
+        >
           Mostrar em seção própria na lista de membros
-        </label>
+        </Caixa>
       </div>
 
       <hr className={css.divisor} />
@@ -216,20 +215,20 @@ function EditorDeCargo({
         <fieldset key={grupo.titulo} className={cargoCss.grupo}>
           <legend className={cargoCss.legenda}>{grupo.titulo}</legend>
           {grupo.itens.map((p) => (
-            <label key={p.id} className={cargoCss.permissao}>
-              <input
-                type="checkbox"
-                checked={marcadas.includes(p.id)}
-                disabled={salvando}
-                onChange={() => alternar(p.id)}
-              />
+            <Caixa
+              key={p.id}
+              className={cargoCss.permissao}
+              marcado={marcadas.includes(p.id)}
+              disabled={salvando}
+              aoAlternar={() => alternar(p.id)}
+            >
               <span className={cargoCss.textoDaPermissao}>
                 <span className={cargoCss.rotulo}>{p.rotulo}</span>
                 {/* O detalhe diz a CONSEQUÊNCIA, não repete o rótulo — é o que
                     torna a lista decidível por quem não conhece o protocolo. */}
                 <span className={css.detalhe}>{p.detalhe}</span>
               </span>
-            </label>
+            </Caixa>
           ))}
         </fieldset>
       ))}

@@ -27,7 +27,7 @@
   block-size: 50px;
   padding-inline: var(--vx-space-16);
   /* Véu a 6%, medido — era a hairline opaca. */
-  border-block-end: 1px solid var(--vx-hairline);
+  border-block-end: 1px solid var(--vx-hairline-06);
   /*
     ⚠ **Canvas, e estava em `surface-0` — o terceiro lugar em que este mesmo
     erro apareceu, depois da prancha e do rodapé do composer.**

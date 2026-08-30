@@ -52,7 +52,7 @@
   */
   block-size: 36px;
   padding-inline: var(--vx-space-12);
-  border: 1px solid var(--vx-hairline-forte);
+  border: 1px solid var(--vx-hairline-10);
   border-radius: var(--vx-radius-06);
   /*
     ⚠ **`surface-3` e não `surface-0`, e a razão errada estava até escrita na

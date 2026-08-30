@@ -16,8 +16,8 @@
      canais. Não é `surface-0`: aquele é rail e gutter ultrawide, e o
      `pnpm superficies` guarda a diferença. */
   background: var(--vx-surface-1);
-  /* Véu, como o design — ver `--vx-hairline`. */
-  border-inline-end: 1px solid var(--vx-hairline);
+  /* Véu, como o design — ver `--vx-hairline-06`. */
+  border-inline-end: 1px solid var(--vx-hairline-06);
   overflow-y: auto;
 }
 
@@ -133,7 +133,7 @@
   block-size: 1px;
   margin: var(--vx-space-04) var(--vx-space-08);
   border: 0;
-  background: var(--vx-hairline);
+  background: var(--vx-hairline-06);
 }
 
 /*
@@ -169,7 +169,7 @@
   border: 0;
   /* Esta borda EXISTE no design (branco a 6%) — ao contrário da do
      cabeçalho, que eu tinha inventado. */
-  border-block-start: 1px solid var(--vx-hairline);
+  border-block-start: 1px solid var(--vx-hairline-06);
   background: transparent;
   color: var(--vx-text-4);
   font-family: var(--vx-font-mono);

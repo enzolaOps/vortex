@@ -146,6 +146,14 @@ export const SEM_PAR: Readonly<Record<string, string>> = {
     "borda que CARREGA informação — limite de controle, foco. Esta separa " +
     "blocos que o espaçamento já separa; puxá-la para 3:1 a transformaria na " +
     "borda forte, que é o token ao lado e existe para isso.",
+  "--vx-track-forte":
+    "PREENCHIMENTO de trilho ATIVO, e a ausência é a mesma decisão do " +
+    "`--vx-track` logo abaixo — com um agravante próprio. Ele é o trilho de um " +
+    "interruptor DESLIGADO e a barra não tocada de uma forma de onda: em " +
+    "nenhum dos dois há texto em cima, e quem carrega a informação é o " +
+    "polegar (que tem par) ou a parte já tocada. O agravante: puxá-lo para " +
+    "3:1 o aproximaria de `--vx-track`, e a distinção entre desligado e " +
+    "BLOQUEADO é exatamente a diferença de luminosidade entre os dois.",
   "--vx-track":
     "PREENCHIMENTO de trilho, e a ausência é a decisão. Quem carrega a " +
     "informação de um deslizante é a parte PREENCHIDA em acento e o polegar, " +

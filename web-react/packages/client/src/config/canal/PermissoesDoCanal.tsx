@@ -2,6 +2,7 @@ import { ArrowLeft, Check, Minus, X } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 
 import { Botao } from "../../components/ui/Botao";
+import { Interruptor } from "../../components/ui/Interruptor";
 import { aindaNao } from "../../pendente/pendencias";
 import {
   overrideDoCargo,
@@ -266,30 +267,6 @@ function LinhaDeAcesso({
         </button>
       ) : null}
     </div>
-  );
-}
-
-/** O interruptor do design: 38×22, pílula, bolinha de 16 em `on-accent`. */
-function Interruptor({
-  rotulo,
-  ligado,
-  aoAlternar,
-}: {
-  rotulo: string;
-  ligado: boolean;
-  aoAlternar: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={ligado}
-      aria-label={rotulo}
-      className={css.interruptor}
-      onClick={aoAlternar}
-    >
-      <span className={css.botaoDoInterruptor} aria-hidden />
-    </button>
   );
 }
 

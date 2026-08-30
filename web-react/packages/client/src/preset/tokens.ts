@@ -24,6 +24,10 @@ export const TOKENS_DE_TEMA = [
   /* O sexto neutro: trilho de deslizante e fundo de controle inerte. Não é
      degrau da rampa de superfície — nada mora dentro dele. */
   "--vx-track",
+  /* O sétimo: trilho de controle ATIVO e desligado, um degrau acima do
+     sexto. Sem a distinção, interruptor desligado e interruptor bloqueado
+     ficam do mesmo tom — que é a diferença que o controle mostra. */
+  "--vx-track-forte",
 
   "--vx-text-1",
   "--vx-text-2",

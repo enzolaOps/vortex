@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { Botao } from "../components/ui/Botao";
+import { Caixa } from "../components/ui/Marcador";
 import { Campo } from "../components/ui/Campo";
 import { confirmarRedefinicao } from "../sdk/conta";
 import { voltarParaEntrar } from "../store/entrada";
@@ -84,15 +85,14 @@ export function TelaDeRedefinirSenha({
         {/* `checkbox` é o único controle nativo que o lint permite fora de
             `components/ui`: `accent-color` o traz para o sistema de cor e ele
             não abre superfície própria. */}
-        <label className={css.opcao}>
-          <input
-            type="checkbox"
-            checked={derrubar}
-            disabled={enviando}
-            onChange={(e) => setDerrubar(e.target.checked)}
-          />
+        <Caixa
+          className={css.opcao}
+          marcado={derrubar}
+          disabled={enviando}
+          aoAlternar={setDerrubar}
+        >
           Desconectar os outros dispositivos
-        </label>
+        </Caixa>
 
         {motivo ? (
           <p className={css.erro} role="alert">

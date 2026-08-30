@@ -222,7 +222,7 @@
   margin-inline: calc(-1 * var(--vx-space-40));
   margin-block-end: calc(-1 * var(--vx-config-rodape-h));
   padding: var(--vx-space-12) var(--vx-space-40);
-  border-block-start: 1px solid var(--vx-hairline);
+  border-block-start: 1px solid var(--vx-hairline-06);
   background: var(--vx-surface-1);
   font-size: var(--vx-size-sm);
   color: var(--vx-text-2);
@@ -278,7 +278,7 @@
 
 /* A lista de acesso: cartão AFUNDADO, como o de voz. */
 .listaDeAcesso {
-  border: 1px solid var(--vx-hairline);
+  border: 1px solid var(--vx-hairline-06);
   border-radius: var(--vx-radius-10);
   background: var(--vx-surface-1);
   overflow: hidden;
@@ -290,7 +290,7 @@
   justify-content: space-between;
   gap: var(--vx-space-12);
   padding: var(--vx-space-14) var(--vx-space-16);
-  border-block-end: 1px solid var(--vx-hairline);
+  border-block-end: 1px solid var(--vx-hairline-06);
 }
 
 /*
@@ -393,7 +393,7 @@
   align-items: center;
   gap: var(--vx-space-14);
   padding-block-end: var(--vx-space-16);
-  border-block-end: 1px solid var(--vx-hairline);
+  border-block-end: 1px solid var(--vx-hairline-06);
 }
 
 .voltar {
@@ -433,14 +433,14 @@
 .avancadasCorpo {
   display: grid;
   grid-template-columns: 264px minmax(0, 1fr);
-  border: 1px solid var(--vx-hairline);
+  border: 1px solid var(--vx-hairline-06);
   border-radius: var(--vx-radius-10);
   overflow: hidden;
 }
 
 .colunaDeAlvos {
   background: var(--vx-surface-1);
-  border-inline-end: 1px solid var(--vx-hairline);
+  border-inline-end: 1px solid var(--vx-hairline-06);
   padding-block-end: var(--vx-space-12);
 }
 
@@ -546,7 +546,7 @@
 .grupoRegua {
   flex: 1;
   block-size: 1px;
-  background: var(--vx-hairline);
+  background: var(--vx-hairline-06);
 }
 
 /*
@@ -732,49 +732,6 @@
   border-color: var(--vx-accent);
 }
 
-/*
-  O interruptor, movido de `Enquete.module.css` — segundo consumidor.
-
-  Medido no Foundations: 38×22, pílula, `padding: 3px`, trilho em
-  `--vx-track`, polegar 16×16 em `--vx-neutral`. Ligado, o trilho vira acento
-  e o polegar vira `on-accent`.
-*/
-.interruptor {
-  inline-size: 38px;
-  block-size: 22px;
-  flex: none;
-  padding: var(--vx-space-03);
-  border: 0;
-  border-radius: var(--vx-radius-pill);
-  background: var(--vx-track);
-  cursor: pointer;
-  transition: background var(--vx-duration-fast) var(--vx-ease-out);
-}
-
-.interruptor[aria-checked="true"] {
-  background: var(--vx-accent);
-}
-
-.interruptor:focus-visible {
-  outline: 2px solid var(--vx-accent);
-  outline-offset: 2px;
-}
-
-.botaoDoInterruptor {
-  display: block;
-  inline-size: 16px;
-  block-size: 16px;
-  border-radius: var(--vx-radius-pill);
-  background: var(--vx-neutral);
-  /* Só `translate` anima — a regra de movimento do projeto. */
-  transition: translate var(--vx-duration-fast) var(--vx-ease-out);
-}
-
-.interruptor[aria-checked="true"] .botaoDoInterruptor {
-  translate: 16px 0;
-  background: var(--vx-on-accent);
-}
-
 /* ============================================================
    Convites — a tabela
    ------------------------------------------------------------
@@ -796,7 +753,7 @@
 }
 
 .tabela {
-  border: 1px solid var(--vx-hairline);
+  border: 1px solid var(--vx-hairline-06);
   border-radius: var(--vx-radius-10);
   overflow: hidden;
 }

@@ -1,0 +1,73 @@
+/* ============================================================
+   Interruptor
+   ------------------------------------------------------------
+   Existia DUAS vezes à mão — matriz de permissões e criação de
+   enquete — e as duas com geometria própria. É a história do
+   `Avatar` e do `BotaoDeIcone`: o custo não é a duplicação, é
+   que mudar o tratamento de foco vira N edições que ninguém
+   garante completas.
+   ============================================================ */
+
+.trilho {
+  flex: none;
+  display: flex;
+  align-items: center;
+  /* 38×22 com respiro 3, do design: o polegar de 16 mais 3+3 fecha os 22. */
+  inline-size: 38px;
+  block-size: 22px;
+  padding: var(--vx-space-03);
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  /*
+    ⚠ `--vx-track-forte` e não `--vx-track`: desligado é diferente de
+    BLOQUEADO. O design usa `#3C4653` no primeiro e `#2A3038` no segundo, e
+    colapsar os dois apaga a única diferença que o controle precisa mostrar —
+    "está desligado, ligue" contra "não é seu para ligar".
+  */
+  background: var(--vx-track-forte);
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.trilho[aria-checked="true"] {
+  background: var(--vx-accent);
+}
+
+.trilho:disabled {
+  background: var(--vx-track);
+  cursor: not-allowed;
+}
+
+.trilho:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--vx-accent-ring);
+}
+
+/*
+  Só `transform` anima, nunca `margin` nem `inset`: os dois disparam layout a
+  cada quadro, e este controle aparece em lista de permissões com trinta
+  linhas.
+*/
+.polegar {
+  inline-size: 16px;
+  block-size: 16px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-text-2);
+  transition: transform var(--vx-duration-fast) var(--vx-ease-out),
+    background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.trilho[aria-checked="true"] .polegar {
+  background: var(--vx-on-accent);
+  translate: 16px 0;
+}
+
+.trilho:disabled .polegar {
+  background: var(--vx-neutral);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .polegar {
+    transition: none;
+  }
+}

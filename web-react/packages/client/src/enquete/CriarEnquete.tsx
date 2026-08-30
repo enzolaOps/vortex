@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 
 import { Botao } from "../components/ui/Botao";
 import { Dialog, DialogClose, DialogContent } from "../components/ui/Dialog";
+import { Interruptor } from "../components/ui/Interruptor";
 import { cn } from "../lib/cn";
 import {
   DropdownMenu,
@@ -300,16 +301,11 @@ export function CriarEnquete({ aoFechar }: { aoFechar: () => void }) {
               Esconde a contagem até a enquete fechar
             </div>
           </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={resultadoNoFim}
-            aria-label="Resultado só no fim"
-            className={css.interruptor}
-            onClick={() => setResultadoNoFim((v) => !v)}
-          >
-            <span className={css.botaoDoInterruptor} />
-          </button>
+          <Interruptor
+            ligado={resultadoNoFim}
+            rotulo="Resultado só no fim"
+            aoAlternar={setResultadoNoFim}
+          />
         </div>
 
         </div>

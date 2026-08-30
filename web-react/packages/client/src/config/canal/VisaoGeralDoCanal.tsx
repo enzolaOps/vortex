@@ -7,6 +7,7 @@ import { aindaNao } from "../../pendente/pendencias";
 import { salvarCanal } from "../../sdk/canal";
 import { useChannel } from "../../store/hooks";
 import secao from "../Secao.module.css";
+import { MarcaDeOpcao } from "../../components/ui/Marcador";
 import css from "./Canal.module.css";
 
 /**
@@ -324,7 +325,7 @@ function Opcao({
       className={css.opcao}
       onClick={aoMarcar}
     >
-      <span className={css.marca} aria-hidden />
+      <MarcaDeOpcao className={css.marca} />
       <span className={css.opcaoTexto}>
         <span className={css.opcaoTitulo}>
           {titulo}
