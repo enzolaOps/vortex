@@ -57,18 +57,22 @@
 .membro {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-08);
+  gap: var(--vx-space-10);
   inline-size: 100%;
   min-inline-size: 0;
   /*
-    Recuo e margem do design: `5px 10px` de padding e `0 6px` de margem, que na
-    escala do projeto são `space-1`/`space-3` e `space-2`. A linha passa de 40
-    para 42px — a folga é o que separa o nome do recado na segunda linha sem
-    que os dois virem um bloco.
+    ⚠ **`5px 10px` de recuo e `0 6px` de margem — os números do design, e este
+    comentário JÁ OS DIZIA enquanto o código escrevia 12/4.**
+
+    A razão do desvio está escrita na versão anterior: "na escala do projeto
+    são `space-1`/`space-3`" — ou seja, os degraus de 5, 6 e 10 não existiam e
+    a aproximação ficou. Eles existem desde a rodada de escala, e a linha volta
+    de 40 para os 42px do design. É o retrofit em estado puro: o valor certo
+    era conhecido, a fundação não sabia expressá-lo, e a aproximação virou o
+    código.
   */
-  padding-inline: var(--vx-space-12);
-  padding-block: var(--vx-space-04);
-  margin-inline: var(--vx-space-08);
+  padding: var(--vx-space-05) var(--vx-space-10);
+  margin-inline: var(--vx-space-06);
   border-radius: var(--vx-radius-06);
   color: var(--vx-text-2);
   background: transparent;

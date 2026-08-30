@@ -15,6 +15,16 @@
   /* Empurra para a borda final. O tópico fica com o espaço do meio, e é ele
      que deve ceder primeiro — identidade e ação ancoram nas pontas. */
   margin-inline-start: auto;
+  /*
+    ⚠ **`min-inline-size: 0`, e sem ele o cabeçalho ESTOURAVA.**
+
+    Medido numa janela de 700px: a faixa de ações media 350px e terminava em
+    x=765 dentro de uma coluna de 380 — 65px de transbordo, escondidos pelo
+    `overflow` da coluna em vez de reportados. Filho de flex tem
+    `min-width: auto` por padrão e se recusa a encolher abaixo do conteúdo; é
+    a mesma armadilha que a lei nº 3 nomeia no grid, um nível abaixo.
+  */
+  min-inline-size: 0;
 }
 
 .acao {
@@ -84,9 +94,17 @@
   display: flex;
   align-items: center;
   gap: var(--vx-space-08);
-  flex: none;
-  inline-size: 180px;
-  min-inline-size: 0;
+  /*
+    ⚠ **Ela ENCOLHE, e antes era `flex: none` com 180px fixos.**
+
+    180 é a largura CONFORTÁVEL, não a mínima: numa coluna estreita a busca
+    era a peça que empurrava tudo para fora. Agora `flex` com base 180 e piso
+    de 36 — que é o quadrado do ícone, ou seja, ela vira um botão de lupa antes
+    de sumir. Abaixo disso a container query a esconde de vez.
+  */
+  flex: 1 1 180px;
+  max-inline-size: 180px;
+  min-inline-size: 36px;
   block-size: var(--vx-space-32);
   padding-inline: var(--vx-space-08);
   border: 1px solid var(--vx-border-subtle);
@@ -129,4 +147,18 @@
 .acoes svg {
   inline-size: var(--vx-icon-1);
   block-size: var(--vx-icon-1);
+}
+
+/*
+  Coluna estreita: a busca sai antes dos botões.
+
+  A ordem de cedência é a mesma do resto do cabeçalho — identidade fica,
+  contexto cede, e a busca é o alvo mais fácil de alcançar por outro caminho
+  (a paleta responde ao mesmo atalho). Os seis botões ficam: cada um é a única
+  entrada para o que ele abre.
+*/
+@container (inline-size < 520px) {
+  .busca {
+    display: none;
+  }
 }

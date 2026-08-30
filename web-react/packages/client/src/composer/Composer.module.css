@@ -182,7 +182,13 @@
     É a mesma classe de troca já registrada em `EXCECOES` de `tema/pares.ts`:
     o design escolheu, está escrito, e reabre quando alguém quiser.
   */
-  border: 1px solid var(--vx-border-subtle);
+  /*
+    ⚠ **Véu a 7%, e a borda era opaca.** O comentário acima já dizia que "o
+    design desenha `rgba(255,255,255,0.07)`" — e o código escrevia
+    `--vx-border-subtle`, porque o token de véu não existia. Ele existe desde a
+    rodada de cor, e este é o primeiro consumidor de peso.
+  */
+  border: 1px solid rgb(255 255 255 / 7%);
 }
 
 .campo:focus-within {
@@ -227,7 +233,19 @@
   min-inline-size: 0;
   min-block-size: 0;
   font-family: var(--vx-font-ui);
-  font-size: var(--vx-size-md);
+  /*
+    ⚠ **15 e não 13 — você digita no mesmo corpo em que lê.**
+
+    Medido: o design põe o composer em 15px, o mesmo do corpo da mensagem. O
+    nosso estava em 13, então o texto encolhia ao ser escrito e crescia ao ser
+    enviado. É a mesma família do "corpo da mensagem em 13px" que esta tabela
+    já registrou uma vez: o degrau `md` sobrou de quando o corpo era 14.
+
+    A `.replica` acompanha por obrigação — ela é a régua invisível que dá a
+    altura ao campo, e um corpo diferente ali faz a caixa crescer no lugar
+    errado.
+  */
+  font-size: var(--vx-size-lg);
   line-height: var(--vx-leading-message);
   white-space: pre-wrap;
 
