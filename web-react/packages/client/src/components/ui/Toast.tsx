@@ -46,7 +46,7 @@ export function Toaster() {
             // `relative`: o `Close` é `absolute`, e sem contexto de
             // posicionamento ele ancoraria na VIEWPORT — todo botão de
             // fechar empilhado no mesmo canto, longe do próprio toast.
-            "relative rounded-08 border p-12",
+            `relative rounded-12 border p-14 ${css.caixa}`,
             "data-[state=closed]:opacity-0 data-[state=open]:opacity-100 anim-base",
             // Erro leva borda semântica; o resto fica no neutro. Cor sozinha
             // não carrega o significado — o título diz o que aconteceu.

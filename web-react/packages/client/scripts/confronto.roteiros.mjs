@@ -118,11 +118,6 @@ const menuDaMensagem = `
 const APP = "C:/Users/lagun/Downloads/Implementação de voz e chamada/Vortex App.dc.html";
 const SUPERFICIES =
   "C:/Users/lagun/Downloads/Implementação de voz e chamada/Vortex Mensagens - Superfícies.dc.html";
-const DMS =
-  "C:/Users/lagun/Downloads/Implementação de voz e chamada/Vortex DMs e Navegação.dc.html";
-const SERVIDOR =
-  "C:/Users/lagun/Downloads/Implementação de voz e chamada/Vortex Configurações do Servidor.dc.html";
-
 const CANAL =
   "C:/Users/lagun/Downloads/Implementação de voz e chamada/Vortex Configurações do Canal.dc.html";
 
@@ -193,16 +188,43 @@ export const ROTEIROS = [
   /* ------------------------------------------------ o app principal */
 
   {
-    nome: "shell · coluna de canais",
+    nome: "shell · rolável dos canais",
     arquivo: APP,
-    ancora: "Mostrar 6 canais ocultos",
+    /*
+      ⚠ **Ele compara SÓ o container rolável, e não o que está dentro — duas
+      limitações somadas, as duas escritas para ninguém tentar de novo.**
+
+      (1) *Estrutura.* O design põe cabeçalho de categoria e canais como
+      IRMÃOS (16 filhos direto no rolável); o app aninha os canais dentro de um
+      `.categoria`, que é o que permite colapsar a seção. Com `profundidade`
+      maior, o confronto casa o 3º filho do design com o 3º do app — nós
+      diferentes — e toda "diferença" que ele relata é do desalinhamento.
+
+      (2) *Instrumento.* Mirar UMA linha não é possível: o escalador sobe do
+      texto até um ancestral da largura declarada, e `subir` só soma a essa
+      subida — não há como descer. Com `larguraDoDesign` desligado ele sobe
+      pelo heurístico de 600px e passa ainda mais longe. É a mesma limitação
+      que mantém o rail fora, e por isso a mesma ressalva: a linha de canal, o
+      cabeçalho do servidor, a faixa de busca, o cabeçalho de categoria e a
+      lâmina são conferidos À MÃO contra o markup do design.
+
+      Medidos nesta rodada, e todos batendo: cabeçalho `0 14` em 50 · faixa
+      `10 10 6` · busca h30 `0 9` gap 7 · categoria `12 6 5` gap 5 · linha h30
+      `0 8` gap 7 com nome em 14 · lâmina 3×20 em top 5 · badge 16×16 `0 5`.
+
+      Sobra uma diferença de ALTURA (706 contra 695) que não é do desenho: o
+      rolável é `flex:1` e recebe o que a janela deixa, e o app é medido em
+      `/dev`, onde a barra do arnês come a diferença. Comparar altura de
+      caixa que se estica é comparar a janela.
+    */
+    ancora: "boas-vindas",
     cliques: [],
     larguraDoDesign: 248,
     subir: 0,
-    profundidade: 2,
+    profundidade: 0,
     app: "http://localhost:4174/dev",
     preparar: abrirCanal(),
-    raiz: `return document.querySelector("[class*=_lista_]")?.parentElement`,
+    raiz: `return document.querySelector("[class*=_rolagem_]")`,
   },
   /*
     ⚠ **O rail NÃO tem roteiro, e a razão é o instrumento.** O confronto ancora
@@ -240,7 +262,6 @@ export const ROTEIROS = [
     ancora: "revisando specs",
     larguraDoDesign: 248,
     cliques: [],
-    larguraDoDesign: 248,
     subir: 1,
     profundidade: 2,
     app: "http://localhost:4174/dev",

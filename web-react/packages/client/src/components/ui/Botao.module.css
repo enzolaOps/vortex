@@ -25,8 +25,14 @@
     600 e não 400: em 12px o peso é o que separa rótulo de ação de texto
     corrido, e era por isso que os botões pareciam links.
   */
-  block-size: 30px;
-  padding-inline: var(--vx-space-12);
+  /*
+    Três alturas, e elas vêm da referência: 28 dentro de lista, 34 no caso
+    comum, 40 em ação de modal. Antes havia uma só (30), e o resultado era um
+    botão que ficava grande demais numa linha e pequeno demais num rodapé de
+    modal — o mesmo alvo pedindo pesos diferentes em superfícies diferentes.
+  */
+  block-size: 34px;
+  padding-inline: var(--vx-space-16);
   border: 1px solid transparent;
   border-radius: var(--vx-radius-06);
   font-family: inherit;
@@ -53,6 +59,21 @@
 .botao:disabled {
   cursor: not-allowed;
   opacity: var(--vx-lamina-3);
+}
+
+/* --- tamanhos -------------------------------------------------- */
+
+/* Dentro de lista e de cabeçalho de cartão, onde a linha tem 40–50px. */
+.pequeno {
+  block-size: 28px;
+  padding-inline: var(--vx-space-12);
+  font-size: var(--vx-size-xs);
+}
+
+/* Rodapé de modal: o alvo principal de uma decisão pede peso de alvo. */
+.grande {
+  block-size: 40px;
+  padding-inline: var(--vx-space-18);
 }
 
 /* --- variantes ------------------------------------------------ */

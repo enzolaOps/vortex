@@ -13,7 +13,9 @@
   flex-direction: column;
   align-items: center;
   gap: var(--vx-space-12);
-  padding: var(--vx-space-32) var(--vx-space-16);
+  /* `20 48` da referência: o vazio respira MUITO no eixo de bloco, porque é
+     o que o distingue de conteúdo que ainda vai chegar. */
+  padding: var(--vx-space-40) var(--vx-space-20);
   text-align: center;
   /* O texto respira num teto legível mesmo quando o painel é largo. */
   max-inline-size: 44ch;
@@ -30,7 +32,7 @@
 .vazio[data-compacto="true"] {
   align-items: flex-start;
   gap: var(--vx-space-08);
-  padding: var(--vx-space-16) var(--vx-space-12);
+  padding: var(--vx-space-28) var(--vx-space-16);
   text-align: start;
 }
 
@@ -44,9 +46,11 @@
 .icone {
   display: grid;
   place-items: center;
-  inline-size: var(--vx-space-32);
-  block-size: var(--vx-space-32);
-  border-radius: var(--vx-radius-12);
+  inline-size: 36px;
+  block-size: 36px;
+  /* Raio de ITEM (8), não de painel (12): o quadrado do ícone é um item
+     dentro do vazio, não uma superfície própria. */
+  border-radius: var(--vx-radius-08);
   background: var(--vx-surface-2);
   color: var(--vx-text-3);
 }

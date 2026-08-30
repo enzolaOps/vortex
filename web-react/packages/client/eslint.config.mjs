@@ -196,7 +196,19 @@ const CONTROLE_NATIVO = [
 ];
 
 export default tseslint.config(
-  { ignores: ["dist", "node_modules"] },
+  /*
+    `scripts/coletor.js` NÃO é código deste projeto — é o texto que o
+    `confronto` injeta com `Runtime.evaluate` dentro das duas páginas. Ele nunca
+    é importado, nunca entra no bundle e não está em tsconfig nenhum, então o
+    lint com tipos morre nele com "parserOptions não gera informação de tipo".
+
+    Ele vive num arquivo `.js` de propósito, e a razão está escrita no topo
+    dele: escrito dentro de um template literal, ele quebrou o script três
+    vezes — uma crase num comentário fecha a string, e uma das quebras passou
+    despercebida (a conversão de oklab ficou inerte e o relatório seguiu
+    mentindo). Como arquivo, o editor confere a sintaxe.
+  */
+  { ignores: ["dist", "node_modules", "scripts/coletor.js"] },
 
   js.configs.recommended,
   tseslint.configs.recommendedTypeChecked,

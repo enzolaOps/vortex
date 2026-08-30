@@ -53,7 +53,7 @@
   align-items: center;
   min-inline-size: 0;
   block-size: 50px;
-  padding-inline: var(--vx-space-12);
+  padding-inline: var(--vx-space-14);
   /* O botão ocupa a faixa inteira: a seta ancora na borda final, e o alvo de
      abrir o menu é toda a largura do cabeçalho — não os 92px do nome. */
   justify-content: space-between;
@@ -80,21 +80,21 @@
    ============================================================ */
 
 .faixaDeBusca {
-  padding-inline: var(--vx-space-08);
-  padding-block: var(--vx-space-08);
+  padding-inline: var(--vx-space-10);
+  padding-block: var(--vx-space-10) var(--vx-space-06);
 }
 
 .busca {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-08);
+  gap: var(--vx-space-07);
   inline-size: 100%;
   min-inline-size: 0;
   /* 30px, o número do design — era `--vx-space-32` (32). Dois pixels, e eles
      aparecem: o campo divide a faixa com o cabeçalho de 50px logo acima, e
      `block-size` é dimensão de componente, fora da escala de propósito. */
   block-size: 30px;
-  padding-inline: var(--vx-space-08);
+  padding-inline: var(--vx-space-09);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-06);
   /* Mais FUNDO que a coluna, como todo campo do design: o que recebe entrada
@@ -197,7 +197,7 @@
   overflow-x: hidden;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
-  padding-block: var(--vx-space-08);
+  padding-block: var(--vx-space-02) var(--vx-space-08);
   padding-inline: var(--vx-space-08);
 }
 
@@ -212,10 +212,10 @@
 .secao {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-04);
+  gap: var(--vx-space-05);
   inline-size: 100%;
-  padding-inline: var(--vx-space-08);
-  padding-block: var(--vx-space-12) var(--vx-space-04);
+  padding-inline: var(--vx-space-06);
+  padding-block: var(--vx-space-12) var(--vx-space-05);
   border: 0;
   border-radius: var(--vx-radius-04);
   background: transparent;
@@ -293,7 +293,7 @@
 }
 
 .barra[data-estado="ativa"] {
-  block-size: var(--vx-space-24);
+  block-size: var(--vx-space-20);
   opacity: 1;
 }
 
@@ -301,7 +301,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--vx-space-08);
+  gap: var(--vx-space-07);
   inline-size: 100%;
   min-inline-size: 0;
   padding-inline: var(--vx-space-08);
@@ -521,8 +521,9 @@
 */
 .contador {
   flex: none;
+  block-size: var(--vx-space-16);
   min-inline-size: var(--vx-space-16);
-  padding-inline: var(--vx-space-04);
+  padding-inline: var(--vx-space-05);
   border-radius: var(--vx-radius-pill);
   background: var(--vx-danger);
   color: var(--vx-on-danger);

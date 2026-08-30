@@ -20,10 +20,17 @@
   display: inline-flex;
   align-items: center;
   gap: var(--vx-space-08);
+  /*
+    Altura fixa e respiro só no eixo inline — a mesma correção do `Botao`.
+    28×12 é o tamanho da referência; com respiro vertical a altura vinha da
+    entrelinha e o segmentado nunca alinhava com o campo ao lado.
+  */
+  block-size: 28px;
   padding-inline: var(--vx-space-12);
-  padding-block: var(--vx-space-04);
   border: 0;
-  border-radius: var(--vx-radius-04);
+  /* 5 e não 4: o item mora dentro de um trilho de raio 6 com 2px de respiro,
+     e 6−2=4 deixaria o canto interno reto. 5 é o que a referência usa. */
+  border-radius: var(--vx-radius-05);
   background: transparent;
   color: var(--vx-text-3);
   font-family: inherit;

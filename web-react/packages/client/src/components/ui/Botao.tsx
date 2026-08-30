@@ -17,19 +17,27 @@ import css from "./Botao.module.css";
  */
 export function Botao({
   variante = "neutro",
+  tamanho = "medio",
   icone,
   children,
   className,
   ...props
 }: {
   variante?: "primario" | "neutro" | "sutil" | "perigo";
+  /** 28 dentro de lista · 34 no caso comum · 40 em ação de modal. */
+  tamanho?: "pequeno" | "medio" | "grande";
   icone?: ReactNode;
   children?: ReactNode;
 } & ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       type="button"
-      className={cn(css.botao, css[variante], className)}
+      className={cn(
+        css.botao,
+        css[variante],
+        tamanho !== "medio" && css[tamanho],
+        className,
+      )}
       {...props}
     >
       {icone}
