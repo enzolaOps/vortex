@@ -137,51 +137,53 @@ export function FaixaDeVoz() {
         perdida && css.faixaRuim,
       )}
     >
-      {/*
-        O destino é um BOTÃO: clicar leva ao canal da chamada.
-
-        É o que a pessoa tenta quando volta de outro canal e quer ver quem está
-        falando — e sem ele o único caminho de volta seria procurar o canal na
-        lista, que é justamente o que a faixa existe para evitar.
-      */}
-      <button
-        type="button"
-        className={css.destino}
-        onClick={() => selecionarCanal(chamada.channelId)}
-      >
-        <span className={css.estado}>
-          {/* Ponto + TEXTO, nunca só o ponto: qualidade de conexão comunicada
-              só por cor some para quem não distingue verde de vermelho, e é
-              justamente quem mais precisa saber que a linha caiu. */}
-          <span className={css.ponto} aria-hidden />
-          {estado}
-        </span>
-
-        <span className={css.lugar}>
-          {canal?.name ?? "voz"}
-          {servidor ? ` / ${servidor.name}` : null}
-        </span>
-      </button>
-
-      <div className={css.controles}>
-        <Medidor acesas={BARRAS_ACESAS[chamada.qualidade]} />
-
+      <div className={css.topo}>
         {/*
-          Desligar mora na LINHA DE CIMA, ao lado do estado — do design, e a
-          razão é a hierarquia: os quatro de baixo mudam COMO você participa,
-          e este decide SE você participa. Misturá-lo entre eles o torna o
-          quinto de uma fileira de iguais.
+          O destino é um BOTÃO: clicar leva ao canal da chamada.
+
+          É o que a pessoa tenta quando volta de outro canal e quer ver quem está
+          falando — e sem ele o único caminho de volta seria procurar o canal na
+          lista, que é justamente o que a faixa existe para evitar.
         */}
-        <Tooltip texto="Sair da chamada">
-          <button
-            type="button"
-            className={cn(css.controle, css.desligar)}
-            aria-label="Sair da chamada"
-            onClick={() => void sairDaChamada()}
-          >
-            <Power size={20} />
-          </button>
-        </Tooltip>
+        <button
+          type="button"
+          className={css.destino}
+          onClick={() => selecionarCanal(chamada.channelId)}
+        >
+          <span className={css.estado}>
+            {/* Ponto + TEXTO, nunca só o ponto: qualidade de conexão comunicada
+                só por cor some para quem não distingue verde de vermelho, e é
+                justamente quem mais precisa saber que a linha caiu. */}
+            <span className={css.ponto} aria-hidden />
+            {estado}
+          </span>
+
+          <span className={css.lugar}>
+            {canal?.name ?? "voz"}
+            {servidor ? ` / ${servidor.name}` : null}
+          </span>
+        </button>
+
+        <div className={css.controles}>
+          <Medidor acesas={BARRAS_ACESAS[chamada.qualidade]} />
+
+          {/*
+            Desligar mora na LINHA DE CIMA, ao lado do estado — do design, e a
+            razão é a hierarquia: os quatro de baixo mudam COMO você participa,
+            e este decide SE você participa. Misturá-lo entre eles o torna o
+            quinto de uma fileira de iguais.
+          */}
+          <Tooltip texto="Sair da chamada">
+            <button
+              type="button"
+              className={cn(css.controle, css.desligar)}
+              aria-label="Sair da chamada"
+              onClick={() => void sairDaChamada()}
+            >
+              <Power size={20} />
+            </button>
+          </Tooltip>
+        </div>
       </div>
 
       {/*

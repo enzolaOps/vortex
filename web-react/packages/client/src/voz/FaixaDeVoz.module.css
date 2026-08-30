@@ -19,10 +19,16 @@
   /* `9px 10px`, do design. */
   padding-inline: var(--vx-space-10);
   padding-block: var(--vx-space-09);
-  /* Duas linhas: estado à esquerda com o desligar na ponta, e a fileira de
-     quatro embaixo. Era uma linha só, com dois botões. */
+  /*
+    Duas linhas: `.topo` e `.acoes`. Era uma linha só, com dois botões.
+
+    ⚠ O `gap` volta a ZERO aqui e passa a viver em cada linha: com `8` no
+    eixo de bloco ele somava ao `margin-top` de `.acoes` e afastava a fileira
+    do estado.
+  */
   flex-direction: column;
   align-items: stretch;
+  gap: 0;
   background: color-mix(in oklab, var(--vx-success) 7%, transparent);
   border-block-start: 1px solid var(--vx-hairline-06);
 }
@@ -119,6 +125,21 @@
   white-space: nowrap;
   color: var(--vx-text-3);
   font-size: var(--vx-size-xs);
+}
+
+/*
+  A linha de cima: destino à esquerda, medidor e desligar na ponta.
+
+  ⚠ Ela precisa existir como caixa. Sem ela, `.destino`, `.controles` e
+  `.acoes` eram os TRÊS filhos diretos de uma coluna, e o medidor caía abaixo
+  do nome do canal em vez de ficar na mesma linha que ele — que é o que o
+  design desenha e o que faz a faixa caber em duas linhas.
+*/
+.topo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  min-inline-size: 0;
 }
 
 .controles {
