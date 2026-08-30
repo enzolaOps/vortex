@@ -752,6 +752,16 @@ export type ParticipanteDeVoz = {
   readonly mudo: boolean;
   /** Não está recebendo áudio — surdo. Vem de `is_receiving`. */
   readonly surdo: boolean;
+  /**
+   * Silenciado POR ORDEM DO SERVIDOR — o `SRV` do design.
+   *
+   * ⚠ Diferente de `mudo`: aquele é escolha da pessoa e ela desfaz quando
+   * quiser; este é `can_publish: false` no `ServerMember`, e só quem modera
+   * desfaz. A tela precisa distinguir os dois — "está sem microfone agora" e
+   * "não pode falar aqui" pedem reações opostas de quem está esperando
+   * resposta.
+   */
+  readonly mudoPeloServidor: boolean;
 };
 
 export function baldeDe(status: PresenceStatus): Balde {

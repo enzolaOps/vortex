@@ -509,6 +509,25 @@ const NaSala = memo(function NaSala({
         então mostrar os dois seria dizer a mesma coisa duas vezes numa linha
         de 205px. O fone ganha, porque é o estado maior.
       */}
+      {/*
+        SRV — silenciado POR ORDEM do servidor.
+
+        ⚠ Vem ANTES do microfone e aparece JUNTO com ele: são fatos
+        diferentes. "Está sem microfone agora" é escolha que a pessoa desfaz;
+        "não pode falar aqui" é decisão de quem modera, e só quem modera
+        desfaz. Quem espera resposta reage de forma oposta aos dois, e mostrar
+        só um esconderia justamente o que não vai mudar sozinho.
+
+        Selo e não ícone: `SRV` é a palavra do design, e três letras dizem
+        "servidor" onde um cadeado diria "trancado" sem dizer por quem.
+      */}
+      {participante.mudoPeloServidor ? (
+        <Selo forma="etiqueta" tom="perigoSuave" className={css.selo}>
+          SRV
+          <span className="sr-only">{` silenciado pelo servidor`}</span>
+        </Selo>
+      ) : null}
+
       {participante.surdo ? (
         <>
           <SpeakerSlash size={20} aria-hidden className={css.estadoMudo} />

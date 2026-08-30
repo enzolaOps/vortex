@@ -28,6 +28,7 @@ import {
   prependHistory,
   registrarServidor,
   seedChannel,
+  semearMudoDoServidor,
   semearVoz,
   semearPresenca,
   startAdapter,
@@ -525,6 +526,16 @@ const RECADOS = [
         // Fatias disjuntas: ninguém em duas salas ao mesmo tempo, que é o que
         // o protocolo garante e o que a coluna assume.
         const dentro = membros.slice(n * 4, n * 4 + (canal.dentro ?? 0));
+        /* Um por sala silenciado PELO SERVIDOR — o `SRV`. Fora do
+           `semearVoz` porque o fato é do MEMBRO, não do estado de voz:
+           `can_publish` mora em `ServerMember` no protocolo. */
+        dentro.forEach((userId, k) => {
+          /* ⚠ `n === 1 && k === 0` e não `k === 3`: as salas têm 2 e 3
+             pessoas, então o índice 3 nunca existe — a primeira versão
+             semeava um estado inalcançável, que é exatamente o defeito que a
+             semeadura existe para evitar. */
+          semearMudoDoServidor(servidor.id, userId, n === 1 && k === 0);
+        });
         semearVoz(
           canal.id,
           dentro.map((userId, k) => ({

@@ -54,6 +54,7 @@ import {
   type ChannelSnapshot,
   CATEGORIA_PADRAO,
   type CategoriaDeCanais,
+  chaveDeMembro,
   type ChaveDeMembro,
   type EstadoDeVoz,
   type MemberSnapshot,
@@ -793,6 +794,62 @@ export function startAdapter() {
     primeira diz "espere", a segunda diz "não deu". O SDK religa sozinho, então
     a segunda é rara e quase sempre significa rede da máquina, não do servidor.
   */
+  /*
+    ⚠ **O SDK DESCARTA `can_publish`, e este é o único jeito de tê-lo sem
+    forkar o submodule.**
+
+    `can_publish` é campo de `ServerMember` no protocolo — é o "mudo pelo
+    servidor", a diferença entre alguém que escolheu não falar e alguém que
+    não PODE falar. Ele chega pelo fio em `Ready` e em `ServerMemberUpdate`, e
+    a hidratação de `serverMember` não o lista: o objeto hidratado não tem o
+    campo, então nenhum getter do SDK o alcança.
+
+    As saídas eram três, e duas são piores:
+
+    1. **Patchar `stoat.js`.** Ele é submodule PINADO nas duas ilhas, com
+       lockstep em CI — mexer aqui obriga `web/` a mover junto e cria um fork
+       do SDK para manter. Custo permanente por um booleano.
+    2. **Buscar por REST.** `GET /servers/{id}/members` traz o campo, mas ele
+       muda por EVENTO — o valor ficaria velho no instante seguinte, e a tela
+       mostraria "mudo pelo servidor" para quem já foi destravado.
+    3. **Ler o evento CRU**, que é isto. O `EventClient` emite `"event"` com o
+       payload antes da hidratação, e o adapter é exatamente a camada que
+       existe para traduzir protocolo em domínio. Nada vaza para componente.
+
+    Mapa próprio e não um campo em `MemberSnapshot`: quem precisa disto é a
+    linha da sala de voz, e pendurá-lo no snapshot de membro republicaria a
+    member list inteira toda vez que alguém fosse silenciado.
+  */
+  client.events.on("event", (evento: unknown) => {
+    const e = evento as {
+      type?: string;
+      members?: readonly { _id?: { server?: string; user?: string }; can_publish?: boolean }[];
+      id?: { server?: string; user?: string };
+      data?: { can_publish?: boolean };
+    };
+
+    const anotar = (
+      serverId: string | undefined,
+      userId: string | undefined,
+      pode: boolean | undefined,
+    ) => {
+      if (serverId === undefined || userId === undefined) return;
+      /* `undefined` é "o servidor não falou disto", que NÃO é o mesmo que
+         `true` — mas para a tela dá no mesmo, e guardar a ausência faria o
+         mapa crescer com todo mundo que nunca foi silenciado. */
+      if (pode === false) mudosPeloServidor.add(chaveDeMembro(serverId, userId));
+      else mudosPeloServidor.delete(chaveDeMembro(serverId, userId));
+    };
+
+    if (e.type === "Ready" && e.members) {
+      for (const m of e.members) anotar(m._id?.server, m._id?.user, m.can_publish);
+      republicarVoz();
+    } else if (e.type === "ServerMemberUpdate" && e.id) {
+      anotar(e.id.server, e.id.user, e.data?.can_publish);
+      republicarVoz();
+    }
+  });
+
   client.on("connected", () => definirConexao("conectado"));
   client.on("connecting", () => definirConexao("reconectando"));
   client.on("disconnected", () => definirConexao("sem-conexao"));
@@ -1321,6 +1378,29 @@ export const fixadas = createEntityStore<readonly string[]>();
  * (`createEphemeralStore`, o mesmo do typing). Enfiá-lo aqui repintaria a
  * coluna de canais inteira a cada sílaba.
  */
+/**
+ * Quem está mudo POR ORDEM DO SERVIDOR, por `ChaveDeMembro`.
+ *
+ * Alimentado pelo evento CRU — ver a nota em `client.events.on("event")`. Só
+ * guarda quem está silenciado: a ausência é o caso comum, e registrá-la faria
+ * o mapa ter uma entrada por membro de todo servidor.
+ */
+const mudosPeloServidor = new Set<ChaveDeMembro>();
+
+/**
+ * Republica as salas que já têm assinante.
+ *
+ * `can_publish` não passa pelo Solid — ele vem de um evento cru, fora de
+ * qualquer sinal —, então o efeito de `vozPorCanal` não acorda sozinho quando
+ * alguém é silenciado. Sem isto o selo só apareceria na próxima vez que a
+ * sala mudasse por outro motivo.
+ */
+const releituraDeVoz = new Map<string, () => void>();
+
+function republicarVoz(): void {
+  for (const reler of releituraDeVoz.values()) reler();
+}
+
 export const vozPorCanal = createEntityStore<readonly ParticipanteDeVoz[]>(
   (channelId) => {
     const ler = () => {
@@ -1348,6 +1428,15 @@ export const vozPorCanal = createEntityStore<readonly ParticipanteDeVoz[]>(
           */
           mudo: !p.isPublishing(),
           surdo: !p.isReceiving(),
+          /*
+            ⚠ Do SERVIDOR, e por isso vem de um mapa e não do participante: o
+            protocolo põe `can_publish` em `ServerMember`, não em
+            `UserVoiceState`. Uma pessoa pode estar mudo por escolha, mudo pelo
+            servidor, ou os dois — e são coisas diferentes de dizer.
+          */
+          mudoPeloServidor:
+            canal.serverId !== undefined &&
+            mudosPeloServidor.has(chaveDeMembro(canal.serverId, userId)),
         });
       }
 
@@ -1361,10 +1450,21 @@ export const vozPorCanal = createEntityStore<readonly ParticipanteDeVoz[]>(
 
     ler();
 
+    /*
+      Guardado para o `republicarVoz`: `can_publish` vem de um evento CRU, fora
+      de qualquer sinal do Solid, então o efeito abaixo não acorda quando
+      alguém é silenciado pelo servidor. Sem esta releitura o selo só
+      apareceria na próxima vez que a sala mudasse por outro motivo.
+    */
+    releituraDeVoz.set(channelId, ler);
+
     count("vozEfeitos");
     return createRoot((dispose) => {
       createEffect(ler);
-      return dispose;
+      return () => {
+        releituraDeVoz.delete(channelId);
+        dispose();
+      };
     });
   },
 );
@@ -2013,6 +2113,28 @@ export function semearVoz(
       } as never),
     );
   }
+}
+
+/**
+ * O arnês marcando alguém como silenciado pelo servidor.
+ *
+ * ⚠ Existe porque o rig não pode fabricar o evento CRU: `can_publish` chega
+ * pelo socket, e o firehose não fala socket. Sem isto o selo `SRV` nasceria
+ * inalcançável — a família do "construído e inalcançável" que este projeto já
+ * registrou várias vezes.
+ *
+ * Escreve no MESMO mapa que o evento escreve, e não num paralelo: dois lugares
+ * guardando o mesmo fato divergiriam no primeiro que alguém esquecesse.
+ */
+export function semearMudoDoServidor(
+  serverId: string,
+  userId: string,
+  mudo: boolean,
+): void {
+  const chave = chaveDeMembro(serverId, userId);
+  if (mudo) mudosPeloServidor.add(chave);
+  else mudosPeloServidor.delete(chave);
+  republicarVoz();
 }
 
 export function registrarMembro(serverId: string, userId: string): void {

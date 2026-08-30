@@ -1218,3 +1218,8 @@
   block-size: var(--vx-icon-0);
   color: var(--vx-danger-text);
 }
+
+/* O selo SRV na linha da sala: só posição, o resto é do `Selo`. */
+.selo {
+  margin-inline-start: auto;
+}
