@@ -165,23 +165,22 @@ export function AcoesDoCanal({ channelId, nome }: { channelId: string; nome: str
         ⚠ **CAMPO, e era um ícone — o design desenha uma caixa de 180px com
         "Buscar em #produto" dentro.**
 
-        Continua sendo `button` e não `input`, pela mesma razão do campo da
-        coluna: buscar no canal ainda não existe (`Channel.search`, pendência
-        `buscaNoCanal`), e um `input` onde se digita e nada acontece é a pior
-        das três opções — pior que o ícone, que ao menos não promete.
+        Continua sendo `button` e não `input`, e agora por uma razão
+        diferente da anterior: a busca EXISTE (`Channel.search`, painel
+        `busca`), e o campo de verdade é o do painel. Dois campos para o mesmo
+        texto seriam dois donos que precisam concordar — o mesmo argumento que
+        manteve o campo da coluna de canais como botão da paleta.
 
-        O que ele PARECE é campo, o que ele FAZ é dizer o que falta. Quando a
-        busca existir, o mesmo elemento vira `input` sem mexer no layout.
-
-        Fica na ponta e mostra o nome do canal, como o design: "buscar" sem
-        dizer onde é ambíguo num app com trinta canais abertos ao longo do dia.
+        Ele abre o painel e o painel foca o campo. Fica na ponta e mostra o
+        nome do canal, como o design: "buscar" sem dizer onde é ambíguo num app
+        com trinta canais abertos ao longo do dia.
       */}
       <Tooltip texto="Buscar no canal">
         <GatilhoDeBusca
           className={css.busca}
           rotulo={`Buscar em #${nome}`}
           aria-label={`Buscar em ${nome}`}
-          onClick={aindaNao("buscaNoCanal")}
+          onClick={() => alternarSuperficie("busca")}
         />
       </Tooltip>
     </div>

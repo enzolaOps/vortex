@@ -23,7 +23,14 @@
   */
   inset-block: calc(50px + var(--vx-space-12)) var(--vx-space-12);
   inset-inline-end: var(--vx-space-12);
-  inline-size: 400px;
+  /*
+    ⚠ **A largura é do PAINEL, não do drawer.** Ela era 400 fixos aqui, e o
+    design dá 400 para fixadas e caixa de entrada e 380 para a busca. `LARGURA`
+    já guarda o padrão de cada painel desde a fase 4 — o drawer só o lê pela
+    custom property que o `Drawer.tsx` escreve, e o 400 vira a reserva de quem
+    não declarar.
+  */
+  inline-size: var(--largura-do-drawer, 400px);
   max-inline-size: calc(100vw - var(--vx-space-32));
 
   display: grid;

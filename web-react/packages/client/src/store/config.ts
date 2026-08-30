@@ -32,6 +32,7 @@ export const SECOES = [
   "aparencia",
   "notificacoes",
   "atalhos",
+  "avancado",
   "servidor",
   "cargos",
   "convites",
@@ -69,6 +70,7 @@ export const NOME_DA_SECAO: Record<SecaoId, string> = {
   aparencia: "Aparência",
   notificacoes: "Notificações",
   atalhos: "Atalhos de teclado",
+  avancado: "Avançado",
   servidor: "Visão geral",
   cargos: "Cargos",
   convites: "Convites",
@@ -91,6 +93,7 @@ export const DESCRICAO_DA_SECAO: Partial<Record<SecaoId, string>> = {
   privacidade: "Quem pode falar com você e o que o Vortex guarda.",
   atalhos:
     "Combinações do app. Atalhos globais (mesmo em segundo plano) ficam em Voz e vídeo.",
+  avancado: "Ferramentas para quem administra servidores e reporta problemas.",
 };
 
 /** As que falam de um servidor, e por isso precisam de um. */

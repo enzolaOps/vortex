@@ -32,6 +32,7 @@ export const PAINEIS = [
   "membros",
   "fixados",
   "caixaDeEntrada",
+  "busca",
 ] as const;
 
 export type PainelId = (typeof PAINEIS)[number];
@@ -53,6 +54,7 @@ export const NOME_DO_PAINEL: Record<PainelId, string> = {
   membros: "membros",
   fixados: "fixados",
   caixaDeEntrada: "caixa de entrada",
+  busca: "busca",
 };
 
 /**
@@ -152,6 +154,13 @@ export const LARGURA = {
     começa a truncar em toda linha.
   */
   caixaDeEntrada: { min: 260, max: 520, padrao: 340 },
+  /*
+    380, do design — o mais largo dos três drawers, e com razão: o cartão de
+    resultado empilha canal, data, autor, duas linhas de prévia e duas ações.
+    Abaixo de ~300 a prévia vira quatro linhas e a lista deixa de ser varrível,
+    que é a única coisa que ela serve.
+  */
+  busca: { min: 300, max: 560, padrao: 380 },
 } as const satisfies Record<PainelId, { min: number; max: number; padrao: number }>;
 
 export function limitarLargura(painel: PainelId | null, largura: number): number {

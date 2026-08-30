@@ -25,6 +25,7 @@ import {
   useServidorAtivo,
 } from "../store/hooks";
 import css from "./ListaDeMembros.module.css";
+import { ItemDeId } from "../components/ui/ItemDeId";
 
 /**
  * Alturas estimadas, por TIPO de linha.
@@ -271,6 +272,8 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
             Banir
           </ContextMenuItem>
         ) : null}
+
+        <ItemDeId id={id} />
       </ContextMenuContent>
     </ContextMenu>
   );

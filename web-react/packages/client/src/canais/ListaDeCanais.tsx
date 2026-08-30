@@ -66,6 +66,7 @@ import {
   silencioAte,
 } from "../store/silencio";
 import { abrirPaleta } from "../store/paleta";
+import { ItemDeId } from "../components/ui/ItemDeId";
 import {
   useCanalAtivo,
   useCategorias,
@@ -393,6 +394,8 @@ const Canal = memo(function Canal({
             </ContextMenuItem>
           </>
         ) : null}
+
+        <ItemDeId id={id} />
       </ContextMenuContent>
     </ContextMenu>
 
@@ -867,6 +870,8 @@ const Categoria = memo(function Categoria({
                 {colapsada ? "Expandir" : "Recolher"}
               </ContextMenuItem>
             )}
+
+            <ItemDeId id={categoria.id} />
           </ContextMenuContent>
         </ContextMenu>
 

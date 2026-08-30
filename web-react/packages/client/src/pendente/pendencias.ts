@@ -46,6 +46,19 @@ export const PENDENCIAS = {
   },
 
 
+  /* ------------------------------------------------------------ avançado */
+  /*
+    ⚠ **Só UM pendente em Avançado, e é o menor dos dois controles.** O modo
+    desenvolvedor FUNCIONA — ele acrescenta "Copiar ID" aos menus, e ID é dado
+    que o app já tem na mão. O overlay é que precisa de instrumento.
+  */
+  overlayDeDebug: {
+    superficie: "Configurações · Avançado",
+    faz: "Mostrar FPS, latência e re-renders num canto da janela, no app inteiro.",
+    depende:
+      "o medidor do arnês (`dev/`) fora dele — hoje ele mora na tela de teste e mede o firehose, não o uso real",
+  },
+
   /* --------------------------------------------------------- privacidade */
   exportarDados: {
     superficie: "Configurações · Privacidade",
@@ -215,10 +228,23 @@ export const PENDENCIAS = {
     faz: "Abrir o painel de tópicos ativos, seguindo e arquivados.",
     depende: "threads no protocolo + painel `topicos` em `PainelId`",
   },
-  buscaNoCanal: {
-    superficie: "Cabeçalho do canal",
-    faz: "Buscar mensagens no canal por autor, data e tipo de anexo.",
-    depende: "`Channel.search` + painel de resultados",
+  /*
+    ⚠ **`buscaNoCanal` SAIU daqui — o painel existe e a busca é real.** O que
+    sobrou pendente são as duas coisas que o protocolo não sabe fazer, e elas
+    ficam separadas porque bloqueiam por razões diferentes: uma é sintaxe de
+    consulta que a rota não aceita, a outra é escopo que a rota não tem.
+  */
+  filtroDeBusca: {
+    superficie: "Painel de busca",
+    faz: "Filtrar por autor (`de:`), por tipo de anexo (`tem:`) e por data.",
+    depende:
+      "`POST /channels/{id}/search` aceita só `query`, `sort`, `limit` e cursor — filtrar no cliente esvaziaria páginas inteiras e a contagem mentiria",
+  },
+  buscaNoServidor: {
+    superficie: "Painel de busca",
+    faz: "Buscar em todos os canais do servidor de uma vez.",
+    depende:
+      "a rota de busca é POR CANAL — varrer N canais no cliente seriam N chamadas e uma ordenação que nenhuma delas conhece",
   },
   /*
     ⚠ **`caixaDeEntrada` SAIU daqui — o painel existe.** O que dependia de

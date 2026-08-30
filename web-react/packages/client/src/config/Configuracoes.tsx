@@ -26,6 +26,7 @@ import {
 import { useChannel, useServer, useServidorAtivo } from "../store/hooks";
 import { Aparencia } from "./Aparencia";
 import { Atalhos } from "./Atalhos";
+import { Avancado } from "./Avancado";
 import { Privacidade } from "./Privacidade";
 import { VozEVideo } from "./VozEVideo";
 import { Notificacoes } from "./Notificacoes";
@@ -75,7 +76,7 @@ import css from "./Configuracoes.module.css";
  */
 const DE_USUARIO: readonly (readonly SecaoId[])[] = [
   ["perfil", "conta", "sessoes", "privacidade"],
-  ["vozEVideo", "notificacoes", "aparencia", "atalhos"],
+  ["vozEVideo", "notificacoes", "aparencia", "atalhos", "avancado"],
 ];
 
 function ItemDoMenu({
@@ -173,6 +174,7 @@ export function Configuracoes() {
     aparencia: () => <Aparencia />,
     notificacoes: () => <Notificacoes />,
     atalhos: () => <Atalhos />,
+    avancado: () => <Avancado />,
     servidor: () => <Servidor serverId={serverId} />,
     cargos: () => <Cargos serverId={serverId} />,
     convites: () => <Convites serverId={serverId} />,

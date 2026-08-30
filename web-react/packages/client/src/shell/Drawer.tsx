@@ -1,9 +1,10 @@
 import { useEffect, useSyncExternalStore } from "react";
 
+import { PainelDeBusca } from "../busca/PainelDeBusca";
 import { CaixaDeEntrada } from "../caixa/CaixaDeEntrada";
 import { PainelDeFixados } from "../fixados/PainelDeFixados";
 import { LimiteDeErro } from "../components/ui/LimiteDeErro";
-import { NOME_DO_PAINEL, type PainelId } from "../preset/schema";
+import { LARGURA, NOME_DO_PAINEL, type PainelId } from "../preset/schema";
 import { assinarDrawer, fecharDrawer, lerDrawer } from "../store/drawer";
 import css from "./Drawer.module.css";
 
@@ -19,6 +20,15 @@ import css from "./Drawer.module.css";
 const FLUTUAM: Partial<Record<PainelId, () => React.ReactNode>> = {
   fixados: () => <PainelDeFixados aoFechar={fecharDrawer} />,
   caixaDeEntrada: () => <CaixaDeEntrada aoFechar={fecharDrawer} />,
+  /*
+    ⚠ A busca flutua PELA MESMA razão que as outras duas, e ela é a que mais
+    precisa: o design diz que ela "ocupa o lugar da lista de membros, nunca os
+    dois ao mesmo tempo". Ancorá-la à força faria a lista de membros sumir sem
+    aviso — o defeito que este store existe para matar. Quem quiser a busca
+    ancorada a põe num slot pelo modo edição, e aí ela deixa de flutuar
+    sozinha.
+  */
+  busca: () => <PainelDeBusca />,
 };
 
 /**
@@ -60,7 +70,14 @@ export function Drawer() {
   if (!render) return null;
 
   return (
-    <aside className={css.drawer} aria-label={NOME_DO_PAINEL[aberto]}>
+    <aside
+      className={css.drawer}
+      aria-label={NOME_DO_PAINEL[aberto]}
+      /* A largura padrão do painel, do mesmo `LARGURA` que o modo edição usa.
+         `style` inline porque o valor é DADO — trezentos e oitenta ou
+         quatrocentos conforme quem abriu —, e não haveria como virar classe. */
+      style={{ "--largura-do-drawer": `${String(LARGURA[aberto].padrao)}px` } as React.CSSProperties}
+    >
       {/* O mesmo limite por painel que o shell usa: um painel que lança não
           pode levar a conversa junto. */}
       <LimiteDeErro oQue={`O painel de ${NOME_DO_PAINEL[aberto]}`}>

@@ -44,7 +44,26 @@ function marcaDoVortex(): Plugin {
   };
 }
 
+/*
+  A versão, para a tela de Avançado.
+
+  ⚠ Lida do `package.json` em tempo de BUILD e injetada como constante. A
+  alternativa — importar o `package.json` no cliente — arrastaria dependências
+  e scripts para o bundle por causa de uma string, e o `resolveJsonModule` do
+  TypeScript tipa o arquivo inteiro.
+*/
+const VERSAO: string =
+  (
+    JSON.parse(
+      readFileSync(new URL("./package.json", import.meta.url), "utf8"),
+    ) as { version?: string }
+  ).version ?? "0.0.0";
+
 export default defineConfig({
+  define: {
+    __VERSAO__: JSON.stringify(VERSAO),
+  },
+
   /*
     A porta vem do AMBIENTE, com o default do Vite como reserva.
 

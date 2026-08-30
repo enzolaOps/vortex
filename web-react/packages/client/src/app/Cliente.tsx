@@ -13,6 +13,7 @@ import { Modais } from "../components/ui/Modais";
 import { Drawer } from "../shell/Drawer";
 import { PainelDeEdicao } from "../layout/PainelDeEdicao";
 import { PainelDeFixados } from "../fixados/PainelDeFixados";
+import { PainelDeBusca } from "../busca/PainelDeBusca";
 import { CaixaDeEntrada } from "../caixa/CaixaDeEntrada";
 import { Rail } from "../rail/Rail";
 import { Shell } from "../shell/Shell";
@@ -65,6 +66,7 @@ export function Cliente({ ferramentas }: { ferramentas?: ReactNode }) {
         membros: <ListaDeMembros />,
         fixados: <PainelDeFixados />,
         caixaDeEntrada: <CaixaDeEntrada />,
+        busca: <PainelDeBusca />,
       }}
       /*
         O cabeçalho é LINHA PRÓPRIA do shell agora, e não mais um irmão da

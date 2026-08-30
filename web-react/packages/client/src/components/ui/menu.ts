@@ -97,3 +97,13 @@ export const menuLargo = css.largo;
 export const menuAtalho = "ms-auto ps-16 font-mono text-2xs text-text-4";
 
 export const menuLabel = "px-08 py-04 text-xs text-text-3";
+
+/**
+ * "Copiar ID" — mono e terciário, sempre o último.
+ *
+ * ⚠ Ele morava no `MessageRow.module.css` e agora serve SEIS menus, então
+ * mora onde os outros estilos de menu moram. Duas cópias do mesmo tom em dois
+ * arquivos é onde a divergência começa — o `Avancado.tsx` desenha uma
+ * ilustração deste item, e ela precisa continuar parecendo com ele.
+ */
+export const menuItemId = "font-mono text-sm text-text-3";

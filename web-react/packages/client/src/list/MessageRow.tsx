@@ -43,6 +43,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "../components/ui/
 
 import { ATRIBUTO_DE_COLUNA } from "../dev/alinhamento";
 import { count } from "../dev/stats";
+import { ItemDeId } from "../components/ui/ItemDeId";
 import { copiarTexto } from "../lib/copiar";
 import { plural, rotuloDeReacao } from "../lib/plural";
 import { cn } from "../lib/cn";
@@ -1454,19 +1455,7 @@ function ItensDaMensagem({ messageId }: { messageId: string }) {
         </ContextMenuItem>
       ) : null}
 
-      {/*
-        Copiar ID por último, em mono e apagado.
-
-        O design o separa do resto pelo peso visual em vez de por régua: é
-        ferramenta de quem depura, não ação de quem conversa, e um item de
-        moderação que parecesse igual aos outros seria ruído para todo mundo.
-      */}
-      <ContextMenuItem
-        className={css.itemDeId}
-        onSelect={() => void copiarTexto(message.id, "ID")}
-      >
-        Copiar ID
-      </ContextMenuItem>
+      <ItemDeId id={message.id} />
     </ContextMenuContent>
   );
 }

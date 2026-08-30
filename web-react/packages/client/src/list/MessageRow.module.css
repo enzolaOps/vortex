@@ -957,15 +957,3 @@
   color: var(--vx-text-3);
 }
 
-/*
-  "Copiar ID" — separado pelo PESO, não por régua.
-
-  Ferramenta de quem depura, não ação de quem conversa. Uma régua a mais
-  sugeriria um bloco de ações; o tom apagado diz que ele é de outra natureza
-  sem gastar uma linha da caixa.
-*/
-.itemDeId {
-  font-family: var(--vx-font-mono);
-  font-size: var(--vx-size-sm);
-  color: var(--vx-text-3);
-}

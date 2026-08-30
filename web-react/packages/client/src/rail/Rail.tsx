@@ -40,6 +40,7 @@ import { abrirModal } from "../store/modais";
 import { irParaCasa, selecionarServidor } from "../store/navegacao";
 import { Selo } from "../components/ui/Selo";
 import css from "./Rail.module.css";
+import { ItemDeId } from "../components/ui/ItemDeId";
 
 /**
  * Um servidor. Assina a si mesmo — a lista acima só conhece IDs.
@@ -213,6 +214,8 @@ const ItemDeServidor = memo(function ItemDeServidor({
             </ContextMenuItem>
           ),
         )}
+
+        <ItemDeId id={id} />
       </ContextMenuContent>
     </ContextMenu>
   );
@@ -282,6 +285,8 @@ const PastaDoRail = memo(function PastaDoRail({
           <ContextMenuItem perigo onSelect={() => removerPasta(pasta.id)}>
             Desfazer pasta
           </ContextMenuItem>
+
+          <ItemDeId id={pasta.id} />
         </ContextMenuContent>
       </ContextMenu>
 

@@ -82,6 +82,49 @@
 }
 
 /*
+  A faixa de "você pulou para um resultado de busca".
+
+  ⚠ Grudada no topo como a de não lidas, e pelo mesmo motivo: no fluxo ela
+  empurraria a primeira linha e a âncora se moveria por causa de um aviso.
+
+  `surface-4` com sombra e NÃO acento: a barra de não lidas é acento porque
+  "há coisa nova" é o estado que o app inteiro pinta de teal, e duas faixas
+  acentuadas empilhadas seriam a disciplina de acento perdida de novo — o
+  projeto já corrigiu isso uma vez, quando havia nove lâminas na tela.
+*/
+.faixaDeBusca {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--vx-z-realce);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-08) var(--vx-space-14);
+  border-block-end: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-4);
+  box-shadow: var(--vx-elev-1);
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-sm);
+}
+
+.voltarAoPresente {
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: var(--vx-accent-text);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.voltarAoPresente:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/*
   A linha virtualizada.
 
   Estava como `absolute inset-x-0 top-0` — e `inset-x-0` e `top-0` não
@@ -96,6 +139,25 @@
   position: absolute;
   inset-inline: 0;
   inset-block-start: 0;
+}
+
+/*
+  Com um resultado aberto, o resto do canal recua — do design: *"a mensagem
+  alvo fica em accent 8% e o resto do canal cai para 50% de opacidade até
+  Voltar ao presente"*.
+
+  ⚠ **Seletor de PAI, sem prop e sem re-render.** `data-busca` no container
+  liga a regra e `[data-alvo]` a desliga para uma linha só. Passar "você é o
+  alvo" como prop faria toda `MessageRow` montada re-renderizar ao trocar de
+  resultado, no componente mais quente do app — a mesma conta que tirou o
+  `ContextMenu` da linha.
+*/
+.scroll[data-busca] .linhaVirtual:not([data-alvo]) {
+  opacity: 0.5;
+}
+
+.scroll[data-busca] .linhaVirtual[data-alvo] {
+  background: color-mix(in oklab, var(--vx-accent) 8%, transparent);
 }
 
 /* ============================================================

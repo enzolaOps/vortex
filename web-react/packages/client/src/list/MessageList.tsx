@@ -35,6 +35,7 @@ import type {
   BlocoDeMensagem,
   EmbedSnapshot,
 } from "../sdk/domain";
+import { assinarBusca, lerBusca, selecionarResultado } from "../store/busca";
 import { useChannelMessageIds } from "../store/hooks";
 import css from "./MessageList.module.css";
 import { MenuDaMensagem, MessageRow } from "./MessageRow";
@@ -878,6 +879,19 @@ export function MessageList({ channelId }: { channelId: string }) {
    * lista é remontada por `key` quando o canal troca. Não há atualização a
    * perder enquanto ela está montada.
    */
+  /**
+   * O resultado de busca aberto, se houver.
+   *
+   * ⚠ **Assina só o CAMPO, não o snapshot inteiro.** `lerBusca()` troca de
+   * referência a cada tecla digitada no painel — assinar o objeto faria a
+   * lista de dez mil linhas re-renderizar por caractere. O getter devolve uma
+   * string, que o React compara por valor e descarta quando não mudou.
+   */
+  const alvoDeBusca = useSyncExternalStore(
+    assinarBusca,
+    () => lerBusca().selecionado,
+  );
+
   const alvoNaoLida = primeiraNaoLida(channelId);
   const indiceNaoLida = alvoNaoLida ? ids.indexOf(alvoNaoLida) : -1;
 
@@ -1196,6 +1210,14 @@ export function MessageList({ channelId }: { channelId: string }) {
       tabIndex={0}
       onKeyDown={aoTeclar}
       className={css.scroll}
+      /*
+        ⚠ O ESCURECIMENTO das outras linhas mora no container e é CSS puro:
+        `data-busca` liga a regra, e `[data-alvo]` na linha a desliga para uma
+        só. Passar "você é o alvo" como prop para cada `MessageRow` faria toda
+        linha montada re-renderizar ao trocar de resultado — no componente mais
+        quente do app, por um realce.
+      */
+      data-busca={alvoDeBusca !== undefined || undefined}
     >
       {/* Fora do container rolável não dá: ela precisa flutuar SOBRE a lista,
           e uma barra no fluxo empurraria a primeira linha para baixo — numa
@@ -1210,6 +1232,33 @@ export function MessageList({ channelId }: { channelId: string }) {
         >
           novas mensagens · ir para a primeira
         </button>
+      ) : null}
+
+      {/*
+        Você pulou para um resultado de busca.
+
+        ⚠ **Ela FLUTUA, como a de não lidas e pela mesma razão**: uma faixa no
+        fluxo empurraria a primeira linha para baixo, e numa lista ancorada
+        isso é a âncora se movendo por causa de um aviso.
+
+        "Voltar ao presente" limpa a seleção E rola para o fim — as duas
+        coisas, porque limpar sem rolar deixaria a pessoa parada no meio do
+        histórico sem o realce que explicava por que ela estava ali.
+      */}
+      {alvoDeBusca !== undefined ? (
+        <div className={css.faixaDeBusca}>
+          <span>Você pulou para um resultado de busca</span>
+          <button
+            type="button"
+            className={css.voltarAoPresente}
+            onClick={() => {
+              selecionarResultado(undefined);
+              virtualizer.scrollToEnd();
+            }}
+          >
+            Voltar ao presente
+          </button>
+        </div>
       ) : null}
 
       {/*
@@ -1263,6 +1312,7 @@ export function MessageList({ channelId }: { channelId: string }) {
               key={item.key}
               data-index={item.index}
               data-mid={String(item.key)}
+              data-alvo={String(item.key) === alvoDeBusca || undefined}
               ref={virtualizer.measureElement}
               className={css.linhaVirtual}
               style={{ transform: `translateY(${item.start}px)` }}
