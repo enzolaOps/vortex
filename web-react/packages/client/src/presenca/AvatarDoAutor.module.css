@@ -1,0 +1,34 @@
+/* ============================================================
+   O gatilho do avatar na linha de mensagem
+   ------------------------------------------------------------
+   Só existe para dar FOCO e CLIQUE ao avatar: o `Avatar` é uma
+   `span` com `aria-hidden`, e sem um elemento focável em volta o
+   menu do usuário seria alcançável só por ponteiro.
+
+   Sem caixa própria — nem fundo, nem borda, nem respiro. O que
+   define o tamanho é o `Avatar` dentro; um botão com dimensão
+   própria aqui desalinharia a calha de 40px da linha.
+   ============================================================ */
+
+.gatilho {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  background: none;
+  cursor: pointer;
+}
+
+/*
+  `outline` e não o anel de `box-shadow` do design: a linha de mensagem vive
+  dentro do container de rolagem virtualizado, que RECORTA — é um dos 41 casos
+  que mantêm o anel global fora do projeto.
+
+  Offset positivo porque o avatar é redondo e encosta na borda da calha: um
+  anel para dentro cortaria o próprio gradiente.
+*/
+.gatilho:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
