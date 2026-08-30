@@ -8,7 +8,6 @@ import {
   Hash,
   LinkSimple,
   Lock,
-  MagnifyingGlass,
   Monitor,
   PencilSimple,
   Plus,
@@ -74,6 +73,7 @@ import { FaixaDeVoz } from "../voz/FaixaDeVoz";
 import { PainelDeUsuario } from "../usuario/PainelDeUsuario";
 import { selecionarCanal } from "../store/navegacao";
 import { Selo } from "../components/ui/Selo";
+import { GatilhoDeBusca } from "../components/ui/CampoDeBusca";
 import css from "./ListaDeCanais.module.css";
 
 /**
@@ -961,18 +961,18 @@ function CanaisDoServidor() {
         é campo; o que ele faz é abrir a paleta, que É um campo.
       */}
       <div className={css.faixaDeBusca}>
-        <button
-          type="button"
+        <GatilhoDeBusca
+          denso
+          rotulo="Buscar"
           className={css.busca}
           onClick={abrirPaleta}
           aria-keyshortcuts="Control+K Meta+K"
-        >
-          <MagnifyingGlass size={20} aria-hidden className={css.lupa} />
-          <span className={css.buscaRotulo}>Buscar</span>
-          <kbd className={css.tecla} aria-hidden>
-            {TECLA_DA_PALETA}
-          </kbd>
-        </button>
+          fim={
+            <kbd className={css.tecla} aria-hidden>
+              {TECLA_DA_PALETA}
+            </kbd>
+          }
+        />
       </div>
 
       {/* Ver `MessageList`: rolável sem foco é inoperável por teclado. */}

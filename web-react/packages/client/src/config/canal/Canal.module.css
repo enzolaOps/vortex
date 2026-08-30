@@ -713,21 +713,9 @@
   239×32 com véu a 7% na coluna de alvos do design.
 */
 .filtro {
-  inline-size: 100%;
-  block-size: 32px;
-  margin-block-end: var(--vx-space-08);
-  padding-inline: var(--vx-space-10);
-  border: 1px solid rgb(255 255 255 / 7%);
-  border-radius: var(--vx-radius-06);
+  /* O painel é `surface-2`; o filtro afunda até `surface-0`, que é o que o
+     design faz com a busca de "Cargos e membros". */
   background: var(--vx-surface-0);
-  color: var(--vx-text-1);
-  font-family: inherit;
-  font-size: var(--vx-size-sm);
-  outline: none;
-}
-
-.filtro:focus-visible {
-  border-color: var(--vx-accent);
 }
 
 /* ============================================================

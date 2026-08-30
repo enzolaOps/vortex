@@ -1,6 +1,6 @@
-import { MagnifyingGlass } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 
+import { CampoDeBusca } from "../components/ui/CampoDeBusca";
 import css from "./CascaDeSeletor.module.css";
 
 /**
@@ -58,22 +58,19 @@ export function CascaDeSeletor({
 
       <div className={css.corpo}>
         <div className={css.linhaDeBusca}>
-          <label className={css.busca}>
-            <MagnifyingGlass aria-hidden />
-            <input
-              className={css.buscaCampo}
-              value={busca.valor}
-              onChange={(e) => busca.aoMudar(e.target.value)}
-              placeholder={busca.placeholder}
-              aria-label={busca.placeholder}
-              /*
-                Foco ao abrir: quem abre um seletor de emoji com mil ícones
-                quase sempre sabe o que procura. Sem isto, o primeiro gesto é
-                sempre clicar no campo.
-              */
-              autoFocus
-            />
-          </label>
+          <CampoDeBusca
+            className={css.busca}
+            value={busca.valor}
+            onChange={(e) => busca.aoMudar(e.target.value)}
+            placeholder={busca.placeholder}
+            aria-label={busca.placeholder}
+            /*
+              Foco ao abrir: quem abre um seletor de emoji com mil ícones quase
+              sempre sabe o que procura. Sem isto, o primeiro gesto é sempre
+              clicar no campo.
+            */
+            autoFocus
+          />
           {acaoDaBusca}
         </div>
 

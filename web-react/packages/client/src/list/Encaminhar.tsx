@@ -1,5 +1,5 @@
 import { useMemo, useState, useSyncExternalStore } from "react";
-import { Hash, LockSimple, MagnifyingGlass, X } from "@phosphor-icons/react";
+import { Hash, LockSimple, X } from "@phosphor-icons/react";
 
 import { Avatar } from "../components/ui/Avatar";
 import { Botao } from "../components/ui/Botao";
@@ -19,6 +19,7 @@ import {
 } from "../store/hooks";
 import { chaveDeMembro } from "../sdk/domain";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
+import { CampoDeBusca } from "../components/ui/CampoDeBusca";
 import css from "./Encaminhar.module.css";
 
 /**
@@ -180,16 +181,13 @@ export function Encaminhar({ aoFechar }: { aoFechar: () => void }) {
           </div>
         ) : null}
 
-        <label className={css.busca}>
-          <MagnifyingGlass aria-hidden />
-          <input
-            className={css.buscaCampo}
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar canal ou pessoa"
-            aria-label="Buscar canal ou pessoa"
-          />
-        </label>
+        <CampoDeBusca
+          className={css.busca}
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          placeholder="Buscar canal ou pessoa"
+          aria-label="Buscar canal ou pessoa"
+        />
 
         {escolhidos.length > 0 ? (
           <div className={css.chips}>

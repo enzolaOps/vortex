@@ -2,7 +2,6 @@ import {
   BellSimple,
   BellSimpleSlash,
   ChatsCircle,
-  MagnifyingGlass,
   PushPin,
   Tray,
   Users,
@@ -20,6 +19,7 @@ import {
   superficieAberta,
 } from "../store/drawer";
 import { alternarSilencio, assinarSilencio, estaSilenciado } from "../store/silencio";
+import { GatilhoDeBusca } from "../components/ui/CampoDeBusca";
 import css from "./AcoesDoCanal.module.css";
 
 /**
@@ -177,15 +177,12 @@ export function AcoesDoCanal({ channelId, nome }: { channelId: string; nome: str
         dizer onde é ambíguo num app com trinta canais abertos ao longo do dia.
       */}
       <Tooltip texto="Buscar no canal">
-        <button
-          type="button"
+        <GatilhoDeBusca
           className={css.busca}
+          rotulo={`Buscar em #${nome}`}
           aria-label={`Buscar em ${nome}`}
           onClick={aindaNao("buscaNoCanal")}
-        >
-          <MagnifyingGlass size={16} aria-hidden className={css.lupaDaBusca} />
-          <span className={css.buscaRotulo}>Buscar em #{nome}</span>
-        </button>
+        />
       </Tooltip>
     </div>
   );

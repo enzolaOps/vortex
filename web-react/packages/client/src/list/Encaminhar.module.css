@@ -124,36 +124,14 @@
 /* ---------------------------------------------------------- a busca */
 
 .busca {
-  display: flex;
-  align-items: center;
-  gap: var(--vx-space-08);
-  block-size: 34px;
-  padding-inline: var(--vx-space-11);
-  border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-06);
+  /* O modal é `surface-4`; o campo desce para `surface-3`. */
   background: var(--vx-surface-3);
-  color: var(--vx-text-3);
-}
-
-.busca:focus-within {
-  border-color: var(--vx-accent);
 }
 
 .busca svg {
   inline-size: var(--vx-icon-1);
   block-size: var(--vx-icon-1);
   flex: none;
-}
-
-.buscaCampo {
-  flex: 1;
-  min-inline-size: 0;
-  border: none;
-  background: none;
-  color: var(--vx-text-1);
-  font-family: inherit;
-  font-size: var(--vx-size-md);
-  outline: none;
 }
 
 /* ---------------------------------------------------------- os chips */

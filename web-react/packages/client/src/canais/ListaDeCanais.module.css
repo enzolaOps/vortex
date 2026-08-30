@@ -85,36 +85,8 @@
 }
 
 .busca {
-  display: flex;
-  align-items: center;
-  gap: var(--vx-space-07);
-  inline-size: 100%;
-  min-inline-size: 0;
-  /* 30px, o número do design — era `--vx-space-32` (32). Dois pixels, e eles
-     aparecem: o campo divide a faixa com o cabeçalho de 50px logo acima, e
-     `block-size` é dimensão de componente, fora da escala de propósito. */
-  block-size: 30px;
-  padding-inline: var(--vx-space-09);
-  border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-06);
-  /* Mais FUNDO que a coluna, como todo campo do design: o que recebe entrada
-     afunda, o que é conteúdo flutua. */
+  /* `surface-0`: a coluna é `surface-1`, e o campo afunda um degrau. */
   background: var(--vx-surface-0);
-  color: var(--vx-text-3);
-  font-family: inherit;
-  cursor: pointer;
-  transition:
-    border-color var(--vx-duration-instant) var(--vx-ease-out),
-    color var(--vx-duration-instant) var(--vx-ease-out);
-}
-
-.busca:hover {
-  border-color: var(--vx-border-strong);
-  color: var(--vx-text-2);
-}
-
-.busca:focus-visible {
-  outline-offset: 1px;
 }
 
 /*
@@ -128,30 +100,6 @@
   É o tipo de defeito que não dá erro e some numa inspeção rápida, porque a
   declaração está lá, escrita e correta.
 */
-.busca .lupa {
-  flex: none;
-  inline-size: var(--vx-icon-0);
-  block-size: var(--vx-icon-0);
-}
-
-/*
-  O placeholder é `text-4`, não `text-3` — e um degrau menor que o resto.
-
-  É o tom de "ainda não há nada aqui": o campo está vazio, e a palavra
-  "Buscar" é instrução, não conteúdo. Em `text-3` ela lê como um valor já
-  digitado, que é exatamente o que um placeholder não pode parecer.
-*/
-.buscaRotulo {
-  flex: 1;
-  min-inline-size: 0;
-  overflow: hidden;
-  text-align: start;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--vx-text-4);
-  font-size: var(--vx-size-sm);
-}
-
 /*
   Coluna estreita: a tecla sai primeiro.
 

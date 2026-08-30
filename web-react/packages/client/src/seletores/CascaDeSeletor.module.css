@@ -63,39 +63,14 @@
 }
 
 .busca {
-  flex: 1;
-  min-inline-size: 0;
-  display: flex;
-  align-items: center;
-  gap: var(--vx-space-08);
-  block-size: 32px;
-  padding-inline: var(--vx-space-10);
-  border: 1px solid var(--vx-border-subtle);
-  /* Mais FUNDO que o painel — campo é buraco, não relevo. */
+  /* O seletor é `surface-3`; o campo desce para `surface-2`. */
   background: var(--vx-surface-2);
-  border-radius: var(--vx-radius-06);
-  color: var(--vx-text-3);
-}
-
-.busca:focus-within {
-  border-color: var(--vx-accent);
 }
 
 .busca svg {
   flex: none;
   inline-size: var(--vx-icon-0);
   block-size: var(--vx-icon-0);
-}
-
-.buscaCampo {
-  flex: 1;
-  min-inline-size: 0;
-  border: none;
-  background: none;
-  color: var(--vx-text-1);
-  font-family: inherit;
-  font-size: var(--vx-size-md);
-  outline: none;
 }
 
 .rolagem {

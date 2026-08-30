@@ -17,6 +17,7 @@ import {
 } from "../../sdk/cargos";
 import { useChannel, useCorDeCargo } from "../../store/hooks";
 import secao from "../Secao.module.css";
+import { CampoDeBusca } from "../../components/ui/CampoDeBusca";
 import css from "./Canal.module.css";
 
 /**
@@ -390,9 +391,8 @@ function Avancadas({
               ele é busca, e o design afunda busca em `surface-0` enquanto põe
               campo de formulário em `surface-3`.
             */}
-            <input
+            <CampoDeBusca
               className={css.filtro}
-              type="search"
               aria-label="Filtrar permissões"
               placeholder="Filtrar permissões"
               value={busca}

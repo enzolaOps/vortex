@@ -91,51 +91,13 @@
   no cartão de perfil.
 */
 .busca {
-  display: flex;
-  align-items: center;
-  gap: var(--vx-space-08);
-  /*
-    ⚠ **Ela ENCOLHE, e antes era `flex: none` com 180px fixos.**
-
-    180 é a largura CONFORTÁVEL, não a mínima: numa coluna estreita a busca
-    era a peça que empurrava tudo para fora. Agora `flex` com base 180 e piso
-    de 36 — que é o quadrado do ícone, ou seja, ela vira um botão de lupa antes
-    de sumir. Abaixo disso a container query a esconde de vez.
-  */
+  /* Só o que o primitivo NÃO possui: a superfície e o quanto ela encolhe.
+     `surface-1` porque o cabeçalho de canal é `surface-2` — um degrau abaixo
+     do que está em volta, que é a regra do design para campo de busca. */
   flex: 1 1 180px;
   max-inline-size: 180px;
   min-inline-size: 36px;
-  block-size: var(--vx-space-32);
-  padding-inline: var(--vx-space-08);
-  border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-06);
   background: var(--vx-surface-1);
-  color: var(--vx-text-3);
-  font-family: inherit;
-  cursor: pointer;
-  transition: border-color var(--vx-duration-instant) var(--vx-ease-out);
-}
-
-.busca:hover {
-  border-color: var(--vx-border-strong);
-}
-
-.lupaDaBusca {
-  flex: none;
-}
-
-/*
-  O rótulo trunca em vez de esticar o campo.
-
-  Nome de canal pode ser longo, e um campo que cresce empurraria as outras
-  cinco ações para fora do cabeçalho — que é o alvo que a pessoa usa mais.
-*/
-.buscaRotulo {
-  min-inline-size: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: var(--vx-size-sm);
 }
 
 /*
