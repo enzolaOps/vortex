@@ -18,6 +18,7 @@
     "vars": "node scripts/vars.mjs",
     "espec": "node scripts/espec.mjs",
     "espelho": "node scripts/espelho.mjs",
+    "confronto": "node scripts/confronto.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "gate": "node scripts/gate.mjs"

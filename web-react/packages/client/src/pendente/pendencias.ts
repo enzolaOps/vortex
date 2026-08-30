@@ -265,6 +265,12 @@ export const PENDENCIAS = {
     faz: "Avisar quando as permissões do canal divergem da categoria.",
     depende: "categoria não tem permissões no protocolo — não há com o que comparar",
   },
+  overrideDeMembro: {
+    superficie: "Permissões do canal",
+    faz: "Dar ou tirar permissão de UMA pessoa neste canal, sem mexer no cargo.",
+    depende:
+      "`setPermissions` do protocolo aceita cargo, não membro — em canal de servidor só há override por cargo",
+  },
   silenciarUsuario: {
     superficie: "Menu do usuário",
     faz: "Esconder as mensagens desta pessoa só para você.",

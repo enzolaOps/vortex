@@ -9,7 +9,8 @@
 
 .forma {
   display: grid;
-  gap: var(--vx-space-24);
+  /* 18 é o ritmo entre blocos no design — medido, 92px em cinco vãos. */
+  gap: var(--vx-space-18);
   /*
     A medida de leitura, e não a largura da coluna.
 
@@ -67,8 +68,10 @@
 .recado {
   margin: 0;
   font-size: var(--vx-size-md);
-  line-height: var(--vx-leading-message);
-  color: var(--vx-text-2);
+  /* `text-3` e não `text-2`: medido no design, o subtítulo de seção é
+     `#77808e`. O secundário é para conteúdo denso; explicação de seção é
+     metadado. */
+  color: var(--vx-text-3);
 }
 
 /*

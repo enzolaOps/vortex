@@ -262,6 +262,12 @@ const arvore = await av(`(() => {
       pad: s.padding === "0px" ? "-" : s.padding,
       gap: s.gap === "normal" || s.rowGap === "normal" ? "-" : s.gap,
       tipo: s.fontSize + "/" + s.fontWeight,
+      /* A entrelinha entra porque ela decide ALTURA, e altura errada foi o
+         que fez as linhas da lista de acesso ficarem 8px maiores. */
+      entrelinha: s.lineHeight,
+      /* Só a primeira família: a pilha inteira é ruído, e o que importa é se
+         a caixa está em mono ou na de interface. */
+      fonte: (s.fontFamily.split(",")[0] || "").replace(/["']/g, ""),
       cor: hex(s.color),
       filhos:
         nivel >= MAX
@@ -287,6 +293,22 @@ if (arvore?.erro) {
       n.raio !== "-" ? `raio ${n.raio}` : "",
       n.pad !== "-" ? `pad ${n.pad}` : "",
       n.gap !== "-" ? `gap ${n.gap}` : "",
+      /*
+        ⚠ **Tipo e cor eram COLETADOS e não impressos, e isso é o defeito
+        que mais custou neste projeto.**
+
+        O `olhar()` sempre devolveu `tipo` e `cor`; a linha de saída listava
+        caixa, fundo, borda, raio, respiro e gap — e parava aí. Ou seja: o
+        instrumento media a tipografia e a cor do texto e jogava fora, e eu
+        implementei as duas por dedução esse tempo todo, tela após tela.
+
+        É a mesma família do `corDeFundoDeMatiz` que repetia constantes e
+        ficou para trás: instrumento que mede e não conta é pior que
+        instrumento que não mede, porque dá confiança sem dar informação.
+      */
+      `tipo ${n.tipo}/${n.entrelinha}`,
+      n.fonte ? `fonte ${n.fonte}` : "",
+      `cor ${n.cor}`,
       n.texto ? `“${n.texto}”` : "",
     ].filter(Boolean);
     console.log(partes.join("  ·  "));

@@ -156,6 +156,14 @@ export function PermissoesDoCanal({ channelId }: { channelId: string }) {
             nome={c.nome}
             detalhe={`${c.concedidas.length} permissões no servidor`}
             negado={false}
+            aoRemover={() => {
+              /* Remover é herdar tudo: o cargo deixa de decidir neste canal e
+                 volta a valer o que ele vale no servidor. */
+              void salvarPermissaoDeCanal(channelId, c.id, {
+                allow: 0n,
+                deny: 0n,
+              });
+            }}
           />
         ))}
       </section>
@@ -197,12 +205,14 @@ function LinhaDeAcesso({
   nome,
   detalhe,
   negado,
+  aoRemover,
 }: {
   cor: string | undefined;
   glifo: string;
   nome: string;
   detalhe: string | undefined;
   negado: boolean;
+  aoRemover?: () => void;
 }) {
   const tinta = useCorDeCargo(cor);
   return (
@@ -222,7 +232,15 @@ function LinhaDeAcesso({
         {glifo}
       </span>
       <span className={css.acessoNome}>
-        <span className={css.acessoRotulo}>{nome}</span>
+        {/* O nome sai NA COR do cargo — medido, "Núcleo" em `#7ee3e9`. É o
+            mesmo tratamento que a member list dá, e é o que faz a lista de
+            acesso ser varrível sem ler. */}
+        <span
+          className={css.acessoRotulo}
+          style={tinta ? { color: tinta } : undefined}
+        >
+          {nome}
+        </span>
         {detalhe ? (
           <span className={css.acessoContagem}>{detalhe}</span>
         ) : null}
@@ -232,6 +250,21 @@ function LinhaDeAcesso({
       ) : (
         <span className={css.acessoEstado}>acesso total</span>
       )}
+      {/*
+        O ✕ existe só nas linhas de CARGO — @everyone não tem, e o design
+        também não lhe dá um: não há override a remover de "todo mundo", e um
+        alvo que some ao ser acionado seria mentira.
+      */}
+      {aoRemover ? (
+        <button
+          type="button"
+          className={css.acessoRemover}
+          aria-label={`Remover ${nome} deste canal`}
+          onClick={aoRemover}
+        >
+          ✕
+        </button>
+      ) : null}
     </div>
   );
 }

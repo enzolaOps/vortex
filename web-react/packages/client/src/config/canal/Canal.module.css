@@ -230,14 +230,19 @@
   background: var(--vx-surface-3);
 }
 
+/*
+  Sem gap: o design empilha título e detalhe encostados, e a separação vem da
+  entrelinha de cada um. Os 3px que eu tinha somavam à altura de todo cartão.
+*/
 .cartaoTexto {
   display: grid;
-  gap: var(--vx-space-03);
   min-inline-size: 0;
 }
 
 .cartaoTitulo {
-  font-size: var(--vx-size-md);
+  /* 14 e não 13 — medido. É o degrau `base`, e ele existe para isto: título
+     de cartão fica entre o corpo (13) e o de seção (17). */
+  font-size: var(--vx-size-base);
   font-weight: 600;
   color: var(--vx-text-1);
 }
@@ -279,20 +284,11 @@
 }
 
 /*
-  ⚠ **Entrelinha travada, e sem ela a linha ficava 8px mais alta que o design.**
-
-  Medido: as linhas do design dão 43px com uma linha de texto e 51 com duas; as
-  minhas davam 59. A causa é entrelinha padrão — 13px de corpo com
-  `line-height: normal` ocupa ~20px, e o design usa 16. Em quatro linhas isso é
-  meio cartão de diferença.
+  ⚠ **Este bloco travava a entrelinha em `--vx-leading-compact`, e era remendo
+  de sintoma.** A causa real era o app não ter base de tipo: herdava o 1.5 do
+  preflight do Tailwind onde o design usa `normal`. Consertado em `body`, e o
+  remendo saiu — deixá-lo daria 19px onde o design dá 16.
 */
-.acessoRotulo {
-  line-height: var(--vx-leading-compact);
-}
-
-.acessoContagem {
-  line-height: var(--vx-leading-compact);
-}
 
 .acessoLinha:last-child {
   border-block-end: 0;
@@ -307,17 +303,22 @@
   block-size: 22px;
   border-radius: var(--vx-radius-06);
   font-size: var(--vx-size-xs);
+  /* Sem cor de cargo — @everyone — cai no neutro tingido do design. */
+  background: color-mix(in srgb, var(--vx-neutral) 25%, transparent);
+  color: var(--vx-text-2);
 }
 
 .acessoNome {
   flex: 1;
   min-inline-size: 0;
   display: grid;
-  gap: var(--vx-space-02);
 }
 
 .acessoRotulo {
   font-size: var(--vx-size-md);
+  font-weight: 600;
+  /* A cor vem do cargo, por `style` — `text-1` é só o fallback de quem não
+     tem cor. Medido: "Núcleo" sai em `#7ee3e9`, a cor do cargo. */
   color: var(--vx-text-1);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -329,10 +330,18 @@
   color: var(--vx-text-3);
 }
 
+/*
+  ⚠ **`success-text` e peso 600, e eu tinha `text-3` em 400.**
+
+  Medido: `#5bd79b`, que é o verde de LETRA. "Acesso total" é um veredito, não
+  um metadado — e um veredito em cinza claro lê como legenda. O peso é o que o
+  separa da contagem de membros logo acima, que tem o mesmo tamanho.
+*/
 .acessoEstado {
   flex: none;
   font-size: var(--vx-size-xs);
-  color: var(--vx-text-3);
+  font-weight: 600;
+  color: var(--vx-success-text);
 }
 
 /* "sem acesso": chip tingido de vermelho, e o texto é de LETRA. */
@@ -343,9 +352,12 @@
   block-size: 20px;
   padding-inline: var(--vx-space-07);
   border-radius: var(--vx-radius-04);
-  background: color-mix(in oklab, var(--vx-danger) 14%, transparent);
+  /* `srgb` e não `oklab`: o design usa `rgba(232,89,107,0.14)`, que é alfa
+     direto. Interpolar em oklab contra `transparent` dá outra cor. */
+  background: color-mix(in srgb, var(--vx-danger) 14%, transparent);
   color: var(--vx-danger-text);
   font-size: var(--vx-size-xs);
+  font-weight: 600;
 }
 
 /* ============================================================
@@ -865,5 +877,29 @@
 .abrir {
   flex: none;
   color: var(--vx-accent-text);
+  /* 13/600 — medido. Em 12/400 ele lia como legenda em vez de convite. */
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+}
+
+/* O ✕ que devolve o cargo à herança. Texto, e não botão com caixa — o design
+   o desenha como um glifo de 12px em `text-3`. */
+.acessoRemover {
+  flex: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--vx-text-3);
+  font-family: inherit;
   font-size: var(--vx-size-sm);
+  cursor: pointer;
+}
+
+.acessoRemover:hover {
+  color: var(--vx-danger-text);
+}
+
+.acessoRemover:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
 }

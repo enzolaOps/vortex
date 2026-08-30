@@ -7,13 +7,31 @@
   align-items: center;
   justify-content: center;
   gap: var(--vx-space-08);
+  /*
+    ⚠ **ALTURA fixa e respiro só no eixo inline — e o botão inteiro estava
+    errado.** Achado pelo `pnpm confronto`, que compara design e app na mesma
+    posição da árvore.
+
+    Medido em quatro botões do design: `padding: 0 12px` com altura de 28, 30
+    ou 32 conforme o lugar, e tipo `12px/600`. O nosso tinha `8px 12px` com
+    altura implícita e peso 400 — ou seja, botão mais alto, texto mais leve, e
+    a altura variando com a entrelinha herdada em vez de ser decidida.
+
+    `block-size` em vez de `padding-block` porque o design pensa em ALTURA de
+    alvo: três tamanhos, e o texto centrado neles. Com respiro vertical, a
+    altura vira consequência do tipo, e um botão ao lado de um campo de 32
+    nunca alinha.
+
+    600 e não 400: em 12px o peso é o que separa rótulo de ação de texto
+    corrido, e era por isso que os botões pareciam links.
+  */
+  block-size: 30px;
   padding-inline: var(--vx-space-12);
-  padding-block: var(--vx-space-08);
   border: 1px solid transparent;
   border-radius: var(--vx-radius-06);
   font-family: inherit;
   font-size: var(--vx-size-sm);
-  line-height: 1;
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
   transition:
@@ -59,9 +77,14 @@
   color: var(--vx-text-1);
 }
 
+/*
+  ⚠ O `sutil` do design NÃO tem borda nem fundo — é texto com alvo. Era o que
+  já estava aqui, e o confronto confirmou: `Ver diferença` sai 99×28 sem fundo
+  e sem borda, em `text-2`.
+*/
 .sutil {
   background: transparent;
-  color: var(--vx-text-3);
+  color: var(--vx-text-2);
 }
 
 .sutil:hover:not(:disabled) {

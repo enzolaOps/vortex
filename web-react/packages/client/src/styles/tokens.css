@@ -993,6 +993,28 @@ body {
   background: var(--vx-surface-0);
   color: var(--vx-text-1);
   font-family: var(--vx-font-ui);
+
+  /*
+    ⚠ **A BASE de tipo, e a ausência dela era divergência sistêmica.**
+
+    Achado pelo `pnpm confronto`: o design renderiza a raiz de tela em
+    `15px / normal` e o app renderizava em `16px / 24px`. Os dois números eram
+    herdados sem ninguém ter escolhido — 16px é o default do navegador e 1.5 é
+    o `line-height` que o preflight do Tailwind põe no `html`.
+
+    A consequência não é o texto solto: é que TODA caixa sem tamanho explícito
+    ficava um degrau maior que o desenhado, e toda linha de texto ficava ~4px
+    mais alta. Foi isso que fez as linhas da lista de acesso medirem 59 onde o
+    design mede 51, e o conserto local que eu tinha aplicado lá (entrelinha
+    compacta numa classe) tratava o sintoma numa tela.
+
+    `normal` e não um número: é o que o design usa, e é o que deixa a fonte
+    decidir. Onde a entrelinha É uma decisão — corpo de mensagem, título — o
+    componente continua declarando a sua, e agora ela se destaca por ser
+    explícita em vez de se perder num default herdado.
+  */
+  font-size: var(--vx-size-lg);
+  line-height: normal;
 }
 
 /* ============================================================
