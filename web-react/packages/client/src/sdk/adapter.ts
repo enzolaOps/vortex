@@ -1337,7 +1337,18 @@ export const vozPorCanal = createEntityStore<readonly ParticipanteDeVoz[]>(
           : p.isCamera()
             ? "video"
             : "voz";
-        out.push({ userId, estado, desde: p.joinedAt.getTime() });
+        out.push({
+          userId,
+          estado,
+          desde: p.joinedAt.getTime(),
+          /*
+            ⚠ Lidos DENTRO do efeito, como os três acessores acima: fora
+            dele o snapshot congelaria no estado de quando a pessoa entrou, e
+            silenciar o microfone não republicaria a sala.
+          */
+          mudo: !p.isPublishing(),
+          surdo: !p.isReceiving(),
+        });
       }
 
       // Por ordem de chegada, não alfabética. Duas razões, e as duas são de
@@ -1976,6 +1987,8 @@ export function semearVoz(
     desde: number;
     tela?: boolean;
     camera?: boolean;
+    mudo?: boolean;
+    surdo?: boolean;
   }[],
 ): void {
   const canal = client.channels.get(channelId);
@@ -1987,8 +2000,14 @@ export function semearVoz(
       new VoiceParticipant(client, {
         id: p.userId,
         joined_at: new Date(p.desde).toISOString(),
-        is_receiving: true,
-        is_publishing: true,
+        /*
+          ⚠ Surdo IMPLICA mudo, e a implicação mora AQUI e não no arnês: é
+          regra do protocolo (quem não recebe também não publica), e deixá-la
+          na semeadura deixaria o rig capaz de produzir um estado que nenhum
+          servidor produz.
+        */
+        is_receiving: !(p.surdo ?? false),
+        is_publishing: !(p.mudo ?? false) && !(p.surdo ?? false),
         screensharing: p.tela ?? false,
         camera: p.camera ?? false,
       } as never),

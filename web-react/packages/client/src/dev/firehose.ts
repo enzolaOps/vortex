@@ -534,6 +534,18 @@ const RECADOS = [
             desde: 1700000000000 + k * 60000,
             tela: n === 0 && k === 0,
             camera: n === 1 && k === 1,
+            /*
+              ⚠ **Arnês mais pobre que o protocolo — de novo, e o campo já
+              existia.** `is_publishing` e `is_receiving` chegam no objeto do
+              SDK desde sempre; a semeadura os fixava em `true`, então mudo e
+              surdo por participante eram INTESTÁVEIS e o ícone nasceria
+              inalcançável.
+
+              Um de cada por sala, e nunca a mesma pessoa: com os dois na
+              mesma linha só se veria o fone, porque surdo implica mudo.
+            */
+            mudo: k === 1,
+            surdo: k === 2,
           })),
         );
       });

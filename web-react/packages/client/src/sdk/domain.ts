@@ -737,6 +737,21 @@ export type ParticipanteDeVoz = {
   readonly userId: string;
   readonly estado: EstadoDeVoz;
   readonly desde: number;
+  /**
+   * Não está publicando áudio — mudo.
+   *
+   * ⚠ Vem de `is_publishing` do protocolo, que já chegava no objeto do SDK e
+   * ninguém lia. É campo do PROTOCOLO e não do LiveKit: qualquer cliente
+   * Stoat vê o mesmo, e ele sobrevive a quem entrou na sala antes de você.
+   *
+   * Separado de `estado` de propósito: estado é o que a pessoa está
+   * PUBLICANDO (voz, vídeo, tela) e é excludente; mudo e surdo são
+   * modificadores que valem junto com qualquer um deles — dá para estar
+   * compartilhando a tela e mudo ao mesmo tempo.
+   */
+  readonly mudo: boolean;
+  /** Não está recebendo áudio — surdo. Vem de `is_receiving`. */
+  readonly surdo: boolean;
 };
 
 export function baldeDe(status: PresenceStatus): Balde {

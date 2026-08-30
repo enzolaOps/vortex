@@ -151,8 +151,17 @@
 .controle {
   display: grid;
   place-items: center;
-  inline-size: var(--vx-space-32);
-  block-size: var(--vx-space-32);
+  /*
+    26, e não 32 — do design.
+
+    ⚠ Ele é o ÚNICO alvo da linha de cima, e era o que ditava a altura dela:
+    com 32, a linha media 32 e a fileira de baixo 26, e as duas ficavam
+    visivelmente desiguais numa faixa de duas linhas. As três coisas da faixa
+    — desligar, medidor, alvo de ação — têm o mesmo 26 no design justamente
+    para a faixa ler como um bloco e não como duas.
+  */
+  inline-size: 26px;
+  block-size: 26px;
   border: none;
   border-radius: var(--vx-radius-06);
   background: transparent;

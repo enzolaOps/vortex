@@ -1202,3 +1202,19 @@
   color: var(--vx-success-text);
   font-variant-numeric: tabular-nums;
 }
+
+/*
+  Mudo e surdo na linha da sala.
+
+  ⚠ `danger-text` e não `text-3` como os outros estados: tela e câmera são o
+  que a pessoa ESCOLHEU publicar, e o vermelho ali seria um alarme sobre uma
+  escolha normal. Microfone desligado é ausência — quem procura na sala quem
+  pode responder precisa ver isso de relance. É o par que o design usa
+  (`#F0808D` para o microfone, `#77808E` para tela e vídeo).
+*/
+.estadoMudo {
+  flex: none;
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+  color: var(--vx-danger-text);
+}

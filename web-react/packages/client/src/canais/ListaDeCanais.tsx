@@ -11,6 +11,8 @@ import {
   Monitor,
   PencilSimple,
   Plus,
+  MicrophoneSlash,
+  SpeakerSlash,
   SpeakerHigh,
   UserPlus,
   Trash,
@@ -492,6 +494,30 @@ const NaSala = memo(function NaSala({
               ? "compartilhando a tela"
               : "com a câmera ligada"}
           </span>
+        </>
+      ) : null}
+
+      {/*
+        Mudo e surdo, DEPOIS do estado — e podem aparecer junto com ele.
+
+        ⚠ Eles não entram na união `estado` de propósito: estado é o que a
+        pessoa está PUBLICANDO (voz, vídeo, tela) e é excludente; mudo e surdo
+        são modificadores. Dá para estar compartilhando a tela e mudo ao mesmo
+        tempo, e uma união só não representaria isso.
+
+        Surdo IMPLICA mudo no protocolo — quem não ouve também não fala —,
+        então mostrar os dois seria dizer a mesma coisa duas vezes numa linha
+        de 205px. O fone ganha, porque é o estado maior.
+      */}
+      {participante.surdo ? (
+        <>
+          <SpeakerSlash size={20} aria-hidden className={css.estadoMudo} />
+          <span className="sr-only">sem ouvir</span>
+        </>
+      ) : participante.mudo ? (
+        <>
+          <MicrophoneSlash size={20} aria-hidden className={css.estadoMudo} />
+          <span className="sr-only">com o microfone desligado</span>
         </>
       ) : null}
     </li>
