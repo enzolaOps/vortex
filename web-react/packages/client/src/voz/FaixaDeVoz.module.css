@@ -16,10 +16,11 @@
   display: flex;
   align-items: center;
   gap: var(--vx-space-08);
-  padding-inline: var(--vx-space-12);
-  padding-block: var(--vx-space-08);
-  background: color-mix(in oklab, var(--vx-success) 8%, transparent);
-  border-block-start: 1px solid var(--vx-border-subtle);
+  /* `9px 10px`, do design. */
+  padding-inline: var(--vx-space-10);
+  padding-block: var(--vx-space-09);
+  background: color-mix(in oklab, var(--vx-success) 7%, transparent);
+  border-block-start: 1px solid var(--vx-hairline-06);
 }
 
 /*
@@ -28,8 +29,28 @@
   Muda o TINGIDO e o ponto, não o texto — o texto já diz o que houve. Duas
   pistas para o mesmo fato, e nenhuma delas sozinha.
 */
+/*
+  ⚠ **O degrau do MEIO, e ele faltava.**
+
+  A faixa tinha duas tintas — verde e vermelha — e `qualidade === "ruim"` caía
+  na vermelha junto com `perdida` e com `reconectando`. O design tem TRÊS:
+  `success@7` conectado, `warning@9` instável, `danger@9` perdido.
+
+  A distinção é o ponto da faixa: "a conexão está ruim mas você continua na
+  sala" e "você caiu" pedem reações diferentes de quem está falando. Com uma
+  cor só, a primeira parecia a segunda — a mesma família do contador de sala
+  cheia que estava em âmbar ao lado de um selo vermelho.
+*/
+.faixaInstavel {
+  background: color-mix(in oklab, var(--vx-warning) 9%, transparent);
+}
+
+.faixaInstavel .estado {
+  color: var(--vx-warning);
+}
+
 .faixaRuim {
-  background: color-mix(in oklab, var(--vx-danger) 8%, transparent);
+  background: color-mix(in oklab, var(--vx-danger) 9%, transparent);
 }
 
 .destino {

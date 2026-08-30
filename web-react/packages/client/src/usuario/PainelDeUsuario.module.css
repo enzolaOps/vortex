@@ -15,7 +15,10 @@
   /* Mais fundo que a coluna: o rodapé é chão, não conteúdo. É o mesmo
      token do rail, e a leitura é a mesma — "isto não é a lista". */
   background: var(--vx-surface-0);
-  border-block-start: 1px solid var(--vx-border-subtle);
+  /* A mesma régua da faixa de voz logo acima e dos cabeçalhos de 50px: as
+     quatro se encontram na mesma coluna, e um token diferente em qualquer
+     uma produz uma emenda visível. */
+  border-block-start: 1px solid var(--vx-hairline-06);
 }
 
 /* ------------------------------------------------------- identidade */

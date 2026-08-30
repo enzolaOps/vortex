@@ -64,13 +64,26 @@ export function FaixaDeVoz() {
         ? "reconectando…"
         : TEXTO_DA_QUALIDADE[chamada.qualidade];
 
-  const ruim =
-    chamada.estado === "reconectando" ||
-    chamada.qualidade === "ruim" ||
-    chamada.qualidade === "perdida";
+  /*
+    Três níveis, como o design — e não dois.
+
+    ⚠ `ruim` caía na mesma tinta vermelha de `perdida` e de `reconectando`.
+    "A conexão está ruim mas você continua na sala" e "você caiu" pedem
+    reações diferentes de quem está falando; com uma cor só, a primeira
+    parecia a segunda.
+  */
+  const perdida =
+    chamada.estado === "reconectando" || chamada.qualidade === "perdida";
+  const instavel = !perdida && chamada.qualidade === "ruim";
 
   return (
-    <div className={cn(css.faixa, ruim && css.faixaRuim)}>
+    <div
+      className={cn(
+        css.faixa,
+        instavel && css.faixaInstavel,
+        perdida && css.faixaRuim,
+      )}
+    >
       {/*
         O destino é um BOTÃO: clicar leva ao canal da chamada.
 
