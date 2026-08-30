@@ -18,6 +18,7 @@ import {
 } from "../../store/modais";
 import { GerenciarGrupo } from "../../casa/GerenciarGrupo";
 import { NovoGrupo } from "../../casa/NovoGrupo";
+import { PrivacidadeDoServidor } from "../../servidores/PrivacidadeDoServidor";
 
 /**
  * O registro de modais, e o ponto dele é o TIPO.
@@ -47,6 +48,7 @@ const REGISTRO: Record<ModalId, ComponentType<{ aoFechar: () => void }>> = {
   enquete: CriarEnquete,
   novoGrupo: NovoGrupo,
   grupo: GerenciarGrupo,
+  privacidadeDoServidor: PrivacidadeDoServidor,
 };
 
 /**

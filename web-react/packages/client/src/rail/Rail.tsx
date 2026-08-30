@@ -3,6 +3,7 @@ import {
   DownloadSimple,
   Envelope,
   FolderSimplePlus,
+  ShieldCheck,
   GearSix,
   Plus,
 } from "@phosphor-icons/react";
@@ -194,6 +195,22 @@ const ItemDeServidor = memo(function ItemDeServidor({
         primeiro dia; o arraste soma depois, listado como pendência.
       */}
       <ContextMenuContent>
+        {/*
+          ⚠ **Privacidade é o PRIMEIRO item, e é do design.** Ela é a única
+          coisa deste menu que muda o que os OUTROS podem fazer com você;
+          pasta e ordem são arrumação. Num menu curto a posição é a hierarquia.
+        */}
+        <ContextMenuItem
+          onSelect={() =>
+            administrar({ tipo: "privacidadeDoServidor", serverId: id })
+          }
+        >
+          <ShieldCheck size={20} aria-hidden />
+          Privacidade neste servidor
+        </ContextMenuItem>
+
+        <ContextMenuSeparator />
+
         <ContextMenuItem
           onSelect={() => administrar({ tipo: "criarPasta", serverId: id })}
         >

@@ -55,6 +55,28 @@
   box-shadow: 0 0 0 2px var(--anel, var(--vx-surface-0));
 }
 
+/*
+  ⚠ **Offline, o ponto SOME — e "todos offline" seria informação FALSA.**
+
+  A frase é do design: sem conexão o cliente não sabe quem está online; ele
+  sabe o que sabia quando caiu. Pintar todo mundo de cinza afirmaria uma coisa
+  que ninguém verificou, e é a mesma disciplina do "Conectado · 42 ms" que a
+  faixa de voz recusou e do `total` da busca que diz "nesta página".
+
+  ⚠ **Seletor de DOCUMENTO, e não uma prop.** O ponto aparece em cinco
+  superfícies e a member list monta dezenas ao mesmo tempo; assinar a conexão
+  em cada um faria um engasgo de rede acordar todos eles. `data-offline` no
+  `<html>` é UMA subscrição para o app inteiro e custo zero por ponto — a
+  mesma técnica do escurecimento da timeline durante a busca.
+
+  ⚠ **O SEU ponto continua aparecendo**, e não é esquecimento: o do painel de
+  usuário não é este componente (ver `PainelDeUsuario`), porque a sua presença
+  é uma ESCOLHA sua e não um dado do servidor. Ela continua verdadeira offline.
+*/
+html[data-offline] .ponto {
+  display: none;
+}
+
 .ponto::after {
   content: "";
   position: absolute;

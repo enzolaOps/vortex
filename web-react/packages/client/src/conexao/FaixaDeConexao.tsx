@@ -1,5 +1,5 @@
 import { WifiSlash, WifiHigh } from "@phosphor-icons/react";
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 import { assinarConexao, lerConexao } from "../store/conexao";
 import css from "./FaixaDeConexao.module.css";
@@ -20,6 +20,29 @@ import css from "./FaixaDeConexao.module.css";
  */
 export function FaixaDeConexao() {
   const estado = useSyncExternalStore(assinarConexao, lerConexao);
+
+  /*
+    ⚠ **`data-offline` no `<html>`, e é o que CONGELA a presença.**
+
+    Sem conexão o cliente não sabe quem está online — sabe o que sabia quando
+    caiu. Os pontos de presença somem por CSS (ver `PontoDePresenca.module.css`)
+    e a lista fica no último estado conhecido, que é o que o design manda:
+    "todos offline" seria informação falsa.
+
+    Mora aqui porque este já é o único assinante da conexão na raiz. Um
+    atributo no documento é UMA subscrição para o app inteiro; a alternativa —
+    cada ponto assinando — faria um engasgo de rede acordar as dezenas de
+    pontos montados na member list.
+  */
+  useEffect(() => {
+    const raiz = document.documentElement;
+    if (estado === "conectado") delete raiz.dataset.offline;
+    else raiz.dataset.offline = "";
+    return () => {
+      delete raiz.dataset.offline;
+    };
+  }, [estado]);
+
   if (estado === "conectado") return null;
 
   const reconectando = estado === "reconectando";

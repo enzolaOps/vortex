@@ -1,6 +1,12 @@
 import { Hammer, ProhibitInset, SignOut } from "@phosphor-icons/react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { memo, useEffect, useMemo, useRef } from "react";
+import {
+  memo,
+  useEffect,
+  useMemo,
+  useRef,
+  useSyncExternalStore,
+} from "react";
 
 import { count } from "../dev/stats";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
@@ -16,6 +22,7 @@ import { chaveDeMembro } from "../sdk/domain";
 import { primeiroCanalDe } from "../sdk/adapter";
 import { pode } from "../sdk/permissoes";
 import { administrar } from "../store/administracao";
+import { assinarConexao, lerConexao } from "../store/conexao";
 import { CartaoDePerfil } from "./CartaoDePerfil";
 import {
   useCorDeCargo,
@@ -391,6 +398,13 @@ export function ListaDeMembros() {
 
   const items = virtualizer.getVirtualItems();
 
+  /*
+    UMA subscrição para a coluna inteira — não uma por linha. O que muda por
+    linha é o ponto de presença, e ele some por CSS a partir do `<html>`.
+  */
+  const semConexao =
+    useSyncExternalStore(assinarConexao, lerConexao) !== "conectado";
+
   // Linha medindo zero é bug, não estado — a mesma assertion da lista de
   // mensagens, pelo mesmo motivo: zero realimenta a medição e trava a aba.
   /*
@@ -474,6 +488,28 @@ export function ListaDeMembros() {
           );
         })}
       </div>
+
+      {/*
+        ⚠ **O aviso de presença congelada, e ele fica FORA da pista
+        virtualizada.**
+
+        Dentro dela ele seria mais um item com altura própria, e o
+        virtualizador teria de medi-lo e reposicioná-lo a cada aparição —
+        trabalho de layout numa lista de dezenas de milhares por causa de um
+        parágrafo. Fora, ele empilha depois do total e some sozinho quando a
+        conexão volta.
+
+        A lista NÃO é limpa nem reordenada offline: ela fica no último estado
+        conhecido, que é o que o design manda. O que sai são os pontos de
+        presença (ver `PontoDePresenca.module.css`) — "todos offline" seria
+        informação falsa.
+      */}
+      {semConexao ? (
+        <p className={css.congelada}>
+          Presença indisponível offline — todos aparecem sem status. Lista
+          congelada no último estado conhecido.
+        </p>
+      ) : null}
     </div>
   );
 }

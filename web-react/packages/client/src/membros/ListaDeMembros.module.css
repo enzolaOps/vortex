@@ -250,3 +250,25 @@
   inline-size: var(--vx-icon-1);
   block-size: var(--vx-icon-1);
 }
+
+/*
+  O aviso de presença congelada.
+
+  ⚠ Fora da pista virtualizada — dentro dela seria mais um item para o
+  virtualizador medir e reposicionar, numa lista de dezenas de milhares, por
+  causa de um parágrafo.
+
+  `surface-2` dentro de uma coluna em `surface-1`: um degrau ACIMA, porque ele
+  é um cartão sobre a lista e não um rodapé dela. Recuo de 6 nas laterais para
+  ele não encostar na borda da coluna, como o design desenha.
+*/
+.congelada {
+  margin: var(--vx-space-08) var(--vx-space-06) var(--vx-space-06);
+  padding: var(--vx-space-10) var(--vx-space-12);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-2);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
