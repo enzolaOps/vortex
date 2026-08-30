@@ -103,6 +103,23 @@
     resolve nos dois modos porque a camada 1 tem os dois blocos.
   */
   --vx-hairline: rgb(255 255 255 / 6%);
+  /*
+    O segundo degrau da hairline, e ele existe porque o design usa uma FAMÍLIA
+    de alfas de borda, não uma só: 6% separa blocos (régua de coluna, rodapé),
+    12% delimita um CONTROLE (botão secundário, campo em foco).
+
+    ⚠ Ele não é `--vx-border-subtle`, que é `#1d232d` SÓLIDO. A diferença é
+    visível e não de arredondamento: composto sobre `surface-3`, o alfa de 12%
+    dá `rgb(54,55,58)` contra os `rgb(29,35,45)` do sólido — o botão secundário
+    do design tem uma aresta clara, e com o sólido ele quase não tem borda.
+    Alfa também acompanha a superfície de baixo, que é o ponto de uma borda de
+    controle que aparece em `surface-2`, `surface-3` e `surface-4`.
+
+    ⚠ O valor CLARO é estimado, não medido: 16% mantém a mesma razão que a
+    hairline já usa entre os modos (6 → 8). Trocar quando houver um botão
+    secundário no tema claro do design para medir.
+  */
+  --vx-hairline-forte: rgb(255 255 255 / 12%);
 
     --vx-border-subtle: #1d232d;
   --vx-border-strong: #6b7684;
@@ -216,6 +233,25 @@
   --vx-state-hover: rgb(255 255 255 / 4.5%);
   --vx-state-press: rgb(255 255 255 / 8%);
   --vx-state-selected: color-mix(in oklab, var(--vx-accent) 10%, transparent);
+
+  /*
+    Três composições que o design usa e que NÃO entram em `TokenName`.
+
+    A razão é a mesma do `state-selected` logo acima, e ela é forte: cada uma é
+    o próprio token base com alfa. Sendo `color-mix` do base, trocar `--vx-accent`
+    ou `--vx-danger` no picker as move junto — grátis e sem chance de divergir.
+    Como entrada de `TokenName`, um preset poderia trocar o vermelho e deixar o
+    preenchimento vermelho ANTIGO atrás dele, que é o defeito que a derivação
+    inteira existe para impedir.
+
+    `danger-soft` só ganhou nome porque cruzou a linha de "existe atrás de UMA
+    coisa": divisor de novas mensagens, item destrutivo de menu, selo CHEIO e
+    agora o hover do botão destrutivo sutil. Quatro cópias do mesmo
+    `color-mix` escrito à mão é onde a duplicação começa a mentir.
+  */
+  --vx-accent-ring: color-mix(in oklab, var(--vx-accent) 22%, transparent);
+  --vx-danger-soft: color-mix(in oklab, var(--vx-danger) 14%, transparent);
+  --vx-danger-border: color-mix(in oklab, var(--vx-danger) 35%, transparent);
 
   /* O véu atrás de modal e drawer. */
   --vx-scrim: rgb(6 8 10 / 72%);
@@ -680,6 +716,7 @@
   --vx-text-4: #8b939f;
 
   --vx-hairline: rgb(0 0 0 / 8%);
+  --vx-hairline-forte: rgb(0 0 0 / 16%);
   --vx-border-subtle: #dce0e5;
   --vx-border-strong: #7c838e;
 
@@ -736,6 +773,7 @@
     --vx-text-4: #8b939f;
 
     --vx-hairline: rgb(0 0 0 / 8%);
+  --vx-hairline-forte: rgb(0 0 0 / 16%);
     --vx-border-subtle: #dce0e5;
     --vx-border-strong: #7c838e;
 
@@ -837,6 +875,10 @@
   --color-state-hover: var(--vx-state-hover);
   --color-state-press: var(--vx-state-press);
   --color-state-selected: var(--vx-state-selected);
+  --color-accent-ring: var(--vx-accent-ring);
+  --color-danger-soft: var(--vx-danger-soft);
+  --color-danger-border: var(--vx-danger-border);
+  --color-hairline-forte: var(--vx-hairline-forte);
   --color-scrim: var(--vx-scrim);
 
   --shadow-e1: var(--vx-elev-1);

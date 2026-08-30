@@ -1,0 +1,51 @@
+/* ============================================================
+   Girador — anel indeterminado
+   ------------------------------------------------------------
+   O primitivo que faltava para o estado `loading`, e a ausência
+   dele era a razão de `loading` ser o único dos oito estados sem
+   NENHUM consumidor no app.
+
+   Só `transform` anima. Animar largura, altura ou borda força
+   layout a cada quadro, e este anel vive dentro de um botão que
+   pode estar numa lista — o custo se multiplica pelo número de
+   linhas montadas.
+   ============================================================ */
+
+.girador {
+  display: block;
+  flex: none;
+  border-style: solid;
+  border-radius: var(--vx-radius-pill);
+  /*
+    A cor fraca sai da PRÓPRIA cor do arco por `color-mix`, e não de um token
+    neutro: dentro de um botão o arco é `currentColor`, então o anel de fundo
+    precisa acompanhar seja qual for a variante. Um cinza fixo apareceria como
+    sujeira dentro do botão primário.
+  */
+  border-color: color-mix(in srgb, currentcolor 30%, transparent);
+  border-block-start-color: currentcolor;
+  animation: girar 700ms linear infinite;
+}
+
+@keyframes girar {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/*
+  Quem pede menos movimento não recebe um anel PARADO — um indicador de
+  carregamento imóvel afirma que nada está acontecendo. Ele pulsa de opacidade,
+  que é movimento sem deslocamento e é o que a preferência pede.
+*/
+@media (prefers-reduced-motion: reduce) {
+  .girador {
+    animation: pulsar 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes pulsar {
+  50% {
+    opacity: 0.4;
+  }
+}

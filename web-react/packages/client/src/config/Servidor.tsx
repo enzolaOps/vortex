@@ -97,7 +97,10 @@ export function Servidor({ serverId }: { serverId: string }) {
               </Botao>
             </>
           ) : (
-            <Botao variante="perigo" onClick={() => setConfirmando(true)}>
+            /* Sutil porque ele ABRE a pergunta; quem apaga é o sólido logo
+               acima, dentro da confirmação. Vermelho cheio aqui daria o peso
+               do ato a um botão que só pergunta. */
+            <Botao variante="perigoSutil" onClick={() => setConfirmando(true)}>
               {dono ? "Apagar servidor" : "Sair do servidor"}
             </Botao>
           )}
