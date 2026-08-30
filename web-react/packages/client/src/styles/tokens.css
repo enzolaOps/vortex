@@ -115,11 +115,18 @@
     Alfa também acompanha a superfície de baixo, que é o ponto de uma borda de
     controle que aparece em `surface-2`, `surface-3` e `surface-4`.
 
-    ⚠ O valor CLARO é estimado, não medido: 16% mantém a mesma razão que a
-    hairline já usa entre os modos (6 → 8). Trocar quando houver um botão
-    secundário no tema claro do design para medir.
+    ⚠ **10% e não 12%, e eu commitei 12 antes de contar.** O botão do design
+    escreve `rgba(255,255,255,0.12)` — e é outlier: contadas as ocorrências no
+    `Vortex Foundations`, 0.10 aparece **12 vezes** e 0.12 apenas **3**, e a
+    escala que o próprio arquivo DECLARA é 6 · 10 · 16. O campo de formulário,
+    que é o outro consumidor deste degrau, usa 0.10. Dois pontos percentuais
+    numa hairline não são perceptíveis; um terceiro token para eles seria.
+
+    ⚠ O valor CLARO é estimado, não medido: o design não tem borda de controle
+    no tema claro para medir (os `rgba(0,0,0,…)` dele são todos véu de modal).
+    12% mantém a razão que a hairline já usa entre os modos (6 → 8).
   */
-  --vx-hairline-forte: rgb(255 255 255 / 12%);
+  --vx-hairline-forte: rgb(255 255 255 / 10%);
 
     --vx-border-subtle: #1d232d;
   --vx-border-strong: #6b7684;
@@ -716,7 +723,7 @@
   --vx-text-4: #8b939f;
 
   --vx-hairline: rgb(0 0 0 / 8%);
-  --vx-hairline-forte: rgb(0 0 0 / 16%);
+  --vx-hairline-forte: rgb(0 0 0 / 12%);
   --vx-border-subtle: #dce0e5;
   --vx-border-strong: #7c838e;
 
@@ -773,7 +780,7 @@
     --vx-text-4: #8b939f;
 
     --vx-hairline: rgb(0 0 0 / 8%);
-  --vx-hairline-forte: rgb(0 0 0 / 16%);
+  --vx-hairline-forte: rgb(0 0 0 / 12%);
     --vx-border-subtle: #dce0e5;
     --vx-border-strong: #7c838e;
 

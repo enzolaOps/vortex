@@ -7,22 +7,46 @@
    dos controles pendentes.
    ============================================================ */
 
+/*
+  A mesma SOBRANCELHA de `Campo.module.css .rotulo`, com o contador empurrado
+  para a ponta — é a composição que o design desenha (`flex`, `space-between`,
+  `align-items:baseline`, `margin-bottom:6px`).
+
+  ⚠ Repetida e não compartilhada, e a duplicação está registrada: são dois CSS
+  Modules, e o estilo de rótulo de formulário vai aparecer em toda seção de
+  configuração. Vira utility na primeira terceira cópia — antes disso, extrair
+  custa mais do que a divergência que evita.
+*/
 .rotuloComContador {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--vx-space-08);
+  margin-block-end: var(--vx-space-06);
   font-size: var(--vx-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--vx-text-3);
 }
 
 /* Inline com o rótulo, e não abaixo do campo — é onde o design o põe. */
+/*
+  Mono porque os dígitos MUDAM a cada tecla: em fonte proporcional o número
+  treme e empurra o próprio rótulo. É o mesmo critério que manteve o `3/8` da
+  sala de voz FORA do mono, onde ele muda uma vez a cada muitos minutos.
+
+  `text-3` e não `text-4`: o quarto degrau é o tom de desativado, e o contador
+  é informação viva — no design ele sai em `#77808E`, o mesmo do rótulo.
+*/
 .contador {
   margin: 0;
   text-align: end;
   font-family: var(--vx-font-mono);
   font-size: var(--vx-size-xs);
-  color: var(--vx-text-4);
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--vx-text-3);
 }
 
 /* --------------------------------------------- controle pendente */

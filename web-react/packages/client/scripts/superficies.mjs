@@ -79,12 +79,6 @@ const PERMITIDO = {
       "Rota de tela cheia SOBRE o shell — ela precisa ser opaca e cobrir o " +
       "que está atrás, e o tom de chão é o que diz 'você saiu da conversa'.",
   },
-  "components/ui/Campo.module.css": {
-    ".entrada":
-      "Campo de entrada. Verificado no design: o input de busca de cargo em " +
-      "`Configurações do Servidor` é `background:#08090B`. O que recebe " +
-      "entrada AFUNDA — é o inverso do painel, que flutua.",
-  },
   "config/canal/Canal.module.css": {
     ".filtro":
       "Campo de BUSCA, e o design separa os dois papéis: o que recebe entrada " +
