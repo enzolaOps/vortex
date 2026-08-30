@@ -150,14 +150,22 @@
 }
 
 /*
-  Coluna estreita: a busca sai antes dos botões.
+  Coluna estreita: a busca sai por último, junto com o tópico.
 
-  A ordem de cedência é a mesma do resto do cabeçalho — identidade fica,
-  contexto cede, e a busca é o alvo mais fácil de alcançar por outro caminho
-  (a paleta responde ao mesmo atalho). Os seis botões ficam: cada um é a única
-  entrada para o que ele abre.
+  ⚠ **O corte é 420 e não 520, e a diferença aparece num breakpoint que o
+  design lista.** Com 520, uma janela de 1024 já escondia a busca: a coluna de
+  conteúdo ali dá 472, porque as larguras das laterais são escolha de quem usa
+  desde a fase 4 e não encolhem sozinhas. Como a busca ENCOLHE até o quadrado
+  da lupa, ela cabe muito abaixo de 520 — esconder antes disso era ceder espaço
+  que existia.
+
+  420 é o mesmo corte do tópico, e a ordem de cedência é a do resto do
+  cabeçalho: identidade fica, contexto cede. A busca cede junto porque é o
+  único dos sete alvos alcançável por outro caminho — a paleta responde ao
+  mesmo atalho. Os seis botões ficam: cada um é a única entrada para o que ele
+  abre.
 */
-@container (inline-size < 520px) {
+@container (inline-size < 420px) {
   .busca {
     display: none;
   }
