@@ -143,6 +143,26 @@ export function Opcao({
  * Quem a usa fica com o `role="radio"` e o `aria-checked` no próprio elemento;
  * o CSS lê o estado do ancestral.
  */
+export function MarcaDeCaixa({ className }: { className?: string }) {
+  return (
+    <span className={cn(css.marcador, css.caixa, className)} aria-hidden>
+      <Check weight="bold" aria-hidden />
+    </span>
+  );
+}
+
+/**
+ * Só a MARCA de opção, para quando o controle já é o elemento de fora.
+ *
+ * ⚠ Existe porque `Opcao` é um `<button>`, e há consumidor cujo alvo é um
+ * CARTÃO inteiro — título, selo e explicação — que também é um `<button>`.
+ * Botão dentro de botão é HTML inválido: o navegador reestrutura a árvore e o
+ * clique interno aciona os dois. O erro já aconteceu uma vez nas ações da
+ * linha de canal.
+ *
+ * Quem a usa fica com o `role` e o `aria-checked` no próprio elemento; o CSS
+ * lê o estado do ancestral.
+ */
 export function MarcaDeOpcao({ className }: { className?: string }) {
   return (
     <span className={cn(css.marcador, css.ponto, className)} aria-hidden>

@@ -43,7 +43,12 @@ import { client, conectado } from "./client";
 import { lerEnquete } from "../store/enquetes";
 import { semearStatusDoServidor } from "./perfil";
 import { aguardar, desistir, reconciliar } from "./nonce";
-import { definirConexao } from "../store/conexao";
+import {
+  assinarConexao,
+  definirConexao,
+  lerConexao,
+} from "../store/conexao";
+import { confirmarNaFila, esquecerDaFila } from "../store/fila";
 import { assinarSilencio } from "../store/silencio";
 import { dentro } from "../store/sessao";
 import {
@@ -338,6 +343,91 @@ function marcarEnvio(id: string, estado: SendState) {
       toMessageSnapshot(message, layoutDe(id), estado, usuarioLocal, lerEnquete(id)),
     );
   }
+}
+
+/**
+ * "Enviar quando voltar" — mantém na fila e dispensa a pergunta.
+ *
+ * ⚠ A decisão mora em `store/fila.ts` e não aqui, e a razão está lá: a
+ * primeira versão era um `Set` no adapter, republicando o snapshot da
+ * mensagem para acordar a linha — e não acordava, porque o snapshot é cacheado
+ * por conteúdo e estado, e nenhum dos dois muda com a escolha. Os dois botões
+ * ficavam na tela depois do clique, sem erro nenhum.
+ */
+export function manterNaFila(id: string): void {
+  if (estadoDeEnvioDe(id) !== "pending") return;
+  confirmarNaFila(id);
+}
+
+/**
+ * "Descartar" — a mensagem some, e some de verdade.
+ *
+ * ⚠ **Ela sai do cache do SDK, não só da lista.** Deixar o objeto vivo e
+ * apenas tirar o ID faria a mensagem voltar na próxima republicação do canal,
+ * e o vazamento seria invisível: nada quebra, a linha só reaparece.
+ *
+ * `desistir(id)` porque o nonce não serve mais para nada — sem isto o mapa
+ * cresce para sempre numa sessão de 8h com rede instável, que é o erro nº 5 do
+ * briefing.
+ */
+export function descartarPendente(id: string): void {
+  if (estadoDeEnvioDe(id) !== "pending") return;
+  estadosDeEnvio.delete(id);
+  esquecerDaFila(id);
+  desistir(id);
+  const sdkId = idDoSdk(id);
+  const message = client.messages.get(sdkId);
+  const channelId = message?.channelId;
+  client.messages.delete(sdkId);
+  if (channelId !== undefined) publishNow(channelId);
+}
+
+/**
+ * Ao voltar a conexão, as pendentes vão.
+ *
+ * ⚠ **É isto que faz "Enviar quando voltar" ser verdade e não um rótulo.** Sem
+ * este laço, a mensagem digitada offline ficaria pendente para sempre e o
+ * botão prometeria algo que ninguém cumpre — o defeito que o registro de
+ * pendências existe justamente para não deixar acontecer em silêncio.
+ *
+ * Module-level e sem cleanup de propósito: o adapter vive enquanto o app vive,
+ * e este é o único assinante da conexão fora de componente. Um `remove` aqui
+ * só rodaria no descarregamento da página.
+ */
+let conexaoAnterior = lerConexao();
+assinarConexao(() => {
+  const agora = lerConexao();
+  const voltou = conexaoAnterior !== "conectado" && agora === "conectado";
+  conexaoAnterior = agora;
+  if (!voltou) return;
+
+  /*
+    Cópia da lista antes de percorrer: `reenviarPendente` escreve em
+    `estadosDeEnvio`, e iterar um Map que muda durante o laço é a família de
+    bug que não dá erro — pula entradas.
+  */
+  for (const [id, estado] of [...estadosDeEnvio]) {
+    if (estado === "pending") reenviarPendente(id);
+  }
+});
+
+/**
+ * O caminho de envio de uma pendente que já existe.
+ *
+ * Separado de `reenviar` porque aquele exige `failed`: são duas transições
+ * diferentes — "falhou, tenta de novo" e "estava esperando a rede voltar" —, e
+ * juntá-las faria a segunda passar pelo guarda da primeira e não fazer nada.
+ */
+function reenviarPendente(id: string): void {
+  esquecerDaFila(id);
+  setTimeout(() => {
+    if (simulacao.falhar) {
+      desistir(id);
+      marcarEnvio(id, "failed");
+    } else {
+      marcarEnvio(id, "sent");
+    }
+  }, simulacao.latenciaMs ?? 600);
 }
 
 /**
@@ -1263,6 +1353,25 @@ export function enviarMensagem(
   );
 
   digitacao.aoParar(channelId);
+
+  /*
+    ⚠ **Sem conexão a mensagem FICA pendente, e isto não é simulação — é o
+    comportamento certo.** `channel.sendMessage` é uma chamada de rede; sem
+    socket ela não acontece. Marcar `sent` de qualquer jeito era o que o arnês
+    fazia, e produzia uma linha que afirma ter chegado ao servidor com o app
+    offline — a interface mentindo sobre a única coisa que ela existe para
+    dizer.
+
+    Quem tira daqui é o laço de reconexão logo acima: ao voltar a conexão,
+    toda pendente é reenviada. É o que faz "Enviar quando voltar" ser verdade.
+
+    ⚠ **`lerConexao()` e NÃO `conectado()`, e a diferença importa.** Aquele lê
+    o socket cru; este lê o store que a interface desenha — e é o MESMO que a
+    linha consulta para decidir se escreve "na fila · offline". Com duas
+    fontes, o rótulo e o comportamento poderiam discordar: a linha dizendo
+    "está indo" com a mensagem parada, ou o contrário. Com uma, não podem.
+  */
+  if (lerConexao() !== "conectado") return id;
 
   setTimeout(() => {
     if (simulacao.falhar) {

@@ -74,6 +74,98 @@ export async function criarGrupo(
 }
 
 /**
+ * Quem está no grupo, e quem manda nele.
+ *
+ * ⚠ Devolve TIPO DO APP e não `User[]`: o `stoat.js` só pode ser importado
+ * dentro de `src/sdk/`, e o painel de grupo é componente. É a mesma fronteira
+ * que faz `ResultadoDeBusca` existir em vez de `Message`.
+ *
+ * Leitura direta e não store: a lista muda por ação humana (alguém entra, sai
+ * ou é removido), e o painel é remontado a cada abertura. Um store por grupo
+ * seria maquinário para um dado que ninguém observa enquanto o painel está
+ * fechado.
+ */
+export type GrupoSnapshot = {
+  readonly nome: string;
+  readonly donoId: string;
+  readonly membrosIds: readonly string[];
+};
+
+export function lerGrupo(channelId: string): GrupoSnapshot | undefined {
+  const canal = client.channels.get(channelId);
+  if (!canal || canal.type !== "Group") return undefined;
+  return {
+    nome: canal.name ?? "Grupo",
+    donoId: canal.ownerId,
+    membrosIds: [...canal.recipientIds],
+  };
+}
+
+export async function renomearGrupo(
+  channelId: string,
+  nome: string,
+): Promise<boolean> {
+  try {
+    await client.channels.get(channelId)?.edit({ name: nome });
+    publicarConversas();
+    return true;
+  } catch (e) {
+    falhou("Não deu para renomear o grupo.", e);
+    return false;
+  }
+}
+
+export async function adicionarAoGrupo(
+  channelId: string,
+  userId: string,
+): Promise<boolean> {
+  try {
+    await client.channels.get(channelId)?.addMember(userId);
+    publicarConversas();
+    return true;
+  } catch (e) {
+    falhou("Não deu para adicionar.", e);
+    return false;
+  }
+}
+
+export async function removerDoGrupo(
+  channelId: string,
+  userId: string,
+): Promise<boolean> {
+  try {
+    await client.channels.get(channelId)?.removeMember(userId);
+    publicarConversas();
+    return true;
+  } catch (e) {
+    falhou("Não deu para remover.", e);
+    return false;
+  }
+}
+
+/**
+ * Passa o grupo para outra pessoa.
+ *
+ * ⚠ **`owner` é campo de `DataEditChannel`** — isto é escrita de protocolo de
+ * verdade, e não um conceito de cliente. É a única das quatro ações do painel
+ * que a pessoa não pode desfazer sozinha depois: quem deixa de ser dono
+ * precisa que o novo dono devolva.
+ */
+export async function transferirGrupo(
+  channelId: string,
+  userId: string,
+): Promise<boolean> {
+  try {
+    await client.channels.get(channelId)?.edit({ owner: userId });
+    publicarConversas();
+    return true;
+  } catch (e) {
+    falhou("Não deu para transferir.", e);
+    return false;
+  }
+}
+
+/**
  * Sai de um grupo, ou fecha uma conversa.
  *
  * A mesma chamada para os dois, e é o protocolo que decide o que ela significa:

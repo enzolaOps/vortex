@@ -80,6 +80,13 @@ export type Alvo =
     lugar onde se está, não um objeto que já existe.
   */
   | { readonly tipo: "enquete" }
+  /*
+    ⚠ **Criar grupo NÃO carrega alvo, gerenciar carrega o canal.** A assimetria
+    é a mesma de `criarCanal` contra `editarCanal`: um formulário em branco não
+    tem sobre o que operar, e um que edita não pode nascer sem saber o quê.
+  */
+  | { readonly tipo: "novoGrupo" }
+  | { readonly tipo: "grupo"; readonly channelId: string }
   | {
       readonly tipo: "moderar";
       readonly serverId: string;
@@ -135,6 +142,8 @@ const MODAL_DE: Record<
   | "link"
   | "encaminhar"
   | "enquete"
+  | "novoGrupo"
+  | "grupo"
 > = {
   criarCanal: "canal",
   editarCanal: "canal",
@@ -151,6 +160,8 @@ const MODAL_DE: Record<
   moderar: "moderar",
   encaminhar: "encaminhar",
   enquete: "enquete",
+  novoGrupo: "novoGrupo",
+  grupo: "grupo",
 };
 
 /** Estado limpo entre testes. O módulo é global e sobrevive. */

@@ -46,6 +46,30 @@ export const PENDENCIAS = {
   },
 
 
+  /* ------------------------------------------------------------- grupo */
+  /*
+    ⚠ **Três pendências num painel de CINCO ações, e as outras quatro são
+    escrita de protocolo de verdade** — renomear, remover, transferir e sair
+    chamam o servidor. O que sobra depende de coisas fora do painel.
+  */
+  iconeDeGrupo: {
+    superficie: "Gerenciar grupo",
+    faz: "Trocar a imagem do grupo.",
+    depende: "upload ao servidor de mídia (autumn) — a mesma de `anexar`",
+  },
+  adicionarAoGrupo: {
+    superficie: "Gerenciar grupo",
+    faz: "Chamar mais alguém para o grupo.",
+    depende:
+      "o seletor de pessoas do `NovoGrupo` reaproveitado com os atuais já fora da lista — `addMember` já existe no adapter",
+  },
+  notificacoesDoGrupo: {
+    superficie: "Gerenciar grupo",
+    faz: "Escolher o que notifica neste grupo, sem mexer no resto.",
+    depende:
+      "preferência POR CANAL — hoje `store/notificacoes.ts` guarda só o padrão global",
+  },
+
   /* ------------------------------------------------------------ avançado */
   /*
     ⚠ **Só UM pendente em Avançado, e é o menor dos dois controles.** O modo

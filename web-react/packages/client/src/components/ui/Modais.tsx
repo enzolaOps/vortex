@@ -16,6 +16,8 @@ import {
   lerModal,
   type ModalId,
 } from "../../store/modais";
+import { GerenciarGrupo } from "../../casa/GerenciarGrupo";
+import { NovoGrupo } from "../../casa/NovoGrupo";
 
 /**
  * O registro de modais, e o ponto dele é o TIPO.
@@ -43,6 +45,8 @@ const REGISTRO: Record<ModalId, ComponentType<{ aoFechar: () => void }>> = {
   link: AvisoDeLink,
   encaminhar: Encaminhar,
   enquete: CriarEnquete,
+  novoGrupo: NovoGrupo,
+  grupo: GerenciarGrupo,
 };
 
 /**

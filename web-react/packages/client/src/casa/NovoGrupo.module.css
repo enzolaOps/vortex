@@ -1,0 +1,182 @@
+/* ============================================================
+   Novo grupo
+   ------------------------------------------------------------
+   420×445 no design. A altura não é fixa aqui: a lista tem teto
+   próprio e o `Dialog` já limita em 90vh — travar a caixa faria
+   sobrar vazio quando a pessoa só tem dois amigos.
+   ============================================================ */
+
+.painel {
+  inline-size: 420px;
+}
+
+/* ------------------------------------------------------------ fichas */
+
+.fichas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-06);
+  margin-block-end: var(--vx-space-10);
+}
+
+/*
+  A ficha de quem já entrou.
+
+  ⚠ Com AVATAR, e não só o nome: numa lista de amigos com dois "Marina" a
+  ficha textual não diria qual das duas foi escolhida — e o gradiente do avatar
+  é justamente o que distingue duas pessoas de mesmo nome neste app.
+*/
+.ficha {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-06);
+  block-size: 26px;
+  padding-inline: var(--vx-space-04) var(--vx-space-08);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-accent-soft);
+  color: var(--vx-accent-text);
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+}
+
+.tirar {
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--vx-text-2);
+  cursor: pointer;
+}
+
+.tirar:hover {
+  color: var(--vx-text-1);
+}
+
+.tirar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 1px;
+}
+
+/* ------------------------------------------------------------- busca */
+
+.campo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  min-inline-size: 0;
+  block-size: 32px;
+  padding-inline: var(--vx-space-10);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+}
+
+.campo:focus-within {
+  border-color: var(--vx-accent);
+  box-shadow: 0 0 0 3px var(--vx-accent-ring);
+}
+
+.campo svg {
+  flex: none;
+  color: var(--vx-text-3);
+}
+
+.entrada {
+  flex: 1;
+  min-inline-size: 0;
+  border: 0;
+  background: transparent;
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  outline: none;
+}
+
+.entrada::placeholder {
+  color: var(--vx-text-4);
+}
+
+/* ----------------------------------------------------------- a lista */
+
+/*
+  220px de teto, do design — cerca de cinco linhas.
+
+  ⚠ Teto e não altura: com dois amigos a caixa encolhe, e um modal com 180px de
+  vazio embaixo lê como lista que falhou em carregar. Rolar dentro dela mantém
+  as fichas e o campo sempre visíveis, que é o que permite tirar alguém sem
+  perder a posição da rolagem.
+*/
+.lista {
+  overflow-y: auto;
+  max-block-size: 220px;
+  margin-block-start: var(--vx-space-10);
+  scrollbar-width: thin;
+}
+
+.candidata {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+  inline-size: 100%;
+  padding: var(--vx-space-06) var(--vx-space-08);
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.candidata:hover:not(:disabled) {
+  background: var(--vx-state-hover);
+}
+
+/* Véu de acento a 7%, do design — mais fraco que `state-selected` porque
+   aqui a marca já diz o estado, e o fundo é só reforço. */
+.candidata[aria-checked="true"] {
+  background: color-mix(in oklab, var(--vx-accent) 7%, transparent);
+}
+
+.candidata:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.candidata:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.textos {
+  display: grid;
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.nome {
+  overflow: hidden;
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Mono: nome de usuário é IDENTIFICADOR, e é como este app escreve
+   identificador em todo lugar. */
+.usuario {
+  overflow: hidden;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A contagem no rodapé, à esquerda do botão. */
+.restantes {
+  margin-inline-end: auto;
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}

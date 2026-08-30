@@ -1,4 +1,4 @@
-import { Note, Users } from "@phosphor-icons/react";
+import { Gear, Note, Plus, Users } from "@phosphor-icons/react";
 import { memo } from "react";
 
 import { EstadoVazio } from "../components/ui/EstadoVazio";
@@ -14,6 +14,15 @@ import { abrirConversa, irParaAmigos } from "../store/navegacao";
 import { useLocal } from "../store/hooks";
 import { Selo } from "../components/ui/Selo";
 import css from "./ListaDeConversas.module.css";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "../components/ui/ContextMenu";
+import { ItemDeId } from "../components/ui/ItemDeId";
+import { Tooltip } from "../components/ui/Tooltip";
+import { administrar } from "../store/administracao";
 
 /**
  * A coluna da casa: conversas diretas, grupos e as notas.
@@ -57,7 +66,7 @@ const Conversa = memo(function Conversa({
         ? (outro?.displayName ?? canal.name)
         : canal.name;
 
-  return (
+  const linha = (
     <button
       type="button"
       className={css.conversa}
@@ -108,6 +117,30 @@ const Conversa = memo(function Conversa({
       ) : null}
     </button>
   );
+
+  /*
+    ⚠ **O menu só existe para GRUPO, e a condição não é economia — é o que
+    impede um menu de um item só.** Numa DM as ações do design (fechar,
+    silenciar, favoritar) ainda não existem; montar `ContextMenu.Root` em cada
+    linha para abrir uma caixa vazia é o mesmo custo que a member list já
+    evitou, com o agravante de a caixa não ter conteúdo.
+  */
+  if (canal.tipo !== "grupo") return linha;
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>{linha}</ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem
+          onSelect={() => administrar({ tipo: "grupo", channelId: id })}
+        >
+          <Gear size={20} aria-hidden />
+          Gerenciar grupo
+        </ContextMenuItem>
+        <ItemDeId id={id} />
+      </ContextMenuContent>
+    </ContextMenu>
+  );
 });
 
 export function ListaDeConversas() {
@@ -118,7 +151,24 @@ export function ListaDeConversas() {
   return (
     <div className={css.painel}>
       <header className={css.cabecalho}>
-        <span>Conversas</span>
+        <span className={css.tituloDaColuna}>Conversas</span>
+        {/*
+          ⚠ **O `+` de criar grupo, e ele fecha um buraco de três etapas.**
+          `createGroup` existia no adapter desde a etapa 3 e nunca tinha sido
+          chamado — a família "construído e inalcançável" que o painel de
+          fixadas já registrou. O lugar é este: quem quer um grupo está
+          olhando a lista de conversas, não o menu de um servidor.
+        */}
+        <Tooltip texto="Novo grupo">
+          <button
+            type="button"
+            className={css.novoGrupo}
+            aria-label="Novo grupo"
+            onClick={() => administrar({ tipo: "novoGrupo" })}
+          >
+            <Plus size={16} aria-hidden />
+          </button>
+        </Tooltip>
       </header>
 
       {/*

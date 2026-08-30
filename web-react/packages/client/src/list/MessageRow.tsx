@@ -45,6 +45,7 @@ import { ATRIBUTO_DE_COLUNA } from "../dev/alinhamento";
 import { count } from "../dev/stats";
 import { ItemDeId } from "../components/ui/ItemDeId";
 import { copiarTexto } from "../lib/copiar";
+import { assinarFila, confirmadaNaFila } from "../store/fila";
 import { plural, rotuloDeReacao } from "../lib/plural";
 import { cn } from "../lib/cn";
 import { Avatar } from "../components/ui/Avatar";
@@ -57,7 +58,7 @@ import type {
   ReacaoSnapshot,
   SistemaSnapshot,
 } from "../sdk/domain";
-import { reenviar } from "../sdk/adapter";
+import { descartarPendente, manterNaFila, reenviar } from "../sdk/adapter";
 import {
   alternarFixada,
   alternarReacao,
@@ -470,6 +471,15 @@ function EditorDaLinha({
  */
 function EstadoDoEnvio({ message }: { message: MessageSnapshot }) {
   const conexao = useSyncExternalStore(assinarConexao, lerConexao);
+  /*
+    ⚠ Assinado, e não lido: a escolha de manter na fila não muda o snapshot da
+    mensagem — ele é cacheado por conteúdo e estado —, então uma leitura direta
+    deixaria os dois botões na tela depois do clique. Booleano, para o React
+    descartar o render quando nada mudou.
+  */
+  const confirmada = useSyncExternalStore(assinarFila, () =>
+    confirmadaNaFila(message.id),
+  );
   const falhou = message.sendState === "failed";
   const naFila = !falhou && conexao !== "conectado";
 
@@ -488,6 +498,34 @@ function EstadoDoEnvio({ message }: { message: MessageSnapshot }) {
       */}
       {naFila ? <span className={css.pontoDeFila} aria-hidden /> : null}
       {falhou ? "falha no envio" : naFila ? "na fila · offline" : "enviando…"}
+
+      {/*
+        Duas escolhas explícitas na fila, do design: *"a mensagem digitada
+        offline não é perdida nem enviada silenciosamente depois"*.
+
+        ⚠ Elas somem depois de decididas — "Enviar quando voltar" é o que
+        aconteceria de qualquer jeito, e o valor do botão é DISPENSAR a
+        pergunta. Deixá-las na tela para sempre transformaria uma decisão que
+        se toma uma vez em ruído permanente ao lado de cada mensagem parada.
+      */}
+      {naFila && !confirmada ? (
+        <span className={css.envioAcoes}>
+          <button
+            type="button"
+            className={css.envioAcao}
+            onClick={() => manterNaFila(message.id)}
+          >
+            Enviar quando voltar
+          </button>
+          <button
+            type="button"
+            className={cn(css.envioAcao, css.envioAcaoPerigo)}
+            onClick={() => descartarPendente(message.id)}
+          >
+            Descartar
+          </button>
+        </span>
+      ) : null}
 
       {/*
         Três ações no erro, como o design: tentar de novo, excluir, copiar.

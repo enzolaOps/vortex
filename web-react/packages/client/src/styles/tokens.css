@@ -451,6 +451,18 @@
   --vx-radius-10: 10px;
   --vx-radius-12: 12px;
   --vx-radius-14: 14px;
+  /*
+    18 é o raio do LADRILHO DE GRUPO, e ele existe porque a escala não o
+    cobria.
+
+    ⚠ A régua do projeto é "acrescente o degrau, não escape dele num arquivo",
+    e ela vale aqui onde não valeu para o ladrilho do rail: lá a diferença era
+    2px num alvo de 44 e o degrau vizinho resolvia. Aqui são 4px num de 56, e a
+    forma É a informação — um grupo precisa ler diferente de uma pessoa
+    (círculo) e de um servidor (12). Renomear a escala por VALOR foi o que
+    tornou isto uma linha em vez de uma renumeração.
+  */
+  --vx-radius-18: 18px;
   --vx-radius-pill: 9999px;
 
   /* --- Tipo --------------------------------------------------
@@ -984,6 +996,7 @@
   --radius-10: var(--vx-radius-10);
   --radius-12: var(--vx-radius-12);
   --radius-14: var(--vx-radius-14);
+  --radius-18: var(--vx-radius-18);
   --radius-pill: var(--vx-radius-pill);
 
   --text-2xs: var(--vx-size-2xs);
