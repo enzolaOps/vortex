@@ -73,6 +73,7 @@ import { aindaNao } from "../pendente/pendencias";
 import { FaixaDeVoz } from "../voz/FaixaDeVoz";
 import { PainelDeUsuario } from "../usuario/PainelDeUsuario";
 import { selecionarCanal } from "../store/navegacao";
+import { Selo } from "../components/ui/Selo";
 import css from "./ListaDeCanais.module.css";
 
 /**
@@ -245,9 +246,14 @@ const Canal = memo(function Canal({
             existindo e ela quer olhar na hora dela.
           */}
           {canal.mencoes > 0 ? (
-            <span className={css.contador} data-silenciado={canal.silenciado}>
+            <Selo
+              forma="contagem"
+              tom="perigo"
+              className={css.contador}
+              data-silenciado={canal.silenciado}
+            >
               {contagem(canal.mencoes)}
-            </span>
+            </Selo>
           ) : null}
 
           {/*
@@ -519,9 +525,9 @@ const TetoDaSala = memo(function TetoDaSala({
         que isso significa.
       */}
       {cheia ? (
-        <span className={css.cheio} aria-hidden>
+        <Selo forma="etiqueta" tom="perigoSuave" aria-hidden>
           CHEIO
-        </span>
+        </Selo>
       ) : null}
       <span className={css.teto} data-cheia={cheia}>
         {dentro.length}/{limite}

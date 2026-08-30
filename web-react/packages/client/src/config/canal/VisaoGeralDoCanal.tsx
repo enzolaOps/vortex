@@ -8,6 +8,7 @@ import { salvarCanal } from "../../sdk/canal";
 import { useChannel } from "../../store/hooks";
 import secao from "../Secao.module.css";
 import { MarcaDeOpcao } from "../../components/ui/Marcador";
+import { Selo } from "../../components/ui/Selo";
 import css from "./Canal.module.css";
 
 /**
@@ -329,7 +330,11 @@ function Opcao({
       <span className={css.opcaoTexto}>
         <span className={css.opcaoTitulo}>
           {titulo}
-          {selo ? <span className={css.selo}>{selo}</span> : null}
+          {selo ? (
+            <Selo tom="perigoSuave" className={css.selo}>
+              {selo}
+            </Selo>
+          ) : null}
         </span>
         <span className={css.opcaoDetalhe}>{detalhe}</span>
       </span>

@@ -1204,39 +1204,6 @@
 }
 
 /*
-  O selo CHEIO.
-
-  ⚠ **O design dima a LINHA INTEIRA para `text-4` com `cursor:not-allowed`, e
-  isso NÃO transfere para este protocolo.** Lá, a linha de canal de voz é o
-  botão de entrar na sala; aqui um canal de voz é um TextChannel com um objeto
-  `voice`, e clicar na linha ABRE O CANAL — as mensagens dele continuam
-  legíveis com a sala lotada. Entrar na chamada é outra ação, em outro lugar.
-
-  Dimar a linha e pôr `not-allowed` num alvo que continua funcionando e
-  continua sendo o único caminho para o histórico daquele canal é a mesma
-  família do controle inerte que o lint de `onSelect` existe para matar, com o
-  sinal trocado: em vez de parecer ativo e não fazer nada, pareceria morto e
-  faria. Quem carrega a informação é o selo, que é exato.
-
-  As medidas são as do design, byte a byte: 16 de altura, respiro 6, raio 4,
-  preenchimento em vermelho a 14% por `color-mix` — token novo custaria entrada
-  em `TokenName`, classificação e par de contraste para um fundo que só existe
-  atrás deste selo, a mesma decisão do realce do item destrutivo.
-*/
-.cheio {
-  flex: none;
-  display: flex;
-  align-items: center;
-  block-size: var(--vx-space-16);
-  padding-inline: var(--vx-space-06);
-  border-radius: var(--vx-radius-04);
-  background: color-mix(in srgb, var(--vx-danger) 14%, transparent);
-  color: var(--vx-danger-text);
-  font-size: var(--vx-size-2xs);
-  font-weight: 700;
-}
-
-/*
   "Mostrar canais ocultos" — a última linha da coluna.
 
   `text-4` e 12px: é a coisa menos importante da coluna, e precisa ficar

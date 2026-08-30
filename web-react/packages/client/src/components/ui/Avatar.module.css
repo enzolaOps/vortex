@@ -18,7 +18,13 @@
   /* Círculo. O design usa círculo para pessoa e retângulo arredondado só
      para servidor — a distinção é o que separa "quem" de "onde". */
   border-radius: var(--vx-radius-pill);
-  font-weight: 600;
+  /*
+    700, e não 600. A inicial é o ÚNICO conteúdo de um disco colorido, e
+    concorre com o gradiente por baixo dela — o design usa peso 700 em todas as
+    ocorrências com texto, do ladrilho de 22px da marca ao de 44px do rail.
+    Em 600 a letra some no meio-tom do gradiente.
+  */
+  font-weight: 700;
   /* Ligadura em iniciais como "fi" viraria glifo único. */
   font-variant-ligatures: none;
   user-select: none;
@@ -68,7 +74,10 @@
 .md {
   inline-size: var(--vx-avatar-md);
   block-size: var(--vx-avatar-md);
-  font-size: var(--vx-size-md);
+  /* 14: é o único tamanho de avatar em que o design mostra texto, e é o que
+     ele escreve. Os outros degraus não têm exemplar — o design desenha os
+     avatares maiores como gradiente puro, sem inicial. */
+  font-size: var(--vx-size-base);
 }
 
 .lg {

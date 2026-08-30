@@ -323,24 +323,6 @@
 }
 
 /*
-  Pílula vermelha com número BRANCO, 10px — os mesmos números do badge da
-  coluna de canais, e a mesma decisão registrada lá: branco sobre
-  `--vx-danger` dá 3,46:1 contra os 5,62:1 do quase-preto que estava aqui.
-  Segue o design, e as duas superfícies dizem a mesma coisa do mesmo jeito.
-*/
-.contador {
-  flex: none;
-  min-inline-size: var(--vx-space-16);
-  padding-inline: var(--vx-space-04);
-  border-radius: var(--vx-radius-pill);
-  background: var(--vx-danger);
-  color: var(--vx-on-danger);
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-}
-
-/*
   Com o rail estreito o contador vira selo sobre o ladrilho — no canto
   INFERIOR, como no design.
 

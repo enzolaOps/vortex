@@ -38,6 +38,7 @@ import {
 } from "../store/pastas";
 import { abrirModal } from "../store/modais";
 import { irParaCasa, selecionarServidor } from "../store/navegacao";
+import { Selo } from "../components/ui/Selo";
 import css from "./Rail.module.css";
 
 /**
@@ -152,7 +153,13 @@ const ItemDeServidor = memo(function ItemDeServidor({
         >
           {servidor.sigla}
           {servidor.mencoes > 0 ? (
-            <span className={css.contador}>{contagem(servidor.mencoes)}</span>
+            <Selo
+              forma="contagem"
+              tom="perigo"
+              className={css.contador}
+            >
+              {contagem(servidor.mencoes)}
+            </Selo>
           ) : null}
         </span>
 

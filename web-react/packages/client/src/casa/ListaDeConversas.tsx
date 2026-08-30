@@ -12,6 +12,7 @@ import {
 } from "../store/hooks";
 import { abrirConversa, irParaAmigos } from "../store/navegacao";
 import { useLocal } from "../store/hooks";
+import { Selo } from "../components/ui/Selo";
 import css from "./ListaDeConversas.module.css";
 
 /**
@@ -97,7 +98,7 @@ const Conversa = memo(function Conversa({
       {/* A contagem visível é de MENÇÃO; não-lida sem menção é peso, não
           número — a mesma regra da lista de canais. */}
       {canal.mencoes > 0 ? (
-        <span className={css.contador}>{contagem(canal.mencoes)}</span>
+        <Selo forma="contagem" tom="perigo">{contagem(canal.mencoes)}</Selo>
       ) : null}
 
       {temNaoLidas ? (

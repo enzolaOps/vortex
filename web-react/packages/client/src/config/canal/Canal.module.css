@@ -180,16 +180,16 @@
   color: var(--vx-text-3);
 }
 
+/*
+  Só o que é POSIÇÃO. Geometria e tom vêm do `Selo`.
+
+  ⚠ Esta cópia media 18px de altura contra os 16 das outras quatro, e usava
+  `danger@16` contra `danger@14` — duas divergências que ninguém introduziu de
+  propósito e que ninguém tinha como ver, porque as cinco moram em módulos
+  diferentes.
+*/
 .selo {
-  display: inline-flex;
-  align-items: center;
-  block-size: 18px;
-  padding-inline: var(--vx-space-06);
-  border-radius: var(--vx-radius-04);
-  background: color-mix(in oklab, var(--vx-danger) 16%, transparent);
-  color: var(--vx-danger-text);
-  font-size: var(--vx-size-2xs);
-  font-weight: 700;
+  margin-inline-start: var(--vx-space-06);
 }
 
 /* --------------------------------------- faixa de não-salvo */

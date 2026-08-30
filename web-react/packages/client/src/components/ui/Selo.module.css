@@ -1,0 +1,94 @@
+/* ============================================================
+   Selo — contagem e etiqueta
+   ------------------------------------------------------------
+   ⚠ Existia CINCO vezes à mão, com QUATRO geometrias diferentes:
+   contagem do rail, contagem da coluna de canais, contagem das
+   conversas, selo CHEIO da sala e selo de conflito das
+   permissões. Uma tinha 18px de altura contra 16 das outras, uma
+   usava `danger@16` contra `danger@14`, e a das conversas usava
+   ACENTO onde as outras usam vermelho — divergência de
+   SIGNIFICADO, não só de valor.
+
+   O design usa `height:16; padding:0 5–6; font 10/700` em todas,
+   e `#E8596B` em toda contagem, inclusive na lista de DMs.
+   ============================================================ */
+
+.selo {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  block-size: var(--vx-space-16);
+  padding-inline: var(--vx-space-06);
+  border: 1px solid transparent;
+  /* 10px é o degrau `--vx-size-2xs`, que existe porque 4,8% de todo texto do
+     design está nele — selo, contador, tecla de atalho. */
+  font-size: var(--vx-size-2xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------- formas */
+
+/*
+  A CONTAGEM é pílula e tem largura mínima igual à altura: um "1" sozinho fica
+  redondo, e é o que faz o número parecer um marcador em vez de uma palavra
+  curta. O respiro é menor (5) porque o glifo já é estreito.
+*/
+.contagem {
+  min-inline-size: var(--vx-space-16);
+  padding-inline: var(--vx-space-05);
+  border-radius: var(--vx-radius-pill);
+}
+
+/* A ETIQUETA é retangular: ela carrega PALAVRA, e a pílula em volta de texto
+   longo vira uma cápsula que compete com o conteúdo ao lado. */
+.etiqueta {
+  border-radius: var(--vx-radius-04);
+  letter-spacing: 0.02em;
+}
+
+/* -------------------------------------------------------- tons */
+
+/*
+  Sólido para o que INTERROMPE (menção, conflito), tingido para o que
+  QUALIFICA (novo, ativa, cheio). É a disciplina de acento aplicada ao selo: um
+  app com seis etiquetas sólidas na tela não tem nenhuma.
+*/
+.perigo {
+  background: var(--vx-danger);
+  color: var(--vx-on-danger);
+}
+
+.perigoSuave {
+  background: var(--vx-danger-soft);
+  color: var(--vx-danger-text);
+}
+
+.acento {
+  background: color-mix(in oklab, var(--vx-accent) 14%, transparent);
+  color: var(--vx-accent-text);
+}
+
+.aviso {
+  background: color-mix(in oklab, var(--vx-warning) 14%, transparent);
+  color: var(--vx-warning);
+}
+
+.sucesso {
+  background: color-mix(in oklab, var(--vx-success) 14%, transparent);
+  color: var(--vx-success-text);
+}
+
+.neutro {
+  background: var(--vx-track);
+  color: var(--vx-text-2);
+}
+
+/* Só contorno: o tom mais quieto, para o que é IDENTIFICAÇÃO e não estado —
+   a sigla de um servidor, um marcador de versão. */
+.contorno {
+  border-color: var(--vx-hairline-16);
+  color: var(--vx-text-3);
+}

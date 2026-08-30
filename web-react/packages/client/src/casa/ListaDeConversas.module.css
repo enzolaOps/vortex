@@ -157,23 +157,6 @@
 }
 
 /*
-  A contagem é de MENÇÃO, não de não-lida.
-
-  Não-lida sem menção já é dita pelo peso do nome; um número ali competiria
-  com o que de fato pede ação. Mesma decisão da lista de canais.
-*/
-.contador {
-  flex: 0 0 auto;
-  padding-inline: var(--vx-space-04);
-  border-radius: var(--vx-radius-12);
-  background: var(--vx-accent);
-  color: var(--vx-on-accent);
-  font-size: var(--vx-size-xs);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-/*
   Coluna estreita: o detalhe do grupo sai antes do nome.
 
   Container query e não media query — o painel é movível, e ele reage ao
