@@ -23,6 +23,13 @@
  *
  *   node scripts/confronto.mjs [filtro]
  *
+ * ⚠ **Regra de manutenção deste arquivo: NADA de crase dentro dos template
+ * literals que viram código de página.** Uma crase num comentário fecha a
+ * string, e isso quebrou este script quatro vezes — uma delas em silêncio, com
+ * a conversão de cor ficando inerte enquanto o relatório seguia acusando
+ * diferenças falsas. Foi por isso que o coletor saiu para `scripts/coletor.js`;
+ * o que sobrou aqui de JS-em-string está sem crase de propósito.
+ *
  * O app precisa estar SERVIDO e CONSTRUÍDO em `localhost:4174` — mesma regra do
  * `pnpm gate`, e pela mesma razão: medir o dev server é medir outra coisa.
  *
@@ -300,9 +307,30 @@ for (const r of roteiros) {
     const alvo = [...document.querySelectorAll("*")].find(
       (e) => e.children.length === 0 && (e.textContent || "").trim().includes(${JSON.stringify(r.ancora)}));
     if (!alvo) return { erro: "âncora não achada" };
+    /*
+      ⚠ **Coluna estreita não chega pelo heurístico de largura.** O rail tem 72
+      e a coluna de canais 248; exigir 600 faz as duas subirem até a tela
+      inteira, e o confronto compara o app contra a composição errada. Quando o
+      roteiro sabe a largura do alvo, ele a informa e o escalador mira nela.
+    */
+    const larguraAlvo = ${r.larguraDoDesign ?? "null"};
     let raiz = alvo;
-    while (raiz.parentElement && (raiz.getBoundingClientRect().width < 600 || raiz.children.length < 2)) {
-      raiz = raiz.parentElement;
+    const vistas = [];
+    if (larguraAlvo !== null) {
+      while (raiz.parentElement) {
+        const w = Math.round(raiz.getBoundingClientRect().width);
+        vistas.push(w);
+        if (Math.abs(w - larguraAlvo) <= 2 && raiz.children.length >= 1) break;
+        raiz = raiz.parentElement;
+      }
+      const w = Math.round(raiz.getBoundingClientRect().width);
+      if (Math.abs(w - larguraAlvo) > 2) {
+        return { erro: "nenhum ancestral com largura " + larguraAlvo + "; vi " + vistas.join(", ") };
+      }
+    } else {
+      while (raiz.parentElement && (raiz.getBoundingClientRect().width < 600 || raiz.children.length < 2)) {
+        raiz = raiz.parentElement;
+      }
     }
     for (let i = 0; i < ${r.subir}; i++) if (raiz.parentElement) raiz = raiz.parentElement;
     return olhar(raiz, 0, ${r.profundidade});
@@ -319,8 +347,13 @@ for (const r of roteiros) {
   const doApp = await aba.av(`(async () => {
     ${COLETOR}
     ${r.preparar}
-    const raiz = document.querySelector(${JSON.stringify(r.raiz)});
-    if (!raiz) return { erro: "raiz não achada: " + ${JSON.stringify(r.raiz)} };
+    /*
+      raiz e EXPRESSAO, nao seletor — ver a nota no topo do roteiro.
+      (Sem crase aqui: este bloco vive dentro de um template literal, e uma
+      crase fecha a string. Ja quebrou este script quatro vezes.)
+    */
+    const raiz = (() => { ${r.raiz} })();
+    if (!raiz) return { erro: "raiz não achada" };
     return olhar(raiz, 0, ${r.profundidade});
   })()`);
 
