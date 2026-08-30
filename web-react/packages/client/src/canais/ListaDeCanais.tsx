@@ -512,20 +512,29 @@ const NaSala = memo(function NaSala({
       {/*
         SRV — silenciado POR ORDEM do servidor.
 
-        ⚠ Vem ANTES do microfone e aparece JUNTO com ele: são fatos
+        ⚠ **AVISO e não perigo, e eu tinha errado.** A referência e o design
+        escrevem os dois em `#E2B15C`, e o âmbar é o certo: vermelho é falha
+        ou destruição, e não poder falar num servidor é RESTRIÇÃO
+        administrativa — a mesma razão pela qual a faixa de voz instável
+        deixou de ser vermelha nesta mesma tela.
+
+        **Glifo mais sigla**, e não a sigla sozinha. O ícone diz "microfone" de
+        relance e as três letras dizem QUEM desligou; sozinha, a sigla obriga
+        a conhecer a convenção antes de entender a linha.
+
+        Vem ANTES do microfone comum e aparece JUNTO com ele: são fatos
         diferentes. "Está sem microfone agora" é escolha que a pessoa desfaz;
         "não pode falar aqui" é decisão de quem modera, e só quem modera
-        desfaz. Quem espera resposta reage de forma oposta aos dois, e mostrar
-        só um esconderia justamente o que não vai mudar sozinho.
-
-        Selo e não ícone: `SRV` é a palavra do design, e três letras dizem
-        "servidor" onde um cadeado diria "trancado" sem dizer por quem.
+        desfaz. Quem espera resposta reage de forma oposta aos dois.
       */}
       {participante.mudoPeloServidor ? (
-        <Selo forma="etiqueta" tom="perigoSuave" className={css.selo}>
-          SRV
-          <span className="sr-only">{` silenciado pelo servidor`}</span>
-        </Selo>
+        <>
+          <MicrophoneSlash size={20} aria-hidden className={css.estadoSrv} />
+          <span className={css.srv} aria-hidden>
+            SRV
+          </span>
+          <span className="sr-only">silenciado pelo servidor</span>
+        </>
       ) : null}
 
       {participante.surdo ? (

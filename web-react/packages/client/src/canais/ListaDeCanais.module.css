@@ -1219,7 +1219,32 @@
   color: var(--vx-danger-text);
 }
 
-/* O selo SRV na linha da sala: só posição, o resto é do `Selo`. */
-.selo {
-  margin-inline-start: auto;
+
+/* ============================================================
+   SRV — silenciado pelo servidor
+   ------------------------------------------------------------
+   Texto puro, sem caixa: o design escreve
+   `font-size:9px;color:#E2B15C;font-weight:700` e nada mais. Eu
+   tinha entregue como `Selo` com preenchimento vermelho, e as
+   duas coisas estavam erradas — a cor e a caixa.
+
+   ⚠ **10px e não os 9 do design.** O 9 ficou de fora da escala
+   por decisão registrada: é onde a Instrument Sans perde as
+   contraformas em tela. Três maiúsculas em peso 700 é o caso que
+   mais sobrevive a 9px, mas um degrau fora da escala custa mais
+   que um pixel numa sigla.
+   ============================================================ */
+
+.estadoSrv {
+  flex: none;
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+  color: var(--vx-warning);
+}
+
+.srv {
+  flex: none;
+  font-size: var(--vx-size-2xs);
+  font-weight: 700;
+  color: var(--vx-warning);
 }
