@@ -27,8 +27,11 @@ export const SECOES = [
   "perfil",
   "conta",
   "sessoes",
+  "privacidade",
+  "vozEVideo",
   "aparencia",
   "notificacoes",
+  "atalhos",
   "servidor",
   "cargos",
   "convites",
@@ -61,8 +64,11 @@ export const NOME_DA_SECAO: Record<SecaoId, string> = {
   perfil: "Perfil",
   conta: "Conta",
   sessoes: "Dispositivos",
+  privacidade: "Privacidade",
+  vozEVideo: "Voz e vídeo",
   aparencia: "Aparência",
   notificacoes: "Notificações",
+  atalhos: "Atalhos de teclado",
   servidor: "Visão geral",
   cargos: "Cargos",
   convites: "Convites",
@@ -71,6 +77,20 @@ export const NOME_DA_SECAO: Record<SecaoId, string> = {
   canal: "Visão geral",
   canalPermissoes: "Permissões",
   canalConvites: "Convites",
+};
+
+/**
+ * O subtítulo da página, quando ela tem um.
+ *
+ * ⚠ `Partial` e não `Record` completo, e é a única exaustividade que este
+ * arquivo dispensa de propósito: a maioria das seções não precisa de subtítulo,
+ * e exigir um faria alguém inventar uma frase para "Perfil" só para o build
+ * passar. Título vazio é pior que ausente — ocupa a mesma altura sem dizer nada.
+ */
+export const DESCRICAO_DA_SECAO: Partial<Record<SecaoId, string>> = {
+  privacidade: "Quem pode falar com você e o que o Vortex guarda.",
+  atalhos:
+    "Combinações do app. Atalhos globais (mesmo em segundo plano) ficam em Voz e vídeo.",
 };
 
 /** As que falam de um servidor, e por isso precisam de um. */

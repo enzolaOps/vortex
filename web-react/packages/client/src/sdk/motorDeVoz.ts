@@ -26,6 +26,11 @@
  * como o adapter faz com `stoat.js`.
  */
 import {
+  assinarPreferenciasDeVoz,
+  constraintsDeAudio,
+  lerPreferenciasDeVoz,
+} from "../store/preferenciasDeVoz";
+import {
   ConnectionState,
   Room,
   ConnectionQuality,
@@ -224,7 +229,21 @@ export async function entrarNaChamada(channelId: string): Promise<boolean> {
       vídeo que ninguém pediu. O áudio é assinado por evento, acima.
     */
     await r.connect(auth.url, auth.token, { autoSubscribe: false });
-    await r.localParticipant.setMicrophoneEnabled(!lerChamada().mudo);
+    /*
+      ⚠ **As preferências de Voz e vídeo chegam ao WebRTC AQUI**, e são as três
+      que o navegador sabe cumprir: supressão de ruído, cancelamento de eco e
+      controle de ganho são `MediaTrackConstraints`, mais o `deviceId` da
+      entrada. Sem esta linha a tela de configurações guardaria escolhas que
+      nada lê — que é exatamente o defeito que ela existe para não ter.
+    */
+    await r.localParticipant.setMicrophoneEnabled(
+      !lerChamada().mudo,
+      constraintsDeAudio(),
+    );
+    await aplicarSaida(r);
+    pararDeOuvirPreferencias = assinarPreferenciasDeVoz(() => {
+      void trocarDispositivos(r);
+    });
     return true;
   } catch (e) {
     encerrarChamada();
@@ -247,10 +266,47 @@ export async function entrarNaChamada(channelId: string): Promise<boolean> {
 export async function sairDaChamada(): Promise<void> {
   const r = sala;
   sala = undefined;
+  pararDeOuvirPreferencias?.();
+  pararDeOuvirPreferencias = undefined;
   if (!r) return;
   r.removeAllListeners();
   await r.disconnect();
   encerrarChamada();
+}
+
+/**
+ * Trocar de microfone ou de fone SEM sair da chamada.
+ *
+ * ⚠ A assinatura vive só enquanto a sala existe, e é desfeita em
+ * `sairDaChamada` — listener sem cleanup é o erro nº 5 do briefing, e este
+ * ficaria pendurado numa `Room` já desconectada.
+ *
+ * Sem `try`: `switchActiveDevice` rejeita quando o dispositivo some no meio
+ * (fone desconectado), e uma exceção não tratada aqui derrubaria a chamada por
+ * causa de uma troca de dispositivo.
+ */
+let pararDeOuvirPreferencias: (() => void) | undefined;
+
+async function aplicarSaida(r: Room): Promise<void> {
+  const { saidaId } = lerPreferenciasDeVoz();
+  if (saidaId === undefined) return;
+  try {
+    await r.switchActiveDevice("audiooutput", saidaId);
+  } catch {
+    /* Dispositivo sumiu entre a escolha e o uso. O padrão do sistema assume. */
+  }
+}
+
+async function trocarDispositivos(r: Room): Promise<void> {
+  const { entradaId } = lerPreferenciasDeVoz();
+  try {
+    if (entradaId !== undefined) {
+      await r.switchActiveDevice("audioinput", entradaId);
+    }
+  } catch {
+    /* Idem. */
+  }
+  await aplicarSaida(r);
 }
 
 /**

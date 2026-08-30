@@ -10,98 +10,12 @@
    têm cor e glifo próprios — acento, verde e âmbar. Numa matriz
    de 24 células, a cor da coluna é o que deixa ler na diagonal
    sem seguir o cabeçalho com o dedo.
+
+   O que era geometria de PÁGINA (cartão, linha, sobrancelha com
+   régua, recado) subiu para `Pagina.module.css` quando
+   Privacidade e Voz e vídeo pediram as mesmas três. O que ficou
+   aqui é o que só esta tela tem: a matriz e a janela de horas.
    ============================================================ */
-
-/*
-  840 é o teto da referência. Sem ele a matriz estica até a largura da janela
-  e as três colunas de controle ficam a meio metro do nome do evento.
-*/
-.pagina {
-  max-inline-size: 840px;
-}
-
-/* ------------------------------------ cabeçalho de seção */
-
-/*
-  Sobrancelha com uma régua que ocupa o resto da linha — da referência.
-
-  A régua faz o trabalho que um `<hr>` faria depois do bloco anterior, com a
-  vantagem de amarrar o título ao que vem ABAIXO dele em vez de separar do que
-  veio acima.
-*/
-.cabecalhoDeSecao {
-  display: flex;
-  align-items: center;
-  gap: var(--vx-space-10);
-  margin-block-end: var(--vx-space-12);
-}
-
-.tituloDeSecao {
-  composes: sobrancelha from "../styles/sobrancelha.module.css";
-  color: var(--vx-text-3);
-}
-
-.reguaDaSecao {
-  flex: 1;
-  block-size: 1px;
-  background: var(--vx-hairline-06);
-}
-
-/*
-  Banner no fluxo da página. A moldura e a cor são do próprio `Banner`; aqui
-  só o respiro até o próximo bloco, o mesmo dos cartões.
-*/
-.faixa {
-  margin-block-end: var(--vx-space-26);
-}
-
-/* ------------------------------------------- grupo de linhas */
-
-/*
-  O cartão dos interruptores: moldura única, `surface-1`, e divisória ENTRE as
-  linhas — nunca nas pontas, senão ela dobra com a borda do cartão.
-*/
-.grupo {
-  margin-block-end: var(--vx-space-26);
-  padding-inline: var(--vx-space-18);
-  border: 1px solid var(--vx-hairline-06);
-  border-radius: var(--vx-radius-08);
-  background: var(--vx-surface-1);
-}
-
-.linha {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--vx-space-20);
-  padding-block: var(--vx-space-14);
-  border-block-end: 1px solid var(--vx-hairline-06);
-}
-
-.linha:last-child {
-  border-block-end: 0;
-}
-
-.texto {
-  min-inline-size: 0;
-}
-
-.tituloDaLinha {
-  font-size: var(--vx-size-md);
-  font-weight: 600;
-  color: var(--vx-text-1);
-}
-
-.detalhe {
-  margin-block-start: var(--vx-space-02);
-  font-size: var(--vx-size-xs);
-  color: var(--vx-text-3);
-  text-wrap: pretty;
-}
-
-.controle {
-  flex: none;
-}
 
 /* -------------------------------------------------- a matriz */
 
@@ -202,14 +116,6 @@
 }
 
 /* ----------------------------------- horário de silêncio */
-
-.cartao {
-  margin-block-end: var(--vx-space-26);
-  padding: var(--vx-space-16) var(--vx-space-18);
-  border: 1px solid var(--vx-hairline-06);
-  border-radius: var(--vx-radius-08);
-  background: var(--vx-surface-1);
-}
 
 .cartaoTopo {
   display: flex;
@@ -323,11 +229,4 @@
 .dia:focus-visible {
   outline: 2px solid var(--vx-accent);
   outline-offset: 2px;
-}
-
-.recado {
-  margin: 0;
-  font-size: var(--vx-size-xs);
-  color: var(--vx-text-3);
-  text-wrap: pretty;
 }

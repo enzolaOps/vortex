@@ -1,0 +1,286 @@
+/* ============================================================
+   Voz e vídeo
+   ------------------------------------------------------------
+   A geometria de PÁGINA (cartão, linha, sobrancelha com régua)
+   vem de `Pagina.module.css`. O que mora aqui é o que só esta
+   tela tem: a dupla de dispositivos, o medidor, os cartões de
+   modo e a caixa de vídeo.
+   ============================================================ */
+
+/*
+  Entrada e saída lado a lado.
+
+  `auto-fit` com mínimo de 320: em janela larga são duas colunas, e abaixo de
+  ~700 elas empilham sozinhas. Container query seria o certo se a largura desta
+  coluna dependesse de sidebars — não depende: as configurações cobrem o shell.
+*/
+.dispositivos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--vx-space-20);
+  margin-block-end: var(--vx-space-26);
+}
+
+.campoDeDispositivo {
+  min-inline-size: 0;
+}
+
+.rotuloDoCampo {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  display: block;
+  margin-block-end: var(--vx-space-06);
+  color: var(--vx-text-3);
+}
+
+.seletorCheio {
+  inline-size: 100%;
+}
+
+/* A sobrancelha do volume com o VALOR na ponta — a régua da seção, aqui, é o
+   número: ele fecha a linha e diz o que o deslizante está mostrando. */
+.linhaDoVolume {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vx-space-10);
+  margin-block-end: var(--vx-space-06);
+}
+
+.valor {
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-2);
+}
+
+.volume {
+  margin-block-start: var(--vx-space-16);
+}
+
+/* ------------------------------------------------ teste de microfone */
+
+.testeTopo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-16);
+  margin-block-end: var(--vx-space-14);
+}
+
+.medidor {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+}
+
+.rotuloDoMedidor {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  flex: none;
+  color: var(--vx-text-3);
+}
+
+/*
+  As barras do medidor.
+
+  ⚠ **Elas são um GABARITO, e a tela diz isso** — não há analisador de áudio
+  ligado (ver a pendência `medidorDeEntrada`). Desenhar barras que se mexem com
+  número inventado seria a mesma mentira do "Conectado · 42 ms" que a faixa de
+  voz recusou. Aqui elas ficam paradas e apagadas, que é a verdade: o medidor
+  existe e ainda não mede.
+*/
+.barras {
+  display: flex;
+  flex: 1;
+  gap: var(--vx-space-03);
+  min-inline-size: 0;
+}
+
+.barra {
+  flex: 1;
+  block-size: 10px;
+  border-radius: var(--vx-radius-02);
+  background: var(--vx-track);
+}
+
+.db {
+  flex: none;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
+}
+
+/* ---------------------------------------------------- modo de entrada */
+
+/*
+  Os dois modos como CARTÕES, não como uma linha de radio.
+
+  ⚠ O cartão inteiro é o alvo — 320px de área clicável contra os 16px do ponto.
+  É por isso que `MarcaDeOpcao` existe separada de `Opcao`: botão dentro de
+  botão é HTML inválido, e o erro já aconteceu uma vez nas ações da linha de
+  canal.
+*/
+.modos {
+  display: grid;
+  gap: var(--vx-space-08);
+  margin-block-end: var(--vx-space-16);
+}
+
+.modo {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--vx-space-10);
+  padding: var(--vx-space-14) var(--vx-space-16);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-1);
+  color: inherit;
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.modo:hover {
+  background: var(--vx-state-hover);
+}
+
+.modo[aria-checked="true"] {
+  border-color: var(--vx-accent);
+  background: var(--vx-state-selected);
+}
+
+.modo:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* ⚠ `grid` e não o default: os três são `<span>` — porque o cartão inteiro é
+   um `<button>` e `<div>` dentro de botão é HTML inválido —, e span dentro de
+   span fica em LINHA. Sem isto o título e a explicação saíam grudados
+   ("Detecção de vozTransmite quando você fala."). */
+.modoTextos {
+  display: grid;
+  min-inline-size: 0;
+}
+
+.modoTitulo {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.modoDetalhe {
+  margin-block-start: var(--vx-space-02);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+/* ------------------------------------------------------------- vídeo */
+
+/*
+  Prévia à esquerda, controles à direita — do design.
+
+  260px é a largura da prévia; o resto é dos controles. Fixa e não fracionária:
+  a caixa tem proporção 4:3 e uma prévia que muda de tamanho com a janela faria
+  a coluna de controles saltar.
+*/
+.video {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: var(--vx-space-20);
+  margin-block-end: var(--vx-space-26);
+}
+
+.previa {
+  display: grid;
+  gap: var(--vx-space-12);
+}
+
+/*
+  ⚠ **Listrada, e de propósito.** Ela não mostra câmera nenhuma — abrir a
+  câmera aqui é `getUserMedia` fora do motor, que está na pendência
+  `previaDaCamera`. Um retângulo preto e liso pareceria uma câmera tampada; o
+  listrado diz "espaço reservado", que é o que é. Mesma decisão do xadrez de
+  placeholder de imagem.
+*/
+.palco {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--vx-surface-1),
+    var(--vx-surface-1) 6px,
+    var(--vx-surface-2) 6px,
+    var(--vx-surface-2) 12px
+  );
+  color: var(--vx-text-4);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+}
+
+.controlesDeVideo {
+  display: grid;
+  align-content: start;
+  gap: var(--vx-space-14);
+}
+
+/* ------------------------------------------------- atalhos globais */
+
+.tabela {
+  overflow: hidden;
+  margin-block-end: var(--vx-space-26);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+}
+
+.cabecalhoDaTabela,
+.linhaDaTabela {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-10) var(--vx-space-14);
+}
+
+.cabecalhoDaTabela {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  background: var(--vx-surface-1);
+  color: var(--vx-text-3);
+}
+
+.linhaDaTabela {
+  border-block-start: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-3);
+}
+
+/*
+  ⚠ **Conflito pinta a linha INTEIRA, não só o selo.**
+
+  Duas combinações iguais não funcionam nem uma nem outra, e as duas linhas
+  precisam se acusar — marcar só uma faria a pessoa consertar a errada. É por
+  isso que o estado mora na linha e o selo é consequência.
+*/
+.linhaDaTabela[data-conflito="true"] {
+  background: var(--vx-danger-soft);
+}
+
+.acao {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  min-inline-size: 0;
+  font-size: var(--vx-size-md);
+  color: var(--vx-text-1);
+}
+
+.conflitoNaTecla {
+  color: var(--vx-danger-text);
+}
+
+/* Janela estreita: prévia e controles empilham. */
+@container (inline-size < 720px) {
+  .video {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

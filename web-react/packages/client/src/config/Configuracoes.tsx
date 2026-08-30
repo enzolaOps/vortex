@@ -1,5 +1,10 @@
 import { X } from "@phosphor-icons/react";
-import { useEffect, useSyncExternalStore, type ReactNode } from "react";
+import {
+  Fragment,
+  useEffect,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 
 import { Avatar } from "../components/ui/Avatar";
 import { cn } from "../lib/cn";
@@ -12,6 +17,7 @@ import {
   abrirConfig,
   assinarConfig,
   DE_SERVIDOR,
+  DESCRICAO_DA_SECAO as DESCRICAO,
   NOME_DA_SECAO as NOME,
   fecharConfig,
   lerConfig,
@@ -19,6 +25,9 @@ import {
 } from "../store/config";
 import { useChannel, useServer, useServidorAtivo } from "../store/hooks";
 import { Aparencia } from "./Aparencia";
+import { Atalhos } from "./Atalhos";
+import { Privacidade } from "./Privacidade";
+import { VozEVideo } from "./VozEVideo";
 import { Notificacoes } from "./Notificacoes";
 import { Banimentos } from "./Banimentos";
 import { Cargos } from "./Cargos";
@@ -51,17 +60,22 @@ import css from "./Configuracoes.module.css";
 /** O rótulo de cada seção. `Record` fechado: seção nova não compila sem nome. */
 
 
-const DE_USUARIO: readonly SecaoId[] = [
-  "perfil",
-  "conta",
-  "sessoes",
-  /*
-    ⚠ Notificações vem ANTES de aparência, e a ordem é do design: as duas são
-    preferências, mas uma decide o que INTERROMPE e a outra como a tela é
-    pintada. Quem abre configurações por incômodo abre por causa da primeira.
-  */
-  "notificacoes",
-  "aparencia",
+/**
+ * A coluna, em DOIS blocos separados por régua — da referência.
+ *
+ * ⚠ A divisão não é decorativa: o primeiro bloco é a CONTA (quem você é, como
+ * entram em contato), o segundo é o APARELHO (como esta máquina se comporta).
+ * São duas perguntas diferentes, e a régua diz isso sem precisar de um segundo
+ * rótulo — inventar um nome para "Voz e vídeo, Notificações, Aparência,
+ * Atalhos" produziria uma categoria que ninguém procura.
+ *
+ * Notificações vem antes de Aparência, e a ordem é do design: as duas são
+ * preferências, mas uma decide o que INTERROMPE e a outra como a tela é
+ * pintada. Quem abre configurações por incômodo abre por causa da primeira.
+ */
+const DE_USUARIO: readonly (readonly SecaoId[])[] = [
+  ["perfil", "conta", "sessoes", "privacidade"],
+  ["vozEVideo", "notificacoes", "aparencia", "atalhos"],
 ];
 
 function ItemDoMenu({
@@ -154,8 +168,11 @@ export function Configuracoes() {
     perfil: () => <Perfil />,
     conta: () => <Conta />,
     sessoes: () => <Sessoes />,
+    privacidade: () => <Privacidade />,
+    vozEVideo: () => <VozEVideo />,
     aparencia: () => <Aparencia />,
     notificacoes: () => <Notificacoes />,
+    atalhos: () => <Atalhos />,
     servidor: () => <Servidor serverId={serverId} />,
     cargos: () => <Cargos serverId={serverId} />,
     convites: () => <Convites serverId={serverId} />,
@@ -191,8 +208,14 @@ export function Configuracoes() {
 
         <div className={css.lista}>
           <p className={css.grupo}>Configurações do usuário</p>
-          {DE_USUARIO.map((id) => (
-            <ItemDoMenu key={id} id={id} ativa={id === secao} />
+          {DE_USUARIO.map((bloco, i) => (
+            <Fragment key={bloco[0]}>
+              {/* A régua separa os blocos, nunca abre o primeiro. */}
+              {i > 0 ? <hr className={css.regua} /> : null}
+              {bloco.map((id) => (
+                <ItemDoMenu key={id} id={id} ativa={id === secao} />
+              ))}
+            </Fragment>
           ))}
 
           {/*
@@ -245,6 +268,10 @@ export function Configuracoes() {
           */}
           <header className={css.paginaCabecalho}>
             <h1 className={css.paginaTitulo}>{NOME[secao]}</h1>
+            {/* Subtítulo só onde ele diz algo — ver `DESCRICAO_DA_SECAO`. */}
+            {DESCRICAO[secao] !== undefined ? (
+              <p className={css.paginaSubtitulo}>{DESCRICAO[secao]}</p>
+            ) : null}
           </header>
           {CONTEUDO[secao]()}
         </div>

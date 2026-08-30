@@ -1,0 +1,135 @@
+/* ============================================================
+   A geometria de uma página de configurações
+   ------------------------------------------------------------
+   ⚠ **Terceira cópia — a régua do projeto diz que aqui se
+   extrai.** Notificações escreveu cartão, linha, sobrancelha
+   com régua e recado; Privacidade e Voz e vídeo precisavam dos
+   quatro exatamente iguais. Três folhas quase idênticas
+   divergem na primeira que alguém mexer, e a que diverge é a
+   que ninguém abriu naquela semana — foi o que aconteceu com as
+   seis cópias do `Avatar` e com as cinco do badge.
+
+   Não substitui `Secao.module.css`: aquele é o FORMULÁRIO
+   estreito das telas de servidor e canal (campo, bloco, régua).
+   Este é a página de PREFERÊNCIAS — cartão de linhas com
+   controle à direita, que é outra forma.
+   ============================================================ */
+
+/*
+  840 é o teto da referência para as páginas de preferência. Sem ele a matriz
+  de notificação estica até a largura da janela e as colunas de controle ficam
+  a meio metro do nome do evento.
+*/
+.pagina {
+  max-inline-size: 840px;
+}
+
+/*
+  ⚠ **Nem toda página tem teto**, e Atalhos de teclado é a prova: ela é uma
+  grade de cartões que se reflui sozinha (`auto-fit`), e limitá-la a 840
+  deixaria duas colunas onde cabem três, com metade da tela vazia. O teto
+  serve à LEITURA em linha; grade de referência é varredura.
+*/
+.cheia {
+  max-inline-size: none;
+}
+
+/* ------------------------------------ cabeçalho de seção */
+
+/*
+  Sobrancelha com uma régua que ocupa o resto da linha — da referência.
+
+  A régua faz o trabalho que um `<hr>` faria depois do bloco anterior, com a
+  vantagem de amarrar o título ao que vem ABAIXO dele em vez de separar do que
+  veio acima.
+*/
+.cabecalhoDeSecao {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+  margin-block-end: var(--vx-space-12);
+}
+
+.tituloDeSecao {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  color: var(--vx-text-3);
+}
+
+.reguaDaSecao {
+  flex: 1;
+  block-size: 1px;
+  background: var(--vx-hairline-06);
+}
+
+/* ------------------------------------------- grupo de linhas */
+
+/*
+  O cartão de linhas: moldura única, `surface-1`, e divisória ENTRE as linhas —
+  nunca nas pontas, senão ela dobra com a borda do cartão.
+*/
+.grupo {
+  margin-block-end: var(--vx-space-26);
+  padding-inline: var(--vx-space-18);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-1);
+}
+
+/* Cartão sem linhas divididas — um bloco só, com respiro próprio. */
+.cartao {
+  margin-block-end: var(--vx-space-26);
+  padding: var(--vx-space-16) var(--vx-space-18);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-1);
+}
+
+.linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-20);
+  padding-block: var(--vx-space-14);
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+.linha:last-child {
+  border-block-end: 0;
+}
+
+.texto {
+  min-inline-size: 0;
+}
+
+.titulo {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.detalhe {
+  margin-block-start: var(--vx-space-02);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+  text-wrap: pretty;
+}
+
+/* `flex: none` para o controle não encolher quando o texto for longo — quem
+   cede espaço é a frase, que reflui. */
+.controle {
+  flex: none;
+}
+
+/* Banner no fluxo: a moldura e a cor são do próprio `Banner`; aqui só o
+   respiro até o próximo bloco, o mesmo dos cartões. */
+.faixa {
+  margin-block-end: var(--vx-space-26);
+}
+
+/* O recado do rodapé da página — a regra que a tela não consegue mostrar. */
+.recado {
+  margin: 0;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-4);
+  text-wrap: pretty;
+}

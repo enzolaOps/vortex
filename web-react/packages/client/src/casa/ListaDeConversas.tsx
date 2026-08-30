@@ -132,7 +132,7 @@ export function ListaDeConversas() {
         type="button"
         className={css.amigos}
         aria-current={local.tipo === "amigos"}
-        onClick={irParaAmigos}
+        onClick={() => irParaAmigos()}
       >
         <span className={css.marca} aria-hidden>
           <Users size={20} />

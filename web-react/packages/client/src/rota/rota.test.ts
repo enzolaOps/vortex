@@ -32,11 +32,34 @@ describe("caminho ↔ lugar", () => {
     ["/servidor/" + S, { tipo: "servidor", serverId: S, channelId: undefined }],
     [`/servidor/${S}/canal/${C}`, { tipo: "servidor", serverId: S, channelId: C }],
     [`/dm/${C}`, { tipo: "dm", channelId: C }],
+    /*
+      A aba de pessoas é parte do LUGAR desde que Privacidade precisou mandar
+      alguém para os bloqueados. A padrão NÃO entra no caminho: `/amigos` e
+      `/amigos/amigos` seriam dois endereços para a mesma tela.
+    */
+    ["/amigos", { tipo: "amigos", aba: "amigo" }],
+    ["/amigos/bloqueados", { tipo: "amigos", aba: "bloqueado" }],
+    ["/amigos/pedidos", { tipo: "amigos", aba: "recebido" }],
+    ["/amigos/enviados", { tipo: "amigos", aba: "enviado" }],
   ];
 
   it.each(casos)("%s vai e volta sem perder nada", (caminho, local) => {
     expect(caminhoDe(local)).toBe(caminho);
     expect(interpretar(caminho).local).toEqual(local);
+  });
+});
+
+describe("aba de pessoas desconhecida", () => {
+  /*
+    Slug errado cai na aba padrão, e NÃO na casa: o lugar existe, o que não
+    existe é aquela aba — mandar para a casa esconderia a tela inteira por
+    causa de um erro de digitação no fim da URL.
+  */
+  it("cai na aba padrão sem sair da tela", () => {
+    expect(interpretar("/amigos/inventada").local).toEqual({
+      tipo: "amigos",
+      aba: "amigo",
+    });
   });
 });
 

@@ -36,8 +36,17 @@ import {
  */
 export type Local =
   | { readonly tipo: "casa" }
-  /** A lista de pessoas: amigos, pedidos e bloqueados. */
-  | { readonly tipo: "amigos" }
+  /**
+   * A lista de pessoas: amigos, pedidos, enviados e bloqueados.
+   *
+   * ⚠ **A aba é parte do LUGAR, e não estado interno da tela.** Ela era um
+   * `useState` dentro de `Amigos`, e isso tornava "a lista de bloqueados"
+   * irrepresentável — exatamente a classe de problema que fez `Local` deixar
+   * de ser duas strings. Privacidade precisa mandar alguém para lá com um
+   * botão, e um destino que a união não sabe nomear não pode ser alvo de
+   * ninguém. De quebra ela vira endereço: `/amigos/bloqueados`.
+   */
+  | { readonly tipo: "amigos"; readonly aba: AbaDePessoas }
   | {
       readonly tipo: "servidor";
       readonly serverId: string;
@@ -45,6 +54,22 @@ export type Local =
       readonly channelId: string | undefined;
     }
   | { readonly tipo: "dm"; readonly channelId: string };
+
+/**
+ * As quatro abas da tela de pessoas.
+ *
+ * Espelha `Relacao` do domínio menos as que não têm aba — quem bloqueou VOCÊ
+ * não vira lista, e "nenhuma relação" é todo mundo. União própria e não
+ * `Relacao` inteira: assim uma relação nova no protocolo não vira silenciosamente
+ * uma aba na tela.
+ */
+export const ABAS_DE_PESSOAS = [
+  "amigo",
+  "recebido",
+  "enviado",
+  "bloqueado",
+] as const;
+export type AbaDePessoas = (typeof ABAS_DE_PESSOAS)[number];
 
 type Ouvinte = () => void;
 
@@ -178,7 +203,7 @@ export function irParaCasa(): void {
   publicar(CASA);
 }
 
-export function irParaAmigos(): void {
+export function irParaAmigos(aba: AbaDePessoas = "amigo"): void {
   /*
     Publica as abas AQUI, simétrico ao que `irParaCasa` faz com as conversas.
 
@@ -192,8 +217,8 @@ export function irParaAmigos(): void {
     sem servidor. Apareceu abrindo a tela.
   */
   publicarRelacoes();
-  if (local.tipo === "amigos") return;
-  publicar({ tipo: "amigos" });
+  if (local.tipo === "amigos" && local.aba === aba) return;
+  publicar({ tipo: "amigos", aba });
 }
 
 /** Estado limpo entre testes. O módulo é global e sobrevive. */

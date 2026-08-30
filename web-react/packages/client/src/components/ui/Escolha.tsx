@@ -1,5 +1,7 @@
 import { CaretDown } from "@phosphor-icons/react";
 
+import { cn } from "../../lib/cn";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,20 +30,33 @@ import css from "./Escolha.module.css";
  */
 export function Escolha({
   rotulo,
+  rotuloOculto = false,
   valor,
   opcoes,
   disabled,
+  className,
   aoEscolher,
 }: {
   rotulo: string;
+  /**
+   * O rótulo vira só o nome acessível.
+   *
+   * ⚠ Existe porque numa LINHA de ajuste quem nomeia o controle é o título da
+   * linha, à esquerda. Repetir o rótulo em cima do gatilho daria a mesma
+   * palavra duas vezes a 20px de distância — e o leitor de tela anunciaria as
+   * duas. O nome não some: ele continua no `aria-label`.
+   */
+  rotuloOculto?: boolean;
   valor: string;
   opcoes: readonly string[];
   disabled?: boolean;
+  /** A largura é de quem chama: 240 na linha de ajuste, cheia no formulário. */
+  className?: string;
   aoEscolher: (v: string) => void;
 }) {
   return (
-    <div className={css.selecao}>
-      <span className={css.rotulo}>{rotulo}</span>
+    <div className={cn(css.selecao, className)}>
+      {rotuloOculto ? null : <span className={css.rotulo}>{rotulo}</span>}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button

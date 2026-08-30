@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useState, useSyncExternalStore } from "react";
 
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
@@ -15,6 +15,11 @@ import {
   pedirAmizade,
 } from "../sdk/social";
 import { usePessoa, useRelacao } from "../store/hooks";
+import {
+  assinarNavegacao,
+  irParaAmigos,
+  lerLocal,
+} from "../store/navegacao";
 import { abrirConversa } from "../store/navegacao";
 import css from "./Amigos.module.css";
 
@@ -189,7 +194,17 @@ const Pessoa = memo(function Pessoa({
 });
 
 export function Amigos() {
-  const [aba, setAba] = useState<Aba>("amigo");
+  /*
+    ⚠ **A aba vem da NAVEGAÇÃO, não de um `useState`.**
+
+    Ela era estado interno, e isso tornava "a lista de bloqueados" um destino
+    que ninguém podia nomear — Privacidade tem um botão "Gerenciar" que precisa
+    mandar alguém exatamente para lá. Mesma razão pela qual `Local` deixou de
+    ser duas strings. De quebra a aba virou endereço, e trocar de aba entra no
+    histórico do navegador: voltar volta a aba, que é o que se espera.
+  */
+  const local = useSyncExternalStore(assinarNavegacao, lerLocal);
+  const aba: Aba = local.tipo === "amigos" ? local.aba : "amigo";
   const [nome, setNome] = useState("");
   const [enviando, setEnviando] = useState(false);
   /*
@@ -240,7 +255,7 @@ export function Amigos() {
           rotulo="Filtrar pessoas"
           valor={aba}
           opcoes={ABAS.map((a) => ({ id: a.id, rotulo: a.rotulo }))}
-          aoEscolher={(id) => setAba(id)}
+          aoEscolher={(id) => irParaAmigos(id)}
         />
       </header>
 

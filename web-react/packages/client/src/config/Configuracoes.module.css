@@ -226,6 +226,14 @@
   margin-block-end: var(--vx-space-06);
 }
 
+/* 13px terciário, 4px abaixo do título — da referência. */
+.paginaSubtitulo {
+  margin: var(--vx-space-04) 0 0;
+  font-size: var(--vx-size-md);
+  color: var(--vx-text-3);
+  text-wrap: pretty;
+}
+
 .paginaTitulo {
   margin: 0;
   font-size: var(--vx-size-2xl);

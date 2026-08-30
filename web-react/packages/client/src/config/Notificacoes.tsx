@@ -1,5 +1,5 @@
 import { Check, MusicNotes, UploadSimple } from "@phosphor-icons/react";
-import { useSyncExternalStore, type ReactNode } from "react";
+import { useSyncExternalStore } from "react";
 
 import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
@@ -17,6 +17,14 @@ import {
   lerNotificacoes,
   type CanalDeEntrega,
 } from "../store/notificacoes";
+import {
+  CabecalhoDeSecao,
+  CartaoDeAjustes,
+  classes as pg,
+  GrupoDeAjustes,
+  LinhaDeAjuste,
+  PaginaDeAjustes,
+} from "./Pagina";
 import css from "./Notificacoes.module.css";
 
 /**
@@ -45,41 +53,6 @@ const DIAS = [
 ] as const;
 
 /**
- * Sobrancelha com régua até a ponta da linha.
- *
- * Ela amarra o título ao que vem ABAIXO, enquanto um `<hr>` separaria do que
- * veio acima — é a mesma informação com o vínculo invertido.
- */
-function CabecalhoDeSecao({ titulo }: { titulo: string }) {
-  return (
-    <div className={css.cabecalhoDeSecao}>
-      <h2 className={css.tituloDeSecao}>{titulo}</h2>
-      <span aria-hidden className={css.reguaDaSecao} />
-    </div>
-  );
-}
-
-function Linha({
-  titulo,
-  detalhe,
-  controle,
-}: {
-  titulo: string;
-  detalhe: string;
-  controle: ReactNode;
-}) {
-  return (
-    <div className={css.linha}>
-      <div className={css.texto}>
-        <div className={css.tituloDaLinha}>{titulo}</div>
-        <p className={css.detalhe}>{detalhe}</p>
-      </div>
-      <div className={css.controle}>{controle}</div>
-    </div>
-  );
-}
-
-/**
  * Notificações.
  *
  * ⚠ **As preferências são REAIS e ficam guardadas; o que falta é quem as
@@ -104,7 +77,7 @@ export function Notificacoes() {
     useSyncExternalStore(assinarMeuStatus, lerMeuStatus).presenca === "dnd";
 
   return (
-    <div className={css.pagina}>
+    <PaginaDeAjustes>
       {/*
         O aviso vem ANTES de tudo: com o não perturbe ligado, cada ajuste
         abaixo é uma escolha sobre algo que não vai acontecer. Dizê-lo depois
@@ -114,61 +87,60 @@ export function Notificacoes() {
         <Banner
           tom="perigo"
           titulo="Não perturbe está ligado"
-          className={css.faixa}
+          className={pg.faixa}
         >
           Nada notifica enquanto ele estiver ativo — nem as chamadas. Troque a
           presença no rodapé da coluna para voltar a receber.
         </Banner>
       ) : null}
 
-      <div className={css.grupo}>
-        <Linha
+      <GrupoDeAjustes>
+        <LinhaDeAjuste
           titulo="Notificações no desktop"
           detalhe="Toasts do sistema quando a janela está em segundo plano"
-          controle={
-            <Interruptor
-              ligado={p.desktop}
-              rotulo="Notificações no desktop"
-              aoAlternar={(v) => definirNotificacoes({ desktop: v })}
-            />
-          }
-        />
-        <Linha
+        >
+          <Interruptor
+            ligado={p.desktop}
+            rotulo="Notificações no desktop"
+            aoAlternar={(v) => definirNotificacoes({ desktop: v })}
+          />
+        </LinhaDeAjuste>
+
+        <LinhaDeAjuste
           titulo="Notificações push no celular"
           detalhe="Enviadas quando você está inativo há mais de 2 minutos"
-          controle={
-            <Interruptor
-              ligado={p.push}
-              rotulo="Notificações push no celular"
-              aoAlternar={(v) => definirNotificacoes({ push: v })}
-            />
-          }
-        />
-        <Linha
+        >
+          <Interruptor
+            ligado={p.push}
+            rotulo="Notificações push no celular"
+            aoAlternar={(v) => definirNotificacoes({ push: v })}
+          />
+        </LinhaDeAjuste>
+
+        <LinhaDeAjuste
           titulo="Prévia do conteúdo no toast"
           detalhe={
             "Desligue para mostrar só “nova mensagem” em telas compartilhadas"
           }
-          controle={
-            <Interruptor
-              ligado={p.previa}
-              rotulo="Prévia do conteúdo no toast"
-              aoAlternar={(v) => definirNotificacoes({ previa: v })}
-            />
-          }
-        />
-        <Linha
+        >
+          <Interruptor
+            ligado={p.previa}
+            rotulo="Prévia do conteúdo no toast"
+            aoAlternar={(v) => definirNotificacoes({ previa: v })}
+          />
+        </LinhaDeAjuste>
+
+        <LinhaDeAjuste
           titulo="Badge de não lido no ícone do app"
           detalhe="Contador só de menções, nunca de mensagens comuns"
-          controle={
-            <Interruptor
-              ligado={p.badge}
-              rotulo="Badge de não lido no ícone do app"
-              aoAlternar={(v) => definirNotificacoes({ badge: v })}
-            />
-          }
-        />
-      </div>
+        >
+          <Interruptor
+            ligado={p.badge}
+            rotulo="Badge de não lido no ícone do app"
+            aoAlternar={(v) => definirNotificacoes({ badge: v })}
+          />
+        </LinhaDeAjuste>
+      </GrupoDeAjustes>
 
       <CabecalhoDeSecao titulo="Eventos · som e notificação por tipo" />
 
@@ -190,7 +162,7 @@ export function Notificacoes() {
 
         {EVENTOS_DE_NOTIFICACAO.map((e) => (
           <div key={e.id} className={css.matrizLinha}>
-            <div className={css.texto}>
+            <div className={pg.texto}>
               <div className={css.eventoNome}>{e.rotulo}</div>
               <div className={css.eventoDetalhe}>{e.detalhe}</div>
             </div>
@@ -226,13 +198,11 @@ export function Notificacoes() {
 
       <CabecalhoDeSecao titulo="Horário de silêncio" />
 
-      <div className={css.cartao}>
+      <CartaoDeAjustes>
         <div className={css.cartaoTopo}>
-          <div className={css.texto}>
-            <div className={css.tituloDaLinha}>
-              Silenciar automaticamente à noite
-            </div>
-            <p className={css.detalhe}>Suprime tudo menos chamadas de amigos</p>
+          <div className={pg.texto}>
+            <div className={pg.titulo}>Silenciar automaticamente à noite</div>
+            <p className={pg.detalhe}>Suprime tudo menos chamadas de amigos</p>
           </div>
           <Interruptor
             ligado={p.silencioNoturno}
@@ -298,7 +268,7 @@ export function Notificacoes() {
             </div>
           </div>
         ) : null}
-      </div>
+      </CartaoDeAjustes>
 
       <CabecalhoDeSecao titulo="Permissão do sistema" />
 
@@ -312,7 +282,7 @@ export function Notificacoes() {
       <Banner
         tom="aviso"
         titulo="O sistema está bloqueando notificações do Vortex"
-        className={css.faixa}
+        className={pg.faixa}
         acoes={
           <Botao
             variante="avisoSutil"
@@ -327,11 +297,11 @@ export function Notificacoes() {
         sistema.
       </Banner>
 
-      <p className={css.recado}>
+      <p className={pg.recado}>
         Ordem de resolução: não perturbe → horário de silêncio → servidor
         silenciado → canal silenciado → padrão do servidor → exceção do canal.
         Só o toast de chamada ignora tudo menos não perturbe.
       </p>
-    </div>
+    </PaginaDeAjustes>
   );
 }

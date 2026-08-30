@@ -39,6 +39,7 @@ import {
   irParaAmigos,
   irParaCasa,
   lerLocal,
+  type AbaDePessoas,
   type Local,
 } from "../store/navegacao";
 
@@ -158,13 +159,36 @@ export function interpretarConfig(caminho: string): Config | undefined {
   return { secao, serverId: m[2], channelId: undefined };
 }
 
+/**
+ * O nome de cada aba de pessoas na URL.
+ *
+ * Em português e no plural, como o resto dos caminhos deste app — quem lê a
+ * barra de endereço lê `/amigos/bloqueados`, não `/amigos/bloqueado`. Os dois
+ * mapas são inversos e ficam juntos para não divergirem.
+ */
+const SLUG: Record<AbaDePessoas, string> = {
+  amigo: "amigos",
+  recebido: "pedidos",
+  enviado: "enviados",
+  bloqueado: "bloqueados",
+};
+
+const ABA_DO_SLUG: Record<string, AbaDePessoas | undefined> =
+  Object.fromEntries(
+    (Object.entries(SLUG) as [AbaDePessoas, string][]).map(([k, v]) => [v, k]),
+  );
+
+const PESSOAS = /^\/amigos\/([a-z]+)$/;
+
 /** O caminho que representa um lugar. A metade fácil da projeção. */
 export function caminhoDe(local: Local): string {
   switch (local.tipo) {
     case "casa":
       return "/";
     case "amigos":
-      return "/amigos";
+      /* A aba padrão não entra no caminho: `/amigos` e `/amigos/amigos` seriam
+         dois endereços para a mesma tela, e o segundo é feio de ler. */
+      return local.aba === "amigo" ? "/amigos" : `/amigos/${SLUG[local.aba]}`;
     case "dm":
       return `/dm/${local.channelId}`;
     case "servidor":
@@ -202,7 +226,19 @@ export function interpretar(caminho: string): {
   }
 
   if (caminho === "/amigos") {
-    return { local: { tipo: "amigos" }, mensagemId: undefined };
+    return { local: { tipo: "amigos", aba: "amigo" }, mensagemId: undefined };
+  }
+
+  const pessoas = PESSOAS.exec(caminho);
+  if (pessoas) {
+    const aba = ABA_DO_SLUG[pessoas[1]!];
+    /* Slug desconhecido cai na aba padrão em vez de na casa: o lugar existe, o
+       que não existe é aquela aba — e mandar para a casa esconderia a tela
+       inteira por causa de um erro de digitação no fim da URL. */
+    return {
+      local: { tipo: "amigos", aba: aba ?? "amigo" },
+      mensagemId: undefined,
+    };
   }
 
   const conversa = CONVERSA.exec(caminho);
@@ -220,7 +256,7 @@ function aplicar(local: Local): void {
       irParaCasa();
       return;
     case "amigos":
-      irParaAmigos();
+      irParaAmigos(local.aba);
       return;
     case "dm":
       abrirConversa(local.channelId);

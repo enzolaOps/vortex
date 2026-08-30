@@ -1,0 +1,39 @@
+/*
+  A tecla — o chip de atalho.
+
+  Medidas da referência: `2px 6px`, raio 4, mono, borda a 10%, fundo no CANVAS
+  (`surface-2`), texto secundário.
+
+  ⚠ **`surface-2` e não `surface-3`**, e a razão é onde ela mora: a tecla pousa
+  DENTRO de um cartão em `surface-3`, então um fundo mais claro que o cartão a
+  faria flutuar como botão. Ela é o contrário — um sulco no cartão, que é como
+  uma tecla se parece.
+*/
+.tecla {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--vx-space-02) var(--vx-space-06);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-04);
+  background: var(--vx-surface-2);
+  color: var(--vx-text-2);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-md);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+/*
+  A combinação: teclas separadas por um vão pequeno.
+
+  ⚠ Vão e não um `+` entre elas — a referência separa por espaço, e o sinal
+  gráfico competiria com os próprios símbolos das teclas (`⇧⌘⌫` já são três
+  glifos). Onde a barra faz sentido é dentro de UMA tecla ("↑ / ↓"), porque ali
+  ela diz "qualquer uma das duas".
+*/
+.combinacao {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-04);
+}

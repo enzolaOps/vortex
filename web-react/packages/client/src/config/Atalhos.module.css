@@ -1,0 +1,68 @@
+/* ============================================================
+   Atalhos de teclado
+   ------------------------------------------------------------
+   A única página de preferência SEM teto de largura — a razão
+   está em `Atalhos.tsx`.
+   ============================================================ */
+
+/*
+  `auto-fit` com mínimo de 330, da referência.
+
+  Ele é o que faz a tela funcionar de 900 a 3440px sem uma media query: três
+  colunas numa janela larga, duas num laptop, uma quando a coluna de conteúdo
+  encolhe porque alguém arrastou uma sidebar. Número de colunas fixo exigiria
+  breakpoint, e breakpoint aqui olharia a JANELA — que não é o que decide a
+  largura desta coluna desde a fase 4.
+*/
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+  gap: var(--vx-space-20);
+  margin-block-end: var(--vx-space-26);
+}
+
+.tituloDoGrupo {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  margin: 0 0 var(--vx-space-10);
+  color: var(--vx-text-3);
+}
+
+.cartao {
+  overflow: hidden;
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+}
+
+/*
+  `10px 14px` e divisória ENTRE as linhas — a primeira não tem, senão ela dobra
+  com a borda do cartão.
+*/
+.linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-14);
+  padding: var(--vx-space-10) var(--vx-space-14);
+  border-block-start: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-3);
+}
+
+.linha:first-child {
+  border-block-start: 0;
+}
+
+/*
+  A ação PODE truncar; a combinação nunca.
+
+  Se faltar espaço, quem cede é o texto — a tecla é a informação que a pessoa
+  veio buscar, e meia tecla não serve para nada. `min-inline-size: 0` porque
+  item de flex não encolhe abaixo do conteúdo sem isto.
+*/
+.acao {
+  overflow: hidden;
+  min-inline-size: 0;
+  font-size: var(--vx-size-md);
+  color: var(--vx-text-1);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

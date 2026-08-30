@@ -45,6 +45,57 @@ export const PENDENCIAS = {
     depende: "um notificador que as dispare — áudio, service worker ou Electron",
   },
 
+
+  /* --------------------------------------------------------- privacidade */
+  exportarDados: {
+    superficie: "Configurações · Privacidade",
+    faz: "Pedir uma cópia de tudo que a conta guarda, por e-mail.",
+    depende: "exportação de dados no protocolo — não há rota, nem no upstream",
+  },
+
+  /* ------------------------------------------------------- voz e vídeo */
+  /*
+    ⚠ **Cinco pendências e NENHUMA delas é "a tela não existe".** Todas as
+    preferências desta seção são guardadas, e quatro chegam ao WebRTC de
+    verdade (`constraintsDeAudio` em `store/preferenciasDeVoz.ts`). O que está
+    aqui é o que precisa de algo que o navegador ou o sistema não dão.
+  */
+  testeDeMicrofone: {
+    superficie: "Configurações · Voz e vídeo",
+    faz: "Gravar 5 s do seu microfone e tocar de volta.",
+    depende: "`MediaRecorder` + um medidor ao vivo — o mesmo trabalho de `mensagemDeVoz`",
+  },
+  medidorDeEntrada: {
+    superficie: "Configurações · Voz e vídeo",
+    faz: "Mostrar o nível do seu microfone em tempo real.",
+    depende: "`AudioContext` com analisador sobre um stream aberto só para isto",
+  },
+  ruidoAgressivo: {
+    superficie: "Configurações · Voz e vídeo",
+    faz: "Supressão de ruído mais forte que a do navegador.",
+    depende: "RNNoise (`@livekit/krisp-noise-filter`) — o `noiseSuppression` do navegador é booleano",
+  },
+  atenuarOutrosApps: {
+    superficie: "Configurações · Voz e vídeo",
+    faz: "Baixar o volume dos outros programas quando alguém fala.",
+    depende: "mixer do sistema operacional, via casca Electron",
+  },
+  previaDaCamera: {
+    superficie: "Configurações · Voz e vídeo",
+    faz: "Mostrar o que a câmera está vendo, antes de entrar na chamada.",
+    depende: "`getUserMedia` de vídeo fora do motor — hoje a câmera só abre em chamada",
+  },
+  fundoDeVideo: {
+    superficie: "Configurações · Voz e vídeo",
+    faz: "Desfocar o fundo ou trocá-lo por uma imagem.",
+    depende: "segmentação de imagem (`@livekit/track-processors`) — meio megabyte de modelo",
+  },
+  atalhoGlobal: {
+    superficie: "Configurações · Voz e vídeo",
+    faz: "Gravar uma combinação que funciona mesmo com o app em segundo plano.",
+    depende: "`globalShortcut` do Electron — o navegador não vê tecla fora da aba",
+  },
+
   /* ---------------------------------------------------------------- voz */
   /*
     ⚠ Os dois são CONCEITO que o protocolo Stoat não tem — nem tipo, nem
