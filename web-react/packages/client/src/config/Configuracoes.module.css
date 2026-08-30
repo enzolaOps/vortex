@@ -132,8 +132,24 @@
   scrollbar-gutter: stable;
   scrollbar-width: thin;
   overscroll-behavior: contain;
-  padding-inline: var(--vx-space-24);
-  padding-block: var(--vx-space-16);
+  /*
+    `32px 40px 110px`, medido no design renderizado (`pnpm espelho`).
+
+    O 110 embaixo não é sobra: é o espaço que a faixa de "alterações não
+    salvas" ocupa quando aparece, reservado o tempo todo. Sem ele, a faixa
+    entraria por cima do último controle e a pessoa perderia justamente o que
+    acabou de mexer.
+  */
+  padding: var(--vx-space-32) var(--vx-space-40) var(--vx-config-rodape-h);
+
+  /*
+    Grid de uma coluna para o filho poder ocupar a LARGURA INTEIRA quando
+    quiser. O formulário se limita sozinho pela medida de leitura; a faixa de
+    não-salvo é rodapé da coluna e precisa atravessá-la.
+  */
+  display: grid;
+  align-content: start;
+  gap: var(--vx-space-16);
 }
 
 /*

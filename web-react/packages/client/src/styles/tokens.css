@@ -74,7 +74,37 @@
   --vx-text-4: #4c5563;
 
   /* --- Bordas ------------------------------------------------ */
-  --vx-border-subtle: #1d232d;
+/*
+    ⚠ **A hairline do design é VÉU, e a nossa era só cor opaca.**
+
+    Medido nos treze arquivos: das 1.063 declarações de borda, **69,4% são
+    `rgba(255,255,255,…)`** e só 9% são hex opaco — e mesmo esses são
+    superfícies, não uma cor de borda. O comentário de `--vx-border-subtle`
+    logo abaixo já dizia isso em prosa desde a fase 5, e concluía que um valor
+    opaco "não pode acertar as quatro" superfícies. A conclusão estava certa; o
+    que faltava era o token.
+
+    Véu e cor opaca CONVIVEM, e cada um tem um papel:
+
+    - `--vx-hairline` é DIVISÓRIA — régua entre blocos, borda de coluna, topo
+      de rodapé. Ela compõe sobre a superfície que estiver embaixo, que é a
+      razão de existir: as divisórias deste app vivem sobre quatro degraus
+      diferentes.
+    - `--vx-border-subtle` e `--vx-border-strong` são LIMITE DE CONTROLE —
+      campo, botão, caixa. Ali a cor precisa ser definida e derivável, porque o
+      picker de paleta a produz junto com o resto.
+
+    6% é o valor que o design usa na maioria das divisórias; ele varia entre 5%
+    e 7% conforme o lugar, e um token por ponto percentual seria vocabulário
+    sem informação.
+
+    ⚠ No CLARO ele inverte para preto: véu branco sobre fundo claro é invisível,
+    e é por isso que um véu literal em componente quebraria o tema — o token
+    resolve nos dois modos porque a camada 1 tem os dois blocos.
+  */
+  --vx-hairline: rgb(255 255 255 / 6%);
+
+    --vx-border-subtle: #1d232d;
   --vx-border-strong: #6b7684;
 
   /* --- Ação --------------------------------------------------
@@ -488,6 +518,20 @@
   --vx-timeline-max-w: 1040px;
 
   /*
+    A altura reservada para a faixa de "alterações não salvas".
+
+    ⚠ **Dois lugares precisam concordar com este número, e é por isso que ele
+    tem nome.** O respiro de baixo do `.rolagem` reserva o espaço, e a faixa
+    puxa a si mesma para dentro dele com a mesma medida. Se divergirem, ou a
+    faixa cobre o último controle, ou sobra um vão embaixo dela.
+
+    Dimensão de componente, não degrau de escala — a mesma família de
+    `--vx-rail-w`. Medida no design renderizado: a faixa tem 59px, e os 110
+    são ela mais o respiro que o design deixa abaixo do formulário.
+  */
+  --vx-config-rodape-h: 110px;
+
+  /*
     A MEDIDA de leitura — quantos caracteres cabem numa linha de texto.
 
     Não é a mesma coisa que a largura da coluna, e confundir as duas é o que
@@ -627,6 +671,7 @@
   --vx-text-3: #767f8c;
   --vx-text-4: #8b939f;
 
+  --vx-hairline: rgb(0 0 0 / 8%);
   --vx-border-subtle: #dce0e5;
   --vx-border-strong: #7c838e;
 
@@ -682,6 +727,7 @@
     --vx-text-3: #767f8c;
     --vx-text-4: #8b939f;
 
+    --vx-hairline: rgb(0 0 0 / 8%);
     --vx-border-subtle: #dce0e5;
     --vx-border-strong: #7c838e;
 
@@ -751,6 +797,7 @@
   --color-text-3: var(--vx-text-3);
   --color-text-4: var(--vx-text-4);
 
+  --color-hairline: var(--vx-hairline);
   --color-border-subtle: var(--vx-border-subtle);
   --color-border-strong: var(--vx-border-strong);
 

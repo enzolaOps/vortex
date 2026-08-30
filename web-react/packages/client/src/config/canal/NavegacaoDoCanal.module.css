@@ -16,7 +16,8 @@
      canais. Não é `surface-0`: aquele é rail e gutter ultrawide, e o
      `pnpm superficies` guarda a diferença. */
   background: var(--vx-surface-1);
-  border-inline-end: 1px solid var(--vx-border-subtle);
+  /* Véu, como o design — ver `--vx-hairline`. */
+  border-inline-end: 1px solid var(--vx-hairline);
   overflow-y: auto;
 }
 
@@ -26,8 +27,15 @@
   flex: none;
   display: grid;
   gap: var(--vx-space-03);
-  padding: var(--vx-space-16) var(--vx-space-14) var(--vx-space-12);
-  border-block-end: 1px solid var(--vx-border-subtle);
+  /*
+    ⚠ `18px 16px 12px`, e SEM borda embaixo.
+
+    Eu tinha posto uma régua aqui. Medido no design renderizado
+    (`pnpm espelho`): o cabeçalho da coluna não tem borda nenhuma — quem
+    separa é o respiro. A régua que existe fica em outro lugar, antes de
+    "Excluir canal".
+  */
+  padding: var(--vx-space-18) var(--vx-space-16) var(--vx-space-12);
 }
 
 .tipo {
@@ -82,13 +90,13 @@
   display: flex;
   flex-direction: column;
   gap: var(--vx-space-02);
-  padding: var(--vx-space-08);
+  padding: var(--vx-space-04) var(--vx-space-08);
 }
 
 .item {
   display: block;
   inline-size: 100%;
-  padding: var(--vx-space-07) var(--vx-space-09);
+  padding: var(--vx-space-08) var(--vx-space-09);
   border: 0;
   border-radius: var(--vx-radius-06);
   background: transparent;
@@ -115,6 +123,20 @@
 }
 
 /*
+  A régua ANTES do destrutivo — do design, e eu tinha usado margem.
+
+  `215x1` em branco a 7%: ela separa a navegação da ação, que é o que uma
+  margem sozinha não faz. Margem diz "há uma pausa"; régua diz "o que vem
+  abaixo é de outra natureza".
+*/
+.regua {
+  block-size: 1px;
+  margin: var(--vx-space-04) var(--vx-space-08);
+  border: 0;
+  background: var(--vx-hairline);
+}
+
+/*
   "Excluir canal" é item de navegação, e o vermelho é de LETRA.
 
   `danger-text` e não `danger`: o projeto tem dois vermelhos exatamente para
@@ -122,7 +144,6 @@
   hover é o tingido a 14%, o mesmo do item destrutivo de menu.
 */
 .perigo {
-  margin-block-start: var(--vx-space-04);
   color: var(--vx-danger-text);
 }
 
@@ -144,9 +165,11 @@
 .identificador {
   flex: none;
   inline-size: 100%;
-  padding: var(--vx-space-10) var(--vx-space-14);
+  padding: var(--vx-space-12) var(--vx-space-16);
   border: 0;
-  border-block-start: 1px solid var(--vx-border-subtle);
+  /* Esta borda EXISTE no design (branco a 6%) — ao contrário da do
+     cabeçalho, que eu tinha inventado. */
+  border-block-start: 1px solid var(--vx-hairline);
   background: transparent;
   color: var(--vx-text-4);
   font-family: var(--vx-font-mono);

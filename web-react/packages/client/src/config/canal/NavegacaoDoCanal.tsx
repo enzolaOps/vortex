@@ -83,6 +83,7 @@ export function NavegacaoDoCanal({
           shell, que está ABAIXO desta tela. É a mesma razão pela qual a tela
           de convites fecha antes de abrir o dela.
         */}
+        <hr className={css.regua} />
         <button
           type="button"
           className={`${css.item} ${css.perigo}`}

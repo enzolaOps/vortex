@@ -168,27 +168,35 @@
 /* --------------------------------------- faixa de não-salvo */
 
 /*
-  Ela GRUDA no fim da área rolável.
+  ⚠ **Ela é RODAPÉ DA COLUNA, e eu tinha feito um cartão dentro do formulário.**
 
-  Sem `sticky`, um formulário mais alto que a janela esconderia o único par
-  salvar/descartar da tela — e a pessoa rolaria procurando um botão que ela
-  acabou de ver. `z-realce` porque ela passa por cima do conteúdo, e o fundo
-  é obrigatório pelo mesmo motivo do cabeçalho grudado do seletor.
+  Medido no design renderizado (`pnpm espelho`): `1250x59`, fundo `#0f1318`
+  (`surface-1`), borda de topo em branco a 6%, respiro `12px 40px` — largura
+  cheia da coluna de conteúdo. Eu tinha entregue um cartão em `surface-4` com
+  raio, borda opaca e sombra, encaixado na medida de leitura.
+
+  A diferença não é enfeite: um cartão flutuando dentro do formulário lê como
+  mais um bloco do formulário; uma faixa que atravessa a coluna lê como o
+  RODAPÉ da tela, e é isso que diz "isto vale para tudo o que está acima".
+
+  Ela sai da caixa do `.rolagem` com margens negativas porque o respiro dele é
+  do CONTEÚDO e a faixa não é conteúdo. `sticky` continua, e continua pelo
+  mesmo motivo de antes: um formulário mais alto que a janela esconderia o
+  único par salvar/descartar da tela.
 */
 .faixa {
   position: sticky;
-  inset-block-end: 0;
+  inset-block-end: calc(-1 * var(--vx-config-rodape-h));
   z-index: var(--vx-z-realce);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--vx-space-12);
-  margin-block-start: var(--vx-space-08);
-  padding: var(--vx-space-12) var(--vx-space-14);
-  border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-10);
-  background: var(--vx-surface-4);
-  box-shadow: var(--vx-elev-2);
+  margin-inline: calc(-1 * var(--vx-space-40));
+  margin-block-end: calc(-1 * var(--vx-config-rodape-h));
+  padding: var(--vx-space-12) var(--vx-space-40);
+  border-block-start: 1px solid var(--vx-hairline);
+  background: var(--vx-surface-1);
   font-size: var(--vx-size-sm);
   color: var(--vx-text-2);
 }
@@ -302,15 +310,4 @@
 
 .triBotao[data-valor="permitir"][aria-pressed="true"] {
   color: var(--vx-success-text);
-}
-
-/* --------------------------------------------------- avançado */
-
-.identificador {
-  display: flex;
-  align-items: center;
-  gap: var(--vx-space-08);
-  font-family: var(--vx-font-mono);
-  font-size: var(--vx-size-sm);
-  color: var(--vx-text-3);
 }
