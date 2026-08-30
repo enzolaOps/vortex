@@ -1,7 +1,13 @@
 import { X } from "@phosphor-icons/react";
 import { useEffect, useSyncExternalStore, type ReactNode } from "react";
 
+import { Avatar } from "../components/ui/Avatar";
+import { cn } from "../lib/cn";
 import { Tooltip } from "../components/ui/Tooltip";
+import { sigla } from "../lib/sigla";
+import { lerMeuPerfil } from "../sdk/perfil";
+import { sair } from "../sdk/autenticacao";
+import { assinarSessao, lerSessao } from "../store/sessao";
 import {
   abrirConfig,
   assinarConfig,
@@ -79,6 +85,43 @@ function ItemDoMenu({
   );
 }
 
+/**
+ * O cartão de identidade no topo da coluna.
+ *
+ * ⚠ Ele NÃO é um alvo — não abre menu de status nem leva ao perfil. O painel
+ * do rodapé da coluna de canais já faz as duas coisas, e um segundo gatilho
+ * para o mesmo menu, numa tela que tem "Perfil" como primeiro item da lista
+ * logo abaixo, seria dois caminhos disputando o mesmo destino. Aqui ele
+ * responde uma pergunta só: em qual conta você está.
+ */
+function Identidade() {
+  /*
+    Mesma leitura do `PainelDeUsuario`: o perfil vem do cache do SDK sem
+    assinatura (nome de exibição muda uma vez a cada nunca), e o ID vem da
+    SESSÃO — `client.user` é `undefined` antes do `Ready`, e esta coluna
+    desenha desde a abertura.
+  */
+  const perfil = lerMeuPerfil();
+  const meuId = useSyncExternalStore(assinarSessao, lerSessao).userId ?? "";
+  const nome = perfil?.displayName ?? "você";
+
+  return (
+    <div className={css.identidade}>
+      <Avatar
+        id={meuId}
+        sigla={perfil ? sigla(nome) : undefined}
+        tamanho="xs"
+      />
+      <div className={css.identidadeTextos}>
+        <div className={css.identidadeNome}>{nome}</div>
+        <div className={css.identidadeArroba}>
+          {perfil?.username ? `@${perfil.username}` : "sem sessão"}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Configuracoes() {
   const config = useSyncExternalStore(assinarConfig, lerConfig);
   const servidorAtivo = useServidorAtivo();
@@ -144,53 +187,85 @@ export function Configuracoes() {
         <NavegacaoDoCanal canal={canal} secao={secao} servidor={servidor?.name} />
       ) : (
       <nav className={css.menu} aria-label="Seções">
-        <p className={css.grupo}>Você</p>
-        {DE_USUARIO.map((id) => (
-          <ItemDoMenu key={id} id={id} ativa={id === secao} />
-        ))}
+        <Identidade />
 
-        {/*
-          As de servidor só aparecem quando há servidor — e não desabilitadas:
-          um menu com metade cinza ensina que existe coisa que você não pode
-          usar, ruído permanente para quem só usa conversas.
-        */}
-        {serverId ? (
-          <>
-            <p className={css.grupo}>{servidor?.name ?? "Servidor"}</p>
-            {DE_SERVIDOR.map((id) => (
-              <ItemDoMenu
-                key={id}
-                id={id}
-                ativa={id === secao}
-                serverId={serverId}
-              />
-            ))}
-          </>
-        ) : null}
+        <div className={css.lista}>
+          <p className={css.grupo}>Configurações do usuário</p>
+          {DE_USUARIO.map((id) => (
+            <ItemDoMenu key={id} id={id} ativa={id === secao} />
+          ))}
+
+          {/*
+            As de servidor só aparecem quando há servidor — e não
+            desabilitadas: um menu com metade cinza ensina que existe coisa que
+            você não pode usar, ruído permanente para quem só usa conversas.
+          */}
+          {serverId ? (
+            <>
+              <p className={css.grupo}>{servidor?.name ?? "Servidor"}</p>
+              {DE_SERVIDOR.map((id) => (
+                <ItemDoMenu
+                  key={id}
+                  id={id}
+                  ativa={id === secao}
+                  serverId={serverId}
+                />
+              ))}
+            </>
+          ) : null}
+
+          {/*
+            ⚠ **Sair faltava aqui, e o lugar dele é este.** Ele existe no menu
+            do rodapé da coluna de canais — atrás de um dropdown que precisa
+            ser aberto —, e o design o põe no fim desta lista, separado por
+            régua e em vermelho. É onde se procura por ele: encerrar sessão é
+            configuração de conta, não ajuste de presença.
+          */}
+          <hr className={css.regua} />
+          <button
+            type="button"
+            className={cn(css.item, css.sair)}
+            onClick={() => void sair()}
+          >
+            Sair
+          </button>
+        </div>
       </nav>
       )}
 
       <div className={css.conteudo}>
-        <header className={css.cabecalho}>
-          <h1 className={css.titulo}>{NOME[secao]}</h1>
-          <Tooltip texto="Fechar (Esc)" lado="inicio">
-            <button
-              type="button"
-              className={css.fechar}
-              aria-label="Fechar configurações"
-              onClick={fecharConfig}
-            >
-              <X size={20} aria-hidden />
-            </button>
-          </Tooltip>
-        </header>
-
         {/* Rolável com foco: ver `MessageList` — rolável sem foco é inoperável
             por teclado. */}
         <div className={css.rolagem} tabIndex={0}>
+          {/*
+            O título rola COM o conteúdo, e é a mudança que tira uma barra
+            inteira da tela. Ele mora aqui e não dentro de cada seção porque a
+            fonte já é o `NOME_DA_SECAO` — repeti-lo em treze arquivos daria
+            treze lugares para o título divergir do item marcado na coluna.
+          */}
+          <header className={css.paginaCabecalho}>
+            <h1 className={css.paginaTitulo}>{NOME[secao]}</h1>
+          </header>
           {CONTEUDO[secao]()}
         </div>
       </div>
+
+      {/*
+        Fora do `.conteudo`: ele flutua sobre o canto da TELA, e o design o
+        desenha assim — 34px com borda, sobre o vazio à direita da coluna de
+        840. Numa barra ele custaria 65px de altura em toda seção para repetir
+        o que o item marcado na coluna já diz.
+      */}
+      <Tooltip texto="Fechar (Esc)" lado="inicio">
+        <button
+          type="button"
+          className={css.fechar}
+          aria-label="Fechar configurações"
+          onClick={fecharConfig}
+        >
+          <X size={18} aria-hidden />
+        </button>
+      </Tooltip>
     </div>
   );
 }

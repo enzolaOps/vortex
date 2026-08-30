@@ -26,6 +26,7 @@ import { Avatar } from "../components/ui/Avatar";
 import { definirPresenca, definirStatusTexto, lerMeuPerfil } from "../sdk/perfil";
 import type { PresencaEscolhida } from "../sdk/domain";
 import css from "./PainelDeUsuario.module.css";
+import { sigla } from "../lib/sigla";
 
 /**
  * As quatro escolhas, na ordem em que se procura por elas.
@@ -282,18 +283,3 @@ export function PainelDeUsuario() {
   );
 }
 
-/**
- * Iniciais do nome.
- *
- * Duplicada do `map.ts` de propósito: aquela roda no adapter, sobre o snapshot
- * de outra pessoa, e é derivação de ESCRITA. Esta roda uma vez por render de um
- * painel que re-renderiza quando o status muda — importar a de lá arrastaria o
- * `sdk/` para dentro de um componente, que é justamente o que a fronteira de
- * import proíbe.
- */
-function sigla(nome: string): string {
-  const partes = nome.trim().split(/[\s_.-]+/).filter(Boolean);
-  if (partes.length === 0) return "?";
-  const letras = partes.slice(0, 2).map((p) => [...p][0] ?? "");
-  return letras.join("").toUpperCase();
-}

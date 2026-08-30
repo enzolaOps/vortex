@@ -74,11 +74,6 @@ const PERMITIDO = {
       "Tela cheia sem shell: aqui não há rail nem conteúdo, então ela É o " +
       "chão. Mesma família do `body`.",
   },
-  "config/Configuracoes.module.css": {
-    ".tela":
-      "Rota de tela cheia SOBRE o shell — ela precisa ser opaca e cobrir o " +
-      "que está atrás, e o tom de chão é o que diz 'você saiu da conversa'.",
-  },
   "config/canal/Canal.module.css": {
     ".filtro":
       "Campo de BUSCA, e o design separa os dois papéis: o que recebe entrada " +

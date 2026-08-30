@@ -21,6 +21,7 @@ import { chaveDeMembro } from "../sdk/domain";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
 import { CampoDeBusca } from "../components/ui/CampoDeBusca";
 import css from "./Encaminhar.module.css";
+import { sigla } from "../lib/sigla";
 
 /**
  * Quantos destinos de uma vez.
@@ -341,14 +342,3 @@ function rotuloDe(tipo: string, nome: string): string {
   return tipo === "texto" || tipo === "voz" ? `#${nome}` : nome;
 }
 
-/*
-  A inicial da conversa, calculada AQUI.
-
-  `ChannelSnapshot` não tem `sigla` — e não deve ter: sigla é derivação de
-  escrita para superfícies que rolam milhares de linhas, e esta lista tem
-  dezenas. Pagar o campo no snapshot de todo canal do app para desenhar um
-  avatar num modal seria o custo no lugar errado.
-*/
-function sigla(nome: string): string {
-  return [...nome.trim()][0]?.toUpperCase() ?? "?";
-}

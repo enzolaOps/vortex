@@ -11,6 +11,7 @@ import { ulid } from "ulid";
 import { client } from "./client";
 import { publicarCanaisDe } from "./adapter";
 import { toast } from "../components/ui/toastStore";
+import { sigla } from "../lib/sigla";
 
 /**
  * O convite, reduzido ao que a tela de pré-visualização mostra.
@@ -33,16 +34,6 @@ export type Convite = {
 
 const novoId = (): string => ulid();
 
-function sigla(nome: string): string {
-  const partes = nome.trim().split(/[\s_.-]+/).filter(Boolean);
-  return (
-    partes
-      .slice(0, 2)
-      .map((p) => [...p][0] ?? "")
-      .join("")
-      .toUpperCase() || "?"
-  );
-}
 
 function motivo(e: unknown): string {
   const status = (e as { response?: { status?: number } })?.response?.status;

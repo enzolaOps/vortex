@@ -39,6 +39,7 @@ import type {
 } from "./domain";
 import { NOMES_POR_REACAO } from "./domain";
 import type { Enquete } from "../store/enquetes";
+import { sigla } from "../lib/sigla";
 
 /**
  * `reactions` chega como ReactiveMap<emoji, ReactiveSet<userId>>. Achatar aqui
@@ -317,18 +318,6 @@ export function toPresence(raw: string | null | undefined): PresenceStatus {
 
 /* ------------------------------------------------------- colunas laterais */
 
-/**
- * Iniciais para o avatar sem imagem.
- *
- * Uma letra por palavra, no máximo duas. `Intl.Segmenter` seria o correto para
- * emoji e escrita complexa; `[...nome]` já resolve par substituto, que é o caso
- * que quebra `charAt` em nome com emoji.
- */
-function sigla(nome: string): string {
-  const partes = nome.trim().split(/[\s_.-]+/).filter(Boolean);
-  const letras = partes.slice(0, 2).map((parte) => [...parte][0] ?? "");
-  return letras.join("").toUpperCase() || "?";
-}
 
 /**
  * As contagens entram por parâmetro pelo mesmo motivo de `sendState`: elas não
