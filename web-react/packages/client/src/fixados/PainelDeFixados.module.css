@@ -99,7 +99,8 @@
      cartões e não como parágrafos. */
   gap: var(--vx-space-10);
   margin: 0;
-  padding: var(--vx-space-08);
+  /* 10, do design — o respiro do rolável em volta da pilha. */
+  padding: var(--vx-space-10);
   overflow-y: auto;
   scrollbar-gutter: stable;
   overscroll-behavior: contain;
@@ -118,7 +119,16 @@
   position: relative;
   display: grid;
   min-inline-size: 0;
-  padding: var(--vx-space-04);
+  /*
+    ⚠ **12, e era 4 — e este era o defeito de verdade.**
+
+    O design escreve `padding:12px` no cartão fixado. Com 4, as três prévias
+    de duas linhas ficavam quase encostadas no próprio contorno, e o painel
+    lia como um bloco de texto contínuo. Eu tinha tratado isso pintando uma
+    superfície em repouso, que é remédio para o sintoma: o que faltava era
+    respiro DENTRO do cartão, não contraste em volta dele.
+  */
+  padding: var(--vx-space-12);
   border: 1px solid transparent;
   border-radius: var(--vx-radius-10);
   /* Altura mínima de um item real: o placeholder não pode encolher, ou a
@@ -147,21 +157,18 @@
 }
 
 /*
-  ⚠ **Superfície em REPOUSO, e não só no hover.**
+  ⚠ **Sem superfície em repouso — o design não pinta o cartão, e a razão pela
+  qual eu pintava caiu.**
 
-  A versão anterior só pintava o cartão sob o ponteiro, e o resultado é o que
-  quem usa relatou: sem separação. Três prévias de duas linhas empilhadas com
-  8px de respiro leem como um bloco de texto contínuo — o cartão só existia
-  para quem já estivesse apontando para ele, que é a pessoa que menos precisa
-  da separação.
+  Eu tinha posto `surface-2` em repouso porque quem usa relatou "sem
+  separação": três prévias de duas linhas leem como um bloco contínuo. A
+  causa, porém, era o respiro de 4px DENTRO do cartão, não a falta de
+  contraste em volta — com os 12 do design, os cartões se separam sozinhos e
+  a superfície permanente vira ruído numa coluna que já tem fundo próprio.
 
-  O design pinta o primeiro cartão e deixa os outros no hover; ali isso mostra
-  o estado, aqui produziria a mesma parede.
+  Se a queixa voltar, esta é a linha para reverter — mas reverter sem os 12
+  seria voltar a tratar o sintoma.
 */
-.item {
-  background: var(--vx-surface-2);
-  border-color: var(--vx-border-subtle);
-}
 
 .item:hover,
 .item:focus-within {
@@ -175,7 +182,8 @@
   /* 7 entre autor, prévia e ações — o cartão do design. */
   gap: var(--vx-space-07);
   min-inline-size: 0;
-  padding: var(--vx-space-08);
+  /* 10, do design — o respiro do rolável em volta da pilha. */
+  padding: var(--vx-space-10);
   border: 0;
   border-radius: var(--vx-radius-07);
   background: transparent;
