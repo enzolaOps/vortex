@@ -1,0 +1,168 @@
+/* ============================================================
+   A coluna das configurações de canal — 248px, do design
+   ------------------------------------------------------------
+   Ela substitui a navegação de usuário/servidor, e por isso
+   repete a largura e a superfície dela em vez de herdá-las: as
+   duas colunas nunca aparecem juntas, e um seletor compartilhado
+   amarraria duas telas que mudam por razões diferentes.
+   ============================================================ */
+
+.coluna {
+  inline-size: 248px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  /* `surface-1`, o degrau de SIDEBAR no Foundations — o mesmo da coluna de
+     canais. Não é `surface-0`: aquele é rail e gutter ultrawide, e o
+     `pnpm superficies` guarda a diferença. */
+  background: var(--vx-surface-1);
+  border-inline-end: 1px solid var(--vx-border-subtle);
+  overflow-y: auto;
+}
+
+/* ------------------------------------------------------ cabeçalho */
+
+.cabecalho {
+  flex: none;
+  display: grid;
+  gap: var(--vx-space-03);
+  padding: var(--vx-space-16) var(--vx-space-14) var(--vx-space-12);
+  border-block-end: 1px solid var(--vx-border-subtle);
+}
+
+.tipo {
+  margin: 0;
+  font-size: var(--vx-size-2xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--vx-text-3);
+}
+
+.nome {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-06);
+  margin: 0;
+  min-inline-size: 0;
+  font-size: var(--vx-size-xl);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.nome svg {
+  flex: none;
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+  /* O glifo é pontuação, não informação — a mesma decisão do `#` na coluna
+     de canais. */
+  color: var(--vx-text-4);
+}
+
+.nome span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trilha {
+  margin: 0;
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------- itens */
+
+.itens {
+  flex: 1;
+  min-block-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-02);
+  padding: var(--vx-space-08);
+}
+
+.item {
+  display: block;
+  inline-size: 100%;
+  padding: var(--vx-space-07) var(--vx-space-09);
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  cursor: pointer;
+  text-align: start;
+}
+
+.item:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.item:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.item[aria-current="true"] {
+  background: var(--vx-state-selected);
+  color: var(--vx-accent-text);
+}
+
+/*
+  "Excluir canal" é item de navegação, e o vermelho é de LETRA.
+
+  `danger-text` e não `danger`: o projeto tem dois vermelhos exatamente para
+  separar preenchimento de texto, e este é uma palavra de 13px. O realce no
+  hover é o tingido a 14%, o mesmo do item destrutivo de menu.
+*/
+.perigo {
+  margin-block-start: var(--vx-space-04);
+  color: var(--vx-danger-text);
+}
+
+.perigo:hover {
+  background: color-mix(in oklab, var(--vx-danger) 14%, transparent);
+  color: var(--vx-danger-text);
+}
+
+/* ------------------------------------------------------- rodapé */
+
+/*
+  O identificador, no pé — do design.
+
+  Botão e não texto: ele existe para ser copiado, e um texto que só pode ser
+  selecionado à mão numa fonte de 11px é o recurso existindo para quem tem
+  paciência. Mono porque é um ULID: a largura constante deixa comparar dois
+  de relance.
+*/
+.identificador {
+  flex: none;
+  inline-size: 100%;
+  padding: var(--vx-space-10) var(--vx-space-14);
+  border: 0;
+  border-block-start: 1px solid var(--vx-border-subtle);
+  background: transparent;
+  color: var(--vx-text-4);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-2xs);
+  cursor: pointer;
+  text-align: start;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.identificador:hover {
+  color: var(--vx-text-2);
+}
+
+.identificador:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}

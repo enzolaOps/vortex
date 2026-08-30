@@ -43,7 +43,6 @@ export const SECOES = [
   "canal",
   "canalPermissoes",
   "canalConvites",
-  "canalAvancado",
 ] as const;
 
 export type SecaoId = (typeof SECOES)[number];
@@ -70,7 +69,6 @@ export const NOME_DA_SECAO: Record<SecaoId, string> = {
   canal: "Visão geral",
   canalPermissoes: "Permissões",
   canalConvites: "Convites",
-  canalAvancado: "Avançado",
 };
 
 /** As que falam de um servidor, e por isso precisam de um. */
@@ -87,7 +85,6 @@ export const DE_CANAL: readonly SecaoId[] = [
   "canal",
   "canalPermissoes",
   "canalConvites",
-  "canalAvancado",
 ];
 
 export type Config = {

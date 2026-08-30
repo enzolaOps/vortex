@@ -5,7 +5,6 @@ import { Tooltip } from "../components/ui/Tooltip";
 import {
   abrirConfig,
   assinarConfig,
-  DE_CANAL,
   DE_SERVIDOR,
   NOME_DA_SECAO as NOME,
   fecharConfig,
@@ -22,8 +21,8 @@ import { Emojis } from "./Emojis";
 import { Perfil } from "./Perfil";
 import { Servidor } from "./Servidor";
 import { Sessoes } from "./Sessoes";
-import { AvancadoDoCanal } from "./canal/AvancadoDoCanal";
 import { ConvitesDoCanal } from "./canal/ConvitesDoCanal";
+import { NavegacaoDoCanal } from "./canal/NavegacaoDoCanal";
 import { PermissoesDoCanal } from "./canal/PermissoesDoCanal";
 import { VisaoGeralDoCanal } from "./canal/VisaoGeralDoCanal";
 import css from "./Configuracoes.module.css";
@@ -109,7 +108,6 @@ export function Configuracoes() {
     canal: () => <VisaoGeralDoCanal channelId={channelId} />,
     canalPermissoes: () => <PermissoesDoCanal channelId={channelId} />,
     canalConvites: () => <ConvitesDoCanal channelId={channelId} />,
-    canalAvancado: () => <AvancadoDoCanal channelId={channelId} />,
   };
 
   return (
@@ -119,6 +117,19 @@ export function Configuracoes() {
       aria-modal="true"
       aria-label="Configurações"
     >
+      {/*
+        ⚠ **As de canal SUBSTITUEM a navegação, não se somam a ela.**
+
+        Eu as tinha pendurado como um terceiro grupo abaixo de "Você" e do
+        servidor, e o design não faz isso: `Vortex Configurações do Canal`
+        desenha uma casca PRÓPRIA — coluna de 248px com o tipo do canal, o
+        breadcrumb do servidor, três itens, "Excluir canal" e o ID no rodapé.
+        Somar os três grupos punha a pessoa a um clique de "Dispositivos"
+        quando ela abriu as configurações de um canal.
+      */}
+      {canal ? (
+        <NavegacaoDoCanal canal={canal} secao={secao} servidor={servidor?.name} />
+      ) : (
       <nav className={css.menu} aria-label="Seções">
         <p className={css.grupo}>Você</p>
         {DE_USUARIO.map((id) => (
@@ -143,23 +154,8 @@ export function Configuracoes() {
             ))}
           </>
         ) : null}
-
-        {/*
-          As de canal só aparecem quando há um canal ALVO — e o alvo entra por
-          `abrirConfigDeCanal`, do menu de contexto do canal. Elas não são
-          alcançáveis pela navegação porque não há de qual canal falar até
-          alguém escolher um; um grupo permanente no menu abriria sempre em
-          "abra um canal", que é um destino morto.
-        */}
-        {canal ? (
-          <>
-            <p className={css.grupo}>#{canal.name}</p>
-            {DE_CANAL.map((id) => (
-              <ItemDoMenu key={id} id={id} ativa={id === secao} />
-            ))}
-          </>
-        ) : null}
       </nav>
+      )}
 
       <div className={css.conteudo}>
         <header className={css.cabecalho}>
