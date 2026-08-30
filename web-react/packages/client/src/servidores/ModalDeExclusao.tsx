@@ -52,6 +52,40 @@ export function ModalDeExclusao({ aoFechar }: { aoFechar: () => void }) {
               : "Apagar categoria"
         }
         className={css.painel}
+        /* Cancelar ANTES de apagar: a ação destrutiva fica na ponta, que é
+           onde o ponteiro chega por último e onde o design a põe. */
+        rodape={
+          <>
+            <Botao variante="sutil" onClick={aoFechar} disabled={apagando}>
+              Cancelar
+            </Botao>
+            <Botao
+              variante="perigo"
+              disabled={!alvo}
+              carregando={apagando}
+              rotuloCarregando="Apagando…"
+              onClick={() => {
+                if (!alvo) return;
+                setApagando(true);
+                const p =
+                  alvo.tipo === "apagarCanal"
+                    ? apagarCanal(alvo.channelId)
+                    : alvo.tipo === "apagarCategoria"
+                      ? apagarCategoria(alvo.serverId, alvo.categoriaId)
+                      : alvo.tipo === "apagarMensagem"
+                        ? apagarMensagem(alvo.messageId)
+                        : Promise.resolve(false);
+                void p
+                  .then((ok) => {
+                    if (ok) aoFechar();
+                  })
+                  .finally(() => setApagando(false));
+              }}
+            >
+              Apagar
+            </Botao>
+          </>
+        }
       >
         <div className={css.corpo}>
           <p className={css.aviso}>
@@ -77,33 +111,6 @@ export function ModalDeExclusao({ aoFechar }: { aoFechar: () => void }) {
             )}
           </p>
 
-          <Botao
-            variante="perigo"
-            disabled={apagando || !alvo}
-            onClick={() => {
-              if (!alvo) return;
-              setApagando(true);
-              const p =
-                alvo.tipo === "apagarCanal"
-                  ? apagarCanal(alvo.channelId)
-                  : alvo.tipo === "apagarCategoria"
-                    ? apagarCategoria(alvo.serverId, alvo.categoriaId)
-                    : alvo.tipo === "apagarMensagem"
-                      ? apagarMensagem(alvo.messageId)
-                      : Promise.resolve(false);
-              void p
-                .then((ok) => {
-                  if (ok) aoFechar();
-                })
-                .finally(() => setApagando(false));
-            }}
-          >
-            {apagando ? "Apagando…" : "Apagar"}
-          </Botao>
-
-          <Botao variante="sutil" onClick={aoFechar} disabled={apagando}>
-            Cancelar
-          </Botao>
         </div>
       </DialogContent>
     </Dialog>

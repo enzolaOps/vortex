@@ -60,7 +60,49 @@ export function ModalDeModeracao({ aoFechar }: { aoFechar: () => void }) {
 
   return (
     <Dialog open onOpenChange={(v) => !v && aoFechar()}>
-      <DialogContent titulo={TITULO} className={css.painel}>
+      <DialogContent
+        titulo={TITULO}
+        className={css.painel}
+        /* Cancelar ANTES de confirmar: a ação destrutiva fica na ponta, que é
+           onde o ponteiro chega por último e onde o design a põe. */
+        rodape={
+          <>
+            <Botao variante="sutil" onClick={aoFechar} disabled={enviando}>
+              Cancelar
+            </Botao>
+            <Botao
+              variante="perigo"
+              disabled={enviando}
+              carregando={enviando}
+              rotuloCarregando="Aplicando…"
+              onClick={() => {
+                setEnviando(true);
+                const p =
+                  acao === "expulsar"
+                    ? expulsar(moderar.serverId, moderar.userId)
+                    : acao === "banir"
+                      ? banir(
+                          moderar.serverId,
+                          moderar.userId,
+                          razao.trim() || undefined,
+                        )
+                      : silenciarMembro(
+                          moderar.serverId,
+                          moderar.userId,
+                          Number(minutos),
+                        );
+                void p
+                  .then((ok) => {
+                    if (ok) aoFechar();
+                  })
+                  .finally(() => setEnviando(false));
+              }}
+            >
+              {TITULO}
+            </Botao>
+          </>
+        }
+      >
         <div className={css.corpo}>
           <p className={css.aviso}>{AVISO}</p>
 
@@ -85,34 +127,6 @@ export function ModalDeModeracao({ aoFechar }: { aoFechar: () => void }) {
             />
           ) : null}
 
-          <Botao
-            variante="perigo"
-            disabled={enviando}
-            onClick={() => {
-              setEnviando(true);
-              const p =
-                acao === "expulsar"
-                  ? expulsar(moderar.serverId, moderar.userId)
-                  : acao === "banir"
-                    ? banir(moderar.serverId, moderar.userId, razao.trim() || undefined)
-                    : silenciarMembro(
-                        moderar.serverId,
-                        moderar.userId,
-                        Number(minutos),
-                      );
-              void p
-                .then((ok) => {
-                  if (ok) aoFechar();
-                })
-                .finally(() => setEnviando(false));
-            }}
-          >
-            {enviando ? "Aplicando…" : TITULO}
-          </Botao>
-
-          <Botao variante="sutil" onClick={aoFechar} disabled={enviando}>
-            Cancelar
-          </Botao>
         </div>
       </DialogContent>
     </Dialog>

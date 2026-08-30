@@ -50,3 +50,31 @@
   inline-size: 100%;
   max-inline-size: 32rem;
 }
+
+/*
+  O corpo rolável do modal.
+
+  ⚠ `min-block-size: 0` mora aqui e não como utility: `min-h-0` não existe
+  nesta folha — o `@theme` faz `--spacing-*: initial`, e toda utility computada
+  sobre a base do Tailwind v4 deixa de ser emitida. O `pnpm utilities` a pegou
+  na primeira corrida.
+
+  Sem ela o item de flex não encolhe abaixo do próprio conteúdo, e quem rola
+  passa a ser o PAINEL — levando cabeçalho e rodapé junto, que é exatamente o
+  que as três faixas existem para impedir.
+*/
+.corpo {
+  min-block-size: 0;
+}
+
+/*
+  O teto de altura do painel.
+
+  ⚠ Ele veio para cá porque `max-h-[90vh]` é arbitrary value e a lei nº 4 o
+  proíbe — o lint pegou na primeira corrida. `90vh` também não é degrau de
+  escala nem candidato a token: é a fração da JANELA que o modal pode ocupar,
+  e a escala do projeto mede componente, não viewport.
+*/
+.painel {
+  max-block-size: 90vh;
+}

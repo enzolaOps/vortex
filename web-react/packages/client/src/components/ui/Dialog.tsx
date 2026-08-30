@@ -26,6 +26,7 @@ export function DialogContent({
   titulo,
   descricao,
   tituloOculto = false,
+  rodape,
   className,
   children,
   ...props
@@ -43,8 +44,24 @@ export function DialogContent({
    * O título continua existindo no DOM: `Dialog.Title` é o que o leitor de
    * tela anuncia ao abrir, e um diálogo sem ele é anunciado como "diálogo" e
    * mais nada. Esconder não é remover.
+   *
+   * ⚠ Ele também dispensa as TRÊS FAIXAS abaixo: com o conteúdo sendo o
+   * próprio cabeçalho, um cabeçalho com respiro em volta seria uma faixa
+   * vazia de 44px no topo. Os quatro consumidores que o passam hoje são
+   * exatamente os que não têm cabeçalho — paleta, lightbox, encaminhar e
+   * enquete.
    */
   tituloOculto?: boolean;
+  /**
+   * A faixa do rodapé, tipicamente os botões de ação.
+   *
+   * ⚠ Ela é uma FAIXA e não um `div` no fim do conteúdo: no design ela sangra
+   * até a borda do painel, com régua em cima e `surface-1` de fundo — um
+   * degrau ABAIXO do painel, não acima. É o que a separa do conteúdo sem
+   * gastar uma linha em branco, e é o que mantém os botões visíveis quando o
+   * corpo rola.
+   */
+  rodape?: ReactNode;
 }) {
   return (
     <Primitivo.Portal>
@@ -81,28 +98,57 @@ export function DialogContent({
         {...(descricao ? {} : { "aria-describedby": undefined })}
         className={cn(
           css.painel,
-          "z-flutuante rounded-12 border border-hairline-10 bg-surface-4 p-24 shadow-e3",
+          /*
+            ⚠ **O painel NÃO tem respiro, e as três faixas abaixo têm o
+            seu.** Ele carregava `p-24`, e isso impedia o rodapé de sangrar
+            até a borda — o defeito está registrado: dois modais já o
+            contornavam com `p-0` à mão. `overflow-hidden` é o que faz o raio
+            de 12 recortar a faixa; `flex-col` com o corpo em `min-h-0` é o
+            que deixa o CORPO rolar em vez do painel inteiro, mantendo
+            cabeçalho e rodapé parados.
+          */
+          "z-flutuante flex flex-col overflow-hidden",
+          "rounded-12 border border-hairline-10 bg-surface-4 shadow-e3",
           "anim-base",
           className,
         )}
       >
-        <Primitivo.Title
-          className={cn(
-            tituloOculto
-              ? "sr-only"
-              : "text-lg leading-title font-medium text-text-1",
-          )}
-        >
-          {titulo}
-        </Primitivo.Title>
+        {tituloOculto ? (
+          <>
+            <Primitivo.Title className="sr-only">{titulo}</Primitivo.Title>
+            {descricao ? (
+              <Primitivo.Description className="sr-only">
+                {descricao}
+              </Primitivo.Description>
+            ) : null}
+            {children}
+          </>
+        ) : (
+          <>
+            {/* `16px 18px 12px`, do design. O respiro de baixo é menor porque
+                o corpo logo abaixo traz o próprio. */}
+            <div className="flex-none px-18 pt-16 pb-12">
+              <Primitivo.Title className="text-xl leading-title font-semibold text-text-1">
+                {titulo}
+              </Primitivo.Title>
+              {descricao ? (
+                <Primitivo.Description className="mt-02 text-sm text-text-3">
+                  {descricao}
+                </Primitivo.Description>
+              ) : null}
+            </div>
 
-        {descricao ? (
-          <Primitivo.Description className="mt-04 text-md text-text-2">
-            {descricao}
-          </Primitivo.Description>
-        ) : null}
+            <div className={cn(css.corpo, "flex-1 overflow-y-auto px-18 pb-16")}>
+              {children}
+            </div>
 
-        <div className={tituloOculto ? undefined : "mt-16"}>{children}</div>
+            {rodape ? (
+              <div className="flex flex-none items-center justify-end gap-08 border-t border-hairline-06 bg-surface-1 px-18 py-14">
+                {rodape}
+              </div>
+            ) : null}
+          </>
+        )}
       </Primitivo.Content>
     </Primitivo.Portal>
   );
