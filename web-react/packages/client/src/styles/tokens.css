@@ -380,6 +380,10 @@
   --vx-space-32: 32px;
   --vx-space-36: 36px;
   --vx-space-40: 40px;
+  /* 48 aparece 82 vezes no design — é o respiro de BLOCO VAZIO (o cartão
+     tracejado de estado vazio) e o de seção folgada. Acrescentar um degrau
+     é uma linha porque a escala é por valor, não ordinal. */
+  --vx-space-48: 48px;
 
   /* --- Raio --------------------------------------------------
      ⚠ **Os valores mudaram; os nomes não.** A escala antiga era
@@ -939,6 +943,7 @@
   --spacing-32: var(--vx-space-32);
   --spacing-36: var(--vx-space-36);
   --spacing-40: var(--vx-space-40);
+  --spacing-48: var(--vx-space-48);
 
   /* Sem `initial` acima: o Tailwind não reserva `--z-index-*`, então
      não há escala default para apagar — só a nossa para acrescentar. */

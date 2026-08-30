@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
 import { Segmentado } from "../components/ui/Segmentado";
@@ -115,9 +116,9 @@ export function TelaDeMfa({
         {/* O erro acima do botão, como na entrada: abaixo, ele fica fora do
             caminho do olho que já está indo para o alvo. */}
         {motivo ? (
-          <p className={css.erro} role="alert">
+          <Banner tom="perigo" role="alert">
             {motivo}
-          </p>
+          </Banner>
         ) : null}
 
         <Botao variante="primario" type="submit" disabled={!podeEnviar}>

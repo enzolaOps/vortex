@@ -1,0 +1,104 @@
+/* ============================================================
+   Banner — a faixa de estado no fluxo
+   ------------------------------------------------------------
+   ⚠ Ele já existia, sem nome, em OITO telas de sessão: login,
+   criar conta, MFA, nome, recuperar senha, redefinir senha,
+   convite e conta desativada. Todas com a mesma regra `.erro`
+   copiada de um módulo só — o que funcionou porque as oito
+   importam o MESMO CSS Module, e teria divergido no minuto em
+   que a nona morasse em outro lugar.
+
+   E ele estava incompleto: borda vermelha SÓLIDA, sem
+   preenchimento e sem ícone. O design tinge o fundo a 10% e põe
+   o glifo à esquerda, que é o que distingue um aviso de uma
+   caixa de texto com borda colorida.
+
+   Não é o `Toast`: toast é efêmero e flutua sobre tudo, o banner
+   fica no FLUXO e dura enquanto a condição durar.
+   ============================================================ */
+
+.banner {
+  display: flex;
+  align-items: flex-start;
+  /* 11 — do design. Não é degrau de ritmo, é a distância entre um glifo de
+     13px e o texto que ele qualifica. */
+  gap: var(--vx-space-11);
+  padding: var(--vx-space-12) var(--vx-space-14);
+  border: 1px solid;
+  border-radius: var(--vx-radius-08);
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-sm);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+/*
+  Preenchimento a 10% e borda a 28%, os dois do design.
+
+  A razão de serem tão distantes: o fundo precisa ser um SUSSURRO — ele cobre
+  a área inteira e a 28% competiria com o texto por cima —, e a borda precisa
+  fechar a forma, o que a 10% ela não faz sobre `surface-2`.
+*/
+.aviso {
+  border-color: color-mix(in oklab, var(--vx-warning) 28%, transparent);
+  background: color-mix(in oklab, var(--vx-warning) 10%, transparent);
+}
+
+.aviso .icone {
+  color: var(--vx-warning);
+}
+
+.perigo {
+  border-color: color-mix(in oklab, var(--vx-danger) 28%, transparent);
+  background: color-mix(in oklab, var(--vx-danger) 10%, transparent);
+}
+
+.perigo .icone {
+  color: var(--vx-danger-text);
+}
+
+.sucesso {
+  border-color: color-mix(in oklab, var(--vx-success) 28%, transparent);
+  background: color-mix(in oklab, var(--vx-success) 10%, transparent);
+}
+
+.sucesso .icone {
+  color: var(--vx-success-text);
+}
+
+.info {
+  border-color: color-mix(in oklab, var(--vx-accent) 28%, transparent);
+  background: color-mix(in oklab, var(--vx-accent) 10%, transparent);
+}
+
+.info .icone {
+  color: var(--vx-accent-text);
+}
+
+/* 13px: um degrau acima do texto, que é o que o faz ler como marcador do
+   bloco e não como a primeira letra da frase. */
+.icone {
+  flex: none;
+  inline-size: 13px;
+  block-size: 13px;
+  /* Alinha ao centro óptico da primeira linha (12px de corpo, 1,5 de
+     entrelinha), em vez de ao topo da caixa. */
+  margin-block-start: var(--vx-space-02);
+}
+
+.corpo {
+  min-inline-size: 0;
+  flex: 1;
+}
+
+/*
+  O título, quando há dois níveis. Sem ele o banner é uma frase só, que é o
+  caso das oito telas de sessão — erro de login não tem subtítulo.
+*/
+.titulo {
+  display: block;
+  margin-block-end: var(--vx-space-02);
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+}

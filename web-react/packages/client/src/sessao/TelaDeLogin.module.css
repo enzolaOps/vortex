@@ -36,16 +36,6 @@
   letter-spacing: -0.02em;
 }
 
-.erro {
-  margin: 0;
-  padding-inline: var(--vx-space-12);
-  padding-block: var(--vx-space-08);
-  border: 1px solid var(--vx-danger);
-  border-radius: var(--vx-radius-06);
-  color: var(--vx-text-1);
-  font-size: var(--vx-size-sm);
-}
-
 /*
   A entrada de desenvolvimento.
 

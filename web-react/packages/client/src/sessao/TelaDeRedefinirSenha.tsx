@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
 import { Caixa } from "../components/ui/Marcador";
 import { Campo } from "../components/ui/Campo";
@@ -95,9 +96,9 @@ export function TelaDeRedefinirSenha({
         </Caixa>
 
         {motivo ? (
-          <p className={css.erro} role="alert">
+          <Banner tom="perigo" role="alert">
             {motivo}
-          </p>
+          </Banner>
         ) : null}
 
         <Botao variante="primario" type="submit" disabled={!podeEnviar}>

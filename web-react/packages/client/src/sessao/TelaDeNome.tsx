@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
 import { escolherNome } from "../sdk/conta";
@@ -55,9 +56,9 @@ export function TelaDeNome({ motivo }: { motivo: string | undefined }) {
         />
 
         {motivo ? (
-          <p className={css.erro} role="alert">
+          <Banner tom="perigo" role="alert">
             {motivo}
-          </p>
+          </Banner>
         ) : null}
 
         <Botao variante="primario" type="submit" disabled={!podeEnviar}>

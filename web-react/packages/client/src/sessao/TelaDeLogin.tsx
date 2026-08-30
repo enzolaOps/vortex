@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
 import { definirEntrada } from "../store/entrada";
@@ -92,9 +93,9 @@ export function TelaDeLogin({
           leitor de tela é o comportamento certo.
         */}
         {motivo ? (
-          <p className={css.erro} role="alert">
+          <Banner tom="perigo" role="alert">
             {motivo}
-          </p>
+          </Banner>
         ) : null}
 
         <Botao variante="primario" type="submit" disabled={!podeEnviar}>

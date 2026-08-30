@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
 import { PreviaDoConvite } from "../servidores/AdicionarServidor";
 import { buscarConvite, type Convite } from "../sdk/servidores";
@@ -43,9 +44,9 @@ export function TelaDeConvite({ codigo }: { codigo: string }) {
 
         {erro ? (
           <>
-            <p className={css.erro} role="alert">
+            <Banner tom="perigo" role="alert">
               {erro}
-            </p>
+            </Banner>
             <Botao variante="neutro" onClick={voltarParaEntrar}>
               Ir para a entrada
             </Botao>
