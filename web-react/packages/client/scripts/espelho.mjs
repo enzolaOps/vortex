@@ -42,10 +42,23 @@ const CHROME =
 const PORT = 9334;
 const HTTP = 4177;
 
-const [, , arquivo, ancora, profundidadeMax = "4"] = process.argv;
+/*
+  ⚠ **O design é INTERATIVO, e isso não é detalhe.** Cada arquivo tem várias
+  telas atrás de um `sc-if`, e só a ativa está no DOM — a segunda tela de
+  configurações de canal não existe até alguém clicar em "Permissões". Sem o
+  clique, o script responde "âncora não encontrada" sobre uma tela que está
+  ali. `--clique="texto"` aciona o elemento com esse texto antes de varrer, e
+  pode repetir para navegar dois níveis.
+*/
+const args = process.argv.slice(2);
+const cliques = args
+  .filter((a) => a.startsWith("--clique="))
+  .map((a) => a.slice("--clique=".length));
+const posicionais = args.filter((a) => !a.startsWith("--"));
+const [arquivo, ancora, profundidadeMax = "4", subir = "0"] = posicionais;
 if (!arquivo || !ancora) {
   console.error(
-    'uso: node scripts/espelho.mjs "<arquivo .dc.html>" "<texto âncora>" [profundidade]',
+    'uso: node scripts/espelho.mjs "<arquivo>" "<âncora>" [profundidade] [subir] [--clique="texto"]',
   );
   process.exit(2);
 }
@@ -153,12 +166,29 @@ const url = `http://127.0.0.1:${HTTP}/${encodeURIComponent(basename(arquivo))}`;
 await enviar("Page.navigate", { url }, sessionId);
 await dorme(2200);
 
+for (const alvo of cliques) {
+  const achou = await av(`(() => {
+    const t = ${JSON.stringify(alvo)};
+    const e = [...document.querySelectorAll("*")].find(
+      (x) => x.children.length === 0 && (x.textContent || "").trim() === t,
+    );
+    if (!e) return false;
+    (e.closest("[onclick],button,a") ?? e).click();
+    return true;
+  })()`);
+  if (!achou) {
+    console.error(`não achei o que clicar: “${alvo}”`);
+    process.exit(1);
+  }
+  await dorme(900);
+}
+
 /* ------------------------------------------------------- a varredura */
 
 const arvore = await av(`(() => {
   const ANCORA = ${JSON.stringify(ancora)};
   const MAX = ${Number(profundidadeMax)};
-  const SUBIR = ${Number(process.argv[5] ?? 0)};
+  const SUBIR = ${Number(subir)};
 
   const alvo = [...document.querySelectorAll("*")].find(
     (e) => e.children.length === 0 && (e.textContent || "").trim().includes(ANCORA),

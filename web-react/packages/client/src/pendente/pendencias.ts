@@ -255,6 +255,16 @@ export const PENDENCIAS = {
     faz: "Copiar as permissões da categoria para este canal e manter em sincronia.",
     depende: "categoria não tem permissões no protocolo — ela é só um array de IDs",
   },
+  pausarConvites: {
+    superficie: "Convites do canal",
+    faz: "Suspender todos os convites do canal sem apagá-los.",
+    depende: "pausar convite no protocolo — só existe revogar",
+  },
+  bannerDeSincronia: {
+    superficie: "Permissões do canal",
+    faz: "Avisar quando as permissões do canal divergem da categoria.",
+    depende: "categoria não tem permissões no protocolo — não há com o que comparar",
+  },
   silenciarUsuario: {
     superficie: "Menu do usuário",
     faz: "Esconder as mensagens desta pessoa só para você.",
