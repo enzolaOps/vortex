@@ -70,7 +70,11 @@ export function ConvitesDoCanal({ channelId }: { channelId: string }) {
   const deste = lista?.filter((c) => c.canal === canal.name);
 
   return (
-    <div className={`${secao.forma} ${secao.larga}`}>
+    /* 720 é a largura desta tela no design. */
+    <div
+      className={`${secao.forma} ${secao.larga}`}
+      style={{ "--vx-editor-w": "720px" } as React.CSSProperties}
+    >
       <header className={css.convitesTopo}>
         <span className={css.cartaoTexto}>
           <span className={css.cartaoTitulo}>Convites</span>

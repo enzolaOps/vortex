@@ -59,7 +59,11 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
     v.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9\-_]/g, "");
 
   return (
-    <div className={secao.forma}>
+    /* 680 é a largura desta tela no design — ver `.forma.larga`. */
+    <div
+      className={`${secao.forma} ${secao.larga}`}
+      style={{ "--vx-editor-w": "680px" } as React.CSSProperties}
+    >
       <section className={secao.bloco}>
         <Campo
           rotulo="Nome do canal"

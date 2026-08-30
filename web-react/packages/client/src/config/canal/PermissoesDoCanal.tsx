@@ -89,7 +89,11 @@ export function PermissoesDoCanal({ channelId }: { channelId: string }) {
   const privado = (padrao.deny & bitVer) !== 0n;
 
   return (
-    <div className={`${secao.forma} ${secao.larga}`}>
+    /* 760 é a largura desta tela no design — ver `.forma.larga`. */
+    <div
+      className={`${secao.forma} ${secao.larga}`}
+      style={{ "--vx-editor-w": "760px" } as React.CSSProperties}
+    >
       <p className={secao.recado}>
         Use canal privado para o caso comum. A matriz por cargo fica em
         Permissões avançadas.
@@ -135,11 +139,13 @@ export function PermissoesDoCanal({ channelId }: { channelId: string }) {
           </Botao>
         </header>
 
+        {/* Uma linha só: no design o @everyone não tem subtítulo, e os
+            cargos têm. Medido — 43px contra 51. */}
         <LinhaDeAcesso
           cor={undefined}
           glifo="@"
           nome="@everyone"
-          detalhe="Todo mundo no servidor"
+          detalhe={undefined}
           negado={privado}
         />
         {cargos.map((c) => (
@@ -154,14 +160,25 @@ export function PermissoesDoCanal({ channelId }: { channelId: string }) {
         ))}
       </section>
 
-      <div className={secao.acoes}>
-        <Botao variante="sutil" onClick={() => setAvancadas(true)}>
-          Permissões avançadas
-        </Botao>
-        <Botao variante="sutil" onClick={aindaNao("sincronizarComCategoria")}>
-          Sincronizar com a categoria
-        </Botao>
-      </div>
+      {/*
+        ⚠ Um CARTÃO, e eu tinha posto dois botões soltos. Dois botões no fim da
+        tela leem como ações da lista acima; o cartão lê como um destino, que é
+        o que ele é. "Sincronizar com a categoria" saiu daqui — no design ela
+        mora dentro do banner de dessincronização, que não entra.
+      */}
+      <button
+        type="button"
+        className={css.cartaoDeAtalho}
+        onClick={() => setAvancadas(true)}
+      >
+        <span className={css.cartaoTexto}>
+          <span className={css.cartaoTitulo}>Permissões avançadas</span>
+          <span className={css.cartaoDetalhe}>
+            Matriz tri-state por cargo e por membro
+          </span>
+        </span>
+        <span className={css.abrir}>Abrir ›</span>
+      </button>
     </div>
   );
 }
@@ -184,7 +201,7 @@ function LinhaDeAcesso({
   cor: string | undefined;
   glifo: string;
   nome: string;
-  detalhe: string;
+  detalhe: string | undefined;
   negado: boolean;
 }) {
   const tinta = useCorDeCargo(cor);
@@ -206,7 +223,9 @@ function LinhaDeAcesso({
       </span>
       <span className={css.acessoNome}>
         <span className={css.acessoRotulo}>{nome}</span>
-        <span className={css.acessoContagem}>{detalhe}</span>
+        {detalhe ? (
+          <span className={css.acessoContagem}>{detalhe}</span>
+        ) : null}
       </span>
       {negado ? (
         <span className={css.acessoNegado}>sem acesso</span>

@@ -33,7 +33,16 @@
   default continua sendo a medida.
 */
 .forma.larga {
-  max-inline-size: 880px;
+  /*
+    ⚠ **880 era o número do Foundations, e as TELAS usam outros.** Medido com
+    `pnpm espelho`: Visão geral do canal em 680, Convites em 720, Permissões em
+    760. O 880 do Foundations é o TETO do editor, não a largura de cada tela —
+    e usar o teto em todas engordava cada uma em 120 a 200px.
+
+    Este modificador vira o teto; quem sabe a própria largura declara a sua com
+    `--vx-editor-w`, que é o que as três fazem.
+  */
+  max-inline-size: var(--vx-editor-w, 880px);
 }
 
 .bloco {

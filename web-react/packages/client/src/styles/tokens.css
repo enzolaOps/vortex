@@ -273,7 +273,11 @@
     passo de ritmo.
 
     Escolhido reproduzir os MOCKUPS, porque é contra eles que a semelhança é
-    julgada. Com 3·5·6·7·9·10·11·13·14·18·20 a cobertura vai a ~96%.
+    julgada. Com 3·5·6·7·9·10·11·13·14·18·20 a cobertura foi a ~96%, e depois
+    22·26·28·36 fecharam a faixa larga — os quatro apareceram implementando
+    telas de configuração, onde o respiro de PÁGINA vive (28 no eixo inline da
+    matriz de permissões, 36 no cabeçalho de páginas de servidor). Acrescentar
+    degrau quando a tela pede é barato; tropeçar nele a cada tela não é.
 
     O que isso custa, dito uma vez: a escala deixou de impor RITMO. Ela ainda
     impõe o que a lei nº 4 pede — valor nomeado e compartilhado, nunca literal
@@ -308,8 +312,12 @@
   --vx-space-16: 16px;
   --vx-space-18: 18px;
   --vx-space-20: 20px;
+  --vx-space-22: 22px;
   --vx-space-24: 24px;
+  --vx-space-26: 26px;
+  --vx-space-28: 28px;
   --vx-space-32: 32px;
+  --vx-space-36: 36px;
   --vx-space-40: 40px;
 
   /* --- Raio --------------------------------------------------
@@ -851,8 +859,12 @@
   --spacing-16: var(--vx-space-16);
   --spacing-18: var(--vx-space-18);
   --spacing-20: var(--vx-space-20);
+  --spacing-22: var(--vx-space-22);
   --spacing-24: var(--vx-space-24);
+  --spacing-26: var(--vx-space-26);
+  --spacing-28: var(--vx-space-28);
   --spacing-32: var(--vx-space-32);
+  --spacing-36: var(--vx-space-36);
   --spacing-40: var(--vx-space-40);
 
   /* Sem `initial` acima: o Tailwind não reserva `--z-index-*`, então
