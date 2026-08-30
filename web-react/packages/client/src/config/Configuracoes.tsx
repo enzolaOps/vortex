@@ -13,6 +13,7 @@ import {
 } from "../store/config";
 import { useChannel, useServer, useServidorAtivo } from "../store/hooks";
 import { Aparencia } from "./Aparencia";
+import { Notificacoes } from "./Notificacoes";
 import { Banimentos } from "./Banimentos";
 import { Cargos } from "./Cargos";
 import { Conta } from "./Conta";
@@ -44,7 +45,18 @@ import css from "./Configuracoes.module.css";
 /** O rótulo de cada seção. `Record` fechado: seção nova não compila sem nome. */
 
 
-const DE_USUARIO: readonly SecaoId[] = ["perfil", "conta", "sessoes", "aparencia"];
+const DE_USUARIO: readonly SecaoId[] = [
+  "perfil",
+  "conta",
+  "sessoes",
+  /*
+    ⚠ Notificações vem ANTES de aparência, e a ordem é do design: as duas são
+    preferências, mas uma decide o que INTERROMPE e a outra como a tela é
+    pintada. Quem abre configurações por incômodo abre por causa da primeira.
+  */
+  "notificacoes",
+  "aparencia",
+];
 
 function ItemDoMenu({
   id,
@@ -100,6 +112,7 @@ export function Configuracoes() {
     conta: () => <Conta />,
     sessoes: () => <Sessoes />,
     aparencia: () => <Aparencia />,
+    notificacoes: () => <Notificacoes />,
     servidor: () => <Servidor serverId={serverId} />,
     cargos: () => <Cargos serverId={serverId} />,
     convites: () => <Convites serverId={serverId} />,

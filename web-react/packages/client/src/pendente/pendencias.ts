@@ -27,6 +27,24 @@ import { toast } from "../components/ui/toastStore";
  *    removida, o módulo inteiro vira código morto e o `pnpm utilities` acusa.
  */
 export const PENDENCIAS = {
+  /* -------------------------------------------------------- notificação */
+  /*
+    ⚠ **Só UM pendente na tela de notificações, e é de propósito.** As
+    preferências ali são reais e ficam guardadas; o que falta é quem as
+    CONSOME — áudio para o som, service worker para o push, casca Electron
+    para o badge. Registrar cada interruptor como pendente daria quatro
+    controles que não guardam o que se escolhe, o que é pior que guardar sem
+    consumir: a forma da tela não muda quando o notificador chegar.
+
+    Pedir permissão é diferente: é chamada ao navegador que só faz sentido
+    com o notificador atrás, e não teria o que guardar.
+  */
+  permissaoDeNotificacao: {
+    superficie: "Configurações · Notificações",
+    faz: "Pedir ao navegador ou ao sistema para liberar notificações.",
+    depende: "um notificador que as dispare — áudio, service worker ou Electron",
+  },
+
   /* ---------------------------------------------------------------- voz */
   /*
     ⚠ Os dois são CONCEITO que o protocolo Stoat não tem — nem tipo, nem
