@@ -85,6 +85,13 @@ const PERMITIDO = {
       "`Configurações do Servidor` é `background:#08090B`. O que recebe " +
       "entrada AFUNDA — é o inverso do painel, que flutua.",
   },
+  "config/canal/Canal.module.css": {
+    ".filtro":
+      "Campo de BUSCA, e o design separa os dois papéis: o que recebe entrada " +
+      "para buscar afunda, o que recebe entrada para guardar fica no plano do " +
+      "painel. A diferença fica visível justamente aqui, onde o filtro da " +
+      "matriz aparece na mesma tela que campos de formulário em `surface-3`.",
+  },
   "canais/ListaDeCanais.module.css": {
     ".busca":
       "Campo, mesma regra do `Campo.entrada`. Verificado byte a byte no " +
