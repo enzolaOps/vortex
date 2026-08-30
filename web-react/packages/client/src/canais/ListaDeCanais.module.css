@@ -184,7 +184,9 @@
 */
 .tecla {
   padding-inline: var(--vx-space-04);
-  border: 1px solid var(--vx-border-subtle);
+  /* `rgba(255,255,255,0.10)` no design. A tecla mora dentro de um campo
+     afundado e o sólido a fazia sumir contra ele. */
+  border: 1px solid var(--vx-hairline-10);
   border-radius: var(--vx-radius-04);
   color: var(--vx-text-4);
   font-family: var(--vx-font-mono);

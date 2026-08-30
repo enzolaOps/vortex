@@ -256,6 +256,21 @@
      próprio: o usuário troca o acento no picker, e um hex
      congelado deixaria a seleção apontando para a paleta antiga. */
   --vx-state-hover: rgb(255 255 255 / 4.5%);
+  /*
+    O segundo véu de hover, e o design tem os DOIS — não é redundância.
+
+    Contadas as ocorrências: 4,5% aparece **72** vezes e 6% aparece **139**, e
+    elas não se misturam. O de 4,5% é hover de LINHA DENSA (canal, membro,
+    conversa), que pousa sobre `surface-1`/`surface-2`; o de 6% é hover de item
+    dentro de superfície ELEVADA — menu, cartão, popover —, e ali 39 dos 39
+    itens `padding:7px 9px` do design usam 6%.
+
+    A razão é física: um véu branco sobre `surface-4` (`#222833`) rende menos
+    contraste do que o mesmo véu sobre `surface-1` (`#0f1318`), porque a base
+    já é clara. Manter um valor só faz o realce de menu praticamente sumir —
+    era o que acontecia aqui.
+  */
+  --vx-state-hover-elevado: rgb(255 255 255 / 6%);
   --vx-state-press: rgb(255 255 255 / 8%);
   --vx-state-selected: color-mix(in oklab, var(--vx-accent) 10%, transparent);
 
@@ -776,6 +791,7 @@
   /* Véu preto no claro, branco no escuro — a camada de estado é
      sempre a direção OPOSTA à da superfície, senão ela some. */
   --vx-state-hover: rgb(0 0 0 / 4%);
+  --vx-state-hover-elevado: rgb(0 0 0 / 6%);
   --vx-state-press: rgb(0 0 0 / 7%);
 
   --vx-scrim: rgb(10 12 16 / 48%);
@@ -833,6 +849,8 @@
     --vx-status-offline: #6e7783;
 
     --vx-state-hover: rgb(0 0 0 / 4%);
+    --vx-state-hover-elevado: rgb(0 0 0 / 6%);
+  --vx-state-hover-elevado: rgb(0 0 0 / 6%);
     --vx-state-press: rgb(0 0 0 / 7%);
 
     --vx-scrim: rgb(10 12 16 / 48%);
@@ -908,6 +926,7 @@
   --color-state-hover: var(--vx-state-hover);
   --color-state-press: var(--vx-state-press);
   --color-state-selected: var(--vx-state-selected);
+  --color-state-hover-elevado: var(--vx-state-hover-elevado);
   --color-accent-ring: var(--vx-accent-ring);
   --color-danger-soft: var(--vx-danger-soft);
   --color-danger-border: var(--vx-danger-border);

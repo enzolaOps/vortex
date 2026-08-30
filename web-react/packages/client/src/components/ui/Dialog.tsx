@@ -81,7 +81,7 @@ export function DialogContent({
         {...(descricao ? {} : { "aria-describedby": undefined })}
         className={cn(
           css.painel,
-          "z-flutuante rounded-12 border border-border-subtle bg-surface-4 p-24 shadow-e3",
+          "z-flutuante rounded-12 border border-hairline-10 bg-surface-4 p-24 shadow-e3",
           "anim-base",
           className,
         )}

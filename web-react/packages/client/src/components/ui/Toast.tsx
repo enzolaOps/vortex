@@ -52,7 +52,7 @@ export function Toaster() {
             // não carrega o significado — o título diz o que aconteceu.
             t.tipo === "erro"
               ? "border-danger bg-surface-4 shadow-e3"
-              : "border-border-subtle bg-surface-4 shadow-e3",
+              : "border-hairline-10 bg-surface-4 shadow-e3",
           )}
         >
           <Primitivo.Title className="text-md font-medium text-text-1">

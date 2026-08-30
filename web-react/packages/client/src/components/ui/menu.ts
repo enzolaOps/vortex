@@ -50,7 +50,7 @@ import css from "./menu.module.css";
 
 export const menuContent =
   `${css.conteudo} ` +
-  "z-flutuante rounded-08 border border-border-subtle bg-surface-4 p-05 shadow-e2 " +
+  "z-flutuante rounded-08 border border-hairline-10 bg-surface-4 p-05 shadow-e2 " +
   "text-md text-text-1 overflow-y-auto " +
   "data-[state=closed]:opacity-0 data-[state=open]:opacity-100 anim-fast";
 
@@ -61,7 +61,7 @@ export const menuContent =
 */
 export const menuItem =
   "flex cursor-default items-center gap-08 rounded-05 px-09 py-07 outline-none select-none " +
-  "data-highlighted:bg-state-hover " +
+  "data-highlighted:bg-state-hover-elevado " +
   "data-disabled:pointer-events-none data-disabled:text-text-3";
 
 /**
