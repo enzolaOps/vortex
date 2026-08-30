@@ -16,7 +16,7 @@ import {
   Trash,
   VideoCamera,
 } from "@phosphor-icons/react";
-import { memo, useSyncExternalStore } from "react";
+import { memo, useEffect, useState, useSyncExternalStore } from "react";
 
 import {
   ContextMenu,
@@ -138,6 +138,16 @@ const Canal = memo(function Canal({
   );
 
   /*
+    O instante de entrada, não a duração — quem conta os segundos é o
+    `Cronometro`, e só ele. Ler daqui devolve um número que muda uma vez por
+    chamada, então a linha não acorda por causa dele.
+  */
+  const desdeAqui = useSyncExternalStore(assinarChamada, () => {
+    const c = lerChamada();
+    return c.channelId === id && c.estado === "dentro" ? c.desde : 0;
+  });
+
+  /*
     ⚠ **O hook fica ACIMA do early return, e a primeira versão não ficava.**
 
     Havia um `if (!canal) return …` entre `useChannel` e este
@@ -232,6 +242,10 @@ const Canal = memo(function Canal({
               <span className="sr-only">silenciado</span>
             </span>
           ) : null}
+
+          {/* Antes do contador, como no design: o cronômetro é sobre VOCÊ e
+              a lotação é sobre a sala. */}
+          {desdeAqui > 0 ? <Cronometro desde={desdeAqui} /> : null}
 
           {canal.tipo === "voz" && canal.limite !== undefined ? (
             <TetoDaSala channelId={id} limite={canal.limite} />
@@ -507,6 +521,43 @@ const NaSala = memo(function NaSala({
  * `memo` sobre a linha do canal não protegeria disto: o hook estaria DENTRO
  * dela, e memo não impede re-render causado pela própria subscrição.
  */
+/**
+ * O cronômetro da chamada, no canal em que você está.
+ *
+ * ⚠ **Componente próprio, e ele é o ÚNICO que acorda por segundo.** Pôr o
+ * `setInterval` na linha do canal faria a linha inteira — glifo, nome, selo,
+ * contador — re-renderizar sessenta vezes por minuto; pôr os segundos no store
+ * da chamada faria acordar todo mundo que a assina, incluindo a faixa e o
+ * cartão. É a mesma separação de `falando`: o que muda depressa não mora onde
+ * muita gente escuta.
+ *
+ * Só aparece no canal da chamada, como no design — um cronômetro em cada sala
+ * seria uma coluna de relógios contando o tempo dos outros.
+ */
+const Cronometro = memo(function Cronometro({ desde }: { desde: number }) {
+  const [agora, setAgora] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setAgora(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const s = Math.max(0, Math.floor((agora - desde) / 1000));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const seg = s % 60;
+  const dois = (n: number) => String(n).padStart(2, "0");
+
+  return (
+    <span className={css.cronometro}>
+      {/* Hora só quando existe: `00:42:17` numa coluna estreita gasta seis
+          caracteres para dizer o que quatro dizem na primeira hora. */}
+      {h > 0 ? `${String(h)}:${dois(m)}:${dois(seg)}` : `${dois(m)}:${dois(seg)}`}
+      <span className="sr-only">{` na chamada`}</span>
+    </span>
+  );
+});
+
 const TetoDaSala = memo(function TetoDaSala({
   channelId,
   limite,

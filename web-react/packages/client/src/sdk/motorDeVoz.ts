@@ -128,6 +128,7 @@ function ligarEventos(r: Room, channelId: string): void {
   r.on(RoomEvent.Connected, () => {
     definirChamada({
       estado: "dentro",
+      desde: Date.now(),
       channelId,
       participantes: participantesDe(r),
     });

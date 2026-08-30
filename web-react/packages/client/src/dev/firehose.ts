@@ -877,6 +877,15 @@ export function chamadaFalsa(): () => void {
 
   definirChamada({
     estado: "dentro",
+    /*
+      ⚠ Aqui o fixo é o DESLOCAMENTO, não o instante — e é a exceção à regra
+      de cima. A ordem de chegada da sala usa epoch congelado porque o que
+      importa é a ordem relativa entre duas pessoas; um cronômetro mede
+      distância até AGORA, e um epoch de 2023 mostraria mil horas de chamada.
+      O deslocamento fixo dá a mesma leitura em toda corrida, que é o que a
+      reprodutibilidade pede.
+    */
+    desde: Date.now() - (42 * 60 + 17) * 1000,
     channelId: sala,
     participantes: dentro,
     mudo: false,

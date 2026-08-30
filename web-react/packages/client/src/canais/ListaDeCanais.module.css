@@ -1182,3 +1182,23 @@
 .ocultos:hover {
   color: var(--vx-text-2);
 }
+
+/*
+  O cronômetro da chamada.
+
+  Mono e 10px, do design (`42:17` em `#5BD79B`). Mono aqui é obrigatório e não
+  estético: os dígitos mudam a cada segundo, e em fonte proporcional o número
+  treme e empurra o contador de lotação ao lado a cada tique. É o mesmo
+  critério que manteve o `3/8` FORA do mono — lá o número muda uma vez a cada
+  muitos minutos.
+
+  `success-text` porque ele diz "você está dentro e a coisa está funcionando":
+  é o mesmo verde da faixa de conectado, no mesmo momento.
+*/
+.cronometro {
+  flex: none;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-2xs);
+  color: var(--vx-success-text);
+  font-variant-numeric: tabular-nums;
+}

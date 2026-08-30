@@ -55,6 +55,18 @@ export type Chamada = {
   readonly surdo: boolean;
   readonly camera: boolean;
   readonly tela: boolean;
+  /**
+   * Quando a conexão foi estabelecida, em epoch ms. `0` fora da chamada.
+   *
+   * ⚠ Guarda o INSTANTE, e não a duração — o store não tem relógio. Quem
+   * mostra o cronômetro calcula `agora − desde` a cada segundo e é o único
+   * que re-renderiza; se o store guardasse os segundos, ele publicaria
+   * sessenta vezes por minuto e acordaria todo mundo que assina a chamada.
+   *
+   * É a mesma separação de `falando`: o que muda depressa não mora onde
+   * muita gente escuta.
+   */
+  readonly desde: number;
 };
 
 const VAZIA: Chamada = {
@@ -66,6 +78,7 @@ const VAZIA: Chamada = {
   surdo: false,
   camera: false,
   tela: false,
+  desde: 0,
 };
 
 type Ouvinte = () => void;

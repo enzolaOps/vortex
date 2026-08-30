@@ -38,11 +38,25 @@ createRoot(root).render(
     {/* Um Provider na raiz: ele coordena o atraso compartilhado entre
         tooltips. Um por tooltip devolveria o atraso cheio a cada ícone. */}
     <TooltipProvider delayDuration={400} skipDelayDuration={300}>
-      {/* Sem sessão não há canal, autor nem permissão: o portão vem antes
-          do shell. Ver `PortaoDeSessao`. */}
-      <PortaoDeSessao>
+      {/*
+        Sem sessão não há canal, autor nem permissão: o portão vem antes do
+        shell. Ver `PortaoDeSessao`.
+
+        ⚠ **Não no arnês, pela MESMA razão que a rota logo acima.** O rig não
+        é um lugar do produto: ele semeia o próprio "eu" com
+        `definirUsuarioLocal` e todo o dado vem do firehose, então não há
+        sessão para haver. Com o portão na frente, `/dev` passou a abrir na
+        tela de login — e o arnês, que é onde este projeto MEDE, ficou
+        inalcançável sem que nada falhasse. Foi assim que a tela de voz
+        chegou a ser medida só pela metade.
+      */}
+      {ARNES_ATIVO ? (
         <App />
-      </PortaoDeSessao>
+      ) : (
+        <PortaoDeSessao>
+          <App />
+        </PortaoDeSessao>
+      )}
       {/* Montado uma vez na raiz: a viewport e a regiao aria-live que o
           leitor de tela anuncia. Os toasts vem do store, nao de props. */}
       <Toaster />
