@@ -21,7 +21,7 @@
  *
  * Uso:
  *
- *   node scripts/espelho.mjs "<arquivo .dc.html>" "<texto âncora>" [profundidade]
+ *   node scripts/espelho.mjs "<arquivo>" "<âncora>" [profundidade] [subir]
  *
  * A âncora é um texto que aparece na tela que interessa — "Canal de texto",
  * "Quem pode acessar", "Nome do evento". O script sobe da âncora até a caixa
@@ -158,17 +158,36 @@ await dorme(2200);
 const arvore = await av(`(() => {
   const ANCORA = ${JSON.stringify(ancora)};
   const MAX = ${Number(profundidadeMax)};
+  const SUBIR = ${Number(process.argv[5] ?? 0)};
 
   const alvo = [...document.querySelectorAll("*")].find(
     (e) => e.children.length === 0 && (e.textContent || "").trim().includes(ANCORA),
   );
   if (!alvo) return { erro: "âncora não encontrada: " + ANCORA };
 
-  /* Sobe até a caixa que é uma TELA: larga o bastante para ser a composição
-     inteira, e não um dos cartões dentro dela. */
+  /*
+    Sobe até a caixa que é uma TELA.
+
+    ⚠ **Largura sozinha não basta, e a primeira versão errou por isso.** Uma
+    âncora dentro de uma coluna larga pode ser um rótulo que JÁ tem a largura
+    inteira e nenhum filho — foi o que aconteceu com "Nome do canal", 680x14,
+    e o script imprimiu uma linha só. A caixa que interessa é larga E tem
+    conteúdo: por isso a condição pede dois filhos também.
+  */
   let raiz = alvo;
-  while (raiz.parentElement && raiz.getBoundingClientRect().width < 600) {
+  while (
+    raiz.parentElement &&
+    (raiz.getBoundingClientRect().width < 600 || raiz.children.length < 2)
+  ) {
     raiz = raiz.parentElement;
+  }
+  /* O 4o argumento sobe mais N niveis: as vezes a caixa certa e a que
+     EMBRULHA a encontrada, e adivinhar isso do lado de fora e mais barato que
+     heuristica a mais aqui dentro.
+     (Sem crase neste comentario: ele vive dentro de um template literal, e
+     uma crase aqui fecha a string — foi o que quebrou a primeira versao.) */
+  for (let i = 0; i < SUBIR; i++) {
+    if (raiz.parentElement) raiz = raiz.parentElement;
   }
 
   const hex = (c) => {

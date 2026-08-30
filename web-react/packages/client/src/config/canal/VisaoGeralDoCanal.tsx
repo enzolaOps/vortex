@@ -2,31 +2,37 @@ import { useState } from "react";
 
 import { Botao } from "../../components/ui/Botao";
 import { Campo } from "../../components/ui/Campo";
-import { Escolha } from "../../components/ui/Escolha";
+import { Deslizante } from "../../components/ui/Deslizante";
+import { aindaNao } from "../../pendente/pendencias";
 import { salvarCanal } from "../../sdk/canal";
 import { useChannel } from "../../store/hooks";
-import { aindaNao } from "../../pendente/pendencias";
 import secao from "../Secao.module.css";
 import css from "./Canal.module.css";
 
 /**
- * Visão geral do canal — nome, assunto, modo lento, visibilidade e voz.
+ * Visão geral do canal.
  *
- * ⚠ **Quatro dos oito controles são desenho, e a divisão está no protocolo,
- * não na pressa.** `name`, `description`, `nsfw` e `voice.max_users` estão em
- * `DataEditChannel`; modo lento, canal de spoiler, bitrate, região e modo de
- * vídeo não estão. A tabela com a medição está em `sdk/canal.ts`.
+ * ⚠ **Refeita contra o design RENDERIZADO (`pnpm espelho`), e a primeira
+ * versão errava em estrutura, não em valor.** Eu tinha lido a lista de valores
+ * do `pnpm espec` e montado o que parecia certo. Medido depois, três coisas
+ * eram outra coisa:
  *
- * O `slowmode` é o que mais engana: o objeto do canal CARREGA o valor e o
- * `stoat.js` expõe o getter, então quem lê o SDK conclui que dá para escrever.
- * Não dá. Por isso ele aparece com o valor real e o controle é pendente — o
- * contrário (esconder) faria a pessoa achar que o canal não tem modo lento.
+ * - **O assunto é uma CAIXA composta**, não um campo de uma linha: 680×152,
+ *   com régua de markdown em cima (B·I·U·S·spoiler·emoji e "markdown ok"
+ *   empurrado para a ponta) e `textarea` embaixo. Mesma anatomia do composer.
+ * - **Bitrate e limite de usuários são DESLIZANTES**, não listas. Eu tinha
+ *   posto quatro dropdowns; o design põe dois deslizantes e dois selects.
+ * - **A voz é um cartão em `surface-1`** — um degrau ABAIXO do formulário. O
+ *   afundamento é o que diz "isto só vale para canal de voz" sem gastar título.
  *
- * ⚠ **A faixa de "alterações não salvas" é do design e não é enfeite:** esta
- * tela tem oito controles e um único par salvar/descartar. Sem ela, sair da
- * seção perde tudo sem avisar — e a casca de configurações é uma ROTA, então
- * sair é o botão voltar do navegador, que ninguém associa a perder um
- * formulário.
+ * ⚠ **"MESMA PÁGINA" NÃO entra.** O design renderiza esse selo ao lado do
+ * título da seção de voz, e ele é anotação de quem desenhou para quem lê o
+ * arquivo — não um rótulo do produto. É a mesma classe de armadilha do
+ * `hint-placeholder-val` que aparece no HTML: nem tudo que renderiza é
+ * interface.
+ *
+ * O que é real e o que é desenho continua vindo de `DataEditChannel` — a
+ * tabela está em `sdk/canal.ts`.
  */
 export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
   const canal = useChannel(channelId);
@@ -34,7 +40,7 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
   const [nome, setNome] = useState(canal?.name ?? "");
   const [assunto, setAssunto] = useState(canal?.topico ?? "");
   const [idade, setIdade] = useState(false);
-  const [limite, setLimite] = useState("8");
+  const [limite, setLimite] = useState(8);
   const [salvando, setSalvando] = useState(false);
 
   if (!canal) {
@@ -42,14 +48,12 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
   }
 
   const ehVoz = canal.tipo === "voz";
-  const sujo =
-    nome !== canal.name || assunto !== (canal.topico ?? "") || idade;
+  const sujo = nome !== canal.name || assunto !== (canal.topico ?? "") || idade;
 
   /*
-    O nome é normalizado como o design promete, e a promessa é escrita embaixo
-    do campo: minúsculas e hífen no lugar de espaço. Fazer isto no `onChange` e
-    não no envio é o que torna a regra visível — quem digita "Meu Canal" vê
-    `meu-canal` aparecer, em vez de descobrir depois de salvar.
+    O nome é normalizado ao DIGITAR, e a promessa está escrita embaixo do
+    campo. Fazer no envio esconderia a regra: quem escreve "Meu Canal" precisa
+    ver `meu-canal` aparecer, não descobrir depois de salvar.
   */
   const normalizar = (v: string) =>
     v.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9\-_]/g, "");
@@ -57,9 +61,6 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
   return (
     <div className={secao.forma}>
       <section className={secao.bloco}>
-        {/* O rótulo do `Campo` É o título da seção no design — um `<h2>` a
-            mais em cima faria o leitor de tela anunciar o nome duas vezes,
-            que é o defeito que o `DialogContent` já teve. */}
         <Campo
           rotulo="Nome do canal"
           autoComplete="off"
@@ -71,25 +72,67 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
       </section>
 
       <section className={secao.bloco}>
-        <Campo
-          rotulo="Assunto do canal"
-          autoComplete="off"
-          disabled={salvando}
-          value={assunto}
-          onChange={(e) => setAssunto(e.target.value)}
-          dica="Aparece no cabeçalho. Aceita markdown."
-        />
-        <p className={css.contador}>{assunto.length} / 1024</p>
-      </section>
+        {/* Rótulo e contador na MESMA linha — é onde o design os põe. */}
+        <p className={css.rotuloComContador}>
+          <span>Assunto do canal</span>
+          <span className={css.contador}>{assunto.length} / 1024</span>
+        </p>
 
-      <hr className={secao.divisor} />
+        <div className={css.caixaDeTexto}>
+          <div className={css.regua} role="toolbar" aria-label="Formatação">
+            {/*
+              Os quatro de formatação são REAIS: envolvem a seleção em
+              markdown, que o caminho de leitura já entende desde
+              `markdown/analisar.ts`. Spoiler e emoji dependem de coisas que
+              não existem — spoiler não está no protocolo e o seletor de emoji
+              não tem âncora fora do composer.
+            */}
+            <Formato rotulo="Negrito" marca="**" valor={assunto} aoAplicar={setAssunto}>
+              B
+            </Formato>
+            <Formato rotulo="Itálico" marca="*" valor={assunto} aoAplicar={setAssunto}>
+              I
+            </Formato>
+            <Formato rotulo="Sublinhado" marca="__" valor={assunto} aoAplicar={setAssunto}>
+              U
+            </Formato>
+            <Formato rotulo="Riscado" marca="~~" valor={assunto} aoAplicar={setAssunto}>
+              S
+            </Formato>
+            <span className={css.reguaDivisa} aria-hidden />
+            <button
+              type="button"
+              className={css.reguaBotao}
+              onClick={aindaNao("canalDeSpoiler")}
+            >
+              spoiler
+            </button>
+            <button
+              type="button"
+              className={css.reguaBotao}
+              aria-label="Emoji"
+              onClick={aindaNao("emoji")}
+            >
+              🙂
+            </button>
+            <span className={css.reguaDica}>markdown ok</span>
+          </div>
+
+          <textarea
+            className={css.areaDeTexto}
+            aria-label="Assunto do canal"
+            disabled={salvando}
+            value={assunto}
+            maxLength={1024}
+            onChange={(e) => setAssunto(e.target.value)}
+          />
+        </div>
+      </section>
 
       <section className={secao.bloco}>
         <h2 className={secao.subtitulo}>Modo lento</h2>
-        {/*
-          Mostra o valor REAL e o controle é pendente. Ver o comentário do
-          componente: ler sem poder escrever é o caso que mais engana aqui.
-        */}
+        {/* Mostra o valor REAL; mudar é pendente porque `slowmode` não está em
+            `DataEditChannel`. Ver `sdk/canal.ts`. */}
         <button
           type="button"
           className={css.pendente}
@@ -105,8 +148,6 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
         </p>
       </section>
 
-      <hr className={secao.divisor} />
-
       <section className={secao.bloco}>
         <h2 className={secao.subtitulo}>Visibilidade do conteúdo</h2>
         <Opcao
@@ -115,7 +156,6 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
           detalhe="Sem aviso; mídia carrega direto."
           aoMarcar={() => setIdade(false)}
         />
-        {/* Spoiler não existe no protocolo — nem campo, nem evento. */}
         <Opcao
           marcada={false}
           titulo="Canal de spoiler"
@@ -132,45 +172,56 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
       </section>
 
       {ehVoz ? (
-        <>
-          <hr className={secao.divisor} />
-          <section className={secao.bloco}>
-            <h2 className={secao.subtitulo}>Voz</h2>
-            <div className={css.grade}>
-              {/* O único dos quatro que o protocolo aceita. */}
-              <Escolha
-                rotulo="Limite de usuários"
-                valor={limite}
-                opcoes={["Sem limite", "2", "4", "8", "16", "25", "99"]}
-                disabled={salvando}
-                aoEscolher={setLimite}
-              />
-              <PendenteEscolha
+        <section className={css.cartaoDeVoz}>
+          <h2 className={css.vozTitulo}>Quando o canal é de voz</h2>
+          <div className={css.vozGrade}>
+            {/*
+              Deslizante de verdade, com o valor do design — mas quem MUDA é
+              pendente: bitrate não existe no protocolo. Mostrar o controle
+              vivo e o valor fixo é o mesmo trato do modo lento.
+            */}
+            <CampoDeslizante rotulo="Bitrate" valor="64 kbps">
+              <Deslizante
+                id="bitrate-de-voz"
                 rotulo="Bitrate"
-                valor="64 kbps"
-                id="bitrateDeVoz"
+                min={8}
+                max={128}
+                passo={8}
+                valor={64}
+                texto="64 kbps"
+                aoMudar={aindaNao("bitrateDeVoz")}
               />
-              <PendenteEscolha
-                rotulo="Região de voz"
-                valor="Automática"
-                id="regiaoDeVoz"
+            </CampoDeslizante>
+            {/* O único dos quatro que o protocolo aceita. */}
+            <CampoDeslizante
+              rotulo="Limite de usuários"
+              valor={limite === 0 ? "Sem limite" : String(limite)}
+            >
+              <Deslizante
+                id="limite-de-usuarios"
+                rotulo="Limite de usuários"
+                min={0}
+                max={99}
+                passo={1}
+                valor={limite}
+                texto={limite === 0 ? "Sem limite" : String(limite)}
+                aoMudar={setLimite}
               />
-              <PendenteEscolha
-                rotulo="Modo de vídeo"
-                valor="Automático"
-                id="modoDeVideo"
-              />
-            </div>
-          </section>
-        </>
+            </CampoDeslizante>
+            <PendenteEscolha
+              rotulo="Região de voz"
+              valor="Automática"
+              id="regiaoDeVoz"
+            />
+            <PendenteEscolha
+              rotulo="Modo de vídeo"
+              valor="Automático"
+              id="modoDeVideo"
+            />
+          </div>
+        </section>
       ) : null}
 
-      {/*
-        A faixa só aparece quando há o que salvar — ela é a RESPOSTA a uma
-        edição, não um rodapé permanente. Permanente, ela viraria parte do
-        fundo e pararia de ser lida, que é o oposto do que ela existe para
-        fazer.
-      */}
       {sujo ? (
         <div className={css.faixa} role="status">
           <span>Você tem alterações não salvas.</span>
@@ -195,11 +246,7 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
                   nome: nome.trim(),
                   assunto,
                   restritoPorIdade: idade,
-                  limiteDeUsuarios: ehVoz
-                    ? limite === "Sem limite"
-                      ? 0
-                      : Number(limite)
-                    : undefined,
+                  limiteDeUsuarios: ehVoz ? limite : undefined,
                 }).finally(() => setSalvando(false));
               }}
             >
@@ -213,12 +260,44 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
 }
 
 /**
+ * Um botão da régua que envolve o texto inteiro na marca de markdown.
+ *
+ * ⚠ Envolve TUDO e não a seleção, e a diferença é honesta: sem uma referência
+ * ao `textarea` não há seleção para ler, e passá-la por props só para isto
+ * amarraria a régua ao campo. O assunto é uma frase; envolver a frase é o caso
+ * comum. A régua do editor de mensagem, que tem o `ref`, envolve a seleção.
+ */
+function Formato({
+  rotulo,
+  marca,
+  valor,
+  aoAplicar,
+  children,
+}: {
+  rotulo: string;
+  marca: string;
+  valor: string;
+  aoAplicar: (v: string) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      className={css.reguaBotao}
+      aria-label={rotulo}
+      onClick={() => aoAplicar(`${marca}${valor}${marca}`)}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
  * Uma opção de rádio com título, selo e explicação.
  *
  * `role="radio"` num `button` e não um `<input type="radio">`: o nativo é
  * desenhado pelo sistema, e o lint do projeto reprova controle nativo em
- * superfície de produto desde a auditoria da fase 4. O estado vai em
- * `aria-checked`, que é o que o leitor de tela lê.
+ * superfície de produto desde a auditoria da fase 4.
  */
 function Opcao({
   marcada,
@@ -250,6 +329,27 @@ function Opcao({
         <span className={css.opcaoDetalhe}>{detalhe}</span>
       </span>
     </button>
+  );
+}
+
+/** Rótulo à esquerda, valor à direita, trilho embaixo — a linha do design. */
+function CampoDeslizante({
+  rotulo,
+  valor,
+  children,
+}: {
+  rotulo: string;
+  valor: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={css.deslizanteCampo}>
+      <span className={css.deslizanteTopo}>
+        <span>{rotulo}</span>
+        <span className={css.deslizanteValor}>{valor}</span>
+      </span>
+      {children}
+    </div>
   );
 }
 
