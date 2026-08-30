@@ -297,6 +297,18 @@ function Interruptor({
 
 type Estado = "negar" | "herdar" | "permitir";
 
+/**
+ * De onde o valor vem, na palavra do design.
+ *
+ * `Record` fechado sobre `Estado`: estado novo não compila sem uma frase, que
+ * é a mesma mecânica de `ModalId` e `PainelId`.
+ */
+const PROCEDENCIA: Record<Estado, string> = {
+  negar: "Negado neste canal",
+  herdar: "Herdando da categoria",
+  permitir: "Permitido explicitamente",
+};
+
 const OPCOES: readonly { valor: Estado; rotulo: string }[] = [
   { valor: "negar", rotulo: "Negar" },
   { valor: "herdar", rotulo: "Herdar" },
@@ -426,10 +438,26 @@ function Avancadas({
                     const estado = estadoDe(override, bit);
                     return (
                       <div key={p.id} className={css.linhaDePermissao}>
-                        <span className={css.permissaoTexto}>
+                        {/*
+                          ⚠ A segunda linha é PROCEDÊNCIA, não consequência — é
+                          a troca que o design faz, e ela é a certa aqui. A
+                          consequência ("quem pode expulsar?") é CONSTANTE: ela
+                          se lê uma vez e não volta a mudar, então foi para o
+                          `title`. A procedência MUDA a cada clique, e numa
+                          matriz de override "isto vem da categoria ou foi
+                          decidido aqui?" é a única pergunta que a linha não
+                          consegue responder sozinha.
+                        */}
+                        <span
+                          className={css.permissaoTexto}
+                          title={p.detalhe}
+                        >
                           <span className={css.permissaoNome}>{p.rotulo}</span>
-                          <span className={css.permissaoConsequencia}>
-                            {p.detalhe}
+                          <span
+                            className={css.permissaoProcedencia}
+                            data-estado={estado}
+                          >
+                            {PROCEDENCIA[estado]}
                           </span>
                         </span>
                         <span
@@ -441,9 +469,19 @@ function Avancadas({
                             <button
                               key={o.valor}
                               type="button"
+                              /*
+                                ⚠ `role="radio"` com `aria-checked`, e não
+                                `aria-pressed`. O pai é um `radiogroup`, e
+                                `radiogroup` exige filhos `radio` — com
+                                `button`+`aria-pressed` o leitor anuncia "grupo
+                                de opções" e depois três alternadores
+                                independentes, que é o modelo errado: aqui
+                                exatamente um dos três vale por vez.
+                              */
+                              role="radio"
                               data-valor={o.valor}
                               className={css.triBotao}
-                              aria-pressed={estado === o.valor}
+                              aria-checked={estado === o.valor}
                               aria-label={o.rotulo}
                               disabled={salvando}
                               onClick={() =>

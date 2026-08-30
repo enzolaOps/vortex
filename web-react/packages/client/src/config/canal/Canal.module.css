@@ -579,9 +579,24 @@
   color: var(--vx-text-1);
 }
 
-.permissaoConsequencia {
+ /*
+  A procedência, e ela é COLORIDA pelo estado — do design, e o motivo é a
+  varredura: numa matriz de trinta linhas, achar o que foi decidido AQUI é o
+  que se procura, e ler trinta frases para isso é o trabalho que a cor poupa.
+  Herdado fica neutro justamente por ser o padrão: colorir o caso comum
+  apagaria os dois que importam.
+*/
+.permissaoProcedencia {
   font-size: var(--vx-size-xs);
   color: var(--vx-text-3);
+}
+
+.permissaoProcedencia[data-estado="negar"] {
+  color: var(--vx-danger-text);
+}
+
+.permissaoProcedencia[data-estado="permitir"] {
+  color: var(--vx-success-text);
 }
 
 /*
@@ -612,8 +627,19 @@
   border: 0;
   border-radius: var(--vx-radius-04);
   background: transparent;
-  color: var(--vx-text-3);
+  /*
+    ⚠ `text-4` e não `text-3`: em repouso os três glifos são ALVOS, não
+    informação — quem carrega o valor é o único aceso. Com o terceiro degrau os
+    três liam quase igual, e a linha tinha de ser decifrada em vez de vista. O
+    design os escreve em `#4C5563`, o mesmo tom do controle desativado.
+  */
+  color: var(--vx-text-4);
   cursor: pointer;
+}
+
+/* Salvando: o trio inteiro recua, e não cada botão — a escrita é do GRUPO. */
+.triBotao:disabled {
+  cursor: progress;
 }
 
 .triBotao svg {
@@ -630,18 +656,20 @@
   outline-offset: -2px;
 }
 
-.triBotao[data-valor="negar"][aria-pressed="true"] {
+.triBotao[data-valor="negar"][aria-checked="true"] {
   background: color-mix(in oklab, var(--vx-danger) 18%, transparent);
   color: var(--vx-danger-text);
 }
 
 /* Herdar é a AUSÊNCIA de decisão: véu neutro, sem cor semântica. */
-.triBotao[data-valor="herdar"][aria-pressed="true"] {
+.triBotao[data-valor="herdar"][aria-checked="true"] {
   background: rgb(255 255 255 / 7%);
-  color: var(--vx-text-1);
+  /* `text-2` e não `text-1`: herdar é o PADRÃO, e o branco cheio o faria
+     competir com negar e permitir, que são as escolhas. */
+  color: var(--vx-text-2);
 }
 
-.triBotao[data-valor="permitir"][aria-pressed="true"] {
+.triBotao[data-valor="permitir"][aria-checked="true"] {
   background: color-mix(in oklab, var(--vx-success) 18%, transparent);
   color: var(--vx-success-text);
 }
