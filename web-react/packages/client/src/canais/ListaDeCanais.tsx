@@ -25,6 +25,9 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "../components/ui/ContextMenu";
 import {
@@ -56,7 +59,12 @@ import {
   type ParticipanteDeVoz,
 } from "../sdk/domain";
 import { alternarColapso } from "../store/colapso";
-import { alternarSilencio } from "../store/silencio";
+import {
+  alternarSilencio,
+  assinarSilencio,
+  DURACOES_DE_SILENCIO,
+  silencioAte,
+} from "../store/silencio";
 import { abrirPaleta } from "../store/paleta";
 import {
   useCanalAtivo,
@@ -238,12 +246,7 @@ const Canal = memo(function Canal({
             </span>
           ) : null}
 
-          {canal.silenciado ? (
-            <span className={css.marcador}>
-              <BellSimpleSlash size={20} aria-hidden />
-              <span className="sr-only">silenciado</span>
-            </span>
-          ) : null}
+          {canal.silenciado ? <RestanteDoSilencio channelId={id} /> : null}
 
           {/* Antes do contador, como no design: o cronômetro é sobre VOCÊ e
               a lotação é sobre a sala. */}
@@ -298,16 +301,37 @@ const Canal = memo(function Canal({
           Marcar como lida
         </ContextMenuItem>
 
-        {/* Silenciar é preferência de LEITURA, não permissão: qualquer pessoa
-            pode silenciar qualquer canal que enxerga. */}
-        <ContextMenuItem onSelect={() => alternarSilencio(id)}>
-          {canal.silenciado ? (
+        {/*
+          Silenciar é preferência de LEITURA, não permissão: qualquer pessoa
+          pode silenciar qualquer canal que enxerga.
+
+          ⚠ **Silenciado vira ITEM e não submenu.** Reativar é uma coisa só —
+          um submenu com uma opção pede dois gestos para fazer o que um faz, e
+          é o tipo de simetria que parece organizada e custa um clique por uso.
+        */}
+        {canal.silenciado ? (
+          <ContextMenuItem onSelect={() => alternarSilencio(id)}>
             <BellSimple size={20} aria-hidden />
-          ) : (
-            <BellSimpleSlash size={20} aria-hidden />
-          )}
-          {canal.silenciado ? "Reativar avisos" : "Silenciar canal"}
-        </ContextMenuItem>
+            Reativar avisos
+          </ContextMenuItem>
+        ) : (
+          <ContextMenuSub>
+            <ContextMenuSubTrigger>
+              <BellSimpleSlash size={20} aria-hidden />
+              Silenciar canal
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent>
+              {DURACOES_DE_SILENCIO.map((d) => (
+                <ContextMenuItem
+                  key={d.rotulo}
+                  onSelect={() => alternarSilencio(id, d.ms)}
+                >
+                  {d.rotulo}
+                </ContextMenuItem>
+              ))}
+            </ContextMenuSubContent>
+          </ContextMenuSub>
+        )}
 
         {/*
           Daqui para baixo é administração, e cada item só existe se a pessoa
@@ -608,6 +632,58 @@ const Cronometro = memo(function Cronometro({ desde }: { desde: number }) {
           caracteres para dizer o que quatro dizem na primeira hora. */}
       {h > 0 ? `${String(h)}:${dois(m)}:${dois(seg)}` : `${dois(m)}:${dois(seg)}`}
       <span className="sr-only">{` na chamada`}</span>
+    </span>
+  );
+});
+
+/**
+ * O sino, ou o tempo que falta.
+ *
+ * ⚠ **Componente próprio porque ele acorda por MINUTO.** Pôr o `setInterval`
+ * na linha do canal faria glifo, nome, selo e contador re-renderizarem junto;
+ * é a mesma separação do `Cronometro` e de `falando`.
+ *
+ * Um minuto e não um segundo: o rótulo é "7 h" ou "12 min", e nenhum dos dois
+ * muda mais rápido que isso — um relógio de segundo aqui seria sessenta
+ * acordadas por minuto para escrever o mesmo texto.
+ *
+ * O design: "silenciado por tempo mostra o restante em mono no lugar do
+ * ícone". No lugar, não ao lado — a linha tem 232px e o sino já disse o que o
+ * número diz.
+ */
+const RestanteDoSilencio = memo(function RestanteDoSilencio({
+  channelId,
+}: {
+  channelId: string;
+}) {
+  const ate = useSyncExternalStore(assinarSilencio, () => silencioAte(channelId));
+  const [agora, setAgora] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (ate === undefined || ate === Infinity) return;
+    const id = setInterval(() => setAgora(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, [ate]);
+
+  if (ate === undefined) return null;
+
+  /* Sem prazo: o sino, como sempre foi. "Até eu reativar" não tem número. */
+  if (ate === Infinity) {
+    return (
+      <span className={css.marcador}>
+        <BellSimpleSlash size={20} aria-hidden />
+        <span className="sr-only">silenciado</span>
+      </span>
+    );
+  }
+
+  const min = Math.max(0, Math.ceil((ate - agora) / 60_000));
+  const texto = min >= 60 ? `${String(Math.ceil(min / 60))} h` : `${String(min)} min`;
+
+  return (
+    <span className={css.restante}>
+      {texto}
+      <span className="sr-only">{` de silêncio restantes`}</span>
     </span>
   );
 });

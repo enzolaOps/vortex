@@ -1248,3 +1248,18 @@
   font-weight: 700;
   color: var(--vx-warning);
 }
+
+/*
+  O tempo que falta de silêncio, no lugar do sino.
+
+  Mono porque o número muda e o texto ao lado não pode tremer — mesmo critério
+  do cronômetro da chamada. `text-4` porque é o tom do canal silenciado: o
+  restante não deve chamar mais atenção que o nome que ele acompanha.
+*/
+.restante {
+  flex: none;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-2xs);
+  color: var(--vx-text-4);
+  font-variant-numeric: tabular-nums;
+}
