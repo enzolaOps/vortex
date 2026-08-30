@@ -49,7 +49,8 @@
   background: color-mix(in oklab, var(--vx-warning) 9%, transparent);
 }
 
-.faixaInstavel .estado {
+.faixaInstavel .estado,
+.faixaInstavel .medidor {
   color: var(--vx-warning);
 }
 
@@ -85,7 +86,8 @@
   font-weight: 600;
 }
 
-.faixaRuim .estado {
+.faixaRuim .estado,
+.faixaRuim .medidor {
   color: var(--vx-danger);
 }
 
@@ -229,4 +231,45 @@
 .acao svg {
   inline-size: var(--vx-icon-1);
   block-size: var(--vx-icon-1);
+}
+
+/* ============================================================
+   O medidor de qualidade
+   ------------------------------------------------------------
+   Quatro barras de 3px alinhadas pela BASE, `gap: 2`, dentro de
+   16px de altura — do design.
+
+   A cor acesa é `currentcolor`: a barra herda do `.estado` da
+   faixa, então ela vira verde, âmbar ou vermelha junto com o
+   texto sem uma linha por estado. Um mapa de cor próprio aqui
+   poderia discordar do rótulo ao lado — que é o defeito de dizer
+   duas coisas sobre o mesmo fato.
+   ============================================================ */
+
+.medidor {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--vx-space-02);
+  block-size: 16px;
+  /*
+    ⚠ A cor mora AQUI e não é herdada da faixa: `.medidor` é irmão de
+    `.estado`, não filho, então `currentcolor` pegaria a cor do texto comum.
+    Os dois recebem a mesma cor pelas mesmas duas regras de estado logo
+    acima, que é o que garante que o medidor e o rótulo nunca discordem.
+  */
+  color: var(--vx-success-text);
+}
+
+.barra {
+  inline-size: 3px;
+  border-radius: var(--vx-radius-02);
+  /* ⚠ `--vx-track-forte` é exatamente o `#3C4653` que o design usa aqui — o
+     sétimo neutro entrou por causa do trilho do interruptor e serve ao mesmo
+     papel: o vazio de um controle ATIVO, não de um bloqueado. */
+  background: var(--vx-track-forte);
+}
+
+.barra[data-acesa="true"] {
+  background: currentcolor;
 }

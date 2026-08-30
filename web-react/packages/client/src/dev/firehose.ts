@@ -892,6 +892,18 @@ export function chamadaFalsa(): () => void {
     surdo: false,
     camera: false,
     tela: false,
+    /*
+      ⚠ **Arnês mais pobre que o protocolo, de novo.** A chamada falsa não
+      definia `qualidade`, então ela ficava em `desconhecida` — o estado
+      ANTES do primeiro relatório — e o medidor de quatro barras nascia com
+      zero acesas. Um componente novo que só sabe renderizar o caso vazio é
+      indistinguível de um componente quebrado.
+
+      `otima` porque é o caso comum de uma chamada que acabou de conectar; os
+      outros três se veem trocando esta linha, que é o que o rig serve para
+      permitir.
+    */
+    qualidade: "otima",
   });
 
   /*

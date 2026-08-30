@@ -50,6 +50,52 @@ const TEXTO_DA_QUALIDADE: Record<QualidadeDeVoz, string> = {
  * é o store que a lei nº 1 nomeia; quem o assina é o avatar de cada pessoa, no
  * cartão. Uma faixa que piscasse a cada sílaba repintaria o rodapé da coluna.
  */
+/**
+ * Quantas das quatro barras acendem, por qualidade.
+ *
+ * `Record` fechado sobre `QualidadeDeVoz`: variante nova não compila até
+ * alguém decidir a altura dela, que é a mesma mecânica do texto logo acima.
+ *
+ * ⚠ `desconhecida` acende ZERO e não uma. Ela é o estado antes do primeiro
+ * relatório — a sala leva alguns segundos para medir —, e uma barra acesa ali
+ * afirmaria "a conexão está péssima" quando o certo é "ainda não sei".
+ */
+const BARRAS_ACESAS: Record<QualidadeDeVoz, number> = {
+  otima: 4,
+  boa: 3,
+  ruim: 2,
+  perdida: 0,
+  desconhecida: 0,
+};
+
+/**
+ * O medidor de qualidade — quatro barras.
+ *
+ * ⚠ **`aria-hidden`, e é a decisão certa, não um esquecimento.** O texto ao
+ * lado já diz "conexão ótima" por extenso; o medidor é a mesma informação
+ * numa forma que se lê de relance. Anunciá-lo faria o leitor de tela dizer o
+ * estado duas vezes seguidas.
+ *
+ * ⚠ **As alturas sobem em RAMPA, e o design não faz isso.** Ele escreve
+ * `40% · 75% · 100% · 55%` — a quarta MAIS BAIXA que a terceira, o que
+ * nenhum medidor de sinal faz e o que lê como defeito de renderização.
+ * Reproduzir seria copiar um deslize; a rampa é o que a forma significa.
+ */
+function Medidor({ acesas }: { acesas: number }) {
+  return (
+    <span className={css.medidor} aria-hidden>
+      {[40, 60, 80, 100].map((altura, i) => (
+        <span
+          key={altura}
+          className={css.barra}
+          data-acesa={i < acesas}
+          style={{ blockSize: `${String(altura)}%` }}
+        />
+      ))}
+    </span>
+  );
+}
+
 export function FaixaDeVoz() {
   const chamada = useSyncExternalStore(assinarChamada, lerChamada);
   const canal = useChannel(chamada.channelId);
@@ -118,6 +164,8 @@ export function FaixaDeVoz() {
       </button>
 
       <div className={css.controles}>
+        <Medidor acesas={BARRAS_ACESAS[chamada.qualidade]} />
+
         {/*
           Desligar mora na LINHA DE CIMA, ao lado do estado — do design, e a
           razão é a hierarquia: os quatro de baixo mudam COMO você participa,
