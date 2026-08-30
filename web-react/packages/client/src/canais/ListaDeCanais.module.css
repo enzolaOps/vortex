@@ -212,6 +212,7 @@
   um cabeçalho vira, silenciosamente, um retângulo cinza centralizado.
 */
 .secao {
+  composes: sobrancelhaDeSecao from "../styles/sobrancelha.module.css";
   display: flex;
   align-items: center;
   gap: var(--vx-space-05);
@@ -223,16 +224,12 @@
   background: transparent;
   color: var(--vx-text-3);
   font-family: inherit;
-  font-size: var(--vx-size-xs);
   /*
     600 e `0.08em`, medidos no design — estava em 500 e `0.04em`, os mesmos
     números que a member list tinha antes e pelo mesmo motivo (copiei um do
     outro). Em caixa alta a 11px, o espaçamento é o que separa "rótulo" de
     "palavra apertada": maiúsculas coladas leem como um bloco só.
   */
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   text-align: start;
   cursor: pointer;
   transition: color var(--vx-duration-fast) var(--vx-ease-out);

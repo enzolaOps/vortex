@@ -13,6 +13,7 @@
   por falta de uma decoração.
 */
 .cracha {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
   flex: none;
   /* `align-self` e não `vertical-align`: a linha de cabeçalho é flex com
      `items-baseline`, e o crachá é uma caixa — alinhá-lo pela baseline do
@@ -22,8 +23,6 @@
   border-radius: var(--vx-radius-04);
   background: var(--vx-surface-3);
   color: var(--vx-text-3);
-  font-size: var(--vx-size-xs);
-  font-weight: 600;
   /*
     Maiúsculas por CSS, não por dado.
 
@@ -32,8 +31,6 @@
     de tela anuncia o nome que quem administra escreveu, e a tela mostra a
     forma curta que o design pede.
   */
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   /* Cargo com nome longo não empurra o timestamp para fora da linha. */
   max-inline-size: 12ch;
   overflow: hidden;

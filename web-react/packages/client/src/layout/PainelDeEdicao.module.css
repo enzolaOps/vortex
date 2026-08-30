@@ -110,12 +110,10 @@
 }
 
 .rotulo {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
   flex: none;
   inline-size: 46px;
   color: var(--vx-text-3);
-  font-size: var(--vx-size-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 /* O gatilho do menu de painel. Parece campo, é botão. */

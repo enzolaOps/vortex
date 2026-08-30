@@ -18,15 +18,12 @@
   custa mais do que a divergência que evita.
 */
 .rotuloComContador {
+  composes: sobrancelha from "../../styles/sobrancelha.module.css";
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--vx-space-08);
   margin-block-end: var(--vx-space-06);
-  font-size: var(--vx-size-xs);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--vx-text-3);
 }
 
@@ -445,11 +442,8 @@
 }
 
 .grupoDeAlvos {
+  composes: sobrancelha from "../../styles/sobrancelha.module.css";
   padding: var(--vx-space-14) var(--vx-space-08) var(--vx-space-05);
-  font-size: var(--vx-size-2xs);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--vx-text-3);
 }
 

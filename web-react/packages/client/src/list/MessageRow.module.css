@@ -187,6 +187,7 @@
   linha em vez de etiqueta. Caixa fecha a leitura.
 */
 .novasRotulo {
+  composes: sobrancelhaDeSecao from "../styles/sobrancelha.module.css";
   flex: none;
   padding-inline: var(--vx-space-04);
   border-radius: var(--vx-radius-04);
@@ -205,10 +206,6 @@
   */
   background: color-mix(in oklab, var(--vx-danger) 14%, transparent);
   color: var(--vx-danger);
-  font-size: var(--vx-size-xs);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 /*
@@ -294,8 +291,8 @@
 }
 
 .diaRotulo {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
   color: var(--vx-text-3);
-  font-size: var(--vx-size-xs);
   /*
     Versalete de caixa alta em vez de peso.
 
@@ -304,8 +301,6 @@
     nome de autor, que é o outro texto forte da coluna; caixa alta pequena
     com entreletra diz "isto é rótulo, não fala" sem disputar hierarquia.
   */
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 /* ============================================================

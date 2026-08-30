@@ -78,9 +78,7 @@
 }
 
 .rotulo {
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
 }
 
 .campo {
@@ -321,14 +319,11 @@
 }
 
 .tipo {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
   display: flex;
   align-items: center;
   gap: var(--vx-space-08);
   margin-block-end: var(--vx-space-08);
-  font-size: var(--vx-size-xs);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--vx-text-3);
 }
 

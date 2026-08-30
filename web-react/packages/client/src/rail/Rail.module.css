@@ -514,15 +514,12 @@
   palavra longa esticaria o rail inteiro.
 */
 .nomeDaPasta {
+  composes: sobrancelhaDeSecao from "../styles/sobrancelha.module.css";
   max-inline-size: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--vx-text-3);
-  font-size: var(--vx-size-xs);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 /*

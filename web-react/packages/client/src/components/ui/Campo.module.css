@@ -34,10 +34,7 @@
   que já a delimita.
 */
 .rotulo {
-  font-size: var(--vx-size-xs);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  composes: sobrancelha from "../../styles/sobrancelha.module.css";
   color: var(--vx-text-3);
 }
 

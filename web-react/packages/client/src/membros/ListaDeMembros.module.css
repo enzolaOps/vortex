@@ -31,13 +31,13 @@
 }
 
 .secao {
+  composes: sobrancelhaDeSecao from "../styles/sobrancelha.module.css";
   display: flex;
   align-items: baseline;
   gap: var(--vx-space-04);
   padding-inline: var(--vx-space-12);
   padding-block: var(--vx-space-12) var(--vx-space-04);
   color: var(--vx-text-3);
-  font-size: var(--vx-size-xs);
   /*
     600 e `0.08em`, os números do design — estava em 500 e `0.04em`.
 
@@ -45,9 +45,6 @@
     que separa "rótulo" de "palavra apertada": maiúsculas coladas leem como um
     bloco. E o peso é o que faz ele ancorar a lista de trinta linhas abaixo.
   */
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .total {
