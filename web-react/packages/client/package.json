@@ -17,6 +17,7 @@
     "utilities": "node scripts/utilities.mjs",
     "vars": "node scripts/vars.mjs",
     "espec": "node scripts/espec.mjs",
+    "espelho": "node scripts/espelho.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "gate": "node scripts/gate.mjs"
