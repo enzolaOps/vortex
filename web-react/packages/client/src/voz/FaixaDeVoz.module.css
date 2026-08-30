@@ -19,6 +19,10 @@
   /* `9px 10px`, do design. */
   padding-inline: var(--vx-space-10);
   padding-block: var(--vx-space-09);
+  /* Duas linhas: estado à esquerda com o desligar na ponta, e a fileira de
+     quatro embaixo. Era uma linha só, com dois botões. */
+  flex-direction: column;
+  align-items: stretch;
   background: color-mix(in oklab, var(--vx-success) 7%, transparent);
   border-block-start: 1px solid var(--vx-hairline-06);
 }
@@ -145,11 +149,6 @@
   background: var(--vx-state-press);
 }
 
-/* Compartilhando é estado ATIVO, não destrutivo: acento, não danger. */
-.controleAtivo {
-  color: var(--vx-accent-text);
-}
-
 /*
   Desligar é destrutivo e fica em danger desde o repouso.
 
@@ -178,4 +177,56 @@
      Ver `--vx-icon-0`. */
   inline-size: var(--vx-icon-0);
   block-size: var(--vx-icon-0);
+}
+
+/* ============================================================
+   A fileira de quatro
+   ------------------------------------------------------------
+   `gap: 4` e `margin-top: 8`, do design. Cada alvo em `flex: 1`
+   e não com largura de conteúdo: são quatro do mesmo peso, e um
+   crescer porque o glifo é mais largo faria a fileira parecer
+   ordenada por importância.
+   ============================================================ */
+
+.acoes {
+  display: flex;
+  gap: var(--vx-space-04);
+  margin-block-start: var(--vx-space-08);
+}
+
+.acao {
+  flex: 1;
+  min-inline-size: 0;
+  display: grid;
+  place-items: center;
+  block-size: 26px;
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  /* Véu e não superfície: a faixa já é tingida pela qualidade, e um fundo
+     opaco aqui brigaria com a tinta em vez de pousar sobre ela. */
+  background: rgb(255 255 255 / 5%);
+  color: var(--vx-text-2);
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.acao:hover {
+  background: rgb(255 255 255 / 9%);
+}
+
+.acao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/* Ligado: acento a 16%, como o design — o mesmo par do `state-selected`, um
+   degrau acima porque aqui ele compete com a tinta da faixa por baixo. */
+.acao[aria-pressed="true"] {
+  background: color-mix(in oklab, var(--vx-accent) 16%, transparent);
+  color: var(--vx-accent-text);
+}
+
+.acao svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
 }

@@ -27,6 +27,19 @@ import { toast } from "../components/ui/toastStore";
  *    removida, o módulo inteiro vira código morto e o `pnpm utilities` acusa.
  */
 export const PENDENCIAS = {
+  /* ---------------------------------------------------------------- voz */
+  /*
+    ⚠ Os dois são CONCEITO que o protocolo Stoat não tem — nem tipo, nem
+    campo, nem evento —, e por isso entram aqui em vez de serem construídos:
+    o registro existe justamente para o controle que o design desenha e o
+    back-end não sustenta. Clicá-los diz o que fariam, em vez de não fazer
+    nada.
+  */
+  atividades: {
+    superficie: "Faixa de voz",
+    faz: "Abrir uma atividade compartilhada na sala — jogo, quadro, vídeo.",
+    depende: "conceito de atividade no protocolo, e um host para embutir",
+  },
   /* ------------------------------------------------------------ composer */
   anexar: {
     superficie: "Composer",
@@ -68,9 +81,11 @@ export const PENDENCIAS = {
     faz: "Seletor de figurinhas do servidor.",
     depende: "figurinhas no protocolo + upload",
   },
+  /* Dois consumidores, uma entrada: o conceito é o mesmo, e duplicar a
+     pendência daria duas frases para manter em dia sobre o mesmo bloqueio. */
   soundboard: {
-    superficie: "Composer",
-    faz: "Painel de efeitos sonoros do servidor.",
+    superficie: "Composer e faixa de voz",
+    faz: "Tocar um efeito sonoro curto — no canal ou para a sala inteira.",
     depende: "soundboard no protocolo + upload",
   },
   /*

@@ -1,7 +1,14 @@
-import { Monitor, PhoneX } from "@phosphor-icons/react";
+import {
+  MusicNotes,
+  Power,
+  Rows,
+  VideoCamera,
+  Monitor,
+} from "@phosphor-icons/react";
 import { useSyncExternalStore } from "react";
 
-import { alternarTela, sairDaChamada } from "../sdk/chamada";
+import { alternarCamera, alternarTela, sairDaChamada } from "../sdk/chamada";
+import { aindaNao } from "../pendente/pendencias";
 import { assinarChamada, lerChamada, type QualidadeDeVoz } from "../store/chamada";
 import { cn } from "../lib/cn";
 import { selecionarCanal } from "../store/navegacao";
@@ -111,10 +118,53 @@ export function FaixaDeVoz() {
       </button>
 
       <div className={css.controles}>
-        <Tooltip texto={chamada.tela ? "Parar de compartilhar" : "Compartilhar tela"}>
+        {/*
+          Desligar mora na LINHA DE CIMA, ao lado do estado — do design, e a
+          razão é a hierarquia: os quatro de baixo mudam COMO você participa,
+          e este decide SE você participa. Misturá-lo entre eles o torna o
+          quinto de uma fileira de iguais.
+        */}
+        <Tooltip texto="Sair da chamada">
           <button
             type="button"
-            className={cn(css.controle, chamada.tela && css.controleAtivo)}
+            className={cn(css.controle, css.desligar)}
+            aria-label="Sair da chamada"
+            onClick={() => void sairDaChamada()}
+          >
+            <Power size={20} />
+          </button>
+        </Tooltip>
+      </div>
+
+      {/*
+        A fileira de quatro, cada um em `flex: 1` — do design.
+
+        Largura igual e não conteúdo: são quatro alvos do mesmo peso, e um
+        deles crescer porque o glifo é mais largo faria a fileira parecer
+        ordenada por importância.
+      */}
+      <div className={css.acoes}>
+        <Tooltip texto={chamada.camera ? "Desligar câmera" : "Ligar câmera"}>
+          <button
+            type="button"
+            /* O estado vem do `aria-pressed`, que o CSS já mira: uma classe
+               paralela poderia discordar do ARIA, e discordar aqui significa a
+               tela dizer uma coisa e o leitor de tela outra. */
+            className={css.acao}
+            aria-pressed={chamada.camera}
+            aria-label="Câmera"
+            onClick={() => void alternarCamera()}
+          >
+            <VideoCamera size={20} />
+          </button>
+        </Tooltip>
+
+        <Tooltip
+          texto={chamada.tela ? "Parar de transmitir" : "Compartilhar tela"}
+        >
+          <button
+            type="button"
+            className={css.acao}
             aria-pressed={chamada.tela}
             /* Nome estável, estado no `aria-pressed` — a regra que o lint
                deste projeto guarda. A ação vai no tooltip. */
@@ -125,14 +175,26 @@ export function FaixaDeVoz() {
           </button>
         </Tooltip>
 
-        <Tooltip texto="Sair da chamada">
+        {/* Desenhados sem implementação — ver `pendente/pendencias.ts`. */}
+        <Tooltip texto="Atividades">
           <button
             type="button"
-            className={cn(css.controle, css.desligar)}
-            aria-label="Sair da chamada"
-            onClick={() => void sairDaChamada()}
+            className={css.acao}
+            aria-label="Atividades"
+            onClick={aindaNao("atividades")}
           >
-            <PhoneX size={20} />
+            <Rows size={20} />
+          </button>
+        </Tooltip>
+
+        <Tooltip texto="Soundboard">
+          <button
+            type="button"
+            className={css.acao}
+            aria-label="Soundboard"
+            onClick={aindaNao("soundboard")}
+          >
+            <MusicNotes size={20} />
           </button>
         </Tooltip>
       </div>
