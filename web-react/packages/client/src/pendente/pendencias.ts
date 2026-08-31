@@ -107,20 +107,21 @@ export const PENDENCIAS = {
 
   /* ------------------------------------------------------- voz e vídeo */
   /*
-    ⚠ **Cinco pendências e NENHUMA delas é "a tela não existe".** Todas as
+    ⚠ **Seis pendências e NENHUMA delas é "a tela não existe".** Todas as
     preferências desta seção são guardadas, e quatro chegam ao WebRTC de
     verdade (`constraintsDeAudio` em `store/preferenciasDeVoz.ts`). O que está
     aqui é o que precisa de algo que o navegador ou o sistema não dão.
+
+    ⚠ **O medidor de nível ao vivo saiu daqui**, e não porque passou a
+    funcionar: ele nunca foi DESENHADO. A seção tem "Volume de entrada", que é
+    um deslizante real, e nenhum medidor ao lado dele — uma entrada num
+    registro de controles pendentes, sem controle, é dívida que ninguém
+    consegue ver na tela para cobrar.
   */
   testeDeMicrofone: {
     superficie: "Configurações · Voz e vídeo",
     faz: "Gravar 5 s do seu microfone e tocar de volta.",
     depende: "`MediaRecorder` + um medidor ao vivo — o mesmo trabalho de `mensagemDeVoz`",
-  },
-  medidorDeEntrada: {
-    superficie: "Configurações · Voz e vídeo",
-    faz: "Mostrar o nível do seu microfone em tempo real.",
-    depende: "`AudioContext` com analisador sobre um stream aberto só para isto",
   },
   ruidoAgressivo: {
     superficie: "Configurações · Voz e vídeo",
@@ -170,17 +171,18 @@ export const PENDENCIAS = {
   /*
     ⚠ **O seletor de emoji EXISTE e funciona.** O que sobrou pendente é o que
     ele não alcança sozinho, e os três estão separados de propósito: um é
-    dado, um é dado do servidor, um é modificador de glifo.
+    ONDE o seletor abre, um é dado do servidor, um é modificador de glifo.
+
+    ⚠ **A lista curada de ~170 emojis NÃO é pendência**, e já esteve aqui como
+    `emojiCompleto`. Ela não tem controle: nada na tela promete os 3.800 do
+    Unicode e falha em entregar. O limite está escrito em `seletores/emojis.ts`,
+    que é onde quem for trocar o dataset vai olhar — mesma família da etiqueta
+    FÓRUM e da reação SUPER, que ficam fora deste registro pelo mesmo motivo.
   */
   emoji: {
     superficie: "Reação",
     faz: "Escolher um emoji para reagir a esta mensagem.",
     depende: "o seletor ancorado ao chip — hoje ele só abre pelo composer",
-  },
-  emojiCompleto: {
-    superficie: "Seletor de emoji",
-    faz: "Oferecer os ~3.800 emojis do Unicode com nome e alias.",
-    depende: "dataset de emoji (`emojibase`) carregado sob demanda",
   },
   emojiDoServidor: {
     superficie: "Seletor de emoji",
@@ -230,11 +232,6 @@ export const PENDENCIAS = {
     superficie: "Composer",
     faz: "Gravar e enviar mensagem de voz.",
     depende: "upload ao servidor de mídia (autumn) + `MediaRecorder`",
-  },
-  formaDeOndaReal: {
-    superficie: "Mensagem de voz",
-    faz: "Desenhar as amplitudes REAIS do áudio na forma de onda.",
-    depende: "`decodeAudioData` fora do caminho de render + cache por anexo",
   },
 
   /* ------------------------------------------------------- linha de mensagem */
@@ -300,11 +297,6 @@ export const PENDENCIAS = {
     superficie: "Rail",
     faz: "Baixar o Vortex para desktop.",
     depende: "casca Electron empacotada e publicada",
-  },
-  pastaDeServidor: {
-    superficie: "Rail",
-    faz: "Agrupar servidores em pasta, com nome e cor.",
-    depende: "ordenação de servidor em configuração de usuário",
   },
 
   /* ------------------------------------------- ações da mensagem (fase 5) */
@@ -466,17 +458,6 @@ export const PENDENCIAS = {
     superficie: "Convites do canal",
     faz: "Suspender todos os convites do canal sem apagá-los.",
     depende: "pausar convite no protocolo — só existe revogar",
-  },
-  bannerDeSincronia: {
-    superficie: "Permissões do canal",
-    faz: "Avisar quando as permissões do canal divergem da categoria.",
-    depende: "categoria não tem permissões no protocolo — não há com o que comparar",
-  },
-  overrideDeMembro: {
-    superficie: "Permissões do canal",
-    faz: "Dar ou tirar permissão de UMA pessoa neste canal, sem mexer no cargo.",
-    depende:
-      "`setPermissions` do protocolo aceita cargo, não membro — em canal de servidor só há override por cargo",
   },
   silenciarUsuario: {
     superficie: "Menu do usuário",

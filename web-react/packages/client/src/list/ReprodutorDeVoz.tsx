@@ -21,7 +21,11 @@ const BARRAS = 28;
  * de onda verdadeira sai de `decodeAudioData`, que exige baixar o arquivo
  * inteiro e decodificá-lo antes de desenhar — para toda mensagem de voz
  * visível na janela, no componente mais quente do app. Isso é trabalho
- * próprio, e está registrado como a pendência `formaDeOndaReal`.
+ * próprio, e está dito AQUI — não em `pendencias.ts`, onde já esteve.
+ *
+ * ⚠ Aquele registro é de CONTROLE desenhado que ainda não faz nada, e aqui não
+ * há o que clicar: a barra é um alvo de scrub que funciona. É a mesma família
+ * da etiqueta FÓRUM e da reação SUPER, que ficam de fora pelo mesmo motivo.
  *
  * O que estas barras entregam enquanto isso é o que a forma de onda serve
  * PRIMEIRO: um alvo de scrub com granularidade constante e um lugar onde o
