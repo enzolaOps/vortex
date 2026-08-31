@@ -17,7 +17,7 @@ import { assinarSessao, lerSessao } from "../store/sessao";
 import {
   abrirConfig,
   assinarConfig,
-  DE_SERVIDOR,
+  GRUPOS_DE_SERVIDOR,
   DESCRICAO_DA_SECAO as DESCRICAO,
   NOME_DA_SECAO as NOME,
   fecharConfig,
@@ -25,12 +25,14 @@ import {
   type SecaoId,
 } from "../store/config";
 import { useChannel, useServer, useServidorAtivo } from "../store/hooks";
+import { Acesso } from "./Acesso";
 import { Aparencia } from "./Aparencia";
 import { Atalhos } from "./Atalhos";
 import { Avancado } from "./Avancado";
 import { Desktop } from "./Desktop";
 import { Membros } from "./Membros";
 import { Privacidade } from "./Privacidade";
+import { Seguranca } from "./Seguranca";
 import { VozEVideo } from "./VozEVideo";
 import { Notificacoes } from "./Notificacoes";
 import { Banimentos } from "./Banimentos";
@@ -196,7 +198,9 @@ export function Configuracoes() {
     membros: () => <Membros serverId={serverId} />,
     cargos: () => <Cargos serverId={serverId} />,
     convites: () => <Convites serverId={serverId} />,
+    acesso: () => <Acesso serverId={serverId} />,
     banimentos: () => <Banimentos serverId={serverId} />,
+    seguranca: () => <Seguranca serverId={serverId} />,
     emojis: () => <Emojis serverId={serverId} />,
     canal: () => <VisaoGeralDoCanal channelId={channelId} />,
     canalPermissoes: () => <PermissoesDoCanal channelId={channelId} />,
@@ -248,14 +252,25 @@ export function Configuracoes() {
           */}
           {serverId ? (
             <>
+              {/*
+                ⚠ **O nome do servidor encabeça o PRIMEIRO grupo, não os
+                quatro.** Repeti-lo em cada um daria "Vortex Core" quatro vezes
+                numa coluna de 248px; os subtítulos do design (Servidor ·
+                Expressões · Pessoas · Moderação) é que separam.
+              */}
               <p className={css.grupo}>{servidor?.name ?? "Servidor"}</p>
-              {DE_SERVIDOR.map((id) => (
-                <ItemDoMenu
-                  key={id}
-                  id={id}
-                  ativa={id === secao}
-                  serverId={serverId}
-                />
+              {GRUPOS_DE_SERVIDOR.map((g, i) => (
+                <Fragment key={g.titulo}>
+                  {i > 0 ? <p className={css.subgrupo}>{g.titulo}</p> : null}
+                  {g.itens.map((id) => (
+                    <ItemDoMenu
+                      key={id}
+                      id={id}
+                      ativa={id === secao}
+                      serverId={serverId}
+                    />
+                  ))}
+                </Fragment>
               ))}
             </>
           ) : null}

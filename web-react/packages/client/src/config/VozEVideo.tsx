@@ -4,7 +4,7 @@ import { Botao } from "../components/ui/Botao";
 import { Deslizante } from "../components/ui/Deslizante";
 import { Escolha } from "../components/ui/Escolha";
 import { Interruptor } from "../components/ui/Interruptor";
-import { MarcaDeOpcao } from "../components/ui/Marcador";
+import { CartaoDeOpcao } from "../components/ui/CartaoDeOpcao";
 import { Segmentado } from "../components/ui/Segmentado";
 import { Selo } from "../components/ui/Selo";
 import { Combinacao } from "../components/ui/Tecla";
@@ -273,26 +273,19 @@ export function VozEVideo() {
       <CabecalhoDeSecao titulo="Modo de entrada" />
 
       {/*
-        O cartão inteiro é o alvo, não o pontinho — 320px contra 16px. Por isso
-        `MarcaDeOpcao` e não `Opcao`: aquele é um `<button>`, e botão dentro de
-        botão é HTML inválido.
+        `CartaoDeOpcao` compartilhado. Esta era uma das quatro cópias do mesmo
+        cartão, e a que divergia mais: fundo `surface-1` contra `surface-3` nas
+        outras, e hover de FUNDO onde as outras usavam hover de BORDA.
       */}
       <div className={css.modos} role="radiogroup" aria-label="Modo de entrada">
         {MODOS.map((m) => (
-          <button
+          <CartaoDeOpcao
             key={m.id}
-            type="button"
-            role="radio"
-            aria-checked={p.modo === m.id}
-            className={css.modo}
-            onClick={() => definirPreferenciasDeVoz({ modo: m.id })}
-          >
-            <MarcaDeOpcao />
-            <span className={css.modoTextos}>
-              <span className={css.modoTitulo}>{m.rotulo}</span>
-              <span className={css.modoDetalhe}>{m.detalhe}</span>
-            </span>
-          </button>
+            marcado={p.modo === m.id}
+            titulo={m.rotulo}
+            detalhe={m.detalhe}
+            aoEscolher={() => definirPreferenciasDeVoz({ modo: m.id })}
+          />
         ))}
       </div>
 

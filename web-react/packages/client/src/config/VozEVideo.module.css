@@ -110,67 +110,12 @@
 
 /* ---------------------------------------------------- modo de entrada */
 
-/*
-  Os dois modos como CARTÕES, não como uma linha de radio.
-
-  ⚠ O cartão inteiro é o alvo — 320px de área clicável contra os 16px do ponto.
-  É por isso que `MarcaDeOpcao` existe separada de `Opcao`: botão dentro de
-  botão é HTML inválido, e o erro já aconteceu uma vez nas ações da linha de
-  canal.
-*/
+/* Os dois modos como cartões — o cartão em si vive em `CartaoDeOpcao`;
+   aqui sobrou só o empilhamento. */
 .modos {
   display: grid;
   gap: var(--vx-space-08);
   margin-block-end: var(--vx-space-16);
-}
-
-.modo {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--vx-space-10);
-  padding: var(--vx-space-14) var(--vx-space-16);
-  border: 1px solid var(--vx-hairline-06);
-  border-radius: var(--vx-radius-08);
-  background: var(--vx-surface-1);
-  color: inherit;
-  font-family: inherit;
-  text-align: start;
-  cursor: pointer;
-}
-
-.modo:hover {
-  background: var(--vx-state-hover);
-}
-
-.modo[aria-checked="true"] {
-  border-color: var(--vx-accent);
-  background: var(--vx-state-selected);
-}
-
-.modo:focus-visible {
-  outline: 2px solid var(--vx-accent);
-  outline-offset: 2px;
-}
-
-/* ⚠ `grid` e não o default: os três são `<span>` — porque o cartão inteiro é
-   um `<button>` e `<div>` dentro de botão é HTML inválido —, e span dentro de
-   span fica em LINHA. Sem isto o título e a explicação saíam grudados
-   ("Detecção de vozTransmite quando você fala."). */
-.modoTextos {
-  display: grid;
-  min-inline-size: 0;
-}
-
-.modoTitulo {
-  font-size: var(--vx-size-md);
-  font-weight: 600;
-  color: var(--vx-text-1);
-}
-
-.modoDetalhe {
-  margin-block-start: var(--vx-space-02);
-  font-size: var(--vx-size-xs);
-  color: var(--vx-text-3);
 }
 
 /* ------------------------------------------------------------- vídeo */

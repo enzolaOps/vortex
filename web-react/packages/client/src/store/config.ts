@@ -38,7 +38,9 @@ export const SECOES = [
   "membros",
   "cargos",
   "convites",
+  "acesso",
   "banimentos",
+  "seguranca",
   "emojis",
   /*
     As de CANAL, e elas carregam o `channelId` pela mesma razão que as de
@@ -78,7 +80,9 @@ export const NOME_DA_SECAO: Record<SecaoId, string> = {
   membros: "Membros",
   cargos: "Cargos",
   convites: "Convites",
+  acesso: "Acesso",
   banimentos: "Banimentos",
+  seguranca: "Segurança",
   emojis: "Emojis",
   canal: "Visão geral",
   canalPermissoes: "Permissões",
@@ -94,6 +98,9 @@ export const NOME_DA_SECAO: Record<SecaoId, string> = {
  * passar. Título vazio é pior que ausente — ocupa a mesma altura sem dizer nada.
  */
 export const DESCRICAO_DA_SECAO: Partial<Record<SecaoId, string>> = {
+  acesso: "Quem consegue entrar e o que precisa fazer antes de participar.",
+  seguranca:
+    "Nível de verificação, filtro de mídia e limites de contato entre membros.",
   privacidade: "Quem pode falar com você e o que o Vortex guarda.",
   atalhos:
     "Combinações do app. Atalhos globais (mesmo em segundo plano) ficam em Voz e vídeo.",
@@ -101,15 +108,35 @@ export const DESCRICAO_DA_SECAO: Partial<Record<SecaoId, string>> = {
   desktop: "Opções que só existem no app instalado.",
 };
 
-/** As que falam de um servidor, e por isso precisam de um. */
-export const DE_SERVIDOR: readonly SecaoId[] = [
-  "servidor",
-  "membros",
-  "cargos",
-  "convites",
-  "banimentos",
-  "emojis",
+/**
+ * As de servidor, AGRUPADAS como o design as agrupa.
+ *
+ * ⚠ **Eram uma lista plana de oito, e o design tem quatro grupos.** Com oito
+ * itens seguidos, "Banimentos" fica do lado de "Emojis" e nada diz que um é
+ * moderação e o outro é expressão — a coluna vira um inventário em vez de um
+ * mapa. Os títulos são os do design: SERVIDOR · EXPRESSÕES · PESSOAS ·
+ * MODERAÇÃO.
+ *
+ * ⚠ **A lista plana é DERIVADA daqui, e não o contrário.** Com as duas escritas
+ * à mão, uma seção nova entraria numa e não na outra, e o sintoma seria uma
+ * página alcançável pelo menu do servidor e invisível na coluna — ou o
+ * inverso. Derivando, "não está em grupo nenhum" deixa de ser um estado
+ * possível.
+ */
+export const GRUPOS_DE_SERVIDOR: readonly {
+  readonly titulo: string;
+  readonly itens: readonly SecaoId[];
+}[] = [
+  { titulo: "Servidor", itens: ["servidor"] },
+  { titulo: "Expressões", itens: ["emojis"] },
+  { titulo: "Pessoas", itens: ["membros", "cargos", "convites", "acesso"] },
+  { titulo: "Moderação", itens: ["seguranca", "banimentos"] },
 ];
+
+/** As que falam de um servidor, e por isso precisam de um. */
+export const DE_SERVIDOR: readonly SecaoId[] = GRUPOS_DE_SERVIDOR.flatMap(
+  (g) => g.itens,
+);
 
 /** As que falam de um canal, e por isso precisam de um. */
 export const DE_CANAL: readonly SecaoId[] = [

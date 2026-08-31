@@ -7,7 +7,7 @@ import { aindaNao } from "../../pendente/pendencias";
 import { salvarCanal } from "../../sdk/canal";
 import { useChannel } from "../../store/hooks";
 import secao from "../Secao.module.css";
-import { MarcaDeOpcao } from "../../components/ui/Marcador";
+import { CartaoDeOpcao } from "../../components/ui/CartaoDeOpcao";
 import { Selo } from "../../components/ui/Selo";
 import css from "./Canal.module.css";
 
@@ -156,24 +156,24 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
 
       <section className={secao.bloco}>
         <h2 className={secao.subtitulo}>Visibilidade do conteúdo</h2>
-        <Opcao
-          marcada={!idade}
+        <CartaoDeOpcao
+          marcado={!idade}
           titulo="Padrão"
           detalhe="Sem aviso; mídia carrega direto."
-          aoMarcar={() => setIdade(false)}
+          aoEscolher={() => setIdade(false)}
         />
-        <Opcao
-          marcada={false}
+        <CartaoDeOpcao
+          marcado={false}
           titulo="Canal de spoiler"
           detalhe="Toda mídia entra borrada, com clique para revelar."
-          aoMarcar={aindaNao("canalDeSpoiler")}
+          aoEscolher={aindaNao("canalDeSpoiler")}
         />
-        <Opcao
-          marcada={idade}
+        <CartaoDeOpcao
+          marcado={idade}
           titulo="Restrição de idade"
-          selo="+18"
+          selo={<Selo tom="perigoSuave">+18</Selo>}
           detalhe="Exige confirmação na entrada; some da prévia de convite."
-          aoMarcar={() => setIdade(true)}
+          aoEscolher={() => setIdade(true)}
         />
       </section>
 
@@ -294,50 +294,6 @@ function Formato({
       onClick={() => aoAplicar(`${marca}${valor}${marca}`)}
     >
       {children}
-    </button>
-  );
-}
-
-/**
- * Uma opção de rádio com título, selo e explicação.
- *
- * `role="radio"` num `button` e não um `<input type="radio">`: o nativo é
- * desenhado pelo sistema, e o lint do projeto reprova controle nativo em
- * superfície de produto desde a auditoria da fase 4.
- */
-function Opcao({
-  marcada,
-  titulo,
-  selo,
-  detalhe,
-  aoMarcar,
-}: {
-  marcada: boolean;
-  titulo: string;
-  selo?: string;
-  detalhe: string;
-  aoMarcar: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={marcada}
-      className={css.opcao}
-      onClick={aoMarcar}
-    >
-      <MarcaDeOpcao className={css.marca} />
-      <span className={css.opcaoTexto}>
-        <span className={css.opcaoTitulo}>
-          {titulo}
-          {selo ? (
-            <Selo tom="perigoSuave" className={css.selo}>
-              {selo}
-            </Selo>
-          ) : null}
-        </span>
-        <span className={css.opcaoDetalhe}>{detalhe}</span>
-      </span>
     </button>
   );
 }

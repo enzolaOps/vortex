@@ -116,6 +116,18 @@
   color: var(--vx-text-3);
 }
 
+/*
+  O subtítulo DENTRO do grupo do servidor — "Pessoas", "Moderação".
+
+  Mesmo tratamento do rótulo de grupo, com um degrau a menos de respiro em
+  cima: ele separa blocos que já estão sob o mesmo cabeçalho, e o espaço de 12
+  faria os quatro subgrupos lerem como quatro grupos independentes.
+*/
+.subgrupo {
+  composes: grupo;
+  padding-block-start: var(--vx-space-14);
+}
+
 .item {
   display: flex;
   align-items: center;
@@ -338,6 +350,7 @@
   }
 
   .grupo,
+  .subgrupo,
   .regua {
     display: none;
   }

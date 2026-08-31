@@ -23,52 +23,6 @@
   margin-block-end: var(--vx-space-18);
 }
 
-/*
-  O cartão de escolha.
-
-  ⚠ **O cartão inteiro é o alvo**, e é o que separa esta tela de uma lista de
-  radio: a explicação de cada opção é o que faz a escolha ser informada, e um
-  alvo de 16px ao lado de duas linhas de texto convida a errar. Mesmo arranjo
-  do modo de entrada em Voz e vídeo.
-*/
-.cartao {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--vx-space-10);
-  inline-size: 100%;
-  padding: var(--vx-space-12) var(--vx-space-14);
-  border: 1px solid var(--vx-hairline-06);
-  border-radius: var(--vx-radius-08);
-  background: var(--vx-surface-3);
-  color: inherit;
-  font-family: inherit;
-  text-align: start;
-  cursor: pointer;
-}
-
-.cartao:hover:not([aria-checked="true"]) {
-  border-color: var(--vx-border-subtle);
-}
-
-/* Acento a 28%, escrito à mão como o `Banner` faz — a régua do projeto é que
-   a cor derivada só ganha token ao cruzar a linha de "existe atrás de UMA
-   coisa", e um token novo custaria entrada em `TokenName`, classificação e um
-   par de contraste. */
-.cartao[aria-checked="true"] {
-  border-color: color-mix(in oklab, var(--vx-accent) 28%, transparent);
-  background: var(--vx-state-selected);
-}
-
-.cartao:focus-visible {
-  outline: 2px solid var(--vx-accent);
-  outline-offset: 2px;
-}
-
-/* Alinha ao centro óptico da primeira linha, não ao topo da caixa. */
-.marca {
-  margin-block-start: var(--vx-space-02);
-}
-
 .textos {
   display: grid;
   min-inline-size: 0;
@@ -87,6 +41,8 @@
   color: var(--vx-text-3);
   text-wrap: pretty;
 }
+
+/* ------------------------------------------------ cartão de linhas */
 
 /* ------------------------------------------------ cartão de linhas */
 

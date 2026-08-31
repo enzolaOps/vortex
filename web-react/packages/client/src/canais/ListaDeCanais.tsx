@@ -1001,7 +1001,9 @@ export function ListaDeCanais() {
 const PERMISSAO_DA_SECAO: Partial<Record<SecaoId, Acao>> = {
   cargos: "gerenciarServidor",
   convites: "criarConvite",
+  acesso: "gerenciarServidor",
   banimentos: "banir",
+  seguranca: "gerenciarServidor",
   emojis: "gerenciarServidor",
 };
 

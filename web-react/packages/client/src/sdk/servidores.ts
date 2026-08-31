@@ -456,7 +456,23 @@ export async function revogarConvite(
   }
 }
 
-export async function listarBanidos(serverId: string): Promise<readonly Banido[]> {
+/**
+ * Quem está banido, ou `undefined` se a consulta falhou.
+ *
+ * ⚠ **Ausência não é lista vazia**, pela mesma razão de `listarConvites`:
+ * "ninguém banido" e "não deu para saber" são fatos diferentes, e numa tela de
+ * moderação o segundo virando o primeiro é o pior dos dois erros possíveis.
+ *
+ * ⚠ **Duas colunas do design NÃO existem no protocolo.** `ServerBan` carrega
+ * `_id`, `reason` e o usuário — quem baniu e quando não são campos. O design
+ * desenha "Banido por" e "Data"; as duas ficaram de fora em vez de virar
+ * coluna com traço. Elas VÃO existir: `/servers/{id}/audit_logs` guarda
+ * `BanCreate` com autor e ID ordenável por tempo, então a informação está no
+ * servidor — só não neste objeto.
+ */
+export async function listarBanidos(
+  serverId: string,
+): Promise<readonly Banido[] | undefined> {
   try {
     const lista = (await client.servers.get(serverId)?.fetchBans()) ?? [];
     return lista.map((b) => ({
@@ -477,7 +493,7 @@ export async function listarBanidos(serverId: string): Promise<readonly Banido[]
       titulo: "Não deu para listar os banimentos.",
       descricao: motivo(e),
     });
-    return [];
+    return undefined;
   }
 }
 

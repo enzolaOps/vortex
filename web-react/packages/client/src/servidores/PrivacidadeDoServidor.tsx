@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 import { Botao } from "../components/ui/Botao";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { Interruptor } from "../components/ui/Interruptor";
-import { MarcaDeOpcao } from "../components/ui/Marcador";
+import { CartaoDeOpcao } from "../components/ui/CartaoDeOpcao";
 import { toast } from "../components/ui/toastStore";
 import { assinarAlvo, lerAlvo } from "../store/administracao";
 import { useServer } from "../store/hooks";
@@ -51,41 +51,6 @@ const FILTRO: Record<FiltroDeConteudo, { titulo: string; detalhe: string }> = {
     detalhe: "Mídia sensível entra sempre borrada",
   },
 };
-
-/**
- * Um cartão de escolha única.
- *
- * ⚠ O CARTÃO inteiro é o alvo — 412px contra os 16 do ponto —, e por isso a
- * marca é `MarcaDeOpcao` e não `Opcao`: aquele é um `<button>`, e botão dentro
- * de botão é HTML inválido. Mesmo arranjo do modo de entrada em Voz e vídeo.
- */
-function Cartao({
-  marcado,
-  titulo,
-  detalhe,
-  aoEscolher,
-}: {
-  marcado: boolean;
-  titulo: string;
-  detalhe: string;
-  aoEscolher: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={marcado}
-      className={css.cartao}
-      onClick={aoEscolher}
-    >
-      <MarcaDeOpcao className={css.marca} />
-      <span className={css.textos}>
-        <span className={css.titulo}>{titulo}</span>
-        <span className={css.detalhe}>{detalhe}</span>
-      </span>
-    </button>
-  );
-}
 
 /**
  * Privacidade neste servidor.
@@ -155,7 +120,7 @@ export function PrivacidadeDoServidor({ aoFechar }: { aoFechar: () => void }) {
           aria-label="Quem pode me mandar DM neste servidor"
         >
           {ALCANCES_DE_DM.map((id) => (
-            <Cartao
+            <CartaoDeOpcao
               key={id}
               marcado={p.dm === id}
               titulo={DM[id].titulo}
@@ -174,7 +139,7 @@ export function PrivacidadeDoServidor({ aoFechar }: { aoFechar: () => void }) {
           aria-label="Filtro de conteúdo explícito"
         >
           {FILTROS_DE_CONTEUDO.map((id) => (
-            <Cartao
+            <CartaoDeOpcao
               key={id}
               marcado={p.filtro === id}
               titulo={FILTRO[id].titulo}
