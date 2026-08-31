@@ -19,6 +19,7 @@ import { client } from "./client";
 import { definirUsuarioLocal } from "./adapter";
 import { dentro, erro, lerSessao, precisaDeNome } from "../store/sessao";
 import { motivoDoErro } from "./erros";
+import { consumirEscolhaDeIdentidade } from "../store/entrada";
 
 /**
  * Traduz a falha das telas de conta.
@@ -151,10 +152,45 @@ export async function precisaEscolherNome(): Promise<boolean> {
   }
 }
 
-/** Escolhe o nome de usuário e conclui a entrada. */
+/**
+ * Escolhe o nome de usuário e conclui a entrada.
+ *
+ * ⚠ **O nome de EXIBIÇÃO vai numa segunda chamada, e ela é opcional de
+ * propósito.** `/onboard/complete` aceita só `username`; `display_name` é
+ * `PATCH /users/@me`. Se a segunda falhar, a entrada continua — a pessoa
+ * entrou, tem nome, e o nome de exibição é editável em Perfil. Deixar o
+ * onboarding travar por causa dela seria trocar o caro pelo barato.
+ */
 export async function escolherNome(nome: string): Promise<void> {
   try {
     await client.api.post("/onboard/complete" as never, { username: nome } as never);
+
+    /*
+      A escolha feita no CADASTRO, aplicada agora. Consumida — quem lê, apaga:
+      voltar ao onboarding depois não deve reaplicar uma escolha antiga por
+      cima de uma mudança recente. Ver `store/entrada.ts`.
+    */
+    const escolhido = consumirEscolhaDeIdentidade();
+    if (escolhido?.exibicao) {
+      try {
+        /*
+          ⚠ **`api.patch` cru e NÃO `client.user?.edit()`.** A primeira versão
+          usava o modelo, e ela falhava em silêncio: `client.user` só existe
+          depois do `Ready` chegar pelo socket, e aqui o socket acabou de
+          abrir. O `?.` engolia a chamada inteira.
+
+          Medido contra a instância local: `username` gravava e `display_name`
+          voltava `null` no `GET /users/@me`. Nenhum erro, nenhum aviso — a
+          pessoa escolhia o nome no cadastro e entrava sem ele.
+        */
+        await client.api.patch("/users/@me" as never, {
+          display_name: escolhido.exibicao,
+        } as never);
+      } catch {
+        /* Ver o aviso acima: nome de exibição não segura a entrada. */
+      }
+    }
+
     const eu = lerSessao().userId;
     if (eu) definirUsuarioLocal(eu);
     if (eu) dentro(eu);

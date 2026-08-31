@@ -318,3 +318,107 @@
 .aviso {
   margin-block-end: var(--vx-space-14);
 }
+
+/* ============================================================
+   Cadastro — cartão de coluna única
+   ------------------------------------------------------------
+   ⚠ Ele NÃO usa a casca de duas colunas do login, e isso é do
+   design: 420px, sem painel de marca. Faz sentido — a tela de
+   entrada vende o produto para quem chega; quem está criando
+   conta já decidiu, e o painel só empurraria o formulário para
+   longe.
+
+   Medido: raio 12, `surface-1`, borda em véu de 7%,
+   `26px 28px 24px`.
+   ============================================================ */
+
+.cartaoDeCadastro {
+  display: grid;
+  gap: var(--vx-space-14);
+  align-content: start;
+  inline-size: min(420px, 100%);
+  padding: var(--vx-space-26) var(--vx-space-28) var(--vx-space-24);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-12);
+  background: var(--vx-surface-1);
+}
+
+/* "Cadastro" — a sobrancelha de SEÇÃO (tracking 0.08), porque ela é o único
+   conteúdo da linha e o espaçamento faz o trabalho de separação. */
+.sobrancelhaDoCartao {
+  composes: sobrancelhaDeSecao from "../styles/sobrancelha.module.css";
+  color: var(--vx-text-3);
+}
+
+/* ------------------------------------------------ medidor de senha */
+
+.medidor {
+  display: flex;
+  gap: var(--vx-space-04);
+  margin-block-start: var(--vx-space-08);
+}
+
+/*
+  As quatro barras.
+
+  ⚠ Elas nascem com a cor de trilho e ACENDEM por `data-acesa` — o inverso
+  (montar só as acesas) faria a régua mudar de largura conforme a senha, e uma
+  régua que encolhe não é régua.
+*/
+.barraDeForca {
+  flex: 1;
+  block-size: 4px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-track);
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.barraDeForca[data-acesa][data-tom="danger"] {
+  background: var(--vx-danger);
+}
+
+.barraDeForca[data-acesa][data-tom="warning"] {
+  background: var(--vx-warning);
+}
+
+.barraDeForca[data-acesa][data-tom="success"] {
+  background: var(--vx-success);
+}
+
+.linhaDaForca {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--vx-space-08);
+  margin-block-start: var(--vx-space-06);
+}
+
+.rotuloDaForca {
+  font-size: var(--vx-size-xs);
+}
+
+.rotuloDaForca[data-tom="danger"] {
+  color: var(--vx-danger-text);
+}
+
+.rotuloDaForca[data-tom="warning"] {
+  color: var(--vx-warning);
+}
+
+.rotuloDaForca[data-tom="success"] {
+  color: var(--vx-success-text);
+}
+
+.minimo {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
+}
+
+/* A linha de concordância. 11px e `text-3`, do design — ela precisa ser lida
+   uma vez e nunca mais. */
+.termos {
+  margin: var(--vx-space-02) 0 0;
+  font-size: var(--vx-size-xs);
+  line-height: 1.5;
+  color: var(--vx-text-3);
+  text-wrap: pretty;
+}

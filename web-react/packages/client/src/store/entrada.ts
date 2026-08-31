@@ -84,3 +84,46 @@ export function voltarParaEntrar(): void {
 export function limparEntrada(): void {
   tela = ENTRAR;
 }
+
+/* ------------------------------------------------- identidade do cadastro */
+
+/**
+ * O nome de usuário e o de exibição escolhidos no CADASTRO.
+ *
+ * ⚠ **Existem porque o formulário do design pede quatro campos e
+ * `POST /auth/account/create` aceita dois.** O `username` só entra em
+ * `/onboard/complete` e o `display_name` num `PATCH /users/@me` — os dois
+ * depois de a conta existir e a sessão estar aberta. Partir o cadastro em duas
+ * telas resolveria isso e seria pior: quem se cadastra decide quem é uma vez
+ * só, e a divisão é detalhe de transporte.
+ *
+ * ⚠ **Module-level e NÃO em `localStorage`.** Isto atravessa duas telas na
+ * mesma aba, e só. Persistir deixaria um nome de exibição de uma tentativa
+ * abandonada esperando a próxima pessoa que se cadastrasse naquele
+ * computador — dado de outra pessoa aplicado a uma conta nova.
+ *
+ * Consumido UMA vez: quem lê, apaga. Sem isso, voltar ao onboarding depois
+ * reaplicaria uma escolha antiga por cima de uma mudança recente.
+ */
+export type IdentidadeEscolhida = {
+  readonly usuario: string;
+  readonly exibicao: string;
+};
+
+let identidade: IdentidadeEscolhida | undefined;
+
+export function guardarEscolhaDeIdentidade(nova: IdentidadeEscolhida): void {
+  identidade = nova;
+}
+
+/** Só olha, sem consumir — para quem precisa DECIDIR antes de aplicar. */
+export function lerEscolhaDeIdentidade(): IdentidadeEscolhida | undefined {
+  return identidade;
+}
+
+/** Devolve e esquece. */
+export function consumirEscolhaDeIdentidade(): IdentidadeEscolhida | undefined {
+  const atual = identidade;
+  identidade = undefined;
+  return atual;
+}

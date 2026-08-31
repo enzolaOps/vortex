@@ -34,7 +34,7 @@
  */
 import { toast } from "../components/ui/toastStore";
 import { definirUsuarioLocal } from "./adapter";
-import { precisaEscolherNome } from "./conta";
+import { escolherNome, precisaEscolherNome } from "./conta";
 import { client } from "./client";
 import {
   dentro,
@@ -51,6 +51,7 @@ import {
   type MetodoDeMfa,
 } from "../store/sessao";
 import { motivoDoErro } from "./erros";
+import { lerEscolhaDeIdentidade } from "../store/entrada";
 
 /**
  * O nome que identifica ESTA sessão na lista de dispositivos da conta.
@@ -225,6 +226,24 @@ async function concluir(r: RespostaDeLogin): Promise<void> {
     (token instalado, socket aberto) e só o último passo falta.
   */
   if (await precisaEscolherNome()) {
+    /*
+      ⚠ **Quem veio do CADASTRO já escolheu, e não pode ser perguntado de
+      novo.** O formulário do design pede nome de usuário e nome de exibição
+      junto com e-mail e senha; o protocolo só aceita os dois últimos em
+      `account/create` e joga o resto para o onboarding. Mostrar a tela de nome
+      depois disso partiria o cadastro em duas — que é justamente o que guardar
+      a escolha existe para evitar.
+
+      A tela de nome continua existindo, e é o caminho de quem chega ao
+      onboarding sem ter passado por aqui: conta criada por outro cliente, ou
+      cadastro interrompido antes de completar.
+    */
+    const escolhido = lerEscolhaDeIdentidade();
+    if (escolhido?.usuario) {
+      await escolherNome(escolhido.usuario);
+      return;
+    }
+
     precisaDeNome(r.user_id);
     return;
   }

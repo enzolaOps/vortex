@@ -1,3 +1,5 @@
+import { client } from "./client";
+
 /**
  * Com qual servidor este app fala.
  *
@@ -93,4 +95,27 @@ function mesmaOrigem(): string {
   return typeof location === "undefined"
     ? "http://localhost/api"
     : `${location.origin}/api`;
+}
+
+/**
+ * Esta instância exige convite para criar conta?
+ *
+ * ⚠ **Lido da configuração que o SDK busca no arranque, e isso só passou a ser
+ * possível agora.** O comentário da tela de cadastro dizia que o cliente "não
+ * fala com servidor nenhum na abertura" e por isso mostrava o campo de convite
+ * SEMPRE, como opcional. Deixou de ser verdade quando o `baseURL` passou a ser
+ * configurado: `GET {baseURL}/` roda no construtor do `Client` e devolve
+ * `features.invite_only`.
+ *
+ * O default é `false` — sem configuração, o campo some. É o lado certo para
+ * errar: com o campo escondido numa instância fechada, quem se cadastra recebe
+ * a frase "esta instância exige um convite" do tradutor de erro e sabe o que
+ * fazer; com ele visível numa instância aberta, todo mundo para para pensar
+ * num código que não existe.
+ */
+export function exigeConvite(): boolean {
+  return (
+    (client.configuration as { features?: { invite_only?: boolean } } | undefined)
+      ?.features?.invite_only === true
+  );
 }

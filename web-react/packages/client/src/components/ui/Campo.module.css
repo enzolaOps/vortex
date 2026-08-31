@@ -203,3 +203,12 @@
   justify-content: space-between;
   gap: var(--vx-space-12);
 }
+
+/* O `@` do nome de usuário: mono, e um tom abaixo do valor — ele é constante,
+   não é o que a pessoa escreveu. */
+.prefixo {
+  flex: none;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-md);
+  color: var(--vx-text-4);
+}

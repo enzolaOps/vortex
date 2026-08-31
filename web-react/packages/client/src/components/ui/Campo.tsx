@@ -27,6 +27,7 @@ export function Campo({
   dica,
   erro,
   acaoDoRotulo,
+  prefixo,
   revelavel = false,
   id,
   type,
@@ -45,6 +46,14 @@ export function Campo({
    * falha.
    */
   acaoDoRotulo?: ReactNode;
+  /**
+   * Um sinal fixo ANTES do valor — o `@` do nome de usuário.
+   *
+   * Dentro da caixa e não como texto do rótulo: ele faz parte do que se lê da
+   * esquerda para a direita ao conferir o que foi digitado, e fora da borda
+   * pareceria legenda.
+   */
+  prefixo?: ReactNode;
   /**
    * Botão de olho, para campo de senha.
    *
@@ -92,12 +101,19 @@ export function Campo({
         </div>
       )}
 
-      <div className={revelavel ? css.caixa : undefined}>
+      <div className={revelavel || prefixo !== undefined ? css.caixa : undefined}>
+      {prefixo !== undefined ? (
+        <span className={css.prefixo} aria-hidden>
+          {prefixo}
+        </span>
+      ) : null}
       <input
         {...resto}
         type={revelavel && revelado ? "text" : type}
         id={meu}
-        className={revelavel ? css.entradaNua : css.entrada}
+        className={
+          revelavel || prefixo !== undefined ? css.entradaNua : css.entrada
+        }
         /*
           `aria-invalid` e não só a borda vermelha.
 
