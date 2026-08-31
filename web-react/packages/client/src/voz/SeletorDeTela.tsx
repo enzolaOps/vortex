@@ -1,3 +1,4 @@
+import { Check, SpeakerHigh } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 
 import { Botao } from "../components/ui/Botao";
@@ -14,30 +15,46 @@ import {
   type Resolucao,
   type Taxa,
 } from "../sdk/seletorDeTela";
+import { lerChamada } from "../store/chamada";
+import { useChannel } from "../store/hooks";
 import { responderEscolhaDeTela } from "../store/seletorDeTela";
 import css from "./SeletorDeTela.module.css";
 
-type Aba = "tela" | "janela";
+/** As três abas da referência. */
+const ABAS = ["tela", "janela", "aba"] as const;
+type Aba = (typeof ABAS)[number];
+
+const NOME_DA_ABA: Record<Aba, string> = {
+  tela: "Telas",
+  janela: "Janelas",
+  aba: "Abas",
+};
 
 /**
- * Escolher o que transmitir — o painel do design, só na casca.
+ * Escolher o que transmitir.
  *
- * ⚠ **Ele NÃO substitui o seletor do navegador; ele existe onde o navegador
- * não tem um que sirva.** Na web, `getDisplayMedia` abre a superfície do
- * sistema e nenhuma página pode desenhá-la — este painel nunca aparece ali. Na
- * casca Electron o `desktopCapturer` entrega a lista, e aí a escolha volta a
- * ser do produto.
+ * ⚠ **A estrutura é a da REFERÊNCIA, não a do `.dc.html`.** A primeira versão
+ * saiu só do design e divergiu em oito pontos — grade fluida em vez de três
+ * colunas, cartão sem segunda linha nem selo de conferido, resolução e quadros
+ * empilhados, rodapé sem a frase de consequência, botão de rótulo fixo, aba
+ * "Abas" ausente e subtítulo sem o canal. A referência decide o que EXISTE; o
+ * design decide os VALORES.
  *
- * ⚠ **A escolha acontece ANTES da captura.** Ver
- * `desktop/src/native/telaCompartilhada.ts`: resolução e taxa de quadros são
- * constraints de `getDisplayMedia`, fixadas no momento da chamada. Um seletor
- * que respondesse a um pedido em voo — que é como o upstream faz — só
- * conseguiria escolher a fonte, e as outras duas colunas do design ficariam
- * decorativas.
+ * ⚠ **Ele não substitui o seletor do navegador; existe onde o navegador não
+ * tem um que sirva.** Na web, `getDisplayMedia` abre a superfície do sistema e
+ * nenhuma página a desenha. Na casca, o `desktopCapturer` entrega a lista e a
+ * escolha volta a ser do produto.
  *
- * ⚠ **Sem a aba "Abas" do design.** Capturar uma aba é conceito de navegador;
- * a casca enumera telas e janelas do sistema. Uma terceira aba vazia seria
- * pior que a ausência — é a mesma regra que manteve a etiqueta FÓRUM fora.
+ * ⚠ **A escolha acontece ANTES da captura.** Resolução e taxa são constraints
+ * fixadas na chamada de `getDisplayMedia`; um seletor que respondesse a um
+ * pedido em voo — como o upstream faz — só escolheria a fonte, e as outras
+ * duas colunas ficariam decorativas. Ver `desktop/src/native/telaCompartilhada.ts`.
+ *
+ * ⚠ **O banner de permissão do sistema NÃO entrou.** A referência o mostra
+ * quando macOS ou Wayland ainda não autorizaram a captura — só que nessas duas
+ * plataformas o Vortex sequer abre este painel: o sistema desenha o dele, e é
+ * o `getDisplayMedia` que pede a autorização. Um banner aqui avisaria sobre
+ * uma tela que a pessoa não está vendo.
  */
 export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
   const [fontes, setFontes] = useState<readonly FonteDeTela[] | "carregando">(
@@ -45,9 +62,12 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
   );
   const [aba, setAba] = useState<Aba>("tela");
   const [escolhida, setEscolhida] = useState<string | undefined>(undefined);
-  const [audio, setAudio] = useState(false);
+  const [audio, setAudio] = useState(true);
   const [resolucao, setResolucao] = useState<Resolucao>("1080p");
   const [taxa, setTaxa] = useState<Taxa>(30);
+
+  const chamada = lerChamada();
+  const canal = useChannel(chamada.channelId ?? "");
 
   useEffect(() => {
     let vivo = true;
@@ -57,8 +77,8 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
         if (!vivo) return;
         setFontes(f);
         /* A primeira TELA já vem escolhida: é o caso comum, e um painel que
-           abre sem nada marcado obriga um clique a mais para a ação que
-           quase todo mundo quer. */
+           abre sem nada marcado obriga um clique a mais para a ação que quase
+           todo mundo quer. */
         setEscolhida(f.find((x) => x.tipo === "tela")?.id ?? f[0]?.id);
       });
     return () => {
@@ -67,8 +87,8 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
   }, []);
 
   /*
-    ⚠ Cancelar por `Esc`, pelo véu ou pelo botão passa TODO pelo mesmo lugar.
-    O motor está esperando a promessa; um caminho de fechamento que não
+    ⚠ Cancelar por `Esc`, pelo véu ou pelo botão passa TODO pelo mesmo lugar. O
+    motor está esperando a promessa; um caminho de fechamento que não
     respondesse deixaria `alternarTela` pendurada para sempre, e o botão de
     compartilhar mudo pelo resto da sessão.
   */
@@ -79,58 +99,77 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
   }
 
   const lista = fontes === "carregando" ? [] : fontes;
-  const daAba = lista.filter((f) => f.tipo === aba);
-  const telas = lista.filter((f) => f.tipo === "tela").length;
-  const janelas = lista.length - telas;
+  const daAba = aba === "aba" ? [] : lista.filter((f) => f.tipo === aba);
+  const conta: Record<Aba, number> = {
+    tela: lista.filter((f) => f.tipo === "tela").length,
+    janela: lista.filter((f) => f.tipo === "janela").length,
+    aba: 0,
+  };
+
+  /*
+    O rótulo diz o que vai acontecer, com os números escolhidos — é a
+    referência, e ela está certa: "Transmitir" sozinho não confirma nada, e a
+    resolução fica três linhas acima, fora do alcance do olhar de quem já
+    decidiu clicar.
+  */
+  const rotulo =
+    escolhida === undefined
+      ? "Escolha uma fonte"
+      : `Transmitir ${resolucao} · ${String(taxa)} fps`;
 
   return (
     <Dialog open onOpenChange={(v) => !v && cancelar()}>
       <DialogContent
         titulo="Compartilhar tela"
-        descricao="Escolha o que as pessoas da sala vão ver."
+        descricao={
+          canal
+            ? `em #${canal.name} · ${String(chamada.participantes.length)} pessoas vão ver`
+            : "Escolha o que as pessoas da sala vão ver."
+        }
         className={css.painel}
         rodape={
           <>
-            <Botao variante="sutil" onClick={cancelar}>
-              Cancelar
-            </Botao>
-            <Botao
-              variante="primario"
-              disabled={escolhida === undefined}
-              onClick={() => {
-                if (escolhida === undefined) return;
-                responderEscolhaDeTela({
-                  fonteId: escolhida,
-                  audio,
-                  resolucao,
-                  taxa,
-                });
-                aoFechar();
-              }}
-            >
-              Transmitir
-            </Botao>
+            <p className={css.consequencia}>{trocaDe(resolucao, taxa)}</p>
+            <span className={css.acoes}>
+              <Botao variante="sutil" onClick={cancelar}>
+                Cancelar
+              </Botao>
+              <Botao
+                variante="primario"
+                disabled={escolhida === undefined}
+                onClick={() => {
+                  if (escolhida === undefined) return;
+                  responderEscolhaDeTela({
+                    fonteId: escolhida,
+                    audio,
+                    resolucao,
+                    taxa,
+                  });
+                  aoFechar();
+                }}
+              >
+                {rotulo}
+              </Botao>
+            </span>
           </>
         }
       >
-        <div
-          className={css.abas}
-          role="tablist"
-          aria-label="Tipo de fonte"
-        >
-          {(["tela", "janela"] as const).map((t) => (
+        <div className={css.abas} role="tablist" aria-label="Tipo de fonte">
+          {ABAS.map((t) => (
             <button
               key={t}
               type="button"
               role="tab"
               aria-selected={aba === t}
               className={css.aba}
-              onClick={() => setAba(t)}
+              onClick={() => {
+                setAba(t);
+                const primeira = lista.find((f) => f.tipo === t);
+                if (primeira) setEscolhida(primeira.id);
+              }}
             >
-              {t === "tela" ? "Telas" : "Janelas"}
-              <span className={css.contagem}>
-                {t === "tela" ? telas : janelas}
-              </span>
+              {NOME_DA_ABA[t]}
+              <span className={css.contagem}>{conta[t]}</span>
             </button>
           ))}
         </div>
@@ -138,6 +177,21 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
         {fontes === "carregando" ? (
           <div className={css.vazio}>
             <EstadoVazio compacto titulo="Procurando telas e janelas…" />
+          </div>
+        ) : aba === "aba" ? (
+          /*
+            ⚠ **A aba EXISTE e está vazia, com o motivo escrito.** A referência
+            a tem, e escondê-la seria divergir dela em silêncio. Mas o
+            `desktopCapturer` enumera `screen` e `window` do SISTEMA — aba de
+            navegador não é fonte que a casca alcance. Dizer isso, e apontar a
+            saída, é melhor que sumir com a aba ou mostrar lista falsa.
+          */
+          <div className={css.vazio}>
+            <EstadoVazio
+              compacto
+              titulo="A casca não enumera abas"
+              detalhe="O sistema entrega telas e janelas. Para mostrar uma aba, compartilhe a janela do navegador."
+            />
           </div>
         ) : daAba.length === 0 ? (
           <div className={css.vazio}>
@@ -148,28 +202,32 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
             />
           </div>
         ) : (
-          <div
-            className={css.grade}
-            role="radiogroup"
-            aria-label="O que transmitir"
-          >
+          <div className={css.grade}>
             {daAba.map((f) => (
               <button
                 key={f.id}
                 type="button"
-                role="radio"
-                aria-checked={escolhida === f.id}
+                aria-pressed={escolhida === f.id}
                 className={css.fonte}
                 onClick={() => setEscolhida(f.id)}
               >
-                {/* `alt=""`: o nome está no rótulo logo abaixo, e repeti-lo
-                    faria o leitor de tela anunciar duas vezes. */}
-                <img className={css.miniatura} src={f.miniatura} alt="" />
-                <span className={css.rotulo}>
-                  {f.icone !== undefined ? (
-                    <img className={css.icone} src={f.icone} alt="" />
+                <span className={css.quadro}>
+                  {/* `alt=""`: o nome está no rótulo logo abaixo, e repeti-lo
+                      faria o leitor de tela anunciar duas vezes. */}
+                  <img className={css.miniatura} src={f.miniatura} alt="" />
+                  {escolhida === f.id ? (
+                    <span className={css.selo} aria-hidden>
+                      <Check size={11} weight="bold" />
+                    </span>
                   ) : null}
+                </span>
+                <span className={css.textos}>
                   <span className={css.nome}>{f.nome}</span>
+                  {/* Segunda linha só quando há o que dizer — ver `meta` no
+                      contrato: janela não tem dimensão conhecida. */}
+                  {f.meta !== undefined ? (
+                    <span className={css.meta}>{f.meta}</span>
+                  ) : null}
                 </span>
               </button>
             ))}
@@ -177,50 +235,59 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
         )}
 
         <div className={css.opcoes}>
-          <div className={css.linha}>
-            <span className={css.rotuloDaLinha}>Áudio</span>
+          <div className={css.audio}>
+            <span className={css.audioTexto}>
+              <SpeakerHigh size={16} className={css.glifo} aria-hidden />
+              <span>
+                <span className={css.audioTitulo}>
+                  Compartilhar áudio da fonte
+                </span>
+                {/*
+                  ⚠ A dica muda com a ABA, e não é enfeite: o loopback pega o
+                  som do SISTEMA, não o da janela escolhida. Quem compartilha
+                  uma janela achando que só o som dela vai junto transmite a
+                  chamada inteira de volta.
+                */}
+                <span className={css.audioDica}>
+                  {aba === "tela"
+                    ? "Captura o áudio do sistema — pode incluir notificações"
+                    : "O som capturado é o do sistema inteiro, não só o desta janela"}
+                </span>
+              </span>
+            </span>
             <Interruptor
               ligado={audio}
               rotulo="Compartilhar áudio da fonte"
               aoAlternar={setAudio}
             />
-            <span className={css.dicaDeAudio}>
-              {/*
-                ⚠ A dica muda com a ABA, e não é enfeite: o áudio de loopback
-                pega o som do SISTEMA, não o da janela escolhida. Quem
-                compartilha uma janela achando que só o som dela vai junto
-                transmite a chamada inteira de volta.
-              */}
-              {aba === "tela"
-                ? "Envia o som do sistema junto com a imagem."
-                : "O som capturado é o do sistema inteiro, não só o desta janela."}
-            </span>
           </div>
 
-          <div className={css.linha}>
-            <span className={css.rotuloDaLinha}>Resolução</span>
-            {/* O rótulo visível é a sobrancelha à esquerda; o `rotulo` aqui
-                nomeia o grupo para quem ouve a tela. */}
-            <Segmentado
-              rotulo="Resolução"
-              valor={resolucao}
-              opcoes={RESOLUCOES.map((r) => ({ id: r, rotulo: r }))}
-              aoEscolher={setResolucao}
-            />
-          </div>
-
-          <div className={css.linha}>
-            <span className={css.rotuloDaLinha}>Quadros</span>
-            <Segmentado
-              rotulo="Taxa de quadros"
-              valor={String(taxa)}
-              opcoes={TAXAS.map((t) => ({
-                id: String(t),
-                rotulo: String(t),
-              }))}
-              aoEscolher={(id) => setTaxa(Number(id) as Taxa)}
-            />
-            <span className={css.troca}>{trocaDe(resolucao, taxa)}</span>
+          <div className={css.duas}>
+            <div>
+              <div className={css.sobrancelhaDoCampo}>Resolução</div>
+              <div className={css.estica}>
+                <Segmentado
+                  rotulo="Resolução"
+                  valor={resolucao}
+                  opcoes={RESOLUCOES.map((r) => ({ id: r, rotulo: r }))}
+                  aoEscolher={setResolucao}
+                />
+              </div>
+            </div>
+            <div>
+              <div className={css.sobrancelhaDoCampo}>Taxa de quadros</div>
+              <div className={css.estica}>
+                <Segmentado
+                  rotulo="Taxa de quadros"
+                  valor={String(taxa)}
+                  opcoes={TAXAS.map((t) => ({
+                    id: String(t),
+                    rotulo: String(t),
+                  }))}
+                  aoEscolher={(id) => setTaxa(Number(id) as Taxa)}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </DialogContent>

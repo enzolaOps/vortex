@@ -24,6 +24,16 @@ export type FonteDeTela = {
   readonly id: string;
   readonly nome: string;
   readonly tipo: "tela" | "janela";
+  /**
+   * A segunda linha do cartão — "ultrawide principal", "3440×1440".
+   *
+   * ⚠ **Só as TELAS têm.** `desktopCapturer` não devolve o tamanho da fonte; o
+   * das telas sai de `screen.getAllDisplays()`, casado por `display_id`. Para
+   * janela não há de onde tirar, e a referência mostra "janela · 1728×1080"
+   * com dado de fixture. Inventar a dimensão de uma janela seria a mesma
+   * família do "Conectado · 42 ms" que a faixa de voz recusou.
+   */
+  readonly meta: string | undefined;
   /** Miniatura ao vivo, em data URL. */
   readonly miniatura: string;
   /** Ícone do aplicativo, só nas janelas. */

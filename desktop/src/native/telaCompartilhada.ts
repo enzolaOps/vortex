@@ -1,4 +1,4 @@
-import { desktopCapturer, ipcMain, session } from "electron";
+import { desktopCapturer, ipcMain, screen, session } from "electron";
 
 /**
  * O seletor de tela do Vortex, no processo main.
@@ -37,6 +37,8 @@ export type FonteDeTela = {
   readonly nome: string;
   /** `tela` para monitor inteiro, `janela` para uma janela de aplicativo. */
   readonly tipo: "tela" | "janela";
+  /** A segunda linha do cartão. Só as telas têm — ver o contrato do cliente. */
+  readonly meta: string | undefined;
   /** Miniatura ao vivo, em data URL. */
   readonly miniatura: string;
   /** Ícone do aplicativo, só nas janelas. */
@@ -85,9 +87,26 @@ export function registrarSeletorDeTela(): void {
       fetchWindowIcons: true,
     });
 
+    /*
+      As dimensões reais das TELAS, casadas por `display_id`.
+
+      ⚠ `desktopCapturer` não devolve tamanho de fonte nenhuma; quem sabe o das
+      telas é o módulo `screen`. Janela fica sem — não há de onde tirar, e
+      inventar seria dado falso num painel onde a pessoa decide o que mostrar.
+    */
+    const tamanhos = new Map(
+      screen.getAllDisplays().map((d) => [
+        String(d.id),
+        `${String(Math.round(d.size.width * d.scaleFactor))}×${String(
+          Math.round(d.size.height * d.scaleFactor),
+        )}`,
+      ]),
+    );
+
     return fontes.map((f) => ({
       id: f.id,
       nome: f.name,
+      meta: tamanhos.get(f.display_id),
       /*
         O prefixo do ID é o que o Electron garante — `screen:…` e `window:…`.
         `f.display_id` só existe em tela e nem sempre, então testá-lo daria
