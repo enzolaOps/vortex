@@ -12,7 +12,17 @@
 /** Estado de envio. Vive no cliente; o protocolo não tem esse conceito. */
 import type { Enquete } from "../store/enquetes";
 
-export type SendState = "sent" | "pending" | "failed";
+/**
+ * ⚠ **`subindo` é ANTES de `pending`, e os dois existem porque a espera é de
+ * natureza diferente.** `pending` é "o servidor ainda não confirmou" — uma
+ * ida e volta, sem nada para mostrar. `subindo` é "o arquivo está saindo
+ * daqui": tem duração observável, tem fração, e tem cancelamento.
+ *
+ * Colapsá-los daria uma linha que diz "enviando" por trinta segundos sem
+ * dizer quanto falta, que é a mesma queixa que a faixa de voz resolveu ao
+ * parar de inventar milissegundos.
+ */
+export type SendState = "subindo" | "sent" | "pending" | "failed";
 
 /**
  * Teto de caracteres de uma mensagem.

@@ -57,6 +57,7 @@ import type {
   SistemaSnapshot,
 } from "../sdk/domain";
 import { descartarPendente, manterNaFila, reenviar } from "../sdk/adapter";
+import { CartaoDeUpload } from "./CartaoDeUpload";
 import {
   alternarFixada,
   alternarReacao,
@@ -468,9 +469,15 @@ function EditorDaLinha({
  * linha. Aqui só as pendentes assinam, e mensagem pendente é caso raro por
  * construção: ela vira `sent` assim que o servidor responde.
  *
- * A barra de progresso do upload que o design desenha NÃO está aqui, e a
- * ausência é honesta: não há upload no app (pendência `anexar`), então uma
- * barra seria animação sobre um número inventado.
+ * ⚠ **A barra de progresso do design ENTROU, e a ausência dela era honesta
+ * até existir upload.** O comentário aqui dizia que uma barra seria "animação
+ * sobre um número inventado" — verdade enquanto `anexar` era pendência. Agora
+ * o número vem do `XMLHttpRequest`, que é a razão de `sdk/anexos.ts` não usar
+ * `fetch`.
+ *
+ * Ela vive em `CartaoDeUpload`, componente próprio, e não inline: o progresso
+ * dispara dezenas de vezes por segundo, e assiná-lo daqui acordaria a linha
+ * inteira a cada quadro. É a mesma separação que a conexão já tem logo abaixo.
  */
 function EstadoDoEnvio({ message }: { message: MessageSnapshot }) {
   const conexao = useSyncExternalStore(assinarConexao, lerConexao);
@@ -484,7 +491,8 @@ function EstadoDoEnvio({ message }: { message: MessageSnapshot }) {
     confirmadaNaFila(message.id),
   );
   const falhou = message.sendState === "failed";
-  const naFila = !falhou && conexao !== "conectado";
+  const subindo = message.sendState === "subindo";
+  const naFila = !falhou && !subindo && conexao !== "conectado";
 
   return (
     <p
@@ -500,7 +508,15 @@ function EstadoDoEnvio({ message }: { message: MessageSnapshot }) {
         parado sem movimento nenhum lê como travado.
       */}
       {naFila ? <span className={css.pontoDeFila} aria-hidden /> : null}
-      {falhou ? "falha no envio" : naFila ? "na fila · offline" : "enviando…"}
+      {falhou
+        ? "falha no envio"
+        : naFila
+          ? "na fila · offline"
+          : "enviando…"}
+
+      {/* O cartão só existe durante o upload, e some sozinho quando o estado
+          vira `pending` — dali em diante não há mais fração a mostrar. */}
+      {subindo ? <CartaoDeUpload messageId={message.id} /> : null}
 
       {/*
         Duas escolhas explícitas na fila, do design: *"a mensagem digitada

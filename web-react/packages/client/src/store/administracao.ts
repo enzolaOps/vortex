@@ -46,7 +46,7 @@ export type Alvo =
     um campo de nome. Dois alvos e um componente, como o resto desta união.
   */
   | { readonly tipo: "criarPasta"; readonly serverId: string }
-  | { readonly tipo: "renomearPasta"; readonly pastaId: string; readonly nome: string }
+  | { readonly tipo: "editarPasta"; readonly pastaId: string }
   | { readonly tipo: "convite"; readonly channelId: string }
   | { readonly tipo: "apagarMensagem"; readonly messageId: string }
   /*
@@ -152,13 +152,14 @@ const MODAL_DE: Record<
   | "grupo"
   | "privacidadeDoServidor"
   | "apelido"
+  | "pasta"
 > = {
   criarCanal: "canal",
   editarCanal: "canal",
   criarCategoria: "canal",
   renomearCategoria: "canal",
   criarPasta: "canal",
-  renomearPasta: "canal",
+  editarPasta: "pasta",
   apagarCanal: "exclusao",
   apagarMensagem: "exclusao",
   verImagem: "imagem",

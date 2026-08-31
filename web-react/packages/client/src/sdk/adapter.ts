@@ -40,6 +40,15 @@ import { count } from "../dev/stats";
 import { createEntityStore } from "../store/entities";
 import { createEphemeralStore } from "../store/ephemeral";
 import { client, conectado } from "./client";
+import { subirAnexo } from "./anexos";
+import { formatarBytes } from "../lib/bytes";
+import { toast } from "../components/ui/toastStore";
+import {
+  criarMedidorDeTaxa,
+  esquecerUpload,
+  progressoDeUpload,
+  registrarCancelamento,
+} from "../store/uploads";
 import { lerEnquete } from "../store/enquetes";
 import { semearStatusDoServidor } from "./perfil";
 import { aguardar, desistir, reconciliar } from "./nonce";
@@ -420,14 +429,32 @@ assinarConexao(() => {
  */
 function reenviarPendente(id: string): void {
   esquecerDaFila(id);
-  setTimeout(() => {
-    if (simulacao.falhar) {
-      desistir(id);
-      marcarEnvio(id, "failed");
-    } else {
-      marcarEnvio(id, "sent");
-    }
-  }, simulacao.latenciaMs ?? 600);
+
+  if (simulacao.ativa) {
+    setTimeout(() => {
+      if (simulacao.falhar) {
+        desistir(id);
+        marcarEnvio(id, "failed");
+      } else {
+        marcarEnvio(id, "sent");
+      }
+    }, simulacao.latenciaMs ?? 600);
+    return;
+  }
+
+  /*
+    ⚠ **Isto também não reenviava nada, e é a terceira ocorrência da mesma
+    família no caminho de envio** — depois de `enviarMensagem`, que nunca
+    chamava o servidor, e de `reenviar`, logo abaixo. O corpo inteiro era o
+    ramo de simulação acima, sem guarda: ao voltar a conexão, toda pendente
+    virava `sent` depois de 600ms sem sair daqui.
+
+    O comentário de `enviarMensagem` afirmava o contrário com todas as letras
+    — *"ao voltar a conexão, toda pendente é reenviada. É o que faz 'Enviar
+    quando voltar' ser verdade"*. Era a promessa mais visvel do modo offline,
+    e o único jeito de descobrir era ficar sem rede e conferir no servidor.
+  */
+  despacharEnvio(id);
 }
 
 /**
@@ -449,17 +476,76 @@ function reenviarPendente(id: string): void {
 export function reenviar(id: string): void {
   if (estadoDeEnvioDe(id) !== "failed") return;
 
+  /*
+    O arnês SUBSTITUI a rede, como no envio. Ver `SimulacaoDeEnvio`.
+  */
+  if (simulacao.ativa) {
+    marcarEnvio(id, "pending");
+    setTimeout(() => {
+      if (simulacao.falhar) {
+        // Desiste do nonce: sem isto o mapa cresce para sempre numa sessão de
+        // 8h com rede instável, que é o erro nº 5 do briefing.
+        desistir(id);
+        marcarEnvio(id, "failed");
+      } else {
+        marcarEnvio(id, "sent");
+      }
+    }, simulacao.latenciaMs ?? 600);
+    return;
+  }
+
+  /*
+    ⚠ **Isto NÃO reenviava nada, e o defeito é irmão do `enviarMensagem` que
+    nunca chamava o servidor.** O corpo inteiro era o ramo de simulação acima,
+    sem guarda: apertar "tentar de novo" esperava 600ms e marcava `sent`. A
+    linha ficava verde, a mensagem nunca saía, e nada em lugar nenhum
+    acusava — a interface mentindo sobre a única coisa que ela existe para
+    dizer.
+
+    Só apareceu porque o upload precisa deste caminho: sem ele, uma falha de
+    anexo seria irrecuperável ou, pior, "reenviaria" o texto sozinho.
+  */
+  /*
+    O nonce é registrado de novo: `desistir` o soltou quando a falha veio.
+    Em `reenviarPendente` não é preciso — lá a mensagem nunca saiu, e o nonce
+    original continua válido.
+  */
+  const mensagem = client.messages.get(idDoSdk(id));
+  if (mensagem === undefined) return;
+  aguardar(id, id, mensagem.channelId);
+
+  despacharEnvio(id);
+}
+
+/**
+ * Manda uma mensagem que JÁ EXISTE na lista.
+ *
+ * Um só lugar para os dois caminhos que chegam aqui — "falhou, tenta de novo"
+ * e "estava esperando a rede voltar". Eles diferem no guarda de entrada e no
+ * nonce, e não no despacho; separá-los faria o próximo caso (anexo) ser
+ * lembrado num e esquecido no outro.
+ *
+ * ⚠ **Com arquivo, o caminho é o do upload.** Postar o texto sozinho faria a
+ * linha voltar verde sem o anexo — exatamente o que `arquivosPendentes`
+ * existe para impedir.
+ */
+function despacharEnvio(id: string): void {
+  const mensagem = client.messages.get(idDoSdk(id));
+  if (mensagem === undefined) return;
+
+  const channelId = mensagem.channelId;
+  const texto = mensagem.content ?? "";
+  const respondendoA = mensagem.replyIds?.[0];
+  const arquivos = arquivosPendentes.get(id);
+
+  if (arquivos !== undefined && arquivos.length > 0) {
+    marcarEnvio(id, "subindo");
+    void subirEEnviar(id, channelId, texto, respondendoA);
+    return;
+  }
+
   marcarEnvio(id, "pending");
-  setTimeout(() => {
-    if (simulacao.falhar) {
-      // Desiste do nonce: sem isto o mapa cresce para sempre numa sessão de
-      // 8h com rede instável, que é o erro nº 5 do briefing.
-      desistir(id);
-      marcarEnvio(id, "failed");
-    } else {
-      marcarEnvio(id, "sent");
-    }
-  }, simulacao.latenciaMs ?? 600);
+  void postar(id, channelId, texto, respondendoA, undefined);
 }
 
 /**
@@ -976,6 +1062,35 @@ export function startAdapter() {
       só se preencheria na primeira mensagem nova de cada conversa — que é o
       mesmo defeito que a semeadura de não-lidas veio consertar.
     */
+    /*
+      ⚠ **Os SERVIDORES, e a falta disto deixava o rail vazio para sempre.**
+
+      `serverIds` só era preenchido pelo evento `serverCreate` — que existe
+      para o servidor criado ou entrado COM O APP ABERTO. Quem já era membro de
+      alguma coisa ao conectar não via nada: o `Ready` traz os servidores, os
+      canais e os membros, e ninguém os lia.
+
+      Medido contra a instância local: `Ready` chegava com
+      `servers: [{Time Vortex, 1 canal}]` e o rail dizia "sem servidores", até
+      depois de recarregar. A coluna de canais dizia "este servidor não tem
+      canais" com o canal existindo no backend.
+
+      ⚠ **Nunca apareceu porque o ARNÊS semeia `serverIds` direto.** É a mesma
+      família de "o arnês é mais pobre que o protocolo", com o sinal trocado:
+      aqui ele era mais RICO, e por isso escondia a ausência do caminho real.
+
+      Os canais vão junto e não por `channelCreate` pela mesma razão — o
+      payload de abertura já os tem.
+    */
+    const doProtocolo = client.servers.toList();
+    if (doProtocolo.length > 0) {
+      serverIds.set(RAIZ, doProtocolo.map((s) => s.id));
+      for (const servidor of doProtocolo) {
+        canaisPorServidor.set(servidor.id, [...servidor.channelIds]);
+        publicarCanais(servidor.id);
+      }
+    }
+
     publicarConversas();
     publicarRelacoes();
 
@@ -1303,19 +1418,26 @@ export function enviarMensagem(
    */
   respondendoA?: string,
   /**
-   * IDs de anexo já subidos ao servidor de mídia.
+   * Os arquivos a subir junto.
    *
-   * IDs e não `File`: subir é uma chamada de rede com barra de progresso e
-   * cancelamento, e ela pertence a quem tem a tela — não a um handler de tecla
-   * síncrono. Ver `sdk/anexos.ts`.
+   * ⚠ **`File` e não ID de anexo, e o comentário anterior defendia o
+   * contrário.** Ele dizia que subir "pertence a quem tem a tela", e por isso
+   * o parâmetro seriam IDs já subidos. A régua caiu quando o design foi lido:
+   * o progresso não mora no composer, mora na LINHA da mensagem otimista
+   * (`enviando… · densidades.png · 62% · 178 KB/s · Cancelar`).
+   *
+   * Com IDs, a tela teria de subir ANTES de existir uma linha — ou seja,
+   * inventar uma segunda superfície de progresso para depois criar a linha
+   * que o design já usa para isso. Recebendo `File`, o envio inteiro é um
+   * gesto só: a linha nasce, ela mostra o upload, e o POST sai no fim.
    */
-  anexos?: readonly string[],
+  arquivos?: readonly File[],
 ): string | undefined {
   const texto = conteudo.trim();
   /* Mensagem só de anexo é legítima, e é o caso mais comum de mandar uma
      imagem: sem esta condição, arrastar um arquivo e apertar Enter não fazia
      nada. */
-  if (!texto && (anexos === undefined || anexos.length === 0)) return undefined;
+  if (!texto && (arquivos === undefined || arquivos.length === 0)) return undefined;
 
   if (!usuarioLocal || !client.channels.get(channelId)) {
     if (import.meta.env.DEV) {
@@ -1345,9 +1467,32 @@ export function enviarMensagem(
   */
   aguardar(id, id, channelId);
 
+  const temArquivo = arquivos !== undefined && arquivos.length > 0;
+  const temRede = lerConexao() === "conectado";
+
+  /*
+    Os arquivos entram no registro ANTES de qualquer saída, e isto não é
+    ordem por gosto.
+
+    ⚠ Sem rede, `enviarMensagem` devolve o ID mais abaixo e nunca chega ao
+    despacho. Guardando só lá, uma mensagem com anexo composta offline
+    perderia os arquivos: ao voltar a conexão, a fila reenviaria o TEXTO
+    sozinho, e a linha ficaria verde sem o anexo.
+  */
+  if (temArquivo) arquivosPendentes.set(id, arquivos);
+
   // Pendente ANTES de criar: o `messageCreate` já vai construir o snapshot, e
   // marcar depois faria a linha nascer "enviada" e piscar para pendente.
-  estadosDeEnvio.set(id, "pending");
+  //
+  // Com arquivo E rede o estado inicial é `subindo`, pelo mesmo motivo: a
+  // linha tem de nascer mostrando o upload, não nascer "pendente" e trocar no
+  // quadro seguinte.
+  //
+  // ⚠ **Sem rede é `pending`, mesmo com arquivo.** `subindo` prenderia a
+  // linha: quem reenvia ao reconectar varre as `pending`, então uma mensagem
+  // parada em `subindo` nunca seria retomada — e a linha diria "enviando…"
+  // para sempre, com upload nenhum acontecendo.
+  estadosDeEnvio.set(id, temArquivo && temRede ? "subindo" : "pending");
 
   client.messages.getOrCreate(
     id,
@@ -1385,7 +1530,7 @@ export function enviarMensagem(
     fontes, o rótulo e o comportamento poderiam discordar: a linha dizendo
     "está indo" com a mensagem parada, ou o contrário. Com uma, não podem.
   */
-  if (lerConexao() !== "conectado") return id;
+  if (!temRede) return id;
 
   /*
     O arnês SUBSTITUI o POST, não o acompanha: simular e enviar ao mesmo tempo
@@ -1405,9 +1550,140 @@ export function enviarMensagem(
     return id;
   }
 
-  void postar(id, channelId, texto, respondendoA, anexos);
+  if (temArquivo) {
+    void subirEEnviar(id, channelId, texto, respondendoA);
+    return id;
+  }
+
+  void postar(id, channelId, texto, respondendoA, undefined);
 
   return id;
+}
+
+/* ------------------------------------------------------------- upload */
+
+/**
+ * Os arquivos de cada envio em andamento ou falho.
+ *
+ * ⚠ **Guardados porque "tentar de novo" precisa deles.** Sem isto, reenviar
+ * uma mensagem cujo upload falhou mandaria o TEXTO sozinho — a linha voltaria
+ * verde e o arquivo teria sumido, sem erro nenhum. É a família de defeito que
+ * este projeto chama de degradação silenciosa.
+ *
+ * Some nos três desfechos, junto com o resto (`largarEnvio`).
+ */
+const arquivosPendentes = new Map<string, readonly File[]>();
+
+/**
+ * Sobe os anexos e só então posta.
+ *
+ * A ordem é imposta pelo protocolo: `sendMessage` leva IDs de anexo, então o
+ * arquivo tem de estar no servidor de mídia antes de a mensagem existir lá.
+ *
+ * ⚠ **Sequencial e não em paralelo, de propósito.** Três uploads simultâneos
+ * dividem a banda e as três barras andam devagar juntas; em série, a primeira
+ * termina cedo e o progresso é legível. O design mostra UM nome de arquivo por
+ * vez no cartão, o que é a mesma decisão dita de outro jeito.
+ */
+async function subirEEnviar(
+  id: string,
+  channelId: string,
+  texto: string,
+  respondendoA: string | undefined,
+): Promise<void> {
+  const arquivos = arquivosPendentes.get(id);
+  if (arquivos === undefined) return;
+
+  const controle = new AbortController();
+  registrarCancelamento(id, controle);
+
+  const total = arquivos.reduce((soma, a) => soma + a.size, 0);
+  const medir = criarMedidorDeTaxa();
+  const ids: string[] = [];
+  let concluidos = 0;
+
+  try {
+    for (const arquivo of arquivos) {
+      const base = concluidos;
+      const remoto = await subirAnexo(arquivo, "attachments", {
+        sinal: controle.signal,
+        aoProgredir: (fracao) => {
+          const bytes = base + fracao * arquivo.size;
+          const taxa = medir(bytes);
+          progressoDeUpload.set(id, {
+            nome: arquivo.name,
+            fracao: total > 0 ? bytes / total : 0,
+            taxaTexto:
+              taxa === undefined
+                ? undefined
+                : `${formatarBytes(Math.round(taxa)) ?? "?"}/s`,
+          });
+        },
+      });
+      ids.push(remoto);
+      concluidos += arquivo.size;
+    }
+  } catch (e) {
+    /*
+      Cancelar REMOVE a linha; falhar a mantém.
+
+      Quem cancelou já sabe o que aconteceu e não quer um destroço na
+      conversa. Quem falhou precisa da linha: é onde mora "tentar de novo", e
+      é o único lugar onde o texto digitado ainda existe.
+    */
+    if (controle.signal.aborted) {
+      largarEnvio(id);
+      descartarSubindo(id);
+      return;
+    }
+
+    largarEnvio(id);
+    desistir(id);
+    marcarEnvio(id, "failed");
+
+    /*
+      ⚠ **Toast AQUI, ao contrário de `postar`, e a diferença tem razão.** Lá
+      a regra é não avisar: a falha já está na linha, e uma queda de rede
+      viraria uma pilha de avisos sobre o mesmo fato.
+
+      Aqui a causa é quase sempre única e acionável — arquivo grande demais,
+      tipo não aceito —, e o teto vem do SERVIDOR. Sem a frase, a pessoa vê
+      "falha no envio" e tenta o mesmo arquivo de novo, para sempre.
+    */
+    toast({
+      tipo: "erro",
+      titulo: "Não deu para enviar o arquivo",
+      descricao: e instanceof Error ? e.message : "Tente de novo.",
+    });
+    return;
+  }
+
+  largarEnvio(id);
+  marcarEnvio(id, "pending");
+  await postar(id, channelId, texto, respondendoA, ids);
+}
+
+/** Larga o que o upload segurava. Nos três desfechos, senão vaza. */
+function largarEnvio(id: string): void {
+  esquecerUpload(id);
+  arquivosPendentes.delete(id);
+}
+
+/**
+ * Remove a linha de um upload cancelado.
+ *
+ * Irmã de `descartarPendente`, e separada dela porque aquela exige o estado
+ * `pending` — de propósito, para não apagar mensagem já enviada. Aqui o
+ * estado é `subindo`.
+ */
+function descartarSubindo(id: string): void {
+  estadosDeEnvio.delete(id);
+  esquecerDaFila(id);
+  desistir(id);
+  const sdkId = idDoSdk(id);
+  const channelId = client.messages.get(sdkId)?.channelId;
+  client.messages.delete(sdkId);
+  if (channelId !== undefined) publishNow(channelId);
 }
 
 /**
@@ -1597,6 +1873,39 @@ function republicarVoz(): void {
  * abertura, sobre dezenas de canais —, e manter um segundo mapa em dia a cada
  * `VoiceChannelJoin` custaria mais que a varredura.
  */
+/**
+ * Tira você da sala LOCALMENTE, depois de uma entrada que falhou.
+ *
+ * ⚠ **O defeito que isto conserta era visível e contraditório.** `joinCall`
+ * registra você no servidor ANTES de o LiveKit conectar; quando o `connect`
+ * lança, o `catch` limpa o store da chamada e mais nada. Medido em navegador:
+ * o toast "Não deu para entrar na chamada" na tela AO MESMO TEMPO que
+ * `sonda_anexo` listado dentro da sala, na coluna de canais. Só recarregar
+ * limpava.
+ *
+ * Mexe direto no `ReactiveMap` do SDK, que é o mesmo caminho por onde um
+ * `VoiceChannelLeave` entraria — a mesma decisão já tomada para reação
+ * otimista. Não há um segundo caminho a reconciliar: se o servidor ainda
+ * achar que você está lá, o próximo `Ready` traz a verdade de volta.
+ *
+ * ⚠ **NÃO conserta o que os OUTROS veem, e isso precisa ser dito.** O
+ * protocolo não tem rota de saída — sair é o socket cair, e o servidor
+ * descobrir. Se o `joinCall` chegou a persistir do outro lado, você segue
+ * fantasma na sala para todo mundo até sua conexão cair. O que dá para fazer
+ * aqui é parar de mentir para VOCÊ.
+ */
+export function sairDaSalaLocalmente(channelId: string): void {
+  if (usuarioLocal === undefined) return;
+  const canal = client.channels.get(channelId);
+  if (!canal?.voiceParticipants.delete(usuarioLocal)) return;
+  /*
+    `voiceParticipants` é reativo, mas a releitura guardada é o caminho que
+    `republicarVoz` já usa para o caso em que o sinal não acorda sozinho.
+    Chamar as duas custa uma varredura de uma sala.
+  */
+  releituraDeVoz.get(channelId)?.();
+}
+
 export function canalDeVozDe(userId: string): string | undefined {
   for (const canal of client.channels.values()) {
     if (canal.voiceParticipants.has(userId)) return canal.id;

@@ -2,7 +2,9 @@ import { useState, useSyncExternalStore } from "react";
 
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
-import { criarPasta, renomearPasta } from "../store/pastas";
+import { criarPasta } from "../store/pastas";
+import { Escolha } from "../components/ui/Escolha";
+import { CATEGORIA_PADRAO } from "../sdk/domain";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { Segmentado } from "../components/ui/Segmentado";
 import {
@@ -11,7 +13,7 @@ import {
   renomearCanal,
   renomearCategoria,
 } from "../sdk/servidores";
-import { assinarAlvo, lerAlvo } from "../store/administracao";
+import { administrar, assinarAlvo, lerAlvo } from "../store/administracao";
 import { useChannel, useCategorias } from "../store/hooks";
 import { selecionarCanal } from "../store/navegacao";
 import css from "./AdicionarServidor.module.css";
@@ -57,12 +59,6 @@ export function ModalDeCanal({ aoFechar }: { aoFechar: () => void }) {
           />
         ) : alvo?.tipo === "criarPasta" ? (
           <FormaDePasta aoFechar={aoFechar} servidorInicial={alvo.serverId} />
-        ) : alvo?.tipo === "renomearPasta" ? (
-          <FormaDePasta
-            aoFechar={aoFechar}
-            pastaId={alvo.pastaId}
-            nomeAtual={alvo.nome}
-          />
         ) : null}
       </DialogContent>
     </Dialog>
@@ -74,16 +70,17 @@ function titulo(tipo: string | undefined): string {
   if (tipo === "criarCategoria") return "Nova categoria";
   if (tipo === "renomearCategoria") return "Renomear categoria";
   if (tipo === "criarPasta") return "Nova pasta";
-  if (tipo === "renomearPasta") return "Renomear pasta";
   return "Novo canal";
 }
 
 /**
- * O nome de uma pasta do rail.
+ * O nome de uma pasta NOVA.
  *
- * Mesmo formulário para criar e renomear, como em categoria — e pela mesma
- * razão registrada lá: dois modais seriam dois formulários que precisam
- * concordar, e o primeiro a divergir seria o que ninguém abriu naquela semana.
+ * ⚠ **Ele fazia criar E renomear, e renomear saiu.** A regra de "um formulário
+ * para os dois" vale quando as duas telas são o mesmo campo — e deixou de
+ * valer: editar pasta agora é nome, cor, lista de servidores e a preferência
+ * de expansão (`EditorDePasta`). Criar continua sendo uma pergunta só, e é o
+ * que sobrou aqui.
  *
  * ⚠ **Não é assíncrono**, ao contrário dos irmãos: pasta é conceito de
  * CLIENTE e a escrita é local. Não há promessa a esperar nem falha de rede a
@@ -91,16 +88,12 @@ function titulo(tipo: string | undefined): string {
  */
 function FormaDePasta({
   aoFechar,
-  pastaId,
-  nomeAtual,
   servidorInicial,
 }: {
   aoFechar: () => void;
-  pastaId?: string;
-  nomeAtual?: string;
   servidorInicial?: string;
 }) {
-  const [nome, setNome] = useState(nomeAtual ?? "");
+  const [nome, setNome] = useState("");
   const limpo = nome.trim();
 
   return (
@@ -109,8 +102,7 @@ function FormaDePasta({
       onSubmit={(e) => {
         e.preventDefault();
         if (limpo.length === 0) return;
-        if (pastaId) renomearPasta(pastaId, limpo);
-        else criarPasta(limpo, servidorInicial ? [servidorInicial] : []);
+        criarPasta(limpo, servidorInicial ? [servidorInicial] : []);
         aoFechar();
       }}
     >
@@ -128,7 +120,7 @@ function FormaDePasta({
           Cancelar
         </Botao>
         <Botao variante="primario" type="submit" disabled={limpo.length === 0}>
-          {pastaId ? "Renomear" : "Criar pasta"}
+          Criar pasta
         </Botao>
       </div>
     </form>
@@ -150,8 +142,48 @@ function FormaDeCanal({
   const [voz, setVoz] = useState(vozInicial);
   const [enviando, setEnviando] = useState(false);
 
+  /*
+    ⚠ **Canal não nasce sem categoria — decisão de produto.** As categorias
+    REAIS do servidor, sem a cesta dos não categorizados: `CATEGORIA_PADRAO` é
+    o balde que o protocolo usa para o que está fora de grupo, e oferecê-lo
+    aqui seria oferecer justamente o que a decisão proíbe.
+  */
+  const categorias = useCategorias(serverId).filter(
+    (c) => c.id !== CATEGORIA_PADRAO,
+  );
+  const [escolhida, setEscolhida] = useState(
+    () => categoriaId ?? categorias[0]?.id ?? "",
+  );
+
   const limpo = nome.trim();
-  const podeEnviar = limpo.length > 0 && !enviando;
+  const podeEnviar = limpo.length > 0 && escolhida !== "" && !enviando;
+
+  /*
+    Servidor sem categoria nenhuma: não há onde pôr o canal, e a tela diz isso
+    em vez de deixar o botão morto sem explicação. Acontece de verdade num
+    servidor criado por outro cliente.
+  */
+  if (categorias.length === 0) {
+    return (
+      <div className={css.corpo}>
+        <p className={css.aviso}>
+          Este servidor não tem categorias, e um canal precisa de uma. Crie a
+          primeira e depois volte aqui.
+        </p>
+        <div className={css.acoes}>
+          <Botao variante="neutro" onClick={aoFechar}>
+            Cancelar
+          </Botao>
+          <Botao
+            variante="primario"
+            onClick={() => administrar({ tipo: "criarCategoria", serverId })}
+          >
+            Criar categoria
+          </Botao>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form
@@ -160,7 +192,7 @@ function FormaDeCanal({
         e.preventDefault();
         if (!podeEnviar) return;
         setEnviando(true);
-        void criarCanal(serverId, limpo, voz)
+        void criarCanal(serverId, limpo, voz, escolhida)
           .then((id) => {
             if (!id) return;
             // Abrir o canal recém-criado é a continuação óbvia da ação; criar e
@@ -176,7 +208,7 @@ function FormaDeCanal({
         /* O protocolo aceita espaço e maiúscula; a coluna mostra `#nome`. Não
            normalizo aqui: inventar uma regra que o servidor não tem faria o
            nome digitado e o nome salvo divergirem. */
-        dica={categoriaId ? "Ele nasce nesta categoria." : undefined}
+        dica={undefined}
         autoComplete="off"
         autoFocus
         required
@@ -191,6 +223,22 @@ function FormaDeCanal({
         desabilitado={enviando}
         opcoes={TIPOS.map((t) => ({ id: t.id, rotulo: t.rotulo }))}
         aoEscolher={(id) => setVoz(id === "voz")}
+      />
+
+      {/*
+        A categoria é ESCOLHÍVEL mesmo quando veio pré-selecionada do menu:
+        "Novo canal aqui" acerta o caso comum, e quem mudou de ideia no meio do
+        formulário não deveria ter que fechar e reabrir noutro lugar.
+      */}
+      <Escolha
+        rotulo="Categoria"
+        valor={escolhida}
+        disabled={enviando}
+        opcoes={categorias.map((c) => c.id)}
+        aoEscolher={setEscolhida}
+        rotuloDe={(id) =>
+          categorias.find((c) => c.id === id)?.titulo ?? "Sem nome"
+        }
       />
 
       <Botao variante="primario" type="submit" disabled={!podeEnviar}>

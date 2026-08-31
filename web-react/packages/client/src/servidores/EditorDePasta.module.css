@@ -1,0 +1,175 @@
+/* ============================================================
+   Editor de pasta — a estrutura da referência
+   ------------------------------------------------------------
+   420 de largura, nome, seis cores, lista de servidores com
+   "Remover", o caminho para acrescentar, e "sempre expandida".
+   ============================================================ */
+
+.painel {
+  inline-size: 420px;
+  max-inline-size: 100%;
+}
+
+.sobrancelha {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  color: var(--vx-text-3);
+}
+
+/* ------------------------------------------------------- cores */
+
+.cores {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vx-space-08);
+}
+
+/*
+  O anel de escolhido é DUPLO — um de superfície e um de texto por fora.
+
+  Uma borda simples sumiria contra a própria cor em pelo menos dois dos seis
+  degraus. O anel interno abre um vão da cor do painel e o externo marca; o
+  par funciona sobre qualquer fundo, que é o ponto de uma paleta.
+*/
+.cor {
+  flex: none;
+  inline-size: 30px;
+  block-size: 30px;
+  border: 0;
+  border-radius: var(--vx-radius-07);
+  cursor: pointer;
+  transition: box-shadow var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.cor[aria-checked="true"] {
+  box-shadow:
+    0 0 0 2px var(--vx-surface-4),
+    0 0 0 4px var(--vx-text-1);
+}
+
+.cor:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.hex {
+  display: flex;
+  align-items: center;
+  block-size: 30px;
+  padding-inline: var(--vx-space-10);
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-2);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-sm);
+}
+
+/* --------------------------------------------------- servidores */
+
+.lista {
+  display: grid;
+  gap: var(--vx-space-02);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+  padding: var(--vx-space-06) var(--vx-space-08);
+  border-radius: var(--vx-radius-06);
+}
+
+.item:hover {
+  background: var(--vx-state-hover);
+}
+
+.ladrilho {
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: 28px;
+  block-size: 28px;
+  border-radius: var(--vx-radius-08);
+  font-size: var(--vx-size-xs);
+  font-weight: 700;
+  /* Ligadura em iniciais como "fi" viraria glifo único. */
+  font-variant-ligatures: none;
+}
+
+.itemNome {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-md);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remover {
+  flex: none;
+  border: 0;
+  background: none;
+  color: var(--vx-danger-text);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.remover:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+  border-radius: var(--vx-radius-04);
+}
+
+/*
+  O caminho para acrescentar.
+
+  ⚠ Tracejado como a referência, mas com TEXTO em vez de alvo de soltura: o
+  arraste do rail não existe aqui, e uma caixa que convida a soltar sem aceitar
+  soltura é a definição do defeito que o registro de pendências combate. Ela
+  aponta a ação que existe.
+*/
+.alvo {
+  margin: 0;
+  padding: var(--vx-space-12);
+  border: 1px dashed var(--vx-hairline-16);
+  border-radius: var(--vx-radius-08);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  text-align: center;
+  text-wrap: pretty;
+}
+
+.alvo strong {
+  color: var(--vx-text-2);
+  font-weight: 600;
+}
+
+/* ---------------------------------------------- sempre expandida */
+
+.linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-16);
+}
+
+.linhaTitulo {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.linhaDetalhe {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+  text-wrap: pretty;
+}
+
+.acoes {
+  display: flex;
+  gap: var(--vx-space-08);
+}

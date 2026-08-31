@@ -43,8 +43,15 @@ vi.mock("./client", () => ({
   conectado: () => true,
 }));
 
+/*
+  ⚠ `startAdapter` faz parte do dublê porque `instalar` passou a chamá-lo — e
+  ele é o que LIGA a ponte do socket ao store. Sem a entrada aqui, o módulo
+  dublado devolve `undefined`, a chamada lança, e os quatro testes de login
+  falham num ponto que nada tem a ver com login.
+*/
 vi.mock("./adapter", () => ({
   definirUsuarioLocal: vi.fn(),
+  startAdapter: vi.fn(),
 }));
 
 const { entrar, responderMfa, restaurarSessao, cancelarMfa } = await import(

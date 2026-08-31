@@ -25,7 +25,45 @@ export type Pasta = {
   /** IDs de servidor, na ordem em que entraram. */
   readonly servidores: readonly string[];
   readonly colapsada: boolean;
+  /**
+   * A cor da pasta, em hex.
+   *
+   * ⚠ **Ela tinge só o FUNDO do agrupamento (a 10%) e o anel de soltura —
+   * nunca os ícones dos servidores.** É instrução da referência, e a razão é
+   * a mesma da disciplina de acento: cada servidor tem gradiente próprio, que
+   * é como se identifica um servidor de relance. Tingir os ícones apagaria
+   * essa identidade para marcar a caixa que os contém.
+   */
+  readonly cor: string;
+  /**
+   * Nunca colapsar sozinha ao trocar de servidor.
+   *
+   * `colapsada` é o estado AGORA; esta é a preferência sobre ele. Sem as duas
+   * separadas, "sempre expandida" seria só um colapso desfeito que o próximo
+   * clique refaz.
+   */
+  readonly sempreExpandida: boolean;
 };
+
+/**
+ * As cores oferecidas, e são as da referência.
+ *
+ * Lista fechada em vez de seletor livre: a cor tinge um fundo a 10% atrás de
+ * ícones coloridos, e um hex qualquer pode sumir ou brigar com eles. Seis
+ * degraus cobrem a necessidade — distinguir três ou quatro pastas — sem abrir
+ * a porta para uma escolha que não funciona.
+ */
+export const CORES_DE_PASTA = [
+  "#35C2CC",
+  "#46C98A",
+  "#E2B15C",
+  "#E8596B",
+  "#8B7BE8",
+  "#6E7783",
+] as const;
+
+/* O primeiro degrau: é o acento do produto, e o default óbvio. */
+const COR_PADRAO = CORES_DE_PASTA[0];
 
 type Ouvinte = () => void;
 
@@ -62,6 +100,13 @@ function ler(): readonly Pasta[] {
           nome: o.nome,
           servidores,
           colapsada: o.colapsada === true,
+          /* Cor desconhecida cai no padrão em vez de ser aceita: um hex
+             arbitrário vindo do armazenamento é exatamente o que a lista
+             fechada existe para impedir. */
+          cor: CORES_DE_PASTA.some((c) => c === o.cor)
+            ? (o.cor as string)
+            : COR_PADRAO,
+          sempreExpandida: o.sempreExpandida === true,
         },
       ];
     });
@@ -105,7 +150,14 @@ export function criarPasta(nome: string, servidores: readonly string[]): void {
   const id = `p${contador}-${servidores[0] ?? "vazia"}`;
   gravar([
     ...pastas,
-    { id, nome: nome.trim() || "Pasta", servidores: [...servidores], colapsada: false },
+    {
+      id,
+      nome: nome.trim() || "Pasta",
+      servidores: [...servidores],
+      colapsada: false,
+      cor: COR_PADRAO,
+      sempreExpandida: false,
+    },
   ]);
 }
 
@@ -126,9 +178,45 @@ export function removerPasta(id: string): void {
   gravar(pastas.filter((p) => p.id !== id));
 }
 
+/**
+ * Grava nome, cor e a preferência de expansão de uma vez.
+ *
+ * Um só `editarPasta` em vez de três setters: o editor salva tudo junto ao
+ * fechar, e três gravações seguidas dariam três escritas no `localStorage` e
+ * três publicações para o rail redesenhar.
+ */
+export function editarPasta(
+  id: string,
+  dados: {
+    readonly nome?: string;
+    readonly cor?: string;
+    readonly sempreExpandida?: boolean;
+  },
+): void {
+  gravar(
+    pastas.map((p) =>
+      p.id === id
+        ? {
+            ...p,
+            nome: dados.nome?.trim() || p.nome,
+            cor: CORES_DE_PASTA.some((c) => c === dados.cor)
+              ? (dados.cor as string)
+              : p.cor,
+            sempreExpandida: dados.sempreExpandida ?? p.sempreExpandida,
+          }
+        : p,
+    ),
+  );
+}
+
 export function alternarColapsoDaPasta(id: string): void {
   gravar(
-    pastas.map((p) => (p.id === id ? { ...p, colapsada: !p.colapsada } : p)),
+    pastas.map((p) =>
+      /* `sempreExpandida` VENCE o clique de colapsar. Se não vencesse, a
+         preferência seria só um colapso desfeito que o próximo clique refaz —
+         e o controle no editor não controlaria nada. */
+      p.id === id && !p.sempreExpandida ? { ...p, colapsada: !p.colapsada } : p,
+    ),
   );
 }
 

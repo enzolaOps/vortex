@@ -10,8 +10,13 @@
  *
  * O que está aqui cobre o que se usa de fato numa conversa de trabalho, com
  * nome em português para a busca funcionar no idioma do app. A lista completa
- * está registrada como a pendência `emojiCompleto`, e o dia em que ela entrar
- * o que muda é este arquivo — o seletor não sabe de onde os dados vêm.
+ * é trabalho de dataset, e o dia em que ela entrar o que muda é este arquivo —
+ * o seletor não sabe de onde os dados vêm.
+ *
+ * ⚠ **NÃO é uma entrada de `pendencias.ts`, e já foi.** O registro é de
+ * CONTROLE desenhado que ainda não faz nada; aqui não há o que clicar — nada
+ * na tela promete os 3.800 e falha. Entrada sem controle é dívida invisível na
+ * tela, e uma guarda passou a reprovar o build por causa dela.
  *
  * A ordem dentro de cada categoria é a de USO, não a do Unicode: quem abre a
  * aba de rostos quer 🙂 antes de 🫠, e o padrão ordena por ponto de código.

@@ -615,3 +615,16 @@
   color: var(--vx-text-1);
   font-weight: 600;
 }
+
+/*
+  O `input type="file"`, fora da tela e fora da navegação.
+
+  `display: none` e não `opacity: 0`: com opacidade zero ele continuaria
+  recebendo tabulação, e o composer ganharia uma parada invisível entre o
+  botão de anexar e o campo. É a mesma escolha das ações de linha de canal e da
+  barra de ações da mensagem — quem abre o seletor é o botão, que tem rótulo,
+  foco e os oito estados.
+*/
+.seletorDeArquivo {
+  display: none;
+}

@@ -64,5 +64,23 @@ export function createEphemeralStore<T>() {
       dirty.add(id);
       timer ??= setTimeout(flush, THROTTLE_MS);
     },
+
+    /**
+     * Esquece a entrada.
+     *
+     * ⚠ **Existe porque nem todo estado efêmero é de vida longa.** Presença e
+     * "quem está falando" são de gente, e o conjunto de gente que uma sessão
+     * vê é limitado; progresso de upload é de EVENTO, e uma sessão de 8h com
+     * muitos envios acumularia uma entrada por arquivo para sempre — o erro
+     * nº 5 do briefing, que só aparece na sexta hora.
+     *
+     * Avisa como o `set`: quem assina precisa saber que o valor sumiu, senão
+     * o cartão de progresso fica na tela depois de o upload terminar.
+     */
+    apagar(id: string) {
+      if (!values.delete(id)) return;
+      dirty.add(id);
+      timer ??= setTimeout(flush, THROTTLE_MS);
+    },
   };
 }

@@ -16,6 +16,7 @@ import {
   encerrarChamada,
   lerChamada,
 } from "../store/chamada";
+import { toast } from "../components/ui/toastStore";
 
 type Motor = typeof import("./motorDeVoz");
 
@@ -33,8 +34,44 @@ async function carregar(): Promise<Motor> {
   return motor;
 }
 
+/**
+ * O motor, ou nada — com o aviso na tela quando ele não vem.
+ *
+ * ⚠ **A falha aqui era MUDA, e isso não é hipotético.** `carregar()` rejeita
+ * quando o chunk não baixa, e quem chama usa `void entrarNaChamada(id)` — o
+ * `void` engole a rejeição num "unhandled promise rejection" que só existe no
+ * console. A pessoa clica em "Entrar na sala" e NÃO ACONTECE NADA, que é o
+ * modo de falha que este projeto classifica como pior que a ausência.
+ *
+ * O caso que faz isso acontecer é corriqueiro: quem está com a página aberta
+ * quando uma versão nova sobe pede o chunk pelo hash ANTIGO, que deixou de
+ * existir. Reproduzido em navegador trocando a imagem do contêiner —
+ * `Failed to fetch dynamically imported module`, 404, e a interface calada.
+ *
+ * `motor` fica `undefined` após a falha, então tentar de novo tenta de verdade;
+ * e depois de uma versão nova, recarregar resolve — que é o que o texto pede.
+ *
+ * Passam por aqui TODOS os cinco pontos que carregam o motor, e não só o de
+ * entrar: mudo, surdo, câmera e tela ficam no rodapé da coluna o dia inteiro,
+ * e um deles falhando calado é o mesmo defeito numa superfície mais visível.
+ */
+async function motorOuAviso(): Promise<Motor | undefined> {
+  try {
+    return await carregar();
+  } catch {
+    toast({
+      tipo: "erro",
+      titulo: "Não deu para carregar a voz.",
+      descricao:
+        "Se o app foi atualizado agora, recarregue a página e tente de novo.",
+    });
+    return undefined;
+  }
+}
+
 export async function entrarNaChamada(channelId: string): Promise<boolean> {
-  const m = await carregar();
+  const m = await motorOuAviso();
+  if (m === undefined) return false;
   return m.entrarNaChamada(channelId);
 }
 
@@ -70,7 +107,7 @@ export async function alternarMudo(): Promise<void> {
     alternarMudoNoStore();
     return;
   }
-  await (await carregar()).alternarMudo();
+  await (await motorOuAviso())?.alternarMudo();
 }
 
 export async function alternarSurdo(): Promise<void> {
@@ -78,15 +115,15 @@ export async function alternarSurdo(): Promise<void> {
     alternarSurdoNoStore();
     return;
   }
-  await (await carregar()).alternarSurdo();
+  await (await motorOuAviso())?.alternarSurdo();
 }
 
 export async function alternarCamera(): Promise<void> {
   if (lerChamada().estado === "fora") return;
-  await (await carregar()).alternarCamera();
+  await (await motorOuAviso())?.alternarCamera();
 }
 
 export async function alternarTela(): Promise<void> {
   if (lerChamada().estado === "fora") return;
-  await (await carregar()).alternarTela();
+  await (await motorOuAviso())?.alternarTela();
 }

@@ -201,7 +201,32 @@ const Canal = memo(function Canal({
           data-conectado={conectadoAqui}
           data-naolidas={temNaoLidas && !canal.silenciado}
           data-silenciado={canal.silenciado}
-          onClick={() => selecionarCanal(id)}
+          /*
+            ⚠ **Em canal de VOZ o clique ENTRA; o segundo clique abre o chat.**
+
+            A régua anterior era só `selecionarCanal`, e ela seguia a nota do
+            design ("continua clicável para abrir o chat embutido"). O que ela
+            não resolvia: entrar na sala existia num lugar só, o menu de botão
+            direito — a afordância que este projeto já apontou como a que menos
+            gente descobre, quando moveu convite e tópico para o hover da linha.
+            E por TOQUE não havia caminho nenhum.
+
+            Agora o gesto mais barato faz a ação mais frequente, e o chat
+            embutido — que é o que o design pede — fica no clique seguinte, com
+            "Abrir o chat" no menu para quem quiser ler sem entrar.
+
+            `conectadoAqui` cobre CONECTANDO também, de propósito: clicar duas
+            vezes depressa não deve tentar entrar de novo, e `entrarNaChamada`
+            já trataria isso como no-op — o que deixaria o segundo clique sem
+            efeito nenhum em vez de abrir o chat.
+          */
+          onClick={() => {
+            if (canal.tipo !== "voz" || conectadoAqui) {
+              selecionarCanal(id);
+              return;
+            }
+            void entrarNaChamada(id);
+          }}
         >
           {/*
             A MESMA barra do rail, e o gesto repetido é o que faz dele
@@ -245,6 +270,22 @@ const Canal = memo(function Canal({
               <Lock size={20} aria-hidden />
               <span className="sr-only">canal restrito</span>
             </span>
+          ) : null}
+
+          {/*
+            ⚠ **Anuncia o ESTADO, e nunca a ação.** Com o clique entrando na
+            sala e o segundo clique abrindo o chat, a tentação é trocar o nome
+            acesível para "entrar na sala" / "abrir o chat" — e esse é
+            exatamente o erro que o lint pegou nos controles de microfone: um
+            rótulo que alterna junto do estado faz o leitor anunciar o
+            contrário do que está acontecendo, e some com a identidade do item.
+
+            O nome do botão continua sendo o CANAL. O que muda é saber que você
+            já está lá dentro — dado que hoje só existe em `data-conectado`, que
+            leitor de tela nenhum lê, e no cronômetro, que é visual.
+          */}
+          {conectadoAqui ? (
+            <span className="sr-only">você está nesta sala</span>
           ) : null}
 
           {canal.silenciado ? <RestanteDoSilencio channelId={id} /> : null}
@@ -346,6 +387,16 @@ const Canal = memo(function Canal({
             <ContextMenuItem onSelect={() => void entrarNaChamada(id)}>
               <SpeakerHigh size={20} aria-hidden />
               Entrar na sala
+            </ContextMenuItem>
+            {/*
+              ⚠ **Existe porque o clique deixou de abrir o chat.** Sem este
+              item, ler a conversa de uma sala em que você NÃO está perderia o
+              único caminho que tinha — uma capacidade some sem que nada na
+              tela diga que ela sumiu, que é o pior jeito de perder uma.
+            */}
+            <ContextMenuItem onSelect={() => selecionarCanal(id)}>
+              <Hash size={20} aria-hidden />
+              Abrir o chat
             </ContextMenuItem>
           </>
         ) : null}
@@ -1174,8 +1225,29 @@ function CanaisDoServidor() {
         />
       </div>
 
-      {/* Ver `MessageList`: rolável sem foco é inoperável por teclado. */}
-      <div className={css.rolagem} tabIndex={0}>
+      {/*
+        ⚠ **A ÁREA VAZIA da coluna também tem menu, e não tinha.** Clicar com o
+        botão direito no espaço abaixo dos canais caía no menu do navegador —
+        e é onde a mão vai quando se quer criar algo sem mirar um canal
+        específico.
+
+        ⚠ **Isto é adição, não paridade.** A referência tem menu de canal, de
+        categoria e de DM, e põe "Criar canal"/"Criar categoria" só no dropdown
+        do servidor. A área vazia é caminho a mais para as mesmas três ações,
+        pedido por quem usa.
+
+        O canal nasce FORA de categoria (`categoriaId: undefined`) porque é o
+        que a posição diz: clicar no vão é o oposto de clicar dentro de uma
+        categoria, que já tem "Novo canal aqui".
+
+        Sem permissão o menu não é renderizado — a mesma regra da member list:
+        item cinza ensina que a ação existe e que você não a tem, ruído
+        permanente para quem nunca vai tê-la.
+      */}
+      <ContextMenu>
+        <ContextMenuTrigger asChild disabled={!podeCriar}>
+          {/* Ver `MessageList`: rolável sem foco é inoperável por teclado. */}
+          <div className={css.rolagem} tabIndex={0}>
         {vazio ? (
           <EstadoVazio
             compacto
@@ -1218,7 +1290,42 @@ function CanaisDoServidor() {
             </button>
           </nav>
         )}
-      </div>
+          </div>
+        </ContextMenuTrigger>
+
+        <ContextMenuContent>
+          <ContextMenuItem
+            onSelect={() =>
+              administrar({
+                tipo: "criarCanal",
+                serverId,
+                categoriaId: undefined,
+                voz: false,
+              })
+            }
+          >
+            Criar canal de texto
+          </ContextMenuItem>
+          <ContextMenuItem
+            onSelect={() =>
+              administrar({
+                tipo: "criarCanal",
+                serverId,
+                categoriaId: undefined,
+                voz: true,
+              })
+            }
+          >
+            Criar canal de voz
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem
+            onSelect={() => administrar({ tipo: "criarCategoria", serverId })}
+          >
+            Criar categoria
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
     </div>
   );
 }

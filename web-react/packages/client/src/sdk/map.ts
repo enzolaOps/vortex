@@ -39,6 +39,7 @@ import type {
 } from "./domain";
 import { NOMES_POR_REACAO } from "./domain";
 import type { Enquete } from "../store/enquetes";
+import { formatarBytes } from "../lib/bytes";
 import { sigla } from "../lib/sigla";
 
 /**
@@ -199,30 +200,6 @@ const SEM_ANEXOS: readonly AnexoSnapshot[] = [];
  * anticorrupção — o componente não deve conhecer cinco casos para desenhar
  * três.
  */
-/**
- * Bytes em algo que se lê.
- *
- * Base 1000 e não 1024: o rótulo é "KB", e é o que todo sistema operacional
- * de mesa mostra hoje. Usar 1024 e escrever "KB" é o erro que faz um arquivo
- * de 284.000 bytes aparecer como "277 KB" e não bater com o Finder nem com o
- * Explorador.
- *
- * Uma casa decimal só abaixo de 10 — "1,4 MB" ajuda, "284,0 KB" é ruído.
- */
-function formatarBytes(bytes: number | undefined | null): string | undefined {
-  if (bytes === undefined || bytes === null || bytes < 0) return undefined;
-  if (bytes < 1000) return `${bytes} B`;
-
-  const unidades = ["KB", "MB", "GB", "TB"] as const;
-  let valor = bytes / 1000;
-  let i = 0;
-  while (valor >= 1000 && i < unidades.length - 1) {
-    valor /= 1000;
-    i += 1;
-  }
-  const casas = valor < 10 ? 1 : 0;
-  return `${valor.toFixed(casas).replace(".", ",")} ${unidades[i]}`;
-}
 
 function toAnexos(message: Message): readonly AnexoSnapshot[] {
   const arquivos = message.attachments;

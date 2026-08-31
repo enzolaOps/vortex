@@ -132,14 +132,44 @@
     colapsava num só.
   */
   background: var(--vx-surface-2);
-  display: grid;
-  /* barra do arnês · cabeçalho · prancha.
 
-     `minmax(0, 1fr)` na última pela mesma razão da coluna: `1fr` puro é
-     `minmax(auto, 1fr)`, e `auto` respeita o min-content da lista — que numa
-     lista virtualizada é o total inteiro. Sem o `0`, o composer é empurrado
-     para fora da tela assim que o histórico cresce. */
-  grid-template-rows: auto auto minmax(0, 1fr);
+  /*
+    ⚠ **Coluna FLEX, e não grid com trilhas contadas — o grid estava errado de
+    raiz e o produto inteiro pagava.**
+
+    Ela era `grid-template-rows: auto auto minmax(0, 1fr)`: barra do arnês ·
+    cabeçalho · prancha. Três trilhas para três filhos — e DOIS deles são
+    opcionais. No arnês fecha; no produto não há barra de firehose, então o
+    cabeçalho toma a trilha 1, a prancha cai na trilha 2 (`auto`, ou seja
+    altura de conteúdo) e a trilha de `1fr` fica VAZIA no fim da coluna.
+
+    Medido numa janela de 1142px: trilhas `50px 360.4px 731.2px`, com a
+    prancha em 360 e 731px de nada embaixo. O efeito na tela é a timeline
+    cortando no meio e o composer flutuando a um terço da altura — foi assim
+    que quem usa relatou.
+
+    Nenhuma guarda pega isto: a regra é válida, os tokens são válidos, o
+    contraste é válido, e a única coisa errada é a CONTAGEM de filhos, que o
+    CSS não pode ver. É a mesma família do `py-0.5` e a enésima vez que o
+    arnês esconde um defeito por ser mais rico que o produto.
+
+    Flex resolve por não contar: toda barra que vier antes é `flex: none` e a
+    prancha é a única que cresce, com zero, uma ou duas barras acima dela.
+    `min-block-size: 0` pela razão de sempre — sem ele o mínimo automático de
+    um item flex é o conteúdo, que numa lista virtualizada é o histórico
+    inteiro, e o composer sai da tela assim que ele cresce.
+  */
+  display: flex;
+  flex-direction: column;
+}
+
+.conteudo > * {
+  flex: none;
+}
+
+.conteudo > .prancha {
+  flex: 1;
+  min-block-size: 0;
 }
 
 /*

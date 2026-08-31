@@ -29,6 +29,22 @@ export type Convite = {
   readonly membros: number;
   readonly nomeDoCanal: string;
   readonly convidadoPor: string;
+  /**
+   * Ícone, banner, assunto do canal e avatar de quem convidou.
+   *
+   * ⚠ **Os quatro chegam pelo fio desde sempre e nunca foram desenhados.**
+   * `InviteResponse` carrega `server_icon`, `server_banner`,
+   * `channel_description` e `user_avatar`, e o `ServerPublicInvite` do SDK os
+   * expõe os quatro. A landing mostrava só a sigla — é a mesma família do
+   * `ehMencao` que passou três fases sem devolver `true`.
+   *
+   * `undefined` é o caso comum e continua sendo o certo: sem ícone o ladrilho
+   * cai no gradiente por ID, que identifica melhor que um cinza.
+   */
+  readonly iconeUrl: string | undefined;
+  readonly bannerUrl: string | undefined;
+  readonly assuntoDoCanal: string | undefined;
+  readonly avatarDeQuemConvidou: string | undefined;
   /** Já sou membro — o botão diz "Abrir" em vez de "Entrar". */
   readonly jaSouMembro: boolean;
 };
@@ -94,6 +110,13 @@ export async function buscarConvite(
       membros: convite.memberCount,
       nomeDoCanal: convite.channelName,
       convidadoPor: convite.userName,
+      /* `createFileURL()` e não a URL crua: quem monta o endereço do autumn é
+         o SDK, com a configuração que ele buscou do servidor. Montar aqui
+         seria a forma do protocolo vazando para a tela. */
+      iconeUrl: convite.serverIcon?.createFileURL(),
+      bannerUrl: convite.serverBanner?.createFileURL(),
+      assuntoDoCanal: convite.channelDescription || undefined,
+      avatarDeQuemConvidou: convite.userAvatar?.createFileURL(),
       jaSouMembro: client.servers.get(convite.serverId) !== undefined,
     };
   } catch (e) {
@@ -146,10 +169,32 @@ export function codigoDe(entrada: string): string | undefined {
 
 /* ------------------------------------------------------------ servidores */
 
-export async function criarServidor(nome: string): Promise<string | undefined> {
+/**
+ * Cria o servidor e os canais que ele nasce com.
+ *
+ * ⚠ **`DataCreateServer` aceita `name`, `description` e `nsfw` — e nada mais.**
+ * Canal não entra na criação; cada um é uma chamada própria. É por isso que o
+ * modelo é uma LISTA que este cliente percorre, e não um objeto que o servidor
+ * saiba interpretar.
+ *
+ * ⚠ **Canal que falha não derruba a criação.** O servidor já existe quando o
+ * primeiro canal é pedido; abortar ali deixaria um servidor órfão e a pessoa
+ * sem nada. Cada falha vira um toast e o resto continua — melhor um servidor
+ * com quatro dos cinco canais que nenhum servidor.
+ *
+ * ⚠ **Em série, não em paralelo.** O protocolo devolve os canais na ordem em
+ * que foram criados, e é essa ordem que a coluna mostra. Com `Promise.all` a
+ * lista sairia embaralhada de um jeito diferente a cada criação.
+ */
+export async function criarServidor(
+  nome: string,
+  categoria: string,
+  canais: readonly { readonly nome: string; readonly voz: boolean }[] = [],
+): Promise<string | undefined> {
+  let id: string;
   try {
     const servidor = await client.servers.createServer({ name: nome });
-    return servidor.id;
+    id = servidor.id;
   } catch (e) {
     toast({
       tipo: "erro",
@@ -158,15 +203,60 @@ export async function criarServidor(nome: string): Promise<string | undefined> {
     });
     return undefined;
   }
+
+  if (canais.length === 0) return id;
+
+  /*
+    ⚠ **A categoria vem ANTES dos canais, e sem ela não há onde pô-los.** Um
+    servidor recém-criado não tem categoria nenhuma, e canal não nasce fora de
+    grupo — decisão de produto. Se a criação da categoria falhar, os canais do
+    modelo não são criados: melhor um servidor com o canal padrão do backend
+    que cinco canais soltos numa coluna que o produto não desenha.
+  */
+  const categoriaId = await criarCategoriaEDevolverId(id, categoria);
+  if (categoriaId === undefined) return id;
+
+  /*
+    O servidor nasce com um canal padrão do próprio backend. Os do modelo vêm
+    DEPOIS dele, e é o comportamento certo: apagar o padrão para impor a lista
+    seria destruir um canal que a pessoa não pediu para destruir.
+  */
+  for (const c of canais) {
+    await criarCanal(id, c.nome, c.voz, categoriaId);
+  }
+
+  return id;
 }
 
 /* --------------------------------------------------------------- canais */
 
+/**
+ * Cria um canal DENTRO de uma categoria.
+ *
+ * ⚠ **`categoriaId` é obrigatório, e antes ele nem existia aqui.** O alvo do
+ * modal carregava um `categoriaId` desde sempre e esta função nunca o
+ * recebeu — então TODO canal nascia fora de categoria, inclusive o criado por
+ * "Novo canal aqui" no menu de uma categoria. O menu prometia um lugar e o
+ * canal aparecia noutro, sem erro nenhum.
+ *
+ * Obrigatório no TIPO e não conferido no corpo: é a ordem de preferência do
+ * projeto — tornar impossível ganha de validar. Nenhum chamador pode
+ * esquecer.
+ *
+ * ⚠ **São DUAS escritas, e a segunda pode falhar sozinha.** O protocolo não
+ * aceita categoria na criação do canal: `createChannel` cria, e pôr numa
+ * categoria é reescrever o array inteiro de `categories` (ver
+ * `reescreverCategorias`). Se a segunda falhar, o canal existe e fica fora de
+ * grupo — melhor que abortar, porque o canal já foi criado e não há como
+ * desfazer sem apagar o que a pessoa acabou de pedir.
+ */
 export async function criarCanal(
   serverId: string,
   nome: string,
   voz: boolean,
+  categoriaId: string,
 ): Promise<string | undefined> {
+  let id: string;
   try {
     const servidor = client.servers.get(serverId);
     if (!servidor) return undefined;
@@ -177,8 +267,7 @@ export async function criarCanal(
       type: voz ? "Voice" : "Text",
       name: nome,
     });
-    publicarCanaisDe(serverId);
-    return canal.id;
+    id = canal.id;
   } catch (e) {
     toast({
       tipo: "erro",
@@ -187,6 +276,15 @@ export async function criarCanal(
     });
     return undefined;
   }
+
+  await reescreverCategorias(serverId, (atuais) =>
+    atuais.map((c) =>
+      c.id === categoriaId ? { ...c, channels: [...c.channels, id] } : c,
+    ),
+  );
+
+  publicarCanaisDe(serverId);
+  return id;
 }
 
 export async function renomearCanal(
@@ -296,12 +394,27 @@ async function reescreverCategorias(
 type Categoria = { id: string; title: string; channels: string[] };
 
 export function criarCategoria(serverId: string, titulo: string): Promise<boolean> {
-  return reescreverCategorias(serverId, (atuais) => [
+  return criarCategoriaEDevolverId(serverId, titulo).then((id) => id !== undefined);
+}
+
+/**
+ * Cria a categoria e devolve o ID dela.
+ *
+ * Existe porque criar um servidor precisa do ID para pôr os canais dentro, e
+ * `criarCategoria` devolve só sucesso. O ID é gerado AQUI e não pelo servidor:
+ * categoria não é entidade própria no protocolo — é um item de um array que o
+ * cliente propõe.
+ */
+async function criarCategoriaEDevolverId(
+  serverId: string,
+  titulo: string,
+): Promise<string | undefined> {
+  const id = novoId();
+  const ok = await reescreverCategorias(serverId, (atuais) => [
     ...atuais,
-    // ULID como ID: é o que o protocolo usa, e o servidor aceita o que o
-    // cliente propuser — a categoria não é entidade própria lá.
-    { id: novoId(), title: titulo, channels: [] },
+    { id, title: titulo, channels: [] },
   ]);
+  return ok ? id : undefined;
 }
 
 export function renomearCategoria(
