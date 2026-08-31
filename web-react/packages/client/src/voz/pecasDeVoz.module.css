@@ -1,0 +1,146 @@
+/* ============================================================
+   Peças compartilhadas das três telas do palco
+   ------------------------------------------------------------
+   Selo de AO VIVO · cronômetro · faixa de vídeo · doca.
+   ============================================================ */
+
+/* ----------------------------------------------------- ao vivo */
+
+.aoVivo {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-06);
+  block-size: 20px;
+  padding-inline: var(--vx-space-08);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-danger-soft);
+  color: var(--vx-danger-text);
+  font-size: var(--vx-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/*
+  ⚠ O pulso é OPACIDADE e nunca escala — escala mudaria a caixa e refluiria a
+  linha inteira do cabeçalho a 1,4 s por ciclo.
+*/
+.pontoAoVivo {
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-danger);
+  animation: pulsoAoVivo 1.4s var(--vx-ease-out) infinite;
+}
+
+@keyframes pulsoAoVivo {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pontoAoVivo {
+    animation: none;
+  }
+}
+
+.cronometro {
+  color: var(--vx-text-2);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------ faixa de vídeo */
+
+.video {
+  inline-size: 100%;
+  block-size: 100%;
+  /* `contain` e nunca `cover`: recortar esconderia justamente a borda da
+     janela que quem assiste está tentando ler. */
+  object-fit: contain;
+}
+
+/*
+  ⚠ **Só a PRÓPRIA câmera espelha, e nunca a dos outros.** Espelhar é o que
+  faz alguém se reconhecer no vídeo — a imagem bate com o espelho do banheiro.
+  Espelhar a câmera alheia inverteria texto e mãos de quem você está olhando,
+  que é o contrário do que espelhar serve para fazer. Tela compartilhada nunca
+  espelha, por razão óbvia.
+*/
+.video[data-espelhada="true"] {
+  transform: scaleX(-1);
+}
+
+/* ----------------------------------------------------------- doca */
+
+.doca {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vx-space-10);
+  padding: var(--vx-space-12) var(--vx-space-18);
+  border-block-start: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-1);
+}
+
+.controleDaDoca {
+  display: grid;
+  place-items: center;
+  inline-size: 44px;
+  block-size: 44px;
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-surface-4);
+  color: var(--vx-text-1);
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.controleDaDoca:hover {
+  background: var(--vx-track);
+}
+
+.controleDaDoca[data-perigo="true"] {
+  background: color-mix(in srgb, var(--vx-danger) 18%, transparent);
+  color: var(--vx-danger-text);
+}
+
+.controleDaDoca:focus-visible,
+.desligar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.divisaDaDoca {
+  inline-size: 1px;
+  block-size: 24px;
+  background: var(--vx-hairline-10);
+}
+
+.desligar {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  block-size: 44px;
+  padding-inline: var(--vx-space-18);
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-danger);
+  color: var(--vx-on-danger);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.desligar:hover {
+  background: color-mix(in oklab, var(--vx-danger) 85%, #000);
+}

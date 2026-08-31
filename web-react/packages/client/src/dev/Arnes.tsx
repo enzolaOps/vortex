@@ -2,7 +2,9 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { Cliente } from "../app/Cliente";
 import {
+  chamadaEmVideoFalsa,
   chamadaFalsa,
+  transmissaoFalsa,
   editarUltima,
   falarEmOutroCanal,
   seed,
@@ -414,6 +416,31 @@ export function Arnes() {
             className="rounded-06 border border-border-subtle bg-surface-2 px-12 py-04 text-sm text-text-1"
           >
             chamada falsa
+          </button>
+
+          {/*
+            ⚠ **Sem isto o palco de transmissão era construído e
+            INALCANÇÁVEL no navegador** — a chamada falsa fixava `tela:
+            false`, e a única outra porta é uma sala LiveKit de verdade.
+            Mesma família do painel de fixadas. Ver `transmissaoFalsa`.
+          */}
+          <button
+            onClick={() => transmissaoFalsa()}
+            className="rounded-06 border border-border-subtle bg-surface-2 px-12 py-04 text-sm text-text-1"
+          >
+            transmissão falsa
+          </button>
+
+          {/*
+            ⚠ **Sem isto a grade e a tela de assistir eram inalcançáveis no
+            navegador** — as duas dependem de `comCamera`/`transmitindo`, que
+            só o motor LiveKit escreve. Ver `chamadaEmVideoFalsa`.
+          */}
+          <button
+            onClick={() => chamadaEmVideoFalsa()}
+            className="rounded-06 border border-border-subtle bg-surface-2 px-12 py-04 text-sm text-text-1"
+          >
+            grade falsa
           </button>
 
           {/*

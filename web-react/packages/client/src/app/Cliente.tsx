@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Amigos } from "../casa/Amigos";
 import { CabecalhoDeCanal } from "../canais/CabecalhoDeCanal";
 import { CartaoDeChamada } from "../voz/CartaoDeChamada";
+import { PalcoDeVoz } from "../voz/PalcoDeVoz";
 import { Composer } from "../composer/Composer";
 import { Configuracoes } from "../config/Configuracoes";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
@@ -127,6 +128,16 @@ export function Cliente({ ferramentas }: { ferramentas?: ReactNode }) {
             chamada que a pessoa acha que caiu.
           */}
           <CartaoDeChamada />
+          {/*
+            O palco de transmissão, SOBRE o shell — a lista continua montada
+            atrás, com as linhas medidas, como nas configurações.
+
+            ⚠ Ele abre sozinho quando a transmissão começa. Antes disso,
+            compartilhar a tela acendia um botão e mais nada acontecia na
+            interface: sem prévia, sem selo de ao vivo, sem forma de parar
+            que não fosse o mesmo botão. Ver `store/palcoDeVoz.ts`.
+          */}
+          <PalcoDeVoz />
         </>
       }
     />

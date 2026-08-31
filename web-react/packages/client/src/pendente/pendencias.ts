@@ -360,6 +360,52 @@ export const PENDENCIAS = {
       "permissão em categoria no protocolo — `Category` só tem id, título e canais",
   },
 
+    `setEnabled(false)`, volume individual e "silenciar só para mim" são
+    `RemoteParticipant.setVolume`, e "transmitir também" é o mesmo
+    `alternarTela` de sempre. Os quatro escrevem no LiveKit de verdade.
+
+    ⚠ **A contagem de quem está ASSISTINDO fica de fora do registro**, pelo
+    contrato dele: não há controle para clicar. Ela é DADO que nem o protocolo
+    do Stoat nem o `livekit-client` produzem — quem publica não recebe
+    contagem de assinantes, isso é webhook de servidor. Mesma família da
+    etiqueta FÓRUM e do selo LIVE. O cabeçalho mostra "N na sala", que é
+    verdade.
+  */
+  perfilNaChamada: {
+    superficie: "Assistir transmissão",
+    faz: "Abrir o perfil de quem está transmitindo sem sair da tela cheia.",
+    depende:
+      "uma superfície de perfil MODAL — o `CartaoDePerfil` de hoje é um `HoverCard`, e hover card sobre vídeo em tela cheia não tem onde ancorar",
+  },
+
+  /* ------------------------------------------------ transmitir tela */
+  /*
+    ⚠ **Um pendente só no palco de transmissão, e a razão de os outros não
+    estarem aqui vale registrar.** Pausar, trocar fonte e o áudio da fonte são
+    REAIS — `mute()` na faixa, recaptura, e a faixa de `ScreenShareAudio`. O
+    que o design desenha e o LiveKit não entrega é escolher a codificação DE
+    DENTRO da transmissão em curso.
+
+    A contagem de quem está ASSISTINDO fica de fora do registro de propósito,
+    pelo contrato dele: não há controle para clicar. Ela é DADO que nem o
+    protocolo do Stoat nem o `livekit-client` produzem — quem publica não
+    recebe contagem de assinantes; isso é webhook de servidor. É a mesma
+    família da etiqueta FÓRUM e do selo LIVE, e mora em comentário no arquivo
+    que a mostraria.
+  */
+  qualidadeDaTransmissao: {
+    superficie: "Palco de transmissão",
+    faz: "Trocar resolução e taxa de quadros sem parar de transmitir.",
+    depende:
+      "encoding dinâmico — `setScreenShareEnabled` só aceita as constraints na PUBLICAÇÃO, e trocá-las hoje é parar e recomeçar",
+  },
+
+  /* ---------------------------------------------------- criar canal */
+  /*
+    ⚠ **Os dois tipos que o Stoat não tem.** `forum` e uma galeria de mídia dão
+    ZERO ocorrências no schema — não são campos que faltam, são conceitos que
+    não existem. O design desenha os quatro tipos no mesmo painel, e a regra
+
   /* ---------------------------------------------------- criar canal */
   /*
     ⚠ **Os dois tipos que o Stoat não tem.** `forum` e uma galeria de mídia dão

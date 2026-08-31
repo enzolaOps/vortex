@@ -36,14 +36,17 @@ import {
   ConnectionQuality,
   RoomEvent,
   Track,
+  VideoQuality,
   type LocalParticipant,
+  type RemoteParticipant,
   type RemoteTrack,
+  type RemoteTrackPublication,
   type ScreenShareCaptureOptions,
 } from "livekit-client";
 
 import { client } from "./client";
 import { sairDaSalaLocalmente } from "./adapter";
-import type { QualidadeDeVoz } from "../store/chamada";
+import type { Chamada, QualidadeDeVoz } from "../store/chamada";
 import {
   alternarMudoNoStore,
   alternarSurdoNoStore,
@@ -52,6 +55,8 @@ import {
   encerrarChamada,
   lerChamada,
 } from "../store/chamada";
+import { definirPalco, fecharPalco, lerPalco } from "../store/palcoDeVoz";
+import { chaveDeVideo, faixasDeVideo, type FonteDeVideo } from "../store/video";
 import { toast } from "../components/ui/toastStore";
 import { ALTURA_DE, ponteDeTela } from "./seletorDeTela";
 import { pedirEscolhaDeTela } from "../store/seletorDeTela";
@@ -174,11 +179,29 @@ function ligarEventos(r: Room, channelId: string): void {
       channelId,
       participantes: participantesDe(r),
     });
+    publicarFontes(r);
   });
 
   r.on(RoomEvent.Disconnected, () => encerrarChamada());
   r.on(RoomEvent.Reconnecting, () => definirChamada({ estado: "reconectando" }));
-  r.on(RoomEvent.Reconnected, () => definirChamada({ estado: "dentro" }));
+
+  /*
+    ⚠ **Reconectar RE-VARRE quem publica o quê, e não só marca "dentro".**
+
+    `transmitindo`, `comCamera` e `mudos` são mantidos por evento
+    (`TrackPublished`, `TrackUnpublished`, `TrackMuted`, `TrackUnmuted`), e
+    evento que chega durante uma queda não chega. Sem esta varredura, voltar de
+    uma reconexão deixaria alguém marcado como ao vivo depois de ter parado, ou
+    — pior — ninguém marcado com alguém transmitindo, e o alvo "Assistir"
+    simplesmente não existiria.
+
+    É o mesmo motivo pelo qual `publicarFontes` varre a sala inteira em vez de
+    somar e subtrair: reconexão é justamente quando o incremental diverge.
+  */
+  r.on(RoomEvent.Reconnected, () => {
+    definirChamada({ estado: "dentro", participantes: participantesDe(r) });
+    publicarFontes(r);
+  });
 
   /*
     A qualidade da conexão, do LiveKit.
@@ -196,8 +219,39 @@ function ligarEventos(r: Room, channelId: string): void {
     definirChamada({ qualidade: traduzirQualidade(qualidade) });
   });
 
-  r.on(RoomEvent.ParticipantConnected, publicar);
-  r.on(RoomEvent.ParticipantDisconnected, publicar);
+  r.on(RoomEvent.ParticipantConnected, () => {
+    publicar();
+    publicarFontes(r);
+  });
+  r.on(RoomEvent.ParticipantDisconnected, () => {
+    publicar();
+    publicarFontes(r);
+  });
+
+  /*
+    ⚠ **Quem para a transmissão pode não ser o Vortex, e sem isto o app
+    continuava afirmando que você estava ao vivo.**
+
+    O Chrome desenha a própria barra — "está compartilhando sua tela · Parar de
+    compartilhar" — e o Electron, o macOS e o Wayland têm as suas. Clicar ali
+    encerra a faixa por fora: o LiveKit despublica e avisa, e o nosso store não
+    ouvia. O botão ficava aceso, o selo de AO VIVO ficaria aceso, e o palco
+    seguiria mostrando a última prévia.
+
+    É o modo de falha que este projeto classifica como pior que a ausência: a
+    interface afirmando o contrário do que está acontecendo, na pergunta de
+    maior consequência que uma chamada tem — "a minha tela está sendo vista?".
+  */
+  r.on(RoomEvent.LocalTrackUnpublished, (pub) => {
+    if (pub.source === Track.Source.ScreenShare) {
+      definirChamada({ tela: false, telaPausada: false, telaAudio: "sem" });
+      /* Só fecha o palco se ele estava mostrando a SUA transmissão: quem
+         parou de transmitir pode continuar assistindo alguém. */
+      if (lerPalco().tipo === "transmitindo") fecharPalco();
+      return;
+    }
+    if (pub.source === Track.Source.Camera) definirChamada({ camera: false });
+  });
 
   /*
     ⚠ **O evento mais quente do app inteiro.**
@@ -217,21 +271,237 @@ function ligarEventos(r: Room, channelId: string): void {
     evita baixar vídeo de todo mundo ao entrar. Assinar o áudio explicitamente
     aqui é o que faz a sala ter som.
   */
-  r.on(RoomEvent.TrackSubscribed, (faixa: RemoteTrack) => {
-    if (faixa.kind !== Track.Kind.Audio) return;
-    elementoDeAudio().appendChild(faixa.attach());
+  r.on(RoomEvent.TrackSubscribed, (faixa: RemoteTrack, pub, participante) => {
+    if (faixa.kind === Track.Kind.Audio) {
+      elementoDeAudio().appendChild(faixa.attach());
+      return;
+    }
+
+    /*
+      Video vai para o STORE, e nao para um elemento fora da arvore.
+
+      ⚠ A diferenca com o audio nao e estilo: audio nao tem lugar na tela e
+      precisa tocar mesmo com a superficie fechada; video so existe DENTRO de
+      um ladrilho, e e o ladrilho que decide quando anexar. Anexar aqui daria
+      um `<video>` orfao decodificando quadros que ninguem ve - o custo exato
+      que `autoSubscribe: false` foi instalado para nao pagar.
+    */
+    const fonte = fonteDe(pub.source);
+    if (!fonte) return;
+    faixasDeVideo.set(
+      chaveDeVideo(participante.identity, fonte),
+      faixa.mediaStreamTrack,
+    );
   });
 
-  r.on(RoomEvent.TrackUnsubscribed, (faixa: RemoteTrack) => {
-    faixa.detach().forEach((el) => el.remove());
+  r.on(RoomEvent.TrackUnsubscribed, (faixa: RemoteTrack, pub, participante) => {
+    if (faixa.kind === Track.Kind.Audio) {
+      faixa.detach().forEach((el) => el.remove());
+      return;
+    }
+    const fonte = fonteDe(pub.source);
+    if (fonte) faixasDeVideo.apagar(chaveDeVideo(participante.identity, fonte));
   });
 
+  /*
+    Quem publica o que.
+
+    ⚠ **Assina so AUDIO, e o video continua entrando sob pedido.** O que mudou
+    e que agora existe quem PECA: a grade e a tela de assistir chamam
+    `assinarVideo`. Baixar camera de dez pessoas ao entrar continua sendo
+    desperdicio puro - o design diz a mesma coisa em prosa: "quem entra no
+    canal depois ve o stream com um clique, nao recebe nada automaticamente".
+
+    O que a publicacao faz e ANUNCIAR: sem estas duas listas, uma sala onde
+    alguem esta ao vivo seria indistinguivel de uma sala vazia, porque com
+    `autoSubscribe: false` "existe stream" e "tenho o stream" sao fatos
+    diferentes.
+  */
   r.on(RoomEvent.TrackPublished, (pub, participante) => {
-    // Assina só áudio por padrão. Vídeo entra quando a tela de chamada pedir —
-    // baixar câmera de dez pessoas para mostrar avatares é desperdício puro.
-    if (pub.kind === Track.Kind.Audio) void pub.setSubscribed(true);
+    if (pub.kind === Track.Kind.Audio) pub.setSubscribed(true);
+    publicarFontes(r);
     void participante;
   });
+
+  /*
+    Mudo de outra pessoa.
+
+    ⚠ **Estes dois eventos existem porque `TrackPublished` não cobre o caso.**
+    Silenciar não despublica a faixa — ela continua lá, muda. Sem ouvir isto, o
+    ícone de microfone cortado da grade só apareceria para quem entrou
+    silenciado e nunca mais mudaria.
+  */
+  r.on(RoomEvent.TrackMuted, () => publicarFontes(r));
+  r.on(RoomEvent.TrackUnmuted, () => publicarFontes(r));
+
+  r.on(RoomEvent.TrackUnpublished, (pub, participante) => {
+    const fonte = fonteDe(pub.source);
+    if (fonte) faixasDeVideo.apagar(chaveDeVideo(participante.identity, fonte));
+    publicarFontes(r);
+
+    /*
+      ⚠ **Quem voce esta assistindo pode parar, e o palco ficaria congelado no
+      ultimo quadro sem dizer nada.** Voltar para a grade e o que o design
+      chama de "parar de assistir volta para a grade sem sair da chamada" - e
+      aqui nao foi voce que parou.
+    */
+    const p = lerPalco();
+    if (
+      p.tipo === "assistindo" &&
+      p.userId === participante.identity &&
+      pub.source === Track.Source.ScreenShare
+    ) {
+      definirPalco({ tipo: "grade" });
+    }
+  });
+}
+
+/** A fonte do LiveKit no vocabulario do app, ou nada quando nao interessa. */
+function fonteDe(fonte: Track.Source): FonteDeVideo | undefined {
+  if (fonte === Track.Source.Camera) return "camera";
+  if (fonte === Track.Source.ScreenShare) return "tela";
+  return undefined;
+}
+
+/**
+ * Republica quem esta com camera e quem esta transmitindo.
+ *
+ * ⚠ **Varre a sala inteira em vez de somar e subtrair por evento.** A lista e
+ * de participantes de uma sala de voz - dezenas no pior caso -, e a soma
+ * incremental e onde nasce o estado que diverge: um `TrackUnpublished` perdido
+ * durante uma reconexao deixaria alguem marcado como ao vivo para sempre. A
+ * varredura e O(n) sobre um n pequeno e nao tem como derivar.
+ *
+ * ⚠ **Compara por CONTEUDO antes de publicar.** Sem isso, cada publicacao
+ * emitiria um array novo e acordaria todo mundo que assina a chamada - o
+ * cartao, a faixa, o painel de usuario - a cada vez que alguem ligasse a
+ * camera. E a armadilha nº 1 do briefing, na forma de lista.
+ */
+function publicarFontes(r: Room): void {
+  const transmitindo: string[] = [];
+  const comCamera: string[] = [];
+  const mudos: string[] = [];
+
+  for (const p of r.remoteParticipants.values()) {
+    if (p.getTrackPublication(Track.Source.ScreenShare)) {
+      transmitindo.push(p.identity);
+    }
+    if (p.getTrackPublication(Track.Source.Camera)) comCamera.push(p.identity);
+    /*
+      ⚠ **Sem publicação de microfone TAMBÉM conta como mudo**, e não é
+      detalhe: quem entra silenciado nunca publica a faixa, então perguntar só
+      pelo `isMuted` da publicação existente deixaria a pessoa mais silenciosa
+      da sala como a única sem o ícone.
+    */
+    const mic = p.getTrackPublication(Track.Source.Microphone);
+    if (!mic || mic.isMuted) mudos.push(p.identity);
+  }
+
+  const atual = lerChamada();
+  const mudanca: { -readonly [K in keyof Chamada]?: Chamada[K] } = {};
+  if (!mesmaLista(atual.transmitindo, transmitindo)) {
+    mudanca.transmitindo = transmitindo;
+  }
+  if (!mesmaLista(atual.comCamera, comCamera)) mudanca.comCamera = comCamera;
+  if (!mesmaLista(atual.mudos, mudos)) mudanca.mudos = mudos;
+  if (Object.keys(mudanca).length > 0) definirChamada(mudanca);
+}
+
+function mesmaLista(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((x, i) => x === b[i]);
+}
+
+/**
+ * Pede (ou devolve) a faixa de video de uma pessoa.
+ *
+ * ⚠ **E a unica porta para video remoto, e ela e EXPLICITA por decisao de
+ * custo.** Com `autoSubscribe: false` nada de video desce sozinho; quem quer
+ * ver chama isto e, ao desmontar, chama de novo com `false`. Uma grade que
+ * assinasse e esquecesse de devolver deixaria dez faixas descendo atras de uma
+ * tela fechada - o desperdicio que a decisao original evita, com a agravante
+ * de ser invisivel.
+ *
+ * Devolve `false` quando nao ha o que assinar: a pessoa saiu, ou nunca
+ * publicou aquela fonte.
+ */
+export function assinarVideo(
+  userId: string,
+  fonte: FonteDeVideo,
+  sim: boolean,
+): boolean {
+  const pub = publicacaoDeVideo(userId, fonte);
+  if (!pub) return false;
+  pub.setSubscribed(sim);
+  if (!sim) faixasDeVideo.apagar(chaveDeVideo(userId, fonte));
+  return true;
+}
+
+/**
+ * A qualidade que se aceita receber de um stream.
+ *
+ * ⚠ **`soAudio` e `setEnabled(false)`, e nao uma resolucao menor.** O design
+ * chama de "So audio" e diz para que serve: rede ruim. `setEnabled(false)`
+ * manda o servidor PARAR de enviar aquela faixa, que e a unica coisa que
+ * realmente devolve banda; pedir 180p continuaria baixando video.
+ */
+export type QualidadeDeStream = "auto" | "alta" | "media" | "soAudio";
+
+export function definirQualidadeDeStream(
+  userId: string,
+  fonte: FonteDeVideo,
+  qualidade: QualidadeDeStream,
+): void {
+  const pub = publicacaoDeVideo(userId, fonte);
+  if (!pub) return;
+
+  if (qualidade === "soAudio") {
+    pub.setEnabled(false);
+    return;
+  }
+  pub.setEnabled(true);
+  /*
+    `auto` volta ao teto ALTO de propósito: o LiveKit ja degrada sozinho
+    quando a banda nao sustenta, e o que "automatica" promete e justamente
+    nao ter teto imposto por voce. Fixar MEDIUM em "auto" seria pedir 720p
+    para sempre e chamar isso de automatico.
+  */
+  pub.setVideoQuality(
+    qualidade === "media" ? VideoQuality.MEDIUM : VideoQuality.HIGH,
+  );
+}
+
+/**
+ * O volume de UMA pessoa, so para voce.
+ *
+ * `0` e o "silenciar so para mim" do design. Vale de 0 a 2 no LiveKit (200% no
+ * desenho), e o ganho acima de 1 e o que salva quem fala baixo.
+ */
+export function definirVolumeDe(userId: string, volume: number): void {
+  const p = participanteRemoto(userId);
+  p?.setVolume(volume, Track.Source.Microphone);
+  p?.setVolume(volume, Track.Source.ScreenShareAudio);
+}
+
+export function volumeDe(userId: string): number {
+  return participanteRemoto(userId)?.getVolume(Track.Source.Microphone) ?? 1;
+}
+
+function participanteRemoto(userId: string): RemoteParticipant | undefined {
+  for (const p of sala?.remoteParticipants.values() ?? []) {
+    if (p.identity === userId) return p;
+  }
+  return undefined;
+}
+
+function publicacaoDeVideo(
+  userId: string,
+  fonte: FonteDeVideo,
+): RemoteTrackPublication | undefined {
+  const p = participanteRemoto(userId);
+  if (!p) return undefined;
+  return p.getTrackPublication(
+    fonte === "camera" ? Track.Source.Camera : Track.Source.ScreenShare,
+  );
 }
 
 /**
@@ -484,6 +754,7 @@ export async function alternarCamera(): Promise<void> {
   try {
     await p.setCameraEnabled(camera);
     definirChamada({ camera });
+    publicarVideoLocal(p, "camera", Track.Source.Camera, camera);
   } catch {
     // Permissão negada é o caso comum, e não é erro do app.
     toast({
@@ -521,7 +792,8 @@ export async function alternarTela(): Promise<void> {
     try {
       await p.setScreenShareEnabled(false);
     } finally {
-      definirChamada({ tela: false });
+      definirChamada({ tela: false, telaPausada: false, telaAudio: "sem" });
+      if (lerPalco().tipo === "transmitindo") fecharPalco();
     }
     return;
   }
@@ -543,9 +815,23 @@ export async function alternarTela(): Promise<void> {
 
   try {
     await p.setScreenShareEnabled(true, opcoes);
-    definirChamada({ tela: true });
+    definirChamada({
+      tela: true,
+      telaPausada: false,
+      /* A faixa de áudio só existe quando a pessoa marcou a caixa no seletor
+         do sistema — e nem toda plataforma oferece a caixa. Perguntar é a
+         única forma de saber; supor produziria um "silenciado" para quem
+         nunca teve som nenhum. */
+      telaAudio:
+        p.getTrackPublication(Track.Source.ScreenShareAudio) === undefined
+          ? "sem"
+          : "ligado",
+    });
+    /* O palco abre sozinho — é o sintoma relatado por quem usa, e a razão de
+       ele existir. Ver `store/palcoDeVoz.ts`. */
+    definirPalco({ tipo: "transmitindo" });
   } catch (e) {
-    definirChamada({ tela: false });
+    definirChamada({ tela: false, telaPausada: false, telaAudio: "sem" });
     void ponte?.cancelar();
 
     /*
@@ -580,6 +866,181 @@ export async function alternarTela(): Promise<void> {
   }
 }
 
+
+/**
+ * A faixa de vídeo da transmissão, para a prévia local.
+ *
+ * ⚠ **SÍNCRONA e devolvendo `MediaStreamTrack` cru, e as duas coisas são
+ * decisão.** Síncrona porque quem a chama é um efeito de componente, e um
+ * `await` ali significaria um render com a caixa vazia antes de cada quadro.
+ * Crua porque nada de `livekit-client` sai deste arquivo — a mesma regra que
+ * mantém `Room` aqui dentro. O componente recebe um tipo do navegador e não
+ * sabe que existe LiveKit.
+ */
+/**
+ * Poe (ou tira) a PROPRIA faixa no mesmo store das alheias.
+ *
+ * ⚠ **O store guarda "o que um `<video>` precisa", e nao "o que o servidor
+ * mandou".** A primeira versao tratava a propria camera como caso especial, com
+ * um componente proprio lendo a faixa por `setTimeout` — e isso era um segundo
+ * caminho para a mesma coisa, com a propria latencia e o proprio bug. Com uma
+ * fonte so, o ladrilho da grade nao sabe de quem e o video.
+ *
+ * ⚠ **`setCameraEnabled` resolve antes de a publicacao existir em alguns
+ * navegadores**, e por isso ha uma segunda tentativa. Sem ela o proprio
+ * ladrilho ficaria no avatar ate o proximo render — a mesma armadilha da
+ * previa da transmissao medindo 0×0.
+ */
+function publicarVideoLocal(
+  p: LocalParticipant,
+  fonte: FonteDeVideo,
+  origem: Track.Source,
+  ligado: boolean,
+): void {
+  const chave = chaveDeVideo(p.identity, fonte);
+  if (!ligado) {
+    faixasDeVideo.apagar(chave);
+    return;
+  }
+
+  const por = () => {
+    const faixa = p.getTrackPublication(origem)?.track?.mediaStreamTrack;
+    if (faixa) faixasDeVideo.set(chave, faixa);
+    return faixa !== undefined;
+  };
+  if (!por()) setTimeout(por, 600);
+}
+
+/**
+ * O que a transmissão está REALMENTE entregando.
+ *
+ * ⚠ **Medido no `RTCStatsReport`, e não derivado do que se pediu.** O design
+ * desenha "1080p · 30 fps · 4.2 Mbps" e, ao lado, "△ rede caiu para 22 fps" —
+ * as duas frases só fazem sentido juntas se a segunda puder DESMENTIR a
+ * primeira. Mostrar a taxa pedida nos dois lugares daria um aviso que nunca
+ * acende, que é pior que não ter aviso.
+ *
+ * É a mesma recusa que impediu a faixa de voz de derivar "42 ms" de uma
+ * classificação — com a diferença de que aqui o número existe.
+ *
+ * ⚠ **A banda é DELTA entre duas amostras**, e por isso a primeira chamada
+ * devolve `kbps: undefined`: `bytesSent` é um acumulador desde o início da
+ * conexão, e dividi-lo pelo tempo total daria a média da sessão inteira em vez
+ * do que está saindo agora. Quem chama sabe pedir de novo.
+ */
+type AmostraDeTela = { bytes: number; em: number };
+let amostraAnterior: AmostraDeTela | undefined;
+
+export async function estatisticasDaTela(): Promise<
+  { fps: number | undefined; kbps: number | undefined } | undefined
+> {
+  const faixa = sala?.localParticipant.getTrackPublication(
+    Track.Source.ScreenShare,
+  )?.track;
+  if (!faixa) {
+    amostraAnterior = undefined;
+    return undefined;
+  }
+
+  const relatorio = await faixa.getRTCStatsReport();
+  if (!relatorio) return undefined;
+
+  let fps: number | undefined;
+  let bytes: number | undefined;
+
+  relatorio.forEach((entrada: unknown) => {
+    const e = entrada as {
+      type?: string;
+      kind?: string;
+      framesPerSecond?: number;
+      bytesSent?: number;
+    };
+    if (e.type !== "outbound-rtp" || e.kind !== "video") return;
+    /*
+      Com simulcast há uma entrada por camada. Somar os bytes é o certo — é
+      tudo o que sai desta máquina —, e para os quadros vale a MAIOR: a camada
+      de menor resolução costuma andar mais devagar, e a média entre elas não
+      descreve nada que alguém esteja vendo.
+    */
+    if (e.framesPerSecond !== undefined) {
+      fps = Math.max(fps ?? 0, e.framesPerSecond);
+    }
+    if (e.bytesSent !== undefined) bytes = (bytes ?? 0) + e.bytesSent;
+  });
+
+  let kbps: number | undefined;
+  const agora = Date.now();
+  if (bytes !== undefined) {
+    const anterior = amostraAnterior;
+    if (anterior && agora > anterior.em && bytes >= anterior.bytes) {
+      const segundos = (agora - anterior.em) / 1000;
+      kbps = Math.round(((bytes - anterior.bytes) * 8) / segundos / 1000);
+    }
+    amostraAnterior = { bytes, em: agora };
+  }
+
+  return { fps: fps === undefined ? undefined : Math.round(fps), kbps };
+}
+
+export function faixaDeTela(): MediaStreamTrack | undefined {
+  const pub = sala?.localParticipant.getTrackPublication(
+    Track.Source.ScreenShare,
+  );
+  return pub?.track?.mediaStreamTrack;
+}
+
+/**
+ * Pausa ou retoma a transmissão.
+ *
+ * ⚠ **`mute()` da faixa, e não `setScreenShareEnabled(false)`.** O segundo
+ * DESPUBLICA: quem assiste perde a caixa, e voltar exigiria escolher a fonte
+ * outra vez, com o seletor do sistema abrindo de novo. `mute` congela a
+ * imagem no último quadro e mantém o lugar — que é o que "pausar" promete.
+ */
+export async function pausarTela(pausar: boolean): Promise<void> {
+  const faixa = sala?.localParticipant.getTrackPublication(
+    Track.Source.ScreenShare,
+  )?.track;
+  if (!faixa) return;
+
+  if (pausar) await faixa.mute();
+  else await faixa.unmute();
+  definirChamada({ telaPausada: pausar });
+}
+
+/**
+ * Liga e desliga o áudio que acompanha a tela.
+ *
+ * Sem faixa de áudio não há o que alternar — e o controle na tela precisa
+ * saber disso para se desabilitar em vez de fingir. Ver `Chamada.telaAudio`.
+ */
+export async function alternarAudioDaTela(): Promise<void> {
+  const pub = sala?.localParticipant.getTrackPublication(
+    Track.Source.ScreenShareAudio,
+  );
+  const faixa = pub?.track;
+  if (!faixa) return;
+
+  const ligando = faixa.isMuted;
+  if (ligando) await faixa.unmute();
+  else await faixa.mute();
+  definirChamada({ telaAudio: ligando ? "ligado" : "mudo" });
+}
+
+/**
+ * Troca a fonte sem sair do ar mais do que o necessário.
+ *
+ * ⚠ **Para e recomeça, e não há caminho melhor.** Nem `getDisplayMedia` nem o
+ * LiveKit permitem trocar a fonte de uma faixa publicada; o que existe é
+ * capturar outra e substituir. Fazer isso em dois passos explícitos deixa o
+ * intervalo visível para quem assiste — melhor que um controle que promete
+ * troca contínua e entrega o mesmo corte.
+ */
+export async function trocarFonteDaTela(): Promise<void> {
+  if (!lerChamada().tela) return;
+  await alternarTela();
+  await alternarTela();
+}
 
 /**
  * Pergunta o que transmitir e ARMA a escolha na casca.

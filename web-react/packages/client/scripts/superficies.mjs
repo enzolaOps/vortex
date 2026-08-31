@@ -53,6 +53,34 @@ const PAPEL = {
  * chão e não conteúdo. "É o padrão" não é razão.
  */
 const PERMITIDO = {
+  "voz/PalcoDeVoz.module.css": {
+    ".palco":
+      "O CHÃO das três telas do palco, em volta da mídia. O design pinta a " +
+      "moldura no tom mais escuro pela mesma razão que pinta o rail: o que " +
+      "cerca a mídia precisa desaparecer para que ela seja a única coisa " +
+      "com luz. Uma moldura em `surface-2` competiria em luminosidade com " +
+      "o próprio vídeo.",
+  },
+  "voz/GradeDeChamada.module.css": {
+    ".placa":
+      "Véu sobre o vídeo do ladrilho, e não superfície — um tom sólido " +
+      "apagaria um pedaço da imagem de quem está falando.",
+    ".fixar": "O mesmo véu, sob o alvo de fixar.",
+  },
+  "voz/AssistirTransmissao.module.css": {
+    ".cabecalho":
+      "Gradiente sobre o vídeo, e o design manda SEM blur: `backdrop-filter` " +
+      "sobre vídeo em movimento é o efeito mais caro que existe numa camada " +
+      "que fica na tela o tempo todo.",
+    ".chip": "Véu sobre o vídeo, a 70%.",
+    ".acao": "O mesmo véu, a 60%, sob os alvos do cabeçalho.",
+    ".barra": "O mesmo véu, a 82%, sob a barra de controles.",
+  },
+  "voz/PalcoDeTransmissao.module.css": {
+    ".chipDaFonte, .chip": "Véu sobre a mídia, não superfície — `color-mix` com 78% de opacidade sobre conteúdo em movimento. Um tom sólido apagaria um pedaço do que está sendo transmitido.",
+    ".hud": "O mesmo véu, a 82%, sob os controles do transmissor.",
+    ".selo": "O mesmo véu, a 70%, atrás do selo de ladrilho separado.",
+  },
   "shell/Shell.module.css": {
     ".shell":
       "O chão da janela, atrás de tudo. É o que o mock inteiro do design " +

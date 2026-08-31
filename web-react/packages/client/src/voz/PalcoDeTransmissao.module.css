@@ -1,0 +1,493 @@
+/* ============================================================
+   Palco de transmissão — 1:1 com o design
+   ------------------------------------------------------------
+   Cabeçalho de 52 · prancha com borda `danger` · HUD flutuante
+   na própria prancha · fila de 118 · coluna de 262 · doca.
+
+   ⚠ O HUD pertence à PRANCHA e não a uma barra inferior. É
+   instrução do design, e a razão está escrita lá: assim "parar
+   de transmitir" e "desligar a chamada" nunca ficam vizinhos.
+   ============================================================ */
+
+/* ------------------------------------------------------ cabeçalho */
+
+.cabecalho {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-12);
+  block-size: 52px;
+  padding-inline: var(--vx-space-18);
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+.glifoDoCanal {
+  flex: none;
+  color: var(--vx-accent-text);
+}
+
+.nomeDoCanal {
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-lg);
+  font-weight: 600;
+}
+
+.nomeDoServidor {
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+}
+
+.espaco {
+  flex: 1;
+}
+
+.acoesDoCabecalho {
+  display: flex;
+  gap: var(--vx-space-02);
+}
+
+.acaoDoCabecalho {
+  display: grid;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 30px;
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: none;
+  color: var(--vx-text-2);
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.acaoDoCabecalho:hover {
+  background: var(--vx-state-hover);
+}
+
+.acaoDoCabecalho:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/* --------------------------------------------------------- miolo */
+
+.miolo {
+  display: flex;
+  flex: 1;
+  gap: var(--vx-space-12);
+  min-block-size: 0;
+  padding: var(--vx-space-14);
+  /* A coluna e a fila reagem ao MIOLO, não à janela — lei nº 6, e a razão
+     concreta é que o palco pode virar uma janela de popout. */
+  container-type: inline-size;
+}
+
+.esquerda {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--vx-space-10);
+  min-inline-size: 0;
+  min-block-size: 0;
+}
+
+/* ------------------------------------------------------- prancha */
+
+.prancha {
+  position: relative;
+  flex: 1;
+  min-block-size: 0;
+  overflow: hidden;
+  border: 2px solid var(--vx-danger);
+  border-radius: var(--vx-radius-12);
+  /* O xadrez do design, para quando o primeiro quadro ainda não chegou. */
+  background:
+    repeating-linear-gradient(
+      135deg,
+      var(--vx-surface-2) 0 14px,
+      var(--vx-surface-1) 14px 28px
+    );
+}
+
+.video {
+  inline-size: 100%;
+  block-size: 100%;
+  /* `contain` e nunca `cover`: recortar a transmissão esconderia justamente a
+     borda da janela que a pessoa está checando. */
+  object-fit: contain;
+}
+
+.prancha[data-pausada="true"] .video {
+  filter: grayscale(0.6);
+}
+
+/* --------------------------------------------------------- chips */
+
+.chipDaFonte,
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  block-size: 26px;
+  padding-inline: var(--vx-space-10);
+  border-radius: var(--vx-radius-pill);
+  /* O véu do design sobre a mídia. Não é superfície: o que está atrás é
+     conteúdo em movimento, e um tom sólido apagaria um pedaço dele. */
+  background: color-mix(in srgb, var(--vx-surface-0) 78%, transparent);
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-xs);
+}
+
+.chipDaFonte {
+  position: absolute;
+  inset-inline-start: var(--vx-space-14);
+  inset-block-start: var(--vx-space-14);
+  font-family: var(--vx-font-mono);
+}
+
+.medidas {
+  position: absolute;
+  inset-inline-end: var(--vx-space-14);
+  inset-block-start: var(--vx-space-14);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--vx-space-08);
+}
+
+.chip[data-bom] {
+  color: var(--vx-success-text);
+}
+
+.pontoBom {
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-success);
+}
+
+.chip[data-aviso] {
+  background: color-mix(in srgb, var(--vx-warning) 16%, transparent);
+  color: var(--vx-warning);
+}
+
+.avisoDePausa {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 50%;
+  margin: 0;
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-md);
+  text-align: center;
+}
+
+/* ----------------------------------------------------------- HUD */
+
+.hud {
+  position: absolute;
+  inset-inline-start: 50%;
+  inset-block-end: var(--vx-space-14);
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-06);
+  padding: var(--vx-space-06);
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-pill);
+  background: color-mix(in srgb, var(--vx-surface-0) 82%, transparent);
+  box-shadow: var(--vx-elev-2);
+  transform: translateX(-50%);
+}
+
+.parar {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  block-size: 32px;
+  padding-inline: var(--vx-space-12);
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  background: color-mix(in srgb, var(--vx-danger) 18%, transparent);
+  color: var(--vx-danger-text);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.parar:hover {
+  background: color-mix(in srgb, var(--vx-danger) 28%, transparent);
+}
+
+.divisa {
+  inline-size: 1px;
+  block-size: 20px;
+  margin-inline: var(--vx-space-02);
+  background: var(--vx-hairline-10);
+}
+
+.itemDoHud {
+  display: flex;
+  align-items: center;
+  /* ⚠ Sem isto o HUD quebra "Parar de transmitir" e "Trocar fonte" em duas
+     linhas e a barra dobra de altura — medido em janela de 1280. */
+  white-space: nowrap;
+  gap: var(--vx-space-07);
+  block-size: 32px;
+  padding-inline: var(--vx-space-11);
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  background: none;
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.itemDoHud[data-secundario] {
+  color: var(--vx-text-2);
+}
+
+.itemDoHud:hover:not(:disabled) {
+  background: var(--vx-state-hover);
+}
+
+.itemDoHud:disabled {
+  color: var(--vx-text-4);
+  cursor: not-allowed;
+}
+
+.parar:focus-visible,
+.itemDoHud:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------- fila */
+
+.fila {
+  display: grid;
+  flex: none;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--vx-space-10);
+  block-size: 118px;
+}
+
+.ladrilho {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vx-space-07);
+  overflow: hidden;
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-10);
+  background: var(--vx-surface-3);
+}
+
+.ladrilho[data-falando="true"] {
+  border: 2px solid var(--vx-success);
+}
+
+.ladrilho[data-proprio] {
+  /* O acento a 50% do design. `color-mix` do próprio token, e não um
+     `--vx-accent-border` novo: uma borda que só existe atrás deste ladrilho
+     não paga entrada em `TokenName`, classificação e par de contraste — a
+     mesma decisão do realce do item destrutivo no menu. */
+  border: 1px solid color-mix(in oklab, var(--vx-accent) 50%, transparent);
+  background:
+    repeating-linear-gradient(
+      135deg,
+      var(--vx-surface-3) 0 10px,
+      var(--vx-surface-2) 10px 20px
+    );
+}
+
+.glifoDoLadrilho {
+  color: var(--vx-accent-text);
+}
+
+.nomeDoLadrilho {
+  max-inline-size: 100%;
+  overflow: hidden;
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selo {
+  position: absolute;
+  inset-inline-end: var(--vx-space-08);
+  inset-block-start: var(--vx-space-08);
+  display: flex;
+  align-items: center;
+  block-size: 18px;
+  padding-inline: var(--vx-space-06);
+  border-radius: var(--vx-radius-04);
+  background: color-mix(in srgb, var(--vx-surface-0) 70%, transparent);
+  color: var(--vx-accent-text);
+  font-size: var(--vx-size-2xs);
+  font-weight: 700;
+}
+
+/* -------------------------------------------------------- coluna */
+
+.coluna {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  inline-size: 262px;
+  overflow: hidden;
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-12);
+  background: var(--vx-surface-1);
+}
+
+.cabecalhoDaColuna {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--vx-space-12) var(--vx-space-14);
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+.tituloDaColuna {
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+}
+
+.contagem {
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+}
+
+.listaDaColuna {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  padding: var(--vx-space-08);
+}
+
+.linhaDaSala {
+  display: flex;
+  /* ⚠ `flex: none` — filho de coluna flex encolhe em vez de rolar, e foi
+     exatamente assim que o painel de fixadas escreveu por cima de si mesmo. */
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-10);
+  padding: var(--vx-space-07) var(--vx-space-09);
+  border-radius: var(--vx-radius-08);
+}
+
+.nomeNaSala {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mudo {
+  flex: none;
+  color: var(--vx-danger-text);
+}
+
+.nota {
+  margin: var(--vx-space-10) 0 0;
+  padding: var(--vx-space-10);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-2);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+/* ================================================================
+   Janela estreita
+   ----------------------------------------------------------------
+   A coluna lateral e a fila somem antes da prancha: elas são
+   contexto, e a prévia é a razão da tela existir. Container query
+   porque o palco pode virar uma janela de popout um dia — e é a
+   lei nº 6.
+   ================================================================ */
+
+@container (inline-size < 900px) {
+  .coluna {
+    display: none;
+  }
+}
+
+@container (inline-size < 640px) {
+  .fila {
+    display: none;
+  }
+}
+
+
+/* --------------------------------------------- placa da prancha */
+
+/*
+  O texto do design no meio da prancha, e ele só existe SEM quadro.
+
+  Com a imagem chegando, um texto centralizado por cima dela seria ruído
+  permanente sobre o conteúdo que a tela existe para mostrar — a mesma razão
+  que tirou o selo de língua de cima da primeira linha do bloco de código.
+*/
+.placa {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vx-space-08);
+  pointer-events: none;
+}
+
+.placaLinha {
+  color: var(--vx-text-3);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-sm);
+}
+
+.placaNota {
+  color: var(--vx-text-4);
+  font-size: var(--vx-size-xs);
+}
+
+/*
+  ⚠ Um `button` desabilitado não dispara evento de ponteiro, então o `Tooltip`
+  precisa de um alvo vivo em volta — sem isso o motivo de "Sem áudio" ficaria
+  inalcançável, e um controle cinza sem motivo é indistinguível de quebrado.
+*/
+.envolveDesabilitado {
+  display: inline-flex;
+}
+
+/*
+  ⚠ **`inline` e nunca `display: contents` aqui.** Com `contents`, o texto vira
+  filho direto do flex e o `gap` do botão passa a valer ENTRE as palavras — o
+  "Parar de transmitir", que é um rótulo partido em dois nós, sairia com um
+  buraco no meio. O span existe para poder sumir, e sumir é a única coisa que
+  ele faz.
+*/
+.rotuloDoHud {
+  display: inline;
+  white-space: nowrap;
+}
+
+/* A versão curta de "Parar de transmitir" — só na barra estreita. */
+.rotuloCurto {
+  display: none;
+  white-space: nowrap;
+}
+
