@@ -8,6 +8,11 @@ ARG TARGETARCH
 ARG CARGO_BUILD_JOBS=10
 ENV CARGO_BUILD_JOBS=${CARGO_BUILD_JOBS}
 
+# FORK: which crates to build. Empty means all, which is upstream's behaviour.
+# See scripts/build-image-layer.sh for why this fork narrows it.
+ARG CARGO_PACKAGES=""
+ENV CARGO_PACKAGES=${CARGO_PACKAGES}
+
 # Install build requirements
 RUN dpkg --add-architecture "${TARGETARCH}"
 RUN apt-get update && \

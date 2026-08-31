@@ -98,6 +98,15 @@ jobs:
           sudo docker image prune -af || true
           df -h / | tail -1
 
+      # Rede de segurança sobre os 16 GB do runner. O link de um binário Rust
+      # grande é um pico curto: com swap ele fica lento em vez de morrer, e
+      # lento é um resultado — morto não é.
+      - name: Add swap
+        run: |
+          sudo fallocate -l 12G /swap2 && sudo chmod 600 /swap2
+          sudo mkswap /swap2 && sudo swapon /swap2
+          free -h | head -3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -119,11 +128,23 @@ jobs:
           context: .
           platforms: ${{ matrix.plataforma }}
           provenance: false
-          # Com o runner inteiro para uma arquitetura só, o default do upstream
-          # volta a caber. 8 e não 10 por margem: o pico é no link dos crates
-          # do workspace, e foi ali que as duas primeiras corridas morreram.
+          # ⚠ **Só os DOIS binários que este fork publica.**
+          #
+          # A base do upstream compila oito — delta, bonfire, autumn, january,
+          # gifbox, crond, pushd, voice-ingress — porque o upstream publica os
+          # oito. Aqui os outros seis seguem pinados no upstream, então
+          # compilá-los era trabalho puro para o lixo.
+          #
+          # E não era só desperdício: era A FALHA. Três corridas morreram no
+          # link, sem erro no log, e o `df -h` provou que disco não era —
+          # sobravam 110 GB. Era memória, e o `autumn` sozinho arrasta a árvore
+          # de codecs de imagem.
+          #
+          # `jobs=4` junto: com seis binários a menos, o pico cai o bastante
+          # para caber, e a margem sobre o default vale mais que os minutos.
           build-args: |
-            CARGO_BUILD_JOBS=8
+            CARGO_BUILD_JOBS=4
+            CARGO_PACKAGES=-p revolt-delta -p revolt-bonfire
           outputs: type=image,name=ghcr.io/${{ steps.dono.outputs.nome }}/${{ env.BASE }},push-by-digest=true,name-canonical=true,push=true
           # Escopo por arquitetura: um cache só faria os dois jobs
           # sobrescreverem o trabalho um do outro a cada corrida.

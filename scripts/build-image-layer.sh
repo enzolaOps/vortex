@@ -1,6 +1,21 @@
 #!/bin/sh
 # If you're having trouble building this locally or on your CI, try lowering
 # the job count via CARGO_BUILD_JOBS. It defaults to 10.
+#
+# FORK: CARGO_PACKAGES limits which crates get built.
+#
+# Upstream builds all eight binaries — delta, bonfire, autumn, january,
+# gifbox, crond, pushd, voice-ingress — because upstream publishes all eight.
+# This fork publishes two: the API (delta) and events (bonfire). The other six
+# stay pinned to upstream images, which is the whole point of forking only the
+# service that owns the surface you change.
+#
+# Building the other six was not just waste, it was the failure. Three CI runs
+# died linking, with no error in the log: the process is killed and the output
+# simply stops. Disk was never the problem — 110 GB free after cleanup — so
+# what ran out was memory, and `autumn` alone drags in the image codec tree.
+#
+# Unset, the behaviour is upstream's: everything gets built.
 
 if [ -z "$TARGETARCH" ]; then
   :
@@ -64,9 +79,11 @@ deps() {
     tee crates/core/ratelimits/src/lib.rs
   
   if [ -z "$TARGETARCH" ]; then
-    cargo build -j "${CARGO_BUILD_JOBS:-10}" --locked --release
+    # shellcheck disable=SC2086 # CARGO_PACKAGES is a list of flags on purpose
+    cargo build -j "${CARGO_BUILD_JOBS:-10}" --locked --release ${CARGO_PACKAGES}
   else
-    cargo build -j "${CARGO_BUILD_JOBS:-10}" --locked --release --target "${BUILD_TARGET}"
+    # shellcheck disable=SC2086
+    cargo build -j "${CARGO_BUILD_JOBS:-10}" --locked --release --target "${BUILD_TARGET}" ${CARGO_PACKAGES}
   fi
 }
 
@@ -88,9 +105,11 @@ apps() {
     crates/core/ratelimits/src/lib.rs
   
   if [ -z "$TARGETARCH" ]; then
-    cargo build -j "${CARGO_BUILD_JOBS:-10}" --locked --release
+    # shellcheck disable=SC2086 # CARGO_PACKAGES is a list of flags on purpose
+    cargo build -j "${CARGO_BUILD_JOBS:-10}" --locked --release ${CARGO_PACKAGES}
   else
-    cargo build -j "${CARGO_BUILD_JOBS:-10}" --locked --release --target "${BUILD_TARGET}"
+    # shellcheck disable=SC2086
+    cargo build -j "${CARGO_BUILD_JOBS:-10}" --locked --release --target "${BUILD_TARGET}" ${CARGO_PACKAGES}
     mv target _target && mv _target/"${BUILD_TARGET}" target
   fi
 }
