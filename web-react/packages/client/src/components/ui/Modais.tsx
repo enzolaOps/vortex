@@ -20,6 +20,7 @@ import { GerenciarGrupo } from "../../casa/GerenciarGrupo";
 import { NovoGrupo } from "../../casa/NovoGrupo";
 import { ModalDeApelido } from "../../membros/ModalDeApelido";
 import { PrivacidadeDoServidor } from "../../servidores/PrivacidadeDoServidor";
+import { EditorDePasta } from "../../servidores/EditorDePasta";
 import { SeletorDeTela } from "../../voz/SeletorDeTela";
 
 /**
@@ -50,6 +51,7 @@ const REGISTRO: Record<ModalId, ComponentType<{ aoFechar: () => void }>> = {
   enquete: CriarEnquete,
   novoGrupo: NovoGrupo,
   tela: SeletorDeTela,
+  pasta: EditorDePasta,
   grupo: GerenciarGrupo,
   privacidadeDoServidor: PrivacidadeDoServidor,
   apelido: ModalDeApelido,

@@ -180,32 +180,78 @@
 
 /* --- a prévia do convite -------------------------------------- */
 
+/*
+  O cartão da landing — banner, ícone sobreposto, nome, assunto e contagem.
+
+  ⚠ **Ele era uma linha de sigla + duas frases**, e os quatro campos que o
+  protocolo manda (`server_icon`, `server_banner`, `channel_description`,
+  `user_avatar`) chegavam e eram descartados. A referência desenha um cartão:
+  faixa colorida, ícone sobreposto e a informação abaixo.
+
+  ⚠ **O MESMO componente serve o modal e a tela deslogada.** Um convite visto
+  de dentro do app e outro visto no navegador não podem parecer dois servidores
+  diferentes — é o que a referência chama de "três larguras, um componente".
+*/
 .previa {
-  display: flex;
-  align-items: center;
-  gap: var(--vx-space-12);
-  padding: var(--vx-space-12);
-  border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-06);
+  overflow: hidden;
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-10);
   background: var(--vx-surface-3);
 }
 
+/*
+  A faixa. Sem banner ela é o gradiente do ID do servidor — a mesma peça do
+  ladrilho do rail, e o que impede um retângulo cinza de dizer nada.
+*/
+.faixa {
+  position: relative;
+  block-size: 96px;
+}
+
+.bannerImagem {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+/*
+  O ícone SOBREPÕE a faixa, subindo metade da própria altura — é o desenho da
+  referência, e é o que amarra a faixa ao conteúdo em vez de deixar duas
+  metades soltas.
+*/
 .marca {
+  position: relative;
+  margin-block-start: -26px;
+  margin-inline-start: var(--vx-space-14);
   display: grid;
   place-items: center;
-  flex: 0 0 auto;
-  inline-size: var(--vx-avatar-lg);
-  block-size: var(--vx-avatar-lg);
-  border-radius: var(--vx-radius-08);
-  background: var(--vx-surface-1);
+  inline-size: 52px;
+  block-size: 52px;
+  border: 3px solid var(--vx-surface-3);
+  border-radius: var(--vx-radius-12);
   color: var(--vx-text-1);
-  font-size: var(--vx-size-md);
-  font-weight: 600;
+  font-size: var(--vx-size-lg);
+  font-weight: 700;
+}
+
+.iconeImagem {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  /* 9 e não `calc(12 - 3)`: o raio interno de uma moldura de 3px é 12−3, e
+     esse degrau EXISTE na escala. O `pnpm escala` reprovou o `calc` com a
+     razão certa — quando o degrau existe, não há por que escapar dele. */
+  border-radius: var(--vx-radius-09);
+  object-fit: cover;
 }
 
 .sobre {
   display: grid;
-  gap: var(--vx-space-02);
+  gap: var(--vx-space-06);
+  padding: var(--vx-space-10) var(--vx-space-14) var(--vx-space-14);
   min-inline-size: 0;
 }
 
@@ -215,24 +261,57 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--vx-text-1);
-  font-size: var(--vx-size-md);
+  font-size: var(--vx-size-xl);
   font-weight: 600;
 }
 
 /*
-  Contagem e origem, apagadas.
+  O assunto do canal — `channel_description`, que chegava e era jogado fora.
+
+  Duas linhas no máximo: é a informação que diz "sobre o que é este lugar", e
+  um assunto de dez linhas empurraria o botão para fora da vista.
+*/
+.assunto {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-md);
+  line-height: var(--vx-leading-message);
+  text-wrap: pretty;
+}
+
+/*
+  Contagem e destino, apagados.
 
   São o que responde "onde eu vou cair" antes de virar membro de um servidor
-  que a pessoa não conhece — dado de decisão, não decoração, mas subordinado ao
-  nome.
+  que a pessoa não conhece — dado de decisão, não decoração, mas subordinado
+  ao nome.
 */
 .detalhe {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-06);
   min-inline-size: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   color: var(--vx-text-3);
   font-size: var(--vx-size-sm);
+}
+
+/* Quem convidou, com o avatar dele — `user_avatar`, o quarto campo ignorado. */
+.convidou {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+}
+
+.regras {
+  margin: 0;
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
+  text-wrap: pretty;
 }
 
 /*

@@ -29,6 +29,22 @@ export type Convite = {
   readonly membros: number;
   readonly nomeDoCanal: string;
   readonly convidadoPor: string;
+  /**
+   * Ícone, banner, assunto do canal e avatar de quem convidou.
+   *
+   * ⚠ **Os quatro chegam pelo fio desde sempre e nunca foram desenhados.**
+   * `InviteResponse` carrega `server_icon`, `server_banner`,
+   * `channel_description` e `user_avatar`, e o `ServerPublicInvite` do SDK os
+   * expõe os quatro. A landing mostrava só a sigla — é a mesma família do
+   * `ehMencao` que passou três fases sem devolver `true`.
+   *
+   * `undefined` é o caso comum e continua sendo o certo: sem ícone o ladrilho
+   * cai no gradiente por ID, que identifica melhor que um cinza.
+   */
+  readonly iconeUrl: string | undefined;
+  readonly bannerUrl: string | undefined;
+  readonly assuntoDoCanal: string | undefined;
+  readonly avatarDeQuemConvidou: string | undefined;
   /** Já sou membro — o botão diz "Abrir" em vez de "Entrar". */
   readonly jaSouMembro: boolean;
 };
@@ -94,6 +110,13 @@ export async function buscarConvite(
       membros: convite.memberCount,
       nomeDoCanal: convite.channelName,
       convidadoPor: convite.userName,
+      /* `createFileURL()` e não a URL crua: quem monta o endereço do autumn é
+         o SDK, com a configuração que ele buscou do servidor. Montar aqui
+         seria a forma do protocolo vazando para a tela. */
+      iconeUrl: convite.serverIcon?.createFileURL(),
+      bannerUrl: convite.serverBanner?.createFileURL(),
+      assuntoDoCanal: convite.channelDescription || undefined,
+      avatarDeQuemConvidou: convite.userAvatar?.createFileURL(),
       jaSouMembro: client.servers.get(convite.serverId) !== undefined,
     };
   } catch (e) {

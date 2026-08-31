@@ -7,6 +7,7 @@ import { Campo } from "../components/ui/Campo";
 import { CartaoDeOpcao } from "../components/ui/CartaoDeOpcao";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { cn } from "../lib/cn";
+import { corDoTextoDe, gradienteDe } from "../lib/gradiente";
 import { sigla } from "../lib/sigla";
 import { aindaNao } from "../pendente/pendencias";
 import {
@@ -386,20 +387,59 @@ export function PreviaDoConvite({
   return (
     <div className={css.corpo}>
       <div className={css.previa}>
-        <span className={css.marca} aria-hidden>
+        {/*
+          A faixa. Sem banner ela é o gradiente do ID do servidor — a mesma
+          peça do ladrilho do rail, e o que impede um retângulo cinza.
+        */}
+        <div
+          className={css.faixa}
+          style={{ backgroundImage: gradienteDe(convite.serverId) }}
+          aria-hidden
+        >
+          {convite.bannerUrl !== undefined ? (
+            <img className={css.bannerImagem} src={convite.bannerUrl} alt="" />
+          ) : null}
+        </div>
+
+        <div
+          className={css.marca}
+          aria-hidden
+          style={{
+            backgroundImage: gradienteDe(convite.serverId),
+            color: corDoTextoDe(convite.serverId),
+          }}
+        >
           {convite.sigla}
-        </span>
-        <span className={css.sobre}>
+          {convite.iconeUrl !== undefined ? (
+            <img className={css.iconeImagem} src={convite.iconeUrl} alt="" />
+          ) : null}
+        </div>
+
+        <div className={css.sobre}>
           <span className={css.nome}>{convite.nomeDoServidor}</span>
+
+          {/* Só quando há: um assunto vazio deixaria uma linha de altura sem
+              conteúdo entre o nome e a contagem. */}
+          {convite.assuntoDoCanal !== undefined ? (
+            <span className={css.assunto}>{convite.assuntoDoCanal}</span>
+          ) : null}
+
           <span className={css.detalhe}>
             {convite.membros.toLocaleString("pt-BR")}{" "}
             {convite.membros === 1 ? "membro" : "membros"} · você cai em #
             {convite.nomeDoCanal}
           </span>
-          <span className={css.detalhe}>
+
+          <span className={css.convidou}>
+            <Avatar
+              id={convite.codigo}
+              sigla={sigla(convite.convidadoPor)}
+              url={convite.avatarDeQuemConvidou}
+              tamanho="xxs"
+            />
             Convite de {convite.convidadoPor}
           </span>
-        </span>
+        </div>
       </div>
 
       <Botao
@@ -440,6 +480,14 @@ export function PreviaDoConvite({
           Usar outro convite
         </Botao>
       ) : null}
+
+      {/* Depois do botão e apagada: é condição, não decisão — a referência a
+          põe em caption justamente para não competir com a ação. */}
+      {convite.jaSouMembro ? null : (
+        <p className={css.regras}>
+          Ao entrar você aceita as regras do servidor.
+        </p>
+      )}
     </div>
   );
 }

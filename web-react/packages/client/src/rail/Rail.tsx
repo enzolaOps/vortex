@@ -300,14 +300,10 @@ const PastaDoRail = memo(function PastaDoRail({
           </ContextMenuItem>
           <ContextMenuItem
             onSelect={() =>
-              administrar({
-                tipo: "renomearPasta",
-                pastaId: pasta.id,
-                nome: pasta.nome,
-              })
+              administrar({ tipo: "editarPasta", pastaId: pasta.id })
             }
           >
-            Renomear pasta
+            Editar pasta
           </ContextMenuItem>
           <ContextMenuSeparator />
           {/*
