@@ -119,3 +119,25 @@ export function exigeConvite(): boolean {
       ?.features?.invite_only === true
   );
 }
+
+/**
+ * Esta instância consegue mandar e-mail?
+ *
+ * ⚠ **`features.email` desligado torna a recuperação de senha INERTE**, e o
+ * servidor não avisa: `POST /auth/account/reset_password` responde 204 e o
+ * e-mail nunca sai. Sem ler isto, a tela promete um link que não existe e a
+ * pessoa espera indefinidamente.
+ *
+ * Medido nesta instância: `email: false`. É o estado padrão de quem sobe a
+ * stack sem configurar SMTP, ou seja, o caso comum — não a exceção.
+ *
+ * O default é `true` — sem configuração, a tela não acusa. É o lado certo para
+ * errar: um aviso falso de "não vai chegar" faria alguém desistir de um e-mail
+ * que estava a caminho.
+ */
+export function instanciaMandaEmail(): boolean {
+  return (
+    (client.configuration as { features?: { email?: boolean } } | undefined)
+      ?.features?.email !== false
+  );
+}

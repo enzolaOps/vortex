@@ -127,3 +127,20 @@ export function consumirEscolhaDeIdentidade(): IdentidadeEscolhida | undefined {
   identidade = undefined;
   return atual;
 }
+
+/**
+ * Vai para o passo 3 com o token que a pessoa COLOU.
+ *
+ * ⚠ Existe porque o link do e-mail abre onde o e-mail está, e isso raramente é
+ * a aba onde o app está aberto — quem lê no celular e usa o Vortex no
+ * computador clicaria no aparelho errado. Colar o endereço leva ao mesmo
+ * lugar, sem exigir que a pessoa entenda por que não funcionou.
+ *
+ * Não mexe na URL, ao contrário da rota `/redefinir/:token`: o token é
+ * credencial de uso único, e a barra de endereço fica em histórico, em log de
+ * proxy e em print de tela. Quem chega pelo link já paga esse preço — quem
+ * cola não precisa pagar de novo.
+ */
+export function irParaRedefinir(token: string): void {
+  definirEntrada({ tipo: "redefinir", token });
+}
