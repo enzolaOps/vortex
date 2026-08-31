@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
+import { Caixa } from "../components/ui/Marcador";
+import { aindaNao } from "../pendente/pendencias";
 import { definirEntrada } from "../store/entrada";
 import { definirUsuarioLocal } from "../sdk/adapter";
 import { entrar } from "../sdk/autenticacao";
@@ -40,119 +42,183 @@ export function TelaDeLogin({
 }) {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [lembrar, setLembrar] = useState(true);
 
   const podeEnviar = email.trim().length > 0 && senha.length > 0 && !entrando;
 
   return (
     <main className={css.tela}>
-      <form
-        className={css.cartao}
-        onSubmit={(evento) => {
-          evento.preventDefault();
-          if (!podeEnviar) return;
-          void entrar(email.trim(), senha);
-        }}
-      >
-        <h1 className={css.titulo}>Vortex</h1>
-
-        <Campo
-          rotulo="E-mail"
-          type="email"
-          /* `username` e não `email`: é o que os gerenciadores de senha
-             procuram, e errar aqui faz o preenchimento automático não
-             oferecer nada. */
-          autoComplete="username"
-          /* O foco começa aqui: abrir a tela já pronta para digitar poupa um
-             clique em cada abertura, e é o primeiro gesto de qualquer um. */
-          autoFocus
-          required
-          disabled={entrando}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-
-        <Campo
-          rotulo="Senha"
-          type="password"
-          autoComplete="current-password"
-          required
-          disabled={entrando}
-          value={senha}
-          onChange={(e) => setSenha(e.target.value)}
-        />
-
+      <div className={css.moldura}>
         {/*
-          O erro fica ACIMA do botão, não abaixo.
-
-          Abaixo, ele aparece fora do caminho do olho que já está indo para o
-          botão — e num formulário curto a pessoa reenvia sem ter lido. Acima,
-          ela atravessa a mensagem para chegar ao alvo.
-
-          `role="alert"` aqui, ao contrário da faixa de conexão: isto é
-          resposta a uma ação que a pessoa ACABOU de fazer, e interromper o
-          leitor de tela é o comportamento certo.
+          O painel de marca — DECORATIVO, e some abaixo de 900px por container
+          query. É instrução literal do design: "o formulário nunca encolhe".
+          `aria-hidden` porque nada aqui é acionável e o nome do produto já
+          está no `h1` do formulário.
         */}
-        {motivo ? (
-          <Banner tom="perigo" role="alert">
-            {motivo}
-          </Banner>
-        ) : null}
+        <aside className={css.marca} aria-hidden>
+          <div>
+            <div className={css.marcaTopo}>
+              <span className={css.ladrilho}>V</span>
+              <span className={css.marcaNome}>Vortex</span>
+            </div>
+            <p className={css.chamada}>
+              Conversa em tempo real para times que vivem no chat.
+            </p>
+            <p className={css.subchamada}>
+              Servidores, cargos, permissões finas e voz &mdash; sem sair da
+              mesma janela.
+            </p>
+          </div>
 
-        <Botao variante="primario" type="submit" disabled={!podeEnviar}>
-          {entrando ? "Entrando…" : "Entrar"}
-        </Botao>
+          <div className={css.pontos}>
+            <span className={css.ponto}>
+              <span className={css.tique}>&#10003;</span>
+              Sincroniza web e desktop
+            </span>
+            <span className={css.ponto}>
+              <span className={css.tique}>&#10003;</span>
+              Permissões por canal e por membro
+            </span>
+          </div>
+        </aside>
 
-        {/*
-          As duas saídas da tela, e elas não são enfeite.
+        <form
+          className={css.forma}
+          onSubmit={(evento) => {
+            evento.preventDefault();
+            if (!podeEnviar) return;
+            void entrar(email.trim(), senha);
+          }}
+        >
+          {/*
+            ⚠ **"Bom te ver de novo" e não "Bem-vinda de volta", que é o texto
+            do design.** Esta tela cumprimenta alguém de quem o app não sabe
+            nada — nem o nome, quanto mais o gênero. O mesmo vale para "Manter
+            conectada" mais abaixo. É a única divergência de COPY desta tela, e
+            a razão é que acertar por sorte metade das vezes não é acertar.
+          */}
+          <h1 className={css.saudacao}>Bom te ver de novo</h1>
+          <p className={css.instrucao}>Entre com seu e-mail.</p>
 
-          Sem "Criar conta", o app só serve a quem já tem conta feita por outro
-          cliente — o que o mapa de superfícies registrou como a consequência
-          mais grave da autenticação incompleta. Sem "Esqueci a senha", quem
-          perdeu o acesso não tem nada a fazer aqui.
+          {/*
+            O erro fica ACIMA do formulário, não abaixo do botão.
 
-          `sutil` e não `primario`: a ação principal desta tela é entrar, e três
-          botões com o mesmo peso não têm ação principal nenhuma.
-        */}
-        <div className={css.saidas}>
+            É o que o design manda, e a razão dele é boa: não sabemos qual dos
+            dois campos está errado, então marcar um deles de vermelho seria
+            uma acusação sem base. O banner diz o que houve sem apontar.
+
+            `role="alert"` porque isto responde a uma ação que a pessoa ACABOU
+            de fazer — interromper o leitor de tela é o certo aqui.
+          */}
+          {motivo ? (
+            <Banner tom="perigo" role="alert" className={css.aviso}>
+              {motivo}
+            </Banner>
+          ) : null}
+
+          <Campo
+            rotulo="E-mail"
+            type="email"
+            /* `username` e não `email`: é o que os gerenciadores de senha
+               procuram, e errar aqui faz o preenchimento não oferecer nada. */
+            autoComplete="username"
+            autoFocus
+            required
+            disabled={entrando}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+
+          <Campo
+            rotulo="Senha"
+            type="password"
+            revelavel
+            autoComplete="current-password"
+            required
+            disabled={entrando}
+            value={senha}
+            onChange={(e) => setSenha(e.target.value)}
+            acaoDoRotulo={
+              <button
+                type="button"
+                className={css.esqueci}
+                disabled={entrando}
+                onClick={() => definirEntrada({ tipo: "recuperar" })}
+              >
+                Esqueci a senha
+              </button>
+            }
+          />
+
+          {/*
+            ⚠ **A caixa está MARCADA por padrão, e isso reflete o que o app já
+            faz.** A sessão é guardada em `localStorage` desde a fase 6 — sem
+            escolha nenhuma. Nascer desmarcada faria o controle prometer um
+            comportamento que o app não tem.
+          */}
+          <div className={css.lembrar}>
+            <Caixa
+              marcado={lembrar}
+              disabled={entrando}
+              aoAlternar={setLembrar}
+            >
+              Manter a sessão neste dispositivo
+            </Caixa>
+          </div>
+
+          <Botao variante="primario" type="submit" disabled={!podeEnviar}>
+            {entrando ? "Entrando…" : "Entrar"}
+          </Botao>
+
+          <div className={css.ou}>
+            <span className={css.reguaDoOu} aria-hidden />
+            <span className={css.rotuloDoOu}>ou</span>
+            <span className={css.reguaDoOu} aria-hidden />
+          </div>
+
           <Botao
             variante="sutil"
             disabled={entrando}
-            onClick={() => definirEntrada({ tipo: "criar" })}
+            onClick={aindaNao("entrarComQr")}
           >
-            Criar conta
+            Continuar com código QR
           </Botao>
-          <Botao
-            variante="sutil"
-            disabled={entrando}
-            onClick={() => definirEntrada({ tipo: "recuperar" })}
-          >
-            Esqueci a senha
-          </Botao>
-        </div>
 
-        {/*
-          A entrada de desenvolvimento, VISÍVEL.
+          <div className={css.folga} />
 
-          Não há backend alcançável deste repositório, então o formulário acima
-          não tem a quem perguntar — e um portão que ninguém consegue
-          atravessar travaria o desenvolvimento inteiro.
+          <p className={css.rodape}>
+            Não tem conta?{" "}
+            <button
+              type="button"
+              className={css.trocarTela}
+              disabled={entrando}
+              onClick={() => definirEntrada({ tipo: "criar" })}
+            >
+              Cadastre-se
+            </button>
+          </p>
 
-          A alternativa era o portão se desligar em dev, e ela é pior por dois
-          motivos: o portão deixaria de ser exercitado justamente onde se
-          trabalha, e um atalho invisível é o tipo de coisa que sobrevive até
-          produção sem ninguém notar. Este some do bundle — `import.meta.env.DEV`
-          é substituído por `false` e o bloco inteiro cai no tree-shaking.
-        */}
-        {import.meta.env.DEV ? (
-          <button
-            type="button"
-            className={css.semServidor}
-            onClick={() => definirUsuarioLocal(USUARIO_DO_ARNES)}
-          >
-            entrar sem servidor (desenvolvimento)
-          </button>
-        ) : null}
-      </form>
+          {/*
+            A entrada de desenvolvimento, VISÍVEL.
+
+            Um portão que ninguém atravessa travaria o desenvolvimento inteiro
+            quando não há servidor no ar. A alternativa — desligar o portão em
+            dev — é pior: ele deixaria de ser exercitado justamente onde se
+            trabalha, e atalho invisível sobrevive até produção sem ninguém
+            notar. Este some do bundle: `import.meta.env.DEV` vira `false` e o
+            bloco cai no tree-shaking.
+          */}
+          {import.meta.env.DEV ? (
+            <button
+              type="button"
+              className={css.semServidor}
+              onClick={() => definirUsuarioLocal(USUARIO_DO_ARNES)}
+            >
+              entrar sem servidor (desenvolvimento)
+            </button>
+          ) : null}
+        </form>
+      </div>
     </main>
   );
 }

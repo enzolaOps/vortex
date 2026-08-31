@@ -50,6 +50,7 @@ import {
   precisaDeNome,
   type MetodoDeMfa,
 } from "../store/sessao";
+import { motivoDoErro } from "./erros";
 
 /**
  * O nome que identifica ESTA sessão na lista de dispositivos da conta.
@@ -71,16 +72,11 @@ const NOME_AMIGAVEL = "Vortex (web)";
  * O `status` vem do erro do SDK, que carrega a resposta HTTP. Sem status é
  * rede: o pedido não chegou a lugar nenhum.
  */
+/* Delega para o tradutor unico — ver `sdk/erros.ts`. O corpo que
+   estava aqui lia `e.response.status`, que o `stoat-api` nunca
+   produz, entao TODA falha virava "Sem resposta do servidor". */
 export function motivoDe(e: unknown): string {
-  const status = (e as { response?: { status?: number } })?.response?.status;
-
-  if (status === 401) return "E-mail ou senha incorretos.";
-  if (status === 429) return "Tentativas demais. Espere um pouco.";
-  if (status !== undefined && status >= 500) {
-    return "O servidor não conseguiu responder. Tente de novo em instantes.";
-  }
-  if (status !== undefined) return "O servidor recusou o acesso.";
-  return "Sem resposta do servidor. Verifique sua conexão.";
+  return motivoDoErro(e);
 }
 
 /* ------------------------------------------------------------- protocolo */

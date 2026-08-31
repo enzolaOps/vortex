@@ -43,12 +43,42 @@
  * build — a mesma separação do cliente Solid. Ela existe porque o dev server
  * roda em `localhost:5173` e a API não: sem override, `/api` bateria no Vite.
  */
-export const API_URL: string =
-  (import.meta.env.DEV
+export const API_URL: string = primeiroNaoVazio(
+  import.meta.env.DEV
     ? (import.meta.env.VITE_DEV_API_URL as string | undefined)
-    : undefined) ??
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  mesmaOrigem();
+    : undefined,
+  import.meta.env.VITE_API_URL as string | undefined,
+  mesmaOrigem(),
+);
+
+/**
+ * O primeiro valor que não é vazio.
+ *
+ * ⚠ **`??` é o operador ERRADO para variável de ambiente, e isso derrubou o
+ * app inteiro sem um erro sequer.** `??` só cai para o próximo em `null` e
+ * `undefined`; string VAZIA passa. E variável de ambiente vazia é o estado
+ * normal no Docker — o `Dockerfile` declarava `ARG VITE_API_URL=""`, o Vite
+ * substituiu `import.meta.env.VITE_API_URL` por `""`, e o `baseURL` do cliente
+ * virou string vazia.
+ *
+ * O SDK então caiu no default DELE (`https://api.stoat.chat`), e o app passou
+ * a mandar login e criação de conta para a instância PÚBLICA do Stoat — com a
+ * senha digitada junto. O sintoma na tela era "E-mail ou senha incorretos",
+ * porque a conta de fato não existe lá.
+ *
+ * ⚠ Nem `||` puro: ele também cairia em `0` e `false`, que não são casos aqui,
+ * mas a intenção é "descarte o vazio", e escrever a intenção é o que impede a
+ * próxima pessoa de trocar de volta.
+ */
+function primeiroNaoVazio(...valores: (string | undefined)[]): string {
+  for (const v of valores) {
+    if (v !== undefined && v.trim() !== "") return v;
+  }
+  /* Inalcançável: o último valor é sempre a mesma origem. O `throw` existe
+     porque o tipo de retorno é `string` e um `?? ""` aqui reintroduziria
+     exatamente o vazio que esta função existe para barrar. */
+  throw new Error("API_URL sem valor");
+}
 
 /**
  * `{origem}/api`, ou um placeholder fora do navegador.

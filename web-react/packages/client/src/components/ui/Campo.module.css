@@ -136,3 +136,70 @@
   font-size: var(--vx-size-sm);
   color: var(--vx-danger-text);
 }
+
+/* ------------------------------------------- campo com botao dentro */
+
+/*
+  A caixa que embrulha `input` + olho.
+
+  Ela recebe a borda e o foco que o `input` sozinho teria; o `input` fica nu
+  por dentro. Sem isso o anel de foco cercaria so o texto e o olho ficaria de
+  fora dele, que e a versao visivel de "o botao nao faz parte do campo".
+*/
+.caixa {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  /* Os MESMOS valores de `.entrada`, porque é o mesmo campo com um botão
+     dentro. O `pnpm superficies` pegou minha primeira versão em `surface-0` —
+     eu tinha copiado do design sem notar que `.entrada` já decidiu isto, com
+     a razão escrita logo acima. */
+  block-size: 36px;
+  padding-inline: var(--vx-space-12);
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+}
+
+.caixa:focus-within {
+  border-color: var(--vx-accent);
+}
+
+.entradaNua {
+  flex: 1;
+  min-inline-size: 0;
+  border: 0;
+  background: none;
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-base);
+  outline: none;
+}
+
+.olho {
+  display: grid;
+  place-items: center;
+  flex: none;
+  border: 0;
+  background: none;
+  color: var(--vx-text-3);
+  cursor: pointer;
+}
+
+.olho:hover {
+  color: var(--vx-text-1);
+}
+
+.olho:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+  border-radius: var(--vx-radius-04);
+}
+
+/* A linha do rotulo com uma acao na outra ponta — "Esqueci a senha". */
+.linhaDoRotulo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vx-space-12);
+}

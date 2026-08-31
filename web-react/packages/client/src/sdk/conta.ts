@@ -18,6 +18,7 @@
 import { client } from "./client";
 import { definirUsuarioLocal } from "./adapter";
 import { dentro, erro, lerSessao, precisaDeNome } from "../store/sessao";
+import { motivoDoErro } from "./erros";
 
 /**
  * Traduz a falha das telas de conta.
@@ -26,22 +27,11 @@ import { dentro, erro, lerSessao, precisaDeNome } from "../store/sessao";
  * dizer coisas diferentes aqui. Um 409 no login não existe; na criação de
  * conta é "esse e-mail já tem conta", que é a informação mais útil da tela.
  */
+/* Delega para o tradutor unico — ver `sdk/erros.ts`. O corpo que
+   estava aqui lia `e.response.status`, que o `stoat-api` nunca
+   produz, entao TODA falha virava "Sem resposta do servidor". */
 export function motivoDeConta(e: unknown): string {
-  const status = (e as { response?: { status?: number } })?.response?.status;
-
-  if (status === 409) return "Já existe uma conta com esse e-mail.";
-  if (status === 400) {
-    return "O servidor recusou os dados. Confira o e-mail e a senha.";
-  }
-  if (status === 401 || status === 403) {
-    return "Este link expirou ou já foi usado. Peça outro.";
-  }
-  if (status === 429) return "Tentativas demais. Espere um pouco.";
-  if (status !== undefined && status >= 500) {
-    return "O servidor não conseguiu responder. Tente de novo em instantes.";
-  }
-  if (status !== undefined) return "O servidor recusou o pedido.";
-  return "Sem resposta do servidor. Verifique sua conexão.";
+  return motivoDoErro(e);
 }
 
 /**

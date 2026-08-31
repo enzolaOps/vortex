@@ -11,6 +11,7 @@
 import { client } from "./client";
 import { publicarConversas, publicarRelacoes } from "./adapter";
 import { toast } from "../components/ui/toastStore";
+import { motivoDoErro } from "./erros";
 
 /**
  * Avisa, e não engole.
@@ -20,17 +21,9 @@ import { toast } from "../components/ui/toastStore";
  * superfície de erro que existe para ação que não tem tela própria.
  */
 function falhou(oQue: string, e: unknown): void {
-  const status = (e as { response?: { status?: number } })?.response?.status;
-  const detalhe =
-    status === 404
-      ? "Não encontramos essa pessoa."
-      : status === 403
-        ? "Você não tem permissão para isso."
-        : status === 409
-          ? "Isso já foi feito."
-          : status !== undefined
-            ? "O servidor recusou."
-            : "Sem resposta do servidor.";
+  /* Delega para o tradutor unico — ver `sdk/erros.ts`. A cadeia que estava
+     aqui lia `e.response.status`, que o `stoat-api` nunca produz. */
+  const detalhe = motivoDoErro(e);
   toast({ tipo: "erro", titulo: oQue, descricao: detalhe });
 }
 

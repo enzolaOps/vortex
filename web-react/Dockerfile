@@ -59,12 +59,17 @@ RUN pnpm --filter stoat.js build
 # domínio. A URL acompanha o domínio sozinha — em produção, em túnel e em
 # preview — sem reescrever bundle e sem uma etapa que pode falhar em silêncio.
 #
-# `VITE_API_URL` continua sendo lido pelo cliente e pode ser passado como
-# argumento de build se algum dia o cliente e a API morarem em domínios
-# diferentes. Não é o caso desta stack.
-ARG VITE_API_URL=""
-ENV VITE_API_URL=${VITE_API_URL}
-
+# ⚠ **NÃO declare `ARG VITE_API_URL=""` aqui.** Eu tinha declarado, "para o
+# futuro", e isso derrubou o app inteiro em silêncio: o Vite substitui
+# `import.meta.env.VITE_API_URL` pela string VAZIA, e `??` não cai para o
+# próximo em vazio — só em `null`/`undefined`. O `baseURL` virou `""`, o SDK
+# caiu no default dele (`https://api.stoat.chat`), e login e criação de conta
+# passaram a ir para a instância PÚBLICA do Stoat, com a senha junto.
+#
+# `sdk/config.ts` agora descarta vazio, então o erro não volta por aqui. A
+# variável segue sem ser declarada porque declarar não serve para nada: quem
+# precisar apontar para outro domínio passa `--build-arg` e a linha entra
+# junto, com o valor de verdade.
 RUN pnpm --filter client build
 
 # ============================================

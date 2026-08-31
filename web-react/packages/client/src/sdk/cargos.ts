@@ -9,6 +9,7 @@ import { Permission } from "stoat.js";
 
 import { client } from "./client";
 import { toast } from "../components/ui/toastStore";
+import { motivoDoErro } from "./erros";
 
 /**
  * As permissões que a interface mostra, agrupadas como quem administra pensa.
@@ -277,13 +278,11 @@ export async function moverParaCanalDeVoz(
   }
 }
 
+/* Delega para o tradutor unico — ver `sdk/erros.ts`. O corpo que
+   estava aqui lia `e.response.status`, que o `stoat-api` nunca
+   produz, entao TODA falha virava "Sem resposta do servidor". */
 function motivo(e: unknown): string {
-  const status = (e as { response?: { status?: number } })?.response?.status;
-  if (status === 403) return "Você não pode mexer neste cargo.";
-  if (status === 404) return "Este cargo não existe mais.";
-  if (status !== undefined && status >= 500) return "O servidor não respondeu.";
-  if (status !== undefined) return "O servidor recusou.";
-  return "Sem resposta do servidor.";
+  return motivoDoErro(e);
 }
 
 function falhou(oQue: string, e: unknown): void {

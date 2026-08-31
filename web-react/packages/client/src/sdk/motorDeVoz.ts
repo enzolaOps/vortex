@@ -54,6 +54,7 @@ import {
 import { toast } from "../components/ui/toastStore";
 import { ALTURA_DE, ponteDeTela } from "./seletorDeTela";
 import { pedirEscolhaDeTela } from "../store/seletorDeTela";
+import { motivoDoErro } from "./erros";
 
 /**
  * A sala, module-level.
@@ -78,12 +79,11 @@ function elementoDeAudio(): HTMLDivElement {
   return saidaDeAudio;
 }
 
+/* Delega para o tradutor unico — ver `sdk/erros.ts`. O corpo que
+   estava aqui lia `e.response.status`, que o `stoat-api` nunca
+   produz, entao TODA falha virava "Sem resposta do servidor". */
 function motivo(e: unknown): string {
-  const status = (e as { response?: { status?: number } })?.response?.status;
-  if (status === 403) return "Você não pode entrar nesta sala.";
-  if (status === 404) return "Esta sala não existe.";
-  if (status !== undefined) return "O servidor recusou a entrada.";
-  return "Não deu para alcançar o servidor de voz.";
+  return motivoDoErro(e);
 }
 
 /**

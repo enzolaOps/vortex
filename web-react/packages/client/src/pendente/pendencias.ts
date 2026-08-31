@@ -46,6 +46,21 @@ export const PENDENCIAS = {
   },
 
 
+  /* --------------------------------------------------------- entrada */
+  /*
+    ⚠ **O QR é do design e o protocolo não tem o conceito.** Entrar por código
+    exige um canal onde o aparelho já autenticado autoriza a sessão nova — no
+    Stoat não há rota, evento nem tipo para isso. Fica desenhado porque a tela
+    de entrada é a primeira que alguém vê, e um caminho a menos ali é a
+    diferença entre entrar e desistir.
+  */
+  entrarComQr: {
+    superficie: "Tela de entrada",
+    faz: "Entrar lendo um código com um aparelho onde a sessão já está aberta.",
+    depende:
+      "autorização de sessão por outro dispositivo no protocolo — não há rota nem evento",
+  },
+
   /* ------------------------------------------------------------- grupo */
   /*
     ⚠ **Três pendências num painel de CINCO ações, e as outras quatro são

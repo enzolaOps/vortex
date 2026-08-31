@@ -13,6 +13,7 @@ import {
   semearMeuStatus,
 } from "../store/meuStatus";
 import { toast } from "../components/ui/toastStore";
+import { motivoDoErro } from "./erros";
 
 export type MeuPerfil = {
   readonly displayName: string;
@@ -36,17 +37,11 @@ export type Dispositivo = {
   readonly atual: boolean;
 };
 
+/* Delega para o tradutor unico — ver `sdk/erros.ts`. O corpo que
+   estava aqui lia `e.response.status`, que o `stoat-api` nunca
+   produz, entao TODA falha virava "Sem resposta do servidor". */
 function motivo(e: unknown): string {
-  const status = (e as { response?: { status?: number } })?.response?.status;
-  if (status === 401) return "Senha incorreta.";
-  if (status === 409) return "Esse nome de usuário já está em uso.";
-  if (status === 400) return "O servidor recusou os dados.";
-  if (status === 429) return "Tentativas demais. Espere um pouco.";
-  if (status !== undefined && status >= 500) {
-    return "O servidor não conseguiu responder.";
-  }
-  if (status !== undefined) return "O servidor recusou o pedido.";
-  return "Sem resposta do servidor.";
+  return motivoDoErro(e);
 }
 
 function falhou(oQue: string, e: unknown): void {
