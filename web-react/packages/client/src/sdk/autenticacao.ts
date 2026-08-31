@@ -32,6 +32,7 @@
  * ilha `web/`, com check de CI exigindo o mesmo commit. Este arquivo é a camada
  * que existe exatamente para absorver diferença assim.
  */
+import { toast } from "../components/ui/toastStore";
 import { definirUsuarioLocal } from "./adapter";
 import { precisaEscolherNome } from "./conta";
 import { client } from "./client";
@@ -136,8 +137,40 @@ function instalar(sessao: {
   user_id: string;
 }): void {
   client.useExistingSession(sessao);
-  client.connect();
+  conectar();
   definirUsuarioLocal(sessao.user_id);
+}
+
+/**
+ * Abre o socket — mas só se soubermos PARA ONDE.
+ *
+ * ⚠ **`client.connect()` cru manda o token para `wss://stoat.chat/events`
+ * quando a configuração não carregou.** A linha do SDK é
+ * `this.events.connect(this.configuration?.ws ?? "wss://stoat.chat/events",
+ * token)`: o `??` é um fallback para a instância PÚBLICA do Stoat, e o segundo
+ * argumento é a credencial da sessão. Basta o `GET {baseURL}/` ter falhado —
+ * servidor reiniciando, rede oscilando no arranque — para a sessão de quem
+ * está entrando ser aberta contra um servidor de terceiro.
+ *
+ * Achado procurando `stoat.chat` no bundle da imagem depois de configurar o
+ * `baseURL`. Duas das três ocorrências eram defaults que nós sobrescrevemos;
+ * esta é caminho de execução.
+ *
+ * Não dá para consertar no SDK sem forkar o submodule, então a guarda mora
+ * aqui: sem `configuration.ws` não há conexão. O app fica desconectado e a
+ * faixa de reconexão diz isso — que é o comportamento honesto, e o mesmo que
+ * ele já tem quando a rede cai.
+ */
+function conectar(): void {
+  if (client.configuration?.ws === undefined) {
+    toast({
+      tipo: "erro",
+      titulo: "Não deu para falar com o servidor.",
+      descricao: "A configuração não carregou. Recarregue a página.",
+    });
+    return;
+  }
+  client.connect();
 }
 
 /**

@@ -21,6 +21,7 @@ on:
       - "web-react/**"
       - "!web-react/**/*.md"
       - "brand/**"
+      - ".dockerignore"
       - ".github/workflows/vortex-react-image.yml"
   workflow_dispatch:
 
@@ -81,7 +82,16 @@ jobs:
         id: push
         uses: docker/build-push-action@v6
         with:
-          context: ./web-react
+          # ⚠ **Contexto na RAIZ, e não em `./web-react`.** O `vite.config.ts`
+          # tem um plugin que lê `brand/mark.svg` da raiz e o emite no bundle;
+          # com o contexto na ilha o build morre em `ENOENT: /brand/mark.svg`.
+          # Descoberto construindo a imagem localmente — o `pnpm build` do host
+          # passa, porque lá o arquivo está a três níveis acima.
+          #
+          # O `.dockerignore` da raiz derruba tudo que não é `brand/` ou
+          # `web-react/`, então o contexto não carrega `web/` nem `desktop/`.
+          context: .
+          file: ./web-react/Dockerfile
           # amd64 custa quase nada aqui (o estágio de build é compartilhado) e
           # deixa o cliente rodar localmente para depuração.
           platforms: linux/arm64,linux/amd64

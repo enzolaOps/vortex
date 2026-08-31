@@ -14,8 +14,24 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * mais importa — **que `connect()` é chamado**.
  */
 const api = { post: vi.fn() };
-const client = {
+/*
+  ⚠ `configuration` faz parte do dublê porque a conexão DEPENDE dela: sem
+  `configuration.ws` o app se recusa a abrir o socket, e a razão é séria — o
+  SDK cai em `wss://stoat.chat/events` e manda o token para a instância
+  pública. Ver `conectar()` em `autenticacao.ts`.
+
+  Ela é mutável de propósito: o teste da guarda a zera.
+*/
+const client: {
+  api: typeof api;
+  configuration: { ws: string } | undefined;
+  useExistingSession: ReturnType<typeof vi.fn>;
+  connect: ReturnType<typeof vi.fn>;
+  logout: ReturnType<typeof vi.fn>;
+  on: ReturnType<typeof vi.fn>;
+} = {
   api,
+  configuration: { ws: "ws://localhost/ws" },
   useExistingSession: vi.fn(),
   connect: vi.fn(),
   logout: vi.fn(),
@@ -47,6 +63,7 @@ const SESSAO_OK = {
 beforeEach(() => {
   vi.clearAllMocks();
   limparSessao();
+  client.configuration = { ws: "ws://localhost/ws" };
 });
 
 describe("entrar — o caminho de sucesso", () => {
@@ -80,6 +97,34 @@ describe("entrar — o caminho de sucesso", () => {
       user_id: "01EU",
     });
     expect(client.connect).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+    ⚠ **Sem configuração NÃO conecta, e este teste guarda uma credencial.**
+
+    A linha do SDK é `events.connect(this.configuration?.ws ??
+    "wss://stoat.chat/events", token)` — o fallback é a instância PÚBLICA do
+    Stoat, e o segundo argumento é o token da sessão. Basta o `GET {baseURL}/`
+    ter falhado no arranque para a sessão de quem está entrando ser aberta
+    contra um servidor de terceiro.
+
+    Verificado por mutação: removendo a guarda de `conectar()`, este teste
+    falha e os dois de sucesso passam — que é exatamente o estado silencioso
+    que ele existe para impedir.
+  */
+  it("NÃO abre o socket sem configuração — o fallback do SDK é stoat.chat", async () => {
+    client.configuration = undefined;
+    api.post.mockResolvedValueOnce({
+      result: "Success",
+      _id: "01SE",
+      token: "tok",
+      user_id: "01EU",
+    });
+
+    await entrar("a@b.c", "senha");
+
+    expect(client.useExistingSession).toHaveBeenCalledTimes(1);
+    expect(client.connect).not.toHaveBeenCalled();
   });
 
   /*
