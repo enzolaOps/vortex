@@ -36,6 +36,7 @@ import {
   ConnectionQuality,
   RoomEvent,
   Track,
+  type LocalParticipant,
   type RemoteTrack,
 } from "livekit-client";
 
@@ -354,10 +355,44 @@ export async function alternarSurdo(): Promise<void> {
   for (const audio of el.querySelectorAll("audio")) audio.muted = surdo;
 }
 
+/**
+ * O participante local, ou a notícia de que não há sala.
+ *
+ * ⚠ **Existe por causa de um defeito silencioso, e ele é a razão desta função
+ * não ser um `sala?.` a mais.** Câmera e tela eram `await
+ * sala?.localParticipant.setXEnabled(v)` — e com `sala` indefinida o
+ * encadeamento opcional devolve `undefined`, `await undefined` RESOLVE, o
+ * `catch` nunca dispara e a linha seguinte marca o estado como ligado.
+ *
+ * O sintoma medido: clicar em "Compartilhar tela" levava `aria-pressed` de
+ * `false` para `true` nos dois botões, **sem abrir seletor nenhum e sem erro
+ * no console**. A interface afirmava estar transmitindo com nada acontecendo —
+ * que é a única coisa que ela existe para não fazer.
+ *
+ * ⚠ **Mudo e surdo continuam com `sala?.` de propósito**, e a diferença é
+ * real: aqueles são PREFERÊNCIA, aplicada no store antes de tocar o
+ * transporte, e valem fora da chamada (ver `alternarMudoNoStore`). Câmera e
+ * tela são transporte puro — sem sala não há o que ligar.
+ */
+function participanteLocal(): LocalParticipant | undefined {
+  const p = sala?.localParticipant;
+  if (!p) {
+    toast({
+      tipo: "erro",
+      titulo: "A chamada não está conectada.",
+      descricao: "Entre numa sala de voz para transmitir.",
+    });
+  }
+  return p;
+}
+
 export async function alternarCamera(): Promise<void> {
+  const p = participanteLocal();
+  if (!p) return;
+
   const camera = !lerChamada().camera;
   try {
-    await sala?.localParticipant.setCameraEnabled(camera);
+    await p.setCameraEnabled(camera);
     definirChamada({ camera });
   } catch {
     // Permissão negada é o caso comum, e não é erro do app.
@@ -369,10 +404,29 @@ export async function alternarCamera(): Promise<void> {
   }
 }
 
+/**
+ * Compartilhar a tela.
+ *
+ * ⚠ **Quem desenha o seletor é o NAVEGADOR**, não o Vortex.
+ * `setScreenShareEnabled(true)` chama `getDisplayMedia`, e a escolha de tela,
+ * janela ou aba é uma superfície do sistema — nenhuma página pode substituí-la
+ * nem estilizá-la. O seletor próprio que o design desenha (Telas · Janelas ·
+ * Abas, com resolução e taxa de quadros) só é possível na casca Electron, via
+ * `desktopCapturer`, e é trabalho de outra etapa.
+ *
+ * ⚠ `getDisplayMedia` exige ativação transitória — o clique. O caminho aqui
+ * passa por um `await import()` do motor, mas na chamada REAL o módulo já foi
+ * carregado por `entrarNaChamada`, então o clique chega direto. É só no arnês,
+ * onde a chamada é falsa e o motor nunca foi carregado, que o import acontece
+ * no clique.
+ */
 export async function alternarTela(): Promise<void> {
+  const p = participanteLocal();
+  if (!p) return;
+
   const tela = !lerChamada().tela;
   try {
-    await sala?.localParticipant.setScreenShareEnabled(tela);
+    await p.setScreenShareEnabled(tela);
     definirChamada({ tela });
   } catch {
     // Cancelar o seletor do navegador cai aqui, e cancelar não é falha —
