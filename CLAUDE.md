@@ -202,8 +202,15 @@ feature forçar — não um item de roadmap.
 
 #### A restrição a conhecer antes de commitar com uma feature de backend
 
-**Tudo roda em `linux/arm64`** — o alvo é um Raspberry Pi, e repositório privado
-não recebe runner arm64 nativo.
+**Tudo roda em `linux/arm64`** — o alvo é um Raspberry Pi.
+
+⚠ **O que vinha escrito aqui — "repositório privado não recebe runner arm64
+nativo" — é FALSO desde que os repositórios do cliente e da API ficaram
+públicos.** Só o `pi-infra` é privado. Medido em 31/08/2026:
+`enzolaOps/vortex` e `enzolaOps/vortex-api` respondem `visibility: public`, e
+com isso `runs-on: ubuntu-24.04-arm` está disponível de graça. A frase custou
+um workflow inteiro de cross-compile que não precisava existir — ver a linha
+da imagem arm64 nas pendências.
 
 O cliente web já contorna isso, e o truque está documentado no VORTEX.md: o
 Dockerfile pina o estágio de build em `$BUILDPLATFORM` porque esse estágio *"only
@@ -900,7 +907,9 @@ salva o cliente web não transfere para Rust.
 | TanStack Virtual + React Compiler | **Resolvido no spike.** Compatíveis: o compiler reconhece `useVirtualizer` e pula a memoização daquele componente (`react-hooks/incompatible-library`), sem crash nem UI velha. O custo — os filhos da lista deixam de ser memoizados — é cortado com `memo` no `MessageRow`. Não trocar por `react-virtuoso`. |
 | Licença AGPL-3.0 | **Resolvido.** Uso privado — o dev e amigos, todos com acesso ao repositório, que é o que a cláusula de rede da AGPL pede. Reabrir a questão se o Vortex for exposto a terceiros sem acesso ao fonte. Não é aconselhamento jurídico. |
 | Brand assets | **Resolvido.** `brand/` é diretório rastreado deste repo, não submodule: `mark.svg`, `wordmark.svg`, `monochrome.svg` + `generate.mjs`. O `.gitmodules` só tem os três de `web/packages/`. `web-react/` consome daí, como `web/` e `desktop/`. |
-| Imagem arm64 do backend | **Não bloqueia nada hoje** — todo o roadmap é front-end. Antes de commitar com a primeira feature que precise de backend: como sair imagem `linux/arm64` de serviço Rust forkado. O truque do `$BUILDPLATFORM` que salva o cliente web não transfere para Rust. Ver § Divergência de produto. |
+| Imagem arm64 do backend | **RESOLVIDA, e as duas premissas desta linha estavam ERRADAS.** Ela dizia (a) que repositório privado não recebe runner arm64 e (b) que o truque do `$BUILDPLATFORM` não transfere para Rust. Medido: **`enzolaOps/vortex` e `enzolaOps/vortex-api` são PÚBLICOS** — só o `pi-infra` é privado —, então runner arm64 nativo e gratuito está disponível o tempo todo. E o `Dockerfile` do upstream **já faz cross-compile completo**: `gcc-aarch64-linux-gnu`, `rustup target add aarch64-unknown-linux-gnu`, `RUSTFLAGS` e `PKG_CONFIG_ALLOW_CROSS`. O compilador roda nativo em amd64 e EMITE arm64. Sem QEMU, sem runner próprio, sem build no Pi. ⚠ **O que custou quatro corridas foi CAPACIDADE, e a causa era desperdício:** a base compila OITO binários porque o upstream publica oito; este fork publica dois. Compilar `autumn` (codecs de imagem), `january`, `gifbox`, `crond`, `pushd` e `voice-ingress` era trabalho para o lixo — e era o pico de memória que matava o link. `CARGO_PACKAGES` corta, e o build passa em ~19 min. ⚠ **Como o repositório é público, trocar cross-compile por `runs-on: ubuntu-24.04-arm` simplificaria tudo isso** — fica anotado, não é urgente. |
+| ⚠ A falha muda do runner, três vezes | **O log PARA no meio de um warning: sem erro, sem "Killed", sem código de saída.** Procurar `error:` não acha nada, e OOM e disco cheio são indistinguíveis assim. O que separou os dois foi acrescentar `df -h` antes e depois da limpeza — **110 GB livres de 145** descartou disco e deixou memória de pé. Sem essa medição eu teria continuado ajustando `CARGO_BUILD_JOBS`. A regra: quando a falha é muda, o primeiro trabalho é tornar o ambiente observável, não tentar outra configuração. |
+| ⚠ `>/dev/null 2>&1` num build escondeu três rodadas de teste | **Construí a imagem com a saída suprimida e testei o comportamento ANTIGO três vezes**, concluindo que minha correção não pegava. O `docker run` reusava a imagem velha em silêncio. É a 5ª ocorrência registrada de "medir com o instrumento desligado", junto com o dev server, o painel escondido e o `pnpm gate` sem construir. |
 | Monitor acima de 60Hz | **Dado chegou, e a resposta é "não vira critério agora".** A distribuição por refresh que faltava está medida: **94,6–94,7% dos frames num intervalo único** nas três janelas limpas, com p95 em 1,97× o refresh. O orçamento de 6,3ms é respeitado pela esmagadora maioria dos frames, e os 5% restantes são a cauda de append que já tem linha própria nesta tabela. Reabrir se a cauda crescer. |
 | Carregamento progressivo (janela deslizante) | **Medido: não resolve o gate.** Semear 1.000 em vez de 10.000 baixou o custo de publicação de 0,57ms para 0,12ms por frame — confirmando que a cópia do array de IDs é O(total) — e o p95 **não se moveu**: 18,7ms nas duas. Logo o driver do gate é custo por frame na janela visível, não o tamanho da lista. Continua valendo como feature por outro motivo: memória de sessão de 8h, `measurementsCache` limitado, e o erro nº 5 do briefing. Não como conserto de performance. |
 | `pnpm gate` NÃO constrói | **Armadilha do arnês, já mordeu.** O script mede o que estiver servido em `localhost:4174` — não roda `pnpm build` e não sobe servidor. Rodá-lo depois de mexer no código, sem construir antes, APROVA O BUNDLE ANTERIOR e o relatório parece legítimo. Aconteceu: uma corrida reportou `estimando 73px` com a fonte já em 76. Construir antes de medir, sempre. |

@@ -84,3 +84,63 @@ export function voltarParaEntrar(): void {
 export function limparEntrada(): void {
   tela = ENTRAR;
 }
+
+/* ------------------------------------------------- identidade do cadastro */
+
+/**
+ * O nome de usuário e o de exibição escolhidos no CADASTRO.
+ *
+ * ⚠ **Existem porque o formulário do design pede quatro campos e
+ * `POST /auth/account/create` aceita dois.** O `username` só entra em
+ * `/onboard/complete` e o `display_name` num `PATCH /users/@me` — os dois
+ * depois de a conta existir e a sessão estar aberta. Partir o cadastro em duas
+ * telas resolveria isso e seria pior: quem se cadastra decide quem é uma vez
+ * só, e a divisão é detalhe de transporte.
+ *
+ * ⚠ **Module-level e NÃO em `localStorage`.** Isto atravessa duas telas na
+ * mesma aba, e só. Persistir deixaria um nome de exibição de uma tentativa
+ * abandonada esperando a próxima pessoa que se cadastrasse naquele
+ * computador — dado de outra pessoa aplicado a uma conta nova.
+ *
+ * Consumido UMA vez: quem lê, apaga. Sem isso, voltar ao onboarding depois
+ * reaplicaria uma escolha antiga por cima de uma mudança recente.
+ */
+export type IdentidadeEscolhida = {
+  readonly usuario: string;
+  readonly exibicao: string;
+};
+
+let identidade: IdentidadeEscolhida | undefined;
+
+export function guardarEscolhaDeIdentidade(nova: IdentidadeEscolhida): void {
+  identidade = nova;
+}
+
+/** Só olha, sem consumir — para quem precisa DECIDIR antes de aplicar. */
+export function lerEscolhaDeIdentidade(): IdentidadeEscolhida | undefined {
+  return identidade;
+}
+
+/** Devolve e esquece. */
+export function consumirEscolhaDeIdentidade(): IdentidadeEscolhida | undefined {
+  const atual = identidade;
+  identidade = undefined;
+  return atual;
+}
+
+/**
+ * Vai para o passo 3 com o token que a pessoa COLOU.
+ *
+ * ⚠ Existe porque o link do e-mail abre onde o e-mail está, e isso raramente é
+ * a aba onde o app está aberto — quem lê no celular e usa o Vortex no
+ * computador clicaria no aparelho errado. Colar o endereço leva ao mesmo
+ * lugar, sem exigir que a pessoa entenda por que não funcionou.
+ *
+ * Não mexe na URL, ao contrário da rota `/redefinir/:token`: o token é
+ * credencial de uso único, e a barra de endereço fica em histórico, em log de
+ * proxy e em print de tela. Quem chega pelo link já paga esse preço — quem
+ * cola não precisa pagar de novo.
+ */
+export function irParaRedefinir(token: string): void {
+  definirEntrada({ tipo: "redefinir", token });
+}

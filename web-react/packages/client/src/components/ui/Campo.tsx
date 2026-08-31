@@ -1,4 +1,5 @@
-import { useId, type InputHTMLAttributes, type ReactNode } from "react";
+import { Eye, EyeSlash } from "@phosphor-icons/react";
+import { useId, useState, type InputHTMLAttributes, type ReactNode } from "react";
 
 import css from "./Campo.module.css";
 
@@ -25,7 +26,11 @@ export function Campo({
   rotulo,
   dica,
   erro,
+  acaoDoRotulo,
+  prefixo,
+  revelavel = false,
   id,
+  type,
   ...resto
 }: {
   rotulo: string;
@@ -33,6 +38,31 @@ export function Campo({
   dica?: ReactNode;
   /** A mensagem, quando o valor não serve. Assume o lugar da dica. */
   erro?: string;
+  /**
+   * Um alvo na OUTRA ponta da linha do rótulo — "Esqueci a senha".
+   *
+   * O design o põe ali e não abaixo do campo por um motivo prático: abaixo ele
+   * disputaria o lugar da dica e do erro, que é onde o olho vai quando o login
+   * falha.
+   */
+  acaoDoRotulo?: ReactNode;
+  /**
+   * Um sinal fixo ANTES do valor — o `@` do nome de usuário.
+   *
+   * Dentro da caixa e não como texto do rótulo: ele faz parte do que se lê da
+   * esquerda para a direita ao conferir o que foi digitado, e fora da borda
+   * pareceria legenda.
+   */
+  prefixo?: ReactNode;
+  /**
+   * Botão de olho, para campo de senha.
+   *
+   * ⚠ Ele troca o `type` entre `password` e `text`, e por isso o `type` passa
+   * a ser controlado aqui. Sem revelar, uma senha digitada errado só é
+   * descoberta depois de a tentativa falhar — e o design diz por extenso que o
+   * caso comum é a maiúscula.
+   */
+  revelavel?: boolean;
 } & InputHTMLAttributes<HTMLInputElement>) {
   /*
     `useId` e não o `label` envolvendo o `input`.
@@ -41,6 +71,7 @@ export function Campo({
     `aria-describedby`: a dica e o erro precisam de ID próprio para o leitor de
     tela lê-los DEPOIS do rótulo, e não como parte dele.
   */
+  const [revelado, setRevelado] = useState(false);
   const gerado = useId();
   const meu = id ?? gerado;
   const idDaDica = `${meu}-dica`;
@@ -57,14 +88,32 @@ export function Campo({
 
   return (
     <div className={css.campo}>
-      <label className={css.rotulo} htmlFor={meu}>
-        {rotulo}
-      </label>
+      {acaoDoRotulo === undefined ? (
+        <label className={css.rotulo} htmlFor={meu}>
+          {rotulo}
+        </label>
+      ) : (
+        <div className={css.linhaDoRotulo}>
+          <label className={css.rotulo} htmlFor={meu}>
+            {rotulo}
+          </label>
+          {acaoDoRotulo}
+        </div>
+      )}
 
+      <div className={revelavel || prefixo !== undefined ? css.caixa : undefined}>
+      {prefixo !== undefined ? (
+        <span className={css.prefixo} aria-hidden>
+          {prefixo}
+        </span>
+      ) : null}
       <input
         {...resto}
+        type={revelavel && revelado ? "text" : type}
         id={meu}
-        className={css.entrada}
+        className={
+          revelavel || prefixo !== undefined ? css.entradaNua : css.entrada
+        }
         /*
           `aria-invalid` e não só a borda vermelha.
 
@@ -75,6 +124,22 @@ export function Campo({
         aria-invalid={erro !== undefined || undefined}
         aria-describedby={descrito}
       />
+      {revelavel ? (
+        /*
+          ⚠ O rótulo nomeia a AÇÃO e não o estado, ao contrário do
+          `aria-pressed` do microfone. A diferença é que aqui não há estado
+          pressionado a anunciar: o botão faz uma coisa e o texto diz qual.
+        */
+        <button
+          type="button"
+          className={css.olho}
+          aria-label={revelado ? "Ocultar senha" : "Mostrar senha"}
+          onClick={() => setRevelado((v) => !v)}
+        >
+          {revelado ? <EyeSlash size={16} aria-hidden /> : <Eye size={16} aria-hidden />}
+        </button>
+      ) : null}
+      </div>
 
       {erro !== undefined ? (
         /*

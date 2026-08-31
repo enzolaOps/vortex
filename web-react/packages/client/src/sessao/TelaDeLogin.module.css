@@ -6,6 +6,9 @@
    ============================================================ */
 
 .tela {
+  /* `container` para o painel de marca sumir pela largura DISPONÍVEL e não
+     pela da janela — a mesma regra que governa os painéis do shell. */
+  container-type: inline-size;
   display: grid;
   place-items: center;
   min-block-size: 100dvh;
@@ -78,32 +81,373 @@
   color: var(--vx-text-2);
 }
 
-/*
-  Uma opção de caixa, na mesma coluna do formulário.
+/* ============================================================
+   O cartão de duas colunas do design
+   ------------------------------------------------------------
+   800×560 com painel de marca de 300px à esquerda. Medido em
+   `Vortex Auth e Conta`: raio 12, `surface-1`, borda em véu de
+   7%, sombra funda; o painel de marca tem gradiente próprio e
+   `28px 26px`, o formulário `36px 40px`.
+   ============================================================ */
 
-  `accent-color` é o que traz a caixa nativa para o sistema de cor do app — é
-  por isso que `checkbox` é o único controle nativo que o lint permite fora de
-  `components/ui/`.
-*/
-.opcao {
+.moldura {
   display: flex;
-  align-items: center;
-  gap: var(--vx-space-08);
-  font-size: var(--vx-size-sm);
-  color: var(--vx-text-2);
-  accent-color: var(--vx-accent);
+  overflow: hidden;
+  inline-size: min(800px, 100%);
+  /* Altura MÍNIMA e não fixa. O design desenha 560, mas o formulário cresce
+     com o banner de erro e com a dica de senha — travar a altura cortaria
+     justamente o conteúdo que só aparece quando algo deu errado. */
+  min-block-size: 560px;
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-12);
+  background: var(--vx-surface-1);
+  box-shadow: var(--vx-elev-3);
 }
 
 /*
-  As duas saídas, lado a lado.
+  O painel de marca — decorativo, e some abaixo de 900px.
 
-  Em linha e não empilhadas: são alternativas do mesmo peso, e empilhá-las
-  faria a de cima parecer mais importante que a de baixo sem que isso seja
-  verdade. `wrap` porque em cartão estreito duas palavras longas não cabem.
+  É instrução do design: "o painel de marca é decorativo e desaparece abaixo de
+  900 px — o formulário nunca encolhe". Some por container query e não por
+  media query pela razão de sempre neste projeto: o que decide é a largura
+  disponível, não a da janela.
 */
-.saidas {
+.marca {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  justify-content: space-between;
+  inline-size: 300px;
+  padding: var(--vx-space-28) var(--vx-space-26);
+  background: linear-gradient(150deg, #123640, #0c1a20 60%, var(--vx-surface-1));
+}
+
+.marcaTopo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+  margin-block-end: var(--vx-space-26);
+}
+
+/* O ladrilho da marca, com o gradiente que `PALETA_DA_MARCA` reserva. */
+.ladrilho {
+  display: grid;
+  place-items: center;
+  inline-size: 28px;
+  block-size: 28px;
+  border-radius: var(--vx-radius-08);
+  background: linear-gradient(140deg, #35c2cc, #1e7f92);
+  color: var(--vx-on-accent);
+  font-size: var(--vx-size-md);
+  font-weight: 700;
+}
+
+.marcaNome {
+  font-size: var(--vx-size-lg);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.chamada {
+  font-size: var(--vx-size-2xl);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--vx-text-1);
+  text-wrap: pretty;
+}
+
+.subchamada {
+  margin-block-start: var(--vx-space-12);
+  font-size: var(--vx-size-md);
+  line-height: 1.55;
+  color: var(--vx-text-2);
+  text-wrap: pretty;
+}
+
+.pontos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-08);
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+.ponto {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+}
+
+.tique {
+  color: var(--vx-success-text);
+}
+
+/* ------------------------------------------------------- formulário */
+
+.forma {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-inline-size: 0;
+  padding: var(--vx-space-36) var(--vx-space-40);
+}
+
+/*
+  ⚠ 20px do design não está na escala de tipo, e o `pnpm espec` acusou. `text-xl`
+  é 17 e `text-2xl` é 22; escolhido o 22 do degrau de cima, que é o mesmo da
+  chamada do painel ao lado — dois títulos no mesmo cartão em tamanhos
+  diferentes por 2px seria diferença sem intenção.
+*/
+.saudacao {
+  margin: 0 0 var(--vx-space-05);
+  font-size: var(--vx-size-2xl);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--vx-text-1);
+}
+
+.instrucao {
+  margin: 0 0 var(--vx-space-24);
+  font-size: var(--vx-size-md);
+  color: var(--vx-text-3);
+}
+
+.esqueci {
+  border: 0;
+  background: none;
+  color: var(--vx-accent-text);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.esqueci:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+  border-radius: var(--vx-radius-04);
+}
+
+.lembrar {
+  margin-block: var(--vx-space-14) var(--vx-space-18);
+}
+
+/* A régua com "ou" no meio. */
+.ou {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-12);
+  margin-block: var(--vx-space-20);
+}
+
+.reguaDoOu {
+  flex: 1;
+  block-size: 1px;
+  background: var(--vx-hairline-10);
+}
+
+.rotuloDoOu {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
+}
+
+/* Empurra o rodapé para baixo, como o `flex:1` do design. */
+.folga {
+  flex: 1;
+  min-block-size: var(--vx-space-20);
+}
+
+.rodape {
+  font-size: var(--vx-size-md);
+  color: var(--vx-text-3);
+}
+
+.trocarTela {
+  border: 0;
+  background: none;
+  color: var(--vx-accent-text);
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.trocarTela:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+  border-radius: var(--vx-radius-04);
+}
+
+/*
+  Abaixo de 900px o painel de marca sai e o formulário fica sozinho — é a
+  instrução do design, e a razão é que ele nunca deve encolher. `container` no
+  `.tela` porque é ela que tem a largura disponível.
+*/
+@container (inline-size < 900px) {
+  .marca {
+    display: none;
+  }
+
+  .moldura {
+    min-block-size: 0;
+  }
+
+  .forma {
+    padding: var(--vx-space-28) var(--vx-space-26);
+  }
+}
+
+/* O banner de erro herda a coluna do formulario e ganha respiro embaixo. */
+.aviso {
+  margin-block-end: var(--vx-space-14);
+}
+
+/* ============================================================
+   Cadastro — cartão de coluna única
+   ------------------------------------------------------------
+   ⚠ Ele NÃO usa a casca de duas colunas do login, e isso é do
+   design: 420px, sem painel de marca. Faz sentido — a tela de
+   entrada vende o produto para quem chega; quem está criando
+   conta já decidiu, e o painel só empurraria o formulário para
+   longe.
+
+   Medido: raio 12, `surface-1`, borda em véu de 7%,
+   `26px 28px 24px`.
+   ============================================================ */
+
+.cartaoDeCadastro {
+  display: grid;
+  gap: var(--vx-space-14);
+  align-content: start;
+  inline-size: min(420px, 100%);
+  padding: var(--vx-space-26) var(--vx-space-28) var(--vx-space-24);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-12);
+  background: var(--vx-surface-1);
+}
+
+/* "Cadastro" — a sobrancelha de SEÇÃO (tracking 0.08), porque ela é o único
+   conteúdo da linha e o espaçamento faz o trabalho de separação. */
+.sobrancelhaDoCartao {
+  composes: sobrancelhaDeSecao from "../styles/sobrancelha.module.css";
+  color: var(--vx-text-3);
+}
+
+/* ------------------------------------------------ medidor de senha */
+
+.medidor {
+  display: flex;
+  gap: var(--vx-space-04);
+  margin-block-start: var(--vx-space-08);
+}
+
+/*
+  As quatro barras.
+
+  ⚠ Elas nascem com a cor de trilho e ACENDEM por `data-acesa` — o inverso
+  (montar só as acesas) faria a régua mudar de largura conforme a senha, e uma
+  régua que encolhe não é régua.
+*/
+.barraDeForca {
+  flex: 1;
+  block-size: 4px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-track);
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.barraDeForca[data-acesa][data-tom="danger"] {
+  background: var(--vx-danger);
+}
+
+.barraDeForca[data-acesa][data-tom="warning"] {
+  background: var(--vx-warning);
+}
+
+.barraDeForca[data-acesa][data-tom="success"] {
+  background: var(--vx-success);
+}
+
+.linhaDaForca {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--vx-space-08);
+  margin-block-start: var(--vx-space-06);
+}
+
+.rotuloDaForca {
+  font-size: var(--vx-size-xs);
+}
+
+.rotuloDaForca[data-tom="danger"] {
+  color: var(--vx-danger-text);
+}
+
+.rotuloDaForca[data-tom="warning"] {
+  color: var(--vx-warning);
+}
+
+.rotuloDaForca[data-tom="success"] {
+  color: var(--vx-success-text);
+}
+
+.minimo {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
+}
+
+/* A linha de concordância. 11px e `text-3`, do design — ela precisa ser lida
+   uma vez e nunca mais. */
+.termos {
+  margin: var(--vx-space-02) 0 0;
+  font-size: var(--vx-size-xs);
+  line-height: 1.5;
+  color: var(--vx-text-3);
+  text-wrap: pretty;
+}
+
+/* ------------------------------------------------ indicador de passos */
+
+/*
+  `1 · E-mail  2 · Link  3 · Nova senha`.
+
+  O passo atual em acento, os concluídos em texto normal, os que faltam
+  apagados — é o degrau que diz "você está aqui" sem precisar de uma barra de
+  progresso, que num fluxo de três passos ocuparia largura para dizer menos.
+*/
+.passos {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--vx-space-08);
+  gap: var(--vx-space-12);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+}
+
+.passo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-06);
+  color: var(--vx-text-4);
+}
+
+.passo[data-estado="atual"] {
+  color: var(--vx-accent-text);
+}
+
+.passo[data-estado="feito"] {
+  color: var(--vx-text-3);
+}
+
+/* O número num disco, como o design desenha. Ele herda a cor do passo em vez
+   de ter a sua: dois tokens para o mesmo estado divergiriam. */
+.numeroDoPasso {
+  display: grid;
+  place-items: center;
+  inline-size: 18px;
+  block-size: 18px;
+  border: 1px solid currentcolor;
+  border-radius: var(--vx-radius-pill);
+  font-size: var(--vx-size-2xs);
+  font-variant-numeric: tabular-nums;
 }

@@ -12,6 +12,7 @@ import { client } from "./client";
 import { publicarCanaisDe } from "./adapter";
 import { toast } from "../components/ui/toastStore";
 import { sigla } from "../lib/sigla";
+import { motivoDoErro } from "./erros";
 
 /**
  * O convite, reduzido ao que a tela de pré-visualização mostra.
@@ -35,16 +36,11 @@ export type Convite = {
 const novoId = (): string => ulid();
 
 
+/* Delega para o tradutor unico — ver `sdk/erros.ts`. O corpo que
+   estava aqui lia `e.response.status`, que o `stoat-api` nunca
+   produz, entao TODA falha virava "Sem resposta do servidor". */
 function motivo(e: unknown): string {
-  const status = (e as { response?: { status?: number } })?.response?.status;
-  if (status === 404) return "Este convite não existe ou expirou.";
-  if (status === 403) return "Você não pode usar este convite.";
-  if (status === 401) return "Entre na sua conta para usar o convite.";
-  if (status !== undefined && status >= 500) {
-    return "O servidor não conseguiu responder. Tente de novo em instantes.";
-  }
-  if (status !== undefined) return "O servidor recusou o convite.";
-  return "Sem resposta do servidor. Verifique sua conexão.";
+  return motivoDoErro(e);
 }
 
 /* ------------------------------------------------------------- convites */

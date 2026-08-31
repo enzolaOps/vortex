@@ -34,7 +34,7 @@
  */
 import { toast } from "../components/ui/toastStore";
 import { definirUsuarioLocal } from "./adapter";
-import { precisaEscolherNome } from "./conta";
+import { escolherNome, precisaEscolherNome } from "./conta";
 import { client } from "./client";
 import {
   dentro,
@@ -50,6 +50,8 @@ import {
   precisaDeNome,
   type MetodoDeMfa,
 } from "../store/sessao";
+import { motivoDoErro } from "./erros";
+import { lerEscolhaDeIdentidade } from "../store/entrada";
 
 /**
  * O nome que identifica ESTA sessão na lista de dispositivos da conta.
@@ -71,16 +73,11 @@ const NOME_AMIGAVEL = "Vortex (web)";
  * O `status` vem do erro do SDK, que carrega a resposta HTTP. Sem status é
  * rede: o pedido não chegou a lugar nenhum.
  */
+/* Delega para o tradutor unico — ver `sdk/erros.ts`. O corpo que
+   estava aqui lia `e.response.status`, que o `stoat-api` nunca
+   produz, entao TODA falha virava "Sem resposta do servidor". */
 export function motivoDe(e: unknown): string {
-  const status = (e as { response?: { status?: number } })?.response?.status;
-
-  if (status === 401) return "E-mail ou senha incorretos.";
-  if (status === 429) return "Tentativas demais. Espere um pouco.";
-  if (status !== undefined && status >= 500) {
-    return "O servidor não conseguiu responder. Tente de novo em instantes.";
-  }
-  if (status !== undefined) return "O servidor recusou o acesso.";
-  return "Sem resposta do servidor. Verifique sua conexão.";
+  return motivoDoErro(e);
 }
 
 /* ------------------------------------------------------------- protocolo */
@@ -137,32 +134,40 @@ function instalar(sessao: {
   user_id: string;
 }): void {
   client.useExistingSession(sessao);
-  conectar();
+  void conectar();
   definirUsuarioLocal(sessao.user_id);
 }
 
 /**
- * Abre o socket — mas só se soubermos PARA ONDE.
+ * Abre o socket — mas só depois de saber PARA ONDE.
  *
  * ⚠ **`client.connect()` cru manda o token para `wss://stoat.chat/events`
  * quando a configuração não carregou.** A linha do SDK é
  * `this.events.connect(this.configuration?.ws ?? "wss://stoat.chat/events",
  * token)`: o `??` é um fallback para a instância PÚBLICA do Stoat, e o segundo
- * argumento é a credencial da sessão. Basta o `GET {baseURL}/` ter falhado —
- * servidor reiniciando, rede oscilando no arranque — para a sessão de quem
- * está entrando ser aberta contra um servidor de terceiro.
+ * argumento é a credencial da sessão.
  *
- * Achado procurando `stoat.chat` no bundle da imagem depois de configurar o
- * `baseURL`. Duas das três ocorrências eram defaults que nós sobrescrevemos;
- * esta é caminho de execução.
+ * ⚠ **A primeira versão desta guarda RECUSAVA em vez de esperar, e isso
+ * quebrou a restauração de sessão.** `useExistingSession` é SÍNCRONO e não
+ * espera nada; só `client.login()` faz `await this.#fetchConfiguration()`, e
+ * nós não o usamos (ele é quebrado — ver o comentário de `entrar`). Então no
+ * F5 a configuração ainda estava em voo, a guarda disparava, e o app abria
+ * sem socket nenhum com um toast dizendo para recarregar — que não adiantava,
+ * porque a corrida se repetia.
  *
- * Não dá para consertar no SDK sem forkar o submodule, então a guarda mora
- * aqui: sem `configuration.ws` não há conexão. O app fica desconectado e a
- * faixa de reconexão diz isso — que é o comportamento honesto, e o mesmo que
- * ele já tem quando a rede cai.
+ * Medido no navegador: toast "a configuração não carregou" em toda
+ * restauração de sessão, com o servidor no ar e respondendo.
+ *
+ * Agora ela ESPERA. O `configured` do SDK é signal do Solid, e lê-lo aqui
+ * dentro de `sdk/` seria legítimo — mas um `while` sobre o campo custa menos
+ * que arrastar reatividade para um caminho que roda uma vez por sessão.
+ *
+ * O teto existe para o caso em que a configuração nunca chega: aí sim o
+ * comportamento honesto é não conectar e dizer, porque conectar significaria
+ * mandar a credencial para um servidor de terceiro.
  */
-function conectar(): void {
-  if (client.configuration?.ws === undefined) {
+async function conectar(): Promise<void> {
+  if (!(await esperarConfiguracao())) {
     toast({
       tipo: "erro",
       titulo: "Não deu para falar com o servidor.",
@@ -171,6 +176,19 @@ function conectar(): void {
     return;
   }
   client.connect();
+}
+
+/** Quanto esperar pela configuração antes de desistir. */
+const TETO_DA_CONFIGURACAO_MS = 15_000;
+const PASSO_MS = 50;
+
+async function esperarConfiguracao(): Promise<boolean> {
+  const limite = Date.now() + TETO_DA_CONFIGURACAO_MS;
+  while (client.configuration?.ws === undefined) {
+    if (Date.now() > limite) return false;
+    await new Promise((r) => setTimeout(r, PASSO_MS));
+  }
+  return true;
 }
 
 /**
@@ -229,6 +247,24 @@ async function concluir(r: RespostaDeLogin): Promise<void> {
     (token instalado, socket aberto) e só o último passo falta.
   */
   if (await precisaEscolherNome()) {
+    /*
+      ⚠ **Quem veio do CADASTRO já escolheu, e não pode ser perguntado de
+      novo.** O formulário do design pede nome de usuário e nome de exibição
+      junto com e-mail e senha; o protocolo só aceita os dois últimos em
+      `account/create` e joga o resto para o onboarding. Mostrar a tela de nome
+      depois disso partiria o cadastro em duas — que é justamente o que guardar
+      a escolha existe para evitar.
+
+      A tela de nome continua existindo, e é o caminho de quem chega ao
+      onboarding sem ter passado por aqui: conta criada por outro cliente, ou
+      cadastro interrompido antes de completar.
+    */
+    const escolhido = lerEscolhaDeIdentidade();
+    if (escolhido?.usuario) {
+      await escolherNome(escolhido.usuario);
+      return;
+    }
+
     precisaDeNome(r.user_id);
     return;
   }

@@ -60,6 +60,14 @@ const SESSAO_OK = {
   name: "Vortex (web)",
 };
 
+/*
+  ⚠ `conectar()` é assíncrona desde que passou a ESPERAR a configuração, então
+  `client.connect()` acontece pelo menos um tick depois de `instalar`. Nada no
+  app depende de o socket abrir de forma síncrona — mas os testes precisam
+  ceder o laço de eventos antes de afirmar.
+*/
+const tick = () => new Promise((r) => setTimeout(r, 120));
+
 beforeEach(() => {
   vi.clearAllMocks();
   limparSessao();
@@ -91,6 +99,7 @@ describe("entrar — o caminho de sucesso", () => {
     api.post.mockResolvedValueOnce(SESSAO_OK);
     await entrar("eu@exemplo.com", "senha");
 
+    await tick();
     expect(client.useExistingSession).toHaveBeenCalledWith({
       _id: "01SESSAO",
       token: "tok",
@@ -112,7 +121,13 @@ describe("entrar — o caminho de sucesso", () => {
     falha e os dois de sucesso passam — que é exatamente o estado silencioso
     que ele existe para impedir.
   */
-  it("NÃO abre o socket sem configuração — o fallback do SDK é stoat.chat", async () => {
+  it("ESPERA a configuração em vez de recusar, e conecta quando ela chega", async () => {
+    /*
+      ⚠ O caso que a primeira versão da guarda quebrou. `useExistingSession` é
+      síncrono e não espera nada, então no F5 a configuração ainda está em voo
+      — e recusar ali deixava o app aberto sem socket, com um toast pedindo
+      para recarregar que não adiantava, porque a corrida se repetia.
+    */
     client.configuration = undefined;
     api.post.mockResolvedValueOnce({
       result: "Success",
@@ -121,7 +136,32 @@ describe("entrar — o caminho de sucesso", () => {
       user_id: "01EU",
     });
 
-    await entrar("a@b.c", "senha");
+    const emVoo = entrar("a@b.c", "senha");
+    // Chega depois — é exatamente o que o `#fetchConfiguration` do construtor
+    // faz enquanto a sessão é restaurada.
+    await new Promise((r) => setTimeout(r, 20));
+    expect(client.connect).not.toHaveBeenCalled();
+    client.configuration = { ws: "ws://localhost/ws" };
+
+    await emVoo;
+    await tick();
+    expect(client.connect).toHaveBeenCalledTimes(1);
+  });
+
+  it("desiste quando a configuração NUNCA chega — o token não vai para terceiro", async () => {
+    vi.useFakeTimers();
+    client.configuration = undefined;
+    api.post.mockResolvedValueOnce({
+      result: "Success",
+      _id: "01SE",
+      token: "tok",
+      user_id: "01EU",
+    });
+
+    const emVoo = entrar("a@b.c", "senha");
+    await vi.advanceTimersByTimeAsync(20_000);
+    await emVoo;
+    vi.useRealTimers();
 
     expect(client.useExistingSession).toHaveBeenCalledTimes(1);
     expect(client.connect).not.toHaveBeenCalled();
@@ -278,10 +318,11 @@ describe("restaurar sessão", () => {
     sessão guardada abria o app com socket fechado — o mesmo app mudo do login,
     por outra porta.
   */
-  it("também ABRE O SOCKET", () => {
+  it("também ABRE O SOCKET", async () => {
     guardarToken({ _id: "01S", token: "t", user_id: "01EU" });
     restaurarSessao();
 
+    await tick();
     expect(client.useExistingSession).toHaveBeenCalledTimes(1);
     expect(client.connect).toHaveBeenCalledTimes(1);
     expect(lerSessao().estado).toBe("dentro");

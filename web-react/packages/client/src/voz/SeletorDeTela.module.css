@@ -1,0 +1,302 @@
+/* ============================================================
+   Seletor de tela — a estrutura da REFERÊNCIA
+   ------------------------------------------------------------
+   ⚠ A primeira versão saiu do `.dc.html` e divergiu em oito
+   pontos: grade fluida em vez de três colunas, cartão sem
+   segunda linha e sem selo de conferido, resolução e quadros
+   empilhados em vez de lado a lado, rodapé sem a frase de
+   consequência, botão com rótulo fixo, e sem o banner de
+   permissão do sistema.
+
+   A referência decide o que EXISTE; o design decide os VALORES.
+   Esta folha segue a primeira e usa os tokens do projeto.
+   ============================================================ */
+
+.painel {
+  inline-size: 720px;
+  max-inline-size: 100%;
+}
+
+/* -------------------------------------------------------- abas */
+
+/*
+  As abas sangram até a borda do painel e trazem a régua com elas — é o
+  `-mx-4.5 px-4.5` da referência. Sem isso a linha pararia antes do recuo do
+  modal e leria como uma régua curta em vez de uma divisão de seção.
+*/
+.abas {
+  display: flex;
+  gap: var(--vx-space-16);
+  margin-inline: calc(var(--vx-space-18) * -1);
+  margin-block-end: var(--vx-space-16);
+  padding-inline: var(--vx-space-18);
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+.aba {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-06);
+  padding-block: var(--vx-space-08);
+  border: 0;
+  /* O indicador é `box-shadow` inset e não `border-bottom`: com borda, o
+     rótulo saltaria 2px ao trocar de aba. */
+  box-shadow: inset 0 -2px 0 transparent;
+  background: none;
+  color: var(--vx-text-3);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.aba[aria-selected="true"] {
+  box-shadow: inset 0 -2px 0 var(--vx-accent);
+  color: var(--vx-text-1);
+}
+
+.aba:hover:not([aria-selected="true"]) {
+  color: var(--vx-text-2);
+}
+
+.aba:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.contagem {
+  font-size: var(--vx-size-xs);
+  font-weight: 500;
+  color: var(--vx-text-4);
+}
+
+/* --------------------------------------------------- as fontes */
+
+/*
+  ⚠ TRÊS colunas fixas, não grade fluida. Com `auto-fill` o cartão muda de
+  largura conforme a contagem de fontes, e a miniatura muda de proporção junto
+  — duas telas dariam cartões largos, seis janelas dariam cartões estreitos. A
+  referência trava em três, e é o que mantém a miniatura previsível.
+*/
+.grade {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--vx-space-12);
+  /*
+    ⚠ **Sem teto de altura, e o teto que eu tinha posto era errado.** Com 300px
+    seis janelas ficavam em uma linha e meia, com rolagem interna — a referência
+    deixa as duas linhas inteiras e o modal cresce até o limite do `Dialog`
+    (80vh), que é quem já resolve o caso extremo.
+  */
+  padding: var(--vx-space-02);
+}
+
+.fonte {
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-09);
+  background: var(--vx-surface-3);
+  color: inherit;
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition:
+    border-color var(--vx-duration-fast) var(--vx-ease-out),
+    box-shadow var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+/*
+  ⚠ Anel de 3px em vez de fundo tingido. É o que a referência usa, e a razão
+  aparece com miniatura: um fundo de acento por baixo de uma imagem que cobre
+  o cartão inteiro não seria visto — o anel fica na borda, onde há o que ver.
+*/
+.fonte[aria-pressed="true"] {
+  border-color: var(--vx-accent);
+  box-shadow: 0 0 0 3px var(--vx-accent-ring);
+}
+
+.fonte:hover:not([aria-pressed="true"]) {
+  border-color: var(--vx-border-subtle);
+}
+
+.fonte:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.quadro {
+  position: relative;
+  display: grid;
+  place-items: center;
+  block-size: 88px;
+}
+
+.miniatura {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  /* A MESMA receita do xadrez do visualizador de imagem e do seletor de
+     figurinhas. Miniatura vazia — janela transparente, tela ainda capturando —
+     cai nele em vez de deixar um buraco. */
+  background: repeating-linear-gradient(
+    135deg,
+    var(--vx-surface-3) 0 16px,
+    color-mix(in oklab, var(--vx-surface-3) 45%, var(--vx-surface-2)) 16px 32px
+  );
+}
+
+/* O selo de conferido no canto, só na fonte escolhida. */
+.selo {
+  position: absolute;
+  inset-block-start: var(--vx-space-06);
+  inset-inline-end: var(--vx-space-06);
+  display: grid;
+  place-items: center;
+  inline-size: 18px;
+  block-size: 18px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-accent);
+  color: var(--vx-on-accent);
+}
+
+.textos {
+  display: block;
+  padding: var(--vx-space-08) var(--vx-space-10);
+}
+
+.nome {
+  display: block;
+  overflow: hidden;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  color: var(--vx-text-1);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  display: block;
+  overflow: hidden;
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------ rodapé */
+
+/*
+  A faixa de opções sangra até a borda e afunda, como a referência: ela é uma
+  seção diferente da grade, e o degrau de superfície diz isso sem uma segunda
+  régua.
+*/
+.opcoes {
+  margin-inline: calc(var(--vx-space-18) * -1);
+  margin-block-start: var(--vx-space-16);
+  padding: var(--vx-space-14) var(--vx-space-18) 0;
+  border-block-start: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-1);
+}
+
+.audio {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-16);
+  margin-block-end: var(--vx-space-14);
+}
+
+.audioTexto {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--vx-space-10);
+}
+
+.glifo {
+  flex: none;
+  margin-block-start: 1px;
+  color: var(--vx-text-2);
+}
+
+.audioTitulo {
+  /* ⚠ `block` porque o elemento é um `span`: sem isto o título e a dica saem na
+     MESMA linha, coladas — medido no arnês antes do conserto. `span` e não
+     `div` porque o pai é conteúdo de `<button>`, e `<div>` dentro de botão é
+     HTML inválido. */
+  display: block;
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.audioDica {
+  display: block;
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+  text-wrap: pretty;
+}
+
+/* ⚠ Resolução e quadros LADO A LADO. Empilhados, o painel ganha uma terceira
+   linha e o rodapé sai da vista num modal com teto de 80vh. */
+.duas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--vx-space-14);
+  margin-block-end: var(--vx-space-14);
+}
+
+.sobrancelhaDoCampo {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  margin-block-end: var(--vx-space-06);
+  color: var(--vx-text-3);
+}
+
+/*
+  O segmentado ocupa a coluna inteira — é o `stretch` da referência. Ele não
+  tem essa prop, e forçar por CSS aqui é mais barato que uma variante nova
+  para dois consumidores.
+*/
+.estica > * {
+  inline-size: 100%;
+}
+
+.estica button {
+  flex: 1;
+}
+
+/* --------------------------------------------------- consequência */
+
+/*
+  A frase que diz o que a combinação custa, à esquerda do rodapé de ações.
+
+  ⚠ Ela é o motivo de o rodapé existir com texto: resolução e taxa são a
+  decisão menos óbvia do painel — a pessoa escolhe "1440p 60" achando que é
+  melhor e o que acontece é a rede cair. Dizer antes é mais barato que
+  descobrir transmitindo.
+*/
+.consequencia {
+  margin: 0;
+  max-inline-size: 340px;
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+  text-wrap: pretty;
+}
+
+.acoes {
+  display: flex;
+  flex: none;
+  gap: var(--vx-space-08);
+}
+
+.vazio {
+  padding: var(--vx-space-24);
+}
+
+.permissao {
+  margin-block-end: var(--vx-space-16);
+}

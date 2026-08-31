@@ -4,6 +4,8 @@ import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
 import { Caixa } from "../components/ui/Marcador";
 import { Campo } from "../components/ui/Campo";
+import { PASSOS_DA_SENHA, Passos } from "./Passos";
+import { forcaDaSenha, MINIMO_DA_SENHA } from "./forcaDaSenha";
 import { confirmarRedefinicao } from "../sdk/conta";
 import { voltarParaEntrar } from "../store/entrada";
 import css from "./TelaDeLogin.module.css";
@@ -15,6 +17,9 @@ import css from "./TelaDeLogin.module.css";
  * segredo de uso único e vida curta, e guardá-lo seria mantê-lo depois de ele
  * ter servido.
  */
+/** As quatro barras do medidor. Constantes porque `key` nunca é índice. */
+const BARRAS = ["b1", "b2", "b3", "b4"] as const;
+
 export function TelaDeRedefinirSenha({
   token,
   motivo,
@@ -34,15 +39,16 @@ export function TelaDeRedefinirSenha({
   const [enviando, setEnviando] = useState(false);
   const [pronto, setPronto] = useState(false);
 
-  const curta = senha.length > 0 && senha.length < 8;
-  const podeEnviar = senha.length >= 8 && !enviando;
+  const forca = forcaDaSenha(senha);
+  const podeEnviar = senha.length >= MINIMO_DA_SENHA && !enviando;
 
   if (pronto) {
     return (
       <div className={css.tela}>
-        <div className={css.cartao}>
-          <h1 className={css.titulo}>Senha alterada</h1>
-          <p className={css.recado}>
+        <div className={css.cartaoDeCadastro}>
+          <div className={css.sobrancelhaDoCartao}>Recuperação de senha</div>
+          <h1 className={css.saudacao}>Senha alterada</h1>
+          <p className={css.instrucao}>
             {derrubar
               ? "Os outros dispositivos foram desconectados. Entre com a senha nova."
               : "Entre com a senha nova."}
@@ -58,7 +64,7 @@ export function TelaDeRedefinirSenha({
   return (
     <div className={css.tela}>
       <form
-        className={css.cartao}
+        className={css.cartaoDeCadastro}
         onSubmit={(e) => {
           e.preventDefault();
           if (!podeEnviar) return;
@@ -68,26 +74,61 @@ export function TelaDeRedefinirSenha({
             .finally(() => setEnviando(false));
         }}
       >
-        <h1 className={css.titulo}>Nova senha</h1>
+        <div className={css.sobrancelhaDoCartao}>Recuperação de senha</div>
+        <Passos atual={3} nomes={PASSOS_DA_SENHA} />
 
-        <Campo
-          rotulo="Senha"
-          type="password"
-          autoComplete="new-password"
-          autoFocus
-          required
-          disabled={enviando}
-          dica="Pelo menos 8 caracteres."
-          erro={curta ? "Curta demais — mínimo de 8 caracteres." : undefined}
-          value={senha}
-          onChange={(e) => setSenha(e.target.value)}
-        />
+        <h1 className={css.saudacao}>Escolha uma nova senha</h1>
+        {/*
+          A consequência ANTES do campo, e é o que o design escreve: "Todas as
+          sessões ativas serão encerradas." Dizê-la depois do botão seria dizer
+          depois do ato.
+        */}
+        <p className={css.instrucao}>
+          As outras sessões vão ser encerradas — você entra de novo com a senha
+          nova em cada aparelho.
+        </p>
+
+        <div>
+          <Campo
+            rotulo="Senha"
+            type="password"
+            revelavel
+            autoComplete="new-password"
+            autoFocus
+            required
+            disabled={enviando}
+            value={senha}
+            onChange={(e) => setSenha(e.target.value)}
+          />
+
+          {/* O mesmo medidor do cadastro — a régua da senha não pode mudar
+              entre a tela que a cria e a que a troca. */}
+          <div className={css.medidor} aria-hidden>
+            {BARRAS.map((b, i) => (
+              <span
+                key={b}
+                className={css.barraDeForca}
+                data-acesa={i < forca.nivel || undefined}
+                data-tom={forca.tom}
+              />
+            ))}
+          </div>
+
+          <div className={css.linhaDaForca}>
+            <span className={css.rotuloDaForca} data-tom={forca.tom}>
+              {forca.rotulo}
+            </span>
+            <span className={css.minimo}>
+              mín. {MINIMO_DA_SENHA} caracteres
+            </span>
+          </div>
+        </div>
 
         {/* `checkbox` é o único controle nativo que o lint permite fora de
             `components/ui`: `accent-color` o traz para o sistema de cor e ele
             não abre superfície própria. */}
         <Caixa
-          className={css.opcao}
+          className={css.lembrar}
           marcado={derrubar}
           disabled={enviando}
           aoAlternar={setDerrubar}

@@ -20,6 +20,7 @@ import { GerenciarGrupo } from "../../casa/GerenciarGrupo";
 import { NovoGrupo } from "../../casa/NovoGrupo";
 import { ModalDeApelido } from "../../membros/ModalDeApelido";
 import { PrivacidadeDoServidor } from "../../servidores/PrivacidadeDoServidor";
+import { SeletorDeTela } from "../../voz/SeletorDeTela";
 
 /**
  * O registro de modais, e o ponto dele é o TIPO.
@@ -48,6 +49,7 @@ const REGISTRO: Record<ModalId, ComponentType<{ aoFechar: () => void }>> = {
   encaminhar: Encaminhar,
   enquete: CriarEnquete,
   novoGrupo: NovoGrupo,
+  tela: SeletorDeTela,
   grupo: GerenciarGrupo,
   privacidadeDoServidor: PrivacidadeDoServidor,
   apelido: ModalDeApelido,
