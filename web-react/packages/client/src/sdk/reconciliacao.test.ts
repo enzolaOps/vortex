@@ -80,7 +80,7 @@ beforeEach(async () => {
   await seed(20);
   virarFrame();
   definirUsuarioLocal("01JQ0000000000000001000000");
-  configurarSimulacaoDeEnvio({});
+  configurarSimulacaoDeEnvio({ ativa: true });
 });
 
 describe("mensagem otimista confirmada pelo servidor", () => {
@@ -141,7 +141,7 @@ describe("mensagem otimista confirmada pelo servidor", () => {
   });
 
   it("falha no envio libera o nonce", () => {
-    configurarSimulacaoDeEnvio({ falhar: true, latenciaMs: 1 });
+    configurarSimulacaoDeEnvio({ ativa: true, falhar: true, latenciaMs: 1 });
     const local = enviarMensagem(CHANNEL_ID, "vai falhar")!;
     vi.advanceTimersByTime(5);
 

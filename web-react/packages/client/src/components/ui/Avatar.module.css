@@ -50,6 +50,26 @@
   border-radius: inherit;
 }
 
+/*
+  A imagem SOBRE o gradiente, e não no lugar dele.
+
+  `absolute` cobrindo a caixa inteira: enquanto ela não chega — ou se ela
+  falhar —, o que aparece é a identidade de sempre, em vez de um buraco. Numa
+  lista virtualizada isso é visível a cada rolagem, porque cada linha que monta
+  começa sem a imagem.
+
+  `object-fit: cover` porque o avatar é quadrado e a foto raramente é: sem ele
+  a imagem esticaria, que é o defeito mais visível que um avatar pode ter.
+*/
+.imagem {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
 .xxs {
   inline-size: var(--vx-avatar-2xs);
   block-size: var(--vx-avatar-2xs);

@@ -61,6 +61,7 @@ const Falante = memo(function Falante({ userId }: { userId: string }) {
       <Avatar
         id={userId}
         sigla={pessoa?.sigla}
+        url={pessoa?.avatarUrl}
         tamanho="sm"
         /* ⚠ A classe carrega o ANEL DE FALA (`.pessoa[data-falando] .avatar`),
            e ela sumiu quando o avatar virou primitivo — o anel ficou morto

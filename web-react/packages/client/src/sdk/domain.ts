@@ -399,6 +399,20 @@ export type UserSnapshot = {
  */
 export type ComSigla = {
   readonly sigla: string;
+  /**
+   * A imagem, quando o servidor de mídia tem uma.
+   *
+   * ⚠ **URL pronta, e não o ID do anexo.** Montar a URL no componente exigiria
+   * que ele soubesse o endereço do `autumn`, que vem da configuração buscada
+   * pelo SDK — ou seja, a forma do protocolo vazando para a linha de mensagem.
+   * O getter do SDK (`avatarURL`, `iconURL`) já resolve isso, e chamá-lo na
+   * ESCRITA é a mesma disciplina de `sigla` e `createdAtText`.
+   *
+   * `undefined` é o caso comum hoje e continua sendo o certo: o gradiente por
+   * ID identifica melhor que uma silhueta cinza igual para todo mundo. Ver
+   * `Avatar`, onde a imagem COBRE o gradiente em vez de substituí-lo.
+   */
+  readonly avatarUrl: string | undefined;
 };
 
 export type ServerSnapshot = ComSigla & {

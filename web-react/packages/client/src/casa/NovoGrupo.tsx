@@ -53,7 +53,7 @@ function Candidata({
       className={css.candidata}
       onClick={aoAlternar}
     >
-      <Avatar id={id} sigla={pessoa.sigla} tamanho="sm" />
+      <Avatar id={id} sigla={pessoa.sigla} url={pessoa.avatarUrl} tamanho="sm" />
       <span className={css.textos}>
         <span className={css.nome}>{pessoa.displayName}</span>
         <span className={css.usuario}>{pessoa.username}</span>
@@ -234,7 +234,7 @@ function Ficha({ id, aoTirar }: { id: string; aoTirar: () => void }) {
 
   return (
     <span className={css.ficha}>
-      <Avatar id={id} sigla={pessoa.sigla} tamanho="xxs" />
+      <Avatar id={id} sigla={pessoa.sigla} url={pessoa.avatarUrl} tamanho="xxs" />
       {pessoa.displayName}
       <button
         type="button"

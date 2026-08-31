@@ -157,7 +157,11 @@ export function PainelDeUsuario() {
               ESCOLHAS.find((e) => e.id === status.presenca)?.rotulo ?? ""
             }. Abrir menu de status.`}
           >
-            <Avatar id={meuId} sigla={perfil ? sigla(nome) : undefined}>
+            <Avatar
+              id={meuId}
+              sigla={perfil ? sigla(nome) : undefined}
+              url={perfil?.avatarUrl}
+            >
               {/*
                 O ponto NÃO é o `PontoDePresenca`, e a diferença é o ponto.
 

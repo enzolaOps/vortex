@@ -19,6 +19,14 @@ export type MeuPerfil = {
   readonly username: string;
   readonly pronomes: string;
   readonly bio: string;
+  /**
+   * O próprio avatar, quando existe.
+   *
+   * `undefined` sem anexo, e não a URL do avatar padrão que o SDK gera: a
+   * mesma disciplina de `urlDeAvatar` em `map.ts` — a silhueta genérica
+   * cobriria o gradiente por ID, que é o fallback que identifica.
+   */
+  readonly avatarUrl: string | undefined;
 };
 
 export type Dispositivo = {
@@ -53,6 +61,7 @@ export function lerMeuPerfil(): MeuPerfil | undefined {
     displayName: eu.displayName || eu.username,
     username: eu.username,
     pronomes: eu.pronouns ?? "",
+    avatarUrl: eu.avatar ? eu.avatarURL : undefined,
     /*
       A bio NÃO está no cache do usuário.
 

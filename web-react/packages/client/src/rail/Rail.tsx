@@ -154,6 +154,22 @@ const ItemDeServidor = memo(function ItemDeServidor({
           }}
         >
           {servidor.sigla}
+
+          {/*
+            O ícone real POR CIMA do gradiente, com a mesma disciplina do
+            `Avatar`: enquanto ele não chega — ou se falhar — o ladrilho
+            continua sendo o gradiente do ID, que identifica. Trocar um pelo
+            outro deixaria o rail piscando em cinza a cada abertura.
+          */}
+          {servidor.avatarUrl !== undefined ? (
+            <img
+              className={css.icone}
+              src={servidor.avatarUrl}
+              alt=""
+              loading="lazy"
+            />
+          ) : null}
+
           {servidor.mencoes > 0 ? (
             <Selo
               forma="contagem"

@@ -59,7 +59,12 @@ const Linha = memo(function Linha({
       />
 
       <span className={tab.pessoa}>
-        <Avatar id={userId} sigla={membro.sigla} tamanho="xs" />
+        <Avatar
+          id={userId}
+          sigla={membro.sigla}
+          url={membro.avatarUrl}
+          tamanho="xs"
+        />
         <span className={tab.nomes}>
           <span className={tab.nome}>{membro.displayName}</span>
           <span className={tab.handle}>{membro.username}</span>

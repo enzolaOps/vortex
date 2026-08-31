@@ -1255,21 +1255,24 @@ export function definirUsuarioLocal(id: string): void {
 const proximoId = monotonicFactory();
 
 /**
- * Simulação de round-trip. Temporária, e nomeada para não passar despercebida.
+ * Simulação de round-trip — do ARNÊS, e só dele.
  *
- * Existe porque o caminho de rede NÃO está escrito, e não está por decisão:
- * `Channel.sendMessage` é round-trip completo — POST, o servidor atribui o
- * `_id`, e o SDK só materializa a mensagem quando a resposta volta. Não há
- * inserção otimista nenhuma no SDK.
+ * ⚠ **Ela era o caminho de envio do PRODUTO até agora, e isso era um buraco
+ * grande.** O comentário aqui dizia que a rede não estava escrita "por
+ * decisão", porque a mensagem otimista tem ID local e a confirmada tem ID do
+ * servidor — a chave da linha mudando debaixo do virtualizador. Essa razão
+ * EXPIROU: a reconciliação por nonce foi construída (`sdk/nonce.ts`, doze
+ * testes), e o que sobrou foi um `setTimeout` marcando "enviada" uma mensagem
+ * que nunca saiu da aba.
  *
- * Escrever esse caminho agora seria escrever código que nunca rodou (não há
- * backend conectado), e ele carrega o problema real: a mensagem otimista tem
- * ID local e a que volta tem ID do servidor. Numa lista virtualizada com
- * `getItemKey` por ID de entidade, isso é a chave da linha mudando debaixo do
- * virtualizador. A reconciliação por nonce é pendência aberta e resolve-se
- * AQUI, no adapter, sem o componente saber.
+ * Agora `enviarMensagem` faz o POST de verdade e a simulação só entra quando
+ * alguém a liga — o que só o arnês faz, para exercitar falha e latência sem
+ * derrubar a rede. Ligada, ela SUBSTITUI o POST: um envio simulado que também
+ * fosse ao servidor duplicaria a mensagem.
  */
 export type SimulacaoDeEnvio = {
+  /** Liga a simulação no lugar do POST. Sem isto, o envio é real. */
+  ativa?: boolean;
   falhar?: boolean;
   latenciaMs?: number;
 };
@@ -1299,9 +1302,20 @@ export function enviarMensagem(
    * fora, como já acontece com o rascunho.
    */
   respondendoA?: string,
+  /**
+   * IDs de anexo já subidos ao servidor de mídia.
+   *
+   * IDs e não `File`: subir é uma chamada de rede com barra de progresso e
+   * cancelamento, e ela pertence a quem tem a tela — não a um handler de tecla
+   * síncrono. Ver `sdk/anexos.ts`.
+   */
+  anexos?: readonly string[],
 ): string | undefined {
   const texto = conteudo.trim();
-  if (!texto) return undefined;
+  /* Mensagem só de anexo é legítima, e é o caso mais comum de mandar uma
+     imagem: sem esta condição, arrastar um arquivo e apertar Enter não fazia
+     nada. */
+  if (!texto && (anexos === undefined || anexos.length === 0)) return undefined;
 
   if (!usuarioLocal || !client.channels.get(channelId)) {
     if (import.meta.env.DEV) {
@@ -1373,18 +1387,82 @@ export function enviarMensagem(
   */
   if (lerConexao() !== "conectado") return id;
 
-  setTimeout(() => {
-    if (simulacao.falhar) {
-      // Desiste do nonce: sem isto o mapa cresce para sempre numa sessão de
-      // 8h com rede instável, que é o erro nº 5 do briefing.
-      desistir(id);
-      marcarEnvio(id, "failed");
-    } else {
-      marcarEnvio(id, "sent");
-    }
-  }, simulacao.latenciaMs ?? 600);
+  /*
+    O arnês SUBSTITUI o POST, não o acompanha: simular e enviar ao mesmo tempo
+    mandaria a mesma mensagem duas vezes. Ver `SimulacaoDeEnvio`.
+  */
+  if (simulacao.ativa) {
+    setTimeout(() => {
+      if (simulacao.falhar) {
+        // Desiste do nonce: sem isto o mapa cresce para sempre numa sessão de
+        // 8h com rede instável, que é o erro nº 5 do briefing.
+        desistir(id);
+        marcarEnvio(id, "failed");
+      } else {
+        marcarEnvio(id, "sent");
+      }
+    }, simulacao.latenciaMs ?? 600);
+    return id;
+  }
+
+  void postar(id, channelId, texto, respondendoA, anexos);
 
   return id;
+}
+
+/**
+ * O POST, e o que fazer com as duas respostas dele.
+ *
+ * ⚠ **Separado em função própria porque `enviarMensagem` é SÍNCRONA de
+ * propósito** — ela roda num handler de tecla e devolve o ID otimista na hora,
+ * que é o que faz a linha aparecer antes da rede. Torná-la `async` obrigaria
+ * o composer a esperar o servidor para limpar o campo.
+ *
+ * ⚠ **Não marca `sent` na resposta, e isso é deliberado.** Quem materializa a
+ * mensagem confirmada é o evento `messageCreate`, que chega pelo socket com o
+ * nonce e passa pela reconciliação — marcar aqui correria com ele e a linha
+ * piscaria entre dois estados. O sucesso é a AUSÊNCIA de falha; ver
+ * `marcarEnvio` no caminho de reconciliação.
+ *
+ * ⚠ **`replies` com `mention: false`.** O protocolo pede `ReplyIntent`
+ * (`{id, mention}`), e o default de mencionar é uma decisão de produto que a
+ * pendência `responderSemMencionar` registra: enquanto não houver o controle,
+ * responder NÃO notifica — o inverso transformaria toda resposta numa menção
+ * sem ninguém ter pedido.
+ */
+async function postar(
+  id: string,
+  channelId: string,
+  content: string,
+  respondendoA: string | undefined,
+  anexos: readonly string[] | undefined,
+): Promise<void> {
+  try {
+    await client.channels.get(channelId)?.sendMessage({
+      content,
+      /*
+        O nonce está DEPRECADO no schema em favor de `Idempotency-Key`, e vai
+        assim mesmo: é o campo que volta no evento de criação, e é por ele que
+        a reconciliação encontra a otimista. Trocar por idempotência resolve
+        duplicata de reenvio, não identidade da linha — são problemas
+        diferentes com nomes parecidos.
+      */
+      nonce: id,
+      ...(respondendoA ? { replies: [{ id: respondendoA, mention: false }] } : {}),
+      ...(anexos && anexos.length > 0 ? { attachments: [...anexos] } : {}),
+    });
+  } catch {
+    /*
+      Desiste do nonce: sem isto o mapa cresce para sempre numa sessão de 8h
+      com rede instável, que é o erro nº 5 do briefing.
+
+      Sem toast. A falha já está na LINHA, com "reenviar" ao lado — é onde a
+      pessoa está olhando, e um toast por mensagem que não sai transformaria
+      uma queda de rede numa pilha de avisos sobre o mesmo fato.
+    */
+    desistir(id);
+    marcarEnvio(id, "failed");
+  }
 }
 
 /* -------------------------------------------------------------- digitação */

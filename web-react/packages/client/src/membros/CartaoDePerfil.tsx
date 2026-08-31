@@ -60,7 +60,7 @@ function Corpo({ serverId, userId }: { serverId: string; userId: string }) {
   return (
     <div className={css.cartao}>
       <div className={css.topo}>
-        <Avatar id={userId} sigla={membro.sigla} tamanho="lg">
+        <Avatar id={userId} sigla={membro.sigla} url={membro.avatarUrl} tamanho="lg">
           <PontoDePresenca userId={userId} rotular />
         </Avatar>
 

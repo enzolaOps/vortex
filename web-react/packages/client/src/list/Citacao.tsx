@@ -69,6 +69,7 @@ export function Citacao({
           <Avatar
             id={citada.authorId ?? ""}
             sigla={autor?.sigla}
+            url={autor?.avatarUrl}
             tamanho="xxs"
             className={css.avatarCitado}
           />

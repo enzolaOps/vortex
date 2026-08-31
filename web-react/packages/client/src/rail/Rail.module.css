@@ -243,12 +243,52 @@
   na tira). Um degrau de superfície é a pista mais barata que existe para
   "isto pertence a outra categoria".
 */
+/*
+  O ícone do servidor cobrindo o ladrilho.
+
+  `absolute` contra `.marca` (que já é `relative` por causa do contador), com o
+  raio herdado para acompanhar os quatro tamanhos do rail. `object-fit: cover`
+  porque o ícone é enviado em qualquer proporção e o ladrilho é quadrado.
+
+  ⚠ O contador de menções vem DEPOIS no DOM e continua por cima — sem isso, um
+  servidor com ícone perderia o badge, que é a informação mais importante da
+  coluna.
+*/
+.icone {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
 .marcaCasa {
   background: var(--vx-surface-3);
   color: var(--vx-text-2);
 }
 
-.item:hover .marcaCasa {
+.item:hover /*
+  O ícone do servidor cobrindo o ladrilho.
+
+  `absolute` contra `.marca` (que já é `relative` por causa do contador), com o
+  raio herdado para acompanhar os quatro tamanhos do rail. `object-fit: cover`
+  porque o ícone é enviado em qualquer proporção e o ladrilho é quadrado.
+
+  ⚠ O contador de menções vem DEPOIS no DOM e continua por cima — sem isso, um
+  servidor com ícone perderia o badge, que é a informação mais importante da
+  coluna.
+*/
+.icone {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.marcaCasa {
   color: var(--vx-text-1);
 }
 

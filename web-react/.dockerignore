@@ -1,0 +1,22 @@
+# O que nunca deve entrar no contexto de build.
+#
+# `node_modules` é o que mais importa: ele tem centenas de megabytes e o
+# `pnpm install` do Dockerfile o reconstrói de qualquer jeito. Mandá-lo torna o
+# build lento e pode misturar binários da máquina de quem constrói com os do
+# contêiner.
+node_modules
+**/node_modules
+dist
+**/dist
+
+# Configuração local, e o motivo é de SEGURANÇA: `.env.local` aponta para a
+# instância de desenvolvimento e o Vite embute `VITE_*` no bundle. Um deles
+# vazando para a imagem faria o cliente de produção falar com o servidor errado
+# — a mesma classe de defeito que o `baseURL` ausente já produziu.
+.env
+.env.*
+!.env.example
+
+.git
+**/*.md
+**/.impeccable

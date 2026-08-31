@@ -163,7 +163,7 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
       data-offline={offline}
       data-silenciado={silenciado}
     >
-      <Avatar id={id} sigla={membro.sigla}>
+      <Avatar id={id} sigla={membro.sigla} url={membro.avatarUrl}>
         {/* Rotulado aqui, ao contrário da lista de mensagens: nesta coluna a
             presença É o dado, não enfeite ao lado de um nome. */}
         <PontoDePresenca userId={id} rotular />

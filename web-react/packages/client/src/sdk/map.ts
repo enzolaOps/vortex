@@ -333,6 +333,7 @@ export function toServerSnapshot(
     id: server.id,
     name: server.name,
     sigla: sigla(server.name),
+    avatarUrl: server.iconURL,
     naoLidas,
     mencoes,
   };
@@ -536,6 +537,7 @@ export function toRelacaoSnapshot(user: User): RelacaoSnapshot {
     id: user.id,
     displayName,
     sigla: sigla(displayName),
+    avatarUrl: urlDeAvatar(user),
     username: user.username,
     relacao: RELACAO[user.relationship] ?? "nenhuma",
     status: toPresence(user.status?.presence),
@@ -671,6 +673,20 @@ export function toMemberSnapshot(
     id: user.id,
     displayName,
     sigla: sigla(displayName),
+    /* Avatar do MEMBRO ganha do global, pela mesma razão dos pronomes: o
+       protocolo permite um por servidor, e quem define um está dizendo algo
+       naquele lugar.
+
+       ⚠ **`membro.avatar` e não `membro.avatarURL`, e a diferença me pegou.**
+       O getter do SDK já faz o fallback sozinho — `this.avatar?.createFileURL()
+       ?? this.user?.avatarURL` — e o do usuário, sem anexo, devolve a URL do
+       avatar PADRÃO gerado pelo servidor. Encadear os dois getters entregava
+       uma URL sempre, e a guarda de `urlDeAvatar` nunca era alcançada:
+       medido no navegador, 41 `<img>` para `/default_avatar` numa tela onde
+       ninguém tem foto. Conferir o ANEXO é o que devolve o controle a nós. */
+    avatarUrl: membro?.avatar
+      ? membro.avatarURL
+      : urlDeAvatar(user),
     username: user.username,
     // Pronomes do MEMBRO ganham dos do usuário: o protocolo permite declarar
     // diferente por servidor, e quem faz isso está dizendo algo naquele lugar.
@@ -704,6 +720,20 @@ function dataDeEntrada(membro: ServerMember | undefined): number | undefined {
   const t = membro?.joinedAt?.getTime();
   if (t === undefined || Number.isNaN(t) || t === 0) return undefined;
   return t;
+}
+
+/**
+ * A URL do avatar do usuário, ou ausência.
+ *
+ * ⚠ **`user.avatar` é conferido ANTES de chamar `avatarURL`**, e o getter do
+ * SDK é a razão: ele é tipado como `string` não-opcional e, sem anexo,
+ * devolve a URL do avatar PADRÃO gerado pelo servidor. Passá-la adiante
+ * cobriria o gradiente com uma silhueta igual para todo mundo — trocando o
+ * fallback que identifica pelo que só ocupa espaço, que é o contrário do que a
+ * decisão de gradiente por ID existe para fazer.
+ */
+function urlDeAvatar(user: User): string | undefined {
+  return user.avatar ? user.avatarURL : undefined;
 }
 
 /*

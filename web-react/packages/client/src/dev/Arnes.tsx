@@ -78,7 +78,7 @@ export function Arnes() {
    */
   const [falharEnvio, setFalharEnvio] = useState(false);
   useEffect(() => {
-    configurarSimulacaoDeEnvio({ falhar: falharEnvio });
+    configurarSimulacaoDeEnvio({ ativa: true, falhar: falharEnvio });
   }, [falharEnvio]);
 
   /**

@@ -8,8 +8,15 @@
 import { Client, ConnectionState } from "stoat.js";
 
 import { estaSilenciado } from "../store/silencio";
+import { API_URL } from "./config";
 
 export const client = new Client({
+  /*
+    ⚠ **Isto faltava, e sem ele o app falava com `https://stoat.chat/api`** — o
+    default do SDK, que é a instância pública do Stoat. Ver `sdk/config.ts`: o
+    sintoma não era erro, era o app funcionando contra o servidor errado.
+  */
+  baseURL: API_URL,
   /*
     Silenciar é decisão do CLIENTE, e o SDK diz isso na forma da API: ele expõe
     `channel.muted` como uma pergunta que o app responde. Não há escrita para

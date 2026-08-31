@@ -488,6 +488,7 @@ const NaSala = memo(function NaSala({
       <Avatar
         id={participante.userId}
         sigla={membro?.sigla}
+        url={membro?.avatarUrl}
         tamanho="xs"
         className={css.avatarDeVoz}
       />

@@ -77,7 +77,12 @@ export const AvatarDoAutor = memo(function AvatarDoAutor({
           );
         }}
       >
-        <Avatar id={userId} sigla={membro?.sigla} tamanho="md">
+        <Avatar
+        id={userId}
+        sigla={membro?.sigla}
+        url={membro?.avatarUrl}
+        tamanho="md"
+      >
           {/* Presença nunca só por cor — a silhueta do ponto muda com o estado.
               Sem rótulo aqui: o nome já está escrito ao lado, e anunciar
               presença a cada linha seria ruído no leitor de tela. */}

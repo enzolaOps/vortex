@@ -33,7 +33,12 @@ function Criador({ serverId, userId }: { serverId: string; userId: string }) {
 
   return (
     <span className={tab.pessoa}>
-      <Avatar id={userId} sigla={membro?.sigla} tamanho="xxs" />
+      <Avatar
+        id={userId}
+        sigla={membro?.sigla}
+        url={membro?.avatarUrl}
+        tamanho="xxs"
+      />
       <span className={tab.meta}>{membro?.displayName ?? "alguém"}</span>
     </span>
   );

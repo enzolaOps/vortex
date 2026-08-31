@@ -53,3 +53,47 @@ const janela = new JSDOM("", { url: "http://localhost" }).window;
  * token que o teste tinha acabado de guardar, e não achava nada.
  */
 (globalThis as { localStorage?: Storage }).localStorage = janela.localStorage;
+
+/**
+ * A REDE, fechada.
+ *
+ * ⚠ **A suíte estava fazendo requisições de verdade, e ninguém sabia.** O
+ * `new Client()` dispara `#fetchConfiguration()` no construtor, sem `await` —
+ * e como o `baseURL` era o default do SDK (`https://stoat.chat/api`), toda
+ * corrida de teste que importasse qualquer módulo tocando o `client` ia buscar
+ * configuração na instância PÚBLICA do Stoat. Passava em silêncio porque a
+ * chamada tinha sucesso.
+ *
+ * Isso é ruim por três razões independentes: a suíte falhava sem internet, o
+ * tempo dela dependia de um servidor de terceiro, e o repositório inteiro
+ * anunciava cada corrida de `pnpm test` para fora.
+ *
+ * Apareceu ao configurar o `baseURL` para a mesma origem: com `localhost` no
+ * lugar de `stoat.chat`, o mesmo `fetch` passou a falhar e virou 18 rejeições
+ * não tratadas. O erro era novo; o problema, não.
+ *
+ * O dublê devolve uma configuração mínima e VÁLIDA em vez de rejeitar: o
+ * caminho que o construtor exercita é o de sucesso, e uma rejeição aqui
+ * voltaria ao mesmo ruído com outra causa. Teste que precise de rede monta o
+ * próprio dublê por cima deste.
+ */
+/*
+  ⚠ `Response` do Node e não o do JSDOM: `janela.Response` não é construtor no
+  jsdom desta versão, e a primeira tentativa trocou 18 rejeições de rede por 18
+  rejeições de `not a constructor`. O `Response` global do Node serve — o que o
+  SDK consome dele é `status`, `ok` e `text()`.
+*/
+(globalThis as { fetch?: typeof fetch }).fetch = () =>
+  Promise.resolve(
+    new Response(
+      JSON.stringify({
+        revolt: "0.0.0-teste",
+        features: {
+          autumn: { enabled: false, url: "" },
+          january: { enabled: false, url: "" },
+        },
+        ws: "ws://localhost/events",
+      }),
+      { status: 200, headers: { "content-type": "application/json" } },
+    ),
+  );

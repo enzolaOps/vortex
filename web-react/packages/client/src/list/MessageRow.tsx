@@ -1565,7 +1565,12 @@ function ItensDoUsuario({ userId }: { userId: string }) {
   return (
     <ContextMenuContent className={menuLargo}>
       <div className={css.cabecalhoDoUsuario}>
-        <Avatar sigla={membro?.sigla ?? "?"} tamanho="sm" id={userId} />
+        <Avatar
+          sigla={membro?.sigla ?? "?"}
+          url={membro?.avatarUrl}
+          tamanho="sm"
+          id={userId}
+        />
         <div className={css.identidade}>
           <span className={css.identidadeNome}>
             {membro?.displayName ?? "desconhecido"}

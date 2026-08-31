@@ -141,6 +141,7 @@ function Identidade() {
       <Avatar
         id={meuId}
         sigla={perfil ? sigla(nome) : undefined}
+        url={perfil?.avatarUrl}
         tamanho="xs"
       />
       <div className={css.identidadeTextos}>

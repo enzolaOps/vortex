@@ -154,6 +154,7 @@ function GrupoDeServidor({ serverId, aba }: { serverId: string; aba: Aba }) {
           channelId={id}
           servidor={servidor.name}
           sigla={servidor.sigla}
+          url={servidor.avatarUrl}
           aba={aba}
         />
       ))}
@@ -175,12 +176,14 @@ function LinhaDaCaixa({
   channelId,
   servidor,
   sigla,
+  url,
   aba,
 }: {
   serverId: string;
   channelId: string;
   servidor: string;
   sigla: string;
+  url: string | undefined;
   aba: Aba;
 }) {
   const canal = useChannel(channelId);
@@ -214,7 +217,7 @@ function LinhaDaCaixa({
           duplicaria o formatador que o snapshot da mensagem já traz pronto.
         */}
         <span className={css.contexto}>
-          <Avatar id={serverId} sigla={sigla} tamanho="xxs" />
+          <Avatar id={serverId} sigla={sigla} url={url} tamanho="xxs" />
           <span className={css.servidor}>{servidor}</span>
           <span className={css.canal}>#{canal.name}</span>
           <span className={css.espaco} />

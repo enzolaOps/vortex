@@ -41,7 +41,7 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
-  configurarSimulacaoDeEnvio({ falhar: false });
+  configurarSimulacaoDeEnvio({ ativa: true, falhar: false });
   vi.useRealTimers();
   vi.unstubAllGlobals();
 });
@@ -60,7 +60,7 @@ function assinar(id: string) {
 
 describe("reenvio", () => {
   it("falha, reenvia, e a mensagem chega — com o MESMO id", () => {
-    configurarSimulacaoDeEnvio({ falhar: true });
+    configurarSimulacaoDeEnvio({ ativa: true, falhar: true });
 
     const id = enviarMensagem(CHANNEL_ID, "vai falhar")!;
     expect(id).toBeDefined();
@@ -72,7 +72,7 @@ describe("reenvio", () => {
     expect(messages.peek(id)?.sendState).toBe("failed");
 
     // Agora a rede "volta".
-    configurarSimulacaoDeEnvio({ falhar: false });
+    configurarSimulacaoDeEnvio({ ativa: true, falhar: false });
     reenviar(id);
 
     // Volta a pendente NA HORA: sem isto, clicar em "Tentar de novo" não daria
@@ -106,7 +106,7 @@ describe("reenvio", () => {
   });
 
   it("falhar de novo devolve a linha ao estado de erro, não a deixa pendurada", () => {
-    configurarSimulacaoDeEnvio({ falhar: true });
+    configurarSimulacaoDeEnvio({ ativa: true, falhar: true });
 
     const id = enviarMensagem(CHANNEL_ID, "sem rede mesmo")!;
     assinar(id);

@@ -36,7 +36,7 @@ function Membro({
 
   return (
     <div className={css.membro}>
-      <Avatar id={id} sigla={pessoa?.sigla} tamanho="sm" />
+      <Avatar id={id} sigla={pessoa?.sigla} url={pessoa?.avatarUrl} tamanho="sm" />
       <div className={css.textos}>
         <div className={css.nome}>{pessoa?.displayName ?? "alguém"}</div>
         {dono ? <div className={css.papel}>dona do grupo</div> : null}
