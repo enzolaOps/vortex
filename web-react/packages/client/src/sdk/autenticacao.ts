@@ -33,7 +33,7 @@
  * que existe exatamente para absorver diferença assim.
  */
 import { toast } from "../components/ui/toastStore";
-import { definirUsuarioLocal } from "./adapter";
+import { definirUsuarioLocal, startAdapter } from "./adapter";
 import { escolherNome, precisaEscolherNome } from "./conta";
 import { client } from "./client";
 import {
@@ -133,6 +133,30 @@ function instalar(sessao: {
   token: string;
   user_id: string;
 }): void {
+  /*
+    ⚠ **A PONTE, e ela nunca era ligada no produto.**
+
+    `startAdapter()` registra `ready`, `serverCreate`, `channelCreate`,
+    `messageCreate` — todo o caminho que traz dado do socket para o store. Ele
+    era chamado em UM lugar só: `dev/firehose.ts`. Ou seja, funcionava no
+    arnês e em lugar nenhum além dele.
+
+    O sintoma era o app abrir vazio contra um servidor real e continuar vazio:
+    o rail dizia "sem servidores" com o `Ready` trazendo um, a coluna dizia
+    "este servidor não tem canais" com o canal existindo no backend, e nada
+    mudava ao recarregar. Nenhum erro em lugar nenhum — o socket autenticava,
+    o `Ready` chegava, e ninguém estava ouvindo.
+
+    ⚠ **ANTES de `conectar()`, e a ordem é o mecanismo.** O `ready` é emitido
+    uma vez, logo depois da hidratação; registrar o ouvinte depois de abrir o
+    socket é uma corrida que se perde em rede rápida — que é exatamente o caso
+    de uma instância local.
+
+    Idempotente, então chamar nos dois caminhos (login e restauração) não
+    duplica ouvinte.
+  */
+  startAdapter();
+
   client.useExistingSession(sessao);
   void conectar();
   definirUsuarioLocal(sessao.user_id);

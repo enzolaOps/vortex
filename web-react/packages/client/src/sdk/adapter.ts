@@ -976,6 +976,35 @@ export function startAdapter() {
       só se preencheria na primeira mensagem nova de cada conversa — que é o
       mesmo defeito que a semeadura de não-lidas veio consertar.
     */
+    /*
+      ⚠ **Os SERVIDORES, e a falta disto deixava o rail vazio para sempre.**
+
+      `serverIds` só era preenchido pelo evento `serverCreate` — que existe
+      para o servidor criado ou entrado COM O APP ABERTO. Quem já era membro de
+      alguma coisa ao conectar não via nada: o `Ready` traz os servidores, os
+      canais e os membros, e ninguém os lia.
+
+      Medido contra a instância local: `Ready` chegava com
+      `servers: [{Time Vortex, 1 canal}]` e o rail dizia "sem servidores", até
+      depois de recarregar. A coluna de canais dizia "este servidor não tem
+      canais" com o canal existindo no backend.
+
+      ⚠ **Nunca apareceu porque o ARNÊS semeia `serverIds` direto.** É a mesma
+      família de "o arnês é mais pobre que o protocolo", com o sinal trocado:
+      aqui ele era mais RICO, e por isso escondia a ausência do caminho real.
+
+      Os canais vão junto e não por `channelCreate` pela mesma razão — o
+      payload de abertura já os tem.
+    */
+    const doProtocolo = client.servers.toList();
+    if (doProtocolo.length > 0) {
+      serverIds.set(RAIZ, doProtocolo.map((s) => s.id));
+      for (const servidor of doProtocolo) {
+        canaisPorServidor.set(servidor.id, [...servidor.channelIds]);
+        publicarCanais(servidor.id);
+      }
+    }
+
     publicarConversas();
     publicarRelacoes();
 
