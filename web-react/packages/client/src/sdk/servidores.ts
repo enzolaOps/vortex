@@ -723,3 +723,102 @@ export async function silenciarMembro(
     return false;
   }
 }
+
+/* ------------------------------------------------------- ícone do servidor */
+
+/**
+ * Prende ao servidor um ícone já subido ao `autumn`.
+ *
+ * ⚠ **Duas chamadas e não uma, e é o protocolo que manda.**
+ * `POST /servers/create` aceita `name`, `description` e `nsfw` — não aceita
+ * ícone. Quem o recebe é `DataEditServer.icon`, que leva o ID devolvido pelo
+ * servidor de mídia. Então o caminho é criar, depois vestir.
+ *
+ * ⚠ **A falha aqui NÃO desfaz a criação, de propósito.** O servidor já existe
+ * e já tem nome, canais e você dentro; apagá-lo porque uma imagem não colou
+ * seria perder o trabalho todo por causa do enfeite. Quem chama segue em
+ * frente e avisa — o ícone se põe depois em Configurações.
+ *
+ * Devolve se colou, para quem chama decidir o que dizer.
+ */
+export async function vestirIconeNoServidor(
+  serverId: string,
+  iconeId: string,
+): Promise<boolean> {
+  /*
+    ⚠ **Uma tentativa não basta, e o motivo é o próprio fluxo de criação.**
+    Criar um servidor a partir de um modelo já gasta a cota: são uma criação,
+    dois canais e uma edição de categoria em sequência. O PATCH do ícone cai no
+    mesmo balde e volta `429`.
+
+    Medido com a sonda, num fluxo normal de interface:
+    `edit falhou: {"retry_after":9965}`. Não é artefato de teste — acontece com
+    quem escolhe um modelo, que é o caminho que o modal oferece primeiro.
+
+    O servidor diz EXATAMENTE quanto esperar, então esperar é a resposta certa;
+    inventar um intervalo seria chutar contra um número que veio de graça.
+  */
+  for (let tentativa = 0; ; tentativa += 1) {
+    const erro = await tentarVestir(serverId, iconeId);
+    if (erro === undefined) return true;
+
+    const esperar = msDeEspera(erro);
+    if (tentativa >= 1 || esperar === undefined) return false;
+    await new Promise((r) => setTimeout(r, esperar));
+  }
+}
+
+/** `undefined` = colou. Qualquer outra coisa é o erro cru, para o chamador ler. */
+async function tentarVestir(
+  serverId: string,
+  iconeId: string,
+): Promise<unknown> {
+  /*
+    ⚠ **A coleção do SDK NÃO tem o servidor logo depois de criá-lo.**
+    `createServer` devolve o objeto, mas `client.servers.get(id)` no tique
+    seguinte ainda responde `undefined` — quem popula a coleção é o evento
+    `ServerCreate`, que vem pelo socket e chega depois. Por isso há o caminho
+    cru: ele não depende de hidratação.
+
+    O objeto é tentado primeiro quando existe, porque aí o SDK atualiza o
+    estado local na hora, sem esperar o evento dar a volta.
+  */
+  const servidor = client.servers.get(serverId);
+  try {
+    if (servidor !== undefined) await servidor.edit({ icon: iconeId });
+    else await client.api.patch(`/servers/${serverId as ""}`, { icon: iconeId });
+    return undefined;
+  } catch (e) {
+    return e;
+  }
+}
+
+/**
+ * O `retry_after` do corpo, em milissegundos, quando é isso que aconteceu.
+ *
+ * ⚠ O `stoat-api` LANÇA o corpo cru, e ele chega ora como objeto ora como o
+ * texto que veio no fio — as duas formas foram vistas. Ler só uma deixaria
+ * metade dos `429` passando por falha definitiva.
+ *
+ * O teto existe porque um `retry_after` grande é um servidor dizendo "não
+ * insista": segurar a interface por um minuto para pôr um ícone é pior que
+ * avisar e deixar a pessoa terminar em Configurações.
+ */
+const TETO_DE_ESPERA_MS = 15_000;
+
+function msDeEspera(erro: unknown): number | undefined {
+  let corpo: unknown = erro;
+  if (typeof corpo === "string") {
+    try {
+      corpo = JSON.parse(corpo);
+    } catch {
+      return undefined;
+    }
+  }
+  const ms = (corpo as { retry_after?: unknown } | null)?.retry_after;
+  if (typeof ms !== "number" || ms <= 0 || ms > TETO_DE_ESPERA_MS) {
+    return undefined;
+  }
+  /* Uma folga: o relógio do servidor e o daqui não são o mesmo. */
+  return ms + 250;
+}

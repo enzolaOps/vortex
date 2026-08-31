@@ -1,5 +1,5 @@
 import { Hash, SpeakerHigh } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
 import { Botao } from "../components/ui/Botao";
@@ -9,7 +9,6 @@ import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { cn } from "../lib/cn";
 import { corDoTextoDe, gradienteDe } from "../lib/gradiente";
 import { sigla } from "../lib/sigla";
-import { aindaNao } from "../pendente/pendencias";
 import {
   buscarConvite,
   criarServidor,
@@ -18,6 +17,9 @@ import {
 } from "../sdk/servidores";
 import { lerEntrada, voltarParaEntrar } from "../store/entrada";
 import { selecionarServidor } from "../store/navegacao";
+import { subirAnexo, temServidorDeMidia } from "../sdk/anexos";
+import { vestirIconeNoServidor } from "../sdk/servidores";
+import { toast } from "../components/ui/toastStore";
 import css from "./AdicionarServidor.module.css";
 import {
   canaisDe,
@@ -173,6 +175,63 @@ function Personalizar({
   const [proposito, setProposito] = useState<Proposito>("time");
   const [enviando, setEnviando] = useState(false);
 
+  /* ------------------------------------------------------------- ícone */
+
+  const seletorDeIcone = useRef<HTMLInputElement>(null);
+  /** O ID que o `autumn` devolveu, quando já subiu. */
+  const [icone, setIcone] = useState<string | undefined>(undefined);
+  /** O `blob:` da prévia local. */
+  const [previa, setPrevia] = useState<string | undefined>(undefined);
+  const [subindoIcone, setSubindoIcone] = useState(false);
+  const temMidia = temServidorDeMidia();
+
+  /*
+    ⚠ **`URL.revokeObjectURL` no desmonte, e é o erro nº 5 do briefing.** Cada
+    `createObjectURL` prende o arquivo na memória da aba até ser revogado —
+    fechar o modal sem revogar deixaria a imagem presa pelo resto da sessão, e
+    quem troca de ícone três vezes prende três.
+  */
+  useEffect(() => {
+    return () => {
+      if (previa !== undefined) URL.revokeObjectURL(previa);
+    };
+  }, [previa]);
+
+  /**
+   * Sobe o ícone escolhido e mostra a prévia.
+   *
+   * ⚠ **A prévia aparece ANTES do upload terminar, e é de propósito.** Ela sai
+   * do arquivo local, então é instantânea; esperar a rede para mostrar o que a
+   * pessoa acabou de escolher faria o ladrilho parecer que ignorou o clique.
+   * Se o upload falhar, a prévia é desfeita — mostrar uma imagem que não vai
+   * junto é pior que não mostrar nenhuma.
+   *
+   * Tag `icons` e não `attachments`: o `autumn` valida por tag, e o teto de
+   * ícone é 2,5 MB contra 20 MB de anexo. Mandar pela tag errada passaria uma
+   * imagem que o servidor recusa ao vesti-la.
+   */
+  function escolherIcone(arquivo: File) {
+    const anterior = previa;
+    const url = URL.createObjectURL(arquivo);
+    setPrevia(url);
+    setSubindoIcone(true);
+    if (anterior !== undefined) URL.revokeObjectURL(anterior);
+
+    void subirAnexo(arquivo, "icons")
+      .then((id) => setIcone(id))
+      .catch((e: unknown) => {
+        URL.revokeObjectURL(url);
+        setPrevia(undefined);
+        setIcone(undefined);
+        toast({
+          tipo: "erro",
+          titulo: "Não deu para enviar o ícone.",
+          descricao: e instanceof Error ? e.message : "Tente outra imagem.",
+        });
+      })
+      .finally(() => setSubindoIcone(false));
+  }
+
   const limpo = nome.trim();
   const podeEnviar = limpo.length > 0 && !enviando;
   const canais = canaisDe(modelo, proposito);
@@ -195,6 +254,32 @@ function Personalizar({
                 void criarServidor(limpo, modelo.categoria, canais)
                   .then((id) => {
                     if (!id) return;
+                    /*
+                      O ícone é vestido DEPOIS, porque o protocolo não o aceita
+                      na criação — ver `vestirIconeNoServidor`.
+
+                      ⚠ **Sem `await`, e o modal fecha na frente.** Aquela
+                      chamada pode esperar o `retry_after` de um `429` — dez
+                      segundos, medidos —, e segurar "Criando…" todo esse tempo
+                      por causa de um enfeite seria punir quem escolheu ícone.
+                      O servidor já existe e já é utilizável; o ladrilho troca
+                      sozinho quando o `ServerUpdate` chegar.
+
+                      Falhar não desfaz nada: o aviso diz onde terminar.
+                    */
+                    if (icone !== undefined) {
+                      void vestirIconeNoServidor(id, icone).then((colou) => {
+                        if (colou) return;
+                        toast({
+                          /* `info` e não `erro`: o servidor foi criado, que é
+                             o que a pessoa pediu. O tipo só tem dois valores. */
+                          tipo: "info",
+                          titulo: "O servidor foi criado sem o ícone.",
+                          descricao:
+                            "Você pode enviá-lo em Configurações do servidor.",
+                        });
+                      });
+                    }
                     /* Entrar no recém-criado é a continuação óbvia da ação —
                        criar e ficar parado obrigaria a procurá-lo no rail. */
                     selecionarServidor(id);
@@ -217,15 +302,46 @@ function Personalizar({
             mesma peça do rail, e ver a inicial mudar enquanto se escreve é o
             que o design chama de prévia ao vivo.
           */}
-          <Avatar id="" sigla={sigla(limpo || "Servidor")} tamanho="lg" />
+          <Avatar
+            id=""
+            sigla={sigla(limpo || "Servidor")}
+            url={previa}
+            tamanho="lg"
+          />
           <div className={css.identidadeTextos}>
             <Botao
               variante="sutil"
               tamanho="pequeno"
-              onClick={aindaNao("iconeDeServidor")}
+              disabled={subindoIcone || !temMidia}
+              onClick={() => seletorDeIcone.current?.click()}
             >
-              Enviar ícone
+              {subindoIcone
+                ? "Enviando…"
+                : icone !== undefined
+                  ? "Trocar ícone"
+                  : "Enviar ícone"}
             </Botao>
+
+            {/*
+              O `input` de arquivo escondido, acionado pelo botão. Ver o
+              composer: nativo é renderizado pelo SISTEMA e não aceita os oito
+              estados da régua, e `display: none` em vez de opacidade zero
+              para não deixar uma parada de tabulação invisível.
+            */}
+            <input
+              ref={seletorDeIcone}
+              type="file"
+              accept="image/*"
+              className={css.seletorDeIcone}
+              tabIndex={-1}
+              aria-hidden
+              onChange={(e) => {
+                const arquivo = e.target.files?.[0];
+                e.target.value = "";
+                if (arquivo) escolherIcone(arquivo);
+              }}
+            />
+
             <span className={css.dica}>Ícone opcional · 512×512</span>
           </div>
         </div>

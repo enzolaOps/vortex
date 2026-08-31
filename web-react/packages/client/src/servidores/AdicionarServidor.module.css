@@ -505,3 +505,14 @@
   color: var(--vx-text-4);
   text-wrap: pretty;
 }
+
+/* Ícone do servidor — o seletor de arquivo escondido */
+
+/*
+  `display: none` e não `opacity: 0`: com opacidade zero o campo continuaria
+  recebendo tabulação, e o modal ganharia uma parada invisível entre o botão
+  "Enviar ícone" e o nome do servidor. Mesma escolha do composer.
+*/
+.seletorDeIcone {
+  display: none;
+}

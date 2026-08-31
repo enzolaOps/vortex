@@ -365,11 +365,6 @@ export const PENDENCIAS = {
   },
 
   /* ------------------------------------------------- criar servidor */
-  iconeDeServidor: {
-    superficie: "Criar servidor",
-    faz: "Enviar uma imagem para o ladrilho do servidor no rail.",
-    depende: "upload ao servidor de mídia (autumn) — a mesma de `anexar`",
-  },
 
   /* ------------------------------------------- acesso e segurança do servidor */
   /*
