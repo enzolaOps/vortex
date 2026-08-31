@@ -8,23 +8,30 @@
 # Verdade em geral; falso para este repositório. O `Dockerfile` do upstream já
 # faz CROSS-COMPILE completo: o estágio de build é pinado em `$BUILDPLATFORM`,
 # `scripts/build-image-layer.sh` instala `gcc-aarch64-linux-gnu`, roda
-# `rustup target add aarch64-unknown-linux-gnu` e exporta
-# `RUSTFLAGS="-C linker=..."` com `PKG_CONFIG_ALLOW_CROSS`. O compilador roda
-# nativo no runner amd64 e EMITE código arm64 — nada é emulado.
+# `rustup target add aarch64-unknown-linux-gnu` e exporta `RUSTFLAGS` com
+# `PKG_CONFIG_ALLOW_CROSS`. O compilador roda nativo no runner amd64 e EMITE
+# código arm64 — nada é emulado. Não precisa de runner arm64, nem de QEMU, nem
+# de build no Pi.
 #
-# Ou seja: não precisa de runner arm64, nem de build no Pi, nem de QEMU. O
-# trabalho aqui foi só apontar o alvo para o nosso registro.
+# ⚠ **O que NÃO é de graça é a capacidade do runner, e isso custou duas
+# corridas.** Com as duas arquiteturas no mesmo job, a compilação morria aos 17
+# min — e o log PARA no meio de um warning, sem erro, sem "Killed", sem código
+# de saída. Procurar `error:` não acha nada. Era o pico de memória do link dos
+# crates do workspace, que vêm por último.
+#
+# A resposta é MATRIZ: uma arquitetura por runner. Cada uma ganha 4 núcleos e
+# 16 GB só para si, elas rodam em paralelo, e o tempo de parede vira o de UMA
+# em vez da soma. Estrangular `CARGO_BUILD_JOBS` no mesmo runner resolvia a
+# memória e triplicava o relógio; isto resolve os dois.
 #
 # ⚠ **Dois serviços e não um.** O `CLAUDE.md` diz que uma feature de API vai em
 # `api` e um evento novo no websocket vai em `events`, "quase sempre com `api`
-# junto" — e os dois saem da mesma base, que é a parte cara. Construir só um
-# significaria pagar a base duas vezes na primeira vez que o outro fosse
-# preciso.
+# junto" — e os dois saem da mesma base, que é a parte cara.
 #
-# Os outros cinco serviços (`autumn`, `january`, `crond`, `pushd`,
-# `voice-ingress`) seguem pinados no upstream de propósito: a regra é forkar o
-# serviço DONO da superfície que muda, e continuar recebendo correção de
-# segurança de graça nos demais.
+# Os outros cinco (`autumn`, `january`, `crond`, `pushd`, `voice-ingress`)
+# seguem pinados no upstream de propósito: a regra é forkar o serviço DONO da
+# superfície que muda, e continuar recebendo correção de segurança de graça nos
+# demais.
 name: Vortex API image
 
 on:
@@ -44,36 +51,50 @@ concurrency:
   group: vortex-api-image-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  BASE: vortex-api-base
+
 jobs:
-  build:
-    name: Build and push
+  # ---------------------------------------------------------------- a base
+  #
+  # Um job por arquitetura. Cada um empurra a imagem POR DIGEST, sem tag: uma
+  # tag só pode apontar para uma coisa, e dois jobs escrevendo a mesma tag em
+  # paralelo deixariam a última a ganhar em vez das duas a conviver. O job
+  # `publicar` junta os digests num manifesto multi-arch.
+  base:
+    name: Base (${{ matrix.arch }})
     runs-on: ubuntu-latest
-    # ⚠ O default é 360 min. A base compila a árvore inteira de crates para
-    # DUAS arquiteturas, e a primeira corrida não tem cache nenhum. Deixar
-    # explícito evita descobrir o limite no meio.
-    timeout-minutes: 330
+    timeout-minutes: 120
     permissions:
       contents: read
       packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # arm64 é o Pi, que é o alvo.
+          - arch: arm64
+            plataforma: linux/arm64
+          # ⚠ amd64 NÃO é enfeite: é o que a stack local pulla na máquina de
+          # quem desenvolve (`make vortex-local-up`). Sem ele, apontar
+          # `VORTEX_API_IMAGE` para este fork quebraria o ambiente de
+          # desenvolvimento inteiro.
+          - arch: amd64
+            plataforma: linux/amd64
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ⚠ **O runner padrão não tem disco para isto, e a falha é MUDA.**
-      #
-      # A primeira corrida morreu aos 17 min compilando, e o log simplesmente
-      # PARA no meio de um warning — sem erro, sem "Killed", sem código de
-      # saída. É a assinatura de processo derrubado pelo runner, e não de
-      # falha de compilação; procurar por `error:` no log não acha nada.
-      #
-      # O `ubuntu-latest` traz ~30 GB de ferramentas pré-instaladas que nada
-      # aqui usa. Compilar a árvore de crates para duas arquiteturas, mais as
-      # camadas do Docker, não cabe no que sobra.
+      # ⚠ O `ubuntu-latest` traz ~30 GB de ferramentas que nada aqui usa, e a
+      # árvore de crates mais as camadas do Docker não cabem no que sobra. O
+      # `df -h` dos dois lados existe para a próxima falha ser diagnosticável
+      # em vez de muda.
       - name: Free up disk
         run: |
           df -h / | tail -1
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc                       /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+                      /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
           sudo docker image prune -af || true
           df -h / | tail -1
 
@@ -91,33 +112,97 @@ jobs:
         id: dono
         run: echo "nome=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
 
-      # A base carrega TODOS os binários compilados, para as duas
-      # arquiteturas. É o único estágio caro; as imagens de serviço só copiam
-      # um binário dela.
-      #
-      # ⚠ Sem QEMU: o `docker/setup-qemu-action` que o cliente web precisa não
-      # entra aqui, porque nada é emulado — o cross-compile emite arm64
-      # rodando em amd64.
-      - name: Build the base image
+      - name: Build and push by digest
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: true
-          platforms: linux/amd64,linux/arm64
-          tags: ghcr.io/${{ steps.dono.outputs.nome }}/vortex-api-base:${{ github.sha }}
+          platforms: ${{ matrix.plataforma }}
           provenance: false
-          # ⚠ **2 e não os 10 do default**, e o próprio upstream avisa: o
-          # `scripts/build-image-layer.sh` abre com "If you're having trouble
-          # building this locally or on your CI, try lowering the job count".
-          #
-          # As duas plataformas compilam EM PARALELO no mesmo runner, então o
-          # default vira até 20 `rustc` simultâneos em 4 núcleos e 16 GB. Foi o
-          # que matou a primeira corrida. Mais lento e que termina vale mais
-          # que mais rápido e morto.
+          # Com o runner inteiro para uma arquitetura só, o default do upstream
+          # volta a caber. 8 e não 10 por margem: o pico é no link dos crates
+          # do workspace, e foi ali que as duas primeiras corridas morreram.
           build-args: |
-            CARGO_BUILD_JOBS=2
-          cache-from: type=gha,scope=vortex-api-base
-          cache-to: type=gha,scope=vortex-api-base,mode=max
+            CARGO_BUILD_JOBS=8
+          outputs: type=image,name=ghcr.io/${{ steps.dono.outputs.nome }}/${{ env.BASE }},push-by-digest=true,name-canonical=true,push=true
+          # Escopo por arquitetura: um cache só faria os dois jobs
+          # sobrescreverem o trabalho um do outro a cada corrida.
+          cache-from: type=gha,scope=base-${{ matrix.arch }}
+          cache-to: type=gha,scope=base-${{ matrix.arch }},mode=max
+
+      # O digest vira um arquivo VAZIO com o nome dele. É a forma que a
+      # documentação do buildx usa: o merge só precisa da lista de nomes, e
+      # conteúdo nenhum precisa atravessar.
+      - name: Export the digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload the digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # ------------------------------------------- o manifesto e as imagens
+  #
+  # Junta os dois digests numa tag multi-arch e constrói as imagens de serviço.
+  # Elas são baratas — cada Dockerfile só copia UM binário da base para um
+  # `distroless` —, então as duas plataformas cabem num job só.
+  publicar:
+    name: Manifest and services
+    runs-on: ubuntu-latest
+    needs: base
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download the digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digest-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lowercase the owner
+        id: dono
+        run: echo "nome=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
+      # ⚠ Conferido ANTES de juntar: com um dos jobs falhando e `fail-fast`
+      # desligado, o manifesto sairia com uma arquitetura só — e um `docker
+      # pull` no Pi então acusaria "no matching manifest", longe daqui e sem
+      # relação óbvia com este passo.
+      - name: Merge into a multi-arch tag
+        working-directory: /tmp/digests
+        run: |
+          ls -1
+          if [ "$(ls -1 | wc -l)" -ne 2 ]; then
+            echo "::error::Esperava 2 digests (arm64 e amd64) e achei $(ls -1 | wc -l)." >&2
+            exit 1
+          fi
+          IMG="ghcr.io/${{ steps.dono.outputs.nome }}/${{ env.BASE }}"
+          docker buildx imagetools create \
+            -t "${IMG}:${{ github.sha }}" \
+            $(printf "${IMG}@sha256:%s " *)
+          docker buildx imagetools inspect "${IMG}:${{ github.sha }}"
 
       - name: Publish the API (delta)
         id: api
@@ -129,7 +214,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           provenance: false
           build-args: |
-            BASE_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/vortex-api-base:${{ github.sha }}
+            BASE_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/${{ env.BASE }}:${{ github.sha }}
           tags: |
             ghcr.io/${{ steps.dono.outputs.nome }}/vortex-api:main
             ghcr.io/${{ steps.dono.outputs.nome }}/vortex-api:${{ github.sha }}
@@ -148,7 +233,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           provenance: false
           build-args: |
-            BASE_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/vortex-api-base:${{ github.sha }}
+            BASE_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/${{ env.BASE }}:${{ github.sha }}
           tags: |
             ghcr.io/${{ steps.dono.outputs.nome }}/vortex-events:main
             ghcr.io/${{ steps.dono.outputs.nome }}/vortex-events:${{ github.sha }}
