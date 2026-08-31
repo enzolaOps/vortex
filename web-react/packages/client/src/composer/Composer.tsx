@@ -6,7 +6,6 @@ import {
   type KeyboardEvent,
 } from "react";
 
-import { aindaNao } from "../pendente/pendencias";
 import { FerramentasDoComposer } from "./FerramentasDoComposer";
 import { Tooltip } from "../components/ui/Tooltip";
 import {
@@ -14,6 +13,7 @@ import {
   observarAlinhamentoDeColuna,
 } from "../dev/alinhamento";
 import { digitacao, enviarMensagem } from "../sdk/adapter";
+import { temServidorDeMidia } from "../sdk/anexos";
 import { LIMITE_DE_CONTEUDO } from "../sdk/domain";
 import { pode } from "../sdk/permissoes";
 import { cn } from "../lib/cn";
@@ -77,6 +77,14 @@ export function Composer({ channelId }: { channelId: string }) {
   */
   const temPermissao = pode(channelId, "enviar");
   const podeEnviar = valor.trim().length > 0 && !excedido && temPermissao;
+
+  const seletorDeArquivo = useRef<HTMLInputElement>(null);
+  /*
+    Instância sem servidor de mídia é configuração válida, e aí o botão fica
+    desabilitado em vez de abrir um seletor cujo resultado não teria para onde
+    ir. Ver `temServidorDeMidia`.
+  */
+  const temMidia = temServidorDeMidia();
 
   /**
    * O composer segue a coluna de mensagem — verificado, não prometido.
@@ -154,6 +162,31 @@ export function Composer({ channelId }: { channelId: string }) {
       campo?.focus();
       campo?.setSelectionRange(a + texto.length, a + texto.length);
     });
+  }
+
+  /**
+   * Manda os arquivos escolhidos, junto com o que estiver escrito.
+   *
+   * ⚠ **NÃO há prévia no composer, e a ausência é do design.** A única
+   * superfície de upload que ele desenha é a LINHA da mensagem otimista
+   * (`enviando… · densidades.png · 62% · 178 KB/s · Cancelar`), na seção
+   * "Estados de envio". Uma fileira de chips aqui seria uma segunda superfície
+   * de progresso que nada pede, com a decisão de quem cancela o quê
+   * duplicada em dois lugares.
+   *
+   * A consequência é dita: escolher o arquivo JÁ envia. É o mesmo contrato
+   * de arrastar-e-soltar em qualquer cliente da categoria, e o desfazer existe
+   * — "Cancelar", no cartão da própria linha.
+   */
+  function enviarArquivos(arquivos: readonly File[]) {
+    if (!temPermissao || excedido) return;
+
+    const id = enviarMensagem(channelId, valor, respondendoA, arquivos);
+    if (!id) return;
+
+    limparRascunho(channelId);
+    cancelarResposta(channelId);
+    pedirFimDaLista(channelId);
   }
 
   function enviar() {
@@ -258,12 +291,39 @@ export function Composer({ channelId }: { channelId: string }) {
                 type="button"
                 className={css.anexar}
                 aria-label="Anexar arquivo"
-                disabled={!temPermissao}
-                onClick={aindaNao("anexar")}
+                disabled={!temPermissao || !temMidia}
+                onClick={() => seletorDeArquivo.current?.click()}
               >
                 <Plus size={20} aria-hidden />
               </button>
             </Tooltip>
+
+            {/*
+              O `input` de arquivo, escondido e acionado pelo botão.
+
+              ⚠ **Escondido com `display: none` num elemento PRÓPRIO, e não
+              estilizado para virar o botão.** Um `<input type="file">` é
+              renderizado pelo SISTEMA e não aceita o ícone, o tamanho nem os
+              oito estados que o resto da régua tem — é a mesma razão pela
+              qual o `<select>` do design virou dropdown aqui.
+
+              `value = ""` depois de escolher: sem isso, escolher O MESMO
+              arquivo duas vezes seguidas não dispara `change`, porque o valor
+              não mudou. É o caso comum de "errei o canal, vou mandar de novo".
+            */}
+            <input
+              ref={seletorDeArquivo}
+              type="file"
+              multiple
+              className={css.seletorDeArquivo}
+              tabIndex={-1}
+              aria-hidden
+              onChange={(e) => {
+                const escolhidos = Array.from(e.target.files ?? []);
+                e.target.value = "";
+                if (escolhidos.length > 0) enviarArquivos(escolhidos);
+              }}
+            />
 
             <div className={css.pilha}>
               {/*

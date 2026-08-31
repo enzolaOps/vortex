@@ -1,3 +1,5 @@
+import { formatarBytes } from "../lib/bytes";
+
 /**
  * O que deu errado, em português, a partir do que o servidor realmente manda.
  *
@@ -88,6 +90,20 @@ const POR_TIPO: Record<string, string> = {
   NotFound: "Isso não existe mais.",
   AlreadyOnboarded: "Esta conta já está pronta.",
   UsernameTaken: "Esse nome de usuário já está em uso.",
+
+  /* --------------------------------------------- servidor de mídia (autumn) */
+  /*
+    ⚠ **O `autumn` é um serviço SEPARADO e responde com o mesmo envelope.**
+    Foi por isso que ele não ganhou uma segunda tabela de frases: duas tabelas
+    que precisam concordar divergem na primeira que alguém esquece — o mesmo
+    argumento que juntou os pares de contraste num arquivo só.
+
+    Os tipos foram lidos da fonte (`crates/services/autumn/src/api.rs`), não
+    adivinhados: são exatamente estes cinco mais `InternalError`.
+  */
+  FileTooSmall: "Esse arquivo está vazio.",
+  FileTypeNotAllowed: "Esse tipo de arquivo não é aceito aqui.",
+  NotAuthenticated: "Sua sessão expirou. Entre de novo.",
 };
 
 /** Quando não há `type`, o status ainda diz alguma coisa. */
@@ -96,6 +112,14 @@ function porStatus(status: number | undefined): string | undefined {
   if (status === 401 || status === 403) return "O servidor recusou o acesso.";
   if (status === 404) return "Isso não existe mais.";
   if (status === 429) return "Tentativas demais. Espere um pouco.";
+  /*
+    ⚠ 413 vem do servidor de mídia e NÃO traz o envelope do Revolt. Medido
+    contra a instância local: corpo `request body is malformed (failed to read
+    stream)`, texto puro, porque a camada de limite do axum corta antes do
+    handler. Sem esta linha a frase virava "o servidor recusou o pedido", que
+    não diz o que fazer.
+  */
+  if (status === 413) return "Esse arquivo é grande demais.";
   if (status >= 500) return "O servidor não conseguiu responder.";
   return "O servidor recusou o pedido.";
 }
@@ -110,6 +134,25 @@ function porStatus(status: number | undefined): string | undefined {
 export function motivoDoErro(e: unknown): string {
   const corpo = comoObjeto(e);
   const tipo = (corpo as { type?: unknown } | null)?.type;
+
+  /*
+    ⚠ **`FileTooLarge` é o único com número, e o número é a mensagem.**
+    "Esse arquivo é grande demais" sem dizer o teto obriga a pessoa a
+    descobrir o limite por tentativa e erro, subindo o mesmo vídeo três vezes.
+
+    E o teto NÃO está duplicado no cliente de propósito: ele vem de
+    `user.limits()` no servidor e muda com a configuração da instância. O
+    único jeito de a frase estar sempre certa é ela repetir o que o servidor
+    acabou de dizer.
+  */
+  if (tipo === "FileTooLarge") {
+    const max = (corpo as { max?: unknown } | null)?.max;
+    const teto = typeof max === "number" ? formatarBytes(max) : undefined;
+    return teto === undefined
+      ? "Esse arquivo é grande demais."
+      : `Esse arquivo passa do limite de ${teto}.`;
+  }
+
   if (typeof tipo === "string") {
     const frase = POR_TIPO[tipo];
     if (frase !== undefined) return frase;

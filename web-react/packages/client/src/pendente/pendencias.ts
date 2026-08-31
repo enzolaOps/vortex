@@ -163,11 +163,6 @@ export const PENDENCIAS = {
     depende: "conceito de atividade no protocolo, e um host para embutir",
   },
   /* ------------------------------------------------------------ composer */
-  anexar: {
-    superficie: "Composer",
-    faz: "Escolher arquivos para enviar junto com a mensagem.",
-    depende: "upload ao servidor de mídia (autumn)",
-  },
   /*
     ⚠ **O seletor de emoji EXISTE e funciona.** O que sobrou pendente é o que
     ele não alcança sozinho, e os três estão separados de propósito: um é
