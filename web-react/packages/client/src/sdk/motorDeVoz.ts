@@ -80,11 +80,43 @@ function elementoDeAudio(): HTMLDivElement {
   return saidaDeAudio;
 }
 
-/* Delega para o tradutor unico — ver `sdk/erros.ts`. O corpo que
-   estava aqui lia `e.response.status`, que o `stoat-api` nunca
-   produz, entao TODA falha virava "Sem resposta do servidor". */
+/**
+ * A frase de uma falha de voz.
+ *
+ * ⚠ **Mídia PRIMEIRO, rede depois — e a ordem é o conserto.** Antes isto
+ * delegava tudo a `motivoDoErro`, que lê o envelope do Revolt (`type`,
+ * `status`). Um `DOMException` não tem nenhum dos dois e caía no fallback
+ * dele: **"Sem resposta do servidor. Verifique sua conexão."**
+ *
+ * Medido no painel do navegador, que bloqueia captura: entrar na chamada
+ * falhava com o microfone negado e a interface mandava conferir a REDE. A
+ * pessoa vai procurar o problema no roteador por causa de uma permissão de
+ * site — frase errada com confiança, que é pior que frase genérica.
+ *
+ * Um tradutor só para os dois caminhos (entrar e compartilhar tela): com dois,
+ * o primeiro a ganhar um caso novo divergiria do outro.
+ */
 function motivo(e: unknown): string {
-  return motivoDoErro(e);
+  return motivoDeMidia(e) ?? motivoDoErro(e);
+}
+
+/** `undefined` quando não é falha de dispositivo — aí quem responde é a rede. */
+function motivoDeMidia(e: unknown): string | undefined {
+  if (!(e instanceof DOMException)) return undefined;
+  switch (e.name) {
+    case "NotAllowedError":
+      return "O navegador não liberou o microfone. Confira a permissão deste site.";
+    case "NotFoundError":
+      return "Nenhum microfone encontrado.";
+    case "NotReadableError":
+      return "O sistema não liberou o microfone. Feche outros programas que estejam usando ele.";
+    case "OverconstrainedError":
+      return "O dispositivo escolhido nas configurações não está disponível.";
+    case "AbortError":
+      return "A captura foi interrompida.";
+    default:
+      return undefined;
+  }
 }
 
 /**
@@ -300,6 +332,11 @@ export async function entrarNaChamada(channelId: string): Promise<boolean> {
  */
 export async function sairDaChamada(): Promise<void> {
   const r = sala;
+  /*
+    Lido ANTES de `encerrarChamada`, que zera o store — depois dela não há
+    mais de qual canal sair.
+  */
+  const canalId = lerChamada().channelId;
   sala = undefined;
   pararDeOuvirPreferencias?.();
   pararDeOuvirPreferencias = undefined;
@@ -307,6 +344,25 @@ export async function sairDaChamada(): Promise<void> {
   r.removeAllListeners();
   await r.disconnect();
   encerrarChamada();
+
+  /*
+    ⚠ **A saída limpa a CHAMADA e esquecia a SALA, e o fantasma ficava na
+    coluna.** `encerrarChamada` zera o store da chamada — faixa e cartão sumem
+    —, mas a lista de quem está dentro do canal de voz é outro store, e
+    ninguém a tocava. Medido: dez segundos depois de sair, a coluna ainda
+    mostrava `sonda_anexo · com o microfone desligado` dentro da "Sala do
+    time"; só um F5 limpava.
+
+    ⚠ **E o servidor estava certo o tempo todo** — depois de recarregar a sala
+    aparecia vazia. Ou seja o webhook do LiveKit funciona e o `Ready` traz a
+    verdade; o que faltava era o cliente não mentir no intervalo.
+
+    Otimista, como a reação: se um `VoiceChannelLeave` vier atrás, ele diz a
+    mesma coisa. É exatamente o que o caminho de FALHA já fazia desde que
+    entrar na chamada parou de falhar calado — faltava a metade de sucesso,
+    que é a que acontece todo dia.
+  */
+  if (canalId !== "") sairDaSalaLocalmente(canalId);
 }
 
 /**
@@ -488,12 +544,42 @@ export async function alternarTela(): Promise<void> {
   try {
     await p.setScreenShareEnabled(true, opcoes);
     definirChamada({ tela: true });
-  } catch {
-    // Cancelar o seletor do sistema cai aqui, e também não é falha.
+  } catch (e) {
     definirChamada({ tela: false });
     void ponte?.cancelar();
+
+    /*
+      ⚠ **O `catch` engolia TUDO, e com isso falha real e desistência ficavam
+      indistinguíveis — para quem usa e para quem depura.**
+
+      A justificativa antiga era verdadeira pela metade: cancelar o seletor do
+      sistema de fato cai aqui, e avisar sobre isso seria ruído sobre uma
+      decisão que a pessoa acabou de tomar. Mas o mesmo `catch` também pega o
+      LiveKit falhando ao PUBLICAR a faixa depois de a captura ter dado certo,
+      o codec recusado, e a chamada tendo caído no meio — e nesses o botão
+      voltava ao repouso sem uma palavra.
+
+      Medido no painel do navegador, que bloqueia captura: clicar em
+      "Compartilhamento de tela" não fazia absolutamente nada. Sem toast, sem
+      console, com `aria-pressed` de volta em `false`.
+
+      ⚠ **`NotAllowedError` continua calado, e não é preguiça: o padrão
+      conflaciona os dois casos.** Medido — desistir no seletor e ser barrado
+      por Permissions Policy produzem o MESMO `DOMException` com o MESMO nome
+      e a mensagem "Permission denied". Inventar a diferença seria afirmar na
+      tela algo que o navegador não disse, que é o que a faixa de voz recusou
+      ao não derivar milissegundos de uma classificação.
+    */
+    if (e instanceof DOMException && e.name === "NotAllowedError") return;
+
+    toast({
+      tipo: "erro",
+      titulo: "Não deu para compartilhar a tela.",
+      descricao: motivo(e),
+    });
   }
 }
+
 
 /**
  * Pergunta o que transmitir e ARMA a escolha na casca.

@@ -25,6 +25,7 @@ import {
   pedirFocoNoComposer,
 } from "../store/comandos";
 import {
+  carregarHistorico,
   messages,
   primeiraNaoLida,
   proximaMencao,
@@ -416,6 +417,22 @@ export function MessageList({ channelId }: { channelId: string }) {
     alturas mudaram de uma vez.
   */
   const densidade = useSyncExternalStore(assinarDensidade, lerDensidade);
+
+  /*
+    O histórico, uma vez por canal.
+
+    ⚠ **Aqui e não na navegação**, porque quem precisa do histórico é a LISTA:
+    a navegação também leva a lugares sem timeline (a casa, amigos,
+    configurações), e pendurar a carga nela pediria histórico de canal nenhum.
+    Montar a lista é o sinal exato de "alguém vai ler este canal agora".
+
+    Sem `await` e sem estado de carregamento: `carregarHistorico` publica pelo
+    caminho de massa quando a resposta chega, e a lista já assina a
+    publicação. Um spinner aqui competiria com o empty state que já existe.
+  */
+  useEffect(() => {
+    void carregarHistorico(channelId);
+  }, [channelId]);
 
   const virtualizer = useVirtualizer({
     count: ids.length,

@@ -1055,6 +1055,14 @@ export function startAdapter() {
 
   client.on("ready", () => {
     /*
+      O histórico que ficou esperando o socket.
+
+      Primeira coisa do `Ready`, e de propósito: quem abriu o app num link de
+      canal está olhando para a lista vazia desde o primeiro quadro.
+    */
+    for (const id of [...historicoAdiado]) void carregarHistorico(id);
+
+    /*
       A casa nasce pronta no `Ready`.
 
       As conversas chegam no payload de abertura, não por evento: o protocolo
@@ -1285,6 +1293,117 @@ export function diagnostico(id: string) {
     noSdk: client.messages.get(id)?.content,
   };
 }
+
+/**
+ * Traz o histórico do canal do servidor.
+ *
+ * ⚠ **NÃO EXISTIA, e a ausência tornava o app inutilizável contra um servidor
+ * real.** `channelMessageIds` só era populado por evento (`messageCreate`) e
+ * por envio otimista, então todo canal abria vazio: o que você mandou some no
+ * primeiro F5, e conversa de outra pessoa só aparece se chegar com a aba
+ * aberta. Passou despercebido porque todo dado vinha do firehose, que semeia
+ * o canal por `seedChannel`.
+ *
+ * ## Três decisões, e as três têm consequência medida
+ *
+ * **Vai pelo caminho de MASSA e nunca pelo de evento.** É invariante desta
+ * base desde a fase 0 — carga em massa por `messageCreate` publica uma vez
+ * por mensagem e destrói a âncora do virtualizador. `seedChannel` publica uma
+ * vez só.
+ *
+ * **MESCLA, não substitui.** Entre o pedido e a resposta cabe um envio
+ * otimista e um `messageCreate`. Trocar a lista pelo que o servidor devolveu
+ * apagaria os dois — a mensagem que a pessoa acabou de escrever sumindo da
+ * tela por causa de uma requisição que ela não pediu.
+ *
+ * ⚠ **Dedupe por `chaveLocal`, e sem isso a própria mensagem duplicaria.**
+ * Depois da reconciliação, a lista guarda a otimista pelo ID LOCAL para
+ * sempre e o ID do servidor vira apelido. O histórico chega com o ID do
+ * servidor — comparar cru daria duas linhas para a mesma mensagem, uma delas
+ * com o corpo repetido logo abaixo da outra.
+ *
+ * Uma vez por canal por sessão. A janela deslizante e o prepend continuam
+ * pendentes; isto é o que faltava para o canal ter conteúdo.
+ */
+const historicoPedido = new Set<string>();
+
+/** Canais cuja lista montou antes de haver socket. Retomados no `Ready`. */
+const historicoAdiado = new Set<string>();
+
+export async function carregarHistorico(channelId: string): Promise<void> {
+  if (historicoPedido.has(channelId)) return;
+  /*
+    ⚠ **Adiar, e nunca desistir — a primeira versão desistia e o defeito só
+    aparecia no caminho mais comum que existe.** Abrir o app direto na URL de
+    um canal (F5, permalink, convite) monta a lista ANTES de o socket estar
+    pronto: o canal ainda não existe em `client.channels` e `conectado()` é
+    falso. Com um `return` seco, o efeito da lista — que roda uma vez por
+    canal — nunca mais tentava, e o canal ficava vazio para sempre.
+
+    Clicar no servidor pela casa funcionava, porque ali a conexão já subiu. É
+    a diferença entre o caminho que se testa e o caminho que se usa.
+  */
+  const canal = client.channels.get(channelId);
+  if (canal === undefined || !conectado()) {
+    historicoAdiado.add(channelId);
+    return;
+  }
+
+  /*
+    Marcado ANTES do `await`: dois montes no mesmo tick — StrictMode em dev,
+    ou trocar de canal e voltar depressa — pediriam o mesmo histórico duas
+    vezes, e a segunda resposta reescreveria a lista por cima da primeira.
+  */
+  historicoAdiado.delete(channelId);
+  historicoPedido.add(channelId);
+
+  try {
+    const { messages: doServidor } = await canal.fetchMessagesWithUsers({
+      limit: LIMITE_DE_HISTORICO,
+    });
+
+    /* O protocolo devolve do mais NOVO para o mais velho. */
+    const doHistorico: string[] = [];
+    const vistos = new Set<string>();
+    for (let i = doServidor.length - 1; i >= 0; i -= 1) {
+      const bruto = doServidor[i];
+      if (bruto === undefined) continue;
+      const chave = chaveLocal(bruto.id);
+      if (vistos.has(chave)) continue;
+      vistos.add(chave);
+      doHistorico.push(chave);
+    }
+
+    /*
+      O que chegou enquanto isto viajava vai para o FIM, na ordem em que está.
+      São mensagens mais novas que o histórico por construção — evento novo ou
+      otimista recém-criada.
+    */
+    for (const id of idsOf(channelId)) {
+      if (vistos.has(id)) continue;
+      vistos.add(id);
+      doHistorico.push(id);
+    }
+
+    seedChannel(channelId, doHistorico);
+  } catch {
+    /*
+      Solta a marca: sem isto, uma falha de rede na primeira abertura deixaria
+      o canal vazio para o resto da sessão, sem nenhuma forma de tentar de
+      novo a não ser recarregar a página.
+    */
+    historicoPedido.delete(channelId);
+  }
+}
+
+/**
+ * Quantas mensagens a primeira carga traz.
+ *
+ * 100 é o teto do protocolo por chamada. Não é escolha de performance — o
+ * gate mediu que o custo por frame não depende do tamanho da lista, e sim da
+ * janela visível — é o que evita uma segunda chamada logo na abertura.
+ */
+const LIMITE_DE_HISTORICO = 100;
 
 /** Semeia o canal sem passar por evento — é setup, não carga medida. */
 export function seedChannel(channelId: string, ids: readonly string[]) {
@@ -2550,11 +2669,23 @@ function publicarCategorias(serverId: string): void {
 
   const out: CategoriaDeCanais[] = [];
   for (const grupo of servidor.orderedChannels) {
-    // Categoria vazia não vira cabeçalho órfão. O SDK já pula a `default`
-    // vazia; as outras podem existir sem canal visível para quem tem
-    // permissão limitada.
-    if (grupo.channels.length === 0) continue;
+    /*
+      ⚠ **Categoria vazia FICA, e descartá-la aqui fechava "criar canal" num
+      beco sem saída.**
 
+      A regra anterior era `if (grupo.channels.length === 0) continue`, com a
+      razão de não deixar cabeçalho órfão para quem não enxerga os canais de
+      dentro. A razão é boa; o lugar estava errado.
+
+      Este store é a VERDADE sobre o servidor, e é ele que o modal de criar
+      canal consulta para escolher onde o canal vai. Medido: com a categoria
+      `Textos` existindo no servidor e filtrada aqui, "Criar canal" respondia
+      "este servidor não tem categorias, crie a primeira" — depois de a pessoa
+      ter acabado de criar uma. Um laço fechado: nunca dava para criar canal.
+
+      Esconder cabeçalho vazio é decisão de EXIBIÇÃO, e mora na coluna, que
+      é quem sabe se quem está olhando pode criar canal ali.
+    */
     out.push({
       id: grupo.id,
       titulo: grupo.id === CATEGORIA_PADRAO ? undefined : grupo.title,

@@ -1074,9 +1074,29 @@ function CanaisDoServidor() {
   const primeiro = grupos.flatMap((g) => g.canais)[0] ?? "";
   const podeCriar = pode(primeiro, "gerenciarCanais");
 
+  /*
+    Categoria vazia aparece só para quem pode criar canal nela.
+
+    ⚠ **A decisão mudou de lugar, e a mudança conserta um beco.** O filtro
+    morava no adapter, que também é quem o modal de "criar canal" consulta
+    para escolher o destino — então uma categoria recém-criada era invisível
+    para os DOIS, e o modal respondia "crie a primeira categoria" a quem
+    tinha acabado de criar uma.
+
+    A razão original continua valendo e continua aplicada: para quem não
+    administra, um cabeçalho sem nada embaixo é ou ruído ou a pista de que
+    existe canal ali que essa pessoa não pode ver. Para quem administra, é o
+    lugar onde o próximo canal vai.
+  */
+  const visiveis = podeCriar
+    ? grupos
+    : grupos.filter((g) => g.canais.length > 0);
+
   // Já vêm agrupadas e ordenadas do adapter — a coluna não organiza nada no
   // render, porque organizar exigiria ler entidades que ela não assina.
-  const vazio = grupos.length === 0;
+  /* Sobre o que se VÊ, não sobre o que existe: para quem não administra, um
+     servidor só com categoria vazia não tem canal nenhum na tela. */
+  const vazio = visiveis.length === 0;
 
   if (!serverId) {
     return (
@@ -1256,7 +1276,7 @@ function CanaisDoServidor() {
           />
         ) : (
           <nav aria-label="Canais">
-            {grupos.map((grupo) => (
+            {visiveis.map((grupo) => (
               <Categoria
                 key={grupo.id}
                 categoria={grupo}
