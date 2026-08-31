@@ -36,4 +36,6 @@ contextBridge.exposeInMainWorld("vortexTela", {
   escolher: (id: string, audio: boolean) =>
     ipcRenderer.invoke("telaEscolher", id, audio),
   cancelar: () => ipcRenderer.invoke("telaCancelar"),
+  permissao: () => ipcRenderer.invoke("telaPermissao"),
+  abrirAjustes: () => ipcRenderer.invoke("telaAbrirAjustes"),
 });

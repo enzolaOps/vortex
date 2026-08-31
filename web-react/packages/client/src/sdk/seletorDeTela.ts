@@ -53,6 +53,15 @@ export type PonteDeTela = {
   /** Arma a escolha para o PRÓXIMO pedido de captura. Uso único. */
   readonly escolher: (id: string, audio: boolean) => Promise<boolean>;
   readonly cancelar: () => Promise<void>;
+  /**
+   * O sistema já autorizou a captura?
+   *
+   * ⚠ Só o macOS tem esse portão — Windows não pede, e no Linux quem decide é
+   * o portal do Wayland no momento da captura. Nos dois a casca devolve
+   * `concedida`, que é o que eles fazem.
+   */
+  readonly permissao: () => Promise<"concedida" | "pendente">;
+  readonly abrirAjustes: () => Promise<void>;
 };
 
 declare global {
@@ -97,14 +106,10 @@ export type Taxa = (typeof TAXAS)[number];
  * transmitindo.
  */
 export function trocaDe(resolucao: Resolucao, taxa: Taxa): string {
-  if (resolucao === "720p" && taxa <= 30) {
-    return "Leve na rede. Bom para código e apresentação.";
-  }
-  if (taxa === 60 && resolucao !== "720p") {
-    return "Exige rede boa. Movimento suave, texto pode borrar.";
-  }
-  if (resolucao === "1440p" || resolucao === "Fonte") {
-    return "Texto nítido, mais banda. Pode cair em rede instável.";
-  }
-  return "Equilíbrio entre nitidez e banda.";
+  /* As duas frases são as da referência, palavra por palavra: ela separa em
+     "pesado" e "recomendado", e não em quatro casos como eu tinha escrito. */
+  const pesado = resolucao === "1440p" || resolucao === "Fonte" || taxa === 60;
+  return pesado
+    ? "1440p ou 60 fps consomem ~8 Mbps de upload; espectadores em rede fraca caem para 720p automaticamente."
+    : "Combinação recomendada: legível para texto e estável em upload doméstico.";
 }

@@ -83,8 +83,12 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--vx-space-12);
-  max-block-size: 300px;
-  overflow-y: auto;
+  /*
+    ⚠ **Sem teto de altura, e o teto que eu tinha posto era errado.** Com 300px
+    seis janelas ficavam em uma linha e meia, com rolagem interna — a referência
+    deixa as duas linhas inteiras e o modal cresce até o limite do `Dialog`
+    (80vh), que é quem já resolve o caso extremo.
+  */
   padding: var(--vx-space-02);
 }
 
@@ -291,4 +295,8 @@
 
 .vazio {
   padding: var(--vx-space-24);
+}
+
+.permissao {
+  margin-block-end: var(--vx-space-16);
 }

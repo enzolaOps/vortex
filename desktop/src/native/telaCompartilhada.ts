@@ -1,4 +1,11 @@
-import { desktopCapturer, ipcMain, screen, session } from "electron";
+import {
+  desktopCapturer,
+  ipcMain,
+  screen,
+  session,
+  shell,
+  systemPreferences,
+} from "electron";
 
 /**
  * O seletor de tela do Vortex, no processo main.
@@ -79,6 +86,34 @@ export function registrarSeletorDeTela(): void {
 
   /** O cliente pergunta se deve abrir o seletor próprio. */
   ipcMain.handle("telaSeletorProprio", () => !sistema);
+
+  /*
+    A permissão de captura do sistema.
+
+    ⚠ **Só o macOS tem esse portão.** Windows não pede permissão para capturar
+    tela, e no Linux quem decide é o portal do Wayland no momento da captura —
+    não há estado para consultar antes. Devolver "concedida" nos dois é o
+    correto: é o que eles fazem.
+
+    `not-determined` conta como pendente de propósito. Ela significa "o sistema
+    ainda não perguntou", e a captura vai disparar o diálogo — avisar antes é
+    melhor que a pessoa clicar em transmitir e ver a tela congelar.
+  */
+  ipcMain.handle("telaPermissao", () => {
+    if (process.platform !== "darwin") return "concedida";
+    return systemPreferences.getMediaAccessStatus("screen") === "granted"
+      ? "concedida"
+      : "pendente";
+  });
+
+  ipcMain.handle("telaAbrirAjustes", async () => {
+    /* O deep link das preferências de privacidade do macOS. Em outra
+       plataforma não há o que abrir, e o botão nem é renderizado. */
+    if (process.platform !== "darwin") return;
+    await shell.openExternal(
+      "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture",
+    );
+  });
 
   ipcMain.handle("telaFontes", async (): Promise<FonteDeTela[]> => {
     const fontes = await desktopCapturer.getSources({

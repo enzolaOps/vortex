@@ -1,6 +1,7 @@
 import { Check, SpeakerHigh } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 
+import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
@@ -31,6 +32,20 @@ const NOME_DA_ABA: Record<Aba, string> = {
 };
 
 /**
+ * O que o áudio pega em cada categoria — e é o que separa as duas.
+ *
+ * ⚠ **A categoria é "a tela toda" ou "um aplicativo específico"**, e o áudio é
+ * onde essa diferença aparece: tela inteira leva o som do sistema, com
+ * notificação junto; aplicativo leva só o dele. As frases são as da
+ * referência.
+ */
+const DICA_DE_AUDIO: Record<Aba, string> = {
+  tela: "Captura o áudio do sistema — pode incluir notificações",
+  janela: "Só o áudio do app selecionado",
+  aba: "Áudio da aba disponível neste navegador",
+};
+
+/**
  * Escolher o que transmitir.
  *
  * ⚠ **A estrutura é a da REFERÊNCIA, não a do `.dc.html`.** A primeira versão
@@ -50,21 +65,26 @@ const NOME_DA_ABA: Record<Aba, string> = {
  * pedido em voo — como o upstream faz — só escolheria a fonte, e as outras
  * duas colunas ficariam decorativas. Ver `desktop/src/native/telaCompartilhada.ts`.
  *
- * ⚠ **O banner de permissão do sistema NÃO entrou.** A referência o mostra
- * quando macOS ou Wayland ainda não autorizaram a captura — só que nessas duas
- * plataformas o Vortex sequer abre este painel: o sistema desenha o dele, e é
- * o `getDisplayMedia` que pede a autorização. Um banner aqui avisaria sobre
- * uma tela que a pessoa não está vendo.
+ * ⚠ **O banner de permissão é REAL.** Ele vem de
+ * `systemPreferences.getMediaAccessStatus("screen")` na casca, que só existe
+ * no macOS — Windows não pede permissão para capturar, e no Linux quem decide
+ * é o portal do Wayland no momento da captura. Nos dois a casca devolve
+ * `concedida`, e o banner não aparece.
  */
 export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
   const [fontes, setFontes] = useState<readonly FonteDeTela[] | "carregando">(
     "carregando",
   );
-  const [aba, setAba] = useState<Aba>("tela");
+  /* Abre em JANELAS, como a referência: compartilhar um app é o caso comum, e
+     a tela inteira é a escolha que expõe notificação e o resto da área. */
+  const [aba, setAba] = useState<Aba>("janela");
   const [escolhida, setEscolhida] = useState<string | undefined>(undefined);
   const [audio, setAudio] = useState(true);
   const [resolucao, setResolucao] = useState<Resolucao>("1080p");
   const [taxa, setTaxa] = useState<Taxa>(30);
+  const [permissao, setPermissao] = useState<"concedida" | "pendente">(
+    "concedida",
+  );
 
   const chamada = lerChamada();
   const canal = useChannel(chamada.channelId ?? "");
@@ -76,10 +96,15 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
       .then((f) => {
         if (!vivo) return;
         setFontes(f);
-        /* A primeira TELA já vem escolhida: é o caso comum, e um painel que
-           abre sem nada marcado obriga um clique a mais para a ação que quase
-           todo mundo quer. */
-        setEscolhida(f.find((x) => x.tipo === "tela")?.id ?? f[0]?.id);
+        /* A primeira da aba aberta já vem escolhida: um painel que abre sem
+           nada marcado obriga um clique a mais para a ação que quase todo mundo
+           quer. */
+        setEscolhida(f.find((x) => x.tipo === "janela")?.id ?? f[0]?.id);
+      });
+    void ponteDeTela()
+      ?.permissao()
+      .then((p) => {
+        if (vivo) setPermissao(p);
       });
     return () => {
       vivo = false;
@@ -174,6 +199,35 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
           ))}
         </div>
 
+        {/*
+          ⚠ **O banner de permissão VOLTOU, e eu o tinha removido por um
+          raciocínio que não é meu para fazer.** Eu argumentei que no macOS o
+          Vortex nem abre este painel — verdade —, e concluí que o banner seria
+          sobre uma tela invisível. Só que a referência o tem, a regra deste
+          projeto é 1:1 com ela, e o estado agora é REAL: vem de
+          `systemPreferences.getMediaAccessStatus("screen")` na casca, que
+          devolve "concedida" fora do macOS.
+        */}
+        {permissao === "pendente" ? (
+          <Banner
+            tom="aviso"
+            className={css.permissao}
+            titulo="O sistema precisa autorizar a captura"
+            acoes={
+              <Botao
+                variante="sutil"
+                tamanho="pequeno"
+                onClick={() => void ponteDeTela()?.abrirAjustes()}
+              >
+                Abrir ajustes
+              </Botao>
+            }
+          >
+            Abra as preferências de privacidade e libere o Vortex. O modal fica
+            aberto e revalida sozinho quando a permissão é concedida.
+          </Banner>
+        ) : null}
+
         {fontes === "carregando" ? (
           <div className={css.vazio}>
             <EstadoVazio compacto titulo="Procurando telas e janelas…" />
@@ -248,11 +302,11 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
                   uma janela achando que só o som dela vai junto transmite a
                   chamada inteira de volta.
                 */}
-                <span className={css.audioDica}>
-                  {aba === "tela"
-                    ? "Captura o áudio do sistema — pode incluir notificações"
-                    : "O som capturado é o do sistema inteiro, não só o desta janela"}
-                </span>
+                {/* As três frases são as da referência. Ela separa por
+                    CATEGORIA porque é isso que muda o que o áudio pega: a tela
+                    inteira leva o som do sistema, um aplicativo leva só o
+                    dele. */}
+                <span className={css.audioDica}>{DICA_DE_AUDIO[aba]}</span>
               </span>
             </span>
             <Interruptor

@@ -47,7 +47,7 @@ const FONTES: readonly FonteDeTela[] = [
     id: "window:1",
     nome: "Figma — Vortex DS",
     tipo: "janela",
-    meta: undefined,
+    meta: "janela",
     miniatura: PNG("figma", "#1f3a34"),
     icone: ICONE,
   },
@@ -55,7 +55,7 @@ const FONTES: readonly FonteDeTela[] = [
     id: "window:2",
     nome: "Visual Studio Code",
     tipo: "janela",
-    meta: undefined,
+    meta: "janela",
     miniatura: PNG("code", "#3a2f1f"),
     icone: ICONE,
   },
@@ -64,7 +64,7 @@ const FONTES: readonly FonteDeTela[] = [
     id: "window:3",
     nome: "Um nome de janela absurdamente longo que precisa truncar sem quebrar o cartão",
     tipo: "janela",
-    meta: undefined,
+    meta: "janela",
     miniatura: PNG("janela", "#3a1f2f"),
     icone: ICONE,
   },
@@ -78,6 +78,11 @@ export function dublarPonteDeTela(): void {
     fontes: () => Promise.resolve(FONTES),
     escolher: () => Promise.resolve(true),
     cancelar: () => Promise.resolve(),
+    /* `pendente` no arnês: é o estado que só aparece no macOS sem autorização,
+       e sem ele o banner seria construído e inalcançável — o mesmo defeito
+       que este arquivo inteiro existe para evitar. */
+    permissao: () => Promise.resolve("pendente" as const),
+    abrirAjustes: () => Promise.resolve(),
   };
 
   /* `defineProperty` porque a propriedade é `readonly` no tipo — o preload a
