@@ -53,6 +53,10 @@ jobs:
             exit 1
           fi
 
+      # ⚠ O repositório se chama `vortex` (foi renomeado de `vortex-web`), então
+      # isto publica `ghcr.io/enzolaops/vortex-react` — NÃO `vortex-web-react`.
+      # O pacote `vortex-web` no GHCR é o de antes da renomeação e está parado;
+      # pinar ele no pi-infra entrega uma imagem velha sem nenhum aviso.
       - name: Lowercase the image name
         id: image
         run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}-react" >> "$GITHUB_OUTPUT"
