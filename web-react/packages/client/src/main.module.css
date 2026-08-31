@@ -69,6 +69,33 @@
 
 .raiz > .conteudo {
   display: grid;
+  /*
+    ⚠ **`minmax(0, 1fr)` EXPLÍCITO, e a trilha implícita `auto` era um defeito
+    que só aparecia com conteúdo grande.**
+
+    Com `display: grid` e nenhuma trilha declarada, o filho cai numa linha
+    `auto` — e `auto` cresce com o conteúdo. O container ficava nos 1070
+    corretos e a TRILHA ia junto com a lista de mensagens; o `.shell`, que pede
+    `block-size: 100%`, resolve contra a ÁREA de grid e não contra o
+    container, então herdava o número inflado.
+
+    Medido no Electron, canal com 165 mensagens, janela de 1104:
+
+        .conteudo         h 1070   grid-template-rows: 10055px   ← a trilha
+        .shell            h 10055
+        .celulaDeConteudo h  9900   clientH 9900 = scrollH 9900
+        linhas montadas   101       (a virtualização inteira desligada)
+
+    A célula é o TETO do container de rolagem; sem teto o `.scroll` pede 100%
+    contra um pai que cresce, e o virtualizador monta tudo. É a lei nº 3 do
+    briefing na forma de linha: `1fr` sozinho é `minmax(auto, 1fr)`, e o `auto`
+    respeita o `min-content` do filho.
+
+    Não apareceu na tela de entrada nem num canal quase vazio — só com
+    conteúdo suficiente para estourar. Foi assim que ele passou pela minha
+    primeira verificação.
+  */
+  grid-template-rows: minmax(0, 1fr);
   flex: 1;
   /* Sem isto o conteúdo não encolhe abaixo do próprio `min-content`, e uma
      lista virtualizada empurra a coluna para fora da janela. */
