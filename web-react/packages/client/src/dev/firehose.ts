@@ -493,7 +493,21 @@ const RECADOS = [
         { server: servidor.id, user: userId },
         {
           _id: { server: servidor.id, user: userId },
-          joined_at: new Date(0).toISOString(),
+          /*
+            ⚠ **Datas ESPALHADAS, e `new Date(0)` era o defeito.** Todo mundo
+            entrando em 1970 fazia a coluna "entrou em" da página de membros
+            mostrar "31 de dez. de 1969" em mil linhas — e a ordenação por
+            entrada não tinha o que ordenar. É o "arnês mais pobre que o
+            protocolo" de novo, e o conserto no `map.ts` (data inválida vira
+            ausência) trata o sintoma; este trata a causa.
+
+            Espalhadas em PRIMOS: um passo de 37 dias sobre 250 pessoas cobre
+            uns 25 anos sem repetir mês, o que é o que faz a ordenação e o
+            formato com ano serem exercitados de verdade.
+          */
+          joined_at: new Date(
+            Date.parse("2026-08-30") - i * 37 * 24 * 60 * 60 * 1000,
+          ).toISOString(),
           // Um em cada três tem apelido: o suficiente para ver a mistura de
           // apelido e username na mesma coluna, que é o caso real.
           ...(i % 3 === 0 ? { nickname: `${NOMES[i % NOMES.length]!}-vx` } : {}),

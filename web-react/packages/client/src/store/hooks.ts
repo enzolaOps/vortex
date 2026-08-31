@@ -1,7 +1,7 @@
 /**
  * A fronteira React do store. Nada além daqui conhece `useSyncExternalStore`.
  */
-import { useSyncExternalStore } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 
 import {
   canaisDeTexto,
@@ -182,6 +182,24 @@ export function useCanaisDeTexto(serverId: string): readonly string[] {
     assertStable(getSnapshot, `useCanaisDeTexto(${serverId})`);
   }
   return useSyncExternalStore(canaisDeTexto.subscriber(serverId), getSnapshot);
+}
+
+/**
+ * TODOS os membros do servidor — os dois baldes concatenados.
+ *
+ * ⚠ **Assina os DOIS stores e junta aqui**, em vez de um terceiro store com a
+ * lista inteira: quem precisa dela é uma página de configuração que abre uma
+ * vez, e manter um terceiro balde em dia a cada mudança de presença seria
+ * pagar o custo no caminho quente para servir o frio.
+ *
+ * O `useMemo` é o que mantém a referência estável — sem ele, `getSnapshot`
+ * devolveria array novo a cada render e o `assertStable` acusaria a armadilha
+ * nº 1 com razão.
+ */
+export function useMembrosDoServidor(serverId: string): readonly string[] {
+  const online = useMembrosOnline(serverId);
+  const offline = useMembrosOffline(serverId);
+  return useMemo(() => [...online, ...offline], [online, offline]);
 }
 
 export function useCanaisDeVoz(serverId: string): readonly string[] {

@@ -41,15 +41,22 @@ import css from "./Canal.module.css";
 export function ConvitesDoCanal({ channelId }: { channelId: string }) {
   const canal = useChannel(channelId);
   const serverId = canal?.serverId;
-  const [lista, setLista] = useState<readonly ConviteDoServidor[] | undefined>(
-    undefined,
-  );
+  /* Três estados, e o "carregando" DERIVADO de para quem a resposta é — a
+     mesma forma da tela de convites do servidor, e pela mesma razão: "não deu
+     para saber" não pode virar "não há nenhum", e zerar num efeito é
+     `setState` em cascata. Ver `listarConvites`. */
+  const [res, setRes] = useState<
+    | { readonly para: string; readonly dados: readonly ConviteDoServidor[] | "falhou" }
+    | undefined
+  >(undefined);
+  const lista =
+    serverId !== undefined && res?.para === serverId ? res.dados : "carregando";
 
   useEffect(() => {
     if (!serverId) return;
     let vivo = true;
     void listarConvites(serverId).then((l) => {
-      if (vivo) setLista(l);
+      if (vivo) setRes({ para: serverId, dados: l ?? "falhou" });
     });
     return () => {
       vivo = false;
@@ -67,7 +74,10 @@ export function ConvitesDoCanal({ channelId }: { channelId: string }) {
     );
   }
 
-  const deste = lista?.filter((c) => c.canal === canal.name);
+  const deste =
+    typeof lista === "string"
+      ? undefined
+      : lista.filter((c) => c.canal === canal.name);
 
   return (
     /* 720 é a largura desta tela no design. */
@@ -79,9 +89,11 @@ export function ConvitesDoCanal({ channelId }: { channelId: string }) {
         <span className={css.cartaoTexto}>
           <span className={css.cartaoTitulo}>Convites</span>
           <span className={css.cartaoDetalhe}>
-            {deste === undefined
+            {lista === "carregando"
               ? "Carregando…"
-              : `${deste.length} ativo${deste.length === 1 ? "" : "s"} para este canal`}
+              : deste === undefined
+                ? "O servidor não respondeu"
+                : `${deste.length} ativo${deste.length === 1 ? "" : "s"} para este canal`}
           </span>
         </span>
         <div className={css.convitesAcoes}>
@@ -102,7 +114,13 @@ export function ConvitesDoCanal({ channelId }: { channelId: string }) {
         </div>
       </header>
 
-      {deste !== undefined && deste.length === 0 ? (
+      {lista === "falhou" ? (
+        <EstadoVazio
+          compacto
+          titulo="Não deu para ler os convites"
+          detalhe="O servidor não respondeu. Pode haver convites ativos que não estão aqui."
+        />
+      ) : deste !== undefined && deste.length === 0 ? (
         <EstadoVazio
           compacto
           titulo="Nenhum convite para este canal"
@@ -126,8 +144,13 @@ export function ConvitesDoCanal({ channelId }: { channelId: string }) {
               aoRevogar={() => {
                 void revogarConvite(serverId, c.codigo).then((ok) => {
                   if (!ok) return;
-                  setLista((atual) =>
-                    atual?.filter((x) => x.codigo !== c.codigo),
+                  setRes((r) =>
+                    r === undefined || typeof r.dados === "string"
+                      ? r
+                      : {
+                          ...r,
+                          dados: r.dados.filter((x) => x.codigo !== c.codigo),
+                        },
                   );
                 });
               }}

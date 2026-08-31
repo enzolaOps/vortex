@@ -206,3 +206,79 @@ O que falta é em volta dela:
 - **Não considera ordem.** Mas duas dependências são fato e não opinião: o
   **router** gateia convite, permalink e deep-link; a **região Home** gateia
   DM, grupo, amigos e o `+` de criar servidor.
+
+
+---
+
+## Adendo — construído e inalcançável, que é pior que ausente
+
+Levantado depois, comparando a tela com o código. O documento acima conta o que
+NÃO existe; esta seção conta o que existe e não tem porta. Do ponto de vista de
+quem usa, os dois são a mesma coisa — e o segundo custa manutenção enquanto não
+entrega nada.
+
+### As cinco telas de servidor
+
+`abrirConfig` é chamado em **um único lugar do app inteiro**: a engrenagem do
+rail, com `abrirConfig("perfil")` e sem `serverId`. E o menu lateral de
+configurações renderiza o grupo de servidor sob `{serverId ? … : null}`.
+
+Consequência: **visão geral, cargos, banimentos, convites e emojis existem,
+estão roteadas, compilam, e nenhuma pessoa consegue chegar nelas.** Junto vai
+`sairDoServidor`, que mora dentro da visão geral — sair de um servidor é
+impossível pela interface.
+
+O nome do servidor no cabeçalho da coluna de canais é um `<span>` sem
+interação. É ali que a porta falta, e é onde todo cliente da categoria a põe.
+
+**A varredura de reachability que fiz junto, para calibrar:** modais e ações
+administrativas estão todos com chamador — `abrirModal` tem cinco pontos de
+entrada e `administrar` tem quatorze. O buraco é específico de configurações de
+servidor, não é um padrão do projeto.
+
+### Regra que sai disto
+
+Superfície nova precisa de **porta no mesmo passo**, e "porta" quer dizer um
+alvo clicável numa tela que já existe — não uma rota. Rota é endereço; endereço
+sem link é URL que só quem escreveu o código conhece.
+
+Candidata a mecanismo, pela ordem do `enforcement.md`: um teste que, para cada
+`SecaoId`, exija pelo menos um `abrirConfig` com aquela seção fora de
+`src/config/`. Falha quando alguém acrescenta tela sem acrescentar entrada.
+
+---
+
+## Adendo — a sala de voz como LUGAR, com referência visual
+
+O `CLAUDE.md` registra "a sala de voz como LUGAR segue parcial" desde a fase 5:
+ela mostra quem está dentro antes de entrar, e falta ocupar a tela. Uma captura
+do Stoat em chamada tornou concreto o que falta, e vale registrar o que dela é
+mecanismo e o que é artefato.
+
+**Mecanismo, e é o que transfere:**
+
+1. **Um objeto domina a tela.** O palco da chamada é o assunto; o resto recua.
+   No Vortex as quatro colunas têm peso visual parecido e nada é foco — a
+   diferença entre uma tela COMPOSTA e uma tela PREENCHIDA.
+2. **O palco é peça elevada e RECUADA**, com margem das bordas, raio grande e
+   superfície mais clara. É o que faz ler como "uma coisa" e não como "uma
+   região". A regra do projeto — profundidade vem de camada, não de sombra — é
+   exatamente essa, e quase não é usada: os painéis são retângulos de sangria
+   total.
+3. **Uma pílula flutuante de controles**, botões circulares, **um só colorido**
+   (desligar). Disciplina de acento levada ao extremo.
+4. **Quase nenhuma linha.** Sem divisor entre painéis, sem borda na lista. O
+   espaço faz o trabalho.
+
+**Artefato da captura, e NÃO copiar:** a tela estava vazia — um membro, zero
+mensagens —, e app sem conteúdo parece limpo em qualquer lugar. Três coisas
+dela são defeito: ~400px de vão morto entre a chamada e o composer (a mesma
+faixa morta que este projeto já corrigiu), rail de ~28px com o avatar do
+servidor cortado, e a lista de membros dizendo "1 members online" e "Online — 1"
+em seguida, em inglês.
+
+**Escopo proposto, em ordem:** (1) o palco ocupando a coluna de conteúdo quando
+o canal aberto é o da chamada — e a âncora não corre risco porque canal de voz
+não tem lista de mensagens para ancorar, que era o conflito que motivou o
+cartão de canto; (2) a pílula de controles, que serve o cartão de canto também;
+(3) passe de tinta tirando bordas que o espaço já separa.

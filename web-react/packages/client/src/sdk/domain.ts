@@ -705,6 +705,32 @@ export type MemberSnapshot = ComSigla & {
    * um `Date` novo a cada leitura é exatamente o erro nº 1 do briefing.
    */
   readonly silenciadoAte: number | undefined;
+  /**
+   * Quando entrou no servidor, já formatado.
+   *
+   * ⚠ **Formatado na ESCRITA, como `createdAtText`** — a página de membros
+   * desenha mil linhas, e um `Intl.DateTimeFormat` por render seria o erro
+   * nº 4 do briefing com data no lugar de markdown.
+   *
+   * ⚠ **E é o único dos dois que existe.** O design mostra "entrou em" E
+   * "última atividade"; `ServerMember` tem `joinedAt` e mais nada. Atividade
+   * não é campo, rota nem evento no Stoat.
+   */
+  readonly entrouEm: string | undefined;
+  /**
+   * O mesmo instante, em epoch ms — o que a ORDENAÇÃO usa.
+   *
+   * ⚠ **Dois campos da mesma fonte, como `createdAt` e `createdAtText`.** A
+   * string é localizada ("3 abr 2026") e ordenar por ela dá ordem alfabética
+   * de mês. O número existe para comparar; a string, para desenhar.
+   *
+   * A alternativa era ordenar pela ordem do array de IDs, e ela ESTAVA no
+   * código com a justificativa de que o protocolo entrega por ULID. É falso
+   * aqui: a lista da página vem dos baldes de presença concatenados, então
+   * "entrada mais recente" entregava a ordem de quem está online. Passou por
+   * typecheck, lint e olho — só apareceu com datas de verdade na tela.
+   */
+  readonly entrouEmMs: number | undefined;
 };
 
 /**

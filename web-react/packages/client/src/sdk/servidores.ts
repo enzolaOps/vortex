@@ -336,6 +336,45 @@ export function apagarCategoria(
 
 /* ---------------------------------------------- convites e banimentos */
 
+/**
+ * Puxa a lista COMPLETA de membros do servidor.
+ *
+ * ⚠ **É o que separa a página de Membros da coluna lateral.** O cliente só
+ * conhece quem falou ou quem está online; a página promete "1.204 membros", e
+ * cumprir isso é uma chamada de rede. A member list nunca a faz porque nunca
+ * promete — ela mostra quem já está no cache.
+ *
+ * Sem paginação, e é o protocolo que decide: `GET /servers/{id}/members`
+ * devolve tudo de uma vez. O design fala em "50 por página com rolagem
+ * infinita", que é o Discord; aqui a paginação seria do CLIENTE sobre uma
+ * lista já inteira na memória — trabalho sem economia.
+ *
+ * ⚠ Devolve `void`: quem publica é o efeito do store, que já observa a coleção
+ * do SDK. Devolver a lista daria um segundo caminho de dado para a mesma
+ * informação, e os dois teriam de concordar.
+ */
+export async function carregarMembros(serverId: string): Promise<void> {
+  try {
+    await client.servers.get(serverId)?.fetchMembers();
+  } catch (e) {
+    toast({
+      tipo: "erro",
+      titulo: "Não deu para carregar os membros.",
+      descricao: motivo(e),
+    });
+  }
+}
+
+/**
+ * ⚠ **O que o design mostra e o protocolo NÃO tem, medido no schema:** `uses`,
+ * `max_uses`, `expires_at`, `temporary` e `vanity` dão ZERO ocorrências em
+ * `stoat-api`. O `Invite` do Stoat carrega quatro campos — `_id`, `server`,
+ * `creator`, `channel` — e nada mais.
+ *
+ * Das cinco colunas do design (código · criador · canal · usos · expira),
+ * três não existem. Só CRIADOR entrou; contagem de uso e validade são
+ * conceito do Discord, e trazê-los exige fork do serviço `api`.
+ */
 export type ConviteDoServidor = {
   readonly codigo: string;
   readonly canal: string;
@@ -348,9 +387,22 @@ export type Banido = {
   readonly razao: string | undefined;
 };
 
+/**
+ * Os convites do servidor, ou `undefined` se a consulta falhou.
+ *
+ * ⚠ **Falha NÃO é lista vazia, e a versão anterior devolvia `[]` nas duas.** A
+ * página então escrevia "Nenhum convite ativo" — que afirma um fato — enquanto
+ * o toast dizia que a consulta não completou. Duas superfícies contando
+ * histórias diferentes sobre a mesma tentativa, e a que fica na tela é a
+ * errada: alguém criaria um segundo convite acreditando não haver nenhum.
+ *
+ * `undefined` obriga quem chama a distinguir. É a mesma disciplina de
+ * `entrouEm`: ausência de dado tem forma própria e nunca vira um valor
+ * plausível.
+ */
 export async function listarConvites(
   serverId: string,
-): Promise<readonly ConviteDoServidor[]> {
+): Promise<readonly ConviteDoServidor[] | undefined> {
   try {
     const lista = (await client.servers.get(serverId)?.fetchInvites()) ?? [];
     /*
@@ -377,7 +429,7 @@ export async function listarConvites(
       titulo: "Não deu para listar os convites.",
       descricao: motivo(e),
     });
-    return [];
+    return undefined;
   }
 }
 

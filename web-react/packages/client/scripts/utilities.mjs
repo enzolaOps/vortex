@@ -254,7 +254,27 @@ for (const [modulo, usos] of importadores) {
     }
   }
 
+  /*
+    ⚠ **`composes` conta como consumo, e a guarda nao sabia.**
+
+    Uma regra referenciada por `composes:` de outra regra do mesmo arquivo esta
+    viva — apagar `.celula` quebraria `.meta` e `.mono`, que compoem a partir
+    dela. Sem isto a guarda acusava a BASE de uma familia de classes como
+    morta, e o conserto obvio (inline nas duas filhas) seria justamente a
+    duplicacao que a base existe para evitar.
+
+    Achado na tabela compartilhada de Membros e Convites, na primeira corrida
+    depois de ela existir.
+  */
+  const compostas = new Set();
+  for (const m of semComentario.matchAll(/composes:\s*([^;]+);/g)) {
+    for (const nome of m[1].split(/\s+/)) {
+      if (/^[A-Za-z][\w-]*$/.test(nome) && nome !== "from") compostas.add(nome);
+    }
+  }
+
   for (const nome of declaradas) {
+    if (compostas.has(nome)) continue;
     const usada = usos.some((u) => {
       const codigo = fontes.get(u.arquivo);
       return (

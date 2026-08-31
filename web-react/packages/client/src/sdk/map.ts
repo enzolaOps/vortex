@@ -642,6 +642,8 @@ export function toMemberSnapshot(
   // valor. Guardar o objeto faria toda republicação parecer mudança.
   const silenciadoAte = membro?.timeout?.getTime();
 
+  const entrouEmMs = dataDeEntrada(membro);
+
   /*
     Do mais ALTO para o mais baixo — `orderedRoles` do SDK devolve o contrário
     ("from lowest to highest priority"), e a ordem importa: a pílula que
@@ -679,5 +681,40 @@ export function toMemberSnapshot(
     cargosIds,
     abaixoDeMim,
     silenciadoAte,
+    entrouEm: entrouEmMs === undefined ? undefined : DATA_CURTA.format(entrouEmMs),
+    entrouEmMs,
   };
 }
+
+/**
+ * O instante de entrada, ou ausência.
+ *
+ * ⚠ **Data inválida e epoch zero viram `undefined`, e a tela mostra "—".** O
+ * `joinedAt` do SDK é tipado como `Date` não-opcional, então um membro sem
+ * `joined_at` no payload não dá `undefined` — dá `new Date(undefined)` ou
+ * `new Date(0)`. Formatar isso escreve **"31 de dez. de 1969"** na coluna, que
+ * é pior que vazio: parece um dado, e ninguém desconfia de uma data.
+ *
+ * Achado no arnês, onde o firehose criava membros sem `joined_at`. É a família
+ * do "arnês mais pobre que o protocolo", com a diferença de que aqui o
+ * conserto vale para produção também: um servidor que devolva o campo vazio
+ * produziria exatamente a mesma linha.
+ */
+function dataDeEntrada(membro: ServerMember | undefined): number | undefined {
+  const t = membro?.joinedAt?.getTime();
+  if (t === undefined || Number.isNaN(t) || t === 0) return undefined;
+  return t;
+}
+
+/*
+  "3 mar 2026" — dia, mês curto e ano.
+
+  Com ano de propósito: a tabela de membros é ordenável por entrada e mistura
+  quem chegou este mês com quem chegou há três anos. Sem o ano, "3 mar" não
+  distingue os dois, que é justamente a pergunta que a coluna responde.
+*/
+const DATA_CURTA = new Intl.DateTimeFormat("pt-BR", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+});

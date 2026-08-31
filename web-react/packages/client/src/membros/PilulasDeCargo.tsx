@@ -15,15 +15,17 @@ import css from "./PilulasDeCargo.module.css";
 const Pilula = memo(function Pilula({
   nome,
   cor,
+  denso,
 }: {
   nome: string;
   cor: string | undefined;
+  denso: boolean;
 }) {
   const legivel = useCorDeCargo(cor);
 
   return (
     <span
-      className={css.pilula}
+      className={denso ? css.densa : css.pilula}
       /*
         ⚠ **A cor é DADO e por isso vai em `style`** — é a mesma exceção da cor
         de cargo no nome do autor, e a única classe de cor literal que este
@@ -39,7 +41,9 @@ const Pilula = memo(function Pilula({
           : undefined
       }
     >
-      <span className={css.ponto} aria-hidden />
+      {/* Sem o ponto no modo denso: há uma pílula por linha numa tabela de
+          mil, e o ponto repetido mil vezes vira textura, não informação. */}
+      {denso ? null : <span className={css.ponto} aria-hidden />}
       {nome}
     </span>
   );
@@ -61,9 +65,18 @@ const Pilula = memo(function Pilula({
 export function PilulasDeCargo({
   serverId,
   cargosIds,
+  denso = false,
 }: {
   serverId: string;
   cargosIds: readonly string[];
+  /**
+   * A variante de TABELA — 11px e sem o ponto.
+   *
+   * O design usa a mesma peça em duas densidades: com ponto no cartão de
+   * perfil, onde ela aparece uma vez e o ponto ajuda a ler a cor; sem ponto na
+   * tabela de membros, onde há uma por linha.
+   */
+  denso?: boolean;
 }) {
   if (cargosIds.length === 0) return null;
 
@@ -83,7 +96,7 @@ export function PilulasDeCargo({
   return (
     <div className={css.pilulas}>
       {cargos.map((c) => (
-        <Pilula key={c.id} nome={c.nome} cor={c.cor} />
+        <Pilula key={c.id} nome={c.nome} cor={c.cor} denso={denso} />
       ))}
     </div>
   );

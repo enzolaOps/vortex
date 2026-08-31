@@ -41,3 +41,17 @@
   border-radius: var(--vx-radius-pill);
   background: currentColor;
 }
+
+/*
+  A variante de TABELA — 11/600, `0 8px`, sem o ponto.
+
+  Medida na página de Membros do design: 20px de altura como a outra, mas
+  recuo simétrico (o ponto é quem pedia o assimétrico) e um degrau de tipo
+  abaixo. Uma por linha numa tabela de mil precisa pesar menos que uma sozinha
+  num cartão.
+*/
+.densa {
+  composes: pilula;
+  padding-inline: var(--vx-space-08);
+  font-size: var(--vx-size-xs);
+}

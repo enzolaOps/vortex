@@ -29,6 +29,7 @@ import { Aparencia } from "./Aparencia";
 import { Atalhos } from "./Atalhos";
 import { Avancado } from "./Avancado";
 import { Desktop } from "./Desktop";
+import { Membros } from "./Membros";
 import { Privacidade } from "./Privacidade";
 import { VozEVideo } from "./VozEVideo";
 import { Notificacoes } from "./Notificacoes";
@@ -192,6 +193,7 @@ export function Configuracoes() {
     avancado: () => <Avancado />,
     desktop: () => <Desktop />,
     servidor: () => <Servidor serverId={serverId} />,
+    membros: () => <Membros serverId={serverId} />,
     cargos: () => <Cargos serverId={serverId} />,
     convites: () => <Convites serverId={serverId} />,
     banimentos: () => <Banimentos serverId={serverId} />,

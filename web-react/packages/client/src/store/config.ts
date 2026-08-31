@@ -35,6 +35,7 @@ export const SECOES = [
   "desktop",
   "avancado",
   "servidor",
+  "membros",
   "cargos",
   "convites",
   "banimentos",
@@ -74,6 +75,7 @@ export const NOME_DA_SECAO: Record<SecaoId, string> = {
   desktop: "Desktop",
   avancado: "Avançado",
   servidor: "Visão geral",
+  membros: "Membros",
   cargos: "Cargos",
   convites: "Convites",
   banimentos: "Banimentos",
@@ -102,6 +104,7 @@ export const DESCRICAO_DA_SECAO: Partial<Record<SecaoId, string>> = {
 /** As que falam de um servidor, e por isso precisam de um. */
 export const DE_SERVIDOR: readonly SecaoId[] = [
   "servidor",
+  "membros",
   "cargos",
   "convites",
   "banimentos",
