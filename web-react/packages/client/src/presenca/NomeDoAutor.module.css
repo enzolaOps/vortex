@@ -1,0 +1,70 @@
+/* ============================================================
+   Crachá de cargo
+   ------------------------------------------------------------
+   O "VTX" e o "MOD" do design, ao lado do nome de quem
+   escreveu. Marca a MINORIA: sem cargo hasteado não aparece.
+   ============================================================ */
+
+/*
+  Sem cor de cargo, ele é neutro — e continua existindo.
+
+  Cargo hasteado sem cor é comum ("Moderação" sem cor definida), e o crachá
+  ainda diz algo verdadeiro. Cair para invisível nesse caso esconderia o dado
+  por falta de uma decoração.
+*/
+.cracha {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  flex: none;
+  /* `align-self` e não `vertical-align`: a linha de cabeçalho é flex com
+     `items-baseline`, e o crachá é uma caixa — alinhá-lo pela baseline do
+     texto dentro dele o empurraria para baixo do nome. */
+  align-self: center;
+  padding-inline: var(--vx-space-04);
+  border-radius: var(--vx-radius-04);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-3);
+  /*
+    Maiúsculas por CSS, não por dado.
+
+    O design escreve "VTX" e "MOD", mas o nome do cargo vem do servidor e pode
+    ser "Moderação". Fazer o caixa-alta aqui mantém o dado intacto — o leitor
+    de tela anuncia o nome que quem administra escreveu, e a tela mostra a
+    forma curta que o design pede.
+  */
+  /* Cargo com nome longo não empurra o timestamp para fora da linha. */
+  max-inline-size: 12ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+  O nome inline do modo compacto.
+
+  Peso 700 e o mesmo tamanho do corpo: ele corre DENTRO do parágrafo, e um
+  tamanho diferente ali quebraria a linha de base do texto que vem depois.
+
+  A margem no fim é o único espaço entre o nome e a primeira palavra — não há
+  `gap` porque não há flex: isto é conteúdo inline, e o navegador não põe vão
+  entre dois `span` vizinhos.
+*/
+.nomeInline {
+  margin-inline-end: var(--vx-space-08);
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-lg);
+  font-weight: 700;
+}
+
+/*
+  O nome dentro da prévia de resposta: 12px / 600, herdando a cor de cargo.
+
+  ⚠ Não reusa `.nomeInline` porque aquele é o do modo COMPACTO da timeline —
+  15px, peso 700, e uma margem que existe para separar o nome do texto que
+  corre depois dele. Aqui o nome é um item de uma linha flex de 12px, e a
+  margem viria do `gap`.
+*/
+.nomeCitado {
+  flex: none;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+}

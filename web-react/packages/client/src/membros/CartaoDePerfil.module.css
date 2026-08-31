@@ -1,0 +1,88 @@
+/* ============================================================
+   Cartão de perfil
+   ------------------------------------------------------------
+   A caixa, a borda e o fundo vêm do wrapper `HoverCardContent`.
+   Aqui é só o conteúdo — e ele é curto de propósito: o cartão
+   abre por cima de uma conversa, e quanto mais alto, mais tapa.
+   ============================================================ */
+
+.cartao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-08);
+}
+
+.topo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-12);
+  min-inline-size: 0;
+}
+
+
+
+.identidade {
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.nome {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-lg);
+  font-weight: 500;
+  line-height: var(--vx-leading-title);
+}
+
+/* O username por baixo do apelido: menor, apagado, e só quando os
+   dois divergem. */
+.username {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+}
+
+/*
+  Pronomes em mono, e isso não é costume "técnico".
+
+  É o mesmo recurso que a interface usa para dado curto e literal —
+  contadores, medidas —, e pronomes são exatamente isso: uma string
+  que não se interpreta nem se traduz.
+*/
+.pronomes {
+  margin: 0;
+  color: var(--vx-text-2);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+}
+
+.status {
+  margin: 0;
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-sm);
+  line-height: var(--vx-leading-message);
+  /* Status é escrito por quem usa e pode vir longo. Duas linhas e corta. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.castigo {
+  margin: 0;
+  padding-block-start: var(--vx-space-08);
+  border-block-start: 1px solid var(--vx-border-subtle);
+  color: var(--vx-warning);
+  font-size: var(--vx-size-xs);
+}
+
+.carregando {
+  margin: 0;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+}

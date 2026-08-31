@@ -1,0 +1,76 @@
+/* ============================================================
+   O drawer lateral
+   ------------------------------------------------------------
+   Fixadas e caixa de entrada, flutuando. Ver `store/drawer.ts`:
+   ancorar num slot ROUBAVA o ocupante da ponta, e a lista de
+   membros sumia sem aviso.
+   ============================================================ */
+
+/*
+  `fixed` e ancorado à JANELA, não à coluna.
+
+  A mesma escolha do cartão de chamada, e pela mesma razão: a coluna de
+  conteúdo só existe quando há canal aberto, e um painel que some ao ir para a
+  casa é um painel que a pessoa acha que fechou sozinho.
+*/
+.drawer {
+  position: fixed;
+  /*
+    Abaixo do cabeçalho de canal (50px) e afastado das bordas.
+
+    Os dois números saem da escala somada, como o palco do lightbox: o topo é
+    a altura do cabeçalho mais o respiro, e as outras três são o mesmo respiro.
+  */
+  inset-block: calc(50px + var(--vx-space-12)) var(--vx-space-12);
+  inset-inline-end: var(--vx-space-12);
+  /*
+    ⚠ **A largura é do PAINEL, não do drawer.** Ela era 400 fixos aqui, e o
+    design dá 400 para fixadas e caixa de entrada e 380 para a busca. `LARGURA`
+    já guarda o padrão de cada painel desde a fase 4 — o drawer só o lê pela
+    custom property que o `Drawer.tsx` escreve, e o 400 vira a reserva de quem
+    não declarar.
+  */
+  inline-size: var(--largura-do-drawer, 400px);
+  max-inline-size: calc(100vw - var(--vx-space-32));
+
+  display: grid;
+  overflow: hidden;
+  /* Alfa: ele FLUTUA sobre a coluna de conteúdo, e a superfície de baixo
+     muda com o que estiver rolado ali. O sólido `border-subtle` some sobre
+     `surface-1` e endurece sobre `surface-4`. */
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-12);
+  background: var(--vx-surface-1);
+  box-shadow: var(--vx-elev-3);
+  z-index: var(--vx-z-flutuante);
+
+  /* O painel dentro dele continua reagindo ao PRÓPRIO tamanho — a container
+     query de cada um vale igual flutuando e ancorado. */
+  container-type: inline-size;
+}
+
+/*
+  A borda de início do painel some quando ele flutua.
+
+  Os dois painéis desenham `border-inline-start` porque, ancorados, é o que os
+  separa da coluna vizinha. Flutuando eles já têm borda em volta, e a de
+  dentro vira uma linha dupla no canto.
+*/
+.drawer > * > * {
+  border-inline-start: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .drawer {
+    animation: vxDrawerEntra var(--vx-duration-base) var(--vx-ease-out);
+  }
+}
+
+/* Só `translate` e `opacity` — a regra de movimento do projeto: nada além
+   disso roda no compositor. */
+@keyframes vxDrawerEntra {
+  from {
+    opacity: 0;
+    translate: var(--vx-space-16) 0;
+  }
+}

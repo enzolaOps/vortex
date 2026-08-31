@@ -11,9 +11,24 @@
    ============================================================ */
 
 .rodape {
-  padding-block: var(--vx-space-3) var(--vx-space-4);
-  border-block-start: 1px solid var(--vx-border-subtle);
-  background: var(--vx-surface-0);
+  /*
+    ⚠ **Sem fundo e sem régua, e as duas coisas estavam erradas.**
+
+    Ele pintava `--vx-surface-0` — o tom do rail e do gutter ultrawide — logo
+    abaixo de uma timeline em `surface-2`. O resultado é uma faixa preta
+    contornando o campo de escrever, e foi assim que quem usa relatou. É a
+    mesma família do bug da prancha, no mesmo commit: `surface-0` usado onde o
+    design não o usa.
+
+    Medido no `Vortex App.dc.html`: o wrapper do composer tem
+    `padding: 0 20px 14px` e **nenhum** `background` — ele herda o canvas
+    (`#14181E`). Quem separa o campo do conteúdo é a superfície PRÓPRIA da
+    caixa (`surface-3`) mais a borda dela, não uma faixa atrás.
+
+    A régua de topo saiu junto e pelo mesmo motivo: o design não a tem, e com
+    a faixa preta fora ela passou a marcar uma divisão que não existe mais.
+  */
+  padding-block: 0 var(--vx-space-14);
 
   /*
     A calha da barra de rolagem, reservada aqui também.
@@ -33,24 +48,56 @@
 }
 
 /*
-  A MESMA caixa da coluna de mensagem: mesmo teto, mesmo lado, mesmo recuo
-  interno.
+  A MESMA caixa da coluna de mensagem: mesma largura, mesmo recuo interno.
 
-  O token do teto é o mesmo (`--vx-message-max-w`) de propósito — duplicar o
-  valor garantiria que um dia os dois divergissem. E o `padding-inline` casa
-  com o `px-4` da linha de mensagem, então a borda do campo nasce onde nasce
-  o avatar. Alinhar pelo TEXTO da mensagem seria o erro: o campo é o análogo
-  da linha inteira, não do parágrafo dentro dela.
+  Não há mais teto em nenhum dos dois — a legibilidade é da medida de leitura,
+  que limita o texto e não a linha. O que os mantém iguais é o `padding-inline`
+  casando com o `px-4` da linha: a borda do campo nasce onde nasce o avatar.
+
+  Alinhar pelo TEXTO da mensagem seria o erro: o campo é o análogo da linha
+  inteira, não do parágrafo dentro dela.
 */
 .coluna {
-  max-inline-size: var(--vx-message-max-w);
+  /*
+    A MESMA regra da lista, e é o que mantém os dois alinhados de verdade.
+
+    O teto saiu daqui pelo mesmo motivo que saiu de lá: acima de 1100px a
+    linha ficava com 1100 e o campo com 990, e a assertion de alinhamento não
+    pegava porque só roda na montagem — ela nasceu cega justamente nas
+    resoluções onde o desalinho aparece.
+
+    Agora os dois preenchem a trilha e o teto vive no conteúdo, com a mesma
+    conta. Alinhamento por construção em vez de por dois valores que precisam
+    concordar.
+  */
   margin-inline: 0;
-  padding-inline: var(--vx-space-4);
+  /*
+    20 e não 16 — o recuo lateral do design, na LISTA e no COMPOSER juntos.
+
+    Medido no `Vortex App.dc.html`: o container de rolagem da timeline tem
+    `padding: 16px 20px 4px` e o wrapper do composer, `0 20px 14px`. Os dois
+    são 20, e é por isso que os dois mudaram no mesmo passe: mexer em um só
+    quebraria a invariante do briefing — "composer alinhado à coluna de
+    mensagem" —, que é o que a assertion de `dev/alinhamento.ts` guarda.
+  */
+  padding-inline: var(--vx-space-20);
 
   /* Lei nº 6: o composer reage ao PRÓPRIO tamanho. Em popout estreito ou
      com um painel de thread aberto ao lado, ele encolhe sem que a janela
      tenha mudado de tamanho. */
   container-type: inline-size;
+}
+
+/*
+  O conteúdo do composer acompanha o da linha: sem teto.
+
+  Esta caixa é o marcador de alinhamento — ela e a `.conteudo` da linha ocupam
+  a trilha inteira, com o mesmo recuo, e é isso que a assertion compara. O teto
+  vive no CAMPO, uma camada abaixo, pelo mesmo motivo que o teto do texto vive
+  no parágrafo e não na faixa.
+*/
+.conteudo {
+  inline-size: 100%;
 }
 
 /* ------------------------------------------------------------
@@ -72,27 +119,78 @@
    ------------------------------------------------------------ */
 
 .campo {
-  display: grid;
-  max-block-size: var(--vx-composer-max-h);
-  padding: var(--vx-space-2) var(--vx-space-3);
-  border-radius: var(--vx-radius-3);
-  background: var(--vx-surface-2);
+  /*
+    ⚠ **Era `display: grid` com réplica e textarea empilhadas na mesma célula.
+    A pilha continua existindo — mudou de nível.**
 
-  /* `--vx-border-strong`, e não a sutil.
+    A caixa agora contém quatro coisas em duas linhas: anexar, campo,
+    ferramentas e enviar na primeira; a faixa de rodapé na segunda. É a
+    estrutura do design. A pilha que dita a altura automática desceu para
+    `.pilha`, que é o único filho que ainda precisa dela.
+  */
+  display: flex;
+  flex-direction: column;
+  /*
+    ⚠ **O campo cobre a TRILHA, e eu já errei isto nos dois sentidos.**
 
-     Não é peso visual gratuito: WCAG 1.4.11 pede 3:1 para o limite de um
-     controle, e `--vx-border-subtle` sobre `--vx-surface-2` fica em ~1,05:1.
-     A diferença de superfície sozinha também não salva (surface-2 sobre
-     surface-0 dá ~1,5:1) — quem enxerga pouco não acharia onde escrever.
+    A auditoria de design apontou o campo em 1888px sobre um texto de 520 e
+    chamou de alinhamento quebrado. Estreitei o campo para a medida de leitura,
+    e a reação de quem usa foi imediata e mais forte: "a barra de escrever
+    mensagem só cobrindo um pedaço". Num cliente de chat o campo é a superfície
+    que convida — encolhê-lo faz a tela inteira parecer inacabada, e nenhum
+    cliente que serve de referência faz isso.
 
-     O par `--vx-border-strong` sobre cada superfície já é verificado pelo
-     `pnpm contrast`, então isto não depende de eu ter feito a conta certa. */
-  border: 1px solid var(--vx-border-strong);
+    A assimetria é deliberada, e agora com o motivo certo: a MEDIDA protege o
+    que se lê em varredura por horas — parágrafos de outra pessoa, empilhados.
+    O que se escreve é curto, some ao ser enviado, e o campo largo é afordância
+    antes de ser texto.
+
+    O que continua valendo do conserto anterior é o que era mesmo defeito: os
+    comentários que afirmavam um teto deletado. A invariante do briefing é
+    "composer alinhado à COLUNA de mensagem", e é a coluna — a caixa que leva o
+    marcador de alinhamento — que os dois compartilham.
+  */
+  /* `8px 10px 6px` e raio 10 — a caixa do design, medida no arquivo. */
+  padding: var(--vx-space-08) var(--vx-space-10) var(--vx-space-06);
+  border-radius: var(--vx-radius-10);
+
+  /*
+    ⚠ **`--vx-surface-3`, e estava em `surface-2` — a MESMA cor da timeline.**
+
+    Era o defeito mais visível da parte de baixo da tela: o campo de escrever
+    não se separava da área de mensagens, e a barra inteira sumia no fundo. O
+    design põe o composer em `#1b2028`, um degrau acima do conteúdo, porque ele
+    é uma SUPERFÍCIE DE ENTRADA — a mesma família do input e do card.
+
+    Medido antes: campo e `main` os dois em `rgb(20, 24, 30)`.
+  */
+  background: var(--vx-surface-3);
+
+  /*
+    ⚠ **Borda SUTIL, e isto troca uma garantia por fidelidade ao design.**
+
+    A versão anterior usava `--vx-border-strong` com este argumento, que
+    continua tecnicamente certo: a WCAG 1.4.11 pede 3:1 para o limite de um
+    controle, e a hairline sobre a superfície não chega perto disso.
+
+    O design desenha `rgba(255,255,255,0.07)`, e a decisão de quem toca o
+    produto é seguir o design. O que sobra de defesa não é nada: o campo agora
+    tem SUPERFÍCIE PRÓPRIA (`surface-3` contra `surface-2` do conteúdo), que é
+    uma distinção visual válida pelo mesmo critério, e o anel de foco continua
+    em acento cheio.
+
+    É a mesma classe de troca já registrada em `EXCECOES` de `tema/pares.ts`:
+    o design escolheu, está escrito, e reabre quando alguém quiser.
+  */
+  /*
+    ⚠ **Véu a 7%, e a borda era opaca.** O comentário acima já dizia que "o
+    design desenha `rgba(255,255,255,0.07)`" — e o código escrevia
+    `--vx-border-subtle`, porque o token de véu não existia. Ele existe desde a
+    rodada de cor, e este é o primeiro consumidor de peso.
+  */
+  border: 1px solid rgb(255 255 255 / 7%);
 }
 
-/* O foco vive quase o tempo todo aqui: indicador claro, sem anel piscante a
-   cada clique na conversa. Borda + outline de 1px dá 2px de contorno sem
-   deslocar nada — outline não participa do layout. */
 .campo:focus-within {
   border-color: var(--vx-accent);
   outline: 1px solid var(--vx-accent);
@@ -104,19 +202,68 @@
   outline-color: var(--vx-danger);
 }
 
+/*
+  A pilha: réplica invisível e textarea na MESMA célula.
+
+  É o mecanismo de altura automática sem medir nada em JavaScript — a réplica
+  carrega o mesmo texto, ocupa a altura real dele, e a textarea se estica por
+  cima. Desceu de `.campo` para cá quando a caixa ganhou as ferramentas: com
+  quatro filhos na linha, empilhar na célula 1/1 sobreporia todos eles.
+*/
+.pilha {
+  display: grid;
+  flex: 1;
+  min-inline-size: 0;
+  /* O teto de altura mora aqui agora: é o TEXTO que rola aos dez linhas, não
+     a caixa inteira — a faixa de rodapé e as ferramentas ficam. */
+  max-block-size: var(--vx-composer-max-h);
+  overflow-y: auto;
+}
+
+.linha {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--vx-space-08);
+  min-inline-size: 0;
+}
+
 .entrada,
 .replica {
   grid-area: 1 / 1;
   min-inline-size: 0;
   min-block-size: 0;
   font-family: var(--vx-font-ui);
-  font-size: var(--vx-size-md);
+  /*
+    ⚠ **15 e não 13 — você digita no mesmo corpo em que lê.**
+
+    Medido: o design põe o composer em 15px, o mesmo do corpo da mensagem. O
+    nosso estava em 13, então o texto encolhia ao ser escrito e crescia ao ser
+    enviado. É a mesma família do "corpo da mensagem em 13px" que esta tabela
+    já registrou uma vez: o degrau `md` sobrou de quando o corpo era 14.
+
+    A `.replica` acompanha por obrigação — ela é a régua invisível que dá a
+    altura ao campo, e um corpo diferente ali faz a caixa crescer no lugar
+    errado.
+  */
+  font-size: var(--vx-size-lg);
   line-height: var(--vx-leading-message);
   white-space: pre-wrap;
 
   /* Mesma quebra da linha de mensagem: uma URL de 400 caracteres sem
      espaço não pode empurrar o campo. */
   overflow-wrap: anywhere;
+}
+
+/*
+  Campo desligado: cursor que diz não, e nada além disso.
+
+  Sem `opacity`. A textarea desligada mostra o placeholder que EXPLICA a
+  ausência de permissão, e esmaecer justamente o texto que carrega a razão é o
+  contrário do que o estado precisa fazer. O `not-allowed` já responde ao
+  ponteiro; o rótulo responde à pergunta.
+*/
+.entrada:disabled {
+  cursor: not-allowed;
 }
 
 .entrada {
@@ -176,11 +323,295 @@
    evitar.
    ------------------------------------------------------------ */
 
+/*
+  A faixa de avisos: digitação à esquerda, "ir para o presente" à direita.
+
+  Altura mínima no FILHO e não aqui, porque o botão aparece e some: com a
+  altura na faixa, ela seria a mesma nos dois casos — que é o ponto. O
+  indicador de digitação já reserva a linha, e é por isso que ele mantém
+  `min-block-size` mesmo vazio: sem reserva, a faixa surgiria e sumiria e o
+  composer inteiro mudaria de altura, que é a âncora da lista se movendo por
+  causa de alguém digitando.
+*/
+.avisos {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-08);
+  margin-block-end: var(--vx-space-04);
+}
+
 .digitando {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  min-inline-size: 0;
   min-block-size: calc(var(--vx-size-xs) * var(--vx-leading-message));
-  margin: 0 0 var(--vx-space-1);
-  padding-inline: var(--vx-space-1);
+  margin: 0;
+  padding-inline: var(--vx-space-04);
   color: var(--vx-text-3);
   font-size: var(--vx-size-xs);
   line-height: var(--vx-leading-message);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+  "Ir para o presente ↓", em acento.
+
+  ⚠ Isto GASTA acento, e a disciplina do projeto tem teto de dois na tela. Ele
+  cabe porque é raro e efêmero: só existe quando a pessoa está a mais de uma
+  tela do fim, some sozinho ao chegar lá, e quando aparece é a única coisa da
+  tela que ela provavelmente quer clicar. Um atalho de fuga em cor de texto
+  seria um atalho que ninguém vê.
+*/
+.aoPresente {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-04);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--vx-accent-text);
+  font: inherit;
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.aoPresente:hover {
+  color: var(--vx-accent);
+}
+
+.aoPresente svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+/* ============================================================
+   Anexar — o único controle FORA da caixa
+   ------------------------------------------------------------
+   Posição do design, e a razão é semântica: é a única ação que
+   abre um seletor do SISTEMA. O que vem de fora entra pela
+   borda de início; o que se compõe aqui dentro (emoji, GIF,
+   figurinha) fica na de fim, dentro da caixa.
+
+   `align-self: flex-end` para acompanhar a base do campo
+   quando ele cresce até dez linhas — alinhado ao topo ele
+   subiria sozinho e deixaria de parecer parte da linha.
+   ============================================================ */
+
+/*
+  O `+` de anexar: pílula de VÉU, não superfície sólida.
+
+  ⚠ Estava em `--vx-surface-3` — a mesma cor do campo que o contém. Um botão
+  do tom exato do fundo em que está é um botão que não existe: ele só aparecia
+  pelo ícone. O design usa `rgba(255,255,255,0.04)`, que é o nosso
+  `--vx-state-hover` em repouso — véu compõe sobre o campo e continua certo
+  quando o tema muda.
+
+  24px e não 32: o design o desenha menor que os alvos da direita, e a
+  diferença diz algo — anexar abre um seletor de arquivo do sistema, as
+  ferramentas abrem painéis dentro do app.
+*/
+.anexar {
+  flex: none;
+  align-self: flex-end;
+  inline-size: var(--vx-space-24);
+  block-size: var(--vx-space-24);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-state-hover);
+  color: var(--vx-text-2);
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-instant) var(--vx-ease-out),
+    color var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.anexar:hover {
+  background: var(--vx-surface-4);
+  color: var(--vx-text-1);
+}
+
+.anexar:disabled {
+  color: var(--vx-text-4);
+  cursor: not-allowed;
+}
+
+.anexar:disabled:hover {
+  background: var(--vx-surface-3);
+  color: var(--vx-text-4);
+}
+
+/* ============================================================
+   A faixa de rodapé da caixa
+   ------------------------------------------------------------
+   Dentro da caixa e separada por régua. É uma das poucas
+   separações que ainda merecem linha: os dois blocos correm no
+   mesmo eixo dentro de uma superfície só, e o espaço sozinho
+   não os separaria do texto acima.
+   ============================================================ */
+
+.faixa {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-12);
+  margin-block-start: var(--vx-space-04);
+  padding-block-start: var(--vx-space-04);
+  border-block-start: 1px solid var(--vx-border-subtle);
+}
+
+/* A tecla em monoespaçada: a mono existe aqui para número e atalho, onde o
+   alinhamento de coluna importa mais que a ênfase. */
+.atalho {
+  color: var(--vx-text-4);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+}
+
+/* ============================================================
+   Enviar
+   ------------------------------------------------------------
+   ⚠ Não está no design — ver o comentário no TSX. Fica porque
+   sem ele não há afordância de ponteiro nem de toque para a
+   ação mais frequente do app.
+   ============================================================ */
+
+.enviar {
+  flex: none;
+  align-self: flex-end;
+  inline-size: var(--vx-space-32);
+  block-size: var(--vx-space-32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-accent);
+  color: var(--vx-on-accent);
+  cursor: pointer;
+  transition: background var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.enviar:hover:not(:disabled) {
+  background: var(--vx-accent-hover);
+}
+
+.enviar:active:not(:disabled) {
+  background: var(--vx-accent-press);
+}
+
+.enviar:disabled {
+  background: var(--vx-surface-4);
+  color: var(--vx-text-4);
+  cursor: not-allowed;
+}
+
+/*
+  O lado ESQUERDO da faixa: modo lento e rascunho salvo.
+
+  `gap` de 12px é o do design — folga suficiente para os dois lerem como fatos
+  separados, e não como uma frase. Sem separador: régua entre dois metadados de
+  11px seria mais pesada que os dados.
+*/
+.estado {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-12);
+  min-inline-size: 0;
+}
+
+/*
+  A escala de ícone desta superfície — ver `--vx-icon-1` em `tokens.css`.
+
+  Cromagem: o design desenha 13–14px aqui, e o `size={20}` do Phosphor vinha
+  de um default copiado de componente para componente. O dono do tamanho é a
+  superfície, não a chamada.
+*/
+.rodape svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+/* --------------------------------------------- os três pontos que pulam */
+
+/*
+  A animação de "digitando", que não existia.
+
+  ⚠ **Três pontos e não um spinner**, e a diferença é semântica: spinner diz
+  "espere", e ninguém está esperando — a pessoa do outro lado está escrevendo,
+  e pode desistir. Os pontos são a convenção da categoria justamente por não
+  prometerem conclusão.
+
+  Só `transform` e `opacity`, que é a regra de movimento do design — as duas
+  propriedades que o compositor anima sem tocar em layout. Um `top` aqui
+  reflowaria a faixa do composer a cada 1,1s, e a faixa fica acima da lista.
+*/
+.pontos {
+  display: flex;
+  flex: none;
+  /* O design usa 3px; `--vx-space-04` (4) é o degrau que existe, e a diferença
+     é 2px na largura do trio inteiro. Acrescentar um degrau de 3px à escala
+     por causa de um vão seria exatamente o inchaço que a guarda evita. */
+  gap: var(--vx-space-04);
+}
+
+.pontos span {
+  inline-size: 5px;
+  block-size: 5px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-text-2);
+  animation: vxDigitando 1100ms infinite;
+}
+
+/* O atraso escalonado é o que faz a onda: sem ele os três pulsam juntos e a
+   coisa lê como um alerta piscando, não como alguém escrevendo. */
+.pontos span:nth-child(2) {
+  animation-delay: 150ms;
+}
+
+.pontos span:nth-child(3) {
+  animation-delay: 300ms;
+}
+
+@keyframes vxDigitando {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
+/*
+  ⚠ **Quem se move precisa poder parar.**
+
+  `prefers-reduced-motion` não é acessibilidade opcional: movimento repetitivo
+  e permanente na periferia da tela é o gatilho clássico de desconforto
+  vestibular, e esta faixa fica visível o tempo todo numa jornada de oito
+  horas. Sem animação os pontos continuam ali, com a opacidade do repouso — a
+  informação não depende do movimento.
+*/
+@media (prefers-reduced-motion: reduce) {
+  .pontos span {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
+/* O nome de quem digita, destacado dentro da frase — do design. */
+.quemDigita {
+  color: var(--vx-text-1);
+  font-weight: 600;
 }

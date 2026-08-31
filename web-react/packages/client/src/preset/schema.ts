@@ -26,9 +26,36 @@ export const VERSAO_ATUAL = 1;
  * quando existirem — e vão entrar como tipo também: "thread" e não "a thread
  * da mensagem 01JQ…".
  */
-export const PAINEIS = ["rail", "canais", "membros"] as const;
+export const PAINEIS = [
+  "rail",
+  "canais",
+  "membros",
+  "fixados",
+  "caixaDeEntrada",
+  "busca",
+] as const;
 
 export type PainelId = (typeof PAINEIS)[number];
+
+/**
+ * O nome de cada painel, em português, para a interface.
+ *
+ * Mora JUNTO do tipo e não no componente que primeiro precisou dele. O painel
+ * de edição tinha esta lista; o limite de erro precisou da mesma, e duas
+ * listas que precisam concordar acabam divergindo — a que diverge é a que
+ * alguém esqueceu de atualizar ao acrescentar um `PainelId`.
+ *
+ * Aqui o `Record<PainelId, string>` faz o trabalho: painel novo na união não
+ * compila até ganhar nome.
+ */
+export const NOME_DO_PAINEL: Record<PainelId, string> = {
+  rail: "servidores",
+  canais: "canais",
+  membros: "membros",
+  fixados: "fixados",
+  caixaDeEntrada: "caixa de entrada",
+  busca: "busca",
+};
 
 /**
  * Slot é POSIÇÃO, não objeto com lado.
@@ -99,15 +126,41 @@ export type Preset = {
  * Limites de largura por slot, em px.
  *
  * Não é escala de espaçamento: é geometria de layout, da mesma família de
- * `--vx-rail-w` e `--vx-message-max-w`. O mínimo existe para que um slot
+ * `--vx-rail-w` e `--vx-medida`. O mínimo existe para que um slot
  * arrastado até quase zero não vire uma tira inútil que ninguém consegue mais
  * agarrar — abaixo dele a intenção é esconder, e esconder tem controle
  * próprio.
  */
 export const LARGURA = {
   rail: { min: 56, max: 240, padrao: 72 },
-  canais: { min: 180, max: 420, padrao: 240 },
-  membros: { min: 140, max: 420, padrao: 240 },
+  /*
+    248 e 232 são os números do design no breakpoint PADRÃO (1440).
+
+    ⚠ O design lista larguras por breakpoint — 216/0 em 1024, 248/232 em 1440,
+    264/256 em 1920. Aqui elas são o PADRÃO e não a regra: a largura de coluna
+    é escolha de quem usa desde a fase 4, e um CSS que a reescrevesse por media
+    query desfaria em silêncio o arrasto que a pessoa acabou de fazer. O
+    default segue o design; o que vem depois é dela.
+  */
+  canais: { min: 180, max: 420, padrao: 248 },
+  membros: { min: 140, max: 420, padrao: 232 },
+  // Mais largo por padrão que os outros: fixado é MENSAGEM, e mensagem numa
+  // coluna de 240px quebra em quatro linhas por item.
+  fixados: { min: 220, max: 480, padrao: 300 },
+  /*
+    Mais larga que fixados por padrão, e é o design que manda: 420 contra 400.
+    A linha dela carrega servidor, canal e contagem na mesma altura — três
+    informações de comprimento livre —, e abaixo de ~280 o nome do servidor
+    começa a truncar em toda linha.
+  */
+  caixaDeEntrada: { min: 260, max: 520, padrao: 340 },
+  /*
+    380, do design — o mais largo dos três drawers, e com razão: o cartão de
+    resultado empilha canal, data, autor, duas linhas de prévia e duas ações.
+    Abaixo de ~300 a prévia vira quatro linhas e a lista deixa de ser varrível,
+    que é a única coisa que ela serve.
+  */
+  busca: { min: 300, max: 560, padrao: 380 },
 } as const satisfies Record<PainelId, { min: number; max: number; padrao: number }>;
 
 export function limitarLargura(painel: PainelId | null, largura: number): number {

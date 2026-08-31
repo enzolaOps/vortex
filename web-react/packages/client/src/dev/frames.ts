@@ -35,6 +35,15 @@ export type FrameReport = {
    * pessoa de caçar milissegundos que não existem.
    */
   intervalo: number;
+  /**
+   * Deltas MENORES que um intervalo — fisicamente impossíveis.
+   *
+   * Um frame não pode ser mais curto que um vsync. Quando este número não é
+   * zero, o relógio da máquina está perturbado, e é isso que quebrou o
+   * estimador antigo. Reportado em vez de escondido: uma corrida com rajada
+   * de sub-vsync mediu um ambiente doente, não um app rápido.
+   */
+  subIntervalo: number;
   /** p95 em múltiplos de refresh — o número que não mente em display rápido. */
   p95EmIntervalos: number;
   /**
@@ -65,6 +74,72 @@ export type FrameReport = {
    */
   suspended: number;
 };
+
+/**
+ * O intervalo de vsync, estimado por AGLOMERADO e não pelo menor valor.
+ *
+ * A versão anterior usava o 1º percentil dos deltas, com o argumento de que "o
+ * frame mais rápido é sempre um intervalo, e o percentil resiste a um outlier
+ * de relógio". O argumento é bom e o método falhou: numa corrida real ele
+ * devolveu **4ms num display de 164Hz**, que é mais curto que um vsync e
+ * portanto impossível.
+ *
+ * A falha foi de premissa, não de implementação. O 1º percentil resiste a UM
+ * outlier; ali havia uma RAJADA — com 3432 amostras, o 1º percentil é o 34º
+ * menor valor, então bastaram 34 deltas sub-vsync para arrastar a estimativa
+ * inteira. E o estrago não fica na estimativa: todo o relatório de distribuição
+ * é dividido por ela, e 2156 frames migraram do balde "1×" para o "2×" sem que
+ * nada tivesse mudado no código.
+ *
+ * A correção troca "o menor valor" por "o menor valor ONDE OS FRAMES REALMENTE
+ * POUSAM". Um intervalo de vsync só é um intervalo se uma fatia significativa
+ * dos frames cair nele; uma rajada de 1% não é onde os frames pousam, é ruído
+ * de relógio.
+ *
+ * O piso de 2% é o parâmetro, e ele é frouxo de propósito: mesmo um app muito
+ * engasgado põe mais que 2% dos frames num vsync único — a pior corrida já
+ * medida neste projeto tinha 10,9%. Frouxo o bastante para não distorcer o
+ * diagnóstico de um app ruim, apertado o bastante para descartar a rajada.
+ */
+export function estimarIntervalo(ordenados: readonly number[]): number {
+  if (ordenados.length === 0) return 1;
+
+  /*
+    Meio milissegundo por balde.
+
+    Fino o suficiente para separar 6,25 de 8,33 (164Hz de 120Hz) e grosso o
+    suficiente para que o jitter de vsync não espalhe um mesmo intervalo por
+    três baldes.
+  */
+  const LARGURA = 0.5;
+  const PISO = Math.max(1, Math.floor(ordenados.length * 0.02));
+
+  const baldes = new Map<number, number>();
+  for (const d of ordenados) {
+    const b = Math.floor(d / LARGURA);
+    baldes.set(b, (baldes.get(b) ?? 0) + 1);
+  }
+
+  const habitados = [...baldes.entries()]
+    .filter(([, n]) => n >= PISO)
+    .map(([b]) => b)
+    .sort((a, b) => a - b);
+
+  // Nenhum balde alcança o piso: distribuição espalhada demais para estimar.
+  // Cai no comportamento antigo em vez de inventar um número.
+  if (habitados.length === 0) return Math.max(ordenados[0] ?? 1, 1);
+
+  /*
+    A MEDIANA do balde escolhido, não o centro dele.
+
+    O centro seria um valor que talvez nenhum frame tenha tido; a mediana dos
+    deltas que caíram ali é um número medido. Com 6,1ms de vsync a diferença é
+    pequena, mas é a diferença entre reportar um dado e reportar um bin.
+  */
+  const alvo = habitados[0]!;
+  const dentro = ordenados.filter((d) => Math.floor(d / LARGURA) === alvo);
+  return Math.max(dentro[Math.floor(dentro.length / 2)] ?? LARGURA, 1);
+}
 
 export function createFrameRecorder() {
   let deltas: number[] = [];
@@ -184,16 +259,10 @@ export function createFrameRecorder() {
       const sorted = [...deltas].sort((a, b) => a - b);
       const at = (q: number) => sorted[Math.floor(sorted.length * q)] ?? 0;
 
-      /**
-       * O intervalo de refresh, estimado do 1º percentil.
-       *
-       * Não da MÉDIA nem da mediana: num app saudável a mediana é um
-       * intervalo, mas num app engasgado ela já é dois, e a estimativa
-       * dobraria junto — escondendo exatamente o problema que se quer ver. O
-       * frame mais rápido é sempre um intervalo; o 1º percentil é isso com
-       * resistência a um outlier de relógio.
-       */
-      const intervalo = Math.max(at(0.01), 1);
+      const intervalo = estimarIntervalo(sorted);
+      // Delta MENOR que um vsync é fisicamente impossível. Contá-los é o que
+      // torna a rajada visível em vez de silenciosamente absorvida.
+      const sub = sorted.filter((d) => d < intervalo * 0.9).length;
 
       return {
         seconds: Number(seconds.toFixed(1)),
@@ -209,6 +278,7 @@ export function createFrameRecorder() {
         worst: Number((sorted.at(-1) ?? 0).toFixed(2)),
         dropped: deltas.filter((d) => d > 16.7).length,
         intervalo: Number(intervalo.toFixed(2)),
+        subIntervalo: sub,
         intervalos: deltas.reduce(
           (acc, d) => {
             // Meio intervalo de tolerância: o vsync tem jitter, e um frame de

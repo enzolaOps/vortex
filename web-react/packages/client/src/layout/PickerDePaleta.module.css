@@ -9,15 +9,15 @@
 .picker {
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-3);
-  padding-block-start: var(--vx-space-3);
+  gap: var(--vx-space-12);
+  padding-block-start: var(--vx-space-12);
   border-block-start: 1px solid var(--vx-border-subtle);
 }
 
 .topo {
   display: flex;
   align-items: stretch;
-  gap: var(--vx-space-3);
+  gap: var(--vx-space-12);
   min-inline-size: 0;
 }
 
@@ -26,13 +26,13 @@
 .miniatura {
   display: grid;
   grid-template-columns: 10px 22px minmax(0, 1fr) 12px;
-  gap: 2px;
+  gap: var(--vx-space-02);
   flex: none;
   inline-size: 132px;
   block-size: 76px;
-  padding: 3px;
+  padding: var(--vx-space-02);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   overflow: hidden;
 }
 
@@ -41,9 +41,9 @@
 .miniMembros {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 3px;
-  border-radius: var(--vx-radius-1);
+  gap: var(--vx-space-02);
+  padding: var(--vx-space-02);
+  border-radius: var(--vx-radius-04);
 }
 
 .miniRail {
@@ -53,14 +53,14 @@
 .miniMarca {
   inline-size: 6px;
   block-size: 6px;
-  border-radius: 2px;
+  border-radius: var(--vx-radius-02);
   flex: none;
 }
 
 .miniLinha,
 .miniLinhaAtiva {
   block-size: 3px;
-  border-radius: 2px;
+  border-radius: var(--vx-radius-02);
   flex: none;
 }
 
@@ -80,8 +80,8 @@
 .miniLinhaAtiva::after {
   content: "";
   position: absolute;
-  inset-inline-start: 2px;
-  inset-block: 2px;
+  inset-inline-start: var(--vx-space-02);
+  inset-block: var(--vx-space-02);
   inline-size: 60%;
   border-radius: 1px;
   background: currentColor;
@@ -90,23 +90,23 @@
 .miniConteudo {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--vx-space-04);
   justify-content: flex-end;
-  padding: 4px;
+  padding: var(--vx-space-04);
   min-inline-size: 0;
 }
 
 .miniNome {
   inline-size: 34%;
   block-size: 4px;
-  border-radius: 2px;
+  border-radius: var(--vx-radius-02);
 }
 
 .miniTexto,
 .miniTextoCurto,
 .miniMeta {
   block-size: 3px;
-  border-radius: 2px;
+  border-radius: var(--vx-radius-02);
 }
 
 .miniTexto {
@@ -129,7 +129,7 @@
 .miniPonto {
   inline-size: 5px;
   block-size: 5px;
-  border-radius: var(--vx-radius-4);
+  border-radius: var(--vx-radius-12);
   flex: none;
 }
 
@@ -139,7 +139,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
   min-inline-size: 0;
 }
 
@@ -163,16 +163,16 @@
 .paletas {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
 }
 
 .swatch {
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-1);
-  padding: var(--vx-space-1);
+  gap: var(--vx-space-04);
+  padding: var(--vx-space-04);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: var(--vx-surface-1);
   color: var(--vx-text-3);
   font-family: inherit;
@@ -205,8 +205,8 @@
 .barras {
   display: flex;
   gap: 1px;
-  block-size: var(--vx-space-5);
-  border-radius: var(--vx-radius-1);
+  block-size: var(--vx-space-24);
+  border-radius: var(--vx-radius-04);
   overflow: hidden;
 }
 
@@ -216,7 +216,7 @@
 
 .nome {
   text-align: start;
-  padding-inline-start: 2px;
+  padding-inline-start: var(--vx-space-02);
 }
 
 /* --- ajuste fino ---------------------------------------------- */
@@ -224,18 +224,18 @@
 .fino {
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
 }
 
 .disclosure {
   display: inline-flex;
   align-items: center;
-  gap: var(--vx-space-1);
+  gap: var(--vx-space-04);
   align-self: flex-start;
-  padding: var(--vx-space-1) var(--vx-space-2);
-  margin-inline-start: calc(var(--vx-space-2) * -1);
+  padding: var(--vx-space-04) var(--vx-space-08);
+  margin-inline-start: calc(var(--vx-space-08) * -1);
   border: 0;
-  border-radius: var(--vx-radius-2);
+  border-radius: var(--vx-radius-06);
   background: transparent;
   color: var(--vx-text-3);
   font-family: inherit;
@@ -264,13 +264,13 @@
 .finoCorpo {
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-2);
+  gap: var(--vx-space-08);
 }
 
 .linha {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-3);
+  gap: var(--vx-space-12);
   min-inline-size: 0;
 }
 
@@ -291,44 +291,6 @@
   text-align: end;
 }
 
-/*
-  O gatilho do seletor de cor do sistema.
-
-  O `<input type="color">` continua nativo porque o que ele abre é o color
-  picker do SO — reimplementar seria escrever um color picker inteiro, que
-  é a definição de "genérico que a biblioteca resolve". O que dá para
-  fazer é o gatilho não parecer de outro app, e é o que estas regras
-  fazem: sem cromo, sem padding do sistema, borda nossa.
-*/
-.cor {
-  flex: none;
-  inline-size: var(--vx-space-6);
-  block-size: var(--vx-space-5);
-  padding: 0;
-  border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-1);
-  background: none;
-  cursor: pointer;
-  appearance: none;
-}
-
-.cor::-webkit-color-swatch-wrapper {
-  padding: 2px;
-}
-
-.cor::-webkit-color-swatch {
-  border: 0;
-  border-radius: 2px;
-}
-
-.cor:hover {
-  border-color: var(--vx-border-strong);
-}
-
-.cor:focus-visible {
-  outline: 2px solid var(--vx-accent);
-  outline-offset: 2px;
-}
 
 /* Painel estreito: a miniatura sai da linha e vira largura cheia. */
 @container (inline-size < 460px) {

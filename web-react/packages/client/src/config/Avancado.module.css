@@ -1,0 +1,121 @@
+/* ============================================================
+   Avançado · dev
+   ------------------------------------------------------------
+   A geometria de página vem de `Pagina.module.css`. O que mora
+   aqui é o cartão do modo desenvolvedor, que tem uma forma
+   própria: ele MUDA DE BORDA quando está ativo.
+   ============================================================ */
+
+.cartao {
+  margin-block-end: var(--vx-space-26);
+  padding: var(--vx-space-16) var(--vx-space-18);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-1);
+}
+
+/*
+  ⚠ Borda de acento com o modo LIGADO, e é do design.
+
+  A razão é boa e vale registrar: este é um modo que muda os menus de contexto
+  do app inteiro, e quem o esquece ligado precisa achá-lo de relance ao voltar
+  aqui. É o único lugar do produto onde um cartão de configuração se destaca
+  por estado — nas outras telas quem carrega o estado é o controle.
+*/
+.cartao[data-ativo] {
+  border-color: var(--vx-accent);
+  background: var(--vx-state-selected);
+}
+
+.topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--vx-space-16);
+  margin-block-end: var(--vx-space-16);
+}
+
+.tituloComSelo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+}
+
+.sobrancelha {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  display: block;
+  margin-block-end: var(--vx-space-08);
+  color: var(--vx-text-3);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-06);
+  margin-block-end: var(--vx-space-14);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  block-size: 22px;
+  padding-inline: var(--vx-space-08);
+  border-radius: var(--vx-radius-05);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-xs);
+}
+
+/*
+  A ILUSTRAÇÃO do menu.
+
+  ⚠ Ela não é um menu — não há um `button` aqui dentro, e o bloco é
+  `aria-hidden`. É um diagrama de onde o item aparece, e alvos de verdade
+  receberiam foco sem fazer nada, que é o defeito que o lint de `onSelect`
+  existe para matar. As medidas são as do `menu.module.css` de verdade, porque
+  um diagrama que não parece com a coisa não explica nada.
+*/
+.exemplo {
+  display: grid;
+  gap: var(--vx-space-02);
+  inline-size: 264px;
+  margin-block-end: var(--vx-space-14);
+  padding: var(--vx-space-05) 0;
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-4);
+  box-shadow: var(--vx-elev-2);
+}
+
+.itemDeExemplo {
+  padding: var(--vx-space-07) var(--vx-space-09);
+  margin-inline: var(--vx-space-04);
+  border-radius: var(--vx-radius-05);
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-md);
+}
+
+.itemDestrutivo {
+  composes: itemDeExemplo;
+  color: var(--vx-danger-text);
+}
+
+/*
+  O item que o modo acrescenta: mono, terciário e o ÚLTIMO.
+
+  Com o modo desligado ele fica meio apagado dentro da ilustração — e não
+  some — porque o diagrama existe justamente para mostrar o que vai aparecer.
+  No menu de verdade ele não é renderizado; a distinção está no comentário do
+  `Avancado.tsx`.
+*/
+.itemDeId {
+  composes: itemDeExemplo;
+  color: var(--vx-text-4);
+  font-family: var(--vx-font-mono);
+  opacity: 0.5;
+}
+
+.itemDeId[data-ativo] {
+  color: var(--vx-text-3);
+  opacity: 1;
+}

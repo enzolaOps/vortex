@@ -16,6 +16,7 @@
  */
 import { SEMENTE_PADRAO, type Semente } from "../tema/derivar";
 import {
+  LARGURA,
   limitarLargura,
   PRESET_PADRAO,
   type PainelId,
@@ -116,6 +117,69 @@ export function trocarSlots(a: SlotId, b: SlotId): void {
 export function slotDe(painel: PainelId): SlotId | undefined {
   const slots = preset.layout.slots;
   return (Object.keys(slots) as SlotId[]).find((id) => slots[id].painel === painel);
+}
+
+/**
+ * O painel está visível agora?
+ *
+ * Colocado em algum slot E com o slot ligado. As duas condições são
+ * diferentes: um painel pode estar posicionado e escondido, e é isso que o
+ * botão do cabeçalho alterna.
+ */
+export function painelVisivel(painel: PainelId): boolean {
+  const id = slotDe(painel);
+  return id !== undefined && preset.layout.slots[id].visivel;
+}
+
+/**
+ * O slot da ponta final — onde painel sem casa vai morar.
+ *
+ * Constante e não busca: `d` é o único slot depois da âncora, e é onde toda
+ * interface desta categoria põe membros, fixados e tópicos.
+ */
+const PONTA = "d" as const satisfies SlotId;
+
+/**
+ * Liga e desliga um painel pelo botão do cabeçalho.
+ *
+ * ⚠ **O shell tem TRÊS slots e o produto tem mais painéis que isso, e este é o
+ * conflito nº 3 do plano de paridade aparecendo de novo.** A resolução aqui é a
+ * mesma em espírito da coluna de conversas: em vez de gastar um slot por
+ * painel, a ponta final abriga UM de cada vez e o cabeçalho escolhe qual — que
+ * é o que todo cliente desta categoria faz, e o que o design implica ao mostrar
+ * o segundo painel só em 3440.
+ *
+ * Três casos, e os três importam:
+ *
+ * 1. **Painel já visível** → esconde. O slot colapsa a zero sozinho, pela
+ *    trilha `auto` do grid.
+ * 2. **Painel posicionado e escondido** → mostra, onde quer que ele esteja.
+ *    Respeita quem moveu membros para a outra ponta no modo edição — uma regra
+ *    posicional aqui ligaria o painel errado.
+ * 3. **Painel sem slot nenhum** → assume a ponta final. É o caso de `fixados`,
+ *    que não está no preset de fábrica e não teria como aparecer.
+ */
+export function alternarPainel(painel: PainelId): void {
+  const id = slotDe(painel);
+
+  if (id !== undefined) {
+    definirSlot(id, { visivel: !preset.layout.slots[id].visivel });
+    return;
+  }
+
+  /*
+    Sem casa: entra na ponta, com a largura padrão DELE.
+
+    A largura vem de `LARGURA[painel].padrao` e não da que o slot tinha: o
+    ocupante anterior pode ter sido a lista de membros a 232px, e fixados numa
+    coluna de 232 quebra cada mensagem em quatro linhas — é a razão de o padrão
+    dele ser 300.
+  */
+  definirSlot(PONTA, {
+    painel,
+    largura: LARGURA[painel].padrao,
+    visivel: true,
+  });
 }
 
 /**

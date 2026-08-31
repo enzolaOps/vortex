@@ -1,0 +1,83 @@
+/* ============================================================
+   Segurança — verificação, filtro de mídia e contato
+   ------------------------------------------------------------
+   Coluna de 760 no design (mais larga que Acesso, porque os
+   cartões de verificação carregam frase longa). Cartões com
+   gap 8, seções separadas por 26.
+   ============================================================ */
+
+.pagina {
+  display: grid;
+  gap: var(--vx-space-26);
+  align-content: start;
+  max-inline-size: 760px;
+}
+
+/* A sobrancelha de seção desta página é a mesma de todo formulário do app —
+   11/600 caixa alta. Composta, não recopiada: é a terceira superfície a
+   precisar dela. */
+.sobrancelha {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  margin-block-end: var(--vx-space-10);
+  color: var(--vx-text-3);
+}
+
+.grupo {
+  display: grid;
+  gap: var(--vx-space-08);
+}
+
+/* ------------------------------------------------ contato entre membros */
+
+.cartao {
+  padding: var(--vx-space-16) var(--vx-space-18);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-10);
+  background: var(--vx-surface-1);
+}
+
+.cartaoTitulo {
+  margin-block-end: var(--vx-space-12);
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-16);
+  padding-block: var(--vx-space-12);
+}
+
+.linha:first-of-type {
+  padding-block-start: 0;
+}
+
+.linha:last-of-type {
+  padding-block-end: 0;
+}
+
+.linha + .linha {
+  border-block-start: 1px solid var(--vx-hairline-06);
+}
+
+.linhaTitulo {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.linhaDetalhe {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+  text-wrap: pretty;
+}
+
+.recado {
+  margin: 0;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+  text-wrap: pretty;
+}

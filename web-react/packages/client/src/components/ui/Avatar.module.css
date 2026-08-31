@@ -1,0 +1,107 @@
+/* ============================================================
+   Avatar
+   ------------------------------------------------------------
+   Preenchido com gradiente derivado do ID — ver
+   `lib/gradiente.ts`. É o fallback até haver upload de imagem,
+   e um fallback que IDENTIFICA vale mais que um que só ocupa
+   espaço: duas iniciais em cinza são iguais para todo mundo.
+
+   `position: relative` porque o ponto de presença é sobreposto
+   e se posiciona contra esta caixa.
+   ============================================================ */
+
+.avatar {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  /* Círculo. O design usa círculo para pessoa e retângulo arredondado só
+     para servidor — a distinção é o que separa "quem" de "onde". */
+  border-radius: var(--vx-radius-pill);
+  /*
+    700, e não 600. A inicial é o ÚNICO conteúdo de um disco colorido, e
+    concorre com o gradiente por baixo dela — o design usa peso 700 em todas as
+    ocorrências com texto, do ladrilho de 22px da marca ao de 44px do rail.
+    Em 600 a letra some no meio-tom do gradiente.
+  */
+  font-weight: 700;
+  /* Ligadura em iniciais como "fi" viraria glifo único. */
+  font-variant-ligatures: none;
+  user-select: none;
+}
+
+/*
+  ⚠ **O recorte saiu do avatar e foi para a SIGLA, e o motivo é o ponto de
+  presença.**
+
+  `.avatar` tinha `overflow: hidden` para a sigla nunca vazar da caixa. Só que
+  o ponto de presença é FILHO do avatar e mora a 4px fora dele, de propósito —
+  então o mesmo recorte que protegia a sigla comia o indicador. Medido: o
+  ponto tinha 12×12 e era cortado pelo `.avatar`, no chat e no painel de
+  usuário.
+
+  O fundo em gradiente não depende disso: `background` respeita
+  `border-radius` sem `overflow`. Quem precisava de recorte era só o texto, e
+  agora é o texto que o tem.
+*/
+.sigla {
+  overflow: hidden;
+  /* Herda o círculo do pai para o recorte acompanhar a forma. */
+  border-radius: inherit;
+}
+
+/*
+  A imagem SOBRE o gradiente, e não no lugar dele.
+
+  `absolute` cobrindo a caixa inteira: enquanto ela não chega — ou se ela
+  falhar —, o que aparece é a identidade de sempre, em vez de um buraco. Numa
+  lista virtualizada isso é visível a cada rolagem, porque cada linha que monta
+  começa sem a imagem.
+
+  `object-fit: cover` porque o avatar é quadrado e a foto raramente é: sem ele
+  a imagem esticaria, que é o defeito mais visível que um avatar pode ter.
+*/
+.imagem {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.xxs {
+  inline-size: var(--vx-avatar-2xs);
+  block-size: var(--vx-avatar-2xs);
+  /* 9px: a sigla precisa caber em 16px de caixa, e o menor degrau da escala
+     (11) transborda. Fora da escala pelo mesmo motivo do rótulo de pasta no
+     rail — abaixo do último degrau, num lugar só. */
+  font-size: 9px;
+}
+
+.xs {
+  inline-size: var(--vx-avatar-xs);
+  block-size: var(--vx-avatar-xs);
+  font-size: var(--vx-size-xs);
+}
+
+.sm {
+  inline-size: var(--vx-avatar-sm);
+  block-size: var(--vx-avatar-sm);
+  font-size: var(--vx-size-sm);
+}
+
+.md {
+  inline-size: var(--vx-avatar-md);
+  block-size: var(--vx-avatar-md);
+  /* 14: é o único tamanho de avatar em que o design mostra texto, e é o que
+     ele escreve. Os outros degraus não têm exemplar — o design desenha os
+     avatares maiores como gradiente puro, sem inicial. */
+  font-size: var(--vx-size-base);
+}
+
+.lg {
+  inline-size: var(--vx-avatar-lg);
+  block-size: var(--vx-avatar-lg);
+  font-size: var(--vx-size-xl);
+}

@@ -8,23 +8,23 @@
 
 .painel {
   position: fixed;
-  inset-block-end: var(--vx-space-4);
+  inset-block-end: var(--vx-space-16);
   inset-inline-start: 50%;
   translate: -50% 0;
-  z-index: 40;
+  z-index: var(--vx-z-sistema);
 
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-4);
-  inline-size: min(580px, calc(100vw - var(--vx-space-6)));
+  gap: var(--vx-space-16);
+  inline-size: min(580px, calc(100vw - var(--vx-space-32)));
   max-block-size: min(72vh, 620px);
   overflow-y: auto;
   scrollbar-gutter: stable;
   overscroll-behavior: contain;
 
-  padding: var(--vx-space-4);
+  padding: var(--vx-space-16);
   border: 1px solid var(--vx-border-strong);
-  border-radius: var(--vx-radius-3);
+  border-radius: var(--vx-radius-08);
 
   /*
     Profundidade por CAMADA, não por sombra.
@@ -53,7 +53,7 @@
 .veu {
   position: fixed;
   inset: 0;
-  z-index: 39;
+  z-index: var(--vx-z-veu);
   background: var(--vx-surface-0);
   opacity: calc(1 - var(--vx-lamina-2));
   pointer-events: none;
@@ -63,7 +63,7 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--vx-space-3);
+  gap: var(--vx-space-12);
 }
 
 .titulo {
@@ -83,18 +83,18 @@
 .slots {
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-1);
+  gap: var(--vx-space-04);
 }
 
 .linha {
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--vx-space-3);
+  gap: var(--vx-space-12);
   min-inline-size: 0;
-  padding-inline: var(--vx-space-3) var(--vx-space-1);
-  padding-block: var(--vx-space-1);
-  border-radius: var(--vx-radius-2);
+  padding-inline: var(--vx-space-12) var(--vx-space-04);
+  padding-block: var(--vx-space-04);
+  border-radius: var(--vx-radius-06);
   transition: background var(--vx-duration-fast) var(--vx-ease-out);
 }
 
@@ -110,12 +110,10 @@
 }
 
 .rotulo {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
   flex: none;
   inline-size: 46px;
   color: var(--vx-text-3);
-  font-size: var(--vx-size-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 /* O gatilho do menu de painel. Parece campo, é botão. */
@@ -125,10 +123,10 @@
   justify-content: space-between;
   min-inline-size: 0;
   flex: 1;
-  padding-inline: var(--vx-space-2);
-  padding-block: var(--vx-space-1);
+  padding-inline: var(--vx-space-08);
+  padding-block: var(--vx-space-04);
   border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-1);
+  border-radius: var(--vx-radius-04);
   background: var(--vx-surface-3);
   color: var(--vx-text-1);
   font-family: inherit;
@@ -179,8 +177,8 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--vx-space-2);
-  padding-block-start: var(--vx-space-3);
+  gap: var(--vx-space-08);
+  padding-block-start: var(--vx-space-12);
   border-block-start: 1px solid var(--vx-border-subtle);
 }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { verdict, type FrameReport } from "./frames";
+import { estimarIntervalo, verdict, type FrameReport } from "./frames";
 
 /**
  * A equivalência entre `p95 ≤ 16,7ms` e `perdidos ≤ 5%`.
@@ -17,7 +17,7 @@ import { verdict, type FrameReport } from "./frames";
 function relatorio(deltas: number[]): FrameReport {
   const sorted = [...deltas].sort((a, b) => a - b);
   const at = (q: number) => sorted[Math.floor(sorted.length * q)] ?? 0;
-  const intervalo = Math.max(at(0.01), 1);
+  const intervalo = estimarIntervalo(sorted);
   return {
     seconds: 30,
     frames: deltas.length,
@@ -26,6 +26,7 @@ function relatorio(deltas: number[]): FrameReport {
     p95: at(0.95),
     p99: at(0.99),
     worst: sorted.at(-1) ?? 0,
+    subIntervalo: sorted.filter((d) => d < intervalo * 0.9).length,
     dropped: deltas.filter((d) => d > 16.7).length,
     longTasks: 0,
     longTaskMs: 0,
@@ -104,5 +105,80 @@ describe("os dois patamares", () => {
     const r = { ...relatorio(a160Hz(1000, 0, 0)), suspended: 3 };
     expect(verdict(r, { throttled: false }).pass).toBe(false);
     expect(verdict(r, { throttled: false }).checks[0]?.ok).toBe(false);
+  });
+});
+
+/**
+ * O estimador de intervalo de vsync.
+ *
+ * Escrito DEPOIS de o antigo falhar em produção, e com o caso real dele como
+ * primeiro teste: numa corrida do gate ele devolveu 4ms num display de 164Hz,
+ * o que é mais curto que um vsync e portanto impossível. O estrago apareceu na
+ * distribuição — 2156 frames migraram do balde "1×" para o "2×" sem que nada
+ * tivesse mudado no código.
+ */
+describe("estimador de intervalo", () => {
+  /** Um display de 164Hz: 6,1ms de vsync, com jitter de décimos. */
+  const vsync = (n: number, mult = 1) =>
+    Array.from({ length: n }, (_, i) => 6.1 * mult + ((i % 5) - 2) * 0.05);
+
+  it("acerta o vsync num app saudável", () => {
+    const d = [...vsync(950), ...vsync(50, 2)];
+    expect(estimarIntervalo([...d].sort((a, b) => a - b))).toBeCloseTo(6.1, 1);
+  });
+
+  it("acerta mesmo quando a MEDIANA já é dois intervalos", () => {
+    /*
+      O caso que derrubaria uma estimativa por mediana, e a razão pela qual o
+      método antigo olhava para o começo da distribuição. App engasgado: a
+      maioria dos frames perde um vsync, mas o intervalo do display não mudou.
+    */
+    const d = [...vsync(300), ...vsync(700, 2)];
+    expect(estimarIntervalo([...d].sort((a, b) => a - b))).toBeCloseTo(6.1, 1);
+  });
+
+  it("descarta a RAJADA sub-vsync — o caso que quebrou o antigo", () => {
+    /*
+      40 deltas de ~4ms em ~3470 amostras: 1,2%, o suficiente para arrastar o
+      1º percentil e nem perto de ser onde os frames pousam.
+
+      Quarenta e não trinta e quatro, e o teste pegou esse erro: o 1º
+      percentil de 3432 amostras é o ÍNDICE 34, que é o 35º menor valor. Com
+      34 deltas o método antigo já escapava.
+    */
+    const d = [
+      ...Array.from({ length: 40 }, () => 4),
+      ...vsync(373),
+      ...vsync(2156, 2),
+      ...vsync(657, 3),
+      ...vsync(246, 4),
+    ];
+    const ordenados = [...d].sort((a, b) => a - b);
+
+    // O método antigo, para deixar a diferença explícita no teste.
+    const antigo = ordenados[Math.floor(ordenados.length * 0.01)]!;
+    expect(antigo).toBe(4);
+
+    expect(estimarIntervalo(ordenados)).toBeCloseTo(6.1, 1);
+  });
+
+  it("uma rajada GRANDE não é descartada — ela deixa de ser rajada", () => {
+    /*
+      O outro lado, e é o que impede o piso de virar um filtro que esconde
+      display rápido de verdade. Se 20% dos frames medem 4ms, então 4ms É o
+      vsync desta máquina, e o estimador tem que segui-la.
+    */
+    const d = [
+      ...Array.from({ length: 200 }, (_, i) => 4 + ((i % 5) - 2) * 0.05),
+      ...vsync(800),
+    ];
+    expect(estimarIntervalo([...d].sort((a, b) => a - b))).toBeCloseTo(4, 1);
+  });
+
+  it("distribuição sem aglomerado nenhum não inventa número", () => {
+    // Cem deltas todos diferentes: nenhum balde alcança o piso de 2%, e o
+    // estimador cai no menor valor em vez de escolher um balde por sorte.
+    const d = Array.from({ length: 100 }, (_, i) => 3 + i * 0.7);
+    expect(estimarIntervalo([...d].sort((a, b) => a - b))).toBeCloseTo(3, 1);
   });
 });

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { SEMENTE_PADRAO } from "../tema/derivar";
 import { escreverPreset, lerPreset } from "./preset";
 import { PRESET_PADRAO, VERSAO_ATUAL } from "./schema";
 
@@ -165,8 +166,12 @@ describe("a semente de tema", () => {
       }),
     );
 
-    expect(preset.tema?.acento).toBe("#bcaef2");
-    expect(preset.tema?.matiz).toBe(295);
+    // Lido de `SEMENTE_PADRAO`, e não escrito à mão: a versão anterior deste
+    // teste fixava `#bcaef2` e `295`, então trocar a identidade do produto o
+    // reprovava sem que nada estivesse errado. Teste que copia o valor que
+    // deveria observar não guarda o comportamento, guarda a cópia.
+    expect(preset.tema?.acento).toBe(SEMENTE_PADRAO.escuro.acento);
+    expect(preset.tema?.matiz).toBe(SEMENTE_PADRAO.escuro.matiz);
     expect(preset.tema?.croma).toBe(0);
   });
 
@@ -180,7 +185,7 @@ describe("a semente de tema", () => {
   it("a semente também não tem onde guardar dado de sessão", () => {
     const texto = escreverPreset({
       ...PRESET_PADRAO,
-      tema: { modo: "escuro", matiz: 295, croma: 1, acento: "#bcaef2" },
+      tema: SEMENTE_PADRAO.escuro,
     });
     const saida = JSON.parse(texto) as { tema: Record<string, unknown> };
 

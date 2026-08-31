@@ -1,0 +1,109 @@
+/* ============================================================
+   Tela de entrada
+   ------------------------------------------------------------
+   A primeira coisa que alguém vê, e a única superfície onde a
+   pessoa ainda não investiu nada. Curta de propósito.
+   ============================================================ */
+
+.tela {
+  display: grid;
+  place-items: center;
+  min-block-size: 100dvh;
+  padding: var(--vx-space-16);
+  background: var(--vx-surface-0);
+}
+
+.cartao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-16);
+  /* A medida de leitura não vale aqui: formulário curto é lido em coluna
+     estreita, e 32rem seria um campo de e-mail atravessando a tela. */
+  inline-size: min(360px, 100%);
+  padding: var(--vx-space-32);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-1);
+}
+
+.titulo {
+  margin: 0;
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-2xl);
+  font-weight: 500;
+  /* A entreletra da marca, e é o único lugar do app onde ela aparece em
+     tamanho grande — a tela de entrada é onde a identidade se apresenta. */
+  letter-spacing: -0.02em;
+}
+
+/*
+  A entrada de desenvolvimento.
+
+  Discreta e não escondida: quem trabalha aqui precisa dela todo dia, e quem
+  olha a tela precisa entender na hora que ela não é parte do produto. Some do
+  bundle de produção — ver o comentário no componente.
+*/
+.semServidor {
+  padding-block: var(--vx-space-04);
+  border: 0;
+  background: none;
+  color: var(--vx-text-3);
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.semServidor:hover {
+  color: var(--vx-text-1);
+}
+
+.semServidor:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/*
+  Recado de uma tela sem formulário.
+
+  A conta desativada não tem campo para preencher — o que sobra é texto, e ele
+  precisa da mesma medida de leitura do resto do app para não virar uma linha
+  larga demais dentro de um cartão estreito.
+*/
+.recado {
+  margin: 0;
+  font-size: var(--vx-size-md);
+  line-height: var(--vx-leading-message);
+  color: var(--vx-text-2);
+}
+
+/*
+  Uma opção de caixa, na mesma coluna do formulário.
+
+  `accent-color` é o que traz a caixa nativa para o sistema de cor do app — é
+  por isso que `checkbox` é o único controle nativo que o lint permite fora de
+  `components/ui/`.
+*/
+.opcao {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-2);
+  accent-color: var(--vx-accent);
+}
+
+/*
+  As duas saídas, lado a lado.
+
+  Em linha e não empilhadas: são alternativas do mesmo peso, e empilhá-las
+  faria a de cima parecer mais importante que a de baixo sem que isso seja
+  verdade. `wrap` porque em cartão estreito duas palavras longas não cabem.
+*/
+.saidas {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--vx-space-08);
+}

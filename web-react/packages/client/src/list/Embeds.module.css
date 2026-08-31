@@ -1,0 +1,120 @@
+/* ============================================================
+   Cartão de link (embed)
+   ------------------------------------------------------------
+   Gerado pelo SERVIDOR a partir de um link na mensagem. O
+   cliente não busca nada — só desenha o que veio no snapshot.
+   ============================================================ */
+
+.cartoes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-04);
+  margin-block-start: var(--vx-space-08);
+}
+
+/*
+  Superfície MAIS FUNDA que a linha, e a barra à esquerda em acento.
+
+  `--vx-surface-1` sobre a timeline em `surface-2` é o mesmo gesto do campo de
+  busca: o que é conteúdo de outro lugar afunda. Um cartão mais claro que a
+  mensagem competiria com ela, e o cartão é sempre secundário — quem lê a
+  conversa lê o que a pessoa escreveu, e olha o cartão depois.
+
+  ⚠ Teto de largura, e ele é do design (460px). Não é a medida de leitura: o
+  cartão tem título curto e resumo de duas linhas, e esticá-lo até o teto da
+  coluna faria um bloco de 1040px com três linhas de texto dentro.
+*/
+.cartao {
+  display: flex;
+  gap: var(--vx-space-12);
+  max-inline-size: 460px;
+  padding-block: var(--vx-space-12);
+  padding-inline: var(--vx-space-12);
+  border-radius: var(--vx-radius-08);
+  border-inline-start: 3px solid var(--vx-accent);
+  background: var(--vx-surface-1);
+  color: inherit;
+  text-decoration: none;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+/* `a.cartao` só: o cartão sem link não é alvo, e um hover nele prometeria
+   um clique que não acontece. */
+a.cartao:hover {
+  background: var(--vx-surface-2);
+}
+
+a.cartao:focus-visible {
+  outline-offset: 2px;
+}
+
+.texto {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+/* De onde veio. Primeiro no cartão porque é o que decide se vale a pena ler
+   o resto — um título bom num domínio desconhecido é exatamente a forma de
+   um link enganoso. */
+.origem {
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  margin-block-end: var(--vx-space-02);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+  O título em acento claro, como o design.
+
+  É a única coisa do cartão que parece link, e é o que ele é. `--vx-accent-text`
+  e não `--vx-accent`: o cheio é reservado para superfície ativa, e a
+  disciplina de acento deste projeto tem teto baixo na tela.
+*/
+.titulo {
+  color: var(--vx-accent-text);
+  font-size: var(--vx-size-base);
+  font-weight: 600;
+  margin-block-end: var(--vx-space-04);
+}
+
+/*
+  O resumo, cortado em duas linhas.
+
+  Sem corte, uma descrição de Open Graph longa faria o cartão crescer
+  arbitrariamente — e altura arbitrária na lista virtualizada é o que a
+  estimativa por tipo não consegue prever. Duas linhas é o que o design
+  desenha e o que basta para decidir se vale abrir.
+*/
+.descricao {
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-md);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+/*
+  A miniatura, com caixa FIXA.
+
+  72×56 é o número do design, e a caixa fixa é o que torna a reserva exata:
+  ao contrário do anexo, aqui não há metadata de dimensão e não é preciso —
+  a imagem é recortada para caber. `object-fit: cover` é o que faz o recorte
+  ser do centro em vez de deformar.
+
+  Espaço reservado ANTES do primeiro byte: sem `inline-size` e `block-size`
+  explícitos a caixa mediria 0 até a imagem chegar, a linha cresceria depois,
+  e altura mudando debaixo do virtualizador desloca a âncora.
+*/
+.miniatura {
+  flex: none;
+  inline-size: 72px;
+  block-size: 56px;
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+  object-fit: cover;
+}

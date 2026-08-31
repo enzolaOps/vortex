@@ -2,6 +2,7 @@ import * as Primitivo from "@radix-ui/react-hover-card";
 import type { ComponentProps, ReactNode } from "react";
 
 import { cn } from "../../lib/cn";
+import css from "./HoverCard.module.css";
 
 /**
  * Hover card — preview de perfil ao passar sobre avatar ou nome.
@@ -31,7 +32,8 @@ export function HoverCardContent({
         collisionPadding={8}
         {...props}
         className={cn(
-          "z-50 w-72 rounded-3 border border-border-subtle bg-surface-2 p-3",
+          css.cartao,
+          "z-flutuante rounded-12 border border-hairline-10 bg-surface-4 p-12 shadow-e2",
           "text-md text-text-1",
           "data-[state=closed]:opacity-0 data-[state=open]:opacity-100 anim-fast",
           className,

@@ -18,13 +18,38 @@ import css from "./Lamina.module.css";
  * ativo — há um por painel, não um por linha. É o oposto do ponto de presença,
  * que aparece 50 vezes na tela e por isso não pode ter máscara.
  */
+
+/**
+ * Os estados da lâmina, e por que ela deixou de ser um booleano.
+ *
+ * `atencao` é o canal não lido, e é ele que quebra o booleano. Com `ativa:
+ * boolean`, "não lido" só podia ser `false` — e a regra de hover, que faz um
+ * item em repouso CRESCER até a metade, encolheria a lâmina de um canal não
+ * lido no instante em que o ponteiro passasse por cima. Um estado a mais
+ * escondido dentro de um booleano é um estado que a interface contradiz.
+ *
+ * A escala é uma só, e a leitura acompanha:
+ *
+ * | estado    | altura | cor     | significa            |
+ * |-----------|--------|---------|----------------------|
+ * | `repouso` | toco   | neutra  | o indicador mora aqui|
+ * | `atencao` | cheia  | texto   | tem algo aqui        |
+ * | `ativa`   | cheia  | acento  | você está aqui       |
+ *
+ * O acento fica reservado para posição — atual ou pretendida no hover. Não
+ * lido é informação, não destino, e por isso é a cor de TEXTO em altura cheia:
+ * encontrável varrendo a coluna, sem disputar com "onde eu estou".
+ */
+export type EstadoDaLamina = "repouso" | "atencao" | "ativa";
+
 export function Lamina({
-  ativa,
+  estado,
   className,
 }: {
-  /** Fora do estado ativo ela existe, com altura zero — a transição é o gesto. */
-  ativa: boolean;
+  estado: EstadoDaLamina;
   className?: string;
 }) {
-  return <span aria-hidden className={cn(css.lamina, className)} data-ativa={ativa} />;
+  return (
+    <span aria-hidden className={cn(css.lamina, className)} data-estado={estado} />
+  );
 }

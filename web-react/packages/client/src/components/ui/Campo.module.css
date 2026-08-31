@@ -1,0 +1,138 @@
+/*
+  O campo e o que o acompanha.
+
+  `grid` e não `flex` com margens: rótulo, entrada e a linha de dica/erro são
+  três irmãos com ritmo próprio, e `gap` não colapsa nem duplica — que é a
+  regra de layout deste projeto.
+*/
+.campo {
+  display: grid;
+  /* 6, o do design: `margin-bottom:6px` sob o rótulo e `margin-top:6px`
+     sobre a mensagem de erro — o mesmo respiro dos dois lados da caixa. */
+  gap: var(--vx-space-06);
+  min-inline-size: 0;
+}
+
+/*
+  O rótulo.
+
+  Peso e não caixa alta: caixa alta pequena é o tratamento de metadado neste
+  app (a hora na linha, o nome da seção na member list), e um rótulo de
+  formulário é conteúdo, não metadado.
+*/
+/*
+  O rótulo é SOBRANCELHA, não texto.
+
+  ⚠ Ele era 12/500 em `text-2` — parecia uma frase acima do campo. O design o
+  escreve em 11/600 caixa alta com `letter-spacing:0.06em` em `text-3`: é
+  etiqueta, e a caixa alta é o que a separa do valor DENTRO do campo sem gastar
+  peso nem tamanho.
+
+  ⚠ 0,06em e não os 0,08em do cabeçalho de categoria na coluna de canais. A
+  diferença é do design e é coerente: lá a palavra é o único conteúdo de uma
+  linha e o espaçamento faz o trabalho de separação; aqui ela encima uma caixa
+  que já a delimita.
+*/
+.rotulo {
+  composes: sobrancelha from "../../styles/sobrancelha.module.css";
+  color: var(--vx-text-3);
+}
+
+.entrada {
+  inline-size: 100%;
+  min-inline-size: 0;
+  /*
+    ⚠ **Altura EXPLÍCITA de 36, e não altura vinda do respiro.** Com
+    `padding-block` a caixa mede o que a fonte pedir, e o campo mudava de
+    altura ao lado de um botão de 34 — dois controles vizinhos que deveriam
+    formar uma linha.
+  */
+  block-size: 36px;
+  padding-inline: var(--vx-space-12);
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-06);
+  /*
+    ⚠ **`surface-3` e não `surface-0`, e a razão errada estava até escrita na
+    lista do `pnpm superficies`.** Ela justificava o afundamento apontando para
+    o campo de BUSCA de cargo do design — e o design separa os dois papéis: o
+    que recebe entrada para BUSCAR afunda (`#08090B`, `#14181E`), o que recebe
+    entrada para GUARDAR fica no plano do painel (`#1B2028`). Este é o segundo,
+    e era o exemplar errado que sustentava a exceção.
+  */
+  background: var(--vx-surface-3);
+  color: var(--vx-text-1);
+  font-family: inherit;
+  /* 14 — o `type.input` do design, um degrau acima do rótulo do botão. O
+     que se DIGITA é maior que o que se lê num controle. */
+  font-size: var(--vx-size-base);
+}
+
+.entrada::placeholder {
+  color: var(--vx-text-3);
+}
+
+.entrada:hover:not(:disabled) {
+  border-color: var(--vx-border-strong);
+}
+
+/*
+  O anel POR DENTRO.
+
+  `outline-offset` negativo desenha para dentro da própria caixa, então ele
+  nunca encosta na borda do cartão ou do painel que contém o campo. O problema
+  que fez alguém escrever `outline: none` na paleta era o transbordo, não o
+  anel — e a correção certa é esta, não tirar o anel.
+*/
+/* O mesmo anel do `Botao`, pela mesma razão: é o do design, e campo e botão
+   dividem linha em todo formulário — dois tratamentos de foco na mesma linha
+   leem como dois sistemas. Campo de formulário não vive em container que
+   recorta, então o `box-shadow` não é cortado aqui. */
+.entrada:focus-visible {
+  outline: none;
+  border-color: var(--vx-accent);
+  box-shadow: 0 0 0 3px var(--vx-accent-ring);
+}
+
+/*
+  Travado.
+
+  Sem `opacity`: o texto que a pessoa digitou continua sendo o dado mais
+  importante da tela, e esmaecê-lo enquanto ela espera é apagar justamente o
+  que ela vai querer conferir se der errado.
+*/
+.entrada:disabled {
+  cursor: not-allowed;
+  color: var(--vx-text-2);
+}
+
+/*
+  Inválido.
+
+  Borda E `aria-invalid` no componente: cor sozinha não comunica nada para quem
+  não a distingue. O seletor é o atributo e não uma classe porque o estado já
+  está no DOM — estilizar por `data`/`aria` é a regra de integração dos
+  primitivos, e vale igual aqui.
+*/
+.entrada[aria-invalid] {
+  border-color: var(--vx-danger);
+}
+
+.entrada[aria-invalid]:focus-visible {
+  border-color: var(--vx-danger);
+  box-shadow: 0 0 0 3px var(--vx-danger-soft);
+}
+
+.dica {
+  margin: 0;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+/* `danger-text` e não `danger`: o design usa o par claro para a PALAVRA e o
+   escuro para preenchimento e borda — a mesma divisão que `accent`/`accent-text`
+   já faz. O vermelho de borda mede 4,28:1 como texto. */
+.erro {
+  margin: 0;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-danger-text);
+}

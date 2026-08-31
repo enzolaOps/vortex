@@ -1,0 +1,67 @@
+/* ============================================================
+   Barra de resposta
+   ------------------------------------------------------------
+   Uma linha acima do campo. Discreta de propósito: ela é
+   contexto do que está sendo escrito, não um segundo campo.
+   ============================================================ */
+
+.barra {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  min-inline-size: 0;
+  padding-inline: var(--vx-space-12);
+  padding-block: var(--vx-space-04);
+  /* Só os cantos de cima: ela encosta no campo, e cantos embaixo abririam
+     uma fresta entre os dois que leria como dois elementos soltos. */
+  border-radius: var(--vx-radius-06) var(--vx-radius-06) 0 0;
+  background: var(--vx-surface-2);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+}
+
+.seta {
+  flex: none;
+  rotate: 180deg;
+  scale: -1 1;
+}
+
+.texto {
+  min-inline-size: 0;
+  flex: 1;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* O nome herda o tamanho da barra — `NomeDoAutor` traz `text-md` do
+   contexto da linha de mensagem, onde ele é cabeçalho. */
+.texto :global(span) {
+  font-size: inherit;
+}
+
+.ausente {
+  font-style: italic;
+}
+
+.cancelar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--vx-radius-04);
+  background: transparent;
+  color: var(--vx-text-3);
+  cursor: pointer;
+  transition: color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.cancelar:hover {
+  color: var(--vx-text-1);
+}
+
+.cancelar:active {
+  color: var(--vx-text-2);
+}

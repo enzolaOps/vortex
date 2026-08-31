@@ -36,3 +36,23 @@ export function rotuloDeNaoLidas(naoLidas: number, mencoes: number): string {
   if (mencoes === 0) return base;
   return `${plural(mencoes, "menção", "menções")}, ${base}`;
 }
+
+/**
+ * O rótulo de uma reação, para leitor de tela.
+ *
+ * `"👍 3"` não é lido como nada útil: o leitor anuncia o nome do emoji e um
+ * número solto. A frase diz quantas pessoas, e diz se EU estou entre elas —
+ * que é a informação que o chip aceso carrega só por cor e borda.
+ */
+export function rotuloDeReacao(r: {
+  emoji: string;
+  total: number;
+  minha: boolean;
+}): string {
+  const pessoas = REGRAS.select(r.total) === "one" ? "pessoa" : "pessoas";
+  const quem = r.minha ? ", incluindo você" : "";
+  return `${r.emoji}, ${r.total} ${pessoas}${quem}. ${
+    r.minha ? "Remover minha reação" : "Reagir também"
+  }`;
+}
+

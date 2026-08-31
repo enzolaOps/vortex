@@ -1,0 +1,311 @@
+/* ============================================================
+   Painel de fixadas
+   ------------------------------------------------------------
+   Índice, não leitura. Cada item corta em duas linhas e leva à
+   mensagem — o painel existe para ACHAR, e um painel que mostra
+   a mensagem inteira vira uma segunda lista competindo com a
+   primeira.
+   ============================================================ */
+
+.painel {
+  display: grid;
+  /* Cabeçalho · lista · rodapé. A terceira linha é `auto` e colapsa sozinha
+     quando não há rodapé — nenhum `if` de layout precisa saber disso. */
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  block-size: 100%;
+  min-block-size: 0;
+  background: var(--vx-surface-1);
+  border-inline-start: 1px solid var(--vx-border-subtle);
+
+  /* Reage ao PRÓPRIO tamanho: pode virar um slot fino sem a janela mexer. */
+  container-type: inline-size;
+}
+
+/*
+  Cabeçalho em DUAS informações, como o design: o nome e o contexto.
+
+  50px e não 32: é a mesma altura do cabeçalho de canal e do cabeçalho da
+  coluna, e os três são vizinhos no grid do shell — uma diferença ali produz
+  um degrau na linha que atravessa a tela inteira.
+*/
+.titulo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-08);
+  block-size: 50px;
+  padding-inline: var(--vx-space-12);
+  /* `hairline-06` e não o sólido: os três cabeçalhos de 50px são vizinhos
+     no grid, e a régua de baixo deles é UMA linha que atravessa a tela.
+     Com tokens diferentes ela tinha uma emenda visível onde as colunas
+     se encontram. É o degrau que o design reserva a divisória. */
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+.tituloTexto {
+  display: grid;
+  gap: var(--vx-space-02);
+  min-inline-size: 0;
+}
+/*
+  O `✕`, e ele só existe quando o painel FLUTUA.
+
+  Ancorado num slot, fechar é esconder a coluna — e quem a escondeu pelo `✕`
+  não teria como saber que o botão do cabeçalho a traz de volta. Flutuando, o
+  `✕` é a saída óbvia e não mexe no layout de ninguém.
+*/
+.fechar {
+  display: grid;
+  place-items: center;
+  inline-size: 24px;
+  block-size: 24px;
+  flex: none;
+  border-radius: var(--vx-radius-06);
+  color: var(--vx-text-3);
+  cursor: pointer;
+}
+
+.fechar svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+.fechar:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.fechar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+
+.tituloNome {
+  font-size: var(--vx-size-base);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.tituloContexto {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  /* 10 entre cartões, do design — é o respiro que faz a pilha ler como
+     cartões e não como parágrafos. */
+  gap: var(--vx-space-10);
+  margin: 0;
+  /* 10, do design — o respiro do rolável em volta da pilha. */
+  padding: var(--vx-space-10);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+/*
+  Cada fixada é um CARTÃO, como o design — e não uma linha de lista.
+
+  A diferença tem razão: uma fixada é uma mensagem inteira com autor, data e
+  duas ações, e num painel de 300px isso não cabe numa linha. O cartão dá a ela
+  a caixa que o conteúdo pede, e o espaço entre cartões faz o trabalho que uma
+  régua faria com mais tinta.
+*/
+.item {
+  position: relative;
+  display: grid;
+  min-inline-size: 0;
+  /*
+    ⚠ **12, e era 4 — e este era o defeito de verdade.**
+
+    O design escreve `padding:12px` no cartão fixado. Com 4, as três prévias
+    de duas linhas ficavam quase encostadas no próprio contorno, e o painel
+    lia como um bloco de texto contínuo. Eu tinha tratado isso pintando uma
+    superfície em repouso, que é remédio para o sintoma: o que faltava era
+    respiro DENTRO do cartão, não contraste em volta dele.
+  */
+  padding: var(--vx-space-12);
+  border: 1px solid transparent;
+  border-radius: var(--vx-radius-10);
+  /* Altura mínima de um item real: o placeholder não pode encolher, ou a
+     lista pula durante a hidratação. */
+  min-block-size: var(--vx-space-32);
+
+  /*
+    ⚠ **`flex: none`, e sem ele o painel inteiro renderizava errado.**
+
+    `.lista` é flex column com altura limitada e `overflow-y: auto`. Filho de
+    flex column tem `flex-shrink: 1` por padrão: quando a soma dos itens passa
+    da altura disponível, o navegador ENCOLHE cada um em vez de rolar. O
+    `min-block-size` acima então virou o piso, e todo item colapsou nele.
+
+    Medido: item com `height` 32px e `scrollHeight` 72 — o conteúdo vazando por
+    baixo e escrevendo por cima do item seguinte. A prévia de duas linhas
+    sozinha pede 36px.
+
+    O defeito estava LATENTE desde que o painel foi construído: `fixados` não
+    está no preset de fábrica, então ele só chegava à tela para quem o
+    posicionasse à mão no modo edição. Apareceu no primeiro clique do botão do
+    cabeçalho, que é o primeiro caminho normal até ele.
+  */
+  flex: none;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+/*
+  ⚠ **Sem superfície em repouso — o design não pinta o cartão, e a razão pela
+  qual eu pintava caiu.**
+
+  Eu tinha posto `surface-2` em repouso porque quem usa relatou "sem
+  separação": três prévias de duas linhas leem como um bloco contínuo. A
+  causa, porém, era o respiro de 4px DENTRO do cartão, não a falta de
+  contraste em volta — com os 12 do design, os cartões se separam sozinhos e
+  a superfície permanente vira ruído numa coluna que já tem fundo próprio.
+
+  Se a queixa voltar, esta é a linha para reverter — mas reverter sem os 12
+  seria voltar a tratar o sintoma.
+*/
+
+.item:hover,
+.item:focus-within {
+  background: var(--vx-surface-3);
+  border-color: var(--vx-border-strong);
+}
+
+.abrir {
+  display: flex;
+  flex-direction: column;
+  /* 7 entre autor, prévia e ações — o cartão do design. */
+  gap: var(--vx-space-07);
+  min-inline-size: 0;
+  /* 10, do design — o respiro do rolável em volta da pilha. */
+  padding: var(--vx-space-10);
+  border: 0;
+  border-radius: var(--vx-radius-07);
+  background: transparent;
+  color: var(--vx-text-2);
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.abrir:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.cabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  min-inline-size: 0;
+  margin-block-end: var(--vx-space-04);
+}
+
+/* O nome herda o tamanho do painel — `NomeDoAutor` traz `text-md` do
+   contexto da linha de mensagem, onde ele é cabeçalho. */
+.cabecalho :global(span) {
+  font-size: var(--vx-size-md);
+}
+
+.desconhecido {
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-sm);
+  font-weight: 500;
+}
+
+.hora {
+  flex: none;
+  margin-inline-start: auto;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+}
+
+.trecho {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: var(--vx-size-md);
+  line-height: var(--vx-leading-message);
+}
+
+/*
+  As duas ações do cartão, em texto.
+
+  `visibility` e não `opacity`: com opacidade zero os alvos continuariam
+  recebendo tabulação, e num painel de quarenta fixadas seriam oitenta paradas
+  invisíveis antes do rodapé. É a mesma escolha das ações da linha de canal.
+
+  A caixa fica reservada de qualquer jeito (`visibility` não tira do layout),
+  então mostrar e esconder não reflowa a lista.
+*/
+.acoes {
+  display: flex;
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-04) var(--vx-space-08) var(--vx-space-08);
+  visibility: hidden;
+}
+
+.item:hover .acoes,
+.item:focus-within .acoes {
+  visibility: visible;
+}
+
+.acao,
+.acaoPerigo {
+  border: 0;
+  background: transparent;
+  border-radius: var(--vx-radius-04);
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.acao {
+  color: var(--vx-accent-text);
+}
+
+.acaoPerigo {
+  color: var(--vx-danger-text);
+}
+
+.acao:hover,
+.acaoPerigo:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.acao:focus-visible,
+.acaoPerigo:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/*
+  O rodapé que explica a ausência das ações.
+
+  `text-4` e não `text-3`: é nota de rodapé sobre uma permissão, a informação
+  menos urgente do painel — e ela precisa não competir com o conteúdo, que é o
+  que a pessoa veio ver.
+*/
+.rodape {
+  padding: var(--vx-space-08) var(--vx-space-12);
+  border-block-start: 1px solid var(--vx-border-subtle);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
+}
+
+/* Painel estreito: a hora sai antes do nome. Nome identifica; hora é
+   contexto, e contexto cede espaço primeiro. */
+@container (inline-size < 240px) {
+  .hora {
+    display: none;
+  }
+}

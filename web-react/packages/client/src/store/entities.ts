@@ -22,6 +22,19 @@ export type EntityStore<T> = {
   set(id: string, snapshot: T): void;
   peek(id: string): T | undefined;
   subscriberCount(id: string): number;
+  /**
+   * Os IDs que alguém está assinando AGORA.
+   *
+   * Existe para o caso em que algo de fora invalida os snapshots sem que a
+   * entidade tenha mudado — permissão que muda, tema que troca. Iterar os
+   * assinados é o que mantém isso barato: numa lista de dez mil, quem está na
+   * tela são algumas dezenas, e é só sobre eles que a pergunta faz sentido.
+   *
+   * Devolve array e não iterador do `Map` interno: quem chama vai reescrever
+   * snapshots, e reescrever durante a iteração da estrutura viva é o tipo de
+   * coisa que funciona até o dia em que a reescrita cria um assinante.
+   */
+  assinados(): readonly string[];
 };
 
 export function createEntityStore<T>(
@@ -81,6 +94,9 @@ export function createEntityStore<T>(
       const set = listeners.get(id);
       if (!set) return;
       for (const listener of set) listener();
+    },
+    assinados() {
+      return [...listeners.keys()];
     },
     subscriberCount(id) {
       return listeners.get(id)?.size ?? 0;

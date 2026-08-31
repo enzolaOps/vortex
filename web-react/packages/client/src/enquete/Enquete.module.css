@@ -1,0 +1,477 @@
+/* ============================================================
+   Criar enquete — o modal
+   ============================================================ */
+
+.modal {
+  inline-size: 420px;
+  max-inline-size: calc(100vw - var(--vx-space-32));
+  overflow: hidden;
+}
+/* ------------------------------------------------- cabeçalho e rodapé
+
+   Meus, e não do `DialogContent` — ver a nota no TSX. É o que permite o
+   rodapé numa faixa própria, sangrando até a borda, como o design desenha.
+*/
+
+.cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-16) var(--vx-space-18) var(--vx-space-12);
+}
+
+.tituloDoModal {
+  font-size: var(--vx-size-xl);
+  font-weight: 600;
+  line-height: var(--vx-leading-title);
+  color: var(--vx-text-1);
+}
+
+
+.fechar {
+  display: grid;
+  place-items: center;
+  inline-size: 28px;
+  block-size: 28px;
+  flex: none;
+  border-radius: var(--vx-radius-06);
+  color: var(--vx-text-3);
+  cursor: pointer;
+}
+
+.fechar svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+.fechar:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.fechar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/* O miolo, e é AQUI que o grid vale — no painel ele governava filhos que não
+   eram meus. */
+.corpo {
+  display: grid;
+  gap: var(--vx-space-16);
+  /* `0 18px 14px`, do design. */
+  padding-inline: var(--vx-space-18);
+  padding-block-end: var(--vx-space-14);
+}
+
+
+.grupo {
+  display: grid;
+  gap: var(--vx-space-08);
+}
+
+.rotulo,
+.rotuloLeve {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.rotulo {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+}
+
+.campo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  block-size: 36px;
+  padding-inline: var(--vx-space-12);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+}
+
+.campo:focus-within {
+  border-color: var(--vx-accent);
+}
+
+.campoEntrada {
+  flex: 1;
+  min-inline-size: 0;
+  border: none;
+  background: none;
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  outline: none;
+}
+
+.campoGlifo {
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--vx-text-3);
+  cursor: pointer;
+}
+
+.campoGlifo svg,
+.arrastar svg,
+.remover svg,
+.acrescentar svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+.campoGlifo:hover {
+  color: var(--vx-text-1);
+}
+
+.respostas {
+  display: grid;
+  gap: var(--vx-space-04);
+}
+
+.resposta {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  block-size: 34px;
+  padding-inline: var(--vx-space-08);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+}
+
+.resposta:focus-within {
+  border-color: var(--vx-accent);
+}
+
+.arrastar,
+.remover {
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--vx-text-4);
+  cursor: pointer;
+}
+
+.arrastar {
+  cursor: grab;
+}
+
+.arrastar:active {
+  cursor: grabbing;
+}
+
+.arrastar:hover {
+  color: var(--vx-text-2);
+}
+
+/*
+  A linha em arraste fica ESMAECIDA, e não escondida.
+
+  Esconder a origem faz a lista encolher uma linha no instante em que a mão
+  começa a mover — e aí o alvo que a pessoa mirava já não está mais ali.
+*/
+.resposta[data-arrastando] {
+  opacity: 0.5;
+  border-color: var(--vx-accent);
+}
+
+.remover:hover {
+  color: var(--vx-danger-text);
+}
+
+.marca {
+  flex: none;
+  font-size: var(--vx-size-base);
+}
+
+/*
+  A linha de acrescentar — tracejada, como o design.
+
+  O tracejado a separa das respostas de verdade sem gastar um rótulo: ela tem
+  a mesma altura e o mesmo lugar, e a moldura diz que ela é o molde e não o
+  conteúdo.
+*/
+.acrescentar {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  block-size: 34px;
+  padding-inline: var(--vx-space-12);
+  border: 1px dashed var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-md);
+  cursor: pointer;
+}
+
+.acrescentar:hover {
+  border-color: var(--vx-border-strong);
+  color: var(--vx-text-2);
+}
+
+.acrescentar:focus-visible,
+.arrastar:focus-visible,
+.remover:focus-visible,
+.campoGlifo:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+  border-radius: var(--vx-radius-04);
+}
+
+.duas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--vx-space-12);
+}
+
+.selecao {
+  display: grid;
+  gap: var(--vx-space-04);
+}
+
+/*
+  O gatilho com cara de `<select>`.
+
+  ⚠ Controle nativo em superfície de produto foi o achado da auditoria da fase
+  4, e o lint existe por causa dele — ele me pegou aqui. A caixa reproduz o
+  select do design; a lista que abre é a do app.
+*/
+.select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-08);
+  block-size: 32px;
+  padding-inline: var(--vx-space-08);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  cursor: pointer;
+  text-align: start;
+}
+
+.select svg {
+  flex: none;
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+  color: var(--vx-text-3);
+}
+
+.select:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.interruptorLinha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-12);
+}
+
+.interruptorTitulo {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.interruptorDica {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.rodapeDoModal {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--vx-space-08);
+  padding: var(--vx-space-12) var(--vx-space-16);
+  border-block-start: 1px solid var(--vx-border-subtle);
+  background: var(--vx-surface-3);
+}
+
+/* ============================================================
+   A enquete na timeline
+   ============================================================ */
+
+.caixa {
+  margin-block-start: var(--vx-space-08);
+  /* `16px 18px`, do design. */
+  padding: var(--vx-space-16) var(--vx-space-18);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-12);
+  /*
+    Um degrau ACIMA da timeline.
+
+    A enquete é um objeto dentro da mensagem, como o cartão de link — e a
+    rampa de cinco degraus existe para que "dentro de" tenha uma resposta
+    visual sem borda grossa.
+  */
+  background: var(--vx-surface-3);
+  /* Ela não segue a medida de leitura: é um controle, não prosa. */
+  max-inline-size: 460px;
+}
+
+.tipo {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  margin-block-end: var(--vx-space-08);
+  color: var(--vx-text-3);
+}
+
+.seloResultado {
+  display: inline-flex;
+  align-items: center;
+  block-size: 17px;
+  padding-inline: var(--vx-space-08);
+  border-radius: var(--vx-radius-04);
+  background: color-mix(in oklab, var(--vx-success) 16%, transparent);
+  /* `success-text` e não `success`: é LETRA sobre um preenchimento tingido do
+     mesmo verde, e o design usa dois valores exatamente para esse par. */
+  color: var(--vx-success-text);
+  font-size: var(--vx-size-xs);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.pergunta {
+  margin-block-end: var(--vx-space-12);
+  font-size: var(--vx-size-lg);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+/* ------------------------------------------------------------ as opções */
+
+.opcao {
+  position: relative;
+  inline-size: 100%;
+  overflow: hidden;
+  margin-block-end: var(--vx-space-08);
+  border: 1px solid var(--vx-border-subtle);
+  /* Raio 10, do design: a opção é um cartão dentro da caixa, e 6 a fazia
+     ler como um input. */
+  border-radius: var(--vx-radius-10);
+  /* Mais FUNDO que a caixa: a opção é um alvo dentro dela. */
+  background: var(--vx-surface-2);
+  cursor: pointer;
+  text-align: start;
+}
+
+.opcao[data-minha] {
+  border-color: var(--vx-accent);
+}
+
+.opcao[data-venceu] {
+  border-color: color-mix(in oklab, var(--vx-success) 45%, transparent);
+}
+
+.opcao:disabled {
+  cursor: default;
+}
+
+.opcao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/*
+  A barra: fundo da própria opção.
+
+  `position: absolute` com `inset-block: 0` e largura variável — nunca um
+  elemento no fluxo. Ver o comentário do componente: uma barra empilhada
+  mudaria a altura da linha no momento do voto, e a lista está ancorada.
+*/
+.barra {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  background: var(--vx-state-hover);
+  transition: inline-size var(--vx-duration-base) var(--vx-ease-out);
+}
+
+.opcao[data-minha] .barra {
+  background: var(--vx-state-selected);
+}
+
+.opcao[data-venceu] .barra {
+  background: color-mix(in oklab, var(--vx-success) 16%, transparent);
+}
+
+.opcaoConteudo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  /* 14px em volta: a opção do design é um cartão, e 8/12 a deixava apertada
+     contra a barra de resultado que a preenche. */
+  padding: var(--vx-space-14);
+}
+
+.opcaoMarca {
+  flex: none;
+  display: grid;
+  place-items: center;
+  font-size: var(--vx-size-md);
+  color: var(--vx-text-2);
+}
+
+.opcaoMarca svg {
+  inline-size: var(--vx-icon-2);
+  block-size: var(--vx-icon-2);
+  color: var(--vx-success-text);
+}
+
+.opcaoTexto {
+  flex: 1;
+  min-inline-size: 0;
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+  overflow-wrap: anywhere;
+}
+
+/*
+  A porcentagem em MONO.
+
+  Números que mudam de valor no mesmo lugar precisam de largura estável, senão
+  "38%" virando "9%" desloca o texto ao lado a cada voto.
+*/
+.opcaoPct {
+  flex: none;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-2);
+}
+
+.opcao[data-venceu] .opcaoPct {
+  color: var(--vx-success-text);
+}
+
+.rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-12);
+  margin-block-start: var(--vx-space-12);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.rodapeDireita {
+  display: flex;
+  gap: var(--vx-space-12);
+}
+
+.link {
+  color: var(--vx-accent-text);
+  cursor: pointer;
+}

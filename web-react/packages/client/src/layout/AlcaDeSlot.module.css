@@ -12,8 +12,8 @@
   inset-block: 0;
   /* Alvo de ponteiro maior que o traço visível: 2px é impossível de
      acertar, e a área de clique não precisa ser a área desenhada. */
-  inline-size: var(--vx-space-3);
-  z-index: 2;
+  inline-size: var(--vx-space-12);
+  z-index: var(--vx-z-alca);
   cursor: col-resize;
   /* `touch-action` sem isto o navegador rola a página no lugar de arrastar. */
   touch-action: none;
@@ -30,11 +30,11 @@
   usuário movesse o painel para a outra ponta — que é a feature.
 */
 .inicio {
-  inset-inline-end: calc(var(--vx-space-3) / -2);
+  inset-inline-end: calc(var(--vx-space-12) / -2);
 }
 
 .fim {
-  inset-inline-start: calc(var(--vx-space-3) / -2);
+  inset-inline-start: calc(var(--vx-space-12) / -2);
 }
 
 /* O traço: fino, centrado na área de clique. */

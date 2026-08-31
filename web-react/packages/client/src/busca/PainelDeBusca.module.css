@@ -1,0 +1,441 @@
+/* ============================================================
+   Painel de busca
+   ------------------------------------------------------------
+   380px, borda de início e `surface-1` — do design. Ele ocupa o
+   lugar da lista de membros, nunca os dois ao mesmo tempo, e
+   quem resolve isso é `store/drawer.ts`.
+   ============================================================ */
+
+.painel {
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-block-size: 0;
+  background: var(--vx-surface-1);
+}
+
+/* -------------------------------------------------------- cabeçalho */
+
+.cabecalho {
+  flex: none;
+  padding: var(--vx-space-12) var(--vx-space-14);
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+.titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  margin-block-end: var(--vx-space-10);
+}
+
+.nome {
+  flex: 1;
+  overflow: hidden;
+  margin: 0;
+  font-size: var(--vx-size-lg);
+  font-weight: 600;
+  color: var(--vx-text-1);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contagem {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  flex: none;
+  font-weight: 400;
+  color: var(--vx-text-3);
+}
+
+.fechar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: 26px;
+  block-size: 26px;
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-3);
+  cursor: pointer;
+}
+
+.fechar:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.fechar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/*
+  ⚠ **Este é um `<input>` de verdade**, ao contrário do campo da coluna de
+  canais — aquele é um `button` que abre a paleta, e a distinção está
+  registrada. Aqui digitar É a ação: não há segundo dono do texto.
+*/
+.campo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  min-inline-size: 0;
+  block-size: 32px;
+  padding-inline: var(--vx-space-10);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+}
+
+.campo:focus-within {
+  border-color: var(--vx-accent);
+  box-shadow: 0 0 0 3px var(--vx-accent-ring);
+}
+
+.campo svg {
+  flex: none;
+  color: var(--vx-text-3);
+}
+
+.entrada {
+  flex: 1;
+  min-inline-size: 0;
+  border: 0;
+  background: transparent;
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  outline: none;
+}
+
+.entrada::placeholder {
+  color: var(--vx-text-4);
+}
+
+/* -------------------------------------------------------- filtros */
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-06);
+  margin-block: var(--vx-space-10);
+}
+
+/*
+  A pílula de filtro, em MONO.
+
+  A fonte não é decoração: `de:marina` é sintaxe, e mono é como este app
+  escreve sintaxe em todo lugar (nome de anexo, tecla de atalho, hora do
+  deslizante).
+*/
+.filtro {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-06);
+  block-size: 22px;
+  padding-inline: var(--vx-space-08);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-accent-soft);
+  color: var(--vx-accent-text);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+}
+
+.tirarFiltro {
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.tirarFiltro:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 1px;
+}
+
+/* Tracejado: ele ACRESCENTA, e a borda aberta é como este app já desenha o
+   `+` do rail. */
+.maisFiltro {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-04);
+  block-size: 22px;
+  padding-inline: var(--vx-space-08);
+  border: 1px dashed var(--vx-border-strong);
+  border-radius: var(--vx-radius-pill);
+  background: transparent;
+  color: var(--vx-text-3);
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.maisFiltro:hover {
+  border-color: var(--vx-accent);
+  color: var(--vx-text-2);
+}
+
+.maisFiltro:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------- ordem */
+
+.ordem {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+}
+
+.abas {
+  display: flex;
+  gap: var(--vx-space-02);
+}
+
+.aba {
+  display: flex;
+  align-items: center;
+  padding: var(--vx-space-06) var(--vx-space-10);
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-3);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.aba:hover {
+  color: var(--vx-text-1);
+}
+
+/*
+  ⚠ Véu e não `surface`: o painel já é `surface-1`, e pintar o selecionado com
+  um degrau da rampa o faria brigar com o cartão de resultado logo abaixo, que
+  é `surface-3`. Mesma decisão do item de menu.
+*/
+.aba[aria-selected="true"] {
+  background: var(--vx-state-press);
+  color: var(--vx-text-1);
+}
+
+.aba:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.espaco {
+  flex: 1;
+}
+
+/*
+  ⚠ Caixa BAIXA — a referência usa `text-eyebrow` (o TAMANHO), não a
+  sobrancelha inteira. Compus a sobrancelha e saiu "BUSCAR EM TODO O SERVIDOR"
+  em versal, que é o tratamento de TÍTULO DE SEÇÃO neste app: um link de ação
+  em caixa alta compete com "Resultados" logo acima. Mesmo erro que o rótulo
+  "Das / Até / Dias" da tela de notificações.
+*/
+.noServidor {
+  border: 0;
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  background: transparent;
+  color: var(--vx-accent-text);
+  font-family: inherit;
+  cursor: pointer;
+  text-align: end;
+}
+
+.noServidor:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------ resultados */
+
+.lista {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  margin: 0;
+  padding: var(--vx-space-10);
+  list-style: none;
+  scrollbar-width: thin;
+}
+
+.item {
+  /* ⚠ `flex: none` — filho de flex column encolhe por padrão, e o painel de
+     fixadas já registrou este defeito: em vez de rolar, o navegador comprimia
+     cada cartão até o mínimo e o conteúdo vazava por cima do vizinho. */
+  flex: none;
+  margin-block-end: var(--vx-space-08);
+}
+
+.cartao {
+  display: block;
+  inline-size: 100%;
+  padding: var(--vx-space-12);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-3);
+  color: inherit;
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.cartao:hover {
+  border-color: var(--vx-border-subtle);
+}
+
+.cartao[aria-current="true"] {
+  border-color: var(--vx-accent);
+  background: var(--vx-state-selected);
+}
+
+.cartao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.origem {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  margin-block-end: var(--vx-space-06);
+}
+
+.canal {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  overflow: hidden;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--vx-text-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quando {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  flex: none;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  color: var(--vx-text-3);
+}
+
+.corpo {
+  display: flex;
+  gap: var(--vx-space-10);
+  min-inline-size: 0;
+}
+
+.textos {
+  min-inline-size: 0;
+  flex: 1;
+}
+
+/*
+  Duas linhas e corta. `-webkit-line-clamp` é o único jeito que funciona em
+  todo navegador hoje; `line-clamp` sem prefixo ainda não é universal, e sem o
+  corte um resultado de dez linhas empurra os outros para fora do painel.
+*/
+.previa {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: var(--vx-size-md);
+  color: var(--vx-text-2);
+}
+
+.anexo {
+  display: block;
+  margin-block-start: var(--vx-space-04);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.acoes {
+  display: flex;
+  gap: var(--vx-space-12);
+  margin-block-start: var(--vx-space-08);
+}
+
+.acao {
+  border: 0;
+  background: transparent;
+  color: var(--vx-accent-text);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.acaoNeutra {
+  composes: acao;
+  color: var(--vx-text-3);
+}
+
+.acao:focus-visible,
+.acaoNeutra:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------- paginação */
+
+.paginas {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vx-space-06);
+  padding: var(--vx-space-10) var(--vx-space-14);
+  border-block-start: 1px solid var(--vx-hairline-06);
+}
+
+.pagina {
+  display: grid;
+  place-items: center;
+  inline-size: 28px;
+  block-size: 28px;
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.pagina:hover {
+  background: var(--vx-state-hover);
+}
+
+.pagina[aria-current="true"] {
+  background: var(--vx-accent-soft);
+  color: var(--vx-accent-text);
+}
+
+.pagina:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.vazio {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  padding: var(--vx-space-24);
+}

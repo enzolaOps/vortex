@@ -1,0 +1,196 @@
+/* ============================================================
+   Anexos
+   ------------------------------------------------------------
+   O espaço é reservado ANTES do arquivo chegar. Ver o
+   comentário do componente: numa lista ancorada, uma linha que
+   cresce acima da âncora empurra o que está sendo lido.
+   ============================================================ */
+
+.anexos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-08);
+  margin-block-start: var(--vx-space-08);
+}
+
+/*
+  Largura DEFINIDA, não teto — e a diferença era a feature inteira.
+
+  A primeira versão usava `max-inline-size`, que é um limite e não um tamanho:
+  sem largura definida, o flex dá à caixa a largura do CONTEÚDO, e o conteúdo
+  é uma imagem que ainda não chegou. Medido: **0×0**, com o `aspect-ratio`
+  declarado corretamente ao lado. A reserva de espaço não reservava nada, que é
+  pior que não ter reserva — dá a impressão de estar resolvido.
+
+  A largura sai de um `min` de três termos, e o terceiro é o que segura imagem
+  alta: `340px * proporção` é exatamente a largura em que a altura bate no
+  teto. Uma imagem 600×1600 vira uma caixa de 127×340 com a proporção intacta;
+  sem esse termo ela viraria 400×1067, ou — com `max-block-size` sobre largura
+  fixa — uma caixa de proporção errada com tarjas.
+
+  `--proporcao` é dado do protocolo, não valor mágico: a lei nº 4 proíbe número
+  escrito por quem programa, não número vindo de fora.
+*/
+.midia {
+  overflow: hidden;
+  inline-size: min(400px, 100%, calc(340px * var(--proporcao)));
+  border-radius: var(--vx-radius-06);
+  /* Enquanto não carrega, a caixa é uma superfície e não um buraco: sem isto
+     o espaço reservado fica invisível e a linha parece quebrada. */
+  background: var(--vx-surface-2);
+}
+
+.arquivoDeMidia {
+  inline-size: 100%;
+  block-size: 100%;
+  /* `contain` e não `cover`: cortar a imagem de outra pessoa para caber numa
+     caixa é decidir o enquadramento dela. */
+  object-fit: contain;
+}
+
+.arquivo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  max-inline-size: 100%;
+  padding-inline: var(--vx-space-12);
+  padding-block: var(--vx-space-08);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-2);
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-sm);
+  text-decoration: none;
+}
+
+.arquivo:hover {
+  border-color: var(--vx-border-strong);
+  color: var(--vx-text-1);
+}
+
+.arquivo:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.nome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+  O alvo do clique na imagem.
+
+  `display: contents` para não criar caixa: a reserva de espaço vem do
+  container acima, calculada do metadata do protocolo, e um wrapper com layout
+  próprio a desfaria — que é exatamente o defeito que a primeira versão da
+  reserva teve (`max-inline-size` é teto, não tamanho).
+*/
+.alvoDaImagem {
+  display: contents;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: zoom-in;
+}
+
+.alvoDaImagem:focus-visible .arquivoDeMidia {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   O pacote: mídia + rodapé
+   ------------------------------------------------------------
+   O rodapé precisa da mesma largura da mídia, e a mídia calcula
+   a largura a partir da proporção. Envolver os dois é o que faz
+   o rodapé acompanhar sem repetir a conta.
+
+   `inline-size: fit-content` porque a mídia é mais estreita que
+   a coluna: sem isto o pacote ocuparia a linha inteira e o
+   rodapé ficaria pendurado no vazio à direita da imagem.
+   ============================================================ */
+
+.pacote {
+  margin: 0;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-08);
+  overflow: hidden;
+}
+
+/*
+  O rodapé — `densidades.png · 284 KB` de um lado, ações do outro.
+
+  Superfície mais funda que a mídia: ele é chassi, não conteúdo. É a mesma
+  leitura do rodapé da coluna de canais.
+*/
+.rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-08);
+  min-inline-size: 0;
+  padding-inline: var(--vx-space-08);
+  padding-block: var(--vx-space-04);
+  background: var(--vx-surface-1);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+}
+
+/*
+  Nome em MONOESPAÇADA.
+
+  É nome de arquivo: o alinhamento de extensão ajuda a varrer uma conversa
+  cheia de anexos, e é o mesmo argumento que põe ID e atalho em mono no resto
+  do app.
+*/
+.identificacao {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--vx-font-mono);
+}
+
+.acoes {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+}
+
+.acao {
+  display: flex;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--vx-text-3);
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  transition: color var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.acao:hover {
+  color: var(--vx-text-1);
+}
+
+.acao:focus-visible {
+  outline-offset: 1px;
+}
+
+/*
+  A escala de ícone desta superfície — ver `--vx-icon-1` em `tokens.css`.
+
+  Cromagem: o design desenha 13–14px aqui, e o `size={20}` do Phosphor vinha
+  de um default copiado de componente para componente. O dono do tamanho é a
+  superfície, não a chamada.
+*/
+.arquivo svg,
+.rodape svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}

@@ -47,6 +47,29 @@ const SINTAXE_GERAL = [
             "Utility de espaçamento fracionária não existe aqui: a escala é 1–6 e `--spacing-*: initial` apaga o resto, então esta classe NÃO gera CSS e some sem erro. Use um degrau da escala, ou CSS Module se o valor for legítimo e fora dela.",
         },
         {
+          /**
+           * `aria-pressed` com rótulo que muda de AÇÃO junto do estado.
+           *
+           * O par tem que ser nome estável + estado no `aria-pressed`, como o
+           * botão de negrito: "Negrito, pressionado". Quando o rótulo também
+           * muda, os dois dizem a mesma coisa duas vezes e o leitor de tela
+           * anuncia o INVERSO da verdade.
+           *
+           * Não é hipótese: com o microfone aberto, o cartão de chamada dizia
+           * `aria-label="Silenciar microfone"` e `aria-pressed="true"` —
+           * "silenciar está ativo", ou seja, mudo. Os quatro controles da
+           * chamada e os três do painel de edição tinham a mesma forma, e havia
+           * um comentário no código explicando por que o `aria-pressed` estava
+           * ali. Não faltou atenção; faltou mecanismo.
+           *
+           * O rótulo de ação continua existindo onde ele serve — no tooltip.
+           */
+          selector:
+            "JSXOpeningElement:has(JSXAttribute[name.name='aria-pressed']) JSXAttribute[name.name='aria-label'] > JSXExpressionContainer > ConditionalExpression",
+          message:
+            "aria-pressed exige nome ESTÁVEL: rótulo que alterna junto do estado faz o leitor de tela anunciar o inverso (\"Silenciar microfone, pressionado\" com o microfone aberto). Nomeie o recurso e deixe o estado no aria-pressed; a ação vai no tooltip.",
+        },
+        {
           selector:
             "JSXAttribute[name.name='key'] > JSXExpressionContainer > Identifier[name=/^(i|idx|index)$/]",
           message:
@@ -126,6 +149,32 @@ const SINTAXE_GERAL = [
  * que ele abre é do SO e é insubstituível, mas o GATILHO é nosso — por isso
  * ele vive envolvido em `components/ui`, com o gatilho estilizado.
  */
+/**
+ * Item de menu que não faz nada.
+ *
+ * Nasceu de três itens reais — `Copiar texto`, `Editar` e `Apagar` — que
+ * ficaram meses no menu de mensagem sem `onSelect`. Apareciam, recebiam foco,
+ * fechavam o menu ao serem escolhidos e não faziam absolutamente nada.
+ *
+ * Nada falha: o item é válido, o Radix o renderiza, o typecheck aprova, o teste
+ * não existe. E o dano não é o item — é a CONFIANÇA no menu inteiro, que a
+ * pessoa deixa de ter depois da segunda vez que escolhe algo e nada acontece.
+ *
+ * `disabled` conta como resposta: um item desligado DIZ que não dá, e dizer não
+ * é uma resposta. Silêncio não é.
+ *
+ * A regra é da mesma família do controle nativo e do `pnpm utilities`: falha
+ * silenciosa que só aparece olhando, virando mecanismo que falha sozinho.
+ */
+const ITEM_INERTE = [
+  {
+    selector:
+      "JSXOpeningElement[name.name=/^(ContextMenu|DropdownMenu)Item$/]:not(:has(JSXAttribute[name.name=/^(onSelect|disabled|asChild)$/]))",
+    message:
+      "Item de menu sem `onSelect`. Item que não faz nada é pior que item ausente: ensina a pessoa a não confiar no menu. Ligue a ação, marque `disabled`, ou remova até a ação existir.",
+  },
+];
+
 const CONTROLE_NATIVO = [
   {
     selector: "JSXOpeningElement[name.name='select']",
@@ -147,7 +196,19 @@ const CONTROLE_NATIVO = [
 ];
 
 export default tseslint.config(
-  { ignores: ["dist", "node_modules"] },
+  /*
+    `scripts/coletor.js` NÃO é código deste projeto — é o texto que o
+    `confronto` injeta com `Runtime.evaluate` dentro das duas páginas. Ele nunca
+    é importado, nunca entra no bundle e não está em tsconfig nenhum, então o
+    lint com tipos morre nele com "parserOptions não gera informação de tipo".
+
+    Ele vive num arquivo `.js` de propósito, e a razão está escrita no topo
+    dele: escrito dentro de um template literal, ele quebrou o script três
+    vezes — uma crase num comentário fecha a string, e uma das quebras passou
+    despercebida (a conversão de oklab ficou inerte e o relatório seguiu
+    mentindo). Como arquivo, o editor confere a sintaxe.
+  */
+  { ignores: ["dist", "node_modules", "scripts/coletor.js"] },
 
   js.configs.recommended,
   tseslint.configs.recommendedTypeChecked,
@@ -260,7 +321,12 @@ export default tseslint.config(
     files: ["src/**/*.tsx"],
     ignores: ["src/components/ui/**"],
     rules: {
-      "no-restricted-syntax": ["error", ...SINTAXE_GERAL, ...CONTROLE_NATIVO],
+      "no-restricted-syntax": [
+        "error",
+        ...SINTAXE_GERAL,
+        ...CONTROLE_NATIVO,
+        ...ITEM_INERTE,
+      ],
     },
   },
 

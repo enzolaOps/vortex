@@ -1,4 +1,3 @@
-import { Lamina } from "./Lamina";
 import css from "./Segmentado.module.css";
 
 /**
@@ -56,7 +55,6 @@ export function Segmentado<T extends string>({
           onClick={() => aoEscolher(o.id)}
           onKeyDown={(e) => aoTeclar(e, i)}
         >
-          <Lamina ativa={o.id === valor} className={css.lamina} />
           {o.rotulo}
         </button>
       ))}

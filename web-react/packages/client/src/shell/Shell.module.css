@@ -123,15 +123,92 @@
 }
 
 .conteudo {
-  background: var(--vx-surface-0);
-  display: grid;
-  /* cabeçalho · lista · composer.
+  /*
+    Fundo de CANVAS, e o gutter é pintado pela prancha.
 
-     `minmax(0, 1fr)` na linha do meio pela mesma razão da coluna: `1fr` puro é
+    A troca de `surface-0` para `surface-2` é o design: a área de conteúdo é a
+    superfície de leitura, e o tom mais fundo fica reservado para o rail e para
+    a moldura de ultrawide. São dois papéis que a rampa de quatro degraus
+    colapsava num só.
+  */
+  background: var(--vx-surface-2);
+  display: grid;
+  /* barra do arnês · cabeçalho · prancha.
+
+     `minmax(0, 1fr)` na última pela mesma razão da coluna: `1fr` puro é
      `minmax(auto, 1fr)`, e `auto` respeita o min-content da lista — que numa
      lista virtualizada é o total inteiro. Sem o `0`, o composer é empurrado
      para fora da tela assim que o histórico cresce. */
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+/*
+  A prancha — a moldura de leitura.
+
+  Ela ocupa a trilha inteira e pinta o GUTTER; a coluna de leitura vive dentro
+  dela, travada e centrada. É a peça que faltava na fase 1: lá o teto existia
+  e a centralização não, então o excedente virava faixa morta de um lado só.
+
+  ⚠ **O gutter só é PINTADO quando ele é gutter de verdade, e essa condição
+  faltava.**
+
+  O Foundations do design nomeia `surface.sunken` (#08090B) como "Rail, gutter
+  **ultrawide**" — a palavra está lá. Aqui a prancha pintava sempre, e o efeito
+  em janela comum é o oposto do que ela existe para resolver: numa janela de
+  1688px a trilha dá 1136 contra o teto de 1040, ou seja **48px de preto de
+  cada lado**. Largo demais para sumir, estreito demais para ler como margem —
+  o resultado é a timeline parecendo uma caixa preta com uma folha dentro, que
+  é a mesma queixa de "alinhamento quebrado" que motivou a prancha, com outra
+  forma. Foi assim que quem usa relatou.
+
+  O corte é 1440 = teto de leitura (1040) + 200 de cada lado, e 200 não é
+  arbitrário: é a ordem de grandeza do painel mais estreito do produto (membros
+  em 232). Abaixo disso o espaço não é um lugar onde algo poderia morar, é
+  sobra — e sobra deve ter a cor do conteúdo, não a do rail. Acima, ele é a
+  moldura que o design desenha em 3440.
+
+  Container query e não media query: a largura desta coluna depende das
+  sidebars, que quem usa arrasta desde a fase 4. Uma media query decidiria pela
+  janela e erraria toda vez que alguém alargasse a lista de canais.
+*/
+.prancha {
+  min-block-size: 0;
+  /* Sobra é conteúdo até virar moldura — ver acima. */
+  background: var(--vx-surface-2);
+  display: grid;
+  /*
+    `justify-content: center` no GRID, e não `margin: auto` no filho.
+
+    A diferença aparece quando a coluna é mais estreita que o teto: com
+    `justify-content`, a trilha encolhe para o disponível e o filho preenche;
+    com `margin: auto` num filho de largura fixa haveria estouro. É a mesma
+    família do `minmax(0, 1fr)` — deixar o container decidir em vez de o filho
+    afirmar.
+  */
+  grid-template-columns: minmax(0, var(--vx-timeline-max-w));
+  justify-content: center;
+}
+
+@container (inline-size >= 1440px) {
+  .prancha {
+    background: var(--vx-surface-0);
+  }
+}
+
+/*
+  A coluna de leitura: lista + composer, na mesma caixa.
+
+  Compartilhar a caixa é o mecanismo, não a consequência. A invariante do
+  briefing — "composer alinhado à coluna de mensagem" — vira impossível de
+  quebrar quando os dois herdam a largura do mesmo pai; com dois tetos
+  separados, o primeiro a divergir seria o que ninguém abriu naquela semana.
+*/
+.pranchaInterna {
+  min-inline-size: 0;
+  min-block-size: 0;
+  background: var(--vx-surface-2);
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
 }
 
 /*
@@ -151,6 +228,31 @@
 }
 
 /*
+  Canais some abaixo de 640px, e isto é um GUARDA, não um layout de celular.
+
+  A conta: rail 72 + canais 240 = 312. Numa janela de 375 sobravam **63px para
+  a conversa** — a coluna que é a razão de o app existir, espremida a um
+  décimo do que a lateral ocupa. Medido, não estimado.
+
+  Celular não é plataforma deste produto: o briefing diz web e Electron
+  desktop, shell denso de quatro colunas, sessões de 8h. Mas janela estreita
+  acontece no desktop também, e degradar para "conversa legível sem lista de
+  canais" é muito melhor que degradar para "63px de conversa".
+
+  ⚠ O que este guarda NÃO resolve: com a lista escondida, some também o
+  gatilho da paleta de comandos, que mora no cabeçalho dela. Por teclado a
+  paleta continua (Ctrl+K); por TOQUE, abaixo de 640px, não há navegação. Um
+  modelo de navegação para telas estreitas é trabalho de produto que este
+  projeto nunca escopou, e inventá-lo aqui seria decidir sozinho uma coisa
+  grande dentro de um passe de correção.
+*/
+@media (width < 640px) {
+  .slot[data-painel="canais"] {
+    display: none;
+  }
+}
+
+/*
   As container queries dos painéis mudaram de lugar na fase 3.
 
   Elas moravam aqui porque o conteúdo das colunas morava no `Shell.tsx`.
@@ -159,3 +261,37 @@
   que a lei nº 6 quer dizer com "sem premissa de irmão": o shell
   fornece o container, o painel decide o que fazer com o tamanho dele.
 */
+
+/*
+  `min-block-size: 0` na célula de conteúdo do grid.
+
+  Estava como `min-h-0`, e essa utility não existe neste projeto pelo mesmo
+  motivo de `min-w-0`: `--spacing-*: initial` remove a base do Tailwind v4.
+
+  É load-bearing: sem o mínimo zerado, a linha `minmax(0, 1fr)` do grid
+  perde efeito no filho e o conteúdo empurra em vez de rolar — o que a
+  virtualização já provou ser fatal quando o container de scroll perde teto.
+*/
+.celulaDeConteudo {
+  min-block-size: 0;
+
+  /*
+    ⚠ **Esta célula é o TETO do container de scroll da lista, e o teto é o que
+    mantém a virtualização viva.**
+
+    O raciocínio veio de `.coluna` no `CabecalhoDeCanal.module.css`, que morreu
+    com a prancha. Lá ele precisava de `block-size: 100%` explícito porque o
+    wrapper era filho de BLOCO, e filho de bloco tem altura `auto`: o `.scroll`
+    da lista pedia 100% contra um pai auto, resolvia para auto, e o container
+    perdia o teto. O virtualizador então concluía que a janela visível era a
+    lista inteira e montava as dez mil linhas — sem erro, sem aviso, só lento.
+
+    Aqui a altura vem de graça: item de GRID estica para a trilha, e a trilha é
+    `minmax(0, 1fr)`. Medido depois da mudança, com 1.000 semeadas: 44 linhas
+    montadas, `clientHeight` 702 contra `scrollHeight` 990.388.
+
+    O que continua obrigatório é o `min-block-size: 0` acima — sem ele o
+    `minmax(0, 1fr)` da trilha perde efeito no filho e o conteúdo empurra em
+    vez de rolar, que é o mesmo desfecho por outro caminho.
+  */
+}

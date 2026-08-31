@@ -1,0 +1,929 @@
+/* ============================================================
+   Configurações de canal — o que as classes de `Secao` não cobrem
+   ------------------------------------------------------------
+   `Secao.module.css` já dá forma, bloco, subtítulo, recado,
+   divisor e ações. Aqui fica o que é desta superfície: a faixa
+   de não-salvo, as opções de rádio, a matriz tri-state e a cara
+   dos controles pendentes.
+   ============================================================ */
+
+/*
+  A mesma SOBRANCELHA de `Campo.module.css .rotulo`, com o contador empurrado
+  para a ponta — é a composição que o design desenha (`flex`, `space-between`,
+  `align-items:baseline`, `margin-bottom:6px`).
+
+  ⚠ Repetida e não compartilhada, e a duplicação está registrada: são dois CSS
+  Modules, e o estilo de rótulo de formulário vai aparecer em toda seção de
+  configuração. Vira utility na primeira terceira cópia — antes disso, extrair
+  custa mais do que a divergência que evita.
+*/
+.rotuloComContador {
+  composes: sobrancelha from "../../styles/sobrancelha.module.css";
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vx-space-08);
+  margin-block-end: var(--vx-space-06);
+  color: var(--vx-text-3);
+}
+
+/* Inline com o rótulo, e não abaixo do campo — é onde o design o põe. */
+/*
+  Mono porque os dígitos MUDAM a cada tecla: em fonte proporcional o número
+  treme e empurra o próprio rótulo. É o mesmo critério que manteve o `3/8` da
+  sala de voz FORA do mono, onde ele muda uma vez a cada muitos minutos.
+
+  `text-3` e não `text-4`: o quarto degrau é o tom de desativado, e o contador
+  é informação viva — no design ele sai em `#77808E`, o mesmo do rótulo.
+*/
+.contador {
+  margin: 0;
+  text-align: end;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--vx-text-3);
+}
+
+/* --------------------------------------------- controle pendente */
+
+/*
+  A cara de um controle que ainda não escreve.
+
+  ⚠ Ele NÃO é `disabled`, e a diferença é a regra do projeto: item cinza e
+  inerte ensina que a ação existe e você não a tem — ruído permanente. Este
+  recebe foco, responde ao clique e DIZ o que fará e do que depende. É o
+  contrato de `pendente/pendencias.ts`.
+
+  Visualmente ele reproduz a `Escolha`, porque é isso que o design desenha no
+  lugar; o que muda é o que acontece ao acionar.
+*/
+.pendente {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-08);
+  inline-size: 280px;
+  max-inline-size: 100%;
+  block-size: 36px;
+  padding-inline: var(--vx-space-11);
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  cursor: pointer;
+  text-align: start;
+}
+
+.pendente:hover {
+  border-color: var(--vx-border-strong);
+  color: var(--vx-text-1);
+}
+
+.pendente:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.selecao {
+  display: grid;
+  gap: var(--vx-space-04);
+  min-inline-size: 0;
+}
+
+.rotuloLeve {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+/* --------------------------------------- faixa de não-salvo */
+
+/*
+  ⚠ **Ela é RODAPÉ DA COLUNA, e eu tinha feito um cartão dentro do formulário.**
+
+  Medido no design renderizado (`pnpm espelho`): `1250x59`, fundo `#0f1318`
+  (`surface-1`), borda de topo em branco a 6%, respiro `12px 40px` — largura
+  cheia da coluna de conteúdo. Eu tinha entregue um cartão em `surface-4` com
+  raio, borda opaca e sombra, encaixado na medida de leitura.
+
+  A diferença não é enfeite: um cartão flutuando dentro do formulário lê como
+  mais um bloco do formulário; uma faixa que atravessa a coluna lê como o
+  RODAPÉ da tela, e é isso que diz "isto vale para tudo o que está acima".
+
+  Ela sai da caixa do `.rolagem` com margens negativas porque o respiro dele é
+  do CONTEÚDO e a faixa não é conteúdo. `sticky` continua, e continua pelo
+  mesmo motivo de antes: um formulário mais alto que a janela esconderia o
+  único par salvar/descartar da tela.
+*/
+.faixa {
+  position: sticky;
+  inset-block-end: calc(-1 * var(--vx-config-rodape-h));
+  z-index: var(--vx-z-realce);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-12);
+  margin-inline: calc(-1 * var(--vx-space-40));
+  margin-block-end: calc(-1 * var(--vx-config-rodape-h));
+  padding: var(--vx-space-12) var(--vx-space-40);
+  border-block-start: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-1);
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-2);
+}
+
+.faixaAcoes {
+  display: flex;
+  gap: var(--vx-space-08);
+  flex: none;
+}
+
+/* ============================================================
+   Permissões — a tela principal
+   ------------------------------------------------------------
+   ⚠ A matriz tri-state NÃO é esta tela. Medido com `pnpm espelho`:
+   Permissões mostra o cartão "Canal privado" e a LISTA de quem tem
+   acesso; a matriz mora numa subpágina, atrás de "Permissões
+   avançadas". Eu tinha entregue a matriz como se fosse a tela.
+   ============================================================ */
+
+.cartaoChave {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-20);
+  padding: var(--vx-space-16) var(--vx-space-18);
+  border: 1px solid rgb(255 255 255 / 7%);
+  border-radius: var(--vx-radius-10);
+  background: var(--vx-surface-3);
+}
+
+/*
+  Sem gap: o design empilha título e detalhe encostados, e a separação vem da
+  entrelinha de cada um. Os 3px que eu tinha somavam à altura de todo cartão.
+*/
+.cartaoTexto {
+  display: grid;
+  min-inline-size: 0;
+}
+
+.cartaoTitulo {
+  /* 14 e não 13 — medido. É o degrau `base`, e ele existe para isto: título
+     de cartão fica entre o corpo (13) e o de seção (17). */
+  font-size: var(--vx-size-base);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.cartaoDetalhe {
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+/* A lista de acesso: cartão AFUNDADO, como o de voz. */
+.listaDeAcesso {
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-10);
+  background: var(--vx-surface-1);
+  overflow: hidden;
+}
+
+.acessoCabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-14) var(--vx-space-16);
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+/*
+  A régua entre linhas é mais fraca que a do cabeçalho: 4% contra 6%.
+
+  Medido, e a diferença tem função — a do cabeçalho separa ZONAS, as de dentro
+  separam ITENS. Igualar as duas faria a lista parecer uma pilha de cabeçalhos.
+*/
+.acessoLinha {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+  padding: var(--vx-space-10) var(--vx-space-16);
+  border-block-end: 1px solid rgb(255 255 255 / 4%);
+}
+
+/*
+  ⚠ **Este bloco travava a entrelinha em `--vx-leading-compact`, e era remendo
+  de sintoma.** A causa real era o app não ter base de tipo: herdava o 1.5 do
+  preflight do Tailwind onde o design usa `normal`. Consertado em `body`, e o
+  remendo saiu — deixá-lo daria 19px onde o design dá 16.
+*/
+
+.acessoLinha:last-child {
+  border-block-end: 0;
+}
+
+/* O selo de 22px com o glifo, tingido pela cor do cargo. */
+.acessoSelo {
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: 22px;
+  block-size: 22px;
+  border-radius: var(--vx-radius-06);
+  font-size: var(--vx-size-xs);
+  /* Sem cor de cargo — @everyone — cai no neutro tingido do design. */
+  background: color-mix(in srgb, var(--vx-neutral) 25%, transparent);
+  color: var(--vx-text-2);
+}
+
+.acessoNome {
+  flex: 1;
+  min-inline-size: 0;
+  display: grid;
+}
+
+.acessoRotulo {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  /* A cor vem do cargo, por `style` — `text-1` é só o fallback de quem não
+     tem cor. Medido: "Núcleo" sai em `#7ee3e9`, a cor do cargo. */
+  color: var(--vx-text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acessoContagem {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+/*
+  ⚠ **`success-text` e peso 600, e eu tinha `text-3` em 400.**
+
+  Medido: `#5bd79b`, que é o verde de LETRA. "Acesso total" é um veredito, não
+  um metadado — e um veredito em cinza claro lê como legenda. O peso é o que o
+  separa da contagem de membros logo acima, que tem o mesmo tamanho.
+*/
+.acessoEstado {
+  flex: none;
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  color: var(--vx-success-text);
+}
+
+/* "sem acesso": chip tingido de vermelho, e o texto é de LETRA. */
+.acessoNegado {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  block-size: 20px;
+  padding-inline: var(--vx-space-07);
+  border-radius: var(--vx-radius-04);
+  /* `srgb` e não `oklab`: o design usa `rgba(232,89,107,0.14)`, que é alfa
+     direto. Interpolar em oklab contra `transparent` dá outra cor. */
+  background: color-mix(in srgb, var(--vx-danger) 14%, transparent);
+  color: var(--vx-danger-text);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+}
+
+/* ============================================================
+   Permissões avançadas — a subpágina da matriz
+   ============================================================ */
+
+.avancadasTopo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-14);
+  padding-block-end: var(--vx-space-16);
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+.voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-04);
+  border: 0;
+  background: transparent;
+  color: var(--vx-text-3);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  cursor: pointer;
+}
+
+.voltar:hover {
+  color: var(--vx-text-1);
+}
+
+.voltar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.avancadasTitulo {
+  margin: 0;
+  margin-inline-end: auto;
+  font-size: var(--vx-size-xl);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.avancadasAlvo {
+  color: var(--vx-text-3);
+  font-weight: 400;
+}
+
+.avancadasCorpo {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-10);
+  overflow: hidden;
+}
+
+.colunaDeAlvos {
+  background: var(--vx-surface-1);
+  border-inline-end: 1px solid var(--vx-hairline-06);
+  padding-block-end: var(--vx-space-12);
+}
+
+.grupoDeAlvos {
+  composes: sobrancelha from "../../styles/sobrancelha.module.css";
+  padding: var(--vx-space-14) var(--vx-space-08) var(--vx-space-05);
+  color: var(--vx-text-3);
+}
+
+.alvo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  inline-size: calc(100% - var(--vx-space-16));
+  margin-inline: var(--vx-space-08);
+  padding: var(--vx-space-08) var(--vx-space-09);
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  cursor: pointer;
+  text-align: start;
+}
+
+.alvo:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.alvo:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.alvo[aria-current="true"] {
+  background: var(--vx-state-selected);
+  color: var(--vx-accent-text);
+}
+
+.pontoDeCargo {
+  flex: none;
+  inline-size: 10px;
+  block-size: 10px;
+  border-radius: var(--vx-radius-03);
+}
+
+.matrizColuna {
+  min-inline-size: 0;
+}
+
+.matrizTopo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-16) var(--vx-space-28) var(--vx-space-12);
+}
+
+.matrizNome {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.matrizContagem {
+  margin-inline-end: auto;
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.matrizLista {
+  padding: 0 var(--vx-space-28) var(--vx-space-40);
+}
+
+/*
+  O cabeçalho de grupo GRUDA, e o design escreve isso por extenso:
+  "Headers de seção são sticky". Numa lista de trinta permissões em quatro
+  grupos, sem grude a pessoa rola e perde de qual família é a linha.
+
+  O fundo é obrigatório — senão as linhas passam por baixo das letras.
+*/
+.grupoDaMatriz {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--vx-z-realce);
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+  padding-block: var(--vx-space-06);
+  background: var(--vx-surface-2);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+/* A régua que completa a linha do cabeçalho até a ponta. */
+.grupoRegua {
+  flex: 1;
+  block-size: 1px;
+  background: var(--vx-hairline-06);
+}
+
+/*
+  ⚠ Linha SEM régua, e eu tinha posto uma em cada.
+
+  Medido: 930×44, raio 6, `7px 10px`, gap 16 — e nenhuma borda. O que separa é
+  o realce no hover; réguas em trinta linhas viram grade.
+*/
+.linhaDePermissao {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-16);
+  padding: var(--vx-space-07) var(--vx-space-10);
+  border-radius: var(--vx-radius-06);
+}
+
+.linhaDePermissao:hover {
+  background: var(--vx-state-hover);
+}
+
+.permissaoTexto {
+  flex: 1;
+  min-inline-size: 0;
+  display: grid;
+  gap: var(--vx-space-02);
+}
+
+.permissaoNome {
+  font-size: var(--vx-size-md);
+  color: var(--vx-text-1);
+}
+
+ /*
+  A procedência, e ela é COLORIDA pelo estado — do design, e o motivo é a
+  varredura: numa matriz de trinta linhas, achar o que foi decidido AQUI é o
+  que se procura, e ler trinta frases para isso é o trabalho que a cor poupa.
+  Herdado fica neutro justamente por ser o padrão: colorir o caso comum
+  apagaria os dois que importam.
+*/
+.permissaoProcedencia {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.permissaoProcedencia[data-estado="negar"] {
+  color: var(--vx-danger-text);
+}
+
+.permissaoProcedencia[data-estado="permitir"] {
+  color: var(--vx-success-text);
+}
+
+/*
+  O tri-state: negar · herdar · permitir.
+
+  ⚠ **O estado ativo é FUNDO TINGIDO, e eu tinha pintado só o ícone.** Medido:
+  permitir dá `#46c98a @18%`, herdar dá branco a 7%, negar dá vermelho tingido.
+  Ícone colorido sozinho é fraco demais num controle de 32px que se repete
+  trinta vezes — o preenchimento é o que se lê varrendo a coluna.
+
+  A caixa é `surface-1` com véu a 8%, e não `--vx-track`: ela pousa dentro do
+  conteúdo, não dentro de um painel.
+*/
+.triEstado {
+  flex: none;
+  display: flex;
+  padding: var(--vx-space-02);
+  /* O mesmo trilho afundado do `Segmentado`, e agora com o mesmo token: eram
+     dois wrappers idênticos no desenho, um com alfa literal de 8% e o outro
+     com o sólido `border-subtle`. Dois trilhos vizinhos com bordas diferentes
+     é a divergência que este passe existe para tirar. */
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-07);
+  background: var(--vx-surface-1);
+}
+
+.triBotao {
+  display: grid;
+  place-items: center;
+  inline-size: 32px;
+  block-size: 24px;
+  border: 0;
+  border-radius: var(--vx-radius-04);
+  background: transparent;
+  /*
+    ⚠ `text-4` e não `text-3`: em repouso os três glifos são ALVOS, não
+    informação — quem carrega o valor é o único aceso. Com o terceiro degrau os
+    três liam quase igual, e a linha tinha de ser decifrada em vez de vista. O
+    design os escreve em `#4C5563`, o mesmo tom do controle desativado.
+  */
+  color: var(--vx-text-4);
+  cursor: pointer;
+}
+
+/* Salvando: o trio inteiro recua, e não cada botão — a escrita é do GRUPO. */
+.triBotao:disabled {
+  cursor: progress;
+}
+
+.triBotao svg {
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+}
+
+.triBotao:hover {
+  color: var(--vx-text-1);
+}
+
+.triBotao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.triBotao[data-valor="negar"][aria-checked="true"] {
+  background: color-mix(in oklab, var(--vx-danger) 18%, transparent);
+  color: var(--vx-danger-text);
+}
+
+/* Herdar é a AUSÊNCIA de decisão: véu neutro, sem cor semântica. */
+.triBotao[data-valor="herdar"][aria-checked="true"] {
+  background: rgb(255 255 255 / 7%);
+  /* `text-2` e não `text-1`: herdar é o PADRÃO, e o branco cheio o faria
+     competir com negar e permitir, que são as escolhas. */
+  color: var(--vx-text-2);
+}
+
+.triBotao[data-valor="permitir"][aria-checked="true"] {
+  background: color-mix(in oklab, var(--vx-success) 18%, transparent);
+  color: var(--vx-success-text);
+}
+
+/*
+  Rótulo + valor + trilho.
+
+  ⚠ O `Deslizante` de `components/ui/` é só o `<input type=range>` — ele leva o
+  rótulo em `aria-label` e nada visível. O design põe uma linha de 14px acima do
+  trilho, e sem ela os dois deslizantes do cartão de voz apareciam como duas
+  barras sem dizer o que ajustavam. Pego olhando a tela, não o código.
+
+  Fica aqui e não no primitivo porque este é o primeiro consumidor que precisa
+  do rótulo visível; quando o segundo aparecer, ele sobe — a mesma regra que
+  moveu o `Escolha`.
+*/
+.deslizanteCampo {
+  display: grid;
+  gap: var(--vx-space-08);
+  min-inline-size: 0;
+}
+
+.deslizanteTopo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vx-space-08);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.deslizanteValor {
+  font-family: var(--vx-font-mono);
+  color: var(--vx-text-2);
+}
+
+/*
+  O filtro da matriz — busca, e por isso AFUNDA.
+
+  `surface-0` e não `surface-3`: o design separa os dois papéis, e a diferença
+  aparece aqui ao lado de um formulário. O que recebe entrada para BUSCAR
+  afunda; o que recebe entrada para GUARDAR fica no plano do painel. Medido:
+  239×32 com véu a 7% na coluna de alvos do design.
+*/
+.filtro {
+  /* O painel é `surface-2`; o filtro afunda até `surface-0`, que é o que o
+     design faz com a busca de "Cargos e membros". */
+  background: var(--vx-surface-0);
+}
+
+/* ============================================================
+   Convites — a tabela
+   ------------------------------------------------------------
+   Cinco colunas, cabeçalho em `surface-1` e linhas em
+   `surface-3` separadas por véu a 5%. Medido com `pnpm espelho`.
+   ============================================================ */
+
+.convitesTopo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--vx-space-16);
+}
+
+.convitesAcoes {
+  display: flex;
+  gap: var(--vx-space-08);
+  flex: none;
+}
+
+.tabela {
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-10);
+  overflow: hidden;
+}
+
+/*
+  As colunas são as mesmas no cabeçalho e nas linhas, e por isso a grade vive
+  nos dois com o mesmo template. `subgrid` seria mais correto e obrigaria um
+  grid no pai — que teria de crescer com o número de linhas.
+*/
+.tabelaCabecalho,
+.tabelaLinha {
+  display: grid;
+  grid-template-columns: minmax(0, 208fr) minmax(0, 174fr) 80px 120px 60px;
+  align-items: center;
+  gap: var(--vx-space-12);
+}
+
+.tabelaCabecalho {
+  padding: var(--vx-space-10) var(--vx-space-14);
+  background: var(--vx-surface-1);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.tabelaLinha {
+  padding: var(--vx-space-12) var(--vx-space-14);
+  border-block-start: 1px solid rgb(255 255 255 / 5%);
+  background: var(--vx-surface-3);
+  font-size: var(--vx-size-sm);
+}
+
+.celula {
+  color: var(--vx-text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* O que o protocolo não informa fica apagado — e o `title` diz por quê. */
+.celulaAusente {
+  color: var(--vx-text-4);
+}
+
+.codigoDoConvite {
+  min-inline-size: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--vx-text-1);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-sm);
+  cursor: pointer;
+  text-align: start;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.codigoDoConvite:hover {
+  color: var(--vx-accent-text);
+}
+
+.codigoDoConvite:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.revogar {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--vx-danger-text);
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  cursor: pointer;
+}
+
+.revogar:hover {
+  text-decoration: underline;
+}
+
+.revogar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* O cabeçalho da coluna de ação existe para o leitor de tela e não para o
+   olho: a coluna não tem título no design. */
+.colunaOculta {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/*
+  O cartão que leva às permissões avançadas.
+
+  ⚠ Eu tinha posto DOIS BOTÕES SOLTOS no fim da tela. O design faz um cartão em
+  `surface-3` com título, explicação e "Abrir ›" — e a diferença não é
+  estética: dois botões soltos leem como ações da lista acima; um cartão lê
+  como um destino, que é o que ele é.
+*/
+.cartaoDeAtalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-16);
+  inline-size: 100%;
+  padding: var(--vx-space-14) var(--vx-space-16);
+  border: 1px solid rgb(255 255 255 / 7%);
+  border-radius: var(--vx-radius-10);
+  background: var(--vx-surface-3);
+  font-family: inherit;
+  cursor: pointer;
+  text-align: start;
+}
+
+.cartaoDeAtalho:hover {
+  border-color: var(--vx-border-strong);
+}
+
+.cartaoDeAtalho:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.abrir {
+  flex: none;
+  color: var(--vx-accent-text);
+  /* 13/600 — medido. Em 12/400 ele lia como legenda em vez de convite. */
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+}
+
+/* O ✕ que devolve o cargo à herança. Texto, e não botão com caixa — o design
+   o desenha como um glifo de 12px em `text-3`. */
+.acessoRemover {
+  flex: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--vx-text-3);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  cursor: pointer;
+}
+
+.acessoRemover:hover {
+  color: var(--vx-danger-text);
+}
+
+.acessoRemover:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   Assunto do canal e cartão de voz
+   ------------------------------------------------------------
+   ⚠ **Estas nove regras foram APAGADAS por um commit que
+   reescreveu este arquivo, e o TSX ficou apontando para elas
+   durante todo esse tempo.** `css.areaDeTexto` resolvia para
+   `undefined`, o React descartava o `className`, e a seção
+   inteira renderizava com o default do navegador — textarea
+   branca de fonte monoespaçada dentro de um app escuro.
+
+   Nada falhou: nem o build, nem o typecheck, nem as duas
+   direções que o `pnpm utilities` tinha. A terceira direção,
+   escrita junto com esta restauração, é o que impede a próxima.
+
+   Os valores são os de antes, com os tokens de hoje —
+   `--vx-hairline-10` no lugar do alfa literal de 10%, e o mesmo
+   para os de 6% e 8%.
+   ============================================================ */
+
+/*
+  A caixa é quem tem a borda; a área de texto dentro é nua. Mesma anatomia do
+  composer, e a razão é a mesma: com borda nos dois, o foco desenha dois
+  contornos aninhados.
+*/
+.caixaDeTexto {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+}
+
+.caixaDeTexto:focus-within {
+  border-color: var(--vx-accent);
+}
+
+.regua {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: var(--vx-space-05) var(--vx-space-06);
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+.reguaBotao {
+  display: grid;
+  place-items: center;
+  min-inline-size: 28px;
+  block-size: 26px;
+  padding-inline: var(--vx-space-08);
+  border: 0;
+  border-radius: var(--vx-radius-05);
+  background: transparent;
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  cursor: pointer;
+}
+
+.reguaBotao:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+/* `outline` e não o anel: o botão vive dentro da caixa, que recorta. */
+.reguaBotao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.reguaDivisa {
+  inline-size: 1px;
+  block-size: 16px;
+  margin-inline: var(--vx-space-04);
+  background: var(--vx-hairline-10);
+}
+
+.reguaDica {
+  margin-inline-start: auto;
+  padding-inline-end: var(--vx-space-04);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
+}
+
+.areaDeTexto {
+  min-block-size: 109px;
+  padding: var(--vx-space-11) var(--vx-space-12);
+  border: 0;
+  background: transparent;
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  line-height: var(--vx-leading-message);
+  resize: vertical;
+  outline: none;
+}
+
+.cartaoDeVoz {
+  display: grid;
+  gap: var(--vx-space-18);
+  padding: var(--vx-space-18);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-10);
+  background: var(--vx-surface-1);
+}
+
+.vozTitulo {
+  margin: 0;
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.vozGrade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--vx-space-18);
+}

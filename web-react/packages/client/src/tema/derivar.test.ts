@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { TOKENS_DE_TEMA } from "../preset/tokens";
 import { hexParaOklch, oklchParaHex } from "./cor";
 import { derivar, LIMITES_DA_SEMENTE, SEMENTE_PADRAO, type Modo } from "./derivar";
-import { verificar } from "./pares";
+import { falhasQueContam, verificar } from "./pares";
 
 /**
  * A promessa do picker, e o teste que a torna verdadeira.
@@ -86,7 +86,9 @@ describe("a semente padrão reproduz a paleta de hoje", () => {
   it("passa nos mesmos pares que o tokens.css passa", () => {
     for (const modo of MODOS) {
       const v = verificar(derivar(SEMENTE_PADRAO[modo]));
-      expect(v.falhas, `${modo}: ${JSON.stringify(v.falhas)}`).toEqual([]);
+      // Só o que NÃO foi dispensado pelo design conta. Ver `EXCECOES`.
+      const f = falhasQueContam(v.falhas, modo);
+      expect(f, `${modo}: ${JSON.stringify(f)}`).toEqual([]);
     }
   });
 });
@@ -125,10 +127,11 @@ describe("nenhuma escolha do usuário produz paleta ilegível", () => {
               ["acento", comMatiz],
             ] as const) {
               const v = verificar(p);
-              if (!v.ok) {
+              const contam = falhasQueContam(v.falhas, modo);
+              if (contam.length > 0) {
                 falhas.push(
                   `${modo} ${rotulo} matiz=${matiz} hAcento=${hAcento} croma=${croma}: ` +
-                    v.falhas
+                    contam
                       .map((f) => `${f.par.fg}/${f.par.bg} ${f.razao.toFixed(2)}`)
                       .join(", "),
                 );
@@ -154,19 +157,23 @@ describe("o croma do acento tem teto, e o teto é o que segura a garantia", () =
       const v = verificar(
         derivar({ ...SEMENTE_PADRAO[modo], acento: "#ff00ff" }),
       );
-      expect(v.falhas, `${modo}: ${JSON.stringify(v.falhas)}`).toEqual([]);
+      const f = falhasQueContam(v.falhas, modo);
+      expect(f, `${modo}: ${JSON.stringify(f)}`).toEqual([]);
     }
   });
 
   it("o acento derivado respeita o teto de croma", () => {
     const paleta = derivar({ ...SEMENTE_PADRAO.escuro, acento: "#ff00ff" });
-    expect(hexParaOklch(paleta["--vx-accent"]).c).toBeLessThanOrEqual(0.115);
+    // Acompanha `TETO_DE_CROMA.escuro`. O teto subiu de 0,11 para 0,12 com a
+    // identidade nova: o acento do design tem croma 0,1154, e um teto abaixo
+    // disso faria a semente de fábrica NÃO reproduzir a própria paleta.
+    expect(hexParaOklch(paleta["--vx-accent"]).c).toBeLessThanOrEqual(0.12);
   });
 
   it("acento cinza não quebra — vira acento sem croma", () => {
     for (const modo of MODOS) {
       const v = verificar(derivar({ ...SEMENTE_PADRAO[modo], acento: "#808080" }));
-      expect(v.falhas).toEqual([]);
+      expect(falhasQueContam(v.falhas, modo)).toEqual([]);
     }
   });
 });

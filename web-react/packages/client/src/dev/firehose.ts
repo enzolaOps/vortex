@@ -10,7 +10,14 @@
  * Regressão de escopo nunca aparece em uso normal de desenvolvimento. Só em
  * servidor grande com usuário real. Isto é o que a pega antes.
  */
-import { monotonicFactory } from "ulid";
+import { monotonicFactory, ulid } from "ulid";
+
+import { definirEnquete } from "../store/enquetes";
+import {
+  definirChamada,
+  definirFalantes,
+  encerrarChamada,
+} from "../store/chamada";
 
 import { count, countMax } from "./stats";
 import {
@@ -21,6 +28,7 @@ import {
   prependHistory,
   registrarServidor,
   seedChannel,
+  semearMudoDoServidor,
   semearVoz,
   semearPresenca,
   startAdapter,
@@ -34,7 +42,18 @@ export const CHANNEL_ID = "01JQ0000000000000000000000";
 export const SERVER_ID = "01JQ0000000000000000000001";
 const USER_COUNT = 40;
 
+/**
+ * Quantas pessoas distintas digitam sob o firehose.
+ *
+ * Três, para o indicador passar pelos três casos que o design desenha: uma
+ * com nome, duas com "e", e a contagem a partir daí. Ver o `case "typing"`.
+ */
+const QUEM_DIGITA = 3;
+
 const userIds: string[] = [];
+
+/** O "eu" do arnês, fixo — o mesmo que `definirUsuarioLocal` recebe. */
+const USUARIO_LOCAL = "01JQ0000000000000001000000";
 
 /**
  * O mundo do arnês: três servidores, com canais e membros.
@@ -50,7 +69,24 @@ const userIds: string[] = [];
 type Servidor = {
   id: string;
   nome: string;
-  canais: { id: string; nome: string; voz?: boolean; dentro?: number }[];
+  canais: {
+    id: string;
+    nome: string;
+    voz?: boolean;
+    dentro?: number;
+    topico?: string;
+    /*
+      ⚠ **O arnês mais pobre que o protocolo, quarta vez.** `privado` e `teto`
+      são campos reais — `default_permissions` e `voice.max_users` — e sem eles
+      o cadeado e o "3/8" da coluna seriam intestáveis, exatamente como
+      `ehMencao` passou três fases sem devolver `true`.
+    */
+    privado?: boolean;
+    teto?: number;
+    /** Segundos entre mensagens. O "Modo lento · 30 s" do design. */
+    lento?: number;
+  }[];
+  categorias?: { id: string; title: string; channels: string[] }[];
   /** Quantos dos `userIds` pertencem a ele. */
   membros: number;
 };
@@ -60,15 +96,47 @@ const MUNDO: Servidor[] = [
     id: SERVER_ID,
     nome: "Vortex",
     canais: [
-      { id: CHANNEL_ID, nome: "spike" },
+      {
+        id: CHANNEL_ID,
+        nome: "spike",
+        topico: "Onde o firehose despeja 10 mil mensagens e a âncora tem que aguentar.",
+      },
       { id: "01JQ0000000000000000000010", nome: "geral" },
-      { id: "01JQ0000000000000000000011", nome: "links" },
-      { id: "01JQ0000000000000000000012", nome: "voz-geral", voz: true, dentro: 2 },
-      { id: "01JQ0000000000000000000013", nome: "voz-jogos", voz: true, dentro: 3 },
+      // Modo lento num canal só: a faixa do composer precisa do caso COM e do
+      // caso SEM. Com em todos, o ramo `0` nunca renderizaria.
+      { id: "01JQ0000000000000000000011", nome: "links", lento: 30 },
+      // Restrito: o cadeado do design. Um canal só, porque o marcador tem de
+      // se distinguir varrendo — se todos tivessem, ele não diria nada.
+      { id: "01JQ000000000000000000001P", nome: "liderança", privado: true },
+      // Sala COM teto e sala SEM: o "3/8" e a ausência dele. Com teto em todas,
+      // o caso `undefined` nunca renderizaria.
+      { id: "01JQ0000000000000000000012", nome: "voz-geral", voz: true, dentro: 2, teto: 8 },
+      // Cheia: 3 de 3. É o estado de aviso, e é o que barra quem clica.
+      { id: "01JQ0000000000000000000013", nome: "voz-jogos", voz: true, dentro: 3, teto: 3 },
       // Sala VAZIA, e ela é o caso mais fácil de quebrar sem perceber: se o
       // componente renderizasse um cabeçalho "ninguém aqui" por canal, cada
       // servidor pagaria altura permanente para dizer que não há nada.
       { id: "01JQ0000000000000000000014", nome: "voz-silencio", voz: true, dentro: 0 },
+    ],
+    categorias: [
+      {
+        id: "01JQC000000000000000CONVERSA",
+        title: "conversa",
+        channels: [
+          "01JQ0000000000000000000010",
+          "01JQ0000000000000000000011",
+          "01JQ000000000000000000001P",
+        ],
+      },
+      {
+        id: "01JQC0000000000000000000VOZ",
+        title: "voz",
+        channels: [
+          "01JQ0000000000000000000012",
+          "01JQ0000000000000000000013",
+          "01JQ0000000000000000000014",
+        ],
+      },
     ],
     membros: USER_COUNT,
   },
@@ -144,7 +212,69 @@ function body(seed: number): string {
   if (seed % 23 === 0) {
     out.push(`https://exemplo.invalid/${"x".repeat(300)}`);
   }
-  return out.join(" ");
+
+  /*
+    Uma em cada 31 menciona VOCÊ.
+
+    Faltava, e a ausência era invisível: `ehMencao` existe no adapter desde a
+    fase 3 e NUNCA devolveu `true` no arnês, porque nenhum corpo gerado continha
+    `<@id>`. O contador de menções do canal e do servidor estava implementado,
+    testado por leitura e jamais visto na tela.
+
+    Uma em 31 é o suficiente para haver várias num canal de 10 mil e raro o
+    bastante para não virar o caso comum — que é justamente o que faz "ir para
+    a próxima" valer alguma coisa. Menção em toda mensagem seria a mesma coisa
+    que menção em nenhuma.
+  */
+  if (seed % 31 === 5) {
+    out.push(`<@${USUARIO_LOCAL}>`);
+  }
+
+  /*
+    ⚠ **Markdown, e a ausência dele era o buraco mais fundo deste arnês.**
+
+    O corpo gerado era só palavras soltas com uma URL ocasional — então o
+    pipeline inteiro de `markdown/analisar.ts` (32 testes, cache por conteúdo,
+    três decisões de segurança sobre link) NUNCA tinha sido visto na tela. O
+    bloco de código com cabeçalho, a lista com marcador, a citação, o título e
+    o negrito existiam, compilavam, tinham teste — e não havia como olhar.
+
+    É a mesma família do `ehMencao` que passou três fases sem devolver `true`,
+    e a sexta vez que este arnês fica mais pobre que o protocolo.
+
+    Frequências baixas e PRIMAS entre si: cada forma aparece o bastante para
+    ser encontrada rolando, e raro o suficiente para a lista continuar
+    parecendo conversa em vez de documentação.
+  */
+  const texto = out.join(" ");
+
+  if (seed % 29 === 4) {
+    return `${texto}
+
+\`\`\`ts
+const allow = base | roles;
+if (memberOverride) return memberOverride;
+\`\`\``;
+  }
+  if (seed % 37 === 6) {
+    return `${texto}
+
+- primeiro item
+- segundo item
+- terceiro item`;
+  }
+  if (seed % 43 === 8) {
+    return `> ${texto}`;
+  }
+  if (seed % 47 === 9) {
+    return `## ${WORDS[seed % WORDS.length]!}
+
+${texto}`;
+  }
+  if (seed % 19 === 2) {
+    return `**${WORDS[seed % WORDS.length]!}** ${texto} _${WORDS[(seed + 3) % WORDS.length]!}_`;
+  }
+  return texto;
 }
 
 /**
@@ -155,6 +285,22 @@ function body(seed: number): string {
  * numérico) e as siglas são todas "U". Nomes reais exercitam o colator, a
  * acentuação e a sigla de duas letras.
  */
+/**
+ * A relação de cada pessoa comigo.
+ *
+ * Uma de cada quatro é amiga, uma em sete mandou pedido, uma em onze recebeu o
+ * meu, e uma em dezenove está bloqueada — números primos entre si para as
+ * faixas não se sobreporem sempre nos mesmos índices.
+ */
+function relacaoDe(i: number): string {
+  if (i === 0) return "User";
+  if (i % 19 === 5) return "Blocked";
+  if (i % 7 === 3) return "Incoming";
+  if (i % 11 === 4) return "Outgoing";
+  if (i % 4 === 1) return "Friend";
+  return "None";
+}
+
 const NOMES =
   "Ana Bruno Camila Diego Elisa Fábio Gabriela Henrique Íris João Kátia Lucas Mariana Nuno Olívia Pedro Quirino Renata Sofia Tiago Úrsula Vitor Wanda Xavier Yara Zeca Alice Bento Clara Davi Emília Felipe Giulia Hugo Isabel Joana Kauê Laura Miguel Nina".split(
     " ",
@@ -167,6 +313,21 @@ function ensureWorld() {
   // mundo duplicaria membros em cada servidor.
   if (mundoPronto) return;
   mundoPronto = true;
+
+/**
+ * Recados de exemplo para a segunda linha da member list.
+ *
+ * Comprimentos diferentes de propósito: a linha trunca em uma só, e uma
+ * amostra de string única não prova nem o truncamento nem o caso longo.
+ */
+const RECADOS = [
+  "no deep work",
+  "Spotify · Khruangbin",
+  "Jogando Factorio",
+  "focada, volto mais tarde",
+  "em reunião até as 16h, mande recado que eu leio depois",
+  "☕",
+];
 
   for (let i = 0; i < USER_COUNT; i++) {
     /**
@@ -189,8 +350,36 @@ function ensureWorld() {
       _id: id,
       username: NOMES[i % NOMES.length]!,
       discriminator: "0001",
+      // Pronomes e status em parte das pessoas: o cartão de perfil precisa
+      // mostrar tanto o caso com quanto o sem — campo opcional que aparece
+      // sempre não prova que a ausência foi tratada.
+      ...(i % 4 === 1 ? { pronouns: "ela/dela" } : {}),
+      ...(i % 4 === 2 ? { pronouns: "ele/dele" } : {}),
+      /*
+        Recados VARIADOS, e não um só repetido.
+
+        Um em cada quatro, com textos de comprimentos diferentes — a segunda
+        linha da member list trunca, e uma amostra de string única não prova
+        que o truncamento funciona nem que a coluna aguenta o caso longo.
+      */
+      ...(i % 4 === 3
+        ? {
+            status: {
+              text: RECADOS[i % RECADOS.length]!,
+              presence: i % 8 === 3 ? "Busy" : "Online",
+            },
+          }
+        : {}),
       online: true,
-      relationship: "None",
+      /*
+        A relação com cada pessoa, para a tela de amigos ter o que mostrar.
+
+        Distribuída por resto de divisão, e não toda "Friend": a tela tem
+        quatro abas e uma aba vazia não prova que ela funciona. Foi por não
+        haver dado assim que `ehMencao` passou três fases sem nunca devolver
+        `true` — o arnês mais pobre que o protocolo esconde a superfície.
+      */
+      relationship: relacaoDe(i),
     } as never);
     // O "eu" está sempre online — a própria presença nunca é ausente.
     semearPresenca(id, i === 0 ? "online" : PRESENCAS[i % PRESENCAS.length]!);
@@ -205,7 +394,18 @@ function ensureWorld() {
         channel_type: "TextChannel",
         server: servidor.id,
         name: canal.nome,
-        ...(canal.voz ? { voice: {} } : {}),
+        // Tópico só em alguns: um arnês onde todo canal tem descrição nunca
+        // exercitaria o cabeçalho sem tópico, que é o caso comum.
+        ...(canal.topico ? { description: canal.topico } : {}),
+        ...(canal.voz ? { voice: { max_users: canal.teto } } : {}),
+        /*
+          `default_permissions` com `ViewChannel` NEGADO — é assim que o
+          protocolo diz "restrito", e é o que `potentiallyRestrictedChannel`
+          lê. Bit 0 (`ViewChannel`), em string porque o protocolo transporta
+          permissão como string decimal.
+        */
+        ...(canal.privado ? { default_permissions: { a: "0", d: "1" } } : {}),
+        ...(canal.lento ? { slowmode: canal.lento } : {}),
       } as never);
     }
 
@@ -213,8 +413,34 @@ function ensureWorld() {
       _id: servidor.id,
       owner: userIds[0],
       name: servidor.nome,
+      /*
+        ⚠ **O servidor CONCEDE ver canal por padrão, e sem isto o arnês mentia
+        sobre o produto.** Servidor real declara `default_permissions`; o
+        arnês não declarava, e nada dependia disso até o cadeado existir.
+
+        É a quinta vez que o arnês aparece mais pobre que o protocolo. As
+        outras quatro estão no `CLAUDE.md`, e o padrão é sempre o mesmo:
+        campo que o protocolo tem, o arnês não gera, e a superfície que
+        depende dele é intestável ou testa o caso errado.
+
+        Estava `0` — nenhuma permissão concedida —, e isso fez a primeira
+        versão do cadeado marcar os SETE canais como restritos, `#geral`
+        incluído. O defeito era do arnês E do critério: ver `ehRestrito`.
+
+        `ViewChannel` é o bit 0. Os outros permanecem como estão — `pode()`
+        já tem a exceção documentada para o desenvolvimento sem sessão.
+      */
+      default_permissions: 1,
       channels: servidor.canais.map((c) => c.id),
-      default_permissions: 0,
+      /*
+        Categorias — e uma delas deixa canal DE FORA de propósito.
+
+        O protocolo força uma categoria "default" para o que sobrou fora de
+        grupo, e ela renderiza sem cabeçalho. Um arnês onde todo canal está
+        categorizado nunca exercitaria esse caminho, que é justamente o mais
+        comum num servidor real recém-criado.
+      */
+      ...(servidor.categorias ? { categories: servidor.categorias } : {}),
       /*
         Cargos, e um deles NÃO é hasteado de propósito.
 
@@ -267,7 +493,21 @@ function ensureWorld() {
         { server: servidor.id, user: userId },
         {
           _id: { server: servidor.id, user: userId },
-          joined_at: new Date(0).toISOString(),
+          /*
+            ⚠ **Datas ESPALHADAS, e `new Date(0)` era o defeito.** Todo mundo
+            entrando em 1970 fazia a coluna "entrou em" da página de membros
+            mostrar "31 de dez. de 1969" em mil linhas — e a ordenação por
+            entrada não tinha o que ordenar. É o "arnês mais pobre que o
+            protocolo" de novo, e o conserto no `map.ts` (data inválida vira
+            ausência) trata o sintoma; este trata a causa.
+
+            Espalhadas em PRIMOS: um passo de 37 dias sobre 250 pessoas cobre
+            uns 25 anos sem repetir mês, o que é o que faz a ordenação e o
+            formato com ano serem exercitados de verdade.
+          */
+          joined_at: new Date(
+            Date.parse("2026-08-30") - i * 37 * 24 * 60 * 60 * 1000,
+          ).toISOString(),
           // Um em cada três tem apelido: o suficiente para ver a mistura de
           // apelido e username na mesma coluna, que é o caso real.
           ...(i % 3 === 0 ? { nickname: `${NOMES[i % NOMES.length]!}-vx` } : {}),
@@ -300,6 +540,16 @@ function ensureWorld() {
         // Fatias disjuntas: ninguém em duas salas ao mesmo tempo, que é o que
         // o protocolo garante e o que a coluna assume.
         const dentro = membros.slice(n * 4, n * 4 + (canal.dentro ?? 0));
+        /* Um por sala silenciado PELO SERVIDOR — o `SRV`. Fora do
+           `semearVoz` porque o fato é do MEMBRO, não do estado de voz:
+           `can_publish` mora em `ServerMember` no protocolo. */
+        dentro.forEach((userId, k) => {
+          /* ⚠ `n === 1 && k === 0` e não `k === 3`: as salas têm 2 e 3
+             pessoas, então o índice 3 nunca existe — a primeira versão
+             semeava um estado inalcançável, que é exatamente o defeito que a
+             semeadura existe para evitar. */
+          semearMudoDoServidor(servidor.id, userId, n === 1 && k === 0);
+        });
         semearVoz(
           canal.id,
           dentro.map((userId, k) => ({
@@ -309,6 +559,18 @@ function ensureWorld() {
             desde: 1700000000000 + k * 60000,
             tela: n === 0 && k === 0,
             camera: n === 1 && k === 1,
+            /*
+              ⚠ **Arnês mais pobre que o protocolo — de novo, e o campo já
+              existia.** `is_publishing` e `is_receiving` chegam no objeto do
+              SDK desde sempre; a semeadura os fixava em `true`, então mudo e
+              surdo por participante eram INTESTÁVEIS e o ícone nasceria
+              inalcançável.
+
+              Um de cada por sala, e nunca a mesma pessoa: com os dois na
+              mesma linha só se veria o fone, porque surdo implica mudo.
+            */
+            mudo: k === 1,
+            surdo: k === 2,
           })),
         );
       });
@@ -317,6 +579,61 @@ function ensureWorld() {
     // para chegada incremental. A mesma separação do `seedChannel`.
     registrarServidor(servidor.id, membros);
   }
+
+  semearConversas();
+}
+
+/**
+ * As conversas da casa: DMs, um grupo e as notas.
+ *
+ * Sem isto a coluna da casa abre vazia e nada da etapa 3 é verificável — o
+ * mesmo buraco que fez a semeadura de não-lidas existir: **o arnês mais pobre
+ * que o protocolo esconde a superfície**.
+ *
+ * `lastMessageId` é ULID de verdade e ESPAÇADO, porque a coluna ordena por
+ * recência decodificando o tempo dele. Todas com o mesmo carimbo dariam uma
+ * ordem estável por acidente, que é o pior tipo de teste: passa e não prova.
+ */
+function semearConversas(): void {
+  const eu = userIds[0]!;
+
+  // Notas: a conversa consigo mesmo, que todo mundo tem uma.
+  client.channels.getOrCreate(
+    "01JQ0000000000000009000000",
+    {
+      _id: "01JQ0000000000000009000000",
+      channel_type: "SavedMessages",
+      user: eu,
+    } as never,
+  );
+
+  // Cinco DMs com gente de relações diferentes, espaçadas no tempo.
+  for (let n = 0; n < 5; n++) {
+    const outro = userIds[1 + n * 3]!;
+    const id = `01JQ000000000000000A${String(n).padStart(6, "0")}`;
+    client.channels.getOrCreate(id, {
+      _id: id,
+      channel_type: "DirectMessage",
+      active: true,
+      recipients: [eu, outro],
+      // Uma hora de distância entre elas: a ordem por recência tem de ser
+      // observável, e não um empate resolvido pelo ID.
+      last_message_id: ulidEm(Date.now() - n * 3_600_000),
+    } as never);
+  }
+
+  // Um grupo, para a linha com contagem de participantes existir.
+  client.channels.getOrCreate(
+    "01JQ000000000000000B000000",
+    {
+      _id: "01JQ000000000000000B000000",
+      channel_type: "Group",
+      name: "spike — off",
+      owner: eu,
+      recipients: [eu, userIds[2]!, userIds[5]!, userIds[8]!],
+      last_message_id: ulidEm(Date.now() - 30 * 60_000),
+    } as never,
+  );
 }
 
 /**
@@ -359,6 +676,87 @@ function sistemaDe(seed: number, autor: string): object | undefined {
   }
 }
 
+let ultimoId = "";
+
+/**
+ * Anexos, em proporções que exercitam os dois tetos.
+ *
+ * Uma em 17 leva imagem, e as proporções são escolhidas para cobrir os casos
+ * que quebram a reserva de espaço: paisagem larga, retrato muito alto (que o
+ * teto de ALTURA precisa segurar, senão a linha vira uma coluna de milhares de
+ * pixels) e quadrado. Uma em 41 leva arquivo sem dimensão, que é o outro
+ * caminho de render.
+ *
+ * A URL aponta para um host que não existe — não há servidor de arquivos aqui.
+ * E isso é adequado: o que precisa ser verificado é que a CAIXA está certa
+ * antes de qualquer byte chegar, e imagem que nunca carrega é o teste mais
+ * duro possível dessa propriedade.
+ */
+const PROPORCOES = [
+  { largura: 1600, altura: 900 },
+  { largura: 600, altura: 1600 },
+  { largura: 800, altura: 800 },
+] as const;
+
+function anexosDe(seed: number) {
+  if (seed % 41 === 7) {
+    return {
+      attachments: [
+        {
+          _id: `f${seed}`,
+          tag: "attachments",
+          filename: `relatorio-${seed}.pdf`,
+          // `size` em bytes, e ele NÃO existia: o rodapé do anexo mostra
+          // nome · peso, e sem este campo a metade direita nunca aparecia.
+          // Quinta vez que o arnês fica mais pobre que o protocolo.
+          size: 120_000 + (seed % 900) * 1_000,
+          metadata: { type: "File" },
+        },
+      ],
+    };
+  }
+  /*
+    ⚠ **Áudio, e ele NÃO existia — nona vez que o arnês fica mais pobre que o
+    protocolo.** `Metadata.type === "Audio"` é do protocolo desde sempre; o
+    firehose só sabia produzir imagem e arquivo, então o player de mensagem de
+    voz nasceria construído e inalcançável, que é a família de defeito que o
+    painel de fixadas já mostrou uma vez.
+
+    Primo com os outros dois (41 e 17) de propósito: períodos que se cruzam
+    pouco, para as três formas de anexo aparecerem na mesma janela.
+  */
+  if (seed % 29 === 5) {
+    return {
+      attachments: [
+        {
+          _id: `f${seed}`,
+          tag: "attachments",
+          filename: `recado-${seed}.ogg`,
+          size: 40_000 + (seed % 300) * 900,
+          metadata: { type: "Audio" },
+        },
+      ],
+    };
+  }
+
+  if (seed % 17 !== 3) return {};
+
+  const p = PROPORCOES[seed % PROPORCOES.length]!;
+  return {
+    attachments: [
+      {
+        _id: `f${seed}`,
+        tag: "attachments",
+        filename: `imagem-${seed}.png`,
+        // Faixa larga de propósito: o formatador troca de unidade em 1.000,
+        // e uma amostra que nunca passa de KB não exerce o caminho de MB.
+        size: 3_000 + (seed % 5_000) * 1_100,
+        metadata: { type: "Image", width: p.largura, height: p.altura },
+      },
+    ],
+  };
+}
+
 function createMessage(seed: number, quando?: number): string {
   const id = quando === undefined ? nextId() : nextId(quando);
   const author = autorDe(seed);
@@ -374,6 +772,78 @@ function createMessage(seed: number, quando?: number): string {
       // `content` — e é por isso que a linha renderizava vazia antes: o
       // componente lia `content` e encontrava string vazia.
       content: system ? "" : body(seed),
+      // Uma em cada 13 é resposta à anterior — o suficiente para a citação
+      // aparecer na janela visível sem dominar a lista, e para o teste de
+      // altura de linha ver os dois casos.
+      ...(seed % 13 === 6 && seed > 0 ? { replies: [ultimoId] } : {}),
+      ...anexosDe(seed),
+      // Reações em parte das mensagens, e uma delas COM o usuário local: sem
+      // isso o chip aceso nunca apareceria, e o estado que decide se o clique
+      // adiciona ou remove ficaria sem exercício.
+      // Algumas fixadas — o painel precisa nascer com conteúdo, e o item
+      // desafixar precisa de alvo.
+      ...(seed % 211 === 40 ? { pinned: true } : {}),
+      /*
+        ⚠ **Uma em 23 nasce EDITADA, e nenhuma nascia — sétima vez que o arnês
+        fica mais pobre que o protocolo.**
+
+        `editedAt` só era escrito pelo evento `update` do firehose (1 em 31,
+        e só durante a corrida) e pelo botão "Editar a última". Com a lista
+        semeada e parada, que é como a tela é olhada na maior parte do tempo,
+        NENHUMA mensagem tinha a marca — e o defeito de a marca não aparecer
+        em linha de continuação sobreviveu por causa disso.
+
+        `+ 1` no tempo para a edição ser depois do envio, que é o único
+        invariante que essa dupla de campos tem.
+      */
+      ...(seed % 23 === 5 ? { edited: new Date((quando ?? Date.now()) + 1).toISOString() } : {}),
+      /*
+        Um cartão de link a cada 29 mensagens.
+
+        ⚠ **O arnês mais pobre que o protocolo, SEXTA vez** — e desta a
+        superfície inteira era código que ninguém tinha visto rodar. O embed
+        vem do SERVIDOR, então nada no cliente o produziria por acidente.
+
+        Três formas, e não uma: com miniatura, sem miniatura, e sem `site_name`
+        (para o caminho que deriva a origem do host da URL). Um arnês com uma
+        forma só provaria que a mais comum funciona.
+
+        Um dos três traz `colour`, que é a barra colorida passando pelo clamp —
+        o caminho que garante que cor de terceiro não some na superfície.
+      */
+      ...(seed % 29 === 7
+        ? {
+            embeds: [
+              {
+                type: "Website",
+                url: `https://exemplo.invalid/spec/${seed}`,
+                title: `Resolução de permissões — v${(seed % 9) + 1}`,
+                description:
+                  "Cadeia completa de @everyone até override de membro, com exemplos de conflito e hierarquia.",
+                ...(seed % 87 === 7 ? {} : { site_name: "exemplo.invalid" }),
+                ...(seed % 58 === 7
+                  ? {
+                      image: {
+                        url: `https://exemplo.invalid/og/${seed}.png`,
+                        width: 1200,
+                        height: 630,
+                        size: "Preview",
+                      },
+                    }
+                  : {}),
+                ...(seed % 116 === 7 ? { colour: "#f0cd8d" } : {}),
+              },
+            ],
+          }
+        : {}),
+      ...(seed % 17 === 4
+        ? {
+            reactions: {
+              "👍": seed % 34 === 4 ? [autorDe(seed + 1), USUARIO_LOCAL] : [autorDe(seed + 1)],
+              ...(seed % 51 === 4 ? { "🔥": [autorDe(seed + 2), autorDe(seed + 3)] } : {}),
+            },
+          }
+        : {}),
       ...(system ? { system } : {}),
       // `as never` como o resto das semeaduras deste arquivo: o payload de
       // hidratação é do PROTOCOLO, e o arnês não pode importar `stoat.js`
@@ -381,6 +851,17 @@ function createMessage(seed: number, quando?: number): string {
     } as never,
     true,
   );
+  ultimoId = id;
+  /*
+    O canal passa a saber qual é a última mensagem.
+
+    É o que um servidor de verdade mantém (`Channel.lastMessageId`), e sem isso
+    o arnês não conseguia exercitar a semeadura de não lidas no `Ready`: sem
+    saber onde a conversa está, não há como dizer se o cursor de leitura ficou
+    para trás. O arnês estava mais pobre que o protocolo, e o teste é que
+    mostrou.
+  */
+  client.channels.updateUnderlyingObject(CHANNEL_ID, { lastMessageId: id });
   return id;
 }
 
@@ -395,6 +876,128 @@ function createMessage(seed: number, quando?: number): string {
  * Publica a lista UMA vez, no fim: publicar por fatia geraria renders de
  * setup que não interessam a ninguém.
  */
+/**
+ * Uma chamada FALSA, para o cartão de voz existir sem servidor.
+ *
+ * ⚠ **Quarta vez que o arnês está mais pobre que o protocolo**, e agora o
+ * padrão já tem nome no `CLAUDE.md`. Sem isto, o cartão de chamada, os
+ * controles e o anel de fala seriam código que ninguém nunca viu — e a etapa 6
+ * inteira dependeria de uma instância de LiveKit para ter a primeira captura de
+ * tela.
+ *
+ * O que ela NÃO simula, de propósito: WebRTC, faixas de áudio e o `Room`. Isto
+ * enche o STORE, que é a fronteira que o app enxerga — a mesma separação entre
+ * carga em massa e caminho de evento que `seedChannel` estabeleceu.
+ */
+export function chamadaFalsa(): () => void {
+  ensureWorld();
+
+  /*
+    ⚠ **A chamada acontece num canal que EXISTE no mundo, e não acontecia.**
+
+    Ela usava `01JQ…0004` — um id que nenhum canal do arnês tem — e uma lista
+    de participantes tirada de `userIds` por índice, sem relação com quem
+    `semearVoz` pôs nas salas. Resultado: o cartão flutuante mostrava quatro
+    pessoas falando, e as MESMAS salas na coluna de canais não acendiam
+    ninguém. O arnês descrevia dois mundos.
+
+    Não deu erro porque as duas metades estavam certas isoladamente: a
+    chamada tinha participantes válidos e a coluna tinha ocupantes válidos. O
+    defeito só existe na relação, que é a mesma família do recuo do rail.
+
+    Agora a sala é `voz-geral` e os falantes são exatamente quem `semearVoz`
+    pôs lá — o anel na coluna e o do cartão passam a descrever o mesmo fato.
+  */
+  const sala = SALA_DO_ARNES;
+  const dentro = ocupantesDe(sala);
+  if (dentro.length === 0) return () => {};
+
+  definirChamada({
+    estado: "dentro",
+    /*
+      ⚠ Aqui o fixo é o DESLOCAMENTO, não o instante — e é a exceção à regra
+      de cima. A ordem de chegada da sala usa epoch congelado porque o que
+      importa é a ordem relativa entre duas pessoas; um cronômetro mede
+      distância até AGORA, e um epoch de 2023 mostraria mil horas de chamada.
+      O deslocamento fixo dá a mesma leitura em toda corrida, que é o que a
+      reprodutibilidade pede.
+    */
+    desde: Date.now() - (42 * 60 + 17) * 1000,
+    channelId: sala,
+    participantes: dentro,
+    mudo: false,
+    surdo: false,
+    camera: false,
+    tela: false,
+    /*
+      ⚠ **Arnês mais pobre que o protocolo, de novo.** A chamada falsa não
+      definia `qualidade`, então ela ficava em `desconhecida` — o estado
+      ANTES do primeiro relatório — e o medidor de quatro barras nascia com
+      zero acesas. Um componente novo que só sabe renderizar o caso vazio é
+      indistinguível de um componente quebrado.
+
+      `otima` porque é o caso comum de uma chamada que acabou de conectar; os
+      outros três se veem trocando esta linha, que é o que o rig serve para
+      permitir.
+    */
+    qualidade: "otima",
+  });
+
+  /*
+    Quem fala muda a cada ~700ms.
+
+    Rápido o bastante para o anel piscar como pisca de verdade, e devagar o
+    bastante para dar para ver. O evento real do LiveKit chega mais rápido que
+    isto — o throttle de 120ms do store efêmero é o que segura os dois casos.
+  */
+  const timer = setInterval(() => {
+    const quantos = 1 + Math.floor((Date.now() / 700) % 2);
+    const inicio = Math.floor(Date.now() / 700) % dentro.length;
+    const falantes = Array.from(
+      { length: quantos },
+      (_, i) => dentro[(inicio + i) % dentro.length]!,
+    );
+    definirFalantes(falantes);
+  }, 700);
+
+  return () => {
+    clearInterval(timer);
+    definirFalantes([]);
+    encerrarChamada();
+  };
+}
+
+/**
+ * A sala onde a chamada falsa acontece — `voz-geral`.
+ *
+ * A primeira das duas com gente, e a que tem teto (`3/8`), então o cartão, o
+ * anel na coluna e a contagem descrevem a mesma sala.
+ */
+const SALA_DO_ARNES = "01JQ0000000000000000000012";
+
+/**
+ * Quem `semearVoz` pôs naquela sala.
+ *
+ * Recalculado com a mesma conta de `ensureWorld` em vez de guardado: uma
+ * segunda cópia da regra é a fonte da divergência que esta função existe para
+ * fechar.
+ */
+function ocupantesDe(salaId: string): string[] {
+  const servidor = MUNDO[0];
+  if (!servidor) return [];
+  const membros = userIds.slice(0, servidor.membros);
+  const vozes = servidor.canais.filter((c) => c.voz);
+  const n = vozes.findIndex((c) => c.id === salaId);
+  const canal = vozes[n];
+  if (!canal) return [];
+  return membros.slice(n * 4, n * 4 + (canal.dentro ?? 0));
+}
+
+/** Um ULID com o tempo pedido — a coluna da casa ordena decodificando isto. */
+function ulidEm(quando: number): string {
+  return ulid(quando);
+}
+
 export async function seed(count: number, chunk = 250): Promise<string[]> {
   // O adapter só entra DEPOIS da carga.
   //
@@ -422,10 +1025,146 @@ export async function seed(count: number, chunk = 250): Promise<string[]> {
     }
   }
   seedChannel(CHANNEL_ID, ids);
+  semearEnquetes(ids);
   ultimaLista = ids;
   // Agora sim: a partir daqui, mensagem nova chega por evento.
   startAdapter();
+
+  /*
+    ⚠ **O mundo nasce com não-lidas, e antes não nascia.**
+
+    Quarta vez que o arnês fica mais pobre que o protocolo, e o padrão já tem
+    nome nas pendências: `ehMencao` passou três fases sem devolver `true`, a
+    semeadura de não-lidas era intestável sem `lastMessageId`, e as quatro abas
+    de amigos abriam vazias. Aqui era o RAIL: o firehose fala sempre no canal
+    aberto, onde `contabilizarNaoLida` sai na primeira linha, e nenhum outro
+    servidor jamais recebia nada.
+
+    Consequência medida no navegador: os três servidores com
+    `data-naolidas="false"`, o estado `atencao` da lâmina nunca renderizado, e
+    quem usa relatando que a marca de não-lida "continua do mesmo jeito" — ela
+    estava correta e não tinha o que mostrar. `falarEmOutroCanal` existia e
+    exercitava o caminho, mas um clique por mensagem: o estado só aparecia para
+    quem já sabia que ele existia.
+
+    DEPOIS de `startAdapter`, de propósito: é o caminho de EVENTO que contabiliza,
+    e é justamente ele que precisa ser exercitado. E fora da janela de medição —
+    isto é estado, não vazão, então o gate não muda.
+
+    ⚠ **E depois de um macrotask, o que não é detalhe.** `reemitirServidor` sai
+    na primeira linha quando ninguém assina aquele servidor — a mesma regra de
+    escopo que segura o gate. Chamando isto de forma síncrona, as nove
+    mensagens caem antes de o rail montar e assinar: a contagem entra no mapa e
+    o snapshot nunca é republicado.
+
+    Medido: os três servidores em `data-naolidas="false"` depois da semeadura, e
+    UM clique em "Falar em outro canal" acendendo os três de uma vez — porque a
+    contagem acumulada estava lá esperando alguém reemitir. Guardar o dado sem
+    publicar é a forma que este defeito toma, e ela não dá erro.
+  */
   return ids;
+}
+
+/**
+ * Duas enquetes no histórico — uma aberta e uma encerrada.
+ *
+ * ⚠ **Sétima vez que o arnês fica mais pobre que o protocolo, e desta vez o
+ * protocolo é que é mais pobre que o produto.** Enquete não existe no Stoat
+ * (ver `store/enquetes.ts`), então o dado não pode vir do SDK como o resto
+ * deste arquivo vem: ele é escrito direto no store de cliente, exatamente como
+ * `definirChamada` já é escrito para a chamada falsa.
+ *
+ * Sem isto a superfície ficaria construída e inalcançável — a família de
+ * defeito que o painel de fixadas já mostrou uma vez: custa manutenção, não
+ * entrega nada, e de fora é idêntica a ausente.
+ *
+ * As DUAS formas, porque elas diferem em cinco detalhes visuais e uma só não
+ * prova a outra: a aberta tem prazo, voto e barra neutra; a encerrada tem
+ * selo, troféu e barra verde.
+ */
+function semearEnquetes(ids: readonly string[]): void {
+  // Perto do fim, para caírem na primeira janela de leitura sem ninguém rolar.
+  const aberta = ids[ids.length - 6];
+  const encerrada = ids[ids.length - 3];
+  if (!aberta || !encerrada) return;
+
+  definirEnquete(aberta, {
+    pergunta: "Qual densidade vai como padrão?",
+    opcoes: [
+      { id: "a", marca: "🅰", texto: "Confortável", votos: 14 },
+      { id: "b", marca: "🅱", texto: "Compacto", votos: 9 },
+    ],
+    maximo: 1,
+    meuVoto: undefined,
+    fechaEm: Date.now() + 22 * 3_600_000,
+    resultadoNoFim: false,
+  });
+
+  definirEnquete(encerrada, {
+    pergunta: "Bitrate padrão das salas?",
+    opcoes: [
+      { id: "a", marca: "🅰", texto: "64 kbps", votos: 16 },
+      { id: "b", marca: "🅱", texto: "96 kbps", votos: 9 },
+    ],
+    maximo: 1,
+    meuVoto: "a",
+    fechaEm: undefined,
+    resultadoNoFim: false,
+  });
+}
+
+/**
+ * Faz o mundo nascer com não-lidas.
+ *
+ * ⚠ **Quarta vez que o arnês fica mais pobre que o protocolo**, e o padrão já
+ * tem nome nas pendências: `ehMencao` passou três fases sem devolver `true`, a
+ * semeadura de não-lidas era intestável sem `lastMessageId`, e as quatro abas
+ * de amigos abriam vazias. Aqui era o RAIL: o firehose fala sempre no canal
+ * aberto, onde `contabilizarNaoLida` sai na primeira linha, e nenhum outro
+ * servidor jamais recebia nada.
+ *
+ * Consequência medida no navegador: os três servidores com
+ * `data-naolidas="false"`, o estado `atencao` da lâmina NUNCA renderizado, e
+ * quem usa relatando que a marca de não-lida "continua do mesmo jeito" — ela
+ * estava correta e não tinha o que mostrar. `falarEmOutroCanal` exercitava o
+ * caminho, mas um clique por mensagem: o estado só existia para quem já sabia
+ * que ele existia.
+ *
+ * ⚠ **Chamado DEPOIS de o arnês abrir o servidor, e isso não é preferência.**
+ * `reemitirServidor` sai na primeira linha quando ninguém assina aquele
+ * servidor — a mesma regra de escopo que segura o gate. Chamando isto dentro
+ * de `seed`, as nove mensagens caem na janela em que o rail ainda não assinou:
+ * a contagem entra no mapa e o snapshot nunca é republicado.
+ *
+ * Medido, e é o que fecha o diagnóstico: depois da semeadura os canais já
+ * mostravam "1 menção" e "2 não lidas", e os SERVIDORES continuavam em zero —
+ * então a contabilidade rodou e só a publicação do rollup faltou. Navegar para
+ * outro servidor acendia os três de uma vez, com a contagem acumulada
+ * intacta. Adiar por tempo não resolvia; o que resolve é a UI já estar
+ * assinando.
+ */
+export async function semearNaoLidas(quantas = 9): Promise<void> {
+  /*
+    Espera o shell assentar, e a razão é a regra de escopo.
+
+    `reemitirServidor` sai na primeira linha quando ninguém assina aquele
+    servidor — é a mesma economia que segura o gate. Chamando isto no mesmo
+    tique em que `selecionarServidor` roda, as mensagens caem antes de o rail
+    re-renderizar e assinar: a contagem entra no mapa e o rollup nunca é
+    publicado. Medido: canais com "1 menção" e "2 não lidas" enquanto os três
+    servidores seguiam em zero.
+
+    ⚠ **E uma lição de método que custou várias tentativas:** três leituras
+    minhas disseram "não funcionou" e as três foram tiradas ANTES do commit da
+    navegação. A mesma família do "medir no dev server" e do "medir com a aba
+    sem compor" que este projeto já registrou duas vezes — o instrumento
+    reprovando o momento em vez do código.
+
+    O valor é folgado de propósito: isto é setup de arnês, roda uma vez, e fora
+    de qualquer janela medida.
+  */
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  for (let i = 0; i < quantas; i++) falarEmOutroCanal();
 }
 
 let ultimaLista: readonly string[] = [];
@@ -644,8 +1383,24 @@ export function startFirehose(
         }
 
         case "typing": {
+          /*
+            ⚠ **Um punhado de pessoas, não as quarenta — oitava vez que o
+            arnês fica mais pobre que o protocolo, agora por EXCESSO.**
+
+            O ciclo antigo percorria `userIds` inteiro, então o conjunto de
+            quem digita saturava em 20 e nunca esvaziava: a faixa dizia "20
+            pessoas estão digitando…" para sempre. Os dois casos que o design
+            desenha — uma pessoa com nome, duas com "e" — eram inalcançáveis,
+            e foi assim que "alguém está digitando…" sobreviveu no ar depois
+            de a member list existir.
+
+            A VAZÃO não muda: a mesma fatia dos 500 ev/s continua sendo de
+            digitação. O que muda é o número de pessoas distintas, e um canal
+            onde três pessoas alternam é mais parecido com um canal de verdade
+            do que um onde vinte digitam sem parar.
+          */
           const channel = client.channels.get(CHANNEL_ID);
-          const user = client.users.get(userIds[n % userIds.length]!);
+          const user = client.users.get(userIds[n % QUEM_DIGITA]!);
           if (channel && user) {
             client.emit(n % 2 ? "channelStartTyping" : "channelStopTyping", channel, user);
           }

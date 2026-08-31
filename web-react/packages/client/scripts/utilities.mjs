@@ -1,0 +1,365 @@
+/**
+ * Toda utility usada no código PRODUZIU CSS?
+ *
+ * Esta é a quarta vez que uma classe morta atravessa typecheck, lint e a
+ * bateria de testes sem um ruído:
+ *
+ *   `py-0.5`  — o ritmo de agrupamento existia no comentário e não na tela
+ *   `size-5`  — avatar acoplado à escala de espaço por coincidência de valor
+ *   `min-w-0` — a lei nº 3 desprotegida, com barra horizontal na coluna
+ *   `w-80`    — a viewport do toast medindo 0px
+ *
+ * A causa é sempre a mesma, e é uma escolha deliberada do projeto: o `@theme`
+ * faz `--spacing-*: initial` para apagar a escala default do Tailwind (lei
+ * nº 4 — tornar impossível ganha de proibir). O efeito colateral é que toda
+ * utility computada como `calc(var(--spacing) * N)` deixa de ser emitida —
+ * silenciosamente, porque o Tailwind não avisa sobre classe que ele decidiu
+ * não gerar.
+ *
+ * O lint anterior (`no-restricted-syntax` contra fracionária) tratava um
+ * SINTOMA. Esta guarda trata a classe inteira do problema: se a string
+ * aparece num `className` e não existe seletor correspondente no CSS
+ * construído, reprova.
+ *
+ * Roda sobre o BUILD, não sobre o fonte — é a única forma de saber o que o
+ * Tailwind realmente emitiu.
+ */
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+
+const BARRA = new RegExp(String.fromCharCode(92,92), "g");
+
+const RAIZ = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const FONTE = join(RAIZ, "src");
+const DIST = join(RAIZ, "dist", "assets");
+
+/**
+ * Classes que NÃO são utilities do Tailwind e não devem ser procuradas.
+ *
+ * `group` e `peer` são marcadores — existem para outras utilities lerem, e
+ * nunca geram regra própria. O resto é utility de verdade e é conferido.
+ */
+const NAO_E_UTILITY = new Set(["group", "peer"]);
+
+function arquivos(dir, out = []) {
+  for (const nome of readdirSync(dir)) {
+    const caminho = join(dir, nome);
+    if (statSync(caminho).isDirectory()) arquivos(caminho, out);
+    else if (nome.endsWith(".tsx") || nome.endsWith(".ts")) out.push(caminho);
+  }
+  return out;
+}
+
+/** O CSS construído, concatenado. */
+function cssConstruido() {
+  let alvo;
+  try {
+    alvo = readdirSync(DIST).filter((n) => n.endsWith(".css"));
+  } catch {
+    return null;
+  }
+  if (alvo.length === 0) return null;
+  return alvo.map((n) => readFileSync(join(DIST, n), "utf8")).join("\n");
+}
+
+/**
+ * Extrai candidatos a utility das strings literais de `className`.
+ *
+ * Só de `className` e das strings passadas a `cn()` dentro dele — variável e
+ * template com interpolação ficam de fora, porque o nome final não é
+ * conhecido aqui e um falso positivo derruba a confiança na guarda inteira.
+ */
+function candidatos(codigo) {
+  const out = new Set();
+  // `className="..."` e `className={cn("...", "...")}` — pega as literais.
+  const blocos = codigo.match(/className=(?:"[^"]*"|{[^}]*})/gs) ?? [];
+
+  /*
+    ⚠ **E as CONSTANTES de classe, que a guarda não via.**
+
+    `components/ui/menu.ts` guarda a lista de utilities de TODO menu do app em
+    `export const menuContent = "…"`. Nenhuma delas aparece dentro de um
+    `className=`, então a guarda passava por cima — e `min-w-48` estava morta
+    desde que foi escrita: `--spacing-48` nunca existiu neste projeto, o
+    Tailwind não emitiu a regra, e o menu simplesmente não tinha largura
+    mínima. Medido: 207px onde o design pede 264.
+
+    O teste para não pegar prosa é estrito de propósito: a constante só conta
+    se TODO token couber na forma de utility (minúscula, sem acento) e pelo
+    menos um deles tiver `-` ou `:`. Comentário em português tem acento ou não
+    tem hífen, e cai fora nos dois casos.
+  */
+  for (const m of codigo.matchAll(/=\s*((?:"[^"]*"\s*\+?\s*)+);/g)) {
+    for (const literal of m[1].match(/"[^"]*"/g) ?? []) {
+      const tokens = literal.slice(1, -1).trim().split(/\s+/).filter(Boolean);
+      /*
+        DUAS ou mais, e é o que separa lista de classe de string qualquer.
+
+        A primeira versão aceitava uma só e acusou cinco: chave de
+        `localStorage` (`vortex:densidade`), nome de data-attribute
+        (`data-vx-coluna`) e nome de var. Todas passam na forma de utility
+        sozinhas; nenhuma aparece ao lado de outra classe.
+      */
+      if (tokens.length < 2) continue;
+      const forma = /^[a-z@[][\w[\]().,%/:*-]*$/;
+      if (!tokens.every((t) => forma.test(t))) continue;
+      if (!tokens.some((t) => t.includes("-") || t.includes(":"))) continue;
+      for (const t of tokens) if (!NAO_E_UTILITY.has(t)) out.add(t);
+    }
+  }
+
+  for (const bloco of blocos) {
+    /*
+      COMENTÁRIO não é código, e a guarda lia os dois.
+
+      Um comentário dentro do `cn()` explicando a regra — e este arquivo os tem
+      aos montes, de propósito — carrega aspas em português. A guarda extraía
+      `"onde no texto"` e acusava `onde`, `no` e `texto` de serem utilities
+      mortas. Sete falsos positivos de uma vez, e falso positivo derruba a
+      confiança na guarda inteira, que é o que a torna inútil.
+
+      Some antes de qualquer outra coisa: `/* *\/` e `//` até o fim da linha.
+    */
+    const semComentario = bloco
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/[^\n]*/g, "");
+
+    // Operandos de COMPARAÇÃO não são classes: `estado === "pending" &&
+    // "opacity-60"` tem duas literais e só a segunda vira CSS.
+    const limpo = semComentario.replace(/[!=]==?\s*"[^"]*"/g, "");
+
+    for (const literal of limpo.match(/"[^"$]*"/g) ?? []) {
+      for (const bruto of literal.slice(1, -1).split(/\s+/)) {
+        const classe = bruto.trim();
+        if (!classe || NAO_E_UTILITY.has(classe)) continue;
+        // Precisa parecer utility: letra ou variante, sem espaço.
+        if (!/^[a-z[]/.test(classe)) continue;
+        out.add(classe);
+      }
+    }
+  }
+  return out;
+}
+
+/** O seletor que o Tailwind emite — pontuação escapada com barra. */
+function seletorDe(classe) {
+  return `.${classe.replace(/[.:[\]/()#%,>+~*='"!&]/g, (c) => `\\${c}`)}`;
+}
+
+const css = cssConstruido();
+
+if (css === null) {
+  console.error(
+    "utilities: dist/assets sem CSS. Rode `pnpm build` antes — esta guarda\n" +
+      "confere o que o Tailwind EMITIU, e isso só existe depois do build.",
+  );
+  process.exit(1);
+}
+
+const mortas = new Map();
+let total = 0;
+
+for (const arquivo of arquivos(FONTE)) {
+  const codigo = readFileSync(arquivo, "utf8");
+  for (const classe of candidatos(codigo)) {
+    total += 1;
+    if (css.includes(seletorDe(classe))) continue;
+    const curto = arquivo.slice(RAIZ.length).replace(/\\/g, "/");
+    if (!mortas.has(classe)) mortas.set(classe, new Set());
+    mortas.get(classe).add(curto);
+  }
+}
+
+/*
+  E o sentido INVERSO: classe de CSS Module que perdeu o consumidor.
+
+  A guarda acima pega `className` que não produz CSS. Este bloco pega CSS que
+  nenhum `className` consome — o outro lado da mesma moeda, e um que a guarda
+  original não via.
+
+  Nasceu na hora: a lâmina passou a carregar "não lida" na lista de canais, o
+  `.ponto` de 8px que fazia esse trabalho saiu do TSX, e o CSS dele ficou.
+  Typecheck, lint, 177 testes e a própria guarda de utilities passaram sem um
+  ruído — regra morta não quebra nada, só engorda a folha e mente sobre o que a
+  interface faz para quem for ler o arquivo depois.
+
+  A busca é por `css.nome` e `css["nome"]` no TSX irmão. Acesso dinâmico
+  (`css[variavel]`) não é rastreável, então um módulo que faça isso é
+  dispensado inteiro em vez de gerar acusação falsa — guarda que erra é guarda
+  que alguém desliga.
+*/
+const orfas = new Map();
+
+/** `css.X` sem `.X` no módulo — ver a nota da terceira direção. */
+const penduradas = new Map();
+
+/*
+  Quem importa cada `.module.css`, e com que nome local.
+
+  A primeira versao conferia so o TSX IRMAO, e isso e um falso positivo
+  esperando para acontecer: `CabecalhoDeCanal.module.css` tem uma `.coluna`
+  usada de `App.tsx`, via `import cssCabecalho from "..."`. A guarda a acusou
+  de morta — e a regra em questao e justamente a que carrega o `block-size:
+  100%` sem o qual o virtualizador monta as dez mil linhas de uma vez.
+
+  Guarda que erra e guarda que alguem desliga, e essa teria sido desligada com
+  razao. O alias importa porque ninguem e obrigado a chamar de `css`.
+*/
+const importadores = new Map();
+const fontes = new Map();
+for (const arquivo of arquivos(FONTE)) {
+  const codigo = readFileSync(arquivo, "utf8");
+  fontes.set(arquivo, codigo);
+  for (const m of codigo.matchAll(
+    /import\s+(\w+)\s+from\s+"([^"]+\.module\.css)"/g,
+  )) {
+    const alvo = resolve(dirname(arquivo), m[2]);
+    if (!importadores.has(alvo)) importadores.set(alvo, []);
+    importadores.get(alvo).push({ arquivo, alias: m[1] });
+  }
+}
+
+for (const [modulo, usos] of importadores) {
+  let regras;
+  try {
+    regras = readFileSync(modulo, "utf8");
+  } catch {
+    continue;
+  }
+
+  // Acesso dinamico nao e rastreavel: dispensa o modulo inteiro em vez de
+  // gerar acusacao falsa.
+  const dinamico = usos.some((u) =>
+    new RegExp(String.raw`\b${u.alias}\[(?!["'])`).test(fontes.get(u.arquivo)),
+  );
+  if (dinamico) continue;
+
+  /*
+    TODAS as classes de cada seletor, e nao so a primeira.
+
+    `.forma.larga` declara duas; capturar so a inicial acusaria `.larga` de
+    inexistente — falso positivo que a terceira direcao, logo abaixo, produziu
+    em tres arquivos na primeira execucao.
+  */
+  const declaradas = new Set();
+  /*
+    ⚠ Comentario fora ANTES, senao um `Canal.module.css` citado em prosa vira
+    duas classes declaradas (`.module` e `.css`). A primeira versao desta
+    varredura fez exatamente isso, e passou a inventar regras orfas.
+  */
+  const semComentario = regras.replace(/\/\*[\s\S]*?\*\//g, "");
+  for (const bloco of semComentario.matchAll(/([^{}]+)\{/g)) {
+    for (const m of bloco[1].matchAll(/\.([A-Za-z][\w-]*)/g)) {
+      declaradas.add(m[1]);
+    }
+  }
+
+  /*
+    ⚠ **`composes` conta como consumo, e a guarda nao sabia.**
+
+    Uma regra referenciada por `composes:` de outra regra do mesmo arquivo esta
+    viva — apagar `.celula` quebraria `.meta` e `.mono`, que compoem a partir
+    dela. Sem isto a guarda acusava a BASE de uma familia de classes como
+    morta, e o conserto obvio (inline nas duas filhas) seria justamente a
+    duplicacao que a base existe para evitar.
+
+    Achado na tabela compartilhada de Membros e Convites, na primeira corrida
+    depois de ela existir.
+  */
+  const compostas = new Set();
+  for (const m of semComentario.matchAll(/composes:\s*([^;]+);/g)) {
+    for (const nome of m[1].split(/\s+/)) {
+      if (/^[A-Za-z][\w-]*$/.test(nome) && nome !== "from") compostas.add(nome);
+    }
+  }
+
+  for (const nome of declaradas) {
+    if (compostas.has(nome)) continue;
+    const usada = usos.some((u) => {
+      const codigo = fontes.get(u.arquivo);
+      return (
+        new RegExp(String.raw`\b${u.alias}\.${nome}\b`).test(codigo) ||
+        codigo.includes(`${u.alias}["${nome}"]`)
+      );
+    });
+    if (usada) continue;
+    const curto = modulo.slice(RAIZ.length).replace(BARRA, "/");
+    if (!orfas.has(curto)) orfas.set(curto, []);
+    orfas.get(curto).push(nome);
+  }
+
+  /*
+    A TERCEIRA direcao: `css.X` onde o modulo nao tem `.X`.
+
+    As duas de cima cobriam `className` sem CSS e regra sem consumidor.
+    Faltava a mais silenciosa das tres: um membro que nao existe resolve para
+    `undefined`, o React descarta o `className`, e o elemento fica SEM CLASSE
+    NENHUMA. Nao ha erro, nao ha aviso, e a tela renderiza com o default do
+    navegador dentro de um app escuro.
+
+    Achada por medicao e nao por suspeita: um commit que reescreveu
+    `Canal.module.css` apagou nove regras e deixou o TSX apontando para elas.
+    A secao de assunto do canal ficou sem estilo NENHUM, e as duas guardas
+    existentes passaram verdes.
+  */
+  for (const u of usos) {
+    const codigo = fontes.get(u.arquivo);
+    const busca = new RegExp(String.raw`\b${u.alias}\.([A-Za-z]\w*)`, "g");
+    for (const m of codigo.matchAll(busca)) {
+      if (declaradas.has(m[1])) continue;
+      const arq = u.arquivo.slice(RAIZ.length).replace(BARRA, "/");
+      if (!penduradas.has(arq)) penduradas.set(arq, new Set());
+      penduradas.get(arq).add(`${u.alias}.${m[1]}`);
+    }
+  }
+}
+
+if (penduradas.size > 0) {
+  console.error("\nutilities: referência(s) a classe que o módulo não tem.\n");
+  for (const [arq, nomes] of penduradas) {
+    console.error(`  ${arq}`);
+    for (const n of [...nomes].sort()) console.error(`      ${n}`);
+  }
+  console.error(
+    "\nO membro resolve para `undefined`, o React descarta o `className` e o\n" +
+      "elemento fica SEM CLASSE — sem erro e sem aviso. Ou a regra foi apagada\n" +
+      "e precisa voltar, ou o nome mudou e o TSX ficou para trás.\n",
+  );
+  process.exit(1);
+}
+
+if (orfas.size > 0) {
+  console.error("\nutilities: classe(s) de CSS Module sem consumidor.\n");
+  for (const [arq, nomes] of orfas) {
+    console.error(`  ${arq}`);
+    for (const n of nomes) console.error(`      .${n}`);
+  }
+  console.error(
+    "\nNenhum `className` do TSX irmão referencia essas regras. Regra morta\n" +
+      "não quebra nada — só engorda a folha e mente sobre o que a interface\n" +
+      "faz. Apague, ou ligue ao elemento que deveria usá-la.\n",
+  );
+  process.exit(1);
+}
+
+if (mortas.size === 0) {
+  console.log(
+    `utilities: ${total} classes conferidas, todas emitiram CSS; ` +
+      `nenhuma regra de módulo sem consumidor.`,
+  );
+  process.exit(0);
+}
+
+console.error(`\nutilities: ${mortas.size} classe(s) NÃO produziram CSS.\n`);
+for (const [classe, arqs] of [...mortas].sort()) {
+  console.error(`  ${classe}`);
+  for (const a of arqs) console.error(`      ${a}`);
+}
+console.error(
+  "\nEssas classes não existem na folha construída: o elemento não recebe\n" +
+    "o estilo que o código diz que ele tem, e nada falha.\n\n" +
+    "Causa quase sempre a mesma: `--spacing-*: initial` no @theme remove a\n" +
+    "base do Tailwind v4, e utility computada como `calc(var(--spacing) * N)`\n" +
+    "deixa de ser emitida. Use um degrau da escala (1–6) ou um CSS Module.\n",
+);
+process.exit(1);

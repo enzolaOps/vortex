@@ -1,0 +1,181 @@
+/* ============================================================
+   Acesso — quem entra e o que precisa fazer antes
+   ------------------------------------------------------------
+   Medido no design: coluna de 720, cartões com gap 10, fila de
+   aprovação num painel `surface-1` com raio 10 e borda hairline,
+   linha de pedido com avatar de 30 e dois botões redondos.
+   ============================================================ */
+
+.pagina {
+  display: grid;
+  gap: var(--vx-space-24);
+  align-content: start;
+  /* 720 é a largura desta página no design. */
+  max-inline-size: 720px;
+}
+
+/* Os três modos de entrada. `gap: 10` é do design, e é maior que o dos
+   cartões de Segurança (8) porque estes são a decisão de abertura. */
+.modos {
+  display: grid;
+  gap: var(--vx-space-10);
+}
+
+/* ------------------------------------------------- fila de aprovação */
+
+/*
+  Painel com moldura, e não cartão de linhas: a fila tem CABEÇALHO próprio com
+  ação (`Aprovar todos`), e um cartão sem moldura deixaria esse cabeçalho
+  boiando junto ao título da seção.
+*/
+.fila {
+  overflow: hidden;
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-10);
+  background: var(--vx-surface-1);
+}
+
+.filaTopo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-16);
+  padding: var(--vx-space-14) var(--vx-space-16);
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+.filaTitulo {
+  font-size: var(--vx-size-base);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.filaDetalhe {
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+.pedido {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-12) var(--vx-space-16);
+}
+
+/* ⚠ O design usa véu a 4% entre pedidos e 6% abaixo do cabeçalho — dois
+   degraus de régua. Aqui é `hairline-06` nos dois: a escala tem três degraus
+   (6 · 10 · 16) e um quarto a 4% custaria token novo para uma diferença que
+   some contra `surface-1`. */
+.pedido + .pedido {
+  border-block-start: 1px solid var(--vx-hairline-06);
+}
+
+.pedidoTextos {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.pedidoNome {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-07);
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.pedidoDetalhe {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.pedidoAcoes {
+  display: flex;
+  gap: var(--vx-space-06);
+}
+
+/*
+  Os dois botões redondos do design: 30×30, pílula, fundo tingido a 16%.
+  ⚠ `aria-label` é obrigatório neles — o conteúdo é um glifo, e "✓" não é nome
+  de controle para quem ouve a tela.
+*/
+.aprovar,
+.recusar {
+  display: grid;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 30px;
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  cursor: pointer;
+}
+
+.aprovar {
+  background: color-mix(in oklab, var(--vx-success) 16%, transparent);
+  color: var(--vx-success-text);
+}
+
+.recusar {
+  background: color-mix(in oklab, var(--vx-danger) 16%, transparent);
+  color: var(--vx-danger-text);
+}
+
+.aprovar:focus-visible,
+.recusar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* ----------------------------------------------------- requisitos */
+
+.requisitos {
+  padding: var(--vx-space-16) var(--vx-space-18);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-10);
+  background: var(--vx-surface-1);
+}
+
+.requisitosTitulo {
+  margin-block-end: var(--vx-space-12);
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.requisito {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-16);
+  padding-block: var(--vx-space-12);
+}
+
+.requisito:first-of-type {
+  padding-block-start: 0;
+}
+
+.requisito:last-of-type {
+  padding-block-end: 0;
+}
+
+.requisito + .requisito {
+  border-block-start: 1px solid var(--vx-hairline-06);
+}
+
+.requisitoTitulo {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.requisitoDetalhe {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.recado {
+  margin: 0;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+  text-wrap: pretty;
+}

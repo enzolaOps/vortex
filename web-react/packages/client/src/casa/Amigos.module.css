@@ -1,0 +1,168 @@
+/* ============================================================
+   Pessoas — amigos, pedidos e bloqueados
+   ------------------------------------------------------------
+   Ocupa a coluna de CONTEÚDO, no lugar da lista de mensagens.
+   Diferente dela em quase tudo: não é virtualizada (a lista de
+   amigos é curta por natureza social, não por acidente), não é
+   ancorada, e é lida procurando um nome — não acompanhando o
+   que chega.
+   ============================================================ */
+
+.tela {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  block-size: 100%;
+  min-inline-size: 0;
+  container-type: inline-size;
+  --anel: var(--vx-surface-0);
+}
+
+.cabecalho {
+  display: grid;
+  gap: var(--vx-space-12);
+  padding-inline: var(--vx-space-16);
+  padding-block: var(--vx-space-16);
+  border-block-end: 1px solid var(--vx-border-subtle);
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--vx-size-xl);
+  font-weight: 600;
+  line-height: var(--vx-leading-title);
+  color: var(--vx-text-1);
+}
+
+/*
+  O campo e o botão lado a lado, com o campo mandando na largura.
+
+  `align-items: end` porque o `Campo` traz rótulo em cima: alinhar pelo topo
+  deixaria o botão flutuando na altura do rótulo em vez de na do campo.
+*/
+.adicionar {
+  display: flex;
+  align-items: end;
+  gap: var(--vx-space-08);
+  max-inline-size: var(--vx-medida);
+}
+
+.adicionar > :first-child {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+.rolagem {
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+  padding-inline: var(--vx-space-16);
+  padding-block: var(--vx-space-12);
+}
+
+.lista {
+  display: grid;
+  gap: var(--vx-space-04);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  /* A mesma medida de leitura da mensagem: uma linha de pessoa esticada até
+     2000px separa o nome das ações por uma faixa vazia inútil. */
+  max-inline-size: var(--vx-medida);
+}
+
+.pessoa {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-12);
+  min-inline-size: 0;
+  padding-inline: var(--vx-space-08);
+  padding-block: var(--vx-space-08);
+  border-radius: var(--vx-radius-06);
+}
+
+.pessoa:hover {
+  background: var(--vx-surface-1);
+}
+
+.marca {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  inline-size: var(--vx-avatar-lg);
+  block-size: var(--vx-avatar-lg);
+  border-radius: var(--vx-radius-12);
+  background: var(--vx-surface-2);
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+}
+
+.ponto {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-end: 0;
+}
+
+.texto {
+  display: grid;
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+.nome {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-md);
+  font-weight: 500;
+}
+
+/*
+  O nome de usuário, apagado mas presente.
+
+  É dado OPERACIONAL: é ele que se digita para adicionar alguém. Escondê-lo
+  faria a única informação acionável da linha depender de a pessoa já saber.
+*/
+.usuario {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+}
+
+.acoes {
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--vx-space-04);
+}
+
+/*
+  Coluna estreita: o formulário empilha e as ações quebram.
+
+  Container query e não media query — esta tela vive na coluna de conteúdo, que
+  muda de largura quando os slots laterais mudam. Reagir à janela erraria toda
+  vez que alguém arrastasse uma borda.
+*/
+@container (inline-size < 520px) {
+  .adicionar {
+    display: grid;
+    align-items: stretch;
+  }
+
+  .acoes {
+    flex-wrap: wrap;
+    justify-content: end;
+  }
+}
+
+@container (inline-size < 380px) {
+  .usuario {
+    display: none;
+  }
+}

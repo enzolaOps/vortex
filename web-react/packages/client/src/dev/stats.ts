@@ -70,6 +70,24 @@ export type Counters = {
    */
   alturaSoma: number;
   alturaAmostras: number;
+  /**
+   * A mesma medição, partida por TIPO de linha.
+   *
+   * Uma média só esconde a variação que importa: linha de sistema é uma
+   * fração da altura de uma linha de fala, e linha que abre grupo carrega
+   * cabeçalho que a continuação não tem. Estimar todas pelo mesmo número faz
+   * a barra de rolagem mentir na proporção da frequência de cada tipo.
+   *
+   * Medir antes de estimar é o que separa esta correção do `estimateSize: 44`
+   * que sobreviveu três fases: os 44 nunca foram medidos, e os números daqui
+   * saem da tela.
+   */
+  alturaSistemaSoma: number;
+  alturaSistemaAmostras: number;
+  alturaGrupoSoma: number;
+  alturaGrupoAmostras: number;
+  alturaContinuaSoma: number;
+  alturaContinuaAmostras: number;
 };
 
 const zero = (): Counters => ({
@@ -90,6 +108,12 @@ const zero = (): Counters => ({
   eventos: 0,
   alturaSoma: 0,
   alturaAmostras: 0,
+  alturaSistemaSoma: 0,
+  alturaSistemaAmostras: 0,
+  alturaGrupoSoma: 0,
+  alturaGrupoAmostras: 0,
+  alturaContinuaSoma: 0,
+  alturaContinuaAmostras: 0,
 });
 
 let counters = zero();

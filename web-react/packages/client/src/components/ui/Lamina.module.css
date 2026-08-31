@@ -10,6 +10,25 @@
   position: absolute;
   inset-inline-start: 0;
   inset-block-start: 50%;
+  /*
+    ⚠ **E sobe METADE da própria altura, senão ela não está no meio de nada.**
+
+    `inset-block-start: 50%` põe a BORDA DE CIMA no meio da linha, e a peça
+    cresce para baixo a partir dali. Medido no rail: item de 48px, centro em
+    24, e a lâmina ocupando de 24 a 44 — centro em 34, **dez pixels abaixo**
+    do centro do avatar que ela marca. O mesmo em toda linha da lista de
+    canais.
+
+    Foi assim desde que a lâmina existe, e nenhuma guarda pegaria: a peça está
+    posicionada, visível, com a cor e o tamanho certos. Só está no lugar
+    errado, e o erro é constante — o que faz a coluna inteira parecer
+    desalinhada em vez de fazer um item parecer quebrado.
+
+    `translate` e não `margin`: ele compõe com o `scale` da animação na mesma
+    transformação, roda no compositor e não toca layout. Com margem, a peça
+    mudaria de posição durante a transição de altura.
+  */
+  translate: 0 -50%;
   inline-size: var(--vx-lamina-w);
   block-size: var(--vx-lamina-h);
   background: currentColor;
@@ -43,17 +62,66 @@
     opacity var(--vx-duration-fast) var(--vx-ease-out);
 }
 
-.lamina[data-ativa="true"] {
+.lamina[data-estado="ativa"] {
   scale: 1 1;
   opacity: var(--vx-lamina-1);
+}
+
+/*
+  Não lido: altura CHEIA, cor de texto.
+
+  Altura cheia porque não lido tem que ser encontrável varrendo a coluna sem
+  ler — é o mesmo trabalho que o divisor de "novas mensagens" faz dentro do
+  canal, feito na lista de canais. Cor de texto e não acento porque o acento
+  ficou reservado para POSIÇÃO: "você está aqui" e, no hover, "você estaria
+  aqui". Não lido é informação sobre o canal, não um destino.
+
+  Isto substitui um ponto de 8px na borda de fim da linha. O ponto obrigava o
+  olho a caçar num limite direito irregular, que é onde os nomes de canal
+  terminam; a lâmina põe todos os avisos na mesma vertical.
+*/
+.lamina[data-estado="atencao"] {
+  scale: 1 1;
+  opacity: var(--vx-lamina-1);
+  background: var(--vx-text-1);
 }
 
 /*
   Não-ativo mas presente: um toco, no terceiro degrau da escala da
   marca. É a opacidade escalonada do ícone virando estado de interface —
   mesmo mecanismo, mesma leitura, e nenhuma sombra envolvida.
+
+  NEUTRO, e não acento. Os dois consumidores pintam `color: var(--vx-accent)`
+  no elemento, então o toco herdava acento junto: medido no navegador, nove
+  lâminas de acento na tela ao mesmo tempo, sete delas tocos permanentes.
+  Acento que aparece em todo item da lista deixa de significar "aqui" — ele
+  não marca mais nada, só colore.
+
+  O toco continua existindo pelas duas razões pelas quais foi desenhado: ele é
+  de onde a transição cresce, e é a pista de que aquela borda é o lugar do
+  indicador. Nenhuma das duas precisa da cor de ação.
 */
-.lamina[data-ativa="false"] {
+.lamina[data-estado="repouso"] {
   scale: 1 0.3;
   opacity: var(--vx-lamina-3);
+  background: var(--vx-text-3);
+}
+
+/*
+  E o hover ganha o degrau do meio.
+
+  Com o toco neutro sobrou um vão entre "existe" e "é aqui", e hover é
+  exatamente o que ocupa esse vão: a lâmina volta ao acento e cresce até a
+  metade, dizendo "aqui SE você clicar". Três degraus legíveis onde antes
+  havia dois, e o acento volta a significar posição — atual ou pretendida.
+
+  `:hover > .lamina` e não uma classe do consumidor: o seletor de pai é o que
+  mantém a decisão dentro deste arquivo. Se dependesse do `.canal` e do
+  `.servidor`, cada consumidor novo teria que lembrar de repetir a regra, e o
+  primeiro que esquecesse voltaria ao toco sem hover sem que nada falhasse.
+*/
+:hover > .lamina[data-estado="repouso"] {
+  scale: 1 0.6;
+  opacity: var(--vx-lamina-2);
+  background: currentColor;
 }

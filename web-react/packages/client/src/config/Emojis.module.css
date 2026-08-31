@@ -1,0 +1,54 @@
+/* ============================================================
+   Emojis do servidor
+   ------------------------------------------------------------
+   Grade e não lista: o que distingue um emoji do outro é a
+   IMAGEM, e uma lista de uma coluna com miniatura de 32px
+   desperdiça a largura toda para mostrar o que menos importa.
+   ============================================================ */
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--vx-space-08);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  min-inline-size: 0;
+  padding-inline: var(--vx-space-08);
+  padding-block: var(--vx-space-08);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-1);
+}
+
+/*
+  Tamanho FIXO, e não `max-inline-size`.
+
+  Emoji chega em qualquer proporção, e um teto sozinho deixaria a linha mudar
+  de altura conforme o arquivo — a mesma armadilha do anexo na linha de
+  mensagem, onde `max-inline-size` produziu uma caixa de 0x0. `object-fit`
+  encaixa sem distorcer.
+*/
+.imagem {
+  flex: 0 0 auto;
+  inline-size: 32px;
+  block-size: 32px;
+  object-fit: contain;
+}
+
+.nome {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-2);
+}

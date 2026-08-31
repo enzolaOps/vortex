@@ -1,0 +1,272 @@
+/* ============================================================
+   Visualizador de mídia — o lightbox do design
+   ------------------------------------------------------------
+   Deixou de ser um diálogo com uma imagem dentro e virou um
+   PALCO: barra de cima com identidade e ações, setas nas
+   laterais, tira de miniaturas e zoom embaixo.
+   ============================================================ */
+
+/*
+  Quase a janela inteira, e as barras FLUTUAM sobre a mídia.
+
+  O design as desenha com gradiente por cima da imagem, não empilhadas acima e
+  abaixo dela. A diferença não é estética: com as barras no fluxo, a área útil
+  da imagem encolheria ~120px, que é justamente o que se ganha ao abrir o
+  lightbox.
+*/
+.painel {
+  position: relative;
+  inline-size: min(1100px, 92vw);
+  /*
+    ⚠ **`max-inline-size` também, e sem ele o palco media 512px.**
+
+    O `.painel` do `Dialog` fixa `max-inline-size: 32rem` — o certo para um
+    formulário, e um teto que o lightbox não pode herdar. Declarar só
+    `inline-size` não basta: o máximo do outro módulo continua vencendo, e o
+    resultado é uma galeria do tamanho de um modal de confirmação.
+  */
+  max-inline-size: min(1100px, 92vw);
+  block-size: min(760px, 88vh);
+  padding: 0;
+  overflow: hidden;
+  /* Quase preto e não `surface-4`: o palco existe para a mídia, e superfície
+     clara em volta rouba contraste dela. */
+  background: rgb(6 8 10 / 92%);
+}
+
+.palco {
+  block-size: 100%;
+  display: grid;
+  place-items: center;
+  /*
+    A folga das barras flutuantes, somada da ESCALA.
+
+    O design escreve 56 / 76 / 72; aqui os três saem de degraus (`space-4 +
+    space-7`, `space-6 + space-7`), o que dá 56 / 72 / 72. O lado perde 4px, e
+    é a mesma troca já registrada no raio de 14 do ladrilho do rail: um degrau
+    fora da escala custa mais que a diferença que ele resolve.
+
+    O que os números significam: em cima, a barra de identidade; embaixo, a
+    tira de miniaturas mais o zoom; nos lados, as setas de 36px mais a margem
+    delas. Encolher qualquer um faz a mídia passar por baixo do controle.
+  */
+  padding: calc(var(--vx-space-16) + var(--vx-space-40))
+    calc(var(--vx-space-32) + var(--vx-space-40));
+  overflow: auto;
+}
+
+/*
+  A imagem cabe no palco por padrão, e o zoom cresce a partir daí.
+
+  `max-*` em vez de tamanho fixo, com a proporção vinda do metadata — sem os
+  dois, uma imagem alta empurra o palco e uma imagem sem dimensão nasce 0×0 e
+  cresce ao carregar, que é a armadilha que a reserva de espaço do anexo já
+  ensinou uma vez.
+*/
+.imagem {
+  max-inline-size: 100%;
+  max-block-size: 100%;
+  inline-size: auto;
+  block-size: auto;
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-2);
+  transition: scale var(--vx-duration-base) var(--vx-ease-out);
+}
+
+/* ------------------------------------------------------- barras */
+
+.barraSuperior,
+.barraInferior {
+  position: absolute;
+  inset-inline: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-12);
+  /* 18 no eixo inline, do design. */
+  padding: var(--vx-space-12) var(--vx-space-18);
+  z-index: var(--vx-z-realce);
+}
+
+/*
+  Gradiente e não cor sólida.
+
+  Uma faixa opaca sobre a imagem corta o topo dela numa reta; o gradiente
+  devolve a legibilidade do texto sem esconder o que está por baixo — e é o
+  que o design desenha.
+*/
+.barraSuperior {
+  inset-block-start: 0;
+  background: linear-gradient(180deg, rgb(6 8 10 / 90%), rgb(6 8 10 / 0%));
+}
+
+.barraInferior {
+  inset-block-end: 0;
+  background: linear-gradient(0deg, rgb(6 8 10 / 90%), rgb(6 8 10 / 0%));
+}
+
+.identidade {
+  min-inline-size: 0;
+  display: grid;
+}
+
+.autor {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contexto {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-2);
+}
+
+.acoesDoTopo {
+  margin-inline-start: auto;
+  display: flex;
+  gap: var(--vx-space-02);
+}
+
+.acaoDoTopo {
+  display: grid;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 30px;
+  flex: none;
+  border-radius: var(--vx-radius-06);
+  /* Véu claro sobre o palco escuro: `state-hover` é definido sobre a
+     superfície do app, e aqui a superfície é a mídia. */
+  background: rgb(255 255 255 / 6%);
+  color: var(--vx-text-2);
+  cursor: pointer;
+}
+
+.acaoDoTopo svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+.acaoDoTopo:hover:not(:disabled) {
+  background: rgb(255 255 255 / 12%);
+  color: var(--vx-text-1);
+}
+
+.acaoDoTopo:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.acaoDoTopo:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* -------------------------------------------------------- setas */
+
+.seta {
+  position: absolute;
+  inset-block-start: 50%;
+  translate: 0 -50%;
+  display: grid;
+  place-items: center;
+  inline-size: 36px;
+  block-size: 36px;
+  border-radius: var(--vx-radius-pill);
+  background: rgb(255 255 255 / 8%);
+  color: var(--vx-text-1);
+  cursor: pointer;
+  z-index: var(--vx-z-realce);
+}
+
+.seta[data-lado="inicio"] {
+  inset-inline-start: var(--vx-space-16);
+}
+
+.seta[data-lado="fim"] {
+  inset-inline-end: var(--vx-space-16);
+}
+
+.seta svg {
+  inline-size: var(--vx-icon-2);
+  block-size: var(--vx-icon-2);
+}
+
+.seta:hover:not(:disabled) {
+  background: rgb(255 255 255 / 16%);
+}
+
+/*
+  Na ponta a seta fica DESABILITADA, não escondida.
+
+  Sumir com ela move a outra de lugar e faz a pessoa reclicar no vazio; ficar
+  esmaecida diz "acabou" sem mexer no alvo que ainda funciona.
+*/
+.seta:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.seta:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------- miniaturas */
+
+.miniaturas {
+  display: flex;
+  gap: var(--vx-space-04);
+  flex: none;
+}
+
+.miniatura {
+  inline-size: 44px;
+  block-size: 32px;
+  border-radius: var(--vx-radius-05);
+  cursor: pointer;
+  /* Xadrez: a miniatura é o quadro, não a imagem — carregar N versões da mesma
+     mídia para desenhar uma tira de 44px seria pagar a galeria duas vezes. */
+  background: repeating-linear-gradient(
+    135deg,
+    var(--vx-surface-3) 0 8px,
+    color-mix(in oklab, var(--vx-surface-3) 45%, var(--vx-surface-2)) 8px 16px
+  );
+}
+
+.miniatura[data-atual] {
+  box-shadow: 0 0 0 2px var(--vx-accent);
+}
+
+.miniatura:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.legenda {
+  flex: 1;
+  min-inline-size: 0;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.zoom {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  flex: none;
+}
+
+/* Mono e largura estável: "100%" virando "50%" não pode mover os botões. */
+.zoomValor {
+  min-inline-size: 4ch;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-2);
+  text-align: center;
+}

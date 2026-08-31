@@ -1,0 +1,134 @@
+/* ============================================================
+   Ações do cabeçalho de canal
+   ------------------------------------------------------------
+   Ícones sem rótulo, e por isso cada um carrega tooltip e
+   `aria-label`. Um alvo de 32px numa barra de 32px de altura é
+   o mínimo confortável para ponteiro; abaixo disso a pessoa
+   erra e clica no nome do canal.
+   ============================================================ */
+
+.acoes {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-02);
+  /* Empurra para a borda final. O tópico fica com o espaço do meio, e é ele
+     que deve ceder primeiro — identidade e ação ancoram nas pontas. */
+  margin-inline-start: auto;
+  /*
+    ⚠ **`min-inline-size: 0`, e sem ele o cabeçalho ESTOURAVA.**
+
+    Medido numa janela de 700px: a faixa de ações media 350px e terminava em
+    x=765 dentro de uma coluna de 380 — 65px de transbordo, escondidos pelo
+    `overflow` da coluna em vez de reportados. Filho de flex tem
+    `min-width: auto` por padrão e se recusa a encolher abaixo do conteúdo; é
+    a mesma armadilha que a lei nº 3 nomeia no grid, um nível abaixo.
+  */
+  min-inline-size: 0;
+}
+
+.acao {
+  inline-size: var(--vx-space-32);
+  block-size: var(--vx-space-32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border: none;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-2);
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-instant) var(--vx-ease-out),
+    color var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.acao:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.acao:active {
+  background: var(--vx-state-press);
+}
+
+/*
+  Ativo é ACENTO, não véu mais forte.
+
+  A diferença importa porque o botão tem dois estados que precisam ser
+  distinguíveis em repouso: "o painel está aberto" e "o ponteiro está em cima".
+  Se os dois fossem véu, hover num botão desligado leria igual a um ligado.
+
+  ⚠ Isto gasta acento na tela, e a disciplina de acento é regra do projeto —
+  nove lâminas simultâneas foi um defeito real da auditoria. Aqui o teto é
+  baixo e conhecido: no máximo dois botões ligados ao mesmo tempo, porque a
+  ponta final abriga um painel de cada vez.
+*/
+.acaoAtiva {
+  background: var(--vx-accent-soft);
+  color: var(--vx-accent-text);
+}
+
+.acaoAtiva:hover {
+  color: var(--vx-accent-text);
+}
+
+/* ------------------------------------------------------------ busca */
+
+/*
+  A busca do cabeçalho, desenhada como CAMPO.
+
+  `--vx-surface-1` e não `surface-0` como o campo da coluna: são superfícies
+  diferentes por baixo — a coluna é `surface-1` e o cabeçalho é `surface-2`,
+  então o mesmo "um degrau abaixo do que o contém" dá tokens diferentes. É a
+  regra que o design segue nos dois lugares, e é por isso que os dois valores
+  batem com `#08090B` e `#0F1318`.
+
+  Largura FIXA de 180px, o número do design. Não é valor mágico escapando da
+  escala: `inline-size` não é espaçamento nem raio, e é a dimensão de um
+  componente — a mesma classe que o `pnpm escala` deixa passar de propósito
+  no cartão de perfil.
+*/
+.busca {
+  /* Só o que o primitivo NÃO possui: a superfície e o quanto ela encolhe.
+     `surface-1` porque o cabeçalho de canal é `surface-2` — um degrau abaixo
+     do que está em volta, que é a regra do design para campo de busca. */
+  flex: 1 1 180px;
+  max-inline-size: 180px;
+  min-inline-size: 36px;
+  background: var(--vx-surface-1);
+}
+
+/*
+  A escala de ícone desta superfície — ver `--vx-icon-1` em `tokens.css`.
+
+  Cromagem densa: o design desenha 12–14px aqui, e o `size={20}` do Phosphor
+  vinha de um default copiado. O dono do tamanho é a superfície, não a chamada.
+*/
+.acoes svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+/*
+  Coluna estreita: a busca sai por último, junto com o tópico.
+
+  ⚠ **O corte é 420 e não 520, e a diferença aparece num breakpoint que o
+  design lista.** Com 520, uma janela de 1024 já escondia a busca: a coluna de
+  conteúdo ali dá 472, porque as larguras das laterais são escolha de quem usa
+  desde a fase 4 e não encolhem sozinhas. Como a busca ENCOLHE até o quadrado
+  da lupa, ela cabe muito abaixo de 520 — esconder antes disso era ceder espaço
+  que existia.
+
+  420 é o mesmo corte do tópico, e a ordem de cedência é a do resto do
+  cabeçalho: identidade fica, contexto cede. A busca cede junto porque é o
+  único dos sete alvos alcançável por outro caminho — a paleta responde ao
+  mesmo atalho. Os seis botões ficam: cada um é a única entrada para o que ele
+  abre.
+*/
+@container (inline-size < 420px) {
+  .busca {
+    display: none;
+  }
+}

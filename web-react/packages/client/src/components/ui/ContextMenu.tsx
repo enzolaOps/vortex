@@ -1,3 +1,4 @@
+import { CaretRight } from "@phosphor-icons/react";
 import * as Primitivo from "@radix-ui/react-context-menu";
 import type { ComponentProps, ReactNode } from "react";
 
@@ -69,6 +70,61 @@ export function ContextMenuItem({
       {...props}
       className={cn(menuItem, perigo ? menuItemPerigo : menuItemNormal, className)}
     />
+  );
+}
+
+/**
+ * Submenu.
+ *
+ * ⚠ **O `›` já existiu na tela sem isto por trás, e foi removido por causa
+ * disso.** "Cargos" e "Mover para canal" tinham a seta e nada abria — o
+ * defeito que o lint de `onSelect` existe para matar, na forma mais cara:
+ * um alvo que ANUNCIA um caminho e não tem. A seta volta com o mecanismo, não
+ * antes dele.
+ *
+ * O conteúdo reusa `menuContent` e `menuItem`: um submenu com caixa própria
+ * seria a mesma superfície escrita duas vezes, e a primeira a mudar deixaria
+ * as duas diferentes.
+ */
+export const ContextMenuSub = Primitivo.Sub;
+
+export function ContextMenuSubTrigger({
+  className,
+  children,
+  ...props
+}: ComponentProps<typeof Primitivo.SubTrigger>) {
+  return (
+    <Primitivo.SubTrigger
+      {...props}
+      className={cn(menuItem, menuItemNormal, className)}
+    >
+      {children}
+      {/* A seta na ponta, e o `ms-auto` é o que a empurra: sem ela o item não
+          se distingue de um que executa ao clicar.
+
+          ⚠ `size={12}` na prop e não `size-3` na classe: o `@theme` faz
+          `--spacing-*: initial`, então utility computada sobre a base do
+          Tailwind não é emitida — o `pnpm utilities` pegou na primeira
+          corrida. */}
+      <CaretRight size={12} className="ms-auto text-text-4" aria-hidden />
+    </Primitivo.SubTrigger>
+  );
+}
+
+export function ContextMenuSubContent({
+  className,
+  ...props
+}: ComponentProps<typeof Primitivo.SubContent>) {
+  return (
+    <Primitivo.Portal>
+      <Primitivo.SubContent
+        {...props}
+        /* `sideOffset` pequeno: o submenu encosta no pai, como no design —
+           afastado, o ponteiro atravessa o vão e o menu fecha no caminho. */
+        sideOffset={2}
+        className={cn(menuContent, className)}
+      />
+    </Primitivo.Portal>
   );
 }
 

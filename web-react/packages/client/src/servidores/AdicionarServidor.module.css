@@ -1,0 +1,107 @@
+/* ============================================================
+   Adicionar servidor
+   ------------------------------------------------------------
+   Dois caminhos num modal. A largura é fixa porque o conteúdo
+   é um formulário curto: um diálogo que muda de largura ao
+   trocar de aba lê como troca de tela.
+   ============================================================ */
+
+.painel {
+  display: grid;
+  gap: var(--vx-space-16);
+  inline-size: 380px;
+  max-inline-size: 100%;
+}
+
+.corpo {
+  display: grid;
+  gap: var(--vx-space-12);
+}
+
+/* --- a prévia do convite -------------------------------------- */
+
+.previa {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-12);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+}
+
+.marca {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  inline-size: var(--vx-avatar-lg);
+  block-size: var(--vx-avatar-lg);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-1);
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+}
+
+.sobre {
+  display: grid;
+  gap: var(--vx-space-02);
+  min-inline-size: 0;
+}
+
+.nome {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+}
+
+/*
+  Contagem e origem, apagadas.
+
+  São o que responde "onde eu vou cair" antes de virar membro de um servidor
+  que a pessoa não conhece — dado de decisão, não decoração, mas subordinado ao
+  nome.
+*/
+.detalhe {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+}
+
+/*
+  O texto de uma confirmação.
+
+  Ele diz o que ACONTECE, não só pergunta — a diferença entre expulsar e banir
+  é a razão de o modal existir, e descobri-la depois do clique é tarde.
+*/
+.aviso {
+  margin: 0;
+  font-size: var(--vx-size-md);
+  line-height: var(--vx-leading-message);
+  color: var(--vx-text-2);
+}
+
+.aviso strong {
+  color: var(--vx-text-1);
+  font-weight: 600;
+}
+
+/*
+  A fileira de ações do rodapé do modal.
+
+  ⚠ Ela era referenciada por `ModalDeCanal` e não existia — mesmo defeito das
+  nove de `Canal.module.css`, achado pela mesma guarda: os dois botões caíam
+  num `div` sem classe, encostados um no outro e alinhados à esquerda.
+*/
+.acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--vx-space-08);
+}

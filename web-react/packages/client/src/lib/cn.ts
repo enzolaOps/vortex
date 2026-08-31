@@ -6,20 +6,27 @@ import { extendTailwindMerge } from "tailwind-merge";
  *
  * Ele resolve conflito por grupo de classe, e os grupos que conhece são os do
  * Tailwind de fábrica. A escala default de raio foi desativada em `tokens.css`
- * (`--radius-*: initial`) e substituída por `rounded-1..4`, que ele não
- * reconhece — sem esta extensão, `cn("rounded-2", "rounded-4")` devolve AS
+ * (`--radius-*: initial`) e substituída por `rounded-02..14` mais
+ * `rounded-pill`, que ele não
+ * reconhece — sem esta extensão, `cn("rounded-06", "rounded-12")` devolve AS
  * DUAS e quem ganha é a ordem no CSS, não a intenção de quem chamou.
  *
  * A falha é silenciosa: nada quebra, o canto só fica errado. Verificada por
  * `pnpm classes`, que reprova de propósito quando a extensão sai.
  *
  * Espaço, tipo e cor não precisam de extensão — os grupos de fábrica já casam
- * com `p-3`, `text-lg` e `bg-surface-2`.
+ * com `p-12`, `text-lg` e `bg-surface-2`.
  */
 const merge = extendTailwindMerge({
   extend: {
     classGroups: {
-      rounded: [{ rounded: ["1", "2", "3", "4"] }],
+      rounded: [
+        {
+          rounded: [
+            "02","03","04","05","06","07","08","09","10","12","14","pill",
+          ],
+        },
+      ],
     },
   },
 });

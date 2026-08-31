@@ -47,8 +47,8 @@ export type Semente = {
 };
 
 export const SEMENTE_PADRAO: Record<Modo, Semente> = {
-  escuro: { modo: "escuro", matiz: 295, croma: 1, acento: "#bcaef2" },
-  claro: { modo: "claro", matiz: 299, croma: 1, acento: "#5b45c4" },
+  escuro: { modo: "escuro", matiz: 258, croma: 1, acento: "#35c2cc" },
+  claro: { modo: "claro", matiz: 258, croma: 1, acento: "#0e7c86" },
 };
 
 export const LIMITES_DA_SEMENTE = {
@@ -74,68 +74,197 @@ type Degrau = { l: number; c: number; dh: number };
 type Semantica = { l: number; c: number; h: number };
 
 type Rampa = {
-  readonly superficie: readonly [Degrau, Degrau, Degrau, Degrau];
-  readonly texto: readonly [Degrau, Degrau, Degrau];
+  readonly superficie: readonly [Degrau, Degrau, Degrau, Degrau, Degrau];
+  readonly texto: readonly [Degrau, Degrau, Degrau, Degrau];
   readonly bordaSutil: Degrau;
   readonly bordaForte: Degrau;
   readonly acento: Degrau;
   readonly acentoHover: Degrau;
+  readonly acentoPress: Degrau;
+  readonly acentoTexto: Degrau;
   readonly acentoSuave: Degrau;
   readonly sobreAcento: Degrau;
+  /*
+    O trilho — o SEXTO neutro, e ele está acima de `surface-4`.
+
+    Medido no design: `#2A3038` aparece 55 vezes, treze delas como
+    `border-radius: 999px; height: 4px`, que é trilho de deslizante; o resto é
+    fundo de controle inerte e o polegar da barra de rolagem. Em OKLCH ele dá
+    L 0,307 contra os 0,276 de `surface-4` — não é um degrau da rampa de
+    SUPERFÍCIE (nada mora "dentro" dele), é o tom de uma peça que precisa
+    aparecer em cima da mais alta delas.
+
+    Usávamos `surface-3` no trilho, que é L 0,242: mais escuro que o painel
+    onde o deslizante mora, então o trilho sumia sob o polegar.
+  */
+  readonly trilho: Degrau;
+  /** O sétimo neutro: trilho ATIVO e desligado, um degrau acima do sexto. */
+  readonly trilhoForte: Degrau;
   readonly perigo: Semantica;
+  /*
+    O vermelho de TEXTO, separado do de preenchimento.
+
+    O design usa dois: `#E8596B` para borda e fundo tingido, `#F0808D` para a
+    palavra "Excluir" dentro de um menu. É a mesma divisão que `acento` e
+    `acentoTexto` já fazem, e pela mesma razão — a cor que funciona como
+    superfície de 3px não é a que funciona como letra de 13px sobre ela.
+  */
+  readonly perigoTexto: Semantica;
+  /* O que se escreve EM CIMA do vermelho — ver `sobrePerigo` no derivar. */
+  readonly sobrePerigo: Semantica;
   readonly aviso: Semantica;
   readonly sucesso: Semantica;
+  /* O verde de TEXTO, pelo mesmo motivo de `perigoTexto`. Ver o token. */
+  readonly sucessoTexto: Semantica;
+  /* O que se escreve EM CIMA do verde. */
+  readonly sobreSucesso: Semantica;
+  readonly neutro: Degrau;
   readonly offline: Degrau;
 };
 
+/**
+ * A rampa de superfície tem PASSO CONSTANTE em L — e isso é o conserto de um
+ * problema medido, não gosto.
+ *
+ * A rampa original tinha degraus de 1,075 · 1,105 · 1,152 no escuro e 1,060 ·
+ * 1,040 · 1,031 no claro. Quatro superfícies que somavam 1,368:1 e 1,137:1 de
+ * ponta a ponta: elevação que existia no token e quase não existia no olho —
+ * e num app onde profundidade vem de CAMADA e não de sombra, isso é a única
+ * pista de profundidade que existe.
+ *
+ * Passo constante em L é a escolha certa porque em OKLCH o L é perceptualmente
+ * uniforme: `surface-1 → surface-2` tem que parecer o mesmo salto que
+ * `surface-2 → surface-3`, e é isso que passo constante entrega. Em razão WCAG
+ * os degraus saem desiguais (1,10 · 1,14 · 1,15 no escuro) porque a razão não é
+ * linear no L — o número desigual é o sintoma de estar certo, não de errado.
+ *
+ * Pelo mesmo motivo, o passo foi escolhido pelo ΔL e não pela razão: no
+ * extremo escuro a razão WCAG é dominada pelo termo de flare (`+0,05`) e
+ * comprime tudo perto de 1,1 por mais que se abra. Abrir até L 0,150 na base
+ * levava o span a 1,53 e dava um `#0b0a11` mais escuro que a base de qualquer
+ * app da categoria, sem melhorar o primeiro degrau. O ΔL é a medida honesta
+ * aqui; a razão é o piso de segurança.
+ *
+ * **A direção foi ditada pelo orçamento, não escolhida.** Os pares de
+ * `pares.ts` dizem onde há folga: no escuro o par mais apertado é `text-3 /
+ * surface-3` (era 1,11× o mínimo), então SUBIR a superfície mais alta é caro e
+ * abrir para baixo é quase de graça — a base foi de L 0,200 para 0,180 e a
+ * superfície de topo quase não se moveu. No claro o topo é branco puro e não
+ * sobe, então a abertura desce também, e o par apertado ali era
+ * `border-strong / surface-0`: a borda escureceu de L 0,610 para 0,580 para
+ * pagar por isso.
+ *
+ * Resultado medido: no escuro os degraus vão de 1,075 · 1,105 · 1,152 para
+ * 1,10 · 1,14 · 1,15 e o span de 1,368 para 1,447; no claro, de 1,060 · 1,040 ·
+ * 1,031 para 1,081 · 1,069 · 1,067 e o span de 1,137 para 1,233. O ganho maior
+ * é no claro, e é o de EVENNESS: o degrau lá ENCOLHIA a cada passo. O pior par
+ * segue em 1,10× e 1,12× do mínimo.
+ */
 const RAMPAS: Record<Modo, Rampa> = {
   escuro: {
     superficie: [
-      { l: 0.200146, c: 0.013939, dh: -3.362 },
-      { l: 0.231638, c: 0.017258, dh: -4.926 },
-      { l: 0.267284, c: 0.020429, dh: -1.696 },
-      { l: 0.309759, c: 0.023372, dh: 0.582 },
+      { l: 0.139451, c: 0.004826, dh: 4.802 },
+      { l: 0.184827, c: 0.012048, dh: -3.869 },
+      { l: 0.207604, c: 0.013453, dh: 0.368 },
+      { l: 0.242084, c: 0.017048, dh: 1.761 },
+      { l: 0.275873, c: 0.022189, dh: 4.481 },
     ],
     texto: [
-      { l: 0.940893, c: 0.010882, dh: 2.619 },
-      { l: 0.792904, c: 0.028461, dh: 2.185 },
-      { l: 0.705315, c: 0.033772, dh: 2.463 },
+      { l: 0.935727, c: 0.009173, dh: 0.336 },
+      { l: 0.747799, c: 0.021265, dh: -0.514 },
+      { l: 0.597175, c: 0.023874, dh: 1.19 },
+      { l: 0.44693, c: 0.025712, dh: 1.175 },
     ],
-    bordaSutil: { l: 0.287719, c: 0.020055, dh: -1.565 },
-    bordaForte: { l: 0.610259, c: 0.047018, dh: 0.323 },
-    acento: { l: 0.78681, c: 0.096395, dh: 0 },
-    acentoHover: { l: 0.846115, c: 0.071206, dh: 1.216 },
-    acentoSuave: { l: 0.284447, c: 0.049093, dh: -0.273 },
-    sobreAcento: { l: 0.210728, c: 0.024018, dh: 4.623 },
-    perigo: { l: 0.811323, c: 0.110353, h: 8.496 },
-    aviso: { l: 0.863762, c: 0.090457, h: 82.071 },
-    sucesso: { l: 0.839823, c: 0.086609, h: 156.952 },
-    offline: { l: 0.575265, c: 0.043215, dh: 1.473 },
+    /*
+      ⚠ **0,255 e era 0,305 — a hairline saía CLARA demais em toda divisória.**
+
+      O design escreve a divisória como `rgba(255,255,255,0.06)`, um véu, e não
+      uma cor. Um véu compõe certo sobre qualquer fundo; uma cor chapada só
+      acerta a superfície para a qual foi escolhida. Medido: `#292f39` é o que
+      6% de branco dá sobre `--vx-surface-3` — e as divisórias deste app vivem
+      sobre `surface-0`, `surface-1` e `surface-2`, onde o mesmo véu compõe
+      `#17181a`, `#1d2126` e `#22262c`. Ou seja, o token estava calibrado para
+      a superfície onde ele quase não aparece.
+
+      Um valor OPACO não pode acertar as quatro, e ele continua opaco porque a
+      derivação inteira é de cores opacas — trocar por `color-mix` aqui tiraria
+      a hairline do picker de paleta, que deriva TODOS os tokens da semente.
+      0,255 é o meio das duas superfícies onde as divisórias de fato estão.
+    */
+    bordaSutil: { l: 0.255, c: 0.02, dh: 1.5 },
+    bordaForte: { l: 0.561559, c: 0.025425, dh: -3.51 },
+    acento: { l: 0.746311, c: 0.115375, dh: 0 },
+    acentoHover: { l: 0.801338, c: 0.114854, dh: -0.675 },
+    acentoPress: { l: 0.612283, c: 0.096094, dh: 3.724 },
+    acentoTexto: { l: 0.856754, c: 0.095046, dh: -1.601 },
+    acentoSuave: { l: 0.28, c: 0.035, dh: 3.5 },
+    sobreAcento: { l: 0.193686, c: 0.027359, dh: 5.816 },
+    trilho: { l: 0.306721, c: 0.016703, dh: -2.353 },
+    trilhoForte: { l: 0.390404, c: 0.025721, dh: -2.924 },
+    perigo: { l: 0.655027, c: 0.176981, h: 15.968 },
+    perigoTexto: { l: 0.727685, c: 0.137474, h: 13.749 },
+    sobrePerigo: { l: 0.155772, c: 0.039295, h: 15.439 },
+    aviso: { l: 0.788215, c: 0.117607, h: 79.445 },
+    sucesso: { l: 0.748358, c: 0.146918, h: 158.512 },
+    sucessoTexto: { l: 0.7933, c: 0.141339, h: 159.488 },
+    sobreSucesso: { l: 0.23354, c: 0.042346, h: 168.417 },
+    neutro: { l: 0.565837, c: 0.02148, dh: -2.401 },
+    offline: { l: 0.565837, c: 0.02148, dh: -2.401 },
   },
   claro: {
     superficie: [
-      { l: 0.957021, c: 0.012361, dh: 2.285 },
-      { l: 0.976375, c: 0.008196, dh: 2.358 },
-      { l: 0.989689, c: 0.004082, dh: 2.427 },
+      { l: 0.939683, c: 0.005795, dh: 6.532 },
+      { l: 0.966482, c: 0.004545, dh: 0.325 },
+      { l: 0.990591, c: 0.001703, dh: -10.161 },
+      { l: 1, c: 0, dh: 0 },
       { l: 1, c: 0, dh: 0 },
     ],
     texto: [
-      { l: 0.239641, c: 0.023036, dh: -2.919 },
-      { l: 0.400967, c: 0.035615, dh: -1.134 },
-      { l: 0.486767, c: 0.038825, dh: -0.7 },
+      { l: 0.203692, c: 0.011029, dh: 2.665 },
+      { l: 0.453359, c: 0.022719, dh: -2.365 },
+      { l: 0.593431, c: 0.022555, dh: -0.499 },
+      { l: 0.66, c: 0.021, dh: 1.5 },
     ],
-    bordaSutil: { l: 0.912599, c: 0.023491, dh: 0.343 },
-    bordaForte: { l: 0.609573, c: 0.041331, dh: -0.28 },
-    acento: { l: 0.489427, c: 0.188565, dh: 0 },
-    acentoHover: { l: 0.43063, c: 0.180921, dh: -1.184 },
-    acentoSuave: { l: 0.933132, c: 0.030146, dh: 13.301 },
+    bordaSutil: { l: 0.905, c: 0.008, dh: 1.5 },
+    bordaForte: { l: 0.607821, c: 0.018614, dh: 1.421 },
+    acento: { l: 0.536185, c: 0.08876, dh: 0 },
+    acentoHover: { l: 0.45, c: 0.08, dh: -0.704 },
+    acentoPress: { l: 0.4, c: 0.072, dh: -0.704 },
+    acentoTexto: { l: 0.536185, c: 0.08876, dh: 0 },
+    acentoSuave: { l: 0.945, c: 0.03, dh: 3.5 },
     sobreAcento: { l: 1, c: 0, dh: 0 },
-    perigo: { l: 0.506756, c: 0.174791, h: 17.182 },
-    aviso: { l: 0.474597, c: 0.100491, h: 74.2 },
-    sucesso: { l: 0.478729, c: 0.102331, h: 156.821 },
-    offline: { l: 0.534453, c: 0.045534, dh: -3.112 },
-  },};
+    /*
+      No claro o trilho DESCE em vez de subir.
 
+      No escuro ele é mais claro que a superfície mais alta; aqui a mais alta é
+      branco puro, então a única direção que sobra é para baixo. É a mesma
+      inversão que `perigoTexto` e `acentoTexto` sofrem, e pelo mesmo motivo:
+      quem carrega a separação é a DISTÂNCIA em L, não o sinal dela.
+    */
+    trilho: { l: 0.89, c: 0.008, dh: 1 },
+    trilhoForte: { l: 0.792015, c: 0.016723, dh: -5.805 },
+    perigo: { l: 0.538347, c: 0.184859, h: 18.141 },
+    /*
+      No CLARO os dois são o mesmo valor, e isso não é descuido.
+
+      No escuro o texto precisa ser mais CLARO que o preenchimento para se
+      separar dele; no claro seria o contrário, e `#c22c43` já está no limite
+      de baixo — clareá-lo derrubaria o contraste sobre branco. `acentoTexto`
+      repete `acento` no claro exatamente pelo mesmo motivo.
+    */
+    perigoTexto: { l: 0.538347, c: 0.184859, h: 18.141 },
+    /* Branco sobre os semânticos do claro, como `sobreAcento`: eles são
+       escuros o bastante e um tingido escuro sumiria dentro deles. */
+    sobrePerigo: { l: 1, c: 0, h: 0 },
+    aviso: { l: 0.472782, c: 0.098779, h: 77.361 },
+    sucesso: { l: 0.480897, c: 0.113976, h: 154.976 },
+    /* No claro os dois coincidem, como `perigoTexto` e `acentoTexto`. */
+    sucessoTexto: { l: 0.480897, c: 0.113976, h: 154.976 },
+    sobreSucesso: { l: 1, c: 0, h: 0 },
+    neutro: { l: 0.565837, c: 0.02148, dh: -2.401 },
+    offline: { l: 0.565837, c: 0.02148, dh: -2.401 },
+  },
+};
 
 
 
@@ -148,7 +277,7 @@ const RAMPAS: Record<Modo, Rampa> = {
  * contraste deixaria de valer para alguns matizes. O valor saiu da varredura
  * de todos os matizes no teste, não de tentativa e erro na tela.
  */
-const TETO_DE_CROMA: Record<Modo, number> = { escuro: 0.11, claro: 0.19 };
+const TETO_DE_CROMA: Record<Modo, number> = { escuro: 0.12, claro: 0.19 };
 
 function neutro(degrau: Degrau, s: Semente): string {
   return oklchParaHex({
@@ -175,24 +304,51 @@ export function derivar(s: Semente): Record<TokenName, string> {
     "--vx-surface-1": neutro(r.superficie[1], s),
     "--vx-surface-2": neutro(r.superficie[2], s),
     "--vx-surface-3": neutro(r.superficie[3], s),
+    "--vx-surface-4": neutro(r.superficie[4], s),
 
     "--vx-text-1": neutro(r.texto[0], s),
     "--vx-text-2": neutro(r.texto[1], s),
     "--vx-text-3": neutro(r.texto[2], s),
+    "--vx-text-4": neutro(r.texto[3], s),
 
     "--vx-border-subtle": neutro(r.bordaSutil, s),
     "--vx-border-strong": neutro(r.bordaForte, s),
 
     "--vx-accent": daAcao(r.acento),
     "--vx-accent-hover": daAcao(r.acentoHover),
+    "--vx-accent-press": daAcao(r.acentoPress),
+    "--vx-accent-text": daAcao(r.acentoTexto),
     "--vx-accent-soft": daAcao(r.acentoSuave),
-    // `on-accent` é NEUTRO, não derivado do acento: ele precisa contrastar com
-    // o acento, e uma cor tirada do mesmo matiz corre atrás dele.
-    "--vx-on-accent": neutro(r.sobreAcento, s),
+    /*
+      ⚠ **`on-accent` é TINGIDO com o matiz do acento, e a versão anterior
+      dizia o contrário.**
+
+      O comentário que estava aqui era "ele é NEUTRO, porque uma cor tirada do
+      mesmo matiz corre atrás dele". O raciocínio vale para um par de LUZES
+      próximas; não vale quando a distância em L é de 0,55. O design escreve
+      `#04181B` sobre `#35C2CC` — L 0,194 contra 0,746, e o quase-preto é
+      verde-azulado porque tinta preta sobre tinta ciano nunca é neutra.
+      Neutro puro (o nosso `#0b0d11`) lê como um furo na cor, e é a diferença
+      que aparece em todo botão primário e todo selo sobre acento.
+    */
+    "--vx-on-accent": daAcao(r.sobreAcento),
+    /* O sexto neutro — trilho de deslizante e fundo de controle inerte. */
+    "--vx-track": neutro(r.trilho, s),
+    "--vx-track-forte": neutro(r.trilhoForte, s),
 
     "--vx-danger": semantica(r.perigo),
+    "--vx-danger-text": semantica(r.perigoTexto),
+    /* Sobre o vermelho e sobre o verde, tingidos pelo mesmo argumento de
+       `on-accent`: o badge de menção usava `surface-0`, um preto NEUTRO. */
+    "--vx-on-danger": semantica(r.sobrePerigo),
     "--vx-warning": semantica(r.aviso),
     "--vx-success": semantica(r.sucesso),
+    "--vx-success-text": semantica(r.sucessoTexto),
+    "--vx-on-success": semantica(r.sobreSucesso),
+    // Neutro semântico: "herdar" na matriz tri-state, mudo, offline. Cinza da
+    // família do neutro, e não um quarto matiz — ele quer dizer AUSÊNCIA de
+    // estado, e uma cor própria transformaria ausência em mais um estado.
+    "--vx-neutral": neutro(r.neutro, s),
 
     // Presença repete os semânticos de propósito: "ocupado" e "erro" são o
     // mesmo vermelho no produto, e separá-los aqui criaria duas fontes para a

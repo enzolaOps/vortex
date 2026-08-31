@@ -1,0 +1,97 @@
+/* ============================================================
+   Estado vazio
+   ------------------------------------------------------------
+   Não é uma tela de consolo. Uma linha, um detalhe opcional e a
+   ação — e nada mais. O que o design system proíbe aqui é
+   ilustração genérica, e a razão é de densidade: num app aberto
+   8h por dia, cada vazio é visto centenas de vezes, e o que
+   encanta na primeira semana irrita na terceira.
+   ============================================================ */
+
+.vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--vx-space-12);
+  /* `20 48` da referência: o vazio respira MUITO no eixo de bloco, porque é
+     o que o distingue de conteúdo que ainda vai chegar. */
+  /*
+    ⚠ **Cartão TRACEJADO, e o tracejado é a decisão** — o design escreve
+    `border:1px dashed rgba(255,255,255,0.10)` com raio 12 e respiro `48 20`.
+    A referência usa borda SÓLIDA, e o design está certo: tracejado lê como
+    "aqui vai aparecer algo", que é exatamente o que um estado vazio é. Sólido
+    lê como um bloco que terminou.
+
+    Antes não havia borda nenhuma, e o texto flutuava no meio do nada — sem
+    contorno não dá para saber se a área está vazia ou se ainda está
+    carregando.
+  */
+  padding: var(--vx-space-48) var(--vx-space-20);
+  border: 1px dashed var(--vx-hairline-10);
+  border-radius: var(--vx-radius-12);
+  text-align: center;
+  /* O texto respira num teto legível mesmo quando o painel é largo. */
+  max-inline-size: 44ch;
+  margin-inline: auto;
+}
+
+/*
+  Compacto: coluna lateral estreita.
+
+  Centralizar num painel de 240px empurra o texto para o meio de uma
+  faixa fina e o deixa parecendo perdido. Alinhado ao início, ele
+  segue a mesma calha das linhas que estariam ali se houvesse dado.
+*/
+.vazio[data-compacto="true"] {
+  align-items: flex-start;
+  gap: var(--vx-space-08);
+  padding: var(--vx-space-28) var(--vx-space-16);
+  text-align: start;
+}
+
+/*
+  O ícone é ÍCONE, não ilustração.
+
+  20px, o mesmo de toda a interface. A tentação aqui é crescer para
+  48px e virar mascote; o que segura é lembrar que este bloco compete
+  por atenção com uma conversa ao lado.
+*/
+.icone {
+  display: grid;
+  place-items: center;
+  /* 32, o da referência. Era 36 — sem exemplar, e um degrau acima faz o ícone
+     competir com o título em vez de anunciá-lo. */
+  inline-size: 32px;
+  block-size: 32px;
+  /* Raio de ITEM (8), não de painel (12): o quadrado do ícone é um item
+     dentro do vazio, não uma superfície própria. */
+  border-radius: var(--vx-radius-08);
+  /* Um degrau ACIMA do fundo, e o glifo em `text-4`: o ícone de estado vazio
+     é adorno, não informação — quem carrega o recado é o título. */
+  background: var(--vx-surface-3);
+  color: var(--vx-text-4);
+}
+
+.titulo {
+  margin: 0;
+  /* `text-1` e 600: o título é a única frase que a pessoa lê aqui, e em
+     `text-2` ele pesava o mesmo que o detalhe abaixo. */
+  color: var(--vx-text-1);
+  font-weight: 600;
+  font-size: var(--vx-size-md);
+  line-height: var(--vx-leading-message);
+  text-wrap: balance;
+}
+
+.vazio[data-compacto="true"] .titulo {
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+.detalhe {
+  margin: 0;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+  line-height: var(--vx-leading-message);
+  text-wrap: balance;
+}

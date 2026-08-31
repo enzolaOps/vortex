@@ -1,26 +1,32 @@
 /**
  * A fronteira React do store. Nada além daqui conhece `useSyncExternalStore`.
  */
-import { useSyncExternalStore } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 
 import {
   canaisDeTexto,
+  categorias,
   canaisDeVoz,
   channelMessageIds,
   channels,
+  conversas,
+  fixadas,
   members,
   membrosOffline,
   membrosOnline,
   secoesOnline,
   messages,
+  pessoas,
   presence,
   RAIZ,
+  relacoes,
   serverIds,
   servers,
   typing,
   vozPorCanal,
 } from "../sdk/adapter";
 import type {
+  CategoriaDeCanais,
   ChannelSnapshot,
   ChaveDeMembro,
   MemberSnapshot,
@@ -28,18 +34,28 @@ import type {
   MessageSnapshot,
   ParticipanteDeVoz,
   PresenceStatus,
+  Relacao,
+  RelacaoSnapshot,
   ServerSnapshot,
 } from "../sdk/domain";
 import {
   assinarNavegacao,
   lerCanalAtivo,
+  lerLocal,
   lerServidorAtivo,
+  type Local,
 } from "./navegacao";
+import { TOTAIS, totaisNaoLidos, type Contagem } from "../sdk/adapter";
+import { assinarColapso, estaColapsada } from "./colapso";
 import { rascunhos, RASCUNHO_VAZIO } from "./rascunhos";
+import { assinarLayout, lerSemente } from "./layout";
+import { corDeCargo } from "../tema/cargo";
+import type { Modo } from "../tema/derivar";
 
 const NO_IDS: readonly string[] = [];
 const NO_SECOES: readonly SecaoDeMembros[] = [];
 const NO_VOZ: readonly ParticipanteDeVoz[] = [];
+const NO_CATEGORIAS: readonly CategoriaDeCanais[] = [];
 
 /**
  * Assertion de dev para a armadilha nº 1 do projeto.
@@ -115,6 +131,22 @@ export function useServerIds(): readonly string[] {
   return useSyncExternalStore(serverIds.subscriber(RAIZ), getSnapshot);
 }
 
+/**
+ * A soma de não-lidas e menções de TODOS os servidores.
+ *
+ * Uma subscrição só para um número que a caixa de entrada mostra em duas abas
+ * — ver `totaisNaoLidos` no adapter para por que a soma não pode morar no
+ * componente.
+ */
+export function useTotaisNaoLidos(): Contagem {
+  const getSnapshot = () => totaisNaoLidos.getSnapshot(TOTAIS) ?? SEM_TOTAIS;
+  if (import.meta.env.DEV) assertStable(getSnapshot, "useTotaisNaoLidos");
+  return useSyncExternalStore(totaisNaoLidos.subscriber(TOTAIS), getSnapshot);
+}
+
+/** Referência compartilhada — a armadilha nº 1. */
+const SEM_TOTAIS: Contagem = { naoLidas: 0, mencoes: 0 };
+
 export function useServer(id: string): ServerSnapshot | undefined {
   const getSnapshot = () => servers.getSnapshot(id);
   if (import.meta.env.DEV) assertStable(getSnapshot, `useServer(${id})`);
@@ -125,12 +157,49 @@ export function useServer(id: string): ServerSnapshot | undefined {
  * Texto e voz assinam separado, pelo mesmo motivo dos baldes de membro: canal
  * de voz criado não republica a seção de texto, e vice-versa.
  */
+/**
+ * Uma categoria está colapsada?
+ *
+ * Assina o store inteiro e devolve um booleano — e isso é seguro justamente
+ * porque é booleano: `Object.is` compara por valor, então uma categoria só
+ * re-renderiza quando o PRÓPRIO estado dela muda, mesmo o store notificando
+ * todas. Guardar preferência de leitura por categoria num store por chave
+ * seria maquinário para dezenas de itens que mudam por clique humano.
+ */
+export function useColapso(categoriaId: string): boolean {
+  return useSyncExternalStore(assinarColapso, () => estaColapsada(categoriaId));
+}
+
+export function useCategorias(serverId: string): readonly CategoriaDeCanais[] {
+  const getSnapshot = () => categorias.getSnapshot(serverId) ?? NO_CATEGORIAS;
+  if (import.meta.env.DEV) assertStable(getSnapshot, `useCategorias(${serverId})`);
+  return useSyncExternalStore(categorias.subscriber(serverId), getSnapshot);
+}
+
 export function useCanaisDeTexto(serverId: string): readonly string[] {
   const getSnapshot = () => canaisDeTexto.getSnapshot(serverId) ?? NO_IDS;
   if (import.meta.env.DEV) {
     assertStable(getSnapshot, `useCanaisDeTexto(${serverId})`);
   }
   return useSyncExternalStore(canaisDeTexto.subscriber(serverId), getSnapshot);
+}
+
+/**
+ * TODOS os membros do servidor — os dois baldes concatenados.
+ *
+ * ⚠ **Assina os DOIS stores e junta aqui**, em vez de um terceiro store com a
+ * lista inteira: quem precisa dela é uma página de configuração que abre uma
+ * vez, e manter um terceiro balde em dia a cada mudança de presença seria
+ * pagar o custo no caminho quente para servir o frio.
+ *
+ * O `useMemo` é o que mantém a referência estável — sem ele, `getSnapshot`
+ * devolveria array novo a cada render e o `assertStable` acusaria a armadilha
+ * nº 1 com razão.
+ */
+export function useMembrosDoServidor(serverId: string): readonly string[] {
+  const online = useMembrosOnline(serverId);
+  const offline = useMembrosOffline(serverId);
+  return useMemo(() => [...online, ...offline], [online, offline]);
 }
 
 export function useCanaisDeVoz(serverId: string): readonly string[] {
@@ -203,6 +272,12 @@ export function useMembrosOffline(serverId: string): readonly string[] {
  *
  * Assina por CANAL: alguém entrando na sala A não acorda a linha da sala B.
  */
+export function useFixadas(channelId: string): readonly string[] {
+  const getSnapshot = () => fixadas.getSnapshot(channelId) ?? NO_IDS;
+  if (import.meta.env.DEV) assertStable(getSnapshot, `useFixadas(${channelId})`);
+  return useSyncExternalStore(fixadas.subscriber(channelId), getSnapshot);
+}
+
 export function useVozDoCanal(channelId: string): readonly ParticipanteDeVoz[] {
   const getSnapshot = () => vozPorCanal.getSnapshot(channelId) ?? NO_VOZ;
   if (import.meta.env.DEV) {
@@ -211,7 +286,52 @@ export function useVozDoCanal(channelId: string): readonly ParticipanteDeVoz[] {
   return useSyncExternalStore(vozPorCanal.subscriber(channelId), getSnapshot);
 }
 
+/* ------------------------------------------------------------------ casa */
+
+/**
+ * As conversas — DMs, grupos e notas — na ordem da coluna da casa.
+ *
+ * Uma lista só e já ordenada por recência: a ordenação acontece na ESCRITA,
+ * como os baldes de presença, e a coluna nunca chama `sort` no render.
+ */
+export function useConversas(): readonly string[] {
+  const getSnapshot = () => conversas.getSnapshot(RAIZ) ?? NO_IDS;
+  if (import.meta.env.DEV) assertStable(getSnapshot, "useConversas()");
+  return useSyncExternalStore(conversas.subscriber(RAIZ), getSnapshot);
+}
+
+/**
+ * Uma pessoa. Assinada por ID, como toda entidade.
+ *
+ * Diferente de `useMembro`: aquele é a pessoa DENTRO de um servidor (apelido,
+ * cor de cargo, castigo) e este é a pessoa em si. A tela de amigos e a coluna
+ * de conversas falam de gente, não de membro.
+ */
+export function usePessoa(userId: string): RelacaoSnapshot | undefined {
+  const getSnapshot = () => pessoas.getSnapshot(userId);
+  if (import.meta.env.DEV) assertStable(getSnapshot, `usePessoa(${userId})`);
+  return useSyncExternalStore(pessoas.subscriber(userId), getSnapshot);
+}
+
+/**
+ * Uma aba da tela de amigos.
+ *
+ * Keyed pela relação, e não uma lista só com filtro no componente: trocar de
+ * aba não pode acordar as outras três, e filtrar no render refaria a varredura
+ * a cada re-render.
+ */
+export function useRelacao(relacao: Relacao): readonly string[] {
+  const getSnapshot = () => relacoes.getSnapshot(relacao) ?? NO_IDS;
+  if (import.meta.env.DEV) assertStable(getSnapshot, `useRelacao(${relacao})`);
+  return useSyncExternalStore(relacoes.subscriber(relacao), getSnapshot);
+}
+
 /* ------------------------------------------------------------- navegação */
+
+/** O lugar inteiro. Quem só precisa do ID usa os dois hooks abaixo. */
+export function useLocal(): Local {
+  return useSyncExternalStore(assinarNavegacao, lerLocal);
+}
 
 export function useServidorAtivo(): string {
   return useSyncExternalStore(assinarNavegacao, lerServidorAtivo);
@@ -219,4 +339,34 @@ export function useServidorAtivo(): string {
 
 export function useCanalAtivo(): string {
   return useSyncExternalStore(assinarNavegacao, lerCanalAtivo);
+}
+
+/* ----------------------------------------------------------------- tema */
+
+/**
+ * O modo do tema — claro ou escuro.
+ *
+ * Devolve a STRING, não a semente. `lerSemente()` devolve referência estável
+ * hoje (o preset é o mesmo objeto), mas depender disso amarraria a estabilidade
+ * de todo consumidor a um detalhe do store de layout. Uma string é comparada
+ * por valor pelo `Object.is`, e aí a garantia é do próprio React.
+ */
+export function useModoDoTema(): Modo {
+  return useSyncExternalStore(assinarLayout, () => lerSemente().modo);
+}
+
+/**
+ * A cor de cargo, já com a luminosidade decidida pelo app.
+ *
+ * Hook e não função pura porque o resultado depende do TEMA: a mesma cor de
+ * servidor tem que sair mais clara no escuro e mais escura no claro, senão o
+ * nome fica ilegível num dos dois — que era exatamente o bug, com 22 de 22
+ * nomes reprovando 4,5:1 no tema claro.
+ *
+ * `undefined` entra e sai: cargo sem cor é ausência, e o componente cai na cor
+ * de texto normal.
+ */
+export function useCorDeCargo(bruta: string | undefined): string | undefined {
+  const modo = useModoDoTema();
+  return corDeCargo(bruta, modo);
 }

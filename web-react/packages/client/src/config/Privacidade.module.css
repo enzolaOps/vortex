@@ -1,0 +1,10 @@
+/*
+  240px, da referência.
+
+  ⚠ Largura fixa e não `auto`: "Membros dos meus servidores" é quase o dobro
+  de "Todos", e um gatilho que muda de tamanho ao escolher faz a linha inteira
+  se reorganizar debaixo do ponteiro. Ela cabe o rótulo mais longo.
+*/
+.seletor {
+  inline-size: 240px;
+}

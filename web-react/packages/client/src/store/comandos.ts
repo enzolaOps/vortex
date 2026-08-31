@@ -45,3 +45,181 @@ export function ouvirFimDaLista(channelId: string, ouvinte: Ouvinte): () => void
     if (atual.size === 0) ouvintes.delete(channelId);
   };
 }
+
+/* --------------------------------------------------- longe do fim da lista */
+
+/**
+ * A lista daquele canal está longe do fim?
+ *
+ * ⚠ **Isto É estado, ao contrário dos dois eventos acima** — e por isso passa
+ * por `useSyncExternalStore`, com snapshot e emissão. Quem pergunta é o
+ * composer, para decidir se mostra "Ir para o presente"; quem responde é a
+ * lista, que é a única que sabe onde a rolagem está.
+ *
+ * ⚠ **Publica só quando MUDA, e a diferença não é estética.** A lista consulta
+ * a distância até o fim a cada evento de rolagem — dezenas por segundo. Se
+ * cada consulta emitisse, o composer re-renderizaria em toda rolagem, e o
+ * composer contém a `textarea` onde alguém está digitando. Escrever o mesmo
+ * booleano de novo não emite nada.
+ *
+ * Keyed por canal pelo mesmo motivo de tudo mais aqui: a lei nº 6 não deixa o
+ * composer saber que existe uma lista, quanto mais qual.
+ */
+const longe = new Map<string, boolean>();
+const ouvintesDeLonge = new Map<string, Set<Ouvinte>>();
+
+export function definirLongeDoFim(channelId: string, valor: boolean): void {
+  if ((longe.get(channelId) ?? false) === valor) return;
+  longe.set(channelId, valor);
+  const set = ouvintesDeLonge.get(channelId);
+  if (!set) return;
+  for (const ouvinte of set) ouvinte();
+}
+
+export function lerLongeDoFim(channelId: string): boolean {
+  return longe.get(channelId) ?? false;
+}
+
+export function assinarLongeDoFim(
+  channelId: string,
+  ouvinte: Ouvinte,
+): () => void {
+  let set = ouvintesDeLonge.get(channelId);
+  if (!set) {
+    set = new Set();
+    ouvintesDeLonge.set(channelId, set);
+  }
+  set.add(ouvinte);
+
+  return () => {
+    const atual = ouvintesDeLonge.get(channelId);
+    if (!atual) return;
+    atual.delete(ouvinte);
+    if (atual.size === 0) ouvintesDeLonge.delete(channelId);
+  };
+}
+
+/**
+ * A lista saiu da tela — esquece a resposta dela.
+ *
+ * ⚠ **Isto MORAVA no cancelamento da assinatura, e era um defeito com cara de
+ * zelo.** O raciocínio era "sem ouvinte, a resposta não vale"; o que ele
+ * ignorava é que `useSyncExternalStore` re-assina sempre que a função de
+ * assinatura muda de identidade — ou seja, a cada render do componente. O
+ * ciclo desassina-e-assina esvaziava o conjunto por um instante, e o valor era
+ * apagado nesse instante.
+ *
+ * Efeito na tela: o botão "Ir para o presente" NUNCA aparecia. Medido a
+ * 5.130px do fim — `colado` correto, `aoRolar` rodando, e o botão ausente.
+ * Nenhum erro, porque ler um `Map` vazio é uma resposta perfeitamente válida.
+ *
+ * Quem tem o direito de esquecer é quem ESCREVE, não quem lê: a lista sabe
+ * quando desmonta, e o ouvinte não sabe nada sobre a vida dela.
+ */
+export function esquecerLongeDoFim(channelId: string): void {
+  definirLongeDoFim(channelId, false);
+  longe.delete(channelId);
+}
+
+/* ----------------------------------------------------------- foco no composer */
+
+/**
+ * Leva o cursor ao composer daquele canal.
+ *
+ * Existe para o estado vazio da lista: um canal sem histórico convida a
+ * escrever, e o convite tem que LEVAR até lá — botão que só diz "escreva algo"
+ * e deixa a pessoa procurar o campo é decoração de estado vazio, não ação.
+ *
+ * Mesmo barramento de `pedirFimDaLista`, e pela mesma razão: o estado vazio
+ * mora dentro da lista e o composer é outro painel — na fase 4 os dois podem
+ * nem estar na mesma coluna. Lei nº 6: ninguém alcança o vizinho pelo nome.
+ */
+const focadores = new Map<string, Set<Ouvinte>>();
+
+export function pedirFocoNoComposer(channelId: string): void {
+  const set = focadores.get(channelId);
+  if (!set) return;
+  for (const ouvinte of set) ouvinte();
+}
+
+export function ouvirFocoNoComposer(
+  channelId: string,
+  ouvinte: Ouvinte,
+): () => void {
+  let set = focadores.get(channelId);
+  if (!set) {
+    set = new Set();
+    focadores.set(channelId, set);
+  }
+  set.add(ouvinte);
+
+  return () => {
+    const atual = focadores.get(channelId);
+    if (!atual) return;
+    atual.delete(ouvinte);
+    if (atual.size === 0) focadores.delete(channelId);
+  };
+}
+
+/* --------------------------------------------------- ir para uma mensagem */
+
+/**
+ * Leva a lista até uma mensagem específica.
+ *
+ * O gatilho é a citação de uma resposta: clicar nela tem que levar ao
+ * original, senão a citação é só um texto menor em cinza. Mesmo barramento de
+ * `pedirFimDaLista`, e pela mesma razão — quem clica é a LINHA, e a linha não
+ * conhece o virtualizador (lei nº 1: ela assina só a si mesma).
+ */
+const saltadores = new Map<string, Set<(messageId: string) => void>>();
+
+/**
+ * O salto que chegou antes de haver lista, guardado.
+ *
+ * "Sem ouvinte é no-op" era a regra certa enquanto todo pedido nascia de um
+ * clique — se ninguém ouve, ninguém pediu. **O permalink quebra essa
+ * premissa:** abrir `/servidor/A/canal/B/01MENSAGEM` pede o salto no momento
+ * em que a rota é lida, e a lista daquele canal ainda nem montou. Sem esta
+ * gaveta o link abriria o canal certo na posição errada, sem erro nenhum.
+ *
+ * Um por canal, e o último ganha: dois pedidos antes de a lista existir
+ * significam que a pessoa trocou de ideia.
+ */
+const pendentes = new Map<string, string>();
+
+export function pedirIrParaMensagem(channelId: string, messageId: string): void {
+  const set = saltadores.get(channelId);
+  if (!set || set.size === 0) {
+    pendentes.set(channelId, messageId);
+    return;
+  }
+  for (const ouvinte of set) ouvinte(messageId);
+}
+
+export function ouvirIrParaMensagem(
+  channelId: string,
+  ouvinte: (messageId: string) => void,
+): () => void {
+  let set = saltadores.get(channelId);
+  if (!set) {
+    set = new Set();
+    saltadores.set(channelId, set);
+  }
+  set.add(ouvinte);
+
+  // Chegou alguém para ouvir o que já tinha sido pedido. Consome e esquece —
+  // guardar depois de entregue faria o salto repetir a cada remontagem da
+  // lista, e trocar de canal e voltar remonta.
+  const guardado = pendentes.get(channelId);
+  if (guardado !== undefined) {
+    pendentes.delete(channelId);
+    ouvinte(guardado);
+  }
+
+  return () => {
+    const atual = saltadores.get(channelId);
+    if (!atual) return;
+    atual.delete(ouvinte);
+    if (atual.size === 0) saltadores.delete(channelId);
+  };
+}

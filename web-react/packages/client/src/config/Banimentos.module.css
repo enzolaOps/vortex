@@ -1,0 +1,110 @@
+/* ============================================================
+   Banimentos — a terceira tabela
+   ------------------------------------------------------------
+   Moldura, cabeçalho e linha vêm de `Tabela.module.css`; aqui
+   ficam só as colunas e os controles do topo, que é a única
+   coisa que difere entre Membros, Convites e esta.
+   ============================================================ */
+
+.pagina {
+  display: grid;
+  gap: var(--vx-space-16);
+  align-content: start;
+}
+
+/*
+  ⚠ **Três colunas, e o design tem cinco.** "Banido por" e "Data" não existem
+  em `ServerBan` — ver `sdk/servidores.ts`. As proporções das que ficam são as
+  do design (`1.3fr 1.6fr`), com a ponta de ação em 90px.
+*/
+.tabela {
+  --colunas: 1.3fr 1.6fr 90px;
+  max-inline-size: 1080px;
+}
+
+.controles {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  flex-wrap: wrap;
+}
+
+/* Campo de busca: 34 de altura e raio 6, do design. Igual ao de Membros — e
+   ainda não extraído porque o terceiro consumidor é que decide. */
+.campo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  inline-size: 300px;
+  block-size: 34px;
+  padding-inline: var(--vx-space-11);
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-3);
+}
+
+.campo:focus-within {
+  border-color: var(--vx-accent);
+}
+
+.entrada {
+  flex: 1;
+  min-inline-size: 0;
+  border: 0;
+  background: none;
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  outline: none;
+}
+
+.espaco {
+  flex: 1;
+}
+
+.contagem {
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+/* Sem motivo é ITÁLICO e um tom abaixo, do design: ele não é um motivo curto,
+   é a ausência de um — e a inclinação diz isso sem precisar de parênteses. */
+.semMotivo {
+  composes: meta from "./Tabela.module.css";
+  color: var(--vx-text-3);
+  font-style: italic;
+}
+
+/*
+  "Desbanir" é TEXTO em acento, não botão com moldura — é o design, e a razão
+  é a densidade: numa tabela de 37 linhas, 37 molduras competem com o conteúdo.
+*/
+.desbanir {
+  border: 0;
+  background: none;
+  color: var(--vx-accent-text);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.desbanir:disabled {
+  color: var(--vx-text-4);
+  cursor: not-allowed;
+}
+
+.desbanir:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+  border-radius: var(--vx-radius-04);
+}
+
+.recado {
+  margin: 0;
+  max-inline-size: 1080px;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-4);
+  text-wrap: pretty;
+}

@@ -57,6 +57,14 @@ export function rotuloDeDia(ms: number, agora = Date.now()): string {
 export type Layout = {
   readonly iniciaGrupo: boolean;
   readonly dia: string | undefined;
+  /**
+   * Primeira não lida — o divisor de "novas mensagens" vai acima dela.
+   *
+   * Não é calculado por `calcularLayout`: depende do CURSOR do canal, que é
+   * estado do cliente e não do vizinho. Entra por composição no adapter, que é
+   * quem conhece os dois.
+   */
+  readonly primeiraNaoLida: boolean;
 };
 
 /**
@@ -73,12 +81,29 @@ export function calcularLayout(
     authorId: string | undefined;
     createdAt: number;
     ehSistema?: boolean;
+    /**
+     * Esta mensagem responde a alguma outra?
+     *
+     * ⚠ **Responder QUEBRA o grupo, e a razão é visual antes de ser
+     * semântica.** A prévia de resposta entra acima da mensagem, entre ela e a
+     * anterior. Sem cabeçalho, o que se vê é: fala de alguém, um bloco cinza
+     * de citação, e outra fala solta — e a segunda parece do autor da CITAÇÃO,
+     * não de quem respondeu.
+     *
+     * O design confirma: a mensagem do Téo tem prévia de resposta E cabeçalho
+     * com avatar, mesmo vindo logo depois de outra fala.
+     */
+    responde?: boolean;
   },
   anterior: Vizinho,
   agora = Date.now(),
 ): Layout {
   if (!anterior) {
-    return { iniciaGrupo: true, dia: rotuloDeDia(atual.createdAt, agora) };
+    return {
+      iniciaGrupo: true,
+      dia: rotuloDeDia(atual.createdAt, agora),
+      primeiraNaoLida: false,
+    };
   }
 
   const mudouDeDia = inicioDoDia(atual.createdAt) !== inicioDoDia(anterior.createdAt);
@@ -100,10 +125,23 @@ export function calcularLayout(
   */
   const cruzaSistema = Boolean(atual.ehSistema) || Boolean(anterior.ehSistema);
 
+  /*
+    Responder abre grupo — ver a nota em `responde`.
+
+    Só a mensagem que RESPONDE, nunca a seguinte: a prévia pertence a ela, e a
+    fala depois dela pode continuar o bloco normalmente. É a diferença para
+    `cruzaSistema`, que quebra dos dois lados.
+  */
+  const ehResposta = Boolean(atual.responde);
+
   return {
     // Dia novo sempre abre grupo: um cabeçalho continuando por cima de um
     // divisor de data leria como se a fala tivesse atravessado a meia-noite.
-    iniciaGrupo: mudouDeDia || mudouDeAutor || passouDaJanela || cruzaSistema,
+    iniciaGrupo:
+      mudouDeDia || mudouDeAutor || passouDaJanela || cruzaSistema || ehResposta,
     dia: mudouDeDia ? rotuloDeDia(atual.createdAt, agora) : undefined,
+    // Quem decide é o adapter, com o cursor em mãos. Este módulo é puro e não
+    // conhece estado de leitura.
+    primeiraNaoLida: false,
   };
 }

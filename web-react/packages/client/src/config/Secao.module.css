@@ -1,0 +1,173 @@
+/* ============================================================
+   Uma seção de configurações
+   ------------------------------------------------------------
+   Compartilhado pelas sete. Uma folha só porque a geometria é a
+   mesma em todas — formulário estreito, blocos separados por
+   régua, lista de linhas com ação no fim. Sete folhas quase
+   iguais divergiriam na primeira que alguém mexesse.
+   ============================================================ */
+
+.forma {
+  display: grid;
+  /* 18 é o ritmo entre blocos no design — medido, 92px em cinco vãos. */
+  gap: var(--vx-space-18);
+  /*
+    A medida de leitura, e não a largura da coluna.
+
+    Configuração é texto de instrução e campo de formulário: os dois viram
+    ilegíveis esticados. É a mesma razão de `--vx-medida` existir na linha de
+    mensagem, aplicada a uma superfície que também é lida.
+  */
+  max-inline-size: var(--vx-medida);
+}
+
+/*
+  A largura do EDITOR, para o que não é prosa.
+
+  ⚠ O Foundations do design é explícito: *"o editor limitado a 880 e
+  centralizado no espaço restante"*. A medida de leitura acima continua certa
+  para formulário de texto — campo esticado fica ilegível pelo mesmo motivo que
+  um parágrafo. Mas a matriz de permissões tem rótulo, consequência e três
+  estados na mesma linha, e em 520px ela espreme os três num canto.
+
+  Modificador e não um valor novo em `.forma`: quem precisa de 880 pede, e o
+  default continua sendo a medida.
+*/
+.forma.larga {
+  /*
+    ⚠ **880 era o número do Foundations, e as TELAS usam outros.** Medido com
+    `pnpm espelho`: Visão geral do canal em 680, Convites em 720, Permissões em
+    760. O 880 do Foundations é o TETO do editor, não a largura de cada tela —
+    e usar o teto em todas engordava cada uma em 120 a 200px.
+
+    Este modificador vira o teto; quem sabe a própria largura declara a sua com
+    `--vx-editor-w`, que é o que as três fazem.
+  */
+  max-inline-size: var(--vx-editor-w, 880px);
+}
+
+.bloco {
+  display: grid;
+  gap: var(--vx-space-12);
+}
+
+.subtitulo {
+  margin: 0;
+  font-size: var(--vx-size-lg);
+  font-weight: 600;
+  line-height: var(--vx-leading-title);
+  color: var(--vx-text-1);
+}
+
+/*
+  O texto que explica o bloco.
+
+  Ele diz o que ACONTECE, não o que o campo é — "trocar exige a senha" vale
+  mais que "campo de nome de usuário". Instrução que repete o rótulo é ruído.
+*/
+.recado {
+  margin: 0;
+  font-size: var(--vx-size-md);
+  /* `text-3` e não `text-2`: medido no design, o subtítulo de seção é
+     `#77808e`. O secundário é para conteúdo denso; explicação de seção é
+     metadado. */
+  color: var(--vx-text-3);
+}
+
+/*
+  A régua entre blocos.
+
+  O sistema de design reserva régua para separação RARA, e aqui ela é isso:
+  separa operações INDEPENDENTES, cada uma com o próprio botão e o próprio
+  jeito de falhar. Entre campos do mesmo formulário a separação é espaço.
+*/
+.divisor {
+  margin: 0;
+  border: 0;
+  border-block-start: 1px solid var(--vx-border-subtle);
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-08);
+}
+
+/* --- listas de linhas (dispositivos, convites, banimentos) ----- */
+
+.lista {
+  display: grid;
+  gap: var(--vx-space-04);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.linha {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-12);
+  min-inline-size: 0;
+  padding-inline: var(--vx-space-12);
+  padding-block: var(--vx-space-08);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-1);
+}
+
+.texto {
+  display: grid;
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+.nome {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-md);
+  font-weight: 500;
+}
+
+.detalhe {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+}
+
+/* ============================================================
+   Lista de opções com descrição
+   ------------------------------------------------------------
+   Do design: `gap:10px` entre as linhas, marca alinhada ao topo,
+   título 13/600 e descrição 12 em `text-3`. A descrição é o que
+   torna a escolha decidível sem um parágrafo acima dela.
+   ============================================================ */
+
+.escolhas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-10);
+}
+
+/* O texto empilha; a marca fica ao lado, alinhada à primeira linha. */
+.escolhas > button > span:last-child {
+  display: grid;
+  gap: var(--vx-space-02);
+}
+
+.escolhaTitulo {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.escolhaDetalhe {
+  font-size: var(--vx-size-sm);
+  font-weight: 400;
+  color: var(--vx-text-3);
+}
