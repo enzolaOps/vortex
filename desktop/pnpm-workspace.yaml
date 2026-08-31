@@ -1,5 +1,10 @@
 allowBuilds:
   electron: true
+  # Necessário: o postinstall dele traz os binários do Squirrel, que é o que
+  # produz o instalador do Windows e o manifesto `RELEASES` que o
+  # `update.electronjs.org` serve. Sem aprovar, `pnpm make` não emite nada no
+  # Windows — e o CI falharia com uma mensagem sobre scripts, não sobre isso.
+  electron-winstaller: true
   esbuild: true
   node-pipewire: true
 

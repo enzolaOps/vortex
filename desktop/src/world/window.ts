@@ -39,3 +39,61 @@ contextBridge.exposeInMainWorld("vortexTela", {
   permissao: () => ipcRenderer.invoke("telaPermissao"),
   abrirAjustes: () => ipcRenderer.invoke("telaAbrirAjustes"),
 });
+
+/**
+ * `window.vortex` — o contrato que o cliente React declara.
+ *
+ * ⚠ **Ele NUNCA existiu, e o sintoma foi "não aparecem os botões de
+ * minimizar, maximizar e fechar".** `customFrame: true` é o padrão, então o
+ * Electron não desenha moldura; a barra é do cliente, e ela só se desenha
+ * quando esta ponte existe. Sem ela: janela sem moldura do sistema e sem barra
+ * nossa — uma janela que não pode ser fechada.
+ *
+ * O contrato é `PonteDesktop`, em `web-react/…/sdk/desktop.ts`. Verbo que
+ * faltar aqui faz `verbosFaltandoNaPonte` acusar do lado do cliente, que cai
+ * na barra nativa em vez de deixar a janela sem controle nenhum.
+ *
+ * ⚠ **`versao`, `plataforma` e `electron` são VALORES e não funções**, ao
+ * contrário do `native.versions` acima — que, medido no Electron, chega ao
+ * renderer como `{node:{},chrome:{},electron:{}}`: o `contextBridge` não
+ * atravessa função aninhada em objeto do jeito que aquele código espera. Valor
+ * simples atravessa.
+ */
+contextBridge.exposeInMainWorld("vortex", {
+  versao: version,
+  plataforma: process.platform,
+  electron: process.versions.electron,
+
+  janela: (o: string) => ipcRenderer.invoke("vortexJanela", o),
+
+  /*
+    ⚠ **O ouvinte é embrulhado, e o `ipcRenderer` nunca o alcança direto.** Se
+    a função do renderer fosse registrada como handler, o primeiro argumento
+    que ela receberia seria o `IpcRendererEvent` — um objeto do Electron
+    atravessando para o lado que executa conteúdo de terceiro. Aqui só o
+    estado passa, e o `off` devolvido fecha a assinatura.
+  */
+  assinarJanela: (ouvinte: (e: unknown) => void) => {
+    const alca = (_evento: unknown, estado: unknown) => ouvinte(estado);
+    ipcRenderer.on("vortexJanelaMudou", alca);
+    void ipcRenderer.invoke("vortexEstadoDaJanela").then(ouvinte);
+    return () => ipcRenderer.off("vortexJanelaMudou", alca);
+  },
+
+  lerPreferencias: () => ipcRenderer.invoke("vortexLerPreferencias"),
+  gravarPreferencia: (chave: string, valor: unknown) =>
+    ipcRenderer.invoke("vortexGravarPreferencia", chave, valor),
+
+  assinarAtualizacao: (ouvinte: (a: unknown) => void) => {
+    const alca = (_evento: unknown, a: unknown) => ouvinte(a);
+    ipcRenderer.on("vortexAtualizacao", alca);
+    void ipcRenderer.invoke("vortexEstadoDaAtualizacao").then(ouvinte);
+    return () => ipcRenderer.off("vortexAtualizacao", alca);
+  },
+  verificarAtualizacao: () => ipcRenderer.invoke("vortexVerificarAtualizacao"),
+  instalarEReiniciar: () => ipcRenderer.invoke("vortexInstalarEReiniciar"),
+
+  tamanhoDoCache: () => ipcRenderer.invoke("vortexTamanhoDoCache"),
+  limparCache: () => ipcRenderer.invoke("vortexLimparCache"),
+  abrirPastaDeLogs: () => ipcRenderer.invoke("vortexAbrirPastaDeLogs"),
+});

@@ -19,6 +19,8 @@
  * arme a escolha, e só então peça a captura ao LiveKit.
  */
 
+import { toast } from "../components/ui/toastStore";
+
 /** Uma fonte de captura — um monitor ou uma janela. */
 export type FonteDeTela = {
   readonly id: string;
@@ -71,8 +73,91 @@ declare global {
   }
 }
 
+/**
+ * Os verbos do contrato, em RUNTIME.
+ *
+ * ⚠ **`Record<keyof PonteDeTela, true>` e não uma lista solta**, e é a mesma
+ * mecânica de `ModalId`, `PainelId` e `SecaoId`: verbo novo no tipo sem
+ * entrada aqui não compila, e entrada aqui que o tipo não tem também não. As
+ * duas direções, sem ninguém precisar lembrar.
+ *
+ * Sem isto a checagem abaixo apodreceria em silêncio — ela conferiria cinco
+ * verbos de seis, e o sexto voltaria a ser exatamente o buraco que ela existe
+ * para tapar.
+ */
+const VERBOS: Record<keyof PonteDeTela, true> = {
+  seletorProprio: true,
+  fontes: true,
+  escolher: true,
+  cancelar: true,
+  permissao: true,
+  abrirAjustes: true,
+};
+
+/** Avisa uma vez por sessão, e não a cada clique. */
+let jaAvisou = false;
+
+/**
+ * A ponte da casca, se ela estiver COMPLETA.
+ *
+ * ⚠ **`PonteDeTela` é tipo de compilação sobre um objeto injetado em runtime,
+ * e o `?.` só protegia contra a ponte AUSENTE.** No navegador `window.vortexTela`
+ * não existe e tudo funciona; numa casca INCOMPLETA ela existe pela metade, o
+ * TypeScript acredita nos seis verbos, e `ponte.permissao()` lança
+ * `is not a function` dentro do seletor — ou seja, na hora em que a pessoa
+ * está tentando apresentar.
+ *
+ * E casca incompleta não é hipótese remota: **a casca carrega o cliente por
+ * URL remota** (ver o README de `desktop/`), então o cliente web atualiza no
+ * deploy e a casca não. "Casca velha + cliente novo" é o estado NORMAL depois
+ * de toda subida, e será o estado de qualquer pessoa que não reinstalar
+ * quando um verbo for acrescentado.
+ *
+ * Medido no Electron 43 com a casca desta árvore: os seis verbos respondem, a
+ * captura real sai em 3440×1440 a 30 fps, e a escolha é de uso único — a
+ * segunda captura sem armar é recusada com `AbortError`. O que NÃO foi possível
+ * medir é a casca antiga: `contextBridge` cria objeto não-configurável, então
+ * substituir `window.vortexTela` por uma versão parcial na própria página é
+ * impossível. Esta guarda vem de leitura do contrato, e o teste ao lado é que
+ * a exercita.
+ *
+ * ⚠ **Incompleta é tratada como AUSENTE, de propósito.** A alternativa seria
+ * recusar o compartilhamento, e isso seria pior: o seletor do sistema continua
+ * existindo e continua funcionando. Perde-se o painel do Vortex, não o
+ * recurso. O toast diz o que fazer para tê-lo de volta.
+ */
 export function ponteDeTela(): PonteDeTela | undefined {
-  return typeof window === "undefined" ? undefined : window.vortexTela;
+  if (typeof window === "undefined") return undefined;
+
+  const ponte = window.vortexTela;
+  if (!ponte) return undefined;
+
+  const faltando = verbosFaltando(ponte);
+  if (faltando.length === 0) return ponte;
+
+  if (!jaAvisou) {
+    jaAvisou = true;
+    toast({
+      tipo: "info",
+      titulo: "O app de desktop está desatualizado.",
+      descricao:
+        "O seletor de tela do Vortex precisa de uma versão mais nova. Até " +
+        "atualizar, compartilhar tela usa o seletor do sistema.",
+    });
+  }
+  return undefined;
+}
+
+/**
+ * Quais verbos a casca não entrega.
+ *
+ * Exportada porque é o que o teste exercita: a checagem em si depende de um
+ * `window` com a ponte injetada, e o `contextBridge` não é reproduzível fora
+ * do Electron.
+ */
+export function verbosFaltando(ponte: object): readonly string[] {
+  const dela = ponte as Record<string, unknown>;
+  return Object.keys(VERBOS).filter((v) => typeof dela[v] !== "function");
 }
 
 /**
