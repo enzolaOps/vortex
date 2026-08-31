@@ -1,4 +1,4 @@
-import { app } from "electron";
+import { app, autoUpdater, BrowserWindow, ipcMain } from "electron";
 import { updateElectronApp } from "update-electron-app";
 
 /**
@@ -54,4 +54,81 @@ export function ligarAtualizacaoAutomatica(): void {
     */
     notifyUser: false,
   });
+}
+
+/**
+ * O ciclo de vida da atualização, no vocabulário do cliente.
+ *
+ * ⚠ **A tela de atualização do cliente existe desde antes desta casca** —
+ * `desktop/Atualizacao.tsx`, com os seis estados que o design desenha — e
+ * nunca recebeu um evento, porque `window.vortex` não existia. Construída e
+ * inalcançável, como o painel de fixadas.
+ *
+ * ⚠ **Os eventos vêm do `autoUpdater` do Electron, não da biblioteca.** O
+ * `update-electron-app` é uma casca fina em cima dele: quem emite
+ * `checking-for-update`, `update-available` e `update-downloaded` é o módulo
+ * nativo. Assinar ali é assinar a fonte.
+ *
+ * ⚠ **`baixando` com progresso é o estado que NÃO temos.** O `autoUpdater` do
+ * Squirrel.Windows não reporta bytes — ele avisa que começou e que terminou. O
+ * cliente tem `progresso`, e mandar um número inventado seria a mesma mentira
+ * do "Conectado · 42 ms" que a faixa de voz recusou. Vai `0`, e a tela mostra
+ * "baixando" sem barra.
+ */
+type EstadoDeAtualizacao =
+  | "em-dia"
+  | "verificando"
+  | "baixando"
+  | "pronta"
+  | "obrigatoria"
+  | "falhou";
+
+let atual: { estado: EstadoDeAtualizacao; versao: string | undefined; progresso: number } = {
+  estado: "em-dia",
+  versao: undefined,
+  progresso: 0,
+};
+
+export function registrarAtualizacaoNaPonte(): void {
+  const emitir = (
+    estado: EstadoDeAtualizacao,
+    versao?: string,
+  ) => {
+    atual = { estado, versao: versao ?? atual.versao, progresso: 0 };
+    for (const j of BrowserWindow.getAllWindows()) {
+      if (!j.isDestroyed()) j.webContents.send("vortexAtualizacao", atual);
+    }
+  };
+
+  ipcMain.handle("vortexEstadoDaAtualizacao", () => atual);
+
+  /*
+    ⚠ **Os três verbos existem mesmo sem atualizador de pé** — no Linux e em
+    desenvolvimento o `autoUpdater` não tem feed. Devolver `em-dia` é honesto:
+    não há atualização esperando. Lançar faria a tela do cliente quebrar num
+    lugar onde não há defeito nenhum.
+  */
+  ipcMain.handle("vortexVerificarAtualizacao", () => {
+    if (!app.isPackaged || process.platform === "linux") return;
+    try {
+      autoUpdater.checkForUpdates();
+    } catch {
+      emitir("falhou");
+    }
+  });
+
+  ipcMain.handle("vortexInstalarEReiniciar", () => {
+    if (atual.estado !== "pronta") return;
+    autoUpdater.quitAndInstall();
+  });
+
+  if (!app.isPackaged || process.platform === "linux") return;
+
+  autoUpdater.on("checking-for-update", () => emitir("verificando"));
+  autoUpdater.on("update-available", () => emitir("baixando"));
+  autoUpdater.on("update-not-available", () => emitir("em-dia"));
+  autoUpdater.on("error", () => emitir("falhou"));
+  autoUpdater.on("update-downloaded", (_e, _notas, nome) =>
+    emitir("pronta", typeof nome === "string" ? nome : undefined),
+  );
 }

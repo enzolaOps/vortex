@@ -1,7 +1,11 @@
 import { BrowserWindow, app, shell } from "electron";
 
-import { ligarAtualizacaoAutomatica } from "./native/atualizacao";
+import {
+  ligarAtualizacaoAutomatica,
+  registrarAtualizacaoNaPonte,
+} from "./native/atualizacao";
 import { config } from "./native/config";
+import { registrarPonteDoVortex } from "./native/ponteDoVortex";
 import { initTray } from "./native/tray";
 import { initVirtualMic } from "./native/virtualMic";
 import { BUILD_URL, createMainWindow, mainWindow } from "./native/window";
@@ -29,6 +33,10 @@ if (acquiredLock) {
 
     initTray();
     initVirtualMic();
+    /* ⚠ DEPOIS de `createMainWindow()`: a ponte assina eventos da janela, e
+       sem janela não há o que assinar. */
+    registrarPonteDoVortex();
+    registrarAtualizacaoNaPonte();
     ligarAtualizacaoAutomatica();
 
     // Windows specific fix for notifications

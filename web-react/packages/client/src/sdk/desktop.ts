@@ -94,12 +94,63 @@ declare global {
  * remota e `false` se a casca trocar de runtime — e o que decide se o app pode
  * minimizar uma janela é ter a função, não o nome do processo.
  */
+const VERBOS: Record<keyof PonteDesktop, true> = {
+  versao: true,
+  plataforma: true,
+  electron: true,
+  janela: true,
+  assinarJanela: true,
+  lerPreferencias: true,
+  gravarPreferencia: true,
+  assinarAtualizacao: true,
+  verificarAtualizacao: true,
+  instalarEReiniciar: true,
+  tamanhoDoCache: true,
+  limparCache: true,
+  abrirPastaDeLogs: true,
+};
+
+/**
+ * Quais verbos a casca não entrega.
+ *
+ * ⚠ **A mesma guarda de `verbosFaltando` no seletor de tela, e pela mesma
+ * razão elevada à segunda potência.** `PonteDesktop` é tipo de COMPILAÇÃO
+ * sobre um objeto injetado em runtime, e aqui a casca não implementou nada
+ * durante meses: o cliente declarou treze verbos, a casca expôs `native`,
+ * `desktopConfig` e `vortexTela`, e `window.vortex` nunca existiu. O sintoma
+ * foi uma janela sem moldura do sistema e sem barra nossa.
+ *
+ * `versao`, `plataforma` e `electron` são STRINGS e não funções — por isso a
+ * checagem é "existe", e não "é função".
+ */
+export function verbosFaltandoNaPonte(ponte: object): readonly string[] {
+  const dela = ponte as Record<string, unknown>;
+  return Object.keys(VERBOS).filter((v) => dela[v] === undefined);
+}
+
+/**
+ * Estamos rodando dentro da casca?
+ *
+ * ⚠ **A pergunta é sobre a PONTE existir E ESTAR COMPLETA**, não sobre o user
+ * agent. Testar `navigator.userAgent.includes("Electron")` daria `true` numa
+ * aba de DevTools remota e `false` se a casca trocar de runtime — e o que
+ * decide se o app pode minimizar uma janela é ter a função, não o nome do
+ * processo.
+ *
+ * ⚠ **Ponte pela metade conta como AUSENTE, e a degradação aqui é a inversa da
+ * do seletor de tela.** Lá, cair fora significa usar o seletor do sistema e
+ * perder só o painel. Aqui significa a barra de título não se desenhar — e com
+ * `customFrame: true` a janela ficaria sem NENHUM controle. Por isso a casca
+ * também precisa cair para `frame: true` quando não consegue entregar a ponte;
+ * o cliente sozinho não tem como consertar isso.
+ */
 export function naDesktop(): boolean {
-  return typeof window !== "undefined" && window.vortex !== undefined;
+  const p = typeof window === "undefined" ? undefined : window.vortex;
+  return p !== undefined && verbosFaltandoNaPonte(p).length === 0;
 }
 
 export function ponte(): PonteDesktop | undefined {
-  return typeof window === "undefined" ? undefined : window.vortex;
+  return naDesktop() ? window.vortex : undefined;
 }
 
 /**
