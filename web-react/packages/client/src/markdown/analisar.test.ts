@@ -22,6 +22,8 @@ function texto(trechos: readonly TrechoDeMensagem[]): string {
           return t.valor;
         case "mencao":
           return `@${t.valor}`;
+        case "emoji":
+          return `:${t.valor}:`;
         case "quebra":
           return "\n";
         default:
@@ -267,3 +269,60 @@ describe("achatar", () => {
     expect(texto(achatar(blocos))).toBe("ab");
   });
 });
+
+describe("emoji personalizado", () => {
+  /** Um ULID válido: 26 caracteres do alfabeto Crockford. */
+  const ID = "01H2XABCDEFGHJKMNPQRSTVWXY";
+
+  it("vira trecho próprio, e o resto do texto sobrevive", () => {
+    const t = umParagrafo(`bom dia :${ID}: pessoal`);
+    expect(t.map((x) => x.tipo)).toEqual(["texto", "emoji", "texto"]);
+    expect(t[1]).toMatchObject({ tipo: "emoji", valor: ID });
+  });
+
+  /*
+    ⚠ **O teste que decide a regex.** Aceitar `\w+` faria toda mensagem com
+    dois-pontos virar uma imagem quebrada — `:sorriso:`, `:-)`, `12:30:15`,
+    `https://x` são texto que alguém escreveu. Só um ULID é referência a um
+    arquivo, e é por isso que o alfabeto é fechado.
+  */
+  it("NÃO casa dois-pontos que não seja ULID", () => {
+    for (const cru of [
+      ":sorriso:",
+      ":festa_da_firma:",
+      "às 12:30:15 de hoje",
+      ":01H2XABCDEFGHJKMNPQRSTVWX:",
+      ":01H2XABCDEFGHJKMNPQRSTVWXYZZ:",
+      ":01H2XABCDEFGHIKMNPQRSTVWXY:",
+    ]) {
+      const t = umParagrafo(cru);
+      expect(t.every((x) => x.tipo !== "emoji")).toBe(true);
+    }
+  });
+
+  it("convive com menção no mesmo texto, na ordem certa", () => {
+    const t = umParagrafo(`<@01EU> olha :${ID}:`);
+    expect(t.map((x) => x.tipo)).toEqual(["mencao", "texto", "emoji"]);
+  });
+
+  it("atravessa a formatação, como a menção", () => {
+    const t = umParagrafo(`**:${ID}:**`);
+    expect(t).toHaveLength(1);
+    expect(t[0]?.tipo).toBe("forte");
+    expect(texto(achatar([{ tipo: "paragrafo", filhos: t, de: 0 }]))).toBe(
+      `:${ID}:`,
+    );
+  });
+
+  /*
+    Chave é tipo + deslocamento, e dois emojis iguais na mesma mensagem
+    precisam de chaves diferentes — senão o React descarta um deles sem avisar.
+  */
+  it("dois iguais têm deslocamentos diferentes", () => {
+    const t = umParagrafo(`:${ID}: :${ID}:`);
+    const emojis = t.filter((x) => x.tipo === "emoji");
+    expect(emojis).toHaveLength(2);
+    expect(emojis[0]?.de).not.toBe(emojis[1]?.de);
+  });
+});
+

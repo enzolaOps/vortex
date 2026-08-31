@@ -1,10 +1,15 @@
-import { LockSimple } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { aindaNao } from "../pendente/pendencias";
+import { listarEmojis, type Emoji as EmojiDoServidor } from "../sdk/cargos";
+import { urlDeEmoji } from "../sdk/anexos";
+import { useServidorAtivo } from "../store/hooks";
 import { CascaDeSeletor, SecaoDeSeletor } from "./CascaDeSeletor";
 import { CATEGORIAS, buscar, type Emoji } from "./emojis";
 import css from "./Seletores.module.css";
+
+/** Referência estável: um `[]` novo a cada render invalidaria o filtro. */
+const SEM_EMOJI: readonly EmojiDoServidor[] = [];
 
 /**
  * O seletor de emoji — e ele FUNCIONA.
@@ -40,6 +45,55 @@ export function SeletorDeEmoji({
 
   const encontrados = buscar(busca);
   const buscando = busca.trim().length > 0;
+
+  /*
+    Os emojis do servidor aberto.
+
+    ⚠ **Buscados na MONTAGEM do seletor e não no `Ready`.** Eles são dezenas
+    por servidor e só interessam a quem abriu este painel; semeá-los no store
+    a cada conexão seria carregar dado de uma superfície que a maioria das
+    sessões nunca abre. O seletor monta e desmonta a cada abertura, então a
+    lista chega fresca sem cache para invalidar.
+  */
+  const serverId = useServidorAtivo();
+  /*
+    ⚠ **Guarda PARA QUEM a resposta é, e deriva daí.** Zerar a lista num efeito
+    ao trocar de servidor é `setState` dentro de efeito, que o lint do projeto
+    reprova com razão — é render a mais e uma segunda fonte da verdade sobre
+    "de quem é esta lista". Com o alvo guardado junto, a lista de outro
+    servidor simplesmente não é lida. É o mesmo arranjo das telas de convites e
+    banimentos.
+  */
+  const [resposta, setResposta] = useState<
+    { readonly para: string; readonly lista: readonly EmojiDoServidor[] }
+    | undefined
+  >(undefined);
+
+  useEffect(() => {
+    if (!serverId) return;
+    let vivo = true;
+    void listarEmojis(serverId).then((lista) => {
+      if (vivo) setResposta({ para: serverId, lista });
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [serverId]);
+
+  const doServidor =
+    resposta !== undefined && resposta.para === serverId
+      ? resposta.lista
+      : SEM_EMOJI;
+
+  /*
+    A busca alcança os do servidor pelo NOME, que é como a pessoa os conhece —
+    o ID é o que vai para a mensagem, e ninguém o digita.
+  */
+  const doServidorFiltrados = buscando
+    ? doServidor.filter((e) =>
+        e.nome.toLowerCase().includes(busca.trim().toLowerCase()),
+      )
+    : doServidor;
 
   return (
     <CascaDeSeletor
@@ -124,16 +178,40 @@ export function SeletorDeEmoji({
         aqui, porque a razão é a mesma do ponto de vista de quem usa: existe, e
         você não pode usar ainda.
       */}
-      {!buscando ? (
+      {/*
+        ⚠ **A seção some quando o servidor não tem emoji, e aparece durante a
+        busca.** Antes ela era um aviso permanente de "ainda não carregam" —
+        agora um cabeçalho sobre nada seria a mesma promessa vazia com outra
+        roupa. Durante a busca ela entra porque quem digita `festa` pode estar
+        atrás justamente de um emoji do servidor.
+
+        ⚠ **Insere o ID e não o nome.** `:festa_da_firma:` é como a pessoa o
+        conhece, mas o protocolo referencia o ARQUIVO — `:01H2X…:` — e é isso
+        que qualquer cliente Stoat sabe renderizar. Mandar o nome produziria
+        texto cru na mensagem de todo mundo.
+      */}
+      {doServidorFiltrados.length > 0 ? (
         <SecaoDeSeletor titulo="Emojis do servidor">
-          <button
-            type="button"
-            className={css.bloqueado}
-            onClick={aindaNao("emojiDoServidor")}
-          >
-            <LockSimple aria-hidden />
-            Emojis do servidor ainda não carregam
-          </button>
+          <div className={css.grade}>
+            {doServidorFiltrados.map((e) => (
+              <button
+                key={e.id}
+                type="button"
+                className={css.emoji}
+                aria-label={`:${e.nome}:`}
+                title={`:${e.nome}:`}
+                onClick={() => aoEscolher(`:${e.id}:`)}
+              >
+                <img
+                  className={css.imagemDoEmoji}
+                  src={urlDeEmoji(e.id) ?? e.url}
+                  alt=""
+                  loading="lazy"
+                  draggable={false}
+                />
+              </button>
+            ))}
+          </div>
         </SecaoDeSeletor>
       ) : null}
     </CascaDeSeletor>

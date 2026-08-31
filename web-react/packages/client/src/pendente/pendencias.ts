@@ -174,11 +174,6 @@ export const PENDENCIAS = {
     faz: "Escolher um emoji para reagir a esta mensagem.",
     depende: "o seletor ancorado ao chip — hoje ele só abre pelo composer",
   },
-  emojiDoServidor: {
-    superficie: "Seletor de emoji",
-    faz: "Usar os emojis personalizados deste servidor.",
-    depende: "servidor de mídia (autumn) servindo os arquivos",
-  },
   tomDePele: {
     superficie: "Seletor de emoji",
     faz: "Escolher o tom de pele padrão dos emojis de pessoa.",

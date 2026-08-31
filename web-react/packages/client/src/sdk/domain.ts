@@ -57,6 +57,21 @@ type ComPosicao = { readonly de: number };
 export type TrechoDeMensagem =
   | (ComPosicao & { readonly tipo: "texto"; readonly valor: string })
   | (ComPosicao & { readonly tipo: "mencao"; readonly valor: string })
+  /**
+   * Emoji personalizado do servidor. `valor` é o ID.
+   *
+   * ⚠ **O ID e não a URL, ao contrário de `avatarUrl` e `iconeUrl`.** Aqueles
+   * são derivados na escrita porque montar a URL exigiria que o componente
+   * soubesse do `autumn`; aqui a árvore de markdown é CACHEADA por conteúdo,
+   * e assar a URL nela a congelaria — o endereço do servidor de mídia vem da
+   * configuração, que só existe depois da conexão, e a mesma mensagem pode
+   * ser analisada antes dela. Quem resolve é `urlDeEmoji`, em `sdk/`.
+   *
+   * ⚠ **Emoji Unicode NÃO passa por aqui.** Ele é texto e o navegador o
+   * desenha; um tipo para ele seria trabalho por nada no componente mais
+   * quente do app. Só o personalizado precisa virar imagem.
+   */
+  | (ComPosicao & { readonly tipo: "emoji"; readonly valor: string })
   | (ComPosicao & { readonly tipo: "codigo"; readonly valor: string })
   | (ComPosicao & { readonly tipo: "quebra" })
   | (ComPosicao & {

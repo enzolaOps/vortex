@@ -494,6 +494,21 @@ export async function criarEmoji(
   }
 }
 
+/**
+ * O nome de um emoji personalizado, quando o SDK já o conhece.
+ *
+ * ⚠ **Sem buscar, e a ausência é deliberada.** O upstream dispara um
+ * `emojis.fetch(id)` quando não conhece — numa lista virtualizada isso é uma
+ * requisição por emoji desconhecido visível, disparada durante a rolagem, no
+ * componente mais quente do app. Quem já entrou no servidor tem os emojis
+ * dele pelo `Ready`; o caso restante é emoji de servidor onde você não está,
+ * e ali a linha mostra o código escrito, que é a verdade sobre o que a pessoa
+ * digitou.
+ */
+export function nomeDeEmoji(emojiId: string): string | undefined {
+  return client.emojis.get(emojiId)?.name;
+}
+
 export async function apagarEmoji(emojiId: string): Promise<boolean> {
   try {
     await client.emojis.get(emojiId)?.delete();

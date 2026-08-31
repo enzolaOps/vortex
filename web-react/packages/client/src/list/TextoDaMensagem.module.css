@@ -328,3 +328,37 @@ ol.lista {
 .linhaDeCodigo {
   display: block;
 }
+
+/* Emoji personalizado do servidor */
+
+/*
+  Dimensão FIXA e não `em`, e a diferença é a âncora.
+
+  Com `em` o tamanho seguiria a densidade e o tipo do bloco onde o emoji cai —
+  título, citação, prévia de uma linha —, e a altura da linha passaria a
+  depender de ONDE o emoji está. Numa lista virtualizada com estimativa por
+  tipo de linha, isso é a estimativa deixando de valer por causa de um glifo.
+
+  ⚠ **`vertical-align: middle` e não `text-bottom`, e a diferença é MEDIDA.**
+  Com `text-bottom` a caixa de 22px não cabe na entrelinha de 22,5px e a linha
+  cresce: parágrafo sem emoji 23px, com emoji 25px. Com `middle` a mesma imagem
+  de 22px deixa a linha em 23px — tamanho cheio, crescimento zero.
+
+  Medido lado a lado no navegador, variando as duas propriedades:
+
+    22/text-bottom  25px      20/text-bottom  23px
+    22/middle       23px      18/text-bottom  23px
+    24/text-bottom  27px      22/-0.3em       24px
+
+  Importa porque a lista é ancorada: linha que muda de altura por causa de um
+  glifo faz a estimativa por tipo (`ALTURA_POR_TIPO`) derivar em toda conversa
+  onde emoji é comum. Encolher para 20px também resolveria, e custaria
+  tamanho — `middle` não custa nada.
+*/
+.emoji {
+  display: inline-block;
+  inline-size: 22px;
+  block-size: 22px;
+  vertical-align: middle;
+  object-fit: contain;
+}

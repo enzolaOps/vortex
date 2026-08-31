@@ -86,6 +86,27 @@ export function temServidorDeMidia(): boolean {
 }
 
 /**
+ * O endereço da imagem de um emoji personalizado.
+ *
+ * ⚠ **Resolvido no RENDER e não na escrita, ao contrário de `avatarUrl` e
+ * `iconeUrl`.** Aqueles são derivados no snapshot; a árvore de markdown é
+ * CACHEADA por conteúdo, e assar a URL nela a congelaria — o endereço do
+ * `autumn` vem da configuração, que só existe depois da conexão, e a mesma
+ * mensagem pode ser analisada antes dela. Duas mensagens iguais compartilham
+ * a árvore; uma URL vazia gravada ali ficaria vazia para sempre.
+ *
+ * Custa uma concatenação por emoji visível, e a linha só re-renderiza quando
+ * o snapshot muda. É barato o bastante para o componente mais quente do app.
+ *
+ * `undefined` quando a instância não tem servidor de mídia — aí a linha mostra
+ * o código escrito, que é a verdade sobre o que a pessoa digitou.
+ */
+export function urlDeEmoji(id: string): string | undefined {
+  const base = enderecoDoAutumn();
+  return base === undefined ? undefined : `${base}/emojis/${id}`;
+}
+
+/**
  * O maior teto publicado para esta tag, ou nada.
  *
  * Lê `features.limits` com narrowing manual porque `RevoltConfig` do SDK não

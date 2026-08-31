@@ -81,7 +81,22 @@ export function hrefSeguro(url: string | undefined): string | undefined {
 
 /* ----------------------------------------------------------------- menções */
 
-const MENCAO = /<@([0-9A-Za-z]+)>/g;
+/**
+ * Menção OU emoji personalizado, num casamento só.
+ *
+ * ⚠ **Uma regex e não duas passagens, e a razão é ordem.** Com duas, a
+ * segunda teria de refatiar os pedaços que a primeira produziu, e cada
+ * refatiamento recalcula deslocamentos — que são as CHAVES das linhas. Um
+ * casamento alternado dá a ordem certa de graça.
+ *
+ * ⚠ **O alfabeto do emoji é Crockford base32, 26 caracteres — um ULID.** Não
+ * é `\w+`: `:sorriso:` é texto que alguém escreveu, `:01H2X…:` é referência a
+ * um arquivo. Aceitar o primeiro faria toda mensagem com dois-pontos virar
+ * uma imagem quebrada. O alfabeto exclui `I`, `L`, `O` e `U` de propósito,
+ * porque ULID os omite para não confundir com `1` e `0`.
+ */
+const INLINE =
+  /<@([0-9A-Za-z]+)>|:([0123456789ABCDEFGHJKMNPQRSTVWXYZ]{26}):/g;
 
 /**
  * Parte um trecho de texto separando as menções.
@@ -96,22 +111,28 @@ const MENCAO = /<@([0-9A-Za-z]+)>/g;
  * se um dia o CommonMark mudar de ideia, ele reprova em vez de a menção sumir.
  *
  * O nome NÃO é resolvido aqui. Quem sabe o nome é a member list, e puxá-la
- * para dentro do parse acoplaria as duas coleções por uma linha de texto.
+ * para dentro do parse acoplaria as duas coleções por uma linha de texto. Vale
+ * igual para o emoji: sai o ID, e quem resolve URL e nome é `sdk/`.
  */
-function fatiarMencoes(
+function fatiarInline(
   texto: string,
   /** Deslocamento do nó dentro da mensagem — a base das chaves. */
   base: number,
   saida: TrechoDeMensagem[],
 ): void {
-  if (!texto.includes("<@")) {
+  /*
+    Saída rápida, e ela é o que mantém isto barato: a esmagadora maioria das
+    mensagens não tem nem `<@` nem `:`, e essas nem entram no laço. Testar dois
+    `includes` custa menos que armar a regex.
+  */
+  if (!texto.includes("<@") && !texto.includes(":")) {
     if (texto.length > 0) saida.push({ tipo: "texto", valor: texto, de: base });
     return;
   }
 
-  MENCAO.lastIndex = 0;
+  INLINE.lastIndex = 0;
   let ultimo = 0;
-  for (const m of texto.matchAll(MENCAO)) {
+  for (const m of texto.matchAll(INLINE)) {
     const i = m.index;
     if (i > ultimo) {
       saida.push({
@@ -120,7 +141,13 @@ function fatiarMencoes(
         de: base + ultimo,
       });
     }
-    saida.push({ tipo: "mencao", valor: m[1]!, de: base + i });
+    /* Qual dos dois casou diz o grupo que veio preenchido. */
+    const mencao = m[1];
+    saida.push(
+      mencao !== undefined
+        ? { tipo: "mencao", valor: mencao, de: base + i }
+        : { tipo: "emoji", valor: m[2]!, de: base + i },
+    );
     ultimo = i + m[0].length;
   }
   if (ultimo < texto.length) {
@@ -156,7 +183,7 @@ function converterTrecho(no: PhrasingContent, saida: TrechoDeMensagem[]): void {
 
   switch (no.type) {
     case "text":
-      fatiarMencoes(no.value, de, saida);
+      fatiarInline(no.value, de, saida);
       return;
 
     case "inlineCode":
