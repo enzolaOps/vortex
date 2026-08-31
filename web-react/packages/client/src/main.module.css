@@ -1,0 +1,76 @@
+/* ============================================================
+   A raiz — as faixas da casca e o conteúdo
+   ------------------------------------------------------------
+   Coluna flex: barra de título, faixa de atualização, conteúdo.
+   As duas primeiras são da CASCA e devolvem `null` no navegador.
+   ============================================================ */
+
+/*
+  ⚠ **Isto existe porque `100dvh` mentia, e mentia SÓ no Electron.**
+
+  A barra de título ocupa 34px de fluxo no topo, e a tela de entrada pedia
+  `min-block-size: 100dvh` — 34 + 723 dá 757 numa janela de 723. Medido dentro
+  da casca: a janela rolava 35px e ganhava uma barra de rolagem clara na borda
+  direita. No navegador a barra não existe, o topo é zero, e nada aparecia.
+
+  ⚠ **Havia um token para isso e ele NUNCA foi ligado.** `--vx-titlebar-h`
+  vinha de `tokens.css` com o comentário "Zerado na web; definido pelo
+  Electron" — e medido na casca valia `0px`. O `Shell` fazia a coisa certa
+  (`padding-block-start` com o token) e somava zero. O token foi removido:
+  ligá-lo seria manter um número em dia, e aqui não é preciso número nenhum.
+
+  ⚠ **FLEX e não grid, e a primeira versão disto era grid — errada pelo mesmo
+  motivo que `Shell.module.css .conteudo` já errou uma vez.** Ver `28b4c512`:
+  "a coluna de conteudo contava filhos, e o produto tem um a menos". Grid com
+  contagem fixa de trilhas não sabe que um filho é opcional; quem some não
+  colapsa a trilha, quem sobra é empurrado para a errada.
+
+  Medido com `grid-template-rows: auto auto minmax(0,1fr)` na casca, onde a
+  faixa de atualização devolve `null`:
+
+      filhos    2                (barra + conteúdo)
+      trilhas   34px 592px 478px
+      <main>    trilha 2, altura de CONTEÚDO
+      sobrando  478px de nada no fim
+
+  A janela deixava de rolar e ganhava espaço morto — um defeito trocado por
+  outro. Coluna flex não conta: toda barra é `flex: none` (as duas já
+  declaram), e só `.conteudo` cresce. Funciona com zero, uma ou duas barras
+  acima, e acrescentar uma terceira amanhã não reabre nada.
+
+  ⚠ **E isso cobre um defeito latente da faixa de atualização.** O comentário
+  de `Atualizacao.module.css` diz "Ela é item do grid do shell, então não
+  precisa de `position`" — mas ela é montada AQUI, na raiz, fora do shell.
+  Hoje devolve `null` porque não há atualização pendente, então ninguém viu;
+  no dia em que uma chegasse, os 34px dela empurrariam tudo do mesmo jeito.
+
+  `100%` e não `100dvh`: `html`, `body` e `#root` já são `100%` em
+  `tokens.css`, e repetir a unidade de viewport daria duas fontes para a mesma
+  altura.
+*/
+.raiz {
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+}
+
+/*
+  ⚠ **A regra genérica e a específica, nesta ordem e com especificidades
+  DIFERENTES de propósito.** As duas barras já declaram `flex: none` nos
+  próprios módulos, mas depender disso seria depender de arquivo alheio; e
+  escrever `.raiz > *` e `.conteudo` com a mesma especificidade deixaria quem
+  ganha por ordem de bundle — que é exatamente como a largura do `Dialog` deu
+  400 num modal e 512 no vizinho. `.raiz > .conteudo` tem uma classe a mais e
+  vence sempre.
+*/
+.raiz > * {
+  flex: none;
+}
+
+.raiz > .conteudo {
+  display: grid;
+  flex: 1;
+  /* Sem isto o conteúdo não encolhe abaixo do próprio `min-content`, e uma
+     lista virtualizada empurra a coluna para fora da janela. */
+  min-block-size: 0;
+}

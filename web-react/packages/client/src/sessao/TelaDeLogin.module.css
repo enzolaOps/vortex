@@ -11,7 +11,10 @@
   container-type: inline-size;
   display: grid;
   place-items: center;
-  min-block-size: 100dvh;
+  /* `100%` da trilha de conteúdo da raiz. Com `100dvh` esta tela ignorava a
+     barra de título da casca e fazia a janela rolar 35px — ver
+     `main.module.css`. */
+  min-block-size: 100%;
   padding: var(--vx-space-16);
   background: var(--vx-surface-0);
 }

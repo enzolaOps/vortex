@@ -23,8 +23,15 @@
     deixar de ser código para virar consequência.
   */
   grid-template-columns: auto auto minmax(0, 1fr) auto;
-  block-size: 100dvh;
-  padding-block-start: var(--vx-titlebar-h);
+  /*
+    ⚠ **`100%` da trilha do grid da raiz, e não `100dvh`.** Antes ele pedia a
+    viewport inteira mais `padding-block-start: var(--vx-titlebar-h)` para
+    descontar a barra de título — e o token valia `0px` porque nunca foi
+    ligado, então o desconto era zero e o shell estourava a janela pela altura
+    da barra. Agora a raiz é um grid e esta é a trilha de conteúdo: a altura
+    já vem descontada, sem número para manter em dia. Ver `main.module.css`.
+  */
+  block-size: 100%;
   background: var(--vx-surface-0);
 }
 
