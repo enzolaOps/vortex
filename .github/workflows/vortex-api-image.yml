@@ -1,0 +1,146 @@
+# Constrói a API e o serviço de eventos do Vortex, para arm64, e publica no GHCR.
+#
+# ⚠ **O `CLAUDE.md` do cliente registrava isto como bloqueado, e a premissa
+# estava errada.** Ela dizia: "o truque do `$BUILDPLATFORM` que salva o cliente
+# web não transfere para Rust — binário Rust é específico de arquitetura, não
+# existe estágio neutro para rodar nativo".
+#
+# Verdade em geral; falso para este repositório. O `Dockerfile` do upstream já
+# faz CROSS-COMPILE completo: o estágio de build é pinado em `$BUILDPLATFORM`,
+# `scripts/build-image-layer.sh` instala `gcc-aarch64-linux-gnu`, roda
+# `rustup target add aarch64-unknown-linux-gnu` e exporta
+# `RUSTFLAGS="-C linker=..."` com `PKG_CONFIG_ALLOW_CROSS`. O compilador roda
+# nativo no runner amd64 e EMITE código arm64 — nada é emulado.
+#
+# Ou seja: não precisa de runner arm64, nem de build no Pi, nem de QEMU. O
+# trabalho aqui foi só apontar o alvo para o nosso registro.
+#
+# ⚠ **Dois serviços e não um.** O `CLAUDE.md` diz que uma feature de API vai em
+# `api` e um evento novo no websocket vai em `events`, "quase sempre com `api`
+# junto" — e os dois saem da mesma base, que é a parte cara. Construir só um
+# significaria pagar a base duas vezes na primeira vez que o outro fosse
+# preciso.
+#
+# Os outros cinco serviços (`autumn`, `january`, `crond`, `pushd`,
+# `voice-ingress`) seguem pinados no upstream de propósito: a regra é forkar o
+# serviço DONO da superfície que muda, e continuar recebendo correção de
+# segurança de graça nos demais.
+name: Vortex API image
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "crates/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "scripts/build-image-layer.sh"
+      - "Dockerfile"
+      - ".github/workflows/vortex-api-image.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: vortex-api-image-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and push
+    runs-on: ubuntu-latest
+    # ⚠ O default é 360 min. A base compila a árvore inteira de crates para
+    # DUAS arquiteturas, e a primeira corrida não tem cache nenhum. Deixar
+    # explícito evita descobrir o limite no meio.
+    timeout-minutes: 330
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lowercase the owner
+        id: dono
+        run: echo "nome=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
+      # A base carrega TODOS os binários compilados, para as duas
+      # arquiteturas. É o único estágio caro; as imagens de serviço só copiam
+      # um binário dela.
+      #
+      # ⚠ Sem QEMU: o `docker/setup-qemu-action` que o cliente web precisa não
+      # entra aqui, porque nada é emulado — o cross-compile emite arm64
+      # rodando em amd64.
+      - name: Build the base image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ghcr.io/${{ steps.dono.outputs.nome }}/vortex-api-base:${{ github.sha }}
+          provenance: false
+          cache-from: type=gha,scope=vortex-api-base
+          cache-to: type=gha,scope=vortex-api-base,mode=max
+
+      - name: Publish the API (delta)
+        id: api
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: crates/delta/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+          build-args: |
+            BASE_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/vortex-api-base:${{ github.sha }}
+          tags: |
+            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-api:main
+            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-api:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.title=Vortex API
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Publish events (bonfire)
+        id: events
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: crates/bonfire/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+          build-args: |
+            BASE_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/vortex-api-base:${{ github.sha }}
+          tags: |
+            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-events:main
+            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-events:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.title=Vortex events
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Report the digests to pin
+        run: |
+          {
+            echo "### Imagens publicadas"
+            echo
+            echo '```'
+            echo "VORTEX_API_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/vortex-api:${{ github.sha }}@${{ steps.api.outputs.digest }}"
+            echo "VORTEX_EVENTS_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/vortex-events:${{ github.sha }}@${{ steps.events.outputs.digest }}"
+            echo '```'
+            echo
+            echo "Cole em \`compose/versions.env\` do pi-infra e rode \`make vortex-update\`."
+            echo
+            echo "⚠ Os outros cinco serviços seguem pinados no upstream de propósito."
+          } >> "$GITHUB_STEP_SUMMARY"
