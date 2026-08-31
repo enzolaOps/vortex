@@ -38,6 +38,7 @@ import {
   Track,
   type LocalParticipant,
   type RemoteTrack,
+  type ScreenShareCaptureOptions,
 } from "livekit-client";
 
 import { client } from "./client";
@@ -51,6 +52,8 @@ import {
   lerChamada,
 } from "../store/chamada";
 import { toast } from "../components/ui/toastStore";
+import { ALTURA_DE, ponteDeTela } from "./seletorDeTela";
+import { pedirEscolhaDeTela } from "../store/seletorDeTela";
 
 /**
  * A sala, module-level.
@@ -424,15 +427,94 @@ export async function alternarTela(): Promise<void> {
   const p = participanteLocal();
   if (!p) return;
 
-  const tela = !lerChamada().tela;
-  try {
-    await p.setScreenShareEnabled(tela);
-    definirChamada({ tela });
-  } catch {
-    // Cancelar o seletor do navegador cai aqui, e cancelar não é falha —
-    // por isso não há toast.
-    definirChamada({ tela: false });
+  const ligando = !lerChamada().tela;
+
+  /* Desligar não escolhe nada — o seletor só existe no caminho de ligar. */
+  if (!ligando) {
+    try {
+      await p.setScreenShareEnabled(false);
+    } finally {
+      definirChamada({ tela: false });
+    }
+    return;
   }
+
+  /*
+    Na casca, o Vortex escolhe; no navegador, o sistema.
+
+    `seletorProprio()` é a pergunta certa em vez de "estamos no Electron":
+    mesmo dentro da casca, Wayland e macOS recente desenham o seletor do
+    sistema e o handler nem roda. Quem sabe disso é a casca.
+  */
+  const ponte = ponteDeTela();
+  const opcoes = ponte && (await ponte.seletorProprio())
+    ? await comSeletorProprio(ponte)
+    : {};
+
+  /* `undefined` = cancelou no painel. Cancelar não é falha. */
+  if (opcoes === undefined) return;
+
+  try {
+    await p.setScreenShareEnabled(true, opcoes);
+    definirChamada({ tela: true });
+  } catch {
+    // Cancelar o seletor do sistema cai aqui, e também não é falha.
+    definirChamada({ tela: false });
+    void ponte?.cancelar();
+  }
+}
+
+/**
+ * Pergunta o que transmitir e ARMA a escolha na casca.
+ *
+ * Devolve as constraints para o LiveKit, ou `undefined` se a pessoa cancelou.
+ *
+ * ⚠ **A ordem importa: armar ANTES de pedir a captura.** O handler do main
+ * consome a escolha armada quando o `getDisplayMedia` chega, e a escolha é de
+ * uso único. Invertido, o pedido chegaria sem escolha e seria recusado.
+ */
+async function comSeletorProprio(
+  ponte: NonNullable<ReturnType<typeof ponteDeTela>>,
+): Promise<ScreenShareCaptureOptions | undefined> {
+  const escolha = await pedirEscolhaDeTela();
+  if (!escolha) return undefined;
+
+  const armou = await ponte.escolher(escolha.fonteId, escolha.audio);
+  if (!armou) {
+    toast({
+      tipo: "erro",
+      titulo: "Não deu para preparar a transmissão.",
+      descricao: "Tente escolher a tela de novo.",
+    });
+    return undefined;
+  }
+
+  const altura = ALTURA_DE[escolha.resolucao];
+  return {
+    audio: escolha.audio,
+    /*
+      ⚠ Só a ALTURA vira teto — ver `ALTURA_DE`. A largura sai de `16/9` porque
+      `resolution` do LiveKit pede as duas, e travar a largura REAL da fonte
+      distorceria uma tela ultrawide. O navegador respeita a proporção da fonte
+      e usa isto como limite superior.
+    */
+    ...(altura === undefined
+      ? {}
+      : {
+          resolution: {
+            width: Math.round((altura * 16) / 9),
+            height: altura,
+            frameRate: escolha.taxa,
+          },
+        }),
+    /*
+      `contentHint` muda o que o codec preserva quando falta banda: `detail`
+      segura o texto e sacrifica movimento; `motion` faz o contrário. 60 quadros
+      só faz sentido pedindo movimento — a pessoa que os escolheu está mostrando
+      algo que se mexe.
+    */
+    contentHint: escolha.taxa >= 60 ? "motion" : "detail",
+  };
 }
 
 /** O estado bruto da conexão, para o arnês conferir sem abrir a sala. */

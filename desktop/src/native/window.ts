@@ -5,15 +5,14 @@ import {
   Menu,
   MenuItem,
   app,
-  desktopCapturer,
   ipcMain,
   nativeImage,
-  session,
 } from "electron";
 
 import windowIconAsset from "../../assets/icon.png?asset";
 
 import { config } from "./config";
+import { registrarSeletorDeTela } from "./telaCompartilhada";
 import { updateTrayMenu } from "./tray";
 
 // global reference to main window
@@ -194,64 +193,16 @@ export function createMainWindow() {
     }
   });
 
-  // Create display media request handler
-  session.defaultSession.setDisplayMediaRequestHandler(
-    (request, callback) => {
-      desktopCapturer
-        .getSources({ types: ["screen", "window"], fetchWindowIcons: true })
-        .then((sources) => {
-          // Shortcut for linux wayland.
-          if (sources.length == 1) {
-            request.audioRequested
-              ? callback({
-                  video: sources[0],
-                  audio: "loopback",
-                })
-              : callback({
-                  video: sources[0],
-                });
-            return;
-          }
-          ipcMain.once(
-            "screenPickerCallback",
-            (_, idx: number, audio: boolean) => {
-              if (idx < 0 || idx > sources.length) {
-                callback({});
-              } else {
-                audio
-                  ? callback({
-                      video: sources[idx],
-                      audio: "loopback",
-                    })
-                  : callback({
-                      video: sources[idx],
-                    });
-              }
-            },
-          );
-          mainWindow.webContents.send(
-            "screenPicker",
-            sources.map((source, idx) => {
-              const image = source.appIcon;
-              if (image) {
-                if (image.getAspectRatio() > 1) {
-                  image.resize({ width: 256 });
-                } else {
-                  image.resize({ height: 256 });
-                }
-              }
-              return {
-                idx: idx,
-                name: source.name,
-                isFullScreen: source.id.startsWith("screen"),
-                image: image?.toDataURL(),
-              };
-            }),
-          );
-        });
-    },
-    { useSystemPicker: true },
-  );
+  /*
+    O seletor de tela mora em `telaCompartilhada.ts`.
+
+    ⚠ **O handler que estava aqui respondia a um pedido JÁ EM VOO** — mandava
+    as fontes para a tela escolher enquanto o `getDisplayMedia` esperava. Isso
+    escolhe a FONTE e nada mais: resolução e taxa de quadros são constraints
+    fixadas antes do seletor existir, e o design põe as três no mesmo painel.
+    Agora o cliente escolhe primeiro e pede depois.
+  */
+  registrarSeletorDeTela();
 
   // push world events to the window
   ipcMain.on("minimise", () => mainWindow.minimize());

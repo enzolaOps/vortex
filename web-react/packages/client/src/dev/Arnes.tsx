@@ -17,6 +17,8 @@ import { readCounters, resetCounters, type Counters } from "./stats";
 import { ALTURA_ESTIMADA } from "../list/MessageList";
 import { ligarAtalhoDaPaleta } from "../store/paleta";
 import { configurarSimulacaoDeEnvio } from "../sdk/adapter";
+import { pedirEscolhaDeTela } from "../store/seletorDeTela";
+import { dublarPonteDeTela } from "./telaFalsa";
 import { definirConexao, lerConexao } from "../store/conexao";
 import { alternarCascaFalsa } from "./cascaFalsa";
 import { entrar } from "../store/edicao";
@@ -412,6 +414,28 @@ export function Arnes() {
             className="rounded-06 border border-border-subtle bg-surface-2 px-12 py-04 text-sm text-text-1"
           >
             chamada falsa
+          </button>
+
+          {/*
+            ⚠ **O seletor de tela só é alcançável por aqui no navegador**, e a
+            razão é a mesma da casca falsa: ele exige uma sala LiveKit de
+            verdade (o motor recusa sem participante local) E a ponte do
+            Electron. No navegador nenhuma das duas existe, então sem este
+            botão a superfície seria construída e inalcançável — o defeito que
+            o painel de fixadas já teve.
+
+            A ponte é dublada com duas fontes: uma tela e uma janela, que é o
+            mínimo para as duas abas terem conteúdo. Escolher aqui não
+            transmite nada — devolve a escolha e o arnês a descarta.
+          */}
+          <button
+            onClick={() => {
+              dublarPonteDeTela();
+              void pedirEscolhaDeTela();
+            }}
+            className="rounded-06 border border-border-subtle bg-surface-2 px-12 py-04 text-sm text-text-1"
+          >
+            seletor de tela
           </button>
 
           <button

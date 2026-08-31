@@ -1,0 +1,190 @@
+/* ============================================================
+   Seletor de tela — o painel do design, na casca Electron
+   ------------------------------------------------------------
+   Medido em `Vortex Compartilhar Tela.dc.html`: painel de 720,
+   grade de miniaturas com teto de 300 de altura, rodapé em
+   `surface-1` com resolução e taxa de quadros.
+   ============================================================ */
+
+.painel {
+  inline-size: 720px;
+  max-inline-size: 100%;
+}
+
+/* -------------------------------------------------------- abas */
+
+/*
+  Segmentado de duas ou três abas — Telas · Janelas. O design tem uma terceira
+  ("Abas"), e ela NÃO existe aqui: capturar uma aba do navegador é conceito de
+  navegador, e a casca Electron enumera telas e janelas do sistema. Mostrar uma
+  aba vazia seria pior que a ausência.
+*/
+.abas {
+  display: flex;
+  gap: var(--vx-space-02);
+  padding: var(--vx-space-02);
+  border-radius: var(--vx-radius-07);
+  background: var(--vx-surface-2);
+}
+
+.aba {
+  padding: var(--vx-space-08) var(--vx-space-09);
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: none;
+  color: var(--vx-text-3);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.aba[aria-selected="true"] {
+  background: var(--vx-surface-4);
+  color: var(--vx-text-1);
+}
+
+.aba:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.contagem {
+  margin-inline-start: var(--vx-space-06);
+  color: var(--vx-text-4);
+  font-weight: 500;
+}
+
+/* --------------------------------------------------- as fontes */
+
+/*
+  ⚠ Teto de altura com rolagem própria. Numa máquina com três monitores e
+  vinte janelas abertas a lista passa de trinta cartões, e sem o teto o modal
+  cresceria além da janela — o `Dialog` limita em 80vh, mas aí o rodapé com as
+  ações sairia da vista, que é o controle que a pessoa precisa alcançar.
+*/
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--vx-space-12);
+  max-block-size: 300px;
+  overflow-y: auto;
+  padding: var(--vx-space-02);
+}
+
+.fonte {
+  display: grid;
+  gap: var(--vx-space-08);
+  padding: 0;
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-3);
+  overflow: hidden;
+  color: inherit;
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.fonte[aria-checked="true"] {
+  border-color: color-mix(in oklab, var(--vx-accent) 35%, transparent);
+  background: var(--vx-state-selected);
+}
+
+.fonte:hover:not([aria-checked="true"]) {
+  border-color: var(--vx-hairline-16);
+}
+
+.fonte:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/*
+  A miniatura em 16:9 com xadrez por trás.
+
+  ⚠ O xadrez importa: uma janela com fundo transparente ou uma tela ainda
+  capturando devolve miniatura vazia, e sem ele o cartão pareceria quebrado.
+  É o mesmo raciocínio do placeholder de mídia na timeline.
+*/
+.miniatura {
+  aspect-ratio: 16 / 9;
+  inline-size: 100%;
+  object-fit: cover;
+  /*
+    ⚠ A MESMA receita do xadrez do visualizador de imagem e do seletor de
+    figurinhas — `surface-3` com a segunda parada em `color-mix` a 45%. O
+    design pinta este mais escuro (`#0F1318`/`#0C0F13`), mas seguir isso exigiria
+    `surface-0`, que o `pnpm superficies` reserva para rail e gutter. Repetir a
+    receita que o app já usa vale mais que a fidelidade de dois tons num
+    placeholder — e é a QUARTA cópia dela, o que já pede extração.
+  */
+  background: repeating-linear-gradient(
+    135deg,
+    var(--vx-surface-3) 0 16px,
+    color-mix(in oklab, var(--vx-surface-3) 45%, var(--vx-surface-2)) 16px 32px
+  );
+}
+
+.rotulo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  padding: 0 var(--vx-space-10) var(--vx-space-10);
+  min-inline-size: 0;
+}
+
+.icone {
+  flex: none;
+  inline-size: 16px;
+  block-size: 16px;
+  border-radius: var(--vx-radius-04);
+}
+
+.nome {
+  overflow: hidden;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  color: var(--vx-text-1);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------ rodapé */
+
+.opcoes {
+  display: grid;
+  gap: var(--vx-space-14);
+  padding: var(--vx-space-16) var(--vx-space-20);
+  border-block-start: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-1);
+}
+
+.linha {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-12);
+}
+
+.rotuloDaLinha {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  inline-size: 92px;
+  flex: none;
+  color: var(--vx-text-3);
+}
+
+.troca {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
+  text-wrap: pretty;
+}
+
+.dicaDeAudio {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
+  text-wrap: pretty;
+}
+
+.vazio {
+  padding: var(--vx-space-24);
+}
