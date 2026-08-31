@@ -350,6 +350,13 @@ export const PENDENCIAS = {
     faz: "Guardar uma anotação sobre esta pessoa, visível só para você.",
     depende: "notas de usuário — conceito de cliente, sem store ainda",
   },
+  /* ------------------------------------------------- criar servidor */
+  iconeDeServidor: {
+    superficie: "Criar servidor",
+    faz: "Enviar uma imagem para o ladrilho do servidor no rail.",
+    depende: "upload ao servidor de mídia (autumn) — a mesma de `anexar`",
+  },
+
   /* ------------------------------------------- acesso e segurança do servidor */
   /*
     ⚠ **As seis são a MESMA causa, e ela é maior que "falta a rota": o Stoat

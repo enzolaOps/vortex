@@ -77,12 +77,18 @@ function chavesAlcancadas(arquivos: readonly string[]): Set<string> {
   for (const caminho of arquivos) {
     const fonte = readFileSync(caminho, "utf8");
 
-    for (const m of fonte.matchAll(/aindaNao\(\s*"(\w+)"/g)) achadas.add(m[1]);
-    for (const m of fonte.matchAll(/PENDENCIAS\[\s*"(\w+)"/g)) achadas.add(m[1]);
+    for (const m of fonte.matchAll(/aindaNao\(\s*"(\w+)"/g)) {
+      if (m[1]) achadas.add(m[1]);
+    }
+    for (const m of fonte.matchAll(/PENDENCIAS\[\s*"(\w+)"/g)) {
+      if (m[1]) achadas.add(m[1]);
+    }
 
     const encaminha = /aindaNao\(\s*[A-Za-z_$][\w$]*\s*\)/.test(fonte);
     if (!encaminha) continue;
-    for (const m of fonte.matchAll(/\bid=\{?"(\w+)"\}?/g)) achadas.add(m[1]);
+    for (const m of fonte.matchAll(/\bid=\{?"(\w+)"\}?/g)) {
+      if (m[1]) achadas.add(m[1]);
+    }
   }
   return achadas;
 }

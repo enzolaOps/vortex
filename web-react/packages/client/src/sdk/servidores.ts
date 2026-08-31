@@ -146,10 +146,31 @@ export function codigoDe(entrada: string): string | undefined {
 
 /* ------------------------------------------------------------ servidores */
 
-export async function criarServidor(nome: string): Promise<string | undefined> {
+/**
+ * Cria o servidor e os canais que ele nasce com.
+ *
+ * ⚠ **`DataCreateServer` aceita `name`, `description` e `nsfw` — e nada mais.**
+ * Canal não entra na criação; cada um é uma chamada própria. É por isso que o
+ * modelo é uma LISTA que este cliente percorre, e não um objeto que o servidor
+ * saiba interpretar.
+ *
+ * ⚠ **Canal que falha não derruba a criação.** O servidor já existe quando o
+ * primeiro canal é pedido; abortar ali deixaria um servidor órfão e a pessoa
+ * sem nada. Cada falha vira um toast e o resto continua — melhor um servidor
+ * com quatro dos cinco canais que nenhum servidor.
+ *
+ * ⚠ **Em série, não em paralelo.** O protocolo devolve os canais na ordem em
+ * que foram criados, e é essa ordem que a coluna mostra. Com `Promise.all` a
+ * lista sairia embaralhada de um jeito diferente a cada criação.
+ */
+export async function criarServidor(
+  nome: string,
+  canais: readonly { readonly nome: string; readonly voz: boolean }[] = [],
+): Promise<string | undefined> {
+  let id: string;
   try {
     const servidor = await client.servers.createServer({ name: nome });
-    return servidor.id;
+    id = servidor.id;
   } catch (e) {
     toast({
       tipo: "erro",
@@ -158,6 +179,17 @@ export async function criarServidor(nome: string): Promise<string | undefined> {
     });
     return undefined;
   }
+
+  /*
+    O servidor nasce com um canal padrão do próprio backend. Os do modelo vêm
+    DEPOIS dele, e é o comportamento certo: apagar o padrão para impor a lista
+    seria destruir um canal que a pessoa não pediu para destruir.
+  */
+  for (const c of canais) {
+    await criarCanal(id, c.nome, c.voz);
+  }
+
+  return id;
 }
 
 /* --------------------------------------------------------------- canais */
