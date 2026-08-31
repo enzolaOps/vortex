@@ -268,3 +268,28 @@ describe("convite por link", () => {
     expect(interpretarEntrada("/convite/")).toBeUndefined();
   });
 });
+
+describe("o link de e-mail do SERVIDOR", () => {
+  /*
+    ⚠ A API monta `{hosts.app}/login/reset/{token}` — fixo em
+    `crates/core/database/src/util/email.rs`, e é o caminho do cliente Solid.
+    Sem aceitá-lo, o clique no e-mail cai numa rota desconhecida e o token se
+    perde em silêncio.
+
+    Medido: o link que chegou no coletor local foi
+    `http://localhost:8880/login/reset/kegxrnWTcawiP3DVU07gg4MzaAAvNRHo`.
+  */
+  it("aceita `/login/reset/:token`, que é o que a API manda", () => {
+    const t = "kegxrnWTcawiP3DVU07gg4MzaAAvNRHo";
+    expect(interpretarEntrada(`/login/reset/${t}`)).toEqual(
+      expect.objectContaining({ tipo: "redefinir", token: t }),
+    );
+  });
+
+  it("e continua aceitando o nosso `/redefinir/:token`", () => {
+    const t = "abc123DEF456";
+    expect(interpretarEntrada(`/redefinir/${t}`)).toEqual(
+      expect.objectContaining({ tipo: "redefinir", token: t }),
+    );
+  });
+});

@@ -71,7 +71,24 @@ const CONVERSA = new RegExp(`^/dm/(${ID})$`);
  */
 const TOKEN = "[0-9A-Za-z_.~-]{1,256}";
 const VERIFICAR = new RegExp(`^/verificar/(${TOKEN})$`);
-const REDEFINIR = new RegExp(`^/redefinir/(${TOKEN})$`);
+
+/*
+  ⚠ **DOIS caminhos para redefinir, e o segundo é o que o servidor manda.**
+
+  A API monta o link do e-mail como `{hosts.app}/login/reset/{token}` — está
+  fixo em `crates/core/database/src/util/email.rs`, e é o caminho do cliente
+  Solid. O nosso é `/redefinir/:token`. Com só o nosso, o clique no e-mail cai
+  numa rota que este app não conhece e o token se perde em silêncio: o mesmo
+  defeito que estas rotas existem para impedir.
+
+  Consertar do lado da API custaria implantar o fork (`enzolaOps/vortex-api`),
+  que está travado no build arm64. E mesmo com o fork pronto, aceitar o
+  caminho do upstream continua sendo o certo — um e-mail antigo na caixa de
+  alguém não muda de endereço quando o servidor muda.
+
+  Verificado contra a instância local: o link chega exatamente assim.
+*/
+const REDEFINIR = new RegExp(`^/(?:redefinir|login/reset)/(${TOKEN})$`);
 const CONVITE = new RegExp(`^/convite/(${ID})$`);
 
 const ENTRADA: Readonly<Record<string, TelaDeEntrada>> = {
