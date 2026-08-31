@@ -13,12 +13,12 @@ import {
   buscarConvite,
   criarServidor,
   entrarPorConvite,
+  vestirIconeNoServidor,
   type Convite,
 } from "../sdk/servidores";
 import { lerEntrada, voltarParaEntrar } from "../store/entrada";
 import { selecionarServidor } from "../store/navegacao";
 import { subirAnexo, temServidorDeMidia } from "../sdk/anexos";
-import { vestirIconeNoServidor } from "../sdk/servidores";
 import { toast } from "../components/ui/toastStore";
 import css from "./AdicionarServidor.module.css";
 import {

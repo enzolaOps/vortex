@@ -67,11 +67,6 @@ export const PENDENCIAS = {
     escrita de protocolo de verdade** — renomear, remover, transferir e sair
     chamam o servidor. O que sobra depende de coisas fora do painel.
   */
-  iconeDeGrupo: {
-    superficie: "Gerenciar grupo",
-    faz: "Trocar a imagem do grupo.",
-    depende: "upload ao servidor de mídia (autumn) — a mesma de `anexar`",
-  },
   adicionarAoGrupo: {
     superficie: "Gerenciar grupo",
     faz: "Chamar mais alguém para o grupo.",
@@ -360,6 +355,11 @@ export const PENDENCIAS = {
       "permissão em categoria no protocolo — `Category` só tem id, título e canais",
   },
 
+  /* --------------------------------------------------- assistir */
+  /*
+    ⚠ **Um pendente só na tela de assistir, e o resto dela é REAL** — vale
+    registrar porque a lista costuma dar a impressão contrária. Qualidade do
+    stream é `RemoteTrackPublication.setVideoQuality`, "só áudio" é
     `setEnabled(false)`, volume individual e "silenciar só para mim" são
     `RemoteParticipant.setVolume`, e "transmitir também" é o mesmo
     `alternarTela` de sempre. Os quatro escrevem no LiveKit de verdade.
@@ -399,12 +399,6 @@ export const PENDENCIAS = {
     depende:
       "encoding dinâmico — `setScreenShareEnabled` só aceita as constraints na PUBLICAÇÃO, e trocá-las hoje é parar e recomeçar",
   },
-
-  /* ---------------------------------------------------- criar canal */
-  /*
-    ⚠ **Os dois tipos que o Stoat não tem.** `forum` e uma galeria de mídia dão
-    ZERO ocorrências no schema — não são campos que faltam, são conceitos que
-    não existem. O design desenha os quatro tipos no mesmo painel, e a regra
 
   /* ---------------------------------------------------- criar canal */
   /*

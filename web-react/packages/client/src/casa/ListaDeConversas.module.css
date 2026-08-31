@@ -206,3 +206,17 @@
   outline: 2px solid var(--vx-accent);
   outline-offset: -2px;
 }
+
+/* A imagem do grupo, quando alguém subiu uma */
+
+/*
+  Cobre a marca inteira. `cover` porque a imagem vem de quem usa, em qualquer
+  proporção: esticar deformaria, e `contain` deixaria faixa do fundo aparecendo
+  pelos lados — que lê como falha, não como enquadramento.
+*/
+.imagemDoGrupo {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}

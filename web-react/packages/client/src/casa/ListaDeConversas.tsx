@@ -75,7 +75,17 @@ const Conversa = memo(function Conversa({
       onClick={() => abrirConversa(id)}
     >
       <span className={css.marca} aria-hidden>
-        {canal.tipo === "grupo" ? (
+        {/*
+          A imagem do grupo quando existe, o glifo quando não.
+
+          ⚠ O glifo NÃO foi substituído: ele é a marca de "isto é um grupo"
+          para a esmagadora maioria, que nunca subiu imagem. Trocá-lo por um
+          gradiente com sigla apagaria a distinção entre grupo e DM, que é a
+          única informação que esta coluna dá de relance.
+        */}
+        {canal.tipo === "grupo" && canal.iconeUrl !== undefined ? (
+          <img className={css.imagemDoGrupo} src={canal.iconeUrl} alt="" />
+        ) : canal.tipo === "grupo" ? (
           <Users size={20} />
         ) : canal.tipo === "notas" ? (
           <Note size={20} />

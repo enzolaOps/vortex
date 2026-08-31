@@ -1,20 +1,23 @@
 import { PencilSimple } from "@phosphor-icons/react";
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { Selo } from "../components/ui/Selo";
 import { aindaNao } from "../pendente/pendencias";
 import { gradienteDe } from "../lib/gradiente";
+import { subirAnexo, temServidorDeMidia } from "../sdk/anexos";
+import { toast } from "../components/ui/toastStore";
 import {
   lerGrupo,
   removerDoGrupo,
   renomearGrupo,
   sairDaConversa,
   transferirGrupo,
+  trocarIconeDoGrupo,
 } from "../sdk/social";
 import { assinarAlvo, lerAlvo } from "../store/administracao";
-import { usePessoa } from "../store/hooks";
+import { useChannel, usePessoa } from "../store/hooks";
 import { assinarSessao, lerSessao } from "../store/sessao";
 import css from "./GerenciarGrupo.module.css";
 
@@ -103,6 +106,67 @@ export function GerenciarGrupo({ aoFechar }: { aoFechar: () => void }) {
   const [nome, setNome] = useState(grupo?.nome ?? "");
   const [ocupado, setOcupado] = useState(false);
 
+  /* ------------------------------------------------------------- ícone */
+
+  const seletorDeIcone = useRef<HTMLInputElement>(null);
+  const [previa, setPrevia] = useState<string | undefined>(undefined);
+  const [subindo, setSubindo] = useState(false);
+  const temMidia = temServidorDeMidia();
+
+  /*
+    A prévia local ganha do que veio do servidor enquanto o upload está em
+    voo: quem acabou de escolher a imagem precisa vê-la, e o snapshot só troca
+    depois que o `ChannelUpdate` dá a volta.
+  */
+  const canal = useChannel(channelId);
+  const imagem = previa ?? canal?.iconeUrl;
+
+  /* `revokeObjectURL` no desmonte — cada `createObjectURL` prende o arquivo na
+     memória da aba até ser revogado. É o erro nº 5 do briefing. */
+  useEffect(() => {
+    return () => {
+      if (previa !== undefined) URL.revokeObjectURL(previa);
+    };
+  }, [previa]);
+
+  /**
+   * Sobe a imagem e a aplica ao grupo.
+   *
+   * ⚠ **Aqui a troca é IMEDIATA, ao contrário do ícone ao criar servidor.** Lá
+   * o servidor ainda não existia e o ícone só podia ser vestido depois; aqui o
+   * grupo existe, então escolher já é trocar — não há botão de salvar nesta
+   * tela, e inventar um só para o ícone contradiria o campo de nome ao lado,
+   * que salva ao sair.
+   *
+   * A prévia local aparece antes da rede e é desfeita se algo falhar: mostrar
+   * uma imagem que não colou é pior que não mostrar nenhuma.
+   */
+  function escolherIcone(arquivo: File) {
+    const anterior = previa;
+    const url = URL.createObjectURL(arquivo);
+    setPrevia(url);
+    setSubindo(true);
+    if (anterior !== undefined) URL.revokeObjectURL(anterior);
+
+    void subirAnexo(arquivo, "icons")
+      .then((id) => trocarIconeDoGrupo(channelId, id))
+      .then((colou) => {
+        if (colou) return;
+        URL.revokeObjectURL(url);
+        setPrevia(undefined);
+      })
+      .catch((e: unknown) => {
+        URL.revokeObjectURL(url);
+        setPrevia(undefined);
+        toast({
+          tipo: "erro",
+          titulo: "Não deu para enviar o ícone.",
+          descricao: e instanceof Error ? e.message : "Tente outra imagem.",
+        });
+      })
+      .finally(() => setSubindo(false));
+  }
+
   if (!grupo) return null;
 
   const souDono = grupo.donoId === meuId;
@@ -126,15 +190,42 @@ export function GerenciarGrupo({ aoFechar }: { aoFechar: () => void }) {
               className={css.ladrilho}
               style={{ backgroundImage: gradienteDe(channelId) }}
               aria-hidden
-            />
+            >
+              {/*
+                A imagem COBRE o gradiente em vez de substituí-lo, como no
+                `Avatar`: ela vem do servidor de mídia e pode demorar ou
+                falhar, e com o gradiente por baixo o intervalo mostra a
+                identidade de sempre.
+              */}
+              {imagem !== undefined ? (
+                <img className={css.imagem} src={imagem} alt="" />
+              ) : null}
+            </span>
             <button
               type="button"
               className={css.trocarIcone}
               aria-label="Trocar ícone do grupo"
-              onClick={aindaNao("iconeDeGrupo")}
+              disabled={subindo || !temMidia}
+              onClick={() => seletorDeIcone.current?.click()}
             >
               <PencilSimple size={11} aria-hidden />
             </button>
+
+            {/* Escondido e acionado pelo botão — ver o composer: nativo é
+                renderizado pelo sistema e não aceita os oito estados. */}
+            <input
+              ref={seletorDeIcone}
+              type="file"
+              accept="image/*"
+              className={css.seletorDeIcone}
+              tabIndex={-1}
+              aria-hidden
+              onChange={(e) => {
+                const arquivo = e.target.files?.[0];
+                e.target.value = "";
+                if (arquivo) escolherIcone(arquivo);
+              }}
+            />
           </div>
 
           <div className={css.identidade}>

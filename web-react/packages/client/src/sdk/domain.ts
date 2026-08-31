@@ -511,6 +511,17 @@ export type ChannelSnapshot = {
   readonly name: string;
   readonly tipo: CanalTipo;
   /**
+   * A imagem do grupo, quando alguém subiu uma.
+   *
+   * URL pronta e não o ID do anexo, pela mesma razão de `ComSigla.avatarUrl`:
+   * montar a URL no componente exigiria que ele soubesse o endereço do
+   * `autumn`, que é forma de protocolo. O getter do SDK resolve, e chamá-lo na
+   * ESCRITA é a disciplina de `sigla` e `createdAtText`.
+   *
+   * `undefined` no caso comum, e para todo canal que não é grupo.
+   */
+  readonly iconeUrl: string | undefined;
+  /**
    * O tópico do canal (`description` no protocolo).
    *
    * `topico` e não `descricao`: no produto isto é o assunto do canal, e é
