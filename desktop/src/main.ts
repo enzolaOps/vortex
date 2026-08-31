@@ -1,5 +1,6 @@
 import { BrowserWindow, app, shell } from "electron";
 
+import { ligarAtualizacaoAutomatica } from "./native/atualizacao";
 import { config } from "./native/config";
 import { initTray } from "./native/tray";
 import { initVirtualMic } from "./native/virtualMic";
@@ -28,6 +29,7 @@ if (acquiredLock) {
 
     initTray();
     initVirtualMic();
+    ligarAtualizacaoAutomatica();
 
     // Windows specific fix for notifications
     if (process.platform === "win32") {

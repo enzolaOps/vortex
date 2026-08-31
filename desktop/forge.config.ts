@@ -1,5 +1,6 @@
 import { MakerDeb } from "@electron-forge/maker-deb";
 import { MakerFlatpak } from "@electron-forge/maker-flatpak";
+import { MakerSquirrel } from "@electron-forge/maker-squirrel";
 import { MakerFlatpakOptionsConfig } from "@electron-forge/maker-flatpak/dist/Config";
 import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import { VitePlugin } from "@electron-forge/plugin-vite";
@@ -25,6 +26,27 @@ const ASSET_DIR = "assets";
  * Build targets for the desktop app
  */
 const makers: ForgeConfig["makers"] = [
+  /*
+   * Windows: Squirrel.
+   *
+   * ⚠ It is the only Forge maker that emits what `update.electronjs.org` can
+   * serve — the `RELEASES` manifest plus the `.nupkg` delta. A plain ZIP would
+   * install fine and never update again, which is the state this whole
+   * pipeline exists to end.
+   *
+   * ⚠ The build is UNSIGNED, and the consequence is visible: SmartScreen warns
+   * on first install. Signing needs a code-signing certificate; auto-update
+   * itself works unsigned on Windows, so the warning is a one-time cost at
+   * install, not a permanent one. Stated here rather than discovered later.
+   *
+   * Forge skips makers that do not support the host platform, so this one is
+   * inert on the Linux runner and the Flatpak one is inert on Windows. No
+   * conditional needed.
+   */
+  new MakerSquirrel({
+    name: STRINGS.execName,
+    setupIcon: `${ASSET_DIR}/icon.ico`,
+  }),
   new MakerFlatpak({
     options: {
       id: APP_ID,
