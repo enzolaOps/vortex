@@ -1,0 +1,74 @@
+/* ============================================================
+   Alça de redimensionamento de slot
+   ------------------------------------------------------------
+   Fica na borda do slot, sobre ela, sem ocupar espaço no grid —
+   entrar no fluxo mudaria a largura da coluna de mensagem só de
+   ligar o modo edição, e o preview mostraria um layout que não
+   é o que vai ser salvo.
+   ============================================================ */
+
+.alca {
+  position: absolute;
+  inset-block: 0;
+  /* Alvo de ponteiro maior que o traço visível: 2px é impossível de
+     acertar, e a área de clique não precisa ser a área desenhada. */
+  inline-size: var(--vx-space-12);
+  z-index: var(--vx-z-alca);
+  cursor: col-resize;
+  /* `touch-action` sem isto o navegador rola a página no lugar de arrastar. */
+  touch-action: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+/*
+  Lado LÓGICO, não físico.
+
+  A alça do slot de início mora na borda de fim dele, e vice-versa. Com
+  `left`/`right` isto quebraria em RTL e quebraria de novo quando o
+  usuário movesse o painel para a outra ponta — que é a feature.
+*/
+.inicio {
+  inset-inline-end: calc(var(--vx-space-12) / -2);
+}
+
+.fim {
+  inset-inline-start: calc(var(--vx-space-12) / -2);
+}
+
+/* O traço: fino, centrado na área de clique. */
+.alca::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  inline-size: 2px;
+  background: var(--vx-accent);
+  opacity: 0;
+  transition: opacity var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.alca:hover::after,
+.alca:focus-visible::after,
+.alca[data-arrastando="true"]::after {
+  opacity: 1;
+}
+
+.alca:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/*
+  Enquanto arrasta, o cursor vale para a JANELA inteira.
+
+  Sem isto o cursor volta ao normal assim que o ponteiro sai dos 12px da
+  alça — o que acontece imediatamente, porque arrastar é justamente sair
+  de onde se começou.
+*/
+.arrastando {
+  cursor: col-resize;
+  user-select: none;
+}

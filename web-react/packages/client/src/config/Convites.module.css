@@ -1,0 +1,46 @@
+/* ============================================================
+   Convites
+   ------------------------------------------------------------
+   A tabela vem de `Tabela.module.css`, compartilhada com
+   Membros. O que mora aqui é a grade de colunas e a linha de
+   controles.
+   ============================================================ */
+
+.pagina {
+  display: grid;
+  gap: var(--vx-space-16);
+  align-content: start;
+}
+
+/*
+  `1.1fr 1fr .9fr 70px` — do design, menos as colunas de USOS e EXPIRA, que o
+  protocolo não tem. A largura de ação subiu de 70 para `auto` porque aqui são
+  dois botões (copiar e revogar) e não um ícone.
+*/
+.tabela {
+  --colunas: 1.1fr 1fr 0.9fr auto;
+}
+
+.controles {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-16);
+}
+
+.espaco {
+  flex: 1;
+}
+
+.acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--vx-space-08);
+}
+
+.recado {
+  margin: 0;
+  max-inline-size: var(--vx-medida);
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+  text-wrap: pretty;
+}

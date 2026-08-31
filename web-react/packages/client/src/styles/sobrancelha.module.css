@@ -1,0 +1,46 @@
+/* ============================================================
+   Sobrancelha — o rótulo em caixa alta, em UM lugar
+   ------------------------------------------------------------
+   ⚠ Ela existia DEZESSEIS vezes, em treze módulos, e já tinha
+   divergido em três trackings (0.04 · 0.06 · 0.08) e dois pares
+   de tamanho/peso (11/600 e 10/700). Nenhuma dessas divergências
+   foi decidida — apareceram porque cada módulo escreveu a sua e
+   não havia como ver as outras quinze.
+
+   São DUAS de propósito, e o design confirma as duas:
+
+   - `sobrancelha` (0.06em) encima uma CAIXA que já a delimita —
+     rótulo de campo, legenda de grupo, contador. O espaçamento
+     só precisa dizer "isto é etiqueta, não frase".
+   - `sobrancelhaDeSecao` (0.08em) é cabeçalho de SEÇÃO numa
+     lista, onde a palavra é o único conteúdo da linha e o
+     espaçamento faz o trabalho de separação que uma borda faria.
+
+   Tamanho e peso são iguais nas duas: quem separa é o tracking.
+   Variar três coisas ao mesmo tempo para distinguir dois papéis é
+   o que produz a terceira variante por acidente.
+
+   ⚠ **`composes` e não `@utility` do Tailwind, e a razão é
+   medida:** `@apply` dentro de CSS Module exige um `@reference`
+   por arquivo (o build falha sem ele), e uma utility de verdade
+   exigiria tocar os dezesseis CONSUMIDORES em TSX. `composes` é o
+   mecanismo nativo do CSS Module para exatamente isto, e custa
+   uma linha por regra sem sair do CSS.
+
+   ⚠ **A COR fica fora de propósito.** `text-3` é o caso comum,
+   mas o rótulo de novas mensagens é `danger` e o crachá de cargo
+   herda a cor do servidor. Trazer a cor para cá obrigaria os dois
+   a sobrescrevê-la, e sobrescrita é como uma divergência começa.
+   ============================================================ */
+
+.sobrancelha {
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sobrancelhaDeSecao {
+  composes: sobrancelha;
+  letter-spacing: 0.08em;
+}

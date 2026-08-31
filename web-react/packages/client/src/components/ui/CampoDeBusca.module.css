@@ -1,0 +1,126 @@
+/* ============================================================
+   Campo de busca
+   ------------------------------------------------------------
+   ⚠ Existia CINCO vezes, e divergia em tudo: quatro alturas
+   (30 · 32 · 32 · 34), quatro respiros (8 · 9 · 10 · 11), QUATRO
+   fundos (`surface-0` · `surface-1` · `surface-2` · `surface-3`)
+   e três gaps. Nenhuma das quatro alturas foi escolhida.
+
+   O que o primitivo possui: geometria, glifo, tipo, borda e foco.
+   O que ele NÃO possui: o FUNDO.
+   ============================================================ */
+
+.busca {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-07);
+  inline-size: 100%;
+  min-inline-size: 0;
+  block-size: 32px;
+  padding-inline: var(--vx-space-10);
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-06);
+  color: var(--vx-text-3);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  text-align: start;
+  transition:
+    border-color var(--vx-duration-fast) var(--vx-ease-out),
+    box-shadow var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+/*
+  30px, para a coluna de canais.
+
+  Ela divide a faixa com um cabeçalho de 50px logo acima, e dois pixels ali
+  são a diferença entre o campo respirar e a coluna começar apertada. O design
+  escreve `height:30px;padding:0 9px` justamente nesse lugar e 32 nos demais.
+*/
+.denso {
+  block-size: 30px;
+  padding-inline: var(--vx-space-09);
+}
+
+.busca:hover {
+  border-color: var(--vx-border-strong);
+}
+
+/*
+  O anel de foco do design, e aqui ele é seguro: um campo de busca nunca vive
+  dentro de container que recorta — ele é sempre o primeiro filho de uma faixa
+  ou de um cabeçalho. É a mesma decisão do `Campo` e do `Botao`.
+*/
+.busca:focus-within,
+.busca:focus-visible {
+  outline: none;
+  border-color: var(--vx-accent);
+  box-shadow: 0 0 0 3px var(--vx-accent-ring);
+}
+
+/* 12px — a cromagem miúda. O glifo aqui é rótulo do campo, não alvo. */
+.lupa {
+  flex: none;
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+  color: var(--vx-text-3);
+}
+
+/*
+  O `input` de verdade, quando há um: sem caixa própria, porque a caixa é o
+  wrapper — dois contornos aninhados é o que o `:focus-within` acima existe
+  para evitar.
+*/
+.entrada {
+  flex: 1;
+  min-inline-size: 0;
+  border: 0;
+  background: none;
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: inherit;
+  outline: none;
+}
+
+/*
+  ⚠ **`:focus-visible` e não só `.entrada`, e sem isto aparecem DOIS anéis.**
+
+  O anel global de `tokens.css` é `:focus-visible` puro (0,1,0), e um
+  `outline: none` sem estado tem a MESMA especificidade — quem ganhava era a
+  ordem da folha, que é a global. Resultado: o wrapper desenhava o anel do
+  design por `:focus-within` e o `input` desenhava o anel global por dentro,
+  os dois ao mesmo tempo.
+
+  A nota da regra global já prescreve a saída: primitivo que manda no próprio
+  anel escreve `(0,2,0)`. Aqui quem manda é o WRAPPER, porque o alvo visual é
+  a caixa inteira — o `input` não tem borda nem fundo próprios.
+*/
+.entrada:focus-visible {
+  outline: none;
+}
+
+.entrada::placeholder {
+  color: var(--vx-text-4);
+}
+
+/* Some o "x" nativo do `type=search`: ele é desenhado pelo sistema. */
+.entrada::-webkit-search-cancel-button {
+  display: none;
+}
+
+/*
+  O rótulo do GATILHO — a variante que é `button` e não campo.
+
+  ⚠ Ela existe porque o campo da coluna de canais ABRE A PALETA em vez de
+  filtrar. Unificá-lo com um `input` de verdade daria dois donos do mesmo
+  texto: digitar ali jogaria fora o primeiro caractere, ou exigiria um segundo
+  campo sincronizado com o de lá.
+*/
+.rotulo {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: start;
+  color: var(--vx-text-4);
+}

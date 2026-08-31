@@ -1,0 +1,130 @@
+/* ============================================================
+   A barra de título custom
+   ------------------------------------------------------------
+   34px nos dois sistemas — só a ORDEM muda. A altura entra na
+   conta do grid do shell, e uma barra que muda de altura por
+   plataforma daria dois tetos diferentes para a lista
+   virtualizada.
+   ============================================================ */
+
+.barra {
+  display: flex;
+  flex: none;
+  align-items: center;
+  block-size: 34px;
+  border-block-end: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-0);
+  /*
+    ⚠ **A barra INTEIRA é região de arraste, e os controles saem dela.** O
+    inverso — arrastar só a faixa central — deixaria as bordas mortas, e a
+    borda é justamente onde a mão pega uma janela.
+
+    ⚠ **Sem o prefixo `-webkit-`, e não por escolha: o build o DESCARTA.**
+    Medido no bundle — a regra emitida tem só `app-region: drag`. A versão
+    prefixada some, e mantê-la no fonte daria a impressão de uma cobertura que
+    não existe. A casca roda Electron 43 (Chromium 138) e o `app-region` sem
+    prefixo é suportado desde o Chromium 116, então nada se perde aqui — mas
+    numa casca mais velha o arraste pararia em silêncio, que é exatamente o
+    modo de falha que o briefing nomeia para esta propriedade.
+  */
+  app-region: drag;
+}
+
+/*
+  Sem foco: os controles vão para o neutro e o título cai para desabilitado.
+  ⚠ **Nada muda de POSIÇÃO** — é instrução do design, e a razão é que a barra
+  fica no topo de tudo: um deslocamento aqui empurraria o app inteiro toda vez
+  que alguém trocasse de janela.
+*/
+.barra[data-sem-foco] .titulo {
+  color: var(--vx-text-4);
+}
+
+.barra[data-sem-foco] .controle {
+  color: var(--vx-text-4);
+}
+
+/*
+  O espaço dos semáforos do macOS.
+
+  ⚠ Reservado e VAZIO: os três botões são do sistema, posicionados pelo
+  `trafficLightPosition` do main. Desenhar os nossos aqui daria seis.
+*/
+.semaforos {
+  flex: none;
+  inline-size: 78px;
+}
+
+.arraste {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 0;
+  padding-inline: var(--vx-space-12);
+}
+
+.titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-06);
+  overflow: hidden;
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.canal {
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.travessao {
+  color: var(--vx-text-4);
+}
+
+.controles {
+  display: flex;
+  flex: none;
+  block-size: 100%;
+}
+
+/*
+  ⚠ **`no-drag` é obrigatório, e sem ele o botão para de responder SEM ERRO.**
+  O sistema captura o `pointerdown` para mover a janela e o clique nunca chega
+  ao React. É a armadilha que o briefing nomeia, e a única forma de descobri-la
+  é clicando.
+
+  46×34 é a caixa do Windows — mais larga que alta de propósito: ela precisa
+  cobrir a faixa inteira até a borda, senão sobra 1px de arraste no canto onde
+  todo mundo mira para fechar.
+*/
+.controle {
+  display: grid;
+  place-items: center;
+  inline-size: 46px;
+  block-size: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--vx-text-2);
+  cursor: default;
+  app-region: no-drag;
+}
+
+.controle:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+/* Vermelho SÓ no fechar, e só no hover: um X permanentemente vermelho na
+   barra é um alerta constante para a ação mais comum de todas. */
+.fechar:hover {
+  background: var(--vx-danger);
+  color: var(--vx-on-danger);
+}
+
+.controle:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}

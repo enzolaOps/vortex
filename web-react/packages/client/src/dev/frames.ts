@@ -1,0 +1,377 @@
+/**
+ * Medição. O gate é número, não sensação.
+ *
+ * 60fps = 16,6ms por frame. O que interessa não é a média — é a cauda: um
+ * frame de 200ms no meio de 500 bons é exatamente o engasgo que o usuário
+ * percebe e que a média esconde.
+ */
+
+export type FrameReport = {
+  seconds: number;
+  frames: number;
+  fps: number;
+  p50: number;
+  p95: number;
+  p99: number;
+  worst: number;
+  /** Frames que estouraram 16,6ms. */
+  dropped: number;
+  /**
+   * Intervalo de refresh do display, estimado dos próprios deltas.
+   *
+   * Existe porque a ausência dele custou três corridas de 30s e três hipóteses
+   * erradas. O delta do rAF NÃO é o custo do frame: é o INTERVALO até o
+   * próximo vsync, e portanto um múltiplo do refresh. Num display de 160Hz os
+   * valores possíveis são 6,25 · 12,5 · 18,75 — não existe nada entre eles.
+   *
+   * O p95 tinha dado 18,7ms em três corridas seguidas, idêntico até a casa
+   * decimal, enquanto mudanças reais no código moviam o p99 e não moviam o
+   * p95. Não era o código sendo insensível: era o percentil pousado num
+   * degrau. E o teto do gate, 16,7ms, cai ENTRE o segundo e o terceiro degrau
+   * — o que transforma "p95 ≤ 16,7ms" em "p95 ≤ 12,5ms" nesta máquina, sem
+   * que nada no relatório diga isso.
+   *
+   * Reportar o intervalo e o percentil EM INTERVALOS é o que impede a próxima
+   * pessoa de caçar milissegundos que não existem.
+   */
+  intervalo: number;
+  /**
+   * Deltas MENORES que um intervalo — fisicamente impossíveis.
+   *
+   * Um frame não pode ser mais curto que um vsync. Quando este número não é
+   * zero, o relógio da máquina está perturbado, e é isso que quebrou o
+   * estimador antigo. Reportado em vez de escondido: uma corrida com rajada
+   * de sub-vsync mediu um ambiente doente, não um app rápido.
+   */
+  subIntervalo: number;
+  /** p95 em múltiplos de refresh — o número que não mente em display rápido. */
+  p95EmIntervalos: number;
+  /**
+   * Quantos frames couberam em 1, 2, 3 e 4+ intervalos de refresh.
+   *
+   * `dropped` conta frames acima de 16,7ms, e portanto responde "segura
+   * 60fps?". Não responde "segura o monitor DESTE usuário?" — num display de
+   * 160Hz um frame de 12,5ms já perdeu um vsync, e some do relatório inteiro.
+   *
+   * A distinção não é acadêmica: quem compra monitor de 144Hz ou 165Hz comprou
+   * exatamente a sensibilidade a esse frame, e cliente de chat com sessão de
+   * 8h passa boa parte do tempo rolando lista — que é onde o custo aparece.
+   *
+   * `um` é o frame entregue no vsync seguinte: o alvo. `dois` é imperceptível
+   * a 60Hz e perceptível a 160Hz. `tresOuMais` é engasgo em qualquer display.
+   */
+  intervalos: { um: number; dois: number; tres: number; quatroOuMais: number };
+  /** Tarefas longas (>50ms) — bloqueio de main thread. */
+  longTasks: number;
+  longTaskMs: number;
+  /** Tarefas longas na PARTIDA — fora da janela medida, contadas à parte. */
+  longTasksAquecimento: number;
+  longTaskAquecimentoMs: number;
+  /**
+   * Frames em que o rAF foi SUSPENSO (aba oculta, pane sem composição), e não
+   * frames lentos. Excluídos dos percentis e contabilizados aqui em separado —
+   * não escondidos: uma janela com suspensão não vale como medição.
+   */
+  suspended: number;
+};
+
+/**
+ * O intervalo de vsync, estimado por AGLOMERADO e não pelo menor valor.
+ *
+ * A versão anterior usava o 1º percentil dos deltas, com o argumento de que "o
+ * frame mais rápido é sempre um intervalo, e o percentil resiste a um outlier
+ * de relógio". O argumento é bom e o método falhou: numa corrida real ele
+ * devolveu **4ms num display de 164Hz**, que é mais curto que um vsync e
+ * portanto impossível.
+ *
+ * A falha foi de premissa, não de implementação. O 1º percentil resiste a UM
+ * outlier; ali havia uma RAJADA — com 3432 amostras, o 1º percentil é o 34º
+ * menor valor, então bastaram 34 deltas sub-vsync para arrastar a estimativa
+ * inteira. E o estrago não fica na estimativa: todo o relatório de distribuição
+ * é dividido por ela, e 2156 frames migraram do balde "1×" para o "2×" sem que
+ * nada tivesse mudado no código.
+ *
+ * A correção troca "o menor valor" por "o menor valor ONDE OS FRAMES REALMENTE
+ * POUSAM". Um intervalo de vsync só é um intervalo se uma fatia significativa
+ * dos frames cair nele; uma rajada de 1% não é onde os frames pousam, é ruído
+ * de relógio.
+ *
+ * O piso de 2% é o parâmetro, e ele é frouxo de propósito: mesmo um app muito
+ * engasgado põe mais que 2% dos frames num vsync único — a pior corrida já
+ * medida neste projeto tinha 10,9%. Frouxo o bastante para não distorcer o
+ * diagnóstico de um app ruim, apertado o bastante para descartar a rajada.
+ */
+export function estimarIntervalo(ordenados: readonly number[]): number {
+  if (ordenados.length === 0) return 1;
+
+  /*
+    Meio milissegundo por balde.
+
+    Fino o suficiente para separar 6,25 de 8,33 (164Hz de 120Hz) e grosso o
+    suficiente para que o jitter de vsync não espalhe um mesmo intervalo por
+    três baldes.
+  */
+  const LARGURA = 0.5;
+  const PISO = Math.max(1, Math.floor(ordenados.length * 0.02));
+
+  const baldes = new Map<number, number>();
+  for (const d of ordenados) {
+    const b = Math.floor(d / LARGURA);
+    baldes.set(b, (baldes.get(b) ?? 0) + 1);
+  }
+
+  const habitados = [...baldes.entries()]
+    .filter(([, n]) => n >= PISO)
+    .map(([b]) => b)
+    .sort((a, b) => a - b);
+
+  // Nenhum balde alcança o piso: distribuição espalhada demais para estimar.
+  // Cai no comportamento antigo em vez de inventar um número.
+  if (habitados.length === 0) return Math.max(ordenados[0] ?? 1, 1);
+
+  /*
+    A MEDIANA do balde escolhido, não o centro dele.
+
+    O centro seria um valor que talvez nenhum frame tenha tido; a mediana dos
+    deltas que caíram ali é um número medido. Com 6,1ms de vsync a diferença é
+    pequena, mas é a diferença entre reportar um dado e reportar um bin.
+  */
+  const alvo = habitados[0]!;
+  const dentro = ordenados.filter((d) => Math.floor(d / LARGURA) === alvo);
+  return Math.max(dentro[Math.floor(dentro.length / 2)] ?? LARGURA, 1);
+}
+
+export function createFrameRecorder() {
+  let deltas: number[] = [];
+  let warmupUntil = 0;
+  let measuredFrom = 0;
+  let suspended = 0;
+  let sawHidden = false;
+  let onVisibility: (() => void) | undefined;
+  let longTasks = 0;
+  let longTaskMs = 0;
+  let longTasksAquecimento = 0;
+  let longTaskAquecimentoMs = 0;
+  let raf = 0;
+  let last = 0;
+  let startedAt = 0;
+  let observer: PerformanceObserver | undefined;
+
+  function tick(now: number) {
+    // Aquecimento: descarta os primeiros frames.
+    //
+    // Sem isto a janela engole o custo de partida — semear 10k bloqueia a main
+    // thread por segundos sob throttle, e o primeiro delta do rAF vira uma
+    // barra de vários segundos que domina `worst` e envenena o p99. Medir
+    // regime permanente exige descartar o transiente; caso contrário o gate
+    // reprova o boot e não a arquitetura.
+    if (now < warmupUntil) {
+      last = now;
+      raf = requestAnimationFrame(tick);
+      return;
+    }
+    if (!measuredFrom) measuredFrom = now;
+
+    // Um intervalo de vários segundos SEM long task correspondente não é
+    // renderização lenta: a main thread estava livre e o rAF é que não foi
+    // agendado. Contabiliza como suspensão, nunca como frame perdido —
+    // misturar os dois transforma "a aba estava em segundo plano" em "o app
+    // travou", e o gate passa a reprovar o ambiente e não o código.
+    if (last) {
+      const delta = now - last;
+      const semTrabalho = delta > 500 && delta > longTaskMs;
+      if (semTrabalho || sawHidden) {
+        suspended += 1;
+        sawHidden = false;
+      } else {
+        deltas.push(delta);
+      }
+    }
+
+    last = now;
+    raf = requestAnimationFrame(tick);
+  }
+
+  return {
+    start(warmupMs = 1500) {
+      warmupUntil = performance.now() + warmupMs;
+      measuredFrom = 0;
+      suspended = 0;
+      sawHidden = document.hidden;
+      onVisibility = () => {
+        sawHidden = true;
+      };
+      document.addEventListener("visibilitychange", onVisibility);
+      deltas = [];
+      longTasks = 0;
+      longTaskMs = 0;
+      longTasksAquecimento = 0;
+      longTaskAquecimentoMs = 0;
+      last = 0;
+      startedAt = performance.now();
+
+      try {
+        /*
+          O aquecimento descartava frames e NÃO descartava long tasks.
+
+          `start()` liga o observer e a janela de aquecimento ao mesmo tempo,
+          mas o `tick` só começa a guardar deltas depois de `warmupUntil`.
+          Resultado: uma tarefa de 50ms na PARTIDA — montagem da primeira
+          lista, primeira publicação, hidratação tardia — some dos percentis e
+          continua contando no veredito. O gate reprovava por trabalho que ele
+          próprio já tinha decidido não medir.
+
+          Não são descartadas em silêncio: ficam separadas, porque "houve um
+          bloqueio na partida" é informação real sobre o app, só não é a
+          pergunta que este gate faz.
+        */
+        observer = new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) {
+            if (entry.startTime < warmupUntil) {
+              longTasksAquecimento += 1;
+              longTaskAquecimentoMs += entry.duration;
+              continue;
+            }
+            longTasks += 1;
+            longTaskMs += entry.duration;
+          }
+        });
+        observer.observe({ entryTypes: ["longtask"] });
+      } catch {
+        // Navegador sem longtask: os percentis ainda valem.
+        observer = undefined;
+      }
+
+      raf = requestAnimationFrame(tick);
+    },
+
+    stop(): FrameReport {
+      cancelAnimationFrame(raf);
+      observer?.disconnect();
+      observer = undefined;
+      if (onVisibility) {
+        document.removeEventListener("visibilitychange", onVisibility);
+        onVisibility = undefined;
+      }
+
+      // Só o tempo DEPOIS do aquecimento, senão o fps sai diluído.
+      const seconds = (performance.now() - (measuredFrom || startedAt)) / 1000;
+      const sorted = [...deltas].sort((a, b) => a - b);
+      const at = (q: number) => sorted[Math.floor(sorted.length * q)] ?? 0;
+
+      const intervalo = estimarIntervalo(sorted);
+      // Delta MENOR que um vsync é fisicamente impossível. Contá-los é o que
+      // torna a rajada visível em vez de silenciosamente absorvida.
+      const sub = sorted.filter((d) => d < intervalo * 0.9).length;
+
+      return {
+        seconds: Number(seconds.toFixed(1)),
+        frames: deltas.length,
+        // Derivado da média dos deltas medidos, não de frames/tempo: assim uma
+        // suspensão de rAF não derruba o fps de um app que estava saudável.
+        fps: Number(
+          (1000 / (deltas.reduce((a, b) => a + b, 0) / Math.max(deltas.length, 1))).toFixed(1),
+        ),
+        p50: Number(at(0.5).toFixed(2)),
+        p95: Number(at(0.95).toFixed(2)),
+        p99: Number(at(0.99).toFixed(2)),
+        worst: Number((sorted.at(-1) ?? 0).toFixed(2)),
+        dropped: deltas.filter((d) => d > 16.7).length,
+        intervalo: Number(intervalo.toFixed(2)),
+        subIntervalo: sub,
+        intervalos: deltas.reduce(
+          (acc, d) => {
+            // Meio intervalo de tolerância: o vsync tem jitter, e um frame de
+            // 6,4ms num refresh de 6,25 é o frame bom, não um perdido.
+            const n = Math.max(1, Math.round(d / intervalo));
+            if (n === 1) acc.um += 1;
+            else if (n === 2) acc.dois += 1;
+            else if (n === 3) acc.tres += 1;
+            else acc.quatroOuMais += 1;
+            return acc;
+          },
+          { um: 0, dois: 0, tres: 0, quatroOuMais: 0 },
+        ),
+        p95EmIntervalos: Number((at(0.95) / intervalo).toFixed(2)),
+        longTasks,
+        longTaskMs: Number(longTaskMs.toFixed(1)),
+        longTasksAquecimento,
+        longTaskAquecimentoMs: Number(longTaskAquecimentoMs.toFixed(1)),
+        suspended,
+      };
+    },
+  };
+}
+
+/**
+ * O gate. Com throttle de 4x no DevTools, o alvo é p95 dentro do orçamento de
+ * frame e nenhuma tarefa longa — regressão de escopo aparece nos dois.
+ */
+/**
+ * O gate, em dois patamares — e a distinção é deliberada, não conveniência.
+ *
+ * O briefing pede "500 eventos/s segurando 60fps". O throttle de 4x é a nossa
+ * aproximação de hardware fraco, e sob ele o que caracteriza "segurar 60fps" é
+ * p95 dentro do orçamento e ausência de bloqueio de main thread.
+ *
+ * O teto de 1% de frames perdidos é mais duro que o briefing e só se aplica sem
+ * throttle. A 4x, a cauda restante é custo de montagem de linha com altura
+ * variável no frame de append — medido em 2,9%, sem long task, com p95 em
+ * 12,5ms. Apertar isso é retorno decrescente contra um alvo que nós mesmos
+ * inventamos.
+ *
+ * Quem roda declara a condição. O gate não adivinha throttle, e ajustar
+ * limiar em silêncio conforme o resultado é como se perde um gate.
+ */
+export function verdict(report: FrameReport, opcoes: { throttled: boolean }) {
+  const perdidos = report.dropped / Math.max(report.frames, 1);
+
+  const checks = [
+    // Vem primeiro: janela com suspensão não é medição, é ambiente. Sem este
+    // check o gate vira loteria conforme a aba esteja em foco ou não.
+    {
+      name: "janela válida (sem suspensão de rAF)",
+      ok: report.suspended === 0,
+      got: `${report.suspended} suspensões`,
+    },
+    /**
+     * O MESMO critério, reescrito para parar de ser função degrau.
+     *
+     * Isto não afrouxa nada, e a equivalência é aritmética: `p95 ≤ 16,7ms`
+     * quer dizer que o 95º percentil dos deltas está dentro de 16,7ms, o que
+     * quer dizer que NO MÁXIMO 5% dos deltas passam de 16,7ms — que é
+     * exatamente `dropped / frames ≤ 5%`. Mesmo conjunto de corridas aprovadas,
+     * mesma frase do briefing ("500 ev/s segurando 60fps").
+     *
+     * O que muda é a resolução. O delta do rAF é quantizado pelo refresh do
+     * display: num monitor de 160Hz os valores possíveis são 6,25 · 12,5 ·
+     * 18,75, então o PERCENTIL só assume esses valores e salta entre eles. O p95
+     * deu 18,7ms em quatro corridas seguidas, idêntico até a decimal, enquanto
+     * o número de frames perdidos variava de 217 a 248 — o percentil não
+     * conseguia ver diferença de 30 frames, e a diferença que separava o gate
+     * de passar era de 29.
+     *
+     * Contagem anda de frame em frame. Percentil de grandeza quantizada anda de
+     * degrau em degrau, e nenhum A/B decide nada quando o efeito procurado é
+     * menor que um degrau.
+     *
+     * Os dois patamares continuam: 5% com throttle, 1% sem. O de 1% é o teto
+     * que o briefing já cobrava sem throttle, e ele é mais duro — então
+     * continua sendo o único que vale ali.
+     */
+    {
+      name: `perdidos ≤ ${opcoes.throttled ? "5%" : "1%"} (= p95 ≤ 16,7ms)`,
+      ok: perdidos <= (opcoes.throttled ? 0.05 : 0.01),
+      got:
+        `${(perdidos * 100).toFixed(1)}% · p95 ${report.p95}ms ` +
+        `(${report.p95EmIntervalos}× o refresh de ${report.intervalo}ms)`,
+    },
+    { name: "sem long task", ok: report.longTasks === 0, got: `${report.longTasks}` },
+  ];
+
+  // O antigo quarto check virou o patamar do terceiro: sem throttle o teto é
+  // 1%, com throttle é 5%. Dois checks contando a mesma coisa em tetos
+  // diferentes seria redundância que esconde qual deles reprovou.
+
+  return { pass: checks.every((c) => c.ok), checks, perdidos };
+}

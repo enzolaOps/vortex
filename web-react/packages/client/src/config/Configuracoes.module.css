@@ -1,0 +1,357 @@
+/* ============================================================
+   Configurações
+   ------------------------------------------------------------
+   Tela cheia SOBRE o shell, e não no lugar dele: substituir o
+   shell desmontaria a lista de mensagens, com dez mil linhas
+   medidas e âncora. Ver `store/config.ts`.
+   ============================================================ */
+
+.tela {
+  position: fixed;
+  /* Abaixo da barra de título: cobri-la tiraria os controles de janela
+     do alcance, e a barra é o único caminho para eles. */
+  inset: var(--vx-barra-h) 0 0 0;
+  z-index: var(--vx-z-sistema);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  /*
+    ⚠ **A linha precisa de `minmax(0, 1fr)` explícito, e a falta dela deixou
+    esta tela SEM rolagem.** Sem `grid-template-rows`, a linha implícita é
+    `auto`, que cresce até o conteúdo: `.conteudo` esticava junto, o
+    `minmax(0, 1fr)` interno recebia altura infinita e o `.rolagem` media
+    `scrollHeight === clientHeight` — overflow declarado, nada para rolar.
+
+    Medido na tela de Notificações, a primeira mais alta que a janela: 1458px
+    de conteúdo numa viewport de 962, com o botão do último bloco em 1318 e
+    `scrollTop` travado em 0. É o erro nº 3 do briefing na direção de bloco.
+  */
+  grid-template-rows: minmax(0, 1fr);
+  /*
+    ⚠ **`surface-2` e nao `surface-0`.** O Foundations reserva o tom mais
+    escuro para RAIL e GUTTER ULTRAWIDE, e usa-lo como fundo de area de
+    conteudo e o defeito que esta tabela ja registrou duas vezes (a faixa preta
+    em volta da timeline e a do composer). Aqui ele punha a coluna de
+    navegacao -- que e `surface-1`, mais CLARA -- flutuando sobre um vazio
+    preto, invertendo a leitura de profundidade da rampa inteira.
+  */
+  background: var(--vx-surface-2);
+  container-type: inline-size;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  /*
+    232, do design. Ela era 248 -- a largura da coluna de canais --, e a
+    coincidencia era a justificativa. So que as duas nunca estao na tela ao
+    mesmo tempo: as configuracoes cobrem o shell inteiro. O que fica lado a
+    lado com esta coluna e o conteudo dela, e o design a desenha 16px mais
+    estreita.
+  */
+  inline-size: 232px;
+  border-inline-end: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-1);
+}
+
+/*
+  O cartao de identidade no topo da coluna.
+
+  ⚠ **Ele faltava, e a ausencia tinha consequencia:** a tela dizia "Voce"
+  numa sobrancelha e nao mostrava QUEM. Numa instancia com mais de uma conta,
+  abrir as configuracoes e nao saber em qual delas se esta e o momento errado
+  para descobrir. Fora da area rolavel de proposito -- quem voce e nao some ao
+  descer a lista.
+*/
+.identidade {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-10);
+  padding: var(--vx-space-18) var(--vx-space-16) var(--vx-space-10);
+}
+
+.identidadeTextos {
+  min-inline-size: 0;
+}
+
+.identidadeNome {
+  overflow: hidden;
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.identidadeArroba {
+  overflow: hidden;
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A lista rola sozinha, com o cartao acima parado. */
+.lista {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  padding: var(--vx-space-06) var(--vx-space-08) var(--vx-space-08);
+  scrollbar-width: thin;
+}
+
+/*
+  O rótulo de um grupo do menu.
+
+  Caixa alta pequena é o tratamento de metadado deste app — o mesmo da hora na
+  linha e da seção na member list. Aqui ele separa "Você" de um servidor sem
+  virar mais um alvo clicável.
+*/
+.grupo {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  /* `12px 8px 6px`, do design: o respiro de cima e o dobro do de baixo, que e
+     o que amarra o rotulo ao grupo ABAIXO dele em vez de ao anterior. */
+  margin: 0;
+  padding: var(--vx-space-12) var(--vx-space-08) var(--vx-space-06);
+  color: var(--vx-text-3);
+}
+
+/*
+  O subtítulo DENTRO do grupo do servidor — "Pessoas", "Moderação".
+
+  Mesmo tratamento do rótulo de grupo, com um degrau a menos de respiro em
+  cima: ele separa blocos que já estão sob o mesmo cabeçalho, e o espaço de 12
+  faria os quatro subgrupos lerem como quatro grupos independentes.
+*/
+.subgrupo {
+  composes: grupo;
+  padding-block-start: var(--vx-space-14);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  inline-size: 100%;
+  /* `8px 10px` e corpo de 15, do design. Era `8px 9px` com 13, e o item saia
+     32px de altura contra os 39 desenhados -- numa coluna de sete alvos, sete
+     pixels por linha somam quase um item inteiro de diferenca. */
+  padding: var(--vx-space-08) var(--vx-space-10);
+  /* 1px entre itens: o suficiente para o realce do escolhido nao encostar no
+     vizinho, e pouco o bastante para a lista continuar lendo como um bloco. */
+  margin-block-end: 1px;
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-lg);
+  /* 1,5 — sem ela o item saía 34px contra os 39 do design. A entrelinha do
+     rótulo é o que dá altura ao alvo aqui; padding sozinho não chega. */
+  line-height: var(--vx-leading-message);
+  text-align: start;
+  cursor: pointer;
+}
+
+.item:hover {
+  background: var(--vx-surface-2);
+  color: var(--vx-text-1);
+}
+
+.item:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/*
+  O item escolhido: acento a 12% com o texto em `text-1`, mais a LÂMINA.
+
+  ⚠ **Três erros num só, e o terceiro é o que importa.** Ele estava com
+  `surface-2` de fundo (que é a superfície de hover — o escolhido e o sob o
+  ponteiro ficavam iguais), o texto em acento cheio (quando o design usa
+  `text-1`: quem carrega o acento é o FUNDO, e texto e fundo acentuados ao
+  mesmo tempo é acento gasto duas vezes no mesmo alvo), e **sem a lâmina**.
+
+  A lâmina é assinatura deste projeto e o `CLAUDE.md` lista o menu de
+  configurações entre os quatro lugares dela — o design escreve
+  `box-shadow: inset 3px 0 0 #35C2CC` exatamente aqui. Ela estava nos outros
+  três e faltava neste.
+
+  `inset` e não um pseudo-elemento: o item já tem raio 6, e uma barra absoluta
+  precisaria de recorte próprio para não vazar pela curva.
+*/
+.item[aria-current="true"] {
+  /* 10% e nao 12: e o mesmo `--vx-state-selected` do canal ativo, e um realce
+     de configuracao mais forte que o do canal aberto seria hierarquia
+     trocada. */
+  background: var(--vx-state-selected);
+  color: var(--vx-text-1);
+  font-weight: 600;
+  box-shadow: inset var(--vx-lamina-w) 0 0 var(--vx-accent);
+}
+
+/*
+  A regua entre grupos.
+
+  Ela substitui a sobrancelha onde nao ha o que nomear: "Voz e video,
+  Notificacoes, Aparencia" nao formam uma categoria com nome, formam um bloco.
+  Um rotulo inventado ali seria pior que a linha.
+*/
+.regua {
+  margin: var(--vx-space-10) var(--vx-space-08);
+  border: 0;
+  border-block-start: 1px solid var(--vx-hairline-06);
+}
+
+/*
+  Sair.
+
+  ⚠ Vermelho e no fim, separado por regua -- e destrutivo no sentido que
+  importa aqui: derruba a sessao desta janela. `danger-text` e nao `danger`,
+  porque e TEXTO sobre superficie, que e exatamente a divisao que os dois
+  vermelhos do design fazem.
+*/
+.sair {
+  color: var(--vx-danger-text);
+}
+
+.sair:hover {
+  background: var(--vx-danger-soft);
+  color: var(--vx-danger-text);
+}
+
+.conteudo {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  min-inline-size: 0;
+}
+
+/*
+  ⚠ **O titulo da pagina deixou de ser uma barra fixa.**
+
+  Havia um `<header>` de 65px com o nome da secao e o X, separado por regua. O
+  design nao tem essa barra: o titulo e a primeira coisa DENTRO da area
+  rolavel, alinhado a mesma coluna de 840 do conteudo, e rola com ele. A
+  diferenca e que a barra roubava 65px de altura de toda secao para repetir o
+  que o item marcado na coluna ja diz.
+*/
+.paginaCabecalho {
+  /* 22 ate o primeiro bloco; 16 vem do `gap` do grid, 6 daqui. */
+  margin-block-end: var(--vx-space-06);
+}
+
+/* 13px terciário, 4px abaixo do título — da referência. */
+.paginaSubtitulo {
+  margin: var(--vx-space-04) 0 0;
+  font-size: var(--vx-size-md);
+  color: var(--vx-text-3);
+  text-wrap: pretty;
+}
+
+.paginaTitulo {
+  margin: 0;
+  font-size: var(--vx-size-2xl);
+  font-weight: 600;
+  line-height: var(--vx-leading-title);
+  color: var(--vx-text-1);
+}
+
+/*
+  O fechar FLUTUA sobre o canto, e nao mora numa barra.
+
+  Ele fica fora da coluna de 840 -- sobre o vazio a direita --, e por isso nao
+  disputa espaco com nada. 34px com borda: sem a barra em volta, ele precisa da
+  propria forma para ler como alvo.
+*/
+.fechar {
+  position: absolute;
+  inset-block-start: var(--vx-space-24);
+  inset-inline-end: var(--vx-space-24);
+  z-index: var(--vx-z-realce);
+  display: grid;
+  place-items: center;
+  inline-size: 34px;
+  block-size: 34px;
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-2);
+  cursor: pointer;
+}
+
+.fechar:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.fechar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.rolagem {
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+  /*
+    `32px 40px 110px`, medido no design renderizado (`pnpm espelho`).
+
+    O 110 embaixo não é sobra: é o espaço que a faixa de "alterações não
+    salvas" ocupa quando aparece, reservado o tempo todo. Sem ele, a faixa
+    entraria por cima do último controle e a pessoa perderia justamente o que
+    acabou de mexer.
+  */
+  padding: var(--vx-space-32) var(--vx-space-40) var(--vx-config-rodape-h);
+
+  /*
+    Grid de uma coluna para o filho poder ocupar a LARGURA INTEIRA quando
+    quiser. O formulário se limita sozinho pela medida de leitura; a faixa de
+    não-salvo é rodapé da coluna e precisa atravessá-la.
+  */
+  display: grid;
+  align-content: start;
+  gap: var(--vx-space-16);
+}
+
+/*
+  Janela estreita: o menu vira uma faixa em cima.
+
+  Container query e não media — esta tela é `fixed` e ocupa a viewport, então
+  hoje as duas coincidem; a container query é o que a mantém correta se um dia
+  ela virar painel.
+*/
+@container (inline-size < 640px) {
+  .tela {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .menu {
+    inline-size: auto;
+    border-inline-end: 0;
+    border-block-end: 1px solid var(--vx-hairline-06);
+  }
+
+  /* O cartao sai: numa faixa horizontal ele empurraria os alvos para fora da
+     tela, e quem voce e ja esta no rodape da coluna de canais atras. */
+  .identidade {
+    display: none;
+  }
+
+  .lista {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .item {
+    inline-size: auto;
+  }
+
+  .grupo,
+  .subgrupo,
+  .regua {
+    display: none;
+  }
+}

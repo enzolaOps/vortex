@@ -1,0 +1,975 @@
+/*
+  A calha do avatar da linha de mensagem.
+
+  Em CSS Module, e não como utility, porque avatar tem ESCALA PRÓPRIA — não a
+  de espaçamento. O `size-5` que estava aqui resolvia para `--vx-space-24` e
+  dava 24px por coincidência de valor com `--vx-avatar-sm`; o comentário do
+  próprio token diz por que a coincidência não pode virar acoplamento:
+  "mexer no respiro da lista mudaria o tamanho da foto de todo mundo".
+
+  Uma utility `size-avatar-sm` exigiria enfiar o avatar dentro do namespace
+  `--spacing-*` do Tailwind, que é exatamente o acoplamento que se quer
+  evitar. Mesmo caminho já seguido por `ListaDeMembros.module.css`.
+*/
+/*
+  A calha do avatar — 40px, que é o do design.
+
+  Era `--vx-avatar-sm` (32). O design usa 40 na linha de mensagem e 32 na
+  member list, e a diferença é deliberada: a timeline é a superfície de
+  LEITURA, onde a pessoa identifica quem falou de relance enquanto rola; a
+  coluna lateral é índice, onde cabem mais linhas.
+
+  A calha existe mesmo na continuação de grupo — é o que mantém o texto
+  alinhado ao longo do grupo inteiro.
+*/
+.calha {
+  inline-size: var(--vx-avatar-md);
+  block-size: var(--vx-avatar-md);
+  flex: none;
+}
+
+/* ============================================================
+   Chips de reação
+   ------------------------------------------------------------
+   Botões de dois estados, não etiquetas. O aceso é o meu voto —
+   e ele NÃO é comunicado só por cor: a borda muda junto, e o
+   rótulo de leitor de tela diz "incluindo você".
+   ============================================================ */
+
+.reacoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-04);
+  margin-block-start: var(--vx-space-04);
+}
+
+/*
+  ⚠ **Pílula, e era retângulo de 4px.** O design desenha `border-radius: 999px`
+  e 24px de altura; a versão anterior tinha `--vx-radius-06` e ~20px. A forma
+  importa mais aqui que na maioria dos lugares: a pílula é o que distingue um
+  chip CLICÁVEL de um rótulo, e a fileira de reações fica encostada no texto da
+  mensagem, onde nada mais é clicável.
+
+  `--vx-radius-pill` é o degrau de "totalmente arredondado" da escala.
+*/
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-05);
+  /* 24 é DIMENSÃO do chip, não degrau de respiro — estava escrito como
+     `--vx-space-24`, que dá o mesmo pixel e diz a coisa errada. */
+  block-size: 24px;
+  padding-inline: var(--vx-space-08);
+  border: 1px solid transparent;
+  border-radius: var(--vx-radius-pill);
+  /*
+    VÉU e não superfície: o chip pousa na timeline (`surface-2`), e um fundo
+    `surface-2` sobre `surface-2` é invisível. O design usa branco a 5% e sobe
+    para 8% no hover — que compõe sobre qualquer superfície, inclusive dentro
+    de um painel flutuante.
+  */
+  background: rgb(255 255 255 / 5%);
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    border-color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.chip:hover {
+  background: rgb(255 255 255 / 8%);
+}
+
+/* Minha reação: preenchimento tingido MAIS borda de acento. Duas
+   pistas, porque uma diferença só de fundo entre `surface-2` e um
+   tingido escuro é sutil demais para quem não distingue bem. */
+.chip[data-minha="true"] {
+  border-color: var(--vx-accent);
+  background: var(--vx-accent-soft);
+  /* O NÚMERO em acento claro, como o design — não `text-1`. A diferença entre
+     "eu reagi" e "alguém reagiu" fica no dado, não só na moldura. */
+  color: var(--vx-accent-text);
+}
+
+.chip:active {
+  background: rgb(255 255 255 / 10%);
+}
+
+.chip:focus-visible {
+  outline-offset: 1px;
+}
+
+.total {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Conjunto rápido, no topo do menu de contexto. Uma fileira e não
+   uma lista: seis itens empilhados fariam o menu ter o dobro da
+   altura para oferecer o gesto mais barato que existe. */
+.rapidas {
+  display: flex;
+  gap: var(--vx-space-04);
+  padding: var(--vx-space-04);
+}
+
+.rapida {
+  display: grid;
+  place-items: center;
+  inline-size: 24px;
+  block-size: 24px;
+  border: 0;
+  border-radius: var(--vx-radius-05);
+  background: transparent;
+  font-size: var(--vx-size-lg);
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.rapida:hover {
+  background: var(--vx-surface-3);
+}
+
+.rapida:active {
+  background: var(--vx-accent-soft);
+}
+
+/* ============================================================
+   Divisor de "novas mensagens"
+   ------------------------------------------------------------
+   Diferente do divisor de data em tudo o que importa: aquele é
+   sobre O QUE aconteceu, este é sobre VOCÊ. Por isso o acento em
+   vez da borda discreta — é a única linha da lista que responde
+   "onde eu parei", e ela precisa ser encontrada rolando, sem ler.
+   ============================================================ */
+
+.novas {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  /* Acompanha o `px-20` da linha — ver a nota em `Composer.module.css`. */
+  padding-inline: var(--vx-space-20);
+  padding-block-start: var(--vx-space-16);
+}
+
+/*
+  ⚠ **A régua é DANGER, não acento — e a troca é do design.**
+
+  O acento é a cor de "isto está ativo": canal aberto, servidor aberto, minha
+  reação. "Onde você parou" não é um estado ativo, é um AVISO de posição, e o
+  design o pinta de vermelho justamente para ele não se confundir com os
+  outros seis lugares onde o teal aparece.
+
+  Sem opacidade: o design a quer cheia. A régua é uma linha de 1px e não
+  compete com texto nenhum — a opacidade a apagava sem motivo.
+*/
+.novasLinha {
+  flex: 1;
+  block-size: 1px;
+  background: var(--vx-danger);
+}
+
+/*
+  O rótulo fica à DIREITA, ao contrário do divisor de data.
+
+  Data é um título e se lê no centro; "novas mensagens" é uma marca de
+  posição, e no fim da linha ela não interrompe a varredura vertical do
+  olho pela coluna de texto.
+*/
+/*
+  O rótulo é um BADGE, não texto solto — do design.
+
+  Preenchimento tingido em vez de cor sobre o fundo da lista: a régua já
+  atravessa a coluna, e um rótulo sem caixa no fim dela lê como continuação da
+  linha em vez de etiqueta. Caixa fecha a leitura.
+*/
+.novasRotulo {
+  composes: sobrancelhaDeSecao from "../styles/sobrancelha.module.css";
+  flex: none;
+  padding-inline: var(--vx-space-04);
+  border-radius: var(--vx-radius-04);
+  /*
+    Tingido de DANGER, e por `color-mix` em vez de um token novo.
+
+    Não há `--vx-danger-soft`, e criar um custaria uma entrada em `TokenName`,
+    uma classificação em `pares.ts` e um par de contraste — para um
+    preenchimento que só existe atrás deste rótulo. `color-mix` é o mesmo
+    mecanismo de `--vx-state-selected`: compõe com o que está atrás e
+    acompanha o token se ele mudar.
+
+    ⚠ Usei `--vx-accent-soft` aqui na primeira versão — teal atrás de texto
+    vermelho. Passou em todas as guardas, porque nenhuma delas sabe que as
+    duas cores deveriam ser da mesma família.
+  */
+  background: color-mix(in oklab, var(--vx-danger) 14%, transparent);
+  color: var(--vx-danger);
+}
+
+/*
+  `min-inline-size: 0` — a lei nº 3 do lado flex.
+
+  Estava como `min-w-0` no `className`, e essa utility NÃO EXISTE neste
+  projeto: o `@theme` faz `--spacing-*: initial`, que remove a base
+  `--spacing` do Tailwind v4, e toda utility computada como
+  `calc(var(--spacing) * N)` deixa de ser emitida. `min-w-0`, `min-h-0` e
+  `w-80` sumiram juntas.
+
+  A consequência era a que o redesign inteiro existe para evitar: sem o
+  mínimo zerado, o filho flex adota `min-width: auto` — mínimo baseado em
+  conteúdo — e a citação com `white-space: nowrap` empurrava a coluna de
+  mensagem a 1828px dentro de um teto de 1100px, com barra horizontal na
+  superfície principal de leitura.
+
+  Quarta vez que uma utility morta passa por typecheck, lint e testes sem
+  um ruído. Agora há `pnpm utilities` para a classe inteira do problema.
+*/
+.minZero {
+  min-inline-size: 0;
+}
+
+/* ============================================================
+   Divisor de dia
+   ------------------------------------------------------------
+   Sem régua: o espaço separa. Ver o comentário do componente.
+   ============================================================ */
+
+.dia {
+  display: flex;
+  /*
+    Sem `justify-content: center` aqui, e o erro que ele causava vale
+    registrar: com a caixa limitada pela medida, centralizar o CONTAINER
+    empurrava a caixa 256px para dentro do espaço livre — o rótulo ficava
+    centralizado na coluna de novo, que era exatamente o que este recuo veio
+    consertar. Quem centraliza é a caixa, sobre a própria largura.
+  */
+  /*
+    Centralizado sobre o TEXTO, não sobre a coluna.
+
+    A coluna ocupa a trilha inteira e o texto para na medida de leitura — numa
+    janela de 2560 isso são 520px de texto numa trilha de 2008. Um rótulo
+    centralizado na COLUNA apareceria a 692px do bloco que ele introduz, e a
+    distância cresce com a janela.
+
+    (Esta frase dizia "a coluna vai até 1100px". O teto foi removido e o
+    comentário ficou — o mesmo defeito que a auditoria achou em `tokens.css`
+    duas vezes. O NÚMERO envelheceu; o raciocínio não, e é por ele que o
+    rótulo continua centralizado sobre o texto.)
+
+    O recuo replica o que a linha de mensagem faz: a calha do avatar mais o
+    vão. É o mesmo alinhamento, escrito com os mesmos tokens.
+  */
+  padding-inline-start: calc(
+    var(--vx-space-20) + var(--vx-avatar-sm) + var(--vx-space-12)
+  );
+  padding-inline-end: var(--vx-space-20);
+  /* Muito acima, pouco abaixo: o rótulo pertence ao dia que ABRE. */
+  padding-block: var(--vx-space-32) var(--vx-space-04);
+}
+
+.diaRotuloCaixa {
+  /*
+    SEM medida de leitura, por decisão de quem usa.
+
+    `--vx-medida` limitava isto a ~80 caracteres, e numa trilha de 2000px o
+    texto virava uma fita de 520 com o resto vazio. A comparação lado a lado
+    com outro cliente foi direta: lê como alinhamento quebrado, não como
+    coluna de leitura.
+
+    O custo está aceito e dito: em ultrawide o texto volta a esticar até a
+    largura da trilha, que é o problema nº 2 dos três que motivaram o
+    redesign. O que continua segurando o caso patológico é `minmax(0, 1fr)`
+    no grid e `overflow-wrap` na linha — uma URL de 400 caracteres não estoura
+    o layout. O que volta é a linha longa, e essa é a troca escolhida.
+
+    O token continua existindo e continua certo onde a leitura é o produto:
+    configurações, tela de amigos, legenda do visualizador de imagem.
+  */
+  max-inline-size: none;
+}
+
+.diaRotulo {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  color: var(--vx-text-3);
+  /*
+    Versalete de caixa alta em vez de peso.
+
+    Sem as réguas, o rótulo precisa de alguma marca própria para não ser
+    lido como uma mensagem curta de alguém. Negrito o faria competir com
+    nome de autor, que é o outro texto forte da coluna; caixa alta pequena
+    com entreletra diz "isto é rótulo, não fala" sem disputar hierarquia.
+  */
+}
+
+/* ============================================================
+   Barra de ações — flutua, nunca reserva espaço
+   ------------------------------------------------------------
+   Ver o comentário do componente: mudar a ALTURA da linha no
+   hover destrói a âncora do virtualizador, então ela sobrepõe.
+   ============================================================ */
+
+.acoes {
+  position: absolute;
+  inset-block-start: 0;
+  /* Ancorada no recuo da LINHA: em 16 ela flutuaria 4px fora da coluna de
+     conteúdo depois que o recuo foi para 20. */
+  inset-inline-end: var(--vx-space-20);
+  /* Montada na borda de cima, no espaço que o ritmo de agrupamento
+     já deixa entre as linhas. Zero de layout. */
+  transform: translateY(-50%);
+
+  display: flex;
+  align-items: center;
+  /* 1 e 3, os dois do design. `1px` passa como hairline; 3 é degrau. */
+  gap: 1px;
+  padding: var(--vx-space-03);
+
+  /*
+    Superfície ELEVADA, e é aqui que a rampa nova se paga.
+
+    A barra pousa sobre uma linha que já está em `surface-1` por causa do
+    hover. Com os degraus antigos de 1,075:1 ela seria um retângulo
+    invisível em cima de outro; o degrau de agora é o que a separa.
+  */
+  background: var(--vx-surface-4);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-08);
+  /*
+    Sombra, e ela deixou de ser proibida por MEDIÇÃO — ver `menu.ts`.
+
+    A barra flutua sobre a linha e sobre a superfície da timeline. No tema
+    claro `surface-3` e `surface-4` são os dois branco puro, então sem sombra
+    a camada some inteira: ela vira um retângulo branco em cima de outro.
+  */
+  box-shadow: var(--vx-elev-2);
+
+  /*
+    `visibility`, não `opacity`.
+
+    Elemento com `visibility: hidden` sai da ordem de tabulação e da
+    árvore de acessibilidade. Com opacidade zero, cada linha somaria
+    cinco paradas de tabulação invisíveis — dez mil linhas, cinquenta
+    mil paradas.
+  */
+  visibility: hidden;
+}
+
+/*
+  O seletor de pai mantém a regra aqui dentro.
+
+  `:focus-within` faz o segundo trabalho: uma vez visível, o foco pode
+  entrar na barra — e sem esta linha o ponteiro sairia, a barra sumiria
+  e arrancaria o foco do elemento em uso.
+*/
+:hover > .acoes,
+:focus-within > .acoes,
+/*
+  Enquanto o menu desta linha está aberto, a barra FICA.
+
+  É instrução do design ("permanece visível enquanto o menu ⋯ estiver
+  aberto"), e é consequência mecânica: abrir o menu leva o ponteiro para
+  dentro dele, o hover da linha se perde, e a barra sumiria por baixo do menu
+  que ela acabou de abrir. Ao fechar, o alvo do menu volta a `null` e ela
+  segue o ponteiro de novo.
+*/
+.acoes[data-menu-aberto] {
+  visibility: visible;
+}
+
+/*
+  O `⋯` fica ACESO enquanto o menu dele está aberto.
+
+  O design o desenha permanentemente realçado; aqui o realce é o estado, e não
+  a decoração. Um alvo que parece pressionado sem estar pressionado ensina a
+  não confiar no realce dos outros sete.
+*/
+.acoes[data-menu-aberto] .acaoMais {
+  background: var(--vx-state-press);
+  color: var(--vx-text-1);
+}
+
+/*
+  ⚠ **`.acao` SAIU: quem desenha o alvo agora é `BotaoDeIcone`.**
+
+  Ela era uma das quinze cópias à mão do mesmo botão quadrado — cada uma com o
+  próprio tamanho, hover e anel de foco. O que sobra aqui é só o que é DESTA
+  barra: o emoji das três reações rápidas, que o design põe em 15px enquanto os
+  ícones ao lado ficam em 13. Era o único ponto em que a barra discordava do
+  primitivo, e é informação: emoji e ícone são a mesma família de alvo com
+  pesos ópticos diferentes.
+*/
+.acaoEmoji {
+  font-size: var(--vx-size-lg);
+}
+
+.acoesDivisa {
+  inline-size: 1px;
+  block-size: 18px;
+  margin-inline: var(--vx-space-03);
+  background: rgb(255 255 255 / 10%);
+}
+
+/* ============================================================
+   A medida de leitura
+   ------------------------------------------------------------
+   O texto tem largura própria, menor que a da coluna. Ver o
+   comentário de `--vx-medida` em tokens.css: a coluna cabe 155
+   caracteres por linha e a faixa confortável termina em 75.
+
+   Vale para o TEXTO, não para a linha inteira: avatar, hora,
+   chips de reação e a barra de ações continuam usando a coluna,
+   porque nenhum deles é lido em varredura horizontal.
+   ============================================================ */
+
+.corpo {
+  /*
+    SEM medida de leitura, por decisão de quem usa.
+
+    `--vx-medida` limitava isto a ~80 caracteres, e numa trilha de 2000px o
+    texto virava uma fita de 520 com o resto vazio. A comparação lado a lado
+    com outro cliente foi direta: lê como alinhamento quebrado, não como
+    coluna de leitura.
+
+    O custo está aceito e dito: em ultrawide o texto volta a esticar até a
+    largura da trilha, que é o problema nº 2 dos três que motivaram o
+    redesign. O que continua segurando o caso patológico é `minmax(0, 1fr)`
+    no grid e `overflow-wrap` na linha — uma URL de 400 caracteres não estoura
+    o layout. O que volta é a linha longa, e essa é a troca escolhida.
+
+    O token continua existindo e continua certo onde a leitura é o produto:
+    configurações, tela de amigos, legenda do visualizador de imagem.
+  */
+  max-inline-size: none;
+}
+
+
+/*
+  A linha que menciona você.
+
+  Tingida de ponta a ponta, e por isso mais fraca que a menção dentro do
+  texto: pintar uma área grande com a mesma intensidade de um alvo pequeno
+  faria a linha gritar mais que a palavra. `color-mix` mantém a relação com o
+  token em vez de inventar uma cor nova — trocar a paleta leva esta junto.
+*/
+.mencionaVoce {
+  background: color-mix(in oklab, var(--vx-accent-soft) 55%, transparent);
+}
+
+.mencionaVoce:hover {
+  background: color-mix(in oklab, var(--vx-accent-soft) 75%, transparent);
+}
+
+/* ============================================================
+   O conteúdo da linha
+   ------------------------------------------------------------
+   A faixa cobre a trilha; o conteúdo para no teto. Ver o
+   comentário de `.coluna` em MessageList.module.css.
+   ============================================================ */
+
+.conteudo {
+  /*
+    SEM teto. O conteúdo usa a trilha inteira.
+
+    O teto de 1100px foi removido, não movido de novo: ele existia para
+    proteger a legibilidade, e quem faz isso agora é `--vx-medida`, que limita
+    o TEXTO em cerca de 80 caracteres. Duas travas para o mesmo objetivo é o
+    que produzia a faixa morta — e travar a linha nunca protegeu a leitura,
+    porque não era a linha que estava larga demais, era o texto.
+
+    O que continua com largura própria segue com ela: a mídia tem teto de 400px
+    (ver `Anexos.module.css`) e os chips de reação têm o tamanho do que
+    carregam. Nada disso precisava de uma trava por cima.
+  */
+  /*
+    A barra de ações ancora AQUI, não na faixa.
+
+    Ancorada na faixa, ela iria para o fim da trilha — a 2560px, mil e
+    quinhentos pixels longe do texto a que pertence. Um controle que se afasta
+    do seu alvo conforme a tela cresce é pior que não existir.
+  */
+  position: relative;
+}
+
+/*
+  O editor in-line.
+
+  Ele ocupa o lugar do corpo, e a MESMA medida de leitura — trocar a largura ao
+  entrar em edição faria a linha inteira reflowar e a lista pular, que é
+  exatamente o que a âncora do virtualizador não perdoa.
+*/
+.editor {
+  display: grid;
+  gap: var(--vx-space-04);
+  /* O campo de edição ocupa o lugar do corpo, e agora a mesma largura dele. */
+  max-inline-size: none;
+}
+
+.campoDeEdicao {
+  inline-size: 100%;
+  min-inline-size: 0;
+  /* 9/11 e raio 8, do design. O campo substitui o CORPO da mensagem, então
+     ele herda o tamanho do corpo (15px) — em 13 o texto encolheria ao entrar
+     em edição e a linha mudaria de altura por causa do modo. */
+  padding-inline: var(--vx-space-11);
+  padding-block: var(--vx-space-09);
+  border: 1px solid var(--vx-border-strong);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-lg);
+  line-height: var(--vx-leading-message);
+  resize: none;
+}
+
+.campoDeEdicao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/*
+  A dica de teclas.
+
+  Escrita e não escondida atrás de um tooltip: quem entra em edição precisa
+  saber como SAIR, e `Esc` não se descobre por tentativa quando a alternativa
+  é perder o que se digitou.
+*/
+.dicaDeEdicao {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+/*
+  A linha como parada de tabulação.
+
+  `outline-offset` negativo, igual ao `.canal` da lista de canais: a linha
+  encosta nas irmãs sem margem, e um anel para fora seria cortado pela de cima
+  ou desenharia por cima dela. Por dentro ele acompanha a caixa da linha.
+
+  Sem raio próprio de propósito — a linha não tem raio, e inventar um só para o
+  foco faria o anel discordar da forma que ele está marcando.
+*/
+.linha:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/*
+  A cor do anel do ponto de presença, para a TIMELINE.
+
+  ⚠ **Faltava, e o ponto ficava com anel quase preto.** `PontoDePresenca` lê
+  `var(--anel, --vx-surface-0)` — é o painel que sabe sobre o que o avatar
+  está pousado. Rail, coluna de canais, member list e conversas declaram o
+  seu; a linha de mensagem nunca declarou, então caía no `surface-0` do
+  fallback, sobre uma superfície `surface-2`. Anel escuro sobre fundo escuro é
+  anel que não existe.
+*/
+/* ------------------------------------------------------------ fixada */
+
+/*
+  "📌 fixada" no cabeçalho da mensagem.
+
+  Metadado, não conteúdo: `text-4` e o mesmo tamanho do timestamp. O ícone é o
+  Phosphor de sempre, reduzido por `inline-size` — o set é um só e o tamanho
+  nominal também.
+
+  ⚠ Não usa acento. Fixada é um FATO sobre a mensagem, não um chamado — e a
+  disciplina de acento deste projeto tem teto de dois na tela. Uma conversa com
+  seis fixadas na janela acenderia seis.
+*/
+.fixada {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-02);
+  color: var(--vx-text-4);
+  font-size: var(--vx-size-xs);
+}
+
+.fixada svg {
+  inline-size: var(--vx-space-12);
+  block-size: var(--vx-space-12);
+}
+
+/*
+  O "＋" que abre o seletor de emoji, no fim da fileira.
+
+  Mesma altura e mesmo raio dos chips — ele pertence à fileira, não flutua
+  ao lado dela. Mais estreito porque não tem contagem: um `＋` num alvo da
+  largura de "👍 12" leria como um chip vazio.
+
+  Só aparece quando JÁ HÁ reações, que é onde o design o põe. Numa mensagem
+  sem nenhuma, o caminho é a barra de ações do hover — e um `＋` permanente
+  em dez mil linhas seria dez mil alvos a mais na coluna.
+*/
+.adicionarReacao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--vx-space-24);
+  block-size: var(--vx-space-24);
+  border: 1px solid transparent;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-surface-2);
+  color: var(--vx-text-3);
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.adicionarReacao:hover {
+  background: var(--vx-surface-3);
+  color: var(--vx-text-1);
+}
+
+.adicionarReacao svg {
+  inline-size: var(--vx-space-12);
+  block-size: var(--vx-space-12);
+}
+
+/*
+  A escala de ícone desta superfície — ver `--vx-icon-1` em `tokens.css`.
+
+  Cromagem: o design desenha 13–14px aqui, e o `size={20}` do Phosphor vinha
+  de um default copiado de componente para componente. O dono do tamanho é a
+  superfície, não a chamada.
+*/
+/* O glifo de 13px foi junto com `.acao` para `BotaoDeIcone`: nos tamanhos
+   `xs` e `sm` ele já sai em 13, pela mesma razão que estava escrita aqui — o
+   vizinho é um emoji de 15, e um ícone de 14 ao lado dele lê como o mesmo
+   tamanho em vez de como cromagem. */
+
+/* ----------------------------------------- a linha e a prévia de resposta */
+
+/*
+  A LINHA de mensagem — calha e conteúdo — agora é filha do `article`, que
+  virou coluna para que a prévia de resposta possa ser IRMÃ dela.
+
+  Regra sem propriedade própria não existe: o que ela carrega é o papel de
+  bloco de contenção da barra de ações (`position: relative` vem da utility no
+  TSX). O `min-inline-size: 0` é o de sempre — sem ele uma URL longa estoura a
+  coluna, que é o erro nº 3 do briefing.
+*/
+.linhaDaMensagem {
+  min-inline-size: 0;
+
+  /*
+    A cor do anel do ponto de presença, para a TIMELINE.
+
+    ⚠ **Faltava, e o ponto ficava com anel quase preto.** `PontoDePresenca` lê
+    `var(--anel, --vx-surface-0)` — é o painel que sabe sobre o que o avatar
+    está pousado. Rail, coluna de canais, member list e conversas declaram o
+    seu; a linha de mensagem nunca declarou, então caía no `surface-0` do
+    fallback, sobre uma superfície `surface-2`. Anel escuro sobre fundo escuro
+    é anel que não existe, e foi metade da razão de o ponto sumir.
+  */
+  --anel: var(--vx-surface-2);
+}
+
+/*
+  A prévia recuada até a coluna de conteúdo.
+
+  Calha (`--vx-avatar-md`) mais o vão de 12px que separa calha e conteúdo — os
+  mesmos dois números que a linha de mensagem usa, escritos aqui porque a
+  prévia deixou de morar dentro dela e perdeu o alinhamento de graça.
+
+  ⚠ Se a calha mudar de tamanho, isto muda junto. É o preço de a prévia ser
+  irmã, e ele é menor que o de a barra de ações cobrir o alvo de "pular para a
+  mensagem citada" — que era o defeito que a mudança veio consertar.
+*/
+.citacaoRecuada {
+  min-inline-size: 0;
+  padding-inline-start: calc(var(--vx-avatar-md) + var(--vx-space-12));
+}
+
+/* ---------------------------------------------------------- modo compacto */
+
+/*
+  A coluna de hora, no lugar do avatar.
+
+  Mono e alinhada à DIREITA: alinhadas à esquerda, `09:05` e `14:02` deixam os
+  dois-pontos em posições diferentes e o olho perde a coluna descendo a lista.
+  Com mono e à direita, os dígitos formam uma grade — que é o motivo de o
+  design pedir mono aqui e não em mais lugar nenhum da timeline.
+
+  `--vx-text-4` porque é metadado permanente de TODA linha: no compacto ele
+  aparece cinquenta vezes na tela, e em `text-3` a coluna competiria com o que
+  se está lendo.
+
+  O respiro de cima alinha o dígito com a primeira linha do texto, que começa
+  mais abaixo por causa da entrelinha do corpo.
+*/
+.horaCompacta {
+  display: block;
+  inline-size: 100%;
+  padding-block-start: var(--vx-space-02);
+  color: var(--vx-text-4);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+
+/* ============================================================
+   Quem reagiu — o cartão de hover sobre o chip
+   ------------------------------------------------------------
+   `HoverCard` e não `Tooltip`: duas linhas com hierarquia
+   própria. Ver `QuemReagiu` no TSX.
+   ============================================================ */
+
+/*
+  ⚠ **O respiro era o dobro do desenhado.**
+
+  Três blocos com 8px entre eles davam um cartão que parece três avisos
+  separados; o design empilha nome e dica com 5px e só separa o TÍTULO. A
+  diferença some numa captura e aparece quando o cartão abre ao lado de um
+  chip de 24px — ele ficava mais alto que a linha inteira.
+*/
+.quemReagiu {
+  inline-size: 250px;
+  /*
+    O `HoverCardContent` já traz `p-12` uniforme; o design pede 10 em cima e
+    embaixo. Só o eixo de bloco é corrigido — sobrescrever os quatro lados aqui
+    duplicaria a decisão que o wrapper já toma para todo cartão do app.
+  */
+  padding-block: var(--vx-space-10);
+  display: grid;
+  gap: var(--vx-space-06);
+}
+
+.quemTitulo {
+  margin-block-end: var(--vx-space-04);
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.quemEmoji {
+  font-size: var(--vx-size-lg);
+  line-height: 1;
+}
+
+/* Os nomes quebram; a caixa não cresce para os lados. */
+.quemNomes {
+  font-size: var(--vx-size-sm);
+  line-height: var(--vx-leading-compact);
+  color: var(--vx-text-2);
+}
+
+.quemDica {
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+/* ============================================================
+   A régua do editor in-line
+   ------------------------------------------------------------
+   DENTRO da caixa de edição, separada por hairline: com ela
+   fora, a borda de foco terminava antes dos controles que
+   pertencem ao campo.
+   ============================================================ */
+
+.reguaDeEdicao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-08);
+  margin-block-start: var(--vx-space-08);
+  padding-block-start: var(--vx-space-08);
+  border-block-start: 1px solid var(--vx-border-subtle);
+}
+
+.reguaAcoes {
+  display: flex;
+  /* 1px, como na barra de ações: os botões da régua são uma fileira só. */
+  gap: 1px;
+}
+
+.reguaBotao {
+  display: grid;
+  place-items: center;
+  inline-size: 26px;
+  block-size: 26px;
+  border-radius: var(--vx-radius-05);
+  color: var(--vx-text-2);
+  cursor: pointer;
+}
+
+.reguaBotao svg {
+  inline-size: var(--vx-icon-2);
+  block-size: var(--vx-icon-2);
+}
+
+.reguaBotao:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.reguaBotao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/*
+  A tecla, em mono.
+
+  `kbd` e não `span`: é uma TECLA, e o elemento existe para isso — leitor de
+  tela e ferramenta de atalho entendem sem precisar de `aria`.
+*/
+.tecla {
+  font-family: var(--vx-font-mono);
+  color: var(--vx-text-2);
+}
+
+/* ============================================================
+   Estado de envio — enviando · na fila · falhou
+   ============================================================ */
+
+.envio {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+/* `danger-text` e não `danger`: isto é uma frase de 11px, e o vermelho de
+   preenchimento não é o vermelho de letra. Ver o token em `tokens.css`. */
+.envioFalhou {
+  color: var(--vx-danger-text);
+}
+
+.envioNaFila {
+  color: var(--vx-warning);
+}
+
+/*
+  O ponto pulsante da fila.
+
+  Só `opacity` anima — a regra de movimento do projeto —, e ele para sob
+  `prefers-reduced-motion`: movimento permanente na periferia é gatilho, e
+  esta linha pode ficar na tela por minutos.
+*/
+.pontoDeFila {
+  inline-size: 6px;
+  block-size: 6px;
+  flex: none;
+  border-radius: var(--vx-radius-pill);
+  background: currentcolor;
+  animation: vxPulso 1.4s ease-in-out infinite;
+}
+
+@keyframes vxPulso {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pontoDeFila {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+.envioAcoes {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-12);
+}
+
+/*
+  As três ações do erro.
+
+  Sublinhado e não botão com caixa: elas moram DENTRO de uma linha de texto de
+  11px, e uma caixa aqui acrescentaria altura — que é o que a âncora do
+  virtualizador não perdoa.
+*/
+.envioAcao {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-04);
+  border-radius: var(--vx-radius-04);
+  font-weight: 600;
+  color: var(--vx-accent-text);
+  cursor: pointer;
+}
+
+.envioAcao svg {
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+}
+
+.envioAcao:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.envioAcao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.envioAcaoPerigo {
+  color: var(--vx-danger-text);
+}
+
+/* ============================================================
+   Menu: cabeçalho do usuário e o item de ID
+   ============================================================ */
+
+.cabecalhoDoUsuario {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  padding: var(--vx-space-08);
+}
+
+.identidade {
+  display: grid;
+  min-inline-size: 0;
+}
+
+.identidadeNome {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Mono: é o identificador GLOBAL, e mono é como o app escreve identificador. */
+.identidadeUsuario {
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+
+/*
+  O item barrado por HIERARQUIA — o único desabilitado deste menu.
+
+  ⚠ A distinção com o resto é o critério, não o gosto: o que falta por
+  PERMISSÃO some (permissão que você nunca vai ter é ruído permanente), o que
+  falta por hierarquia aparece cinza com o motivo, porque hierarquia muda
+  quando alguém troca de cargo. Esconder ali deixaria a pessoa procurando um
+  item que existe.
+
+  Sem `opacity` própria: o `disabled` do item de menu já a aplica, e somar duas
+  faria este ficar mais apagado que qualquer outro desabilitado do app.
+*/
+.barrado {
+  font-size: var(--vx-size-sm);
+}

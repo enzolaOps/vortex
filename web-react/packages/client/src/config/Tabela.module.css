@@ -1,0 +1,127 @@
+/* ============================================================
+   A tabela das páginas de servidor
+   ------------------------------------------------------------
+   ⚠ **Compartilhada de saída, e não na terceira cópia.** Membros
+   e Convites são a MESMA tabela com colunas diferentes — mesma
+   moldura, mesmo cabeçalho afundado, mesmo respiro, mesma
+   divisória. As duas nasceram no mesmo passe; escrevê-las duas
+   vezes seria criar a divergência de propósito.
+
+   Medido no design: moldura hairline com raio 10, cabeçalho em
+   `surface-1` com `11px 14px` e sobrancelha, linha em
+   `surface-3` com `10px 14px` e borda de topo. `gap: 14` nas
+   duas. As COLUNAS vêm de quem usa — é a única coisa que muda.
+   ============================================================ */
+
+.tabela {
+  overflow: hidden;
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-10);
+}
+
+/*
+  Cabeçalho e linha compartilham a grade, e é por isso que as colunas são uma
+  custom property em vez de duas declarações: com duas, a primeira que alguém
+  mexesse desalinharia o cabeçalho do corpo — e o desalinhamento de uma tabela
+  é o tipo de defeito que só aparece na coluna do meio.
+*/
+.cabecalho,
+.linha {
+  display: grid;
+  /*
+    ⚠ **Com FALLBACK, e o `pnpm vars` foi quem cobrou.** `var()` sem fallback
+    que não resolve é descartado em silêncio: a propriedade inteira some, a
+    grade vira uma coluna e a regra parece estar lá. Um consumidor que
+    esquecesse `--colunas` teria uma tabela empilhada sem um erro sequer.
+
+    O fallback é uma coluna só de propósito — ele não conserta o esquecimento,
+    torna-o VISÍVEL. Um default plausível esconderia o defeito melhor que o
+    silêncio.
+  */
+  grid-template-columns: var(--colunas, minmax(0, 1fr));
+  align-items: center;
+  gap: var(--vx-space-14);
+}
+
+.cabecalho {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  padding: var(--vx-space-11) var(--vx-space-14);
+  background: var(--vx-surface-1);
+  color: var(--vx-text-3);
+}
+
+.linha {
+  padding: var(--vx-space-10) var(--vx-space-14);
+  border-block-start: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-3);
+}
+
+/* A célula que pode truncar — nome, código, canal. Item de grid não encolhe
+   abaixo do conteúdo sem `min-inline-size: 0`. */
+.celula {
+  overflow: hidden;
+  min-inline-size: 0;
+  font-size: var(--vx-size-md);
+  color: var(--vx-text-1);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Metadado: 12px e um tom abaixo. Data e atividade são referência, não
+   conteúdo — o design as separa por PESO, não por posição. */
+.meta {
+  composes: celula;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-2);
+}
+
+/* Código de convite em mono: é identificador, e mono é como este app escreve
+   identificador em todo lugar. */
+.mono {
+  composes: celula;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-sm);
+}
+
+/* A célula de identidade — avatar + nome/handle. */
+.pessoa {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+  min-inline-size: 0;
+}
+
+.nomes {
+  display: grid;
+  min-inline-size: 0;
+}
+
+.nome {
+  overflow: hidden;
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.handle {
+  overflow: hidden;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A célula de ação na ponta: encosta na borda direita e não estica. */
+.acao {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.vazio {
+  padding: var(--vx-space-24);
+  border-block-start: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-3);
+}

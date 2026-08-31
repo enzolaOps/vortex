@@ -1,0 +1,1213 @@
+/* Fontes empacotadas, nunca de CDN: a instância é privada, o Electron roda
+   com CSP sem origem externa, e uma família que depende de rede é uma
+   família que some quando a rede cai. O fontsource fatia por subset com
+   unicode-range, então só o que a página usa é baixado.
+
+   ⚠ **IBM Plex saiu.** O par tipográfico do design é Instrument Sans +
+   JetBrains Mono, e a troca não é preferência: a Instrument tem altura-x
+   maior e caixa mais estreita, que é o que sustenta 13px de UI densa sem
+   virar borrão — e o projeto tem listas de 13px por toda parte. */
+@import "@fontsource-variable/instrument-sans";
+@import "@fontsource-variable/jetbrains-mono";
+
+@import "tailwindcss";
+
+/* ============================================================
+   Vortex — camada 1: tokens
+   ------------------------------------------------------------
+   CSS custom properties puras. Esta é a fonte única.
+   Temas de usuário sobrescrevem AQUI, em runtime.
+   O Tailwind (camada 2) apenas projeta utilities em cima.
+
+   PREFIXO `--vx-`, e ele não é cosmético.
+   O Tailwind v4 reserva os namespaces --color-*, --spacing-*,
+   --radius-*, --text-*, --font-*, --leading-* e --ease-*. Sem
+   prefixo, a camada 1 cai dentro deles e o mapeamento vira
+   autorreferência (`--radius-1: var(--radius-1)`), que é
+   inválido em CSS. O prefixo é o que mantém as duas camadas
+   realmente separadas.
+
+   ⚠ **ESTES VALORES SÃO GERADOS, NÃO DIGITADOS.**
+   Saem de `derivar(SEMENTE_PADRAO[modo])`, e um teste confere
+   byte a byte nos dois modos. Editar uma cor aqui à mão faz o
+   build reprovar — o lugar de mexer é a rampa em `derivar.ts`.
+   É o que impede a fonte e a derivação de divergirem, que é o
+   defeito que tornaria o picker de paleta uma mentira.
+   ============================================================ */
+
+:root {
+  color-scheme: dark;
+
+  /* --- Superfícies -------------------------------------------
+     CINCO degraus, e o quinto é o que a identidade nova trouxe.
+     A rampa antiga tinha quatro e colapsava card e menu no mesmo
+     tom: um menu aberto sobre um card ficava invisível sem borda.
+
+     0 = mais ao fundo.
+       0  rail, gutter de ultrawide, fundo da janela
+       1  coluna de canais, coluna de membros
+       2  timeline, área de conteúdo
+       3  composer, card, input
+       4  menu, modal, tooltip, popover */
+  --vx-surface-0: #08090b;
+  --vx-surface-1: #0f1318;
+  --vx-surface-2: #14181e;
+  --vx-surface-3: #1b2028;
+  --vx-surface-4: #222833;
+
+  /* --- Texto -------------------------------------------------
+     QUATRO degraus.
+       1  mensagem, título
+       2  canal, meta, corpo denso
+       3  timestamp, hint, cabeçalho de grupo
+       4  controle DESABILITADO — e só ele
+
+     ⚠ **`--vx-text-3` é o hex do design e fica ABAIXO de 4,5:1
+     em várias superfícies** — 3,71:1 sobre `surface-4` no
+     escuro, 3,39:1 sobre `surface-0` no claro. São exceções
+     ENUMERADAS em `tema/pares.ts`, com a razão medida em cada
+     uma. A guarda continua reprovando qualquer par que não
+     esteja naquela lista. */
+  --vx-text-1: #e6eaf0;
+  --vx-text-2: #a5aebb;
+  --vx-text-3: #77808e;
+  --vx-text-4: #4c5563;
+
+  /* --- Bordas ------------------------------------------------ */
+/*
+    ⚠ **A hairline do design é VÉU, e a nossa era só cor opaca.**
+
+    Medido nos treze arquivos: das 1.063 declarações de borda, **69,4% são
+    `rgba(255,255,255,…)`** e só 9% são hex opaco — e mesmo esses são
+    superfícies, não uma cor de borda. O comentário de `--vx-border-subtle`
+    logo abaixo já dizia isso em prosa desde a fase 5, e concluía que um valor
+    opaco "não pode acertar as quatro" superfícies. A conclusão estava certa; o
+    que faltava era o token.
+
+    Véu e cor opaca CONVIVEM, e cada um tem um papel:
+
+    - `--vx-hairline-06` é DIVISÓRIA — régua entre blocos, borda de coluna, topo
+      de rodapé. Ela compõe sobre a superfície que estiver embaixo, que é a
+      razão de existir: as divisórias deste app vivem sobre quatro degraus
+      diferentes.
+    - `--vx-border-subtle` e `--vx-border-strong` são LIMITE DE CONTROLE —
+      campo, botão, caixa. Ali a cor precisa ser definida e derivável, porque o
+      picker de paleta a produz junto com o resto.
+
+    6% é o valor que o design usa na maioria das divisórias; ele varia entre 5%
+    e 7% conforme o lugar, e um token por ponto percentual seria vocabulário
+    sem informação.
+
+    ⚠ No CLARO ele inverte para preto: véu branco sobre fundo claro é invisível,
+    e é por isso que um véu literal em componente quebraria o tema — o token
+    resolve nos dois modos porque a camada 1 tem os dois blocos.
+  */
+  --vx-hairline-06: rgb(255 255 255 / 6%);
+  /*
+    Os três degraus da hairline, nomeados por VALOR e não por ordinal.
+
+    A escala vem do design, que a declara: **6 · 10 · 16**. Cada um tem papel
+    próprio — 06 é DIVISÓRIA (régua entre blocos, borda de coluna), 10 é
+    CONTROLE (botão secundário, campo), 16 é LIMITE de controle pequeno (caixa
+    de seleção e ponto de opção vazios, onde a borda é o que diz onde ele
+    começa).
+
+    ⚠ Por valor pela mesma razão que espaço e raio: com ordinal
+    (`hairline-forte`), inserir um degrau no meio renomearia todos os de cima e
+    todos os usos com eles. Por valor, acrescentar é uma linha. E a renomeação
+    é SEGURA por não-colisão — nome esquecido deixa de resolver e o `pnpm vars`
+    reprova, em vez de apontar em silêncio para o degrau errado.
+
+    ⚠ Eles NÃO são `--vx-border-subtle`, que é `#1d232d` SÓLIDO. Composto sobre
+    `surface-3`, o alfa de 10% dá `rgb(54,55,58)` contra `rgb(29,35,45)` — o
+    botão secundário do design tem uma aresta clara, e com o sólido quase não
+    tem borda. Alfa também acompanha a superfície de baixo, que é o ponto de
+    uma borda que aparece em `surface-2`, `surface-3` e `surface-4`.
+
+    ⚠ Os valores CLAROS são estimados, não medidos: o design não tem borda de
+    controle no tema claro (os `rgba(0,0,0,…)` dele são todos véu de modal).
+    Mantêm a razão que o primeiro degrau já usa entre os modos (6 → 8).
+  */
+  --vx-hairline-10: rgb(255 255 255 / 10%);
+  /* O terceiro e último: LIMITE de um controle pequeno, onde a borda é o
+     que diz onde ele começa — caixa de seleção e ponto de opção vazios. */
+  --vx-hairline-16: rgb(255 255 255 / 16%);
+
+    --vx-border-subtle: #1d232d;
+  --vx-border-strong: #6b7684;
+
+  /* --- Ação --------------------------------------------------
+     Teal. No escuro o acento é o preenchimento e o texto em cima
+     é quase preto — é assim que um acento saturado funciona sem
+     perder contraste.
+
+     `--vx-accent-text` existe separado do `--vx-accent`, e a
+     separação é do design: o preenchimento do botão e o texto de
+     um link não podem ser a mesma cor num app escuro. O link é
+     mais claro (10,9:1 sobre a timeline contra 7,6:1), porque
+     texto fino perde peso óptico que o preenchimento não perde. */
+  --vx-accent: #35c2cc;
+  --vx-accent-hover: #4ed4dd;
+  --vx-accent-press: #2494a0;
+  --vx-accent-text: #7ee3e9;
+  /*
+    O que se escreve EM CIMA de cor — tingido, nunca neutro.
+
+    O design escreve `#04181B` sobre o acento, `#1A0507` sobre o vermelho e
+    `#04241A` sobre o verde: quase-pretos com o matiz da cor que está embaixo.
+    Nós usávamos `#0b0d11` (neutro) no acento e `--vx-surface-0` no badge de
+    menção — um furo cinza dentro da cor, e a diferença aparece em todo botão
+    primário e todo selo. São 72 usos nos treze arquivos do design.
+  */
+  --vx-on-accent: #04181b;
+  --vx-on-danger: #1a0507;
+  --vx-on-success: #04241a;
+
+  /*
+    O trilho — o sexto neutro, ACIMA de `surface-4`.
+
+    Trilho de deslizante, fundo de controle inerte e polegar de rolagem: 55
+    usos no design, treze deles em `999px` × 4px. Não é degrau da rampa de
+    superfície porque nada mora dentro dele; é uma peça que precisa aparecer
+    sobre a superfície mais alta. Usávamos `surface-3`, que é mais ESCURO que
+    o painel onde o deslizante mora — o trilho sumia sob o polegar.
+  */
+  --vx-track: #2a3038;
+  /*
+    O sétimo neutro, um degrau ACIMA do trilho.
+
+    `--vx-track` é o vazio de um controle DESABILITADO ou não preenchido;
+    este é o vazio de um controle ATIVO e desligado — o trilho de um
+    interruptor que a pessoa pode ligar agora. Contados no design: 16 usos
+    planos (barra não tocada da forma de onda, cromagem da casca desktop) mais
+    o trilho de todo `toggle` off, que é `#3C4653` contra os `#2A3038` do
+    desabilitado. Sem a distinção, interruptor desligado e interruptor
+    bloqueado ficam do mesmo tom, que é a diferença que o controle existe para
+    mostrar.
+  */
+  --vx-track-forte: #3c4653;
+  /*
+    O acento em voz baixa. PREENCHIMENTO, nunca texto nem borda.
+
+    Uma leitura só, e vale conferir contra os usos reais antes de acrescentar
+    o próximo: canal escolhido, servidor escolhido, cursor da paleta, minha
+    reação, e hover nos controles que vivem sobre superfície elevada. Todos
+    dizem a mesma coisa — "o acento encostou aqui" — e por isso nenhum alvo
+    tem dois deles disputando.
+
+    Menção NÃO usa este token e não deve passar a usar — a decisão da fase 5 é
+    que menção é CONTAGEM e não posição, então ela é um número, e a lâmina é
+    que marca não-lida.
+  */
+  --vx-accent-soft: #112e31;
+
+  /* --- Semânticos --------------------------------------------
+     Matizes separados o suficiente para não dependerem de
+     distinção vermelho/verde.
+
+     ⚠ `--vx-danger` é o hex do design, e ele mede 4,28:1 sobre
+     `--vx-surface-4` — abaixo do mínimo. É exceção ENUMERADA em
+     `tema/pares.ts`, não descuido: a decisão é seguir o design
+     exatamente e tratar contraste junto com o editor de tema. */
+  --vx-danger: #e8596b;
+  /*
+    O vermelho de TEXTO — ver `perigoTexto` em `derivar.ts`.
+
+    O design usa dois: este para a palavra dentro de um menu, e `--vx-danger`
+    para borda e fundo tingido. Medido no app antes de existir: "Excluir
+    mensagem" saía em `#e8596b` sobre `--vx-surface-4`, contra os `#f0808d` do
+    design — 4,28:1 onde o design entrega 6,1:1.
+  */
+  --vx-danger-text: #f0808d;
+  --vx-warning: #e2b15c;
+  --vx-success: #46c98a;
+  /*
+    O verde de TEXTO — o par de `--vx-danger-text`, e pela mesma razão.
+
+    O design usa `#46C98A` como preenchimento (o ponto de presença, o selo
+    EM VOZ) e `#5BD79B` na palavra dentro de uma caixa tingida — o selo
+    RESULTADO da enquete encerrada, o `64 kbps` vencedor. 35 ocorrências nos
+    treze arquivos, e nenhuma delas era representável antes deste token.
+  */
+  --vx-success-text: #5bd79b;
+  /*
+    O neutro semântico: "herdar" na matriz tri-state, mudo na voz, offline.
+
+    Cinza da família do neutro, e não um quarto matiz — ele quer dizer
+    AUSÊNCIA de estado, e uma cor própria transformaria ausência em mais um
+    estado, que é exatamente o que a coluna do meio de um tri-state não é.
+  */
+  --vx-neutral: #6e7783;
+
+  /* --- Presença ----------------------------------------------
+     Nunca comunicada só por cor: cor + forma no ícone. */
+  --vx-status-online: #46c98a;
+  --vx-status-idle: #e2b15c;
+  --vx-status-dnd: #e8596b;
+  --vx-status-offline: #6e7783;
+
+  /* --- Camadas de estado -------------------------------------
+     Não são cor, são VÉU: valem sobre qualquer superfície, e por
+     isso não entram em `TokenName` nem em par de contraste — o
+     que se lê em cima delas continua sendo o texto da superfície
+     de baixo.
+
+     `selected` sai do acento por `color-mix` em vez de um hex
+     próprio: o usuário troca o acento no picker, e um hex
+     congelado deixaria a seleção apontando para a paleta antiga. */
+  --vx-state-hover: rgb(255 255 255 / 4.5%);
+  /*
+    O segundo véu de hover, e o design tem os DOIS — não é redundância.
+
+    Contadas as ocorrências: 4,5% aparece **72** vezes e 6% aparece **139**, e
+    elas não se misturam. O de 4,5% é hover de LINHA DENSA (canal, membro,
+    conversa), que pousa sobre `surface-1`/`surface-2`; o de 6% é hover de item
+    dentro de superfície ELEVADA — menu, cartão, popover —, e ali 39 dos 39
+    itens `padding:7px 9px` do design usam 6%.
+
+    A razão é física: um véu branco sobre `surface-4` (`#222833`) rende menos
+    contraste do que o mesmo véu sobre `surface-1` (`#0f1318`), porque a base
+    já é clara. Manter um valor só faz o realce de menu praticamente sumir —
+    era o que acontecia aqui.
+  */
+  --vx-state-hover-elevado: rgb(255 255 255 / 6%);
+  --vx-state-press: rgb(255 255 255 / 8%);
+  --vx-state-selected: color-mix(in oklab, var(--vx-accent) 10%, transparent);
+
+  /*
+    Três composições que o design usa e que NÃO entram em `TokenName`.
+
+    A razão é a mesma do `state-selected` logo acima, e ela é forte: cada uma é
+    o próprio token base com alfa. Sendo `color-mix` do base, trocar `--vx-accent`
+    ou `--vx-danger` no picker as move junto — grátis e sem chance de divergir.
+    Como entrada de `TokenName`, um preset poderia trocar o vermelho e deixar o
+    preenchimento vermelho ANTIGO atrás dele, que é o defeito que a derivação
+    inteira existe para impedir.
+
+    `danger-soft` só ganhou nome porque cruzou a linha de "existe atrás de UMA
+    coisa": divisor de novas mensagens, item destrutivo de menu, selo CHEIO e
+    agora o hover do botão destrutivo sutil. Quatro cópias do mesmo
+    `color-mix` escrito à mão é onde a duplicação começa a mentir.
+  */
+  --vx-accent-ring: color-mix(in oklab, var(--vx-accent) 22%, transparent);
+  --vx-danger-soft: color-mix(in oklab, var(--vx-danger) 14%, transparent);
+  --vx-danger-border: color-mix(in oklab, var(--vx-danger) 35%, transparent);
+
+  /* O véu atrás de modal e drawer. */
+  --vx-scrim: rgb(6 8 10 / 72%);
+
+  /* --- Elevação ----------------------------------------------
+     ⚠ **Isto contradiz uma regra antiga do projeto**, e a
+     contradição é deliberada: "profundidade vem de camada, não
+     de sombra" nasceu junto com a lâmina, e a lâmina saiu com a
+     identidade antiga. O design novo usa sombra, e precisa —
+     no tema CLARO `surface-3` e `surface-4` são os dois branco
+     puro, então um menu sobre um card não tem degrau de
+     luminosidade nenhum para se separar. Sem sombra ali, a
+     camada some.
+
+     Três degraus, e nenhum acima de e3: sombra é para dizer "isto
+     flutua", não para desenhar volume. */
+  --vx-elev-1: 0 1px 2px rgb(0 0 0 / 24%);
+  --vx-elev-2: 0 6px 16px rgb(0 0 0 / 40%);
+  --vx-elev-3: 0 20px 48px rgb(0 0 0 / 55%);
+
+  /* --- Espaço ------------------------------------------------ */
+  /*
+    O meio-degrau, e ele existe porque JÁ ERA usado.
+
+    A escala começava em 4px, e oito lugares precisavam de menos: o recuo de
+    uma trilha em volta do seu polegar, o vão entre amostras de cor, o
+    respiro de um chip. Todos escreveram `2px` cru, e a lei nº 4 valia em
+    `className` — onde há lint — e não dentro de módulo, onde não havia.
+
+    Legitimar o valor é melhor que proibi-lo: a alternativa era empurrar
+    esses oito para 4px, que dobra um recuo desenhado para desaparecer.
+    Meio-degrau é o piso: abaixo de 2px a diferença some no arredondamento
+    de qualquer densidade de tela.
+
+    `--vx-space-7` (40px) é o degrau de SEÇÃO de página, que o design pede nas
+    telas de configuração e que a escala não tinha — o salto de 32 para 40 é
+    o que separa dois blocos de formulário de duas seções diferentes.
+  */
+  /*
+    Nomeada pelo VALOR, e com o passo do design.
+
+    ⚠ Ela era ordinal (`--vx-space-3` = 12px) e tinha oito degraus:
+    2·4·8·12·16·24·32·40. Medido nos treze arquivos do Claude Design: só 40%
+    dos 2.813 valores de espaçamento caíam num deles. O design foi desenhado
+    numa escala de 2px, a nossa era musical, e as duas não são compatíveis por
+    construção — cada arredondamento era defensável e a soma deles é a razão
+    pela qual as telas "nunca ficavam iguais".
+
+    ⚠ **O Foundations do design declara "base 4" — 2·4·8·12·16·24·40 — que é
+    exatamente a escala que este projeto TINHA. E os mockups do mesmo design
+    não a seguem:** medidos os treze arquivos, 3.486 valores de espaçamento,
+    dos quais só 40% caíam nela. Os dois números mais usados fora dela são 7
+    (263×) e 9 (265×), e o par mais frequente do design inteiro é
+    `padding: 7px 9px`, 102 vezes — a altura de um botão de 30px, e não um
+    passo de ritmo.
+
+    Escolhido reproduzir os MOCKUPS, porque é contra eles que a semelhança é
+    julgada. Com 3·5·6·7·9·10·11·13·14·18·20 a cobertura foi a ~96%, e depois
+    22·26·28·36 fecharam a faixa larga — os quatro apareceram implementando
+    telas de configuração, onde o respiro de PÁGINA vive (28 no eixo inline da
+    matriz de permissões, 36 no cabeçalho de páginas de servidor). Acrescentar
+    degrau quando a tela pede é barato; tropeçar nele a cada tela não é.
+
+    O que isso custa, dito uma vez: a escala deixou de impor RITMO. Ela ainda
+    impõe o que a lei nº 4 pede — valor nomeado e compartilhado, nunca literal
+    num componente —, e o `pnpm escala` continua reprovando 15, 17, 19 e
+    qualquer coisa entre 20 e 24. O que ele não faz mais é escolher por você
+    entre 8 e 12. Se um dia a fonte da verdade voltar a ser o Foundations em
+    vez dos mockups, esta lista encolhe e a guarda reprova o que sobrar — que é
+    exatamente o comportamento desejado nessa direção também.
+
+    O nome é o valor porque nome ORDINAL torna caro inserir um degrau: com
+    ordinal, acrescentar 6px renumeraria todos os de cima e os 644 usos com
+    eles. Com valor, acrescentar é uma linha.
+
+    Dois dígitos, e isso foi o que tornou a renomeação segura: o nome antigo
+    tinha um dígito, então nenhum nome novo colide com um antigo. Referência
+    esquecida deixa de resolver e o `pnpm vars` reprova — em vez de resolver
+    para o valor errado calada.
+  */
+  --vx-space-02: 2px;
+  --vx-space-03: 3px;
+  --vx-space-04: 4px;
+  --vx-space-05: 5px;
+  --vx-space-06: 6px;
+  --vx-space-07: 7px;
+  --vx-space-08: 8px;
+  --vx-space-09: 9px;
+  --vx-space-10: 10px;
+  --vx-space-11: 11px;
+  --vx-space-12: 12px;
+  --vx-space-13: 13px;
+  --vx-space-14: 14px;
+  --vx-space-16: 16px;
+  --vx-space-18: 18px;
+  --vx-space-20: 20px;
+  --vx-space-22: 22px;
+  --vx-space-24: 24px;
+  --vx-space-26: 26px;
+  --vx-space-28: 28px;
+  --vx-space-32: 32px;
+  --vx-space-36: 36px;
+  --vx-space-40: 40px;
+  /* 48 aparece 82 vezes no design — é o respiro de BLOCO VAZIO (o cartão
+     tracejado de estado vazio) e o de seção folgada. Acrescentar um degrau
+     é uma linha porque a escala é por valor, não ordinal. */
+  --vx-space-48: 48px;
+
+  /* --- Raio --------------------------------------------------
+     ⚠ **Os valores mudaram; os nomes não.** A escala antiga era
+     2·4·8·12·16 e a do design é 2·4·6·8·12·pill. Cada degrau do
+     meio encolheu: `rounded-2` foi de 8 para 6, `rounded-3` de 12
+     para 8, `rounded-4` de 16 para 12.
+
+     Trocar valor e manter índice é o que permite o reskin sem
+     varrer todo `className` do repositório — e o encolhimento é
+     a direção certa: a linguagem do design é mais apertada que a
+     anterior em toda peça pequena.
+
+       0  peça dentro de peça (amostra, polegar de trilha)
+       1  tag, badge
+       2  botão, input
+       3  item de lista, card
+       4  modal, painel
+       5  pill, avatar */
+  /*
+    Nomeada pelo VALOR, e com os degraus que o design usa de fato.
+
+    Ela era ordinal (`--vx-radius-2` = 6px) e tinha seis degraus: 2·4·6·8·12 e
+    a pílula. Medido nos treze arquivos do Claude Design: dos 1.439 valores de
+    `border-radius`, 78% caíam num deles. O que faltava não era cauda — 5px
+    aparece 134 vezes e 10px, 91. Um em cada seis cantos do design exigia
+    arredondar, e a soma de arredondamentos defensáveis é a razão pela qual as
+    telas "nunca ficavam iguais".
+
+    Com 5, 10 e 14 a cobertura vai a 94,7%, e com 3, 7 e 9 a 99,5%. Mesma
+    escolha da escala de espaço, e pela mesma razão: o Foundations do design
+    declara 4·6·8·12·full e os mockups do mesmo design usam nove valores. A
+    semelhança é julgada contra os mockups.
+
+    ⚠ 14 entrou depois de ter sido recusado uma vez: o ladrilho do rail pedia 14
+    e foi para 12 porque "um degrau fora da escala custa mais que 2px". O
+    argumento estava certo; o que mudou é que agora o degrau existe.
+
+    O nome é o valor pela mesma razão da escala de espaço — nome ordinal torna
+    caro inserir. A pílula é `pill` e não um número: 9999 não é medida, é
+    "arredonde tudo".
+  */
+  --vx-radius-02: 2px;
+  --vx-radius-03: 3px;
+  --vx-radius-04: 4px;
+  --vx-radius-05: 5px;
+  --vx-radius-06: 6px;
+  --vx-radius-07: 7px;
+  --vx-radius-08: 8px;
+  --vx-radius-09: 9px;
+  --vx-radius-10: 10px;
+  --vx-radius-12: 12px;
+  --vx-radius-14: 14px;
+  /*
+    18 é o raio do LADRILHO DE GRUPO, e ele existe porque a escala não o
+    cobria.
+
+    ⚠ A régua do projeto é "acrescente o degrau, não escape dele num arquivo",
+    e ela vale aqui onde não valeu para o ladrilho do rail: lá a diferença era
+    2px num alvo de 44 e o degrau vizinho resolvia. Aqui são 4px num de 56, e a
+    forma É a informação — um grupo precisa ler diferente de uma pessoa
+    (círculo) e de um servidor (12). Renomear a escala por VALOR foi o que
+    tornou isto uma linha em vez de uma renumeração.
+  */
+  --vx-radius-18: 18px;
+  --vx-radius-pill: 9999px;
+
+  /* --- Tipo --------------------------------------------------
+     `size` e não `text`: na camada 1, texto já nomeia cor.
+
+     A escala do design é curta de propósito — o PESO carrega a
+     hierarquia, não o tamanho. Cada degrau encolheu 1 a 3px em
+     relação à escala antiga:
+
+       xs   11  eyebrow, categoria, cabeçalho de grupo
+       sm   12  meta, hint, contador
+       md   13  UI densa: menu, label, linha de permissão
+       lg   15  corpo de mensagem, autor
+       xl   17  título de modal, header de canal
+       2xl  22  título de página de configuração */
+  /*
+    10px é o menor degrau, e ele existe porque o design o usa 116 vezes.
+
+    Medido nos treze arquivos: 4,8% de todo texto do design é 10px — selo,
+    contador, tecla de atalho, rótulo de categoria. Sem o degrau, cada um deles
+    subia para 11 e a hierarquia entre metadado e conteúdo achatava um pouco a
+    cada tela.
+
+    9px (1,2%) NÃO entrou: é o limite onde a Instrument Sans começa a perder o
+    desenho das contraformas em tela, e a diferença para 10 não paga o degrau.
+  */
+  --vx-size-2xs: 10px;
+  --vx-size-xs: 11px;
+  --vx-size-sm: 12px;
+  --vx-size-md: 13px;
+  /*
+    ⚠ **14px, e ele existe porque o DESIGN se contradiz — a decisão foi seguir
+    a tela, não a folha de tokens.**
+
+    O `Vortex Foundations` define a escala como 11/12/13/15/17/22 e chama 13 de
+    "UI densa, listas, menus". O `Vortex App` desenha nome de canal e nome de
+    membro em **14**. São os dois do mesmo design, e discordam.
+
+    Quem manda é a tela que foi apontada como alvo de implementação. `base`
+    entre `md` e `lg` porque é onde ele cai, e porque `text-base` é o nome que
+    o Tailwind já usa para o corpo de leitura — a escala default foi apagada,
+    então o nome está livre.
+
+    Usado SÓ onde o App o usa: as duas listas. Menu, rótulo e linha de
+    permissão continuam em `md`, como a Foundations manda.
+  */
+  --vx-size-base: 14px;
+  --vx-size-lg: 15px;
+  --vx-size-xl: 17px;
+  --vx-size-2xl: 22px;
+
+  --vx-leading-message: 1.5;
+  --vx-leading-title: 1.25;
+  /* Densidade compacta da timeline: linha mais apertada, e é a
+     diferença estrutural entre os dois modos, não só padding. */
+  --vx-leading-compact: 1.45;
+
+  /* Instrument Sans: grotesca de altura-x alta, desenhada para
+     interface densa. A pilha de fallback existe para o primeiro
+     paint e para quando o arquivo falhar — nunca deixar o texto
+     sem família. */
+  --vx-font-ui: "Instrument Sans Variable", "Instrument Sans", system-ui, sans-serif;
+  /*
+    A monoespaçada existe para números, teclas e código — largura de slot,
+    `⌘K`, IDs, bloco de código. JetBrains Mono é variável aqui, então o peso
+    500 do design (usado em rótulo de tecla) não custa um segundo arquivo.
+  */
+  --vx-font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+
+  /* --- Movimento ---------------------------------------------
+     Quatro degraus, e o teto é 240ms. Só transform e opacity.
+     Lista NUNCA anima altura — mudar altura de linha numa lista
+     ancorada move a âncora, que é o defeito que a virtualização
+     inteira existe para não ter. */
+  --vx-duration-instant: 80ms;
+  --vx-duration-fast: 120ms;
+  --vx-duration-base: 180ms;
+  --vx-duration-slow: 240ms;
+
+  --vx-ease-out: cubic-bezier(0.2, 0.8, 0.3, 1);
+  --vx-ease-inout: cubic-bezier(0.4, 0, 0.2, 1);
+  --vx-ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* --- Assinatura --------------------------------------------
+     ⚠ **A lâmina mudou de mecanismo, não de papel.**
+
+     A identidade antiga marcava foco com uma escala de opacidade
+     de três degraus, tirada da marca. A nova marca foco com uma
+     BARRA de acento sólida de 3px na borda de início do item —
+     é o que o design usa no rail, na lista de canais, no menu de
+     configurações e no controle segmentado, os mesmos quatro
+     lugares.
+
+     Os três degraus de opacidade sobrevivem porque continuam
+     servindo ao que sempre serviram: uma série de irmãos que
+     precisa de profundidade usa esta escala em vez de inventar
+     opacidade por componente. O que saiu foi a amarração com a
+     espiral da marca. */
+  --vx-lamina-1: 1;
+  --vx-lamina-2: 0.82;
+  --vx-lamina-3: 0.64;
+
+  /* Geometria da barra de foco. */
+  --vx-lamina-w: 3px;
+  --vx-lamina-h: 20px;
+
+  /* ----------------------------------------------------------
+     Empilhamento
+
+     Nomeados por PAPEL e não por altura. "Qual número é maior"
+     é a pergunta errada; "o quê fica na frente do quê" é a
+     certa, e é a que o nome responde.
+
+     Os saltos são grandes de propósito: camada nova entre duas
+     existentes cabe sem renumerar as de cima.
+     ---------------------------------------------------------- */
+
+  /* Levantado dentro do próprio painel — nunca sai dele. */
+  --vx-z-realce: 1;
+  /* Controle montado na borda de um slot. */
+  --vx-z-alca: 2;
+  /* O véu que apaga o resto por trás de um painel de sistema. */
+  --vx-z-veu: 30;
+  /* Painel de sistema: modo edição, picker. */
+  --vx-z-sistema: 40;
+  /* Tudo que vai ao portal: diálogo, popover, tooltip, toast. */
+  --vx-z-flutuante: 50;
+
+  /* --- Casca -------------------------------------------------
+     Zerado na web; definido pelo Electron. */
+  --vx-titlebar-h: 0px;
+
+  /* --- Layout ------------------------------------------------ */
+  --vx-rail-w: 72px;
+
+  /*
+    Teto da COLUNA de leitura em ultrawide.
+
+    Este token voltou a existir, e desta vez com o mecanismo que faltava.
+    `--vx-message-max-w: 1100px` viveu da fase 1 até a auditoria e foi
+    removido porque travava a linha e produzia faixa morta: medido em 2560px,
+    a trilha tinha 2008 e a coluna parava em 1100, com 908px de vazio do lado
+    direito, porque ela era encostada ao início.
+
+    O design resolve o que faltava: a coluna é CENTRADA e o excedente vira
+    gutter pintado em `--vx-surface-0`. O espaço extra deixa de ser vazio
+    morto e passa a ser moldura — e acima de ~2560px ele vira função, com um
+    segundo painel ancorável.
+
+    1040 e não 1100: é o número do design, e ele foi medido contra a medida de
+    leitura, não escolhido redondo.
+  */
+  --vx-timeline-max-w: 1040px;
+
+  /*
+    A altura reservada para a faixa de "alterações não salvas".
+
+    ⚠ **Dois lugares precisam concordar com este número, e é por isso que ele
+    tem nome.** O respiro de baixo do `.rolagem` reserva o espaço, e a faixa
+    puxa a si mesma para dentro dele com a mesma medida. Se divergirem, ou a
+    faixa cobre o último controle, ou sobra um vão embaixo dela.
+
+    Dimensão de componente, não degrau de escala — a mesma família de
+    `--vx-rail-w`. Medida no design renderizado: a faixa tem 59px, e os 110
+    são ela mais o respiro que o design deixa abaixo do formulário.
+  */
+  --vx-config-rodape-h: 110px;
+
+  /*
+    A altura da barra de título da casca.
+
+    ⚠ **Zero por padrão, e 34px só quando a barra existe** — quem a escreve é o
+    `BarraDeTitulo`, no `<html>`. Ela existe porque toda superfície de TELA
+    CHEIA precisa começar abaixo dela: `position: fixed; inset: 0` cobriria a
+    barra, e no Electron isso significa uma janela que não pode ser arrastada
+    nem fechada enquanto as configurações estiverem abertas.
+
+    Medido no arnês com a casca falsa: as configurações cobriam os três
+    controles. Nada falhava — a janela simplesmente parava de responder aos
+    únicos alvos que o sistema não oferece por outro caminho.
+  */
+  --vx-barra-h: 0px;
+
+  /*
+    A MEDIDA de leitura — quantos caracteres cabem numa linha de texto.
+
+    Não é a mesma coisa que a largura da coluna, e confundir as duas é o que
+    produzia o problema que a auditoria descreveu como "com mensagens longas a
+    coluna vira um bloco indiferenciado". A coluna impede o CONTAINER de
+    esticar; a medida impede o TEXTO.
+
+    **Em `rem`, e não em `ch`.** `ch` é a largura do glifo `0` DO ELEMENTO QUE
+    CONSOME o token. Medido na identidade anterior: o mesmo `62ch` deu 521px
+    no parágrafo e 595px no divisor de dia, que herda um tamanho maior. Um
+    token de medida que muda de valor conforme quem o usa não é uma medida.
+    `rem` é ancorado na raiz, vale o mesmo em toda parte, e de quebra acompanha
+    o ajuste de tamanho de fonte do navegador — que é exatamente quem deveria
+    mover uma medida de leitura.
+
+    ⚠ **O número está PENDENTE de remedição.** 32,5rem saiu de medir prosa em
+    IBM Plex Sans a 14px (6,47px por caractere médio). O corpo agora é
+    Instrument Sans a 15px, que tem caixa mais estreita e altura-x maior — a
+    largura por caractere mudou nas duas direções ao mesmo tempo, e estimá-la
+    seria chutar. Precisa de navegador; está listado como pendência.
+  */
+  --vx-medida: 32.5rem;
+
+  /* Avatar: escala própria, e não a de espaçamento.
+     Um avatar é uma CAIXA DE CONTEÚDO, não um respiro entre coisas.
+     Compartilhar a escala de espaçamento amarra as duas — mexer no
+     respiro da lista mudaria o tamanho da foto de todo mundo. */
+  /* ------------------------------------------------------------- ícones */
+
+  /*
+    ⚠ **Três tamanhos, e a falta deles era o maior desvio do design.** Medido:
+    **79 dos 83 ícones da tela estavam em 20px**, porque `size={20}` virou o
+    default copiado de componente para componente. O design usa 12–14px em
+    toda a cromagem densa — coluna de canais, ações do cabeçalho, faixa de
+    voz, painel de usuário — e o resultado eram ícones pesados demais em toda
+    parte, que é o que quem usa descreveu como "os ícones não estão iguais".
+
+    A regra do projeto sempre foi "um set só, sem exceção"; faltava a metade
+    que diz o TAMANHO. Sem ela, "um set só" garante a forma e não a escala.
+
+    Aplicados pelo CSS do container (`svg { inline-size: … }`), não pela prop
+    `size` do Phosphor: o dono do tamanho é a superfície, e o componente que
+    passa `size={20}` continua compilando sem que ninguém precise varrer 79
+    chamadas. É a mesma técnica que `.marcador` já usava.
+  */
+  /*
+    O raio dos ladrilhos do rail — PROPORCIONAL, não um degrau da escala.
+
+    ⚠ **É a regra que o design usa, e ela não cabe na escala de raio.** Medido
+    nos quatro tamanhos que o rail desenha: 14 num ladrilho de 44, 13 num de
+    40, 11 num de 36, 16 na caixa de pasta de 52. Todos ≈ **31% do lado** — o
+    desenhista não escolheu degraus, aplicou uma proporção.
+
+    Pôr 11, 13, 14 e 16 na escala de raio seria abandoná-la: ela tem seis
+    degraus (0/2/4/6/8/12/pill) e ganharia quatro que só o rail usa. E fixar
+    um degrau só erraria três dos quatro tamanhos, porque o valor certo
+    depende do lado.
+
+    Percentual resolve os quatro de uma vez e continua certo se um ladrilho
+    mudar de tamanho. Não é escape da guarda de escala: é outra GRANDEZA —
+    a escala governa distâncias absolutas, e isto é uma razão.
+
+    ⚠ A Foundations do design lista a escala de raio como 4/6/8/12/full, então
+    ela e a tela do App discordam aqui. Vale a mesma regra já aplicada ao
+    degrau de 14px de tipo: ganha a tela.
+  */
+  --vx-radius-ladrilho: 31%;
+
+  /*
+    ⚠ **12px, e ele existe porque o design usa DOIS tamanhos de cromagem, não
+    um.** Medidos na tela: lupa da busca 12, ícones da faixa de voz 12, do
+    painel de usuário 12 — contra 13–14 nas ações do cabeçalho, no glifo do
+    canal e nas ferramentas do composer.
+
+    A primeira versão colapsou tudo em 14 e ficou perto; a diferença aparece
+    justamente onde o ícone divide espaço com texto pequeno (o campo de busca
+    é 30px de altura, e um glifo de 14 nele come a folga).
+  */
+  --vx-icon-0: 12px; /* cromagem MIÚDA: campo de busca, faixa de voz, rodapé */
+  --vx-icon-1: 14px; /* cromagem densa: coluna, ações, composer */
+  --vx-icon-2: 16px; /* alvos de leitura: linha de mensagem, composer */
+  --vx-icon-3: 20px; /* raro: quando o ícone É o alvo, sem rótulo ao lado */
+
+  /* 22px, o número do design para quem está numa sala de voz. Era 20 — e o
+     único consumidor é a linha da sala, então o degrau descreve exatamente
+     aquele lugar. */
+  /* 16px — o avatar da prévia de resposta, e só ele. O design o desenha
+     dentro de uma linha de 16px de altura: qualquer coisa maior empurraria a
+     prévia e a faria competir com a mensagem que ela introduz. */
+  --vx-avatar-2xs: 16px;
+  --vx-avatar-xs: 22px; /* linha de sala de voz, chip */
+  --vx-avatar-sm: 32px; /* member list, lista de conversas */
+  --vx-avatar-md: 40px; /* linha de mensagem, rail */
+  --vx-avatar-lg: 56px; /* cartão de perfil, cabeçalho de grupo */
+
+  /* Teto do composer: ~10 linhas. Acima disso ele passa a rolar sozinho
+     em vez de continuar comendo a lista. Sem teto, colar um texto longo
+     engole a conversa inteira e a pessoa perde o contexto do que estava
+     respondendo. */
+  --vx-composer-max-h: 200px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --vx-duration-instant: 0ms;
+    --vx-duration-fast: 0ms;
+    --vx-duration-base: 0ms;
+    --vx-duration-slow: 0ms;
+  }
+}
+
+/* ============================================================
+   Tema claro
+   ------------------------------------------------------------
+   Não é o escuro invertido. A rampa de superfície sobe em
+   direção ao branco, e é isso que faz a superfície que APERTA
+   trocar de lado: no escuro o texto secundário sofre sobre o
+   menu (a mais clara), no claro sofre sobre o rail (a mais
+   escura). As duas foram resolvidas na rampa de L.
+
+   ⚠ `surface-3` e `surface-4` são ambos branco puro no claro —
+   é o que o design pede, e a razão de `--vx-elev-*` existir:
+   ali a separação entre card e menu vem inteira da sombra.
+   ============================================================ */
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --vx-surface-0: #e9ebef;
+  --vx-surface-1: #f2f4f7;
+  --vx-surface-2: #fbfcfd;
+  --vx-surface-3: #ffffff;
+  --vx-surface-4: #ffffff;
+
+  --vx-text-1: #14171c;
+  --vx-text-2: #4e5763;
+  --vx-text-3: #767f8c;
+  --vx-text-4: #8b939f;
+
+  --vx-hairline-06: rgb(0 0 0 / 8%);
+  --vx-hairline-10: rgb(0 0 0 / 12%);
+  --vx-hairline-16: rgb(0 0 0 / 18%);
+  --vx-border-subtle: #dce0e5;
+  --vx-border-strong: #7c838e;
+
+  --vx-accent: #0e7c86;
+  --vx-accent-hover: #006169;
+  --vx-accent-press: #005259;
+  --vx-accent-text: #0e7c86;
+  --vx-on-accent: #ffffff;
+  --vx-on-danger: #ffffff;
+  --vx-on-success: #ffffff;
+  --vx-track: #d8dbe0;
+  --vx-track-forte: #b4bcc6;
+  --vx-accent-soft: #d7f3f8;
+
+  --vx-danger: #c22c43;
+  --vx-danger-text: #c22c43;
+  --vx-warning: #7a5300;
+  --vx-success: #0e7040;
+  --vx-success-text: #0e7040;
+  --vx-neutral: #6e7783;
+
+  --vx-status-online: #0e7040;
+  --vx-status-idle: #7a5300;
+  --vx-status-dnd: #c22c43;
+  --vx-status-offline: #6e7783;
+
+  /* Véu preto no claro, branco no escuro — a camada de estado é
+     sempre a direção OPOSTA à da superfície, senão ela some. */
+  --vx-state-hover: rgb(0 0 0 / 4%);
+  --vx-state-hover-elevado: rgb(0 0 0 / 6%);
+  --vx-state-press: rgb(0 0 0 / 7%);
+
+  --vx-scrim: rgb(10 12 16 / 48%);
+
+  --vx-elev-1: 0 1px 2px rgb(10 12 16 / 8%);
+  --vx-elev-2: 0 6px 16px rgb(10 12 16 / 12%);
+  --vx-elev-3: 0 20px 48px rgb(10 12 16 / 18%);
+}
+
+/* Sem escolha explícita, segue o sistema. A troca em runtime
+   continua sendo sobrescrever a camada 1 — o Tailwind não
+   precisa saber que temas existem. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+
+    --vx-surface-0: #e9ebef;
+    --vx-surface-1: #f2f4f7;
+    --vx-surface-2: #fbfcfd;
+    --vx-surface-3: #ffffff;
+    --vx-surface-4: #ffffff;
+
+    --vx-text-1: #14171c;
+    --vx-text-2: #4e5763;
+    --vx-text-3: #767f8c;
+    --vx-text-4: #8b939f;
+
+    --vx-hairline-06: rgb(0 0 0 / 8%);
+    --vx-hairline-10: rgb(0 0 0 / 12%);
+    --vx-hairline-16: rgb(0 0 0 / 18%);
+    --vx-border-subtle: #dce0e5;
+    --vx-border-strong: #7c838e;
+
+    --vx-accent: #0e7c86;
+    --vx-accent-hover: #006169;
+    --vx-accent-press: #005259;
+    --vx-accent-text: #0e7c86;
+    --vx-on-accent: #ffffff;
+    --vx-on-danger: #ffffff;
+    --vx-on-success: #ffffff;
+    --vx-track: #d8dbe0;
+    --vx-track-forte: #b4bcc6;
+    --vx-accent-soft: #d7f3f8;
+
+    --vx-danger: #c22c43;
+    --vx-danger-text: #c22c43;
+    --vx-warning: #7a5300;
+    --vx-success: #0e7040;
+    --vx-success-text: #0e7040;
+    --vx-neutral: #6e7783;
+
+    --vx-status-online: #0e7040;
+    --vx-status-idle: #7a5300;
+    --vx-status-dnd: #c22c43;
+    --vx-status-offline: #6e7783;
+
+    --vx-state-hover: rgb(0 0 0 / 4%);
+    --vx-state-hover-elevado: rgb(0 0 0 / 6%);
+  --vx-state-hover-elevado: rgb(0 0 0 / 6%);
+    --vx-state-press: rgb(0 0 0 / 7%);
+
+    --vx-scrim: rgb(10 12 16 / 48%);
+
+    --vx-elev-1: 0 1px 2px rgb(10 12 16 / 8%);
+    --vx-elev-2: 0 6px 16px rgb(10 12 16 / 12%);
+    --vx-elev-3: 0 20px 48px rgb(10 12 16 / 18%);
+  }
+}
+
+/* ============================================================
+   Camada 2 — ponte para o Tailwind
+   ------------------------------------------------------------
+   @theme apenas MAPEIA. Nenhum valor literal aqui: token novo
+   entra na camada 1, nunca direto neste bloco.
+
+   Os `initial` são mecanismo da lei nº 4, não estilo: apagam as
+   escalas default do Tailwind. `bg-zinc-800` e `p-5` deixam de
+   existir, então não há o que proibir por lint.
+   Tornar impossível > proibir.
+   ============================================================ */
+
+@theme {
+  --color-*: initial;
+  --spacing-*: initial;
+  --radius-*: initial;
+  --text-*: initial;
+  --font-*: initial;
+  --leading-*: initial;
+  --ease-*: initial;
+  --shadow-*: initial;
+
+  --color-surface-0: var(--vx-surface-0);
+  --color-surface-1: var(--vx-surface-1);
+  --color-surface-2: var(--vx-surface-2);
+  --color-surface-3: var(--vx-surface-3);
+  --color-surface-4: var(--vx-surface-4);
+
+  --color-text-1: var(--vx-text-1);
+  --color-text-2: var(--vx-text-2);
+  --color-text-3: var(--vx-text-3);
+  --color-text-4: var(--vx-text-4);
+
+  --color-hairline: var(--vx-hairline-06);
+  --color-border-subtle: var(--vx-border-subtle);
+  --color-border-strong: var(--vx-border-strong);
+
+  --color-accent: var(--vx-accent);
+  --color-accent-hover: var(--vx-accent-hover);
+  --color-accent-press: var(--vx-accent-press);
+  --color-accent-text: var(--vx-accent-text);
+  --color-accent-soft: var(--vx-accent-soft);
+  --color-on-accent: var(--vx-on-accent);
+  --color-on-danger: var(--vx-on-danger);
+  --color-on-success: var(--vx-on-success);
+  --color-track: var(--vx-track);
+
+  --color-danger: var(--vx-danger);
+  --color-danger-text: var(--vx-danger-text);
+  --color-warning: var(--vx-warning);
+  --color-success: var(--vx-success);
+  --color-success-text: var(--vx-success-text);
+  --color-neutral: var(--vx-neutral);
+
+  --color-status-online: var(--vx-status-online);
+  --color-status-idle: var(--vx-status-idle);
+  --color-status-dnd: var(--vx-status-dnd);
+  --color-status-offline: var(--vx-status-offline);
+
+  /* Camadas de estado como cor: `bg-state-hover` é o que um item
+     de lista escreve, e ele funciona sobre qualquer superfície
+     porque é véu, não tinta. */
+  --color-state-hover: var(--vx-state-hover);
+  --color-state-press: var(--vx-state-press);
+  --color-state-selected: var(--vx-state-selected);
+  --color-state-hover-elevado: var(--vx-state-hover-elevado);
+  --color-accent-ring: var(--vx-accent-ring);
+  --color-danger-soft: var(--vx-danger-soft);
+  --color-danger-border: var(--vx-danger-border);
+  --color-hairline-06: var(--vx-hairline-06);
+  --color-hairline-10: var(--vx-hairline-10);
+  --color-hairline-16: var(--vx-hairline-16);
+  --color-track-forte: var(--vx-track-forte);
+  --color-scrim: var(--vx-scrim);
+
+  --shadow-e1: var(--vx-elev-1);
+  --shadow-e2: var(--vx-elev-2);
+  --shadow-e3: var(--vx-elev-3);
+
+  --spacing-02: var(--vx-space-02);
+  --spacing-03: var(--vx-space-03);
+  --spacing-04: var(--vx-space-04);
+  --spacing-05: var(--vx-space-05);
+  --spacing-06: var(--vx-space-06);
+  --spacing-07: var(--vx-space-07);
+  --spacing-08: var(--vx-space-08);
+  --spacing-09: var(--vx-space-09);
+  --spacing-10: var(--vx-space-10);
+  --spacing-11: var(--vx-space-11);
+  --spacing-12: var(--vx-space-12);
+  --spacing-13: var(--vx-space-13);
+  --spacing-14: var(--vx-space-14);
+  --spacing-16: var(--vx-space-16);
+  --spacing-18: var(--vx-space-18);
+  --spacing-20: var(--vx-space-20);
+  --spacing-22: var(--vx-space-22);
+  --spacing-24: var(--vx-space-24);
+  --spacing-26: var(--vx-space-26);
+  --spacing-28: var(--vx-space-28);
+  --spacing-32: var(--vx-space-32);
+  --spacing-36: var(--vx-space-36);
+  --spacing-40: var(--vx-space-40);
+  --spacing-48: var(--vx-space-48);
+
+  /* Sem `initial` acima: o Tailwind não reserva `--z-index-*`, então
+     não há escala default para apagar — só a nossa para acrescentar. */
+  --z-index-realce: var(--vx-z-realce);
+  --z-index-alca: var(--vx-z-alca);
+  --z-index-veu: var(--vx-z-veu);
+  --z-index-sistema: var(--vx-z-sistema);
+  --z-index-flutuante: var(--vx-z-flutuante);
+
+  --radius-02: var(--vx-radius-02);
+  --radius-03: var(--vx-radius-03);
+  --radius-04: var(--vx-radius-04);
+  --radius-05: var(--vx-radius-05);
+  --radius-06: var(--vx-radius-06);
+  --radius-07: var(--vx-radius-07);
+  --radius-08: var(--vx-radius-08);
+  --radius-09: var(--vx-radius-09);
+  --radius-10: var(--vx-radius-10);
+  --radius-12: var(--vx-radius-12);
+  --radius-14: var(--vx-radius-14);
+  --radius-18: var(--vx-radius-18);
+  --radius-pill: var(--vx-radius-pill);
+
+  --text-2xs: var(--vx-size-2xs);
+  --text-xs: var(--vx-size-xs);
+  --text-sm: var(--vx-size-sm);
+  --text-md: var(--vx-size-md);
+  --text-base: var(--vx-size-base);
+  --text-lg: var(--vx-size-lg);
+  --text-xl: var(--vx-size-xl);
+  --text-2xl: var(--vx-size-2xl);
+
+  --leading-message: var(--vx-leading-message);
+  --leading-title: var(--vx-leading-title);
+  --leading-compact: var(--vx-leading-compact);
+
+  --font-sans: var(--vx-font-ui);
+  --font-mono: var(--vx-font-mono);
+
+  --ease-out: var(--vx-ease-out);
+  --ease-inout: var(--vx-ease-inout);
+  --ease-enter: var(--vx-ease-enter);
+
+  /*
+    `--container-*: initial` apaga a escala de container do Tailwind, pela
+    mesma razão que `--spacing-*` e as cores default: utility que este projeto
+    não escolheu não deve existir.
+
+    `--container-timeline` é o teto da coluna de leitura, e agora tem
+    consumidor de verdade — a moldura de ultrawide do design.
+  */
+  --container-*: initial;
+  --container-timeline: var(--vx-timeline-max-w);
+}
+
+/* ============================================================
+   Utilities de movimento
+   ------------------------------------------------------------
+   `duration-[120ms]` é arbitrary value, e o lint reprova com
+   razão: o valor já existe como token. O Tailwind v4 não expõe
+   namespace de tema para `duration-*`, então a projeção é feita
+   com `@utility` em vez de `@theme`.
+
+   Só transform e opacity — as duas propriedades que o compositor
+   anima sem relayout.
+
+   `prefers-reduced-motion` não precisa de variante aqui: a
+   camada 1 já zera as durações, então a utility segue o token e
+   a animação simplesmente não acontece.
+   ============================================================ */
+
+@utility anim-instant {
+  transition-property: opacity, transform;
+  transition-duration: var(--vx-duration-instant);
+  transition-timing-function: var(--vx-ease-out);
+}
+
+@utility anim-fast {
+  transition-property: opacity, transform;
+  transition-duration: var(--vx-duration-fast);
+  transition-timing-function: var(--vx-ease-out);
+}
+
+@utility anim-base {
+  transition-property: opacity, transform;
+  transition-duration: var(--vx-duration-base);
+  transition-timing-function: var(--vx-ease-out);
+}
+
+@utility anim-slow {
+  transition-property: opacity, transform;
+  transition-duration: var(--vx-duration-slow);
+  transition-timing-function: var(--vx-ease-enter);
+}
+
+/* ============================================================
+   Calibração
+   ------------------------------------------------------------
+   A família é metade da decisão. A outra metade é como ela é
+   usada, e é a que mais afeta legibilidade em rolagem rápida.
+   ============================================================ */
+
+html {
+  /* Números de largura fixa em toda a interface.
+
+     Sem isto cada timestamp tem largura diferente e a coluna de
+     metadata treme durante o scroll. Custa uma linha e é o tipo
+     de detalhe que ninguém nomeia mas todo mundo sente. */
+  font-variant-numeric: tabular-nums;
+
+  /* Ligaduras desligadas em interface: `fi` e `fl` colados
+     atrapalham leitura de nome de usuário e de identificador. */
+  font-variant-ligatures: none;
+
+  -webkit-font-smoothing: antialiased;
+}
+
+html,
+body,
+#root {
+  block-size: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--vx-surface-0);
+  color: var(--vx-text-1);
+  font-family: var(--vx-font-ui);
+
+  /*
+    ⚠ **A BASE de tipo, e a ausência dela era divergência sistêmica.**
+
+    Achado pelo `pnpm confronto`: o design renderiza a raiz de tela em
+    `15px / normal` e o app renderizava em `16px / 24px`. Os dois números eram
+    herdados sem ninguém ter escolhido — 16px é o default do navegador e 1.5 é
+    o `line-height` que o preflight do Tailwind põe no `html`.
+
+    A consequência não é o texto solto: é que TODA caixa sem tamanho explícito
+    ficava um degrau maior que o desenhado, e toda linha de texto ficava ~4px
+    mais alta. Foi isso que fez as linhas da lista de acesso medirem 59 onde o
+    design mede 51, e o conserto local que eu tinha aplicado lá (entrelinha
+    compacta numa classe) tratava o sintoma numa tela.
+
+    `normal` e não um número: é o que o design usa, e é o que deixa a fonte
+    decidir. Onde a entrelinha É uma decisão — corpo de mensagem, título — o
+    componente continua declarando a sua, e agora ela se destaca por ser
+    explícita em vez de se perder num default herdado.
+  */
+  font-size: var(--vx-size-lg);
+  line-height: normal;
+}
+
+/* ============================================================
+   As superfícies que o navegador desenha
+   ------------------------------------------------------------
+   Anel de foco, seleção de texto, cursor e barra de rolagem
+   chegam com default do navegador — que não pertence a sistema
+   de design nenhum. Num app escuro, a seleção padrão é um azul
+   que não existe na nossa paleta e a barra é cromo claro.
+
+   É a parte mais barata de assinar e a que mais some da lista
+   de alguém: ninguém "desenha" uma seleção de texto, então
+   ninguém lembra dela.
+   ============================================================ */
+
+/*
+  Foco como DEFAULT GLOBAL, não como item de checklist.
+
+  Escrito aqui, uma vez, um componente novo não consegue NASCER
+  sem anel de foco: teria que apagá-lo de propósito. É a ordem do
+  enforcement.md — tornar impossível ganha de lembrar de conferir.
+
+  Especificidade de pseudo-classe sozinha (0,1,0) perde para
+  `.botao:focus-visible` (0,2,0), então os primitivos continuam
+  mandando no próprio anel.
+*/
+:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* Quem já tem `outline: none` explícito não é revivido às cegas:
+   o Radix aplica isso em trigger que delega foco ao filho. */
+[data-radix-focus-guard]:focus-visible {
+  outline: none;
+}
+
+/*
+  Seleção de texto.
+
+  `--vx-accent-soft` é o preenchimento tingido da paleta, e o
+  texto por cima continua sendo `--vx-text-1` — pintar a seleção
+  com o acento cheio inverteria o contraste e tornaria o trecho
+  selecionado o mais difícil de ler da tela, que é o oposto do
+  que selecionar quer dizer.
+*/
+::selection {
+  background: var(--vx-accent-soft);
+  color: var(--vx-text-1);
+}
+
+/*
+  Barra de rolagem.
+
+  `scrollbar-gutter: stable` já estava nos containers de scroll —
+  o que faltava era a COR. Fina e sem faixa: numa lista de 10 mil
+  mensagens a barra fica visível o tempo todo, e uma faixa clara
+  vertical divide a tela ao meio.
+*/
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--vx-border-strong) transparent;
+}
+
+/* O cursor de texto acompanha o acento — é o único pixel que
+   pisca na tela, e piscar em branco puro num app escuro é o tipo
+   de detalhe que cansa em sessão de 8h. */
+:where(input, textarea, [contenteditable]) {
+  caret-color: var(--vx-accent);
+}

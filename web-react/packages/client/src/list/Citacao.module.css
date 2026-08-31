@@ -1,0 +1,113 @@
+/* ============================================================
+   Citação de resposta
+   ------------------------------------------------------------
+   Uma linha, sempre. O trecho trunca em vez de quebrar: a citação
+   é referência, não leitura — quem quer o texto inteiro clica e
+   vai até ele. Deixá-la crescer daria a uma resposta a três
+   parágrafos a altura de quatro linhas de contexto acima do que
+   a pessoa realmente escreveu.
+   ============================================================ */
+
+.citacao {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-04);
+  min-inline-size: 0;
+  inline-size: 100%;
+  /*
+    24px de altura, e o meio-degrau é o que faltava.
+
+    Media 22px — abaixo do mínimo de alvo apontado pela auditoria, e o único
+    alvo do produto que ficava abaixo dele. O respiro vai nas duas pontas em
+    vez de dobrar embaixo: a citação encosta no texto da resposta, e afastá-la
+    só de um lado a soltaria do que ela introduz.
+  */
+  padding-block: var(--vx-space-02);
+  border: 0;
+  background: transparent;
+  color: var(--vx-text-3);
+  font-family: inherit;
+  /* 12px, o número do design — era `--vx-size-xs` (11). A prévia carrega
+     nome e trecho; um degrau abaixo do menor texto de interface a tornava
+     ilegível de relance, que é o único modo em que ela é lida. */
+  font-size: var(--vx-size-sm);
+  text-align: start;
+  cursor: pointer;
+}
+
+/*
+  O nome do autor citado herda o tamanho da citação.
+
+  `NomeDoAutor` traz `text-md` do seu próprio contexto — na linha de
+  mensagem ele é o cabeçalho. Aqui é referência, e um nome em 14px
+  sobre um trecho em 12px faria a citação competir com a mensagem
+  que ela introduz.
+*/
+.citacao :global(span) {
+  font-size: inherit;
+}
+
+/*
+  O cotovelo: um cano que sai da mensagem de cima e entra nesta.
+
+  ⚠ **Substituiu um ícone de seta, e a troca é de INFORMAÇÃO.** A seta dizia
+  "isto é uma resposta"; o cano diz "isto é uma resposta ÀQUELA ali em cima" —
+  ele encosta visualmente na linha anterior. Foi o que quem usa descreveu como
+  "responder difere muito do design".
+
+  Desenhado com duas bordas e um canto arredondado, como no design: 22×9,
+  `border-radius: 6px 0 0`. Não é ícone, então não entra na escala de ícone e
+  não vira SVG — é uma linha, e linha se desenha com borda.
+
+  A cor é `rgba(255,255,255,0.12)` no design; `--vx-border-strong` é o degrau
+  mais próximo que existe aqui e compõe parecido sobre a timeline.
+*/
+.cotovelo {
+  flex: none;
+  inline-size: 22px;
+  block-size: 9px;
+  margin-inline-start: var(--vx-space-02);
+  /* `align-self: flex-end` põe a curva na altura da linha de texto em vez de
+     centrada: o cano tem que ENCOSTAR embaixo, é de lá que ele vem. */
+  align-self: flex-end;
+  border-block-start: 1px solid var(--vx-border-strong);
+  border-inline-start: 1px solid var(--vx-border-strong);
+  border-start-start-radius: var(--vx-radius-06);
+}
+
+.avatarCitado {
+  flex: none;
+}
+
+.trecho {
+  min-inline-size: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ausente {
+  font-style: italic;
+}
+
+.citacao:hover .trecho,
+.citacao:hover .ausente {
+  color: var(--vx-text-2);
+}
+
+.citacao:focus-visible {
+  outline-offset: -2px;
+}
+
+/*
+  A escala de ícone desta superfície — ver `--vx-icon-1` em `tokens.css`.
+
+  Cromagem: o design desenha 13–14px aqui, e o `size={20}` do Phosphor vinha
+  de um default copiado de componente para componente. O dono do tamanho é a
+  superfície, não a chamada.
+*/
+.citacao svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}

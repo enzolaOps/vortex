@@ -9,3 +9,29 @@ dist
 .vercel
 
 .idea
+
+# `npm i -D sharp` na raiz, que brand/generate.mjs exige, deixa um manifesto
+# aqui. Ignorado de proposito: a regra do VORTEX.md e que nada na raiz
+# pertence a uma ilha, e um manifesto de raiz carregando uma unica ferramenta
+# de build e exatamente a bagunca que a regra evita. Ignorar em vez de apagar
+# porque apagar so faz o arquivo voltar na proxima vez que alguem regenerar a
+# marca.
+/package.json
+/package-lock.json
+
+# O plugin `impeccable` se instala em DOIS lugares — `.claude/skills/impeccable`
+# e `.github/{agents,hooks,skills}` — e sao ~300 arquivos de ferramenta de
+# terceiro que ninguem daqui mantem. Ficar fora do repositorio e o certo.
+#
+# Ignorados por CAMINHO e nao por pasta, e a diferenca ja custou caro: com
+# `/.github` inteiro na lista, `workflows/` some junto — e workflow so roda se
+# estiver commitado. Um arquivo novo ali nao da erro no `git add`, da silencio.
+# Aconteceu com `vortex-react-image.yml`, que precisou de `-f` para entrar.
+#
+# Mesmo raciocinio em `.claude`: `skills/vortex-react` e a skill DESTE projeto,
+# a que o CLAUDE.md chama de regra executavel. Ela precisa estar versionada.
+/.claude/settings.local.json
+/.claude/skills/impeccable/
+/.github/agents/
+/.github/hooks/
+/.github/skills/

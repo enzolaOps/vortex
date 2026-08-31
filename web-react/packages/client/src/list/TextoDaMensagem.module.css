@@ -1,0 +1,364 @@
+/*
+  A menção, dentro do texto.
+
+  Preenchimento tingido e não cor de texto: uma menção é um ALVO no meio da
+  frase, e cor sozinha some numa parede de texto — que é justamente onde ela
+  precisa ser achada. `--vx-accent-soft` é a leitura certa do token, "o acento
+  encostou aqui", e não disputa com a lâmina, que marca posição.
+
+  `inline-block` não: quebra a menção fora do fluxo da linha e estraga o
+  espaçamento entre palavras.
+*/
+.mencao {
+  padding-inline: var(--vx-space-02);
+  border-radius: var(--vx-radius-02);
+  background: var(--vx-accent-soft);
+  color: var(--vx-text-1);
+  font-weight: 500;
+}
+
+/*
+  O parágrafo.
+
+  Margem só entre irmãos, e nunca na primeira: a linha de mensagem já tem o
+  respiro dela, e um `margin-block-start` no primeiro parágrafo empurraria o
+  texto para longe do nome do autor em toda mensagem do app.
+
+  `margin-block-end: 0` no último pelo mesmo motivo, do outro lado — com ele,
+  a distância até a barra de reações mudaria conforme a mensagem terminasse em
+  parágrafo ou em bloco de código.
+*/
+.paragrafo {
+  margin-block: 0;
+}
+
+.paragrafo + .paragrafo {
+  margin-block-start: var(--vx-space-08);
+}
+
+/*
+  Título dentro de uma mensagem.
+
+  Três níveis e não seis, e nenhum deles maior que o corpo por mais de um
+  degrau da escala. Num app denso o título de uma mensagem serve para SEPARAR,
+  não para gritar — e o que separa aqui é peso, como manda o sistema de design
+  ("leitura se codifica em peso, não em cor").
+*/
+.titulo {
+  margin-block: var(--vx-space-12) var(--vx-space-04);
+  font-weight: 600;
+  line-height: var(--vx-leading-title);
+  color: var(--vx-text-1);
+}
+
+.titulo:first-child {
+  margin-block-start: 0;
+}
+
+.titulo[data-nivel="1"] {
+  font-size: var(--vx-size-lg);
+}
+
+.titulo[data-nivel="2"],
+.titulo[data-nivel="3"] {
+  font-size: var(--vx-size-md);
+}
+
+/*
+  Código na linha.
+
+  Superfície e borda em vez de cor de texto: o trecho precisa se distinguir do
+  redor sem virar um segundo acento na tela — a disciplina de acento é
+  contável, e `--vx-accent` está reservado para foco, ativo e menção.
+*/
+.codigo {
+  padding-inline: var(--vx-space-04);
+  padding-block: var(--vx-space-02);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-04);
+  background: var(--vx-surface-3);
+  font-family: var(--vx-font-mono);
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}
+
+/*
+  Bloco de código.
+
+  ⚠ **`overflow-x: auto` aqui não é conforto, é a lei nº 3.** A coluna de
+  conteúdo é `minmax(0, 1fr)`, e uma linha de código de 400 caracteres sem
+  espaço é exatamente o caso patológico do briefing: sem a rolagem no próprio
+  container, ela empurra a trilha e estoura o grid inteiro — o mesmo defeito de
+  ultrawide que motivou o redesign, por outra porta.
+
+  `min-inline-size: 0` porque o `pre` também é filho de um contexto flexível, e
+  a mesma regra vale um nível abaixo.
+*/
+/* ============================================================
+   Bloco de código — pacote, cabeçalho e corpo
+   ------------------------------------------------------------
+   ⚠ A língua era um selo ABSOLUTO no canto do bloco, cobrindo a
+   primeira linha do código. O design lhe dá uma barra própria
+   acima, com "copiar" do outro lado — e aí a língua deixa de
+   disputar espaço e o copiar ganha um alvo em vez de a pessoa
+   selecionar o bloco à mão.
+   ============================================================ */
+
+.blocoPacote {
+  margin-block: var(--vx-space-08);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-3);
+  overflow: hidden;
+}
+
+.blocoPacote:first-child {
+  margin-block-start: 0;
+}
+
+.blocoCabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-08);
+  padding-inline: var(--vx-space-12);
+  padding-block: var(--vx-space-04);
+  border-block-end: 1px solid var(--vx-border-subtle);
+  color: var(--vx-text-3);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+}
+
+.copiar {
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  transition: color var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.copiar:hover {
+  color: var(--vx-text-1);
+}
+
+.copiar:focus-visible {
+  outline-offset: 1px;
+}
+
+/*
+  As cores do realce, ligadas aos NOSSOS tokens.
+
+  ⚠ **Nenhum hex aqui, e essa é a razão de o tema do shiki ser de variáveis
+  CSS.** Este app troca de paleta em runtime (fase 4); um bloco de código com
+  cores assadas seria a única superfície que ignora a escolha de quem usa.
+  `createCssVariablesTheme` emite `var(--shiki-*)` e estas linhas as amarram.
+
+  ⚠ **O design usa um roxo (`#8b7be8`) que a paleta DELE não tem** — a
+  Foundations lista teal, ardósia, danger, warning e success, e mais nada. O
+  roxo é artefato do mock, não decisão de sistema. Reproduzi-lo exigiria um
+  token de cor novo, que precisaria de classificação de contraste e de
+  derivação a partir da semente — trabalho real para uma cor que o próprio
+  design não assume.
+
+  O mapeamento usa o que já existe, com a lógica de sempre: o que é ESTRUTURA
+  (palavra-chave, função) fica em acento, o que é VALOR (string, número) em
+  success e warning, e o que é ruído (comentário, pontuação) desce para os
+  degraus apagados de texto.
+*/
+.bloco {
+  --shiki-foreground: var(--vx-text-1);
+  --shiki-token-keyword: var(--vx-accent-text);
+  --shiki-token-function: var(--vx-accent);
+  --shiki-token-string: var(--vx-success);
+  --shiki-token-string-expression: var(--vx-success);
+  --shiki-token-constant: var(--vx-warning);
+  --shiki-token-parameter: var(--vx-text-1);
+  --shiki-token-comment: var(--vx-text-3);
+  --shiki-token-punctuation: var(--vx-text-2);
+  --shiki-token-link: var(--vx-accent-text);
+
+  margin: 0;
+  padding: var(--vx-space-12);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-sm);
+  line-height: var(--vx-leading-message);
+  color: var(--vx-text-1);
+  overflow-x: auto;
+  min-inline-size: 0;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+  /* O texto de código NÃO quebra: quebrar linha de código muda o que ela diz.
+     É o motivo de a rolagem existir acima. */
+  white-space: pre;
+  tab-size: 2;
+}
+
+/*
+  A linguagem declarada pelo autor.
+
+  Só rótulo por enquanto — realce de sintaxe é `shiki`, o maior pacote do
+  pipeline, e ele entra atrás de import dinâmico e não no bundle inicial.
+  Posicionada fora do fluxo para não empurrar a primeira linha do código.
+*/
+/*
+  A língua, agora no cabeçalho.
+
+  A caixa fica mesmo sem língua — a barra tem altura fixa, e um cabeçalho que
+  aparece e some mudaria a altura da linha conforme o markdown. Numa lista
+  ancorada isso move a âncora por causa de metadado.
+*/
+.lingua {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  user-select: none;
+}
+
+/*
+  Citação.
+
+  Barra na borda inicial e recuo — nunca itálico e nunca cor apagada. Texto
+  citado é texto que alguém escreveu e que se lê inteiro; apagá-lo trocaria uma
+  marca de origem por uma perda de legibilidade.
+
+  Propriedade lógica porque o painel é movível (lei nº 6): a barra tem de
+  nascer do lado certo em qualquer direção de escrita.
+*/
+.citacao {
+  margin-block: var(--vx-space-08);
+  margin-inline: 0;
+  padding-inline-start: var(--vx-space-12);
+  border-inline-start: 2px solid var(--vx-border-strong);
+  color: var(--vx-text-2);
+}
+
+.citacao:first-child {
+  margin-block-start: 0;
+}
+
+/*
+  Listas.
+
+  O recuo é da escala de espaço, não o default do navegador — que é em `em` e
+  muda de tamanho junto com a fonte escolhida pela pessoa.
+*/
+.lista {
+  margin-block: var(--vx-space-08);
+  padding-inline-start: var(--vx-space-24);
+}
+
+/*
+  ⚠ **`list-style` explícito, porque o preflight do Tailwind o zera.**
+
+  Sem estas duas regras a lista renderiza sem bolinha e sem número — o recuo
+  fica, o marcador some, e "1. um / 2. dois" vira duas linhas soltas que não se
+  leem como lista. Passou pelo `escala`, pelo `utilities` e pelo `check`
+  inteiro; só apareceu olhando a tela.
+
+  É a mesma família do `py-0.5` que não emitia CSS: a regra estava escrita, a
+  guarda estava verde, e a tela estava errada.
+*/
+ul.lista {
+  list-style: disc;
+}
+
+ol.lista {
+  list-style: decimal;
+}
+
+.lista:first-child {
+  margin-block-start: 0;
+}
+
+.lista li::marker {
+  color: var(--vx-text-3);
+}
+
+.lista li + li {
+  margin-block-start: var(--vx-space-04);
+}
+
+/*
+  Régua.
+
+  O sistema de design reserva régua para separação RARA, e é isto: uma quebra
+  temática que o autor escreveu de propósito. Dentro da lista de canais ou de
+  membros ela seria decoração; aqui ela é o dado.
+*/
+.regra {
+  margin-block: var(--vx-space-12);
+  margin-inline: 0;
+  border: 0;
+  border-block-start: 1px solid var(--vx-border-subtle);
+}
+
+/*
+  Link.
+
+  Sublinhado E cor, não só cor: um link identificado apenas por matiz some para
+  quem não distingue aquele par, e o piso de acessibilidade deste projeto diz
+  que informação nunca é comunicada só por cor.
+
+  `overflow-wrap: anywhere` porque URL longa colada é o caso patológico do
+  briefing na sua forma mais comum.
+*/
+.link {
+  color: var(--vx-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+
+.link:hover {
+  color: var(--vx-accent-hover);
+}
+
+/*
+  Uma linha de código.
+
+  `display: block` para a quebra do `<pre>` funcionar com os `<span>` por
+  linha, e nada mais — o realce não pode mudar métrica nenhuma do bloco, senão
+  a altura dele muda quando o highlighter chega e a âncora do virtualizador se
+  move junto.
+*/
+.linhaDeCodigo {
+  display: block;
+}
+
+/* Emoji personalizado do servidor */
+
+/*
+  Dimensão FIXA e não `em`, e a diferença é a âncora.
+
+  Com `em` o tamanho seguiria a densidade e o tipo do bloco onde o emoji cai —
+  título, citação, prévia de uma linha —, e a altura da linha passaria a
+  depender de ONDE o emoji está. Numa lista virtualizada com estimativa por
+  tipo de linha, isso é a estimativa deixando de valer por causa de um glifo.
+
+  ⚠ **`vertical-align: middle` e não `text-bottom`, e a diferença é MEDIDA.**
+  Com `text-bottom` a caixa de 22px não cabe na entrelinha de 22,5px e a linha
+  cresce: parágrafo sem emoji 23px, com emoji 25px. Com `middle` a mesma imagem
+  de 22px deixa a linha em 23px — tamanho cheio, crescimento zero.
+
+  Medido lado a lado no navegador, variando as duas propriedades:
+
+    22/text-bottom  25px      20/text-bottom  23px
+    22/middle       23px      18/text-bottom  23px
+    24/text-bottom  27px      22/-0.3em       24px
+
+  Importa porque a lista é ancorada: linha que muda de altura por causa de um
+  glifo faz a estimativa por tipo (`ALTURA_POR_TIPO`) derivar em toda conversa
+  onde emoji é comum. Encolher para 20px também resolveria, e custaria
+  tamanho — `middle` não custa nada.
+*/
+.emoji {
+  display: inline-block;
+  inline-size: 22px;
+  block-size: 22px;
+  vertical-align: middle;
+  object-fit: contain;
+}

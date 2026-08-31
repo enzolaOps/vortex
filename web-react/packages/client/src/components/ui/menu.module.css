@@ -1,0 +1,55 @@
+/* ============================================================
+   Menu — o que a utility não alcança
+   ------------------------------------------------------------
+   O resto do estilo vive em `menu.ts`, como string de utility
+   compartilhada entre o menu de contexto e o dropdown. Aqui
+   fica só o que exigiria arbitrary value, que é a régua do
+   projeto para quando um CSS Module se justifica.
+   ============================================================ */
+
+/*
+  ⚠ **A largura mínima, e ela estava MORTA desde que foi escrita.**
+
+  `menu.ts` dizia `min-w-48`, depois `min-w-56`. Nenhuma das duas existe: o
+  `@theme` faz `--spacing-*: initial` para apagar a escala default do Tailwind,
+  então `min-w-48` seria computada sobre uma base que não existe e a regra
+  nunca é emitida. O menu não tinha mínimo nenhum — media 207px onde o design
+  pede 264, e nada falhava.
+
+  O `pnpm utilities` também não pegava, e por um segundo motivo: ele lia só
+  strings dentro de `className=`, e as classes de TODO menu do app moram em
+  constantes deste diretório. As duas coisas foram corrigidas no mesmo passe.
+
+  264 é o número do design. Não é degrau de escala — é DIMENSÃO de componente,
+  a mesma família de `--vx-rail-w` e da caixa do seletor.
+*/
+.conteudo {
+  min-inline-size: 264px;
+}
+
+/*
+  O menu do usuário é mais largo: 300, também do design.
+
+  Ele carrega um cabeçalho com avatar, nome e `@handle` numa linha só, e
+  "Silenciar só para mim" é o item mais longo do app. Em 264 os dois quebram.
+*/
+.largo {
+  min-inline-size: 300px;
+}
+
+/*
+  O realce do item destrutivo — vermelho a 14%, como o design.
+
+  Não virou token pela mesma razão que o preenchimento do divisor de novas
+  mensagens não virou: `--vx-danger-soft` custaria entrada em `TokenName`,
+  classificação de contraste e um par para um fundo que só existe atrás deste
+  item. `color-mix` sobre `--vx-danger` diz de onde a cor vem e acompanha
+  qualquer paleta que o picker produza.
+
+  ⚠ Sobre `--vx-danger` e não `--vx-danger-text`: o tingido é PREENCHIMENTO, e
+  o projeto tem dois vermelhos exatamente para separar os dois papéis. A letra
+  por cima continua em `danger-text`.
+*/
+.itemPerigo[data-highlighted] {
+  background: color-mix(in oklab, var(--vx-danger) 14%, transparent);
+}

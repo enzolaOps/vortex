@@ -1,0 +1,153 @@
+/* ============================================================
+   Marcador — a caixa de seleção e o ponto de opção
+   ------------------------------------------------------------
+   Os dois no mesmo arquivo porque são o MESMO desenho com raios
+   diferentes: 16×16, `surface-2` afundado com véu de 16% quando
+   vazio, acento quando marcado. O design os desenha assim, e
+   separá-los em dois módulos garantiria que um dia divergissem.
+
+   A caixa existia CINCO vezes à mão (cargos ×3, encaminhar,
+   redefinir senha) e o ponto uma. Nenhuma das seis concordava
+   sobre o anel de foco.
+   ============================================================ */
+
+/*
+  A LINHA, quando há rótulo. O alvo é ela inteira e não só a caixa de 16px —
+  16 é abaixo do mínimo confortável de ponteiro, e num formulário o texto ao
+  lado é o que a pessoa mira.
+
+  ⚠ Ela é o `button`, e o quadrado vira um `span` dentro. Com `<label>` em
+  volta de um `button` o clique no texto NÃO alterna (o `label` só encaminha
+  para controle nativo), então a estrutura tem de inverter.
+*/
+.linha {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--vx-space-10);
+  inline-size: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  line-height: 1.45;
+  text-align: start;
+  cursor: pointer;
+}
+
+/*
+  ⚠ **A CAIXA apaga o rótulo quando vazia; o PONTO não.** É do design, e a
+  distinção é real: caixa desmarcada é uma coisa que NÃO está valendo, e o tom
+  apagado diz isso; opção não escolhida continua sendo uma alternativa viva —
+  apagá-la faria a lista parecer meio desativada.
+*/
+.linhaCaixa {
+  color: var(--vx-text-2);
+}
+
+.linhaCaixa[aria-checked="true"] {
+  color: var(--vx-text-1);
+}
+
+.linha:disabled {
+  color: var(--vx-text-4);
+  cursor: not-allowed;
+}
+
+.linha:focus-visible {
+  outline: none;
+}
+
+/* Quando há rótulo, o anel envolve a CAIXA e não a linha: um anel de 3px em
+   volta de um parágrafo de duas linhas não lê como foco de controle. */
+.linha:focus-visible .marcador {
+  box-shadow: 0 0 0 3px var(--vx-accent-ring);
+}
+
+/* Alinha ao centro óptico da primeira linha do rótulo (13px de corpo). */
+.linha .marcador {
+  margin-block-start: var(--vx-space-02);
+}
+
+.marcador {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 16px;
+  block-size: 16px;
+  border: 1px solid var(--vx-hairline-16);
+  /*
+    Ele AFUNDA: `surface-2` dentro de um painel em `surface-3`. É o que o faz
+    parecer um buraco onde a marca entra, em vez de um selo colado por cima.
+  */
+  background: var(--vx-surface-2);
+  color: transparent;
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    border-color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.caixa {
+  border-radius: var(--vx-radius-04);
+}
+
+.ponto {
+  border-radius: var(--vx-radius-pill);
+}
+
+.marcador[aria-checked="true"],
+[aria-checked="true"] > .marcador {
+  border-color: var(--vx-accent);
+}
+
+/* A CAIXA se enche e mostra o tique; o PONTO fica vazado com o miolo aceso —
+   é como o design distingue "liguei isto" de "escolhi esta entre N". */
+.caixa[aria-checked="true"],
+[aria-checked="true"] > .caixa {
+  background: var(--vx-accent);
+  color: var(--vx-on-accent);
+}
+
+.miolo {
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-accent);
+  scale: 0;
+  transition: scale var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.ponto[aria-checked="true"] .miolo,
+[aria-checked="true"] .miolo {
+  scale: 1;
+}
+
+.marcador svg {
+  inline-size: 11px;
+  block-size: 11px;
+}
+
+.marcador:hover:not(:disabled):not([aria-checked="true"]),
+.linha:hover:not(:disabled):not([aria-checked="true"]) .marcador {
+  border-color: var(--vx-border-strong);
+}
+
+.marcador:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--vx-accent-ring);
+}
+
+.marcador:disabled,
+.linha:disabled .marcador {
+  border-color: var(--vx-hairline-06);
+  background: var(--vx-track);
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .miolo {
+    transition: none;
+  }
+}

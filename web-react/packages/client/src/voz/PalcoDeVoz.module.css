@@ -1,0 +1,27 @@
+/* ============================================================
+   A moldura das três telas do palco
+   ============================================================ */
+
+.palco {
+  position: fixed;
+  z-index: var(--vx-z-flutuante);
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-block-size: 0;
+  /*
+    ⚠ **`surface-0` aqui é o CHÃO do palco, e não conteúdo.** O design pinta a
+    moldura das três telas no tom mais escuro que existe pela mesma razão que
+    pinta o rail e o gutter: o que está em volta da mídia precisa desaparecer
+    para que a mídia seja a única coisa com luz. Uma moldura em `surface-2`
+    competiria em luminosidade com o próprio vídeo.
+  */
+  background: var(--vx-surface-0);
+  /*
+    ⚠ **Container aqui e não em cada tela.** As três reagem à mesma largura —
+    é a MOLDURA que muda de tamanho, não elas —, e declarar o container em
+    três lugares daria três definições que precisam concordar. Lei nº 6: o
+    palco pode virar uma janela de popout, e nada aqui dentro assume janela.
+  */
+  container-type: inline-size;
+}

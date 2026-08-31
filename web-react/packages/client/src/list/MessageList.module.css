@@ -1,0 +1,226 @@
+/*
+  Container de scroll da lista.
+
+  Em CSS Module porque `scrollbar-gutter` não tem utility no Tailwind e só
+  existiria na className como propriedade arbitrária — que o lint da lei nº 4
+  reprova, com razão.
+*/
+.scroll {
+  block-size: 100%;
+  overflow-y: auto;
+
+  /* Reserva a calha da barra sempre: sem isto o conteúdo salta lateralmente
+     no instante em que a barra aparece, e numa lista virtualizada esse salto
+     acontece durante o scroll. */
+  scrollbar-gutter: stable;
+
+  /* O scroll não vaza para o container pai ao chegar no fim — em app de
+     painéis, vazar significa a página inteira rolar por baixo. */
+  overscroll-behavior: contain;
+}
+
+/*
+  Teto de linha legível.
+
+  O problema do ultrawide nunca foi o app não preencher a tela: é a linha de
+  texto ficando ilegível em 3000px de largura. Alinhada à esquerda, não
+  centralizada — o composer segue exatamente esta mesma largura, e desalinhar
+  os dois é o erro visual mais perceptível da tela principal.
+*/
+/*
+  A coluna PREENCHE a trilha; quem tem teto é o conteúdo dentro dela.
+
+  Antes o teto estava aqui, e o resultado era uma faixa morta: medido em janela
+  de 2560px, a trilha de conteúdo tinha 2008px e a coluna parava em 1100 —
+  **908px de vazio, todo do lado direito**, porque a coluna era encostada ao
+  início. Não lia como coluna de leitura, lia como alinhamento quebrado.
+
+  O teto de 1100px foi REMOVIDO, e a legibilidade não dependia dele. Quem a
+  protege é `--vx-medida`, que limita o TEXTO em cerca de 80 caracteres — a
+  trava da linha era uma segunda tentativa de resolver o mesmo problema, e o
+  preço dela era a faixa morta.
+
+  Agora a coluna, a faixa de hover, o divisor e o alvo do menu cobrem a trilha.
+  O que precisa de largura própria continua com ela: a mídia tem teto de 400px
+  e os chips têm o tamanho do que carregam.
+*/
+.coluna {
+  margin-inline: 0;
+}
+
+/*
+  Barra de "ir para a primeira não lida".
+
+  Flutua SOBRE a lista, não no fluxo: uma barra que ocupa altura empurraria
+  a primeira linha para baixo, e numa lista ancorada isso é a âncora se
+  movendo por causa de um aviso.
+
+  `sticky` e não `fixed`: ela pertence a esta coluna, e a coluna pode ser um
+  slot estreito na fase 4 ou uma janela destacada no Electron.
+*/
+.barraNaoLidas {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--vx-z-realce);
+  inline-size: 100%;
+  padding-block: var(--vx-space-04);
+  border: 0;
+  background: var(--vx-accent);
+  color: var(--vx-on-accent);
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.barraNaoLidas:hover {
+  background: var(--vx-accent-hover);
+}
+
+.barraNaoLidas:focus-visible {
+  outline-offset: -2px;
+}
+
+/*
+  A faixa de "você pulou para um resultado de busca".
+
+  ⚠ Grudada no topo como a de não lidas, e pelo mesmo motivo: no fluxo ela
+  empurraria a primeira linha e a âncora se moveria por causa de um aviso.
+
+  `surface-4` com sombra e NÃO acento: a barra de não lidas é acento porque
+  "há coisa nova" é o estado que o app inteiro pinta de teal, e duas faixas
+  acentuadas empilhadas seriam a disciplina de acento perdida de novo — o
+  projeto já corrigiu isso uma vez, quando havia nove lâminas na tela.
+*/
+.faixaDeBusca {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--vx-z-realce);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-08) var(--vx-space-14);
+  border-block-end: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-4);
+  box-shadow: var(--vx-elev-1);
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-sm);
+}
+
+.voltarAoPresente {
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: var(--vx-accent-text);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.voltarAoPresente:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/*
+  A linha virtualizada.
+
+  Estava como `absolute inset-x-0 top-0` — e `inset-x-0` e `top-0` não
+  existem neste projeto. O elemento absoluto caía na "posição estática", que
+  por acaso coincide com o topo e com a largura do pai, então o `translateY`
+  do virtualizador funcionava e nada parecia errado.
+
+  Por acaso não é contrato: bastaria o pai ganhar padding, ou a linha
+  anterior deixar de medir zero, para as linhas empilharem fora do lugar.
+*/
+.linhaVirtual {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+}
+
+/*
+  Com um resultado aberto, o resto do canal recua — do design: *"a mensagem
+  alvo fica em accent 8% e o resto do canal cai para 50% de opacidade até
+  Voltar ao presente"*.
+
+  ⚠ **Seletor de PAI, sem prop e sem re-render.** `data-busca` no container
+  liga a regra e `[data-alvo]` a desliga para uma linha só. Passar "você é o
+  alvo" como prop faria toda `MessageRow` montada re-renderizar ao trocar de
+  resultado, no componente mais quente do app — a mesma conta que tirou o
+  `ContextMenu` da linha.
+*/
+.scroll[data-busca] .linhaVirtual:not([data-alvo]) {
+  opacity: 0.5;
+}
+
+.scroll[data-busca] .linhaVirtual[data-alvo] {
+  background: color-mix(in oklab, var(--vx-accent) 8%, transparent);
+}
+
+/* ============================================================
+   Ir para a próxima menção
+   ------------------------------------------------------------
+   Flutua no canto, ao contrário da barra de não lidas que
+   atravessa a coluna. A barra aparece uma vez e é sobre o canal;
+   este é um controle de uso repetido, e um alvo que atravessa a
+   tela a cada clique vira ruído. As duas coexistem.
+   ============================================================ */
+
+.irParaMencao {
+  position: sticky;
+  /* `inset-block-start: 0` colidiria com a barra de não lidas quando as duas
+     aparecem. O deslocamento é a altura dela mais um respiro. */
+  inset-block-start: var(--vx-space-24);
+  z-index: var(--vx-z-realce);
+
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-04);
+  /* `margin-inline-start: auto` com largura própria: gruda no fim da coluna
+     sem precisar saber a largura dela. */
+  inline-size: fit-content;
+  margin-inline-start: auto;
+  margin-inline-end: var(--vx-space-20);
+  padding-inline: var(--vx-space-08);
+  padding-block: var(--vx-space-04);
+
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  /* Superfície elevada, não acento: o acento marca POSIÇÃO nesta interface, e
+     este é um controle. A barra de não lidas usa acento porque ela é a
+     posição — "você parou aqui". */
+  background: var(--vx-surface-3);
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  cursor: pointer;
+}
+
+.irParaMencao:hover {
+  border-color: var(--vx-border-strong);
+  color: var(--vx-text-1);
+}
+
+.irParaMencao:active {
+  scale: 0.97;
+}
+
+.irParaMencao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/*
+  A escala de ícone da cromagem que flutua sobre a lista — ver `--vx-icon-1`.
+
+  "Ir para a próxima menção" e o botão de voltar ao presente. Não é a linha de
+  mensagem: são controles sobrepostos, e o design os desenha na mesma escala
+  do resto da cromagem.
+*/
+.irParaMencao svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}

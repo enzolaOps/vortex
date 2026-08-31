@@ -1,0 +1,263 @@
+/* ============================================================
+   Gerenciar grupo
+   ------------------------------------------------------------
+   400px no design, com cabeçalho, lista e rodapé separados por
+   hairline. `tituloOculto + p-0` no `Dialog` porque as três
+   faixas têm respiro próprio — a mesma estrutura que o modal de
+   encaminhar já usa.
+   ============================================================ */
+
+.painel {
+  inline-size: 400px;
+}
+
+/* -------------------------------------------------------- cabeçalho */
+
+.cabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-14);
+  padding: var(--vx-space-18);
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+.icone {
+  position: relative;
+  flex: none;
+  inline-size: 56px;
+  block-size: 56px;
+}
+
+/* Raio 18 no design: mais quadrado que o círculo de pessoa e mais redondo que
+   o ladrilho de servidor — é o que diz "isto é um grupo" sem um glifo. */
+.ladrilho {
+  display: block;
+  inline-size: 56px;
+  block-size: 56px;
+  border-radius: var(--vx-radius-18);
+  /* Âncora da imagem que cobre o gradiente — ver `.imagem` no fim. */
+  position: relative;
+  overflow: hidden;
+}
+
+/*
+  O botão de trocar o ícone, no canto.
+
+  ⚠ A borda de 2px na cor do PAINEL é o que o recorta do ladrilho — sem ela o
+  círculo se funde ao gradiente e some. Mesma técnica do ponto de presença
+  sobre o avatar.
+*/
+.trocarIcone {
+  position: absolute;
+  inset-block-end: -4px;
+  inset-inline-end: -4px;
+  display: grid;
+  place-items: center;
+  inline-size: 22px;
+  block-size: 22px;
+  border: 2px solid var(--vx-surface-4);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-2);
+  cursor: pointer;
+}
+
+.trocarIcone:hover {
+  color: var(--vx-text-1);
+}
+
+.trocarIcone:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.identidade {
+  min-inline-size: 0;
+  flex: 1;
+}
+
+.campoDeNome {
+  inline-size: 100%;
+  min-inline-size: 0;
+  block-size: 32px;
+  padding-inline: var(--vx-space-10);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+}
+
+.campoDeNome:focus-visible {
+  outline: none;
+  border-color: var(--vx-accent);
+  box-shadow: 0 0 0 3px var(--vx-accent-ring);
+}
+
+/* Quem não é dono vê o nome e não pode mexer. Sem borda: um campo desativado
+   com moldura promete um controle que nunca vai funcionar para essa pessoa. */
+.campoDeNome:disabled {
+  padding-inline: 0;
+  border-color: transparent;
+  background: transparent;
+  font-weight: 600;
+}
+
+.contagem {
+  margin: var(--vx-space-06) 0 0;
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+/* ----------------------------------------------------------- membros */
+
+.tituloDaLista {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-10);
+  padding: var(--vx-space-12) var(--vx-space-14) var(--vx-space-06);
+}
+
+.sobrancelha {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  color: var(--vx-text-3);
+}
+
+.lista {
+  padding: 0 var(--vx-space-08) var(--vx-space-08);
+}
+
+.membro {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+  padding: var(--vx-space-06) var(--vx-space-08);
+  border-radius: var(--vx-radius-06);
+}
+
+.membro:hover {
+  background: var(--vx-state-hover);
+}
+
+.textos {
+  min-inline-size: 0;
+  flex: 1;
+}
+
+.nome {
+  overflow: hidden;
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.papel {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+/*
+  As ações da linha são TEXTO, não botão com moldura.
+
+  ⚠ Numa lista de dez pessoas, dez pares de botões com borda produziriam vinte
+  caixas competindo com os nomes. O design as desenha como link em 11/600 — e
+  "Remover" em `danger-text` porque é destrutivo, mesmo sendo pequeno.
+*/
+.acao {
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: var(--vx-accent-text);
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.acaoPerigo {
+  composes: acao;
+  color: var(--vx-danger-text);
+}
+
+.acao:focus-visible,
+.acaoPerigo:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------ rodapé */
+
+.rodape {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-02);
+  padding: var(--vx-space-10) var(--vx-space-14);
+  border-block-start: 1px solid var(--vx-hairline-06);
+}
+
+.itemDeRodape {
+  padding: var(--vx-space-08) var(--vx-space-10);
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  text-align: start;
+  cursor: pointer;
+}
+
+.itemDeRodape:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.itemDestrutivo {
+  composes: itemDeRodape;
+  color: var(--vx-danger-text);
+}
+
+.itemDestrutivo:hover {
+  background: var(--vx-danger-soft);
+  color: var(--vx-danger-text);
+}
+
+.itemDeRodape:focus-visible,
+.itemDestrutivo:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.recado {
+  margin: 0;
+  padding: 0 var(--vx-space-14) var(--vx-space-14);
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-4);
+  text-wrap: pretty;
+}
+
+/* Ícone do grupo — a imagem sobre o gradiente, e o seletor escondido */
+
+/*
+  Cobre o ladrilho inteiro. `object-fit: cover` porque a imagem é escolhida por
+  quem usa e vem em qualquer proporção — esticar deformaria rosto, e `contain`
+  deixaria faixas do gradiente aparecendo pelos lados, que lê como falha.
+*/
+.imagem {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+/* `display: none` e não `opacity: 0`: com opacidade zero o campo continuaria
+   recebendo tabulação. Mesma escolha do composer. */
+.seletorDeIcone {
+  display: none;
+}

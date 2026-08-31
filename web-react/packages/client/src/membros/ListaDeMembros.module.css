@@ -1,0 +1,274 @@
+/* ============================================================
+   Member list
+   ------------------------------------------------------------
+   A única das três colunas laterais que é virtualizada, e não
+   por simetria: um servidor grande tem dezenas de milhares de
+   membros, e presença — o evento mais volumoso do app — encosta
+   exatamente aqui.
+   ============================================================ */
+
+.painel {
+  block-size: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  /* O anel do ponto de presença precisa saber sobre o que está pousado.
+     Sem isto ele desenharia o anel na cor da coluna de mensagem e
+     apareceria um halo errado sobre o painel de membros. */
+  --anel: var(--vx-surface-1);
+}
+
+.pista {
+  position: relative;
+  inline-size: 100%;
+}
+
+.linha {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+}
+
+.secao {
+  composes: sobrancelhaDeSecao from "../styles/sobrancelha.module.css";
+  display: flex;
+  align-items: baseline;
+  gap: var(--vx-space-04);
+  padding-inline: var(--vx-space-12);
+  padding-block: var(--vx-space-12) var(--vx-space-04);
+  color: var(--vx-text-3);
+  /*
+    600 e `0.08em`, os números do design — estava em 500 e `0.04em`.
+
+    Num cabeçalho de seção em caixa alta e 11px, o espaçamento entre letras é o
+    que separa "rótulo" de "palavra apertada": maiúsculas coladas leem como um
+    bloco. E o peso é o que faz ele ancorar a lista de trinta linhas abaixo.
+  */
+}
+
+.total {
+  font-variant-numeric: tabular-nums;
+}
+
+.membro {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+  inline-size: 100%;
+  min-inline-size: 0;
+  /*
+    ⚠ **`5px 10px` de recuo e `0 6px` de margem — os números do design, e este
+    comentário JÁ OS DIZIA enquanto o código escrevia 12/4.**
+
+    A razão do desvio está escrita na versão anterior: "na escala do projeto
+    são `space-1`/`space-3`" — ou seja, os degraus de 5, 6 e 10 não existiam e
+    a aproximação ficou. Eles existem desde a rodada de escala, e a linha volta
+    de 40 para os 42px do design. É o retrofit em estado puro: o valor certo
+    era conhecido, a fundação não sabia expressá-lo, e a aproximação virou o
+    código.
+  */
+  padding: var(--vx-space-05) var(--vx-space-10);
+  margin-inline: var(--vx-space-06);
+  border-radius: var(--vx-radius-06);
+  color: var(--vx-text-2);
+  background: transparent;
+  cursor: pointer;
+  text-align: start;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+/*
+  ⚠ **Camada de estado, e era `--vx-surface-2` — uma superfície opaca.**
+
+  A diferença é visível: `surface-2` é um degrau de ELEVAÇÃO, e usá-la como
+  hover fazia a linha parecer promovida a cartão em vez de destacada. O design
+  usa `rgba(255,255,255,0.045)` — um véu, que é exatamente o que
+  `--vx-state-hover` é, e o que a coluna de canais já usava.
+
+  Duas superfícies com nome de estado e um estado com nome de superfície era a
+  inconsistência; agora as duas colunas dizem hover do mesmo jeito.
+*/
+.membro:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+/*
+  Offline esmaece — mas o nome continua legível.
+
+  `opacity` sobre a linha inteira, e não uma cor de texto mais fraca: com
+  cor, o contraste do nome cairia abaixo do mínimo e a lista teria uma
+  metade ilegível. Com opacidade em 0.55 sobre `--vx-text-2` o par ainda
+  passa, e o ponto vazado já diz o estado sem depender disso.
+*/
+.membro[data-offline="true"] {
+  opacity: 0.55;
+}
+
+
+/*
+  Nome e recado empilhados.
+
+  O `flex: 1` saiu do nome e veio para o container: o nome precisa truncar
+  contra a largura da COLUNA, e um `flex: 1` numa das duas linhas empilhadas
+  faria cada uma disputar a altura em vez da largura.
+*/
+.textos {
+  min-inline-size: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  /* Sem `gap`: as duas linhas já têm entrelinha, e um vão entre elas as
+     separaria em dois blocos em vez de uma identidade só. */
+}
+
+/*
+  14px em peso 600 — os números do `Vortex App`. Ver `--vx-size-base`.
+
+  O peso estava herdado (400) e é o que fazia a coluna ler como uma lista de
+  texto em vez de uma lista de PESSOAS. Num painel onde cada linha é um nome
+  próprio, o nome é o conteúdo, não o rótulo de algo.
+*/
+.nome {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--vx-size-base);
+  font-weight: 600;
+}
+
+/*
+  O recado — o status personalizado, embaixo do nome.
+
+  Terciário e um degrau menor: é metadado sobre a pessoa, e competir em peso
+  com o nome inverteria a hierarquia numa coluna que existe para achar gente.
+  Trunca em uma linha: recado pode ter 128 caracteres, e uma coluna de 232px
+  não os comporta sem virar parágrafo.
+*/
+.recado {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+  line-height: var(--vx-leading-compact);
+}
+
+/*
+  Castigo (`ServerMember.timeout`).
+
+  NÃO esmaece: offline já usa opacidade, e as duas juntas ficariam
+  indistinguíveis — alguém em castigo e online pareceria só ausente. O ícone é
+  o estado, e o `sr-only` ao lado o nomeia; a cor é o reforço, nunca o portador.
+*/
+.castigo {
+  flex: none;
+  color: var(--vx-warning);
+}
+
+/* O nome recua um degrau para o ícone caber sem empurrar a linha. */
+.membro[data-silenciado="true"] .nome {
+  color: var(--vx-text-3);
+}
+
+/*
+  Painel apertado: só o avatar.
+
+  O nome some, o rótulo de seção some, e a coluna vira uma tira de
+  presenças. É o mesmo componente — a decisão é do CONTAINER, não da
+  janela, então funciona igual num slot estreito da fase 4.
+*/
+@container (inline-size < 140px) {
+  .nome,
+  .secao {
+    display: none;
+  }
+
+  .membro {
+    justify-content: center;
+  }
+}
+
+/* ============================================================
+   Pressionado e foco
+   ------------------------------------------------------------
+   A auditoria dos oito estados encontrou `:active` e
+   `focus-visible` em ZERO das cinco superfícies de feature. Os
+   wrappers de `components/ui/` tinham os dois; o passe que os
+   arrumou nunca chegou às telas da fase 3.
+   ============================================================ */
+
+/*
+  Pressionado sobe UMA camada, não escala.
+
+  `scale` funciona no botão de components/ui porque ele é uma
+  caixa pequena; numa linha de largura total o encolhimento lê
+  como falha de layout. Camada de superfície é o mecanismo de
+  profundidade deste projeto, e aqui ela também é o de pressão.
+*/
+.membro:active {
+  background: var(--vx-surface-3);
+}
+
+/*
+  Anel POR DENTRO nesta lista.
+
+  O default global usa `outline-offset: 2px`, que é certo onde há
+  respiro. Aqui as linhas ficam a 4px uma da outra: um anel por
+  fora encostaria na vizinha e leria como se duas estivessem
+  focadas. Por dentro, ele acompanha o raio da própria linha.
+*/
+.membro:focus-visible {
+  outline-offset: -2px;
+}
+
+/*
+  O alvo do menu de contexto, entre o gatilho do Radix e o cartão de perfil.
+
+  Existe porque `ContextMenuTrigger asChild` precisa de UM filho que aceite
+  `ref` e handlers, e o `CartaoDePerfil` já usa o `asChild` dele para o hover.
+  Encaixar os dois no mesmo elemento faria um sobrescrever os handlers do
+  outro — o cartão pararia de abrir, sem erro.
+
+  `display: contents` para não criar caixa: a linha continua sendo o que o
+  virtualizador mede, e um wrapper com layout próprio mudaria a altura medida.
+*/
+.alvo {
+  display: contents;
+}
+
+/*
+  A escala de ícone desta superfície — ver `--vx-icon-1` em `tokens.css`.
+
+  Cromagem densa: o design desenha 12–14px aqui, e o `size={20}` do Phosphor
+  vinha de um default copiado. O dono do tamanho é a superfície, não a chamada.
+*/
+.painel svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+/*
+  O aviso de presença congelada.
+
+  ⚠ Fora da pista virtualizada — dentro dela seria mais um item para o
+  virtualizador medir e reposicionar, numa lista de dezenas de milhares, por
+  causa de um parágrafo.
+
+  `surface-2` dentro de uma coluna em `surface-1`: um degrau ACIMA, porque ele
+  é um cartão sobre a lista e não um rodapé dela. Recuo de 6 nas laterais para
+  ele não encostar na borda da coluna, como o design desenha.
+*/
+.congelada {
+  margin: var(--vx-space-08) var(--vx-space-06) var(--vx-space-06);
+  padding: var(--vx-space-10) var(--vx-space-12);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-2);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+  line-height: 1.5;
+  text-wrap: pretty;
+}

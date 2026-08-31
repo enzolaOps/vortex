@@ -1,0 +1,80 @@
+/* ============================================================
+   Dialog — posicionamento
+   ------------------------------------------------------------
+   Estava tudo em utilities, e TRÊS delas não existiam neste
+   projeto: `inset-0`, `inset-x-0` e `max-w-lg`. O `@theme` faz
+   `--spacing-*: initial`, e utility computada sobre a base
+   `--spacing` do Tailwind v4 deixa de ser emitida.
+
+   O overlay era `fixed inset-0` sem o `inset-0`: um elemento
+   fixo de 0×0. O modal não tinha véu nenhum — e ninguém notou,
+   porque um véu ausente não parece defeito, parece decisão.
+   ============================================================ */
+
+.veu {
+  position: fixed;
+  inset: 0;
+}
+
+/*
+  Centralizado por margem automática, não por `left-1/2` mais translate.
+
+  O idioma clássico assume lado, e a lei nº 6 diz que nada pode:
+  `inset-inline` é simétrico e não escolhe direção — funciona igual em
+  RTL sem uma linha a mais.
+*/
+.painel {
+  position: fixed;
+  inset-block-start: 50%;
+  inset-inline: 0;
+  margin-inline: auto;
+  translate: 0 -50%;
+}
+
+/*
+  ⚠ **A largura é PISO, e o `:where()` é o mecanismo.**
+
+  `32rem` é o certo para um formulário e errado para uma galeria; o modal de
+  encaminhar quer 400 e o de enquete 420. Sem o `:where()`, quem ganha é a
+  ordem em que os CSS Modules entram no bundle — que não é declarada em lugar
+  nenhum e muda quando alguém troca um import de linha.
+
+  Medido: com as duas regras em especificidade 0,1,0, o modal de encaminhar
+  saiu em 400 e o de enquete em 512, com a MESMA forma de override nos dois.
+  Um bug que aparece num arquivo e não no vizinho é o pior tipo de bug de CSS.
+
+  `:where()` zera a especificidade: qualquer classe do consumidor vence, e
+  quem não opinar continua ganhando os 32rem.
+*/
+:where(.painel) {
+  inline-size: 100%;
+  max-inline-size: 32rem;
+}
+
+/*
+  O corpo rolável do modal.
+
+  ⚠ `min-block-size: 0` mora aqui e não como utility: `min-h-0` não existe
+  nesta folha — o `@theme` faz `--spacing-*: initial`, e toda utility computada
+  sobre a base do Tailwind v4 deixa de ser emitida. O `pnpm utilities` a pegou
+  na primeira corrida.
+
+  Sem ela o item de flex não encolhe abaixo do próprio conteúdo, e quem rola
+  passa a ser o PAINEL — levando cabeçalho e rodapé junto, que é exatamente o
+  que as três faixas existem para impedir.
+*/
+.corpo {
+  min-block-size: 0;
+}
+
+/*
+  O teto de altura do painel.
+
+  ⚠ Ele veio para cá porque `max-h-[90vh]` é arbitrary value e a lei nº 4 o
+  proíbe — o lint pegou na primeira corrida. `90vh` também não é degrau de
+  escala nem candidato a token: é a fração da JANELA que o modal pode ocupar,
+  e a escala do projeto mede componente, não viewport.
+*/
+.painel {
+  max-block-size: 90vh;
+}

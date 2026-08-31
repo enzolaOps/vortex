@@ -1,0 +1,447 @@
+/* ============================================================
+   Caixa de entrada
+   ------------------------------------------------------------
+   Responde o que a coluna de canais NÃO responde: o que espera
+   FORA do servidor aberto. A coluna mostra um servidor por vez;
+   esta olha todos.
+   ============================================================ */
+
+.painel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  block-size: 100%;
+  min-block-size: 0;
+  background: var(--vx-surface-1);
+  border-inline-start: 1px solid var(--vx-border-subtle);
+  /* Reage ao PRÓPRIO tamanho: pode virar um slot fino sem a janela mexer. */
+  container-type: inline-size;
+}
+
+.cabecalho {
+  display: grid;
+  gap: var(--vx-space-08);
+  padding: var(--vx-space-12);
+  border-block-end: 1px solid var(--vx-border-subtle);
+}
+
+.linhaDoTitulo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-08);
+}
+
+.titulo {
+  font-size: var(--vx-size-base);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.acoesDoTitulo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+}
+
+/*
+  O `✕`, e ele só existe quando o painel FLUTUA.
+
+  Ancorado num slot, fechar é esconder a coluna — e quem a escondeu pelo `✕`
+  não teria como saber que o botão do cabeçalho a traz de volta. Flutuando, o
+  `✕` é a saída óbvia e não mexe no layout de ninguém.
+*/
+.fechar {
+  display: grid;
+  place-items: center;
+  inline-size: 24px;
+  block-size: 24px;
+  flex: none;
+  border-radius: var(--vx-radius-06);
+  color: var(--vx-text-3);
+  cursor: pointer;
+}
+
+.fechar svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+.fechar:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.fechar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.marcarTudo {
+  border: 0;
+  background: transparent;
+  border-radius: var(--vx-radius-04);
+  color: var(--vx-accent-text);
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.marcarTudo:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.marcarTudo:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* -------------------------------------------------------- as abas */
+
+.abas {
+  display: flex;
+  gap: var(--vx-space-02);
+}
+
+/*
+  Aba selecionada por VÉU, não por tinta.
+
+  Mesma escolha do canal ativo e do item de menu realçado: uma cor sólida
+  denuncia que foi pintada para um fundo só, e este painel pode ocupar
+  qualquer slot do shell.
+*/
+.aba {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-06);
+  /* 28px de altura e `0 9px`, do design: a aba é pílula e não retângulo. */
+  block-size: 28px;
+  padding-inline: var(--vx-space-09);
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  background: transparent;
+  color: var(--vx-text-3);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.aba:hover {
+  color: var(--vx-text-2);
+}
+
+.aba[aria-selected="true"] {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.aba:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/*
+  A contagem na aba: badge vermelho para menção, número apagado para não-lida.
+
+  A diferença é a mesma da lista de canais — menção é CONTAGEM e pede ação,
+  não-lida é POSIÇÃO. Dois números iguais nas duas abas diriam que as duas
+  pedem a mesma coisa.
+*/
+.abaBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 16px;
+  block-size: 16px;
+  padding-inline: var(--vx-space-03);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-danger);
+  color: var(--vx-on-danger);
+  font-size: var(--vx-size-2xs);
+  font-weight: 700;
+}
+
+.abaContagem {
+  font-size: var(--vx-size-2xs);
+  font-weight: 500;
+  color: var(--vx-text-4);
+}
+
+/* ------------------------------------------------------- a lista */
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  /* 10 entre cartões, como no painel de fixadas — os dois são a mesma
+     família de superfície e divergir aqui é o que faz um painel parecer
+     de outro produto. */
+  gap: var(--vx-space-10);
+  padding: var(--vx-space-08);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+  outline-offset: -2px;
+}
+
+/*
+  A linha vira CARTÃO — contexto em cima, mensagem embaixo, resposta quando
+  aberta.
+
+  `grid` com o `✓` na segunda coluna, e não `flex`: o botão de marcar precisa
+  ficar alinhado ao TOPO do cartão (ao lado do contexto), e não centrado numa
+  caixa que muda de altura quando a resposta abre.
+*/
+.item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  flex: none;
+  border: 1px solid transparent;
+  border-radius: var(--vx-radius-10);
+}
+
+
+
+/*
+  Menção ganha CAIXA; não lida ganha só hover.
+
+  É a hierarquia do design — o primeiro cartão dele tem borda e fundo, os
+  outros só reagem ao ponteiro. Aqui a regra é a mesma que vale na lista de
+  canais: menção é contagem e não-lida é posição, e a contagem é o que pede
+  ação de quem lê.
+*/
+.item[data-destaque] {
+  background: var(--vx-surface-3);
+  border-color: var(--vx-border-subtle);
+}
+
+.item:hover {
+  background: var(--vx-surface-3);
+}
+
+.abrir {
+  min-inline-size: 0;
+  display: grid;
+  gap: var(--vx-space-10);
+  /* `11px 12px`, do design. */
+  padding: var(--vx-space-11) var(--vx-space-12);
+  border: 0;
+  background: transparent;
+  border-radius: var(--vx-radius-10);
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.abrir:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.contexto {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  min-inline-size: 0;
+}
+
+.servidor {
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  color: var(--vx-text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.canal {
+  flex: none;
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
+}
+
+/* Empurra contagem e hora para a ponta sem `justify-content`, que empurraria
+   o nome do canal junto. */
+.espaco {
+  flex: 1;
+}
+
+.hora {
+  flex: none;
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+/* ------------------------------------------------------- a mensagem */
+
+.mensagem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--vx-space-08);
+  min-inline-size: 0;
+}
+
+.mensagemTexto {
+  display: grid;
+  gap: var(--vx-space-02);
+  min-inline-size: 0;
+}
+
+.mensagemAutor {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+}
+
+/*
+  Duas linhas e corta.
+
+  A caixa é índice, não leitura: quem quer a mensagem inteira abre o canal, e é
+  o que o clique na linha faz. Sem o teto, uma mensagem de mil caracteres
+  empurraria as outras para fora do painel.
+*/
+.mensagemCorpo {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: var(--vx-size-md);
+  line-height: var(--vx-leading-compact);
+  color: var(--vx-text-1);
+  overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------- resposta rápida */
+
+.resposta {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  padding: 0 var(--vx-space-08) var(--vx-space-08);
+}
+
+.respostaCampo {
+  flex: 1;
+  min-inline-size: 0;
+  block-size: 28px;
+  padding-inline: var(--vx-space-12);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-0);
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  outline: none;
+}
+
+.respostaCampo:focus-visible {
+  border-color: var(--vx-accent);
+}
+
+.respostaEnviar {
+  display: grid;
+  place-items: center;
+  inline-size: 28px;
+  block-size: 28px;
+  flex: none;
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-0);
+  color: var(--vx-text-2);
+  cursor: pointer;
+}
+
+.respostaEnviar svg {
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+}
+
+.respostaEnviar:hover:not(:disabled) {
+  color: var(--vx-accent-text);
+  border-color: var(--vx-accent);
+}
+
+.respostaEnviar:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.respostaEnviar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 1px;
+}
+
+/*
+  O badge de menção — `danger`, e não acento.
+
+  Mesma razão do divisor de novas mensagens: o acento é a cor de "isto está
+  ativo" (canal aberto, servidor aberto), e menção é um AVISO. Manter as duas
+  na mesma cor faria a coluna ter nove coisas dizendo a mesma coisa.
+*/
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 16px;
+  block-size: 16px;
+  padding-inline: var(--vx-space-04);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-danger);
+  color: var(--vx-on-danger);
+  font-size: var(--vx-size-xs);
+  font-weight: 700;
+}
+
+.marcar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 28px;
+  block-size: 28px;
+  margin: var(--vx-space-08) var(--vx-space-08) 0 0;
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-2);
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  cursor: pointer;
+  /* Reservada sempre — ver `.acoes` do painel de fixadas: mostrar e esconder
+     com `display` reflowaria a lista a cada passagem de ponteiro. */
+  visibility: hidden;
+}
+
+.item:hover .marcar,
+.item:focus-within .marcar {
+  visibility: visible;
+}
+
+.marcar svg {
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+}
+
+.marcar:hover {
+  color: var(--vx-accent-text);
+  border-color: var(--vx-accent);
+}
+
+.marcar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 1px;
+}
+
+/*
+  Painel estreito: o nome do canal cede antes do nome do servidor.
+
+  O servidor é o que diz "isto é de outro lugar", que é a informação pela qual
+  a pessoa abriu a caixa de entrada. O canal ela descobre ao chegar.
+*/
+@container (inline-size < 240px) {
+  .canal {
+    display: none;
+  }
+}

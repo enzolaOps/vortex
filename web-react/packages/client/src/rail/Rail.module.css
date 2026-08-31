@@ -1,0 +1,591 @@
+/* ============================================================
+   Rail de servidores
+   ------------------------------------------------------------
+   Nasce movível (lei nº 6): nenhuma dimensão fixa em px, nenhum
+   `left`/`right`, e o que decide a forma é o TAMANHO DO PRÓPRIO
+   painel, não o da janela. Arrastado para o outro lado do shell
+   ou alargado na fase 4, continua correto sem uma linha de
+   condicional em JS.
+   ============================================================ */
+
+.rail {
+  block-size: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /*
+    SEM calha reservada, e a conta é o motivo.
+
+    O rail tem 72px. A calha comia 10,4 e o padding da lista mais 16, sobrando
+    44,8 para um avatar que precisa de 48 — o item transbordava e o flex o
+    centrava na sobra, parando em x=6,4 em vez dos 8 do padding. A lâmina, que
+    se posiciona 8px à esquerda do item para alcançar a borda do painel,
+    aterrissava em **x = −1,6 e era cortada pelo `overflow-x`**: metade do
+    indicador de servidor ativo, invisível.
+
+    Pior que o corte: a posição dela passava a depender da LARGURA DA BARRA DE
+    ROLAGEM do navegador, que muda entre sistemas. Alinhamento por acidente.
+
+    Reservar a calha protegia contra um deslocamento de 10px que acontece
+    quando a lista cresce; não reservar custa esse deslocamento e devolve o
+    indicador. Num rail de dezenas de itens, o scroll é raro e o indicador é
+    permanente.
+  */
+  scrollbar-width: thin;
+  /* O anel do ponto de presença precisa saber sobre o que está pousado. */
+  --anel: var(--vx-surface-0);
+
+  /*
+    ⚠ **O recuo mora AQUI, e não na lista — senão metade do rail desalinha.**
+
+    A casa, o `+` e as configurações são filhos diretos do rail; os servidores
+    vivem dentro de `.lista`, que tinha o recuo só para si. Medido: a marca dos
+    servidores em x=16 e a dos outros três em x=4. **Doze pixels**, numa coluna
+    de 72 — e três dos seis itens fora do eixo.
+
+    Não era invisível: é o primeiro elemento da tela, e quem comparou com outro
+    cliente viu na hora. Nenhuma guarda pegaria — as duas caixas estão corretas
+    isoladamente, e o defeito só existe na relação entre elas.
+
+    Com o recuo no rail, os seis itens são irmãos do mesmo container e o eixo é
+    um só por construção, não por dois valores que precisam concordar.
+  */
+  display: flex;
+  flex-direction: column;
+  /*
+    Vão de 8px e sem recuo lateral — os números do design.
+
+    Estava em 4px de vão e 8px de recuo nos quatro lados. O vão apertado fazia
+    os ladrilhos lerem como uma tira contínua em vez de itens; o recuo lateral
+    encolhia o alvo de clique de 72 para 55px sem mudar nada do que se vê,
+    porque o ladrilho tem 44 e é centrado de qualquer jeito.
+  */
+  gap: var(--vx-space-08);
+  padding-block: var(--vx-space-08);
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-04);
+  /* Sem recuo próprio: ele é do rail, para os servidores ficarem no mesmo
+     eixo da casa, do `+` e das configurações. */
+  /*
+    O item ocupa a largura da lista, e centra o próprio conteúdo.
+
+    Sem isto ele é dimensionado pelo conteúdo e centrado na sobra — e aí a
+    borda de início dele, que é de onde a lâmina se posiciona, depende de
+    quanto sobrou. Esticando, a borda é sempre o padding da lista: a lâmina
+    aterrissa em zero por construção, e não por coincidência de aritmética.
+  */
+  align-items: stretch;
+}
+
+.item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  /* A marca fica no centro do rail; o item é que se estica. */
+  justify-content: center;
+  gap: var(--vx-space-08);
+  /* `min-inline-size: 0` porque o nome trunca, e filho de flex tem
+     min-width auto por default — a mesma armadilha do grid do shell. */
+  min-inline-size: 0;
+  padding: var(--vx-space-04);
+  border-radius: var(--vx-radius-08);
+  color: var(--vx-text-2);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+/*
+  ⚠ O hover NÃO pinta mais o fundo do item.
+
+  O ladrilho agora é preenchido, e um retângulo cinza atrás de um ladrilho
+  colorido de cantos arredondados lia como moldura solta. O design não tem
+  fundo de item no rail — quem responde ao ponteiro é o ladrilho.
+*/
+.item:hover {
+  color: var(--vx-text-1);
+}
+
+/*
+  Não lido, e é o mesmo tratamento da lista de canais.
+
+  `data-naolidas` era escrito no botão e NENHUMA regra o lia — não-lida de
+  servidor era invisível, no lugar onde ela mais importa: o rail é a coluna
+  que responde "para onde eu vou agora" sem abrir nada.
+
+  Peso e cor, nunca tamanho. Um item que muda de ALTURA ao ficar não lido
+  reflui a coluna enquanto a pessoa mira o clique, e mensagem chegando é o
+  evento mais frequente que existe aqui. A lâmina faz o resto, na mesma escala
+  de três degraus da lista de canais.
+*/
+.item[data-naolidas="true"] {
+  color: var(--vx-text-1);
+  font-weight: 500;
+}
+
+.item[aria-current="true"] {
+  color: var(--vx-text-1);
+}
+
+/* ============================================================
+   A barra de estado — o indicador do design
+   ------------------------------------------------------------
+   ⚠ Substituiu a lâmina. Ela era a assinatura da identidade
+   anterior (três espirais com opacidade escalonada, tiradas da
+   marca); a nova marca estado com uma barra sólida na borda de
+   início. Mesmo mecanismo, forma diferente.
+
+   `inset-inline-start` e não `left`: o rail continua sem saber
+   de que lado da tela ele está.
+   ============================================================ */
+
+.barra {
+  position: absolute;
+  inset-inline-start: calc(var(--vx-space-08) * -1);
+  inline-size: var(--vx-lamina-w);
+  /* Cantos só do lado de fora: a barra nasce colada na borda do painel. */
+  border-start-end-radius: var(--vx-lamina-w);
+  border-end-end-radius: var(--vx-lamina-w);
+  background: var(--vx-text-1);
+  transition:
+    block-size var(--vx-duration-fast) var(--vx-ease-out),
+    opacity var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+/* Repouso: não existe. `opacity` e não `display` — a caixa fica, então
+   acender e apagar não reflui a coluna. */
+.barra[data-estado="repouso"] {
+  block-size: var(--vx-space-08);
+  opacity: 0;
+}
+
+/* Não lido: um traço curto. O design usa um ponto; a barra curta diz a
+   mesma coisa e reusa a mesma peça, em vez de somar uma segunda forma. */
+.barra[data-estado="atencao"] {
+  block-size: var(--vx-space-08);
+  opacity: 1;
+}
+
+/* Ativo: a barra alta. */
+.barra[data-estado="ativa"] {
+  block-size: var(--vx-space-32);
+  opacity: 1;
+}
+
+/* ============================================================
+   O divisor entre conversas e servidores
+   ============================================================ */
+
+.divisor {
+  flex: none;
+  align-self: center;
+  inline-size: var(--vx-space-24);
+  block-size: 1px;
+  background: var(--vx-border-subtle);
+}
+
+/* ============================================================
+   O ladrilho
+   ------------------------------------------------------------
+   ⚠ **PREENCHIDO com gradiente, e era o que mais destoava.** Um
+   quadrado cinza com duas iniciais é igual para todo servidor;
+   o design dá a cada um o seu. O gradiente vem do ID (ver
+   `lib/gradiente.ts`) e chega por `style` inline, porque é
+   valor de DADO — a mesma regra da cor de cargo.
+
+   44px é o tamanho do design. `--vx-avatar-md` (40) era o
+   anterior e ficava pequeno demais para a sigla em 700.
+
+   O raio de 14px do design não está na escala e não entra: 12
+   (`--vx-radius-12`) é o degrau mais próximo, e é o que a própria
+   Foundations do design lista. Diferença de 2px num ladrilho de
+   44 não é perceptível; um degrau fora da escala é.
+   ============================================================ */
+
+.marca {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: 44px;
+  block-size: 44px;
+  /* 14px em 44 — ver `--vx-radius-ladrilho`. Era `--vx-radius-12` (12), o
+     degrau mais próximo da escala, e a divergência estava registrada como
+     aceita. Deixou de ser: o percentual acerta os quatro tamanhos do rail. */
+  border-radius: var(--vx-radius-ladrilho);
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-lg);
+  font-weight: 700;
+  /* Sigla é o fallback do ícone; números tabulares não ajudam aqui, mas
+     ligadura em iniciais como "fi" viraria glifo único. */
+  font-variant-ligatures: none;
+  transition: box-shadow var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+/*
+  Ladrilho sem gradiente: conversas, configurações.
+
+  Eles não têm ID de onde derivar cor, e não deveriam ter — um ícone de sistema
+  colorido competiria com os servidores, que são o conteúdo desta coluna.
+*/
+
+/*
+  A casa é um degrau MAIS CLARA que um servidor sem imagem.
+
+  `--vx-surface-3` contra o `surface-4` dos servidores — é do design, e a
+  diferença faz trabalho: "Conversas" não é um servidor, e o rail não tem
+  outra forma de dizer isso (o ladrilho tem o mesmo tamanho e a mesma posição
+  na tira). Um degrau de superfície é a pista mais barata que existe para
+  "isto pertence a outra categoria".
+*/
+/*
+  O ícone do servidor cobrindo o ladrilho.
+
+  `absolute` contra `.marca` (que já é `relative` por causa do contador), com o
+  raio herdado para acompanhar os quatro tamanhos do rail. `object-fit: cover`
+  porque o ícone é enviado em qualquer proporção e o ladrilho é quadrado.
+
+  ⚠ O contador de menções vem DEPOIS no DOM e continua por cima — sem isso, um
+  servidor com ícone perderia o badge, que é a informação mais importante da
+  coluna.
+*/
+.icone {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.marcaCasa {
+  background: var(--vx-surface-3);
+  color: var(--vx-text-2);
+}
+
+.item:hover /*
+  O ícone do servidor cobrindo o ladrilho.
+
+  `absolute` contra `.marca` (que já é `relative` por causa do contador), com o
+  raio herdado para acompanhar os quatro tamanhos do rail. `object-fit: cover`
+  porque o ícone é enviado em qualquer proporção e o ladrilho é quadrado.
+
+  ⚠ O contador de menções vem DEPOIS no DOM e continua por cima — sem isso, um
+  servidor com ícone perderia o badge, que é a informação mais importante da
+  coluna.
+*/
+.icone {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.marcaCasa {
+  color: var(--vx-text-1);
+}
+
+/*
+  O `+` é tracejado — do design, e a escolha é boa: borda tracejada é a
+  convenção de "aqui cabe mais um", e distingue o alvo de criação dos
+  ladrilhos que representam coisas que já existem.
+*/
+/*
+  O `+` tracejado.
+
+  Borda SUTIL e não forte: o design usa `rgba(255,255,255,0.14)`, um traço que
+  insinua a caixa sem competir com os ladrilhos preenchidos ao lado. Com
+  `--vx-border-strong` ele saía mais nítido que os servidores de verdade, o
+  que inverte a hierarquia — "criar servidor" é a ação mais rara da coluna.
+*/
+.marcaAdicionar {
+  border: 1px dashed var(--vx-border-subtle);
+  color: var(--vx-text-3);
+}
+
+.item:hover .marcaAdicionar {
+  border-color: var(--vx-accent);
+  color: var(--vx-accent-text);
+}
+
+/*
+  O anel do servidor ATIVO.
+
+  `box-shadow` e não `border`: borda entraria na caixa e encolheria o ladrilho
+  em 2px ao ficar ativo, fazendo a coluna inteira tremer a cada troca de
+  servidor. Sombra não ocupa espaço.
+*/
+.item[aria-current="true"] .marca {
+  box-shadow: 0 0 0 2px var(--vx-state-selected);
+}
+
+.nome {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--vx-size-md);
+}
+
+/*
+  Abaixo de 140px o rail é só marca — o nome nem é renderizado a menos,
+  é escondido, porque medir a largura em JS para decidir seria
+  reintroduzir a premissa que a container query existe para remover.
+
+  Acima disso o mesmo componente vira uma lista com nome, sem nenhuma
+  condicional em JS. É a lei nº 6 em uma regra de CSS.
+*/
+@container (inline-size < 140px) {
+  .nome {
+    display: none;
+  }
+
+  /*
+    ⚠ Aqui havia `.lista { align-items: center }`, e ele desfazia o `stretch`
+    logo acima — o item encolhia para o conteúdo e era centrado na sobra.
+
+    Consequência medida: a borda de início do item deixava de ser o recuo do
+    painel, então a lâmina — posicionada 8px antes dela para alcançar a borda
+    do rail — aterrissava a 3,5px da borda em vez de zero. A marca de servidor
+    não lido ficava boiando no vão em vez de encostar no canto, que é onde
+    todo cliente de chat a põe e é o que a torna encontrável sem olhar.
+
+    O comentário do `stretch` já explicava por que ele existe. Esta regra o
+    anulava justamente na largura padrão do rail, que é 72px.
+  */
+}
+
+/*
+  Com o rail estreito o contador vira selo sobre o ladrilho — no canto
+  INFERIOR, como no design.
+
+  Inferior e não superior: a barra de estado vive na borda de início e a
+  contagem no fim oposto, o que evita os dois indicadores disputarem o mesmo
+  canto. A borda na cor do rail é o que separa o selo do gradiente por baixo
+  sem depender de contraste entre eles.
+*/
+@container (inline-size < 140px) {
+  .contador {
+    position: absolute;
+    inset-inline-end: 0;
+    inset-block-end: 0;
+    translate: 25% 25%;
+    border: 2px solid var(--vx-surface-0);
+  }
+}
+
+.vazio {
+  padding: var(--vx-space-12);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  text-align: center;
+}
+
+/* ============================================================
+   Pressionado e foco
+   ------------------------------------------------------------
+   A auditoria dos oito estados encontrou `:active` e
+   `focus-visible` em ZERO das cinco superfícies de feature. Os
+   wrappers de `components/ui/` tinham os dois; o passe que os
+   arrumou nunca chegou às telas da fase 3.
+   ============================================================ */
+
+/*
+  Pressionado sobe UMA camada, não escala.
+
+  `scale` funciona no botão de components/ui porque ele é uma
+  caixa pequena; numa linha de largura total o encolhimento lê
+  como falha de layout. Camada de superfície é o mecanismo de
+  profundidade deste projeto, e aqui ela também é o de pressão.
+*/
+.item:active .marca {
+  scale: 0.94;
+}
+
+/*
+  Anel POR DENTRO nesta lista.
+
+  O default global usa `outline-offset: 2px`, que é certo onde há
+  respiro. Aqui as linhas ficam a 4px uma da outra: um anel por
+  fora encostaria na vizinha e leria como se duas estivessem
+  focadas. Por dentro, ele acompanha o raio da própria linha.
+*/
+.item:focus-visible {
+  outline-offset: -2px;
+}
+
+/*
+  O ladrilho do rodapé é MENOR — 36px contra 44.
+
+  É do design, e a diferença de tamanho é o que diz que ele não pertence à
+  mesma família: os de 44 são lugares para onde se vai, este é uma ação sobre
+  o próprio cliente. Régua acima dele reforça a mesma leitura.
+*/
+/*
+  O ladrilho do rodapé — 36px, contra os 44 dos servidores.
+
+  ⚠ Estava em 32 (`--vx-space-32`). O tamanho menor É a mensagem, e ela é do
+  design: "baixar para desktop" não é um lugar para onde se vai, então o
+  ladrilho diz isso sendo menor. Mas 32 contra 44 exagerava a diferença a
+  ponto de ele parecer outra coisa; 36 mantém a leitura e a proporção.
+
+  `block-size` e `inline-size` são DIMENSÃO de componente, fora da escala de
+  espaçamento de propósito — é o mesmo caso da linha de canal em 30px.
+*/
+.marcaRodape {
+  inline-size: 36px;
+  block-size: 36px;
+  border-radius: var(--vx-radius-ladrilho);
+  background: var(--vx-surface-2);
+  color: var(--vx-text-3);
+}
+
+.item:hover .marcaRodape {
+  color: var(--vx-text-1);
+}
+
+/* ============================================================
+   Pasta do rail
+   ------------------------------------------------------------
+   Caixa tingida de acento com os ladrilhos dentro e o nome
+   embaixo — é o design.
+
+   ⚠ Pasta é conceito de CLIENTE: o protocolo não a tem. Ver
+   `store/pastas.ts`.
+   ============================================================ */
+
+/*
+  A caixa da pasta, com os números do design.
+
+  Medido lá: 52px de largura, `rgba(53,194,204,0.10)` de fundo, raio 16,
+  recuo `6px 4px`, vão de 6 — e ladrilhos de 40 dentro, contra os 44 soltos.
+  A diferença de tamanho é o que diz "estes pertencem ao grupo".
+
+  Aqui: vão e recuo sobem para `--vx-space-08`/`--vx-space-04` (8/4), o raio
+  passa a ser o proporcional (52 × 31% ≈ 16, o número do design), e o fundo
+  já era `--vx-state-selected`, que É o acento a 10%.
+*/
+.pasta {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--vx-space-08);
+  padding-block: var(--vx-space-04);
+  padding-inline: var(--vx-space-04);
+  border-radius: var(--vx-radius-ladrilho);
+  background: var(--vx-state-selected);
+}
+
+/*
+  A alça é o alvo de colapsar — e o de abrir o menu da pasta.
+
+  Pequena de propósito: ela divide a coluna de 72px com os ladrilhos de 44, e
+  um alvo do mesmo tamanho competiria com eles pela atenção. Quem procura a
+  pasta procura o grupo, não o botão.
+*/
+/*
+  A alça de colapsar: 26px no design, com fundo em acento a 20% — o DOBRO do
+  fundo da caixa. É o que a separa dela: uma alça do mesmo tom seria um
+  retângulo invisível dentro de outro, que é o mesmo defeito que a rampa de
+  superfícies veio consertar em outro lugar.
+
+  `--vx-space-24` (24) é o degrau mais próximo de 26 e é o que a escala tem.
+*/
+.alcaDaPasta {
+  display: grid;
+  place-items: center;
+  inline-size: var(--vx-space-24);
+  block-size: var(--vx-space-24);
+  border: 0;
+  border-radius: var(--vx-radius-08);
+  background: color-mix(in oklab, var(--vx-accent) 20%, transparent);
+  color: var(--vx-accent-text);
+  cursor: pointer;
+  transition: background var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.alcaDaPasta:hover {
+  background: var(--vx-accent-soft);
+}
+
+.setaDaPasta {
+  transition: rotate var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.setaDaPasta[data-aberta="false"] {
+  rotate: -90deg;
+}
+
+.conteudoDaPasta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--vx-space-08);
+}
+
+/*
+  Colapsada: os ladrilhos continuam MONTADOS e são recortados.
+
+  Desmontá-los faria a pasta perder o realce de não-lida ao fechar — e
+  não-lida escondida é exatamente o que faz alguém parar de usar pastas.
+
+  `block-size: 0` com `overflow: hidden` em vez de `display: none` pela mesma
+  razão do `visibility` nas ações de linha: o conteúdo continua existindo para
+  quem lê a árvore, e a caixa colapsa sem reflow de irmãos.
+*/
+.pasta[data-colapsada="true"] .conteudoDaPasta {
+  block-size: 0;
+  overflow: hidden;
+}
+
+/*
+  O nome, embaixo do grupo.
+
+  Minúsculo e em caixa alta — é do design, e a razão é que ele precisa caber
+  em 72px sem competir com os ladrilhos. Trunca: nome de pasta é livre, e uma
+  palavra longa esticaria o rail inteiro.
+*/
+.nomeDaPasta {
+  composes: sobrancelhaDeSecao from "../styles/sobrancelha.module.css";
+  max-inline-size: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-3);
+}
+
+/*
+  Ladrilho DENTRO de pasta é menor — 40px contra 44.
+
+  É do design, e a diferença de tamanho é o que diz "estes pertencem ao grupo":
+  sem ela a caixa tingida seria a única pista, e ela é sutil demais para
+  carregar sozinha a hierarquia.
+*/
+.item[data-napasta="true"] .marca {
+  inline-size: var(--vx-avatar-md);
+  block-size: var(--vx-avatar-md);
+  font-size: var(--vx-size-md);
+}
+
+/*
+  A ponte entre `ContextMenuTrigger asChild` e o `Tooltip`.
+
+  Os dois primitivos usam `asChild`, e no mesmo elemento um sobrescreve os
+  handlers do outro — aqui o `Tooltip` é um `Root` que não renderiza DOM, então
+  os handlers do menu não pousavam em lugar nenhum e o botão direito não fazia
+  nada, sem erro. É a mesma armadilha já registrada na member list.
+
+  `display: contents` para não criar caixa: o rail é um flex, e um wrapper com
+  layout próprio mudaria o alinhamento dos ladrilhos.
+*/
+.ponte {
+  display: contents;
+}

@@ -1,0 +1,70 @@
+/* ============================================================
+   Ferramentas do composer
+   ------------------------------------------------------------
+   Ficam DENTRO da caixa do campo, alinhadas ao fim, e a
+   posição é do design. A razão dela é boa: a caixa cresce até
+   dez linhas, e ferramentas ancoradas ao fim ficam onde a mão
+   as deixou em vez de subirem junto com o texto.
+   ============================================================ */
+
+.ferramentas {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-02);
+}
+
+.ferramenta {
+  inline-size: var(--vx-space-32);
+  block-size: var(--vx-space-32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border: none;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-2);
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-instant) var(--vx-ease-out),
+    color var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.ferramenta:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.ferramenta:active {
+  background: var(--vx-state-press);
+}
+
+/*
+  Desligado usa `--vx-text-4`, que é o token que existe para isto.
+
+  É o único par da paleta dispensado do mínimo de 4,5:1, e a dispensa é a mesma
+  que a WCAG dá: em controle inativo o baixo contraste É a informação. Ver o
+  motivo escrito em `SEM_PAR`.
+*/
+.ferramenta:disabled {
+  color: var(--vx-text-4);
+  cursor: not-allowed;
+}
+
+.ferramenta:disabled:hover {
+  background: transparent;
+}
+
+/*
+  A escala de ícone das ferramentas do composer — ver `--vx-icon-1`.
+
+  ⚠ **14 e não 16, embora o composer seja alvo de leitura.** O design põe as
+  seis ferramentas em 14px dentro de caixas de 28 — elas são cromagem que
+  ladeia o campo, não conteúdo dele. O que segue em 16 é o texto que se
+  escreve, e ele não é ícone.
+*/
+.ferramentas svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}

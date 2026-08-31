@@ -1,0 +1,102 @@
+/*
+  O cartão de upload da linha otimista.
+
+  Medidas do design (seção "Estados de envio" de
+  `Vortex Mensagens - Superfícies`), lidas com `pnpm espec` e não estimadas:
+  cartão 280px, padding 10px 12px, raio 8, trilho de 4px em `--vx-track` com
+  preenchimento em `--vx-accent`, nome em 15px e a medida em 11px `text-3`.
+
+  ⚠ **`--vx-track` e não `--vx-surface-3` no trilho.** O sexto neutro existe
+  exatamente para isto: ele está ACIMA de `surface-4` em luminosidade, e um
+  trilho mais escuro que o painel onde mora some debaixo do preenchimento.
+*/
+.cartao {
+  inline-size: 280px;
+  max-inline-size: 100%;
+  padding: var(--vx-space-10) var(--vx-space-12);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-3);
+  border: 1px solid var(--vx-border-subtle);
+
+  display: grid;
+  gap: var(--vx-space-08);
+}
+
+.linha {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  /* `min-inline-size: 0` no filho de flex, senão um nome de arquivo longo
+     empurra o botão para fora do cartão. É o mesmo `minmax(0,1fr)` do grid. */
+  min-inline-size: 0;
+}
+
+.nome {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  font-size: var(--vx-size-lg);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+/*
+  Cancelar em `--vx-danger-text` e não em `--vx-danger`: é PALAVRA dentro de
+  uma caixa, que é a divisão que os dois vermelhos fazem desde que o segundo
+  passou a existir. O `--vx-danger` fica para borda e preenchimento tingido.
+*/
+.cancelar {
+  flex: none;
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  color: var(--vx-danger-text);
+  background: none;
+  border: 0;
+  padding: var(--vx-space-02) var(--vx-space-04);
+  border-radius: var(--vx-radius-04);
+  cursor: pointer;
+}
+
+.cancelar:hover {
+  background: var(--vx-state-hover);
+}
+
+.cancelar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.trilho {
+  block-size: 4px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-track);
+  overflow: hidden;
+}
+
+.preenchimento {
+  block-size: 100%;
+  background: var(--vx-accent);
+  border-radius: var(--vx-radius-pill);
+  /*
+    ⚠ Transição na LARGURA e não `transform`, porque o trilho recorta: com
+    `scaleX` o preenchimento herdaria a escala nas bordas arredondadas e a
+    ponta ficaria achatada. 120ms casa com a janela de coalescência do store
+    efêmero — mais que isso e a barra fica atrás do número ao lado.
+  */
+  transition: inline-size 120ms linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preenchimento {
+    transition: none;
+  }
+}
+
+.medida {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+  font-variant-numeric: tabular-nums;
+}

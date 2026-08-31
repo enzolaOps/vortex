@@ -1,0 +1,111 @@
+/* ============================================================
+   CartaoDeOpcao — a escolha única em que o alvo é o cartão
+   ------------------------------------------------------------
+   ⚠ **Extraído na QUARTA cópia, e as quatro divergiam.** Modo de
+   entrada (Voz e vídeo), tipo de canal (Visão geral do canal),
+   alcance de DM e filtro (Privacidade do servidor) escreveram o
+   mesmo cartão três vezes e meia — e discordavam em tudo o que
+   dá para discordar: `surface-3` contra `surface-1`, hairline
+   contra `rgb(255 255 255 / 7%)` cru, hover de borda contra
+   hover de fundo, `outline-offset: 2px` contra `-2px`.
+
+   Nenhuma estava errada isolada. É o defeito que este projeto
+   mais encontra: o app divergindo DE SI MESMO, como as seis
+   cópias do `Avatar` e as cinco do badge.
+
+   Os valores são os do design (`row(on)` / `radio(on)` em
+   "Páginas Restantes"), que é a única versão com estado
+   selecionado especificado:
+
+     gap 11 · padding 13/15 · raio 8
+     repouso   fundo surface-3, borda véu 7%
+     marcado   fundo acento 8%, borda acento 35%
+
+   ⚠ Três aproximações deliberadas, e as três para não inventar
+   degrau: a borda de repouso usa `--vx-hairline-06` (6% contra
+   7%), o fundo marcado usa `--vx-state-selected` (10% contra
+   8%) e o recuo lateral é 14 e não 15 — 15 está FORA da escala
+   de propósito, e o `pnpm escala` o reprova. São os degraus que
+   o app inteiro já usa; um ponto percentual e um pixel não são
+   perceptíveis, e um degrau só para este cartão sim.
+   ============================================================ */
+
+.cartao {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--vx-space-11);
+  inline-size: 100%;
+  padding: var(--vx-space-13) var(--vx-space-14);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-3);
+  color: inherit;
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: border-color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.cartao[aria-checked="true"] {
+  border-color: color-mix(in oklab, var(--vx-accent) 35%, transparent);
+  background: var(--vx-state-selected);
+}
+
+/*
+  Hover só no NÃO marcado. O marcado já tem borda de acento, e clarear a dele
+  faria o cartão escolhido reagir ao ponteiro como se ainda houvesse algo a
+  escolher ali.
+*/
+.cartao:hover:not([aria-checked="true"]) {
+  border-color: var(--vx-hairline-16);
+}
+
+/*
+  ⚠ `outline-offset` POSITIVO, e é decisão em cima da divergência que a
+  extração revelou. Uma das três cópias usava `-2px` — o valor certo para
+  elemento dentro de container que recorta. Nenhum consumidor deste cartão
+  recorta: eles vivem em coluna de página, com respiro em volta. Anel por fora
+  é o que o resto do app faz.
+*/
+.cartao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.cartao:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.textos {
+  display: grid;
+  gap: var(--vx-space-02);
+  min-inline-size: 0;
+}
+
+/*
+  Flex e não bloco: o selo ("RESTRITIVO") fica na MESMA linha do título, como
+  o design desenha. Com bloco ele cairia para baixo e o cartão ganharia uma
+  terceira linha só por causa de uma palavra.
+*/
+.titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-07);
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+/* O design usa 14px no título do cartão de Acesso e 13 no de Segurança. O
+   degrau maior é do cartão que abre a página; quem o pede diz `forte`. */
+.forte .titulo {
+  font-size: var(--vx-size-base);
+}
+
+.detalhe {
+  margin: 0;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+  text-wrap: pretty;
+}

@@ -1,0 +1,268 @@
+/* ============================================================
+   Painel de usuário — o rodapé da coluna de canais
+   ------------------------------------------------------------
+   Altura FIXA, e não é preguiça de responsivo: a coluna de
+   canais rola, e um rodapé que cresce com o tamanho do recado
+   comeria a lista por baixo sem avisar. A segunda linha trunca.
+   ============================================================ */
+
+.painel {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-04);
+  padding: var(--vx-space-08);
+  /* Mais fundo que a coluna: o rodapé é chão, não conteúdo. É o mesmo
+     token do rail, e a leitura é a mesma — "isto não é a lista". */
+  background: var(--vx-surface-0);
+  /* A mesma régua da faixa de voz logo acima e dos cabeçalhos de 50px: as
+     quatro se encontram na mesma coluna, e um token diferente em qualquer
+     uma produz uma emenda visível. */
+  border-block-start: 1px solid var(--vx-hairline-06);
+}
+
+/* ------------------------------------------------------- identidade */
+
+.identidade {
+  flex: 1;
+  min-inline-size: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  padding: var(--vx-space-04);
+  border: none;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: background var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.identidade:hover {
+  background: var(--vx-state-hover);
+}
+
+.identidade:active {
+  background: var(--vx-state-press);
+}
+
+
+/*
+  O ponto de presença deste painel.
+
+  Repete a silhueta do `PontoDePresenca` em vez de reusá-lo, e a duplicação é
+  deliberada — está explicada no componente: aquele assina o store efêmero por
+  ID de usuário, este lê o store do MEU status, que carrega `invisivel`.
+
+  O anel é `--vx-surface-0` porque é sobre o rodapé que ele é desenhado, e não
+  sobre a coluna.
+*/
+.ponto {
+  position: absolute;
+  inset-inline-end: calc(var(--vx-space-02) * -1);
+  inset-block-end: calc(var(--vx-space-02) * -1);
+  inline-size: var(--vx-space-12);
+  block-size: var(--vx-space-12);
+  box-sizing: border-box;
+  border-radius: var(--vx-radius-pill);
+  box-shadow: 0 0 0 2px var(--vx-surface-0);
+}
+
+.ponto::after {
+  content: "";
+  position: absolute;
+  background: var(--vx-surface-0);
+}
+
+.pontoOnline {
+  background: var(--vx-status-online);
+}
+
+.pontoOnline::after {
+  content: none;
+}
+
+.pontoIdle {
+  background: var(--vx-status-idle);
+}
+
+.pontoIdle::after {
+  inset-inline-start: -30%;
+  inset-block-start: -30%;
+  inline-size: 80%;
+  block-size: 80%;
+  border-radius: var(--vx-radius-pill);
+}
+
+.pontoDnd {
+  background: var(--vx-status-dnd);
+}
+
+.pontoDnd::after {
+  inset-inline: 12%;
+  inset-block-start: 37%;
+  block-size: 26%;
+}
+
+.pontoOffline {
+  background: transparent;
+  border: 2px solid var(--vx-status-offline);
+}
+
+.pontoOffline::after {
+  content: none;
+}
+
+.textos {
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.nome {
+  overflow: hidden;
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+  A segunda linha nunca fica vazia — recado quando há, `@usuario` quando não.
+
+  Altura constante é o mecanismo: um rodapé que encolhe quando o recado sai
+  faria a lista de canais acima dele saltar, e a coluna inteira reflui por
+  causa de uma string.
+*/
+.segunda {
+  overflow: hidden;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------- controles */
+
+.controles {
+  flex: none;
+  display: flex;
+  gap: var(--vx-space-02);
+}
+
+.controle {
+  inline-size: var(--vx-space-32);
+  block-size: var(--vx-space-32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-2);
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-instant) var(--vx-ease-out),
+    color var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.controle:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.controle:active {
+  background: var(--vx-state-press);
+}
+
+/*
+  Mudo e surdo ligados são estado DESTRUTIVO, e por isso vermelho.
+
+  Não é alarme exagerado: os dois cortam a sua voz ou o seu ouvido, e o modo
+  de falha é a pessoa falar por um minuto sem que ninguém ouça. O ícone já
+  muda de forma (`MicrophoneSlash`, `SpeakerSlash`); a cor é a segunda pista,
+  nunca a única.
+*/
+.controleAtivo {
+  color: var(--vx-danger);
+}
+
+/* ------------------------------------------------------- menu */
+
+.itemDeStatus {
+  inline-size: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--vx-space-08);
+}
+
+.pontoDoMenu {
+  position: relative;
+  flex: none;
+  inline-size: var(--vx-space-08);
+  block-size: var(--vx-space-08);
+  box-sizing: border-box;
+  margin-block-start: var(--vx-space-04);
+  border-radius: var(--vx-radius-pill);
+}
+
+.pontoDoMenu::after {
+  content: "";
+  position: absolute;
+  /* No menu o fundo é a superfície flutuante, não o rodapé. */
+  background: var(--vx-surface-4);
+}
+
+.itemTextos {
+  min-inline-size: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.itemRotulo {
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-md);
+}
+
+/*
+  A explicação da consequência, e só onde ela existe.
+
+  `--vx-medida` não cabe aqui: o menu tem largura própria e o texto quebra em
+  duas linhas de propósito. O que segura é o `max-inline-size` do conteúdo do
+  menu, que é do primitivo.
+*/
+.itemDetalhe {
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+  line-height: var(--vx-leading-compact);
+  text-wrap: pretty;
+}
+
+.marca {
+  flex: none;
+  align-self: center;
+  color: var(--vx-accent-text);
+  font-size: var(--vx-size-md);
+}
+
+.recado {
+  padding: var(--vx-space-08);
+}
+
+/*
+  A escala de ícone deste painel — ver `--vx-icon-1` em `tokens.css`.
+
+  Microfone, fone e engrenagem em 14px dentro de alvos de 24. O design usa 12
+  em caixas de 26; o alvo aqui já é da escala, e o que estava errado era o
+  glifo, que vinha em 20 e enchia o botão.
+*/
+.painel svg {
+  /* 12px: cromagem MIÚDA, o número do design para o rodapé da coluna.
+     Ver `--vx-icon-0`. */
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+}

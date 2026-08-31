@@ -1,0 +1,175 @@
+/* ============================================================
+   Privacidade neste servidor
+   ------------------------------------------------------------
+   460px no design, com cabeçalho, corpo rolável e faixa de
+   rodapé — a estrutura que o `Dialog` já dá desde que o painel
+   perdeu o respiro próprio.
+   ============================================================ */
+
+.painel {
+  inline-size: 460px;
+}
+
+.sobrancelha {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  margin-block-end: var(--vx-space-08);
+  color: var(--vx-text-3);
+}
+
+.grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-08);
+  margin-block-end: var(--vx-space-18);
+}
+
+.textos {
+  display: grid;
+  min-inline-size: 0;
+  flex: 1;
+}
+
+.titulo {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.detalhe {
+  margin: var(--vx-space-02) 0 0;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+  text-wrap: pretty;
+}
+
+/* ------------------------------------------------ cartão de linhas */
+
+/* ------------------------------------------------ cartão de linhas */
+
+.cartaoDeLinhas {
+  margin-block-end: var(--vx-space-18);
+  padding-inline: var(--vx-space-18);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-1);
+}
+
+.linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-20);
+  padding-block: var(--vx-space-14);
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+.linha:last-child {
+  border-block-end: 0;
+}
+
+/* ------------------------------------------ efeito na experiência */
+
+.efeito {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-08);
+}
+
+.aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-12) var(--vx-space-14);
+  border: 1px solid color-mix(in oklab, var(--vx-accent) 28%, transparent);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-accent-soft);
+}
+
+.glifo {
+  flex: none;
+  margin-block-start: var(--vx-space-02);
+  color: var(--vx-accent-text);
+}
+
+.frase {
+  margin-block-start: var(--vx-space-02);
+  font-size: var(--vx-size-lg);
+  color: var(--vx-text-2);
+  text-wrap: pretty;
+}
+
+/* A amostra de mídia filtrada. */
+.midia {
+  position: relative;
+  overflow: hidden;
+  block-size: 96px;
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+}
+
+/*
+  ⚠ Xadrez e não um retângulo liso: um bloco chapado pareceria uma imagem
+  preta, e a amostra existe para mostrar que HÁ mídia embaixo do véu. Mesmo
+  mecanismo do placeholder de anexo, com a segunda parada a 45% para o padrão
+  ser um sussurro.
+*/
+.xadrez {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-conic-gradient(
+      var(--vx-surface-2) 0% 25%,
+      color-mix(in oklab, var(--vx-surface-3) 45%, var(--vx-surface-2)) 0% 50%
+    )
+    0 0 / 16px 16px;
+}
+
+/*
+  O véu sobre a mídia.
+
+  ⚠ **`--vx-scrim` e não `surface-0` a 90%, e o `pnpm superficies` foi quem
+  cobrou.** O design escreve `surface.sunken` a 90% aqui; este projeto reserva
+  o tom mais escuro para RAIL e GUTTER, e tem um token PRÓPRIO para "véu sobre
+  conteúdo" — que é exatamente o papel deste retângulo. Usar a exceção seria
+  gastar uma linha da lista de dispensas para reinventar um token que existe.
+
+  A diferença é 72% contra 90%, e ela joga a favor: com o xadrez ainda visível
+  por baixo, a amostra diz "há mídia aqui, coberta" em vez de "há um retângulo
+  escuro".
+
+  ⚠ Ele COBRE em vez de borrar, e a razão é custo: `backdrop-filter: blur()`
+  é uma passada de composição por elemento, e esta amostra é decoração dentro
+  de um modal. A leitura é a mesma; o preço não.
+*/
+.veu {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  gap: var(--vx-space-04);
+  background: var(--vx-scrim);
+}
+
+.rotuloDaMidia {
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  color: var(--vx-text-2);
+}
+
+.dicaDaMidia {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+/* ------------------------------------------------------------ rodapé */
+
+/*
+  240 de teto, do design: a frase é longa e o botão não pode encolher. Sem o
+  teto ela empurraria "Aplicar a todos os servidores" para fora do painel.
+*/
+.recadoDoRodape {
+  max-inline-size: 240px;
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+  text-wrap: pretty;
+}

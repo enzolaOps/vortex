@@ -1,0 +1,30 @@
+/*
+  240, como o seletor de Privacidade — e pelo mesmo motivo: "Minimizar para a
+  bandeja" é quase o dobro de "Encerrar o app", e um gatilho que muda de
+  tamanho ao escolher faz a linha se reorganizar debaixo do ponteiro.
+*/
+.seletor {
+  inline-size: 240px;
+}
+
+/* O selo "reinício" fica ANTES do interruptor: ele qualifica a ação, e depois
+   dela chegaria tarde — a pessoa já teria clicado. */
+.comSelo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+}
+
+/*
+  O aviso do anti-cheat.
+
+  ⚠ Fora do cartão e logo abaixo dele: ele não é uma opção, é a ressalva do
+  grupo inteiro. Dentro, viraria mais uma linha com cara de ajuste.
+*/
+.avisoDoOverlay {
+  margin: calc(var(--vx-space-26) * -1) 0 var(--vx-space-26);
+  padding-block-start: var(--vx-space-08);
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-4);
+  text-wrap: pretty;
+}

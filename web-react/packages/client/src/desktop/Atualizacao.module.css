@@ -1,0 +1,152 @@
+/* ============================================================
+   Atualização
+   ------------------------------------------------------------
+   Faixa quando está pronta, bloqueio quando é obrigatória. Os
+   outros quatro estados do ciclo não desenham nada, e o porquê
+   está no `Atualizacao.tsx`.
+   ============================================================ */
+
+/*
+  A faixa EMPURRA o conteúdo, nunca sobrepõe — 34px, a mesma altura da barra
+  de título. Ela é item do grid do shell, então não precisa de `position`.
+
+  ⚠ Ao contrário da faixa de conexão, que FLUTUA. A diferença é a duração:
+  aquela dura segundos, esta fica até alguém reiniciar, e uma barra permanente
+  sobre o cabeçalho do canal cobriria as ações dele para sempre.
+*/
+.faixa {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-10);
+  block-size: 34px;
+  padding-inline: var(--vx-space-14);
+  border-block-end: 1px solid var(--vx-hairline-06);
+  background: var(--vx-accent-soft);
+  color: var(--vx-accent-text);
+  font-size: var(--vx-size-sm);
+}
+
+.titulo {
+  font-weight: 600;
+}
+
+.versao {
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.espaco {
+  flex: 1;
+}
+
+.tempo {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.reiniciar {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-06);
+  block-size: 24px;
+  padding-inline: var(--vx-space-10);
+  border: 0;
+  border-radius: var(--vx-radius-05);
+  background: var(--vx-accent);
+  color: var(--vx-on-accent);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reiniciar:hover {
+  background: var(--vx-accent-hover);
+}
+
+.reiniciar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* -------------------------------------------------------- bloqueio */
+
+/*
+  ⚠ **`--vx-scrim` e não um preto próprio**: é o véu do app, o mesmo do modal,
+  e inventar um segundo aqui daria duas opacidades de "atrás está inativo".
+
+  `z-sistema` porque ele cobre TUDO, inclusive os modais — é o único estado do
+  app em que nada mais pode ser usado.
+*/
+.bloqueio {
+  position: fixed;
+  /* Abaixo da barra de título: cobri-la tiraria os controles de janela
+     do alcance, e a barra é o único caminho para eles. */
+  inset: var(--vx-barra-h) 0 0 0;
+  z-index: var(--vx-z-sistema);
+  display: grid;
+  place-items: center;
+  padding: var(--vx-space-24);
+  background: var(--vx-scrim);
+}
+
+.cartaoDeBloqueio {
+  display: grid;
+  justify-items: center;
+  inline-size: 420px;
+  max-inline-size: 100%;
+  padding: var(--vx-space-32) var(--vx-space-24);
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-12);
+  background: var(--vx-surface-4);
+  box-shadow: var(--vx-elev-3);
+  text-align: center;
+}
+
+.glifoDeBloqueio {
+  margin-block-end: var(--vx-space-16);
+  color: var(--vx-danger-text);
+}
+
+.tituloDeBloqueio {
+  margin: 0 0 var(--vx-space-08);
+  font-size: var(--vx-size-xl);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.textoDeBloqueio {
+  margin: 0 0 var(--vx-space-24);
+  font-size: var(--vx-size-lg);
+  color: var(--vx-text-2);
+  text-wrap: pretty;
+}
+
+/*
+  A saída manual.
+
+  ⚠ Ela existe porque o auto-update FALHA — proxy corporativo, pasta somente
+  leitura, antivírus. Sem ela a tela de bloqueio vira uma parede: o app não
+  abre e não há o que fazer. Discreta de propósito: é a segunda opção.
+*/
+.manual {
+  margin-block-start: var(--vx-space-14);
+  border: 0;
+  background: transparent;
+  color: var(--vx-text-3);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.manual:hover {
+  color: var(--vx-text-1);
+}
+
+.manual:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}

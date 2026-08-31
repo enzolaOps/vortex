@@ -1,0 +1,141 @@
+/* ============================================================
+   Cabeçalho do canal
+   ------------------------------------------------------------
+   Altura FIXA, e isso não é preguiça de responsivo: a lista de
+   mensagens abaixo é ancorada, e um cabeçalho que cresce com o
+   tópico moveria a âncora por causa de metadado. Uma linha, sempre
+   a mesma altura, com o tópico truncando.
+   ============================================================ */
+
+.cabecalho {
+  display: flex;
+  align-items: center;
+  /* 14 entre nome, divisa, tópico e ações — do design. */
+  gap: var(--vx-space-14);
+  min-inline-size: 0;
+  /*
+    50px é o número do design, e é DIMENSÃO de componente, não degrau de
+    escala — a mesma família de `--vx-rail-w` e da largura do hover card. O
+    `pnpm escala` governa padding, margin, gap e raio de propósito, e deixa
+    `block-size` de fora justamente para não empurrar geometria de layout para
+    uma escala de respiro.
+
+    Estava em `--vx-space-32` (32px), que era apertado antes e virou impossível
+    agora: os botões de ação medem 32px, e um cabeçalho de 32 não tem onde
+    pousá-los.
+  */
+  block-size: 50px;
+  padding-inline: var(--vx-space-16);
+  /* Véu a 6%, medido — era a hairline opaca. */
+  border-block-end: 1px solid var(--vx-hairline-06);
+  /*
+    ⚠ **Canvas, e estava em `surface-0` — o terceiro lugar em que este mesmo
+    erro apareceu, depois da prancha e do rodapé do composer.**
+
+    O cabeçalho é a primeira linha da COLUNA DE CONTEÚDO, e o Foundations
+    reserva `surface.sunken` para rail e gutter ultrawide. Medido no
+    `Vortex App.dc.html`: a faixa de 50px do cabeçalho de canal não declara
+    fundo nenhum — ela herda `#14181E`, o canvas. Quem a separa da timeline é
+    a hairline de baixo, que já está aqui.
+
+    Foi este defeito que motivou o `pnpm superficies`, e foi ele o primeiro
+    que a guarda pegou.
+  */
+  background: var(--vx-surface-2);
+
+  /* Container próprio: o cabeçalho decide o que mostrar pelo tamanho DELE,
+     não pelo da janela — a coluna de conteúdo muda de largura quando um
+     painel lateral colapsa, sem a janela ter mexido. */
+  container-type: inline-size;
+}
+
+.icone {
+  flex: none;
+  color: var(--vx-text-3);
+}
+
+/* `type.title` do design: 17/600. Era 13/500 — o nome do canal é a
+   identidade do lugar onde a pessoa está, e competia em peso com o tópico. */
+.nome {
+  flex: none;
+  margin: 0;
+  color: var(--vx-text-1);
+  /*
+    ⚠ **15 e não 17.** Medido no design: o nome sai em 16/600, e 16 não está na
+    escala de tipo — é 0,6% do texto do design, a cauda que ficou de fora de
+    propósito. Entre 15 e 17, 15 é o degrau `type.strong`, o mesmo do nome do
+    autor na timeline; 17 é `type.title`, de título de seção. O nome de canal é
+    identidade de LUGAR, não título de página, e em 17 ele competia com o
+    cabeçalho das configurações.
+  */
+  font-size: var(--vx-size-lg);
+  font-weight: 600;
+  line-height: var(--vx-leading-title);
+}
+
+.divisa {
+  flex: none;
+  inline-size: 1px;
+  block-size: var(--vx-space-20);
+  /* Véu a 8% — mais forte que a hairline de 6% de propósito: esta divide dois
+     pedaços da MESMA linha, e a de baixo divide zonas. */
+  background: rgb(255 255 255 / 8%);
+}
+
+/*
+  O tópico trunca — ele pode ter parágrafos.
+
+  `title` no elemento entrega o texto inteiro em hover, e é o caso
+  raro em que o tooltip nativo serve: o conteúdo é do servidor, pode
+  ser longo, e um HoverCard aqui competiria com a leitura da conversa
+  logo abaixo.
+*/
+.topico {
+  min-inline-size: 0;
+  flex: 1;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+}
+
+/* Coluna estreita: o tópico sai antes do nome. Nome é identidade;
+   tópico é contexto, e contexto é o primeiro a ceder espaço. */
+@container (inline-size < 420px) {
+  .divisa,
+  .topico {
+    display: none;
+  }
+}
+
+/*
+  ⚠ **`.coluna` viveu aqui e SAIU, e vale dizer para onde foi.**
+
+  Ela era o grid de duas linhas — cabeçalho `auto`, lista `minmax(0, 1fr)` —
+  que embrulhava os dois quando o cabeçalho era irmão da lista. Com a prancha,
+  o cabeçalho virou linha PRÓPRIA do shell e a lista passou a ser filha direta
+  da célula de conteúdo; o wrapper ficou sem consumidor, e o `pnpm utilities`
+  acusou na mesma corrida.
+
+  O que ela carregava não some: o `block-size: 100%` era load-bearing — sem
+  ele o container de scroll perde o teto e o virtualizador monta as dez mil
+  linhas de uma vez, sem erro nenhum. Agora quem garante a altura é o grid da
+  prancha, porque item de grid estica para a trilha. **Medido antes de apagar:**
+  44 linhas montadas com 1.000 semeadas, scroller com `clientHeight` 702 contra
+  `scrollHeight` 990.388. O raciocínio mudou de lugar junto com a regra, e está
+  em `.celulaDeConteudo` no `Shell.module.css`.
+*/
+
+/*
+  A escala de ícone desta superfície — ver `--vx-icon-1` em `tokens.css`.
+
+  Cromagem: o design desenha 13–14px aqui, e o `size={20}` do Phosphor vinha
+  de um default copiado de componente para componente. O dono do tamanho é a
+  superfície, não a chamada.
+*/
+.cabecalho svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}

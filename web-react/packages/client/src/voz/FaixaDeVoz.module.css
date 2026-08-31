@@ -1,0 +1,305 @@
+/* ============================================================
+   Faixa de voz conectada
+   ------------------------------------------------------------
+   Rodapé da coluna, logo acima do painel de usuário. Fica
+   enquanto a chamada dura e responde "estou conectado onde, e
+   como está a linha" sem a pessoa procurar.
+
+   Tingida de SUCCESS por padrão, e é o design: a faixa é a
+   única superfície permanente do app que diz "algo está
+   funcionando agora". Verde é o vocabulário certo para isso, e
+   ela troca para danger quando deixa de ser verdade.
+   ============================================================ */
+
+.faixa {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  /* `9px 10px`, do design. */
+  padding-inline: var(--vx-space-10);
+  padding-block: var(--vx-space-09);
+  /*
+    Duas linhas: `.topo` e `.acoes`. Era uma linha só, com dois botões.
+
+    ⚠ O `gap` volta a ZERO aqui e passa a viver em cada linha: com `8` no
+    eixo de bloco ele somava ao `margin-top` de `.acoes` e afastava a fileira
+    do estado.
+  */
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  background: color-mix(in oklab, var(--vx-success) 7%, transparent);
+  border-block-start: 1px solid var(--vx-hairline-06);
+}
+
+/*
+  Conexão ruim ou reconectando.
+
+  Muda o TINGIDO e o ponto, não o texto — o texto já diz o que houve. Duas
+  pistas para o mesmo fato, e nenhuma delas sozinha.
+*/
+/*
+  ⚠ **O degrau do MEIO, e ele faltava.**
+
+  A faixa tinha duas tintas — verde e vermelha — e `qualidade === "ruim"` caía
+  na vermelha junto com `perdida` e com `reconectando`. O design tem TRÊS:
+  `success@7` conectado, `warning@9` instável, `danger@9` perdido.
+
+  A distinção é o ponto da faixa: "a conexão está ruim mas você continua na
+  sala" e "você caiu" pedem reações diferentes de quem está falando. Com uma
+  cor só, a primeira parecia a segunda — a mesma família do contador de sala
+  cheia que estava em âmbar ao lado de um selo vermelho.
+*/
+.faixaInstavel {
+  background: color-mix(in oklab, var(--vx-warning) 9%, transparent);
+}
+
+.faixaInstavel .estado,
+.faixaInstavel .medidor {
+  color: var(--vx-warning);
+}
+
+.faixaRuim {
+  background: color-mix(in oklab, var(--vx-danger) 9%, transparent);
+}
+
+.destino {
+  flex: 1;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.destino:focus-visible {
+  outline-offset: 2px;
+}
+
+.estado {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-04);
+  /* Letra, então `success-text` — a mesma divisão de `danger-text`: o verde de
+     preenchimento (ponto de presença, selo) não é o verde de palavra. */
+  color: var(--vx-success-text);
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+}
+
+.faixaRuim .estado,
+.faixaRuim .medidor {
+  color: var(--vx-danger);
+}
+
+/*
+  O ponto é a segunda pista, nunca a única.
+
+  Qualidade de conexão comunicada só por cor some para quem não distingue
+  verde de vermelho — e é justamente quem mais precisa saber que a linha caiu.
+  O texto ao lado carrega o dado.
+*/
+.ponto {
+  flex: none;
+  inline-size: var(--vx-space-04);
+  block-size: var(--vx-space-04);
+  border-radius: var(--vx-radius-pill);
+  background: currentcolor;
+}
+
+/*
+  Onde a chamada está: canal / servidor.
+
+  Trunca em uma linha. Nome de servidor pode ser longo, e uma faixa que cresce
+  empurraria a lista de canais para cima a cada chamada.
+*/
+.lugar {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+}
+
+/*
+  A linha de cima: destino à esquerda, medidor e desligar na ponta.
+
+  ⚠ Ela precisa existir como caixa. Sem ela, `.destino`, `.controles` e
+  `.acoes` eram os TRÊS filhos diretos de uma coluna, e o medidor caía abaixo
+  do nome do canal em vez de ficar na mesma linha que ele — que é o que o
+  design desenha e o que faz a faixa caber em duas linhas.
+*/
+.topo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  min-inline-size: 0;
+}
+
+.controles {
+  flex: none;
+  display: flex;
+  gap: var(--vx-space-02);
+}
+
+.controle {
+  display: grid;
+  place-items: center;
+  /*
+    26, e não 32 — do design.
+
+    ⚠ Ele é o ÚNICO alvo da linha de cima, e era o que ditava a altura dela:
+    com 32, a linha media 32 e a fileira de baixo 26, e as duas ficavam
+    visivelmente desiguais numa faixa de duas linhas. As três coisas da faixa
+    — desligar, medidor, alvo de ação — têm o mesmo 26 no design justamente
+    para a faixa ler como um bloco e não como duas.
+  */
+  inline-size: 26px;
+  block-size: 26px;
+  border: none;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-2);
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-instant) var(--vx-ease-out),
+    color var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.controle:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.controle:active {
+  background: var(--vx-state-press);
+}
+
+/*
+  Desligar é destrutivo e fica em danger desde o repouso.
+
+  Não é alarme exagerado: é a única ação da faixa que não se desfaz com outro
+  clique — voltar exige entrar na sala de novo, e quem estava falando perdeu a
+  vez. O ícone já é um telefone cortado; a cor é a segunda pista.
+*/
+.desligar {
+  color: var(--vx-danger);
+}
+
+.desligar:hover {
+  background: color-mix(in oklab, var(--vx-danger) 14%, transparent);
+  color: var(--vx-danger);
+}
+
+/*
+  A escala de ícone desta superfície — ver `--vx-icon-1` em `tokens.css`.
+
+  Cromagem densa: o design desenha 12–14px aqui, e o `size={20}` do Phosphor
+  vinha de um default copiado. O dono do tamanho é a superfície, não a chamada.
+*/
+.faixa .controle svg,
+.faixa .destino svg {
+  /* 12px: cromagem MIÚDA, o número do design para o rodapé da coluna.
+     Ver `--vx-icon-0`. */
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+}
+
+/* ============================================================
+   A fileira de quatro
+   ------------------------------------------------------------
+   `gap: 4` e `margin-top: 8`, do design. Cada alvo em `flex: 1`
+   e não com largura de conteúdo: são quatro do mesmo peso, e um
+   crescer porque o glifo é mais largo faria a fileira parecer
+   ordenada por importância.
+   ============================================================ */
+
+.acoes {
+  display: flex;
+  gap: var(--vx-space-04);
+  margin-block-start: var(--vx-space-08);
+}
+
+.acao {
+  flex: 1;
+  min-inline-size: 0;
+  display: grid;
+  place-items: center;
+  block-size: 26px;
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  /* Véu e não superfície: a faixa já é tingida pela qualidade, e um fundo
+     opaco aqui brigaria com a tinta em vez de pousar sobre ela. */
+  background: rgb(255 255 255 / 5%);
+  color: var(--vx-text-2);
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.acao:hover {
+  background: rgb(255 255 255 / 9%);
+}
+
+.acao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/* Ligado: acento a 16%, como o design — o mesmo par do `state-selected`, um
+   degrau acima porque aqui ele compete com a tinta da faixa por baixo. */
+.acao[aria-pressed="true"] {
+  background: color-mix(in oklab, var(--vx-accent) 16%, transparent);
+  color: var(--vx-accent-text);
+}
+
+.acao svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+/* ============================================================
+   O medidor de qualidade
+   ------------------------------------------------------------
+   Quatro barras de 3px alinhadas pela BASE, `gap: 2`, dentro de
+   16px de altura — do design.
+
+   A cor acesa é `currentcolor`: a barra herda do `.estado` da
+   faixa, então ela vira verde, âmbar ou vermelha junto com o
+   texto sem uma linha por estado. Um mapa de cor próprio aqui
+   poderia discordar do rótulo ao lado — que é o defeito de dizer
+   duas coisas sobre o mesmo fato.
+   ============================================================ */
+
+.medidor {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--vx-space-02);
+  block-size: 16px;
+  /*
+    ⚠ A cor mora AQUI e não é herdada da faixa: `.medidor` é irmão de
+    `.estado`, não filho, então `currentcolor` pegaria a cor do texto comum.
+    Os dois recebem a mesma cor pelas mesmas duas regras de estado logo
+    acima, que é o que garante que o medidor e o rótulo nunca discordem.
+  */
+  color: var(--vx-success-text);
+}
+
+.barra {
+  inline-size: 3px;
+  border-radius: var(--vx-radius-02);
+  /* ⚠ `--vx-track-forte` é exatamente o `#3C4653` que o design usa aqui — o
+     sétimo neutro entrou por causa do trilho do interruptor e serve ao mesmo
+     papel: o vazio de um controle ATIVO, não de um bloqueado. */
+  background: var(--vx-track-forte);
+}
+
+.barra[data-acesa="true"] {
+  background: currentcolor;
+}

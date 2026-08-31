@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "vortex-react-spike",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "-C",
+        "web-react/packages/client",
+        "dev"
+      ],
+      "port": 5173,
+      "autoPort": true
+    },
+    {
+      "name": "vortex-react-preview",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "-C",
+        "web-react/packages/client",
+        "preview",
+        "--port",
+        "4173",
+        "--strictPort"
+      ],
+      "port": 4173
+    }
+  ]
+}

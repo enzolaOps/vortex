@@ -1,0 +1,54 @@
+.painel {
+  inline-size: 420px;
+  max-inline-size: 100%;
+}
+
+.corpo {
+  display: grid;
+  gap: var(--vx-space-12);
+}
+
+.rotulo {
+  margin: 0;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+/*
+  O destino, em mono e quebrando em qualquer ponto.
+
+  Reticências esconderiam o FIM do domínio, que é exatamente onde o engano
+  costuma estar — `banco.com.exemplo-golpe.net` lido pela metade parece o banco.
+*/
+.destino {
+  margin: 0;
+  padding: var(--vx-space-08);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-1);
+  overflow-wrap: anywhere;
+}
+
+.alerta {
+  margin: 0;
+  padding: var(--vx-space-12);
+  border-inline-start: 3px solid var(--vx-danger);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-1);
+  font-size: var(--vx-size-md);
+  line-height: var(--vx-leading-message);
+  color: var(--vx-text-1);
+}
+
+.alerta strong {
+  font-weight: 600;
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-08);
+}

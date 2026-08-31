@@ -1,0 +1,186 @@
+/* ============================================================
+   Membros
+   ------------------------------------------------------------
+   A tabela vem de `Tabela.module.css` — ela é compartilhada com
+   Convites, que é a mesma peça com outras colunas. O que mora
+   aqui é o que só esta página tem: a barra de controles, a
+   grade de colunas e a barra de lote.
+   ============================================================ */
+
+.pagina {
+  /*
+    ⚠ **Sem o teto de 840 das páginas de preferência**, e é a mesma razão de
+    Atalhos de teclado: cinco colunas em 840px espremem os cargos num canto.
+    A tabela é varredura, não leitura em linha.
+  */
+  display: grid;
+  gap: var(--vx-space-16);
+  align-content: start;
+}
+
+/*
+  `26px 1.6fr 1.4fr 130px 40px`, do design — MENOS a coluna de última
+  atividade, que o protocolo não tem. Ver o recado no rodapé da página.
+
+  A grade vive numa custom property porque cabeçalho e linha moram em
+  `Tabela.module.css` e precisam da MESMA: com duas declarações, a primeira que
+  alguém mexesse desalinharia o cabeçalho do corpo.
+*/
+.tabela {
+  --colunas: 26px 1.6fr 1.4fr 130px 40px;
+}
+
+.cargos {
+  min-inline-size: 0;
+  overflow: hidden;
+}
+
+/* -------------------------------------------------------- controles */
+
+.controles {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+}
+
+/*
+  260×34, do design — e ele é o único campo de busca deste app que é um
+  `input` de verdade junto de outro (`Escolha`) na mesma linha. Aqui digitar É
+  a ação: não há paleta atrás nem segundo dono do texto.
+*/
+.campo {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-08);
+  inline-size: 260px;
+  block-size: 34px;
+  padding-inline: var(--vx-space-11);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+}
+
+.campo:focus-within {
+  border-color: var(--vx-accent);
+  box-shadow: 0 0 0 3px var(--vx-accent-ring);
+}
+
+.campo svg {
+  flex: none;
+  color: var(--vx-text-3);
+}
+
+.entrada {
+  flex: 1;
+  min-inline-size: 0;
+  border: 0;
+  background: transparent;
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  outline: none;
+}
+
+.entrada::placeholder {
+  color: var(--vx-text-4);
+}
+
+.espaco {
+  flex: 1;
+}
+
+.contagem {
+  flex: none;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+/* ----------------------------------------------------------- ações */
+
+.maisAcoes {
+  display: grid;
+  place-items: center;
+  inline-size: 28px;
+  block-size: 28px;
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-3);
+  cursor: pointer;
+}
+
+.maisAcoes:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.maisAcoes:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/* ------------------------------------------------------ barra de lote */
+
+/*
+  ⚠ **Ela FLUTUA e só existe com alguém selecionado.** Uma faixa permanente
+  embaixo de uma tabela de mil linhas rouba altura o tempo todo para uma ação
+  que acontece uma vez por mês — e no fluxo ela empurraria a última linha para
+  fora da vista justamente quando a pessoa acabou de marcá-la.
+*/
+.lote {
+  position: sticky;
+  inset-block-end: var(--vx-space-16);
+  z-index: var(--vx-z-realce);
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-12);
+  justify-self: center;
+  padding: var(--vx-space-08) var(--vx-space-14);
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-surface-4);
+  box-shadow: var(--vx-elev-3);
+}
+
+.loteContagem {
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+/* Véu a 12%, do design: dentro de uma barra em `surface-4` uma divisa de
+   `border-subtle` sumiria. */
+.divisa {
+  inline-size: 1px;
+  block-size: 16px;
+  background: rgb(255 255 255 / 12%);
+}
+
+.loteAcaoAviso {
+  border: 0;
+  background: transparent;
+  color: var(--vx-warning);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.loteAcaoPerigo {
+  composes: loteAcaoAviso;
+  color: var(--vx-danger-text);
+}
+
+.loteAcaoAviso:focus-visible,
+.loteAcaoPerigo:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.recado {
+  margin: 0;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+  text-wrap: pretty;
+}

@@ -1,0 +1,45 @@
+/*
+  A viewport do toast.
+
+  `w-80` estava no `className` e NÃO GERA CSS neste projeto — a viewport
+  media 0px de largura. O toast é primitivo construído, testado e ainda sem
+  chamador, então o defeito nunca apareceu; apareceria inteiro no dia em que
+  o primeiro caminho de erro o usasse.
+
+  `min()` em vez de largura fixa: numa janela estreita, a largura fixa
+  encostaria nas duas bordas.
+
+  ⚠ **Ela media 320 e o toast dentro dela mede 400, então TODO toast do app
+  vazava 80px para fora — e, como a viewport é ancorada na borda direita, o
+  vazamento saía da JANELA.** Medido numa janela de 1280: a viewport em
+  x=944 com 320 de largura, e o item em x=944 com 400, terminando em 1344.
+  A descrição do toast era cortada pela borda da tela.
+
+  Nada falhou: a viewport tinha largura, o item tinha largura, e as duas
+  estavam certas isoladamente — o defeito só existe na RELAÇÃO, que é a
+  mesma família da chamada falsa que descrevia dois mundos. Apareceu quando
+  um toast com descrição longa foi disparado pela primeira vez.
+
+  Agora a viewport tem a largura do que ela contém, e o teto continua sendo
+  a janela.
+*/
+.viewport {
+  inline-size: min(400px, calc(100vw - var(--vx-space-32)));
+}
+
+/*
+  A largura do toast — 400, da referência.
+
+  ⚠ **Aqui e não numa utility, e a razão é uma lacuna de guarda que eu quase
+  aproveitei.** Escrevi `w-[400px]` primeiro; o `pnpm lint` e o
+  `pnpm utilities` passaram os dois, porque a regra contra arbitrary value não
+  cobre `w-[…]`. Passar não é o mesmo que estar certo: 400 é DIMENSÃO de
+  componente, a mesma família de `--vx-rail-w`, e a casa dela é o módulo.
+
+  O teto em viewport é o que impede o toast de estourar numa janela estreita —
+  ele é `fixed`, então não há container para o proteger.
+*/
+.caixa {
+  inline-size: 400px;
+  max-inline-size: calc(100vw - 32px);
+}

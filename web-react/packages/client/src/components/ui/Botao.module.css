@@ -1,0 +1,246 @@
+/* ============================================================
+   Botão — os oito estados num lugar só
+   ============================================================ */
+
+.botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vx-space-08);
+  /*
+    ⚠ **ALTURA fixa e respiro só no eixo inline — e o botão inteiro estava
+    errado.** Achado pelo `pnpm confronto`, que compara design e app na mesma
+    posição da árvore.
+
+    Medido em quatro botões do design: `padding: 0 12px` com altura de 28, 30
+    ou 32 conforme o lugar, e tipo `12px/600`. O nosso tinha `8px 12px` com
+    altura implícita e peso 400 — ou seja, botão mais alto, texto mais leve, e
+    a altura variando com a entrelinha herdada em vez de ser decidida.
+
+    `block-size` em vez de `padding-block` porque o design pensa em ALTURA de
+    alvo: três tamanhos, e o texto centrado neles. Com respiro vertical, a
+    altura vira consequência do tipo, e um botão ao lado de um campo de 32
+    nunca alinha.
+
+    600 e não 400: em 12px o peso é o que separa rótulo de ação de texto
+    corrido, e era por isso que os botões pareciam links.
+  */
+  /*
+    Três alturas, e elas vêm da referência: 28 dentro de lista, 34 no caso
+    comum, 40 em ação de modal. Antes havia uma só (30), e o resultado era um
+    botão que ficava grande demais numa linha e pequeno demais num rodapé de
+    modal — o mesmo alvo pedindo pesos diferentes em superfícies diferentes.
+  */
+  block-size: 34px;
+  padding-inline: var(--vx-space-16);
+  border: 1px solid transparent;
+  border-radius: var(--vx-radius-06);
+  font-family: inherit;
+  /* 13, o `type.label` do design, e não 12: o botão é AÇÃO, e o degrau de
+     12 é o de metadado. Medido no `Vortex Foundations.dc.html`: os oito
+     estados saem em `font-size:13px;font-weight:600`, sem exceção.
+     ⚠ A referência RENDERIZA 15 aqui, e não é divergência dela — ela declara
+     `text-label` (13) e roda com um `--vx-font-scale` de 1,15. Medir o pixel
+     dela neste ponto levaria ao número errado. */
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    border-color var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+/*
+  O anel do design: 1px de acento sólido colado na borda, mais 4px de acento a
+  22% em volta. `outline: none` porque o do sistema desenharia um terceiro
+  contorno por fora dos dois.
+
+  ⚠ **Isto ainda NÃO é global, e a diferença é medida.** A referência põe o
+  mesmo anel num `:focus-visible` para o documento inteiro; aqui há 102 regras
+  de foco e **41 delas usam `outline-offset` negativo**, que existe porque o
+  elemento vive dentro de um container que RECORTA — e `box-shadow` é recortado
+  onde `outline` não é. Trocar as 102 de uma vez apagaria o foco em 41 lugares
+  sem nenhum erro. O botão não está em nenhum desses casos, então ele vai
+  primeiro; o resto é uma varredura própria, caso a caso.
+*/
+.botao:focus-visible {
+  outline: none;
+  border-color: var(--vx-accent);
+  /* 3px, e não os 4 da referência: o design faz `border:1px solid #35C2CC`
+     mais `box-shadow:0 0 0 3px rgba(53,194,204,0.22)`, e a borda já entrega o
+     primeiro pixel. Somar 1+4 daria cinco. */
+  box-shadow: 0 0 0 3px var(--vx-accent-ring);
+}
+
+/* `:active` sem mover layout: escala no compositor, 1 frame. */
+.botao:active:not(:disabled) {
+  scale: 0.98;
+}
+
+/*
+  Desabilitado é a MESMA superfície morta em qualquer variante, e não a
+  variante esmaecida.
+
+  ⚠ **Só `:disabled` PURO, e nunca o carregando** — é a diferença entre o
+  design e a referência, e o design está certo. A referência aplica a mesma
+  superfície morta aos dois; o design mantém `#35C2CC`/`#04181B` no botão que
+  está salvando. Um botão que muda de cor no clique não parece "trabalhando",
+  parece que o clique errou o alvo, e o anel ao lado do rótulo já diz que há
+  algo em curso.
+
+  ⚠ Era `opacity`, e opacidade sobre o destrutivo sólido dava um vermelho
+  lavado que ainda lê como vermelho — o botão continuava gritando "perigo"
+  enquanto anunciava que não faz nada. Com `--vx-track` e `--vx-text-4`, todo
+  botão inerte é o mesmo botão inerte, que é o que o estado significa.
+
+  ⚠ **Sem `pointer-events: none`, e a referência o tem.** Ele apagaria o
+  cursor junto: elemento que não recebe evento de ponteiro herda o cursor do
+  pai, então `not-allowed` e `progress` nunca apareceriam — na referência os
+  dois são letra morta pela mesma razão. Realce já está barrado pelo
+  `:not(:disabled)` que toda variante carrega, então ele não protegia nada.
+*/
+.botao:disabled:not(.carregando) {
+  border-color: transparent;
+  background: var(--vx-track);
+  color: var(--vx-text-4);
+  cursor: not-allowed;
+}
+
+/*
+  Em curso não é o mesmo que impedido: o cursor diz "espere", não "não".
+
+  ⚠ `.botao:disabled.carregando` e não `.carregando`: carregar DESABILITA, e
+  com a especificidade menor o `not-allowed` da regra acima ganhava sempre —
+  a distinção inteira ficaria escrita e invisível.
+*/
+.botao:disabled.carregando {
+  cursor: progress;
+}
+
+/* --- tamanhos -------------------------------------------------- */
+
+/* Dentro de lista e de cabeçalho de cartão, onde a linha tem 40–50px. */
+.pequeno {
+  block-size: 28px;
+  padding-inline: var(--vx-space-12);
+  font-size: var(--vx-size-xs);
+}
+
+/* Rodapé de modal: o alvo principal de uma decisão pede peso de alvo. */
+.grande {
+  block-size: 40px;
+  padding-inline: var(--vx-space-18);
+}
+
+/* --- variantes ------------------------------------------------ */
+
+.primario {
+  background: var(--vx-accent);
+  color: var(--vx-on-accent);
+}
+
+.primario:hover:not(:disabled) {
+  background: var(--vx-accent-hover);
+}
+
+/*
+  ⚠ O texto é `text-1`, não `text-2` — era o secundário inteiro lendo como
+  desativado. Este é o botão de AÇÃO ao lado do primário ("Cancelar" ao lado de
+  "Salvar"); o tom de metadado é do `sutil`, logo abaixo, que é o que existe
+  para a ação de menor peso.
+
+  O hover troca de SUPERFÍCIE (sobe um degrau) em vez de acender a borda: com a
+  borda forte no hover, o botão parava de ser secundário e virava um terceiro
+  nível de ênfase que não existe no desenho.
+*/
+.neutro {
+  border-color: var(--vx-hairline-10);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-1);
+}
+
+.neutro:hover:not(:disabled) {
+  background: var(--vx-surface-4);
+}
+
+/*
+  ⚠ O `sutil` do design NÃO tem borda nem fundo — é texto com alvo. Era o que
+  já estava aqui, e o confronto confirmou: `Ver diferença` sai 99×28 sem fundo
+  e sem borda, em `text-2`.
+*/
+/* ⚠ Respiro 14 e não 16, e é assim nos dois SUTIS do design. Faz sentido: sem
+   preenchimento nem borda, a caixa do botão é invisível, e o mesmo respiro do
+   sólido empurraria o rótulo para longe do que ele acompanha. */
+.sutil {
+  padding-inline: var(--vx-space-14);
+  background: transparent;
+  color: var(--vx-text-2);
+}
+
+.sutil:hover:not(:disabled) {
+  background: var(--vx-surface-2);
+  color: var(--vx-text-1);
+}
+
+/*
+  Destrutivo SÓLIDO — vermelho cheio com texto tingido, como o design.
+
+  ⚠ Ele era `surface-3` com a palavra em vermelho, que é a aparência do
+  `perigoSutil` logo abaixo. Os seis consumidores de hoje são todos a
+  CONFIRMAÇÃO dentro de um modal ("Apagar servidor", "Expulsar", "Encerrar
+  sessões") — o momento em que a ação acontece, e o único do app que merece
+  peso cheio.
+*/
+.perigo {
+  background: var(--vx-danger);
+  color: var(--vx-on-danger);
+}
+
+.perigo:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--vx-danger) 88%, black);
+}
+
+/*
+  Destrutivo SUTIL — a ENTRADA de um fluxo destrutivo, não o fim dele.
+
+  A distinção é a razão de existirem dois: "Apagar servidor" numa página de
+  configurações abre uma confirmação, e pintá-lo de vermelho cheio dá o peso do
+  ato a um botão que só faz uma pergunta. O sólido fica para o botão que
+  realmente apaga.
+*/
+.perigoSutil {
+  padding-inline: var(--vx-space-14);
+  border-color: var(--vx-danger-border);
+  background: transparent;
+  color: var(--vx-danger-text);
+}
+
+.perigoSutil:hover:not(:disabled) {
+  background: var(--vx-danger-soft);
+}
+
+/*
+  Aviso SUTIL — a mesma forma do `perigoSutil` com a outra cor de estado.
+
+  ⚠ Ele existe porque o único caso de aviso do app não é destrutivo nem
+  neutro: "Abrir ajustes" dentro do banner de permissão do sistema responde ao
+  aviso que está acima dele, e um botão neutro ali não diria a qual banner
+  pertence.
+
+  `color-mix` à mão, sem token: é a única superfície do app com âmbar de
+  preenchimento, e a régua deste projeto é que a cor derivada só ganha nome ao
+  cruzar a linha de "existe atrás de UMA coisa" — foi o que aconteceu com
+  `danger-soft` na quarta cópia.
+*/
+.avisoSutil {
+  padding-inline: var(--vx-space-14);
+  border-color: color-mix(in oklab, var(--vx-warning) 35%, transparent);
+  background: transparent;
+  color: var(--vx-warning);
+}
+
+.avisoSutil:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--vx-warning) 14%, transparent);
+}

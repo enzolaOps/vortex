@@ -1,0 +1,304 @@
+/* ============================================================
+   Picker de paleta
+   ------------------------------------------------------------
+   Escolha primeiro, parâmetro depois. A versão anterior tinha a
+   ordem invertida: matiz e croma no topo, que é o modelo mental
+   de quem implementou a derivação.
+   ============================================================ */
+
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-12);
+  padding-block-start: var(--vx-space-12);
+  border-block-start: 1px solid var(--vx-border-subtle);
+}
+
+.topo {
+  display: flex;
+  align-items: stretch;
+  gap: var(--vx-space-12);
+  min-inline-size: 0;
+}
+
+/* --- miniatura ------------------------------------------------ */
+
+.miniatura {
+  display: grid;
+  grid-template-columns: 10px 22px minmax(0, 1fr) 12px;
+  gap: var(--vx-space-02);
+  flex: none;
+  inline-size: 132px;
+  block-size: 76px;
+  padding: var(--vx-space-02);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  overflow: hidden;
+}
+
+.miniRail,
+.miniCanais,
+.miniMembros {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-02);
+  padding: var(--vx-space-02);
+  border-radius: var(--vx-radius-04);
+}
+
+.miniRail {
+  align-items: center;
+}
+
+.miniMarca {
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: var(--vx-radius-02);
+  flex: none;
+}
+
+.miniLinha,
+.miniLinhaAtiva {
+  block-size: 3px;
+  border-radius: var(--vx-radius-02);
+  flex: none;
+}
+
+.miniLinha {
+  inline-size: 80%;
+  opacity: var(--vx-lamina-3);
+}
+
+/* A linha ativa mostra o acento SOBRE o preenchimento suave — o par que
+   a interface mais usa e o que menos aparece num quadradinho de cor. */
+.miniLinhaAtiva {
+  inline-size: 100%;
+  block-size: 7px;
+  position: relative;
+}
+
+.miniLinhaAtiva::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: var(--vx-space-02);
+  inset-block: var(--vx-space-02);
+  inline-size: 60%;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+.miniConteudo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-04);
+  justify-content: flex-end;
+  padding: var(--vx-space-04);
+  min-inline-size: 0;
+}
+
+.miniNome {
+  inline-size: 34%;
+  block-size: 4px;
+  border-radius: var(--vx-radius-02);
+}
+
+.miniTexto,
+.miniTextoCurto,
+.miniMeta {
+  block-size: 3px;
+  border-radius: var(--vx-radius-02);
+}
+
+.miniTexto {
+  inline-size: 92%;
+}
+
+.miniTextoCurto {
+  inline-size: 64%;
+}
+
+.miniMeta {
+  inline-size: 28%;
+  opacity: var(--vx-lamina-3);
+}
+
+.miniMembros {
+  align-items: center;
+}
+
+.miniPonto {
+  inline-size: 5px;
+  block-size: 5px;
+  border-radius: var(--vx-radius-12);
+  flex: none;
+}
+
+/* --- controles ao lado da miniatura --------------------------- */
+
+.controles {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--vx-space-08);
+  min-inline-size: 0;
+}
+
+.veredito {
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.veredito strong {
+  color: var(--vx-text-2);
+  font-weight: 500;
+}
+
+.veredito[data-ok="false"] {
+  color: var(--vx-danger);
+}
+
+/* --- swatches de paleta --------------------------------------- */
+
+.paletas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: var(--vx-space-08);
+}
+
+.swatch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-04);
+  padding: var(--vx-space-04);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-1);
+  color: var(--vx-text-3);
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  cursor: pointer;
+  transition:
+    border-color var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.swatch:hover {
+  border-color: var(--vx-border-strong);
+  color: var(--vx-text-2);
+}
+
+.swatch:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.swatch:active {
+  scale: 0.98;
+}
+
+.swatch[aria-checked="true"] {
+  border-color: var(--vx-accent);
+  color: var(--vx-text-1);
+}
+
+.barras {
+  display: flex;
+  gap: 1px;
+  block-size: var(--vx-space-24);
+  border-radius: var(--vx-radius-04);
+  overflow: hidden;
+}
+
+.barra {
+  flex: 1;
+}
+
+.nome {
+  text-align: start;
+  padding-inline-start: var(--vx-space-02);
+}
+
+/* --- ajuste fino ---------------------------------------------- */
+
+.fino {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-08);
+}
+
+.disclosure {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-04);
+  align-self: flex-start;
+  padding: var(--vx-space-04) var(--vx-space-08);
+  margin-inline-start: calc(var(--vx-space-08) * -1);
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-3);
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  cursor: pointer;
+}
+
+.disclosure:hover {
+  color: var(--vx-text-1);
+  background: var(--vx-surface-2);
+}
+
+.disclosure:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 1px;
+}
+
+.caret {
+  transition: rotate var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.caret[data-aberto="true"] {
+  rotate: 180deg;
+}
+
+.finoCorpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-08);
+}
+
+.linha {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-12);
+  min-inline-size: 0;
+}
+
+.rotulo {
+  flex: none;
+  inline-size: 84px;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+}
+
+.medida {
+  flex: none;
+  inline-size: 68px;
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-xs);
+  font-family: var(--vx-font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+
+/* Painel estreito: a miniatura sai da linha e vira largura cheia. */
+@container (inline-size < 460px) {
+  .topo {
+    flex-direction: column;
+  }
+
+  .miniatura {
+    inline-size: 100%;
+  }
+}

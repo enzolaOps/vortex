@@ -1,0 +1,88 @@
+/* ============================================================
+   Deslizante
+   ------------------------------------------------------------
+   O trilho e o polegar precisam ser escritos à mão: o range
+   nativo é desenhado pelo SISTEMA, e num app dark ele chega com
+   cromo claro. Era um dos quatro controles nativos que faziam a
+   fase 4 parecer um painel de depuração.
+   ============================================================ */
+
+.deslizante {
+  inline-size: 100%;
+  min-inline-size: 0;
+  block-size: var(--vx-space-24);
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  /* Sem isto o navegador desenha o controle dele por baixo do nosso. */
+  appearance: none;
+}
+
+.deslizante::-webkit-slider-runnable-track {
+  block-size: var(--vx-space-04);
+  border-radius: var(--vx-radius-12);
+  /* O sexto neutro. Era `surface-3`, mais ESCURO que o painel onde o
+     deslizante mora — o trilho sumia sob o polegar. */
+  background: var(--vx-track);
+}
+
+.deslizante::-moz-range-track {
+  block-size: var(--vx-space-04);
+  border-radius: var(--vx-radius-12);
+  background: var(--vx-track);
+}
+
+.deslizante::-webkit-slider-thumb {
+  appearance: none;
+  /* 14 e não 16, e BRANCO e não acento — os dois do design.
+     ⚠ O acento no polegar competia com a parte PREENCHIDA do trilho, que
+     também é acento: dois elementos da mesma cor onde um deve indicar posição
+     e o outro quantidade. O design deixa o preenchimento em acento e põe o
+     polegar em `text-1`, que é o que faz a alça se destacar de ambos. */
+  inline-size: 14px;
+  block-size: 14px;
+  /* Centraliza o polegar no trilho: (trilho − polegar) / 2. */
+  margin-block-start: calc((var(--vx-space-04) - var(--vx-space-16)) / 2);
+  border-radius: var(--vx-radius-12);
+  border: 0;
+  background: var(--vx-text-1);
+  cursor: grab;
+  transition:
+    scale var(--vx-duration-fast) var(--vx-ease-out),
+    background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.deslizante::-moz-range-thumb {
+  /* 14 e não 16, e BRANCO e não acento — os dois do design.
+     ⚠ O acento no polegar competia com a parte PREENCHIDA do trilho, que
+     também é acento: dois elementos da mesma cor onde um deve indicar posição
+     e o outro quantidade. O design deixa o preenchimento em acento e põe o
+     polegar em `text-1`, que é o que faz a alça se destacar de ambos. */
+  inline-size: 14px;
+  block-size: 14px;
+  border-radius: var(--vx-radius-12);
+  border: 0;
+  background: var(--vx-text-1);
+  cursor: grab;
+}
+
+/*
+  Sem troca de COR no hover: o polegar já é `text-1`, o tom mais claro da
+  rampa, e não há para onde clarear sem sair da paleta. Quem confirma o alvo é
+  o crescimento abaixo, que não mexe em layout nenhum.
+*/
+.deslizante:active::-webkit-slider-thumb {
+  scale: 1.15;
+  cursor: grabbing;
+}
+
+.deslizante:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 4px;
+  border-radius: var(--vx-radius-06);
+}
+
+.deslizante:disabled {
+  cursor: not-allowed;
+  opacity: var(--vx-lamina-3);
+}
