@@ -345,6 +345,21 @@ export const PENDENCIAS = {
     faz: "Guardar uma anotação sobre esta pessoa, visível só para você.",
     depende: "notas de usuário — conceito de cliente, sem store ainda",
   },
+  /* ------------------------------------------------- criar categoria */
+  /*
+    ⚠ **Categoria não tem PERMISSÃO no protocolo.** `Category` é
+    `{id, title, channels}` e nada mais — a própria referência diz que a lista
+    de acesso escreve "overrides de categoria", e eles não existem no Stoat. A
+    lista de "quem pode ver" vem junto com a privacidade, porque só faz sentido
+    com ela: sem privacidade não há a quem restringir.
+  */
+  categoriaPrivada: {
+    superficie: "Criar categoria",
+    faz: "Fechar a categoria e escolher quem enxerga — canais criados nela herdam.",
+    depende:
+      "permissão em categoria no protocolo — `Category` só tem id, título e canais",
+  },
+
   /* ---------------------------------------------------- criar canal */
   /*
     ⚠ **Os dois tipos que o Stoat não tem.** `forum` e uma galeria de mídia dão

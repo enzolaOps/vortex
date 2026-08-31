@@ -13,6 +13,19 @@
   max-inline-size: 100%;
 }
 
+/*
+  A categoria é mais larga que o canal — 420 contra 380, e é o número da
+  referência.
+
+  Não é capricho: o seletor da segunda etapa lista nomes de canal, e a 380 um
+  nome longo dentro de uma caixa com recuo e caixa de seleção começa a truncar
+  no primeiro servidor de verdade.
+*/
+.painelCategoria {
+  composes: painel;
+  inline-size: 420px;
+}
+
 .corpo {
   display: grid;
   gap: var(--vx-space-12);
@@ -504,6 +517,61 @@
   font-size: var(--vx-size-xs);
   color: var(--vx-text-4);
   text-wrap: pretty;
+}
+
+/* ============================================================
+   Criar categoria — subtítulo e o seletor da segunda etapa
+   ============================================================ */
+
+/*
+  O servidor, sob o título.
+
+  A referência o põe como subtítulo do próprio cabeçalho do modal; aqui o
+  `DialogContent` já governa título e descrição, e a descrição está ocupada
+  pelo que o formulário faz. Fica como primeira linha do corpo, no tom de
+  metadado — é a mesma informação no mesmo lugar visual.
+*/
+.subtitulo {
+  margin: 0;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+  text-wrap: pretty;
+}
+
+.subtitulo strong {
+  color: var(--vx-text-2);
+  font-weight: 600;
+}
+
+/*
+  A lista de canais para mover.
+
+  ⚠ **Teto de altura com rolagem PRÓPRIA, e `flex: none` em cada filho.** Um
+  servidor com quarenta canais faria o modal passar da janela; e a mesma
+  armadilha do painel de fixadas mora aqui — filho de coluna encolhível
+  ENCOLHE em vez de rolar, e as linhas se sobreporiam sem erro nenhum.
+*/
+.canaisParaMover {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-02);
+  max-block-size: 240px;
+  overflow-y: auto;
+  padding: var(--vx-space-04);
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-3);
+}
+
+.canaisParaMover > * {
+  flex: none;
+  justify-content: flex-start;
+  padding: var(--vx-space-06) var(--vx-space-08);
+  border-radius: var(--vx-radius-06);
+}
+
+.canaisParaMover > *:hover {
+  background: var(--vx-state-hover);
 }
 
 /* Ícone do servidor — o seletor de arquivo escondido */
