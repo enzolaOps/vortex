@@ -42,6 +42,7 @@ import {
 } from "livekit-client";
 
 import { client } from "./client";
+import { sairDaSalaLocalmente } from "./adapter";
 import type { QualidadeDeVoz } from "../store/chamada";
 import {
   alternarMudoNoStore,
@@ -250,7 +251,37 @@ export async function entrarNaChamada(channelId: string): Promise<boolean> {
     });
     return true;
   } catch (e) {
+    /*
+      ⚠ **DESCONECTA a sala, e não só limpa o store — o caminho de falha
+      deixava você conectado de verdade.**
+
+      A primeira leitura deste defeito foi errada e vale registrar: eu supus
+      que `joinCall` registrava a presença no servidor e que sobrava um
+      fantasma sem conserto, porque o protocolo não tem rota de saída. A fonte
+      desmente — `crates/delta/src/routes/channels/voice_join.rs` só emite um
+      TOKEN. Quem registra presença é o webhook do LiveKit.
+
+      Ou seja: se você aparece na sala depois de "não deu para entrar", é
+      porque `r.connect()` DEU CERTO e o que estourou foi o passo seguinte —
+      abrir o microfone, por exemplo, que falha quando o navegador nega o
+      dispositivo. E o `catch` largava `sala` conectada: presença real, áudio
+      real, com o app se dando por fora. Medido em navegador: "1 na sala" ao
+      lado do toast de falha.
+
+      `sairDaChamada` desconecta, solta os ouvintes e limpa o store; o LiveKit
+      avisa o servidor e o `VoiceChannelLeave` chega pelo caminho normal. Como
+      ela volta cedo quando não houve sala, o `encerrarChamada` fica depois —
+      para o caso de a falha ter sido ANTES de a sala existir.
+    */
+    await sairDaChamada();
     encerrarChamada();
+    /*
+      E a remoção local logo em seguida, para a coluna não mostrar você dentro
+      da sala durante a ida e volta do webhook. É otimista como a reação: se um
+      `VoiceChannelJoin` atrasado ainda estiver a caminho, o `Leave` que vem
+      atrás dele corrige — o estado converge em vez de ficar mentindo.
+    */
+    sairDaSalaLocalmente(channelId);
     toast({
       tipo: "erro",
       titulo: "Não deu para entrar na chamada.",
