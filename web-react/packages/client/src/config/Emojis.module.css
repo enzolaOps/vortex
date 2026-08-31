@@ -52,3 +52,24 @@
   font-size: var(--vx-size-sm);
   color: var(--vx-text-2);
 }
+
+/* A barra de envio — botão, dica e o seletor escondido */
+
+.barra {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-12);
+  flex-wrap: wrap;
+  margin-block-end: var(--vx-space-16);
+}
+
+.dica {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+/* `display: none` e não `opacity: 0`: com opacidade zero o campo continuaria
+   recebendo tabulação. Mesma escolha do composer. */
+.seletor {
+  display: none;
+}
