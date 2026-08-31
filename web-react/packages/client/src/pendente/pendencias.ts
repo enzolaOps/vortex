@@ -345,6 +345,25 @@ export const PENDENCIAS = {
     faz: "Guardar uma anotação sobre esta pessoa, visível só para você.",
     depende: "notas de usuário — conceito de cliente, sem store ainda",
   },
+  /* ---------------------------------------------------- criar canal */
+  /*
+    ⚠ **Os dois tipos que o Stoat não tem.** `forum` e uma galeria de mídia dão
+    ZERO ocorrências no schema — não são campos que faltam, são conceitos que
+    não existem. O design desenha os quatro tipos no mesmo painel, e a regra
+    deste projeto é construir 1:1 e registrar: clicar diz o que fará, em vez
+    de o tipo sumir da lista e ninguém saber que ele foi pensado.
+  */
+  canalDeForum: {
+    superficie: "Criar canal",
+    faz: "Criar um canal onde cada assunto é um post com respostas próprias.",
+    depende: "fórum no protocolo — nem tipo de canal, nem campo, nem evento",
+  },
+  canalDeMidia: {
+    superficie: "Criar canal",
+    faz: "Criar uma galeria de imagens e vídeos, com legenda por item.",
+    depende: "canal de mídia no protocolo",
+  },
+
   /* ------------------------------------------------- criar servidor */
   iconeDeServidor: {
     superficie: "Criar servidor",

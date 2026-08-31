@@ -84,9 +84,25 @@ function chavesAlcancadas(arquivos: readonly string[]): Set<string> {
       if (m[1]) achadas.add(m[1]);
     }
 
-    const encaminha = /aindaNao\(\s*[A-Za-z_$][\w$]*\s*\)/.test(fonte);
+    /* `\w$.` e não `\w$`: quem encaminha pode passar uma PROPRIEDADE
+       (`aindaNao(t.pendencia)`), e não só uma variável solta. */
+    const encaminha = /aindaNao\(\s*[A-Za-z_$][\w$.]*\s*\)/.test(fonte);
     if (!encaminha) continue;
     for (const m of fonte.matchAll(/\bid=\{?"(\w+)"\}?/g)) {
+      if (m[1]) achadas.add(m[1]);
+    }
+
+    /*
+      ⚠ **`pendencia: "chave"` também conta como alcance.** O arquivo que
+      encaminha pode guardar a chave numa PROPRIEDADE de uma lista de opções,
+      e não num `id=`. Foi o que aconteceu com os quatro tipos do modal de
+      criar canal: dois carregam a pendência num campo `pendencia`, o alcance
+      existia, e a guarda não o via.
+
+      A alternativa era espalhar chamadas literais só para satisfazê-la — ou
+      seja, piorar o código para agradar o mecanismo.
+    */
+    for (const m of fonte.matchAll(/\bpendencia:\s*"(\w+)"/g)) {
       if (m[1]) achadas.add(m[1]);
     }
   }

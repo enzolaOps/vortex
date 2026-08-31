@@ -3,10 +3,15 @@ import { useState, useSyncExternalStore } from "react";
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
 import { criarPasta } from "../store/pastas";
+import { Lock } from "@phosphor-icons/react";
+
 import { Escolha } from "../components/ui/Escolha";
+import { Interruptor } from "../components/ui/Interruptor";
+import { MarcaDeOpcao } from "../components/ui/Marcador";
+import { aindaNao, type PendenciaId } from "../pendente/pendencias";
+import { fecharCanal } from "../sdk/canal";
 import { CATEGORIA_PADRAO } from "../sdk/domain";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
-import { Segmentado } from "../components/ui/Segmentado";
 import {
   criarCanal,
   criarCategoria,
@@ -29,10 +34,52 @@ import css from "./AdicionarServidor.module.css";
  * O alvo vem do store, não de prop — a regra que o registro de modais
  * estabeleceu, e a mesma que `menuDeMensagem` já seguia.
  */
+/**
+ * Os quatro tipos que o design desenha, e só dois existem.
+ *
+ * ⚠ `forum` e a galeria de mídia dão ZERO ocorrências no schema do Stoat — não
+ * são campos que faltam, são conceitos que não existem. Ficam na lista com o
+ * registro de pendências atrás: clicar diz o que o tipo fará e do que depende,
+ * em vez de sumir da lista e ninguém saber que ele foi pensado.
+ */
 const TIPOS = [
-  { id: "texto", rotulo: "Texto" },
-  { id: "voz", rotulo: "Voz" },
-] as const;
+  {
+    id: "texto",
+    glifo: "#",
+    rotulo: "Texto",
+    detalhe: "Mensagens, imagens, threads",
+    pendencia: undefined,
+  },
+  {
+    id: "voz",
+    glifo: "◈",
+    rotulo: "Voz",
+    detalhe: "Áudio, vídeo, tela e chat embutido",
+    pendencia: undefined,
+  },
+  {
+    id: "forum",
+    glifo: "▤",
+    rotulo: "Fórum",
+    detalhe: "Posts organizados por tópico",
+    pendencia: "canalDeForum",
+  },
+  {
+    id: "midia",
+    glifo: "▦",
+    rotulo: "Mídia",
+    detalhe: "Galeria de imagens e vídeos",
+    pendencia: "canalDeMidia",
+  },
+] as const satisfies readonly {
+  id: string;
+  glifo: string;
+  rotulo: string;
+  detalhe: string;
+  pendencia: PendenciaId | undefined;
+}[];
+
+type TipoDeCanal = (typeof TIPOS)[number]["id"];
 
 export function ModalDeCanal({ aoFechar }: { aoFechar: () => void }) {
   const alvo = useSyncExternalStore(assinarAlvo, lerAlvo);
@@ -70,7 +117,9 @@ function titulo(tipo: string | undefined): string {
   if (tipo === "criarCategoria") return "Nova categoria";
   if (tipo === "renomearCategoria") return "Renomear categoria";
   if (tipo === "criarPasta") return "Nova pasta";
-  return "Novo canal";
+  /* "Criar canal", como o design — e não "Novo canal". O verbo diz o que o
+     botão do rodapé vai fazer; o adjetivo não diz nada. */
+  return "Criar canal";
 }
 
 /**
@@ -139,7 +188,8 @@ function FormaDeCanal({
   voz: boolean;
 }) {
   const [nome, setNome] = useState("");
-  const [voz, setVoz] = useState(vozInicial);
+  const [tipo, setTipo] = useState<TipoDeCanal>(vozInicial ? "voz" : "texto");
+  const [privado, setPrivado] = useState(false);
   const [enviando, setEnviando] = useState(false);
 
   /*
@@ -156,7 +206,9 @@ function FormaDeCanal({
   );
 
   const limpo = nome.trim();
+  const voz = tipo === "voz";
   const podeEnviar = limpo.length > 0 && escolhida !== "" && !enviando;
+  const glifo = TIPOS.find((t) => t.id === tipo)?.glifo ?? "#";
 
   /*
     Servidor sem categoria nenhuma: não há onde pôr o canal, e a tela diz isso
@@ -193,8 +245,15 @@ function FormaDeCanal({
         if (!podeEnviar) return;
         setEnviando(true);
         void criarCanal(serverId, limpo, voz, escolhida)
-          .then((id) => {
+          .then(async (id) => {
             if (!id) return;
+            /*
+              ⚠ **Privado é uma SEGUNDA escrita, e depois da criação.** Não há
+              campo `private` em `Channel`: privacidade é negar `ViewChannel`
+              no cargo padrão, e override só existe depois de o canal existir.
+              Ver `fecharCanal`.
+            */
+            if (privado) await fecharCanal(id);
             // Abrir o canal recém-criado é a continuação óbvia da ação; criar e
             // ficar parado obrigaria a procurá-lo na coluna.
             if (!voz) selecionarCanal(id);
@@ -203,33 +262,65 @@ function FormaDeCanal({
           .finally(() => setEnviando(false));
       }}
     >
-      <Campo
-        rotulo="Nome do canal"
-        /* O protocolo aceita espaço e maiúscula; a coluna mostra `#nome`. Não
-           normalizo aqui: inventar uma regra que o servidor não tem faria o
-           nome digitado e o nome salvo divergirem. */
-        dica={undefined}
-        autoComplete="off"
-        autoFocus
-        required
-        disabled={enviando}
-        value={nome}
-        onChange={(e) => setNome(e.target.value)}
-      />
+      <div className={css.sobrancelha}>Tipo de canal</div>
+      <div className={css.tipos} role="radiogroup" aria-label="Tipo de canal">
+        {TIPOS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="radio"
+            aria-checked={tipo === t.id}
+            className={css.tipo}
+            disabled={enviando}
+            onClick={() => {
+              /* Tipo sem protocolo não vira seleção: marcar "Fórum" e deixar
+                 o formulário seguir criaria um canal de TEXTO com o rótulo
+                 errado — pior que não oferecer. */
+              if (t.pendencia) {
+                aindaNao(t.pendencia)();
+                return;
+              }
+              setTipo(t.id);
+            }}
+          >
+            <span className={css.tipoGlifo} aria-hidden>
+              {t.glifo}
+            </span>
+            <span className={css.tipoTextos}>
+              <span className={css.tipoNome}>{t.rotulo}</span>
+              <span className={css.tipoDetalhe}>{t.detalhe}</span>
+            </span>
+            <MarcaDeOpcao />
+          </button>
+        ))}
+      </div>
 
-      <Segmentado
-        rotulo="Tipo do canal"
-        valor={voz ? "voz" : "texto"}
-        desabilitado={enviando}
-        opcoes={TIPOS.map((t) => ({ id: t.id, rotulo: t.rotulo }))}
-        aoEscolher={(id) => setVoz(id === "voz")}
-      />
-
+      <div className={css.sobrancelha}>Nome do canal</div>
       {/*
-        A categoria é ESCOLHÍVEL mesmo quando veio pré-selecionada do menu:
-        "Novo canal aqui" acerta o caso comum, e quem mudou de ideia no meio do
-        formulário não deveria ter que fechar e reabrir noutro lugar.
+        O glifo do tipo vive DENTRO do campo, como prefixo — é o design, e ele
+        faz o campo dizer o que está sendo criado sem uma segunda etiqueta.
+        Por isso não é o `Campo`: aquele desenha rótulo e caixa, e aqui o
+        rótulo é a sobrancelha acima.
       */}
+      <div className={css.campoComGlifo}>
+        <span className={css.prefixo} aria-hidden>
+          {glifo}
+        </span>
+        <input
+          className={css.entrada}
+          aria-label="Nome do canal"
+          /* O protocolo aceita espaço e maiúscula; a coluna mostra `#nome`.
+             Não normalizo aqui: inventar uma regra que o servidor não tem
+             faria o nome digitado e o nome salvo divergirem. */
+          autoComplete="off"
+          autoFocus
+          required
+          disabled={enviando}
+          value={nome}
+          onChange={(e) => setNome(e.target.value)}
+        />
+      </div>
+
       <Escolha
         rotulo="Categoria"
         valor={escolhida}
@@ -241,9 +332,49 @@ function FormaDeCanal({
         }
       />
 
-      <Botao variante="primario" type="submit" disabled={!podeEnviar}>
-        {enviando ? "Criando…" : "Criar canal"}
-      </Botao>
+      <div className={css.privado}>
+        <span className={css.privadoTexto}>
+          <Lock size={14} className={css.cadeado} aria-hidden />
+          <span>
+            <span className={css.privadoTitulo}>Canal privado</span>
+            <span className={css.privadoDetalhe}>
+              Só cargos e membros selecionados
+            </span>
+          </span>
+        </span>
+        <Interruptor
+          ligado={privado}
+          rotulo="Canal privado"
+          aoAlternar={setPrivado}
+        />
+      </div>
+
+      {/*
+        ⚠ **A frase do design promete uma etapa que aqui NÃO existe** — ele diz
+        "você escolhe os cargos na etapa seguinte". Um segundo passo de
+        seleção de cargos é tela própria, e a que existe é a página de
+        permissões do canal. Então o texto aponta para ela, que é verdade.
+      */}
+      {privado ? (
+        <p className={css.privadoNota}>
+          O canal nasce escondido de todo mundo. Libere os cargos em
+          Configurações do canal · Permissões.
+        </p>
+      ) : null}
+
+      <div className={css.acoes}>
+        <Botao
+          variante="neutro"
+          type="button"
+          onClick={aoFechar}
+          disabled={enviando}
+        >
+          Cancelar
+        </Botao>
+        <Botao variante="primario" type="submit" disabled={!podeEnviar}>
+          {enviando ? "Criando…" : "Criar canal"}
+        </Botao>
+      </div>
     </form>
   );
 }
