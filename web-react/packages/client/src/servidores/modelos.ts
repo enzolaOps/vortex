@@ -33,6 +33,16 @@ export type Modelo = {
   readonly detalhe: string;
   /** O glifo do design. Emoji e não ícone: é o que a referência usa. */
   readonly glifo: string;
+  /**
+   * A categoria em que os canais nascem.
+   *
+   * ⚠ **Canal não nasce sem categoria — é decisão de produto, e ela vale aqui
+   * também.** Um servidor novo não tem categoria nenhuma, então o modelo cria
+   * a dele antes dos canais. Sem isto, o único caminho do app que ainda
+   * produzia canal fora de grupo seria justamente o primeiro que alguém
+   * percorre.
+   */
+  readonly categoria: string;
   readonly canais: readonly CanalInicial[];
 };
 
@@ -45,6 +55,7 @@ export type Modelo = {
  */
 export const DO_ZERO: Modelo = {
   id: "zero",
+  categoria: "Geral",
   nome: "Criar do zero",
   detalhe: "Um canal de texto e um de voz",
   glifo: "＋",
@@ -57,6 +68,7 @@ export const DO_ZERO: Modelo = {
 export const MODELOS: readonly Modelo[] = [
   {
     id: "jogos",
+  categoria: "Jogos",
     nome: "Jogos",
     detalhe: "Voz, LFG e clipes",
     glifo: "🎮",
@@ -70,6 +82,7 @@ export const MODELOS: readonly Modelo[] = [
   },
   {
     id: "estudo",
+  categoria: "Estudo",
     nome: "Estudo",
     detalhe: "Salas de foco e materiais",
     glifo: "📚",
@@ -82,6 +95,7 @@ export const MODELOS: readonly Modelo[] = [
   },
   {
     id: "produto",
+  categoria: "Produto",
     nome: "Produto",
     detalhe: "Roadmap, crit e releases",
     glifo: "🛠",
@@ -95,6 +109,7 @@ export const MODELOS: readonly Modelo[] = [
   },
   {
     id: "comunidade",
+  categoria: "Comunidade",
     nome: "Comunidade",
     detalhe: "Regras, fórum e eventos",
     glifo: "💬",

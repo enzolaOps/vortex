@@ -192,7 +192,7 @@ function Personalizar({
               disabled={!podeEnviar}
               onClick={() => {
                 setEnviando(true);
-                void criarServidor(limpo, canais)
+                void criarServidor(limpo, modelo.categoria, canais)
                   .then((id) => {
                     if (!id) return;
                     /* Entrar no recém-criado é a continuação óbvia da ação —

@@ -33,6 +33,7 @@ export function Escolha({
   rotuloOculto = false,
   valor,
   opcoes,
+  rotuloDe,
   disabled,
   className,
   aoEscolher,
@@ -49,6 +50,17 @@ export function Escolha({
   rotuloOculto?: boolean;
   valor: string;
   opcoes: readonly string[];
+  /**
+   * O que MOSTRAR para cada opção, quando o valor não é o texto.
+   *
+   * ⚠ Existe porque há escolha cujo valor é um ID: categoria tem título e ID
+   * separados, e dois títulos podem ser iguais. Usar o título como valor faria
+   * a escolha resolver para a categoria errada — silenciosamente, e só num
+   * servidor que tivesse duas categorias com o mesmo nome.
+   *
+   * Sem ela o comportamento é o de sempre: a opção é o próprio texto.
+   */
+  rotuloDe?: (v: string) => string;
   disabled?: boolean;
   /** A largura é de quem chama: 240 na linha de ajuste, cheia no formulário. */
   className?: string;
@@ -65,14 +77,14 @@ export function Escolha({
             aria-label={rotulo}
             disabled={disabled}
           >
-            <span className={css.valor}>{valor}</span>
+            <span className={css.valor}>{rotuloDe ? rotuloDe(valor) : valor}</span>
             <CaretDown aria-hidden />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           {opcoes.map((o) => (
             <DropdownMenuItem key={o} onSelect={() => aoEscolher(o)}>
-              {o}
+              {rotuloDe ? rotuloDe(o) : o}
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
