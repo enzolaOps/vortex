@@ -44,6 +44,9 @@ export type EstadoDaChamada =
  */
 export type QualidadeDeVoz = "otima" | "boa" | "ruim" | "perdida" | "desconhecida";
 
+/** Ver `Chamada.telaAudio`. */
+export type AudioDaTela = "sem" | "mudo" | "ligado";
+
 export type Chamada = {
   readonly estado: EstadoDaChamada;
   readonly qualidade: QualidadeDeVoz;
@@ -51,10 +54,57 @@ export type Chamada = {
   readonly channelId: string;
   /** Quem está na sala, incluindo você. */
   readonly participantes: readonly string[];
+  /**
+   * Quem está transmitindo a tela, por ID. Não inclui você.
+   *
+   * ⚠ **Lista, e não um booleano por pessoa em outro lugar.** Ela responde a
+   * pergunta que a grade e a coluna de canais fazem — "tem alguém ao vivo
+   * aqui?" — sem que ninguém precise assinar faixa de vídeo para descobrir.
+   * Com `autoSubscribe: false` a faixa só chega depois de alguém pedir, então
+   * "existe stream" e "tenho o stream" são fatos DIFERENTES, e confundi-los
+   * daria uma sala onde ninguém sabe que há o que assistir.
+   */
+  readonly transmitindo: readonly string[];
+  /**
+   * Quem está com o microfone silenciado, por ID.
+   *
+   * ⚠ **Estado de TRANSPORTE de outra pessoa, e por isso vive aqui e não no
+   * snapshot dela.** `mudo` no snapshot de pessoa seria um fato sobre a
+   * pessoa; isto é um fato sobre a SALA — a mesma pessoa pode estar muda numa
+   * chamada e falando noutra. Publicar no snapshot faria a member list
+   * inteira acordar a cada alguém que aperta o microfone.
+   */
+  readonly mudos: readonly string[];
+  /** Quem está com a câmera publicada. Mesma razão de `transmitindo`. */
+  readonly comCamera: readonly string[];
   readonly mudo: boolean;
   readonly surdo: boolean;
   readonly camera: boolean;
   readonly tela: boolean;
+  /**
+   * A transmissão está PAUSADA — a faixa continua publicada, sem quadros.
+   *
+   * ⚠ **Pausar não é parar, e a diferença é o que torna o controle útil.**
+   * Parar despublica a faixa: quem assiste perde a caixa, e voltar exige
+   * escolher a fonte de novo. Pausar congela a imagem no último quadro e
+   * mantém o lugar — é o que se usa para trocar de aba sem mostrar o e-mail.
+   */
+  readonly telaPausada: boolean;
+  /**
+   * O áudio que acompanha a tela — TRÊS estados, e não um booleano.
+   *
+   * ⚠ **Um booleano conflaciona "silenciei" com "nunca teve som", e as duas
+   * pedem interfaces opostas.** O navegador só entrega áudio de tela quando a
+   * pessoa marca a caixa no seletor do sistema, e Safari e Firefox não
+   * oferecem a caixa. Com `false` para os dois, o HUD mostraria um botão de
+   * "ligar áudio" que não liga nada — o alvo inerte que este projeto passou
+   * uma fase inteira removendo.
+   *
+   * Com a união, `sem` desabilita o controle e diz por quê; `mudo` e `ligado`
+   * alternam. É a mesma razão de `PresencaEscolhida` ser tipo separado de
+   * `PresenceStatus`.
+   */
+  readonly telaAudio: AudioDaTela;
   /**
    * Quando a conexão foi estabelecida, em epoch ms. `0` fora da chamada.
    *
@@ -74,10 +124,15 @@ const VAZIA: Chamada = {
   qualidade: "desconhecida",
   channelId: "",
   participantes: [],
+  transmitindo: [],
+  comCamera: [],
+  mudos: [],
   mudo: false,
   surdo: false,
   camera: false,
   tela: false,
+  telaPausada: false,
+  telaAudio: "sem",
   desde: 0,
 };
 
@@ -99,29 +154,45 @@ export function lerChamada(): Chamada {
 
 export function definirChamada(mudanca: Partial<Chamada>): void {
   const nova = { ...chamada, ...mudanca };
-  /*
-    Compara campo a campo antes de publicar.
-
-    O LiveKit emite `participantsChanged` a cada mudança de faixa, e a maioria
-    não muda a lista. Sem esta comparação, cada uma acordaria o cartão de
-    chamada e a coluna de canais — que é a coluna que a lei nº 1 mais protege.
-  */
-  if (
-    nova.estado === chamada.estado &&
-    nova.qualidade === chamada.qualidade &&
-    nova.channelId === chamada.channelId &&
-    nova.mudo === chamada.mudo &&
-    nova.surdo === chamada.surdo &&
-    nova.camera === chamada.camera &&
-    nova.tela === chamada.tela &&
-    nova.participantes.length === chamada.participantes.length &&
-    nova.participantes.every((p, i) => p === chamada.participantes[i])
-  ) {
-    return;
-  }
+  if (igual(nova, chamada)) return;
   chamada = nova;
   for (const ouvinte of ouvintes) ouvinte();
 }
+
+/**
+ * Duas chamadas são a mesma?
+ *
+ * ⚠ **Varre as CHAVES, e a primeira versão listava os campos a dedo — o que
+ * transformou cada campo novo num defeito silencioso.** Ela nomeava oito
+ * comparações; quando `transmitindo`, `comCamera` e `mudos` entraram para a
+ * grade de vídeo, mudanças que tocassem SÓ esses três eram lidas como "nada
+ * mudou" e engolidas. E `publicarFontes` no motor publica exatamente esses
+ * três: contra um servidor real, ninguém apareceria com câmera nunca, e a
+ * causa não estaria no vídeo, nem no LiveKit, nem na grade.
+ *
+ * Medido no arnês: os ladrilhos saíam com `data-video="false"` e o alvo
+ * "Assistir" não existia, com o store dizendo que havia quem transmitisse.
+ *
+ * A comparação campo a campo existe por uma razão que continua válida: o
+ * LiveKit emite mudança de participantes a cada faixa, e a maioria não muda a
+ * lista. Sem ela, cada uma acordaria o cartão de chamada e a coluna de canais.
+ * O que estava errado era ela ser uma LISTA que alguém precisa lembrar de
+ * atualizar.
+ */
+function igual(a: Chamada, b: Chamada): boolean {
+  for (const chave of Object.keys(a) as (keyof Chamada)[]) {
+    const x: unknown = a[chave];
+    const y: unknown = b[chave];
+    if (Array.isArray(x) && Array.isArray(y)) {
+      if (x.length !== y.length) return false;
+      if (x.some((v, i) => v !== y[i])) return false;
+      continue;
+    }
+    if (x !== y) return false;
+  }
+  return true;
+}
+
 
 /* ------------------------------------------------- mudo e surdo: a REGRA */
 

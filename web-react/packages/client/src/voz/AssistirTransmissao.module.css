@@ -1,0 +1,485 @@
+/* ============================================================
+   Assistindo — 1:1 com o design
+   ------------------------------------------------------------
+   Vídeo sangrando · chrome de cima em gradiente · menu do tile
+   de 236 · submenu de 150 · fila de 112×66 no canto inferior
+   esquerdo · barra flutuante no centro de baixo.
+
+   ⚠ As três camadas de chrome FLUTUAM sobre a imagem. Nenhuma
+   ocupa espaço no fluxo, porque mostrar e esconder não pode
+   reposicionar o vídeo — é instrução do design, e a razão é que
+   um vídeo que salta a cada movimento do mouse é intolerável
+   numa apresentação de 40 minutos.
+   ============================================================ */
+
+.tela {
+  position: relative;
+  flex: 1;
+  min-block-size: 0;
+  overflow: hidden;
+  /* O xadrez do design, para o intervalo entre pedir a faixa e ela chegar. */
+  background:
+    repeating-linear-gradient(
+      135deg,
+      var(--vx-surface-2) 0 16px,
+      var(--vx-surface-1) 16px 32px
+    );
+}
+
+.video {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  /* `contain` e nunca `cover`: recortar esconderia justamente a borda da
+     janela que quem assiste está tentando ler. */
+  object-fit: contain;
+}
+
+/* ---------------------------------------------------------- placa */
+
+.placa {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vx-space-08);
+  pointer-events: none;
+}
+
+.placaLinha {
+  color: var(--vx-text-3);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-sm);
+}
+
+.placaNota {
+  color: var(--vx-text-4);
+  font-size: var(--vx-size-xs);
+}
+
+/* ================================================================
+   O chrome que some
+   ----------------------------------------------------------------
+   ⚠ `visibility` JUNTO da opacidade, e não só opacidade: com
+   `opacity: 0` sozinha os alvos continuariam recebendo tabulação e
+   clique, então um clique no vídeo cairia num botão invisível.
+   ================================================================ */
+
+.cabecalho,
+.fila,
+.barra {
+  transition:
+    opacity var(--vx-duration-base) var(--vx-ease-out),
+    visibility var(--vx-duration-base) var(--vx-ease-out);
+}
+
+.tela[data-chrome="false"] .cabecalho,
+.tela[data-chrome="false"] .fila,
+.tela[data-chrome="false"] .barra {
+  visibility: hidden;
+  opacity: 0;
+}
+
+/* ------------------------------------------------------ cabeçalho */
+
+.cabecalho {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-14) var(--vx-space-18);
+  /*
+    Gradiente e não faixa sólida, e sem `backdrop-filter`: o design diz
+    "gradiente/scrim próprio (sem blur)". Blur sobre vídeo em movimento é o
+    efeito mais caro que existe numa camada que fica na tela o tempo todo.
+  */
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--vx-surface-0) 85%, transparent),
+    transparent
+  );
+}
+
+.identidade {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+
+.nome {
+  overflow: hidden;
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-lg);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lugar {
+  overflow: hidden;
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.espaco {
+  flex: 1;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  block-size: 26px;
+  padding-inline: var(--vx-space-10);
+  border-radius: var(--vx-radius-pill);
+  background: color-mix(in srgb, var(--vx-surface-0) 70%, transparent);
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-xs);
+}
+
+.acoes {
+  display: flex;
+  gap: var(--vx-space-02);
+}
+
+.acao {
+  display: grid;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 30px;
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: color-mix(in srgb, var(--vx-surface-0) 60%, transparent);
+  color: var(--vx-text-2);
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.acao:hover {
+  background: var(--vx-state-hover);
+}
+
+.acao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/* ------------------------------------------------- menu do tile */
+
+.menu {
+  position: absolute;
+  inset-inline-end: var(--vx-space-18);
+  inset-block-start: 74px;
+  inline-size: 236px;
+  overflow: hidden;
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-10);
+  background: color-mix(in srgb, var(--vx-surface-1) 94%, transparent);
+  box-shadow: var(--vx-elev-2);
+}
+
+.sobrancelha {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  padding: var(--vx-space-10) var(--vx-space-12);
+  color: var(--vx-text-3);
+}
+
+.itens {
+  padding: 0 var(--vx-space-06) var(--vx-space-06);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  inline-size: 100%;
+  padding: var(--vx-space-07) var(--vx-space-09);
+  border: 0;
+  border-radius: var(--vx-radius-05);
+  background: none;
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  text-align: start;
+  cursor: pointer;
+}
+
+.item:hover,
+.item[data-aberto="true"] {
+  background: var(--vx-state-hover);
+}
+
+.item:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.atalho {
+  color: var(--vx-text-4);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-2xs);
+}
+
+.seta {
+  color: var(--vx-text-3);
+}
+
+.regua {
+  margin: var(--vx-space-05) var(--vx-space-04);
+  border: 0;
+  /* Régua entre blocos DENTRO de um menu: é o papel de `--vx-hairline-06`.
+     O design escreve 0,08 aqui; o token existe em 6 · 10 · 16 e o próprio
+     comentário dele diz que o design varia entre 5% e 7% conforme o lugar —
+     um degrau por ponto percentual seria vocabulário sem informação. */
+  border-block-start: 1px solid var(--vx-hairline-06);
+}
+
+.rotuloDoVolume {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--vx-space-07) var(--vx-space-09) var(--vx-space-04);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+}
+
+.valorDoVolume {
+  color: var(--vx-text-2);
+  font-family: var(--vx-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------- submenu */
+
+.submenu {
+  position: absolute;
+  inset-inline-end: 270px;
+  inset-block-start: 74px;
+  inline-size: 150px;
+  padding: var(--vx-space-05);
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-08);
+  background: color-mix(in srgb, var(--vx-surface-4) 97%, transparent);
+  box-shadow: var(--vx-elev-2);
+}
+
+.itemDoSubmenu {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  inline-size: 100%;
+  padding: var(--vx-space-06) var(--vx-space-09);
+  border: 0;
+  border-radius: var(--vx-radius-05);
+  background: none;
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  text-align: start;
+  cursor: pointer;
+}
+
+.itemDoSubmenu[data-secundario="true"] {
+  color: var(--vx-text-2);
+}
+
+.itemDoSubmenu:hover {
+  background: var(--vx-state-hover);
+}
+
+.itemDoSubmenu:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.marca {
+  color: var(--vx-accent-text);
+}
+
+/* -------------------------------------------------------- fila */
+
+.fila {
+  position: absolute;
+  inset-inline-start: var(--vx-space-18);
+  inset-block-end: var(--vx-space-18);
+  display: flex;
+  gap: var(--vx-space-08);
+}
+
+.mini {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 112px;
+  block-size: 66px;
+  overflow: hidden;
+  border: 1px solid var(--vx-hairline-16);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-3);
+}
+
+.mini[data-falando="true"] {
+  border: 2px solid var(--vx-success);
+}
+
+.miniNome {
+  position: absolute;
+  inset-inline-start: var(--vx-space-06);
+  inset-block-end: var(--vx-space-06);
+  max-inline-size: calc(100% - var(--vx-space-12));
+  overflow: hidden;
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-2xs);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+  ⚠ **`+N` é um BOTÃO e não um rótulo.** O design o desenha com `cursor:
+  pointer` e não diz o que ele faz; a resposta óbvia é a grade, que é a tela
+  que existe justamente para ver todo mundo. Um "+2" que não leva a lugar
+  nenhum seria o alvo inerte que o lint deste projeto existe para matar.
+*/
+.maisPessoas {
+  display: grid;
+  place-items: center;
+  inline-size: 112px;
+  block-size: 66px;
+  border: 1px dashed var(--vx-hairline-16);
+  border-radius: var(--vx-radius-08);
+  background: none;
+  color: var(--vx-text-3);
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  cursor: pointer;
+}
+
+.maisPessoas:hover {
+  background: var(--vx-state-hover);
+}
+
+.maisPessoas:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------- barra */
+
+.barra {
+  position: absolute;
+  inset-inline-start: 50%;
+  inset-block-end: var(--vx-space-18);
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  padding: var(--vx-space-07);
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-pill);
+  background: color-mix(in srgb, var(--vx-surface-0) 82%, transparent);
+  box-shadow: var(--vx-elev-2);
+  transform: translateX(-50%);
+}
+
+.redondo {
+  display: grid;
+  place-items: center;
+  inline-size: 40px;
+  block-size: 40px;
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-surface-4);
+  color: var(--vx-text-1);
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.redondo:hover {
+  background: var(--vx-track);
+}
+
+/*
+  ⚠ **`data-perigo` e não `aria-pressed="false"`, e a primeira versão errava
+  isto.** Com o seletor no `aria-pressed`, a CÂMERA desligada saía vermelha —
+  e câmera desligada é o estado normal de quem só está assistindo, não um
+  aviso. Vermelho aqui significa "você está cortando alguma coisa": microfone
+  silenciado e áudio parado. É a mesma disciplina de acento que já custou uma
+  correção neste projeto, com a outra cor.
+*/
+.redondo[data-perigo="true"] {
+  background: color-mix(in srgb, var(--vx-danger) 18%, transparent);
+  color: var(--vx-danger-text);
+}
+
+.transmitirTambem {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  block-size: 40px;
+  padding-inline: var(--vx-space-14);
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-surface-4);
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.transmitirTambem:hover {
+  background: var(--vx-track);
+}
+
+.divisa {
+  inline-size: 1px;
+  block-size: 22px;
+  background: var(--vx-hairline-10);
+}
+
+.pararDeAssistir {
+  display: flex;
+  align-items: center;
+  block-size: 40px;
+  padding-inline: var(--vx-space-16);
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  background: color-mix(in srgb, var(--vx-danger) 20%, transparent);
+  color: var(--vx-danger-text);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pararDeAssistir:hover {
+  background: color-mix(in srgb, var(--vx-danger) 30%, transparent);
+}
+
+.redondo:focus-visible,
+.transmitirTambem:focus-visible,
+.pararDeAssistir:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* ================================================================
+   Janela estreita
+   ================================================================ */
+
+@container (inline-size < 720px) {
+  .fila {
+    display: none;
+  }
+}

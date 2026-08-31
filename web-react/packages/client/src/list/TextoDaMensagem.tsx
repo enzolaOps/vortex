@@ -10,6 +10,8 @@ import {
 import { administrar } from "../store/administracao";
 import { useMembro, useServidorAtivo } from "../store/hooks";
 import { copiarTexto } from "../lib/copiar";
+import { urlDeEmoji } from "../sdk/anexos";
+import { nomeDeEmoji } from "../sdk/cargos";
 import css from "./TextoDaMensagem.module.css";
 
 /**
@@ -78,6 +80,9 @@ function textoPlano(trechos: readonly TrechoDeMensagem[]): string {
   for (const t of trechos) {
     if (t.tipo === "texto" || t.tipo === "codigo") out += t.valor;
     else if (t.tipo === "mencao") out += `@${t.valor}`;
+    /* O código escrito, e não o nome: o aviso de link compara com o que a
+       pessoa DIGITOU, e o nome é resolução nossa. */
+    else if (t.tipo === "emoji") out += `:${t.valor}:`;
     else if (t.tipo !== "quebra") out += textoPlano(t.filhos);
   }
   return out;
@@ -112,6 +117,9 @@ function Trecho({
 
     case "mencao":
       return <Mencao userId={trecho.valor} compacto={compacto} />;
+
+    case "emoji":
+      return <EmojiPersonalizado id={trecho.valor} />;
 
     case "codigo":
       return <code className={css.codigo}>{trecho.valor}</code>;
@@ -443,4 +451,42 @@ export function TextoDaMensagem({
     return <Trechos trechos={achatar(blocos)} compacto />;
   }
   return <Blocos blocos={blocos} prefixo={prefixo} />;
+}
+
+/**
+ * Um emoji personalizado do servidor.
+ *
+ * ⚠ **Cai para o CÓDIGO ESCRITO quando a imagem não carrega, e nunca some.**
+ * O emoji pode ter sido apagado, ser de um servidor onde você não está, ou a
+ * instância pode não ter servidor de mídia. Nos três, `:01H2X…:` é a verdade
+ * sobre o que a pessoa digitou — um espaço em branco seria a interface
+ * escondendo conteúdo da mensagem.
+ *
+ * ⚠ **`loading="lazy"` e dimensão FIXA no CSS.** A lista é virtualizada e
+ * ancorada: uma imagem que chega e empurra o texto move a âncora. Com a caixa
+ * reservada antes do primeiro byte, carregar não reflui nada — é a mesma
+ * disciplina da reserva de espaço do anexo.
+ *
+ * O `alt` é o nome quando o SDK o conhece, e o código quando não. Nunca vazio:
+ * quem ouve a mensagem precisa saber que havia algo ali.
+ */
+function EmojiPersonalizado({ id }: { id: string }) {
+  const [falhou, setFalhou] = useState(false);
+  const url = urlDeEmoji(id);
+  const nome = nomeDeEmoji(id);
+  const codigo = `:${id}:`;
+
+  if (url === undefined || falhou) return <>{codigo}</>;
+
+  return (
+    <img
+      className={css.emoji}
+      src={url}
+      alt={nome === undefined ? codigo : `:${nome}:`}
+      title={nome === undefined ? undefined : `:${nome}:`}
+      loading="lazy"
+      draggable={false}
+      onError={() => setFalhou(true)}
+    />
+  );
 }

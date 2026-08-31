@@ -1,0 +1,309 @@
+/* ============================================================
+   Grade da chamada — 1:1 com o design
+   ------------------------------------------------------------
+   `repeat(4,1fr)` até 8 pessoas e 5 acima disso, linhas de 84,
+   vão de 8. Célula grande ocupa 2×2. Placa de nome no canto
+   inferior esquerdo, sobre véu.
+   ============================================================ */
+
+/* ------------------------------------------------------ cabeçalho */
+
+.cabecalho {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-10);
+  block-size: 52px;
+  padding-inline: var(--vx-space-18);
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+.glifo {
+  flex: none;
+  color: var(--vx-accent-text);
+}
+
+.nomeDoCanal {
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+}
+
+.nomeDoServidor,
+.contagem {
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+  white-space: nowrap;
+}
+
+.espaco {
+  flex: 1;
+}
+
+/*
+  O segmentado do design — pílulas numa caixa afundada.
+
+  A assinatura do projeto (barra de acento na borda de início) NÃO entra aqui:
+  ela marca LUGAR — servidor aberto, canal aberto, seção aberta —, e disposição
+  de grade é modo, não destino. Marcar as duas coisas do mesmo jeito faria a
+  barra parar de querer dizer alguma coisa.
+*/
+.segmentado {
+  display: flex;
+  flex: none;
+  gap: var(--vx-space-02);
+  padding: var(--vx-space-02);
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-07);
+  background: var(--vx-surface-1);
+}
+
+.segmento {
+  block-size: 26px;
+  padding-inline: var(--vx-space-11);
+  border: 0;
+  border-radius: var(--vx-radius-05);
+  background: none;
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.segmento:hover {
+  background: var(--vx-state-hover);
+}
+
+.segmento[aria-checked="true"] {
+  background: var(--vx-state-selected);
+  color: var(--vx-accent-text);
+}
+
+.segmento:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.acaoDoCabecalho {
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: 30px;
+  block-size: 30px;
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: none;
+  color: var(--vx-text-2);
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.acaoDoCabecalho:hover {
+  background: var(--vx-state-hover);
+}
+
+.acaoDoCabecalho:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/* ---------------------------------------------------------- miolo */
+
+.miolo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--vx-space-12);
+  min-block-size: 0;
+  overflow-y: auto;
+  padding: var(--vx-space-14);
+}
+
+/*
+  ⚠ `grid-auto-rows: 84px` e não `1fr`, e é o número do design.
+
+  Linha de altura fixa é o que faz a célula 2×2 ter exatamente o dobro da
+  altura das outras — com `1fr` a grade se estica para o container e a célula
+  grande deixa de ser proporcional a nada. Em sala grande a grade rola, que é
+  o comportamento certo: encolher as células até não dar para reconhecer
+  ninguém seria pior.
+*/
+.grade {
+  display: grid;
+  grid-auto-rows: 84px;
+  gap: var(--vx-space-08);
+}
+
+.nota {
+  margin: 0;
+  color: var(--vx-text-4);
+  font-size: var(--vx-size-xs);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+/* ------------------------------------------------------- ladrilho */
+
+.ladrilho {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 0;
+  overflow: hidden;
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-09);
+  background: var(--vx-surface-3);
+}
+
+.ladrilho[data-video="true"] {
+  /* O xadrez do design, para o intervalo entre pedir a faixa e ela chegar. */
+  background:
+    repeating-linear-gradient(
+      135deg,
+      var(--vx-surface-3) 0 10px,
+      var(--vx-surface-2) 10px 20px
+    );
+}
+
+.ladrilho[data-falando="true"] {
+  border: 2px solid var(--vx-success);
+}
+
+.ladrilho[data-grande="true"] {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+.video {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
+}
+
+.video[data-espelhada="true"] {
+  transform: scaleX(-1);
+}
+
+/* ---------------------------------------------------------- placa */
+
+.placa {
+  position: absolute;
+  inset-inline-start: var(--vx-space-06);
+  inset-block-end: var(--vx-space-06);
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-06);
+  max-inline-size: calc(100% - var(--vx-space-12));
+  block-size: 20px;
+  padding-inline: var(--vx-space-08);
+  border-radius: var(--vx-radius-pill);
+  /* Véu e não superfície: o que está atrás é vídeo em movimento, e um tom
+     sólido apagaria um pedaço dele. */
+  background: color-mix(in srgb, var(--vx-surface-0) 70%, transparent);
+}
+
+.nome {
+  overflow: hidden;
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pontoFalando {
+  flex: none;
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-success);
+}
+
+.glifoDaPlaca {
+  flex: none;
+  color: var(--vx-accent-text);
+}
+
+.glifoMudo {
+  flex: none;
+  color: var(--vx-danger-text);
+}
+
+/* --------------------------------------------------------- ações */
+
+/*
+  ⚠ `visibility` e nunca `opacity`: com opacidade zero os alvos continuariam
+  recebendo tabulação, e numa sala de vinte pessoas seriam vinte paradas
+  invisíveis antes de chegar à doca. É a mesma decisão da barra de ações da
+  linha de mensagem.
+*/
+.fixar {
+  position: absolute;
+  inset-inline-end: var(--vx-space-06);
+  inset-block-start: var(--vx-space-06);
+  display: grid;
+  place-items: center;
+  visibility: hidden;
+  inline-size: 24px;
+  block-size: 24px;
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: color-mix(in srgb, var(--vx-surface-0) 70%, transparent);
+  color: var(--vx-text-2);
+  cursor: pointer;
+}
+
+.ladrilho:hover .fixar,
+.fixar:focus-visible,
+.fixar[aria-pressed="true"] {
+  visibility: visible;
+}
+
+.fixar[aria-pressed="true"] {
+  color: var(--vx-accent-text);
+}
+
+.fixar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/*
+  "Assistir" — o clique que o design promete.
+
+  ⚠ Ele fica VISÍVEL em repouso, ao contrário de "fixar". A frase do design é
+  "quem entra no canal depois vê o stream com um clique"; um clique que só
+  existe sob o ponteiro não é descoberto por quem acabou de entrar, e é
+  inalcançável por toque.
+*/
+.assistir {
+  position: absolute;
+  inset-inline-end: var(--vx-space-06);
+  inset-block-end: var(--vx-space-06);
+  block-size: 22px;
+  padding-inline: var(--vx-space-09);
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-accent);
+  color: var(--vx-on-accent);
+  font-family: inherit;
+  font-size: var(--vx-size-2xs);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.assistir:hover {
+  background: var(--vx-accent-hover);
+}
+
+.assistir:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}

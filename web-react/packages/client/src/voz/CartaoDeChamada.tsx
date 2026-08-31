@@ -19,8 +19,14 @@ import {
   alternarTela,
   sairDaChamada,
 } from "../sdk/chamada";
-import { assinarChamada, falando, lerChamada } from "../store/chamada";
+import {
+  assinarChamada,
+  falando,
+  lerChamada,
+  type Chamada,
+} from "../store/chamada";
 import { usePessoa } from "../store/hooks";
+import { definirPalco, type Palco } from "../store/palcoDeVoz";
 import { useCanalAtivo, useChannel } from "../store/hooks";
 import { selecionarCanal } from "../store/navegacao";
 import css from "./CartaoDeChamada.module.css";
@@ -126,6 +132,33 @@ export function CartaoDeChamada() {
           ))}
         </div>
       )}
+
+      {/*
+        ⚠ **A porta de volta ao palco, e sem ela o palco era de mão única.**
+        Fechar o palco não para a transmissão — de propósito, senão "quero ver
+        o chat" significaria "quero sair do ar". Mas sem este alvo, quem
+        fechasse ficaria transmitindo sem nenhum jeito de rever o que está
+        transmitindo a não ser parando e recomeçando.
+
+        ⚠ **Aparece TAMBÉM no compacto, ao contrário da lista de pessoas** —
+        e a primeira versão o escondia ali. O compacto é exatamente o estado
+        de quem está olhando outro canal enquanto transmite, ou seja, quem
+        mais precisa da volta; escondê-lo ali deixava a única porta fechada
+        justamente no caso que a motiva.
+
+        ⚠ **Um botão só, e o DESTINO é que muda.** Três alvos ("ver a minha
+        transmissão", "assistir a de alguém", "abrir a grade") num cartão de
+        canto seriam três coisas para ler antes de clicar, e as três levam ao
+        mesmo palco. Ver `destinoDoPalco`.
+      */}
+      <button
+        type="button"
+        className={css.verPalco}
+        onClick={() => definirPalco(destinoDoPalco(chamada))}
+      >
+        <Monitor size={14} aria-hidden />
+        {rotuloDoPalco(chamada)}
+      </button>
 
       <div className={css.controles}>
         <Controle
@@ -236,4 +269,27 @@ function Controle({
       </button>
     </Tooltip>
   );
+}
+
+/**
+ * Para onde o botão do cartão leva.
+ *
+ * ⚠ **A ordem é de especificidade, e o caso do meio é a promessa do design.**
+ * Ele escreve, no painel de espectadores, que "quem entra no canal depois vê o
+ * stream com um clique". Com UMA pessoa transmitindo, o clique certo é abrir a
+ * transmissão dela — mandar para a grade seria um clique a mais para chegar ao
+ * único lugar interessante. Com duas, a grade é a resposta honesta: escolher
+ * uma por você seria adivinhar.
+ */
+function destinoDoPalco(chamada: Chamada): Palco {
+  if (chamada.tela) return { tipo: "transmitindo" };
+  const so = chamada.transmitindo;
+  if (so.length === 1 && so[0]) return { tipo: "assistindo", userId: so[0] };
+  return { tipo: "grade" };
+}
+
+function rotuloDoPalco(chamada: Chamada): string {
+  if (chamada.tela) return "Ver transmissão";
+  if (chamada.transmitindo.length > 0) return "Assistir";
+  return "Abrir vídeo";
 }

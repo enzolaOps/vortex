@@ -67,11 +67,6 @@ export const PENDENCIAS = {
     escrita de protocolo de verdade** — renomear, remover, transferir e sair
     chamam o servidor. O que sobra depende de coisas fora do painel.
   */
-  iconeDeGrupo: {
-    superficie: "Gerenciar grupo",
-    faz: "Trocar a imagem do grupo.",
-    depende: "upload ao servidor de mídia (autumn) — a mesma de `anexar`",
-  },
   adicionarAoGrupo: {
     superficie: "Gerenciar grupo",
     faz: "Chamar mais alguém para o grupo.",
@@ -178,11 +173,6 @@ export const PENDENCIAS = {
     superficie: "Reação",
     faz: "Escolher um emoji para reagir a esta mensagem.",
     depende: "o seletor ancorado ao chip — hoje ele só abre pelo composer",
-  },
-  emojiDoServidor: {
-    superficie: "Seletor de emoji",
-    faz: "Usar os emojis personalizados deste servidor.",
-    depende: "servidor de mídia (autumn) servindo os arquivos",
   },
   tomDePele: {
     superficie: "Seletor de emoji",
@@ -345,12 +335,86 @@ export const PENDENCIAS = {
     faz: "Guardar uma anotação sobre esta pessoa, visível só para você.",
     depende: "notas de usuário — conceito de cliente, sem store ainda",
   },
-  /* ------------------------------------------------- criar servidor */
-  iconeDeServidor: {
-    superficie: "Criar servidor",
-    faz: "Enviar uma imagem para o ladrilho do servidor no rail.",
-    depende: "upload ao servidor de mídia (autumn) — a mesma de `anexar`",
+  /* ------------------------------------------------- criar categoria */
+  /*
+    ⚠ **Categoria não tem PERMISSÃO no protocolo.** `Category` é
+    `{id, title, channels}` e nada mais — a própria referência diz que a lista
+    de acesso escreve "overrides de categoria", e eles não existem no Stoat. A
+    lista de "quem pode ver" vem junto com a privacidade, porque só faz sentido
+    com ela: sem privacidade não há a quem restringir.
+  */
+  categoriaPrivada: {
+    superficie: "Criar categoria",
+    faz: "Fechar a categoria e escolher quem enxerga — canais criados nela herdam.",
+    depende:
+      "permissão em categoria no protocolo — `Category` só tem id, título e canais",
   },
+
+  /* --------------------------------------------------- assistir */
+  /*
+    ⚠ **Um pendente só na tela de assistir, e o resto dela é REAL** — vale
+    registrar porque a lista costuma dar a impressão contrária. Qualidade do
+    stream é `RemoteTrackPublication.setVideoQuality`, "só áudio" é
+    `setEnabled(false)`, volume individual e "silenciar só para mim" são
+    `RemoteParticipant.setVolume`, e "transmitir também" é o mesmo
+    `alternarTela` de sempre. Os quatro escrevem no LiveKit de verdade.
+
+    ⚠ **A contagem de quem está ASSISTINDO fica de fora do registro**, pelo
+    contrato dele: não há controle para clicar. Ela é DADO que nem o protocolo
+    do Stoat nem o `livekit-client` produzem — quem publica não recebe
+    contagem de assinantes, isso é webhook de servidor. Mesma família da
+    etiqueta FÓRUM e do selo LIVE. O cabeçalho mostra "N na sala", que é
+    verdade.
+  */
+  perfilNaChamada: {
+    superficie: "Assistir transmissão",
+    faz: "Abrir o perfil de quem está transmitindo sem sair da tela cheia.",
+    depende:
+      "uma superfície de perfil MODAL — o `CartaoDePerfil` de hoje é um `HoverCard`, e hover card sobre vídeo em tela cheia não tem onde ancorar",
+  },
+
+  /* ------------------------------------------------ transmitir tela */
+  /*
+    ⚠ **Um pendente só no palco de transmissão, e a razão de os outros não
+    estarem aqui vale registrar.** Pausar, trocar fonte e o áudio da fonte são
+    REAIS — `mute()` na faixa, recaptura, e a faixa de `ScreenShareAudio`. O
+    que o design desenha e o LiveKit não entrega é escolher a codificação DE
+    DENTRO da transmissão em curso.
+
+    A contagem de quem está ASSISTINDO fica de fora do registro de propósito,
+    pelo contrato dele: não há controle para clicar. Ela é DADO que nem o
+    protocolo do Stoat nem o `livekit-client` produzem — quem publica não
+    recebe contagem de assinantes; isso é webhook de servidor. É a mesma
+    família da etiqueta FÓRUM e do selo LIVE, e mora em comentário no arquivo
+    que a mostraria.
+  */
+  qualidadeDaTransmissao: {
+    superficie: "Palco de transmissão",
+    faz: "Trocar resolução e taxa de quadros sem parar de transmitir.",
+    depende:
+      "encoding dinâmico — `setScreenShareEnabled` só aceita as constraints na PUBLICAÇÃO, e trocá-las hoje é parar e recomeçar",
+  },
+
+  /* ---------------------------------------------------- criar canal */
+  /*
+    ⚠ **Os dois tipos que o Stoat não tem.** `forum` e uma galeria de mídia dão
+    ZERO ocorrências no schema — não são campos que faltam, são conceitos que
+    não existem. O design desenha os quatro tipos no mesmo painel, e a regra
+    deste projeto é construir 1:1 e registrar: clicar diz o que fará, em vez
+    de o tipo sumir da lista e ninguém saber que ele foi pensado.
+  */
+  canalDeForum: {
+    superficie: "Criar canal",
+    faz: "Criar um canal onde cada assunto é um post com respostas próprias.",
+    depende: "fórum no protocolo — nem tipo de canal, nem campo, nem evento",
+  },
+  canalDeMidia: {
+    superficie: "Criar canal",
+    faz: "Criar uma galeria de imagens e vídeos, com legenda por item.",
+    depende: "canal de mídia no protocolo",
+  },
+
+  /* ------------------------------------------------- criar servidor */
 
   /* ------------------------------------------- acesso e segurança do servidor */
   /*

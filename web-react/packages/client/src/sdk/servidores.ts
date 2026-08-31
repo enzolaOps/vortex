@@ -4,7 +4,7 @@
  * Mora em `src/sdk/` pela regra de sempre — `ServerPublicInvite`, `Server` e a
  * grafia do protocolo ficam dentro; o que sai são IDs e tipos do domínio.
  */
-import { PublicChannelInvite, ServerPublicInvite } from "stoat.js";
+import { PublicChannelInvite, ServerPublicInvite, type Server } from "stoat.js";
 
 import { ulid } from "ulid";
 
@@ -192,9 +192,12 @@ export async function criarServidor(
   canais: readonly { readonly nome: string; readonly voz: boolean }[] = [],
 ): Promise<string | undefined> {
   let id: string;
+  /* O objeto que o `createServer` devolveu. Ver `servidorPara`. */
+  let criado: Server;
   try {
     const servidor = await client.servers.createServer({ name: nome });
     id = servidor.id;
+    criado = servidor;
   } catch (e) {
     toast({
       tipo: "erro",
@@ -213,8 +216,21 @@ export async function criarServidor(
     modelo não são criados: melhor um servidor com o canal padrão do backend
     que cinco canais soltos numa coluna que o produto não desenha.
   */
-  const categoriaId = await criarCategoriaEDevolverId(id, categoria);
-  if (categoriaId === undefined) return id;
+  /*
+    ⚠ **O objeto do `createServer` é passado adiante, e não o id sozinho.** Ver
+    `servidorPara`: a coleção do SDK ainda não conhece este servidor, então um
+    lookup por id aqui devolve `undefined` e o modelo inteiro é descartado sem
+    uma palavra.
+  */
+  const categoriaId = await criarCategoriaEDevolverId(id, categoria, criado);
+  if (categoriaId === undefined) {
+    toast({
+      tipo: "erro",
+      titulo: "O servidor foi criado, mas sem os canais do modelo.",
+      descricao: "Não deu para criar a categoria. Crie os canais à mão.",
+    });
+    return id;
+  }
 
   /*
     O servidor nasce com um canal padrão do próprio backend. Os do modelo vêm
@@ -222,7 +238,7 @@ export async function criarServidor(
     seria destruir um canal que a pessoa não pediu para destruir.
   */
   for (const c of canais) {
-    await criarCanal(id, c.nome, c.voz, categoriaId);
+    await criarCanal(id, c.nome, c.voz, categoriaId, criado);
   }
 
   return id;
@@ -255,10 +271,12 @@ export async function criarCanal(
   nome: string,
   voz: boolean,
   categoriaId: string,
+  /** O servidor já em mãos — ver `servidorPara`. */
+  dado?: Server,
 ): Promise<string | undefined> {
   let id: string;
   try {
-    const servidor = client.servers.get(serverId);
+    const servidor = servidorPara(serverId, dado);
     if (!servidor) return undefined;
     const canal = await servidor.createChannel({
       // O protocolo NÃO tem `VoiceChannel`: canal de voz é `Text` com um
@@ -277,10 +295,13 @@ export async function criarCanal(
     return undefined;
   }
 
-  await reescreverCategorias(serverId, (atuais) =>
-    atuais.map((c) =>
-      c.id === categoriaId ? { ...c, channels: [...c.channels, id] } : c,
-    ),
+  await reescreverCategorias(
+    serverId,
+    (atuais) =>
+      atuais.map((c) =>
+        c.id === categoriaId ? { ...c, channels: [...c.channels, id] } : c,
+      ),
+    dado,
   );
 
   publicarCanaisDe(serverId);
@@ -364,12 +385,37 @@ export async function criarConvite(channelId: string): Promise<string | undefine
  * consertá-lo exigiria versionamento no backend. Risco aceito, registrado no
  * `CLAUDE.md`.
  */
+/**
+ * O servidor, preferindo o que o chamador JÁ TEM na mão.
+ *
+ * ⚠ **A coleção do SDK não conhece um servidor recém-criado, e isso quebrava
+ * o caminho mais visível do produto em silêncio.** `createServer` devolve o
+ * objeto, mas quem popula `client.servers` é o `ServerCreate` que chega pelo
+ * SOCKET — no tique seguinte à criação, `client.servers.get(id)` responde
+ * `undefined`.
+ *
+ * Consequência medida na leitura do código: criar servidor a partir de um
+ * modelo fazia `criarCategoriaEDevolverId` cair no `if (!servidor) return`,
+ * devolver `undefined`, e o laço de canais nem começar. O servidor nascia com
+ * o canal padrão do backend e NENHUM canal do modelo, sem erro, sem toast, sem
+ * nada no console — a pessoa escolhe "Jogos" com cinco canais na prévia e
+ * recebe um servidor vazio.
+ *
+ * Achado por uma sessão vizinha construindo o upload de ícone, que precisou de
+ * duas chamadas pelo mesmo motivo. O conserto é passar o objeto adiante em vez
+ * de perguntar de novo por ele.
+ */
+function servidorPara(serverId: string, dado?: Server): Server | undefined {
+  return dado ?? client.servers.get(serverId);
+}
+
 async function reescreverCategorias(
   serverId: string,
   mudar: (atuais: Categoria[]) => Categoria[],
+  dado?: Server,
 ): Promise<boolean> {
   try {
-    const servidor = client.servers.get(serverId);
+    const servidor = servidorPara(serverId, dado);
     if (!servidor) return false;
     // Cópia rasa dos objetos também: mutar o que veio do SDK escreveria no
     // cache antes de o servidor confirmar.
@@ -393,10 +439,6 @@ async function reescreverCategorias(
 
 type Categoria = { id: string; title: string; channels: string[] };
 
-export function criarCategoria(serverId: string, titulo: string): Promise<boolean> {
-  return criarCategoriaEDevolverId(serverId, titulo).then((id) => id !== undefined);
-}
-
 /**
  * Cria a categoria e devolve o ID dela.
  *
@@ -405,15 +447,17 @@ export function criarCategoria(serverId: string, titulo: string): Promise<boolea
  * categoria não é entidade própria no protocolo — é um item de um array que o
  * cliente propõe.
  */
-async function criarCategoriaEDevolverId(
+export async function criarCategoriaEDevolverId(
   serverId: string,
   titulo: string,
+  dado?: Server,
 ): Promise<string | undefined> {
   const id = novoId();
-  const ok = await reescreverCategorias(serverId, (atuais) => [
-    ...atuais,
-    { id, title: titulo, channels: [] },
-  ]);
+  const ok = await reescreverCategorias(
+    serverId,
+    (atuais) => [...atuais, { id, title: titulo, channels: [] }],
+    dado,
+  );
   return ok ? id : undefined;
 }
 
@@ -722,4 +766,133 @@ export async function silenciarMembro(
     toast({ tipo: "erro", titulo: "Não deu para aplicar.", descricao: motivo(e) });
     return false;
   }
+}
+
+/**
+ * Move canais para uma categoria.
+ *
+ * ⚠ **Tira de onde estiverem ANTES de pôr**, pela mesma razão de
+ * `moverParaPasta` no rail: sem isso um canal movido entre categorias
+ * apareceria nas duas, e a coluna o desenharia duas vezes.
+ *
+ * Uma escrita só para o lote inteiro. `reescreverCategorias` reescreve o array
+ * completo de qualquer jeito — mover cinco canais numa chamada por canal
+ * seriam cinco reescritas do MESMO array, e a última ganharia sobre as
+ * anteriores.
+ */
+export function moverCanaisParaCategoria(
+  serverId: string,
+  categoriaId: string,
+  canais: readonly string[],
+): Promise<boolean> {
+  const mover = new Set(canais);
+  return reescreverCategorias(serverId, (atuais) =>
+    atuais.map((c) =>
+      c.id === categoriaId
+        ? {
+            ...c,
+            channels: [...c.channels.filter((x) => !mover.has(x)), ...mover],
+          }
+        : { ...c, channels: c.channels.filter((x) => !mover.has(x)) },
+    ),
+  );
+}
+
+/* ------------------------------------------------------- ícone do servidor */
+
+/**
+ * Prende ao servidor um ícone já subido ao `autumn`.
+ *
+ * ⚠ **Duas chamadas e não uma, e é o protocolo que manda.**
+ * `POST /servers/create` aceita `name`, `description` e `nsfw` — não aceita
+ * ícone. Quem o recebe é `DataEditServer.icon`, que leva o ID devolvido pelo
+ * servidor de mídia. Então o caminho é criar, depois vestir.
+ *
+ * ⚠ **A falha aqui NÃO desfaz a criação, de propósito.** O servidor já existe
+ * e já tem nome, canais e você dentro; apagá-lo porque uma imagem não colou
+ * seria perder o trabalho todo por causa do enfeite. Quem chama segue em
+ * frente e avisa — o ícone se põe depois em Configurações.
+ *
+ * Devolve se colou, para quem chama decidir o que dizer.
+ */
+export async function vestirIconeNoServidor(
+  serverId: string,
+  iconeId: string,
+): Promise<boolean> {
+  /*
+    ⚠ **Uma tentativa não basta, e o motivo é o próprio fluxo de criação.**
+    Criar um servidor a partir de um modelo já gasta a cota: são uma criação,
+    dois canais e uma edição de categoria em sequência. O PATCH do ícone cai no
+    mesmo balde e volta `429`.
+
+    Medido com a sonda, num fluxo normal de interface:
+    `edit falhou: {"retry_after":9965}`. Não é artefato de teste — acontece com
+    quem escolhe um modelo, que é o caminho que o modal oferece primeiro.
+
+    O servidor diz EXATAMENTE quanto esperar, então esperar é a resposta certa;
+    inventar um intervalo seria chutar contra um número que veio de graça.
+  */
+  for (let tentativa = 0; ; tentativa += 1) {
+    const erro = await tentarVestir(serverId, iconeId);
+    if (erro === undefined) return true;
+
+    const esperar = msDeEspera(erro);
+    if (tentativa >= 1 || esperar === undefined) return false;
+    await new Promise((r) => setTimeout(r, esperar));
+  }
+}
+
+/** `undefined` = colou. Qualquer outra coisa é o erro cru, para o chamador ler. */
+async function tentarVestir(
+  serverId: string,
+  iconeId: string,
+): Promise<unknown> {
+  /*
+    ⚠ **A coleção do SDK NÃO tem o servidor logo depois de criá-lo.**
+    `createServer` devolve o objeto, mas `client.servers.get(id)` no tique
+    seguinte ainda responde `undefined` — quem popula a coleção é o evento
+    `ServerCreate`, que vem pelo socket e chega depois. Por isso há o caminho
+    cru: ele não depende de hidratação.
+
+    O objeto é tentado primeiro quando existe, porque aí o SDK atualiza o
+    estado local na hora, sem esperar o evento dar a volta.
+  */
+  const servidor = client.servers.get(serverId);
+  try {
+    if (servidor !== undefined) await servidor.edit({ icon: iconeId });
+    else await client.api.patch(`/servers/${serverId as ""}`, { icon: iconeId });
+    return undefined;
+  } catch (e) {
+    return e;
+  }
+}
+
+/**
+ * O `retry_after` do corpo, em milissegundos, quando é isso que aconteceu.
+ *
+ * ⚠ O `stoat-api` LANÇA o corpo cru, e ele chega ora como objeto ora como o
+ * texto que veio no fio — as duas formas foram vistas. Ler só uma deixaria
+ * metade dos `429` passando por falha definitiva.
+ *
+ * O teto existe porque um `retry_after` grande é um servidor dizendo "não
+ * insista": segurar a interface por um minuto para pôr um ícone é pior que
+ * avisar e deixar a pessoa terminar em Configurações.
+ */
+const TETO_DE_ESPERA_MS = 15_000;
+
+function msDeEspera(erro: unknown): number | undefined {
+  let corpo: unknown = erro;
+  if (typeof corpo === "string") {
+    try {
+      corpo = JSON.parse(corpo);
+    } catch {
+      return undefined;
+    }
+  }
+  const ms = (corpo as { retry_after?: unknown } | null)?.retry_after;
+  if (typeof ms !== "number" || ms <= 0 || ms > TETO_DE_ESPERA_MS) {
+    return undefined;
+  }
+  /* Uma folga: o relógio do servidor e o daqui não são o mesmo. */
+  return ms + 250;
 }

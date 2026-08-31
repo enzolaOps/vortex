@@ -127,3 +127,77 @@ export async function alternarTela(): Promise<void> {
   if (lerChamada().estado === "fora") return;
   await (await motorOuAviso())?.alternarTela();
 }
+
+/**
+ * A faixa de vídeo da transmissão, para a prévia local.
+ *
+ * ⚠ **A única função SÍNCRONA desta fachada, e ela não carrega o motor.** Se o
+ * motor não foi carregado não há sala, e sem sala não há transmissão — então
+ * `undefined` é a resposta certa, e baixar meio megabyte de WebRTC para
+ * descobrir isso seria o oposto da razão de a fachada existir.
+ *
+ * Quem chama é um efeito de componente. Uma versão assíncrona faria a caixa
+ * de prévia renderizar vazia antes de cada quadro.
+ */
+export function faixaDeTela(): MediaStreamTrack | undefined {
+  return motor?.faixaDeTela();
+}
+
+export async function pausarTela(pausar: boolean): Promise<void> {
+  if (lerChamada().estado === "fora") return;
+  await (await motorOuAviso())?.pausarTela(pausar);
+}
+
+export async function alternarAudioDaTela(): Promise<void> {
+  if (lerChamada().estado === "fora") return;
+  await (await motorOuAviso())?.alternarAudioDaTela();
+}
+
+export async function trocarFonteDaTela(): Promise<void> {
+  if (lerChamada().estado === "fora") return;
+  await (await motorOuAviso())?.trocarFonteDaTela();
+}
+
+/**
+ * Pede (ou devolve) o vídeo de alguém.
+ *
+ * ⚠ **SÍNCRONA e sem carregar o motor, ao contrário das outras.** Quem chama
+ * é um efeito de montagem de ladrilho, e a limpeza dele roda no desmonte —
+ * um `await` no caminho de limpeza é como se esquece de devolver uma
+ * assinatura. Sem motor não há sala, e sem sala não há o que assinar.
+ */
+export function assinarVideo(
+  userId: string,
+  fonte: "camera" | "tela",
+  sim: boolean,
+): boolean {
+  return motor?.assinarVideo(userId, fonte, sim) ?? false;
+}
+
+export function definirQualidadeDeStream(
+  userId: string,
+  fonte: "camera" | "tela",
+  qualidade: "auto" | "alta" | "media" | "soAudio",
+): void {
+  motor?.definirQualidadeDeStream(userId, fonte, qualidade);
+}
+
+export function definirVolumeDe(userId: string, volume: number): void {
+  motor?.definirVolumeDe(userId, volume);
+}
+
+export function volumeDe(userId: string): number {
+  return motor?.volumeDe(userId) ?? 1;
+}
+
+/**
+ * O que a transmissão está entregando de verdade — quadros e banda.
+ *
+ * Sem motor não há transmissão, então `undefined` é a resposta certa e não vale
+ * carregar meio megabyte de WebRTC para descobrir isso.
+ */
+export async function estatisticasDaTela(): Promise<
+  { fps: number | undefined; kbps: number | undefined } | undefined
+> {
+  return motor?.estatisticasDaTela();
+}

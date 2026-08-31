@@ -125,3 +125,29 @@ export async function salvarPermissaoDeCanal(
     return false;
   }
 }
+
+/**
+ * Fecha o canal para todo mundo, negando `ViewChannel` no cargo PADRÃO.
+ *
+ * ⚠ **É o que "canal privado" significa no protocolo.** Não existe um campo
+ * `private` em `Channel` — privacidade é um override de permissão, e o
+ * override que a produz é negar `ViewChannel` para @everyone. Quem tem cargo
+ * com o bit ligado continua vendo, que é exatamente o comportamento esperado.
+ *
+ * ⚠ **`role_id` `undefined` é o cargo PADRÃO**, e essa é a assinatura do SDK:
+ * `setPermissions(undefined, …)` escreve o override de todo mundo. Passar uma
+ * string vazia não faz o mesmo — escreveria num cargo que não existe.
+ *
+ * Bit 0 do `Permission` é `ViewChannel`; a máscara é 1.
+ */
+export async function fecharCanal(channelId: string): Promise<boolean> {
+  if (!conectado()) return false;
+  const canal = client.channels.get(channelId);
+  if (!canal) return false;
+  try {
+    await canal.setPermissions(undefined, { allow: 0, deny: 1 });
+    return true;
+  } catch {
+    return false;
+  }
+}

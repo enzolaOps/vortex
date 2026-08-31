@@ -431,6 +431,12 @@ export function toChannelSnapshot(
 
   return {
     id: channel.id,
+    /*
+      A imagem do grupo. `iconURL` do SDK já monta o endereço do `autumn`, e é
+      `undefined` quando não há — inclusive para todo canal que não é grupo,
+      que é o caso da esmagadora maioria.
+    */
+    iconeUrl: channel.iconURL,
     // `serverId` é string no SDK mesmo para canal de DM, onde vem vazia. O
     // domínio prefere `undefined` — "não pertence a servidor" é ausência, não
     // string vazia, e é o que impede um `if (serverId)` errado lá na frente.

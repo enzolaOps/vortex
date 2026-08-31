@@ -458,6 +458,57 @@ export async function listarEmojis(serverId: string): Promise<readonly Emoji[]> 
   }
 }
 
+/**
+ * Cria um emoji de servidor a partir de um arquivo já subido ao `autumn`.
+ *
+ * ⚠ **O ID do emoji É o ID do arquivo — não há dois.** A rota é
+ * `PUT /custom/emoji/{id}` onde `{id}` é o que o servidor de mídia devolveu.
+ * Lido da fonte (`crates/delta/src/routes/customisation/emoji_create.rs`), e
+ * é o que explica por que o protocolo não tem "editar emoji": renomear seria
+ * apagar e subir de novo, com ID novo, quebrando toda mensagem que usava o
+ * antigo.
+ *
+ * ⚠ **O nome é validado por regex no servidor** (`RE_EMOJI`, 1–32). Um nome
+ * com espaço ou acento volta `FailedValidation`, e a frase que a pessoa lê sai
+ * de `motivo` — não vale duplicar a regex aqui para adivinhar antes: ela é do
+ * servidor e muda com ele.
+ *
+ * `parent: { type: "Server", id }` é o que prende o emoji ao servidor; a outra
+ * variante do protocolo (`Detached`) é para emoji sem dono, que este app não
+ * cria.
+ */
+export async function criarEmoji(
+  serverId: string,
+  arquivoId: string,
+  nome: string,
+): Promise<boolean> {
+  try {
+    await client.api.put(`/custom/emoji/${arquivoId as ""}`, {
+      name: nome,
+      parent: { type: "Server", id: serverId },
+    });
+    return true;
+  } catch (e) {
+    falhou("Não deu para criar o emoji.", e);
+    return false;
+  }
+}
+
+/**
+ * O nome de um emoji personalizado, quando o SDK já o conhece.
+ *
+ * ⚠ **Sem buscar, e a ausência é deliberada.** O upstream dispara um
+ * `emojis.fetch(id)` quando não conhece — numa lista virtualizada isso é uma
+ * requisição por emoji desconhecido visível, disparada durante a rolagem, no
+ * componente mais quente do app. Quem já entrou no servidor tem os emojis
+ * dele pelo `Ready`; o caso restante é emoji de servidor onde você não está,
+ * e ali a linha mostra o código escrito, que é a verdade sobre o que a pessoa
+ * digitou.
+ */
+export function nomeDeEmoji(emojiId: string): string | undefined {
+  return client.emojis.get(emojiId)?.name;
+}
+
 export async function apagarEmoji(emojiId: string): Promise<boolean> {
   try {
     await client.emojis.get(emojiId)?.delete();

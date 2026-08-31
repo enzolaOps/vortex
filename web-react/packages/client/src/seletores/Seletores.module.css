@@ -275,36 +275,6 @@
   text-align: center;
 }
 
-.bloqueado {
-  inline-size: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--vx-space-08);
-  padding: var(--vx-space-12);
-  margin-block-end: var(--vx-space-12);
-  border: 1px dashed var(--vx-border-subtle);
-  border-radius: var(--vx-radius-08);
-  font-size: var(--vx-size-xs);
-  color: var(--vx-text-3);
-  cursor: pointer;
-}
-
-.bloqueado svg {
-  inline-size: var(--vx-icon-1);
-  block-size: var(--vx-icon-1);
-}
-
-.bloqueado:hover {
-  color: var(--vx-text-2);
-  border-color: var(--vx-border-strong);
-}
-
-.bloqueado:focus-visible {
-  outline: 2px solid var(--vx-accent);
-  outline-offset: -2px;
-}
-
 /* ------------------------------------------------------- soundboard */
 
 .selo,
@@ -402,4 +372,16 @@
 .volumeDica {
   font-size: var(--vx-size-xs);
   color: var(--vx-text-4);
+}
+
+/* A imagem de um emoji de servidor dentro da grade */
+
+/*
+  Cabe no mesmo botão do emoji Unicode, para as duas grades ficarem alinhadas.
+  `contain` porque o arquivo vem de quem subiu e pode não ser quadrado.
+*/
+.imagemDoEmoji {
+  inline-size: 24px;
+  block-size: 24px;
+  object-fit: contain;
 }

@@ -35,6 +35,9 @@
   inline-size: 56px;
   block-size: 56px;
   border-radius: var(--vx-radius-18);
+  /* Âncora da imagem que cobre o gradiente — ver `.imagem` no fim. */
+  position: relative;
+  overflow: hidden;
 }
 
 /*
@@ -235,4 +238,26 @@
   font-size: var(--vx-size-sm);
   color: var(--vx-text-4);
   text-wrap: pretty;
+}
+
+/* Ícone do grupo — a imagem sobre o gradiente, e o seletor escondido */
+
+/*
+  Cobre o ladrilho inteiro. `object-fit: cover` porque a imagem é escolhida por
+  quem usa e vem em qualquer proporção — esticar deformaria rosto, e `contain`
+  deixaria faixas do gradiente aparecendo pelos lados, que lê como falha.
+*/
+.imagem {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+/* `display: none` e não `opacity: 0`: com opacidade zero o campo continuaria
+   recebendo tabulação. Mesma escolha do composer. */
+.seletorDeIcone {
+  display: none;
 }

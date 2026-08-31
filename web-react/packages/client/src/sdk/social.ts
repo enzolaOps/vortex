@@ -108,6 +108,31 @@ export async function renomearGrupo(
   }
 }
 
+/**
+ * Troca a imagem do grupo por uma já subida ao `autumn`.
+ *
+ * ⚠ Tag `icons` no upload, e não `attachments`: o serviço valida por tag, e o
+ * teto de ícone é 2,5 MB contra 20 MB de anexo. Pela tag errada passaria uma
+ * imagem que o servidor recusa na hora de vesti-la — ver `sdk/anexos.ts`.
+ *
+ * Sem repetição por `429`, ao contrário do ícone de servidor: aqui não há uma
+ * rajada de escritas antes (criar servidor gasta a cota com canais e
+ * categoria), é uma chamada só, partindo de um clique.
+ */
+export async function trocarIconeDoGrupo(
+  channelId: string,
+  iconeId: string,
+): Promise<boolean> {
+  try {
+    await client.channels.get(channelId)?.edit({ icon: iconeId });
+    publicarConversas();
+    return true;
+  } catch (e) {
+    falhou("Não deu para trocar o ícone do grupo.", e);
+    return false;
+  }
+}
+
 export async function adicionarAoGrupo(
   channelId: string,
   userId: string,

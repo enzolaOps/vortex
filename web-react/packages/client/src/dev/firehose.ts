@@ -17,7 +17,9 @@ import {
   definirChamada,
   definirFalantes,
   encerrarChamada,
+  lerChamada,
 } from "../store/chamada";
+import { definirPalco } from "../store/palcoDeVoz";
 
 import { count, countMax } from "./stats";
 import {
@@ -889,6 +891,66 @@ function createMessage(seed: number, quando?: number): string {
  * enche o STORE, que é a fronteira que o app enxerga — a mesma separação entre
  * carga em massa e caminho de evento que `seedChannel` estabeleceu.
  */
+/**
+ * Transmissão falsa — o palco, sem WebRTC.
+ *
+ * ⚠ **Arnês mais pobre que o protocolo, 11ª vez.** A `chamadaFalsa` fixava
+ * `tela: false`, então o `PalcoDeTransmissao` inteiro — prévia, selo de AO
+ * VIVO, cronômetro, HUD, fila e coluna — era construído e INALCANÇÁVEL no
+ * navegador: a única porta era uma sala LiveKit de verdade. É a mesma família
+ * do painel de fixadas, que passou meses renderizando quebrado porque nada no
+ * caminho normal chegava até ele.
+ *
+ * A prévia fica no xadrez, e isso é honesto: sem motor não há faixa, e o
+ * palco desenha exatamente o que desenha enquanto o primeiro quadro não vem.
+ *
+ * `camera: true` junto de propósito — é o que faz aparecer o ladrilho
+ * SEPARADO da própria câmera, que é a regra do design mais fácil de quebrar
+ * sem ninguém ver.
+ */
+export function transmissaoFalsa(): void {
+  if (lerChamada().estado === "fora") return;
+  const ligando = !lerChamada().tela;
+  definirChamada({
+    tela: ligando,
+    camera: ligando,
+    telaPausada: false,
+    telaAudio: ligando ? "ligado" : "sem",
+  });
+  definirPalco(ligando ? { tipo: "transmitindo" } : { tipo: "fechado" });
+}
+
+/**
+ * Chamada COM VÍDEO — a grade e o "assistindo", sem WebRTC.
+ *
+ * ⚠ **Arnês mais pobre que o protocolo, 12ª vez.** A grade e a tela de
+ * assistir dependem de `comCamera`, `transmitindo` e `mudos`, que só o motor
+ * escreve — e o motor só existe com uma sala LiveKit de verdade. Sem isto as
+ * duas telas nasceriam construídas e INALCANÇÁVEIS no navegador, que é o
+ * defeito do painel de fixadas e o mesmo que `transmissaoFalsa` acabou de
+ * consertar para o palco de transmissão.
+ *
+ * As faixas de vídeo não existem, e isso é honesto: o ladrilho mostra o avatar
+ * com o xadrez por trás, que é exatamente o que ele mostra no intervalo entre
+ * pedir a faixa e ela chegar.
+ *
+ * ⚠ **Cada lista pega gente DIFERENTE**, e não a mesma pessoa três vezes: uma
+ * amostra em que quem transmite é também quem está mudo não prova que os três
+ * marcadores são independentes — é a mesma lição do recado repetido na member
+ * list.
+ */
+export function chamadaEmVideoFalsa(): void {
+  const dentro = lerChamada().participantes;
+  if (dentro.length === 0) return;
+
+  definirChamada({
+    comCamera: dentro.filter((_, i) => i % 2 === 1),
+    transmitindo: dentro.slice(1, 2),
+    mudos: dentro.filter((_, i) => i % 3 === 2),
+  });
+  definirPalco({ tipo: "grade" });
+}
+
 export function chamadaFalsa(): () => void {
   ensureWorld();
 

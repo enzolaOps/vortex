@@ -128,6 +128,7 @@ type RespostaDeLogin =
  * nenhum evento chegando — um estado que parece funcionar até alguém esperar
  * uma mensagem.
  */
+
 function instalar(sessao: {
   _id: string;
   token: string;
@@ -155,12 +156,17 @@ function instalar(sessao: {
     Idempotente, então chamar nos dois caminhos (login e restauração) não
     duplica ouvinte.
   */
+  /*
+    A mesma sessão duas vezes é o `StrictMode`, não um pedido novo. Sair aqui
+    preserva o socket já aberto; reinstalar o abriria de novo.
+  */
   startAdapter();
 
   client.useExistingSession(sessao);
   void conectar();
   definirUsuarioLocal(sessao.user_id);
 }
+
 
 /**
  * Abre o socket — mas só depois de saber PARA ONDE.
