@@ -134,32 +134,40 @@ function instalar(sessao: {
   user_id: string;
 }): void {
   client.useExistingSession(sessao);
-  conectar();
+  void conectar();
   definirUsuarioLocal(sessao.user_id);
 }
 
 /**
- * Abre o socket — mas só se soubermos PARA ONDE.
+ * Abre o socket — mas só depois de saber PARA ONDE.
  *
  * ⚠ **`client.connect()` cru manda o token para `wss://stoat.chat/events`
  * quando a configuração não carregou.** A linha do SDK é
  * `this.events.connect(this.configuration?.ws ?? "wss://stoat.chat/events",
  * token)`: o `??` é um fallback para a instância PÚBLICA do Stoat, e o segundo
- * argumento é a credencial da sessão. Basta o `GET {baseURL}/` ter falhado —
- * servidor reiniciando, rede oscilando no arranque — para a sessão de quem
- * está entrando ser aberta contra um servidor de terceiro.
+ * argumento é a credencial da sessão.
  *
- * Achado procurando `stoat.chat` no bundle da imagem depois de configurar o
- * `baseURL`. Duas das três ocorrências eram defaults que nós sobrescrevemos;
- * esta é caminho de execução.
+ * ⚠ **A primeira versão desta guarda RECUSAVA em vez de esperar, e isso
+ * quebrou a restauração de sessão.** `useExistingSession` é SÍNCRONO e não
+ * espera nada; só `client.login()` faz `await this.#fetchConfiguration()`, e
+ * nós não o usamos (ele é quebrado — ver o comentário de `entrar`). Então no
+ * F5 a configuração ainda estava em voo, a guarda disparava, e o app abria
+ * sem socket nenhum com um toast dizendo para recarregar — que não adiantava,
+ * porque a corrida se repetia.
  *
- * Não dá para consertar no SDK sem forkar o submodule, então a guarda mora
- * aqui: sem `configuration.ws` não há conexão. O app fica desconectado e a
- * faixa de reconexão diz isso — que é o comportamento honesto, e o mesmo que
- * ele já tem quando a rede cai.
+ * Medido no navegador: toast "a configuração não carregou" em toda
+ * restauração de sessão, com o servidor no ar e respondendo.
+ *
+ * Agora ela ESPERA. O `configured` do SDK é signal do Solid, e lê-lo aqui
+ * dentro de `sdk/` seria legítimo — mas um `while` sobre o campo custa menos
+ * que arrastar reatividade para um caminho que roda uma vez por sessão.
+ *
+ * O teto existe para o caso em que a configuração nunca chega: aí sim o
+ * comportamento honesto é não conectar e dizer, porque conectar significaria
+ * mandar a credencial para um servidor de terceiro.
  */
-function conectar(): void {
-  if (client.configuration?.ws === undefined) {
+async function conectar(): Promise<void> {
+  if (!(await esperarConfiguracao())) {
     toast({
       tipo: "erro",
       titulo: "Não deu para falar com o servidor.",
@@ -168,6 +176,19 @@ function conectar(): void {
     return;
   }
   client.connect();
+}
+
+/** Quanto esperar pela configuração antes de desistir. */
+const TETO_DA_CONFIGURACAO_MS = 15_000;
+const PASSO_MS = 50;
+
+async function esperarConfiguracao(): Promise<boolean> {
+  const limite = Date.now() + TETO_DA_CONFIGURACAO_MS;
+  while (client.configuration?.ws === undefined) {
+    if (Date.now() > limite) return false;
+    await new Promise((r) => setTimeout(r, PASSO_MS));
+  }
+  return true;
 }
 
 /**
