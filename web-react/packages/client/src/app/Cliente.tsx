@@ -101,6 +101,7 @@ export function Cliente({ ferramentas }: { ferramentas?: ReactNode }) {
           <MessageList key={canal} channelId={canal} />
         ) : (
           <EstadoVazio
+            preenche
             titulo="Nenhum canal aberto"
             detalhe="Escolha um canal na coluna à esquerda para começar a ler."
           />
