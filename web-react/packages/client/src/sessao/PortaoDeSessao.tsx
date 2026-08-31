@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
 
 import { ligarLogoutDoServidor, restaurarSessao } from "../sdk/autenticacao";
 import { lerEntrada } from "../store/entrada";
@@ -18,6 +18,7 @@ import { TelaDeNome } from "./TelaDeNome";
  */
 export function PortaoDeSessao({ children }: { children: ReactNode }) {
   const sessao = useSyncExternalStore(assinarSessao, lerSessao);
+  const jaRestaurou = useRef(false);
 
   useEffect(() => {
     /*
@@ -27,6 +28,28 @@ export function PortaoDeSessao({ children }: { children: ReactNode }) {
       passaria antes de haver quem o escutasse, e o app ficaria numa tela viva
       com socket morto.
     */
+    /*
+      ⚠ **A guarda de uma vez só, e ela existe porque o `StrictMode` abria
+      DOIS sockets.** O React invoca efeitos duas vezes em desenvolvimento, de
+      propósito, para revelar efeito não idempotente. `restaurarSessao` abre
+      socket, e abrir dois é exatamente o defeito que ele existe para mostrar.
+
+      Medido com um contador em `conectar()`: **2 sem esta guarda, 1 com ela**.
+
+      Mora AQUI e não em `sdk/autenticacao.ts`, e a primeira versão errou o
+      lugar: um latch module-level lá dentro atravessava os testes de
+      `login.test.ts`, que instalam a mesma sessão em vários casos, e reprovou
+      três deles. O duplo é deste efeito; a guarda também deve ser.
+
+      `useRef` e não `useState`: o valor não pinta nada, e refs sobrevivem ao
+      desmonte simulado do `StrictMode` — que é o que faz a guarda funcionar.
+
+      ⚠ Ela NÃO impede reconexão: quem reconecta é o `EventClient` do SDK,
+      sozinho, e este efeito roda uma vez por carga de página.
+    */
+    if (jaRestaurou.current) return;
+    jaRestaurou.current = true;
+
     ligarLogoutDoServidor();
     restaurarSessao();
   }, []);

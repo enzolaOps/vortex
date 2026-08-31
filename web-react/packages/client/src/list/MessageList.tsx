@@ -26,6 +26,7 @@ import {
 } from "../store/comandos";
 import {
   carregarHistorico,
+  carregarPaginaAnterior,
   messages,
   primeiraNaoLida,
   proximaMencao,
@@ -51,6 +52,16 @@ import { MenuDaMensagem, MessageRow } from "./MessageRow";
  * contra um app parado, na fase 0.
  */
 const LIMIAR_DE_FIM = 80;
+
+/**
+ * A que distância do topo a página anterior é pedida.
+ *
+ * Generoso de propósito, e MUITO maior que `LIMIAR_DE_FIM`: pedir a 80px
+ * significaria pedir depois de a pessoa já ter batido no topo, com a espera
+ * da rede inteira à vista. 600px é cerca de meia janela — a página costuma
+ * chegar antes de o topo aparecer, e a leitura não pára.
+ */
+const LIMIAR_DE_PAGINACAO = 600;
 
 /**
  * A partir de quantos pixels do fim o "Ir para o presente" aparece.
@@ -434,6 +445,13 @@ export function MessageList({ channelId }: { channelId: string }) {
     void carregarHistorico(channelId);
   }, [channelId]);
 
+  /*
+    A lista tem conteúdo — e portanto o container de rolagem existe no DOM.
+    É a MESMA condição que escolhe entre o estado vazio e a lista, logo abaixo;
+    lê-la aqui é o que permite aos efeitos dependerem da existência do `ref`.
+  */
+  const temLista = ids.length > 0;
+
   const virtualizer = useVirtualizer({
     count: ids.length,
     getScrollElement: () => scrollRef.current,
@@ -553,6 +571,28 @@ export function MessageList({ channelId }: { channelId: string }) {
     };
 
     const aoRolar = () => {
+      /*
+        A página anterior, quando o topo se aproxima.
+
+        ⚠ **`carregarHistorico` era um TETO e não um começo.** Ela traz as 100
+        últimas; num canal com mil mensagens as outras novecentas eram
+        inalcançáveis, e rolar até o topo mostrava o começo da LISTA como se
+        fosse o começo do CANAL — a interface afirmando algo falso.
+
+        O gatilho fica aqui e não num sentinela com `IntersectionObserver`: a
+        lista é virtualizada, então um elemento no topo lógico simplesmente
+        não existe no DOM enquanto ninguém rola até lá. O `scrollTop` existe
+        sempre.
+
+        Sem coalescer e sem guarda de tempo AQUI de propósito — quem segura a
+        rajada é `carregarPaginaAnterior`, com um cadeado por canal. Rolar
+        rápido dispara isto dezenas de vezes, e todas menos a primeira saem
+        na primeira linha dela.
+      */
+      if (element.scrollTop <= LIMIAR_DE_PAGINACAO) {
+        void carregarPaginaAnterior(channelId);
+      }
+
       const noFim =
         element.scrollHeight - element.clientHeight - element.scrollTop <=
         LIMIAR_DE_FIM;
@@ -625,7 +665,29 @@ export function MessageList({ channelId }: { channelId: string }) {
       */
       esquecerLongeDoFim(channelId);
     };
-  }, [channelId]);
+    /*
+      ⚠ **`temLista` nas dependências, e sem ele o efeito inteiro NÃO LIGAVA na
+      primeira abertura de um canal.**
+
+      Quando a lista está vazia o componente renderiza outro subárvore — o
+      estado "este é o começo do canal" —, e ela não tem `ref={scrollRef}`.
+      O efeito roda, acha `scrollRef.current` nulo, sai no `if (!element)` e
+      nunca mais volta, porque `channelId` não muda.
+
+      Antes isso não aparecia: o arnês semeava o canal ANTES da montagem, e a
+      lista nunca nascia vazia. Com histórico vindo do servidor ela nasce vazia
+      SEMPRE, e o efeito passou a ser pulado em todo canal que se abre.
+
+      O que morria junto não era pouco: a ancoragem (`colado`), o botão "ir
+      para o presente", o rastreio de gesto por teclado e a paginação para
+      trás. Nenhum dava erro — trocar de canal e voltar consertava tudo, o que
+      é a pior forma de um defeito se esconder.
+
+      Medido: com a lista vazia na montagem, rolar até o topo não pedia página
+      nenhuma (`ultimaTentativaDePagina: "nunca chamada"`); depois de ir a
+      outro canal e voltar, a mesma rolagem trouxe 64 mensagens.
+    */
+  }, [channelId, temLista]);
 
   /**
    * O CONTEÚDO cresceu — reancora, mesmo que o virtualizador já tenha desistido.
