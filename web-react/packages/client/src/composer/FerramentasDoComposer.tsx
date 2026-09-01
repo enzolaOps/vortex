@@ -1,7 +1,6 @@
 import {
   ChartBar,
   Gif,
-  ICONE,
   Microphone,
   MusicNotes,
   Smiley,
@@ -114,7 +113,7 @@ export function FerramentasDoComposer({
               disabled={desabilitado}
               onClick={f.acao}
             >
-              <f.Icone size={ICONE.calha} />
+              <f.Icone />
             </button>
           </Tooltip>
         ),
@@ -157,7 +156,7 @@ function SeletorEmPopover({
             */
             disabled={desabilitado}
           >
-            <ferramenta.Icone size={ICONE.calha} />
+            <ferramenta.Icone />
           </button>
         </PopoverTrigger>
       </Tooltip>

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 
-import { ICONE, pareamento } from "./icones";
+import { FORA_DA_ESCALA, ICONE, pareamento } from "./icones";
 
 /**
  * A escala de ícone existe DUAS vezes — `--vx-icon-*` no `tokens.css` e
@@ -15,7 +15,10 @@ import { ICONE, pareamento } from "./icones";
  * Lê o `tokens.css` de verdade, nunca uma cópia. É o mesmo princípio do
  * `contraste.test.ts`: cópia envelhece e passa a aprovar o que não existe.
  */
-const css = readFileSync(new URL("../../styles/tokens.css", import.meta.url), "utf8");
+const css = readFileSync(
+  new URL("../../styles/tokens.css", import.meta.url),
+  "utf8",
+);
 
 function degrausDoCss(): Map<string, number> {
   const achados = new Map<string, number>();
@@ -67,5 +70,97 @@ describe("a escala de ícone é uma só", () => {
   it("nenhum degrau repete o valor de outro", () => {
     const valores = Object.values(ICONE);
     expect(new Set(valores).size).toBe(valores.length);
+  });
+});
+
+/**
+ * As regras de CSS que dimensionam ícone.
+ *
+ * ⚠ **A escala do TSX não alcança o CSS, e é lá que a maioria dos ícones deste
+ * app é dimensionada** — 42 regras contra os poucos `size={}` que sobraram.
+ * Sem esta varredura a escala vale para a minoria e o resto flutua.
+ *
+ * Ela achou, na primeira corrida: quatro regras dizendo tamanho de ícone com a
+ * escala de ESPAÇO (`--vx-space-12` — 12px, valor certo e vocabulário errado)
+ * e um `11px` sem razão nenhuma escrita.
+ */
+type RegraDeIcone = { arquivo: string; sel: string; valor: string };
+
+function regrasQueDimensionamSvg(): RegraDeIcone[] {
+  const achados: RegraDeIcone[] = [];
+
+  const visitar = (dir: URL): void => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const filho = new URL(e.name + (e.isDirectory() ? "/" : ""), dir);
+      if (e.isDirectory()) {
+        visitar(filho);
+        continue;
+      }
+      if (!e.name.endsWith(".module.css")) continue;
+
+      const texto = readFileSync(filho, "utf8");
+      for (const m of texto.matchAll(/([^{}/]+?)\{([^}]*)\}/g)) {
+        const sel = (m[1] ?? "").split("*/").pop()?.trim() ?? "";
+        if (!sel || !sel.includes("svg")) continue;
+        const largura = /inline-size:\s*([^;]+);/.exec(m[2] ?? "");
+        if (!largura?.[1]) continue;
+        achados.push({
+          arquivo: decodeURIComponent(filho.pathname).split("/src/")[1] ?? e.name,
+          sel: sel.split(/\s+/).join(" "),
+          valor: largura[1].trim(),
+        });
+      }
+    }
+  };
+
+  visitar(new URL("../../", import.meta.url));
+  return achados;
+}
+
+describe("o CSS dimensiona ícone dentro da escala", () => {
+  const regras = regrasQueDimensionamSvg();
+  const degraus: ReadonlySet<string> = new Set(
+    Object.values(pareamento)
+      .filter((p) => p !== null)
+      .map((p) => `var(${p})`),
+  );
+
+  /**
+   * ⚠ **A guarda contra a guarda.** A primeira versão desta varredura tinha um
+   * `\b` que virou um caractere BACKSPACE literal no arquivo, então a regex
+   * era `/\x08inline-size…/` e nunca casava — ela relatou "tudo certo" tendo
+   * lido 100 módulos e achado zero regras. Uma varredura que aprova o vazio é
+   * pior que nenhuma, porque ninguém a olha de novo.
+   */
+  it("a varredura encontra regras (senão ela aprova o vazio)", () => {
+    expect(regras.length).toBeGreaterThan(20);
+  });
+
+  it("nenhuma regra dimensiona ícone com valor fora da escala", () => {
+    const fugitivas = regras
+      .filter((r) => !degraus.has(r.valor))
+      .filter((r) => !FORA_DA_ESCALA.some((e) => `${r.arquivo} ${r.sel}` === e.onde))
+      .map((r) => `${r.arquivo}  ${r.sel}  ->  ${r.valor}`);
+    expect(fugitivas).toEqual([]);
+  });
+
+  /**
+   * ⚠ A direção que impede a lista de virar depósito: exceção que voltou para
+   * a escala precisa SAIR, senão ela mente sobre uma decisão que ninguém
+   * tomou mais. Mesmo par de asserções de `SEM_PAR` no contraste.
+   */
+  it.each(FORA_DA_ESCALA.filter((e) => e.onde.includes("svg")))(
+    "a exceção $onde ainda existe e ainda está fora da escala",
+    ({ onde, px }) => {
+      const r = regras.find((x) => `${x.arquivo} ${x.sel}` === onde);
+      expect(r, `a regra de ${onde} sumiu — tire a exceção`).toBeDefined();
+      expect(r?.valor).toBe(`${px}px`);
+    },
+  );
+
+  it("toda exceção diz por quê, e não com uma frase de enfeite", () => {
+    for (const e of FORA_DA_ESCALA) {
+      expect(e.porque.length, `${e.onde} sem razão de verdade`).toBeGreaterThan(60);
+    }
   });
 });

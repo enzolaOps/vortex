@@ -1,6 +1,5 @@
 import {
   Hash,
-  ICONE,
   SpeakerHigh,
 } from "../components/ui/icones";
 
@@ -49,7 +48,7 @@ export function CabecalhoDeCanal({ channelId }: { channelId: string }) {
 
   return (
     <header className={css.cabecalho}>
-      <Icone size={ICONE.calha} aria-hidden className={css.icone} />
+      <Icone aria-hidden className={css.icone} />
       {/*
         O id existe para a LISTA se nomear por ele.
 

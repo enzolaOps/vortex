@@ -261,7 +261,7 @@ const Canal = memo(function Canal({
           />
 
           {/* Ícones Phosphor, weight regular, 20px — um set só, sem exceção. */}
-          <Icone size={ICONE.calha} className={css.icone} aria-hidden />
+          <Icone className={css.icone} aria-hidden />
           <span className={css.nome}>{canal.name}</span>
 
           {/*
@@ -274,7 +274,7 @@ const Canal = memo(function Canal({
           */}
           {canal.privado ? (
             <span className={css.marcador}>
-              <Lock size={ICONE.calha} aria-hidden />
+              <Lock aria-hidden />
               <span className="sr-only">canal restrito</span>
             </span>
           ) : null}
@@ -478,7 +478,7 @@ const Canal = memo(function Canal({
                 aria-label={`Criar convite para ${canal.name}`}
                 onClick={() => administrar({ tipo: "convite", channelId: id })}
               >
-                <UserPlus size={ICONE.calha} aria-hidden />
+                <UserPlus aria-hidden />
               </button>
             ) : null}
 
@@ -489,7 +489,7 @@ const Canal = memo(function Canal({
               aria-label={`Criar tópico em ${canal.name}`}
               onClick={aindaNao("criarTopico")}
             >
-              <Plus size={ICONE.calha} aria-hidden />
+              <Plus aria-hidden />
             </button>
           </span>
     </div>
@@ -574,7 +574,7 @@ const NaSala = memo(function NaSala({
       */}
       {participante.estado !== "voz" ? (
         <>
-          <Icone size={ICONE.calha} aria-hidden className={css.estadoDeVoz} />
+          <Icone aria-hidden className={css.estadoDeVoz} />
           <span className="sr-only">
             {participante.estado === "tela"
               ? "compartilhando a tela"
@@ -615,7 +615,7 @@ const NaSala = memo(function NaSala({
       */}
       {participante.mudoPeloServidor ? (
         <>
-          <MicrophoneSlash size={ICONE.calha} aria-hidden className={css.estadoSrv} />
+          <MicrophoneSlash aria-hidden className={css.estadoSrv} />
           <span className={css.srv} aria-hidden>
             SRV
           </span>
@@ -625,12 +625,12 @@ const NaSala = memo(function NaSala({
 
       {participante.surdo ? (
         <>
-          <SpeakerSlash size={ICONE.calha} aria-hidden className={css.estadoMudo} />
+          <SpeakerSlash aria-hidden className={css.estadoMudo} />
           <span className="sr-only">sem ouvir</span>
         </>
       ) : participante.mudo ? (
         <>
-          <MicrophoneSlash size={ICONE.calha} aria-hidden className={css.estadoMudo} />
+          <MicrophoneSlash aria-hidden className={css.estadoMudo} />
           <span className="sr-only">com o microfone desligado</span>
         </>
       ) : null}
@@ -733,7 +733,7 @@ const RestanteDoSilencio = memo(function RestanteDoSilencio({
   if (ate === Infinity) {
     return (
       <span className={css.marcador}>
-        <BellSimpleSlash size={ICONE.calha} aria-hidden />
+        <BellSimpleSlash aria-hidden />
         <span className="sr-only">silenciado</span>
       </span>
     );
@@ -866,7 +866,6 @@ const Categoria = memo(function Categoria({
               onClick={() => alternarColapso(categoria.id)}
             >
               <CaretRight
-                size={ICONE.calha}
                 aria-hidden
                 className={css.chevron}
                 data-aberta={!colapsada}
@@ -959,7 +958,7 @@ const Categoria = memo(function Categoria({
               })
             }
           >
-            <Plus size={ICONE.calha} aria-hidden />
+            <Plus aria-hidden />
           </button>
         ) : null}
         </>
@@ -1171,7 +1170,7 @@ function CanaisDoServidor() {
                 ) : null}
               </span>
 
-              <CaretDown size={ICONE.calha} aria-hidden className={css.divisaDoMenu} />
+              <CaretDown aria-hidden className={css.divisaDoMenu} />
             </button>
           </DropdownMenuTrigger>
 

@@ -1,5 +1,4 @@
 import {
-  ICONE,
   PaperPlaneRight,
   Plus,
 } from "../components/ui/icones";
@@ -322,7 +321,7 @@ export function Composer({ channelId }: { channelId: string }) {
                 disabled={!temPermissao || !temMidia}
                 onClick={() => seletorDeArquivo.current?.click()}
               >
-                <Plus size={ICONE.calha} aria-hidden />
+                <Plus aria-hidden />
               </button>
             </Tooltip>
 
@@ -418,7 +417,7 @@ export function Composer({ channelId }: { channelId: string }) {
                 aria-label="Enviar mensagem"
                 className={css.enviar}
               >
-                <PaperPlaneRight size={ICONE.calha} aria-hidden />
+                <PaperPlaneRight aria-hidden />
               </button>
             </Tooltip>
           </div>

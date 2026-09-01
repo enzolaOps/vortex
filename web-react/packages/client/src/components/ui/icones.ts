@@ -205,3 +205,40 @@ export const pareamento = {
   metadado: "--vx-icon-1",
   selo: "--vx-icon-0",
 } as const satisfies Record<keyof typeof ICONE, string | null>;
+
+/**
+ * Os tamanhos que ficam FORA da escala de propósito.
+ *
+ * ⚠ **Existe porque "exceção decidida" e "número esquecido" são
+ * indistinguíveis olhando** — a mesma razão de `SEM_PAR` no contraste e de
+ * `EXCECOES` nos pares. Sem esta lista, a única forma de saber se um `9px` era
+ * escolha ou descuido é achar quem o escreveu.
+ *
+ * As duas entradas de hoje são medidas no design, e as duas descrevem glifos
+ * que NÃO são ícones no sentido da escala: são pontuação ao lado de um rótulo.
+ * Colocá-los num degrau os deixaria maiores que o texto que anotam, que é
+ * exatamente o defeito que os produziu.
+ *
+ * O teste exige as DUAS direções: valor fora da escala que não esteja aqui
+ * reprova, e entrada que voltou para a escala também — senão a lista vira
+ * depósito que mente sobre uma decisão que ninguém tomou mais.
+ */
+export const FORA_DA_ESCALA = [
+  {
+    px: 9,
+    onde: "canais/ListaDeCanais.module.css .chevron",
+    porque:
+      "Triângulo de divulgação ao lado de um rótulo de 11px em caixa alta. " +
+      "Em 14 ficava MAIOR que o texto que acompanha, e era o que mais " +
+      "denunciava a categoria. 9px é também o rótulo de pasta no rail — os " +
+      "dois casos em que o design escreve abaixo do menor degrau tipográfico.",
+  },
+  {
+    px: 13,
+    onde: "components/ui/BotaoDeIcone.module.css .xs svg, .sm svg",
+    porque:
+      "O glifo acompanha o alvo mas não é o alvo: 13 dentro de 28 é o do " +
+      "design. Subir para 14 apagaria o degrau contra `.md`/`.lg`, que já " +
+      "são 14; descer para 12 é menor do que o design desenha.",
+  },
+] as const;

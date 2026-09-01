@@ -214,7 +214,7 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
       */}
       {silenciado ? (
         <>
-          <ProhibitInset size={ICONE.calha} aria-hidden className={css.castigo} />
+          <ProhibitInset aria-hidden className={css.castigo} />
           <span className="sr-only">em castigo</span>
         </>
       ) : null}

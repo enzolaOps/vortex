@@ -1,5 +1,4 @@
 import {
-  ICONE,
   Monitor,
   MusicNotes,
   Power,
@@ -181,7 +180,7 @@ export function FaixaDeVoz() {
               aria-label="Sair da chamada"
               onClick={() => void sairDaChamada()}
             >
-              <Power size={ICONE.calha} />
+              <Power />
             </button>
           </Tooltip>
         </div>
@@ -206,7 +205,7 @@ export function FaixaDeVoz() {
             aria-label="Câmera"
             onClick={() => void alternarCamera()}
           >
-            <VideoCamera size={ICONE.calha} />
+            <VideoCamera />
           </button>
         </Tooltip>
 
@@ -222,7 +221,7 @@ export function FaixaDeVoz() {
             aria-label="Compartilhamento de tela"
             onClick={() => void alternarTela()}
           >
-            <Monitor size={ICONE.calha} />
+            <Monitor />
           </button>
         </Tooltip>
 
@@ -234,7 +233,7 @@ export function FaixaDeVoz() {
             aria-label="Atividades"
             onClick={aindaNao("atividades")}
           >
-            <Rows size={ICONE.calha} />
+            <Rows />
           </button>
         </Tooltip>
 
@@ -245,7 +244,7 @@ export function FaixaDeVoz() {
             aria-label="Soundboard"
             onClick={aindaNao("soundboard")}
           >
-            <MusicNotes size={ICONE.calha} />
+            <MusicNotes />
           </button>
         </Tooltip>
       </div>

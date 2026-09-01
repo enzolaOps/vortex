@@ -1331,7 +1331,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                     aria-label="Adicionar reação"
                     onClick={aindaNao("emoji")}
                   >
-                    <Plus size={ICONE.calha} aria-hidden />
+                    <Plus aria-hidden />
                   </button>
                 ) : null}
               </div>

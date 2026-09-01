@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 import { Amigos } from "../casa/Amigos";
 import { CabecalhoDeCanal } from "../canais/CabecalhoDeCanal";
@@ -16,6 +16,7 @@ import { PainelDeBusca } from "../busca/PainelDeBusca";
 import { CaixaDeEntrada } from "../caixa/CaixaDeEntrada";
 import { Rail } from "../rail/Rail";
 import { Shell } from "../shell/Shell";
+import { observarTamanhoDeIcone } from "../dev/tamanhoDeIcone";
 import { useCanalAtivo, useLocal } from "../store/hooks";
 
 /**
@@ -43,6 +44,17 @@ export function Cliente({ ferramentas }: { ferramentas?: ReactNode }) {
   */
   const canal = useCanalAtivo();
   const local = useLocal();
+
+  /*
+    A assertion de tamanho de ícone.
+
+    Mora AQUI e não numa superfície específica porque ela varre o documento
+    inteiro: modal, painel, seletor e configurações montam fora desta árvore,
+    e é justamente o que monta depois que o analisador estático não alcança.
+
+    Some do bundle de produção — a função devolve um no-op fora de `DEV`.
+  */
+  useEffect(() => observarTamanhoDeIcone(), []);
 
   /*
     A tela de pessoas ocupa a coluna de CONTEÚDO, no lugar da lista.

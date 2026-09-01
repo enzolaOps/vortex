@@ -589,8 +589,8 @@
 }
 
 .fixada svg {
-  inline-size: var(--vx-space-12);
-  block-size: var(--vx-space-12);
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
 }
 
 /*
@@ -626,8 +626,8 @@
 }
 
 .adicionarReacao svg {
-  inline-size: var(--vx-space-12);
-  block-size: var(--vx-space-12);
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
 }
 
 /*

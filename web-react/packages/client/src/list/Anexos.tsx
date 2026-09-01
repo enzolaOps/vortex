@@ -1,7 +1,6 @@
 import {
   DownloadSimple,
   FileArrowDown,
-  ICONE,
 } from "../components/ui/icones";
 import type { CSSProperties } from "react";
 
@@ -83,7 +82,7 @@ function RodapeDoAnexo({ anexo }: { anexo: AnexoSnapshot }) {
           download={anexo.nome}
           aria-label={`Baixar ${anexo.nome}`}
         >
-          <DownloadSimple size={ICONE.calha} aria-hidden />
+          <DownloadSimple aria-hidden />
         </a>
       </span>
     </div>
@@ -109,7 +108,7 @@ function Anexo({
   if (anexo.tipo === "arquivo" || !anexo.largura || !anexo.altura) {
     return (
       <a className={css.arquivo} href={anexo.url} download={anexo.nome}>
-        <FileArrowDown size={ICONE.calha} aria-hidden />
+        <FileArrowDown aria-hidden />
         <span className={css.nome}>{anexo.nome}</span>
       </a>
     );

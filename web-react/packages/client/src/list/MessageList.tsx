@@ -1373,7 +1373,7 @@ export function MessageList({ channelId }: { channelId: string }) {
             if (i !== -1) virtualizer.scrollToIndex(i, { align: "center" });
           }}
         >
-          <At size={ICONE.calha} aria-hidden />
+          <At aria-hidden />
           próxima menção
         </button>
       ) : null}

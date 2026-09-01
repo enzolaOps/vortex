@@ -1,6 +1,5 @@
 import {
   ArrowDown,
-  ICONE,
 } from "../components/ui/icones";
 import { useSyncExternalStore } from "react";
 
@@ -46,7 +45,7 @@ export function IrParaOPresente({ channelId }: { channelId: string }) {
       onClick={() => pedirFimDaLista(channelId)}
     >
       Ir para o presente
-      <ArrowDown size={ICONE.calha} aria-hidden />
+      <ArrowDown aria-hidden />
     </button>
   );
 }
