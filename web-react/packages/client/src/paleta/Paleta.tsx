@@ -1,4 +1,4 @@
-import { Hash, SpeakerHigh, User, UsersThree } from "@phosphor-icons/react";
+import { Hash, SpeakerHigh, User, UsersThree } from "../components/ui/icones";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Dialog, DialogContent } from "../components/ui/Dialog";

@@ -6,7 +6,7 @@ import {
   VideoCamera,
   VideoCameraSlash,
   X,
-} from "@phosphor-icons/react";
+} from "../components/ui/icones";
 import {
   memo,
   useEffect,

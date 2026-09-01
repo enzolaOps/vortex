@@ -1,4 +1,4 @@
-import { CaretRight } from "@phosphor-icons/react";
+import { CaretRight } from "./icones";
 import * as Primitivo from "@radix-ui/react-context-menu";
 import type { ComponentProps, ReactNode } from "react";
 

@@ -1,4 +1,4 @@
-import { Gear, Note, Plus, Users } from "@phosphor-icons/react";
+import { Gear, Note, Plus, Users } from "../components/ui/icones";
 import { memo } from "react";
 
 import { EstadoVazio } from "../components/ui/EstadoVazio";

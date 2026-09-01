@@ -1,4 +1,4 @@
-import { PaperPlaneRight, Plus } from "@phosphor-icons/react";
+import { PaperPlaneRight, Plus } from "../components/ui/icones";
 import {
   useEffect,
   useRef,

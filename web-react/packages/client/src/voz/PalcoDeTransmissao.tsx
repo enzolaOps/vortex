@@ -11,7 +11,7 @@ import {
   SpeakerHigh,
   SpeakerSlash,
   VideoCamera,
-} from "@phosphor-icons/react";
+} from "../components/ui/icones";
 import { memo, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { Avatar } from "../components/ui/Avatar";

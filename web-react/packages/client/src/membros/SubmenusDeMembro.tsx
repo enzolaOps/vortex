@@ -1,4 +1,4 @@
-import { Check, Hash, UsersThree } from "@phosphor-icons/react";
+import { Check, Hash, UsersThree } from "../components/ui/icones";
 
 import {
   ContextMenuItem,

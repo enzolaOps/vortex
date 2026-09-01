@@ -10,7 +10,7 @@ import {
   Users,
   VideoCamera,
   VideoCameraSlash,
-} from "@phosphor-icons/react";
+} from "../components/ui/icones";
 import {
   memo,
   useCallback,

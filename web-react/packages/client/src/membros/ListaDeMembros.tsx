@@ -1,4 +1,4 @@
-import { Hammer, ProhibitInset, SignOut } from "@phosphor-icons/react";
+import { Hammer, ProhibitInset, SignOut } from "../components/ui/icones";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   memo,

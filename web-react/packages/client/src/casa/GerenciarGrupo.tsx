@@ -1,4 +1,4 @@
-import { PencilSimple } from "@phosphor-icons/react";
+import { PencilSimple } from "../components/ui/icones";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { Avatar } from "../components/ui/Avatar";

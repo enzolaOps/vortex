@@ -3,7 +3,7 @@ import {
   MicrophoneSlash,
   Monitor,
   PushPin,
-} from "@phosphor-icons/react";
+} from "../components/ui/icones";
 import { memo, useEffect, useState, useSyncExternalStore } from "react";
 
 import { Avatar } from "../components/ui/Avatar";

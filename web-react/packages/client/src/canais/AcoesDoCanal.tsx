@@ -5,7 +5,7 @@ import {
   PushPin,
   Tray,
   Users,
-} from "@phosphor-icons/react";
+} from "../components/ui/icones";
 import { useSyncExternalStore } from "react";
 
 import { cn } from "../lib/cn";

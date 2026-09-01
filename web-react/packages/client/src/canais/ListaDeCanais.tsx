@@ -17,7 +17,7 @@ import {
   UserPlus,
   Trash,
   VideoCamera,
-} from "@phosphor-icons/react";
+} from "../components/ui/icones";
 import { memo, useEffect, useState, useSyncExternalStore } from "react";
 
 import {

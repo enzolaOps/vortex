@@ -1,4 +1,4 @@
-import { ArrowClockwise, DownloadSimple, WarningOctagon } from "@phosphor-icons/react";
+import { ArrowClockwise, DownloadSimple, WarningOctagon } from "../components/ui/icones";
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { Botao } from "../components/ui/Botao";

@@ -1,4 +1,4 @@
-import { WifiSlash, WifiHigh } from "@phosphor-icons/react";
+import { WifiSlash, WifiHigh } from "../components/ui/icones";
 import { useEffect, useSyncExternalStore } from "react";
 
 import { assinarConexao, lerConexao } from "../store/conexao";

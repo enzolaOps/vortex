@@ -7,7 +7,7 @@ import {
   Minus,
   Plus,
   X,
-} from "@phosphor-icons/react";
+} from "../components/ui/icones";
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { Avatar } from "../components/ui/Avatar";

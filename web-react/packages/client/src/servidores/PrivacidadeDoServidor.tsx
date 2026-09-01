@@ -1,4 +1,4 @@
-import { Info } from "@phosphor-icons/react";
+import { Info } from "../components/ui/icones";
 import { useSyncExternalStore } from "react";
 
 import { Botao } from "../components/ui/Botao";

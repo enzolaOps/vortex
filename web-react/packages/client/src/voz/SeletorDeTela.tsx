@@ -1,4 +1,4 @@
-import { Check, SpeakerHigh } from "@phosphor-icons/react";
+import { Check, SpeakerHigh } from "../components/ui/icones";
 import { useEffect, useState } from "react";
 
 import { Banner } from "../components/ui/Banner";

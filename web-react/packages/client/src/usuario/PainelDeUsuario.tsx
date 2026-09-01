@@ -4,7 +4,7 @@ import {
   Microphone,
   MicrophoneSlash,
   SpeakerSlash,
-} from "@phosphor-icons/react";
+} from "../components/ui/icones";
 import { useState, useSyncExternalStore } from "react";
 
 import { Campo } from "../components/ui/Campo";

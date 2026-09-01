@@ -1,4 +1,4 @@
-import { Check, MusicNotes, UploadSimple } from "@phosphor-icons/react";
+import { Check, MusicNotes, UploadSimple } from "../components/ui/icones";
 import { useSyncExternalStore } from "react";
 
 import { Banner } from "../components/ui/Banner";

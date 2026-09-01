@@ -1,4 +1,4 @@
-import { ArrowDown } from "@phosphor-icons/react";
+import { ArrowDown } from "../components/ui/icones";
 import { useSyncExternalStore } from "react";
 
 import {

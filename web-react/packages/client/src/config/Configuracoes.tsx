@@ -1,4 +1,4 @@
-import { X } from "@phosphor-icons/react";
+import { X } from "../components/ui/icones";
 import {
   Fragment,
   useEffect,

@@ -1,4 +1,4 @@
-import { At, ChatCircleDots } from "@phosphor-icons/react";
+import { At, ChatCircleDots } from "../components/ui/icones";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useRef, useSyncExternalStore } from "react";
 

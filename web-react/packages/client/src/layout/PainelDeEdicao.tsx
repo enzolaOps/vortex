@@ -1,4 +1,4 @@
-import { ArrowCounterClockwise, Check, Eye, EyeSlash } from "@phosphor-icons/react";
+import { ArrowCounterClockwise, Check, Eye, EyeSlash } from "../components/ui/icones";
 import { useEffect, useSyncExternalStore } from "react";
 
 import { Botao } from "../components/ui/Botao";

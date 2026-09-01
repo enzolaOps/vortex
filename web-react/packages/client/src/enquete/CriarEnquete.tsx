@@ -1,4 +1,4 @@
-import { CaretDown, DotsSixVertical, Plus, Smiley, X } from "@phosphor-icons/react";
+import { CaretDown, DotsSixVertical, Plus, Smiley, X } from "../components/ui/icones";
 import { useRef, useState } from "react";
 
 import { Botao } from "../components/ui/Botao";

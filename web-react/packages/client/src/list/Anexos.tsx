@@ -1,4 +1,4 @@
-import { DownloadSimple, FileArrowDown } from "@phosphor-icons/react";
+import { DownloadSimple, FileArrowDown } from "../components/ui/icones";
 import type { CSSProperties } from "react";
 
 import type { AnexoSnapshot } from "../sdk/domain";

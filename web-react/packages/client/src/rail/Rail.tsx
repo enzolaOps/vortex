@@ -6,7 +6,7 @@ import {
   ShieldCheck,
   GearSix,
   Plus,
-} from "@phosphor-icons/react";
+} from "../components/ui/icones";
 import { memo, useSyncExternalStore } from "react";
 
 import {

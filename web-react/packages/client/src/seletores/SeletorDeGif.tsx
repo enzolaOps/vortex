@@ -1,4 +1,4 @@
-import { Star } from "@phosphor-icons/react";
+import { Star } from "../components/ui/icones";
 import { useState } from "react";
 
 import { aindaNao } from "../pendente/pendencias";

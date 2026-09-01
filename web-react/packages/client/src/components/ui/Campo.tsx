@@ -1,4 +1,4 @@
-import { Eye, EyeSlash } from "@phosphor-icons/react";
+import { Eye, EyeSlash } from "./icones";
 import { useId, useState, type InputHTMLAttributes, type ReactNode } from "react";
 
 import css from "./Campo.module.css";

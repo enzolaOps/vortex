@@ -1,4 +1,4 @@
-import { MagnifyingGlass, X } from "@phosphor-icons/react";
+import { MagnifyingGlass, X } from "../components/ui/icones";
 import { useEffect, useState } from "react";
 
 import { Avatar } from "../components/ui/Avatar";

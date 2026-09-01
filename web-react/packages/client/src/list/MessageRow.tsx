@@ -22,7 +22,7 @@ import {
   TextItalic,
   Trash,
   UserCircle,
-} from "@phosphor-icons/react";
+} from "../components/ui/icones";
 import {
   memo,
   useEffect,

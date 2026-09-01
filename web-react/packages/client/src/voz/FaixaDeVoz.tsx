@@ -4,7 +4,7 @@ import {
   Rows,
   VideoCamera,
   Monitor,
-} from "@phosphor-icons/react";
+} from "../components/ui/icones";
 import { useSyncExternalStore } from "react";
 
 import { alternarCamera, alternarTela, sairDaChamada } from "../sdk/chamada";

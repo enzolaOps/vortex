@@ -1,4 +1,4 @@
-import { DotsThree, MagnifyingGlass } from "@phosphor-icons/react";
+import { DotsThree, MagnifyingGlass } from "../components/ui/icones";
 import { memo, useEffect, useMemo, useState } from "react";
 
 import { Avatar } from "../components/ui/Avatar";

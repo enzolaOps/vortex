@@ -1,4 +1,4 @@
-import { Minus, Square, X } from "@phosphor-icons/react";
+import { Minus, Square, X } from "../components/ui/icones";
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { cn } from "../lib/cn";

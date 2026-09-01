@@ -1,4 +1,4 @@
-import { CaretDown } from "@phosphor-icons/react";
+import { CaretDown } from "../components/ui/icones";
 import { useState, useSyncExternalStore } from "react";
 
 import { Deslizante } from "../components/ui/Deslizante";

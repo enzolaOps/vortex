@@ -1,4 +1,4 @@
-import { ArrowBendUpLeft, At, X } from "@phosphor-icons/react";
+import { ArrowBendUpLeft, At, X } from "../components/ui/icones";
 
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
 import { useMessage } from "../store/hooks";

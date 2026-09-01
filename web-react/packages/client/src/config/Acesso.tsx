@@ -1,4 +1,4 @@
-import { Check, X } from "@phosphor-icons/react";
+import { Check, X } from "../components/ui/icones";
 import { useState } from "react";
 
 import { Avatar } from "../components/ui/Avatar";

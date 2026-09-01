@@ -3,7 +3,7 @@ import { useState, useSyncExternalStore } from "react";
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
 import { criarPasta } from "../store/pastas";
-import { Lock } from "@phosphor-icons/react";
+import { Lock } from "../components/ui/icones";
 
 import { Escolha } from "../components/ui/Escolha";
 import { Interruptor } from "../components/ui/Interruptor";

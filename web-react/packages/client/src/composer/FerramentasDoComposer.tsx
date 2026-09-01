@@ -5,7 +5,7 @@ import {
   MusicNotes,
   Smiley,
   Sticker,
-} from "@phosphor-icons/react";
+} from "../components/ui/icones";
 import type { ComponentType, ReactNode } from "react";
 
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/Popover";

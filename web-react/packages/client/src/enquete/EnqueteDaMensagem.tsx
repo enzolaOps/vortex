@@ -1,4 +1,4 @@
-import { Trophy } from "@phosphor-icons/react";
+import { Trophy } from "../components/ui/icones";
 
 import { plural } from "../lib/plural";
 import { republicarEnquete } from "../sdk/adapter";

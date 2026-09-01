@@ -1,4 +1,4 @@
-import { Pause, Play } from "@phosphor-icons/react";
+import { Pause, Play } from "../components/ui/icones";
 import { useEffect, useRef, useState } from "react";
 
 import type { AnexoSnapshot } from "../sdk/domain";
