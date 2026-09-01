@@ -29,7 +29,9 @@ jobs:
   lockstep:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # v5+ roda em Node 24. O v4 ainda funciona, mas o runner já o força
+      # para Node 24 e emite aviso de depreciação a cada execução.
+      - uses: actions/checkout@v7
         with:
           submodules: false
 
