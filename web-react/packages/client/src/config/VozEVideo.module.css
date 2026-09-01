@@ -81,11 +81,14 @@
 /*
   As barras do medidor.
 
-  ⚠ **Elas são um GABARITO, e a tela diz isso** — não há analisador de áudio
-  ligado (ver a pendência `medidorDeEntrada`). Desenhar barras que se mexem com
-  número inventado seria a mesma mentira do "Conectado · 42 ms" que a faixa de
-  voz recusou. Aqui elas ficam paradas e apagadas, que é a verdade: o medidor
-  existe e ainda não mede.
+  ⚠ **Elas MEDEM agora** — `useNivelDeEntrada` liga um `AnalyserNode` na faixa
+  do teste e acende por RMS em dB. O comentário anterior dizia que eram um
+  gabarito parado, e a razão dada era a certa enquanto não havia analisador:
+  barra que se mexe com número inventado é a mesma mentira do "Conectado ·
+  42 ms" que a faixa de voz recusou.
+
+  Fora do teste elas continuam paradas e apagadas, pelo mesmo princípio: sem
+  faixa aberta não há o que medir.
 */
 .barras {
   display: flex;
@@ -99,6 +102,37 @@
   block-size: 10px;
   border-radius: var(--vx-radius-02);
   background: var(--vx-track);
+}
+
+/*
+  ⚠ **Sem transição.** Um medidor de entrada existe para dizer "o microfone
+  está pegando a minha voz AGORA"; qualquer suavização atrasa a resposta e
+  desfaz o único trabalho dele. É o oposto da decisão de suavizar um progresso
+  de upload, onde o valor real salta e o olho quer continuidade.
+*/
+.barraAcesa {
+  background: var(--vx-accent);
+}
+
+/*
+  ⚠ **Listrada só enquanto NÃO há câmera aberta.** Com a faixa viva o `<video>`
+  cobre o palco, e o listrado por baixo não aparece — mas ele fica como fundo
+  de propósito: é o que se vê no instante entre pedir a câmera e o primeiro
+  quadro chegar, e um retângulo preto ali pareceria uma câmera tampada.
+*/
+.imagemDaCamera {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  border-radius: var(--vx-radius-08);
+  /* Espelhada, como todo cliente de vídeo faz na PRÓPRIA imagem: a pessoa se
+     vê como num espelho, e é o que ela espera ao se enquadrar. */
+  transform: scaleX(-1);
+}
+
+.erroDeMidia {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-danger);
 }
 
 .db {

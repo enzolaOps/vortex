@@ -100,6 +100,13 @@ import {
 } from "../membros/SubmenusDeMembro";
 import { canalDeVozDe } from "../sdk/adapter";
 import { aindaNao } from "../pendente/pendencias";
+import { abrirSeletorDeReacao } from "../store/seletorDeReacao";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../components/ui/Popover";
+import { SeletorDeEmoji } from "../seletores/SeletorDeEmoji";
 import { assinarDensidade, lerDensidade } from "../store/densidade";
 import { abrirConversaCom } from "../sdk/social";
 import {
@@ -360,6 +367,8 @@ function EditorDaLinha({
     });
   }
 
+  const [emojiAberto, setEmojiAberto] = useState(false);
+
   /**
    * Envolve a seleção com um marcador de markdown.
    *
@@ -379,6 +388,26 @@ function EditorDaLinha({
     queueMicrotask(() => {
       campo.focus();
       campo.setSelectionRange(a + marca.length, b + marca.length);
+    });
+  }
+
+  /**
+   * Insere no CURSOR, e não no fim.
+   *
+   * Concatenar faria o glifo saltar para o final de uma frase já escrita — a
+   * mesma decisão que o seletor do composer já registra.
+   */
+  function inserir(glifo: string) {
+    const campo = campoRef.current;
+    if (!campo) {
+      setTexto(texto + glifo);
+      return;
+    }
+    const { selectionStart: a, selectionEnd: b } = campo;
+    setTexto(texto.slice(0, a) + glifo + texto.slice(b));
+    queueMicrotask(() => {
+      campo.focus();
+      campo.setSelectionRange(a + glifo.length, a + glifo.length);
     });
   }
 
@@ -424,7 +453,8 @@ function EditorDaLinha({
         Negrito e itálico são REAIS, não desenho: o markdown já existe no
         caminho de leitura desde que `markdown/analisar.ts` foi construído, e
         `**` em volta da seleção é o mesmo texto que qualquer cliente Stoat
-        entende. O emoji é o seletor, que é pendência.
+        entende. O emoji abre o mesmo seletor do composer, e insere no
+        cursor.
       */}
       <div className={css.reguaDeEdicao}>
         <div className={css.reguaAcoes}>
@@ -444,14 +474,32 @@ function EditorDaLinha({
           >
             <TextItalic aria-hidden />
           </button>
-          <button
-            type="button"
-            className={css.reguaBotao}
-            aria-label="Emoji"
-            onClick={aindaNao("emoji")}
-          >
-            <Smiley aria-hidden />
-          </button>
+          {/*
+            ⚠ **Um `Popover.Root` aqui é barato, ao contrário do da reação** —
+            e a diferença é quantos existem. Este vive dentro do editor, e só
+            UMA linha está em edição por vez; o da reação seria montado em toda
+            linha da janela, que é a conta que criou
+            `store/seletorDeReacao.ts`.
+          */}
+          <Popover open={emojiAberto} onOpenChange={setEmojiAberto}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className={css.reguaBotao}
+                aria-label="Emoji"
+              >
+                <Smiley aria-hidden />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent side="top" align="start" sideOffset={6}>
+              <SeletorDeEmoji
+                aoEscolher={(glifo) => {
+                  inserir(glifo);
+                  setEmojiAberto(false);
+                }}
+              />
+            </PopoverContent>
+          </Popover>
         </div>
         <span className={css.dicaDeEdicao}>
           <kbd className={css.tecla}>esc</kbd> cancela ·{" "}
@@ -700,9 +748,9 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
   /*
     Silenciado só para mim.
 
-    ⚠ **Booleano e keyed por AUTOR** — mesma disciplina de `ehAlvo` e
-    `emEdicao`: `Object.is` sobre um booleano faz silenciar alguém acordar só
-    as linhas dessa pessoa, e não as dez mil.
+    ⚠ **Booleano e keyed por AUTOR, não por mensagem** — mesma disciplina de
+    `ehAlvo` e `emEdicao`: `Object.is` sobre um booleano faz silenciar alguém
+    acordar só as linhas dessa pessoa, e não as dez mil.
 
     ⚠ **A linha continua EXISTINDO, e isso é decisão.** Tirar o ID da lista
     seria mais limpo e pior: a mensagem some do meio de uma conversa que
@@ -1045,7 +1093,9 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                   tamanho="sm"
                   rotulo="Adicionar reação"
                   icone={<Smiley aria-hidden />}
-                  onClick={aindaNao("emoji")}
+                  onClick={(e) =>
+                    abrirSeletorDeReacao(message.id, e.currentTarget)
+                  }
                 />
               </>
             ) : null}
@@ -1174,10 +1224,10 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
               />
             ) : silenciado ? (
               /*
-                ⚠ **Diz que há algo aqui, e não finge que não há.** Sumir com a
-                linha deixaria um buraco no meio de uma conversa que responde a
-                ela, e uma resposta sem o que respondeu é pior que uma linha
-                discreta.
+                ⚠ **Diz que há algo aqui, e não finge que não há.** A alternativa
+                — sumir com a linha — deixaria um buraco no meio de uma conversa
+                que responde a ela, e uma resposta sem o que respondeu é pior
+                que uma linha discreta.
 
                 O botão devolve a mensagem sem desfazer o silêncio: quem
                 silenciou alguém ainda precisa ler UMA coisa de vez em quando,
@@ -1320,16 +1370,23 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                 {/*
                   O "＋" do design, no fim da fileira.
 
-                  Desenhado sem implementação — o seletor de emoji é a
-                  pendência `emoji`. Sob a mesma permissão dos chips: quem não
-                  pode reagir não ganha um botão que abre um seletor inútil.
+                  ⚠ **Abre o seletor da LISTA, e não um seu.** Ele é montado em
+                  toda linha que tenha reação; um `Popover.Root` aqui seria mais
+                  uma árvore de primitivo por linha, que é exatamente a conta
+                  que tirou o `ContextMenu` daqui. `store/seletorDeReacao.ts`
+                  guarda quem é e onde.
+
+                  Sob a mesma permissão dos chips: quem não pode reagir não
+                  ganha um botão que abre um seletor inútil.
                 */}
                 {pode(message.channelId, "reagir") ? (
                   <button
                     type="button"
                     className={css.adicionarReacao}
                     aria-label="Adicionar reação"
-                    onClick={aindaNao("emoji")}
+                    onClick={(e) =>
+                      abrirSeletorDeReacao(message.id, e.currentTarget)
+                    }
                   >
                     <Plus aria-hidden />
                   </button>
@@ -1440,7 +1497,21 @@ function ItensDaMensagem({ messageId }: { messageId: string }) {
                 </button>
               </ContextMenuItem>
             ))}
-            <ContextMenuItem asChild onSelect={aindaNao("emoji")}>
+            {/*
+              ⚠ **Ancora no ELEMENTO do item e não no ponteiro**, e o menu
+              fecha antes. O seletor precisa de um retângulo estável; o menu de
+              contexto some ao escolher, então medir depois daria a caixa de um
+              nó já desmontado.
+            */}
+            <ContextMenuItem
+              asChild
+              onSelect={(e) =>
+                abrirSeletorDeReacao(
+                  message.id,
+                  e.currentTarget as Element | null,
+                )
+              }
+            >
               <button type="button" className={css.rapida} aria-label="Mais emojis">
                 <Plus aria-hidden />
               </button>
@@ -1449,7 +1520,11 @@ function ItensDaMensagem({ messageId }: { messageId: string }) {
 
           <ContextMenuSeparator />
 
-          <ContextMenuItem onSelect={aindaNao("emoji")}>
+          <ContextMenuItem
+            onSelect={(e) =>
+              abrirSeletorDeReacao(message.id, e.currentTarget as Element | null)
+            }
+          >
             <Smiley aria-hidden />
             Adicionar reação
           </ContextMenuItem>
@@ -1685,6 +1760,10 @@ function ItensDoUsuario({ userId }: { userId: string }) {
             No Stoat não existe "chamada avulsa": uma chamada é sempre de um
             CANAL, e o canal de uma conversa direta é a própria DM. Sem abrir
             antes, a pessoa entraria numa chamada sem ver com quem.
+
+            Só depois de a conversa existir — se `openDM` falhar, não há sala
+            para entrar, e entrar num ID indefinido é o tipo de chamada que
+            falha calada.
           */}
           <ContextMenuItem
             onSelect={() => {
@@ -1753,7 +1832,9 @@ function ItensDoUsuario({ userId }: { userId: string }) {
             ⚠ **O rótulo NÃO alterna com o estado.** "Silenciar" e
             "Dessilenciar" no mesmo lugar fazem quem lê depressa clicar no
             oposto do que quer — e um item de menu não tem `aria-pressed` para
-            carregar o estado. Quem mostra o estado é o interruptor do perfil.
+            carregar o estado. Quem mostra o estado é o interruptor do perfil,
+            que é uma superfície que fica aberta; daqui o menu só ALTERNA, que
+            é o gesto rápido.
           */}
           <ContextMenuItem onSelect={() => alternarSilencioDe(userId)}>
             <ProhibitInset aria-hidden />

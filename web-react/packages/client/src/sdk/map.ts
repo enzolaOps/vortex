@@ -433,10 +433,23 @@ export function toChannelSnapshot(
     id: channel.id,
     /*
       A imagem do grupo. `iconURL` do SDK já monta o endereço do `autumn`, e é
-      `undefined` quando não há — inclusive para todo canal que não é grupo,
-      que é o caso da esmagadora maioria.
+      `undefined` quando não há.
+
+      ⚠ **Lido só para GRUPO, e o getter LANÇA no resto.** A intenção sempre foi
+      essa — o comentário anterior dizia "inclusive para todo canal que não é
+      grupo" —, mas ler o getter mesmo assim não é de graça: em DM ele passa por
+      `Channel.recipient`, que faz `find` sobre os destinatários comparando com
+      `client.user.id`. Sem sessão, `client.user` é `undefined` e o getter joga
+      `Cannot read properties of undefined (reading 'id')`.
+
+      Medido em navegador: abrir Conversas no arnês derrubava a coluna inteira
+      para o limite de erro — "O painel de canais parou de funcionar" —, sem
+      nada na tela dizendo por quê. É a família das duas armadilhas de SDK que
+      esta camada já matou (`isVoice` que é `true` para DM, e o
+      `channel_type: "VoiceChannel"` que não existe): o protocolo tem um jeito,
+      o domínio quer outro, e a tradução é onde a diferença morre.
     */
-    iconeUrl: channel.iconURL,
+    iconeUrl: channel.type === "Group" ? channel.iconURL : undefined,
     // `serverId` é string no SDK mesmo para canal de DM, onde vem vazia. O
     // domínio prefere `undefined` — "não pertence a servidor" é ausência, não
     // string vazia, e é o que impede um `if (serverId)` errado lá na frente.

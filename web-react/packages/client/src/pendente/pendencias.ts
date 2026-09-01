@@ -61,38 +61,6 @@ export const PENDENCIAS = {
       "autorização de sessão por outro dispositivo no protocolo — não há rota nem evento",
   },
 
-  /* ------------------------------------------------------------- grupo */
-  /*
-    ⚠ **Três pendências num painel de CINCO ações, e as outras quatro são
-    escrita de protocolo de verdade** — renomear, remover, transferir e sair
-    chamam o servidor. O que sobra depende de coisas fora do painel.
-  */
-  adicionarAoGrupo: {
-    superficie: "Gerenciar grupo",
-    faz: "Chamar mais alguém para o grupo.",
-    depende:
-      "o seletor de pessoas do `NovoGrupo` reaproveitado com os atuais já fora da lista — `addMember` já existe no adapter",
-  },
-  notificacoesDoGrupo: {
-    superficie: "Gerenciar grupo",
-    faz: "Escolher o que notifica neste grupo, sem mexer no resto.",
-    depende:
-      "preferência POR CANAL — hoje `store/notificacoes.ts` guarda só o padrão global",
-  },
-
-  /* ------------------------------------------------------------ avançado */
-  /*
-    ⚠ **Só UM pendente em Avançado, e é o menor dos dois controles.** O modo
-    desenvolvedor FUNCIONA — ele acrescenta "Copiar ID" aos menus, e ID é dado
-    que o app já tem na mão. O overlay é que precisa de instrumento.
-  */
-  overlayDeDebug: {
-    superficie: "Configurações · Avançado",
-    faz: "Mostrar FPS, latência e re-renders num canto da janela, no app inteiro.",
-    depende:
-      "o medidor do arnês (`dev/`) fora dele — hoje ele mora na tela de teste e mede o firehose, não o uso real",
-  },
-
   /* --------------------------------------------------------- privacidade */
   exportarDados: {
     superficie: "Configurações · Privacidade",
@@ -113,11 +81,6 @@ export const PENDENCIAS = {
     registro de controles pendentes, sem controle, é dívida que ninguém
     consegue ver na tela para cobrar.
   */
-  testeDeMicrofone: {
-    superficie: "Configurações · Voz e vídeo",
-    faz: "Gravar 5 s do seu microfone e tocar de volta.",
-    depende: "`MediaRecorder` + um medidor ao vivo — o mesmo trabalho de `mensagemDeVoz`",
-  },
   ruidoAgressivo: {
     superficie: "Configurações · Voz e vídeo",
     faz: "Supressão de ruído mais forte que a do navegador.",
@@ -127,11 +90,6 @@ export const PENDENCIAS = {
     superficie: "Configurações · Voz e vídeo",
     faz: "Baixar o volume dos outros programas quando alguém fala.",
     depende: "mixer do sistema operacional, via casca Electron",
-  },
-  previaDaCamera: {
-    superficie: "Configurações · Voz e vídeo",
-    faz: "Mostrar o que a câmera está vendo, antes de entrar na chamada.",
-    depende: "`getUserMedia` de vídeo fora do motor — hoje a câmera só abre em chamada",
   },
   fundoDeVideo: {
     superficie: "Configurações · Voz e vídeo",
@@ -169,11 +127,6 @@ export const PENDENCIAS = {
     que é onde quem for trocar o dataset vai olhar — mesma família da etiqueta
     FÓRUM e da reação SUPER, que ficam fora deste registro pelo mesmo motivo.
   */
-  emoji: {
-    superficie: "Reação",
-    faz: "Escolher um emoji para reagir a esta mensagem.",
-    depende: "o seletor ancorado ao chip — hoje ele só abre pelo composer",
-  },
   tomDePele: {
     superficie: "Seletor de emoji",
     faz: "Escolher o tom de pele padrão dos emojis de pessoa.",
@@ -236,11 +189,6 @@ export const PENDENCIAS = {
     superficie: "Linha de canal",
     faz: "Abrir um tópico a partir do canal.",
     depende: "threads no protocolo",
-  },
-  canaisOcultos: {
-    superficie: "Coluna de canais",
-    faz: "Mostrar os canais que você escondeu ou silenciou.",
-    depende: "`Mostrar todos os canais` em configuração de usuário",
   },
 
   /* ---------------------------------------------------- cabeçalho do canal */

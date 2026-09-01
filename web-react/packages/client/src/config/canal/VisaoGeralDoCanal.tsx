@@ -4,6 +4,12 @@ import { Botao } from "../../components/ui/Botao";
 import { Campo } from "../../components/ui/Campo";
 import { Deslizante } from "../../components/ui/Deslizante";
 import { aindaNao } from "../../pendente/pendencias";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../../components/ui/Popover";
+import { SeletorDeEmoji } from "../../seletores/SeletorDeEmoji";
 import { salvarCanal } from "../../sdk/canal";
 import { useChannel } from "../../store/hooks";
 import secao from "../Secao.module.css";
@@ -44,6 +50,7 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
   const [idade, setIdade] = useState(false);
   const [limite, setLimite] = useState(8);
   const [salvando, setSalvando] = useState(false);
+  const [emojiAberto, setEmojiAberto] = useState(false);
 
   if (!canal) {
     return <p className={secao.recado}>Abra um canal para ver isto.</p>;
@@ -113,14 +120,28 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
             >
               spoiler
             </button>
-            <button
-              type="button"
-              className={css.reguaBotao}
-              aria-label="Emoji"
-              onClick={aindaNao("emoji")}
-            >
-              🙂
-            </button>
+            {/* Um `Popover.Root` por FORMULÁRIO, e não por linha de lista —
+                a conta que criou `store/seletorDeReacao.ts` não se aplica
+                aqui: esta tela tem um campo de assunto, não dez mil. */}
+            <Popover open={emojiAberto} onOpenChange={setEmojiAberto}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className={css.reguaBotao}
+                  aria-label="Emoji"
+                >
+                  🙂
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="bottom" align="start" sideOffset={6}>
+                <SeletorDeEmoji
+                  aoEscolher={(glifo) => {
+                    setAssunto(assunto + glifo);
+                    setEmojiAberto(false);
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
             <span className={css.reguaDica}>markdown ok</span>
           </div>
 

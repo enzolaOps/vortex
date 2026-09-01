@@ -83,4 +83,66 @@ export function alternarSilencio(channelId: string, duracaoMs = Infinity): void 
 /** Estado limpo entre testes. */
 export function limparSilencio(): void {
   silenciados.clear();
+  niveis.clear();
+}
+
+/* ------------------------------------------- nível por canal */
+
+/**
+ * O que notifica NESTE canal, independente do padrão global.
+ *
+ * ⚠ **Um NÍVEL e não uma matriz, ao contrário de `store/notificacoes.ts`.** A
+ * tela global cruza evento × forma de entrega porque ali a pergunta é "como eu
+ * quero ser avisado"; aqui a pergunta é outra e menor — "quanto deste canal me
+ * interessa". Repetir a matriz por canal daria dezenas de células para
+ * responder uma escolha de três valores, e a pessoa abandonaria antes.
+ *
+ * ⚠ **Mora aqui e não num store novo porque é o MESMO eixo do silêncio.**
+ * "Nada" é silenciar; "só menções" e "todas" são graus acima disso. Dois
+ * stores sobre a mesma pergunta acabariam discordando — um canal silenciado
+ * com nível "todas as mensagens" é um estado que não deve poder existir, e
+ * com um store só ele não existe.
+ */
+export const NIVEIS_DE_NOTIFICACAO = [
+  { id: "todas", rotulo: "Todas as mensagens" },
+  { id: "mencoes", rotulo: "Só menções" },
+  { id: "nada", rotulo: "Nada" },
+] as const;
+
+export type NivelDeNotificacao = (typeof NIVEIS_DE_NOTIFICACAO)[number]["id"];
+
+/**
+ * `undefined` = segue o padrão global, e é diferente de "todas".
+ *
+ * A distinção importa: quem nunca escolheu deve acompanhar a mudança do
+ * padrão; quem escolheu "todas" quer todas mesmo que o padrão mude. Guardar
+ * `"todas"` para todo canal apagaria a diferença.
+ */
+const niveis = new Map<string, NivelDeNotificacao>();
+
+export function nivelDoCanal(channelId: string): NivelDeNotificacao | undefined {
+  return niveis.get(channelId);
+}
+
+export function definirNivelDoCanal(
+  channelId: string,
+  nivel: NivelDeNotificacao | undefined,
+): void {
+  if (niveis.get(channelId) === nivel) return;
+  if (nivel === undefined) niveis.delete(channelId);
+  else niveis.set(channelId, nivel);
+
+  /*
+    ⚠ **"Nada" e silenciar são o MESMO estado, e escrever os dois é o que
+    impede a divergência.** Sem esta linha, um canal com nível "nada" e sem
+    silêncio mostraria o sino aceso enquanto não notifica nada — a interface
+    contradizendo o próprio comportamento.
+  */
+  const mudo = estaSilenciado(channelId);
+  if (nivel === "nada" && !mudo) alternarSilencio(channelId);
+  else if (nivel !== "nada" && nivel !== undefined && mudo) {
+    alternarSilencio(channelId);
+  }
+
+  for (const ouvinte of ouvintes) ouvinte();
 }

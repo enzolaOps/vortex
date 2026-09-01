@@ -23,10 +23,24 @@ import css from "./NovoGrupo.module.css";
  * recusa o 11º recipiente com 400, e descobrir isso depois de escolher dez
  * pessoas é o pior momento — a tela conta para frente e trava antes.
  */
-const TETO = 10;
+export const TETO = 10;
+
+/*
+  ⚠ **`Candidata`, `Filtrada` e `Ficha` são EXPORTADAS, e o modal de gerenciar
+  grupo as consome.** Foi o que o `depende` de `adicionarAoGrupo` pediu por
+  extenso: "o seletor de pessoas do `NovoGrupo` reaproveitado com os atuais já
+  fora da lista".
+
+  Exportar daqui e não mover para um arquivo próprio é a regra deste projeto —
+  vira módulo compartilhado na TERCEIRA cópia. Com dois consumidores, extrair
+  custa mais movimentação do que a divergência que evita; com três, a conta
+  vira. O que NÃO se faz é copiar: foram seis cópias do `Avatar` e quatro do
+  cartão de opção até alguém notar, e nas duas vezes quem notou foi o
+  `pnpm utilities`.
+*/
 
 /** Uma pessoa escolhível. Assina a si mesma, como toda linha deste app. */
-function Candidata({
+export function Candidata({
   id,
   marcada,
   bloqueada,
@@ -211,7 +225,7 @@ export function NovoGrupo({ aoFechar }: { aoFechar: () => void }) {
  * dezenas de amigos para ler os nomes — trocando uma subscrição por linha por
  * uma que acorda a lista inteira quando qualquer um deles muda de apelido.
  */
-function Filtrada({
+export function Filtrada({
   id,
   busca,
   children,
@@ -232,7 +246,7 @@ function Filtrada({
 }
 
 /** A ficha de quem já foi escolhido. */
-function Ficha({ id, aoTirar }: { id: string; aoTirar: () => void }) {
+export function Ficha({ id, aoTirar }: { id: string; aoTirar: () => void }) {
   const pessoa = usePessoa(id);
   if (!pessoa) return null;
 

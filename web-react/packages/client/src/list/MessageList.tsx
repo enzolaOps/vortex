@@ -45,6 +45,7 @@ import { assinarBusca, lerBusca, selecionarResultado } from "../store/busca";
 import { useChannelMessageIds } from "../store/hooks";
 import css from "./MessageList.module.css";
 import { MenuDaMensagem, MessageRow } from "./MessageRow";
+import { SeletorDeReacaoDaLista } from "./SeletorDeReacaoDaLista";
 
 /**
  * Quão longe do fim ainda conta como "no fim".
@@ -1409,6 +1410,11 @@ export function MessageList({ channelId }: { channelId: string }) {
       </ContextMenuTrigger>
 
       <MenuDaMensagem />
+
+      {/* Um seletor de emoji para a lista inteira — ver o componente: a barra
+          de ações e o "＋" são montados em toda linha, e um `Popover.Root` em
+          cada seria o custo que tirou o `ContextMenu` da linha. */}
+      <SeletorDeReacaoDaLista />
     </ContextMenu>
   );
 }

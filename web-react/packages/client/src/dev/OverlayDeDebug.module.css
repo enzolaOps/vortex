@@ -1,0 +1,73 @@
+/* ============================================================
+   Overlay de depuração — FPS, commits e RTT num canto da janela.
+   ============================================================ */
+
+/*
+  ⚠ **`fixed` e não `absolute`, e a âncora é a JANELA.** Ele existe para
+  acompanhar o app inteiro, inclusive modal, popout e tela cheia de
+  transmissão; ancorado a um container ele sumiria junto com a coluna que o
+  hospedasse — o mesmo defeito que o cartão de chamada teve quando morava
+  dentro da coluna de canais.
+
+  Camada `sistema`: acima do véu de modal, porque medir uma tela travada é
+  exatamente quando ele importa. Não é `flutuante` — nada deve cobrir um
+  mostrador de diagnóstico.
+*/
+.overlay {
+  position: fixed;
+  z-index: var(--vx-z-sistema);
+  inset-block-end: var(--vx-space-12);
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+  padding: var(--vx-space-05) var(--vx-space-09);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-4);
+  box-shadow: var(--vx-elev-2);
+  /*
+    ⚠ **Não intercepta ponteiro, exceto o botão.** Ele fica sobre a interface o
+    dia inteiro; um retângulo clicável parado num canto engoliria o clique de
+    quem tentasse alcançar o que está por baixo.
+  */
+  pointer-events: none;
+}
+
+.overlay[data-canto="fim"] {
+  inset-inline-end: var(--vx-space-12);
+}
+
+.overlay[data-canto="inicio"] {
+  inset-inline-start: var(--vx-space-12);
+}
+
+.numeros {
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-2xs);
+  color: var(--vx-text-2);
+  white-space: nowrap;
+  /* Sem `tabular-nums` os números dançam a cada segundo, e um mostrador que
+     treme é mais difícil de ler que um número maior. */
+  font-variant-numeric: tabular-nums;
+}
+
+.trocar {
+  pointer-events: auto;
+  display: grid;
+  place-items: center;
+  inline-size: 18px;
+  block-size: 18px;
+  border-radius: var(--vx-radius-04);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-2xs);
+}
+
+.trocar:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.trocar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}

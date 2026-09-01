@@ -35,6 +35,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuCheckboxItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../components/ui/DropdownMenu";
@@ -65,6 +66,7 @@ import {
   alternarSilencio,
   assinarSilencio,
   DURACOES_DE_SILENCIO,
+  estaSilenciado,
   silencioAte,
 } from "../store/silencio";
 import { abrirPaleta } from "../store/paleta";
@@ -82,6 +84,11 @@ import {
 } from "../store/hooks";
 import { Avatar } from "../components/ui/Avatar";
 import { aindaNao } from "../pendente/pendencias";
+import {
+  alternarOcultarSilenciados,
+  assinarExibicao,
+  ocultaSilenciados,
+} from "../store/exibicaoDeCanais";
 import { FaixaDeVoz } from "../voz/FaixaDeVoz";
 import { PainelDeUsuario } from "../usuario/PainelDeUsuario";
 import { selecionarCanal } from "../store/navegacao";
@@ -1094,9 +1101,51 @@ function CanaisDoServidor() {
     existe canal ali que essa pessoa não pode ver. Para quem administra, é o
     lugar onde o próximo canal vai.
   */
-  const visiveis = podeCriar
+  const semVazias = podeCriar
     ? grupos
     : grupos.filter((g) => g.canais.length > 0);
+
+  /*
+    Esconder os silenciados — "Ocultar canais silenciados" no menu do servidor.
+
+    ⚠ **Uma subscrição para a coluna inteira, e não uma por canal.** `silencio.ts`
+    tem um emitter só; ler o estado de cada canal aqui exigiria a coluna assinar
+    dezenas de entidades, que é o oposto da lei nº 1. Silenciar é ação humana
+    rara, então acordar a coluna toda quando alguém silencia é o custo certo.
+
+    ⚠ **O canal ABERTO nunca some**, e é a única exceção. Silenciar o canal que
+    você está lendo com a preferência ligada faria a coluna engolir o item
+    marcado como ativo — a lista deixaria de mostrar onde você está, sem erro
+    nenhum.
+  */
+  const ocultar = useSyncExternalStore(assinarExibicao, () =>
+    ocultaSilenciados(serverId),
+  );
+  const quantosOcultos = useSyncExternalStore(assinarSilencio, () =>
+    !ocultar
+      ? 0
+      : semVazias.reduce(
+          (n, g) =>
+            n +
+            g.canais.filter((id) => id !== canalAtivo && estaSilenciado(id))
+              .length,
+          0,
+        ),
+  );
+
+  /* Só aloca quando a preferência está LIGADA — no caminho comum a lista
+     passa direto, sem cópia por render. */
+  const visiveis =
+    ocultar && quantosOcultos > 0
+      ? semVazias
+          .map((g) => ({
+            ...g,
+            canais: g.canais.filter(
+              (id) => id === canalAtivo || !estaSilenciado(id),
+            ),
+          }))
+          .filter((g) => podeCriar || g.canais.length > 0)
+      : semVazias;
 
   // Já vêm agrupadas e ordenadas do adapter — a coluna não organiza nada no
   // render, porque organizar exigiria ler entidades que ela não assina.
@@ -1218,6 +1267,25 @@ function CanaisDoServidor() {
                 {NOME_DA_SECAO[secao]}
               </DropdownMenuItem>
             ))}
+
+            <DropdownMenuSeparator />
+            {/*
+              A alternância que o design põe aqui, e a que ele põe ao lado
+              dela NÃO entrou.
+
+              ⚠ **"Mostrar todos os canais" fica de fora porque o protocolo não
+              o comporta.** Ele significaria listar os canais que existem no
+              servidor e que esta sessão não pode ver — e canal sem permissão
+              de ver não chega ao cliente. Não há o que revelar, e um item que
+              alterna sem mudar nada é o defeito que o lint de `onSelect` foi
+              instalado para matar.
+            */}
+            <DropdownMenuCheckboxItem
+              marcado={ocultar}
+              aoAlternar={() => alternarOcultarSilenciados(serverId)}
+            >
+              Ocultar canais silenciados
+            </DropdownMenuCheckboxItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </header>
@@ -1294,26 +1362,32 @@ function CanaisDoServidor() {
             {/*
               "Mostrar N canais ocultos" — a linha que fecha a coluna no design.
 
-              ⚠ **Desenhada sem implementação**, e a pendência `canaisOcultos`
-              já existia sem nunca ter tido um alvo na tela. É o caso exato que
-              o registro existe para cobrir: clicar diz o que ela fará e do que
-              depende, em vez de não fazer nada.
+              ⚠ **O número é REAL, e por isso a linha só existe quando há o que
+              mostrar.** A versão anterior era um pendente sem número, com a
+              razão escrita: canal sem permissão de ver não chega ao cliente,
+              então não havia o que contar, e prometer "6" seria inventar o 6.
+              O que se conta agora é outra coisa e existe de verdade — os
+              silenciados que a preferência desta coluna está escondendo.
 
-              O número é o dos canais que o SERVIDOR tem e a sessão não recebeu
-              — e ele não existe: canal sem permissão de ver não chega ao
-              cliente, então não há o que contar. Por isso o rótulo é sem
-              número, e é honesto: prometer "6" seria inventar o 6.
+              ⚠ **Não é "Mostrar todos os canais" do menu.** Aquele item pede o
+              que o protocolo não entrega; este desfaz uma escolha de quem
+              olha, e desfazê-la aqui é o caminho curto — quem escondeu está
+              olhando a coluna, não o menu.
 
               `<button>` e não `<div>`: é ação, e ação precisa alcançar quem
               navega por teclado.
             */}
-            <button
-              type="button"
-              className={css.ocultos}
-              onClick={aindaNao("canaisOcultos")}
-            >
-              Mostrar canais ocultos
-            </button>
+            {quantosOcultos > 0 ? (
+              <button
+                type="button"
+                className={css.ocultos}
+                onClick={() => alternarOcultarSilenciados(serverId)}
+              >
+                {quantosOcultos === 1
+                  ? "Mostrar 1 canal oculto"
+                  : `Mostrar ${String(quantosOcultos)} canais ocultos`}
+              </button>
+            ) : null}
           </nav>
         )}
           </div>
