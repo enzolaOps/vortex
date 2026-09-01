@@ -290,11 +290,6 @@ export const PENDENCIAS = {
     faz: "Abrir um tópico a partir desta mensagem.",
     depende: "threads no protocolo",
   },
-  responderSemMencionar: {
-    superficie: "Menu da mensagem",
-    faz: "Responder sem que a pessoa receba uma menção.",
-    depende: "corpo de envio com `replies:[{ id, mention }]` — fase 6",
-  },
   marcarNaoLida: {
     superficie: "Menu da mensagem",
     faz: "Voltar o cursor de leitura para antes desta mensagem.",

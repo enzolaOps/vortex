@@ -65,3 +65,40 @@
 .cancelar:active {
   color: var(--vx-text-2);
 }
+
+/* O @ que decide se a pessoa respondida é notificada */
+
+/*
+  Texto e não só ícone: `@` sozinho aceso ou apagado depende de perceber a
+  diferença de cor, e cor sozinha não comunica. `ON`/`OFF` é legível sem
+  comparação — a mesma regra do ponto de presença, que carrega forma além de
+  matiz.
+*/
+.mencionar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-04);
+  padding: var(--vx-space-02) var(--vx-space-06);
+  border: 0;
+  border-radius: var(--vx-radius-04);
+  background: none;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mencionar[aria-pressed="true"] {
+  color: var(--vx-accent-text);
+  background: var(--vx-state-selected);
+}
+
+.mencionar:hover {
+  background: var(--vx-state-hover);
+}
+
+.mencionar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}

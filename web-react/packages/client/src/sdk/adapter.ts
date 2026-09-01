@@ -535,7 +535,21 @@ function despacharEnvio(id: string): void {
 
   const channelId = mensagem.channelId;
   const texto = mensagem.content ?? "";
-  const respondendoA = mensagem.replyIds?.[0];
+  /*
+    ⚠ **A escolha de notificar vem do MAPA, não do objeto.** `replyIds` é lista
+    de IDs — o protocolo não guarda `mention` na mensagem —, então reconstruir
+    daqui perderia a decisão. Sem o mapa, "tentar de novo" numa resposta sem
+    menção mandaria a menção que a pessoa recusou.
+
+    O `?? true` é o caso de uma pendente que atravessou um recarregamento: o
+    mapa é de memória. Notificar a mais é o erro menos ruim dos dois — é o que
+    "Responder" faz por padrão.
+  */
+  const alvo = mensagem.replyIds?.[0];
+  const respondendoA =
+    alvo === undefined
+      ? undefined
+      : (respostasPendentes.get(id) ?? { id: alvo, mencionar: true });
   const arquivos = arquivosPendentes.get(id);
 
   if (arquivos !== undefined && arquivos.length > 0) {
@@ -1682,8 +1696,13 @@ export function enviarMensagem(
    * Entra por parâmetro e não é lido do store aqui: o adapter não conhece
    * `store/resposta`, e não deve — a dependência correta aponta de dentro para
    * fora, como já acontece com o rascunho.
+   *
+   * ⚠ **Leva `mencionar` junto, e antes ia `false` fixo.** O comentário de
+   * `postar` justificava: "enquanto `responderSemMencionar` não existe, o
+   * inverso transformaria toda resposta numa menção que ninguém pediu". A
+   * escolha existe agora, então quem responde decide.
    */
-  respondendoA?: string,
+  respondendoA?: RespostaDeEnvio,
   /**
    * Os arquivos a subir junto.
    *
@@ -1747,6 +1766,7 @@ export function enviarMensagem(
     sozinho, e a linha ficaria verde sem o anexo.
   */
   if (temArquivo) arquivosPendentes.set(id, arquivos);
+  if (respondendoA !== undefined) respostasPendentes.set(id, respondendoA);
 
   // Pendente ANTES de criar: o `messageCreate` já vai construir o snapshot, e
   // marcar depois faria a linha nascer "enviada" e piscar para pendente.
@@ -1773,7 +1793,7 @@ export function enviarMensagem(
       nonce: id,
         // `replies` é do PROTOCOLO; o snapshot expõe como `respostas`. A
       // tradução acontece no `map.ts`, como tudo o mais.
-      ...(respondendoA ? { replies: [respondendoA] } : {}),
+      ...(respondendoA ? { replies: [respondendoA.id] } : {}),
     },
     true,
   );
@@ -1842,6 +1862,27 @@ export function enviarMensagem(
 const arquivosPendentes = new Map<string, readonly File[]>();
 
 /**
+ * A quem uma mensagem responde, e se notifica.
+ *
+ * Estrutural e não importado de `store/resposta`: a dependência aponta de
+ * dentro para fora, como o comentário do parâmetro diz.
+ */
+export type RespostaDeEnvio = {
+  readonly id: string;
+  readonly mencionar: boolean;
+};
+
+/**
+ * O `mencionar` de cada envio em andamento ou falho.
+ *
+ * ⚠ **Guardado pelo mesmo motivo dos arquivos: o REENVIO precisa dele.** O
+ * objeto local da mensagem carrega `replies` como lista de IDs — o protocolo
+ * não guarda a escolha de notificar —, então sem este mapa "tentar de novo"
+ * numa resposta sem menção mandaria uma menção que a pessoa recusou.
+ */
+const respostasPendentes = new Map<string, RespostaDeEnvio>();
+
+/**
  * Sobe os anexos e só então posta.
  *
  * A ordem é imposta pelo protocolo: `sendMessage` leva IDs de anexo, então o
@@ -1856,7 +1897,7 @@ async function subirEEnviar(
   id: string,
   channelId: string,
   texto: string,
-  respondendoA: string | undefined,
+  respondendoA: RespostaDeEnvio | undefined,
 ): Promise<void> {
   const arquivos = arquivosPendentes.get(id);
   if (arquivos === undefined) return;
@@ -1977,7 +2018,7 @@ async function postar(
   id: string,
   channelId: string,
   content: string,
-  respondendoA: string | undefined,
+  respondendoA: RespostaDeEnvio | undefined,
   anexos: readonly string[] | undefined,
 ): Promise<void> {
   try {
@@ -1991,7 +2032,9 @@ async function postar(
         diferentes com nomes parecidos.
       */
       nonce: id,
-      ...(respondendoA ? { replies: [{ id: respondendoA, mention: false }] } : {}),
+      ...(respondendoA
+        ? { replies: [{ id: respondendoA.id, mention: respondendoA.mencionar }] }
+        : {}),
       ...(anexos && anexos.length > 0 ? { attachments: [...anexos] } : {}),
     });
   } catch {

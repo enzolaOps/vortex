@@ -1411,7 +1411,9 @@ function ItensDaMensagem({ messageId }: { messageId: string }) {
             Responder
             <span className={menuAtalho}>R</span>
           </ContextMenuItem>
-          <ContextMenuItem onSelect={aindaNao("responderSemMencionar")}>
+          <ContextMenuItem
+            onSelect={() => responderA(message.channelId, message.id, false)}
+          >
             <ArrowBendUpLeft aria-hidden />
             Responder sem mencionar
           </ContextMenuItem>
