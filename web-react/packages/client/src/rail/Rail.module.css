@@ -9,6 +9,36 @@
    ============================================================ */
 
 .rail {
+  /*
+    ============================================================
+    O tamanho do ladrilho, e ele SEGUE A LARGURA DO RAIL.
+    ============================================================
+
+    ⚠ **O rail é slot arrastável (56–240, padrão 72) e os ladrilhos eram 44px
+    FIXOS.** Quem alargasse a coluna ganhava uma faixa larga com ícones
+    pequenos boiando no meio — a lacuna que quem usa apontou olhando um monitor
+    ultrawide, onde o rail lê como uma tira preta.
+
+    ⚠ **Proporção, e não media query.** Reescrever a largura por breakpoint é o
+    que este projeto proibiu por escrito: desfaria em silêncio o arrasto que a
+    pessoa acabou de fazer (ver `LARGURA` em `preset/schema.ts`). Aqui quem
+    manda continua sendo a largura escolhida — o ladrilho apenas a acompanha.
+
+    ⚠ **`cqi` e não `%`, e a diferença importa.** A porcentagem resolveria
+    contra `.item`, que é `align-items: stretch` e portanto já tem a largura da
+    lista MENOS o padding; `cqi` resolve contra `.coluna`, que é o slot. É a
+    largura que a pessoa arrasta, não uma derivada dela.
+
+    A razão é 44/72 — o par do design —, então no padrão o valor é 44px
+    EXATOS. O piso é o mesmo 44: arrastar para 56 não deve encolher o que o
+    design fixou. O teto de 64 é o que mantém a curva CONTÍNUA: acima de 140px
+    o rail vira lista com nome (ver a container query mais abaixo), e sem teto
+    o ladrilho chegaria lá com 85px e teria de despencar para caber ao lado do
+    texto — um degrau visível no meio de um arrasto. Com 64 ele já está parado
+    quando o nome aparece, e sobram 52px para o nome em 140.
+  */
+  --vx-rail-ladrilho: clamp(44px, calc(100cqi * 44 / 72), 64px);
+
   block-size: 100%;
   overflow-y: auto;
   overflow-x: hidden;
@@ -171,9 +201,16 @@
   opacity: 1;
 }
 
-/* Ativo: a barra alta. */
+/*
+  Ativo: a barra alta.
+
+  ⚠ **Ela acompanha o ladrilho, e a razão é a mesma de sempre — 32 em 44.** Com
+  altura fixa, um rail arrastado até 105px teria um ladrilho de 64 com um traço
+  de 32 ao lado: o indicador cobriria metade do item e deixaria de ler como "a
+  posição é esta". A assinatura é a PROPORÇÃO, não o número.
+*/
 .barra[data-estado="ativa"] {
-  block-size: var(--vx-space-32);
+  block-size: calc(var(--vx-rail-ladrilho) * 32 / 44);
   opacity: 1;
 }
 
@@ -212,14 +249,24 @@
   display: grid;
   place-items: center;
   flex: none;
-  inline-size: 44px;
-  block-size: 44px;
+  inline-size: var(--vx-rail-ladrilho);
+  block-size: var(--vx-rail-ladrilho);
   /* 14px em 44 — ver `--vx-radius-ladrilho`. Era `--vx-radius-12` (12), o
      degrau mais próximo da escala, e a divergência estava registrada como
-     aceita. Deixou de ser: o percentual acerta os quatro tamanhos do rail. */
+     aceita. Deixou de ser: o percentual acerta os quatro tamanhos do rail —
+     e agora acerta também os tamanhos INTERMEDIÁRIOS, de graça. */
   border-radius: var(--vx-radius-ladrilho);
   color: var(--vx-text-2);
-  font-size: var(--vx-size-lg);
+  /*
+    A sigla acompanha o ladrilho, ancorada no par do design (15px em 44).
+
+    ⚠ Sem isto o ladrilho crescia e a sigla ficava perdida no meio dele — o
+    tipo de defeito que passa por toda guarda, porque `--vx-size-lg` é um
+    degrau legítimo da escala e continua sendo. Divisão de comprimento por
+    comprimento dá NÚMERO, então em 44px a conta devolve exatamente
+    `--vx-size-lg`.
+  */
+  font-size: calc(var(--vx-size-lg) * (var(--vx-rail-ladrilho) / 44px));
   font-weight: 700;
   /* Sigla é o fallback do ícone; números tabulares não ajudam aqui, mas
      ligadura em iniciais como "fi" viraria glifo único. */
@@ -440,8 +487,10 @@
   espaçamento de propósito — é o mesmo caso da linha de canal em 30px.
 */
 .marcaRodape {
-  inline-size: 36px;
-  block-size: 36px;
+  /* 36 contra 44 no design — a proporção é que carrega "não é um lugar para
+     onde se vai", então ela acompanha em vez de ficar para trás. */
+  inline-size: calc(var(--vx-rail-ladrilho) * 36 / 44);
+  block-size: calc(var(--vx-rail-ladrilho) * 36 / 44);
   border-radius: var(--vx-radius-ladrilho);
   background: var(--vx-surface-2);
   color: var(--vx-text-3);
@@ -570,9 +619,12 @@
   carregar sozinha a hierarquia.
 */
 .item[data-napasta="true"] .marca {
-  inline-size: var(--vx-avatar-md);
-  block-size: var(--vx-avatar-md);
-  font-size: var(--vx-size-md);
+  /* 40 contra 44, e o que diz "estes pertencem ao grupo" é a RAZÃO entre os
+     dois — não o número. Fixar 40 enquanto o de fora cresce apagaria a pista
+     justamente no rail largo, onde ela é mais fácil de ver. */
+  inline-size: calc(var(--vx-rail-ladrilho) * 40 / 44);
+  block-size: calc(var(--vx-rail-ladrilho) * 40 / 44);
+  font-size: calc(var(--vx-size-md) * (var(--vx-rail-ladrilho) / 44px));
 }
 
 /*

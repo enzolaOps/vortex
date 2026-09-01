@@ -10,6 +10,7 @@ import { Toaster } from "./components/ui/Toast";
 import { FaixaDeConexao } from "./conexao/FaixaDeConexao";
 import { Atualizacao } from "./desktop/Atualizacao";
 import { BarraDeTitulo } from "./desktop/BarraDeTitulo";
+import css from "./main.module.css";
 import { hidratarDesktop } from "./store/desktop";
 import { TooltipProvider } from "./components/ui/Tooltip";
 import "./styles/tokens.css";
@@ -63,8 +64,17 @@ createRoot(root).render(
         login — um app que só pode ser fechado depois de autenticar é um app
         que trava a máquina de quem esqueceu a senha.
       */}
-      <BarraDeTitulo />
-      <Atualizacao />
+      {/*
+        ⚠ **As duas faixas da casca e o conteúdo numa COLUNA FLEX.** Elas
+        ocupam fluxo no topo, e antes disto a tela de entrada pedia `100dvh`
+        sem saber delas: medido dentro do Electron, a janela rolava 35px e
+        ganhava barra de rolagem. Flex e não grid porque as duas são
+        OPCIONAIS — ver `main.module.css`.
+      */}
+      <div className={css.raiz}>
+        <BarraDeTitulo />
+        <Atualizacao />
+        <div className={css.conteudo}>
       {/*
         Sem sessão não há canal, autor nem permissão: o portão vem antes do
         shell. Ver `PortaoDeSessao`.
@@ -77,13 +87,21 @@ createRoot(root).render(
         inalcançável sem que nada falhasse. Foi assim que a tela de voz
         chegou a ser medida só pela metade.
       */}
-      {ARNES_ATIVO ? (
-        <App />
-      ) : (
-        <PortaoDeSessao>
-          <App />
-        </PortaoDeSessao>
-      )}
+          {ARNES_ATIVO ? (
+            <App />
+          ) : (
+            <PortaoDeSessao>
+              <App />
+            </PortaoDeSessao>
+          )}
+        </div>
+      </div>
+      {/*
+        ⚠ Toaster e faixa de conexão ficam FORA do grid de propósito: as duas
+        são superfície flutuante — portal e `fixed` — então virariam trilhas
+        de altura zero, dizendo que participam de um layout do qual não
+        participam.
+      */}
       {/* Montado uma vez na raiz: a viewport e a regiao aria-live que o
           leitor de tela anuncia. Os toasts vem do store, nao de props. */}
       <Toaster />

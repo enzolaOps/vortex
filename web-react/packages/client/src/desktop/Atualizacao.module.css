@@ -8,7 +8,18 @@
 
 /*
   A faixa EMPURRA o conteúdo, nunca sobrepõe — 34px, a mesma altura da barra
-  de título. Ela é item do grid do shell, então não precisa de `position`.
+  de título. Ela é item da coluna FLEX da raiz (`main.tsx`), então não precisa
+  de `position`.
+
+  ⚠ **O comentário aqui dizia "item do grid do shell", e estava errado nas duas
+  metades.** Ela nunca esteve dentro do `Shell` — monta na raiz, ao lado dele —
+  e a raiz não é grid. Não deu defeito porque ela devolve `null` sem
+  atualização pendente: o dia em que uma chegasse, os 34px empurrariam tudo e
+  ninguém saberia de onde vieram. É a mesma família do comentário que afirma
+  uma medida que não existe.
+
+  O `flex: none` abaixo é o que a mantém com a altura dela; sem ele, item de
+  coluna flex encolhe.
 
   ⚠ Ao contrário da faixa de conexão, que FLUTUA. A diferença é a duração:
   aquela dura segundos, esta fica até alguém reiniciar, e uma barra permanente

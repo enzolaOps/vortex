@@ -95,3 +95,36 @@
   line-height: var(--vx-leading-message);
   text-wrap: balance;
 }
+
+/* ============================================================
+   Moldura — o vazio que É a coluna
+   ============================================================ */
+
+/*
+  ⚠ **Ela existe porque a célula de conteúdo do shell é `display: block`, e
+  tem que continuar sendo.** `Shell.module.css .celulaDeConteudo` é o TETO do
+  container de rolagem da lista virtualizada, com o comentário registrando que
+  trocá-la já matou a virtualização uma vez: o `.scroll` pede `100%`, resolve
+  contra um pai `auto` e o container perde teto.
+
+  Então o conserto não podia ser centrar na célula. Medido antes, no Electron
+  logado:
+
+      .celulaDeConteudo   1040 × 1070   display: block
+      .vazio               440 ×  147   top: 34   ← grudado no topo
+
+  O cartão centrava no eixo EM LINHA por conta própria (`align-items: center`)
+  e nada cuidava do de bloco. Esta moldura cuida, sem tocar na célula.
+
+  `place-items: center` e não `margin: auto`: o cartão tem
+  `margin-inline: auto` próprio, e dois mecanismos de centralização no mesmo
+  elemento é o tipo de coisa que diverge quando um dos dois muda.
+*/
+.moldura {
+  display: grid;
+  place-items: center;
+  block-size: 100%;
+  /* Sem isto o grid não encolhe abaixo do `min-content` do cartão, e uma
+     janela baixa empurraria a coluna em vez de apertar. */
+  min-block-size: 0;
+}

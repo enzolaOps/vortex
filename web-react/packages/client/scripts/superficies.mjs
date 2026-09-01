@@ -81,6 +81,25 @@ const PERMITIDO = {
     ".hud": "O mesmo véu, a 82%, sob os controles do transmissor.",
     ".selo": "O mesmo véu, a 70%, atrás do selo de ladrilho separado.",
   },
+  "voz/Popout.module.css": {
+    ".popout":
+      "O chão da JANELA flutuante, e não um painel dentro do app. Mesma " +
+      "razão da moldura do palco de voz: o que está em volta da mídia " +
+      "precisa desaparecer para que a mídia seja a única coisa com luz. O " +
+      "mockup escreve #0A0C0F, que é um quase-acerto de `surface.sunken` " +
+      "(#08090B) — a própria implementação de referência usa o token.",
+    ".pilula":
+      "Véu sobre a mídia a 80%, do design (`rgba(8,9,11,0.8)`) — não " +
+      "superfície. A pílula de contagem pousa sobre o vídeo, e um tom sólido " +
+      "apagaria um pedaço do que se está tentando ver.",
+    ".pilula:hover":
+      "O mesmo véu, opaco. O hover precisa de um degrau, e subir a opacidade " +
+      "do MESMO tom mantém a família em vez de trocar de cor.",
+    ".controlesDoPip .redondo":
+      "O mesmo véu a 80%, sob os dois controles do mínimo. No rodapé do " +
+      "popout grande eles são `surface-4`, porque lá há superfície embaixo; " +
+      "aqui eles flutuam sobre a imagem.",
+  },
   "shell/Shell.module.css": {
     ".shell":
       "O chão da janela, atrás de tudo. É o que o mock inteiro do design " +
@@ -88,11 +107,19 @@ const PERMITIDO = {
     '.slot[data-painel="rail"]':
       "O rail. É o primeiro dos dois papéis que o Foundations nomeia, " +
       "literalmente.",
-    ".prancha":
-      "O gutter ultrawide, e SÓ dentro do `@container (inline-size >= " +
-      "1440px)`. É o segundo papel nomeado. Ele pintava em qualquer largura " +
-      "e produzia 48px de faixa preta numa janela comum — o defeito que este " +
-      "guarda existe para não deixar voltar.",
+    /*
+      ⚠ **A entrada de `.prancha` saiu, e foi este guarda que a cobrou.**
+
+      Ela dispensava o gutter ultrawide, e o gutter deixou de existir: a
+      coluna de leitura preenche a trilha, então não há sobra para pintar.
+      Quem usa relatou as faixas pretas de 924px em 3440 — a mesma queixa
+      que já tinha tirado a pintura das janelas comuns, agora na largura
+      onde ela devia estar funcionando.
+
+      A entrada ficou órfã e o guarda reprovou o build por isso, que é
+      exatamente o segundo sentido dele: razão que sobrou mente sobre uma
+      decisão que ninguém tomou mais. Ver `shell/Shell.module.css`.
+    */
   },
   "styles/tokens.css": {
     body: "O chão da página, antes de qualquer componente montar.",

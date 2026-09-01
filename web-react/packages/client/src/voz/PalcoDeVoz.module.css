@@ -2,12 +2,33 @@
    A moldura das três telas do palco
    ============================================================ */
 
+/*
+  ⚠ **Ela era `position: fixed; inset: 0` e COBRIA o app inteiro — rail, coluna
+  de canais e lista de membros junto.** Quem usa relatou exatamente isso, com o
+  desenho certo por baixo da queixa: no Discord clicar num canal de voz abre os
+  participantes na COLUNA DE CONTEÚDO, e as três colunas laterais ficam onde
+  estavam.
+
+  A justificativa antiga — "sobre o shell, como as configurações" — comparava
+  com a superfície errada. Configurações é um DESTINO: você foi para outro
+  lugar e volta. Uma chamada é o conteúdo do canal em que você está; enquanto
+  ela roda, trocar de canal, ler outra conversa e ver quem está online continua
+  sendo o uso normal do app. Uma sobreposição torna as três impossíveis.
+
+  ⚠ **E ela cobria o cartão flutuante e a doca do rodapé da coluna** — a `Doca`
+  existe dentro do palco justamente porque o cartão sumia atrás dele. O
+  comentário dela ainda descreve esse mundo; ela continua útil (o palco é uma
+  superfície densa, e os controles perto da mídia são o que o design desenha),
+  mas já não é a única forma de silenciar o microfone.
+
+  O que NÃO mudou: `surface-0` como chão, e o container de largura. Ver abaixo.
+*/
 .palco {
-  position: fixed;
-  z-index: var(--vx-z-flutuante);
-  inset: 0;
   display: flex;
   flex-direction: column;
+  /* Item de grid da coluna de conteúdo — a altura vem da trilha, e
+     `min-block-size: 0` é o que deixa o miolo rolar em vez de esticar. */
+  block-size: 100%;
   min-block-size: 0;
   /*
     ⚠ **`surface-0` aqui é o CHÃO do palco, e não conteúdo.** O design pinta a
@@ -15,6 +36,11 @@
     pinta o rail e o gutter: o que está em volta da mídia precisa desaparecer
     para que a mídia seja a única coisa com luz. Uma moldura em `surface-2`
     competiria em luminosidade com o próprio vídeo.
+
+    ⚠ Isto NÃO é a armadilha do `surface-0` já registrada duas vezes (a faixa
+    preta em volta da timeline e a do composer). Lá o tom aparecia como moldura
+    ATRÁS de conteúdo que é texto; aqui ele É o fundo da superfície de mídia,
+    que é o uso que o Foundations lhe dá.
   */
   background: var(--vx-surface-0);
   /*
@@ -22,6 +48,21 @@
     é a MOLDURA que muda de tamanho, não elas —, e declarar o container em
     três lugares daria três definições que precisam concordar. Lei nº 6: o
     palco pode virar uma janela de popout, e nada aqui dentro assume janela.
+
+    Ele ganhou importância ao sair da sobreposição: antes a largura era sempre
+    a da janela, agora é a da coluna — que quem usa arrasta desde a fase 4.
   */
   container-type: inline-size;
+}
+
+/*
+  Tela cheia continua funcionando, e agora precisa de uma linha.
+
+  Coberto o app inteiro, `block-size: 100%` resolvia contra a janela. Como item
+  de grid ele resolve contra a trilha — e dentro do `:fullscreen` não há
+  trilha. O navegador já dimensiona o elemento em tela cheia; o que falta é a
+  altura interna não continuar amarrada a um pai que não está mais lá.
+*/
+.palco:fullscreen {
+  block-size: 100%;
 }

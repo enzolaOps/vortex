@@ -173,7 +173,16 @@
   border: 2px solid var(--vx-success);
 }
 
-.ladrilho[data-grande="true"] {
+/*
+  Duas causas para o mesmo tamanho, e por isso um seletor só.
+
+  ⚠ **`data-tela` não é uma segunda forma de "grande" — é uma causa a mais.**
+  Um stream ocupa 2×2 porque uma tela dentro de 84px não é legível; a célula
+  do orador ocupa 2×2 porque é onde a atenção deve estar. Escrever as duas
+  regras separadas daria duas definições do mesmo tamanho para manter em dia.
+*/
+.ladrilho[data-grande="true"],
+.ladrilho[data-tela="true"] {
   grid-column: span 2;
   grid-row: span 2;
 }

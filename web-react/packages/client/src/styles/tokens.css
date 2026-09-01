@@ -591,10 +591,6 @@
   /* Tudo que vai ao portal: diálogo, popover, tooltip, toast. */
   --vx-z-flutuante: 50;
 
-  /* --- Casca -------------------------------------------------
-     Zerado na web; definido pelo Electron. */
-  --vx-titlebar-h: 0px;
-
   /* --- Layout ------------------------------------------------ */
   --vx-rail-w: 72px;
 

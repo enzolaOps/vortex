@@ -26,6 +26,7 @@ export function EstadoVazio({
   detalhe,
   acao,
   compacto = false,
+  preenche = false,
 }: {
   /** Phosphor, 20px, weight regular — como todo ícone do projeto. */
   icone?: ReactNode;
@@ -35,8 +36,24 @@ export function EstadoVazio({
   acao?: { rotulo: string; aoClicar: () => void };
   /** Painel lateral estreito: sem ícone, texto menor, sem centralizar. */
   compacto?: boolean;
+  /**
+   * Ocupa a coluna inteira e centra no eixo de bloco.
+   *
+   * ⚠ **Só para o vazio que É a superfície, e não um pedaço dela.** O cartão
+   * mede ~150px; solto numa coluna de mil ele fica grudado no topo, porque o
+   * `align-items: center` do próprio cartão centra no eixo EM LINHA e nada
+   * cuidava do outro. Foi assim que "Nenhum canal aberto" apareceu colado no
+   * cabeçalho de uma coluna vazia de ponta a ponta.
+   *
+   * ⚠ **Não vale para todo vazio, e por isso é opção e não padrão.** O da
+   * `MessageList` é alinhado ao RODAPÉ de propósito — a primeira mensagem
+   * nasce rente ao composer, e o convite tem que apontar para onde a coisa
+   * acontece. Os de painel lateral usam `compacto`, que alinha ao início pela
+   * mesma família de razão. Centrar todos apagaria as três decisões.
+   */
+  preenche?: boolean;
 }) {
-  return (
+  const cartao = (
     <div className={css.vazio} data-compacto={compacto}>
       {icone && !compacto ? (
         <span className={css.icone} aria-hidden>
@@ -54,4 +71,12 @@ export function EstadoVazio({
       ) : null}
     </div>
   );
+
+  /*
+    ⚠ **A moldura só existe quando pedida.** Envolver sempre acrescentaria um
+    nó ao DOM dos outros dezoito consumidores para servir a um — e num deles
+    (a lista de mensagens) o wrapper mudaria o alinhamento que ela escolheu de
+    propósito.
+  */
+  return preenche ? <div className={css.moldura}>{cartao}</div> : cartao;
 }

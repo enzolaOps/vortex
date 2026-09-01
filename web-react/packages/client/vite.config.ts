@@ -49,10 +49,19 @@ function cspDoVortex(): Plugin {
 
     transformIndexHtml(html, ctx) {
       const alvo = (ctx.server ? process.env.VITE_DEV_API_URL : process.env.VITE_API_URL) ?? "";
+      /*
+        ⚠ **Duas listas, e não uma.** `connect-src` precisa do socket, que é
+        origem SEPARADA (`ws:` não casa com `http:`); `img-src` e `media-src`
+        precisam só da origem HTTP, onde mora o `autumn`. Uma lista só poria
+        `ws://…` dentro de `img-src` — inofensivo e sem sentido, do tipo que
+        faz quem lê a política adiante desconfiar dela inteira.
+      */
+      const origens = new Set<string>();
       const extras = new Set<string>();
       if (alvo) {
         try {
           const u = new URL(alvo);
+          origens.add(u.origin);
           extras.add(u.origin);
           /* O socket vive no mesmo host por uma rota (`/ws`), mas com esquema
              próprio — e `connect-src` trata `ws:` como origem separada de
@@ -70,14 +79,31 @@ function cspDoVortex(): Plugin {
         "style-src 'self' 'unsafe-inline'",
         /* `data:` para o gradiente do avatar quando ele vira SVG embutido;
            `blob:` para anexo que a pessoa acabou de escolher e ainda não subiu. */
-        /* ⚠ **Sem `https:`, e é decisão que tem data de validade.** Em produção
-           toda imagem vem do `autumn` na MESMA origem, e o markdown deste
-           cliente transforma `![](url)` em LINK justamente para o navegador
-           não buscar URL de terceiro sozinho. Quando os embeds existirem —
-           são pendência registrada —, eles trazem imagem remota e esta linha
-           precisa de `https:`. Até lá, fechado é o certo. */
-        "img-src 'self' data: blob:",
-        "media-src 'self' blob:",
+        /* ⚠ **Sem `https:`, e é decisão que tem data de validade.** O markdown
+           deste cliente transforma `![](url)` em LINK justamente para o
+           navegador não buscar URL de terceiro sozinho. Quando os embeds
+           existirem — são pendência registrada —, eles trazem imagem remota e
+           esta linha precisa de `https:`. Até lá, fechado é o certo.
+
+           ⚠ **A ORIGEM DA INSTÂNCIA entra aqui, e a falta dela era um defeito
+           silencioso.** O comentário anterior dizia "em produção toda imagem
+           vem do `autumn` na MESMA origem" — verdade no contêiner, onde o
+           Caddy serve cliente e API no mesmo domínio, e FALSA em todo outro
+           arranjo. Com `VITE_API_URL` apontando para outra origem — que é o
+           caso da casca de desenvolvimento, cliente em `:4175` e API em
+           `:8880` —, `autumn` fica cross-origin e TODO ícone de servidor e
+           TODO avatar era bloqueado.
+
+           O sintoma não parecia CSP: os ladrilhos caíam no gradiente com as
+           iniciais, que é exatamente o fallback correto para "esta pessoa não
+           tem foto". Um servidor chamado "Com Icone" aparecia como "CI". Só o
+           console dizia a verdade.
+
+           Não é afrouxar a política: é a MESMA origem que `connect-src` já
+           recebia, pela mesma razão e computada uma vez só. `media-src` vai
+           junto — mensagem de voz e anexo de áudio vêm do mesmo lugar. */
+        ["img-src 'self' data: blob:", ...origens].join(" "),
+        ["media-src 'self' blob:", ...origens].join(" "),
         /* ⚠ `data:` é OBRIGATÓRIO, e descobri bloqueando o app: o Vite embute
            asset abaixo de 4 kB como data URI, e um subconjunto de fonte caiu
            nessa faixa. Com `font-src 'self'` seco o texto perdia a fonte e o

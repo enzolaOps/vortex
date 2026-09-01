@@ -20,6 +20,8 @@ import {
   lerChamada,
 } from "../store/chamada";
 import { definirPalco } from "../store/palcoDeVoz";
+import { chaveDeVideo, faixasDeVideo } from "../store/video";
+import { selecionarCanal } from "../store/navegacao";
 
 import { count, countMax } from "./stats";
 import {
@@ -917,7 +919,18 @@ export function transmissaoFalsa(): void {
     telaPausada: false,
     telaAudio: ligando ? "ligado" : "sem",
   });
-  definirPalco(ligando ? { tipo: "transmitindo" } : { tipo: "fechado" });
+  faixaSinteticaDeTela(ligando);
+  /*
+    ⚠ **A SALA, espelhando o motor.** Ele deixou de abrir a prancha ao começar
+    a transmitir — a prévia aparece num ladrilho da grade —, e um arnês que
+    abrisse a prancha exercitaria um caminho que o produto não tem. É a
+    armadilha de sempre, na direção menos vista: o arnês DIFERENTE do produto,
+    e não mais pobre que ele.
+
+    Desligar também vai para a grade, e não fecha: quem para de transmitir
+    continua na chamada, e a sala é o conteúdo do canal.
+  */
+  definirPalco({ tipo: "grade" });
 }
 
 /**
@@ -939,6 +952,67 @@ export function transmissaoFalsa(): void {
  * marcadores são independentes — é a mesma lição do recado repetido na member
  * list.
  */
+/**
+ * Uma faixa de vídeo de MENTIRA, para a prévia da própria tela existir.
+ *
+ * ⚠ **Arnês mais pobre que o protocolo, 13ª vez — e esta escondeu um defeito
+ * de produção por uma rodada inteira.** `transmissaoFalsa` acendia
+ * `chamada.tela` e não publicava faixa nenhuma, então todo consumidor que LÊ
+ * `faixasDeVideo` mostrava o xadrez. Isso parecia correto ("sem motor não há
+ * faixa, e o xadrez é o que se desenha enquanto ela não vem") e mascarava a
+ * coisa real: o motor nunca publicava a faixa local de tela no store. O
+ * sintoma só apareceu numa chamada de verdade, relatado por quem usa.
+ *
+ * ⚠ **A chave é `participantes[0]`, e é ela que o leitor procura.** No motor,
+ * `participantesDe` põe o participante LOCAL em primeiro; no arnês, o primeiro
+ * é um ocupante qualquer da sala. Publicar sob a mesma chave que o leitor
+ * consulta é o que faz este teste valer alguma coisa — publicar sob "o meu id"
+ * exercitaria um caminho que ninguém percorre.
+ *
+ * Canvas e não vídeo parado: uma imagem estática não distingue "a faixa
+ * chegou" de "a faixa congelou", que é exatamente a diferença que a limpeza
+ * do `LocalTrackUnpublished` existe para preservar.
+ */
+let pinturaDaTela: ReturnType<typeof setInterval> | undefined;
+
+function faixaSinteticaDeTela(ligando: boolean): void {
+  const quem = lerChamada().participantes[0];
+  if (!quem) return;
+  const chave = chaveDeVideo(quem, "tela");
+
+  if (pinturaDaTela !== undefined) {
+    clearInterval(pinturaDaTela);
+    pinturaDaTela = undefined;
+  }
+  if (!ligando) {
+    faixasDeVideo.apagar(chave);
+    return;
+  }
+
+  const tela = document.createElement("canvas");
+  tela.width = 640;
+  tela.height = 360;
+  const pincel = tela.getContext("2d");
+  if (!pincel) return;
+
+  let quadro = 0;
+  const pintar = () => {
+    quadro += 1;
+    pincel.fillStyle = "#14181e";
+    pincel.fillRect(0, 0, 640, 360);
+    pincel.fillStyle = "#35c2cc";
+    pincel.fillRect((quadro * 8) % 640, 150, 120, 60);
+    pincel.fillStyle = "#e6eaf0";
+    pincel.font = "20px monospace";
+    pincel.fillText("tela sintética do arnês", 24, 40);
+  };
+  pintar();
+  pinturaDaTela = setInterval(pintar, 200);
+
+  const faixa = tela.captureStream(5).getVideoTracks()[0];
+  if (faixa) faixasDeVideo.set(chave, faixa);
+}
+
 export function chamadaEmVideoFalsa(): void {
   const dentro = lerChamada().participantes;
   if (dentro.length === 0) return;
@@ -1004,6 +1078,17 @@ export function chamadaFalsa(): () => void {
     */
     qualidade: "otima",
   });
+
+  /*
+    ⚠ **Navega E abre a sala — as duas metades do `RoomEvent.Connected`.**
+
+    Sem a navegação a sala não apareceria: ela é o conteúdo do canal da
+    chamada, e o arnês abre num canal de TEXTO. O botão acenderia o cartão do
+    canto e mais nada, que é exatamente o defeito que esta rodada consertou no
+    produto — o arnês reproduziria o bug já corrigido.
+  */
+  selecionarCanal(sala);
+  definirPalco({ tipo: "grade" });
 
   /*
     Quem fala muda a cada ~700ms.

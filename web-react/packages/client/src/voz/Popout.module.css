@@ -1,0 +1,366 @@
+/* ============================================================
+   Popout da chamada — as duas formas do design
+   ------------------------------------------------------------
+   Medidas tiradas com `pnpm espec` sobre a seção "Popout da
+   chamada · janela flutuante" e "Picture-in-picture mínimo" de
+   `Vortex Voz - Completo.dc.html`. Ler a INTENÇÃO do mockup e
+   escrever a própria versão é o que produziu as divergências de
+   4px da rodada passada; aqui os números são os de lá.
+   ============================================================ */
+
+/*
+  `fixed` e não `absolute`, e a diferença foi achada no navegador.
+
+  Ancorado na coluna de canal, o cartão sumia quando a pessoa ia para a casa —
+  a coluna deixa de existir. A chamada continua viva independentemente de onde
+  se está olhando, então a âncora dele é a JANELA.
+
+  ⚠ **O canto é a origem, e o deslocamento do arraste soma a ele.** Coordenada
+  absoluta deixaria a janelinha fora da tela ao encolher a janela; deslocamento
+  a partir do canto mantém `{0,0}` ancorado em qualquer tamanho. Ver
+  `store/popout.ts`.
+*/
+.popout {
+  position: fixed;
+  z-index: var(--vx-z-flutuante);
+  inset-block-end: calc(var(--vx-space-16) + var(--vx-popout-dy, 0px));
+  inset-inline-end: calc(var(--vx-space-16) + var(--vx-popout-dx, 0px));
+  overflow: hidden;
+  border: 1px solid var(--vx-hairline-10);
+  /*
+    ⚠ **Sombra AQUI, e a regra antiga do projeto ("profundidade vem de camada,
+    não de sombra") já tinha caído por medição.** No tema claro `surface-3` e
+    `surface-4` são os dois branco puro, e sem sombra uma camada flutuante
+    some inteira. O design pede `0 20px 48px rgba(0,0,0,0.6)`, que é
+    exatamente `--vx-elev-3`.
+  */
+  box-shadow: var(--vx-elev-3);
+  /*
+    ⚠ **`--vx-surface-0` e não o `#0A0C0F` literal do mockup.** Os dois são
+    quase o mesmo tom (0A0C0F contra 08090B), a diferença é 2/255, e a própria
+    implementação de referência escreve `bg-surface-sunken` — ou seja, o
+    literal é um quase-acerto do token dela mesma. Um token novo para isso
+    custaria classificação e par de contraste para nada.
+  */
+  background: var(--vx-surface-0);
+  /* Sem seleção de texto durante o arraste: sublinhar o nome do canal ao mover
+     a janela é o defeito que a alça da enquete já tinha registrado. */
+  user-select: none;
+}
+
+.popout[data-forma="popout"] {
+  inline-size: 420px;
+  border-radius: var(--vx-radius-12);
+}
+
+.popout[data-forma="pip"] {
+  inline-size: 216px;
+  border-radius: var(--vx-radius-10);
+}
+
+/* ---------------------------------------------------- cabeçalho */
+
+/*
+  28px, e é ele a alça do arraste.
+
+  `cursor: grab` diz que arrasta sem precisar de texto — e é a única
+  afordância possível num cabeçalho onde não cabe rótulo.
+*/
+.cabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  block-size: 28px;
+  padding-inline: var(--vx-space-10);
+  border-block-end: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-2);
+  cursor: grab;
+}
+
+.cabecalho:active {
+  cursor: grabbing;
+}
+
+.destino {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.destino:hover {
+  color: var(--vx-text-1);
+}
+
+.destino:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  /* Negativo: o cabeçalho tem `overflow: hidden` no pai, e um anel para fora
+     seria recortado. É a mesma escolha das outras 41 regras de foco do
+     projeto que vivem dentro de container que recorta. */
+  outline-offset: -2px;
+  border-radius: var(--vx-radius-04);
+}
+
+.acaoDoCabecalho {
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: var(--vx-space-16);
+  block-size: var(--vx-space-16);
+  padding: 0;
+  border: 0;
+  border-radius: var(--vx-radius-04);
+  background: transparent;
+  color: var(--vx-text-3);
+  cursor: pointer;
+}
+
+.acaoDoCabecalho:hover {
+  color: var(--vx-text-1);
+}
+
+.acaoDoCabecalho:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/* -------------------------------------------------------- palco */
+
+/*
+  O xadrez do design, e ele é o fundo PERMANENTE da área — não um estado de
+  carregando.
+
+  Com `autoSubscribe: false` a faixa só existe depois de alguém pedir, e o
+  intervalo entre pedir e receber é real. O `<video>` cobre quando chega; sem
+  ele, o xadrez é o que diz "aqui é onde a imagem aparece". As paradas são as
+  do mockup (12px) entre `surface-2` e `surface-1`.
+*/
+.palco {
+  position: relative;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--vx-surface-2) 0 12px,
+    var(--vx-surface-1) 12px 24px
+  );
+}
+
+.popout[data-forma="popout"] .palco {
+  block-size: 190px;
+}
+
+.popout[data-forma="pip"] .palco {
+  block-size: 120px;
+  cursor: grab;
+}
+
+.popout[data-forma="pip"] .palco:active {
+  cursor: grabbing;
+}
+
+.video {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  /* `contain` e não `cover`: a tela de alguém cortada pela metade não serve
+     para decidir se vale abrir. */
+  object-fit: contain;
+}
+
+.video[data-espelhada="true"] {
+  transform: scaleX(-1);
+}
+
+.semMidia {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--vx-text-4);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-2xs);
+}
+
+/* --------------------------------------------------- miniaturas */
+
+.miniaturas {
+  position: absolute;
+  inset-inline-start: var(--vx-space-08);
+  inset-block-start: var(--vx-space-08);
+  display: flex;
+  gap: var(--vx-space-05);
+}
+
+/*
+  44×32 — as medidas do mockup, e a proporção é o que importa: são retângulos
+  de vídeo, não avatares. O avatar dentro é o fallback enquanto não há faixa,
+  igual ao ladrilho da grade.
+*/
+.miniatura {
+  display: grid;
+  place-items: center;
+  inline-size: 44px;
+  block-size: 32px;
+  overflow: hidden;
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-05);
+  background: var(--vx-surface-3);
+}
+
+/*
+  A borda verde de quem fala — do design, e é `success` e não `accent`.
+
+  O acento é "isto está ativo" (canal aberto, minha reação); fala é um fato
+  sobre outra pessoa acontecendo agora, e o verde é o que o design usa para
+  ela em todas as superfícies de voz.
+*/
+.miniatura[data-falando="true"] {
+  border-color: var(--vx-success);
+}
+
+.maisN {
+  display: grid;
+  place-items: center;
+  inline-size: 44px;
+  block-size: 32px;
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-05);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-3);
+  /*
+    ⚠ O design pede 9px e o projeto não tem esse degrau — é onde a Instrument
+    Sans perde as contraformas em tela, e a decisão de deixá-lo fora já está
+    registrada. `--vx-size-2xs` (10px) é o degrau vizinho.
+  */
+  font-size: var(--vx-size-2xs);
+}
+
+/* ------------------------------------------------------- pílula */
+
+/*
+  A contagem do PiP — e o caminho de volta ao popout grande.
+
+  Véu e não superfície: ela pousa sobre a mídia, e um tom sólido apagaria um
+  pedaço do que se está tentando ver. 80% é do design.
+*/
+.pilula {
+  position: absolute;
+  inset-inline-start: var(--vx-space-08);
+  inset-block-start: var(--vx-space-08);
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-06);
+  block-size: 20px;
+  padding-inline: var(--vx-space-08);
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  background: color-mix(in srgb, var(--vx-surface-0) 80%, transparent);
+  color: var(--vx-success-text);
+  font-family: inherit;
+  font-size: var(--vx-size-2xs);
+  cursor: pointer;
+}
+
+.pilula:hover {
+  background: var(--vx-surface-0);
+}
+
+.pilula:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.pontoDaPilula {
+  inline-size: 5px;
+  block-size: 5px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-success);
+}
+
+/* ---------------------------------------------------- controles */
+
+.rodape {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vx-space-06);
+  padding: var(--vx-space-09) var(--vx-space-10);
+  background: var(--vx-surface-1);
+}
+
+.controlesDoPip {
+  position: absolute;
+  inset-inline-end: var(--vx-space-08);
+  inset-block-end: var(--vx-space-08);
+  display: flex;
+  gap: var(--vx-space-04);
+}
+
+.redondo {
+  display: grid;
+  place-items: center;
+  flex: none;
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-surface-4);
+  color: var(--vx-text-1);
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.rodape .redondo {
+  inline-size: 34px;
+  block-size: 34px;
+}
+
+/* No PiP eles pousam sobre a MÍDIA, então viram véu — mesma razão da pílula. */
+.controlesDoPip .redondo {
+  inline-size: 26px;
+  block-size: 26px;
+  background: color-mix(in srgb, var(--vx-surface-0) 80%, transparent);
+}
+
+.redondo:hover {
+  background: var(--vx-state-hover);
+}
+
+.redondo:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/*
+  ⚠ **O vermelho é de "sair" e do microfone CORTADO — e nada mais.**
+
+  A primeira versão herdou do cartão antigo a regra "desligado grita", ligada a
+  `data-ligado="false"`, e ela atingia a CÂMERA junto: câmera desligada é o
+  estado normal de quase toda chamada, e pintá-la de vermelho afirma que algo
+  está errado quando não está. Medido na tela — o botão do meio saía vermelho
+  numa chamada perfeitamente saudável.
+
+  O design põe microfone e câmera os dois em `surface-4`. Quem decide o realce
+  agora é `perigo`, passado por quem sabe o que a cor significa.
+*/
+.redondo[data-perigo="true"] {
+  background: color-mix(in srgb, var(--vx-danger) 20%, transparent);
+  color: var(--vx-danger-text);
+}
+
+.controlesDoPip .redondo[data-perigo="true"] {
+  /* 30% no PiP, do design: sobre a mídia, 20% não separa o botão do fundo. */
+  background: color-mix(in srgb, var(--vx-danger) 30%, transparent);
+}
+
+.redondo[data-perigo="true"]:hover {
+  background: color-mix(in srgb, var(--vx-danger) 34%, transparent);
+}

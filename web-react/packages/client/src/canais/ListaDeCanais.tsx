@@ -44,6 +44,7 @@ import {
   type SecaoId,
 } from "../store/config";
 import { entrarNaChamada } from "../sdk/chamada";
+import { definirPalco } from "../store/palcoDeVoz";
 import { assinarChamada, falando, lerChamada } from "../store/chamada";
 import { administrar } from "../store/administracao";
 import { abrirConfigDeCanal } from "../store/config";
@@ -202,30 +203,35 @@ const Canal = memo(function Canal({
           data-naolidas={temNaoLidas && !canal.silenciado}
           data-silenciado={canal.silenciado}
           /*
-            ⚠ **Em canal de VOZ o clique ENTRA; o segundo clique abre o chat.**
+            ⚠ **Em canal de VOZ o clique ENTRA e ABRE A SALA — o canal vira o
+            canal aberto, como qualquer outro.**
 
-            A régua anterior era só `selecionarCanal`, e ela seguia a nota do
-            design ("continua clicável para abrir o chat embutido"). O que ela
-            não resolvia: entrar na sala existia num lugar só, o menu de botão
-            direito — a afordância que este projeto já apontou como a que menos
-            gente descobre, quando moveu convite e tópico para o hover da linha.
-            E por TOQUE não havia caminho nenhum.
+            A régua anterior entrava sem navegar, e essa metade que faltava era
+            o defeito relatado: clicar no canal de voz não mudava nada na
+            coluna de conteúdo. A conversa anterior continuava lá, e a única
+            prova de que a chamada existia era o cartão do canto.
 
-            Agora o gesto mais barato faz a ação mais frequente, e o chat
-            embutido — que é o que o design pede — fica no clique seguinte, com
-            "Abrir o chat" no menu para quem quiser ler sem entrar.
+            `selecionarCanal` sempre, inclusive já conectado: a sala é o
+            CONTEÚDO do canal, então voltar a ele é navegar para ele. E o
+            `definirPalco` cobre quem tinha aberto o chat embutido e quer a
+            grade de volta — sem ele o segundo clique não faria nada visível.
 
             `conectadoAqui` cobre CONECTANDO também, de propósito: clicar duas
             vezes depressa não deve tentar entrar de novo, e `entrarNaChamada`
-            já trataria isso como no-op — o que deixaria o segundo clique sem
-            efeito nenhum em vez de abrir o chat.
+            já trataria isso como no-op.
+
+            O caminho de volta para o chat continua sendo "Voltar ao chat", no
+            cabeçalho da sala, e "Abrir o chat" no menu de botão direito para
+            quem quer ler sem entrar.
           */
           onClick={() => {
-            if (canal.tipo !== "voz" || conectadoAqui) {
+            if (canal.tipo !== "voz") {
               selecionarCanal(id);
               return;
             }
-            void entrarNaChamada(id);
+            selecionarCanal(id);
+            if (conectadoAqui) definirPalco({ tipo: "grade" });
+            else void entrarNaChamada(id);
           }}
         >
           {/*
