@@ -38,12 +38,27 @@ export function CartaoDePerfil({
     // fechado. É o que torna barato pendurar isto em todo nome da lista:
     // a subscrição do membro nasce no hover e morre ao sair.
     <PerfilHoverCard gatilho={children}>
-      <Corpo serverId={serverId} userId={userId} />
+      <CorpoDePerfil serverId={serverId} userId={userId} />
     </PerfilHoverCard>
   );
 }
 
-function Corpo({ serverId, userId }: { serverId: string; userId: string }) {
+/**
+ * O conteúdo do perfil, sem a casca.
+ *
+ * ⚠ **Exportado porque o MODAL usa o mesmo**, e não porque alguém previu
+ * reuso: `ModalDePerfil` fecha `perfilCompleto` e `perfilNaChamada`, e as duas
+ * mostram exatamente isto mais a nota privada e o silêncio. Duas cópias
+ * divergiriam no primeiro campo novo — foi o que aconteceu com as seis do
+ * `Avatar`, e o `pnpm utilities` levou seis rodadas para acusá-las.
+ */
+export function CorpoDePerfil({
+  serverId,
+  userId,
+}: {
+  serverId: string;
+  userId: string;
+}) {
   const membro = useMembro(chaveDeMembro(serverId, userId));
   // Antes do retorno antecipado: hook não pode ficar atrás de condicional.
   const corDeCargo = useCorDeCargo(membro?.cor);

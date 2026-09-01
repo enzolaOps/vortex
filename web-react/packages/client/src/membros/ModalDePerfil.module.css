@@ -1,0 +1,98 @@
+/* ============================================================
+   O perfil como modal — fecha `perfilCompleto` e `perfilNaChamada`.
+   O corpo vem de `CartaoDePerfil`; daqui saem só a casca e as duas
+   seções que o hover card não comporta.
+   ============================================================ */
+
+/*
+  ⚠ **A largura é do CONSUMIDOR, e o `Dialog` a trata como piso.**
+  `Dialog.module.css .painel` usa `:where(.painel)` justamente para que esta
+  declaração vença — sem isso, quem ganharia seria a ordem em que os CSS
+  Modules entram no bundle, que não está declarada em lugar nenhum. Foi o que
+  deu 400px num modal e 512 no vizinho com código idêntico.
+
+  400px é a largura do cartão de perfil do design; mais que isso e a nota
+  privada vira uma faixa de texto larga demais para ler.
+*/
+.painel {
+  inline-size: 400px;
+  max-inline-size: 100%;
+}
+
+.conteudo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-14);
+}
+
+/*
+  Régua entre as seções, e não espaço só.
+
+  O corpo do perfil é sobre QUEM a pessoa é; as duas seções abaixo são o que
+  EU guardo sobre ela. A linha marca essa troca de dono — sem ela, a nota lê
+  como mais um campo do perfil, e a pergunta "isso é público?" volta a cada
+  vez.
+*/
+.secao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-06);
+  padding-block-start: var(--vx-space-14);
+  border-block-start: 1px solid var(--vx-border-subtle);
+}
+
+.rotulo {
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--vx-text-3);
+}
+
+/*
+  ⚠ `resize: vertical` e não `none`: nota longa acontece, e travar a caixa
+  obrigaria a rolar dentro de três linhas. Vertical só — horizontal
+  estouraria a largura do modal.
+
+  `field-sizing` resolveria isso sozinho e ainda não é suportado onde este app
+  roda; quando for, esta regra vira uma linha.
+*/
+.nota {
+  inline-size: 100%;
+  min-block-size: 68px;
+  resize: vertical;
+  padding: var(--vx-space-09) var(--vx-space-11);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-08);
+  /*
+    ⚠ **`surface-3` e não `surface-0`, e o `pnpm superficies` me pegou.**
+    Eu tinha escrito `surface-0` por reflexo de "campo é um buraco no painel".
+    O design reserva esse tom para o rail e o gutter ultrawide, e usá-lo como
+    fundo de área que não é nenhum dos dois já produziu a faixa preta em volta
+    da timeline e depois em volta do composer — as duas relatadas por quem usa.
+
+    `surface-3` é o que `Campo.module.css` usa, e alinhar com o primitivo é
+    melhor que acertar sozinho: no dia em que a rampa mudar, os dois mudam
+    juntos.
+  */
+  background: var(--vx-surface-3);
+  color: var(--vx-text-1);
+  font: inherit;
+  font-size: var(--vx-size-lg);
+  line-height: 1.45;
+}
+
+.nota::placeholder {
+  color: var(--vx-text-4);
+}
+
+.nota:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+  border-color: transparent;
+}
+
+.dica {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}

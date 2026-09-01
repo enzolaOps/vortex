@@ -973,3 +973,40 @@
 .barrado {
   font-size: var(--vx-size-sm);
 }
+
+/* Mensagem de quem foi silenciado só para mim */
+
+/*
+  Discreta e no MESMO lugar do corpo, para a linha não mudar de forma: quem
+  silenciou alguém não quer a ausência dela chamando atenção. É o oposto do
+  divisor de novas mensagens, que existe para ser achado.
+*/
+.silenciada {
+  display: flex;
+  align-items: baseline;
+  gap: var(--vx-space-08);
+  font-size: var(--vx-size-md);
+  font-style: italic;
+  color: var(--vx-text-3);
+}
+
+.mostrarSilenciada {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-style: normal;
+  font-weight: 600;
+  color: var(--vx-accent-text);
+  cursor: pointer;
+}
+
+.mostrarSilenciada:hover {
+  text-decoration: underline;
+}
+
+.mostrarSilenciada:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+  border-radius: var(--vx-radius-02);
+}

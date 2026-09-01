@@ -87,7 +87,7 @@ import {
 import { responderA } from "../store/resposta";
 import { assinarConexao, lerConexao } from "../store/conexao";
 import { caminhoDe } from "../rota/rota";
-import { lerLocal } from "../store/navegacao";
+import { abrirConversa, lerLocal } from "../store/navegacao";
 import { chaveDeMembro } from "../sdk/domain";
 import { useMembro, useServidorAtivo } from "../store/hooks";
 import { useMessage } from "../store/hooks";
@@ -100,6 +100,13 @@ import {
 import { canalDeVozDe } from "../sdk/adapter";
 import { aindaNao } from "../pendente/pendencias";
 import { assinarDensidade, lerDensidade } from "../store/densidade";
+import { abrirConversaCom } from "../sdk/social";
+import {
+  alternarSilencioDe,
+  assinarSilencioDe,
+  estaSilenciado,
+} from "../store/sobrePessoas";
+import { entrarNaChamada } from "../sdk/chamada";
 import { Citacao } from "./Citacao";
 import { Embeds } from "./Embeds";
 import { CrachaDeCargo } from "../presenca/NomeDoAutor";
@@ -689,6 +696,30 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
   const sinalDeFoco = useSyncExternalStore(assinarFocoDeMensagem, () =>
     lerSinalDeFoco(id),
   );
+  /*
+    Silenciado só para mim.
+
+    ⚠ **Booleano e keyed por AUTOR** — mesma disciplina de `ehAlvo` e
+    `emEdicao`: `Object.is` sobre um booleano faz silenciar alguém acordar só
+    as linhas dessa pessoa, e não as dez mil.
+
+    ⚠ **A linha continua EXISTINDO, e isso é decisão.** Tirar o ID da lista
+    seria mais limpo e pior: a mensagem some do meio de uma conversa que
+    responde a ela, um permalink deixa de resolver, e a contagem de não-lidas
+    passa a discordar do servidor. Esconder o CONTEÚDO diz a verdade — houve
+    uma mensagem aqui, e você escolheu não vê-la.
+  */
+  const autorSilenciado = useSyncExternalStore(
+    (o) => assinarSilencioDe(message?.authorId ?? "", o),
+    () => estaSilenciado(message?.authorId ?? ""),
+  );
+  /*
+    Revelar é por LINHA e efêmero: rolar para longe e voltar volta a esconder.
+    Guardar quais linhas foram reveladas seria um segundo estado sobre o
+    silêncio, e ele cresceria sem teto numa sessão de oito horas.
+  */
+  const [mostrarSilenciada, setMostrarSilenciada] = useState(false);
+  const silenciado = autorSilenciado && !mostrarSilenciada;
   const elemento = useRef<HTMLElement>(null);
 
   /*
@@ -1140,6 +1171,28 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                 messageId={message.id}
                 inicial={message.content}
               />
+            ) : silenciado ? (
+              /*
+                ⚠ **Diz que há algo aqui, e não finge que não há.** Sumir com a
+                linha deixaria um buraco no meio de uma conversa que responde a
+                ela, e uma resposta sem o que respondeu é pior que uma linha
+                discreta.
+
+                O botão devolve a mensagem sem desfazer o silêncio: quem
+                silenciou alguém ainda precisa ler UMA coisa de vez em quando,
+                e obrigar a dessilenciar para isso faria a pessoa desligar o
+                recurso inteiro.
+              */
+              <p className={css.silenciada}>
+                mensagem de alguém que você silenciou
+                <button
+                  type="button"
+                  className={css.mostrarSilenciada}
+                  onClick={() => setMostrarSilenciada(true)}
+                >
+                  mostrar
+                </button>
+              </p>
             ) : (
               <div
                 className={cn(
@@ -1599,17 +1652,48 @@ function ItensDoUsuario({ userId }: { userId: string }) {
 
       <ContextMenuSeparator />
 
-      <ContextMenuItem onSelect={aindaNao("perfilCompleto")}>
+      <ContextMenuItem
+        onSelect={() => administrar({ tipo: "perfil", serverId, userId })}
+      >
         <UserCircle aria-hidden />
         Ver perfil
       </ContextMenuItem>
       {!souEu ? (
         <>
-          <ContextMenuItem onSelect={aindaNao("conversaDireta")}>
+          {/*
+            ⚠ **`openDM` é idempotente no protocolo** — chamar com uma conversa
+            que já existe devolve a mesma. É o que permite este item não
+            precisar saber se já houve conversa antes, e não haver dois
+            caminhos ("abrir" e "criar") que precisariam concordar.
+
+            A navegação fica AQUI e não em `sdk/social`: aquele módulo traduz
+            protocolo, e para onde a pessoa vai é decisão do store.
+          */}
+          <ContextMenuItem
+            onSelect={() => {
+              void abrirConversaCom(userId).then((canal) => {
+                if (canal) abrirConversa(canal);
+              });
+            }}
+          >
             <EnvelopeSimple aria-hidden />
             Mensagem
           </ContextMenuItem>
-          <ContextMenuItem onSelect={aindaNao("ligar")}>
+          {/*
+            ⚠ **Ligar é abrir a conversa E entrar na sala dela**, nesta ordem.
+            No Stoat não existe "chamada avulsa": uma chamada é sempre de um
+            CANAL, e o canal de uma conversa direta é a própria DM. Sem abrir
+            antes, a pessoa entraria numa chamada sem ver com quem.
+          */}
+          <ContextMenuItem
+            onSelect={() => {
+              void abrirConversaCom(userId).then((canal) => {
+                if (!canal) return;
+                abrirConversa(canal);
+                void entrarNaChamada(canal);
+              });
+            }}
+          >
             <Phone aria-hidden />
             Ligar
           </ContextMenuItem>
@@ -1642,7 +1726,12 @@ function ItensDoUsuario({ userId }: { userId: string }) {
         </ContextMenuItem>
       ) : null}
 
-      <ContextMenuItem onSelect={aindaNao("notaPrivada")}>
+      {/* A nota mora DENTRO do perfil, como no design ("Nota privada · só
+          você vê", no cartão). Um modal só para ela daria duas superfícies
+          sobre a mesma pessoa, e a segunda sem contexto de quem ela é. */}
+      <ContextMenuItem
+        onSelect={() => administrar({ tipo: "perfil", serverId, userId })}
+      >
         <Note aria-hidden />
         Nota privada
       </ContextMenuItem>
@@ -1659,7 +1748,13 @@ function ItensDoUsuario({ userId }: { userId: string }) {
           {emVoz && podeMover ? (
             <SubmenuDeVoz serverId={serverId} userId={userId} />
           ) : null}
-          <ContextMenuItem onSelect={aindaNao("silenciarUsuario")}>
+          {/*
+            ⚠ **O rótulo NÃO alterna com o estado.** "Silenciar" e
+            "Dessilenciar" no mesmo lugar fazem quem lê depressa clicar no
+            oposto do que quer — e um item de menu não tem `aria-pressed` para
+            carregar o estado. Quem mostra o estado é o interruptor do perfil.
+          */}
+          <ContextMenuItem onSelect={() => alternarSilencioDe(userId)}>
             <ProhibitInset aria-hidden />
             Silenciar só para mim
           </ContextMenuItem>

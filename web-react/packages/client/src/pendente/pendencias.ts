@@ -310,26 +310,6 @@ export const PENDENCIAS = {
     HASTEADO, e nada mais. `cargosIds` e `abaixoDeMim` destravaram os três de
     uma vez, junto com as pílulas de cargo e o item "acima da sua hierarquia".
   */
-  perfilCompleto: {
-    superficie: "Menu do usuário",
-    faz: "Abrir o perfil inteiro desta pessoa, com bio, cargos e histórico.",
-    depende: "página de perfil — o `HoverCard` de hoje é o resumo, não a página",
-  },
-  conversaDireta: {
-    superficie: "Menu do usuário",
-    faz: "Abrir (ou criar) a conversa direta com esta pessoa.",
-    depende: "`User.openDM()` + rota para a conversa recém-criada",
-  },
-  ligar: {
-    superficie: "Menu do usuário",
-    faz: "Começar uma chamada direta com esta pessoa.",
-    depende: "chamada em DM (`Channel.joinCall` fora de canal de servidor)",
-  },
-  notaPrivada: {
-    superficie: "Menu do usuário",
-    faz: "Guardar uma anotação sobre esta pessoa, visível só para você.",
-    depende: "notas de usuário — conceito de cliente, sem store ainda",
-  },
   /* ------------------------------------------------- criar categoria */
   /*
     ⚠ **Categoria não tem PERMISSÃO no protocolo.** `Category` é
@@ -361,12 +341,6 @@ export const PENDENCIAS = {
     etiqueta FÓRUM e do selo LIVE. O cabeçalho mostra "N na sala", que é
     verdade.
   */
-  perfilNaChamada: {
-    superficie: "Assistir transmissão",
-    faz: "Abrir o perfil de quem está transmitindo sem sair da tela cheia.",
-    depende:
-      "uma superfície de perfil MODAL — o `CartaoDePerfil` de hoje é um `HoverCard`, e hover card sobre vídeo em tela cheia não tem onde ancorar",
-  },
 
   /* ------------------------------------------------ transmitir tela */
   /*
@@ -519,11 +493,6 @@ export const PENDENCIAS = {
     superficie: "Convites do canal",
     faz: "Suspender todos os convites do canal sem apagá-los.",
     depende: "pausar convite no protocolo — só existe revogar",
-  },
-  silenciarUsuario: {
-    superficie: "Menu do usuário",
-    faz: "Esconder as mensagens desta pessoa só para você.",
-    depende: "lista de silenciados — conceito de cliente, sem store ainda",
   },
 } as const satisfies Record<
   string,
