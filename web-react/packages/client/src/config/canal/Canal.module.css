@@ -59,7 +59,17 @@
   Visualmente ele reproduz a `Escolha`, porque é isso que o design desenha no
   lugar; o que muda é o que acontece ao acionar.
 */
-.pendente {
+/*
+  A APARÊNCIA de um gatilho de lista — a caixa com valor à esquerda e divisa à
+  direita que o design desenha onde há uma escolha.
+
+  ⚠ **Extraída de `.pendente` quando o segundo consumidor apareceu, e o nome
+  antigo era o problema.** Ele descrevia o PAPEL (isto ainda não faz nada) e
+  não a forma, então o modo lento — que passou a funcionar — herdaria uma
+  classe afirmando o contrário. Base compartilhada e não cópia: duas regras
+  idênticas divergem no primeiro token que mudar, como as seis do `Avatar`.
+*/
+.gatilhoDeLista {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -78,14 +88,19 @@
   text-align: start;
 }
 
-.pendente:hover {
+.gatilhoDeLista:hover {
   border-color: var(--vx-border-strong);
   color: var(--vx-text-1);
 }
 
-.pendente:focus-visible {
+.gatilhoDeLista:focus-visible {
   outline: 2px solid var(--vx-accent);
   outline-offset: -2px;
+}
+
+/* O controle DESENHADO que ainda não faz nada. Mesma forma, papel diferente. */
+.pendente {
+  composes: gatilhoDeLista;
 }
 
 .selecao {

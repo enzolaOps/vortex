@@ -12,7 +12,7 @@ import { client, conectado } from "./client";
  * | assunto              | `description` ✓                              |
  * | restrição de idade   | `nsfw` ✓                                     |
  * | limite de usuários   | `voice.max_users` ✓                          |
- * | **modo lento**       | ⚠ `slowmode` é só LEITURA — não está no edit |
+ * | modo lento           | `slowmode` ✓                                 |
  * | **canal de spoiler** | ⚠ não existe                                 |
  * | **bitrate**          | ⚠ não existe                                 |
  * | **região de voz**    | ⚠ não existe                                 |
@@ -22,11 +22,20 @@ import { client, conectado } from "./client";
  * cada um tem entrada em `pendente/pendencias.ts`, que é o que troca "não faz
  * nada" por "diz o que fará e do que depende".
  *
- * ⚠ `slowmode` merece uma nota própria porque ele ENGANA: o objeto do canal
- * carrega o valor e o `stoat.js` expõe o getter, então quem lê o SDK conclui
- * que dá para escrever. `DataEditChannel` não tem o campo. Ler e não poder
- * escrever é pior que não ter, porque a interface mostraria o estado atual e
- * o controle não moveria.
+ * ⚠ **`slowmode` merece uma nota própria, e ela mudou de sinal.** O texto
+ * anterior dizia que o campo NÃO estava em `DataEditChannel` e que ler sem
+ * poder escrever era pior que não ter. A primeira metade era falsa, e foi
+ * conferida contra as três camadas:
+ *
+ * - `vortex-api`, `crates/core/models/src/v0/channels.rs`: `DataEditChannel`
+ *   tem `slowmode: Option<u64>`, com `validate(range(min = 0, max = 21600))`.
+ * - `stoat-api`, `lib/schema.d.ts`: `DataEditChannel.slowmode?: number | null`.
+ * - `stoat.js`, `Channel.edit(data)`: repassa o corpo direto ao `PATCH`.
+ *
+ * Ele não precisava de fork nenhum — estava classificado como pendência de
+ * backend e era trabalho de cliente. O `depende` de um registro é escrito de
+ * um lado só, e nada o confere contra o outro; foi assim que este ficou dois
+ * meses errado.
  */
 
 /** O que a Visão geral sabe escrever. Só campos que o protocolo aceita. */
@@ -36,6 +45,8 @@ export type EdicaoDeCanal = {
   readonly restritoPorIdade: boolean;
   /** `undefined` fora de canal de voz. `0` é "sem limite" no protocolo. */
   readonly limiteDeUsuarios: number | undefined;
+  /** Segundos entre mensagens. `0` é desativado; o teto do protocolo é 21600. */
+  readonly modoLentoSegundos: number;
 };
 
 export async function salvarCanal(
@@ -57,6 +68,14 @@ export async function salvarCanal(
     name: edicao.nome,
     description: edicao.assunto.trim() === "" ? null : edicao.assunto,
     nsfw: edicao.restritoPorIdade,
+    /*
+      ⚠ **Fixado ao teto do PROTOCOLO, e não ao da lista.** O validador do
+      servidor recusa acima de 21600 com um 400 que chega à tela como "não deu
+      para salvar" — sem dizer qual campo. A lista de degraus para em 6h, mas
+      quem garante isso é este `min`, porque a lista é de exibição e o
+      corte é de contrato.
+    */
+    slowmode: Math.max(0, Math.min(21600, Math.trunc(edicao.modoLentoSegundos))),
   };
   if (edicao.limiteDeUsuarios !== undefined) {
     dados["voice"] = { max_users: edicao.limiteDeUsuarios };
