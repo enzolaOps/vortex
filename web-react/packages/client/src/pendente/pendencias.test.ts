@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { PENDENCIAS } from "./pendencias";
+import { PENDENCIAS, SUPERFICIES_AUSENTES } from "./pendencias";
 
 /**
  * Toda pendência registrada tem um CONTROLE na tela.
@@ -148,5 +148,55 @@ describe("o registro de pendências", () => {
     const alcancadas = [...chavesAlcancadas(arquivos)];
     const desconhecidas = alcancadas.filter((k) => !(k in PENDENCIAS));
     expect(desconhecidas).toEqual([]);
+  });
+});
+
+/**
+ * A fronteira entre as duas listas.
+ *
+ * ⚠ **`SUPERFICIES_AUSENTES` não tem como ser guardada pela regra de cima** —
+ * ela existe justamente porque não há controle a alcançar, então varrer a
+ * árvore por ela aprovaria sempre. O que dá para guardar é a fronteira: uma
+ * superfície com controle desenhado é uma PENDÊNCIA; uma sem controle é uma
+ * AUSÊNCIA. Estar nas duas significa que alguém registrou duas vezes, ou que
+ * a entrada ganhou um controle e ninguém a moveu.
+ *
+ * É o mesmo par de asserções de `EXCECOES` no contraste: lista que só cresce
+ * vira depósito que mente sobre uma decisão que ninguém tomou mais.
+ */
+describe("as superfícies ausentes", () => {
+  it("não repetem chave com as pendências", () => {
+    const repetidas = Object.keys(SUPERFICIES_AUSENTES).filter(
+      (k) => k in PENDENCIAS,
+    );
+    expect(
+      repetidas,
+      repetidas.length === 0
+        ? ""
+        : `Nas duas listas: ${repetidas.join(", ")}.
+` +
+          "Se a superfície ganhou um controle, a entrada MOVE para " +
+          "`PENDENCIAS` e sai daqui — não fica nas duas.",
+    ).toEqual([]);
+  });
+
+  /*
+    ⚠ **E nenhuma delas pode ser alcançada por `aindaNao`.** Se alguém ligar um
+    controle a uma chave daqui, o typechecker já reprova (`aindaNao` recebe
+    `PendenciaId`) — mas a varredura por REGEX do teste de cima não distingue
+    as duas listas, e passaria a contar a chave como "desconhecida". Esta
+    asserção nomeia o caso em vez de deixá-lo aparecer como falha de simetria.
+  */
+  it("não são alcançadas por nenhum controle", () => {
+    const alcancadas = chavesAlcancadas(arquivosDeCodigo(RAIZ));
+    const vazadas = Object.keys(SUPERFICIES_AUSENTES).filter((k) =>
+      alcancadas.has(k),
+    );
+    expect(
+      vazadas,
+      vazadas.length === 0
+        ? ""
+        : `Tem controle e está na lista errada: ${vazadas.join(", ")}.`,
+    ).toEqual([]);
   });
 });
