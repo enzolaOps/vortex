@@ -1,6 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+import { ligarSonsDeVoz } from "./som/sons";
+
 import { ARNES_ATIVO } from "./dev/arnesAtivo";
 import { ligarRota } from "./rota/rota";
 import { iniciarPintura } from "./tema/pintor";
@@ -51,6 +53,20 @@ void hidratarDesktop();
   para `/dev` é `/`. O rig perderia o próprio endereço em todo F5.
 */
 if (!ARNES_ATIVO) ligarRota();
+
+/*
+  Os sons de voz e de conexão.
+
+  Module-level e não `useEffect`, pela mesma razão de `ligarRota` e
+  `ligarAtalhoDaPaleta`: o que ele assina são STORES, não árvore de
+  componente. Um efeito num componente ligaria e desligaria os sons conforme
+  aquele componente montasse, e nenhum componente tem o mesmo tempo de vida
+  que a chamada.
+
+  No arnês também: a chamada falsa exercita entrar, sair e mudo, e é o único
+  lugar onde dá para ouvir os quatro sem um servidor.
+*/
+ligarSonsDeVoz();
 
 createRoot(root).render(
   <StrictMode>
