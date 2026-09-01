@@ -546,6 +546,21 @@
   --vx-ease-inout: cubic-bezier(0.4, 0, 0.2, 1);
   --vx-ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
 
+  /*
+    A distância que uma camada flutuante percorre ao chegar.
+
+    ⚠ **Um número só, e ele existe para ser ZERADO em bloco.** Cada superfície
+    escolher a própria distância daria sete valores para manter em dia e sete
+    lugares para lembrar de neutralizar sob `prefers-reduced-motion`. Com um
+    token, a preferência apaga o deslocamento do app inteiro numa linha e a
+    opacidade sobrevive.
+
+    6px e não 12: a camada precisa parecer que POUSA, não que voou. Acima de
+    ~8px a chegada começa a ler como atraso num app onde o menu é aberto
+    dezenas de vezes por hora.
+  */
+  --vx-entrada: 6px;
+
   /* --- Assinatura --------------------------------------------
      ⚠ **A lâmina mudou de mecanismo, não de papel.**
 
@@ -745,12 +760,28 @@
   --vx-composer-max-h: 200px;
 }
 
+/*
+  ⚠ **Movimento reduzido é MENOS movimento, não nenhum — e este bloco zerava
+  tudo.**
+
+  Com as quatro durações em `0ms`, quem liga a preferência do sistema perde o
+  DESLOCAMENTO (que é o que incomoda) e junto perde a confirmação de que a
+  ação aconteceu: o item que acende, o botão que afunda, o toast que chega.
+  Isso não é atender a preferência, é desligar o feedback — e feedback não é
+  decoração.
+
+  O que a preferência pede é que nada VOE pela tela. Então some a distância, e
+  ficam a opacidade e a cor, que carregam o significado sem mover nada.
+
+  As durações caem para o degrau mais curto em vez de zerar: 80ms de fade não
+  é movimento, é a diferença entre "apareceu" e "piscou".
+*/
 @media (prefers-reduced-motion: reduce) {
   :root {
-    --vx-duration-instant: 0ms;
-    --vx-duration-fast: 0ms;
-    --vx-duration-base: 0ms;
-    --vx-duration-slow: 0ms;
+    --vx-duration-base: var(--vx-duration-instant);
+    --vx-duration-slow: var(--vx-duration-fast);
+    /* A distância da chegada, e é ela que a preferência realmente pede. */
+    --vx-entrada: 0px;
   }
 }
 
@@ -1054,8 +1085,8 @@
    anima sem relayout.
 
    `prefers-reduced-motion` não precisa de variante aqui: a
-   camada 1 já zera as durações, então a utility segue o token e
-   a animação simplesmente não acontece.
+   camada 1 encurta as durações e zera `--vx-entrada`, então a
+   utility segue os tokens e o que sobra é a opacidade.
    ============================================================ */
 
 @utility anim-instant {
@@ -1080,6 +1111,52 @@
   transition-property: opacity, transform;
   transition-duration: var(--vx-duration-slow);
   transition-timing-function: var(--vx-ease-enter);
+}
+
+/* ============================================================
+   Chegada e saída de camada flutuante
+   ------------------------------------------------------------
+   ⚠ **As quatro `anim-*` acima existem desde o reskin e são usadas
+   SETE vezes no app inteiro.** O vocabulário de movimento estava
+   completo — quatro durações, três curvas — e ninguém construiu em
+   cima: medido, todo menu, diálogo, popover, hover card, tooltip e
+   toast aparecia INSTANTÂNEO, e a única entrada animada em 101
+   módulos era a do drawer.
+
+   Estas duas são o que faltava, e são deliberadamente um PAR:
+
+   - `chega` usa `--vx-duration-base` com `ease-enter`, a curva de
+     desaceleração que o token nomeia e que tinha dois consumidores.
+   - `sai` usa `--vx-duration-fast`. **Sair mais rápido que entrar**
+     é a regra: chegada devagar lê como cuidado, saída devagar lê
+     como travamento.
+
+   `translate` e não `transform`: as camadas do Radix já recebem
+   `transform` do posicionador (Floating UI), e sobrescrevê-lo faz o
+   menu saltar para o canto da tela. `translate` é propriedade
+   própria e compõe com ele.
+   ============================================================ */
+
+@utility camada-chega {
+  animation: vxCamadaChega var(--vx-duration-base) var(--vx-ease-enter);
+}
+
+@utility camada-sai {
+  animation: vxCamadaSai var(--vx-duration-fast) var(--vx-ease-out) forwards;
+}
+
+@keyframes vxCamadaChega {
+  from {
+    opacity: 0;
+    translate: 0 var(--vx-entrada);
+  }
+}
+
+@keyframes vxCamadaSai {
+  to {
+    opacity: 0;
+    translate: 0 var(--vx-entrada);
+  }
 }
 
 /* ============================================================

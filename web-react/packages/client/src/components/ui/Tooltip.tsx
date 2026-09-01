@@ -71,9 +71,10 @@ export function Tooltip({
             /* 12 e não 11: o degrau de 11 é o de SOBRANCELHA e selo, e o
                tooltip é uma frase curta que alguém para para ler. */
             "text-sm font-semibold text-text-1",
-            // Movimento explica de onde a coisa veio; não chama atenção.
-            // 120ms, só opacity — e nada sob prefers-reduced-motion.
-            "anim-fast",
+            /* Movimento explica de onde a coisa veio; não chama atenção.
+               Chega em 180ms com desaceleração, sai em 120 — e sob
+               `prefers-reduced-motion` sobra o fade, sem deslocamento. */
+            "data-[state=open]:camada-chega data-[state=closed]:camada-sai",
           )}
         >
           {texto}

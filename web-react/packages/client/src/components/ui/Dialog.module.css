@@ -11,7 +11,18 @@
    porque um véu ausente não parece defeito, parece decisão.
    ============================================================ */
 
+/*
+  ⚠ **O véu não desliza, e a distância é zerada AQUI e não numa utility
+  própria.** `--vx-entrada` é o número único que `camada-chega` percorre;
+  zerá-lo neste escopo faz o mesmo par de keyframes servir às duas
+  necessidades — a camada que pousa e o ambiente que escurece — sem uma
+  segunda utility que precisaria concordar com a primeira para sempre.
+
+  Numa classe do módulo e não num valor arbitrário no TSX: o lint deste
+  projeto proíbe arbitrary value, e a razão cabe melhor aqui do lado.
+*/
 .veu {
+  --vx-entrada: 0px;
   position: fixed;
   inset: 0;
 }

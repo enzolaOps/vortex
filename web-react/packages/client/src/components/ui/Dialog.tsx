@@ -71,7 +71,10 @@ export function DialogContent({
           "z-flutuante bg-scrim",
           // Sem backdrop-filter: custa GPU continuamente, não só na transição,
           // e isto é painel de produtividade aberto o dia inteiro.
-          "anim-base",
+          /* O véu FADE e não desliza — a distância é zerada no módulo. Um véu
+             que se move denuncia que é um retângulo; ele precisa ler como o
+             ambiente escurecendo. */
+          "data-[state=open]:camada-chega data-[state=closed]:camada-sai",
         )}
       />
       <Primitivo.Content
@@ -109,7 +112,10 @@ export function DialogContent({
           */
           "z-flutuante flex flex-col overflow-hidden",
           "rounded-12 border border-hairline-10 bg-surface-4 shadow-e3",
-          "anim-base",
+          /* O painel CHEGA — e sem isto ele piscava na tela junto com o véu,
+             que é o que faz um modal parecer um erro de renderização em vez de
+             uma superfície que abriu. */
+          "data-[state=open]:camada-chega data-[state=closed]:camada-sai",
           className,
         )}
       >

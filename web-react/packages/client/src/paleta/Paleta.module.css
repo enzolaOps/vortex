@@ -119,3 +119,19 @@
   font-size: var(--vx-size-sm);
   text-align: center;
 }
+
+/*
+  Pressionado — e SEM `:hover` nem transição, os dois de propósito.
+
+  ⚠ O comentário de `.item` acima explica por que não há `:hover`: com o
+  ponteiro parado sobre uma linha e as setas movendo `data-ativo` para outra,
+  duas linhas ficariam marcadas ao mesmo tempo. `:active` não tem esse
+  problema — só existe enquanto o botão está apertado, numa linha só.
+
+  Sem transição porque `data-ativo` anda na velocidade da repetição de tecla:
+  um fade de 120ms aí borra a lista inteira ao segurar a seta, que é
+  exatamente o gesto que a paleta existe para servir.
+*/
+.item:active {
+  background: var(--vx-state-press);
+}

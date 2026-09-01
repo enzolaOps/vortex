@@ -33,7 +33,7 @@ export function PopoverContent({
           "z-flutuante overflow-hidden rounded-12 border border-hairline-10 bg-surface-4 p-12 shadow-e2",
           "text-md text-text-1",
           "max-h-(--radix-popover-content-available-height) overflow-y-auto",
-          "data-[state=closed]:opacity-0 data-[state=open]:opacity-100 anim-fast",
+          "data-[state=open]:camada-chega data-[state=closed]:camada-sai",
           className,
         )}
       >

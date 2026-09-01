@@ -52,7 +52,16 @@ export const menuContent =
   `${css.conteudo} ` +
   "z-flutuante rounded-08 border border-hairline-10 bg-surface-4 p-05 shadow-e2 " +
   "text-md text-text-1 overflow-y-auto " +
-  "data-[state=closed]:opacity-0 data-[state=open]:opacity-100 anim-fast";
+  /*
+    ⚠ **Animação e não transição de opacidade, e a troca conserta a SAÍDA.**
+
+    A régua anterior era `data-[state=closed]:opacity-0 … anim-fast`, e ela só
+    funcionava na metade da abertura: o `Presence` do Radix espera
+    `animationend`, não `transitionend`, então ao fechar ele desmontava o nó na
+    hora e o fade de saída nunca acontecia. O menu abria devagar e sumia
+    instantâneo — o inverso da regra, que é entrar com calma e sair rápido.
+  */
+  "data-[state=open]:camada-chega data-[state=closed]:camada-sai";
 
 /*
   `7px 9px` e raio 5 — os números do design, e o par mais repetido dele: 102
@@ -62,6 +71,17 @@ export const menuContent =
 export const menuItem =
   "flex cursor-default items-center gap-08 rounded-05 px-09 py-07 outline-none select-none " +
   "data-highlighted:bg-state-hover-elevado " +
+  /*
+    ⚠ **O item de menu não respondia a ser PRESSIONADO**, e ele é o alvo mais
+    clicado do app depois da linha de canal. `data-highlighted` cobre o
+    ponteiro E o teclado (é o Radix quem o escreve), mas ele é o mesmo tom nos
+    dois momentos: apontar e apertar ficavam indistinguíveis, e o menu fechava
+    sem nunca ter confirmado o clique.
+
+    Fundo e nunca escala: um item de largura cheia encolhendo dentro de um
+    menu lê como defeito de renderização, não como pressão.
+  */
+  "active:bg-state-press " +
   "data-disabled:pointer-events-none data-disabled:text-text-3";
 
 /**
