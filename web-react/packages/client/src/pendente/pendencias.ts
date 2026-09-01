@@ -61,6 +61,7 @@ export const PENDENCIAS = {
       "autorização de sessão por outro dispositivo no protocolo — não há rota nem evento",
   },
 
+
   /* --------------------------------------------------------- privacidade */
   exportarDados: {
     superficie: "Configurações · Privacidade",
@@ -448,6 +449,158 @@ export const PENDENCIAS = {
 >;
 
 export type PendenciaId = keyof typeof PENDENCIAS;
+
+/* ============================================================
+   As superfícies que não existem
+   ============================================================ */
+
+/**
+ * O que a referência tem e este app NÃO — sem nenhum controle na tela.
+ *
+ * ⚠ **Lista SEPARADA, e não nove chaves a mais em `PENDENCIAS`, porque o
+ * teste do registro reprovaria — e ele está certo.** `pendencias.test.ts`
+ * exige que toda entrada tenha um controle que a alcance, e a mensagem de
+ * falha prescreve exatamente esta saída: *"se não há o que clicar, o lugar da
+ * limitação é um comentário no arquivo dela"*. Aqui não há arquivo — a
+ * superfície inteira não existe —, então o lugar é este.
+ *
+ * A diferença entre as duas listas é o que se pode fazer com elas:
+ *
+ * - `PENDENCIAS` é **alvo inerte**: o controle está desenhado, recebe foco, e
+ *   ao ser clicado diz que ainda não faz. Trocar "não faz nada" por "diz que
+ *   ainda não faz" é todo o valor dela.
+ * - `SUPERFICIES_AUSENTES` é **buraco**: não há alvo, e por isso não há toast.
+ *   O valor aqui é só o que `depende` sempre deu — tornar visível e dar a
+ *   ordem da rodada seguinte sem ninguém reler tela nenhuma.
+ *
+ * ⚠ **Entrada daqui MUDA DE LISTA quando ganhar um controle**, e não fica nas
+ * duas. Uma superfície com botão desenhado é uma pendência; uma sem botão é
+ * uma ausência. O teste guarda a fronteira nos dois sentidos.
+ *
+ * ⚠ **Nove entradas achadas por varredura, não por memória.** A referência tem
+ * 104 componentes e 39 telas; o cruzamento contra esta árvore encontrou nove
+ * superfícies que não estavam em registro NENHUM — nem aqui, nem no
+ * `CLAUDE.md`, nem em `superficies-ausentes.md`. Eram invisíveis: ninguém
+ * sabia que faltavam. As demais divergências já tinham razão escrita (Fórum e
+ * reação SUPER dependem de fork do serviço `api`; modo compacto, registro de
+ * auditoria e os três primitivos de campo estão no `CLAUDE.md`).
+ *
+ * `referencia` é o arquivo do projeto de referência, para a próxima pessoa não
+ * ter de procurar o desenho.
+ */
+export const SUPERFICIES_AUSENTES = {
+  /* ------------------------------------------------------------- voz */
+  /*
+    ⚠ **As duas primeiras são o par que torna a voz 1:1 INALCANÇÁVEL, e não
+    incompleta.** Não é uma tela faltando no fim de um fluxo: sem a chamada
+    recebida não há como ATENDER, então nenhuma ligação de DM chega ao outro
+    lado. É a de maior valor das nove.
+
+    E ela é a única que não teria controle nem depois de pronta: quem chama é
+    a outra pessoa. Por isso não há como registrá-la em `PENDENCIAS` nem
+    hoje nem nunca — ela nasce de um evento, não de um clique.
+  */
+  chamadaRecebida: {
+    superficie: "Sobreposta ao app, e em tela cheia",
+    faz: "Anunciar quem está ligando, com atender e recusar.",
+    depende: "nada no protocolo — é trabalho de tela mais o evento do LiveKit",
+    referencia: "components/voice/IncomingCall.tsx",
+  },
+  chamadaDireta: {
+    superficie: "Coluna de conteúdo, numa DM",
+    faz: "A chamada de duas pessoas: vídeo grande, o seu no canto, controles.",
+    depende: "a chamada recebida, que é quem abre esta — e um botão de ligar na DM",
+    referencia: "components/voice/CallStage.tsx · DirectCallStage",
+  },
+  chatDoCanalDeVoz: {
+    superficie: "Painel dentro da sala de voz",
+    faz: "O chat embutido do canal de voz, com entradas e saídas como eventos do sistema.",
+    depende: "decidir se é painel do shell ou coluna dentro da sala",
+    referencia: "components/voice/VoiceChannelChat.tsx",
+  },
+  menuDoUsuarioEmVoz: {
+    superficie: "Botão direito num participante da sala",
+    faz: "Volume individual, silenciar só para mim, mover de canal, mudo de servidor.",
+    depende:
+      "a tabela de cargos resolvida para a hierarquia, e `ServerMember.edit({voice_channel})` para mover",
+    referencia: "components/voice/VoiceUserMenu.tsx",
+  },
+
+  /* --------------------------------------------------------- eventos */
+  /*
+    ⚠ **Três arquivos da referência e zero rastro aqui** — a maior ausência
+    das nove em volume. O protocolo do Stoat não tem evento agendado, então
+    ela cai na mesma família do Fórum: entra junto com o fork do serviço
+    `api`. A diferença é que o Fórum já estava registrado e esta não estava.
+  */
+  eventosDoServidor: {
+    superficie: "Destino próprio do servidor, com cartão e assistente",
+    faz: "Agendar, listar e confirmar presença em eventos do servidor.",
+    depende: "evento agendado no protocolo — não há tipo, campo nem rota",
+    referencia:
+      "screens/events/EventsScreen.tsx · CreateEventWizard.tsx · components/events/EventCard.tsx",
+  },
+
+  /* ----------------------------------------------------------- casa */
+  solicitacoesDeMensagem: {
+    superficie: "Aba na tela de pessoas",
+    faz: "Separar a DM de quem você não conhece, para aceitar ou recusar antes de ler.",
+    depende:
+      "o protocolo não separa — toda DM entra igual, então a fila é conceito de cliente",
+    referencia: "components/directs/MessageRequestsPanel.tsx",
+  },
+
+  /* -------------------------------------------------- notificações */
+  /*
+    ⚠ **Metade desta entrada nasceu OBSOLETA, e vale saber por quê.** Ela dizia
+    "no menu do canal e do servidor" e "falta o store com relógio" — e o
+    relógio existe desde que silenciar canal foi construído:
+    `DURACOES_DE_SILENCIO` tem os cinco prazos, `silencioAte` guarda o PRAZO (e
+    não o tempo restante, senão o store publicaria a cada tique), e
+    `ListaDeCanais` já monta o submenu, com "Reativar avisos" do outro lado.
+    Verificado em navegador: os cinco prazos abrem, e silenciar por eles some
+    com o canal da coluna.
+
+    O que sobra é só o SERVIDOR, e ele não tem silenciar nenhum — nem submenu,
+    nem item. Registrar trabalho já feito como pendente é o defeito inverso do
+    que este registro existe para evitar: encolhe a lista de quem procura o que
+    fazer, e a lista para de merecer confiança na primeira vez que alguém abre
+    uma entrada e encontra a feature pronta.
+  */
+  duracaoDoSilencio: {
+    superficie: "Submenu do silenciar, no menu do SERVIDOR",
+    faz: "Silenciar o servidor inteiro por 15 minutos, 1 hora, 8 horas, 24 horas ou até eu reativar.",
+    depende:
+      "silêncio por SERVIDOR — `store/silencio.ts` é keyed por CANAL, e o rollup de não-lidas teria de consultá-lo; o prazo em si já existe e é o mesmo",
+    referencia: "components/navigation/MuteDurationSubmenu.tsx",
+  },
+  notificacoesPorServidorECanal: {
+    superficie: "Modal do sino, no servidor e no canal",
+    faz: "Escolher entre tudo, só menções ou nada, por servidor e por canal.",
+    depende:
+      "distinto de `permissaoDeNotificacao`, que é o pedido ao navegador — este é a REGRA",
+    referencia: "components/notifications/NotificationModals.tsx",
+  },
+
+  /* --------------------------------------------------------- casca */
+  /*
+    ⚠ **A opção existe em Configurações · Desktop; o MENU não.** É a mesma
+    distinção do overlay de jogo: o que falta mora no processo main do
+    Electron, não no cliente — e por isso nenhum controle do app poderia
+    alcançá-lo.
+  */
+  menuDaBandeja: {
+    superficie: "Ícone da bandeja do sistema",
+    faz: "Abrir, silenciar e sair pelo ícone ao lado do relógio.",
+    depende: "`Tray` no processo main da casca — é trabalho de Electron, não de cliente",
+    referencia: "components/desktop/TrayMenu.tsx",
+  },
+} as const satisfies Record<
+  string,
+  { superficie: string; faz: string; depende: string; referencia: string }
+>;
+
+export type SuperficieAusenteId = keyof typeof SUPERFICIES_AUSENTES;
 
 /**
  * O que um controle pendente faz ao ser acionado.

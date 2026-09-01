@@ -21,6 +21,26 @@ dist-casca
 /package.json
 /package-lock.json
 
+# Um checkout dos tres submodules no caminho ERRADO. O `.gitmodules` os declara
+# em `web/packages/` e `web-react/packages/`, e e la que eles estao, corretos;
+# isto aqui saiu de um `git submodule` rodado do diretorio de cima. Sao 251
+# arquivos, e dois deles (`js-lingui-solid`, `solid-livekit-components`) sao
+# justamente os adaptadores Solid que o port existe para eliminar.
+#
+# Ignorar em vez de apagar, como o `/package.json` acima: apagar so faz voltar
+# na proxima vez que alguem rodar o comando do lugar errado.
+#
+# ⚠ Ancorado com barra, e a diferenca aqui e a mesma que o bloco do `.github`
+# registra: `packages/` sem barra casa em QUALQUER nivel, entao esconderia
+# `web/packages/` e `web-react/packages/` — as duas ilhas do projeto. Arquivo
+# novo dentro delas nao daria erro no `git add`, daria silencio.
+/packages/
+
+# Mesma origem e mesmo risco: o lockfile de verdade e por ILHA
+# (`web/`, `web-react/`, `web-react/packages/client/`, `desktop/`), e os quatro
+# sao rastreados. Um lockfile na raiz nao pertence a ilha nenhuma.
+/pnpm-lock.yaml
+
 # O plugin `impeccable` se instala em DOIS lugares — `.claude/skills/impeccable`
 # e `.github/{agents,hooks,skills}` — e sao ~300 arquivos de ferramenta de
 # terceiro que ninguem daqui mantem. Ficar fora do repositorio e o certo.
