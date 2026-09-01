@@ -44,8 +44,8 @@ import {
   type ScreenShareCaptureOptions,
 } from "livekit-client";
 import {
+  constraintsDe,
   esquecerQualidadeDaTela,
-  QUALIDADES_DA_TELA,
   type QualidadeDaTela,
 } from "../store/qualidadeDaTela";
 
@@ -1321,14 +1321,11 @@ export async function definirQualidadeDaTela(
   id: QualidadeDaTela,
 ): Promise<boolean> {
   const faixa = faixaDeTela();
-  const alvo = QUALIDADES_DA_TELA.find((q) => q.id === id);
-  if (!faixa || !alvo) return false;
+  const constraints = constraintsDe(id);
+  if (!faixa || !constraints) return false;
 
   try {
-    await faixa.applyConstraints({
-      height: { ideal: alvo.altura },
-      frameRate: { ideal: alvo.fps },
-    });
+    await faixa.applyConstraints(constraints);
     return true;
   } catch {
     /* A faixa pode ter terminado entre a escolha e a aplicação — parar de

@@ -30,6 +30,30 @@ export const QUALIDADES_DA_TELA = [
 export type QualidadeDaTela = (typeof QUALIDADES_DA_TELA)[number]["id"];
 
 /**
+ * As constraints de um degrau, prontas para `applyConstraints`.
+ *
+ * ⚠ **Mora AQUI e não no motor, e a mudança foi para poder TESTAR.** Enterrada
+ * lá dentro, a decisão que mais importa desta feature — `ideal` e não `exact`
+ * — só era observável com uma sala LiveKit de pé, que exige backend e captura
+ * de tela reais. Aqui ela é uma função pura sobre dados puros, e uma asserção
+ * a segura. É a ordem de preferência do `enforcement.md`: teste ganha de
+ * checklist, e o que decide entre os dois costuma ser onde o código está.
+ *
+ * ⚠ **`ideal` e NUNCA `exact`.** Com `exact`, uma tela de 1366×768 recusaria
+ * 1080p com `OverconstrainedError` — e o erro chegaria como "não deu para
+ * trocar" numa escolha que o navegador teria atendido em 768p de bom grado. O
+ * teto é um pedido; quem decide o que a fonte entrega é o sistema, e é por
+ * isso que o rótulo do botão mostra a MEDIDA e não o pedido.
+ */
+export function constraintsDe(
+  id: QualidadeDaTela,
+): MediaTrackConstraints | undefined {
+  const q = QUALIDADES_DA_TELA.find((x) => x.id === id);
+  if (!q) return undefined;
+  return { height: { ideal: q.altura }, frameRate: { ideal: q.fps } };
+}
+
+/**
  * `undefined` = nunca escolhida, e é diferente do degrau mais alto.
  *
  * Quem nunca escolheu está no que o navegador negociou ao abrir a tela, que
