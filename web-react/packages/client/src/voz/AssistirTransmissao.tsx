@@ -25,7 +25,6 @@ import { Avatar } from "../components/ui/Avatar";
 import { Deslizante } from "../components/ui/Deslizante";
 import { Tooltip } from "../components/ui/Tooltip";
 import { toast } from "../components/ui/toastStore";
-import { aindaNao } from "../pendente/pendencias";
 import {
   alternarCamera,
   alternarMudo,
@@ -36,6 +35,7 @@ import {
   definirVolumeDe,
   volumeDe,
 } from "../sdk/chamada";
+import { administrar } from "../store/administracao";
 import { assinarChamada, falando, lerChamada } from "../store/chamada";
 import { useChannel, usePessoa, useServer } from "../store/hooks";
 import { definirPalco } from "../store/palcoDeVoz";
@@ -222,10 +222,22 @@ export function AssistirTransmissao({ userId }: { userId: string }) {
               está em tela cheia numa pessoa só. No design este é o menu do
               LADRILHO reusado, e fixar pertence à grade — é onde ele está.
             */}
+            {/*
+              ⚠ **O mesmo modal do menu da timeline**, e é por isso que a
+              pendência daqui pedia superfície MODAL: o `CartaoDePerfil` é um
+              `HoverCard`, e hover card sobre vídeo em tela cheia não tem onde
+              ancorar.
+
+              `serverId` vazio de propósito: assistir a uma transmissão não
+              tem contexto de servidor, e o corpo do perfil já trata a
+              ausência de apelido e cargo.
+            */}
             <button
               type="button"
               className={css.item}
-              onClick={aindaNao("perfilNaChamada")}
+              onClick={() =>
+                administrar({ tipo: "perfil", serverId: "", userId })
+              }
             >
               Ver perfil
             </button>
