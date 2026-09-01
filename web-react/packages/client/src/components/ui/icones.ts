@@ -136,42 +136,51 @@ export {
 } from "@phosphor-icons/react";
 
 /**
- * A escala de tamanho de ícone.
+ * A escala de tamanho de ícone — **a mesma que o CSS já tinha**.
  *
- * ⚠ **Fechada, e é a metade do conserto que se vê na tela.** Os dez tamanhos
- * livres não eram escolha de ninguém: cada um saiu de copiar o número do
- * arquivo do design para dentro de um `size={}`. É o mesmo defeito que a
- * escala de espaçamento já resolveu para o resto do app — valor solto em
- * componente —, e a resposta é a mesma: degrau nomeado.
+ * ⚠ **Ela não é nova, e eu quase a duplicei.** `tokens.css` define
+ * `--vx-icon-0..3` desde antes deste arquivo, com 102 consumidores e a razão
+ * escrita. Só que ela vive em CSS, e um `size={}` de TSX não a alcança — então
+ * os dez tamanhos livres cresceram AO LADO dela, cada um copiado do arquivo do
+ * design para dentro de um `size={}`, sem nunca colidir com nada.
  *
- * Quatro degraus, e cada um responde a uma pergunta diferente:
+ * O que este objeto acrescenta é ALCANCE, não escala: os mesmos quatro
+ * números, disponíveis onde o CSS não chega. `pareamento` abaixo é a amarração,
+ * e um teste a confere contra o `tokens.css` — nos dois sentidos, como
+ * `TokenName` já faz com as cores. Duas listas que precisam concordar e não têm
+ * mecanismo sempre divergem; este projeto já registrou isso três vezes.
  *
- * - `calha` — o ícone é o alvo, e está sozinho numa coluna própria: avatar de
- *   canal de voz, ícone da linha de canal.
- * - `controle` — o ícone está DENTRO de um botão, ao lado de mais alvos: barra
- *   de ações, doca de chamada, cabeçalho.
- * - `metadado` — o ícone acompanha texto pequeno e não é alvo: estado de
- *   presença na linha, glifo de anexo.
- * - `selo` — dentro de um chip ou badge, onde o texto já carrega o sentido.
+ * Os nomes são SEMÂNTICOS aqui e ordinais lá, e isso é de propósito. Em CSS o
+ * degrau aparece dentro de uma regra que já diz de que componente se trata; num
+ * `size={}` solto no meio de JSX, `--vx-icon-1` não diz nada e `metadado` diz.
  *
- * ⚠ **Não há degrau abaixo de 12.** Phosphor é desenhado em canvas grande e o
- * traço não se alinha ao pixel: abaixo disso o `regular` some contra
- * `surface-2`. Se algum lugar parecer pedir 10, o que ele pede é `selo` com
- * mais respiro em volta.
+ * - `calha` (20) — o ícone é o alvo, sozinho numa coluna própria.
+ * - `controle` (16) — dentro de um botão, ao lado de outros alvos.
+ * - `metadado` (14) — acompanha texto pequeno e não é alvo.
+ * - `selo` (12) — dentro de um chip ou badge, onde o texto carrega o sentido.
+ *
+ * ⚠ **Onde o CSS dimensiona o `svg`, esta prop é MORTA.** Medido em navegador:
+ * 43 ícones da tela inicial trazem `size={20}` no TSX e desenham 12 ou 14,
+ * porque uma regra como `.acoes svg { inline-size: var(--vx-icon-1) }` vence a
+ * prop. O número no TSX não é o da tela — é a família do comentário que afirma
+ * uma medida que não existe. Está na tabela de pendências do `CLAUDE.md`;
+ * limpar exige varrer os consumidores um a um, decidindo em cada um quem deve
+ * ser o dono.
  */
 export const ICONE = {
   /**
    * O ícone É a ilustração, e não acompanha nada.
    *
-   * ⚠ **Este degrau só apareceu ao APLICAR a escala, e o inventário tinha
-   * perdido o caso.** A varredura casava `<Icone … size={N}>` numa linha só, e
-   * o único uso de 32 está em JSX quebrado em cinco linhas — o glifo do
-   * diálogo de atualização obrigatória. Contei "zero usos de 32" e o
-   * `typecheck` me desmentiu.
+   * ⚠ **Único degrau SEM par em CSS**, e o `pareamento` abaixo o registra como
+   * tal — o default de um degrau sem justificativa é reprovar. Ele existe
+   * porque nasceu em TSX e nunca teve consumidor de CSS: o glifo do diálogo de
+   * atualização obrigatória, onde o ícone carrega a mensagem sozinho. Havendo
+   * texto ao lado disputando a atenção, o degrau é `calha`.
    *
-   * Ele existe onde o ícone carrega a mensagem sozinho: bloqueio, estado
-   * vazio, tela de erro. Se houver texto ao lado disputando a atenção, o
-   * degrau é `calha`.
+   * ⚠ **Este degrau só apareceu ao APLICAR a escala, e o inventário o tinha
+   * perdido.** A varredura casava `<Icone … size={N}>` numa linha só, e o
+   * único uso de 32 está em JSX quebrado em cinco linhas. Contei "zero usos de
+   * 32" e o `typecheck` me desmentiu.
    */
   ilustracao: 32,
   calha: 20,
@@ -181,3 +190,18 @@ export const ICONE = {
 } as const;
 
 export type TamanhoDeIcone = (typeof ICONE)[keyof typeof ICONE];
+
+/**
+ * Qual degrau daqui é qual custom property do `tokens.css`.
+ *
+ * `null` quer dizer "não tem par, e eis a razão" — a mesma disciplina de
+ * `SEM_PAR` no contraste. O teste exige as DUAS direções: degrau sem entrada
+ * aqui reprova, e entrada apontando para uma var que sumiu do CSS também.
+ */
+export const pareamento = {
+  ilustracao: null, // nasceu em TSX, nenhum CSS o dimensiona
+  calha: "--vx-icon-3",
+  controle: "--vx-icon-2",
+  metadado: "--vx-icon-1",
+  selo: "--vx-icon-0",
+} as const satisfies Record<keyof typeof ICONE, string | null>;
