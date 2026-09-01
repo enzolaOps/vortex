@@ -551,11 +551,27 @@ export const SUPERFICIES_AUSENTES = {
   },
 
   /* -------------------------------------------------- notificações */
+  /*
+    ⚠ **Metade desta entrada nasceu OBSOLETA, e vale saber por quê.** Ela dizia
+    "no menu do canal e do servidor" e "falta o store com relógio" — e o
+    relógio existe desde que silenciar canal foi construído:
+    `DURACOES_DE_SILENCIO` tem os cinco prazos, `silencioAte` guarda o PRAZO (e
+    não o tempo restante, senão o store publicaria a cada tique), e
+    `ListaDeCanais` já monta o submenu, com "Reativar avisos" do outro lado.
+    Verificado em navegador: os cinco prazos abrem, e silenciar por eles some
+    com o canal da coluna.
+
+    O que sobra é só o SERVIDOR, e ele não tem silenciar nenhum — nem submenu,
+    nem item. Registrar trabalho já feito como pendente é o defeito inverso do
+    que este registro existe para evitar: encolhe a lista de quem procura o que
+    fazer, e a lista para de merecer confiança na primeira vez que alguém abre
+    uma entrada e encontra a feature pronta.
+  */
   duracaoDoSilencio: {
-    superficie: "Submenu do silenciar, no menu do canal e do servidor",
-    faz: "Silenciar por 15 minutos, 1 hora, 8 horas, 24 horas ou até eu reativar.",
+    superficie: "Submenu do silenciar, no menu do SERVIDOR",
+    faz: "Silenciar o servidor inteiro por 15 minutos, 1 hora, 8 horas, 24 horas ou até eu reativar.",
     depende:
-      "o SDK DELEGA `muted` ao cliente, então o prazo também é nosso — falta o store com relógio",
+      "silêncio por SERVIDOR — `store/silencio.ts` é keyed por CANAL, e o rollup de não-lidas teria de consultá-lo; o prazo em si já existe e é o mesmo",
     referencia: "components/navigation/MuteDurationSubmenu.tsx",
   },
   notificacoesPorServidorECanal: {
