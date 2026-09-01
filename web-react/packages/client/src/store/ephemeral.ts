@@ -82,5 +82,33 @@ export function createEphemeralStore<T>() {
       dirty.add(id);
       timer ??= setTimeout(flush, THROTTLE_MS);
     },
+
+    /**
+     * Esquece TUDO — o fim de um ciclo inteiro, não de uma entrada.
+     *
+     * ⚠ **Existe porque `faixasDeVideo` sobrevivia à chamada.** Sair de uma
+     * sala zerava o store de chamada e deixava toda faixa de vídeo no lugar:
+     * a sua e a de todo mundo, por chave `usuário:fonte`. Duas consequências,
+     * e a segunda é pior que o vazamento.
+     *
+     * A primeira é o erro nº 5 do briefing — referência de `MediaStreamTrack`
+     * segurada para sempre, uma por pessoa por fonte por chamada, numa sessão
+     * que fica aberta oito horas.
+     *
+     * A segunda: as chaves são estáveis entre chamadas. Voltar para a mesma
+     * sala com as mesmas pessoas reencontra as faixas MORTAS da chamada
+     * anterior, e o ladrilho monta um `<video>` congelado no último quadro de
+     * antes — sem erro, e parecendo que a pessoa está transmitindo agora.
+     *
+     * ⚠ **Avisa quem assinava, e por isso não basta um `values.clear()`.** Sem
+     * a notificação, o `<video>` que já estava montado ficaria com o
+     * `srcObject` antigo até alguém re-renderizar por outro motivo.
+     */
+    limpar() {
+      if (values.size === 0) return;
+      for (const id of values.keys()) dirty.add(id);
+      values.clear();
+      timer ??= setTimeout(flush, THROTTLE_MS);
+    },
   };
 }

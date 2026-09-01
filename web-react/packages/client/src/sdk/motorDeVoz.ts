@@ -55,7 +55,7 @@ import {
   encerrarChamada,
   lerChamada,
 } from "../store/chamada";
-import { definirPalco, fecharPalco, lerPalco } from "../store/palcoDeVoz";
+import { definirPalco, lerPalco } from "../store/palcoDeVoz";
 import { chaveDeVideo, faixasDeVideo, type FonteDeVideo } from "../store/video";
 import { toast } from "../components/ui/toastStore";
 import { ALTURA_DE, ponteDeTela } from "./seletorDeTela";
@@ -193,7 +193,18 @@ function ligarEventos(r: Room, channelId: string): void {
     definirPalco({ tipo: "grade" });
   });
 
-  r.on(RoomEvent.Disconnected, () => encerrarChamada());
+  /*
+    ⚠ **Sair da chamada apaga as faixas, e isto NÃO existia.**
+    `encerrarChamada` zera o store de chamada e não sabe do de vídeo, então
+    toda faixa — a sua e a de todo mundo — sobrevivia à sala. Ver `limpar` em
+    `store/ephemeral.ts` para as duas consequências; a que morde primeiro não
+    é o vazamento, é a faixa MORTA reaparecendo na chamada seguinte, porque
+    as chaves (`usuário:fonte`) são estáveis entre chamadas.
+  */
+  r.on(RoomEvent.Disconnected, () => {
+    faixasDeVideo.limpar();
+    encerrarChamada();
+  });
   r.on(RoomEvent.Reconnecting, () => definirChamada({ estado: "reconectando" }));
 
   /*
@@ -212,6 +223,22 @@ function ligarEventos(r: Room, channelId: string): void {
   r.on(RoomEvent.Reconnected, () => {
     definirChamada({ estado: "dentro", participantes: participantesDe(r) });
     publicarFontes(r);
+    /*
+      ⚠ **E as fontes LOCAIS junto — `publicarFontes` varre só os remotos.**
+
+      O raciocínio do comentário acima vale igual para o seu lado e não estava
+      sendo aplicado: durante uma queda o LiveKit republica as suas faixas, e
+      o `MediaStreamTrack` que volta costuma ser outro OBJETO. Sem esta
+      varredura, `faixasDeVideo` seguia apontando para o anterior — morto — e
+      a sua própria prévia ficava congelada no último quadro de antes da
+      queda, no ladrilho da grade e no palco do popout.
+
+      E os dois booleanos vão junto: se o compartilhamento não sobreviveu à
+      queda, `chamada.tela` continuaria `true` e a interface afirmaria que
+      você está transmitindo quando não está — que é a mesma classe de mentira
+      que a varredura dos remotos existe para evitar.
+    */
+    rescanearFontesLocais(r.localParticipant);
   });
 
   /*
@@ -234,9 +261,30 @@ function ligarEventos(r: Room, channelId: string): void {
     publicar();
     publicarFontes(r);
   });
-  r.on(RoomEvent.ParticipantDisconnected, () => {
+  /*
+    ⚠ **Sair da sala é diferente de parar de transmitir, e só o segundo estava
+    tratado.**
+
+    `TrackUnpublished` devolve quem assiste para a grade quando a pessoa PARA
+    — mas quando ela cai, a garantia passa a depender da ordem e da chegada
+    desses eventos, que numa queda de rede é justamente o que não se pode
+    assumir. Sem isto, o palco ficava em "assistindo fulano" com fulano fora
+    da sala: quadro congelado, sem aviso, e sem forma de saber que acabou.
+
+    Apagar as faixas dela aqui tem a mesma razão — `TrackUnsubscribed` faz
+    isso no caminho feliz, e este é o caminho em que ele pode não vir.
+  */
+  r.on(RoomEvent.ParticipantDisconnected, (participante) => {
     publicar();
     publicarFontes(r);
+
+    faixasDeVideo.apagar(chaveDeVideo(participante.identity, "tela"));
+    faixasDeVideo.apagar(chaveDeVideo(participante.identity, "camera"));
+
+    const palco = lerPalco();
+    if (palco.tipo === "assistindo" && palco.userId === participante.identity) {
+      definirPalco({ tipo: "grade" });
+    }
   });
 
   /*
@@ -267,9 +315,18 @@ function ligarEventos(r: Room, channelId: string): void {
     if (pub.source === Track.Source.ScreenShare) {
       definirChamada({ tela: false, telaPausada: false, telaAudio: "sem" });
       publicarVideoLocal(local, "tela", Track.Source.ScreenShare, false);
-      /* Só fecha o palco se ele estava mostrando a SUA transmissão: quem
-         parou de transmitir pode continuar assistindo alguém. */
-      if (lerPalco().tipo === "transmitindo") fecharPalco();
+      /*
+        ⚠ **Volta para a GRADE, e não fecha — regressão da mudança de
+        arquitetura, corrigida aqui.** Enquanto o palco era sobreposição,
+        `fecharPalco()` significava "tira essa camada da frente do app" e era
+        a coisa certa. Com a sala ocupando a coluna de conteúdo, "fechado"
+        passou a significar "sai da sala e mostra o chat do canal": parar de
+        transmitir expulsava a pessoa da chamada que ela continua ouvindo.
+
+        Só age se o palco mostrava a SUA transmissão — quem parou de
+        transmitir pode continuar assistindo alguém.
+      */
+      if (lerPalco().tipo === "transmitindo") definirPalco({ tipo: "grade" });
       return;
     }
     if (pub.source === Track.Source.Camera) {
@@ -821,7 +878,10 @@ export async function alternarTela(): Promise<void> {
     } finally {
       definirChamada({ tela: false, telaPausada: false, telaAudio: "sem" });
       publicarVideoLocal(p, "tela", Track.Source.ScreenShare, false);
-      if (lerPalco().tipo === "transmitindo") fecharPalco();
+      /* Mesma correção do handler de `LocalTrackUnpublished`: a sala é o
+         conteúdo do canal, então parar de transmitir volta para a grade em
+         vez de sair dela. */
+      if (lerPalco().tipo === "transmitindo") definirPalco({ tipo: "grade" });
     }
     return;
   }
@@ -949,6 +1009,22 @@ export async function alternarTela(): Promise<void> {
  * ladrilho ficaria no avatar ate o proximo render — a mesma armadilha da
  * previa da transmissao medindo 0×0.
  */
+/**
+ * O que VOCÊ está publicando de fato, relido do LiveKit.
+ *
+ * Pergunta à publicação em vez de acreditar no store — é o mesmo princípio de
+ * `publicarFontes`, que relê os remotos em vez de somar e subtrair. Reconexão
+ * é justamente quando o incremental diverge.
+ */
+function rescanearFontesLocais(p: LocalParticipant): void {
+  const camera = p.getTrackPublication(Track.Source.Camera) !== undefined;
+  const tela = p.getTrackPublication(Track.Source.ScreenShare) !== undefined;
+
+  definirChamada({ camera, tela });
+  publicarVideoLocal(p, "camera", Track.Source.Camera, camera);
+  publicarVideoLocal(p, "tela", Track.Source.ScreenShare, tela);
+}
+
 function publicarVideoLocal(
   p: LocalParticipant,
   fonte: FonteDeVideo,
