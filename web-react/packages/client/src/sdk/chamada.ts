@@ -17,6 +17,7 @@ import {
   lerChamada,
 } from "../store/chamada";
 import { toast } from "../components/ui/toastStore";
+import type { QualidadeDaTela } from "../store/qualidadeDaTela";
 
 type Motor = typeof import("./motorDeVoz");
 
@@ -213,4 +214,30 @@ export async function estatisticasDaTela(): Promise<
  */
 export async function estatisticasDeVoz(): Promise<number | undefined> {
   return motor?.estatisticasDeVoz();
+}
+
+/**
+ * Troca a qualidade da transmissão em curso.
+ *
+ * ⚠ **`motor?.` e não `carregar()`, como as vizinhas.** Sem transmissão não há
+ * o que trocar, e baixar meio megabyte de WebRTC para descobrir isso seria
+ * pagar a feature mais cara do app por um clique que não tinha o que fazer.
+ *
+ * ⚠ **Os DEGRAUS não vêm daqui.** Eles moram no motor junto da função que os
+ * aplica, e o HUD os importa de `store/qualidadeDaTela.ts` — que é um espelho
+ * de dados puros. Reexportá-los por esta fachada arrastaria `motorDeVoz` para
+ * o grafo estático de quem só quer DESENHAR a lista, que é exatamente o que
+ * este arquivo existe para impedir.
+ */
+export async function definirQualidadeDaTela(
+  id: QualidadeDaTela,
+): Promise<boolean> {
+  return (await motor?.definirQualidadeDaTela(id)) ?? false;
+}
+
+/** O que a faixa entrega agora, medido. `undefined` sem transmissão. */
+export function qualidadeRealDaTela():
+  | { altura: number; fps: number }
+  | undefined {
+  return motor?.qualidadeRealDaTela();
 }

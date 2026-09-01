@@ -17,8 +17,23 @@ import { memo, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
 import { Tooltip } from "../components/ui/Tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "../components/ui/DropdownMenu";
+import {
+  assinarQualidadeDaTela,
+  definirQualidadeEscolhida,
+  QUALIDADES_DA_TELA,
+  qualidadeEscolhida,
+} from "../store/qualidadeDaTela";
+import {
+  definirQualidadeDaTela,
+  qualidadeRealDaTela,
+} from "../sdk/chamada";
 import { toast } from "../components/ui/toastStore";
-import { aindaNao } from "../pendente/pendencias";
 import {
   alternarAudioDaTela,
   alternarTela,
@@ -342,16 +357,7 @@ function Prancha({
 
         <BotaoDeAudio audio={audio} />
 
-        <button
-          type="button"
-          className={css.itemDoHud}
-          data-secundario
-          aria-label="Qualidade da transmissão"
-          onClick={aindaNao("qualidadeDaTransmissao")}
-        >
-          <Gear size={ICONE.metadado} aria-hidden />
-          <span className={css.rotuloDoHud}>Qualidade</span>
-        </button>
+        <MenuDeQualidade />
       </div>
     </div>
   );
@@ -616,4 +622,92 @@ function rotuloDaFonte(bruto: string): string | undefined {
   if (/^window:/.test(bruto)) return "uma janela";
   if (/^web-contents-media-stream:/.test(bruto)) return "uma aba";
   return bruto;
+}
+
+/**
+ * Trocar resolução e taxa de quadros SEM parar de transmitir.
+ *
+ * ⚠ **O `depende` desta pendência estava meio certo, e a metade errada é a que
+ * importava.** Ele dizia que `setScreenShareEnabled` só lê as constraints na
+ * PUBLICAÇÃO — verdade — e concluía que trocar era "parar e recomeçar". Não é:
+ * `applyConstraints` age sobre o `MediaStreamTrack` que já está no ar, então
+ * mesma faixa, mesma publicação, mesmos assinantes, sem renegociação e sem
+ * mostrar de novo o seletor de janela do navegador. Ver `motorDeVoz`.
+ *
+ * ⚠ **Mostra o que a fonte ENTREGA ao lado do que foi pedido.** Os dois
+ * divergem de verdade: pedir 1080p de uma janela de 900px devolve 900, e um
+ * menu que dissesse "1080p" ali seria a mesma mentira do "Conectado · 42 ms"
+ * que a faixa de voz recusou. O rótulo do botão é sempre a medida.
+ */
+function MenuDeQualidade() {
+  const escolhida = useSyncExternalStore(
+    assinarQualidadeDaTela,
+    qualidadeEscolhida,
+  );
+  /*
+    ⚠ **Medido ao ABRIR, e não por relógio.** `getSettings()` é síncrono e
+    barato, mas um intervalo rodando durante toda a transmissão para atualizar
+    um rótulo que só aparece com o menu aberto é trabalho por nada — e o HUD
+    inteiro se esconde sozinho depois de alguns segundos.
+  */
+  const [real, setReal] = useState<{ altura: number; fps: number } | undefined>(
+    undefined,
+  );
+
+  const rotulo = real
+    ? `${String(real.altura)}p · ${String(real.fps)} fps`
+    : "Qualidade";
+
+  return (
+    <DropdownMenu
+      onOpenChange={(aberto) => {
+        if (aberto) setReal(qualidadeRealDaTela());
+      }}
+    >
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className={css.itemDoHud}
+          data-secundario
+          aria-label="Qualidade da transmissão"
+        >
+          <Gear size={ICONE.metadado} aria-hidden />
+          <span className={css.rotuloDoHud}>{rotulo}</span>
+        </button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent side="top" align="end">
+        {QUALIDADES_DA_TELA.map((q) => (
+          <DropdownMenuCheckboxItem
+            key={q.id}
+            marcado={escolhida === q.id}
+            aoAlternar={() => {
+              /*
+                Escreve a escolha ANTES de aplicar: o menu marca o que a pessoa
+                pediu no mesmo quadro do clique, e a faixa alcança depois. O
+                caminho contrário deixaria a marca esperando a rede.
+              */
+              definirQualidadeEscolhida(q.id);
+              void definirQualidadeDaTela(q.id).then((ok) => {
+                if (!ok) {
+                  /* Não desfaz a marca: sem faixa não há transmissão, e o
+                     palco já está saindo. Desfazer piscaria o menu no
+                     caminho de saída. */
+                  toast({
+                    tipo: "erro",
+                    titulo: "Não deu para trocar a qualidade",
+                    descricao: "A transmissão pode ter terminado.",
+                  });
+                  return;
+                }
+                setReal(qualidadeRealDaTela());
+              });
+            }}
+          >
+            {q.rotulo}
+          </DropdownMenuCheckboxItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }

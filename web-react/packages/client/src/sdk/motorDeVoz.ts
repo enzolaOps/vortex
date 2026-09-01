@@ -43,6 +43,11 @@ import {
   type RemoteTrackPublication,
   type ScreenShareCaptureOptions,
 } from "livekit-client";
+import {
+  esquecerQualidadeDaTela,
+  QUALIDADES_DA_TELA,
+  type QualidadeDaTela,
+} from "../store/qualidadeDaTela";
 
 import { client } from "./client";
 import { sairDaSalaLocalmente } from "./adapter";
@@ -314,6 +319,14 @@ function ligarEventos(r: Room, channelId: string): void {
     const local = r.localParticipant;
     if (pub.source === Track.Source.ScreenShare) {
       definirChamada({ tela: false, telaPausada: false, telaAudio: "sem" });
+      /*
+        ⚠ A escolha de qualidade morre com a FAIXA, e é aqui que ela morre nos
+        dois caminhos — o nosso e o do botão do navegador. A janela que
+        suportava 1080p60 pode ser uma aba de 720p na vez seguinte, e o menu
+        abriria marcando um degrau que a faixa nova nunca recebeu. Mesma razão
+        do `limpar()` do store efêmero.
+      */
+      esquecerQualidadeDaTela();
       publicarVideoLocal(local, "tela", Track.Source.ScreenShare, false);
       /*
         ⚠ **Volta para a GRADE, e não fecha — regressão da mudança de
@@ -1279,4 +1292,63 @@ export async function estatisticasDeVoz(): Promise<number | undefined> {
     ms = Math.round(e.currentRoundTripTime * 1000);
   });
   return ms;
+}
+
+/**
+ * Troca resolução e taxa de quadros SEM parar de transmitir.
+ *
+ * ⚠ **`applyConstraints` na faixa, e NÃO `restartTrack` nem republicar.** O
+ * `depende` desta pendência dizia que trocar hoje era "parar e recomeçar", e a
+ * afirmação estava certa sobre `setScreenShareEnabled` — que só lê as
+ * constraints na PUBLICAÇÃO — e errada sobre o resto. Duas alternativas foram
+ * lidas no código do SDK antes desta:
+ *
+ * - `LocalVideoTrack.restartTrack()` existe e serve para CÂMERA: ele chama
+ *   `restart()`, que refaz a captura por `getUserMedia`. Numa faixa de tela
+ *   isso pediria a câmera no lugar do que está sendo transmitido.
+ * - Republicar mostraria de novo o seletor de janela do navegador, e a pessoa
+ *   teria de reescolher o que já estava compartilhando.
+ *
+ * `applyConstraints` age sobre o `MediaStreamTrack` que já está no ar: mesma
+ * faixa, mesma publicação, mesmos assinantes, sem renegociação e sem prompt.
+ *
+ * ⚠ **`ideal` e nunca `exact`.** Com `exact`, uma tela de 1366×768 recusaria
+ * 1080p com `OverconstrainedError` — e o erro chegaria como "não deu para
+ * trocar" numa escolha que o navegador teria atendido em 768p de bom grado. O
+ * teto é um pedido; quem decide o que a fonte entrega é o sistema.
+ */
+export async function definirQualidadeDaTela(
+  id: QualidadeDaTela,
+): Promise<boolean> {
+  const faixa = faixaDeTela();
+  const alvo = QUALIDADES_DA_TELA.find((q) => q.id === id);
+  if (!faixa || !alvo) return false;
+
+  try {
+    await faixa.applyConstraints({
+      height: { ideal: alvo.altura },
+      frameRate: { ideal: alvo.fps },
+    });
+    return true;
+  } catch {
+    /* A faixa pode ter terminado entre a escolha e a aplicação — parar de
+       compartilhar pela barra do navegador faz exatamente isso. Sem
+       transmissão não há qualidade a trocar, e isso não é erro. */
+    return false;
+  }
+}
+
+/**
+ * O que a faixa está entregando AGORA, medido — nunca o que foi pedido.
+ *
+ * ⚠ `getSettings()` e não a constraint guardada: a fonte decide. Pedir 1080p
+ * de uma janela de 900px devolve 900, e mostrar "1080p" ali seria a mesma
+ * mentira do "Conectado · 42 ms" que a faixa de voz recusou.
+ */
+export function qualidadeRealDaTela():
+  | { altura: number; fps: number }
+  | undefined {
+  const s = faixaDeTela()?.getSettings();
+  if (!s?.height) return undefined;
+  return { altura: s.height, fps: Math.round(s.frameRate ?? 0) };
 }

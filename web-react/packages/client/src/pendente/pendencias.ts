@@ -306,12 +306,6 @@ export const PENDENCIAS = {
     família da etiqueta FÓRUM e do selo LIVE, e mora em comentário no arquivo
     que a mostraria.
   */
-  qualidadeDaTransmissao: {
-    superficie: "Palco de transmissão",
-    faz: "Trocar resolução e taxa de quadros sem parar de transmitir.",
-    depende:
-      "encoding dinâmico — `setScreenShareEnabled` só aceita as constraints na PUBLICAÇÃO, e trocá-las hoje é parar e recomeçar",
-  },
 
   /* ---------------------------------------------------- criar canal */
   /*
