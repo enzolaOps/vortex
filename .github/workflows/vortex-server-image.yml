@@ -52,7 +52,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  BASE: vortex-api-base
+  BASE: vortex-server-base
 
 jobs:
   # ---------------------------------------------------------------- a base
@@ -241,8 +241,8 @@ jobs:
           build-args: |
             BASE_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/${{ env.BASE }}:${{ github.sha }}
           tags: |
-            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-api:main
-            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-api:${{ github.sha }}
+            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-api:main
+            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-api:${{ github.sha }}
           labels: |
             org.opencontainers.image.title=Vortex API
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
@@ -260,8 +260,8 @@ jobs:
           build-args: |
             BASE_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/${{ env.BASE }}:${{ github.sha }}
           tags: |
-            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-events:main
-            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-events:${{ github.sha }}
+            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-events:main
+            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-events:${{ github.sha }}
           labels: |
             org.opencontainers.image.title=Vortex events
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
@@ -273,11 +273,11 @@ jobs:
             echo "### Imagens publicadas"
             echo
             echo '```'
-            echo "VORTEX_API_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/vortex-api:${{ github.sha }}@${{ steps.api.outputs.digest }}"
-            echo "VORTEX_EVENTS_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/vortex-events:${{ github.sha }}@${{ steps.events.outputs.digest }}"
+            echo "VORTEX_API_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-api:${{ github.sha }}@${{ steps.api.outputs.digest }}"
+            echo "VORTEX_EVENTS_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-events:${{ github.sha }}@${{ steps.events.outputs.digest }}"
             echo '```'
             echo
-            echo "Cole em \`compose/versions.env\` do pi-infra e rode \`make vortex-update\`."
+            echo "Atualize \`compose/versions.env\` no pi-infra; o merge dispara o deploy."
             echo
             echo "⚠ Os outros cinco serviços seguem pinados no upstream de propósito."
           } >> "$GITHUB_STEP_SUMMARY"
