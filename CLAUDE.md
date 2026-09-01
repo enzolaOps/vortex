@@ -82,7 +82,7 @@ identidade do produto — decisão independente do par tipográfico do Vortex.
 Três no upstream, todos em `web/packages/`:
 
 | Path | Upstream | Atravessa? |
-|---|---|---|
+| --- | --- | --- |
 | `stoat.js` | `stoatchat/javascript-client-sdk` | **Sim — é o SDK** |
 | `solid-livekit-components` | `revoltchat/solid-livekit-components` | Não → `@livekit/components-react` |
 | `js-lingui-solid` | `revoltchat/js-lingui-solid` | Não → `@lingui/react` |
@@ -171,58 +171,32 @@ Isso não é hipótese remota — é o caminho previsto.
 
 #### O que o backend é hoje
 
-Oito serviços upstream, todos pinados por digest em `v0.15.1`
-(`pi-infra/compose/compose.vortex.yml`):
+O código upstream foi importado com histórico em `server/`. O fork publica
+somente `delta` (API) e `bonfire` (events) como imagens multi-arquitetura; os
+demais serviços continuam pinados nas imagens upstream em `pi-infra`.
 
-```
+```text
 api · events · file-server · proxy · crond · pushd · voice-ingress · livekit
 ```
 
-mais Mongo, Valkey, RabbitMQ, MinIO e Caddy. A única imagem própria hoje é a do
-cliente web (`ghcr.io/enzolaops/vortex-web`).
+A stack ainda é distribuída. Feature de API → `api`; evento novo no websocket
+→ `events`, quase sempre com `api` junto. O fork não é motivo para republicar
+serviços que não mudaram.
 
-**Não é um monolito.** O VORTEX.md descreve um eventual `server/` como ilha
-única, cargo em vez de pnpm. A stack real é outra coisa, e isso é boa notícia:
-forkar significa forkar **o serviço dono daquela superfície** e continuar pinando
-os outros. Feature de API → `api`. Evento novo no websocket → `events`, quase
-sempre com `api` junto. É bem menor que "forkar o backend", e mantém as
-atualizações de segurança dos outros serviços vindo de graça.
+#### Não ampliar sem necessidade
 
-#### Não construir agora
-
-O VORTEX.md já diz: *"do not create it for tidiness"*. Vale literalmente. **Todo
-o roadmap — fases 0 a 4 — é front-end.** Nada nele precisa de backend, inclusive
-a fase 4: preset é string que o usuário copia, tema é CSS custom property,
-layout vive em store local.
-
-Manter o backend como está não é dívida, é a escolha barata: oito serviços
-pinados por digest, correção de segurança de upstream chegando de graça, nada
-para construir e nada para manter. O fork é o caminho para **quando** uma
-feature forçar — não um item de roadmap.
+O roadmap atual continua majoritariamente front-end. Preset, tema e layout não
+exigem endpoint novo. Ter o código em `server/` não muda a regra: só modificar e
+publicar o serviço dono de uma superfície quando uma feature realmente exigir.
 
 #### A restrição a conhecer antes de commitar com uma feature de backend
 
 **Tudo roda em `linux/arm64`** — o alvo é um Raspberry Pi.
 
-⚠ **O que vinha escrito aqui — "repositório privado não recebe runner arm64
-nativo" — é FALSO desde que os repositórios do cliente e da API ficaram
-públicos.** Só o `pi-infra` é privado. Medido em 31/08/2026:
-`enzolaOps/vortex` e `enzolaOps/vortex-api` respondem `visibility: public`, e
-com isso `runs-on: ubuntu-24.04-arm` está disponível de graça. A frase custou
-um workflow inteiro de cross-compile que não precisava existir — ver a linha
-da imagem arm64 nas pendências.
-
-O cliente web já contorna isso, e o truque está documentado no VORTEX.md: o
-Dockerfile pina o estágio de build em `$BUILDPLATFORM` porque esse estágio *"only
-emits static JS and CSS, which is the same on every architecture"*. Roda nativo
-no runner amd64 e só o runtime, JS puro, é emulado.
-
-**Esse truque não transfere para Rust.** Binário Rust é específico de
-arquitetura — não existe estágio neutro para rodar nativo. Sobra cross-compile,
-runner próprio ou build no próprio Pi.
-
-Não bloqueia nada hoje. Só não descubra isso no meio da primeira feature de
-backend.
+O workflow `.github/workflows/vortex-server-image.yml` já resolve esse alvo:
+o builder roda nativo em amd64 e o toolchain Rust emite binários amd64 e arm64
+em jobs separados. Ele publica apenas API e events, evitando compilar os outros
+seis binários sem uso.
 
 #### Por que isso não muda o front-end
 
@@ -654,7 +628,6 @@ Falta só o que sempre foi de fase futura — painéis que ainda não existem
 Sistema de slots, modo edição, preset versionado e compartilhável, picker de
 paleta com validação de contraste. Ver `layout-customization.md`.
 
-
 ### Fase 5 — Acabamento e superfície de produto · **próxima**
 
 Nasceu como fase de acabamento e **deixou de ser**, por decisão explícita: a
@@ -844,7 +817,7 @@ salva o cliente web não transfere para Rust.
 ## Pendências abertas
 
 | Item | Precisa de |
-|---|---|
+| --- | --- |
 | Navegação em janela estreita | **Lacuna, não bug — e dita.** Abaixo de 640px a lista de canais colapsa, senão a conversa fica com 63px numa tela de 375 (rail 72 + canais 240 = 312). O guarda devolve 303px de conversa. O que ele NÃO resolve: com a lista escondida some o gatilho da paleta, que mora no cabeçalho dela — por teclado a paleta continua, por TOQUE não há navegação. Celular não é plataforma deste produto (o briefing diz web e Electron desktop), e um modelo de navegação para telas estreitas é trabalho de produto que nunca foi escopado. |
 | Identidade visual | **SUBSTITUÍDA pelo design do Claude Design, e a linha anterior descrevia a paleta antiga.** Saiu: pastel lilás/menta/pêssego/rosa sobre neutro violáceo, IBM Plex Sans + Mono, e a lâmina como escala de opacidade da marca. Entrou: **teal `#35c2cc` sobre neutro azul-ardósia** (matiz 258), **Instrument Sans Variable + JetBrains Mono Variable**, e a assinatura passa a ser uma **barra de acento sólida de 3px** na borda de início do item ativo — rail, lista de canais, menu de configurações e segmentado, os mesmos quatro lugares de antes. Os tokens `--vx-lamina-1..3` sobrevivem com o papel de sempre (profundidade por opacidade entre irmãos); o que saiu foi a amarração com a espiral de `brand/mark.svg`. ⚠ **A regra "profundidade vem de camada, não de sombra" caiu, e por medição:** no tema claro do design `surface-3` e `surface-4` são os DOIS branco puro, então um menu sobre um card não tem degrau de luminosidade nenhum. `--vx-elev-1..3` existe por causa disso, e só por isso — três degraus, teto em e3. |
 | Quatro cores do design que NÃO couberam | **Ajustadas por contraste, e o design as entregou reprovando.** Medido antes: `text.tertiary` dava **4,10:1** sobre `surface.raised` e **3,71:1** sobre `surface.float` no escuro, e **3,79:1** sobre `surface.sunken` no claro — três pares abaixo de 4,5. `danger` dava **4,28:1** dentro de menu, que é onde "Excluir canal" mora. A rampa de L foi aberta até passarem: `#77808e → #8992a0`, `#e8596b → #f16172`, `#767f8c → #606875`, `#0e7c86 → #00737c`. Superfícies, acento, hover, press, `accent-text`, `warning` e `success` reproduzem o design **byte a byte**. |
@@ -888,7 +861,7 @@ salva o cliente web não transfere para Rust.
 | Rodapé do anexo | **A mídia aparecia sem nome e sem peso.** O design põe `densidades.png · 284 KB` embaixo de toda mídia — é a informação que decide se vale abrir em tela cheia ou baixar numa conexão ruim. `tamanhoTexto` entrou no `AnexoSnapshot`, formatado na ESCRITA como `createdAtText` (formatar bytes no render multiplicaria um `Intl` por cada re-render da linha mais quente). **Base 1000 e não 1024**: o rótulo é "KB", e 1024 com "KB" faz 284.000 bytes virarem "277 KB", que não bate com o Finder nem com o Explorador. Nome em mono — o alinhamento de extensão ajuda a varrer conversa cheia de anexo. Baixar é real; `alt` é pendência registrada. |
 | Cabeçalho do bloco de código | A língua era um selo ABSOLUTO no canto, **cobrindo a primeira linha do código**. O design lhe dá barra própria, com "copiar" do outro lado — e aí ela deixa de disputar espaço e o copiar ganha alvo em vez de a pessoa selecionar o bloco à mão. A caixa fica mesmo sem língua: barra de altura fixa, porque um cabeçalho que aparece e some mudaria a altura da linha conforme o markdown, e numa lista ancorada isso move a âncora por causa de metadado. |
 | Divisor de novas mensagens | **Era ACENTO, virou DANGER** — a troca é do design e tem razão: o teal é a cor de "isto está ativo" (canal aberto, servidor aberto, minha reação), e "onde você parou" é um AVISO de posição. O rótulo virou badge com preenchimento tingido; sem caixa, no fim da régua, ele lia como continuação da linha. ⚠ **Usei `--vx-accent-soft` na primeira versão — teal atrás de texto vermelho.** Passou em todas as guardas, porque nenhuma sabe que as duas cores deveriam ser da mesma família. Corrigido com `color-mix` sobre `--vx-danger`, o mesmo mecanismo de `--vx-state-selected` — token novo custaria entrada em `TokenName`, classificação e par de contraste para um preenchimento que só existe atrás deste rótulo. |
-| Arnês mais pobre que o protocolo — 5ª e 6ª vez | **5ª: anexo sem `size`**, então a metade direita do rodapé nunca aparecia. **6ª, e é a maior: o corpo das mensagens não tinha MARKDOWN nenhum** — só palavras soltas com uma URL ocasional. Todo o pipeline de `markdown/analisar.ts` (32 testes, cache por conteúdo, três decisões de segurança sobre link) existia, compilava, tinha teste, e NUNCA tinha sido visto na tela. Agora bloco de código, lista, citação, título e ênfase, em frequências primas entre si. Verificado: `ts | copiar` no cabeçalho, `UL` com marcador `disc` e 3 itens, título como `div role="heading" aria-level=4`, e **um único `h1` na página**. |
+| Arnês mais pobre que o protocolo — 5ª e 6ª vez | **5ª: anexo sem `size`**, então a metade direita do rodapé nunca aparecia. **6ª, e é a maior: o corpo das mensagens não tinha MARKDOWN nenhum** — só palavras soltas com uma URL ocasional. Todo o pipeline de `markdown/analisar.ts` (32 testes, cache por conteúdo, três decisões de segurança sobre link) existia, compilava, tinha teste, e NUNCA tinha sido visto na tela. Agora bloco de código, lista, citação, título e ênfase, em frequências primas entre si. Verificado: `ts | copiar` no cabeçalho, `UL` com marcador `disc` e 3 itens, título como `div role="heading" aria-level=4`, e **um único`h1` na página**. |
 | Coluna de canais: `+` e ações de linha | **`+` por categoria e convite/tópico por canal, do design.** As duas ações já existiam no menu de contexto, atrás de um clique com o botão DIREITO — a afordância que menos gente descobre. Agora ficam onde a pessoa procura, e o `+` já chega com a categoria decidida. Visíveis no hover, no foco e no canal ATIVO (`:has([aria-current])`, em vez de duplicar o estado num `data-` do pai). `visibility` e nunca `opacity`: com opacidade zero os alvos continuariam recebendo tabulação — numa coluna de quarenta canais, oitenta paradas invisíveis antes do rodapé. |
 | A lâmina saiu da coluna de canais também | Mesma barra do rail, e repetir o gesto é o que faz dele assinatura — um indicador que aparece numa coluna só é acidente. ⚠ **A cor difere de propósito:** no rail a barra é de TEXTO (o ladrilho já tem cor própria e a barra precisa contrastar com ele); aqui é de ACENTO no ativo e de texto na não-lida, porque a linha é neutra e os dois estados precisam ser distinguíveis sem ler. É a disciplina de acento — nove lâminas simultâneas já foi defeito real. Medido: ativo em 24px, `rgb(53,194,204)`, opacidade 1. |
 | Botão dentro de botão, e `asChild` com dois filhos | **Dois erros meus no mesmo passe, e o segundo só quebraria em runtime.** As ações não podem morar dentro do `<button>` da linha — HTML inválido, o navegador reestrutura a árvore e o clique interno aciona os dois. Pus como irmãs, mas dentro do `ContextMenuTrigger asChild`, que aceita UM filho (`React.Children.only`): compilava e teria quebrado ao abrir o menu. A correção é um wrapper `.linhaDeCanal` que contém o menu e as ações, e que é o alvo do `:hover`. |
@@ -961,17 +934,17 @@ salva o cliente web não transfere para Rust.
 | Rampa de superfície achatada | **Resolvida.** Quatro superfícies somavam 1,368:1 no escuro e 1,137:1 no claro de ponta a ponta, e no claro os degraus ENCOLHIAM a cada passo. Agora passo constante em ΔL — o certo, porque em OKLCH o L é perceptualmente uniforme. **A direção foi ditada pelo orçamento:** uma sonda rankeou os pares por folga, e ela disse que no escuro subir a superfície de topo era caro (`text-3/surface-3` a 1,11×) e abrir para baixo quase de graça. Escuro 1,075 · 1,105 · 1,152 → 1,09 · 1,14 · 1,15; claro 1,060 · 1,040 · 1,031 → 1,081 · 1,069 · 1,067. |
 | Disciplina de acento | **Resolvida.** Nove lâminas de acento na tela ao mesmo tempo, sete delas tocos permanentes de item NÃO ativo — os consumidores pintam `color: var(--vx-accent)` e o toco herdava junto. O toco ficou neutro e o hover ganhou o degrau do meio. Acento na tela: 9 → 2, o servidor ativo e o canal ativo. |
 | Superfícies que não existem | **Mapeadas, e o buraco é maior do que "algumas telas".** Contra o upstream: 59 modais de produto contra 0 (o `Dialog` da fase 2 tem um consumidor, a paleta), 42 páginas de configuração contra 0, 12 fluxos de autenticação contra 1. Duas ausências ESTRUTURAIS gateiam metade do resto: não há **router** (logo convite por link, permalink de mensagem e deep-link do Electron são irrepresentáveis, não difíceis) e não há **região Home** (logo DM, grupo, amigos e o `+` de criar servidor não têm onde morar). Criar servidor, tela de chamada e perfil aberto — os três que quem usa citou — caem cada um numa dessas classes. Ver `superficies-ausentes.md`. |
-| Markdown na linha | **Resolvido — era o item mais básico que faltava, e não estava no mapa de superfícies.** `ParteDeMensagem` era `texto | mencao`, então `**negrito**` chegava à tela com os asteriscos e link não era link. Agora `markdown/analisar.ts` traduz para árvore de domínio (`BlocoDeMensagem`/`TrechoDeMensagem`), com **cache por CONTEÚDO** — sem ele seria o erro nº 4 em lugar novo, porque `toMessageSnapshot` roda de novo a cada layout, envio, permissão e reação. Chave é o texto: mensagem editada troca de chave sozinha, e "ok" de trinta pessoas divide uma árvore. Teto de 2000 entradas, senão é o erro nº 5 com outra roupa. 32 testes; as duas guardas verificadas por mutação. |
+| Markdown na linha | **Resolvido — era o item mais básico que faltava, e não estava no mapa de superfícies.** `ParteDeMensagem` era `texto | mencao`, então`**negrito**` chegava à tela com os asteriscos e link não era link. Agora `markdown/analisar.ts`traduz para árvore de domínio (`BlocoDeMensagem`/`TrechoDeMensagem`), com **cache por CONTEÚDO** — sem ele seria o erro nº 4 em lugar novo, porque`toMessageSnapshot` roda de novo a cada layout, envio, permissão e reação. Chave é o texto: mensagem editada troca de chave sozinha, e "ok" de trinta pessoas divide uma árvore. Teto de 2000 entradas, senão é o erro nº 5 com outra roupa. 32 testes; as duas guardas verificadas por mutação. |
 | Markdown é conteúdo de TERCEIRO | ⚠ **Três decisões de segurança, não zelo abstrato:** o token mora em `localStorage`, então XSS aqui é roubo de conta. (1) Só `http:`, `https:` e `mailto:` viram link — `javascript:` e `data:` viram o texto que o autor escreveu, nunca somem. (2) `new URL` **sem base**: com base, `/qualquer-coisa` resolveria e passaria como link para lugar diferente do escrito. (3) Imagem de markdown vira LINK, nunca `<img>` — `![](url)` faria o navegador buscar a URL sozinho na máquina de quem abrisse o canal, entregando IP sem clique nenhum. HTML cru vira texto. Verificado no build de produção: zero `<img>`, `rel="noopener noreferrer"`. |
 | `list-style` zerado pelo preflight | **Achado só olhando a tela, e é a família do `py-0.5`.** A lista renderizava com recuo e SEM marcador — "1. um / 2. dois" virava duas linhas soltas. O `escala`, o `utilities` e o `check` inteiro passaram verdes; a regra estava escrita e a tela estava errada. `ul.lista`/`ol.lista` com `list-style` explícito. Medido depois: `disc` e `decimal`. |
 | Condição de resolução vs. ambiente do teste | **A armadilha que mais custou nesta etapa, e as duas saídas "mais limpas" eram piores.** `ssr.resolve.conditions: ["browser"]` existe para o `solid-js` do teste não ser o de SSR; com o markdown, o `decode-named-character-reference` passou a tocar `document` no escopo do módulo e **quinze suítes que nada têm com markdown quebraram no mesmo `import`**. (1) `environment: "jsdom"` foi PIOR: o Vitest troca o pipeline de transformação, a condição para de valer e o Solid volta a ser o de servidor — `fixadas`, `reacoes`, `reconciliacao` e `voz` falharam, ou seja, o conserto desfazia em silêncio o conserto que devia preservar. (2) Alias nominal não é consultado: o Vitest EXTERNALIZA `node_modules`. Fica um `document` global em `src/testes/documento.ts`, e só isso. |
 | Gate depois do markdown | ⚠ **NÃO medido validamente, e o guarda é que impediu.** Uma corrida deu PASS a 4,2% contra teto de 5%, com vazão de 452/500 (90,4%) — válida por um fio. As três seguintes deram **CORRIDA INVÁLIDA** a 86–87% de vazão, com um jogo (`deadlock`, 5,3 GB) mais Spotify, Discord e Radeon Software na máquina: exatamente a faixa que esta tabela já registra para "sob jogo". O patamar anterior é 2,1%, então **4,2% não pode ser lido como regressão nem como aprovação** — foi medido em máquina disputada. Refazer mediana de 3 com a máquina limpa antes de seguir para a etapa 1.2. |
-| Router, e navegação como união marcada | **Resolvido, e era o que tornava três coisas IRREPRESENTÁVEIS — não difíceis.** `navegacao.ts` era duas strings, e duas strings não dizem "estou na casa": `servidorAtivo === ""` era ausência de lugar, não um lugar. Virou `Local = casa | servidor | dm`. A URL é **projeção**: o store continua sendo a fonte e `popstate` só chama os mesmos setters que o rail chama. **Sem biblioteca** — três formas de caminho contra um store que já existe não pagam um segundo dono do estado. O laço se fecha por comparação de caminho, não por flag: aplicar o que já vale não emite, então não há o que escrever. Medido em navegador: clicar num canal troca a URL, `voltar` e `avançar` acertam os dois lados. |
+| Router, e navegação como união marcada | **Resolvido, e era o que tornava três coisas IRREPRESENTÁVEIS — não difíceis.** `navegacao.ts` era duas strings, e duas strings não dizem "estou na casa": `servidorAtivo === ""` era ausência de lugar, não um lugar. Virou `Local = casa | servidor | dm`. A URL é **projeção**: o store continua sendo a fonte e`popstate` só chama os mesmos setters que o rail chama. **Sem biblioteca** — três formas de caminho contra um store que já existe não pagam um segundo dono do estado. O laço se fecha por comparação de caminho, não por flag: aplicar o que já vale não emite, então não há o que escrever. Medido em navegador: clicar num canal troca a URL, `voltar` e `avançar` acertam os dois lados. |
 | Permalink de mensagem | **Resolvido, e quebrou uma premissa que estava certa até aqui.** "Sem ouvinte é no-op" valia enquanto todo pedido nascia de um clique — se ninguém ouve, ninguém pediu. Abrir `/servidor/A/canal/B/01MSG` pede o salto quando a rota é lida, e a lista daquele canal ainda nem montou: o link abriria o canal certo na posição errada, sem erro nenhum. Gaveta de pendentes por canal, consumida uma vez (guardar depois de entregue faria o salto repetir a cada remontagem, e trocar de canal remonta). Cinco testes, verificados por mutação. Medido: de 783.662 para 39.697 de rolagem, com a mensagem alvo na tela. |
 | Registro de modais | **Resolvido, com consumidor real em vez de andaime.** O upstream tem 59 modais e o `Dialog` da fase 2 tinha UM consumidor. `ModalId` é união fechada e o registro é `Record<ModalId, ComponentType>` — modal novo não compila até ser registrado, mesma mecânica de `NOME_DO_PAINEL` sobre `PainelId`. A paleta migrou para ele e o `store/paleta.ts` encolheu para só a tecla, o que **removeu** um store bespoke em vez de acrescentar um. Um modal por vez, de propósito: pilha de modais é a tela com três véus onde `Esc` fecha um e ninguém sabe qual. O `PainelDeEdicao` NÃO passa por aqui — ele não prende foco e existe para mexer no que está atrás. |
 | Primitivos de formulário | ⚠ **Entregue PARCIAL, e a redução é deliberada — o plano previa 11 e a inspeção derrubou 10.** Só o `Campo` tinha consumidor hoje (a tela de login, duas instâncias). Dois achados: (a) a paleta **não** devia usá-lo — o campo dela é barra de busca sem borda e corpo maior, e unificar faria a paleta parecer formulário dentro de um painel flutuante; (b) a família `--vx-field-*` que o plano pedia **não precisa existir** — `surface-0`, `border-subtle`, `accent` e `danger` cobrem os cinco estados, e token novo exigiria par de contraste novo por nada. Switch, radio, tabs, avatar, progress e separador ficam para a primeira superfície que os use: construí-los agora é o "scaffold ahead" que o `pnpm utilities` existe para pegar, e é o mesmo argumento que mantém o composer em textarea. |
 | `client.login()` quebrado | **Resolvido, e a pendência anterior estava otimista.** Ela dizia que faltava "só o caminho de SUCESSO contra servidor real"; o caminho de sucesso estava QUEBRADO no SDK — `login()` não chama `#updateHeaders()`, não chama `connect()` (a linha existe comentada com `// TODO`) e lança a string crua `"MFA not implemented!"`. O resultado aqui: `entrar()` lia `client.user?.id`, achava `undefined` porque sem `connect()` não há `Ready`, e caía no ramo "o servidor não disse quem você é". Agora é `POST /auth/session/login` direto, com os três resultados do protocolo. **E `useExistingSession` tinha metade do mesmo furo**, que ninguém tinha notado: restaurar sessão guardada abria o app com socket FECHADO. 14 testes com o `client` dublado; o de `connect()` verificado por mutação. |
-| Segundo fator e conta desativada | **Construídos, e os dois eram buracos com forma diferente.** MFA: laço de `POST` com `mfa_ticket`, métodos traduzidos (`Password|Recovery` não sai do adapter), e o bilhete guardado module-level porque é dado de PROTOCOLO, não domínio. ⚠ Dois defeitos meus, pegos escrevendo o teste: `entrando()` e `erro()` durante a verificação trocam o estado que o portão usa para escolher a tela — a pessoa apertaria "Verificar" e veria o formulário de e-mail voltar, sem erro nenhum. Virou `ocupada` separada do estado, e `precisaDeMfa(metodos, {motivo})`. `Disabled` é estado próprio: o upstream responde a ele com `alert("run special logic here")`. |
+| Segundo fator e conta desativada | **Construídos, e os dois eram buracos com forma diferente.** MFA: laço de `POST` com `mfa_ticket`, métodos traduzidos (`Password | Recovery` não sai do adapter), e o bilhete guardado module-level porque é dado de PROTOCOLO, não domínio. ⚠ Dois defeitos meus, pegos escrevendo o teste: `entrando()` e `erro()` durante a verificação trocam o estado que o portão usa para escolher a tela — a pessoa apertaria "Verificar" e veria o formulário de e-mail voltar, sem erro nenhum. Virou `ocupada` separada do estado, e `precisaDeMfa(metodos, {motivo})`.`Disabled` é estado próprio: o upstream responde a ele com `alert("run special logic here")`. |
 | Portão de sessão sem exaustividade | **Resolvido, e o mecanismo se provou na hora.** Era `if`/`else`: `desconhecida` dava `null`, `dentro` dava o app, e TODO O RESTO caía no login. Virou `Record<EstadoDaSessao, () => ReactNode>` — e ao acrescentar `nome` o build QUEBROU até a tela existir, que é exatamente o que se pede dele. Sem isso, `mfa`, `desativada` e `nome` teriam caído calados na tela de senha. |
 | Autenticação: as 11 telas que faltavam | **Oito construídas, três adiadas com razão.** Criar conta, conferir e-mail (com reenvio na MESMA tela — o upstream separa em duas e cobra), recuperar senha, redefinir, verificar, segundo fator, conta desativada e escolher nome. Sem elas o app só servia a quem já tinha conta feita por outro cliente. **Onboarding usa duas rotas que NÃO existem no SDK** (`/onboard/hello` e `/onboard/complete`), chamadas cruas — e vem ANTES de `dentro`, senão o app inteiro pisca para ser substituído. As rotas `/verificar/:token` e `/redefinir/:token` não são conveniência: link de e-mail é URL, e sem elas o clique abriria a tela de senha e o token se perderia em silêncio. O e-mail NÃO entra na URL — barra de endereço fica em histórico, log de proxy e print de tela. ⚠ **Adiada:** a lista de dispositivos, que mora em configurações (etapa 5). |
 | TOTP e captcha, FORA por decisão | **Não são pendência, são escopo recusado, e os dois têm consequência dita.** ⚠ **TOTP:** `MetodoDeMfa` perdeu a variante, e a remoção quebrou o build em cinco pontos até cada um ser tratado — o mesmo mecanismo que pegou `mfa` e `nome` no portão. Sobram senha e código de recuperação; **`recuperacao` fica de propósito**, porque é a única saída de quem tenha ativado o autenticador por OUTRO cliente. Desafio só de TOTP cai no ramo de lista vazia e a tela DIZ que este cliente não usa o método, em vez de mostrar um campo inerte — com teste. ⚠ **Captcha:** o protocolo aceita o campo e o upstream monta um hCaptcha invisível em toda tela de conta. Aqui não entra: instância privada, quem entra tem acesso ao repositório, e o custo seria dependência nova mais chamada a domínio externo numa tela de senha. **Consequência:** com `captcha` LIGADO no servidor, criar conta e recuperar senha voltam 400 — o caminho é desligar lá. |

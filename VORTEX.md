@@ -3,17 +3,17 @@
 This repository is **Vortex**: a self-hosted chat product built on Stoat.
 Everything else — the platform, the protocol, the actual work — is upstream's.
 
-Two upstreams live here:
+Three upstreams live here:
 
 | Path | Upstream | Remote |
-|---|---|---|
+| --- | --- | --- |
 | `web/` | [stoatchat/for-web](https://github.com/stoatchat/for-web) at `stoat-for-web-v0.14.1` | `upstream` |
 | `desktop/` | [stoatchat/for-desktop](https://github.com/stoatchat/for-desktop) at `v1.5.3` | `desktop-upstream` |
-| — | the backend is unmodified upstream, run from their images by pi-infra | — |
+| `server/` | [stoatchat/stoatchat](https://github.com/stoatchat/stoatchat) at `v0.15.3` plus the Vortex image commits | `server-upstream` |
 
-The web client is this repository's own history; `desktop/` was imported as a
-subtree. Both keep their upstream as a read-only remote: security fixes and
-protocol changes get cherry-picked, features and branding never do.
+The web client is this repository's own history; `desktop/` and `server/` were
+imported as subtrees. Their upstream remotes are for security fixes and protocol
+changes, not branding.
 
 ## Layout
 
@@ -22,23 +22,39 @@ vortex/
 ├── web/        pnpm workspace, nodeLinker: isolated · ships as a container
 ├── web-react/  pnpm workspace, nodeLinker: isolated · the React port, in progress
 ├── desktop/    pnpm workspace, nodeLinker: hoisted   · built by hand
-├── brand/      mark.svg + the generator both of them consume
-├── .github/    one workflow: the web image
+├── server/     Cargo workspace · ships API and events containers
+├── brand/      mark.svg + the generator used by the clients
+├── .github/    client and server image workflows
 ├── CLAUDE.md   architecture briefing — read before touching the front-end
 └── VORTEX.md
 ```
 
-Each top-level directory is an island: its own lockfile, its own toolchain, its
-own build. They share only `brand/`. Nothing at the root belongs to one of them
-— that is the rule that keeps the root readable.
+Each product directory is an island: its own lockfile, toolchain and build.
+The clients consume `brand/`. Root workflows publish the client, API and events
+images; deployment configuration remains in `pi-infra`.
 
-A backend fork, if it ever happens, is another island — `server/`, cargo rather
-than pnpm — and it does not change anything above. But do not create it for
-tidiness: today the backend is upstream's, run unmodified from their images, and
-the only Vortex-side backend artefact is deployment config, which lives in
-`pi-infra`. Fork it when you actually need to change authentication,
-permissions, the protocol or storage; at that point web and server start
-changing together, and one repository begins to pay for itself.
+`server/` preserves the history imported from `enzolaOps/vortex-api`. Its Vortex
+changes are limited to cross-architecture images for `delta` (API) and `bonfire`
+(events); the other backend services still use upstream images.
+
+### Updating the server subtree
+
+A fresh clone needs the backend remote once:
+
+```bash
+git remote add server-upstream https://github.com/stoatchat/stoatchat.git
+```
+
+Then update the imported source without recreating files at the repository root:
+
+```bash
+git fetch server-upstream
+git subtree pull --prefix=server server-upstream main
+```
+
+Keep `.github/workflows/vortex-server-image.yml` at the repository root. Nested
+workflows imported under `server/.github/` do not run and should be deleted after
+an upstream update.
 
 ### The web client used to be at the root
 
@@ -75,7 +91,7 @@ under "Why this repository is private" below.
 Kept deliberately small, so merging upstream stays cheap.
 
 | Area | Change |
-|---|---|
+| --- | --- |
 | `brand/` | Source artwork plus the two scripts below. New directory. |
 | `web/packages/client/scripts/assets_fallback/web/` | Icons regenerated from `brand/mark.svg`. |
 | `web/packages/client/index.html` | Tab title. |
@@ -86,8 +102,10 @@ Kept deliberately small, so merging upstream stays cheap.
 | `web/packages/client/src/interface/Home.tsx` | Removed the upstream donation link; put the feedback entry behind `IS_STOAT`, which is how upstream already gates its own community surfaces. |
 | `web/packages/client/components/i18n/catalogs/*/messages.po` | `msgstr` renamed by script. |
 | `.gitmodules` | Dropped the private `web/packages/client/assets` submodule. |
-| `.github/workflows/vortex-image.yml` | Cross-builds arm64 and pushes to GHCR. |
+| `.github/workflows/vortex-image.yml` | Cross-builds the web image and pushes it to GHCR. |
+| `.github/workflows/vortex-server-image.yml` | Cross-builds the API and events images and pushes them to GHCR. |
 | `.github/workflows/` | Every other upstream workflow deleted — see below. |
+| `server/` | Backend source plus the Docker changes needed to publish only API and events for amd64 and arm64. |
 | `web/Dockerfile` | Builder stage pinned to `$BUILDPLATFORM` so it is not emulated. |
 | `web/packages/client/components/app/interface/settings/` | Settings surfaces: "Source Code" points here (AGPL §13), feedback and bug links point at this repo's issues, the upstream donation link is gone, the desktop version line reads Vortex. |
 | `desktop/` | The Electron shell, imported as a subtree. See below. |
@@ -111,8 +129,8 @@ server.
 See `desktop/README.md` for the build, and for what was cut from upstream
 (Discord RPC, the GitHub auto-updater, the Windows makers).
 
-There is no desktop CI. The only workflow here builds the web image, and it
-ignores `desktop/**`.
+There is no desktop CI. The image workflows cover `web/` and `server/` and
+ignore `desktop/**`.
 
 ## Replacing the logo
 
@@ -161,7 +179,7 @@ After `v0.14.1` the client changed how it is configured at runtime, and the
 deployment depends on the old contract:
 
 | | v0.14.1 (this fork) | `main` today |
-|---|---|---|
+| --- | --- | --- |
 | API | `VITE_API_URL` | `VITE_API_URL` **plus required `VITE_HOST`** |
 | WS / media / proxy | `VITE_WS_URL`, `VITE_MEDIA_URL`, `VITE_PROXY_URL` | `VITE_DEV_*`, dev-only; production reads them from the API |
 | Video and screen share | gated by `VITE_CFG_ENABLE_VIDEO` | flag removed |
@@ -201,9 +219,9 @@ and drop the QEMU step for a fully native build.
 
 ## Why the upstream workflows are gone
 
-All of upstream's workflows were deleted; `vortex-image.yml` is the only one
-left. They are their release plumbing, and in this repository they were actively
-harmful:
+All upstream workflows were deleted; only `vortex-image.yml` and
+`vortex-server-image.yml` remain. The removed files are upstream release
+plumbing, and in this repository they were actively harmful:
 
 - `renovate.yml` runs on a `0/15 * * * *` cron. Schedules are disabled in real
   forks, but this repository is standalone, so it would have fired roughly 2,900
