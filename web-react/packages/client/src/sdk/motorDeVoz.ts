@@ -180,6 +180,17 @@ function ligarEventos(r: Room, channelId: string): void {
       participantes: participantesDe(r),
     });
     publicarFontes(r);
+    /*
+      ⚠ **Entrar numa sala ABRE a sala, e isto e o que faltava.** Antes daqui,
+      entrar num canal de voz nao mudava nada na coluna de conteudo: a conversa
+      continuava, e a unica prova de que voce estava dentro era o cartao
+      flutuante do canto. "Clicar no canal e ver quem esta la" e o gesto mais
+      basico da superficie, e ele nao existia.
+
+      No `Connected` e nao no `Reconnected`: voltar de uma queda nao deve tirar
+      da tela o chat que a pessoa escolheu ver enquanto ouvia.
+    */
+    definirPalco({ tipo: "grade" });
   });
 
   r.on(RoomEvent.Disconnected, () => encerrarChamada());
@@ -242,15 +253,31 @@ function ligarEventos(r: Room, channelId: string): void {
     interface afirmando o contrário do que está acontecendo, na pergunta de
     maior consequência que uma chamada tem — "a minha tela está sendo vista?".
   */
+  /*
+    ⚠ **Este é o caminho em que `alternarTela` NÃO roda**, e por isso ele
+    precisa apagar a faixa do store por conta própria: parar de transmitir pelo
+    botão do NAVEGADOR (ou do sistema operacional) despublica a faixa sem
+    passar pela nossa função. Sem esta limpeza o store guardaria uma faixa já
+    encerrada, e o ladrilho da grade e o palco do popout continuariam
+    desenhando um `<video>` congelado no último quadro de uma transmissão que
+    acabou — pior que o xadrez, porque parece que ainda está no ar.
+  */
   r.on(RoomEvent.LocalTrackUnpublished, (pub) => {
+    const local = r.localParticipant;
     if (pub.source === Track.Source.ScreenShare) {
       definirChamada({ tela: false, telaPausada: false, telaAudio: "sem" });
+      publicarVideoLocal(local, "tela", Track.Source.ScreenShare, false);
       /* Só fecha o palco se ele estava mostrando a SUA transmissão: quem
          parou de transmitir pode continuar assistindo alguém. */
       if (lerPalco().tipo === "transmitindo") fecharPalco();
       return;
     }
-    if (pub.source === Track.Source.Camera) definirChamada({ camera: false });
+    if (pub.source === Track.Source.Camera) {
+      definirChamada({ camera: false });
+      /* Mesma limpeza, e a câmera tinha o mesmo furo — só era menos visível
+         porque desligar a câmera quase sempre passa por `alternarCamera`. */
+      publicarVideoLocal(local, "camera", Track.Source.Camera, false);
+    }
   });
 
   /*
@@ -793,6 +820,7 @@ export async function alternarTela(): Promise<void> {
       await p.setScreenShareEnabled(false);
     } finally {
       definirChamada({ tela: false, telaPausada: false, telaAudio: "sem" });
+      publicarVideoLocal(p, "tela", Track.Source.ScreenShare, false);
       if (lerPalco().tipo === "transmitindo") fecharPalco();
     }
     return;
@@ -827,9 +855,39 @@ export async function alternarTela(): Promise<void> {
           ? "sem"
           : "ligado",
     });
-    /* O palco abre sozinho — é o sintoma relatado por quem usa, e a razão de
-       ele existir. Ver `store/palcoDeVoz.ts`. */
-    definirPalco({ tipo: "transmitindo" });
+    /*
+      ⚠ **A faixa local de TELA no store, e ela NUNCA esteve lá.**
+
+      `publicarVideoLocal` era chamado só para a câmera, então
+      `faixasDeVideo` conhecia a sua webcam e não o seu compartilhamento. Todo
+      consumidor que lê o store — o ladrilho da grade e o palco do popout —
+      procurava `chaveDeVideo(voce, "tela")` e não achava nada, exibindo o
+      xadrez de "ainda não chegou" para uma faixa que estava publicada e
+      rodando. Sem erro nenhum: `undefined` é o mesmo valor de "esta pessoa
+      não está transmitindo".
+
+      A prancha escapava porque tem um caminho PRÓPRIO (`faixaDeTela()`, um
+      getter direto no `localParticipant`) — e é exatamente o segundo caminho
+      que o comentário de `publicarVideoLocal` diz existir para evitar. Ele
+      mascarou a ausência: a única tela onde a própria transmissão aparecia
+      era a única que não usava o store.
+
+      Relatado por quem usa, transmitindo de verdade: "a tela não aparece ali
+      na popup".
+    */
+    publicarVideoLocal(p, "tela", Track.Source.ScreenShare, true);
+    /*
+      ⚠ **A SALA, e nao a prancha de transmissao.** Comecar a transmitir abria
+      `PalcoDeTransmissao` em cima do app inteiro — quem usa relatou a tela
+      cheia de HUD com rail, canais e membros desaparecidos, e nenhuma forma de
+      voltar sem parar de transmitir.
+
+      O sintoma original que este `definirPalco` resolve continua resolvido: a
+      sala mostra a sua tela como PREVIA num ladrilho, com o selo de ao vivo e
+      o botao de parar. O que se perdeu foi so a tomada de conta — a prancha
+      continua a um clique, pelo ladrilho, para quem quiser o HUD inteiro.
+    */
+    definirPalco({ tipo: "grade" });
   } catch (e) {
     definirChamada({ tela: false, telaPausada: false, telaAudio: "sem" });
     void ponte?.cancelar();

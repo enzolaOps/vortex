@@ -2,14 +2,12 @@ import type { ReactNode } from "react";
 
 import { Amigos } from "../casa/Amigos";
 import { CabecalhoDeCanal } from "../canais/CabecalhoDeCanal";
-import { CartaoDeChamada } from "../voz/CartaoDeChamada";
-import { PalcoDeVoz } from "../voz/PalcoDeVoz";
-import { Composer } from "../composer/Composer";
+import { Popout } from "../voz/Popout";
+import { ComposerDoCanal, ConteudoDoCanal } from "./ConteudoDoCanal";
 import { Configuracoes } from "../config/Configuracoes";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { ListaDeCanais } from "../canais/ListaDeCanais";
 import { ListaDeMembros } from "../membros/ListaDeMembros";
-import { MessageList } from "../list/MessageList";
 import { Modais } from "../components/ui/Modais";
 import { Drawer } from "../shell/Drawer";
 import { PainelDeEdicao } from "../layout/PainelDeEdicao";
@@ -98,7 +96,13 @@ export function Cliente({ ferramentas }: { ferramentas?: ReactNode }) {
         naCasaDeAmigos ? (
           <Amigos />
         ) : canal ? (
-          <MessageList key={canal} channelId={canal} />
+          /*
+            ⚠ **Quem escolhe entre a conversa e a SALA DE VOZ é ele, e não este
+            componente.** A escolha depende do store de chamada, e assiná-lo
+            aqui faria o shell inteiro re-renderizar a cada mudo, câmera ou
+            participante entrando. Ver `ConteudoDoCanal`.
+          */
+          <ConteudoDoCanal channelId={canal} />
         ) : (
           <EstadoVazio
             preenche
@@ -107,7 +111,9 @@ export function Cliente({ ferramentas }: { ferramentas?: ReactNode }) {
           />
         )
       }
-      composer={canal && !naCasaDeAmigos ? <Composer channelId={canal} /> : undefined}
+      composer={
+        canal && !naCasaDeAmigos ? <ComposerDoCanal channelId={canal} /> : undefined
+      }
       sobreposto={
         <>
           <PainelDeEdicao />
@@ -119,26 +125,16 @@ export function Cliente({ ferramentas }: { ferramentas?: ReactNode }) {
               atrás, com as linhas medidas. Ver `store/config.ts`. */}
           <Configuracoes />
           {/*
-            O cartão de chamada vive AQUI, na camada sobreposta, e não dentro
+            O popout da chamada vive AQUI, na camada sobreposta, e não dentro
             da coluna de canal.
 
             ⚠ Ele estava na coluna, e o defeito só apareceu no navegador: a
             coluna só existe quando há canal aberto, então ir para a casa
-            durante uma chamada fazia o cartão SUMIR — exatamente o caso que o
-            modo compacto existia para cobrir. Uma chamada que desaparece é uma
-            chamada que a pessoa acha que caiu.
+            durante uma chamada fazia a chamada SUMIR da tela. Uma chamada que
+            desaparece é uma chamada que a pessoa acha que caiu. A âncora dele
+            é a JANELA.
           */}
-          <CartaoDeChamada />
-          {/*
-            O palco de transmissão, SOBRE o shell — a lista continua montada
-            atrás, com as linhas medidas, como nas configurações.
-
-            ⚠ Ele abre sozinho quando a transmissão começa. Antes disso,
-            compartilhar a tela acendia um botão e mais nada acontecia na
-            interface: sem prévia, sem selo de ao vivo, sem forma de parar
-            que não fosse o mesmo botão. Ver `store/palcoDeVoz.ts`.
-          */}
-          <PalcoDeVoz />
+          <Popout />
         </>
       }
     />

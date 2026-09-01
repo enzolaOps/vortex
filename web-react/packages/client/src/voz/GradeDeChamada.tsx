@@ -225,6 +225,18 @@ const Ladrilho = memo(function Ladrilho({
   const oradorEstavel = useOradorEstavel(ativo);
 
   useVideo(userId, "camera", temCamera && !eu);
+  /*
+    ⚠ **A PRÉVIA da transmissão, e ela é a metade que faltava.** Antes daqui um
+    ladrilho de quem transmite mostrava o avatar e um botão "Assistir" — a
+    grade sabia que havia uma tela no ar e não mostrava nada dela, então
+    decidir se valia entrar exigia entrar.
+
+    `!eu` como na câmera: a sua própria faixa não vem pela rede. Ela já está no
+    store por `publicarVideoLocal`, então o `<FaixaDeVideo>` abaixo a encontra
+    sem pedir nada — e pedir seria pedir ao servidor a faixa que você mesmo
+    está enviando.
+  */
+  useVideo(userId, "tela", transmitindo && !eu);
 
   const destaque = disposicao === "orador" ? oradorEstavel : grande;
 
@@ -233,7 +245,10 @@ const Ladrilho = memo(function Ladrilho({
       className={css.ladrilho}
       data-falando={ativo}
       data-grande={destaque}
-      data-video={temCamera}
+      data-video={temCamera || transmitindo}
+      /* Um stream ocupa 2×2 por padrão: numa célula de 84px a tela de alguém
+         não é legível, e uma prévia ilegível é a mesma coisa que nenhuma. */
+      data-tela={transmitindo}
     >
       {/*
         ⚠ **O avatar fica SEMPRE, e o vídeo cobre.** A primeira versão
@@ -249,7 +264,16 @@ const Ladrilho = memo(function Ladrilho({
         url={pessoa?.avatarUrl}
         tamanho={destaque ? "lg" : "md"}
       />
-      {temCamera ? (
+      {/*
+        ⚠ **A tela ganha da câmera quando as duas estão no ar.** É o que o
+        Discord faz e é o que a atenção pede: quem transmite está mostrando
+        alguma coisa, e a webcam dessa pessoa é o contexto, não o conteúdo. Um
+        ladrilho por fonte dobraria a grade e faria a mesma pessoa aparecer
+        duas vezes.
+      */}
+      {transmitindo ? (
+        <FaixaDeVideo userId={userId} fonte="tela" className={css.video} />
+      ) : temCamera ? (
         <FaixaDeVideo
           userId={userId}
           fonte="camera"
@@ -294,13 +318,25 @@ const Ladrilho = memo(function Ladrilho({
         </button>
       </Tooltip>
 
+      {/*
+        ⚠ **O seu ladrilho leva à PRANCHA, o dos outros ao "assistindo".** São
+        telas diferentes com públicos diferentes: a prancha tem o HUD de quem
+        transmite (pausar, trocar de fonte, qualidade, parar), e o "assistindo"
+        tem os controles de quem olha (volume, qualidade recebida, fila). Um
+        botão só que abrisse a mesma tela para os dois daria a metade errada
+        das ações para cada lado.
+      */}
       {transmitindo ? (
         <button
           type="button"
           className={css.assistir}
-          onClick={() => definirPalco({ tipo: "assistindo", userId })}
+          onClick={() =>
+            definirPalco(
+              eu ? { tipo: "transmitindo" } : { tipo: "assistindo", userId },
+            )
+          }
         >
-          Assistir
+          {eu ? "Ver transmissão" : "Assistir"}
         </button>
       ) : null}
     </div>
