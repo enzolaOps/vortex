@@ -1,4 +1,8 @@
-import { At, ChatCircleDots } from "@phosphor-icons/react";
+import {
+  At,
+  ChatCircleDots,
+  ICONE,
+} from "../components/ui/icones";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useRef, useSyncExternalStore } from "react";
 
@@ -41,6 +45,7 @@ import { assinarBusca, lerBusca, selecionarResultado } from "../store/busca";
 import { useChannelMessageIds } from "../store/hooks";
 import css from "./MessageList.module.css";
 import { MenuDaMensagem, MessageRow } from "./MessageRow";
+import { SeletorDeReacaoDaLista } from "./SeletorDeReacaoDaLista";
 
 /**
  * Quão longe do fim ainda conta como "no fim".
@@ -1225,7 +1230,7 @@ export function MessageList({ channelId }: { channelId: string }) {
       <div className={`${css.scroll} flex flex-col justify-end`}>
         <div className={css.coluna}>
           <EstadoVazio
-            icone={<ChatCircleDots size={20} />}
+            icone={<ChatCircleDots size={ICONE.calha} />}
             titulo="Este é o começo do canal."
             detalhe="Ainda não há nada aqui — o que você escrever será a primeira mensagem."
             acao={{
@@ -1369,7 +1374,7 @@ export function MessageList({ channelId }: { channelId: string }) {
             if (i !== -1) virtualizer.scrollToIndex(i, { align: "center" });
           }}
         >
-          <At size={20} aria-hidden />
+          <At aria-hidden />
           próxima menção
         </button>
       ) : null}
@@ -1405,6 +1410,11 @@ export function MessageList({ channelId }: { channelId: string }) {
       </ContextMenuTrigger>
 
       <MenuDaMensagem />
+
+      {/* Um seletor de emoji para a lista inteira — ver o componente: a barra
+          de ações e o "＋" são montados em toda linha, e um `Popover.Root` em
+          cada seria o custo que tirou o `ContextMenu` da linha. */}
+      <SeletorDeReacaoDaLista />
     </ContextMenu>
   );
 }

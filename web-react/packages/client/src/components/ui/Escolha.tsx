@@ -1,4 +1,4 @@
-import { CaretDown } from "@phosphor-icons/react";
+import { CaretDown } from "./icones";
 
 import { cn } from "../../lib/cn";
 

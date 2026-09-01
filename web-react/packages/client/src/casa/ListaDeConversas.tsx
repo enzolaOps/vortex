@@ -1,4 +1,10 @@
-import { Gear, Note, Plus, Users } from "@phosphor-icons/react";
+import {
+  Gear,
+  ICONE,
+  Note,
+  Plus,
+  Users,
+} from "../components/ui/icones";
 import { memo } from "react";
 
 import { EstadoVazio } from "../components/ui/EstadoVazio";
@@ -86,9 +92,9 @@ const Conversa = memo(function Conversa({
         {canal.tipo === "grupo" && canal.iconeUrl !== undefined ? (
           <img className={css.imagemDoGrupo} src={canal.iconeUrl} alt="" />
         ) : canal.tipo === "grupo" ? (
-          <Users size={20} />
+          <Users size={ICONE.calha} />
         ) : canal.tipo === "notas" ? (
-          <Note size={20} />
+          <Note size={ICONE.calha} />
         ) : (
           (outro?.sigla ?? "?")
         )}
@@ -144,7 +150,7 @@ const Conversa = memo(function Conversa({
         <ContextMenuItem
           onSelect={() => administrar({ tipo: "grupo", channelId: id })}
         >
-          <Gear size={20} aria-hidden />
+          <Gear size={ICONE.calha} aria-hidden />
           Gerenciar grupo
         </ContextMenuItem>
         <ItemDeId id={id} />
@@ -176,7 +182,7 @@ export function ListaDeConversas() {
             aria-label="Novo grupo"
             onClick={() => administrar({ tipo: "novoGrupo" })}
           >
-            <Plus size={16} aria-hidden />
+            <Plus size={ICONE.controle} aria-hidden />
           </button>
         </Tooltip>
       </header>
@@ -195,7 +201,7 @@ export function ListaDeConversas() {
         onClick={() => irParaAmigos()}
       >
         <span className={css.marca} aria-hidden>
-          <Users size={20} />
+          <Users size={ICONE.calha} />
         </span>
         <span className={css.nome}>Amigos</span>
       </button>

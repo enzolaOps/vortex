@@ -1,4 +1,9 @@
-import { Check, Hash, UsersThree } from "@phosphor-icons/react";
+import {
+  Check,
+  Hash,
+  ICONE,
+  UsersThree,
+} from "../components/ui/icones";
 
 import {
   ContextMenuItem,
@@ -90,7 +95,7 @@ export function SubmenuDeCargos({
             >
               {/* Espaço reservado sempre: sem ele os nomes dançam para a
                   esquerda conforme os cargos são marcados. */}
-              <span aria-hidden>{tem ? <Check size={20} /> : null}</span>
+              <span aria-hidden>{tem ? <Check size={ICONE.calha} /> : null}</span>
               {c.nome}
             </ContextMenuItem>
           );

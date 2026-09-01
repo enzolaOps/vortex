@@ -1,4 +1,8 @@
-import { Hash, SpeakerHigh } from "@phosphor-icons/react";
+import {
+  Hash,
+  ICONE,
+  SpeakerHigh,
+} from "../components/ui/icones";
 import { useEffect, useRef, useState } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
@@ -383,7 +387,7 @@ function Personalizar({
           {canais.map((c) => (
             <li key={`${c.nome}-${String(c.voz)}`} className={css.canal}>
               <span className={css.canalGlifo} aria-hidden>
-                {c.voz ? <SpeakerHigh size={14} /> : <Hash size={14} />}
+                {c.voz ? <SpeakerHigh size={ICONE.metadado} /> : <Hash size={ICONE.metadado} />}
               </span>
               {c.nome}
             </li>

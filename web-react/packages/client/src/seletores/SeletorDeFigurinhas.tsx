@@ -1,4 +1,4 @@
-import { ClockCounterClockwise, LockSimple } from "@phosphor-icons/react";
+import { ClockCounterClockwise, LockSimple } from "../components/ui/icones";
 import { useState } from "react";
 
 import { aindaNao } from "../pendente/pendencias";

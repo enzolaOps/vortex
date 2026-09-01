@@ -87,6 +87,15 @@ export type Alvo =
   */
   | { readonly tipo: "novoGrupo" }
   | { readonly tipo: "grupo"; readonly channelId: string }
+  /**
+   * O perfil de alguém, como modal.
+   *
+   * `serverId` pode ser vazio: fora de servidor — numa DM, ou na tela de
+   * assistir a uma transmissão — não há apelido nem cargo, e o corpo do perfil
+   * já trata a ausência. Exigir servidor aqui tornaria o perfil inalcançável
+   * exatamente onde `perfilNaChamada` o pedia.
+   */
+  | { readonly tipo: "perfil"; readonly serverId: string; readonly userId: string }
   | { readonly tipo: "privacidadeDoServidor"; readonly serverId: string }
   | {
       readonly tipo: "apelido";
@@ -153,6 +162,7 @@ const MODAL_DE: Record<
   | "privacidadeDoServidor"
   | "apelido"
   | "pasta"
+  | "perfil"
 > = {
   criarCanal: "canal",
   editarCanal: "canal",
@@ -173,6 +183,7 @@ const MODAL_DE: Record<
   grupo: "grupo",
   privacidadeDoServidor: "privacidadeDoServidor",
   apelido: "apelido",
+  perfil: "perfil",
 };
 
 /** Estado limpo entre testes. O módulo é global e sobrevive. */

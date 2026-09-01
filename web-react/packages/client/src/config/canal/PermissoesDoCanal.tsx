@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, Minus, X } from "@phosphor-icons/react";
+import { ArrowLeft, Check, Minus, X } from "../../components/ui/icones";
 import { useEffect, useState } from "react";
 
 import { Botao } from "../../components/ui/Botao";

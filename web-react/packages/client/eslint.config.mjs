@@ -275,6 +275,23 @@ export default tseslint.config(
               message:
                 "Radix só pode ser importado em src/components/ui/. Feature usa o wrapper, nunca o primitivo — é o que mantém a troca por Base UI viável.",
             },
+            {
+              /**
+               * A família de ícone só existe em `components/ui/icones.ts`.
+               *
+               * ⚠ **Sem esta regra o ponto único não vale nada, e a prova é a
+               * história:** ele foi criado depois de 56 arquivos já
+               * importarem `@phosphor-icons/react` direto, com 89 ícones em
+               * DEZ tamanhos. Nada falhou — cada import era válido, e a
+               * inconsistência só aparecia olhando a tela.
+               *
+               * Mesma razão do Radix logo acima: com a fronteira, trocar de
+               * família é um arquivo; sem ela, é varredura de 56.
+               */
+              group: ["@phosphor-icons/*"],
+              message:
+                "Ícone vem de components/ui/icones.ts, nunca do pacote direto. É o que mantém a família trocável num arquivo só — e o que impede voltar aos dez tamanhos livres.",
+            },
           ],
           paths: [
             {
@@ -337,7 +354,10 @@ export default tseslint.config(
   {
     // Os wrappers SAO a fronteira: aqui o import de Radix e o trabalho,
     // nao a violacao.
-    files: ["src/components/ui/**/*.tsx"],
+    // ⚠ `.ts` também, e a extensão importa: `icones.ts` é a fronteira da
+    // família de ícone e não tem JSX, então um glob só de `.tsx` reprovaria
+    // exatamente o arquivo que existe para conter o import.
+    files: ["src/components/ui/**/*.{ts,tsx}"],
     rules: { "no-restricted-imports": "off" },
   },
 );

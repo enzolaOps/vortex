@@ -1,4 +1,9 @@
-import { Minus, Square, X } from "@phosphor-icons/react";
+import {
+  ICONE,
+  Minus,
+  Square,
+  X,
+} from "../components/ui/icones";
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { cn } from "../lib/cn";
@@ -79,7 +84,7 @@ export function BarraDeTitulo() {
         aria-label="Minimizar"
         onClick={() => void p?.janela("minimizar")}
       >
-        <Minus size={14} aria-hidden />
+        <Minus size={ICONE.metadado} aria-hidden />
       </button>
       <button
         type="button"
@@ -87,7 +92,7 @@ export function BarraDeTitulo() {
         aria-label={janela.maximizada ? "Restaurar" : "Maximizar"}
         onClick={() => void p?.janela(janela.maximizada ? "restaurar" : "maximizar")}
       >
-        <Square size={12} aria-hidden />
+        <Square size={ICONE.selo} aria-hidden />
       </button>
       <button
         type="button"
@@ -95,7 +100,7 @@ export function BarraDeTitulo() {
         aria-label="Fechar"
         onClick={() => void p?.janela("fechar")}
       >
-        <X size={14} aria-hidden />
+        <X size={ICONE.metadado} aria-hidden />
       </button>
     </div>
   );

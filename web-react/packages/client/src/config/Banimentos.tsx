@@ -1,4 +1,7 @@
-import { MagnifyingGlass } from "@phosphor-icons/react";
+import {
+  ICONE,
+  MagnifyingGlass,
+} from "../components/ui/icones";
 import { useEffect, useState } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
@@ -78,7 +81,7 @@ export function Banimentos({ serverId }: { serverId: string }) {
     <div className={css.pagina}>
       <div className={css.controles}>
         <div className={css.campo}>
-          <MagnifyingGlass size={16} aria-hidden />
+          <MagnifyingGlass size={ICONE.controle} aria-hidden />
           <input
             type="search"
             className={css.entrada}

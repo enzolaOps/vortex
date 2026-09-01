@@ -1,4 +1,5 @@
 import {
+  ICONE,
   Microphone,
   MicrophoneSlash,
   PhoneX,
@@ -6,7 +7,7 @@ import {
   VideoCamera,
   VideoCameraSlash,
   X,
-} from "@phosphor-icons/react";
+} from "../components/ui/icones";
 import {
   memo,
   useEffect,
@@ -166,7 +167,7 @@ export function Popout() {
               aria-label="Minimizar a janela da chamada"
               onClick={() => definirFormaDoPopout("pip")}
             >
-              <PictureInPicture size={13} aria-hidden />
+              <PictureInPicture size={ICONE.metadado} aria-hidden />
             </button>
           </Tooltip>
           <Tooltip texto="Fechar a janela" lado="abaixo">
@@ -176,7 +177,7 @@ export function Popout() {
               aria-label="Fechar a janela da chamada"
               onClick={() => definirFormaDoPopout("fechado")}
             >
-              <X size={13} aria-hidden />
+              <X size={ICONE.metadado} aria-hidden />
             </button>
           </Tooltip>
         </header>
@@ -224,9 +225,9 @@ export function Popout() {
               onClick={() => void alternarMudo()}
             >
               {chamada.mudo ? (
-                <MicrophoneSlash size={13} aria-hidden />
+                <MicrophoneSlash size={ICONE.metadado} aria-hidden />
               ) : (
-                <Microphone size={13} aria-hidden />
+                <Microphone size={ICONE.metadado} aria-hidden />
               )}
             </BotaoRedondo>
             <BotaoRedondo
@@ -235,7 +236,7 @@ export function Popout() {
               acao="Sair da chamada"
               onClick={() => void sairDaChamada()}
             >
-              <PhoneX size={13} aria-hidden />
+              <PhoneX size={ICONE.metadado} aria-hidden />
             </BotaoRedondo>
           </div>
         ) : null}
@@ -258,9 +259,9 @@ export function Popout() {
             onClick={() => void alternarMudo()}
           >
             {chamada.mudo ? (
-              <MicrophoneSlash size={15} aria-hidden />
+              <MicrophoneSlash size={ICONE.controle} aria-hidden />
             ) : (
-              <Microphone size={15} aria-hidden />
+              <Microphone size={ICONE.controle} aria-hidden />
             )}
           </BotaoRedondo>
           <BotaoRedondo
@@ -270,9 +271,9 @@ export function Popout() {
             onClick={() => void alternarCamera()}
           >
             {chamada.camera ? (
-              <VideoCamera size={15} aria-hidden />
+              <VideoCamera size={ICONE.controle} aria-hidden />
             ) : (
-              <VideoCameraSlash size={15} aria-hidden />
+              <VideoCameraSlash size={ICONE.controle} aria-hidden />
             )}
           </BotaoRedondo>
           <BotaoRedondo
@@ -281,7 +282,7 @@ export function Popout() {
             acao="Sair da chamada"
             onClick={() => void sairDaChamada()}
           >
-            <PhoneX size={15} aria-hidden />
+            <PhoneX size={ICONE.controle} aria-hidden />
           </BotaoRedondo>
         </footer>
       )}

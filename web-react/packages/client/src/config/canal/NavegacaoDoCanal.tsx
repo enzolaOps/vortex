@@ -1,4 +1,4 @@
-import { Hash, SpeakerHigh } from "@phosphor-icons/react";
+import { Hash, SpeakerHigh } from "../../components/ui/icones";
 
 import { copiarTexto } from "../../lib/copiar";
 import type { ChannelSnapshot } from "../../sdk/domain";

@@ -5,7 +5,7 @@ import {
   PushPin,
   Tray,
   Users,
-} from "@phosphor-icons/react";
+} from "../components/ui/icones";
 import { useSyncExternalStore } from "react";
 
 import { cn } from "../lib/cn";
@@ -86,9 +86,9 @@ function BotaoDeSilencio({ channelId }: { channelId: string }) {
         onClick={() => alternarSilencio(channelId)}
       >
         {silenciado ? (
-          <BellSimpleSlash size={20} weight="fill" />
+          <BellSimpleSlash weight="fill" />
         ) : (
-          <BellSimple size={20} />
+          <BellSimple />
         )}
       </button>
     </Tooltip>
@@ -142,23 +142,23 @@ export function AcoesDoCanal({ channelId, nome }: { channelId: string; nome: str
   return (
     <div className={css.acoes}>
       <BotaoPendente id="topicos" rotulo="Tópicos">
-        <ChatsCircle size={20} />
+        <ChatsCircle />
       </BotaoPendente>
 
       <BotaoDeSilencio channelId={channelId} />
 
       <BotaoDePainel painel="fixados">
-        <PushPin size={20} />
+        <PushPin />
       </BotaoDePainel>
 
       <BotaoDePainel painel="membros">
-        <Users size={20} />
+        <Users />
       </BotaoDePainel>
 
       {/* Deixou de ser pendência: o painel existe e o dado já estava no
           snapshot do canal. Ver `caixa/CaixaDeEntrada.tsx`. */}
       <BotaoDePainel painel="caixaDeEntrada">
-        <Tray size={20} />
+        <Tray />
       </BotaoDePainel>
 
       {/*

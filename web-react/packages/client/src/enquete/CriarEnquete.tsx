@@ -1,4 +1,4 @@
-import { CaretDown, DotsSixVertical, Plus, Smiley, X } from "@phosphor-icons/react";
+import { CaretDown, DotsSixVertical, Plus, Smiley, X } from "../components/ui/icones";
 import { useRef, useState } from "react";
 
 import { Botao } from "../components/ui/Botao";
@@ -12,6 +12,12 @@ import {
   DropdownMenuTrigger,
 } from "../components/ui/DropdownMenu";
 import { aindaNao } from "../pendente/pendencias";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../components/ui/Popover";
+import { SeletorDeEmoji } from "../seletores/SeletorDeEmoji";
 import css from "./Enquete.module.css";
 
 /** Quantas respostas cabem. O número é do design ("até 10"). */
@@ -42,6 +48,7 @@ const DURACOES = ["8 horas", "1 dia", "3 dias", "1 semana"] as const;
  */
 export function CriarEnquete({ aoFechar }: { aoFechar: () => void }) {
   const [pergunta, setPergunta] = useState("");
+  const [emojiAberto, setEmojiAberto] = useState(false);
   /*
     ⚠ **Cada resposta tem ID PRÓPRIO, e não é preciosismo — foi o lint.**
 
@@ -138,14 +145,26 @@ export function CriarEnquete({ aoFechar }: { aoFechar: () => void }) {
         <fieldset className={css.grupo}>
           <legend className={css.rotulo}>Pergunta</legend>
           <div className={css.campo}>
-            <button
-              type="button"
-              className={css.campoGlifo}
-              aria-label="Emoji na pergunta"
-              onClick={aindaNao("emoji")}
-            >
-              <Smiley aria-hidden />
-            </button>
+            {/* Ver o assunto do canal: um por formulário é barato. */}
+            <Popover open={emojiAberto} onOpenChange={setEmojiAberto}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className={css.campoGlifo}
+                  aria-label="Emoji na pergunta"
+                >
+                  <Smiley aria-hidden />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="bottom" align="start" sideOffset={6}>
+                <SeletorDeEmoji
+                  aoEscolher={(glifo) => {
+                    setPergunta(pergunta + glifo);
+                    setEmojiAberto(false);
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
             <input
               className={css.campoEntrada}
               value={pergunta}

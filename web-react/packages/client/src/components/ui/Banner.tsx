@@ -3,7 +3,7 @@ import {
   Info,
   WarningCircle,
   WarningOctagon,
-} from "@phosphor-icons/react";
+} from "./icones";
 import type { HTMLAttributes, ReactNode } from "react";
 
 import { cn } from "../../lib/cn";

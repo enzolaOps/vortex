@@ -1,5 +1,6 @@
 import { useSyncExternalStore, type ComponentType } from "react";
 
+import { ModalDePerfil } from "../../membros/ModalDePerfil";
 import { Paleta } from "../../paleta/Paleta";
 import { AdicionarServidor } from "../../servidores/AdicionarServidor";
 import { ModalDeCanal } from "../../servidores/ModalDeCanal";
@@ -40,6 +41,7 @@ import { SeletorDeTela } from "../../voz/SeletorDeTela";
  */
 const REGISTRO: Record<ModalId, ComponentType<{ aoFechar: () => void }>> = {
   paleta: Paleta,
+  perfil: ModalDePerfil,
   adicionarServidor: AdicionarServidor,
   canal: ModalDeCanal,
   exclusao: ModalDeExclusao,

@@ -1,4 +1,7 @@
-import { CaretDown } from "@phosphor-icons/react";
+import {
+  CaretDown,
+  ICONE,
+} from "../components/ui/icones";
 import { useState, useSyncExternalStore } from "react";
 
 import { Deslizante } from "../components/ui/Deslizante";
@@ -167,7 +170,7 @@ export function PickerDePaleta() {
           aria-expanded={ajustando}
           onClick={() => setAjustando((v) => !v)}
         >
-          <CaretDown size={20} aria-hidden data-aberto={ajustando} className={css.caret} />
+          <CaretDown size={ICONE.calha} aria-hidden data-aberto={ajustando} className={css.caret} />
           ajuste fino
         </button>
 

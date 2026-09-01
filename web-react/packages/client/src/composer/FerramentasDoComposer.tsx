@@ -5,7 +5,7 @@ import {
   MusicNotes,
   Smiley,
   Sticker,
-} from "@phosphor-icons/react";
+} from "../components/ui/icones";
 import type { ComponentType, ReactNode } from "react";
 
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/Popover";
@@ -113,7 +113,7 @@ export function FerramentasDoComposer({
               disabled={desabilitado}
               onClick={f.acao}
             >
-              <f.Icone size={20} />
+              <f.Icone />
             </button>
           </Tooltip>
         ),
@@ -156,7 +156,7 @@ function SeletorEmPopover({
             */
             disabled={desabilitado}
           >
-            <ferramenta.Icone size={20} />
+            <ferramenta.Icone />
           </button>
         </PopoverTrigger>
       </Tooltip>

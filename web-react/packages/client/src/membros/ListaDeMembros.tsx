@@ -1,4 +1,9 @@
-import { Hammer, ProhibitInset, SignOut } from "@phosphor-icons/react";
+import {
+  Hammer,
+  ICONE,
+  ProhibitInset,
+  SignOut,
+} from "../components/ui/icones";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   memo,
@@ -209,7 +214,7 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
       */}
       {silenciado ? (
         <>
-          <ProhibitInset size={20} aria-hidden className={css.castigo} />
+          <ProhibitInset aria-hidden className={css.castigo} />
           <span className="sr-only">em castigo</span>
         </>
       ) : null}
@@ -251,7 +256,7 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
               administrar({ tipo: "moderar", serverId, userId: id, acao: "castigo" })
             }
           >
-            <ProhibitInset size={20} aria-hidden />
+            <ProhibitInset size={ICONE.calha} aria-hidden />
             {silenciado ? "Rever castigo" : "Deixar de castigo"}
           </ContextMenuItem>
         ) : null}
@@ -263,7 +268,7 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
               administrar({ tipo: "moderar", serverId, userId: id, acao: "expulsar" })
             }
           >
-            <SignOut size={20} aria-hidden />
+            <SignOut size={ICONE.calha} aria-hidden />
             Expulsar
           </ContextMenuItem>
         ) : null}
@@ -275,7 +280,7 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
               administrar({ tipo: "moderar", serverId, userId: id, acao: "banir" })
             }
           >
-            <Hammer size={20} aria-hidden />
+            <Hammer size={ICONE.calha} aria-hidden />
             Banir
           </ContextMenuItem>
         ) : null}

@@ -4,7 +4,7 @@ import {
   Microphone,
   MicrophoneSlash,
   SpeakerSlash,
-} from "@phosphor-icons/react";
+} from "../components/ui/icones";
 import { useState, useSyncExternalStore } from "react";
 
 import { Campo } from "../components/ui/Campo";
@@ -249,9 +249,9 @@ export function PainelDeUsuario() {
             onClick={() => void alternarMudo()}
           >
             {chamada.mudo ? (
-              <MicrophoneSlash size={20} weight="fill" />
+              <MicrophoneSlash weight="fill" />
             ) : (
-              <Microphone size={20} />
+              <Microphone />
             )}
           </button>
         </Tooltip>
@@ -265,9 +265,9 @@ export function PainelDeUsuario() {
             onClick={() => void alternarSurdo()}
           >
             {chamada.surdo ? (
-              <SpeakerSlash size={20} weight="fill" />
+              <SpeakerSlash weight="fill" />
             ) : (
-              <Headphones size={20} />
+              <Headphones />
             )}
           </button>
         </Tooltip>
@@ -279,7 +279,7 @@ export function PainelDeUsuario() {
             aria-label="Configurações"
             onClick={() => abrirConfig("perfil")}
           >
-            <GearSix size={20} />
+            <GearSix />
           </button>
         </Tooltip>
       </div>

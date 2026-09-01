@@ -1,6 +1,7 @@
 import {
   ArrowsOut,
   Check,
+  ICONE,
   Microphone,
   MicrophoneSlash,
   Monitor,
@@ -10,7 +11,7 @@ import {
   Users,
   VideoCamera,
   VideoCameraSlash,
-} from "@phosphor-icons/react";
+} from "../components/ui/icones";
 import {
   memo,
   useCallback,
@@ -156,7 +157,7 @@ export function AssistirTransmissao({ userId }: { userId: string }) {
           quem está na sala seria afirmar na tela algo que ninguém mediu.
         */}
         <span className={css.chip}>
-          <Users size={13} aria-hidden />
+          <Users size={ICONE.metadado} aria-hidden />
           {chamada.participantes.length}
         </span>
 
@@ -169,7 +170,7 @@ export function AssistirTransmissao({ userId }: { userId: string }) {
               aria-label="Tela cheia"
               onClick={emTelaCheia}
             >
-              <ArrowsOut size={17} aria-hidden />
+              <ArrowsOut size={ICONE.controle} aria-hidden />
             </button>
           </Tooltip>
         </div>
@@ -277,7 +278,7 @@ export function AssistirTransmissao({ userId }: { userId: string }) {
             >
               {NOME_DA_QUALIDADE[q]}
               {qualidade === q ? (
-                <Check size={12} className={css.marca} aria-hidden />
+                <Check size={ICONE.selo} className={css.marca} aria-hidden />
               ) : null}
             </button>
           ))}
@@ -312,9 +313,9 @@ export function AssistirTransmissao({ userId }: { userId: string }) {
           onClick={() => void alternarMudo()}
         >
           {chamada.mudo ? (
-            <MicrophoneSlash size={15} aria-hidden />
+            <MicrophoneSlash size={ICONE.controle} aria-hidden />
           ) : (
-            <Microphone size={15} aria-hidden />
+            <Microphone size={ICONE.controle} aria-hidden />
           )}
         </ControleRedondo>
 
@@ -326,9 +327,9 @@ export function AssistirTransmissao({ userId }: { userId: string }) {
           onClick={() => void alternarSurdo()}
         >
           {chamada.surdo ? (
-            <SpeakerSlash size={15} aria-hidden />
+            <SpeakerSlash size={ICONE.controle} aria-hidden />
           ) : (
-            <SpeakerHigh size={15} aria-hidden />
+            <SpeakerHigh size={ICONE.controle} aria-hidden />
           )}
         </ControleRedondo>
 
@@ -339,9 +340,9 @@ export function AssistirTransmissao({ userId }: { userId: string }) {
           onClick={() => void alternarCamera()}
         >
           {chamada.camera ? (
-            <VideoCamera size={15} aria-hidden />
+            <VideoCamera size={ICONE.controle} aria-hidden />
           ) : (
-            <VideoCameraSlash size={15} aria-hidden />
+            <VideoCameraSlash size={ICONE.controle} aria-hidden />
           )}
         </ControleRedondo>
 
@@ -356,7 +357,7 @@ export function AssistirTransmissao({ userId }: { userId: string }) {
           className={css.transmitirTambem}
           onClick={() => void alternarTela()}
         >
-          <Monitor size={15} aria-hidden />
+          <Monitor size={ICONE.controle} aria-hidden />
           Transmitir também
         </button>
 
@@ -471,7 +472,7 @@ function BotaoDePip() {
           });
         }}
       >
-        <PictureInPicture size={17} aria-hidden />
+        <PictureInPicture size={ICONE.controle} aria-hidden />
       </button>
     </Tooltip>
   );

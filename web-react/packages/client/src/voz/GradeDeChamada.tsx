@@ -1,9 +1,10 @@
 import {
   ChatCircle,
+  ICONE,
   MicrophoneSlash,
   Monitor,
   PushPin,
-} from "@phosphor-icons/react";
+} from "../components/ui/icones";
 import { memo, useEffect, useState, useSyncExternalStore } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
@@ -92,7 +93,7 @@ export function GradeDeChamada() {
   return (
     <>
       <header className={css.cabecalho}>
-        <Monitor size={16} className={css.glifo} aria-hidden />
+        <Monitor size={ICONE.controle} className={css.glifo} aria-hidden />
         <span className={css.nomeDoCanal}>{canal?.name ?? "voz"}</span>
         <span className={css.nomeDoServidor}>{servidor?.name ?? ""}</span>
         <span className={css.contagem}>
@@ -130,7 +131,7 @@ export function GradeDeChamada() {
             aria-label="Voltar ao chat"
             onClick={fecharPalco}
           >
-            <ChatCircle size={17} aria-hidden />
+            <ChatCircle size={ICONE.controle} aria-hidden />
           </button>
         </Tooltip>
       </header>
@@ -291,10 +292,10 @@ const Ladrilho = memo(function Ladrilho({
           </>
         ) : null}
         {transmitindo ? (
-          <Monitor size={11} className={css.glifoDaPlaca} aria-label="transmitindo" />
+          <Monitor size={ICONE.selo} className={css.glifoDaPlaca} aria-label="transmitindo" />
         ) : null}
         {mudo ? (
-          <MicrophoneSlash size={11} className={css.glifoMudo} aria-label="mudo" />
+          <MicrophoneSlash size={ICONE.selo} className={css.glifoMudo} aria-label="mudo" />
         ) : null}
       </span>
 
@@ -314,7 +315,7 @@ const Ladrilho = memo(function Ladrilho({
           aria-pressed={fixado}
           onClick={fixado ? aoDesfixar : aoFixar}
         >
-          <PushPin size={13} weight={fixado ? "fill" : "regular"} aria-hidden />
+          <PushPin size={ICONE.metadado} weight={fixado ? "fill" : "regular"} aria-hidden />
         </button>
       </Tooltip>
 

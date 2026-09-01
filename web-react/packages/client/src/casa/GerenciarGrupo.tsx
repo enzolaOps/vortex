@@ -1,14 +1,23 @@
-import { PencilSimple } from "@phosphor-icons/react";
+import {
+  ICONE,
+  PencilSimple,
+} from "../components/ui/icones";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
+import { Botao } from "../components/ui/Botao";
+import { Opcao } from "../components/ui/Marcador";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { Selo } from "../components/ui/Selo";
-import { aindaNao } from "../pendente/pendencias";
+import { CaretLeft, MagnifyingGlass } from "../components/ui/icones";
+import { EstadoVazio } from "../components/ui/EstadoVazio";
+import { Candidata, Ficha, Filtrada, TETO } from "./NovoGrupo";
+import cssNovo from "./NovoGrupo.module.css";
 import { gradienteDe } from "../lib/gradiente";
 import { subirAnexo, temServidorDeMidia } from "../sdk/anexos";
 import { toast } from "../components/ui/toastStore";
 import {
+  adicionarAoGrupo,
   lerGrupo,
   removerDoGrupo,
   renomearGrupo,
@@ -17,7 +26,14 @@ import {
   trocarIconeDoGrupo,
 } from "../sdk/social";
 import { assinarAlvo, lerAlvo } from "../store/administracao";
-import { useChannel, usePessoa } from "../store/hooks";
+import { publicarRelacoes } from "../sdk/adapter";
+import {
+  NIVEIS_DE_NOTIFICACAO,
+  assinarSilencio,
+  definirNivelDoCanal,
+  nivelDoCanal,
+} from "../store/silencio";
+import { useChannel, usePessoa, useRelacao } from "../store/hooks";
 import { assinarSessao, lerSessao } from "../store/sessao";
 import css from "./GerenciarGrupo.module.css";
 
@@ -78,6 +94,221 @@ function Membro({
 }
 
 /**
+ * Modo do modal.
+ *
+ * ⚠ **Troca de tela DENTRO do mesmo modal, e não um segundo `Dialog` por
+ * cima.** A regra do registro de modais é "um por vez, de propósito": pilha de
+ * modais é a tela com três véus onde `Esc` fecha um e ninguém sabe qual. Aqui
+ * as três telas são a mesma conversa sobre o mesmo grupo — abrir um modal
+ * sobre o outro para escolher três amigos seria maquinário para uma volta.
+ */
+type Modo = "membros" | "adicionar" | "notificacoes";
+
+/**
+ * Escolher quem entra no grupo.
+ *
+ * ⚠ **Reaproveita `Candidata`, `Filtrada` e `Ficha` do `NovoGrupo`** — foi o
+ * que o `depende` desta pendência pediu por extenso. Com os atuais fora da
+ * lista: oferecer alguém que já está dentro produz um clique que o servidor
+ * recusa, e a recusa chega como erro em vez de como "já está aqui".
+ */
+function Adicionar({
+  channelId,
+  jaDentro,
+  aoVoltar,
+}: {
+  channelId: string;
+  jaDentro: readonly string[];
+  aoVoltar: () => void;
+}) {
+  const amigos = useRelacao("amigo");
+  const [escolhidos, setEscolhidos] = useState<readonly string[]>([]);
+  const [busca, setBusca] = useState("");
+  const [enviando, setEnviando] = useState(false);
+
+  /* Mesma razão do `NovoGrupo`: agrupar relações é varredura sobre todo mundo,
+     então roda quando alguém OLHA. Quem olha agora também é esta tela, e ela
+     não passa pela de amigos. Sem isto a lista nasce vazia. */
+  useEffect(() => {
+    publicarRelacoes();
+  }, []);
+
+  /* De fora quem já está dentro — inclusive você. */
+  const dentro = new Set(jaDentro);
+  const disponiveis = amigos.filter((id) => !dentro.has(id));
+
+  /* O teto é do GRUPO e não da escolha: dez no total, e os atuais já ocupam
+     lugar. Contar só os marcados deixaria passar de dez, e o erro viria do
+     servidor depois do clique. */
+  const vagas = Math.max(0, TETO - jaDentro.length);
+  const cheio = escolhidos.length >= vagas;
+
+  function alternar(id: string) {
+    setEscolhidos((atual) =>
+      atual.includes(id)
+        ? atual.filter((x) => x !== id)
+        : atual.length < vagas
+          ? [...atual, id]
+          : atual,
+    );
+  }
+
+  return (
+    <>
+      <div className={css.tituloDaLista}>
+        <button type="button" className={css.acao} onClick={aoVoltar}>
+          <CaretLeft size={ICONE.selo} aria-hidden /> Voltar
+        </button>
+        <span className={css.sobrancelha}>
+          {vagas === 1 ? "1 vaga" : `${String(vagas)} vagas`}
+        </span>
+      </div>
+
+      {escolhidos.length > 0 ? (
+        <div className={cssNovo.fichas}>
+          {escolhidos.map((id) => (
+            <Ficha key={id} id={id} aoTirar={() => alternar(id)} />
+          ))}
+        </div>
+      ) : null}
+
+      <div className={cssNovo.campo}>
+        <MagnifyingGlass size={ICONE.controle} aria-hidden />
+        <input
+          type="search"
+          className={cssNovo.entrada}
+          placeholder="Buscar amigos"
+          aria-label="Buscar amigos"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+        />
+      </div>
+
+      {disponiveis.length === 0 ? (
+        <EstadoVazio
+          titulo="Todo mundo já está aqui"
+          detalhe="Seus amigos já fazem parte deste grupo. Peça amizade a mais gente para convidar."
+        />
+      ) : (
+        <div className={cssNovo.lista} role="group" aria-label="Amigos">
+          {disponiveis.map((id) => (
+            <Filtrada key={id} id={id} busca={busca}>
+              <Candidata
+                id={id}
+                marcada={escolhidos.includes(id)}
+                bloqueada={cheio && !escolhidos.includes(id)}
+                aoAlternar={() => alternar(id)}
+              />
+            </Filtrada>
+          ))}
+        </div>
+      )}
+
+      <div className={css.rodape}>
+        <Botao
+          variante="primario"
+          disabled={escolhidos.length === 0}
+          carregando={enviando}
+          rotuloCarregando="Adicionando…"
+          onClick={() => {
+            setEnviando(true);
+            /*
+              ⚠ **Uma chamada por pessoa, e `allSettled` e não `all`.** O
+              protocolo não tem adicionar em lote — `PUT /channels/{id}/recipients/{user}`
+              é um por vez. Com `all`, a primeira recusa abandonaria o
+              resultado das outras já em voo e a tela voltaria sem dizer quem
+              entrou; `allSettled` deixa contar as que passaram.
+            */
+            void Promise.allSettled(
+              escolhidos.map((id) => adicionarAoGrupo(channelId, id)),
+            )
+              .then((r) => {
+                const falhas = r.filter((x) => x.status === "rejected").length;
+                if (falhas > 0) {
+                  toast({
+                    tipo: "erro",
+                    titulo:
+                      falhas === escolhidos.length
+                        ? "Ninguém foi adicionado"
+                        : `${String(falhas)} não puderam entrar`,
+                    descricao: "Tente de novo em instantes.",
+                  });
+                }
+                aoVoltar();
+              })
+              .finally(() => setEnviando(false));
+          }}
+        >
+          {escolhidos.length === 0
+            ? "Adicionar"
+            : `Adicionar ${String(escolhidos.length)}`}
+        </Botao>
+      </div>
+    </>
+  );
+}
+
+/**
+ * O que notifica neste grupo.
+ *
+ * ⚠ **Três níveis e não a matriz da tela global.** A pergunta aqui é "quanto
+ * deste grupo me interessa", que tem três respostas; a global cruza evento ×
+ * forma de entrega porque ali a pergunta é "como eu quero ser avisado".
+ * Repetir a matriz por canal daria dezenas de células para uma escolha de três
+ * valores, e a pessoa abandonaria antes de responder.
+ */
+function Notificacoes({
+  channelId,
+  aoVoltar,
+}: {
+  channelId: string;
+  aoVoltar: () => void;
+}) {
+  const nivel = useSyncExternalStore(assinarSilencio, () =>
+    nivelDoCanal(channelId),
+  );
+
+  return (
+    <>
+      <div className={css.tituloDaLista}>
+        <button type="button" className={css.acao} onClick={aoVoltar}>
+          <CaretLeft size={ICONE.selo} aria-hidden /> Voltar
+        </button>
+        <span className={css.sobrancelha}>Notificações</span>
+      </div>
+
+      <div
+        className={css.lista}
+        role="radiogroup"
+        aria-label="Notificações do grupo"
+      >
+        {/*
+          ⚠ **"Padrão" é uma opção de verdade, e não a ausência das outras
+          três.** Quem nunca escolheu deve acompanhar a mudança do padrão
+          global; quem escolheu "todas" quer todas mesmo que o padrão mude.
+          Sem esta linha não haveria como VOLTAR ao padrão depois de escolher.
+        */}
+        <Opcao
+          marcado={nivel === undefined}
+          aoEscolher={() => definirNivelDoCanal(channelId, undefined)}
+        >
+          Usar o padrão
+        </Opcao>
+        {NIVEIS_DE_NOTIFICACAO.map((n) => (
+          <Opcao
+            key={n.id}
+            marcado={nivel === n.id}
+            aoEscolher={() => definirNivelDoCanal(channelId, n.id)}
+          >
+            {n.rotulo}
+          </Opcao>
+        ))}
+      </div>
+    </>
+  );
+}
+
+/**
  * Gerenciar grupo.
  *
  * ⚠ **Quatro das cinco ações são escrita de PROTOCOLO de verdade** — renomear
@@ -105,6 +336,7 @@ export function GerenciarGrupo({ aoFechar }: { aoFechar: () => void }) {
   const grupo = lerGrupo(channelId);
   const [nome, setNome] = useState(grupo?.nome ?? "");
   const [ocupado, setOcupado] = useState(false);
+  const [modo, setModo] = useState<Modo>("membros");
 
   /* ------------------------------------------------------------- ícone */
 
@@ -208,7 +440,7 @@ export function GerenciarGrupo({ aoFechar }: { aoFechar: () => void }) {
               disabled={subindo || !temMidia}
               onClick={() => seletorDeIcone.current?.click()}
             >
-              <PencilSimple size={11} aria-hidden />
+              <PencilSimple size={ICONE.selo} aria-hidden />
             </button>
 
             {/* Escondido e acionado pelo botão — ver o composer: nativo é
@@ -259,13 +491,26 @@ export function GerenciarGrupo({ aoFechar }: { aoFechar: () => void }) {
           </div>
         </div>
 
+        {modo === "adicionar" ? (
+          <Adicionar
+            channelId={channelId}
+            jaDentro={grupo.membrosIds}
+            aoVoltar={() => setModo("membros")}
+          />
+        ) : modo === "notificacoes" ? (
+          <Notificacoes
+            channelId={channelId}
+            aoVoltar={() => setModo("membros")}
+          />
+        ) : (
+          <>
         <div className={css.tituloDaLista}>
           <span className={css.sobrancelha}>Membros</span>
           {souDono ? (
             <button
               type="button"
               className={css.acao}
-              onClick={aindaNao("adicionarAoGrupo")}
+              onClick={() => setModo("adicionar")}
             >
               ＋ Adicionar
             </button>
@@ -296,7 +541,7 @@ export function GerenciarGrupo({ aoFechar }: { aoFechar: () => void }) {
           <button
             type="button"
             className={css.itemDeRodape}
-            onClick={aindaNao("notificacoesDoGrupo")}
+            onClick={() => setModo("notificacoes")}
           >
             Notificações do grupo
           </button>
@@ -337,6 +582,8 @@ export function GerenciarGrupo({ aoFechar }: { aoFechar: () => void }) {
             membro mais antigo — nunca deixa o grupo sem dono.
           </p>
         ) : null}
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

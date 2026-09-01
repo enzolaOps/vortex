@@ -1,4 +1,8 @@
-import { Check, SpeakerHigh } from "@phosphor-icons/react";
+import {
+  Check,
+  ICONE,
+  SpeakerHigh,
+} from "../components/ui/icones";
 import { useEffect, useState } from "react";
 
 import { Banner } from "../components/ui/Banner";
@@ -271,7 +275,7 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
                   <img className={css.miniatura} src={f.miniatura} alt="" />
                   {escolhida === f.id ? (
                     <span className={css.selo} aria-hidden>
-                      <Check size={11} weight="bold" />
+                      <Check size={ICONE.selo} weight="bold" />
                     </span>
                   ) : null}
                 </span>
@@ -291,7 +295,7 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
         <div className={css.opcoes}>
           <div className={css.audio}>
             <span className={css.audioTexto}>
-              <SpeakerHigh size={16} className={css.glifo} aria-hidden />
+              <SpeakerHigh size={ICONE.controle} className={css.glifo} aria-hidden />
               <span>
                 <span className={css.audioTitulo}>
                   Compartilhar áudio da fonte

@@ -201,3 +201,16 @@ export async function estatisticasDaTela(): Promise<
 > {
   return motor?.estatisticasDaTela();
 }
+
+/**
+ * Ida e volta da rede de voz, em milissegundos — ou nada.
+ *
+ * ⚠ **Mesmo `motor?.` do `estatisticasDaTela`, e pela mesma razão que vale
+ * dobrado aqui:** o consumidor é o overlay de depuração, que fica ligado o dia
+ * inteiro. Carregar meio megabyte de WebRTC para descobrir que não há chamada
+ * seria pagar a feature mais cara do app em toda sessão que ligasse um
+ * mostrador de FPS.
+ */
+export async function estatisticasDeVoz(): Promise<number | undefined> {
+  return motor?.estatisticasDeVoz();
+}

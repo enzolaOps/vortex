@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Profiler, useEffect, useSyncExternalStore, type ReactNode } from "react";
 
 import { Amigos } from "../casa/Amigos";
 import { CabecalhoDeCanal } from "../canais/CabecalhoDeCanal";
@@ -16,6 +16,9 @@ import { PainelDeBusca } from "../busca/PainelDeBusca";
 import { CaixaDeEntrada } from "../caixa/CaixaDeEntrada";
 import { Rail } from "../rail/Rail";
 import { Shell } from "../shell/Shell";
+import { OverlayDeDebug, contarCommit } from "../dev/OverlayDeDebug";
+import { observarTamanhoDeIcone } from "../dev/tamanhoDeIcone";
+import { assinarDev, lerDev } from "../store/dev";
 import { useCanalAtivo, useLocal } from "../store/hooks";
 
 /**
@@ -43,6 +46,18 @@ export function Cliente({ ferramentas }: { ferramentas?: ReactNode }) {
   */
   const canal = useCanalAtivo();
   const local = useLocal();
+  const overlay = useSyncExternalStore(assinarDev, () => lerDev().overlay);
+
+  /*
+    A assertion de tamanho de ícone.
+
+    Mora AQUI e não numa superfície específica porque ela varre o documento
+    inteiro: modal, painel, seletor e configurações montam fora desta árvore,
+    e é justamente o que monta depois que o analisador estático não alcança.
+
+    Some do bundle de produção — a função devolve um no-op fora de `DEV`.
+  */
+  useEffect(() => observarTamanhoDeIcone(), []);
 
   /*
     A tela de pessoas ocupa a coluna de CONTEÚDO, no lugar da lista.
@@ -54,7 +69,17 @@ export function Cliente({ ferramentas }: { ferramentas?: ReactNode }) {
   */
   const naCasaDeAmigos = local.tipo === "amigos";
 
-  return (
+  /*
+    ⚠ **O `<Profiler>` envolve o app inteiro, em DESENVOLVIMENTO.** É de onde
+    sai a contagem de commits do overlay: ela é MEDIDA pelo React, não contada
+    à mão num hook espalhado pelos componentes. Em produção ele não reporta —
+    ver a condição abaixo —, e o que o overlay mostra ali é long task.
+
+    ⚠ **A condição é lida do store, não de `import.meta.env.DEV`.** O overlay
+    existe para quem vai reportar um problema — em produção, na máquina de quem
+    o encontrou. Amarrá-lo a `DEV` o tornaria inútil exatamente onde ele serve.
+  */
+  const arvore = (
     <Shell
       ferramentas={ferramentas}
       /* O shell recebe painéis por TIPO e pergunta ao store quem ocupa qual
@@ -135,8 +160,26 @@ export function Cliente({ ferramentas }: { ferramentas?: ReactNode }) {
             é a JANELA.
           */}
           <Popout />
+          {/* O overlay de depuração — devolve `null` com a preferência
+              desligada, que é o caso de quase toda sessão. */}
+          <OverlayDeDebug />
         </>
       }
     />
+  );
+
+  /*
+    ⚠ **`import.meta.env.DEV` na condição, e não é zelo.** O `<Profiler>` é
+    INERTE no build de produção do React — medido: dez re-renders garantidos e
+    o mostrador em `0 commits`. Sem esta guarda o app de produção pagaria o
+    wrapper para alimentar um contador que nunca conta, e o ramo inteiro some
+    do bundle com ela.
+  */
+  return overlay && import.meta.env.DEV ? (
+    <Profiler id="app" onRender={contarCommit}>
+      {arvore}
+    </Profiler>
+  ) : (
+    arvore
   );
 }

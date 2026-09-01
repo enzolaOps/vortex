@@ -1,10 +1,10 @@
 import {
+  Monitor,
   MusicNotes,
   Power,
   Rows,
   VideoCamera,
-  Monitor,
-} from "@phosphor-icons/react";
+} from "../components/ui/icones";
 import { useSyncExternalStore } from "react";
 
 import { alternarCamera, alternarTela, sairDaChamada } from "../sdk/chamada";
@@ -180,7 +180,7 @@ export function FaixaDeVoz() {
               aria-label="Sair da chamada"
               onClick={() => void sairDaChamada()}
             >
-              <Power size={20} />
+              <Power />
             </button>
           </Tooltip>
         </div>
@@ -205,7 +205,7 @@ export function FaixaDeVoz() {
             aria-label="Câmera"
             onClick={() => void alternarCamera()}
           >
-            <VideoCamera size={20} />
+            <VideoCamera />
           </button>
         </Tooltip>
 
@@ -221,7 +221,7 @@ export function FaixaDeVoz() {
             aria-label="Compartilhamento de tela"
             onClick={() => void alternarTela()}
           >
-            <Monitor size={20} />
+            <Monitor />
           </button>
         </Tooltip>
 
@@ -233,7 +233,7 @@ export function FaixaDeVoz() {
             aria-label="Atividades"
             onClick={aindaNao("atividades")}
           >
-            <Rows size={20} />
+            <Rows />
           </button>
         </Tooltip>
 
@@ -244,7 +244,7 @@ export function FaixaDeVoz() {
             aria-label="Soundboard"
             onClick={aindaNao("soundboard")}
           >
-            <MusicNotes size={20} />
+            <MusicNotes />
           </button>
         </Tooltip>
       </div>

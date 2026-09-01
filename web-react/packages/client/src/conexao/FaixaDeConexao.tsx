@@ -1,4 +1,8 @@
-import { WifiSlash, WifiHigh } from "@phosphor-icons/react";
+import {
+  ICONE,
+  WifiHigh,
+  WifiSlash,
+} from "../components/ui/icones";
 import { useEffect, useSyncExternalStore } from "react";
 
 import { assinarConexao, lerConexao } from "../store/conexao";
@@ -55,9 +59,9 @@ export function FaixaDeConexao() {
     */
     <div className={css.faixa} role="status" data-estado={estado}>
       {reconectando ? (
-        <WifiHigh size={20} aria-hidden className={css.pulsando} />
+        <WifiHigh size={ICONE.calha} aria-hidden className={css.pulsando} />
       ) : (
-        <WifiSlash size={20} aria-hidden />
+        <WifiSlash size={ICONE.calha} aria-hidden />
       )}
       <span>
         {reconectando

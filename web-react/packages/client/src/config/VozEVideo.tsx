@@ -8,7 +8,13 @@ import { CartaoDeOpcao } from "../components/ui/CartaoDeOpcao";
 import { Segmentado } from "../components/ui/Segmentado";
 import { Selo } from "../components/ui/Selo";
 import { Combinacao } from "../components/ui/Tecla";
+import { cn } from "../lib/cn";
 import { aindaNao } from "../pendente/pendencias";
+import {
+  useFaixaLocal,
+  useNivelDeEntrada,
+  useTesteDeMicrofone,
+} from "./midiaDeTeste";
 import {
   assinarPreferenciasDeVoz,
   definirPreferenciasDeVoz,
@@ -199,6 +205,17 @@ export function VozEVideo() {
   const saidas = useDispositivos("audiooutput");
   const cameras = useDispositivos("videoinput");
 
+  /*
+    Duas faixas locais, abertas só por estas telas — ver `midiaDeTeste.ts`.
+
+    ⚠ **Separadas e não uma com áudio+vídeo.** Testar o microfone não deve
+    acender a luz da câmera, e é exatamente o que uma faixa combinada faria.
+  */
+  const mic = useFaixaLocal();
+  const cam = useFaixaLocal();
+  const nivel = useNivelDeEntrada(mic.faixa, BARRAS.length);
+  const teste = useTesteDeMicrofone();
+
   return (
     <PaginaDeAjustes>
       <div className={css.dispositivos}>
@@ -239,17 +256,57 @@ export function VozEVideo() {
         <div className={css.testeTopo}>
           <div className={pg.texto}>
             <div className={pg.titulo}>Teste de microfone</div>
-            <p className={pg.detalhe}>Grave 5 s e ouça de volta</p>
+            {/* O detalhe vira o ESTADO enquanto o teste roda: "Grave 5 s"
+                deixa de ser instrução no instante em que ela foi seguida, e
+                quem está gravando precisa saber que está. */}
+            <p className={pg.detalhe}>
+              {teste.fase === "gravando"
+                ? "Gravando… fale agora"
+                : teste.fase === "tocando"
+                  ? "Ouça de volta"
+                  : "Grave 5 s e ouça de volta"}
+            </p>
           </div>
-          <Botao tamanho="pequeno" onClick={aindaNao("testeDeMicrofone")}>
-            Testar
+          <Botao
+            tamanho="pequeno"
+            carregando={mic.estado === "abrindo"}
+            rotuloCarregando="Abrindo…"
+            onClick={() => {
+              if (mic.estado === "ligado") {
+                teste.encerrar();
+                mic.fechar();
+                return;
+              }
+              /*
+                ⚠ **Constraints montadas AQUI, a partir das preferências
+                LIDAS** — o teste nunca escreve em `preferenciasDeVoz`. O motor
+                de voz assina aquele store, e escrever ali trocaria o
+                dispositivo de uma chamada viva no meio de uma frase.
+              */
+              void mic
+                .abrir({
+                  audio:
+                    p.entradaId !== undefined
+                      ? { deviceId: { exact: p.entradaId } }
+                      : true,
+                })
+                .then((faixa) => {
+                  if (faixa) teste.gravar(faixa);
+                });
+            }}
+          >
+            {mic.estado === "ligado" ? "Parar" : "Testar"}
           </Botao>
         </div>
 
         {/*
-          O medidor fica PARADO, e é a verdade — não há analisador ligado (ver
-          `medidorDeEntrada`). Barras animadas com número inventado seriam a
-          mesma mentira do "Conectado · 42 ms" que a faixa de voz recusou.
+          O medidor MEDE — `useNivelDeEntrada` liga um `AnalyserNode` na faixa
+          aberta pelo botão acima e acende por RMS em dB. Sem teste rodando ele
+          fica em zero, que continua sendo a verdade: não há o que medir.
+
+          ⚠ **O `aria-valuetext` diz o estado e não o número.** "42 por cento"
+          não significa nada para quem não vê as barras; "sem medição" e
+          "medindo" respondem a pergunta que a pessoa tem.
         */}
         <div className={css.medidor}>
           <span className={css.rotuloDoMedidor}>Entrada</span>
@@ -257,17 +314,34 @@ export function VozEVideo() {
             className={css.barras}
             role="meter"
             aria-label="Nível de entrada"
-            aria-valuenow={0}
+            aria-valuenow={Math.round((nivel / BARRAS.length) * 100)}
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-valuetext="sem medição — o medidor ao vivo ainda não existe"
+            aria-valuetext={
+              mic.estado === "ligado" ? "medindo" : "sem medição"
+            }
           >
-            {BARRAS.map((b) => (
-              <span key={b} className={css.barra} aria-hidden />
+            {BARRAS.map((b, i) => (
+              <span
+                key={b}
+                className={cn(css.barra, i < nivel && css.barraAcesa)}
+                aria-hidden
+              />
             ))}
           </div>
-          <span className={css.db}>— dB</span>
+          <span className={css.db}>
+            {teste.fase === "tocando"
+              ? "▶"
+              : mic.estado === "ligado"
+                ? `${String(nivel)}/${String(BARRAS.length)}`
+                : "— dB"}
+          </span>
         </div>
+        {mic.erro !== undefined ? (
+          <p className={css.erroDeMidia} role="alert">
+            {mic.erro}
+          </p>
+        ) : null}
       </CartaoDeAjustes>
 
       <CabecalhoDeSecao titulo="Modo de entrada" />
@@ -369,8 +443,51 @@ export function VozEVideo() {
 
       <div className={css.video}>
         <div className={css.previa}>
-          <div className={css.palco}>prévia da câmera</div>
-          <Botao onClick={aindaNao("previaDaCamera")}>Testar câmera</Botao>
+          <div className={css.palco}>
+            {cam.faixa !== null ? (
+              /*
+                ⚠ **`muted` não é opcional.** A faixa é de VÍDEO, mas o
+                navegador recusa `autoPlay` sem ele em qualquer `<video>` —
+                a prévia ficaria no primeiro quadro, parada, sem erro nenhum.
+              */
+              <video
+                className={css.imagemDaCamera}
+                autoPlay
+                muted
+                playsInline
+                ref={(el) => {
+                  if (el) el.srcObject = cam.faixa;
+                }}
+              />
+            ) : cam.estado === "abrindo" ? (
+              "abrindo a câmera…"
+            ) : (
+              "prévia da câmera"
+            )}
+          </div>
+          <Botao
+            carregando={cam.estado === "abrindo"}
+            rotuloCarregando="Abrindo…"
+            onClick={() => {
+              if (cam.estado === "ligado") {
+                cam.fechar();
+                return;
+              }
+              void cam.abrir({
+                video:
+                  p.cameraId !== undefined
+                    ? { deviceId: { exact: p.cameraId } }
+                    : true,
+              });
+            }}
+          >
+            {cam.estado === "ligado" ? "Parar câmera" : "Testar câmera"}
+          </Botao>
+          {cam.erro !== undefined ? (
+            <p className={css.erroDeMidia} role="alert">
+              {cam.erro}
+            </p>
+          ) : null}
         </div>
 
         <div className={css.controlesDeVideo}>

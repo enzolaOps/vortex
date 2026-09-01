@@ -44,11 +44,33 @@ import { defineConfig } from "vitest/config";
  * que o `style-src` também está fechado seria falso.
  */
 function cspDoVortex(): Plugin {
+  /*
+    ⚠ **O env RESOLVIDO do Vite, e não `process.env` — a derivação nunca
+    funcionou em dev por causa disso.**
+
+    O Vite carrega `.env`, `.env.local` e afins em `config.env`, não no
+    `process.env` do processo. Lendo o segundo, `VITE_DEV_API_URL` vinha
+    vazio, `connect-src` caía em `'self'` seco, e o app não conseguia falar
+    com a instância local. Medido no console:
+
+      Connecting to 'http://localhost:8880/api/?' violates the following
+      Content Security Policy directive: "connect-src 'self'"
+
+    Em produção passava despercebido porque lá a API é `location.origin` e
+    `'self'` é a resposta certa — a política estava correta pelo motivo
+    errado, e só quebrava onde ninguém a mede.
+  */
+  let env: Record<string, string> = {};
+
   return {
     name: "vortex-csp",
 
+    configResolved(cfg) {
+      env = cfg.env as Record<string, string>;
+    },
+
     transformIndexHtml(html, ctx) {
-      const alvo = (ctx.server ? process.env.VITE_DEV_API_URL : process.env.VITE_API_URL) ?? "";
+      const alvo = (ctx.server ? env.VITE_DEV_API_URL : env.VITE_API_URL) ?? "";
       /*
         ⚠ **Duas listas, e não uma.** `connect-src` precisa do socket, que é
         origem SEPARADA (`ws:` não casa com `http:`); `img-src` e `media-src`
@@ -75,7 +97,29 @@ function cspDoVortex(): Plugin {
 
       const politica = [
         "default-src 'self'",
-        "script-src 'self'",
+        /*
+          ⚠ **Em DEV o `script-src` aceita inline, e sem isso o app não monta.**
+
+          O Vite injeta o preâmbulo do React Refresh como script INLINE no
+          `index.html` do dev server. Com `script-src 'self'` ele é bloqueado,
+          `$RefreshReg$` nunca é definido, e o primeiro módulo transformado que
+          o referencia lança ANTES de `createRoot`. Medido: `#root` com zero
+          filhos, body vazio, e no console
+          `Uncaught ReferenceError: $RefreshReg$ is not defined`.
+
+          ⚠ **Produção não muda, e é por isso que ninguém viu.** O build não
+          tem preâmbulo, então `pnpm check` passava: ele CONSTRÓI, e construir
+          não exercita o dev server. É a mesma família do "medir com o
+          instrumento desligado" que esta base já registra cinco vezes — a
+          guarda cobre o artefato e não o ambiente onde se trabalha.
+
+          Relaxa só esta diretiva, e só aqui. Desligar a `<meta>` inteira em
+          dev seria mais simples e pior: `img-src`, `connect-src` e
+          `media-src` deixariam de ser exercitados justamente onde os erros
+          aparecem primeiro — foi bloqueando avatar e fonte que as duas linhas
+          acima foram descobertas.
+        */
+        ctx.server ? "script-src 'self' 'unsafe-inline'" : "script-src 'self'",
         "style-src 'self' 'unsafe-inline'",
         /* `data:` para o gradiente do avatar quando ele vira SVG embutido;
            `blob:` para anexo que a pessoa acabou de escolher e ainda não subiu. */

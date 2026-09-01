@@ -124,9 +124,15 @@
   scale: 1;
 }
 
+/*
+  O glifo dentro da caixa de 16. Media 11px, que não é degrau de escala
+  nenhuma — e, ao contrário do chevron da coluna de canais e do glifo do
+  `BotaoDeIcone`, aqui não havia razão escrita: era só um número. 12 é o degrau
+  vizinho e deixa 2px de folga de cada lado dentro do marcador.
+*/
 .marcador svg {
-  inline-size: 11px;
-  block-size: 11px;
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
 }
 
 .marcador:hover:not(:disabled):not([aria-checked="true"]),

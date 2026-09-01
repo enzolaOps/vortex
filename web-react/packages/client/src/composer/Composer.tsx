@@ -1,4 +1,7 @@
-import { PaperPlaneRight, Plus } from "@phosphor-icons/react";
+import {
+  PaperPlaneRight,
+  Plus,
+} from "../components/ui/icones";
 import {
   useEffect,
   useRef,
@@ -22,6 +25,7 @@ import {
   alvoDeResposta,
   assinarResposta,
   cancelarResposta,
+  responderA,
 } from "../store/resposta";
 import { useChannel, useRascunho } from "../store/hooks";
 import { escreverRascunho, limparRascunho } from "../store/rascunhos";
@@ -181,7 +185,7 @@ export function Composer({ channelId }: { channelId: string }) {
   function enviarArquivos(arquivos: readonly File[]) {
     if (!temPermissao || excedido) return;
 
-    const id = enviarMensagem(channelId, valor, respondendoA, arquivos);
+    const id = enviarMensagem(channelId, valor, paraEnvio(), arquivos);
     if (!id) return;
 
     limparRascunho(channelId);
@@ -189,10 +193,25 @@ export function Composer({ channelId }: { channelId: string }) {
     pedirFimDaLista(channelId);
   }
 
+  /**
+   * O alvo no formato do envio.
+   *
+   * ⚠ **Montado no HANDLER e não no render.** Um objeto novo a cada render
+   * passaria por props e quebraria a comparação por referência de quem o
+   * recebesse; aqui ele nasce no clique e morre na chamada. A tradução de
+   * nome (`messageId` → `id`) fica nesta fronteira de propósito: o store fala
+   * de mensagem, o adapter fala de resposta.
+   */
+  function paraEnvio() {
+    return respondendoA === undefined
+      ? undefined
+      : { id: respondendoA.messageId, mencionar: respondendoA.mencionar };
+  }
+
   function enviar() {
     if (!podeEnviar) return;
 
-    const id = enviarMensagem(channelId, valor, respondendoA);
+    const id = enviarMensagem(channelId, valor, paraEnvio());
     // Não saiu (canal não carregado, sem sessão): o rascunho FICA. Limpar aqui
     // apagaria o texto da pessoa por causa de um erro que não é dela.
     if (!id) return;
@@ -263,7 +282,15 @@ export function Composer({ channelId }: { channelId: string }) {
         */}
         {respondendoA ? (
           <BarraDeResposta
-            messageId={respondendoA}
+            messageId={respondendoA.messageId}
+            mencionar={respondendoA.mencionar}
+            aoAlternarMencao={() =>
+              responderA(
+                channelId,
+                respondendoA.messageId,
+                !respondendoA.mencionar,
+              )
+            }
             aoCancelar={() => cancelarResposta(channelId)}
           />
         ) : null}
@@ -294,7 +321,7 @@ export function Composer({ channelId }: { channelId: string }) {
                 disabled={!temPermissao || !temMidia}
                 onClick={() => seletorDeArquivo.current?.click()}
               >
-                <Plus size={20} aria-hidden />
+                <Plus aria-hidden />
               </button>
             </Tooltip>
 
@@ -390,7 +417,7 @@ export function Composer({ channelId }: { channelId: string }) {
                 aria-label="Enviar mensagem"
                 className={css.enviar}
               >
-                <PaperPlaneRight size={20} aria-hidden />
+                <PaperPlaneRight aria-hidden />
               </button>
             </Tooltip>
           </div>

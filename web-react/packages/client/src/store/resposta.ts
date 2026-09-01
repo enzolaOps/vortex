@@ -12,7 +12,21 @@
 
 type Ouvinte = () => void;
 
-const alvos = new Map<string, string>();
+/**
+ * O alvo e se ele deve ser NOTIFICADO.
+ *
+ * ⚠ **`mencionar` mora aqui e não no envio, porque é escolha de quem responde
+ * e ela acontece ANTES de escrever.** Quem clica em "Responder sem mencionar"
+ * decide no menu; o composer só carrega a decisão até o envio. Guardá-la no
+ * momento do envio exigiria um segundo caminho paralelo ao rascunho, com a
+ * mesma pergunta ("quem é o alvo?") respondida em dois lugares.
+ */
+export type AlvoDeResposta = {
+  readonly messageId: string;
+  readonly mencionar: boolean;
+};
+
+const alvos = new Map<string, AlvoDeResposta>();
 const ouvintes = new Map<string, Set<Ouvinte>>();
 
 function avisar(channelId: string): void {
@@ -21,13 +35,35 @@ function avisar(channelId: string): void {
   for (const ouvinte of set) ouvinte();
 }
 
-export function alvoDeResposta(channelId: string): string | undefined {
+export function alvoDeResposta(
+  channelId: string,
+): AlvoDeResposta | undefined {
   return alvos.get(channelId);
 }
 
-export function responderA(channelId: string, messageId: string): void {
-  if (alvos.get(channelId) === messageId) return;
-  alvos.set(channelId, messageId);
+/**
+ * Arma a resposta.
+ *
+ * ⚠ **`mencionar` é `true` por padrão, e o inverso era o comportamento até
+ * agora.** O envio mandava `mention: false` em TODA resposta, com a razão
+ * escrita no adapter: *"enquanto `responderSemMencionar` não existe, o inverso
+ * transformaria toda resposta numa menção que ninguém pediu"*. Agora a escolha
+ * existe, então o padrão passa a ser o que a pessoa espera de "Responder" — a
+ * outra pessoa fica sabendo.
+ *
+ * ⚠ **Comparação por CAMPO e não por referência.** Um objeto novo a cada
+ * chamada faria o `getSnapshot` devolver referência diferente para o mesmo
+ * estado, e o composer re-renderizaria a cada clique repetido — a armadilha
+ * nº 1 do briefing.
+ */
+export function responderA(
+  channelId: string,
+  messageId: string,
+  mencionar = true,
+): void {
+  const atual = alvos.get(channelId);
+  if (atual?.messageId === messageId && atual.mencionar === mencionar) return;
+  alvos.set(channelId, { messageId, mencionar });
   avisar(channelId);
 }
 

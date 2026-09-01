@@ -1,4 +1,8 @@
-import { Check, X } from "@phosphor-icons/react";
+import {
+  Check,
+  ICONE,
+  X,
+} from "../components/ui/icones";
 import { useState } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
@@ -164,7 +168,7 @@ export function Acesso({ serverId }: { serverId: string }) {
                   aria-label={`Aprovar ${p.nome}`}
                   onClick={aindaNao("filaDeAprovacao")}
                 >
-                  <Check size={14} weight="bold" aria-hidden />
+                  <Check size={ICONE.metadado} weight="bold" aria-hidden />
                 </button>
                 <button
                   type="button"
@@ -172,7 +176,7 @@ export function Acesso({ serverId }: { serverId: string }) {
                   aria-label={`Recusar ${p.nome}`}
                   onClick={aindaNao("filaDeAprovacao")}
                 >
-                  <X size={14} weight="bold" aria-hidden />
+                  <X size={ICONE.metadado} weight="bold" aria-hidden />
                 </button>
               </div>
             </div>

@@ -1,4 +1,7 @@
-import { X } from "@phosphor-icons/react";
+import {
+  ICONE,
+  X,
+} from "../components/ui/icones";
 import {
   Fragment,
   useEffect,
@@ -329,7 +332,7 @@ export function Configuracoes() {
           aria-label="Fechar configurações"
           onClick={fecharConfig}
         >
-          <X size={18} aria-hidden />
+          <X size={ICONE.controle} aria-hidden />
         </button>
       </Tooltip>
     </div>

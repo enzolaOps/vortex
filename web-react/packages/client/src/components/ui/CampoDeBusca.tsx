@@ -1,4 +1,4 @@
-import { MagnifyingGlass } from "@phosphor-icons/react";
+import { MagnifyingGlass } from "./icones";
 import type {
   ButtonHTMLAttributes,
   InputHTMLAttributes,

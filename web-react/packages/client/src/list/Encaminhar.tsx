@@ -1,5 +1,5 @@
 import { useMemo, useState, useSyncExternalStore } from "react";
-import { Hash, LockSimple, X } from "@phosphor-icons/react";
+import { Hash, LockSimple, X } from "../components/ui/icones";
 
 import { Avatar } from "../components/ui/Avatar";
 import { Botao } from "../components/ui/Botao";

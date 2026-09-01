@@ -4,7 +4,6 @@ import { Botao } from "../components/ui/Botao";
 import { Interruptor } from "../components/ui/Interruptor";
 import { Selo } from "../components/ui/Selo";
 import { toast } from "../components/ui/toastStore";
-import { aindaNao } from "../pendente/pendencias";
 import { assinarDev, definirDev, lerDev } from "../store/dev";
 import {
   CabecalhoDeSecao,
@@ -126,10 +125,7 @@ export function Avancado() {
           <Interruptor
             ligado={d.overlay}
             rotulo="Overlay de depuração"
-            aoAlternar={(overlay) => {
-              definirDev({ overlay });
-              if (overlay) aindaNao("overlayDeDebug")();
-            }}
+            aoAlternar={(overlay) => definirDev({ overlay })}
           />
         </LinhaDeAjuste>
 

@@ -1157,3 +1157,50 @@ async function comSeletorProprio(
 export function estadoBruto(): string {
   return sala?.state ?? ConnectionState.Disconnected;
 }
+
+/**
+ * O RTT da conexão de voz, do `RTCStatsReport`.
+ *
+ * ⚠ **Medido e nunca derivado.** `ConnectionQuality` do LiveKit é
+ * CLASSIFICAÇÃO (`excellent/good/poor/lost`), e a faixa de voz já recusou
+ * transformá-la em "42 ms" — dado falso numa superfície onde alguém decide se
+ * troca de rede. `currentRoundTripTime` existe de verdade no par de
+ * candidatos, e é ele ou `undefined`.
+ *
+ * ⚠ **Só o par NOMINADO.** Um `RTCPeerConnection` guarda o histórico de todos
+ * os pares testados durante o ICE, inclusive os que perderam; ler qualquer um
+ * daria o RTT de um caminho que não está sendo usado.
+ */
+export async function estatisticasDeVoz(): Promise<number | undefined> {
+  const engine = (
+    sala as unknown as {
+      engine?: { pcManager?: { publisher?: { getStats?: () => Promise<RTCStatsReport> } } };
+    }
+  )?.engine;
+  const obter = engine?.pcManager?.publisher?.getStats;
+  if (!obter) return undefined;
+
+  let relatorio: RTCStatsReport;
+  try {
+    relatorio = await obter.call(engine.pcManager?.publisher);
+  } catch {
+    /* A conexão pode fechar entre a decisão de medir e a medição. Sem chamada
+       não há RTT, e isso não é erro. */
+    return undefined;
+  }
+
+  let ms: number | undefined;
+  relatorio.forEach((entrada: unknown) => {
+    const e = entrada as {
+      type?: string;
+      nominated?: boolean;
+      state?: string;
+      currentRoundTripTime?: number;
+    };
+    if (e.type !== "candidate-pair") return;
+    if (e.nominated !== true && e.state !== "succeeded") return;
+    if (e.currentRoundTripTime === undefined) return;
+    ms = Math.round(e.currentRoundTripTime * 1000);
+  });
+  return ms;
+}

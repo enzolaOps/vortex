@@ -1,4 +1,9 @@
-import { Check, MusicNotes, UploadSimple } from "@phosphor-icons/react";
+import {
+  Check,
+  ICONE,
+  MusicNotes,
+  UploadSimple,
+} from "../components/ui/icones";
 import { useSyncExternalStore } from "react";
 
 import { Banner } from "../components/ui/Banner";
@@ -187,7 +192,7 @@ export function Notificacoes() {
                     className={css.chave}
                     onClick={() => alternarNaMatriz(e.id, c)}
                   >
-                    <Glifo size={12} weight="bold" aria-hidden />
+                    <Glifo size={ICONE.selo} weight="bold" aria-hidden />
                   </button>
                 </div>
               );
