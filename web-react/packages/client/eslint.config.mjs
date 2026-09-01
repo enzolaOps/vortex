@@ -208,7 +208,11 @@ export default tseslint.config(
     despercebida (a conversão de oklab ficou inerte e o relatório seguiu
     mentindo). Como arquivo, o editor confere a sintaxe.
   */
-  { ignores: ["dist", "node_modules", "scripts/coletor.js"] },
+  /* ⚠ `dist-casca` é a saída do `npm run dev` da casca — um build de PRODUÇÃO
+     numa pasta própria, cheio de JS minificado. Sem ele aqui, o eslint tenta
+     lintar o bundle e morre pedindo informação de tipo para um arquivo que não
+     está em nenhum `tsconfig`. Ver `desktop/scripts/casca-com-cliente-local.mjs`. */
+  { ignores: ["dist", "dist-casca", "node_modules", "scripts/coletor.js"] },
 
   js.configs.recommended,
   tseslint.configs.recommendedTypeChecked,

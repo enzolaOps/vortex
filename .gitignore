@@ -1,6 +1,8 @@
 node_modules
 coverage
 dist
+# Build dedicado da casca Electron — ver desktop/scripts/casca-com-cliente-local.mjs
+dist-casca
 
 *.log
 

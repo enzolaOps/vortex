@@ -12,6 +12,7 @@
   },
   "scripts": {
     "start": "electron-forge start -- --no-sandbox",
+    "dev": "node scripts/casca-com-cliente-local.mjs",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "lint": "eslint --ext .ts,.tsx .",
