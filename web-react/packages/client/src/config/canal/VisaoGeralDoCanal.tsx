@@ -1,5 +1,7 @@
 import { useState } from "react";
 
+import { CaretDown, ICONE } from "../../components/ui/icones";
+
 import { Botao } from "../../components/ui/Botao";
 import { Campo } from "../../components/ui/Campo";
 import { Deslizante } from "../../components/ui/Deslizante";
@@ -9,6 +11,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "../../components/ui/Popover";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "../../components/ui/DropdownMenu";
 import { SeletorDeEmoji } from "../../seletores/SeletorDeEmoji";
 import { salvarCanal } from "../../sdk/canal";
 import { useChannel } from "../../store/hooks";
@@ -42,6 +50,34 @@ import css from "./Canal.module.css";
  * O que é real e o que é desenho continua vindo de `DataEditChannel` — a
  * tabela está em `sdk/canal.ts`.
  */
+/**
+ * Os degraus de modo lento, em segundos.
+ *
+ * ⚠ **Param em 6 h porque é o TETO do protocolo** — o validador do servidor
+ * recusa acima de 21600 com um 400 que chegaria à tela como "não deu para
+ * salvar", sem dizer qual campo. Quem garante o corte é o `min` em
+ * `sdk/canal.ts`; esta lista é de exibição.
+ *
+ * Os passos são os de todo cliente da categoria, e não uma escala inventada:
+ * quem liga modo lento está reagindo a uma enxurrada, e escolher entre 5 s e
+ * 10 s é decisão que se toma de relance.
+ */
+const DEGRAUS_DE_MODO_LENTO = [
+  0, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200, 21600,
+] as const;
+
+/** `0` é DESATIVADO e não "zero segundos" — a diferença é o que a linha diz. */
+function rotuloDoModoLento(s: number): string {
+  if (s <= 0) return "Desativado";
+  if (s < 60) return `${String(s)} segundos`;
+  if (s < 3600) {
+    const m = s / 60;
+    return m === 1 ? "1 minuto" : `${String(m)} minutos`;
+  }
+  const h = s / 3600;
+  return h === 1 ? "1 hora" : `${String(h)} horas`;
+}
+
 export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
   const canal = useChannel(channelId);
 
@@ -49,6 +85,7 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
   const [assunto, setAssunto] = useState(canal?.topico ?? "");
   const [idade, setIdade] = useState(false);
   const [limite, setLimite] = useState(8);
+  const [lento, setLento] = useState(canal?.modoLentoSegundos ?? 0);
   const [salvando, setSalvando] = useState(false);
   const [emojiAberto, setEmojiAberto] = useState(false);
 
@@ -57,7 +94,19 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
   }
 
   const ehVoz = canal.tipo === "voz";
-  const sujo = nome !== canal.name || assunto !== (canal.topico ?? "") || idade;
+  /*
+    ⚠ **O modo lento precisa entrar aqui, e esquecê-lo custou o bug que a
+    verificação em navegador pegou.** A faixa "você tem alterações não salvas"
+    só existe quando `sujo`, e sem este termo a escolha de 30 s marcava no
+    gatilho e NÃO havia como salvá-la — o controle mexia e a faixa não vinha.
+    Pior que o pendente que ele substituiu: aquele ao menos dizia que não
+    fazia nada.
+  */
+  const sujo =
+    nome !== canal.name ||
+    assunto !== (canal.topico ?? "") ||
+    idade ||
+    lento !== canal.modoLentoSegundos;
 
   /*
     O nome é normalizado ao DIGITAR, e a promessa está escrita embaixo do
@@ -158,17 +207,37 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
 
       <section className={secao.bloco}>
         <h2 className={secao.subtitulo}>Modo lento</h2>
-        {/* Mostra o valor REAL; mudar é pendente porque `slowmode` não está em
-            `DataEditChannel`. Ver `sdk/canal.ts`. */}
-        <button
-          type="button"
-          className={css.pendente}
-          onClick={aindaNao("modoLento")}
-        >
-          {canal.modoLentoSegundos > 0
-            ? `${canal.modoLentoSegundos} segundos`
-            : "Desativado"}
-        </button>
+        {/*
+          ⚠ **Era pendente por uma afirmação FALSA sobre o protocolo.** O
+          comentário aqui dizia "mudar é pendente porque `slowmode` não está em
+          `DataEditChannel`" — e está: o modelo Rust o valida entre 0 e 21600, o
+          schema do `stoat-api` o declara, e o `edit` do SDK repassa o corpo.
+          Nunca precisou de fork; era trabalho de cliente registrado como
+          trabalho de backend.
+
+          ⚠ **Dropdown e não `<select>`**, pela regra que o lint deste projeto
+          guarda: nativo é renderizado pelo SISTEMA, e num app escuro no
+          Windows ele abre com cromo claro.
+        */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button type="button" className={css.gatilhoDeLista}>
+              {rotuloDoModoLento(lento)}
+              <CaretDown size={ICONE.metadado} aria-hidden />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            {DEGRAUS_DE_MODO_LENTO.map((d) => (
+              <DropdownMenuCheckboxItem
+                key={d}
+                marcado={lento === d}
+                aoAlternar={() => setLento(d)}
+              >
+                {rotuloDoModoLento(d)}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
         <p className={secao.recado}>
           Membros com &ldquo;Gerenciar mensagens&rdquo; ou &ldquo;Gerenciar
           canais&rdquo; ignoram o modo lento.
@@ -260,6 +329,7 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
                 setNome(canal.name);
                 setAssunto(canal.topico ?? "");
                 setIdade(false);
+                setLento(canal.modoLentoSegundos);
               }}
             >
               Descartar
@@ -274,6 +344,7 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
                   assunto,
                   restritoPorIdade: idade,
                   limiteDeUsuarios: ehVoz ? limite : undefined,
+                  modoLentoSegundos: lento,
                 }).finally(() => setSalvando(false));
               }}
             >

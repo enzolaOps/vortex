@@ -402,6 +402,26 @@ export function VozEVideo() {
           />
         </LinhaDeAjuste>
 
+        {/*
+          ⚠ **Este é o único interruptor desta tela que CONSOME o que guarda.**
+          Os vizinhos escrevem preferência que o motor de voz aplica na próxima
+          captura; este liga e desliga os cinco sons na hora, e ouvir a
+          diferença é a confirmação. Ver `som/sons.ts`.
+
+          Fica em "Processamento de áudio" e não numa seção própria porque uma
+          seção com uma linha só é cabeçalho procurando conteúdo.
+        */}
+        <LinhaDeAjuste
+          titulo="Sons do app"
+          detalhe="Entrar e sair da sala, silenciar, queda de conexão"
+        >
+          <Interruptor
+            ligado={p.sons}
+            rotulo="Sons do app"
+            aoAlternar={(sons) => definirPreferenciasDeVoz({ sons })}
+          />
+        </LinhaDeAjuste>
+
         <LinhaDeAjuste
           titulo="Cancelamento de eco"
           detalhe="Necessário sem fones"

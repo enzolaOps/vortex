@@ -402,11 +402,6 @@ export const PENDENCIAS = {
     então a tela mostra o estado real e o controle não move. A tabela medida
     está em `sdk/canal.ts`.
   */
-  modoLento: {
-    superficie: "Configurações do canal",
-    faz: "Limitar quanto tempo cada pessoa espera entre uma mensagem e outra.",
-    depende: "`slowmode` em `DataEditChannel` — hoje é só leitura",
-  },
   canalDeSpoiler: {
     superficie: "Configurações do canal",
     faz: "Entrar com toda a mídia borrada, com clique para revelar.",

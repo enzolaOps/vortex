@@ -47,7 +47,7 @@ export function Toaster() {
             // posicionamento ele ancoraria na VIEWPORT — todo botão de
             // fechar empilhado no mesmo canto, longe do próprio toast.
             `relative rounded-12 border p-14 ${css.caixa}`,
-            "data-[state=closed]:opacity-0 data-[state=open]:opacity-100 anim-base",
+            "data-[state=open]:camada-chega data-[state=closed]:camada-sai",
             // Erro leva borda semântica; o resto fica no neutro. Cor sozinha
             // não carrega o significado — o título diz o que aconteceu.
             t.tipo === "erro"

@@ -65,6 +65,15 @@ export type PreferenciasDeVoz = {
   readonly eco: boolean;
   readonly ganho: boolean;
   readonly atenuarOutrosApps: boolean;
+  /**
+   * Sons de interface — entrar, sair, mudo, queda de conexão.
+   *
+   * Mora aqui e não em Notificações porque os cinco são de VOZ e de conexão,
+   * e porque este é o store que a tela onde o interruptor vive já assina.
+   * Notificação de mensagem é outra coisa e depende de um notificador que
+   * ainda não existe. Ver `som/sons.ts`.
+   */
+  readonly sons: boolean;
   readonly cameraId: string | undefined;
   readonly qualidade: QualidadeDeVideo;
   readonly fundo: FundoDeVideo;
@@ -82,6 +91,10 @@ let prefs: PreferenciasDeVoz = {
   eco: true,
   ganho: true,
   atenuarOutrosApps: false,
+  /* Ligado por padrão: o som confirma ações que se executam sem olhar para a
+     tela, e desligá-lo é um interruptor. Nascer mudo faria a maioria nunca
+     descobrir que existe. */
+  sons: true,
   cameraId: undefined,
   qualidade: "auto",
   fundo: "nenhum",

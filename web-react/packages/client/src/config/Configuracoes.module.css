@@ -355,3 +355,28 @@
     display: none;
   }
 }
+
+/* ============================================================
+   Pressionado
+   ------------------------------------------------------------
+   ⚠ **Medido no app inteiro: 174 `:hover` contra 27 `:active`.** Só 15% do
+   que reage ao ponteiro reagia a ser PRESSIONADO — e é essa ausência que lê
+   como "falta feedback tátil" num app de teclado e mouse, onde não há
+   háptico nenhum para sentir. Quem usa relatou exatamente assim.
+
+   A auditoria dos oito estados desta fase já tinha apontado `:active` e
+   `focus-visible` em zero superfícies; `focus-visible` foi corrigido em
+   massa (169 regras hoje) e o pressionado ficou para trás.
+
+   `--vx-state-press` existe nos dois temas desde o reskin, com nove
+   consumidores.
+   ============================================================ */
+
+.item:active,
+.sair:active {
+  background: var(--vx-state-press);
+}
+
+.fechar:active {
+  scale: 0.94;
+}
