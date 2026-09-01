@@ -3,6 +3,7 @@ import {
   ArrowsOut,
   ChatCircle,
   Gear,
+  ICONE,
   MicrophoneSlash,
   Monitor,
   Pause,
@@ -69,7 +70,7 @@ export function PalcoDeTransmissao() {
   return (
     <>
       <header className={css.cabecalho}>
-        <Monitor size={16} className={css.glifoDoCanal} aria-hidden />
+        <Monitor size={ICONE.controle} className={css.glifoDoCanal} aria-hidden />
         <span className={css.nomeDoCanal}>{canal?.name ?? "voz"}</span>
         <span className={css.nomeDoServidor}>{servidor?.name ?? ""}</span>
         <SeloAoVivo />
@@ -83,7 +84,7 @@ export function PalcoDeTransmissao() {
               aria-label="Voltar ao chat"
               onClick={fecharPalco}
             >
-              <ChatCircle size={17} aria-hidden />
+              <ChatCircle size={ICONE.controle} aria-hidden />
             </button>
           </Tooltip>
           <BotaoDePip />
@@ -94,7 +95,7 @@ export function PalcoDeTransmissao() {
               aria-label="Tela cheia"
               onClick={emTelaCheia}
             >
-              <ArrowsOut size={17} aria-hidden />
+              <ArrowsOut size={ICONE.controle} aria-hidden />
             </button>
           </Tooltip>
         </div>
@@ -115,7 +116,7 @@ export function PalcoDeTransmissao() {
           <div className={css.fila}>
             {chamada.camera ? (
               <div className={css.ladrilho} data-proprio>
-                <VideoCamera size={20} aria-hidden className={css.glifoDoLadrilho} />
+                <VideoCamera size={ICONE.calha} aria-hidden className={css.glifoDoLadrilho} />
                 <span className={css.nomeDoLadrilho}>Você · câmera</span>
                 <span className={css.selo}>SEPARADO</span>
               </div>
@@ -320,9 +321,9 @@ function Prancha({
           onClick={() => void pausarTela(!pausada)}
         >
           {pausada ? (
-            <Play size={14} aria-hidden />
+            <Play size={ICONE.metadado} aria-hidden />
           ) : (
-            <Pause size={14} aria-hidden />
+            <Pause size={ICONE.metadado} aria-hidden />
           )}
           <span className={css.rotuloDoHud}>
             {pausada ? "Retomar" : "Pausar"}
@@ -335,7 +336,7 @@ function Prancha({
           aria-label="Trocar fonte"
           onClick={() => void trocarFonteDaTela()}
         >
-          <ArrowsClockwise size={14} aria-hidden />
+          <ArrowsClockwise size={ICONE.metadado} aria-hidden />
           <span className={css.rotuloDoHud}>Trocar fonte</span>
         </button>
 
@@ -348,7 +349,7 @@ function Prancha({
           aria-label="Qualidade da transmissão"
           onClick={aindaNao("qualidadeDaTransmissao")}
         >
-          <Gear size={14} aria-hidden />
+          <Gear size={ICONE.metadado} aria-hidden />
           <span className={css.rotuloDoHud}>Qualidade</span>
         </button>
       </div>
@@ -380,7 +381,7 @@ function BotaoDeAudio({ audio }: { audio: AudioDaTela }) {
             data-secundario
             disabled
           >
-            <SpeakerSlash size={14} aria-hidden />
+            <SpeakerSlash size={ICONE.metadado} aria-hidden />
             <span className={css.rotuloDoHud}>Sem áudio</span>
           </button>
         </span>
@@ -401,9 +402,9 @@ function BotaoDeAudio({ audio }: { audio: AudioDaTela }) {
       onClick={() => void alternarAudioDaTela()}
     >
       {ligado ? (
-        <SpeakerHigh size={14} aria-hidden />
+        <SpeakerHigh size={ICONE.metadado} aria-hidden />
       ) : (
-        <SpeakerSlash size={14} aria-hidden />
+        <SpeakerSlash size={ICONE.metadado} aria-hidden />
       )}
       <span className={css.rotuloDoHud}>
         {ligado ? "Áudio ligado" : "Áudio mudo"}
@@ -441,7 +442,7 @@ function BotaoDePip() {
           });
         }}
       >
-        <PictureInPicture size={17} aria-hidden />
+        <PictureInPicture size={ICONE.controle} aria-hidden />
       </button>
     </Tooltip>
   );
@@ -525,7 +526,7 @@ const LinhaDaSala = memo(function LinhaDaSala({ userId }: { userId: string }) {
       />
       <span className={css.nomeNaSala}>{pessoa?.displayName ?? "alguém"}</span>
       {chamada.mudo && userId === chamada.participantes[0] ? (
-        <MicrophoneSlash size={13} className={css.mudo} aria-label="mudo" />
+        <MicrophoneSlash size={ICONE.metadado} className={css.mudo} aria-label="mudo" />
       ) : null}
     </div>
   );

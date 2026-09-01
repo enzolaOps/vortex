@@ -1,4 +1,10 @@
-import { ArrowCounterClockwise, Check, Eye, EyeSlash } from "../components/ui/icones";
+import {
+  ArrowCounterClockwise,
+  Check,
+  Eye,
+  EyeSlash,
+  ICONE,
+} from "../components/ui/icones";
 import { useEffect, useSyncExternalStore } from "react";
 
 import { Botao } from "../components/ui/Botao";
@@ -194,7 +200,7 @@ export function PainelDeEdicao() {
                   {PAINEIS.map((p) => (
                     <DropdownMenuItem key={p} onSelect={() => escolherPainel(id, p)}>
                       <Check
-                        size={20}
+                        size={ICONE.calha}
                         aria-hidden
                         className={css.marca}
                         data-visivel={slot.painel === p}
@@ -204,7 +210,7 @@ export function PainelDeEdicao() {
                   ))}
                   <DropdownMenuItem onSelect={() => escolherPainel(id, null)}>
                     <Check
-                      size={20}
+                      size={ICONE.calha}
                       aria-hidden
                       className={css.marca}
                       data-visivel={slot.painel === null}
@@ -234,9 +240,9 @@ export function PainelDeEdicao() {
                 aria-label={`Mostrar painel ${ROTULO_DO_SLOT[id]}`}
                 icone={
                   slot.visivel ? (
-                    <Eye size={20} aria-hidden />
+                    <Eye size={ICONE.calha} aria-hidden />
                   ) : (
-                    <EyeSlash size={20} aria-hidden />
+                    <EyeSlash size={ICONE.calha} aria-hidden />
                   )
                 }
                 onClick={() => {
@@ -250,7 +256,7 @@ export function PainelDeEdicao() {
                 variante="sutil"
                 disabled={igualAoPadrao}
                 aria-label="Repor este slot"
-                icone={<ArrowCounterClockwise size={20} aria-hidden />}
+                icone={<ArrowCounterClockwise size={ICONE.calha} aria-hidden />}
                 onClick={() => {
                   iniciarArraste();
                   definirSlot(id, padrao);
@@ -268,7 +274,7 @@ export function PainelDeEdicao() {
         <Botao
           variante="sutil"
           className={css.esquerda}
-          icone={<ArrowCounterClockwise size={20} aria-hidden />}
+          icone={<ArrowCounterClockwise size={ICONE.calha} aria-hidden />}
           onClick={() => {
             iniciarArraste();
             for (const id of SLOTS) definirSlot(id, PRESET_PADRAO.layout.slots[id]);

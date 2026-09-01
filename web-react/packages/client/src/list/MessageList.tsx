@@ -1,4 +1,8 @@
-import { At, ChatCircleDots } from "../components/ui/icones";
+import {
+  At,
+  ChatCircleDots,
+  ICONE,
+} from "../components/ui/icones";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useRef, useSyncExternalStore } from "react";
 
@@ -1225,7 +1229,7 @@ export function MessageList({ channelId }: { channelId: string }) {
       <div className={`${css.scroll} flex flex-col justify-end`}>
         <div className={css.coluna}>
           <EstadoVazio
-            icone={<ChatCircleDots size={20} />}
+            icone={<ChatCircleDots size={ICONE.calha} />}
             titulo="Este é o começo do canal."
             detalhe="Ainda não há nada aqui — o que você escrever será a primeira mensagem."
             acao={{
@@ -1369,7 +1373,7 @@ export function MessageList({ channelId }: { channelId: string }) {
             if (i !== -1) virtualizer.scrollToIndex(i, { align: "center" });
           }}
         >
-          <At size={20} aria-hidden />
+          <At size={ICONE.calha} aria-hidden />
           próxima menção
         </button>
       ) : null}

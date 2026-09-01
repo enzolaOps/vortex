@@ -3,7 +3,7 @@ import { useState, useSyncExternalStore } from "react";
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
 import { criarPasta } from "../store/pastas";
-import { Lock } from "../components/ui/icones";
+import { ICONE, Lock } from "../components/ui/icones";
 
 import { Escolha } from "../components/ui/Escolha";
 import { Interruptor } from "../components/ui/Interruptor";
@@ -342,7 +342,7 @@ function FormaDeCanal({
 
       <div className={css.privado}>
         <span className={css.privadoTexto}>
-          <Lock size={14} className={css.cadeado} aria-hidden />
+          <Lock size={ICONE.metadado} className={css.cadeado} aria-hidden />
           <span>
             <span className={css.privadoTitulo}>Canal privado</span>
             <span className={css.privadoDetalhe}>
@@ -540,7 +540,7 @@ function FormaDeCategoria({
         <>
           <div className={css.privado}>
             <span className={css.privadoTexto}>
-              <Lock size={16} className={css.cadeado} aria-hidden />
+              <Lock size={ICONE.controle} className={css.cadeado} aria-hidden />
               <span>
                 <span className={css.privadoTitulo}>Categoria privada</span>
                 <span className={css.privadoDetalhe}>

@@ -1,4 +1,7 @@
-import { PencilSimple } from "../components/ui/icones";
+import {
+  ICONE,
+  PencilSimple,
+} from "../components/ui/icones";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
@@ -208,7 +211,7 @@ export function GerenciarGrupo({ aoFechar }: { aoFechar: () => void }) {
               disabled={subindo || !temMidia}
               onClick={() => seletorDeIcone.current?.click()}
             >
-              <PencilSimple size={11} aria-hidden />
+              <PencilSimple size={ICONE.selo} aria-hidden />
             </button>
 
             {/* Escondido e acionado pelo botão — ver o composer: nativo é

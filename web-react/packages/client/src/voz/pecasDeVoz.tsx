@@ -1,4 +1,5 @@
 import {
+  ICONE,
   Microphone,
   MicrophoneSlash,
   Monitor,
@@ -192,9 +193,9 @@ export function Doca({
         onClick={() => void alternarMudo()}
       >
         {mudo ? (
-          <MicrophoneSlash size={17} aria-hidden />
+          <MicrophoneSlash size={ICONE.controle} aria-hidden />
         ) : (
-          <Microphone size={17} aria-hidden />
+          <Microphone size={ICONE.controle} aria-hidden />
         )}
       </ControleDaDoca>
 
@@ -205,9 +206,9 @@ export function Doca({
         onClick={() => void alternarCamera()}
       >
         {camera ? (
-          <VideoCamera size={17} aria-hidden />
+          <VideoCamera size={ICONE.controle} aria-hidden />
         ) : (
-          <VideoCameraSlash size={17} aria-hidden />
+          <VideoCameraSlash size={ICONE.controle} aria-hidden />
         )}
       </ControleDaDoca>
 
@@ -219,9 +220,9 @@ export function Doca({
         onClick={() => void alternarSurdo()}
       >
         {surdo ? (
-          <SpeakerSlash size={17} aria-hidden />
+          <SpeakerSlash size={ICONE.controle} aria-hidden />
         ) : (
-          <SpeakerHigh size={17} aria-hidden />
+          <SpeakerHigh size={ICONE.controle} aria-hidden />
         )}
       </ControleDaDoca>
 
@@ -232,7 +233,7 @@ export function Doca({
           acao="Compartilhar tela"
           onClick={() => void alternarTela()}
         >
-          <Monitor size={17} aria-hidden />
+          <Monitor size={ICONE.controle} aria-hidden />
         </ControleDaDoca>
       )}
 
@@ -243,7 +244,7 @@ export function Doca({
         className={css.desligar}
         onClick={() => void sairDaChamada()}
       >
-        <PhoneX size={16} aria-hidden />
+        <PhoneX size={ICONE.controle} aria-hidden />
         Desligar
       </button>
     </footer>

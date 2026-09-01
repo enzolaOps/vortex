@@ -2,6 +2,7 @@ import {
   BellSimple,
   BellSimpleSlash,
   ChatsCircle,
+  ICONE,
   PushPin,
   Tray,
   Users,
@@ -86,9 +87,9 @@ function BotaoDeSilencio({ channelId }: { channelId: string }) {
         onClick={() => alternarSilencio(channelId)}
       >
         {silenciado ? (
-          <BellSimpleSlash size={20} weight="fill" />
+          <BellSimpleSlash size={ICONE.calha} weight="fill" />
         ) : (
-          <BellSimple size={20} />
+          <BellSimple size={ICONE.calha} />
         )}
       </button>
     </Tooltip>
@@ -142,23 +143,23 @@ export function AcoesDoCanal({ channelId, nome }: { channelId: string; nome: str
   return (
     <div className={css.acoes}>
       <BotaoPendente id="topicos" rotulo="Tópicos">
-        <ChatsCircle size={20} />
+        <ChatsCircle size={ICONE.calha} />
       </BotaoPendente>
 
       <BotaoDeSilencio channelId={channelId} />
 
       <BotaoDePainel painel="fixados">
-        <PushPin size={20} />
+        <PushPin size={ICONE.calha} />
       </BotaoDePainel>
 
       <BotaoDePainel painel="membros">
-        <Users size={20} />
+        <Users size={ICONE.calha} />
       </BotaoDePainel>
 
       {/* Deixou de ser pendência: o painel existe e o dado já estava no
           snapshot do canal. Ver `caixa/CaixaDeEntrada.tsx`. */}
       <BotaoDePainel painel="caixaDeEntrada">
-        <Tray size={20} />
+        <Tray size={ICONE.calha} />
       </BotaoDePainel>
 
       {/*

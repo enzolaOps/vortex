@@ -1,4 +1,8 @@
-import { MagnifyingGlass, X } from "../components/ui/icones";
+import {
+  ICONE,
+  MagnifyingGlass,
+  X,
+} from "../components/ui/icones";
 import { useEffect, useState } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
@@ -164,7 +168,7 @@ export function NovoGrupo({ aoFechar }: { aoFechar: () => void }) {
         ) : null}
 
         <div className={css.campo}>
-          <MagnifyingGlass size={16} aria-hidden />
+          <MagnifyingGlass size={ICONE.controle} aria-hidden />
           <input
             type="search"
             className={css.entrada}
@@ -242,7 +246,7 @@ function Ficha({ id, aoTirar }: { id: string; aoTirar: () => void }) {
         aria-label={`Tirar ${pessoa.displayName} do grupo`}
         onClick={aoTirar}
       >
-        <X size={11} aria-hidden />
+        <X size={ICONE.selo} aria-hidden />
       </button>
     </span>
   );

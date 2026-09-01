@@ -1,4 +1,7 @@
-import { CaretRight } from "./icones";
+import {
+  CaretRight,
+  ICONE,
+} from "./icones";
 import * as Primitivo from "@radix-ui/react-context-menu";
 import type { ComponentProps, ReactNode } from "react";
 
@@ -102,11 +105,11 @@ export function ContextMenuSubTrigger({
       {/* A seta na ponta, e o `ms-auto` é o que a empurra: sem ela o item não
           se distingue de um que executa ao clicar.
 
-          ⚠ `size={12}` na prop e não `size-3` na classe: o `@theme` faz
+          ⚠ `size={ICONE.selo}` na prop e não `size-3` na classe: o `@theme` faz
           `--spacing-*: initial`, então utility computada sobre a base do
           Tailwind não é emitida — o `pnpm utilities` pegou na primeira
           corrida. */}
-      <CaretRight size={12} className="ms-auto text-text-4" aria-hidden />
+      <CaretRight size={ICONE.selo} className="ms-auto text-text-4" aria-hidden />
     </Primitivo.SubTrigger>
   );
 }

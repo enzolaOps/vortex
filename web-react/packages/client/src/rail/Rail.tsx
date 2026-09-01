@@ -3,9 +3,10 @@ import {
   DownloadSimple,
   Envelope,
   FolderSimplePlus,
-  ShieldCheck,
   GearSix,
+  ICONE,
   Plus,
+  ShieldCheck,
 } from "../components/ui/icones";
 import { memo, useSyncExternalStore } from "react";
 
@@ -221,7 +222,7 @@ const ItemDeServidor = memo(function ItemDeServidor({
             administrar({ tipo: "privacidadeDoServidor", serverId: id })
           }
         >
-          <ShieldCheck size={20} aria-hidden />
+          <ShieldCheck size={ICONE.calha} aria-hidden />
           Privacidade neste servidor
         </ContextMenuItem>
 
@@ -230,7 +231,7 @@ const ItemDeServidor = memo(function ItemDeServidor({
         <ContextMenuItem
           onSelect={() => administrar({ tipo: "criarPasta", serverId: id })}
         >
-          <FolderSimplePlus size={20} aria-hidden />
+          <FolderSimplePlus size={ICONE.calha} aria-hidden />
           Nova pasta com este
         </ContextMenuItem>
 
@@ -286,7 +287,7 @@ const PastaDoRail = memo(function PastaDoRail({
             onClick={() => alternarColapsoDaPasta(pasta.id)}
           >
             <CaretDown
-              size={20}
+              size={ICONE.calha}
               aria-hidden
               className={css.setaDaPasta}
               data-aberta={!pasta.colapsada}
@@ -399,7 +400,7 @@ export function Rail() {
             {/* Envelope, e é o ícone do design — não uma casa. A entrada
                 agrega DM, grupo e notas, e o desenho dela é correspondência.
                 `fill` só no ativo: é a variação SEMÂNTICA do Phosphor. */}
-            <Envelope size={22} weight={naCasa ? "fill" : "regular"} />
+            <Envelope size={ICONE.calha} weight={naCasa ? "fill" : "regular"} />
           </span>
           <span className={css.nome}>Conversas</span>
         </button>
@@ -453,7 +454,7 @@ export function Rail() {
           onClick={() => abrirConfig("perfil")}
         >
           <span className={`${css.marca} ${css.marcaCasa}`} aria-hidden>
-            <GearSix size={20} />
+            <GearSix size={ICONE.calha} />
           </span>
           <span className={css.nome}>Configurações</span>
         </button>
@@ -467,7 +468,7 @@ export function Rail() {
           onClick={() => abrirModal("adicionarServidor")}
         >
           <span className={`${css.marca} ${css.marcaAdicionar}`} aria-hidden>
-            <Plus size={20} />
+            <Plus size={ICONE.calha} />
           </span>
           <span className={css.nome}>Adicionar</span>
         </button>
@@ -492,7 +493,7 @@ export function Rail() {
           onClick={aindaNao("baixarApp")}
         >
           <span className={`${css.marca} ${css.marcaRodape}`} aria-hidden>
-            <DownloadSimple size={20} />
+            <DownloadSimple size={ICONE.calha} />
           </span>
           <span className={css.nome}>Baixar</span>
         </button>

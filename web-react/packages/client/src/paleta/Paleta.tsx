@@ -1,4 +1,10 @@
-import { Hash, SpeakerHigh, User, UsersThree } from "../components/ui/icones";
+import {
+  Hash,
+  ICONE,
+  SpeakerHigh,
+  User,
+  UsersThree,
+} from "../components/ui/icones";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Dialog, DialogContent } from "../components/ui/Dialog";
@@ -7,7 +13,13 @@ import { selecionarCanal, selecionarServidor } from "../store/navegacao";
 import css from "./Paleta.module.css";
 import { combina, montarIndice, pontuar, type Entrada } from "./indice";
 
-const ICONE = {
+/*
+  ⚠ Era `ICONE`, e colidiu com a escala de tamanho do ponto único quando ela
+  passou a existir. Os dois conceitos são diferentes — um escolhe QUAL ícone
+  pelo tipo do resultado, o outro diz QUÃO GRANDE —, e o nome genérico ficou
+  com a escala, que é a de alcance global.
+*/
+const GLIFO_DO_TIPO = {
   servidor: UsersThree,
   canal: Hash,
   pessoa: User,
@@ -141,7 +153,7 @@ export function Paleta({ aoFechar }: { aoFechar: () => void }) {
               const Icone =
                 entrada.tipo === "canal" && entrada.canalDeVoz
                   ? SpeakerHigh
-                  : ICONE[entrada.tipo];
+                  : GLIFO_DO_TIPO[entrada.tipo];
 
               return (
                 <li
@@ -159,7 +171,7 @@ export function Paleta({ aoFechar }: { aoFechar: () => void }) {
                   }}
                   onMouseEnter={() => setCursor(i)}
                 >
-                  <Icone size={20} aria-hidden className={css.icone} />
+                  <Icone size={ICONE.calha} aria-hidden className={css.icone} />
                   <span className={css.rotulo}>{entrada.rotulo}</span>
                   {entrada.contexto ? (
                     <span className={css.contexto}>{entrada.contexto}</span>

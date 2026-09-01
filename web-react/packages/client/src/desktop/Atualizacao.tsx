@@ -1,4 +1,9 @@
-import { ArrowClockwise, DownloadSimple, WarningOctagon } from "../components/ui/icones";
+import {
+  ArrowClockwise,
+  DownloadSimple,
+  ICONE,
+  WarningOctagon,
+} from "../components/ui/icones";
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { Botao } from "../components/ui/Botao";
@@ -41,7 +46,7 @@ export function Atualizacao() {
       <div className={css.bloqueio} role="alertdialog" aria-modal="true">
         <div className={css.cartaoDeBloqueio}>
           <WarningOctagon
-            size={32}
+            size={ICONE.ilustracao}
             weight="fill"
             className={css.glifoDeBloqueio}
             aria-hidden
@@ -92,7 +97,7 @@ export function Atualizacao() {
       cobriria as ações dele para sempre.
     */
     <div className={css.faixa} role="status">
-      <DownloadSimple size={16} weight="fill" aria-hidden />
+      <DownloadSimple size={ICONE.controle} weight="fill" aria-hidden />
       <span className={css.titulo}>Atualização pronta</span>
       {a.versao !== undefined ? (
         <span className={css.versao}>{a.versao} · baixada</span>
@@ -104,7 +109,7 @@ export function Atualizacao() {
         className={css.reiniciar}
         onClick={() => void ponte()?.instalarEReiniciar()}
       >
-        <ArrowClockwise size={14} aria-hidden />
+        <ArrowClockwise size={ICONE.metadado} aria-hidden />
         Reiniciar agora
       </button>
     </div>

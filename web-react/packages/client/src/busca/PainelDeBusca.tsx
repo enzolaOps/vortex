@@ -1,4 +1,9 @@
-import { MagnifyingGlass, Plus, X } from "../components/ui/icones";
+import {
+  ICONE,
+  MagnifyingGlass,
+  Plus,
+  X,
+} from "../components/ui/icones";
 import { memo, useEffect, useSyncExternalStore } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
@@ -171,7 +176,7 @@ export function PainelDeBusca() {
             aria-label="Fechar busca"
             onClick={fecharDrawer}
           >
-            <X size={15} aria-hidden />
+            <X size={ICONE.controle} aria-hidden />
           </button>
         </div>
 
@@ -189,7 +194,7 @@ export function PainelDeBusca() {
             void executar(1);
           }}
         >
-          <MagnifyingGlass size={16} aria-hidden />
+          <MagnifyingGlass size={ICONE.controle} aria-hidden />
           <input
             type="search"
             className={css.entrada}
@@ -210,7 +215,7 @@ export function PainelDeBusca() {
                 aria-label={`Tirar o filtro ${f}`}
                 onClick={aindaNao("filtroDeBusca")}
               >
-                <X size={10} aria-hidden />
+                <X size={ICONE.selo} aria-hidden />
               </button>
             </span>
           ))}
@@ -219,7 +224,7 @@ export function PainelDeBusca() {
             className={css.maisFiltro}
             onClick={aindaNao("filtroDeBusca")}
           >
-            <Plus size={10} aria-hidden />
+            <Plus size={ICONE.selo} aria-hidden />
             filtro
           </button>
         </div>

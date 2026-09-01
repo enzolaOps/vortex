@@ -1,21 +1,22 @@
 import {
-  CaretDown,
   BellSimple,
   BellSimpleSlash,
+  CaretDown,
   CaretRight,
   Check,
   GearSix,
   Hash,
+  ICONE,
   LinkSimple,
   Lock,
+  MicrophoneSlash,
   Monitor,
   PencilSimple,
   Plus,
-  MicrophoneSlash,
-  SpeakerSlash,
   SpeakerHigh,
-  UserPlus,
+  SpeakerSlash,
   Trash,
+  UserPlus,
   VideoCamera,
 } from "../components/ui/icones";
 import { memo, useEffect, useState, useSyncExternalStore } from "react";
@@ -260,7 +261,7 @@ const Canal = memo(function Canal({
           />
 
           {/* Ícones Phosphor, weight regular, 20px — um set só, sem exceção. */}
-          <Icone size={20} className={css.icone} aria-hidden />
+          <Icone size={ICONE.calha} className={css.icone} aria-hidden />
           <span className={css.nome}>{canal.name}</span>
 
           {/*
@@ -273,7 +274,7 @@ const Canal = memo(function Canal({
           */}
           {canal.privado ? (
             <span className={css.marcador}>
-              <Lock size={20} aria-hidden />
+              <Lock size={ICONE.calha} aria-hidden />
               <span className="sr-only">canal restrito</span>
             </span>
           ) : null}
@@ -345,7 +346,7 @@ const Canal = memo(function Canal({
           onSelect={() => marcarCanalLido(id)}
           disabled={!temNaoLidas || !pode(id, "marcarLida")}
         >
-          <Check size={20} aria-hidden />
+          <Check size={ICONE.calha} aria-hidden />
           Marcar como lida
         </ContextMenuItem>
 
@@ -359,13 +360,13 @@ const Canal = memo(function Canal({
         */}
         {canal.silenciado ? (
           <ContextMenuItem onSelect={() => alternarSilencio(id)}>
-            <BellSimple size={20} aria-hidden />
+            <BellSimple size={ICONE.calha} aria-hidden />
             Reativar avisos
           </ContextMenuItem>
         ) : (
           <ContextMenuSub>
             <ContextMenuSubTrigger>
-              <BellSimpleSlash size={20} aria-hidden />
+              <BellSimpleSlash size={ICONE.calha} aria-hidden />
               Silenciar canal
             </ContextMenuSubTrigger>
             <ContextMenuSubContent>
@@ -391,7 +392,7 @@ const Canal = memo(function Canal({
           <>
             <ContextMenuSeparator />
             <ContextMenuItem onSelect={() => void entrarNaChamada(id)}>
-              <SpeakerHigh size={20} aria-hidden />
+              <SpeakerHigh size={ICONE.calha} aria-hidden />
               Entrar na sala
             </ContextMenuItem>
             {/*
@@ -401,7 +402,7 @@ const Canal = memo(function Canal({
               tela diga que ela sumiu, que é o pior jeito de perder uma.
             */}
             <ContextMenuItem onSelect={() => selecionarCanal(id)}>
-              <Hash size={20} aria-hidden />
+              <Hash size={ICONE.calha} aria-hidden />
               Abrir o chat
             </ContextMenuItem>
           </>
@@ -413,7 +414,7 @@ const Canal = memo(function Canal({
             <ContextMenuItem
               onSelect={() => administrar({ tipo: "convite", channelId: id })}
             >
-              <LinkSimple size={20} aria-hidden />
+              <LinkSimple size={ICONE.calha} aria-hidden />
               Criar convite
             </ContextMenuItem>
           </>
@@ -425,7 +426,7 @@ const Canal = memo(function Canal({
             <ContextMenuItem
               onSelect={() => administrar({ tipo: "editarCanal", channelId: id })}
             >
-              <PencilSimple size={20} aria-hidden />
+              <PencilSimple size={ICONE.calha} aria-hidden />
               Editar canal
             </ContextMenuItem>
             {/*
@@ -439,14 +440,14 @@ const Canal = memo(function Canal({
             <ContextMenuItem
               onSelect={() => abrirConfigDeCanal("canal", id)}
             >
-              <GearSix size={20} aria-hidden />
+              <GearSix size={ICONE.calha} aria-hidden />
               Configurações do canal
             </ContextMenuItem>
             <ContextMenuItem
               perigo
               onSelect={() => administrar({ tipo: "apagarCanal", channelId: id })}
             >
-              <Trash size={20} aria-hidden />
+              <Trash size={ICONE.calha} aria-hidden />
               Apagar canal
             </ContextMenuItem>
           </>
@@ -477,7 +478,7 @@ const Canal = memo(function Canal({
                 aria-label={`Criar convite para ${canal.name}`}
                 onClick={() => administrar({ tipo: "convite", channelId: id })}
               >
-                <UserPlus size={20} aria-hidden />
+                <UserPlus size={ICONE.calha} aria-hidden />
               </button>
             ) : null}
 
@@ -488,7 +489,7 @@ const Canal = memo(function Canal({
               aria-label={`Criar tópico em ${canal.name}`}
               onClick={aindaNao("criarTopico")}
             >
-              <Plus size={20} aria-hidden />
+              <Plus size={ICONE.calha} aria-hidden />
             </button>
           </span>
     </div>
@@ -573,7 +574,7 @@ const NaSala = memo(function NaSala({
       */}
       {participante.estado !== "voz" ? (
         <>
-          <Icone size={20} aria-hidden className={css.estadoDeVoz} />
+          <Icone size={ICONE.calha} aria-hidden className={css.estadoDeVoz} />
           <span className="sr-only">
             {participante.estado === "tela"
               ? "compartilhando a tela"
@@ -614,7 +615,7 @@ const NaSala = memo(function NaSala({
       */}
       {participante.mudoPeloServidor ? (
         <>
-          <MicrophoneSlash size={20} aria-hidden className={css.estadoSrv} />
+          <MicrophoneSlash size={ICONE.calha} aria-hidden className={css.estadoSrv} />
           <span className={css.srv} aria-hidden>
             SRV
           </span>
@@ -624,12 +625,12 @@ const NaSala = memo(function NaSala({
 
       {participante.surdo ? (
         <>
-          <SpeakerSlash size={20} aria-hidden className={css.estadoMudo} />
+          <SpeakerSlash size={ICONE.calha} aria-hidden className={css.estadoMudo} />
           <span className="sr-only">sem ouvir</span>
         </>
       ) : participante.mudo ? (
         <>
-          <MicrophoneSlash size={20} aria-hidden className={css.estadoMudo} />
+          <MicrophoneSlash size={ICONE.calha} aria-hidden className={css.estadoMudo} />
           <span className="sr-only">com o microfone desligado</span>
         </>
       ) : null}
@@ -732,7 +733,7 @@ const RestanteDoSilencio = memo(function RestanteDoSilencio({
   if (ate === Infinity) {
     return (
       <span className={css.marcador}>
-        <BellSimpleSlash size={20} aria-hidden />
+        <BellSimpleSlash size={ICONE.calha} aria-hidden />
         <span className="sr-only">silenciado</span>
       </span>
     );
@@ -865,7 +866,7 @@ const Categoria = memo(function Categoria({
               onClick={() => alternarColapso(categoria.id)}
             >
               <CaretRight
-                size={20}
+                size={ICONE.calha}
                 aria-hidden
                 className={css.chevron}
                 data-aberta={!colapsada}
@@ -887,7 +888,7 @@ const Categoria = memo(function Categoria({
                     })
                   }
                 >
-                  <Plus size={20} aria-hidden />
+                  <Plus size={ICONE.calha} aria-hidden />
                   Novo canal aqui
                 </ContextMenuItem>
                 <ContextMenuItem
@@ -899,7 +900,7 @@ const Categoria = memo(function Categoria({
                     })
                   }
                 >
-                  <PencilSimple size={20} aria-hidden />
+                  <PencilSimple size={ICONE.calha} aria-hidden />
                   Renomear categoria
                 </ContextMenuItem>
                 <ContextMenuSeparator />
@@ -913,7 +914,7 @@ const Categoria = memo(function Categoria({
                     })
                   }
                 >
-                  <Trash size={20} aria-hidden />
+                  <Trash size={ICONE.calha} aria-hidden />
                   Apagar categoria
                 </ContextMenuItem>
               </>
@@ -924,7 +925,7 @@ const Categoria = memo(function Categoria({
                 vira o item que justifica o menu existir.
               */
               <ContextMenuItem onSelect={() => alternarColapso(categoria.id)}>
-                <CaretRight size={20} aria-hidden />
+                <CaretRight size={ICONE.calha} aria-hidden />
                 {colapsada ? "Expandir" : "Recolher"}
               </ContextMenuItem>
             )}
@@ -958,7 +959,7 @@ const Categoria = memo(function Categoria({
               })
             }
           >
-            <Plus size={20} aria-hidden />
+            <Plus size={ICONE.calha} aria-hidden />
           </button>
         ) : null}
         </>
@@ -1170,7 +1171,7 @@ function CanaisDoServidor() {
                 ) : null}
               </span>
 
-              <CaretDown size={20} aria-hidden className={css.divisaDoMenu} />
+              <CaretDown size={ICONE.calha} aria-hidden className={css.divisaDoMenu} />
             </button>
           </DropdownMenuTrigger>
 

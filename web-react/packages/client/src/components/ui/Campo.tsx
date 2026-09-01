@@ -1,4 +1,8 @@
-import { Eye, EyeSlash } from "./icones";
+import {
+  Eye,
+  EyeSlash,
+  ICONE,
+} from "./icones";
 import { useId, useState, type InputHTMLAttributes, type ReactNode } from "react";
 
 import css from "./Campo.module.css";
@@ -136,7 +140,7 @@ export function Campo({
           aria-label={revelado ? "Ocultar senha" : "Mostrar senha"}
           onClick={() => setRevelado((v) => !v)}
         >
-          {revelado ? <EyeSlash size={16} aria-hidden /> : <Eye size={16} aria-hidden />}
+          {revelado ? <EyeSlash size={ICONE.controle} aria-hidden /> : <Eye size={ICONE.controle} aria-hidden />}
         </button>
       ) : null}
       </div>

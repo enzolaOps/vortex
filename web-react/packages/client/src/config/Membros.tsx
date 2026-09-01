@@ -1,4 +1,8 @@
-import { DotsThree, MagnifyingGlass } from "../components/ui/icones";
+import {
+  DotsThree,
+  ICONE,
+  MagnifyingGlass,
+} from "../components/ui/icones";
 import { memo, useEffect, useMemo, useState } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
@@ -106,7 +110,7 @@ const Linha = memo(function Linha({
             })
           }
         >
-          <DotsThree size={20} aria-hidden />
+          <DotsThree size={ICONE.calha} aria-hidden />
         </button>
       </span>
     </div>
@@ -228,7 +232,7 @@ export function Membros({ serverId }: { serverId: string }) {
     <div className={css.pagina}>
       <div className={css.controles}>
         <div className={css.campo}>
-          <MagnifyingGlass size={16} aria-hidden />
+          <MagnifyingGlass size={ICONE.controle} aria-hidden />
           <input
             type="search"
             className={css.entrada}

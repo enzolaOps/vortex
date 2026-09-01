@@ -1,4 +1,9 @@
-import { ArrowBendUpLeft, At, X } from "../components/ui/icones";
+import {
+  ArrowBendUpLeft,
+  At,
+  ICONE,
+  X,
+} from "../components/ui/icones";
 
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
 import { useMessage } from "../store/hooks";
@@ -38,7 +43,7 @@ export function BarraDeResposta({
 
   return (
     <div className={css.barra}>
-      <ArrowBendUpLeft size={20} aria-hidden className={css.seta} />
+      <ArrowBendUpLeft size={ICONE.calha} aria-hidden className={css.seta} />
 
       <p className={css.texto}>
         respondendo a{" "}
@@ -67,7 +72,7 @@ export function BarraDeResposta({
             : "A pessoa não será notificada · clique para mencionar"
         }
       >
-        <At size={16} aria-hidden />
+        <At size={ICONE.controle} aria-hidden />
         {mencionar ? "ON" : "OFF"}
       </button>
 
@@ -78,7 +83,7 @@ export function BarraDeResposta({
         aria-label="Cancelar resposta"
         title="Cancelar resposta · Esc"
       >
-        <X size={20} aria-hidden />
+        <X size={ICONE.calha} aria-hidden />
       </button>
     </div>
   );

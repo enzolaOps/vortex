@@ -160,6 +160,20 @@ export {
  * mais respiro em volta.
  */
 export const ICONE = {
+  /**
+   * O ícone É a ilustração, e não acompanha nada.
+   *
+   * ⚠ **Este degrau só apareceu ao APLICAR a escala, e o inventário tinha
+   * perdido o caso.** A varredura casava `<Icone … size={N}>` numa linha só, e
+   * o único uso de 32 está em JSX quebrado em cinco linhas — o glifo do
+   * diálogo de atualização obrigatória. Contei "zero usos de 32" e o
+   * `typecheck` me desmentiu.
+   *
+   * Ele existe onde o ícone carrega a mensagem sozinho: bloqueio, estado
+   * vazio, tela de erro. Se houver texto ao lado disputando a atenção, o
+   * degrau é `calha`.
+   */
+  ilustracao: 32,
   calha: 20,
   controle: 16,
   metadado: 14,

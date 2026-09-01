@@ -1,6 +1,7 @@
 import {
   GearSix,
   Headphones,
+  ICONE,
   Microphone,
   MicrophoneSlash,
   SpeakerSlash,
@@ -249,9 +250,9 @@ export function PainelDeUsuario() {
             onClick={() => void alternarMudo()}
           >
             {chamada.mudo ? (
-              <MicrophoneSlash size={20} weight="fill" />
+              <MicrophoneSlash size={ICONE.calha} weight="fill" />
             ) : (
-              <Microphone size={20} />
+              <Microphone size={ICONE.calha} />
             )}
           </button>
         </Tooltip>
@@ -265,9 +266,9 @@ export function PainelDeUsuario() {
             onClick={() => void alternarSurdo()}
           >
             {chamada.surdo ? (
-              <SpeakerSlash size={20} weight="fill" />
+              <SpeakerSlash size={ICONE.calha} weight="fill" />
             ) : (
-              <Headphones size={20} />
+              <Headphones size={ICONE.calha} />
             )}
           </button>
         </Tooltip>
@@ -279,7 +280,7 @@ export function PainelDeUsuario() {
             aria-label="Configurações"
             onClick={() => abrirConfig("perfil")}
           >
-            <GearSix size={20} />
+            <GearSix size={ICONE.calha} />
           </button>
         </Tooltip>
       </div>

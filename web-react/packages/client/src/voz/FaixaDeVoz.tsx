@@ -1,9 +1,10 @@
 import {
+  ICONE,
+  Monitor,
   MusicNotes,
   Power,
   Rows,
   VideoCamera,
-  Monitor,
 } from "../components/ui/icones";
 import { useSyncExternalStore } from "react";
 
@@ -180,7 +181,7 @@ export function FaixaDeVoz() {
               aria-label="Sair da chamada"
               onClick={() => void sairDaChamada()}
             >
-              <Power size={20} />
+              <Power size={ICONE.calha} />
             </button>
           </Tooltip>
         </div>
@@ -205,7 +206,7 @@ export function FaixaDeVoz() {
             aria-label="Câmera"
             onClick={() => void alternarCamera()}
           >
-            <VideoCamera size={20} />
+            <VideoCamera size={ICONE.calha} />
           </button>
         </Tooltip>
 
@@ -221,7 +222,7 @@ export function FaixaDeVoz() {
             aria-label="Compartilhamento de tela"
             onClick={() => void alternarTela()}
           >
-            <Monitor size={20} />
+            <Monitor size={ICONE.calha} />
           </button>
         </Tooltip>
 
@@ -233,7 +234,7 @@ export function FaixaDeVoz() {
             aria-label="Atividades"
             onClick={aindaNao("atividades")}
           >
-            <Rows size={20} />
+            <Rows size={ICONE.calha} />
           </button>
         </Tooltip>
 
@@ -244,7 +245,7 @@ export function FaixaDeVoz() {
             aria-label="Soundboard"
             onClick={aindaNao("soundboard")}
           >
-            <MusicNotes size={20} />
+            <MusicNotes size={ICONE.calha} />
           </button>
         </Tooltip>
       </div>

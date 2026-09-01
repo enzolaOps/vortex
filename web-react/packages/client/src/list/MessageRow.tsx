@@ -7,6 +7,7 @@ import {
   DotsThree,
   EnvelopeSimple,
   Hammer,
+  ICONE,
   Info,
   Link,
   Note,
@@ -771,7 +772,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
         {message.primeiraNaoLida ? <DivisorDeNovas /> : null}
         {message.dia ? <DivisorDeDia rotulo={message.dia} /> : null}
         <article className="flex items-baseline gap-08 px-20 pt-16 text-xs text-text-3">
-          <Info size={20} aria-hidden className="shrink-0 self-center" />
+          <Info size={ICONE.calha} aria-hidden className="shrink-0 self-center" />
           <p className={cn(css.minZero, "flex-1 wrap-anywhere")}>
             <FraseDeSistema sistema={message.sistema} />
           </p>
@@ -1137,7 +1138,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                 */}
                 {message.fixada ? (
                   <span className={css.fixada}>
-                    <PushPin size={20} aria-hidden />
+                    <PushPin size={ICONE.calha} aria-hidden />
                     fixada
                   </span>
                 ) : null}
@@ -1330,7 +1331,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                     aria-label="Adicionar reação"
                     onClick={aindaNao("emoji")}
                   >
-                    <Plus size={20} aria-hidden />
+                    <Plus size={ICONE.calha} aria-hidden />
                   </button>
                 ) : null}
               </div>

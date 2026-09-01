@@ -1,4 +1,7 @@
-import { Info } from "../components/ui/icones";
+import {
+  ICONE,
+  Info,
+} from "../components/ui/icones";
 import { useSyncExternalStore } from "react";
 
 import { Botao } from "../components/ui/Botao";
@@ -217,7 +220,7 @@ export function PrivacidadeDoServidor({ aoFechar }: { aoFechar: () => void }) {
         */}
         <div className={css.efeito} aria-hidden>
           <div className={css.aviso}>
-            <Info size={16} weight="fill" className={css.glifo} />
+            <Info size={ICONE.controle} weight="fill" className={css.glifo} />
             <div>
               <div className={css.titulo}>
                 {p.dm === "todos"
