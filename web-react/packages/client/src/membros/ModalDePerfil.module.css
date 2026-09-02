@@ -1,85 +1,331 @@
 /* ============================================================
-   O perfil como modal — fecha `perfilCompleto` e `perfilNaChamada`.
-   O corpo vem de `CartaoDePerfil`; daqui saem só a casca e as duas
-   seções que o hover card não comporta.
+   Perfil completo
+   ------------------------------------------------------------
+   Medidas de `pnpm espec` sobre a seção "Perfil completo" de
+   `Vortex DMs, Voz e Modais.dc.html`: 620 de largura · banner de
+   140 · avatar de 96 subindo 44 · abas de 9×14 · corpo 1.4fr 1fr.
    ============================================================ */
 
 /*
-  ⚠ **A largura é do CONSUMIDOR, e o `Dialog` a trata como piso.**
-  `Dialog.module.css .painel` usa `:where(.painel)` justamente para que esta
-  declaração vença — sem isso, quem ganharia seria a ordem em que os CSS
-  Modules entram no bundle, que não está declarada em lugar nenhum. Foi o que
-  deu 400px num modal e 512 no vizinho com código idêntico.
+  ⚠ **620 e não os 400 de antes, e a diferença não é tamanho — é SUPERFÍCIE.**
 
-  400px é a largura do cartão de perfil do design; mais que isso e a nota
-  privada vira uma faixa de texto larga demais para ler.
+  O modal reusava o corpo do hover card mais a nota e o silêncio. Hover card e
+  perfil completo são duas telas diferentes no design: um é o resumo que
+  aparece passando o ponteiro, o outro é o lugar onde se decide mandar
+  mensagem, ligar, anotar e silenciar. Empilhar a nota embaixo do resumo dava
+  um cartão com um formulário parafusado, que foi como quem usa relatou: "o
+  perfil de usuário não está igual à referência".
+
+  `:where` na largura: o `.painel` do `Dialog` fixa `max-inline-size: 32rem`
+  com a mesma especificidade, e sem isto a caixa sairia em 512. É a mesma
+  armadilha que o lightbox já pagou.
 */
 .painel {
-  inline-size: 400px;
+  inline-size: 620px;
   max-inline-size: 100%;
 }
 
-.conteudo {
+/* ---------------------------------------------------------- banner */
+
+/*
+  ⚠ **O banner é DERIVADO, e o campo do protocolo não chegou a esta tela.**
+
+  `banner` é o último campo que o `CLAUDE.md` lista como ignorado, e ele mora
+  no perfil de SERVIDOR. Para pessoa, o Stoat não tem o conceito — então em
+  vez de uma faixa cinza vazia, ele reusa o gradiente da identidade: a mesma
+  cor que o avatar da pessoa já carrega, esticada. Quando o campo existir,
+  substitui sem mexer no layout.
+*/
+.banner {
+  position: relative;
+  block-size: 140px;
+}
+
+.acoesDoBanner {
+  position: absolute;
+  inset-inline-end: var(--vx-space-14);
+  inset-block-start: var(--vx-space-14);
   display: flex;
-  flex-direction: column;
-  gap: var(--vx-space-14);
+  gap: var(--vx-space-06);
 }
 
 /*
-  Régua entre as seções, e não espaço só.
-
-  O corpo do perfil é sobre QUEM a pessoa é; as duas seções abaixo são o que
-  EU guardo sobre ela. A linha marca essa troca de dono — sem ela, a nota lê
-  como mais um campo do perfil, e a pergunta "isso é público?" volta a cada
-  vez.
+  Véu e não superfície: os alvos pousam SOBRE o banner, e um tom sólido
+  recortaria dois retângulos no meio dele. 50% é do design.
 */
+.acaoDoBanner {
+  display: flex;
+  align-items: center;
+  block-size: 28px;
+  padding-inline: var(--vx-space-11);
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: color-mix(in srgb, var(--vx-surface-0) 50%, transparent);
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.acaoDoBanner:hover {
+  /* O MESMO véu, mais fechado. Subir a opacidade do mesmo tom mantém a
+     família; trocar por um sólido faria o alvo virar um retângulo recortado
+     no banner em vez de uma camada sobre ele. */
+  background: color-mix(in srgb, var(--vx-surface-0) 70%, transparent);
+}
+
+.acaoDoBanner:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.fecharDoBanner {
+  inline-size: 28px;
+  padding-inline: 0;
+  justify-content: center;
+}
+
+/* ----------------------------------------------------------- corpo */
+
+/*
+  O recuo negativo é o que faz o avatar montar sobre o banner — 44 dos 96
+  ficam por cima, que é o número do design. `padding-block-start: 0` porque a
+  margem negativa já ocupa o lugar dele.
+*/
+.corpo {
+  padding: 0 var(--vx-space-24) var(--vx-space-24);
+  margin-block-start: -44px;
+}
+
+.identidade {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+/*
+  ⚠ **A borda de 6px é da COR DO CARTÃO, e é ela que recorta o avatar do
+  banner.** Sem ela o círculo encosta no gradiente e os dois viram uma mancha
+  só; com ela, o avatar lê como pousado por cima. Mesma função do anel de 5px
+  no ponto de presença.
+*/
+.moldura {
+  position: relative;
+  inline-size: 96px;
+  block-size: 96px;
+  border-radius: var(--vx-radius-pill);
+  border: 6px solid var(--vx-surface-3);
+  background: var(--vx-surface-3);
+}
+
+/*
+  O `Avatar` para em `lg`, e o design pede 96. Em vez de um sexto degrau no
+  primitivo para um consumidor só, a MOLDURA dimensiona: o avatar preenche o
+  que ela reservou. É a mesma decisão que manteve `warningSubtle` fora do
+  `Botao` — degrau novo espera o segundo consumidor.
+*/
+.moldura > * {
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.acoes {
+  display: flex;
+  gap: var(--vx-space-08);
+  margin-block-end: var(--vx-space-08);
+}
+
+.acao {
+  display: flex;
+  align-items: center;
+  block-size: 32px;
+  padding-inline: var(--vx-space-14);
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.acao:hover {
+  background: var(--vx-state-hover);
+}
+
+.acao:active {
+  background: var(--vx-state-press);
+}
+
+.acao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* A primária é preenchida: mandar mensagem é o que se vem fazer aqui. */
+.acao[data-primaria="true"] {
+  border-color: transparent;
+  background: var(--vx-accent);
+  color: var(--vx-on-accent);
+}
+
+.acao[data-primaria="true"]:hover {
+  background: var(--vx-accent-hover);
+}
+
+.acao[data-icone="true"] {
+  inline-size: 32px;
+  padding-inline: 0;
+  justify-content: center;
+  color: var(--vx-text-2);
+}
+
+/* ------------------------------------------------------------ nome */
+
+.linhaDoNome {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  margin-block-start: var(--vx-space-14);
+}
+
+/*
+  22/600 com entreletra negativa — o único texto desta escala no app fora do
+  título de página, e é o design que o pede: aqui o nome é a tela.
+*/
+.nome {
+  margin: 0;
+  min-inline-size: 0;
+  overflow: hidden;
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-2xl);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+  A linha de metadado em MONO, e ela junta três coisas que o design junta:
+  username, pronomes e quando entrou. Mono porque são dados, não prosa — o
+  mesmo critério do nome de arquivo no rodapé do anexo.
+*/
+.meta {
+  margin: 0;
+  color: var(--vx-text-3);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-md);
+}
+
+/* ------------------------------------------------------------ abas */
+
+.abas {
+  display: flex;
+  gap: var(--vx-space-02);
+  margin-block-start: var(--vx-space-18);
+  border-block-end: 1px solid var(--vx-hairline-10);
+}
+
+/*
+  ⚠ **`box-shadow` interno e não `border-bottom`, e é do design.** Uma borda
+  somaria 2px à altura do item e empurraria a régua da faixa; a sombra interna
+  desenha o traço DENTRO da caixa, então a aba ativa e as inativas têm
+  exatamente a mesma altura e a régua não se move ao trocar de aba.
+
+  É a mesma assinatura de acento que o rail e a coluna de canais usam — só que
+  deitada, porque aqui a sequência é horizontal.
+*/
+.aba {
+  padding: var(--vx-space-09) var(--vx-space-14);
+  border: 0;
+  background: transparent;
+  color: var(--vx-text-3);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.aba:hover {
+  color: var(--vx-text-2);
+}
+
+.aba[aria-selected="true"] {
+  box-shadow: inset 0 -2px 0 var(--vx-accent);
+  color: var(--vx-text-1);
+}
+
+.aba:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/* --------------------------------------------------------- conteúdo */
+
+/*
+  1.4fr / 1fr — do design. A coluna larga é "sobre a pessoa" e a estreita é "o
+  que EU guardo sobre ela"; a proporção diz qual das duas é o conteúdo.
+*/
+.colunas {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: var(--vx-space-24);
+  margin-block-start: var(--vx-space-18);
+}
+
 .secao {
   display: flex;
   flex-direction: column;
-  gap: var(--vx-space-06);
-  padding-block-start: var(--vx-space-14);
-  border-block-start: 1px solid var(--vx-border-subtle);
+  gap: var(--vx-space-08);
+  min-inline-size: 0;
 }
 
 .rotulo {
+  margin: 0;
+  color: var(--vx-text-3);
   font-size: var(--vx-size-xs);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--vx-text-3);
 }
 
-/*
-  ⚠ `resize: vertical` e não `none`: nota longa acontece, e travar a caixa
-  obrigaria a rolar dentro de três linhas. Vertical só — horizontal
-  estouraria a largura do modal.
+.texto {
+  margin: 0;
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-md);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
 
-  `field-sizing` resolveria isso sozinho e ainda não é suportado onde este app
-  roda; quando for, esta regra vira uma linha.
-*/
+.vazio {
+  margin: 0;
+  color: var(--vx-text-4);
+  font-size: var(--vx-size-md);
+}
+
+/* ------------------------------------------------------------ nota */
+
 .nota {
   inline-size: 100%;
-  min-block-size: 68px;
-  resize: vertical;
+  min-block-size: 76px;
   padding: var(--vx-space-09) var(--vx-space-11);
   border: 1px solid var(--vx-border-subtle);
   border-radius: var(--vx-radius-08);
-  /*
-    ⚠ **`surface-3` e não `surface-0`, e o `pnpm superficies` me pegou.**
-    Eu tinha escrito `surface-0` por reflexo de "campo é um buraco no painel".
-    O design reserva esse tom para o rail e o gutter ultrawide, e usá-lo como
-    fundo de área que não é nenhum dos dois já produziu a faixa preta em volta
-    da timeline e depois em volta do composer — as duas relatadas por quem usa.
-
-    `surface-3` é o que `Campo.module.css` usa, e alinhar com o primitivo é
-    melhor que acertar sozinho: no dia em que a rampa mudar, os dois mudam
-    juntos.
-  */
-  background: var(--vx-surface-3);
+  /* ⚠ Um degrau ABAIXO do cartão, e não o chão do rail. O cartão é
+     `surface-3`; um campo no mesmo tom sumiria dentro dele, e `surface-0` é o
+     tom que o design reserva para rail e gutter — foi o defeito que a faixa
+     preta em volta do composer já custou duas vezes. */
+  background: var(--vx-surface-2);
   color: var(--vx-text-1);
-  font: inherit;
-  font-size: var(--vx-size-lg);
-  line-height: 1.45;
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  line-height: 1.5;
+  resize: vertical;
 }
 
 .nota::placeholder {
@@ -88,11 +334,19 @@
 
 .nota:focus-visible {
   outline: 2px solid var(--vx-accent);
-  outline-offset: -2px;
+  outline-offset: -1px;
   border-color: transparent;
 }
 
 .dica {
+  margin: 0;
+  color: var(--vx-text-4);
   font-size: var(--vx-size-xs);
+  text-wrap: pretty;
+}
+
+.carregando {
+  padding: var(--vx-space-24);
   color: var(--vx-text-3);
+  font-size: var(--vx-size-md);
 }

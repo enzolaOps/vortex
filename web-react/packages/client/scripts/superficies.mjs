@@ -81,6 +81,16 @@ const PERMITIDO = {
     ".hud": "O mesmo véu, a 82%, sob os controles do transmissor.",
     ".selo": "O mesmo véu, a 70%, atrás do selo de ladrilho separado.",
   },
+  "membros/ModalDePerfil.module.css": {
+    ".acaoDoBanner":
+      "Véu sobre o BANNER a 50%, não superfície. Os dois alvos pousam sobre " +
+      "o gradiente de identidade da pessoa; um tom sólido recortaria dois " +
+      "retângulos no meio dele em vez de ler como camada por cima.",
+    ".acaoDoBanner:hover":
+      "O mesmo véu, mais fechado (70%). O hover precisa de um degrau, e " +
+      "subir a opacidade do MESMO tom mantém a família em vez de trocar de " +
+      "cor — a mesma decisão da pílula do popout.",
+  },
   "voz/Popout.module.css": {
     ".popout":
       "O chão da JANELA flutuante, e não um painel dentro do app. Mesma " +

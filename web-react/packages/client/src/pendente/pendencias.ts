@@ -432,6 +432,27 @@ export const PENDENCIAS = {
     faz: "Suspender todos os convites do canal sem apagá-los.",
     depende: "pausar convite no protocolo — só existe revogar",
   },
+
+  /* -------------------------------------------------------- perfil */
+  /*
+    ⚠ **As duas abas que o design desenha e que o SDK não sabe buscar.** O
+    Stoat tem `GET /users/{id}/mutual`, mas sem método no cliente e devolvendo
+    ID cru — a lista precisaria dos objetos resolvidos para virar tela.
+
+    Elas entram DESENHADAS porque a faixa de abas com uma aba só faria o
+    perfil parecer uma tela pela metade, e porque a régua deste projeto é
+    construir 1:1 agora e implementar depois.
+  */
+  servidoresEmComum: {
+    superficie: "Perfil completo",
+    faz: "Listar os servidores em que vocês dois estão.",
+    depende: "`GET /users/{id}/mutual` sem método no SDK, e os IDs resolvidos",
+  },
+  amigosEmComum: {
+    superficie: "Perfil completo",
+    faz: "Listar as pessoas que vocês dois têm em comum.",
+    depende: "a mesma rota de mútuos, mais as relações já carregadas",
+  },
 } as const satisfies Record<
   string,
   { superficie: string; faz: string; depende: string }
