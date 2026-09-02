@@ -83,8 +83,8 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
 
   const [nome, setNome] = useState(canal?.name ?? "");
   const [assunto, setAssunto] = useState(canal?.topico ?? "");
-  const [idade, setIdade] = useState(false);
-  const [limite, setLimite] = useState(8);
+  const [idade, setIdade] = useState(canal?.restritoPorIdade ?? false);
+  const [limite, setLimite] = useState(canal?.limiteDeUsuarios ?? 8);
   const [lento, setLento] = useState(canal?.modoLentoSegundos ?? 0);
   const [salvando, setSalvando] = useState(false);
   const [emojiAberto, setEmojiAberto] = useState(false);
@@ -102,11 +102,32 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
     Pior que o pendente que ele substituiu: aquele ao menos dizia que não
     fazia nada.
   */
+  /*
+    ⚠ **Cada controle desta tela precisa entrar AQUI, e três não entravam.** A
+    faixa "você tem alterações não salvas" é a única forma de salvar — não há
+    botão fixo —, então um campo fora desta conta é um controle que mexe e não
+    tem como ser gravado. Foi relatado assim: "não há botão de salvar no
+    canal".
+
+    O que faltava, e o que cada um produzia:
+
+    - `limite` nunca esteve na conta. Num canal de VOZ, que é onde ele
+      aparece, mexer no limite de usuários não trazia a faixa.
+    - `idade` era comparado com `true` em vez de com o servidor: a faixa
+      aparecia sempre que a caixa estivesse marcada, mesmo já sendo o estado
+      salvo, e NÃO aparecia ao desmarcar um canal que era +18.
+    - `lento` entrou na rodada passada, pelo mesmo motivo.
+
+    A regra agora é uma só: comparar com o que o canal diz. Campo novo que
+    esquecer desta linha reproduz o mesmo defeito, e é por isso que ela está
+    escrita como uma lista e não como uma expressão esperta.
+  */
   const sujo =
     nome !== canal.name ||
     assunto !== (canal.topico ?? "") ||
-    idade ||
-    lento !== canal.modoLentoSegundos;
+    idade !== canal.restritoPorIdade ||
+    lento !== canal.modoLentoSegundos ||
+    (ehVoz && limite !== (canal.limiteDeUsuarios ?? 8));
 
   /*
     O nome é normalizado ao DIGITAR, e a promessa está escrita embaixo do
@@ -328,7 +349,8 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
               onClick={() => {
                 setNome(canal.name);
                 setAssunto(canal.topico ?? "");
-                setIdade(false);
+                setIdade(canal.restritoPorIdade);
+                setLimite(canal.limiteDeUsuarios ?? 8);
                 setLento(canal.modoLentoSegundos);
               }}
             >

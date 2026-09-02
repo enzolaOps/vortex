@@ -553,6 +553,22 @@ export type ChannelSnapshot = {
    * mostra e o controle de mudança é pendente. Ver `sdk/canal.ts`.
    */
   readonly modoLentoSegundos: number;
+  /**
+   * Restrição de idade.
+   *
+   * ⚠ **Chegava do protocolo e o snapshot não o carregava**, então a tela de
+   * configuração nascia sempre em "Padrão" — inclusive num canal já marcado.
+   * Ela AFIRMAVA o contrário do servidor, e salvar mandava `nsfw: false`
+   * desmarcando o que ninguém pediu para desmarcar.
+   */
+  readonly restritoPorIdade: boolean;
+  /**
+   * Teto de gente na sala de voz. `undefined` fora de canal de voz.
+   *
+   * ⚠ Mesmo defeito do `restritoPorIdade`: a tela chutava 8 fixo. Num canal
+   * com outro limite ela mostrava 8, e salvar sobrescrevia.
+   */
+  readonly limiteDeUsuarios: number | undefined;
   readonly naoLidas: number;
   readonly mencoes: number;
   /**
