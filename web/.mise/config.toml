@@ -7,7 +7,7 @@ pnpm = "11.3.0"
 
 gh = "2.93.0"
 
-mdbook = "0.5.3"
+mdbook = "0.5.4"
 "github:lzanini/mdbook-katex" = "0.10.0-alpha-binaries"
 
 "github:git-town/git-town" = "23.0.1"
