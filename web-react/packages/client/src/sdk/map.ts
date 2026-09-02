@@ -490,6 +490,21 @@ export function toChannelSnapshot(
     topico: channel.description || undefined,
     /* `slowmode` chegava pelo fio e ninguém desenhava — ver o campo. */
     modoLentoSegundos: channel.slowmode ?? 0,
+    /*
+      ⚠ **O getter chama-se `mature`, e o campo do protocolo é `nsfw`.** Escrever
+      `channel.nsfw` compila em `any` num objeto menos tipado e devolve
+      `undefined` em silêncio; aqui o TypeScript pegou, e é o tipo de renomeação
+      que a camada de tradução existe para absorver uma vez só.
+    */
+    restritoPorIdade: channel.mature === true,
+    /*
+      ⚠ `voice.max_users` e não um campo de topo — o protocolo aninha o que é
+      de voz. `undefined` fora de canal de voz é diferente de zero: zero é
+      "sem limite" no protocolo, e a tela precisa distinguir os dois.
+    */
+    limiteDeUsuarios: (
+      channel as unknown as { voice?: { max_users?: number | null } }
+    ).voice?.max_users ?? undefined,
     naoLidas,
     mencoes,
     /*
