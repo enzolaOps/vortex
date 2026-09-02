@@ -36,6 +36,15 @@ export type Toast = {
   readonly descricao?: string;
   readonly tipo: TipoDeToast;
   readonly acao?: AcaoDeToast;
+  /**
+   * Quantas vezes o MESMO aviso chegou seguido. Ausente é uma vez.
+   *
+   * ⚠ Existe porque cinco toasts idênticos empilhados foi relatado com captura
+   * de tela: erro não expira (decisão registrada) e é isento do corte de
+   * pilha, então cinco tentativas de salvar o perfil deixaram cinco cópias da
+   * mesma frase ocupando o canto inferior.
+   */
+  readonly repeticoes?: number;
 };
 
 const VAZIO: readonly Toast[] = [];
@@ -90,6 +99,32 @@ export function toast(entrada: Omit<Toast, "id">): string {
     relatar um erro), então descartá-los por pressão de fila apagaria a única
     coisa da pilha que ninguém leu ainda.
   */
+  /*
+    ⚠ **Repetição idêntica CONTA, em vez de empilhar ou de sumir.**
+
+    Deduplicar em silêncio seria o defeito oposto e mais difícil de ver: quem
+    tenta de novo e não vê nada mudar conclui que o clique não pegou. O
+    contador diz as duas coisas — o aviso é o mesmo, e aconteceu de novo.
+
+    Compara pelos três campos que a pessoa LÊ. `acao` fica de fora de propósito:
+    ela carrega closures, que nunca são iguais por referência, e dois avisos com
+    o mesmo texto são a mesma notícia mesmo que o botão seja outro.
+  */
+  const igual = toasts.findIndex(
+    (t) =>
+      t.tipo === entrada.tipo &&
+      t.titulo === entrada.titulo &&
+      t.descricao === entrada.descricao,
+  );
+  if (igual !== -1) {
+    const anterior = toasts[igual]!;
+    toasts = toasts.map((t, i) =>
+      i === igual ? { ...t, repeticoes: (anterior.repeticoes ?? 1) + 1 } : t,
+    );
+    avisar();
+    return anterior.id;
+  }
+
   const proximos = [...toasts, { ...entrada, id }];
   if (proximos.length > PILHA_MAXIMA) {
     const excedente = proximos.length - PILHA_MAXIMA;

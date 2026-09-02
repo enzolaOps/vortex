@@ -57,6 +57,18 @@ export function Toaster() {
         >
           <Primitivo.Title className="text-md font-medium text-text-1">
             {t.titulo}
+            {/*
+              ⚠ **A contagem fica no TÍTULO e não num selo próprio.** Ela é
+              parte da frase — "isto aconteceu 5 vezes" —, e um selo ao lado
+              viraria mais um alvo num aviso que já tem fechar e, às vezes,
+              ação. Só aparece a partir da segunda: "1×" seria ruído em todo
+              toast do app.
+            */}
+            {t.repeticoes !== undefined && t.repeticoes > 1 ? (
+              <span className="ms-06 text-sm font-normal text-text-3">
+                {t.repeticoes}×
+              </span>
+            ) : null}
           </Primitivo.Title>
 
           {t.descricao ? (
