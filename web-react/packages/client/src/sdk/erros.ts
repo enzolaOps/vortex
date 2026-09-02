@@ -163,6 +163,34 @@ export function motivoDoErro(e: unknown): string {
     `stoat-api` não usa: nem toda chamada do app passa por ele — há `fetch`
     direto em `conta.ts` e em `servidores.ts` —, e um dia pode voltar.
   */
+  /*
+    ⚠ **`retry_after` é a ASSINATURA de um 429, e sem esta leitura ele virava
+    "verifique sua conexão".** Relatado por quem usa: mudar os pronomes e
+    salvar devolvia cinco toasts dizendo que o servidor não respondeu — e o
+    servidor tinha respondido, com 429.
+
+    A causa é o `stoat-api`: ele faz `throw data` com o TEXTO cru da resposta
+    (`src/index.ts`), sem status e sem envelope. O corpo de um 429 do Revolt é
+    `{"retry_after": 3434}` e mais nada — não tem `type`, que é o que
+    `POR_TIPO` lê, nem `status`, que é o que `porStatus` lê. As duas portas
+    fechadas, e a frase de 429 que existe logo abaixo era INALCANÇÁVEL por
+    este caminho.
+
+    Medido contra a instância local: o SEGUNDO `PATCH /users/@me` seguido já
+    devolve 429, com `retry_after` entre 3,4 e 9,4 segundos. Não é caso raro —
+    é o que acontece quando alguém corrige um campo e salva de novo.
+
+    ⚠ **Dizer os SEGUNDOS, e não só "espere um pouco".** "Tentativas demais"
+    sem número é o que faz a pessoa clicar de novo na hora, que é exatamente o
+    que renova o limite. O servidor já mandou quanto falta; repeti-lo é a
+    diferença entre um aviso e uma instrução.
+  */
+  const espera = (corpo as { retry_after?: unknown } | null)?.retry_after;
+  if (typeof espera === "number" && espera > 0) {
+    const seg = Math.max(1, Math.ceil(espera / 1000));
+    return `Tentativas demais. Espere ${String(seg)} segundo${seg === 1 ? "" : "s"}.`;
+  }
+
   const status =
     (corpo as { response?: { status?: number } } | null)?.response?.status ??
     (corpo as { status?: number } | null)?.status;
