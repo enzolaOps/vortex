@@ -316,9 +316,30 @@
   /* Ancorada no recuo da LINHA: em 16 ela flutuaria 4px fora da coluna de
      conteúdo depois que o recuo foi para 20. */
   inset-inline-end: var(--vx-space-20);
-  /* Montada na borda de cima, no espaço que o ritmo de agrupamento
-     já deixa entre as linhas. Zero de layout. */
-  transform: translateY(-50%);
+  /*
+    ⚠ **A saliência é EXATAMENTE o respiro da própria linha, e antes era
+    metade da barra — que é maior que o respiro em toda continuação.**
+
+    O ritmo de agrupamento é `padding-block-start` DENTRO da linha: 16px
+    abrindo grupo, 4px continuando. As linhas se tocam (medido: folga 0
+    entre `article`s), então tudo que a barra sobe além do próprio respiro
+    aterrissa no texto da mensagem ANTERIOR.
+
+    Com `translateY(-50%)` numa barra de 32px ela subia 16 sempre: cabia
+    exato ao abrir grupo e invadia **12px** da linha de cima em toda
+    continuação — que é a maioria das linhas. Foi assim que quem usa
+    relatou: "o hover está passando o tamanho e consumindo outra".
+
+    Agora ela sobe 4 por padrão e 16 quando a linha abre grupo. Nos dois
+    casos a barra fica dentro da caixa da PRÓPRIA linha — a mesma caixa que
+    o `hover:bg-surface-1` pinta —, então ela nunca cruza a fronteira.
+
+    ⚠ Não dá para ler o `padding` do pai em CSS, e por isso o `article`
+    carrega `data-abre-grupo`. É o mesmo dado que escolhe `pt-16`/`pt-04`
+    no TSX, dito duas vezes de propósito: sem ele, o valor certo aqui
+    dependeria de alguém lembrar de mudar os dois juntos.
+  */
+  transform: translateY(calc(var(--vx-space-04) * -1));
 
   display: flex;
   align-items: center;
@@ -374,6 +395,10 @@
   que ela acabou de abrir. Ao fechar, o alvo do menu volta a `null` e ela
   segue o ponteiro de novo.
 */
+[data-abre-grupo="true"] .acoes {
+  transform: translateY(calc(var(--vx-space-16) * -1));
+}
+
 .acoes[data-menu-aberto] {
   visibility: visible;
 }
