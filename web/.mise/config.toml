@@ -10,7 +10,7 @@ gh = "2.93.0"
 mdbook = "0.5.3"
 "github:lzanini/mdbook-katex" = "0.10.0-alpha-binaries"
 
-"github:git-town/git-town" = "23.0.1"
+"github:git-town/git-town" = "23.0.3"
 
 [tasks.check]
 description = "Task group for CI checks"
