@@ -276,11 +276,31 @@ jobs:
             echo "### Imagens publicadas"
             echo
             echo '```'
-            echo "VORTEX_API_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-api:latest@${{ steps.api.outputs.digest }}"
-            echo "VORTEX_EVENTS_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-events:latest@${{ steps.events.outputs.digest }}"
+            echo "VORTEX_API_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-api:${{ github.sha }}@${{ steps.api.outputs.digest }}"
+            echo "VORTEX_EVENTS_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-events:${{ github.sha }}@${{ steps.events.outputs.digest }}"
             echo '```'
             echo
-            echo "O Renovate atualiza esses digests no pi-infra; o merge dispara o deploy."
+            echo "O build atualiza o PR de imagens do pi-infra; o merge dispara o deploy."
             echo
             echo "⚠ Os outros cinco serviços seguem pinados no upstream de propósito."
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Update the deployment PR
+        env:
+          PI_INFRA_TOKEN: ${{ secrets.PI_INFRA_TOKEN }}
+          API_IMAGE: ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-api:${{ github.sha }}@${{ steps.api.outputs.digest }}
+          EVENTS_IMAGE: ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-events:${{ github.sha }}@${{ steps.events.outputs.digest }}
+          REVISION: ${{ github.sha }}
+        run: |
+          jq -n \
+            --arg api "$API_IMAGE" \
+            --arg events "$EVENTS_IMAGE" \
+            --arg revision "$REVISION" \
+            '{event_type:"vortex-server-published",client_payload:{revision:$revision,updates:{VORTEX_API_IMAGE:$api,VORTEX_EVENTS_IMAGE:$events}}}' |
+            curl --fail-with-body \
+              --request POST \
+              --header "Accept: application/vnd.github+json" \
+              --header "Authorization: Bearer $PI_INFRA_TOKEN" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              --data @- \
+              https://api.github.com/repos/enzolaOps/pi-infra/dispatches
