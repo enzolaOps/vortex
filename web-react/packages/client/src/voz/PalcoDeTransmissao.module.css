@@ -97,7 +97,21 @@
   flex: 1;
   min-block-size: 0;
   overflow: hidden;
-  border: 2px solid var(--vx-danger);
+  /*
+    ⚠ **`danger` é "VOCÊ está ao vivo", nunca "há uma tela no palco" — e o
+    design escreve isso por extenso:** *"Borda danger = você está ao vivo
+    (nunca accent, que é 'stream em foco')"*.
+
+    A prancha passou a servir os dois lados, e na primeira versão a moldura
+    vermelha ficou também na tela de OUTRA pessoa — medido: `rgb(232,89,107)`
+    assistindo o Bruno. Vermelho ali afirma que você está transmitindo quando
+    não está, no lugar onde essa confusão é mais cara.
+
+    Sem `data-proprio` a moldura é a hairline de sempre: o que separa a
+    prancha do fundo é a superfície, e o realce fica reservado para o estado
+    que precisa dele.
+  */
+  border: 1px solid var(--vx-hairline-10);
   border-radius: var(--vx-radius-12);
   /* O xadrez do design, para quando o primeiro quadro ainda não chegou. */
   background:
@@ -114,6 +128,10 @@
   /* `contain` e nunca `cover`: recortar a transmissão esconderia justamente a
      borda da janela que a pessoa está checando. */
   object-fit: contain;
+}
+
+.prancha[data-proprio="true"] {
+  border: 2px solid var(--vx-danger);
 }
 
 .prancha[data-pausada="true"] .video {
