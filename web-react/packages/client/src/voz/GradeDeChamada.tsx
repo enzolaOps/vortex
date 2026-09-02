@@ -12,7 +12,7 @@ import { Tooltip } from "../components/ui/Tooltip";
 import { assinarVideo } from "../sdk/chamada";
 import { assinarChamada, falando, lerChamada } from "../store/chamada";
 import { useChannel, usePessoa, useServer } from "../store/hooks";
-import { definirPalco, fecharPalco } from "../store/palcoDeVoz";
+import { fecharPalco } from "../store/palcoDeVoz";
 import { Cronometro, Doca, FaixaDeVideo } from "./pecasDeVoz";
 import css from "./GradeDeChamada.module.css";
 
@@ -334,26 +334,18 @@ const Ladrilho = memo(function Ladrilho({
       </Tooltip>
 
       {/*
-        ⚠ **O seu ladrilho leva à PRANCHA, o dos outros ao "assistindo".** São
-        telas diferentes com públicos diferentes: a prancha tem o HUD de quem
-        transmite (pausar, trocar de fonte, qualidade, parar), e o "assistindo"
-        tem os controles de quem olha (volume, qualidade recebida, fila). Um
-        botão só que abrisse a mesma tela para os dois daria a metade errada
-        das ações para cada lado.
+        ⚠ **O botão "Assistir" SAIU, e ele tinha virado inalcançável.**
+
+        A sala passou a entrar na prancha sozinha quando há tela no ar (ver
+        `PalcoDeVoz`), então esta grade só é montada quando NÃO há transmissão
+        nenhuma — e `transmitindo` é falso em todo ladrilho. Um alvo que a
+        condição nunca satisfaz é a família do "construído e inalcançável" que
+        o painel de fixadas já custou a este projeto: manutenção sem nada na
+        tela, e de fora idêntico a ausente.
+
+        Trocar qual tela ocupa o palco, quando houver mais de uma, é trabalho
+        da FILA da prancha — não daqui.
       */}
-      {transmitindo ? (
-        <button
-          type="button"
-          className={css.assistir}
-          onClick={() =>
-            definirPalco(
-              eu ? { tipo: "transmitindo" } : { tipo: "assistindo", userId },
-            )
-          }
-        >
-          {eu ? "Ver transmissão" : "Assistir"}
-        </button>
-      ) : null}
     </div>
   );
 });

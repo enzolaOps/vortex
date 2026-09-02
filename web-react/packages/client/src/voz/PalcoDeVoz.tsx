@@ -43,14 +43,42 @@ export function PalcoDeVoz() {
 
   if (palco.tipo === "fechado" || foraDaChamada) return null;
 
+  /*
+    De quem é a tela que ocupa o palco.
+
+    ⚠ **A sua ganha da dos outros, e `chamada.transmitindo` NÃO te inclui** —
+    está escrito no store, e ler só a lista deixaria quem transmite sozinho na
+    sala vendo a grade. A sua ganha porque ela é a que você precisa conferir:
+    a de outra pessoa você decide se quer, a sua já está saindo daqui.
+  */
+  const eu = chamada.participantes[0];
+  const dono = chamada.tela ? eu : chamada.transmitindo[0];
+
   return (
     <section data-palco className={css.palco} aria-label={rotuloDe(palco)}>
-      {palco.tipo === "transmitindo" ? (
-        <PalcoDeTransmissao />
-      ) : palco.tipo === "grade" ? (
-        <GradeDeChamada />
-      ) : (
+      {/*
+        ⚠ **A SALA entra na prancha sozinha quando há transmissão, e antes
+        exigia um clique.** Quem usa relatou assim: "o canal era para ser
+        preenchido favorecendo a transmissão da tela, sem a necessidade de
+        clicar assistir". A grade de pesos iguais mostrava a tela de alguém
+        como um ladrilho de 84px com um botão em cima — ou seja, anunciava a
+        transmissão e a escondia.
+
+        A escolha é DERIVADA do estado da chamada, não de um modo guardado: se
+        há tela no ar, a sala é a prancha; se não há, é a grade. Um quarto
+        valor na união `Palco` daria dois lugares para dizer a mesma coisa, e
+        o que diverge é sempre o que ninguém abriu naquela semana.
+
+        `transmitindo` continua na união porque ele é o DESTINO de "ver a
+        minha transmissão" vindo do popout — mas hoje ele e `grade` desenham a
+        mesma tela quando há stream, e é isso que os torna consistentes.
+      */}
+      {palco.tipo === "assistindo" ? (
         <AssistirTransmissao userId={palco.userId} />
+      ) : dono ? (
+        <PalcoDeTransmissao dono={dono} proprio={dono === eu} />
+      ) : (
+        <GradeDeChamada />
       )}
     </section>
   );

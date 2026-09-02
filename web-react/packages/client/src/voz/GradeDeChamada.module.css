@@ -294,35 +294,11 @@
 }
 
 /*
-  "Assistir" — o clique que o design promete.
+  ⚠ **`.assistir` foi APAGADA, e o `pnpm utilities` foi quem cobrou.**
 
-  ⚠ Ele fica VISÍVEL em repouso, ao contrário de "fixar". A frase do design é
-  "quem entra no canal depois vê o stream com um clique"; um clique que só
-  existe sob o ponteiro não é descoberto por quem acabou de entrar, e é
-  inalcançável por toque.
+  Ela vestia o botão "Assistir" do ladrilho, e o botão saiu quando a sala
+  passou a entrar na prancha sozinha: esta grade só é montada quando NÃO há
+  transmissão nenhuma, então a condição que renderizava o alvo nunca é
+  verdadeira. A guarda acusou a regra órfã na primeira corrida, como fizera
+  com as seis cópias do `Avatar` — ela faz o inventário sozinha.
 */
-.assistir {
-  position: absolute;
-  inset-inline-end: var(--vx-space-06);
-  inset-block-end: var(--vx-space-06);
-  block-size: 22px;
-  padding-inline: var(--vx-space-09);
-  border: 0;
-  border-radius: var(--vx-radius-pill);
-  background: var(--vx-accent);
-  color: var(--vx-on-accent);
-  font-family: inherit;
-  font-size: var(--vx-size-2xs);
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.assistir:hover {
-  background: var(--vx-accent-hover);
-}
-
-.assistir:focus-visible {
-  outline: 2px solid var(--vx-accent);
-  outline-offset: 2px;
-}

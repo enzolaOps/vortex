@@ -879,6 +879,9 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
           */
           onFocus={() => adotarFocoDeMensagem(message.id)}
           data-alvo={ehAlvo}
+          /* O ritmo do agrupamento, dito para o CSS: a barra de ações sobe
+             exatamente este respiro e nunca mais que ele. Ver `.acoes`. */
+          data-abre-grupo={message.iniciaGrupo}
           className={cn(
             css.linha,
             // Hover na linha, e ele custa ZERO de layout — só cor.

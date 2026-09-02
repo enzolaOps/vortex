@@ -37,6 +37,7 @@ import { toast } from "../components/ui/toastStore";
 import {
   alternarAudioDaTela,
   alternarTela,
+  assinarVideo,
   estatisticasDaTela,
   faixaDeTela,
   pausarTela,
@@ -49,6 +50,7 @@ import {
   type AudioDaTela,
 } from "../store/chamada";
 import { useChannel, usePessoa, useServer } from "../store/hooks";
+import { chaveDeVideo, faixasDeVideo } from "../store/video";
 import { fecharPalco } from "../store/palcoDeVoz";
 import { Cronometro, Doca, emTelaCheia, SeloAoVivo } from "./pecasDeVoz";
 import css from "./PalcoDeTransmissao.module.css";
@@ -77,10 +79,34 @@ import css from "./PalcoDeTransmissao.module.css";
  * juntá-las faria "quero ver o chat" significar "quero sair do ar". Quem para
  * é o alvo vermelho do HUD, que é o único que diz isso.
  */
-export function PalcoDeTransmissao() {
+export function PalcoDeTransmissao({
+  dono,
+  proprio,
+}: {
+  /** De quem é a tela no palco. */
+  dono: string;
+  /** É a SUA transmissão? Decide a moldura, o HUD e a doca. */
+  proprio: boolean;
+}) {
   const chamada = useSyncExternalStore(assinarChamada, lerChamada);
   const canal = useChannel(chamada.channelId);
   const servidor = useServer(canal?.serverId ?? "");
+  const pessoa = usePessoa(dono);
+
+  /*
+    ⚠ **Assistir começa LIGADO, e é o pedido de quem usa: "sem a necessidade
+    de clicar assistir".** Antes, a tela de outra pessoa só aparecia depois de
+    um clique num botão dentro do ladrilho da grade — ou seja, a sala mostrava
+    que havia transmissão e escondia a transmissão.
+
+    O estado existe porque desligar TEM consequência real: `assinarVideo`
+    devolve a faixa ao servidor e para de baixar. É a "variação de se a pessoa
+    está assistindo ou não" — e ela é honesta justamente por custar banda.
+
+    Local e não em store: é preferência de MOMENTO sobre esta tela, e quem sai
+    da sala e volta quer ver o que está no ar.
+  */
+  const [assistindo, setAssistindo] = useState(true);
 
   return (
     <>
@@ -88,6 +114,11 @@ export function PalcoDeTransmissao() {
         <Monitor size={ICONE.controle} className={css.glifoDoCanal} aria-hidden />
         <span className={css.nomeDoCanal}>{canal?.name ?? "voz"}</span>
         <span className={css.nomeDoServidor}>{servidor?.name ?? ""}</span>
+        {/* De quem é a tela — e só quando NÃO é a sua, porque "AO VIVO" ao
+            lado do próprio nome seria dizer o óbvio duas vezes. */}
+        {proprio ? null : (
+          <span className={css.nomeDoServidor}>{pessoa?.displayName ?? "alguém"}</span>
+        )}
         <SeloAoVivo />
         <Cronometro desde={chamada.desde} />
         <span className={css.espaco} />
@@ -119,9 +150,14 @@ export function PalcoDeTransmissao() {
       <div className={css.miolo}>
         <div className={css.esquerda}>
           <Prancha
+            dono={dono}
+            proprio={proprio}
+            nome={pessoa?.displayName ?? "alguém"}
+            assistindo={assistindo}
             pausada={chamada.telaPausada}
             audio={chamada.telaAudio}
             naSala={chamada.participantes.length}
+            aoAlternarAssistir={() => setAssistindo((v) => !v)}
           />
 
           {/* A fila de participantes. A câmera de quem transmite é um ladrilho
@@ -145,11 +181,18 @@ export function PalcoDeTransmissao() {
         <NaSala participantes={chamada.participantes} />
       </div>
 
+      {/*
+        ⚠ **`tela={chamada.tela}` e não `tela` fixo.** A doca esconde o botão
+        de compartilhar para quem já transmite — quem transmite tem o HUD. Mas
+        esta prancha agora também serve quem ASSISTE, e ali o botão precisa
+        existir: é o "Transmitir também" do design, e escondê-lo deixaria a
+        pessoa sem caminho para entrar no ar sem antes sair da tela.
+      */}
       <Doca
         mudo={chamada.mudo}
         surdo={chamada.surdo}
         camera={chamada.camera}
-        tela
+        tela={chamada.tela}
       />
     </>
   );
@@ -171,13 +214,23 @@ export function PalcoDeTransmissao() {
  * capturado, quem transmite ouviria o próprio som de volta com atraso.
  */
 function Prancha({
+  dono,
+  proprio,
+  nome,
+  assistindo,
   pausada,
   audio,
   naSala,
+  aoAlternarAssistir,
 }: {
+  dono: string;
+  proprio: boolean;
+  nome: string;
+  assistindo: boolean;
   pausada: boolean;
   audio: AudioDaTela;
   naSala: number;
+  aoAlternarAssistir: () => void;
 }) {
   const video = useRef<HTMLVideoElement | null>(null);
   const [medidas, setMedidas] = useState<string | undefined>(undefined);
@@ -186,8 +239,37 @@ function Prancha({
   const [taxaPedida, setTaxaPedida] = useState<number | undefined>(undefined);
   const entregue = useEntrega(pausada);
 
+  /*
+    A faixa de OUTRA pessoa vem do store; a sua vem do getter local.
+
+    ⚠ **São dois caminhos porque são duas coisas.** A sua nunca desce pela
+    rede — `publicarVideoLocal` a põe no store e `faixaDeTela()` a lê direto
+    do `localParticipant`. A dela só existe depois de alguém ASSINAR, que é o
+    que `autoSubscribe: false` decidiu lá atrás.
+  */
+  const chaveRemota = chaveDeVideo(dono, "tela");
+  const faixaRemota = useSyncExternalStore(
+    faixasDeVideo.subscriber(chaveRemota),
+    () => faixasDeVideo.getSnapshot(chaveRemota),
+  );
+
+  /*
+    ⚠ **Assina ao entrar e DEVOLVE ao sair — e é o que faz "parar de assistir"
+    significar alguma coisa.** Sem a devolução o desligar seria só esconder a
+    imagem, com a faixa continuando a descer: banda gasta para nada, que é o
+    desperdício exato que `autoSubscribe: false` existe para evitar, com a
+    agravante de ser invisível.
+  */
   useEffect(() => {
-    const faixa = faixaDeTela();
+    if (proprio || !assistindo) return;
+    assinarVideo(dono, "tela", true);
+    return () => {
+      assinarVideo(dono, "tela", false);
+    };
+  }, [dono, proprio, assistindo]);
+
+  useEffect(() => {
+    const faixa = proprio ? faixaDeTela() : faixaRemota;
     const el = video.current;
     if (!faixa || !el) return;
 
@@ -213,17 +295,31 @@ function Prancha({
       montagem escreveria "0×0" e ficaria assim para sempre, que é a mesma
       família do anexo que media 0×0 antes de a imagem chegar.
     */
-    ler();
-    const t = setTimeout(ler, 800);
+    /*
+      As medidas e o rótulo da fonte saem das `settings` da CAPTURA, e captura
+      só existe do lado de quem transmite. Para a faixa de outra pessoa elas
+      viriam vazias — e um chip vazio é pior que chip nenhum.
+    */
+    if (proprio) {
+      ler();
+      const t = setTimeout(ler, 800);
+      return () => {
+        clearTimeout(t);
+        el.srcObject = null;
+      };
+    }
 
     return () => {
-      clearTimeout(t);
       el.srcObject = null;
     };
-  }, []);
+  }, [proprio, faixaRemota]);
 
   return (
-    <div className={css.prancha} data-pausada={pausada}>
+    <div
+      className={css.prancha}
+      data-proprio={proprio}
+      data-pausada={proprio && pausada}
+    >
       <video
         ref={video}
         className={css.video}
@@ -239,12 +335,33 @@ function Prancha({
         dela seria ruído permanente sobre o conteúdo que a tela existe para
         mostrar.
       */}
-      {medidas === undefined ? (
+      {proprio && medidas === undefined ? (
         <div className={css.placa}>
           <span className={css.placaLinha}>
             sua transmissão{fonte ? ` · ${fonte}` : ""}
           </span>
           <span className={css.placaNota}>prévia local com atraso de ~1 s</span>
+        </div>
+      ) : null}
+
+      {/*
+        ⚠ **Não assistir tem PLACA, e ela é o oposto de esconder a caixa.** O
+        palco continua ocupando o mesmo espaço: a sala não muda de forma
+        porque alguém baixou a banda, e voltar é um clique no mesmo lugar.
+      */}
+      {!proprio && !assistindo ? (
+        <div className={css.placa}>
+          <span className={css.placaLinha}>{nome} está transmitindo</span>
+          <span className={css.placaNota}>
+            você não está assistindo — a faixa não está sendo baixada
+          </span>
+        </div>
+      ) : null}
+
+      {!proprio && assistindo && !faixaRemota ? (
+        <div className={css.placa}>
+          <span className={css.placaLinha}>{nome} está transmitindo</span>
+          <span className={css.placaNota}>recebendo o primeiro quadro…</span>
         </div>
       ) : null}
 
@@ -305,60 +422,92 @@ function Prancha({
         ) : null}
       </div>
 
-      {pausada ? (
+      {proprio && pausada ? (
         <p className={css.avisoDePausa}>
           Pausada — quem assiste vê o último quadro.
         </p>
       ) : null}
 
-      <div className={css.hud}>
-        <button
-          type="button"
-          className={css.parar}
-          onClick={() => void alternarTela()}
-        >
-          {/*
-            ⚠ **Duas versões do rótulo, e não uma frase partida.** `.parar` é
-            um flex container: um `<span>` com espaço inicial vira item de
-            flex e o navegador DESCARTA esse espaço — medido, saía
-            "Pararde transmitir". Alternativas completas não têm o problema.
-          */}
-          <span className={css.rotuloDoHud}>Parar de transmitir</span>
-          <span className={css.rotuloCurto}>Parar</span>
-        </button>
+      {proprio ? (
+        <div className={css.hud}>
+          <button
+            type="button"
+            className={css.parar}
+            onClick={() => void alternarTela()}
+          >
+            {/*
+              ⚠ **Duas versões do rótulo, e não uma frase partida.** `.parar` é
+              um flex container: um `<span>` com espaço inicial vira item de
+              flex e o navegador DESCARTA esse espaço — medido, saía
+              "Pararde transmitir". Alternativas completas não têm o problema.
+            */}
+            <span className={css.rotuloDoHud}>Parar de transmitir</span>
+            <span className={css.rotuloCurto}>Parar</span>
+          </button>
+  
+          <span className={css.divisa} aria-hidden />
+  
+          <button
+            type="button"
+            className={css.itemDoHud}
+            aria-pressed={pausada}
+            onClick={() => void pausarTela(!pausada)}
+          >
+            {pausada ? (
+              <Play size={ICONE.metadado} aria-hidden />
+            ) : (
+              <Pause size={ICONE.metadado} aria-hidden />
+            )}
+            <span className={css.rotuloDoHud}>
+              {pausada ? "Retomar" : "Pausar"}
+            </span>
+          </button>
+  
+          <button
+            type="button"
+            className={css.itemDoHud}
+            aria-label="Trocar fonte"
+            onClick={() => void trocarFonteDaTela()}
+          >
+            <ArrowsClockwise size={ICONE.metadado} aria-hidden />
+            <span className={css.rotuloDoHud}>Trocar fonte</span>
+          </button>
+  
+          <BotaoDeAudio audio={audio} />
+  
+          <MenuDeQualidade />
+        </div>
+      ) : (
+        /*
+          ⚠ **O HUD de quem ASSISTE, e ele existe porque a prancha passou a
+          servir os dois lados.** Antes, a tela de outra pessoa só aparecia
+          depois de clicar "Assistir" num ladrilho da grade, e o que se abria
+          era outra superfície inteira. Agora a sala já mostra o que está no
+          ar, e o que sobra para decidir é só quanto disso você quer baixar.
 
-        <span className={css.divisa} aria-hidden />
-
-        <button
-          type="button"
-          className={css.itemDoHud}
-          aria-pressed={pausada}
-          onClick={() => void pausarTela(!pausada)}
-        >
-          {pausada ? (
-            <Play size={ICONE.metadado} aria-hidden />
-          ) : (
-            <Pause size={ICONE.metadado} aria-hidden />
-          )}
-          <span className={css.rotuloDoHud}>
-            {pausada ? "Retomar" : "Pausar"}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          className={css.itemDoHud}
-          aria-label="Trocar fonte"
-          onClick={() => void trocarFonteDaTela()}
-        >
-          <ArrowsClockwise size={ICONE.metadado} aria-hidden />
-          <span className={css.rotuloDoHud}>Trocar fonte</span>
-        </button>
-
-        <BotaoDeAudio audio={audio} />
-
-        <MenuDeQualidade />
-      </div>
+          "Parar de assistir" não fecha nada: devolve a faixa e deixa a placa
+          no lugar do vídeo. A caixa não muda de tamanho — a sala não pode
+          mudar de forma porque alguém economizou banda.
+        */
+        <div className={css.hud}>
+          <button
+            type="button"
+            className={css.parar}
+            onClick={aoAlternarAssistir}
+          >
+            <span className={css.rotuloDoHud}>
+              {assistindo ? "Parar de assistir" : "Voltar a assistir"}
+            </span>
+          </button>
+          <button
+            type="button"
+            className={css.itemDoHud}
+            onClick={emTelaCheia}
+          >
+            <span className={css.rotuloDoHud}>Tela cheia</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

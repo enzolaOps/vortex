@@ -20,6 +20,7 @@ import { assinarSessao, lerSessao } from "../store/sessao";
 import {
   abrirConfig,
   assinarConfig,
+  DE_SERVIDOR,
   GRUPOS_DE_SERVIDOR,
   DESCRICAO_DA_SECAO as DESCRICAO,
   NOME_DA_SECAO as NOME,
@@ -228,8 +229,49 @@ export function Configuracoes() {
         Somar os três grupos punha a pessoa a um clique de "Dispositivos"
         quando ela abriu as configurações de um canal.
       */}
+      {/*
+        ⚠ **O servidor tem casca PRÓPRIA, e antes ele dividia a coluna com as
+        do usuário.** As quatro seções dele vinham penduradas abaixo de
+        "Configurações do usuário", então quem abria a gestão de um servidor
+        via Perfil, Conta, Dispositivos e Privacidade antes de chegar em
+        Membros — e o design desenha duas telas separadas, como a referência.
+
+        É o MESMO defeito que as de canal já tinham e que o comentário abaixo
+        registra; ele só não tinha sido aplicado um nível acima. Quem usa
+        relatou: "o servidor era para ter uma tela própria de gerenciamento,
+        não dividir com o usuário".
+
+        A casca é DERIVADA da seção aberta (`DE_SERVIDOR.includes`), sem
+        estado novo: se a seção é de servidor, a coluna é a dele. Um campo
+        "qual casca" daria duas fontes para o mesmo fato, e a que diverge é
+        sempre a que ninguém abriu naquela semana.
+      */}
       {canal ? (
         <NavegacaoDoCanal canal={canal} secao={secao} servidor={servidor?.name} />
+      ) : DE_SERVIDOR.includes(secao) && serverId ? (
+        <nav className={css.menu} aria-label={`Configurações de ${servidor?.name ?? "servidor"}`}>
+          <div className={css.lista}>
+            {/*
+              O nome do servidor encabeça a coluna inteira, e não um grupo
+              dentro dela: aqui ele é a IDENTIDADE da tela, o mesmo papel que
+              o tipo e o nome do canal têm na casca de canal.
+            */}
+            <p className={css.grupo}>{servidor?.name ?? "Servidor"}</p>
+            {GRUPOS_DE_SERVIDOR.map((g, i) => (
+              <Fragment key={g.titulo}>
+                {i > 0 ? <p className={css.subgrupo}>{g.titulo}</p> : null}
+                {g.itens.map((id) => (
+                  <ItemDoMenu
+                    key={id}
+                    id={id}
+                    ativa={id === secao}
+                    serverId={serverId}
+                  />
+                ))}
+              </Fragment>
+            ))}
+          </div>
+        </nav>
       ) : (
       <nav className={css.menu} aria-label="Seções">
         <Identidade />
@@ -250,34 +292,10 @@ export function Configuracoes() {
           ))}
 
           {/*
-            As de servidor só aparecem quando há servidor — e não
-            desabilitadas: um menu com metade cinza ensina que existe coisa que
-            você não pode usar, ruído permanente para quem só usa conversas.
+            ⚠ **As de servidor SAÍRAM daqui.** Elas eram um segundo grupo
+            nesta mesma coluna; agora têm casca própria, escolhida no `if` lá
+            de cima. Ver o comentário de lá.
           */}
-          {serverId ? (
-            <>
-              {/*
-                ⚠ **O nome do servidor encabeça o PRIMEIRO grupo, não os
-                quatro.** Repeti-lo em cada um daria "Vortex Core" quatro vezes
-                numa coluna de 248px; os subtítulos do design (Servidor ·
-                Expressões · Pessoas · Moderação) é que separam.
-              */}
-              <p className={css.grupo}>{servidor?.name ?? "Servidor"}</p>
-              {GRUPOS_DE_SERVIDOR.map((g, i) => (
-                <Fragment key={g.titulo}>
-                  {i > 0 ? <p className={css.subgrupo}>{g.titulo}</p> : null}
-                  {g.itens.map((id) => (
-                    <ItemDoMenu
-                      key={id}
-                      id={id}
-                      ativa={id === secao}
-                      serverId={serverId}
-                    />
-                  ))}
-                </Fragment>
-              ))}
-            </>
-          ) : null}
 
           {/*
             ⚠ **Sair faltava aqui, e o lugar dele é este.** Ele existe no menu
