@@ -49,7 +49,7 @@ const NOME_DA_DISPOSICAO: Record<Disposicao, string> = {
  */
 const NOTA: Record<Disposicao, string> = {
   grade:
-    "Grade: todos com peso igual, 4 colunas até 8 participantes, 5 acima disso.",
+    "Grade: todos com peso igual; as colunas acompanham quantas pessoas há, até cinco.",
   orador:
     "Orador ativo: a célula grande troca por detecção de voz com histerese de 1,2 s — sem isso a grade pisca a cada interjeição.",
   fixado:
@@ -68,11 +68,25 @@ export function GradeDeChamada() {
   const [fixado, setFixado] = useState<string | undefined>(undefined);
 
   /*
-    ⚠ **Acima de 8 a grade abre para 5 colunas** — a célula fica menor e
-    continua legível. Paginar esconderia justamente quem está falando, que é a
-    única informação que a grade existe para dar de relance.
+    ⚠ **As colunas saem da CONTAGEM, e antes eram quatro sempre.** A regra
+    anterior — `> 8 ? 5 : 4` — dava quatro colunas para duas pessoas: dois
+    ladrilhos de 84px encolhidos num canto, com o resto da tela vazio embaixo.
+    Foi o que quem usa relatou, e a queixa era sobre a PRÉVIA: numa chamada de
+    duas pessoas com alguém transmitindo, a miniatura da transmissão ficava
+    pequena demais para servir de prévia de qualquer coisa.
+
+    `ceil(sqrt(n))` é a grade mais quadrada que cabe, que é a que aproveita
+    melhor uma área larga: 1 pessoa em 1 coluna, 2 a 4 em duas, 5 a 9 em três,
+    10 a 16 em quatro, e o teto em cinco.
+
+    ⚠ **Teto em 5 pelo motivo de sempre**, e ele não mudou: acima disso a
+    célula fica menor que o rosto que ela existe para mostrar, e paginar
+    esconderia justamente quem está falando.
   */
-  const colunas = chamada.participantes.length > 8 ? 5 : 4;
+  const colunas = Math.min(
+    5,
+    Math.max(1, Math.ceil(Math.sqrt(chamada.participantes.length))),
+  );
 
   /*
     ⚠ **Você não está em `comCamera` nem em `mudos`, e isso é de propósito.**

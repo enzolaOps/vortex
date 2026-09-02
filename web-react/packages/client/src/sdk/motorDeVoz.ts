@@ -208,6 +208,12 @@ function ligarEventos(r: Room, channelId: string): void {
   */
   r.on(RoomEvent.Disconnected, () => {
     faixasDeVideo.limpar();
+    /* A contagem morre com a sala. Sem isto, entrar de novo começaria com
+       assinantes fantasmas e a primeira borda nunca chegaria a zero. */
+    assinantesDeVideo.clear();
+    assinadoNoTransporte.clear();
+    for (const t of liberacoesPendentes.values()) clearTimeout(t);
+    liberacoesPendentes.clear();
     encerrarChamada();
   });
   r.on(RoomEvent.Reconnecting, () => definirChamada({ estado: "reconectando" }));
@@ -509,6 +515,49 @@ function mesmaLista(a: readonly string[], b: readonly string[]): boolean {
 }
 
 /**
+ * Quantas superfícies querem cada faixa de vídeo, por `usuário:fonte`.
+ *
+ * ⚠ **Existe porque DUAS telas pedem a mesma faixa, e quem soltava primeiro
+ * derrubava a de quem estava chegando.** O ladrilho da grade e a tela de
+ * assistir assinam o mesmo `(usuário, tela)`; trocar de uma para a outra
+ * desmonta a primeira e monta a segunda no MESMO commit do React, então saía
+ * `setSubscribed(false)` seguido de `setSubscribed(true)` no mesmo tique.
+ *
+ * O que isso produzia, e foi relatado por quem usa: clicar em "Assistir"
+ * deixava a tela em "pedindo o vídeo…" para sempre, e voltar para a grade
+ * deixava o ladrilho só com o avatar. Os dois pelo mesmo motivo — `apagar()`
+ * roda na hora, e o `TrackSubscribed` que repovoaria o store depende de o
+ * servidor REENTREGAR a faixa. Ele recebe as duas mensagens juntas, termina no
+ * estado assinado, e não tem por que entregar de novo.
+ *
+ * Com a contagem, a troca de dono nunca chega a zero e o servidor não é
+ * consultado: a faixa que já está descendo continua descendo.
+ */
+const assinantesDeVideo = new Map<string, number>();
+
+/**
+ * Devoluções agendadas, por `usuário:fonte`.
+ *
+ * ⚠ Sem elas a contagem não resolve nada na troca de tela, porque o React
+ * desmonta antes de montar e a contagem toca zero no caminho. Ver `assinarVideo`.
+ */
+const liberacoesPendentes = new Map<string, ReturnType<typeof setTimeout>>();
+
+/**
+ * O que está de fato assinado NO TRANSPORTE.
+ *
+ * ⚠ **Separado da contagem, e o teste é que exigiu.** A contagem responde
+ * "quantas telas querem"; esta responde "o servidor já está mandando". Elas
+ * divergem exatamente durante a devolução adiada — ninguém quer, e a faixa
+ * continua descendo — e é aí que a troca de tela acontece.
+ *
+ * Sem a distinção, o consumidor que chega vê a contagem em zero, conclui que
+ * precisa assinar, e manda um segundo `setSubscribed(true)`. Medido no teste:
+ * `[true, true]` onde devia sair `[true]`.
+ */
+const assinadoNoTransporte = new Set<string>();
+
+/**
  * Pede (ou devolve) a faixa de video de uma pessoa.
  *
  * ⚠ **E a unica porta para video remoto, e ela e EXPLICITA por decisao de
@@ -528,8 +577,69 @@ export function assinarVideo(
 ): boolean {
   const pub = publicacaoDeVideo(userId, fonte);
   if (!pub) return false;
-  pub.setSubscribed(sim);
-  if (!sim) faixasDeVideo.apagar(chaveDeVideo(userId, fonte));
+
+  const chave = chaveDeVideo(userId, fonte);
+  const depois = Math.max(
+    0,
+    (assinantesDeVideo.get(chave) ?? 0) + (sim ? 1 : -1),
+  );
+  if (depois === 0) assinantesDeVideo.delete(chave);
+  else assinantesDeVideo.set(chave, depois);
+
+  /*
+    Só fala com o servidor nas BORDAS: do zero para um, e de um para zero.
+    No meio, a troca de dono não é assunto dele.
+
+    ⚠ **A borda de descida é ADIADA, e a contagem sozinha não bastava.** O
+    React roda a limpeza do que sai ANTES do efeito do que entra — mesmo no
+    mesmo commit —, então trocar a grade pela tela de assistir passa por zero
+    de qualquer jeito, e o `setSubscribed(false)` sai. Com a espera, o pedido
+    do consumidor que está chegando cancela a devolução do que saiu, e o
+    servidor não chega a ser consultado.
+
+    250 ms porque a troca é de um quadro e a conta é assimétrica: segurar uma
+    faixa por um quarto de segundo a mais é banda desprezível, e soltá-la cedo
+    demais é o defeito relatado — "pedindo o vídeo…" que nunca resolve.
+  */
+  const adiado = liberacoesPendentes.get(chave);
+  if (adiado !== undefined) {
+    clearTimeout(adiado);
+    liberacoesPendentes.delete(chave);
+  }
+
+  if (sim) {
+    if (!assinadoNoTransporte.has(chave)) {
+      assinadoNoTransporte.add(chave);
+      pub.setSubscribed(true);
+    }
+  } else if (depois === 0) {
+    liberacoesPendentes.set(
+      chave,
+      setTimeout(() => {
+        liberacoesPendentes.delete(chave);
+        /* Alguém pode ter voltado a querer entre o agendamento e agora. */
+        if ((assinantesDeVideo.get(chave) ?? 0) > 0) return;
+        assinadoNoTransporte.delete(chave);
+        publicacaoDeVideo(userId, fonte)?.setSubscribed(false);
+        faixasDeVideo.apagar(chave);
+      }, 250),
+    );
+  }
+
+  /*
+    ⚠ **Repovoa o store quando JÁ estava assinado, e sem isto a contagem não
+    bastaria.** `TrackSubscribed` é a única porta de entrada de
+    `faixasDeVideo`, e ele é um evento de CHEGADA: assinar algo que já chegou
+    não o dispara de novo. O segundo consumidor montaria com o store certo por
+    acaso — porque o primeiro o preencheu — e com o store VAZIO sempre que ele
+    fosse o primeiro a montar depois de uma limpeza.
+
+    A faixa já está na publicação; escrevê-la aqui é ler o que existe, não
+    inventar estado.
+  */
+  const faixa = sim ? pub.track?.mediaStreamTrack : undefined;
+  if (faixa) faixasDeVideo.set(chave, faixa);
+
   return true;
 }
 
