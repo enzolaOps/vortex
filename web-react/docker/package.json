@@ -3,10 +3,10 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "start": "sirv dist --port 5000 --cors --single --host"
+    "start": "node servidor.mjs"
   },
   "dependencies": {
-    "sirv-cli": "^3.0.1"
+    "sirv": "^3.0.1"
   },
   "engines": {
     "node": ">=18"

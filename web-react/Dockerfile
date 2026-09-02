@@ -85,6 +85,11 @@ WORKDIR /app
 COPY web-react/docker/package.json ./
 RUN npm install --omit=dev
 
+# ⚠ **Depois do `npm install`, e de propósito.** O servidor muda mais que a
+# dependência dele; copiado antes, toda edição de uma linha aqui invalidaria a
+# camada de instalação e o build refaria o `npm install` sem precisar.
+COPY web-react/docker/servidor.mjs ./
+
 COPY --from=builder /build/web-react/packages/client/dist ./dist
 
 # 5000 é a porta que o `web` do upstream expõe, e o compose já aponta para ela.
