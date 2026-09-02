@@ -63,6 +63,7 @@ jobs:
   # `publicar` junta os digests num manifesto multi-arch.
   base:
     name: Base (${{ matrix.arch }})
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions:
@@ -241,6 +242,7 @@ jobs:
           build-args: |
             BASE_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/${{ env.BASE }}:${{ github.sha }}
           tags: |
+            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-api:latest
             ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-api:main
             ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-api:${{ github.sha }}
           labels: |
@@ -260,6 +262,7 @@ jobs:
           build-args: |
             BASE_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/${{ env.BASE }}:${{ github.sha }}
           tags: |
+            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-events:latest
             ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-events:main
             ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-events:${{ github.sha }}
           labels: |
@@ -273,11 +276,11 @@ jobs:
             echo "### Imagens publicadas"
             echo
             echo '```'
-            echo "VORTEX_API_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-api:${{ github.sha }}@${{ steps.api.outputs.digest }}"
-            echo "VORTEX_EVENTS_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-events:${{ github.sha }}@${{ steps.events.outputs.digest }}"
+            echo "VORTEX_API_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-api:latest@${{ steps.api.outputs.digest }}"
+            echo "VORTEX_EVENTS_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-events:latest@${{ steps.events.outputs.digest }}"
             echo '```'
             echo
-            echo "Atualize \`compose/versions.env\` no pi-infra; o merge dispara o deploy."
+            echo "O Renovate atualiza esses digests no pi-infra; o merge dispara o deploy."
             echo
             echo "⚠ Os outros cinco serviços seguem pinados no upstream de propósito."
           } >> "$GITHUB_STEP_SUMMARY"

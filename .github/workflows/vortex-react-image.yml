@@ -32,6 +32,7 @@ concurrency:
 jobs:
   build:
     name: Build and push
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -98,6 +99,7 @@ jobs:
           push: true
           provenance: false
           tags: |
+            ${{ steps.image.outputs.name }}:latest
             ${{ steps.image.outputs.name }}:main
             ${{ steps.image.outputs.name }}:${{ github.sha }}
           labels: |
@@ -113,10 +115,10 @@ jobs:
             echo "### Image published"
             echo
             echo '```'
-            echo "VORTEX_WEB_IMAGE=${{ steps.image.outputs.name }}:${{ github.sha }}@${{ steps.push.outputs.digest }}"
+            echo "VORTEX_WEB_IMAGE=${{ steps.image.outputs.name }}:latest@${{ steps.push.outputs.digest }}"
             echo '```'
             echo
-            echo "Cole essa linha em \`compose/versions.env\` do pi-infra e rode \`make vortex-update\`."
+            echo "O Renovate atualiza esse digest em \`compose/versions.env\` do pi-infra."
             echo
             echo "A imagem serve na porta 5000, como a do cliente Solid, e resolve a API"
             echo "contra a própria origem — as variáveis \`VITE_*\` do compose não são"
