@@ -293,6 +293,33 @@ export function toPresence(raw: string | null | undefined): PresenceStatus {
   return (raw && PRESENCE[raw]) || "offline";
 }
 
+/**
+ * A presença de alguém, a partir dos DOIS campos do protocolo.
+ *
+ * ⚠ **`online` e `status.presence` são coisas diferentes, e usar só o segundo
+ * punha a member list inteira em OFFLINE.** `online` é a CONEXÃO — um
+ * booleano que o servidor mantém —, e `status.presence` é o que a pessoa
+ * ESCOLHEU mostrar. Quem nunca escolheu não tem o campo, e
+ * `toPresence(undefined)` devolve `"offline"` por desenho.
+ *
+ * O resultado, medido contra a instância local: o servidor respondia
+ * `{"username":"auditor9018","online":true}` e a coluna me listava em OFFLINE,
+ * na minha própria sessão. Vale para todo mundo — só escapa quem tiver
+ * escolhido um status à mão.
+ *
+ * ⚠ **Desconectado vence a escolha.** Quem escolheu "Online" e fechou o app
+ * está offline, e mostrá-lo aceso mandaria alguém falar com uma parede.
+ * Invisível não precisa de tratamento aqui: o servidor já reporta `online:
+ * false` para os outros, que é o ponto de ser invisível.
+ */
+export function presencaDe(
+  online: boolean | undefined,
+  raw: string | null | undefined,
+): PresenceStatus {
+  if (!online) return "offline";
+  return (raw && PRESENCE[raw]) || "online";
+}
+
 /* ------------------------------------------------------- colunas laterais */
 
 

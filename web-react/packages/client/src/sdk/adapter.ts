@@ -88,7 +88,7 @@ import {
   toRelacaoSnapshot,
   toMemberSnapshot,
   toMessageSnapshot,
-  toPresence,
+  presencaDe,
   toServerSnapshot,
 } from "./map";
 
@@ -1133,6 +1133,7 @@ export function startAdapter() {
       for (const servidor of doProtocolo) {
         canaisPorServidor.set(servidor.id, [...servidor.channelIds]);
         publicarCanais(servidor.id);
+        void semearMembros(servidor.id);
       }
     }
 
@@ -1235,7 +1236,7 @@ export function startAdapter() {
     // Presença vai para o store efêmero, com throttle na fronteira do adapter.
     // Nunca para o store de mensagens: um servidor grande emite centenas
     // destes por segundo e a lista inteira acordaria a cada piscada.
-    const status = toPresence(user.status?.presence);
+    const status = presencaDe(user.online, user.status?.presence);
     presence.set(user.id, status);
     // A member list só reordena se o BALDE mudou — online↔idle↔dnd não move
     // ninguém, e é a esmagadora maioria destes eventos.
@@ -3165,6 +3166,59 @@ function publicarMembros(serverId: string): void {
  * competindo pela mesma lista. Publica na hora — não há frame para esperar
  * durante o setup.
  */
+/**
+ * Traz a lista de membros de um servidor, uma vez, na abertura.
+ *
+ * ⚠ **A member list ficava VAZIA contra um servidor de verdade, e o motivo é
+ * exatamente o que o comentário do `Ready` descreve uma camada acima.**
+ * `membrosPorServidor` só tinha dois preenchedores: o evento
+ * `serverMemberJoin` — que existe para quem entra COM O APP ABERTO — e
+ * `registrarServidor`, que é chamado só pelo arnês e pelos testes. Quem já era
+ * membro antes de você abrir o app nunca era registrado, então a coluna
+ * mostrava "Nenhum membro para mostrar" num servidor onde você mesmo está.
+ *
+ * Consertaram `serverIds` e os canais no `Ready` e os membros ficaram para
+ * trás — a lista de canais é semeada duas linhas acima, no mesmo laço. É a
+ * mesma família, e a mesma razão de nunca ter aparecido: o arnês semeia
+ * `registrarServidor` direto e é mais RICO que o caminho real.
+ *
+ * ⚠ **`Ready` NÃO traz membros, e por isso é uma chamada de rede.** O payload
+ * de abertura tem servidores, canais, cursores de leitura e presença; a lista
+ * de membros é `GET /servers/{id}/members`, uma rota própria. Medido contra a
+ * instância local: 200, com `members` e `users` preenchidos.
+ *
+ * ⚠ **Fire-and-forget, e uma por servidor.** Segurar o `Ready` esperando N
+ * respostas atrasaria a primeira pintura por causa de uma coluna lateral que
+ * talvez nem esteja aberta. A lista aparece quando chega, que é o mesmo
+ * contrato do resto do adapter.
+ *
+ * Falha em silêncio de propósito: sem membros a coluna já tem estado vazio, e
+ * um toast de erro para uma lista secundária seria ruído em cima de uma sessão
+ * que acabou de abrir.
+ */
+async function semearMembros(serverId: string): Promise<void> {
+  const servidor = client.servers.get(serverId);
+  if (!servidor) return;
+
+  try {
+    const { members, users } = await servidor.fetchMembers();
+    /*
+      ⚠ A presença vem ANTES do registro, e a ordem é o que decide o balde:
+      `registrarMembro` lê `presence.getSnapshot(userId)` para escolher entre
+      online e offline, e o que não estiver semeado cai em offline.
+    */
+    for (const u of users) {
+      presence.set(u.id, presencaDe(u.online, u.status?.presence));
+    }
+    for (const membro of members) registrarMembro(serverId, membro.id.user);
+    membrosSujos.delete(serverId);
+    publicarMembros(serverId);
+  } catch {
+    /* Sem permissão, sem rede, ou servidor grande demais para a rota. A coluna
+       fica no estado vazio, que é o que ela já sabia fazer. */
+  }
+}
+
 export function registrarServidor(
   serverId: string,
   membros: readonly string[],
