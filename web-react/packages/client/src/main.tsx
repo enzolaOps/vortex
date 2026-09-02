@@ -14,6 +14,7 @@ import { Atualizacao } from "./desktop/Atualizacao";
 import { BarraDeTitulo } from "./desktop/BarraDeTitulo";
 import css from "./main.module.css";
 import { hidratarDesktop } from "./store/desktop";
+import { PesoDeIcone } from "./components/ui/PesoDeIcone";
 import { TooltipProvider } from "./components/ui/Tooltip";
 import "./styles/tokens.css";
 
@@ -72,59 +73,66 @@ createRoot(root).render(
   <StrictMode>
     {/* Um Provider na raiz: ele coordena o atraso compartilhado entre
         tooltips. Um por tooltip devolveria o atraso cheio a cada ícone. */}
-    <TooltipProvider delayDuration={400} skipDelayDuration={300}>
-      {/*
-        A barra de título e a faixa de atualização são da CASCA, e as duas
-        devolvem `null` no navegador. Montadas na raiz e FORA do portão de
-        sessão: minimizar e fechar a janela precisam funcionar na tela de
-        login — um app que só pode ser fechado depois de autenticar é um app
-        que trava a máquina de quem esqueceu a senha.
-      */}
-      {/*
-        ⚠ **As duas faixas da casca e o conteúdo numa COLUNA FLEX.** Elas
-        ocupam fluxo no topo, e antes disto a tela de entrada pedia `100dvh`
-        sem saber delas: medido dentro do Electron, a janela rolava 35px e
-        ganhava barra de rolagem. Flex e não grid porque as duas são
-        OPCIONAIS — ver `main.module.css`.
-      */}
-      <div className={css.raiz}>
-        <BarraDeTitulo />
-        <Atualizacao />
-        <div className={css.conteudo}>
-      {/*
-        Sem sessão não há canal, autor nem permissão: o portão vem antes do
-        shell. Ver `PortaoDeSessao`.
+    {/*
+      O peso de todo ícone, num lugar só. Ver `components/ui/PesoDeIcone`:
+      a maioria dos ícones deste app é desenhada em 12–13px, e ali é onde um
+      contorno fino deixa de ser desenho e vira mancha.
+    */}
+    <PesoDeIcone>
+      <TooltipProvider delayDuration={400} skipDelayDuration={300}>
+        {/*
+          A barra de título e a faixa de atualização são da CASCA, e as duas
+          devolvem `null` no navegador. Montadas na raiz e FORA do portão de
+          sessão: minimizar e fechar a janela precisam funcionar na tela de
+          login — um app que só pode ser fechado depois de autenticar é um app
+          que trava a máquina de quem esqueceu a senha.
+        */}
+        {/*
+          ⚠ **As duas faixas da casca e o conteúdo numa COLUNA FLEX.** Elas
+          ocupam fluxo no topo, e antes disto a tela de entrada pedia `100dvh`
+          sem saber delas: medido dentro do Electron, a janela rolava 35px e
+          ganhava barra de rolagem. Flex e não grid porque as duas são
+          OPCIONAIS — ver `main.module.css`.
+        */}
+        <div className={css.raiz}>
+          <BarraDeTitulo />
+          <Atualizacao />
+          <div className={css.conteudo}>
+        {/*
+          Sem sessão não há canal, autor nem permissão: o portão vem antes do
+          shell. Ver `PortaoDeSessao`.
 
-        ⚠ **Não no arnês, pela MESMA razão que a rota logo acima.** O rig não
-        é um lugar do produto: ele semeia o próprio "eu" com
-        `definirUsuarioLocal` e todo o dado vem do firehose, então não há
-        sessão para haver. Com o portão na frente, `/dev` passou a abrir na
-        tela de login — e o arnês, que é onde este projeto MEDE, ficou
-        inalcançável sem que nada falhasse. Foi assim que a tela de voz
-        chegou a ser medida só pela metade.
-      */}
-          {ARNES_ATIVO ? (
-            <App />
-          ) : (
-            <PortaoDeSessao>
+          ⚠ **Não no arnês, pela MESMA razão que a rota logo acima.** O rig não
+          é um lugar do produto: ele semeia o próprio "eu" com
+          `definirUsuarioLocal` e todo o dado vem do firehose, então não há
+          sessão para haver. Com o portão na frente, `/dev` passou a abrir na
+          tela de login — e o arnês, que é onde este projeto MEDE, ficou
+          inalcançável sem que nada falhasse. Foi assim que a tela de voz
+          chegou a ser medida só pela metade.
+        */}
+            {ARNES_ATIVO ? (
               <App />
-            </PortaoDeSessao>
-          )}
+            ) : (
+              <PortaoDeSessao>
+                <App />
+              </PortaoDeSessao>
+            )}
+          </div>
         </div>
-      </div>
-      {/*
-        ⚠ Toaster e faixa de conexão ficam FORA do grid de propósito: as duas
-        são superfície flutuante — portal e `fixed` — então virariam trilhas
-        de altura zero, dizendo que participam de um layout do qual não
-        participam.
-      */}
-      {/* Montado uma vez na raiz: a viewport e a regiao aria-live que o
-          leitor de tela anuncia. Os toasts vem do store, nao de props. */}
-      <Toaster />
-      {/* Como o Toaster: superfície global, montada uma vez, alimentada por
-          store. Flutua — faixa no fluxo mudaria a altura do container da
-          lista virtualizada. */}
-      <FaixaDeConexao />
-    </TooltipProvider>
+        {/*
+          ⚠ Toaster e faixa de conexão ficam FORA do grid de propósito: as duas
+          são superfície flutuante — portal e `fixed` — então virariam trilhas
+          de altura zero, dizendo que participam de um layout do qual não
+          participam.
+        */}
+        {/* Montado uma vez na raiz: a viewport e a regiao aria-live que o
+            leitor de tela anuncia. Os toasts vem do store, nao de props. */}
+        <Toaster />
+        {/* Como o Toaster: superfície global, montada uma vez, alimentada por
+            store. Flutua — faixa no fluxo mudaria a altura do container da
+            lista virtualizada. */}
+        <FaixaDeConexao />
+      </TooltipProvider>
+    </PesoDeIcone>
   </StrictMode>,
 );
