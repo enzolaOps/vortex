@@ -138,206 +138,220 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
     v.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9\-_]/g, "");
 
   return (
-    /* 680 é a largura desta tela no design — ver `.forma.larga`. */
-    <div
-      className={`${secao.forma} ${secao.larga}`}
-      style={{ "--vx-editor-w": "680px" } as React.CSSProperties}
-    >
-      <section className={secao.bloco}>
-        <Campo
-          rotulo="Nome do canal"
-          autoComplete="off"
-          disabled={salvando}
-          value={nome}
-          onChange={(e) => setNome(normalizar(e.target.value))}
-          dica="Minúsculas, sem espaços — hífens são convertidos automaticamente."
-        />
-      </section>
+    /*
+      ⚠ **A faixa de salvar é IRMÃ do formulário, não filha dele.** Ela estava
+      dentro de `.forma`, que tem `max-inline-size: 680px` para a medida de
+      leitura — e herdava esse teto. Medido no navegador: a faixa saía com
+      760px de largura dentro de um pane de 1439, flutuando à esquerda como
+      uma placa solta em vez de fechar a coluna. O comentário do `.rolagem` já
+      dizia a intenção ("a faixa é rodapé da coluna e precisa atravessá-la");
+      faltava a árvore concordar com ele.
 
-      <section className={secao.bloco}>
-        {/* Rótulo e contador na MESMA linha — é onde o design os põe. */}
-        <p className={css.rotuloComContador}>
-          <span>Assunto do canal</span>
-          <span className={css.contador}>{assunto.length} / 1024</span>
-        </p>
-
-        <div className={css.caixaDeTexto}>
-          <div className={css.regua} role="toolbar" aria-label="Formatação">
-            {/*
-              Os quatro de formatação são REAIS: envolvem a seleção em
-              markdown, que o caminho de leitura já entende desde
-              `markdown/analisar.ts`. Spoiler e emoji dependem de coisas que
-              não existem — spoiler não está no protocolo e o seletor de emoji
-              não tem âncora fora do composer.
-            */}
-            <Formato rotulo="Negrito" marca="**" valor={assunto} aoAplicar={setAssunto}>
-              B
-            </Formato>
-            <Formato rotulo="Itálico" marca="*" valor={assunto} aoAplicar={setAssunto}>
-              I
-            </Formato>
-            <Formato rotulo="Sublinhado" marca="__" valor={assunto} aoAplicar={setAssunto}>
-              U
-            </Formato>
-            <Formato rotulo="Riscado" marca="~~" valor={assunto} aoAplicar={setAssunto}>
-              S
-            </Formato>
-            <span className={css.reguaDivisa} aria-hidden />
-            <button
-              type="button"
-              className={css.reguaBotao}
-              onClick={aindaNao("canalDeSpoiler")}
-            >
-              spoiler
-            </button>
-            {/* Um `Popover.Root` por FORMULÁRIO, e não por linha de lista —
-                a conta que criou `store/seletorDeReacao.ts` não se aplica
-                aqui: esta tela tem um campo de assunto, não dez mil. */}
-            <Popover open={emojiAberto} onOpenChange={setEmojiAberto}>
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  className={css.reguaBotao}
-                  aria-label="Emoji"
-                >
-                  🙂
-                </button>
-              </PopoverTrigger>
-              <PopoverContent side="bottom" align="start" sideOffset={6}>
-                <SeletorDeEmoji
-                  aoEscolher={(glifo) => {
-                    setAssunto(assunto + glifo);
-                    setEmojiAberto(false);
-                  }}
-                />
-              </PopoverContent>
-            </Popover>
-            <span className={css.reguaDica}>markdown ok</span>
-          </div>
-
-          <textarea
-            className={css.areaDeTexto}
-            aria-label="Assunto do canal"
+      É o mesmo arranjo da referência, que põe o `saveBar` como irmão do
+      scroller dentro do pane em vez de dentro do conteúdo.
+    */
+    <>
+      <div
+        className={`${secao.forma} ${secao.larga}`}
+        style={{ "--vx-editor-w": "680px" } as React.CSSProperties}
+      >
+        <section className={secao.bloco}>
+          <Campo
+            rotulo="Nome do canal"
+            autoComplete="off"
             disabled={salvando}
-            value={assunto}
-            maxLength={1024}
-            onChange={(e) => setAssunto(e.target.value)}
+            value={nome}
+            onChange={(e) => setNome(normalizar(e.target.value))}
+            dica="Minúsculas, sem espaços — hífens são convertidos automaticamente."
           />
-        </div>
-      </section>
+        </section>
 
-      <section className={secao.bloco}>
-        <h2 className={secao.subtitulo}>Modo lento</h2>
-        {/*
-          ⚠ **Era pendente por uma afirmação FALSA sobre o protocolo.** O
-          comentário aqui dizia "mudar é pendente porque `slowmode` não está em
-          `DataEditChannel`" — e está: o modelo Rust o valida entre 0 e 21600, o
-          schema do `stoat-api` o declara, e o `edit` do SDK repassa o corpo.
-          Nunca precisou de fork; era trabalho de cliente registrado como
-          trabalho de backend.
+        <section className={secao.bloco}>
+          {/* Rótulo e contador na MESMA linha — é onde o design os põe. */}
+          <p className={css.rotuloComContador}>
+            <span>Assunto do canal</span>
+            <span className={css.contador}>{assunto.length} / 1024</span>
+          </p>
 
-          ⚠ **Dropdown e não `<select>`**, pela regra que o lint deste projeto
-          guarda: nativo é renderizado pelo SISTEMA, e num app escuro no
-          Windows ele abre com cromo claro.
-        */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button type="button" className={css.gatilhoDeLista}>
-              {rotuloDoModoLento(lento)}
-              <CaretDown size={ICONE.metadado} aria-hidden />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            {DEGRAUS_DE_MODO_LENTO.map((d) => (
-              <DropdownMenuCheckboxItem
-                key={d}
-                marcado={lento === d}
-                aoAlternar={() => setLento(d)}
+          <div className={css.caixaDeTexto}>
+            <div className={css.regua} role="toolbar" aria-label="Formatação">
+              {/*
+                Os quatro de formatação são REAIS: envolvem a seleção em
+                markdown, que o caminho de leitura já entende desde
+                `markdown/analisar.ts`. Spoiler e emoji dependem de coisas que
+                não existem — spoiler não está no protocolo e o seletor de emoji
+                não tem âncora fora do composer.
+              */}
+              <Formato rotulo="Negrito" marca="**" valor={assunto} aoAplicar={setAssunto}>
+                B
+              </Formato>
+              <Formato rotulo="Itálico" marca="*" valor={assunto} aoAplicar={setAssunto}>
+                I
+              </Formato>
+              <Formato rotulo="Sublinhado" marca="__" valor={assunto} aoAplicar={setAssunto}>
+                U
+              </Formato>
+              <Formato rotulo="Riscado" marca="~~" valor={assunto} aoAplicar={setAssunto}>
+                S
+              </Formato>
+              <span className={css.reguaDivisa} aria-hidden />
+              <button
+                type="button"
+                className={css.reguaBotao}
+                onClick={aindaNao("canalDeSpoiler")}
               >
-                {rotuloDoModoLento(d)}
-              </DropdownMenuCheckboxItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <p className={secao.recado}>
-          Membros com &ldquo;Gerenciar mensagens&rdquo; ou &ldquo;Gerenciar
-          canais&rdquo; ignoram o modo lento.
-        </p>
-      </section>
+                spoiler
+              </button>
+              {/* Um `Popover.Root` por FORMULÁRIO, e não por linha de lista —
+                  a conta que criou `store/seletorDeReacao.ts` não se aplica
+                  aqui: esta tela tem um campo de assunto, não dez mil. */}
+              <Popover open={emojiAberto} onOpenChange={setEmojiAberto}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className={css.reguaBotao}
+                    aria-label="Emoji"
+                  >
+                    🙂
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent side="bottom" align="start" sideOffset={6}>
+                  <SeletorDeEmoji
+                    aoEscolher={(glifo) => {
+                      setAssunto(assunto + glifo);
+                      setEmojiAberto(false);
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
+              <span className={css.reguaDica}>markdown ok</span>
+            </div>
 
-      <section className={secao.bloco}>
-        <h2 className={secao.subtitulo}>Visibilidade do conteúdo</h2>
-        <CartaoDeOpcao
-          marcado={!idade}
-          titulo="Padrão"
-          detalhe="Sem aviso; mídia carrega direto."
-          aoEscolher={() => setIdade(false)}
-        />
-        <CartaoDeOpcao
-          marcado={false}
-          titulo="Canal de spoiler"
-          detalhe="Toda mídia entra borrada, com clique para revelar."
-          aoEscolher={aindaNao("canalDeSpoiler")}
-        />
-        <CartaoDeOpcao
-          marcado={idade}
-          titulo="Restrição de idade"
-          selo={<Selo tom="perigoSuave">+18</Selo>}
-          detalhe="Exige confirmação na entrada; some da prévia de convite."
-          aoEscolher={() => setIdade(true)}
-        />
-      </section>
-
-      {ehVoz ? (
-        <section className={css.cartaoDeVoz}>
-          <h2 className={css.vozTitulo}>Quando o canal é de voz</h2>
-          <div className={css.vozGrade}>
-            {/*
-              Deslizante de verdade, com o valor do design — mas quem MUDA é
-              pendente: bitrate não existe no protocolo. Mostrar o controle
-              vivo e o valor fixo é o mesmo trato do modo lento.
-            */}
-            <CampoDeslizante rotulo="Bitrate" valor="64 kbps">
-              <Deslizante
-                id="bitrate-de-voz"
-                rotulo="Bitrate"
-                min={8}
-                max={128}
-                passo={8}
-                valor={64}
-                texto="64 kbps"
-                aoMudar={aindaNao("bitrateDeVoz")}
-              />
-            </CampoDeslizante>
-            {/* O único dos quatro que o protocolo aceita. */}
-            <CampoDeslizante
-              rotulo="Limite de usuários"
-              valor={limite === 0 ? "Sem limite" : String(limite)}
-            >
-              <Deslizante
-                id="limite-de-usuarios"
-                rotulo="Limite de usuários"
-                min={0}
-                max={99}
-                passo={1}
-                valor={limite}
-                texto={limite === 0 ? "Sem limite" : String(limite)}
-                aoMudar={setLimite}
-              />
-            </CampoDeslizante>
-            <PendenteEscolha
-              rotulo="Região de voz"
-              valor="Automática"
-              id="regiaoDeVoz"
-            />
-            <PendenteEscolha
-              rotulo="Modo de vídeo"
-              valor="Automático"
-              id="modoDeVideo"
+            <textarea
+              className={css.areaDeTexto}
+              aria-label="Assunto do canal"
+              disabled={salvando}
+              value={assunto}
+              maxLength={1024}
+              onChange={(e) => setAssunto(e.target.value)}
             />
           </div>
         </section>
-      ) : null}
+
+        <section className={secao.bloco}>
+          <h2 className={secao.subtitulo}>Modo lento</h2>
+          {/*
+            ⚠ **Era pendente por uma afirmação FALSA sobre o protocolo.** O
+            comentário aqui dizia "mudar é pendente porque `slowmode` não está em
+            `DataEditChannel`" — e está: o modelo Rust o valida entre 0 e 21600, o
+            schema do `stoat-api` o declara, e o `edit` do SDK repassa o corpo.
+            Nunca precisou de fork; era trabalho de cliente registrado como
+            trabalho de backend.
+
+            ⚠ **Dropdown e não `<select>`**, pela regra que o lint deste projeto
+            guarda: nativo é renderizado pelo SISTEMA, e num app escuro no
+            Windows ele abre com cromo claro.
+          */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className={css.gatilhoDeLista}>
+                {rotuloDoModoLento(lento)}
+                <CaretDown size={ICONE.metadado} aria-hidden />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              {DEGRAUS_DE_MODO_LENTO.map((d) => (
+                <DropdownMenuCheckboxItem
+                  key={d}
+                  marcado={lento === d}
+                  aoAlternar={() => setLento(d)}
+                >
+                  {rotuloDoModoLento(d)}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <p className={secao.recado}>
+            Membros com &ldquo;Gerenciar mensagens&rdquo; ou &ldquo;Gerenciar
+            canais&rdquo; ignoram o modo lento.
+          </p>
+        </section>
+
+        <section className={secao.bloco}>
+          <h2 className={secao.subtitulo}>Visibilidade do conteúdo</h2>
+          <CartaoDeOpcao
+            marcado={!idade}
+            titulo="Padrão"
+            detalhe="Sem aviso; mídia carrega direto."
+            aoEscolher={() => setIdade(false)}
+          />
+          <CartaoDeOpcao
+            marcado={false}
+            titulo="Canal de spoiler"
+            detalhe="Toda mídia entra borrada, com clique para revelar."
+            aoEscolher={aindaNao("canalDeSpoiler")}
+          />
+          <CartaoDeOpcao
+            marcado={idade}
+            titulo="Restrição de idade"
+            selo={<Selo tom="perigoSuave">+18</Selo>}
+            detalhe="Exige confirmação na entrada; some da prévia de convite."
+            aoEscolher={() => setIdade(true)}
+          />
+        </section>
+
+        {ehVoz ? (
+          <section className={css.cartaoDeVoz}>
+            <h2 className={css.vozTitulo}>Quando o canal é de voz</h2>
+            <div className={css.vozGrade}>
+              {/*
+                Deslizante de verdade, com o valor do design — mas quem MUDA é
+                pendente: bitrate não existe no protocolo. Mostrar o controle
+                vivo e o valor fixo é o mesmo trato do modo lento.
+              */}
+              <CampoDeslizante rotulo="Bitrate" valor="64 kbps">
+                <Deslizante
+                  id="bitrate-de-voz"
+                  rotulo="Bitrate"
+                  min={8}
+                  max={128}
+                  passo={8}
+                  valor={64}
+                  texto="64 kbps"
+                  aoMudar={aindaNao("bitrateDeVoz")}
+                />
+              </CampoDeslizante>
+              {/* O único dos quatro que o protocolo aceita. */}
+              <CampoDeslizante
+                rotulo="Limite de usuários"
+                valor={limite === 0 ? "Sem limite" : String(limite)}
+              >
+                <Deslizante
+                  id="limite-de-usuarios"
+                  rotulo="Limite de usuários"
+                  min={0}
+                  max={99}
+                  passo={1}
+                  valor={limite}
+                  texto={limite === 0 ? "Sem limite" : String(limite)}
+                  aoMudar={setLimite}
+                />
+              </CampoDeslizante>
+              <PendenteEscolha
+                rotulo="Região de voz"
+                valor="Automática"
+                id="regiaoDeVoz"
+              />
+              <PendenteEscolha
+                rotulo="Modo de vídeo"
+                valor="Automático"
+                id="modoDeVideo"
+              />
+            </div>
+          </section>
+        ) : null}
+
+      </div>
 
       {sujo ? (
         <div className={css.faixa} role="status">
@@ -375,7 +389,7 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
           </div>
         </div>
       ) : null}
-    </div>
+    </>
   );
 }
 

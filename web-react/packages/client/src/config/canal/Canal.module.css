@@ -133,9 +133,35 @@
   mesmo motivo de antes: um formulário mais alto que a janela esconderia o
   único par salvar/descartar da tela.
 */
+/*
+  A faixa de "alterações não salvas".
+
+  ⚠ **Filha do SCROLLER e não do formulário**, e a diferença era visível: dentro
+  de `.forma` ela herdava o `max-inline-size: 680px` da medida de leitura e
+  saía com 760px num pane de 1439 — uma placa solta à esquerda em vez do
+  rodapé da coluna. Ver o comentário na árvore.
+
+  As margens negativas sangram até a borda do pane, cancelando o `padding-inline`
+  de 40 do scroller; o `padding` de volta realinha o conteúdo dela com o do
+  formulário. É o que faz a régua de topo atravessar a coluna inteira.
+*/
 .faixa {
   position: sticky;
   inset-block-end: calc(-1 * var(--vx-config-rodape-h));
+
+  /*
+    ⚠ **Sem isto a faixa saía com 110px de altura, quase o dobro dos 59 do
+    design.** `.rolagem` é grid, e item de grid ESTICA para a área dele por
+    padrão (`align-items: normal`); com a margem negativa de −110 puxando a
+    faixa para dentro do respiro reservado, a área virava 110 e a faixa
+    obedecia. Medido no navegador: 110 antes, 59 com `end` — e 59 é
+    exatamente `py-3` mais o botão de 34 da referência, mais a hairline.
+
+    `end` e não remover a margem: é ela que sangra a faixa até o fim do
+    respiro que `--vx-config-rodape-h` reserva o tempo todo. Sem ela sobraria
+    um vão de 110px embaixo, que é o defeito oposto.
+  */
+  align-self: end;
   z-index: var(--vx-z-realce);
   display: flex;
   align-items: center;
@@ -147,7 +173,43 @@
   border-block-start: 1px solid var(--vx-hairline-06);
   background: var(--vx-surface-1);
   font-size: var(--vx-size-sm);
-  color: var(--vx-text-2);
+
+  /*
+    ⚠ **O texto é AVISO, e não metadado.** Ele estava em `--vx-text-2`, o mesmo
+    tom de qualquer legenda da tela — então a frase que diz "há trabalho seu
+    por gravar" tinha o peso de um rótulo de campo. A referência usa
+    `warning-text`, e o valor dela no escuro é `#e2b15c`, que é exatamente o
+    nosso `--vx-warning`: nenhum token novo, só a atribuição certa.
+
+    Aviso e não `danger`: nada quebrou, nada se perdeu. O que existe é uma
+    pendência com duas saídas ao lado, e as duas são seguras.
+  */
+  color: var(--vx-warning);
+
+  /*
+    ⚠ **A chegada, e o relato foi "muito súbita".** Ela aparecia com um
+    `transition: all` herdado, que não anima entrada nenhuma: o elemento
+    simplesmente passa a existir, e uma barra de 59px surgindo embaixo do
+    formulário no primeiro caractere digitado lê como um susto.
+
+    `--vx-entrada` é o token de distância de chegada do projeto, e ele existe
+    justamente para ser ZERADO em bloco sob `prefers-reduced-motion` — a
+    opacidade sobrevive e o deslocamento some, numa linha, para o app inteiro.
+    `--vx-ease-enter` é exponencial: a faixa desacelera na chegada em vez de
+    frear no fim.
+
+    Um momento só, e é este. O conteúdo não se mexe — o scroller já reserva
+    `--vx-config-rodape-h` o tempo todo —, então a animação é da faixa e de
+    mais nada.
+  */
+  animation: chegadaDaFaixa var(--vx-duration-base) var(--vx-ease-enter);
+}
+
+@keyframes chegadaDaFaixa {
+  from {
+    opacity: 0;
+    transform: translateY(var(--vx-entrada));
+  }
 }
 
 .faixaAcoes {
