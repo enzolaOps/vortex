@@ -193,7 +193,7 @@ importers:
         version: 0.15.3(solid-js@1.9.6)
       '@stripe/stripe-js':
         specifier: ^7.3.1
-        version: 7.3.1
+        version: 7.9.0
       '@tanstack/solid-query':
         specifier: ^5.76.0
         version: 5.76.0(solid-js@1.9.6)
@@ -355,7 +355,7 @@ importers:
         version: 0.1.11(solid-js@1.9.6)
       solid-stripe:
         specifier: ^0.7.5
-        version: 0.7.5(@stripe/stripe-js@7.3.1)(solid-js@1.9.6)
+        version: 0.7.5(@stripe/stripe-js@7.9.0)(solid-js@1.9.6)
       space-separated-tokens:
         specifier: ^2.0.2
         version: 2.0.2
@@ -3434,8 +3434,8 @@ packages:
     peerDependencies:
       solid-js: ^1.8.6
 
-  '@stripe/stripe-js@7.3.1':
-    resolution: {integrity: sha512-pTzb864TQWDRQBPLgSPFRoyjSDUqpCkbEgTzpsjiTjGz1Z5SxZNXJek28w1s6Dyry4CyW4/Izj5jHE/J9hCJYQ==}
+  '@stripe/stripe-js@7.9.0':
+    resolution: {integrity: sha512-ggs5k+/0FUJcIgNY08aZTqpBTtbExkJMYMLSMwyucrhtWexVOEY1KJmhBsxf+E/Q15f5rbwBpj+t0t2AW2oCsQ==}
     engines: {node: '>=12.16'}
 
   '@surma/rollup-plugin-off-main-thread@2.2.3':
@@ -4426,8 +4426,8 @@ packages:
   electron-to-chromium@1.5.211:
     resolution: {integrity: sha512-IGBvimJkotaLzFnwIVgW9/UD/AOJ2tByUmeOrtqBfACSbAw5b1G0XpvdaieKyc7ULmbwXVx+4e4Be8pOPBrYkw==}
 
-  electron-to-chromium@1.5.417:
-    resolution: {integrity: sha512-4T+DTDWuMPM4aHlHwWdAVCVWwp7LDilnhzkj+c/Lbj91XSQrLuOmZSLtS9Q4iIqjlPUbPOnC624zDVVHCHaolQ==}
+  electron-to-chromium@1.5.419:
+    resolution: {integrity: sha512-nHMPn8x4yCxCI0iSnL+LlHL5sUoUfjLXkcRIagZ4GBdrfFLFaiLNvzJWbJqZhFT9IAhw5tUSNlhggWN+otvp/A==}
 
   emoji-regex-xs@1.0.0:
     resolution: {integrity: sha512-LRlerrMYoIDrT6jgpeZ2YYl/L8EulRTt5hQcYjy5AInh7HWXKimpqx68aknBFpGL2+/IcogTcaydJEgaTmOpDg==}
@@ -10658,7 +10658,7 @@ snapshots:
     dependencies:
       solid-js: 1.9.6
 
-  '@stripe/stripe-js@7.3.1': {}
+  '@stripe/stripe-js@7.9.0': {}
 
   '@surma/rollup-plugin-off-main-thread@2.2.3':
     dependencies:
@@ -11280,7 +11280,7 @@ snapshots:
     dependencies:
       baseline-browser-mapping: 2.11.20
       caniuse-lite: 1.0.30001810
-      electron-to-chromium: 1.5.417
+      electron-to-chromium: 1.5.419
       node-releases: 2.0.54
       update-browserslist-db: 1.3.2(browserslist@4.28.8)
 
@@ -11737,7 +11737,7 @@ snapshots:
 
   electron-to-chromium@1.5.211: {}
 
-  electron-to-chromium@1.5.417: {}
+  electron-to-chromium@1.5.419: {}
 
   emoji-regex-xs@1.0.0: {}
 
@@ -14798,9 +14798,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  solid-stripe@0.7.5(@stripe/stripe-js@7.3.1)(solid-js@1.9.6):
+  solid-stripe@0.7.5(@stripe/stripe-js@7.9.0)(solid-js@1.9.6):
     dependencies:
-      '@stripe/stripe-js': 7.3.1
+      '@stripe/stripe-js': 7.9.0
       solid-js: 1.9.6
 
   solid-use@0.6.2(solid-js@1.9.6):
