@@ -40,7 +40,7 @@
     "@types/auto-launch": "^5.0.5",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
-    "electron": "43.4.0",
+    "electron": "43.5.1",
     "eslint": "^8.57.1",
     "eslint-plugin-import": "^2.32.0",
     "json-schema-typed": "^8.0.1",
