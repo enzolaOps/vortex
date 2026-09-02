@@ -1,7 +1,7 @@
 /* ============================================================
    Grade da chamada — 1:1 com o design
    ------------------------------------------------------------
-   `repeat(4,1fr)` até 8 pessoas e 5 acima disso, linhas de 84,
+   Colunas pela contagem (teto de 5), linhas com piso de 84,
    vão de 8. Célula grande ocupa 2×2. Placa de nome no canto
    inferior esquerdo, sobre véu.
    ============================================================ */
@@ -123,17 +123,27 @@
 }
 
 /*
-  ⚠ `grid-auto-rows: 84px` e não `1fr`, e é o número do design.
+  ⚠ `minmax(84px, 1fr)`, e o 84 do design virou o PISO em vez do valor.
 
-  Linha de altura fixa é o que faz a célula 2×2 ter exatamente o dobro da
-  altura das outras — com `1fr` a grade se estica para o container e a célula
-  grande deixa de ser proporcional a nada. Em sala grande a grade rola, que é
-  o comportamento certo: encolher as células até não dar para reconhecer
-  ninguém seria pior.
+  O texto anterior defendia altura fixa dizendo que com `1fr` "a célula grande
+  deixa de ser proporcional a nada". A metade da proporção estava errada: as
+  linhas continuam iguais ENTRE SI, então a célula 2×2 segue tendo exatamente
+  o dobro da altura de uma 1×1. O que `1fr` sozinho quebraria é outra coisa —
+  o piso —, e é justamente o que o `minmax` preserva.
+
+  O que a altura fixa produzia está relatado por quem usa: numa chamada de
+  duas pessoas, dois ladrilhos de 84px num canto e o resto da tela vazio
+  embaixo. Com o piso, sala pequena ocupa a área disponível e sala grande
+  volta a rolar em 84 — que é o comportamento que o comentário original
+  queria, e que ele conseguia só na metade dos casos.
 */
 .grade {
   display: grid;
-  grid-auto-rows: 84px;
+  /* Precisa de altura definida para o `1fr` significar algo. `.miolo` é
+     coluna flex com altura, então crescer aqui é o que dá o container. */
+  flex: 1;
+  min-block-size: 0;
+  grid-auto-rows: minmax(84px, 1fr);
   gap: var(--vx-space-08);
 }
 
