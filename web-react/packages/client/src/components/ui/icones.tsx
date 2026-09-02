@@ -43,32 +43,24 @@
  * ser UM arquivo em vez de 56 — que é exatamente o que a decisão de hoje
  * comprou.
  */
+import type { ComponentProps, ComponentType } from "react";
+
 export {
   ArrowBendUpLeft,
   ArrowBendUpRight,
   ArrowClockwise,
   ArrowCounterClockwise,
-  ArrowDown,
-  ArrowLeft,
   ArrowSquareOut,
   ArrowsClockwise,
   ArrowsOut,
-  At,
   BellSimple,
-  BellSimpleSlash,
-  CaretDown,
-  CaretLeft,
-  CaretRight,
   ChartBar,
   ChatCircle,
   ChatCircleDots,
   ChatsCircle,
-  Check,
   CheckCircle,
   ClockCounterClockwise,
   Copy,
-  DotsSixVertical,
-  DotsThree,
   DownloadSimple,
   Envelope,
   EnvelopeSimple,
@@ -80,17 +72,11 @@ export {
   GearSix,
   Gif,
   Hammer,
-  Hash,
   Headphones,
   Info,
-  Link,
-  LinkSimple,
   Lock,
   LockSimple,
-  MagnifyingGlass,
   Microphone,
-  MicrophoneSlash,
-  Minus,
   Monitor,
   MusicNotes,
   Note,
@@ -101,22 +87,16 @@ export {
   PhoneX,
   PictureInPicture,
   Play,
-  Plus,
-  Power,
   ProhibitInset,
   PushPin,
-  PushPinSlash,
   Rows,
   ShieldCheck,
   SignOut,
   Smiley,
   SpeakerHigh,
   SpeakerSlash,
-  Square,
   Star,
   Sticker,
-  TextB,
-  TextItalic,
   Trash,
   Tray,
   Trophy,
@@ -124,16 +104,164 @@ export {
   User,
   UserCircle,
   UserPlus,
-  Users,
-  UsersThree,
   VideoCamera,
   VideoCameraSlash,
   WarningCircle,
   WarningOctagon,
-  WifiHigh,
-  WifiSlash,
-  X,
 } from "@phosphor-icons/react";
+
+/**
+ * Os ícones que NÃO podem ser preenchidos — e a razão é medida.
+ *
+ * ⚠ **O `fill` do Phosphor faz DUAS coisas diferentes conforme o ícone.**
+ * Em uns ele solidifica a MESMA forma — sino, cadeado, microfone, câmera,
+ * monitor: a silhueta já era o ícone, e preencher só a torna firme. Em
+ * outros ele desenha OUTRA forma: o glifo vazado dentro de um quadrado ou
+ * círculo. `X`, `Plus` e `Check` são os TRÊS ícones mais usados deste app, e
+ * os três caem no segundo grupo — viram uma caixa com o sinal recortado.
+ *
+ * O critério é a interseção sobre união da SILHUETA (a área que o contorno
+ * externo encerra) entre `fill` e `regular`, a 48px. Acima de 0,80 é a mesma
+ * forma; abaixo é outra. Os dados têm um vão claro entre 0,45 e 0,57, e a
+ * lista pega tudo abaixo de 0,80 — conservador de propósito, porque ícone
+ * que muda de FORMA é pior que ícone que muda de PESO.
+ *
+ * | ícone | IoU | | ícone | IoU |
+ * | --- | --- | --- | --- | --- |
+ * | `DotsThree` | 0,07 | | `Hash` | 0,42 |
+ * | `Check` | 0,13 | | `CaretDown` | 0,43 |
+ * | `Plus` | 0,20 | | `TextB` | 0,57 |
+ * | `X` | 0,21 | | `Users` | 0,66 |
+ * | `Link` | 0,28 | | `MicrophoneSlash` | 0,79 |
+ *
+ * ⚠ **A referência de qualidade resolve do mesmo jeito, e foi ela que
+ * confirmou a regra.** No conjunto do Discord, `guildCross` é um X de TRAÇO
+ * dentro de um círculo vermelho — o círculo é crachá semântico, não o ícone
+ * — e `guildCheck` é um ✓ de traço grosso, sem caixa nenhuma. Massa sólida
+ * onde a silhueta é o ícone; traço grosso onde o glifo é traço. **O conjunto
+ * que parece coeso não usa um peso só** — foi essa a leitura errada que
+ * quase me fez preencher tudo.
+ *
+ * ⚠ **Duas entradas são JULGAMENTO e não medição, e ficam marcadas como tal.**
+ * `MagnifyingGlass` e `Square` PASSAM no teste de silhueta — a lupa preenchida
+ * ainda é círculo com cabo, o quadrado ainda é quadrado. O que elas perdem é
+ * uma ABERTURA, e abertura é semântica: a lente significa "você vê através", e
+ * o quadrado da barra de título é o contorno de uma JANELA, no botão de
+ * maximizar. Preenchidos, viram pirulito e bloco. Tentei medir isso e a métrica
+ * super-selecionou — ela acusava `BellSimple`, `Microphone` e `VideoCamera`,
+ * que são justamente os que ficam ótimos sólidos, porque o miolo deles nunca
+ * foi a identidade. Não há régua aqui; há uma pergunta: o vão quer dizer
+ * alguma coisa?
+ *
+ * ⚠ **A família `*Slash` está aqui por SEMÂNTICA, não só por forma.** A
+ * barra que cruza o microfone é a diferença entre transmitindo e mudo, e
+ * preenchida ela funde com o corpo. Errar isso é a interface afirmando o
+ * contrário do que está acontecendo — a mesma classe de defeito do
+ * `aria-pressed` com rótulo que alterna.
+ */
+export const CONTORNO = [
+  "ArrowDown",
+  "ArrowLeft",
+  "At",
+  "BellSimpleSlash",
+  "CaretDown",
+  "CaretLeft",
+  "CaretRight",
+  "Check",
+  "DotsSixVertical",
+  "DotsThree",
+  "Hash",
+  "Link",
+  "LinkSimple",
+  "MagnifyingGlass",
+  "MicrophoneSlash",
+  "Minus",
+  "Plus",
+  "Power",
+  "PushPinSlash",
+  "Square",
+  "TextB",
+  "TextItalic",
+  "Users",
+  "UsersThree",
+  "WifiHigh",
+  "WifiSlash",
+  "X",
+] as const;
+
+/**
+ * ⚠ **`{...props}` DEPOIS do `weight`**, e a ordem é o mecanismo: quem passar
+ * peso explícito continua vencendo. É a mesma precedência que faz o `fill` de
+ * ESTADO (ponto de presença, alfinete fixado) sobreviver ao padrão.
+ */
+function deContorno<P extends { weight?: unknown }>(
+  Icone: ComponentType<P>,
+): ComponentType<P> {
+  const Envolvido = (props: P) => <Icone weight="bold" {...props} />;
+  Envolvido.displayName = "deContorno";
+  return Envolvido;
+}
+
+import {
+  ArrowDown as ArrowDownBase,
+  ArrowLeft as ArrowLeftBase,
+  At as AtBase,
+  BellSimpleSlash as BellSimpleSlashBase,
+  CaretDown as CaretDownBase,
+  CaretLeft as CaretLeftBase,
+  CaretRight as CaretRightBase,
+  Check as CheckBase,
+  DotsSixVertical as DotsSixVerticalBase,
+  DotsThree as DotsThreeBase,
+  Hash as HashBase,
+  Link as LinkBase,
+  LinkSimple as LinkSimpleBase,
+  MagnifyingGlass as MagnifyingGlassBase,
+  MicrophoneSlash as MicrophoneSlashBase,
+  Minus as MinusBase,
+  Plus as PlusBase,
+  Power as PowerBase,
+  PushPinSlash as PushPinSlashBase,
+  Square as SquareBase,
+  TextB as TextBBase,
+  TextItalic as TextItalicBase,
+  Users as UsersBase,
+  UsersThree as UsersThreeBase,
+  WifiHigh as WifiHighBase,
+  WifiSlash as WifiSlashBase,
+  X as XBase,
+} from "@phosphor-icons/react";
+
+export const ArrowDown = deContorno(ArrowDownBase);
+export const ArrowLeft = deContorno(ArrowLeftBase);
+export const At = deContorno(AtBase);
+export const BellSimpleSlash = deContorno(BellSimpleSlashBase);
+export const CaretDown = deContorno(CaretDownBase);
+export const CaretLeft = deContorno(CaretLeftBase);
+export const CaretRight = deContorno(CaretRightBase);
+export const Check = deContorno(CheckBase);
+export const DotsSixVertical = deContorno(DotsSixVerticalBase);
+export const DotsThree = deContorno(DotsThreeBase);
+export const Hash = deContorno(HashBase);
+export const Link = deContorno(LinkBase);
+export const LinkSimple = deContorno(LinkSimpleBase);
+export const MagnifyingGlass = deContorno(MagnifyingGlassBase);
+export const MicrophoneSlash = deContorno(MicrophoneSlashBase);
+export const Minus = deContorno(MinusBase);
+export const Plus = deContorno(PlusBase);
+export const Power = deContorno(PowerBase);
+export const PushPinSlash = deContorno(PushPinSlashBase);
+export const Square = deContorno(SquareBase);
+export const TextB = deContorno(TextBBase);
+export const TextItalic = deContorno(TextItalicBase);
+export const Users = deContorno(UsersBase);
+export const UsersThree = deContorno(UsersThreeBase);
+export const WifiHigh = deContorno(WifiHighBase);
+export const WifiSlash = deContorno(WifiSlashBase);
+export const X = deContorno(XBase);
+
+export type PropsDeIcone = ComponentProps<typeof XBase>;
+
 
 /**
  * A escala de tamanho de ícone — **a mesma que o CSS já tinha**.
