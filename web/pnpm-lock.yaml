@@ -205,7 +205,7 @@ importers:
         version: 0.7.5(solid-js@1.9.6)
       color-rgba:
         specifier: ^3.0.0
-        version: 3.0.0
+        version: 3.1.1
       comma-separated-tokens:
         specifier: ^2.0.3
         version: 2.0.3
@@ -235,7 +235,7 @@ importers:
         version: 2.20.2(@types/dom-mediacapture-record@1.0.22)
       livekit-rnnoise-processor:
         specifier: ^2.0.0
-        version: 2.0.0
+        version: 2.0.1
       localforage:
         specifier: ^1.10.0
         version: 1.10.0
@@ -4016,18 +4016,20 @@ packages:
   color-name@1.1.4:
     resolution: {integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==}
 
-  color-name@2.0.0:
-    resolution: {integrity: sha512-SbtvAMWvASO5TE2QP07jHBMXKafgdZz8Vrsrn96fiL+O92/FN/PLARzUW5sKt013fjAprK2d2iCn2hk2Xb5oow==}
+  color-name@2.1.1:
+    resolution: {integrity: sha512-p2FdgwVx1a9yWBHP2wI0VgShkDpgN4kZISkxdNipGBJWpa5G6b04OINlVWCyJj0JmfvcPrgqt95E9k8yvaOJFg==}
     engines: {node: '>=12.20'}
 
-  color-parse@2.0.2:
-    resolution: {integrity: sha512-eCtOz5w5ttWIUcaKLiktF+DxZO1R9KLNY/xhbV6CkhM7sR3GhVghmt6X6yOnzeaM24po+Z9/S1apbXMwA3Iepw==}
+  color-parse@2.1.2:
+    resolution: {integrity: sha512-z0f1xKxh4za/RSprsmxNkFcyO2o/4VJ2QxiiRRIjfqAsqOXys+BvpOCINNAKOX9AQ/alpS03Wc0WMtEmtLmHzw==}
 
-  color-rgba@3.0.0:
-    resolution: {integrity: sha512-PPwZYkEY3M2THEHHV6Y95sGUie77S7X8v+h1r6LSAPF3/LL2xJ8duUXSrkic31Nzc4odPwHgUbiX/XuTYzQHQg==}
+  color-rgba@3.1.1:
+    resolution: {integrity: sha512-6ySZmGOO/AkJCgJhndFAUc5VwGLWJrNWfwJurIgJ9CCov2Z+A6XSoYMYKVjGEst1ByyD9rKuDJizcCaMNL5TpQ==}
 
-  color-space@2.3.2:
-    resolution: {integrity: sha512-BcKnbOEsOarCwyoLstcoEztwT0IJxqqQkNwDuA3a65sICvvHL2yoeV13psoDFh5IuiOMnIOKdQDwB4Mk3BypiA==}
+  color-space@3.1.0:
+    resolution: {integrity: sha512-dkzBjMZUUxjtmZbqEOFtmY9qo4lxA6zG4nMtvC/GDH3BasLtrqVqMhw9TRJ72gta0vyzm03+7pqzV6f17gI6HA==}
+    engines: {node: '>=20.10'}
+    hasBin: true
 
   colord@2.9.3:
     resolution: {integrity: sha512-jeC1axXpnb0/2nn/Y1LPuLdgXBLH7aDcHu4KEKfqw3CUhX7ZpfBSlPKyqXE6btIgEzfWtrX3/tyBCaCvXvMkOw==}
@@ -5447,8 +5449,8 @@ packages:
     peerDependencies:
       '@types/dom-mediacapture-record': ^1
 
-  livekit-rnnoise-processor@2.0.0:
-    resolution: {integrity: sha512-b7r1DzB7ek+3fmc4ccPYeVjV14QVl86aTyj7A9qXIzsGiR6DTNhctQEk5DnlqMxVp7hdG5WBm4A9FHUp4k9jTg==}
+  livekit-rnnoise-processor@2.0.1:
+    resolution: {integrity: sha512-K1mqMttBBZLVjmgE1gT9/nOmp4B0EnvnZOE5n2R5CrCYrUC1bSw+Bc+TpcXIEe9Q+n0pUYuwoLhTXOwvVtAVDw==}
 
   lnk@1.1.0:
     resolution: {integrity: sha512-m3q+8W+stYiJYCBwefzrU+inN9h2KxofWuxhNH1iS+MdG9MIKfDpBtbmmIKstVwussx48PXALwonyzuzZUXjQQ==}
@@ -11439,18 +11441,18 @@ snapshots:
 
   color-name@1.1.4: {}
 
-  color-name@2.0.0: {}
+  color-name@2.1.1: {}
 
-  color-parse@2.0.2:
+  color-parse@2.1.2:
     dependencies:
-      color-name: 2.0.0
+      color-name: 2.1.1
 
-  color-rgba@3.0.0:
+  color-rgba@3.1.1:
     dependencies:
-      color-parse: 2.0.2
-      color-space: 2.3.2
+      color-parse: 2.1.2
+      color-space: 3.1.0
 
-  color-space@2.3.2: {}
+  color-space@3.1.0: {}
 
   colord@2.9.3: {}
 
@@ -13151,7 +13153,7 @@ snapshots:
       typed-emitter: 2.1.0
       webrtc-adapter: 9.0.6
 
-  livekit-rnnoise-processor@2.0.0: {}
+  livekit-rnnoise-processor@2.0.1: {}
 
   lnk@1.1.0:
     dependencies:
