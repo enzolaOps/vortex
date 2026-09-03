@@ -211,7 +211,7 @@ importers:
         version: 2.0.3
       dayjs:
         specifier: ^1.11.13
-        version: 1.11.13
+        version: 1.11.23
       detect-browser:
         specifier: ^5.3.0
         version: 5.3.0
@@ -4219,8 +4219,8 @@ packages:
   date-fns@3.6.0:
     resolution: {integrity: sha512-fRHTG8g/Gif+kSh50gaGEdToemgfj74aRX3swtiouboip5JDLAyDE9F11nHMIcvOaXeOC6D7SpNhi7uFyB7Uww==}
 
-  dayjs@1.11.13:
-    resolution: {integrity: sha512-oaMBel6gjolK862uaPQOVTA7q3TZhuSvuMQAAglQDOWYO9A91IrAOUJEyKVlqJlHE0vq5p5UXxzdPfMH/x6xNg==}
+  dayjs@1.11.23:
+    resolution: {integrity: sha512-QDTCU0M0MxR3hQfnlDJfwekQiaanm1ubOD231u73WBckQ/fsamwRLiE2GBz6D3a/xF1NgfiDLJjXBa1hYOYTtQ==}
 
   debug@4.4.0:
     resolution: {integrity: sha512-6WTZ/IxCY/T6BALoZHaE4ctp9xm+Z5kY/pzYaCHRFeyVhojxlrm+46y68HA6hr0TcwEssoxNiDEUJQjfPZ/RYA==}
@@ -11637,7 +11637,7 @@ snapshots:
 
   date-fns@3.6.0: {}
 
-  dayjs@1.11.13: {}
+  dayjs@1.11.23: {}
 
   debug@4.4.0:
     dependencies:
