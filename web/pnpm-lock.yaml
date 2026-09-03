@@ -223,7 +223,7 @@ importers:
         version: 3.1.3
       json-stringify-deterministic:
         specifier: ^1.0.12
-        version: 1.0.12
+        version: 1.0.16
       katex:
         specifier: ^0.16.22
         version: 0.16.22
@@ -5289,8 +5289,8 @@ packages:
   json-stable-stringify-without-jsonify@1.0.1:
     resolution: {integrity: sha512-Bdboy+l7tA3OGW6FjyFHWkP5LuByj1Tk33Ljyq0axyzdk9//JSi2u3fP1QSmd1KNwq6VOKYGlAu87CisVir6Pw==}
 
-  json-stringify-deterministic@1.0.12:
-    resolution: {integrity: sha512-q3PN0lbUdv0pmurkBNdJH3pfFvOTL/Zp0lquqpvcjfKzt6Y0j49EPHAmVHCAS4Ceq/Y+PejWTzyiVpoY71+D6g==}
+  json-stringify-deterministic@1.0.16:
+    resolution: {integrity: sha512-barjhF/wL0ot1i7AVA3gDDfuBIS1Iz7dlYmO6fZnVDUXtB/EJKjqREA/FUndo+kCGYLI67jH3hXKQMwuTFhbpQ==}
     engines: {node: '>= 4'}
 
   json-with-bigint@3.4.4:
@@ -12984,7 +12984,7 @@ snapshots:
 
   json-stable-stringify-without-jsonify@1.0.1: {}
 
-  json-stringify-deterministic@1.0.12: {}
+  json-stringify-deterministic@1.0.16: {}
 
   json-with-bigint@3.4.4: {}
 
