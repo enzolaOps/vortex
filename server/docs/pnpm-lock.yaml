@@ -21,8 +21,8 @@ importers:
         specifier: ^3.0.0
         version: 3.1.1(@types/react@19.2.17)(react@19.2.7)
       '@scalar/docusaurus':
-        specifier: ^0.7.21
-        version: 0.7.21(@docusaurus/utils@3.9.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+        specifier: ^0.8.0
+        version: 0.8.38(@docusaurus/utils@3.9.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -1331,19 +1331,31 @@ packages:
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
 
-  '@scalar/docusaurus@0.7.21':
-    resolution: {integrity: sha512-Olh6qK05eC1wK2yoNSx8jkWpr7AUzZTwy8B4jsDzuQYTwyjKHnkWKkQ2UfH3yTRlXWtRH4YtI+eqDuc4ZkY9eQ==}
-    engines: {node: '>=20'}
+  '@scalar/client-side-rendering@0.3.10':
+    resolution: {integrity: sha512-FlUByzYhsas54zIvsiTJ7UgAZiVUQmErWvrQm+CKTBnIvSmIb5eWowJ4/O0bbkUa8rsOIdmCcX+HtX+EDdf0CA==}
+    engines: {node: '>=22'}
+
+  '@scalar/docusaurus@0.8.38':
+    resolution: {integrity: sha512-t0g+YUkRvOHkjxQLpdgQeqvv8KOIYertsxLIlgd//5CYAtAZt35ltgomXir1pdtOgEeLcbW4rgQZoE8zCY0xWA==}
+    engines: {node: '>=22'}
     peerDependencies:
-      '@docusaurus/utils': ^3.7.0
+      '@docusaurus/utils': ^3.9.2
       react: ^18.0.0 || ^19.0.0
 
-  '@scalar/openapi-types@0.5.1':
-    resolution: {integrity: sha512-8g7s9lPolyDFtijyh3Ob459tpezPuZbkXoFgJwBTHjPZ7ap+TvOJTvLk56CFwxVBVz2BxCzWJqxYyy3FUdeLoA==}
-    engines: {node: '>=20'}
+  '@scalar/helpers@0.11.2':
+    resolution: {integrity: sha512-IgHW/hIj1XAvsPIBKiOgmK87qbyDjaQQg9S/auXU4MUtvnwKKpOeIOJc0NC71FkMdr4Mok0SSVI748cmlptoXQ==}
+    engines: {node: '>=22'}
 
-  '@scalar/types@0.4.0':
-    resolution: {integrity: sha512-vOD1GZez7kPdVA+UQit05QE9dbALfevhK9kqRTsqcPX7FvvZ9eQWSNl1GKmKtmRiAZGThv2agM5AvHRxkH2JSw==}
+  '@scalar/schemas@0.8.4':
+    resolution: {integrity: sha512-gbx/UjAswjJc+OZp/vcVRIopjqoJ62pOkrKLvVHa1MuMRoVxcPyNzW2/SQmnvdJku7C7a6PsKaPUQ6gZXGA4eg==}
+    engines: {node: '>=22'}
+
+  '@scalar/types@0.18.3':
+    resolution: {integrity: sha512-hPLLxVt/ah4RpCVp5UrLEpnBEgTwf+RvPtRiSEty3QqfBJUfADMXHz+oWK6UAa/vALg2AWuJLCD8hRlyQ2ET9w==}
+    engines: {node: '>=22'}
+
+  '@scalar/validation@0.6.3':
+    resolution: {integrity: sha512-j3s9XPv8Wo1EG5/naBi4XGF0uXYQ2A3QZNI0NKWgCMxRHVrDJGlZEYymcHDHY7fquRm73P8U3c8xqJqB5yad6w==}
     engines: {node: '>=20'}
 
   '@sideway/address@4.1.5':
@@ -3509,8 +3521,8 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
-  nanoid@5.1.5:
-    resolution: {integrity: sha512-Ir/+ZpE9fDsNH0hQ3C68uyThDXzYcim2EqcZ8zn8Chtt1iylPT9xXJB0kPCnqzgcEGikO9RxSrh63MsmVCU7Fw==}
+  nanoid@5.1.16:
+    resolution: {integrity: sha512-kVrnsrJqMR8+oLJnGEmSWw9BivK5mt7H3FZatVRjrc5wGqFYuBxX1yG7+A7Gi5AefkX6t/oCkizcQgpu0cY1dQ==}
     engines: {node: ^18 || >=20}
     hasBin: true
 
@@ -4737,8 +4749,8 @@ packages:
     resolution: {integrity: sha512-RAH822pAdBgcNMAfWnCBU3CFZcfZ/i1eZjwFU/dsLKumyuuP3niueg2UAukXYF0E2AAoc82ZSSf9J0WQBinzHA==}
     engines: {node: '>=12.20'}
 
-  type-fest@5.0.0:
-    resolution: {integrity: sha512-GeJop7+u7BYlQ6yQCAY1nBQiRSHR+6OdCEtd8Bwp9a3NK3+fWAVjOaPKJDteB9f6cIJ0wt4IfnScjLG450EpXA==}
+  type-fest@5.9.0:
+    resolution: {integrity: sha512-yANm3Jr3GiJ1qgJlxGAVxTOIcEOk1rhQHamlXtnrCK7EHP4HeM9OGxtMg/W7HFdrVzw/ZWJKGVIJusVH85sLtw==}
     engines: {node: '>=20'}
 
   type-is@1.6.18:
@@ -5011,11 +5023,11 @@ packages:
     resolution: {integrity: sha512-4LCcse/U2MHZ63HAJVE+v71o7yOdIe4cZ70Wpf8D/IyjDKYQLV5GD46B+hSTjJsvV5PztjvHoU580EftxjDZFQ==}
     engines: {node: '>=12.20'}
 
-  zod@4.1.11:
-    resolution: {integrity: sha512-WPsqwxITS2tzx1bzhIKsEs19ABD5vmCVa4xBo2tq/SrV4RNZtfws1EnCWQXM6yh8bD08a1idvkB5MZSBiZsjwg==}
-
   zod@4.1.12:
     resolution: {integrity: sha512-JInaHOamG8pt5+Ey8kGmdcAcg3OL9reK8ltczgHTAwNhMys/6ThXHityHxVV2p3fkw/c+MAvBHFVYHFZDmjMCQ==}
+
+  zod@4.5.4:
+    resolution: {integrity: sha512-sC95tT5iHHH9gtpj6A81kh+NEaRAUFN+qlUPDUbRfOMvNf5QCBqsb3WgvnpVtK5Y+4UfA6KqufotuTvMGiTlsA==}
 
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
@@ -7159,22 +7171,34 @@ snapshots:
 
   '@polka/url@1.0.0-next.29': {}
 
-  '@scalar/docusaurus@0.7.21(@docusaurus/utils@3.9.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
+  '@scalar/client-side-rendering@0.3.10':
+    dependencies:
+      '@scalar/schemas': 0.8.4
+      '@scalar/types': 0.18.3
+      '@scalar/validation': 0.6.3
+
+  '@scalar/docusaurus@0.8.38(@docusaurus/utils@3.9.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@docusaurus/utils': 3.9.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@scalar/types': 0.4.0
+      '@scalar/client-side-rendering': 0.3.10
+      '@scalar/types': 0.18.3
       react: 19.2.7
 
-  '@scalar/openapi-types@0.5.1':
-    dependencies:
-      zod: 4.1.11
+  '@scalar/helpers@0.11.2': {}
 
-  '@scalar/types@0.4.0':
+  '@scalar/schemas@0.8.4':
     dependencies:
-      '@scalar/openapi-types': 0.5.1
-      nanoid: 5.1.5
-      type-fest: 5.0.0
-      zod: 4.1.11
+      '@scalar/helpers': 0.11.2
+      '@scalar/validation': 0.6.3
+
+  '@scalar/types@0.18.3':
+    dependencies:
+      '@scalar/helpers': 0.11.2
+      nanoid: 5.1.16
+      type-fest: 5.9.0
+      zod: 4.5.4
+
+  '@scalar/validation@0.6.3': {}
 
   '@sideway/address@4.1.5':
     dependencies:
@@ -9773,7 +9797,7 @@ snapshots:
 
   nanoid@3.3.11: {}
 
-  nanoid@5.1.5: {}
+  nanoid@5.1.16: {}
 
   negotiator@0.6.3: {}
 
@@ -11126,7 +11150,7 @@ snapshots:
 
   type-fest@2.19.0: {}
 
-  type-fest@5.0.0:
+  type-fest@5.9.0:
     dependencies:
       tagged-tag: 1.0.0
 
@@ -11461,8 +11485,8 @@ snapshots:
 
   yocto-queue@1.2.2: {}
 
-  zod@4.1.11: {}
-
   zod@4.1.12: {}
+
+  zod@4.5.4: {}
 
   zwitch@2.0.4: {}
