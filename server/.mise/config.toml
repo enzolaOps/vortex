@@ -7,7 +7,7 @@ gh = "2.25.0"
 rust = "1.92.0"
 "cargo:cargo-nextest" = "0.9.122"
 
-"github:git-town/git-town" = "22.7.1"
+"github:git-town/git-town" = "24.0.0"
 
 [settings]
 experimental = true
