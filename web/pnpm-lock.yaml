@@ -183,8 +183,8 @@ importers:
         specifier: ^0.7.1
         version: 0.7.1(solid-js@1.9.6)
       '@solid-primitives/resize-observer':
-        specifier: 2.1.1
-        version: 2.1.1(solid-js@1.9.6)
+        specifier: 2.2.0
+        version: 2.2.0(solid-js@1.9.6)
       '@solid-primitives/set':
         specifier: ^0.7.1
         version: 0.7.1(solid-js@1.9.6)
@@ -3234,6 +3234,11 @@ packages:
     peerDependencies:
       solid-js: ^1.6.12
 
+  '@solid-primitives/event-listener@2.4.6':
+    resolution: {integrity: sha512-5I0YJcTVYIWoMmgBSROBZGcz+ymhew/pGTg2dHW74BUjFKsV8Li4bOZYl0YAGP4mHw5o4UBd9/BEesqBci3wxw==}
+    peerDependencies:
+      solid-js: ^1.6.12
+
   '@solid-primitives/i18n@2.2.1':
     resolution: {integrity: sha512-TnTnE2Ku11MGYZ1JzhJ8pYscwg1fr9MteoYxPwsfxWfh9Jp5K7RRJncJn9BhOHvNLwROjqOHZ46PT7sPHqbcXw==}
     peerDependencies:
@@ -3329,8 +3334,18 @@ packages:
     peerDependencies:
       solid-js: ^1.6.12
 
+  '@solid-primitives/resize-observer@2.2.0':
+    resolution: {integrity: sha512-9Fuu/EWBeGj+atGHRJp70HKhdfalmpjwxY8a32NZixdLNmfCJ45AfhLQNr6uOzETbbiMx4iCKlTrJ8KZCHC2Ww==}
+    peerDependencies:
+      solid-js: ^1.6.12
+
   '@solid-primitives/rootless@1.5.1':
     resolution: {integrity: sha512-G4eNC6F3ufRT2Mjbodl7rSOH7uq/Emqs3S7/BIBWgh+V/IFUtvu6WELeqSrk4FJX3T/kKKvC+T8gXhepExSWyg==}
+    peerDependencies:
+      solid-js: ^1.6.12
+
+  '@solid-primitives/rootless@1.5.4':
+    resolution: {integrity: sha512-TOIZa1VUfVJ+9nkCcRajw3U4t9vBOP1HxX1WHNTbXq32mXwlqTvUnC4CRIilohcryBkT9u2ZkhUDSHRTaGp55g==}
     peerDependencies:
       solid-js: ^1.6.12
 
@@ -3361,6 +3376,11 @@ packages:
 
   '@solid-primitives/static-store@0.1.1':
     resolution: {integrity: sha512-daXWvpLjd+4hbYdGaaEJ2kKFuFhshvfIBFLveW7mfk2BWHl9lGQVwUuExp3qllkK9ONA9p+5D2cpwBQosv8odQ==}
+    peerDependencies:
+      solid-js: ^1.6.12
+
+  '@solid-primitives/static-store@0.1.4':
+    resolution: {integrity: sha512-LgtVaVBtB7EbmS4+M0b8xY5Iq6pUWXBsIC4VgtrFKDGDdyCaDt88sHk0fUlx1Enxm/XZnZyLXJABRoa39RjJqA==}
     peerDependencies:
       solid-js: ^1.6.12
 
@@ -3426,6 +3446,11 @@ packages:
 
   '@solid-primitives/utils@6.4.0':
     resolution: {integrity: sha512-AeGTBg8Wtkh/0s+evyLtP8piQoS4wyqqQaAFs2HJcFMMjYAtUgo+ZPduRXLjPlqKVc2ejeR544oeqpbn8Egn8A==}
+    peerDependencies:
+      solid-js: ^1.6.12
+
+  '@solid-primitives/utils@6.4.1':
+    resolution: {integrity: sha512-ISSB5QX1qP2ynrheIpYwc4oKR5Ny4siNuUyf1qZniy+Il+p/PtDB0QK1Dnle8noiHpwRD3gpPdubOC3qI/Zamg==}
     peerDependencies:
       solid-js: ^1.6.12
 
@@ -6910,10 +6935,6 @@ packages:
   source-map@0.6.1:
     resolution: {integrity: sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==}
     engines: {node: '>=0.10.0'}
-
-  source-map@0.8.0:
-    resolution: {integrity: sha512-d8EqvL+k/SOXCreS/SUzg2ciyHqBBLcN/yuRjFsbvVhHTE2pgei7oAhmPM7kWFbkX6OSMQfUq4KbkF3au9lhYQ==}
-    engines: {node: '>= 12'}
 
   source-map@0.8.0-beta.0:
     resolution: {integrity: sha512-2ymg6oRBpebeZi9UUNsgQ89bhx01TcTkmNTGnNO88imTmbSgy4nfujrgVEFKWpMTEGA11EDkTt7mqObTPdigIA==}
@@ -10462,6 +10483,11 @@ snapshots:
       '@solid-primitives/utils': 6.3.2(solid-js@1.9.6)
       solid-js: 1.9.6
 
+  '@solid-primitives/event-listener@2.4.6(solid-js@1.9.6)':
+    dependencies:
+      '@solid-primitives/utils': 6.4.1(solid-js@1.9.6)
+      solid-js: 1.9.6
+
   '@solid-primitives/i18n@2.2.1(solid-js@1.9.6)':
     dependencies:
       solid-js: 1.9.6
@@ -10538,7 +10564,7 @@ snapshots:
 
   '@solid-primitives/props@3.2.1(solid-js@1.9.6)':
     dependencies:
-      '@solid-primitives/utils': 6.3.2(solid-js@1.9.6)
+      '@solid-primitives/utils': 6.4.0(solid-js@1.9.6)
       solid-js: 1.9.6
 
   '@solid-primitives/range@0.1.18(solid-js@1.9.6)':
@@ -10555,7 +10581,7 @@ snapshots:
 
   '@solid-primitives/refs@1.1.1(solid-js@1.9.6)':
     dependencies:
-      '@solid-primitives/utils': 6.3.2(solid-js@1.9.6)
+      '@solid-primitives/utils': 6.4.0(solid-js@1.9.6)
       solid-js: 1.9.6
 
   '@solid-primitives/resize-observer@2.1.1(solid-js@1.9.6)':
@@ -10563,12 +10589,25 @@ snapshots:
       '@solid-primitives/event-listener': 2.4.1(solid-js@1.9.6)
       '@solid-primitives/rootless': 1.5.1(solid-js@1.9.6)
       '@solid-primitives/static-store': 0.1.1(solid-js@1.9.6)
-      '@solid-primitives/utils': 6.3.2(solid-js@1.9.6)
+      '@solid-primitives/utils': 6.4.0(solid-js@1.9.6)
+      solid-js: 1.9.6
+
+  '@solid-primitives/resize-observer@2.2.0(solid-js@1.9.6)':
+    dependencies:
+      '@solid-primitives/event-listener': 2.4.6(solid-js@1.9.6)
+      '@solid-primitives/rootless': 1.5.4(solid-js@1.9.6)
+      '@solid-primitives/static-store': 0.1.4(solid-js@1.9.6)
+      '@solid-primitives/utils': 6.4.1(solid-js@1.9.6)
       solid-js: 1.9.6
 
   '@solid-primitives/rootless@1.5.1(solid-js@1.9.6)':
     dependencies:
       '@solid-primitives/utils': 6.3.2(solid-js@1.9.6)
+      solid-js: 1.9.6
+
+  '@solid-primitives/rootless@1.5.4(solid-js@1.9.6)':
+    dependencies:
+      '@solid-primitives/utils': 6.4.1(solid-js@1.9.6)
       solid-js: 1.9.6
 
   '@solid-primitives/scheduled@1.5.1(solid-js@1.9.6)':
@@ -10595,7 +10634,12 @@ snapshots:
 
   '@solid-primitives/static-store@0.1.1(solid-js@1.9.6)':
     dependencies:
-      '@solid-primitives/utils': 6.3.2(solid-js@1.9.6)
+      '@solid-primitives/utils': 6.4.0(solid-js@1.9.6)
+      solid-js: 1.9.6
+
+  '@solid-primitives/static-store@0.1.4(solid-js@1.9.6)':
+    dependencies:
+      '@solid-primitives/utils': 6.4.1(solid-js@1.9.6)
       solid-js: 1.9.6
 
   '@solid-primitives/styles@0.0.101(solid-js@1.9.6)':
@@ -10651,6 +10695,10 @@ snapshots:
       solid-js: 1.9.6
 
   '@solid-primitives/utils@6.4.0(solid-js@1.9.6)':
+    dependencies:
+      solid-js: 1.9.6
+
+  '@solid-primitives/utils@6.4.1(solid-js@1.9.6)':
     dependencies:
       solid-js: 1.9.6
 
@@ -14816,8 +14864,6 @@ snapshots:
 
   source-map@0.6.1: {}
 
-  source-map@0.8.0: {}
-
   source-map@0.8.0-beta.0:
     dependencies:
       whatwg-url: 7.1.0
@@ -15601,7 +15647,7 @@ snapshots:
       lodash: 4.18.1
       pretty-bytes: 5.6.0
       rollup: 2.80.0
-      source-map: 0.8.0
+      source-map: 0.8.0-beta.0
       stringify-object: 3.3.0
       strip-comments: 2.0.1
       tempy: 0.6.0
