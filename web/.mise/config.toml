@@ -2,7 +2,7 @@ min_version = { soft = "2026.5.15", hard = "2026.5.12" }
 
 [tools]
 deno = "2.8.1"
-node = "26.2.0"
+node = "26.8.1"
 pnpm = "11.3.0"
 
 gh = "2.93.0"
@@ -10,7 +10,7 @@ gh = "2.93.0"
 mdbook = "0.5.3"
 "github:lzanini/mdbook-katex" = "0.10.0-alpha-binaries"
 
-"github:git-town/git-town" = "23.0.1"
+"github:git-town/git-town" = "24.0.0"
 
 [tasks.check]
 description = "Task group for CI checks"
