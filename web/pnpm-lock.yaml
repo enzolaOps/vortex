@@ -354,8 +354,8 @@ importers:
         specifier: ^0.1.11
         version: 0.1.11(solid-js@1.9.6)
       solid-stripe:
-        specifier: ^0.7.5
-        version: 0.7.5(@stripe/stripe-js@7.3.1)(solid-js@1.9.6)
+        specifier: ^0.8.0
+        version: 0.8.1(@stripe/stripe-js@7.3.1)(solid-js@1.9.6)
       space-separated-tokens:
         specifier: ^2.0.2
         version: 2.0.2
@@ -6887,11 +6887,11 @@ packages:
     peerDependencies:
       solid-js: ^1.3
 
-  solid-stripe@0.7.5:
-    resolution: {integrity: sha512-NlbOhe/GuStzrqy6R5PlEyKYmyn1CYVlQxLGw1tW89czZKpx747mlBtYr+VhYdBIiK2QubpbFwJOM7ziFjn9UQ==}
+  solid-stripe@0.8.1:
+    resolution: {integrity: sha512-l2SkWoe51rsvk9u1ILBRWyCHODZebChSGMR6zHYJTivTRC0XWrRnNNKs5x1PYXsaIU71KYI6ov5CZB5cOtGLWw==}
     engines: {node: '>=20'}
     peerDependencies:
-      '@stripe/stripe-js': ^1.44.1 || ^2.0.0 || ^3.0.0 || ^4.0.0
+      '@stripe/stripe-js': '>=1.44.1 <8.0.0'
       solid-js: ^1.6.0
 
   solid-use@0.6.2:
@@ -6910,10 +6910,6 @@ packages:
   source-map@0.6.1:
     resolution: {integrity: sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==}
     engines: {node: '>=0.10.0'}
-
-  source-map@0.8.0:
-    resolution: {integrity: sha512-d8EqvL+k/SOXCreS/SUzg2ciyHqBBLcN/yuRjFsbvVhHTE2pgei7oAhmPM7kWFbkX6OSMQfUq4KbkF3au9lhYQ==}
-    engines: {node: '>= 12'}
 
   source-map@0.8.0-beta.0:
     resolution: {integrity: sha512-2ymg6oRBpebeZi9UUNsgQ89bhx01TcTkmNTGnNO88imTmbSgy4nfujrgVEFKWpMTEGA11EDkTt7mqObTPdigIA==}
@@ -14798,7 +14794,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  solid-stripe@0.7.5(@stripe/stripe-js@7.3.1)(solid-js@1.9.6):
+  solid-stripe@0.8.1(@stripe/stripe-js@7.3.1)(solid-js@1.9.6):
     dependencies:
       '@stripe/stripe-js': 7.3.1
       solid-js: 1.9.6
@@ -14815,8 +14811,6 @@ snapshots:
       source-map: 0.6.1
 
   source-map@0.6.1: {}
-
-  source-map@0.8.0: {}
 
   source-map@0.8.0-beta.0:
     dependencies:
@@ -15601,7 +15595,7 @@ snapshots:
       lodash: 4.18.1
       pretty-bytes: 5.6.0
       rollup: 2.80.0
-      source-map: 0.8.0
+      source-map: 0.8.0-beta.0
       stringify-object: 3.3.0
       strip-comments: 2.0.1
       tempy: 0.6.0
