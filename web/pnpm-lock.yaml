@@ -193,7 +193,7 @@ importers:
         version: 0.15.3(solid-js@1.9.6)
       '@stripe/stripe-js':
         specifier: ^7.3.1
-        version: 7.3.1
+        version: 7.9.0
       '@tanstack/solid-query':
         specifier: ^5.76.0
         version: 5.102.8(solid-js@1.9.6)
@@ -355,7 +355,7 @@ importers:
         version: 0.1.11(solid-js@1.9.6)
       solid-stripe:
         specifier: ^0.7.5
-        version: 0.7.5(@stripe/stripe-js@7.3.1)(solid-js@1.9.6)
+        version: 0.7.5(@stripe/stripe-js@7.9.0)(solid-js@1.9.6)
       space-separated-tokens:
         specifier: ^2.0.2
         version: 2.0.2
@@ -3334,8 +3334,8 @@ packages:
     peerDependencies:
       solid-js: ^1.8.6
 
-  '@stripe/stripe-js@7.3.1':
-    resolution: {integrity: sha512-pTzb864TQWDRQBPLgSPFRoyjSDUqpCkbEgTzpsjiTjGz1Z5SxZNXJek28w1s6Dyry4CyW4/Izj5jHE/J9hCJYQ==}
+  '@stripe/stripe-js@7.9.0':
+    resolution: {integrity: sha512-ggs5k+/0FUJcIgNY08aZTqpBTtbExkJMYMLSMwyucrhtWexVOEY1KJmhBsxf+E/Q15f5rbwBpj+t0t2AW2oCsQ==}
     engines: {node: '>=12.16'}
 
   '@surma/rollup-plugin-off-main-thread@2.2.3':
@@ -10651,7 +10651,7 @@ snapshots:
     dependencies:
       solid-js: 1.9.6
 
-  '@stripe/stripe-js@7.3.1': {}
+  '@stripe/stripe-js@7.9.0': {}
 
   '@surma/rollup-plugin-off-main-thread@2.2.3':
     dependencies:
@@ -14847,9 +14847,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  solid-stripe@0.7.5(@stripe/stripe-js@7.3.1)(solid-js@1.9.6):
+  solid-stripe@0.7.5(@stripe/stripe-js@7.9.0)(solid-js@1.9.6):
     dependencies:
-      '@stripe/stripe-js': 7.3.1
+      '@stripe/stripe-js': 7.9.0
       solid-js: 1.9.6
 
   solid-use@0.6.2(solid-js@1.9.6):
