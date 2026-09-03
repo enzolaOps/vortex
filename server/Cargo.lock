@@ -1008,7 +1008,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "edca88bc138befd0323b20752846e6587272d3b03b0343c8ea28a6f819e6e71f"
 dependencies = [
  "async-trait",
- "axum-core",
+ "axum-core 0.4.5",
  "axum-macros",
  "bytes",
  "futures-util",
@@ -1018,7 +1018,7 @@ dependencies = [
  "hyper 1.10.1",
  "hyper-util",
  "itoa",
- "matchit",
+ "matchit 0.7.3",
  "memchr",
  "mime",
  "multer",
@@ -1035,6 +1035,31 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
+]
+
+[[package]]
+name = "axum"
+version = "0.8.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "31b698c5f9a010f6573133b09e0de5408834d0c82f8d7475a89fc1867a71cd90"
+dependencies = [
+ "axum-core 0.5.6",
+ "bytes",
+ "futures-util",
+ "http 1.4.2",
+ "http-body 1.0.1",
+ "http-body-util",
+ "itoa",
+ "matchit 0.8.4",
+ "memchr",
+ "mime",
+ "percent-encoding",
+ "pin-project-lite",
+ "serde_core",
+ "sync_wrapper 1.0.2",
+ "tower",
+ "tower-layer",
+ "tower-service",
 ]
 
 [[package]]
@@ -1059,13 +1084,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "axum-core"
+version = "0.5.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08c78f31d7b1291f7ee735c1c6780ccde7785daae9a9206026862dab7d8792d1"
+dependencies = [
+ "bytes",
+ "futures-core",
+ "http 1.4.2",
+ "http-body 1.0.1",
+ "http-body-util",
+ "mime",
+ "pin-project-lite",
+ "sync_wrapper 1.0.2",
+ "tower-layer",
+ "tower-service",
+]
+
+[[package]]
 name = "axum-extra"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c794b30c904f0a1c2fb7740f7df7f7972dfaa14ef6f57cb6178dc63e5dca2f04"
 dependencies = [
- "axum",
- "axum-core",
+ "axum 0.7.9",
+ "axum-core 0.4.5",
  "bytes",
  "fastrand 2.4.1",
  "futures-util",
@@ -1100,7 +1143,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05679dcdfeccf4cc6a8f45b80318fff8a9908337da1cfeb6acca00562a345b4d"
 dependencies = [
  "anyhow",
- "axum",
+ "axum 0.7.9",
  "axum_typed_multipart_macros",
  "bytes",
  "chrono",
@@ -5034,6 +5077,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0e7465ac9959cc2b1404e8e2367b43684a6d13790fe23056cc8c6c5a6b7bcb94"
 
 [[package]]
+name = "matchit"
+version = "0.8.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47e1ffaa40ddd1f3ed91f717a33c8c0ee23fff369e3aa8772b9605cc1d22f4c3"
+
+[[package]]
 name = "maybe-rayon"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7254,7 +7303,7 @@ dependencies = [
 name = "revolt-autumn"
 version = "0.15.3"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "axum-macros",
  "axum_typed_multipart",
  "ffprobe",
@@ -7286,7 +7335,7 @@ dependencies = [
  "tracing-subscriber",
  "ulid",
  "url-escape",
- "utoipa",
+ "utoipa 4.2.3",
  "utoipa-scalar",
  "webp",
 ]
@@ -7375,7 +7424,7 @@ dependencies = [
  "async-lock 2.8.0",
  "async-recursion",
  "async-trait",
- "axum",
+ "axum 0.7.9",
  "base32",
  "base64 0.21.7",
  "bson",
@@ -7422,7 +7471,7 @@ dependencies = [
  "ulid",
  "unicode-segmentation",
  "url-escape",
- "utoipa",
+ "utoipa 4.2.3",
  "validator",
 ]
 
@@ -7505,7 +7554,7 @@ dependencies = [
 name = "revolt-gifbox"
 version = "0.15.3"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "axum-extra",
  "lru_time_cache",
  "reqwest 0.13.4",
@@ -7520,7 +7569,7 @@ dependencies = [
  "tokio",
  "tower-http 0.5.2",
  "tracing",
- "utoipa",
+ "utoipa 4.2.3",
  "utoipa-scalar",
 ]
 
@@ -7529,7 +7578,7 @@ name = "revolt-january"
 version = "0.15.3"
 dependencies = [
  "async-recursion",
- "axum",
+ "axum 0.7.9",
  "axum-extra",
  "encoding_rs",
  "lazy_static",
@@ -7550,7 +7599,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
- "utoipa",
+ "utoipa 4.2.3",
  "utoipa-scalar",
 ]
 
@@ -7570,7 +7619,7 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
- "utoipa",
+ "utoipa 4.2.3",
  "validator",
 ]
 
@@ -7643,7 +7692,7 @@ name = "revolt-ratelimits"
 version = "0.15.3"
 dependencies = [
  "async-trait",
- "axum",
+ "axum 0.7.9",
  "log",
  "redis-kiss",
  "revolt-config",
@@ -7658,7 +7707,7 @@ dependencies = [
 name = "revolt-result"
 version = "0.15.3"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "log",
  "revolt_okapi",
  "revolt_rocket_okapi",
@@ -7667,7 +7716,7 @@ dependencies = [
  "sentry",
  "serde",
  "serde_json",
- "utoipa",
+ "utoipa 4.2.3",
 ]
 
 [[package]]
@@ -8648,9 +8697,9 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.228"
+version = "1.0.229"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a8e94ea7f378bd32cbbd37198a4a91436180c5bb472411e48b5ec2e2124ae9e"
+checksum = "4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba"
 dependencies = [
  "serde_core",
  "serde_derive",
@@ -8668,22 +8717,22 @@ dependencies = [
 
 [[package]]
 name = "serde_core"
-version = "1.0.228"
+version = "1.0.229"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41d385c7d4ca58e59fc732af25c3983b67ac852c1a25000afe1175de458b67ad"
+checksum = "67dca2c9c51e58a4791a4b1ed58308b39c64224d349a935ab5039aa360942a48"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.228"
+version = "1.0.229"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d540f220d3187173da220f885ab66608367b6574e925011a9353e4badda91d79"
+checksum = "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348"
 dependencies = [
  "proc-macro2",
  "quote 1.0.46",
- "syn 2.0.118",
+ "syn 3.0.4",
 ]
 
 [[package]]
@@ -8699,9 +8748,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.150"
+version = "1.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8014e44b4736ed0538adeecded0fce2a272f22dc9578a7eb6b2d9993c74cfb9"
+checksum = "c841b55ecdae098c80dcae9cf767f6f8a0c2cdb3416bbef72181df4d0fe73f14"
 dependencies = [
  "indexmap 2.14.0",
  "itoa",
@@ -9181,6 +9230,17 @@ name = "syn"
 version = "2.0.118"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b9ae57f904213ebb649ce6895b8a66c66f0203b9319718f69a5612a065b1422"
+dependencies = [
+ "proc-macro2",
+ "quote 1.0.46",
+ "unicode-ident",
+]
+
+[[package]]
+name = "syn"
+version = "3.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e6275cddf4610d1775e6d1fe9469b2e77d0f39fd98fb7450901b821e0c53649f"
 dependencies = [
  "proc-macro2",
  "quote 1.0.46",
@@ -10210,7 +10270,19 @@ dependencies = [
  "indexmap 2.14.0",
  "serde",
  "serde_json",
- "utoipa-gen",
+ "utoipa-gen 4.3.1",
+]
+
+[[package]]
+name = "utoipa"
+version = "5.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8bde15df68e80b16c7d16b9616e80770ad158988daa56a27dccd1e55558b0160"
+dependencies = [
+ "indexmap 2.14.0",
+ "serde",
+ "serde_json",
+ "utoipa-gen 5.5.0",
 ]
 
 [[package]]
@@ -10228,22 +10300,33 @@ dependencies = [
 ]
 
 [[package]]
-name = "utoipa-scalar"
-version = "0.1.0"
+name = "utoipa-gen"
+version = "5.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3ab4b7269d14d93626b0bfedf212f1b0995cb7d13d35daba21d579511e7fae8"
+checksum = "6ba0b99ee52df3028635d93840c797102da61f8a7bb3cf751032455895b52ef8"
 dependencies = [
- "axum",
+ "proc-macro2",
+ "quote 1.0.46",
+ "syn 2.0.118",
+]
+
+[[package]]
+name = "utoipa-scalar"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59559e1509172f6b26c1cdbc7247c4ddd1ac6560fe94b584f81ee489b141f719"
+dependencies = [
+ "axum 0.8.9",
  "serde",
  "serde_json",
- "utoipa",
+ "utoipa 5.5.0",
 ]
 
 [[package]]
 name = "uuid"
-version = "1.23.3"
+version = "1.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "144d6b123cef80b301b8f72a9e2ca4370ddec21950d0a103dd22c437006d2db7"
+checksum = "b5772d71c9be8a8a6ac2117d949c5b224c1b72241bb611d9a3012edcf8af7812"
 dependencies = [
  "getrandom 0.4.3",
  "js-sys",
