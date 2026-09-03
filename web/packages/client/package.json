@@ -6,7 +6,7 @@
     "prepare": "panda codegen"
   },
   "devDependencies": {
-    "@chromatic-com/storybook": "^2.0.2",
+    "@chromatic-com/storybook": "^5.0.0",
     "@lingui-solid/babel-plugin-extract-messages": "workspace:^",
     "@lingui-solid/babel-plugin-lingui-macro": "workspace:^",
     "@lingui-solid/vite-plugin": "^5.1.3",
