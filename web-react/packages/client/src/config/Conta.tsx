@@ -4,11 +4,13 @@ import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
 import { sair } from "../sdk/autenticacao";
 import {
+  administraServidor,
   lerMeuPerfil,
   trocarEmail,
   trocarNomeDeUsuario,
   trocarSenha,
 } from "../sdk/perfil";
+import { abrirModal } from "../store/modais";
 import css from "./Secao.module.css";
 
 /**
@@ -50,7 +52,34 @@ export function Conta() {
           </Botao>
         </div>
       </section>
+
+      <hr className={css.divisor} />
+      <ZonaDePerigo />
     </div>
+  );
+}
+
+function ZonaDePerigo() {
+  const dono = administraServidor();
+
+  return (
+    <section className={css.bloco}>
+      <h2 className={css.subtitulo}>Zona de perigo</h2>
+      <p className={css.recado}>
+        {dono
+          ? "Transfira ou exclua os servidores que você administra antes de excluir a conta."
+          : "A exclusão é permanente. Um e-mail pede a confirmação; depois disso há 7 dias para cancelar."}
+      </p>
+      <div className={css.acoes}>
+        <Botao
+          variante="perigoSutil"
+          disabled={dono}
+          onClick={() => abrirModal("excluirConta")}
+        >
+          Excluir minha conta
+        </Botao>
+      </div>
+    </section>
   );
 }
 

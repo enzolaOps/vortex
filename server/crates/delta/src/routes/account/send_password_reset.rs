@@ -2,13 +2,19 @@
 //! POST /account/reset_password
 use std::time::Duration;
 
-use tokio::time::sleep;
+use revolt_database::{
+    util::{
+        captcha::check_captcha,
+        email::{normalise_email, validate_email},
+    },
+    Database, EmailVerification,
+};
+use revolt_models::v0;
+use revolt_result::Result;
 use rocket::serde::json::Json;
 use rocket::State;
 use rocket_empty::EmptyResponse;
-use revolt_result::Result;
-use revolt_database::{Database, EmailVerification, util::{email::{normalise_email, validate_email}, captcha::check_captcha}};
-use revolt_models::v0;
+use tokio::time::sleep;
 
 /// # Send Password Reset
 ///
@@ -22,7 +28,10 @@ pub async fn send_password_reset(
     let data = data.into_inner();
 
     // Random jitter from 0-1000ms
-    sleep(Duration::from_millis((rand::random::<f32>() * 1000.) as u64)).await;
+    sleep(Duration::from_millis(
+        (rand::random::<f32>() * 1000.) as u64,
+    ))
+    .await;
 
     // Check Captcha token
     check_captcha(data.captcha.as_deref()).await?;
@@ -73,7 +82,8 @@ mod tests {
         .await
         .unwrap();
 
-        let res = harness.client
+        let res = harness
+            .client
             .post("/auth/account/reset_password")
             .header(ContentType::JSON)
             .body(
@@ -88,7 +98,8 @@ mod tests {
         assert_eq!(res.status(), Status::NoContent);
 
         let (_, code) = harness.assert_email("password_reset@smtp.test").await;
-        let res = harness.client
+        let res = harness
+            .client
             .patch("/auth/account/reset_password")
             .header(ContentType::JSON)
             .body(
@@ -103,7 +114,8 @@ mod tests {
 
         assert_eq!(res.status(), Status::NoContent);
 
-        let res = harness.client
+        let res = harness
+            .client
             .post("/auth/session/login")
             .header(ContentType::JSON)
             .body(

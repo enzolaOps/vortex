@@ -85,7 +85,11 @@ auto_derived!(
         /// The user must confirm deletion by email
         WaitingForVerification { token: String, expiry: Timestamp },
         /// The account is scheduled for deletion
-        Scheduled { after: Timestamp },
+        Scheduled {
+            after: Timestamp,
+            #[serde(default, skip_serializing_if = "Option::is_none")]
+            token: Option<String>,
+        },
         /// This account was deleted
         Deleted,
     }
@@ -375,6 +379,12 @@ impl Account {
         if !config.api.smtp.host.is_empty() {
             let templates = email_templates().await;
 
+            if let EmailVerification::Pending { expiry, .. } = &self.verification {
+                if recently_emailed(*expiry, config.api.smtp.expiry.expire_verification) {
+                    return Ok(());
+                }
+            }
+
             let token = nanoid!(32);
             let url = format!("{}{}", templates.verify.url, token);
 
@@ -424,7 +434,7 @@ impl Account {
                 new_email.clone(),
                 &templates.verify,
                 json!({
-                    "email": self.email.clone(),
+                    "email": new_email.clone(),
                     "url": url
                 }),
             )?;
@@ -463,6 +473,12 @@ impl Account {
                 &templates.reset
             };
 
+            if let Some(reset) = &self.password_reset {
+                if recently_emailed(reset.expiry, config.api.smtp.expiry.expire_password_reset) {
+                    return Ok(());
+                }
+            }
+
             let token = nanoid!(32);
             let url = format!("{}{}", template.url, token);
 
@@ -495,6 +511,10 @@ impl Account {
     ///
     /// If email verification is not on, the account will be marked for deletion instantly
     pub async fn start_account_deletion(&mut self, db: &Database) -> Result<()> {
+        if !db.fetch_owned_servers(&self.id).await?.is_empty() {
+            return Err(create_error!(AccountOwnsServers));
+        }
+
         let config = config().await;
 
         if !config.api.smtp.host.is_empty() {
@@ -517,14 +537,20 @@ impl Account {
                 token,
                 expiry: Timestamp::now_utc()
                     .checked_add(Duration::seconds(
-                        config.api.smtp.expiry.expire_password_reset,
+                        config.api.smtp.expiry.expire_account_deletion,
                     ))
                     .unwrap(),
             });
 
             self.save(db).await
         } else {
-            self.schedule_deletion(db).await
+            self.deletion = Some(DeletionInfo::Scheduled {
+                after: Timestamp::now_utc()
+                    .checked_add(Duration::weeks(1))
+                    .unwrap(),
+                token: None,
+            });
+            self.disable(db).await
         }
     }
 
@@ -633,14 +659,39 @@ impl Account {
     }
 
     /// Schedule an account for deletion
-    pub async fn schedule_deletion(&mut self, db: &Database) -> Result<()> {
+    pub async fn schedule_deletion(&mut self, db: &Database, token_to_match: &str) -> Result<()> {
+        let token = match &self.deletion {
+            Some(DeletionInfo::WaitingForVerification { token, expiry })
+                if token == token_to_match && expiry >= &Timestamp::now_utc() =>
+            {
+                token.clone()
+            }
+            _ => return Err(create_error!(InvalidToken)),
+        };
+
         self.deletion = Some(DeletionInfo::Scheduled {
             after: Timestamp::now_utc()
                 .checked_add(Duration::weeks(1))
                 .unwrap(),
+            token: Some(token),
         });
 
         self.disable(db).await
+    }
+
+    /// Cancel a scheduled account deletion before it becomes due
+    pub async fn cancel_deletion(&mut self, db: &Database, token_to_match: &str) -> Result<()> {
+        match &self.deletion {
+            Some(DeletionInfo::Scheduled {
+                after,
+                token: Some(token),
+            }) if token == token_to_match && after > &Timestamp::now_utc() => {}
+            _ => return Err(create_error!(InvalidToken)),
+        }
+
+        self.deletion = None;
+        self.disabled = false;
+        self.save(db).await
     }
 
     /// Removes all information from the account and marks it as fully deleted
@@ -653,4 +704,14 @@ impl Account {
 
         Ok(())
     }
+}
+
+fn recently_emailed(expiry: Timestamp, lifetime_secs: i64) -> bool {
+    const COOLDOWN_SECS: i64 = 60;
+    let Some(threshold) = Timestamp::now_utc().checked_add(Duration::seconds(
+        lifetime_secs.saturating_sub(COOLDOWN_SECS),
+    )) else {
+        return false;
+    };
+    expiry > threshold
 }

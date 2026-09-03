@@ -201,6 +201,7 @@ pub enum ErrorType {
     },
 
     // ? Authentication
+    AccountOwnsServers,
     RenderFail,
     MissingHeaders,
     CaptchaFailed,

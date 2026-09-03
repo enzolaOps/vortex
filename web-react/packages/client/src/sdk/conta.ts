@@ -99,6 +99,60 @@ export async function pedirRedefinicao(email: string): Promise<boolean> {
   }
 }
 
+export type EstadoDeExclusao =
+  | { readonly tipo: "aguardando" }
+  | { readonly tipo: "agendada"; readonly ate: string };
+
+type CorpoDeExclusao = {
+  readonly status?: string;
+  readonly delete_after?: string;
+};
+
+function lerEstadoDeExclusao(corpo: CorpoDeExclusao): EstadoDeExclusao | undefined {
+  if (corpo.status === "WaitingForConfirmation") return { tipo: "aguardando" };
+  if (corpo.status === "Scheduled" && typeof corpo.delete_after === "string") {
+    return { tipo: "agendada", ate: corpo.delete_after };
+  }
+  return undefined;
+}
+
+/** Lê o estado do pedido de exclusão. Abrir o link não confirma nada. */
+export async function estadoDaExclusao(
+  token: string,
+): Promise<EstadoDeExclusao | undefined> {
+  try {
+    const corpo = (await client.api.get(
+      `/auth/account/delete/${token}` as never,
+    )) as CorpoDeExclusao;
+    return lerEstadoDeExclusao(corpo);
+  } catch (e) {
+    erro(motivoDeConta(e));
+    return undefined;
+  }
+}
+
+/** Confirma a exclusão. Só chama isto depois de um clique explícito. */
+export async function confirmarExclusao(token: string): Promise<boolean> {
+  try {
+    await client.api.put("/auth/account/delete" as never, { token } as never);
+    return true;
+  } catch (e) {
+    erro(motivoDeConta(e));
+    return false;
+  }
+}
+
+/** Cancela a exclusão agendada. As sessões antigas não voltam. */
+export async function cancelarExclusao(token: string): Promise<boolean> {
+  try {
+    await client.api.delete(`/auth/account/delete/${token}` as never);
+    return true;
+  } catch (e) {
+    erro(motivoDeConta(e));
+    return false;
+  }
+}
+
 /**
  * Define a senha nova pelo token do link.
  *

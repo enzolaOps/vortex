@@ -1,15 +1,7 @@
-Almost there!
-To complete your sign up, we just need to verify your email.
+Confirme seu e-mail no Vortex
 
-Please navigate to: {{url}}
+Para terminar o cadastro, abra este endereço:
+{{url}}
 
-This email is intended for {{email}}
-Sent by Stoat
-Made in Europe
-
-Revolt Platforms Ltd. is a company incorporated and registered under the laws of England and Wales.
-
-Registration Number: 16260658
-Registered Office:
-Suite 5703 Unit 3A, 34-35 Hatton Garden,
-Holborn, United Kingdom, EC1N 8DX
+Este e-mail foi enviado para {{email}}.
+Se você não criou uma conta, ignore.

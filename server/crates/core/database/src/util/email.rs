@@ -100,72 +100,43 @@ pub async fn email_templates() -> Templates {
                 html: None,
             },
         }
-    } else if config.production {
-        Templates {
-            verify: Template {
-                title: "Verify your Stoat account.".into(),
-                text: include_str!("../../templates/verify.txt").into(),
-                url: format!("{}/login/verify/", config.hosts.app),
-                html: Some(include_str!("../../templates/verify.html").into()),
-            },
-            reset: Template {
-                title: "Reset your Stoat password.".into(),
-                text: include_str!("../../templates/reset.txt").into(),
-                url: format!("{}/login/reset/", config.hosts.app),
-                html: Some(include_str!("../../templates/reset.html").into()),
-            },
-            reset_existing: Template {
-                title: "You already have a Stoat account, reset your password.".into(),
-                text: include_str!("../../templates/reset-existing.txt").into(),
-                url: format!("{}/login/reset/", config.hosts.app),
-                html: Some(include_str!("../../templates/reset-existing.html").into()),
-            },
-            deletion: Template {
-                title: "Confirm account deletion.".into(),
-                text: include_str!("../../templates/deletion.txt").into(),
-                url: format!("{}/delete/", config.hosts.app),
-                html: Some(include_str!("../../templates/deletion.html").into()),
-            },
-            suspension: Template {
-                title: "Account Suspension".to_string(),
-                html: Some(include_str!("../../templates/suspension.html").to_owned()),
-                text: include_str!("../../templates/suspension.txt").to_owned(),
-                url: Default::default(),
-            },
-        }
     } else {
-        Templates {
-            verify: Template {
-                title: "Verify your account.".into(),
-                text: include_str!("../../templates/verify.whitelabel.txt").into(),
-                url: format!("{}/login/verify/", config.hosts.app),
-                html: None,
-            },
-            reset: Template {
-                title: "Reset your password.".into(),
-                text: include_str!("../../templates/reset.whitelabel.txt").into(),
-                url: format!("{}/login/reset/", config.hosts.app),
-                html: None,
-            },
-            reset_existing: Template {
-                title: "Reset your password.".into(),
-                text: include_str!("../../templates/reset.whitelabel.txt").into(),
-                url: format!("{}/login/reset/", config.hosts.app),
-                html: None,
-            },
-            deletion: Template {
-                title: "Confirm account deletion.".into(),
-                text: include_str!("../../templates/deletion.whitelabel.txt").into(),
-                url: format!("{}/delete/", config.hosts.app),
-                html: None,
-            },
-            suspension: Template {
-                title: "Account Suspension".to_string(),
-                text: include_str!("../../templates/suspension.whitelabel.txt").to_owned(),
-                url: Default::default(),
-                html: None,
-            },
-        }
+        vortex_templates(&config.hosts.app)
+    }
+}
+
+fn vortex_templates(app_host: &str) -> Templates {
+    Templates {
+        verify: Template {
+            title: "Confirme seu e-mail no Vortex".into(),
+            text: include_str!("../../templates/verify.txt").into(),
+            url: format!("{app_host}/verificar/"),
+            html: Some(include_str!("../../templates/verify.html").into()),
+        },
+        reset: Template {
+            title: "Redefina sua senha do Vortex".into(),
+            text: include_str!("../../templates/reset.txt").into(),
+            url: format!("{app_host}/redefinir/"),
+            html: Some(include_str!("../../templates/reset.html").into()),
+        },
+        reset_existing: Template {
+            title: "Já existe uma conta Vortex com este e-mail".into(),
+            text: include_str!("../../templates/reset-existing.txt").into(),
+            url: format!("{app_host}/redefinir/"),
+            html: Some(include_str!("../../templates/reset-existing.html").into()),
+        },
+        deletion: Template {
+            title: "Confirme a exclusão da sua conta Vortex".into(),
+            text: include_str!("../../templates/deletion.txt").into(),
+            url: format!("{app_host}/delete/"),
+            html: Some(include_str!("../../templates/deletion.html").into()),
+        },
+        suspension: Template {
+            title: "Sua conta Vortex foi suspensa".into(),
+            text: include_str!("../../templates/suspension.txt").into(),
+            url: String::new(),
+            html: Some(include_str!("../../templates/suspension.html").into()),
+        },
     }
 }
 
@@ -268,4 +239,71 @@ pub fn validate_email(email: &str) -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::{render_template, vortex_templates};
+
+    #[test]
+    fn vortex_templates_are_branded_multipart_and_render_context() {
+        let templates = vortex_templates("https://vortex.example");
+        let actionable = [
+            &templates.verify,
+            &templates.reset,
+            &templates.reset_existing,
+            &templates.deletion,
+        ];
+
+        assert_eq!(templates.verify.url, "https://vortex.example/verificar/");
+        assert_eq!(templates.reset.url, "https://vortex.example/redefinir/");
+        assert_eq!(templates.deletion.url, "https://vortex.example/delete/");
+
+        for template in actionable {
+            let variables = json!({
+                "email": "pessoa@example.com",
+                "url": format!("{}token", template.url),
+            });
+            let text = render_template(&template.text, &variables).unwrap();
+            let html = render_template(template.html.as_deref().unwrap(), &variables).unwrap();
+
+            for rendered in [text, html] {
+                assert!(rendered.contains("pessoa@example.com"));
+                assert!(rendered.contains(&format!("{}token", template.url)));
+            }
+        }
+
+        let suspension = render_template(
+            templates.suspension.html.as_deref().unwrap(),
+            &json!({
+                "email": "pessoa@example.com",
+                "list": "motivo",
+                "duration": 2,
+                "duration_display": "block",
+            }),
+        )
+        .unwrap();
+        assert!(suspension.contains("pessoa@example.com"));
+    }
+
+    #[test]
+    fn active_templates_do_not_reference_upstream_brands() {
+        let templates = vortex_templates("https://vortex.example");
+
+        for template in [
+            templates.verify,
+            templates.reset,
+            templates.reset_existing,
+            templates.deletion,
+            templates.suspension,
+        ] {
+            let artifact = format!("{}\n{}", template.text, template.html.unwrap());
+            let artifact = artifact.to_ascii_lowercase();
+            assert!(!artifact.contains("stoat"));
+            assert!(!artifact.contains("revolt"));
+            assert!(!artifact.contains("stoat.chat"));
+        }
+    }
 }

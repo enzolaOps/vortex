@@ -21,6 +21,15 @@ auto_derived!(
         pub token: String,
     }
 
+    /// # Account Deletion Status
+    #[serde(tag = "status")]
+    pub enum AccountDeletionStatus {
+        WaitingForConfirmation,
+        Scheduled {
+            delete_after: iso8601_timestamp::Timestamp,
+        },
+    }
+
     /// # Account Data
     pub struct DataCreateAccount {
         /// Valid email address

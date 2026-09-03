@@ -90,6 +90,8 @@ const POR_TIPO: Record<string, string> = {
   NotFound: "Isso não existe mais.",
   AlreadyOnboarded: "Esta conta já está pronta.",
   UsernameTaken: "Esse nome de usuário já está em uso.",
+  AccountOwnsServers:
+    "Transfira ou exclua os servidores que você administra antes de excluir sua conta.",
 
   /* --------------------------------------------- servidor de mídia (autumn) */
   /*

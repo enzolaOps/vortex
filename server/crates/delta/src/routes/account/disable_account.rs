@@ -1,7 +1,7 @@
 //! Disable an account.
 //! POST /account/disable
+use revolt_database::{Account, Database, ValidatedTicket};
 use revolt_result::Result;
-use revolt_database::{Database, Account, ValidatedTicket};
 use rocket::State;
 use rocket_empty::EmptyResponse;
 
@@ -21,7 +21,7 @@ pub async fn disable_account(
 #[cfg(test)]
 mod tests {
     use crate::{rocket, util::test::TestHarness};
-    use revolt_database::{MFATicket, events::client::EventV1};
+    use revolt_database::{events::client::EventV1, MFATicket};
     use revolt_result::ErrorType;
     use rocket::http::{Header, Status};
 
@@ -33,7 +33,8 @@ mod tests {
         let ticket = MFATicket::new(account.id.to_string(), true);
         ticket.save(&harness.db).await.unwrap();
 
-        let res = harness.client
+        let res = harness
+            .client
             .post("/auth/account/disable")
             .header(Header::new("X-Session-Token", session.token.clone()))
             .header(Header::new("X-MFA-Ticket", ticket.token))
@@ -43,7 +44,8 @@ mod tests {
         assert_eq!(res.status(), Status::NoContent);
         drop(res);
         assert!(
-            harness.db
+            harness
+                .db
                 .fetch_account(&account.id)
                 .await
                 .unwrap()
@@ -51,17 +53,23 @@ mod tests {
         );
 
         assert!(matches!(
-            harness.db
+            harness
+                .db
                 .fetch_session(&session.id)
                 .await
-                .unwrap_err().error_type,
+                .unwrap_err()
+                .error_type,
             ErrorType::UnknownUser
         ));
 
-        harness.wait_for_event(&format!("{}!", &account.id), |e| if let EventV1::DeleteAllSessions { user_id, .. } = e {
-            user_id == &account.id
-        } else {
-            false
-        }).await;
+        harness
+            .wait_for_event(&format!("{}!", &account.id), |e| {
+                if let EventV1::DeleteAllSessions { user_id, .. } = e {
+                    user_id == &account.id
+                } else {
+                    false
+                }
+            })
+            .await;
     }
 }

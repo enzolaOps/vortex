@@ -1,14 +1,8 @@
-You requested to have your account deleted, if you did not perform this action please take measures to secure your account immediately.
+Confirme a exclusão da sua conta Vortex
 
-Please navigate to: {{url}}
+Abrir este link não apaga nada. Na tela, você confirma a exclusão. Depois disso a conta fica desativada por 7 dias e ainda pode ser cancelada. Passado o prazo, mensagens, amizades e bots são apagados de forma permanente.
 
-This email is intended for {{email}}
-Sent by Stoat
-Made in Europe
+{{url}}
 
-Revolt Platforms Ltd. is a company incorporated and registered under the laws of England and Wales.
-
-Registration Number: 16260658
-Registered Office:
-Suite 5703 Unit 3A, 34-35 Hatton Garden,
-Holborn, United Kingdom, EC1N 8DX
+Este e-mail foi enviado para {{email}}.
+Se você não pediu para excluir a conta, ignore.

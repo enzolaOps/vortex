@@ -91,11 +91,12 @@ export function TelaDeRecuperarSenha({ motivo }: { motivo: string | undefined })
         <p className={css.instrucao}>
           {enviado ? (
             <>
-              Mandamos um link para <strong>{mascarar(email.trim())}</strong>.
-              Ele vale por pouco tempo — abra assim que chegar.
+              Se houver uma conta confirmada em{" "}
+              <strong>{mascarar(email.trim())}</strong>, o link já está a
+              caminho. Ele vale por pouco tempo.
             </>
           ) : (
-            "Informe o e-mail da conta. Mandamos um link para escolher a senha nova."
+            "Informe o e-mail da conta. Se houver uma conta confirmada com esse endereço, você receberá um link para redefinir a senha."
           )}
         </p>
 

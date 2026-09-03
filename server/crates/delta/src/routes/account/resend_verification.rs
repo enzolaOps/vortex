@@ -2,12 +2,18 @@
 //! POST /account/reverify
 use std::time::Duration;
 
-use tokio::time::sleep;
+use revolt_database::{
+    util::{
+        captcha::check_captcha,
+        email::{normalise_email, validate_email},
+    },
+    Database, EmailVerification,
+};
+use revolt_models::v0;
+use revolt_result::Result;
 use rocket::{serde::json::Json, State};
 use rocket_empty::EmptyResponse;
-use revolt_result::Result;
-use revolt_database::{Database, util::{email::{normalise_email, validate_email}, captcha::check_captcha}, EmailVerification};
-use revolt_models::v0;
+use tokio::time::sleep;
 
 /// # Resend Verification
 ///
@@ -21,7 +27,10 @@ pub async fn resend_verification(
     let data = data.into_inner();
 
     // Random jitter from 0-1000ms
-    sleep(Duration::from_millis((rand::random::<f32>() * 1000.) as u64)).await;
+    sleep(Duration::from_millis(
+        (rand::random::<f32>() * 1000.) as u64,
+    ))
+    .await;
 
     // Check Captcha token
     check_captcha(data.captcha.as_deref()).await?;
@@ -62,11 +71,11 @@ pub async fn resend_verification(
 
 #[cfg(test)]
 mod tests {
+    use crate::{rocket, util::test::TestHarness};
     use iso8601_timestamp::Timestamp;
     use revolt_database::{Account, EmailVerification};
-    use crate::{rocket, util::test::TestHarness};
-    use rocket::http::{ContentType, Status};
     use revolt_result::{Error, ErrorType};
+    use rocket::http::{ContentType, Status};
 
     #[rocket::async_test]
     async fn success() {
@@ -88,7 +97,8 @@ mod tests {
 
         account.save(&harness.db).await.unwrap();
 
-        let res = harness.client
+        let res = harness
+            .client
             .post("/auth/account/reverify")
             .header(ContentType::JSON)
             .body(
@@ -103,7 +113,8 @@ mod tests {
         assert_eq!(res.status(), Status::NoContent);
 
         let (_, code) = harness.assert_email("resend_verification@smtp.test").await;
-        let res = harness.client
+        let res = harness
+            .client
             .post(format!("/auth/account/verify/{code}"))
             .dispatch()
             .await;
@@ -115,7 +126,8 @@ mod tests {
     async fn success_unknown() {
         let harness = TestHarness::new().await;
 
-        let res = harness.client
+        let res = harness
+            .client
             .post("/auth/account/reverify")
             .header(ContentType::JSON)
             .body(
@@ -134,7 +146,8 @@ mod tests {
     async fn fail_bad_email() {
         let harness = TestHarness::new().await;
 
-        let res = harness.client
+        let res = harness
+            .client
             .post("/auth/account/reverify")
             .header(ContentType::JSON)
             .body(

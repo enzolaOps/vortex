@@ -100,6 +100,7 @@ impl IntoResponse for Error {
             ErrorType::FileTypeNotAllowed => StatusCode::BAD_REQUEST,
             ErrorType::ImageProcessingFailed => StatusCode::INTERNAL_SERVER_ERROR,
             ErrorType::NoEmbedData => StatusCode::BAD_REQUEST,
+            ErrorType::AccountOwnsServers => StatusCode::CONFLICT,
             ErrorType::RenderFail => StatusCode::INTERNAL_SERVER_ERROR,
             ErrorType::MissingHeaders => StatusCode::BAD_REQUEST,
             ErrorType::CaptchaFailed => StatusCode::BAD_REQUEST,

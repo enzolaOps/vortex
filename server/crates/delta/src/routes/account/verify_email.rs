@@ -1,23 +1,18 @@
 //! Verify an account
 //! POST /verify/<code>
-use rocket::{serde::json::Json, State};
-use revolt_database::{Database, EmailVerification, MFATicket, util::email::normalise_email};
-use revolt_result::Result;
+use revolt_database::{util::email::normalise_email, Database, EmailVerification, MFATicket};
 use revolt_models::v0;
+use revolt_result::Result;
+use rocket::{serde::json::Json, State};
 
 /// # Verify Email
 ///
 /// Verify an email address.
 #[openapi(tag = "Account")]
 #[post("/verify/<code>")]
-pub async fn verify_email(
-    db: &State<Database>,
-    code: String,
-) -> Result<Json<v0::ResponseVerify>> {
+pub async fn verify_email(db: &State<Database>, code: String) -> Result<Json<v0::ResponseVerify>> {
     // Find the account
-    let mut account = db
-        .fetch_account_with_email_verification(&code)
-        .await?;
+    let mut account = db.fetch_account_with_email_verification(&code).await?;
 
     // Update account email
     let response = if let EmailVerification::Moving { new_email, .. } = &account.verification {
@@ -28,7 +23,9 @@ pub async fn verify_email(
         let mut ticket = MFATicket::new(account.id.to_string(), false);
         ticket.authorised = true;
         ticket.save(db).await?;
-        v0::ResponseVerify::WithTicket { ticket: ticket.into() }
+        v0::ResponseVerify::WithTicket {
+            ticket: ticket.into(),
+        }
     };
 
     // Mark as verified
@@ -41,13 +38,13 @@ pub async fn verify_email(
 
 #[cfg(test)]
 mod tests {
-    use iso8601_timestamp::{Timestamp, Duration};
-    use revolt_database::EmailVerification;
     use crate::{rocket, util::test::TestHarness};
-    use rocket::http::{ContentType, Status};
+    use iso8601_timestamp::{Duration, Timestamp};
+    use revolt_database::EmailVerification;
     use revolt_models::v0;
     use revolt_result::{Error, ErrorType};
-    
+    use rocket::http::{ContentType, Status};
+
     #[rocket::async_test]
     async fn success() {
         let harness = TestHarness::new().await;
@@ -60,22 +57,30 @@ mod tests {
 
         account.save(&harness.db).await.unwrap();
 
-        let res = harness.client.post("/auth/account/verify/token").dispatch().await;
+        let res = harness
+            .client
+            .post("/auth/account/verify/token")
+            .dispatch()
+            .await;
 
         assert_eq!(res.status(), Status::Ok);
 
         // Make sure it was used and can't be used again
-        assert!(harness.db
+        assert!(harness
+            .db
             .fetch_account_with_email_verification("token")
             .await
             .is_err());
 
         // Check that we can login using the received MFA ticket
-        let response = res.into_json::<v0::ResponseVerify>().await
+        let response = res
+            .into_json::<v0::ResponseVerify>()
+            .await
             .expect("`ResponseVerify`");
 
         if let v0::ResponseVerify::WithTicket { ticket } = response {
-            let res = harness.client
+            let res = harness
+                .client
                 .post("/auth/session/login")
                 .header(ContentType::JSON)
                 .body(json!({ "mfa_ticket": ticket.token }).to_string())
@@ -93,7 +98,11 @@ mod tests {
     async fn fail_invalid_token() {
         let harness = TestHarness::new().await;
 
-        let res = harness.client.post("/auth/account/verify/token").dispatch().await;
+        let res = harness
+            .client
+            .post("/auth/account/verify/token")
+            .dispatch()
+            .await;
 
         assert_eq!(res.status(), Status::Unauthorized);
         assert!(matches!(

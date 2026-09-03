@@ -23,7 +23,7 @@ pub trait AbstractAccounts: Sync + Send {
     /// Find account with active password reset
     async fn fetch_account_with_password_reset(&self, token: &str) -> Result<Account>;
 
-    /// Find account with active deletion token
+    /// Find account with an active pending or scheduled deletion token
     async fn fetch_account_with_deletion_token(&self, token: &str) -> Result<Account>;
 
     /// Find accounts which are due to be deleted

@@ -57,16 +57,19 @@ impl AbstractAccounts for ReferenceDb {
 
     /// Find account with active deletion token
     async fn fetch_account_with_deletion_token(&self, token_to_match: &str) -> Result<Account> {
+        let now = Timestamp::now_utc();
         let accounts = self.accounts.lock().await;
         accounts
             .values()
-            .find(|account| {
-                if let Some(DeletionInfo::WaitingForVerification { token, .. }) = &account.deletion
-                {
-                    token == token_to_match
-                } else {
-                    false
+            .find(|account| match &account.deletion {
+                Some(DeletionInfo::WaitingForVerification { token, expiry }) => {
+                    token == token_to_match && expiry >= &now
                 }
+                Some(DeletionInfo::Scheduled {
+                    after,
+                    token: Some(token),
+                }) => token == token_to_match && after > &now,
+                _ => false,
             })
             .cloned()
             .ok_or_else(|| create_error!(InvalidToken))
@@ -80,7 +83,7 @@ impl AbstractAccounts for ReferenceDb {
         Ok(accounts
             .values()
             .filter(|account| {
-                if let Some(DeletionInfo::Scheduled { after }) = &account.deletion {
+                if let Some(DeletionInfo::Scheduled { after, .. }) = &account.deletion {
                     after <= &now
                 } else {
                     false

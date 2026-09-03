@@ -70,7 +70,8 @@ const CONVERSA = new RegExp(`^/dm/(${ID})$`);
  * é quem o emitiu.
  */
 const TOKEN = "[0-9A-Za-z_.~-]{1,256}";
-const VERIFICAR = new RegExp(`^/verificar/(${TOKEN})$`);
+const VERIFICAR = new RegExp(`^/(?:verificar|login/verify)/(${TOKEN})$`);
+const EXCLUIR = new RegExp(`^/delete/(${TOKEN})$`);
 
 /*
   ⚠ **DOIS caminhos para redefinir, e o segundo é o que o servidor manda.**
@@ -115,6 +116,8 @@ export function caminhoDaEntrada(tela: TelaDeEntrada): string {
       return `/verificar/${tela.token}`;
     case "redefinir":
       return `/redefinir/${tela.token}`;
+    case "excluir":
+      return `/delete/${tela.token}`;
     case "convite":
       return `/convite/${tela.codigo}`;
   }
@@ -130,6 +133,9 @@ export function interpretarEntrada(caminho: string): TelaDeEntrada | undefined {
 
   const r = REDEFINIR.exec(caminho);
   if (r) return { tipo: "redefinir", token: r[1]! };
+
+  const x = EXCLUIR.exec(caminho);
+  if (x) return { tipo: "excluir", token: x[1]! };
 
   const c = CONVITE.exec(caminho);
   if (c) return { tipo: "convite", codigo: c[1]! };

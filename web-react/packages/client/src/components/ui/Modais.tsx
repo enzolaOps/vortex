@@ -19,6 +19,7 @@ import {
 } from "../../store/modais";
 import { GerenciarGrupo } from "../../casa/GerenciarGrupo";
 import { NovoGrupo } from "../../casa/NovoGrupo";
+import { ModalDeExcluirConta } from "../../config/ModalDeExcluirConta";
 import { ModalDeApelido } from "../../membros/ModalDeApelido";
 import { PrivacidadeDoServidor } from "../../servidores/PrivacidadeDoServidor";
 import { EditorDePasta } from "../../servidores/EditorDePasta";
@@ -57,6 +58,7 @@ const REGISTRO: Record<ModalId, ComponentType<{ aoFechar: () => void }>> = {
   grupo: GerenciarGrupo,
   privacidadeDoServidor: PrivacidadeDoServidor,
   apelido: ModalDeApelido,
+  excluirConta: ModalDeExcluirConta,
 };
 
 /**

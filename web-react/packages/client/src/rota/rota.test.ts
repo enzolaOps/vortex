@@ -227,6 +227,7 @@ describe("caminhos de FORA — os que existem antes de haver sessão", () => {
       { tipo: "conferirEmail", email: undefined },
       { tipo: "verificar", token: "t1" },
       { tipo: "redefinir", token: "t2" },
+      { tipo: "excluir", token: "t3" },
     ] as const) {
       expect(interpretarEntrada(caminhoDaEntrada(tela))).toEqual(tela);
     }
@@ -291,5 +292,26 @@ describe("o link de e-mail do SERVIDOR", () => {
     expect(interpretarEntrada(`/redefinir/${t}`)).toEqual(
       expect.objectContaining({ tipo: "redefinir", token: t }),
     );
+  });
+
+  it("aceita `/login/verify/:token` antigo e `/verificar/:token`", () => {
+    const t = "verifyToken123456";
+    expect(interpretarEntrada(`/login/verify/${t}`)).toEqual({
+      tipo: "verificar",
+      token: t,
+    });
+    expect(interpretarEntrada(`/verificar/${t}`)).toEqual({
+      tipo: "verificar",
+      token: t,
+    });
+  });
+
+  it("o link de exclusão não confirma sozinho — só entrega o token", () => {
+    const t = "deleteToken1234567890";
+    expect(interpretarEntrada(`/delete/${t}`)).toEqual({
+      tipo: "excluir",
+      token: t,
+    });
+    expect(caminhoDaEntrada({ tipo: "excluir", token: t })).toBe(`/delete/${t}`);
   });
 });

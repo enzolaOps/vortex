@@ -75,10 +75,22 @@ impl AbstractAccounts for MongoDb {
             find_one,
             COL,
             doc! {
-                "deletion.token": token,
-                "deletion.expiry": {
-                    "$gte": to_bson(&Timestamp::now_utc()).unwrap()
-                }
+                "$or": [
+                    {
+                        "deletion.status": "WaitingForVerification",
+                        "deletion.token": token,
+                        "deletion.expiry": {
+                            "$gte": to_bson(&Timestamp::now_utc()).unwrap()
+                        }
+                    },
+                    {
+                        "deletion.status": "Scheduled",
+                        "deletion.token": token,
+                        "deletion.after": {
+                            "$gt": to_bson(&Timestamp::now_utc()).unwrap()
+                        }
+                    }
+                ]
             }
         )?
         .ok_or_else(|| create_error!(InvalidToken))

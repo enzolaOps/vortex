@@ -103,6 +103,7 @@ impl<'r> Responder<'r, 'static> for Error {
             ErrorType::NoEmbedData => Status::BadRequest,
             ErrorType::VosoUnavailable => Status::BadRequest,
 
+            ErrorType::AccountOwnsServers => Status::Conflict,
             ErrorType::RenderFail => Status::InternalServerError,
             ErrorType::MissingHeaders => Status::BadRequest,
             ErrorType::CaptchaFailed => Status::BadRequest,

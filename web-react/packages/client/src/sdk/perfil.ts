@@ -319,3 +319,50 @@ export async function derrubarOutros(senha: string): Promise<boolean> {
     return false;
   }
 }
+
+/** Administra algum servidor? A exclusão da conta apagaria esses servidores. */
+export function administraServidor(): boolean {
+  const eu = client.user?.id;
+  if (!eu) return false;
+  return client.servers.toList().some((s) => s.ownerId === eu);
+}
+
+export type FatorDaConta = "senha" | "recuperacao";
+
+/**
+ * Pede o e-mail de confirmação da exclusão.
+ *
+ * Não desloga. A conta só é desativada depois do clique no e-mail.
+ */
+export async function pedirExclusao(
+  fator: FatorDaConta,
+  valor: string,
+): Promise<boolean> {
+  try {
+    const mfa = await client.account.mfa();
+    const bilhete = (await mfa.createTicket(
+      fator === "recuperacao" ? { recovery_code: valor } : { password: valor },
+    )) as { deleteAccount?: () => Promise<unknown>; token?: string };
+
+    if (typeof bilhete.deleteAccount === "function") {
+      await bilhete.deleteAccount();
+    } else if (bilhete.token) {
+      await client.api.post(
+        "/auth/account/delete" as never,
+        {} as never,
+        { headers: { "x-mfa-ticket": bilhete.token } } as never,
+      );
+    } else {
+      throw new Error("sem ticket");
+    }
+
+    toast({
+      tipo: "info",
+      titulo: "Enviamos uma confirmação para seu e-mail.",
+    });
+    return true;
+  } catch (e) {
+    falhou("Não deu para pedir a exclusão.", e);
+    return false;
+  }
+}

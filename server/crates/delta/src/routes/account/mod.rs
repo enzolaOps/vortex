@@ -1,11 +1,12 @@
-use rocket::Route;
 use revolt_rocket_okapi::revolt_okapi::openapi3::OpenApi;
+use rocket::Route;
 
 pub mod change_email;
 pub mod change_password;
 pub mod confirm_deletion;
 pub mod create_account;
 pub mod delete_account;
+pub mod deletion_status;
 pub mod disable_account;
 pub mod fetch_account;
 pub mod password_reset;
@@ -18,6 +19,8 @@ pub fn routes() -> (Vec<Route>, OpenApi) {
         create_account::create_account,
         resend_verification::resend_verification,
         confirm_deletion::confirm_deletion,
+        deletion_status::deletion_status,
+        deletion_status::cancel_deletion,
         fetch_account::fetch_account,
         delete_account::delete_account,
         disable_account::disable_account,

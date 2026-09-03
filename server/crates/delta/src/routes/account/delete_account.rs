@@ -1,9 +1,9 @@
 //! Delete an account.
 //! POST /account/delete
+use revolt_database::{Account, Database, ValidatedTicket};
+use revolt_result::Result;
 use rocket::State;
 use rocket_empty::EmptyResponse;
-use revolt_result::Result;
-use revolt_database::{Database, Account, ValidatedTicket};
 /// # Delete Account
 ///
 /// Request to have an account deleted.
@@ -37,7 +37,8 @@ mod tests {
         let ticket = MFATicket::new(account.id.to_string(), true);
         ticket.save(&harness.db).await.unwrap();
 
-        let res = harness.client
+        let res = harness
+            .client
             .post("/auth/account/delete")
             .header(Header::new("X-Session-Token", session.token))
             .header(Header::new("X-MFA-Ticket", ticket.token))
@@ -47,7 +48,8 @@ mod tests {
         assert_eq!(res.status(), Status::NoContent);
 
         let (_, code) = harness.assert_email("delete_account@smtp.test").await;
-        let res = harness.client
+        let res = harness
+            .client
             .put("/auth/account/delete")
             .header(ContentType::JSON)
             .body(

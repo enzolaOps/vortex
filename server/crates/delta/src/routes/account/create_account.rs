@@ -2,7 +2,6 @@
 //! POST /account/create
 use std::time::Duration;
 
-use tokio::time::sleep;
 use revolt_config::config;
 use revolt_database::{
     util::{
@@ -18,6 +17,7 @@ use revolt_result::{create_error, Result};
 use rocket::serde::json::Json;
 use rocket::State;
 use rocket_empty::EmptyResponse;
+use tokio::time::sleep;
 
 /// # Create Account
 ///
@@ -32,7 +32,10 @@ pub async fn create_account(
     let data = data.into_inner();
 
     // Random jitter from 0-1000ms
-    sleep(Duration::from_millis((rand::random::<f32>() * 1000.) as u64)).await;
+    sleep(Duration::from_millis(
+        (rand::random::<f32>() * 1000.) as u64,
+    ))
+    .await;
 
     // Check Captcha token
     check_captcha(data.captcha.as_deref()).await?;

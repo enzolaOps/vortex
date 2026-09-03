@@ -22,7 +22,10 @@ pub async fn confirm_deletion(
     let mut account = db.fetch_account_with_deletion_token(&data.token).await?;
 
     // Schedule the account for deletion
-    account.schedule_deletion(db).await.map(|_| EmptyResponse)
+    account
+        .schedule_deletion(db, &data.token)
+        .await
+        .map(|_| EmptyResponse)
 }
 
 #[cfg(test)]

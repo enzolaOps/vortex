@@ -33,6 +33,7 @@ export type TelaDeEntrada =
   | { readonly tipo: "conferirEmail"; readonly email: string | undefined }
   | { readonly tipo: "verificar"; readonly token: string }
   | { readonly tipo: "redefinir"; readonly token: string }
+  | { readonly tipo: "excluir"; readonly token: string }
   /**
    * Um convite aberto por link, ANTES de haver sessão.
    *
@@ -65,8 +66,12 @@ export function definirEntrada(nova: TelaDeEntrada): void {
   if (tela.tipo === nova.tipo && tela.tipo !== "conferirEmail") {
     // Mesmo tipo com token diferente ainda é troca; só as telas sem carga é
     // que podem ser ignoradas.
+    const comToken =
+      tela.tipo === "verificar" ||
+      tela.tipo === "redefinir" ||
+      tela.tipo === "excluir";
     if (
-      (tela.tipo !== "verificar" && tela.tipo !== "redefinir") ||
+      !comToken ||
       (tela as { token: string }).token === (nova as { token: string }).token
     ) {
       return;

@@ -10,6 +10,7 @@ import { TelaDeConvite } from "./TelaDeConvite";
 import { TelaDeCriarConta } from "./TelaDeCriarConta";
 import { TelaDeLogin } from "./TelaDeLogin";
 import { TelaDeRecuperarSenha } from "./TelaDeRecuperarSenha";
+import { TelaDeExcluirConta } from "./TelaDeExcluirConta";
 import { TelaDeRedefinirSenha } from "./TelaDeRedefinirSenha";
 import { TelaDeVerificarEmail } from "./TelaDeVerificarEmail";
 
@@ -59,6 +60,12 @@ export function Autenticacao({
     redefinir: () => (
       <TelaDeRedefinirSenha
         token={tela.tipo === "redefinir" ? tela.token : ""}
+        motivo={motivo}
+      />
+    ),
+    excluir: () => (
+      <TelaDeExcluirConta
+        token={tela.tipo === "excluir" ? tela.token : ""}
         motivo={motivo}
       />
     ),

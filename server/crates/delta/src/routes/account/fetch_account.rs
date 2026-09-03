@@ -1,9 +1,9 @@
 //! Fetch your account
 //! GET /account
 use revolt_database::Account;
-use rocket::serde::json::Json;
 use revolt_models::v0;
 use revolt_result::Result;
+use rocket::serde::json::Json;
 
 /// # Fetch Account
 ///
@@ -25,7 +25,8 @@ mod tests {
         let harness = TestHarness::new().await;
         let (account, session, _) = harness.new_user().await;
 
-        let res = harness.client
+        let res = harness
+            .client
             .get("/auth/account")
             .header(Header::new("X-Session-Token", session.token))
             .dispatch()
