@@ -12,8 +12,8 @@ RUN apt-get update && \
 FROM gcr.io/distroless/cc-debian13:nonroot
 COPY --from=builder /home/rust/src/target/release/revolt-january ./
 COPY --from=debian /runtime-libs/ /
-COPY --from=mwader/static-ffmpeg:7.1.1 /ffmpeg /usr/local/bin/
-COPY --from=mwader/static-ffmpeg:7.1.1 /ffprobe /usr/local/bin/
+COPY --from=mwader/static-ffmpeg:9.0.1 /ffmpeg /usr/local/bin/
+COPY --from=mwader/static-ffmpeg:9.0.1 /ffprobe /usr/local/bin/
 COPY --from=debian /usr/bin/uname /usr/bin/uname
 
 EXPOSE 14705
