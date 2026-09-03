@@ -73,7 +73,7 @@ isahc = "1.7"
 
 # Notifications
 fcm_v1 = "0.3.0"
-web-push = "0.10.0"
+web-push = "0.11.0"
 revolt_a2 = "0.10"
 
 # Parsing
