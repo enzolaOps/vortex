@@ -144,8 +144,8 @@ importers:
         specifier: ^0.14.15
         version: 0.14.15
       '@material-symbols/svg-400':
-        specifier: ^0.35.1
-        version: 0.35.1
+        specifier: ^0.47.0
+        version: 0.47.0
       '@material/material-color-utilities':
         specifier: ^0.3.0
         version: 0.3.0
@@ -2744,8 +2744,8 @@ packages:
   '@material-design-icons/svg@0.14.15':
     resolution: {integrity: sha512-6nbjwGwyJnphwQUscJAYqw1Tk6+W8KvsgOAeyVgzIFXVsHfgX5XyplTUcZ29wbcTUysMMyCUi1LYpmFKA/e61g==}
 
-  '@material-symbols/svg-400@0.35.1':
-    resolution: {integrity: sha512-QPZ8u678SSUm5f3wDIsT4x95SrW9CLRAHBwcavgEPyYWUmhLP/YYp9UsVUZfDbudzBc148L/zp7zoWo7nx9qxw==}
+  '@material-symbols/svg-400@0.47.0':
+    resolution: {integrity: sha512-M3vW/MQCkr7NlN+1D9LDwRiKJeUjXbUB/O3gqPExNFAz1Vk/IFr0Ajlhr/lXVti46yhWknooVKAYMQj4o1VE3w==}
 
   '@material/material-color-utilities@0.3.0':
     resolution: {integrity: sha512-ztmtTd6xwnuh2/xu+Vb01btgV8SQWYCaK56CkRK8gEkWe5TuDyBcYJ0wgkMRn+2VcE9KUmhvkz+N9GHrqw/C0g==}
@@ -6911,10 +6911,6 @@ packages:
     resolution: {integrity: sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==}
     engines: {node: '>=0.10.0'}
 
-  source-map@0.8.0:
-    resolution: {integrity: sha512-d8EqvL+k/SOXCreS/SUzg2ciyHqBBLcN/yuRjFsbvVhHTE2pgei7oAhmPM7kWFbkX6OSMQfUq4KbkF3au9lhYQ==}
-    engines: {node: '>= 12'}
-
   source-map@0.8.0-beta.0:
     resolution: {integrity: sha512-2ymg6oRBpebeZi9UUNsgQ89bhx01TcTkmNTGnNO88imTmbSgy4nfujrgVEFKWpMTEGA11EDkTt7mqObTPdigIA==}
     engines: {node: '>= 8'}
@@ -9756,7 +9752,7 @@ snapshots:
 
   '@material-design-icons/svg@0.14.15': {}
 
-  '@material-symbols/svg-400@0.35.1': {}
+  '@material-symbols/svg-400@0.47.0': {}
 
   '@material/material-color-utilities@0.3.0': {}
 
@@ -14816,8 +14812,6 @@ snapshots:
 
   source-map@0.6.1: {}
 
-  source-map@0.8.0: {}
-
   source-map@0.8.0-beta.0:
     dependencies:
       whatwg-url: 7.1.0
@@ -15601,7 +15595,7 @@ snapshots:
       lodash: 4.18.1
       pretty-bytes: 5.6.0
       rollup: 2.80.0
-      source-map: 0.8.0
+      source-map: 0.8.0-beta.0
       stringify-object: 3.3.0
       strip-comments: 2.0.1
       tempy: 0.6.0
