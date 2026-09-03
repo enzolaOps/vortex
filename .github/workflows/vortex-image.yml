@@ -47,7 +47,7 @@ jobs:
       # recursive checkout no longer reaches a host we cannot authenticate to.
       # The remaining submodules are public.
       - name: Checkout with submodules
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -88,7 +88,7 @@ jobs:
 
       - name: Build and push
         id: push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./web
           # amd64 costs almost nothing here (the builder stage is shared) and

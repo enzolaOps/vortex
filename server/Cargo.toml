@@ -42,9 +42,9 @@ validator = "0.16"
 # Data Types
 uuid = "1.19.0"
 ulid = "1.2.1"
-nanoid = "0.4.0"
+nanoid = "0.5.0"
 typenum = "1.17.0"
-num_enum = "0.6.1"
+num_enum = "0.7.0"
 bitfield = "0.13.2"
 
 # Time
@@ -120,7 +120,7 @@ rocket_empty = "0.1.1"
 revolt_rocket_okapi = "0.10.0"
 rocket_cors = { git = "https://github.com/lawliet89/rocket_cors", rev = "072d90359b23e9b291df6b672c07c93de9c46011" }
 rocket_authifier = "1.0.16"
-rocket_prometheus = "0.10.0-rc.3"
+rocket_prometheus = "0.11.0"
 
 # Spec Generation
 utoipa = "4.2.3"
@@ -130,7 +130,7 @@ utoipa-scalar = "0.3.0"
 
 # Image Processing
 jxl-oxide = "0.12.5"
-sha2 = "0.10.8"
+sha2 = "0.11.0"
 kamadak-exif = "0.5.4"
 webp = "0.3.0"
 image = "0.25.2"
@@ -161,7 +161,7 @@ lapin = "4.7.1"
 
 # Voice
 livekit-api = "=0.4.23"
-livekit-protocol = "=0.7.7"
+livekit-protocol = "=0.7.12"
 livekit-runtime = "0.4.0"
 
 # Other Utilities
@@ -171,7 +171,7 @@ cached = "0.44.0"
 rand = "0.8.5"
 base64 = "0.21.3"
 decancer = "3.3.3"
-linkify = "0.8.1"
+linkify = "0.11.0"
 url-escape = "0.1.1"
 revolt_optional_struct = "0.2.0"
 unicode-segmentation = "1.10.1"

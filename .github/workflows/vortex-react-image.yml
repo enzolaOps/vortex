@@ -40,7 +40,7 @@ jobs:
 
     steps:
       - name: Checkout with submodules
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -81,7 +81,7 @@ jobs:
 
       - name: Build and push
         id: push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           # ⚠ **Contexto na RAIZ, e não em `./web-react`.** O `vite.config.ts`
           # tem um plugin que lê `brand/mark.svg` da raiz e o emite no bundle;
