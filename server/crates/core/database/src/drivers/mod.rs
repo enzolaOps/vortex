@@ -47,7 +47,7 @@ impl DatabaseInfo {
                 if std::env::var("TEST_DB").is_ok() {
                     DatabaseInfo::Test(format!(
                         "revolt_test_{}",
-                        rand::thread_rng().gen_range(1_000_000..10_000_000)
+                        rand::rng().random_range(1_000_000..10_000_000)
                     ))
                     .connect()
                     .await

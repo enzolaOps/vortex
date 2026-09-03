@@ -1,4 +1,5 @@
 #!/bin/sh
+set -eu
 # If you're having trouble building this locally or on your CI, try lowering
 # the job count via CARGO_BUILD_JOBS. It defaults to 10.
 #

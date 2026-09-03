@@ -34,8 +34,8 @@ pub async fn create_session(user_id: &str, flags: u8) -> (bool, u32) {
 
         // A session ID is comprised of random data and any flags ORed to the end
         let session_id = {
-            let mut rng = rand::thread_rng();
-            (rng.gen::<u32>() & !FLAG_BITS) | (flags as u32 & FLAG_BITS)
+            let mut rng = rand::rng();
+            (rng.random::<u32>() & !FLAG_BITS) | (flags as u32 & FLAG_BITS)
         };
 
         // Add session to user's sessions and to the region
@@ -205,8 +205,8 @@ mod tests {
         clear_region(None).await;
 
         // Generate some data we'll use:
-        let user_id = rand::thread_rng().gen::<u32>().to_string();
-        let other_id = rand::thread_rng().gen::<u32>().to_string();
+        let user_id = rand::rng().random::<u32>().to_string();
+        let other_id = rand::rng().random::<u32>().to_string();
         let flags = 1;
 
         // Create a session

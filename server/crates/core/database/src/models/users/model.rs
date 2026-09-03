@@ -426,7 +426,7 @@ impl User {
             }
         }
 
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         Ok(available_discriminators
             .choose(&mut rng)
             .expect("we can assert this has an element")

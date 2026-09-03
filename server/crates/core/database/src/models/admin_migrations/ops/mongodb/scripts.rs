@@ -868,14 +868,14 @@ pub async fn run_migrations(db: &MongoDb, revision: i32) -> i32 {
         for i in 0..users.len() {
             let info = &users[i];
             let mut discriminator = {
-                let mut rng = rand::thread_rng();
+                let mut rng = rand::rng();
                 search_space.choose(&mut rng).unwrap()
             };
 
             if re_username.is_match(&info.username) {
                 while claimed.contains(&format!("{}#{}", info.username, discriminator)) {
                     let new_discriminator = {
-                        let mut rng = rand::thread_rng();
+                        let mut rng = rand::rng();
                         search_space.choose(&mut rng).unwrap()
                     };
 
@@ -923,7 +923,7 @@ pub async fn run_migrations(db: &MongoDb, revision: i32) -> i32 {
 
                 while claimed.contains(&format!("{}#{}", sanitised, discriminator)) {
                     let new_discriminator = {
-                        let mut rng = rand::thread_rng();
+                        let mut rng = rand::rng();
                         search_space.choose(&mut rng).unwrap()
                     };
 
