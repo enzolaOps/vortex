@@ -7591,7 +7591,7 @@ dependencies = [
  "mongodb",
  "nanoid",
  "once_cell",
- "rand 0.10.1",
+ "rand 0.10.2",
  "redis-kiss",
  "regex",
  "reqwest 0.13.4",
@@ -7641,7 +7641,7 @@ dependencies = [
  "nanoid",
  "num_enum",
  "once_cell",
- "rand 0.10.1",
+ "rand 0.10.2",
  "redis-kiss",
  "regex",
  "reqwest 0.13.4",
@@ -7796,7 +7796,7 @@ version = "0.15.3"
 dependencies = [
  "log",
  "once_cell",
- "rand 0.10.1",
+ "rand 0.10.2",
  "redis-kiss",
  "revolt-config",
  "tokio",
@@ -10495,7 +10495,7 @@ version = "5.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8bde15df68e80b16c7d16b9616e80770ad158988daa56a27dccd1e55558b0160"
 dependencies = [
- "indexmap 2.14.0",
+ "indexmap 2.14.1",
  "serde",
  "serde_json",
  "utoipa-gen 5.5.0",
