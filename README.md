@@ -21,3 +21,7 @@ obligations, and the configuration contract the deployment depends on.
 Run commands from inside the product directory; each has its own manifest.
 
 Deployment lives in `pi-infra`, not here.
+
+Publish a GitHub Release tagged `vX.Y.Z` to build whatever changed since the
+previous tag. Notes are generated from conventional commit subjects. Leave the
+release body empty.

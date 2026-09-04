@@ -26,21 +26,13 @@
 #
 # Os outros serviços seguem pinados no upstream. O runtime contém somente os
 # dois binários compilados por CARGO_PACKAGES; o compose escolhe qual executar.
+# Publica a imagem runtime quando uma GitHub Release `v*` cobre `server/`
+# desde a tag anterior. `workflow_dispatch` força o build.
 name: Vortex server image
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "server/crates/**"
-      - "server/Cargo.toml"
-      - "server/Cargo.lock"
-      - "server/scripts/build-image-layer.sh"
-      - "server/Dockerfile"
-      - "server/Dockerfile.runtime"
-      - "server/.dockerignore"
-      - ".github/workflows/vortex-server-image.yml"
+  release:
+    types: [published]
   workflow_dispatch:
 
 concurrency:
@@ -51,6 +43,36 @@ env:
   BASE: vortex-server-base
 
 jobs:
+  detect:
+    name: Detect
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      changed: ${{ steps.d.outputs.changed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: git fetch --tags --force
+      - id: d
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if scripts/ci/changed.sh server; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Release notes
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/ci/release-notes.sh
+
   # ---------------------------------------------------------------- a base
   #
   # Um job por arquitetura. Cada um empurra a imagem POR DIGEST, sem tag: uma
@@ -59,7 +81,8 @@ jobs:
   # `publicar` junta os digests num manifesto multi-arch.
   base:
     name: Base (${{ matrix.arch }})
-    if: github.ref == 'refs/heads/main'
+    needs: detect
+    if: needs.detect.outputs.changed == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions:
@@ -174,7 +197,8 @@ jobs:
   publicar:
     name: Manifest and runtime
     runs-on: ubuntu-latest
-    needs: base
+    needs: [detect, base]
+    if: needs.detect.outputs.changed == 'true'
     timeout-minutes: 40
     permissions:
       contents: read
@@ -207,6 +231,22 @@ jobs:
         id: dono
         run: echo "nome=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
 
+      - name: Image tags
+        id: tags
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          tags="ghcr.io/${owner}/vortex-server:latest
+ghcr.io/${owner}/vortex-server:${GITHUB_SHA}"
+          if [ "${{ github.event_name }}" = "release" ]; then
+            tags="$tags
+ghcr.io/${owner}/vortex-server:${GITHUB_REF_NAME}"
+          fi
+          {
+            echo "list<<EOF"
+            printf '%s\n' "$tags"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       # ⚠ Conferido ANTES de juntar: com um dos jobs falhando e `fail-fast`
       # desligado, o manifesto sairia com uma arquitetura só — e um `docker
       # pull` no Pi então acusaria "no matching manifest", longe daqui e sem
@@ -236,10 +276,7 @@ jobs:
           provenance: false
           build-args: |
             BASE_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/${{ env.BASE }}:${{ github.sha }}
-          tags: |
-            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server:latest
-            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server:main
-            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server:${{ github.sha }}
+          tags: ${{ steps.tags.outputs.list }}
           labels: |
             org.opencontainers.image.title=Vortex server
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}

@@ -1,25 +1,11 @@
-# Constrói o cliente Vortex e publica no GHCR. O cliente Solid em
-# `vendor/stoat-web/` é somente referência e nunca é publicado por este repo.
-#
-# O repositório é privado, então os runners arm64 nativos e gratuitos não estão
-# disponíveis. A imagem é construída em runner amd64: o Dockerfile pina o
-# estágio de build em $BUILDPLATFORM, então `pnpm install` e `vite build` rodam
-# nativos e só o estágio de runtime — uma dependência de JavaScript puro — é
-# emulado.
-#
-# O digest a pinar sai no resumo do job.
+# Constrói o cliente Vortex e publica no GHCR quando uma GitHub Release
+# `v*` cobre mudanças em `client/` ou `brand/` desde a tag anterior.
+# `workflow_dispatch` força o build. `vendor/` nunca entra.
 name: Vortex client image
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "client/**"
-      - "!client/**/*.md"
-      - "brand/**"
-      - ".dockerignore"
-      - ".github/workflows/vortex-client-image.yml"
+  release:
+    types: [published]
   workflow_dispatch:
 
 concurrency:
@@ -27,9 +13,40 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  detect:
+    name: Detect
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      changed: ${{ steps.d.outputs.changed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: git fetch --tags --force
+      - id: d
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if scripts/ci/changed.sh client; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Release notes
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/ci/release-notes.sh
+
   build:
     name: Build and push
-    if: github.ref == 'refs/heads/main'
+    needs: detect
+    if: needs.detect.outputs.changed == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -51,9 +68,20 @@ jobs:
             exit 1
           fi
 
-      - name: Lowercase the image name
+      - name: Image name and tags
         id: image
-        run: echo "name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/vortex-client" >> "$GITHUB_OUTPUT"
+        run: |
+          name="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/vortex-client"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          {
+            echo "tags<<EOF"
+            echo "$name:latest"
+            echo "$name:$GITHUB_SHA"
+            if [ "${{ github.event_name }}" = "release" ]; then
+              echo "$name:$GITHUB_REF_NAME"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       # Só o estágio de runtime arm64 precisa de emulação.
       - name: Set up QEMU
@@ -90,10 +118,7 @@ jobs:
           platforms: linux/arm64,linux/amd64
           push: true
           provenance: false
-          tags: |
-            ${{ steps.image.outputs.name }}:latest
-            ${{ steps.image.outputs.name }}:main
-            ${{ steps.image.outputs.name }}:${{ github.sha }}
+          tags: ${{ steps.image.outputs.tags }}
           labels: |
             org.opencontainers.image.title=Vortex client
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}

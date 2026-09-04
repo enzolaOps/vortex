@@ -22,14 +22,16 @@ vortex/
 ├── server/     Cargo workspace · ships one delta + bonfire runtime image
 ├── brand/      mark.svg + the generator used by the clients
 ├── vendor/     Stoat web and desktop reference source; not product builds
-├── .github/    client and server image workflows
+├── .github/    release-triggered image workflows
 ├── CLAUDE.md   architecture briefing — read before touching the front-end
 └── VORTEX.md
 ```
 
 Each product directory is an island: its own lockfile, toolchain and build.
-The client consumes `brand/`. Root workflows publish the client and server
-images; deployment configuration remains in `pi-infra`.
+The client consumes `brand/`. A GitHub Release tagged `vX.Y.Z` publishes only
+the images that changed since the previous tag; notes come from conventional
+commit subjects. Deployment stays in `pi-infra`. Push to `main` does not
+publish.
 
 `server/` preserves the history imported from `enzolaOps/vortex-api`. Its Vortex
 changes are limited to a cross-architecture runtime containing `delta` (API)
@@ -99,8 +101,8 @@ Kept deliberately small, so merging upstream stays cheap.
 | `brand/` | Source artwork plus the two scripts below. New directory. |
 | `vendor/stoat-web/` | Historical Solid implementation retained as reference only. |
 | `.gitmodules` | Tracks the client SDK and the public vendor gitlinks. |
-| `.github/workflows/vortex-client-image.yml` | Cross-builds the Vortex client image and pushes it to GHCR. |
-| `.github/workflows/vortex-server-image.yml` | Cross-builds one delta + bonfire runtime image and pushes it to GHCR. |
+| `.github/workflows/vortex-client-image.yml` | Client image, on GitHub Release if `client/` changed. |
+| `.github/workflows/vortex-server-image.yml` | Server runtime image, on GitHub Release if `server/` changed. |
 | `.github/workflows/` | Every other upstream workflow deleted — see below. |
 | `server/` | Backend source plus the Docker changes needed to publish one delta + bonfire runtime for amd64 and arm64. |
 | `client/Dockerfile` | Builder stage pinned to `$BUILDPLATFORM` so it is not emulated. |
@@ -213,9 +215,9 @@ and drop the QEMU step for a fully native build.
 
 ## Why the upstream workflows are gone
 
-All upstream workflows were deleted; only product client/server workflows and
-a manual desktop reference build remain. The removed files are upstream release
-plumbing, and in this repository they were actively harmful:
+All upstream workflows were deleted. Product client and server images publish
+from a `v*` GitHub Release, not from every push to `main`. A manual desktop
+reference build remains. The removed upstream files were harmful:
 
 - `renovate.yml` runs on a `0/15 * * * *` cron. Schedules are disabled in real
   forks, but this repository is standalone, so it would have fired roughly 2,900
