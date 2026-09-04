@@ -25,6 +25,7 @@ import {
   type SlotConfig,
   type SlotId,
 } from "../preset/schema";
+import { avisarSync } from "./sync";
 
 type Ouvinte = () => void;
 
@@ -61,6 +62,7 @@ let bruto: Record<string, unknown> = inicial.bruto;
 
 function emitir() {
   persistir();
+  avisarSync("vortex:preset", escreverPreset(preset, bruto));
   for (const ouvinte of ouvintes) ouvinte();
 }
 
@@ -247,6 +249,7 @@ export function resetar(): void {
   } catch {
     /* mesma regra da escrita */
   }
+  avisarSync("vortex:preset", escreverPreset(PRESET_PADRAO, {}));
   for (const ouvinte of ouvintes) ouvinte();
 }
 

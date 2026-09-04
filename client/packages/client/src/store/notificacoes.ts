@@ -117,6 +117,8 @@ const PADRAO_DA_MATRIZ: ReadonlySet<string> = new Set(
   ),
 );
 
+import { avisarSync } from "./sync";
+
 const CHAVE = "vortex:notificacoes";
 const HORA = /^\d{2}:\d{2}$/;
 
@@ -191,16 +193,18 @@ export function lerNotificacoes(): Preferencias {
   return prefs;
 }
 
+function serializar(): string {
+  return JSON.stringify({ ...prefs, matriz: [...prefs.matriz] });
+}
+
 export function definirNotificacoes(mudanca: Partial<Preferencias>): void {
   prefs = { ...prefs, ...mudanca };
   try {
-    localStorage.setItem(
-      CHAVE,
-      JSON.stringify({ ...prefs, matriz: [...prefs.matriz] }),
-    );
+    localStorage.setItem(CHAVE, serializar());
   } catch {
     /* vale nesta aba */
   }
+  avisarSync("vortex:notificacoes", serializar());
   for (const o of ouvintes) o();
 }
 

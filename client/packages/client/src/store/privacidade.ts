@@ -48,6 +48,8 @@ export type Privacidade = {
   readonly telemetria: boolean;
 };
 
+import { avisarSync } from "./sync";
+
 const CHAVE = "vortex:privacidade";
 
 const PADRAO: Privacidade = {
@@ -100,5 +102,6 @@ export function definirPrivacidade(mudanca: Partial<Privacidade>): void {
   } catch {
     /* vale nesta aba */
   }
+  avisarSync("vortex:privacidade", JSON.stringify(prefs));
   for (const o of ouvintes) o();
 }

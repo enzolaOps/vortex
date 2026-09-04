@@ -80,6 +80,8 @@ export type PreferenciasDeVoz = {
   readonly espelhar: boolean;
 };
 
+import { avisarSync } from "./sync";
+
 const CHAVE = "vortex:voz";
 
 const PADRAO: PreferenciasDeVoz = {
@@ -178,6 +180,7 @@ export function definirPreferenciasDeVoz(
   } catch {
     /* vale nesta aba */
   }
+  avisarSync("vortex:voz", JSON.stringify(prefs));
   for (const o of ouvintes) o();
 }
 

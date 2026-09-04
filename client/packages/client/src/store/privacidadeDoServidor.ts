@@ -57,6 +57,8 @@ export const PADRAO: PrivacidadeDoServidor = {
   permitirAmizade: true,
 };
 
+import { avisarSync } from "./sync";
+
 const CHAVE = "vortex:privacidadeDoServidor";
 
 function entrada(v: unknown): PrivacidadeDoServidor | undefined {
@@ -81,13 +83,11 @@ function entrada(v: unknown): PrivacidadeDoServidor | undefined {
   };
 }
 
-function carregar(): {
+function carregarDe(cru: string): {
   padrao: PrivacidadeDoServidor;
   porServidor: Map<string, PrivacidadeDoServidor>;
 } {
   try {
-    const cru = localStorage.getItem(CHAVE);
-    if (!cru) return { padrao: PADRAO, porServidor: new Map() };
     const o: unknown = JSON.parse(cru);
     if (typeof o !== "object" || o === null) {
       return { padrao: PADRAO, porServidor: new Map() };
@@ -109,6 +109,19 @@ function carregar(): {
   }
 }
 
+function carregar(): {
+  padrao: PrivacidadeDoServidor;
+  porServidor: Map<string, PrivacidadeDoServidor>;
+} {
+  try {
+    const cru = localStorage.getItem(CHAVE);
+    if (!cru) return { padrao: PADRAO, porServidor: new Map() };
+    return carregarDe(cru);
+  } catch {
+    return { padrao: PADRAO, porServidor: new Map() };
+  }
+}
+
 const inicial = carregar();
 const porServidor = inicial.porServidor;
 
@@ -118,18 +131,24 @@ const porServidor = inicial.porServidor;
 */
 let padrao: PrivacidadeDoServidor = inicial.padrao;
 
+export function exportarPrivacidadeDoServidor(): string {
+  return JSON.stringify({
+    padrao,
+    porServidor: Object.fromEntries(porServidor),
+  });
+}
+
+function serializar(): string {
+  return exportarPrivacidadeDoServidor();
+}
+
 function persistir(): void {
   try {
-    localStorage.setItem(
-      CHAVE,
-      JSON.stringify({
-        padrao,
-        porServidor: Object.fromEntries(porServidor),
-      }),
-    );
+    localStorage.setItem(CHAVE, serializar());
   } catch {
     /* vale nesta aba */
   }
+  avisarSync("vortex:privacidadeDoServidor", serializar());
 }
 
 const ouvintes = new Set<() => void>();
@@ -186,6 +205,16 @@ export function aplicarATodos(serverId: string): number {
   persistir();
   for (const o of ouvintes) o();
   return quantos;
+}
+
+/** Troca o mapa inteiro — hidratação vinda do servidor. */
+export function hidratarPrivacidadeDoServidor(cru: string): void {
+  const lido = carregarDe(cru);
+  porServidor.clear();
+  for (const [id, valor] of lido.porServidor) porServidor.set(id, valor);
+  padrao = lido.padrao;
+  persistir();
+  for (const o of ouvintes) o();
 }
 
 /** Estado limpo entre testes. O módulo é global e sobrevive. */

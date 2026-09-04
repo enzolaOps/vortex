@@ -82,6 +82,7 @@ import {
 } from "./domain";
 import { calcularLayout, type Layout } from "./agrupamento";
 import { criarNotificadorDeDigitacao } from "./digitando";
+import { instalarSync, puxarConfiguracoes } from "./sincronizar";
 import {
   ehCanalDeVoz,
   toChannelSnapshot,
@@ -1089,6 +1090,8 @@ export function startAdapter() {
   client.on("serverRoleDelete", repensarPermissoes);
   client.on("serverMemberUpdate", repensarPermissoes);
 
+  instalarSync();
+
   client.on("ready", () => {
     /*
       O histórico que ficou esperando o socket.
@@ -1183,6 +1186,8 @@ export function startAdapter() {
       reemitirServidor(serverId);
       reemitirTotais();
     }
+
+    void puxarConfiguracoes();
   });
 
   client.on("messageCreate", (message) => {

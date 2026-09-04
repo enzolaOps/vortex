@@ -7,7 +7,7 @@
  * todo cliente de chat já tentou — a que aperta o espaçamento e continua
  * gastando 40px de calha para não mostrar nada.
  *
- * **Preferência LOCAL, como `colapso.ts` e `silencio.ts`.** Não vai no preset:
+ * **Preferência de leitura, não vai no preset.** Sincroniza via UserSettings.
  * o preset carrega a SEMENTE de tema e a posição dos slots, e densidade é
  * escolha de leitura de quem está lendo — quem recebe um preset compartilhado
  * não quer herdar a acuidade visual de outra pessoa.
@@ -19,6 +19,8 @@
  * dentro do store — e, pior, faria trocar de densidade republicar dez mil
  * snapshots em vez de re-renderizar as ~50 linhas visíveis.
  */
+
+import { avisarSync } from "./sync";
 
 const CHAVE = "vortex:densidade";
 
@@ -63,6 +65,7 @@ export function definirDensidade(nova: Densidade): void {
     // aba e o que se perde é a memória entre aberturas. Mesma decisão de
     // `pastas.ts`.
   }
+  avisarSync("vortex:densidade", nova);
   for (const ouvinte of ouvintes) ouvinte();
 }
 
