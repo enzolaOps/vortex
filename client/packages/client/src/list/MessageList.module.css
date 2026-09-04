@@ -139,6 +139,21 @@
   position: absolute;
   inset-inline: 0;
   inset-block-start: 0;
+
+  /*
+    O `gap: 2px` que o design põe no container da lista.
+
+    ⚠ **Ele não pode morar num container, porque não existe um:** o
+    virtualizador posiciona cada linha em `absolute` sobre uma caixa de altura
+    total, e `gap` só age sobre filhos em fluxo. Escrito aqui, no ENVELOPE que
+    o virtualizador mede, ele entra na altura da linha exatamente como um
+    `gap` entraria — e é o `measureElement` deste elemento que o reporta.
+
+    Fora do `article` de propósito: o `article` é a caixa que o hover pinta, e
+    um `gap` não é dela. Somá-lo ao `padding-bottom` daria 8px de realce
+    embaixo do texto contra 6 em cima, que é a assimetria que acabou de sair.
+  */
+  padding-block-end: var(--vx-space-02);
 }
 
 /*

@@ -152,7 +152,13 @@
   gap: var(--vx-space-08);
   /* Acompanha o `px-20` da linha — ver a nota em `Composer.module.css`. */
   padding-inline: var(--vx-space-20);
-  padding-block-start: var(--vx-space-16);
+  /*
+    `margin: 14px 0 10px` no design. Faltava a metade de baixo: com 16/0 a
+    régua vermelha grudava na primeira mensagem não lida, e o divisor que
+    responde "onde eu parei" empurrava o olho para o lugar errado — ele
+    separa o LIDO do NÃO LIDO, então precisa de ar dos dois lados.
+  */
+  padding-block: var(--vx-space-14) var(--vx-space-10);
 }
 
 /*
@@ -265,8 +271,23 @@
     var(--vx-space-20) + var(--vx-avatar-sm) + var(--vx-space-12)
   );
   padding-inline-end: var(--vx-space-20);
-  /* Muito acima, pouco abaixo: o rótulo pertence ao dia que ABRE. */
-  padding-block: var(--vx-space-32) var(--vx-space-04);
+  /*
+    ⚠ **Estava INVERTIDO e quatro vezes maior que o design: 32 acima e 4
+    abaixo, contra os `margin: 8px 0 16px` do mockup.**
+
+    O raciocínio que a linha anterior carregava — "o rótulo pertence ao dia
+    que ABRE, logo muito acima e pouco abaixo" — soa certo e produz o
+    contrário: com 32px acima, o buraco cai DEPOIS da última mensagem do dia
+    anterior, e é dela que ele parece ser. Foi assim que quem usa relatou, num
+    canal com sete mensagens em três dias: "os espaçamentos estão tão grandes
+    entre as mensagens".
+
+    O design resolve pela outra ponta. Pouco acima, muito abaixo: o rótulo
+    encosta no bloco que termina e ABRE espaço para o que começa — que é o que
+    a intenção dizia querer. São 24px de sobra por divisor, e num canal calmo
+    o divisor é o que mais aparece.
+  */
+  padding-block: var(--vx-space-08) var(--vx-space-16);
 }
 
 .diaRotuloCaixa {
@@ -319,26 +340,31 @@
     ⚠ **A saliência é EXATAMENTE o respiro da própria linha, e antes era
     metade da barra — que é maior que o respiro em toda continuação.**
 
-    O ritmo de agrupamento é `padding-block-start` DENTRO da linha: 16px
-    abrindo grupo, 4px continuando. As linhas se tocam (medido: folga 0
-    entre `article`s), então tudo que a barra sobe além do próprio respiro
-    aterrissa no texto da mensagem ANTERIOR.
+    O ritmo de agrupamento é `padding-block` DENTRO da linha: 6px em cima e
+    embaixo abrindo grupo, 2px/6px continuando. Tudo que a barra sobe além
+    do próprio respiro aterrissa no texto da mensagem ANTERIOR.
 
     Com `translateY(-50%)` numa barra de 32px ela subia 16 sempre: cabia
     exato ao abrir grupo e invadia **12px** da linha de cima em toda
     continuação — que é a maioria das linhas. Foi assim que quem usa
     relatou: "o hover está passando o tamanho e consumindo outra".
 
-    Agora ela sobe 4 por padrão e 16 quando a linha abre grupo. Nos dois
+    Agora ela sobe 2 por padrão e 6 quando a linha abre grupo. Nos dois
     casos a barra fica dentro da caixa da PRÓPRIA linha — a mesma caixa que
     o `hover:bg-surface-1` pinta —, então ela nunca cruza a fronteira.
 
+    ⚠ **Os dois números seguiram o respiro quando ele virou simétrico.** Eram
+    4 e 16, contra um `pt-04`/`pt-16` que não existe mais; deixá-los para
+    trás faria a barra flutuar 10px acima da caixa que a contém, e nada
+    falharia. É o acoplamento que o `data-abre-grupo` existe para tornar
+    visível — e ele não impede o esquecimento, só o localiza.
+
     ⚠ Não dá para ler o `padding` do pai em CSS, e por isso o `article`
-    carrega `data-abre-grupo`. É o mesmo dado que escolhe `pt-16`/`pt-04`
-    no TSX, dito duas vezes de propósito: sem ele, o valor certo aqui
-    dependeria de alguém lembrar de mudar os dois juntos.
+    carrega `data-abre-grupo`. É o mesmo dado que escolhe o respiro no TSX,
+    dito duas vezes de propósito: sem ele, o valor certo aqui dependeria de
+    alguém lembrar de mudar os dois juntos.
   */
-  transform: translateY(calc(var(--vx-space-04) * -1));
+  transform: translateY(calc(var(--vx-space-02) * -1));
 
   display: flex;
   align-items: center;
@@ -390,7 +416,7 @@
 }
 
 .linha[data-abre-grupo="true"] .acoes {
-  transform: translateY(calc(var(--vx-space-16) * -1));
+  transform: translateY(calc(var(--vx-space-06) * -1));
 }
 
 /*
