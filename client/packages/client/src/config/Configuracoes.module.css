@@ -1,17 +1,25 @@
 /* ============================================================
    Configurações
    ------------------------------------------------------------
-   Tela cheia SOBRE o shell, e não no lugar dele: substituir o
-   shell desmontaria a lista de mensagens, com dez mil linhas
+   Painel centrado SOBRE o shell, e não no lugar dele: substituir
+   o shell desmontaria a lista de mensagens, com dez mil linhas
    medidas e âncora. Ver `store/config.ts`.
    ============================================================ */
 
-.tela {
+.veu {
   position: fixed;
   /* Abaixo da barra de título: cobri-la tiraria os controles de janela
      do alcance, e a barra é o único caminho para eles. */
   inset: var(--vx-barra-h) 0 0 0;
   z-index: var(--vx-z-sistema);
+  display: grid;
+  place-items: center;
+  padding: var(--vx-space-24);
+  background: var(--vx-scrim);
+}
+
+.tela {
+  position: relative;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   /*
@@ -26,6 +34,11 @@
     `scrollTop` travado em 0. É o erro nº 3 do briefing na direção de bloco.
   */
   grid-template-rows: minmax(0, 1fr);
+  inline-size: min(960px, 100%);
+  block-size: min(85vh, 100%);
+  overflow: hidden;
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-12);
   /*
     ⚠ **`surface-2` e nao `surface-0`.** O Foundations reserva o tom mais
     escuro para RAIL e GUTTER ULTRAWIDE, e usa-lo como fundo de area de
@@ -35,6 +48,7 @@
     preto, invertendo a leitura de profundidade da rampa inteira.
   */
   background: var(--vx-surface-2);
+  box-shadow: var(--vx-elev-3);
   container-type: inline-size;
 }
 
@@ -317,10 +331,24 @@
 /*
   Janela estreita: o menu vira uma faixa em cima.
 
-  Container query e não media — esta tela é `fixed` e ocupa a viewport, então
-  hoje as duas coincidem; a container query é o que a mantém correta se um dia
-  ela virar painel.
+  Container query no painel, não na janela — em desktop o painel é 960 e a
+  janela é maior; as duas só coincidem abaixo de 640, quando o painel vira
+  tela cheia.
 */
+@media (width < 640px) {
+  .veu {
+    padding: 0;
+  }
+
+  .tela {
+    inline-size: 100%;
+    block-size: 100%;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
 @container (inline-size < 640px) {
   .tela {
     grid-template-columns: minmax(0, 1fr);
