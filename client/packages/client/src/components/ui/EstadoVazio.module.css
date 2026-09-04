@@ -33,6 +33,7 @@
   /* O texto respira num teto legível mesmo quando o painel é largo. */
   max-inline-size: 44ch;
   margin-inline: auto;
+  animation: vxCamadaChega var(--vx-duration-base) var(--vx-ease-enter);
 }
 
 /*

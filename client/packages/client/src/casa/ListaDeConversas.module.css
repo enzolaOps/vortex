@@ -61,6 +61,9 @@
   font-size: var(--vx-size-md);
   text-align: start;
   cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
 }
 
 /* A linha de amigos fica fora da rolagem, então precisa do recuo dela. */

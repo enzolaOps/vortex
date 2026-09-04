@@ -27,6 +27,7 @@
   background: var(--vx-surface-3);
   color: var(--vx-text-1);
   font-size: var(--vx-size-sm);
+  animation: vxCamadaChega var(--vx-duration-base) var(--vx-ease-enter);
 }
 
 /*
