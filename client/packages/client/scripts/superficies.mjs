@@ -114,6 +114,9 @@ const PERMITIDO = {
     ".shell":
       "O chão da janela, atrás de tudo. É o que o mock inteiro do design " +
       "pousa em cima, e o que aparece se um slot colapsar a zero.",
+    ".cluster":
+      "O chão do rail + canais, a mesma coluna sunken. Sem isto o 1fr do " +
+      "chat pintaria o vão entre as duas faixas e o rodapé de usuário.",
     '.slot[data-painel="rail"]':
       "O rail. É o primeiro dos dois papéis que o Foundations nomeia, " +
       "literalmente.",
