@@ -561,6 +561,35 @@
   */
   --vx-entrada: 6px;
 
+  /*
+    Revelar no hover, SEM pagar a ordem de tabulação.
+
+    ⚠ **`visibility` é a decisão, e ela estava certa — o que faltava era o
+    tempo.** Superfícies escondem alvos com `visibility: hidden` porque
+    `opacity: 0` os deixaria tabuláveis: a barra de ações da mensagem (oito
+    alvos × dez mil linhas = oitenta mil paradas invisíveis) e o `+` de
+    categoria. A razão está escrita em cada uma.
+
+    O custo era que `visibility` não interpola: o alvo PIPOCA. Medido na barra
+    de ações, que é o gesto mais repetido do app — `transition: all 0s`.
+
+    O par abaixo resolve os dois de uma vez. `visibility` não interpola, mas
+    RESPEITA o atraso: na saída ela só troca depois que a opacidade terminou,
+    e na entrada troca no quadro zero para haver o que revelar. O estado de
+    repouso continua sendo `visibility: hidden`, então a ordem de tabulação
+    fica exatamente como estava — é o mesmo mecanismo, com tempo.
+
+    ⚠ **NÃO é `prefers-reduced-motion` que o torna conforme.** Aquele bloco
+    remapeia `base` e `slow`; `fast` fica como está. O que o torna conforme é
+    ser só OPACIDADE, sem `transform`: não há deslocamento para a preferência
+    neutralizar, e o que ela pede é que coisas não se movam.
+  */
+  --vx-revelar-entra:
+    opacity var(--vx-duration-fast) var(--vx-ease-out), visibility 0s;
+  --vx-revelar-sai:
+    opacity var(--vx-duration-fast) var(--vx-ease-out),
+    visibility 0s linear var(--vx-duration-fast);
+
   /* --- Assinatura --------------------------------------------
      ⚠ **A lâmina mudou de mecanismo, não de papel.**
 

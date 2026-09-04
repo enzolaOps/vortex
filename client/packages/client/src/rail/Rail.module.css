@@ -322,9 +322,25 @@
   object-fit: cover;
 }
 
+/*
+  ⚠ **Eram DOIS blocos `.marcaCasa`, e o de baixo vencia em silêncio.**
+
+  Este declarava `color: var(--vx-text-2)` — o tom dos itens em repouso — e um
+  segundo bloco vinte linhas abaixo redeclarava `text-1`. Mesma
+  especificidade, então o ladrilho da casa sempre renderizou no tom CLARO,
+  como se estivesse permanentemente sob o ponteiro.
+
+  Fundidos aqui **preservando o que a tela mostra hoje** (`text-1`), e não o
+  que este bloco pedia: trocar para `text-2` mudaria a aparência, e essa é uma
+  decisão de desenho que ninguém tomou — o defeito era a contradição, não o
+  valor. Se o certo for `text-2` em repouso, é uma linha, e aí o hover passa a
+  ter para onde subir.
+
+  Achado por `pnpm sombra`, que nasceu exatamente deste caso.
+*/
 .marcaCasa {
   background: var(--vx-surface-3);
-  color: var(--vx-text-2);
+  color: var(--vx-text-1);
 }
 
 .item:hover /*
@@ -345,10 +361,6 @@
   block-size: 100%;
   border-radius: inherit;
   object-fit: cover;
-}
-
-.marcaCasa {
-  color: var(--vx-text-1);
 }
 
 /*

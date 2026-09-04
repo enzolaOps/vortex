@@ -396,10 +396,24 @@
 
     Elemento com `visibility: hidden` sai da ordem de tabulação e da
     árvore de acessibilidade. Com opacidade zero, cada linha somaria
-    cinco paradas de tabulação invisíveis — dez mil linhas, cinquenta
-    mil paradas.
+    oito paradas de tabulação invisíveis — dez mil linhas, OITENTA mil
+    paradas.
+
+    ⚠ O número dizia cinco e foi MEDIDO em oito: a barra ganhou os oito alvos
+    do design e o comentário ficou para trás. A decisão não muda; a conta que
+    a sustenta ficou maior.
+
+    ⚠ **A opacidade entrou AO LADO, não no lugar.** Sozinha, `visibility` não
+    interpola: a barra passava a existir num quadro. Medido aqui —
+    `transition: all 0s` — e é o gesto mais repetido do app, porque apontar
+    para uma mensagem é como se chega a responder, reagir e encaminhar.
+
+    O repouso continua `visibility: hidden`, então as oitenta mil paradas
+    seguem não existindo. Ver `--vx-revelar-*` em `tokens.css`.
   */
   visibility: hidden;
+  opacity: 0;
+  transition: var(--vx-revelar-sai);
 }
 
 /*
@@ -413,6 +427,10 @@
 .linha:focus-within .acoes,
 .acoes[data-menu-aberto] {
   visibility: visible;
+  opacity: 1;
+  /* Entrada: a visibilidade troca no quadro zero, senão a opacidade animaria
+     algo que ainda não está na tela. */
+  transition: var(--vx-revelar-entra);
 }
 
 .linha[data-abre-grupo="true"] .acoes {
@@ -592,6 +610,22 @@
   Sem raio próprio de propósito — a linha não tem raio, e inventar um só para o
   foco faria o anel discordar da forma que ele está marcando.
 */
+/*
+  ⚠ **A linha trocava de fundo num QUADRO, e é a superfície mais apontada.**
+
+  Membro e canal já acompanhavam em 120ms; esta não tinha tempo nenhum. O
+  efeito colateral era pior que a ausência: com a barra de ações ganhando
+  fade, o fundo trocava instantâneo e a barra levava 120ms — **dois relógios
+  no mesmo gesto**, que se nota mais que dois instantâneos.
+
+  Só `background`: mudar qualquer coisa que afete a CAIXA aqui move a âncora
+  do virtualizador, e é o que `pnpm movimento` reprova. Declarar custa zero —
+  só a linha sob o ponteiro anima, uma por vez.
+*/
+.linha {
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
 .linha:focus-visible {
   outline: 2px solid var(--vx-accent);
   outline-offset: -2px;

@@ -440,6 +440,10 @@
   color: var(--vx-text-1);
 }
 
+.anexar:active:not(:disabled) {
+  scale: 0.94;
+}
+
 .anexar:disabled {
   color: var(--vx-text-4);
   cursor: not-allowed;
