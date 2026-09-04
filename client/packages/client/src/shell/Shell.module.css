@@ -97,8 +97,17 @@
   grid-column: 1;
   display: flex;
   flex-direction: column;
-  min-inline-size: 0;
+  /*
+    ⚠ **`min-inline-size: 0` encolhia o cluster.** A trilha é `auto` e o
+    conteúdo é `1fr`: com mínimo zero o 1fr rouba a largura, o cluster
+    cai nos 72px do rail, o painel de usuário esconde nome/controles
+    (`@container < 180px`) e a coluna de canais vaza para o meio da tela.
+    `max-content` é a soma rail+canais, que é o que o cluster é.
+  */
+  inline-size: max-content;
+  block-size: 100%;
   min-block-size: 0;
+  overflow: hidden;
   background: var(--vx-surface-0);
   border-inline-end: 1px solid var(--vx-hairline-06);
   container-type: inline-size;

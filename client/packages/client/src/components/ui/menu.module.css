@@ -27,6 +27,12 @@
   min-inline-size: 264px;
 }
 
+.conteudo :where(svg) {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+  flex: none;
+}
+
 /*
   O menu do usuário é mais largo: 300, também do design.
 

@@ -82,6 +82,14 @@ export function PesoDeIcone({ children }: { children: ReactNode }) {
     são 129, e sob firehose seria a cada quadro. É a lei nº 1 aplicada a um
     contexto de terceiro, e a mesma armadilha do `getSnapshot`.
   */
-  const valor = useMemo(() => ({ weight: PESO_PADRAO }), []);
+  /*
+    `size: "1em"` precisa ir no contexto. Sem ele o Provider substitui o
+    default do Phosphor (`1em`) por `undefined`, o svg nasce no viewBox
+    (256px) e todo menu sem `svg { inline-size }` explode.
+  */
+  const valor = useMemo(
+    () => ({ weight: PESO_PADRAO, size: "1em" as const }),
+    [],
+  );
   return <IconContext.Provider value={valor}>{children}</IconContext.Provider>;
 }
