@@ -65,8 +65,21 @@ export function fecharDrawer(): void {
  * flutuantes empilhados na mesma borda é a tela onde `Esc` fecha um e ninguém
  * sabe qual.
  */
+/**
+ * Canais some abaixo de 640px e membros abaixo de 1000px — o CSS é o
+ * GUARDA, não o store. Flutuar em vez de `alternarPainel` é o que impede o
+ * clique de esconder o slot de verdade e devolver uma coluna morta quando a
+ * janela alarga de novo.
+ */
+function escondidoPeloGuarda(painel: PainelId): boolean {
+  if (typeof matchMedia !== "function") return false;
+  if (painel === "membros") return matchMedia("(width < 1000px)").matches;
+  if (painel === "canais") return matchMedia("(width < 640px)").matches;
+  return false;
+}
+
 export function alternarSuperficie(painel: PainelId): void {
-  if (slotDe(painel) !== undefined) {
+  if (slotDe(painel) !== undefined && !escondidoPeloGuarda(painel)) {
     alternarPainel(painel);
     return;
   }
@@ -75,6 +88,7 @@ export function alternarSuperficie(painel: PainelId): void {
 
 /** Está aberto — ancorado OU flutuando. É o que o `aria-pressed` diz. */
 export function superficieAberta(painel: PainelId, visivelNoSlot: boolean): boolean {
+  if (escondidoPeloGuarda(painel)) return aberto === painel;
   return slotDe(painel) !== undefined ? visivelNoSlot : aberto === painel;
 }
 

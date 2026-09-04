@@ -3,8 +3,10 @@ import { useRef, useSyncExternalStore, type ReactNode } from "react";
 import { AlcaDeSlot } from "../layout/AlcaDeSlot";
 import { NOME_DO_PAINEL, type PainelId, type SlotId } from "../preset/schema";
 import { LimiteDeErro } from "../components/ui/LimiteDeErro";
+import { assinarDrawer, lerDrawer } from "../store/drawer";
 import { assinarEdicao, lerEdicao } from "../store/edicao";
 import { assinarLayout, lerLayout } from "../store/layout";
+import drawerCss from "./Drawer.module.css";
 import css from "./Shell.module.css";
 
 /**
@@ -33,6 +35,18 @@ function Slot({
   const slot = layout.layout.slots[id];
   const ocupado = slot.painel !== null && slot.visivel;
   const elemento = useRef<HTMLDivElement>(null);
+  /*
+    O mesmo painel, flutuando — não uma segunda montagem.
+
+    Abaixo do guarda a coluna some com `display: none`, e remontá-la no
+    `<Drawer>` faria a member list (virtualizada) existir duas vezes: uma
+    com altura zero, que monta as milhares de linhas. A classe `.drawer`
+    tira ESTE slot do fluxo e o ancora na janela.
+  */
+  const flutuando = useSyncExternalStore(
+    assinarDrawer,
+    () => slot.painel !== null && lerDrawer() === slot.painel,
+  );
 
   /**
    * Escreve a largura direto no DOM, pulando o React de propósito.
@@ -48,10 +62,11 @@ function Slot({
   return (
     <div
       ref={elemento}
-      className={`${css.coluna} ${css.slot}`}
+      className={`${css.coluna} ${css.slot}${flutuando ? ` ${drawerCss.drawer}` : ""}`}
       data-slot={id}
       data-painel={ocupado ? slot.painel : "vazio"}
       data-lado={lado}
+      data-flutuando={flutuando ? "" : undefined}
       /**
        * A largura vive no elemento, não na lista de trilhas do grid.
        *
@@ -120,6 +135,7 @@ export function Shell({
   conteudo,
   composer,
   sobreposto,
+  usuario,
 }: {
   paineis: Paineis;
   /** A barra do arnês. `undefined` no cliente de produto. */
@@ -138,12 +154,24 @@ export function Shell({
   composer?: ReactNode;
   /** Camada acima do grid — modo edição, e mais nada no fluxo. */
   sobreposto?: ReactNode;
+  /**
+   * O painel de usuário — chrome do APP, não da coluna de canais.
+   *
+   * Mora no cluster das colunas de início para sobreviver ao guarda que
+   * esconde canais abaixo de 640px, e para não ler como rodapé do servidor.
+   */
+  usuario?: ReactNode;
 }) {
   return (
     <div className={css.shell}>
-      {ANTES.map((id) => (
-        <Slot key={id} id={id} lado="inicio" paineis={paineis} />
-      ))}
+      <div className={css.cluster}>
+        <div className={css.clusterSlots}>
+          {ANTES.map((id) => (
+            <Slot key={id} id={id} lado="inicio" paineis={paineis} />
+          ))}
+        </div>
+        {usuario}
+      </div>
 
       <main className={`${css.coluna} ${css.conteudo}`}>
         {ferramentas}

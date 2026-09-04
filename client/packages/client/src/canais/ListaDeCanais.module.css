@@ -11,20 +11,20 @@
 /*
   A COLUNA — a estrutura, que sobrevive à troca de fonte.
 
-  Ela tem duas fontes (canais do servidor, conversas da casa) e um rodapé que é
-  o mesmo nas duas. Sem este wrapper o painel de usuário teria de ser montado
-  dentro de cada uma, e a cópia que diverge é sempre a que ninguém abriu naquela
-  semana.
+  Ela tem duas fontes (canais do servidor, conversas da casa) e a faixa de
+  voz, que é o mesmo nas duas. Sem este wrapper a faixa teria de ser montada
+  dentro de cada uma.
 
   `minmax(0, 1fr)` na primeira linha pela razão de sempre: `1fr` puro é
-  `minmax(auto, 1fr)`, e `auto` respeita o min-content da lista — o rodapé seria
-  empurrado para fora da coluna assim que o servidor tivesse canais demais.
+  `minmax(auto, 1fr)`, e `auto` respeita o min-content da lista — a faixa de
+  voz seria empurrada para fora da coluna assim que o servidor tivesse canais
+  demais.
 */
 .coluna {
   display: grid;
-  /* lista · faixa de voz · painel de usuário. As duas últimas são `auto`, e a
-     faixa devolve `null` fora da chamada — a linha colapsa sozinha. */
-  grid-template-rows: minmax(0, 1fr) auto auto;
+  /* lista · faixa de voz. A faixa devolve `null` fora da chamada — a linha
+     colapsa sozinha. O painel de usuário saiu daqui: é chrome do app. */
+  grid-template-rows: minmax(0, 1fr) auto;
   block-size: 100%;
   min-block-size: 0;
 }

@@ -113,9 +113,9 @@ function Recado({ aoFechar }: { aoFechar: () => void }) {
  * no pontinho de todo mundo, e a pessoa dona da sessão não tinha controle
  * nenhum sobre o próprio.
  *
- * Fica no rodapé da coluna de canais e não no rail porque é o que o design
- * pede — e a razão dele é boa: o rail é uma tira de 72px onde só cabe ícone, e
- * este painel precisa mostrar NOME e RECADO, que são texto.
+ * Fica no cluster de início do shell — chrome do app, não rodapé do servidor.
+ * Atravessa rail+canais quando os dois cabem; abaixo de 640px sobrevive ao
+ * guarda que esconde a lista.
  *
  * Assina dois stores e nada mais: o meu status e a chamada. Nenhum dos dois é
  * de alta frequência — status muda por clique humano, e o de chamada já compara

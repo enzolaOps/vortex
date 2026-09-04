@@ -11,11 +11,10 @@ import css from "./Drawer.module.css";
 /**
  * Os painéis que sabem flutuar.
  *
- * `Partial<Record<PainelId, …>>` e não `Record`: rail e canais são estrutura
- * do shell, não drawer, e obrigá-los a ter uma entrada aqui seria o tipo
- * pedindo uma decisão que não existe. Painel novo que deva flutuar entra
- * nesta lista; painel que não deva simplesmente não entra, e `alternarSuperficie`
- * continua ancorando-o.
+ * `Partial<Record<PainelId, …>>` e não `Record`: rail, canais e membros são
+ * estrutura do shell. Canais e membros flutuam no próprio slot quando o CSS
+ * os esconde; não entram aqui para não montar duas vezes. Painel novo que
+ * deva flutuar como aside entra nesta lista.
  */
 const FLUTUAM: Partial<Record<PainelId, () => React.ReactNode>> = {
   fixados: () => <PainelDeFixados aoFechar={fecharDrawer} />,
@@ -64,6 +63,27 @@ export function Drawer() {
     document.addEventListener("keydown", aoTeclar);
     return () => document.removeEventListener("keydown", aoTeclar);
   }, [aberto]);
+
+  /*
+    Canais e membros flutuam no PRÓPRIO slot (ver Shell). Sem isto, alargar
+    a janela deixaria o slot `position: fixed` por cima da coluna que o CSS
+    acabou de devolver.
+  */
+  useEffect(() => {
+    const canais = matchMedia("(width < 640px)");
+    const membros = matchMedia("(width < 1000px)");
+    function aoMudar() {
+      const agora = lerDrawer();
+      if (agora === "canais" && !canais.matches) fecharDrawer();
+      if (agora === "membros" && !membros.matches) fecharDrawer();
+    }
+    canais.addEventListener("change", aoMudar);
+    membros.addEventListener("change", aoMudar);
+    return () => {
+      canais.removeEventListener("change", aoMudar);
+      membros.removeEventListener("change", aoMudar);
+    };
+  }, []);
 
   if (aberto === null) return null;
   const render = FLUTUAM[aberto];

@@ -3,7 +3,6 @@ import {
   DownloadSimple,
   Envelope,
   FolderSimplePlus,
-  GearSix,
   ICONE,
   Plus,
   ShieldCheck,
@@ -27,7 +26,6 @@ import {
   useServerIds,
   useServidorAtivo,
 } from "../store/hooks";
-import { abrirConfig } from "../store/config";
 import { administrar } from "../store/administracao";
 import {
   agrupar,
@@ -439,27 +437,6 @@ export function Rail() {
         servidor. Sem ele, as duas coisas não têm por onde acontecer — foi
         assim que o mapa de superfícies classificou a ausência.
       */}
-      {/*
-        Configurações, no rodapé do rail.
-
-        Aqui e não num menu de usuário porque o rail é a única coluna sempre
-        visível — e porque até agora a única entrada para o picker de paleta e o
-        modo de edição era o cabeçalho do ARNÊS, que não existe no produto.
-      */}
-      <Tooltip texto="Configurações" lado="fim">
-        <button
-          type="button"
-          className={css.item}
-          aria-label="Configurações"
-          onClick={() => abrirConfig("perfil")}
-        >
-          <span className={`${css.marca} ${css.marcaCasa}`} aria-hidden>
-            <GearSix size={ICONE.calha} />
-          </span>
-          <span className={css.nome}>Configurações</span>
-        </button>
-      </Tooltip>
-
       <Tooltip texto="Adicionar servidor" lado="fim">
         <button
           type="button"

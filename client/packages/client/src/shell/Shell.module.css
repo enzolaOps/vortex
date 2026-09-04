@@ -22,7 +22,8 @@
     geometria com metade do mecanismo, e é o que faz "slot vazio colapsa"
     deixar de ser código para virar consequência.
   */
-  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  /* Cluster (rail+canais+usuário) · conteúdo · slot do fim. */
+  grid-template-columns: auto minmax(0, 1fr) auto;
   /*
     ⚠ **`100%` da trilha do grid da raiz, e não `100dvh`.** Antes ele pedia a
     viewport inteira mais `padding-block-start: var(--vx-titlebar-h)` para
@@ -83,20 +84,50 @@
   position: relative;
 }
 
-.slot[data-slot="a"] {
+/*
+  O cluster das colunas de INÍCIO — uma célula, dois slots empilhados
+  sobre o painel de usuário.
+
+  Sem isto o painel de usuário morava no rodapé de canais e sumia com
+  eles abaixo de 640px, além de ler como parte do servidor. A largura
+  de cada slot continua no próprio elemento (`inline-size`); o cluster
+  só soma.
+*/
+.cluster {
   grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  min-block-size: 0;
+  background: var(--vx-surface-0);
+  border-inline-end: 1px solid var(--vx-hairline-06);
+  container-type: inline-size;
 }
 
-.slot[data-slot="b"] {
-  grid-column: 2;
+.clusterSlots {
+  flex: 1;
+  min-block-size: 0;
+  display: flex;
+}
+
+.clusterSlots > .slot {
+  flex: none;
 }
 
 .conteudo {
-  grid-column: 3;
+  grid-column: 2;
 }
 
 .slot[data-slot="d"] {
-  grid-column: 4;
+  grid-column: 3;
+}
+
+/*
+  `.coluna` pede `block-size: 100%`. Flutuando, a altura vem do `inset-block`
+  do drawer — os dois juntos estouram a janela.
+*/
+.slot[data-flutuando] {
+  block-size: auto;
 }
 
 /*
@@ -111,11 +142,20 @@
 
 /* Bordas por LADO do slot, não por painel: o painel pode mudar de lado. */
 .slot[data-lado="inicio"] {
-  border-inline-end: 1px solid var(--vx-border-subtle);
+  border-inline-end: 1px solid var(--vx-hairline-06);
 }
 
 .slot[data-lado="fim"] {
-  border-inline-start: 1px solid var(--vx-border-subtle);
+  border-inline-start: 1px solid var(--vx-hairline-06);
+}
+
+/*
+  A borda de fim do último slot de início duplicaria a do cluster — o
+  cluster já separa o bloco do conteúdo. Entre rail e canais a borda
+  fica; contra o conteúdo, some.
+*/
+.clusterSlots > .slot[data-lado="inicio"]:last-child {
+  border-inline-end: none;
 }
 
 /* Fundo por PAINEL, não por posição: é identidade do painel, e viaja
@@ -268,6 +308,10 @@
   .slot[data-painel="membros"] {
     display: none;
   }
+
+  .slot[data-painel="membros"][data-flutuando] {
+    display: grid;
+  }
 }
 
 /*
@@ -282,16 +326,22 @@
   acontece no desktop também, e degradar para "conversa legível sem lista de
   canais" é muito melhor que degradar para "63px de conversa".
 
-  ⚠ O que este guarda NÃO resolve: com a lista escondida, some também o
-  gatilho da paleta de comandos, que mora no cabeçalho dela. Por teclado a
-  paleta continua (Ctrl+K); por TOQUE, abaixo de 640px, não há navegação. Um
-  modelo de navegação para telas estreitas é trabalho de produto que este
-  projeto nunca escopou, e inventá-lo aqui seria decidir sozinho uma coisa
-  grande dentro de um passe de correção.
-*/
+   O gatilho que devolve a lista mora no cabeçalho do canal: abre o mesmo
+   slot como drawer (`data-flutuando`), sem segunda montagem.
+ */
 @media (width < 640px) {
   .slot[data-painel="canais"] {
     display: none;
+  }
+
+  .slot[data-painel="canais"][data-flutuando] {
+    display: grid;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cluster {
+    transition: opacity var(--vx-duration-fast) var(--vx-ease-out);
   }
 }
 
