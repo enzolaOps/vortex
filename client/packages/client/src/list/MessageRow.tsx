@@ -921,7 +921,24 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
               Agora a barra ancora na LINHA DE MENSAGEM, que é filha, e a
               prévia fica acima dela, fora do alcance.
             */
-            "relative flex flex-col px-20 hover:bg-surface-1 data-[alvo=true]:bg-surface-1",
+
+            /*
+              ⚠ **VÉU, e não `surface-1` — a linha era a única do app que
+              ESCURECIA ao ser apontada.**
+
+              Medido nas quatro superfícies de linha: membro e canal clareiam
+              com véu branco a 4,5% (1,118:1); a linha de mensagem pintava
+              `surface-1`, que é mais ESCURO que a timeline em `surface-2`, e
+              dava 1,047:1 — a mais apontada do app, com o contraste mais
+              fraco e na direção contrária às outras três.
+
+              `data-alvo` (menu aberto nesta linha) sobe para o véu de 6%: é o
+              mesmo vocabulário, um degrau acima, em vez de um segundo
+              mecanismo. Véu compõe com o que estiver por baixo, então a linha
+              destacada por menção continua legível sob os dois.
+            */
+            "relative flex flex-col px-20 hover:bg-state-hover data-[alvo=true]:bg-state-hover-elevado",
+
             /*
               O ritmo de agrupamento, do design: `padding: 6px 8px` abrindo
               grupo e `2px 8px 6px` continuando, sobre um container com

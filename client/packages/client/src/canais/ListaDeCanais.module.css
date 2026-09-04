@@ -864,6 +864,15 @@
   color: var(--vx-text-1);
 }
 
+/*
+  Pressionado é CAMADA e não escala: a linha ocupa a largura da coluna, e
+  encolher uma caixa de ~220px lê como falha de layout. É a mesma escolha do
+  `.item` do rail, com a razão escrita lá.
+*/
+.servidor:active {
+  background: var(--vx-state-press);
+}
+
 .servidor:hover .divisaDoMenu {
   color: var(--vx-text-2);
 }
@@ -1019,6 +1028,11 @@
   color: var(--vx-text-1);
 }
 
+/* Alvo de 24px: escala, como no `BotaoDeIcone`. */
+.acaoDaLinha:active {
+  scale: 0.94;
+}
+
 .acaoDaLinha:focus-visible {
   outline-offset: -2px;
 }
@@ -1065,6 +1079,10 @@
 
 .adicionarNaSecao:hover {
   color: var(--vx-text-1);
+}
+
+.adicionarNaSecao:active {
+  scale: 0.94;
 }
 
 .tituloDaSecao {

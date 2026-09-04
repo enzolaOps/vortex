@@ -107,11 +107,6 @@
   gap: var(--vx-space-08);
 }
 
-.sobrancelha {
-  composes: sobrancelha from "../styles/sobrancelha.module.css";
-  color: var(--vx-text-3);
-}
-
 /*
   A saída para quem chegou com um código. Separada por régua, e com o texto
   antes do botão — é uma PERGUNTA com uma resposta, não uma ação solta.
