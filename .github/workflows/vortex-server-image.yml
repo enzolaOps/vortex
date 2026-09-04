@@ -235,15 +235,13 @@ jobs:
         id: tags
         run: |
           owner="${GITHUB_REPOSITORY_OWNER,,}"
-          tags="ghcr.io/${owner}/vortex-server:latest
-ghcr.io/${owner}/vortex-server:${GITHUB_SHA}"
-          if [ "${{ github.event_name }}" = "release" ]; then
-            tags="$tags
-ghcr.io/${owner}/vortex-server:${GITHUB_REF_NAME}"
-          fi
           {
             echo "list<<EOF"
-            printf '%s\n' "$tags"
+            echo "ghcr.io/${owner}/vortex-server:latest"
+            echo "ghcr.io/${owner}/vortex-server:${GITHUB_SHA}"
+            if [ "${{ github.event_name }}" = "release" ]; then
+              echo "ghcr.io/${owner}/vortex-server:${GITHUB_REF_NAME}"
+            fi
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
