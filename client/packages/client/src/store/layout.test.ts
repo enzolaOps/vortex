@@ -2,12 +2,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { escreverPreset, lerPreset } from "../preset/preset";
 import { LARGURA, PRESET_PADRAO } from "../preset/schema";
+import { SEMENTE_PADRAO } from "../tema/derivar";
 import {
   aplicarPreset,
   assinarLayout,
+  definirSemente,
   definirSlot,
   lerBruto,
   lerLayout,
+  lerSemente,
   resetar,
   slotDe,
   trocarSlots,
@@ -127,5 +130,25 @@ describe("ciclo completo: ler, editar, escrever", () => {
     // A edição foi gravada E a chave que o app não entende continua lá.
     expect((saida.layout as { slots: { b: { largura: number } } }).slots.b.largura).toBe(300);
     expect(saida.densidade).toBe("compacta");
+  });
+});
+
+describe("persistência", () => {
+  it("tema e largura de slot sobrevivem a um reload", () => {
+    const semente = { ...SEMENTE_PADRAO.claro, matiz: 40 };
+    definirSemente(semente);
+    definirSlot("b", { largura: 300 });
+
+    const cru = localStorage.getItem("vortex:preset");
+    expect(cru).toBeTruthy();
+
+    resetar();
+    expect(lerSemente()).toEqual(SEMENTE_PADRAO.escuro);
+
+    const { preset, bruto } = lerPreset(cru!);
+    aplicarPreset(preset, bruto);
+
+    expect(lerSemente()).toEqual(semente);
+    expect(lerLayout().layout.slots.b.largura).toBe(300);
   });
 });

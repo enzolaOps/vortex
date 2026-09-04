@@ -15,6 +15,7 @@
  * escrita — a armadilha nº 1 continua valendo: nada é montado no getter.
  */
 import { SEMENTE_PADRAO, type Semente } from "../tema/derivar";
+import { escreverPreset, lerPreset } from "../preset/preset";
 import {
   LARGURA,
   limitarLargura,
@@ -29,14 +30,37 @@ type Ouvinte = () => void;
 
 const ouvintes = new Set<Ouvinte>();
 
-let preset: Preset = PRESET_PADRAO;
+const CHAVE = "vortex:preset";
+
+function carregar(): { preset: Preset; bruto: Record<string, unknown> } {
+  try {
+    const cru = localStorage.getItem(CHAVE);
+    if (!cru) return { preset: PRESET_PADRAO, bruto: {} };
+    const lido = lerPreset(cru);
+    return { preset: lido.preset, bruto: lido.bruto };
+  } catch {
+    return { preset: PRESET_PADRAO, bruto: {} };
+  }
+}
+
+function persistir(): void {
+  try {
+    localStorage.setItem(CHAVE, escreverPreset(preset, bruto));
+  } catch {
+    // Armazenamento bloqueado: a escolha vale nesta aba.
+  }
+}
+
+const inicial = carregar();
+let preset: Preset = inicial.preset;
 /**
  * O bruto de onde o preset veio, para a preservação de chave desconhecida
  * sobreviver a um ciclo ler → editar → escrever dentro do app.
  */
-let bruto: Record<string, unknown> = {};
+let bruto: Record<string, unknown> = inicial.bruto;
 
 function emitir() {
+  persistir();
   for (const ouvinte of ouvintes) ouvinte();
 }
 
@@ -218,7 +242,12 @@ export function definirSemente(nova: Semente): void {
 export function resetar(): void {
   preset = PRESET_PADRAO;
   bruto = {};
-  emitir();
+  try {
+    localStorage.removeItem(CHAVE);
+  } catch {
+    /* mesma regra da escrita */
+  }
+  for (const ouvinte of ouvintes) ouvinte();
 }
 
 /**

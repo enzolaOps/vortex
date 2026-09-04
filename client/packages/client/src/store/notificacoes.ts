@@ -1,7 +1,7 @@
 /**
  * Preferências de notificação.
  *
- * ⚠ **A preferência é REAL e persistida; o que falta é quem a consome.** Som,
+ * ⚠ **A preferência é REAL e persistida em `localStorage`; o que falta é quem a consome.** Som,
  * push e badge no ícone dependem de coisas que este app ainda não tem — áudio,
  * service worker, casca Electron. A escolha entre "não construir a tela" e
  * "construir com o consumo pendente" foi tomada: a segunda, porque a regra
@@ -117,7 +117,10 @@ const PADRAO_DA_MATRIZ: ReadonlySet<string> = new Set(
   ),
 );
 
-let prefs: Preferencias = {
+const CHAVE = "vortex:notificacoes";
+const HORA = /^\d{2}:\d{2}$/;
+
+const PADRAO: Preferencias = {
   desktop: true,
   push: true,
   previa: true,
@@ -130,6 +133,49 @@ let prefs: Preferencias = {
   silencioDias: [1, 2, 3, 4, 5],
   matriz: PADRAO_DA_MATRIZ,
 };
+
+function booleano(v: unknown, recuo: boolean): boolean {
+  return typeof v === "boolean" ? v : recuo;
+}
+
+function ler(): Preferencias {
+  try {
+    const cru = localStorage.getItem(CHAVE);
+    if (!cru) return PADRAO;
+    const o: unknown = JSON.parse(cru);
+    if (typeof o !== "object" || o === null) return PADRAO;
+    const r = o as Record<string, unknown>;
+    const dias = Array.isArray(r.silencioDias)
+      ? r.silencioDias.filter(
+          (d): d is number => typeof d === "number" && d >= 0 && d <= 6,
+        )
+      : PADRAO.silencioDias;
+    const matriz = Array.isArray(r.matriz)
+      ? new Set(r.matriz.filter((c): c is string => typeof c === "string"))
+      : PADRAO_DA_MATRIZ;
+    return {
+      desktop: booleano(r.desktop, PADRAO.desktop),
+      push: booleano(r.push, PADRAO.push),
+      previa: booleano(r.previa, PADRAO.previa),
+      badge: booleano(r.badge, PADRAO.badge),
+      silencioNoturno: booleano(r.silencioNoturno, PADRAO.silencioNoturno),
+      silencioDas:
+        typeof r.silencioDas === "string" && HORA.test(r.silencioDas)
+          ? r.silencioDas
+          : PADRAO.silencioDas,
+      silencioAte:
+        typeof r.silencioAte === "string" && HORA.test(r.silencioAte)
+          ? r.silencioAte
+          : PADRAO.silencioAte,
+      silencioDias: dias.length > 0 ? dias : PADRAO.silencioDias,
+      matriz,
+    };
+  } catch {
+    return PADRAO;
+  }
+}
+
+let prefs: Preferencias = ler();
 
 const ouvintes = new Set<() => void>();
 
@@ -147,6 +193,14 @@ export function lerNotificacoes(): Preferencias {
 
 export function definirNotificacoes(mudanca: Partial<Preferencias>): void {
   prefs = { ...prefs, ...mudanca };
+  try {
+    localStorage.setItem(
+      CHAVE,
+      JSON.stringify({ ...prefs, matriz: [...prefs.matriz] }),
+    );
+  } catch {
+    /* vale nesta aba */
+  }
   for (const o of ouvintes) o();
 }
 
