@@ -33,7 +33,7 @@ export function HoverCardContent({
         {...props}
         className={cn(
           css.cartao,
-          "z-flutuante rounded-12 border border-hairline-10 bg-surface-4 p-12 shadow-e2",
+          "z-flutuante overflow-hidden rounded-12 border border-hairline-10 bg-surface-4 p-12 shadow-e2",
           "text-md text-text-1",
           "data-[state=open]:camada-chega data-[state=closed]:camada-sai",
           className,
