@@ -85,13 +85,45 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: scripts/ci/release-notes.sh
 
-  # Check required: sempre roda. PR que não toca server/ passa aqui sem build.
+  # PR que toca server/: compila e testa delta+bonfire. Sem docker —
+  # a imagem multi-arch leva ~2h e fica no release.
+  check:
+    name: Check
+    needs: detect
+    if: needs.detect.outputs.changed == 'true' && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: server
+      - run: cargo check -p revolt-delta -p revolt-bonfire --locked
+      - run: cargo test -p revolt-delta -p revolt-bonfire --locked
+
+  # Check required. Falha se o check do PR falhou; passa se não tocou server/.
   result:
     name: Vortex server
-    needs: detect
+    needs: [detect, check]
+    if: always() && !cancelled() && needs.detect.result == 'success'
     runs-on: ubuntu-latest
     steps:
-      - run: echo "changed=${{ needs.detect.outputs.changed }}"
+      - name: Gate
+        run: |
+          changed="${{ needs.detect.outputs.changed }}"
+          check="${{ needs.check.result }}"
+          event="${{ github.event_name }}"
+          echo "changed=$changed check=$check event=$event"
+          if [ "$event" != "pull_request" ]; then exit 0; fi
+          if [ "$changed" != "true" ]; then exit 0; fi
+          if [ "$check" = "success" ]; then exit 0; fi
+          exit 1
 
   # ---------------------------------------------------------------- a base
   #

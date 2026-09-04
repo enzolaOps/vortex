@@ -55,13 +55,57 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: scripts/ci/release-notes.sh
 
-  # Check required: sempre roda. PR que não toca client/ passa aqui sem build.
+  # PR que toca client/: typecheck, lint, testes, build. Sem docker —
+  # publicar imagem é o job `build`, em release.
+  check:
+    name: Check
+    needs: detect
+    if: needs.detect.outputs.changed == 'true' && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - name: Verify the SDK submodule was checked out
+        working-directory: .
+        run: |
+          if [ -z "$(ls -A client/packages/stoat.js 2>/dev/null)" ]; then
+            echo "client/packages/stoat.js está vazio — falta o gitlink." >&2
+            exit 1
+          fi
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: client/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: client/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter client check
+
+  # Check required. Falha se o check do PR falhou; passa se não tocou client/.
   result:
     name: Vortex client
-    needs: detect
+    needs: [detect, check]
+    if: always() && !cancelled() && needs.detect.result == 'success'
     runs-on: ubuntu-latest
     steps:
-      - run: echo "changed=${{ needs.detect.outputs.changed }}"
+      - name: Gate
+        run: |
+          changed="${{ needs.detect.outputs.changed }}"
+          check="${{ needs.check.result }}"
+          event="${{ github.event_name }}"
+          echo "changed=$changed check=$check event=$event"
+          if [ "$event" != "pull_request" ]; then exit 0; fi
+          if [ "$changed" != "true" ]; then exit 0; fi
+          if [ "$check" = "success" ]; then exit 0; fi
+          exit 1
 
   build:
     name: Build and push
