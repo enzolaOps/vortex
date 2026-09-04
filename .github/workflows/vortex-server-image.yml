@@ -111,7 +111,7 @@ jobs:
   result:
     name: Vortex server
     needs: [detect, check]
-    if: always() && !cancelled() && needs.detect.result == 'success'
+    if: ${{ always() && !cancelled() && needs.detect.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Gate

@@ -80,6 +80,7 @@ jobs:
           fi
       - uses: pnpm/action-setup@v4
         with:
+          version: 11
           package_json_file: client/package.json
       - uses: actions/setup-node@v4
         with:
@@ -93,7 +94,7 @@ jobs:
   result:
     name: Vortex client
     needs: [detect, check]
-    if: always() && !cancelled() && needs.detect.result == 'success'
+    if: ${{ always() && !cancelled() && needs.detect.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Gate
