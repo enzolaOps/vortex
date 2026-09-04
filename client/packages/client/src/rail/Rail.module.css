@@ -271,7 +271,19 @@
   /* Sigla é o fallback do ícone; números tabulares não ajudam aqui, mas
      ligadura em iniciais como "fi" viraria glifo único. */
   font-variant-ligatures: none;
-  transition: box-shadow var(--vx-duration-fast) var(--vx-ease-out);
+  transition:
+    box-shadow var(--vx-duration-fast) var(--vx-ease-out),
+    scale var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.item:hover .marca {
+  scale: 1.02;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item:hover .marca {
+    scale: 1;
+  }
 }
 
 /*
