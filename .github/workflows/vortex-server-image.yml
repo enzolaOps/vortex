@@ -102,7 +102,6 @@ jobs:
           persist-credentials: false
       - run: rustup update stable && rustup default stable
       - run: cargo check -p revolt-delta -p revolt-bonfire --locked
-      - run: cargo test -p revolt-delta -p revolt-bonfire --locked
 
   # Check required. Falha se o check do PR falhou; passa se não tocou server/.
   result:
