@@ -40,11 +40,15 @@ pub async fn assert_safe(password: &str) -> Result<()> {
     if !config.api.security.easypwned.is_empty() {
         let mut hasher = sha1::Sha1::new();
         hasher.update(password);
-        let pwd_hash = hasher.finalize();
+        let pwd_hash = hasher
+            .finalize()
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>();
 
         let result = match CLIENT
             .get(format!(
-                "{}/hash/{pwd_hash:#02x}",
+                "{}/hash/{pwd_hash}",
                 &config.api.security.easypwned
             ))
             .send()
