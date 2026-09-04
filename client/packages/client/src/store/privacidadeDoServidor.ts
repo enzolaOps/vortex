@@ -57,13 +57,99 @@ export const PADRAO: PrivacidadeDoServidor = {
   permitirAmizade: true,
 };
 
-const porServidor = new Map<string, PrivacidadeDoServidor>();
+import { avisarSync } from "./sync";
+
+const CHAVE = "vortex:privacidadeDoServidor";
+
+function entrada(v: unknown): PrivacidadeDoServidor | undefined {
+  if (typeof v !== "object" || v === null) return undefined;
+  const r = v as Record<string, unknown>;
+  const dm = ALCANCES_DE_DM.find((a) => a === r.dm);
+  const filtro = FILTROS_DE_CONTEUDO.find((f) => f === r.filtro);
+  if (!dm || !filtro) return undefined;
+  if (
+    typeof r.mostrarPresenca !== "boolean" ||
+    typeof r.mostrarAtividade !== "boolean" ||
+    typeof r.permitirAmizade !== "boolean"
+  ) {
+    return undefined;
+  }
+  return {
+    dm,
+    filtro,
+    mostrarPresenca: r.mostrarPresenca,
+    mostrarAtividade: r.mostrarAtividade,
+    permitirAmizade: r.permitirAmizade,
+  };
+}
+
+function carregarDe(cru: string): {
+  padrao: PrivacidadeDoServidor;
+  porServidor: Map<string, PrivacidadeDoServidor>;
+} {
+  try {
+    const o: unknown = JSON.parse(cru);
+    if (typeof o !== "object" || o === null) {
+      return { padrao: PADRAO, porServidor: new Map() };
+    }
+    const r = o as Record<string, unknown>;
+    const padraoLido = entrada(r.padrao) ?? PADRAO;
+    const mapa = new Map<string, PrivacidadeDoServidor>();
+    if (typeof r.porServidor === "object" && r.porServidor !== null) {
+      for (const [id, valor] of Object.entries(
+        r.porServidor as Record<string, unknown>,
+      )) {
+        const e = entrada(valor);
+        if (e) mapa.set(id, e);
+      }
+    }
+    return { padrao: padraoLido, porServidor: mapa };
+  } catch {
+    return { padrao: PADRAO, porServidor: new Map() };
+  }
+}
+
+function carregar(): {
+  padrao: PrivacidadeDoServidor;
+  porServidor: Map<string, PrivacidadeDoServidor>;
+} {
+  try {
+    const cru = localStorage.getItem(CHAVE);
+    if (!cru) return { padrao: PADRAO, porServidor: new Map() };
+    return carregarDe(cru);
+  } catch {
+    return { padrao: PADRAO, porServidor: new Map() };
+  }
+}
+
+const inicial = carregar();
+const porServidor = inicial.porServidor;
 
 /*
   O default vigente. Começa no de fábrica e muda só por "aplicar a todos" —
   `PADRAO` continua sendo o de fábrica, para o teste e para a documentação.
 */
-let padrao: PrivacidadeDoServidor = PADRAO;
+let padrao: PrivacidadeDoServidor = inicial.padrao;
+
+export function exportarPrivacidadeDoServidor(): string {
+  return JSON.stringify({
+    padrao,
+    porServidor: Object.fromEntries(porServidor),
+  });
+}
+
+function serializar(): string {
+  return exportarPrivacidadeDoServidor();
+}
+
+function persistir(): void {
+  try {
+    localStorage.setItem(CHAVE, serializar());
+  } catch {
+    /* vale nesta aba */
+  }
+  avisarSync("vortex:privacidadeDoServidor", serializar());
+}
 
 const ouvintes = new Set<() => void>();
 
@@ -95,6 +181,7 @@ export function definirPrivacidadeDoServidor(
     ...lerPrivacidadeDoServidor(serverId),
     ...mudanca,
   });
+  persistir();
   for (const o of ouvintes) o();
 }
 
@@ -115,12 +202,28 @@ export function aplicarATodos(serverId: string): number {
   padrao = escolha;
   for (const id of porServidor.keys()) porServidor.set(id, escolha);
   const quantos = porServidor.size;
+  persistir();
   for (const o of ouvintes) o();
   return quantos;
+}
+
+/** Troca o mapa inteiro — hidratação vinda do servidor. */
+export function hidratarPrivacidadeDoServidor(cru: string): void {
+  const lido = carregarDe(cru);
+  porServidor.clear();
+  for (const [id, valor] of lido.porServidor) porServidor.set(id, valor);
+  padrao = lido.padrao;
+  persistir();
+  for (const o of ouvintes) o();
 }
 
 /** Estado limpo entre testes. O módulo é global e sobrevive. */
 export function limparPrivacidadeDoServidor(): void {
   porServidor.clear();
   padrao = PADRAO;
+  try {
+    localStorage.removeItem(CHAVE);
+  } catch {
+    /* mesma regra da escrita */
+  }
 }

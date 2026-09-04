@@ -48,11 +48,38 @@ export type Privacidade = {
   readonly telemetria: boolean;
 };
 
-let prefs: Privacidade = {
+import { avisarSync } from "./sync";
+
+const CHAVE = "vortex:privacidade";
+
+const PADRAO: Privacidade = {
   filtrarDesconhecidos: true,
   politicaDePedido: "amigosDeAmigos",
   telemetria: false,
 };
+
+function ler(): Privacidade {
+  try {
+    const cru = localStorage.getItem(CHAVE);
+    if (!cru) return PADRAO;
+    const o: unknown = JSON.parse(cru);
+    if (typeof o !== "object" || o === null) return PADRAO;
+    const r = o as Record<string, unknown>;
+    const politica = POLITICAS_DE_PEDIDO.find((p) => p === r.politicaDePedido);
+    return {
+      filtrarDesconhecidos:
+        typeof r.filtrarDesconhecidos === "boolean"
+          ? r.filtrarDesconhecidos
+          : PADRAO.filtrarDesconhecidos,
+      politicaDePedido: politica ?? PADRAO.politicaDePedido,
+      telemetria: typeof r.telemetria === "boolean" ? r.telemetria : PADRAO.telemetria,
+    };
+  } catch {
+    return PADRAO;
+  }
+}
+
+let prefs: Privacidade = ler();
 
 const ouvintes = new Set<() => void>();
 
@@ -70,5 +97,11 @@ export function lerPrivacidade(): Privacidade {
 
 export function definirPrivacidade(mudanca: Partial<Privacidade>): void {
   prefs = { ...prefs, ...mudanca };
+  try {
+    localStorage.setItem(CHAVE, JSON.stringify(prefs));
+  } catch {
+    /* vale nesta aba */
+  }
+  avisarSync("vortex:privacidade", JSON.stringify(prefs));
   for (const o of ouvintes) o();
 }

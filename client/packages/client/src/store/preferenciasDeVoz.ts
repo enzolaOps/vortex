@@ -80,7 +80,11 @@ export type PreferenciasDeVoz = {
   readonly espelhar: boolean;
 };
 
-let prefs: PreferenciasDeVoz = {
+import { avisarSync } from "./sync";
+
+const CHAVE = "vortex:voz";
+
+const PADRAO: PreferenciasDeVoz = {
   entradaId: undefined,
   saidaId: undefined,
   volumeDeEntrada: 85,
@@ -104,6 +108,55 @@ let prefs: PreferenciasDeVoz = {
   espelhar: true,
 };
 
+function volume(v: unknown, recuo: number): number {
+  return typeof v === "number" && Number.isFinite(v) ? Math.min(100, Math.max(0, v)) : recuo;
+}
+
+function idDeDispositivo(v: unknown): string | undefined {
+  return typeof v === "string" && v.length > 0 ? v : undefined;
+}
+
+function ler(): PreferenciasDeVoz {
+  try {
+    const cru = localStorage.getItem(CHAVE);
+    if (!cru) return PADRAO;
+    const o: unknown = JSON.parse(cru);
+    if (typeof o !== "object" || o === null) return PADRAO;
+    const r = o as Record<string, unknown>;
+    const modo = MODOS_DE_ENTRADA.find((m) => m === r.modo);
+    const ruido = NIVEIS_DE_RUIDO.find((n) => n === r.ruido);
+    const qualidade = QUALIDADES_DE_VIDEO.find((q) => q === r.qualidade);
+    const fundo = FUNDOS_DE_VIDEO.find((f) => f === r.fundo);
+    return {
+      entradaId: idDeDispositivo(r.entradaId),
+      saidaId: idDeDispositivo(r.saidaId),
+      volumeDeEntrada: volume(r.volumeDeEntrada, PADRAO.volumeDeEntrada),
+      volumeDeSaida: volume(r.volumeDeSaida, PADRAO.volumeDeSaida),
+      modo: modo ?? PADRAO.modo,
+      sensibilidadeAutomatica:
+        typeof r.sensibilidadeAutomatica === "boolean"
+          ? r.sensibilidadeAutomatica
+          : PADRAO.sensibilidadeAutomatica,
+      ruido: ruido ?? PADRAO.ruido,
+      eco: typeof r.eco === "boolean" ? r.eco : PADRAO.eco,
+      ganho: typeof r.ganho === "boolean" ? r.ganho : PADRAO.ganho,
+      atenuarOutrosApps:
+        typeof r.atenuarOutrosApps === "boolean"
+          ? r.atenuarOutrosApps
+          : PADRAO.atenuarOutrosApps,
+      sons: typeof r.sons === "boolean" ? r.sons : PADRAO.sons,
+      cameraId: idDeDispositivo(r.cameraId),
+      qualidade: qualidade ?? PADRAO.qualidade,
+      fundo: fundo ?? PADRAO.fundo,
+      espelhar: typeof r.espelhar === "boolean" ? r.espelhar : PADRAO.espelhar,
+    };
+  } catch {
+    return PADRAO;
+  }
+}
+
+let prefs: PreferenciasDeVoz = ler();
+
 const ouvintes = new Set<() => void>();
 
 export function assinarPreferenciasDeVoz(ouvinte: () => void): () => void {
@@ -122,6 +175,12 @@ export function definirPreferenciasDeVoz(
   mudanca: Partial<PreferenciasDeVoz>,
 ): void {
   prefs = { ...prefs, ...mudanca };
+  try {
+    localStorage.setItem(CHAVE, JSON.stringify(prefs));
+  } catch {
+    /* vale nesta aba */
+  }
+  avisarSync("vortex:voz", JSON.stringify(prefs));
   for (const o of ouvintes) o();
 }
 
