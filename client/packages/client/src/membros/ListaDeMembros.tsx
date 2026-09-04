@@ -1,10 +1,15 @@
 import {
-  Hammer,
-  ICONE,
   ProhibitInset,
-  SignOut,
+  
 } from "../components/ui/icones";
 import { useVirtualizer } from "@tanstack/react-virtual";
+
+import {
+  assinarMenuDeMensagem,
+  definirAlvoDoMenu,
+  lerAlvoDoMenu,
+} from "../store/menuDeMensagem";
+import { MenuDoUsuario } from "./MenuDoUsuario";
 import {
   memo,
   useEffect,
@@ -20,13 +25,9 @@ import { PontoDePresenca } from "../presenca/PontoDePresenca";
 import {
   ContextMenu,
   ContextMenuContent,
-  ContextMenuItem,
   ContextMenuTrigger,
 } from "../components/ui/ContextMenu";
 import { chaveDeMembro } from "../sdk/domain";
-import { primeiroCanalDe } from "../sdk/adapter";
-import { pode } from "../sdk/permissoes";
-import { administrar } from "../store/administracao";
 import { assinarConexao, lerConexao } from "../store/conexao";
 import { CartaoDePerfil } from "./CartaoDePerfil";
 import {
@@ -37,7 +38,6 @@ import {
   useServidorAtivo,
 } from "../store/hooks";
 import css from "./ListaDeMembros.module.css";
-import { ItemDeId } from "../components/ui/ItemDeId";
 
 /**
  * Alturas estimadas, por TIPO de linha.
@@ -155,11 +155,6 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
     qualquer canal serve como ponto de consulta. Sem canal nenhum não há a quem
     perguntar; ver `sdk/permissoes.ts`.
   */
-  const canal = primeiroCanalDe(serverId) ?? "";
-  const podeModerar =
-    pode(canal, "expulsar") ||
-    pode(canal, "banir") ||
-    pode(canal, "silenciarMembro");
 
   const linha = (
     <button
@@ -222,72 +217,33 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
   );
 
   /*
-    O menu só EXISTE para quem pode moderar.
+    ⚠ **UM `ContextMenu` para a lista inteira, e o menu é o MESMO da timeline.**
 
-    Não é um menu com itens desabilitados: a member list de um servidor grande
-    tem dezenas de milhares de linhas, e montar `ContextMenu` (Root, Trigger,
-    Portal) em cada uma para quase ninguém poder usá-lo é exatamente o custo
-    que o menu no nível da lista veio remover da lista de mensagens. Aqui a
-    condição resolve os dois problemas de uma vez — o de permissão e o de
-    montagem.
+    Antes havia um menu PRÓPRIO aqui, com três itens de moderação, e outro na
+    linha de mensagem com onze. A mesma pessoa, dois menus, dependendo de onde
+    se clicasse com o direito — e o `CLAUDE.md` já tinha a regra escrita desde
+    o dia do `⋯`: dois menus com os mesmos itens divergem no primeiro que ganha
+    um item novo. Estes já tinham divergido em sete.
+
+    A condição `podeModerar` que existia aqui protegia o CUSTO, não a
+    permissão: montar `ContextMenu` (Root, Trigger, Portal) em cada uma de
+    dezenas de milhares de linhas é exatamente o que o menu no nível da lista
+    veio remover da lista de mensagens. Com o Root subindo para a lista, a
+    proteção deixa de ser necessária — a linha agora só ESCREVE quem ela é, e
+    o menu completo passa a existir para todo mundo, com cada item gateado por
+    `pode()` lá dentro como sempre esteve.
   */
-  if (!podeModerar) {
-    return (
+  return (
+    <span
+      className={css.alvo}
+      onContextMenu={() => {
+        definirAlvoDoMenu({ tipo: "usuario", userId: id });
+      }}
+    >
       <CartaoDePerfil serverId={serverId} userId={id}>
         {linha}
       </CartaoDePerfil>
-    );
-  }
-
-  return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>
-        <span className={css.alvo}>
-          <CartaoDePerfil serverId={serverId} userId={id}>
-            {linha}
-          </CartaoDePerfil>
-        </span>
-      </ContextMenuTrigger>
-
-      <ContextMenuContent>
-        {pode(canal, "silenciarMembro") ? (
-          <ContextMenuItem
-            onSelect={() =>
-              administrar({ tipo: "moderar", serverId, userId: id, acao: "castigo" })
-            }
-          >
-            <ProhibitInset size={ICONE.calha} aria-hidden />
-            {silenciado ? "Rever castigo" : "Deixar de castigo"}
-          </ContextMenuItem>
-        ) : null}
-
-        {pode(canal, "expulsar") ? (
-          <ContextMenuItem
-            perigo
-            onSelect={() =>
-              administrar({ tipo: "moderar", serverId, userId: id, acao: "expulsar" })
-            }
-          >
-            <SignOut size={ICONE.calha} aria-hidden />
-            Expulsar
-          </ContextMenuItem>
-        ) : null}
-
-        {pode(canal, "banir") ? (
-          <ContextMenuItem
-            perigo
-            onSelect={() =>
-              administrar({ tipo: "moderar", serverId, userId: id, acao: "banir" })
-            }
-          >
-            <Hammer size={ICONE.calha} aria-hidden />
-            Banir
-          </ContextMenuItem>
-        ) : null}
-
-        <ItemDeId id={id} />
-      </ContextMenuContent>
-    </ContextMenu>
+    </span>
   );
 });
 
@@ -306,6 +262,20 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
  * Sem `anchorTo: "end"`. Esta lista é normal — ancora no topo, cresce para
  * baixo. O modo chat existe para a lista de mensagens e para mais nada.
  */
+/**
+ * O conteúdo do menu, escolhido pelo alvo no store.
+ *
+ * Mesmo store da lista de mensagens (`menuDeMensagem`), porque é o mesmo
+ * conceito: quem clicou com o direito escreve QUEM ele é, e um único Root lê.
+ * Alvo de outro tipo (ou nenhum) devolve caixa vazia — melhor que agir sobre a
+ * pessoa do clique anterior.
+ */
+function MenuDaMemberList() {
+  const alvo = useSyncExternalStore(assinarMenuDeMensagem, lerAlvoDoMenu);
+  if (alvo?.tipo !== "usuario") return <ContextMenuContent />;
+  return <MenuDoUsuario userId={alvo.userId} />;
+}
+
 export function ListaDeMembros() {
   const serverId = useServidorAtivo();
   count("membrosListRenders");
@@ -449,8 +419,19 @@ export function ListaDeMembros() {
   }
 
   return (
-    // Ver `MessageList`: rolável sem foco é inoperável por teclado.
-    <div ref={scrollRef} className={css.painel} tabIndex={0}>
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        {/* Ver `MessageList`: rolável sem foco é inoperável por teclado. */}
+        <div
+          ref={scrollRef}
+          className={css.painel}
+          tabIndex={0}
+          /* A captura LIMPA antes de a linha escrever: clique no vão entre
+             linhas não deve agir sobre quem foi clicado por último. */
+          onContextMenuCapture={() => {
+            definirAlvoDoMenu(null);
+          }}
+        >
       <div
         className={css.pista}
         style={{ height: `${virtualizer.getTotalSize()}px` }}
@@ -515,7 +496,11 @@ export function ListaDeMembros() {
           Presença indisponível offline — todos aparecem sem status. Lista
           congelada no último estado conhecido.
         </p>
-      ) : null}
-    </div>
+        ) : null}
+        </div>
+      </ContextMenuTrigger>
+
+      <MenuDaMemberList />
+    </ContextMenu>
   );
 }
