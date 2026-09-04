@@ -1,9 +1,18 @@
 import {
   Hash,
+  Rows,
   SpeakerHigh,
 } from "../components/ui/icones";
+import { useSyncExternalStore } from "react";
 
 import { AcoesDoCanal } from "./AcoesDoCanal";
+import { Tooltip } from "../components/ui/Tooltip";
+import {
+  alternarSuperficie,
+  assinarDrawer,
+  superficieAberta,
+} from "../store/drawer";
+import { assinarLayout, painelVisivel } from "../store/layout";
 import { useChannel } from "../store/hooks";
 import css from "./CabecalhoDeCanal.module.css";
 
@@ -34,20 +43,54 @@ export const ID_DO_NOME_DO_CANAL = "vx-nome-do-canal";
  * cabeçalho que cresce com o texto empurra a lista de mensagens para baixo —
  * numa lista ancorada, isso é a âncora se movendo por causa de metadado.
  */
-export function CabecalhoDeCanal({ channelId }: { channelId: string }) {
-  const canal = useChannel(channelId);
+function GatilhoDeCanais() {
+  const noSlot = useSyncExternalStore(assinarLayout, () => painelVisivel("canais"));
+  const visivel = useSyncExternalStore(assinarDrawer, () =>
+    superficieAberta("canais", noSlot),
+  );
+
+  return (
+    <Tooltip texto={visivel ? "Esconder canais" : "Mostrar canais"}>
+      <button
+        type="button"
+        className={css.canais}
+        aria-pressed={visivel}
+        aria-label="Canais"
+        onClick={() => alternarSuperficie("canais")}
+      >
+        <Rows aria-hidden />
+      </button>
+    </Tooltip>
+  );
+}
+
+export function CabecalhoDeCanal({ channelId }: { channelId?: string }) {
+  const canal = useChannel(channelId ?? "");
+
+  if (!channelId) {
+    return (
+      <header className={`${css.cabecalho} ${css.soEstreito}`}>
+        <GatilhoDeCanais />
+      </header>
+    );
+  }
 
   // Mesma disciplina da linha e da member list: caixa com altura, nunca
   // `null`. O grid do shell reserva esta linha, e devolver nada aqui faria a
   // lista saltar para cima no instante em que o canal resolvesse.
   if (!canal) {
-    return <header className={css.cabecalho} aria-hidden />;
+    return (
+      <header className={css.cabecalho}>
+        <GatilhoDeCanais />
+      </header>
+    );
   }
 
   const Icone = canal.tipo === "voz" ? SpeakerHigh : Hash;
 
   return (
     <header className={css.cabecalho}>
+      <GatilhoDeCanais />
       <Icone aria-hidden className={css.icone} />
       {/*
         O id existe para a LISTA se nomear por ele.

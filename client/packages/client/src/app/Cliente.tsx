@@ -16,6 +16,7 @@ import { PainelDeBusca } from "../busca/PainelDeBusca";
 import { CaixaDeEntrada } from "../caixa/CaixaDeEntrada";
 import { Rail } from "../rail/Rail";
 import { Shell } from "../shell/Shell";
+import { PainelDeUsuario } from "../usuario/PainelDeUsuario";
 import { OverlayDeDebug, contarCommit } from "../dev/OverlayDeDebug";
 import { observarTamanhoDeIcone } from "../dev/tamanhoDeIcone";
 import { assinarDev, lerDev } from "../store/dev";
@@ -101,8 +102,13 @@ export function Cliente({ ferramentas }: { ferramentas?: ReactNode }) {
         flutuando no meio de uma janela ultrawide, longe das bordas onde a mão
         os procura. Ele tem de atravessar a coluna inteira.
       */
+      usuario={<PainelDeUsuario />}
       cabecalho={
-        canal && !naCasaDeAmigos ? <CabecalhoDeCanal channelId={canal} /> : null
+        canal && !naCasaDeAmigos ? (
+          <CabecalhoDeCanal channelId={canal} />
+        ) : (
+          <CabecalhoDeCanal />
+        )
       }
       /*
         `key` no canal: trocar de canal REMONTA a lista.

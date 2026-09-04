@@ -90,7 +90,6 @@ import {
   ocultaSilenciados,
 } from "../store/exibicaoDeCanais";
 import { FaixaDeVoz } from "../voz/FaixaDeVoz";
-import { PainelDeUsuario } from "../usuario/PainelDeUsuario";
 import { selecionarCanal } from "../store/navegacao";
 import { Selo } from "../components/ui/Selo";
 import { GatilhoDeBusca } from "../components/ui/CampoDeBusca";
@@ -1020,30 +1019,10 @@ const Categoria = memo(function Categoria({
 export function ListaDeCanais() {
   const local = useLocal();
 
-  /*
-    O painel de usuário fica FORA do `if`, e é por isso que ele mora aqui e não
-    dentro de cada fonte.
-
-    A coluna tem duas fontes — canais do servidor e conversas da casa — e o
-    rodapé é o mesmo nas duas. Montá-lo lá dentro daria duas cópias que
-    precisam concordar, e uma delas some no dia em que alguém acrescentar a
-    terceira fonte. Aqui ele é estrutura da COLUNA, não conteúdo dela.
-  */
   return (
     <div className={css.coluna}>
       {local.tipo !== "servidor" ? <ListaDeConversas /> : <CanaisDoServidor />}
-
-      {/*
-        A faixa de voz ACIMA do painel de usuário — a ordem é do design, e ela
-        tem razão: a chamada é temporária e a identidade é permanente. O que
-        aparece e some fica mais perto do conteúdo; o que está sempre lá é o
-        chão da coluna.
-
-        Ela devolve `null` fora da chamada, então a linha do grid colapsa
-        sozinha e o rodapé volta a ser só o painel.
-      */}
       <FaixaDeVoz />
-      <PainelDeUsuario />
     </div>
   );
 }

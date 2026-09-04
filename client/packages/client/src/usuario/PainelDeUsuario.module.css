@@ -1,9 +1,9 @@
 /* ============================================================
-   Painel de usuário — o rodapé da coluna de canais
+   Painel de usuário — chrome do app, chão do cluster de início
    ------------------------------------------------------------
-   Altura FIXA, e não é preguiça de responsivo: a coluna de
-   canais rola, e um rodapé que cresce com o tamanho do recado
-   comeria a lista por baixo sem avisar. A segunda linha trunca.
+   Altura FIXA, e não é preguiça de responsivo: a segunda linha
+   trunca. Atravessa rail+canais; em cluster estreito (só o rail)
+   empilha avatar e controles.
    ============================================================ */
 
 .painel {
@@ -12,13 +12,15 @@
   align-items: center;
   gap: var(--vx-space-08);
   padding: var(--vx-space-08);
-  /* Mais fundo que a coluna: o rodapé é chão, não conteúdo. É o mesmo
-     token do rail, e a leitura é a mesma — "isto não é a lista". */
+  min-inline-size: 0;
   background: var(--vx-surface-0);
-  /* A mesma régua da faixa de voz logo acima e dos cabeçalhos de 50px: as
-     quatro se encontram na mesma coluna, e um token diferente em qualquer
-     uma produz uma emenda visível. */
   border-block-start: 1px solid var(--vx-hairline-06);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .painel {
+    transition: opacity var(--vx-duration-fast) var(--vx-ease-out);
+  }
 }
 
 /* ------------------------------------------------------- identidade */
@@ -265,4 +267,20 @@
      Ver `--vx-icon-0`. */
   inline-size: var(--vx-icon-0);
   block-size: var(--vx-icon-0);
+}
+
+@container (inline-size < 180px) {
+  .painel {
+    flex-direction: column;
+    align-items: center;
+    padding: var(--vx-space-08) var(--vx-space-04);
+  }
+
+  .textos {
+    display: none;
+  }
+
+  .controles {
+    flex-direction: column;
+  }
 }
