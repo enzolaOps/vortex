@@ -9,7 +9,11 @@
 import { escreverPreset, lerPreset } from "../preset/preset";
 import { definirDensidade, lerDensidade } from "../store/densidade";
 import { aplicarPreset, lerBruto, lerLayout } from "../store/layout";
-import { definirNotificacoes, lerNotificacoes } from "../store/notificacoes";
+import {
+  definirNotificacoes,
+  lerNotificacoes,
+  type Preferencias,
+} from "../store/notificacoes";
 import {
   definirPreferenciasDeVoz,
   lerPreferenciasDeVoz,
@@ -82,11 +86,15 @@ function hidratar(chave: ChaveSync, data: string): void {
         );
         break;
       case "vortex:notificacoes": {
-        const o = JSON.parse(data) as Record<string, unknown>;
+        const o = JSON.parse(data) as Omit<Partial<Preferencias>, "matriz"> & {
+          matriz?: unknown;
+        };
         definirNotificacoes({
-          ...(o as never),
+          ...o,
           matriz: Array.isArray(o.matriz)
-            ? new Set(o.matriz.filter((c): c is string => typeof c === "string"))
+            ? new Set(
+                o.matriz.filter((c): c is string => typeof c === "string"),
+              )
             : undefined,
         });
         break;

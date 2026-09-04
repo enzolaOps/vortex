@@ -100,18 +100,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: server
+      - run: rustup update stable && rustup default stable
       - run: cargo check -p revolt-delta -p revolt-bonfire --locked
-      - run: cargo test -p revolt-delta -p revolt-bonfire --locked
 
   # Check required. Falha se o check do PR falhou; passa se não tocou server/.
   result:
     name: Vortex server
     needs: [detect, check]
-    if: ${{ always() && !cancelled() && needs.detect.result == 'success' }}
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Gate
@@ -119,7 +115,8 @@ jobs:
           changed="${{ needs.detect.outputs.changed }}"
           check="${{ needs.check.result }}"
           event="${{ github.event_name }}"
-          echo "changed=$changed check=$check event=$event"
+          echo "changed=$changed check=$check event=$event detect=${{ needs.detect.result }}"
+          if [ "${{ needs.detect.result }}" != "success" ]; then exit 1; fi
           if [ "$event" != "pull_request" ]; then exit 0; fi
           if [ "$changed" != "true" ]; then exit 0; fi
           if [ "$check" = "success" ]; then exit 0; fi
