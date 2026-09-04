@@ -12,7 +12,9 @@
   align-items: center;
   gap: var(--vx-space-08);
   padding: var(--vx-space-08);
+  inline-size: 100%;
   min-inline-size: 0;
+  box-sizing: border-box;
   background: var(--vx-surface-0);
   border-block-start: 1px solid var(--vx-hairline-06);
 }
