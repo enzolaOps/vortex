@@ -86,16 +86,17 @@ function hidratar(chave: ChaveSync, data: string): void {
         );
         break;
       case "vortex:notificacoes": {
-        const o = JSON.parse(data) as Partial<Preferencias> & {
+        const o = JSON.parse(data) as Omit<Partial<Preferencias>, "matriz"> & {
           matriz?: unknown;
         };
-        const mudanca: Partial<Preferencias> = { ...o };
-        if (Array.isArray(o.matriz)) {
-          mudanca.matriz = new Set(
-            o.matriz.filter((c): c is string => typeof c === "string"),
-          );
-        }
-        definirNotificacoes(mudanca);
+        definirNotificacoes({
+          ...o,
+          matriz: Array.isArray(o.matriz)
+            ? new Set(
+                o.matriz.filter((c): c is string => typeof c === "string"),
+              )
+            : undefined,
+        });
         break;
       }
       case "vortex:privacidadeDoServidor":
