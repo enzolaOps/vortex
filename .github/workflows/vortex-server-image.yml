@@ -39,6 +39,7 @@ on:
       - "server/scripts/build-image-layer.sh"
       - "server/Dockerfile"
       - "server/Dockerfile.runtime"
+      - "server/.dockerignore"
       - ".github/workflows/vortex-server-image.yml"
   workflow_dispatch:
 

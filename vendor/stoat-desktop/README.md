@@ -20,7 +20,7 @@ somewhere else.
 | Discord Rich Presence | Removed, along with `discord-rpc` and its exotic-subdep workaround. |
 | Windows target | `MakerSquirrel` added. Upstream ships Linux only; this fork is used on Windows too, and Squirrel is the only Forge maker that emits an update feed (`RELEASES` + `.nupkg`). Unsigned, so SmartScreen warns once at install. |
 | Auto-update | `update-electron-app` against `update.electronjs.org`, wired in `src/native/atualizacao.ts`. Upstream had no updater. |
-| Release pipeline | `.github/workflows/vortex-desktop.yml` — tag `desktop-v*` packages both targets and publishes a GitHub Release. |
+| Release pipeline | Manual `workflow_dispatch` only. This tree is reference, not product. Installed shells do not get automatic updates. |
 | Auto-updater | Removed. `update-electron-app` pulls releases from a GitHub repo we do not publish to. |
 | Windows makers | Squirrel, AppX and ZIP removed; nobody builds for Windows here. Restore them if that changes. |
 | `.github/` | Upstream's release plumbing deleted — same reasons as the web client, see `../VORTEX.md`. |
@@ -76,26 +76,9 @@ the macOS tray, and `hicolor/` for flatpak) as well as the web fallbacks.
 
 ## Releasing
 
-Tag `desktop-v<semver>` and push it. The workflow packages Windows (Squirrel)
-and Linux (Flatpak) and publishes a GitHub Release with the artifacts.
+This tree is **reference only**. There is no tag-triggered release and no
+auto-update feed. Installed copies of this Electron shell will not receive
+Chromium/security updates until a new thin desktop shell wraps `client/`.
 
-The instance URL comes from the repository variable `VORTEX_APP_URL`
-(Settings -> Variables -> Actions). There is no default on purpose: a wrong one
-would ship a shell pointed at somebody else's server, and the build fails
-instead.
-
-### Why the shell needs releasing at all
-
-It loads the client over HTTPS, so the web app updates without touching the
-shell. But the Chromium that *executes* content written by other people is the
-one embedded here. Without a release path, an installed shell freezes on one
-Chromium and accumulates CVEs while the product looks up to date. Electron
-ships a major roughly every 8 weeks and security-supports the latest three.
-
-### Who updates what
-
-| Platform | Updater |
-| --- | --- |
-| Windows | `update-electron-app`, checking hourly against the latest GitHub Release. |
-| Linux | `flatpak update`. `update.electronjs.org` does not serve Linux, and the shell returns early there rather than letting the library fail quietly. |
-| macOS | Not built. Auto-update on macOS requires an Apple Developer signing certificate. |
+A manual `workflow_dispatch` of `.github/workflows/vortex-desktop.yml` can
+still package artifacts for inspection. It does not publish a GitHub Release.

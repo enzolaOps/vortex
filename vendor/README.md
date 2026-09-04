@@ -9,17 +9,17 @@ Neither tree is product source. Product CI must not build or publish them. The
 desktop workflow is manual-only and uploads build artifacts without creating a
 release.
 
-Update the imported histories with rename detection so Git follows the moved
-paths:
+Update with prefix-aware subtree pulls. A plain merge of upstream `main`
+recreates files at the repository root.
 
 ```bash
 git fetch upstream
-git merge -X find-renames=40% upstream/main
+git subtree pull --prefix=vendor/stoat-web upstream main
 
 git fetch desktop-upstream
-git merge -X find-renames=40% desktop-upstream/main
+git subtree pull --prefix=vendor/stoat-desktop desktop-upstream main
 ```
 
-If an upstream merge recreates files at the repository root, abort it rather
-than accepting a second copy. Submodule paths are owned by the root
-`.gitmodules` file.
+If an update recreates files at the repository root, abort it rather than
+accepting a second copy. Submodule paths are owned by the root `.gitmodules`
+file.

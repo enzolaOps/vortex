@@ -54,19 +54,25 @@ Keep `.github/workflows/vortex-server-image.yml` at the repository root. Nested
 workflows imported under `server/.github/` do not run and should be deleted after
 an upstream update.
 
-### The web client used to be at the root
+### Updating the vendor references
 
-It now lives in `vendor/stoat-web/`, which means **upstream merges no longer line
-up by path**. Rename detection handles it, but only if you let git see the whole
-tree at once:
+A fresh clone needs the remotes once:
+
+```bash
+git remote add upstream https://github.com/stoatchat/for-web.git
+git remote add desktop-upstream https://github.com/stoatchat/for-desktop.git
+```
+
+Then pull with a prefix, the same way as `server/`. A plain merge of upstream
+`main` recreates files at the repository root.
 
 ```bash
 git fetch upstream
-git merge -X find-renames=40% upstream/main    # not a subtree merge
-```
+git subtree pull --prefix=vendor/stoat-web upstream main
 
-If a merge produces upstream's files back at the root, it lost the rename —
-abort, do not "fix" it by hand.
+git fetch desktop-upstream
+git subtree pull --prefix=vendor/stoat-desktop desktop-upstream main
+```
 
 Base: tag `stoat-for-web-v0.14.1` (`0c31cf0`). That is the client version the
 upstream self-hosted stack pairs with backend `v0.15.1`, which is what the
