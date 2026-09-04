@@ -282,10 +282,10 @@ export type PropsDeIcone = ComponentProps<typeof XBase>;
  * degrau aparece dentro de uma regra que já diz de que componente se trata; num
  * `size={}` solto no meio de JSX, `--vx-icon-1` não diz nada e `metadado` diz.
  *
- * - `calha` (20) — o ícone é o alvo, sozinho numa coluna própria.
- * - `controle` (16) — dentro de um botão, ao lado de outros alvos.
- * - `metadado` (14) — acompanha texto pequeno e não é alvo.
- * - `selo` (12) — dentro de um chip ou badge, onde o texto carrega o sentido.
+ * - `calha` (24) — o ícone é o alvo, sozinho numa coluna própria.
+ * - `controle` (18) — dentro de um botão, ao lado de outros alvos.
+ * - `metadado` (16) — acompanha texto pequeno e não é alvo.
+ * - `selo` (14) — dentro de um chip ou badge, onde o texto carrega o sentido.
  *
  * ⚠ **Onde o CSS dimensiona o `svg`, esta prop é MORTA.** Medido em navegador:
  * 43 ícones da tela inicial trazem `size={20}` no TSX e desenham 12 ou 14,
@@ -311,10 +311,10 @@ export const ICONE = {
    * 32" e o `typecheck` me desmentiu.
    */
   ilustracao: 32,
-  calha: 20,
-  controle: 16,
-  metadado: 14,
-  selo: 12,
+  calha: 24,
+  controle: 18,
+  metadado: 16,
+  selo: 14,
 } as const;
 
 export type TamanhoDeIcone = (typeof ICONE)[keyof typeof ICONE];

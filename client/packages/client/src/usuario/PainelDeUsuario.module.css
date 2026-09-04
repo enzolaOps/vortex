@@ -10,7 +10,7 @@
   flex: none;
   display: flex;
   align-items: center;
-  gap: var(--vx-space-04);
+  gap: var(--vx-space-08);
   padding: var(--vx-space-08);
   /* Mais fundo que a coluna: o rodapé é chão, não conteúdo. É o mesmo
      token do rail, e a leitura é a mesma — "isto não é a lista". */
@@ -150,7 +150,7 @@
 .controles {
   flex: none;
   display: flex;
-  gap: var(--vx-space-02);
+  gap: var(--vx-space-04);
 }
 
 .controle {
