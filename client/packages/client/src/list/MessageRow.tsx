@@ -279,10 +279,14 @@ function DivisorDeNovas() {
  * o recurso mais caro que existe — ela corta a varredura vertical do olho e
  * cobra esse preço uma vez por dia de histórico, para cada dia.
  *
- * O espaço faz o mesmo trabalho sem cortar nada. `space-6` acima e `space-1`
- * abaixo prende o rótulo ao dia que ele ABRE em vez de deixá-lo boiando entre
- * os dois — a mesma lógica do ritmo de agrupamento, que é `pt-16` entre autores
- * e `pt-04` dentro de um.
+ * O espaço faz o mesmo trabalho sem cortar nada — e ele vai 8px ACIMA e 16
+ * ABAIXO, que é o que o design escreve (`margin: 8px 0 16px`).
+ *
+ * ⚠ **Este parágrafo dizia o contrário, com nomes de token que já não
+ * existiam (`space-6`/`space-1`), e o CSS fazia 32/4.** O raciocínio era
+ * "muito acima prende o rótulo ao dia que ele ABRE"; o que ele produz é o
+ * buraco caindo DEPOIS da última mensagem do dia anterior, de quem ele parece
+ * ser. Ver a razão medida em `.dia`, no módulo.
  *
  * E há um efeito de segunda ordem que vale mais que a limpeza: com estas
  * saindo, a linha de acento do "novas mensagens" passa a ser a ÚNICA régua
@@ -819,7 +823,15 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
       <>
         {message.primeiraNaoLida ? <DivisorDeNovas /> : null}
         {message.dia ? <DivisorDeDia rotulo={message.dia} /> : null}
-        <article className="flex items-baseline gap-08 px-20 pt-16 text-xs text-text-3">
+        {/*
+          ⚠ **O design não tem mensagem de sistema, e o respiro daqui é o da
+          LISTA e não o desta linha.** Ela ficou com `pt-16 pb-0` quando o
+          resto passou a 6/6 — e um `pt-16` no meio de linhas de 6 abre um vão
+          maior que o do divisor de dia (8), ou seja: a linha menos importante
+          da lista viraria a separação mais forte dela. Aplicado o ritmo do
+          container, que é o que o mockup declara uma vez para todas as linhas.
+        */}
+        <article className="flex items-baseline gap-08 px-20 pt-06 pb-06 text-xs text-text-3">
           <Info size={ICONE.calha} aria-hidden className="shrink-0 self-center" />
           <p className={cn(css.minZero, "flex-1 wrap-anywhere")}>
             <FraseDeSistema sistema={message.sistema} />
@@ -910,24 +922,35 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
               prévia fica acima dela, fora do alcance.
             */
             "relative flex flex-col px-20 hover:bg-surface-1 data-[alvo=true]:bg-surface-1",
-            // O ritmo de agrupamento: 4px dentro do grupo, 16px entre grupos.
-            // Três níveis de separação no total (o terceiro é o divisor), cada
-            // um pelo menos 2× o anterior — é o que os faz lerem como distintos
-            // em rolagem rápida, e é o que faz a lista parecer conversa em vez
-            // de log.
-            //
-            // Só `padding-block-start`, nunca simétrico: com 4px em cima e
-            // embaixo o espaço entre duas linhas agrupadas somaria 8px, e o
-            // degrau de 4px não existe na escala para ser dividido. O espaço
-            // pertence à linha que vem depois — que é também por que o realce
-            // de hover/menu cobre esse espaço, e não termina rente ao texto.
-            //
-            // Aqui estava `pt-12 pb-0.5` / `py-0.5`. A escala do projeto vai de
-            // 1 a 6 e o `@theme` faz `--spacing-*: initial`, então
-            // `--spacing-0.5` NÃO EXISTE e a utility nunca foi gerada: o ritmo
-            // real era 0px dentro do grupo, contra os 4px que este comentário
-            // afirmava. Não deu erro nenhum. Agora há lint contra fracionária.
-            message.iniciaGrupo ? "pt-16" : "pt-04",
+            /*
+              O ritmo de agrupamento, do design: `padding: 6px 8px` abrindo
+              grupo e `2px 8px 6px` continuando, sobre um container com
+              `gap: 2px`. Aqui só a parte VERTICAL — a horizontal continua
+              `px-20`, e o porquê está na pendência da pílula.
+
+              ⚠ **Era `pt-16`/`pt-04` com `padding-bottom: 0`, e o defeito foi
+              relatado por quem usa: "parece que as mensagens estão ficando na
+              parte superior da linha".** Estava literalmente certo. Medida a
+              linha de uma mensagem, a caixa dava **60px para 41px de tinta**
+              (nome 16→34, texto 34→57, avatar 20→60): todo o respiro em cima,
+              nenhum embaixo, e as linhas se tocando.
+
+              ⚠ **O TOTAL entre duas linhas quase não muda — 16px antes, 14
+              agora (6 + 2 de gap + 6).** O que muda é a distribuição, e é ela
+              que o olho lê: o realce de hover deixa de subir 16px acima do
+              nome e morrer rente ao texto, e passa a abraçar a mensagem pelos
+              dois lados. O comentário anterior defendia a assimetria com um
+              argumento de escala ("4px em cima e embaixo somaria 8"); o design
+              resolve isso com 2/6 em vez de 4/4, que soma os mesmos 8 e ainda
+              fecha a caixa embaixo.
+
+              O `gap: 2px` do design não cabe aqui — o virtualizador posiciona
+              cada linha em `absolute`, então não há container para carregá-lo.
+              Ele mora em `.linhaVirtual`, FORA do `article`, que é onde um
+              `gap` cairia: assim ele separa as linhas sem entrar na caixa que
+              o hover pinta.
+            */
+            message.iniciaGrupo ? "pt-06 pb-06" : "pt-02 pb-06",
             // Envio pendente esmaece a linha inteira; falha marca a borda de
             // início. Nunca só cor: o rótulo ao lado da hora diz o que houve.
             message.sendState === "pending" && "opacity-60",
@@ -1018,7 +1041,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             endereçável, e por que o agrupamento some junto.
           */}
           <div
-            className={cn(css.calha, "relative mt-04")}
+            className={cn(css.calha, "relative mt-02")}
             data-menu-autor={message.authorId}
           >
             {compacto ? (

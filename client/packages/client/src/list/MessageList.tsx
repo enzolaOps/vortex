@@ -187,7 +187,7 @@ const ALTURA_POR_TIPO: Record<
     um `Record` com a mesma resposta é mais honesto que um `if` a menos.
   */
   confortavel: {
-    sistema: 37,
+    sistema: 35,
   /*
     ⚠ **Sétima vez que estes números se movem, e desta vez a defasagem tinha
     CONSEQUÊNCIA MEDIDA — não era só a barra de rolagem mentindo.**
@@ -212,8 +212,26 @@ const ALTURA_POR_TIPO: Record<
     Isto NÃO é otimização, é correção: a estimativa descreve a linha que
     existe, e quando ela para de descrever, quem quebra é a âncora.
   */
-    abreGrupo: 125,
-    continua: 86,
+  /*
+    ⚠ **Oitava vez, e desta o delta é ARITMÉTICO e não amostral.** A caixa de
+    conteúdo não mudou uma linha; o que mudou foi o respiro em volta dela,
+    quando o ritmo passou de `pt-16`/`pt-04` com fundo zero para os 6/6 e 2/6
+    do design, mais os 2px de `gap` que agora moram em `.linhaVirtual`:
+
+      abre grupo   16 + corpo + 0        ->  6 + corpo + 6 + 2   =  -2
+      continua      4 + corpo + 0        ->  2 + corpo + 6 + 2   =  +6
+      sistema      16 + corpo + 0        ->  6 + corpo + 6 + 2   =  -2
+
+    Por isso os valores abaixo são os medidos pelo gate na rodada anterior
+    (125,1 · 85,9 · 37) deslocados pelo delta, e não uma amostra nova: medir
+    de novo no arnês trocaria uma população conhecida por outra — ele só
+    produz linha que ABRE grupo, então `continua` sairia de um punhado de
+    amostras do firehose, com distribuição de conteúdo diferente. Quem
+    confirma é a corrida do gate, que reporta a altura real ao lado da
+    estimada.
+  */
+    abreGrupo: 123,
+    continua: 92,
   },
   /*
     ⚠ **MEDIDOS, e o chute inicial errou 30% para BAIXO — que é o lado que
@@ -233,9 +251,16 @@ const ALTURA_POR_TIPO: Record<
     prevê pixels, não justifica formas.
   */
   compacto: {
-    sistema: 40,
-    abreGrupo: 90,
-    continua: 80,
+    /*
+      ⚠ **Os três subiram 2px, e só isso.** O compacto não usa o respiro do
+      confortável — ele tem geometria própria —, mas o `gap` de 2px vive em
+      `.linhaVirtual`, que é o envelope de TODA linha da lista. Deixá-los
+      para trás daria 2px de erro por linha; a 80 mensagens/s isso é a mesma
+      deriva que já desengatou o `followOnAppend` uma vez.
+    */
+    sistema: 42,
+    abreGrupo: 92,
+    continua: 82,
   },
 };
 
