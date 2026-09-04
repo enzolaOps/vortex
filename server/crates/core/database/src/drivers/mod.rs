@@ -3,7 +3,7 @@ mod mongodb;
 mod reference;
 
 
-use rand::Rng;
+use rand::RngExt;
 use revolt_config::config;
 
 #[cfg(feature = "mongodb")]

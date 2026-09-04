@@ -14,7 +14,7 @@ use crate::{
 use bson::{oid::ObjectId, to_bson};
 use futures::StreamExt;
 use iso8601_timestamp::Timestamp;
-use rand::seq::SliceRandom;
+use rand::prelude::IndexedRandom;
 use revolt_permissions::{ChannelPermission, DEFAULT_WEBHOOK_PERMISSIONS};
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;

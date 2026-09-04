@@ -9,7 +9,7 @@ use crate::{
 use futures::future::join_all;
 use iso8601_timestamp::Timestamp;
 use once_cell::sync::Lazy;
-use rand::seq::SliceRandom;
+use rand::prelude::IndexedRandom;
 use regex::{Regex, RegexBuilder};
 use revolt_config::{config, FeaturesLimits};
 use revolt_models::v0::{self, UserBadges, UserFlags};

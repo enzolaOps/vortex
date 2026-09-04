@@ -2,7 +2,6 @@
 extern crate log;
 
 use once_cell::sync::Lazy;
-use rand::Rng;
 use redis_kiss::{get_connection, AsyncCommands};
 use std::collections::HashSet;
 
@@ -33,10 +32,7 @@ pub async fn create_session(user_id: &str, flags: u8) -> (bool, u32) {
         let was_empty = __get_set_size(&mut conn, &format!("sessions:{user_id}")).await == 0;
 
         // A session ID is comprised of random data and any flags ORed to the end
-        let session_id = {
-            let mut rng = rand::rng();
-            (rng.random::<u32>() & !FLAG_BITS) | (flags as u32 & FLAG_BITS)
-        };
+        let session_id = (rand::random::<u32>() & !FLAG_BITS) | (flags as u32 & FLAG_BITS);
 
         // Add session to user's sessions and to the region
         __add_to_set_u32(&mut conn, &format!("sessions:{user_id}"), session_id).await;
@@ -195,7 +191,6 @@ pub async fn clear_region(region_id: Option<&str>) {
 #[cfg(test)]
 mod tests {
     use crate::{clear_region, create_session, delete_session, filter_online, is_online};
-    use rand::Rng;
 
     #[tokio::test]
     async fn it_works() {
@@ -205,8 +200,8 @@ mod tests {
         clear_region(None).await;
 
         // Generate some data we'll use:
-        let user_id = rand::rng().random::<u32>().to_string();
-        let other_id = rand::rng().random::<u32>().to_string();
+        let user_id = rand::random::<u32>().to_string();
+        let other_id = rand::random::<u32>().to_string();
         let flags = 1;
 
         // Create a session
