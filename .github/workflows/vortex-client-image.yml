@@ -78,15 +78,7 @@ jobs:
             echo "client/packages/stoat.js está vazio — falta o gitlink." >&2
             exit 1
           fi
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11
-          package_json_file: client/package.json
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-          cache-dependency-path: client/pnpm-lock.yaml
+      - run: corepack enable && corepack prepare pnpm@11.3.0 --activate
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter client check
 
@@ -94,7 +86,7 @@ jobs:
   result:
     name: Vortex client
     needs: [detect, check]
-    if: ${{ always() && !cancelled() && needs.detect.result == 'success' }}
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Gate
@@ -102,7 +94,8 @@ jobs:
           changed="${{ needs.detect.outputs.changed }}"
           check="${{ needs.check.result }}"
           event="${{ github.event_name }}"
-          echo "changed=$changed check=$check event=$event"
+          echo "changed=$changed check=$check event=$event detect=${{ needs.detect.result }}"
+          if [ "${{ needs.detect.result }}" != "success" ]; then exit 1; fi
           if [ "$event" != "pull_request" ]; then exit 0; fi
           if [ "$changed" != "true" ]; then exit 0; fi
           if [ "$check" = "success" ]; then exit 0; fi
