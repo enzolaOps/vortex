@@ -1,7 +1,7 @@
 node_modules
 coverage
 dist
-# Build dedicado da casca Electron — ver desktop/scripts/casca-com-cliente-local.mjs
+# Build dedicado da referência Electron — ver vendor/stoat-desktop/scripts/casca-com-cliente-local.mjs
 dist-casca
 
 *.log
@@ -22,7 +22,7 @@ dist-casca
 /package-lock.json
 
 # Um checkout dos tres submodules no caminho ERRADO. O `.gitmodules` os declara
-# em `web/packages/` e `web-react/packages/`, e e la que eles estao, corretos;
+# em `vendor/stoat-web/packages/` e `client/packages/`, e e la que eles estao;
 # isto aqui saiu de um `git submodule` rodado do diretorio de cima. Sao 251
 # arquivos, e dois deles (`js-lingui-solid`, `solid-livekit-components`) sao
 # justamente os adaptadores Solid que o port existe para eliminar.
@@ -32,12 +32,13 @@ dist-casca
 #
 # ⚠ Ancorado com barra, e a diferenca aqui e a mesma que o bloco do `.github`
 # registra: `packages/` sem barra casa em QUALQUER nivel, entao esconderia
-# `web/packages/` e `web-react/packages/` — as duas ilhas do projeto. Arquivo
+# `vendor/stoat-web/packages/` e `client/packages/`. Arquivo
 # novo dentro delas nao daria erro no `git add`, daria silencio.
 /packages/
 
 # Mesma origem e mesmo risco: o lockfile de verdade e por ILHA
-# (`web/`, `web-react/`, `web-react/packages/client/`, `desktop/`), e os quatro
+# (`vendor/stoat-web/`, `client/`, `client/packages/client/`,
+# `vendor/stoat-desktop/`), e os quatro
 # sao rastreados. Um lockfile na raiz nao pertence a ilha nenhuma.
 /pnpm-lock.yaml
 
@@ -48,7 +49,7 @@ dist-casca
 # Ignorados por CAMINHO e nao por pasta, e a diferenca ja custou caro: com
 # `/.github` inteiro na lista, `workflows/` some junto — e workflow so roda se
 # estiver commitado. Um arquivo novo ali nao da erro no `git add`, da silencio.
-# Aconteceu com `vortex-react-image.yml`, que precisou de `-f` para entrar.
+# Aconteceu com um workflow de imagem, que precisou de `-f` para entrar.
 #
 # Mesmo raciocinio em `.claude`: `skills/vortex-react` e a skill DESTE projeto,
 # a que o CLAUDE.md chama de regra executavel. Ela precisa estar versionada.

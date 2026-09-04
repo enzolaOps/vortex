@@ -7,7 +7,7 @@
  * main. O que atravessa é esta lista fechada de verbos, cada um com tipo, e o
  * main valida de novo do lado dele.
  *
- * ⚠ **O contrato vive AQUI, no cliente, e não no `desktop/`.** É o cliente que
+ * ⚠ **O contrato vive AQUI, no cliente, e não em `vendor/stoat-desktop/`.** É o cliente que
  * sabe o que precisa; a casca implementa. Invertido, a casca ditaria a forma
  * das telas — que é exatamente o que "casca fina, não segunda aplicação"
  * proíbe. Um arquivo, uma lista, e a casca falha em tempo de tipo se divergir.

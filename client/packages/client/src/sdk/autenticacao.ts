@@ -28,9 +28,8 @@
  * guardada abria o app com socket fechado. É por isso que `conectar()` existe
  * aqui e é chamado nos dois caminhos.
  *
- * Consertar no submodule não é opção: `stoat.js` é gitlink compartilhado com a
- * ilha `web/`, com check de CI exigindo o mesmo commit. Este arquivo é a camada
- * que existe exatamente para absorver diferença assim.
+ * Consertar no submodule não é opção: isso criaria um fork do SDK para manter.
+ * Este arquivo é a camada que existe exatamente para absorver diferença assim.
  */
 import { toast } from "../components/ui/toastStore";
 import { definirUsuarioLocal, startAdapter } from "./adapter";

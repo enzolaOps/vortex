@@ -1,4 +1,4 @@
-# Constrói a API e o serviço de eventos do Vortex, para arm64, e publica no GHCR.
+# Constrói delta e bonfire para amd64/arm64 e publica uma imagem runtime Vortex.
 #
 # ⚠ **O `CLAUDE.md` do cliente registrava isto como bloqueado, e a premissa
 # estava errada.** Ela dizia: "o truque do `$BUILDPLATFORM` que salva o cliente
@@ -24,15 +24,9 @@
 # em vez da soma. Estrangular `CARGO_BUILD_JOBS` no mesmo runner resolvia a
 # memória e triplicava o relógio; isto resolve os dois.
 #
-# ⚠ **Dois serviços e não um.** O `CLAUDE.md` diz que uma feature de API vai em
-# `api` e um evento novo no websocket vai em `events`, "quase sempre com `api`
-# junto" — e os dois saem da mesma base, que é a parte cara.
-#
-# Os outros cinco (`autumn`, `january`, `crond`, `pushd`, `voice-ingress`)
-# seguem pinados no upstream de propósito: a regra é forkar o serviço DONO da
-# superfície que muda, e continuar recebendo correção de segurança de graça nos
-# demais.
-name: Vortex server images
+# Os outros serviços seguem pinados no upstream. O runtime contém somente os
+# dois binários compilados por CARGO_PACKAGES; o compose escolhe qual executar.
+name: Vortex server image
 
 on:
   push:
@@ -44,11 +38,13 @@ on:
       - "server/Cargo.lock"
       - "server/scripts/build-image-layer.sh"
       - "server/Dockerfile"
+      - "server/Dockerfile.runtime"
+      - "server/.dockerignore"
       - ".github/workflows/vortex-server-image.yml"
   workflow_dispatch:
 
 concurrency:
-  group: vortex-api-image-${{ github.ref }}
+  group: vortex-server-image-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -78,7 +74,7 @@ jobs:
             plataforma: linux/arm64
           # ⚠ amd64 NÃO é enfeite: é o que a stack local pulla na máquina de
           # quem desenvolve (`make vortex-local-up`). Sem ele, apontar
-          # `VORTEX_API_IMAGE` para este fork quebraria o ambiente de
+          # `VORTEX_SERVER_IMAGE` para este fork quebraria o ambiente de
           # desenvolvimento inteiro.
           - arch: amd64
             plataforma: linux/amd64
@@ -171,13 +167,12 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # ------------------------------------------- o manifesto e as imagens
+  # --------------------------------------------- manifesto e imagem runtime
   #
-  # Junta os dois digests numa tag multi-arch e constrói as imagens de serviço.
-  # Elas são baratas — cada Dockerfile só copia UM binário da base para um
-  # `distroless` —, então as duas plataformas cabem num job só.
+  # Junta os dois digests numa base multi-arch e copia ambos os binários para a
+  # única imagem runtime. O compose define o comando de cada serviço.
   publicar:
-    name: Manifest and services
+    name: Manifest and runtime
     runs-on: ubuntu-latest
     needs: base
     timeout-minutes: 40
@@ -230,54 +225,33 @@ jobs:
             $(printf "${IMG}@sha256:%s " *)
           docker buildx imagetools inspect "${IMG}:${{ github.sha }}"
 
-      - name: Publish the API (delta)
-        id: api
+      - name: Publish the server runtime
+        id: server
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
         with:
           context: ./server
-          file: ./server/crates/delta/Dockerfile
+          file: ./server/Dockerfile.runtime
           push: true
           platforms: linux/amd64,linux/arm64
           provenance: false
           build-args: |
             BASE_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/${{ env.BASE }}:${{ github.sha }}
           tags: |
-            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-api:latest
-            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-api:main
-            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-api:${{ github.sha }}
+            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server:latest
+            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server:main
+            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server:${{ github.sha }}
           labels: |
-            org.opencontainers.image.title=Vortex API
+            org.opencontainers.image.title=Vortex server
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
 
-      - name: Publish events (bonfire)
-        id: events
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
-        with:
-          context: ./server
-          file: ./server/crates/bonfire/Dockerfile
-          push: true
-          platforms: linux/amd64,linux/arm64
-          provenance: false
-          build-args: |
-            BASE_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/${{ env.BASE }}:${{ github.sha }}
-          tags: |
-            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-events:latest
-            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-events:main
-            ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-events:${{ github.sha }}
-          labels: |
-            org.opencontainers.image.title=Vortex events
-            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.sha }}
-
-      - name: Report the digests to pin
+      - name: Report the digest to pin
         run: |
           {
-            echo "### Imagens publicadas"
+            echo "### Imagem publicada"
             echo
             echo '```'
-            echo "VORTEX_API_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-api:${{ github.sha }}@${{ steps.api.outputs.digest }}"
-            echo "VORTEX_EVENTS_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-events:${{ github.sha }}@${{ steps.events.outputs.digest }}"
+            echo "VORTEX_SERVER_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server:${{ github.sha }}@${{ steps.server.outputs.digest }}"
             echo '```'
             echo
             echo "O build atualiza o PR de imagens do pi-infra; o merge dispara o deploy."
@@ -297,15 +271,13 @@ jobs:
       - name: Update the deployment PR
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
-          API_IMAGE: ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-api:${{ github.sha }}@${{ steps.api.outputs.digest }}
-          EVENTS_IMAGE: ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server-events:${{ github.sha }}@${{ steps.events.outputs.digest }}
+          SERVER_IMAGE: ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server:${{ github.sha }}@${{ steps.server.outputs.digest }}
           REVISION: ${{ github.sha }}
         run: |
           jq -n \
-            --arg api "$API_IMAGE" \
-            --arg events "$EVENTS_IMAGE" \
+            --arg image "$SERVER_IMAGE" \
             --arg revision "$REVISION" \
-            '{event_type:"vortex-server-published",client_payload:{revision:$revision,updates:{VORTEX_API_IMAGE:$api,VORTEX_EVENTS_IMAGE:$events}}}' |
+            '{event_type:"vortex-server-published",client_payload:{revision:$revision,updates:{VORTEX_SERVER_IMAGE:$image}}}' |
             curl --fail-with-body \
               --request POST \
               --header "Accept: application/vnd.github+json" \

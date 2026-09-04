@@ -67,7 +67,7 @@ const DICA_DE_AUDIO: Record<Aba, string> = {
  * ⚠ **A escolha acontece ANTES da captura.** Resolução e taxa são constraints
  * fixadas na chamada de `getDisplayMedia`; um seletor que respondesse a um
  * pedido em voo — como o upstream faz — só escolheria a fonte, e as outras
- * duas colunas ficariam decorativas. Ver `desktop/src/native/telaCompartilhada.ts`.
+ * duas colunas ficariam decorativas. Ver `vendor/stoat-desktop/src/native/telaCompartilhada.ts`.
  *
  * ⚠ **O banner de permissão é REAL.** Ele vem de
  * `systemPreferences.getMediaAccessStatus("screen")` na casca, que só existe

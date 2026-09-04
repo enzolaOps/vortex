@@ -1,26 +1,24 @@
-# web-react — o cliente Vortex em React
+# client — o cliente Vortex em React
 
-Ilha nova, irmã de `web/`. Porte do cliente de Solid.js para React, com
-redesenho completo do front-end.
+Cliente de produto, portado do Solid.js para React com redesenho completo do
+front-end. O código Solid permanece em `../vendor/stoat-web/` somente como
+referência.
 
 **Leia `../CLAUDE.md` antes de escrever qualquer coisa aqui.** Este arquivo
 cobre só o que é específico da ilha; as decisões de arquitetura e as leis do
 projeto estão lá.
 
-## Relação com `web/`
+## Relação com a referência Solid
 
-As duas convivem. `web/` continua sendo o cliente que está no ar e é a
-**implementação de referência** — a fonte de como o protocolo é usado, como as
+`vendor/stoat-web/` é a **implementação de referência** — a fonte de como o protocolo é usado, como as
 telas se comportam e onde estão os casos de borda que ninguém lembra que
 existem.
 
-`web/` é para **ler**, não para editar. Correção que precise entrar nos dois
-lados é a exceção, e nesse caso entra nos dois explicitamente. `web/` só é
-removido quando `web-react/` atingir paridade — o que é uma decisão de produto,
-não de código.
+`vendor/stoat-web/` é para **ler**, não para editar como produto. Não é
+construído nem publicado por CI.
 
 Conforme o VORTEX.md, cada diretório de topo é uma ilha: lockfile, toolchain e
-build próprios. `web-react/` compartilha com as outras apenas `brand/`.
+build próprios. `client/` consome `brand/` da raiz.
 
 ## Stack decidida
 
@@ -28,7 +26,7 @@ build próprios. `web-react/` compartilha com as outras apenas `brand/`.
 |---|---|---|
 | Framework | React 19 + TypeScript | § Portar Solid → React |
 | Compiler | React Compiler, ativo desde o dia 1 | § React Compiler ativo desde o dia 1 |
-| Build | Vite | herdado de `web/`, sem motivo para divergir |
+| Build | Vite | herdado de `vendor/stoat-web/`, sem motivo para divergir |
 | Estilo | Tailwind v4 sobre `tokens.css` + `@theme` | § Estilização: Tailwind v4 sobre tokens em CSS puro |
 | Escape hatch de estilo | CSS Modules | idem |
 | Primitivos | Radix | § Radix, não Base UI |
@@ -42,7 +40,7 @@ build próprios. `web-react/` compartilha com as outras apenas `brand/`.
 Nenhuma dependência foi instalada ainda — as versões se resolvem na primeira
 instalação, não são chutadas aqui.
 
-## O que atravessa de `web/` sem reescrita
+## O que atravessa de `vendor/stoat-web/` sem reescrita
 
 Vale conferir antes de reimplementar qualquer coisa. Estes são agnósticos de
 framework e custam um wrapper, não um porte:
@@ -62,8 +60,8 @@ que este projeto tem tokens; não é refinamento do que existe.
 
 ## O SDK desta ilha
 
-`web-react/packages/stoat.js` é submodule próprio, mesmo upstream que o de
-`web/` (`stoatchat/javascript-client-sdk`), **pinado no mesmo commit**:
+`client/packages/stoat.js` é submodule próprio (`stoatchat/javascript-client-sdk`),
+pinado no commit:
 `30b8505b`.
 
 ### O SDK é transporte, não fundação
@@ -114,17 +112,15 @@ de sessão — mais `e1a9c8a8`, que otimiza carregamento de membros em servidor
 grande. Essa é exatamente a condição que o firehose existe para medir.
 
 Usar o npm faria esta ilha portar contra um SDK mais velho que a implementação
-de referência, justamente na fase em que comparar as duas lado a lado é o método
-de verificação. Divergência de comportamento viraria indistinguível de bug de
-porte.
+de referência. Divergência de comportamento viraria indistinguível de bug de porte.
 
 O `stoat-api` pinado dentro do SDK (`0.14.0`) acompanha o backend que a
 instância roda, não o latest do npm — por isso o `minimumReleaseAgeExclude` no
 workspace.
 
-### Por que não referenciar o de `web/`
+### Por que não referenciar o de `vendor/stoat-web/`
 
-`link:../../web/packages/stoat.js` faria o lockfile desta ilha depender de um
+Um link para `vendor/stoat-web/packages/stoat.js` faria o lockfile desta ilha depender de um
 caminho fora da própria raiz, e o build deixaria de ser self-contained — quebra
 contexto de Docker e checkout de CI. É precisamente o que a regra de ilha do
 VORTEX.md protege.
@@ -134,18 +130,13 @@ O custo do submodule duplicado é 464K de working tree, com os objetos em
 
 ### O custo real
 
-**Dois gitlinks que precisam andar juntos.** Se um subir e o outro não, as duas
-ilhas rodam SDKs diferentes — e isso não dá erro, só diverge em silêncio.
-
-Mecanizado: `.github/workflows/sdk-lockstep.yml` compara os dois gitlinks e falha
-se divergirem. Registrado em `enforcement.md` como invariante de Fase 0.
-
-**Ao subir a versão do SDK, suba os dois no mesmo commit.**
+O gitlink do cliente é atualizado conforme o protocolo do produto. Os gitlinks
+em `vendor/` acompanham suas respectivas referências e não são CI de produto.
 
 ### Build
 
 `lib/` não existe no checkout e o `exports` aponta para `./lib/index.js` — o SDK
-precisa de `tsc` antes do client. Vale igual para o `web/` hoje.
+precisa de `tsc` antes do client.
 
 ## A armadilha que custou mais caro
 
@@ -202,12 +193,11 @@ Quatro peças:
 1. Ponte `stoat.js` → store externo com `useSyncExternalStore`
 2. TanStack Virtual em modo chat
 3. Firehose sintético (presença/mensagem/typing/reaction contra o store)
-4. Enforcement de base — as seis linhas marcadas "Fase 0" em
+4. Enforcement de base — as linhas marcadas "Fase 0" em
    `.claude/skills/vortex-react/references/enforcement.md`: lint contra índice
    como `key`, lint de `any` na fronteira do SDK, assertion de estabilidade de
    `getSnapshot`, assertion de remedição após mudança de largura do container, e
-   o firehose como gate de merge. A sexta — lockstep dos gitlinks do SDK — já
-   está de pé
+   o firehose como gate de merge.
 
 O spike existe para responder uma pergunta em aberto: **TanStack Virtual é
 compatível com o React Compiler?** Houve relato de que não. Se conflitar, a

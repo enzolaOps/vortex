@@ -22,7 +22,7 @@ contextBridge.exposeInMainWorld("native", {
  *
  * ⚠ **Separada de `native` de propósito, e o nome é o contrato do cliente.**
  * `native` é a ponte do cliente Solid (`web/`); esta é consumida pelo cliente
- * React, cujo contrato vive em `web-react/…/sdk/seletorDeTela.ts`. Misturar as
+ * React, cujo contrato vive em `client/…/sdk/seletorDeTela.ts`. Misturar as
  * duas faria uma casca ditar a forma da outra — e o briefing manda o contrário:
  * o cliente declara o que precisa, a casca implementa.
  *
@@ -49,7 +49,7 @@ contextBridge.exposeInMainWorld("vortexTela", {
  * quando esta ponte existe. Sem ela: janela sem moldura do sistema e sem barra
  * nossa — uma janela que não pode ser fechada.
  *
- * O contrato é `PonteDesktop`, em `web-react/…/sdk/desktop.ts`. Verbo que
+ * O contrato é `PonteDesktop`, em `client/…/sdk/desktop.ts`. Verbo que
  * faltar aqui faz `verbosFaltandoNaPonte` acusar do lado do cliente, que cai
  * na barra nativa em vez de deixar a janela sem controle nenhum.
  *
