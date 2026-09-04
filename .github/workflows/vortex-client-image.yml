@@ -4,6 +4,7 @@
 name: Vortex client image
 
 on:
+  pull_request:
   release:
     types: [published]
   workflow_dispatch:
@@ -27,9 +28,20 @@ jobs:
           persist-credentials: false
       - run: git fetch --tags --force
       - id: d
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            files=$(git diff --name-only "$BASE"...HEAD)
+            if FILES="$files" scripts/ci/changed.sh client; then
+              echo "changed=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "changed=false" >> "$GITHUB_OUTPUT"
+            fi
             exit 0
           fi
           if scripts/ci/changed.sh client; then
@@ -43,10 +55,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: scripts/ci/release-notes.sh
 
+  # Check required: sempre roda. PR que não toca client/ passa aqui sem build.
+  result:
+    name: Vortex client
+    needs: detect
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "changed=${{ needs.detect.outputs.changed }}"
+
   build:
     name: Build and push
     needs: detect
-    if: needs.detect.outputs.changed == 'true'
+    if: needs.detect.outputs.changed == 'true' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
