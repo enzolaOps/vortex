@@ -736,10 +736,10 @@
     justamente onde o ícone divide espaço com texto pequeno (o campo de busca
     é 30px de altura, e um glifo de 14 nele come a folga).
   */
-  --vx-icon-0: 12px; /* cromagem MIÚDA: campo de busca, faixa de voz, rodapé */
-  --vx-icon-1: 14px; /* cromagem densa: coluna, ações, composer */
-  --vx-icon-2: 16px; /* alvos de leitura: linha de mensagem, composer */
-  --vx-icon-3: 20px; /* raro: quando o ícone É o alvo, sem rótulo ao lado */
+  --vx-icon-0: 14px; /* cromagem MIÚDA: campo de busca, faixa de voz, rodapé */
+  --vx-icon-1: 16px; /* cromagem densa: coluna, ações, composer */
+  --vx-icon-2: 18px; /* alvos de leitura: linha de mensagem, composer */
+  --vx-icon-3: 24px; /* raro: quando o ícone É o alvo, sem rótulo ao lado */
 
   /* 22px, o número do design para quem está numa sala de voz. Era 20 — e o
      único consumidor é a linha da sala, então o degrau descreve exatamente
@@ -1214,6 +1214,16 @@ body {
   */
   font-size: var(--vx-size-lg);
   line-height: normal;
+  font-weight: 450;
+  letter-spacing: 0.005em;
+  font-optical-sizing: auto;
+}
+
+code,
+kbd,
+pre,
+samp {
+  letter-spacing: 0;
 }
 
 /* ============================================================
