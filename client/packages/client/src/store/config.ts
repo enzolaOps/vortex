@@ -1,10 +1,12 @@
 /**
  * As configurações abertas.
  *
- * ⚠ **Rota, e não modal** — decisão do plano de paridade. O upstream põe as 42
- * páginas dentro de um `Dialog` em tela cheia, e paga por isso: nada é
- * linkável, o botão voltar não fecha, e recarregar cai na tela inicial. Aqui
- * `/config/perfil` é um endereço, `voltar` fecha, e F5 continua onde estava.
+ * ⚠ **Rota, e não estado de Dialog** — decisão do plano de paridade. O
+ * upstream põe as 42 páginas dentro de um `Dialog` em tela cheia, e paga por
+ * isso: nada é linkável, o botão voltar não fecha, e recarregar cai na tela
+ * inicial. Aqui `/config/perfil` é um endereço, `voltar` fecha, e F5 continua
+ * onde estava. A casca é um painel centrado; o dono do estado continua sendo
+ * este store, não o Radix.
  *
  * ⚠ **E ela fica SOBRE o shell, não no lugar dele.** Substituir o shell
  * desmontaria a lista de mensagens — que numa sessão real tem dez mil linhas

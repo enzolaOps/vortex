@@ -56,10 +56,10 @@ import css from "./Configuracoes.module.css";
 /**
  * A casca de configurações.
  *
- * ⚠ **Rota e não modal, e SOBRE o shell e não no lugar dele.** As duas
- * decisões estão em `store/config.ts` com a razão. A consequência visível aqui
- * é que a lista de mensagens continua montada atrás — abrir "Aparência" não
- * pode custar a remontagem de dez mil linhas medidas.
+ * ⚠ **Rota, e SOBRE o shell e não no lugar dele.** As duas decisões estão em
+ * `store/config.ts` com a razão. A casca é um painel centrado; a lista de
+ * mensagens continua montada atrás — abrir "Aparência" não pode custar a
+ * remontagem de dez mil linhas medidas.
  *
  * ⚠ **Duas destas seções já existiam e não sabiam disso:** "Aparência" é o
  * `PickerDePaleta` e o modo de edição que a fase 4 construiu, e que até agora
@@ -213,6 +213,13 @@ export function Configuracoes() {
   };
 
   return (
+    // ponytail: overlay próprio — Dialog trava o scroll da lista virtualizada
+    <div
+      className={cn(css.veu, "camada-chega")}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) fecharConfig();
+      }}
+    >
     <div
       className={css.tela}
       role="dialog"
@@ -353,6 +360,7 @@ export function Configuracoes() {
           <X size={ICONE.controle} aria-hidden />
         </button>
       </Tooltip>
+    </div>
     </div>
   );
 }
