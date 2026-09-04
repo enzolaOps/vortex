@@ -457,6 +457,7 @@ export function MessageList({ channelId }: { channelId: string }) {
   */
   const temLista = ids.length > 0;
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual, spike
   const virtualizer = useVirtualizer({
     count: ids.length,
     getScrollElement: () => scrollRef.current,

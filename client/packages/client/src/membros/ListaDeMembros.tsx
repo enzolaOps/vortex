@@ -363,6 +363,7 @@ export function ListaDeMembros() {
     return out;
   }, [secoes, offline]);
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual, spike
   const virtualizer = useVirtualizer({
     count: linhas.length,
     getScrollElement: () => scrollRef.current,
