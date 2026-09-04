@@ -80,6 +80,7 @@ jobs:
           fi
       - run: corepack enable && corepack prepare pnpm@11.3.0 --activate
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter stoat.js build
       - run: pnpm --filter client check
 
   # Check required. Falha se o check do PR falhou; passa se não tocou client/.
