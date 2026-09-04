@@ -22,7 +22,8 @@
 */
 .painel {
   inline-size: 620px;
-  max-inline-size: 100%;
+  max-inline-size: min(620px, 100%);
+  min-inline-size: 0;
 }
 
 /* ---------------------------------------------------------- banner */
@@ -38,6 +39,7 @@
 */
 .banner {
   position: relative;
+  overflow: hidden;
   block-size: 140px;
 }
 
@@ -95,6 +97,7 @@
   margem negativa já ocupa o lugar dele.
 */
 .corpo {
+  min-inline-size: 0;
   padding: 0 var(--vx-space-24) var(--vx-space-24);
   margin-block-start: -44px;
 }
@@ -103,6 +106,8 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
+  gap: var(--vx-space-12);
+  min-inline-size: 0;
 }
 
 /*
@@ -113,6 +118,7 @@
 */
 .moldura {
   position: relative;
+  flex: none;
   inline-size: 96px;
   block-size: 96px;
   border-radius: var(--vx-radius-pill);
@@ -133,6 +139,9 @@
 
 .acoes {
   display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: var(--vx-space-08);
   margin-block-end: var(--vx-space-08);
 }
@@ -190,6 +199,7 @@
   display: flex;
   align-items: center;
   gap: var(--vx-space-08);
+  min-inline-size: 0;
   margin-block-start: var(--vx-space-14);
 }
 
@@ -216,6 +226,8 @@
 */
 .meta {
   margin: 0;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
   color: var(--vx-text-3);
   font-family: var(--vx-font-mono);
   font-size: var(--vx-size-md);
@@ -225,8 +237,11 @@
 
 .abas {
   display: flex;
+  flex-wrap: nowrap;
   gap: var(--vx-space-02);
+  min-inline-size: 0;
   margin-block-start: var(--vx-space-18);
+  overflow-x: auto;
   border-block-end: 1px solid var(--vx-hairline-10);
 }
 
@@ -240,6 +255,7 @@
   deitada, porque aqui a sequência é horizontal.
 */
 .aba {
+  flex: none;
   padding: var(--vx-space-09) var(--vx-space-14);
   border: 0;
   background: transparent;
@@ -273,8 +289,9 @@
 */
 .colunas {
   display: grid;
-  grid-template-columns: 1.4fr 1fr;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
   gap: var(--vx-space-24);
+  min-inline-size: 0;
   margin-block-start: var(--vx-space-18);
 }
 
@@ -283,6 +300,7 @@
   flex-direction: column;
   gap: var(--vx-space-08);
   min-inline-size: 0;
+  overflow: hidden;
 }
 
 .rotulo {

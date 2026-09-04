@@ -10,4 +10,7 @@
 */
 .cartao {
   inline-size: min(288px, calc(100vw - var(--vx-space-24)));
+  max-inline-size: min(288px, calc(100vw - var(--vx-space-24)));
+  min-inline-size: 0;
+  overflow: hidden;
 }

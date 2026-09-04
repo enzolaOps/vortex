@@ -313,9 +313,8 @@
 .acoes {
   position: absolute;
   inset-block-start: 0;
-  /* Ancorada no recuo da LINHA: em 16 ela flutuaria 4px fora da coluna de
-     conteúdo depois que o recuo foi para 20. */
-  inset-inline-end: var(--vx-space-20);
+  /* `.conteudo` já é a coluna de texto (o `px-20` da linha está fora). */
+  inset-inline-end: 0;
   /*
     ⚠ **A saliência é EXATAMENTE o respiro da própria linha, e antes era
     metade da barra — que é maior que o respiro em toda continuação.**
@@ -384,23 +383,14 @@
   entrar na barra — e sem esta linha o ponteiro sairia, a barra sumiria
   e arrancaria o foco do elemento em uso.
 */
-:hover > .acoes,
-:focus-within > .acoes,
-/*
-  Enquanto o menu desta linha está aberto, a barra FICA.
-
-  É instrução do design ("permanece visível enquanto o menu ⋯ estiver
-  aberto"), e é consequência mecânica: abrir o menu leva o ponteiro para
-  dentro dele, o hover da linha se perde, e a barra sumiria por baixo do menu
-  que ela acabou de abrir. Ao fechar, o alvo do menu volta a `null` e ela
-  segue o ponteiro de novo.
-*/
-[data-abre-grupo="true"] .acoes {
-  transform: translateY(calc(var(--vx-space-16) * -1));
-}
-
+.linha:hover .acoes,
+.linha:focus-within .acoes,
 .acoes[data-menu-aberto] {
   visibility: visible;
+}
+
+.linha[data-abre-grupo="true"] .acoes {
+  transform: translateY(calc(var(--vx-space-16) * -1));
 }
 
 /*
