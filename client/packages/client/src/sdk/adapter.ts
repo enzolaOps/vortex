@@ -1062,6 +1062,7 @@ export function startAdapter() {
       nos dois lugares não duplica requisição.
     */
     for (const id of [...historicoAdiado]) void carregarHistorico(id);
+    renovarPresencaDoServidor();
   });
   client.on("connecting", () => definirConexao("reconectando"));
   client.on("disconnected", () => definirConexao("sem-conexao"));
@@ -2464,6 +2465,42 @@ function contagemDe(mapa: Map<string, Contagem>, id: string): Contagem {
  */
 let canalAberto: string | undefined;
 
+/**
+ * Bonfire only fans UserUpdate to `{serverId}u`. Friends ride the user topic
+ * (Ready already subscribes). Server members do not, unless we Subscribe.
+ *
+ * ponytail: one slot (the viewed server). Protocol: max 5, expires 15min,
+ * refresh ≤10min. Bots skip this — they get `u` topics on Ready.
+ */
+const SUBSCRIBE_MS = 10 * 60 * 1000;
+let servidorDePresenca: string | undefined;
+let intervaloDePresenca: ReturnType<typeof setInterval> | undefined;
+
+function enviarSubscribe(serverId: string): void {
+  if (!conectado()) return;
+  try {
+    client.events.send({ type: "Subscribe", server_id: serverId } as never);
+  } catch {
+    /* EventClient.send throws without a socket */
+  }
+}
+
+function assinarPresencaDoServidor(serverId: string | undefined): void {
+  if (serverId === servidorDePresenca) return;
+  servidorDePresenca = serverId;
+  if (intervaloDePresenca !== undefined) {
+    clearInterval(intervaloDePresenca);
+    intervaloDePresenca = undefined;
+  }
+  if (!serverId) return;
+  enviarSubscribe(serverId);
+  intervaloDePresenca = setInterval(() => enviarSubscribe(serverId), SUBSCRIBE_MS);
+}
+
+function renovarPresencaDoServidor(): void {
+  if (servidorDePresenca) enviarSubscribe(servidorDePresenca);
+}
+
 export function definirCanalAberto(channelId: string | undefined): void {
   if (canalAberto === channelId) return;
 
@@ -2472,6 +2509,10 @@ export function definirCanalAberto(channelId: string | undefined): void {
   if (canalAberto) avancarCursor(canalAberto);
 
   canalAberto = channelId;
+
+  assinarPresencaDoServidor(
+    channelId ? client.channels.get(channelId)?.serverId : undefined,
+  );
 
   if (channelId) {
     marcarCanalLido(channelId);

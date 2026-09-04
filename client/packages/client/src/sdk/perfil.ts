@@ -154,6 +154,15 @@ export async function trocarEmail(novo: string, senha: string): Promise<boolean>
 /* --------------------------------------------------------------- status */
 
 /**
+ * User.edit hydrates the SDK object but does not emit `userUpdate`.
+ * The adapter's one handler is what writes the ephemeral map — reuse it.
+ */
+function avisarPresencaLocal(): void {
+  const eu = client.user;
+  if (eu) client.emit("userUpdate", eu, {} as never);
+}
+
+/**
  * A grafia do protocolo para cada escolha. Não sai daqui.
  *
  * `Focus` existe no protocolo e NÃO é oferecido: ele é um quinto estado que o
@@ -185,6 +194,7 @@ export async function definirPresenca(p: PresencaEscolhida): Promise<boolean> {
   definirMeuStatusLocal(p);
   try {
     await client.user?.edit({ status: { presence: GRAFIA[p] as never } });
+    avisarPresencaLocal();
     return true;
   } catch (e) {
     falhou("Não deu para mudar seu status.", e);
@@ -209,6 +219,7 @@ export async function definirStatusTexto(texto: string): Promise<boolean> {
         ? { status: { text: limpo } }
         : ({ remove: ["StatusText"] } as never),
     );
+    avisarPresencaLocal();
     return true;
   } catch (e) {
     falhou("Não deu para salvar o recado.", e);
