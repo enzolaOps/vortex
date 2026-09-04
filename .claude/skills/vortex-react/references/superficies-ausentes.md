@@ -1,7 +1,7 @@
 # Superfícies ausentes — o que o Stoat tem e o Vortex não tem NADA
 
-> Levantado por diferença entre `web/packages/client` (upstream Solid) e
-> `web-react/packages/client` (nosso port). **"Ausente" aqui não quer dizer
+> Levantado por diferença entre `vendor/stoat-web/packages/client` (upstream Solid) e
+> `client/packages/client` (nosso port). **"Ausente" aqui não quer dizer
 > "diferente" — quer dizer que não existe arquivo, rota, modal nem botão.**
 >
 > É mapa, não roadmap. A ordem de construção é decisão separada; o que este

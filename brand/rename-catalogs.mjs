@@ -24,7 +24,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const catalogs = resolve(
   here,
   "..",
-  "web/packages/client/components/i18n/catalogs",
+  "vendor/stoat-web/packages/client/components/i18n/catalogs",
 );
 
 if (!existsSync(catalogs)) {

@@ -1,8 +1,5 @@
-# Constrói o cliente React e publica no GHCR.
-#
-# Irmão de `vortex-image.yml`, que faz o mesmo para o cliente Solid em `web/`.
-# Os dois convivem de propósito enquanto o port não substitui o outro: a ilha
-# React é o produto novo, e a Solid é o que está no ar.
+# Constrói o cliente Vortex e publica no GHCR. O cliente Solid em
+# `vendor/stoat-web/` é somente referência e nunca é publicado por este repo.
 #
 # O repositório é privado, então os runners arm64 nativos e gratuitos não estão
 # disponíveis. A imagem é construída em runner amd64: o Dockerfile pina o
@@ -11,22 +8,22 @@
 # emulado.
 #
 # O digest a pinar sai no resumo do job.
-name: Vortex React image
+name: Vortex client image
 
 on:
   push:
     branches:
       - main
     paths:
-      - "web-react/**"
-      - "!web-react/**/*.md"
+      - "client/**"
+      - "!client/**/*.md"
       - "brand/**"
       - ".dockerignore"
-      - ".github/workflows/vortex-react-image.yml"
+      - ".github/workflows/vortex-client-image.yml"
   workflow_dispatch:
 
 concurrency:
-  group: vortex-react-image-${{ github.ref }}
+  group: vortex-client-image-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -46,22 +43,17 @@ jobs:
 
       # Diretório de submodule vazio não falha onde acontece: o `pnpm --filter`
       # sai com 0 quando nenhum projeto casa, e o erro só aparece muito depois
-      # como um import que não resolve. A ilha React tem UM submodule; a Solid
-      # tem três.
+      # como um import que não resolve. O cliente tem um submodule.
       - name: Verify the SDK submodule was checked out
         run: |
-          if [ -z "$(ls -A web-react/packages/stoat.js 2>/dev/null)" ]; then
-            echo "web-react/packages/stoat.js está vazio — falta o gitlink ou a entrada em .gitmodules." >&2
+          if [ -z "$(ls -A client/packages/stoat.js 2>/dev/null)" ]; then
+            echo "client/packages/stoat.js está vazio — falta o gitlink ou a entrada em .gitmodules." >&2
             exit 1
           fi
 
-      # ⚠ O repositório se chama `vortex` (foi renomeado de `vortex-web`), então
-      # isto publica `ghcr.io/enzolaops/vortex-react` — NÃO `vortex-web-react`.
-      # O pacote `vortex-web` no GHCR é o de antes da renomeação e está parado;
-      # pinar ele no pi-infra entrega uma imagem velha sem nenhum aviso.
       - name: Lowercase the image name
         id: image
-        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}-react" >> "$GITHUB_OUTPUT"
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/vortex-client" >> "$GITHUB_OUTPUT"
 
       # Só o estágio de runtime arm64 precisa de emulação.
       - name: Set up QEMU
@@ -83,16 +75,16 @@ jobs:
         id: push
         uses: docker/build-push-action@v7
         with:
-          # ⚠ **Contexto na RAIZ, e não em `./web-react`.** O `vite.config.ts`
+          # ⚠ **Contexto na RAIZ, e não em `./client`.** O `vite.config.ts`
           # tem um plugin que lê `brand/mark.svg` da raiz e o emite no bundle;
           # com o contexto na ilha o build morre em `ENOENT: /brand/mark.svg`.
           # Descoberto construindo a imagem localmente — o `pnpm build` do host
           # passa, porque lá o arquivo está a três níveis acima.
           #
           # O `.dockerignore` da raiz derruba tudo que não é `brand/` ou
-          # `web-react/`, então o contexto não carrega `web/` nem `desktop/`.
+          # `client/`, então o contexto não carrega `vendor/`.
           context: .
-          file: ./web-react/Dockerfile
+          file: ./client/Dockerfile
           # amd64 custa quase nada aqui (o estágio de build é compartilhado) e
           # deixa o cliente rodar localmente para depuração.
           platforms: linux/arm64,linux/amd64
@@ -103,7 +95,7 @@ jobs:
             ${{ steps.image.outputs.name }}:main
             ${{ steps.image.outputs.name }}:${{ github.sha }}
           labels: |
-            org.opencontainers.image.title=Vortex React web client
+            org.opencontainers.image.title=Vortex client
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha
@@ -120,7 +112,7 @@ jobs:
             echo
             echo "O build atualiza o PR de imagens do pi-infra."
             echo
-            echo "A imagem serve na porta 5000, como a do cliente Solid, e resolve a API"
+            echo "A imagem serve na porta 5000 e resolve a API"
             echo "contra a própria origem — as variáveis \`VITE_*\` do compose não são"
             echo "necessárias para ela."
           } >> "$GITHUB_STEP_SUMMARY"

@@ -180,8 +180,7 @@ function cspDoVortex(): Plugin {
 /**
  * Serve `brand/mark.svg` como `/mark.svg`, em dev e no build.
  *
- * `brand/` fica fora da raiz desta ilha — é compartilhado com `web/` e
- * `desktop/`, e é o único diretório que as três compartilham. As saídas
+ * `brand/` fica fora da raiz desta ilha. As saídas
  * óbvias seriam copiar o arquivo para `public/` ou abrir `server.fs.allow`
  * para fora da raiz; a primeira cria uma cópia que deriva da fonte, e o
  * arquivo de marca JÁ carrega esse risco entre as três peças. Não vale

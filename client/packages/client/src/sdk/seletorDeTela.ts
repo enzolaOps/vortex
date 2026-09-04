@@ -14,7 +14,7 @@
  * completa vale mais que meia ponte larga.
  *
  * ⚠ **Quatro verbos, e a ordem entre eles é o mecanismo.** A casca escolhe
- * ANTES de a captura ser pedida — ver `desktop/src/native/telaCompartilhada.ts`
+ * ANTES de a captura ser pedida — ver `vendor/stoat-desktop/src/native/telaCompartilhada.ts`
  * para o porquê. Aqui isso aparece como: pergunte se há seletor próprio, liste,
  * arme a escolha, e só então peça a captura ao LiveKit.
  */
@@ -108,7 +108,7 @@ let jaAvisou = false;
  * está tentando apresentar.
  *
  * E casca incompleta não é hipótese remota: **a casca carrega o cliente por
- * URL remota** (ver o README de `desktop/`), então o cliente web atualiza no
+ * URL remota** (ver o README de `vendor/stoat-desktop/`), então o cliente web atualiza no
  * deploy e a casca não. "Casca velha + cliente novo" é o estado NORMAL depois
  * de toda subida, e será o estado de qualquer pessoa que não reinstalar
  * quando um verbo for acrescentado.

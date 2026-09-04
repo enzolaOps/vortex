@@ -1,13 +1,13 @@
 # O contexto de build da imagem React é a RAIZ, porque o cliente lê `brand/`.
-# Ver `web-react/Dockerfile`. Sem esta lista o contexto levaria `web/`,
-# `desktop/` e todos os `node_modules` do repositório — gigabytes para um
+# Ver `client/Dockerfile`. Sem esta lista o contexto levaria `vendor/`
+# e todos os `node_modules` do repositório — gigabytes para um
 # build que precisa de duas pastas.
 #
 # Regra do Docker: o ÚLTIMO padrão que casa vence. Daí a forma "nega tudo,
 # devolve o que interessa, nega de novo o que não deve ir junto".
 *
 !brand
-!web-react
+!client
 
 # `node_modules` é o que mais pesa, e o `pnpm install` do Dockerfile o
 # reconstrói de qualquer jeito. Mandá-lo do host ainda misturaria binários

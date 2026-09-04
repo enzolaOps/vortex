@@ -20,7 +20,7 @@ import { mainWindow } from "./window";
  * o produto" que este projeto já registrou uma dúzia de vezes — aqui na versão
  * mais cara, porque o que ele escondia era a casca inteira.
  *
- * O contrato vive no cliente (`web-react/…/sdk/desktop.ts`, tipo
+ * O contrato vive no cliente (`client/…/sdk/desktop.ts`, tipo
  * `PonteDesktop`), e é ele que manda: *"é o cliente que sabe o que precisa; a
  * casca implementa. Invertido, a casca ditaria a forma das telas."*
  */

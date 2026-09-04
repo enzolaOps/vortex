@@ -996,8 +996,7 @@ export function startAdapter() {
 
     As saídas eram três, e duas são piores:
 
-    1. **Patchar `stoat.js`.** Ele é submodule PINADO nas duas ilhas, com
-       lockstep em CI — mexer aqui obriga `web/` a mover junto e cria um fork
+    1. **Patchar `stoat.js`.** Ele é submodule PINADO — mexer aqui cria um fork
        do SDK para manter. Custo permanente por um booleano.
     2. **Buscar por REST.** `GET /servers/{id}/members` traz o campo, mas ele
        muda por EVENTO — o valor ficaria velho no instante seguinte, e a tela

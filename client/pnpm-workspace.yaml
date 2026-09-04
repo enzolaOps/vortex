@@ -2,7 +2,7 @@ packages:
   - packages/client
   - packages/stoat.js
 
-# Mesma escolha de `web/`: cada pacote enxerga só o que declarou.
+# Cada pacote enxerga só o que declarou.
 # Dependência fantasma vira erro de build, não bug em produção.
 nodeLinker: isolated
 

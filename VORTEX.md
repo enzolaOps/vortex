@@ -7,35 +7,33 @@ Three upstreams live here:
 
 | Path | Upstream | Remote |
 | --- | --- | --- |
-| `web/` | [stoatchat/for-web](https://github.com/stoatchat/for-web) at `stoat-for-web-v0.14.1` | `upstream` |
-| `desktop/` | [stoatchat/for-desktop](https://github.com/stoatchat/for-desktop) at `v1.5.3` | `desktop-upstream` |
+| `vendor/stoat-web/` | [stoatchat/for-web](https://github.com/stoatchat/for-web) at `stoat-for-web-v0.14.1` | `upstream` |
+| `vendor/stoat-desktop/` | [stoatchat/for-desktop](https://github.com/stoatchat/for-desktop) at `v1.5.3` | `desktop-upstream` |
 | `server/` | [stoatchat/stoatchat](https://github.com/stoatchat/stoatchat) at `v0.15.3` plus the Vortex image commits | `server-upstream` |
 
-The web client is this repository's own history; `desktop/` and `server/` were
-imported as subtrees. Their upstream remotes are for security fixes and protocol
-changes, not branding.
+The reference clients and `server/` were imported with upstream history. The
+trees under `vendor/` are retained for reference and are never product CI inputs.
 
 ## Layout
 
 ```text
 vortex/
-├── web/        pnpm workspace, nodeLinker: isolated · ships as a container
-├── web-react/  pnpm workspace, nodeLinker: isolated · the React port, in progress
-├── desktop/    pnpm workspace, nodeLinker: hoisted   · built by hand
-├── server/     Cargo workspace · ships API and events containers
+├── client/     pnpm workspace, nodeLinker: isolated · Vortex product client
+├── server/     Cargo workspace · ships one delta + bonfire runtime image
 ├── brand/      mark.svg + the generator used by the clients
+├── vendor/     Stoat web and desktop reference source; not product builds
 ├── .github/    client and server image workflows
 ├── CLAUDE.md   architecture briefing — read before touching the front-end
 └── VORTEX.md
 ```
 
 Each product directory is an island: its own lockfile, toolchain and build.
-The clients consume `brand/`. Root workflows publish the client, API and events
+The client consumes `brand/`. Root workflows publish the client and server
 images; deployment configuration remains in `pi-infra`.
 
 `server/` preserves the history imported from `enzolaOps/vortex-api`. Its Vortex
-changes are limited to cross-architecture images for `delta` (API) and `bonfire`
-(events); the other backend services still use upstream images.
+changes are limited to a cross-architecture runtime containing `delta` (API)
+and `bonfire` (events); the other backend services still use upstream images.
 
 ### Updating the server subtree
 
@@ -58,7 +56,7 @@ an upstream update.
 
 ### The web client used to be at the root
 
-It was moved into `web/` wholesale, which means **upstream merges no longer line
+It now lives in `vendor/stoat-web/`, which means **upstream merges no longer line
 up by path**. Rename detection handles it, but only if you let git see the whole
 tree at once:
 
@@ -93,22 +91,14 @@ Kept deliberately small, so merging upstream stays cheap.
 | Area | Change |
 | --- | --- |
 | `brand/` | Source artwork plus the two scripts below. New directory. |
-| `web/packages/client/scripts/assets_fallback/web/` | Icons regenerated from `brand/mark.svg`. |
-| `web/packages/client/index.html` | Tab title. |
-| `web/packages/client/vite.config.ts` | PWA manifest name, short name, description. |
-| `web/packages/client/src/serviceWorker.ts` | Fallback push-notification title. |
-| `web/packages/client/components/common/lib/env.ts` | Last-resort API URL is same-origin `/api` instead of stoat.chat production. |
-| `web/packages/client/src/index.tsx` | Removed the Android app nag, which advertises upstream's Google Play listing. |
-| `web/packages/client/src/interface/Home.tsx` | Removed the upstream donation link; put the feedback entry behind `IS_STOAT`, which is how upstream already gates its own community surfaces. |
-| `web/packages/client/components/i18n/catalogs/*/messages.po` | `msgstr` renamed by script. |
-| `.gitmodules` | Dropped the private `web/packages/client/assets` submodule. |
-| `.github/workflows/vortex-image.yml` | Cross-builds the web image and pushes it to GHCR. |
-| `.github/workflows/vortex-server-image.yml` | Cross-builds the API and events images and pushes them to GHCR. |
+| `vendor/stoat-web/` | Historical Solid implementation retained as reference only. |
+| `.gitmodules` | Tracks the client SDK and the public vendor gitlinks. |
+| `.github/workflows/vortex-client-image.yml` | Cross-builds the Vortex client image and pushes it to GHCR. |
+| `.github/workflows/vortex-server-image.yml` | Cross-builds one delta + bonfire runtime image and pushes it to GHCR. |
 | `.github/workflows/` | Every other upstream workflow deleted — see below. |
-| `server/` | Backend source plus the Docker changes needed to publish only API and events for amd64 and arm64. |
-| `web/Dockerfile` | Builder stage pinned to `$BUILDPLATFORM` so it is not emulated. |
-| `web/packages/client/components/app/interface/settings/` | Settings surfaces: "Source Code" points here (AGPL §13), feedback and bug links point at this repo's issues, the upstream donation link is gone, the desktop version line reads Vortex. |
-| `desktop/` | The Electron shell, imported as a subtree. See below. |
+| `server/` | Backend source plus the Docker changes needed to publish one delta + bonfire runtime for amd64 and arm64. |
+| `client/Dockerfile` | Builder stage pinned to `$BUILDPLATFORM` so it is not emulated. |
+| `vendor/stoat-desktop/` | Historical Electron implementation retained as reference only. |
 
 Most visible Stoat surfaces needed no change: upstream already hides the Lounge,
 Discover and similar behind `CONFIGURATION.IS_STOAT`, which is false whenever the
@@ -116,21 +106,20 @@ API is not one of theirs.
 
 ## The desktop shell
 
-`desktop/` is the Electron app. It has **its own lockfile and its own
+`vendor/stoat-desktop/` is the Electron reference. It has **its own lockfile and its own
 `pnpm-workspace.yaml`**, and is not part of the root pnpm workspace: the web
 client needs `nodeLinker: isolated`, the desktop's native dependencies need
-`hoisted`. Always run its commands from inside `desktop/`.
+`hoisted`. It is not a product build.
 
 It does not bundle the client — it loads the instance over HTTPS, from
 `VORTEX_APP_URL` baked in at build time. There is deliberately no default: the
 build fails without it rather than shipping a client pointed at somebody else's
 server.
 
-See `desktop/README.md` for the build, and for what was cut from upstream
-(Discord RPC, the GitHub auto-updater, the Windows makers).
+See `vendor/stoat-desktop/README.md` for its upstream build documentation.
 
-There is no desktop CI. The image workflows cover `web/` and `server/` and
-ignore `desktop/**`.
+The desktop workflow is manual-only and uploads reference artifacts without
+publishing a release.
 
 ## Replacing the logo
 
@@ -141,8 +130,7 @@ npm i -D sharp
 node brand/generate.mjs
 ```
 
-That regenerates every PNG and the `.ico`, for the web client **and** for
-`desktop/assets/` (which upstream keeps in the same private submodule).
+That regenerates every PNG and the `.ico` for the vendor reference trees.
 `brand/monochrome.svg` and `brand/wordmark.svg` are copied as-is, so update
 those by hand too.
 
@@ -152,12 +140,12 @@ and a root manifest carrying a single build-time tool is exactly the clutter
 that rule exists to prevent. Leave them where they are — deleting them only
 means recreating them the next time the mark changes.
 
-`web-react/` does not consume the rasters. It serves `brand/mark.svg` straight
+`client/` does not consume the rasters. It serves `brand/mark.svg` straight
 as its favicon through a small Vite plugin, so there is no fourth copy to keep
 in sync.
 
-Where each file lands is decided by `web/packages/client/scripts/copyAssets.mjs`: it
-links `web/packages/client/assets/` into `public/assets` when that directory exists
+Where each reference file lands is decided by `vendor/stoat-web/packages/client/scripts/copyAssets.mjs`: it
+links its `assets/` into `public/assets` when that directory exists
 and is non-empty, and otherwise falls back to `scripts/assets_fallback/`. This
 fork has no `assets/` directory, so the fallback is the real path — which is why
 the generator writes there.
@@ -170,8 +158,8 @@ New or changed English strings arrive with "Stoat" in them. After merging:
 node brand/rename-catalogs.mjs
 ```
 
-It rewrites `msgstr` only, never `msgid`, and leaves domain names alone. CI runs
-it with `--check` and fails if anything was missed.
+It rewrites `msgstr` only, never `msgid`, and leaves domain names alone. This is
+a manual vendor-maintenance utility, not product CI.
 
 ## Upstream drift
 
@@ -219,8 +207,8 @@ and drop the QEMU step for a fully native build.
 
 ## Why the upstream workflows are gone
 
-All upstream workflows were deleted; only `vortex-image.yml` and
-`vortex-server-image.yml` remain. The removed files are upstream release
+All upstream workflows were deleted; only product client/server workflows and
+a manual desktop reference build remain. The removed files are upstream release
 plumbing, and in this repository they were actively harmful:
 
 - `renovate.yml` runs on a `0/15 * * * *` cron. Schedules are disabled in real
@@ -257,19 +245,17 @@ everything the remaining workflow uses.
 Four are required and all are public:
 
 ```text
-web/packages/stoat.js                 stoatchat/javascript-client-sdk
-web/packages/solid-livekit-components revoltchat/solid-livekit-components
-web/packages/js-lingui-solid          revoltchat/js-lingui-solid
-web-react/packages/stoat.js           stoatchat/javascript-client-sdk
+vendor/stoat-web/packages/stoat.js                 stoatchat/javascript-client-sdk
+vendor/stoat-web/packages/solid-livekit-components revoltchat/solid-livekit-components
+vendor/stoat-web/packages/js-lingui-solid          revoltchat/js-lingui-solid
+client/packages/stoat.js                           stoatchat/javascript-client-sdk
 ```
 
-The SDK appears twice on purpose. `web/` and `web-react/` are separate islands
-with separate lockfiles, so each carries its own gitlink, pinned to the same
-commit. A CI check fails if the two ever diverge — see
-`.github/workflows/sdk-lockstep.yml`. When bumping the SDK, bump both.
+The SDK appears twice because the product client and vendor reference are
+independent trees. Only `client/packages/stoat.js` is a product dependency.
 
-Upstream has one more, `web/packages/client/assets`, pointing at a private brand
-host. It is removed here on purpose. So is `desktop/assets`, which was the same
+Upstream has one more, `vendor/stoat-web/packages/client/assets`, pointing at a private brand
+host. It is removed here on purpose. So is `vendor/stoat-desktop/assets`, which was the same
 submodule again; it is a plain directory now, generated by `brand/generate.mjs`.
 
 **Always clone with `--recurse-submodules`, and never run `git add -A` with the
@@ -283,8 +269,8 @@ MODULE_NOT_FOUND. The workflow checks for this before building.
 If they are ever lost again, the commits for this base are:
 
 ```bash
-git update-index --add --cacheinfo 160000,a1aeb40396176249b1cb8dffc1a3529d1b5d40ff,web/packages/js-lingui-solid
-git update-index --add --cacheinfo 160000,a67176da7f0580ea9fdad22e58a963668f047fca,web/packages/solid-livekit-components
-git update-index --add --cacheinfo 160000,30b8505bc967d2de80bd170e861a2d062284c988,web/packages/stoat.js
-git update-index --add --cacheinfo 160000,30b8505bc967d2de80bd170e861a2d062284c988,web-react/packages/stoat.js
+git update-index --add --cacheinfo 160000,a1aeb40396176249b1cb8dffc1a3529d1b5d40ff,vendor/stoat-web/packages/js-lingui-solid
+git update-index --add --cacheinfo 160000,a67176da7f0580ea9fdad22e58a963668f047fca,vendor/stoat-web/packages/solid-livekit-components
+git update-index --add --cacheinfo 160000,30b8505bc967d2de80bd170e861a2d062284c988,vendor/stoat-web/packages/stoat.js
+git update-index --add --cacheinfo 160000,30b8505bc967d2de80bd170e861a2d062284c988,client/packages/stoat.js
 ```

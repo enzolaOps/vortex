@@ -1,40 +1,17 @@
-# Empacota a casca Electron e publica um GitHub Release.
-#
-# Irmão dos dois workflows de imagem, e diferente deles de propósito: aqueles
-# publicam contêiner no GHCR, este publica ARTEFATO para instalar numa máquina.
-#
-# ⚠ **Por que a casca precisa de release, se ela carrega o cliente pela rede.**
-# O app web atualiza no deploy sem tocar na casca — mas quem executa conteúdo
-# escrito por qualquer pessoa é o Chromium embutido AQUI. Sem um caminho de
-# atualização, a casca instalada congela numa versão de Chromium e vai
-# acumulando CVE enquanto o produto parece atualizado. O Electron publica major
-# a cada ~8 semanas e só dá suporte de segurança às três mais recentes.
-#
-# ⚠ **O release é o que alimenta o atualizador.** `update-electron-app` consulta
-# `update.electronjs.org`, que lê os Releases DESTE repositório — daí a
-# exigência de repositório público (`enzolaOps/vortex` é), de tag semver e de
-# release publicado, não rascunho.
+# Empacota manualmente a referência Electron em `vendor/stoat-desktop/`.
+# Não é CI de produto e não publica releases.
 #
 # ⚠ **`VORTEX_APP_URL` é obrigatório e não tem padrão.** `vite.main.config.ts`
-# lança se ele faltar, de propósito: um padrão errado publicaria uma casca
+# lança se ele faltar, de propósito: um padrão errado construiria uma casca
 # apontada para o servidor de outra gente. Configure em
 # Settings → Variables → Actions.
-name: Vortex desktop
+name: Stoat desktop reference build
 
 on:
-  push:
-    tags:
-      # Prefixo próprio porque o repositório tem outras tags (`v0.0.13` veio do
-      # upstream). Sem ele, uma tag de outra coisa dispararia um empacotamento.
-      - "desktop-v*"
   workflow_dispatch:
-    inputs:
-      versao:
-        description: "Tag a publicar, ex. desktop-v0.1.0"
-        required: true
 
 concurrency:
-  group: vortex-desktop-${{ github.ref }}
+  group: stoat-desktop-reference-${{ github.ref }}
   cancel-in-progress: false
 
 env:
@@ -59,7 +36,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: desktop
+        working-directory: vendor/stoat-desktop
 
     steps:
       - uses: actions/checkout@v7
@@ -70,7 +47,7 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: desktop/pnpm-lock.yaml
+          cache-dependency-path: vendor/stoat-desktop/pnpm-lock.yaml
 
       # O Flatpak precisa do construtor e do runtime; o Windows não precisa de
       # nada além do Node. Passo condicional em vez de dois jobs quase iguais.
@@ -92,7 +69,7 @@ jobs:
         run: |
           if [ -z "$VORTEX_APP_URL" ]; then
             echo "::error::A variável VORTEX_APP_URL não está configurada." \
-              "Sem ela a casca seria publicada apontada para lugar nenhum —" \
+              "Sem ela a casca seria construída apontada para lugar nenhum —" \
               "o build falharia adiante com uma mensagem pior."
             exit 1
           fi
@@ -124,46 +101,6 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: vortex-desktop-${{ matrix.plataforma }}
-          path: desktop/entrega/
+          name: stoat-desktop-reference-${{ matrix.plataforma }}
+          path: vendor/stoat-desktop/entrega/
           if-no-files-found: error
-
-  publicar:
-    name: Publicar release
-    needs: empacotar
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/download-artifact@v8
-        with:
-          path: entrega
-          merge-multiple: true
-
-      - name: Publicar
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.event.inputs.versao || github.ref_name }}
-        run: |
-          ls -la entrega/
-
-          # ⚠ Sem `--draft` e sem `--prerelease`: `update.electronjs.org` só
-          # enxerga release PUBLICADO. Um rascunho produziria um pipeline verde
-          # e nenhum cliente atualizando — a falha silenciosa de sempre.
-          gh release create "$TAG" entrega/* \
-            --title "Vortex Desktop $TAG" \
-            --generate-notes \
-            || gh release upload "$TAG" entrega/* --clobber
-
-          {
-            echo "## Casca publicada"
-            echo
-            echo "Tag \`$TAG\`. O \`update-electron-app\` das instalações de"
-            echo "Windows vai ver esta versão em até uma hora."
-            echo
-            echo "⚠ No Linux quem atualiza é o \`flatpak update\` — o"
-            echo "\`update.electronjs.org\` não atende a plataforma."
-          } >> "$GITHUB_STEP_SUMMARY"

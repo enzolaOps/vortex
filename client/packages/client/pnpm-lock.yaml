@@ -13,7 +13,7 @@ importers:
         version: 2.22.1(@types/dom-mediacapture-record@1.0.22)
       stoat.js:
         specifier: workspace:^
-        version: link:../../../web/packages/stoat.js
+        version: link:../stoat.js
 
 packages:
 

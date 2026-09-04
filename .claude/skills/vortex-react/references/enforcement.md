@@ -360,19 +360,6 @@ Teste que percorre os pares de token realmente usados (`--text-3` sobre
 `--surface-3` inclusive) e afirma 4.5:1 em texto e 3:1 em borda. Roda sobre o
 tema default e sobre qualquer preset embutido.
 
-**Gitlinks de `stoat.js` em lockstep.**
-`web/` e `web-react/` são ilhas independentes, cada uma com seu próprio submodule
-do SDK, apontando para o mesmo commit. Check em CI que compara os dois gitlinks
-e falha se divergirem — `.github/workflows/sdk-lockstep.yml`.
-
-Sem isso, um lado sobe de versão e o outro não. As duas ilhas compilam, as duas
-sobem, e o comportamento diverge em silêncio. Durante o porte, em que comparar
-`web/` com `web-react/` lado a lado é o método de verificação, essa divergência é
-indistinguível de bug de porte.
-
-O gitlink já está na árvore, então o check não precisa clonar submodule nenhum.
-
-
 **Não-lida nunca conta o canal aberto, e abrir zera só aquele canal.**
 
 Testes: mensagem no canal aberto não incrementa; mensagem em canal fechado
@@ -557,7 +544,6 @@ já cobre a maior parte.
 | `any` na fronteira do SDK | Lint | Fase 0 |
 | Import de `stoat.js` fora do adapter | Lint de boundary | Fase 0 |
 | Firehose 60fps | Teste, gate de merge | Fase 0 |
-| Gitlinks de `stoat.js` em lockstep | Check em CI | Fase 0 |
 | Remedir após resize de largura | Assertion em dev | Fase 0 |
 | Reancorar após resize de altura | Assertion em dev | Fase 3 |
 | Composer alinhado à coluna de mensagem | Assertion em dev | Fase 3 |

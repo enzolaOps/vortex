@@ -6,7 +6,7 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": [
         "-C",
-        "web-react/packages/client",
+        "client/packages/client",
         "dev"
       ],
       "port": 5173,
@@ -17,7 +17,7 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": [
         "-C",
-        "web-react/packages/client",
+        "client/packages/client",
         "preview",
         "--port",
         "4173",

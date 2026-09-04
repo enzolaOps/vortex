@@ -211,7 +211,7 @@ export default tseslint.config(
   /* ⚠ `dist-casca` é a saída do `npm run dev` da casca — um build de PRODUÇÃO
      numa pasta própria, cheio de JS minificado. Sem ele aqui, o eslint tenta
      lintar o bundle e morre pedindo informação de tipo para um arquivo que não
-     está em nenhum `tsconfig`. Ver `desktop/scripts/casca-com-cliente-local.mjs`. */
+     está em nenhum `tsconfig`. Ver `vendor/stoat-desktop/scripts/casca-com-cliente-local.mjs`. */
   { ignores: ["dist", "dist-casca", "node_modules", "scripts/coletor.js"] },
 
   js.configs.recommended,
