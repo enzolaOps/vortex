@@ -9,6 +9,7 @@
 .painel {
   flex: none;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--vx-space-08);
   padding: var(--vx-space-08);
@@ -17,6 +18,8 @@
   box-sizing: border-box;
   background: var(--vx-surface-0);
   border-block-start: 1px solid var(--vx-hairline-06);
+  /* O cluster não pode ser container — size containment colapsa a trilha. */
+  container-type: inline-size;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -272,10 +275,9 @@
 }
 
 @container (inline-size < 180px) {
-  .painel {
-    flex-direction: column;
-    align-items: center;
-    padding: var(--vx-space-08) var(--vx-space-04);
+  .identidade {
+    flex: 1 0 100%;
+    justify-content: center;
   }
 
   .textos {

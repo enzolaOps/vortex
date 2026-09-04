@@ -103,18 +103,21 @@
     Sem `overflow: hidden` + `inline-size: max-content`: o max-content
     do flex column era o avatar do rodapé, e o overflow comia a coluna
     de canais.
+    Sem `container-type`: inline-size containment calcula a largura
+    como se não houvesse filhos, a trilha `auto` colapsa, e rail+canais
+    pintam por cima da timeline.
   */
   block-size: 100%;
   min-block-size: 0;
   background: var(--vx-surface-0);
   border-inline-end: 1px solid var(--vx-hairline-06);
-  container-type: inline-size;
 }
 
 .clusterSlots {
   flex: 1;
   min-block-size: 0;
   display: flex;
+  inline-size: max-content;
 }
 
 .clusterSlots > .slot {
