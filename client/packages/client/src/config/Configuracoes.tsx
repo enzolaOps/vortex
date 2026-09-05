@@ -470,7 +470,16 @@ export function Configuracoes() {
       <div className={css.conteudo}>
         {/* Rolável com foco: ver `MessageList` — rolável sem foco é inoperável
             por teclado. */}
-        <div className={css.rolagem} tabIndex={0}>
+        {/*
+          ⚠ **`data-secao` é o gancho do `pnpm confronto`, e não decoração.**
+          O roteiro precisa mirar a caixa equivalente à do design, e mirar por
+          pedaço de classe de CSS Module não serve — o hash muda a cada build e
+          o roteiro passa a não achar a tela sem que nada tenha mudado nela. É
+          a regra escrita no cabeçalho de `confronto.roteiros.mjs`.
+
+          O valor também é o que faz o relatório dizer QUAL categoria falhou.
+        */}
+        <div className={css.rolagem} data-secao={secao} tabIndex={0}>
           {/*
             O título rola COM o conteúdo, e é a mudança que tira uma barra
             inteira da tela. Ele mora aqui e não dentro de cada seção porque a
