@@ -2,35 +2,46 @@ import { useState } from "react";
 
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
-import { salvarServidor, sairDoServidor, souDono } from "../sdk/servidores";
-import { fecharConfig } from "../store/config";
+import { salvarServidor } from "../sdk/servidores";
 import { useServer } from "../store/hooks";
-import { irParaCasa } from "../store/navegacao";
 import css from "./Secao.module.css";
+import { cn } from "../lib/cn";
 
 /**
- * Nome, descrição e a saída.
+ * Nome e descrição do servidor.
  *
- * ⚠ **A saída é a MESMA chamada para sair e para apagar**, e é o protocolo que
- * decide pelo dono: `DELETE /servers/{id}` sai para quem é membro e APAGA para
- * quem é dono. A interface tem de dizer qual das duas vai acontecer — sem
- * isso, o dono clica em "sair" e destrói o servidor de todo mundo.
+ * ⚠ **A saída SAIU daqui.** Ela era a última seção desta página; agora vive no
+ * grupo de perigo da coluna de navegação, com a confirmação em modal — ver o
+ * comentário no fim do `return` e `ModalDeExclusao`. O raciocínio sobre o
+ * protocolo (`DELETE /servers/{id}` sai OU apaga, conforme o dono) mudou de
+ * arquivo junto com o controle que ele governa.
  */
 export function Servidor({ serverId }: { serverId: string }) {
   const servidor = useServer(serverId);
   const [nome, setNome] = useState(servidor?.name ?? "");
   const [descricao, setDescricao] = useState("");
   const [salvando, setSalvando] = useState(false);
-  const [confirmando, setConfirmando] = useState(false);
-
-  const dono = souDono(serverId);
 
   if (!serverId) {
     return <p className={css.recado}>Abra um servidor para ver isto.</p>;
   }
 
   return (
-    <div className={css.forma}>
+    /*
+      1120 é o teto desta página na referência (`ServerProfilePage`) e no
+      design. `.forma` nasce em 880 — a medida de um formulário de coluna
+      única —, e esta tela não é uma: ela é o formulário à esquerda em 560
+      mais a prévia ao vivo do card de convite à direita. Com 880 as duas não
+      cabem lado a lado.
+
+      ⚠ O teto só passou a IMPORTAR agora: o painel era 960 e nada chegava a
+      880. Com ele em 1600, uma página sem teto próprio estica e uma com teto
+      velho deixa meia tela vazia.
+    */
+    <div
+      className={cn(css.forma, css.larga)}
+      style={{ "--vx-editor-w": "1120px" } as React.CSSProperties}
+    >
       <form
         className={css.bloco}
         onSubmit={(e) => {
@@ -65,47 +76,18 @@ export function Servidor({ serverId }: { serverId: string }) {
         </div>
       </form>
 
-      <hr className={css.divisor} />
+      {/*
+        ⚠ **O bloco de perigo SAIU daqui, e foi para a coluna de navegação.**
+        Ele era a última seção desta página — "Apagar servidor" / "Sair do
+        servidor" com confirmação inline de dois passos. A referência põe os
+        dois no fim da nav, e a confirmação virou modal (`apagarServidor` em
+        `ModalDeExclusao`), porque de um item de coluna não há onde uma
+        pergunta inline apareça.
 
-      <section className={css.bloco}>
-        <h2 className={css.subtitulo}>{dono ? "Apagar servidor" : "Sair"}</h2>
-        <p className={css.recado}>
-          {dono
-            ? "Você é o dono. Apagar destrói o servidor, os canais e todo o histórico, para todo mundo. Não tem como desfazer."
-            : "Você sai do servidor e pode voltar por um convite novo. Nada é apagado."}
-        </p>
-
-        <div className={css.acoes}>
-          {confirmando ? (
-            <>
-              <Botao
-                variante="perigo"
-                onClick={() => {
-                  void sairDoServidor(serverId, false).then((ok) => {
-                    if (!ok) return;
-                    // Sair do servidor que estava aberto deixaria o app olhando
-                    // para um lugar que não existe mais.
-                    fecharConfig();
-                    irParaCasa();
-                  });
-                }}
-              >
-                {dono ? "Apagar de vez" : "Sair mesmo"}
-              </Botao>
-              <Botao variante="sutil" onClick={() => setConfirmando(false)}>
-                Cancelar
-              </Botao>
-            </>
-          ) : (
-            /* Sutil porque ele ABRE a pergunta; quem apaga é o sólido logo
-               acima, dentro da confirmação. Vermelho cheio aqui daria o peso
-               do ato a um botão que só pergunta. */
-            <Botao variante="perigoSutil" onClick={() => setConfirmando(true)}>
-              {dono ? "Apagar servidor" : "Sair do servidor"}
-            </Botao>
-          )}
-        </div>
-      </section>
+        Ficar nos DOIS lugares seria pior que qualquer um deles: duas cópias
+        de uma pergunta destrutiva que precisam concordar, e a que diverge é
+        sempre a que ninguém abriu naquela semana.
+      */}
     </div>
   );
 }

@@ -9,21 +9,201 @@
 
 .tela {
   display: grid;
-  grid-template-columns: 200px minmax(0, 1fr);
+  /*
+    ⚠ **300 e não 200, e é a coluna MESTRE do design.** Ela não é uma lista
+    auxiliar: leva título, contagem, botão de criar, busca, o `@everyone` e a
+    hierarquia inteira. Em 200 o botão "Criar cargo" e a contagem não cabem na
+    mesma linha do título, e a busca fica com meia palavra visível.
+  */
+  grid-template-columns: 300px minmax(0, 1fr);
   gap: var(--vx-space-24);
-  align-items: start;
+  /*
+    `stretch` e não `start`: a coluna mestre é um painel com borda e superfície
+    própria, e um painel que para na altura do próprio conteúdo deixa a régua
+    morrendo no meio da tela.
+  */
+  align-items: stretch;
+  min-block-size: 0;
   container-type: inline-size;
+  /*
+    1020, da referência (`RolesPage`).
+
+    ⚠ **Esta era a última das oito páginas de servidor sem teto, e ela me
+    escapou na primeira varredura porque eu procurei por `.pagina` e `.forma`
+    e o wrapper daqui se chama `.tela`.** Procurar por NOME DE CLASSE em vez
+    de por seção é o mesmo erro de instrumento que esta tabela já registra
+    várias vezes: a busca frouxa concorda com a hipótese.
+
+    Sem ela, com o painel em 1600, a grade de cargos esticava até ~1350 e o
+    editor de permissões ficava a meia tela da lista que o seleciona.
+
+    ⚠ **E o teto estava no lugar errado — segundo erro meu no mesmo número.**
+    Eu o pus no PAR coluna+editor; a referência dá 1020 ao EDITOR, com a coluna
+    de 300 fora dele (ela é slot do pane, não conteúdo da página). Com 1020
+    cobrindo os dois, o editor ficava com 1020 − 300 − 24 = 696, ou seja 324px
+    mais estreito do que o desenhado — justamente na tela mais densa do plano.
+
+    O teto mudou para `.editor`. O `.tela` fica sem, porque quem limita a
+    largura total é o pane.
+  */
 }
 
+/*
+  A coluna mestre.
+
+  Coluna FLEX com o cabeçalho parado e a lista rolando: a hierarquia pode ter
+  quarenta cargos, e um cabeçalho que sobe junto tira da tela justamente o
+  campo de busca que serve para encurtá-la.
+
+  Borda no fim e superfície própria, como a nav: são três painéis lado a lado,
+  e sem a régua o olho não separa a lista do editor.
+*/
 .coluna {
-  display: grid;
-  gap: var(--vx-space-12);
+  display: flex;
+  flex-direction: column;
   min-inline-size: 0;
+  min-block-size: 0;
+  border-inline-end: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-1);
 }
 
+.cabecalho {
+  display: grid;
+  flex: none;
+  gap: var(--vx-space-10);
+  padding: var(--vx-space-16) var(--vx-space-14) var(--vx-space-10);
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+.tituloDaColuna {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+}
+
+.tituloTexto {
+  font-size: var(--vx-size-lg);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+/* A contagem ANOTA o título — um degrau abaixo em tom, e o botão empurrado
+   para a ponta pela margem automática. */
+.contagem {
+  flex: 1;
+  font-size: var(--vx-size-md);
+  font-variant-numeric: tabular-nums;
+  color: var(--vx-text-3);
+}
+
+.rolagem {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  padding: var(--vx-space-10) var(--vx-space-10) var(--vx-space-16);
+  scrollbar-width: thin;
+}
+
+/*
+  `@everyone` — tracejado, e fora da lista.
+
+  O tracejado é o mesmo gesto do `+` do rail e da caixa de emblema: diz "isto
+  não é um item como os outros" sem precisar de rótulo. Ver o comentário na
+  árvore para a razão de ele não entrar na hierarquia.
+*/
+.everyone {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+  inline-size: 100%;
+  margin-block-end: var(--vx-space-12);
+  padding: var(--vx-space-10);
+  border: 1px dashed var(--vx-border-subtle);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-2);
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.everyone:hover {
+  background: var(--vx-state-hover);
+}
+
+.everyone:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.everyoneTextos {
+  display: grid;
+  flex: 1;
+  min-inline-size: 0;
+  gap: var(--vx-space-02);
+}
+
+.everyoneNome {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.everyoneDetalhe {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.hierarquia {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vx-space-08);
+  padding: 0 var(--vx-space-04) var(--vx-space-06);
+}
+
+.hierarquiaRotulo {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  color: var(--vx-text-3);
+}
+
+/*
+  A dica de teclado fica visível o tempo todo, e não num tooltip.
+
+  ⚠ Reordenar por `Alt` + setas não é descobrível: não há alça, não há menu, e
+  ninguém tenta um modificador por acaso. Escondê-la atrás de hover repetiria o
+  defeito que a auditoria apontou na paleta de comandos — recurso que só existe
+  para quem já sabe que ele existe.
+*/
+.hierarquiaDica {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
+}
+
+.nomeDoCargo {
+  overflow: hidden;
+  min-inline-size: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aviso {
+  margin: var(--vx-space-14) var(--vx-space-04) 0;
+  font-size: var(--vx-size-xs);
+  line-height: 1.5;
+  color: var(--vx-text-4);
+  text-wrap: pretty;
+}
+
+/* O formulário de criar aparece sob o cabeçalho, e some quando não se está
+   criando — um campo permanente numa coluna de trezentos rouba a altura que a
+   hierarquia usa. */
 .criar {
   display: grid;
+  flex: none;
   gap: var(--vx-space-08);
+  padding: var(--vx-space-12) var(--vx-space-14);
+  border-block-end: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-2);
 }
 
 .cargos {
@@ -62,10 +242,33 @@
   outline-offset: -2px;
 }
 
+/*
+  A escolhida.
+
+  ⚠ **`state-selected` e não `surface-2`, e a troca tem a mesma razão que a da
+  coluna de canais teve:** `surface-2` é a superfície de HOVER aqui, então o
+  item escolhido e o sob o ponteiro ficavam idênticos. Acento a 10% compondo
+  com o fundo é o `rgba(53,194,204,0.10)` do design.
+
+  O anel interno de 1px vem junto, também do design: a coluna é `surface-1` e
+  o realce é véu, então sem ele a linha escolhida quase não se separa das
+  vizinhas.
+
+  ⚠ **`color-mix` e não token novo.** Eu tinha escrito
+  `var(--vx-accent-suave-borda, …)` — nome que não existe, com fallback: ele
+  resolve para o fallback e PARECE funcionar, que é a família do
+  `var(--z-realce)` que já custou três arquivos aqui.
+
+  ⚠ **E este bloco já existia cem linhas acima do que eu escrevi.** O
+  `pnpm sombra` reprovou: mesma regra, mesma propriedade, a última vencendo e
+  a primeira virando código morto que nada acusa. É exatamente o defeito de
+  que aquela guarda nasceu — e desta vez ela pegou o autor original.
+*/
 .cargo[aria-current="true"] {
-  background: var(--vx-surface-2);
+  background: var(--vx-state-selected);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--vx-accent) 22%, transparent);
   color: var(--vx-text-1);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 /*
@@ -83,10 +286,12 @@
   border-radius: var(--vx-radius-12);
 }
 
+/* 1020, da referência — o teto é do EDITOR e não da página. Ver `.tela`. */
 .editor {
   display: grid;
   gap: var(--vx-space-16);
   min-inline-size: 0;
+  max-inline-size: 1020px;
 }
 
 /*
@@ -158,3 +363,26 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/*
+  A alça de arraste.
+
+  Ela ainda não arrasta — ver o comentário na árvore. `cursor: grab` mesmo
+  assim seria mentira, então fica o cursor da linha; o que ela entrega hoje é o
+  SINAL de que a linha é movível.
+*/
+.alca {
+  flex: none;
+  font-size: var(--vx-size-sm);
+  letter-spacing: 0.1em;
+  color: var(--vx-text-4);
+}
+
+/* A contagem: metadado, tabular para alinhar entre linhas. */
+.contagemDeMembros {
+  flex: none;
+  font-size: var(--vx-size-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--vx-text-3);
+}
+

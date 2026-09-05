@@ -1,0 +1,113 @@
+/* ============================================================
+   Modelo do servidor
+   ------------------------------------------------------------
+   760 é o teto desta página na referência (`ServerTemplatePage`)
+   — a mesma medida de Acesso e Segurança, que são as outras
+   duas de prosa com poucos controles.
+   ============================================================ */
+
+.tela {
+  display: grid;
+  gap: var(--vx-space-18);
+  align-content: start;
+  max-inline-size: 760px;
+}
+
+.cartao {
+  display: grid;
+  gap: var(--vx-space-14);
+  padding: var(--vx-space-18);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-1);
+}
+
+.titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+}
+
+.nome {
+  font-size: var(--vx-size-lg);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.meta {
+  margin: calc(-1 * var(--vx-space-08)) 0 0;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+.linkLinha {
+  display: flex;
+  gap: var(--vx-space-08);
+}
+
+/*
+  O endereço do modelo.
+
+  Mono porque é um identificador que se compara caractere a caractere, e
+  `accent-text` porque ele é o que se leva daqui — o resto do cartão descreve,
+  este é o objeto.
+*/
+.link {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-inline-size: 0;
+  overflow: hidden;
+  block-size: 36px;
+  padding-inline: var(--vx-space-12);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-2);
+  color: var(--vx-accent-text);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+  Os quatro números.
+
+  `auto-fit` e não quatro colunas fixas: esta página tem teto de 760, mas o
+  painel encolhe com a janela, e quatro colunas rígidas espremeriam "exceções"
+  em duas linhas antes de qualquer outra coisa ceder.
+*/
+.resumo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--vx-space-08);
+}
+
+.numero {
+  padding: var(--vx-space-10) var(--vx-space-12);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-2);
+  text-align: center;
+}
+
+.numeroValor {
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xl);
+  color: var(--vx-text-1);
+}
+
+.numeroRotulo {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-08);
+}
+
+.recado {
+  margin: 0;
+  color: var(--vx-text-3);
+}
