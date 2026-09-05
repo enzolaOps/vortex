@@ -5,6 +5,7 @@ import {
 import {
   useEffect,
   useRef,
+  useState,
   useSyncExternalStore,
   type KeyboardEvent,
 } from "react";
@@ -27,8 +28,22 @@ import {
   cancelarResposta,
   responderA,
 } from "../store/resposta";
-import { useChannel, useRascunho } from "../store/hooks";
+import {
+  useChannel,
+  useMembrosDoServidor,
+  useRascunho,
+  useServidorAtivo,
+} from "../store/hooks";
 import { escreverRascunho, limparRascunho } from "../store/rascunhos";
+import { alvosDeMencao } from "../sdk/completarMencao";
+import {
+  aplicarMencoesDoCanal,
+  consultaDeMencao,
+  esquecerMencoes,
+  inserirMencao,
+  lembrarMencao,
+} from "./mencao";
+import { SugestoesDeMencao } from "./SugestoesDeMencao";
 import css from "./Composer.module.css";
 import { BarraDeResposta } from "./BarraDeResposta";
 import { Digitando } from "./Digitando";
@@ -69,6 +84,26 @@ export function Composer({ channelId }: { channelId: string }) {
   */
   const canal = useChannel(channelId);
   const modoLento = canal?.modoLento ?? 0;
+  const serverId = useServidorAtivo();
+  const idsServidor = useMembrosDoServidor(serverId);
+  const ids =
+    canal?.tipo === "dm" && canal.destinatarioId
+      ? [canal.destinatarioId]
+      : idsServidor;
+
+  const [cursor, setCursor] = useState(0);
+  const [ativo, setAtivo] = useState(0);
+  const [fechada, setFechada] = useState("");
+  const consulta = consultaDeMencao(valor, cursor);
+  const alvos = consulta
+    ? alvosDeMencao(ids, serverId, consulta.query)
+    : [];
+  const chaveConsulta = consulta
+    ? `${consulta.inicio}:${consulta.query}`
+    : "";
+  const sugestoes = alvos.length > 0 && fechada !== chaveConsulta;
+  const ativoSeguro =
+    alvos.length === 0 ? 0 : Math.min(ativo, alvos.length - 1);
 
   const excedido = valor.length > LIMITE_DE_CONTEUDO;
   /*
@@ -185,10 +220,16 @@ export function Composer({ channelId }: { channelId: string }) {
   function enviarArquivos(arquivos: readonly File[]) {
     if (!temPermissao || excedido) return;
 
-    const id = enviarMensagem(channelId, valor, paraEnvio(), arquivos);
+    const id = enviarMensagem(
+      channelId,
+      aplicarMencoesDoCanal(channelId, valor),
+      paraEnvio(),
+      arquivos,
+    );
     if (!id) return;
 
     limparRascunho(channelId);
+    esquecerMencoes(channelId);
     cancelarResposta(channelId);
     pedirFimDaLista(channelId);
   }
@@ -211,12 +252,17 @@ export function Composer({ channelId }: { channelId: string }) {
   function enviar() {
     if (!podeEnviar) return;
 
-    const id = enviarMensagem(channelId, valor, paraEnvio());
+    const id = enviarMensagem(
+      channelId,
+      aplicarMencoesDoCanal(channelId, valor),
+      paraEnvio(),
+    );
     // Não saiu (canal não carregado, sem sessão): o rascunho FICA. Limpar aqui
     // apagaria o texto da pessoa por causa de um erro que não é dela.
     if (!id) return;
 
     limparRascunho(channelId);
+    esquecerMencoes(channelId);
     // A resposta só é desarmada depois do envio ACEITO: se o envio falhar, o
     // alvo continua armado junto com o rascunho, e a pessoa não precisa
     // procurar a mensagem de novo.
@@ -227,7 +273,47 @@ export function Composer({ channelId }: { channelId: string }) {
     pedirFimDaLista(channelId);
   }
 
+  function escolher(alvo: (typeof alvos)[number]) {
+    if (!consulta) return;
+    lembrarMencao(channelId, alvo.id, alvo.nome);
+    const campo = entradaRef.current;
+    const posto = inserirMencao(valor, consulta.inicio, cursor, alvo.nome);
+    alterar(posto.texto);
+    setCursor(posto.cursor);
+    setFechada(chaveConsulta);
+    queueMicrotask(() => {
+      campo?.focus();
+      campo?.setSelectionRange(posto.cursor, posto.cursor);
+    });
+  }
+
   function aoTeclar(evento: KeyboardEvent<HTMLTextAreaElement>) {
+    if (sugestoes) {
+      if (evento.key === "Escape") {
+        evento.preventDefault();
+        setFechada(chaveConsulta);
+        return;
+      }
+      if (evento.key === "ArrowDown") {
+        evento.preventDefault();
+        setAtivo((i) => (i + 1) % alvos.length);
+        return;
+      }
+      if (evento.key === "ArrowUp") {
+        evento.preventDefault();
+        setAtivo((i) => (i - 1 + alvos.length) % alvos.length);
+        return;
+      }
+      if (evento.key === "Enter" || evento.key === "Tab") {
+        const alvo = alvos[ativoSeguro];
+        if (alvo) {
+          evento.preventDefault();
+          escolher(alvo);
+        }
+        return;
+      }
+    }
+
     // Escape desarma a resposta antes de qualquer outra coisa.
     //
     // É o gesto que a pessoa já tem no dedo, e sem ele a única saída seria
@@ -306,6 +392,14 @@ export function Composer({ channelId }: { channelId: string }) {
           botão vizinho.
         */}
         <div className={cn(css.campo, "flex-1")} data-excedido={String(excedido)}>
+          {sugestoes ? (
+            <SugestoesDeMencao
+              alvos={alvos}
+              ativo={ativoSeguro}
+              aoEscolher={escolher}
+              aoAtivo={setAtivo}
+            />
+          ) : null}
           <div className={css.linha}>
             {/*
               Anexar, na borda de INÍCIO — a posição é do design, e a razão é
@@ -371,7 +465,16 @@ export function Composer({ channelId }: { channelId: string }) {
                 ref={entradaRef}
                 className={css.entrada}
                 value={valor}
-                onChange={(evento) => alterar(evento.target.value)}
+                onChange={(evento) => {
+                  setCursor(evento.target.selectionStart);
+                  alterar(evento.target.value);
+                }}
+                onSelect={(evento) =>
+                  setCursor(evento.currentTarget.selectionStart)
+                }
+                onKeyUp={(evento) =>
+                  setCursor(evento.currentTarget.selectionStart)
+                }
                 onKeyDown={aoTeclar}
                 onBlur={() => digitacao.aoParar(channelId)}
                 rows={1}
