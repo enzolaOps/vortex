@@ -278,9 +278,38 @@ function comparar(d, a, caminho, saida, pular, pularApp, soFilhos) {
 
   const alturaBate = Math.abs(d.alt - a.alt) <= 2;
 
+  /*
+    ⚠ **Tipografia e cor de um nó SEM TEXTO PRÓPRIO são herança, não decisão.**
+
+    O nó que só embrulha outros não desenha letra nenhuma: o `font-size` e a
+    `color` dele valem para descendentes que não declaram os seus, e é NESSES
+    que a diferença aparece — onde o confronto já a pega. Comparar o wrapper
+    reportava "15px/400 contra 12px/450" em caixas que não têm um caractere,
+    e num único banner isso somava seis linhas.
+
+    A régua é a mesma do `gap`: o campo só conta onde ele pode ser visto.
+  */
+  const semTextoProprio =
+    /* `trim`: o coletor junta os nós de texto diretos com espaço, e um nó que
+       só tem quebras de linha entre filhos vinha como "   " — texto por
+       acidente de formatação, não por conteúdo. */
+    (d.texto || "").trim() === "" &&
+    (a.texto || "").trim() === "" &&
+    d.filhos.length > 0 &&
+    a.filhos.length > 0;
+
   for (const [chave, rotulo] of CAMPOS) {
     /* Cor vinda de dado não é comparável — ver `dado` no coletor. */
     if ((chave === "cor" || chave === "bg") && (d.dado || a.dado)) continue;
+    if (
+      semTextoProprio &&
+      (chave === "tipo" ||
+        chave === "entrelinha" ||
+        chave === "cor" ||
+        chave === "fonte")
+    ) {
+      continue;
+    }
     /*
       ⚠ **`gap` só conta quando a ALTURA não bate.**
 
@@ -316,7 +345,15 @@ function comparar(d, a, caminho, saida, pular, pularApp, soFilhos) {
   const aTexto = (a.todo || "").length;
   const textoComparavel =
     Math.abs(dTexto - aTexto) <= 0.3 * Math.max(dTexto, aTexto, 1);
-  if (textoComparavel && Math.abs(d.alt - a.alt) > 2) {
+  /*
+    ⚠ **E o mesmo número de filhos.** `todo` é cortado em 120 caracteres, então
+    uma tabela de nove linhas e uma de quarenta e uma pareciam ter "o mesmo
+    tanto de texto" — e a altura saía como diferença de 1.630px. Container
+    empilha filhos: contagem diferente é altura diferente por construção, e a
+    contagem em si já é reportada onde importa.
+  */
+  const mesmaEstrutura = (d.nFilhos ?? 0) === (a.nFilhos ?? 0);
+  if (textoComparavel && mesmaEstrutura && Math.abs(d.alt - a.alt) > 2) {
     saida.push({ onde, texto: d.texto || a.texto, rotulo: "altura", design: d.alt + "px", app: a.alt + "px" });
   }
 

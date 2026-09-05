@@ -125,6 +125,7 @@
 */
 .vaga {
   display: grid;
+  gap: var(--vx-space-06);
   border: 1px dashed var(--vx-hairline-16);
   border-radius: var(--vx-radius-12);
   transition: border-color var(--vx-duration-fast) var(--vx-ease-out);

@@ -268,6 +268,27 @@ const CANAL =
 export const DISPENSAS = [
   {
     rotulo: "borda",
+    design: "b1 #ffffff@5",
+    app: "b1 #ffffff@6",
+    motivo:
+      "Divisória de linha a 5% contra os 6% do `--vx-hairline-06`. Mesmo caso do 7%: um ponto percentual num traço de 1px, e o design usa 5, 6 e 7 em telas irmãs sem distinção.",
+  },
+  {
+    rotulo: "borda",
+    design: "t1 #ffffff@5",
+    app: "t1 #ffffff@6",
+    motivo:
+      "Divisória de linha a 5% contra os 6% do `--vx-hairline-06`. Mesmo caso do 7%: um ponto percentual num traço de 1px, e o design usa 5, 6 e 7 em telas irmãs sem distinção.",
+  },
+  {
+    rotulo: "borda",
+    design: "t1 #35c2cc r1 #35c2cc b1 #35c2cc l1 #35c2cc",
+    app: "t1 #ffffff@6 r1 #ffffff@6 b1 #ffffff@6 l1 #ffffff@6",
+    motivo:
+      "O mock do design deixa uma figurinha em EDIÇÃO, com anel de acento sólido e Salvar/Cancelar no lugar de Editar/Excluir. Editar figurinha é pendência registrada — não há estado de edição para reproduzir, e um cartão permanentemente aceso seria pior que a ausência.",
+  },
+  {
+    rotulo: "borda",
     design: "t1 #ffffff@7 r1 #ffffff@7 b1 #ffffff@7 l1 #ffffff@7",
     app: "t1 #35c2cc@35 r1 #35c2cc@35 b1 #35c2cc@35 l1 #35c2cc@35",
     motivo:
@@ -878,6 +899,9 @@ export const ROTEIROS = [
     /* O cabeçalho da página: no design ele rola com o conteúdo;
        na nossa casca ele é a barra do pane, fora da página. */
     pular: [
+      /* A sobrancelha do grupo vive DENTRO do cartão no design e fora
+         aqui — ver o motivo no `pularApp`. Podada dos dois lados. */
+      "Contato entre membros",
       "~Nível de verificação, filtro de mídia",
     ],
   },

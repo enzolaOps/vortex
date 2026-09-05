@@ -138,3 +138,11 @@
 .seletor {
   display: none;
 }
+
+/* 12, do design — o rodapé é metadado da tabela, não corpo de texto. O
+   `.recado` compartilhado é 13, que é o tamanho de instrução de formulário. */
+.rodape {
+  margin: 0;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}

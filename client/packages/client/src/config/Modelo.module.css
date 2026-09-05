@@ -43,6 +43,18 @@
 
 
 
+/*
+  Linha e não pilha: o design põe o nome com o selo à esquerda e a data logo
+  depois, com 20 de vão. Empilhados, os dois somavam altura num cartão que já
+  tem quatro blocos.
+*/
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--vx-space-20);
+}
+
 .titulo {
   display: flex;
   align-items: center;

@@ -22,7 +22,8 @@
   align-items: flex-start;
   /* 11 — do design. Não é degrau de ritmo, é a distância entre um glifo de
      13px e o texto que ele qualifica. */
-  gap: var(--vx-space-11);
+  /* 12, do design — medido pelo `pnpm confronto`. Era 11. */
+  gap: var(--vx-space-12);
   padding: var(--vx-space-12) var(--vx-space-14);
   border: 1px solid;
   border-radius: var(--vx-radius-08);
@@ -120,3 +121,4 @@
   align-items: center;
   gap: var(--vx-space-08);
 }
+

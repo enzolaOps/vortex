@@ -227,7 +227,7 @@ export function Emojis({ serverId }: { serverId: string }) {
         )}
       </div>
 
-      <p className={css.recado}>
+      <p className={emojiCss.rodape}>
         O design mostra ainda <strong>quem pode usar</strong> cada emoji, por
         cargo. Não existe em <code>Emoji</code>: o objeto tem quem criou, o
         nome, se é animado e a URL, e nada que restrinja o uso. Ficou de fora em

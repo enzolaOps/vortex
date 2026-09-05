@@ -46,11 +46,15 @@ export function Modelo({ serverId }: { serverId: string }) {
       </Banner>
 
       <div className={css.cartao}>
-        <div className={css.titulo}>
-          <span className={css.nome}>Vortex Core — base de produto</span>
-          <Selo tom="sucesso">sincronizado</Selo>
+        {/* Nome, selo e data são UM cabeçalho — é como o design os agrupa, e
+            eles se leem juntos: o que é, em que estado, desde quando. */}
+        <div className={css.cabecalho}>
+          <div className={css.titulo}>
+            <span className={css.nome}>Vortex Core — base de produto</span>
+            <Selo tom="sucesso">sincronizado</Selo>
+          </div>
+          <p className={css.meta}>Criado em 12 ago 2026 · usado 14 vezes</p>
         </div>
-        <p className={css.meta}>Criado em 12 ago 2026 · usado 14 vezes</p>
 
         <div className={css.linkLinha}>
           {/*

@@ -211,7 +211,8 @@
   realmente apaga.
 */
 .perigoSutil {
-  padding-inline: var(--vx-space-14);
+  /* 13, do design — era 14. */
+  padding-inline: var(--vx-space-13);
   border-color: var(--vx-danger-border);
   background: transparent;
   color: var(--vx-danger-text);

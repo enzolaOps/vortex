@@ -1,3 +1,4 @@
+import { Children } from "react";
 import {
   CheckCircle,
   Info,
@@ -71,7 +72,23 @@ export function Banner({
         ) : null}
         {children}
       </div>
-      {acoes !== undefined ? <div className={css.acoes}>{acoes}</div> : null}
+      {acoes !== undefined ? (
+        /*
+          ⚠ **Com UMA ação, a caixa não existe.** O `.acoes` alinha DUAS ou
+          mais com um vão entre elas; com uma só ele é um nó que não decide
+          nada, e o design põe o botão como filho direto do banner.
+
+          Tentei antes com `display: contents`, e foi PIOR: a caixa sai do
+          layout mas continua na árvore, e o coletor do `pnpm confronto` — que
+          descarta nó de 0×0 — passou a perder o botão inteiro. Sumir do
+          layout não é sumir do DOM.
+        */
+        Children.count(acoes) === 1 ? (
+          acoes
+        ) : (
+          <div className={css.acoes}>{acoes}</div>
+        )
+      ) : null}
     </div>
   );
 }

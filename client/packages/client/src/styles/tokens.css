@@ -291,7 +291,14 @@
   */
   --vx-accent-ring: color-mix(in oklab, var(--vx-accent) 22%, transparent);
   --vx-danger-soft: color-mix(in oklab, var(--vx-danger) 14%, transparent);
-  --vx-danger-border: color-mix(in oklab, var(--vx-danger) 35%, transparent);
+  /*
+    ⚠ **40% e não 35% — medido pelo `pnpm confronto` no botão "Ativar" das
+    ações de emergência.** 35 era chute meu; o design escreve o vermelho a 40%
+    em todo contorno destrutivo. Cinco pontos percentuais numa borda de 1px
+    sobre superfície escura são a diferença entre o botão ter contorno e
+    parecer que perdeu um.
+  */
+  --vx-danger-border: color-mix(in oklab, var(--vx-danger) 40%, transparent);
 
   /* O véu atrás de modal e drawer. */
   --vx-scrim: rgb(6 8 10 / 72%);
