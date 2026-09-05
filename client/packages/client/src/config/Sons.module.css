@@ -16,10 +16,12 @@
   justify-content: flex-end;
 }
 
+/* Raio 10, o mesmo de `Tabela.module.css` — esta grade é a tabela desta
+   página, e 8 a fazia ler como um campo grande. Do design. */
 .grade {
   display: grid;
   border: 1px solid var(--vx-hairline-06);
-  border-radius: var(--vx-radius-08);
+  border-radius: var(--vx-radius-10);
   overflow: hidden;
 }
 
@@ -33,10 +35,16 @@
 .cabecalho,
 .linha {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(120px, 1fr) minmax(0, 0.8fr) auto;
+  /*
+    ⚠ **Cinco colunas, e a primeira é o TOCAR** — achado pelo `pnpm confronto`,
+    que mostrou a linha do design começando por um ▶. Sem ele a página lista
+    sons que não dá para ouvir, e ouvir antes de decidir o volume é a coisa
+    mais óbvia que se faz aqui.
+  */
+  grid-template-columns: 28px minmax(0, 1.2fr) minmax(120px, 1fr) minmax(0, 0.8fr) auto;
   align-items: center;
-  gap: var(--vx-space-14);
-  padding: var(--vx-space-10) var(--vx-space-14);
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-11) var(--vx-space-14);
 }
 
 /*
@@ -97,9 +105,11 @@
   white-space: nowrap;
 }
 
+/* 12 e não 11: o rodapé é EXPLICAÇÃO e não etiqueta, e o design lhe dá o
+   tamanho de metadado. Em 11 ele competia com o contador. */
 .nota {
   margin: 0;
-  font-size: var(--vx-size-xs);
+  font-size: var(--vx-size-sm);
   line-height: 1.5;
   color: var(--vx-text-4);
   text-wrap: pretty;
@@ -108,4 +118,30 @@
 .recado {
   margin: 0;
   color: var(--vx-text-3);
+}
+
+/*
+  O ▶ de cada linha. Alvo de 28, como a coluna — ele é o único controle da
+  linha que não é destrutivo, e por isso não carrega moldura.
+*/
+.tocar {
+  display: grid;
+  place-items: center;
+  inline-size: 28px;
+  block-size: 28px;
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-2);
+  cursor: pointer;
+}
+
+.tocar:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.tocar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
 }

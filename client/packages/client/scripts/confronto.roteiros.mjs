@@ -201,6 +201,41 @@ const abrirConfigDeServidor = (secao) => `
  */
 const CONTEUDO_DO_APP = ` return document.querySelector("[data-secao]")?.lastElementChild`;
 
+/**
+ * A caixa do lado do DESIGN: o rolável do pane, ou o único filho dele.
+ *
+ * ⚠ **Ela é declarada e não escalada por largura, e a razão está medida.** O
+ * escalador sobe do texto da âncora até o primeiro ancestral da largura
+ * pedida — e numa tabela a LINHA tem a largura da tabela. Oito das treze
+ * categorias acabaram comparando uma linha contra uma página inteira, e o
+ * relatório dizia "nº de filhos: design 5 · app 2" sobre dois nós que não são
+ * a mesma coisa.
+ *
+ * Perfil e Cargos embrulham a página num wrapper de largura máxima; as outras
+ * põem os blocos como irmãos direto no rolável. O `children.length === 1`
+ * cobre os dois casos sem uma entrada por página.
+ */
+const ROLAVEL_DO_DESIGN = `
+  const sc = [...document.querySelectorAll(".vx-scroll")]
+    .find((e) => e.getBoundingClientRect().width > 600);
+  if (!sc) return null;
+  return sc.children.length === 1 ? sc.firstElementChild : sc;
+`;
+
+/**
+ * O CONTEÚDO da página, quando o design a embrulha numa caixa de medida.
+ *
+ * Modelo e Segurança são [h1, subtítulo, wrapper]: o wrapper é o equivalente
+ * exato da nossa página, porque o título e o subtítulo, aqui, moram na barra
+ * da casca. Podar os dois pelo texto funcionaria e deixaria o roteiro
+ * dependendo de uma frase; descer para o wrapper não depende de nada.
+ */
+const CONTEUDO_DO_DESIGN = `
+  const sc = [...document.querySelectorAll(".vx-scroll")]
+    .find((e) => e.getBoundingClientRect().width > 600);
+  return sc ? sc.lastElementChild : null;
+`;
+
 const SERVIDOR =
   "C:/Users/lagun/Downloads/Implementação de voz e chamada/Vortex Configurações do Servidor.dc.html";
 const RESTANTES =
@@ -231,6 +266,87 @@ const CANAL =
  * tomou mais.
  */
 export const DISPENSAS = [
+  {
+    rotulo: "borda",
+    design: "t1 #ffffff@7 r1 #ffffff@7 b1 #ffffff@7 l1 #ffffff@7",
+    app: "t1 #35c2cc@35 r1 #35c2cc@35 b1 #35c2cc@35 l1 #35c2cc@35",
+    motivo:
+      "O anel de ESCOLHIDO, e os dois mocks marcam opções diferentes. O do design abre com a segunda opção de cada grupo marcada; o nosso abre no estado REAL do servidor, que é sempre o primeiro (\"entrada imediata\", \"sem verificação\") porque nenhum desses campos existe no protocolo. A dispensa casa o PAR nos dois sentidos, então um cartão que perdesse o anel em ambos continuaria reprovando.",
+  },
+  {
+    rotulo: "borda",
+    design: "t1 #35c2cc@35 r1 #35c2cc@35 b1 #35c2cc@35 l1 #35c2cc@35",
+    app: "t1 #ffffff@6 r1 #ffffff@6 b1 #ffffff@6 l1 #ffffff@6",
+    motivo:
+      "O anel de ESCOLHIDO, e os dois mocks marcam opções diferentes. O do design abre com a segunda opção de cada grupo marcada; o nosso abre no estado REAL do servidor, que é sempre o primeiro (\"entrada imediata\", \"sem verificação\") porque nenhum desses campos existe no protocolo. A dispensa casa o PAR nos dois sentidos, então um cartão que perdesse o anel em ambos continuaria reprovando.",
+  },
+  {
+    rotulo: "borda",
+    design: "t1 #35c2cc@35 r1 #35c2cc@35 b1 #35c2cc@35 l1 #35c2cc@35",
+    app: "t1 #ffffff@7 r1 #ffffff@7 b1 #ffffff@7 l1 #ffffff@7",
+    motivo:
+      "O anel de ESCOLHIDO, e os dois mocks marcam opções diferentes. O do design abre com a segunda opção de cada grupo marcada; o nosso abre no estado REAL do servidor, que é sempre o primeiro (\"entrada imediata\", \"sem verificação\") porque nenhum desses campos existe no protocolo. A dispensa casa o PAR nos dois sentidos, então um cartão que perdesse o anel em ambos continuaria reprovando.",
+  },
+  {
+    rotulo: "borda",
+    design: "t1 #ffffff@6 r1 #ffffff@6 b1 #ffffff@6 l1 #ffffff@6",
+    app: "t1 #35c2cc@35 r1 #35c2cc@35 b1 #35c2cc@35 l1 #35c2cc@35",
+    motivo:
+      "O anel de ESCOLHIDO, e os dois mocks marcam opções diferentes. O do design abre com a segunda opção de cada grupo marcada; o nosso abre no estado REAL do servidor, que é sempre o primeiro (\"entrada imediata\", \"sem verificação\") porque nenhum desses campos existe no protocolo. A dispensa casa o PAR nos dois sentidos, então um cartão que perdesse o anel em ambos continuaria reprovando.",
+  },
+  {
+    rotulo: "borda",
+    design: "t1 #e8596b@26 r1 #e8596b@26 b1 #e8596b@26 l1 #e8596b@26",
+    app: "t1 #e8596b@28 r1 #e8596b@28 b1 #e8596b@28 l1 #e8596b@28",
+    motivo:
+      "Dois pontos percentuais no véu vermelho do banner de perigo. O valor é do `Banner`, primitivo compartilhado por oito superfícies, e mexer nele por 2% mudaria as oito para casar uma.",
+  },
+  {
+    rotulo: "tipo",
+    design: "14px/600",
+    app: "13px/600",
+    motivo:
+      "14 não é degrau da escala de tipo deste projeto — ela tem 11, 12, 13, 15, 17 e 22, e a razão está no `tokens.css`. O degrau vizinho é 13, e um sétimo tamanho para 1px é o que a escala existe para evitar.",
+  },
+  {
+    rotulo: "respiro",
+    design: "13px 15px",
+    app: "13px 14px",
+    motivo:
+      "1px no respiro lateral do cartão de opção. `--vx-space-15` não existe na escala — ela tem 14 e 16 — e o guarda `pnpm vars` reprovou a tentativa de usá-lo. Um degrau novo para 1px é o oposto do que a escala serve, e é a mesma decisão do raio de 14 no ladrilho do rail.",
+  },
+  {
+    rotulo: "tipo",
+    design: "12px/400",
+    app: "12px/450",
+    motivo: "Mesma decisão do #188 — Instrument Sans engrossada.",
+  },
+  {
+    rotulo: "tipo",
+    design: "22px/400",
+    app: "22px/450",
+    motivo: "Mesma decisão do #188 — Instrument Sans engrossada.",
+  },
+  {
+    rotulo: "tipo",
+    design: "17px/400",
+    app: "17px/450",
+    motivo: "Mesma decisão do #188 — Instrument Sans engrossada.",
+  },
+  {
+    rotulo: "borda",
+    design: "t1 #ffffff@14 r1 #ffffff@14 b1 #ffffff@14 l1 #ffffff@14",
+    app: "t1 #ffffff@16 r1 #ffffff@16 b1 #ffffff@16 l1 #ffffff@16",
+    motivo:
+      "Tracejado de área de envio a 14% contra os 16% do nosso `--vx-hairline-16`. Dois pontos percentuais num traço de 1px tracejado; o token existe para exatamente este papel e um terceiro degrau de hairline não se paga.",
+  },
+  {
+    rotulo: "borda",
+    design: "t1 #ffffff@7 r1 #ffffff@7 b1 #ffffff@7 l1 #ffffff@7",
+    app: "t1 #ffffff@6 r1 #ffffff@6 b1 #ffffff@6 l1 #ffffff@6",
+    motivo:
+      "Hairline a 7%% contra os 6%% do nosso `--vx-hairline-06`. Um ponto percentual num traço de 1px não é perceptível, e o design usa 6 e 7 em telas irmãs sem distinção — o que existiria de novo seria um segundo token de divisória, com par de contraste e classificação, para nada.",
+  },
   {
     rotulo: "tipo",
     design: "15px/400",
@@ -448,6 +564,13 @@ export const ROTEIROS = [
   {
     nome: "servidor · perfil",
     secao: "servidor",
+    raizDesign: `
+      const sc = [...document.querySelectorAll('.vx-scroll')]
+        .find((e) => e.getBoundingClientRect().width > 600);
+      /* [cabeçalho, par] — o par é o equivalente da nossa página. */
+      return sc ? sc.firstElementChild.lastElementChild : null;
+    `,
+    soFilhos: true,
     arquivo: SERVIDOR,
     ancora: "Recomendado 512×512",
     cliques: [],
@@ -457,10 +580,17 @@ export const ROTEIROS = [
     app: "http://localhost:4174/dev",
     preparar: abrirConfigDeServidor("Perfil do servidor"),
     raiz: CONTEUDO_DO_APP,
+    /* O cabeçalho da página: no design ele rola com o conteúdo;
+       na nossa casca ele é a barra do pane, fora da página. */
+    pular: [
+      "~É assim que o servidor aparece em convites",
+    ],
   },
   {
     nome: "servidor · tag",
     secao: "tag",
+    raizDesign: ROLAVEL_DO_DESIGN,
+    soFilhos: true,
     arquivo: RESTANTES,
     ancora: "2 a 4 caracteres",
     cliques: ["Tag do servidor"],
@@ -470,10 +600,22 @@ export const ROTEIROS = [
     app: "http://localhost:4174/dev",
     preparar: abrirConfigDeServidor("Tag do servidor"),
     raiz: CONTEUDO_DO_APP,
+    pularApp: [
+      /* O `Banner` de pendência é ACRÉSCIMO nosso: sem ele, controles que
+         não mudam parecem quebrados. O design não tem o conceito. */
+      "~O protocolo do Stoat não tem tag de servidor",
+    ],
+    /* O cabeçalho da página: no design ele rola com o conteúdo;
+       na nossa casca ele é a barra do pane, fora da página. */
+    pular: [
+      "~Identificador curto que aparece ao lado",
+    ],
   },
   {
     nome: "servidor · modelo",
     secao: "modelo",
+    raizDesign: CONTEUDO_DO_DESIGN,
+    soFilhos: true,
     arquivo: RESTANTES,
     ancora: "Sincronizar com o servidor atual",
     cliques: ["Modelo do servidor"],
@@ -483,28 +625,54 @@ export const ROTEIROS = [
     app: "http://localhost:4174/dev",
     preparar: abrirConfigDeServidor("Modelo do servidor"),
     raiz: CONTEUDO_DO_APP,
+    pularApp: [
+      /* O `Banner` de pendência é ACRÉSCIMO nosso: sem ele, controles que
+         não mudam parecem quebrados. O design não tem o conceito. */
+      "~O protocolo do Stoat não tem modelos de servidor",
+    ],
+    /* O cabeçalho da página: no design ele rola com o conteúdo;
+       na nossa casca ele é a barra do pane, fora da página. */
+    pular: [
+      "~Gere um modelo com a estrutura deste servidor",
+    ],
   },
   {
     nome: "servidor · emoji",
     secao: "emojis",
+    raizDesign: CONTEUDO_DO_DESIGN,
+    soFilhos: true,
     arquivo: RESTANTES,
     ancora: "o nome vira o alias automaticamente",
     cliques: ["Emoji"],
     larguraDoDesign: 1000,
     subir: 0,
-    profundidade: 2,
+    profundidade: 1,
+    /* ⚠ Profundidade 1: as linhas vêm do DADO — o design semeia 9 e o arnês
+       41 —, e comparar a contagem delas mede o gerador, não a tela. O que
+       vale aqui é a moldura da tabela e o rodapé ao lado dela. */
     app: "http://localhost:4174/dev",
     preparar: abrirConfigDeServidor("Emoji"),
     raiz: CONTEUDO_DO_APP,
     pular: [
+      "~24 de 50 estáticos",
       /* Coluna "quem pode usar": não existe em `Emoji` — o objeto tem parent,
          creator, name, animated, mature e a URL, e nada que gateie o uso. */
       "QUEM PODE USAR",
+    ],
+    pularApp: [
+      /* A barra de contagem: no design os números vivem no cabeçalho da
+         página, que na nossa casca é a barra do pane. Eles não têm outro
+         lugar para morar aqui. */
+      "~Apagar um emoji não apaga",
+      /* O rodapé que diz o que o protocolo NÃO guarda é acréscimo nosso —
+         é ele que transforma coluna ausente em decisão declarada. */
     ],
   },
   {
     nome: "servidor · figurinhas",
     secao: "figurinhas",
+    raizDesign: ROLAVEL_DO_DESIGN,
+    soFilhos: true,
     arquivo: RESTANTES,
     ancora: "vagas restantes",
     cliques: ["Figurinhas"],
@@ -514,29 +682,62 @@ export const ROTEIROS = [
     app: "http://localhost:4174/dev",
     preparar: abrirConfigDeServidor("Figurinhas"),
     raiz: CONTEUDO_DO_APP,
+    pularApp: [
+      /* O `Banner` de pendência é ACRÉSCIMO nosso: sem ele, controles que
+         não mudam parecem quebrados. O design não tem o conceito. */
+      "~O protocolo do Stoat não tem figurinhas",
+    ],
+    /* O cabeçalho da página: no design ele rola com o conteúdo;
+       na nossa casca ele é a barra do pane, fora da página. */
+    pular: [
+      "~12 de 15 · PNG ou APNG",
+    ],
   },
   {
     nome: "servidor · efeitos sonoros",
     secao: "sons",
+    raizDesign: ROLAVEL_DO_DESIGN,
+    soFilhos: true,
     arquivo: RESTANTES,
     ancora: "fanfarra",
     cliques: ["Efeitos sonoros"],
     larguraDoDesign: 900,
     subir: 0,
-    profundidade: 2,
+    profundidade: 1,
+    /* ⚠ Profundidade 1: as linhas vêm do DADO — o design semeia 9 e o arnês
+       41 —, e comparar a contagem delas mede o gerador, não a tela. O que
+       vale aqui é a moldura da tabela e o rodapé ao lado dela. */
     app: "http://localhost:4174/dev",
     preparar: abrirConfigDeServidor("Painel de efeitos sonoros"),
     raiz: CONTEUDO_DO_APP,
+    pularApp: [
+      /* O botão de enviar: o design o põe no cabeçalho da página, que aqui
+         é a barra do pane. */
+      "Enviar som",
+      /* O `Banner` de pendência é ACRÉSCIMO nosso: sem ele, controles que
+         não mudam parecem quebrados. O design não tem o conceito. */
+      "~O protocolo do Stoat não tem painel de efeitos sonoros",
+    ],
+    /* O cabeçalho da página: no design ele rola com o conteúdo;
+       na nossa casca ele é a barra do pane, fora da página. */
+    pular: [
+      "~8 de 8 sons",
+    ],
   },
   {
     nome: "servidor · membros",
     secao: "membros",
+    raizDesign: ROLAVEL_DO_DESIGN,
+    soFilhos: true,
     arquivo: RESTANTES,
     ancora: "Bea Toledo",
     cliques: ["Membros"],
     larguraDoDesign: 1238,
     subir: 0,
-    profundidade: 2,
+    profundidade: 1,
+    /* ⚠ Profundidade 1: as linhas vêm do DADO — o design semeia 9 e o arnês
+       41 —, e comparar a contagem delas mede o gerador, não a tela. O que
+       vale aqui é a moldura da tabela e o rodapé ao lado dela. */
     app: "http://localhost:4174/dev",
     preparar: abrirConfigDeServidor("Membros"),
     raiz: CONTEUDO_DO_APP,
@@ -546,10 +747,21 @@ export const ROTEIROS = [
          inteiro, que o cliente não conhece. */
       "ÚLTIMA ATIVIDADE",
     ],
+    pularApp: [
+      /* Filtros e contagem: o design os põe na banda FIXA acima do rolável;
+         a nossa casca rola o cabeçalho junto com o conteúdo, e eles vêm
+         com ele. É a divergência de arquitetura registrada no `.rolagem`. */
+      "~Todos os cargos",
+      /* O rodapé que diz o que o protocolo NÃO guarda é acréscimo nosso —
+         é ele que transforma coluna ausente em decisão declarada. */
+      "~O que o protocolo não conta",
+    ],
   },
   {
     nome: "servidor · cargos",
     secao: "cargos",
+    raizDesign: ROLAVEL_DO_DESIGN,
+    soFilhos: true,
     arquivo: SERVIDOR,
     ancora: "Exibir membros separadamente",
     cliques: ["Cargos"],
@@ -558,30 +770,58 @@ export const ROTEIROS = [
     profundidade: 2,
     app: "http://localhost:4174/dev",
     preparar: abrirConfigDeServidor("Cargos"),
-    raiz: CONTEUDO_DO_APP,
+    raiz: `return document.querySelector("[data-secao]")
+      ?.lastElementChild?.lastElementChild`,
+    pularApp: [
+      /* Cabeçalho e abas do editor: no design eles ficam na banda fixa
+         acima do rolável; aqui rolam com o conteúdo, como o resto. */
+      "~Editar cargo",
+      /* As quatro abas. */
+      "~ExibiçãoPermissões",
+    ],
   },
   {
     nome: "servidor · convites",
     secao: "convites",
+    raizDesign: ROLAVEL_DO_DESIGN,
+    soFilhos: true,
     arquivo: RESTANTES,
     ancora: "Convite pessoal padrão",
     cliques: ["Convites"],
     larguraDoDesign: 1080,
     subir: 0,
-    profundidade: 2,
+    profundidade: 1,
+    /* ⚠ Profundidade 1: as linhas vêm do DADO — o design semeia 9 e o arnês
+       41 —, e comparar a contagem delas mede o gerador, não a tela. O que
+       vale aqui é a moldura da tabela e o rodapé ao lado dela. */
     app: "http://localhost:4174/dev",
     preparar: abrirConfigDeServidor("Convites"),
     raiz: CONTEUDO_DO_APP,
     pular: [
+      /* ⚠ O protocolo não tem convite PADRÃO de servidor: convite é sempre
+         de um canal, e nenhum campo o marca como o do botão "Convidar
+         pessoas". A seção inteira do design depende desse conceito. */
+      "~Convite pessoal padrão",
+      "~6 convites ativos",
       /* `uses`, `max_uses`, `expires_at`, `temporary` e `vanity` dão ZERO
          ocorrências no schema do `stoat-api`. Só `creator` existe. */
       "USOS",
       "EXPIRA",
     ],
+    pularApp: [
+      /* A barra de criar: mesma razão de Membros — no design ela é banda
+         fixa, aqui rola com o conteúdo. */
+      "~Cada convite leva a um canal",
+      /* O rodapé que diz o que o protocolo NÃO guarda é acréscimo nosso —
+         é ele que transforma coluna ausente em decisão declarada. */
+      "~O design mostra ainda usos, validade",
+    ],
   },
   {
     nome: "servidor · acesso",
     secao: "acesso",
+    raizDesign: ROLAVEL_DO_DESIGN,
+    soFilhos: true,
     arquivo: RESTANTES,
     ancora: "Nenhum convite funciona até reabrir",
     cliques: ["Acesso"],
@@ -592,14 +832,31 @@ export const ROTEIROS = [
     preparar: abrirConfigDeServidor("Acesso"),
     raiz: CONTEUDO_DO_APP,
     pular: [
+      "Requisitos de entrada",
+      "Acesso",
+      "~Quem consegue entrar e o que precisa",
       /* A fila só aparece em "Aprovação manual" — é o que o design faz, e o
          mock dele abre já naquele modo. */
       "~Fila de aprovação",
+    ],
+    pularApp: [
+      /* ⚠ **A sobrancelha de Requisitos de entrada fica FORA do cartão
+         aqui, e é a referência que decide.** O design a desenha dentro da
+         caixa; a referência — que é quem decide o que EXISTE — a põe como
+         `text-eyebrow` solta, igual às outras duas seções da página
+         vizinha. Seguir o design aqui faria a mesma etiqueta aparecer de
+         dois jeitos em telas irmãs. */
+      "Requisitos de entrada",
+      /* O `Banner` de pendência é ACRÉSCIMO nosso: sem ele, controles que
+         não mudam parecem quebrados. O design não tem o conceito. */
+      "~Nada aqui chega ao servidor ainda",
     ],
   },
   {
     nome: "servidor · segurança",
     secao: "seguranca",
+    raizDesign: CONTEUDO_DO_DESIGN,
+    soFilhos: true,
     arquivo: RESTANTES,
     ancora: "Ações de segurança de emergência",
     cliques: ["Segurança"],
@@ -609,29 +866,52 @@ export const ROTEIROS = [
     app: "http://localhost:4174/dev",
     preparar: abrirConfigDeServidor("Segurança"),
     raiz: CONTEUDO_DO_APP,
+    pularApp: [
+      /* Mesma decisão de Acesso: a sobrancelha do grupo fica FORA do
+         cartão, como a referência faz — e como as duas seções acima
+         desta mesma página já fazem. */
+      "Contato entre membros",
+      /* O `Banner` de pendência é ACRÉSCIMO nosso: sem ele, controles que
+         não mudam parecem quebrados. O design não tem o conceito. */
+      "~Nada aqui chega ao servidor ainda",
+    ],
+    /* O cabeçalho da página: no design ele rola com o conteúdo;
+       na nossa casca ele é a barra do pane, fora da página. */
+    pular: [
+      "~Nível de verificação, filtro de mídia",
+    ],
   },
   {
     nome: "servidor · auditoria",
     secao: "auditoria",
+    raizDesign: ROLAVEL_DO_DESIGN,
+    soFilhos: false,
+    /* A lista é toda dado: cinco entradas aqui, seis lá, e a régua de dia
+       aparece conforme as datas caem. Compara-se o container. */
     arquivo: SERVIDOR,
     ancora: "ROLE_UPDATE",
     cliques: ["Registro de auditoria"],
     larguraDoDesign: 900,
     subir: 0,
-    profundidade: 2,
+    profundidade: 0,
     app: "http://localhost:4174/dev",
     preparar: abrirConfigDeServidor("Registro de auditoria"),
-    raiz: CONTEUDO_DO_APP,
+    raiz: `return document.querySelector("[data-secao] ul")`,
   },
   {
     nome: "servidor · banimentos",
     secao: "banimentos",
+    raizDesign: ROLAVEL_DO_DESIGN,
+    soFilhos: true,
     arquivo: RESTANTES,
     ancora: "spam_842",
     cliques: ["Banimentos"],
     larguraDoDesign: 1080,
     subir: 0,
-    profundidade: 2,
+    profundidade: 1,
+    /* ⚠ Profundidade 1: as linhas vêm do DADO — o design semeia 9 e o arnês
+       41 —, e comparar a contagem delas mede o gerador, não a tela. O que
+       vale aqui é a moldura da tabela e o rodapé ao lado dela. */
     app: "http://localhost:4174/dev",
     preparar: abrirConfigDeServidor("Banimentos"),
     raiz: CONTEUDO_DO_APP,
@@ -640,6 +920,12 @@ export const ROTEIROS = [
          `reason` e o usuário. Os dois existem na auditoria, em `BanCreate`. */
       "BANIDO POR",
       "DATA",
+    ],
+    pularApp: [
+      /* A contagem: banda fixa no design, dentro da página aqui. */
+      "~contas banidas",
+      /* O rodapé que diz o que o protocolo NÃO guarda é acréscimo nosso —
+         é ele que transforma coluna ausente em decisão declarada. */
     ],
   },
 ];

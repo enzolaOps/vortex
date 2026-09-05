@@ -86,8 +86,18 @@ export function Seguranca({ serverId }: { serverId: string }) {
         servidor não muda ao mexer neles.
       </Banner>
 
-      <section>
-        <div className={css.sobrancelha}>Nível de verificação</div>
+              {/*
+        ⚠ **Sobrancelha e grupo são IRMÃOS, e não um `<section>` em volta dos
+        dois.** O `pnpm confronto` acusou "nº de blocos: design 6 · app 5": o
+        design põe as seis caixas desta página no mesmo nível, e o `<section>`
+        colava duas delas num nó que o design não tem. Sem consequência visual,
+        e com uma consequência real na comparação — um wrapper a mais desalinha
+        tudo o que vem depois dele.
+
+        A semântica não se perde: cada sobrancelha rotula o `radiogroup` que a
+        segue por `aria-label`, que é o que o leitor de tela usa de fato.
+      */}
+      <div className={css.sobrancelha}>Nível de verificação</div>
         <div
           className={css.grupo}
           role="radiogroup"
@@ -109,10 +119,8 @@ export function Seguranca({ serverId }: { serverId: string }) {
             />
           ))}
         </div>
-      </section>
 
-      <section>
-        <div className={css.sobrancelha}>Filtro de mídia explícita</div>
+              <div className={css.sobrancelha}>Filtro de mídia explícita</div>
         <div
           className={css.grupo}
           role="radiogroup"
@@ -131,7 +139,6 @@ export function Seguranca({ serverId }: { serverId: string }) {
             />
           ))}
         </div>
-      </section>
 
       {/*
         ⚠ **Sobrancelha, e não título de cartão.** As outras duas seções desta

@@ -9,7 +9,8 @@
 .tela {
   display: flex;
   align-items: start;
-  gap: var(--vx-space-32);
+  /* 40, do design — era 32. É o mesmo vão do par de Perfil do servidor. */
+  gap: var(--vx-space-40);
   /* 1000, da referência. */
   max-inline-size: 1000px;
 }
@@ -71,12 +72,18 @@
   inline-size: 360px;
 }
 
+/*
+  ⚠ **Raio 12 e vão 16 — medidos no design pelo `pnpm confronto`.** Estava em
+  8 e 12. O raio é o de PAINEL (uma caixa que contém três blocos), e 8 é o de
+  controle; o vão de 12 apertava as três superfícies de exemplo umas contra as
+  outras, que é justamente o que a régua entre elas existe para evitar.
+*/
 .previaCaixa {
   display: grid;
-  gap: var(--vx-space-12);
+  gap: var(--vx-space-16);
   padding: var(--vx-space-16);
   border: 1px solid var(--vx-hairline-06);
-  border-radius: var(--vx-radius-08);
+  border-radius: var(--vx-radius-12);
   background: var(--vx-surface-1);
 }
 

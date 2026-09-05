@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 
 import { Banner } from "../components/ui/Banner";
 import { Escolha } from "../components/ui/Escolha";
@@ -140,14 +140,33 @@ export function Auditoria({ serverId }: { serverId: string }) {
           ) : (
             <ul className={css.lista}>
               {visiveis.map((e, i) => (
-                /*
-                  ⚠ **Só a PRIMEIRA vem expandida, e é instrução da
-                  referência.** Um registro com quarenta diffs abertos é uma
-                  parede de mono; um com todos fechados esconde o que a tela
-                  serve para mostrar. A primeira aberta ensina o gesto sem
-                  cobrar a rolagem.
-                */
-                <Entrada key={e.id} entrada={e} abertaPorPadrao={i === 0} />
+                <Fragment key={e.id}>
+                  {/*
+                    ⚠ **A régua de DIA, e ela faltava.** O design põe um
+                    divisor com a data quando o dia muda — "10 de agosto" —, e
+                    sem ele noventa dias de registro viram uma coluna contínua
+                    onde a única pista de tempo é o carimbo à direita de cada
+                    linha. Auditoria é lida por PERÍODO ("o que aconteceu na
+                    quinta?"), e a régua é o que torna isso uma varredura em
+                    vez de uma leitura.
+
+                    Não aparece antes do primeiro grupo: ali ela separaria o
+                    conteúdo do cabeçalho, e não um dia do outro.
+                  */}
+                  {i > 0 && diaDe(e.quandoMs) !== diaDe(visiveis[i - 1]!.quandoMs) ? (
+                    <li className={css.dia} aria-hidden>
+                      {DIA.format(new Date(e.quandoMs))}
+                    </li>
+                  ) : null}
+                  {/*
+                    ⚠ **Só a PRIMEIRA vem expandida, e é instrução da
+                    referência.** Um registro com quarenta diffs abertos é uma
+                    parede de mono; um com todos fechados esconde o que a tela
+                    serve para mostrar. A primeira aberta ensina o gesto sem
+                    cobrar a rolagem.
+                  */}
+                  <Entrada entrada={e} abertaPorPadrao={i === 0} />
+                </Fragment>
               ))}
             </ul>
           )}
@@ -156,6 +175,20 @@ export function Auditoria({ serverId }: { serverId: string }) {
     </div>
   );
 }
+
+/**
+ * O dia de um instante, como chave de agrupamento.
+ *
+ * Data local e não UTC: quem lê o registro está num fuso, e um evento das 22h
+ * não pertence ao dia seguinte porque o servidor guardou em UTC.
+ */
+function diaDe(ms: number): string {
+  const d = new Date(ms);
+  return `${String(d.getFullYear())}-${String(d.getMonth())}-${String(d.getDate())}`;
+}
+
+/** "10 de agosto" — o rótulo da régua de dia. */
+const DIA = new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "long" });
 
 function Entrada({
   entrada,

@@ -1,7 +1,6 @@
 import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
 import { Selo } from "../components/ui/Selo";
-import { CabecalhoDeSecao } from "./Pagina";
 import { aindaNao } from "../pendente/pendencias";
 import css from "./Modelo.module.css";
 
@@ -84,14 +83,32 @@ export function Modelo({ serverId }: { serverId: string }) {
         </div>
       </div>
 
-      <CabecalhoDeSecao titulo="Aplicar um modelo" />
-      <Banner
-        tom="info"
-        acoes={<Botao variante="neutro" onClick={aindaNao("modeloDoServidor")}>Pré-visualizar</Botao>}
-      >
-        Aplicar em um servidor existente ACRESCENTA canais e cargos — nunca
-        remove o que já existe.
-      </Banner>
+      {/*
+        ⚠ **Segundo CARTÃO, e não sobrancelha solta mais um banner.**
+
+        Achado pelo `pnpm confronto`: o design põe dois cartões de 760 aqui —
+        "Vortex Core" e "Aplicar um modelo" —, os dois com raio 12, respiro 18
+        e a mesma moldura. A versão anterior era um `CabecalhoDeSecao` com
+        régua seguido de um `Banner` de aviso, ou seja três alturas de bloco
+        para dizer o que o design diz em um. O `Banner` também dava a esta
+        frase o peso de um AVISO, e ela não é: é a explicação do que o botão
+        ao lado faz.
+      */}
+      <div className={css.cartao}>
+        <p className={css.subtitulo}>Aplicar um modelo</p>
+        {/* Três irmãos — sobrancelha, frase e botão —, como o design. Um
+            wrapper em volta dos dois últimos punha um nó a mais entre o cartão
+            e o que ele contém. */}
+        <p className={css.recado}>
+          Aplicar em um servidor existente ACRESCENTA canais e cargos — nunca
+          remove o que já existe.
+        </p>
+        <div className={css.acoes}>
+          <Botao variante="neutro" onClick={aindaNao("modeloDoServidor")}>
+            Pré-visualizar
+          </Botao>
+        </div>
+      </div>
     </div>
   );
 }

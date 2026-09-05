@@ -173,3 +173,30 @@
   margin: 0;
   color: var(--vx-text-3);
 }
+
+/*
+  A régua de DIA.
+
+  Sobrancelha com uma régua ocupando o resto da linha — o mesmo gesto do
+  divisor de data na timeline, e pela mesma razão: ela separa sem pesar. Sai da
+  árvore de acessibilidade (`aria-hidden`) porque o carimbo de cada entrada já
+  diz a data para quem lê por leitor de tela; a régua é orientação VISUAL.
+*/
+.dia {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+  margin-block-start: var(--vx-space-08);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.dia::after {
+  content: "";
+  flex: 1;
+  block-size: 1px;
+  background: var(--vx-hairline-06);
+}
