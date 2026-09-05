@@ -66,6 +66,45 @@ export function alternarColapso(id: string): void {
   for (const ouvinte of ouvintes) ouvinte();
 }
 
+/**
+ * Colapsa ou expande TODAS as categorias de uma vez.
+ *
+ * ⚠ **Recebe os ids em vez de descobri-los.** O store guarda quem está
+ * colapsada; ele não sabe quais categorias existem, nem de qual servidor —
+ * perguntar isso daqui seria a preferência de leitura consultando o adapter,
+ * que é a direção errada. Quem chama já tem a lista para desenhá-la.
+ *
+ * O verbo também vem de fora: "colapsar todas" e "expandir todas" são o mesmo
+ * gesto com sinal trocado, e o menu já sabe qual oferecer porque já sabe
+ * quantas estão abertas.
+ *
+ * ⚠ **Set NOVO e nunca mutação**, como `alternarColapso` — `cache` é a
+ * referência que `getSnapshot` compara por `Object.is`, e mutar em lugar
+ * devolveria a MESMA referência com conteúdo diferente: a coluna não
+ * re-renderizaria e nada acusaria. É a armadilha nº 1 do briefing.
+ */
+export function definirColapsoDeTodas(
+  ids: readonly string[],
+  colapsar: boolean,
+): void {
+  const proximo = new Set(cache);
+  for (const id of ids) {
+    if (colapsar) proximo.add(id);
+    else proximo.delete(id);
+  }
+  /* Nada mudou: publicar acordaria cada linha da coluna para nada. */
+  if (proximo.size === cache.size) return;
+  cache = proximo;
+
+  try {
+    localStorage.setItem(CHAVE, JSON.stringify([...proximo]));
+  } catch {
+    // Mesma razão de `alternarColapso`: perder a persistência é aceitável.
+  }
+
+  for (const ouvinte of ouvintes) ouvinte();
+}
+
 export function assinarColapso(ouvinte: Ouvinte): () => void {
   ouvintes.add(ouvinte);
   return () => {

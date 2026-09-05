@@ -1,4 +1,10 @@
 import {
+  BellSimple,
+  ProhibitInset,
+  PushPin,
+  SignOut,
+  User,
+  X,
   Gear,
   ICONE,
   Note,
@@ -19,11 +25,15 @@ import {
 import { abrirConversa, irParaAmigos } from "../store/navegacao";
 import { useLocal } from "../store/hooks";
 import { Selo } from "../components/ui/Selo";
+import { aindaNao } from "../pendente/pendencias";
+import { bloquear, desfazerAmizade, sairDaConversa } from "../sdk/social";
+import { alternarSilencio, estaSilenciado } from "../store/silencio";
 import css from "./ListaDeConversas.module.css";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuSeparator,
   ContextMenuTrigger,
 } from "../components/ui/ContextMenu";
 import { ItemDeId } from "../components/ui/ItemDeId";
@@ -141,18 +151,122 @@ const Conversa = memo(function Conversa({
     linha para abrir uma caixa vazia é o mesmo custo que a member list já
     evitou, com o agravante de a caixa não ter conteúdo.
   */
-  if (canal.tipo !== "grupo") return linha;
+  /*
+    Notas não tem menu: é a sua própria gaveta, e não há relação para gerir nem
+    de onde sair. Um menu de um item só é o que a versão anterior evitava.
+  */
+  if (canal.tipo === "notas") return linha;
+
+  const dm = canal.tipo === "dm";
+  /* O rótulo alterna com o estado — `estaSilenciado` é o mesmo predicado que a
+     lista de canais usa, keyed por canal, e uma conversa é um canal. */
+  const silenciada = estaSilenciado(id);
+  const outroId = canal.destinatarioId;
 
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>{linha}</ContextMenuTrigger>
       <ContextMenuContent>
+        {/*
+          ⚠ **O menu da conversa passou a existir, e o argumento que o impedia
+          expirou nas duas pontas.**
+
+          Ele era só de GRUPO, com a razão escrita: "numa DM as ações do design
+          (fechar, silenciar, favoritar) ainda não existem; montar
+          `ContextMenu.Root` em cada linha para abrir uma caixa vazia é o mesmo
+          custo que a member list já evitou". Medido agora: `sairDaConversa`,
+          `alternarSilencio`, `desfazerAmizade` e `bloquear` **todos existem e
+          funcionam** — o que faltava era o ponto de entrada, não a ação. E o
+          custo deixou de ser argumento porque esta coluna tem dezenas de
+          linhas, não dezenas de milhares.
+
+          A ordem é a do design, na seção que ele chama de "Relação".
+        */}
+        {dm ? (
+          <>
+            <ContextMenuItem onSelect={aindaNao("favoritarConversa")}>
+              <PushPin size={ICONE.calha} aria-hidden />
+              Marcar como favorita
+            </ContextMenuItem>
+
+            <ContextMenuItem
+              onSelect={() => {
+                void sairDaConversa(id);
+              }}
+            >
+              <X size={ICONE.calha} aria-hidden />
+              Fechar conversa
+            </ContextMenuItem>
+          </>
+        ) : null}
+
+        {/*
+          ⚠ **Silenciar é do STORE e serve DM e grupo com a mesma chamada** —
+          `silencio.ts` é keyed por canal, e uma conversa é um canal. Era isso
+          que fazia "as ações não existem" ser falso: ela já valia aqui.
+        */}
         <ContextMenuItem
-          onSelect={() => administrar({ tipo: "grupo", channelId: id })}
+          onSelect={() => {
+            alternarSilencio(id);
+          }}
         >
-          <Gear size={ICONE.calha} aria-hidden />
-          Gerenciar grupo
+          <BellSimple size={ICONE.calha} aria-hidden />
+          {silenciada ? "Reativar avisos" : "Silenciar conversa"}
         </ContextMenuItem>
+
+        {canal.tipo === "grupo" ? (
+          <ContextMenuItem
+            onSelect={() => administrar({ tipo: "grupo", channelId: id })}
+          >
+            <Gear size={ICONE.calha} aria-hidden />
+            Gerenciar grupo
+          </ContextMenuItem>
+        ) : null}
+
+        {/*
+          ⚠ **As duas de RELAÇÃO só existem com destinatário resolvido.** Numa
+          DM o `destinatarioId` é calculado no adapter (`recipientIds` menos
+          eu); sem ele não há de quem desfazer amizade nem quem bloquear, e um
+          item que age sobre `undefined` falha calado. Grupo não tem "o outro".
+        */}
+        {dm && outroId !== undefined ? (
+          <>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              onSelect={() => {
+                void desfazerAmizade(outroId);
+              }}
+            >
+              <User size={ICONE.calha} aria-hidden />
+              Desfazer amizade
+            </ContextMenuItem>
+            <ContextMenuItem
+              perigo
+              onSelect={() => {
+                void bloquear(outroId);
+              }}
+            >
+              <ProhibitInset size={ICONE.calha} aria-hidden />
+              Bloquear
+            </ContextMenuItem>
+          </>
+        ) : null}
+
+        {canal.tipo === "grupo" ? (
+          <>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              perigo
+              onSelect={() => {
+                void sairDaConversa(id);
+              }}
+            >
+              <SignOut size={ICONE.calha} aria-hidden />
+              Sair do grupo
+            </ContextMenuItem>
+          </>
+        ) : null}
+
         <ItemDeId id={id} />
       </ContextMenuContent>
     </ContextMenu>

@@ -453,6 +453,38 @@ export const PENDENCIAS = {
     faz: "Listar as pessoas que vocês dois têm em comum.",
     depende: "a mesma rota de mútuos, mais as relações já carregadas",
   },
+  /*
+    ⚠ **Ela nasceu em `SUPERFICIES_AUSENTES` e MUDOU DE LISTA ao ganhar um
+    controle** — é a regra que a doutrina deste arquivo escreve por extenso:
+    "entrada daqui muda de lista quando ganhar um controle, e não fica nas
+    duas". O menu da conversa foi construído 1:1 com o design, e a favorita
+    deixou de ser buraco para virar item desenhado.
+  */
+  favoritarConversa: {
+    superficie: "Menu da conversa, na coluna da casa",
+    faz: "Fixar a conversa no topo da lista, acima da ordem por recência.",
+    depende:
+      "campo de favorito no protocolo — `Channel` do Stoat não tem, e guardá-lo só no cliente daria uma ordem que só esta máquina enxerga",
+  },
+  /*
+    ⚠ **Desenhado e NÃO ligado por razão de SEGURANÇA, não de custo.**
+
+    O snapshot do canal carrega nome, tópico, modo lento, restrição de idade e
+    limite de voz — tudo o que `salvarCanal` precisa. O que ele **não** carrega
+    são os overrides de permissão, e `salvarPermissaoDeCanal` é por cargo, um a
+    um. Duplicar a partir do snapshot produziria um canal PÚBLICO a partir de
+    um restrito, em silêncio, e o dono só descobriria quando alguém lesse o que
+    não devia.
+
+    Um "Duplicar" que copia a aparência e perde a restrição é pior que a
+    ausência: ele parece ter funcionado.
+  */
+  duplicarCanal: {
+    superficie: "Menu do canal, na coluna",
+    faz: "Criar um canal novo com as mesmas configurações e permissões.",
+    depende:
+      "os overrides de permissão no snapshot do canal — hoje só nome, tópico, modo lento, idade e limite chegam, e duplicar sem eles abriria um canal restrito",
+  },
 } as const satisfies Record<
   string,
   { superficie: string; faz: string; depende: string }
