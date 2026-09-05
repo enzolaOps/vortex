@@ -34,8 +34,27 @@
     `scrollTop` travado em 0. É o erro nº 3 do briefing na direção de bloco.
   */
   grid-template-rows: minmax(0, 1fr);
-  inline-size: min(960px, 100%);
-  block-size: min(85vh, 100%);
+  /*
+    ⚠ **960 contra os 1600 do design, e a diferença não era estética — ela
+    tornava o layout do design IRREPRESENTÁVEL.**
+
+    O design desenha o painel em `width: 1600px; height: 940px`, e as páginas
+    de Pessoas usam TRÊS colunas: navegação, a coluna mestre de cargos e o
+    editor. Em 960, tirando os 248 da navegação, sobram 712 para duas colunas
+    que o design dá 1120 de conteúdo — o editor de cargo ficaria com ~350px.
+    Não é apertado, é outra tela.
+
+    ⚠ **Continua sendo painel flutuante, e isso é do DESIGN, não concessão
+    nossa.** O mockup escreve `border-radius: 12px` e
+    `box-shadow: 0 20px 48px rgba(0,0,0,0.55)` no próprio painel — ele flutua
+    lá também. O que estava errado era só o tamanho.
+
+    `min()` com a viewport porque 1600×940 não cabe em janela de laptop, e o
+    painel precisa encolher antes de vazar. O teto é o número do design; o
+    piso é a janela.
+  */
+  inline-size: min(1600px, 100%);
+  block-size: min(940px, 100%);
   overflow: hidden;
   border: 1px solid var(--vx-hairline-10);
   border-radius: var(--vx-radius-12);
@@ -62,7 +81,13 @@
     lado com esta coluna e o conteudo dela, e o design a desenha 16px mais
     estreita.
   */
-  inline-size: 232px;
+  /*
+    ⚠ **248, do design — e o comentário acima defendia 232 com um argumento
+    que a fonte errada sustentava.** A referência usa `w-[232px]`; o design
+    escreve `width:248px`. Pela regra de método do projeto a referência decide
+    o que EXISTE e o design decide os VALORES, e eles divergem aqui.
+  */
+  inline-size: 248px;
   border-inline-end: 1px solid var(--vx-hairline-06);
   background: var(--vx-surface-1);
 }
@@ -407,4 +432,61 @@
 
 .fechar:active {
   scale: 0.94;
+}
+
+/*
+  O ladrilho do servidor no cartão de identidade da coluna.
+
+  28×28 com raio 9, do design — e os dois números são DIMENSÃO de componente,
+  não degrau de escala, que é por que o `pnpm escala` não os governa. O raio 9
+  existe na nossa escala (`--vx-radius-09`), então aqui ele é token; o 28 é
+  literal pelo mesmo motivo que o `block-size` de um controle é.
+
+  ⚠ Não é o `Avatar`: aquele é redondo, porque pessoa é redonda neste app e
+  servidor é quadrado com canto — a mesma distinção que o rail faz. Reusá-lo
+  aqui daria um servidor com cara de gente.
+*/
+.ladrilhoDoServidor {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: 28px;
+  block-size: 28px;
+  border-radius: var(--vx-radius-09);
+  font-size: var(--vx-size-xs);
+  font-weight: 700;
+  /* Tingido pelo gradiente de baixo, nunca neutro — ver `--vx-on-*`. */
+  color: var(--vx-on-accent);
+}
+
+/*
+  Rótulo e contagem dentro do item da coluna.
+
+  O rótulo encolhe com reticências e a contagem nunca: numa coluna de 248px,
+  "Painel de efeitos sonoros" não cabe, e o que precisa sobreviver ao corte é
+  o NÚMERO — ele é o dado, o rótulo é o nome de um lugar que a pessoa já
+  reconhece pelo começo.
+*/
+.itemRotulo {
+  overflow: hidden;
+  flex: 1;
+  min-inline-size: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+  A contagem: `text-caption` em `text-disabled` na referência — aqui
+  `--vx-size-xs` sobre `--vx-text-4`, que é o par de metadado deste app.
+
+  Um degrau abaixo do rótulo em tamanho E em tom, porque ela ANOTA o item em
+  vez de competir com ele. `tabular-nums` para os números ficarem alinhados
+  entre linhas — "1.204" e "37" numa mesma coluna sem isso dançam.
+*/
+.itemContagem {
+  flex: none;
+  font-size: var(--vx-size-xs);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: var(--vx-text-4);
 }

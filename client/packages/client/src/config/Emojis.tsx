@@ -7,6 +7,7 @@ import { subirAnexo, temServidorDeMidia } from "../sdk/anexos";
 import { toast } from "../components/ui/toastStore";
 import css from "./Secao.module.css";
 import emojiCss from "./Emojis.module.css";
+import { cn } from "../lib/cn";
 
 /**
  * Os emojis do servidor.
@@ -97,7 +98,12 @@ export function Emojis({ serverId }: { serverId: string }) {
 
   if (lista.length === 0) {
     return (
-      <div className={css.forma}>
+      /* 900, da referência (`ServerEmojiPage`) — a grade de emoji é varredura,
+       e 880 é a medida de um formulário. */
+    <div
+      className={cn(css.forma, css.larga)}
+      style={{ "--vx-editor-w": "900px" } as React.CSSProperties}
+    >
       {/*
         A barra de envio fica ANTES da lista e aparece nos dois estados — com
         emojis e sem. Um botão que só existe quando já há um emoji seria a

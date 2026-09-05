@@ -52,6 +52,11 @@ import { NavegacaoDoCanal } from "./canal/NavegacaoDoCanal";
 import { PermissoesDoCanal } from "./canal/PermissoesDoCanal";
 import { VisaoGeralDoCanal } from "./canal/VisaoGeralDoCanal";
 import css from "./Configuracoes.module.css";
+import { gradienteDe } from "../lib/gradiente";
+import { useMembrosDoServidor } from "../store/hooks";
+import { cargosDoServidor } from "../sdk/cargos";
+import { souDono } from "../sdk/servidores";
+import { administrar } from "../store/administracao";
 
 /**
  * A casca de configurações.
@@ -99,14 +104,157 @@ const DE_USUARIO: readonly (readonly SecaoId[])[] = [
  */
 const SO_NA_CASCA: readonly SecaoId[] = ["desktop"];
 
+/**
+ * A coluna de configurações de um SERVIDOR.
+ *
+ * Componente próprio, e não JSX solto dentro de `Configuracoes`, porque ele
+ * precisa de hooks — a contagem de membros e a de cargos vêm do store, e hook
+ * dentro de um `?:` não é hook. É a mesma razão pela qual `NavegacaoDoCanal`
+ * já era um componente.
+ */
+/* Um por sessão — criar `Intl.NumberFormat` é caro, usar é barato. */
+const NUMERO = new Intl.NumberFormat("pt-BR");
+
+function NavegacaoDoServidor({
+  serverId,
+  nome,
+  secao,
+}: {
+  serverId: string;
+  nome: string | undefined;
+  secao: SecaoId;
+}) {
+  const membros = useMembrosDoServidor(serverId);
+  const cargos = cargosDoServidor(serverId);
+
+  /*
+    ⚠ **Membros e cargos têm contagem; banimentos NÃO, e é divergência
+    deliberada.** A referência mostra `37` ao lado de Banimentos, e o número
+    dele só existe depois de um `fetchBans` — uma chamada de rede por abertura
+    da coluna, para desenhar um número que a própria página mostra ao ser
+    aberta. Estes dois saem de graça do que o `Ready` já trouxe.
+
+    Formatado com `Intl` aqui e não no item: um formatter por render de oito
+    itens seria o erro nº 4 do briefing numa superfície fria.
+  */
+  const contagem: Partial<Record<SecaoId, string>> = {
+    membros: NUMERO.format(membros.length),
+    cargos: NUMERO.format(cargos.length),
+  };
+
+  return (
+    <nav className={css.menu} aria-label={`Configurações de ${nome ?? "servidor"}`}>
+      {/*
+        O cartão de identidade do SERVIDOR, fora da área rolável.
+
+        ⚠ **Ele era um `<p>` com o nome DENTRO da lista, e a diferença não é
+        decoração.** A coluna do usuário já põe a identidade fora do scroller —
+        quem você é não some ao descer a lista —, e a do servidor não seguia a
+        própria regra: o nome rolava para fora, e numa instância com vários
+        servidores a tela deixava de dizer qual deles você está configurando
+        exatamente enquanto você desce até "Banimentos".
+
+        As medidas são do design e da referência: ladrilho 28×28 raio 9 com o
+        gradiente do servidor, nome em 13/600 com reticências, e "Configurações"
+        abaixo em 11 — que é o que diz que esta tela é a de gestão, e não o
+        perfil dele.
+      */}
+      <div className={css.identidade}>
+        <span
+          aria-hidden
+          className={css.ladrilhoDoServidor}
+          style={{ backgroundImage: gradienteDe(serverId) }}
+        >
+          {sigla(nome ?? "?")}
+        </span>
+        <div className={css.identidadeTextos}>
+          <p className={css.identidadeNome}>{nome ?? "Servidor"}</p>
+          <p className={css.identidadeArroba}>Configurações</p>
+        </div>
+      </div>
+
+      <div className={css.lista}>
+        {/*
+          ⚠ **Os quatro títulos aparecem, e o primeiro não aparecia.** A versão
+          anterior pulava o título quando `i === 0` porque o nome do servidor
+          ocupava aquele lugar; com o nome no cartão acima, pular "Servidor"
+          deixava os itens dele órfãos, encostados no cartão e sem categoria —
+          enquanto os outros três grupos tinham a sua.
+        */}
+        {GRUPOS_DE_SERVIDOR.map((g) => (
+          <Fragment key={g.titulo}>
+            <p className={css.subgrupo}>{g.titulo}</p>
+            {g.itens.map((id) => (
+              <ItemDoMenu
+                key={id}
+                id={id}
+                ativa={id === secao}
+                serverId={serverId}
+                contagem={contagem[id]}
+              />
+            ))}
+          </Fragment>
+        ))}
+
+        {/*
+          O grupo de perigo, no fim da coluna e sem título.
+
+          ⚠ **Estes dois NÃO são seções, e é por isso que não estão em
+          `GRUPOS_DE_SERVIDOR`.** Eles não abrem página nenhuma: abrem um
+          modal e acabam. Pô-los na união `SecaoId` obrigaria a inventar duas
+          telas vazias para satisfazer o `Record` de conteúdo, e o mecanismo
+          que existe para impedir seção sem tela passaria a exigir telas que
+          ninguém quer.
+
+          ⚠ **Antes de virem para cá, "Apagar servidor" morava no rodapé da
+          Visão geral** com confirmação inline de dois passos. A referência os
+          põe na navegação; a confirmação virou modal porque, de um item de
+          coluna, não há onde uma pergunta inline apareça.
+
+          Sem título de grupo, como na referência: régua e vermelho já dizem
+          que aqui muda o tom, e um rótulo "Perigo" nomearia o óbvio ocupando
+          uma linha.
+        */}
+        <hr className={css.regua} />
+        <button
+          type="button"
+          className={css.item}
+          onClick={() => administrar({ tipo: "transferirPropriedade", serverId })}
+        >
+          <span className={css.itemRotulo}>Transferir propriedade</span>
+        </button>
+        <button
+          type="button"
+          className={cn(css.item, css.sair)}
+          onClick={() => administrar({ tipo: "apagarServidor", serverId })}
+        >
+          <span className={css.itemRotulo}>
+            {souDono(serverId) ? "Excluir servidor" : "Sair do servidor"}
+          </span>
+        </button>
+      </div>
+    </nav>
+  );
+}
+
 function ItemDoMenu({
   id,
   ativa,
   serverId,
+  contagem,
 }: {
   id: SecaoId;
   ativa: boolean;
   serverId?: string;
+  /**
+   * O número à direita do rótulo — "1.204" em Membros, "9" em Cargos.
+   *
+   * ⚠ **String e não `number`, de propósito.** Quem chama já formatou com
+   * `Intl`, e um número cru aqui deixaria a formatação para o render de um
+   * componente que aparece oito vezes na coluna. É a mesma regra de
+   * `createdAtText` e `tamanhoTexto`: derivar na escrita.
+   */
+  contagem?: string;
 }) {
   return (
     <button
@@ -115,7 +263,10 @@ function ItemDoMenu({
       aria-current={ativa}
       onClick={() => abrirConfig(id, serverId)}
     >
-      {NOME[id]}
+      <span className={css.itemRotulo}>{NOME[id]}</span>
+      {contagem === undefined ? null : (
+        <span className={css.itemContagem}>{contagem}</span>
+      )}
     </button>
   );
 }
@@ -256,29 +407,11 @@ export function Configuracoes() {
       {canal ? (
         <NavegacaoDoCanal canal={canal} secao={secao} servidor={servidor?.name} />
       ) : DE_SERVIDOR.includes(secao) && serverId ? (
-        <nav className={css.menu} aria-label={`Configurações de ${servidor?.name ?? "servidor"}`}>
-          <div className={css.lista}>
-            {/*
-              O nome do servidor encabeça a coluna inteira, e não um grupo
-              dentro dela: aqui ele é a IDENTIDADE da tela, o mesmo papel que
-              o tipo e o nome do canal têm na casca de canal.
-            */}
-            <p className={css.grupo}>{servidor?.name ?? "Servidor"}</p>
-            {GRUPOS_DE_SERVIDOR.map((g, i) => (
-              <Fragment key={g.titulo}>
-                {i > 0 ? <p className={css.subgrupo}>{g.titulo}</p> : null}
-                {g.itens.map((id) => (
-                  <ItemDoMenu
-                    key={id}
-                    id={id}
-                    ativa={id === secao}
-                    serverId={serverId}
-                  />
-                ))}
-              </Fragment>
-            ))}
-          </div>
-        </nav>
+        <NavegacaoDoServidor
+          serverId={serverId}
+          nome={servidor?.name}
+          secao={secao}
+        />
       ) : (
       <nav className={css.menu} aria-label="Seções">
         <Identidade />

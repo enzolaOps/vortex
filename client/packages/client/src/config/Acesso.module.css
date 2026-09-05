@@ -10,8 +10,13 @@
   display: grid;
   gap: var(--vx-space-24);
   align-content: start;
-  /* 720 é a largura desta página no design. */
-  max-inline-size: 720px;
+  /*
+    760, da referência (`ServerAccessPage`). Estava 720 — o comentário dizia
+    "do design", e o número não está lá: as telas de Acesso e Segurança são
+    irmãs e a referência dá 760 às duas. 720 deixava esta 40px mais estreita
+    que a vizinha, sem razão que alguém pudesse reconstruir.
+  */
+  max-inline-size: 760px;
 }
 
 /* Os três modos de entrada. `gap: 10` é do design, e é maior que o dos

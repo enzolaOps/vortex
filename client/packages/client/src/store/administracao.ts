@@ -97,6 +97,22 @@ export type Alvo =
    */
   | { readonly tipo: "perfil"; readonly serverId: string; readonly userId: string }
   | { readonly tipo: "privacidadeDoServidor"; readonly serverId: string }
+  /**
+   * Sair do servidor — ou apagá-lo, se for seu.
+   *
+   * ⚠ **Uma variante só para as duas ações, porque o PROTOCOLO é um só:**
+   * `DELETE /servers/{id}` sai para quem é membro e APAGA para quem é dono. A
+   * interface tem de dizer qual vai acontecer, e quem decide isso é o dono,
+   * não o chamador — por isso o alvo carrega apenas o servidor.
+   */
+  | { readonly tipo: "apagarServidor"; readonly serverId: string }
+  /**
+   * Passar o servidor para outra pessoa.
+   *
+   * ⚠ **Existe no protocolo, e eu quase a registrei como pendência.**
+   * `DataEditServer` tem `owner?: string | null` — é `PATCH /servers/{id}`.
+   */
+  | { readonly tipo: "transferirPropriedade"; readonly serverId: string }
   | {
       readonly tipo: "apelido";
       readonly serverId: string;
@@ -163,6 +179,7 @@ const MODAL_DE: Record<
   | "apelido"
   | "pasta"
   | "perfil"
+  | "transferirPropriedade"
 > = {
   criarCanal: "canal",
   editarCanal: "canal",
@@ -184,6 +201,12 @@ const MODAL_DE: Record<
   privacidadeDoServidor: "privacidadeDoServidor",
   apelido: "apelido",
   perfil: "perfil",
+  /* Servidor entra no modal de exclusão que já existe: apagar canal,
+     categoria, mensagem e servidor são a MESMA pergunta com sujeitos
+     diferentes, e um quarto modal seria a quarta cópia de um texto que
+     precisa concordar. */
+  apagarServidor: "exclusao",
+  transferirPropriedade: "transferirPropriedade",
 };
 
 /** Estado limpo entre testes. O módulo é global e sobrevive. */

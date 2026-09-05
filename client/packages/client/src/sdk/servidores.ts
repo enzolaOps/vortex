@@ -665,6 +665,37 @@ export async function perdoar(
 
 /* --------------------------------------------------- editar o servidor */
 
+/**
+ * Passa o servidor para outra pessoa.
+ *
+ * ⚠ **Existe no protocolo, e eu quase a registrei como pendência.**
+ * `DataEditServer` tem `owner?: string | null` — o campo está no schema do
+ * `stoat-api@0.14.0`, e a rota é o mesmo `PATCH /servers/{id}` que salva nome
+ * e descrição.
+ *
+ * ⚠ **Não tem volta pelo mesmo caminho.** Depois disto quem chamou deixa de
+ * ser dono, e só o novo dono pode devolver — é por isso que a confirmação
+ * pede o nome do servidor digitado, que é o único lugar deste app onde isso
+ * é exigido. Apagar um canal não pede porque canal se recria; propriedade
+ * não se retoma.
+ */
+export async function transferirPropriedade(
+  serverId: string,
+  novoDonoId: string,
+): Promise<boolean> {
+  try {
+    await client.servers.get(serverId)?.edit({ owner: novoDonoId });
+    return true;
+  } catch (e) {
+    toast({
+      tipo: "erro",
+      titulo: "Não deu para transferir.",
+      descricao: motivo(e),
+    });
+    return false;
+  }
+}
+
 export async function salvarServidor(
   serverId: string,
   nome: string,
