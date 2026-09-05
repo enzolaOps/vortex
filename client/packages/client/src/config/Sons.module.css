@@ -1,0 +1,111 @@
+/* ============================================================
+   Painel de efeitos sonoros
+   ------------------------------------------------------------
+   900, da referência (`ServerSoundboardPage`).
+   ============================================================ */
+
+.tela {
+  display: grid;
+  gap: var(--vx-space-16);
+  align-content: start;
+  max-inline-size: 900px;
+}
+
+.barra {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.grade {
+  display: grid;
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+  overflow: hidden;
+}
+
+/*
+  As quatro colunas.
+
+  O volume leva `minmax(120px, 1fr)` e é a única que cresce: nome e autor têm
+  comprimento previsível, e um deslizante espremido é um controle que não se
+  consegue mirar.
+*/
+.cabecalho,
+.linha {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(120px, 1fr) minmax(0, 0.8fr) auto;
+  align-items: center;
+  gap: var(--vx-space-14);
+  padding: var(--vx-space-10) var(--vx-space-14);
+}
+
+/*
+  ⚠ **Eu tinha escrito `surface-0` aqui, e o `pnpm superficies` reprovou.**
+
+  É a terceira ocorrência do mesmo defeito neste projeto — o design reserva
+  `surface.sunken` para RAIL e GUTTER ULTRAWIDE, e usá-lo como fundo de uma
+  área que não é nenhum dos dois já produziu a faixa preta em volta da
+  timeline e a do composer. As duas foram relatadas por quem usa; esta a
+  guarda pegou antes de chegar à tela, que é a diferença que ela existe para
+  fazer.
+
+  Os tokens certos são os que `Tabela.module.css` já usa nas duas tabelas do
+  produto: cabeçalho em `surface-1`, um degrau ABAIXO do canvas, e linhas em
+  `surface-3`. Um terceiro arranjo aqui seria o app divergindo de si mesmo —
+  a família das seis cópias do `Avatar`.
+*/
+.cabecalho {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  border-block-end: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-1);
+  color: var(--vx-text-3);
+}
+
+.linha {
+  background: var(--vx-surface-3);
+}
+
+.linha + .linha {
+  border-block-start: 1px solid var(--vx-hairline-06);
+}
+
+.nomeCelula {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+  min-inline-size: 0;
+}
+
+.emoji {
+  flex: none;
+  font-size: 20px;
+}
+
+.nome {
+  overflow: hidden;
+  font-size: var(--vx-size-md);
+  color: var(--vx-text-1);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.autor {
+  overflow: hidden;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nota {
+  margin: 0;
+  font-size: var(--vx-size-xs);
+  line-height: 1.5;
+  color: var(--vx-text-4);
+  text-wrap: pretty;
+}
+
+.recado {
+  margin: 0;
+  color: var(--vx-text-3);
+}

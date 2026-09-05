@@ -27,6 +27,53 @@ import { toast } from "../components/ui/toastStore";
  *    removida, o módulo inteiro vira código morto e o `pnpm utilities` acusa.
  */
 export const PENDENCIAS = {
+  /* ----------------------------------------------- tag do servidor */
+  /*
+    ⚠ **Duas entradas para uma tela, e a divisão é por DEPENDÊNCIA.** A tag em
+    si precisa de um campo que o protocolo não tem; o emblema precisa disso E
+    do servidor de mídia. Quem for implementar a primeira não destrava a
+    segunda, e uma entrada só esconderia isso.
+  */
+  tagDoServidor: {
+    superficie: "Configurações do servidor · Tag do servidor",
+    faz: "Guardar a tag e exibi-la ao lado de quem escolher mostrá-la.",
+    depende:
+      "um campo de tag em `Server` — não existe em `DataEditServer`, ou seja fork do serviço `api`",
+  },
+  emblemaDaTag: {
+    superficie: "Configurações do servidor · Tag do servidor",
+    faz: "Enviar a imagem que acompanha a tag.",
+    depende: "o campo de tag no protocolo E upload para o servidor de mídia",
+  },
+  /* --------------------------------------------- modelo do servidor */
+  modeloDoServidor: {
+    superficie: "Configurações do servidor · Modelo do servidor",
+    faz: "Gerar um modelo com canais, categorias, cargos e permissões, e aplicá-lo noutro servidor.",
+    depende:
+      "o conceito de modelo no protocolo — não há campo nem rota, ou seja fork do serviço `api`",
+  },
+  /* ------------------------------------------------------ figurinhas */
+  /*
+    ⚠ O Stoat tem EMOJI de servidor e não figurinha. São coisas diferentes:
+    emoji vive dentro de uma linha de texto, figurinha é a mensagem inteira.
+  */
+  figurinhas: {
+    superficie: "Configurações do servidor · Figurinhas",
+    faz: "Enviar, renomear e apagar as figurinhas do servidor.",
+    depende: "um tipo de figurinha no protocolo E upload para o servidor de mídia",
+  },
+  /* ------------------------------------------------ efeitos sonoros */
+  /*
+    ⚠ Duas ausências empilhadas: o protocolo não tem o conceito, e TOCAR o som
+    numa sala é publicar áudio no LiveKit — não é enviar mensagem.
+  */
+  efeitosSonoros: {
+    superficie: "Configurações do servidor · Painel de efeitos sonoros",
+    faz: "Enviar sons e tocá-los na sala de voz para todo mundo ouvir.",
+    depende:
+      "o conceito no protocolo E uma trilha de áudio publicada no LiveKit pelo servidor",
+  },
+
   /* -------------------------------------------------------- notificação */
   /*
     ⚠ **Só UM pendente na tela de notificações, e é de propósito.** As

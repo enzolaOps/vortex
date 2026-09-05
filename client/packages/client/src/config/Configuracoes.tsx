@@ -57,6 +57,10 @@ import { useMembrosDoServidor } from "../store/hooks";
 import { cargosDoServidor } from "../sdk/cargos";
 import { souDono } from "../sdk/servidores";
 import { administrar } from "../store/administracao";
+import { Tag } from "./Tag";
+import { Modelo } from "./Modelo";
+import { Figurinhas } from "./Figurinhas";
+import { Sons } from "./Sons";
 
 /**
  * A casca de configurações.
@@ -358,6 +362,10 @@ export function Configuracoes() {
     banimentos: () => <Banimentos serverId={serverId} />,
     seguranca: () => <Seguranca serverId={serverId} />,
     emojis: () => <Emojis serverId={serverId} />,
+    tag: () => <Tag serverId={serverId} />,
+    modelo: () => <Modelo serverId={serverId} />,
+    figurinhas: () => <Figurinhas serverId={serverId} />,
+    sons: () => <Sons serverId={serverId} />,
     canal: () => <VisaoGeralDoCanal channelId={channelId} />,
     canalPermissoes: () => <PermissoesDoCanal channelId={channelId} />,
     canalConvites: () => <ConvitesDoCanal channelId={channelId} />,
