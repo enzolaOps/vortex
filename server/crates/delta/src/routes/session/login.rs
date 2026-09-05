@@ -10,9 +10,47 @@ use revolt_database::{
     Database, EmailVerification, Lockout, MFATicket,
 };
 use revolt_models::v0;
-use revolt_result::{create_error, Result};
+use revolt_result::{create_error, ErrorType, Result};
 use rocket::serde::json::Json;
 use rocket::State;
+
+/// `nome` or `nome#1234`. Trailing `#` + 4 digits is the discriminator.
+fn parse_username(ident: &str) -> (String, Option<String>) {
+    if let Some((nome, rest)) = ident.rsplit_once('#') {
+        if rest.len() == 4 && rest.bytes().all(|b| b.is_ascii_digit()) && !nome.is_empty() {
+            return (nome.to_string(), Some(rest.to_string()));
+        }
+    }
+    (ident.to_string(), None)
+}
+
+/// Email if it has `@`, otherwise username (unique) or username#disc.
+async fn conta_por_identidade(db: &Database, ident: String) -> Result<Option<revolt_database::Account>> {
+    if ident.contains('@') {
+        return db
+            .fetch_account_by_normalised_email(&normalise_email(ident))
+            .await;
+    }
+
+    let (username, disc) = parse_username(&ident);
+    let discs = db.fetch_discriminators_in_use(&username).await?;
+    let disc = match disc {
+        Some(d) if discs.iter().any(|x| x == &d) => d,
+        None if discs.len() == 1 => discs.into_iter().next().unwrap(),
+        _ => return Ok(None),
+    };
+
+    let user = match db.fetch_user_by_username(&username, &disc).await {
+        Ok(u) => u,
+        Err(e) if matches!(e.error_type, ErrorType::NotFound) => return Ok(None),
+        Err(e) => return Err(e),
+    };
+    match db.fetch_account(&user.id).await {
+        Ok(a) => Ok(Some(a)),
+        Err(e) if matches!(e.error_type, ErrorType::NotFound) => Ok(None),
+        Err(e) => Err(e),
+    }
+}
 
 /// # Login
 ///
@@ -32,14 +70,7 @@ pub async fn login(
             password,
             friendly_name,
         } => {
-            // Try to find the account we want
-            let email_normalised = normalise_email(email);
-
-            // Lookup the email in database
-            if let Some(mut account) = db
-                .fetch_account_by_normalised_email(&email_normalised)
-                .await?
-            {
+            if let Some(mut account) = conta_por_identidade(db, email).await? {
                 // Make sure the account has been verified
                 if let EmailVerification::Pending { .. } = account.verification {
                     return Err(create_error!(UnverifiedAccount));
@@ -206,6 +237,73 @@ mod tests {
         if !matches!(event, EventV1::CreateSession { .. }) {
             panic!("Received incorrect event type. {:?}", event);
         }
+    }
+
+    #[rocket::async_test]
+    async fn success_username() {
+        let harness = TestHarness::new().await;
+        let (_, _, user) = harness.new_user().await;
+
+        let res = harness.client
+            .post("/auth/session/login")
+            .header(ContentType::JSON)
+            .body(
+                json!({
+                    "email": user.username,
+                    "password": "password_insecure"
+                })
+                .to_string(),
+            )
+            .dispatch()
+            .await;
+
+        assert_eq!(res.status(), Status::Ok);
+        assert!(res.into_json::<v0::Session>().await.is_some());
+    }
+
+    #[rocket::async_test]
+    async fn success_username_discriminator() {
+        let harness = TestHarness::new().await;
+        let (_, _, user) = harness.new_user().await;
+        let ident = format!("{}#{}", user.username, user.discriminator);
+
+        let res = harness.client
+            .post("/auth/session/login")
+            .header(ContentType::JSON)
+            .body(
+                json!({
+                    "email": ident,
+                    "password": "password_insecure"
+                })
+                .to_string(),
+            )
+            .dispatch()
+            .await;
+
+        assert_eq!(res.status(), Status::Ok);
+        assert!(res.into_json::<v0::Session>().await.is_some());
+    }
+
+    #[rocket::async_test]
+    async fn fail_unknown_username() {
+        let harness = TestHarness::new().await;
+
+        let res = harness.client
+            .post("/auth/session/login")
+            .json(
+                &json!({
+                    "email": "ninguem",
+                    "password": "password_insecure"
+                })
+            )
+            .dispatch()
+            .await;
+
+        assert_eq!(res.status(), Status::Unauthorized);
+        assert!(matches!(
+            res.into_json::<Error>().await.unwrap().error_type,
+            ErrorType::InvalidCredentials,
+        ));
     }
 
     #[rocket::async_test]

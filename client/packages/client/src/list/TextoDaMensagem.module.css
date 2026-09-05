@@ -11,10 +11,23 @@
 */
 .mencao {
   padding-inline: var(--vx-space-02);
+  border: 0;
   border-radius: var(--vx-radius-02);
   background: var(--vx-accent-soft);
   color: var(--vx-text-1);
+  font: inherit;
   font-weight: 500;
+  cursor: pointer;
+  transition: background var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.mencao:hover {
+  background: color-mix(in oklab, var(--vx-accent) 22%, transparent);
+}
+
+.mencao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 1px;
 }
 
 /*

@@ -1,5 +1,6 @@
 import { memo, useState, useSyncExternalStore } from "react";
 
+import { Avatar } from "../components/ui/Avatar";
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
@@ -91,10 +92,14 @@ const Pessoa = memo(function Pessoa({
 
   return (
     <li className={css.pessoa}>
-      <span className={css.marca} aria-hidden>
-        {pessoa.sigla}
+      <Avatar
+        id={id}
+        sigla={pessoa.sigla}
+        url={pessoa.avatarUrl}
+        tamanho="lg"
+      >
         <PontoDePresenca userId={id} className={css.ponto} />
-      </span>
+      </Avatar>
 
       <span className={css.texto}>
         <span className={css.nome}>{pessoa.displayName}</span>

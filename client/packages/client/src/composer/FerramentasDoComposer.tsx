@@ -38,7 +38,7 @@ import css from "./FerramentasDoComposer.module.css";
 type Ferramenta = {
   readonly id: string;
   readonly rotulo: string;
-  readonly Icone: ComponentType<{ size?: number }>;
+  readonly Icone: ComponentType<{ size?: number | string }>;
 } & (
   | { readonly painel: (aoFechar: () => void) => ReactNode; readonly acao?: never }
   | { readonly painel?: never; readonly acao: () => void }

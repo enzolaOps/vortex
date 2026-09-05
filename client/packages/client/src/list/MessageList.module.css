@@ -17,6 +17,11 @@
   /* O scroll não vaza para o container pai ao chegar no fim — em app de
      painéis, vazar significa a página inteira rolar por baixo. */
   overscroll-behavior: contain;
+
+  /* Chrome + ResizeObserver no restore da aba infla item.size; o próximo
+     translateY abre um vão que cresce a cada ciclo. Duas âncoras no mesmo
+     scroller (CSS default + TanStack anchorTo:end) é o textbook. */
+  overflow-anchor: none;
 }
 
 /*

@@ -72,7 +72,7 @@ describe("429 chega como limite, não como queda de rede", () => {
   /* O `type` continua ganhando: ele é mais específico que qualquer heurística. */
   it("um corpo com `type` continua sendo traduzido por ele", () => {
     expect(motivoDoErro({ type: "InvalidCredentials" })).toBe(
-      "E-mail ou senha incorretos.",
+      "E-mail, usuário ou senha incorretos.",
     );
   });
 });

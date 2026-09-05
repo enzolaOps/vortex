@@ -98,7 +98,7 @@ export function TelaDeLogin({
             a razão é que acertar por sorte metade das vezes não é acertar.
           */}
           <h1 className={css.saudacao}>Bom te ver de novo</h1>
-          <p className={css.instrucao}>Entre com seu e-mail.</p>
+          <p className={css.instrucao}>Entre com e-mail ou usuário.</p>
 
           {/*
             O erro fica ACIMA do formulário, não abaixo do botão.
@@ -117,10 +117,8 @@ export function TelaDeLogin({
           ) : null}
 
           <Campo
-            rotulo="E-mail"
-            type="email"
-            /* `username` e não `email`: é o que os gerenciadores de senha
-               procuram, e errar aqui faz o preenchimento não oferecer nada. */
+            rotulo="E-mail ou usuário"
+            type="text"
             autoComplete="username"
             autoFocus
             required

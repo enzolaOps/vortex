@@ -1,0 +1,46 @@
+.lista {
+  margin: 0;
+  padding: var(--vx-space-04);
+  list-style: none;
+  max-block-size: 220px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  border-block-end: 1px solid var(--vx-border-subtle);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  inline-size: 100%;
+  padding-inline: var(--vx-space-08);
+  padding-block: var(--vx-space-06);
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-1);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.item[aria-selected="true"] {
+  background: var(--vx-state-hover);
+}
+
+.nome {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.username {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+}

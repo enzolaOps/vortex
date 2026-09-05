@@ -300,7 +300,7 @@ export default tseslint.config(
                * Mesma razão do Radix logo acima: com a fronteira, trocar de
                * família é um arquivo; sem ela, é varredura de 56.
                */
-              group: ["@phosphor-icons/*"],
+              group: ["@remixicon/*", "@phosphor-icons/*"],
               message:
                 "Ícone vem de components/ui/icones.ts, nunca do pacote direto. É o que mantém a família trocável num arquivo só — e o que impede voltar aos dez tamanhos livres.",
             },

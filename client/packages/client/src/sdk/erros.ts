@@ -53,7 +53,7 @@ function comoObjeto(e: unknown): unknown {
 /** As respostas que valem uma frase própria. */
 const POR_TIPO: Record<string, string> = {
   /* --------------------------------------------------------------- entrada */
-  InvalidCredentials: "E-mail ou senha incorretos.",
+  InvalidCredentials: "E-mail, usuário ou senha incorretos.",
   /*
     ⚠ O servidor responde `ShortPassword` para senha CURTA, e é o que ele diz
     quando a senha não bate com o mínimo dele — inclusive numa tentativa de
@@ -62,7 +62,7 @@ const POR_TIPO: Record<string, string> = {
     caminho de entrada; quem cria conta recebe a versão específica, porque lá a
     pessoa está escolhendo a senha agora.
   */
-  ShortPassword: "E-mail ou senha incorretos.",
+  ShortPassword: "E-mail, usuário ou senha incorretos.",
   DisabledAccount: "Esta conta está desativada.",
   UnverifiedAccount: "Confirme seu e-mail antes de entrar.",
   LockedOut: "Tentativas demais. Espere um pouco antes de tentar de novo.",
