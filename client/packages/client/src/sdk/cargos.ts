@@ -477,12 +477,35 @@ export type Emoji = {
   readonly id: string;
   readonly nome: string;
   readonly url: string;
+  /**
+   * Quem subiu — o nome, já resolvido.
+   *
+   * ⚠ **Existe no protocolo (`Emoji.creator`) e nunca tinha sido lido.** A
+   * referência tem a coluna "enviado por", e sem este campo ela seria a única
+   * das três tabelas de servidor a não dizer de quem é a linha. Numa lista
+   * onde a ação disponível é APAGAR, saber quem pôs é metade da decisão.
+   */
+  readonly porNome: string | undefined;
+  /**
+   * Animado.
+   *
+   * O protocolo separa os dois no LIMITE (são cotas diferentes), e é por isso
+   * que a contagem do topo da página diz "N estáticos · M animados" em vez de
+   * um número só.
+   */
+  readonly animado: boolean;
 };
 
 export async function listarEmojis(serverId: string): Promise<readonly Emoji[]> {
   try {
     const lista = (await client.servers.get(serverId)?.fetchEmojis()) ?? [];
-    return lista.map((e) => ({ id: e.id, nome: e.name, url: e.url }));
+    return lista.map((e) => ({
+      id: e.id,
+      nome: e.name,
+      url: e.url,
+      porNome: e.creator?.username,
+      animado: e.animated,
+    }));
   } catch (e) {
     falhou("Não deu para listar os emojis.", e);
     return [];

@@ -7,17 +7,24 @@ import { subirAnexo, temServidorDeMidia } from "../sdk/anexos";
 import { toast } from "../components/ui/toastStore";
 import css from "./Secao.module.css";
 import emojiCss from "./Emojis.module.css";
+import tab from "./Tabela.module.css";
 import { cn } from "../lib/cn";
 
 /**
  * Os emojis do servidor.
  *
- * ⚠ **Enviar passou a existir, e o comentário aqui dizia que não podia.** A
- * razão dada era boa e EXPIROU: "sem instância alcançável não há como escrever
- * isso e ver funcionar". A stack local sobe o `autumn`, então deu para
- * escrever e ver.
+ * ⚠ **A página era uma GRADE de cartõezinhos, e a referência é uma TABELA.**
+ * Comparadas lado a lado com as duas telas abertas: lá são quatro colunas
+ * (imagem, alias, quem pode usar, quem enviou) na mesma moldura de Membros,
+ * Convites e Banimentos; aqui eram caixinhas de 180px com a miniatura e o
+ * nome. O comentário antigo defendia a grade — "o que distingue um emoji do
+ * outro é a IMAGEM" —, e isso é verdade sobre o SELETOR de emoji, onde se
+ * escolhe pelo desenho. Esta tela não escolhe: ela administra.
  *
- * O caminho é o que aquele comentário já descrevia: sobe para o servidor de
+ * ⚠ **Enviar existe, e o comentário aqui dizia que não podia.** A razão dada
+ * era boa e EXPIROU: "sem instância alcançável não há como escrever isso e ver
+ * funcionar". A stack local sobe o `autumn`, então deu para escrever e ver. O
+ * caminho é o que aquele comentário já descrevia: sobe para o servidor de
  * MÍDIA pela tag `emojis`, e o `id` devolvido É o id do emoji —
  * `PUT /custom/emoji/{id}`. Não há dois identificadores.
  *
@@ -29,6 +36,7 @@ export function Emojis({ serverId }: { serverId: string }) {
   const [ocupado, setOcupado] = useState(false);
   const seletor = useRef<HTMLInputElement>(null);
   const [enviando, setEnviando] = useState(false);
+  const [sobre, setSobre] = useState(false);
   const temMidia = temServidorDeMidia();
 
   /**
@@ -92,124 +100,145 @@ export function Emojis({ serverId }: { serverId: string }) {
     return <p className={css.recado}>Abra um servidor para ver isto.</p>;
   }
 
-  if (lista === undefined) {
-    return <p className={css.recado}>Carregando…</p>;
-  }
-
-  if (lista.length === 0) {
-    return (
-      /* 900, da referência (`ServerEmojiPage`) — a grade de emoji é varredura,
-       e 880 é a medida de um formulário. */
-    <div
-      className={cn(css.forma, css.larga)}
-      style={{ "--vx-editor-w": "900px" } as React.CSSProperties}
-    >
-      {/*
-        A barra de envio fica ANTES da lista e aparece nos dois estados — com
-        emojis e sem. Um botão que só existe quando já há um emoji seria a
-        porta trancada por dentro.
-      */}
-      <div className={emojiCss.barra}>
-        <Botao
-          variante="primario"
-          disabled={enviando || !temMidia}
-          onClick={() => seletor.current?.click()}
-        >
-          {enviando ? "Enviando…" : "Enviar emoji"}
-        </Botao>
-        <span className={emojiCss.dica}>
-          PNG ou GIF, até 500 KB. O nome vem do arquivo.
-        </span>
-        <input
-          ref={seletor}
-          type="file"
-          accept="image/*"
-          className={emojiCss.seletor}
-          tabIndex={-1}
-          aria-hidden
-          onChange={(e) => {
-            const arquivo = e.target.files?.[0];
-            e.target.value = "";
-            if (arquivo) enviarEmoji(arquivo);
-          }}
-        />
-      </div>
-        <EstadoVazio
-          titulo="Nenhum emoji"
-          detalhe="Envie uma imagem para criar o primeiro."
-        />
-      </div>
-    );
-  }
+  /*
+    ⚠ **A contagem separa ESTÁTICO de ANIMADO porque o servidor separa.** São
+    cotas diferentes no protocolo, e um número só esconderia que a de GIF
+    acabou enquanto a de PNG ainda tem espaço.
+  */
+  const animados = lista?.filter((e) => e.animado).length ?? 0;
+  const estaticos = (lista?.length ?? 0) - animados;
 
   return (
-    <div className={css.forma}>
+    <div className={cn(css.forma, css.larga)} style={LARGURA}>
       {/*
-        A barra de envio fica ANTES da lista e aparece nos dois estados — com
+        A área de envio fica ANTES da lista e aparece nos dois estados — com
         emojis e sem. Um botão que só existe quando já há um emoji seria a
         porta trancada por dentro.
       */}
-      <div className={emojiCss.barra}>
-        <Botao
-          variante="primario"
-          disabled={enviando || !temMidia}
-          onClick={() => seletor.current?.click()}
-        >
+      <button
+        type="button"
+        className={emojiCss.zona}
+        data-sobre={sobre}
+        disabled={enviando || !temMidia}
+        onClick={() => seletor.current?.click()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setSobre(true);
+        }}
+        onDragLeave={() => setSobre(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setSobre(false);
+          const arquivo = e.dataTransfer.files[0];
+          if (arquivo) enviarEmoji(arquivo);
+        }}
+      >
+        <span className={emojiCss.zonaTitulo}>
           {enviando ? "Enviando…" : "Enviar emoji"}
-        </Botao>
-        <span className={emojiCss.dica}>
-          PNG ou GIF, até 500 KB. O nome vem do arquivo.
         </span>
-        <input
-          ref={seletor}
-          type="file"
-          accept="image/*"
-          className={emojiCss.seletor}
-          tabIndex={-1}
-          aria-hidden
-          onChange={(e) => {
-            const arquivo = e.target.files?.[0];
-            e.target.value = "";
-            if (arquivo) enviarEmoji(arquivo);
-          }}
-        />
+        <span className={emojiCss.zonaMedida}>
+          arraste PNG, JPG ou GIF · 128×128
+        </span>
+        <span className={emojiCss.zonaGesto}>
+          o nome do arquivo vira o alias
+        </span>
+      </button>
+
+      <input
+        ref={seletor}
+        type="file"
+        accept="image/*"
+        className={emojiCss.seletor}
+        tabIndex={-1}
+        aria-hidden
+        onChange={(e) => {
+          const arquivo = e.target.files?.[0];
+          e.target.value = "";
+          if (arquivo) enviarEmoji(arquivo);
+        }}
+      />
+
+      <div className={emojiCss.controles}>
+        <p className={css.recado}>
+          Apagar um emoji não apaga as mensagens que o usaram — elas passam a
+          mostrar o código dele.
+        </p>
+        <span className={emojiCss.espaco} />
+        <span className={emojiCss.contagem}>
+          {lista === undefined
+            ? ""
+            : `${String(estaticos)} estáticos · ${String(animados)} animados`}
+        </span>
+      </div>
+
+      <div className={cn(tab.tabela, emojiCss.tabela)} role="table">
+        <div className={tab.cabecalho} role="row">
+          <span>Imagem</span>
+          <span>Alias</span>
+          <span>Enviado por</span>
+          <span />
+        </div>
+
+        {lista === undefined ? (
+          <div className={tab.vazio}>
+            <EstadoVazio compacto titulo="Carregando…" />
+          </div>
+        ) : lista.length === 0 ? (
+          <div className={tab.vazio}>
+            <EstadoVazio
+              compacto
+              titulo="Nenhum emoji"
+              detalhe="Envie uma imagem para criar o primeiro."
+            />
+          </div>
+        ) : (
+          lista.map((e) => (
+            <div key={e.id} className={tab.linha} role="row">
+              {/*
+                `alt` com o nome e não vazio: quem não vê a imagem precisa
+                saber QUAL emoji está prestes a apagar, e essa é a única
+                informação que distingue uma linha da outra.
+              */}
+              <img className={emojiCss.imagem} src={e.url} alt={e.nome} />
+              <span className={emojiCss.alias}>:{e.nome}:</span>
+              {e.porNome === undefined ? (
+                <span className={emojiCss.semAutor}>não registrado</span>
+              ) : (
+                <span className={tab.meta}>{e.porNome}</span>
+              )}
+              <span className={tab.acao}>
+                <Botao
+                  variante="perigoSutil"
+                  disabled={ocupado}
+                  onClick={() => {
+                    setOcupado(true);
+                    void apagarEmoji(e.id)
+                      .then((ok) => {
+                        if (ok) setLista((l) => l?.filter((x) => x.id !== e.id));
+                      })
+                      .finally(() => setOcupado(false));
+                  }}
+                >
+                  Excluir
+                </Botao>
+              </span>
+            </div>
+          ))
+        )}
       </div>
 
       <p className={css.recado}>
-        Apagar um emoji não apaga as mensagens que o usaram — elas passam a
-        mostrar o código dele.
+        O design mostra ainda <strong>quem pode usar</strong> cada emoji, por
+        cargo. Não existe em <code>Emoji</code>: o objeto tem quem criou, o
+        nome, se é animado e a URL, e nada que restrinja o uso. Ficou de fora em
+        vez de virar uma coluna que diz “todos” em toda linha.
       </p>
-
-      <ul className={emojiCss.grade}>
-        {lista.map((e) => (
-          <li key={e.id} className={emojiCss.item}>
-            {/*
-              `alt` com o nome e não vazio: quem não vê a imagem precisa saber
-              QUAL emoji está prestes a apagar, e essa é a única informação que
-              distingue uma linha da outra.
-            */}
-            <img className={emojiCss.imagem} src={e.url} alt={e.nome} />
-            <span className={emojiCss.nome}>:{e.nome}:</span>
-            <Botao
-              variante="sutil"
-              disabled={ocupado}
-              onClick={() => {
-                setOcupado(true);
-                void apagarEmoji(e.id)
-                  .then((ok) => {
-                    if (ok) setLista((l) => l?.filter((x) => x.id !== e.id));
-                  })
-                  .finally(() => setOcupado(false));
-              }}
-            >
-              Apagar
-            </Botao>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
+
+/* 1000, o mesmo teto de Banimentos — quatro colunas com uma ponta de ação. */
+const LARGURA = { "--vx-editor-w": "1000px" } as React.CSSProperties;
 
 /**
  * O nome de emoji derivado do nome do arquivo.
