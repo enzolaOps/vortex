@@ -7,6 +7,11 @@ import { apagarCanal, apagarCategoria } from "../sdk/servidores";
 import { assinarAlvo, lerAlvo } from "../store/administracao";
 import { useCategorias, useChannel } from "../store/hooks";
 import css from "./AdicionarServidor.module.css";
+import { sairDoServidor } from "../sdk/servidores";
+import { fecharConfig } from "../store/config";
+import { irParaCasa } from "../store/navegacao";
+import { useServer } from "../store/hooks";
+import { souDono } from "../sdk/servidores";
 
 /**
  * Confirmação destrutiva.
@@ -37,6 +42,23 @@ export function ModalDeExclusao({ aoFechar }: { aoFechar: () => void }) {
 
   const deCanal = alvo?.tipo === "apagarCanal";
   const deMensagem = alvo?.tipo === "apagarMensagem";
+  /*
+    ⚠ **Servidor entrou aqui, e o fluxo dele MOROU no rodapé da Visão geral
+    até agora** — com uma confirmação de dois passos inline. A referência põe
+    "Excluir servidor" na coluna de navegação, e de lá não há onde uma
+    confirmação inline apareça: ela virou modal, que é o que este arquivo já
+    é para canal, categoria e mensagem.
+
+    ⚠ **`DELETE /servers/{id}` faz as DUAS coisas** — sai para quem é membro,
+    apaga para quem é dono. Toda a cópia abaixo troca por `souDono`, porque um
+    dono que leia "sair" e destrua o servidor de todo mundo é o pior desfecho
+    possível desta tela.
+  */
+  const deServidor = alvo?.tipo === "apagarServidor";
+  const servidor = useServer(deServidor ? alvo.serverId : "");
+  /* A mesma fonte que a Visão geral usava — o SDK sabe quem é o dono; o
+     snapshot de domínio de propósito não carrega isso. */
+  const eDono = deServidor && souDono(alvo.serverId);
   const nome = deCanal
     ? `#${canal?.name ?? "canal"}`
     : (categoria?.titulo ?? "categoria");
@@ -45,11 +67,15 @@ export function ModalDeExclusao({ aoFechar }: { aoFechar: () => void }) {
     <Dialog open onOpenChange={(v) => !v && aoFechar()}>
       <DialogContent
         titulo={
-          deMensagem
-            ? "Apagar mensagem"
-            : deCanal
-              ? "Apagar canal"
-              : "Apagar categoria"
+          deServidor
+            ? eDono
+              ? "Apagar servidor"
+              : "Sair do servidor"
+            : deMensagem
+              ? "Apagar mensagem"
+              : deCanal
+                ? "Apagar canal"
+                : "Apagar categoria"
         }
         className={css.painel}
         /* Cancelar ANTES de apagar: a ação destrutiva fica na ponta, que é
@@ -74,22 +100,46 @@ export function ModalDeExclusao({ aoFechar }: { aoFechar: () => void }) {
                       ? apagarCategoria(alvo.serverId, alvo.categoriaId)
                       : alvo.tipo === "apagarMensagem"
                         ? apagarMensagem(alvo.messageId)
-                        : Promise.resolve(false);
+                        : alvo.tipo === "apagarServidor"
+                          ? sairDoServidor(alvo.serverId, false)
+                          : Promise.resolve(false);
                 void p
                   .then((ok) => {
-                    if (ok) aoFechar();
+                    if (!ok) return;
+                    /* Ficar olhando para as configurações de um servidor que
+                       não existe mais é o estado que esta linha evita. */
+                    if (alvo.tipo === "apagarServidor") {
+                      fecharConfig();
+                      irParaCasa();
+                    }
+                    aoFechar();
                   })
                   .finally(() => setApagando(false));
               }}
             >
-              Apagar
+              {deServidor && !eDono ? "Sair" : "Apagar"}
             </Botao>
           </>
         }
       >
         <div className={css.corpo}>
           <p className={css.aviso}>
-            {deMensagem ? (
+            {deServidor ? (
+              eDono ? (
+                <>
+                  <strong>{servidor?.name ?? "O servidor"}</strong>, os canais e
+                  todo o histórico somem, para todo mundo. Não tem como
+                  desfazer.
+                </>
+              ) : (
+                <>
+                  {/* Dizer o que NÃO acontece, como na categoria: sem isto
+                      alguém desiste de sair achando que apaga tudo. */}
+                  Você sai de <strong>{servidor?.name ?? "servidor"}</strong> e
+                  pode voltar por um convite novo. Nada é apagado.
+                </>
+              )
+            ) : deMensagem ? (
               <>
                 {/* Sem prévia do texto: a linha está atrás do modal, e repetir
                     o conteúdo aqui daria duas cópias da mesma mensagem na

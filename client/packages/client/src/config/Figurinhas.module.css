@@ -1,0 +1,93 @@
+/* ============================================================
+   Figurinhas
+   ------------------------------------------------------------
+   900, da referência (`ServerStickersPage`) — a mesma medida de
+   Emoji e do Painel de efeitos sonoros: as três são grade ou
+   lista de itens visuais, que é varredura e não leitura.
+   ============================================================ */
+
+.tela {
+  display: grid;
+  gap: var(--vx-space-16);
+  align-content: start;
+  max-inline-size: 900px;
+}
+
+.barra {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.lista {
+  display: grid;
+  gap: var(--vx-space-08);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-14);
+  padding: var(--vx-space-12);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-1);
+}
+
+/*
+  O quadro da figurinha, em 56 — grande o bastante para ler como MÍDIA e não
+  como ícone. É a diferença que a página existe para mostrar.
+*/
+.quadro {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: 56px;
+  block-size: 56px;
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-2);
+  font-size: 28px;
+}
+
+.textos {
+  display: grid;
+  flex: 1;
+  min-inline-size: 0;
+  gap: var(--vx-space-02);
+}
+
+.nome {
+  overflow: hidden;
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.descricao {
+  overflow: hidden;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acoes {
+  display: flex;
+  flex: none;
+  gap: var(--vx-space-06);
+}
+
+.rodape {
+  margin: 0;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-4);
+}
+
+.recado {
+  margin: 0;
+  color: var(--vx-text-3);
+}

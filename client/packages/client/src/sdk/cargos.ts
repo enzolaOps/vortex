@@ -381,6 +381,37 @@ export async function criarCargo(
   }
 }
 
+/**
+ * Reordena a hierarquia inteira.
+ *
+ * ⚠ **`setRoleOrdering` e NÃO `DataEditRole.rank`, e a distinção estava
+ * registrada como armadilha.** O `rank` no editor de cargo não tem efeito —
+ * escrevê-lo dá um arrasto que parece funcionar e não salva, que é pior que
+ * não ter arrasto. O protocolo reordena pelo ARRAY inteiro (`role_ranks`),
+ * porque rank é posição relativa e não um número que cada cargo carrega
+ * sozinho.
+ *
+ * ⚠ **Recebe a lista COMPLETA, do mais alto para o mais baixo.** Mandar só o
+ * que mudou seria impossível: mover um cargo muda o rank de todos os que
+ * ficaram entre a origem e o destino.
+ */
+export async function reordenarCargos(
+  serverId: string,
+  idsDoMaisAlto: readonly string[],
+): Promise<boolean> {
+  try {
+    await client.servers.get(serverId)?.setRoleOrdering([...idsDoMaisAlto]);
+    return true;
+  } catch (e) {
+    toast({
+      tipo: "erro",
+      titulo: "Não deu para reordenar os cargos.",
+      descricao: motivoDoErro(e),
+    });
+    return false;
+  }
+}
+
 export async function salvarCargo(
   serverId: string,
   roleId: string,
@@ -446,12 +477,35 @@ export type Emoji = {
   readonly id: string;
   readonly nome: string;
   readonly url: string;
+  /**
+   * Quem subiu — o nome, já resolvido.
+   *
+   * ⚠ **Existe no protocolo (`Emoji.creator`) e nunca tinha sido lido.** A
+   * referência tem a coluna "enviado por", e sem este campo ela seria a única
+   * das três tabelas de servidor a não dizer de quem é a linha. Numa lista
+   * onde a ação disponível é APAGAR, saber quem pôs é metade da decisão.
+   */
+  readonly porNome: string | undefined;
+  /**
+   * Animado.
+   *
+   * O protocolo separa os dois no LIMITE (são cotas diferentes), e é por isso
+   * que a contagem do topo da página diz "N estáticos · M animados" em vez de
+   * um número só.
+   */
+  readonly animado: boolean;
 };
 
 export async function listarEmojis(serverId: string): Promise<readonly Emoji[]> {
   try {
     const lista = (await client.servers.get(serverId)?.fetchEmojis()) ?? [];
-    return lista.map((e) => ({ id: e.id, nome: e.name, url: e.url }));
+    return lista.map((e) => ({
+      id: e.id,
+      nome: e.name,
+      url: e.url,
+      porNome: e.creator?.username,
+      animado: e.animated,
+    }));
   } catch (e) {
     falhou("Não deu para listar os emojis.", e);
     return [];

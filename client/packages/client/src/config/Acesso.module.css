@@ -10,8 +10,13 @@
   display: grid;
   gap: var(--vx-space-24);
   align-content: start;
-  /* 720 é a largura desta página no design. */
-  max-inline-size: 720px;
+  /*
+    760, da referência (`ServerAccessPage`). Estava 720 — o comentário dizia
+    "do design", e o número não está lá: as telas de Acesso e Segurança são
+    irmãs e a referência dá 760 às duas. 720 deixava esta 40px mais estreita
+    que a vizinha, sem razão que alguém pudesse reconstruir.
+  */
+  max-inline-size: 760px;
 }
 
 /* Os três modos de entrada. `gap: 10` é do design, e é maior que o dos
@@ -135,11 +140,11 @@
   background: var(--vx-surface-1);
 }
 
-.requisitosTitulo {
-  margin-block-end: var(--vx-space-12);
-  font-size: var(--vx-size-md);
-  font-weight: 600;
-  color: var(--vx-text-1);
+/* A mesma sobrancelha de Segurança e de todo formulário do app. */
+.sobrancelha {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  margin-block-end: var(--vx-space-10);
+  color: var(--vx-text-3);
 }
 
 .requisito {

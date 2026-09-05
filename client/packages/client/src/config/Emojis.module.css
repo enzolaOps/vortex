@@ -1,30 +1,104 @@
 /* ============================================================
    Emojis do servidor
    ------------------------------------------------------------
-   Grade e não lista: o que distingue um emoji do outro é a
-   IMAGEM, e uma lista de uma coluna com miniatura de 32px
-   desperdiça a largura toda para mostrar o que menos importa.
+   ⚠ **Era uma GRADE de cartõezinhos, e a referência é uma
+   TABELA.** O comentário antigo defendia a grade: "o que
+   distingue um emoji do outro é a IMAGEM". Verdade sobre o
+   SELETOR de emoji, onde se escolhe pelo desenho — e falso
+   aqui, onde o que se faz é administrar: quem subiu, quando,
+   qual apagar. A referência usa a mesma tabela de Membros,
+   Convites e Banimentos, e as quatro páginas de servidor
+   passam a ler como o mesmo produto.
    ============================================================ */
 
-.grade {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: var(--vx-space-08);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+/*
+  Quatro colunas, e o design tem cinco. "Quem pode usar" — restringir um emoji
+  a certos cargos — não existe em `Emoji`: o objeto tem `parent`, `creator`,
+  `name`, `animated`, `mature` e a URL, e nada que gateie o uso.
+*/
+.tabela {
+  --colunas: 56px 1.4fr 1fr 90px;
+  /* 1000, o mesmo teto de Banimentos: as duas têm o mesmo número de colunas
+     úteis e uma ponta de ação. */
+  max-inline-size: 1000px;
 }
 
-.item {
+.controles {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-08);
-  min-inline-size: 0;
-  padding-inline: var(--vx-space-08);
-  padding-block: var(--vx-space-08);
-  border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-06);
-  background: var(--vx-surface-1);
+  gap: var(--vx-space-12);
+  flex-wrap: wrap;
+}
+
+.espaco {
+  flex: 1;
+}
+
+.contagem {
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+/* ------------------------------------------------ área de envio */
+
+/*
+  A área de envio é uma zona de SOLTAR, e não um botão com uma dica ao lado.
+
+  ⚠ **Ela diz "arraste" porque arrastar funciona.** A referência escreve
+  "arraste PNG, JPG ou GIF · 128×128", e uma caixa que promete o gesto sem
+  aceitá-lo é a família do alvo inerte que o lint de `onSelect` existe para
+  matar. `onDrop` está ligado; o clique continua abrindo o seletor do sistema,
+  porque teclado e toque não arrastam.
+*/
+.zona {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vx-space-06);
+  inline-size: 100%;
+  max-inline-size: 1000px;
+  block-size: 96px;
+  margin-block-end: var(--vx-space-16);
+  border: 1px dashed var(--vx-hairline-10);
+  border-radius: var(--vx-radius-08);
+  background: transparent;
+  cursor: pointer;
+  transition: border-color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.zona:hover,
+.zona[data-sobre="true"] {
+  border-color: var(--vx-accent);
+  background: var(--vx-state-hover);
+}
+
+.zona:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.zona:disabled {
+  cursor: not-allowed;
+  opacity: var(--vx-lamina-3);
+}
+
+.zonaTitulo {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+/* Mono na especificação — é medida que se confere caractere a caractere. */
+.zonaMedida {
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.zonaGesto {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
 }
 
 /*
@@ -32,40 +106,25 @@
 
   Emoji chega em qualquer proporção, e um teto sozinho deixaria a linha mudar
   de altura conforme o arquivo — a mesma armadilha do anexo na linha de
-  mensagem, onde `max-inline-size` produziu uma caixa de 0x0. `object-fit`
+  mensagem, onde `max-inline-size` produziu uma caixa de 0×0. `object-fit`
   encaixa sem distorcer.
 */
 .imagem {
-  flex: 0 0 auto;
   inline-size: 32px;
   block-size: 32px;
   object-fit: contain;
 }
 
-.nome {
-  flex: 1 1 auto;
-  min-inline-size: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: var(--vx-font-mono);
-  font-size: var(--vx-size-sm);
-  color: var(--vx-text-2);
+.alias {
+  composes: mono from "./Tabela.module.css";
+  color: var(--vx-text-1);
 }
 
-/* A barra de envio — botão, dica e o seletor escondido */
-
-.barra {
-  display: flex;
-  align-items: center;
-  gap: var(--vx-space-12);
-  flex-wrap: wrap;
-  margin-block-end: var(--vx-space-16);
-}
-
-.dica {
-  font-size: var(--vx-size-xs);
-  color: var(--vx-text-3);
+/* Ausência de autor é itálica e um tom abaixo — igual ao "sem motivo" de
+   Banimentos: não é um nome curto, é a falta de um. */
+.semAutor {
+  composes: meta from "./Tabela.module.css";
+  font-style: italic;
 }
 
 /* `display: none` e não `opacity: 0`: com opacidade zero o campo continuaria

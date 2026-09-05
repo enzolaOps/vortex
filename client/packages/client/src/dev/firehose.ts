@@ -39,6 +39,7 @@ import {
 } from "../sdk/adapter";
 import type { PresenceStatus } from "../sdk/domain";
 import { client } from "../sdk/client";
+import { dublarRedeDoServidor } from "./rede";
 
 const nextId = monotonicFactory();
 
@@ -479,6 +480,17 @@ const RECADOS = [
         },
       },
     } as never);
+
+    /*
+      As quatro páginas que passam por REDE — convites, banimentos, emoji e
+      auditoria. Ver `dev/rede.ts`: sem isto elas ficam em "Carregando…" para
+      sempre, e a varredura 1:1 contra a referência não tinha como cobri-las.
+    */
+    dublarRedeDoServidor(
+      servidor.id,
+      userIds,
+      servidor.canais.map((c) => c.id),
+    );
 
     /*
       Os `ServerMember`, que é onde moram apelido, cargo e castigo.

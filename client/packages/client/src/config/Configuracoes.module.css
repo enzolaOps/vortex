@@ -34,8 +34,27 @@
     `scrollTop` travado em 0. É o erro nº 3 do briefing na direção de bloco.
   */
   grid-template-rows: minmax(0, 1fr);
-  inline-size: min(960px, 100%);
-  block-size: min(85vh, 100%);
+  /*
+    ⚠ **960 contra os 1600 do design, e a diferença não era estética — ela
+    tornava o layout do design IRREPRESENTÁVEL.**
+
+    O design desenha o painel em `width: 1600px; height: 940px`, e as páginas
+    de Pessoas usam TRÊS colunas: navegação, a coluna mestre de cargos e o
+    editor. Em 960, tirando os 248 da navegação, sobram 712 para duas colunas
+    que o design dá 1120 de conteúdo — o editor de cargo ficaria com ~350px.
+    Não é apertado, é outra tela.
+
+    ⚠ **Continua sendo painel flutuante, e isso é do DESIGN, não concessão
+    nossa.** O mockup escreve `border-radius: 12px` e
+    `box-shadow: 0 20px 48px rgba(0,0,0,0.55)` no próprio painel — ele flutua
+    lá também. O que estava errado era só o tamanho.
+
+    `min()` com a viewport porque 1600×940 não cabe em janela de laptop, e o
+    painel precisa encolher antes de vazar. O teto é o número do design; o
+    piso é a janela.
+  */
+  inline-size: min(1600px, 100%);
+  block-size: min(940px, 100%);
   overflow: hidden;
   border: 1px solid var(--vx-hairline-10);
   border-radius: var(--vx-radius-12);
@@ -62,7 +81,13 @@
     lado com esta coluna e o conteudo dela, e o design a desenha 16px mais
     estreita.
   */
-  inline-size: 232px;
+  /*
+    ⚠ **248, do design — e o comentário acima defendia 232 com um argumento
+    que a fonte errada sustentava.** A referência usa `w-[232px]`; o design
+    escreve `width:248px`. Pela regra de método do projeto a referência decide
+    o que EXISTE e o design decide os VALORES, e eles divergem aqui.
+  */
+  inline-size: 248px;
   border-inline-end: 1px solid var(--vx-hairline-06);
   background: var(--vx-surface-1);
 }
@@ -234,10 +259,62 @@
   color: var(--vx-danger-text);
 }
 
+/*
+  Duas linhas: o scroller e a faixa de salvar.
+
+  ⚠ **A segunda é `auto`, e é ela que substitui os 110px reservados.** A faixa
+  vivia DENTRO do scroller — sticky, com margem negativa de −110 para sangrar
+  até a borda do pane — e o scroller reservava esse respiro em TODA página de
+  configuração, inclusive nas onze que nunca mostram faixa. Como linha de grid
+  ela ocupa altura só quando existe, e o scroller cede exatamente o que ela
+  pede. É o que a referência faz: `shrink-0` numa coluna flex.
+*/
 .conteudo {
   display: grid;
-  grid-template-rows: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
   min-inline-size: 0;
+}
+
+/*
+  A faixa de alterações não salvas.
+
+  Medida na referência: `padding: 12px 40px`, régua de topo, `surface-base` e
+  59px de altura — que é o botão de 34 mais os dois respiros de 12 mais a
+  hairline. O recuo lateral é o MESMO do scroller (40), e é o que faz o texto
+  dela nascer alinhado com o primeiro campo do formulário acima.
+
+  ⚠ **`surface-1` e não `surface-2`:** a área de conteúdo é `surface-2`, e uma
+  faixa do mesmo tom não se separa do que está por cima dela. O degrau para
+  BAIXO é o que a referência usa (`surface-base` sob `surface-canvas`), e ele
+  vale aqui pela mesma razão pela qual a coluna de navegação é `surface-1`.
+*/
+.faixaDeSalvar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-16);
+  padding: var(--vx-space-12) var(--vx-space-40);
+  border-block-start: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-1);
+}
+
+/*
+  ⚠ **O texto é AVISO, e não metadado.** Ele diz que há trabalho por gravar; em
+  `text-2` teria o peso de um rótulo de campo. A referência usa `warning-text`,
+  e o valor dela no escuro é exatamente o nosso `--vx-warning` — nenhum token
+  novo, só a atribuição certa. Aviso e não `danger` porque nada quebrou: o que
+  existe é uma pendência com duas saídas seguras ao lado.
+*/
+.faixaRecado {
+  min-inline-size: 0;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-warning);
+}
+
+.faixaAcoes {
+  display: flex;
+  flex: none;
+  gap: var(--vx-space-08);
 }
 
 /*
@@ -309,14 +386,18 @@
   scrollbar-width: thin;
   overscroll-behavior: contain;
   /*
-    `32px 40px 110px`, medido no design renderizado (`pnpm espelho`).
+    `32px 40px`, medido no design renderizado (`pnpm espelho`).
 
-    O 110 embaixo não é sobra: é o espaço que a faixa de "alterações não
-    salvas" ocupa quando aparece, reservado o tempo todo. Sem ele, a faixa
-    entraria por cima do último controle e a pessoa perderia justamente o que
-    acabou de mexer.
+    ⚠ **O respiro de 110px embaixo SAIU.** Ele reservava, em toda página, o
+    espaço da faixa de "alterações não salvas" — que agora é linha própria do
+    grid de `.conteudo` e só ocupa altura quando existe. A reserva permanente
+    era meia tela vazia no fim de Emoji, Figurinhas, Acesso e das outras nove
+    que não têm faixa nenhuma.
+
+    O 40 embaixo é o fim de página: a referência usa 60, que não é degrau da
+    escala, e 40 é o degrau vizinho.
   */
-  padding: var(--vx-space-32) var(--vx-space-40) var(--vx-config-rodape-h);
+  padding: var(--vx-space-32) var(--vx-space-40) var(--vx-space-40);
 
   /*
     Grid de uma coluna para o filho poder ocupar a LARGURA INTEIRA quando
@@ -407,4 +488,61 @@
 
 .fechar:active {
   scale: 0.94;
+}
+
+/*
+  O ladrilho do servidor no cartão de identidade da coluna.
+
+  28×28 com raio 9, do design — e os dois números são DIMENSÃO de componente,
+  não degrau de escala, que é por que o `pnpm escala` não os governa. O raio 9
+  existe na nossa escala (`--vx-radius-09`), então aqui ele é token; o 28 é
+  literal pelo mesmo motivo que o `block-size` de um controle é.
+
+  ⚠ Não é o `Avatar`: aquele é redondo, porque pessoa é redonda neste app e
+  servidor é quadrado com canto — a mesma distinção que o rail faz. Reusá-lo
+  aqui daria um servidor com cara de gente.
+*/
+.ladrilhoDoServidor {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: 28px;
+  block-size: 28px;
+  border-radius: var(--vx-radius-09);
+  font-size: var(--vx-size-xs);
+  font-weight: 700;
+  /* Tingido pelo gradiente de baixo, nunca neutro — ver `--vx-on-*`. */
+  color: var(--vx-on-accent);
+}
+
+/*
+  Rótulo e contagem dentro do item da coluna.
+
+  O rótulo encolhe com reticências e a contagem nunca: numa coluna de 248px,
+  "Painel de efeitos sonoros" não cabe, e o que precisa sobreviver ao corte é
+  o NÚMERO — ele é o dado, o rótulo é o nome de um lugar que a pessoa já
+  reconhece pelo começo.
+*/
+.itemRotulo {
+  overflow: hidden;
+  flex: 1;
+  min-inline-size: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+  A contagem: `text-caption` em `text-disabled` na referência — aqui
+  `--vx-size-xs` sobre `--vx-text-4`, que é o par de metadado deste app.
+
+  Um degrau abaixo do rótulo em tamanho E em tom, porque ela ANOTA o item em
+  vez de competir com ele. `tabular-nums` para os números ficarem alinhados
+  entre linhas — "1.204" e "37" numa mesma coluna sem isso dançam.
+*/
+.itemContagem {
+  flex: none;
+  font-size: var(--vx-size-xs);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: var(--vx-text-4);
 }

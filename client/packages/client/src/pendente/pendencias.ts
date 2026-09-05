@@ -27,6 +27,137 @@ import { toast } from "../components/ui/toastStore";
  *    removida, o módulo inteiro vira código morto e o `pnpm utilities` acusa.
  */
 export const PENDENCIAS = {
+  /* ------------------------------------------ perfil do servidor */
+  /*
+    Quatro entradas, divididas pela mesma régua de sempre — o que falta é
+    UPLOAD ou é CONCEITO.
+
+    ⚠ Ícone e banner têm campo no protocolo (`Server.icon`, `Server.banner`) e
+    param no servidor de mídia, que é um `POST` cru para a URL de
+    `client.configuration.features.autumn` — inverificável sem instância
+    alcançável, a mesma razão que segura o envio de emoji. Faixa e
+    características não têm campo nenhum: são conceito de outro cliente.
+  */
+  iconeDoServidor: {
+    superficie: "Configurações do servidor · Perfil do servidor",
+    faz: "Trocar ou remover a imagem que identifica o servidor.",
+    depende: "upload para o servidor de mídia — o campo Server.icon JÁ existe",
+  },
+  bannerDoServidor: {
+    superficie: "Configurações do servidor · Perfil do servidor",
+    faz: "Pôr a arte larga que aparece atrás do card de convite.",
+    depende: "upload para o servidor de mídia — o campo Server.banner JÁ existe",
+  },
+  caracteristicasDoServidor: {
+    superficie: "Configurações do servidor · Perfil do servidor",
+    faz: "Marcar até cinco assuntos que descrevem o servidor.",
+    depende:
+      "o conceito de característica no protocolo — não há campo, rota nem evento",
+  },
+  previaDoConvite: {
+    superficie: "Configurações do servidor · Perfil do servidor · Prévia",
+    faz: "Entrar no servidor pelo botão do card, como quem recebe o convite.",
+    depende:
+      "só a tela — é a prévia de um card, e entrar num servidor onde já se está não é ação",
+  },
+
+  /* --------------------------------------------- editor de cargo */
+  /*
+    Quatro entradas para uma aba, e a divisão é por DEPENDÊNCIA — igual à da
+    tag. Estilo e menção precisam de campo no protocolo; o ícone precisa de
+    campo E de upload; gerenciar em lote precisa só de tela, porque a escrita
+    já existe.
+  */
+  estiloDeCargo: {
+    superficie: "Configurações do servidor · Cargos · Exibição",
+    faz: "Escolher entre nome sólido, em gradiente ou holográfico.",
+    depende:
+      "um campo de estilo em Role — o protocolo tem só colour, ou seja fork do serviço api",
+  },
+  iconeDeCargo: {
+    superficie: "Configurações do servidor · Cargos · Exibição",
+    faz: "Pôr uma imagem ou emoji ao lado do nome de quem tem o cargo.",
+    depende: "upload para o servidor de mídia — o campo Role.icon JÁ existe",
+  },
+  mencionarCargo: {
+    superficie: "Configurações do servidor · Cargos · Exibição",
+    faz: "Decidir se qualquer membro pode mencionar o cargo.",
+    depende: "um campo de menção em Role — hoje qualquer cargo pode ser mencionado",
+  },
+  linkDeCargo: {
+    superficie: "Configurações do servidor · Cargos · Links",
+    faz: "Criar um link que dá o cargo a quem entrar por ele.",
+    depende: "o conceito de convite com cargo no protocolo",
+  },
+  gerenciarMembrosDoCargo: {
+    superficie: "Configurações do servidor · Cargos · Gerenciar membros",
+    faz: "Adicionar e remover várias pessoas do cargo de uma vez.",
+    depende:
+      "só a tela — a escrita existe e já funciona no menu da member list, uma pessoa por vez",
+  },
+
+  /* ------------------------------------------- permissões padrão */
+  /*
+    ⚠ **`@everyone` é cargo de verdade no protocolo, mas não vem em
+    `fetchRoles`** — ele é o campo `default_permissions` do servidor, e não uma
+    entrada da lista de cargos. Editá-lo é `Server.edit`, com uma tela que
+    reusa a matriz de permissões do editor. A entrada existe para o alvo dizer
+    isso em vez de não fazer nada.
+  */
+  permissoesPadrao: {
+    superficie: "Configurações do servidor · Cargos",
+    faz: "Editar as permissões que TODO membro tem, antes de qualquer cargo.",
+    depende:
+      "a matriz de permissões apontando para `default_permissions` em vez de um cargo",
+  },
+
+  /* ----------------------------------------------- tag do servidor */
+  /*
+    ⚠ **Duas entradas para uma tela, e a divisão é por DEPENDÊNCIA.** A tag em
+    si precisa de um campo que o protocolo não tem; o emblema precisa disso E
+    do servidor de mídia. Quem for implementar a primeira não destrava a
+    segunda, e uma entrada só esconderia isso.
+  */
+  tagDoServidor: {
+    superficie: "Configurações do servidor · Tag do servidor",
+    faz: "Guardar a tag e exibi-la ao lado de quem escolher mostrá-la.",
+    depende:
+      "um campo de tag em `Server` — não existe em `DataEditServer`, ou seja fork do serviço `api`",
+  },
+  emblemaDaTag: {
+    superficie: "Configurações do servidor · Tag do servidor",
+    faz: "Enviar a imagem que acompanha a tag.",
+    depende: "o campo de tag no protocolo E upload para o servidor de mídia",
+  },
+  /* --------------------------------------------- modelo do servidor */
+  modeloDoServidor: {
+    superficie: "Configurações do servidor · Modelo do servidor",
+    faz: "Gerar um modelo com canais, categorias, cargos e permissões, e aplicá-lo noutro servidor.",
+    depende:
+      "o conceito de modelo no protocolo — não há campo nem rota, ou seja fork do serviço `api`",
+  },
+  /* ------------------------------------------------------ figurinhas */
+  /*
+    ⚠ O Stoat tem EMOJI de servidor e não figurinha. São coisas diferentes:
+    emoji vive dentro de uma linha de texto, figurinha é a mensagem inteira.
+  */
+  figurinhas: {
+    superficie: "Configurações do servidor · Figurinhas",
+    faz: "Enviar, renomear e apagar as figurinhas do servidor.",
+    depende: "um tipo de figurinha no protocolo E upload para o servidor de mídia",
+  },
+  /* ------------------------------------------------ efeitos sonoros */
+  /*
+    ⚠ Duas ausências empilhadas: o protocolo não tem o conceito, e TOCAR o som
+    numa sala é publicar áudio no LiveKit — não é enviar mensagem.
+  */
+  efeitosSonoros: {
+    superficie: "Configurações do servidor · Painel de efeitos sonoros",
+    faz: "Enviar sons e tocá-los na sala de voz para todo mundo ouvir.",
+    depende:
+      "o conceito no protocolo E uma trilha de áudio publicada no LiveKit pelo servidor",
+  },
+
   /* -------------------------------------------------------- notificação */
   /*
     ⚠ **Só UM pendente na tela de notificações, e é de propósito.** As

@@ -19,7 +19,9 @@
 */
 .tabela {
   --colunas: 1.3fr 1.6fr 90px;
-  max-inline-size: 1080px;
+  /* 1000, da referência (`ServerBansPage`). Era 1080, que é o teto de
+     Convites — as duas foram escritas juntas e herdaram o mesmo número. */
+  max-inline-size: 1000px;
 }
 
 .controles {
@@ -103,7 +105,8 @@
 
 .recado {
   margin: 0;
-  max-inline-size: 1080px;
+  /* Acompanha a tabela acima. */
+  max-inline-size: 1000px;
   font-size: var(--vx-size-sm);
   color: var(--vx-text-4);
   text-wrap: pretty;

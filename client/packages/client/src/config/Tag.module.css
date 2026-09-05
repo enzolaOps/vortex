@@ -1,0 +1,150 @@
+/* ============================================================
+   Tag do servidor
+   ------------------------------------------------------------
+   Duas colunas: o formulário em 520 e a prévia em 360, os dois
+   números da referência (`ServerTagPage`). O teto de 1000 mora
+   no `.tela`.
+   ============================================================ */
+
+.tela {
+  display: flex;
+  align-items: start;
+  gap: var(--vx-space-32);
+  /* 1000, da referência. */
+  max-inline-size: 1000px;
+}
+
+.coluna {
+  display: grid;
+  gap: var(--vx-space-18);
+  flex: 1;
+  min-inline-size: 0;
+  /* 520 — a medida de um formulário de coluna única, e o que sobra depois da
+     prévia de 360 dentro de 1000. */
+  max-inline-size: 520px;
+}
+
+/*
+  ⚠ **O campo tem largura PRÓPRIA, e não a da coluna.** Quatro caracteres em
+  mono num campo de 520 leem como um campo vazio com uma sigla perdida no
+  canto. A referência o trava em 160, que é onde `VTX` ocupa a caixa.
+*/
+.campoDaTag input {
+  max-inline-size: 160px;
+  font-family: var(--vx-font-mono);
+  text-transform: uppercase;
+}
+
+.sobrancelha {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  margin: 0 0 var(--vx-space-08);
+  color: var(--vx-text-3);
+}
+
+.emblema {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-12);
+}
+
+/*
+  A caixa do emblema que ainda não existe.
+
+  Xadrez não: aqui não há mídia a carregar, há mídia que nunca foi enviada. O
+  vazio tingido diz "cabe algo" sem prometer que algo está vindo — a mesma
+  distinção que separa `empty` de `loading` nos oito estados.
+*/
+.emblemaVazio {
+  flex: none;
+  inline-size: 44px;
+  block-size: 44px;
+  border: 1px dashed var(--vx-hairline-10);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-1);
+}
+
+/* ------------------------------------------------- prévia */
+
+.previa {
+  flex: none;
+  /* 360, da referência. */
+  inline-size: 360px;
+}
+
+.previaCaixa {
+  display: grid;
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-16);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-1);
+}
+
+/* Régua entre as três superfícies: elas são exemplos INDEPENDENTES, e sem
+   separação leem como uma tela só com três linhas. */
+.previaBloco {
+  padding-block-start: var(--vx-space-12);
+  border-block-start: 1px solid var(--vx-hairline-06);
+}
+
+.previaRotulo {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  margin: 0 0 var(--vx-space-06);
+  color: var(--vx-text-3);
+}
+
+.previaLinha {
+  display: flex;
+  align-items: baseline;
+  gap: var(--vx-space-08);
+}
+
+.previaLinhaCentrada {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+}
+
+/* Os três nomes reproduzem o peso que cada superfície dá a eles: o autor da
+   timeline em acento, o da member list em corpo, o do perfil em título. */
+.autor {
+  font-size: var(--vx-size-lg);
+  font-weight: 600;
+  color: var(--vx-accent-text);
+}
+
+.hora {
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+.corpo {
+  margin: 0;
+  font-size: var(--vx-size-lg);
+  color: var(--vx-text-1);
+}
+
+.nomeDeMembro {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-accent-text);
+}
+
+.nomeDePerfil {
+  font-size: var(--vx-size-xl);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.nota {
+  margin: var(--vx-space-12) 0 0;
+  font-size: var(--vx-size-xs);
+  line-height: 1.5;
+  color: var(--vx-text-4);
+  text-wrap: pretty;
+}
+
+.recado {
+  margin: 0;
+  color: var(--vx-text-3);
+}

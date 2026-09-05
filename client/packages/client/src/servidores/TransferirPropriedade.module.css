@@ -1,0 +1,103 @@
+/*
+  Transferir propriedade.
+
+  A caixa é a de confirmação do projeto (`--vx-radius-08` e o rodapé em
+  `surface-3` vêm do `DialogContent`); o que este módulo acrescenta é a lista
+  de quem pode receber.
+*/
+.painel {
+  inline-size: 100%;
+  max-inline-size: 440px;
+}
+
+.corpo {
+  display: grid;
+  gap: var(--vx-space-14);
+}
+
+/*
+  O aviso.
+
+  ⚠ Não é `danger` de fundo: nada quebrou ainda, e tingir a caixa inteira
+  gastaria o vermelho antes do botão que de fato destrói. O peso está na
+  palavra em negrito e no botão de perigo do rodapé — a mesma disciplina de
+  acento aplicada ao vermelho.
+*/
+.aviso {
+  margin: 0;
+  font-size: var(--vx-size-sm);
+  line-height: 1.5;
+  color: var(--vx-text-2);
+}
+
+.rotulo {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  margin: 0;
+  color: var(--vx-text-3);
+}
+
+/*
+  A lista rola: um servidor pode ter mil pessoas, e um modal que cresce até a
+  altura da janela empurra o rodapé — com o botão de confirmar — para fora.
+
+  Teto em 220px porque é onde cabem cinco linhas de 44: o suficiente para a
+  lista LER como lista (mais de uma tela de rolagem visível) sem tomar o
+  modal. Não é virtualizada de propósito: transferir é gesto raro, e um
+  virtualizador aqui seria maquinário para uma tela que abre uma vez na vida
+  do servidor.
+*/
+.lista {
+  display: grid;
+  gap: 1px;
+  overflow-y: auto;
+  max-block-size: 220px;
+  padding: var(--vx-space-04);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-1);
+  scrollbar-width: thin;
+}
+
+.candidato {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+  inline-size: 100%;
+  padding: var(--vx-space-06) var(--vx-space-08);
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  text-align: start;
+  cursor: pointer;
+}
+
+.candidato:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.candidato:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/*
+  O escolhido usa o mesmo realce do canal ativo e do item de configuração —
+  acento a 10% compondo com o fundo. Sem lâmina: a lâmina é assinatura de
+  NAVEGAÇÃO (onde você está), e isto é seleção dentro de um formulário.
+*/
+.candidato[aria-checked="true"] {
+  background: var(--vx-state-selected);
+  color: var(--vx-text-1);
+  font-weight: 600;
+}
+
+.candidatoNome {
+  overflow: hidden;
+  min-inline-size: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

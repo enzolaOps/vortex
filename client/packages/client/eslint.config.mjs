@@ -212,7 +212,19 @@ export default tseslint.config(
      numa pasta própria, cheio de JS minificado. Sem ele aqui, o eslint tenta
      lintar o bundle e morre pedindo informação de tipo para um arquivo que não
      está em nenhum `tsconfig`. Ver `vendor/stoat-desktop/scripts/casca-com-cliente-local.mjs`. */
-  { ignores: ["dist", "dist-casca", "node_modules", "scripts/coletor.js"] },
+  /* ⚠ `scripts/*.d.mts` é DECLARAÇÃO, não código: ele existe só para o `tsc`
+     não reprovar `src/config/roteiros.test.ts` com `TS7016` ao importar o
+     `.mjs` dos roteiros. Não está em tsconfig nenhum, e o lint com tipos morre
+     nele pelo mesmo motivo do `coletor.js`. */
+  {
+    ignores: [
+      "dist",
+      "dist-casca",
+      "node_modules",
+      "scripts/coletor.js",
+      "scripts/**/*.d.mts",
+    ],
+  },
 
   js.configs.recommended,
   tseslint.configs.recommendedTypeChecked,

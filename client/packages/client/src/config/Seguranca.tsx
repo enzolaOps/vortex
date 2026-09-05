@@ -133,8 +133,16 @@ export function Seguranca({ serverId }: { serverId: string }) {
         </div>
       </section>
 
+      {/*
+        ⚠ **Sobrancelha, e não título de cartão.** As outras duas seções desta
+        mesma página já usavam a sobrancelha; esta usava um título de 13/600
+        DENTRO do cartão — ou seja, a página se contradizia sobre como um grupo
+        se anuncia. A referência usa `text-eyebrow` nas três. Fora do cartão
+        pelo mesmo motivo das outras: o rótulo nomeia o grupo, não é a primeira
+        linha dele.
+      */}
+      <div className={css.sobrancelha}>Contato entre membros</div>
       <div className={css.cartao}>
-        <div className={css.cartaoTitulo}>Contato entre membros</div>
 
         <div className={css.linha}>
           <div>

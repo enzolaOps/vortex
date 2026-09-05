@@ -16,6 +16,13 @@
  * Campos:
  *
  *   - `nome`        rótulo no relatório
+ *   - `secao`       o `SecaoId` da página de configurações, quando é uma.
+ *                   ⚠ **É o que amarra este arquivo à união fechada de
+ *                   seções.** `src/config/roteiros.test.ts` exige um
+ *                   roteiro por seção de servidor e um `secao` válido por
+ *                   roteiro — nos DOIS sentidos, como `EXCECOES` no
+ *                   contraste. Sem isso, categoria nova nasce sem
+ *                   confronto e ninguém descobre.
  *   - `arquivo`     o `.dc.html` do design
  *   - `ancora`      texto que existe na tela do design
  *   - `cliques`     o que acionar antes (as telas vivem atrás de `sc-if`)
@@ -115,11 +122,138 @@ const menuDaMensagem = `
   await new Promise((r) => setTimeout(r, 700));
 `;
 
+/**
+ * O caminho até uma CATEGORIA das configurações de servidor.
+ *
+ * ⚠ **Nenhuma das treze tinha roteiro, e é exatamente por isso que elas
+ * derivaram.** O cabeçalho deste arquivo já dizia a regra — "tela que não está
+ * aqui não é conferida" — e as páginas de servidor foram construídas, revisadas
+ * e corrigidas três vezes sem nunca entrar nele. A comparação ficou comigo, e a
+ * pergunta de quem usa ("como garantir que fiquem 1:1?") tem esta resposta: não
+ * garante enquanto for humana.
+ *
+ * O `secao` é o rótulo do item na coluna — igual dos dois lados.
+ */
+const abrirConfigDeServidor = (secao) => `
+  const B = (t) =>
+    [...document.querySelectorAll("button")].find((b) =>
+      b.textContent.trim().startsWith(t),
+    );
+  B("1.000 msgs")?.click();
+  await new Promise((r) => setTimeout(r, 250));
+  B("Semear 1.000")?.click();
+  await new Promise((r) => setTimeout(r, 3200));
+  document.querySelector("[data-naolidas]")?.click();
+  await new Promise((r) => setTimeout(r, 1200));
+
+  /*
+    POINTERDOWN e nao click, e isso custou uma corrida inteira dizendo "raiz
+    nao achada". O menu do servidor e um DropdownMenu do Radix, e o gatilho
+    dele abre no pointerdown; um .click() programatico nao dispara nada e nao
+    lanca nada — o roteiro seguia, achava a tela do chat e reportava a raiz
+    como ausente, sem dizer por que.
+  */
+  const gatilho = [...document.querySelectorAll("button")].find((b) =>
+    (b.getAttribute("aria-label") || "").startsWith("Opções de"),
+  );
+  gatilho?.dispatchEvent(
+    new PointerEvent("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+      pointerId: 1,
+      pointerType: "mouse",
+    }),
+  );
+  await new Promise((r) => setTimeout(r, 700));
+
+  /*
+    O menu ja carrega as treze categorias, entao o caminho e um clique so — sem
+    passar pelo Perfil e depois pela coluna. Um passo a menos e um passo a
+    menos que pode falhar em silencio.
+  */
+  [...document.querySelectorAll('[role="menuitem"]')]
+    .find((e) => e.textContent.trim() === ${JSON.stringify(secao)})
+    ?.click();
+  await new Promise((r) => setTimeout(r, 1200));
+`;
+
+/**
+ * A caixa comparável nos dois lados: o CONTEÚDO da categoria.
+ *
+ * ⚠ **O CONTEÚDO e não o rolável, e a primeira versão errou nisso.** Mirar o
+ * rolável parecia melhor — é o mesmo nó nas treze e traz o título junto — e
+ * produziu 97 diferenças das quais ~90 eram do INSTRUMENTO: o pane do design
+ * tem 940 de altura e o nosso arnês 798, os dois arquivos de design usam
+ * respiros diferentes (36 e 40 no eixo, 28/32/0 no topo), e a contagem de
+ * filhos difere porque o nosso título mora num `header` irmão. Comparar o
+ * conteúdo alinha as duas árvores no primeiro nó que as duas realmente
+ * desenharam igual.
+ *
+ * `lastElementChild` porque o `header` da casca é o primeiro filho: o que sobra
+ * é a página. A largura do lado do design vai por roteiro, medida em cada
+ * página — ela varia de 720 (Acesso) a 1120 (Perfil), e um número só levava o
+ * escalador para o pane inteiro.
+ *
+ * ⚠ Por `data-secao` e nunca por pedaço de classe de CSS Module: o hash muda a
+ * cada build, e o roteiro passaria a não achar a tela sem que nada tivesse
+ * mudado nela.
+ */
+const CONTEUDO_DO_APP = ` return document.querySelector("[data-secao]")?.lastElementChild`;
+
+const SERVIDOR =
+  "C:/Users/lagun/Downloads/Implementação de voz e chamada/Vortex Configurações do Servidor.dc.html";
+const RESTANTES =
+  "C:/Users/lagun/Downloads/Implementação de voz e chamada/Vortex Servidor - Páginas Restantes.dc.html";
+
 const APP = "C:/Users/lagun/Downloads/Implementação de voz e chamada/Vortex App.dc.html";
 const SUPERFICIES =
   "C:/Users/lagun/Downloads/Implementação de voz e chamada/Vortex Mensagens - Superfícies.dc.html";
 const CANAL =
   "C:/Users/lagun/Downloads/Implementação de voz e chamada/Vortex Configurações do Canal.dc.html";
+
+/**
+ * As divergências que o projeto ADOTOU, com o motivo escrito.
+ *
+ * ⚠ **Mesma disciplina das `EXCECOES` do contraste, e pela mesma razão.** Uma
+ * divergência deliberada e um defeito são indistinguíveis num relatório: as
+ * duas aparecem como linha vermelha. Sem esta lista, a saída do confronto tem
+ * ruído permanente — e guarda com falso positivo é guarda que se aprende a
+ * ignorar, que é exatamente o que já aconteceu com o `pnpm utilities` antes de
+ * ele ganhar mutação.
+ *
+ * Cada entrada casa por PROPRIEDADE e pelo PAR de valores, nunca só pela
+ * propriedade: dispensar "tipo" inteiro apagaria toda divergência de
+ * tipografia junto com a que se quis aceitar.
+ *
+ * O relatório diz quantas foram dispensadas. Entrada que parou de casar
+ * também precisa sair — senão a lista mente sobre uma decisão que ninguém
+ * tomou mais.
+ */
+export const DISPENSAS = [
+  {
+    rotulo: "tipo",
+    design: "15px/400",
+    app: "15px/450",
+    motivo:
+      "Instrument Sans engrossada de propósito no #188 (“thicken Instrument " +
+      "Sans”). O design herda o 400 do navegador na raiz e declara o peso em " +
+      "cada elemento; o 450 do app é escolha de legibilidade em tela escura, " +
+      "não descuido. Aparecia em 25 nós de 13 telas.",
+  },
+  {
+    rotulo: "tipo",
+    design: "11px/400",
+    app: "11px/450",
+    motivo: "Mesma decisão do #188, na nota de rodapé das telas.",
+  },
+  {
+    rotulo: "tipo",
+    design: "13px/400",
+    app: "13px/450",
+    motivo: "Mesma decisão do #188, no corpo das telas.",
+  },
+];
 
 export const ROTEIROS = [
   {
@@ -295,5 +429,217 @@ export const ROTEIROS = [
     app: "http://localhost:4174/dev",
     preparar: abrirCanal(),
     raiz: `return document.querySelector('[role="group"]')?.parentElement`,
+  },
+
+  /* ======================================================================
+     Configurações de SERVIDOR — uma entrada por categoria
+     ----------------------------------------------------------------------
+     ⚠ **As treze estão aqui, e a ausência de uma passa a REPROVAR.** O teste
+     `src/config/roteiros.test.ts` lê este arquivo e a lista de seções, e falha
+     quando uma categoria não tem roteiro. É o que responde "como garantir que
+     fiquem 1:1": categoria nova não existe sem confronto, do mesmo jeito que
+     modal novo não compila sem entrada em `ModalId`.
+
+     `larguraDoDesign: 1310` nas treze — é o rolável do pane do design (1560
+     menos os 248 da coluna). Sem ele o escalador sobe até a tela inteira e o
+     confronto compara o pane inteiro contra o nosso rolável.
+     ====================================================================== */
+
+  {
+    nome: "servidor · perfil",
+    secao: "servidor",
+    arquivo: SERVIDOR,
+    ancora: "Recomendado 512×512",
+    cliques: [],
+    larguraDoDesign: 1120,
+    subir: 0,
+    profundidade: 2,
+    app: "http://localhost:4174/dev",
+    preparar: abrirConfigDeServidor("Perfil do servidor"),
+    raiz: CONTEUDO_DO_APP,
+  },
+  {
+    nome: "servidor · tag",
+    secao: "tag",
+    arquivo: RESTANTES,
+    ancora: "2 a 4 caracteres",
+    cliques: ["Tag do servidor"],
+    larguraDoDesign: 1080,
+    subir: 0,
+    profundidade: 2,
+    app: "http://localhost:4174/dev",
+    preparar: abrirConfigDeServidor("Tag do servidor"),
+    raiz: CONTEUDO_DO_APP,
+  },
+  {
+    nome: "servidor · modelo",
+    secao: "modelo",
+    arquivo: RESTANTES,
+    ancora: "Sincronizar com o servidor atual",
+    cliques: ["Modelo do servidor"],
+    larguraDoDesign: 760,
+    subir: 0,
+    profundidade: 2,
+    app: "http://localhost:4174/dev",
+    preparar: abrirConfigDeServidor("Modelo do servidor"),
+    raiz: CONTEUDO_DO_APP,
+  },
+  {
+    nome: "servidor · emoji",
+    secao: "emojis",
+    arquivo: RESTANTES,
+    ancora: "o nome vira o alias automaticamente",
+    cliques: ["Emoji"],
+    larguraDoDesign: 1000,
+    subir: 0,
+    profundidade: 2,
+    app: "http://localhost:4174/dev",
+    preparar: abrirConfigDeServidor("Emoji"),
+    raiz: CONTEUDO_DO_APP,
+    pular: [
+      /* Coluna "quem pode usar": não existe em `Emoji` — o objeto tem parent,
+         creator, name, animated, mature e a URL, e nada que gateie o uso. */
+      "QUEM PODE USAR",
+    ],
+  },
+  {
+    nome: "servidor · figurinhas",
+    secao: "figurinhas",
+    arquivo: RESTANTES,
+    ancora: "vagas restantes",
+    cliques: ["Figurinhas"],
+    larguraDoDesign: 1000,
+    subir: 0,
+    profundidade: 2,
+    app: "http://localhost:4174/dev",
+    preparar: abrirConfigDeServidor("Figurinhas"),
+    raiz: CONTEUDO_DO_APP,
+  },
+  {
+    nome: "servidor · efeitos sonoros",
+    secao: "sons",
+    arquivo: RESTANTES,
+    ancora: "fanfarra",
+    cliques: ["Efeitos sonoros"],
+    larguraDoDesign: 900,
+    subir: 0,
+    profundidade: 2,
+    app: "http://localhost:4174/dev",
+    preparar: abrirConfigDeServidor("Painel de efeitos sonoros"),
+    raiz: CONTEUDO_DO_APP,
+  },
+  {
+    nome: "servidor · membros",
+    secao: "membros",
+    arquivo: RESTANTES,
+    ancora: "Bea Toledo",
+    cliques: ["Membros"],
+    larguraDoDesign: 1238,
+    subir: 0,
+    profundidade: 2,
+    app: "http://localhost:4174/dev",
+    preparar: abrirConfigDeServidor("Membros"),
+    raiz: CONTEUDO_DO_APP,
+    pular: [
+      /* "Última atividade" não é campo do protocolo — o Stoat não registra
+         atividade por membro, e a contagem de online do topo é do servidor
+         inteiro, que o cliente não conhece. */
+      "ÚLTIMA ATIVIDADE",
+    ],
+  },
+  {
+    nome: "servidor · cargos",
+    secao: "cargos",
+    arquivo: SERVIDOR,
+    ancora: "Exibir membros separadamente",
+    cliques: ["Cargos"],
+    larguraDoDesign: 986,
+    subir: 0,
+    profundidade: 2,
+    app: "http://localhost:4174/dev",
+    preparar: abrirConfigDeServidor("Cargos"),
+    raiz: CONTEUDO_DO_APP,
+  },
+  {
+    nome: "servidor · convites",
+    secao: "convites",
+    arquivo: RESTANTES,
+    ancora: "Convite pessoal padrão",
+    cliques: ["Convites"],
+    larguraDoDesign: 1080,
+    subir: 0,
+    profundidade: 2,
+    app: "http://localhost:4174/dev",
+    preparar: abrirConfigDeServidor("Convites"),
+    raiz: CONTEUDO_DO_APP,
+    pular: [
+      /* `uses`, `max_uses`, `expires_at`, `temporary` e `vanity` dão ZERO
+         ocorrências no schema do `stoat-api`. Só `creator` existe. */
+      "USOS",
+      "EXPIRA",
+    ],
+  },
+  {
+    nome: "servidor · acesso",
+    secao: "acesso",
+    arquivo: RESTANTES,
+    ancora: "Nenhum convite funciona até reabrir",
+    cliques: ["Acesso"],
+    larguraDoDesign: 720,
+    subir: 0,
+    profundidade: 2,
+    app: "http://localhost:4174/dev",
+    preparar: abrirConfigDeServidor("Acesso"),
+    raiz: CONTEUDO_DO_APP,
+    pular: [
+      /* A fila só aparece em "Aprovação manual" — é o que o design faz, e o
+         mock dele abre já naquele modo. */
+      "~Fila de aprovação",
+    ],
+  },
+  {
+    nome: "servidor · segurança",
+    secao: "seguranca",
+    arquivo: RESTANTES,
+    ancora: "Ações de segurança de emergência",
+    cliques: ["Segurança"],
+    larguraDoDesign: 760,
+    subir: 0,
+    profundidade: 2,
+    app: "http://localhost:4174/dev",
+    preparar: abrirConfigDeServidor("Segurança"),
+    raiz: CONTEUDO_DO_APP,
+  },
+  {
+    nome: "servidor · auditoria",
+    secao: "auditoria",
+    arquivo: SERVIDOR,
+    ancora: "ROLE_UPDATE",
+    cliques: ["Registro de auditoria"],
+    larguraDoDesign: 900,
+    subir: 0,
+    profundidade: 2,
+    app: "http://localhost:4174/dev",
+    preparar: abrirConfigDeServidor("Registro de auditoria"),
+    raiz: CONTEUDO_DO_APP,
+  },
+  {
+    nome: "servidor · banimentos",
+    secao: "banimentos",
+    arquivo: RESTANTES,
+    ancora: "spam_842",
+    cliques: ["Banimentos"],
+    larguraDoDesign: 1080,
+    subir: 0,
+    profundidade: 2,
+    app: "http://localhost:4174/dev",
+    preparar: abrirConfigDeServidor("Banimentos"),
+    raiz: CONTEUDO_DO_APP,
+    pular: [
+      /* "Banido por" e "Data" não estão em `ServerBan` — ele guarda `_id`,
+         `reason` e o usuário. Os dois existem na auditoria, em `BanCreate`. */
+      "BANIDO POR",
+      "DATA",
+    ],
   },
 ];

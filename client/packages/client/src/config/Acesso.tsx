@@ -184,8 +184,10 @@ export function Acesso({ serverId }: { serverId: string }) {
         </div>
       ) : null}
 
+      {/* Sobrancelha e fora do cartão — o mesmo arranjo da referência e das
+          três seções de Segurança. */}
+      <div className={css.sobrancelha}>Requisitos de entrada</div>
       <div className={css.requisitos}>
-        <div className={css.requisitosTitulo}>Requisitos de entrada</div>
 
         <div className={css.requisito}>
           <div>

@@ -10,6 +10,16 @@
   display: grid;
   gap: var(--vx-space-16);
   align-content: start;
+  /*
+    1080, da referência (`ServerInvitesPage`).
+
+    ⚠ **Ela não tinha teto nenhum, e isso só passou a doer agora.** Com o
+    painel em 960 a área de conteúdo mal chegava a 660, então "sem teto" e
+    "1080" davam o mesmo pixel. Em 1600 a tabela de convites passa a esticar
+    até ~1270 e as três colunas se afastam até o código do convite ficar a
+    meia tela do criador dele.
+  */
+  max-inline-size: 1080px;
 }
 
 /*

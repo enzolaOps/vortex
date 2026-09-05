@@ -1,0 +1,83 @@
+/* ============================================================
+   Abas com sublinhado
+   ------------------------------------------------------------
+   Ver o comentário do componente para os valores do design e
+   para a diferença em relação ao `Segmentado`.
+   ============================================================ */
+
+/*
+  A régua atravessa a largura inteira, e não só o que as abas ocupam.
+
+  É ela que diz que o conteúdo ABAIXO muda junto — uma régua do tamanho dos
+  rótulos leria como sublinhado de um título.
+*/
+.barra {
+  display: flex;
+  gap: var(--vx-space-02);
+  /*
+    ⚠ O design escreve `rgba(255,255,255,0.08)` e a nossa escala tem 06, 10 e
+    16 — não há degrau em 08. `hairline-06` é o token de DIVISÓRIA (régua
+    entre blocos, borda de coluna), que é exatamente o papel desta linha;
+    `hairline-10` é de borda de controle. Escolhido pelo papel e não pela
+    distância numérica, que é a mesma regra que pôs o raio do ladrilho do rail
+    em 12 e não em 14.
+  */
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+.aba {
+  flex: none;
+  padding: var(--vx-space-09) var(--vx-space-14);
+  border: 0;
+  background: transparent;
+  color: var(--vx-text-3);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  /*
+    Só `color` — mudar caixa aqui reflui a barra inteira, e o `pnpm movimento`
+    reprova. O sublinhado aparece sem transição de propósito: ele é POSIÇÃO, e
+    posição que desliza confunde qual aba está ativa durante o trajeto.
+  */
+  transition: color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.aba:hover {
+  color: var(--vx-text-2);
+}
+
+/*
+  ⚠ `outline-offset` NEGATIVO porque a barra recorta pela régua de baixo — um
+  anel externo ficaria cortado justamente na borda que o olho usa para achar a
+  aba. É a mesma razão das 41 regras de foco recuado que este projeto já tem.
+*/
+.aba:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/*
+  A ativa: texto em `text-1` e o sublinhado de 2px em acento.
+
+  `box-shadow: inset` e não `border-bottom`, que é o que o design escreve — com
+  borda, a aba ativa ficaria 2px mais alta que as outras e a régua da barra
+  ganharia um degrau. A sombra interna ocupa zero na caixa.
+
+  ⚠ É PARENTE da lâmina, não a mesma coisa: a lâmina é vertical, na borda de
+  início, e marca "onde você está" na navegação. Esta é horizontal e marca qual
+  vista do mesmo objeto está aberta. Repetir a espessura (2 contra 3) seria
+  igualar dois gestos que dizem coisas diferentes.
+*/
+.aba[aria-selected="true"] {
+  color: var(--vx-text-1);
+  box-shadow: inset 0 -2px 0 var(--vx-accent);
+}
+
+.contagem {
+  margin-inline-start: var(--vx-space-06);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: var(--vx-text-4);
+}

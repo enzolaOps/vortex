@@ -45,7 +45,7 @@ import { mkdtempSync, readFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, extname, join } from "node:path";
 
-import { ROTEIROS } from "./confronto.roteiros.mjs";
+import { DISPENSAS, ROTEIROS } from "./confronto.roteiros.mjs";
 
 const CHROME =
   "C:\\Users\\lagun\\.cache\\puppeteer\\chrome\\win64-151.0.7922.47\\chrome-win64\\chrome.exe";
@@ -293,13 +293,32 @@ for (const r of roteiros) {
   await aba.ir(`http://127.0.0.1:${HTTP}/${encodeURIComponent(basename(r.arquivo))}`);
   await dorme(2200);
   for (const alvo of r.cliques) {
-    await aba.av(`(() => {
+    /*
+      ⚠ **O casamento olha o PRIMEIRO NÓ DE TEXTO, e não só a folha.** A versão
+      anterior exigia `children.length === 0`, e por isso não achava metade dos
+      itens de navegação das configurações de servidor: no design eles são um
+      `div` com o rótulo solto MAIS um `span` com o contador, ou seja
+      `textContent` vale "Emoji24/50" e `children.length` vale 1. Sete das
+      treze categorias eram inclicáveis — e o sintoma era o roteiro comparar a
+      página que já estava aberta, calado, contra a tela errada.
+    */
+    const achado = await aba.av(`(() => {
       const t = ${JSON.stringify(alvo)};
+      const rotulo = (x) => {
+        const p = x.firstChild;
+        return p && p.nodeType === 3
+          ? p.textContent.trim()
+          : (x.textContent || "").trim();
+      };
       const e = [...document.querySelectorAll("*")].find(
-        (x) => x.children.length === 0 && (x.textContent || "").trim() === t);
-      if (e) (e.closest("[onclick],button,a") ?? e).click();
+        (x) => x.children.length <= 1 && rotulo(x) === t);
+      if (!e) return false;
+      (e.closest("[onclick],button,a") ?? e).click();
       return true;
     })()`);
+    if (achado !== true) {
+      console.error(`  ⚠ ${r.nome}: não achei “${alvo}” para clicar no design`);
+    }
     await dorme(900);
   }
   const doDesign = await aba.av(`(async () => {
@@ -366,13 +385,34 @@ for (const r of roteiros) {
     continue;
   }
 
-  const saida = [];
-  comparar(doDesign, doApp, "", saida, r.pular);
+  const bruto = [];
+  comparar(doDesign, doApp, "", bruto, r.pular);
+
+  /*
+    As divergências adotadas saem do relatório, e a CONTAGEM delas fica — ver
+    `DISPENSAS`. Sem a contagem, a lista viraria depósito: entrada que parou de
+    casar sumiria sem ninguém notar, e a dispensa passaria a esconder um
+    defeito novo em vez da decisão que ela registra.
+  */
+  const saida = bruto.filter(
+    (d) =>
+      !DISPENSAS.some(
+        (x) => x.rotulo === d.rotulo && x.design === d.design && x.app === d.app,
+      ),
+  );
+  const dispensadas = bruto.length - saida.length;
   if (saida.length === 0) {
-    console.log("  sem diferenças.");
+    console.log(
+      dispensadas === 0
+        ? "  sem diferenças."
+        : `  sem diferenças (${dispensadas} dispensada(s) por decisão).`,
+    );
     continue;
   }
   totalDeDiferencas += saida.length;
+  if (dispensadas > 0) {
+    console.log(`  (${dispensadas} dispensada(s) por decisão)`);
+  }
   for (const d of saida) {
     const rotulo = d.texto ? ` “${d.texto}”` : "";
     console.log(

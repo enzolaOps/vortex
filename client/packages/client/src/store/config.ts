@@ -45,6 +45,21 @@ export const SECOES = [
   "seguranca",
   "emojis",
   /*
+    As cinco que faltavam para a coluna ser a da referência.
+
+    ⚠ **Quatro delas não têm protocolo NENHUM** — `tag`, `modelo`,
+    `figurinhas` e `sons` não têm campo, rota nem evento no Stoat. Elas entram
+    mesmo assim, pela regra de quem toca o produto: a interface é construída
+    1:1 com a referência AGORA, e o que não tem back-end vira entrada em
+    `pendencias.ts` dizendo o que fará. `auditoria` é a exceção: ela TEM rota
+    (`GET /servers/{id}/audit_logs`).
+  */
+  "tag",
+  "modelo",
+  "figurinhas",
+  "sons",
+  "auditoria",
+  /*
     As de CANAL, e elas carregam o `channelId` pela mesma razão que as de
     servidor carregam o `serverId`: "permissões" é uma seção, "as permissões
     do canal X" é uma seção com um alvo. A união cresceria por instância se o
@@ -78,14 +93,22 @@ export const NOME_DA_SECAO: Record<SecaoId, string> = {
   atalhos: "Atalhos de teclado",
   desktop: "Desktop",
   avancado: "Avançado",
-  servidor: "Visão geral",
+  /* "Perfil do servidor" é o rótulo da referência e do design; "Visão geral"
+     era nosso. O nome da seção de CANAL segue "Visão geral", que é o rótulo
+     dela lá. */
+  servidor: "Perfil do servidor",
   membros: "Membros",
   cargos: "Cargos",
   convites: "Convites",
   acesso: "Acesso",
   banimentos: "Banimentos",
   seguranca: "Segurança",
-  emojis: "Emojis",
+  emojis: "Emoji",
+  tag: "Tag do servidor",
+  modelo: "Modelo do servidor",
+  figurinhas: "Figurinhas",
+  sons: "Painel de efeitos sonoros",
+  auditoria: "Registro de auditoria",
   canal: "Visão geral",
   canalPermissoes: "Permissões",
   canalConvites: "Convites",
@@ -100,6 +123,13 @@ export const NOME_DA_SECAO: Record<SecaoId, string> = {
  * passar. Título vazio é pior que ausente — ocupa a mesma altura sem dizer nada.
  */
 export const DESCRICAO_DA_SECAO: Partial<Record<SecaoId, string>> = {
+  servidor:
+    "É assim que o servidor aparece em convites e na descoberta interna. O card à direita atualiza ao vivo.",
+  tag: "Identificador curto que aparece ao lado do nome dos membros que escolherem exibir esta tag.",
+  figurinhas: "PNG ou APNG, 320×320, até 512 KB cada.",
+  sons: "MP3 ou OGG, até 5 s e 512 KB cada.",
+  modelo:
+    "Gere um modelo com a estrutura deste servidor — canais, categorias, cargos e permissões. Mensagens, membros e convites nunca vão no modelo.",
   acesso: "Quem consegue entrar e o que precisa fazer antes de participar.",
   seguranca:
     "Nível de verificação, filtro de mídia e limites de contato entre membros.",
@@ -129,10 +159,10 @@ export const GRUPOS_DE_SERVIDOR: readonly {
   readonly titulo: string;
   readonly itens: readonly SecaoId[];
 }[] = [
-  { titulo: "Servidor", itens: ["servidor"] },
-  { titulo: "Expressões", itens: ["emojis"] },
+  { titulo: "Servidor", itens: ["servidor", "tag", "modelo"] },
+  { titulo: "Expressões", itens: ["emojis", "figurinhas", "sons"] },
   { titulo: "Pessoas", itens: ["membros", "cargos", "convites", "acesso"] },
-  { titulo: "Moderação", itens: ["seguranca", "banimentos"] },
+  { titulo: "Moderação", itens: ["seguranca", "auditoria", "banimentos"] },
 ];
 
 /** As que falam de um servidor, e por isso precisam de um. */
