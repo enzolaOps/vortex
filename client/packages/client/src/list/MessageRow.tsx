@@ -86,6 +86,9 @@ import {
 } from "../store/focoDeMensagem";
 import { pode } from "../sdk/permissoes";
 import { administrar } from "../store/administracao";
+import { assinarChamada, lerChamada } from "../store/chamada";
+/* A FACHADA, nunca `sdk/motorDeVoz` — ver `BotaoEntrarNaChamada`. */
+import { entrarNaChamada } from "../sdk/chamada";
 import {
   assinarEdicaoDeMensagem,
   editar,
@@ -171,9 +174,64 @@ function FraseDeSistema({ sistema }: { sistema: SistemaSnapshot }) {
           {sistema.nome}
         </>
       );
+    case "chamada":
+      return (
+        <>
+          <NomeDoAutor userId={sistema.porId} /> iniciou uma chamada
+        </>
+      );
     case "texto":
       return <>{sistema.texto}</>;
   }
+}
+
+/**
+ * "Entrar na chamada", só enquanto ela está de pé.
+ *
+ * ⚠ **Componente próprio para assinar sozinho**, pela mesma razão de
+ * `NomeDoAutor` e `PontoDePresenca`: quem assina o store de chamada acorda
+ * quando alguém entra, sai ou muta. Assinar isso na `MessageRow` faria toda
+ * linha montada re-renderizar a cada gesto de qualquer pessoa na sala — no
+ * componente mais quente do app, e para desenhar um botão que aparece numa
+ * linha em cem.
+ *
+ * `sdk/chamada` e NUNCA `sdk/motorDeVoz`: a fachada carrega o LiveKit com
+ * `await import()` no clique. Importar o motor aqui traria meio megabyte para
+ * o chunk inicial por causa de um botão — que é exatamente o defeito que a
+ * fachada foi criada para consertar.
+ */
+function BotaoEntrarNaChamada({ channelId }: { channelId: string }) {
+  const chamada = useSyncExternalStore(assinarChamada, lerChamada);
+  const [entrando, setEntrando] = useState(false);
+
+  /*
+    Já estou nesta sala: o botão não aparece. "Entrar" para quem já entrou é
+    uma afirmação falsa sobre o próprio estado, e clicar não teria efeito
+    nenhum — o alvo inerte que o lint de `onSelect` existe para matar.
+  */
+  if (chamada.estado !== "fora" && chamada.channelId === channelId) return null;
+
+  return (
+    <button
+      type="button"
+      className={css.avisoAcao}
+      disabled={entrando}
+      onClick={() => {
+        setEntrando(true);
+        /*
+          Sem `finally` que volte o estado: entrar TROCA a tela para a sala, e
+          devolver o botão ao repouso num componente que já saiu de vista
+          escreveria em algo desmontado. O caminho de erro já avisa por toast,
+          dentro da fachada.
+        */
+        void entrarNaChamada(channelId).then((ok) => {
+          if (!ok) setEntrando(false);
+        });
+      }}
+    >
+      {entrando ? "Entrando…" : "Entrar na chamada"}
+    </button>
+  );
 }
 
 /**
@@ -828,19 +886,71 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
         {message.primeiraNaoLida ? <DivisorDeNovas /> : null}
         {message.dia ? <DivisorDeDia rotulo={message.dia} /> : null}
         {/*
-          ⚠ **O design não tem mensagem de sistema, e o respiro daqui é o da
-          LISTA e não o desta linha.** Ela ficou com `pt-16 pb-0` quando o
-          resto passou a 6/6 — e um `pt-16` no meio de linhas de 6 abre um vão
-          maior que o do divisor de dia (8), ou seja: a linha menos importante
-          da lista viraria a separação mais forte dela. Aplicado o ritmo do
-          container, que é o que o mockup declara uma vez para todas as linhas.
+          ⚠ **O design TEM esta linha, e a versão anterior deste comentário
+          dizia que não.** Ela está em `Vortex Voz - Completo`, no chat
+          embutido do canal de voz: uma pílula tingida, não uma linha de log.
+
+            padding: 8px 10px; border-radius: 8px; font-size: 12px;
+            background: rgba(70,201,138,0.07); color: #5BD79B;
+            > "Marina entrou no canal · 14:02"
+
+          Quatro coisas nossas divergiam, e juntas produziam o que quem usa
+          descreveu como "muito seco, muito ríspido, não parece completo":
+          nenhuma caixa, cinza de metadado (`text-3`) em vez do verde, 11px
+          em vez de 12, e a HORA exilada na borda direita por um `flex-1` no
+          parágrafo — a 1500px da frase a que ela pertence, num canal de voz
+          onde a linha é tudo o que existe.
+
+          ⚠ **A pílula ABRAÇA o conteúdo em vez de ocupar a largura toda, e
+          isso é divergência deliberada.** No design ela vive numa coluna de
+          ~350px, onde largura cheia é o tamanho da frase; a nossa timeline vai
+          a 1040 e uma barra verde de ponta a ponta para quatro palavras lê
+          como banner de sistema, não como nota.
+
+          ⚠ **O verde é dos eventos de PRESENÇA, não de todo evento.** O design
+          só desenha um exemplo, e ele é "entrou no canal" — chegada. Pintar
+          "saiu do canal" ou "removeu fulano" com `success` afirmaria o
+          contrário do que aconteceu. Chegada e chamada levam o verde; o resto
+          fica no véu neutro.
+
+          Sem ícone: o design não tem, e o nosso era um `Info` genérico igual
+          para entrar, sair, renomear e chamada — decoração que não distingue
+          nada.
         */}
-        <article className="flex items-baseline gap-08 px-20 pt-06 pb-06 text-xs text-text-3">
-          <Info size={ICONE.calha} aria-hidden className="shrink-0 self-center" />
-          <p className={cn(css.minZero, "flex-1 wrap-anywhere")}>
-            <FraseDeSistema sistema={message.sistema} />
-          </p>
-          <time className="shrink-0">{message.createdAtText}</time>
+        <article className="flex px-20 pt-06 pb-06">
+          <div
+            className={cn(
+              css.aviso,
+              (message.sistema.tipo === "entrou" ||
+                message.sistema.tipo === "chamada") &&
+                css.avisoPresenca,
+            )}
+          >
+            <span className={cn(css.minZero, "wrap-anywhere")}>
+              <FraseDeSistema sistema={message.sistema} />
+            </span>
+            {/*
+              A hora INLINE, depois do ponto médio, e sem segundos.
+
+              ⚠ Era `createdAtText`, que traz `hh:mm:ss` — o único lugar do
+              produto com segundos, na linha menos importante dele. Toda
+              mensagem normal usa `createdAtCurto` e guarda a hora cheia no
+              `title`; isto passou despercebido porque a linha de sistema foi
+              escrita antes dessa distinção existir.
+            */}
+            <time className={css.avisoHora} title={message.createdAtText}>
+              · {message.createdAtCurto}
+            </time>
+            {message.sistema.tipo === "chamada" ? (
+              message.sistema.duracaoTexto === undefined ? (
+                <BotaoEntrarNaChamada channelId={message.channelId} />
+              ) : (
+                <span className={css.avisoHora}>
+                  · durou {message.sistema.duracaoTexto}
+                </span>
+              )
+            ) : null}
+          </div>
         </article>
       </>
     );

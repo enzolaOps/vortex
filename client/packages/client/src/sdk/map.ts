@@ -6,10 +6,13 @@
  */
 import { decodeTime } from "ulid";
 
+import { duracaoCurta } from "../lib/duracao";
+
 import { TextEmbed, WebsiteEmbed } from "stoat.js";
 
 import type {
   Channel,
+  CallStartedSystemMessage,
   ChannelRenamedSystemMessage,
   Message,
   Server,
@@ -129,7 +132,12 @@ const ROTULO_BRUTO: Record<string, string> = {
   channel_ownership_changed: "transferiu o canal",
   message_pinned: "fixou uma mensagem",
   message_unpinned: "desafixou uma mensagem",
-  call_started: "iniciou uma chamada",
+  /*
+    ⚠ `call_started` SAIU daqui e virou variante estruturada. Ele era o pior
+    caso do fallback: a frase pronta descartava `byId`, `startedAt` e
+    `finishedAt` — sujeito, duração e "ainda está rolando" —, e num canal de
+    voz é a única linha que existe. Ver `toSistema`.
+  */
 };
 
 /**
@@ -139,7 +147,13 @@ const ROTULO_BRUTO: Record<string, string> = {
  * cai em `texto`, com rótulo em português — e o `type` cru no fim é a última
  * defesa, para um tipo novo do upstream aparecer como algo em vez de nada.
  */
-function toSistema(message: Message): SistemaSnapshot | undefined {
+/*
+  Exportada só para teste, e a companhia justifica: `toPresence`,
+  `presencaDe` e `ehCanalDeVoz` já saem daqui pela mesma razão — são
+  traduções PURAS, e o caminho alternativo seria montar um `Message`
+  inteiro para exercer um `switch`.
+*/
+export function toSistema(message: Message): SistemaSnapshot | undefined {
   const sm = message.systemMessage;
   if (!sm) return undefined;
 
@@ -166,6 +180,24 @@ function toSistema(message: Message): SistemaSnapshot | undefined {
         porId: (sm as ChannelRenamedSystemMessage).byId,
         nome: (sm as ChannelRenamedSystemMessage).name,
       };
+    case "call_started": {
+      const chamada = sm as CallStartedSystemMessage;
+      return {
+        tipo: "chamada",
+        porId: chamada.byId,
+        /*
+          `finishedAt` nulo é a chamada AINDA DE PÉ, e é o dado mais útil da
+          linha: é ele que decide se cabe um "entrar". Já formatado aqui
+          porque a tradução é o lugar de derivar — ver `createdAtText`.
+        */
+        duracaoTexto:
+          chamada.finishedAt === null
+            ? undefined
+            : duracaoCurta(
+                chamada.finishedAt.getTime() - chamada.startedAt.getTime(),
+              ),
+      };
+    }
     case "text":
       return { tipo: "texto", texto: (sm as TextSystemMessage).content };
     default:

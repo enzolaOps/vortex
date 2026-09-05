@@ -477,6 +477,35 @@ export type SistemaSnapshot =
       readonly porId: string;
     }
   | { readonly tipo: "renomeou"; readonly porId: string; readonly nome: string }
+  /**
+   * Uma chamada foi iniciada neste canal.
+   *
+   * ⚠ **Era `texto` com a frase pronta, e a tradução jogava fora TUDO o que
+   * o protocolo mandava junto.** `call_started` caía no `default` do
+   * `toSistema` e virava `{tipo:"texto", texto:"iniciou uma chamada"}` — sem
+   * sujeito, sem duração, sem saber se a chamada ainda está de pé. Num canal
+   * de voz, que é onde essa linha vive, isso é a tela inteira: quem usa
+   * relatou nove linhas idênticas dizendo "iniciou uma chamada" e nada mais.
+   *
+   * `CallStartedSystemMessage` já trazia `byId`, `startedAt` e `finishedAt`.
+   */
+  | {
+      readonly tipo: "chamada";
+      readonly porId: string;
+      /**
+       * Quanto durou, já formatado.
+       *
+       * ⚠ **`undefined` quer dizer EM ANDAMENTO, e é o único sinal disso.**
+       * Um segundo campo `emAndamento` teria de concordar com este, e dois
+       * campos que precisam concordar divergem no primeiro que alguém
+       * esquecer — a mesma razão pela qual `PresencaEscolhida` é tipo
+       * separado em vez de flag.
+       *
+       * Formatado na escrita como `createdAtText` e `tamanhoTexto`: a linha
+       * de sistema é rara, mas a regra é da tradução, não da frequência.
+       */
+      readonly duracaoTexto: string | undefined;
+    }
   | { readonly tipo: "texto"; readonly texto: string };
 
 /**

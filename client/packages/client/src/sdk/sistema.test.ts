@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { calcularLayout } from "./agrupamento";
+import { toSistema } from "./map";
+import type { Message } from "stoat.js";
 
 /**
  * Linha de sistema.
@@ -89,5 +91,70 @@ describe("agrupamento com linha de sistema", () => {
 
     expect(layout.dia).toBe("Hoje");
     expect(layout.iniciaGrupo).toBe(true);
+  });
+});
+
+
+/**
+ * A tradução de `call_started`.
+ *
+ * ⚠ **Ela caía no `default` do `toSistema` e virava `{tipo:"texto"}` com a
+ * frase pronta — descartando `byId`, `startedAt` e `finishedAt`.** Num canal
+ * de voz é a única linha que existe, e quem usa mandou a captura: nove
+ * "iniciou uma chamada" idênticos, sem sujeito, sem duração, sem saber se a
+ * chamada ainda estava de pé.
+ *
+ * Estas asserções guardam as DUAS faces, e é a distinção entre elas que a
+ * linha desenha: `finishedAt` nulo é a chamada acontecendo AGORA — a que ganha
+ * "Entrar na chamada" —; com valor, é a encerrada, que mostra quanto durou.
+ */
+function chamadaFalsa(inicio: number, fim: number | null): Message {
+  return {
+    systemMessage: {
+      type: "call_started",
+      byId: "01JQ0000000000000001000009",
+      startedAt: new Date(inicio),
+      finishedAt: fim === null ? null : new Date(fim),
+    },
+  } as unknown as Message;
+}
+
+describe("tradução de call_started", () => {
+  it("chamada DE PÉ não tem duração — e é isso que a marca como viva", () => {
+    const s = toSistema(chamadaFalsa(AGORA, null));
+    expect(s).toEqual({
+      tipo: "chamada",
+      porId: "01JQ0000000000000001000009",
+      duracaoTexto: undefined,
+    });
+  });
+
+  it("chamada encerrada traz quem iniciou E quanto durou", () => {
+    const s = toSistema(chamadaFalsa(AGORA, AGORA + 12 * 60_000));
+    expect(s).toEqual({
+      tipo: "chamada",
+      porId: "01JQ0000000000000001000009",
+      duracaoTexto: "12 min",
+    });
+  });
+
+  /*
+    ⚠ **A regressão que estas linhas existem para impedir.** O sujeito era o
+    que faltava, e uma volta ao `default` produziria `{tipo:"texto"}` sem
+    `porId` — exatamente a tela que foi relatada.
+  */
+  it("nunca volta a ser texto solto", () => {
+    const s = toSistema(chamadaFalsa(AGORA, null));
+    expect(s?.tipo).toBe("chamada");
+    expect(s).not.toHaveProperty("texto");
+  });
+
+  /*
+    O relógio do servidor pode voltar atrás. A linha tem de dizer algo, e
+    "0 s" é o que `duracaoCurta` garante — nunca uma duração negativa.
+  */
+  it("fim antes do início não produz duração negativa", () => {
+    const s = toSistema(chamadaFalsa(AGORA, AGORA - 5_000));
+    expect(s).toMatchObject({ tipo: "chamada", duracaoTexto: "0 s" });
   });
 });
