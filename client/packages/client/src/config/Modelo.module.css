@@ -13,14 +13,35 @@
   max-inline-size: 760px;
 }
 
+/*
+  ⚠ **Raio 12 e não 8** — medido no design com o `pnpm confronto`. Os dois
+  cartões desta página são PAINEL (uma caixa que contém outras), e o design
+  reserva 12 para painel; 8 é o raio de controle, e usá-lo aqui fazia o cartão
+  ler como um campo grande.
+*/
 .cartao {
   display: grid;
   gap: var(--vx-space-14);
   padding: var(--vx-space-18);
   border: 1px solid var(--vx-hairline-06);
-  border-radius: var(--vx-radius-08);
+  border-radius: var(--vx-radius-12);
   background: var(--vx-surface-1);
 }
+
+/*
+  ⚠ **Título de 14/600 em `text-1`, e não sobrancelha.** Medido no design pelo
+  `pnpm confronto`: eu tinha escrito a sobrancelha de 11px em caixa alta, que é
+  a etiqueta de um GRUPO de controles. Aqui é o título de um cartão — ele nomeia
+  o que a caixa faz, e em 11px cinza ele lia como legenda do cartão de cima.
+*/
+.subtitulo {
+  margin: 0;
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+
 
 .titulo {
   display: flex;
@@ -107,7 +128,9 @@
   gap: var(--vx-space-08);
 }
 
+/* 12, do design — a frase é metadado do cartão, não corpo. */
 .recado {
   margin: 0;
+  font-size: var(--vx-size-sm);
   color: var(--vx-text-3);
 }
