@@ -360,6 +360,13 @@ export function presencaDe(
  * existem no protocolo, quem as mantém é o adapter, e este módulo traduz uma
  * entidade sem saber o que aconteceu antes dela.
  */
+/** "3 de março de 2024" — a data de criação de um servidor. */
+const DATA_LONGA = new Intl.DateTimeFormat("pt-BR", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+
 export function toServerSnapshot(
   server: Server,
   naoLidas: number,
@@ -372,6 +379,14 @@ export function toServerSnapshot(
     avatarUrl: server.iconURL,
     naoLidas,
     mencoes,
+    /*
+      `?? ""` e não `undefined`: quem consome é um `textarea` controlado, e um
+      controlado que recebe `undefined` vira NÃO-controlado no meio da vida —
+      o React avisa e o campo para de responder ao estado.
+    */
+    descricao: server.description ?? "",
+    bannerUrl: server.banner?.createFileURL(),
+    criadoEmTexto: DATA_LONGA.format(server.createdAt),
   };
 }
 

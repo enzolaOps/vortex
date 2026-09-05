@@ -27,6 +27,40 @@ import { toast } from "../components/ui/toastStore";
  *    removida, o módulo inteiro vira código morto e o `pnpm utilities` acusa.
  */
 export const PENDENCIAS = {
+  /* ------------------------------------------ perfil do servidor */
+  /*
+    Quatro entradas, divididas pela mesma régua de sempre — o que falta é
+    UPLOAD ou é CONCEITO.
+
+    ⚠ Ícone e banner têm campo no protocolo (`Server.icon`, `Server.banner`) e
+    param no servidor de mídia, que é um `POST` cru para a URL de
+    `client.configuration.features.autumn` — inverificável sem instância
+    alcançável, a mesma razão que segura o envio de emoji. Faixa e
+    características não têm campo nenhum: são conceito de outro cliente.
+  */
+  iconeDoServidor: {
+    superficie: "Configurações do servidor · Perfil do servidor",
+    faz: "Trocar ou remover a imagem que identifica o servidor.",
+    depende: "upload para o servidor de mídia — o campo Server.icon JÁ existe",
+  },
+  bannerDoServidor: {
+    superficie: "Configurações do servidor · Perfil do servidor",
+    faz: "Pôr a arte larga que aparece atrás do card de convite.",
+    depende: "upload para o servidor de mídia — o campo Server.banner JÁ existe",
+  },
+  caracteristicasDoServidor: {
+    superficie: "Configurações do servidor · Perfil do servidor",
+    faz: "Marcar até cinco assuntos que descrevem o servidor.",
+    depende:
+      "o conceito de característica no protocolo — não há campo, rota nem evento",
+  },
+  previaDoConvite: {
+    superficie: "Configurações do servidor · Perfil do servidor · Prévia",
+    faz: "Entrar no servidor pelo botão do card, como quem recebe o convite.",
+    depende:
+      "só a tela — é a prévia de um card, e entrar num servidor onde já se está não é ação",
+  },
+
   /* --------------------------------------------- editor de cargo */
   /*
     Quatro entradas para uma aba, e a divisão é por DEPENDÊNCIA — igual à da

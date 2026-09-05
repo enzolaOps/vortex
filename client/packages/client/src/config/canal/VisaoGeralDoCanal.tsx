@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { CaretDown, ICONE } from "../../components/ui/icones";
 
-import { Botao } from "../../components/ui/Botao";
 import { Campo } from "../../components/ui/Campo";
 import { Deslizante } from "../../components/ui/Deslizante";
 import { aindaNao } from "../../pendente/pendencias";
@@ -18,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "../../components/ui/DropdownMenu";
 import { SeletorDeEmoji } from "../../seletores/SeletorDeEmoji";
+import { definirBarraDeSalvar } from "../../store/barraDeSalvar";
 import { salvarCanal } from "../../sdk/canal";
 import { useChannel } from "../../store/hooks";
 import secao from "../Secao.module.css";
@@ -89,11 +89,8 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
   const [salvando, setSalvando] = useState(false);
   const [emojiAberto, setEmojiAberto] = useState(false);
 
-  if (!canal) {
-    return <p className={secao.recado}>Abra um canal para ver isto.</p>;
-  }
+  const ehVoz = canal?.tipo === "voz";
 
-  const ehVoz = canal.tipo === "voz";
   /*
     ⚠ **O modo lento precisa entrar aqui, e esquecê-lo custou o bug que a
     verificação em navegador pegou.** A faixa "você tem alterações não salvas"
@@ -123,11 +120,83 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
     escrita como uma lista e não como uma expressão esperta.
   */
   const sujo =
-    nome !== canal.name ||
+    canal !== undefined &&
+    (nome !== canal.name ||
     assunto !== (canal.topico ?? "") ||
     idade !== canal.restritoPorIdade ||
     lento !== canal.modoLentoSegundos ||
-    (ehVoz && limite !== (canal.limiteDeUsuarios ?? 8));
+    (ehVoz && limite !== (canal.limiteDeUsuarios ?? 8)));
+
+  /*
+    ⚠ **A faixa de salvar SAIU desta página, e virou rodapé do PANE.**
+
+    Ela era um `sticky` dentro do scroller, com margem negativa de −110 para
+    sangrar até a borda, e o scroller reservava `--vx-config-rodape-h` (110px)
+    em TODA página de configuração para acomodá-la — inclusive nas onze que
+    nunca a mostram. Agora a página PUBLICA e a casca desenha, que é a lei
+    nº 1 aplicada a uma superfície fria; ver `store/barraDeSalvar.ts`.
+
+    Publicar num efeito e não no render: `definirBarraDeSalvar` emite para
+    quem assina, e emitir durante o render de outro componente é exatamente
+    a atualização-em-render que o React proíbe.
+
+    ⚠ **O desmonte tem efeito PRÓPRIO, e não é cerimônia.** Sem ele, trocar de
+    seção com o formulário sujo deixaria a faixa na tela sobre uma página que
+    não tem o que salvar — e os dois botões dela ainda apontariam para este
+    canal.
+
+    ⚠ **Os dois moram ACIMA do `if (!canal)`, e o lint me pegou tentando o
+    contrário.** Hook depois de saída antecipada muda a ORDEM dos hooks entre
+    um render e o seguinte — aqui, entre o quadro em que o canal ainda não
+    resolveu e o quadro em que ele resolve. É por isso que `sujo` carrega o
+    `canal !== undefined` em vez de o efeito ficar abaixo da guarda.
+  */
+  useEffect(() => {
+    if (!sujo) {
+      definirBarraDeSalvar(undefined);
+      return;
+    }
+    definirBarraDeSalvar({
+      salvando,
+      aoDescartar: () => {
+        if (!canal) return;
+        setNome(canal.name);
+        setAssunto(canal.topico ?? "");
+        setIdade(canal.restritoPorIdade);
+        setLimite(canal.limiteDeUsuarios ?? 8);
+        setLento(canal.modoLentoSegundos);
+      },
+      aoSalvar: () => {
+        if (nome.trim() === "") return;
+        setSalvando(true);
+        void salvarCanal(channelId, {
+          nome: nome.trim(),
+          assunto,
+          restritoPorIdade: idade,
+          limiteDeUsuarios: ehVoz ? limite : undefined,
+          modoLentoSegundos: lento,
+        }).finally(() => setSalvando(false));
+      },
+    });
+  }, [
+    sujo,
+    salvando,
+    canal,
+    channelId,
+    ehVoz,
+    nome,
+    assunto,
+    idade,
+    limite,
+    lento,
+  ]);
+
+  useEffect(() => () => definirBarraDeSalvar(undefined), []);
+
+  if (!canal) {
+    return <p className={secao.recado}>Abra um canal para ver isto.</p>;
+  }
+
 
   /*
     O nome é normalizado ao DIGITAR, e a promessa está escrita embaixo do
@@ -137,19 +206,8 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
   const normalizar = (v: string) =>
     v.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9\-_]/g, "");
 
-  return (
-    /*
-      ⚠ **A faixa de salvar é IRMÃ do formulário, não filha dele.** Ela estava
-      dentro de `.forma`, que tem `max-inline-size: 680px` para a medida de
-      leitura — e herdava esse teto. Medido no navegador: a faixa saía com
-      760px de largura dentro de um pane de 1439, flutuando à esquerda como
-      uma placa solta em vez de fechar a coluna. O comentário do `.rolagem` já
-      dizia a intenção ("a faixa é rodapé da coluna e precisa atravessá-la");
-      faltava a árvore concordar com ele.
 
-      É o mesmo arranjo da referência, que põe o `saveBar` como irmão do
-      scroller dentro do pane em vez de dentro do conteúdo.
-    */
+  return (
     <>
       <div
         className={`${secao.forma} ${secao.larga}`}
@@ -353,42 +411,6 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
 
       </div>
 
-      {sujo ? (
-        <div className={css.faixa} role="status">
-          <span>Você tem alterações não salvas.</span>
-          <div className={css.faixaAcoes}>
-            <Botao
-              variante="sutil"
-              disabled={salvando}
-              onClick={() => {
-                setNome(canal.name);
-                setAssunto(canal.topico ?? "");
-                setIdade(canal.restritoPorIdade);
-                setLimite(canal.limiteDeUsuarios ?? 8);
-                setLento(canal.modoLentoSegundos);
-              }}
-            >
-              Descartar
-            </Botao>
-            <Botao
-              variante="primario"
-              disabled={salvando || nome.trim() === ""}
-              onClick={() => {
-                setSalvando(true);
-                void salvarCanal(channelId, {
-                  nome: nome.trim(),
-                  assunto,
-                  restritoPorIdade: idade,
-                  limiteDeUsuarios: ehVoz ? limite : undefined,
-                  modoLentoSegundos: lento,
-                }).finally(() => setSalvando(false));
-              }}
-            >
-              {salvando ? "Salvando…" : "Salvar alterações"}
-            </Botao>
-          </div>
-        </div>
-      ) : null}
     </>
   );
 }

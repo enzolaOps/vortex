@@ -123,6 +123,11 @@ export const NOME_DA_SECAO: Record<SecaoId, string> = {
  * passar. Título vazio é pior que ausente — ocupa a mesma altura sem dizer nada.
  */
 export const DESCRICAO_DA_SECAO: Partial<Record<SecaoId, string>> = {
+  servidor:
+    "É assim que o servidor aparece em convites e na descoberta interna. O card à direita atualiza ao vivo.",
+  tag: "Identificador curto que aparece ao lado do nome dos membros que escolherem exibir esta tag.",
+  modelo:
+    "Gere um modelo com a estrutura deste servidor — canais, categorias, cargos e permissões. Mensagens, membros e convites nunca vão no modelo.",
   acesso: "Quem consegue entrar e o que precisa fazer antes de participar.",
   seguranca:
     "Nível de verificação, filtro de mídia e limites de contato entre membros.",

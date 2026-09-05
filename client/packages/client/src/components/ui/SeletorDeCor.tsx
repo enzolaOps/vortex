@@ -1,3 +1,4 @@
+import { cn } from "../../lib/cn";
 import css from "./SeletorDeCor.module.css";
 
 /**
@@ -23,21 +24,48 @@ export function SeletorDeCor({
   id,
   valor,
   rotulo,
+  forma = "amostra",
   aoMudar,
 }: {
   id: string;
   valor: string;
   rotulo: string;
+  /**
+   * `amostra` mostra a cor escolhida; `vaga` é o `+` tracejado.
+   *
+   * ⚠ **As duas existem porque o design usa as duas, e a diferença é de
+   * PAPEL.** Onde o seletor É o controle da cor, ele mostra a cor. Onde ele é
+   * a última casa de uma fileira de amostras — cargo, faixa de convite —, o
+   * que ele oferece é "uma cor que não está aqui", e mostrar uma cor ali faria
+   * parecer a sexta opção fixa em vez do caminho para qualquer outra.
+   *
+   * A forma mora AQUI e não no consumidor de propósito: sobrescrever a
+   * geometria de um primitivo a partir do módulo de quem o usa é o defeito que
+   * a largura do `Dialog` já registrou — dois donos do mesmo número, e ganha
+   * quem o bundler puser por último.
+   */
+  forma?: "amostra" | "vaga";
   aoMudar: (hex: string) => void;
 }) {
-  return (
+  const entrada = (
     <input
       id={id}
       type="color"
-      className={css.seletor}
+      className={cn(css.seletor, forma === "vaga" && css.escondido)}
       value={valor}
       aria-label={rotulo}
       onChange={(e) => aoMudar(e.target.value)}
     />
+  );
+
+  if (forma === "amostra") return entrada;
+
+  return (
+    <span className={css.vaga}>
+      <span className={css.mais} aria-hidden>
+        +
+      </span>
+      {entrada}
+    </span>
   );
 }

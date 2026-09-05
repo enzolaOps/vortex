@@ -45,6 +45,7 @@ import { Conta } from "./Conta";
 import { Convites } from "./Convites";
 import { Emojis } from "./Emojis";
 import { Perfil } from "./Perfil";
+import { BarraDeSalvar } from "./BarraDeSalvar";
 import { Servidor } from "./Servidor";
 import { Sessoes } from "./Sessoes";
 import { ConvitesDoCanal } from "./canal/ConvitesDoCanal";
@@ -485,6 +486,13 @@ export function Configuracoes() {
           </header>
           {CONTEUDO[secao]()}
         </div>
+
+        {/*
+          Irmã do scroller, e não filha dele — ver `BarraDeSalvar`. Quem a
+          publica é a página que tem formulário; quem a desenha é esta casca,
+          que não conhece página nenhuma.
+        */}
+        <BarraDeSalvar />
       </div>
 
       {/*

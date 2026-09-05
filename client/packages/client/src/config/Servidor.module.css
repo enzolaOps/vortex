@@ -1,0 +1,448 @@
+/* ============================================================
+   Perfil do servidor
+   ------------------------------------------------------------
+   A única página de servidor com DUAS colunas: o formulário à
+   esquerda e o cartão de convite ao vivo à direita. Medido na
+   referência rodando — 560 + 40 + 360, teto de 1120.
+
+   Ela tem folha própria e não entra em `Secao.module.css` porque
+   aquele é o formulário de coluna única que sete telas usam; um
+   par lado a lado ali obrigaria as sete a conhecer um modificador
+   que só esta precisa.
+   ============================================================ */
+
+.par {
+  display: flex;
+  align-items: start;
+  gap: var(--vx-space-40);
+  max-inline-size: 1120px;
+}
+
+/*
+  ⚠ **O teto vai na COLUNA, não no par.** Foi o erro que o editor de cargo já
+  cometeu: com o teto no par, a coluna da esquerda fica com o que sobrar depois
+  da prévia, e o formulário nasce mais estreito do que foi desenhado.
+*/
+.formulario {
+  display: grid;
+  flex: 1;
+  gap: var(--vx-space-24);
+  align-content: start;
+  min-inline-size: 0;
+  max-inline-size: 560px;
+}
+
+/*
+  A prévia é `sticky` no topo: o formulário é mais alto que ela, e uma prévia
+  que sobe junto deixa de ser prévia justamente quando se chega no fim do
+  formulário — que é onde ficam as características que ela mostra.
+*/
+.previa {
+  position: sticky;
+  inset-block-start: 0;
+  flex: none;
+  inline-size: 360px;
+}
+
+.sobrancelha {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  margin: 0 0 var(--vx-space-08);
+  color: var(--vx-text-3);
+}
+
+/* O rótulo com o contador na outra ponta — é onde a referência o põe. */
+.linhaDoRotulo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vx-space-12);
+  margin-block-end: var(--vx-space-06);
+}
+
+.contador {
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--vx-text-4);
+}
+
+/* ------------------------------------------------------ ícone */
+
+.icone {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-14);
+}
+
+/*
+  64×64 raio 20, da referência.
+
+  ⚠ **Não é o `Avatar`, e a diferença é de forma.** Aquele é um círculo ou um
+  quadrado da escala de avatar (`--vx-avatar-*`), calibrada para PESSOA na
+  timeline e na lista. Este é o ladrilho de SERVIDOR, que o design desenha
+  com outro raio e outro peso de letra — o mesmo que o rail usa em 44.
+*/
+.ladrilho {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: 64px;
+  block-size: 64px;
+  /*
+    ⚠ **`--vx-radius-ladrilho` (31%) e não os `20px` que o design escreve** — e
+    os dois dão o mesmo pixel: 31% de 64 é 19,8. O percentual existe porque o
+    desenhista não escolheu degraus para ladrilho, aplicou uma PROPORÇÃO; ele
+    acerta os quatro tamanhos do rail de uma vez, acerta este, e acerta o de
+    56 do cartão (31% = 17,4, contra os 18 do design). Raio absoluto aqui
+    exigiria um degrau novo por tamanho de ladrilho, e a guarda de escala
+    reprovou os dois — corretamente.
+  */
+  border-radius: var(--vx-radius-ladrilho);
+  font-size: var(--vx-size-2xl);
+  font-weight: 700;
+}
+
+.iconeTextos {
+  display: grid;
+  gap: var(--vx-space-08);
+  min-inline-size: 0;
+}
+
+.iconeAcoes {
+  display: flex;
+  gap: var(--vx-space-08);
+}
+
+.pista {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
+}
+
+/* -------------------------------------- faixa do card de convite */
+
+/*
+  ⚠ **Segunda cópia da fileira de amostras** — a primeira é o editor de cargo,
+  e a régua deste projeto extrai na TERCEIRA. As duas medidas são as mesmas
+  (30×30 raio 7, `+` tracejado, leitura em mono), e é isso que torna a terceira
+  o momento certo: com duas, extrair custa mais do que a divergência que evita;
+  com três, a divergência já aconteceu em alguma delas.
+*/
+.amostras {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vx-space-08);
+}
+
+.amostra {
+  flex: none;
+  inline-size: 30px;
+  block-size: 30px;
+  border: 0;
+  border-radius: var(--vx-radius-07);
+  cursor: pointer;
+  transition: box-shadow var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+/*
+  Anel DUPLO — 2px na superfície e 2px em `text-1`. A amostra é a própria cor:
+  um anel de acento sobre a amostra teal desapareceria, e um neutro funciona
+  sobre qualquer uma das seis.
+*/
+.amostra[aria-checked="true"] {
+  box-shadow:
+    0 0 0 2px var(--vx-surface-2),
+    0 0 0 4px var(--vx-text-1);
+}
+
+.amostra:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.hex {
+  display: flex;
+  align-items: center;
+  block-size: 30px;
+  padding-inline: var(--vx-space-10);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--vx-text-2);
+}
+
+/* ------------------------------------------------------ banner */
+
+/*
+  96px de altura, tracejado, duas linhas centradas — da referência.
+
+  A primeira linha é MONO e traz a medida (`1920×480`); a segunda diz o gesto.
+  Mono porque é especificação, e a razão é a mesma do nome de anexo: número que
+  se confere caractere a caractere não deve variar de largura.
+*/
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vx-space-06);
+  inline-size: 100%;
+  block-size: 96px;
+  border: 1px dashed var(--vx-hairline-10);
+  border-radius: var(--vx-radius-08);
+  background: transparent;
+  cursor: pointer;
+}
+
+.dropzone:hover {
+  background: var(--vx-state-hover);
+}
+
+.dropzone:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.dropzoneMedida {
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.dropzoneGesto {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
+}
+
+/* --------------------------------------------------- descrição */
+
+.area {
+  inline-size: 100%;
+  min-block-size: 89px;
+  padding: var(--vx-space-10) var(--vx-space-12);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  /*
+    ⚠ **`surface-3`, o mesmo do `Campo`** — e eu tinha escrito `surface-0`, que
+    é a QUARTA vez que esse engano aparece neste repositório (faixa da
+    timeline, faixa do composer, cabeçalho da tabela de sons). O design reserva
+    o tom mais escuro para RAIL e GUTTER; campo de entrada é `raised`. Aqui o
+    erro seria visível de imediato: a área de texto ficaria mais escura que o
+    campo de nome logo acima dela, no mesmo formulário.
+  */
+  background: var(--vx-surface-3);
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-lg);
+  line-height: var(--vx-leading-message);
+  resize: vertical;
+}
+
+.area:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -1px;
+}
+
+/* --------------------------------------------- características */
+
+.caracteristicas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-08);
+}
+
+.caracteristica {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-06);
+  block-size: 26px;
+  padding-inline: var(--vx-space-10);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-surface-3);
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-2);
+}
+
+.tirar {
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--vx-text-3);
+  cursor: pointer;
+}
+
+.tirar:hover {
+  color: var(--vx-text-1);
+}
+
+.tirar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.acrescentar {
+  display: inline-flex;
+  align-items: center;
+  block-size: 26px;
+  padding-inline: var(--vx-space-10);
+  border: 1px dashed var(--vx-border-strong);
+  border-radius: var(--vx-radius-pill);
+  background: transparent;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+  cursor: pointer;
+}
+
+.acrescentar:hover {
+  color: var(--vx-text-1);
+}
+
+.acrescentar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   O cartão de convite ao vivo
+   ------------------------------------------------------------
+   Faixa em 104px, ícone sobreposto em −26 e descrição truncada
+   em 3 linhas — os três números estão escritos por extenso na
+   nota da própria referência, e não foram deduzidos.
+   ============================================================ */
+
+.cartao {
+  overflow: hidden;
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-12);
+  background: var(--vx-surface-3);
+  box-shadow: var(--vx-elev-3);
+}
+
+.faixaDoCartao {
+  block-size: 104px;
+}
+
+.corpoDoCartao {
+  margin-block-start: -26px;
+  padding: 0 var(--vx-space-18) var(--vx-space-18);
+}
+
+/*
+  56×56 raio 18 com borda de 4 na cor do cartão.
+
+  A borda não é enfeite: é ela que recorta o ladrilho contra a faixa colorida
+  atrás. Sem o anel, um ícone escuro sobre uma faixa escura perde o contorno.
+*/
+.iconeDoCartao {
+  display: grid;
+  place-items: center;
+  inline-size: 56px;
+  block-size: 56px;
+  border: 4px solid var(--vx-surface-3);
+  /* 31% de 56 = 17,4, contra os 18 do design — ver `.ladrilho`. */
+  border-radius: var(--vx-radius-ladrilho);
+  font-size: var(--vx-size-xl);
+  font-weight: 700;
+}
+
+.linhaDoNome {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-07);
+  margin-block-start: var(--vx-space-12);
+}
+
+.nomeDoCartao {
+  min-inline-size: 0;
+  overflow: hidden;
+  font-size: var(--vx-size-xl);
+  font-weight: 600;
+  color: var(--vx-text-1);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+  Três linhas e corta.
+
+  ⚠ **Teto e não `text-overflow`**, porque a descrição é PROSA: cortar numa
+  linha só esconderia o que o convite tem para dizer, e deixá-la crescer faria
+  o cartão mudar de altura enquanto se digita — que é a prévia se mexendo
+  debaixo do olho de quem escreve.
+*/
+.descricaoDoCartao {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  margin: var(--vx-space-08) 0 0;
+  font-size: var(--vx-size-md);
+  line-height: 1.5;
+  color: var(--vx-text-2);
+  text-wrap: pretty;
+}
+
+.chipsDoCartao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-06);
+  margin-block-start: var(--vx-space-12);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  block-size: 22px;
+  padding-inline: var(--vx-space-08);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-state-press);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  color: var(--vx-text-2);
+}
+
+.metaDoCartao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-14);
+  margin-block-start: var(--vx-space-14);
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-06);
+}
+
+.ponto {
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: var(--vx-radius-03);
+  background: var(--vx-success);
+}
+
+.criadoEm {
+  margin: var(--vx-space-06) 0 0;
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
+}
+
+.entrar {
+  inline-size: 100%;
+  margin-block-start: var(--vx-space-16);
+}
+
+.notaDaPrevia {
+  margin: var(--vx-space-12) 0 0;
+  font-size: var(--vx-size-xs);
+  line-height: 1.5;
+  color: var(--vx-text-4);
+  text-wrap: pretty;
+}

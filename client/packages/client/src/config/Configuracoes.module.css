@@ -259,10 +259,62 @@
   color: var(--vx-danger-text);
 }
 
+/*
+  Duas linhas: o scroller e a faixa de salvar.
+
+  ⚠ **A segunda é `auto`, e é ela que substitui os 110px reservados.** A faixa
+  vivia DENTRO do scroller — sticky, com margem negativa de −110 para sangrar
+  até a borda do pane — e o scroller reservava esse respiro em TODA página de
+  configuração, inclusive nas onze que nunca mostram faixa. Como linha de grid
+  ela ocupa altura só quando existe, e o scroller cede exatamente o que ela
+  pede. É o que a referência faz: `shrink-0` numa coluna flex.
+*/
 .conteudo {
   display: grid;
-  grid-template-rows: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
   min-inline-size: 0;
+}
+
+/*
+  A faixa de alterações não salvas.
+
+  Medida na referência: `padding: 12px 40px`, régua de topo, `surface-base` e
+  59px de altura — que é o botão de 34 mais os dois respiros de 12 mais a
+  hairline. O recuo lateral é o MESMO do scroller (40), e é o que faz o texto
+  dela nascer alinhado com o primeiro campo do formulário acima.
+
+  ⚠ **`surface-1` e não `surface-2`:** a área de conteúdo é `surface-2`, e uma
+  faixa do mesmo tom não se separa do que está por cima dela. O degrau para
+  BAIXO é o que a referência usa (`surface-base` sob `surface-canvas`), e ele
+  vale aqui pela mesma razão pela qual a coluna de navegação é `surface-1`.
+*/
+.faixaDeSalvar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-16);
+  padding: var(--vx-space-12) var(--vx-space-40);
+  border-block-start: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-1);
+}
+
+/*
+  ⚠ **O texto é AVISO, e não metadado.** Ele diz que há trabalho por gravar; em
+  `text-2` teria o peso de um rótulo de campo. A referência usa `warning-text`,
+  e o valor dela no escuro é exatamente o nosso `--vx-warning` — nenhum token
+  novo, só a atribuição certa. Aviso e não `danger` porque nada quebrou: o que
+  existe é uma pendência com duas saídas seguras ao lado.
+*/
+.faixaRecado {
+  min-inline-size: 0;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-warning);
+}
+
+.faixaAcoes {
+  display: flex;
+  flex: none;
+  gap: var(--vx-space-08);
 }
 
 /*
@@ -334,14 +386,18 @@
   scrollbar-width: thin;
   overscroll-behavior: contain;
   /*
-    `32px 40px 110px`, medido no design renderizado (`pnpm espelho`).
+    `32px 40px`, medido no design renderizado (`pnpm espelho`).
 
-    O 110 embaixo não é sobra: é o espaço que a faixa de "alterações não
-    salvas" ocupa quando aparece, reservado o tempo todo. Sem ele, a faixa
-    entraria por cima do último controle e a pessoa perderia justamente o que
-    acabou de mexer.
+    ⚠ **O respiro de 110px embaixo SAIU.** Ele reservava, em toda página, o
+    espaço da faixa de "alterações não salvas" — que agora é linha própria do
+    grid de `.conteudo` e só ocupa altura quando existe. A reserva permanente
+    era meia tela vazia no fim de Emoji, Figurinhas, Acesso e das outras nove
+    que não têm faixa nenhuma.
+
+    O 40 embaixo é o fim de página: a referência usa 60, que não é degrau da
+    escala, e 40 é o degrau vizinho.
   */
-  padding: var(--vx-space-32) var(--vx-space-40) var(--vx-config-rodape-h);
+  padding: var(--vx-space-32) var(--vx-space-40) var(--vx-space-40);
 
   /*
     Grid de uma coluna para o filho poder ocupar a LARGURA INTEIRA quando

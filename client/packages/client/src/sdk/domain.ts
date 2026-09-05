@@ -453,6 +453,33 @@ export type ServerSnapshot = ComSigla & {
    */
   readonly naoLidas: number;
   readonly mencoes: number;
+  /**
+   * O texto que aparece na prévia do convite.
+   *
+   * ⚠ **Ele existe no protocolo desde sempre e nunca tinha sido LIDO** — a
+   * tela de Perfil do servidor escrevia `Server.description` e abria com o
+   * campo vazio, porque não havia por onde saber o que já estava lá. Ou seja:
+   * salvar uma descrição e reabrir a página apagava a descrição, e nada
+   * falhava.
+   */
+  readonly descricao: string;
+  /**
+   * O banner de convite.
+   *
+   * ⚠ **Era o ÚLTIMO campo do protocolo ainda ignorado**, e a razão registrada
+   * era não haver superfície onde ele coubesse. Agora há: a área de envio do
+   * banner mostra o que já está no servidor em vez de um retângulo tracejado
+   * que diz "arraste" sobre um banner que existe.
+   */
+  readonly bannerUrl?: string;
+  /**
+   * "3 de março de 2024" — a data de criação, já formatada.
+   *
+   * Formatada na ESCRITA e não no render, como `createdAtText`: um `Intl` por
+   * render se paga em qualquer superfície quente, e esta frase muda uma vez na
+   * vida do servidor.
+   */
+  readonly criadoEmTexto: string;
 };
 
 /**

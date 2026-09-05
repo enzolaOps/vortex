@@ -633,6 +633,7 @@ function EditorDeCargo({
                 <SeletorDeCor
                   id={`cor-${cargo.id}`}
                   rotulo="Cor personalizada"
+                  forma="vaga"
                   valor={cor}
                   aoMudar={(hex) => {
                     setCor(hex);

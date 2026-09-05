@@ -658,20 +658,6 @@
   --vx-timeline-max-w: 1040px;
 
   /*
-    A altura reservada para a faixa de "alterações não salvas".
-
-    ⚠ **Dois lugares precisam concordar com este número, e é por isso que ele
-    tem nome.** O respiro de baixo do `.rolagem` reserva o espaço, e a faixa
-    puxa a si mesma para dentro dele com a mesma medida. Se divergirem, ou a
-    faixa cobre o último controle, ou sobra um vão embaixo dela.
-
-    Dimensão de componente, não degrau de escala — a mesma família de
-    `--vx-rail-w`. Medida no design renderizado: a faixa tem 59px, e os 110
-    são ela mais o respiro que o design deixa abaixo do formulário.
-  */
-  --vx-config-rodape-h: 110px;
-
-  /*
     A altura da barra de título da casca.
 
     ⚠ **Zero por padrão, e 34px só quando a barra existe** — quem a escreve é o
