@@ -61,6 +61,7 @@ import { Tag } from "./Tag";
 import { Modelo } from "./Modelo";
 import { Figurinhas } from "./Figurinhas";
 import { Sons } from "./Sons";
+import { Auditoria } from "./Auditoria";
 
 /**
  * A casca de configurações.
@@ -366,6 +367,7 @@ export function Configuracoes() {
     modelo: () => <Modelo serverId={serverId} />,
     figurinhas: () => <Figurinhas serverId={serverId} />,
     sons: () => <Sons serverId={serverId} />,
+    auditoria: () => <Auditoria serverId={serverId} />,
     canal: () => <VisaoGeralDoCanal channelId={channelId} />,
     canalPermissoes: () => <PermissoesDoCanal channelId={channelId} />,
     canalConvites: () => <ConvitesDoCanal channelId={channelId} />,

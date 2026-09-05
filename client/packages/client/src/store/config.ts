@@ -58,6 +58,7 @@ export const SECOES = [
   "modelo",
   "figurinhas",
   "sons",
+  "auditoria",
   /*
     As de CANAL, e elas carregam o `channelId` pela mesma razão que as de
     servidor carregam o `serverId`: "permissões" é uma seção, "as permissões
@@ -107,6 +108,7 @@ export const NOME_DA_SECAO: Record<SecaoId, string> = {
   modelo: "Modelo do servidor",
   figurinhas: "Figurinhas",
   sons: "Painel de efeitos sonoros",
+  auditoria: "Registro de auditoria",
   canal: "Visão geral",
   canalPermissoes: "Permissões",
   canalConvites: "Convites",
@@ -153,7 +155,7 @@ export const GRUPOS_DE_SERVIDOR: readonly {
   { titulo: "Servidor", itens: ["servidor", "tag", "modelo"] },
   { titulo: "Expressões", itens: ["emojis", "figurinhas", "sons"] },
   { titulo: "Pessoas", itens: ["membros", "cargos", "convites", "acesso"] },
-  { titulo: "Moderação", itens: ["seguranca", "banimentos"] },
+  { titulo: "Moderação", itens: ["seguranca", "auditoria", "banimentos"] },
 ];
 
 /** As que falam de um servidor, e por isso precisam de um. */
