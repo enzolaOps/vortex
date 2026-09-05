@@ -534,6 +534,7 @@ export function MessageList({ channelId }: { channelId: string }) {
     // ID de entidade, nunca índice: índice corrompe o estado da linha a cada
     // inserção no topo.
     getItemKey: (i) => ids[i] ?? i,
+    measureElement: (el) => (el as HTMLElement).offsetHeight,
     anchorTo: "end",
     followOnAppend: true,
     scrollEndThreshold: LIMIAR_DE_FIM,

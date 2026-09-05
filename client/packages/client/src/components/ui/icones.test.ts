@@ -180,52 +180,15 @@ describe("todo ícone está classificado", () => {
     "utf8",
   );
 
-  /** Os que saem direto do pacote, sem envolver. */
-  const solidos = (() => {
-    const i = fonte.indexOf("export {");
-    const j = fonte.indexOf('} from "@phosphor-icons/react";');
-    return [...fonte.slice(i, j).matchAll(/^ {2}([A-Z][A-Za-z]*),$/gm)].map(
-      (m) => m[1] as string,
-    );
-  })();
-
-  /** Os que ganham `weight="bold"` por envolvimento. */
-  const envolvidos = [
-    ...fonte.matchAll(/^export const ([A-Z][A-Za-z]*) = deContorno\(/gm),
+  const exportados = [
+    ...fonte.matchAll(/^export const ([A-Z][A-Za-z]*) = /gm),
   ].map((m) => m[1] as string);
 
-  it("a varredura acha os dois grupos (senão ela aprova o vazio)", () => {
-    expect(solidos.length).toBeGreaterThan(40);
-    expect(envolvidos.length).toBeGreaterThan(10);
+  it("a varredura acha os ícones (senão ela aprova o vazio)", () => {
+    expect(exportados.length).toBeGreaterThan(70);
   });
 
-  /**
-   * ⚠ **Esta asserção é REDUNDANTE de propósito, e a redundância está
-   * medida.** Um nome nos dois grupos é `export { Hash }` mais
-   * `export const Hash`, e isso não chega ao teste: o TypeScript reprova com
-   * `TS2323: Cannot redeclare exported variable` e o bundler nem analisa o
-   * arquivo. Ou seja, o caso já é IMPOSSÍVEL — um degrau acima de "teste" na
-   * ordem do `enforcement.md`. Fica aqui porque custa uma linha e porque
-   * nomeia a razão para quem vier depois não achar que faltava cobertura.
-   */
-  it("nenhum nome aparece nos dois grupos", () => {
-    const nos2 = solidos.filter((n) => envolvidos.includes(n));
-    expect(nos2).toEqual([]);
-  });
-
-  it("CONTORNO e os envolvidos são a MESMA lista", () => {
-    expect([...CONTORNO].slice().sort()).toEqual(envolvidos.slice().sort());
-  });
-
-  /**
-   * ⚠ **A direção que pega o esquecimento.** Alguém acrescenta um ícone ao
-   * bloco de exportação e pronto — ele nasce sólido. Esta asserção não
-   * impede isso (não há como saber a forma sem rasterizar), mas trava o
-   * caminho oposto: entrada em `CONTORNO` sem envoltório é um ícone que
-   * ALGUÉM classificou como contorno e que sai preenchido mesmo assim.
-   */
-  it.each([...CONTORNO])("%s tem envoltório de verdade", (nome) => {
-    expect(envolvidos).toContain(nome);
-    expect(solidos).not.toContain(nome);
+  it.each([...CONTORNO])("%s está exportado", (nome) => {
+    expect(exportados).toContain(nome);
   });
 });

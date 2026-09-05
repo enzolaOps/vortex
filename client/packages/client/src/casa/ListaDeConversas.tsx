@@ -13,6 +13,7 @@ import {
 } from "../components/ui/icones";
 import { memo } from "react";
 
+import { Avatar } from "../components/ui/Avatar";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { contagem, rotuloDeNaoLidas } from "../lib/plural";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
@@ -20,6 +21,7 @@ import {
   useCanalAtivo,
   useChannel,
   useConversas,
+  useMessage,
   usePessoa,
 } from "../store/hooks";
 import { abrirConversa, irParaAmigos } from "../store/navegacao";
@@ -71,6 +73,7 @@ const Conversa = memo(function Conversa({
     `undefined` sem custo — o store não acha entidade de chave vazia.
   */
   const outro = usePessoa(canal?.destinatarioId ?? "");
+  const ultima = useMessage(canal?.ultimaMensagemId ?? "");
 
   if (!canal) return null;
 
@@ -90,36 +93,31 @@ const Conversa = memo(function Conversa({
       data-naolidas={temNaoLidas}
       onClick={() => abrirConversa(id)}
     >
-      <span className={css.marca} aria-hidden>
-        {/*
-          A imagem do grupo quando existe, o glifo quando não.
-
-          ⚠ O glifo NÃO foi substituído: ele é a marca de "isto é um grupo"
-          para a esmagadora maioria, que nunca subiu imagem. Trocá-lo por um
-          gradiente com sigla apagaria a distinção entre grupo e DM, que é a
-          única informação que esta coluna dá de relance.
-        */}
-        {canal.tipo === "grupo" && canal.iconeUrl !== undefined ? (
-          <img className={css.imagemDoGrupo} src={canal.iconeUrl} alt="" />
-        ) : canal.tipo === "grupo" ? (
-          <Users size={ICONE.calha} />
-        ) : canal.tipo === "notas" ? (
-          <Note size={ICONE.calha} />
-        ) : (
-          (outro?.sigla ?? "?")
-        )}
-        {/*
-          Presença só na DM: um grupo não tem um estado, tem vários, e
-          escolher um deles seria inventar informação. O ponto carrega forma
-          além de cor — presença nunca é comunicada só por matiz.
-        */}
-        {canal.tipo === "dm" && canal.destinatarioId ? (
-          <PontoDePresenca
-            userId={canal.destinatarioId}
-            className={css.ponto}
-          />
-        ) : null}
-      </span>
+      {canal.tipo === "dm" ? (
+        <Avatar
+          id={outro?.id ?? ""}
+          sigla={outro?.sigla}
+          url={outro?.avatarUrl}
+          tamanho="sm"
+        >
+          {canal.destinatarioId ? (
+            <PontoDePresenca
+              userId={canal.destinatarioId}
+              className={css.ponto}
+            />
+          ) : null}
+        </Avatar>
+      ) : (
+        <span className={css.marca} aria-hidden>
+          {canal.tipo === "grupo" && canal.iconeUrl !== undefined ? (
+            <img className={css.imagemDoGrupo} src={canal.iconeUrl} alt="" />
+          ) : canal.tipo === "grupo" ? (
+            <Users size={ICONE.calha} />
+          ) : (
+            <Note size={ICONE.calha} />
+          )}
+        </span>
+      )}
 
       <span className={css.texto}>
         <span className={css.nome}>{nome}</span>
@@ -127,8 +125,13 @@ const Conversa = memo(function Conversa({
           <span className={css.detalhe}>
             {contagem(canal.participantes)} pessoas
           </span>
+        ) : ultima?.content ? (
+          <span className={css.detalhe}>{ultima.content}</span>
         ) : null}
       </span>
+      {ultima?.createdAtCurto ? (
+        <span className={css.hora}>{ultima.createdAtCurto}</span>
+      ) : null}
 
       {/* A contagem visível é de MENÇÃO; não-lida sem menção é peso, não
           número — a mesma regra da lista de canais. */}

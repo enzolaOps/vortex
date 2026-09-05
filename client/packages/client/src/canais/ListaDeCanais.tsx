@@ -212,33 +212,16 @@ const Canal = memo(function Canal({
           data-naolidas={temNaoLidas && !canal.silenciado}
           data-silenciado={canal.silenciado}
           /*
-            ⚠ **Em canal de VOZ o clique ENTRA e ABRE A SALA — o canal vira o
-            canal aberto, como qualquer outro.**
-
-            A régua anterior entrava sem navegar, e essa metade que faltava era
-            o defeito relatado: clicar no canal de voz não mudava nada na
-            coluna de conteúdo. A conversa anterior continuava lá, e a única
-            prova de que a chamada existia era o cartão do canto.
-
-            `selecionarCanal` sempre, inclusive já conectado: a sala é o
-            CONTEÚDO do canal, então voltar a ele é navegar para ele. E o
-            `definirPalco` cobre quem tinha aberto o chat embutido e quer a
-            grade de volta — sem ele o segundo clique não faria nada visível.
-
-            `conectadoAqui` cobre CONECTANDO também, de propósito: clicar duas
-            vezes depressa não deve tentar entrar de novo, e `entrarNaChamada`
-            já trataria isso como no-op.
-
-            O caminho de volta para o chat continua sendo "Voltar ao chat", no
-            cabeçalho da sala, e "Abrir o chat" no menu de botão direito para
-            quem quer ler sem entrar.
+            Voz ⊥ texto: entrar na sala não troca o canal aberto. A coluna
+            de conteúdo é a conversa; a prova da chamada é a faixa e o
+            popout. "Abrir o chat" no menu e o título da faixa/popout é
+            quem navega, de propósito.
           */
           onClick={() => {
             if (canal.tipo !== "voz") {
               selecionarCanal(id);
               return;
             }
-            selecionarCanal(id);
             if (conectadoAqui) definirPalco({ tipo: "grade" });
             else void entrarNaChamada(id);
           }}

@@ -14,7 +14,6 @@ import { Atualizacao } from "./desktop/Atualizacao";
 import { BarraDeTitulo } from "./desktop/BarraDeTitulo";
 import css from "./main.module.css";
 import { hidratarDesktop } from "./store/desktop";
-import { PesoDeIcone } from "./components/ui/PesoDeIcone";
 import { TooltipProvider } from "./components/ui/Tooltip";
 import "./styles/tokens.css";
 
@@ -73,12 +72,6 @@ createRoot(root).render(
   <StrictMode>
     {/* Um Provider na raiz: ele coordena o atraso compartilhado entre
         tooltips. Um por tooltip devolveria o atraso cheio a cada ícone. */}
-    {/*
-      O peso de todo ícone, num lugar só. Ver `components/ui/PesoDeIcone`:
-      a maioria dos ícones deste app é desenhada em 12–13px, e ali é onde um
-      contorno fino deixa de ser desenho e vira mancha.
-    */}
-    <PesoDeIcone>
       <TooltipProvider delayDuration={400} skipDelayDuration={300}>
         {/*
           A barra de título e a faixa de atualização são da CASCA, e as duas
@@ -133,6 +126,5 @@ createRoot(root).render(
             lista virtualizada. */}
         <FaixaDeConexao />
       </TooltipProvider>
-    </PesoDeIcone>
   </StrictMode>,
 );

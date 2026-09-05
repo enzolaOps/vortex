@@ -7,6 +7,7 @@ import {
   type BlocoDeMensagem,
   type TrechoDeMensagem,
 } from "../sdk/domain";
+import { CartaoDePerfil } from "../membros/CartaoDePerfil";
 import { administrar } from "../store/administracao";
 import { useMembro, useServidorAtivo } from "../store/hooks";
 import { copiarTexto } from "../lib/copiar";
@@ -55,7 +56,19 @@ const Mencao = memo(function Mencao({
 
   // Sem pílula no compacto: preview de uma linha é uma FRASE, e um bloco
   // tingido no meio dela pesa mais que o resto do texto inteiro.
-  return compacto ? <>{nome}</> : <span className={css.mencao}>{nome}</span>;
+  if (compacto) return <>{nome}</>;
+
+  return (
+    <CartaoDePerfil serverId={serverId} userId={userId}>
+      <button
+        type="button"
+        className={css.mencao}
+        onClick={() => administrar({ tipo: "perfil", serverId, userId })}
+      >
+        {nome}
+      </button>
+    </CartaoDePerfil>
+  );
 });
 
 /**

@@ -196,6 +196,7 @@ function ligarEventos(r: Room, channelId: string): void {
       da tela o chat que a pessoa escolheu ver enquanto ouvia.
     */
     definirPalco({ tipo: "grade" });
+    assinarAudioExistente(r);
   });
 
   /*
@@ -250,6 +251,7 @@ function ligarEventos(r: Room, channelId: string): void {
       que a varredura dos remotos existe para evitar.
     */
     rescanearFontesLocais(r.localParticipant);
+    assinarAudioExistente(r);
   });
 
   /*
@@ -460,6 +462,21 @@ function ligarEventos(r: Room, channelId: string): void {
 }
 
 /** A fonte do LiveKit no vocabulario do app, ou nada quando nao interessa. */
+/**
+ * Áudio já publicado quando você entra. `TrackPublished` cobre o que chega
+ * depois; isto cobre o que já estava no ar — senão a tela compartilhada
+ * toca mudo até alguém republicar.
+ */
+function assinarAudioExistente(r: Room): void {
+  for (const p of r.remoteParticipants.values()) {
+    for (const pub of p.trackPublications.values()) {
+      if (pub.kind === Track.Kind.Audio && !pub.isSubscribed) {
+        pub.setSubscribed(true);
+      }
+    }
+  }
+}
+
 function fonteDe(fonte: Track.Source): FonteDeVideo | undefined {
   if (fonte === Track.Source.Camera) return "camera";
   if (fonte === Track.Source.ScreenShare) return "tela";
@@ -973,6 +990,33 @@ export async function alternarCamera(): Promise<void> {
 }
 
 /**
+ * Captura de áudio da TELA, não de microfone.
+ *
+ * LiveKit defaulta `audio` para `false` em `getDisplayMedia`. Sem isto a
+ * caixa "compartilhar áudio da aba" nem aparece. E se aparecesse com os
+ * defaults de mic (AEC/AGC/NS), o som do sistema seria tratado como eco e
+ * sumiria. `restrictOwnAudio` evita recapturar o que você já está ouvindo.
+ */
+const AUDIO_DA_TELA = {
+  autoGainControl: false,
+  echoCancellation: false,
+  noiseSuppression: false,
+  voiceIsolation: false,
+  restrictOwnAudio: true,
+} as const;
+
+function comAudioDaTela(
+  opcoes: ScreenShareCaptureOptions,
+): ScreenShareCaptureOptions {
+  if (opcoes.audio === false) return opcoes;
+  return {
+    ...opcoes,
+    audio: typeof opcoes.audio === "object" ? opcoes.audio : AUDIO_DA_TELA,
+    systemAudio: opcoes.systemAudio ?? "include",
+  };
+}
+
+/**
  * Compartilhar a tela.
  *
  * ⚠ **Quem desenha o seletor é o NAVEGADOR**, não o Vortex.
@@ -1025,7 +1069,7 @@ export async function alternarTela(): Promise<void> {
   if (opcoes === undefined) return;
 
   try {
-    await p.setScreenShareEnabled(true, opcoes);
+    await p.setScreenShareEnabled(true, comAudioDaTela(opcoes));
     definirChamada({
       tela: true,
       telaPausada: false,
@@ -1326,7 +1370,7 @@ async function comSeletorProprio(
 
   const altura = ALTURA_DE[escolha.resolucao];
   return {
-    audio: escolha.audio,
+    audio: escolha.audio ? AUDIO_DA_TELA : false,
     /*
       ⚠ Só a ALTURA vira teto — ver `ALTURA_DE`. A largura sai de `16/9` porque
       `resolution` do LiveKit pede as duas, e travar a largura REAL da fonte

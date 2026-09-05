@@ -277,7 +277,7 @@
 }
 
 .item:hover .marca {
-  scale: 1.02;
+  scale: 1.06;
 }
 
 @media (prefers-reduced-motion: reduce) {

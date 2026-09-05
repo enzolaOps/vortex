@@ -155,9 +155,22 @@
   white-space: nowrap;
 }
 
-.detalhe {
+.detalhe,
+.hora {
   font-size: var(--vx-size-xs);
   color: var(--vx-text-3);
+}
+
+.detalhe {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hora {
+  flex: none;
+  margin-inline-start: auto;
 }
 
 /*
@@ -167,7 +180,8 @@
   próprio tamanho. É a invariante nº 1 de componente.
 */
 @container (inline-size <= 180px) {
-  .detalhe {
+  .detalhe,
+  .hora {
     display: none;
   }
 }

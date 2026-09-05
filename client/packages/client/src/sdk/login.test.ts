@@ -95,6 +95,16 @@ describe("entrar — o caminho de sucesso", () => {
     });
   });
 
+  it("manda usuário no mesmo campo email — o servidor decide", async () => {
+    api.post.mockResolvedValueOnce(SESSAO_OK);
+    await entrar("enzo", "senha");
+    expect(api.post).toHaveBeenCalledWith("/auth/session/login", {
+      email: "enzo",
+      password: "senha",
+      friendly_name: "Vortex (web)",
+    });
+  });
+
   /*
     ⚠ **A regressão que este arquivo existe para impedir.**
 
