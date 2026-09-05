@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Botao } from "../components/ui/Botao";
 import { Caixa } from "../components/ui/Marcador";
@@ -20,6 +20,9 @@ import cargoCss from "./Cargos.module.css";
 import { CaretRight } from "../components/ui/icones";
 import { CampoDeBusca } from "../components/ui/CampoDeBusca";
 import { aindaNao } from "../pendente/pendencias";
+import { useCorDeCargo, useMembrosDoServidor } from "../store/hooks";
+import { chaveDeMembro } from "../sdk/domain";
+import { members } from "../sdk/adapter";
 
 /**
  * Cargos e o que cada um pode fazer.
@@ -37,7 +40,76 @@ import { aindaNao } from "../pendente/pendencias";
  * ordenar é `setRoleOrdering` com a lista inteira, e um arrasto que parece
  * funcionar e não salva é pior que não ter arrasto. Fica como pendência dita.
  */
+/**
+ * Uma linha da hierarquia.
+ *
+ * ⚠ **Componente próprio porque o NOME sai na cor do cargo**, e essa cor
+ * precisa passar pelo clamp — `useCorDeCargo` é hook, e hook dentro do
+ * `.map()` do pai não é hook. É a mesma razão de `NomeDoAutor` e
+ * `AvatarDoAutor` existirem.
+ *
+ * ⚠ **O clamp não é zelo:** a cor vem do SERVIDOR e vai direto ao DOM por
+ * `style`, onde o `pnpm contrast` não a enxerga. Sem ele volta o furo que a
+ * fase 5 fechou — medido na época, 22 de 22 nomes reprovando 4,5:1 no tema
+ * claro.
+ */
+function LinhaDeCargo({
+  cargo,
+  ativa,
+  contagem,
+  aoEscolher,
+  onKeyDown,
+}: {
+  cargo: Cargo;
+  ativa: boolean;
+  contagem: number;
+  aoEscolher: () => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLButtonElement>) => void;
+}) {
+  const cor = useCorDeCargo(cargo.cor);
+
+  return (
+    <button
+      type="button"
+      className={cargoCss.cargo}
+      aria-current={ativa}
+      onClick={aoEscolher}
+      onKeyDown={onKeyDown}
+    >
+      {/*
+        A alça de arraste do design.
+
+        ⚠ Ela ainda NÃO arrasta — quem move é `Alt` + setas. Ela está aqui
+        porque é o que diz que a linha é movível: sem nenhum sinal, a
+        ordenação por teclado seria um recurso que só existe para quem leu a
+        dica. `aria-hidden` porque o botão inteiro já é o alvo, e um segundo
+        nome dentro dele daria duas leituras para uma linha.
+      */}
+      <span aria-hidden className={cargoCss.alca}>
+        ⠿
+      </span>
+      <span
+        className={cargoCss.bolinha}
+        aria-hidden
+        style={cor ? { background: cor } : undefined}
+      />
+      <span className={cargoCss.nomeDoCargo} style={cor ? { color: cor } : undefined}>
+        {cargo.nome}
+      </span>
+      {/*
+        ⚠ **O `⋯` da referência NÃO entrou, e é divergência deliberada.** Lá
+        ele é um ícone solto dentro do botão, sem menu nenhum — decoração de
+        mockup. Aqui um alvo que recebe foco e não faz nada é exatamente o que
+        o lint de `onSelect` foi instalado para matar, e as ações que ele
+        carregaria (apagar o cargo) já vivem no editor à direita.
+      */}
+      <span className={cargoCss.contagemDeMembros}>{contagem}</span>
+    </button>
+  );
+}
+
 export function Cargos({ serverId }: { serverId: string }) {
+  const membrosDoServidor = useMembrosDoServidor(serverId);
   const [lista, setLista] = useState<readonly Cargo[] | undefined>(undefined);
   const [selecionado, setSelecionado] = useState<string | undefined>(undefined);
   const [novo, setNovo] = useState("");
@@ -65,6 +137,36 @@ export function Cargos({ serverId }: { serverId: string }) {
       vivo = false;
     };
   }, [serverId]);
+
+  /*
+    Quantas pessoas têm cada cargo.
+
+    ⚠ **Fica ANTES dos `return` de guarda, e o lint me pegou pondo depois.**
+    Hook chamado condicionalmente muda a ordem entre renders — a regra do
+    React, não estilo. Aqui o efeito seria pior que um aviso: com `serverId`
+    vazio o componente sai cedo, e o `useMemo` deixaria de existir naquele
+    render.
+
+    ⚠ **Lido com `getSnapshot` e não com um hook por membro.** Um
+    `useMembro` por pessoa assinaria a member list inteira dentro de uma tela
+    de configuração — num servidor de dez mil, dez mil subscrições para
+    desenhar três números.
+
+    ⚠ **A consequência é dita: a contagem NÃO acompanha ao vivo.** Se alguém
+    ganhar um cargo com esta tela aberta, o número só muda ao reabrir. É a
+    mesma decisão de "ordenar quando é observável" — a página é aberta
+    deliberadamente, e a alternativa custa a subscrição de todo mundo.
+  */
+  const contagens = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const userId of membrosDoServidor) {
+      const snap = members.getSnapshot(chaveDeMembro(serverId, userId));
+      for (const id of snap?.cargosIds ?? []) {
+        m.set(id, (m.get(id) ?? 0) + 1);
+      }
+    }
+    return m;
+  }, [membrosDoServidor, serverId]);
 
   if (!serverId) {
     return <p className={css.recado}>Abra um servidor para ver isto.</p>;
@@ -251,11 +353,11 @@ export function Cargos({ serverId }: { serverId: string }) {
             <ul className={cargoCss.cargos}>
               {visiveis.map((c) => (
                 <li key={c.id}>
-                  <button
-                    type="button"
-                    className={cargoCss.cargo}
-                    aria-current={c.id === selecionado}
-                    onClick={() => {
+                  <LinhaDeCargo
+                    cargo={c}
+                    ativa={c.id === selecionado}
+                    contagem={contagens.get(c.id) ?? 0}
+                    aoEscolher={() => {
                       setSelecionado(c.id);
                     }}
                     /*
@@ -272,14 +374,7 @@ export function Cargos({ serverId }: { serverId: string }) {
                       e.preventDefault();
                       mover(c.id, e.key === "ArrowUp" ? -1 : 1);
                     }}
-                  >
-                    <span
-                      className={cargoCss.bolinha}
-                      aria-hidden
-                      style={c.cor ? { background: c.cor } : undefined}
-                    />
-                    <span className={cargoCss.nomeDoCargo}>{c.nome}</span>
-                  </button>
+                  />
                 </li>
               ))}
             </ul>
