@@ -140,11 +140,11 @@
   background: var(--vx-surface-1);
 }
 
-.requisitosTitulo {
-  margin-block-end: var(--vx-space-12);
-  font-size: var(--vx-size-md);
-  font-weight: 600;
-  color: var(--vx-text-1);
+/* A mesma sobrancelha de Segurança e de todo formulário do app. */
+.sobrancelha {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  margin-block-end: var(--vx-space-10);
+  color: var(--vx-text-3);
 }
 
 .requisito {

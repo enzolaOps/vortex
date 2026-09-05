@@ -36,13 +36,6 @@
   background: var(--vx-surface-1);
 }
 
-.cartaoTitulo {
-  margin-block-end: var(--vx-space-12);
-  font-size: var(--vx-size-md);
-  font-weight: 600;
-  color: var(--vx-text-1);
-}
-
 .linha {
   display: flex;
   align-items: center;

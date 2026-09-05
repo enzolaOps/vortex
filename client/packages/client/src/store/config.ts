@@ -126,6 +126,8 @@ export const DESCRICAO_DA_SECAO: Partial<Record<SecaoId, string>> = {
   servidor:
     "É assim que o servidor aparece em convites e na descoberta interna. O card à direita atualiza ao vivo.",
   tag: "Identificador curto que aparece ao lado do nome dos membros que escolherem exibir esta tag.",
+  figurinhas: "PNG ou APNG, 320×320, até 512 KB cada.",
+  sons: "MP3 ou OGG, até 5 s e 512 KB cada.",
   modelo:
     "Gere um modelo com a estrutura deste servidor — canais, categorias, cargos e permissões. Mensagens, membros e convites nunca vão no modelo.",
   acesso: "Quem consegue entrar e o que precisa fazer antes de participar.",

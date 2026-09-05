@@ -198,8 +198,9 @@ export function Banimentos({ serverId }: { serverId: string }) {
         Desbanir não devolve a pessoa ao servidor — só remove o bloqueio. O
         design mostra ainda <strong>quem baniu</strong> e <strong>quando</strong>
         ; nenhum dos dois está no objeto de banimento do Stoat, que guarda só a
-        conta e o motivo. Os dois existem no registro de auditoria, que ainda
-        não tem tela.
+        conta e o motivo. Os dois estão no{" "}
+        <strong>Registro de auditoria</strong>, na entrada <code>BanCreate</code>
+        .
       </p>
     </div>
   );
