@@ -13,6 +13,19 @@
   gap: var(--vx-space-24);
   align-items: start;
   container-type: inline-size;
+  /*
+    1020, da referência (`RolesPage`).
+
+    ⚠ **Esta era a última das oito páginas de servidor sem teto, e ela me
+    escapou na primeira varredura porque eu procurei por `.pagina` e `.forma`
+    e o wrapper daqui se chama `.tela`.** Procurar por NOME DE CLASSE em vez
+    de por seção é o mesmo erro de instrumento que esta tabela já registra
+    várias vezes: a busca frouxa concorda com a hipótese.
+
+    Sem ela, com o painel em 1600, a grade de cargos esticava até ~1350 e o
+    editor de permissões ficava a meia tela da lista que o seleciona.
+  */
+  max-inline-size: 1020px;
 }
 
 .coluna {
