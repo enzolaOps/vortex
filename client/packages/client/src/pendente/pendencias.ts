@@ -27,6 +27,21 @@ import { toast } from "../components/ui/toastStore";
  *    removida, o módulo inteiro vira código morto e o `pnpm utilities` acusa.
  */
 export const PENDENCIAS = {
+  /* ------------------------------------------- permissões padrão */
+  /*
+    ⚠ **`@everyone` é cargo de verdade no protocolo, mas não vem em
+    `fetchRoles`** — ele é o campo `default_permissions` do servidor, e não uma
+    entrada da lista de cargos. Editá-lo é `Server.edit`, com uma tela que
+    reusa a matriz de permissões do editor. A entrada existe para o alvo dizer
+    isso em vez de não fazer nada.
+  */
+  permissoesPadrao: {
+    superficie: "Configurações do servidor · Cargos",
+    faz: "Editar as permissões que TODO membro tem, antes de qualquer cargo.",
+    depende:
+      "a matriz de permissões apontando para `default_permissions` em vez de um cargo",
+  },
+
   /* ----------------------------------------------- tag do servidor */
   /*
     ⚠ **Duas entradas para uma tela, e a divisão é por DEPENDÊNCIA.** A tag em

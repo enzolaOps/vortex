@@ -381,6 +381,37 @@ export async function criarCargo(
   }
 }
 
+/**
+ * Reordena a hierarquia inteira.
+ *
+ * ⚠ **`setRoleOrdering` e NÃO `DataEditRole.rank`, e a distinção estava
+ * registrada como armadilha.** O `rank` no editor de cargo não tem efeito —
+ * escrevê-lo dá um arrasto que parece funcionar e não salva, que é pior que
+ * não ter arrasto. O protocolo reordena pelo ARRAY inteiro (`role_ranks`),
+ * porque rank é posição relativa e não um número que cada cargo carrega
+ * sozinho.
+ *
+ * ⚠ **Recebe a lista COMPLETA, do mais alto para o mais baixo.** Mandar só o
+ * que mudou seria impossível: mover um cargo muda o rank de todos os que
+ * ficaram entre a origem e o destino.
+ */
+export async function reordenarCargos(
+  serverId: string,
+  idsDoMaisAlto: readonly string[],
+): Promise<boolean> {
+  try {
+    await client.servers.get(serverId)?.setRoleOrdering([...idsDoMaisAlto]);
+    return true;
+  } catch (e) {
+    toast({
+      tipo: "erro",
+      titulo: "Não deu para reordenar os cargos.",
+      descricao: motivoDoErro(e),
+    });
+    return false;
+  }
+}
+
 export async function salvarCargo(
   serverId: string,
   roleId: string,
