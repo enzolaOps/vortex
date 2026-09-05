@@ -4,6 +4,7 @@ import {
   CaretDown,
   CaretRight,
   Check,
+  Copy,
   GearSix,
   Hash,
   ICONE,
@@ -61,7 +62,8 @@ import {
   type EstadoDeVoz,
   type ParticipanteDeVoz,
 } from "../sdk/domain";
-import { alternarColapso } from "../store/colapso";
+import { categorias } from "../sdk/adapter";
+import { assinarColapso, colapsadas, definirColapsoDeTodas, alternarColapso } from "../store/colapso";
 import {
   alternarSilencio,
   assinarSilencio,
@@ -434,6 +436,16 @@ const Canal = memo(function Canal({
             >
               <PencilSimple size={ICONE.calha} aria-hidden />
               Editar canal
+            </ContextMenuItem>
+            {/*
+              Do design, ao lado de "Editar canal" — e desenhado sem ligar por
+              razão de segurança, não de custo. Ver `duplicarCanal` no registro:
+              o snapshot não carrega os overrides de permissão, e duplicar sem
+              eles abriria um canal restrito.
+            */}
+            <ContextMenuItem onSelect={aindaNao("duplicarCanal")}>
+              <Copy size={ICONE.calha} aria-hidden />
+              Duplicar canal
             </ContextMenuItem>
             {/*
               ⚠ **Renomear e CONFIGURAR são dois destinos, e o design os
@@ -841,6 +853,16 @@ const Categoria = memo(function Categoria({
   canalAtivo: string;
 }) {
   const colapsada = useColapso(categoria.id);
+  /*
+    Assina o conjunto inteiro para saber se ainda há alguma aberta — é o que
+    decide o VERBO do item "todas". `colapsadas()` devolve a referência
+    cacheada do store, então isto não aloca por render.
+  */
+  const conjunto = useSyncExternalStore(assinarColapso, colapsadas);
+  const todasColapsadas =
+    (categorias.getSnapshot(serverId) ?? [])
+      .filter((c) => c.titulo !== undefined)
+      .every((c) => conjunto.has(c.id));
   const temCabecalho = categoria.titulo !== undefined;
   /*
     A permissão é do CANAL no protocolo, e categoria não é canal — ela nem é
@@ -934,6 +956,34 @@ const Categoria = memo(function Categoria({
                 {colapsada ? "Expandir" : "Recolher"}
               </ContextMenuItem>
             )}
+
+            {/*
+              ⚠ **"Todas" lê a lista no CLIQUE, e não por prop.**
+
+              Este componente é `memo` e vive numa coluna que pode ter dezenas
+              de categorias; receber o array das irmãs como prop o
+              re-renderizaria toda vez que a identidade dele mudasse, que é a
+              cada publicação do servidor. Ler no handler custa uma chamada por
+              clique e zero por render.
+
+              O VERBO sai do estado atual: se há alguma aberta, o gesto é
+              fechar; se todas já estão fechadas, é abrir. Um item que diz
+              "Colapsar todas" quando não há nada aberto seria um alvo que não
+              faz nada.
+            */}
+            <ContextMenuItem
+              onSelect={() => {
+                const todas = categorias
+                  .getSnapshot(serverId)
+                  ?.filter((c) => c.titulo !== undefined);
+                if (!todas || todas.length === 0) return;
+                const ids = todas.map((c) => c.id);
+                definirColapsoDeTodas(ids, !todasColapsadas);
+              }}
+            >
+              <CaretRight size={ICONE.calha} aria-hidden />
+              {todasColapsadas ? "Expandir todas" : "Recolher todas"}
+            </ContextMenuItem>
 
             <ItemDeId id={categoria.id} />
           </ContextMenuContent>
