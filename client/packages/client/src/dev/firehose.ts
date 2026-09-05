@@ -10,7 +10,7 @@
  * Regressão de escopo nunca aparece em uso normal de desenvolvimento. Só em
  * servidor grande com usuário real. Isto é o que a pega antes.
  */
-import { monotonicFactory, ulid } from "ulid";
+import { decodeTime, monotonicFactory, ulid } from "ulid";
 
 import { definirEnquete } from "../store/enquetes";
 import {
@@ -661,22 +661,58 @@ function autorDe(seed: number): string {
  * fala em seguida" nunca apareceria. É exatamente o caso que a regra de
  * agrupamento existe para cobrir.
  *
- * Os quatro tipos cobrem as duas formas do domínio: as estruturadas com um
- * usuário, a estruturada com dois, e a de canal renomeado.
+ * Os tipos cobrem as formas do domínio: as estruturadas com um usuário, a
+ * estruturada com dois, a de canal renomeado — e a chamada, nas suas DUAS
+ * faces.
+ *
+ * ⚠ **`call_started` não existia aqui, e é a linha que mais aparece num canal
+ * de voz de verdade.** Quem usa mandou a captura de um canal com nove delas
+ * seguidas e nada mais; aqui não havia UMA. Enquanto isso o `toSistema` a
+ * deixava cair no `default` e descartava `by` e `finished_at` — ou seja, a
+ * tradução perdia dados e o arnês não tinha como mostrar.
+ *
+ * ⚠ **As duas faces são estados DIFERENTES, e só juntas provam a linha:**
+ * `finished_at` ausente é a chamada DE PÉ, que é o caso que ganha o botão de
+ * entrar; com valor, é a encerrada, que mostra a duração. Semear só uma
+ * deixaria metade da linha construída e inalcançável — a família que esta
+ * tabela de pendências já registrou como "construído e invisível".
+ *
+ * As durações são espalhadas de propósito para exercer os três degraus de
+ * `duracaoCurta`: segundos, minutos e horas.
  */
-function sistemaDe(seed: number, autor: string): object | undefined {
+const DURACOES_DE_CHAMADA = [42_000, 8 * 60_000, 73 * 60_000];
+
+function sistemaDe(seed: number, autor: string, id: string): object | undefined {
   if (seed % 97 !== 0 || seed === 0) return undefined;
 
   const outro = autorDe(seed + 7);
-  switch ((seed / 97) % 4) {
+  switch ((seed / 97) % 6) {
     case 0:
       return { type: "user_joined", id: autor, by: outro };
     case 1:
       return { type: "user_left", id: autor, by: outro };
     case 2:
       return { type: "user_added", id: autor, by: outro };
-    default:
+    case 3:
       return { type: "channel_renamed", name: "spike", by: autor };
+    case 4: {
+      /*
+        Encerrada. `finished_at` é contado a partir do TEMPO DO ULID e não de
+        `Date.now()`: o SDK deriva `startedAt` de `decodeTime(parent._id)`, e
+        misturar as duas bases daria "durou 3 dias" numa mensagem semeada no
+        histórico.
+      */
+      const dura =
+        DURACOES_DE_CHAMADA[(seed / 97) % DURACOES_DE_CHAMADA.length] ?? 42_000;
+      return {
+        type: "call_started",
+        by: autor,
+        finished_at: new Date(decodeTime(id) + dura).toISOString(),
+      };
+    }
+    default:
+      /* De pé: sem `finished_at`. É esta que ganha "Entrar na chamada". */
+      return { type: "call_started", by: autor };
   }
 }
 
@@ -764,7 +800,7 @@ function anexosDe(seed: number) {
 function createMessage(seed: number, quando?: number): string {
   const id = quando === undefined ? nextId() : nextId(quando);
   const author = autorDe(seed);
-  const system = sistemaDe(seed, author);
+  const system = sistemaDe(seed, author, id);
 
   client.messages.getOrCreate(
     id,

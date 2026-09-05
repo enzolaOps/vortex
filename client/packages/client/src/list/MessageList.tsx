@@ -187,7 +187,18 @@ const ALTURA_POR_TIPO: Record<
     um `Record` com a mesma resposta é mais honesto que um `if` a menos.
   */
   confortavel: {
-    sistema: 35,
+    /*
+      ⚠ **48px, e MEDIDO no navegador — a linha de sistema mudou de forma.**
+      Era 35 quando ela era uma linha de texto solta; virou a pílula do design
+      (`padding: 8px 10px` + 12px de texto), e a caixa cresceu. Medido em
+      quatro linhas reais no arnês: 48px sem botão, 54 com "Entrar na chamada".
+
+      48 e não 54 de propósito: a chamada VIVA é rara — uma por chamada, e só
+      enquanto ela dura —, então estimar por ela superestimaria a esmagadora
+      maioria. Subestimar é o lado que quebra a âncora, e 6px numa linha em
+      cem não chega perto do limiar de 80px que desengata o `followOnAppend`.
+    */
+    sistema: 48,
   /*
     ⚠ **Sétima vez que estes números se movem, e desta vez a defasagem tinha
     CONSEQUÊNCIA MEDIDA — não era só a barra de rolagem mentindo.**

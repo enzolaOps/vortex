@@ -1046,3 +1046,120 @@
   outline-offset: 2px;
   border-radius: var(--vx-radius-02);
 }
+
+/* ============================================================
+   Linha de sistema — a pílula do design
+   ------------------------------------------------------------
+   `Vortex Voz - Completo`, chat embutido do canal de voz:
+   `padding: 8px 10px; border-radius: 8px; font-size: 12px;
+    background: rgba(70,201,138,0.07); color: #5BD79B`
+   Ver o comentário na árvore para o que divergia.
+   ============================================================ */
+
+/*
+  A caixa. `inline-flex` e `align-self: start` para ABRAÇAR a frase — a
+  divergência está explicada no TSX: largura cheia numa timeline de 1040 vira
+  banner.
+
+  `align-items: baseline` alinha a hora e a duração com a frase; o botão, que
+  é mais alto, é recentrado por conta própria.
+*/
+.aviso {
+  align-self: start;
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--vx-space-05);
+  min-inline-size: 0;
+  padding: var(--vx-space-08) var(--vx-space-10);
+  border-radius: var(--vx-radius-08);
+  /*
+    ⚠ **Sem fundo, e a primeira versão tentou um véu neutro aqui.** Ela
+    escrevia `background: var(--vx-lamina-1)` — e `--vx-lamina-1` é ESCALAR DE
+    OPACIDADE (`1`), não cor. `background: 1` é declaração inválida, o
+    navegador a descarta e a pílula saía transparente. Medido: `rgba(0, 0, 0,
+    0)` nas linhas neutras. Nada falhou: token válido, propriedade válida,
+    valor do tipo errado.
+
+    Corrigido para NÃO ter fundo, que é a decisão melhor de qualquer forma. O
+    design desenha uma pílula só, e ela é de chegada; pintar também "saiu do
+    canal" e "removeu fulano" gastaria uma caixa em cada evento de burocracia
+    e deixaria o verde sem contraste — com tudo realçado, nada é. O respiro
+    fica nos dois, para as linhas de sistema terem a mesma altura; a TINTA é
+    que distingue.
+  */
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+/*
+  Chegada: alguém entrou, ou uma chamada começou.
+
+  ⚠ **`--vx-success` e `--vx-success-text` já existiam com os valores exatos
+  do design (`#46c98a` e `#5bd79b`) e não tinham consumidor de produto** — a
+  tabela de pendências registra "aparece SÓ no arnês" e "reabrir quando tiver
+  um consumidor". Este é o consumidor.
+
+  7% é o número do design (`rgba(70,201,138,0.07)`), escrito como `color-mix`
+  sobre o token para acompanhar a troca de paleta — a mesma técnica do realce
+  do item destrutivo e do preenchimento do divisor de novas.
+*/
+.avisoPresenca {
+  background: color-mix(in oklab, var(--vx-success) 7%, transparent);
+  color: var(--vx-success-text);
+}
+
+/*
+  Hora e duração: metadado DENTRO da frase, não na borda da coluna.
+
+  `currentColor` a 70% em vez de `--vx-text-3`: a caixa muda de cor com o tipo
+  do evento, e um cinza fixo brigaria com o verde. Assim o metadado é sempre
+  o mesmo gesto — um degrau abaixo do que ele anota.
+*/
+.avisoHora {
+  flex: none;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+  "Entrar na chamada".
+
+  Os valores são os do card lateral do design, que é onde ele desenha esta
+  ação: `background: rgba(70,201,138,0.16); color: #5BD79B; font-size: 12px;
+  font-weight: 600; border-radius: 6px`. O mesmo verde da pílula, mais denso —
+  é o que separa o que INFORMA do que se pode APERTAR, sem introduzir uma
+  segunda cor.
+
+  ⚠ Altura própria e não `--vx-space-*`: 24px é DIMENSÃO de controle, que é a
+  distinção que o `pnpm escala` faz (ele governa padding, margin, gap e raio,
+  e deixa `block-size` de fora).
+*/
+.avisoAcao {
+  flex: none;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  block-size: 24px;
+  margin-inline-start: var(--vx-space-03);
+  padding-inline: var(--vx-space-08);
+  border-radius: var(--vx-radius-06);
+  background: color-mix(in oklab, var(--vx-success) 16%, transparent);
+  color: var(--vx-success-text);
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.avisoAcao:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--vx-success) 24%, transparent);
+}
+
+.avisoAcao:focus-visible {
+  outline: 2px solid var(--vx-success);
+  outline-offset: 2px;
+}
+
+.avisoAcao:disabled {
+  opacity: 0.6;
+}
