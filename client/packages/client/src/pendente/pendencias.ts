@@ -27,6 +27,41 @@ import { toast } from "../components/ui/toastStore";
  *    removida, o módulo inteiro vira código morto e o `pnpm utilities` acusa.
  */
 export const PENDENCIAS = {
+  /* --------------------------------------------- editor de cargo */
+  /*
+    Quatro entradas para uma aba, e a divisão é por DEPENDÊNCIA — igual à da
+    tag. Estilo e menção precisam de campo no protocolo; o ícone precisa de
+    campo E de upload; gerenciar em lote precisa só de tela, porque a escrita
+    já existe.
+  */
+  estiloDeCargo: {
+    superficie: "Configurações do servidor · Cargos · Exibição",
+    faz: "Escolher entre nome sólido, em gradiente ou holográfico.",
+    depende:
+      "um campo de estilo em Role — o protocolo tem só colour, ou seja fork do serviço api",
+  },
+  iconeDeCargo: {
+    superficie: "Configurações do servidor · Cargos · Exibição",
+    faz: "Pôr uma imagem ou emoji ao lado do nome de quem tem o cargo.",
+    depende: "upload para o servidor de mídia — o campo Role.icon JÁ existe",
+  },
+  mencionarCargo: {
+    superficie: "Configurações do servidor · Cargos · Exibição",
+    faz: "Decidir se qualquer membro pode mencionar o cargo.",
+    depende: "um campo de menção em Role — hoje qualquer cargo pode ser mencionado",
+  },
+  linkDeCargo: {
+    superficie: "Configurações do servidor · Cargos · Links",
+    faz: "Criar um link que dá o cargo a quem entrar por ele.",
+    depende: "o conceito de convite com cargo no protocolo",
+  },
+  gerenciarMembrosDoCargo: {
+    superficie: "Configurações do servidor · Cargos · Gerenciar membros",
+    faz: "Adicionar e remover várias pessoas do cargo de uma vez.",
+    depende:
+      "só a tela — a escrita existe e já funciona no menu da member list, uma pessoa por vez",
+  },
+
   /* ------------------------------------------- permissões padrão */
   /*
     ⚠ **`@everyone` é cargo de verdade no protocolo, mas não vem em

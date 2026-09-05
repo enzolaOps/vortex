@@ -386,3 +386,368 @@
   color: var(--vx-text-3);
 }
 
+/* ============================================================
+   O editor — cabeçalho, abas e as quatro vistas
+   ============================================================ */
+
+.cabecalhoDoEditor {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+}
+
+/*
+  A bolinha do cabeçalho é MAIOR que a da lista (12 contra 8): lá ela distingue
+  itens numa coluna, aqui ela é a identidade da tela.
+*/
+.pontoDoEditor {
+  flex: none;
+  inline-size: 12px;
+  block-size: 12px;
+  border-radius: var(--vx-radius-03);
+  background: var(--vx-border-strong);
+}
+
+.tituloDoEditor {
+  margin: 0;
+  font-size: var(--vx-size-xl);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+/* Mono porque é contagem, e ela alinha com os outros números da tela. */
+.membrosDoCargo {
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--vx-text-3);
+}
+
+/*
+  Formulário à esquerda, prévia à direita — 520 e 360, da referência.
+
+  A prévia é `sticky` no topo: o formulário é mais alto que ela, e uma prévia
+  que sobe junto deixa de ser prévia quando se chega nos interruptores.
+*/
+.duasColunas {
+  display: flex;
+  align-items: start;
+  gap: var(--vx-space-32);
+}
+
+.formulario {
+  display: grid;
+  flex: 1;
+  gap: var(--vx-space-18);
+  min-inline-size: 0;
+  max-inline-size: 520px;
+}
+
+.previa {
+  position: sticky;
+  inset-block-start: 0;
+  flex: none;
+  inline-size: 360px;
+}
+
+.sobrancelha {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  margin: 0 0 var(--vx-space-08);
+  color: var(--vx-text-3);
+}
+
+/* ------------------------------------------------ estilo do nome */
+
+.estilos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--vx-space-08);
+}
+
+.estilo {
+  display: grid;
+  gap: var(--vx-space-08);
+  padding: var(--vx-space-10);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-1);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.estilo:hover {
+  background: var(--vx-state-hover);
+}
+
+.estilo:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.estilo[aria-checked="true"] {
+  border-color: color-mix(in oklab, var(--vx-accent) 35%, transparent);
+  background: var(--vx-state-selected);
+}
+
+/*
+  A faixa que mostra o estilo.
+
+  Ela é a única parte da tela que MOSTRA o que a opção faz — o rótulo
+  "Holográfico" não significa nada sem a amostra ao lado.
+*/
+.faixa {
+  block-size: 18px;
+  border-radius: var(--vx-radius-05);
+  background: var(--vx-border-strong);
+}
+
+.gradiente {
+  background: linear-gradient(90deg, #35c2cc, #8b7ff0);
+}
+
+.holografico {
+  background: linear-gradient(100deg, #8fe9f0, #c9b6f5 45%, #f3c6a8);
+}
+
+.estiloRotulo {
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-2);
+}
+
+/* ------------------------------------------------------ ícone */
+
+.icone {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+}
+
+/* Tracejado, como a caixa de emblema da Tag: diz "cabe algo" sem prometer
+   que algo está vindo. */
+.iconeVazio {
+  flex: none;
+  inline-size: 34px;
+  block-size: 34px;
+  border: 1px dashed var(--vx-hairline-10);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-1);
+}
+
+/* ------------------------------------------------------ prévia */
+
+.previaCaixa {
+  display: grid;
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-14);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-1);
+}
+
+.previaBloco {
+  padding-block-start: var(--vx-space-12);
+  border-block-start: 1px solid var(--vx-hairline-06);
+}
+
+.previaRotulo {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  margin: 0 0 var(--vx-space-08);
+  color: var(--vx-text-3);
+}
+
+.previaMembro {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+}
+
+.previaTextos {
+  display: grid;
+  min-inline-size: 0;
+  gap: var(--vx-space-02);
+}
+
+.previaNome {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.previaRecado {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.previaChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-06);
+}
+
+/*
+  A pill de cargo — a geometria que a tabela de pendências já tinha medido na
+  referência: `padding: 0 10px`, altura de pílula, 12/600, fundo na cor a 15%.
+*/
+.pill {
+  display: inline-flex;
+  align-items: center;
+  block-size: 22px;
+  padding-inline: var(--vx-space-10);
+  border-radius: var(--vx-radius-pill);
+  /* O fundo real vem do inline quando há cor; este é o repouso sem cor. */
+  background: var(--vx-surface-2);
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  color: var(--vx-text-2);
+}
+
+.previaNota {
+  margin: var(--vx-space-12) 0 0;
+  font-size: var(--vx-size-xs);
+  line-height: 1.5;
+  color: var(--vx-text-4);
+  text-wrap: pretty;
+}
+
+/* ------------------------------------------------- aba de permissões */
+
+.permissoesAba {
+  display: grid;
+  gap: var(--vx-space-16);
+  align-content: start;
+  max-inline-size: 840px;
+}
+
+.barraDePermissoes {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+}
+
+.barraDePermissoes > :first-child {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+/* --------------------------------------------- abas simples */
+
+.abaSimples {
+  display: grid;
+  gap: var(--vx-space-14);
+  align-content: start;
+  max-inline-size: 640px;
+}
+
+.linkLinha {
+  display: flex;
+  gap: var(--vx-space-08);
+}
+
+.link {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-inline-size: 0;
+  overflow: hidden;
+  block-size: 36px;
+  padding-inline: var(--vx-space-12);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-2);
+  color: var(--vx-accent-text);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------ cor do cargo */
+
+.amostras {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vx-space-08);
+}
+
+/*
+  30×30 com raio 7, os dois do design.
+
+  ⚠ O anel da escolhida é DUPLO — 2px na superfície e 2px em `text-1` — porque
+  a amostra é a própria cor: um anel de acento sobre a amostra teal
+  desapareceria. Um anel neutro funciona sobre qualquer uma das seis, que é o
+  que um seletor de cor precisa garantir.
+*/
+.amostra {
+  flex: none;
+  inline-size: 30px;
+  block-size: 30px;
+  border: 0;
+  border-radius: var(--vx-radius-07);
+  cursor: pointer;
+  transition: box-shadow var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.amostra[aria-checked="true"] {
+  box-shadow:
+    0 0 0 2px var(--vx-surface-2),
+    0 0 0 4px var(--vx-text-1);
+}
+
+.amostra:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/*
+  A cor livre.
+
+  `<input type="color">` invisível por cima do quadrado tracejado: o seletor
+  nativo é o único caminho para o espectro inteiro, e escondê-lo atrás do
+  desenho do design é o que permite ter os dois — a aparência daqui e o
+  seletor do sistema.
+*/
+.amostraLivre {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 30px;
+  border: 1px dashed var(--vx-border-strong);
+  border-radius: var(--vx-radius-07);
+  color: var(--vx-text-3);
+  cursor: pointer;
+}
+
+.mais {
+  font-size: var(--vx-size-md);
+  line-height: 1;
+}
+
+.entradaDeCor {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.amostraLivre:focus-within {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* O hex, em mono — é um identificador que se compara caractere a caractere. */
+.hex {
+  display: flex;
+  align-items: center;
+  block-size: 30px;
+  padding-inline: var(--vx-space-10);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-2);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--vx-text-2);
+}
