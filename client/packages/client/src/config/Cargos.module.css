@@ -429,10 +429,19 @@
   A prévia é `sticky` no topo: o formulário é mais alto que ela, e uma prévia
   que sobe junto deixa de ser prévia quando se chega nos interruptores.
 */
+/*
+  ⚠ **Vão de 36 e prévia de 300 — os dois do design, medidos pelo confronto.**
+  Estavam em 32 e 360, tirados de uma leitura de tela da referência; o design
+  escreve `gap:36px` e `width:300px`. A prévia mais estreita é o que deixa o
+  formulário respirar em 520 dentro dos 986 do editor.
+
+  `data-bloco` no TSX é o alvo do roteiro — mirar por classe de CSS Module não
+  serve, porque o hash muda a cada build.
+*/
 .duasColunas {
   display: flex;
   align-items: start;
-  gap: var(--vx-space-32);
+  gap: var(--vx-space-36);
 }
 
 .formulario {
@@ -447,7 +456,9 @@
   position: sticky;
   inset-block-start: 0;
   flex: none;
-  inline-size: 360px;
+  /* 300, do design — era 360, lido de uma captura da referência. Com 520 de
+     formulário e 36 de vão, é o que fecha os 986 do editor. */
+  inline-size: 300px;
 }
 
 .sobrancelha {
@@ -535,12 +546,13 @@
 
 /* ------------------------------------------------------ prévia */
 
+/* Raio 10 e respiro 16, do design — eram 8 e 14. */
 .previaCaixa {
   display: grid;
   gap: var(--vx-space-12);
-  padding: var(--vx-space-14);
+  padding: var(--vx-space-16);
   border: 1px solid var(--vx-hairline-06);
-  border-radius: var(--vx-radius-08);
+  border-radius: var(--vx-radius-10);
   background: var(--vx-surface-1);
 }
 
@@ -750,4 +762,33 @@
   font-size: var(--vx-size-sm);
   font-variant-numeric: tabular-nums;
   color: var(--vx-text-2);
+}
+
+/*
+  Os dois interruptores de exibição.
+
+  ⚠ **Bloco com régua no topo, e não CARTÃO.** Eu tinha usado o
+  `CartaoDeAjustes` — moldura, fundo `surface-1` e raio —, e o design os deixa
+  soltos no fim da coluna, separados por uma régua e com 16 de vão. A diferença
+  não é enfeite: um cartão diz "isto é outro assunto", e estes dois são a
+  continuação do que está acima deles no MESMO formulário. Medido: 155px de
+  altura contra os 99 do design, quase toda a diferença sendo moldura.
+*/
+.alternadores {
+  display: grid;
+  gap: var(--vx-space-16);
+  padding-block-start: var(--vx-space-20);
+  border-block-start: 1px solid var(--vx-hairline-06);
+}
+
+/*
+  ⚠ **A linha de ajuste perde o respiro e a régua DENTRO deste bloco.** O
+  `LinhaDeAjuste` nasceu para o cartão de preferências, onde as linhas se
+  separam por régua e 14 de respiro em cima e embaixo. Aqui elas são dois
+  interruptores no fim de um formulário, separados pelo `gap` de 16 do bloco —
+  e as duas separações somadas davam 158px de altura contra os 99 do design.
+*/
+.alternadores > * {
+  padding-block: 0;
+  border-block-end: 0;
 }

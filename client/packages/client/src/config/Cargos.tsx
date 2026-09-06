@@ -23,7 +23,7 @@ import { aindaNao } from "../pendente/pendencias";
 import { useCorDeCargo, useMembrosDoServidor } from "../store/hooks";
 import { chaveDeMembro } from "../sdk/domain";
 import { members } from "../sdk/adapter";
-import { CartaoDeAjustes, LinhaDeAjuste } from "./Pagina";
+import { LinhaDeAjuste } from "./Pagina";
 import { Abas } from "../components/ui/Abas";
 import { Interruptor } from "../components/ui/Interruptor";
 import { Banner } from "../components/ui/Banner";
@@ -543,7 +543,7 @@ function EditorDeCargo({
       />
 
       {aba === "exibicao" ? (
-        <div className={cargoCss.duasColunas}>
+        <div className={cargoCss.duasColunas} data-bloco="editor-de-cargo">
           <div className={cargoCss.formulario}>
             <Campo
               rotulo="Nome do cargo"
@@ -671,7 +671,7 @@ function EditorDeCargo({
               </div>
             </div>
 
-            <CartaoDeAjustes>
+            <div className={cargoCss.alternadores}>
               <LinhaDeAjuste
                 titulo="Exibir membros separadamente"
                 detalhe="Cria um grupo próprio na lista de membros."
@@ -701,7 +701,7 @@ function EditorDeCargo({
                   }}
                 />
               </LinhaDeAjuste>
-            </CartaoDeAjustes>
+            </div>
           </div>
 
           {/*

@@ -289,14 +289,26 @@ function comparar(d, a, caminho, saida, pular, pularApp, soFilhos) {
 
     A régua é a mesma do `gap`: o campo só conta onde ele pode ser visto.
   */
-  const semTextoProprio =
-    /* `trim`: o coletor junta os nós de texto diretos com espaço, e um nó que
-       só tem quebras de linha entre filhos vinha como "   " — texto por
-       acidente de formatação, não por conteúdo. */
-    (d.texto || "").trim() === "" &&
-    (a.texto || "").trim() === "" &&
-    d.filhos.length > 0 &&
-    a.filhos.length > 0;
+  /*
+    ⚠ **Basta UM dos dois ser embrulho, e a primeira versão exigia os dois.**
+    Onde o design envolve o texto num `div` e nós o escrevemos direto num `p`,
+    a comparação punha o 15px HERDADO do wrapper contra o 12px declarado do
+    parágrafo — e reportava como se fosse decisão de tipografia. Nó com filhos
+    e sem texto próprio não desenha letra nenhuma; comparar o tipo dele contra
+    um que desenha é comparar coisas diferentes.
+
+    `trim` porque o coletor junta os nós de texto diretos com espaço, e um nó
+    que só tem quebras de linha entre filhos vinha como "   " — texto por
+    acidente de formatação.
+  */
+  /*
+    ⚠ **`nFilhos` e não `filhos.length`.** O segundo é o que o coletor DESCEU,
+    e no último nível da profundidade ele é sempre zero — todo nó parecia
+    folha ali, e o bloco de texto do banner (que só embrulha título e
+    descrição) voltava a ser comparado pelo tipo herdado dele.
+  */
+  const embrulho = (n) => (n.texto || "").trim() === "" && (n.nFilhos ?? 0) > 0;
+  const semTextoProprio = embrulho(d) || embrulho(a);
 
   for (const [chave, rotulo] of CAMPOS) {
     /* Cor vinda de dado não é comparável — ver `dado` no coletor. */

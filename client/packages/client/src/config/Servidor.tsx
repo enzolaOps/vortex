@@ -366,7 +366,8 @@ export function Servidor({ serverId }: { serverId: string }) {
         </div>
         <p className={css.notaDaPrevia}>
           A prévia usa os mesmos tokens do card real: faixa em 104 px, ícone
-          sobreposto em −26 e a descrição truncada em 3 linhas.
+          sobreposto em −26 e a descrição truncada em 3 linhas quando passar de
+          160 caracteres.
         </p>
       </div>
     </div>

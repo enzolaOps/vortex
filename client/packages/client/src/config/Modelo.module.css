@@ -44,15 +44,15 @@
 
 
 /*
-  Linha e não pilha: o design põe o nome com o selo à esquerda e a data logo
-  depois, com 20 de vão. Empilhados, os dois somavam altura num cartão que já
-  tem quatro blocos.
+  ⚠ **Empilhado, e eu tinha trocado por linha lendo o número errado.** O design
+  reporta `gap: 20px` nesta caixa e 37 de altura — e 37 é 16 do nome mais 15 da
+  data com um vão pequeno, ou seja DUAS linhas. Em linha única a caixa mede 19,
+  que foi o que o confronto acusou depois da minha "correção". O `gap` de 20 é
+  o vão de LINHA de um flex que quebra; o que importa aqui é que são duas.
 */
 .cabecalho {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--vx-space-20);
+  display: grid;
+  gap: var(--vx-space-06);
 }
 
 .titulo {

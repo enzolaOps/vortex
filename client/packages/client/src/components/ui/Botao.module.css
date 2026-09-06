@@ -121,11 +121,19 @@
 
 /* --- tamanhos -------------------------------------------------- */
 
-/* Dentro de lista e de cabeçalho de cartão, onde a linha tem 40–50px. */
+/*
+  Dentro de lista e de cabeçalho de cartão, onde a linha tem 40–50px.
+
+  ⚠ **12 e não 11 — medido pelo `pnpm confronto` em DOIS botões do design**, o
+  "Ativar" das ações de emergência e o "Enviar figurinha" da grade: os dois
+  saem em `12px/600`. O 11 vinha do degrau `xs`, escolhido por analogia com o
+  selo; o passe de primitivos mediu ALTURA e respiro nos quatro botões do
+  design e não o tamanho da letra, então ninguém tinha conferido este.
+*/
 .pequeno {
   block-size: 28px;
   padding-inline: var(--vx-space-12);
-  font-size: var(--vx-size-xs);
+  font-size: var(--vx-size-sm);
 }
 
 /* Rodapé de modal: o alvo principal de uma decisão pede peso de alvo. */

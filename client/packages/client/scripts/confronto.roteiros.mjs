@@ -268,6 +268,13 @@ const CANAL =
 export const DISPENSAS = [
   {
     rotulo: "borda",
+    design: "t1 #ffffff@8 r1 #ffffff@8 b1 #ffffff@8 l1 #ffffff@8",
+    app: "t1 #ffffff@6 r1 #ffffff@6 b1 #ffffff@6 l1 #ffffff@6",
+    motivo:
+      "Véu de contorno a 8% contra os 6% do `--vx-hairline-06`. Terceira variação do mesmo traço no design (5, 6, 7 e 8 em telas irmãs); o que existiria de novo seria um quarto token de hairline para dois pontos percentuais.",
+  },
+  {
+    rotulo: "borda",
     design: "b1 #ffffff@5",
     app: "b1 #ffffff@6",
     motivo:
@@ -588,8 +595,10 @@ export const ROTEIROS = [
     raizDesign: `
       const sc = [...document.querySelectorAll('.vx-scroll')]
         .find((e) => e.getBoundingClientRect().width > 600);
-      /* [cabeçalho, par] — o par é o equivalente da nossa página. */
-      return sc ? sc.firstElementChild.lastElementChild : null;
+      /* ⚠ Não há wrapper de PAR no design: o de 1120 tem [cabeçalho,
+         coluna do formulário, coluna da prévia] como irmãos. Descer mais
+         um nível caía na prévia e comparava-a contra a página inteira. */
+      return sc ? sc.firstElementChild : null;
     `,
     soFilhos: true,
     arquivo: SERVIDOR,
@@ -604,7 +613,12 @@ export const ROTEIROS = [
     /* O cabeçalho da página: no design ele rola com o conteúdo;
        na nossa casca ele é a barra do pane, fora da página. */
     pular: [
-      "~É assim que o servidor aparece em convites",
+      /* ⚠ Casamento EXATO nos dois, e não `~`. O `todo` é a subárvore
+         cortada em 120 caracteres, então a COLUNA inteira começa com o mesmo
+         texto do cabeçalho — um `~` podava a coluna junto e sobrava um bloco
+         só do lado do design. */
+      "Perfil do servidor",
+      "É assim que o servidor aparece em convites e na descoberta interna. O card à direita atualiza ao vivo.",
     ],
   },
   {
@@ -791,8 +805,7 @@ export const ROTEIROS = [
     profundidade: 2,
     app: "http://localhost:4174/dev",
     preparar: abrirConfigDeServidor("Cargos"),
-    raiz: `return document.querySelector("[data-secao]")
-      ?.lastElementChild?.lastElementChild`,
+    raiz: `return document.querySelector("[data-bloco='editor-de-cargo']")`,
     pularApp: [
       /* Cabeçalho e abas do editor: no design eles ficam na banda fixa
          acima do rolável; aqui rolam com o conteúdo, como o resto. */

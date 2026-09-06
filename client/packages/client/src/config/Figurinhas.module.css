@@ -65,11 +65,18 @@
   figurinha é mídia inteira, não glifo dentro de uma linha de texto. A
   proporção 1:1 vem do formato que a própria página anuncia (320×320).
 */
+/*
+  ⚠ **130 de altura, e não quadrado.** Eu deduzi `aspect-ratio: 1` de "a
+  figurinha é 320×320" — o formato do ARQUIVO. O design mede a caixa: 130 num
+  cartão de 238, ou seja um retângulo largo com a figurinha centrada. Com o
+  quadrado, o cartão saía com 343 de altura contra os 278 desenhados, e a
+  grade inteira ficava um terço mais alta.
+*/
 .quadro {
   display: grid;
   place-items: center;
-  aspect-ratio: 1;
   inline-size: 100%;
+  block-size: 130px;
   background: var(--vx-surface-2);
   font-size: 44px;
 }
@@ -78,7 +85,8 @@
 .corpo {
   display: grid;
   gap: var(--vx-space-10);
-  padding: var(--vx-space-12) var(--vx-space-14) var(--vx-space-14);
+  /* `11px 12px`, do design. */
+  padding: var(--vx-space-11) var(--vx-space-12);
 }
 
 .textos {
