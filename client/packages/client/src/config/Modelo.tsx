@@ -48,12 +48,19 @@ export function Modelo({ serverId }: { serverId: string }) {
       <div className={css.cartao}>
         {/* Nome, selo e data são UM cabeçalho — é como o design os agrupa, e
             eles se leem juntos: o que é, em que estado, desde quando. */}
+        {/*
+          ⚠ **O selo fica ao lado do BLOCO, e não do nome.** Medido no design:
+          o cabeçalho é uma linha de dois filhos com vão 20 — de um lado o nome
+          com a data embaixo, do outro o selo. Eu tinha posto o selo colado ao
+          nome e a data numa segunda linha do cabeçalho inteiro, o que dava
+          32px onde o design mede 37 e punha o selo a reboque do texto.
+        */}
         <div className={css.cabecalho}>
           <div className={css.titulo}>
             <span className={css.nome}>Vortex Core — base de produto</span>
-            <Selo tom="sucesso">sincronizado</Selo>
+            <p className={css.meta}>Criado em 12 ago 2026 · usado 14 vezes</p>
           </div>
-          <p className={css.meta}>Criado em 12 ago 2026 · usado 14 vezes</p>
+          <Selo tom="sucesso">sincronizado</Selo>
         </div>
 
         <div className={css.linkLinha}>
