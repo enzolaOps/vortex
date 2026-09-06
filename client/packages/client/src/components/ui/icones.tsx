@@ -108,11 +108,46 @@ type Remix = ComponentType<{
   className?: string;
 }>;
 
+/**
+ * O tamanho de quem NÃO pede tamanho.
+ *
+ * ⚠ **A biblioteca tem um padrão, e ele mente.** `@remixicon/react` declara
+ * `size = 24` e o estampa como `width`/`height` no `svg` — então um
+ * `<Smiley />` sem prop nenhuma chega ao DOM afirmando 24px enquanto
+ * `.sm svg { inline-size: 13px }` desenha 13. É a MESMA família das 43 props
+ * mortas que o `CLAUDE.md` registra, com a diferença de que aqui o número não
+ * foi escrito por ninguém: ele nasce no pacote.
+ *
+ * Medido em navegador depois da troca Phosphor → Remix: **87 instâncias** sob
+ * 12 regras de CSS, todas relatando `prop 24` — o valor do pacote, não o de
+ * nenhum call site (os reais dizem 18, 16 ou 14). Que os 87 digam o mesmo
+ * número é a assinatura de origem única.
+ *
+ * `1em` é o sentinela que o `PesoDeIcone.tsx` sustentava com o
+ * `IconContext.Provider` do Phosphor, e que o PR #205 apagou junto com o
+ * arquivo. Ele volta aqui porque faz duas coisas de uma vez:
+ *
+ * - **o CSS volta a ser dono único** — sem número no atributo, uma regra de
+ *   container dimensiona sem disputa, que é o padrão deliberado deste
+ *   projeto (42 regras de container contra um punhado de `size={}`);
+ * - **`dev/tamanhoDeIcone.ts` volta a enxergar** — ela trata `1em` como
+ *   ausência de prop (`attr !== "1em"`), então "nenhum dono" volta a ser
+ *   detectável. Com 24 no lugar, TODO ícone tinha prop e o ramo de
+ *   ausência ficou inalcançável: a guarda seguia rodando e não podia mais
+ *   reprovar. É "medir com o instrumento desligado" outra vez.
+ */
+const SEM_TAMANHO = "1em";
+
 function vx(Icone: Remix): ComponentType<PropsDeIcone> {
   function IconeVx({ weight, size, color, className, ...rest }: PropsDeIcone) {
     void weight;
     return (
-      <Icone size={size} color={color} className={className} {...rest} />
+      <Icone
+        size={size ?? SEM_TAMANHO}
+        color={color}
+        className={className}
+        {...rest}
+      />
     );
   }
   IconeVx.displayName = "Icone";
@@ -122,7 +157,14 @@ function vx(Icone: Remix): ComponentType<PropsDeIcone> {
 function comPeso(Fill: Remix, Line: Remix): ComponentType<PropsDeIcone> {
   function Icone({ weight, size, color, className, ...rest }: PropsDeIcone) {
     const C = weight === "regular" ? Line : Fill;
-    return <C size={size} color={color} className={className} {...rest} />;
+    return (
+      <C
+        size={size ?? SEM_TAMANHO}
+        color={color}
+        className={className}
+        {...rest}
+      />
+    );
   }
   Icone.displayName = "comPeso";
   return Icone;

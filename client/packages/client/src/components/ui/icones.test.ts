@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
+import { createElement, type ComponentType } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
-import { CONTORNO, FORA_DA_ESCALA, ICONE, pareamento } from "./icones";
+import * as icones from "./icones";
+import {
+  CONTORNO,
+  FORA_DA_ESCALA,
+  ICONE,
+  pareamento,
+  type PropsDeIcone,
+} from "./icones";
 
 /**
  * A escala de ícone existe DUAS vezes — `--vx-icon-*` no `tokens.css` e
@@ -190,5 +199,64 @@ describe("todo ícone está classificado", () => {
 
   it.each([...CONTORNO])("%s está exportado", (nome) => {
     expect(exportados).toContain(nome);
+  });
+});
+
+/**
+ * Ícone sem `size` NÃO pode chegar ao DOM com um número.
+ *
+ * ⚠ **Este teste existe porque a ausência de dono deixou de ser detectável e
+ * nada acusou.** `dev/tamanhoDeIcone.ts` decide se a prop mente lendo o
+ * atributo `width` do `svg`, e trata `1em` como "ninguém pediu tamanho" — o
+ * sentinela que o `IconContext.Provider` do Phosphor produzia. A troca para
+ * `@remixicon/react` apagou esse provider junto com o arquivo que o
+ * sustentava, e o pacote passou a estampar o PRÓPRIO padrão: `size = 24`,
+ * escrito como `width`/`height` no elemento.
+ *
+ * O efeito tem duas metades, e a segunda é a pior:
+ *
+ * - **87 instâncias** voltaram a ter dois donos — o `svg` afirmando 24px
+ *   enquanto `.sm svg { inline-size: 13px }` desenhava 13. Nenhuma delas foi
+ *   escrita por quem chama: os call sites reais dizem 18, 16 ou 14, e que os
+ *   87 relatassem o MESMO número é a assinatura de origem única.
+ * - **o ramo "nenhum dono" da assertion ficou inalcançável**, porque todo
+ *   `svg` passou a ter prop. Ela seguia rodando, verde, sem poder reprovar —
+ *   "medir com o instrumento desligado", desta vez com a guarda no lugar do
+ *   ambiente.
+ *
+ * Por que teste e não a própria assertion: a ordem do projeto põe teste acima
+ * de assertion em dev, e o defeito aqui é do CONTRATO do wrapper, que não
+ * precisa de navegador para ser conferido. Uma troca de biblioteca de ícone
+ * quebra este arquivo no `pnpm check`, antes de qualquer tela.
+ */
+describe("o wrapper não deixa a biblioteca estampar um tamanho", () => {
+  const componentes = Object.entries(
+    icones as unknown as Record<string, unknown>,
+  ).filter(
+    ([nome, valor]) => typeof valor === "function" && /^[A-Z]/.test(nome),
+  ) as [string, ComponentType<PropsDeIcone>][];
+
+  it("a varredura acha os componentes (senão ela aprova o vazio)", () => {
+    expect(componentes.length).toBeGreaterThan(70);
+  });
+
+  it.each(componentes)("%s sem size sai em 1em, não no padrão do pacote", (
+    _nome,
+    Componente,
+  ) => {
+    const html = renderToStaticMarkup(createElement(Componente));
+    expect(html).toContain('width="1em"');
+    expect(html).toContain('height="1em"');
+  });
+
+  it("quem PEDE um tamanho continua sendo obedecido", () => {
+    const [, Primeiro] = componentes[0] as [
+      string,
+      ComponentType<PropsDeIcone>,
+    ];
+    const html = renderToStaticMarkup(
+      createElement(Primeiro, { size: ICONE.controle }),
+    );
+    expect(html).toContain(`width="${ICONE.controle}"`);
   });
 });
