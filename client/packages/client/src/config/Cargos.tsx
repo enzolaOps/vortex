@@ -730,9 +730,10 @@ function EditorDeCargo({
                 </div>
               </div>
 
-              <div className={cargoCss.previaBloco}>
-                <p className={cargoCss.previaRotulo}>Como pill / menção</p>
-                <div className={cargoCss.previaChips}>
+              {/* Plano, como o design: rótulo e chips são IRMÃOS do bloco de
+                  cima, separados por margem e não por uma régua. */}
+              <p className={cargoCss.previaRotulo}>Como pill / menção</p>
+              <div className={cargoCss.previaChips}>
                   <span className={cargoCss.pill} style={estiloDaPill(corLegivel)}>
                     {nome}
                   </span>
@@ -740,7 +741,7 @@ function EditorDeCargo({
                     @{nome}
                   </span>
                 </div>
-              </div>
+              
             </div>
             <p className={cargoCss.previaNota}>
               Gradiente e holográfico só entram em pill e no nome da lista de

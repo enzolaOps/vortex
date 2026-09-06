@@ -976,11 +976,31 @@ function createMessage(seed: number, quando?: number): string {
 export function transmissaoFalsa(): void {
   if (lerChamada().estado === "fora") return;
   const ligando = !lerChamada().tela;
+  /*
+    ⚠ **Arnês mais pobre que o protocolo, 14ª vez — e esta escondeu DOIS
+    defeitos relatados por quem usa.**
+
+    Faltava a combinação, não a peça: `transmissaoFalsa` acendia só a SUA tela
+    e `chamadaEmVideoFalsa` só a dos outros. "Eu transmitindo E outra pessoa
+    transmitindo ao mesmo tempo" não existia em nenhum botão do arnês — que é
+    exatamente o estado onde os dois defeitos moram: não havia caminho até a
+    tela do outro (`PalcoDeVoz` deriva `dono` como "a sua ganha", e a fila era
+    um `<div>`), e o som da tela nunca era pedido.
+
+    Os dois eram alcançáveis só numa sala LiveKit com duas pessoas
+    compartilhando ao mesmo tempo. É a mesma família das treze anteriores, com
+    a diferença de que aqui cada peça existia e o que faltava era o CRUZAMENTO.
+
+    Uma pessoa e não a lista toda: duas telas no ar já provam a troca, e a
+    terceira só somaria ruído à fila.
+  */
+  const outros = lerChamada().participantes.slice(1);
   definirChamada({
     tela: ligando,
     camera: ligando,
     telaPausada: false,
     telaAudio: ligando ? "ligado" : "sem",
+    transmitindo: ligando ? outros.slice(0, 1) : [],
   });
   faixaSinteticaDeTela(ligando);
   /*

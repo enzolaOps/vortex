@@ -19,9 +19,17 @@
   reserva 12 para painel; 8 é o raio de controle, e usá-lo aqui fazia o cartão
   ler como um campo grande.
 */
+/*
+  ⚠ **Margem entre os filhos, e não `gap`.** O design separa os blocos do
+  cartão com `margin-bottom: 16` em cada um — e a diferença não é só de
+  mecanismo: com `gap: 14` o cartão saía 6px mais baixo que o desenhado, e o
+  confronto reportava as duas coisas (o vão e a altura) como se fossem duas.
+
+  Margem no filho e não `gap` no pai porque é o que o design faz; onde o `gap`
+  é nosso e o resultado bate, ele fica.
+*/
 .cartao {
   display: grid;
-  gap: var(--vx-space-14);
   padding: var(--vx-space-18);
   border: 1px solid var(--vx-hairline-06);
   border-radius: var(--vx-radius-12);
@@ -34,6 +42,10 @@
   a etiqueta de um GRUPO de controles. Aqui é o título de um cartão — ele nomeia
   o que a caixa faz, e em 11px cinza ele lia como legenda do cartão de cima.
 */
+.cartao > *:not(:last-child) {
+  margin-block-end: var(--vx-space-16);
+}
+
 .subtitulo {
   margin: 0;
   font-size: var(--vx-size-md);
@@ -51,14 +63,16 @@
   o vão de LINHA de um flex que quebra; o que importa aqui é que são duas.
 */
 .cabecalho {
-  display: grid;
-  gap: var(--vx-space-06);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--vx-space-20);
 }
 
 .titulo {
-  display: flex;
-  align-items: center;
-  gap: var(--vx-space-08);
+  display: grid;
+  flex: 1;
+  gap: var(--vx-space-04);
+  min-inline-size: 0;
 }
 
 .nome {

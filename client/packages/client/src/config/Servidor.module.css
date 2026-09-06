@@ -23,13 +23,21 @@
   cometeu: com o teto no par, a coluna da esquerda fica com o que sobrar depois
   da prévia, e o formulário nasce mais estreito do que foi desenhado.
 */
+/*
+  ⚠ **Margem de 24 nos filhos, e não `gap` no pai.** O número é o mesmo; o
+  MECANISMO é o do design, e é o que faz o confronto parar de reportar "vão:
+  design – · app 24px" numa caixa cujo resultado na tela já batia.
+*/
 .formulario {
   display: grid;
   flex: 1;
-  gap: var(--vx-space-24);
   align-content: start;
   min-inline-size: 0;
   max-inline-size: 560px;
+}
+
+.formulario > *:not(:last-child) {
+  margin-block-end: var(--vx-space-24);
 }
 
 /*
@@ -53,19 +61,23 @@
 /*
   O rótulo com o contador na outra ponta — é onde a referência o põe.
 
-  ⚠ **`line-height: 1` na linha, e sem ele ela media 22 contra os 14 do
-  design.** O contador é MONO, e a caixa de linha de uma fonte mono a 11px é
-  mais alta que a da sans no mesmo tamanho; com `baseline`, a linha inteira
-  herdava a maior. Oito pixels que apareciam no bloco da descrição e em mais
-  nenhum lugar.
+  ⚠ **Quem inchava a linha era a MARGEM do rótulo, não a entrelinha.** Ela
+  media 22 contra os 14 do design, e eu tratei o sintoma com `line-height: 1`
+  — que derrubou para 11 e deixou a linha mais baixa que a desenhada. A causa
+  é o `.sobrancelha` carregar `margin-block-end: 8`, que serve quando ele
+  encima um bloco e não quando é uma das duas pontas de uma linha. Zerada
+  aqui, a linha volta aos 14 naturais do 11px.
 */
 .linhaDoRotulo {
   display: flex;
   align-items: baseline;
-  line-height: 1;
   justify-content: space-between;
   gap: var(--vx-space-12);
   margin-block-end: var(--vx-space-06);
+}
+
+.linhaDoRotulo > .sobrancelha {
+  margin-block-end: 0;
 }
 
 .contador {
