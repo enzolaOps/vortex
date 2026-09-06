@@ -292,6 +292,20 @@
 }
 
 .ladrilho {
+/*
+  ⚠ **Ele é `<button>` quando a pessoa transmite, e `<div>` quando não.** O
+  reset precisa valer nos dois, senão o alvo herda moldura e fonte do
+  navegador — e a diferença apareceria só nas linhas de quem está no ar, que
+  é o pior lugar para uma inconsistência.
+
+  `font: inherit` e não `font-family`: um botão traz família, tamanho E peso
+  próprios do sistema, e só o primeiro é óbvio.
+*/
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  appearance: none;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -302,6 +316,27 @@
   border: 1px solid var(--vx-hairline-06);
   border-radius: var(--vx-radius-10);
   background: var(--vx-surface-3);
+}
+
+/*
+  Transmitindo: o ladrilho vira alvo, e o ponteiro é a primeira coisa que diz
+  isso. A borda de acento repete a cor de "isto está ativo" que o rail e o
+  canal já usam — quem transmite é o que está acontecendo na sala.
+*/
+.ladrilho[data-transmite] {
+  cursor: pointer;
+  border-color: var(--vx-accent);
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    border-color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.ladrilho[data-transmite]:hover {
+  background: var(--vx-surface-4);
+}
+
+.ladrilho[data-transmite]:active {
+  background: var(--vx-state-press);
 }
 
 .ladrilho[data-falando="true"] {
