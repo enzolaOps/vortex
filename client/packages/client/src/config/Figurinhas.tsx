@@ -40,43 +40,66 @@ export function Figurinhas({ serverId }: { serverId: string }) {
         exemplo; nada aqui é guardado.
       </Banner>
 
-      <div className={css.barra}>
-        <Botao variante="primario" onClick={aindaNao("figurinhas")}>
-          Enviar figurinha
-        </Botao>
-      </div>
+      {/*
+        A grade, com a VAGA como último ladrilho.
 
+        ⚠ **O envio saiu da barra de cima, e é o que o design faz.** Um botão
+        acima da lista diz "existe uma ação"; um ladrilho no fim da grade diz
+        "cabem mais três, e é aqui que elas entram". O contador de vagas mora
+        dentro dele porque responde à pergunta que o próprio ladrilho levanta.
+      */}
       <ul className={css.lista}>
         {EXEMPLOS.map((f) => (
           <li key={f.id} className={css.item}>
             {/*
-              O quadro grande é o que distingue figurinha de emoji na própria
-              tela: emoji vive dentro de uma linha de texto, figurinha ocupa a
-              mensagem. Reproduzir isso aqui é o que faz a página explicar o
-              conceito sem uma frase a mais.
+              O quadro é quadrado e ocupa a largura do cartão: é ele que
+              distingue figurinha de emoji na própria tela. Emoji vive dentro
+              de uma linha de texto; figurinha ocupa a mensagem.
             */}
             <span aria-hidden className={css.quadro}>
               {f.emoji}
             </span>
-            <div className={css.textos}>
-              <span className={css.nome}>{f.nome}</span>
-              <span className={css.descricao}>{f.descricao}</span>
-            </div>
-            <div className={css.acoes}>
-              <Botao variante="sutil" onClick={aindaNao("figurinhas")}>
-                Editar
-              </Botao>
-              <Botao variante="perigoSutil" onClick={aindaNao("figurinhas")}>
-                Excluir
-              </Botao>
+            <div className={css.corpo}>
+              <div className={css.textos}>
+                <span className={css.nome}>{f.nome}</span>
+                <span className={css.descricao}>{f.descricao}</span>
+              </div>
+              <div className={css.acoes}>
+                <Botao variante="sutil" onClick={aindaNao("figurinhas")}>
+                  Editar
+                </Botao>
+                <Botao variante="perigoSutil" onClick={aindaNao("figurinhas")}>
+                  Excluir
+                </Botao>
+              </div>
             </div>
           </li>
         ))}
+
+        {/*
+          ⚠ **O `button` É o ladrilho, e não um filho dele.** Envolvê-lo num
+          `li` sem forma punha um nó vazio entre a grade e a caixa tracejada:
+          o `li` recebia a célula e o botão media o conteúdo, então a vaga
+          saía mais baixa que os cartões ao lado. O `li` continua existindo
+          por semântica de lista — quem carrega a forma é ele.
+        */}
+        <li className={css.vaga}>
+          <button
+            type="button"
+            className={css.vagaBotao}
+            onClick={aindaNao("figurinhas")}
+          >
+            <span className={css.mais} aria-hidden>
+              ＋
+            </span>
+            <span className={css.vagaTitulo}>Enviar figurinha</span>
+            <span className={css.vagaContagem}>
+              {VAGAS - EXEMPLOS.length} vagas restantes
+            </span>
+          </button>
+        </li>
       </ul>
 
-      <p className={css.rodape}>
-        {VAGAS - EXEMPLOS.length} vagas restantes
-      </p>
     </div>
   );
 }

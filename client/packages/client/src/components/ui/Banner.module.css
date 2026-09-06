@@ -22,13 +22,21 @@
   align-items: flex-start;
   /* 11 — do design. Não é degrau de ritmo, é a distância entre um glifo de
      13px e o texto que ele qualifica. */
-  gap: var(--vx-space-11);
+  /* 12, do design — medido pelo `pnpm confronto`. Era 11. */
+  gap: var(--vx-space-12);
   padding: var(--vx-space-12) var(--vx-space-14);
   border: 1px solid;
   border-radius: var(--vx-radius-08);
   color: var(--vx-text-2);
   font-size: var(--vx-size-sm);
-  line-height: 1.5;
+  /*
+    ⚠ **A entrelinha SAIU, e o `1.5` era meu.** O design deixa o banner
+    herdar o `normal` da raiz, e a diferença não é sutil: com 1.5 o bloco
+    de título e descrição media 40px contra os 33 desenhados, e o cartão
+    inteiro saía 7px mais alto. Onde a entrelinha é decisão — corpo de
+    mensagem, título — o componente declara a sua; aqui ela era herança
+    disfarçada de escolha.
+  */
   text-wrap: pretty;
 }
 
@@ -120,3 +128,4 @@
   align-items: center;
   gap: var(--vx-space-08);
 }
+

@@ -200,7 +200,19 @@ const CAMPOS = [
 ];
 
 /**
- * Nós que o design tem e o app deliberadamente não tem.
+ * Nós que um lado tem e o outro deliberadamente não tem.
+ *
+ * ⚠ **A poda era de UM LADO SÓ, e isso reprovava as páginas de servidor em
+ * bloco.** `pular` tira nós do DESIGN — a omissão declarada, o banner de
+ * dessincronização. Só que a dívida corre nas duas direções: as nossas páginas
+ * de servidor carregam um `Banner` de pendência que o design não tem (sem ele,
+ * cartões que não mudam parecem quebrados) e um rodapé dizendo o que o
+ * protocolo não guarda. Os dois são ACRÉSCIMOS deliberados, e cada um
+ * desalinhava a árvore inteira a partir do primeiro filho — em Modelo isso
+ * sozinho produzia 34 "diferenças", nenhuma delas real.
+ *
+ * `pularApp` é o simétrico, com a mesma disciplina: motivo escrito no roteiro,
+ * e o que não estiver nomeado continua reprovando.
  *
  * ⚠ **Isto NÃO é uma válvula de escape, e a diferença está no default.** Sem
  * ela, uma omissão declarada (o banner de dessincronização, que depende de
@@ -231,15 +243,85 @@ function podar(filhos, pular) {
   );
 }
 
-function comparar(d, a, caminho, saida, pular) {
+function comparar(d, a, caminho, saida, pular, pularApp, soFilhos) {
   if (!d || !a) return;
   const onde = caminho || d.tag;
 
+  /*
+    ⚠ **`soFilhos` compara os BLOCOS e não a raiz, e não é preguiça.** Nas
+    páginas de configuração as duas raízes são caixas de PAPÉIS diferentes: do
+    lado do design é o rolável do pane, que carrega o respiro da tela e o
+    título; do nosso é a página dentro de um rolável que a casca desenha. Elas
+    nunca terão o mesmo respiro nem a mesma altura, e comparar as duas produzia
+    três linhas de ruído por categoria — trinta e nove no total — encobrindo as
+    diferenças reais logo abaixo. O que os dois lados desenharam igual são os
+    blocos, e é neles que a comparação começa.
+  */
+  if (soFilhos) {
+    const dRaiz = podar(d.filhos, pular);
+    const aRaiz = podar(a.filhos, pularApp);
+    if (dRaiz.length !== aRaiz.length) {
+      saida.push({
+        onde,
+        texto: d.texto || a.texto,
+        rotulo: "nº de blocos",
+        design: String(dRaiz.length),
+        app: String(aRaiz.length),
+      });
+      return;
+    }
+    dRaiz.forEach((f, i) =>
+      comparar(f, aRaiz[i], `${f.tag}[${i}]`, saida, pular, pularApp, false),
+    );
+    return;
+  }
+
   const alturaBate = Math.abs(d.alt - a.alt) <= 2;
+
+  /*
+    ⚠ **Tipografia e cor de um nó SEM TEXTO PRÓPRIO são herança, não decisão.**
+
+    O nó que só embrulha outros não desenha letra nenhuma: o `font-size` e a
+    `color` dele valem para descendentes que não declaram os seus, e é NESSES
+    que a diferença aparece — onde o confronto já a pega. Comparar o wrapper
+    reportava "15px/400 contra 12px/450" em caixas que não têm um caractere,
+    e num único banner isso somava seis linhas.
+
+    A régua é a mesma do `gap`: o campo só conta onde ele pode ser visto.
+  */
+  /*
+    ⚠ **Basta UM dos dois ser embrulho, e a primeira versão exigia os dois.**
+    Onde o design envolve o texto num `div` e nós o escrevemos direto num `p`,
+    a comparação punha o 15px HERDADO do wrapper contra o 12px declarado do
+    parágrafo — e reportava como se fosse decisão de tipografia. Nó com filhos
+    e sem texto próprio não desenha letra nenhuma; comparar o tipo dele contra
+    um que desenha é comparar coisas diferentes.
+
+    `trim` porque o coletor junta os nós de texto diretos com espaço, e um nó
+    que só tem quebras de linha entre filhos vinha como "   " — texto por
+    acidente de formatação.
+  */
+  /*
+    ⚠ **`nFilhos` e não `filhos.length`.** O segundo é o que o coletor DESCEU,
+    e no último nível da profundidade ele é sempre zero — todo nó parecia
+    folha ali, e o bloco de texto do banner (que só embrulha título e
+    descrição) voltava a ser comparado pelo tipo herdado dele.
+  */
+  const embrulho = (n) => (n.texto || "").trim() === "" && (n.nFilhos ?? 0) > 0;
+  const semTextoProprio = embrulho(d) || embrulho(a);
 
   for (const [chave, rotulo] of CAMPOS) {
     /* Cor vinda de dado não é comparável — ver `dado` no coletor. */
     if ((chave === "cor" || chave === "bg") && (d.dado || a.dado)) continue;
+    if (
+      semTextoProprio &&
+      (chave === "tipo" ||
+        chave === "entrelinha" ||
+        chave === "cor" ||
+        chave === "fonte")
+    ) {
+      continue;
+    }
     /*
       ⚠ **`gap` só conta quando a ALTURA não bate.**
 
@@ -257,29 +339,50 @@ function comparar(d, a, caminho, saida, pular) {
   }
 
   /*
-    A altura é comparada com folga de 2px.
+    A altura é comparada com folga de 2px — e SÓ quando os dois lados carregam
+    aproximadamente o mesmo tanto de texto.
 
-    Ela depende de arredondamento de fonte e do conteúdo real, que difere por
-    construção — o design tem "Júlia Prado" e o app tem o que o arnês semeia.
-    Diferença grande, porém, é estrutura errada, e essa vale reportar.
+    ⚠ **Sem essa segunda condição, altura era 28 das 65 linhas do relatório, e
+    nenhuma delas era uma diferença de desenho.** O cabeçalho deste arquivo já
+    diz que TEXTO não se compara — o do design é fictício e o nosso vem do
+    arnês —, mas a altura de um parágrafo É o texto: "O volume aqui é o volume
+    de origem do som" quebra em duas linhas e a nossa frase equivalente em uma,
+    e o relatório chamava isso de diferença de 13px.
+
+    O corte é proporcional e frouxo (30%): quem tem quase o mesmo texto e mede
+    diferente tem mesmo um problema de caixa — que é o caso que a checagem
+    existe para pegar.
   */
-  if (Math.abs(d.alt - a.alt) > 2) {
+  const dTexto = (d.todo || "").length;
+  const aTexto = (a.todo || "").length;
+  const textoComparavel =
+    Math.abs(dTexto - aTexto) <= 0.3 * Math.max(dTexto, aTexto, 1);
+  /*
+    ⚠ **E o mesmo número de filhos.** `todo` é cortado em 120 caracteres, então
+    uma tabela de nove linhas e uma de quarenta e uma pareciam ter "o mesmo
+    tanto de texto" — e a altura saía como diferença de 1.630px. Container
+    empilha filhos: contagem diferente é altura diferente por construção, e a
+    contagem em si já é reportada onde importa.
+  */
+  const mesmaEstrutura = (d.nFilhos ?? 0) === (a.nFilhos ?? 0);
+  if (textoComparavel && mesmaEstrutura && Math.abs(d.alt - a.alt) > 2) {
     saida.push({ onde, texto: d.texto || a.texto, rotulo: "altura", design: d.alt + "px", app: a.alt + "px" });
   }
 
   const dFilhos = podar(d.filhos, pular);
-  if (dFilhos.length !== a.filhos.length) {
+  const aFilhos = podar(a.filhos, pularApp);
+  if (dFilhos.length !== aFilhos.length) {
     saida.push({
       onde,
       texto: d.texto || a.texto,
       rotulo: "nº de filhos",
       design: String(dFilhos.length),
-      app: String(a.filhos.length),
+      app: String(aFilhos.length),
     });
     return; /* alinhar filhos depois de um descasamento produz ruído. */
   }
   dFilhos.forEach((f, i) =>
-    comparar(f, a.filhos[i], `${onde} > ${f.tag}[${i}]`, saida, pular),
+    comparar(f, aFilhos[i], `${onde} > ${f.tag}[${i}]`, saida, pular, pularApp),
   );
 }
 
@@ -321,10 +424,35 @@ for (const r of roteiros) {
     }
     await dorme(900);
   }
+  /*
+    ⚠ **`raizDesign` existe porque o escalador por LARGURA não mira.** Ele sobe
+    do texto da âncora até o primeiro ancestral da largura declarada — e numa
+    tabela a LINHA tem a largura da tabela. Oito das treze categorias de
+    servidor acabaram comparando uma linha contra uma página inteira, e o
+    relatório então dizia "nº de filhos: design 5 · app 2" sobre dois nós que
+    não são a mesma coisa. Quem sabe qual caixa quer, diz; o escalador
+    continua para quem não sabe.
+
+    ⚠ **Montado por CONCATENAÇÃO, e a regra do topo deste arquivo já avisava.**
+    A primeira versão pôs um template literal ANINHADO aqui; a crase dele
+    fechou a string e o script parou de carregar. Quinta vez que essa
+    armadilha morde — por isso o trecho nasce fora do literal.
+  */
+  const trechoDaRaiz =
+    r.raizDesign === undefined
+      ? ""
+      : "const escolhida = (() => {" +
+        r.raizDesign +
+        "})(); if (!escolhida) return { erro: 'raizDesign nao achou nada' };" +
+        " return olhar(escolhida, 0, " +
+        String(r.profundidade) +
+        ");";
+
   const doDesign = await aba.av(`(async () => {
     ${COLETOR}
+    ${trechoDaRaiz}
     const alvo = [...document.querySelectorAll("*")].find(
-      (e) => e.children.length === 0 && (e.textContent || "").trim().includes(${JSON.stringify(r.ancora)}));
+      (e) => e.children.length === 0 && (e.textContent || "").trim().includes(${JSON.stringify(r.ancora ?? "")}));
     if (!alvo) return { erro: "âncora não achada" };
     /*
       ⚠ **Coluna estreita não chega pelo heurístico de largura.** O rail tem 72
@@ -386,7 +514,7 @@ for (const r of roteiros) {
   }
 
   const bruto = [];
-  comparar(doDesign, doApp, "", bruto, r.pular);
+  comparar(doDesign, doApp, "", bruto, r.pular, r.pularApp, r.soFilhos);
 
   /*
     As divergências adotadas saem do relatório, e a CONTAGEM delas fica — ver

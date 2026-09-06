@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 
-import { Avatar } from "../components/ui/Avatar";
 import { Botao } from "../components/ui/Botao";
 import { cn } from "../lib/cn";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
@@ -31,17 +30,17 @@ type Resposta = readonly ConviteDoServidor[] | "falhou";
 function Criador({ serverId, userId }: { serverId: string; userId: string }) {
   const membro = useMembro(chaveDeMembro(serverId, userId));
 
-  return (
-    <span className={tab.pessoa}>
-      <Avatar
-        id={userId}
-        sigla={membro?.sigla}
-        url={membro?.avatarUrl}
-        tamanho="xxs"
-      />
-      <span className={tab.meta}>{membro?.displayName ?? "alguém"}</span>
-    </span>
-  );
+  /*
+    ⚠ **Sem avatar, e ele estava aqui.** O design põe só o NOME nesta célula, e
+    a razão aparece na medida: a linha de convite é de UMA linha, e um avatar
+    de 20px a empurra de 42 para 56 — a tabela inteira ficava 55px mais alta
+    que a desenhada. Em Banimentos o avatar cabe porque a célula já tem duas
+    linhas (nome e ID) e ele não é quem manda na altura.
+
+    O que o avatar acrescentaria aqui é reconhecimento por rosto numa coluna
+    onde o nome já está escrito por extenso.
+  */
+  return <span className={tab.meta}>{membro?.displayName ?? "alguém"}</span>;
 }
 
 /**

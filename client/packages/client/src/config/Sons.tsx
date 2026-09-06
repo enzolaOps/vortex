@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { Banner } from "../components/ui/Banner";
+import { ICONE, Play } from "../components/ui/icones";
 import { Botao } from "../components/ui/Botao";
 import { Deslizante } from "../components/ui/Deslizante";
 import { aindaNao } from "../pendente/pendencias";
@@ -58,6 +59,7 @@ export function Sons({ serverId }: { serverId: string }) {
       */}
       <div className={css.grade} role="list">
         <div className={css.cabecalho} aria-hidden>
+          <span />
           <span>Nome</span>
           <span>Volume</span>
           <span>Enviado por</span>
@@ -68,6 +70,20 @@ export function Sons({ serverId }: { serverId: string }) {
           const volume = volumes[s.id] ?? s.volume;
           return (
             <div key={s.id} className={css.linha} role="listitem">
+              {/*
+                Tocar é PENDENTE e não inerte: o toast diz o que falta. Tocar
+                um som numa sala de voz é publicar áudio no LiveKit, não
+                enviar mensagem — duas ausências empilhadas, e é o que a
+                entrada do registro descreve.
+              */}
+              <button
+                type="button"
+                className={css.tocar}
+                aria-label={`Tocar ${s.nome}`}
+                onClick={aindaNao("efeitosSonoros")}
+              >
+                <Play size={ICONE.metadado} aria-hidden />
+              </button>
               <div className={css.nomeCelula}>
                 <span aria-hidden className={css.emoji}>
                   {s.emoji}
@@ -100,7 +116,8 @@ export function Sons({ serverId }: { serverId: string }) {
 
       <p className={css.nota}>
         O volume aqui é o de ORIGEM — o que todo mundo ouve. O volume do painel
-        no cliente de cada pessoa multiplica em cima deste.
+        no cliente de cada pessoa multiplica em cima deste. A prévia toca só
+        para você, mesmo estando numa sala de voz.
       </p>
     </div>
   );

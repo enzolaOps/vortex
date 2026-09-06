@@ -1,59 +1,96 @@
 /* ============================================================
    Figurinhas
    ------------------------------------------------------------
-   900, da referência (`ServerStickersPage`) — a mesma medida de
-   Emoji e do Painel de efeitos sonoros: as três são grade ou
-   lista de itens visuais, que é varredura e não leitura.
+   ⚠ **Era uma LISTA de linhas, e o design é uma GRADE de
+   cartões.** Achado pelo `pnpm confronto`: lá são quatro
+   quadros de 240×278 com raio 12, gap 14, e o último é a vaga
+   de envio — tracejada, com o contador dentro. Aqui eram
+   linhas de 56px com o nome ao lado e dois botões na ponta.
+
+   O comentário antigo dizia que 900 é "grade ou lista de itens
+   visuais, que é varredura". A intenção estava certa e a forma
+   não: numa lista de uma coluna, a figurinha — que é o item —
+   fica num quadro de 56 enquanto o texto ocupa a largura toda.
+   Ela é MÍDIA de 320×320; o cartão é o que mostra isso.
+
+   1000, como Emoji: as duas são grade e o design lhes dá a
+   mesma medida.
    ============================================================ */
 
 .tela {
   display: grid;
   gap: var(--vx-space-16);
   align-content: start;
-  max-inline-size: 900px;
+  max-inline-size: 1000px;
 }
 
-.barra {
-  display: flex;
-  justify-content: flex-end;
-}
-
+/*
+  240 de largura mínima e `auto-fill`: em 1000 dá quatro colunas com o gap de
+  14 do design, e reflui sozinha quando o pane encolhe. Coluna fixa quebraria
+  no primeiro breakpoint da casca.
+*/
 .lista {
   display: grid;
-  gap: var(--vx-space-08);
+  /*
+    228 e não 240: com o gap de 14 do design, quatro cartões de 240 pedem 1002
+    numa caixa de 1000 — e a grade caía para TRÊS colunas, deixando cada cartão
+    50% mais alto que o desenhado. O mínimo folgado garante as quatro e deixa
+    a coluna crescer até 240 sozinha.
+  */
+  grid-template-columns: repeat(auto-fill, minmax(228px, 1fr));
+  gap: var(--vx-space-14);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/*
+  ⚠ **Sem respiro, e a mídia sangra até a borda.** O design não põe padding no
+  cartão: a figurinha ocupa a largura inteira e só o texto abaixo é recuado.
+  Com respiro em volta de tudo, a imagem vira uma miniatura centrada numa
+  moldura — que é o oposto do que esta página existe para mostrar.
+*/
 .item {
-  display: flex;
-  align-items: center;
-  gap: var(--vx-space-14);
-  padding: var(--vx-space-12);
+  display: grid;
+  align-content: start;
+  overflow: hidden;
   border: 1px solid var(--vx-hairline-06);
-  border-radius: var(--vx-radius-08);
+  /* 12, do design: cartão é PAINEL, e 8 é o raio de controle. */
+  border-radius: var(--vx-radius-12);
   background: var(--vx-surface-1);
 }
 
 /*
-  O quadro da figurinha, em 56 — grande o bastante para ler como MÍDIA e não
-  como ícone. É a diferença que a página existe para mostrar.
+  O quadro é quadrado e ocupa a largura do cartão — é ele que diz que
+  figurinha é mídia inteira, não glifo dentro de uma linha de texto. A
+  proporção 1:1 vem do formato que a própria página anuncia (320×320).
+*/
+/*
+  ⚠ **130 de altura, e não quadrado.** Eu deduzi `aspect-ratio: 1` de "a
+  figurinha é 320×320" — o formato do ARQUIVO. O design mede a caixa: 130 num
+  cartão de 238, ou seja um retângulo largo com a figurinha centrada. Com o
+  quadrado, o cartão saía com 343 de altura contra os 278 desenhados, e a
+  grade inteira ficava um terço mais alta.
 */
 .quadro {
   display: grid;
-  flex: none;
   place-items: center;
-  inline-size: 56px;
-  block-size: 56px;
-  border-radius: var(--vx-radius-08);
+  inline-size: 100%;
+  block-size: 130px;
   background: var(--vx-surface-2);
-  font-size: 28px;
+  font-size: 44px;
+}
+
+/* O texto e as ações, recuados dentro do cartão que a mídia atravessa. */
+.corpo {
+  display: grid;
+  gap: var(--vx-space-10);
+  /* `11px 12px`, do design. */
+  padding: var(--vx-space-11) var(--vx-space-12);
 }
 
 .textos {
   display: grid;
-  flex: 1;
   min-inline-size: 0;
   gap: var(--vx-space-02);
 }
@@ -67,23 +104,85 @@
   white-space: nowrap;
 }
 
+/*
+  A descrição pode quebrar em duas linhas dentro do cartão — numa linha só ela
+  seria cortada em quase toda figurinha, e é ela que diz para que serve.
+*/
 .descricao {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
   font-size: var(--vx-size-sm);
   color: var(--vx-text-3);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-wrap: pretty;
 }
 
 .acoes {
   display: flex;
-  flex: none;
   gap: var(--vx-space-06);
 }
 
-.rodape {
-  margin: 0;
-  font-size: var(--vx-size-sm);
+/*
+  A VAGA — o último ladrilho da grade, e não um botão no topo.
+
+  ⚠ **É onde o design põe o envio, e a diferença não é arrumação.** Um botão
+  numa barra acima diz "existe uma ação"; um ladrilho no fim da grade diz
+  "cabem mais três, e é aqui que elas entram". O contador de vagas vive dentro
+  dele pelo mesmo motivo — ele responde à pergunta que o ladrilho levanta.
+*/
+.vaga {
+  display: grid;
+  gap: var(--vx-space-06);
+  border: 1px dashed var(--vx-hairline-16);
+  border-radius: var(--vx-radius-12);
+  transition: border-color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.vaga:hover {
+  border-color: var(--vx-accent);
+  background: var(--vx-state-hover);
+}
+
+.vaga:focus-within {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/* O alvo ocupa o ladrilho inteiro: metade de uma caixa tracejada clicável e
+   metade não é uma afordância, é uma pegadinha. */
+.vagaBotao {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--vx-space-06);
+  inline-size: 100%;
+  block-size: 100%;
+  padding: var(--vx-space-14);
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.vagaBotao:focus-visible {
+  outline: none;
+}
+
+.mais {
+  font-size: var(--vx-size-2xl);
+  line-height: 1;
+  color: var(--vx-text-3);
+}
+
+.vagaTitulo {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.vagaContagem {
+  font-size: var(--vx-size-xs);
   color: var(--vx-text-4);
 }
 

@@ -50,10 +50,19 @@
   color: var(--vx-text-3);
 }
 
-/* O rótulo com o contador na outra ponta — é onde a referência o põe. */
+/*
+  O rótulo com o contador na outra ponta — é onde a referência o põe.
+
+  ⚠ **`line-height: 1` na linha, e sem ele ela media 22 contra os 14 do
+  design.** O contador é MONO, e a caixa de linha de uma fonte mono a 11px é
+  mais alta que a da sans no mesmo tamanho; com `baseline`, a linha inteira
+  herdava a maior. Oito pixels que apareciam no bloco da descrição e em mais
+  nenhum lugar.
+*/
 .linhaDoRotulo {
   display: flex;
   align-items: baseline;
+  line-height: 1;
   justify-content: space-between;
   gap: var(--vx-space-12);
   margin-block-end: var(--vx-space-06);
@@ -315,9 +324,16 @@
    nota da própria referência, e não foram deduzidos.
    ============================================================ */
 
+/*
+  ⚠ **Véu branco e não borda OPACA.** `--vx-border-subtle` é `#1d232d`, uma cor
+  cheia; o design desenha o contorno do card de convite com branco a 8%. A
+  diferença aparece quando o card pousa sobre outra superfície — o véu compõe
+  com o que está atrás, a cor cheia não —, e este card existe justamente para
+  ser visto fora daqui, na tela de convite.
+*/
 .cartao {
   overflow: hidden;
-  border: 1px solid var(--vx-border-subtle);
+  border: 1px solid var(--vx-hairline-06);
   border-radius: var(--vx-radius-12);
   background: var(--vx-surface-3);
   box-shadow: var(--vx-elev-3);

@@ -167,6 +167,13 @@ function olhar(e, nivel, max) {
       ensina a ignorar o relatório.
     */
     dado: /(^|;)\s*(color|background)/.test(e.getAttribute("style") || ""),
+    /*
+      Quantos filhos o nó tem DE VERDADE, independente da profundidade.
+      A altura de um container é função de quantos filhos ele empilha, e o
+      design semeia nove linhas onde o arnês semeia quarenta e uma — comparar
+      as alturas ali mede o gerador, não a tela.
+    */
+    nFilhos: e.children.length,
     filhos:
       nivel >= max
         ? []

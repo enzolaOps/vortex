@@ -40,7 +40,8 @@
   */
   grid-template-columns: var(--colunas, minmax(0, 1fr));
   align-items: center;
-  gap: var(--vx-space-14);
+  /* 12 no design, nos dois — cabeçalho e linha. Era 14. */
+  gap: var(--vx-space-12);
 }
 
 .cabecalho {
@@ -50,8 +51,15 @@
   color: var(--vx-text-3);
 }
 
+/*
+  ⚠ **`12px 14px`, e era `10px 14px`.** Medido no design pelo `pnpm confronto`:
+  a linha de dados tem 55px de altura contra os 51 que a nossa tinha, e a
+  diferença estava toda no respiro vertical. Quatro tabelas herdam isto —
+  Membros, Convites, Banimentos e Emoji —, e o erro aparecia como "altura:
+  design 203 · app 191" em cada uma.
+*/
 .linha {
-  padding: var(--vx-space-10) var(--vx-space-14);
+  padding: var(--vx-space-12) var(--vx-space-14);
   border-block-start: 1px solid var(--vx-hairline-06);
   background: var(--vx-surface-3);
 }

@@ -163,8 +163,11 @@
   padding-block-end: 0;
 }
 
-.requisito + .requisito {
-  border-block-start: 1px solid var(--vx-hairline-06);
+/* A régua fecha a linha, e não abre a seguinte — é onde o design a
+   põe. O resultado na tela é o mesmo traço; o que muda é de quem ele
+   é, e isso aparece quando a última linha ganha um irmão. */
+.requisito:not(:last-of-type) {
+  border-block-end: 1px solid var(--vx-hairline-06);
 }
 
 .requisitoTitulo {

@@ -419,6 +419,21 @@ const RECADOS = [
       owner: userIds[0],
       name: servidor.nome,
       /*
+        ⚠ **12ª vez que o arnês aparece mais pobre que o protocolo.**
+        `Server.description` existe desde sempre; o firehose criava servidor
+        sem nenhuma, e a prévia do card de convite — que é METADE da tela de
+        Perfil do servidor — abria com o corpo vazio. A caixa media 319 onde o
+        design mede 370, e a diferença era literalmente o texto que não existe.
+
+        Três linhas de propósito: o card trunca em três, e uma descrição de uma
+        linha nunca exercita o corte.
+      */
+      /* A frase é a do MOCK do design, palavra por palavra: é ela que faz a
+         prévia do card medir o mesmo que a desenhada. */
+      description:
+        "Servidor de produto e design do Vortex. Roadmap aberto, crítica " +
+        "semanal e releases quinzenais.",
+      /*
         ⚠ **O servidor CONCEDE ver canal por padrão, e sem isto o arnês mentia
         sobre o produto.** Servidor real declara `default_permissions`; o
         arnês não declarava, e nada dependia disso até o cadeado existir.

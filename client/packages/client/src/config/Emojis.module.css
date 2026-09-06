@@ -58,10 +58,16 @@
   gap: var(--vx-space-06);
   inline-size: 100%;
   max-inline-size: 1000px;
-  block-size: 96px;
+  block-size: 88px;
   margin-block-end: var(--vx-space-16);
-  border: 1px dashed var(--vx-hairline-10);
-  border-radius: var(--vx-radius-08);
+  /*
+    ⚠ **Tracejado a 14% e raio 10 — do design, medidos pelo confronto.** Estava
+    a 10% com raio 8: a borda sumia contra a superfície e a caixa lia como
+    campo em vez de área de soltar. 88 de altura é o número do design; 96 era
+    chute meu.
+  */
+  border: 1px dashed var(--vx-hairline-16);
+  border-radius: var(--vx-radius-10);
   background: transparent;
   cursor: pointer;
   transition: border-color var(--vx-duration-fast) var(--vx-ease-out);
@@ -131,4 +137,12 @@
    recebendo tabulação. Mesma escolha do composer. */
 .seletor {
   display: none;
+}
+
+/* 12, do design — o rodapé é metadado da tabela, não corpo de texto. O
+   `.recado` compartilhado é 13, que é o tamanho de instrução de formulário. */
+.rodape {
+  margin: 0;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
 }
