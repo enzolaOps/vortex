@@ -99,6 +99,8 @@ export function AssistirTransmissao({ userId }: { userId: string }) {
       faixasDeVideo.getSnapshot(chave),
     ) !== undefined;
 
+  /* Quem você é, para a fila saber qual ladrilho volta para a SUA tela. */
+  const eu = chamada.participantes[0];
   const fila = chamada.participantes.filter((id) => id !== userId);
   const naFila = fila.slice(0, 2);
   const resto = fila.length - naFila.length;
@@ -300,7 +302,17 @@ export function AssistirTransmissao({ userId }: { userId: string }) {
       {/* ------------------------------------------------- fila do canto */}
       <div className={css.fila}>
         {naFila.map((id) => (
-          <MiniLadrilho key={id} userId={id} />
+          <MiniLadrilho
+            key={id}
+            userId={id}
+            destino={
+              id === eu && chamada.tela
+                ? "transmitindo"
+                : chamada.transmitindo.includes(id)
+                  ? "assistindo"
+                  : undefined
+            }
+          />
         ))}
         {resto > 0 ? (
           <button
@@ -405,28 +417,71 @@ export function AssistirTransmissao({ userId }: { userId: string }) {
    Peças locais
    ============================================================ */
 
+/**
+ * Uma pessoa na fila do canto, enquanto se assiste a outra.
+ *
+ * ⚠ **Ela troca de tela sem passar pela grade, e é a segunda metade do mesmo
+ * defeito.** Com duas pessoas transmitindo, chegar da tela de uma até a da
+ * outra exigia voltar para a grade e entrar de novo — e voltar para a sua
+ * própria não tinha caminho nenhum.
+ *
+ * `destino` decide para onde: a tela de outra pessoa é `assistindo`; a SUA é
+ * `transmitindo`, que é uma variante diferente da união porque o palco dela
+ * tem HUD, prévia local e doca sem o botão de compartilhar. Elas não são o
+ * mesmo lugar com um nome diferente.
+ */
 const MiniLadrilho = memo(function MiniLadrilho({
   userId,
+  destino,
 }: {
   userId: string;
+  /** `undefined` quando não há tela desta pessoa para abrir. */
+  destino?: "assistindo" | "transmitindo";
 }) {
   const pessoa = usePessoa(userId);
   const ativo = useSyncExternalStore(
     falando.subscriber(userId),
     () => falando.getSnapshot(userId) ?? false,
   );
+  const nome = pessoa?.displayName ?? "alguém";
+
+  const dentro = (
+    <>
+      <Avatar id={userId} sigla={pessoa?.sigla} url={pessoa?.avatarUrl} tamanho="sm" />
+      <span className={css.miniNome}>{nome}</span>
+      {ativo ? <span className="sr-only">falando</span> : null}
+    </>
+  );
+
+  if (destino === undefined) {
+    return (
+      <div className={css.mini} data-falando={ativo}>
+        {dentro}
+      </div>
+    );
+  }
 
   return (
-    <div className={css.mini} data-falando={ativo}>
-      <Avatar
-        id={userId}
-        sigla={pessoa?.sigla}
-        url={pessoa?.avatarUrl}
-        tamanho="sm"
-      />
-      <span className={css.miniNome}>{pessoa?.displayName ?? "alguém"}</span>
-      {ativo ? <span className="sr-only">falando</span> : null}
-    </div>
+    <button
+      type="button"
+      className={css.mini}
+      data-falando={ativo}
+      data-transmite
+      aria-label={
+        destino === "transmitindo"
+          ? "Voltar para a sua transmissão"
+          : `Assistir à tela de ${nome}`
+      }
+      onClick={() => {
+        definirPalco(
+          destino === "transmitindo"
+            ? { tipo: "transmitindo" }
+            : { tipo: "assistindo", userId },
+        );
+      }}
+    >
+      {dentro}
+    </button>
   );
 });
 

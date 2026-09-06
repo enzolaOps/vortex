@@ -628,6 +628,18 @@ export function assinarVideo(
     if (!assinadoNoTransporte.has(chave)) {
       assinadoNoTransporte.add(chave);
       pub.setSubscribed(true);
+      /*
+        ⚠ **O som vai JUNTO, no mesmo passo e sob a mesma contagem.**
+
+        Ele não precisa de store nem de elemento: `TrackSubscribed` já anexa
+        qualquer faixa de áudio ao `<audio>` fora da árvore React, e é o mesmo
+        caminho que faz o microfone da sala tocar. O que faltava era pedir.
+
+        Assinado aqui e não no `TrackSubscribed`: lá é tarde — o evento é a
+        CHEGADA, e só chega o que foi pedido. Com `autoSubscribe: false` nada
+        vem sozinho, que é a decisão que evita baixar vídeo de dez pessoas.
+      */
+      publicacaoDeAudioDaTela(userId, fonte)?.setSubscribed(true);
     }
   } else if (depois === 0) {
     liberacoesPendentes.set(
@@ -638,6 +650,9 @@ export function assinarVideo(
         if ((assinantesDeVideo.get(chave) ?? 0) > 0) return;
         assinadoNoTransporte.delete(chave);
         publicacaoDeVideo(userId, fonte)?.setSubscribed(false);
+        /* Devolver os dois, senão o som de uma tela que ninguém vê continua
+           baixando — a metade que se esquece, e a que custa. */
+        publicacaoDeAudioDaTela(userId, fonte)?.setSubscribed(false);
         faixasDeVideo.apagar(chave);
       }, 250),
     );
@@ -725,6 +740,30 @@ function publicacaoDeVideo(
   if (!p) return undefined;
   return p.getTrackPublication(
     fonte === "camera" ? Track.Source.Camera : Track.Source.ScreenShare,
+  );
+}
+
+/**
+ * O áudio que acompanha uma tela compartilhada.
+ *
+ * ⚠ **Ele é uma publicação SEPARADA, e é por isso que a tela chegava muda.**
+ * `getDisplayMedia` captura o som do sistema junto (ver `AUDIO_DA_TELA`) e o
+ * LiveKit o publica como `ScreenShareAudio`, ao lado de `ScreenShare` — duas
+ * faixas, dois `setSubscribed`. `assinarVideo` só conhecia a de vídeo, então
+ * quem assistia recebia a imagem e nunca pedia o som. O defeito não estava na
+ * captura nem na reprodução: o áudio era capturado, era publicado, e ninguém
+ * do outro lado o assinava.
+ *
+ * `undefined` para câmera de propósito: microfone é outra fonte e já é
+ * assinado por conta própria ao entrar na sala.
+ */
+function publicacaoDeAudioDaTela(
+  userId: string,
+  fonte: FonteDeVideo,
+): RemoteTrackPublication | undefined {
+  if (fonte !== "tela") return undefined;
+  return participanteRemoto(userId)?.getTrackPublication(
+    Track.Source.ScreenShareAudio,
   );
 }
 

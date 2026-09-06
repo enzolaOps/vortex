@@ -313,7 +313,42 @@
   gap: var(--vx-space-08);
 }
 
+/*
+  Mesma afordância do ladrilho da prancha, e de propósito: a fila do canto e a
+  fila da prancha são a mesma lista em dois tamanhos, e trocar de tela é o
+  mesmo gesto nas duas.
+*/
+.mini[data-transmite] {
+  cursor: pointer;
+  border-color: var(--vx-accent);
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    border-color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.mini[data-transmite]:hover {
+  background: var(--vx-surface-4);
+}
+
+.mini[data-transmite]:active {
+  background: var(--vx-state-press);
+}
+
 .mini {
+/*
+  ⚠ **Ele é `<button>` quando a pessoa transmite, e `<div>` quando não.** O
+  reset precisa valer nos dois, senão o alvo herda moldura e fonte do
+  navegador — e a diferença apareceria só nas linhas de quem está no ar, que
+  é o pior lugar para uma inconsistência.
+
+  `font: inherit` e não `font-family`: um botão traz família, tamanho E peso
+  próprios do sistema, e só o primeiro é óbvio.
+*/
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  appearance: none;
   position: relative;
   display: flex;
   align-items: center;

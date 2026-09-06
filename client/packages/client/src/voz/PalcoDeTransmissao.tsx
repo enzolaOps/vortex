@@ -51,7 +51,7 @@ import {
 } from "../store/chamada";
 import { useChannel, usePessoa, useServer } from "../store/hooks";
 import { chaveDeVideo, faixasDeVideo } from "../store/video";
-import { fecharPalco } from "../store/palcoDeVoz";
+import { definirPalco, fecharPalco } from "../store/palcoDeVoz";
 import { Cronometro, Doca, emTelaCheia, SeloAoVivo } from "./pecasDeVoz";
 import css from "./PalcoDeTransmissao.module.css";
 
@@ -173,7 +173,11 @@ export function PalcoDeTransmissao({
               </div>
             ) : null}
             {chamada.participantes.map((id) => (
-              <LadrilhoDePessoa key={id} userId={id} />
+              <LadrilhoDePessoa
+                key={id}
+                userId={id}
+                transmite={chamada.transmitindo.includes(id)}
+              />
             ))}
           </div>
         </div>
@@ -608,30 +612,68 @@ function BotaoDePip() {
    ============================================================ */
 
 /** Um ladrilho da fila. Assina a PESSOA e a fala — lei nº 1. */
+/**
+ * Uma pessoa na fila do palco.
+ *
+ * ⚠ **Quem TRANSMITE vira botão, e sem isto a tela do outro era inalcançável.**
+ * O defeito relatado: com a sua tela no ar, não havia caminho nenhum até a
+ * transmissão de outra pessoa. A causa eram duas linhas — `PalcoDeVoz` deriva
+ * `dono` como "a sua ganha", e a fila era um `<div>`. A sala anunciava que
+ * havia outra tela e não deixava chegar nela.
+ *
+ * O design responde por "Fixar participante", no menu do tile; a fila é o
+ * caminho curto para o mesmo lugar, como o `+` da categoria é para o menu de
+ * contexto. Fixar leva a `AssistirTransmissao`, que é a superfície de quem
+ * assiste — com menu, qualidade e volume individual.
+ *
+ * ⚠ **Só vira botão para quem transmite.** Um alvo que recebe foco e não faz
+ * nada é o defeito que o lint de `onSelect` existe para matar; quem está na
+ * sala sem transmitir não tem tela para abrir.
+ */
 const LadrilhoDePessoa = memo(function LadrilhoDePessoa({
   userId,
+  transmite,
 }: {
   userId: string;
+  transmite: boolean;
 }) {
   const pessoa = usePessoa(userId);
   const ativo = useSyncExternalStore(
     falando.subscriber(userId),
     () => falando.getSnapshot(userId) ?? false,
   );
+  const nome = pessoa?.displayName ?? "alguém";
+
+  const dentro = (
+    <>
+      <Avatar id={userId} sigla={pessoa?.sigla} url={pessoa?.avatarUrl} tamanho="md" />
+      <span className={css.nomeDoLadrilho}>{nome}</span>
+      {ativo ? <span className="sr-only">falando</span> : null}
+      {transmite ? <span className={css.selo}>AO VIVO</span> : null}
+    </>
+  );
+
+  if (!transmite) {
+    return (
+      <div className={css.ladrilho} data-falando={ativo}>
+        {dentro}
+      </div>
+    );
+  }
 
   return (
-    <div className={css.ladrilho} data-falando={ativo}>
-      <Avatar
-        id={userId}
-        sigla={pessoa?.sigla}
-        url={pessoa?.avatarUrl}
-        tamanho="md"
-      />
-      <span className={css.nomeDoLadrilho}>
-        {pessoa?.displayName ?? "alguém"}
-      </span>
-      {ativo ? <span className="sr-only">falando</span> : null}
-    </div>
+    <button
+      type="button"
+      className={css.ladrilho}
+      data-falando={ativo}
+      data-transmite
+      aria-label={`Assistir à tela de ${nome}`}
+      onClick={() => {
+        definirPalco({ tipo: "assistindo", userId });
+      }}
+    >
+      {dentro}
+    </button>
   );
 });
 
