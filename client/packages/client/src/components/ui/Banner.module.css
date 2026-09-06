@@ -29,7 +29,14 @@
   border-radius: var(--vx-radius-08);
   color: var(--vx-text-2);
   font-size: var(--vx-size-sm);
-  line-height: 1.5;
+  /*
+    ⚠ **A entrelinha SAIU, e o `1.5` era meu.** O design deixa o banner
+    herdar o `normal` da raiz, e a diferença não é sutil: com 1.5 o bloco
+    de título e descrição media 40px contra os 33 desenhados, e o cartão
+    inteiro saía 7px mais alto. Onde a entrelinha é decisão — corpo de
+    mensagem, título — o componente declara a sua; aqui ela era herança
+    disfarçada de escolha.
+  */
   text-wrap: pretty;
 }
 

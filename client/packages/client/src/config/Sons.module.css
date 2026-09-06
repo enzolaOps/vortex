@@ -110,7 +110,8 @@
 .nota {
   margin: 0;
   font-size: var(--vx-size-sm);
-  line-height: 1.5;
+  /* Sem entrelinha declarada: o design deixa o rodapé herdar o `normal`
+     da raiz, como o banner. */
   color: var(--vx-text-4);
   text-wrap: pretty;
 }

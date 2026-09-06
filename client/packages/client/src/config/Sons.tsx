@@ -116,7 +116,8 @@ export function Sons({ serverId }: { serverId: string }) {
 
       <p className={css.nota}>
         O volume aqui é o de ORIGEM — o que todo mundo ouve. O volume do painel
-        no cliente de cada pessoa multiplica em cima deste.
+        no cliente de cada pessoa multiplica em cima deste. A prévia toca só
+        para você, mesmo estando numa sala de voz.
       </p>
     </div>
   );

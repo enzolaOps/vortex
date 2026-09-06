@@ -268,6 +268,20 @@ const CANAL =
 export const DISPENSAS = [
   {
     rotulo: "borda",
+    design: "-",
+    app: "b1 #ffffff@6",
+    motivo:
+      "A régua das linhas do cartão de contato, e o DESIGN é que é inconsistente ali: ele fecha a primeira linha por baixo e abre a terceira por cima, pulando a do meio. São duas réguas entre três linhas nos dois lados — o que muda é de quem elas são. A nossa é uniforme (`:not(:last-of-type)`), e copiar a arbitrariedade do mock seria CSS que ninguém consegue explicar.",
+  },
+  {
+    rotulo: "borda",
+    design: "t1 #ffffff@5",
+    app: "-",
+    motivo:
+      "A régua das linhas do cartão de contato, e o DESIGN é que é inconsistente ali: ele fecha a primeira linha por baixo e abre a terceira por cima, pulando a do meio. São duas réguas entre três linhas nos dois lados — o que muda é de quem elas são. A nossa é uniforme (`:not(:last-of-type)`), e copiar a arbitrariedade do mock seria CSS que ninguém consegue explicar.",
+  },
+  {
+    rotulo: "borda",
     design: "t1 #ffffff@8 r1 #ffffff@8 b1 #ffffff@8 l1 #ffffff@8",
     app: "t1 #ffffff@6 r1 #ffffff@6 b1 #ffffff@6 l1 #ffffff@6",
     motivo:

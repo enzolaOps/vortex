@@ -50,10 +50,19 @@
   color: var(--vx-text-3);
 }
 
-/* O rótulo com o contador na outra ponta — é onde a referência o põe. */
+/*
+  O rótulo com o contador na outra ponta — é onde a referência o põe.
+
+  ⚠ **`line-height: 1` na linha, e sem ele ela media 22 contra os 14 do
+  design.** O contador é MONO, e a caixa de linha de uma fonte mono a 11px é
+  mais alta que a da sans no mesmo tamanho; com `baseline`, a linha inteira
+  herdava a maior. Oito pixels que apareciam no bloco da descrição e em mais
+  nenhum lugar.
+*/
 .linhaDoRotulo {
   display: flex;
   align-items: baseline;
+  line-height: 1;
   justify-content: space-between;
   gap: var(--vx-space-12);
   margin-block-end: var(--vx-space-06);

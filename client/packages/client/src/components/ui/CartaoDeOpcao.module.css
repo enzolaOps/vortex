@@ -77,9 +77,17 @@
   opacity: 0.45;
 }
 
+/*
+  ⚠ **Sem vão entre título e detalhe** — medido no design pelo `pnpm
+  confronto`. O `gap: 2px` era meu, e ele fazia cada cartão sair com 62 de
+  altura contra os 60 desenhados. Dois pixels por cartão parecem nada, e não
+  são: em Segurança há oito cartões em dois grupos, e o desvio somava 16.
+
+  A separação entre as duas linhas já vem do LINE-HEIGHT delas; um vão em cima
+  disso afasta duas linhas que o design quis coladas.
+*/
 .textos {
   display: grid;
-  gap: var(--vx-space-02);
   min-inline-size: 0;
 }
 
