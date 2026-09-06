@@ -21,11 +21,31 @@
 
   A calha existe mesmo na continuação de grupo — é o que mantém o texto
   alinhado ao longo do grupo inteiro.
+
+  ⚠ **Ela é uma COLUNA, e por isso só a largura é dela.** A altura era fixa em
+  40px, e na continuação de grupo a calha renderiza VAZIA — sobrava uma caixa
+  de 40px segurando uma linha cujo conteúdo é uma frase de 22px. Medido no
+  navegador: mensagem curta agrupada saía a **50px onde precisa de 30**, 20px
+  de sobra morta, **67% de inflação**. Não aparecia no arnês porque o firehose
+  gera texto longo — com três linhas de conteúdo 40px nunca é o maior dos
+  dois, e a média que alimenta `ALTURA_POR_TIPO` mal se move. Quem relatou foi
+  quem usa, com mensagens de um caractere.
+
+  Quem tem 40px é o AVATAR (`Avatar.module.css .md`), e ele os carrega
+  sozinho. Na continuação não há avatar, então não há altura — que é o certo.
+
+  ⚠ **`align-self: flex-start` não é cosmético, e a primeira versão do
+  conserto errou aqui.** Tirar só o `block-size` deixa o `stretch` do flex
+  esticar a calha até a altura da linha inteira: medido, ela ia de 40 para
+  151px numa linha alta. E a calha carrega o `data-menu-autor` — o alvo do
+  menu do AUTOR. Esticada, clicar com o direito em qualquer ponto da coluna
+  esquerda abriria o menu da pessoa em vez do da mensagem, ao longo de
+  parágrafos inteiros. Com `flex-start` ela volta a ser exatamente o avatar.
 */
 .calha {
   inline-size: var(--vx-avatar-md);
-  block-size: var(--vx-avatar-md);
   flex: none;
+  align-self: flex-start;
 }
 
 /* ============================================================
@@ -1162,4 +1182,16 @@
 
 .avisoAcao:disabled {
   opacity: 0.6;
+}
+
+/*
+  O esqueleto do avatar — o ÚNICO lugar em que a calha desenha algo que não é
+  o avatar, e por isso o único que precisa declarar a própria altura.
+
+  Ela mora aqui e não numa utility de espaçamento: 40px aqui é a DIMENSÃO de
+  um avatar, e escrevê-la como degrau de espaço diria a coisa errada com o
+  mesmo pixel — o defeito que os ícones já pagaram uma vez.
+*/
+.esqueletoDeAvatar {
+  block-size: var(--vx-avatar-md);
 }

@@ -863,7 +863,10 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
   if (!message) {
     return (
       <article aria-hidden className="flex gap-12 px-20 py-08">
-        <div className={cn(css.calha, "mt-04 rounded-12 bg-surface-2")} />
+        {/* A altura vem daqui e não da calha: este é o único lugar em que ela
+            desenha algo sem ser o avatar, e o esqueleto precisa ter a caixa
+            dele para parecer um avatar. Ver `.calha` no módulo. */}
+        <div className={cn(css.calha, css.esqueletoDeAvatar, "mt-04 rounded-12 bg-surface-2")} />
         <div className={cn(css.minZero, "flex-1 text-lg leading-message")}>&nbsp;</div>
       </article>
     );
