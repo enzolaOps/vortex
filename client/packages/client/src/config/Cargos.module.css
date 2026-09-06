@@ -444,12 +444,20 @@
   gap: var(--vx-space-36);
 }
 
+/*
+  ⚠ **Margem de 24 nos filhos, e não `gap: 18` no pai.** É o que o design faz,
+  e os dois números somam diferente: com 18 a coluna saía 426 contra os 456
+  desenhados, e os 30 que faltavam eram exatamente os quatro vãos.
+*/
 .formulario {
   display: grid;
   flex: 1;
-  gap: var(--vx-space-18);
   min-inline-size: 0;
   max-inline-size: 520px;
+}
+
+.formulario > *:not(:last-child) {
+  margin-block-end: var(--vx-space-24);
 }
 
 .previa {
@@ -546,19 +554,33 @@
 
 /* ------------------------------------------------------ prévia */
 
-/* Raio 10 e respiro 16, do design — eram 8 e 14. */
+/*
+  Raio 10 e respiro 16, do design — eram 8 e 14.
+
+  ⚠ **Sem `gap`: o design separa os quatro blocos com margens DIFERENTES** —
+  10 depois do primeiro rótulo, 16 depois do membro, 8 depois do segundo
+  rótulo. Um vão único de 12 aproximava os três de uma vez e errava os três.
+*/
 .previaCaixa {
   display: grid;
-  gap: var(--vx-space-12);
   padding: var(--vx-space-16);
   border: 1px solid var(--vx-hairline-06);
   border-radius: var(--vx-radius-10);
   background: var(--vx-surface-1);
 }
 
-.previaBloco {
-  padding-block-start: var(--vx-space-12);
-  border-block-start: 1px solid var(--vx-hairline-06);
+/* Rótulo → conteúdo: 10 no primeiro, 8 no segundo, como o design. */
+.previaCaixa > .previaRotulo {
+  margin-block-end: var(--vx-space-10);
+}
+
+.previaCaixa > .previaRotulo ~ .previaRotulo {
+  margin-block-end: var(--vx-space-08);
+}
+
+/* E 16 entre o membro e o rótulo seguinte. */
+.previaMembro {
+  margin-block-end: var(--vx-space-16);
 }
 
 .previaRotulo {
@@ -613,12 +635,18 @@
   color: var(--vx-text-2);
 }
 
+/*
+  ⚠ **Sem `text-wrap: pretty` aqui.** Ele evita órfã movendo palavra para a
+  linha de baixo, e neste parágrafo — que cabe em três linhas justas — isso
+  criava uma QUARTA. Medido: 66px contra os 50 do design, com o mesmo texto,
+  a mesma largura, o mesmo corpo e a mesma entrelinha. `pretty` serve a
+  parágrafo que sobra espaço; aqui ele cobra uma linha inteira.
+*/
 .previaNota {
   margin: var(--vx-space-12) 0 0;
   font-size: var(--vx-size-xs);
   line-height: 1.5;
   color: var(--vx-text-4);
-  text-wrap: pretty;
 }
 
 /* ------------------------------------------------- aba de permissões */
