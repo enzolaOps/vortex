@@ -858,6 +858,9 @@
   color: inherit;
   font: inherit;
   cursor: pointer;
+  /* O nome do servidor trocava a cor num quadro — era o único alvo do
+     cabeçalho da coluna sem tempo, ao lado do `+` e da busca que já o tinham. */
+  transition: color var(--vx-duration-fast) var(--vx-ease-out);
 }
 
 .servidor:hover {
@@ -1068,13 +1071,32 @@
   background: transparent;
   color: var(--vx-text-3);
   cursor: pointer;
+  /*
+    ⚠ **O `+` de categoria é a SEGUNDA superfície que `--vx-revelar-*` diz
+    servir, e ele não a usava.** O comentário do par, em `tokens.css`, nomeia
+    duas: a barra de ações da mensagem e este `+`. A barra o consome; aqui só
+    havia `visibility`, que não interpola — o alvo pipocava, que é exatamente o
+    custo que o par foi criado para pagar.
+
+    O repouso continua `visibility: hidden`, então as paradas de tabulação
+    seguem não existindo — é o mesmo mecanismo, com tempo.
+  */
   visibility: hidden;
-  transition: color var(--vx-duration-instant) var(--vx-ease-out);
+  opacity: 0;
+  transition:
+    color var(--vx-duration-instant) var(--vx-ease-out),
+    var(--vx-revelar-sai);
 }
 
 .categoria:hover .adicionarNaSecao,
 .adicionarNaSecao:focus-visible {
   visibility: visible;
+  opacity: 1;
+  /* Entrada: a visibilidade troca no quadro zero, senão a opacidade animaria
+     algo que ainda não está na tela. */
+  transition:
+    color var(--vx-duration-instant) var(--vx-ease-out),
+    var(--vx-revelar-entra);
 }
 
 .adicionarNaSecao:hover {
