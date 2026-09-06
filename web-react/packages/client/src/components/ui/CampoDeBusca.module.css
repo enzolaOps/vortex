@@ -41,6 +41,11 @@
   padding-inline: var(--vx-space-09);
 }
 
+/* Largura de coluna: camada, não escala. */
+.busca:active {
+  background: var(--vx-state-press);
+}
+
 .busca:hover {
   border-color: var(--vx-border-strong);
 }

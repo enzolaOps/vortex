@@ -350,10 +350,25 @@
 
     Elemento com `visibility: hidden` sai da ordem de tabulação e da
     árvore de acessibilidade. Com opacidade zero, cada linha somaria
-    cinco paradas de tabulação invisíveis — dez mil linhas, cinquenta
-    mil paradas.
+    oito paradas de tabulação invisíveis — dez mil linhas, OITENTA mil
+    paradas.
+
+    ⚠ O número dizia cinco e foi MEDIDO em oito: a barra ganhou os oito
+    alvos do design (três reações · seletor, responder, encaminhar,
+    tópico, `⋯`) e o comentário ficou para trás. A decisão não muda; a
+    conta que a sustenta ficou maior.
+
+    ⚠ **A opacidade entrou AO LADO, não no lugar.** Sozinha, `visibility` não
+    interpola: a barra passava a existir num quadro. Medido aqui —
+    `transition: all 0s` — e é o gesto mais repetido do app, porque apontar
+    para uma mensagem é como se chega a responder, reagir e encaminhar.
+
+    O repouso continua `visibility: hidden`, então as cinquenta mil paradas
+    seguem não existindo. Ver `--vx-revelar-*` em `tokens.css`.
   */
   visibility: hidden;
+  opacity: 0;
+  transition: var(--vx-revelar-sai);
 }
 
 /*
@@ -366,6 +381,26 @@
 :hover > .acoes,
 :focus-within > .acoes,
 /*
+  ⚠ **A LINHA focada revela a barra — e sem isto o teclado não a alcançava.**
+
+  As duas regras acima pedem foco DENTRO do pai direto (`.conteudo`). Navegar
+  com as setas põe o foco no `article`, que é ANCESTRAL de `.conteudo` — e
+  `:focus-within` não olha para baixo a partir de um descendente. Resultado
+  medido: `rowIsFocusWithin: true` e `barParentFocusWithin: false`, com a barra
+  em `visibility: hidden`.
+
+  Consequência: para mensagem de TEXTO PURO — a maioria — não havia caminho de
+  teclado para responder, reagir, encaminhar ou criar tópico. As linhas que
+  tinham link, anexo ou citação escapavam por acidente, porque ali existia algo
+  focável dentro do conteúdo. O roving tabindex, as setas, o `Esc` e o `Enter`
+  já estavam construídos; faltava a barra APARECER quando eles chegavam.
+
+  `:focus-within` e não `:focus-visible`: o elemento casa consigo mesmo, então
+  esta regra cobre a linha focada E o foco dentro da barra depois que o Tab
+  entra nela — que é o que impede a barra de sumir debaixo do próprio foco.
+*/
+.linha:focus-within .acoes,
+/*
   Enquanto o menu desta linha está aberto, a barra FICA.
 
   É instrução do design ("permanece visível enquanto o menu ⋯ estiver
@@ -376,6 +411,10 @@
 */
 .acoes[data-menu-aberto] {
   visibility: visible;
+  opacity: 1;
+  /* Entrada: a visibilidade troca no quadro zero, senão a opacidade
+     animaria algo que ainda não está na tela. */
+  transition: var(--vx-revelar-entra);
 }
 
 /*
@@ -551,6 +590,22 @@
   Sem raio próprio de propósito — a linha não tem raio, e inventar um só para o
   foco faria o anel discordar da forma que ele está marcando.
 */
+/*
+  ⚠ **A linha trocava de fundo num QUADRO, e é a superfície mais apontada.**
+
+  Membro e canal já acompanhavam em 120ms; esta não tinha tempo nenhum. O
+  efeito colateral era pior que a ausência: desde que a barra de ações ganhou
+  fade, o fundo trocava instantâneo e a barra levava 120ms — **dois relógios no
+  mesmo gesto**, que se nota mais que dois instantâneos.
+
+  Só `background`: mudar qualquer coisa que afete a CAIXA aqui move a âncora
+  do virtualizador, e é o que `pnpm movimento` reprova. Declarar custa zero —
+  só a linha sob o ponteiro anima, uma por vez.
+*/
+.linha {
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
 .linha:focus-visible {
   outline: 2px solid var(--vx-accent);
   outline-offset: -2px;

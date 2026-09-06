@@ -365,11 +365,6 @@
    o glifo dentro, e a faixa de "canal privado" com 12/14.
    ============================================================ */
 
-.sobrancelha {
-  composes: sobrancelha from "../styles/sobrancelha.module.css";
-  color: var(--vx-text-3);
-}
-
 .tipos {
   display: grid;
   gap: var(--vx-space-06);

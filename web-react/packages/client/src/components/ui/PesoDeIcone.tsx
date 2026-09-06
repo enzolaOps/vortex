@@ -82,6 +82,29 @@ export function PesoDeIcone({ children }: { children: ReactNode }) {
     são 129, e sob firehose seria a cada quadro. É a lei nº 1 aplicada a um
     contexto de terceiro, e a mesma armadilha do `getSnapshot`.
   */
-  const valor = useMemo(() => ({ weight: PESO_PADRAO }), []);
+  /*
+    ⚠ **`size` PRECISA vir junto, e esquecê-lo quebrou o menu de mensagem.**
+
+    `IconContext.Provider` não MESCLA com o default do Phosphor — ele o
+    SUBSTITUI, como qualquer contexto do React. O default é
+    `{color, size: "1em", weight, mirrored}`; passar só `weight` fazia `size`
+    virar `undefined`, e o `IconBase` faz `width: prop ?? contexto` sem
+    fallback. Resultado: o `<svg>` saía **sem atributo `width`**, e aí quem
+    decidia o tamanho era o CSS.
+
+    Medido no build de produção: **104 dos 109 `<svg>` da tela sem `width`**.
+    A maioria sobrevivia por acidente — há 42 regras de container que
+    dimensionam o ícone, e elas cobriam quase tudo. Quem não tinha dono
+    explodia: o menu de contexto da mensagem é PORTALADO e nem `menu.ts` nem
+    `menu.module.css` dizem uma palavra sobre `svg`, então os dez ícones dele
+    saíam entre **112 e 165px** e o menu media **264×950 — a altura inteira da
+    janela**. É o segundo gesto mais repetido do app.
+
+    ⚠ **Nenhuma guarda pegou, e a que existia para isto não podia:**
+    `dev/tamanhoDeIcone.ts` varre o documento e some do bundle de produção —
+    ela nunca viu uma camada portalada, porque no momento em que ela roda o
+    menu não existe. Está registrado como pendência.
+  */
+  const valor = useMemo(() => ({ weight: PESO_PADRAO, size: "1em" }), []);
   return <IconContext.Provider value={valor}>{children}</IconContext.Provider>;
 }

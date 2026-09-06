@@ -858,10 +858,22 @@
   color: inherit;
   font: inherit;
   cursor: pointer;
+  /* O hover trocava a cor num quadro — a única das quatro linhas do cabeçalho
+     que não acompanhava as vizinhas. */
+  transition: color var(--vx-duration-fast) var(--vx-ease-out);
 }
 
 .servidor:hover {
   color: var(--vx-text-1);
+}
+
+/*
+  Pressionado é CAMADA e não escala: a linha ocupa a largura da coluna, e
+  encolher uma caixa de 219px lê como falha de layout. É a mesma escolha do
+  `.item` do rail, com o mesmo motivo escrito lá.
+*/
+.servidor:active {
+  background: var(--vx-state-press);
 }
 
 .servidor:hover .divisaDoMenu {
@@ -1019,6 +1031,11 @@
   color: var(--vx-text-1);
 }
 
+/* Alvo de 24px: escala, como no `BotaoDeIcone`. */
+.acaoDaLinha:active {
+  scale: 0.94;
+}
+
 .acaoDaLinha:focus-visible {
   outline-offset: -2px;
 }
@@ -1055,16 +1072,28 @@
   color: var(--vx-text-3);
   cursor: pointer;
   visibility: hidden;
-  transition: color var(--vx-duration-instant) var(--vx-ease-out);
+  opacity: 0;
+  /* Mesma revelação da barra de ações da mensagem — ver `--vx-revelar-*`. */
+  transition:
+    color var(--vx-duration-instant) var(--vx-ease-out),
+    var(--vx-revelar-sai);
 }
 
 .categoria:hover .adicionarNaSecao,
 .adicionarNaSecao:focus-visible {
   visibility: visible;
+  opacity: 1;
+  transition:
+    color var(--vx-duration-instant) var(--vx-ease-out),
+    var(--vx-revelar-entra);
 }
 
 .adicionarNaSecao:hover {
   color: var(--vx-text-1);
+}
+
+.adicionarNaSecao:active {
+  scale: 0.94;
 }
 
 .tituloDaSecao {
