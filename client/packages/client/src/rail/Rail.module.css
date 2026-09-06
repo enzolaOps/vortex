@@ -376,9 +376,19 @@
   `--vx-border-strong` ele saía mais nítido que os servidores de verdade, o
   que inverte a hierarquia — "criar servidor" é a ação mais rara da coluna.
 */
+/*
+  ⚠ **Os dois ladrilhos que não eram servidor trocavam cor sem tempo.** A
+  `.marca` logo acima já acompanha o hover; estes dois estavam na mesma coluna,
+  a 8px de distância, mudando de cor no quadro. Três ladrilhos empilhados, dois
+  com tempo e um sem, e a diferença aparece justamente quando o ponteiro desce
+  a coluna passando por todos.
+*/
 .marcaAdicionar {
   border: 1px dashed var(--vx-border-subtle);
   color: var(--vx-text-3);
+  transition:
+    border-color var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
 }
 
 .item:hover .marcaAdicionar {
@@ -518,6 +528,9 @@
   border-radius: var(--vx-radius-ladrilho);
   background: var(--vx-surface-2);
   color: var(--vx-text-3);
+  /* Mesmo motivo do `.marcaAdicionar` acima: o hover troca a cor, e ela é a
+     única coisa que este ladrilho troca. */
+  transition: color var(--vx-duration-fast) var(--vx-ease-out);
 }
 
 .item:hover .marcaRodape {

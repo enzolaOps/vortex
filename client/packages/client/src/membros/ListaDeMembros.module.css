@@ -75,7 +75,16 @@
   background: transparent;
   cursor: pointer;
   text-align: start;
-  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+  /*
+    ⚠ **`color` acompanha porque o hover TROCA a cor, e só o fundo tinha
+    tempo.** `.membro:hover` sobe de `--vx-text-2` para `--vx-text-1` junto com
+    o véu de fundo — com um só na transição, o texto pipocava um quadro antes
+    do fundo chegar. Duas propriedades trocadas pelo mesmo gesto precisam da
+    mesma duração, senão a linha lê como dois eventos.
+  */
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
 }
 
 /*
