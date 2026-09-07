@@ -651,9 +651,9 @@ export type ChannelSnapshot = {
   /**
    * Teto de gente na sala de voz — o `8` de "3/8" no design.
    *
-   * `undefined` em canal que não é de voz E em sala sem teto: o protocolo trata
-   * `max_users: 0` como ausência, e a coluna precisa saber a diferença entre
-   * "cabem oito" e "cabe quem vier". Mostrar "3/0" seria pior que não mostrar.
+   * `undefined` em canal que não é de voz E em sala sem teto. O protocolo
+   * trata ausência — não zero — como "cabe quem vier". `max_users: 0` no fio
+   * é teto de zero vagas. Mostrar "3/0" seria pior que não mostrar.
    */
   readonly limite: number | undefined;
   /**

@@ -84,7 +84,7 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
   const [nome, setNome] = useState(canal?.name ?? "");
   const [assunto, setAssunto] = useState(canal?.topico ?? "");
   const [idade, setIdade] = useState(canal?.restritoPorIdade ?? false);
-  const [limite, setLimite] = useState(canal?.limiteDeUsuarios ?? 8);
+  const [limite, setLimite] = useState(canal?.limiteDeUsuarios ?? 0);
   const [lento, setLento] = useState(canal?.modoLentoSegundos ?? 0);
   const [salvando, setSalvando] = useState(false);
   const [emojiAberto, setEmojiAberto] = useState(false);
@@ -125,7 +125,7 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
     assunto !== (canal.topico ?? "") ||
     idade !== canal.restritoPorIdade ||
     lento !== canal.modoLentoSegundos ||
-    (ehVoz && limite !== (canal.limiteDeUsuarios ?? 8)));
+    (ehVoz && limite !== (canal.limiteDeUsuarios ?? 0)));
 
   /*
     ⚠ **A faixa de salvar SAIU desta página, e virou rodapé do PANE.**
@@ -163,7 +163,7 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
         setNome(canal.name);
         setAssunto(canal.topico ?? "");
         setIdade(canal.restritoPorIdade);
-        setLimite(canal.limiteDeUsuarios ?? 8);
+        setLimite(canal.limiteDeUsuarios ?? 0);
         setLento(canal.modoLentoSegundos);
       },
       aoSalvar: () => {

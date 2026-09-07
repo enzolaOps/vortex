@@ -55,7 +55,7 @@ pub async fn call(
 
     if get_voice_channel_members(&user_voice_channel)
         .await?
-        .zip(voice_info.max_users)
+        .zip(voice_info.max_users.filter(|&n| n > 0))
         .is_some_and(|(ms, max_users)| ms.len() >= max_users)
         && !current_permissions.has(ChannelPermission::ManageChannel as u64)
     {

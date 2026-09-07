@@ -2724,9 +2724,8 @@ function contabilizarNaoLida(channelId: string, conteudo: string): void {
  * `map.ts` traduz uma entidade recebida, não busca dados. A leitura crua fica
  * confinada nesta função, e o resto do app vê `ChannelSnapshot.limite`.
  *
- * A hidratação já normaliza `max_users: 0` para `undefined`, então "cabe quem
- * vier" chega como ausência. A guarda de tipo é contra servidor forkado com
- * outra forma: "3/NaN" na coluna seria pior que nenhum número.
+ * Ausência e `max_users: 0` chegam como "cabe quem vier". Zero no fio era o
+ * sentinela errado do slider, e a coluna não pode desenhar "3/0".
  */
 function tetoDaSala(channelId: string): number | undefined {
   const bruto = client.channels.getUnderlyingObject(channelId) as unknown as {
