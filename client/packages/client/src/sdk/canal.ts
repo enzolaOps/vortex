@@ -43,7 +43,7 @@ export type EdicaoDeCanal = {
   readonly nome: string;
   readonly assunto: string;
   readonly restritoPorIdade: boolean;
-  /** `undefined` fora de canal de voz. `0` é "sem limite" no protocolo. */
+  /** `undefined` fora de canal de voz. `0` é o sentinela da tela para "sem limite". */
   readonly limiteDeUsuarios: number | undefined;
   /** Segundos entre mensagens. `0` é desativado; o teto do protocolo é 21600. */
   readonly modoLentoSegundos: number;
@@ -78,7 +78,17 @@ export async function salvarCanal(
     slowmode: Math.max(0, Math.min(21600, Math.trunc(edicao.modoLentoSegundos))),
   };
   if (edicao.limiteDeUsuarios !== undefined) {
-    dados["voice"] = { max_users: edicao.limiteDeUsuarios };
+    /*
+      ⚠ **Zero NÃO é "sem limite" no fio.** O slider usa 0 como sentinela de
+      tela; o protocolo trata `max_users: 0` como teto de ZERO vagas (admins
+      passam, o resto toma 400). Sem limite é ausência do campo — `voice: {}`
+      substitui o objeto e apaga o teto sem desligar a voz (`remove: Voice`
+      faria isso).
+    */
+    dados["voice"] =
+      edicao.limiteDeUsuarios > 0
+        ? { max_users: edicao.limiteDeUsuarios }
+        : {};
   }
 
   try {

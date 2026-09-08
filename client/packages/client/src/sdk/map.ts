@@ -450,6 +450,11 @@ function tipoDoCanal(channel: Channel): ChannelSnapshot["tipo"] {
  */
 const VER_CANAL = 1n;
 
+/** Descarta teto nulo ou zero: no fio, 0 nunca quis dizer "sem limite". */
+function tetoHidratado(n: number | null | undefined): number | undefined {
+  return typeof n === "number" && Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
 function ehRestrito(channel: Channel, tipo: CanalTipo): boolean {
   if (tipo !== "texto" && tipo !== "voz") return false;
   const negado = channel.defaultPermissions?.d;
@@ -546,12 +551,14 @@ export function toChannelSnapshot(
     restritoPorIdade: channel.mature === true,
     /*
       ⚠ `voice.max_users` e não um campo de topo — o protocolo aninha o que é
-      de voz. `undefined` fora de canal de voz é diferente de zero: zero é
-      "sem limite" no protocolo, e a tela precisa distinguir os dois.
+      de voz. Ausência é sem limite. Zero no fio é teto de zero vagas, não o
+      sentinela da tela; a hidratação abaixo descarta <= 0 para a tela não
+      gravar de novo o mesmo defeito.
     */
-    limiteDeUsuarios: (
-      channel as unknown as { voice?: { max_users?: number | null } }
-    ).voice?.max_users ?? undefined,
+    limiteDeUsuarios: tetoHidratado(
+      (channel as unknown as { voice?: { max_users?: number | null } }).voice
+        ?.max_users,
+    ),
     naoLidas,
     mencoes,
     /*

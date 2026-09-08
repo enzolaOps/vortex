@@ -1463,7 +1463,9 @@ impl From<FieldsMessage> for crate::FieldsMessage {
 impl From<crate::VoiceInformation> for VoiceInformation {
     fn from(value: crate::VoiceInformation) -> Self {
         VoiceInformation {
-            max_users: value.max_users,
+            // Zero no documento é lixo de cliente: o slider gravava 0 para
+            // "sem limite", e o join tratava como teto de zero vagas.
+            max_users: value.max_users.filter(|&n| n > 0),
         }
     }
 }
@@ -1471,7 +1473,7 @@ impl From<crate::VoiceInformation> for VoiceInformation {
 impl From<VoiceInformation> for crate::VoiceInformation {
     fn from(value: VoiceInformation) -> Self {
         crate::VoiceInformation {
-            max_users: value.max_users,
+            max_users: value.max_users.filter(|&n| n > 0),
         }
     }
 }
