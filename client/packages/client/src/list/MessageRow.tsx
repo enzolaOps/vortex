@@ -19,7 +19,9 @@ import {
   Trash,
 } from "../components/ui/icones";
 import {
+  lazy,
   memo,
+  Suspense,
   useEffect,
   useRef,
   useState,
@@ -89,6 +91,12 @@ import { administrar } from "../store/administracao";
 import { assinarChamada, lerChamada } from "../store/chamada";
 /* A FACHADA, nunca `sdk/motorDeVoz` — ver `BotaoEntrarNaChamada`. */
 import { entrarNaChamada } from "../sdk/chamada";
+import { useReduzirMovimento } from "../lib/efeito";
+
+const AnelDeEntrar = lazy(async () => {
+  const m = await import("./AnelDeEntrar");
+  return { default: m.AnelDeEntrar };
+});
 import {
   assinarEdicaoDeMensagem,
   editar,
@@ -200,9 +208,36 @@ function FraseDeSistema({ sistema }: { sistema: SistemaSnapshot }) {
  * o chunk inicial por causa de um botão — que é exatamente o defeito que a
  * fachada foi criada para consertar.
  */
+function AcaoDeEntrar({
+  entrando,
+  onAnel,
+  onClick,
+}: {
+  entrando: boolean;
+  onAnel: (vivo: boolean) => void;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={css.avisoAcao}
+      disabled={entrando}
+      onPointerEnter={() => onAnel(true)}
+      onFocus={() => onAnel(true)}
+      onPointerLeave={() => onAnel(false)}
+      onBlur={() => onAnel(false)}
+      onClick={onClick}
+    >
+      {entrando ? "Entrando…" : "Entrar na chamada"}
+    </button>
+  );
+}
+
 function BotaoEntrarNaChamada({ channelId }: { channelId: string }) {
   const chamada = useSyncExternalStore(assinarChamada, lerChamada);
   const [entrando, setEntrando] = useState(false);
+  const [anel, setAnel] = useState(false);
+  const reduzir = useReduzirMovimento();
 
   /*
     Já estou nesta sala: o botão não aparece. "Entrar" para quem já entrou é
@@ -211,26 +246,32 @@ function BotaoEntrarNaChamada({ channelId }: { channelId: string }) {
   */
   if (chamada.estado !== "fora" && chamada.channelId === channelId) return null;
 
+  const entrar = () => {
+    setEntrando(true);
+    /*
+      Sem `finally` que volte o estado: entrar TROCA a tela para a sala, e
+      devolver o botão ao repouso num componente que já saiu de vista
+      escreveria em algo desmontado. O caminho de erro já avisa por toast,
+      dentro da fachada.
+    */
+    void entrarNaChamada(channelId).then((ok) => {
+      if (!ok) setEntrando(false);
+    });
+  };
+  const acao = {
+    entrando,
+    onAnel: setAnel,
+    onClick: entrar,
+  };
+
+  // ponytail: WebGL só no hover. Canvas permanente na timeline é o firehose.
+  if (reduzir || !anel) return <AcaoDeEntrar {...acao} />;
   return (
-    <button
-      type="button"
-      className={css.avisoAcao}
-      disabled={entrando}
-      onClick={() => {
-        setEntrando(true);
-        /*
-          Sem `finally` que volte o estado: entrar TROCA a tela para a sala, e
-          devolver o botão ao repouso num componente que já saiu de vista
-          escreveria em algo desmontado. O caminho de erro já avisa por toast,
-          dentro da fachada.
-        */
-        void entrarNaChamada(channelId).then((ok) => {
-          if (!ok) setEntrando(false);
-        });
-      }}
-    >
-      {entrando ? "Entrando…" : "Entrar na chamada"}
-    </button>
+    <Suspense fallback={<AcaoDeEntrar {...acao} />}>
+      <AnelDeEntrar>
+        <AcaoDeEntrar {...acao} />
+      </AnelDeEntrar>
+    </Suspense>
   );
 }
 
