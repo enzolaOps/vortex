@@ -19,12 +19,18 @@
   absoluta deixaria a janelinha fora da tela ao encolher a janela; deslocamento
   a partir do canto mantém `{0,0}` ancorado em qualquer tamanho. Ver
   `store/popout.ts`.
+
+  A posição mora AQUI e não em `.popout`: o `BorderBeam` exige `position:
+  relative` no wrapper dele, e um filho `fixed` deixaria o halo com caixa 0.
 */
-.popout {
+.ancora {
   position: fixed;
   z-index: var(--vx-z-flutuante);
   inset-block-end: calc(var(--vx-space-16) + var(--vx-popout-dy, 0px));
   inset-inline-end: calc(var(--vx-space-16) + var(--vx-popout-dx, 0px));
+}
+
+.popout {
   overflow: hidden;
   border: 1px solid var(--vx-hairline-10);
   /*

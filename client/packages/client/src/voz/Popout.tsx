@@ -8,6 +8,7 @@ import {
   VideoCameraSlash,
   X,
 } from "../components/ui/icones";
+import { BorderBeam } from "border-beam";
 import {
   memo,
   useEffect,
@@ -18,6 +19,7 @@ import {
 
 import { Avatar } from "../components/ui/Avatar";
 import { Tooltip } from "../components/ui/Tooltip";
+import { temaDoDocumento, useReduzirMovimento } from "../lib/efeito";
 import {
   alternarCamera,
   alternarMudo,
@@ -66,6 +68,7 @@ import css from "./Popout.module.css";
 export function Popout() {
   const chamada = useSyncExternalStore(assinarChamada, lerChamada);
   const popout = useSyncExternalStore(assinarPopout, lerPopout);
+  const reduzir = useReduzirMovimento();
   const canal = useChannel(chamada.channelId);
   /*
     ⚠ **O canal ABERTO, e não o da chamada — e a primeira versão passava o da
@@ -81,7 +84,7 @@ export function Popout() {
   */
   const canalAberto = useCanalAtivo();
   const naSala = useNaSala(canalAberto ?? "");
-  const raiz = useRef<HTMLElement | null>(null);
+  const raiz = useRef<HTMLDivElement | null>(null);
   const arraste = useArraste(raiz, popout.dx, popout.dy);
 
   const fora = chamada.estado === "fora";
@@ -109,13 +112,20 @@ export function Popout() {
   } as React.CSSProperties;
 
   return (
-    <section
-      ref={raiz}
-      className={css.popout}
-      data-forma={popout.forma}
-      style={posicao}
-      aria-label={`Chamada em ${nome}`}
-    >
+    <div ref={raiz} className={css.ancora} style={posicao}>
+      <BorderBeam
+        size="sm"
+        colorVariant="ocean"
+        strength={0.4}
+        theme={temaDoDocumento()}
+        active={!reduzir}
+        borderRadius={pip ? 10 : 12}
+      >
+        <section
+          className={css.popout}
+          data-forma={popout.forma}
+          aria-label={`Chamada em ${nome}`}
+        >
       {pip ? null : (
         /*
           ⚠ **O cabeçalho é a alça, e ele NÃO ganha um alvo de "mover".**
@@ -286,7 +296,9 @@ export function Popout() {
           </BotaoRedondo>
         </footer>
       )}
-    </section>
+        </section>
+      </BorderBeam>
+    </div>
   );
 }
 
@@ -515,7 +527,7 @@ function BotaoRedondo({
  * janelinha fora dela.
  */
 function useArraste(
-  raiz: React.RefObject<HTMLElement | null>,
+  raiz: React.RefObject<HTMLDivElement | null>,
   dx: number,
   dy: number,
 ) {
