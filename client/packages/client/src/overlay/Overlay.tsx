@@ -10,8 +10,10 @@ import {
 } from "../components/ui/icones";
 import {
   ancoras,
+  dicaDeSilencio,
   duracao,
   ponteDeOverlay,
+  ponteDeSilencio,
   textoDoAtalho,
   type Ancora,
   type EstadoDoOverlay,
@@ -37,6 +39,12 @@ export function Overlay() {
   const [estado, setEstado] = useState<EstadoDoOverlay | undefined>(undefined);
   const [mensagem, setMensagem] = useState<MensagemDoOverlay | undefined>(undefined);
   const [interagindo, setInteragindo] = useState(false);
+  /** `undefined` enquanto a casca não disse — ou para sempre, se ela não sabe. */
+  const [silenciadas, setSilenciadas] = useState<boolean | undefined>(undefined);
+  /** O retorno do atalho de silenciar, no lugar do widget de mensagem. */
+  const [avisoDeSilencio, setAvisoDeSilencio] = useState<
+    { readonly silenciadas: boolean; readonly em: number } | undefined
+  >(undefined);
   const [agora, setAgora] = useState(() => Date.now());
   /** Quando algo aconteceu por último: alguém falou ou chegou mensagem. */
   const [ultimaAtividade, setUltimaAtividade] = useState(() => Date.now());
@@ -55,6 +63,26 @@ export function Overlay() {
       }),
       ponte.assinarInteracao(setInteragindo),
     ];
+    /*
+      ⚠ **O retorno só aparece numa MUDANÇA**, e não na primeira leitura: a
+      casca responde o estado atual ao assinar, e anunciar "mensagens de
+      volta" toda vez que o overlay abre seria ruído sobre o jogo.
+    */
+    let anterior: boolean | undefined;
+    const silencio = ponteDeSilencio();
+    if (silencio) {
+      soltar.push(
+        silencio.assinar((sim) => {
+          if (anterior !== undefined && anterior !== sim) {
+            setAvisoDeSilencio({ silenciadas: sim, em: Date.now() });
+            setUltimaAtividade(Date.now());
+          }
+          if (sim) setMensagem(undefined);
+          anterior = sim;
+          setSilenciadas(sim);
+        }),
+      );
+    }
     return () => {
       for (const s of soltar) s();
     };
@@ -77,7 +105,14 @@ export function Overlay() {
     return () => clearTimeout(t);
   }, [mensagem]);
 
+  useEffect(() => {
+    if (!avisoDeSilencio) return;
+    const t = setTimeout(() => setAvisoDeSilencio(undefined), MENSAGEM_MS);
+    return () => clearTimeout(t);
+  }, [avisoDeSilencio]);
+
   if (!estado?.ativo) return null;
+  const dica = dicaDeSilencio(estado.atalhoSilenciar, silenciadas, MAC);
   const onde = ancoras(estado.posicao);
   const voz = estado.voz;
 
@@ -145,7 +180,28 @@ export function Overlay() {
         </section>
       ) : null}
 
-      {mensagem ? (
+      {avisoDeSilencio ? (
+        /*
+          ⚠ O design não desenha este retorno. Sem ele, o atalho de silenciar
+          não teria efeito VISÍVEL nenhum na hora — o silêncio só apareceria
+          como a próxima mensagem que não chegou. Mesmo widget, mesmo lugar.
+        */
+        <section
+          className={`${css.widget} ${css.mensagem}`}
+          {...atributos(onde.mensagem)}
+          aria-live="polite"
+        >
+          <div className={css.mensagemCabecalho}>
+            <span className={css.mensagemCanal}>Overlay</span>
+            {dica ? <span className={css.mensagemAtalho}>{dica}</span> : null}
+          </div>
+          <p className={css.mensagemTexto}>
+            {avisoDeSilencio.silenciadas
+              ? "Mensagens silenciadas até você voltar a mostrar."
+              : "Mensagens de volta."}
+          </p>
+        </section>
+      ) : mensagem ? (
         <section
           className={`${css.widget} ${css.mensagem}`}
           {...atributos(onde.mensagem)}
@@ -153,6 +209,8 @@ export function Overlay() {
         >
           <div className={css.mensagemCabecalho}>
             <span className={css.mensagemCanal}>{mensagem.canal}</span>
+            {/* "⇧⌘M silencia", do design — com a combinação GRAVADA. */}
+            {dica ? <span className={css.mensagemAtalho}>{dica}</span> : null}
           </div>
           <p className={css.mensagemTexto}>
             <span className={css.autor}>{mensagem.autor}:</span> {mensagem.texto}

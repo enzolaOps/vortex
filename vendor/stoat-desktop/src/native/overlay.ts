@@ -1,6 +1,9 @@
-import { BrowserWindow, ipcMain, screen } from "electron";
+import { BrowserWindow, Notification, ipcMain, screen } from "electron";
 import { join } from "node:path";
 
+import { config } from "./config";
+import { lerTelaCheia } from "./telaCheia";
+import { decidir, nomeParaMostrar, registrarAvisado } from "./telaCheiaModelo";
 import { BUILD_URL, mainWindow } from "./window";
 
 /**
@@ -11,7 +14,8 @@ import { BUILD_URL, mainWindow } from "./window";
  * não é algo que um app Electron deva fazer. Uma janela transparente, sempre
  * no topo e que deixa o clique passar funciona em jogo em janela e em tela
  * cheia SEM BORDAS — o modo padrão da maioria dos jogos atuais. Em tela cheia
- * exclusiva o jogo toma a tela, e a tela de configurações diz isso.
+ * exclusiva o jogo toma a tela: a casca detecta (`telaCheia.ts`), esconde o
+ * overlay e avisa uma vez por jogo.
  *
  * ⚠ **Carrega o MESMO cliente em `/overlay`**, só para herdar tokens, fontes e
  * componentes. Ele não abre sessão nem socket: tudo o que desenha chega por
@@ -96,7 +100,10 @@ function reavaliar(): void {
   const principalComFoco = vivo(mainWindow) && mainWindow.isFocused();
   const querer = !!estado?.ativo && !!estado.voz && !principalComFoco;
 
-  if (!querer) {
+  /* A vigia de tela cheia só roda enquanto o overlay QUER aparecer. */
+  vigiarTelaCheia(querer);
+
+  if (!querer || telaCheiaExclusiva) {
     if (vivo(janela) && janela.isVisible()) janela.hide();
     definirInteracao(false);
     return;
@@ -126,6 +133,81 @@ export function alternarOverlay(): void {
   definirInteracao(!interagindo);
 }
 
+/* ------------------------------------------------ silenciar mensagens */
+
+/**
+ * As mensagens por cima do jogo estão silenciadas?
+ *
+ * ⚠ **Na casca, e só na memória desta sessão.** Quem aperta o atalho está
+ * dentro do jogo, com a janela principal sem foco — é o hook do main que o
+ * ouve, como o de alternar. E é um gesto de momento ("agora não, estou numa
+ * partida"): lembrar entre inícios faria alguém abrir o app amanhã sem
+ * mensagens no overlay sem saber por quê.
+ */
+let silenciadas = false;
+
+function publicarSilencio(): void {
+  if (vivo(janela)) janela.webContents.send("vortexOverlaySilencio", silenciadas);
+}
+
+/** O atalho "Silenciar mensagens no overlay" — chamado pelo hook de teclado. */
+export function alternarSilencioDoOverlay(): void {
+  /* Sem overlay na tela o gesto não teria retorno visível nenhum, e a pessoa
+     descobriria o silêncio só na próxima partida. */
+  if (!vivo(janela) || !janela.isVisible()) return;
+  silenciadas = !silenciadas;
+  publicarSilencio();
+}
+
+/* ------------------------------------------- tela cheia exclusiva */
+
+/** A cada quanto perguntar. Barato (quatro chamadas de sistema), e o jogo
+    entra em tela cheia sem evento nenhum que o Electron veja. */
+const VIGIA_MS = 3000;
+
+let vigia: ReturnType<typeof setInterval> | undefined;
+let telaCheiaExclusiva = false;
+
+function vigiarTelaCheia(ligar: boolean): void {
+  if (process.platform !== "win32") return;
+  if (ligar && !vigia) {
+    vigia = setInterval(() => void conferirTelaCheia(), VIGIA_MS);
+    void conferirTelaCheia();
+  } else if (!ligar && vigia) {
+    clearInterval(vigia);
+    vigia = undefined;
+    telaCheiaExclusiva = false;
+  }
+}
+
+async function conferirTelaCheia(): Promise<void> {
+  const d = decidir(await lerTelaCheia(), config.jogosAvisadosDeTelaCheia);
+  if (d.avisar) {
+    config.jogosAvisadosDeTelaCheia = registrarAvisado(config.jogosAvisadosDeTelaCheia, d.avisar);
+    avisarTelaCheia(d.avisar);
+  }
+  if (d.esconder === telaCheiaExclusiva) return;
+  telaCheiaExclusiva = d.esconder;
+  reavaliar();
+}
+
+/**
+ * O aviso, UMA vez por jogo.
+ *
+ * ⚠ **Notificação do sistema, e não algo desenhado pelo overlay** — que é
+ * justamente a janela que não aparece. O Windows segura notificações com um
+ * jogo em tela cheia e as entrega na central de ações; o texto é escrito para
+ * ser lido depois da partida.
+ */
+function avisarTelaCheia(chave: string): void {
+  if (!Notification.isSupported()) return;
+  new Notification({
+    title: "O overlay não aparece neste jogo",
+    body: `${nomeParaMostrar(chave)} está em tela cheia exclusiva, que desenha por cima de qualquer janela. Use "tela cheia sem bordas" nas opções de vídeo do jogo. Este aviso não se repete para ele.`,
+    silent: true,
+  }).show();
+}
+
 export function registrarOverlay(): void {
   /*
     Só a janela PRINCIPAL publica; a do overlay só lê. Conferir o remetente é o
@@ -146,7 +228,7 @@ export function registrarOverlay(): void {
 
   ipcMain.on("vortexOverlayMensagem", (e, bruto: unknown) => {
     if (!daPrincipal(e) || typeof bruto !== "object" || bruto === null) return;
-    if (!vivo(janela) || !janela.isVisible()) return;
+    if (!vivo(janela) || !janela.isVisible() || silenciadas) return;
     janela.webContents.send("vortexOverlayMensagem", bruto);
   });
 
@@ -160,6 +242,12 @@ export function registrarOverlay(): void {
     vivo(janela) && e.sender.id === janela.webContents.id
       ? { estado, interagindo }
       : undefined,
+  );
+
+  /* Canal próprio, lido pela ponte `vortexOverlaySilencio`: uma casca antiga
+     não o tem, e o overlay então nem mostra a dica do atalho. */
+  ipcMain.handle("vortexOverlaySilencioAtual", (e) =>
+    vivo(janela) && e.sender.id === janela.webContents.id ? silenciadas : undefined,
   );
 
   /* Os botões do widget de voz viram o mesmo comando do atalho e da bandeja. */

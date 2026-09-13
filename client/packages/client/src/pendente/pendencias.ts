@@ -589,6 +589,17 @@ export const PENDENCIAS = {
     depende:
       "os overrides de permissão no snapshot do canal — hoje só nome, tópico, modo lento, idade e limite chegam, e duplicar sem eles abriria um canal restrito",
   },
+  /*
+    ⚠ **O interruptor existia e gravava, e não havia NADA atrás dele** — nem na
+    casca nem no cliente. As outras preferências da tela Desktop chegaram à
+    casca; esta seria a única gravada sem efeito, então virou pendente.
+  */
+  preCarregarAnexos: {
+    superficie: "Configurações · Desktop",
+    faz: "Baixar as imagens dos canais com não lidas antes de você abri-los.",
+    depende:
+      "decidir o que pré-carregar (quais canais, quantas mensagens) e um limite de banda — não há nada disso no app hoje",
+  },
 } as const satisfies Record<
   string,
   { superficie: string; faz: string; depende: string }
