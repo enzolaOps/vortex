@@ -1,3 +1,11 @@
+import {
+  ALTURA_DE,
+  RESOLUCOES,
+  TAXAS,
+  type Resolucao,
+  type Taxa,
+} from "../sdk/seletorDeTela";
+
 /**
  * A qualidade escolhida para a transmissão em curso.
  *
@@ -5,60 +13,107 @@
  * precisa da lista para DESENHAR é o HUD do palco; quem precisa dela para
  * APLICAR é `sdk/motorDeVoz.ts`, que carrega meio megabyte de WebRTC e por
  * isso só entra por `await import()`. Com a lista lá, o HUD a importaria e
- * arrastaria o LiveKit para o grafo estático — a regressão de 996 kB → 1.539
- * que esta base já mediu uma vez. Com ela aqui, o motor importa deste módulo
- * e a seta aponta para o lado barato.
+ * arrastaria o LiveKit para o grafo estático. `sdk/seletorDeTela.ts` não
+ * importa LiveKit, e é de lá que os dois eixos vêm — são os MESMOS do painel
+ * de escolher a fonte, e uma segunda lista divergiria na primeira mudança.
  *
- * Copiar a lista nos dois lugares seria pior que qualquer uma das duas: o
- * projeto já teve uma cópia deliberada que ficou para trás em silêncio, e o
- * teste passou a medir uma cor que o app não produzia mais.
+ * ⚠ **Dois eixos, e não uma lista de combinações.** O HUD tinha quatro degraus
+ * fixos (1080p60, 1080p30, 720p30, 480p30): sem 1440p, sem a resolução da
+ * fonte, e com 720p a 60 fps impossível de pedir. O design e o painel de
+ * escolha já separavam resolução de taxa; o HUD agora também.
  *
- * ⚠ **Guarda o que foi PEDIDO, e não o que a fonte entrega.** Os dois são
- * diferentes de propósito: pedir 1080p de uma janela de 900px devolve 900, e
- * quem responde "o que está no ar" é `qualidadeRealDaTela()`, que mede. Este
- * store guarda a escolha para o HUD marcar a opção certa depois de se esconder
- * e reaparecer.
+ * ⚠ **Guarda o que foi PEDIDO, e não o que a fonte entrega.** Pedir 1080p de
+ * uma janela de 900px devolve 900, e quem responde "o que está no ar" é
+ * `qualidadeRealDaTela()`, que mede.
  */
 
-export const QUALIDADES_DA_TELA = [
-  { id: "1080p60", rotulo: "1080p · 60 fps", altura: 1080, fps: 60 },
-  { id: "1080p30", rotulo: "1080p · 30 fps", altura: 1080, fps: 30 },
-  { id: "720p30", rotulo: "720p · 30 fps", altura: 720, fps: 30 },
-  { id: "480p30", rotulo: "480p · 30 fps", altura: 480, fps: 30 },
-] as const;
+export { RESOLUCOES, TAXAS, type Resolucao, type Taxa };
 
-export type QualidadeDaTela = (typeof QUALIDADES_DA_TELA)[number]["id"];
-
-/**
- * As constraints de um degrau, prontas para `applyConstraints`.
- *
- * ⚠ **Mora AQUI e não no motor, e a mudança foi para poder TESTAR.** Enterrada
- * lá dentro, a decisão que mais importa desta feature — `ideal` e não `exact`
- * — só era observável com uma sala LiveKit de pé, que exige backend e captura
- * de tela reais. Aqui ela é uma função pura sobre dados puros, e uma asserção
- * a segura. É a ordem de preferência do `enforcement.md`: teste ganha de
- * checklist, e o que decide entre os dois costuma ser onde o código está.
- *
- * ⚠ **`ideal` e NUNCA `exact`.** Com `exact`, uma tela de 1366×768 recusaria
- * 1080p com `OverconstrainedError` — e o erro chegaria como "não deu para
- * trocar" numa escolha que o navegador teria atendido em 768p de bom grado. O
- * teto é um pedido; quem decide o que a fonte entrega é o sistema, e é por
- * isso que o rótulo do botão mostra a MEDIDA e não o pedido.
- */
-export function constraintsDe(
-  id: QualidadeDaTela,
-): MediaTrackConstraints | undefined {
-  const q = QUALIDADES_DA_TELA.find((x) => x.id === id);
-  if (!q) return undefined;
-  return { height: { ideal: q.altura }, frameRate: { ideal: q.fps } };
+export interface QualidadeDaTela {
+  readonly resolucao: Resolucao;
+  readonly taxa: Taxa;
 }
 
 /**
- * `undefined` = nunca escolhida, e é diferente do degrau mais alto.
+ * O que a transmissão pede quando ninguém escolheu nada.
  *
- * Quem nunca escolheu está no que o navegador negociou ao abrir a tela, que
- * não é nenhum destes quatro; marcar "1080p60" ali afirmaria uma escolha que
- * ninguém fez. É a mesma distinção do nível de notificação por canal.
+ * ⚠ **30 fps, e não os 15 que saíam antes.** Sem codificação explícita o
+ * LiveKit publica tela com `ScreenSharePresets.h1080fps15`: o codificador
+ * travava em 15 quadros e 2,5 Mbps, e nenhuma escolha de captura passava
+ * disso. É a "tela travada" que quem assiste percebe primeiro.
+ */
+export const QUALIDADE_PADRAO: QualidadeDaTela = {
+  resolucao: "1080p",
+  taxa: 30,
+};
+
+export function rotuloDaQualidade(q: QualidadeDaTela): string {
+  return `${q.resolucao} · ${String(q.taxa)} fps`;
+}
+
+/**
+ * As constraints de uma escolha, prontas para `applyConstraints`.
+ *
+ * ⚠ **`ideal` e NUNCA `exact`.** Com `exact`, uma tela de 1366×768 recusaria
+ * 1080p com `OverconstrainedError` — e o erro chegaria como "não deu para
+ * trocar" numa escolha que o navegador teria atendido em 768p de bom grado.
+ *
+ * ⚠ **"Fonte" não leva altura nenhuma.** `applyConstraints` SUBSTITUI o
+ * conjunto inteiro, então omitir a altura é o que tira o teto que uma escolha
+ * anterior tinha posto.
+ */
+export function constraintsDe(q: QualidadeDaTela): MediaTrackConstraints {
+  const altura = ALTURA_DE[q.resolucao];
+  return {
+    ...(altura === undefined ? {} : { height: { ideal: altura } }),
+    frameRate: { ideal: q.taxa },
+  };
+}
+
+/**
+ * Banda de upload, em kbps, por resolução e taxa.
+ *
+ * Os degraus de 15 e 30 partem dos presets de tela do próprio LiveKit
+ * (`h720fps15` 1,5 Mbps · `h1080fps15` 2,5 · `h1080fps30` 5); 60 fps e 1440p
+ * sobem na mesma proporção. O design escreve "~8 Mbps de upload" para 1440p ou
+ * 60 fps, e é onde a tabela cai.
+ *
+ * "Fonte" pode ser 4K, e ganha um degrau acima de 1440p.
+ */
+const KBPS: Record<Resolucao, Record<Taxa, number>> = {
+  "720p": { 15: 1_500, 30: 2_500, 60: 4_000 },
+  "1080p": { 15: 2_500, 30: 5_000, 60: 8_000 },
+  "1440p": { 15: 4_000, 30: 8_000, 60: 12_000 },
+  Fonte: { 15: 6_000, 30: 10_000, 60: 16_000 },
+};
+
+/**
+ * O que o CODIFICADOR pode gastar numa escolha.
+ *
+ * ⚠ **Sem isto a escolha de taxa não chega a quem assiste.** A captura
+ * entrega 60 quadros e o codificador, publicado com `maxFramerate: 15`, joga
+ * fora três de cada quatro. Constraint de captura e parâmetro de envio são
+ * duas travas diferentes, e as duas precisam ser abertas.
+ */
+export function codificacaoDe(q: QualidadeDaTela): {
+  maxBitrate: number;
+  maxFramerate: number;
+} {
+  return { maxBitrate: KBPS[q.resolucao][q.taxa] * 1000, maxFramerate: q.taxa };
+}
+
+/**
+ * 60 fps pede movimento: o codec segura a fluidez e sacrifica nitidez quando
+ * falta banda. Abaixo disso, texto legível importa mais.
+ */
+export function pedeMovimento(q: QualidadeDaTela): boolean {
+  return q.taxa >= 60;
+}
+
+/**
+ * `undefined` = nenhuma transmissão sua em curso.
+ *
+ * Guardado como referência estável: `getSnapshot` não pode alocar.
  */
 let escolhida: QualidadeDaTela | undefined;
 
@@ -71,24 +126,29 @@ export function assinarQualidadeDaTela(ouvinte: () => void): () => void {
   };
 }
 
-/** Referência estável: `getSnapshot` não pode alocar. */
 export function qualidadeEscolhida(): QualidadeDaTela | undefined {
   return escolhida;
 }
 
-export function definirQualidadeEscolhida(id: QualidadeDaTela | undefined): void {
-  if (escolhida === id) return;
-  escolhida = id;
+export function definirQualidadeEscolhida(q: QualidadeDaTela | undefined): void {
+  /* Por CAMPO: quem chama monta o objeto no clique, e por referência um
+     clique na opção já marcada acordaria o menu à toa. */
+  if (
+    escolhida === q ||
+    (escolhida !== undefined &&
+      q !== undefined &&
+      escolhida.resolucao === q.resolucao &&
+      escolhida.taxa === q.taxa)
+  ) {
+    return;
+  }
+  escolhida = q;
   for (const o of ouvintes) o();
 }
 
 /**
- * Sair da transmissão esquece a escolha.
- *
- * ⚠ Existe porque a próxima transmissão é de OUTRA fonte: a janela que
- * suportava 1080p60 pode ser uma aba de 720p na vez seguinte, e o HUD abriria
- * marcando um degrau que a faixa nova nunca recebeu. É a mesma razão do
- * `limpar()` do store efêmero, com faixa de tela no lugar de vídeo.
+ * Sair da transmissão esquece a escolha: a próxima é de OUTRA fonte, e o HUD
+ * abriria marcando algo que a faixa nova nunca recebeu.
  */
 export function esquecerQualidadeDaTela(): void {
   definirQualidadeEscolhida(undefined);
