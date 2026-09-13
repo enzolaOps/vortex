@@ -70,6 +70,32 @@ async fn fetch_event_in_server(db: &Database, server: &Server, id: &str) -> Resu
     Ok(event)
 }
 
+/// Editar ou apagar: `ManageEvents` para qualquer evento, `CreateEvents` para
+/// os próprios — a mesma divisão de "Criar eventos" e "Gerenciar eventos" da
+/// referência.
+async fn throw_if_cannot_manage(
+    db: &Database,
+    user: &User,
+    server: &Server,
+    event: &ServerEvent,
+) -> Result<()> {
+    let mut query = DatabasePermissionQuery::new(db, user).server(server);
+    let permissions = calculate_server_permissions(&mut query).await;
+    if permissions.has_channel_permission(ChannelPermission::ManageEvents) {
+        return Ok(());
+    }
+
+    if event.creator == user.id
+        && permissions.has_channel_permission(ChannelPermission::CreateEvents)
+    {
+        return Ok(());
+    }
+
+    Err(create_error!(MissingPermission {
+        permission: ChannelPermission::ManageEvents.to_string()
+    }))
+}
+
 /// # Fetch Server Events
 ///
 /// Fetch all scheduled events of a server.
@@ -112,9 +138,10 @@ pub async fn create_event(
 
     let server = target.as_server(db).await?;
     let mut query = DatabasePermissionQuery::new(db, &user).server(&server);
-    calculate_server_permissions(&mut query)
-        .await
-        .throw_if_lacking_channel_permission(ChannelPermission::ManageEvents)?;
+    let permissions = calculate_server_permissions(&mut query).await;
+    if !permissions.has_channel_permission(ChannelPermission::ManageEvents) {
+        permissions.throw_if_lacking_channel_permission(ChannelPermission::CreateEvents)?;
+    }
 
     validate_location(
         &server,
@@ -163,17 +190,8 @@ pub async fn edit_event(
     })?;
 
     let server = target.as_server(db).await?;
-    let mut query = DatabasePermissionQuery::new(db, &user).server(&server);
-    let can_manage = calculate_server_permissions(&mut query)
-        .await
-        .has_channel_permission(ChannelPermission::ManageEvents);
-
     let mut event = fetch_event_in_server(db, &server, &event_id).await?;
-    if !can_manage && !(event.creator == user.id && query.are_we_a_member().await) {
-        return Err(create_error!(MissingPermission {
-            permission: ChannelPermission::ManageEvents.to_string()
-        }));
-    }
+    throw_if_cannot_manage(db, &user, &server, &event).await?;
 
     for field in &data.remove {
         match field {
@@ -253,17 +271,8 @@ pub async fn delete_event(
     event_id: String,
 ) -> Result<EmptyResponse> {
     let server = target.as_server(db).await?;
-    let mut query = DatabasePermissionQuery::new(db, &user).server(&server);
-    let can_manage = calculate_server_permissions(&mut query)
-        .await
-        .has_channel_permission(ChannelPermission::ManageEvents);
-
     let event = fetch_event_in_server(db, &server, &event_id).await?;
-    if !can_manage && !(event.creator == user.id && query.are_we_a_member().await) {
-        return Err(create_error!(MissingPermission {
-            permission: ChannelPermission::ManageEvents.to_string()
-        }));
-    }
+    throw_if_cannot_manage(db, &user, &server, &event).await?;
 
     event.delete(db).await.map(|_| EmptyResponse)
 }
