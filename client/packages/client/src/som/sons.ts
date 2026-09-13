@@ -37,7 +37,14 @@ import { lerPreferenciasDeVoz } from "../store/preferenciasDeVoz";
   já dá a exaustividade — som novo não compila até ter motivo. É a mesma
   mecânica de `Palco` e `FormaDoPopout`.
 */
-export type Som = "entrar" | "sair" | "mudo" | "desmudo" | "queda" | "mensagem";
+export type Som =
+  | "entrar"
+  | "sair"
+  | "mudo"
+  | "desmudo"
+  | "queda"
+  | "mensagem"
+  | "toque";
 
 /**
  * Cada som é um MOTIVO de uma ou duas notas, e a direção carrega o sentido.
@@ -66,6 +73,17 @@ const MOTIVOS: Record<Som, { readonly notas: readonly number[]; readonly ganho: 
   /* E6 → A6, curto e agudo: é o único que chega sem você ter feito nada, e
      precisa ser distinguível dos de voz sem assustar. */
   mensagem: { notas: [1318.51, 1760.0], ganho: 0.7 },
+  /*
+    E5 → G#5 → E5 → G#5, terça maior indo e voltando: é o único som que
+    REPETE (ver `ligarChamadasRecebidas`), e o vaivém é o que o faz ler como
+    campainha e não como confirmação. Quatro notas porque ele precisa durar o
+    bastante para ser notado do outro lado da sala; os outros só confirmam o
+    que a pessoa acabou de fazer.
+
+    Ganho acima dos de voz pela mesma razão da `queda`: ele chega sem ninguém
+    ter feito nada, e competir com uma música tocando é o caso normal.
+  */
+  toque: { notas: [659.25, 830.61, 659.25, 830.61], ganho: 1.2 },
 };
 
 /** Duração de cada nota. Curto o bastante para não atrasar a próxima ação. */
@@ -117,9 +135,10 @@ function contexto(): AudioContext | undefined {
  */
 export function tocar(som: Som): void {
   const prefs = lerPreferenciasDeVoz();
-  /* O de mensagem obedece à coluna "Som" das notificações, que já decidiu
-     antes de chamar; o interruptor de Voz e vídeo é sobre os sons da chamada. */
-  if (!prefs.sons && som !== "mensagem") return;
+  /* O de mensagem e o toque obedecem à coluna "Som" das notificações, que já
+     decidiu antes de chamar; o interruptor de Voz e vídeo é sobre os sons da
+     chamada em que você ESTÁ. */
+  if (!prefs.sons && som !== "mensagem" && som !== "toque") return;
 
   const c = contexto();
   if (!c) return;
