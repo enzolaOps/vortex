@@ -49,7 +49,7 @@ import { TOTAIS, totaisNaoLidos, type Contagem } from "../sdk/adapter";
 import { assinarColapso, estaColapsada } from "./colapso";
 import { rascunhos, RASCUNHO_VAZIO } from "./rascunhos";
 import { assinarLayout, lerSemente } from "./layout";
-import { corDeCargo } from "../tema/cargo";
+import { corDeCargo, pinturaDeCargo, type PinturaDeCargo } from "../tema/cargo";
 import type { Modo } from "../tema/derivar";
 
 const NO_IDS: readonly string[] = [];
@@ -369,4 +369,16 @@ export function useModoDoTema(): Modo {
 export function useCorDeCargo(bruta: string | undefined): string | undefined {
   const modo = useModoDoTema();
   return corDeCargo(bruta, modo);
+}
+
+/**
+ * A pintura inteira — sólida ou gradiente —, para as DUAS superfícies onde o
+ * design deixa o gradiente entrar: o nome na lista de membros e a pílula.
+ * Todo o resto usa `useCorDeCargo`, que devolve a primeira parada.
+ */
+export function usePinturaDeCargo(
+  bruta: string | undefined,
+): PinturaDeCargo | undefined {
+  const modo = useModoDoTema();
+  return pinturaDeCargo(bruta, modo);
 }

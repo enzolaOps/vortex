@@ -520,8 +520,11 @@
   background: var(--vx-border-strong);
 }
 
+/* Repouso sem cor escolhida — com cor, o `style` pinta a partir dela, como o
+   design (`linear-gradient(90deg, {{ roleColor }}, #8B7BE8)`). A segunda
+   parada era `#8b7ff0`, que não é a do design nem a que o editor grava. */
 .gradiente {
-  background: linear-gradient(90deg, #35c2cc, #8b7ff0);
+  background: linear-gradient(90deg, #35c2cc, #8b7be8);
 }
 
 .holografico {
@@ -602,6 +605,7 @@
 }
 
 .previaNome {
+  composes: texto from "../styles/pinturaDeCargo.module.css";
   font-size: var(--vx-size-md);
   font-weight: 600;
   color: var(--vx-text-1);
@@ -622,6 +626,13 @@
   A pill de cargo — a geometria que a tabela de pendências já tinha medido na
   referência: `padding: 0 10px`, altura de pílula, 12/600, fundo na cor a 15%.
 */
+/* Gradiente: as paradas a 33% no fundo (do `style`) e o texto primário — o
+   design escreve `color: #E6EAF0` nessa pílula. */
+.pill[data-pintura="gradiente"] {
+  background-color: transparent;
+  color: var(--vx-text-1);
+}
+
 .pill {
   display: inline-flex;
   align-items: center;

@@ -31,13 +31,14 @@ import { chaveDeMembro } from "../sdk/domain";
 import { assinarConexao, lerConexao } from "../store/conexao";
 import { CartaoDePerfil } from "./CartaoDePerfil";
 import {
-  useCorDeCargo,
+  usePinturaDeCargo,
   useMembro,
   useMembrosOffline,
   useSecoesOnline,
   useServidorAtivo,
 } from "../store/hooks";
 import css from "./ListaDeMembros.module.css";
+import { propsDoNome } from "./pinturaDoNome";
 
 /**
  * Alturas estimadas, por TIPO de linha.
@@ -119,7 +120,7 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
   const membro = useMembro(chaveDeMembro(serverId, id));
   // Antes do retorno antecipado do placeholder — hook não pode ficar atrás
   // de condicional.
-  const corDeCargo = useCorDeCargo(membro?.cor);
+  const pintura = usePinturaDeCargo(membro?.cor);
   count("membrosRowRenders");
 
   // Nunca `null`: linha não resolvida mede 0px, o total encolhe, a janela
@@ -187,11 +188,12 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
         variação moveria a âncora.
       */}
       <span className={css.textos}>
-        {/* A cor do cargo é dado do servidor, não token — ver `NomeDoAutor`. */}
-        <span
-          className={css.nome}
-          style={corDeCargo ? { color: corDeCargo } : undefined}
-        >
+        {/*
+          A cor do cargo é dado do servidor, não token — ver `NomeDoAutor`.
+          Esta é uma das DUAS superfícies onde o gradiente entra (a outra é a
+          pílula); no autor da mensagem ele vira a primeira parada.
+        */}
+        <span className={css.nome} {...propsDoNome(pintura)}>
           {membro.displayName}
         </span>
 
