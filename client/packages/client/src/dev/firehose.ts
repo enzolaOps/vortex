@@ -474,7 +474,14 @@ const RECADOS = [
       roles: {
         [CARGOS.fundacao]: {
           name: "fundação",
-          colour: "#bcaef2",
+          /*
+            O preset holográfico — o mesmo texto que `HOLOGRAFICO` em
+            `tema/cargo.ts`. Literal e não import de propósito: o arnês faz o
+            papel do SERVIDOR, e o servidor não importa constante do cliente.
+            Se as duas divergirem, o cargo vira gradiente comum na tela, que é
+            o que aconteceria com um `colour` escrito por outro cliente.
+          */
+          colour: "linear-gradient(100deg, #8FE9F0, #C9B6F5 45%, #F3C6A8)",
           hoist: true,
           rank: 0,
           permissions: { a: 0, d: 0 },

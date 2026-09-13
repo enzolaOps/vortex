@@ -13,8 +13,8 @@
  * Medido antes: **22 de 22 nomes coloridos reprovavam 4,5:1 no tema claro**, do
  * pior 1,33:1 ao melhor 1,87:1 — nome de autor na mensagem, nome na member
  * list, nome na sala de voz e os cabeçalhos de seção de cargo. O arnês semeia
- * `#bcaef2`, `#9bdcb4` e `#f0cd8d`, que são valores da paleta ESCURA: no claro
- * eles viram texto quase branco sobre branco.
+ * valores da paleta ESCURA (hoje um holográfico, um gradiente e `#f0cd8d`): no
+ * claro eles viram texto quase branco sobre branco.
  *
  * O conserto é o mesmo princípio que já estava implementado em `derivar.ts`,
  * aplicado a mais uma entrada: **matiz e croma do usuário, luminosidade do
@@ -26,8 +26,8 @@
  * 4,5:1 contra as quatro superfícies. Avisar protegeria quem lê o aviso;
  * construir assim protege todo mundo.
  */
-import { hexParaOklch, oklchParaHex } from "./cor";
-import type { Modo } from "./derivar";
+import { hexParaOklch, oklchParaHex, razao } from "./cor";
+import { derivar, SEMENTE_PADRAO, type Modo } from "./derivar";
 
 /**
  * O L de cada modo, copiado da rampa de `--vx-text-2`.
@@ -207,7 +207,102 @@ export type PinturaDeCargo =
       readonly texto: string;
       /** O fundo da pílula: as mesmas paradas a 33%, como o design (`55`). */
       readonly fundo: string;
+    }
+  | {
+      readonly tipo: "holografico";
+      readonly cor: string;
+      /** Para `background-clip: text` — ver `paradasDoHolografico`. */
+      readonly texto: string;
+      /** O preset do design em opacidade CHEIA — a pílula é clara. */
+      readonly fundo: string;
     };
+
+/* ============================================================
+   Holográfico
+   ============================================================ */
+
+/**
+ * O preset holográfico do design, na forma que o editor grava.
+ *
+ * ⚠ **Ele não precisa de campo no protocolo, e a pendência dizia que
+ * precisava.** O design o escreve como gradiente ESTÁTICO — sem animação —, e
+ * o `RE_COLOUR` do servidor aceita `100deg`, paradas hex e `45%`. Outro
+ * cliente Stoat que leia este `colour` desenha o mesmo gradiente; o que só o
+ * Vortex faz é RECONHECÊ-LO e dar a ele a pílula clara de texto escuro.
+ *
+ * Reconhecido por IGUALDADE das paradas lidas, não por comparação de string:
+ * `colour` gravado por outro cliente com outra caixa ou outro espaçamento é o
+ * mesmo holográfico, e uma comparação de texto diria que não é.
+ */
+export const HOLOGRAFICO =
+  "linear-gradient(100deg, #8FE9F0, #C9B6F5 45%, #F3C6A8)";
+
+/**
+ * A cor do texto da pílula holográfica — `#101318`, do design.
+ *
+ * Não é token, e não pode ser: o fundo da pílula é o preset em opacidade cheia
+ * e NÃO muda com o tema, então o texto sobre ele também não pode mudar. Um
+ * token de texto viraria claro no tema escuro e sumiria no pastel.
+ * `cargo.test.ts` mede o par contra as três paradas.
+ */
+export const TINTA_HOLOGRAFICA = "#101318";
+
+export function ehHolografico(g: Gradiente | undefined): boolean {
+  const preset = lerGradiente(HOLOGRAFICO)!;
+  return (
+    g !== undefined &&
+    g.direcao === preset.direcao &&
+    g.paradas.length === preset.paradas.length &&
+    g.paradas.every(
+      (p, i) => p.hex === preset.paradas[i]!.hex && p.pos === preset.paradas[i]!.pos,
+    )
+  );
+}
+
+/**
+ * As superfícies onde um nome de cargo pousa, por modo.
+ *
+ * As mesmas quatro que `cargo.test.ts` varre. Derivadas da semente PADRÃO, e
+ * isso vale para qualquer paleta que quem usa escolha: o picker fixa a rampa
+ * de LUMINOSIDADE e só gira matiz e croma, e é a luminosidade que decide
+ * contraste. Calculadas uma vez por modo.
+ */
+const SUPERFICIES_DO_NOME = [
+  "--vx-surface-0",
+  "--vx-surface-1",
+  "--vx-surface-2",
+  "--vx-surface-3",
+] as const;
+const FUNDOS = new Map<Modo, readonly string[]>();
+function fundosDe(modo: Modo): readonly string[] {
+  let f = FUNDOS.get(modo);
+  if (!f) {
+    const tokens = derivar(SEMENTE_PADRAO[modo]);
+    f = SUPERFICIES_DO_NOME.map((s) => tokens[s]);
+    FUNDOS.set(modo, f);
+  }
+  return f;
+}
+
+/**
+ * ⚠ **O holográfico usa a regra do contraste, não a regra do clamp.**
+ *
+ * O clamp de `corDeCargo` faz duas coisas: garante 4,5:1 E puxa todo cargo
+ * para o L de `text-2`, para um nome colorido não competir com quem não tem
+ * cargo. Aplicado aqui, a segunda metade apagaria o preset — os pastéis do
+ * design vivem em L ≈ 0,85–0,90, e em 0,79 o iridescente vira só "colorido".
+ *
+ * Então cada parada fica CRUA onde já passa 4,5:1 em todas as superfícies do
+ * modo, e só vai para o clamp onde não passa. A regra é DERIVADA e não
+ * enumerada: medido, no escuro as três passam com folga larga e o nome sai
+ * byte a byte do design; no claro nenhuma passa (pastel sobre branco) e as
+ * três são clampadas. Se a rampa de superfícies mudar, a decisão muda sozinha
+ * — e o teste reprova se alguma parada sair abaixo de 4,5.
+ */
+function paradaDoHolografico(hex: string, modo: Modo): string {
+  const crua = hex.toLowerCase();
+  return fundosDe(modo).every((f) => razao(crua, f) >= 4.5) ? crua : clamp(hex, modo);
+}
 
 /**
  * ⚠ **`in oklab` não é gosto, é a garantia de contraste.** Todas as paradas
@@ -254,6 +349,23 @@ function calcular(bruta: string, modo: Modo): PinturaDeCargo | undefined {
 
   const g = lerGradiente(bruta);
   if (!g) return undefined;
+
+  if (ehHolografico(g)) {
+    const texto = g.paradas
+      .map((p) => {
+        const hex = paradaDoHolografico(p.hex, modo);
+        return p.pos === undefined ? hex : `${hex} ${String(p.pos)}%`;
+      })
+      .join(", ");
+    return {
+      tipo: "holografico",
+      cor: clamp(g.paradas[0]!.hex, modo),
+      texto: `linear-gradient(${interpolacao} ${g.direcao}, ${texto})`,
+      // A constante DESTE app, nunca a string lida: o reconhecimento já
+      // provou que as paradas são as do preset.
+      fundo: HOLOGRAFICO,
+    };
+  }
 
   const paradas = g.paradas.map((p) => ({ ...p, hex: clamp(p.hex, modo) }));
   const cor = paradas[0]!.hex;
