@@ -87,9 +87,21 @@
   cursor: pointer;
 }
 
-.marcarTudo:hover {
+.marcarTudo:hover:not(:disabled) {
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+/* Marcando: o rótulo vira progresso e o alvo sai do alcance — um segundo clique
+   no meio da fila enfileiraria os mesmos canais de novo. */
+.marcarTudo:disabled {
+  color: var(--vx-text-3);
+  cursor: default;
+}
+
+/* Falha: a cor diz que algo não completou, e o texto diz quantos e o que fazer. */
+.marcarTudo[data-erro] {
+  color: var(--vx-danger-text);
 }
 
 .marcarTudo:focus-visible {

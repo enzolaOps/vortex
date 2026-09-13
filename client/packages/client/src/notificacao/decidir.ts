@@ -20,16 +20,30 @@ export type MensagemRecebida = {
   readonly servidorNome: string | undefined;
   readonly texto: string;
   readonly minha: boolean;
-  /** `@você`, `@everyone`, `@online` ou resposta mencionando. */
+  /** `@você` ou resposta mencionando — a menção DIRETA. */
   readonly mencionaVoce: boolean;
+  /**
+   * `@everyone` ou `@online`, sem menção direta junto.
+   *
+   * ⚠ Separado de `mencionaVoce` porque o modal do servidor pode SUPRIMIR a
+   * menção em massa; colapsados, suprimir `@everyone` suprimiria também o
+   * `@você` que veio na mesma mensagem.
+   */
+  readonly mencionaTodos: boolean;
   /** Um cargo que você TEM foi mencionado. */
   readonly mencionaCargo: boolean;
 };
 
 export type Contexto = {
   readonly prefs: Preferencias;
+  /** O nível que vale: a exceção do canal, senão o padrão do servidor. */
   readonly nivel: NivelDeNotificacao | undefined;
+  /** O CANAL silenciado. */
   readonly silenciado: boolean;
+  /** O SERVIDOR silenciado — elo anterior ao do canal na cadeia. */
+  readonly servidorSilenciado: boolean;
+  readonly suprimirTodos: boolean;
+  readonly suprimirCargos: boolean;
   readonly naoPerturbe: boolean;
   readonly agora: Date;
   readonly janelaEmFoco: boolean;
@@ -72,10 +86,33 @@ export function emSilencioNoturno(prefs: Preferencias, agora: Date): boolean {
 }
 
 /**
+ * Por onde entregar um evento que já passou pelos filtros — ou `undefined`.
+ *
+ * Toast é DENTRO do app e só serve com ele à frente; push é do sistema, e é o
+ * caminho de quando a janela está atrás. Os dois juntos avisariam duas vezes a
+ * mesma coisa.
+ */
+function canaisDe(
+  evento: EventoDeNotificacao,
+  ctx: Pick<Contexto, "prefs" | "janelaEmFoco">,
+): Entrega | undefined {
+  const canais = new Set<CanalDeEntrega>();
+  for (const canal of ["toast", "som", "push"] as const) {
+    if (!ctx.prefs.matriz.has(chaveDaMatriz(evento, canal))) continue;
+    if (canal === "toast" && !ctx.janelaEmFoco) continue;
+    if (canal === "push" && (ctx.janelaEmFoco || !ctx.prefs.desktop)) continue;
+    canais.add(canal);
+  }
+  return canais.size > 0 ? { evento, canais } : undefined;
+}
+
+/**
  * Notificar, e por onde — ou `undefined` para nada.
  *
- * A ordem é a que a tela de notificações escreve: não perturbe → horário de
- * silêncio → canal silenciado → nível do canal → matriz de eventos.
+ * A ordem é a cadeia que o design escreve e a tela de notificações repete:
+ * não perturbe → horário de silêncio → servidor silenciado → canal silenciado
+ * → padrão do servidor → exceção do canal → matriz de eventos. Os dois últimos
+ * elos chegam já resolvidos em `ctx.nivel` (ver `nivelEfetivo`).
  */
 export function decidirEntrega(
   m: MensagemRecebida,
@@ -86,12 +123,22 @@ export function decidirEntrega(
   if (ctx.vendoCanal && ctx.janelaEmFoco) return undefined;
   if (ctx.naoPerturbe) return undefined;
   if (emSilencioNoturno(ctx.prefs, ctx.agora)) return undefined;
+  if (ctx.servidorSilenciado && m.tipoDoCanal === "servidor") return undefined;
   if (ctx.silenciado || ctx.nivel === "nada") return undefined;
+
+  /*
+    ⚠ **Suprimir rebaixa a menção a MENSAGEM, e não a descarta.** Quem marcou
+    o canal como "todas as mensagens" continua sendo avisado de um `@everyone`
+    — como mensagem comum, sem o som e o push de menção. Descartar faria
+    "suprimir menções em massa" calar mensagens que a pessoa pediu para ver.
+  */
+  const todos = m.mencionaTodos && !ctx.suprimirTodos;
+  const cargo = m.mencionaCargo && !ctx.suprimirCargos;
 
   let evento: EventoDeNotificacao;
   if (m.tipoDoCanal !== "servidor") evento = "dm";
-  else if (m.mencionaVoce) evento = "mencaoDireta";
-  else if (m.mencionaCargo) evento = "mencaoDeCargo";
+  else if (m.mencionaVoce || todos) evento = "mencaoDireta";
+  else if (cargo) evento = "mencaoDeCargo";
   else evento = "mensagem";
 
   /*
@@ -102,19 +149,61 @@ export function decidirEntrega(
   */
   if (evento === "mensagem" && ctx.nivel !== "todas") return undefined;
 
-  const canais = new Set<CanalDeEntrega>();
-  for (const canal of ["toast", "som", "push"] as const) {
-    if (!ctx.prefs.matriz.has(chaveDaMatriz(evento, canal))) continue;
-    /*
-      Toast é DENTRO do app e só serve com ele à frente; push é do sistema, e é
-      o caminho de quando a janela está atrás. Os dois juntos avisariam duas
-      vezes a mesma coisa.
-    */
-    if (canal === "toast" && !ctx.janelaEmFoco) continue;
-    if (canal === "push" && (ctx.janelaEmFoco || !ctx.prefs.desktop)) continue;
-    canais.add(canal);
-  }
-  return canais.size > 0 ? { evento, canais } : undefined;
+  return canaisDe(evento, ctx);
+}
+
+/**
+ * Um evento que não é mensagem — pedido de amizade, aceite.
+ *
+ * Passa pelos dois primeiros elos da cadeia (não perturbe e horário de
+ * silêncio) e pela matriz. Servidor e canal não se aplicam: amizade é entre
+ * pessoas, não mora em lugar nenhum.
+ */
+export function decidirEntregaDeEvento(
+  evento: EventoDeNotificacao,
+  ctx: Pick<Contexto, "prefs" | "naoPerturbe" | "agora" | "janelaEmFoco">,
+): Entrega | undefined {
+  if (ctx.naoPerturbe) return undefined;
+  if (emSilencioNoturno(ctx.prefs, ctx.agora)) return undefined;
+  return canaisDe(evento, ctx);
+}
+
+/** O que mudou numa relação, do ponto de vista de quem é avisado. */
+export type MudancaDeAmizade = "pedido" | "aceite";
+
+/**
+ * A mudança de relação que merece aviso — ou `undefined`.
+ *
+ * ⚠ **O aceite só conta vindo de "enviado"**, e é isso que exige o estado
+ * ANTERIOR. O protocolo manda `Friend` tanto quando a outra pessoa aceita o
+ * seu pedido quanto quando VOCÊ aceita o dela; sem saber de onde a relação
+ * veio, o app avisaria "fulano aceitou" logo depois de você clicar em aceitar.
+ *
+ * `Incoming` não tem essa ambiguidade: ninguém recebe um pedido por ação
+ * própria.
+ */
+export function mudancaDeAmizade(
+  anterior: string | undefined,
+  atual: string,
+): MudancaDeAmizade | undefined {
+  if (anterior === atual) return undefined;
+  if (atual === "Incoming") return "pedido";
+  if (atual === "Friend" && anterior === "Outgoing") return "aceite";
+  return undefined;
+}
+
+/** O texto do aviso de amizade — o do design. */
+export function textoDeAmizade(
+  mudanca: MudancaDeAmizade,
+  nome: string,
+): { titulo: string; corpo: string } {
+  return {
+    titulo: nome,
+    corpo:
+      mudanca === "pedido"
+        ? "enviou um pedido de amizade"
+        : "aceitou seu pedido de amizade",
+  };
 }
 
 /** O título e o corpo, respeitando a prévia. */
