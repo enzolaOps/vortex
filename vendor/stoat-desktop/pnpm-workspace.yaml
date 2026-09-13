@@ -6,6 +6,9 @@ allowBuilds:
   # Windows — e o CI falharia com uma mensagem sobre scripts, não sobre isso.
   electron-winstaller: true
   esbuild: true
+  # koffi 3 carrega o binário de @koromix/koffi-<plataforma>; o script só
+  # compilaria do fonte como fallback, e isso exigiria CMake no CI.
+  koffi: false
   node-pipewire: true
 
 nodeLinker: hoisted

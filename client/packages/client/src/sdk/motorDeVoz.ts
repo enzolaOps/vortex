@@ -31,6 +31,7 @@ import {
   lerPreferenciasDeVoz,
 } from "../store/preferenciasDeVoz";
 import {
+  AudioPresets,
   ConnectionState,
   Room,
   ConnectionQuality,
@@ -54,6 +55,11 @@ import {
   type QualidadeDaTela,
 } from "../store/qualidadeDaTela";
 
+import {
+  criarFaixaDePcm,
+  ehJanela,
+  ponteDeAudioDeJanela,
+} from "./audioDeJanela";
 import { client } from "./client";
 import { sairDaSalaLocalmente } from "./adapter";
 import type { Chamada, QualidadeDeVoz } from "../store/chamada";
@@ -214,6 +220,7 @@ function ligarEventos(r: Room, channelId: string): void {
     as chaves (`usuário:fonte`) são estáveis entre chamadas.
   */
   r.on(RoomEvent.Disconnected, () => {
+    pararAudioDaJanela();
     faixasDeVideo.limpar();
     /* A contagem morre com a sala. Sem isto, entrar de novo começaria com
        assinantes fantasmas e a primeira borda nunca chegaria a zero. */
@@ -328,6 +335,14 @@ function ligarEventos(r: Room, channelId: string): void {
   */
   r.on(RoomEvent.LocalTrackUnpublished, (pub) => {
     const local = r.localParticipant;
+    /* O som da janela morre com a transmissão, pelos dois caminhos de parar —
+       e com a própria faixa de áudio, se ela sair sozinha. */
+    if (
+      pub.source === Track.Source.ScreenShare ||
+      pub.source === Track.Source.ScreenShareAudio
+    ) {
+      pararAudioDaJanela();
+    }
     if (pub.source === Track.Source.ScreenShare) {
       definirChamada({ tela: false, telaPausada: false, telaAudio: "sem" });
       /*
@@ -964,6 +979,67 @@ function comAudioDaTela(
   };
 }
 
+/** A captura de som da janela em curso, com o que precisa ser desfeito. */
+let audioDeJanelaEmCurso: { parar: () => void } | undefined;
+
+/**
+ * Publica o som de UMA janela, capturado pela casca por processo.
+ *
+ * ⚠ **Falhar aqui não derruba a transmissão.** O vídeo já está no ar; sem o
+ * som, ela segue muda e um toast diz por quê. Voltar ao som do sistema seria
+ * o defeito que isto existe para evitar.
+ */
+async function publicarAudioDaJanela(p: LocalParticipant): Promise<void> {
+  pararAudioDaJanela();
+  const ponte = ponteDeAudioDeJanela();
+  const pcm = criarFaixaDePcm();
+  if (!ponte || !pcm) return;
+
+  const soltar = ponte.assinar(pcm.escrever);
+  const parar = () => {
+    soltar();
+    pcm.fechar();
+    void ponte.parar().catch(() => undefined);
+  };
+
+  const iniciou = await ponte.iniciar().catch(() => false);
+  if (!iniciou) {
+    parar();
+    toast({
+      tipo: "info",
+      titulo: "A janela está sendo transmitida sem som.",
+      descricao:
+        "Não deu para capturar o áudio só desta janela. Requer Windows 10 2004 ou mais novo.",
+    });
+    return;
+  }
+
+  audioDeJanelaEmCurso = { parar };
+  try {
+    await p.publishTrack(pcm.faixa, {
+      source: Track.Source.ScreenShareAudio,
+      /* Som de janela é música, vídeo ou jogo — não voz. Sem DTX, que corta o
+         que parece silêncio, e em estéreo. */
+      audioPreset: AudioPresets.musicHighQualityStereo,
+      dtx: false,
+      red: false,
+      forceStereo: true,
+    });
+  } catch (e) {
+    pararAudioDaJanela();
+    toast({
+      tipo: "erro",
+      titulo: "Não deu para enviar o som da janela.",
+      descricao: motivo(e),
+    });
+  }
+}
+
+function pararAudioDaJanela(): void {
+  audioDeJanelaEmCurso?.parar();
+  audioDeJanelaEmCurso = undefined;
+}
+
 /**
  * Compartilhar a tela.
  *
@@ -1011,7 +1087,11 @@ export async function alternarTela(): Promise<void> {
   const ponte = ponteDeTela();
   const escolha = ponte && (await ponte.seletorProprio())
     ? await comSeletorProprio(ponte)
-    : { opcoes: capturaDe(QUALIDADE_PADRAO), qualidade: QUALIDADE_PADRAO };
+    : {
+        opcoes: capturaDe(QUALIDADE_PADRAO),
+        qualidade: QUALIDADE_PADRAO,
+        audioDeJanela: false,
+      };
 
   /* `undefined` = cancelou no painel. Cancelar não é falha. */
   if (escolha === undefined) return;
@@ -1029,6 +1109,8 @@ export async function alternarTela(): Promise<void> {
       ?.applyConstraints(constraintsDe(escolha.qualidade))
       .catch(() => undefined);
     definirQualidadeEscolhida(escolha.qualidade);
+    /* Antes de ler `telaAudio` abaixo: é esta publicação que decide se há som. */
+    if (escolha.audioDeJanela) await publicarAudioDaJanela(p);
     definirChamada({
       tela: true,
       telaPausada: false,
@@ -1314,12 +1396,31 @@ export async function trocarFonteDaTela(): Promise<void> {
 async function comSeletorProprio(
   ponte: NonNullable<ReturnType<typeof ponteDeTela>>,
 ): Promise<
-  { opcoes: ScreenShareCaptureOptions; qualidade: QualidadeDaTela } | undefined
+  | {
+      opcoes: ScreenShareCaptureOptions;
+      qualidade: QualidadeDaTela;
+      /** O som vem da captura por processo da casca, e não do `getDisplayMedia`. */
+      audioDeJanela: boolean;
+    }
+  | undefined
 > {
   const escolha = await pedirEscolhaDeTela();
   if (!escolha) return undefined;
 
-  const armou = await ponte.escolher(escolha.fonteId, escolha.audio);
+  /*
+    ⚠ **Janela com som não pede áudio ao `getDisplayMedia`.** O único áudio
+    que ele sabe entregar é o do sistema inteiro — o defeito relatado. O som da
+    janela vem da captura por processo, pedida depois de o vídeo estar no ar
+    (`publicarAudioDaJanela`). Casca sem essa ponte transmite a janela sem som:
+    ela também já não entrega loopback para janela.
+  */
+  const audioDeJanela =
+    escolha.audio &&
+    ehJanela(escolha.fonteId) &&
+    ponteDeAudioDeJanela() !== undefined;
+  const audioDoSistema = escolha.audio && !ehJanela(escolha.fonteId);
+
+  const armou = await ponte.escolher(escolha.fonteId, audioDoSistema);
   if (!armou) {
     toast({
       tipo: "erro",
@@ -1336,9 +1437,10 @@ async function comSeletorProprio(
   return {
     opcoes: {
       ...capturaDe(qualidade),
-      audio: escolha.audio ? AUDIO_DA_TELA : false,
+      audio: audioDoSistema ? AUDIO_DA_TELA : false,
     },
     qualidade,
+    audioDeJanela,
   };
 }
 

@@ -140,6 +140,28 @@ const config: ForgeConfig = {
   hooks: {
     // Copy the node-pipewire dist to the app on linux
     packageAfterCopy: async (_config, buildPath, _version, platform) => {
+      /*
+        O som de UMA janela compartilhada, no Windows — ver
+        `src/native/audioDaJanela.ts`. Os dois são `external` no Vite e ficam
+        fora do pacote como o `node-pipewire`; sem a cópia, o `import()` falha
+        em produção e a janela é transmitida sem som. Os `.node` saem do asar
+        pelo `plugin-auto-unpack-natives`.
+      */
+      if (platform === "win32") {
+        for (const pacote of [
+          "loopback-capture",
+          "bindings",
+          "file-uri-to-path",
+          "koffi",
+          "@koromix/koffi-win32-x64",
+        ]) {
+          fs.cpSync(
+            path.join("node_modules", pacote),
+            path.join(buildPath, "node_modules", pacote),
+            { recursive: true },
+          );
+        }
+      }
       if (platform === "linux") {
         // Copy only the files we need to run the code, which is dist, LICENSE, and package.json
         fs.cpSync(
