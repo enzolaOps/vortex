@@ -42,10 +42,15 @@ import {
   type RemoteTrack,
   type RemoteTrackPublication,
   type ScreenShareCaptureOptions,
+  type TrackPublishOptions,
 } from "livekit-client";
 import {
+  codificacaoDe,
   constraintsDe,
+  definirQualidadeEscolhida,
   esquecerQualidadeDaTela,
+  pedeMovimento,
+  QUALIDADE_PADRAO,
   type QualidadeDaTela,
 } from "../store/qualidadeDaTela";
 
@@ -1004,15 +1009,26 @@ export async function alternarTela(): Promise<void> {
     sistema e o handler nem roda. Quem sabe disso é a casca.
   */
   const ponte = ponteDeTela();
-  const opcoes = ponte && (await ponte.seletorProprio())
+  const escolha = ponte && (await ponte.seletorProprio())
     ? await comSeletorProprio(ponte)
-    : {};
+    : { opcoes: capturaDe(QUALIDADE_PADRAO), qualidade: QUALIDADE_PADRAO };
 
   /* `undefined` = cancelou no painel. Cancelar não é falha. */
-  if (opcoes === undefined) return;
+  if (escolha === undefined) return;
 
   try {
-    await p.setScreenShareEnabled(true, comAudioDaTela(opcoes));
+    await p.setScreenShareEnabled(
+      true,
+      comAudioDaTela(escolha.opcoes),
+      publicacaoDe(escolha.qualidade),
+    );
+    /* A taxa de "Fonte" só pode ser pedida aqui (ver `capturaDe`); nas outras
+       é repetir o que a captura já pediu, e não custa nada. Falhar não derruba
+       a transmissão — ela segue no que o navegador negociou. */
+    await faixaDeTela()
+      ?.applyConstraints(constraintsDe(escolha.qualidade))
+      .catch(() => undefined);
+    definirQualidadeEscolhida(escolha.qualidade);
     definirChamada({
       tela: true,
       telaPausada: false,
@@ -1297,7 +1313,9 @@ export async function trocarFonteDaTela(): Promise<void> {
  */
 async function comSeletorProprio(
   ponte: NonNullable<ReturnType<typeof ponteDeTela>>,
-): Promise<ScreenShareCaptureOptions | undefined> {
+): Promise<
+  { opcoes: ScreenShareCaptureOptions; qualidade: QualidadeDaTela } | undefined
+> {
   const escolha = await pedirEscolhaDeTela();
   if (!escolha) return undefined;
 
@@ -1311,31 +1329,62 @@ async function comSeletorProprio(
     return undefined;
   }
 
-  const altura = ALTURA_DE[escolha.resolucao];
+  const qualidade: QualidadeDaTela = {
+    resolucao: escolha.resolucao,
+    taxa: escolha.taxa,
+  };
   return {
-    audio: escolha.audio ? AUDIO_DA_TELA : false,
-    /*
-      ⚠ Só a ALTURA vira teto — ver `ALTURA_DE`. A largura sai de `16/9` porque
-      `resolution` do LiveKit pede as duas, e travar a largura REAL da fonte
-      distorceria uma tela ultrawide. O navegador respeita a proporção da fonte
-      e usa isto como limite superior.
-    */
-    ...(altura === undefined
-      ? {}
-      : {
-          resolution: {
-            width: Math.round((altura * 16) / 9),
-            height: altura,
-            frameRate: escolha.taxa,
-          },
-        }),
-    /*
-      `contentHint` muda o que o codec preserva quando falta banda: `detail`
-      segura o texto e sacrifica movimento; `motion` faz o contrário. 60 quadros
-      só faz sentido pedindo movimento — a pessoa que os escolheu está mostrando
-      algo que se mexe.
-    */
-    contentHint: escolha.taxa >= 60 ? "motion" : "detail",
+    opcoes: {
+      ...capturaDe(qualidade),
+      audio: escolha.audio ? AUDIO_DA_TELA : false,
+    },
+    qualidade,
+  };
+}
+
+/**
+ * O que pedir à CAPTURA para uma qualidade.
+ *
+ * ⚠ Só a ALTURA vira teto — ver `ALTURA_DE`. A largura sai de `16/9` porque
+ * `resolution` do LiveKit pede as duas, e travar a largura REAL da fonte
+ * distorceria uma tela ultrawide. "Fonte" não põe teto: só a taxa.
+ *
+ * `contentHint` muda o que o codec preserva quando falta banda: `detail`
+ * segura o texto e sacrifica movimento; `motion` faz o contrário.
+ */
+function capturaDe(q: QualidadeDaTela): ScreenShareCaptureOptions {
+  const altura = ALTURA_DE[q.resolucao];
+  const contentHint = pedeMovimento(q) ? "motion" : "detail";
+  /*
+    ⚠ **"Fonte" não passa `resolution`.** O LiveKit trata largura ou altura zero
+    como "sem teto" e descarta o objeto INTEIRO — a taxa junto. A taxa dela é
+    pedida logo depois de publicar, por `applyConstraints` (ver `alternarTela`).
+  */
+  if (altura === undefined) return { contentHint };
+  return {
+    resolution: {
+      width: Math.round((altura * 16) / 9),
+      height: altura,
+      frameRate: q.taxa,
+    },
+    contentHint,
+  };
+}
+
+/**
+ * O que pedir ao CODIFICADOR ao publicar.
+ *
+ * ⚠ **A trava que segurava a tela em 15 fps.** Sem `screenShareEncoding` o
+ * LiveKit usa `ScreenSharePresets.h1080fps15` — `maxFramerate: 15` e 2,5 Mbps
+ * —, e nenhuma captura passava disso para quem assiste. A escolha agora abre
+ * as duas travas juntas.
+ */
+function publicacaoDe(q: QualidadeDaTela): TrackPublishOptions {
+  return {
+    screenShareEncoding: codificacaoDe(q),
+    degradationPreference: pedeMovimento(q)
+      ? "maintain-framerate"
+      : "maintain-resolution",
   };
 }
 
@@ -1415,14 +1464,23 @@ export async function estatisticasDeVoz(): Promise<number | undefined> {
  * teto é um pedido; quem decide o que a fonte entrega é o sistema.
  */
 export async function definirQualidadeDaTela(
-  id: QualidadeDaTela,
+  q: QualidadeDaTela,
 ): Promise<boolean> {
-  const faixa = faixaDeTela();
-  const constraints = constraintsDe(id);
-  if (!faixa || !constraints) return false;
+  const local = sala?.localParticipant.getTrackPublication(
+    Track.Source.ScreenShare,
+  )?.videoTrack;
+  const faixa = local?.mediaStreamTrack;
+  if (!local || !faixa) return false;
 
   try {
-    await faixa.applyConstraints(constraints);
+    faixa.contentHint = pedeMovimento(q) ? "motion" : "detail";
+    await faixa.applyConstraints(constraintsDe(q));
+    /* Em sequência: os dois chamam `setParameters`, e um segundo pedido com
+       o `transactionId` velho é recusado com `InvalidModificationError`. */
+    await local.setDegradationPreference(
+      pedeMovimento(q) ? "maintain-framerate" : "maintain-resolution",
+    );
+    await aplicarCodificacao(local.sender, q);
     return true;
   } catch {
     /* A faixa pode ter terminado entre a escolha e a aplicação — parar de
@@ -1430,6 +1488,39 @@ export async function definirQualidadeDaTela(
        transmissão não há qualidade a trocar, e isso não é erro. */
     return false;
   }
+}
+
+/**
+ * Reabre a trava do CODIFICADOR sem renegociar.
+ *
+ * ⚠ **`applyConstraints` sozinho não mudava nada para quem assiste.** Ele age
+ * na captura; o `maxFramerate` e o `maxBitrate` fixados na publicação
+ * continuavam valendo, e subir de 30 para 60 fps entregava 30. `setParameters`
+ * troca os dois na mesma conexão.
+ *
+ * Só a camada de MAIOR resolução recebe a escolha: com simulcast, as de baixo
+ * são o que quem está em rede fraca recebe, e subir o teto delas desfaria o
+ * propósito de existirem.
+ */
+async function aplicarCodificacao(
+  sender: RTCRtpSender | undefined,
+  q: QualidadeDaTela,
+): Promise<void> {
+  if (!sender) return;
+  const parametros = sender.getParameters();
+  const camadas = parametros.encodings;
+
+  let topo = camadas[0];
+  if (!topo) return;
+  for (const c of camadas) {
+    if ((c.scaleResolutionDownBy ?? 1) < (topo.scaleResolutionDownBy ?? 1)) {
+      topo = c;
+    }
+  }
+  const { maxBitrate, maxFramerate } = codificacaoDe(q);
+  topo.maxBitrate = maxBitrate;
+  topo.maxFramerate = maxFramerate;
+  await sender.setParameters(parametros);
 }
 
 /**

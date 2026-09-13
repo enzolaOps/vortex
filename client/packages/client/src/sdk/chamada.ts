@@ -230,9 +230,9 @@ export async function estatisticasDeVoz(): Promise<number | undefined> {
  * este arquivo existe para impedir.
  */
 export async function definirQualidadeDaTela(
-  id: QualidadeDaTela,
+  q: QualidadeDaTela,
 ): Promise<boolean> {
-  return (await motor?.definirQualidadeDaTela(id)) ?? false;
+  return (await motor?.definirQualidadeDaTela(q)) ?? false;
 }
 
 /** O que a faixa entrega agora, medido. `undefined` sem transmissão. */

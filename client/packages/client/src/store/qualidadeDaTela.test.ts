@@ -1,151 +1,181 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { readFileSync } from "node:fs";
+
 import {
   assinarQualidadeDaTela,
+  codificacaoDe,
   constraintsDe,
   definirQualidadeEscolhida,
   esquecerQualidadeDaTela,
-  QUALIDADES_DA_TELA,
+  pedeMovimento,
+  QUALIDADE_PADRAO,
   qualidadeEscolhida,
+  RESOLUCOES,
+  TAXAS,
+  type QualidadeDaTela,
 } from "./qualidadeDaTela";
 
 /**
  * A qualidade da transmissão.
  *
- * ⚠ **Estas asserções existem porque o caminho de sucesso é INVERIFICÁVEL
- * aqui.** Trocar a qualidade de verdade exige uma sala LiveKit de pé mais
- * captura de tela real, e o painel do navegador bloqueia captura — o mesmo
- * limite que barrou câmera e microfone. O que dá para segurar é a decisão que
- * decide se a feature funciona quando o caminho existir, e ela é pura.
- *
- * O que NÃO é testado aqui, e é dito: que `applyConstraints` de fato muda a
- * faixa. Isso é contrato do navegador, não deste código.
+ * ⚠ **O caminho de sucesso é INVERIFICÁVEL aqui.** Trocar a qualidade de
+ * verdade exige uma sala LiveKit de pé mais captura de tela real. O que dá
+ * para segurar são as decisões que decidem se a feature funciona, e elas são
+ * puras. Que `applyConstraints` e `setParameters` de fato mudam a faixa é
+ * contrato do navegador, não deste código.
  */
+
+const TODAS: QualidadeDaTela[] = RESOLUCOES.flatMap((resolucao) =>
+  TAXAS.map((taxa) => ({ resolucao, taxa })),
+);
 
 beforeEach(() => {
   esquecerQualidadeDaTela();
 });
 
-describe("constraints de um degrau", () => {
-  /*
-    ⚠ **O teste que justifica ter movido a função do motor para cá.** Com
-    `exact`, uma tela de 1366×768 recusaria 1080p com `OverconstrainedError`, e
-    o erro chegaria como "não deu para trocar" numa escolha que o navegador
-    teria atendido em 768p. É a diferença entre degradar e falhar.
-  */
+describe("as opções", () => {
+  /* Doze combinações: o HUD tinha quatro, sem 1440p, sem a fonte e sem 720p
+     a 60 fps. */
+  it("toda resolução combina com toda taxa", () => {
+    expect(TODAS).toHaveLength(12);
+    expect(TODAS).toContainEqual({ resolucao: "720p", taxa: 60 });
+    expect(TODAS).toContainEqual({ resolucao: "1440p", taxa: 60 });
+    expect(TODAS).toContainEqual({ resolucao: "Fonte", taxa: 60 });
+  });
+
+  /* O padrão anterior era o do LiveKit, 15 fps. */
+  it("o padrão é 1080p a 30 fps", () => {
+    expect(QUALIDADE_PADRAO).toEqual({ resolucao: "1080p", taxa: 30 });
+  });
+});
+
+describe("constraints de captura", () => {
   it("pede `ideal` e NUNCA `exact`", () => {
-    for (const q of QUALIDADES_DA_TELA) {
-      const c = constraintsDe(q.id);
-      expect(c).toEqual({
-        height: { ideal: q.altura },
-        frameRate: { ideal: q.fps },
-      });
-      /* Explícito, porque `toEqual` acima passaria se alguém ACRESCENTASSE
-         `exact` ao lado de `ideal`? Não — mas passaria com o objeto trocado
-         inteiro numa refatoração descuidada, e a intenção merece a linha. */
-      expect(JSON.stringify(c)).not.toContain("exact");
+    for (const q of TODAS) {
+      expect(JSON.stringify(constraintsDe(q))).not.toContain("exact");
     }
   });
 
-  it("cada degrau leva a própria altura e o próprio fps", () => {
-    expect(constraintsDe("1080p60")).toEqual({
-      height: { ideal: 1080 },
+  it("cada escolha leva a própria altura e a própria taxa", () => {
+    expect(constraintsDe({ resolucao: "1440p", taxa: 60 })).toEqual({
+      height: { ideal: 1440 },
       frameRate: { ideal: 60 },
     });
-    expect(constraintsDe("480p30")).toEqual({
-      height: { ideal: 480 },
-      frameRate: { ideal: 30 },
+    expect(constraintsDe({ resolucao: "720p", taxa: 15 })).toEqual({
+      height: { ideal: 720 },
+      frameRate: { ideal: 15 },
     });
   });
 
-  /* Os quatro rótulos precisam ser distintos: dois degraus com o mesmo nome no
-     menu são dois alvos que a pessoa não consegue diferenciar. */
-  it("os degraus são distintos em id e em rótulo", () => {
-    const ids = new Set(QUALIDADES_DA_TELA.map((q) => q.id));
-    const rotulos = new Set(QUALIDADES_DA_TELA.map((q) => q.rotulo));
-    expect(ids.size).toBe(QUALIDADES_DA_TELA.length);
-    expect(rotulos.size).toBe(QUALIDADES_DA_TELA.length);
+  /* `applyConstraints` substitui o conjunto: sem altura é o que TIRA o teto
+     posto por uma escolha anterior. */
+  it("resolução da fonte não põe teto de altura", () => {
+    expect(constraintsDe({ resolucao: "Fonte", taxa: 60 })).toEqual({
+      frameRate: { ideal: 60 },
+    });
+  });
+});
+
+describe("codificação", () => {
+  /*
+    ⚠ **O teste da trava de 15 fps.** Sem codificação explícita o LiveKit
+    publica tela com `maxFramerate: 15`; a captura a 60 chegava a quem assiste
+    a 15. O teto do codificador tem de ser a taxa escolhida.
+  */
+  it("o teto de quadros do codificador é a taxa escolhida", () => {
+    for (const q of TODAS) {
+      expect(codificacaoDe(q).maxFramerate).toBe(q.taxa);
+    }
+  });
+
+  it("mais resolução ou mais quadros nunca pedem menos banda", () => {
+    for (const r of RESOLUCOES) {
+      const kbps = TAXAS.map((t) => codificacaoDe({ resolucao: r, taxa: t }).maxBitrate);
+      expect([...kbps].sort((a, b) => a - b)).toEqual(kbps);
+    }
+    for (const t of TAXAS) {
+      const kbps = RESOLUCOES.map(
+        (r) => codificacaoDe({ resolucao: r, taxa: t }).maxBitrate,
+      );
+      expect([...kbps].sort((a, b) => a - b)).toEqual(kbps);
+    }
+  });
+
+  /* O padrão não pode cair abaixo do preset `h1080fps30` do próprio LiveKit. */
+  it("1080p a 30 fps tem pelo menos 5 Mbps", () => {
+    expect(codificacaoDe(QUALIDADE_PADRAO).maxBitrate).toBeGreaterThanOrEqual(
+      5_000_000,
+    );
+  });
+
+  it("só 60 fps pede movimento", () => {
+    expect(pedeMovimento({ resolucao: "720p", taxa: 60 })).toBe(true);
+    expect(pedeMovimento({ resolucao: "1440p", taxa: 30 })).toBe(false);
   });
 });
 
 describe("a escolha", () => {
-  /*
-    ⚠ **Ausência não é o degrau mais alto**, e a distinção é o que impede o
-    menu de afirmar uma escolha que ninguém fez: quem nunca escolheu está no
-    que o navegador negociou ao abrir a tela, que não é nenhum dos quatro.
-  */
-  it("nasce ausente, e ausente não é `1080p60`", async () => {
-    /*
-      ⚠ **Módulo FRESCO, e a mutação foi quem exigiu.** A primeira versão
-      chamava `qualidadeEscolhida()` direto — e o `beforeEach` acima já tinha
-      chamado `esquecerQualidadeDaTela()`, então o que ela media era o
-      ESQUECER, não o valor inicial. Passou com o módulo nascendo em
-      `"1080p60"`, que é justamente o estado que ela diz proibir.
-
-      É o mesmo defeito que a mutação achou em `silencio.test.ts` duas vezes:
-      asserção que passa pelo motivo errado, e por isso não guarda nada.
-    */
+  it("nasce ausente", async () => {
     vi.resetModules();
     const fresco = await import("./qualidadeDaTela");
     expect(fresco.qualidadeEscolhida()).toBeUndefined();
   });
 
   it("guarda o que foi escolhido", () => {
-    definirQualidadeEscolhida("720p30");
-    expect(qualidadeEscolhida()).toBe("720p30");
+    definirQualidadeEscolhida({ resolucao: "720p", taxa: 60 });
+    expect(qualidadeEscolhida()).toEqual({ resolucao: "720p", taxa: 60 });
   });
 
+  /* Por campo: o menu monta um objeto novo a cada clique. */
   it("avisa quem assina, e SÓ quando muda", () => {
     const ouvinte = vi.fn();
     assinarQualidadeDaTela(ouvinte);
 
-    definirQualidadeEscolhida("720p30");
+    definirQualidadeEscolhida({ resolucao: "720p", taxa: 30 });
+    definirQualidadeEscolhida({ resolucao: "720p", taxa: 30 });
     expect(ouvinte).toHaveBeenCalledTimes(1);
 
-    /* Reescrever o mesmo valor não é mudança. Sem a guarda, o menu do HUD
-       re-renderizaria a cada clique repetido no degrau já marcado. */
-    definirQualidadeEscolhida("720p30");
-    expect(ouvinte).toHaveBeenCalledTimes(1);
-
-    definirQualidadeEscolhida("480p30");
+    definirQualidadeEscolhida({ resolucao: "720p", taxa: 60 });
     expect(ouvinte).toHaveBeenCalledTimes(2);
   });
 
   it("parar de assinar solta o ouvinte", () => {
     const ouvinte = vi.fn();
-    const soltar = assinarQualidadeDaTela(ouvinte);
-    soltar();
-    definirQualidadeEscolhida("1080p30");
+    assinarQualidadeDaTela(ouvinte)();
+    definirQualidadeEscolhida(QUALIDADE_PADRAO);
     expect(ouvinte).not.toHaveBeenCalled();
   });
 
-  /*
-    ⚠ **A escolha morre com a FAIXA.** A janela que suportava 1080p60 pode ser
-    uma aba de 720p na vez seguinte, e o menu abriria marcando um degrau que a
-    faixa nova nunca recebeu. Quem chama é o `LocalTrackUnpublished` do motor,
-    que pega os dois caminhos de parada — o nosso e o do botão do navegador.
-  */
-  it("esquecer volta para a ausência, e avisa", () => {
+  it("esquecer duas vezes avisa uma vez", () => {
     const ouvinte = vi.fn();
-    definirQualidadeEscolhida("1080p60");
+    definirQualidadeEscolhida(QUALIDADE_PADRAO);
     assinarQualidadeDaTela(ouvinte);
-
     esquecerQualidadeDaTela();
-
+    esquecerQualidadeDaTela();
     expect(qualidadeEscolhida()).toBeUndefined();
     expect(ouvinte).toHaveBeenCalledTimes(1);
   });
+});
 
-  /* Esquecer o que já está ausente não acorda ninguém — o motor chama isso a
-     cada faixa despublicada, inclusive as de câmera e microfone. */
-  it("esquecer duas vezes avisa uma vez", () => {
-    const ouvinte = vi.fn();
-    definirQualidadeEscolhida("1080p60");
-    assinarQualidadeDaTela(ouvinte);
+/**
+ * O motor usa estas decisões. Não é prova de comportamento — o motor carrega
+ * `livekit-client` e não abre no jsdom —, é prova de que as ligações que abrem
+ * as duas travas continuam lá.
+ */
+describe("o motor abre as duas travas", () => {
+  const motor = readFileSync(
+    new URL("../sdk/motorDeVoz.ts", import.meta.url),
+    "utf8",
+  );
 
-    esquecerQualidadeDaTela();
-    esquecerQualidadeDaTela();
+  it("publica com a codificação da escolha", () => {
+    expect(motor).toContain("screenShareEncoding: codificacaoDe(q)");
+    expect(motor).toContain("publicacaoDe(escolha.qualidade)");
+  });
 
-    expect(ouvinte).toHaveBeenCalledTimes(1);
+  it("trocar ao vivo mexe na captura E no codificador", () => {
+    expect(motor).toContain("await faixa.applyConstraints(constraintsDe(q));");
+    expect(motor).toContain("await aplicarCodificacao(local.sender, q);");
   });
 });

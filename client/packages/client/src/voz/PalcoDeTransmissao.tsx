@@ -21,13 +21,18 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../components/ui/DropdownMenu";
 import {
   assinarQualidadeDaTela,
   definirQualidadeEscolhida,
-  QUALIDADES_DA_TELA,
+  QUALIDADE_PADRAO,
   qualidadeEscolhida,
+  RESOLUCOES,
+  TAXAS,
+  type QualidadeDaTela,
 } from "../store/qualidadeDaTela";
 import {
   definirQualidadeDaTela,
@@ -849,6 +854,29 @@ function MenuDeQualidade() {
     ? `${String(real.altura)}p · ${String(real.fps)} fps`
     : "Qualidade";
 
+  /* A transmissão já nasce com uma escolha (ver `alternarTela`); o padrão só
+     cobre o intervalo entre montar o HUD e a publicação terminar. */
+  const atual = escolhida ?? QUALIDADE_PADRAO;
+
+  function escolher(q: QualidadeDaTela) {
+    /*
+      Escreve a escolha ANTES de aplicar: o menu marca o que a pessoa pediu no
+      mesmo quadro do clique, e a faixa alcança depois.
+    */
+    definirQualidadeEscolhida(q);
+    void definirQualidadeDaTela(q).then((ok) => {
+      if (!ok) {
+        toast({
+          tipo: "erro",
+          titulo: "Não deu para trocar a qualidade",
+          descricao: "A transmissão pode ter terminado.",
+        });
+        return;
+      }
+      setReal(qualidadeRealDaTela());
+    });
+  }
+
   return (
     <DropdownMenu
       onOpenChange={(aberto) => {
@@ -868,34 +896,30 @@ function MenuDeQualidade() {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent side="top" align="end">
-        {QUALIDADES_DA_TELA.map((q) => (
+        {/*
+          ⚠ **Dois grupos, e o menu NÃO fecha ao escolher.** Resolução e taxa
+          são independentes; fechar no primeiro clique obrigaria a reabrir o
+          menu para a segunda metade da escolha.
+        */}
+        <DropdownMenuLabel>Resolução</DropdownMenuLabel>
+        {RESOLUCOES.map((r) => (
           <DropdownMenuCheckboxItem
-            key={q.id}
-            marcado={escolhida === q.id}
-            aoAlternar={() => {
-              /*
-                Escreve a escolha ANTES de aplicar: o menu marca o que a pessoa
-                pediu no mesmo quadro do clique, e a faixa alcança depois. O
-                caminho contrário deixaria a marca esperando a rede.
-              */
-              definirQualidadeEscolhida(q.id);
-              void definirQualidadeDaTela(q.id).then((ok) => {
-                if (!ok) {
-                  /* Não desfaz a marca: sem faixa não há transmissão, e o
-                     palco já está saindo. Desfazer piscaria o menu no
-                     caminho de saída. */
-                  toast({
-                    tipo: "erro",
-                    titulo: "Não deu para trocar a qualidade",
-                    descricao: "A transmissão pode ter terminado.",
-                  });
-                  return;
-                }
-                setReal(qualidadeRealDaTela());
-              });
-            }}
+            key={r}
+            marcado={atual.resolucao === r}
+            aoAlternar={() => escolher({ resolucao: r, taxa: atual.taxa })}
           >
-            {q.rotulo}
+            {r === "Fonte" ? "Resolução da fonte" : r}
+          </DropdownMenuCheckboxItem>
+        ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel>Taxa de quadros</DropdownMenuLabel>
+        {TAXAS.map((t) => (
+          <DropdownMenuCheckboxItem
+            key={t}
+            marcado={atual.taxa === t}
+            aoAlternar={() => escolher({ resolucao: atual.resolucao, taxa: t })}
+          >
+            {`${String(t)} fps`}
           </DropdownMenuCheckboxItem>
         ))}
       </DropdownMenuContent>
