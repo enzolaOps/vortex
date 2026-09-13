@@ -41,6 +41,28 @@ contextBridge.exposeInMainWorld("vortexTela", {
 });
 
 /**
+ * O áudio de UMA janela compartilhada — ver `native/audioDaJanela.ts`.
+ *
+ * ⚠ **Ponte SEPARADA de `vortexTela`, e a razão é versão.** O cliente é
+ * carregado por URL e atualiza antes da casca; um verbo novo em `vortexTela`
+ * faria toda casca antiga parecer incompleta, e o cliente desligaria o seletor
+ * inteiro. Aqui a ausência só significa "janela sem som".
+ *
+ * O ouvinte é embrulhado como em `assinarJanela`: só o bloco de PCM atravessa,
+ * nunca o `IpcRendererEvent`.
+ */
+contextBridge.exposeInMainWorld("vortexAudioDeJanela", {
+  disponivel: () => ipcRenderer.invoke("audioJanelaDisponivel"),
+  iniciar: () => ipcRenderer.invoke("audioJanelaIniciar"),
+  parar: () => ipcRenderer.invoke("audioJanelaParar"),
+  assinar: (ouvinte: (bloco: Uint8Array) => void) => {
+    const alca = (_evento: unknown, bloco: Uint8Array) => ouvinte(bloco);
+    ipcRenderer.on("audioJanelaBloco", alca);
+    return () => ipcRenderer.off("audioJanelaBloco", alca);
+  },
+});
+
+/**
  * `window.vortex` — o contrato que o cliente React declara.
  *
  * ⚠ **Ele NUNCA existiu, e o sintoma foi "não aparecem os botões de

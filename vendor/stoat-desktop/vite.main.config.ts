@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       rollupOptions: {
-        external: ["node-pipewire"],
+        external: ["node-pipewire", "koffi", "loopback-capture"],
       },
     },
   };

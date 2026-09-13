@@ -12,6 +12,7 @@ import {
 import windowIconAsset from "../../assets/icon.png?asset";
 
 import { config } from "./config";
+import { registrarAudioDaJanela } from "./audioDaJanela";
 import { registrarSeletorDeTela } from "./telaCompartilhada";
 import { updateTrayMenu } from "./tray";
 
@@ -203,6 +204,7 @@ export function createMainWindow() {
     Agora o cliente escolhe primeiro e pede depois.
   */
   registrarSeletorDeTela();
+  registrarAudioDaJanela();
 
   // push world events to the window
   ipcMain.on("minimise", () => mainWindow.minimize());

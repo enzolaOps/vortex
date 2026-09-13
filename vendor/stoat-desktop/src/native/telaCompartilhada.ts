@@ -7,6 +7,8 @@ import {
   systemPreferences,
 } from "electron";
 
+import { registrarJanelaEntregue } from "./audioDaJanela";
+
 /**
  * O seletor de tela do Vortex, no processo main.
  *
@@ -193,8 +195,19 @@ export function registrarSeletorDeTela(): void {
             callback({});
             return;
           }
+          const janela = fonte.id.startsWith("window:");
+          /* Só a janela entregue pode ter o som pedido depois — ver
+             `audioDaJanela.ts`. Tela inteira limpa a autorização. */
+          registrarJanelaEntregue(janela ? fonte.id : undefined);
+          /*
+            ⚠ **Janela NUNCA leva `loopback`.** Loopback é o som do computador
+            inteiro, e compartilhar uma janela só vazava tudo — o defeito
+            relatado. O som da janela vem por captura de PROCESSO, que o
+            cliente pede depois de publicar o vídeo; cliente antigo, que não
+            sabe pedir, transmite a janela sem som, que é o erro seguro.
+          */
           callback(
-            escolha.audio && request.audioRequested
+            escolha.audio && request.audioRequested && !janela
               ? { video: fonte, audio: "loopback" }
               : { video: fonte },
           );
