@@ -154,6 +154,8 @@ const config: ForgeConfig = {
           "file-uri-to-path",
           "koffi",
           "@koromix/koffi-win32-x64",
+          /* "Atenuar outros apps" — `src/native/atenuacao.ts`. */
+          "native-sound-mixer",
         ]) {
           fs.cpSync(
             path.join("node_modules", pacote),

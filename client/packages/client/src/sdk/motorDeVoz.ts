@@ -60,6 +60,7 @@ import {
   ehJanela,
   ponteDeAudioDeJanela,
 } from "./audioDeJanela";
+import { criarAtenuador, ponteDeAtenuacao } from "./atenuacao";
 import { client } from "./client";
 import { sairDaSalaLocalmente } from "./adapter";
 import type { Chamada, QualidadeDeVoz } from "../store/chamada";
@@ -220,6 +221,7 @@ function ligarEventos(r: Room, channelId: string): void {
     as chaves (`usuário:fonte`) são estáveis entre chamadas.
   */
   r.on(RoomEvent.Disconnected, () => {
+    atenuador.atualizar(false, false, true);
     pararAudioDaJanela();
     faixasDeVideo.limpar();
     /* A contagem morre com a sala. Sem isto, entrar de novo começaria com
@@ -385,6 +387,10 @@ function ligarEventos(r: Room, channelId: string): void {
   */
   r.on(RoomEvent.ActiveSpeakersChanged, (falantes) => {
     definirFalantes(falantes.map((p) => p.identity));
+    /* "Atenuar outros apps": só a fala dos OUTROS conta — você falando não
+       precisa de silêncio em volta para se ouvir. */
+    const outro = falantes.some((p) => p !== r.localParticipant);
+    atenuador.atualizar(outro, lerPreferenciasDeVoz().atenuarOutrosApps);
   });
 
   /*
@@ -737,6 +743,10 @@ export async function entrarNaChamada(channelId: string): Promise<boolean> {
     await aplicarSaida(r);
     pararDeOuvirPreferencias = assinarPreferenciasDeVoz(() => {
       void trocarDispositivos(r);
+      /* Desligar a preferência no meio de uma fala devolve o volume na hora. */
+      if (!lerPreferenciasDeVoz().atenuarOutrosApps) {
+        atenuador.atualizar(false, false, true);
+      }
     });
     return true;
   } catch (e) {
@@ -834,6 +844,15 @@ export async function sairDaChamada(): Promise<void> {
  * causa de uma troca de dispositivo.
  */
 let pararDeOuvirPreferencias: (() => void) | undefined;
+
+/**
+ * Baixa os outros programas enquanto alguém fala — ver `sdk/atenuacao.ts`.
+ * Sem a ponte da casca (navegador) é inerte: a web não mexe no volume de
+ * outros programas.
+ */
+const atenuador = criarAtenuador({
+  enviar: (sim) => ponteDeAtenuacao()?.atenuar(sim),
+});
 
 async function aplicarSaida(r: Room): Promise<void> {
   const { saidaId } = lerPreferenciasDeVoz();
