@@ -740,19 +740,6 @@ export const SUPERFICIES_AUSENTES = {
     referencia: "components/notifications/NotificationModals.tsx",
   },
 
-  /* --------------------------------------------------------- casca */
-  /*
-    ⚠ **A opção existe em Configurações · Desktop; o MENU não.** É a mesma
-    distinção do overlay de jogo: o que falta mora no processo main do
-    Electron, não no cliente — e por isso nenhum controle do app poderia
-    alcançá-lo.
-  */
-  menuDaBandeja: {
-    superficie: "Ícone da bandeja do sistema",
-    faz: "Abrir, silenciar e sair pelo ícone ao lado do relógio.",
-    depende: "`Tray` no processo main da casca — é trabalho de Electron, não de cliente",
-    referencia: "components/desktop/TrayMenu.tsx",
-  },
 } as const satisfies Record<
   string,
   { superficie: string; faz: string; depende: string; referencia: string }
