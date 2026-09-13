@@ -167,25 +167,6 @@ export const PENDENCIAS = {
       "o conceito no protocolo E uma trilha de áudio publicada no LiveKit pelo servidor",
   },
 
-  /* -------------------------------------------------------- notificação */
-  /*
-    ⚠ **Só UM pendente na tela de notificações, e é de propósito.** As
-    preferências ali são reais e ficam guardadas; o que falta é quem as
-    CONSOME — áudio para o som, service worker para o push, casca Electron
-    para o badge. Registrar cada interruptor como pendente daria quatro
-    controles que não guardam o que se escolhe, o que é pior que guardar sem
-    consumir: a forma da tela não muda quando o notificador chegar.
-
-    Pedir permissão é diferente: é chamada ao navegador que só faz sentido
-    com o notificador atrás, e não teria o que guardar.
-  */
-  permissaoDeNotificacao: {
-    superficie: "Configurações · Notificações",
-    faz: "Pedir ao navegador ou ao sistema para liberar notificações.",
-    depende: "um notificador que as dispare — áudio, service worker ou Electron",
-  },
-
-
   /* --------------------------------------------------------- entrada */
   /*
     ⚠ **O QR é do design e o protocolo não tem o conceito.** Entrar por código

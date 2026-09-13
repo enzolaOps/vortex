@@ -81,6 +81,14 @@ contextBridge.exposeInMainWorld("vortexControles", {
   },
   publicarEstadoDeVoz: (estado: unknown) =>
     ipcRenderer.send("vortexEstadoDeVoz", estado),
+ * Contador no ícone, piscar a barra de tarefas e focar a janela — ver
+ * `native/notificacoes.ts`. Ponte separada pela mesma razão das outras duas.
+ * Só números atravessam; o main valida.
+ */
+contextBridge.exposeInMainWorld("vortexNotificacoes", {
+  contador: (n: number) => ipcRenderer.send("vortexContador", n),
+  chamarAtencao: () => ipcRenderer.send("vortexChamarAtencao"),
+  focar: () => ipcRenderer.send("vortexFocar"),
 });
 
 /**
