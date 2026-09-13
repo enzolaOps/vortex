@@ -31,6 +31,11 @@ import {
   lerPreferenciasDeVoz,
 } from "../store/preferenciasDeVoz";
 import {
+  assinarPushToTalk,
+  lerSegurando,
+  microfoneAberto,
+} from "../store/pushToTalk";
+import {
   AudioPresets,
   ConnectionState,
   Room,
@@ -731,13 +736,21 @@ export async function entrarNaChamada(channelId: string): Promise<boolean> {
       nada lê — que é exatamente o defeito que ela existe para não ter.
     */
     await r.localParticipant.setMicrophoneEnabled(
-      !lerChamada().mudo,
+      deveTransmitir(),
       constraintsDeAudio(),
     );
     await aplicarSaida(r);
+    let modo = lerPreferenciasDeVoz().modo;
     pararDeOuvirPreferencias = assinarPreferenciasDeVoz(() => {
       void trocarDispositivos(r);
+      /* Trocar para push-to-talk com a chamada aberta fecha o microfone na
+         hora, e voltar para detecção o reabre. */
+      if (lerPreferenciasDeVoz().modo !== modo) {
+        modo = lerPreferenciasDeVoz().modo;
+        void aplicarMicrofone();
+      }
     });
+    pararDeOuvirTecla = assinarPushToTalk(() => void aplicarMicrofone());
     return true;
   } catch (e) {
     /*
@@ -797,6 +810,8 @@ export async function sairDaChamada(): Promise<void> {
   sala = undefined;
   pararDeOuvirPreferencias?.();
   pararDeOuvirPreferencias = undefined;
+  pararDeOuvirTecla?.();
+  pararDeOuvirTecla = undefined;
   if (!r) return;
   r.removeAllListeners();
   await r.disconnect();
@@ -834,6 +849,22 @@ export async function sairDaChamada(): Promise<void> {
  * causa de uma troca de dispositivo.
  */
 let pararDeOuvirPreferencias: (() => void) | undefined;
+let pararDeOuvirTecla: (() => void) | undefined;
+
+/** Mudo, surdo e push-to-talk decidindo juntos — ver `microfoneAberto`. */
+function deveTransmitir(): boolean {
+  const c = lerChamada();
+  return microfoneAberto({
+    mudo: c.mudo,
+    surdo: c.surdo,
+    modo: lerPreferenciasDeVoz().modo,
+    segurando: lerSegurando(),
+  });
+}
+
+async function aplicarMicrofone(): Promise<void> {
+  await sala?.localParticipant.setMicrophoneEnabled(deveTransmitir());
+}
 
 async function aplicarSaida(r: Room): Promise<void> {
   const { saidaId } = lerPreferenciasDeVoz();
@@ -882,8 +913,8 @@ function traduzirQualidade(q: ConnectionQuality): QualidadeDeVoz {
 export async function alternarMudo(): Promise<void> {
   // A regra é do store; aqui só se APLICA no transporte. Ver
   // `alternarMudoNoStore`.
-  const mudo = alternarMudoNoStore();
-  await sala?.localParticipant.setMicrophoneEnabled(!mudo);
+  alternarMudoNoStore();
+  await aplicarMicrofone();
 }
 
 /**
@@ -895,8 +926,8 @@ export async function alternarMudo(): Promise<void> {
  * estava muda antes, voltar a transmitir seria uma decisão que ela não tomou.
  */
 export async function alternarSurdo(): Promise<void> {
-  const { surdo, mudo } = alternarSurdoNoStore();
-  await sala?.localParticipant.setMicrophoneEnabled(!surdo && !mudo);
+  const { surdo } = alternarSurdoNoStore();
+  await aplicarMicrofone();
 
   const el = elementoDeAudio();
   for (const audio of el.querySelectorAll("audio")) audio.muted = surdo;

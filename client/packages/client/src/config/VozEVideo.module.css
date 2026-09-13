@@ -263,3 +263,23 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ------------------------------------------- gravação de atalho */
+
+.gravando {
+  font-size: var(--vx-size-sm);
+  color: var(--vx-accent-text);
+}
+
+/* Ausência é itálica e um tom abaixo — não é uma combinação curta, é a falta
+   de uma. */
+.semAtalho {
+  font-size: var(--vx-size-sm);
+  font-style: italic;
+  color: var(--vx-text-4);
+}
+
+.acoesDaLinha {
+  display: flex;
+  gap: var(--vx-space-06);
+}
