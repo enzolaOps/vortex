@@ -29,7 +29,7 @@ pub async fn message_send(
     data: Json<v0::DataMessageSend>,
     idempotency: IdempotencyKey,
 ) -> Result<Json<v0::Message>> {
-    let data = data.into_inner();
+    let mut data = data.into_inner();
     data.validate().map_err(|error| {
         create_error!(FailedValidation {
             error: error.to_string()
@@ -41,6 +41,18 @@ pub async fn message_send(
     let mut query = DatabasePermissionQuery::new(db, &user).channel(&channel);
     let permissions = calculate_channel_permissions(&mut query).await;
     permissions.throw_if_lacking_channel_permission(ChannelPermission::SendMessage)?;
+
+    // Vortex: nível de verificação, emergência e filtro de convites em DM.
+    crate::util::server_security::enforce_message_policy(
+        db,
+        &user,
+        &channel,
+        query.server_ref().as_deref(),
+        query.member_ref().as_deref(),
+        &permissions,
+        &mut data,
+    )
+    .await?;
 
     // Verify permissions for masquerade
     if let Some(masq) = &data.masquerade {
