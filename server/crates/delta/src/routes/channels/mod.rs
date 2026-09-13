@@ -24,6 +24,10 @@ mod message_unpin;
 mod message_unreact;
 mod permissions_set;
 mod permissions_set_default;
+mod forum_edit;
+mod thread_create;
+mod thread_edit;
+mod thread_follow;
 mod voice_join;
 mod voice_stop_ring;
 mod webhook_create;
@@ -58,5 +62,10 @@ pub fn routes() -> (Vec<Route>, OpenApi) {
         message_clear_reactions::clear_reactions,
         webhook_create::create_webhook,
         webhook_fetch_all::fetch_webhooks,
+        thread_create::create_thread,
+        thread_edit::edit_thread,
+        thread_follow::follow_thread,
+        thread_follow::unfollow_thread,
+        forum_edit::edit_forum,
     ]
 }

@@ -26,6 +26,7 @@ mod server_create;
 mod server_delete;
 mod server_edit;
 mod server_fetch;
+mod threads_fetch;
 
 pub fn routes() -> (Vec<Route>, OpenApi) {
     openapi_get_routes_spec![
@@ -56,5 +57,6 @@ pub fn routes() -> (Vec<Route>, OpenApi) {
         discover::discover_add::discover_add,
         discover::discover_get::discover_get,
         discover::discover_remove::discover_remove,
+        threads_fetch::fetch_threads,
     ]
 }

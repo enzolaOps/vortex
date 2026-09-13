@@ -141,6 +141,18 @@ impl State {
         let mut channels = db.find_direct_messages(&user.id).await?;
         channels.append(&mut db.fetch_channels(&channel_ids).await?);
 
+        // Vortex: active threads travel with their servers. They are not in
+        // `server.channels`, so clients that do not know threads never list
+        // them; subscribing here is what delivers their messages live.
+        if !server_ids.is_empty() {
+            channels.append(
+                &mut db
+                    .fetch_threads(&server_ids, None, Some(false))
+                    .await
+                    .unwrap_or_default(),
+            );
+        }
+
         // Filter server channels by permission.
         let channels = self.cache.filter_accessible_channels(db, channels).await;
 
@@ -400,6 +412,27 @@ impl State {
         }
     }
 
+    /// Vortex: forget the threads of a server the user left or that was deleted
+    ///
+    /// Threads are not in `server.channels`, so the loops over that list miss
+    /// them.
+    async fn remove_cached_threads(&mut self, server_id: &str) {
+        let threads: Vec<String> = self
+            .cache
+            .channels
+            .iter()
+            .filter(|(_, channel)| {
+                channel.thread().is_some() && channel.server() == Some(server_id)
+            })
+            .map(|(id, _)| id.clone())
+            .collect();
+
+        for id in threads {
+            self.remove_subscription(&id).await;
+            self.cache.channels.remove(&id);
+        }
+    }
+
     /// Push presence change to the user and all associated server topics
     pub async fn broadcast_presence_change(&self, target: bool) {
         let config = revolt_config::config().await;
@@ -575,6 +608,7 @@ impl State {
                             self.cache.channels.remove(channel);
                         }
                     }
+                    self.remove_cached_threads(id).await;
                     self.cache.members.remove(id);
                 }
             }
@@ -587,6 +621,7 @@ impl State {
                         self.cache.channels.remove(channel);
                     }
                 }
+                self.remove_cached_threads(id).await;
                 self.cache.members.remove(id);
             }
             EventV1::ServerMemberUpdate { id, data, clear } => {
