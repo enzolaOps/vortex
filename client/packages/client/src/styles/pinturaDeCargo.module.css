@@ -1,0 +1,32 @@
+/*
+  O nome de cargo em GRADIENTE — as duas superfícies onde o design o deixa
+  entrar compõem daqui: o nome na lista de membros e a prévia do editor.
+
+  O gradiente em si é DADO (vem de quem administra o servidor) e chega por
+  `--pintura-cargo`, já reconstruído e passado pelo clamp em `tema/cargo.ts`.
+  Aqui fica só a mecânica, que é igual nas duas.
+
+  700 e não 600: é o peso que o design dá ao nome em gradiente. Um traço fino
+  recortando um gradiente lê como texto desbotado — o peso é o que deixa haver
+  área para a cor aparecer.
+*/
+.texto[data-pintura="gradiente"] {
+  background-image: var(--pintura-cargo, none);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 700;
+}
+
+/*
+  ⚠ **Sem isto o nome SOME em alto contraste do Windows.** `forced-colors`
+  descarta `background-image`, e o que sobra é um texto com preenchimento
+  transparente sobre nada — um nome invisível, sem erro nenhum. Devolver o
+  preenchimento à cor corrente faz o sistema pintá-lo como qualquer texto.
+*/
+@media (forced-colors: active) {
+  .texto[data-pintura="gradiente"] {
+    background-image: none;
+    -webkit-text-fill-color: currentColor;
+  }
+}

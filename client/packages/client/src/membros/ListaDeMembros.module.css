@@ -140,6 +140,7 @@
   próprio, o nome é o conteúdo, não o rótulo de algo.
 */
 .nome {
+  composes: texto from "../styles/pinturaDeCargo.module.css";
   min-inline-size: 0;
   overflow: hidden;
   text-overflow: ellipsis;

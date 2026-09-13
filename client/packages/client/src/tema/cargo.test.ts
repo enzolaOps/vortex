@@ -1,6 +1,14 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
-import { corDeCargo } from "./cargo";
+import {
+  corDeCargo,
+  FIM_DO_GRADIENTE,
+  gradienteParaGravar,
+  lerGradiente,
+  pinturaDeCargo,
+} from "./cargo";
 import { hexParaOklch, oklchParaHex, razao } from "./cor";
 import { derivar, SEMENTE_PADRAO, type Modo } from "./derivar";
 
@@ -110,5 +118,116 @@ describe("cor de cargo", () => {
     // O protocolo permite gradiente CSS em cargo; devolver a string crua
     // reabriria o furo que este arquivo existe para fechar.
     expect(corDeCargo("linear-gradient(red, blue)", "escuro")).toBeUndefined();
+  });
+});
+
+describe("gradiente de cargo", () => {
+  /*
+    ⚠ **O pareamento com o SERVIDOR, lido do disco.** O editor grava uma
+    string que o `api` valida com `RE_COLOUR`; se a forma daqui divergir da
+    regex de lá, salvar o cargo volta 400 e a pessoa vê "não deu para salvar"
+    sem saber por quê. Copiar a regex para este arquivo seria a duplicação
+    que apodreceu em `corDeFundoDeMatiz` — então ela é lida de onde o
+    servidor a compila.
+  */
+  const rust = readFileSync(
+    new URL(
+      "../../../../../server/crates/core/models/src/v0/server_members.rs",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const fonte = /RE_COLOUR[\s\S]*?Regex::new\(r"(.*)"\)/.exec(rust)?.[1];
+
+  it("a regex do servidor foi encontrada — sem ela o teste abaixo não prova nada", () => {
+    expect(fonte).toBeDefined();
+    expect(fonte).toContain("gradient");
+  });
+
+  const RE_COLOUR = new RegExp((fonte ?? "$^").replace(/^\(\?i\)/, ""), "i");
+  const AMOSTRAS = ["#35C2CC", "#46C98A", "#E2B15C", "#E8596B", "#8B7BE8", "#6E7783"];
+
+  it("o que o editor grava o servidor aceita — para toda amostra", () => {
+    for (const de of AMOSTRAS) {
+      const gravada = gradienteParaGravar(de, FIM_DO_GRADIENTE);
+      expect(RE_COLOUR.test(gravada), gravada).toBe(true);
+      expect(gravada.length).toBeLessThanOrEqual(128);
+    }
+  });
+
+  it("volta a ler o que gravou, com as mesmas paradas", () => {
+    const g = lerGradiente(gradienteParaGravar("#35c2cc", FIM_DO_GRADIENTE))!;
+    expect(g.direcao).toBe("90deg");
+    expect(g.paradas.map((p) => p.hex)).toEqual(["#35c2cc", "#8b7be8"]);
+  });
+
+  it("aceita a gramática do servidor que dá para desenhar com contraste", () => {
+    expect(lerGradiente("linear-gradient(to right, #fff, #000)")?.direcao).toBe("to right");
+    expect(lerGradiente("linear-gradient(#fff, #000)")?.direcao).toBe("180deg");
+    expect(lerGradiente("linear-gradient(100deg in oklch, #8FE9F0, #C9B6F5 45%, #F3C6A8)")?.paradas)
+      .toEqual([{ hex: "#8fe9f0" }, { hex: "#c9b6f5", pos: 45 }, { hex: "#f3c6a8" }]);
+  });
+
+  /*
+    ⚠ **Segurança, não gosto.** `colour` é escrito por quem administra
+    QUALQUER servidor onde a pessoa esteja, e o `RE_COLOUR` aceita `var(--…)`,
+    que leria os tokens deste app. Cada caso abaixo é um jeito de fazer um
+    caractere de terceiro chegar ao `style`.
+  */
+  it("recusa tudo que não é hex reconstruível", () => {
+    for (const hostil of [
+      "linear-gradient(90deg, #fff, url(https://x/y.png))",
+      "linear-gradient(90deg, var(--vx-accent), #000)",
+      "linear-gradient(90deg, rgb(1, 2, 3), #000)",
+      "linear-gradient(90deg, #fff, #000);background:url(https://x)",
+      "linear-gradient(90deg, red, blue)",
+      "linear-gradient(90deg, #fff)",
+      "linear-gradient(, #fff, #000)",
+      "linear-gradient(90deg, #fff, #000) , url(x)",
+      "expression(alert(1))",
+    ]) {
+      expect(lerGradiente(hostil), hostil).toBeUndefined();
+      expect(pinturaDeCargo(hostil, "escuro"), hostil).toBeUndefined();
+    }
+  });
+
+  it("a saída é RECONSTRUÍDA — a caixa e o espaço de quem escreveu não sobrevivem", () => {
+    const p = pinturaDeCargo("LINEAR-GRADIENT(  90DEG ,  #FFFFFF ,#000000  )", "escuro");
+    expect(p?.tipo).toBe("gradiente");
+    if (p?.tipo !== "gradiente") return;
+    expect(p.texto).toMatch(/^linear-gradient\(in oklab 90deg, #[0-9a-f]{6}, #[0-9a-f]{6}\)$/);
+  });
+
+  it("toda parada passa 4,5:1 em todas as superfícies, e a interpolação é oklab", () => {
+    for (const modo of MODOS) {
+      const tokens = derivar(SEMENTE_PADRAO[modo]);
+      for (const de of MATIZES) {
+        const bruta = gradienteParaGravar(
+          corBruta(de, 0.16),
+          corBruta((de + 120) % 360, 0.37),
+        );
+        const p = pinturaDeCargo(bruta, modo);
+        expect(p?.tipo).toBe("gradiente");
+        if (p?.tipo !== "gradiente") continue;
+        // Interpolar em sRGB passaria por L diferente entre duas paradas de
+        // mesmo L; é o `in oklab` que estende a garantia ao gradiente inteiro.
+        expect(p.texto).toContain("in oklab");
+        for (const hex of p.texto.match(/#[0-9a-f]{6}/g)!) {
+          for (const s of SUPERFICIES) {
+            expect(razao(hex, tokens[s]), `${bruta} ${modo} ${s}`).toBeGreaterThanOrEqual(4.5);
+          }
+        }
+      }
+    }
+  });
+
+  it("onde o gradiente não entra, sobra a PRIMEIRA parada — e não mais a ausência", () => {
+    const bruta = gradienteParaGravar("#35C2CC", FIM_DO_GRADIENTE);
+    expect(corDeCargo(bruta, "escuro")).toBe(corDeCargo("#35C2CC", "escuro"));
+  });
+
+  it("cônico e radial degradam para a primeira parada", () => {
+    const p = pinturaDeCargo("conic-gradient(#35C2CC, #8B7BE8)", "claro");
+    expect(p).toEqual({ tipo: "solida", cor: corDeCargo("#35C2CC", "claro") });
   });
 });
