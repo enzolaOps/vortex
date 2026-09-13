@@ -145,3 +145,49 @@ export function criarFaixaDePcm():
     },
   };
 }
+
+/**
+ * As opções de `getDisplayMedia` com o áudio de janela restrito à janela.
+ *
+ * ⚠ **No navegador, compartilhar uma janela oferecia "áudio do sistema".** O
+ * Chromium, com `systemAudio: "include"`, mostra esse interruptor também na
+ * aba Janela, e ele captura o computador inteiro — relatado por quem usa, no
+ * Brave. `windowAudio` (Chromium 141+) é a dica que separa os dois casos:
+ * `"window"` só oferece o som daquela janela; onde o navegador não sabe fazer
+ * isso, não oferece som nenhum. Nos dois casos o sistema não vaza.
+ *
+ * Tela inteira continua com `systemAudio`, e aba com o som da aba.
+ *
+ * Só age quando há áudio pedido e ninguém escolheu `windowAudio` antes.
+ */
+export function comAudioSoDaJanela<T extends object>(
+  opcoes: T | undefined,
+): T & { windowAudio?: "window" } {
+  const o = (opcoes ?? {}) as T & { audio?: unknown; windowAudio?: unknown };
+  if (!o.audio || o.windowAudio !== undefined) return o as T;
+  return { ...o, windowAudio: "window" };
+}
+
+let getDisplayMediaEmbrulhado = false;
+
+/**
+ * Faz toda captura de tela da página passar por `comAudioSoDaJanela`.
+ *
+ * ⚠ **Embrulha o método do navegador, e a razão é o LiveKit.** Ele monta as
+ * opções de `getDisplayMedia` campo a campo (`screenCaptureToDisplayMediaStreamOptions`)
+ * e não conhece `windowAudio`, então passá-lo por `setScreenShareEnabled` não
+ * chega ao navegador. A alternativa — capturar e publicar à mão — duplicaria o
+ * ciclo de vida da transmissão que o SDK já resolve. Idempotente.
+ */
+export function restringirAudioDeJanelaNoNavegador(): void {
+  if (getDisplayMediaEmbrulhado) return;
+  const dispositivos =
+    typeof navigator === "undefined" ? undefined : navigator.mediaDevices;
+  if (!dispositivos || typeof dispositivos.getDisplayMedia !== "function") {
+    return;
+  }
+  const original = dispositivos.getDisplayMedia.bind(dispositivos);
+  dispositivos.getDisplayMedia = (opcoes?: DisplayMediaStreamOptions) =>
+    original(comAudioSoDaJanela(opcoes));
+  getDisplayMediaEmbrulhado = true;
+}

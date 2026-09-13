@@ -59,6 +59,7 @@ import {
   criarFaixaDePcm,
   ehJanela,
   ponteDeAudioDeJanela,
+  restringirAudioDeJanelaNoNavegador,
 } from "./audioDeJanela";
 import { client } from "./client";
 import { sairDaSalaLocalmente } from "./adapter";
@@ -1097,6 +1098,7 @@ export async function alternarTela(): Promise<void> {
   if (escolha === undefined) return;
 
   try {
+    restringirAudioDeJanelaNoNavegador();
     await p.setScreenShareEnabled(
       true,
       comAudioDaTela(escolha.opcoes),

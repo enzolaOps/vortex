@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 
 import {
+  comAudioSoDaJanela,
   criarDecodificadorDePcm,
   ehJanela,
   ponteDeAudioDeJanela,
@@ -125,6 +126,31 @@ describe("janela nunca leva o som do sistema", () => {
     expect(motor).toContain("source: Track.Source.ScreenShareAudio,");
     expect(motor).toMatch(
       /pub\.source === Track\.Source\.ScreenShareAudio\s*\)\s*\{\s*pararAudioDaJanela\(\);/,
+    );
+  });
+});
+
+describe("áudio de janela no navegador", () => {
+  it("com áudio pedido, restringe o som da janela à própria janela", () => {
+    expect(
+      comAudioSoDaJanela({ audio: true, systemAudio: "include" }),
+    ).toEqual({ audio: true, systemAudio: "include", windowAudio: "window" });
+  });
+
+  it("sem áudio pedido, não mexe", () => {
+    const o = { audio: false, video: true };
+    expect(comAudioSoDaJanela(o)).toBe(o);
+  });
+
+  it("não sobrescreve uma escolha explícita", () => {
+    const o = { audio: true, windowAudio: "exclude" };
+    expect(comAudioSoDaJanela(o)).toBe(o);
+  });
+
+  it("o motor embrulha a captura antes de compartilhar", () => {
+    const motor = readFileSync(new URL("./motorDeVoz.ts", import.meta.url), "utf8");
+    expect(motor).toMatch(
+      /restringirAudioDeJanelaNoNavegador\(\);\s*await p\.setScreenShareEnabled\(/,
     );
   });
 });
