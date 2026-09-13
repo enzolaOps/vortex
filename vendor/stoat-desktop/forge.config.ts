@@ -34,10 +34,9 @@ const makers: ForgeConfig["makers"] = [
    * install fine and never update again, which is the state this whole
    * pipeline exists to end.
    *
-   * ⚠ The build is UNSIGNED, and the consequence is visible: SmartScreen warns
-   * on first install. Signing needs a code-signing certificate; auto-update
-   * itself works unsigned on Windows, so the warning is a one-time cost at
-   * install, not a permanent one. Stated here rather than discovered later.
+   * ⚠ Signing is OPTIONAL: without a certificate SmartScreen warns once at
+   * install. Auto-update itself works unsigned on Windows, so the warning is a
+   * one-time cost, not a permanent one.
    *
    * Forge skips makers that do not support the host platform, so this one is
    * inert on the Linux runner and the Flatpak one is inert on Windows. No
@@ -46,6 +45,23 @@ const makers: ForgeConfig["makers"] = [
   new MakerSquirrel({
     name: STRINGS.execName,
     setupIcon: `${ASSET_DIR}/icon.ico`,
+    /*
+      ⚠ Nome SEM versão: o botão "Baixar para desktop" do cliente aponta para
+      `releases/latest/download/Vortex-Setup.exe`, e um nome com a versão
+      dentro mudaria a cada release e quebraria o link.
+    */
+    setupExe: "Vortex-Setup.exe",
+    /*
+      Assinatura OPCIONAL. Com o secret configurado no CI, o instalador e o
+      executável saem assinados e o SmartScreen para de avisar; sem ele, o
+      build segue sem assinatura em vez de falhar. Ver o workflow do desktop.
+    */
+    ...(process.env.WINDOWS_CERTIFICATE_FILE
+      ? {
+          certificateFile: process.env.WINDOWS_CERTIFICATE_FILE,
+          certificatePassword: process.env.WINDOWS_CERTIFICATE_PASSWORD,
+        }
+      : {}),
   }),
   new MakerFlatpak({
     options: {
