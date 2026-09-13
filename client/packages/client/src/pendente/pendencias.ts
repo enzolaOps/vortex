@@ -211,7 +211,7 @@ export const PENDENCIAS = {
 
   /* ------------------------------------------------------- voz e vídeo */
   /*
-    ⚠ **Seis pendências e NENHUMA delas é "a tela não existe".** Todas as
+    ⚠ **NENHUMA destas pendências é "a tela não existe".** Todas as
     preferências desta seção são guardadas, e quatro chegam ao WebRTC de
     verdade (`constraintsDeAudio` em `store/preferenciasDeVoz.ts`). O que está
     aqui é o que precisa de algo que o navegador ou o sistema não dão.
@@ -236,11 +236,6 @@ export const PENDENCIAS = {
     superficie: "Configurações · Voz e vídeo",
     faz: "Desfocar o fundo ou trocá-lo por uma imagem.",
     depende: "segmentação de imagem (`@livekit/track-processors`) — meio megabyte de modelo",
-  },
-  atalhoGlobal: {
-    superficie: "Configurações · Voz e vídeo",
-    faz: "Gravar uma combinação que funciona mesmo com o app em segundo plano.",
-    depende: "`globalShortcut` do Electron — o navegador não vê tecla fora da aba",
   },
 
   /* ---------------------------------------------------------------- voz */

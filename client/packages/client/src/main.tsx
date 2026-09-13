@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { ligarSonsDeVoz } from "./som/sons";
+import { ligarAtalhosDeVoz } from "./sdk/atalhosDeVoz";
 
 import { ARNES_ATIVO } from "./dev/arnesAtivo";
 import { ligarRota } from "./rota/rota";
@@ -67,6 +68,13 @@ if (!ARNES_ATIVO) ligarRota();
   lugar onde dá para ouvir os quatro sem um servidor.
 */
 ligarSonsDeVoz();
+
+/*
+  Push-to-talk, mutar, ensurdecer e desconectar pelo teclado — e, no desktop,
+  com o app em segundo plano. Module-level pelo mesmo motivo dos sons: assina
+  stores e teclado, e nenhum componente vive o mesmo tanto que a sessão.
+*/
+ligarAtalhosDeVoz();
 
 createRoot(root).render(
   <StrictMode>

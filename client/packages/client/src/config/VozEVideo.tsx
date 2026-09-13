@@ -6,8 +6,6 @@ import { Escolha } from "../components/ui/Escolha";
 import { Interruptor } from "../components/ui/Interruptor";
 import { CartaoDeOpcao } from "../components/ui/CartaoDeOpcao";
 import { Segmentado } from "../components/ui/Segmentado";
-import { Selo } from "../components/ui/Selo";
-import { Combinacao } from "../components/ui/Tecla";
 import { cn } from "../lib/cn";
 import { aindaNao } from "../pendente/pendencias";
 import {
@@ -35,6 +33,7 @@ import {
   PaginaDeAjustes,
 } from "./Pagina";
 import css from "./VozEVideo.module.css";
+import { TabelaDeAtalhos } from "./TabelaDeAtalhos";
 
 /**
  * Os dispositivos que o navegador enumera.
@@ -157,30 +156,6 @@ function CampoDeVolume({
     </div>
   );
 }
-
-/**
- * Os atalhos que funcionam com o app em segundo plano.
- *
- * ⚠ **Eles são só do DESIGN hoje, e o conflito é a razão de estarem aqui
- * mesmo assim.** Gravar combinação global é `globalShortcut` do Electron — o
- * navegador não vê tecla fora da aba. Mas a tabela ensina a regra que vai valer
- * quando existir: combinação repetida derruba as DUAS linhas, e as duas se
- * acusam. Marcar só uma faria a pessoa consertar a errada.
- */
-const ATALHOS_GLOBAIS = [
-  { acao: "Push-to-talk", teclas: ["alt", "Espaço"] },
-  { acao: "Mutar microfone", teclas: ["shift", "mod", "M"] },
-  { acao: "Ensurdecer", teclas: ["shift", "mod", "D"] },
-  { acao: "Desconectar da voz", teclas: ["shift", "mod", "backspace"] },
-  { acao: "Alternar overlay", teclas: ["shift", "mod", "M"] },
-] as const;
-
-/** Uma combinação repetida marca TODAS as linhas que a usam. */
-const REPETIDAS = new Set(
-  ATALHOS_GLOBAIS.map((a) => a.teclas.join("+")).filter(
-    (c, i, todas) => todas.indexOf(c) !== i,
-  ),
-);
 
 /**
  * Voz e vídeo.
@@ -566,49 +541,13 @@ export function VozEVideo() {
 
       <CabecalhoDeSecao titulo="Atalhos globais" />
 
-      <div className={css.tabela}>
-        <div className={css.cabecalhoDaTabela}>
-          <span>Ação</span>
-          <span>Combinação</span>
-          <span />
-        </div>
-
-        {ATALHOS_GLOBAIS.map((a) => {
-          const conflito = REPETIDAS.has(a.teclas.join("+"));
-          return (
-            <div
-              key={a.acao}
-              className={css.linhaDaTabela}
-              data-conflito={conflito}
-            >
-              <span className={css.acao}>
-                {a.acao}
-                {conflito ? (
-                  <Selo forma="etiqueta" tom="perigo">
-                    Conflito
-                  </Selo>
-                ) : null}
-              </span>
-              <Combinacao
-                teclas={a.teclas}
-                className={conflito ? css.conflitoNaTecla : undefined}
-              />
-              <Botao
-                variante="sutil"
-                tamanho="pequeno"
-                onClick={aindaNao("atalhoGlobal")}
-              >
-                Editar
-              </Botao>
-            </div>
-          );
-        })}
-      </div>
+      <TabelaDeAtalhos />
 
       <p className={pg.recado}>
         Conflito é detectado na hora da gravação: a combinação duplicada aparece
-        nas duas linhas e nenhuma das duas funciona até resolver. Atalho global
-        só vale no aplicativo de desktop — o navegador não vê tecla fora da aba.
+        nas duas linhas e nenhuma das duas funciona até resolver. No navegador
+        os atalhos valem com a aba em foco; no aplicativo de desktop, também com
+        ele em segundo plano.
       </p>
     </PaginaDeAjustes>
   );

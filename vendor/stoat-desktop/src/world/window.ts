@@ -63,6 +63,27 @@ contextBridge.exposeInMainWorld("vortexAudioDeJanela", {
 });
 
 /**
+ * Atalhos de voz globais e a bandeja — ver `native/controles.ts`.
+ *
+ * Ponte SEPARADA pela mesma razão de `vortexAudioDeJanela`: um verbo novo em
+ * `vortex` faria cascas antigas parecerem incompletas para o cliente novo.
+ *
+ * Nenhuma tecla atravessa: o main manda só o COMANDO da combinação que o
+ * próprio cliente cadastrou.
+ */
+contextBridge.exposeInMainWorld("vortexControles", {
+  definirAtalhos: (atalhos: unknown) =>
+    ipcRenderer.invoke("vortexDefinirAtalhos", atalhos),
+  assinarComandos: (ouvinte: (c: unknown) => void) => {
+    const alca = (_evento: unknown, c: unknown) => ouvinte(c);
+    ipcRenderer.on("vortexComandoDeVoz", alca);
+    return () => ipcRenderer.off("vortexComandoDeVoz", alca);
+  },
+  publicarEstadoDeVoz: (estado: unknown) =>
+    ipcRenderer.send("vortexEstadoDeVoz", estado),
+});
+
+/**
  * `window.vortex` — o contrato que o cliente React declara.
  *
  * ⚠ **Ele NUNCA existiu, e o sintoma foi "não aparecem os botões de
