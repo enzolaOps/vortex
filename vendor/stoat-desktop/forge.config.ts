@@ -6,6 +6,7 @@ import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import { VitePlugin } from "@electron-forge/plugin-vite";
 import type { ForgeConfig } from "@electron-forge/shared-types";
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -182,6 +183,8 @@ const config: ForgeConfig = {
           "file-uri-to-path",
           "koffi",
           "@koromix/koffi-win32-x64",
+          /* "Atenuar outros apps" — `src/native/atenuacao.ts`. */
+          "native-sound-mixer",
         ]) {
           fs.cpSync(
             path.join("node_modules", pacote),
@@ -189,6 +192,29 @@ const config: ForgeConfig = {
             { recursive: true },
           );
         }
+        /*
+          ⚠ **O `.node` do native-sound-mixer é trocado pelo compilado do
+          FONTE.** O pacote do npm só traz o binário; ver
+          `scripts/compilar-sound-mixer.mjs`. Falhar aqui falha o build — sem
+          recuo para o binário publicado.
+        */
+        const compilado = execFileSync(
+          process.execPath,
+          [path.join("scripts", "compilar-sound-mixer.mjs")],
+          { stdio: ["ignore", "pipe", "inherit"] },
+        )
+          .toString()
+          .trim();
+        const destino = path.join(
+          buildPath,
+          "node_modules",
+          "native-sound-mixer",
+          "dist",
+          "addons",
+        );
+        fs.copyFileSync(compilado, path.join(destino, "win-sound-mixer.node"));
+        /* O de Linux do pacote não roda no Windows e não tem fonte conferido. */
+        fs.rmSync(path.join(destino, "linux-sound-mixer.node"), { force: true });
       }
       if (platform === "linux") {
         // Copy only the files we need to run the code, which is dist, LICENSE, and package.json

@@ -57,6 +57,7 @@
   "optionalDependencies": {
     "koffi": "3.2.1",
     "loopback-capture": "3.0.2",
+    "native-sound-mixer": "3.4.6-win",
     "node-pipewire": "1.1.0",
     "uiohook-napi": "1.5.5"
   },

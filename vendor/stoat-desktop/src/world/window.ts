@@ -131,6 +131,14 @@ contextBridge.exposeInMainWorld("vortexOverlay", {
 });
 
 /**
+ * "Atenuar outros apps" — ver `native/atenuacao.ts`. Um booleano atravessa,
+ * nada mais. Ponte separada pela mesma razão das outras.
+ */
+contextBridge.exposeInMainWorld("vortexAtenuacao", {
+  atenuar: (sim: boolean) => ipcRenderer.send("vortexAtenuar", sim === true),
+});
+
+/**
  * `window.vortex` — o contrato que o cliente React declara.
  *
  * ⚠ **Ele NUNCA existiu, e o sintoma foi "não aparecem os botões de

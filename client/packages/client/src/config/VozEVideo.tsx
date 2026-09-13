@@ -34,6 +34,7 @@ import {
 } from "./Pagina";
 import css from "./VozEVideo.module.css";
 import { TabelaDeAtalhos } from "./TabelaDeAtalhos";
+import { assinarDesktop, lerDesktop } from "../store/desktop";
 
 /**
  * Os dispositivos que o navegador enumera.
@@ -176,6 +177,7 @@ export function VozEVideo() {
     assinarPreferenciasDeVoz,
     lerPreferenciasDeVoz,
   );
+  const { naCasca } = useSyncExternalStore(assinarDesktop, lerDesktop);
   const entradas = useDispositivos("audioinput");
   const saidas = useDispositivos("audiooutput");
   const cameras = useDispositivos("videoinput");
@@ -421,15 +423,18 @@ export function VozEVideo() {
 
         <LinhaDeAjuste
           titulo="Atenuar outros apps"
-          detalhe="Baixa o volume do sistema em 50% quando alguém fala"
+          detalhe={
+            /* O navegador não mexe no volume de outros programas; dizer isso é
+               melhor que um interruptor que liga e não faz nada. */
+            naCasca
+              ? "Baixa o volume dos outros programas em 50% quando alguém fala"
+              : "Só no aplicativo de desktop — o navegador não controla outros programas"
+          }
         >
           <Interruptor
             ligado={p.atenuarOutrosApps}
             rotulo="Atenuar outros apps"
-            aoAlternar={(v) => {
-              definirPreferenciasDeVoz({ atenuarOutrosApps: v });
-              if (v) aindaNao("atenuarOutrosApps")();
-            }}
+            aoAlternar={(v) => definirPreferenciasDeVoz({ atenuarOutrosApps: v })}
           />
         </LinhaDeAjuste>
       </GrupoDeAjustes>
