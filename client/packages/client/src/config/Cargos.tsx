@@ -26,9 +26,12 @@ import {
   usePinturaDeCargo,
 } from "../store/hooks";
 import {
+  ehHolografico,
   FIM_DO_GRADIENTE,
   gradienteParaGravar,
+  HOLOGRAFICO,
   lerGradiente,
+  TINTA_HOLOGRAFICA,
   type PinturaDeCargo,
 } from "../tema/cargo";
 import { propsDoNome } from "../membros/pinturaDoNome";
@@ -429,10 +432,16 @@ export function Cargos({ serverId }: { serverId: string }) {
  * a segunda cópia é onde a divergência começa. 15% é o número do design.
  */
 function propsDaPill(pintura: PinturaDeCargo | undefined): {
-  "data-pintura"?: "gradiente";
+  "data-pintura"?: "gradiente" | "holografico";
   style?: React.CSSProperties;
 } {
   if (pintura === undefined) return {};
+  if (pintura.tipo === "holografico") {
+    return {
+      "data-pintura": "holografico",
+      style: { backgroundImage: pintura.fundo, color: TINTA_HOLOGRAFICA },
+    };
+  }
   if (pintura.tipo === "gradiente") {
     // O texto vai para `text-1` no CSS; aqui só o dado — as paradas a 33%.
     return { "data-pintura": "gradiente", style: { backgroundImage: pintura.fundo } };
@@ -478,7 +487,9 @@ type AbaDoCargo = "exibicao" | "permissoes" | "links" | "membros";
  * validado no servidor por `RE_COLOUR`, que aceita `linear-gradient(...)`
  * explicitamente. O estilo não é GUARDADO: ele é LIDO da forma de `colour`
  * (`lerGradiente`), e é por isso que abrir um cargo já salvo em gradiente abre
- * com "Gradiente" marcado sem campo nenhum a mais. Holográfico segue pendente.
+ * com "Gradiente" marcado sem campo nenhum a mais. O holográfico é o mesmo
+ * mecanismo com as paradas fixas do design (`HOLOGRAFICO`), reconhecido na
+ * leitura por `ehHolografico`.
  */
 const ESTILOS = [
   { id: "solido", rotulo: "Sólido" },
@@ -520,7 +531,11 @@ function EditorDeCargo({
   );
   const [colorido, setColorido] = useState(cargo.cor !== undefined);
   const [estilo, setEstilo] = useState<EstiloDeCargo>(
-    salvo && salvo.direcao !== "" ? "gradiente" : "solido",
+    ehHolografico(salvo)
+      ? "holografico"
+      : salvo && salvo.direcao !== ""
+        ? "gradiente"
+        : "solido",
   );
   const [destacado, setDestacado] = useState(cargo.destacado);
   const [marcadas, setMarcadas] = useState<readonly string[]>(cargo.concedidas);
@@ -534,9 +549,11 @@ function EditorDeCargo({
     se vê aqui é o que a lista de membros vai desenhar, clamp incluído.
   */
   const bruta = colorido
-    ? estilo === "gradiente"
-      ? gradienteParaGravar(cor, fim)
-      : cor
+    ? estilo === "holografico"
+      ? HOLOGRAFICO
+      : estilo === "gradiente"
+        ? gradienteParaGravar(cor, fim)
+        : cor
     : undefined;
   const pintura = usePinturaDeCargo(bruta);
   const corLegivel = pintura?.cor;
@@ -618,16 +635,12 @@ function EditorDeCargo({
                     role="radio"
                     aria-checked={estilo === op.id}
                     className={cargoCss.estilo}
-                    onClick={
-                      op.id === "holografico"
-                        ? aindaNao("estiloHolografico")
-                        : () => {
-                            setEstilo(op.id);
-                            // Gradiente é desenhado A PARTIR da cor; escolhê-lo
-                            // sem cor seria escolher nada.
-                            if (op.id === "gradiente") setColorido(true);
-                          }
-                    }
+                    onClick={() => {
+                      setEstilo(op.id);
+                      // Gradiente e holográfico colorem o nome; escolher um
+                      // deles sem cor seria escolher nada.
+                      if (op.id !== "solido") setColorido(true);
+                    }}
                   >
                     <span
                       aria-hidden
