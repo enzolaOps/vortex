@@ -525,6 +525,7 @@ impl crate::Message {
             masquerade: self.masquerade.map(Into::into),
             flags: self.flags.unwrap_or_default(),
             pinned: self.pinned,
+            poll: self.poll.map(Into::into),
         }
     }
 }
@@ -554,6 +555,7 @@ impl From<crate::PartialMessage> for PartialMessage {
             masquerade: value.masquerade.map(Into::into),
             flags: value.flags,
             pinned: value.pinned,
+            poll: value.poll.map(Into::into),
         }
     }
 }
@@ -611,6 +613,109 @@ impl From<crate::AppendMessage> for AppendMessage {
     fn from(value: crate::AppendMessage) -> Self {
         AppendMessage {
             embeds: value.embeds,
+        }
+    }
+}
+
+impl From<crate::ServerEvent> for ServerEvent {
+    fn from(value: crate::ServerEvent) -> Self {
+        ServerEvent {
+            id: value.id,
+            server: value.server,
+            creator: value.creator,
+            name: value.name,
+            description: value.description,
+            starts_at: value.starts_at,
+            ends_at: value.ends_at,
+            location: value.location.into(),
+            image: value.image.map(Into::into),
+            recurrence: value.recurrence.map(Into::into),
+            remind: value.remind,
+            interested: value.interested,
+        }
+    }
+}
+
+impl From<crate::ServerEventLocation> for ServerEventLocation {
+    fn from(value: crate::ServerEventLocation) -> Self {
+        match value {
+            crate::ServerEventLocation::Channel { channel } => {
+                ServerEventLocation::Channel { channel }
+            }
+            crate::ServerEventLocation::External { url } => ServerEventLocation::External { url },
+        }
+    }
+}
+
+impl From<ServerEventLocation> for crate::ServerEventLocation {
+    fn from(value: ServerEventLocation) -> Self {
+        match value {
+            ServerEventLocation::Channel { channel } => {
+                crate::ServerEventLocation::Channel { channel }
+            }
+            ServerEventLocation::External { url } => crate::ServerEventLocation::External { url },
+        }
+    }
+}
+
+impl From<crate::ServerEventRecurrence> for ServerEventRecurrence {
+    fn from(value: crate::ServerEventRecurrence) -> Self {
+        match value {
+            crate::ServerEventRecurrence::Weekly => ServerEventRecurrence::Weekly,
+            crate::ServerEventRecurrence::Biweekly => ServerEventRecurrence::Biweekly,
+            crate::ServerEventRecurrence::Monthly => ServerEventRecurrence::Monthly,
+        }
+    }
+}
+
+impl From<ServerEventRecurrence> for crate::ServerEventRecurrence {
+    fn from(value: ServerEventRecurrence) -> Self {
+        match value {
+            ServerEventRecurrence::Weekly => crate::ServerEventRecurrence::Weekly,
+            ServerEventRecurrence::Biweekly => crate::ServerEventRecurrence::Biweekly,
+            ServerEventRecurrence::Monthly => crate::ServerEventRecurrence::Monthly,
+        }
+    }
+}
+
+impl From<crate::Poll> for Poll {
+    fn from(value: crate::Poll) -> Self {
+        Poll {
+            question: value.question,
+            answers: value
+                .answers
+                .into_iter()
+                .map(|answer| PollAnswer {
+                    id: answer.id,
+                    text: answer.text,
+                })
+                .collect(),
+            max_answers: value.max_answers,
+            expires_at: value.expires_at,
+            hide_results: value.hide_results,
+            ended_at: value.ended_at,
+            votes: value.votes,
+        }
+    }
+}
+
+impl From<Poll> for crate::Poll {
+    fn from(value: Poll) -> Self {
+        crate::Poll {
+            question: value.question,
+            answers: value
+                .answers
+                .into_iter()
+                .map(|answer| crate::PollAnswer {
+                    id: answer.id,
+                    text: answer.text,
+                })
+                .collect(),
+            max_answers: value.max_answers,
+            expires_at: value.expires_at,
+            hide_results: value.hide_results,
+            ended_at: value.ended_at,
+            votes: value.votes,
         }
     }
 }
@@ -1466,6 +1571,9 @@ impl From<crate::VoiceInformation> for VoiceInformation {
             // Zero no documento é lixo de cliente: o slider gravava 0 para
             // "sem limite", e o join tratava como teto de zero vagas.
             max_users: value.max_users.filter(|&n| n > 0),
+            bitrate: value.bitrate,
+            rtc_region: value.rtc_region,
+            video_quality: value.video_quality.map(Into::into),
         }
     }
 }
@@ -1474,6 +1582,32 @@ impl From<VoiceInformation> for crate::VoiceInformation {
     fn from(value: VoiceInformation) -> Self {
         crate::VoiceInformation {
             max_users: value.max_users.filter(|&n| n > 0),
+            // Fora da faixa vira ausência, e não um teto aparado em silêncio:
+            // quem manda 0 ou 10000 não escolheu um bitrate. A rota recusa
+            // antes de chegar aqui; isto só protege documento escrito à mão.
+            bitrate: value.bitrate.filter(|b| (8..=384).contains(b)),
+            rtc_region: value.rtc_region.filter(|r| !r.is_empty()),
+            video_quality: value.video_quality.map(Into::into),
+        }
+    }
+}
+
+impl From<crate::VideoQualityMode> for VideoQualityMode {
+    fn from(value: crate::VideoQualityMode) -> Self {
+        match value {
+            crate::VideoQualityMode::Auto => VideoQualityMode::Auto,
+            crate::VideoQualityMode::Hd720p30 => VideoQualityMode::Hd720p30,
+            crate::VideoQualityMode::Hd1080p60 => VideoQualityMode::Hd1080p60,
+        }
+    }
+}
+
+impl From<VideoQualityMode> for crate::VideoQualityMode {
+    fn from(value: VideoQualityMode) -> Self {
+        match value {
+            VideoQualityMode::Auto => crate::VideoQualityMode::Auto,
+            VideoQualityMode::Hd720p30 => crate::VideoQualityMode::Hd720p30,
+            VideoQualityMode::Hd1080p60 => crate::VideoQualityMode::Hd1080p60,
         }
     }
 }

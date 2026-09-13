@@ -3,6 +3,7 @@ use crate::{
     PartialMessage, ReferenceDb,
 };
 use futures::future::try_join_all;
+use iso8601_timestamp::Timestamp;
 use indexmap::IndexSet;
 use revolt_result::Result;
 use std::collections::HashMap;
@@ -275,6 +276,46 @@ impl AbstractMessages for ReferenceDb {
         } else {
             Err(create_error!(NotFound))
         }
+    }
+
+    /// Replace a user's vote on a message's poll (Vortex)
+    async fn set_poll_vote(
+        &self,
+        id: &str,
+        user: &str,
+        answers: &[String],
+        all_answers: &[String],
+    ) -> Result<()> {
+        let mut messages = self.messages.lock().await;
+        let Some(poll) = messages.get_mut(id).and_then(|m| m.poll.as_mut()) else {
+            return Err(create_error!(NotFound));
+        };
+
+        for answer in all_answers {
+            if let Some(users) = poll.votes.get_mut(answer) {
+                users.shift_remove(user);
+            }
+        }
+
+        for answer in answers {
+            poll.votes
+                .entry(answer.clone())
+                .or_default()
+                .insert(user.to_string());
+        }
+
+        Ok(())
+    }
+
+    /// Mark a message's poll as ended (Vortex)
+    async fn end_poll(&self, id: &str, ended_at: &Timestamp) -> Result<()> {
+        let mut messages = self.messages.lock().await;
+        let Some(poll) = messages.get_mut(id).and_then(|m| m.poll.as_mut()) else {
+            return Err(create_error!(NotFound));
+        };
+
+        poll.ended_at = Some(*ended_at);
+        Ok(())
     }
 
     /// Delete a message from the database by its id

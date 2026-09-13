@@ -25,6 +25,7 @@ mod server_ack;
 mod server_create;
 mod server_delete;
 mod server_edit;
+mod server_events;
 mod server_fetch;
 
 pub fn routes() -> (Vec<Route>, OpenApi) {
@@ -53,6 +54,12 @@ pub fn routes() -> (Vec<Route>, OpenApi) {
         emoji_list::list_emoji,
         roles_edit_positions::edit_role_ranks,
         audit_log_query::query,
+        server_events::fetch_events,
+        server_events::create_event,
+        server_events::edit_event,
+        server_events::delete_event,
+        server_events::add_interest,
+        server_events::remove_interest,
         discover::discover_add::discover_add,
         discover::discover_get::discover_get,
         discover::discover_remove::discover_remove,

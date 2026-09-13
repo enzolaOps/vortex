@@ -103,8 +103,15 @@ pub enum ChannelPermission {
     /// Access server audit logs
     ViewAuditLogs = 1 << 40,
 
+    // * Vortex
+    /// Create, edit and delete scheduled server events
+    ///
+    /// Bit novo do fork, no começo da área livre: nenhum bit existente foi
+    /// renumerado, e `GrantAllSafe` já o cobre.
+    ManageEvents = 1 << 41,
+
     // * Misc. permissions
-    // % Bits 41 to 52: free area
+    // % Bits 42 to 52: free area
     // % Bits 53 to 64: do not use
 
     // * Grant all permissions

@@ -10,7 +10,7 @@ use revolt_result::{create_error, Result};
 use rocket::{serde::json::Json, State};
 use validator::Validate;
 
-use crate::util::audit_log_reason::AuditLogReason;
+use crate::util::{audit_log_reason::AuditLogReason, voice::validate_voice_information};
 
 /// # Edit Channel
 ///
@@ -32,6 +32,10 @@ pub async fn edit(
             error: error.to_string()
         })
     })?;
+
+    if let Some(voice) = &data.voice {
+        validate_voice_information(voice).await?;
+    }
 
     let mut channel = target.as_channel(db).await?;
     let mut query = DatabasePermissionQuery::new(db, &user).channel(&channel);

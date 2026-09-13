@@ -226,6 +226,11 @@ impl Server {
         .p(self.id.clone())
         .await;
 
+        // Vortex: eventos agendados morrem com o servidor. Falha aqui não
+        // impede apagar o servidor — o evento órfão só é lido por quem ainda
+        // é membro, e não sobra membro.
+        db.delete_server_events(&self.id).await.ok();
+
         db.delete_server(&self.id).await
     }
 

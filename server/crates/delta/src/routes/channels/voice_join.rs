@@ -65,7 +65,11 @@ pub async fn call(
     let existing_node = get_channel_node(channel.id()).await?;
     let has_existing_node = existing_node.is_some(); // we move existing_node in the next statement so this is the quickest way to know if we need to set it.
 
+    // Vortex: a região fixada no canal ganha do nó que o cliente sugeriu. Sala
+    // já aberta continua no nó onde está — mover a sala derrubaria quem está
+    // dentro —, então a região vale a partir da próxima vez que ela esvaziar.
     let node = existing_node
+        .or_else(|| voice_info.rtc_region.clone())
         .or(node)
         .ok_or_else(|| create_error!(UnknownNode))?;
 

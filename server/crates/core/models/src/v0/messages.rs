@@ -71,6 +71,9 @@ auto_derived_partial!(
         /// Whether or not the message in pinned
         #[serde(skip_serializing_if = "crate::if_option_false")]
         pub pinned: Option<bool>,
+        /// Poll attached to this message (Vortex)
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub poll: Option<Poll>,
 
         /// Bitfield of message flags
         ///
@@ -82,6 +85,70 @@ auto_derived_partial!(
         pub flags: u32,
     },
     "PartialMessage"
+);
+
+auto_derived!(
+    /// Poll attached to a message (Vortex)
+    ///
+    /// Clients that do not know polls ignore this field and show the message
+    /// content, which the Vortex client fills with the question.
+    pub struct Poll {
+        /// Question being asked
+        pub question: String,
+        /// Possible answers, in display order
+        pub answers: Vec<PollAnswer>,
+        /// How many answers each person may pick at once
+        pub max_answers: u8,
+        /// When the poll stops accepting votes
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub expires_at: Option<Timestamp>,
+        /// Whether counts should stay hidden until the poll ends
+        ///
+        /// Enforced by clients: vote ids travel with the message, like reactions.
+        #[serde(skip_serializing_if = "crate::if_false", default)]
+        pub hide_results: bool,
+        /// When the poll was ended early by its author
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub ended_at: Option<Timestamp>,
+        /// Answer id to the ids of the users who picked it
+        #[serde(skip_serializing_if = "IndexMap::is_empty", default)]
+        pub votes: IndexMap<String, IndexSet<String>>,
+    }
+
+    /// One answer of a poll (Vortex)
+    pub struct PollAnswer {
+        /// Answer id, unique within the poll
+        pub id: String,
+        /// Answer text
+        pub text: String,
+    }
+
+    /// Poll to create together with a message (Vortex)
+    #[cfg_attr(feature = "validator", derive(Validate))]
+    pub struct DataPoll {
+        /// Question being asked
+        #[cfg_attr(feature = "validator", validate(length(min = 1, max = 300)))]
+        pub question: String,
+        /// Possible answers, in display order
+        #[cfg_attr(feature = "validator", validate(length(min = 2, max = 10)))]
+        pub answers: Vec<String>,
+        /// How many answers each person may pick at once, defaults to 1
+        pub max_answers: Option<u8>,
+        /// How long the poll accepts votes, in hours, defaults to 24
+        #[cfg_attr(feature = "validator", validate(range(min = 1, max = 768)))]
+        pub duration_hours: Option<u32>,
+        /// Whether counts should stay hidden until the poll ends
+        #[serde(default)]
+        pub hide_results: bool,
+    }
+
+    /// Vote on a poll (Vortex)
+    ///
+    /// Replaces the user's previous vote. An empty list removes it.
+    pub struct DataPollVote {
+        /// Ids of the picked answers
+        pub answers: Vec<String>,
+    }
 );
 
 auto_derived!(
@@ -282,6 +349,11 @@ auto_derived!(
         ///
         /// https://docs.rs/revolt-models/latest/revolt_models/v0/enum.MessageFlags.html
         pub flags: Option<u32>,
+
+        /// Poll to attach to this message (Vortex)
+        #[cfg_attr(feature = "validator", validate)]
+        #[serde(default)]
+        pub poll: Option<DataPoll>,
     }
 
     /// Options for querying messages
