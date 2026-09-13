@@ -64,15 +64,24 @@ export const PENDENCIAS = {
   /* --------------------------------------------- editor de cargo */
   /*
     Quatro entradas para uma aba, e a divisão é por DEPENDÊNCIA — igual à da
-    tag. Estilo e menção precisam de campo no protocolo; o ícone precisa de
-    campo E de upload; gerenciar em lote precisa só de tela, porque a escrita
-    já existe.
+    tag. Menção precisa de campo no protocolo; o ícone precisa de upload;
+    holográfico e gerenciar em lote precisam só de tela.
   */
-  estiloDeCargo: {
+  /*
+    ⚠ **Era `estiloDeCargo`, cobrindo gradiente E holográfico, com a razão
+    errada para os dois.** Dizia "o protocolo tem só colour, ou seja fork do
+    serviço api" — e o `RE_COLOUR` do servidor aceita gradiente em `colour`.
+    O gradiente saiu daqui e funciona. O holográfico do design também é um
+    gradiente ESTÁTICO (`100deg, #8FE9F0, #C9B6F5 45%, #F3C6A8`), sem
+    animação, então ele também cabe em `colour`: o que falta é só a tela —
+    reconhecer esse preset na leitura e desenhar a pílula clara com texto
+    escuro que o design pede.
+  */
+  estiloHolografico: {
     superficie: "Configurações do servidor · Cargos · Exibição",
-    faz: "Escolher entre nome sólido, em gradiente ou holográfico.",
+    faz: "Pintar o nome do cargo com o gradiente holográfico do design.",
     depende:
-      "um campo de estilo em Role — o protocolo tem só colour, ou seja fork do serviço api",
+      "só a tela — o preset é um gradiente estático que colour já aceita; falta reconhecê-lo na leitura e a pílula clara de texto escuro",
   },
   iconeDeCargo: {
     superficie: "Configurações do servidor · Cargos · Exibição",

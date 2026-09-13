@@ -61,21 +61,215 @@ export function corDeCargo(
   bruta: string | undefined,
   modo: Modo,
 ): string | undefined {
-  if (!bruta) return undefined;
+  return pinturaDeCargo(bruta, modo)?.cor;
+}
 
-  let cor;
-  try {
-    cor = hexParaOklch(bruta);
-  } catch {
-    // Cor que não é hex — o protocolo permite gradiente CSS em cargo, e um
-    // dia isso vai chegar. Devolver `undefined` faz o nome usar a cor de
-    // texto normal, que é legível; devolver a string crua reabriria o furo.
-    return undefined;
-  }
-
+/** Uma cor hex, com o L trocado pelo do app. Lança se não for hex. */
+function clamp(hex: string, modo: Modo): string {
+  const cor = hexParaOklch(hex);
   return oklchParaHex({
     l: L_DO_CARGO[modo],
     c: Math.min(cor.c, TETO[modo]),
     h: cor.h,
   });
+}
+
+/* ============================================================
+   Gradiente
+   ============================================================ */
+
+/**
+ * O gradiente de cargo, lido do `colour` do protocolo.
+ *
+ * ⚠ **Não é conceito que falta no Stoat, e este arquivo dizia que era.** O
+ * `RE_COLOUR` do servidor (`server_members.rs`) aceita explicitamente
+ * `(repeating-)?(linear|conic|radial)-gradient(...)` em `colour`, até 128
+ * caracteres, e o cliente Solid de referência já o desenha
+ * (`ColouredText.tsx`). O que faltava era do lado de cá: um gradiente não é
+ * uma cor, não passa por `hexParaOklch`, e caía no `catch` que devolvia
+ * ausência para não reabrir o furo de contraste.
+ *
+ * ⚠ **A string do servidor NUNCA vai ao DOM, nem depois de validada.** Ela é
+ * escrita por quem tem "gerenciar cargos" em qualquer servidor onde a pessoa
+ * esteja, e o regex do servidor aceita `var(--…)` — que leria os TOKENS deste
+ * app. O que sai daqui é RECONSTRUÍDO a partir de números e hex já passados
+ * pelo clamp; não há caminho por onde um caractere de quem escreveu chegue ao
+ * `style`.
+ *
+ * O que é aceito, e por quê é estreito:
+ * - só `linear-gradient` — cônico e radial sobre um nome de 13px não leem
+ *   como gradiente, leem como mancha; eles DEGRADAM para a primeira parada;
+ * - direção em graus ou `to <lado>`; `in <espaço>` é ignorado, porque aqui a
+ *   interpolação é SEMPRE `oklab` (ver `interpolacao` abaixo);
+ * - paradas só em hex, com posição opcional em `%`. Nome de cor, `rgb()` e
+ *   `var()` não têm como passar pelo clamp, e um gradiente com uma parada que
+ *   não passa é um gradiente cujo contraste ninguém garante — o todo cai.
+ */
+export type Gradiente = {
+  /** `90deg` ou `to right` — já normalizado, nunca o texto de quem escreveu. */
+  readonly direcao: string;
+  readonly paradas: readonly { readonly hex: string; readonly pos?: number }[];
+};
+
+const LADO = "(?:left|right|top|bottom)";
+const DIRECAO = new RegExp(`^(?:(\\d{1,3})deg|to ${LADO}(?: ${LADO})?)$`);
+const INTERPOLACAO = /\s+in\s+[a-z-]+(?:\s+(?:shorter|longer|increasing|decreasing)\s+hue)?$/;
+const PARADA = /^(#[0-9a-f]{3}|#[0-9a-f]{6})(?:\s+(\d{1,3})%|\s+0)?$/;
+
+/** Teto de paradas. O servidor cabe ~9 em 128 caracteres; mais é lixo. */
+const MAX_PARADAS = 8;
+
+/**
+ * Lê um gradiente de `colour`. `undefined` para qualquer coisa fora do que
+ * este cliente sabe desenhar com contraste garantido.
+ *
+ * Exportado porque o editor precisa do inverso — abrir um cargo que já tem
+ * gradiente e mostrar a cor escolhida, não o CSS.
+ */
+export function lerGradiente(bruta: string | undefined): Gradiente | undefined {
+  if (!bruta) return undefined;
+  const m = /^(?:repeating-)?(linear|conic|radial)-gradient\((.*)\)$/i.exec(
+    bruta.trim(),
+  );
+  if (!m) return undefined;
+
+  /*
+    Sem parênteses aninhados: o grammar aceito não tem função dentro, então
+    um `(` dentro do corpo é `rgb()`/`var()`/`url()` e o todo cai. É isso que
+    torna o `split(",")` seguro — uma vírgula de `rgb(1, 2, 3)` nunca chega
+    até aqui.
+  */
+  const corpo = m[2]!.toLowerCase();
+  if (/[()]/.test(corpo)) return undefined;
+
+  const partes = corpo.split(",").map((p) => p.trim());
+  let direcao = "180deg"; // o padrão do CSS, "to bottom"
+  const primeira = partes[0]!.replace(INTERPOLACAO, "").trim();
+  if (primeira === "") return undefined;
+  if (DIRECAO.test(primeira)) {
+    const graus = DIRECAO.exec(primeira)?.[1];
+    direcao =
+      graus === undefined ? primeira : `${String(Number(graus) % 360)}deg`;
+    partes.shift();
+  }
+
+  if (partes.length < 2 || partes.length > MAX_PARADAS) return undefined;
+
+  const paradas: { hex: string; pos?: number }[] = [];
+  for (const p of partes) {
+    const pm = PARADA.exec(p);
+    if (!pm) return undefined;
+    const pos = pm[2] === undefined ? undefined : Math.min(Number(pm[2]), 100);
+    paradas.push(pos === undefined ? { hex: pm[1]! } : { hex: pm[1]!, pos });
+  }
+
+  // Só o LINEAR é desenhado como gradiente; os outros dois viram a primeira
+  // parada, sinalizados por direção vazia.
+  return { direcao: m[1]!.toLowerCase() === "linear" ? direcao : "", paradas };
+}
+
+/**
+ * O que o EDITOR grava: `linear-gradient(90deg, #A, #B)`.
+ *
+ * A forma é a do design (a cor escolhida → a segunda parada) e é o subconjunto
+ * mais estreito do `RE_COLOUR` — `cargo.test.ts` lê a regex do servidor do
+ * disco e reprova se isto um dia sair dela.
+ */
+export function gradienteParaGravar(de: string, ate: string): string {
+  return `linear-gradient(90deg, ${de.toUpperCase()}, ${ate.toUpperCase()})`;
+}
+
+/**
+ * A segunda parada do design — o violeta da paleta de cargos.
+ *
+ * O design desenha o gradiente de cargo como UMA escolha: a cor da amostra na
+ * frente, este violeta atrás. Um segundo seletor de cor dobraria a decisão
+ * para ganhar uma liberdade que a tela não pede.
+ */
+export const FIM_DO_GRADIENTE = "#8B7BE8";
+
+/**
+ * A pintura de um cargo neste tema.
+ *
+ * `cor` existe nas DUAS variantes, e é a razão desta forma: toda superfície
+ * onde o gradiente não entra (autor na timeline, cartão de perfil, cabeçalho
+ * de seção) continua precisando de UMA cor, e a primeira parada passada pelo
+ * clamp é a identidade do cargo sem o adorno. A nota do design é explícita —
+ * gradiente só em pill e no nome da lista de membros, nunca no autor da
+ * mensagem, onde o contraste sobre a timeline é o que importa.
+ */
+export type PinturaDeCargo =
+  | { readonly tipo: "solida"; readonly cor: string }
+  | {
+      readonly tipo: "gradiente";
+      readonly cor: string;
+      /** Para `background-clip: text` — as paradas com o L do app. */
+      readonly texto: string;
+      /** O fundo da pílula: as mesmas paradas a 33%, como o design (`55`). */
+      readonly fundo: string;
+    };
+
+/**
+ * ⚠ **`in oklab` não é gosto, é a garantia de contraste.** Todas as paradas
+ * saem com o MESMO L; interpolar em sRGB (o padrão do CSS) passa por pontos
+ * intermediários com L diferente — o meio de um teal e um violeta em sRGB fica
+ * mais escuro que os dois —, e o contraste medido nas paradas não valeria
+ * entre elas. Em OKLab o L interpola linearmente entre dois iguais, ou seja
+ * fica constante: o que o teste prova nas paradas vale no gradiente inteiro.
+ */
+const interpolacao = "in oklab";
+
+/**
+ * Cache por (modo, bruta). O nome na member list e as pílulas re-renderizam
+ * sob presença; sem ele cada passagem refaria regex e conversão OKLCH por
+ * linha visível — o erro nº 4 do briefing com cor no lugar de markdown. As
+ * entradas são as cores DISTINTAS de cargo que a sessão viu, não mensagens, e
+ * o teto só existe porque o conteúdo vem de servidores alheios.
+ */
+const CACHE = new Map<string, PinturaDeCargo | null>();
+const TETO_DO_CACHE = 512;
+
+export function pinturaDeCargo(
+  bruta: string | undefined,
+  modo: Modo,
+): PinturaDeCargo | undefined {
+  if (!bruta) return undefined;
+  const chave = `${modo}|${bruta}`;
+  const guardada = CACHE.get(chave);
+  if (guardada !== undefined) return guardada ?? undefined;
+
+  const pintura = calcular(bruta, modo);
+  if (CACHE.size >= TETO_DO_CACHE) CACHE.clear();
+  CACHE.set(chave, pintura ?? null);
+  return pintura;
+}
+
+function calcular(bruta: string, modo: Modo): PinturaDeCargo | undefined {
+  try {
+    return { tipo: "solida", cor: clamp(bruta, modo) };
+  } catch {
+    // Não é hex: pode ser gradiente. Qualquer outra coisa é ausência —
+    // devolver a string crua reabriria o furo que este arquivo fecha.
+  }
+
+  const g = lerGradiente(bruta);
+  if (!g) return undefined;
+
+  const paradas = g.paradas.map((p) => ({ ...p, hex: clamp(p.hex, modo) }));
+  const cor = paradas[0]!.hex;
+  if (g.direcao === "") return { tipo: "solida", cor };
+
+  const emCss = (f: (hex: string) => string) =>
+    paradas
+      .map((p) => (p.pos === undefined ? f(p.hex) : `${f(p.hex)} ${String(p.pos)}%`))
+      .join(", ");
+
+  return {
+    tipo: "gradiente",
+    cor,
+    texto: `linear-gradient(${interpolacao} ${g.direcao}, ${emCss((h) => h)})`,
+    fundo: `linear-gradient(${interpolacao} ${g.direcao}, ${emCss(
+      (h) => `color-mix(in oklab, ${h} 33%, transparent)`,
+    )})`,
+  };
 }

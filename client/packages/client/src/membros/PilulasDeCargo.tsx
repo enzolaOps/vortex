@@ -1,7 +1,7 @@
 import { memo } from "react";
 
 import { cargosDoServidor } from "../sdk/cargos";
-import { useCorDeCargo } from "../store/hooks";
+import { usePinturaDeCargo } from "../store/hooks";
 import css from "./PilulasDeCargo.module.css";
 
 /**
@@ -21,29 +21,37 @@ const Pilula = memo(function Pilula({
   cor: string | undefined;
   denso: boolean;
 }) {
-  const legivel = useCorDeCargo(cor);
+  const pintura = usePinturaDeCargo(cor);
+  const gradiente = pintura?.tipo === "gradiente";
 
   return (
     <span
       className={denso ? css.densa : css.pilula}
+      data-pintura={gradiente ? "gradiente" : undefined}
       /*
         ⚠ **A cor é DADO e por isso vai em `style`** — é a mesma exceção da cor
         de cargo no nome do autor, e a única classe de cor literal que este
-        projeto aceita. O fundo é a mesma cor a 15%; sem `legivel`, o cargo é
-        neutro e a pílula não inventa cor nenhuma.
+        projeto aceita. Sólida: texto na cor e fundo a 15%. Gradiente: as
+        paradas a 33% no FUNDO e o texto em `text-1` (no CSS), como o design —
+        texto em gradiente sobre fundo em gradiente perderia as duas leituras.
+        Sem pintura, o cargo é neutro e a pílula não inventa cor nenhuma.
       */
       style={
-        legivel
-          ? {
-              color: legivel,
-              backgroundColor: `color-mix(in oklab, ${legivel} 15%, transparent)`,
-            }
-          : undefined
+        pintura === undefined
+          ? undefined
+          : pintura.tipo === "gradiente"
+            ? { backgroundImage: pintura.fundo }
+            : {
+                color: pintura.cor,
+                backgroundColor: `color-mix(in oklab, ${pintura.cor} 15%, transparent)`,
+              }
       }
     >
       {/* Sem o ponto no modo denso: há uma pílula por linha numa tabela de
-          mil, e o ponto repetido mil vezes vira textura, não informação. */}
-      {denso ? null : <span className={css.ponto} aria-hidden />}
+          mil, e o ponto repetido mil vezes vira textura, não informação. E
+          sem ele no gradiente: um ponto de UMA cor contradiria o fundo de
+          duas, e o design o tira. */}
+      {denso || gradiente ? null : <span className={css.ponto} aria-hidden />}
       {nome}
     </span>
   );

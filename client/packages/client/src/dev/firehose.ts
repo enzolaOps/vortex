@@ -481,7 +481,14 @@ const RECADOS = [
         },
         [CARGOS.moderacao]: {
           name: "moderação",
-          colour: "#9bdcb4",
+          /*
+            ⚠ Gradiente, e é o arnês mais pobre que o protocolo pela 12ª vez:
+            o `RE_COLOUR` do servidor aceita gradiente desde sempre e os três
+            cargos daqui eram hex, então o caminho de leitura do gradiente
+            nasceria construído e nunca visto. Este é HASTEADO de propósito —
+            abre seção na member list, que é onde o gradiente entra.
+          */
+          colour: "linear-gradient(90deg, #9BDCB4, #8B7BE8)",
           hoist: true,
           rank: 1,
           permissions: { a: 0, d: 0 },

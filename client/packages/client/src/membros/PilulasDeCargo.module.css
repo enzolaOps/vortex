@@ -55,3 +55,18 @@
   padding-inline: var(--vx-space-08);
   font-size: var(--vx-size-xs);
 }
+
+/*
+  Gradiente — o fundo vem do `style` (as paradas a 33%), o texto é o primário e
+  o recuo volta a ser simétrico, porque quem pedia o assimétrico era o ponto.
+  Medido no design: `padding: 0 9px`, `color: #E6EAF0` (text-1).
+*/
+.pilula[data-pintura="gradiente"] {
+  padding-inline: var(--vx-space-09);
+  background-color: transparent;
+  color: var(--vx-text-1);
+}
+
+.densa[data-pintura="gradiente"] {
+  padding-inline: var(--vx-space-08);
+}

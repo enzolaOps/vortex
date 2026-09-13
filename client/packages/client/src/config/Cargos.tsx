@@ -20,7 +20,18 @@ import cargoCss from "./Cargos.module.css";
 import { CaretRight } from "../components/ui/icones";
 import { CampoDeBusca } from "../components/ui/CampoDeBusca";
 import { aindaNao } from "../pendente/pendencias";
-import { useCorDeCargo, useMembrosDoServidor } from "../store/hooks";
+import {
+  useCorDeCargo,
+  useMembrosDoServidor,
+  usePinturaDeCargo,
+} from "../store/hooks";
+import {
+  FIM_DO_GRADIENTE,
+  gradienteParaGravar,
+  lerGradiente,
+  type PinturaDeCargo,
+} from "../tema/cargo";
+import { propsDoNome } from "../membros/pinturaDoNome";
 import { chaveDeMembro } from "../sdk/domain";
 import { members } from "../sdk/adapter";
 import { LinhaDeAjuste } from "./Pagina";
@@ -417,11 +428,20 @@ export function Cargos({ serverId }: { serverId: string }) {
  * ⚠ Função e não estilo inline repetido: os dois chips usam o mesmo cálculo, e
  * a segunda cópia é onde a divergência começa. 15% é o número do design.
  */
-function estiloDaPill(cor: string | undefined): React.CSSProperties | undefined {
-  if (cor === undefined) return undefined;
+function propsDaPill(pintura: PinturaDeCargo | undefined): {
+  "data-pintura"?: "gradiente";
+  style?: React.CSSProperties;
+} {
+  if (pintura === undefined) return {};
+  if (pintura.tipo === "gradiente") {
+    // O texto vai para `text-1` no CSS; aqui só o dado — as paradas a 33%.
+    return { "data-pintura": "gradiente", style: { backgroundImage: pintura.fundo } };
+  }
   return {
-    color: cor,
-    background: `color-mix(in oklab, ${cor} 15%, transparent)`,
+    style: {
+      color: pintura.cor,
+      background: `color-mix(in oklab, ${pintura.cor} 15%, transparent)`,
+    },
   };
 }
 
@@ -453,9 +473,12 @@ type AbaDoCargo = "exibicao" | "permissoes" | "links" | "membros";
 /**
  * Os três estilos de nome que a referência desenha.
  *
- * ⚠ **Nenhum deles existe no protocolo.** `Role` tem `_id`, `name`,
- * `permissions`, `colour`, `hoist`, `rank` e `icon` — não há campo de estilo.
- * Sólido é o que o app já faz; gradiente e holográfico são pendência.
+ * ⚠ **Este comentário dizia que nenhum deles existia no protocolo, e estava
+ * errado para o gradiente.** `Role` não tem campo de estilo — mas `colour` é
+ * validado no servidor por `RE_COLOUR`, que aceita `linear-gradient(...)`
+ * explicitamente. O estilo não é GUARDADO: ele é LIDO da forma de `colour`
+ * (`lerGradiente`), e é por isso que abrir um cargo já salvo em gradiente abre
+ * com "Gradiente" marcado sem campo nenhum a mais. Holográfico segue pendente.
  */
 const ESTILOS = [
   { id: "solido", rotulo: "Sólido" },
@@ -478,16 +501,48 @@ function EditorDeCargo({
 }) {
   const [aba, setAba] = useState<AbaDoCargo>("exibicao");
   const [nome, setNome] = useState(cargo.nome);
-  const [cor, setCor] = useState(cargo.cor ?? "#bcaef2");
+  /*
+    ⚠ **O estilo nasce da forma de `colour`, e começava sempre em "Sólido".**
+    Um cargo salvo em gradiente abriria dizendo "Sólido" com o CSS cru no
+    campo hex — e salvar sem mexer em nada o gravaria de volta como lixo.
+
+    `fim` preserva a SEGUNDA parada de um gradiente feito por outro cliente: o
+    editor só troca a primeira, e reescrever a segunda com o violeta do design
+    mudaria um cargo que ninguém pediu para mudar. Paradas do meio e ângulo
+    não sobrevivem a um salvar — a forma gravada é a do design.
+  */
+  const salvo = lerGradiente(cargo.cor);
+  const [cor, setCor] = useState(
+    salvo ? salvo.paradas[0]!.hex.toUpperCase() : (cargo.cor ?? "#bcaef2"),
+  );
+  const [fim] = useState(
+    salvo ? salvo.paradas.at(-1)!.hex.toUpperCase() : FIM_DO_GRADIENTE,
+  );
   const [colorido, setColorido] = useState(cargo.cor !== undefined);
-  const [estilo, setEstilo] = useState<EstiloDeCargo>("solido");
+  const [estilo, setEstilo] = useState<EstiloDeCargo>(
+    salvo && salvo.direcao !== "" ? "gradiente" : "solido",
+  );
   const [destacado, setDestacado] = useState(cargo.destacado);
   const [marcadas, setMarcadas] = useState<readonly string[]>(cargo.concedidas);
   const [buscaDePermissao, setBuscaDePermissao] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
 
-  const corLegivel = useCorDeCargo(colorido ? cor : undefined);
+  /*
+    O que vai para o servidor, e é a MESMA string que a prévia lê — a prévia
+    passa pelo caminho de leitura de verdade (`pinturaDeCargo`), então o que
+    se vê aqui é o que a lista de membros vai desenhar, clamp incluído.
+  */
+  const bruta = colorido
+    ? estilo === "gradiente"
+      ? gradienteParaGravar(cor, fim)
+      : cor
+    : undefined;
+  const pintura = usePinturaDeCargo(bruta);
+  const corLegivel = pintura?.cor;
+  // A faixa do cartão "Gradiente" mostra o gradiente da cor ATUAL mesmo com
+  // "Sólido" marcado — é prévia da escolha, como a faixa do cartão sólido.
+  const faixaGradiente = usePinturaDeCargo(gradienteParaGravar(cor, fim));
 
   function alternar(id: string) {
     setMarcadas((m) => (m.includes(id) ? m.filter((x) => x !== id) : [...m, id]));
@@ -564,11 +619,14 @@ function EditorDeCargo({
                     aria-checked={estilo === op.id}
                     className={cargoCss.estilo}
                     onClick={
-                      op.id === "solido"
-                        ? () => {
-                            setEstilo("solido");
+                      op.id === "holografico"
+                        ? aindaNao("estiloHolografico")
+                        : () => {
+                            setEstilo(op.id);
+                            // Gradiente é desenhado A PARTIR da cor; escolhê-lo
+                            // sem cor seria escolher nada.
+                            if (op.id === "gradiente") setColorido(true);
                           }
-                        : aindaNao("estiloDeCargo")
                     }
                   >
                     <span
@@ -577,7 +635,10 @@ function EditorDeCargo({
                       style={
                         op.id === "solido" && corLegivel
                           ? { background: corLegivel }
-                          : undefined
+                          : op.id === "gradiente" &&
+                              faixaGradiente?.tipo === "gradiente"
+                            ? { backgroundImage: faixaGradiente.texto }
+                            : undefined
                       }
                     />
                     <span className={cargoCss.estiloRotulo}>{op.rotulo}</span>
@@ -650,6 +711,7 @@ function EditorDeCargo({
                     variante="sutil"
                     onClick={() => {
                       setColorido(false);
+                      setEstilo("solido");
                     }}
                   >
                     Remover
@@ -721,7 +783,7 @@ function EditorDeCargo({
                   <span className={cargoCss.previaTextos}>
                     <span
                       className={cargoCss.previaNome}
-                      style={corLegivel ? { color: corLegivel } : undefined}
+                      {...propsDoNome(pintura)}
                     >
                       Marina Alcântara
                     </span>
@@ -734,10 +796,10 @@ function EditorDeCargo({
                   cima, separados por margem e não por uma régua. */}
               <p className={cargoCss.previaRotulo}>Como pill / menção</p>
               <div className={cargoCss.previaChips}>
-                  <span className={cargoCss.pill} style={estiloDaPill(corLegivel)}>
+                  <span className={cargoCss.pill} {...propsDaPill(pintura)}>
                     {nome}
                   </span>
-                  <span className={cargoCss.pill} style={estiloDaPill(corLegivel)}>
+                  <span className={cargoCss.pill} {...propsDaPill(pintura)}>
                     @{nome}
                   </span>
                 </div>
@@ -877,7 +939,7 @@ function EditorDeCargo({
               serverId,
               cargo.id,
               nome.trim(),
-              colorido ? cor : undefined,
+              bruta,
               destacado,
             )
               .then(() => salvarPermissoes(serverId, cargo.id, marcadas))
