@@ -4,6 +4,7 @@ use crate::{
 };
 use futures::future::try_join_all;
 use indexmap::IndexSet;
+use revolt_models::v0::MessageSearchHas;
 use revolt_result::Result;
 use std::collections::HashMap;
 use std::time::SystemTime;
@@ -63,6 +64,39 @@ impl AbstractMessages for ReferenceDb {
 
                 if let Some(pinned) = query.filter.pinned {
                     if message.pinned.unwrap_or_default() == pinned {
+                        return false;
+                    }
+                }
+
+                if let Some(has) = &query.filter.has {
+                    let kind = |wanted: &str| {
+                        message.attachments.as_ref().is_some_and(|files| {
+                            files.iter().any(|file| {
+                                matches!(
+                                    (&file.metadata, wanted),
+                                    (crate::Metadata::Image { .. }, "Image")
+                                        | (crate::Metadata::Video { .. }, "Video")
+                                        | (crate::Metadata::Audio, "Audio")
+                                )
+                            })
+                        })
+                    };
+
+                    let matches = match has {
+                        MessageSearchHas::Attachment => message
+                            .attachments
+                            .as_ref()
+                            .is_some_and(|files| !files.is_empty()),
+                        MessageSearchHas::Image => kind("Image"),
+                        MessageSearchHas::Video => kind("Video"),
+                        MessageSearchHas::Audio => kind("Audio"),
+                        MessageSearchHas::Link => message
+                            .content
+                            .as_ref()
+                            .is_some_and(|c| c.contains("http://") || c.contains("https://")),
+                    };
+
+                    if !matches {
                         return false;
                     }
                 }
