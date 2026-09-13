@@ -3,6 +3,9 @@ import { createRoot } from "react-dom/client";
 
 import { ligarSonsDeVoz } from "./som/sons";
 import { ligarAtalhosDeVoz } from "./sdk/atalhosDeVoz";
+import { ROTA_DO_OVERLAY } from "./overlay/modelo";
+import { Overlay } from "./overlay/Overlay";
+import { ligarPublicadorDoOverlay } from "./overlay/publicador";
 
 import { ARNES_ATIVO } from "./dev/arnesAtivo";
 import { ligarRota } from "./rota/rota";
@@ -20,6 +23,19 @@ import "./styles/tokens.css";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("#root ausente no index.html");
+
+/*
+  ⚠ **A janela do overlay do jogo carrega ESTE cliente, e para aqui.** Ela só
+  quer tokens, fontes e componentes: sem sessão, sem rota, sem socket, sem
+  sons nem atalhos — tudo o que ela desenha chega pela casca. Seguir adiante
+  abriria uma segunda conexão por janela e dispararia os atalhos em dobro.
+*/
+if (location.pathname === ROTA_DO_OVERLAY) {
+  document.documentElement.dataset.theme = "dark";
+  document.documentElement.style.background = "transparent";
+  document.body.style.background = "transparent";
+  createRoot(root).render(<Overlay />);
+} else {
 
 iniciarPintura();
 
@@ -75,6 +91,9 @@ ligarSonsDeVoz();
   stores e teclado, e nenhum componente vive o mesmo tanto que a sessão.
 */
 ligarAtalhosDeVoz();
+
+/* O que o overlay do jogo mostra — só na casca, e só nesta janela. */
+ligarPublicadorDoOverlay();
 
 createRoot(root).render(
   <StrictMode>
@@ -136,3 +155,4 @@ createRoot(root).render(
       </TooltipProvider>
   </StrictMode>,
 );
+}

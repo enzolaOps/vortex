@@ -24,10 +24,6 @@ export type ControleDeJanela = "minimizar" | "maximizar" | "restaurar" | "fechar
 export const AO_FECHAR = ["bandeja", "encerrar", "perguntar"] as const;
 export type AoFechar = (typeof AO_FECHAR)[number];
 
-/** Onde o overlay do jogo aparece. */
-export const CANTOS = ["cima-inicio", "cima-fim", "baixo-inicio", "baixo-fim"] as const;
-export type Canto = (typeof CANTOS)[number];
-
 /** O ciclo de vida de uma atualização — os seis estados do design. */
 export const ESTADOS_DE_ATUALIZACAO = [
   "em-dia",

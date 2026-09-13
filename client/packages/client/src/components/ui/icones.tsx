@@ -330,4 +330,20 @@ export const FORA_DA_ESCALA = [
       "design. Subir para 14 apagaria o degrau contra `.md`/`.lg`, que já " +
       "são 14; descer para 12 é menor do que o design desenha.",
   },
+  {
+    px: 11,
+    onde: "overlay/Overlay.module.css .cabecalho svg",
+    porque:
+      "O ícone de voz ao lado do nome do canal no widget do overlay do jogo, " +
+      "que tem 186px e texto de 11px. O design o escreve em 11: ele " +
+      "acompanha o rótulo, e em 14 pesaria mais que o próprio nome.",
+  },
+  {
+    px: 13,
+    onde: "overlay/Overlay.module.css .botao svg",
+    porque:
+      "Os três controles do widget do overlay, em alvos de 24px de altura. " +
+      "É o 13 do design e o mesmo raciocínio do `BotaoDeIcone`: o glifo " +
+      "acompanha o alvo sem ser o alvo.",
+  },
 ] as const;

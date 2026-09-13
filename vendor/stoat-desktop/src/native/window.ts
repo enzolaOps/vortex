@@ -15,6 +15,7 @@ import { config } from "./config";
 import { registrarAudioDaJanela } from "./audioDaJanela";
 import { registrarControles } from "./controles";
 import { registrarNotificacoes } from "./notificacoes";
+import { registrarOverlay } from "./overlay";
 import { registrarSeletorDeTela } from "./telaCompartilhada";
 import { updateTrayMenu } from "./tray";
 
@@ -209,6 +210,7 @@ export function createMainWindow() {
   registrarAudioDaJanela();
   registrarControles();
   registrarNotificacoes();
+  registrarOverlay();
 
   // push world events to the window
   ipcMain.on("minimise", () => mainWindow.minimize());

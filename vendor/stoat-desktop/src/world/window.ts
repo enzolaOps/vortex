@@ -95,6 +95,42 @@ contextBridge.exposeInMainWorld("vortexNotificacoes", {
 });
 
 /**
+ * O overlay do jogo — ver `native/overlay.ts`. A mesma ponte serve às duas
+ * janelas: a principal publica, a do overlay assina. O main confere quem
+ * mandou cada mensagem.
+ */
+contextBridge.exposeInMainWorld("vortexOverlay", {
+  publicar: (estado: unknown) => ipcRenderer.send("vortexOverlayPublicar", estado),
+  mensagem: (m: unknown) => ipcRenderer.send("vortexOverlayMensagem", m),
+  assinarEstado: (ouvinte: (e: unknown) => void) => {
+    const alca = (_evento: unknown, e: unknown) => ouvinte(e);
+    ipcRenderer.on("vortexOverlayEstado", alca);
+    void ipcRenderer
+      .invoke("vortexOverlayEstadoAtual")
+      .then((atual?: { estado?: unknown }) => {
+        if (atual?.estado) ouvinte(atual.estado);
+      });
+    return () => ipcRenderer.off("vortexOverlayEstado", alca);
+  },
+  assinarMensagens: (ouvinte: (m: unknown) => void) => {
+    const alca = (_evento: unknown, m: unknown) => ouvinte(m);
+    ipcRenderer.on("vortexOverlayMensagem", alca);
+    return () => ipcRenderer.off("vortexOverlayMensagem", alca);
+  },
+  assinarInteracao: (ouvinte: (sim: unknown) => void) => {
+    const alca = (_evento: unknown, sim: unknown) => ouvinte(sim);
+    ipcRenderer.on("vortexOverlayInteracao", alca);
+    void ipcRenderer
+      .invoke("vortexOverlayEstadoAtual")
+      .then((atual?: { interagindo?: unknown }) => {
+        if (atual) ouvinte(atual.interagindo === true);
+      });
+    return () => ipcRenderer.off("vortexOverlayInteracao", alca);
+  },
+  comando: (c: unknown) => ipcRenderer.send("vortexOverlayComando", c),
+});
+
+/**
  * `window.vortex` — o contrato que o cliente React declara.
  *
  * ⚠ **Ele NUNCA existiu, e o sintoma foi "não aparecem os botões de

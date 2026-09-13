@@ -92,7 +92,11 @@ export function executarComando(c: ComandoDeVoz): void {
   }
 }
 
-const COMANDO_DE_PRESSAO: Record<Exclude<AcaoDeVoz, "pushToTalk">, ComandoDeVoz> = {
+/*
+  `overlay` fica de fora de propósito: quem o alterna é a casca, no processo
+  main, e no navegador não há overlay para alternar.
+*/
+const COMANDO_DE_PRESSAO: Record<Exclude<AcaoDeVoz, "pushToTalk" | "overlay">, ComandoDeVoz> = {
   mutar: "mutar",
   ensurdecer: "ensurdecer",
   desconectar: "desconectar",

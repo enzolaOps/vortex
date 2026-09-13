@@ -46,6 +46,19 @@ export function ponteDeNotificacoes(): PonteDeNotificacoes | undefined {
 
 let canalVisto: string | undefined;
 
+/**
+ * Quem mais quer ver a mensagem que foi notificada com a janela atrás — o
+ * overlay do jogo. Gancho, e não import: o overlay lê stores do adapter, e o
+ * adapter chama este módulo; importar de volta fecharia um ciclo.
+ */
+let espelho: ((m: MensagemRecebida, titulo: string, corpo: string) => void) | undefined;
+
+export function definirEspelhoDeMensagem(
+  fn: ((m: MensagemRecebida, titulo: string, corpo: string) => void) | undefined,
+): void {
+  espelho = fn;
+}
+
 /** A navegação avisa qual canal está na tela — o adapter já sabe e empurra. */
 export function definirCanalVisto(channelId: string | undefined): void {
   canalVisto = channelId;
@@ -112,6 +125,7 @@ export function notificarMensagem(m: MensagemRecebida): void {
   }
   if (entrega.canais.has("push")) {
     notificarNoSistema(m, titulo, corpo);
+    espelho?.(m, titulo, corpo);
     /* Menção e DM com a janela atrás: a barra de tarefas pisca até olharem. */
     if (entrega.evento !== "mensagem") ponteDeNotificacoes()?.chamarAtencao();
   }

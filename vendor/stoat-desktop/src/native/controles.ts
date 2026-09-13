@@ -1,5 +1,6 @@
 import { app, ipcMain } from "electron";
 
+import { alternarOverlay } from "./overlay";
 import { definirEstadoDeVoz } from "./tray";
 import { mainWindow } from "./window";
 
@@ -34,7 +35,7 @@ type Combinacao = {
   shift: boolean;
 };
 
-const ACOES = ["pushToTalk", "mutar", "ensurdecer", "desconectar"] as const;
+const ACOES = ["pushToTalk", "mutar", "ensurdecer", "desconectar", "overlay"] as const;
 type Acao = (typeof ACOES)[number];
 
 type EventoDeTecla = { keycode: number };
@@ -123,6 +124,11 @@ function aoApertar(e: EventoDeTecla): void {
   baixas.add(e.keycode);
   for (const { acao, keycode, c } of cadastro) {
     if (keycode !== e.keycode || !modificadoresBatem(c)) continue;
+    /* O overlay é da casca: alterna aqui mesmo, sem ida e volta ao cliente. */
+    if (acao === "overlay") {
+      alternarOverlay();
+      return;
+    }
     if (acao === "pushToTalk") falando = true;
     enviar(acao === "pushToTalk" ? "pushToTalkInicio" : acao);
     return;

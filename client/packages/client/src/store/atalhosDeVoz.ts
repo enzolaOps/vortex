@@ -20,6 +20,7 @@ export const ACOES_DE_VOZ = [
   "mutar",
   "ensurdecer",
   "desconectar",
+  "overlay",
 ] as const;
 export type AcaoDeVoz = (typeof ACOES_DE_VOZ)[number];
 
@@ -28,6 +29,7 @@ export const ROTULO_DA_ACAO: Record<AcaoDeVoz, string> = {
   mutar: "Mutar microfone",
   ensurdecer: "Ensurdecer",
   desconectar: "Desconectar da voz",
+  overlay: "Alternar overlay",
 };
 
 export type CombinacaoDeTeclas = {
@@ -48,6 +50,8 @@ export const ATALHOS_PADRAO: AtalhosDeVoz = {
   mutar: { codigo: "KeyM", mod: true, alt: false, shift: true },
   ensurdecer: { codigo: "KeyD", mod: true, alt: false, shift: true },
   desconectar: { codigo: "Backspace", mod: true, alt: false, shift: true },
+  /* "Atalho para abrir · ⇧ `", da tela Desktop do design. */
+  overlay: { codigo: "Backquote", mod: false, alt: false, shift: true },
 };
 
 /** Teclas que só modificam: gravar uma delas sozinha não é combinação. */

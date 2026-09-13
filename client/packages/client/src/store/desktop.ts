@@ -1,4 +1,4 @@
-import { ponte, type AoFechar, type Canto } from "../sdk/desktop";
+import { ponte, type AoFechar } from "../sdk/desktop";
 
 /**
  * As preferências que só existem no app instalado.
@@ -45,8 +45,6 @@ export type Desktop = {
   readonly reduzirEmSegundoPlano: boolean;
   readonly preCarregarAnexos: boolean;
 
-  readonly overlay: boolean;
-  readonly cantoDoOverlay: Canto;
 };
 
 /*
@@ -70,8 +68,6 @@ const PADRAO: Desktop = {
   reduzirEmSegundoPlano: true,
   preCarregarAnexos: false,
 
-  overlay: false,
-  cantoDoOverlay: "cima-fim",
 };
 
 let estado: Desktop = PADRAO;

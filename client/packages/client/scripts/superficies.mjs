@@ -53,6 +53,13 @@ const PAPEL = {
  * chão e não conteúdo. "É o padrão" não é razão.
  */
 const PERMITIDO = {
+  "overlay/Overlay.module.css": {
+    ".widget":
+      "Os widgets do overlay do jogo pousam sobre o JOGO, e não sobre o app: " +
+      "o design escreve `surface.sunken` a 78% porque é o tom que menos " +
+      "compete com a imagem de qualquer jogo. Um `surface-4` de float leria " +
+      "como mancha clara sobre cena escura.",
+  },
   "voz/PalcoDeVoz.module.css": {
     ".palco":
       "O CHÃO das três telas do palco, em volta da mídia. O design pinta a " +
