@@ -10,6 +10,9 @@ allowBuilds:
   # compilaria do fonte como fallback, e isso exigiria CMake no CI.
   koffi: false
   node-pipewire: true
+  # uiohook-napi traz binários prontos para as seis plataformas; o install só
+  # recompilaria se faltasse um, e isso exigiria toolchain C no CI.
+  uiohook-napi: false
 
 nodeLinker: hoisted
 

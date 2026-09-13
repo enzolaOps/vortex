@@ -17,7 +17,7 @@
  */
 import { createEffect, createRoot, createSignal } from "solid-js";
 import { decodeTime, monotonicFactory } from "ulid";
-import { VoiceParticipant } from "stoat.js";
+import { VoiceParticipant, type Message } from "stoat.js";
 /**
  * `ReactiveSet` do SDK, construído aqui.
  *
@@ -59,6 +59,11 @@ import {
 } from "../store/conexao";
 import { confirmarNaFila, esquecerDaFila } from "../store/fila";
 import { assinarSilencio } from "../store/silencio";
+import {
+  atualizarContador,
+  definirCanalVisto,
+  notificarMensagem,
+} from "../notificacao/notificador";
 import { dentro } from "../store/sessao";
 import {
   baldeDe,
@@ -1220,6 +1225,7 @@ export function startAdapter() {
     // Depois do publish, não antes: contabilizar é trabalho da coluna
     // lateral, e o caminho quente da lista não deve esperar por ele.
     contabilizarNaoLida(message.channelId, message.content);
+    avisarChegada(message);
   });
 
   client.on("messageDelete", (message) => {
@@ -2440,8 +2446,23 @@ export const totaisNaoLidos = createEntityStore<Contagem>(() => {
 });
 
 function reemitirTotais(): void {
+  publicarContador();
   if (totaisNaoLidos.subscriberCount(TOTAIS) === 0) return;
   somarTotais();
+}
+
+/**
+ * O contador de menções no ícone do app acompanha os totais — sem depender de
+ * alguém na tela estar assinando `totaisNaoLidos` (é por isso que não passa
+ * pelo store, que só soma com assinante).
+ */
+let ultimoContador = -1;
+function publicarContador(): void {
+  let mencoes = 0;
+  for (const c of contagemPorServidor.values()) mencoes += c.mencoes;
+  if (mencoes === ultimoContador) return;
+  ultimoContador = mencoes;
+  atualizarContador(mencoes);
 }
 
 function somarTotais(): void {
@@ -2508,6 +2529,7 @@ function renovarPresencaDoServidor(): void {
 
 export function definirCanalAberto(channelId: string | undefined): void {
   if (canalAberto === channelId) return;
+  definirCanalVisto(channelId);
 
   // SAINDO: o canal anterior passa a estar lido até o fim. É aqui que o
   // divisor de "novas mensagens" do PRÓXIMO retorno é decidido.
@@ -2688,6 +2710,34 @@ export function proximaMencao(
   const atual = vivas.indexOf(depoisDe);
   if (atual === -1) return vivas[0];
   return vivas[(atual + 1) % vivas.length];
+}
+
+/**
+ * A mensagem que chegou, traduzida para o notificador.
+ *
+ * ⚠ **Só depois de sabermos que não é nossa**, e barata antes disso: este é o
+ * caminho de `messageCreate`, o mais quente do app. A tradução (nomes, cargos
+ * mencionados) só roda para mensagem de outra pessoa.
+ */
+function avisarChegada(message: Message): void {
+  if (!usuarioLocal || message.authorId === usuarioLocal) return;
+  const canal = message.channel;
+  const tipo = canal?.type;
+  const direta = message.mentionIds?.includes(usuarioLocal) ?? false;
+  const cargo = message.roleMentions?.some((r) => r.assigned) ?? false;
+  notificarMensagem({
+    mensagemId: message.id,
+    channelId: message.channelId,
+    serverId: canal?.serverId,
+    tipoDoCanal: tipo === "DirectMessage" ? "dm" : tipo === "Group" ? "grupo" : "servidor",
+    autorNome: message.masquerade?.name ?? message.author?.displayName ?? "Alguém",
+    canalNome: canal?.name,
+    servidorNome: canal?.server?.name,
+    texto: message.content,
+    minha: false,
+    mencionaVoce: direta || (message.mentioned && !cargo),
+    mencionaCargo: cargo,
+  });
 }
 
 function contabilizarNaoLida(channelId: string, conteudo: string): void {

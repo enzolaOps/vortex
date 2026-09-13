@@ -21,10 +21,110 @@
   ⚠ Fora do cartão e logo abaixo dele: ele não é uma opção, é a ressalva do
   grupo inteiro. Dentro, viraria mais uma linha com cara de ajuste.
 */
-.avisoDoOverlay {
-  margin: calc(var(--vx-space-26) * -1) 0 var(--vx-space-26);
-  padding-block-start: var(--vx-space-08);
+
+/* ------------------------------------------------ overlay no jogo */
+/* Valores do design ("Casca Desktop" → Overlay no jogo). */
+
+.cartaoDoOverlay {
+  border-radius: var(--vx-radius-10);
+  background: var(--vx-surface-3);
+}
+
+.overlayTopo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-20);
+}
+
+.overlayTitulo {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.overlayDetalhe {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.overlayCorpo {
+  margin-block-start: var(--vx-space-14);
+  padding-block-start: var(--vx-space-14);
+  border-block-start: 1px solid var(--vx-hairline-06);
+}
+
+.overlayAtalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-16);
+  margin-block-end: var(--vx-space-14);
   font-size: var(--vx-size-sm);
+  color: var(--vx-text-2);
+}
+
+.overlayTecla {
+  padding: var(--vx-space-03) var(--vx-space-08);
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-05);
+  background: var(--vx-surface-1);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-2);
+}
+
+.overlaySemAtalho {
+  font-size: var(--vx-size-xs);
+  font-style: italic;
+  color: var(--vx-text-4);
+}
+
+.overlaySobrancelha {
+  margin-block-end: var(--vx-space-09);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--vx-text-3);
+}
+
+.overlayGrade {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--vx-space-06);
+  inline-size: 180px;
+}
+
+.overlayCelula {
+  block-size: 34px;
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-1);
+  cursor: pointer;
+  transition:
+    border-color var(--vx-duration-fast) var(--vx-ease-out),
+    background-color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.overlayCelula:hover {
+  border-color: var(--vx-hairline-16);
+}
+
+.overlayCelula[aria-checked="true"] {
+  border-color: var(--vx-accent);
+  background: color-mix(in srgb, var(--vx-accent) 20%, transparent);
+}
+
+.overlayCelula:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.overlayNota {
+  margin: var(--vx-space-14) 0 0;
+  font-size: var(--vx-size-xs);
+  line-height: 1.5;
   color: var(--vx-text-4);
   text-wrap: pretty;
 }

@@ -1,26 +1,53 @@
-# Empacota manualmente a referência Electron em `vendor/stoat-desktop/`.
-# Não é CI de produto e não publica releases.
+# Empacota o app desktop (`vendor/stoat-desktop/`) e o anexa à release.
+#
+# ⚠ **Roda em TODA release publicada, e é isso que faz o app se atualizar.**
+# `src/native/atualizacao.ts` usa `update.electronjs.org`, que lê a última
+# release deste repositório (público) e procura nela o `RELEASES` e o `.nupkg`
+# do Squirrel. Sem os anexos, todo app instalado ficaria parado na versão com
+# que foi instalado — com o Chromium embutido envelhecendo junto.
+#
+# ⚠ **A versão da casca vem da TAG.** O Squirrel compara a versão do app
+# instalado com a da release; com o `package.json` fixo em 0.1.0, nenhuma
+# atualização seria reconhecida como mais nova.
+#
+# Nomes ESTÁVEIS para o instalador (`Vortex-Setup.exe`, `Vortex.flatpak`): o
+# botão "Baixar para desktop" do cliente aponta para
+# `releases/latest/download/<nome>`.
+#
+# Segredos opcionais (Settings → Secrets → Actions):
+#   WINDOWS_CERTIFICATE_PFX       .pfx em base64 — assina o instalador
+#   WINDOWS_CERTIFICATE_PASSWORD  senha do .pfx
+# Sem eles o build sai sem assinatura, e o SmartScreen avisa uma vez.
 #
 # ⚠ **`VORTEX_APP_URL` é obrigatório e não tem padrão.** `vite.main.config.ts`
-# lança se ele faltar, de propósito: um padrão errado construiria uma casca
-# apontada para o servidor de outra gente. Configure em
-# Settings → Variables → Actions.
-name: Stoat desktop reference build
+# lança se ele faltar: um padrão errado construiria uma casca apontada para o
+# servidor de outra gente. Settings → Variables → Actions.
+name: Vortex desktop
 
 on:
+  release:
+    types: [published]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag da release para anexar (ex.: v1.2.3). Vazio = só artefato."
+        required: false
 
 concurrency:
-  group: stoat-desktop-reference-${{ github.ref }}
+  group: vortex-desktop-${{ github.event.release.tag_name || inputs.tag || github.ref }}
   cancel-in-progress: false
 
 env:
   VORTEX_APP_URL: ${{ vars.VORTEX_APP_URL }}
+  TAG: ${{ github.event.release.tag_name || inputs.tag }}
 
 jobs:
   empacotar:
     name: Empacotar (${{ matrix.rotulo }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    permissions:
+      contents: write
     strategy:
       # Um alvo quebrado não deve impedir o outro de subir: quem usa Windows
       # não fica sem instalador porque o Flatpak falhou.
@@ -37,9 +64,12 @@ jobs:
     defaults:
       run:
         working-directory: vendor/stoat-desktop
+        shell: bash
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG || github.ref }}
 
       - uses: pnpm/action-setup@v4
 
@@ -65,15 +95,39 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Conferir que a URL da instância foi configurada
-        shell: bash
         run: |
           if [ -z "$VORTEX_APP_URL" ]; then
             echo "::error::A variável VORTEX_APP_URL não está configurada." \
-              "Sem ela a casca seria construída apontada para lugar nenhum —" \
-              "o build falharia adiante com uma mensagem pior."
+              "Sem ela a casca seria construída apontada para lugar nenhum."
             exit 1
           fi
           echo "Casca apontada para $VORTEX_APP_URL"
+
+      - name: Versionar pela tag
+        if: env.TAG != ''
+        run: |
+          versao="${TAG#v}"
+          case "$versao" in
+            [0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "::error::Tag '$TAG' não é semver (vX.Y.Z)."; exit 1 ;;
+          esac
+          npm pkg set version="$versao"
+          echo "Casca na versão $versao"
+
+      - name: Preparar certificado (opcional)
+        if: matrix.plataforma == 'win32'
+        env:
+          PFX: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
+          SENHA: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          if [ -z "$PFX" ]; then
+            echo "Sem certificado: o instalador sai sem assinatura."
+            exit 0
+          fi
+          arquivo="$RUNNER_TEMP/vortex.pfx"
+          echo "$PFX" | base64 --decode > "$arquivo"
+          echo "WINDOWS_CERTIFICATE_FILE=$arquivo" >> "$GITHUB_ENV"
+          echo "WINDOWS_CERTIFICATE_PASSWORD=$SENHA" >> "$GITHUB_ENV"
 
       - name: Empacotar
         env:
@@ -83,15 +137,18 @@ jobs:
         run: pnpm make
 
       - name: Reunir os artefatos
-        shell: bash
         run: |
           mkdir -p entrega
           # `make` espalha por `out/make/<maker>/<arch>/`. O que interessa é o
-          # instalador, o manifesto de atualização e o pacote delta.
+          # instalador, o manifesto de atualização e o pacote do Squirrel.
           find out/make -type f \
             \( -name "*.exe" -o -name "*.nupkg" -o -name "RELEASES" \
-               -o -name "*.flatpak" -o -name "*.deb" \) \
+               -o -name "*.flatpak" \) \
             -exec cp {} entrega/ \;
+          # Nome estável para o link de download do cliente.
+          for f in entrega/*.flatpak; do
+            [ -e "$f" ] && mv "$f" entrega/Vortex.flatpak
+          done
           ls -la entrega/
           if [ -z "$(ls -A entrega)" ]; then
             echo "::error::Nenhum artefato foi produzido — o maker desta" \
@@ -101,6 +158,12 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: stoat-desktop-reference-${{ matrix.plataforma }}
+          name: vortex-desktop-${{ matrix.plataforma }}
           path: vendor/stoat-desktop/entrega/
           if-no-files-found: error
+
+      - name: Anexar à release
+        if: env.TAG != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" entrega/* --clobber --repo "$GITHUB_REPOSITORY"

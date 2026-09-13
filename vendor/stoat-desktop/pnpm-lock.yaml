@@ -89,9 +89,15 @@ importers:
       loopback-capture:
         specifier: 3.0.2
         version: 3.0.2
+      native-sound-mixer:
+        specifier: 3.4.6-win
+        version: 3.4.6-win
       node-pipewire:
         specifier: 1.1.0
         version: 1.1.0(encoding@0.1.13)(supports-color@8.1.1)
+      uiohook-napi:
+        specifier: 1.5.5
+        version: 1.5.5
 
 packages:
 
@@ -2362,6 +2368,10 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
+  native-sound-mixer@3.4.6-win:
+    resolution: {integrity: sha512-8Ixsa84xTjc/XsWTdhBB+h5ASQqfgKw17gksOsxT3J7pIIBXtutsHCgIBxxkAzIBq3m/kIZQyEdfPaGIP0ZsdQ==}
+    os: [win32, linux]
+
   natural-compare-lite@1.4.0:
     resolution: {integrity: sha512-Tj+HTDSJJKaZnfiuw+iaF9skdPpTo2GtEly5JHnWV/hfv2Qj/9RKsGISQtLh2ox3l5EAGw487hnBee0sIJ6v2g==}
 
@@ -2393,6 +2403,10 @@ packages:
     peerDependenciesMeta:
       encoding:
         optional: true
+
+  node-gyp-build@4.8.4:
+    resolution: {integrity: sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==}
+    hasBin: true
 
   node-pipewire@1.1.0:
     resolution: {integrity: sha512-EiqXeNjoPLROTEy4uVt3WZxTxNFqjcXgJUEe7jBM4FONJj2DUSG4Tu1Rm/57bq5ZpatZXbDuW0+cOMGN5yUL/w==}
@@ -3062,6 +3076,10 @@ packages:
   uint8array-extras@1.5.0:
     resolution: {integrity: sha512-rvKSBiC5zqCCiDZ9kAOszZcDvdAHwwIKJG33Ykj43OKcWsnmcBRL09YTU4nOeHZ8Y2a7l1MgTd08SBe9A8Qj6A==}
     engines: {node: '>=18'}
+
+  uiohook-napi@1.5.5:
+    resolution: {integrity: sha512-oSlTdnECw2GBfsJPTbBQBeE4v/EXP0EZmX6BJq5nzH/JgFaBE8JpFwEA/kLhiEP7HxQw28FViWiYgdIZzWuuJQ==}
+    engines: {node: '>= 16'}
 
   unbox-primitive@1.1.0:
     resolution: {integrity: sha512-nWJ91DjeOkej/TA8pXQ3myruKpKEYgqvpw9lz4OPHj/NWFNluYrjbz9j01CJ8yKQd2g4jFoOkINCTW2I5LEEyw==}
@@ -5996,6 +6014,9 @@ snapshots:
 
   nanoid@3.3.11: {}
 
+  native-sound-mixer@3.4.6-win:
+    optional: true
+
   natural-compare-lite@1.4.0: {}
 
   natural-compare@1.4.0: {}
@@ -6019,6 +6040,9 @@ snapshots:
       whatwg-url: 5.0.0
     optionalDependencies:
       encoding: 0.1.13
+
+  node-gyp-build@4.8.4:
+    optional: true
 
   node-pipewire@1.1.0(encoding@0.1.13)(supports-color@8.1.1):
     dependencies:
@@ -6751,6 +6775,11 @@ snapshots:
   typescript@5.4.5: {}
 
   uint8array-extras@1.5.0: {}
+
+  uiohook-napi@1.5.5:
+    dependencies:
+      node-gyp-build: 4.8.4
+    optional: true
 
   unbox-primitive@1.1.0:
     dependencies:

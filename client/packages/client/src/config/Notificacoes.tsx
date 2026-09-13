@@ -4,12 +4,11 @@ import {
   MusicNotes,
   UploadSimple,
 } from "../components/ui/icones";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
 import { Interruptor } from "../components/ui/Interruptor";
-import { aindaNao } from "../pendente/pendencias";
 import { assinarMeuStatus, lerMeuStatus } from "../store/meuStatus";
 import {
   alternarDia,
@@ -277,30 +276,7 @@ export function Notificacoes() {
 
       <CabecalhoDeSecao titulo="Permissão do sistema" />
 
-      {/*
-        ⚠ A ação é IRMÃ do texto, não filha — o `Banner` ganhou o slot `acoes`
-        por causa desta tela, e a comparação com a referência foi o que pegou:
-        eu a tinha empilhado embaixo da frase. Ela é também o primeiro
-        consumidor do `avisoSutil`, registrado como variante sem uso no passe
-        de primitivos.
-      */}
-      <Banner
-        tom="aviso"
-        titulo="O sistema está bloqueando notificações do Vortex"
-        className={pg.faixa}
-        acoes={
-          <Botao
-            variante="avisoSutil"
-            tamanho="pequeno"
-            onClick={aindaNao("permissaoDeNotificacao")}
-          >
-            Abrir ajustes
-          </Botao>
-        }
-      >
-        Suas escolhas aqui não têm efeito até liberar nas preferências do
-        sistema.
-      </Banner>
+      <PermissaoDoSistema />
 
       <p className={pg.recado}>
         Ordem de resolução: não perturbe → horário de silêncio → servidor
@@ -308,5 +284,77 @@ export function Notificacoes() {
         Só o toast de chamada ignora tudo menos não perturbe.
       </p>
     </PaginaDeAjustes>
+  );
+}
+
+type Permissao = NotificationPermission | "indisponivel";
+
+function lerPermissao(): Permissao {
+  return typeof Notification === "undefined" ? "indisponivel" : Notification.permission;
+}
+
+/**
+ * A permissão de notificação do navegador ou do sistema, de verdade.
+ *
+ * ⚠ **Só aparece quando há algo a fazer.** Com a permissão concedida (o
+ * normal no app de desktop) um aviso de "bloqueado" seria mentira. `default`
+ * pede; `denied` não pode ser pedido de novo por página nenhuma — o navegador
+ * só o desfaz nas configurações do site, e o texto diz isso em vez de oferecer
+ * um botão que não faria nada.
+ */
+function PermissaoDoSistema() {
+  const [permissao, setPermissao] = useState<Permissao>(lerPermissao);
+
+  /* Liberar nas configurações do navegador e voltar à aba: relê no foco. */
+  useEffect(() => {
+    const reler = () => setPermissao(lerPermissao());
+    window.addEventListener("focus", reler);
+    return () => window.removeEventListener("focus", reler);
+  }, []);
+
+  if (permissao === "granted") {
+    return (
+      <p className={pg.recado}>
+        Notificações do sistema liberadas para o Vortex.
+      </p>
+    );
+  }
+
+  if (permissao === "indisponivel") {
+    return (
+      <p className={pg.recado}>
+        Este navegador não oferece notificações do sistema; toasts e sons dentro
+        do app continuam funcionando.
+      </p>
+    );
+  }
+
+  return (
+    <Banner
+      tom="aviso"
+      titulo={
+        permissao === "denied"
+          ? "O navegador está bloqueando notificações do Vortex"
+          : "O Vortex ainda não pode mostrar notificações do sistema"
+      }
+      className={pg.faixa}
+      acoes={
+        permissao === "default" ? (
+          <Botao
+            variante="avisoSutil"
+            tamanho="pequeno"
+            onClick={() => {
+              void Notification.requestPermission().then(setPermissao);
+            }}
+          >
+            Permitir notificações
+          </Botao>
+        ) : undefined
+      }
+    >
+      {permissao === "denied"
+        ? "Libere nas configurações do site (o cadeado ao lado do endereço) e volte para esta aba."
+        : "Sem a permissão, menções e mensagens diretas só avisam com o app aberto na tela."}
+    </Banner>
   );
 }
