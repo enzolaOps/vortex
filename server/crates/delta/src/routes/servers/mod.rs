@@ -28,6 +28,7 @@ mod server_create;
 mod server_delete;
 mod server_edit;
 mod server_fetch;
+mod tag_members_fetch;
 
 pub fn routes() -> (Vec<Route>, OpenApi) {
     openapi_get_routes_spec![
@@ -56,6 +57,7 @@ pub fn routes() -> (Vec<Route>, OpenApi) {
         roles_edit_positions::edit_role_ranks,
         audit_log_query::query,
         message_search::search,
+        tag_members_fetch::fetch_tag_members,
         category_permissions_set::set_category_permissions,
         discover::discover_add::discover_add,
         discover::discover_get::discover_get,

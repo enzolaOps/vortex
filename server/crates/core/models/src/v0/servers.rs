@@ -351,6 +351,12 @@ auto_derived!(
         pub leave_silently: Option<bool>,
     }
 
+    /// Members who display the server tag
+    pub struct ServerTagMembers {
+        /// User ids
+        pub members: Vec<String>,
+    }
+
     /// New permissions for a category
     pub struct DataSetCategoryPermissions {
         /// Allow / deny values for everyone, `null` to clear
