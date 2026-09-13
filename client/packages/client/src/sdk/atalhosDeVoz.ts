@@ -4,6 +4,7 @@ import {
   sairDaChamada,
 } from "./chamada";
 import { assinarChamada, lerChamada } from "../store/chamada";
+import { assinarPopout, lerPopout } from "../store/popout";
 import {
   assinarAtalhosDeVoz,
   atalhosAtivos,
@@ -39,6 +40,12 @@ export type EstadoDeVozParaCasca = {
   readonly naChamada: boolean;
   readonly mudo: boolean;
   readonly surdo: boolean;
+  /**
+   * A chamada está no popout em forma de picture-in-picture — é quando
+   * "Sempre no topo em chamada" põe a janela acima das outras. Casca antiga
+   * ignora o campo.
+   */
+  readonly pip: boolean;
 };
 
 /** A ponte da casca — separada de `vortex` para não tornar cascas antigas incompletas. */
@@ -93,10 +100,13 @@ export function executarComando(c: ComandoDeVoz): void {
 }
 
 /*
-  `overlay` fica de fora de propósito: quem o alterna é a casca, no processo
-  main, e no navegador não há overlay para alternar.
+  `overlay` e `silenciarOverlay` ficam de fora de propósito: quem os executa é
+  a casca, no processo main, e no navegador não há overlay.
 */
-const COMANDO_DE_PRESSAO: Record<Exclude<AcaoDeVoz, "pushToTalk" | "overlay">, ComandoDeVoz> = {
+const COMANDO_DE_PRESSAO: Record<
+  Exclude<AcaoDeVoz, "pushToTalk" | "overlay" | "silenciarOverlay">,
+  ComandoDeVoz
+> = {
   mutar: "mutar",
   ensurdecer: "ensurdecer",
   desconectar: "desconectar",
@@ -180,6 +190,7 @@ export function ligarAtalhosDeVoz(): void {
         naChamada: c.estado !== "fora",
         mudo: c.mudo,
         surdo: c.surdo,
+        pip: c.estado !== "fora" && lerPopout().forma === "pip",
       };
       const chave = JSON.stringify(estado);
       if (chave === ultimo) return;
@@ -188,6 +199,8 @@ export function ligarAtalhosDeVoz(): void {
     };
     publicar();
     assinarChamada(publicar);
+    /* Arrastar o popout também publica; a chave igual descarta sem IPC. */
+    assinarPopout(publicar);
     return;
   }
 
