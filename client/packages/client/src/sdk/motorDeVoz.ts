@@ -61,6 +61,7 @@ import {
   lerChamada,
 } from "../store/chamada";
 import { definirPalco, lerPalco } from "../store/palcoDeVoz";
+import { criarAssinaturaDeVideo } from "./assinaturaDeVideo";
 import { chaveDeVideo, faixasDeVideo, type FonteDeVideo } from "../store/video";
 import { toast } from "../components/ui/toastStore";
 import { ALTURA_DE, ponteDeTela } from "./seletorDeTela";
@@ -211,10 +212,7 @@ function ligarEventos(r: Room, channelId: string): void {
     faixasDeVideo.limpar();
     /* A contagem morre com a sala. Sem isto, entrar de novo começaria com
        assinantes fantasmas e a primeira borda nunca chegaria a zero. */
-    assinantesDeVideo.clear();
-    assinadoNoTransporte.clear();
-    for (const t of liberacoesPendentes.values()) clearTimeout(t);
-    liberacoesPendentes.clear();
+    assinatura.limpar();
     encerrarChamada();
   });
   r.on(RoomEvent.Reconnecting, () => definirChamada({ estado: "reconectando" }));
@@ -405,7 +403,18 @@ function ligarEventos(r: Room, channelId: string): void {
       return;
     }
     const fonte = fonteDe(pub.source);
-    if (fonte) faixasDeVideo.apagar(chaveDeVideo(participante.identity, fonte));
+    if (!fonte) return;
+    /*
+      ⚠ **Só apaga se a faixa guardada é ESTA.** Parar e voltar a assistir
+      manda o pedido de saída e o de entrada em sequência, e o
+      `TrackUnsubscribed` da faixa velha pode chegar depois do
+      `TrackSubscribed` da nova. Apagar pela chave jogava fora a faixa que
+      acabou de chegar, e a tela ficava em "recebendo o primeiro quadro…".
+    */
+    const chave = chaveDeVideo(participante.identity, fonte);
+    if (faixasDeVideo.getSnapshot(chave) === faixa.mediaStreamTrack) {
+      faixasDeVideo.apagar(chave);
+    }
   });
 
   /*
@@ -423,9 +432,18 @@ function ligarEventos(r: Room, channelId: string): void {
     diferentes.
   */
   r.on(RoomEvent.TrackPublished, (pub, participante) => {
-    if (pub.kind === Track.Kind.Audio) pub.setSubscribed(true);
+    /*
+      ⚠ **O som da tela NÃO entra com o resto do áudio.** Ele é
+      `Track.Kind.Audio` como o microfone, e assinar todo áudio fazia quem não
+      estava assistindo ouvir a transmissão inteira. Ele desce só para quem
+      assiste — e, se chegar depois do vídeo, é aqui que o pedido acontece.
+    */
+    if (pub.source === Track.Source.ScreenShareAudio) {
+      assinatura.audioDaTelaPublicado(participante.identity);
+    } else if (pub.kind === Track.Kind.Audio) {
+      pub.setSubscribed(true);
+    }
     publicarFontes(r);
-    void participante;
   });
 
   /*
@@ -470,7 +488,12 @@ function ligarEventos(r: Room, channelId: string): void {
 function assinarAudioExistente(r: Room): void {
   for (const p of r.remoteParticipants.values()) {
     for (const pub of p.trackPublications.values()) {
-      if (pub.kind === Track.Kind.Audio && !pub.isSubscribed) {
+      /* O som da tela fica de fora: é de quem assiste. Ver `TrackPublished`. */
+      if (
+        pub.kind === Track.Kind.Audio &&
+        pub.source !== Track.Source.ScreenShareAudio &&
+        !pub.isSubscribed
+      ) {
         pub.setSubscribed(true);
       }
     }
@@ -532,147 +555,28 @@ function mesmaLista(a: readonly string[], b: readonly string[]): boolean {
 }
 
 /**
- * Quantas superfícies querem cada faixa de vídeo, por `usuário:fonte`.
- *
- * ⚠ **Existe porque DUAS telas pedem a mesma faixa, e quem soltava primeiro
- * derrubava a de quem estava chegando.** O ladrilho da grade e a tela de
- * assistir assinam o mesmo `(usuário, tela)`; trocar de uma para a outra
- * desmonta a primeira e monta a segunda no MESMO commit do React, então saía
- * `setSubscribed(false)` seguido de `setSubscribed(true)` no mesmo tique.
- *
- * O que isso produzia, e foi relatado por quem usa: clicar em "Assistir"
- * deixava a tela em "pedindo o vídeo…" para sempre, e voltar para a grade
- * deixava o ladrilho só com o avatar. Os dois pelo mesmo motivo — `apagar()`
- * roda na hora, e o `TrackSubscribed` que repovoaria o store depende de o
- * servidor REENTREGAR a faixa. Ele recebe as duas mensagens juntas, termina no
- * estado assinado, e não tem por que entregar de novo.
- *
- * Com a contagem, a troca de dono nunca chega a zero e o servidor não é
- * consultado: a faixa que já está descendo continua descendo.
+ * Quem quer cada faixa de vídeo remota. A contabilidade mora em
+ * `assinaturaDeVideo.ts`, sem LiveKit, para o teste exercitar o código real.
  */
-const assinantesDeVideo = new Map<string, number>();
-
-/**
- * Devoluções agendadas, por `usuário:fonte`.
- *
- * ⚠ Sem elas a contagem não resolve nada na troca de tela, porque o React
- * desmonta antes de montar e a contagem toca zero no caminho. Ver `assinarVideo`.
- */
-const liberacoesPendentes = new Map<string, ReturnType<typeof setTimeout>>();
-
-/**
- * O que está de fato assinado NO TRANSPORTE.
- *
- * ⚠ **Separado da contagem, e o teste é que exigiu.** A contagem responde
- * "quantas telas querem"; esta responde "o servidor já está mandando". Elas
- * divergem exatamente durante a devolução adiada — ninguém quer, e a faixa
- * continua descendo — e é aí que a troca de tela acontece.
- *
- * Sem a distinção, o consumidor que chega vê a contagem em zero, conclui que
- * precisa assinar, e manda um segundo `setSubscribed(true)`. Medido no teste:
- * `[true, true]` onde devia sair `[true]`.
- */
-const assinadoNoTransporte = new Set<string>();
+const assinatura = criarAssinaturaDeVideo({
+  video: publicacaoDeVideo,
+  audioDaTela: publicacaoDeAudioDaTela,
+});
 
 /**
  * Pede (ou devolve) a faixa de video de uma pessoa.
  *
  * ⚠ **E a unica porta para video remoto, e ela e EXPLICITA por decisao de
  * custo.** Com `autoSubscribe: false` nada de video desce sozinho; quem quer
- * ver chama isto e, ao desmontar, chama de novo com `false`. Uma grade que
- * assinasse e esquecesse de devolver deixaria dez faixas descendo atras de uma
- * tela fechada - o desperdicio que a decisao original evita, com a agravante
- * de ser invisivel.
- *
- * Devolve `false` quando nao ha o que assinar: a pessoa saiu, ou nunca
- * publicou aquela fonte.
+ * ver chama isto e, ao desmontar, chama de novo com `false`. O som da tela
+ * vai junto, sob a mesma contagem.
  */
 export function assinarVideo(
   userId: string,
   fonte: FonteDeVideo,
   sim: boolean,
 ): boolean {
-  const pub = publicacaoDeVideo(userId, fonte);
-  if (!pub) return false;
-
-  const chave = chaveDeVideo(userId, fonte);
-  const depois = Math.max(
-    0,
-    (assinantesDeVideo.get(chave) ?? 0) + (sim ? 1 : -1),
-  );
-  if (depois === 0) assinantesDeVideo.delete(chave);
-  else assinantesDeVideo.set(chave, depois);
-
-  /*
-    Só fala com o servidor nas BORDAS: do zero para um, e de um para zero.
-    No meio, a troca de dono não é assunto dele.
-
-    ⚠ **A borda de descida é ADIADA, e a contagem sozinha não bastava.** O
-    React roda a limpeza do que sai ANTES do efeito do que entra — mesmo no
-    mesmo commit —, então trocar a grade pela tela de assistir passa por zero
-    de qualquer jeito, e o `setSubscribed(false)` sai. Com a espera, o pedido
-    do consumidor que está chegando cancela a devolução do que saiu, e o
-    servidor não chega a ser consultado.
-
-    250 ms porque a troca é de um quadro e a conta é assimétrica: segurar uma
-    faixa por um quarto de segundo a mais é banda desprezível, e soltá-la cedo
-    demais é o defeito relatado — "pedindo o vídeo…" que nunca resolve.
-  */
-  const adiado = liberacoesPendentes.get(chave);
-  if (adiado !== undefined) {
-    clearTimeout(adiado);
-    liberacoesPendentes.delete(chave);
-  }
-
-  if (sim) {
-    if (!assinadoNoTransporte.has(chave)) {
-      assinadoNoTransporte.add(chave);
-      pub.setSubscribed(true);
-      /*
-        ⚠ **O som vai JUNTO, no mesmo passo e sob a mesma contagem.**
-
-        Ele não precisa de store nem de elemento: `TrackSubscribed` já anexa
-        qualquer faixa de áudio ao `<audio>` fora da árvore React, e é o mesmo
-        caminho que faz o microfone da sala tocar. O que faltava era pedir.
-
-        Assinado aqui e não no `TrackSubscribed`: lá é tarde — o evento é a
-        CHEGADA, e só chega o que foi pedido. Com `autoSubscribe: false` nada
-        vem sozinho, que é a decisão que evita baixar vídeo de dez pessoas.
-      */
-      publicacaoDeAudioDaTela(userId, fonte)?.setSubscribed(true);
-    }
-  } else if (depois === 0) {
-    liberacoesPendentes.set(
-      chave,
-      setTimeout(() => {
-        liberacoesPendentes.delete(chave);
-        /* Alguém pode ter voltado a querer entre o agendamento e agora. */
-        if ((assinantesDeVideo.get(chave) ?? 0) > 0) return;
-        assinadoNoTransporte.delete(chave);
-        publicacaoDeVideo(userId, fonte)?.setSubscribed(false);
-        /* Devolver os dois, senão o som de uma tela que ninguém vê continua
-           baixando — a metade que se esquece, e a que custa. */
-        publicacaoDeAudioDaTela(userId, fonte)?.setSubscribed(false);
-        faixasDeVideo.apagar(chave);
-      }, 250),
-    );
-  }
-
-  /*
-    ⚠ **Repovoa o store quando JÁ estava assinado, e sem isto a contagem não
-    bastaria.** `TrackSubscribed` é a única porta de entrada de
-    `faixasDeVideo`, e ele é um evento de CHEGADA: assinar algo que já chegou
-    não o dispara de novo. O segundo consumidor montaria com o store certo por
-    acaso — porque o primeiro o preencheu — e com o store VAZIO sempre que ele
-    fosse o primeiro a montar depois de uma limpeza.
-
-    A faixa já está na publicação; escrevê-la aqui é ler o que existe, não
-    inventar estado.
-  */
-  const faixa = sim ? pub.track?.mediaStreamTrack : undefined;
-  if (faixa) faixasDeVideo.set(chave, faixa);
-
-  return true;
+  return assinatura.assinar(userId, fonte, sim);
 }
 
 /**
