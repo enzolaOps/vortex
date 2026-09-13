@@ -103,8 +103,12 @@ pub enum ChannelPermission {
     /// Access server audit logs
     ViewAuditLogs = 1 << 40,
 
+    // * Vortex
+    /// Tocar efeitos sonoros do painel do servidor numa sala de voz
+    UseSoundboard = 1 << 41,
+
     // * Misc. permissions
-    // % Bits 41 to 52: free area
+    // % Bits 42 to 52: free area
     // % Bits 53 to 64: do not use
 
     // * Grant all permissions
@@ -140,6 +144,7 @@ pub static DEFAULT_PERMISSION: Lazy<u64> = Lazy::new(|| {
             + ChannelPermission::Speak
             + ChannelPermission::Listen
             + ChannelPermission::Video
+            + ChannelPermission::UseSoundboard
     )
 });
 

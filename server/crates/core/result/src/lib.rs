@@ -127,6 +127,14 @@ pub enum ErrorType {
     TooManyRoles {
         max: usize,
     },
+    /// Vortex: o servidor chegou ao teto de figurinhas
+    TooManyStickers {
+        max: usize,
+    },
+    /// Vortex: o servidor chegou ao teto de efeitos sonoros
+    TooManySounds {
+        max: usize,
+    },
     AlreadyInServer,
     CannotTimeoutYourself,
 

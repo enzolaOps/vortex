@@ -60,6 +60,8 @@ impl<'r> Responder<'r, 'static> for Error {
             ErrorType::TooManyEmoji { .. } => Status::BadRequest,
             ErrorType::TooManyChannels { .. } => Status::BadRequest,
             ErrorType::TooManyRoles { .. } => Status::BadRequest,
+            ErrorType::TooManyStickers { .. } => Status::BadRequest,
+            ErrorType::TooManySounds { .. } => Status::BadRequest,
 
             ErrorType::ReachedMaximumBots => Status::BadRequest,
             ErrorType::IsBot => Status::BadRequest,

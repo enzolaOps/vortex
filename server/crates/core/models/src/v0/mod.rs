@@ -17,6 +17,8 @@ mod server_bans;
 mod server_members;
 mod servers;
 mod sessions;
+mod soundboard;
+mod stickers;
 mod user_settings;
 mod users;
 
@@ -39,5 +41,7 @@ pub use server_bans::*;
 pub use server_members::*;
 pub use servers::*;
 pub use sessions::*;
+pub use soundboard::*;
+pub use stickers::*;
 pub use user_settings::*;
 pub use users::*;
