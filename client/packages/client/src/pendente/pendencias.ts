@@ -29,25 +29,10 @@ import { toast } from "../components/ui/toastStore";
 export const PENDENCIAS = {
   /* ------------------------------------------ perfil do servidor */
   /*
-    Quatro entradas, divididas pela mesma régua de sempre — o que falta é
-    UPLOAD ou é CONCEITO.
-
-    ⚠ Ícone e banner têm campo no protocolo (`Server.icon`, `Server.banner`) e
-    param no servidor de mídia, que é um `POST` cru para a URL de
-    `client.configuration.features.autumn` — inverificável sem instância
-    alcançável, a mesma razão que segura o envio de emoji. Faixa e
-    características não têm campo nenhum: são conceito de outro cliente.
+    Ícone e banner saíram daqui: sobem ao `autumn` e vão em `Server.edit`
+    (`config/Servidor.tsx`). Faixa e características não têm campo nenhum:
+    são conceito de outro cliente.
   */
-  iconeDoServidor: {
-    superficie: "Configurações do servidor · Perfil do servidor",
-    faz: "Trocar ou remover a imagem que identifica o servidor.",
-    depende: "upload para o servidor de mídia — o campo Server.icon JÁ existe",
-  },
-  bannerDoServidor: {
-    superficie: "Configurações do servidor · Perfil do servidor",
-    faz: "Pôr a arte larga que aparece atrás do card de convite.",
-    depende: "upload para o servidor de mídia — o campo Server.banner JÁ existe",
-  },
   caracteristicasDoServidor: {
     superficie: "Configurações do servidor · Perfil do servidor",
     faz: "Marcar até cinco assuntos que descrevem o servidor.",
@@ -272,28 +257,18 @@ export const PENDENCIAS = {
     faz: "Publicar a enquete para todo mundo do canal poder votar.",
     depende: "enquete no protocolo (tipo de mensagem + evento de voto)",
   },
-  /*
-    ⚠ **Tocar já EXISTE** — ver `list/ReprodutorDeVoz.tsx`. O que continua
-    pendente é gravar, e a dependência é a mesma de `anexar`: sem upload, uma
-    gravação não tem para onde ir, e pedir o microfone para produzir um arquivo
-    que morre na aba é pior que não ter o botão.
-  */
-  mensagemDeVoz: {
-    superficie: "Composer",
-    faz: "Gravar e enviar mensagem de voz.",
-    depende: "upload ao servidor de mídia (autumn) + `MediaRecorder`",
-  },
 
   /* ------------------------------------------------------- linha de mensagem */
-  baixarAnexo: {
-    superficie: "Visualizador de mídia",
-    faz: "Salvar o arquivo no computador.",
-    depende: "`Content-Disposition` do servidor de mídia — `<a download>` de origem cruzada é ignorado pelo navegador",
-  },
+  /*
+    ⚠ O `depende` dizia "`Attachment.description` no protocolo", e o campo NÃO
+    existe: `File` (`crates/core/models/src/v0/files.rs`) não tem descrição e
+    `DataMessageSend.attachments` é lista de IDs. É fork, não tela.
+  */
   textoAlternativo: {
     superficie: "Anexo",
     faz: "Ler e escrever a descrição de uma imagem para quem não a vê.",
-    depende: "`Attachment.description` no protocolo + campo no envio",
+    depende:
+      "descrição de anexo no protocolo — `File` não tem o campo e o envio leva só IDs (fork de delta + autumn)",
   },
 
   /* --------------------------------------------------- coluna de canais */
