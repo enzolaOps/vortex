@@ -227,11 +227,6 @@ export const PENDENCIAS = {
     faz: "Supressão de ruído mais forte que a do navegador.",
     depende: "RNNoise (`@livekit/krisp-noise-filter`) — o `noiseSuppression` do navegador é booleano",
   },
-  atenuarOutrosApps: {
-    superficie: "Configurações · Voz e vídeo",
-    faz: "Baixar o volume dos outros programas quando alguém fala.",
-    depende: "mixer do sistema operacional, via casca Electron",
-  },
   fundoDeVideo: {
     superficie: "Configurações · Voz e vídeo",
     faz: "Desfocar o fundo ou trocá-lo por uma imagem.",
