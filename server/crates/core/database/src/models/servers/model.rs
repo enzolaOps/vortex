@@ -66,6 +66,10 @@ auto_derived_partial!(
         /// Whether this server should be publicly discoverable
         #[serde(skip_serializing_if = "crate::if_false", default)]
         pub discoverable: bool,
+
+        /// Vortex: whose media is checked for explicit content
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub explicit_content_filter: Option<ExplicitContentFilter>,
     },
     "PartialServer"
 );
@@ -99,6 +103,14 @@ auto_derived_partial!(
 );
 
 auto_derived!(
+    /// Vortex: explicit media filter policy
+    #[derive(Copy)]
+    pub enum ExplicitContentFilter {
+        Disabled,
+        MembersWithoutRoles,
+        AllMembers,
+    }
+
     /// Channel category
     pub struct Category {
         /// Unique ID for this category
@@ -167,6 +179,7 @@ impl Server {
             icon: None,
             roles: HashMap::new(),
             system_messages: None,
+            explicit_content_filter: None,
         };
 
         let channels: Vec<Channel> = if create_default_channels {

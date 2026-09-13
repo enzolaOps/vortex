@@ -3,7 +3,7 @@ use revolt_result::Error;
 use serde::{Deserialize, Serialize};
 
 use revolt_models::v0::{
-    AppendMessage, Channel, ChannelSlowmode, ChannelUnread, ChannelVoiceState, Emoji,
+    ActivityOp, ActivitySession, AppendMessage, Channel, ChannelSlowmode, ChannelUnread, ChannelVoiceState, Emoji,
     FieldsChannel, FieldsMember, FieldsMessage, FieldsRole, FieldsServer, FieldsUser,
     FieldsWebhook, Member, MemberCompositeKey, Message, PartialChannel, PartialEmoji,
     PartialMember, PartialMessage, PartialRole, PartialServer, PartialUser, PartialUserVoiceState,
@@ -383,6 +383,18 @@ pub enum EventV1 {
         channel_id: String,
         started_at: Option<Timestamp>,
         ended: bool,
+    },
+
+    /// Vortex: a shared activity started or ended in a voice channel
+    ActivityUpdate {
+        channel_id: String,
+        activity: Option<ActivitySession>,
+    },
+    /// Vortex: an operation inside a running activity
+    ActivityOp {
+        channel_id: String,
+        activity_id: String,
+        op: ActivityOp,
     },
 }
 

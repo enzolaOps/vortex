@@ -81,8 +81,28 @@ auto_derived_partial!(
 
         /// Approximate amount of members in the server
         pub approximate_member_count: usize,
+
+        /// Vortex: whose media is checked for explicit content
+        ///
+        /// Only the policy lives on the server. The analysis runs on the client
+        /// that receives the media — never on the server.
+        #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+        pub explicit_content_filter: Option<ExplicitContentFilter>,
     },
     "PartialServer"
+);
+
+auto_derived!(
+    /// Vortex: explicit media filter policy
+    #[derive(Copy)]
+    pub enum ExplicitContentFilter {
+        /// Nothing is checked
+        Disabled,
+        /// Media sent by members without any role is checked
+        MembersWithoutRoles,
+        /// Media sent by every member is checked
+        AllMembers,
+    }
 );
 
 auto_derived_partial!(
@@ -261,6 +281,10 @@ auto_derived!(
 
         /// User id of the new owner
         pub owner: Option<String>,
+
+        /// Vortex: explicit media filter policy
+        #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+        pub explicit_content_filter: Option<ExplicitContentFilter>,
 
         /// Fields to remove from server object
         #[cfg_attr(feature = "serde", serde(default))]

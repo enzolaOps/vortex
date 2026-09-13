@@ -48,6 +48,7 @@ pub async fn edit(
         && data.analytics.is_none()
         && data.discoverable.is_none()
         && data.owner.is_none()
+        && data.explicit_content_filter.is_none()
         && data.remove.is_empty()
     {
         return Ok(Json(server.into(db).await));
@@ -57,6 +58,8 @@ pub async fn edit(
         || data.banner.is_some()
         || data.system_messages.is_some()
         || data.analytics.is_some()
+        // Vortex: o filtro de mídia é política do servidor sobre todo mundo
+        || data.explicit_content_filter.is_some()
         || !data.remove.is_empty()
     {
         permissions.throw_if_lacking_channel_permission(ChannelPermission::ManageServer)?;
@@ -97,6 +100,7 @@ pub async fn edit(
         discoverable,
         analytics,
         owner,
+        explicit_content_filter,
         remove,
     } = data;
 
@@ -110,6 +114,7 @@ pub async fn edit(
         discoverable,
         analytics,
         owner: owner.clone(),
+        explicit_content_filter: explicit_content_filter.map(Into::into),
         ..Default::default()
     };
 

@@ -815,6 +815,7 @@ impl crate::Server {
             analytics: self.analytics,
             discoverable: self.discoverable,
             approximate_member_count,
+            explicit_content_filter: self.explicit_content_filter.map(Into::into),
         }
     }
 }
@@ -843,6 +844,31 @@ impl From<Server> for crate::Server {
             nsfw: value.nsfw,
             analytics: value.analytics,
             discoverable: value.discoverable,
+            explicit_content_filter: value.explicit_content_filter.map(Into::into),
+        }
+    }
+}
+
+impl From<crate::ExplicitContentFilter> for ExplicitContentFilter {
+    fn from(value: crate::ExplicitContentFilter) -> Self {
+        match value {
+            crate::ExplicitContentFilter::Disabled => ExplicitContentFilter::Disabled,
+            crate::ExplicitContentFilter::MembersWithoutRoles => {
+                ExplicitContentFilter::MembersWithoutRoles
+            }
+            crate::ExplicitContentFilter::AllMembers => ExplicitContentFilter::AllMembers,
+        }
+    }
+}
+
+impl From<ExplicitContentFilter> for crate::ExplicitContentFilter {
+    fn from(value: ExplicitContentFilter) -> Self {
+        match value {
+            ExplicitContentFilter::Disabled => crate::ExplicitContentFilter::Disabled,
+            ExplicitContentFilter::MembersWithoutRoles => {
+                crate::ExplicitContentFilter::MembersWithoutRoles
+            }
+            ExplicitContentFilter::AllMembers => crate::ExplicitContentFilter::AllMembers,
         }
     }
 }
@@ -870,6 +896,7 @@ impl From<crate::PartialServer> for PartialServer {
             analytics: value.analytics,
             discoverable: value.discoverable,
             approximate_member_count: None,
+            explicit_content_filter: value.explicit_content_filter.map(Into::into),
         }
     }
 }
@@ -896,6 +923,7 @@ impl From<PartialServer> for crate::PartialServer {
             nsfw: value.nsfw,
             analytics: value.analytics,
             discoverable: value.discoverable,
+            explicit_content_filter: value.explicit_content_filter.map(Into::into),
         }
     }
 }
