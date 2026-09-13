@@ -53,6 +53,20 @@ auto_derived_partial!(
         #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
         pub banner: Option<File>,
 
+        /// Short tag (2 to 4 letters or digits) shown next to the name of
+        /// members who choose to display it
+        #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+        pub tag: Option<String>,
+        /// Badge image accompanying the tag
+        #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+        pub tag_badge: Option<File>,
+        /// Topics describing this server (up to five)
+        #[cfg_attr(
+            feature = "serde",
+            serde(skip_serializing_if = "Vec::is_empty", default)
+        )]
+        pub characteristics: Vec<String>,
+
         /// Bitfield of server flags
         #[cfg_attr(
             feature = "serde",
@@ -124,6 +138,8 @@ auto_derived!(
         SystemMessages,
         Icon,
         Banner,
+        Tag,
+        TagBadge,
     }
 
     /// Optional fields on server object
@@ -143,6 +159,24 @@ auto_derived!(
         pub title: String,
         /// Channels in this category
         pub channels: Vec<String>,
+        /// Default permissions copied to channels synced with this category
+        ///
+        /// Read-only in `PATCH /servers/:id`: use
+        /// `PUT /servers/:id/categories/:category_id/permissions`.
+        #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+        pub default_permissions: Option<OverrideField>,
+        /// Role permissions copied to channels synced with this category
+        ///
+        /// Read-only in `PATCH /servers/:id`: use
+        /// `PUT /servers/:id/categories/:category_id/permissions`.
+        #[cfg_attr(
+            feature = "serde",
+            serde(
+                default = "HashMap::<String, OverrideField>::new",
+                skip_serializing_if = "HashMap::<String, OverrideField>::is_empty"
+            )
+        )]
+        pub role_permissions: HashMap<String, OverrideField>,
     }
 
     /// System message channel assignments
@@ -240,6 +274,15 @@ auto_derived!(
         /// Attachment Id for banner
         pub banner: Option<String>,
 
+        /// Server tag, 2 to 4 letters or digits
+        #[cfg_attr(feature = "validator", validate(length(min = 2, max = 4)))]
+        pub tag: Option<String>,
+        /// Attachment Id for the tag badge
+        pub tag_badge: Option<String>,
+        /// Topics describing this server, up to five
+        #[cfg_attr(feature = "validator", validate(length(min = 0, max = 5)))]
+        pub characteristics: Option<Vec<String>>,
+
         /// Category structure for server
         #[cfg_attr(feature = "validator", validate)]
         pub categories: Option<Vec<Category>>,
@@ -306,6 +349,15 @@ auto_derived!(
     pub struct OptionsServerDelete {
         /// Whether to not send a leave message
         pub leave_silently: Option<bool>,
+    }
+
+    /// New permissions for a category
+    pub struct DataSetCategoryPermissions {
+        /// Allow / deny values for everyone, `null` to clear
+        pub default_permissions: Option<Override>,
+        /// Allow / deny values per role; roles left out are cleared
+        #[cfg_attr(feature = "serde", serde(default))]
+        pub role_permissions: HashMap<String, Override>,
     }
 
     /// New role positions
