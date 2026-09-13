@@ -18,7 +18,8 @@ import {
 } from "../components/ui/ContextMenu";
 import { Tooltip } from "../components/ui/Tooltip";
 import { contagem, rotuloDeNaoLidas } from "../lib/plural";
-import { aindaNao } from "../pendente/pendencias";
+import { linkDeDownload, plataformaDoNavegador } from "../lib/downloadDoDesktop";
+import { assinarDesktop, lerDesktop } from "../store/desktop";
 import { corDoTextoDe, gradienteDe } from "../lib/gradiente";
 import {
   useLocal,
@@ -359,6 +360,7 @@ const PastaDoRail = memo(function PastaDoRail({
  */
 export function Rail() {
   const ids = useServerIds();
+  const { naCasca } = useSyncExternalStore(assinarDesktop, lerDesktop);
   const ativo = useServidorAtivo();
   const pastas = useSyncExternalStore(assinarPastas, lerPastas);
   /*
@@ -458,23 +460,34 @@ export function Rail() {
         A separação diz que ele não é um lugar para onde se vai; é uma ação
         sobre o próprio cliente.
 
-        Desenhado sem implementação, registrado em `pendente/pendencias.ts`.
+        ⚠ **Some dentro do app desktop**: oferecer o download para quem já o
+        está usando seria um alvo sem propósito.
       */}
-      <span className={css.divisor} aria-hidden />
+      {naCasca ? null : (
+        <>
+          <span className={css.divisor} aria-hidden />
 
-      <Tooltip texto="Baixar para desktop" lado="fim">
-        <button
-          type="button"
-          className={css.item}
-          aria-label="Baixar para desktop"
-          onClick={aindaNao("baixarApp")}
-        >
-          <span className={`${css.marca} ${css.marcaRodape}`} aria-hidden>
-            <DownloadSimple size={ICONE.calha} />
-          </span>
-          <span className={css.nome}>Baixar</span>
-        </button>
-      </Tooltip>
+          <Tooltip texto="Baixar para desktop" lado="fim">
+            <button
+              type="button"
+              className={css.item}
+              aria-label="Baixar para desktop"
+              onClick={() => {
+                window.open(
+                  linkDeDownload(plataformaDoNavegador()),
+                  "_blank",
+                  "noopener,noreferrer",
+                );
+              }}
+            >
+              <span className={`${css.marca} ${css.marcaRodape}`} aria-hidden>
+                <DownloadSimple size={ICONE.calha} />
+              </span>
+              <span className={css.nome}>Baixar</span>
+            </button>
+          </Tooltip>
+        </>
+      )}
     </nav>
   );
 }

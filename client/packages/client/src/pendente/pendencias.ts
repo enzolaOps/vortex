@@ -342,13 +342,6 @@ export const PENDENCIAS = {
     depende: "`ack` em lote — hoje é uma chamada por canal, e são dezenas",
   },
 
-  /* ------------------------------------------------------------- rail */
-  baixarApp: {
-    superficie: "Rail",
-    faz: "Baixar o Vortex para desktop.",
-    depende: "casca Electron empacotada e publicada",
-  },
-
   /* ------------------------------------------- ações da mensagem (fase 5) */
   topicoDaMensagem: {
     superficie: "Ações da mensagem",
