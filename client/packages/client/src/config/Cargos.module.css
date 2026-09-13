@@ -289,6 +289,10 @@
 /* 1020, da referência — o teto é do EDITOR e não da página. Ver `.tela`. */
 .editor {
   display: grid;
+  /* `start`: a coluna estica até a altura da mestre, e sem isto as linhas do
+     grid repartiam a sobra — numa aba curta (Links, Gerenciar membros) o
+     cabeçalho e as abas desciam ~15px em relação às abas longas. */
+  align-content: start;
   gap: var(--vx-space-16);
   min-inline-size: 0;
   max-inline-size: 1020px;
@@ -538,21 +542,120 @@
 
 /* ------------------------------------------------------ ícone */
 
+/* Caixa e botões com 12 de vão, do design (`gap:12px`); os botões entre si
+   com 8. */
 .icone {
   display: flex;
   align-items: center;
+  gap: var(--vx-space-12);
+}
+
+.iconeAcoes {
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--vx-space-08);
 }
 
-/* Tracejado, como a caixa de emblema da Tag: diz "cabe algo" sem prometer
-   que algo está vindo. */
-.iconeVazio {
+/*
+  A caixa de 44 com raio 10, os dois do design — era 34 com raio 8, e tinha
+  ficado assim porque não havia imagem para mostrar dentro.
+
+  Tracejada vazia, como a caixa de emblema da Tag: diz "cabe algo" sem
+  prometer que algo está vindo. Cheia, a borda some — a imagem é o conteúdo, e
+  um tracejado em volta dela diria que ainda falta alguma coisa.
+*/
+.iconeCaixa {
+  position: relative;
+  display: grid;
   flex: none;
-  inline-size: 34px;
-  block-size: 34px;
-  border: 1px dashed var(--vx-hairline-10);
-  border-radius: var(--vx-radius-08);
-  background: var(--vx-surface-1);
+  place-items: center;
+  overflow: hidden;
+  inline-size: 44px;
+  block-size: 44px;
+  padding: 0;
+  border: 1px dashed var(--vx-hairline-16);
+  border-radius: var(--vx-radius-10);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-4);
+  font-family: inherit;
+  transition:
+    border-color var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+button.iconeCaixa {
+  cursor: pointer;
+}
+
+.iconeCaixa svg {
+  inline-size: var(--vx-icon-2);
+  block-size: var(--vx-icon-2);
+}
+
+button.iconeCaixa:hover:not(:disabled) {
+  border-color: var(--vx-border-strong);
+  color: var(--vx-text-2);
+}
+
+button.iconeCaixa:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+button.iconeCaixa:disabled {
+  cursor: default;
+}
+
+.iconeCaixa[data-cheia="true"] {
+  border-style: solid;
+  border-color: var(--vx-hairline-06);
+}
+
+.iconeCaixa[data-erro="true"] {
+  border-color: var(--vx-danger-border);
+}
+
+.iconeImagem {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+/*
+  O progresso do envio, como fio no pé da caixa.
+
+  ⚠ **Número real, não animação.** `subirAnexo` é `XMLHttpRequest` justamente
+  para reportar progresso de ENVIO; uma barra que só conhece "começou" e
+  "terminou" seria a animação sobre número inventado que o anexo do composer
+  já recusou. A largura vem do `style` e muda por evento, SEM transição — a
+  caixa é fora de fluxo (`absolute`), mas animar largura continua proibido
+  pela doutrina de movimento.
+*/
+.iconeProgresso {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-start: 0;
+  block-size: 2px;
+  background: var(--vx-accent);
+}
+
+.iconeRecado,
+.iconeErro {
+  margin: var(--vx-space-08) 0 0;
+  font-size: var(--vx-size-xs);
+  line-height: 1.5;
+}
+
+.iconeRecado {
+  color: var(--vx-text-3);
+}
+
+.iconeErro {
+  color: var(--vx-danger-text);
+}
+
+.seletor {
+  display: none;
 }
 
 /* ------------------------------------------------------ prévia */
@@ -602,6 +705,13 @@
   display: grid;
   min-inline-size: 0;
   gap: var(--vx-space-02);
+}
+
+.previaLinhaDoNome {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-04);
+  min-inline-size: 0;
 }
 
 .previaNome {
