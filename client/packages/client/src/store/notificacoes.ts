@@ -1,13 +1,9 @@
 /**
  * Preferências de notificação.
  *
- * ⚠ **A preferência é REAL e persistida em `localStorage`; o que falta é quem a consome.** Som,
- * push e badge no ícone dependem de coisas que este app ainda não tem — áudio,
- * service worker, casca Electron. A escolha entre "não construir a tela" e
- * "construir com o consumo pendente" foi tomada: a segunda, porque a regra
- * deste projeto é construir a interface 1:1 e registrar o que não funciona.
- *
- * A forma não muda quando o notificador chegar: ele lê daqui.
+ * Quem consome é `notificacao/notificador.ts`: toast, som e notificação do
+ * sistema por evento, e o contador de menções no ícone. "Push no celular" é o
+ * único interruptor ainda sem efeito — não há service worker nem app móvel.
  *
  * Store module-level com `useSyncExternalStore`, como `silencio.ts` e
  * `colapso.ts` — preferência de leitura, mudada por clique humano, lida por

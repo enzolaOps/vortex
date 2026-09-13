@@ -3,21 +3,26 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { Botao } from "../components/ui/Botao";
 import { Escolha } from "../components/ui/Escolha";
 import { Interruptor } from "../components/ui/Interruptor";
-import { Segmentado } from "../components/ui/Segmentado";
 import { Selo } from "../components/ui/Selo";
-import { Combinacao } from "../components/ui/Tecla";
 import { toast } from "../components/ui/toastStore";
 import {
   AO_FECHAR,
-  CANTOS,
   ponte,
   versaoInstalada,
   type AoFechar,
-  type Canto,
 } from "../sdk/desktop";
+import { POSICOES, textoDoAtalho, type Posicao } from "../overlay/modelo";
+import {
+  acoesEmConflito,
+  assinarAtalhosDeVoz,
+  lerAtalhosDeVoz,
+  teclasDaCombinacao,
+} from "../store/atalhosDeVoz";
+import { assinarOverlay, definirOverlay, lerOverlay } from "../store/overlay";
 import { assinarDesktop, definirDesktop, lerDesktop } from "../store/desktop";
 import {
   CabecalhoDeSecao,
+  CartaoDeAjustes,
   classes as pg,
   GrupoDeAjustes,
   LinhaDeAjuste,
@@ -31,12 +36,6 @@ const ROTULO_AO_FECHAR: Record<AoFechar, string> = {
   perguntar: "Perguntar sempre",
 };
 
-const ROTULO_DO_CANTO: Record<Canto, string> = {
-  "cima-inicio": "Cima · início",
-  "cima-fim": "Cima · fim",
-  "baixo-inicio": "Baixo · início",
-  "baixo-fim": "Baixo · fim",
-};
 
 /** 1,8 GB vira "1,8 GB" — base 1000, como o rodapé do anexo já faz. */
 function tamanho(bytes: number): string {
@@ -215,45 +214,7 @@ export function Desktop() {
 
       <CabecalhoDeSecao titulo="Overlay no jogo" />
 
-      <GrupoDeAjustes>
-        <LinhaDeAjuste
-          titulo="Ativar overlay"
-          detalhe="Chat e voz dentro de jogos em tela cheia"
-        >
-          <Interruptor
-            ligado={d.overlay}
-            rotulo="Ativar overlay"
-            aoAlternar={(v) => definirDesktop({ overlay: v })}
-          />
-        </LinhaDeAjuste>
-
-        {d.overlay ? (
-          <>
-            <LinhaDeAjuste titulo="Atalho para abrir">
-              <Combinacao teclas={["shift", "`"]} />
-            </LinhaDeAjuste>
-
-            <LinhaDeAjuste titulo="Posição padrão">
-              <Segmentado
-                rotulo="Posição do overlay"
-                valor={d.cantoDoOverlay}
-                opcoes={CANTOS.map((c) => ({
-                  id: c,
-                  rotulo: ROTULO_DO_CANTO[c],
-                }))}
-                aoEscolher={(cantoDoOverlay) =>
-                  definirDesktop({ cantoDoOverlay })
-                }
-              />
-            </LinhaDeAjuste>
-          </>
-        ) : null}
-      </GrupoDeAjustes>
-
-      <p className={css.avisoDoOverlay}>
-        Jogos com anti-cheat podem bloquear o overlay. Nesse caso o app avisa
-        uma vez por jogo e não tenta de novo.
-      </p>
+      <SecaoDoOverlay />
 
       <CabecalhoDeSecao titulo="Manutenção" />
 
@@ -324,5 +285,101 @@ export function Desktop() {
         hardware só vale no próximo início.
       </p>
     </PaginaDeAjustes>
+  );
+}
+
+const NOME_DA_POSICAO: Record<Posicao, string> = {
+  0: "Cima · início",
+  1: "Cima · centro",
+  2: "Cima · fim",
+  3: "Meio · início",
+  4: "Centro",
+  5: "Meio · fim",
+  6: "Baixo · início",
+  7: "Baixo · centro",
+  8: "Baixo · fim",
+};
+
+/**
+ * "Overlay no jogo", 1:1 com o design: um cartão com o interruptor, e — com
+ * ele ligado — o atalho e a grade 3×3 da posição padrão.
+ *
+ * ⚠ **O atalho mostrado é o GRAVADO**, da tabela de Voz e vídeo, e não a
+ * combinação fixa escrita no design. Mostrar uma combinação fixa mentiria no
+ * dia em que alguém a trocasse.
+ */
+function SecaoDoOverlay() {
+  const config = useSyncExternalStore(assinarOverlay, lerOverlay);
+  const atalhos = useSyncExternalStore(assinarAtalhosDeVoz, lerAtalhosDeVoz);
+  const combinacao = atalhos.overlay;
+  const conflito = acoesEmConflito(atalhos).has("overlay");
+
+  return (
+    <CartaoDeAjustes className={css.cartaoDoOverlay}>
+      <div className={css.overlayTopo}>
+        <div>
+          <div className={css.overlayTitulo}>Ativar overlay</div>
+          <div className={css.overlayDetalhe}>
+            Chat e voz dentro de jogos em tela cheia
+          </div>
+        </div>
+        <Interruptor
+          ligado={config.ativo}
+          rotulo="Ativar overlay"
+          aoAlternar={(ativo) => definirOverlay({ ativo })}
+        />
+      </div>
+
+      {config.ativo ? (
+        <div className={css.overlayCorpo}>
+          <div className={css.overlayAtalho}>
+            <span>Atalho para abrir</span>
+            {combinacao && !conflito ? (
+              <span className={css.overlayTecla}>
+                {textoDoAtalho(
+                  teclasDaCombinacao(combinacao),
+                  typeof navigator !== "undefined" && /mac/i.test(navigator.platform),
+                )}
+              </span>
+            ) : (
+              <span className={css.overlaySemAtalho}>
+                {conflito ? "em conflito — ajuste em Voz e vídeo" : "sem atalho"}
+              </span>
+            )}
+          </div>
+
+          <div className={css.overlaySobrancelha}>Posição padrão</div>
+          <div
+            role="radiogroup"
+            aria-label="Posição do overlay"
+            className={css.overlayGrade}
+          >
+            {POSICOES.map((p) => (
+              <button
+                key={p}
+                type="button"
+                role="radio"
+                aria-checked={config.posicao === p}
+                aria-label={NOME_DA_POSICAO[p]}
+                className={css.overlayCelula}
+                onClick={() => definirOverlay({ posicao: p })}
+              />
+            ))}
+          </div>
+
+          {/*
+            ⚠ O design diz que "o app avisa uma vez por jogo" quando o
+            anti-cheat bloqueia. O overlay daqui não injeta nada no jogo — é
+            uma janela por cima —, então anti-cheat não o bloqueia; o que o
+            impede é tela cheia EXCLUSIVA. O texto diz o limite real.
+          */}
+          <p className={css.overlayNota}>
+            Funciona em jogos em janela ou em tela cheia sem bordas. Em tela
+            cheia exclusiva o jogo desenha por cima de qualquer janela, e o
+            overlay não aparece.
+          </p>
+        </div>
+      ) : null}
+    </CartaoDeAjustes>
   );
 }

@@ -141,6 +141,18 @@ const config: ForgeConfig = {
     // Copy the node-pipewire dist to the app on linux
     packageAfterCopy: async (_config, buildPath, _version, platform) => {
       /*
+        Atalhos de voz globais (`src/native/controles.ts`), em todas as
+        plataformas. `node-gyp-build` é quem acha o binário pronto dentro de
+        `prebuilds/`.
+      */
+      for (const pacote of ["uiohook-napi", "node-gyp-build"]) {
+        fs.cpSync(
+          path.join("node_modules", pacote),
+          path.join(buildPath, "node_modules", pacote),
+          { recursive: true },
+        );
+      }
+      /*
         O som de UMA janela compartilhada, no Windows — ver
         `src/native/audioDaJanela.ts`. Os dois são `external` no Vite e ficam
         fora do pacote como o `node-pipewire`; sem a cópia, o `import()` falha

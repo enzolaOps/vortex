@@ -167,25 +167,6 @@ export const PENDENCIAS = {
       "o conceito no protocolo E uma trilha de áudio publicada no LiveKit pelo servidor",
   },
 
-  /* -------------------------------------------------------- notificação */
-  /*
-    ⚠ **Só UM pendente na tela de notificações, e é de propósito.** As
-    preferências ali são reais e ficam guardadas; o que falta é quem as
-    CONSOME — áudio para o som, service worker para o push, casca Electron
-    para o badge. Registrar cada interruptor como pendente daria quatro
-    controles que não guardam o que se escolhe, o que é pior que guardar sem
-    consumir: a forma da tela não muda quando o notificador chegar.
-
-    Pedir permissão é diferente: é chamada ao navegador que só faz sentido
-    com o notificador atrás, e não teria o que guardar.
-  */
-  permissaoDeNotificacao: {
-    superficie: "Configurações · Notificações",
-    faz: "Pedir ao navegador ou ao sistema para liberar notificações.",
-    depende: "um notificador que as dispare — áudio, service worker ou Electron",
-  },
-
-
   /* --------------------------------------------------------- entrada */
   /*
     ⚠ **O QR é do design e o protocolo não tem o conceito.** Entrar por código
@@ -211,7 +192,7 @@ export const PENDENCIAS = {
 
   /* ------------------------------------------------------- voz e vídeo */
   /*
-    ⚠ **Seis pendências e NENHUMA delas é "a tela não existe".** Todas as
+    ⚠ **NENHUMA destas pendências é "a tela não existe".** Todas as
     preferências desta seção são guardadas, e quatro chegam ao WebRTC de
     verdade (`constraintsDeAudio` em `store/preferenciasDeVoz.ts`). O que está
     aqui é o que precisa de algo que o navegador ou o sistema não dão.
@@ -236,11 +217,6 @@ export const PENDENCIAS = {
     superficie: "Configurações · Voz e vídeo",
     faz: "Desfocar o fundo ou trocá-lo por uma imagem.",
     depende: "segmentação de imagem (`@livekit/track-processors`) — meio megabyte de modelo",
-  },
-  atalhoGlobal: {
-    superficie: "Configurações · Voz e vídeo",
-    faz: "Gravar uma combinação que funciona mesmo com o app em segundo plano.",
-    depende: "`globalShortcut` do Electron — o navegador não vê tecla fora da aba",
   },
 
   /* ---------------------------------------------------------------- voz */
@@ -764,19 +740,6 @@ export const SUPERFICIES_AUSENTES = {
     referencia: "components/notifications/NotificationModals.tsx",
   },
 
-  /* --------------------------------------------------------- casca */
-  /*
-    ⚠ **A opção existe em Configurações · Desktop; o MENU não.** É a mesma
-    distinção do overlay de jogo: o que falta mora no processo main do
-    Electron, não no cliente — e por isso nenhum controle do app poderia
-    alcançá-lo.
-  */
-  menuDaBandeja: {
-    superficie: "Ícone da bandeja do sistema",
-    faz: "Abrir, silenciar e sair pelo ícone ao lado do relógio.",
-    depende: "`Tray` no processo main da casca — é trabalho de Electron, não de cliente",
-    referencia: "components/desktop/TrayMenu.tsx",
-  },
 } as const satisfies Record<
   string,
   { superficie: string; faz: string; depende: string; referencia: string }
