@@ -6,6 +6,7 @@ settings:
 
 overrides:
   yauzl: ^3.3.1
+  lodash: ^4.18.1
 
 importers:
 
@@ -69,6 +70,9 @@ importers:
       json-schema-typed:
         specifier: ^8.0.1
         version: 8.0.2
+      lodash:
+        specifier: ^4.18.1
+        version: 4.18.1
       prettier:
         specifier: ^3.6.2
         version: 3.6.2
@@ -2056,8 +2060,8 @@ packages:
   lodash.merge@4.6.2:
     resolution: {integrity: sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==}
 
-  lodash@4.17.21:
-    resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
+  lodash@4.18.1:
+    resolution: {integrity: sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==}
 
   log-symbols@4.1.0:
     resolution: {integrity: sha512-8XPvpAA8uyhfteu8pIvQxpJZ7SYYdpUivZpGy6sFsBuKRY/7rQGavedeB8aK+Zkyq6upMFVL/9AW6vOYzfRyLg==}
@@ -3862,7 +3866,7 @@ snapshots:
       '@malept/flatpak-bundler': 0.4.0(supports-color@8.1.1)
       debug: 4.4.3(supports-color@8.1.1)
       electron-installer-common: 0.10.4(supports-color@8.1.1)
-      lodash: 4.17.21
+      lodash: 4.18.1
       semver: 7.7.2
       yargs: 16.2.0
     transitivePeerDependencies:
@@ -3873,7 +3877,7 @@ snapshots:
     dependencies:
       debug: 4.4.3(supports-color@8.1.1)
       fs-extra: 9.1.0
-      lodash: 4.17.21
+      lodash: 4.18.1
       tmp-promise: 3.0.3
     transitivePeerDependencies:
       - supports-color
@@ -4697,7 +4701,7 @@ snapshots:
       debug: 4.4.3(supports-color@8.1.1)
       fs-extra: 9.1.0
       glob: 7.2.3
-      lodash: 4.17.21
+      lodash: 4.18.1
       parse-author: 2.0.0
       semver: 7.7.2
       tmp-promise: 3.0.3
@@ -4714,7 +4718,7 @@ snapshots:
       electron-installer-common: 0.10.4(supports-color@8.1.1)
       fs-extra: 9.1.0
       get-folder-size: 2.0.1
-      lodash: 4.17.21
+      lodash: 4.18.1
       word-wrap: 1.2.5
       yargs: 16.2.0
     transitivePeerDependencies:
@@ -4733,7 +4737,7 @@ snapshots:
       '@electron/asar': 3.4.1
       debug: 4.4.3(supports-color@8.1.1)
       fs-extra: 7.0.1
-      lodash: 4.17.21
+      lodash: 4.18.1
       semver: 7.7.2
       temp: 0.9.4
     optionalDependencies:
@@ -5633,8 +5637,7 @@ snapshots:
 
   lodash.merge@4.6.2: {}
 
-  lodash@4.17.21:
-    optional: true
+  lodash@4.18.1: {}
 
   log-symbols@4.1.0:
     dependencies:

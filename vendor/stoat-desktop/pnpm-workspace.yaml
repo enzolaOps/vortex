@@ -16,3 +16,13 @@ blockExoticSubdeps: false
 # Override for node 26 bug
 overrides:
   yauzl: ^3.3.1
+  # O lodash também está em `devDependencies`, e as duas entradas são
+  # necessárias. Todo caminho até ele passa por dependência OPCIONAL
+  # (maker-squirrel → electron-winstaller, maker-deb → electron-installer-*),
+  # então o lockfile o marca `optional: true`. No Windows o pnpm pula
+  # `electron-installer-debian` (`os: [darwin, linux]`) e propaga o skip para o
+  # lodash, mesmo com o electron-winstaller, que É instalado, dependendo dele —
+  # `pnpm package` morre com "Cannot find module 'lodash'". Um override sozinho
+  # não resolve (4.18.1 é pulado igual); a dependência direta tira o `optional`.
+  # O override mantém uma cópia só, senão a 4.17.21 aninhada seria pulada de novo.
+  lodash: ^4.18.1
