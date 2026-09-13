@@ -80,7 +80,29 @@ pub async fn check_override_changes(
     Ok(())
 }
 
-/// O canal tem exatamente este conjunto de sobreposições?
+/// Forma canônica de um conjunto: sobreposição `{a: 0, d: 0}` não decide nada
+/// e vale o mesmo que ausente.
+///
+/// Sem isto "sincronizado" dependeria de COMO se chegou ao estado: remover um
+/// cargo de um canal pelas rotas antigas grava `{0, 0}` em vez de apagar a
+/// chave, e o canal pareceria divergir da categoria para sempre.
+pub fn normalize(
+    default: Option<OverrideField>,
+    roles: &HashMap<String, OverrideField>,
+) -> (Option<OverrideField>, HashMap<String, OverrideField>) {
+    let empty = OverrideField::default();
+
+    (
+        default.filter(|value| *value != empty),
+        roles
+            .iter()
+            .filter(|(_, value)| **value != empty)
+            .map(|(role, value)| (role.clone(), *value))
+            .collect(),
+    )
+}
+
+/// O canal tem este conjunto de sobreposições, a menos de entradas vazias?
 pub fn has_overrides(
     channel: &Channel,
     default: Option<OverrideField>,
@@ -91,7 +113,7 @@ pub fn has_overrides(
             default_permissions,
             role_permissions,
             ..
-        } => *default_permissions == default && role_permissions == roles,
+        } => normalize(*default_permissions, role_permissions) == normalize(default, roles),
         _ => false,
     }
 }

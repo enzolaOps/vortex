@@ -12,7 +12,7 @@ use rocket::{serde::json::Json, State};
 
 use crate::util::{
     audit_log_reason::AuditLogReason,
-    overrides::{apply_overrides, check_override_changes, has_overrides},
+    overrides::{apply_overrides, check_override_changes, has_overrides, normalize},
 };
 
 /// # Set Category Permissions
@@ -42,12 +42,14 @@ pub async fn set_category_permissions(
         return Err(create_error!(NotFound));
     };
 
-    let after_default = data.default_permissions.map(OverrideField::from);
-    let after_roles = data
-        .role_permissions
-        .into_iter()
-        .map(|(role, value)| (role, OverrideField::from(value)))
-        .collect::<HashMap<String, OverrideField>>();
+    let (after_default, after_roles) = normalize(
+        data.default_permissions.map(OverrideField::from),
+        &data
+            .role_permissions
+            .into_iter()
+            .map(|(role, value)| (role, OverrideField::from(value)))
+            .collect::<HashMap<String, OverrideField>>(),
+    );
 
     let before_default = categories[index].default_permissions;
     let before_roles = categories[index].role_permissions.clone();
