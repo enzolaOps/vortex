@@ -12,6 +12,7 @@ import { client } from "./client";
 import { publicarConversas, publicarRelacoes } from "./adapter";
 import { toast } from "../components/ui/toastStore";
 import { motivoDoErro } from "./erros";
+import { aceitarSolicitacao } from "../store/solicitacoes";
 
 /**
  * Avisa, e não engole.
@@ -44,6 +45,12 @@ export async function abrirConversaCom(
   try {
     const canal = await client.users.get(userId)?.openDM();
     if (!canal) return undefined;
+    /*
+      Abrir a conversa por conta própria é aceitá-la. Sem isto, mandar
+      mensagem a alguém de um servidor jogaria a resposta dele na fila de
+      desconhecidos — a pessoa que VOCÊ procurou.
+    */
+    aceitarSolicitacao(canal.id);
     publicarConversas();
     return canal.id;
   } catch (e) {
@@ -279,6 +286,118 @@ export async function desbloquear(userId: string): Promise<boolean> {
     return true;
   } catch (e) {
     falhou("Não deu para desbloquear.", e);
+    return false;
+  }
+}
+
+/* -------------------------------------------------------------- em comum */
+
+/**
+ * O que você e outra pessoa têm em comum, já RESOLVIDO.
+ *
+ * ⚠ **`GET /users/{id}/mutual` devolve ID cru**, e o SDK tem `fetchMutual`
+ * tipado sem `channels` e sem resolver nada. A lista vira tela só com os
+ * objetos, e quem os tem é o cache do cliente: servidor em comum é por
+ * definição um servidor em que VOCÊ está, e amigo em comum é um amigo seu. O
+ * que não resolve fica de fora em vez de virar linha "desconhecido".
+ */
+export type EmComum = {
+  readonly servidores: readonly string[];
+  readonly amigos: readonly string[];
+};
+
+/** O corpo do protocolo, conferido — nada de `as` sobre resposta de rede. */
+export function resolverEmComum(
+  bruto: unknown,
+  conhece: {
+    readonly servidor: (id: string) => boolean;
+    readonly pessoa: (id: string) => boolean;
+  },
+): EmComum | undefined {
+  if (typeof bruto !== "object" || bruto === null) return undefined;
+  const r = bruto as Record<string, unknown>;
+  const ids = (v: unknown): string[] =>
+    Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  if (!Array.isArray(r.servers) || !Array.isArray(r.users)) return undefined;
+  return {
+    servidores: [...new Set(ids(r.servers))].filter(conhece.servidor),
+    amigos: [...new Set(ids(r.users))].filter(conhece.pessoa),
+  };
+}
+
+/**
+ * Busca e resolve. `undefined` é "não deu para saber" — e NÃO lista vazia.
+ *
+ * A diferença é a das telas de convites e banimentos: "vocês não têm nada em
+ * comum" é uma afirmação sobre duas pessoas, e fazê-la por causa de uma rede
+ * caída seria mentir numa tela onde se decide se alguém é conhecido. Sem toast:
+ * quem chama tem estado de erro próprio.
+ */
+export async function buscarEmComum(
+  userId: string,
+): Promise<EmComum | undefined> {
+  try {
+    const bruto: unknown = await client.api.get(
+      `/users/${userId as ""}/mutual`,
+    );
+    return resolverEmComum(bruto, {
+      servidor: (id) => client.servers.has(id),
+      pessoa: (id) => client.users.has(id),
+    });
+  } catch {
+    return undefined;
+  }
+}
+
+/* ------------------------------------------------------- solicitações */
+
+/**
+ * O texto da última mensagem de uma conversa, para a prévia da fila.
+ *
+ * ⚠ **Buscar não é ler.** `GET` de uma mensagem não move o cursor de leitura —
+ * quem move é o `ack`, e ele só sai quando a conversa é aberta. É o que permite
+ * a fila mostrar a prévia sem marcar nada como visto para a outra pessoa.
+ *
+ * Do cache quando já está lá; da rede quando não. `undefined` é "não deu".
+ */
+export async function buscarPreviaDaConversa(
+  channelId: string,
+): Promise<string | undefined> {
+  const canal = client.channels.get(channelId);
+  const ultima = canal?.lastMessageId;
+  if (!canal || !ultima) return undefined;
+  try {
+    const mensagem =
+      client.messages.get(ultima) ?? (await canal.fetchMessage(ultima));
+    return mensagem.content ?? "";
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Denuncia uma pessoa — `POST /safety/report`, que o SDK não envolve.
+ *
+ * `UnsolicitedSpam` e não `NoneSpecified`: a única superfície que denuncia hoje
+ * é a fila de desconhecidos, e o que ela denuncia é justamente mensagem não
+ * pedida. Quando houver um formulário com motivo, o motivo vira parâmetro.
+ */
+export async function denunciarPessoa(
+  userId: string,
+  mensagemId: string | undefined,
+): Promise<boolean> {
+  try {
+    await client.api.post("/safety/report" as never, {
+      content: {
+        type: "User",
+        id: userId,
+        report_reason: "UnsolicitedSpam",
+        message_id: mensagemId ?? null,
+      },
+    } as never);
+    return true;
+  } catch (e) {
+    falhou("Não deu para denunciar.", e);
     return false;
   }
 }

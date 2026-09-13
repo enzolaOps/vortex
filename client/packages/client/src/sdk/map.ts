@@ -623,6 +623,11 @@ const RELACAO: Record<string, Relacao> = {
   BlockedOther: "bloqueadoPor",
 };
 
+/** A relação crua do protocolo → a do produto. Ver `RELACAO`. */
+export function relacaoDoProtocolo(bruta: string): Relacao {
+  return RELACAO[bruta] ?? "nenhuma";
+}
+
 export function toRelacaoSnapshot(user: User): RelacaoSnapshot {
   const displayName = user.displayName || user.username;
   return {
@@ -631,7 +636,7 @@ export function toRelacaoSnapshot(user: User): RelacaoSnapshot {
     sigla: sigla(displayName),
     avatarUrl: urlDeAvatar(user),
     username: user.username,
-    relacao: RELACAO[user.relationship] ?? "nenhuma",
+    relacao: relacaoDoProtocolo(user.relationship),
     status: toPresence(user.status?.presence),
   };
 }
