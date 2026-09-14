@@ -1141,14 +1141,13 @@ impl Message {
             return Err(create_error!(NotFound));
         };
 
-        EventV1::MessageUpdate {
+        // Evento próprio e não `MessageUpdate`: o `stoat.js` carimba
+        // `editedAt` em todo `MessageUpdate`, e encerrar uma enquete marcaria a
+        // mensagem como "editada" em todo cliente.
+        EventV1::MessagePollEnd {
             id: self.id.clone(),
-            channel: self.channel.clone(),
-            data: v0::PartialMessage {
-                poll: Some(poll.into()),
-                ..Default::default()
-            },
-            clear: vec![],
+            channel_id: self.channel.clone(),
+            poll: poll.into(),
         }
         .p(self.channel.clone())
         .await;

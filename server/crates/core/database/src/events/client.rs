@@ -6,7 +6,7 @@ use revolt_models::v0::{
     AppendMessage, Channel, ChannelSlowmode, ChannelUnread, ChannelVoiceState, Emoji,
     FieldsChannel, FieldsMember, FieldsMessage, FieldsRole, FieldsServer, FieldsUser,
     FieldsWebhook, Member, MemberCompositeKey, Message, PartialChannel, PartialEmoji,
-    PartialMember, PartialMessage, PartialRole, PartialServer, PartialUser, PartialUserVoiceState,
+    PartialMember, PartialMessage, PartialRole, Poll, PartialServer, PartialUser, PartialUserVoiceState,
     PartialWebhook, PolicyChange, RemovalIntention, Report, Server, ServerEvent, User, UserSettings,
     UserVoiceState, Webhook,
 };
@@ -149,6 +149,15 @@ pub enum EventV1 {
         channel_id: String,
         user_id: String,
         answers: Vec<String>,
+    },
+
+    /// A poll was ended early by its author (Vortex)
+    ///
+    /// Carries the final poll, votes included.
+    MessagePollEnd {
+        id: String,
+        channel_id: String,
+        poll: Poll,
     },
 
     /// Remove a reaction from message
