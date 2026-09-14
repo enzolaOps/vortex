@@ -98,22 +98,6 @@
   outline-offset: -2px;
 }
 
-/* O controle DESENHADO que ainda não faz nada. Mesma forma, papel diferente. */
-.pendente {
-  composes: gatilhoDeLista;
-}
-
-.selecao {
-  display: grid;
-  gap: var(--vx-space-04);
-  min-inline-size: 0;
-}
-
-.rotuloLeve {
-  font-size: var(--vx-size-xs);
-  color: var(--vx-text-3);
-}
-
 /* --------------------------------------- faixa de não-salvo */
 
 /* ============================================================

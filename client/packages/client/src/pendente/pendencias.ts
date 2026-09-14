@@ -511,21 +511,6 @@ export const PENDENCIAS = {
     faz: "Entrar com toda a mídia borrada, com clique para revelar.",
     depende: "conceito de spoiler no protocolo — não há campo nem evento",
   },
-  bitrateDeVoz: {
-    superficie: "Configurações do canal",
-    faz: "Escolher a qualidade de áudio da sala.",
-    depende: "bitrate no protocolo + repasse ao LiveKit",
-  },
-  regiaoDeVoz: {
-    superficie: "Configurações do canal",
-    faz: "Fixar a região do servidor de voz, em vez de deixar automática.",
-    depende: "região de voz no protocolo",
-  },
-  modoDeVideo: {
-    superficie: "Configurações do canal",
-    faz: "Fixar resolução e taxa de quadros do vídeo.",
-    depende: "modo de vídeo no protocolo + repasse ao LiveKit",
-  },
   sincronizarComCategoria: {
     superficie: "Permissões do canal",
     faz: "Copiar as permissões da categoria para este canal e manter em sincronia.",

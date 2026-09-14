@@ -50,6 +50,7 @@ import {
   registrarCancelamento,
 } from "../store/uploads";
 import { lerEnquete } from "../store/enquetes";
+import { anotarEventoDeVoz } from "./vozDoCanal";
 import { semearStatusDoServidor } from "./perfil";
 import { aguardar, desistir, reconciliar } from "./nonce";
 import {
@@ -1016,6 +1017,9 @@ export function startAdapter() {
     member list inteira toda vez que alguém fosse silenciado.
   */
   client.events.on("event", (evento: unknown) => {
+    /* A voz por canal do fork mora no evento cru pela mesma razão do
+       `can_publish` abaixo — ver `sdk/vozDoCanal.ts`. */
+    anotarEventoDeVoz(evento);
     const e = evento as {
       type?: string;
       members?: readonly { _id?: { server?: string; user?: string }; can_publish?: boolean }[];

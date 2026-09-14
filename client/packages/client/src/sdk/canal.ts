@@ -1,4 +1,15 @@
 import { client, conectado } from "./client";
+import { corpoDeVoz, lerConfigDeVoz } from "./vozDoCanal";
+
+/**
+ * ⚠ **Sem `voz` na edição, manda a que já está gravada.** O servidor substitui
+ * o objeto `voice` inteiro: um salvar que só mexesse no limite apagaria o
+ * bitrate e a região escolhidos antes.
+ */
+function lerConfigDeVozComoEdicao(channelId: string) {
+  const c = lerConfigDeVoz(channelId);
+  return { bitrateKbps: c.bitrateKbps, regiao: c.regiao, modoDeVideo: c.modoDeVideo };
+}
 
 /**
  * Escrita de configuração de CANAL — a camada anticorrupção, como sempre.
@@ -14,11 +25,13 @@ import { client, conectado } from "./client";
  * | limite de usuários   | `voice.max_users` ✓                          |
  * | modo lento           | `slowmode` ✓                                 |
  * | **canal de spoiler** | ⚠ não existe                                 |
- * | **bitrate**          | ⚠ não existe                                 |
- * | **região de voz**    | ⚠ não existe                                 |
- * | **modo de vídeo**    | ⚠ não existe                                 |
+ * | bitrate              | `voice.bitrate` ✓ (fork)                     |
+ * | região de voz        | `voice.rtc_region` ✓ (fork)                  |
+ * | modo de vídeo        | `voice.video_quality` ✓ (fork)               |
  *
- * Os cinco de baixo são desenhados assim mesmo — é a regra desta rodada — e
+ * ⚠ **Os três de voz deixaram de ser pendência** quando o serviço `api` deste
+ * repositório os ganhou — ver `sdk/vozDoCanal.ts`. O de spoiler continua
+ * desenhado assim mesmo — é a regra desta rodada — e
  * cada um tem entrada em `pendente/pendencias.ts`, que é o que troca "não faz
  * nada" por "diz o que fará e do que depende".
  *
@@ -47,6 +60,8 @@ export type EdicaoDeCanal = {
   readonly limiteDeUsuarios: number | undefined;
   /** Segundos entre mensagens. `0` é desativado; o teto do protocolo é 21600. */
   readonly modoLentoSegundos: number;
+  /** Bitrate, região e modo de vídeo. Só em canal de voz, junto do limite. */
+  readonly voz?: Omit<Parameters<typeof corpoDeVoz>[0], "limiteDeUsuarios">;
 };
 
 export async function salvarCanal(
@@ -85,10 +100,10 @@ export async function salvarCanal(
       substitui o objeto e apaga o teto sem desligar a voz (`remove: Voice`
       faria isso).
     */
-    dados["voice"] =
-      edicao.limiteDeUsuarios > 0
-        ? { max_users: edicao.limiteDeUsuarios }
-        : {};
+    dados["voice"] = corpoDeVoz({
+      limiteDeUsuarios: edicao.limiteDeUsuarios,
+      ...(edicao.voz ?? lerConfigDeVozComoEdicao(channelId)),
+    });
   }
 
   try {
@@ -97,6 +112,25 @@ export async function salvarCanal(
   } catch {
     return false;
   }
+}
+
+/**
+ * Os nós de voz que o servidor anuncia — as opções de "Região de voz".
+ *
+ * Os nomes são as chaves de `hosts.livekit` na configuração da instância, e é
+ * isso que `voice.rtc_region` precisa conter: o servidor recusa com
+ * `UnknownNode` um nome que não esteja lá. Nó marcado `private` não aparece
+ * na lista pública e por isso não é oferecido.
+ */
+export function nosDeVoz(): readonly string[] {
+  const nos = (
+    client.configuration as
+      | { features?: { livekit?: { nodes?: readonly { name?: unknown }[] } } }
+      | undefined
+  )?.features?.livekit?.nodes;
+  return (nos ?? [])
+    .map((n) => n.name)
+    .filter((n): n is string => typeof n === "string" && n !== "");
 }
 
 /**
