@@ -88,6 +88,7 @@ pub async fn create_sticker(
         description: campo_opcional(None, data.description),
         emoji: campo_opcional(None, data.emoji),
         content_type: arquivo.content_type,
+        filename: arquivo.filename,
     };
 
     sticker.create(db).await?;

@@ -22,6 +22,9 @@ auto_derived!(
         pub emoji: Option<String>,
         /// Volume de origem, de 0 a 100
         pub volume: u8,
+        /// Nome do arquivo no `autumn`
+        #[serde(default)]
+        pub filename: String,
     }
 );
 

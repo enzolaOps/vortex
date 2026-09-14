@@ -31,6 +31,9 @@ auto_derived!(
         pub emoji: Option<String>,
         /// Tipo do arquivo, para quem precisa decidir como desenhar
         pub content_type: String,
+        /// Nome do arquivo no `autumn` — compõe a URL do original
+        #[cfg_attr(feature = "serde", serde(default))]
+        pub filename: String,
     }
 
     /// Criar figurinha

@@ -25,6 +25,9 @@ auto_derived!(
         pub emoji: Option<String>,
         /// Tipo do arquivo
         pub content_type: String,
+        /// Nome do arquivo no `autumn`
+        #[serde(default)]
+        pub filename: String,
     }
 );
 

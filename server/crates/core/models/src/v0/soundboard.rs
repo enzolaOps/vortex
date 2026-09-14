@@ -23,6 +23,9 @@ auto_derived!(
         pub emoji: Option<String>,
         /// Volume de ORIGEM, de 0 a 100 — o que todo mundo ouve
         pub volume: u8,
+        /// Nome do arquivo no `autumn` — compõe a URL do original
+        #[cfg_attr(feature = "serde", serde(default))]
+        pub filename: String,
     }
 
     /// Criar efeito sonoro

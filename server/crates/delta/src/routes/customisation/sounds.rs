@@ -87,7 +87,7 @@ pub async fn create_sound(
         return Err(create_error!(FileTooLarge { max: tamanho }));
     }
 
-    File::use_expression(db, &sound_id, &sound_id, &user.id).await?;
+    let arquivo = File::use_expression(db, &sound_id, &sound_id, &user.id).await?;
 
     let sound = SoundboardSound {
         id: sound_id,
@@ -96,6 +96,7 @@ pub async fn create_sound(
         name: data.name,
         emoji: data.emoji.filter(|e| !e.trim().is_empty()),
         volume,
+        filename: arquivo.filename,
     };
 
     sound.create(db).await?;

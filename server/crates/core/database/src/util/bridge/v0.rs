@@ -400,6 +400,7 @@ impl From<crate::Sticker> for Sticker {
             description: value.description,
             emoji: value.emoji,
             content_type: value.content_type,
+            filename: value.filename,
         }
     }
 }
@@ -413,6 +414,7 @@ impl From<crate::SoundboardSound> for SoundboardSound {
             name: value.name,
             emoji: value.emoji,
             volume: value.volume,
+            filename: value.filename,
         }
     }
 }
