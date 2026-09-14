@@ -1,0 +1,225 @@
+/* ============================================================
+   Notificações do servidor e do canal — o modal do sino
+   ------------------------------------------------------------
+   Valores de "Vortex Notificações · Por servidor e por canal":
+   520 e 420 de largura, sobrancelha antes de cada grupo,
+   cartões de rádio com vão de 8 (servidor) e 7 (canal), um
+   cartão de linhas em `surface-3` e a tabela de exceções com
+   colunas de 84px.
+   ============================================================ */
+
+.painelDoServidor {
+  inline-size: 520px;
+}
+
+.painelDoCanal {
+  inline-size: 420px;
+}
+
+/* ------------------------------------------------------ cabeçalho */
+
+.identidade {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+}
+
+/*
+  O ladrilho do servidor, 30×30 com raio 9 — é DIMENSÃO do cabeçalho, não
+  degrau. Não é o `Avatar`: aquele é redondo e pensado para gente, e o design
+  desenha o servidor como ladrilho com a sigla, como no rail.
+*/
+.ladrilho {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 30px;
+  border-radius: var(--vx-radius-09);
+  font-size: var(--vx-size-xs);
+  font-weight: 700;
+}
+
+.identidadeDoCanal {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+}
+
+.glifoDoTitulo {
+  flex: none;
+  inline-size: var(--vx-icon-2);
+  block-size: var(--vx-icon-2);
+  color: var(--vx-text-4);
+}
+
+/* ---------------------------------------------------------- corpo */
+
+.sobrancelha {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  margin-block-end: var(--vx-space-09);
+  color: var(--vx-text-3);
+}
+
+.grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-08);
+  margin-block-end: var(--vx-space-18);
+}
+
+.grupoDoCanal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-07);
+}
+
+.cartaoDeLinhas {
+  margin-block-end: var(--vx-space-14);
+  padding: var(--vx-space-04) var(--vx-space-14);
+  border-radius: var(--vx-radius-10);
+  background: var(--vx-surface-3);
+}
+
+.linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-16);
+  padding-block: var(--vx-space-12);
+}
+
+/* A régua só ENTRE linhas do cartão, como no design; a linha solta do modal
+   de canal não tem vizinha e não leva borda. */
+.cartaoDeLinhas .linha:not(:last-child) {
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+.painelDoCanal .linha {
+  padding-block: 0;
+}
+
+.textos {
+  display: grid;
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.titulo {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.detalhe {
+  margin: 0;
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+  text-wrap: pretty;
+}
+
+.regua {
+  margin: var(--vx-space-14) 0;
+  border: 0;
+  border-block-start: 1px solid var(--vx-hairline-06);
+}
+
+/* ------------------------------------------------ tabela de exceções */
+
+.tabela {
+  overflow: hidden;
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-08);
+}
+
+.cabecalhoDaTabela,
+.linhaDaTabela {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 84px 84px 84px;
+  align-items: center;
+  gap: var(--vx-space-08);
+  padding: var(--vx-space-09) var(--vx-space-12);
+}
+
+.cabecalhoDaTabela {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  background: var(--vx-surface-3);
+  font-size: var(--vx-size-2xs);
+  color: var(--vx-text-3);
+}
+
+.linhaDaTabela {
+  border-block-start: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-2);
+}
+
+.aoCentro {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+}
+
+.canal {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-07);
+  min-inline-size: 0;
+}
+
+.glifo {
+  flex: none;
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+  color: var(--vx-text-4);
+}
+
+.nomeDoCanal {
+  overflow: hidden;
+  font-size: var(--vx-size-md);
+  color: var(--vx-text-1);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/*
+  O ponto de 15px da tabela — menor que o `Marcador` (16) porque o design o
+  desenha menor, numa grade densa de três colunas.
+
+  ⚠ **Herdado é o MESMO ponto em cinza**, e é o que a nota embaixo da tabela
+  promete: a pessoa vê de onde o valor vem sem uma quarta coluna.
+*/
+.ponto {
+  inline-size: 15px;
+  block-size: 15px;
+  padding: 0;
+  border: 1px solid var(--vx-hairline-16);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-surface-3);
+  cursor: pointer;
+  transition: border-color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.ponto:hover:not([aria-checked="true"]) {
+  border-color: var(--vx-text-3);
+}
+
+.ponto[aria-checked="true"] {
+  border-color: var(--vx-accent);
+  background: radial-gradient(circle, var(--vx-accent) 0 4px, transparent 5px);
+}
+
+.ponto[data-herdado] {
+  border-color: var(--vx-text-4);
+  background: radial-gradient(circle, var(--vx-text-4) 0 4px, transparent 5px);
+}
+
+.ponto:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.nota {
+  margin: var(--vx-space-10) 0 0;
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
+}
