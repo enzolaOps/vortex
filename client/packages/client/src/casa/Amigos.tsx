@@ -4,7 +4,6 @@ import { Avatar } from "../components/ui/Avatar";
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
-import type { Relacao } from "../sdk/domain";
 import { Segmentado } from "../components/ui/Segmentado";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
 import {
@@ -20,7 +19,9 @@ import {
   assinarNavegacao,
   irParaAmigos,
   lerLocal,
+  type AbaDePessoas,
 } from "../store/navegacao";
+import { SolicitacoesDeMensagem } from "./SolicitacoesDeMensagem";
 import { abrirConversa } from "../store/navegacao";
 import css from "./Amigos.module.css";
 
@@ -43,11 +44,14 @@ const ABAS = [
   { id: "recebido", rotulo: "Pedidos" },
   { id: "enviado", rotulo: "Enviados" },
   { id: "bloqueado", rotulo: "Bloqueados" },
-] as const satisfies readonly { id: Relacao; rotulo: string }[];
+  { id: "solicitacoes", rotulo: "Solicitações" },
+] as const satisfies readonly { id: AbaDePessoas; rotulo: string }[];
 
 type Aba = (typeof ABAS)[number]["id"];
+/** As abas que são uma RELAÇÃO — as quatro que listam pessoas. */
+type AbaDeRelacao = Exclude<Aba, "solicitacoes">;
 
-const VAZIO: Record<Aba, { titulo: string; detalhe: string }> = {
+const VAZIO: Record<AbaDeRelacao, { titulo: string; detalhe: string }> = {
   amigo: {
     titulo: "Nenhum amigo ainda",
     detalhe: "Peça amizade pelo nome de usuário no campo acima.",
@@ -72,7 +76,7 @@ const Pessoa = memo(function Pessoa({
   aba,
 }: {
   id: string;
-  aba: Aba;
+  aba: AbaDeRelacao;
 }) {
   const pessoa = usePessoa(id);
   const [ocupado, setOcupado] = useState(false);
@@ -218,7 +222,12 @@ export function Amigos() {
     "nenhuma relação" é todo mundo. O tipo garante que uma aba nova precise ser
     uma relação de verdade.
   */
-  const ids = useRelacao(aba);
+  /*
+    Na aba de solicitações a lista é de CONVERSAS e não de pessoas, e quem a
+    assina é o painel dela. `useRelacao` continua sendo chamado sempre — hook
+    não entra em `if` —, com a relação `nenhuma`, que nenhuma aba publica.
+  */
+  const ids = useRelacao(aba === "solicitacoes" ? "nenhuma" : aba);
 
   const limpo = nome.trim();
   const podeEnviar = limpo.length > 0 && !enviando;
@@ -266,7 +275,9 @@ export function Amigos() {
 
       {/* Ver `MessageList`: rolável sem foco é inoperável por teclado. */}
       <div className={css.rolagem} tabIndex={0}>
-        {ids.length === 0 ? (
+        {aba === "solicitacoes" ? (
+          <SolicitacoesDeMensagem />
+        ) : ids.length === 0 ? (
           <EstadoVazio titulo={VAZIO[aba].titulo} detalhe={VAZIO[aba].detalhe} />
         ) : (
           <ul className={css.lista}>

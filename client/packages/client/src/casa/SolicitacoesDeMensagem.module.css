@@ -1,0 +1,129 @@
+/* ============================================================
+   Solicitações de mensagem
+   ------------------------------------------------------------
+   Medidas de "Solicitações de desconhecidos" em
+   `Vortex DMs e Navegação.dc.html`: cartão de raio 12 em
+   surface-1 · cabeçalho 14×16 · linha 12×16 · avatar 32 com
+   vão de 11 · nome 13/600 · prévia 13/1.45 · ações de 8.
+   ============================================================ */
+
+.painel {
+  overflow: hidden;
+  max-inline-size: var(--vx-medida);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-12);
+  background: var(--vx-surface-1);
+}
+
+.cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-14) var(--vx-space-16);
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+.titulo {
+  margin: 0;
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-base);
+  font-weight: 600;
+}
+
+.subtitulo {
+  margin: 0;
+  margin-block-start: var(--vx-space-02);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+}
+
+/*
+  O selo do filtro é PÍLULA de 20 no design, e o `Selo` é etiqueta de 16.
+  Especificidade dobrada (`.cabecalho .filtro`) porque os dois são CSS Modules
+  de mesma especificidade, e quem ganharia seria a ordem do bundle — a
+  armadilha que a largura do `Dialog` já custou.
+*/
+.cabecalho .filtro {
+  block-size: 20px;
+  padding-inline: var(--vx-space-08);
+  border-radius: var(--vx-radius-pill);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  letter-spacing: normal;
+}
+
+.lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.solicitacao {
+  padding: var(--vx-space-12) var(--vx-space-16);
+}
+
+.solicitacao + .solicitacao {
+  border-block-start: 1px solid var(--vx-hairline-06);
+}
+
+.linha {
+  display: flex;
+  gap: var(--vx-space-11);
+  min-inline-size: 0;
+  margin-block-end: var(--vx-space-10);
+}
+
+/* Suspeita recua a linha inteira — do design, a 70%. Não é estado desabilitado:
+   é "isto pede cuidado", e as ações embaixo continuam em cor cheia. */
+.linha[data-suspeita="true"] {
+  opacity: 0.7;
+}
+
+.texto {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+.linhaDoNome {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-07);
+  min-inline-size: 0;
+}
+
+.nome {
+  min-inline-size: 0;
+  overflow: hidden;
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.previa {
+  margin: 0;
+  margin-block-start: var(--vx-space-04);
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-md);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.previa[data-tom="apagado"] {
+  color: var(--vx-text-3);
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-08);
+}
+
+/* "Bloquear e denunciar": texto de alvo sem caixa, na cor de perigo — o
+   `sutil` com a outra tinta. Mesma especificidade dobrada do `.filtro`. */
+.acoes .perigoTexto {
+  color: var(--vx-danger-text);
+}
