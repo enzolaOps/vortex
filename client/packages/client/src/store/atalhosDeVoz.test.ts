@@ -79,6 +79,13 @@ describe("tecla na janela", () => {
     ).toBeUndefined();
   });
 
+  /* Silenciar o overlay é da CASCA; na janela, a tecla não pode fazer nada —
+     no navegador Ctrl+Shift+N ainda seria "nova janela anônima". */
+  it("o atalho de silenciar o overlay não vira comando na janela", () => {
+    const e = tecla("keydown", "KeyN", { ctrlKey: true, shiftKey: true });
+    expect(comandoDaTecla(e, atalhosAtivos(ATALHOS_PADRAO), false)).toBeUndefined();
+  });
+
   it("Ctrl+Shift+M muta, e M sozinho não", () => {
     expect(comandoDaTecla(tecla("keydown", "KeyM", { ctrlKey: true, shiftKey: true }), ativos, false)).toBe("mutar");
     expect(comandoDaTecla(tecla("keydown", "KeyM"), ativos, false)).toBeUndefined();
