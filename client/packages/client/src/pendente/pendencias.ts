@@ -262,17 +262,6 @@ export const PENDENCIAS = {
     depende: "soundboard no protocolo + upload",
   },
   /*
-    ⚠ **A linha de enquete na timeline EXISTE agora**, e o que ficou pendente é
-    só criar — porque criar é o que precisa de um servidor que saiba guardar.
-    Ver `store/enquetes.ts`: uma enquete guardada só no cliente daria uma
-    contagem que só quem criou enxerga.
-  */
-  enquete: {
-    superficie: "Criar enquete",
-    faz: "Publicar a enquete para todo mundo do canal poder votar.",
-    depende: "enquete no protocolo (tipo de mensagem + evento de voto)",
-  },
-  /*
     ⚠ **Tocar já EXISTE** — ver `list/ReprodutorDeVoz.tsx`. O que continua
     pendente é gravar, e a dependência é a mesma de `anexar`: sem upload, uma
     gravação não tem para onde ir, e pedir o microfone para produzir um arquivo
