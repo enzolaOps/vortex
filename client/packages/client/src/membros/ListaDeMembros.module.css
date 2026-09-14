@@ -157,6 +157,14 @@
   Trunca em uma linha: recado pode ter 128 caracteres, e uma coluna de 232px
   não os comporta sem virar parágrafo.
 */
+/* Nome e ícone de cargo. O nome encolhe com reticências; o ícone não. */
+.linhaDoNome {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-04);
+  min-inline-size: 0;
+}
+
 .recado {
   min-inline-size: 0;
   overflow: hidden;
@@ -192,7 +200,7 @@
   janela, então funciona igual num slot estreito da fase 4.
 */
 @container (inline-size < 140px) {
-  .nome,
+  .linhaDoNome,
   .secao {
     display: none;
   }

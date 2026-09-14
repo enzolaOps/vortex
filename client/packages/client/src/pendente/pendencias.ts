@@ -83,10 +83,16 @@ export const PENDENCIAS = {
     depende:
       "só a tela — o preset é um gradiente estático que colour já aceita; falta reconhecê-lo na leitura e a pílula clara de texto escuro",
   },
-  iconeDeCargo: {
+  /*
+    A IMAGEM entrou (`config/IconeDoCargo.tsx`); sobrou o emoji. `Role.icon` é
+    um arquivo do `autumn` na tag `icons` — emoji personalizado mora em
+    `emojis` e o servidor recusa, e emoji Unicode não é arquivo nenhum.
+  */
+  emojiComoIconeDeCargo: {
     superficie: "Configurações do servidor · Cargos · Exibição",
-    faz: "Pôr uma imagem ou emoji ao lado do nome de quem tem o cargo.",
-    depende: "upload para o servidor de mídia — o campo Role.icon JÁ existe",
+    faz: "Usar um emoji como ícone do cargo, em vez de uma imagem.",
+    depende:
+      "desenhar o emoji numa imagem e subi-la em `icons` — o protocolo só guarda arquivo",
   },
   mencionarCargo: {
     superficie: "Configurações do servidor · Cargos · Exibição",
@@ -98,28 +104,6 @@ export const PENDENCIAS = {
     faz: "Criar um link que dá o cargo a quem entrar por ele.",
     depende: "o conceito de convite com cargo no protocolo",
   },
-  gerenciarMembrosDoCargo: {
-    superficie: "Configurações do servidor · Cargos · Gerenciar membros",
-    faz: "Adicionar e remover várias pessoas do cargo de uma vez.",
-    depende:
-      "só a tela — a escrita existe e já funciona no menu da member list, uma pessoa por vez",
-  },
-
-  /* ------------------------------------------- permissões padrão */
-  /*
-    ⚠ **`@everyone` é cargo de verdade no protocolo, mas não vem em
-    `fetchRoles`** — ele é o campo `default_permissions` do servidor, e não uma
-    entrada da lista de cargos. Editá-lo é `Server.edit`, com uma tela que
-    reusa a matriz de permissões do editor. A entrada existe para o alvo dizer
-    isso em vez de não fazer nada.
-  */
-  permissoesPadrao: {
-    superficie: "Configurações do servidor · Cargos",
-    faz: "Editar as permissões que TODO membro tem, antes de qualquer cargo.",
-    depende:
-      "a matriz de permissões apontando para `default_permissions` em vez de um cargo",
-  },
-
   /* ----------------------------------------------- tag do servidor */
   /*
     ⚠ **Duas entradas para uma tela, e a divisão é por DEPENDÊNCIA.** A tag em
