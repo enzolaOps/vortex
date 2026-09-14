@@ -112,6 +112,12 @@ auto_derived_partial!(
         /// Role icon
         #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
         pub icon: Option<File>,
+        /// Vortex: whether members without `MentionRoles` may mention this role
+        #[cfg_attr(
+            feature = "serde",
+            serde(skip_serializing_if = "crate::if_false", default)
+        )]
+        pub mentionable: bool,
     },
     "PartialRole"
 );
@@ -290,6 +296,8 @@ auto_derived!(
         /// Provide an Autumn attachment Id.
         #[cfg_attr(feature = "validator", validate(length(min = 1, max = 128)))]
         pub icon: Option<String>,
+        /// Vortex: whether members without `MentionRoles` may mention this role
+        pub mentionable: Option<bool>,
         /// Fields to remove from role object
         #[cfg_attr(feature = "serde", serde(default))]
         pub remove: Vec<FieldsRole>,

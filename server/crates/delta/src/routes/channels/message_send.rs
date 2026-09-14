@@ -268,6 +268,8 @@ mod test {
             last_message_id: None,
             voice: None,
             slowmode: None,
+            spoiler: None,
+            invites_paused: None,
         };
         locked_channel
             .update(&harness.db, partial, vec![])

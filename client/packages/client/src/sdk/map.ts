@@ -44,6 +44,7 @@ import { NOMES_POR_REACAO } from "./domain";
 import type { Enquete } from "../store/enquetes";
 import { formatarBytes } from "../lib/bytes";
 import { sigla } from "../lib/sigla";
+import { camposDe, superficie } from "./superficieVortex";
 
 /**
  * `reactions` chega como ReactiveMap<emoji, ReactiveSet<userId>>. Achatar aqui
@@ -591,6 +592,9 @@ export function toChannelSnapshot(
       são os do domínio.
     */
     modoLento: channel.slowmode,
+    /* Lidos do evento CRU — o SDK os descarta. Ver `superficieVortex.ts`. */
+    spoiler: camposDe(superficie, channel.id).spoiler,
+    convitesPausados: camposDe(superficie, channel.id).convitesPausados,
   };
 }
 

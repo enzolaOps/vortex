@@ -11,7 +11,7 @@ import {
   Plus,
   Users,
 } from "../components/ui/icones";
-import { memo } from "react";
+import { memo, useSyncExternalStore } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
@@ -27,7 +27,7 @@ import {
 import { abrirConversa, irParaAmigos } from "../store/navegacao";
 import { useLocal } from "../store/hooks";
 import { Selo } from "../components/ui/Selo";
-import { aindaNao } from "../pendente/pendencias";
+import { alternarFavorita, assinarFavoritos, ehFavorita } from "../store/favoritos";
 import { bloquear, desfazerAmizade, sairDaConversa } from "../sdk/social";
 import { alternarSilencio, estaSilenciado } from "../store/silencio";
 import css from "./ListaDeConversas.module.css";
@@ -55,6 +55,18 @@ import { administrar } from "../store/administracao";
  * é como uma caixa de entrada funciona. Separar faria a conversa de ontem
  * ficar abaixo de um grupo morto só porque grupo é outro tipo.
  */
+
+/**
+ * O rótulo que alterna com o estado.
+ *
+ * Componente próprio porque o conteúdo do menu é JSX criado no render da
+ * LINHA, e a linha não re-renderiza ao favoritar (só a ordem da coluna muda):
+ * ler `ehFavorita` ali daria o rótulo velho. Montado só com o menu aberto.
+ */
+function RotuloDeFavorita({ id }: { id: string }) {
+  const favorita = useSyncExternalStore(assinarFavoritos, () => ehFavorita(id));
+  return <>{favorita ? "Desmarcar como favorita" : "Marcar como favorita"}</>;
+}
 
 /** Uma linha da coluna. Assina a própria conversa — lei nº 1. */
 const Conversa = memo(function Conversa({
@@ -187,9 +199,13 @@ const Conversa = memo(function Conversa({
         */}
         {dm ? (
           <>
-            <ContextMenuItem onSelect={aindaNao("favoritarConversa")}>
+            {/*
+              Favorita vai para a CONTA pela sincronia de configurações — ver
+              `store/favoritos.ts`.
+            */}
+            <ContextMenuItem onSelect={() => alternarFavorita(id)}>
               <PushPin size={ICONE.calha} aria-hidden />
-              Marcar como favorita
+              <RotuloDeFavorita id={id} />
             </ContextMenuItem>
 
             <ContextMenuItem
