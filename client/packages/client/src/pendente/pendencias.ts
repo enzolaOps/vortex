@@ -589,6 +589,16 @@ export const PENDENCIAS = {
     depende:
       "os overrides de permissão no snapshot do canal — hoje só nome, tópico, modo lento, idade e limite chegam, e duplicar sem eles abriria um canal restrito",
   },
+  /*
+    O `⋯` da chamada direta. O design desenha o alvo na barra e não desenha o
+    menu; ensurdecer, que é o item óbvio, já está no painel de usuário e no
+    cartão flutuante — inventar a lista seria escrever o design.
+  */
+  menuDaChamada: {
+    superficie: "Chamada direta, na barra de controles",
+    faz: "Abrir as ações que não cabem na barra (ensurdecer, dispositivos, tela cheia).",
+    depende: "o conteúdo do menu, que o design não desenha",
+  },
 } as const satisfies Record<
   string,
   { superficie: string; faz: string; depende: string }
@@ -636,28 +646,6 @@ export type PendenciaId = keyof typeof PENDENCIAS;
  */
 export const SUPERFICIES_AUSENTES = {
   /* ------------------------------------------------------------- voz */
-  /*
-    ⚠ **As duas primeiras são o par que torna a voz 1:1 INALCANÇÁVEL, e não
-    incompleta.** Não é uma tela faltando no fim de um fluxo: sem a chamada
-    recebida não há como ATENDER, então nenhuma ligação de DM chega ao outro
-    lado. É a de maior valor das nove.
-
-    E ela é a única que não teria controle nem depois de pronta: quem chama é
-    a outra pessoa. Por isso não há como registrá-la em `PENDENCIAS` nem
-    hoje nem nunca — ela nasce de um evento, não de um clique.
-  */
-  chamadaRecebida: {
-    superficie: "Sobreposta ao app, e em tela cheia",
-    faz: "Anunciar quem está ligando, com atender e recusar.",
-    depende: "nada no protocolo — é trabalho de tela mais o evento do LiveKit",
-    referencia: "components/voice/IncomingCall.tsx",
-  },
-  chamadaDireta: {
-    superficie: "Coluna de conteúdo, numa DM",
-    faz: "A chamada de duas pessoas: vídeo grande, o seu no canto, controles.",
-    depende: "a chamada recebida, que é quem abre esta — e um botão de ligar na DM",
-    referencia: "components/voice/CallStage.tsx · DirectCallStage",
-  },
   chatDoCanalDeVoz: {
     superficie: "Painel dentro da sala de voz",
     faz: "O chat embutido do canal de voz, com entradas e saídas como eventos do sistema.",
