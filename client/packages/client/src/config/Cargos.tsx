@@ -523,6 +523,7 @@ function EditorDeCargo({
     salvo && salvo.direcao !== "" ? "gradiente" : "solido",
   );
   const [destacado, setDestacado] = useState(cargo.destacado);
+  const [mencionavel, setMencionavel] = useState(cargo.mencionavel);
   const [marcadas, setMarcadas] = useState<readonly string[]>(cargo.concedidas);
   const [buscaDePermissao, setBuscaDePermissao] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -749,18 +750,14 @@ function EditorDeCargo({
                 detalhe={`Qualquer membro pode usar @${nome}.`}
               >
                 {/*
-                  ⚠ Pendente, e o interruptor mostra o estado VERDADEIRO: o
-                  protocolo não tem `mentionable`, e hoje qualquer cargo pode
-                  ser mencionado. Nascer desligado afirmaria o contrário do
-                  que o servidor faz — a regra que Acesso e Segurança já
-                  registram.
+                  `mentionable` do servidor do Vortex. Desligado não impede
+                  quem TEM "Mencionar cargos" — é a permissão que decide para
+                  quem modera; isto abre a menção para todo o resto.
                 */}
                 <Interruptor
                   rotulo="Permitir menção"
-                  ligado
-                  aoAlternar={() => {
-                    aindaNao("mencionarCargo")();
-                  }}
+                  ligado={mencionavel}
+                  aoAlternar={setMencionavel}
                 />
               </LinhaDeAjuste>
             </div>
@@ -941,6 +938,7 @@ function EditorDeCargo({
               nome.trim(),
               bruta,
               destacado,
+              mencionavel,
             )
               .then(() => salvarPermissoes(serverId, cargo.id, marcadas))
               .then((ok) => {

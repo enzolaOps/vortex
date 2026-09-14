@@ -43,6 +43,7 @@ import { client, conectado } from "./client";
 import { subirAnexo } from "./anexos";
 import { formatarBytes } from "../lib/bytes";
 import { toast } from "../components/ui/toastStore";
+import { motivoDoErro } from "./erros";
 import {
   criarMedidorDeTaxa,
   esquecerUpload,
@@ -59,6 +60,7 @@ import {
 } from "../store/conexao";
 import { confirmarNaFila, esquecerDaFila } from "../store/fila";
 import { assinarSilencio } from "../store/silencio";
+import { assinarFavoritos, lerFavoritos, ordenarComFavoritas } from "../store/favoritos";
 import {
   atualizarContador,
   definirCanalVisto,
@@ -88,6 +90,8 @@ import {
 import { calcularLayout, type Layout } from "./agrupamento";
 import { criarNotificadorDeDigitacao } from "./digitando";
 import { instalarSync, puxarConfiguracoes } from "./sincronizar";
+import { aplicarEventoCru, avisarCanaisVortex, superficie } from "./superficieVortex";
+import { ulidAnterior } from "../lib/ulid";
 import {
   ehCanalDeVoz,
   toChannelSnapshot,
@@ -140,6 +144,9 @@ export function layoutDe(id: string): Layout {
  */
 const cursorDeLeitura = new Map<string, string>();
 
+/** Canais marcados como não lidos nesta sessão — ver `avancarCursor`. */
+const naoLidaManual = new Set<string>();
+
 
 /**
  * A primeira não lida de um canal — a que recebe o divisor.
@@ -171,6 +178,13 @@ function primeiraNaoLidaDe(channelId: string): string | undefined {
  * viu quando saiu.
  */
 function avancarCursor(channelId: string): void {
+  /*
+    Quem marcou como não lida AQUI pediu exatamente o contrário de "saí, então
+    li". Sem este desvio, o item de menu valeria até o próximo clique no rail.
+    Consumido uma vez: voltar ao canal e sair de novo é leitura normal.
+  */
+  if (naoLidaManual.delete(channelId)) return;
+
   const ids = idsOf(channelId);
   const ultima = ids[ids.length - 1];
   if (!ultima) return;
@@ -869,6 +883,49 @@ export function alternarFixada(messageId: string): void {
   else void alvo?.unpin().catch(() => undefined);
 }
 
+/**
+ * Aplica um evento CRU da superfície do Vortex e republica quem mudou.
+ *
+ * Exportado para a escrita otimista: quem acabou de gravar `spoiler` ou
+ * `invites_paused` aplica o mesmo evento que o servidor vai mandar, sem
+ * esperar o socket — a tela relê o snapshot logo depois do `await`, e o evento
+ * pode chegar um quadro atrasado. Idempotente quando ele chegar.
+ */
+export function aplicarSuperficieVortex(evento: unknown): void {
+  const mudou = aplicarEventoCru(superficie, evento);
+  for (const id of mudou.canais) reemitirCanal(id);
+  avisarCanaisVortex(mudou.canais);
+}
+
+/**
+ * Tira as prévias de link de uma mensagem — o "Remover embed" do menu.
+ *
+ * Otimista como fixar: o cartão some na hora, e só o que o SERVIDOR gerou sai
+ * (`Text` é embed que o autor mandou de propósito e fica). A rota é do servidor
+ * do Vortex (`DELETE …/embeds`), e ela liga `SuppressEmbeds` na mensagem para o
+ * worker de prévia não devolver o cartão numa edição.
+ *
+ * ⚠ **Sem rollback se o servidor recusar**, pela razão da reação: o
+ * `MessageUpdate` seguinte traz o estado certo, e um rollback correndo contra
+ * ele faria o cartão piscar duas vezes. A recusa vira toast.
+ */
+export function removerEmbeds(messageId: string): void {
+  const message = client.messages.get(messageId);
+  if (!message) return;
+
+  client.messages.updateUnderlyingObject(messageId, {
+    embeds: (message.embeds ?? []).filter((e) => e.type === "Text"),
+  } as never);
+
+  if (!conectado()) return;
+  const idServidor = idDoSdk(messageId);
+  void client.api
+    .delete(`/channels/${message.channelId}/messages/${idServidor}/embeds` as never)
+    .catch((e: unknown) => {
+      toast({ tipo: "erro", titulo: "Não deu para remover a prévia.", descricao: motivoDoErro(e) });
+    });
+}
+
 /** Publicação imediata, para setup — não há frame para esperar. */
 function publishNow(channelId: string) {
   dirty.delete(channelId);
@@ -1045,6 +1102,21 @@ export function startAdapter() {
     }
   });
 
+  /*
+    A superfície a mais do servidor do Vortex — `spoiler`, `invites_paused` e
+    `mentionable` —, que o SDK descarta na hidratação. Mesmo arranjo do
+    `can_publish` acima; a decisão mora em `superficieVortex.ts`, que é puro.
+  */
+  client.events.on("event", aplicarSuperficieVortex);
+
+  /*
+    O cursor de leitura andou em OUTRO dispositivo — para a frente (leu lá) ou
+    para trás (marcou como não lida lá). O SDK só emite; o estado é daqui.
+  */
+  client.on("channelAcknowledged", (canal, messageId) => {
+    aplicarAckRemoto(canal.id, messageId);
+  });
+
   client.on("connected", () => {
     definirConexao("conectado");
     /*
@@ -1089,6 +1161,9 @@ export function startAdapter() {
   assinarSilencio(() => {
     for (const id of channels.assinados()) reemitirCanal(id);
   });
+
+  /* Favoritar é ação humana e muda a ORDEM — republica a coluna da casa. */
+  assinarFavoritos(publicarConversas);
 
   // Permissão mudou: as linhas na tela precisam reperguntar. Ver
   // `repensarPermissoes`.
@@ -2378,7 +2453,8 @@ export function publicarConversas(): void {
   }
   // Mais recente primeiro; empate pelo ID, que é estável e cronológico.
   lista.sort((a, b) => b.em - a.em || b.id.localeCompare(a.id));
-  conversas.set(RAIZ, lista.map((c) => c.id));
+  // Favoritas por cima, sem mexer na recência do resto — `store/favoritos.ts`.
+  conversas.set(RAIZ, ordenarComFavoritas(lista.map((c) => c.id), lerFavoritos()));
 }
 
 export function publicarRelacoes(): void {
@@ -2553,6 +2629,111 @@ export function definirCanalAberto(channelId: string | undefined): void {
   }
 }
 
+/**
+ * Marca o canal como não lido A PARTIR desta mensagem.
+ *
+ * O cursor vai para a mensagem ANTERIOR — a lista tem o ID dela; na primeira
+ * carregada, o ULID imediatamente abaixo, que o servidor aceita porque `ack`
+ * não confere se a mensagem existe. O `ack` para trás não precisou de rota
+ * nova: a rota GRAVA o cursor em vez de avançá-lo, e o `ChannelAck` chega aos
+ * outros dispositivos.
+ *
+ * ⚠ **Menções já lidas não voltam**, e é o protocolo: o servidor apaga do
+ * `ChannelUnread` as menções até o cursor quando o cursor avança, e voltar o
+ * cursor não as restaura. A contagem de não lidas volta; o selo de menção não.
+ */
+export function marcarNaoLidaA(messageId: string): void {
+  const message = client.messages.get(idDoSdk(messageId));
+  if (!message) return;
+  const channelId = message.channelId;
+  const ids = idsOf(channelId);
+  const indice = ids.indexOf(messageId);
+
+  const anteriorNaLista = indice > 0 ? ids[indice - 1] : undefined;
+  const novoCursor = anteriorNaLista ?? ulidAnterior(idDoSdk(messageId));
+  if (novoCursor === undefined) return;
+
+  const antigo = cursorDeLeitura.get(channelId);
+  cursorDeLeitura.set(channelId, novoCursor);
+  naoLidaManual.add(channelId);
+
+  // Só duas linhas mudam de marca: a que era a primeira não lida e a nova.
+  const antigaPrimeira = antigo === undefined ? -1 : ids.indexOf(antigo) + 1;
+  if (antigaPrimeira > 0) recalcularLayout(channelId, antigaPrimeira, antigaPrimeira);
+  if (indice >= 0) recalcularLayout(channelId, indice, indice);
+
+  somarNaoLida(channelId);
+
+  if (conectado()) {
+    const idServidor = anteriorNaLista === undefined ? novoCursor : idDoSdk(anteriorNaLista);
+    void client.channels.get(channelId)?.ack(idServidor, true);
+  }
+}
+
+/** Liga a não lida de um canal que não tinha — sem somar em cima de existente. */
+function somarNaoLida(channelId: string): void {
+  const atual = contagemDe(contagemPorCanal, channelId);
+  if (atual.naoLidas > 0) return;
+  contagemPorCanal.set(channelId, { naoLidas: 1, mencoes: atual.mencoes });
+  reemitirCanal(channelId);
+
+  const serverId = client.channels.get(channelId)?.serverId;
+  if (serverId) {
+    const servidor = contagemDe(contagemPorServidor, serverId);
+    contagemPorServidor.set(serverId, {
+      naoLidas: servidor.naoLidas + 1,
+      mencoes: servidor.mencoes,
+    });
+    reemitirServidor(serverId);
+  }
+  reemitirTotais();
+}
+
+/**
+ * O cursor que chegou de fora. Exportado para teste — o caminho real é o
+ * evento `ChannelAck`.
+ *
+ * ⚠ **O próprio `ack` deste dispositivo também volta pelo socket**, e aplicá-lo
+ * de novo é inofensivo: mesmo cursor, nada a republicar.
+ */
+export function aplicarAckRemoto(channelId: string, messageIdDoServidor: string): void {
+  const chave = apelidos.get(messageIdDoServidor) ?? messageIdDoServidor;
+  const ids = idsOf(channelId);
+  const antigo = cursorDeLeitura.get(channelId);
+  if (antigo === chave) return;
+
+  /*
+    ⚠ **No canal ABERTO, cursor que avança não move o divisor.** Abrir o canal
+    manda `ack` da última mensagem, e o eco dele volta por aqui: aplicá-lo
+    faria o divisor sumir no mesmo quadro em que a pessoa entrou para vê-lo —
+    a regra que `avancarCursor` existe para garantir. Só a CONTAGEM zera; o
+    cursor anda ao sair, como sempre. Voltar para trás vale mesmo aberto.
+  */
+  /* A POSIÇÃO na lista decide quando os dois estão nela; fora dela, a ordem
+     do ULID — que é a mesma, exceto para ID local de mensagem otimista. */
+  const posAntigo = antigo === undefined ? -1 : ids.indexOf(antigo);
+  const posNovo = ids.indexOf(chave);
+  const avanca =
+    antigo === undefined ||
+    (posAntigo >= 0 && posNovo >= 0
+      ? posNovo > posAntigo
+      : idDoSdk(antigo) < messageIdDoServidor);
+  if (channelId === canalAberto && avanca) {
+    zerarContagem(channelId);
+    return;
+  }
+
+  cursorDeLeitura.set(channelId, chave);
+  const antigaPrimeira = antigo === undefined ? -1 : ids.indexOf(antigo) + 1;
+  const novaPrimeira = ids.indexOf(chave) + 1;
+  if (antigaPrimeira > 0) recalcularLayout(channelId, antigaPrimeira, antigaPrimeira);
+  if (novaPrimeira > 0) recalcularLayout(channelId, novaPrimeira, novaPrimeira);
+
+  const ultima = client.channels.get(channelId)?.lastMessageId;
+  if (ultima && ultima > messageIdDoServidor) somarNaoLida(channelId);
+  else zerarContagem(channelId);
+}
+
 /** O ponto onde a leitura parou. Para a lista saber até onde rolar. */
 export function primeiraNaoLida(channelId: string): string | undefined {
   return primeiraNaoLidaDe(channelId);
@@ -2576,6 +2757,11 @@ export function marcarCanalLido(channelId: string): void {
     if (ultima) void client.channels.get(channelId)?.ack(idDoSdk(ultima));
   }
 
+  zerarContagem(channelId);
+}
+
+/** Tira as não lidas e menções de um canal, sem avisar o servidor. */
+function zerarContagem(channelId: string): void {
   const atual = contagemPorCanal.get(channelId);
   if (!atual) return;
 

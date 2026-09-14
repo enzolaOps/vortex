@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Botao } from "../../components/ui/Botao";
 import { EstadoVazio } from "../../components/ui/EstadoVazio";
 import { copiarTexto } from "../../lib/copiar";
-import { aindaNao } from "../../pendente/pendencias";
+import { pausarConvites } from "../../sdk/canal";
 import {
   listarConvites,
   revogarConvite,
@@ -35,8 +35,10 @@ import css from "./Canal.module.css";
  * não um número inventado. É a mesma linha de "Conectado · 42 ms": numa
  * superfície onde a pessoa decide revogar, dado falso é pior que dado ausente.
  *
- * "Pausar todos" é pendente pelo mesmo motivo — pausar convite não existe no
- * protocolo.
+ * "Pausar todos" é do servidor do Vortex (`invites_paused` no canal): suspende a
+ * ENTRADA por todos os links sem apagá-los. Pausado é estado do CANAL, não de
+ * cada convite — por isso toda linha fica apagada junto, e o "Retomar" de
+ * qualquer uma retoma todas, que é o que ele faz de fato.
  */
 export function ConvitesDoCanal({ channelId }: { channelId: string }) {
   const canal = useChannel(channelId);
@@ -51,6 +53,7 @@ export function ConvitesDoCanal({ channelId }: { channelId: string }) {
   >(undefined);
   const lista =
     serverId !== undefined && res?.para === serverId ? res.dados : "carregando";
+  const [pausando, setPausando] = useState(false);
 
   useEffect(() => {
     if (!serverId) return;
@@ -78,6 +81,12 @@ export function ConvitesDoCanal({ channelId }: { channelId: string }) {
     typeof lista === "string"
       ? undefined
       : lista.filter((c) => c.canal === canal.name);
+  const pausados = canal.convitesPausados;
+
+  function alternarPausa() {
+    setPausando(true);
+    void pausarConvites(channelId, !pausados).finally(() => setPausando(false));
+  }
 
   return (
     /* 720 é a largura desta tela no design. */
@@ -93,12 +102,14 @@ export function ConvitesDoCanal({ channelId }: { channelId: string }) {
               ? "Carregando…"
               : deste === undefined
                 ? "O servidor não respondeu"
-                : `${deste.length} ativo${deste.length === 1 ? "" : "s"} para este canal`}
+                : pausados
+                  ? `${deste.length} pausado${deste.length === 1 ? "" : "s"} para este canal`
+                  : `${deste.length} ativo${deste.length === 1 ? "" : "s"} para este canal`}
           </span>
         </span>
         <div className={css.convitesAcoes}>
-          <Botao variante="sutil" onClick={aindaNao("pausarConvites")}>
-            Pausar todos
+          <Botao variante="sutil" disabled={pausando} onClick={alternarPausa}>
+            {pausados ? "Retomar todos" : "Pausar todos"}
           </Botao>
           <Botao
             variante="primario"
@@ -141,6 +152,8 @@ export function ConvitesDoCanal({ channelId }: { channelId: string }) {
             <LinhaDeConvite
               key={c.codigo}
               convite={c}
+              pausado={pausados}
+              aoRetomar={alternarPausa}
               aoRevogar={() => {
                 void revogarConvite(serverId, c.codigo).then((ok) => {
                   if (!ok) return;
@@ -164,15 +177,19 @@ export function ConvitesDoCanal({ channelId }: { channelId: string }) {
 
 function LinhaDeConvite({
   convite,
+  pausado,
+  aoRetomar,
   aoRevogar,
 }: {
   convite: ConviteDoServidor;
+  pausado: boolean;
+  aoRetomar: () => void;
   aoRevogar: () => void;
 }) {
   const criador = usePessoa(convite.porId);
 
   return (
-    <div className={css.tabelaLinha} role="row">
+    <div className={css.tabelaLinha} role="row" data-pausado={pausado}>
       {/*
         O código é MONO e clicável: ele existe para ser copiado, e num link de
         convite a diferença entre `oldX1` e `o1dXl` decide se a pessoa entra.
@@ -201,13 +218,25 @@ function LinhaDeConvite({
       <span role="cell" className={css.celulaAusente} title="O protocolo não informa">
         —
       </span>
-      <span role="cell" className={css.celulaAusente} title="O protocolo não informa">
-        —
-      </span>
+      {pausado ? (
+        <span role="cell" className={css.celula}>
+          pausado
+        </span>
+      ) : (
+        <span role="cell" className={css.celulaAusente} title="O protocolo não informa">
+          —
+        </span>
+      )}
       <span role="cell">
-        <button type="button" className={css.revogar} onClick={aoRevogar}>
-          Revogar
-        </button>
+        {pausado ? (
+          <button type="button" className={css.retomar} onClick={aoRetomar}>
+            Retomar
+          </button>
+        ) : (
+          <button type="button" className={css.revogar} onClick={aoRevogar}>
+            Revogar
+          </button>
+        )}
       </span>
     </div>
   );

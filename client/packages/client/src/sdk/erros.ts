@@ -72,6 +72,8 @@ const POR_TIPO: Record<string, string> = {
   /* ----------------------------------------------------------------- conta */
   MissingInvite: "Esta instância exige um convite para criar conta.",
   InvalidInvite: "Este convite não vale.",
+  /* Servidor do Vortex: o convite existe, mas o canal suspendeu a entrada. */
+  InvitesPaused: "Os convites deste canal estão pausados.",
   EmailFailed: "Não deu para enviar o e-mail.",
   /*
     ⚠ `OperationFailed` é o que o servidor devolve para e-mail JÁ CADASTRADO —
