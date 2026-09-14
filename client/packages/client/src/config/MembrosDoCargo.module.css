@@ -1,0 +1,237 @@
+/* ============================================================
+   Cargos · Gerenciar membros
+   ------------------------------------------------------------
+   Os valores são os do design (`Vortex Configurações do
+   Servidor.dc.html`, aba `onMembersTab`): teto de 640, título
+   15/600, busca de 34 em `surface-3`, linha com 9·10 de
+   respiro, raio 8 e véu de 4,5% no hover, "Remover" em 12 no
+   vermelho de texto. O que o design não desenha — caixa, lote,
+   progresso, falhas e o painel de adicionar — reusa as mesmas
+   medidas para não parecer colado de outra tela.
+   ============================================================ */
+
+.aba {
+  display: grid;
+  gap: var(--vx-space-12);
+  align-content: start;
+  max-inline-size: 640px;
+}
+
+/* 14 até a busca no design, e 12 no resto — a margem soma ao `gap`. */
+.topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-12);
+  margin-block-end: var(--vx-space-02);
+}
+
+.titulo {
+  font-size: var(--vx-size-lg);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.contagem {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--vx-text-3);
+}
+
+/* 34 de altura e `surface-3`, do design — o primitivo não fixa fundo. */
+.campo {
+  block-size: 34px;
+  background: var(--vx-surface-3);
+}
+
+.lista {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.linha {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+  min-inline-size: 0;
+  padding: var(--vx-space-09) var(--vx-space-10);
+  border-radius: var(--vx-radius-08);
+  transition: background-color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.linha:hover {
+  background: var(--vx-state-hover);
+}
+
+.linha[data-marcada="true"] {
+  background: var(--vx-state-selected);
+}
+
+.textos {
+  display: grid;
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.nome,
+.sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nome {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.sub {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+/* Texto e não botão com caixa: é o "Remover" em 12 do design, e numa lista de
+   cem linhas cem botões com borda viram grade. */
+.remover {
+  flex: none;
+  padding: var(--vx-space-04) var(--vx-space-02);
+  border: 0;
+  border-radius: var(--vx-radius-04);
+  background: none;
+  color: var(--vx-danger-text);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  cursor: pointer;
+  transition: color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.remover:hover {
+  color: var(--vx-danger);
+}
+
+.remover:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.teto {
+  margin: 0;
+  padding-inline: var(--vx-space-10);
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+/* ------------------------------------------------------ lote */
+
+/*
+  No FLUXO, e não flutuando como a de Membros: aqui a lista tem teto de cem e a
+  barra fica logo acima dela, onde o olho já está depois de marcar.
+*/
+.lote {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  padding: var(--vx-space-06) var(--vx-space-06) var(--vx-space-06) var(--vx-space-12);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-3);
+}
+
+.loteContagem {
+  flex: 1;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+/* ------------------------------------------------- progresso */
+
+.progresso {
+  display: grid;
+  gap: var(--vx-space-06);
+}
+
+.progressoTexto {
+  font-size: var(--vx-size-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--vx-text-2);
+}
+
+.trilho {
+  overflow: hidden;
+  block-size: 4px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-track);
+}
+
+/* `scaleX` e não largura: a doutrina de movimento só deixa `transform` e
+   `opacity` animarem, e o avanço entre dois passos é o que merece transição. */
+.preenchido {
+  display: block;
+  block-size: 100%;
+  background: var(--vx-accent);
+  transform-origin: left center;
+  transition: transform var(--vx-duration-base) var(--vx-ease-out);
+}
+
+:dir(rtl) .preenchido {
+  transform-origin: right center;
+}
+
+/* ---------------------------------------------------- falhas */
+
+.falhas {
+  display: grid;
+  gap: var(--vx-space-02);
+  margin: var(--vx-space-06) 0 0;
+  padding-inline-start: var(--vx-space-16);
+}
+
+/* ------------------------------------------- adicionar membros */
+
+.painel {
+  display: grid;
+  gap: var(--vx-space-10);
+  padding: var(--vx-space-14);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-10);
+  background: var(--vx-surface-1);
+}
+
+.painelTopo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vx-space-08);
+}
+
+.painelTitulo {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.dica {
+  font-size: var(--vx-size-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--vx-text-3);
+}
+
+/* A lista de candidatos ROLA dentro do painel: sem teto de altura, cem
+   linhas empurrariam a lista de quem já tem o cargo para fora da tela. */
+.painel .lista {
+  overflow-y: auto;
+  max-block-size: 320px;
+  scrollbar-width: thin;
+}
+
+.painelRodape {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--vx-space-08);
+  padding-block-start: var(--vx-space-10);
+  border-block-start: 1px solid var(--vx-hairline-06);
+}
