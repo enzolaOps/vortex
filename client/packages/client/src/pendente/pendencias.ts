@@ -309,6 +309,18 @@ export const PENDENCIAS = {
     faz: "Abrir o painel de tópicos ativos, seguindo e arquivados.",
     depende: "threads no protocolo + painel `topicos` em `PainelId`",
   },
+
+  /* ------------------------------------------- modal do sino (notificações) */
+  notificarEventosDoServidor: {
+    superficie: "Notificações do servidor",
+    faz: "Avisar quando um evento agendado do servidor começar.",
+    depende: "evento agendado no protocolo — não há tipo, campo nem rota",
+  },
+  seguirTopicosAutomaticamente: {
+    superficie: "Notificações do canal",
+    faz: "Seguir sozinho os tópicos em que você responder.",
+    depende: "threads no protocolo",
+  },
   /*
     ⚠ **`buscaNoCanal` SAIU daqui — o painel existe e a busca é real.** O que
     sobrou pendente são as duas coisas que o protocolo não sabe fazer, e elas
@@ -328,14 +340,11 @@ export const PENDENCIAS = {
       "a rota de busca é POR CANAL — varrer N canais no cliente seriam N chamadas e uma ordenação que nenhuma delas conhece",
   },
   /*
-    ⚠ **`caixaDeEntrada` SAIU daqui — o painel existe.** O que dependia de
-    protocolo era só a aba de tópicos, e ela diz isso na própria tela.
+    ⚠ **`caixaDeEntrada` e `marcarTudoLido` SAÍRAM daqui.** O painel existe, e
+    marcar tudo é uma fila de `ack` com concorrência limitada
+    (`marcarTodosLidos`). O que dependia de protocolo era só a aba de tópicos,
+    e ela diz isso na própria tela.
   */
-  marcarTudoLido: {
-    superficie: "Caixa de entrada",
-    faz: "Zerar as não-lidas de todos os canais de uma vez.",
-    depende: "`ack` em lote — hoje é uma chamada por canal, e são dezenas",
-  },
 
   /* ------------------------------------------- ações da mensagem (fase 5) */
   topicoDaMensagem: {
@@ -696,38 +705,12 @@ export const SUPERFICIES_AUSENTES = {
     referencia: "components/directs/MessageRequestsPanel.tsx",
   },
 
-  /* -------------------------------------------------- notificações */
   /*
-    ⚠ **Metade desta entrada nasceu OBSOLETA, e vale saber por quê.** Ela dizia
-    "no menu do canal e do servidor" e "falta o store com relógio" — e o
-    relógio existe desde que silenciar canal foi construído:
-    `DURACOES_DE_SILENCIO` tem os cinco prazos, `silencioAte` guarda o PRAZO (e
-    não o tempo restante, senão o store publicaria a cada tique), e
-    `ListaDeCanais` já monta o submenu, com "Reativar avisos" do outro lado.
-    Verificado em navegador: os cinco prazos abrem, e silenciar por eles some
-    com o canal da coluna.
-
-    O que sobra é só o SERVIDOR, e ele não tem silenciar nenhum — nem submenu,
-    nem item. Registrar trabalho já feito como pendente é o defeito inverso do
-    que este registro existe para evitar: encolhe a lista de quem procura o que
-    fazer, e a lista para de merecer confiança na primeira vez que alguém abre
-    uma entrada e encontra a feature pronta.
+    ⚠ **`duracaoDoSilencio` e `notificacoesPorServidorECanal` SAÍRAM daqui.**
+    O servidor tem silêncio próprio (`silenciarServidor`, submenu no menu do
+    servidor) e o sino abre `ModalDeNotificacoes`, com herança servidor →
+    canal.
   */
-  duracaoDoSilencio: {
-    superficie: "Submenu do silenciar, no menu do SERVIDOR",
-    faz: "Silenciar o servidor inteiro por 15 minutos, 1 hora, 8 horas, 24 horas ou até eu reativar.",
-    depende:
-      "silêncio por SERVIDOR — `store/silencio.ts` é keyed por CANAL, e o rollup de não-lidas teria de consultá-lo; o prazo em si já existe e é o mesmo",
-    referencia: "components/navigation/MuteDurationSubmenu.tsx",
-  },
-  notificacoesPorServidorECanal: {
-    superficie: "Modal do sino, no servidor e no canal",
-    faz: "Escolher entre tudo, só menções ou nada, por servidor e por canal.",
-    depende:
-      "distinto de `permissaoDeNotificacao`, que é o pedido ao navegador — este é a REGRA",
-    referencia: "components/notifications/NotificationModals.tsx",
-  },
-
 } as const satisfies Record<
   string,
   { superficie: string; faz: string; depende: string; referencia: string }

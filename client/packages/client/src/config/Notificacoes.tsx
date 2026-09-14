@@ -9,6 +9,13 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
 import { Interruptor } from "../components/ui/Interruptor";
+import {
+  assinarPush,
+  desligarPush,
+  ligarPush,
+  lerPush,
+  type EstadoDoPush,
+} from "../notificacao/push";
 import { assinarMeuStatus, lerMeuStatus } from "../store/meuStatus";
 import {
   alternarDia,
@@ -57,17 +64,26 @@ const DIAS = [
 ] as const;
 
 /**
+ * O que a linha de push diz, por estado. O texto do design é o de "ligado" e
+ * "desligado"; os outros dizem por que o interruptor não responde.
+ */
+const DETALHE_DO_PUSH: Record<EstadoDoPush, string> = {
+  desligado: "Enviadas quando você está inativo há mais de 2 minutos",
+  ligado: "Enviadas quando você está inativo há mais de 2 minutos",
+  ligando: "Inscrevendo este navegador…",
+  bloqueado:
+    "O navegador bloqueou as notificações — libere nas configurações do site",
+  erro: "A instância não aceitou a inscrição. Tente de novo mais tarde",
+  indisponivel:
+    "Indisponível aqui — abra o Vortex num navegador com suporte a push",
+};
+
+/**
  * Notificações.
  *
- * ⚠ **As preferências são REAIS e ficam guardadas; o que falta é quem as
- * CONSOME.** Som precisa de áudio, push de service worker, badge de casca
- * Electron — nenhum dos três existe hoje. Construir a tela mesmo assim é a
- * regra deste projeto, e a forma não muda quando o notificador chegar, porque
- * ele lê deste store.
- *
- * O único PENDENTE de verdade é pedir permissão ao sistema: é chamada ao
- * navegador que só faz sentido com o notificador atrás, e não teria o que
- * guardar.
+ * As preferências são lidas por `notificacao/notificador.ts` (toast, som,
+ * notificação do sistema e contador) e o push por `notificacao/push.ts`, que
+ * inscreve o service worker na instância.
  */
 export function Notificacoes() {
   const p = useSyncExternalStore(assinarNotificacoes, lerNotificacoes);
@@ -79,6 +95,7 @@ export function Notificacoes() {
   */
   const naoPerturbe =
     useSyncExternalStore(assinarMeuStatus, lerMeuStatus).presenca === "dnd";
+  const push = useSyncExternalStore(assinarPush, lerPush);
 
   return (
     <PaginaDeAjustes>
@@ -112,12 +129,18 @@ export function Notificacoes() {
 
         <LinhaDeAjuste
           titulo="Notificações push no celular"
-          detalhe="Enviadas quando você está inativo há mais de 2 minutos"
+          detalhe={DETALHE_DO_PUSH[push]}
         >
+          {/*
+            ⚠ **O interruptor desenha o estado REAL da inscrição**, e não a
+            preferência guardada. Aceso com a permissão negada, ele afirmaria
+            uma entrega que não acontece — ver `notificacao/push.ts`.
+          */}
           <Interruptor
-            ligado={p.push}
+            ligado={push === "ligado" || push === "ligando"}
             rotulo="Notificações push no celular"
-            aoAlternar={(v) => definirNotificacoes({ push: v })}
+            disabled={push === "indisponivel" || push === "bloqueado" || push === "ligando"}
+            aoAlternar={(v) => void (v ? ligarPush() : desligarPush())}
           />
         </LinhaDeAjuste>
 
