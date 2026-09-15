@@ -54,7 +54,9 @@ import { abrirConfigDeCanal } from "../store/config";
 import { ListaDeConversas } from "../casa/ListaDeConversas";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { contagem, rotuloDeNaoLidas } from "../lib/plural";
-import { marcarCanalLido } from "../sdk/adapter";
+import { marcarCanalLido, usuarioLocalId } from "../sdk/adapter";
+import { exibirMinhaTag } from "../sdk/perfilDoServidor";
+import { useExibeTag, usePerfilDoServidor } from "../store/perfilDoServidor";
 import { pode, type Acao } from "../sdk/permissoes";
 import {
   chaveDeMembro,
@@ -1087,6 +1089,9 @@ const PERMISSAO_DA_SECAO: Partial<Record<SecaoId, Acao>> = {
 function CanaisDoServidor() {
   const serverId = useServidorAtivo();
   const servidor = useServer(serverId);
+  /* Tag do servidor (do fork): substitui a sigla e é onde cada um a liga. */
+  const perfil = usePerfilDoServidor(serverId);
+  const exiboTag = useExibeTag(serverId, usuarioLocalId() ?? "");
   const grupos = useCategorias(serverId);
   const canalAtivo = useCanalAtivo();
   /*
@@ -1218,15 +1223,12 @@ function CanaisDoServidor() {
               {/*
                 O badge de identificador curto, ao lado do nome — é do design.
 
-                ⚠ **Mostra a SIGLA, não a "tag do servidor" do protocolo.** A
-                tag é campo configurável de servidor (`Tag do servidor` nas
-                configurações do design) e não existe aqui; a sigla é derivada
-                do nome e é verdade sobre ele. Quando a tag existir, ela
-                substitui isto sem mexer no layout.
+                A TAG do servidor quando quem administra escolheu uma (do
+                fork); a SIGLA, derivada do nome, quando não há.
               */}
               {servidor ? (
                   <span className={css.tag} aria-hidden>
-                    {servidor.sigla}
+                    {perfil.tag ?? servidor.sigla}
                   </span>
                 ) : null}
               </span>
@@ -1292,6 +1294,19 @@ function CanaisDoServidor() {
               alterna sem mudar nada é o defeito que o lint de `onSelect` foi
               instalado para matar.
             */}
+            {/*
+              Exibir a tag é escolha de CADA membro, e mora aqui porque é
+              sobre este servidor e sobre você — as configurações do servidor
+              são de quem administra. Sem tag, não há o que exibir.
+            */}
+            {perfil.tag !== undefined ? (
+              <DropdownMenuCheckboxItem
+                marcado={exiboTag}
+                aoAlternar={() => void exibirMinhaTag(serverId, !exiboTag)}
+              >
+                Exibir a tag {perfil.tag} no meu nome
+              </DropdownMenuCheckboxItem>
+            ) : null}
             <DropdownMenuCheckboxItem
               marcado={ocultar}
               aoAlternar={() => alternarOcultarSilenciados(serverId)}

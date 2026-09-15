@@ -29,14 +29,15 @@ import { toast } from "../components/ui/toastStore";
 export const PENDENCIAS = {
   /* ------------------------------------------ perfil do servidor */
   /*
-    Quatro entradas, divididas pela mesma régua de sempre — o que falta é
+    Três entradas, divididas pela mesma régua de sempre — o que falta é
     UPLOAD ou é CONCEITO.
 
     ⚠ Ícone e banner têm campo no protocolo (`Server.icon`, `Server.banner`) e
     param no servidor de mídia, que é um `POST` cru para a URL de
     `client.configuration.features.autumn` — inverificável sem instância
-    alcançável, a mesma razão que segura o envio de emoji. Faixa e
-    características não têm campo nenhum: são conceito de outro cliente.
+    alcançável, a mesma razão que segura o envio de emoji. A faixa não
+    tem campo nenhum. Características SAÍRAM daqui: são do fork
+    (`Server.characteristics`) e funcionam.
   */
   iconeDoServidor: {
     superficie: "Configurações do servidor · Perfil do servidor",
@@ -47,12 +48,6 @@ export const PENDENCIAS = {
     superficie: "Configurações do servidor · Perfil do servidor",
     faz: "Pôr a arte larga que aparece atrás do card de convite.",
     depende: "upload para o servidor de mídia — o campo Server.banner JÁ existe",
-  },
-  caracteristicasDoServidor: {
-    superficie: "Configurações do servidor · Perfil do servidor",
-    faz: "Marcar até cinco assuntos que descrevem o servidor.",
-    depende:
-      "o conceito de característica no protocolo — não há campo, rota nem evento",
   },
   previaDoConvite: {
     superficie: "Configurações do servidor · Perfil do servidor · Prévia",
@@ -93,11 +88,6 @@ export const PENDENCIAS = {
     faz: "Decidir se qualquer membro pode mencionar o cargo.",
     depende: "um campo de menção em Role — hoje qualquer cargo pode ser mencionado",
   },
-  linkDeCargo: {
-    superficie: "Configurações do servidor · Cargos · Links",
-    faz: "Criar um link que dá o cargo a quem entrar por ele.",
-    depende: "o conceito de convite com cargo no protocolo",
-  },
   gerenciarMembrosDoCargo: {
     superficie: "Configurações do servidor · Cargos · Gerenciar membros",
     faz: "Adicionar e remover várias pessoas do cargo de uma vez.",
@@ -122,21 +112,13 @@ export const PENDENCIAS = {
 
   /* ----------------------------------------------- tag do servidor */
   /*
-    ⚠ **Duas entradas para uma tela, e a divisão é por DEPENDÊNCIA.** A tag em
-    si precisa de um campo que o protocolo não tem; o emblema precisa disso E
-    do servidor de mídia. Quem for implementar a primeira não destrava a
-    segunda, e uma entrada só esconderia isso.
+    Tag, emblema e a escolha de exibir são do fork e FUNCIONAM. O que sobra é
+    a restrição por cargo: o fork não guarda qual cargo a tag exige.
   */
-  tagDoServidor: {
+  exigirCargoDaTag: {
     superficie: "Configurações do servidor · Tag do servidor",
-    faz: "Guardar a tag e exibi-la ao lado de quem escolher mostrá-la.",
-    depende:
-      "um campo de tag em `Server` — não existe em `DataEditServer`, ou seja fork do serviço `api`",
-  },
-  emblemaDaTag: {
-    superficie: "Configurações do servidor · Tag do servidor",
-    faz: "Enviar a imagem que acompanha a tag.",
-    depende: "o campo de tag no protocolo E upload para o servidor de mídia",
+    faz: "Deixar só quem tem o cargo escolhido exibir a tag.",
+    depende: "um campo de cargo exigido na tag do servidor — o fork guarda só a tag e o emblema",
   },
   /* --------------------------------------------- modelo do servidor */
   modeloDoServidor: {
@@ -321,12 +303,6 @@ export const PENDENCIAS = {
     depende:
       "`POST /channels/{id}/search` aceita só `query`, `sort`, `limit` e cursor — filtrar no cliente esvaziaria páginas inteiras e a contagem mentiria",
   },
-  buscaNoServidor: {
-    superficie: "Painel de busca",
-    faz: "Buscar em todos os canais do servidor de uma vez.",
-    depende:
-      "a rota de busca é POR CANAL — varrer N canais no cliente seriam N chamadas e uma ordenação que nenhuma delas conhece",
-  },
   /*
     ⚠ **`caixaDeEntrada` SAIU daqui — o painel existe.** O que dependia de
     protocolo era só a aba de tópicos, e ela diz isso na própria tela.
@@ -363,21 +339,6 @@ export const PENDENCIAS = {
     HASTEADO, e nada mais. `cargosIds` e `abaixoDeMim` destravaram os três de
     uma vez, junto com as pílulas de cargo e o item "acima da sua hierarquia".
   */
-  /* ------------------------------------------------- criar categoria */
-  /*
-    ⚠ **Categoria não tem PERMISSÃO no protocolo.** `Category` é
-    `{id, title, channels}` e nada mais — a própria referência diz que a lista
-    de acesso escreve "overrides de categoria", e eles não existem no Stoat. A
-    lista de "quem pode ver" vem junto com a privacidade, porque só faz sentido
-    com ela: sem privacidade não há a quem restringir.
-  */
-  categoriaPrivada: {
-    superficie: "Criar categoria",
-    faz: "Fechar a categoria e escolher quem enxerga — canais criados nela herdam.",
-    depende:
-      "permissão em categoria no protocolo — `Category` só tem id, título e canais",
-  },
-
   /* --------------------------------------------------- assistir */
   /*
     ⚠ **Um pendente só na tela de assistir, e o resto dela é REAL** — vale
@@ -525,11 +486,6 @@ export const PENDENCIAS = {
     superficie: "Configurações do canal",
     faz: "Fixar resolução e taxa de quadros do vídeo.",
     depende: "modo de vídeo no protocolo + repasse ao LiveKit",
-  },
-  sincronizarComCategoria: {
-    superficie: "Permissões do canal",
-    faz: "Copiar as permissões da categoria para este canal e manter em sincronia.",
-    depende: "categoria não tem permissões no protocolo — ela é só um array de IDs",
   },
   pausarConvites: {
     superficie: "Convites do canal",

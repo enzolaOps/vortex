@@ -35,6 +35,7 @@ import { propsDoNome } from "../membros/pinturaDoNome";
 import { chaveDeMembro } from "../sdk/domain";
 import { members } from "../sdk/adapter";
 import { LinhaDeAjuste } from "./Pagina";
+import { LinksDoCargo } from "./LinksDoCargo";
 import { Abas } from "../components/ui/Abas";
 import { Interruptor } from "../components/ui/Interruptor";
 import { Banner } from "../components/ui/Banner";
@@ -875,34 +876,7 @@ function EditorDeCargo({
           )}
         </div>
       ) : aba === "links" ? (
-        <div className={cargoCss.abaSimples}>
-          <Banner
-            tom="aviso"
-            acoes={
-              <Botao variante="neutro" onClick={aindaNao("linkDeCargo")}>
-                O que falta
-              </Botao>
-            }
-          >
-            O protocolo do Stoat não tem link de atribuição de cargo. Esta aba
-            mostra a forma final; nada aqui é guardado.
-          </Banner>
-
-          <p className={css.detalhe}>
-            Quem abrir este link e entrar no servidor recebe <strong>{nome}</strong>{" "}
-            automaticamente.
-          </p>
-
-          <div className={cargoCss.linkLinha}>
-            <span className={cargoCss.link}>vortex.gg/r/{cargo.id.slice(0, 8)}</span>
-            <Botao variante="neutro" onClick={aindaNao("linkDeCargo")}>
-              Copiar
-            </Botao>
-            <Botao variante="perigoSutil" onClick={aindaNao("linkDeCargo")}>
-              Revogar
-            </Botao>
-          </div>
-        </div>
+        <LinksDoCargo serverId={serverId} roleId={cargo.id} nome={nome} />
       ) : (
         <div className={cargoCss.abaSimples}>
           <Banner

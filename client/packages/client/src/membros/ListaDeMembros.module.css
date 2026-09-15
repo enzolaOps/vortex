@@ -139,6 +139,15 @@
   texto em vez de uma lista de PESSOAS. Num painel onde cada linha é um nome
   próprio, o nome é o conteúdo, não o rótulo de algo.
 */
+/* Nome e tag do servidor na mesma linha — a tag é `flex: none`, então quem
+   encolhe com reticências é o nome. Gap 8 é o da referência (`gap-2`). */
+.linhaDoNome {
+  min-inline-size: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+}
+
 .nome {
   composes: texto from "../styles/pinturaDeCargo.module.css";
   min-inline-size: 0;
@@ -192,7 +201,7 @@
   janela, então funciona igual num slot estreito da fase 4.
 */
 @container (inline-size < 140px) {
-  .nome,
+  .linhaDoNome,
   .secao {
     display: none;
   }

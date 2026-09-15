@@ -66,7 +66,12 @@ export type Acao =
   /** Trocar o apelido de alguém neste servidor. */
   | "gerenciarApelidos"
   /** Puxar alguém de um canal de voz para outro. */
-  | "moverMembros";
+  | "moverMembros"
+  /* --- fork: permissões de categoria e link que dá cargo -------------- */
+  /** Fechar categoria, sincronizar canal com ela. `ManagePermissions`. */
+  | "gerenciarPermissoes"
+  /** Criar link que dá cargo — dar cargo por link é dar cargo. `AssignRoles`. */
+  | "atribuirCargos";
 
 /**
  * A permissão do protocolo por trás de cada ação.
@@ -101,6 +106,9 @@ const PERMISSAO: Record<Acao, string | undefined> = {
   */
   gerenciarApelidos: "ManageNickname",
   moverMembros: "MoveMembers",
+
+  gerenciarPermissoes: "ManagePermissions",
+  atribuirCargos: "AssignRoles",
 };
 
 /**

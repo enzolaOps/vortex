@@ -29,6 +29,14 @@
   flex-direction: column;
 }
 
+/* Nome e tag do servidor na mesma linha: o nome recorta, a tag fica inteira. */
+.linhaDoNome {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-07);
+  min-inline-size: 0;
+}
+
 .nome {
   margin: 0;
   overflow: hidden;

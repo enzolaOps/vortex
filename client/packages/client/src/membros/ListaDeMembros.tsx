@@ -22,6 +22,7 @@ import { count } from "../dev/stats";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { Avatar } from "../components/ui/Avatar";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
+import { TagDoServidor } from "../presenca/TagDoServidor";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -193,8 +194,13 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
           Esta é uma das DUAS superfícies onde o gradiente entra (a outra é a
           pílula); no autor da mensagem ele vira a primeira parada.
         */}
-        <span className={css.nome} {...propsDoNome(pintura)}>
-          {membro.displayName}
+        <span className={css.linhaDoNome}>
+          <span className={css.nome} {...propsDoNome(pintura)}>
+            {membro.displayName}
+          </span>
+          {/* A tag do servidor, se a pessoa a exibe — assina sozinha, então
+              ligar a tag não republica o membro. */}
+          <TagDoServidor userId={id} />
         </span>
 
         {membro.statusTexto ? (
