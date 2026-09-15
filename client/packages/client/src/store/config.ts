@@ -47,12 +47,12 @@ export const SECOES = [
   /*
     As cinco que faltavam para a coluna ser a da referência.
 
-    ⚠ **Quatro delas não têm protocolo NENHUM** — `tag`, `modelo`,
-    `figurinhas` e `sons` não têm campo, rota nem evento no Stoat. Elas entram
-    mesmo assim, pela regra de quem toca o produto: a interface é construída
-    1:1 com a referência AGORA, e o que não tem back-end vira entrada em
-    `pendencias.ts` dizendo o que fará. `auditoria` é a exceção: ela TEM rota
-    (`GET /servers/{id}/audit_logs`).
+    ⚠ **Três delas não têm protocolo NENHUM** — `tag`, `figurinhas` e `sons`
+    não têm campo, rota nem evento no Stoat. Elas entram mesmo assim, pela
+    regra de quem toca o produto: a interface é construída 1:1 com a
+    referência AGORA, e o que não tem back-end vira entrada em `pendencias.ts`
+    dizendo o que fará. `auditoria` TEM rota (`GET /servers/{id}/audit_logs`),
+    e `modelo` passou a ter no fork do `api` (`/servers/{id}/template`).
   */
   "tag",
   "modelo",

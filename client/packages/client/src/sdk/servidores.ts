@@ -12,7 +12,7 @@ import { client } from "./client";
 import { publicarCanaisDe } from "./adapter";
 import { toast } from "../components/ui/toastStore";
 import { sigla } from "../lib/sigla";
-import { motivoDoErro } from "./erros";
+import { motivoDoErro, tipoDoErro } from "./erros";
 
 /**
  * O convite, reduzido ao que a tela de pré-visualização mostra.
@@ -137,6 +137,23 @@ export async function entrarPorConvite(): Promise<string | undefined> {
     pendente = undefined;
     return servidor.id;
   } catch (e) {
+    /*
+      ⚠ **Aprovação manual volta como ERRO do protocolo, e não é falha.** O
+      fork responde `JoinRequestPending` em vez de uma variante nova de
+      `InviteJoinResponse` para cliente antigo não tratar pedido como entrada.
+      Aqui o pedido foi registrado, e dizer "Não deu para entrar" em vermelho
+      mandaria a pessoa pedir de novo.
+    */
+    if (tipoDoErro(e) === "JoinRequestPending") {
+      pendente = undefined;
+      toast({
+        tipo: "info",
+        titulo: "Pedido enviado",
+        descricao:
+          "Este servidor aprova entradas manualmente. Você entra assim que a moderação aprovar.",
+      });
+      return undefined;
+    }
     toast({ tipo: "erro", titulo: "Não deu para entrar.", descricao: motivo(e) });
     return undefined;
   }

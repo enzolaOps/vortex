@@ -1,4 +1,4 @@
-use super::{Channel, File, RE_COLOUR};
+use super::{Channel, DataEditServerSecurity, File, ServerSecurity, RE_COLOUR};
 
 use revolt_permissions::{Override, OverrideField};
 use std::collections::HashMap;
@@ -81,6 +81,10 @@ auto_derived_partial!(
 
         /// Approximate amount of members in the server
         pub approximate_member_count: usize,
+
+        /// Vortex: política de acesso e segurança (ausente = comportamento do Stoat)
+        #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+        pub security: Option<ServerSecurity>,
     },
     "PartialServer"
 );
@@ -124,6 +128,8 @@ auto_derived!(
         SystemMessages,
         Icon,
         Banner,
+        /// Vortex: volta a política de acesso e segurança ao padrão
+        Security,
     }
 
     /// Optional fields on server object
@@ -261,6 +267,10 @@ auto_derived!(
 
         /// User id of the new owner
         pub owner: Option<String>,
+
+        /// Vortex: mudança parcial da política de acesso e segurança
+        #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+        pub security: Option<DataEditServerSecurity>,
 
         /// Fields to remove from server object
         #[cfg_attr(feature = "serde", serde(default))]

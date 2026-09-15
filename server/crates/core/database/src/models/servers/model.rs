@@ -66,6 +66,13 @@ auto_derived_partial!(
         /// Whether this server should be publicly discoverable
         #[serde(skip_serializing_if = "crate::if_false", default)]
         pub discoverable: bool,
+
+        /// Vortex: política de acesso e segurança
+        ///
+        /// Guardada com o tipo do modelo `v0` de propósito: é o mesmo formato no
+        /// banco e no fio, e duplicá-lo só criaria uma conversão que pode divergir.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub security: Option<v0::ServerSecurity>,
     },
     "PartialServer"
 );
@@ -132,6 +139,7 @@ auto_derived!(
         SystemMessages,
         Icon,
         Banner,
+        Security,
     }
 
     /// Optional fields on server object
@@ -167,6 +175,7 @@ impl Server {
             icon: None,
             roles: HashMap::new(),
             system_messages: None,
+            security: None,
         };
 
         let channels: Vec<Channel> = if create_default_channels {
@@ -237,6 +246,7 @@ impl Server {
             FieldsServer::SystemMessages => self.system_messages = None,
             FieldsServer::Icon => self.icon = None,
             FieldsServer::Banner => self.banner = None,
+            FieldsServer::Security => self.security = None,
         }
     }
 
@@ -256,6 +266,7 @@ impl Server {
                 default_permissions,
                 (FieldsServer::Icon) icon,
                 (FieldsServer::Banner) banner,
+                (FieldsServer::Security) security,
                 nsfw,
                 analytics,
                 discoverable,

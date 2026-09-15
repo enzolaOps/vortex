@@ -33,6 +33,21 @@ pub async fn create_invite(
         .await
         .throw_if_lacking_channel_permission(ChannelPermission::InviteOthers)?;
 
+    // Vortex: com a emergência pausando convites, nem criar um novo funciona.
+    if let Some(server_id) = channel.server() {
+        let server = db.fetch_server(server_id).await?;
+        if server
+            .security
+            .as_ref()
+            .and_then(|security| security.active_emergency())
+            .is_some_and(|emergency| emergency.pause_invites)
+        {
+            return Err(create_error!(JoinBlocked {
+                reason: "InvitesPaused".to_string()
+            }));
+        }
+    }
+
     let invite = Invite::create_channel_invite(db, &user, &channel).await?;
 
     if let Some(server_id) = channel.server() {
