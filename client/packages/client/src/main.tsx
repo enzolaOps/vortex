@@ -6,6 +6,7 @@ import { ligarAtalhosDeVoz } from "./sdk/atalhosDeVoz";
 import { ROTA_DO_OVERLAY } from "./overlay/modelo";
 import { Overlay } from "./overlay/Overlay";
 import { ligarPublicadorDoOverlay } from "./overlay/publicador";
+import { ligarLembretesDeEventos } from "./eventos/lembretes";
 
 import { ARNES_ATIVO } from "./dev/arnesAtivo";
 import { ligarRota } from "./rota/rota";
@@ -94,6 +95,10 @@ ligarAtalhosDeVoz();
 
 /* O que o overlay do jogo mostra — só na casca, e só nesta janela. */
 ligarPublicadorDoOverlay();
+
+/* O lembrete de "10 minutos antes" dos eventos. Module-level pelo mesmo
+   motivo dos sons: varre stores, e vive o tanto que a sessão vive. */
+ligarLembretesDeEventos();
 
 createRoot(root).render(
   <StrictMode>

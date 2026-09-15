@@ -52,6 +52,7 @@ import {
 import { definirEuDasEnquetes, lerEnquete } from "../store/enquetes";
 import { anotarEventoDeEnquete, buscarMensagensComEnquetes } from "./enquetes";
 import { anotarEventoDeVoz } from "./vozDoCanal";
+import { anotarEventoDeServidor } from "./eventos";
 import { semearStatusDoServidor } from "./perfil";
 import { aguardar, desistir, reconciliar } from "./nonce";
 import {
@@ -1023,6 +1024,9 @@ export function startAdapter() {
     anotarEventoDeVoz(evento);
     /* Enquete é campo do fork que a hidratação descarta — ver `sdk/enquetes.ts`. */
     for (const id of anotarEventoDeEnquete(evento)) republicarEnquete(id);
+    /* Evento agendado é superfície do fork que o SDK não conhece — ver
+       `sdk/eventos.ts`. */
+    anotarEventoDeServidor(evento);
     const e = evento as {
       type?: string;
       members?: readonly { _id?: { server?: string; user?: string }; can_publish?: boolean }[];

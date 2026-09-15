@@ -27,6 +27,19 @@ import { toast } from "../components/ui/toastStore";
  *    removida, o módulo inteiro vira código morto e o `pnpm utilities` acusa.
  */
 export const PENDENCIAS = {
+  /* ---------------------------------------------------------- eventos */
+  /*
+    O resto do assistente de evento é real — local, quando, repetição,
+    lembrete, nome, descrição e capa. Anunciar não: o design promete "publica
+    o card ao criar", e card de evento dentro de um canal é embed que o
+    protocolo não tem. Mandar um link em texto seria outra coisa com o mesmo
+    rótulo.
+  */
+  anunciarEvento: {
+    superficie: "Criar evento · passo Detalhes",
+    faz: "Publicar o card do evento no canal de avisos ao criar.",
+    depende: "embed de evento na mensagem — o protocolo não tem",
+  },
   /* ------------------------------------------ perfil do servidor */
   /*
     Quatro entradas, divididas pela mesma régua de sempre — o que falta é
@@ -644,21 +657,6 @@ export const SUPERFICIES_AUSENTES = {
     depende:
       "a tabela de cargos resolvida para a hierarquia, e `ServerMember.edit({voice_channel})` para mover",
     referencia: "components/voice/VoiceUserMenu.tsx",
-  },
-
-  /* --------------------------------------------------------- eventos */
-  /*
-    ⚠ **Três arquivos da referência e zero rastro aqui** — a maior ausência
-    das nove em volume. O protocolo do Stoat não tem evento agendado, então
-    ela cai na mesma família do Fórum: entra junto com o fork do serviço
-    `api`. A diferença é que o Fórum já estava registrado e esta não estava.
-  */
-  eventosDoServidor: {
-    superficie: "Destino próprio do servidor, com cartão e assistente",
-    faz: "Agendar, listar e confirmar presença em eventos do servidor.",
-    depende: "evento agendado no protocolo — não há tipo, campo nem rota",
-    referencia:
-      "screens/events/EventsScreen.tsx · CreateEventWizard.tsx · components/events/EventCard.tsx",
   },
 
   /* ----------------------------------------------------------- casa */
