@@ -183,14 +183,6 @@ export function definirQualidadeDeStream(
   motor?.definirQualidadeDeStream(userId, fonte, qualidade);
 }
 
-export function definirVolumeDe(userId: string, volume: number): void {
-  motor?.definirVolumeDe(userId, volume);
-}
-
-export function volumeDe(userId: string): number {
-  return motor?.volumeDe(userId) ?? 1;
-}
-
 /**
  * O que a transmissão está entregando de verdade — quadros e banda.
  *

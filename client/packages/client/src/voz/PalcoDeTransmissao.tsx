@@ -1,7 +1,6 @@
 import {
   ArrowsClockwise,
   ArrowsOut,
-  ChatCircle,
   Gear,
   ICONE,
   MicrophoneSlash,
@@ -56,7 +55,8 @@ import {
 } from "../store/chamada";
 import { useChannel, usePessoa, useServer } from "../store/hooks";
 import { chaveDeVideo, faixasDeVideo } from "../store/video";
-import { definirPalco, fecharPalco } from "../store/palcoDeVoz";
+import { definirPalco } from "../store/palcoDeVoz";
+import { BotaoDoChatDaSala } from "./ChatDaSala";
 import { Cronometro, Doca, emTelaCheia, SeloAoVivo } from "./pecasDeVoz";
 import css from "./PalcoDeTransmissao.module.css";
 
@@ -128,16 +128,7 @@ export function PalcoDeTransmissao({
         <Cronometro desde={chamada.desde} />
         <span className={css.espaco} />
         <div className={css.acoesDoCabecalho}>
-          <Tooltip texto="Voltar ao chat" lado="abaixo">
-            <button
-              type="button"
-              className={css.acaoDoCabecalho}
-              aria-label="Voltar ao chat"
-              onClick={fecharPalco}
-            >
-              <ChatCircle size={ICONE.controle} aria-hidden />
-            </button>
-          </Tooltip>
+          <BotaoDoChatDaSala className={css.acaoDoCabecalho} />
           <BotaoDePip />
           <Tooltip texto="Tela cheia" lado="abaixo">
             <button
@@ -660,7 +651,7 @@ const LadrilhoDePessoa = memo(function LadrilhoDePessoa({
 
   if (!transmite) {
     return (
-      <div className={css.ladrilho} data-falando={ativo}>
+      <div className={css.ladrilho} data-falando={ativo} data-participante={userId}>
         {dentro}
       </div>
     );
@@ -672,6 +663,7 @@ const LadrilhoDePessoa = memo(function LadrilhoDePessoa({
       className={css.ladrilho}
       data-falando={ativo}
       data-transmite
+      data-participante={userId}
       aria-label={`Assistir à tela de ${nome}`}
       onClick={() => {
         definirPalco({ tipo: "assistindo", userId });
@@ -719,7 +711,9 @@ const LinhaDaSala = memo(function LinhaDaSala({ userId }: { userId: string }) {
   const chamada = useSyncExternalStore(assinarChamada, lerChamada);
 
   return (
-    <div className={css.linhaDaSala}>
+    /* `data-participante`: o clique direito aqui abre o menu do participante
+       — o Root é um só, no palco. */
+    <div className={css.linhaDaSala} data-participante={userId}>
       <Avatar
         id={userId}
         sigla={pessoa?.sigla}

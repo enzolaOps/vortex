@@ -122,6 +122,25 @@ export function alternarSilencioDe(userId: string): void {
   else silenciados.set(userId, "1");
   gravarMapa(CHAVE_SILENCIO, silenciados);
   avisar(ouvintesDeSilencio, userId);
+  for (const o of ouvintesDeQualquerSilencio) o(userId);
+}
+
+/*
+  ⚠ **Um ouvinte de TODO silêncio, e ele tem um consumidor só: o motor de voz.**
+  Silenciar alguém só para mim também cala a VOZ dessa pessoa na chamada — é o
+  mesmo conceito nos dois menus, e dois stores de "silenciado" divergiriam no
+  primeiro que alguém esquecesse. O motor não pode assinar por ID (não sabe de
+  antemão quem vai entrar na sala), então recebe o ID de quem mudou.
+*/
+const ouvintesDeQualquerSilencio = new Set<(userId: string) => void>();
+
+export function assinarQualquerSilencio(
+  ouvinte: (userId: string) => void,
+): () => void {
+  ouvintesDeQualquerSilencio.add(ouvinte);
+  return () => {
+    ouvintesDeQualquerSilencio.delete(ouvinte);
+  };
 }
 
 export function assinarSilencioDe(

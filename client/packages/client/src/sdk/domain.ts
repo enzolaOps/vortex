@@ -937,6 +937,11 @@ export type ParticipanteDeVoz = {
    * resposta.
    */
   readonly mudoPeloServidor: boolean;
+  /**
+   * Surdo POR ORDEM DO SERVIDOR — `can_receive: false` no `ServerMember`.
+   * Mesma distinção de `mudoPeloServidor`: só quem modera desfaz.
+   */
+  readonly surdoPeloServidor: boolean;
 };
 
 export function baldeDe(status: PresenceStatus): Balde {

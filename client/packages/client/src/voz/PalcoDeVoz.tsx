@@ -2,12 +2,16 @@ import { useEffect, useSyncExternalStore } from "react";
 
 import { assinarChamada, lerChamada } from "../store/chamada";
 import {
+  assinarChatDaSala,
   assinarPalco,
   fecharPalco,
+  lerChatDaSala,
   lerPalco,
   type Palco,
 } from "../store/palcoDeVoz";
 import { AssistirTransmissao } from "./AssistirTransmissao";
+import { ChatDaSala } from "./ChatDaSala";
+import { ComMenuDoParticipante } from "./MenuDoParticipante";
 import { GradeDeChamada } from "./GradeDeChamada";
 import { PalcoDeTransmissao } from "./PalcoDeTransmissao";
 import css from "./PalcoDeVoz.module.css";
@@ -27,6 +31,7 @@ import css from "./PalcoDeVoz.module.css";
 export function PalcoDeVoz() {
   const palco = useSyncExternalStore(assinarPalco, lerPalco);
   const chamada = useSyncExternalStore(assinarChamada, lerChamada);
+  const chatAberto = useSyncExternalStore(assinarChatDaSala, lerChatDaSala);
   const foraDaChamada = chamada.estado === "fora";
 
   /*
@@ -55,32 +60,48 @@ export function PalcoDeVoz() {
   const dono = chamada.tela ? eu : chamada.transmitindo[0];
 
   return (
-    <section data-palco className={css.palco} aria-label={rotuloDe(palco)}>
-      {/*
-        ⚠ **A SALA entra na prancha sozinha quando há transmissão, e antes
-        exigia um clique.** Quem usa relatou assim: "o canal era para ser
-        preenchido favorecendo a transmissão da tela, sem a necessidade de
-        clicar assistir". A grade de pesos iguais mostrava a tela de alguém
-        como um ladrilho de 84px com um botão em cima — ou seja, anunciava a
-        transmissão e a escondia.
+    /*
+      ⚠ **UM menu de participante para o palco inteiro**, e não um por
+      ladrilho: a grade, a fila da prancha e a lista "na sala" só marcam
+      `data-participante`, e a captura decide o alvo. Ver
+      `store/menuDoParticipante.ts`.
+    */
+    <ComMenuDoParticipante channelId={chamada.channelId}>
+      <section data-palco className={css.palco} aria-label={rotuloDe(palco)}>
+        <div className={css.tela}>
+          {/*
+            ⚠ **A SALA entra na prancha sozinha quando há transmissão, e antes
+            exigia um clique.** Quem usa relatou assim: "o canal era para ser
+            preenchido favorecendo a transmissão da tela, sem a necessidade de
+            clicar assistir". A grade de pesos iguais mostrava a tela de alguém
+            como um ladrilho de 84px com um botão em cima — ou seja, anunciava a
+            transmissão e a escondia.
 
-        A escolha é DERIVADA do estado da chamada, não de um modo guardado: se
-        há tela no ar, a sala é a prancha; se não há, é a grade. Um quarto
-        valor na união `Palco` daria dois lugares para dizer a mesma coisa, e
-        o que diverge é sempre o que ninguém abriu naquela semana.
+            A escolha é DERIVADA do estado da chamada, não de um modo guardado: se
+            há tela no ar, a sala é a prancha; se não há, é a grade. Um quarto
+            valor na união `Palco` daria dois lugares para dizer a mesma coisa, e
+            o que diverge é sempre o que ninguém abriu naquela semana.
 
-        `transmitindo` continua na união porque ele é o DESTINO de "ver a
-        minha transmissão" vindo do popout — mas hoje ele e `grade` desenham a
-        mesma tela quando há stream, e é isso que os torna consistentes.
-      */}
-      {palco.tipo === "assistindo" ? (
-        <AssistirTransmissao userId={palco.userId} />
-      ) : dono ? (
-        <PalcoDeTransmissao dono={dono} proprio={dono === eu} />
-      ) : (
-        <GradeDeChamada />
-      )}
-    </section>
+            `transmitindo` continua na união porque ele é o DESTINO de "ver a
+            minha transmissão" vindo do popout — mas hoje ele e `grade` desenham a
+            mesma tela quando há stream, e é isso que os torna consistentes.
+          */}
+          {palco.tipo === "assistindo" ? (
+            <AssistirTransmissao userId={palco.userId} />
+          ) : dono ? (
+            <PalcoDeTransmissao dono={dono} proprio={dono === eu} />
+          ) : (
+            <GradeDeChamada />
+          )}
+        </div>
+        {/*
+          O chat do PRÓPRIO canal, ao lado da sala — ver `ChatDaSala`. Irmão da
+          tela e não filho: as três telas medem a largura delas por container
+          query, e o chat entrando tem de encolher a tela, não sobrepor.
+        */}
+        {chatAberto ? <ChatDaSala channelId={chamada.channelId} /> : null}
+      </section>
+    </ComMenuDoParticipante>
   );
 }
 

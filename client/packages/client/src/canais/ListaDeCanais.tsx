@@ -48,6 +48,7 @@ import {
 } from "../store/config";
 import { entrarNaChamada } from "../sdk/chamada";
 import { definirPalco } from "../store/palcoDeVoz";
+import { ComMenuDoParticipante } from "../voz/MenuDoParticipante";
 import { assinarChamada, falando, lerChamada } from "../store/chamada";
 import { administrar } from "../store/administracao";
 import { abrirConfigDeCanal } from "../store/config";
@@ -543,7 +544,11 @@ const NaSala = memo(function NaSala({
   );
 
   return (
-    <li className={css.naSala} data-falando={falandoAgora}>
+    <li
+      className={css.naSala}
+      data-falando={falandoAgora}
+      data-participante={participante.userId}
+    >
       <Avatar
         id={participante.userId}
         sigla={membro?.sigla}
@@ -806,11 +811,18 @@ const Sala = memo(function Sala({
   if (dentro.length === 0) return null;
 
   return (
-    <ul className={css.sala}>
-      {dentro.map((p) => (
-        <NaSala key={p.userId} serverId={serverId} participante={p} />
-      ))}
-    </ul>
+    /*
+      UM menu por SALA, e não por pessoa: é o padrão do Root no nível da
+      lista. A sala só existe com gente dentro, então quem paga o Root são
+      as salas ocupadas — dezenas no pior caso, e nunca uma por linha.
+    */
+    <ComMenuDoParticipante channelId={channelId}>
+      <ul className={css.sala}>
+        {dentro.map((p) => (
+          <NaSala key={p.userId} serverId={serverId} participante={p} />
+        ))}
+      </ul>
+    </ComMenuDoParticipante>
   );
 });
 

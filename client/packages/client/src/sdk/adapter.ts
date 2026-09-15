@@ -1018,12 +1018,24 @@ export function startAdapter() {
   client.events.on("event", (evento: unknown) => {
     const e = evento as {
       type?: string;
-      members?: readonly { _id?: { server?: string; user?: string }; can_publish?: boolean }[];
+      members?: readonly {
+        _id?: { server?: string; user?: string };
+        can_publish?: boolean;
+        can_receive?: boolean;
+      }[];
       id?: { server?: string; user?: string };
-      data?: { can_publish?: boolean };
+      data?: { can_publish?: boolean; can_receive?: boolean };
+      clear?: readonly string[];
     };
 
+    /*
+      ⚠ **`can_receive` entrou junto, e pelo mesmo caminho.** É o "ensurdecer
+      no servidor" do menu do participante: sem ele o item não teria como
+      saber se está marcado, e alternar às cegas desfaria o que outro
+      moderador acabou de fazer.
+    */
     const anotar = (
+      conjunto: Set<ChaveDeMembro>,
       serverId: string | undefined,
       userId: string | undefined,
       pode: boolean | undefined,
@@ -1032,15 +1044,35 @@ export function startAdapter() {
       /* `undefined` é "o servidor não falou disto", que NÃO é o mesmo que
          `true` — mas para a tela dá no mesmo, e guardar a ausência faria o
          mapa crescer com todo mundo que nunca foi silenciado. */
-      if (pode === false) mudosPeloServidor.add(chaveDeMembro(serverId, userId));
-      else mudosPeloServidor.delete(chaveDeMembro(serverId, userId));
+      if (pode === false) conjunto.add(chaveDeMembro(serverId, userId));
+      else conjunto.delete(chaveDeMembro(serverId, userId));
     };
 
     if (e.type === "Ready" && e.members) {
-      for (const m of e.members) anotar(m._id?.server, m._id?.user, m.can_publish);
+      for (const m of e.members) {
+        anotar(mudosPeloServidor, m._id?.server, m._id?.user, m.can_publish);
+        anotar(surdosPeloServidor, m._id?.server, m._id?.user, m.can_receive);
+      }
       republicarVoz();
     } else if (e.type === "ServerMemberUpdate" && e.id) {
-      anotar(e.id.server, e.id.user, e.data?.can_publish);
+      /*
+        ⚠ **Só mexe no campo que o evento TRAZ, e antes mexia sempre.** O
+        update é PARCIAL: trocar o apelido de alguém chega com `data:
+        {nickname}` e nada de `can_publish` — e a versão anterior lia essa
+        ausência como "pode falar", destravando em silêncio quem estava mudo
+        pelo servidor. Voltar ao padrão vem em `clear`, não na ausência.
+      */
+      const { server, user } = e.id;
+      if (e.data && "can_publish" in e.data) {
+        anotar(mudosPeloServidor, server, user, e.data.can_publish);
+      } else if (e.clear?.includes("CanPublish")) {
+        anotar(mudosPeloServidor, server, user, true);
+      }
+      if (e.data && "can_receive" in e.data) {
+        anotar(surdosPeloServidor, server, user, e.data.can_receive);
+      } else if (e.clear?.includes("CanReceive")) {
+        anotar(surdosPeloServidor, server, user, true);
+      }
       republicarVoz();
     }
   });
@@ -2172,6 +2204,9 @@ export const fixadas = createEntityStore<readonly string[]>();
  */
 const mudosPeloServidor = new Set<ChaveDeMembro>();
 
+/** Quem está surdo POR ORDEM DO SERVIDOR — `can_receive: false`. Mesma forma. */
+const surdosPeloServidor = new Set<ChaveDeMembro>();
+
 /**
  * Republica as salas que já têm assinante.
  *
@@ -2271,6 +2306,9 @@ export const vozPorCanal = createEntityStore<readonly ParticipanteDeVoz[]>(
           mudoPeloServidor:
             canal.serverId !== undefined &&
             mudosPeloServidor.has(chaveDeMembro(canal.serverId, userId)),
+          surdoPeloServidor:
+            canal.serverId !== undefined &&
+            surdosPeloServidor.has(chaveDeMembro(canal.serverId, userId)),
         });
       }
 

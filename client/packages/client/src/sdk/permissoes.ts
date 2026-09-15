@@ -65,8 +65,12 @@ export type Acao =
   | "gerenciarCargos"
   /** Trocar o apelido de alguém neste servidor. */
   | "gerenciarApelidos"
-  /** Puxar alguém de um canal de voz para outro. */
-  | "moverMembros";
+  /** Puxar alguém de um canal de voz para outro — e desconectar. */
+  | "moverMembros"
+  /** Mudo no servidor: `can_publish`. */
+  | "silenciarNaVoz"
+  /** Ensurdecer no servidor: `can_receive`. */
+  | "ensurdecerNaVoz";
 
 /**
  * A permissão do protocolo por trás de cada ação.
@@ -101,6 +105,8 @@ const PERMISSAO: Record<Acao, string | undefined> = {
   */
   gerenciarApelidos: "ManageNickname",
   moverMembros: "MoveMembers",
+  silenciarNaVoz: "MuteMembers",
+  ensurdecerNaVoz: "DeafenMembers",
 };
 
 /**

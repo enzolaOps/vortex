@@ -32,13 +32,22 @@ import {
   alternarTela,
   assinarVideo,
   definirQualidadeDeStream,
-  definirVolumeDe,
-  volumeDe,
 } from "../sdk/chamada";
 import { administrar } from "../store/administracao";
 import { assinarChamada, falando, lerChamada } from "../store/chamada";
 import { useChannel, usePessoa, useServer } from "../store/hooks";
 import { definirPalco } from "../store/palcoDeVoz";
+import {
+  alternarSilencioDe,
+  assinarSilencioDe,
+  estaSilenciado,
+} from "../store/sobrePessoas";
+import {
+  assinarVolume,
+  definirVolume,
+  lerVolume,
+  VOLUME_MAXIMO,
+} from "../store/volumesDeVoz";
 import { chaveDeVideo, faixasDeVideo } from "../store/video";
 import { emTelaCheia, FaixaDeVideo, SeloAoVivo } from "./pecasDeVoz";
 import css from "./AssistirTransmissao.module.css";
@@ -80,7 +89,19 @@ export function AssistirTransmissao({ userId }: { userId: string }) {
   const [menu, setMenu] = useState(false);
   const [submenu, setSubmenu] = useState(false);
   const [qualidade, setQualidade] = useState<Qualidade>("auto");
-  const [volume, setVolume] = useState(() => Math.round(volumeDe(userId) * 100));
+  /*
+    ⚠ **Do store, e não de `useState` lido do LiveKit.** O volume daqui e o do
+    menu do participante são o MESMO ajuste; com estado local, baixar alguém
+    no menu e abrir esta tela mostrava 100%, e o F5 esquecia os dois.
+  */
+  const volume = useSyncExternalStore(
+    (ouvinte) => assinarVolume(userId, ouvinte),
+    () => lerVolume(userId),
+  );
+  const silenciado = useSyncExternalStore(
+    (ouvinte) => assinarSilencioDe(userId, ouvinte),
+    () => estaSilenciado(userId),
+  );
 
   /*
     O pedido e a devolução. Ver o comentário do topo — a devolução é a metade
@@ -210,10 +231,8 @@ export function AssistirTransmissao({ userId }: { userId: string }) {
             <button
               type="button"
               className={css.item}
-              onClick={() => {
-                definirVolumeDe(userId, 0);
-                setVolume(0);
-              }}
+              aria-pressed={silenciado}
+              onClick={() => alternarSilencioDe(userId)}
             >
               Silenciar só para mim
             </button>
@@ -262,14 +281,11 @@ export function AssistirTransmissao({ userId }: { userId: string }) {
               id="volume-individual"
               valor={volume}
               min={0}
-              max={200}
+              max={VOLUME_MAXIMO}
               passo={5}
               rotulo="Volume individual"
               texto={`${String(volume)} por cento`}
-              aoMudar={(v) => {
-                setVolume(v);
-                definirVolumeDe(userId, v / 100);
-              }}
+              aoMudar={(v) => definirVolume(userId, v)}
             />
           </div>
         </div>

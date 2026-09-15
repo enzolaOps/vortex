@@ -96,6 +96,11 @@ export const menuItemPerigo =
   `${css.itemPerigo} text-danger-text data-highlighted:text-danger-text`;
 export const menuItemNormal = "text-text-2";
 
+/* Âmbar, com o realce tingido do design (`rgba(226,177,92,0.12)`). Ver
+   `tomDoItem` em `ContextMenu.tsx` para por que aviso não é perigo. */
+export const menuItemAviso =
+  `${css.itemAviso} text-warning data-highlighted:text-warning`;
+
 /* `margin: 5px 4px` no design: a régua não vai até a borda do menu, porque o
    item também não vai — ela se alinha ao TEXTO, não à caixa. */
 export const menuSeparator = "mx-04 my-05 h-px bg-border-subtle";
