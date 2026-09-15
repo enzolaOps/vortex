@@ -184,6 +184,8 @@ auto_derived!(
     pub struct MessageFilter {
         /// Parent channel ID
         pub channel: Option<String>,
+        /// Any of these parent channel IDs (ignored when `channel` is set)
+        pub channels: Option<Vec<String>>,
         /// Message author ID
         pub author: Option<String>,
         /// Search query

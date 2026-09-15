@@ -133,6 +133,7 @@ import {
 import { Citacao } from "./Citacao";
 import { Embeds } from "./Embeds";
 import { CrachaDeCargo } from "../presenca/NomeDoAutor";
+import { TagDoServidor } from "../presenca/TagDoServidor";
 import { TextoDaMensagem } from "./TextoDaMensagem";
 import css from "./MessageRow.module.css";
 
@@ -1347,6 +1348,8 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                     {/* O crachá de cargo — "VTX", "MOD". Assina o membro
                         sozinho; ver `CrachaDeCargo`. */}
                     <CrachaDeCargo userId={message.authorId} />
+                    {/* A tag do servidor, se a pessoa a exibe — assina sozinha. */}
+                    <TagDoServidor userId={message.authorId} />
                   </span>
                 ) : (
                   <span className="text-lg font-semibold text-text-2">
@@ -1468,6 +1471,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                       <>
                         <NomeDoAutor userId={message.authorId} denso />
                         <CrachaDeCargo userId={message.authorId} />
+                        <TagDoServidor userId={message.authorId} />
                       </>
                     ) : undefined
                   }

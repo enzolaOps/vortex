@@ -1,5 +1,6 @@
 import {
   buscarNoCanal,
+  buscarNoServidor,
   POR_PAGINA,
   type OrdemDeBusca,
   type ResultadoDeBusca,
@@ -19,8 +20,20 @@ import {
  * empurrá-la para lá a cada clique, e as duas divergiriam ao trocar de canal.
  */
 
+/**
+ * Onde a busca procura.
+ *
+ * `servidor` é do fork (`POST /servers/{id}/search`). Ele não muda o que a
+ * tela desenha — cada cartão já carrega o canal de origem —, muda de onde a
+ * página vem e o que acontece ao trocar de canal (ver `apontarBuscaPara`).
+ */
+export type EscopoDeBusca = "canal" | "servidor";
+
 export type EstadoDeBusca = {
   readonly channelId: string | undefined;
+  /** Servidor do canal apontado; `undefined` em DM, onde só existe `canal`. */
+  readonly serverId: string | undefined;
+  readonly escopo: EscopoDeBusca;
   readonly consulta: string;
   readonly ordem: OrdemDeBusca;
   readonly resultados: readonly ResultadoDeBusca[];
@@ -35,6 +48,8 @@ export type EstadoDeBusca = {
 
 const VAZIO: EstadoDeBusca = {
   channelId: undefined,
+  serverId: undefined,
+  escopo: "canal",
   consulta: "",
   ordem: "recentes",
   resultados: [],
@@ -98,11 +113,41 @@ export function definirOrdem(ordem: OrdemDeBusca): void {
  * canal de origem e o "Pular para mensagem" pede um salto naquele canal. Manter
  * a lista ao mudar de canal daria um painel que pula para outro lugar.
  */
-export function apontarBuscaPara(channelId: string | undefined): void {
-  if (estado.channelId === channelId) return;
+export function apontarBuscaPara(
+  channelId: string | undefined,
+  serverId: string | undefined,
+): void {
+  if (estado.channelId === channelId && estado.serverId === serverId) return;
+  /*
+    ⚠ **Em escopo de SERVIDOR, trocar de canal dentro do mesmo servidor NÃO
+    limpa** — e é o caso comum, não a exceção: "Pular para mensagem" num
+    resultado de outro canal ABRE aquele canal, e limpar ali apagaria a lista
+    no exato clique que a usou. Os resultados continuam válidos, porque cada
+    um carrega o próprio canal.
+  */
+  if (
+    estado.escopo === "servidor" &&
+    serverId !== undefined &&
+    estado.serverId === serverId
+  ) {
+    publicar({ channelId });
+    return;
+  }
   cursores = [];
-  estado = { ...VAZIO, channelId };
+  estado = { ...VAZIO, channelId, serverId };
   for (const o of ouvintes) o();
+}
+
+/**
+ * Troca o escopo e REFAZ a busca, pela mesma razão de `definirOrdem`: a lista
+ * antiga sob o rótulo novo afirmaria uma busca que ninguém fez.
+ */
+export function definirEscopo(escopo: EscopoDeBusca): void {
+  if (escopo === "servidor" && estado.serverId === undefined) return;
+  if (estado.escopo === escopo) return;
+  cursores = [];
+  publicar({ escopo, resultados: [], total: undefined, pagina: 1, selecionado: undefined });
+  if (estado.consulta.trim().length > 0) void executar(1);
 }
 
 export function selecionarResultado(id: string | undefined): void {
@@ -119,16 +164,32 @@ export function selecionarResultado(id: string | undefined): void {
  * chamada. É a limitação real, e ela coincide com o desenho.
  */
 export async function executar(pagina: number): Promise<void> {
-  const { channelId, consulta, ordem } = estado;
+  const { channelId, serverId, escopo, consulta, ordem } = estado;
   const limpa = consulta.trim();
   if (channelId === undefined || limpa.length === 0) return;
+  if (escopo === "servidor" && serverId === undefined) return;
 
   if (pagina === 1) cursores = [];
   const antesDe = pagina > 1 ? cursores[pagina - 2] : undefined;
   if (pagina > 1 && antesDe === undefined) return;
 
   publicar({ buscando: true });
-  const r = await buscarNoCanal({ channelId, consulta: limpa, ordem, antesDe });
+  const r =
+    escopo === "servidor" && serverId !== undefined
+      ? await buscarNoServidor({ serverId, consulta: limpa, ordem, antesDe })
+      : await buscarNoCanal({ channelId, consulta: limpa, ordem, antesDe });
+
+  /*
+    A resposta pode chegar depois de a pessoa trocar de escopo ou de servidor.
+    Aplicá-la escreveria resultados de uma busca que já não é a da tela.
+  */
+  if (
+    estado.escopo !== escopo ||
+    estado.serverId !== serverId ||
+    (escopo === "canal" && estado.channelId !== channelId)
+  ) {
+    return;
+  }
 
   if (r === undefined) {
     publicar({ buscando: false });

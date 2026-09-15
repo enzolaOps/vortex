@@ -689,29 +689,6 @@
   max-inline-size: 640px;
 }
 
-.linkLinha {
-  display: flex;
-  gap: var(--vx-space-08);
-}
-
-.link {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  min-inline-size: 0;
-  overflow: hidden;
-  block-size: 36px;
-  padding-inline: var(--vx-space-12);
-  border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-06);
-  background: var(--vx-surface-2);
-  color: var(--vx-accent-text);
-  font-family: var(--vx-font-mono);
-  font-size: var(--vx-size-sm);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* ------------------------------------------------------ cor do cargo */
 
 .amostras {

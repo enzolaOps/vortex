@@ -23,6 +23,7 @@ import {
   lerNota,
 } from "../store/sobrePessoas";
 import { PilulasDeCargo } from "./PilulasDeCargo";
+import { TagDoServidor } from "../presenca/TagDoServidor";
 import css from "./ModalDePerfil.module.css";
 
 /**
@@ -214,6 +215,7 @@ function Conteudo({
           >
             {membro.displayName}
           </h2>
+          <TagDoServidor serverId={serverId} userId={userId} grande />
         </div>
         {meta ? <p className={css.meta}>{meta}</p> : null}
 

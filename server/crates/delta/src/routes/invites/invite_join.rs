@@ -22,9 +22,10 @@ pub async fn join(
 
     let invite = target.as_invite(db).await?;
     match &invite {
-        Invite::Server { server, .. } => {
+        Invite::Server { server, roles, .. } => {
             let server = db.fetch_server(server).await?;
-            let (_, channels) = Member::create(db, &server, &user, None).await?;
+            let (_, channels) =
+                Member::create_with_roles(db, &server, &user, None, roles.clone()).await?;
 
             Ok(Json(InviteJoinResponse::Server {
                 channels: channels.into_iter().map(|c| c.into()).collect(),

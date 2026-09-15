@@ -73,11 +73,13 @@ impl From<crate::Invite> for Invite {
                 server,
                 creator,
                 channel,
+                roles,
             } => Invite::Server {
                 code,
                 server,
                 creator,
                 channel,
+                roles,
             },
         }
     }
@@ -680,6 +682,7 @@ impl From<crate::Member> for Member {
             timeout: value.timeout,
             can_publish: value.can_publish,
             can_receive: value.can_receive,
+            show_tag: value.show_tag,
         }
     }
 }
@@ -696,6 +699,7 @@ impl From<Member> for crate::Member {
             timeout: value.timeout,
             can_publish: value.can_publish,
             can_receive: value.can_receive,
+            show_tag: value.show_tag,
         }
     }
 }
@@ -712,6 +716,7 @@ impl From<crate::PartialMember> for PartialMember {
             timeout: value.timeout,
             can_publish: value.can_publish,
             can_receive: value.can_receive,
+            show_tag: value.show_tag,
         }
     }
 }
@@ -728,6 +733,7 @@ impl From<PartialMember> for crate::PartialMember {
             timeout: value.timeout,
             can_publish: value.can_publish,
             can_receive: value.can_receive,
+            show_tag: value.show_tag,
         }
     }
 }
@@ -810,6 +816,9 @@ impl crate::Server {
             default_permissions: self.default_permissions,
             icon: self.icon.map(|f| f.into()),
             banner: self.banner.map(|f| f.into()),
+            tag: self.tag,
+            tag_badge: self.tag_badge.map(|f| f.into()),
+            characteristics: self.characteristics,
             flags: self.flags.unwrap_or_default() as u32,
             nsfw: self.nsfw,
             analytics: self.analytics,
@@ -839,6 +848,9 @@ impl From<Server> for crate::Server {
             default_permissions: value.default_permissions,
             icon: value.icon.map(|f| f.into()),
             banner: value.banner.map(|f| f.into()),
+            tag: value.tag,
+            tag_badge: value.tag_badge.map(|f| f.into()),
+            characteristics: value.characteristics,
             flags: Some(value.flags as i32),
             nsfw: value.nsfw,
             analytics: value.analytics,
@@ -865,6 +877,9 @@ impl From<crate::PartialServer> for PartialServer {
             default_permissions: value.default_permissions,
             icon: value.icon.map(|f| f.into()),
             banner: value.banner.map(|f| f.into()),
+            tag: value.tag,
+            tag_badge: value.tag_badge.map(|f| f.into()),
+            characteristics: value.characteristics,
             flags: value.flags.map(|v| v as u32),
             nsfw: value.nsfw,
             analytics: value.analytics,
@@ -892,6 +907,9 @@ impl From<PartialServer> for crate::PartialServer {
             default_permissions: value.default_permissions,
             icon: value.icon.map(|f| f.into()),
             banner: value.banner.map(|f| f.into()),
+            tag: value.tag,
+            tag_badge: value.tag_badge.map(|f| f.into()),
+            characteristics: value.characteristics,
             flags: value.flags.map(|v| v as i32),
             nsfw: value.nsfw,
             analytics: value.analytics,
@@ -908,6 +926,8 @@ impl From<crate::FieldsServer> for FieldsServer {
             crate::FieldsServer::Description => FieldsServer::Description,
             crate::FieldsServer::Icon => FieldsServer::Icon,
             crate::FieldsServer::SystemMessages => FieldsServer::SystemMessages,
+            crate::FieldsServer::Tag => FieldsServer::Tag,
+            crate::FieldsServer::TagBadge => FieldsServer::TagBadge,
         }
     }
 }
@@ -920,6 +940,8 @@ impl From<FieldsServer> for crate::FieldsServer {
             FieldsServer::Description => crate::FieldsServer::Description,
             FieldsServer::Icon => crate::FieldsServer::Icon,
             FieldsServer::SystemMessages => crate::FieldsServer::SystemMessages,
+            FieldsServer::Tag => crate::FieldsServer::Tag,
+            FieldsServer::TagBadge => crate::FieldsServer::TagBadge,
         }
     }
 }
@@ -930,6 +952,8 @@ impl From<crate::Category> for Category {
             id: value.id,
             title: value.title,
             channels: value.channels,
+            default_permissions: value.default_permissions,
+            role_permissions: value.role_permissions,
         }
     }
 }
@@ -940,6 +964,8 @@ impl From<Category> for crate::Category {
             id: value.id,
             title: value.title,
             channels: value.channels,
+            default_permissions: value.default_permissions,
+            role_permissions: value.role_permissions,
         }
     }
 }
