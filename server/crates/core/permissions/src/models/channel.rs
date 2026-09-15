@@ -103,9 +103,9 @@ pub enum ChannelPermission {
     /// Access server audit logs
     ViewAuditLogs = 1 << 40,
 
-    // * Vortex
+    // * Vortex (41 e 42 são dos eventos, 44 dos pedidos de entrada)
     /// Tocar efeitos sonoros do painel do servidor numa sala de voz
-    UseSoundboard = 1 << 41,
+    UseSoundboard = 1 << 43,
 
     // * Misc. permissions
     // % Bits 42 to 52: free area

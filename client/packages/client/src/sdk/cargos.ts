@@ -348,11 +348,11 @@ const TABELA = {
   ...(Permission as unknown as Record<string, bigint>),
   /*
     ⚠ **Bit do fork, fora da tabela do `stoat.js`.** `UseSoundboard` entrou em
-    `ChannelPermission` do `delta` no bit 41, a primeira área livre depois de
-    `ViewAuditLogs`. O SDK é submodule pinado; sem esta linha o editor de
+    `ChannelPermission` do `delta` no bit 43 (41 e 42 são dos eventos, 44 dos
+    pedidos de entrada — distribuição combinada entre os forks). O SDK é submodule pinado; sem esta linha o editor de
     cargos mostraria o interruptor e gravaria zero.
   */
-  UseSoundboard: 1n << 41n,
+  UseSoundboard: 1n << 43n,
 } as Record<string, bigint>;
 
 /**

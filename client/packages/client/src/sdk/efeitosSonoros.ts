@@ -38,7 +38,7 @@ import { lerVolumeDoPainel, marcarTocando } from "../store/soundboard";
 
 /*
   Os bits vêm da tabela de `cargos.ts`, e não de uma cópia aqui: com duas, o
-  editor de cargos e o painel poderiam discordar sobre qual é o bit 41, e o
+  editor de cargos e o painel poderiam discordar sobre qual é o bit 43, e o
   teste que guarda uma não guardaria a outra.
 */
 const USAR_SOUNDBOARD = bitDaPermissao("UseSoundboard");

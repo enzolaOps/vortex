@@ -241,7 +241,7 @@ describe("tocar para a sala", () => {
     Object.defineProperty(client, "user", { value: { id: "01EU" }, configurable: true });
     try {
       const falar = 1n << 31n;
-      const soundboard = 1n << 41n;
+      const soundboard = 1n << 43n;
       permissao = falar;
       expect(podeUsarSoundboard("C1")).toBe(false);
       permissao = soundboard;
@@ -254,8 +254,8 @@ describe("tocar para a sala", () => {
     }
   });
 
-  it("o bit de UseSoundboard é o 41 do fork", () => {
-    expect(bitDaPermissao("UseSoundboard")).toBe(1n << 41n);
+  it("o bit de UseSoundboard é o 43 do fork", () => {
+    expect(bitDaPermissao("UseSoundboard")).toBe(1n << 43n);
   });
 });
 
