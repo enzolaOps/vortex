@@ -24,10 +24,10 @@ pub trait PermissionQuery {
 
     /// Vortex: do we share a server whose policy allows DMs between members?
     ///
-    /// Default `false` keeps the upstream rule (only friends and bots DM).
-    async fn share_server_allowing_member_dms(&mut self) -> bool {
-        false
-    }
+    /// `false` keeps the upstream rule (only friends and bots DM). No default
+    /// body: under `async_trait` it would require `Self: Send`, which the
+    /// generic calculators do not ask of `P`.
+    async fn share_server_allowing_member_dms(&mut self) -> bool;
 
     // * For calculating server permission
 
