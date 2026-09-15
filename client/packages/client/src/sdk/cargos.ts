@@ -60,8 +60,8 @@ export const PERMISSOES: readonly GrupoDePermissoes[] = [
       },
       {
         id: "ManageCustomisation",
-        rotulo: "Gerenciar emojis",
-        detalhe: "Adicionar e remover emojis do servidor.",
+        rotulo: "Gerenciar expressões",
+        detalhe: "Adicionar e remover emojis, figurinhas e efeitos sonoros.",
       },
     ],
   },
@@ -134,6 +134,11 @@ export const PERMISSOES: readonly GrupoDePermissoes[] = [
       { id: "Speak", rotulo: "Falar", detalhe: "Usar o microfone." },
       { id: "Listen", rotulo: "Ouvir", detalhe: "Escutar quem está falando." },
       { id: "Video", rotulo: "Câmera e tela", detalhe: "Compartilhar vídeo." },
+      {
+        id: "UseSoundboard",
+        rotulo: "Usar soundboard",
+        detalhe: "Tocar sons do painel do servidor.",
+      },
       { id: "MuteMembers", rotulo: "Silenciar na voz", detalhe: "Cortar o microfone de outros." },
       {
         id: "DeafenMembers",
@@ -339,7 +344,16 @@ function paraBits(ids: readonly string[], tabela: Record<string, bigint>): bigin
  * tornava toda função desta seção assíncrona sem motivo. Import estático, como
  * o resto de `src/sdk/`.
  */
-const TABELA = Permission as unknown as Record<string, bigint>;
+const TABELA = {
+  ...(Permission as unknown as Record<string, bigint>),
+  /*
+    ⚠ **Bit do fork, fora da tabela do `stoat.js`.** `UseSoundboard` entrou em
+    `ChannelPermission` do `delta` no bit 41, a primeira área livre depois de
+    `ViewAuditLogs`. O SDK é submodule pinado; sem esta linha o editor de
+    cargos mostraria o interruptor e gravaria zero.
+  */
+  UseSoundboard: 1n << 41n,
+} as Record<string, bigint>;
 
 /**
  * Síncrona desde que a tabela virou import estático.

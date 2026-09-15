@@ -42,6 +42,7 @@ import type {
 } from "./domain";
 import { NOMES_POR_REACAO } from "./domain";
 import type { Enquete } from "../store/enquetes";
+import { figurinhaDaMensagem } from "./figurinhasDeMensagem";
 import { formatarBytes } from "../lib/bytes";
 import { sigla } from "../lib/sigla";
 
@@ -306,6 +307,7 @@ export function toMessageSnapshot(
     // trabalho para o qual existe.
     sendState,
     enquete,
+    figurinha: figurinhaDaMensagem(message.id, message.nonce),
     iniciaGrupo: layout.iniciaGrupo,
     dia: layout.dia,
     primeiraNaoLida: layout.primeiraNaoLida,

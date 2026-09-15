@@ -321,6 +321,17 @@ export type MessageSnapshot = {
   readonly enquete: Enquete | undefined;
 
   /**
+   * A figurinha que esta mensagem carrega — só o ID.
+   *
+   * Campo do Vortex (`Message.stickers` no fork do `delta`) que o `stoat.js`
+   * descarta na hidratação; quem o recupera é `sdk/figurinhasDeMensagem.ts`.
+   * O snapshot leva o ID e não a figurinha: o nome e a URL moram no store
+   * `figurinhas`, e é a própria figurinha na linha que o assina — renomeá-la
+   * não republica mensagem nenhuma.
+   */
+  readonly figurinha: string | undefined;
+
+  /**
    * Primeira mensagem do autor naquela janela: mostra avatar, nome e hora.
    *
    * Mensagens consecutivas do mesmo autor dentro de uma janela curta agrupam

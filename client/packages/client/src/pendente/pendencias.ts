@@ -145,28 +145,6 @@ export const PENDENCIAS = {
     depende:
       "o conceito de modelo no protocolo — não há campo nem rota, ou seja fork do serviço `api`",
   },
-  /* ------------------------------------------------------ figurinhas */
-  /*
-    ⚠ O Stoat tem EMOJI de servidor e não figurinha. São coisas diferentes:
-    emoji vive dentro de uma linha de texto, figurinha é a mensagem inteira.
-  */
-  figurinhas: {
-    superficie: "Configurações do servidor · Figurinhas",
-    faz: "Enviar, renomear e apagar as figurinhas do servidor.",
-    depende: "um tipo de figurinha no protocolo E upload para o servidor de mídia",
-  },
-  /* ------------------------------------------------ efeitos sonoros */
-  /*
-    ⚠ Duas ausências empilhadas: o protocolo não tem o conceito, e TOCAR o som
-    numa sala é publicar áudio no LiveKit — não é enviar mensagem.
-  */
-  efeitosSonoros: {
-    superficie: "Configurações do servidor · Painel de efeitos sonoros",
-    faz: "Enviar sons e tocá-los na sala de voz para todo mundo ouvir.",
-    depende:
-      "o conceito no protocolo E uma trilha de áudio publicada no LiveKit pelo servidor",
-  },
-
   /* --------------------------------------------------------- entrada */
   /*
     ⚠ **O QR é do design e o protocolo não tem o conceito.** Entrar por código
@@ -248,18 +226,6 @@ export const PENDENCIAS = {
     superficie: "Composer",
     faz: "Seletor de GIF.",
     depende: "provedor de GIF (rede externa)",
-  },
-  figurinha: {
-    superficie: "Composer",
-    faz: "Seletor de figurinhas do servidor.",
-    depende: "figurinhas no protocolo + upload",
-  },
-  /* Dois consumidores, uma entrada: o conceito é o mesmo, e duplicar a
-     pendência daria duas frases para manter em dia sobre o mesmo bloqueio. */
-  soundboard: {
-    superficie: "Composer e faixa de voz",
-    faz: "Tocar um efeito sonoro curto — no canal ou para a sala inteira.",
-    depende: "soundboard no protocolo + upload",
   },
   /*
     ⚠ **A linha de enquete na timeline EXISTE agora**, e o que ficou pendente é

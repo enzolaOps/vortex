@@ -47,8 +47,9 @@ export const SECOES = [
   /*
     As cinco que faltavam para a coluna ser a da referência.
 
-    ⚠ **Quatro delas não têm protocolo NENHUM** — `tag`, `modelo`,
-    `figurinhas` e `sons` não têm campo, rota nem evento no Stoat. Elas entram
+    ⚠ **Duas delas não têm protocolo NENHUM** — `tag` e `modelo` não têm
+    campo, rota nem evento no Stoat. (`figurinhas` e `sons` também não tinham;
+    ganharam no fork do `delta`, e as páginas deixaram de ser exemplo.) Elas entram
     mesmo assim, pela regra de quem toca o produto: a interface é construída
     1:1 com a referência AGORA, e o que não tem back-end vira entrada em
     `pendencias.ts` dizendo o que fará. `auditoria` é a exceção: ela TEM rota
