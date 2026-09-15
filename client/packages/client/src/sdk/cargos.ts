@@ -93,6 +93,11 @@ export const PERMISSOES: readonly GrupoDePermissoes[] = [
         rotulo: "Mudar apelidos",
         detalhe: "Trocar o apelido de outras pessoas no servidor.",
       },
+      {
+        id: "ManageJoinRequests",
+        rotulo: "Moderar pedidos de entrada",
+        detalhe: "Aprovar ou recusar quem pediu para entrar.",
+      },
     ],
   },
   {
@@ -339,7 +344,12 @@ function paraBits(ids: readonly string[], tabela: Record<string, bigint>): bigin
  * tornava toda função desta seção assíncrona sem motivo. Import estático, como
  * o resto de `src/sdk/`.
  */
-const TABELA = Permission as unknown as Record<string, bigint>;
+const TABELA: Record<string, bigint> = {
+  ...(Permission as unknown as Record<string, bigint>),
+  /* Bit do fork (41), que o enum do SDK não conhece — ver
+     `BIT_GERENCIAR_PEDIDOS` em `seguranca.ts`. */
+  ManageJoinRequests: 1n << 41n,
+};
 
 /**
  * Síncrona desde que a tabela virou import estático.
