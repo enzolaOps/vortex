@@ -91,11 +91,13 @@ const EXCLUIR = new RegExp(`^/delete/(${TOKEN})$`);
 */
 const REDEFINIR = new RegExp(`^/(?:redefinir|login/reset)/(${TOKEN})$`);
 const CONVITE = new RegExp(`^/convite/(${ID})$`);
+const AUTORIZAR_QR = new RegExp(`^/qr/(${ID})$`);
 
 const ENTRADA: Readonly<Record<string, TelaDeEntrada>> = {
   "/entrar": { tipo: "entrar" },
   "/entrar/criar": { tipo: "criar" },
   "/entrar/recuperar": { tipo: "recuperar" },
+  "/entrar/qr": { tipo: "qr" },
   // O endereço NÃO entra na URL: e-mail em barra de endereço fica em
   // histórico, em log de proxy e em print de tela.
   "/entrar/conferir": { tipo: "conferirEmail", email: undefined },
@@ -120,6 +122,10 @@ export function caminhoDaEntrada(tela: TelaDeEntrada): string {
       return `/delete/${tela.token}`;
     case "convite":
       return `/convite/${tela.codigo}`;
+    case "qr":
+      return "/entrar/qr";
+    case "autorizarQr":
+      return `/qr/${tela.id}`;
   }
 }
 
@@ -139,6 +145,9 @@ export function interpretarEntrada(caminho: string): TelaDeEntrada | undefined {
 
   const c = CONVITE.exec(caminho);
   if (c) return { tipo: "convite", codigo: c[1]! };
+
+  const q = AUTORIZAR_QR.exec(caminho);
+  if (q) return { tipo: "autorizarQr", id: q[1]! };
 
   return undefined;
 }

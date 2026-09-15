@@ -1,5 +1,5 @@
 //! Vortex: pedir um código QR
-//! POST /auth/qr
+//! POST /auth/qr/create
 use revolt_result::{create_error, Result};
 use rocket::serde::json::Json;
 use serde::{Deserialize, Serialize};
@@ -32,7 +32,7 @@ pub struct ResponseCreateQrLogin {
 ///
 /// Vortex: cria um pedido de entrada por QR, que outro aparelho com sessão autoriza.
 #[openapi(tag = "Session")]
-#[post("/", data = "<data>")]
+#[post("/create", data = "<data>")]
 pub async fn create(data: Json<DataCreateQrLogin>) -> Result<Json<ResponseCreateQrLogin>> {
     let data = data.into_inner();
     data.validate().map_err(|error| {

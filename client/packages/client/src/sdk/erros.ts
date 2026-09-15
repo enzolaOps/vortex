@@ -50,6 +50,17 @@ function comoObjeto(e: unknown): unknown {
   }
 }
 
+/**
+ * O `type` do erro do protocolo, quando há um.
+ *
+ * Para quem precisa DECIDIR pelo erro, e não só mostrá-lo — "o pedido de QR
+ * expirou" não é falha para relatar, é um estado da tela.
+ */
+export function tipoDoErro(e: unknown): string | undefined {
+  const tipo = (comoObjeto(e) as { type?: unknown } | null)?.type;
+  return typeof tipo === "string" ? tipo : undefined;
+}
+
 /** As respostas que valem uma frase própria. */
 const POR_TIPO: Record<string, string> = {
   /* --------------------------------------------------------------- entrada */

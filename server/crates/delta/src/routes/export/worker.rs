@@ -35,9 +35,20 @@ async fn adicionar<T: Serialize + Send + 'static>(
     valor: T,
 ) -> io::Result<Zip> {
     tokio::task::spawn_blocking(move || {
-        let mut zip = zip;
         let bytes = serde_json::to_vec_pretty(&valor).map_err(io::Error::other)?;
+        let mut zip = zip;
         zip.adicionar(&nome, &bytes)?;
+        Ok(zip)
+    })
+    .await
+    .map_err(io::Error::other)?
+}
+
+/// Texto que não é JSON (o LEIAME), pelo mesmo caminho fora do executor.
+async fn adicionar_texto(zip: Zip, nome: &'static str, texto: &'static str) -> io::Result<Zip> {
+    tokio::task::spawn_blocking(move || {
+        let mut zip = zip;
+        zip.adicionar(nome, texto.as_bytes())?;
         Ok(zip)
     })
     .await
@@ -115,10 +126,7 @@ async fn rodar(db: &Database, user_id: &str, token: &str) -> Result<(), Box<dyn 
     let conta = db.fetch_account(user_id).await?;
     let usuario = db.fetch_user(user_id).await?;
 
-    zip = adicionar(zip, "LEIAME.txt".into(), ()).await.and_then(|mut z| {
-        // O LEIAME é texto, não JSON — escrito direto.
-        z.adicionar("LEIAME.txt", LEIAME.as_bytes()).map(|_| z)
-    })?;
+    zip = adicionar_texto(zip, "LEIAME.txt", LEIAME).await?;
 
     zip = adicionar(
         zip,
@@ -257,7 +265,10 @@ async fn enviar_email(endereco: &str, token: &str) -> bool {
         return false;
     }
 
-    let url = format!("{}/auth/export/download/{}", config.hosts.api, token);
+    let url = format!(
+        "{}/auth/export/download/{}/vortex-dados.zip",
+        config.hosts.api, token
+    );
     let smtp = config.api.smtp.clone();
     let endereco = endereco.to_string();
 

@@ -29,6 +29,9 @@ auto_derived!(
         pub at: i64,
         /// Opaque payload (JSON text), validated by the activity host on each client
         pub op: String,
+        /// Whether this operation replaced the replay log (a compacted state)
+        #[cfg_attr(feature = "serde", serde(default))]
+        pub snapshot: bool,
     }
 
     /// Vortex: start an activity
@@ -43,5 +46,8 @@ auto_derived!(
         pub activity_id: String,
         /// Opaque payload (JSON text)
         pub op: String,
+        /// Replace the replay log with this operation — how a host compacts state
+        #[cfg_attr(feature = "serde", serde(default))]
+        pub snapshot: bool,
     }
 );
