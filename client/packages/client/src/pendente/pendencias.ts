@@ -450,12 +450,6 @@ export const PENDENCIAS = {
     faz: "Escalonar o que uma conta nova precisa cumprir antes de falar.",
     depende: "`verification_level` no protocolo",
   },
-  filtroDeMidia: {
-    superficie: "Configurações do servidor · Segurança",
-    faz: "Analisar a mídia enviada e borrar o que for explícito.",
-    depende:
-      "`explicit_content_filter` no protocolo + um analisador no lado do servidor",
-  },
   contatoEntreMembros: {
     superficie: "Configurações do servidor · Segurança",
     faz: "Limitar DM entre membros e filtrar convites de terceiros.",

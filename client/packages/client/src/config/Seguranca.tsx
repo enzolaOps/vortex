@@ -5,7 +5,12 @@ import { Botao } from "../components/ui/Botao";
 import { CartaoDeOpcao } from "../components/ui/CartaoDeOpcao";
 import { Interruptor } from "../components/ui/Interruptor";
 import { Selo } from "../components/ui/Selo";
+import { toast } from "../components/ui/toastStore";
 import { aindaNao } from "../pendente/pendencias";
+import { motivoDoErro } from "../sdk/erros";
+import { salvarPoliticaDeMidia } from "../sdk/filtroDeMidia";
+import { definirPolitica, lerPolitica, type PoliticaDeMidia } from "../store/filtroDeMidia";
+import { usePoliticaDeMidia } from "../store/hooks";
 import css from "./Seguranca.module.css";
 
 const NIVEIS = [
@@ -48,15 +53,16 @@ const FILTROS = [
 ] as const;
 
 type Nivel = (typeof NIVEIS)[number]["id"];
-type Filtro = (typeof FILTROS)[number]["id"];
 
 /**
  * Segurança — verificação, filtro de mídia e limites de contato.
  *
- * ⚠ **Mesma situação de Acesso, e a mesma decisão: nada é guardado.** Nenhum
- * dos oito controles tem campo no protocolo — `verification_level`,
- * `explicit_content_filter` e `dm_settings` dão zero ocorrências no schema. A
- * escolha vale só enquanto a página está aberta, e o banner diz por quê.
+ * ⚠ **O filtro de mídia é REAL; o resto segue como em Acesso.** O fork
+ * acrescentou `explicit_content_filter` ao servidor, e a escolha aqui é
+ * gravada lá e aplicada por todo cliente Vortex que recebe a mídia (ver
+ * `store/filtroDeMidia.ts`). `verification_level` e `dm_settings` continuam
+ * sem campo: a escolha deles vale só enquanto a página está aberta, e o banner
+ * diz por quê.
  *
  * ⚠ **Não confundir com "Privacidade neste servidor"**, que EXISTE e é outra
  * coisa: aquela é a decisão de UMA pessoa sobre o que ela recebe, guardada
@@ -72,7 +78,24 @@ type Filtro = (typeof FILTROS)[number]["id"];
  */
 export function Seguranca({ serverId }: { serverId: string }) {
   const [nivel, setNivel] = useState<Nivel>("nenhum");
-  const [filtro, setFiltro] = useState<Filtro>("nao");
+  const filtro = usePoliticaDeMidia(serverId);
+
+  /* Otimista: a página responde na hora, o `ServerUpdate` do socket confirma,
+     e a falha devolve o que era — com o motivo, porque um filtro que parece
+     ligado e não está é exatamente a proteção falsa que isto evita. */
+  function escolherFiltro(novo: PoliticaDeMidia) {
+    const antes = lerPolitica(serverId);
+    if (antes === novo) return;
+    definirPolitica(serverId, novo);
+    salvarPoliticaDeMidia(serverId, novo).catch((e: unknown) => {
+      definirPolitica(serverId, antes);
+      toast({
+        tipo: "erro",
+        titulo: "Não deu para salvar o filtro de mídia.",
+        descricao: motivoDoErro(e),
+      });
+    });
+  }
 
   if (!serverId) {
     return <p className={css.recado}>Abra um servidor para ver isto.</p>;
@@ -80,10 +103,10 @@ export function Seguranca({ serverId }: { serverId: string }) {
 
   return (
     <div className={css.pagina}>
-      <Banner tom="aviso" titulo="Nada aqui chega ao servidor ainda">
-        Nível de verificação, filtro de mídia e limites de DM não existem no
-        protocolo Stoat. Os controles estão desenhados; o comportamento real do
-        servidor não muda ao mexer neles.
+      <Banner tom="aviso" titulo="Só o filtro de mídia chega ao servidor">
+        Nível de verificação e limites de DM não existem no protocolo Stoat. Os
+        controles estão desenhados; o comportamento real do servidor não muda
+        ao mexer neles.
       </Banner>
 
               {/*
@@ -132,10 +155,7 @@ export function Seguranca({ serverId }: { serverId: string }) {
               marcado={filtro === f.id}
               titulo={f.titulo}
               detalhe={f.detalhe}
-              aoEscolher={() => {
-                setFiltro(f.id);
-                if (f.id !== "nao") aindaNao("filtroDeMidia")();
-              }}
+              aoEscolher={() => escolherFiltro(f.id)}
             />
           ))}
         </div>

@@ -1,0 +1,46 @@
+/*
+  O véu ocupa a caixa que `.midia` já reservou pela proporção do anexo. Nada
+  aqui pode dar altura própria: é a mesma caixa com outro conteúdo.
+*/
+.veu {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--vx-space-04);
+  inline-size: 100%;
+  block-size: 100%;
+  padding: var(--vx-space-12);
+  border: 0;
+  background: var(--vx-surface-3);
+  color: var(--vx-text-2);
+  font-family: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.veu:hover {
+  background: var(--vx-surface-4);
+}
+
+.veu:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.veu svg {
+  inline-size: var(--vx-icon-3);
+  block-size: var(--vx-icon-3);
+  color: var(--vx-text-3);
+}
+
+.titulo {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.detalhe {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}

@@ -7,6 +7,7 @@ import type { CSSProperties } from "react";
 import type { AnexoSnapshot } from "../sdk/domain";
 import { administrar } from "../store/administracao";
 import { aindaNao } from "../pendente/pendencias";
+import { MidiaFiltrada } from "./MidiaFiltrada";
 import { ReprodutorDeVoz } from "./ReprodutorDeVoz";
 import css from "./Anexos.module.css";
 
@@ -146,6 +147,7 @@ function Anexo({
         } as CSSProperties
       }
     >
+      <MidiaFiltrada messageId={messageId} anexoId={anexo.id}>
       {anexo.tipo === "video" ? (
         <video className={css.arquivoDeMidia} src={anexo.url} controls />
       ) : (
@@ -189,6 +191,7 @@ function Anexo({
         />
         </button>
       )}
+      </MidiaFiltrada>
       </div>
 
       <RodapeDoAnexo anexo={anexo} />
