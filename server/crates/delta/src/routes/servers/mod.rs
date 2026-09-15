@@ -8,6 +8,7 @@ mod ban_remove;
 mod channel_create;
 mod discover;
 mod emoji_list;
+mod expressions_list;
 mod invites_fetch;
 mod member_edit;
 mod member_experimental_query;
@@ -51,6 +52,8 @@ pub fn routes() -> (Vec<Route>, OpenApi) {
         permissions_set::set_role_permission,
         permissions_set_default::set_default_server_permissions,
         emoji_list::list_emoji,
+        expressions_list::list_stickers,
+        expressions_list::list_sounds,
         roles_edit_positions::edit_role_ranks,
         audit_log_query::query,
         discover::discover_add::discover_add,

@@ -128,6 +128,7 @@ mod test {
                 content: Some("Test message".to_string()),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: None,
                 embeds: None,
                 masquerade: None,

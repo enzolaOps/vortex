@@ -371,6 +371,23 @@ pub struct Files {
     pub s3: FilesS3,
 }
 
+/*
+  Padrões dos limites do Vortex. Com `default`, uma configuração de instância
+  que não conhece os campos novos continua carregando — é o que torna a
+  mudança aditiva para o `Revolt.toml` do `pi-infra`.
+*/
+fn padrao_server_stickers() -> usize {
+    15
+}
+
+fn padrao_server_sounds() -> usize {
+    8
+}
+
+fn padrao_expression_size() -> usize {
+    512_000
+}
+
 #[derive(Deserialize, Debug, Clone)]
 pub struct GlobalLimits {
     pub group_size: usize,
@@ -380,6 +397,19 @@ pub struct GlobalLimits {
     pub server_emoji: usize,
     pub server_roles: usize,
     pub server_channels: usize,
+
+    /// Figurinhas por servidor (Vortex)
+    #[serde(default = "padrao_server_stickers")]
+    pub server_stickers: usize,
+    /// Efeitos sonoros por servidor (Vortex)
+    #[serde(default = "padrao_server_sounds")]
+    pub server_sounds: usize,
+    /// Tamanho máximo de uma figurinha, em bytes (Vortex)
+    #[serde(default = "padrao_expression_size")]
+    pub sticker_size: usize,
+    /// Tamanho máximo de um efeito sonoro, em bytes (Vortex)
+    #[serde(default = "padrao_expression_size")]
+    pub sound_size: usize,
 
     pub new_user_hours: usize,
 

@@ -24,6 +24,7 @@ import css from "./CascaDeSeletor.module.css";
 export function CascaDeSeletor({
   rotulo,
   rail,
+  cabecalho,
   busca,
   acaoDaBusca,
   rodape,
@@ -34,6 +35,12 @@ export function CascaDeSeletor({
   rotulo: string;
   /** A tira de categorias à esquerda. Ausente = casca sem rail (soundboard). */
   rail?: ReactNode;
+  /**
+   * A faixa ACIMA da busca — só o soundboard a tem ("Painel de sons · sala ·
+   * servidor · EM VOZ"). Nos outros três o contexto é o canal do composer e
+   * não precisa ser dito.
+   */
+  cabecalho?: ReactNode;
   busca: {
     readonly valor: string;
     readonly aoMudar: (v: string) => void;
@@ -57,6 +64,7 @@ export function CascaDeSeletor({
       {rail ? <div className={css.rail}>{rail}</div> : null}
 
       <div className={css.corpo}>
+        {cabecalho ? <div className={css.cabecalho}>{cabecalho}</div> : null}
         <div className={css.linhaDeBusca}>
           <CampoDeBusca
             className={css.busca}

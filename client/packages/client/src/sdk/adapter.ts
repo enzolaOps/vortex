@@ -41,6 +41,12 @@ import { createEntityStore } from "../store/entities";
 import { createEphemeralStore } from "../store/ephemeral";
 import { client, conectado } from "./client";
 import { subirAnexo } from "./anexos";
+import {
+  figurinhaDaMensagem,
+  instalarFigurinhasDeMensagem,
+  registrarFigurinhaLocal,
+} from "./figurinhasDeMensagem";
+import { instalarExpressoes } from "./eventosDeExpressoes";
 import { formatarBytes } from "../lib/bytes";
 import { toast } from "../components/ui/toastStore";
 import {
@@ -565,7 +571,7 @@ function despacharEnvio(id: string): void {
   }
 
   marcarEnvio(id, "pending");
-  void postar(id, channelId, texto, respondendoA, undefined);
+  void postar(id, channelId, texto, respondendoA, undefined, figurinhaDaMensagem(id));
 }
 
 /**
@@ -958,6 +964,15 @@ function repensarPermissoes(): void {
 export function startAdapter() {
   if (started) return;
   started = true;
+
+  /*
+    Figurinhas e efeitos sonoros — conceitos do Vortex que o SDK não conhece.
+    A figurinha de uma mensagem chega DEPOIS de o snapshot dela existir (ver
+    `instalarFigurinhasDeMensagem`), e é por isso que a republicação é injetada:
+    a mensagem acorda pela própria chave, como numa enquete.
+  */
+  instalarFigurinhasDeMensagem((id) => republicarEnquete(chaveLocal(id)));
+  instalarExpressoes();
 
   /**
    * O estado de leitura que o SERVIDOR conhece, na entrada.
@@ -1859,6 +1874,55 @@ export function enviarMensagem(
   return id;
 }
 
+/* ---------------------------------------------------------- figurinha */
+
+/**
+ * Envia uma figurinha como mensagem inteira.
+ *
+ * O mesmo caminho otimista de `enviarMensagem` — nonce registrado antes, linha
+ * nascendo `pending`, confirmação pelo socket —, com o conteúdo vazio e a
+ * figurinha anotada na chave LOCAL antes de a linha existir. Separada e não um
+ * parâmetro a mais lá: aquela recusa texto vazio de propósito, e uma figurinha
+ * não vem com texto nem com anexo.
+ *
+ * ⚠ **O reenvio ao reconectar leva a figurinha junto** — `despacharEnvio` a lê
+ * do mesmo mapa. Sem isso a pendente sairia como mensagem vazia e o servidor
+ * responderia `EmptyMessage`, com a linha virando "falhou" sem motivo visível.
+ */
+export function enviarFigurinha(channelId: string, figurinhaId: string): string | undefined {
+  if (!usuarioLocal || !client.channels.get(channelId) || figurinhaId === "") {
+    return undefined;
+  }
+
+  const id = proximoId();
+  aguardar(id, id, channelId);
+  registrarFigurinhaLocal(id, figurinhaId);
+  estadosDeEnvio.set(id, "pending");
+
+  client.messages.getOrCreate(
+    id,
+    { _id: id, channel: channelId, author: usuarioLocal, content: "", nonce: id },
+    true,
+  );
+
+  if (lerConexao() !== "conectado") return id;
+
+  if (simulacao.ativa) {
+    setTimeout(() => {
+      if (simulacao.falhar) {
+        desistir(id);
+        marcarEnvio(id, "failed");
+      } else {
+        marcarEnvio(id, "sent");
+      }
+    }, simulacao.latenciaMs ?? 600);
+    return id;
+  }
+
+  void postar(id, channelId, "", undefined, undefined, figurinhaId);
+  return id;
+}
+
 /* ------------------------------------------------------------- upload */
 
 /**
@@ -2032,9 +2096,12 @@ async function postar(
   content: string,
   respondendoA: RespostaDeEnvio | undefined,
   anexos: readonly string[] | undefined,
+  /** A figurinha da mensagem — campo do Vortex que o tipo do SDK não conhece. */
+  figurinha?: string,
 ): Promise<void> {
   try {
     await client.channels.get(channelId)?.sendMessage({
+      ...(figurinha ? ({ stickers: [figurinha] } as object) : {}),
       content,
       /*
         O nonce está DEPRECADO no schema em favor de `Idempotency-Key`, e vai

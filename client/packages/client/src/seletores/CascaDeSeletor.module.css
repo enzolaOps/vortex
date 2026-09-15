@@ -28,6 +28,28 @@
   block-size: auto;
 }
 
+/*
+  Sem rail, o soundboard alinha tudo ao respiro do CABEÇALHO (14px), e não ao
+  dos seletores com rail (12px): `12px 14px 8px` na busca, `0 14px 12px` no
+  grid e `10px 14px` no rodapé — medidos no design. A busca tem 30 de altura
+  ali, contra os 32 dos outros três.
+*/
+.casca[data-estreita] .linhaDeBusca {
+  padding: var(--vx-space-12) var(--vx-space-14) var(--vx-space-08);
+}
+
+.casca[data-estreita] .busca {
+  block-size: 30px;
+}
+
+.casca[data-estreita] .rolagem {
+  padding-inline: var(--vx-space-14);
+}
+
+.casca[data-estreita] .rodape {
+  padding: var(--vx-space-10) var(--vx-space-14);
+}
+
 /* ------------------------------------------------------------- o rail */
 
 .rail {
@@ -51,6 +73,17 @@
   min-inline-size: 0;
   display: flex;
   flex-direction: column;
+}
+
+/* `12px 14px` com régua embaixo — o cabeçalho do soundboard no design. */
+.cabecalho {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-10);
+  padding: var(--vx-space-12) var(--vx-space-14);
+  border-block-end: 1px solid var(--vx-hairline-06);
 }
 
 .linhaDeBusca {

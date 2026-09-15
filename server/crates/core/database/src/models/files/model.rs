@@ -241,6 +241,33 @@ impl File {
         .await
     }
 
+    /// Usa um arquivo como figurinha ou efeito sonoro (Vortex)
+    ///
+    /// ⚠ **Tag `attachments` e tipo `Emoji`, e as duas coisas são de
+    /// propósito.** O `autumn` e o `crond` que rodam são os do UPSTREAM, e os
+    /// dois desserializam `File`: uma variante nova em `FileUsedForType` faria
+    /// o upstream falhar ao ler o documento, e a figurinha deixaria de ser
+    /// servida. Uma tag nova exigiria publicar o `autumn` deste fork. `Emoji`
+    /// é o parente mais próximo ("expressão do servidor"), e o tipo, a
+    /// imagem ou o áudio, e o tamanho são validados por quem chama.
+    pub async fn use_expression(
+        db: &Database,
+        id: &str,
+        parent: &str,
+        uploader_id: &str,
+    ) -> Result<File> {
+        db.find_and_use_attachment(
+            id,
+            "attachments",
+            FileUsedFor {
+                id: parent.to_owned(),
+                object_type: FileUsedForType::Emoji,
+            },
+            uploader_id.to_owned(),
+        )
+        .await
+    }
+
     /// Use a file for a role icon
     pub async fn use_role_icon(
         db: &Database,
