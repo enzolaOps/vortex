@@ -1,4 +1,5 @@
 use bson::{to_bson, Document};
+use iso8601_timestamp::Timestamp;
 use futures::try_join;
 use futures::StreamExt;
 use mongodb::options::FindOptions;
@@ -284,6 +285,62 @@ impl AbstractMessages for MongoDb {
                 doc! {
                     "$unset": {
                         format!("reactions.{emoji}"): 1
+                    }
+                },
+            )
+            .await
+            .map(|_| ())
+            .map_err(|_| create_database_error!("update_one", COL))
+    }
+
+    /// Replace a user's vote on a message's poll (Vortex)
+    async fn set_poll_vote(
+        &self,
+        id: &str,
+        user: &str,
+        answers: &[String],
+        all_answers: &[String],
+    ) -> Result<()> {
+        // Duas atualizações e não uma: `$pull` e `$addToSet` no MESMO caminho
+        // (votar de novo na mesma resposta) é conflito de operador no Mongo.
+        // Cada uma é atômica; entre as duas, quem lê vê o voto retirado, que é
+        // o estado intermediário honesto de "trocando de resposta".
+        let mut pull = Document::new();
+        for answer in all_answers {
+            pull.insert(format!("poll.votes.{answer}"), user);
+        }
+
+        if !pull.is_empty() {
+            self.col::<Document>(COL)
+                .update_one(doc! { "_id": id }, doc! { "$pull": pull })
+                .await
+                .map_err(|_| create_database_error!("update_one", COL))?;
+        }
+
+        let mut add = Document::new();
+        for answer in answers {
+            add.insert(format!("poll.votes.{answer}"), user);
+        }
+
+        if !add.is_empty() {
+            self.col::<Document>(COL)
+                .update_one(doc! { "_id": id }, doc! { "$addToSet": add })
+                .await
+                .map_err(|_| create_database_error!("update_one", COL))?;
+        }
+
+        Ok(())
+    }
+
+    /// Mark a message's poll as ended (Vortex)
+    async fn end_poll(&self, id: &str, ended_at: &Timestamp) -> Result<()> {
+        self.col::<Document>(COL)
+            .update_one(
+                doc! { "_id": id, "poll": { "$exists": true } },
+                doc! {
+                    "$set": {
+                        "poll.ended_at": to_bson(ended_at)
+                            .map_err(|_| create_database_error!("to_bson", COL))?
                     }
                 },
             )

@@ -6,8 +6,8 @@ use revolt_models::v0::{
     AppendMessage, Channel, ChannelSlowmode, ChannelUnread, ChannelVoiceState, Emoji,
     FieldsChannel, FieldsMember, FieldsMessage, FieldsRole, FieldsServer, FieldsUser,
     FieldsWebhook, Member, MemberCompositeKey, Message, PartialChannel, PartialEmoji,
-    PartialMember, PartialMessage, PartialRole, PartialServer, PartialUser, PartialUserVoiceState,
-    PartialWebhook, PolicyChange, RemovalIntention, Report, Server, User, UserSettings,
+    PartialMember, PartialMessage, PartialRole, Poll, PartialServer, PartialUser, PartialUserVoiceState,
+    PartialWebhook, PolicyChange, RemovalIntention, Report, Server, ServerEvent, User, UserSettings,
     UserVoiceState, Webhook,
 };
 
@@ -141,6 +141,25 @@ pub enum EventV1 {
         emoji_id: String,
     },
 
+    /// A user's vote on a poll changed (Vortex)
+    ///
+    /// `answers` replaces the user's previous vote; empty means no vote.
+    MessagePollVote {
+        id: String,
+        channel_id: String,
+        user_id: String,
+        answers: Vec<String>,
+    },
+
+    /// A poll was ended early by its author (Vortex)
+    ///
+    /// Carries the final poll, votes included.
+    MessagePollEnd {
+        id: String,
+        channel_id: String,
+        poll: Poll,
+    },
+
     /// Remove a reaction from message
     MessageRemoveReaction {
         id: String,
@@ -152,6 +171,33 @@ pub enum EventV1 {
     BulkMessageDelete {
         channel: String,
         ids: Vec<String>,
+    },
+
+    /// Scheduled server event created (Vortex)
+    ServerEventCreate {
+        event: ServerEvent,
+    },
+
+    /// Scheduled server event edited (Vortex)
+    ///
+    /// Carries the whole event: edits are rare and a partial would need its
+    /// own clear list for every optional field.
+    ServerEventUpdate {
+        event: ServerEvent,
+    },
+
+    /// Scheduled server event deleted (Vortex)
+    ServerEventDelete {
+        id: String,
+        server: String,
+    },
+
+    /// A user marked or unmarked interest in a scheduled event (Vortex)
+    ServerEventInterest {
+        id: String,
+        server: String,
+        user_id: String,
+        interested: bool,
     },
 
     /// New server

@@ -103,8 +103,17 @@ pub enum ChannelPermission {
     /// Access server audit logs
     ViewAuditLogs = 1 << 40,
 
+    // * Vortex
+    /// Edit and delete scheduled server events created by anyone
+    ///
+    /// Bits novos do fork, no começo da área livre: nenhum bit existente foi
+    /// renumerado, e `GrantAllSafe` já os cobre.
+    ManageEvents = 1 << 41,
+    /// Schedule server events, and edit or delete your own
+    CreateEvents = 1 << 42,
+
     // * Misc. permissions
-    // % Bits 41 to 52: free area
+    // % Bits 43 to 52: free area
     // % Bits 53 to 64: do not use
 
     // * Grant all permissions
@@ -153,7 +162,10 @@ pub static DEFAULT_PERMISSION_SERVER: Lazy<u64> = Lazy::new(|| {
     DEFAULT_PERMISSION.add(
         ChannelPermission::React
             + ChannelPermission::ChangeNickname
-            + ChannelPermission::ChangeAvatar,
+            + ChannelPermission::ChangeAvatar
+            // Vortex: agendar é do dia a dia, como na referência. Vale só para
+            // servidor NOVO — o padrão dos existentes está gravado no documento.
+            + ChannelPermission::CreateEvents,
     )
 });
 

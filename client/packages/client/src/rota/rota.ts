@@ -37,6 +37,7 @@ import {
   assinarNavegacao,
   irPara,
   irParaAmigos,
+  irParaEventos,
   irParaCasa,
   lerLocal,
   type AbaDePessoas,
@@ -56,6 +57,7 @@ const ID = "[0-9A-Za-z_-]{1,64}";
 
 const SERVIDOR = new RegExp(`^/servidor/(${ID})(?:/canal/(${ID})(?:/(${ID}))?)?$`);
 const CONVERSA = new RegExp(`^/dm/(${ID})$`);
+const EVENTOS = new RegExp(`^/servidor/(${ID})/eventos$`);
 
 /**
  * Os caminhos de FORA — os que existem antes de haver sessão.
@@ -214,6 +216,8 @@ export function caminhoDe(local: Local): string {
       return local.aba === "amigo" ? "/amigos" : `/amigos/${SLUG[local.aba]}`;
     case "dm":
       return `/dm/${local.channelId}`;
+    case "eventos":
+      return `/servidor/${local.serverId}/eventos`;
     case "servidor":
       return local.channelId === undefined
         ? `/servidor/${local.serverId}`
@@ -264,6 +268,11 @@ export function interpretar(caminho: string): {
     };
   }
 
+  const eventos = EVENTOS.exec(caminho);
+  if (eventos) {
+    return { local: { tipo: "eventos", serverId: eventos[1]! }, mensagemId: undefined };
+  }
+
   const conversa = CONVERSA.exec(caminho);
   if (conversa) {
     return { local: { tipo: "dm", channelId: conversa[1]! }, mensagemId: undefined };
@@ -283,6 +292,9 @@ function aplicar(local: Local): void {
       return;
     case "dm":
       abrirConversa(local.channelId);
+      return;
+    case "eventos":
+      irParaEventos(local.serverId);
       return;
     case "servidor":
       irPara(local.serverId, local.channelId);
