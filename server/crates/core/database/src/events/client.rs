@@ -7,7 +7,8 @@ use revolt_models::v0::{
     FieldsChannel, FieldsMember, FieldsMessage, FieldsRole, FieldsServer, FieldsUser,
     FieldsWebhook, Member, MemberCompositeKey, Message, PartialChannel, PartialEmoji,
     PartialMember, PartialMessage, PartialRole, PartialServer, PartialUser, PartialUserVoiceState,
-    PartialWebhook, PolicyChange, RemovalIntention, Report, Server, User, UserSettings,
+    PartialWebhook, PolicyChange, RemovalIntention, Report, Server, ServerJoinRequest, User,
+    UserSettings,
     UserVoiceState, Webhook,
 };
 
@@ -219,6 +220,21 @@ pub enum EventV1 {
     ServerRoleRanksUpdate {
         id: String,
         ranks: Vec<String>,
+    },
+
+    /// Vortex: pedido de entrada criado
+    ///
+    /// Publicado no tópico do servidor, mas o `bonfire` só o entrega a quem tem
+    /// `ManageJoinRequests` — quem pediu não é assunto dos outros membros.
+    ServerJoinRequestCreate {
+        id: String,
+        request: ServerJoinRequest,
+    },
+
+    /// Vortex: pedido de entrada aprovado, recusado ou cancelado
+    ServerJoinRequestDelete {
+        id: String,
+        user: String,
     },
 
     /// Update existing user

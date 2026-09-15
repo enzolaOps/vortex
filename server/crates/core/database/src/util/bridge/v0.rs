@@ -815,6 +815,7 @@ impl crate::Server {
             analytics: self.analytics,
             discoverable: self.discoverable,
             approximate_member_count,
+            security: self.security,
         }
     }
 }
@@ -843,6 +844,7 @@ impl From<Server> for crate::Server {
             nsfw: value.nsfw,
             analytics: value.analytics,
             discoverable: value.discoverable,
+            security: value.security,
         }
     }
 }
@@ -870,6 +872,7 @@ impl From<crate::PartialServer> for PartialServer {
             analytics: value.analytics,
             discoverable: value.discoverable,
             approximate_member_count: None,
+            security: value.security,
         }
     }
 }
@@ -896,6 +899,7 @@ impl From<PartialServer> for crate::PartialServer {
             nsfw: value.nsfw,
             analytics: value.analytics,
             discoverable: value.discoverable,
+            security: value.security,
         }
     }
 }
@@ -904,6 +908,7 @@ impl From<crate::FieldsServer> for FieldsServer {
     fn from(value: crate::FieldsServer) -> Self {
         match value {
             crate::FieldsServer::Banner => FieldsServer::Banner,
+            crate::FieldsServer::Security => FieldsServer::Security,
             crate::FieldsServer::Categories => FieldsServer::Categories,
             crate::FieldsServer::Description => FieldsServer::Description,
             crate::FieldsServer::Icon => FieldsServer::Icon,
@@ -916,6 +921,7 @@ impl From<FieldsServer> for crate::FieldsServer {
     fn from(value: FieldsServer) -> crate::FieldsServer {
         match value {
             FieldsServer::Banner => crate::FieldsServer::Banner,
+            FieldsServer::Security => crate::FieldsServer::Security,
             FieldsServer::Categories => crate::FieldsServer::Categories,
             FieldsServer::Description => crate::FieldsServer::Description,
             FieldsServer::Icon => crate::FieldsServer::Icon,

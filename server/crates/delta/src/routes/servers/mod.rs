@@ -7,8 +7,12 @@ mod ban_list;
 mod ban_remove;
 mod channel_create;
 mod discover;
+mod emergency;
 mod emoji_list;
 mod invites_fetch;
+mod join_request_accept;
+mod join_request_list;
+mod join_request_reject;
 mod member_edit;
 mod member_experimental_query;
 mod member_fetch;
@@ -26,6 +30,7 @@ mod server_create;
 mod server_delete;
 mod server_edit;
 mod server_fetch;
+mod template;
 
 pub fn routes() -> (Vec<Route>, OpenApi) {
     openapi_get_routes_spec![
@@ -56,5 +61,14 @@ pub fn routes() -> (Vec<Route>, OpenApi) {
         discover::discover_add::discover_add,
         discover::discover_get::discover_get,
         discover::discover_remove::discover_remove,
+        emergency::activate,
+        emergency::end,
+        join_request_list::list,
+        join_request_accept::accept,
+        join_request_reject::reject,
+        template::fetch,
+        template::create,
+        template::sync,
+        template::delete,
     ]
 }

@@ -18,7 +18,9 @@ mod ratelimit_events;
 mod safety_reports;
 mod safety_snapshots;
 mod server_bans;
+mod server_join_requests;
 mod server_members;
+mod server_templates;
 mod servers;
 mod sessions;
 mod user_settings;
@@ -44,7 +46,9 @@ pub use ratelimit_events::*;
 pub use safety_reports::*;
 pub use safety_snapshots::*;
 pub use server_bans::*;
+pub use server_join_requests::*;
 pub use server_members::*;
+pub use server_templates::*;
 pub use servers::*;
 pub use sessions::*;
 pub use user_settings::*;
@@ -74,7 +78,9 @@ pub trait AbstractDatabase:
     + safety_reports::AbstractReport
     + safety_snapshots::AbstractSnapshot
     + server_bans::AbstractServerBans
+    + server_join_requests::AbstractServerJoinRequests
     + server_members::AbstractServerMembers
+    + server_templates::AbstractServerTemplates
     + servers::AbstractServers
     + user_settings::AbstractUserSettings
     + users::AbstractUsers
