@@ -7,12 +7,12 @@ import { SeletorDeCor } from "../components/ui/SeletorDeCor";
 import { X } from "../components/ui/icones";
 import { corDoTextoDe, gradienteDe } from "../lib/gradiente";
 import { sigla } from "../lib/sigla";
-import { aindaNao } from "../pendente/pendencias";
 import {
   subirAnexo,
   temServidorDeMidia,
   tetoDeUploadTexto,
 } from "../sdk/anexos";
+import { salvarCaracteristicas } from "../sdk/perfilDoServidor";
 import {
   salvarServidor,
   TAG_DA_IMAGEM,
@@ -22,6 +22,7 @@ import {
 import { toast } from "../components/ui/toastStore";
 import { definirBarraDeSalvar } from "../store/barraDeSalvar";
 import { useMembrosDoServidor, useServer } from "../store/hooks";
+import { usePerfilDoServidor } from "../store/perfilDoServidor";
 import css from "./Servidor.module.css";
 import secao from "./Secao.module.css";
 
@@ -66,14 +67,18 @@ function pintura(f: Faixa): string {
 type Faixa = { readonly de: string; readonly ate?: string };
 
 /**
- * As características de exemplo.
+ * Características: até cinco, texto livre de até 32 caracteres (emoji entra).
  *
- * ⚠ **Elas NÃO são estado guardado, e a distinção importa.** O protocolo do
- * Stoat não tem características de servidor — não há campo, rota nem evento.
- * Mostrá-las vazias faria a tela parecer quebrada; mostrá-las guardando faria
- * a tela mentir. Ficam como exemplo, e o controle diz o que fará.
+ * **Do fork** (`Server.characteristics`). O servidor valida o teto e tira
+ * espaço das pontas e repetição; o cliente faz o mesmo na ENTRADA, para que o
+ * chip que aparece seja o que vai ser guardado.
  */
-const CARACTERISTICAS = ["🛠 produto", "🎨 design", "💬 open source"] as const;
+const TETO_DE_CARACTERISTICAS = 5;
+const TETO_DE_CARACTERE = 32;
+
+function mesmaLista(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((x, i) => x === b[i]);
+}
 
 const NUMERO = new Intl.NumberFormat("pt-BR");
 
@@ -214,7 +219,29 @@ export function Servidor({ serverId }: { serverId: string }) {
   const [faixa, setFaixa] = useState<Faixa>(FAIXAS[0]);
   const [salvando, setSalvando] = useState(false);
 
-  const sujo = nome !== nomeSalvo || descricao !== descricaoSalva;
+  const perfil = usePerfilDoServidor(serverId);
+  /*
+    A edição guarda SOBRE QUAL lista salva ela foi feita — a lista chega pelo
+    socket depois de a página montar, e o store só troca a referência quando
+    ela muda. Ver a mesma forma em `Tag.tsx`.
+  */
+  const [edicaoDeCaracteristicas, setEdicaoDeCaracteristicas] = useState<
+    | { readonly base: readonly string[]; readonly valor: readonly string[] }
+    | undefined
+  >(undefined);
+  const caracteristicas =
+    edicaoDeCaracteristicas?.base === perfil.caracteristicas
+      ? edicaoDeCaracteristicas.valor
+      : perfil.caracteristicas;
+  const mudarCaracteristicas = (valor: readonly string[]) =>
+    setEdicaoDeCaracteristicas({ base: perfil.caracteristicas, valor });
+  const [novaCaracteristica, setNovaCaracteristica] = useState<string | undefined>(
+    undefined,
+  );
+
+  const caracteristicasSujas = !mesmaLista(caracteristicas, perfil.caracteristicas);
+  const dadosSujos = nome !== nomeSalvo || descricao !== descricaoSalva;
+  const sujo = dadosSujos || caracteristicasSujas;
 
   /*
     A página publica; a casca desenha. Ver `BarraDeSalvar`.
@@ -233,16 +260,36 @@ export function Servidor({ serverId }: { serverId: string }) {
       aoDescartar: () => {
         setNome(nomeSalvo);
         setDescricao(descricaoSalva);
+        setEdicaoDeCaracteristicas(undefined);
       },
       aoSalvar: () => {
         if (nome.trim() === "") return;
         setSalvando(true);
-        void salvarServidor(serverId, nome.trim(), descricao.trim()).finally(
-          () => setSalvando(false),
-        );
+        /* Duas rotas no mesmo PATCH seriam uma só escrita; aqui são duas
+           funções porque os campos moram em camadas diferentes (SDK e fork),
+           e só a que mudou vai ao servidor. */
+        void Promise.all([
+          dadosSujos
+            ? salvarServidor(serverId, nome.trim(), descricao.trim())
+            : Promise.resolve(true),
+          caracteristicasSujas
+            ? salvarCaracteristicas(serverId, caracteristicas)
+            : Promise.resolve(true),
+        ]).finally(() => setSalvando(false));
       },
     });
-  }, [sujo, salvando, nome, descricao, nomeSalvo, descricaoSalva, serverId]);
+  }, [
+    sujo,
+    salvando,
+    nome,
+    descricao,
+    nomeSalvo,
+    descricaoSalva,
+    serverId,
+    dadosSujos,
+    caracteristicasSujas,
+    caracteristicas,
+  ]);
 
   useEffect(() => () => definirBarraDeSalvar(undefined), []);
 
@@ -487,26 +534,65 @@ export function Servidor({ serverId }: { serverId: string }) {
         <div>
           <p className={css.sobrancelha}>Características · até 5</p>
           <div className={css.caracteristicas}>
-            {CARACTERISTICAS.map((c) => (
+            {caracteristicas.map((c) => (
               <span key={c} className={css.caracteristica}>
                 {c}
                 <button
                   type="button"
                   className={css.tirar}
                   aria-label={`Tirar ${c}`}
-                  onClick={aindaNao("caracteristicasDoServidor")}
+                  disabled={salvando}
+                  onClick={() =>
+                    mudarCaracteristicas(caracteristicas.filter((x) => x !== c))
+                  }
                 >
                   <X size={11} aria-hidden />
                 </button>
               </span>
             ))}
-            <button
-              type="button"
-              className={css.acrescentar}
-              onClick={aindaNao("caracteristicasDoServidor")}
-            >
-              ＋ adicionar
-            </button>
+            {novaCaracteristica !== undefined ? (
+              /*
+                O chip tracejado vira o próprio campo, no mesmo lugar e na
+                mesma altura: Enter põe, Esc desiste, sair do campo com texto
+                também põe — perder o que foi digitado por um clique fora é o
+                erro que ninguém perdoa.
+              */
+              <input
+                className={css.acrescentarCampo}
+                aria-label="Nova característica"
+                placeholder="🛠 produto"
+                autoFocus
+                maxLength={TETO_DE_CARACTERE}
+                value={novaCaracteristica}
+                onChange={(e) => setNovaCaracteristica(e.target.value)}
+                onBlur={() => {
+                  const limpa = novaCaracteristica.trim();
+                  if (limpa !== "" && !caracteristicas.includes(limpa)) {
+                    mudarCaracteristicas([...caracteristicas, limpa]);
+                  }
+                  setNovaCaracteristica(undefined);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    e.currentTarget.blur();
+                  } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setNovaCaracteristica(undefined);
+                  }
+                }}
+              />
+            ) : caracteristicas.length < TETO_DE_CARACTERISTICAS ? (
+              <button
+                type="button"
+                className={css.acrescentar}
+                disabled={salvando}
+                onClick={() => setNovaCaracteristica("")}
+              >
+                ＋ adicionar
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -541,21 +627,15 @@ export function Servidor({ serverId }: { serverId: string }) {
             </span>
             <div className={css.linhaDoNome}>
               <span className={css.nomeDoCartao}>{nome || "Servidor"}</span>
-              {/*
-                A SIGLA, e não a tag do servidor.
-
-                ⚠ A tag é campo configurável do protocolo — tem página própria
-                no design — e não existe aqui. A sigla é derivada do nome e é
-                verdade sobre ele; quando a tag existir, substitui sem mexer
-                no layout.
-              */}
-              <Selo tom="acento">{inicial}</Selo>
+              {/* A TAG do servidor quando existe (do fork); a sigla é o que
+                  sobra quando quem administra ainda não escolheu uma. */}
+              <Selo tom="acento">{perfil.tag ?? inicial}</Selo>
             </div>
             {descricao ? (
               <p className={css.descricaoDoCartao}>{descricao}</p>
             ) : null}
             <div className={css.chipsDoCartao}>
-              {CARACTERISTICAS.map((c) => (
+              {caracteristicas.map((c) => (
                 <span key={c} className={css.chip}>
                   {c}
                 </span>

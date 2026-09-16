@@ -36,6 +36,13 @@ impl AbstractMessages for MongoDb {
         // 1. Apply message filters
         if let Some(channel) = query.filter.channel {
             filter.insert("channel", channel);
+        } else if let Some(channels) = query.filter.channels {
+            filter.insert(
+                "channel",
+                doc! {
+                    "$in": channels
+                },
+            );
         }
 
         if let Some(author) = query.filter.author {

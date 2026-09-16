@@ -14,6 +14,10 @@ import { decodeTime, monotonicFactory, ulid } from "ulid";
 
 import { definirEnquete } from "../store/enquetes";
 import {
+  definirPerfilDoServidor,
+  definirQuemExibeTag,
+} from "../store/perfilDoServidor";
+import {
   definirChamada,
   definirFalantes,
   encerrarChamada,
@@ -561,6 +565,25 @@ const RECADOS = [
         },
       );
     });
+
+    /*
+      Tag, emblema e características — campos do fork que o SDK descarta, então
+      a semeadura escreve direto no store (é o que o evento cru faria).
+
+      ⚠ Só no servidor principal, e só um em cada quatro exibindo: sem um
+      servidor sem tag e sem alguém que NÃO exibe, nem a ausência nem o
+      seletor do menu seriam exercitados.
+    */
+    if (servidor.id === SERVER_ID) {
+      definirPerfilDoServidor(servidor.id, {
+        tag: "VTX",
+        caracteristicas: ["🛠 produto", "🎨 design", "💬 open source"],
+      });
+      definirQuemExibeTag(
+        servidor.id,
+        membros.filter((_, i) => i % 4 === 0),
+      );
+    }
 
     /*
       Gente DENTRO dos canais de voz, desde a semeadura.

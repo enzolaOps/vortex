@@ -15,6 +15,11 @@ import { ehCanalDeVoz } from "./map";
 import { toast } from "../components/ui/toastStore";
 import { sigla } from "../lib/sigla";
 import { motivoDoErro } from "./erros";
+import {
+  conjuntoDaCategoriaPorId,
+  sincronizarComCategoria,
+  temSobreposicoes,
+} from "./categorias";
 
 /**
  * O convite, reduzido ao que a tela de pré-visualização mostra.
@@ -305,6 +310,18 @@ export async function criarCanal(
       ),
     dado,
   );
+
+  /*
+    "Canais criados aqui herdam a restrição" — é a promessa da categoria
+    privada. Herdar é o servidor COPIAR as sobreposições dela para o canal;
+    sem esta chamada o canal nasceria aberto dentro de uma categoria fechada.
+    Categoria sem sobreposição nenhuma não pede nada: sincronizar ali só
+    trocaria "nada" por "nada".
+  */
+  const conjunto = conjuntoDaCategoriaPorId(serverId, categoriaId);
+  if (conjunto !== undefined && temSobreposicoes(conjunto)) {
+    await sincronizarComCategoria(id);
+  }
 
   publicarCanaisDe(serverId);
   return id;

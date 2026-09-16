@@ -53,6 +53,16 @@ auto_derived_partial!(
         #[serde(skip_serializing_if = "Option::is_none")]
         pub banner: Option<File>,
 
+        /// Short tag shown next to the name of members who choose to display it
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub tag: Option<String>,
+        /// Badge image accompanying the tag
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub tag_badge: Option<File>,
+        /// Topics describing this server (up to five)
+        #[serde(skip_serializing_if = "Vec::is_empty", default)]
+        pub characteristics: Vec<String>,
+
         /// Bitfield of server flags
         #[serde(skip_serializing_if = "Option::is_none")]
         pub flags: Option<i32>,
@@ -110,6 +120,15 @@ auto_derived!(
         pub title: String,
         /// Channels in this category
         pub channels: Vec<String>,
+        /// Default permissions copied to channels synced with this category
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub default_permissions: Option<OverrideField>,
+        /// Role permissions copied to channels synced with this category
+        #[serde(
+            default = "HashMap::<String, OverrideField>::new",
+            skip_serializing_if = "HashMap::<String, OverrideField>::is_empty"
+        )]
+        pub role_permissions: HashMap<String, OverrideField>,
     }
 
     /// System message channel assignments
@@ -135,6 +154,8 @@ auto_derived!(
         SystemMessages,
         Icon,
         Banner,
+        Tag,
+        TagBadge,
     }
 
     /// Optional fields on server object
@@ -170,6 +191,9 @@ impl Server {
             icon: None,
             roles: HashMap::new(),
             system_messages: None,
+            tag: None,
+            tag_badge: None,
+            characteristics: vec![],
         };
 
         let channels: Vec<Channel> = if create_default_channels {
@@ -240,6 +264,8 @@ impl Server {
             FieldsServer::SystemMessages => self.system_messages = None,
             FieldsServer::Icon => self.icon = None,
             FieldsServer::Banner => self.banner = None,
+            FieldsServer::Tag => self.tag = None,
+            FieldsServer::TagBadge => self.tag_badge = None,
         }
     }
 
@@ -259,6 +285,9 @@ impl Server {
                 default_permissions,
                 (FieldsServer::Icon) icon,
                 (FieldsServer::Banner) banner,
+                (FieldsServer::Tag) tag,
+                (FieldsServer::TagBadge) tag_badge,
+                characteristics,
                 nsfw,
                 analytics,
                 discoverable,

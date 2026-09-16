@@ -20,12 +20,12 @@ import { Girador } from "../components/ui/Girador";
 import { Selo } from "../components/ui/Selo";
 import { toast } from "../components/ui/toastStore";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
-import { aindaNao } from "../pendente/pendencias";
 import type { ResultadoDeBusca } from "../sdk/busca";
 import {
   apontarBuscaPara,
   assinarBusca,
   definirConsulta,
+  definirEscopo,
   definirOrdem,
   executar,
   lerBusca,
@@ -42,7 +42,8 @@ import {
 } from "./filtros";
 import { pedirIrParaMensagem } from "../store/comandos";
 import { fecharDrawer } from "../store/drawer";
-import { useCanalAtivo } from "../store/hooks";
+import { useCanalAtivo, useServidorAtivo } from "../store/hooks";
+import { selecionarCanal } from "../store/navegacao";
 import css from "./PainelDeBusca.module.css";
 
 /** Como cada tipo aparece no menu `+ filtro`. A chave é a grafia do campo. */
@@ -76,7 +77,13 @@ const Resultado = memo(function Resultado({
 }) {
   function abrir() {
     selecionarResultado(r.id);
+    /*
+      Na busca de servidor o resultado pode ser de OUTRO canal. O salto é
+      pedido antes de abrir o canal: a lista de lá ainda não montou, e o
+      pedido fica na gaveta de pendentes até ela montar e consumi-lo.
+    */
     pedirIrParaMensagem(r.channelId, r.id);
+    selecionarCanal(r.channelId);
   }
 
   return (
@@ -162,13 +169,16 @@ const Resultado = memo(function Resultado({
  * flutua. Sem isso, abrir a busca faria a lista de membros sumir sem aviso, que
  * é o defeito que aquele store foi escrito para matar.
  *
- * A busca é REAL — `Channel.search` do protocolo, com ordem e cursor. O que
- * não é real está dito na tela e no registro: filtro por autor ou por anexo, e
- * busca em todos os canais do servidor.
+ * A busca é REAL — `Channel.search` do protocolo, com ordem e cursor, e
+ * `POST /servers/{id}/search` do fork para o servidor inteiro, e os
+ * filtros `de:`, `tem:` e de data valem nos dois escopos.
  */
 export function PainelDeBusca() {
   const b = useSyncExternalStore(assinarBusca, lerBusca);
   const canal = useCanalAtivo();
+  /* "" fora de servidor (casa, DM): ali só existe o escopo de canal. */
+  const servidor = useServidorAtivo() || undefined;
+  const noServidor = b.escopo === "servidor";
 
   /*
     Trocar de canal REAPONTA e limpa. Os resultados carregam o canal de origem
@@ -176,10 +186,13 @@ export function PainelDeBusca() {
     que pula para outro lugar.
   */
   useEffect(() => {
-    apontarBuscaPara(canal);
-  }, [canal]);
+    apontarBuscaPara(canal, servidor);
+  }, [canal, servidor]);
 
   const paginas = paginasConhecidas();
+  /* O design diz "em 3 canais": só tem sentido quando a busca atravessa canais. */
+  const canaisNaPagina = new Set(b.resultados.map((r) => r.channelId)).size;
+  const alvo = noServidor ? "no servidor" : "neste canal";
   const campo = useRef<HTMLInputElement>(null);
   /* Os chips são PROJEÇÃO do texto — ver `busca/filtros.ts`. */
   const { filtros } = analisarConsulta(b.consulta);
@@ -192,13 +205,19 @@ export function PainelDeBusca() {
   }
 
   return (
-    <aside className={css.painel} aria-label="Busca no canal">
+    <aside
+      className={css.painel}
+      aria-label={noServidor ? "Busca no servidor" : "Busca no canal"}
+    >
       <div className={css.cabecalho}>
         <div className={css.titulo}>
           <h2 className={css.nome}>Resultados</h2>
           {b.total !== undefined ? (
             <span className={css.contagem}>
               {b.total === 1 ? "1 nesta página" : `${String(b.total)} nesta página`}
+              {noServidor && canaisNaPagina > 0
+                ? ` · em ${String(canaisNaPagina)} ${canaisNaPagina === 1 ? "canal" : "canais"}`
+                : null}
             </span>
           ) : null}
           <button
@@ -230,8 +249,8 @@ export function PainelDeBusca() {
             ref={campo}
             type="search"
             className={css.entrada}
-            placeholder="Buscar neste canal"
-            aria-label="Buscar neste canal"
+            placeholder={`Buscar ${alvo}`}
+            aria-label={`Buscar ${alvo}`}
             value={b.consulta}
             onChange={(e) => definirConsulta(e.target.value)}
           />
@@ -314,13 +333,20 @@ export function PainelDeBusca() {
             </button>
           </div>
           <span className={css.espaco} />
-          <button
-            type="button"
-            className={css.noServidor}
-            onClick={aindaNao("buscaNoServidor")}
-          >
-            Buscar em todo o servidor
-          </button>
+          {/*
+            Um link que ALTERNA, e não dois botões: o escopo é uma escolha
+            binária, e o rótulo diz para onde ela leva. Some fora de servidor —
+            em DM não há "todo o servidor" a oferecer.
+          */}
+          {servidor !== undefined ? (
+            <button
+              type="button"
+              className={css.noServidor}
+              onClick={() => definirEscopo(noServidor ? "canal" : "servidor")}
+            >
+              {noServidor ? "Buscar só neste canal" : "Buscar em todo o servidor"}
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -343,11 +369,13 @@ export function PainelDeBusca() {
           */}
           <EstadoVazio
             titulo={
-              b.total === undefined ? "Busque neste canal" : "Nada encontrado"
+              b.total === undefined ? `Busque ${alvo}` : "Nada encontrado"
             }
             detalhe={
               b.total === undefined
-                ? "Digite e aperte Enter. A busca é do canal aberto."
+                ? noServidor
+                  ? "Digite e aperte Enter. A busca passa por todo canal que você pode ler."
+                  : "Digite e aperte Enter. A busca é do canal aberto."
                 : "Tente outras palavras, ou troque a ordem para Relevantes."
             }
           />

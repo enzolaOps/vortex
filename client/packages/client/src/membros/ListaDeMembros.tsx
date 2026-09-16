@@ -22,6 +22,7 @@ import { count } from "../dev/stats";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { Avatar } from "../components/ui/Avatar";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
+import { TagDoServidor } from "../presenca/TagDoServidor";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -204,6 +205,9 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
           <span className={css.nome} {...propsDoNome(pintura)}>
             {membro.displayName}
           </span>
+          {/* A tag do servidor, se a pessoa a exibe — assina sozinha, então
+              ligar a tag não republica o membro. */}
+          <TagDoServidor userId={id} />
           {membro.iconeDeCargoUrl ? (
             <IconeDeCargo url={membro.iconeDeCargoUrl} nome={membro.iconeDeCargoNome} />
           ) : null}

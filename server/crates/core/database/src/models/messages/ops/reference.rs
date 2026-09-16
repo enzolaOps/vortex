@@ -44,6 +44,10 @@ impl AbstractMessages for ReferenceDb {
                     if &message.channel != channel {
                         return false;
                     }
+                } else if let Some(channels) = &query.filter.channels {
+                    if !channels.contains(&message.channel) {
+                        return false;
+                    }
                 }
 
                 if let Some(author) = &query.filter.author {

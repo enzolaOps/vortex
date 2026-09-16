@@ -76,6 +76,12 @@ auto_derived_partial!(
         /// Whether the member is server-wide voice deafened
         #[serde(skip_serializing_if = "is_true", default = "default_true")]
         pub can_receive: bool,
+        /// Whether the member displays the server tag next to their name
+        #[cfg_attr(
+            feature = "serde",
+            serde(skip_serializing_if = "crate::if_false", default)
+        )]
+        pub show_tag: bool,
     },
     "PartialMember"
 );
@@ -156,6 +162,8 @@ auto_derived!(
         pub can_receive: Option<bool>,
         /// voice channel to move to if already in a voice channel
         pub voice_channel: Option<String>,
+        /// Whether to display the server tag next to your name (self only)
+        pub show_tag: Option<bool>,
         /// Fields to remove from channel object
         #[cfg_attr(feature = "serde", serde(default))]
         pub remove: Vec<FieldsMember>,

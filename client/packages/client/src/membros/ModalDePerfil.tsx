@@ -23,6 +23,7 @@ import {
 } from "../store/sobrePessoas";
 import { AmigosEmComum, ServidoresEmComum, useEmComum } from "./EmComum";
 import { PilulasDeCargo } from "./PilulasDeCargo";
+import { TagDoServidor } from "../presenca/TagDoServidor";
 import css from "./ModalDePerfil.module.css";
 
 /**
@@ -221,6 +222,7 @@ function Conteudo({
           >
             {membro.displayName}
           </h2>
+          <TagDoServidor serverId={serverId} userId={userId} grande />
         </div>
         {meta ? <p className={css.meta}>{meta}</p> : null}
 

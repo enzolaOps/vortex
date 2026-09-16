@@ -139,6 +139,16 @@
   texto em vez de uma lista de PESSOAS. Num painel onde cada linha é um nome
   próprio, o nome é o conteúdo, não o rótulo de algo.
 */
+/* Nome, tag do servidor e ícone de cargo na mesma linha — tag e ícone não
+   encolhem, então quem corta com reticências é o nome. Gap 8 é o da
+   referência (`gap-2`). */
+.linhaDoNome {
+  min-inline-size: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+}
+
 .nome {
   composes: texto from "../styles/pinturaDeCargo.module.css";
   min-inline-size: 0;
@@ -157,14 +167,6 @@
   Trunca em uma linha: recado pode ter 128 caracteres, e uma coluna de 232px
   não os comporta sem virar parágrafo.
 */
-/* Nome e ícone de cargo. O nome encolhe com reticências; o ícone não. */
-.linhaDoNome {
-  display: flex;
-  align-items: center;
-  gap: var(--vx-space-04);
-  min-inline-size: 0;
-}
-
 .recado {
   min-inline-size: 0;
   overflow: hidden;

@@ -23,7 +23,10 @@ pub async fn join(
     let invite = target.as_invite(db).await?;
     match &invite {
         Invite::Server {
-            server, channel, ..
+            server,
+            channel,
+            roles,
+            ..
         } => {
             // Vortex: um canal com convites pausados recusa a entrada sem apagar
             // o convite — despausar devolve o link a quem já o tinha.
@@ -36,7 +39,8 @@ pub async fn join(
             }
 
             let server = db.fetch_server(server).await?;
-            let (_, channels) = Member::create(db, &server, &user, None).await?;
+            let (_, channels) =
+                Member::create_with_roles(db, &server, &user, None, roles.clone()).await?;
 
             Ok(Json(InviteJoinResponse::Server {
                 channels: channels.into_iter().map(|c| c.into()).collect(),
