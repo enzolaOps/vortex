@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use iso8601_timestamp::Timestamp;
 use revolt_permissions::OverrideField;
 
-use super::{LegacyServerChannelType, User, VoiceInformation};
+use super::{ForumInformation, LegacyServerChannelType, User, VoiceInformation};
 
 #[cfg(feature = "validator")]
 use validator::Validate;
@@ -180,6 +180,27 @@ auto_derived!(
         pub default_permissions: Option<OverrideField>,
         #[cfg_attr(feature = "serde", serde(default))]
         pub role_permissions: HashMap<String, OverrideField>,
+        /// Atraso entre mensagens, em segundos
+        ///
+        /// Os três campos abaixo são ADITIVOS: modelo gravado antes deles
+        /// continua sendo lido, com "ausente" valendo o padrão do canal.
+        #[cfg_attr(
+            feature = "serde",
+            serde(skip_serializing_if = "Option::is_none", default)
+        )]
+        pub slowmode: Option<u64>,
+        /// Fórum ou galeria, com as tags das postagens
+        #[cfg_attr(
+            feature = "serde",
+            serde(skip_serializing_if = "Option::is_none", default)
+        )]
+        pub forum: Option<ForumInformation>,
+        /// Toda mídia do canal atrás de spoiler
+        #[cfg_attr(
+            feature = "serde",
+            serde(skip_serializing_if = "crate::if_false", default)
+        )]
+        pub spoiler: bool,
     }
 
     /// Categoria no modelo (canais por `id` do modelo)
