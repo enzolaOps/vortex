@@ -1,4 +1,5 @@
-import { ipcMain, type WebContents } from "electron";
+import { type WebContents } from "electron";
+import { ipc } from "./remetente";
 
 /**
  * O áudio de UMA janela compartilhada, e não o do computador inteiro.
@@ -128,9 +129,9 @@ export async function audioDaJanelaDisponivel(): Promise<boolean> {
 }
 
 export function registrarAudioDaJanela(): void {
-  ipcMain.handle("audioJanelaDisponivel", () => audioDaJanelaDisponivel());
+  ipc.handle("audioJanelaDisponivel", () => audioDaJanelaDisponivel());
 
-  ipcMain.handle("audioJanelaIniciar", async (e) => {
+  ipc.handle("audioJanelaIniciar", async (e) => {
     const id = janelaEntregue;
     const hwnd = id === undefined ? undefined : hwndDoId(id);
     const n = await carregar();
@@ -162,5 +163,5 @@ export function registrarAudioDaJanela(): void {
     }
   });
 
-  ipcMain.handle("audioJanelaParar", (e) => parar(e.sender));
+  ipc.handle("audioJanelaParar", (e) => parar(e.sender));
 }

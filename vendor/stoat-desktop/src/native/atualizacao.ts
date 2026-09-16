@@ -1,4 +1,5 @@
-import { app, autoUpdater, BrowserWindow, ipcMain } from "electron";
+import { app, autoUpdater, BrowserWindow } from "electron";
+import { ipc } from "./remetente";
 import { updateElectronApp } from "update-electron-app";
 
 /**
@@ -100,7 +101,7 @@ export function registrarAtualizacaoNaPonte(): void {
     }
   };
 
-  ipcMain.handle("vortexEstadoDaAtualizacao", () => atual);
+  ipc.handle("vortexEstadoDaAtualizacao", () => atual);
 
   /*
     ⚠ **Os três verbos existem mesmo sem atualizador de pé** — no Linux e em
@@ -108,7 +109,7 @@ export function registrarAtualizacaoNaPonte(): void {
     não há atualização esperando. Lançar faria a tela do cliente quebrar num
     lugar onde não há defeito nenhum.
   */
-  ipcMain.handle("vortexVerificarAtualizacao", () => {
+  ipc.handle("vortexVerificarAtualizacao", () => {
     if (!app.isPackaged || process.platform === "linux") return;
     try {
       autoUpdater.checkForUpdates();
@@ -117,7 +118,7 @@ export function registrarAtualizacaoNaPonte(): void {
     }
   });
 
-  ipcMain.handle("vortexInstalarEReiniciar", () => {
+  ipc.handle("vortexInstalarEReiniciar", () => {
     if (atual.estado !== "pronta") return;
     autoUpdater.quitAndInstall();
   });

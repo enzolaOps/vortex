@@ -1,5 +1,7 @@
-import { app, ipcMain } from "electron";
+import { app } from "electron";
+import { ipc } from "./remetente";
 
+import { type ComandoDeVoz, type Hook, type HookCarregado, criarControles } from "./controlesModelo";
 import { alternarOverlay, alternarSilencioDoOverlay } from "./overlay";
 import { definirChamadaEmPip } from "./preferencias";
 import { definirEstadoDeVoz } from "./tray";
@@ -22,44 +24,9 @@ import { mainWindow } from "./window";
  * cadastrado.
  */
 
-export type ComandoDeVoz =
-  | "pushToTalkInicio"
-  | "pushToTalkFim"
-  | "mutar"
-  | "ensurdecer"
-  | "desconectar";
+export type { ComandoDeVoz } from "./controlesModelo";
 
-type Combinacao = {
-  codigo: string;
-  mod: boolean;
-  alt: boolean;
-  shift: boolean;
-};
-
-/*
-  ⚠ Ação que a casca não conhece é IGNORADA (o `flatMap` de `definirAtalhos`
-  só olha estas): um cliente mais novo que a casca manda chaves a mais, e elas
-  não podem derrubar as que ela entende.
-*/
-const ACOES = [
-  "pushToTalk",
-  "mutar",
-  "ensurdecer",
-  "desconectar",
-  "overlay",
-  "silenciarOverlay",
-] as const;
-type Acao = (typeof ACOES)[number];
-
-type EventoDeTecla = { keycode: number };
-
-type Hook = {
-  on(evento: "keydown" | "keyup", ouvinte: (e: EventoDeTecla) => void): void;
-  start(): void;
-  stop(): void;
-};
-
-let hook: Promise<{ hook: Hook; teclas: Record<string, number> } | undefined> | undefined;
+let hook: Promise<HookCarregado | undefined> | undefined;
 
 function carregarHook() {
   hook ??= import("uiohook-napi")
@@ -72,8 +39,6 @@ function carregarHook() {
       const h = mod.uIOhook ?? mod.default?.uIOhook;
       const teclas = mod.UiohookKey ?? mod.default?.UiohookKey;
       if (!h || !teclas) return undefined;
-      h.on("keydown", aoApertar);
-      h.on("keyup", aoSoltar);
       return { hook: h, teclas };
     })
     .catch((e: unknown) => {
@@ -83,142 +48,28 @@ function carregarHook() {
   return hook;
 }
 
-/**
- * O `KeyboardEvent.code` do cliente no código do hook.
- *
- * Os nomes do `UiohookKey` são os do `code` sem os prefixos `Key` e `Digit` —
- * `KeyM` → `M`, `Digit1` → `1`, `Space`, `F13`, `BracketLeft`.
- */
-function nomeNoHook(codigo: string): string {
-  return codigo.replace(/^Key(?=[A-Z]$)/, "").replace(/^Digit(?=\d$)/, "");
-}
-
-/** As combinações valendo, já traduzidas para o código do hook. */
-let cadastro: { acao: Acao; keycode: number; c: Combinacao }[] = [];
-/** Teclas seguradas — o hook repete `keydown` enquanto a tecla está baixa. */
-const baixas = new Set<number>();
-let rodando = false;
-/** Um "começou a falar" foi enviado e ainda não teve o "parou". */
-let falando = false;
-
 function enviar(comando: ComandoDeVoz): void {
   if (!mainWindow || mainWindow.isDestroyed()) return;
   mainWindow.webContents.send("vortexComandoDeVoz", comando);
 }
 
-/**
- * Os modificadores, pelas teclas SEGURADAS e não pelas flags do evento.
- *
- * ⚠ **Medido: `altKey`/`shiftKey` do hook vêm `false` com o modificador
- * baixo.** Com Shift (42) apertado antes de F24, o `keydown` do F24 chegou com
- * `shiftKey=false`. Contar as teclas que o próprio hook viu descer é o que dá
- * a resposta certa — e ele reporta essas corretamente.
- */
-const CODIGOS_MOD = {
-  ctrl: [29, 3613],
-  alt: [56, 3640],
-  shift: [42, 54],
-  meta: [3675, 3676],
-} as const;
-
-function segurado(codigos: readonly number[]): boolean {
-  return codigos.some((c) => baixas.has(c));
-}
-
-function modificadoresBatem(c: Combinacao): boolean {
-  const mod = segurado(process.platform === "darwin" ? CODIGOS_MOD.meta : CODIGOS_MOD.ctrl);
-  return (
-    mod === c.mod && segurado(CODIGOS_MOD.alt) === c.alt && segurado(CODIGOS_MOD.shift) === c.shift
-  );
-}
-
-function aoApertar(e: EventoDeTecla): void {
-  if (baixas.has(e.keycode)) return;
-  baixas.add(e.keycode);
-  for (const { acao, keycode, c } of cadastro) {
-    if (keycode !== e.keycode || !modificadoresBatem(c)) continue;
-    /* O overlay é da casca: alterna aqui mesmo, sem ida e volta ao cliente. */
-    if (acao === "overlay") {
-      alternarOverlay();
-      return;
-    }
-    /* Silenciar as mensagens do overlay também: é estado da janela dele. */
-    if (acao === "silenciarOverlay") {
-      alternarSilencioDoOverlay();
-      return;
-    }
-    if (acao === "pushToTalk") falando = true;
-    enviar(acao === "pushToTalk" ? "pushToTalkInicio" : acao);
-    return;
-  }
-}
-
-function aoSoltar(e: EventoDeTecla): void {
-  baixas.delete(e.keycode);
-  /* Soltar a tecla principal basta: o modificador pode ter sido solto antes, e
-     exigir a combinação inteira deixaria o microfone aberto. */
-  const ptt = cadastro.find((x) => x.acao === "pushToTalk");
-  if (falando && ptt && ptt.keycode === e.keycode) {
-    falando = false;
-    enviar("pushToTalkFim");
-  }
-}
-
-function combinacaoValida(v: unknown): Combinacao | undefined {
-  if (typeof v !== "object" || v === null) return undefined;
-  const o = v as Record<string, unknown>;
-  if (typeof o.codigo !== "string" || !/^[A-Za-z0-9]{1,24}$/.test(o.codigo)) {
-    return undefined;
-  }
-  return { codigo: o.codigo, mod: o.mod === true, alt: o.alt === true, shift: o.shift === true };
-}
-
-async function definirAtalhos(bruto: unknown): Promise<boolean> {
-  /* Validado AQUI: a ponte é alcançável por conteúdo de terceiro se houver XSS. */
-  const entrada = (typeof bruto === "object" && bruto !== null ? bruto : {}) as Record<
-    string,
-    unknown
-  >;
-  const pedidos = ACOES.flatMap((acao) => {
-    const c = combinacaoValida(entrada[acao]);
-    return c ? [{ acao, c }] : [];
-  });
-
-  if (pedidos.length === 0) {
-    cadastro = [];
-    if (rodando) {
-      (await carregarHook())?.hook.stop();
-      rodando = false;
-    }
-    baixas.clear();
-    if (falando) {
-      falando = false;
-      enviar("pushToTalkFim");
-    }
-    return true;
-  }
-
-  const h = await carregarHook();
-  if (!h) return false;
-  cadastro = pedidos.flatMap(({ acao, c }) => {
-    const keycode = h.teclas[nomeNoHook(c.codigo)];
-    return typeof keycode === "number" ? [{ acao, keycode, c }] : [];
-  });
-  if (!rodando) {
-    h.hook.start();
-    rodando = true;
-  }
-  return true;
-}
+const { definirAtalhos, parar: pararControles } = criarControles({
+  carregarHook,
+  enviar,
+  /* Por função e não por valor: `overlay.ts` importa `window.ts`, que importa
+     este módulo — no ciclo, o binding ainda pode não existir aqui. */
+  alternarOverlay: () => alternarOverlay(),
+  alternarSilencioDoOverlay: () => alternarSilencioDoOverlay(),
+});
 
 export function registrarControles(): void {
   /* O hook precisa parar antes de o processo sair: um hook de teclado órfão é
      exatamente o que antivírus e o próprio Windows tratam com desconfiança. */
   app.on("will-quit", () => void pararControles());
 
-  ipcMain.handle("vortexDefinirAtalhos", (_e, atalhos: unknown) => definirAtalhos(atalhos));
+  ipc.handle("vortexDefinirAtalhos", (_e, atalhos: unknown) => definirAtalhos(atalhos));
 
-  ipcMain.on("vortexEstadoDeVoz", (_e, estado: unknown) => {
+  ipc.on("vortexEstadoDeVoz", (_e, estado: unknown) => {
     const o = (typeof estado === "object" && estado !== null ? estado : {}) as Record<
       string,
       unknown
@@ -232,10 +83,4 @@ export function registrarControles(): void {
        de uma casca que nunca soube dele. */
     definirChamadaEmPip(o.naChamada === true && o.pip === true);
   });
-}
-
-async function pararControles(): Promise<void> {
-  if (!rodando) return;
-  (await carregarHook())?.hook.stop();
-  rodando = false;
 }

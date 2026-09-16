@@ -1,4 +1,5 @@
-import { app, ipcMain, nativeImage } from "electron";
+import { app, nativeImage } from "electron";
+import { ipc } from "./remetente";
 
 import { mainWindow } from "./window";
 
@@ -55,9 +56,9 @@ function contador(bruto: unknown): void {
 }
 
 export function registrarNotificacoes(): void {
-  ipcMain.on("vortexContador", (_e, n: unknown) => contador(n));
+  ipc.on("vortexContador", (_e, n: unknown) => contador(n));
 
-  ipcMain.on("vortexChamarAtencao", () => {
+  ipc.on("vortexChamarAtencao", () => {
     if (!mainWindow || mainWindow.isDestroyed() || mainWindow.isFocused()) return;
     /* Pisca até alguém olhar — o Windows para sozinho quando a janela ganha
        foco, e o `focus` abaixo garante o mesmo nas outras plataformas. */
@@ -65,7 +66,7 @@ export function registrarNotificacoes(): void {
     mainWindow.once("focus", () => mainWindow.flashFrame(false));
   });
 
-  ipcMain.on("vortexFocar", () => {
+  ipc.on("vortexFocar", () => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.show();

@@ -1,6 +1,7 @@
 import AutoLaunch from "auto-launch";
 
-import { app, ipcMain } from "electron";
+import { app } from "electron";
+import { ipc } from "./remetente";
 
 /*
   `isHidden` põe `--hidden` na entrada de inicialização, e `createMainWindow`
@@ -55,9 +56,9 @@ export async function iniciarComSistemaNoSistema(): Promise<boolean | undefined>
   voltam a existir, e passam pela mesma guarda — sem isso um `setAutostart`
   registraria o Electron cru na máquina de quem desenvolve.
 */
-ipcMain.handle("getAutostart", async () => (await iniciarComSistemaNoSistema()) ?? false);
+ipc.handle("getAutostart", async () => (await iniciarComSistemaNoSistema()) ?? false);
 
-ipcMain.handle("setAutostart", async (_event, state: unknown) => {
+ipc.handle("setAutostart", async (_event, state: unknown) => {
   if (typeof state === "boolean") await definirIniciarComSistema(state);
   return (await iniciarComSistemaNoSistema()) ?? false;
 });

@@ -1,4 +1,5 @@
-import { app, ipcMain } from "electron";
+import { app } from "electron";
+import { ipc } from "./remetente";
 
 import { definirIniciarComSistema, iniciarComSistemaNoSistema } from "./autoLaunch";
 import { config } from "./config";
@@ -125,14 +126,14 @@ async function gravarPreferencia(chave: unknown, valor: unknown): Promise<void> 
 }
 
 export function registrarPreferencias(): void {
-  ipcMain.handle("vortexLerPreferencias", () => lerPreferencias());
+  ipc.handle("vortexLerPreferencias", () => lerPreferencias());
 
   /*
     ⚠ **Chave E tipo conferidos, e não repassados.** `config` é um store em
     disco que o main lê para decidir comportamento; aceitar chave ou valor
     arbitrário do renderer deixaria conteúdo de terceiro escrevê-lo.
   */
-  ipcMain.handle("vortexGravarPreferencia", (_e, chave: unknown, valor: unknown) =>
+  ipc.handle("vortexGravarPreferencia", (_e, chave: unknown, valor: unknown) =>
     gravarPreferencia(chave, valor),
   );
 
@@ -141,7 +142,7 @@ export function registrarPreferencias(): void {
     (`vortexReinicio`) pela razão de versão de sempre. Só a janela principal
     pode pedir: reiniciar é derrubar a chamada de quem está nela.
   */
-  ipcMain.handle("vortexReiniciar", (e) => {
+  ipc.handle("vortexReiniciar", (e) => {
     if (!mainWindow || mainWindow.isDestroyed() || e.sender.id !== mainWindow.webContents.id) {
       return;
     }
