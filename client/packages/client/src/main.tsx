@@ -10,6 +10,7 @@ import { ligarPublicadorDoOverlay } from "./overlay/publicador";
 
 import { ARNES_ATIVO } from "./dev/arnesAtivo";
 import { ligarRota } from "./rota/rota";
+import { ouvirCliquesDoPush } from "./notificacao/push";
 import { iniciarPintura } from "./tema/pintor";
 import { App } from "./App";
 import { PortaoDeSessao } from "./sessao/PortaoDeSessao";
@@ -92,6 +93,13 @@ ligarSonsDeVoz();
   stores e teclado, e nenhum componente vive o mesmo tanto que a sessão.
 */
 ligarAtalhosDeVoz();
+
+/*
+  O clique numa notificação de push, com o Vortex já aberto: o service worker
+  manda o caminho e esta aba o aplica pelo roteador. Module-level pelo mesmo
+  motivo da rota — `navigator.serviceWorker` não pertence a componente nenhum.
+*/
+if (!ARNES_ATIVO) ouvirCliquesDoPush();
 
 /*
   O relógio da chamada recebida — o toque que repete, a expiração e o "já

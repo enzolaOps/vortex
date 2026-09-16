@@ -4,7 +4,10 @@ import { lerNotificacoes } from "../store/notificacoes";
 import {
   decidirEntrega,
   decidirEntregaDeChamada,
+  decidirEntregaDeEvento,
   emSilencioNoturno,
+  mudancaDeAmizade,
+  textoDeAmizade,
   type ContextoDeChamada,
   textoDaNotificacao,
   type Contexto,
@@ -27,6 +30,7 @@ const msg = (m: Partial<MensagemRecebida> = {}): MensagemRecebida => ({
   texto: "oi",
   minha: false,
   mencionaVoce: false,
+  mencionaTodos: false,
   mencionaCargo: false,
   ...m,
 });
@@ -35,6 +39,9 @@ const ctx = (c: Partial<Contexto> = {}): Contexto => ({
   prefs,
   nivel: undefined,
   silenciado: false,
+  servidorSilenciado: false,
+  suprimirTodos: false,
+  suprimirCargos: false,
   naoPerturbe: false,
   agora: QUARTA_15H,
   janelaEmFoco: false,
@@ -90,6 +97,98 @@ describe("quem notifica", () => {
 
   it("notificações no desktop desligadas: sem notificação do sistema", () => {
     expect(canais(msg({ mencionaVoce: true }), ctx({ prefs: { ...prefs, desktop: false } }))).toEqual(["som"]);
+  });
+});
+
+describe("servidor e canal", () => {
+  it("servidor silenciado cala até a menção direta", () => {
+    expect(
+      decidirEntrega(msg({ mencionaVoce: true }), ctx({ servidorSilenciado: true })),
+    ).toBeUndefined();
+  });
+
+  /* Silêncio de servidor não alcança conversa: DM não mora em servidor. */
+  it("servidor silenciado não cala DM", () => {
+    expect(
+      canais(msg({ tipoDoCanal: "dm", serverId: undefined }), ctx({ servidorSilenciado: true })),
+    ).toEqual(["push", "som"]);
+  });
+
+  it("padrão do servidor 'todas' (já resolvido em nivel) libera mensagem comum", () => {
+    expect(canais(msg(), ctx({ janelaEmFoco: true, nivel: "todas" }))).toEqual(["toast"]);
+  });
+
+  it("@everyone conta como menção, a menos que o servidor suprima", () => {
+    expect(canais(msg({ mencionaTodos: true }), ctx())).toEqual(["push", "som"]);
+    expect(decidirEntrega(msg({ mencionaTodos: true }), ctx({ suprimirTodos: true }))).toBeUndefined();
+  });
+
+  /* Suprimir rebaixa a mensagem comum — não descarta. */
+  it("@everyone suprimido em canal 'todas' ainda avisa como mensagem", () => {
+    expect(
+      decidirEntrega(msg({ mencionaTodos: true }), ctx({ suprimirTodos: true, nivel: "todas", janelaEmFoco: true }))
+        ?.evento,
+    ).toBe("mensagem");
+  });
+
+  it("suprimir @everyone não cala o @você que veio junto", () => {
+    expect(
+      decidirEntrega(
+        msg({ mencionaTodos: true, mencionaVoce: true }),
+        ctx({ suprimirTodos: true }),
+      )?.evento,
+    ).toBe("mencaoDireta");
+  });
+
+  it("menção de cargo suprimida", () => {
+    expect(
+      decidirEntrega(msg({ mencionaCargo: true }), ctx({ janelaEmFoco: true }))?.evento,
+    ).toBe("mencaoDeCargo");
+    expect(
+      decidirEntrega(msg({ mencionaCargo: true }), ctx({ janelaEmFoco: true, suprimirCargos: true })),
+    ).toBeUndefined();
+  });
+});
+
+describe("amizade", () => {
+  it("pedido recebido", () => {
+    expect(mudancaDeAmizade("None", "Incoming")).toBe("pedido");
+    expect(mudancaDeAmizade(undefined, "Incoming")).toBe("pedido");
+  });
+
+  it("aceite só quando o pedido era MEU", () => {
+    expect(mudancaDeAmizade("Outgoing", "Friend")).toBe("aceite");
+    /* Eu aceitei o pedido dela: não é notícia. */
+    expect(mudancaDeAmizade("Incoming", "Friend")).toBeUndefined();
+    expect(mudancaDeAmizade(undefined, "Friend")).toBeUndefined();
+  });
+
+  it("repetição e desfazer não avisam", () => {
+    expect(mudancaDeAmizade("Incoming", "Incoming")).toBeUndefined();
+    expect(mudancaDeAmizade("Friend", "None")).toBeUndefined();
+    expect(mudancaDeAmizade("None", "Blocked")).toBeUndefined();
+  });
+
+  it("passa pelo não perturbe, pelo horário e pela matriz", () => {
+    const base = { prefs, naoPerturbe: false, agora: QUARTA_15H, janelaEmFoco: true };
+    /* O padrão de amizade é só toast. */
+    expect([...(decidirEntregaDeEvento("amizade", base)?.canais ?? [])]).toEqual(["toast"]);
+    expect(decidirEntregaDeEvento("amizade", { ...base, naoPerturbe: true })).toBeUndefined();
+    expect(decidirEntregaDeEvento("amizade", { ...base, janelaEmFoco: false })).toBeUndefined();
+    expect(
+      decidirEntregaDeEvento("amizade", {
+        ...base,
+        prefs: { ...prefs, silencioNoturno: true, silencioDas: "14:00", silencioAte: "16:00", silencioDias: [3] },
+      }),
+    ).toBeUndefined();
+  });
+
+  it("o texto do design", () => {
+    expect(textoDeAmizade("pedido", "bea.t")).toEqual({
+      titulo: "bea.t",
+      corpo: "enviou um pedido de amizade",
+    });
+    expect(textoDeAmizade("aceite", "bea.t").corpo).toBe("aceitou seu pedido de amizade");
   });
 });
 

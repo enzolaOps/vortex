@@ -19,7 +19,8 @@ import {
   assinarDrawer,
   superficieAberta,
 } from "../store/drawer";
-import { alternarSilencio, assinarSilencio, estaSilenciado } from "../store/silencio";
+import { administrar } from "../store/administracao";
+import { useChannel } from "../store/hooks";
 import { GatilhoDeBusca } from "../components/ui/CampoDeBusca";
 import { ligar } from "../sdk/chamada";
 import type { CanalTipo } from "../sdk/domain";
@@ -68,26 +69,27 @@ function BotaoDePainel({ painel, children }: { painel: PainelId; children: React
 }
 
 /**
- * Silenciar o canal, do cabeçalho.
+ * O sino do cabeçalho — abre as notificações do canal.
  *
- * ⚠ O menu de contexto da coluna já tinha esta ação, e o cabeçalho é onde ela é
- * PROCURADA — a coluna esconde o canal ativo atrás de um clique com o botão
- * direito, que é a afordância que menos gente descobre. As duas escrevem no
- * mesmo store, então não há estado para os dois concordarem.
+ * ⚠ **Era um interruptor de silêncio e virou a porta do modal**, porque o
+ * sino é o alvo do design para "Notificações do canal": escolher entre herdar
+ * o servidor, todas, só @menções ou nada. Silenciar por prazo continua no
+ * menu do canal; "nada" no modal é o mesmo silêncio.
+ *
+ * O ícone segue o snapshot, que junta canal e servidor: com o servidor mudo o
+ * sino aparece riscado aqui também, e é verdade — este canal não avisa.
  */
 function BotaoDeSilencio({ channelId }: { channelId: string }) {
-  const silenciado = useSyncExternalStore(assinarSilencio, () =>
-    estaSilenciado(channelId),
-  );
+  const silenciado = useChannel(channelId)?.silenciado ?? false;
 
   return (
-    <Tooltip texto={silenciado ? "Voltar a notificar" : "Silenciar canal"}>
+    <Tooltip texto="Notificações do canal">
       <button
         type="button"
         className={cn(css.acao, silenciado && css.acaoAtiva)}
-        aria-pressed={silenciado}
+        aria-haspopup="dialog"
         aria-label="Notificações do canal"
-        onClick={() => alternarSilencio(channelId)}
+        onClick={() => administrar({ tipo: "notificacoesDoCanal", channelId })}
       >
         {silenciado ? (
           <BellSimpleSlash weight="fill" />
