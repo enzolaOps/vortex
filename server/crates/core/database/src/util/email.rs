@@ -187,7 +187,16 @@ pub fn send_email(
         .to(address.parse().expect("valid `smtp_to`"))
         .subject(template.title.clone());
 
-    let m = if let Some(reply_to) = &smtp.reply_to {
+    // Variável de ambiente vazia (`REVOLT__API__SMTP__REPLY_TO=`) chega como
+    // `Some("")`, e `"".parse()` falhava no `expect`: criar conta devolvia 500.
+    // Vazio ou só espaços é ausência.
+    let reply_to = smtp
+        .reply_to
+        .as_deref()
+        .map(str::trim)
+        .filter(|reply_to| !reply_to.is_empty());
+
+    let m = if let Some(reply_to) = reply_to {
         m.reply_to(reply_to.parse().expect("valid `smtp_reply_to`"))
     } else {
         m
