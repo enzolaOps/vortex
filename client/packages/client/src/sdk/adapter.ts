@@ -86,6 +86,7 @@ import {
   type ServerSnapshot,
 } from "./domain";
 import { calcularLayout, type Layout } from "./agrupamento";
+import { aplicarEventoCru } from "./vortexCanal";
 import { criarNotificadorDeDigitacao } from "./digitando";
 import { instalarSync, puxarConfiguracoes } from "./sincronizar";
 import {
@@ -1016,6 +1017,9 @@ export function startAdapter() {
     member list inteira toda vez que alguém fosse silenciado.
   */
   client.events.on("event", (evento: unknown) => {
+    /* Tópico e fórum também só existem no payload cru — ver `vortexCanal.ts`.
+       Antes da hidratação, e é por isso que o registro guarda o nome. */
+    aplicarEventoCru(evento);
     const e = evento as {
       type?: string;
       members?: readonly { _id?: { server?: string; user?: string }; can_publish?: boolean }[];

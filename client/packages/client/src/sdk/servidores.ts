@@ -10,6 +10,7 @@ import { ulid } from "ulid";
 
 import { client } from "./client";
 import { publicarCanaisDe } from "./adapter";
+import { anotarCanais } from "./vortexCanal";
 import { toast } from "../components/ui/toastStore";
 import { sigla } from "../lib/sigla";
 import { motivoDoErro } from "./erros";
@@ -269,7 +270,11 @@ export async function criarServidor(
 export async function criarCanal(
   serverId: string,
   nome: string,
-  voz: boolean,
+  /**
+   * `true`/`false` é voz/texto, como sempre foi. `"forum"` e `"midia"` são os
+   * dois tipos que só este fork conhece — ver o ramo abaixo.
+   */
+  voz: boolean | "forum" | "midia",
   categoriaId: string,
   /** O servidor já em mãos — ver `servidorPara`. */
   dado?: Server,
@@ -278,14 +283,31 @@ export async function criarCanal(
   try {
     const servidor = servidorPara(serverId, dado);
     if (!servidor) return undefined;
-    const canal = await servidor.createChannel({
-      // O protocolo NÃO tem `VoiceChannel`: canal de voz é `Text` com um
-      // objeto `voice`. A descoberta está registrada em `map.ts`, e é o mesmo
-      // engano que fez o arnês criar um tipo que não existe.
-      type: voz ? "Voice" : "Text",
-      name: nome,
-    });
-    id = canal.id;
+    if (voz === "forum" || voz === "midia") {
+      /*
+        ⚠ **Fórum e galeria pela rota CRUA.** `Server.createChannel` tipa
+        `type` como `Text | Voice` e hidrata a resposta — e a hidratação
+        DESCARTA o objeto `forum`, que é o que faz o canal ser fórum. A mesma
+        chamada, com o corpo anotado antes de hidratar. No servidor, os dois
+        são `TextChannel` com `forum`: um cliente Stoat antigo vê texto.
+      */
+      const cru = (await client.api.post(
+        `/servers/${serverId}/channels` as never,
+        { type: voz === "forum" ? "Forum" : "Media", name: nome } as never,
+      )) as { _id: string };
+      client.channels.getOrCreate(cru._id, cru as never);
+      anotarCanais([cru]);
+      id = cru._id;
+    } else {
+      const canal = await servidor.createChannel({
+        // O protocolo NÃO tem `VoiceChannel`: canal de voz é `Text` com um
+        // objeto `voice`. A descoberta está registrada em `map.ts`, e é o mesmo
+        // engano que fez o arnês criar um tipo que não existe.
+        type: voz ? "Voice" : "Text",
+        name: nome,
+      });
+      id = canal.id;
+    }
   } catch (e) {
     toast({
       tipo: "erro",

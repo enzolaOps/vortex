@@ -942,3 +942,65 @@ export type ParticipanteDeVoz = {
 export function baldeDe(status: PresenceStatus): Balde {
   return status === "offline" ? "offline" : "online";
 }
+
+/* ---------------------------------------------- tópicos, fórum e galeria */
+
+export type { MetaDeForum as ForumSnapshot, TagDeForum } from "./vortexCanal";
+
+/**
+ * A mensagem de abertura de um post — o que o card do fórum e o item da
+ * galeria desenham.
+ *
+ * Reduzida e com a URL pronta: o card não assina a mensagem inteira (ela nem
+ * sempre está carregada — a listagem traz a abertura, não o histórico).
+ */
+export type AberturaDePost = {
+  readonly id: string;
+  readonly autorId: string;
+  readonly texto: string;
+  /** A abertura mora DENTRO do tópico (post) e não no canal pai (tópico de mensagem). */
+  readonly noTopico: boolean;
+  readonly midia:
+    | {
+        /** `undefined` quando a instância não tem servidor de mídia. */
+        readonly url: string | undefined;
+        readonly nome: string;
+        readonly tipo: "imagem" | "video" | "gif";
+        readonly largura: number | undefined;
+        readonly altura: number | undefined;
+        readonly spoiler: boolean;
+        readonly tamanho: number | undefined;
+      }
+    | undefined;
+  /** A reação com mais gente na abertura. */
+  readonly reacao: { readonly emoji: string; readonly total: number } | undefined;
+};
+
+/**
+ * Um tópico — e, com pai de fórum, um post; com pai de galeria, um item.
+ *
+ * É canal no protocolo, e o que é de canal (não-lidas, digitação, mensagens)
+ * continua vindo de `useChannel(id)`. Aqui só o que é de TÓPICO.
+ */
+export type TopicoSnapshot = {
+  readonly id: string;
+  readonly nome: string;
+  readonly paiId: string;
+  readonly serverId: string | undefined;
+  readonly donoId: string;
+  readonly aberturaId: string | undefined;
+  readonly arquivado: boolean;
+  /** Fixado no topo do fórum pai. */
+  readonly fixado: boolean;
+  /** IDs das tags do fórum pai. */
+  readonly tags: readonly string[];
+  /** Quem segue — é quem o painel mostra como participantes. */
+  readonly seguidores: readonly string[];
+  readonly seguindo: boolean;
+  /** `undefined` = a listagem ainda não disse; zero seria afirmar que ninguém respondeu. */
+  readonly respostas: number | undefined;
+  /** ms, do ULID da última mensagem — ou do próprio tópico, se não houver. */
+  readonly ultimaEm: number;
+  readonly ultimoAutorId: string | undefined;
+  readonly abertura: AberturaDePost | undefined;
+};

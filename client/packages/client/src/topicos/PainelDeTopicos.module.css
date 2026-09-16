@@ -1,0 +1,322 @@
+/* ============================================================
+   Painel de tópicos
+   ------------------------------------------------------------
+   Valores do design (`Vortex Canais - Fórum, Mídia e Tópicos`,
+   artboard "Tópico aberto", coluna de 340px à direita).
+   ============================================================ */
+
+.painel {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  block-size: 100%;
+  min-block-size: 0;
+  background: var(--vx-surface-1);
+  border-inline-start: 1px solid var(--vx-hairline-06);
+  /* Reage ao PRÓPRIO tamanho: pode virar um slot fino sem a janela mexer. */
+  container-type: inline-size;
+}
+
+/* `padding:14px 16px; border-bottom:1px solid rgba(255,255,255,0.06)` */
+.cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-08);
+  padding: var(--vx-space-14) var(--vx-space-16);
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+.titulo {
+  font-size: var(--vx-size-base);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.fechar {
+  display: grid;
+  place-items: center;
+  inline-size: 24px;
+  block-size: 24px;
+  flex: none;
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-3);
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.fechar svg {
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+}
+
+.fechar:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.fechar:active {
+  background: var(--vx-state-press);
+}
+
+.fechar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/* `padding:10px 12px 8px; gap:2px` */
+.abas {
+  display: flex;
+  gap: var(--vx-space-02);
+  padding: var(--vx-space-10) var(--vx-space-12) var(--vx-space-08);
+}
+
+/* `padding:7px 10px; radius 6; 12/600; ativo text-1 sobre véu de 6%` */
+.aba {
+  display: flex;
+  align-items: center;
+  padding: var(--vx-space-07) var(--vx-space-10);
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-3);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.aba:hover {
+  color: var(--vx-text-2);
+}
+
+.aba:active {
+  background: var(--vx-state-press);
+}
+
+.aba[aria-selected="true"] {
+  background: var(--vx-state-hover-elevado);
+  color: var(--vx-text-1);
+}
+
+.aba:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/* `margin-left:6px; color:#4C5563; font-weight:500` */
+.contagem {
+  margin-inline-start: var(--vx-space-06);
+  color: var(--vx-text-4);
+  font-weight: 500;
+}
+
+/* `padding:0 10px 12px` */
+.lista {
+  min-block-size: 0;
+  overflow-y: auto;
+  padding: 0 var(--vx-space-10) var(--vx-space-12);
+}
+
+.lista:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.trilho {
+  position: relative;
+}
+
+.item {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  padding-block-end: var(--vx-space-06);
+}
+
+/* `padding:11px 12px; radius 9; ativo surface-2 com borda de acento a 30%` */
+.cartao {
+  display: grid;
+  gap: 0;
+  inline-size: 100%;
+  min-block-size: 85px;
+  padding: var(--vx-space-11) var(--vx-space-12);
+  border: 1px solid transparent;
+  border-radius: var(--vx-radius-09);
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: background var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.cartao:hover {
+  background: var(--vx-state-hover);
+}
+
+.cartao:active {
+  background: var(--vx-state-press);
+}
+
+.cartao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.ativo,
+.ativo:hover {
+  border-color: color-mix(in oklab, var(--vx-accent) 30%, transparent);
+  background: var(--vx-surface-2);
+}
+
+.linhaDoTitulo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-07);
+  margin-block-end: var(--vx-space-05);
+  min-inline-size: 0;
+}
+
+.glifo {
+  flex: none;
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+  color: var(--vx-text-4);
+}
+
+.nome {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ativo .nome {
+  color: var(--vx-text-1);
+}
+
+/* `height:16px; min-width:16px; padding:0 5px; pílula danger; 10/700` */
+.badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  block-size: 16px;
+  min-inline-size: 16px;
+  padding-inline: var(--vx-space-05);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-danger);
+  color: var(--vx-on-danger);
+  font-size: var(--vx-size-2xs);
+  font-weight: 700;
+}
+
+/* `font-size:11px; color:#77808E; margin-bottom:7px` */
+.meta {
+  display: block;
+  margin-block-end: var(--vx-space-07);
+  overflow: hidden;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rodape {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  min-inline-size: 0;
+}
+
+.pilha {
+  display: flex;
+  flex: none;
+}
+
+/* 18px com anel de 2px na cor do painel, sobrepostos em 6px. */
+.pilha .rosto {
+  inline-size: 18px;
+  block-size: 18px;
+  border: 2px solid var(--vx-surface-2);
+  box-sizing: border-box;
+}
+
+.pilha .rosto + .rosto {
+  margin-inline-start: -6px;
+}
+
+.ultima {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* `height:18px; padding:0 7px; pílula acento a 14%; 10/600` */
+.seguindo {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  block-size: 18px;
+  padding-inline: var(--vx-space-07);
+  border-radius: var(--vx-radius-pill);
+  background: color-mix(in oklab, var(--vx-accent) 14%, transparent);
+  color: var(--vx-accent-text);
+  font-size: var(--vx-size-2xs);
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------- vazio */
+
+/* `padding:28px 16px; text-align:center` */
+.vazio {
+  display: grid;
+  justify-items: center;
+  padding: var(--vx-space-28) var(--vx-space-16);
+  text-align: center;
+}
+
+/* `32×32; radius 9; surface-3; text-4` */
+.vazioIcone {
+  display: grid;
+  place-items: center;
+  inline-size: 32px;
+  block-size: 32px;
+  margin-block-end: var(--vx-space-10);
+  border-radius: var(--vx-radius-09);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-4);
+}
+
+.vazioIcone svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+.vazioTitulo {
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+}
+
+.vazioDetalhe {
+  margin-block-start: var(--vx-space-04);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  line-height: 1.5;
+}

@@ -296,19 +296,14 @@ export const PENDENCIAS = {
     depende: "`Attachment.description` no protocolo + campo no envio",
   },
 
-  /* --------------------------------------------------- coluna de canais */
-  criarTopico: {
-    superficie: "Linha de canal",
-    faz: "Abrir um tópico a partir do canal.",
-    depende: "threads no protocolo",
-  },
+  /*
+    ⚠ **`criarTopico`, `topicos` e `topicoDaMensagem` SAÍRAM daqui — os três
+    dependiam de threads no protocolo, e o servidor deste fork as tem:** tópico
+    é `TextChannel` com `thread`, fora de `server.channels`. Ver
+    `sdk/topicos.ts` e o painel `topicos`.
+  */
 
   /* ---------------------------------------------------- cabeçalho do canal */
-  topicos: {
-    superficie: "Cabeçalho do canal",
-    faz: "Abrir o painel de tópicos ativos, seguindo e arquivados.",
-    depende: "threads no protocolo + painel `topicos` em `PainelId`",
-  },
   /*
     ⚠ **`buscaNoCanal` SAIU daqui — o painel existe e a busca é real.** O que
     sobrou pendente são as duas coisas que o protocolo não sabe fazer, e elas
@@ -338,11 +333,6 @@ export const PENDENCIAS = {
   },
 
   /* ------------------------------------------- ações da mensagem (fase 5) */
-  topicoDaMensagem: {
-    superficie: "Ações da mensagem",
-    faz: "Abrir um tópico a partir desta mensagem.",
-    depende: "threads no protocolo",
-  },
   marcarNaoLida: {
     superficie: "Menu da mensagem",
     faz: "Voltar o cursor de leitura para antes desta mensagem.",
@@ -413,22 +403,11 @@ export const PENDENCIAS = {
 
   /* ---------------------------------------------------- criar canal */
   /*
-    ⚠ **Os dois tipos que o Stoat não tem.** `forum` e uma galeria de mídia dão
-    ZERO ocorrências no schema — não são campos que faltam, são conceitos que
-    não existem. O design desenha os quatro tipos no mesmo painel, e a regra
-    deste projeto é construir 1:1 e registrar: clicar diz o que fará, em vez
-    de o tipo sumir da lista e ninguém saber que ele foi pensado.
+    ⚠ **`canalDeForum` e `canalDeMidia` SAÍRAM daqui.** O Stoat não tem os
+    dois conceitos, e este fork os acrescentou de forma aditiva: `type: Forum |
+    Media` na criação, e o canal nasce `TextChannel` com `forum` — um cliente
+    antigo vê texto. Ver `sdk/vortexCanal.ts`.
   */
-  canalDeForum: {
-    superficie: "Criar canal",
-    faz: "Criar um canal onde cada assunto é um post com respostas próprias.",
-    depende: "fórum no protocolo — nem tipo de canal, nem campo, nem evento",
-  },
-  canalDeMidia: {
-    superficie: "Criar canal",
-    faz: "Criar uma galeria de imagens e vídeos, com legenda por item.",
-    depende: "canal de mídia no protocolo",
-  },
 
   /* ------------------------------------------------- criar servidor */
 
@@ -627,8 +606,8 @@ export type PendenciaId = keyof typeof PENDENCIAS;
  * 104 componentes e 39 telas; o cruzamento contra esta árvore encontrou nove
  * superfícies que não estavam em registro NENHUM — nem aqui, nem no
  * `CLAUDE.md`, nem em `superficies-ausentes.md`. Eram invisíveis: ninguém
- * sabia que faltavam. As demais divergências já tinham razão escrita (Fórum e
- * reação SUPER dependem de fork do serviço `api`; modo compacto, registro de
+ * sabia que faltavam. As demais divergências já tinham razão escrita (a
+ * reação SUPER depende de fork do serviço `api`; modo compacto, registro de
  * auditoria e os três primitivos de campo estão no `CLAUDE.md`).
  *
  * `referencia` é o arquivo do projeto de referência, para a próxima pessoa não

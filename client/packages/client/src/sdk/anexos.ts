@@ -107,6 +107,18 @@ export function urlDeEmoji(id: string): string | undefined {
 }
 
 /**
+ * O endereço de um arquivo a partir do objeto CRU do protocolo.
+ *
+ * Existe para a miniatura de post, que vem da listagem de tópicos sem passar
+ * pela hidratação do SDK — não há `File` com `originalUrl` para ler. Mesma
+ * forma de caminho que o getter do SDK monta.
+ */
+export function urlDeAnexo(tag: string, id: string): string | undefined {
+  const base = enderecoDoAutumn();
+  return base === undefined ? undefined : `${base}/${tag}/${id}`;
+}
+
+/**
  * O maior teto publicado para esta tag, ou nada.
  *
  * Lê `features.limits` com narrowing manual porque `RevoltConfig` do SDK não

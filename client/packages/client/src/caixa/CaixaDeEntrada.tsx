@@ -14,6 +14,8 @@ import {
   useMessage,
   useServer,
   useServerIds,
+  useTopico,
+  useTopicosQueSigo,
   useTotaisNaoLidos,
 } from "../store/hooks";
 import css from "./CaixaDeEntrada.module.css";
@@ -122,17 +124,88 @@ export function CaixaDeEntrada({ aoFechar }: { aoFechar?: () => void }) {
 
       <div className={css.lista} tabIndex={0} role="tabpanel">
         {aba === "topicos" ? (
-          <EstadoVazio
-            compacto
-            titulo="Tópicos ainda não existem"
-            detalhe="Depende de threads no protocolo — ver o registro de pendências."
-          />
+          <TopicosQueSigo />
         ) : (
           servidores.map((id) => (
             <GrupoDeServidor key={id} serverId={id} aba={aba} />
           ))
         )}
       </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------- tópicos */
+
+/**
+ * A aba de tópicos: os que eu SIGO, de todos os servidores.
+ *
+ * Seguir é o gesto que diz "quero saber quando responderem" — é o recorte
+ * certo para uma caixa de entrada. A lista vem do store de tópicos, já
+ * ordenada por última atividade, e cada linha assina o próprio tópico e o
+ * próprio canal (a contagem de não-lidas é do canal: tópico é canal).
+ */
+function TopicosQueSigo() {
+  const ids = useTopicosQueSigo();
+  if (ids.length === 0) {
+    return (
+      <EstadoVazio
+        compacto
+        titulo="Nenhum tópico seguido"
+        detalhe="Responder num tópico passa a segui-lo — e as respostas dele aparecem aqui."
+      />
+    );
+  }
+  return (
+    <>
+      {ids.map((id) => (
+        <LinhaDeTopico key={id} id={id} />
+      ))}
+    </>
+  );
+}
+
+function LinhaDeTopico({ id }: { id: string }) {
+  const t = useTopico(id);
+  const canal = useChannel(id);
+  const pai = useChannel(t?.paiId ?? "");
+  const servidor = useServer(t?.serverId ?? "");
+  const ultima = useMessage(canal?.ultimaMensagemId ?? "");
+
+  if (!t) return null;
+  const naoLidas = canal?.naoLidas ?? 0;
+
+  return (
+    <div className={css.item} data-destaque={naoLidas > 0 || undefined}>
+      <button
+        type="button"
+        className={css.abrir}
+        onClick={() => (t.serverId ? irPara(t.serverId, id) : undefined)}
+      >
+        <span className={css.contexto}>
+          {servidor ? (
+            <Avatar id={servidor.id} sigla={servidor.sigla} url={servidor.avatarUrl} tamanho="xxs" />
+          ) : null}
+          <span className={css.servidor}>{t.nome}</span>
+          {pai ? <span className={css.canal}>#{pai.name}</span> : null}
+          <span className={css.espaco} />
+          {naoLidas > 0 ? <span className={css.badge}>{contagem(naoLidas)}</span> : null}
+          <span className={css.hora}>{ultima?.createdAtCurto ?? ""}</span>
+        </span>
+        {ultima ? (
+          <span className={css.mensagem}>
+            <Avatar id={ultima.authorId ?? ""} tamanho="xs" />
+            <span className={css.mensagemTexto}>
+              {ultima.authorId ? (
+                <span className={css.mensagemAutor}>
+                  <NomeDoAutor userId={ultima.authorId} denso />
+                </span>
+              ) : null}
+              <span className={css.mensagemCorpo}>{ultima.content}</span>
+            </span>
+          </span>
+        ) : null}
+      </button>
     </div>
   );
 }

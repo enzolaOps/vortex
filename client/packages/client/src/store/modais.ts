@@ -48,6 +48,7 @@ export const MODAIS = [
   "perfil",
   "excluirConta",
   "transferirPropriedade",
+  "topico",
 ] as const;
 
 export type ModalId = (typeof MODAIS)[number];

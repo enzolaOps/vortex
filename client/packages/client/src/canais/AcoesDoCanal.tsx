@@ -10,7 +10,6 @@ import { useSyncExternalStore } from "react";
 
 import { cn } from "../lib/cn";
 import { NOME_DO_PAINEL, type PainelId } from "../preset/schema";
-import { aindaNao, type PendenciaId } from "../pendente/pendencias";
 import { Tooltip } from "../components/ui/Tooltip";
 import { assinarLayout, painelVisivel } from "../store/layout";
 import {
@@ -96,36 +95,6 @@ function BotaoDeSilencio({ channelId }: { channelId: string }) {
 }
 
 /**
- * Um alvo desenhado que ainda não faz nada.
- *
- * Registrado em `pendente/pendencias.ts`: clicar diz o que ele vai fazer e do
- * que depende, em vez de não fazer nada. Silêncio aqui seria indistinguível de
- * um bug.
- */
-function BotaoPendente({
-  id,
-  rotulo,
-  children,
-}: {
-  id: PendenciaId;
-  rotulo: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Tooltip texto={rotulo}>
-      <button
-        type="button"
-        className={css.acao}
-        aria-label={rotulo}
-        onClick={aindaNao(id)}
-      >
-        {children}
-      </button>
-    </Tooltip>
-  );
-}
-
-/**
  * As ações do cabeçalho de canal — os seis alvos do design.
  *
  * ⚠ **Três funcionam e três são desenho, por decisão de quem toca o produto.**
@@ -138,12 +107,41 @@ function BotaoPendente({
  * (tópicos, fixados, membros, caixa de entrada), e o que muda o CANAL
  * (notificações) ou abre outra superfície (busca) fica nas pontas.
  */
-export function AcoesDoCanal({ channelId, nome }: { channelId: string; nome: string }) {
+export function AcoesDoCanal({
+  channelId,
+  nome,
+  forum = false,
+}: {
+  channelId: string;
+  nome: string;
+  /**
+   * O fórum tem TRÊS ações no design — notificações, fixadas, membros. Tópicos,
+   * caixa de entrada e busca saem: os posts SÃO os tópicos do canal, e a busca
+   * do fórum mora na barra dele, sobre os posts.
+   */
+  forum?: boolean;
+}) {
+  if (forum) {
+    return (
+      <div className={css.acoes}>
+        <BotaoDeSilencio channelId={channelId} />
+        <BotaoDePainel painel="fixados">
+          <PushPin />
+        </BotaoDePainel>
+        <BotaoDePainel painel="membros">
+          <Users />
+        </BotaoDePainel>
+      </div>
+    );
+  }
+
   return (
     <div className={css.acoes}>
-      <BotaoPendente id="topicos" rotulo="Tópicos">
+      {/* Deixou de ser pendência: tópico é canal com `thread` no protocolo
+          deste fork, e o painel lista os do servidor. Ver `sdk/topicos.ts`. */}
+      <BotaoDePainel painel="topicos">
         <ChatsCircle />
-      </BotaoPendente>
+      </BotaoDePainel>
 
       <BotaoDeSilencio channelId={channelId} />
 

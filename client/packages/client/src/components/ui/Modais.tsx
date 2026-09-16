@@ -25,6 +25,7 @@ import { PrivacidadeDoServidor } from "../../servidores/PrivacidadeDoServidor";
 import { EditorDePasta } from "../../servidores/EditorDePasta";
 import { SeletorDeTela } from "../../voz/SeletorDeTela";
 import { TransferirPropriedade } from "../../servidores/TransferirPropriedade";
+import { ModalDeTopico } from "../../topicos/ModalDeTopico";
 
 /**
  * O registro de modais, e o ponto dele é o TIPO.
@@ -61,6 +62,7 @@ const REGISTRO: Record<ModalId, ComponentType<{ aoFechar: () => void }>> = {
   apelido: ModalDeApelido,
   excluirConta: ModalDeExcluirConta,
   transferirPropriedade: TransferirPropriedade,
+  topico: ModalDeTopico,
 };
 
 /**

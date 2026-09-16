@@ -14,6 +14,7 @@ import { PainelDeEdicao } from "../layout/PainelDeEdicao";
 import { PainelDeFixados } from "../fixados/PainelDeFixados";
 import { PainelDeBusca } from "../busca/PainelDeBusca";
 import { CaixaDeEntrada } from "../caixa/CaixaDeEntrada";
+import { PainelDeTopicos } from "../topicos/PainelDeTopicos";
 import { Rail } from "../rail/Rail";
 import { Shell } from "../shell/Shell";
 import { PainelDeUsuario } from "../usuario/PainelDeUsuario";
@@ -92,6 +93,7 @@ export function Cliente({ ferramentas }: { ferramentas?: ReactNode }) {
         fixados: <PainelDeFixados />,
         caixaDeEntrada: <CaixaDeEntrada />,
         busca: <PainelDeBusca />,
+        topicos: <PainelDeTopicos />,
       }}
       /*
         O cabeçalho é LINHA PRÓPRIA do shell agora, e não mais um irmão da
