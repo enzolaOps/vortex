@@ -21,7 +21,7 @@ import {
 } from "../store/chamada";
 import { definirPalco } from "../store/palcoDeVoz";
 import { chaveDeVideo, faixasDeVideo } from "../store/video";
-import { selecionarCanal } from "../store/navegacao";
+import { abrirConversa, selecionarCanal } from "../store/navegacao";
 
 import { count, countMax } from "./stats";
 import {
@@ -1197,6 +1197,93 @@ export function chamadaFalsa(): () => void {
     definirFalantes(falantes);
   }, 700);
 
+  return () => {
+    clearInterval(timer);
+    definirFalantes([]);
+    encerrarChamada();
+  };
+}
+
+/**
+ * A DM das chamadas diretas falsas — a primeira de `semearConversas`, com
+ * `userIds[1]` do outro lado.
+ */
+const DM_DO_ARNES = "01JQ000000000000000A000000";
+
+/**
+ * Alguém liga para você numa DM — pelo caminho do PROTOCOLO, e não do store.
+ *
+ * ⚠ **Emite os eventos crus no `EventClient`, e é o ponto.** O adapter lê
+ * `VoiceChannelJoin` e `VoiceCallUpdate` do evento cru, porque o SDK descarta
+ * o segundo; semear o store de toque direto exercitaria o aviso e deixaria de
+ * fora a tradução, que é a parte que quebra em silêncio. Aqui os dois sinais
+ * chegam na ordem do `voice-ingress` — o `Join` primeiro —, então a
+ * deduplicação também é exercitada.
+ *
+ * Atender tenta a sala de verdade e falha sem LiveKit, com o toast de erro:
+ * é o que o produto faz sem servidor de voz. A tela da chamada tem botão
+ * próprio (`chamadaDiretaFalsa`).
+ */
+export function chamadaRecebidaFalsa(): void {
+  ensureWorld();
+  const quem = userIds[1]!;
+  const agora = new Date().toISOString();
+  client.events.emit("event", {
+    type: "VoiceChannelJoin",
+    id: DM_DO_ARNES,
+    state: {
+      id: quem,
+      joined_at: agora,
+      is_receiving: true,
+      is_publishing: true,
+      screensharing: false,
+      camera: false,
+    },
+  } as never);
+  client.events.emit("event", {
+    type: "VoiceCallUpdate",
+    initiator_id: quem,
+    channel_id: DM_DO_ARNES,
+    started_at: agora,
+    ended: false,
+  } as never);
+}
+
+/** Quem ligou desiste — a sala esvazia e o toque para. */
+export function desistirDaChamadaFalsa(): void {
+  client.events.emit("event", {
+    type: "VoiceChannelLeave",
+    id: DM_DO_ARNES,
+    user: userIds[1]!,
+  } as never);
+}
+
+/**
+ * A chamada DIRETA em andamento — a tela de duas pessoas, sem WebRTC.
+ *
+ * Mesma família da `chamadaFalsa`: enche o store que o app enxerga e deixa o
+ * motor de fora. O outro lado fala a cada ~900ms para o anel aparecer.
+ */
+export function chamadaDiretaFalsa(): () => void {
+  ensureWorld();
+  const eu = userIds[0]!;
+  const outro = userIds[1]!;
+  definirChamada({
+    estado: "dentro",
+    desde: Date.now() - (4 * 60 + 12) * 1000,
+    channelId: DM_DO_ARNES,
+    participantes: [eu, outro],
+    mudo: false,
+    surdo: false,
+    camera: false,
+    tela: false,
+    qualidade: "otima",
+  });
+  abrirConversa(DM_DO_ARNES);
+  definirPalco({ tipo: "grade" });
+  const timer = setInterval(() => {
+    definirFalantes(Math.floor(Date.now() / 900) % 2 === 0 ? [outro] : []);
+  }, 900);
   return () => {
     clearInterval(timer);
     definirFalantes([]);

@@ -3,10 +3,12 @@ import { describe, expect, it } from "vitest";
 import { lerNotificacoes } from "../store/notificacoes";
 import {
   decidirEntrega,
+  decidirEntregaDeChamada,
   decidirEntregaDeEvento,
   emSilencioNoturno,
   mudancaDeAmizade,
   textoDeAmizade,
+  type ContextoDeChamada,
   textoDaNotificacao,
   type Contexto,
   type MensagemRecebida,
@@ -220,5 +222,51 @@ describe("texto", () => {
 
   it("sem prévia, não mostra o conteúdo", () => {
     expect(textoDaNotificacao(msg({ texto: "segredo" }), false).corpo).toBe("Nova mensagem");
+  });
+});
+
+describe("chamada recebida", () => {
+  const noturno = { ...prefs, silencioNoturno: true, silencioDas: "22:00", silencioAte: "08:00", silencioDias: [1, 2, 3, 4, 5] };
+  /* Segunda às 23:00 — dentro do horário de silêncio. */
+  const SEGUNDA_23H = new Date(2026, 8, 14, 23, 0);
+
+  const chamada = (c: Partial<ContextoDeChamada> = {}): ContextoDeChamada => ({
+    prefs,
+    naoPerturbe: false,
+    agora: QUARTA_15H,
+    janelaEmFoco: false,
+    silenciado: false,
+    amigo: false,
+    ...c,
+  });
+  const por = (c: ContextoDeChamada) => [...(decidirEntregaDeChamada(c)?.canais ?? [])].sort();
+
+  it("janela atrás: toast, som e push", () => {
+    expect(por(chamada())).toEqual(["push", "som", "toast"]);
+  });
+
+  /* O toast da chamada fica mesmo com a janela à frente — e ao contrário do
+     da mensagem, com ela ATRÁS também: ele é a única forma de atender. */
+  it("janela à frente: toast e som, sem push", () => {
+    expect(por(chamada({ janelaEmFoco: true }))).toEqual(["som", "toast"]);
+  });
+
+  it("não perturbe cala tudo, inclusive o aviso", () => {
+    expect(decidirEntregaDeChamada(chamada({ naoPerturbe: true }))).toBeUndefined();
+  });
+
+  it("conversa silenciada: só o toast", () => {
+    expect(por(chamada({ silenciado: true }))).toEqual(["toast"]);
+  });
+
+  it("horário de silêncio: só o toast — menos para amigo", () => {
+    expect(por(chamada({ prefs: noturno, agora: SEGUNDA_23H }))).toEqual(["toast"]);
+    expect(por(chamada({ prefs: noturno, agora: SEGUNDA_23H, amigo: true }))).toEqual(["push", "som", "toast"]);
+  });
+
+  it("obedece a matriz: sem a coluna, sem o canal", () => {
+    const soSom = { ...prefs, matriz: new Set(["chamada:som"]) };
+    expect(por(chamada({ prefs: soSom }))).toEqual(["som"]);
+    expect(decidirEntregaDeChamada(chamada({ prefs: { ...prefs, matriz: new Set() } }))).toBeUndefined();
   });
 });

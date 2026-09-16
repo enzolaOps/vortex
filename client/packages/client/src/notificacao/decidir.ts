@@ -206,6 +206,56 @@ export function textoDeAmizade(
   };
 }
 
+/** O que a decisão de uma chamada precisa saber. */
+export type ContextoDeChamada = {
+  readonly prefs: Preferencias;
+  readonly naoPerturbe: boolean;
+  readonly agora: Date;
+  readonly janelaEmFoco: boolean;
+  /** A DM ou o grupo está silenciado. */
+  readonly silenciado: boolean;
+  /** Quem ligou é amigo — o horário de silêncio o deixa passar. */
+  readonly amigo: boolean;
+};
+
+/**
+ * Anunciar uma chamada recebida, e por onde — ou `undefined` para nada.
+ *
+ * ⚠ **Não é a regra da mensagem, e as diferenças estão escritas na própria
+ * tela de notificações.** *"Só o toast de chamada ignora tudo menos não
+ * perturbe"* e, no horário de silêncio, *"suprime tudo menos chamadas de
+ * amigos"*. Por isso:
+ *
+ * - **não perturbe** cala tudo, inclusive o aviso na tela;
+ * - **o toast** ignora silêncio de canal e horário de silêncio, e ignora o
+ *   FOCO — ao contrário do da mensagem. O aviso de chamada não expira em cinco
+ *   segundos: ele fica até alguém decidir, e é a única forma de atender. Quem
+ *   volta para a janela no meio do toque precisa encontrá-lo lá;
+ * - **som e push** respeitam o canal silenciado e o horário de silêncio, com a
+ *   exceção de amigo no horário.
+ *
+ * Vista na tela como "a pessoa escolheu não ser chamada" é o que DND é; o
+ * resto é "não quero ser incomodado por barulho", que não é o mesmo que "não
+ * quero saber que me ligaram".
+ */
+export function decidirEntregaDeChamada(
+  ctx: ContextoDeChamada,
+): Entrega | undefined {
+  if (ctx.naoPerturbe) return undefined;
+
+  const quieto =
+    ctx.silenciado || (!ctx.amigo && emSilencioNoturno(ctx.prefs, ctx.agora));
+
+  const canais = new Set<CanalDeEntrega>();
+  for (const canal of ["toast", "som", "push"] as const) {
+    if (!ctx.prefs.matriz.has(chaveDaMatriz("chamada", canal))) continue;
+    if (canal !== "toast" && quieto) continue;
+    if (canal === "push" && (ctx.janelaEmFoco || !ctx.prefs.desktop)) continue;
+    canais.add(canal);
+  }
+  return canais.size > 0 ? { evento: "chamada", canais } : undefined;
+}
+
 /** O título e o corpo, respeitando a prévia. */
 export function textoDaNotificacao(
   m: MensagemRecebida,
