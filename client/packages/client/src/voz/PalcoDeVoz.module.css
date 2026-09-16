@@ -24,8 +24,14 @@
   O que NÃO mudou: `surface-0` como chão, e o container de largura. Ver abaixo.
 */
 .palco {
+  /*
+    ⚠ **Linha e não coluna desde o chat embutido.** A tela (grade, prancha ou
+    assistindo) e o chat do canal são irmãos lado a lado; a coluna que as três
+    telas esperavam passou para `.tela`, abaixo. `position: relative` é o
+    contexto do chat quando, estreito, ele passa a cobrir a tela.
+  */
+  position: relative;
   display: flex;
-  flex-direction: column;
   /* Item de grid da coluna de conteúdo — a altura vem da trilha, e
      `min-block-size: 0` é o que deixa o miolo rolar em vez de esticar. */
   block-size: 100%;
@@ -65,4 +71,26 @@
 */
 .palco:fullscreen {
   block-size: 100%;
+}
+
+/*
+  A tela do palco — o que era a moldura antes do chat embutido.
+
+  ⚠ **O container de largura desceu para cá**, e é a lei nº 6 no caso em que
+  ela mais importa: a grade decide as colunas e a prancha esconde a fila pela
+  largura que ELAS têm, e com o chat aberto essa largura é a do palco menos o
+  chat. Medindo o palco, a grade achataria atrás de um chat que já comeu
+  420px. O `.palco` continua container — é por ele que o chat sabe quando cobrir.
+
+  `min-inline-size: 0` pela mesma razão do `minmax(0, 1fr)` do shell: sem ele
+  uma URL longa no nome de alguém estouraria a linha e empurraria o chat para
+  fora.
+*/
+.tela {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-inline-size: 0;
+  min-block-size: 0;
+  container-type: inline-size;
 }

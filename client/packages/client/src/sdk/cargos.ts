@@ -307,6 +307,62 @@ export async function moverParaCanalDeVoz(
   }
 }
 
+/**
+ * Moderação de voz: mudo, surdo e desconectar — tudo em `ServerMember.edit`.
+ *
+ * ⚠ **Nenhum destes precisa de fork**, e a varredura no servidor confirmou:
+ * `member_edit.rs` aceita `can_publish` (exige `MuteMembers`), `can_receive`
+ * (`DeafenMembers`) e `remove: ["VoiceChannel"]` (`MoveMembers`), e aplica a
+ * hierarquia de cargos em todos (`NotElevated`). O cliente só precisa não
+ * mostrar o que o servidor vai recusar — é o que `pode()` e `abaixoDeMim`
+ * fazem no menu.
+ *
+ * ⚠ **Voltar ao padrão é `true`, e não `remove`.** Os dois dão o mesmo
+ * efeito, mas `true` chega ao outro lado como `data.can_publish`, que é o
+ * caminho que o adapter lê; `remove` chega em `clear`, que ele também lê —
+ * escolher um só deixa um caminho exercitado em vez de dois pela metade.
+ */
+export type ModeracaoDeVoz =
+  | { readonly tipo: "mudo"; readonly ligar: boolean }
+  | { readonly tipo: "surdo"; readonly ligar: boolean }
+  | { readonly tipo: "desconectar" };
+
+export function dadosDaModeracao(acao: ModeracaoDeVoz): {
+  can_publish?: boolean;
+  can_receive?: boolean;
+  remove?: "VoiceChannel"[];
+} {
+  if (acao.tipo === "mudo") return { can_publish: !acao.ligar };
+  if (acao.tipo === "surdo") return { can_receive: !acao.ligar };
+  return { remove: ["VoiceChannel"] };
+}
+
+const FALHA_DE_MODERACAO: Record<ModeracaoDeVoz["tipo"], string> = {
+  mudo: "Não deu para mudar o mudo no servidor.",
+  surdo: "Não deu para mudar o ensurdecer no servidor.",
+  desconectar: "Não deu para desconectar do canal.",
+};
+
+export async function moderarVoz(
+  serverId: string,
+  userId: string,
+  acao: ModeracaoDeVoz,
+): Promise<boolean> {
+  const membro = client.serverMembers.getByKey({
+    server: serverId,
+    user: userId,
+  });
+  if (!membro) return false;
+
+  try {
+    await membro.edit(dadosDaModeracao(acao));
+    return true;
+  } catch (e) {
+    falhou(FALHA_DE_MODERACAO[acao.tipo], e);
+    return false;
+  }
+}
+
 /* Delega para o tradutor unico — ver `sdk/erros.ts`. O corpo que
    estava aqui lia `e.response.status`, que o `stoat-api` nunca
    produz, entao TODA falha virava "Sem resposta do servidor". */

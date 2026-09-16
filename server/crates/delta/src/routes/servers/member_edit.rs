@@ -306,11 +306,13 @@ pub async fn edit(
             let node = get_channel_node(&channel).await?.unwrap();
             let channel = Reference::from_unchecked(&channel).as_channel(db).await?;
 
+            // The member being edited, not the moderator: their LiveKit
+            // grants are the ones that changed.
             sync_user_voice_permissions(
                 db,
                 voice_client,
                 &node,
-                &user,
+                &target_user,
                 &channel,
                 Some(&server),
                 None,
@@ -324,7 +326,8 @@ pub async fn edit(
         {
             let node = get_channel_node(&channel).await?.unwrap();
 
-            voice_client.remove_user(&node, &user.id, &channel).await?;
+            // Disconnect the member being edited, not the moderator.
+            voice_client.remove_user(&node, &target_user.id, &channel).await?;
         };
     }
 

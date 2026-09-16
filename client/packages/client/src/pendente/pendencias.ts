@@ -383,18 +383,23 @@ export type PendenciaId = keyof typeof PENDENCIAS;
  */
 export const SUPERFICIES_AUSENTES = {
   /* ------------------------------------------------------------- voz */
-  chatDoCanalDeVoz: {
-    superficie: "Painel dentro da sala de voz",
-    faz: "O chat embutido do canal de voz, com entradas e saídas como eventos do sistema.",
-    depende: "decidir se é painel do shell ou coluna dentro da sala",
-    referencia: "components/voice/VoiceChannelChat.tsx",
-  },
-  menuDoUsuarioEmVoz: {
-    superficie: "Botão direito num participante da sala",
-    faz: "Volume individual, silenciar só para mim, mover de canal, mudo de servidor.",
+  /*
+    ⚠ **O chat embutido e o menu do participante SAÍRAM daqui** — ver
+    `voz/ChatDaSala.tsx` e `voz/MenuDoParticipante.tsx`. A dependência do menu
+    ("`ServerMember.edit({voice_channel})` para mover") nunca foi bloqueio: o
+    `member_edit.rs` aceita `voice_channel`, `can_publish`, `can_receive` e
+    `remove: ["VoiceChannel"]` desde o upstream.
+
+    O que sobra do chat é só a metade que o protocolo não guarda: entrar e sair
+    da sala não vira mensagem de sistema, e mostrar só para quem estava olhando
+    contradiria a promessa do próprio design de que "o histórico persiste".
+  */
+  entradasNoChatDaSala: {
+    superficie: "Chat embutido do canal de voz",
+    faz: "Entradas, saídas e início de transmissão como eventos no meio da conversa.",
     depende:
-      "a tabela de cargos resolvida para a hierarquia, e `ServerMember.edit({voice_channel})` para mover",
-    referencia: "components/voice/VoiceUserMenu.tsx",
+      "mensagem de sistema de voz no protocolo — `VoiceChannelJoin`/`Leave` são eventos de socket, não gravados",
+    referencia: "components/voice/VoiceChannelChat.tsx",
   },
 
   /*

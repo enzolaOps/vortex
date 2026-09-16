@@ -262,10 +262,17 @@
   invisíveis antes de chegar à doca. É a mesma decisão da barra de ações da
   linha de mensagem.
 */
-.fixar {
+/* Fixar e `⋯` num grupo só: posicionar cada um contra a borda obrigaria o
+   segundo a saber a largura do primeiro. */
+.acoesDoLadrilho {
   position: absolute;
   inset-inline-end: var(--vx-space-06);
   inset-block-start: var(--vx-space-06);
+  display: flex;
+  gap: var(--vx-space-04);
+}
+
+.fixar {
   display: grid;
   place-items: center;
   visibility: hidden;
