@@ -1,13 +1,9 @@
 /**
  * Preferências de notificação.
  *
- * ⚠ **A preferência é REAL e persistida em `localStorage`; o que falta é quem a consome.** Som,
- * push e badge no ícone dependem de coisas que este app ainda não tem — áudio,
- * service worker, casca Electron. A escolha entre "não construir a tela" e
- * "construir com o consumo pendente" foi tomada: a segunda, porque a regra
- * deste projeto é construir a interface 1:1 e registrar o que não funciona.
- *
- * A forma não muda quando o notificador chegar: ele lê daqui.
+ * Quem consome é `notificacao/notificador.ts`: toast, som e notificação do
+ * sistema por evento, e o contador de menções no ícone. "Push no celular" é
+ * lido por `notificacao/push.ts`, que inscreve o service worker na instância.
  *
  * Store module-level com `useSyncExternalStore`, como `silencio.ts` e
  * `colapso.ts` — preferência de leitura, mudada por clique humano, lida por
@@ -124,7 +120,10 @@ const HORA = /^\d{2}:\d{2}$/;
 
 const PADRAO: Preferencias = {
   desktop: true,
-  push: true,
+  /* Desligado: ligar pede permissão e inscreve este navegador no servidor, e
+     isso só acontece por escolha — nunca porque a notificação da aba já tinha
+     sido liberada para outra coisa. */
+  push: false,
   previa: true,
   badge: true,
   silencioNoturno: true,

@@ -10,6 +10,10 @@ use rocket_empty::EmptyResponse;
 /// # Acknowledge Message
 ///
 /// Lets the server and all other clients know that we've seen this message id in this channel.
+///
+/// Vortex: the id may be OLDER than the current read cursor — that is how a
+/// client marks a channel as unread from a given message. The cursor is set,
+/// not advanced, and `ChannelAck` reaches the user's other sessions either way.
 #[openapi(tag = "Messaging")]
 #[put("/<target>/ack/<message>")]
 pub async fn ack(

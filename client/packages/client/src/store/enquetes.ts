@@ -1,29 +1,28 @@
 /**
  * As enquetes, por mensagem.
  *
- * ⚠ **Enquete não existe no protocolo Stoat.** Não há tipo de mensagem, campo
- * ou evento — é a mesma classe da etiqueta FÓRUM e da figurinha: superfície
- * cujo dado nenhum servidor upstream sabe produzir. O design a desenha em duas
- * formas (aberta e encerrada) e a decisão de quem toca o produto é construir
- * 1:1 agora.
+ * ⚠ **A fonte deixou de ser o cliente.** Este store nasceu como store de
+ * CLIENTE, escrito só pelo arnês, porque enquete não existia no protocolo
+ * Stoat — e guardar voto localmente daria uma contagem que só quem votou vê.
+ * O serviço `api` do fork ganhou `Message.poll`, a rota de voto, a de
+ * encerrar e os eventos `MessagePollVote`/`MessagePollEnd`; quem escreve aqui
+ * agora é `sdk/enquetes.ts`, traduzindo o protocolo, e o arnês continua
+ * podendo semear pelo mesmo caminho.
  *
- * Store de CLIENTE, como `pastas.ts`, `silencio.ts` e `colapso.ts` — os três
- * precedentes de conceito que o cliente tem e o protocolo não. A diferença é
- * que aqueles três são preferência de quem usa, e este seria dado
- * compartilhado: por isso **criar** uma enquete continua sendo pendência.
- * Guardar o voto localmente e chamar isso de enquete daria uma contagem que só
- * você vê, o que é pior que não ter a feature.
- *
- * Quem escreve aqui hoje é o ARNÊS, e isso é deliberado: é o mesmo arranjo de
- * `configurarSimulacaoDeEnvio` — código de produto dirigido pelo arnês para
- * que a superfície exista, seja medida e seja verificável antes de o backend
- * existir. Quando o protocolo tiver enquete, quem escreve passa a ser o
- * adapter e nada acima daqui muda.
+ * ⚠ **Guarda o BRUTO e publica o DERIVADO.** O protocolo manda os IDs de quem
+ * votou em cada resposta, como faz com reações; a linha precisa de contagens e
+ * de "em quais EU votei". Derivar no render seria o erro nº 4 do briefing com
+ * enquete no lugar de markdown, então a derivação é cacheada por versão do
+ * bruto e por quem sou eu — e `lerEnquete` devolve a MESMA referência até uma
+ * das duas mudar.
  */
+
+/** As marcas das respostas, pela posição. São do design, não do autor. */
+export const MARCAS = ["🅰", "🅱", "🅲", "🅳", "🅴", "🅵", "🅶", "🅷", "🅸", "🅹"] as const;
 
 export type OpcaoDeEnquete = {
   readonly id: string;
-  /** O glifo à esquerda — 🅰, 🅱. É do autor, não derivado da posição. */
+  /** O glifo à esquerda — 🅰, 🅱. Pela POSIÇÃO: a ordem é a do autor. */
   readonly marca: string;
   readonly texto: string;
   readonly votos: number;
@@ -34,35 +33,79 @@ export type Enquete = {
   readonly opcoes: readonly OpcaoDeEnquete[];
   /** Quantas opções cabem por pessoa. 1 = "uma resposta". */
   readonly maximo: number;
-  /** Em que opção EU votei. `undefined` = ainda não votei. */
-  readonly meuVoto: string | undefined;
+  /** Em quais opções EU votei. Vazio = ainda não votei. */
+  readonly meusVotos: readonly string[];
   /**
-   * Quando fecha, em ms. `undefined` = já encerrada.
+   * Quando fecha, em ms. `undefined` = já encerrada pelo autor.
    *
-   * Duas informações num campo só de propósito: "fecha em 22 h" e "encerrada
-   * ontem às 20:00" são a mesma pergunta — quanto tempo resta — e um booleano
-   * separado abriria o estado inconsistente "encerrada com prazo no futuro".
+   * O prazo que passou sem ninguém encerrar continua aqui: quem responde "já
+   * fechou?" é `estaEncerrada`, que olha o relógio na hora da pergunta — um
+   * snapshot cacheado não sabe que o tempo andou.
    */
   readonly fechaEm: number | undefined;
-  /**
-   * Esconde a contagem até fechar.
-   *
-   * É a opção "Resultado só no fim" do modal de criação, e ela existe porque
-   * enquete com resultado visível enviesa: as primeiras respostas puxam as
-   * seguintes.
-   */
+  /** Esconde a contagem até fechar — "Resultado só no fim". */
   readonly resultadoNoFim: boolean;
+};
+
+/** O que o protocolo diz, sem interpretação de quem sou eu. */
+export type EnqueteBruta = {
+  readonly pergunta: string;
+  readonly respostas: readonly { readonly id: string; readonly texto: string }[];
+  readonly maximo: number;
+  readonly expiraEm: number | undefined;
+  readonly encerradaEm: number | undefined;
+  readonly esconder: boolean;
+  /** resposta → quem votou nela. */
+  readonly votos: ReadonlyMap<string, ReadonlySet<string>>;
 };
 
 type Ouvinte = () => void;
 
-const enquetes = new Map<string, Enquete>();
+const brutas = new Map<string, EnqueteBruta>();
+const derivadas = new Map<string, { base: EnqueteBruta; eu: string | undefined; valor: Enquete }>();
 const ouvintes = new Set<Ouvinte>();
+let eu: string | undefined;
+
+function avisar(): void {
+  for (const ouvinte of ouvintes) ouvinte();
+}
 
 export function assinarEnquetes(ouvinte: Ouvinte): () => void {
   ouvintes.add(ouvinte);
   return () => {
     ouvintes.delete(ouvinte);
+  };
+}
+
+/** Quem sou eu — decide `meusVotos`. O adapter avisa quando descobre. */
+export function definirEuDasEnquetes(id: string | undefined): void {
+  eu = id;
+}
+
+export function lerEuDasEnquetes(): string | undefined {
+  return eu;
+}
+
+/** Deriva o que a linha desenha. Pura: mesmo bruto e mesmo eu, mesmo valor. */
+export function derivarEnquete(b: EnqueteBruta, euId: string | undefined): Enquete {
+  const meus: string[] = [];
+  const opcoes = b.respostas.map((r, i) => {
+    const quem = b.votos.get(r.id);
+    if (euId !== undefined && quem?.has(euId)) meus.push(r.id);
+    return {
+      id: r.id,
+      marca: MARCAS[i] ?? "•",
+      texto: r.texto,
+      votos: quem?.size ?? 0,
+    };
+  });
+  return {
+    pergunta: b.pergunta,
+    opcoes,
+    maximo: b.maximo,
+    meusVotos: meus,
+    fechaEm: b.encerradaEm === undefined ? b.expiraEm : undefined,
+    resultadoNoFim: b.esconder,
   };
 }
 
@@ -74,44 +117,106 @@ export function assinarEnquetes(ouvinte: Ouvinte): () => void {
  * enquete republicar em todo ciclo.
  */
 export function lerEnquete(messageId: string): Enquete | undefined {
-  return enquetes.get(messageId);
+  const base = brutas.get(messageId);
+  if (!base) return undefined;
+  const cache = derivadas.get(messageId);
+  if (cache && cache.base === base && cache.eu === eu) return cache.valor;
+  const valor = derivarEnquete(base, eu);
+  derivadas.set(messageId, { base, eu, valor });
+  return valor;
+}
+
+export function lerEnqueteBruta(messageId: string): EnqueteBruta | undefined {
+  return brutas.get(messageId);
 }
 
 /** Escreve (ou substitui) a enquete de uma mensagem. */
-export function definirEnquete(messageId: string, enquete: Enquete): void {
-  enquetes.set(messageId, enquete);
-  for (const ouvinte of ouvintes) ouvinte();
+export function definirEnqueteBruta(messageId: string, enquete: EnqueteBruta): void {
+  brutas.set(messageId, enquete);
+  avisar();
+}
+
+export function removerEnquete(messageId: string): boolean {
+  derivadas.delete(messageId);
+  const havia = brutas.delete(messageId);
+  if (havia) avisar();
+  return havia;
 }
 
 /**
- * Votar — otimista, e o design diz por quê.
+ * Troca o voto de UMA pessoa. Devolve se mudou.
  *
- * *"Voto é otimista: preenche na hora e reverte com toast em caso de erro."*
- * Não há para onde mandar hoje, então o otimismo é tudo o que existe; o que a
- * função guarda é a REGRA, que sobrevive à chegada do protocolo: votar de novo
- * na mesma opção RETIRA o voto, e votar em outra move.
+ * É a forma do evento `MessagePollVote`: a lista SUBSTITUI o voto anterior da
+ * pessoa, onde quer que ele estivesse. Aplicar o mesmo evento duas vezes — o
+ * eco do próprio voto otimista, por exemplo — não muda nada.
  */
-export function votar(messageId: string, opcaoId: string): void {
-  const atual = enquetes.get(messageId);
-  if (!atual || atual.fechaEm === undefined) return;
+export function aplicarVoto(
+  messageId: string,
+  userId: string,
+  respostas: readonly string[],
+): boolean {
+  const atual = brutas.get(messageId);
+  if (!atual) return false;
+  const quero = new Set(respostas);
+  let mudou = false;
+  const votos = new Map<string, ReadonlySet<string>>();
+  for (const r of atual.respostas) {
+    const antes = atual.votos.get(r.id) ?? new Set<string>();
+    const tem = antes.has(userId);
+    const deve = quero.has(r.id);
+    if (tem === deve) {
+      votos.set(r.id, antes);
+      continue;
+    }
+    mudou = true;
+    const depois = new Set(antes);
+    if (deve) depois.add(userId);
+    else depois.delete(userId);
+    votos.set(r.id, depois);
+  }
+  if (!mudou) return false;
+  brutas.set(messageId, { ...atual, votos });
+  avisar();
+  return true;
+}
 
-  const tirando = atual.meuVoto === opcaoId;
-  enquetes.set(messageId, {
-    ...atual,
-    meuVoto: tirando ? undefined : opcaoId,
-    opcoes: atual.opcoes.map((o) => {
-      const delta =
-        (o.id === opcaoId && !tirando ? 1 : 0) -
-        (o.id === atual.meuVoto ? 1 : 0);
-      return delta === 0 ? o : { ...o, votos: o.votos + delta };
-    }),
-  });
-  for (const ouvinte of ouvintes) ouvinte();
+/** Marca como encerrada. Sem efeito se já estava. */
+export function marcarEncerrada(messageId: string, quando: number): boolean {
+  const atual = brutas.get(messageId);
+  if (!atual || atual.encerradaEm !== undefined) return false;
+  brutas.set(messageId, { ...atual, encerradaEm: quando });
+  avisar();
+  return true;
+}
+
+/**
+ * O voto que um clique produz.
+ *
+ * Uma resposta só: clicar na minha retira, clicar em outra MOVE. Múltiplas:
+ * clicar alterna — e, no teto, clicar numa nova não faz nada, em vez de
+ * derrubar em silêncio uma escolha antiga que a pessoa não pediu para tirar.
+ */
+export function proximoVoto(
+  meus: readonly string[],
+  opcaoId: string,
+  maximo: number,
+): readonly string[] {
+  if (meus.includes(opcaoId)) return meus.filter((m) => m !== opcaoId);
+  if (maximo <= 1) return [opcaoId];
+  if (meus.length >= maximo) return meus;
+  return [...meus, opcaoId];
+}
+
+/** Já fechou — pelo autor ou pelo relógio. */
+export function estaEncerrada(e: Enquete, agora: number): boolean {
+  return e.fechaEm === undefined || e.fechaEm <= agora;
 }
 
 /** Estado limpo entre testes. O módulo é global e sobrevive. */
 export function limparEnquetes(): void {
-  enquetes.clear();
+  brutas.clear();
+  derivadas.clear();
+  eu = undefined;
 }
 
 /** O total de votos, para o rodapé "N votos". */

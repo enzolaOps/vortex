@@ -1,0 +1,130 @@
+/* ============================================================
+   Mensagem-raiz do tópico
+   ------------------------------------------------------------
+   Card `padding:16px 18px; radius 12; surface-1; borda 7%`,
+   e o divisor "N respostas" logo abaixo.
+   ============================================================ */
+
+.raiz {
+  padding-block-start: var(--vx-space-18);
+}
+
+.card {
+  margin-block-end: var(--vx-space-20);
+  padding: var(--vx-space-16) var(--vx-space-18);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-12);
+  background: var(--vx-surface-1);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-08);
+  margin-block-end: var(--vx-space-10);
+}
+
+/* `height:20px; padding:0 8px; radius 4; cor a 14%; 11/600` */
+.tag,
+.estado {
+  display: flex;
+  align-items: center;
+  block-size: 20px;
+  padding-inline: var(--vx-space-08);
+  border-radius: var(--vx-radius-04);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+}
+
+.tag {
+  --cor-da-tag: var(--vx-text-2);
+  background: color-mix(in srgb, var(--cor-da-tag) 14%, transparent);
+  color: var(--cor-da-tag);
+}
+
+/* O neutro do design: `rgba(255,255,255,0.05)` com `text-2`. */
+.estado {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-2);
+}
+
+/* `font-size:17px; font-weight:600; margin-bottom:10px` */
+.titulo {
+  margin: 0 0 var(--vx-space-10);
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-xl);
+  font-weight: 600;
+  line-height: var(--vx-leading-title);
+  text-wrap: pretty;
+}
+
+.corpo {
+  display: flex;
+  gap: var(--vx-space-12);
+}
+
+.avatar {
+  flex: none;
+}
+
+.texto {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.autoria {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--vx-space-08);
+  margin-block-end: var(--vx-space-04);
+}
+
+.quando {
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+}
+
+/* `font-size:14px; line-height:1.55` */
+.mensagem {
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-base);
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+/* `margin-top:10px; max-width:360px; radius 10; borda 8%` */
+.midia {
+  inline-size: 100%;
+  max-inline-size: 360px;
+  margin-block-start: var(--vx-space-10);
+  overflow: hidden;
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-10);
+}
+
+/* `height:150px` — a reserva, para a imagem não mover a lista ao chegar. */
+.midiaConteudo {
+  display: block;
+  inline-size: 100%;
+  block-size: 150px;
+  object-fit: cover;
+}
+
+.divisor {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-12);
+  margin-block-end: var(--vx-space-14);
+}
+
+.linha {
+  flex: 1;
+  block-size: 1px;
+  background: var(--vx-hairline-06);
+}
+
+.respostas {
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+}

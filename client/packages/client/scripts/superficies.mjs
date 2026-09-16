@@ -53,6 +53,20 @@ const PAPEL = {
  * chão e não conteúdo. "É o padrão" não é razão.
  */
 const PERMITIDO = {
+  "list/Anexos.module.css": {
+    ".capaDeSpoiler":
+      "Véu sobre a MÍDIA de um canal de spoiler, e não superfície: o design " +
+      "escreve o tom afundado a 90% (`rgba(10,12,15,0.9)`) porque a capa tem " +
+      "de esconder a imagem de baixo em qualquer cor dela. `--vx-scrim` é o " +
+      "véu de modal, translúcido demais para cobrir o que não se quer ver.",
+  },
+  "overlay/Overlay.module.css": {
+    ".widget":
+      "Os widgets do overlay do jogo pousam sobre o JOGO, e não sobre o app: " +
+      "o design escreve `surface.sunken` a 78% porque é o tom que menos " +
+      "compete com a imagem de qualquer jogo. Um `surface-4` de float leria " +
+      "como mancha clara sobre cena escura.",
+  },
   "voz/PalcoDeVoz.module.css": {
     ".palco":
       "O CHÃO das três telas do palco, em volta da mídia. O design pinta a " +
@@ -81,6 +95,23 @@ const PERMITIDO = {
     ".hud": "O mesmo véu, a 82%, sob os controles do transmissor.",
     ".selo": "O mesmo véu, a 70%, atrás do selo de ladrilho separado.",
   },
+  "forum/GaleriaDeMidia.module.css": {
+    ".selo":
+      "Véu sobre a MÍDIA do item, não superfície: o design escreve " +
+      "`rgba(8,9,11,0.75)` — `surface.sunken` byte a byte — atrás do selo " +
+      "GIF/VÍDEO no canto da imagem. Um tom sólido recortaria um retângulo " +
+      "da miniatura; o véu lê como camada por cima dela.",
+    ".spoiler":
+      "O véu que ESCONDE a mídia marcada como spoiler, a 90%. O design " +
+      "escreve `rgba(10,12,15,0.9)`, quase-acerto de `surface.sunken`, e a " +
+      "referência usa o token. Precisa ser o tom mais escuro: é ele que " +
+      "impede a imagem de vazar por baixo antes do clique.",
+    ".sobreposicao":
+      "O degradê da legenda no modo denso, sobre a imagem, de " +
+      "`surface.sunken` a 85% para transparente — valor da referência (o " +
+      "design só esconde o rodapé). Mesma razão do selo: texto sobre mídia " +
+      "precisa de véu, e o véu não pode ser uma faixa sólida.",
+  },
   "membros/ModalDePerfil.module.css": {
     ".acaoDoBanner":
       "Véu sobre o BANNER a 50%, não superfície. Os dois alvos pousam sobre " +
@@ -90,6 +121,22 @@ const PERMITIDO = {
       "O mesmo véu, mais fechado (70%). O hover precisa de um degrau, e " +
       "subir a opacidade do MESMO tom mantém a família em vez de trocar de " +
       "cor — a mesma decisão da pílula do popout.",
+  },
+  "voz/ChamadaDireta.module.css": {
+    ".pilula":
+      "Véu sobre a mídia a 78%, do design (`rgba(8,9,11,0.78)`) — a pílula " +
+      "com nome e cronômetro pousa sobre o vídeo de quem está do outro lado, " +
+      "e um tom sólido apagaria um pedaço do rosto que se está vendo.",
+    ".barra":
+      "O mesmo véu, a 82% (`rgba(8,9,11,0.82)`), sob os controles flutuantes. " +
+      "Mesma decisão do HUD da transmissão.",
+  },
+  "voz/ChamadaRecebida.module.css": {
+    ".telaCheia":
+      "O chão da tela cheia de chamada recebida. O design escreve #0A0C0F e a " +
+      "referência `bg-surface-sunken` — é moldura em volta do avatar grande de " +
+      "quem liga, a mesma razão do palco e do popout: o que cerca a " +
+      "identidade some para ela ser a única coisa com luz.",
   },
   "voz/Popout.module.css": {
     ".popout":

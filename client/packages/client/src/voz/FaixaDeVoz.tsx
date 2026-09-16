@@ -7,9 +7,13 @@ import {
 } from "../components/ui/icones";
 import { useSyncExternalStore } from "react";
 
+import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/Popover";
+import { AtalhosDoSoundboard } from "../expressoes/AtalhosDoSoundboard";
+import { Soundboard } from "../seletores/Soundboard";
+
 import { alternarCamera, alternarTela, sairDaChamada } from "../sdk/chamada";
-import { aindaNao } from "../pendente/pendencias";
 import { assinarChamada, lerChamada, type QualidadeDeVoz } from "../store/chamada";
+import { abrirModal } from "../store/modais";
 import { cn } from "../lib/cn";
 import { selecionarCanal } from "../store/navegacao";
 import { Tooltip } from "../components/ui/Tooltip";
@@ -225,28 +229,32 @@ export function FaixaDeVoz() {
           </button>
         </Tooltip>
 
-        {/* Desenhados sem implementação — ver `pendente/pendencias.ts`. */}
         <Tooltip texto="Atividades">
           <button
             type="button"
             className={css.acao}
             aria-label="Atividades"
-            onClick={aindaNao("atividades")}
+            onClick={() => abrirModal("atividades")}
           >
             <Rows />
           </button>
         </Tooltip>
 
-        <Tooltip texto="Soundboard">
-          <button
-            type="button"
-            className={css.acao}
-            aria-label="Soundboard"
-            onClick={aindaNao("soundboard")}
-          >
-            <MusicNotes />
-          </button>
-        </Tooltip>
+        {/* O painel de sons ABRE daqui — e as teclas 1–9 valem enquanto a
+            faixa existe, que é enquanto a chamada existe. */}
+        <Popover>
+          <Tooltip texto="Soundboard">
+            <PopoverTrigger asChild>
+              <button type="button" className={css.acao} aria-label="Soundboard">
+                <MusicNotes />
+              </button>
+            </PopoverTrigger>
+          </Tooltip>
+          <PopoverContent className="p-02" side="top" align="start">
+            <Soundboard />
+          </PopoverContent>
+        </Popover>
+        <AtalhosDoSoundboard channelId={chamada.channelId} />
       </div>
     </div>
   );

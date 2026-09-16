@@ -1,0 +1,260 @@
+/* ============================================================
+   Overlay do jogo
+   ------------------------------------------------------------
+   Valores do design ("Voz · Completo" → Overlay dentro do jogo).
+
+   ⚠ **Sem blur, de propósito**: `backdrop-filter` numa janela
+   transparente por cima de um jogo em tela cheia custa frame a
+   cada quadro do jogo. O fundo é `surface-0` a 78%.
+
+   A página inteira é transparente e não recebe clique — só os
+   widgets desenham. Quem decide se o clique passa para o jogo é
+   a casca (`setIgnoreMouseEvents`).
+   ============================================================ */
+
+.raiz {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: transparent;
+  pointer-events: none;
+  color: var(--vx-text-1);
+}
+
+.widget {
+  position: absolute;
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-10);
+  background: color-mix(in srgb, var(--vx-surface-0) 78%, transparent);
+  transition: opacity var(--vx-duration-base) var(--vx-ease-out);
+}
+
+/* Interagindo, os widgets recebem clique; travado, o jogo recebe tudo. */
+.raiz[data-interagindo="true"] .widget {
+  pointer-events: auto;
+}
+
+.widget[data-v="cima"] { inset-block-start: var(--vx-space-14); }
+.widget[data-v="baixo"] { inset-block-end: var(--vx-space-14); }
+.widget[data-v="meio"] { inset-block-start: 50%; translate: 0 -50%; }
+.widget[data-h="inicio"] { inset-inline-start: var(--vx-space-14); }
+.widget[data-h="fim"] { inset-inline-end: var(--vx-space-14); }
+.widget[data-h="centro"] { inset-inline-start: 50%; translate: -50% 0; }
+.widget[data-v="meio"][data-h="centro"] { translate: -50% -50%; }
+
+/* 40% depois de 5 s sem atividade — e nunca enquanto se interage. */
+.widget[data-ocioso="true"] {
+  opacity: 0.4;
+}
+
+/* --------------------------------------------------------- voz */
+
+.voz {
+  inline-size: 186px;
+  padding: var(--vx-space-08);
+}
+
+.cabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-07);
+  margin-block-end: var(--vx-space-08);
+}
+
+.cabecalho svg {
+  flex: none;
+  inline-size: 11px;
+  block-size: 11px;
+  color: var(--vx-accent-text);
+}
+
+.canal {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tempo {
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-2xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--vx-success-text);
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-05);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pessoa {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-07);
+}
+
+/* Quem não fala nem está mudo recua — o olho vai para quem fala. */
+.pessoa[data-falando="false"][data-mudo="false"] {
+  opacity: 0.7;
+}
+
+.avatar {
+  flex: none;
+  border-radius: var(--vx-radius-pill);
+}
+
+.avatar > * {
+  inline-size: 20px;
+  block-size: 20px;
+}
+
+.pessoa[data-falando="true"] .avatar {
+  box-shadow: 0 0 0 2px var(--vx-success);
+}
+
+.nome {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pessoa[data-falando="true"] .nome {
+  font-weight: 600;
+  color: var(--vx-accent-text);
+}
+
+.mudo {
+  flex: none;
+  inline-size: 11px;
+  block-size: 11px;
+  color: var(--vx-danger-text);
+}
+
+.pontoDeFala {
+  flex: none;
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-success);
+}
+
+.controles {
+  display: flex;
+  gap: var(--vx-space-04);
+  margin-block-start: var(--vx-space-08);
+  padding-block-start: var(--vx-space-08);
+  border-block-start: 1px solid var(--vx-hairline-10);
+}
+
+.botao {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  block-size: 24px;
+  border: 0;
+  border-radius: var(--vx-radius-05);
+  background: var(--vx-state-press);
+  color: var(--vx-text-1);
+  cursor: pointer;
+  transition: background-color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.botao svg {
+  inline-size: 13px;
+  block-size: 13px;
+}
+
+.botao[aria-pressed="true"] {
+  color: var(--vx-danger-text);
+}
+
+.botao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.sair {
+  background: color-mix(in srgb, var(--vx-danger) 24%, transparent);
+  color: var(--vx-danger-text);
+}
+
+/* ----------------------------------------------------- mensagem */
+
+.mensagem {
+  inline-size: 250px;
+  padding: var(--vx-space-09) var(--vx-space-11);
+}
+
+.mensagemCabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  margin-block-end: var(--vx-space-06);
+}
+
+.mensagemCanal {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  font-size: var(--vx-size-2xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--vx-text-3);
+}
+
+/*
+  "⇧⌘M silencia", em mono e `text.disabled`. ⚠ O design escreve 9px; a
+  escala de tipo não tem o degrau (9px é onde as contraformas somem em tela,
+  e ficou fora dela de propósito), então sai no 10 — o menor que existe.
+*/
+.mensagemAtalho {
+  flex: none;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-2xs);
+  white-space: nowrap;
+  color: var(--vx-text-4);
+}
+
+.mensagemTexto {
+  margin: 0;
+  font-size: var(--vx-size-xs);
+  line-height: 1.45;
+  color: var(--vx-text-1);
+  overflow-wrap: anywhere;
+}
+
+.autor {
+  font-weight: 600;
+  color: var(--vx-accent-text);
+}
+
+/* --------------------------------------------------------- dica */
+
+.dica {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  block-size: 26px;
+  padding: 0 var(--vx-space-10);
+  border-radius: var(--vx-radius-pill);
+  font-size: var(--vx-size-2xs);
+  color: var(--vx-text-2);
+}
+
+.dicaTecla {
+  font-family: var(--vx-font-mono);
+}

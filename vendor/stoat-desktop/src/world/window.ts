@@ -63,6 +63,110 @@ contextBridge.exposeInMainWorld("vortexAudioDeJanela", {
 });
 
 /**
+ * Atalhos de voz globais e a bandeja — ver `native/controles.ts`.
+ *
+ * Ponte SEPARADA pela mesma razão de `vortexAudioDeJanela`: um verbo novo em
+ * `vortex` faria cascas antigas parecerem incompletas para o cliente novo.
+ *
+ * Nenhuma tecla atravessa: o main manda só o COMANDO da combinação que o
+ * próprio cliente cadastrou.
+ */
+contextBridge.exposeInMainWorld("vortexControles", {
+  definirAtalhos: (atalhos: unknown) =>
+    ipcRenderer.invoke("vortexDefinirAtalhos", atalhos),
+  assinarComandos: (ouvinte: (c: unknown) => void) => {
+    const alca = (_evento: unknown, c: unknown) => ouvinte(c);
+    ipcRenderer.on("vortexComandoDeVoz", alca);
+    return () => ipcRenderer.off("vortexComandoDeVoz", alca);
+  },
+  publicarEstadoDeVoz: (estado: unknown) =>
+    ipcRenderer.send("vortexEstadoDeVoz", estado),
+});
+
+/**
+ * Contador no ícone, piscar a barra de tarefas e focar a janela — ver
+ * `native/notificacoes.ts`. Ponte separada pela mesma razão das outras duas.
+ * Só números atravessam; o main valida.
+ */
+contextBridge.exposeInMainWorld("vortexNotificacoes", {
+  contador: (n: number) => ipcRenderer.send("vortexContador", n),
+  chamarAtencao: () => ipcRenderer.send("vortexChamarAtencao"),
+  focar: () => ipcRenderer.send("vortexFocar"),
+});
+
+/**
+ * O overlay do jogo — ver `native/overlay.ts`. A mesma ponte serve às duas
+ * janelas: a principal publica, a do overlay assina. O main confere quem
+ * mandou cada mensagem.
+ */
+contextBridge.exposeInMainWorld("vortexOverlay", {
+  publicar: (estado: unknown) => ipcRenderer.send("vortexOverlayPublicar", estado),
+  mensagem: (m: unknown) => ipcRenderer.send("vortexOverlayMensagem", m),
+  assinarEstado: (ouvinte: (e: unknown) => void) => {
+    const alca = (_evento: unknown, e: unknown) => ouvinte(e);
+    ipcRenderer.on("vortexOverlayEstado", alca);
+    void ipcRenderer
+      .invoke("vortexOverlayEstadoAtual")
+      .then((atual?: { estado?: unknown }) => {
+        if (atual?.estado) ouvinte(atual.estado);
+      });
+    return () => ipcRenderer.off("vortexOverlayEstado", alca);
+  },
+  assinarMensagens: (ouvinte: (m: unknown) => void) => {
+    const alca = (_evento: unknown, m: unknown) => ouvinte(m);
+    ipcRenderer.on("vortexOverlayMensagem", alca);
+    return () => ipcRenderer.off("vortexOverlayMensagem", alca);
+  },
+  assinarInteracao: (ouvinte: (sim: unknown) => void) => {
+    const alca = (_evento: unknown, sim: unknown) => ouvinte(sim);
+    ipcRenderer.on("vortexOverlayInteracao", alca);
+    void ipcRenderer
+      .invoke("vortexOverlayEstadoAtual")
+      .then((atual?: { interagindo?: unknown }) => {
+        if (atual) ouvinte(atual.interagindo === true);
+      });
+    return () => ipcRenderer.off("vortexOverlayInteracao", alca);
+  },
+  comando: (c: unknown) => ipcRenderer.send("vortexOverlayComando", c),
+});
+
+/**
+ * O silêncio das mensagens do overlay — ver `alternarSilencioDoOverlay`.
+ *
+ * ⚠ **Ponte SEPARADA de `vortexOverlay`**, e é a razão de versão aplicada à
+ * própria página do overlay: um verbo novo lá faria o overlay de uma casca
+ * antiga não reconhecer a ponte inteira. Ausente, o overlay só não mostra a
+ * dica "silencia". Um booleano atravessa, e só para a janela do overlay.
+ */
+contextBridge.exposeInMainWorld("vortexOverlaySilencio", {
+  assinar: (ouvinte: (silenciadas: boolean) => void) => {
+    const alca = (_evento: unknown, sim: unknown) => ouvinte(sim === true);
+    ipcRenderer.on("vortexOverlaySilencio", alca);
+    void ipcRenderer.invoke("vortexOverlaySilencioAtual").then((atual: unknown) => {
+      if (typeof atual === "boolean") ouvinte(atual);
+    });
+    return () => ipcRenderer.off("vortexOverlaySilencio", alca);
+  },
+});
+
+/**
+ * "Reiniciar agora", do aviso de preferência que só vale no próximo início —
+ * ver `native/preferencias.ts`. Ponte separada pela razão de versão; nenhum
+ * argumento atravessa.
+ */
+contextBridge.exposeInMainWorld("vortexReinicio", {
+  reiniciar: () => ipcRenderer.invoke("vortexReiniciar"),
+});
+
+/**
+ * "Atenuar outros apps" — ver `native/atenuacao.ts`. Um booleano atravessa,
+ * nada mais. Ponte separada pela mesma razão das outras.
+ */
+contextBridge.exposeInMainWorld("vortexAtenuacao", {
+  atenuar: (sim: boolean) => ipcRenderer.send("vortexAtenuar", sim === true),
+});
+
+/**
  * `window.vortex` — o contrato que o cliente React declara.
  *
  * ⚠ **Ele NUNCA existiu, e o sintoma foi "não aparecem os botões de

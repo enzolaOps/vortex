@@ -2,6 +2,7 @@ import { useEffect, useSyncExternalStore } from "react";
 
 import { PainelDeBusca } from "../busca/PainelDeBusca";
 import { CaixaDeEntrada } from "../caixa/CaixaDeEntrada";
+import { PainelDeTopicos } from "../topicos/PainelDeTopicos";
 import { PainelDeFixados } from "../fixados/PainelDeFixados";
 import { LimiteDeErro } from "../components/ui/LimiteDeErro";
 import { LARGURA, NOME_DO_PAINEL, type PainelId } from "../preset/schema";
@@ -28,6 +29,7 @@ const FLUTUAM: Partial<Record<PainelId, () => React.ReactNode>> = {
     sozinha.
   */
   busca: () => <PainelDeBusca />,
+  topicos: () => <PainelDeTopicos aoFechar={fecharDrawer} />,
 };
 
 /**

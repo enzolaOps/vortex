@@ -6,7 +6,7 @@ use revolt_database::util::permissions::DatabasePermissionQuery;
 use revolt_database::{
     util::idempotency::IdempotencyKey, util::reference::Reference, Database, User,
 };
-use revolt_database::{Channel, Interactions, Message, AMQP};
+use revolt_database::{Channel, Interactions, Message, PartialChannel, AMQP};
 use revolt_models::v0;
 use revolt_models::v0::ChannelSlowmode;
 use revolt_permissions::PermissionQuery;
@@ -29,7 +29,7 @@ pub async fn message_send(
     data: Json<v0::DataMessageSend>,
     idempotency: IdempotencyKey,
 ) -> Result<Json<v0::Message>> {
-    let data = data.into_inner();
+    let mut data = data.into_inner();
     data.validate().map_err(|error| {
         create_error!(FailedValidation {
             error: error.to_string()
@@ -41,6 +41,18 @@ pub async fn message_send(
     let mut query = DatabasePermissionQuery::new(db, &user).channel(&channel);
     let permissions = calculate_channel_permissions(&mut query).await;
     permissions.throw_if_lacking_channel_permission(ChannelPermission::SendMessage)?;
+
+    // Vortex: nível de verificação, emergência e filtro de convites em DM.
+    crate::util::server_security::enforce_message_policy(
+        db,
+        &user,
+        &channel,
+        query.server_ref().as_deref(),
+        query.member_ref().as_deref(),
+        &permissions,
+        &mut data,
+    )
+    .await?;
 
     // Verify permissions for masquerade
     if let Some(masq) = &data.masquerade {
@@ -173,23 +185,73 @@ pub async fn message_send(
         .as_ref()
         .map(|member| member.clone().into_owned().into());
 
-    Ok(Json(
-        Message::create_from_api(
-            db,
-            Some(amqp),
-            channel,
-            data,
-            v0::MessageAuthor::User(&author),
-            Some(model_user.clone()),
-            model_member.clone(),
-            user.limits().await,
-            idempotency,
-            permissions.has_channel_permission(ChannelPermission::SendEmbeds),
-            allow_mentions,
-        )
-        .await?
-        .into_model(Some(model_user), model_member),
-    ))
+    // Vortex: a thread tracks its opening message, its followers and whether it
+    // is archived — and sending into it can change all three.
+    let thread_channel = channel.thread().is_some().then(|| channel.clone());
+    if let Some(info) = channel.thread() {
+        // The first message of a media post is the media itself.
+        if info.message.is_none() && data.attachments.as_ref().map_or(true, |a| a.is_empty()) {
+            if let Ok(parent) = db.fetch_channel(&info.parent).await {
+                if parent.forum().is_some_and(|forum| forum.media) {
+                    return Err(create_error!(InvalidOperation));
+                }
+            }
+        }
+    }
+
+    let message = Message::create_from_api(
+        db,
+        Some(amqp),
+        channel,
+        data,
+        v0::MessageAuthor::User(&author),
+        Some(model_user.clone()),
+        model_member.clone(),
+        user.limits().await,
+        idempotency,
+        permissions.has_channel_permission(ChannelPermission::SendEmbeds),
+        allow_mentions,
+    )
+    .await?;
+
+    if let Some(mut thread_channel) = thread_channel {
+        if let Some(mut info) = thread_channel.thread().cloned() {
+            let mut changed = false;
+
+            if info.message.is_none() {
+                info.message = Some(message.id.clone());
+                changed = true;
+            }
+
+            // Replying reopens an archived thread.
+            if info.archived {
+                info.archived = false;
+                changed = true;
+            }
+
+            // Replying follows the thread.
+            if !info.followers.iter().any(|id| id == &user.id) {
+                info.followers.push(user.id.clone());
+                changed = true;
+            }
+
+            if changed {
+                thread_channel
+                    .update(
+                        db,
+                        PartialChannel {
+                            thread: Some(info),
+                            ..Default::default()
+                        },
+                        vec![],
+                    )
+                    .await
+                    .ok();
+            }
+        }
+    }
+
+    Ok(Json(message.into_model(Some(model_user), model_member)))
 }
 
 #[cfg(test)]
@@ -268,6 +330,10 @@ mod test {
             last_message_id: None,
             voice: None,
             slowmode: None,
+            forum: None,
+            thread: None,
+            spoiler: None,
+            invites_paused: None,
         };
         locked_channel
             .update(&harness.db, partial, vec![])
@@ -291,11 +357,13 @@ mod test {
                 content: Some(format!("<@{}>", second_user.id)),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: None,
                 embeds: None,
                 masquerade: None,
                 interactions: None,
                 flags: None,
+                poll: None,
             },
             v0::MessageAuthor::User(&user.clone().into(&harness.db, Some(&user)).await),
             Some(user.clone().into(&harness.db, Some(&user)).await),
@@ -331,11 +399,13 @@ mod test {
                 content: Some(format!("<@{}>", second_user.id)),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: None,
                 embeds: None,
                 masquerade: None,
                 interactions: None,
                 flags: None,
+                poll: None,
             },
             v0::MessageAuthor::User(&user.clone().into(&harness.db, Some(&user)).await),
             Some(user.clone().into(&harness.db, Some(&user)).await),
@@ -380,11 +450,13 @@ mod test {
                 content: Some(format!("<@{}>", second_user.id)),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: None,
                 embeds: None,
                 masquerade: None,
                 interactions: None,
                 flags: None,
+                poll: None,
             },
             v0::MessageAuthor::User(&user.clone().into(&harness.db, Some(&user)).await),
             Some(user.clone().into(&harness.db, Some(&user)).await),
@@ -422,6 +494,7 @@ mod test {
                 content: Some("Message with reply".to_string()),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: Some(vec![v0::ReplyIntent {
                     id: message.id.clone(),
                     mention: false,
@@ -431,6 +504,7 @@ mod test {
                 masquerade: None,
                 interactions: None,
                 flags: None,
+                poll: None,
             },
             v0::MessageAuthor::User(&user.clone().into(&harness.db, Some(&user)).await),
             Some(user.clone().into(&harness.db, Some(&user)).await),
@@ -473,6 +547,7 @@ mod test {
                 content: Some("Message with missing reply".to_string()),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: Some(vec![v0::ReplyIntent {
                     id: message.id.clone(),
                     mention: false,
@@ -482,6 +557,7 @@ mod test {
                 masquerade: None,
                 interactions: None,
                 flags: None,
+                poll: None,
             },
             v0::MessageAuthor::User(&user.clone().into(&harness.db, Some(&user)).await),
             Some(user.clone().into(&harness.db, Some(&user)).await),
@@ -510,6 +586,7 @@ mod test {
                 content: Some("Message with missing reply".to_string()),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: Some(vec![v0::ReplyIntent {
                     id: message.id.clone(),
                     mention: false,
@@ -519,6 +596,7 @@ mod test {
                 masquerade: None,
                 interactions: None,
                 flags: None,
+                poll: None,
             },
             v0::MessageAuthor::User(&user.clone().into(&harness.db, Some(&user)).await),
             Some(user.clone().into(&harness.db, Some(&user)).await),
@@ -541,6 +619,7 @@ mod test {
                 content: Some("Message with missing reply".to_string()),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: Some(vec![v0::ReplyIntent {
                     id: message.id.clone(),
                     mention: false,
@@ -550,6 +629,7 @@ mod test {
                 masquerade: None,
                 interactions: None,
                 flags: None,
+                poll: None,
             },
             v0::MessageAuthor::User(&user.clone().into(&harness.db, Some(&user)).await),
             Some(user.clone().into(&harness.db, Some(&user)).await),
@@ -595,11 +675,13 @@ mod test {
                 content: Some(format!("Mentioning @everyone and role <%{}>", &role.id)),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: None,
                 embeds: None,
                 masquerade: None,
                 interactions: None,
                 flags: None,
+                poll: None,
             },
             v0::MessageAuthor::User(
                 &other_user
@@ -640,11 +722,13 @@ mod test {
                 content: Some(format!("Mentioning `@everyone` and role `<%{}>`", &role.id)),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: None,
                 embeds: None,
                 masquerade: None,
                 interactions: None,
                 flags: None,
+                poll: None,
             },
             v0::MessageAuthor::User(
                 &other_user
@@ -710,11 +794,13 @@ mod test {
                 content: Some(format!("Mentioning @everyone and role <%{}>", &role.id)),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: None,
                 embeds: None,
                 masquerade: None,
                 interactions: None,
                 flags: None,
+                poll: None,
             },
             v0::MessageAuthor::User(
                 &other_user

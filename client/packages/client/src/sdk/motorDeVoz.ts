@@ -31,10 +31,17 @@ import {
   lerPreferenciasDeVoz,
 } from "../store/preferenciasDeVoz";
 import {
+  assinarPushToTalk,
+  lerSegurando,
+  microfoneAberto,
+} from "../store/pushToTalk";
+import {
   AudioPresets,
   ConnectionState,
   Room,
   ConnectionQuality,
+  LocalAudioTrack,
+  LocalVideoTrack,
   RoomEvent,
   Track,
   VideoQuality,
@@ -42,9 +49,13 @@ import {
   type RemoteParticipant,
   type RemoteTrack,
   type RemoteTrackPublication,
+  type RoomOptions,
   type ScreenShareCaptureOptions,
+  type AudioProcessorOptions,
+  type TrackProcessor,
   type TrackPublishOptions,
 } from "livekit-client";
+import type { BackgroundProcessorWrapper } from "@livekit/track-processors";
 import {
   codificacaoDe,
   constraintsDe,
@@ -60,7 +71,9 @@ import {
   ehJanela,
   ponteDeAudioDeJanela,
 } from "./audioDeJanela";
+import { criarAtenuador, ponteDeAtenuacao } from "./atenuacao";
 import { client } from "./client";
+import { lerConfigDeVoz, publicacaoDe as publicacaoDoCanal } from "./vozDoCanal";
 import { sairDaSalaLocalmente } from "./adapter";
 import type { Chamada, QualidadeDeVoz } from "../store/chamada";
 import {
@@ -72,12 +85,22 @@ import {
   lerChamada,
 } from "../store/chamada";
 import { definirPalco, lerPalco } from "../store/palcoDeVoz";
+import { assinarVolumeEfetivo, volumeEfetivo } from "../store/volumesDeVoz";
 import { criarAssinaturaDeVideo } from "./assinaturaDeVideo";
 import { chaveDeVideo, faixasDeVideo, type FonteDeVideo } from "../store/video";
 import { toast } from "../components/ui/toastStore";
 import { ALTURA_DE, ponteDeTela } from "./seletorDeTela";
 import { pedirEscolhaDeTela } from "../store/seletorDeTela";
 import { motivoDoErro } from "./erros";
+import {
+  coalescer,
+  fundoEfetivo,
+  planoDeFundo,
+  querRuidoForte,
+  TAXA_DO_RNNOISE,
+} from "../voz/processamento";
+import type { SupressorDeRuido } from "../voz/ruidoForte";
+import type { FundoDeVideo } from "../store/preferenciasDeVoz";
 
 /**
  * A sala, module-level.
@@ -176,6 +199,43 @@ async function noMaisRapido(): Promise<string | undefined> {
   }
 }
 
+/**
+ * Os tetos de publicação que o CANAL escolheu — bitrate e modo de vídeo.
+ *
+ * ⚠ **Nos padrões da sala, e não em cada `setMicrophoneEnabled`.** O
+ * microfone é publicado por mais de um caminho (entrar, sair do mudo,
+ * push-to-talk), e a câmera por outro; opção por chamada teria de ser repetida
+ * em cada um, e o primeiro que esquecesse publicaria no padrão do LiveKit sem
+ * erro nenhum. `publishDefaults` vale para todos.
+ *
+ * A transmissão de tela NÃO passa por aqui: ela tem `screenShareEncoding`
+ * próprio, escolhido no HUD.
+ */
+function opcoesDaSala(channelId: string): RoomOptions {
+  const p = publicacaoDoCanal(lerConfigDeVoz(channelId));
+  return {
+    publishDefaults: {
+      ...(p.audioMaxBitrate === undefined
+        ? {}
+        : { audioPreset: { maxBitrate: p.audioMaxBitrate } }),
+      ...(p.video === undefined
+        ? {}
+        : { videoEncoding: { maxBitrate: p.video.maxBitrate, maxFramerate: p.video.fps } }),
+    },
+    ...(p.video === undefined
+      ? {}
+      : {
+          videoCaptureDefaults: {
+            resolution: {
+              width: p.video.largura,
+              height: p.video.altura,
+              frameRate: p.video.fps,
+            },
+          },
+        }),
+  };
+}
+
 /** Quem está na sala agora, do ponto de vista do LiveKit. */
 function participantesDe(r: Room): string[] {
   const ids: string[] = [];
@@ -220,6 +280,11 @@ function ligarEventos(r: Room, channelId: string): void {
     as chaves (`usuário:fonte`) são estáveis entre chamadas.
   */
   r.on(RoomEvent.Disconnected, () => {
+    /* Queda pelo servidor não passa por `sairDaChamada` — sem isto o ouvinte
+       de volume ficaria preso a uma sala morta (erro nº 5 do briefing). */
+    pararDeOuvirVolumes?.();
+    pararDeOuvirVolumes = undefined;
+    atenuador.atualizar(false, false, true);
     pararAudioDaJanela();
     faixasDeVideo.limpar();
     /* A contagem morre com a sala. Sem isto, entrar de novo começaria com
@@ -385,6 +450,10 @@ function ligarEventos(r: Room, channelId: string): void {
   */
   r.on(RoomEvent.ActiveSpeakersChanged, (falantes) => {
     definirFalantes(falantes.map((p) => p.identity));
+    /* "Atenuar outros apps": só a fala dos OUTROS conta — você falando não
+       precisa de silêncio em volta para se ouvir. */
+    const outro = falantes.some((p) => p !== r.localParticipant);
+    atenuador.atualizar(outro, lerPreferenciasDeVoz().atenuarOutrosApps);
   });
 
   /*
@@ -397,6 +466,12 @@ function ligarEventos(r: Room, channelId: string): void {
   r.on(RoomEvent.TrackSubscribed, (faixa: RemoteTrack, pub, participante) => {
     if (faixa.kind === Track.Kind.Audio) {
       elementoDeAudio().appendChild(faixa.attach());
+      /*
+        O volume guardado desta pessoa chega AQUI, na faixa recém-assinada.
+        Antes dela não há onde aplicar, e aplicar só quando o deslizante mexe
+        faria quem você baixou ontem voltar a 100% em toda chamada nova.
+      */
+      definirVolumeDe(participante.identity, volumeEfetivo(participante.identity));
       return;
     }
 
@@ -639,14 +714,17 @@ export function definirQualidadeDeStream(
  * `0` e o "silenciar so para mim" do design. Vale de 0 a 2 no LiveKit (200% no
  * desenho), e o ganho acima de 1 e o que salva quem fala baixo.
  */
-export function definirVolumeDe(userId: string, volume: number): void {
+function definirVolumeDe(userId: string, volume: number): void {
+  /*
+    ⚠ **Limitado a 1, e acima disso LANÇAVA.** Sem `webAudioMix` o LiveKit
+    escreve em `HTMLMediaElement.volume`, que dá `IndexSizeError` fora de
+    [0, 1] — o deslizante de 200% derrubava o handler a partir de 101. Ver
+    `VOLUME_MAXIMO` em `store/volumesDeVoz.ts`.
+  */
+  const ganho = Math.min(1, Math.max(0, volume));
   const p = participanteRemoto(userId);
-  p?.setVolume(volume, Track.Source.Microphone);
-  p?.setVolume(volume, Track.Source.ScreenShareAudio);
-}
-
-export function volumeDe(userId: string): number {
-  return participanteRemoto(userId)?.getVolume(Track.Source.Microphone) ?? 1;
+  p?.setVolume(ganho, Track.Source.Microphone);
+  p?.setVolume(ganho, Track.Source.ScreenShareAudio);
 }
 
 function participanteRemoto(userId: string): RemoteParticipant | undefined {
@@ -713,7 +791,7 @@ export async function entrarNaChamada(channelId: string): Promise<boolean> {
     const no = await noMaisRapido();
     const auth = await canal.joinCall(no);
 
-    const r = new Room();
+    const r = new Room(opcoesDaSala(channelId));
     sala = r;
     ligarEventos(r, channelId);
 
@@ -731,13 +809,33 @@ export async function entrarNaChamada(channelId: string): Promise<boolean> {
       nada lê — que é exatamente o defeito que ela existe para não ter.
     */
     await r.localParticipant.setMicrophoneEnabled(
-      !lerChamada().mudo,
+      deveTransmitir(),
       constraintsDeAudio(),
     );
+    void aplicarRuido();
     await aplicarSaida(r);
+    let modo = lerPreferenciasDeVoz().modo;
     pararDeOuvirPreferencias = assinarPreferenciasDeVoz(() => {
       void trocarDispositivos(r);
+      /* Os dois voltam cedo quando nada mudou: a assinatura acorda a cada
+         passo do deslizante de volume, e isso não pode baixar WASM. */
+      void aplicarRuido();
+      void aplicarFundo();
+      /* Trocar para push-to-talk com a chamada aberta fecha o microfone na
+         hora, e voltar para detecção o reabre. */
+      if (lerPreferenciasDeVoz().modo !== modo) {
+        modo = lerPreferenciasDeVoz().modo;
+        void aplicarMicrofone();
+      }
+      /* Desligar a preferência no meio de uma fala devolve o volume na hora. */
+      if (!lerPreferenciasDeVoz().atenuarOutrosApps) {
+        atenuador.atualizar(false, false, true);
+      }
     });
+    pararDeOuvirTecla = assinarPushToTalk(() => void aplicarMicrofone());
+    pararDeOuvirVolumes = assinarVolumeEfetivo((userId) =>
+      definirVolumeDe(userId, volumeEfetivo(userId)),
+    );
     return true;
   } catch (e) {
     /*
@@ -797,6 +895,11 @@ export async function sairDaChamada(): Promise<void> {
   sala = undefined;
   pararDeOuvirPreferencias?.();
   pararDeOuvirPreferencias = undefined;
+  pararDeOuvirTecla?.();
+  pararDeOuvirTecla = undefined;
+  esquecerProcessadores();
+  pararDeOuvirVolumes?.();
+  pararDeOuvirVolumes = undefined;
   if (!r) return;
   r.removeAllListeners();
   await r.disconnect();
@@ -834,6 +937,202 @@ export async function sairDaChamada(): Promise<void> {
  * causa de uma troca de dispositivo.
  */
 let pararDeOuvirPreferencias: (() => void) | undefined;
+/** Volume individual e silêncio só para mim — ver `store/volumesDeVoz.ts`. */
+let pararDeOuvirVolumes: (() => void) | undefined;
+let pararDeOuvirTecla: (() => void) | undefined;
+
+/** Mudo, surdo e push-to-talk decidindo juntos — ver `microfoneAberto`. */
+function deveTransmitir(): boolean {
+  const c = lerChamada();
+  return microfoneAberto({
+    mudo: c.mudo,
+    surdo: c.surdo,
+    modo: lerPreferenciasDeVoz().modo,
+    segurando: lerSegurando(),
+  });
+}
+
+async function aplicarMicrofone(): Promise<void> {
+  await sala?.localParticipant.setMicrophoneEnabled(deveTransmitir());
+  /* Em push-to-talk a faixa só passa a existir no primeiro aperto. */
+  void aplicarRuido();
+}
+
+/* ------------------------------------------------ processadores de mídia */
+
+/*
+  ⚠ **As duas bibliotecas pesadas NUNCA entram por aqui estaticamente.** O
+  RNNoise (`voz/ruidoForte.ts`) e o segmentador (`voz/fundoDeVideo.ts`) chegam
+  por `await import()`, dentro das funções abaixo, e só quando a opção está
+  ligada — o fundo, só com a câmera aberta. Os `import type` do topo somem na
+  compilação. Quem entra numa chamada com "Padrão" e sem fundo não baixa um
+  byte de nenhum dos dois.
+*/
+
+const NOME_DO_RUIDO = "vortex-ruido-forte";
+
+/**
+ * O contexto do RNNoise, um por chamada.
+ *
+ * ⚠ **Nosso, e não o da `Room`.** O LiveKit só cria contexto com
+ * `webAudioMix`, que está desligado aqui, e o dele nasceria na taxa do
+ * hardware — 44,1 kHz em muita placa. O RNNoise exige 48 kHz; na taxa errada
+ * a voz sai picotada sem erro nenhum.
+ */
+let contextoDeRuido: AudioContext | undefined;
+/** A última tentativa falhou: não tentar de novo até a escolha mudar. */
+let ruidoFalhou = false;
+
+/**
+ * O RNNoise na forma de processador do LiveKit.
+ *
+ * `restart` chega quando a faixa de entrada é trocada (outro microfone) e SEM
+ * `audioContext` — por isso o contexto do `init` fica guardado.
+ */
+function processadorDeRuido(): TrackProcessor<Track.Kind.Audio, AudioProcessorOptions> {
+  let supressor: SupressorDeRuido | undefined;
+  let contexto: AudioContext | undefined;
+  const processador: TrackProcessor<Track.Kind.Audio, AudioProcessorOptions> = {
+    name: NOME_DO_RUIDO,
+    processedTrack: undefined,
+    async init(opts) {
+      contexto = opts.audioContext;
+      const { suprimirRuido } = await import("../voz/ruidoForte");
+      supressor = await suprimirRuido(opts.track, contexto);
+      processador.processedTrack = supressor.faixa;
+    },
+    async restart(opts) {
+      await processador.destroy();
+      if (!contexto) throw new Error("processador reiniciado sem init");
+      await processador.init({ ...opts, audioContext: contexto });
+    },
+    destroy() {
+      supressor?.destruir();
+      supressor = undefined;
+      processador.processedTrack = undefined;
+      return Promise.resolve();
+    },
+  };
+  return processador;
+}
+
+function faixaDoMicrofone(): LocalAudioTrack | undefined {
+  const t = sala?.localParticipant.getTrackPublication(Track.Source.Microphone)?.track;
+  return t instanceof LocalAudioTrack ? t : undefined;
+}
+
+/**
+ * Liga ou desliga a supressão FORTE na faixa do microfone, conforme a
+ * preferência. Coalescida: trocar de nível três vezes seguidas aplica a última.
+ */
+const aplicarRuido = coalescer(async () => {
+  const faixa = faixaDoMicrofone();
+  const quer = querRuidoForte(lerPreferenciasDeVoz().ruido);
+  if (!quer) ruidoFalhou = false;
+  if (!faixa) return;
+  const tem = faixa.getProcessor()?.name === NOME_DO_RUIDO;
+  if (quer === tem || (quer && ruidoFalhou)) return;
+
+  try {
+    if (!quer) {
+      await faixa.stopProcessor();
+      return;
+    }
+    contextoDeRuido ??= new AudioContext({ sampleRate: TAXA_DO_RNNOISE });
+    faixa.setAudioContext(contextoDeRuido);
+    await faixa.setProcessor(processadorDeRuido());
+  } catch (e) {
+    ruidoFalhou = true;
+    /* A faixa segue com a supressão do navegador — a de "Padrão" —, e a
+       pessoa continua sendo ouvida. */
+    toast({
+      tipo: "erro",
+      titulo: "Supressão agressiva indisponível.",
+      descricao: `Seguindo com a supressão padrão. ${motivo(e)}`,
+    });
+  }
+});
+
+/** O que está aplicado na câmera agora, e por qual processador. */
+let fundoAplicado: FundoDeVideo = "nenhum";
+let processadorDeFundo: BackgroundProcessorWrapper | undefined;
+/** A escolha que falhou — não recarregar o modelo a cada preferência mexida. */
+let fundoFalhou: FundoDeVideo | undefined;
+
+function faixaDaCamera(): LocalVideoTrack | undefined {
+  const t = sala?.localParticipant.getTrackPublication(Track.Source.Camera)?.track;
+  return t instanceof LocalVideoTrack ? t : undefined;
+}
+
+/**
+ * Aplica o fundo pedido à faixa da câmera.
+ *
+ * ⚠ **Trocar entre desfoque e imagem NÃO recria o segmentador** — `switchTo`
+ * reaproveita o modelo carregado. Só criar e remover baixam ou soltam o
+ * MediaPipe. Ver `planoDeFundo`.
+ */
+const aplicarFundo = coalescer(async () => {
+  const faixa = faixaDaCamera();
+  /* A faixa trocou ou sumiu: o processador que eu conhecia não está nela. */
+  if (!faixa || (processadorDeFundo && faixa.getProcessor() !== processadorDeFundo)) {
+    processadorDeFundo = undefined;
+    fundoAplicado = "nenhum";
+  }
+  const desejado = fundoEfetivo(lerPreferenciasDeVoz().fundo, lerChamada().camera);
+  if (desejado !== fundoFalhou) fundoFalhou = undefined;
+  if (!faixa || desejado === fundoFalhou) return;
+
+  const plano = planoDeFundo(fundoAplicado, desejado);
+  try {
+    if (plano === "nada") return;
+    if (plano === "remover") {
+      await faixa.stopProcessor();
+      processadorDeFundo = undefined;
+      fundoAplicado = "nenhum";
+      return;
+    }
+    const fundo = await import("../voz/fundoDeVideo");
+    if (plano === "trocar" && processadorDeFundo) {
+      await processadorDeFundo.switchTo(fundo.opcoesDeFundo(desejado));
+      fundoAplicado = desejado;
+      return;
+    }
+    if (desejado === "nenhum") return;
+    if (!fundo.suportaFundo()) {
+      throw new Error("Este navegador não tem WebGL2 para segmentar o vídeo.");
+    }
+    const novo = fundo.criarProcessadorDeFundo(desejado);
+    await faixa.setProcessor(novo);
+    processadorDeFundo = novo;
+    fundoAplicado = desejado;
+  } catch (e) {
+    fundoFalhou = desejado;
+    toast({
+      tipo: "erro",
+      titulo: "Fundo do vídeo indisponível.",
+      descricao: e instanceof Error ? e.message : "O vídeo segue sem efeito.",
+    });
+  }
+});
+
+/** A sala acabou; o que era dela também. As faixas morrem com o `disconnect`. */
+function esquecerProcessadores(): void {
+  processadorDeFundo = undefined;
+  fundoAplicado = "nenhum";
+  fundoFalhou = undefined;
+  ruidoFalhou = false;
+  void contextoDeRuido?.close();
+  contextoDeRuido = undefined;
+}
+
+/**
+ * Baixa os outros programas enquanto alguém fala — ver `sdk/atenuacao.ts`.
+ * Sem a ponte da casca (navegador) é inerte: a web não mexe no volume de
+ * outros programas.
+ */
+const atenuador = criarAtenuador({
+  enviar: (sim) => ponteDeAtenuacao()?.atenuar(sim),
+});
 
 async function aplicarSaida(r: Room): Promise<void> {
   const { saidaId } = lerPreferenciasDeVoz();
@@ -882,8 +1181,8 @@ function traduzirQualidade(q: ConnectionQuality): QualidadeDeVoz {
 export async function alternarMudo(): Promise<void> {
   // A regra é do store; aqui só se APLICA no transporte. Ver
   // `alternarMudoNoStore`.
-  const mudo = alternarMudoNoStore();
-  await sala?.localParticipant.setMicrophoneEnabled(!mudo);
+  alternarMudoNoStore();
+  await aplicarMicrofone();
 }
 
 /**
@@ -895,8 +1194,8 @@ export async function alternarMudo(): Promise<void> {
  * estava muda antes, voltar a transmitir seria uma decisão que ela não tomou.
  */
 export async function alternarSurdo(): Promise<void> {
-  const { surdo, mudo } = alternarSurdoNoStore();
-  await sala?.localParticipant.setMicrophoneEnabled(!surdo && !mudo);
+  const { surdo } = alternarSurdoNoStore();
+  await aplicarMicrofone();
 
   const el = elementoDeAudio();
   for (const audio of el.querySelectorAll("audio")) audio.muted = surdo;
@@ -941,6 +1240,8 @@ export async function alternarCamera(): Promise<void> {
   try {
     await p.setCameraEnabled(camera);
     definirChamada({ camera });
+    /* Depois do store: `fundoEfetivo` lê a câmera dele. */
+    void aplicarFundo();
     publicarVideoLocal(p, "camera", Track.Source.Camera, camera);
   } catch {
     // Permissão negada é o caso comum, e não é erro do app.

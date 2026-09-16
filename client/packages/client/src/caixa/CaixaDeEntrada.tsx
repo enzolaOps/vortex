@@ -3,9 +3,8 @@ import { useState } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
-import { enviarMensagem, marcarCanalLido } from "../sdk/adapter";
-import { aindaNao } from "../pendente/pendencias";
-import { contagem } from "../lib/plural";
+import { enviarMensagem, marcarCanalLido, marcarTodosLidos } from "../sdk/adapter";
+import { contagem, plural } from "../lib/plural";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
 import { irPara } from "../store/navegacao";
 import {
@@ -14,6 +13,8 @@ import {
   useMessage,
   useServer,
   useServerIds,
+  useTopico,
+  useTopicosQueSigo,
   useTotaisNaoLidos,
 } from "../store/hooks";
 import css from "./CaixaDeEntrada.module.css";
@@ -37,6 +38,59 @@ type Aba = "mencoes" | "naoLidos" | "topicos";
  * `topicos`) — esconder a aba faria parecer que não há tópicos, que é uma
  * afirmação diferente de "isto ainda não existe".
  */
+type Marcacao =
+  | { readonly fase: "ocioso" }
+  | { readonly fase: "marcando"; readonly feitos: number; readonly total: number }
+  | { readonly fase: "erro"; readonly falhas: number };
+
+/**
+ * "Marcar tudo como lido", com os três estados que uma fila de rede tem.
+ *
+ * ⚠ **Estado LOCAL e não store**, e é a exceção consciente à lei nº 1: isto não
+ * é dado de entidade, é o progresso de UM clique neste painel — ninguém fora
+ * dele precisa saber que ele está marcando. As contagens em si continuam no
+ * adapter, e é por lá que as linhas somem conforme o servidor confirma.
+ *
+ * O progresso aparece no próprio rótulo ("Marcando 4 de 12…") em vez de um
+ * girador: a fila tem concorrência três, então com dezenas de canais leva
+ * segundos, e um número que anda diz que não travou. A lista não espera — cada
+ * canal sai dela quando o `ack` dele volta.
+ */
+function MarcarTudo() {
+  const [m, setM] = useState<Marcacao>({ fase: "ocioso" });
+
+  const marcar = async () => {
+    setM({ fase: "marcando", feitos: 0, total: 0 });
+    const r = await marcarTodosLidos((feitos, total) =>
+      setM({ fase: "marcando", feitos, total }),
+    );
+    setM(r.falhas > 0 ? { fase: "erro", falhas: r.falhas } : { fase: "ocioso" });
+  };
+
+  if (m.fase === "marcando") {
+    return (
+      <button type="button" className={css.marcarTudo} disabled aria-live="polite">
+        {m.total > 0
+          ? `Marcando ${String(m.feitos)} de ${String(m.total)}…`
+          : "Marcando…"}
+      </button>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={css.marcarTudo}
+      data-erro={m.fase === "erro" || undefined}
+      onClick={() => void marcar()}
+    >
+      {m.fase === "erro"
+        ? `${plural(m.falhas, "canal ficou", "canais ficaram")} sem marcar · tentar de novo`
+        : "Marcar tudo como lido"}
+    </button>
+  );
+}
+
 export function CaixaDeEntrada({ aoFechar }: { aoFechar?: () => void }) {
   const [aba, setAba] = useState<Aba>("mencoes");
   const servidores = useServerIds();
@@ -48,13 +102,7 @@ export function CaixaDeEntrada({ aoFechar }: { aoFechar?: () => void }) {
         <div className={css.linhaDoTitulo}>
           <span className={css.titulo}>Caixa de entrada</span>
           <div className={css.acoesDoTitulo}>
-            <button
-              type="button"
-              className={css.marcarTudo}
-              onClick={aindaNao("marcarTudoLido")}
-            >
-              Marcar tudo como lido
-            </button>
+            <MarcarTudo />
             {aoFechar ? (
               <button
                 type="button"
@@ -122,17 +170,88 @@ export function CaixaDeEntrada({ aoFechar }: { aoFechar?: () => void }) {
 
       <div className={css.lista} tabIndex={0} role="tabpanel">
         {aba === "topicos" ? (
-          <EstadoVazio
-            compacto
-            titulo="Tópicos ainda não existem"
-            detalhe="Depende de threads no protocolo — ver o registro de pendências."
-          />
+          <TopicosQueSigo />
         ) : (
           servidores.map((id) => (
             <GrupoDeServidor key={id} serverId={id} aba={aba} />
           ))
         )}
       </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------- tópicos */
+
+/**
+ * A aba de tópicos: os que eu SIGO, de todos os servidores.
+ *
+ * Seguir é o gesto que diz "quero saber quando responderem" — é o recorte
+ * certo para uma caixa de entrada. A lista vem do store de tópicos, já
+ * ordenada por última atividade, e cada linha assina o próprio tópico e o
+ * próprio canal (a contagem de não-lidas é do canal: tópico é canal).
+ */
+function TopicosQueSigo() {
+  const ids = useTopicosQueSigo();
+  if (ids.length === 0) {
+    return (
+      <EstadoVazio
+        compacto
+        titulo="Nenhum tópico seguido"
+        detalhe="Responder num tópico passa a segui-lo — e as respostas dele aparecem aqui."
+      />
+    );
+  }
+  return (
+    <>
+      {ids.map((id) => (
+        <LinhaDeTopico key={id} id={id} />
+      ))}
+    </>
+  );
+}
+
+function LinhaDeTopico({ id }: { id: string }) {
+  const t = useTopico(id);
+  const canal = useChannel(id);
+  const pai = useChannel(t?.paiId ?? "");
+  const servidor = useServer(t?.serverId ?? "");
+  const ultima = useMessage(canal?.ultimaMensagemId ?? "");
+
+  if (!t) return null;
+  const naoLidas = canal?.naoLidas ?? 0;
+
+  return (
+    <div className={css.item} data-destaque={naoLidas > 0 || undefined}>
+      <button
+        type="button"
+        className={css.abrir}
+        onClick={() => (t.serverId ? irPara(t.serverId, id) : undefined)}
+      >
+        <span className={css.contexto}>
+          {servidor ? (
+            <Avatar id={servidor.id} sigla={servidor.sigla} url={servidor.avatarUrl} tamanho="xxs" />
+          ) : null}
+          <span className={css.servidor}>{t.nome}</span>
+          {pai ? <span className={css.canal}>#{pai.name}</span> : null}
+          <span className={css.espaco} />
+          {naoLidas > 0 ? <span className={css.badge}>{contagem(naoLidas)}</span> : null}
+          <span className={css.hora}>{ultima?.createdAtCurto ?? ""}</span>
+        </span>
+        {ultima ? (
+          <span className={css.mensagem}>
+            <Avatar id={ultima.authorId ?? ""} tamanho="xs" />
+            <span className={css.mensagemTexto}>
+              {ultima.authorId ? (
+                <span className={css.mensagemAutor}>
+                  <NomeDoAutor userId={ultima.authorId} denso />
+                </span>
+              ) : null}
+              <span className={css.mensagemCorpo}>{ultima.content}</span>
+            </span>
+          </span>
+        ) : null}
+      </button>
     </div>
   );
 }

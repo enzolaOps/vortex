@@ -1,5 +1,8 @@
+import { decodeTime } from "ulid";
+
 import { client } from "./client";
 import { toast } from "../components/ui/toastStore";
+import { escolherAutor, type TipoDeConteudo } from "../busca/filtros";
 
 /**
  * Busca de mensagens — a camada anticorrupção.
@@ -8,11 +11,18 @@ import { toast } from "../components/ui/toastStore";
  * `limit` e os cursores `before`/`after`. É `POST /channels/{id}/search`, e
  * `stoat.js` o expõe como `Channel.search`.
  *
- * ⚠ **O que ele NÃO tem, e a tela desenha:** filtro por autor (`de:marina`),
- * por tipo de anexo (`tem:arquivo`) e busca em TODOS os canais do servidor. Os
- * três estão no registro de pendências. Fazer o filtro no cliente seria pior
- * que não tê-lo: a busca devolve uma página de resultados, então filtrar
- * depois esvaziaria páginas inteiras e a contagem mentiria.
+ * ⚠ **O que o servidor do Vortex acrescenta:** `author` (`de:marina`) e `has`
+ * (`tem:arquivo`). As datas (`antes:`/`depois:`/`durante:`) não precisaram de
+ * campo: viram os cursores `before`/`after`, que já existiam. Filtrar no
+ * CLIENTE seria pior que não ter filtro — a busca devolve uma página, e
+ * filtrar depois esvaziaria páginas inteiras.
+ *
+ * **Busca no servidor inteiro é do fork** (`POST /servers/{id}/search`, serviço
+ * `api` do Vortex): mesmos parâmetros, filtros e cursores, e o SERVIDOR tira da
+ * consulta os canais que a pessoa não pode ler antes de ir ao banco. Varrer N
+ * canais no cliente seriam N chamadas e uma ordenação que nenhuma delas conhece
+ * — por isso a rota, e não um laço aqui. Um servidor Stoat de fábrica responde
+ * 404, que chega à tela como falha de busca, não como "nada encontrado".
  *
  * ⚠ **Paginação é por CURSOR, não por página.** O protocolo não sabe "página
  * 3"; sabe "antes desta mensagem". O store guarda a pilha de cursores, que é o
@@ -33,6 +43,37 @@ export type ResultadoDeBusca = {
 };
 
 export type OrdemDeBusca = "recentes" | "relevantes";
+
+/** `tem:` → o `has` do servidor do Vortex. Não sai daqui. */
+const HAS: Record<TipoDeConteudo, string> = {
+  arquivo: "Attachment",
+  imagem: "Image",
+  video: "Video",
+  audio: "Audio",
+  link: "Link",
+};
+
+/**
+ * `de:nome` → o ID de alguém que a sessão conhece.
+ *
+ * Varre as pessoas em cache: quem escreveu no canal aparece nele, e buscar
+ * alguém que a sessão nunca viu por nome exigiria uma rota que não existe.
+ */
+export function resolverAutor(nome: string, channelId: string): string | undefined {
+  const serverId = client.channels.get(channelId)?.serverId || undefined;
+  const candidatos = client.users.toList().map((u) => {
+    const apelido = serverId
+      ? client.serverMembers.getByKey({ server: serverId, user: u.id })?.nickname
+      : undefined;
+    return {
+      id: u.id,
+      nomes: [u.username, u.displayName, apelido].filter(
+        (n): n is string => typeof n === "string" && n.length > 0,
+      ),
+    };
+  });
+  return escolherAutor(nome, candidatos);
+}
 
 /** A grafia do protocolo. Não sai daqui. */
 const SORT = {
@@ -56,22 +97,120 @@ const HORA = new Intl.DateTimeFormat("pt-BR", {
   minute: "2-digit",
 });
 
-export async function buscarNoCanal(opcoes: {
-  channelId: string;
+/** Mensagem crua do protocolo — só o que a prévia usa. Não sai daqui. */
+type MensagemCrua = {
+  _id: string;
+  channel: string;
+  author?: string;
+  content?: string | null;
+  attachments?: { filename?: string }[] | null;
+};
+
+/**
+ * Traduz a resposta crua da busca de servidor.
+ *
+ * A rota do fork devolve `BulkMessageResponse` sem hidratar — `Message` do SDK
+ * não passa por aqui, então o instante sai do ULID (é o mesmo que o SDK faz em
+ * `createdAt`). Aceita as duas formas da resposta: lista pura, ou
+ * `{messages}` quando alguém pedir `include_users`.
+ */
+export function traduzirResultadosCrus(
+  resposta: unknown,
+  nomeDoCanal: (channelId: string) => string,
+): readonly ResultadoDeBusca[] {
+  const lista = Array.isArray(resposta)
+    ? resposta
+    : (resposta as { messages?: unknown } | null)?.messages;
+  if (!Array.isArray(lista)) return [];
+  return (lista as MensagemCrua[])
+    .filter((m) => typeof m?._id === "string" && typeof m.channel === "string")
+    .map((m) => {
+      let quando = "";
+      try {
+        quando = HORA.format(decodeTime(m._id));
+      } catch {
+        /* ID fora da forma ULID: a prévia fica sem hora, e não com a de agora. */
+      }
+      return {
+        id: m._id,
+        channelId: m.channel,
+        nomeDoCanal: nomeDoCanal(m.channel),
+        autorId: m.author,
+        conteudo: m.content ?? "",
+        quando,
+        anexo: m.attachments?.[0]?.filename,
+      };
+    });
+}
+
+/** O servidor do canal, ou nada — DM e grupo não têm onde buscar "no servidor". */
+export function servidorDoCanal(channelId: string): string | undefined {
+  return client.channels.get(channelId)?.serverId ?? undefined;
+}
+
+export async function buscarNoServidor(opcoes: {
+  serverId: string;
+  /** Texto livre. Vazio é legítimo quando há filtro — "tudo de marina". */
   consulta: string;
   ordem: OrdemDeBusca;
-  /** ID da mensagem antes da qual buscar — a página seguinte. */
   antesDe: string | undefined;
+  depoisDe?: string | undefined;
+  autorId?: string | undefined;
+  tem?: TipoDeConteudo | undefined;
+}): Promise<readonly ResultadoDeBusca[] | undefined> {
+  try {
+    const resposta: unknown = await client.api.post(
+      `/servers/${opcoes.serverId}/search` as never,
+      {
+        /* O servidor valida `query` com tamanho mínimo 1: vazio vai AUSENTE. */
+        ...(opcoes.consulta.length > 0 ? { query: opcoes.consulta } : {}),
+        sort: SORT[opcoes.ordem],
+        limit: POR_PAGINA,
+        ...(opcoes.antesDe !== undefined ? { before: opcoes.antesDe } : {}),
+        ...(opcoes.depoisDe !== undefined ? { after: opcoes.depoisDe } : {}),
+        ...(opcoes.autorId !== undefined ? { author: opcoes.autorId } : {}),
+        ...(opcoes.tem !== undefined ? { has: HAS[opcoes.tem] } : {}),
+      } as never,
+    );
+    return traduzirResultadosCrus(
+      resposta,
+      (id) => client.channels.get(id)?.name ?? "canal",
+    );
+  } catch (e) {
+    toast({
+      tipo: "erro",
+      titulo: "A busca no servidor não foi.",
+      descricao: e instanceof Error ? e.message : "Tente de novo.",
+    });
+    return undefined;
+  }
+}
+
+export async function buscarNoCanal(opcoes: {
+  channelId: string;
+  /** Texto livre. Vazio é legítimo quando há filtro — "tudo de marina". */
+  consulta: string;
+  ordem: OrdemDeBusca;
+  /** ID da mensagem antes da qual buscar — a página seguinte ou `antes:`. */
+  antesDe: string | undefined;
+  /** `depois:` e o começo de `durante:`. */
+  depoisDe?: string | undefined;
+  autorId?: string | undefined;
+  tem?: TipoDeConteudo | undefined;
 }): Promise<readonly ResultadoDeBusca[] | undefined> {
   const canal = client.channels.get(opcoes.channelId);
   if (!canal) return undefined;
 
   try {
     const mensagens = await canal.search({
-      query: opcoes.consulta,
+      /* O servidor valida `query` com tamanho mínimo 1: vazio vai AUSENTE. */
+      ...(opcoes.consulta.length > 0 ? { query: opcoes.consulta } : {}),
       sort: SORT[opcoes.ordem],
       limit: POR_PAGINA,
       ...(opcoes.antesDe !== undefined ? { before: opcoes.antesDe } : {}),
+      ...(opcoes.depoisDe !== undefined ? { after: opcoes.depoisDe } : {}),
+      ...(opcoes.autorId !== undefined ? { author: opcoes.autorId } : {}),
+      ...(opcoes.tem !== undefined ? { has: HAS[opcoes.tem] } : {}),
     });
 
     return mensagens.map((m) => ({

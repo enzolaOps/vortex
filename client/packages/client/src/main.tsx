@@ -2,9 +2,16 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { ligarSonsDeVoz } from "./som/sons";
+import { ligarAtalhosDeVoz } from "./sdk/atalhosDeVoz";
+import { ligarChamadasRecebidas } from "./notificacao/chamadas";
+import { ROTA_DO_OVERLAY } from "./overlay/modelo";
+import { Overlay } from "./overlay/Overlay";
+import { ligarPublicadorDoOverlay } from "./overlay/publicador";
+import { ligarLembretesDeEventos } from "./eventos/lembretes";
 
 import { ARNES_ATIVO } from "./dev/arnesAtivo";
 import { ligarRota } from "./rota/rota";
+import { ouvirCliquesDoPush } from "./notificacao/push";
 import { iniciarPintura } from "./tema/pintor";
 import { App } from "./App";
 import { PortaoDeSessao } from "./sessao/PortaoDeSessao";
@@ -19,6 +26,19 @@ import "./styles/tokens.css";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("#root ausente no index.html");
+
+/*
+  ⚠ **A janela do overlay do jogo carrega ESTE cliente, e para aqui.** Ela só
+  quer tokens, fontes e componentes: sem sessão, sem rota, sem socket, sem
+  sons nem atalhos — tudo o que ela desenha chega pela casca. Seguir adiante
+  abriria uma segunda conexão por janela e dispararia os atalhos em dobro.
+*/
+if (location.pathname === ROTA_DO_OVERLAY) {
+  document.documentElement.dataset.theme = "dark";
+  document.documentElement.style.background = "transparent";
+  document.body.style.background = "transparent";
+  createRoot(root).render(<Overlay />);
+} else {
 
 iniciarPintura();
 
@@ -67,6 +87,34 @@ if (!ARNES_ATIVO) ligarRota();
   lugar onde dá para ouvir os quatro sem um servidor.
 */
 ligarSonsDeVoz();
+
+/*
+  Push-to-talk, mutar, ensurdecer e desconectar pelo teclado — e, no desktop,
+  com o app em segundo plano. Module-level pelo mesmo motivo dos sons: assina
+  stores e teclado, e nenhum componente vive o mesmo tanto que a sessão.
+*/
+ligarAtalhosDeVoz();
+
+/*
+  O clique numa notificação de push, com o Vortex já aberto: o service worker
+  manda o caminho e esta aba o aplica pelo roteador. Module-level pelo mesmo
+  motivo da rota — `navigator.serviceWorker` não pertence a componente nenhum.
+*/
+if (!ARNES_ATIVO) ouvirCliquesDoPush();
+
+/*
+  O relógio da chamada recebida — o toque que repete, a expiração e o "já
+  atendeu por outro caminho". Module-level pela mesma razão dos sons: o toque
+  precisa continuar mesmo quando o aviso na tela não está montado.
+*/
+ligarChamadasRecebidas();
+
+/* O que o overlay do jogo mostra — só na casca, e só nesta janela. */
+ligarPublicadorDoOverlay();
+
+/* O lembrete de "10 minutos antes" dos eventos. Module-level pelo mesmo
+   motivo dos sons: varre stores, e vive o tanto que a sessão vive. */
+ligarLembretesDeEventos();
 
 createRoot(root).render(
   <StrictMode>
@@ -128,3 +176,4 @@ createRoot(root).render(
       </TooltipProvider>
   </StrictMode>,
 );
+}

@@ -64,6 +64,22 @@
   background: var(--vx-surface-1);
 }
 
+/* O emblema enviado ocupa a mesma caixa do vazio — trocar não reflui a linha. */
+.emblemaImagem {
+  flex: none;
+  inline-size: 44px;
+  block-size: 44px;
+  border-radius: var(--vx-radius-08);
+  object-fit: cover;
+  background: var(--vx-surface-1);
+}
+
+/* O `input` nativo, acionado pelo botão. `display: none` e não opacidade zero:
+   sem parada de tabulação invisível. */
+.seletorDeArquivo {
+  display: none;
+}
+
 /* ------------------------------------------------- prévia */
 
 .previa {

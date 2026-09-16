@@ -5,14 +5,27 @@ import {
   Menu,
   MenuItem,
   app,
+  dialog,
   ipcMain,
   nativeImage,
+  screen,
 } from "electron";
 
 import windowIconAsset from "../../assets/icon.png?asset";
 
 import { config } from "./config";
+import { aplicarPreferenciasNaJanela, capturarEmUso } from "./preferencias";
+import {
+  assinaturaDasTelas,
+  cabeNasTelas,
+  estadoParaRestaurar,
+  guardarEstado,
+} from "./preferenciasDoCliente";
+import { registrarAtenuacao } from "./atenuacao";
 import { registrarAudioDaJanela } from "./audioDaJanela";
+import { registrarControles } from "./controles";
+import { registrarNotificacoes } from "./notificacoes";
+import { registrarOverlay } from "./overlay";
 import { registrarSeletorDeTela } from "./telaCompartilhada";
 import { updateTrayMenu } from "./tray";
 
@@ -43,12 +56,28 @@ export function createMainWindow() {
     app.commandLine.hasSwitch("hidden") || config.startMinimisedToTray;
   const isMacOS = process.platform === "darwin";
 
+  /*
+    ⚠ **O estado é do ARRANJO de monitores**, e vem antes de criar a janela
+    — a posição entra no construtor em vez de um `setPosition` depois, que
+    fazia a janela nascer num lugar e pular para outro. Com "Lembrar tamanho e
+    posição" desligado, ou arranjo nunca visto, ela nasce no padrão centrado.
+  */
+  /* Antes de ler `customFrame` para a moldura: o que a janela usa é o "em uso". */
+  capturarEmUso();
+  const telas = screen.getAllDisplays();
+  const salvo = config.lembrarJanela
+    ? (estadoParaRestaurar(config.janelasPorArranjo, telas) ??
+      /* A casca anterior guardava um estado só; ele ainda vale se couber. */
+      (cabeNasTelas(config.windowState, telas) ? config.windowState : undefined))
+    : undefined;
+
   // create the window
   mainWindow = new BrowserWindow({
     minWidth: 300,
     minHeight: 300,
-    width: 1280,
-    height: 720,
+    width: salvo?.width ?? 1280,
+    height: salvo?.height ?? 720,
+    ...(salvo ? { x: salvo.x, y: salvo.y } : {}),
     backgroundColor: "#191919",
     frame: isMacOS ? true : !config.customFrame,
     titleBarStyle: isMacOS ? "hidden" : "default",
@@ -67,38 +96,36 @@ export function createMainWindow() {
   // hide the options
   mainWindow.setMenu(null);
 
-  // restore last position if it was moved previously
-  if (config.windowState.x > 0 || config.windowState.y > 0) {
-    mainWindow.setPosition(
-      config.windowState.x ?? 0,
-      config.windowState.y ?? 0,
-    );
-  }
-
-  // restore last size if it was resized previously
-  if (config.windowState.width > 0 && config.windowState.height > 0) {
-    mainWindow.setSize(
-      config.windowState.width ?? 1280,
-      config.windowState.height ?? 720,
-    );
-  }
-
   // maximise the window if it was maximised before
-  if (config.windowState.isMaximised && !startHidden) {
+  if (salvo?.isMaximised && !startHidden) {
     mainWindow.maximize();
   }
+
+  aplicarPreferenciasNaJanela();
 
   // load the entrypoint
   mainWindow
     .loadURL(BUILD_URL.toString())
     .then(() => mainWindow.webContents.reload());
 
-  // minimise window to tray
+  /*
+    "Ao fechar a janela" — bandeja, encerrar ou perguntar.
+
+    ⚠ **`encerrar` não chama `app.quit()`: deixa o `close` seguir.** A janela
+    fecha, `window-all-closed` encerra (fora do macOS, onde o app fica no dock
+    como o sistema espera). E `shouldQuit` ganha de tudo: "Sair do Vortex" na
+    bandeja e reiniciar não podem cair na pergunta.
+  */
   mainWindow.on("close", (event) => {
-    if (!shouldQuit && config.minimiseToTray) {
-      event.preventDefault();
+    if (shouldQuit) return;
+    const acao = config.aoFechar;
+    if (acao === "encerrar") return;
+    event.preventDefault();
+    if (acao === "bandeja") {
       mainWindow.hide();
+      return;
     }
+    void perguntarAoFechar();
   });
 
   // update tray menu when window is shown/hidden
@@ -107,13 +134,24 @@ export function createMainWindow() {
 
   // keep track of window state
   function generateState() {
-    config.windowState = {
-      x: mainWindow.getPosition()[0],
-      y: mainWindow.getPosition()[1],
-      width: mainWindow.getSize()[0],
-      height: mainWindow.getSize()[1],
+    /* Maximizada, guarda o tamanho NORMAL: restaurar de um maximizado para o
+       tamanho da tela inteira deixaria "desmaximizar" sem efeito. */
+    const b = mainWindow.getNormalBounds();
+    const estado = {
+      x: b.x,
+      y: b.y,
+      width: b.width,
+      height: b.height,
       isMaximised: mainWindow.isMaximized(),
     };
+    config.windowState = estado;
+    if (config.lembrarJanela) {
+      config.janelasPorArranjo = guardarEstado(
+        config.janelasPorArranjo,
+        assinaturaDasTelas(screen.getAllDisplays()),
+        estado,
+      );
+    }
   }
 
   mainWindow.on("maximize", generateState);
@@ -205,6 +243,10 @@ export function createMainWindow() {
   */
   registrarSeletorDeTela();
   registrarAudioDaJanela();
+  registrarControles();
+  registrarNotificacoes();
+  registrarOverlay();
+  registrarAtenuacao();
 
   // push world events to the window
   ipcMain.on("minimise", () => mainWindow.minimize());
@@ -215,6 +257,40 @@ export function createMainWindow() {
 
   // mainWindow.webContents.openDevTools();
 
+}
+
+let perguntando = false;
+
+/**
+ * "Perguntar sempre": o que fazer com ESTE fechamento, e opcionalmente com os
+ * próximos. Uma pergunta por vez — dois cliques no X não empilham diálogos.
+ */
+async function perguntarAoFechar(): Promise<void> {
+  if (perguntando || !mainWindow || mainWindow.isDestroyed()) return;
+  perguntando = true;
+  try {
+    const { response, checkboxChecked } = await dialog.showMessageBox(mainWindow, {
+      type: "question",
+      title: "Fechar o Vortex",
+      message: "O que fazer ao fechar a janela?",
+      detail: "Na bandeja, o Vortex continua recebendo mensagens e chamadas.",
+      buttons: ["Minimizar para a bandeja", "Encerrar o app", "Cancelar"],
+      defaultId: 0,
+      cancelId: 2,
+      checkboxLabel: "Lembrar a escolha",
+      noLink: true,
+    });
+    if (response === 2) return;
+    const acao = response === 0 ? "bandeja" : "encerrar";
+    if (checkboxChecked) {
+      config.aoFechar = acao;
+      config.minimiseToTray = acao === "bandeja";
+    }
+    if (acao === "bandeja") mainWindow.hide();
+    else quitApp();
+  } finally {
+    perguntando = false;
+  }
 }
 
 /**

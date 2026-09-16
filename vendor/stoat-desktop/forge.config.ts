@@ -6,6 +6,7 @@ import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import { VitePlugin } from "@electron-forge/plugin-vite";
 import type { ForgeConfig } from "@electron-forge/shared-types";
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -34,10 +35,9 @@ const makers: ForgeConfig["makers"] = [
    * install fine and never update again, which is the state this whole
    * pipeline exists to end.
    *
-   * ⚠ The build is UNSIGNED, and the consequence is visible: SmartScreen warns
-   * on first install. Signing needs a code-signing certificate; auto-update
-   * itself works unsigned on Windows, so the warning is a one-time cost at
-   * install, not a permanent one. Stated here rather than discovered later.
+   * ⚠ Signing is OPTIONAL: without a certificate SmartScreen warns once at
+   * install. Auto-update itself works unsigned on Windows, so the warning is a
+   * one-time cost, not a permanent one.
    *
    * Forge skips makers that do not support the host platform, so this one is
    * inert on the Linux runner and the Flatpak one is inert on Windows. No
@@ -46,6 +46,23 @@ const makers: ForgeConfig["makers"] = [
   new MakerSquirrel({
     name: STRINGS.execName,
     setupIcon: `${ASSET_DIR}/icon.ico`,
+    /*
+      ⚠ Nome SEM versão: o botão "Baixar para desktop" do cliente aponta para
+      `releases/latest/download/Vortex-Setup.exe`, e um nome com a versão
+      dentro mudaria a cada release e quebraria o link.
+    */
+    setupExe: "Vortex-Setup.exe",
+    /*
+      Assinatura OPCIONAL. Com o secret configurado no CI, o instalador e o
+      executável saem assinados e o SmartScreen para de avisar; sem ele, o
+      build segue sem assinatura em vez de falhar. Ver o workflow do desktop.
+    */
+    ...(process.env.WINDOWS_CERTIFICATE_FILE
+      ? {
+          certificateFile: process.env.WINDOWS_CERTIFICATE_FILE,
+          certificatePassword: process.env.WINDOWS_CERTIFICATE_PASSWORD,
+        }
+      : {}),
   }),
   new MakerFlatpak({
     options: {
@@ -141,6 +158,18 @@ const config: ForgeConfig = {
     // Copy the node-pipewire dist to the app on linux
     packageAfterCopy: async (_config, buildPath, _version, platform) => {
       /*
+        Atalhos de voz globais (`src/native/controles.ts`), em todas as
+        plataformas. `node-gyp-build` é quem acha o binário pronto dentro de
+        `prebuilds/`.
+      */
+      for (const pacote of ["uiohook-napi", "node-gyp-build"]) {
+        fs.cpSync(
+          path.join("node_modules", pacote),
+          path.join(buildPath, "node_modules", pacote),
+          { recursive: true },
+        );
+      }
+      /*
         O som de UMA janela compartilhada, no Windows — ver
         `src/native/audioDaJanela.ts`. Os dois são `external` no Vite e ficam
         fora do pacote como o `node-pipewire`; sem a cópia, o `import()` falha
@@ -154,6 +183,8 @@ const config: ForgeConfig = {
           "file-uri-to-path",
           "koffi",
           "@koromix/koffi-win32-x64",
+          /* "Atenuar outros apps" — `src/native/atenuacao.ts`. */
+          "native-sound-mixer",
         ]) {
           fs.cpSync(
             path.join("node_modules", pacote),
@@ -161,6 +192,29 @@ const config: ForgeConfig = {
             { recursive: true },
           );
         }
+        /*
+          ⚠ **O `.node` do native-sound-mixer é trocado pelo compilado do
+          FONTE.** O pacote do npm só traz o binário; ver
+          `scripts/compilar-sound-mixer.mjs`. Falhar aqui falha o build — sem
+          recuo para o binário publicado.
+        */
+        const compilado = execFileSync(
+          process.execPath,
+          [path.join("scripts", "compilar-sound-mixer.mjs")],
+          { stdio: ["ignore", "pipe", "inherit"] },
+        )
+          .toString()
+          .trim();
+        const destino = path.join(
+          buildPath,
+          "node_modules",
+          "native-sound-mixer",
+          "dist",
+          "addons",
+        );
+        fs.copyFileSync(compilado, path.join(destino, "win-sound-mixer.node"));
+        /* O de Linux do pacote não roda no Windows e não tem fonte conferido. */
+        fs.rmSync(path.join(destino, "linux-sound-mixer.node"), { force: true });
       }
       if (platform === "linux") {
         // Copy only the files we need to run the code, which is dist, LICENSE, and package.json

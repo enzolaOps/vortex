@@ -115,6 +115,22 @@ auto_derived!(
             /// The channel's slowmode delay in seconds
             #[serde(skip_serializing_if = "Option::is_none")]
             slowmode: Option<u64>,
+
+            /// Vortex: present when this channel's content is posts (forum or media)
+            #[serde(skip_serializing_if = "Option::is_none", default)]
+            forum: Option<v0::ForumInformation>,
+
+            /// Vortex: present when this channel is a thread inside another channel
+            #[serde(skip_serializing_if = "Option::is_none", default)]
+            thread: Option<v0::ThreadInformation>,
+
+            /// Vortex: whether all media in this channel is hidden behind a spoiler
+            #[serde(skip_serializing_if = "crate::if_false", default)]
+            spoiler: bool,
+
+            /// Vortex: whether joining through this channel's invites is paused
+            #[serde(skip_serializing_if = "crate::if_false", default)]
+            invites_paused: bool,
         },
     }
 
@@ -123,6 +139,25 @@ auto_derived!(
         /// Maximium amount of users allowed in the voice channel at once
         #[serde(skip_serializing_if = "Option::is_none")]
         pub max_users: Option<usize>,
+        /// Audio bitrate for this voice channel, in kbps (Vortex)
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub bitrate: Option<u32>,
+        /// Voice node pinned for this channel (Vortex)
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub rtc_region: Option<String>,
+        /// Video quality ceiling for this voice channel (Vortex)
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub video_quality: Option<VideoQualityMode>,
+    }
+
+    /// Video quality ceiling of a voice channel (Vortex)
+    pub enum VideoQualityMode {
+        #[serde(rename = "auto")]
+        Auto,
+        #[serde(rename = "720p30")]
+        Hd720p30,
+        #[serde(rename = "1080p60")]
+        Hd1080p60,
     }
 );
 
@@ -153,6 +188,14 @@ auto_derived!(
         pub voice: Option<VoiceInformation>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub slowmode: Option<u64>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub forum: Option<v0::ForumInformation>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub thread: Option<v0::ThreadInformation>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub spoiler: Option<bool>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub invites_paused: Option<bool>,
     }
 
     /// Optional fields on channel object
@@ -215,6 +258,10 @@ impl Channel {
                 nsfw: data.nsfw.unwrap_or(false),
                 voice: data.voice.map(|voice| voice.into()),
                 slowmode: None,
+                forum: None,
+                thread: None,
+                spoiler: false,
+                invites_paused: false,
             },
             v0::LegacyServerChannelType::Voice => Channel::TextChannel {
                 id: id.clone(),
@@ -228,7 +275,35 @@ impl Channel {
                 nsfw: data.nsfw.unwrap_or(false),
                 voice: Some(data.voice.unwrap_or_default().into()),
                 slowmode: None,
+                forum: None,
+                thread: None,
+                spoiler: false,
+                invites_paused: false,
             },
+            // Vortex: forum and media are text channels with a `forum` object,
+            // so clients that do not know the concept still see a text channel.
+            v0::LegacyServerChannelType::Forum | v0::LegacyServerChannelType::Media => {
+                Channel::TextChannel {
+                    id: id.clone(),
+                    server: server.id.to_owned(),
+                    name: data.name,
+                    description: data.description,
+                    icon: None,
+                    last_message_id: None,
+                    default_permissions: None,
+                    role_permissions: HashMap::new(),
+                    nsfw: data.nsfw.unwrap_or(false),
+                    voice: None,
+                    slowmode: None,
+                    forum: Some(v0::ForumInformation {
+                        media: matches!(data.channel_type, v0::LegacyServerChannelType::Media),
+                        tags: vec![],
+                    }),
+                    thread: None,
+                    spoiler: false,
+                    invites_paused: false,
+                }
+            }
         };
 
         db.insert_channel(&channel).await?;
@@ -445,6 +520,92 @@ impl Channel {
         }
     }
 
+    /// Vortex: this channel's thread information, when it is a thread
+    pub fn thread(&self) -> Option<&v0::ThreadInformation> {
+        match self {
+            Channel::TextChannel {
+                thread: Some(thread),
+                ..
+            } => Some(thread),
+            _ => None,
+        }
+    }
+
+    /// Vortex: this channel's forum information, when it is a forum or media channel
+    pub fn forum(&self) -> Option<&v0::ForumInformation> {
+        match self {
+            Channel::TextChannel {
+                forum: Some(forum), ..
+            } => Some(forum),
+            _ => None,
+        }
+    }
+
+    /// Vortex: create a thread inside a server channel
+    ///
+    /// The thread is a text channel of the same server that is NOT added to
+    /// `server.channels`: clients that do not know threads never list it, and
+    /// the ones that do find it by `thread.parent`.
+    ///
+    /// Permission overrides are copied from the parent at creation, so a thread
+    /// of a private channel is exactly as private. Later changes to the parent
+    /// are not propagated.
+    pub async fn create_thread(
+        db: &Database,
+        parent: &Channel,
+        owner: &str,
+        data: v0::DataCreateThread,
+    ) -> Result<Channel> {
+        let Channel::TextChannel {
+            id: parent_id,
+            server,
+            default_permissions,
+            role_permissions,
+            nsfw,
+            slowmode,
+            thread: None,
+            voice: None,
+            ..
+        } = parent
+        else {
+            return Err(create_error!(InvalidOperation));
+        };
+
+        let channel = Channel::TextChannel {
+            id: Ulid::new().to_string(),
+            server: server.clone(),
+            name: data.name,
+            description: None,
+            icon: None,
+            last_message_id: None,
+            default_permissions: *default_permissions,
+            role_permissions: role_permissions.clone(),
+            nsfw: *nsfw,
+            voice: None,
+            slowmode: *slowmode,
+            forum: None,
+            thread: Some(v0::ThreadInformation {
+                parent: parent_id.clone(),
+                owner: owner.to_string(),
+                message: data.message,
+                archived: false,
+                tags: data.tags,
+                followers: vec![owner.to_string()],
+                pinned: false,
+            }),
+            spoiler: false,
+            invites_paused: false,
+        };
+
+        db.insert_channel(&channel).await?;
+
+        EventV1::ChannelCreate(channel.clone().into())
+            .p(server.clone())
+            .await;
+
+        Ok(channel)
+    }
+
     /// Gets this channel's voice information
     pub fn voice(&self) -> Option<Cow<VoiceInformation>> {
         match self {
@@ -622,8 +783,20 @@ impl Channel {
                 default_permissions,
                 role_permissions,
                 voice,
+                forum,
+                thread,
+                spoiler,
+                invites_paused,
                 ..
             } => {
+                if let Some(v) = partial.forum {
+                    forum.replace(v);
+                }
+
+                if let Some(v) = partial.thread {
+                    thread.replace(v);
+                }
+
                 if let Some(v) = partial.name {
                     *name = v;
                 }
@@ -650,6 +823,14 @@ impl Channel {
 
                 if let Some(v) = partial.voice {
                     voice.replace(v);
+                }
+
+                if let Some(v) = partial.spoiler {
+                    *spoiler = v;
+                }
+
+                if let Some(v) = partial.invites_paused {
+                    *invites_paused = v;
                 }
             }
         }
@@ -726,8 +907,20 @@ impl Channel {
                 nsfw,
                 voice,
                 slowmode,
+                forum,
+                thread,
+                spoiler,
+                invites_paused,
                 ..
             } => {
+                if partial.forum.is_some() {
+                    before.forum = forum.clone();
+                };
+
+                if partial.thread.is_some() {
+                    before.thread = thread.clone();
+                };
+
                 if partial.name.is_some() {
                     before.name = Some(name.clone());
                 };
@@ -764,6 +957,14 @@ impl Channel {
 
                 if partial.slowmode.is_some() {
                     before.slowmode = *slowmode;
+                }
+
+                if partial.spoiler.is_some() {
+                    before.spoiler = Some(*spoiler);
+                }
+
+                if partial.invites_paused.is_some() {
+                    before.invites_paused = Some(*invites_paused);
                 }
             }
         }

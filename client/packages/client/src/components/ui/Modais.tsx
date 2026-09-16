@@ -10,6 +10,7 @@ import { ModalDeModeracao } from "../../servidores/ModalDeModeracao";
 import { AvisoDeLink } from "../../list/AvisoDeLink";
 import { Encaminhar } from "../../list/Encaminhar";
 import { CriarEnquete } from "../../enquete/CriarEnquete";
+import { CriarEvento } from "../../eventos/CriarEvento";
 import { VisualizadorDeImagem } from "../../list/VisualizadorDeImagem";
 import {
   assinarModal,
@@ -25,6 +26,10 @@ import { PrivacidadeDoServidor } from "../../servidores/PrivacidadeDoServidor";
 import { EditorDePasta } from "../../servidores/EditorDePasta";
 import { SeletorDeTela } from "../../voz/SeletorDeTela";
 import { TransferirPropriedade } from "../../servidores/TransferirPropriedade";
+import { AutorizarQr } from "../../sessao/AutorizarQr";
+import { ModalDeAtividades } from "../../voz/atividades/ModalDeAtividades";
+import { ModalDeTopico } from "../../topicos/ModalDeTopico";
+import { ModalDeNotificacoes } from "../../servidores/ModalDeNotificacoes";
 
 /**
  * O registro de modais, e o ponto dele é o TIPO.
@@ -53,6 +58,7 @@ const REGISTRO: Record<ModalId, ComponentType<{ aoFechar: () => void }>> = {
   link: AvisoDeLink,
   encaminhar: Encaminhar,
   enquete: CriarEnquete,
+  evento: CriarEvento,
   novoGrupo: NovoGrupo,
   tela: SeletorDeTela,
   pasta: EditorDePasta,
@@ -61,6 +67,10 @@ const REGISTRO: Record<ModalId, ComponentType<{ aoFechar: () => void }>> = {
   apelido: ModalDeApelido,
   excluirConta: ModalDeExcluirConta,
   transferirPropriedade: TransferirPropriedade,
+  autorizarQr: AutorizarQr,
+  atividades: ModalDeAtividades,
+  topico: ModalDeTopico,
+  notificacoes: ModalDeNotificacoes,
 };
 
 /**

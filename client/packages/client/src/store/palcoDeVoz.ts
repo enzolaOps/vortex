@@ -69,3 +69,41 @@ export function definirPalco(proximo: Palco): void {
 export function fecharPalco(): void {
   definirPalco(FECHADO);
 }
+
+/* ------------------------------------------------------- chat da sala */
+
+/*
+  ⚠ **O chat embutido é o terceiro eixo do palco, e não uma quarta tela.**
+  Ele convive com as três (grade, transmitindo, assistindo) — quem apresenta
+  lê o chat ao lado da própria tela —, então não cabe na união `Palco`, que é
+  exatamente a das coisas que NÃO convivem.
+
+  Store próprio pela lei nº 1: abrir e fechar o chat não diz nada sobre a
+  chamada, e quem assina `Palco` (a moldura, o cartão, o popout) não tem por
+  que acordar.
+
+  Começa ABERTO, como o design o desenha. Guardado só em memória: é
+  preferência de momento sobre esta janela, e sobreviver ao F5 faria uma
+  chamada nova abrir sem o chat porque alguém o fechou ontem.
+*/
+let chatAberto = true;
+const ouvintesDoChat = new Set<Ouvinte>();
+
+export function assinarChatDaSala(ouvinte: Ouvinte): () => void {
+  ouvintesDoChat.add(ouvinte);
+  return () => ouvintesDoChat.delete(ouvinte);
+}
+
+export function lerChatDaSala(): boolean {
+  return chatAberto;
+}
+
+export function definirChatDaSala(aberto: boolean): void {
+  if (chatAberto === aberto) return;
+  chatAberto = aberto;
+  for (const o of ouvintesDoChat) o();
+}
+
+export function alternarChatDaSala(): void {
+  definirChatDaSala(!chatAberto);
+}

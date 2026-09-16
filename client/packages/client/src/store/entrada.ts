@@ -22,6 +22,16 @@ export type TelaDeEntrada =
   | { readonly tipo: "entrar" }
   | { readonly tipo: "criar" }
   | { readonly tipo: "recuperar" }
+  /** O QR que outro aparelho, já com sessão, lê para autorizar este. */
+  | { readonly tipo: "qr" }
+  /**
+   * O link DENTRO do QR, aberto no aparelho que vai autorizar.
+   *
+   * Carrega só o ID do pedido — o segredo que troca a autorização por sessão
+   * nunca sai do aparelho que pediu. Sobrevive ao login como o convite: quem
+   * aponta a câmera num celular sem sessão entra e cai direto na confirmação.
+   */
+  | { readonly tipo: "autorizarQr"; readonly id: string }
   /**
    * "Confira seu e-mail".
    *

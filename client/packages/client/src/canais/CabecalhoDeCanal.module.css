@@ -181,3 +181,11 @@
     display: grid;
   }
 }
+
+/* O glifo de fórum (`▤`) e galeria (`▦`): `color:#4C5563; font-size:15px`. */
+.glifoDeForum {
+  flex: none;
+  color: var(--vx-text-4);
+  font-size: var(--vx-size-lg);
+  line-height: 1;
+}

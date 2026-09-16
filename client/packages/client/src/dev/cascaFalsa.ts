@@ -71,7 +71,14 @@ const FALSA = {
     };
   },
 
-  lerPreferencias: () => Promise.resolve(Object.fromEntries(PREFERENCIAS)),
+  /* O "em uso" fixo é o de um processo que abriu com os padrões: é o que faz
+     o aviso de reinício aparecer no arnês ao mexer na aceleração ou na barra. */
+  lerPreferencias: () =>
+    Promise.resolve({
+      barraNativaEmUso: false,
+      aceleracaoEmUso: true,
+      ...Object.fromEntries(PREFERENCIAS),
+    }),
   gravarPreferencia: (chave, valor) => {
     PREFERENCIAS.set(chave, valor);
     return Promise.resolve();

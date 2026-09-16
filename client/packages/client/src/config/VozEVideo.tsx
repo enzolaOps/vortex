@@ -6,10 +6,7 @@ import { Escolha } from "../components/ui/Escolha";
 import { Interruptor } from "../components/ui/Interruptor";
 import { CartaoDeOpcao } from "../components/ui/CartaoDeOpcao";
 import { Segmentado } from "../components/ui/Segmentado";
-import { Selo } from "../components/ui/Selo";
-import { Combinacao } from "../components/ui/Tecla";
 import { cn } from "../lib/cn";
-import { aindaNao } from "../pendente/pendencias";
 import {
   useFaixaLocal,
   useNivelDeEntrada,
@@ -35,6 +32,8 @@ import {
   PaginaDeAjustes,
 } from "./Pagina";
 import css from "./VozEVideo.module.css";
+import { TabelaDeAtalhos } from "./TabelaDeAtalhos";
+import { assinarDesktop, lerDesktop } from "../store/desktop";
 
 /**
  * Os dispositivos que o navegador enumera.
@@ -159,30 +158,6 @@ function CampoDeVolume({
 }
 
 /**
- * Os atalhos que funcionam com o app em segundo plano.
- *
- * ⚠ **Eles são só do DESIGN hoje, e o conflito é a razão de estarem aqui
- * mesmo assim.** Gravar combinação global é `globalShortcut` do Electron — o
- * navegador não vê tecla fora da aba. Mas a tabela ensina a regra que vai valer
- * quando existir: combinação repetida derruba as DUAS linhas, e as duas se
- * acusam. Marcar só uma faria a pessoa consertar a errada.
- */
-const ATALHOS_GLOBAIS = [
-  { acao: "Push-to-talk", teclas: ["alt", "Espaço"] },
-  { acao: "Mutar microfone", teclas: ["shift", "mod", "M"] },
-  { acao: "Ensurdecer", teclas: ["shift", "mod", "D"] },
-  { acao: "Desconectar da voz", teclas: ["shift", "mod", "backspace"] },
-  { acao: "Alternar overlay", teclas: ["shift", "mod", "M"] },
-] as const;
-
-/** Uma combinação repetida marca TODAS as linhas que a usam. */
-const REPETIDAS = new Set(
-  ATALHOS_GLOBAIS.map((a) => a.teclas.join("+")).filter(
-    (c, i, todas) => todas.indexOf(c) !== i,
-  ),
-);
-
-/**
  * Voz e vídeo.
  *
  * ⚠ **Quatro destas preferências chegam ao WebRTC de verdade** — dispositivo
@@ -201,6 +176,7 @@ export function VozEVideo() {
     assinarPreferenciasDeVoz,
     lerPreferenciasDeVoz,
   );
+  const { naCasca } = useSyncExternalStore(assinarDesktop, lerDesktop);
   const entradas = useDispositivos("audioinput");
   const saidas = useDispositivos("audiooutput");
   const cameras = useDispositivos("videoinput");
@@ -389,16 +365,12 @@ export function VozEVideo() {
               id: n,
               rotulo: ROTULO_DO_RUIDO[n],
             }))}
-            aoEscolher={(ruido) => {
-              /*
-                ⚠ "Agressiva" é a única das três que o navegador não sabe
-                fazer: `noiseSuppression` é BOOLEANO. Ela guarda a escolha e
-                diz do que depende, em vez de silenciosamente valer o mesmo que
-                "Padrão" — que é o defeito de parecer que funcionou.
-              */
-              definirPreferenciasDeVoz({ ruido });
-              if (ruido === "agressiva") aindaNao("ruidoAgressivo")();
-            }}
+            /*
+              "Agressiva" é o RNNoise (`voz/ruidoForte.ts`), aplicado pelo
+              motor de voz na faixa do microfone — carregado só quando esta
+              opção vale e há chamada aberta. Falhar cai para "Padrão" e diz.
+            */
+            aoEscolher={(ruido) => definirPreferenciasDeVoz({ ruido })}
           />
         </LinhaDeAjuste>
 
@@ -446,15 +418,18 @@ export function VozEVideo() {
 
         <LinhaDeAjuste
           titulo="Atenuar outros apps"
-          detalhe="Baixa o volume do sistema em 50% quando alguém fala"
+          detalhe={
+            /* O navegador não mexe no volume de outros programas; dizer isso é
+               melhor que um interruptor que liga e não faz nada. */
+            naCasca
+              ? "Baixa o volume dos outros programas em 50% quando alguém fala"
+              : "Só no aplicativo de desktop — o navegador não controla outros programas"
+          }
         >
           <Interruptor
             ligado={p.atenuarOutrosApps}
             rotulo="Atenuar outros apps"
-            aoAlternar={(v) => {
-              definirPreferenciasDeVoz({ atenuarOutrosApps: v });
-              if (v) aindaNao("atenuarOutrosApps")();
-            }}
+            aoAlternar={(v) => definirPreferenciasDeVoz({ atenuarOutrosApps: v })}
           />
         </LinhaDeAjuste>
       </GrupoDeAjustes>
@@ -542,10 +517,9 @@ export function VozEVideo() {
                 id: f,
                 rotulo: ROTULO_DO_FUNDO[f],
               }))}
-              aoEscolher={(fundo) => {
-                definirPreferenciasDeVoz({ fundo });
-                if (fundo !== "nenhum") aindaNao("fundoDeVideo")();
-              }}
+              /* Aplicado pelo motor só com a câmera ligada — ver
+                 `voz/fundoDeVideo.ts`. */
+              aoEscolher={(fundo) => definirPreferenciasDeVoz({ fundo })}
             />
           </div>
         </div>
@@ -566,49 +540,13 @@ export function VozEVideo() {
 
       <CabecalhoDeSecao titulo="Atalhos globais" />
 
-      <div className={css.tabela}>
-        <div className={css.cabecalhoDaTabela}>
-          <span>Ação</span>
-          <span>Combinação</span>
-          <span />
-        </div>
-
-        {ATALHOS_GLOBAIS.map((a) => {
-          const conflito = REPETIDAS.has(a.teclas.join("+"));
-          return (
-            <div
-              key={a.acao}
-              className={css.linhaDaTabela}
-              data-conflito={conflito}
-            >
-              <span className={css.acao}>
-                {a.acao}
-                {conflito ? (
-                  <Selo forma="etiqueta" tom="perigo">
-                    Conflito
-                  </Selo>
-                ) : null}
-              </span>
-              <Combinacao
-                teclas={a.teclas}
-                className={conflito ? css.conflitoNaTecla : undefined}
-              />
-              <Botao
-                variante="sutil"
-                tamanho="pequeno"
-                onClick={aindaNao("atalhoGlobal")}
-              >
-                Editar
-              </Botao>
-            </div>
-          );
-        })}
-      </div>
+      <TabelaDeAtalhos />
 
       <p className={pg.recado}>
         Conflito é detectado na hora da gravação: a combinação duplicada aparece
-        nas duas linhas e nenhuma das duas funciona até resolver. Atalho global
-        só vale no aplicativo de desktop — o navegador não vê tecla fora da aba.
+        nas duas linhas e nenhuma das duas funciona até resolver. No navegador
+        os atalhos valem com a aba em foco; no aplicativo de desktop, também com
+        ele em segundo plano.
       </p>
     </PaginaDeAjustes>
   );

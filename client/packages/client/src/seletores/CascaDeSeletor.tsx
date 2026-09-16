@@ -24,16 +24,24 @@ import css from "./CascaDeSeletor.module.css";
 export function CascaDeSeletor({
   rotulo,
   rail,
+  cabecalho,
   busca,
   acaoDaBusca,
   rodape,
   estreita = false,
+  desabilitarBusca = false,
   children,
 }: {
   /** O que este seletor é, para o leitor de tela. */
   rotulo: string;
   /** A tira de categorias à esquerda. Ausente = casca sem rail (soundboard). */
   rail?: ReactNode;
+  /**
+   * A faixa ACIMA da busca — só o soundboard a tem ("Painel de sons · sala ·
+   * servidor · EM VOZ"). Nos outros três o contexto é o canal do composer e
+   * não precisa ser dito.
+   */
+  cabecalho?: ReactNode;
   busca: {
     readonly valor: string;
     readonly aoMudar: (v: string) => void;
@@ -45,6 +53,12 @@ export function CascaDeSeletor({
   rodape?: ReactNode;
   /** O soundboard: 352 em vez de 400, e sem altura fixa. */
   estreita?: boolean;
+  /**
+   * Busca sem nada para buscar — o seletor de GIF numa instância que não
+   * configurou GIFs. O campo fica (a casca é a mesma dos outros três) e diz
+   * pelo estado desligado que não aceita texto.
+   */
+  desabilitarBusca?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -57,6 +71,7 @@ export function CascaDeSeletor({
       {rail ? <div className={css.rail}>{rail}</div> : null}
 
       <div className={css.corpo}>
+        {cabecalho ? <div className={css.cabecalho}>{cabecalho}</div> : null}
         <div className={css.linhaDeBusca}>
           <CampoDeBusca
             className={css.busca}
@@ -69,7 +84,8 @@ export function CascaDeSeletor({
               sempre sabe o que procura. Sem isto, o primeiro gesto é sempre
               clicar no campo.
             */
-            autoFocus
+            autoFocus={!desabilitarBusca}
+            disabled={desabilitarBusca}
           />
           {acaoDaBusca}
         </div>

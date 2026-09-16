@@ -1303,3 +1303,33 @@
   color: var(--vx-text-4);
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------------------------------------------- fórum e galeria na coluna */
+
+/*
+  O glifo do tipo — `▤` fórum, `▦` galeria. 13px `text-4`, e `accent-text`
+  no canal ativo, que é o que o design escreve para os dois.
+
+  Caixa da mesma largura do ícone (`--vx-icon-1`) para o nome começar na
+  mesma coluna de um canal de texto logo acima.
+*/
+.glifoDeForum {
+  flex: none;
+  inline-size: var(--vx-icon-1);
+  color: var(--vx-text-4);
+  font-size: var(--vx-size-md);
+  line-height: 1;
+  text-align: center;
+}
+
+.canal[aria-current="true"] .glifoDeForum {
+  color: var(--vx-accent-text);
+}
+
+/* `font-size:10px; color:#4C5563; font-weight:600` */
+.etiquetaDeForum {
+  flex: none;
+  color: var(--vx-text-4);
+  font-size: var(--vx-size-2xs);
+  font-weight: 600;
+}

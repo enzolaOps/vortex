@@ -24,10 +24,6 @@ export type ControleDeJanela = "minimizar" | "maximizar" | "restaurar" | "fechar
 export const AO_FECHAR = ["bandeja", "encerrar", "perguntar"] as const;
 export type AoFechar = (typeof AO_FECHAR)[number];
 
-/** Onde o overlay do jogo aparece. */
-export const CANTOS = ["cima-inicio", "cima-fim", "baixo-inicio", "baixo-fim"] as const;
-export type Canto = (typeof CANTOS)[number];
-
 /** O ciclo de vida de uma atualização — os seis estados do design. */
 export const ESTADOS_DE_ATUALIZACAO = [
   "em-dia",
@@ -151,6 +147,28 @@ export function naDesktop(): boolean {
 
 export function ponte(): PonteDesktop | undefined {
   return naDesktop() ? window.vortex : undefined;
+}
+
+/**
+ * "Reiniciar agora" — para a preferência que só vale no próximo início.
+ *
+ * ⚠ **Ponte SEPARADA de `vortex`, e a razão é versão.** O cliente é carregado
+ * por URL e atualiza antes da casca: um verbo novo em `PonteDesktop` faria
+ * `verbosFaltandoNaPonte` acusar toda casca anterior, e o cliente cairia sem
+ * barra de título. Ausente aqui, o botão só não aparece.
+ */
+export type PonteDeReinicio = { readonly reiniciar: () => Promise<void> };
+
+declare global {
+  interface Window {
+    readonly vortexReinicio?: PonteDeReinicio;
+  }
+}
+
+export function ponteDeReinicio(): PonteDeReinicio | undefined {
+  if (typeof window === "undefined") return undefined;
+  const p = window.vortexReinicio as Record<string, unknown> | undefined;
+  return p && typeof p.reiniciar === "function" ? window.vortexReinicio : undefined;
 }
 
 /**

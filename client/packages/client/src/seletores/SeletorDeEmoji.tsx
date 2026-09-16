@@ -1,11 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
-import { aindaNao } from "../pendente/pendencias";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../components/ui/Popover";
 import { listarEmojis, type Emoji as EmojiDoServidor } from "../sdk/cargos";
 import { urlDeEmoji } from "../sdk/anexos";
 import { useServidorAtivo } from "../store/hooks";
 import { CascaDeSeletor, SecaoDeSeletor } from "./CascaDeSeletor";
+import { assinarTomDePele, definirTomDePele, lerTomDePele } from "../store/tomDePele";
 import { CATEGORIAS, buscar, type Emoji } from "./emojis";
+import {
+  aceitaTom,
+  comTom,
+  ROTULO_DO_TOM,
+  TONS,
+  type TomDePele,
+} from "./tomDePele";
 import css from "./Seletores.module.css";
 
 /** Referência estável: um `[]` novo a cada render invalidaria o filtro. */
@@ -42,6 +54,7 @@ export function SeletorDeEmoji({
     "rodapé de prévia".
   */
   const [sobre, setSobre] = useState<Emoji | null>(null);
+  const tom = useSyncExternalStore(assinarTomDePele, lerTomDePele);
 
   const encontrados = buscar(busca);
   const buscando = busca.trim().length > 0;
@@ -99,19 +112,7 @@ export function SeletorDeEmoji({
     <CascaDeSeletor
       rotulo="Emoji"
       busca={{ valor: busca, aoMudar: setBusca, placeholder: "Buscar emoji" }}
-      acaoDaBusca={
-        /*
-          O tom de pele. Desenhado e pendente: aplicá-lo exige o modificador
-          Fitzpatrick por emoji, e a lista curada não os carrega — mudar o
-          seletor sem mudar os dados daria um controle que não muda nada.
-        */
-        <button
-          type="button"
-          className={css.tomDePele}
-          aria-label="Tom de pele"
-          onClick={aindaNao("tomDePele")}
-        />
-      }
+      acaoDaBusca={<EscolhaDeTom tom={tom} />}
       rail={
         <>
           {CATEGORIAS.map((c) => (
@@ -135,11 +136,17 @@ export function SeletorDeEmoji({
         sobre ? (
           <>
             <span className={css.previaGlifo} aria-hidden>
-              {sobre.glifo}
+              {comTom(sobre.glifo, tom)}
             </span>
             <div className={css.previaTexto}>
               <span className={css.previaNome}>:{sobre.nome}:</span>
-              <span className={css.previaOrigem}>Unicode</span>
+              {/* O tom só é dito quando ele muda alguma coisa neste glifo —
+                  "tom médio" embaixo de 🔥 afirmaria algo que não aconteceu. */}
+              <span className={css.previaOrigem}>
+                {aceitaTom(sobre.glifo)
+                  ? `Unicode · tom de pele ${ROTULO_DO_TOM[tom].toLowerCase()}`
+                  : "Unicode"}
+              </span>
             </div>
           </>
         ) : (
@@ -158,12 +165,22 @@ export function SeletorDeEmoji({
           }
           grude
         >
-          <Grade emojis={encontrados} aoEscolher={aoEscolher} aoPassar={setSobre} />
+          <Grade
+            emojis={encontrados}
+            tom={tom}
+            aoEscolher={aoEscolher}
+            aoPassar={setSobre}
+          />
         </SecaoDeSeletor>
       ) : (
         CATEGORIAS.filter((c) => c.id === categoria).map((c) => (
           <SecaoDeSeletor key={c.id} titulo={c.titulo} grude>
-            <Grade emojis={c.emojis} aoEscolher={aoEscolher} aoPassar={setSobre} />
+            <Grade
+              emojis={c.emojis}
+              tom={tom}
+              aoEscolher={aoEscolher}
+              aoPassar={setSobre}
+            />
           </SecaoDeSeletor>
         ))
       )}
@@ -218,12 +235,66 @@ export function SeletorDeEmoji({
   );
 }
 
+/**
+ * O botão de tom e a escolha dos seis.
+ *
+ * ⚠ **O botão MOSTRA a escolha**, e é por isso que o design o desenha sem
+ * ícone: no padrão ele é o círculo amarelo; com um tom escolhido, ele é a mão
+ * naquele tom. Cores de pele não são tokens deste app — e não deveriam ser —,
+ * então quem desenha o tom é o próprio glifo, na fonte de emoji do sistema.
+ */
+function EscolhaDeTom({ tom }: { tom: TomDePele }) {
+  const [aberta, setAberta] = useState(false);
+  return (
+    <Popover open={aberta} onOpenChange={setAberta}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={css.tomDePele}
+          data-tom={tom}
+          aria-label={`Tom de pele: ${ROTULO_DO_TOM[tom]}`}
+        >
+          {tom !== "padrao" ? (
+            <span aria-hidden>{comTom(MAO, tom)}</span>
+          ) : null}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className={css.tons}>
+        <div role="radiogroup" aria-label="Tom de pele" className={css.gradeDeTons}>
+          {TONS.map((t) => (
+            <button
+              key={t}
+              type="button"
+              role="radio"
+              aria-checked={t === tom}
+              aria-label={ROTULO_DO_TOM[t]}
+              title={ROTULO_DO_TOM[t]}
+              className={css.opcaoDeTom}
+              onClick={() => {
+                definirTomDePele(t);
+                setAberta(false);
+              }}
+            >
+              <span aria-hidden>{comTom(MAO, t)}</span>
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/** A mão aberta: base de modificador que toda fonte de emoji desenha. */
+const MAO = "✋";
+
 function Grade({
   emojis,
+  tom,
   aoEscolher,
   aoPassar,
 }: {
   emojis: readonly Emoji[];
+  tom: TomDePele;
   aoEscolher: (glifo: string) => void;
   aoPassar: (e: Emoji | null) => void;
 }) {
@@ -235,13 +306,15 @@ function Grade({
           type="button"
           className={css.emoji}
           aria-label={e.nome}
-          onClick={() => aoEscolher(e.glifo)}
+          /* O tom entra no GLIFO antes de sair daqui: quem abriu o seletor
+             recebe texto pronto, e o protocolo recebe Unicode comum. */
+          onClick={() => aoEscolher(comTom(e.glifo, tom))}
           onPointerEnter={() => aoPassar(e)}
           /* Foco também alimenta a prévia: quem navega por seta precisa da
              mesma informação que quem navega com o ponteiro. */
           onFocus={() => aoPassar(e)}
         >
-          <span aria-hidden>{e.glifo}</span>
+          <span aria-hidden>{comTom(e.glifo, tom)}</span>
         </button>
       ))}
     </div>

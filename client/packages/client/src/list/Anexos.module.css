@@ -32,6 +32,8 @@
   escrito por quem programa, não número vindo de fora.
 */
 .midia {
+  /* Contexto da capa de spoiler, que cobre a caixa inteira. */
+  position: relative;
   overflow: hidden;
   inline-size: min(400px, 100%, calc(340px * var(--proporcao)));
   border-radius: var(--vx-radius-06);
@@ -93,6 +95,32 @@
   background: none;
   padding: 0;
   cursor: zoom-in;
+}
+
+/*
+  A capa do canal de spoiler — valores do design (`Canais - Fórum, Mídia e
+  Tópicos`): o afundado a 90%, 11/600 no tom secundário. Absoluta sobre a
+  caixa já reservada, então revelar não muda a altura da linha.
+*/
+.capaDeSpoiler {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  padding: 0;
+  /* Sem `backdrop-filter`: o design escreve `blur(0px)`, e desfoque sobre
+     mídia numa lista rolável é o efeito mais caro da camada. */
+  background: color-mix(in srgb, var(--vx-surface-0) 90%, transparent);
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.capaDeSpoiler:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
 }
 
 .alvoDaImagem:focus-visible .arquivoDeMidia {

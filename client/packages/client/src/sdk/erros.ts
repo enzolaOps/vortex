@@ -50,6 +50,35 @@ function comoObjeto(e: unknown): unknown {
   }
 }
 
+/** `JoinBlocked.reason` — por que a política do servidor barrou a entrada. */
+const BLOQUEIO_DE_ENTRADA: Record<string, string> = {
+  Closed: "Este servidor está fechado para novas entradas.",
+  InvitesPaused: "Os convites deste servidor estão pausados por emergência.",
+  JoinsFrozen: "Entradas neste servidor estão congeladas por emergência.",
+  EmailUnverified: "Este servidor exige e-mail verificado para entrar.",
+};
+
+/** `VerificationRequired.level` — o que falta cumprir para falar. */
+const VERIFICACAO_PARA_FALAR: Record<string, string> = {
+  Low: "Confirme seu e-mail para falar neste servidor.",
+  Medium:
+    "Este servidor exige e-mail confirmado e conta com pelo menos 5 minutos para falar.",
+  High: "Este servidor exige 10 minutos como membro antes de falar.",
+};
+/**
+ * Quanto o servidor mandou esperar, em ms — ou `undefined` se não mandou.
+ *
+ * Lê a mesma assinatura de 429 que `motivoDoErro` lê (`retry_after`, com o
+ * corpo em texto ou objeto), e existe para quem REPETE: a execução em lote de
+ * cargos espera exatamente o que foi pedido em vez de chutar um intervalo.
+ * Um lugar só para as duas leituras, senão elas divergem na primeira vez que o
+ * formato do corpo mudar.
+ */
+export function esperaDoLimite(e: unknown): number | undefined {
+  const espera = (comoObjeto(e) as { retry_after?: unknown } | null)?.retry_after;
+  return typeof espera === "number" && espera > 0 ? espera : undefined;
+}
+
 /** As respostas que valem uma frase própria. */
 const POR_TIPO: Record<string, string> = {
   /* --------------------------------------------------------------- entrada */
@@ -72,6 +101,8 @@ const POR_TIPO: Record<string, string> = {
   /* ----------------------------------------------------------------- conta */
   MissingInvite: "Esta instância exige um convite para criar conta.",
   InvalidInvite: "Este convite não vale.",
+  /* Servidor do Vortex: o convite existe, mas o canal suspendeu a entrada. */
+  InvitesPaused: "Os convites deste canal estão pausados.",
   EmailFailed: "Não deu para enviar o e-mail.",
   /*
     ⚠ `OperationFailed` é o que o servidor devolve para e-mail JÁ CADASTRADO —
@@ -92,6 +123,13 @@ const POR_TIPO: Record<string, string> = {
   UsernameTaken: "Esse nome de usuário já está em uso.",
   AccountOwnsServers:
     "Transfira ou exclua os servidores que você administra antes de excluir sua conta.",
+
+  /* ------------------------------------ acesso e segurança (fork do `api`) */
+  JoinRequestPending:
+    "Pedido enviado. Este servidor aprova entradas manualmente.",
+  MentionsSilenced:
+    "Menções a todos estão silenciadas pela emergência deste servidor.",
+  NotOwner: "Só o dono do servidor pode fazer isto.",
 
   /* --------------------------------------------- servidor de mídia (autumn) */
   /*
@@ -133,6 +171,12 @@ function porStatus(status: number | undefined): string | undefined {
  * o arquivo e a linha do Rust onde a falha aconteceu; jogar isso na tela
  * expõe a versão do servidor e não ajuda ninguém que esteja tentando entrar.
  */
+/** O `type` do protocolo, para quem decide o caminho e não só a frase. */
+export function tipoDoErro(e: unknown): string | undefined {
+  const tipo = (comoObjeto(e) as { type?: unknown } | null)?.type;
+  return typeof tipo === "string" ? tipo : undefined;
+}
+
 export function motivoDoErro(e: unknown): string {
   const corpo = comoObjeto(e);
   const tipo = (corpo as { type?: unknown } | null)?.type;
@@ -153,6 +197,26 @@ export function motivoDoErro(e: unknown): string {
     return teto === undefined
       ? "Esse arquivo é grande demais."
       : `Esse arquivo passa do limite de ${teto}.`;
+  }
+
+  /*
+    ⚠ **As duas recusas de política carregam o MOTIVO, e o motivo é a frase.**
+    "Não deu para entrar" sem dizer que o servidor está fechado ou que falta
+    confirmar o e-mail manda a pessoa tentar o mesmo convite de novo.
+  */
+  if (tipo === "JoinBlocked") {
+    const razao = (corpo as { reason?: unknown } | null)?.reason;
+    return (
+      BLOQUEIO_DE_ENTRADA[String(razao)] ??
+      "Este servidor não está aceitando entradas agora."
+    );
+  }
+  if (tipo === "VerificationRequired") {
+    const nivel = (corpo as { level?: unknown } | null)?.level;
+    return (
+      VERIFICACAO_PARA_FALAR[String(nivel)] ??
+      "Este servidor exige verificação antes de falar."
+    );
   }
 
   if (typeof tipo === "string") {
@@ -187,8 +251,8 @@ export function motivoDoErro(e: unknown): string {
     que renova o limite. O servidor já mandou quanto falta; repeti-lo é a
     diferença entre um aviso e uma instrução.
   */
-  const espera = (corpo as { retry_after?: unknown } | null)?.retry_after;
-  if (typeof espera === "number" && espera > 0) {
+  const espera = esperaDoLimite(corpo);
+  if (espera !== undefined) {
     const seg = Math.max(1, Math.ceil(espera / 1000));
     return `Tentativas demais. Espere ${String(seg)} segundo${seg === 1 ? "" : "s"}.`;
   }

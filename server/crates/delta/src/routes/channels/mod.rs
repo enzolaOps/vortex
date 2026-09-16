@@ -1,6 +1,7 @@
 use revolt_rocket_okapi::revolt_okapi::openapi3::OpenApi;
 use rocket::Route;
 
+mod activity;
 mod channel_ack;
 mod channel_delete;
 mod channel_edit;
@@ -14,8 +15,10 @@ mod message_bulk_delete;
 mod message_clear_reactions;
 mod message_delete;
 mod message_edit;
+mod message_embeds_remove;
 mod message_fetch;
 mod message_pin;
+mod message_poll;
 mod message_query;
 mod message_react;
 mod message_search;
@@ -24,7 +27,13 @@ mod message_unpin;
 mod message_unreact;
 mod permissions_set;
 mod permissions_set_default;
+mod forum_edit;
+mod thread_create;
+mod thread_edit;
+mod thread_follow;
+mod permissions_sync;
 mod voice_join;
+mod voice_soundboard;
 mod voice_stop_ring;
 mod webhook_create;
 mod webhook_fetch_all;
@@ -32,6 +41,10 @@ mod webhook_fetch_all;
 pub fn routes() -> (Vec<Route>, OpenApi) {
     openapi_get_routes_spec![
         channel_ack::ack,
+        activity::fetch,
+        activity::start,
+        activity::stop,
+        activity::op,
         channel_fetch::fetch,
         members_fetch::fetch_members,
         channel_delete::delete,
@@ -43,6 +56,7 @@ pub fn routes() -> (Vec<Route>, OpenApi) {
         message_pin::message_pin,
         message_fetch::fetch,
         message_edit::edit,
+        message_embeds_remove::remove_embeds,
         message_bulk_delete::bulk_delete_messages,
         message_delete::delete,
         message_unpin::message_unpin,
@@ -50,13 +64,22 @@ pub fn routes() -> (Vec<Route>, OpenApi) {
         group_add_member::add_member,
         group_remove_member::remove_member,
         voice_join::call,
+        voice_soundboard::play_sound,
         voice_stop_ring::stop_ring,
         permissions_set::set_role_permissions,
         permissions_set_default::set_default_channel_permissions,
+        permissions_sync::sync_channel_permissions,
         message_react::react_message,
         message_unreact::unreact_message,
         message_clear_reactions::clear_reactions,
+        message_poll::vote_poll,
+        message_poll::end_poll,
         webhook_create::create_webhook,
         webhook_fetch_all::fetch_webhooks,
+        thread_create::create_thread,
+        thread_edit::edit_thread,
+        thread_follow::follow_thread,
+        thread_follow::unfollow_thread,
+        forum_edit::edit_forum,
     ]
 }

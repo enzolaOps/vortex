@@ -1,0 +1,823 @@
+/* ============================================================
+   Eventos do servidor — tela, cartão, calendário e detalhe
+   ------------------------------------------------------------
+   Valores do `Vortex Eventos e Entrada.dc.html`, seção 0. A
+   referência (`screens/events/EventsScreen.tsx`) decide o que
+   existe: lista e calendário compartilham o mesmo cartão, e o
+   detalhe é painel, nunca página nova.
+   ============================================================ */
+
+.tela {
+  display: flex;
+  block-size: 100%;
+  min-block-size: 0;
+  container-type: inline-size;
+  background: var(--vx-surface-2);
+}
+
+.coluna {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+
+/* ---------------------------------------------------- cabeçalho */
+
+.cabecalho {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-14);
+  block-size: 50px;
+  padding-inline: var(--vx-space-22);
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+.titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-07);
+  font-size: var(--vx-size-base);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.titulo svg {
+  inline-size: var(--vx-icon-2);
+  block-size: var(--vx-icon-2);
+  color: var(--vx-text-4);
+}
+
+.divisa {
+  flex: none;
+  inline-size: 1px;
+  block-size: 20px;
+  background: var(--vx-hairline-10);
+}
+
+.abas {
+  display: flex;
+  gap: var(--vx-space-04);
+}
+
+.aba {
+  display: flex;
+  flex: none;
+  white-space: nowrap;
+  align-items: center;
+  block-size: 28px;
+  padding-inline: var(--vx-space-11);
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.aba:hover {
+  background: var(--vx-state-hover);
+}
+
+.aba[aria-selected="true"] {
+  background: color-mix(in oklab, var(--vx-accent) 16%, transparent);
+  color: var(--vx-accent-text);
+}
+
+.aba:focus-visible,
+.vista:focus-visible,
+.acaoPrimaria:focus-visible,
+.botaoDeCartao:focus-visible,
+.navegar:focus-visible,
+.chip:focus-visible,
+.verTodos:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.contagemDaAba {
+  margin-inline-start: var(--vx-space-06);
+  color: var(--vx-text-4);
+  font-weight: 500;
+}
+
+.espaco {
+  flex: 1;
+}
+
+.vistas {
+  display: flex;
+  gap: var(--vx-space-02);
+  padding: var(--vx-space-02);
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+}
+
+.vista {
+  display: grid;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 28px;
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-2);
+  cursor: pointer;
+  transition:
+    background-color var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.vista svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+.vista[aria-checked="true"] {
+  background: color-mix(in oklab, var(--vx-accent) 16%, transparent);
+  color: var(--vx-accent-text);
+}
+
+.acaoPrimaria {
+  flex: none;
+  block-size: 30px;
+  padding-inline: var(--vx-space-13);
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-accent);
+  color: var(--vx-on-accent);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.acaoPrimaria:hover {
+  background: var(--vx-accent-hover);
+}
+
+.acaoPrimaria:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ----------------------------------------------------- rolagem */
+
+.rolagem {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  padding: var(--vx-space-20) var(--vx-space-22) var(--vx-space-40);
+}
+
+.miolo {
+  max-inline-size: var(--vx-timeline-max-w);
+}
+
+.grupo {
+  margin-block: var(--vx-space-18) var(--vx-space-10);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--vx-text-3);
+}
+
+.grupo:first-child {
+  margin-block-start: 0;
+}
+
+/* ------------------------------------------------------- cartão */
+
+.cartao {
+  display: flex;
+  gap: var(--vx-space-16);
+  margin-block-end: var(--vx-space-10);
+  padding: var(--vx-space-16);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-12);
+  background: var(--vx-surface-3);
+  cursor: pointer;
+  transition: border-color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.cartao:hover {
+  border-color: var(--vx-hairline-16);
+}
+
+.cartao[data-selecionado="true"] {
+  border-color: color-mix(in oklab, var(--vx-accent) 45%, transparent);
+}
+
+.cartao[data-aovivo="true"] {
+  border-color: color-mix(in oklab, var(--vx-success) 35%, transparent);
+}
+
+.cartao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/* O xadrez de "ainda não chegou nada" — o mesmo sussurro do anexo. */
+.capa {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: 128px;
+  block-size: 96px;
+  overflow: hidden;
+  border-radius: var(--vx-radius-09);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--vx-surface-4) 0 9px,
+    var(--vx-surface-3) 9px 18px
+  );
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-2xs);
+  color: var(--vx-text-4);
+}
+
+.capa img {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+/* Sem espaço para capa, o cartão perde a capa e não o texto. */
+@container (inline-size < 560px) {
+  .capa {
+    display: none;
+  }
+}
+
+.seloAoVivo {
+  position: absolute;
+  inset-block-start: var(--vx-space-08);
+  inset-inline-start: var(--vx-space-08);
+  display: flex;
+  align-items: center;
+  block-size: 18px;
+  padding-inline: var(--vx-space-07);
+  border-radius: var(--vx-radius-04);
+  background: color-mix(in oklab, var(--vx-success) 90%, transparent);
+  color: var(--vx-on-success);
+  font-family: var(--vx-font-ui);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.corpoDoCartao {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--vx-space-08);
+  min-inline-size: 0;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vx-space-09);
+}
+
+.quando {
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  color: var(--vx-accent-text);
+}
+
+.quandoAoVivo {
+  display: inline-flex;
+  align-items: center;
+  block-size: 20px;
+  padding-inline: var(--vx-space-08);
+  border-radius: var(--vx-radius-pill);
+  background: color-mix(in oklab, var(--vx-success) 16%, transparent);
+  color: var(--vx-success-text);
+  font-size: var(--vx-size-xs);
+  font-weight: 700;
+}
+
+.lugar {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-06);
+  min-inline-size: 0;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+.lugar svg {
+  flex: none;
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+}
+
+.repeticao {
+  display: inline-flex;
+  align-items: center;
+  block-size: 19px;
+  padding-inline: var(--vx-space-07);
+  border-radius: var(--vx-radius-04);
+  background: var(--vx-hairline-06);
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-2xs);
+  font-weight: 600;
+}
+
+.nomeDoEvento {
+  font-size: var(--vx-size-base);
+  font-weight: 600;
+  line-height: var(--vx-leading-title);
+  text-wrap: pretty;
+  color: var(--vx-text-1);
+  overflow-wrap: anywhere;
+}
+
+.descricao {
+  font-size: var(--vx-size-md);
+  line-height: 1.45;
+  text-wrap: pretty;
+  color: var(--vx-text-2);
+  overflow-wrap: anywhere;
+}
+
+.rodapeDoCartao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vx-space-12);
+  margin-block-start: var(--vx-space-02);
+}
+
+.interessados {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+}
+
+.pilha {
+  display: flex;
+}
+
+.pilha > * + * {
+  margin-inline-start: -7px;
+}
+
+.anel {
+  box-shadow: 0 0 0 2px var(--vx-surface-3);
+  border-radius: var(--vx-radius-pill);
+}
+
+.textoLeve {
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+.acoes {
+  display: flex;
+  flex: 1;
+  justify-content: flex-end;
+  gap: var(--vx-space-07);
+}
+
+.botaoDeCartao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vx-space-06);
+  block-size: 30px;
+  padding-inline: var(--vx-space-12);
+  border: 1px solid var(--vx-hairline-16);
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--vx-duration-fast) var(--vx-ease-out),
+    border-color var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.botaoDeCartao:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.botaoDeCartao svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+.botaoDeCartao[data-tom="interesse"] {
+  border-color: transparent;
+  background: var(--vx-accent);
+  color: var(--vx-on-accent);
+}
+
+.botaoDeCartao[data-tom="interesse"]:hover {
+  background: var(--vx-accent-hover);
+}
+
+.botaoDeCartao[data-tom="interessado"] {
+  border-color: color-mix(in oklab, var(--vx-accent) 45%, transparent);
+  background: color-mix(in oklab, var(--vx-accent) 14%, transparent);
+  color: var(--vx-accent-text);
+}
+
+.botaoDeCartao[data-tom="entrar"] {
+  border-color: transparent;
+  background: var(--vx-success);
+  color: var(--vx-on-success);
+  font-weight: 700;
+}
+
+.botaoDeCartao[data-tom="icone"] {
+  inline-size: 30px;
+  padding-inline: 0;
+  border-color: transparent;
+  color: var(--vx-text-3);
+}
+
+/* -------------------------------------------------- estado vazio */
+
+.vazio {
+  /* 60 do design, como soma da escala. */
+  padding: calc(var(--vx-space-40) + var(--vx-space-20)) var(--vx-space-20);
+  border: 1px dashed var(--vx-hairline-10);
+  border-radius: var(--vx-radius-12);
+  text-align: center;
+}
+
+.vazioIcone {
+  display: grid;
+  place-items: center;
+  inline-size: 40px;
+  block-size: 40px;
+  margin: 0 auto var(--vx-space-14);
+  border-radius: var(--vx-radius-12);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-4);
+}
+
+.vazioIcone svg {
+  inline-size: var(--vx-icon-2);
+  block-size: var(--vx-icon-2);
+}
+
+.vazioTitulo {
+  font-size: var(--vx-size-lg);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.vazioDetalhe {
+  max-inline-size: 320px;
+  margin: var(--vx-space-05) auto 0;
+  font-size: var(--vx-size-sm);
+  line-height: 1.5;
+  color: var(--vx-text-3);
+}
+
+/* --------------------------------------------------- calendário */
+
+.mesCabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-block-end: var(--vx-space-14);
+}
+
+.mesTitulo {
+  font-size: var(--vx-size-xl);
+  font-weight: 600;
+  text-transform: capitalize;
+  color: var(--vx-text-1);
+}
+
+.navegacaoDoMes {
+  display: flex;
+  gap: var(--vx-space-04);
+}
+
+.navegar {
+  display: grid;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 30px;
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-2);
+  cursor: pointer;
+}
+
+.navegar svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+.semana {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--vx-space-06);
+}
+
+.semana + .semana {
+  margin-block-start: var(--vx-space-06);
+}
+
+.diaDaSemana {
+  padding-block: var(--vx-space-04);
+  font-size: var(--vx-size-2xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--vx-text-3);
+}
+
+.celula {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-04);
+  min-block-size: 86px;
+  min-inline-size: 0;
+  padding: var(--vx-space-07);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-3);
+}
+
+.celula[data-hoje="true"] {
+  border-color: color-mix(in oklab, var(--vx-accent) 35%, transparent);
+  background: color-mix(in oklab, var(--vx-accent) 8%, transparent);
+}
+
+.celula[data-fora="true"] {
+  opacity: 0.4;
+}
+
+.numeroDoDia {
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  color: var(--vx-text-3);
+}
+
+.celula[data-hoje="true"] .numeroDoDia {
+  color: var(--vx-accent-text);
+}
+
+.chip {
+  display: block;
+  inline-size: 100%;
+  overflow: hidden;
+  padding: var(--vx-space-03) var(--vx-space-05);
+  border: 0;
+  border-radius: var(--vx-radius-04);
+  background: color-mix(in oklab, var(--vx-accent) 16%, transparent);
+  color: var(--vx-accent-text);
+  font-family: inherit;
+  font-size: var(--vx-size-2xs);
+  font-weight: 600;
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.chip[data-aovivo="true"] {
+  background: color-mix(in oklab, var(--vx-success) 16%, transparent);
+  color: var(--vx-success-text);
+}
+
+/* ------------------------------------------------------ detalhe */
+
+.detalhe {
+  flex: none;
+  inline-size: 320px;
+  overflow-y: auto;
+  padding: var(--vx-space-20) var(--vx-space-18);
+  border-inline-start: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-1);
+}
+
+/*
+  O detalhe é o que some primeiro numa coluna estreita — a lista é o lugar.
+
+  1000 e não menos: o cabeçalho da lista (título, três abas, vistas e "Criar
+  evento") pede ~680px, e com os 320 do detalhe ao lado abaixo disso as abas
+  quebravam e "Criar evento" saía cortado. Medido com a member list aberta a
+  1440px, onde a tela tem 860.
+*/
+@container (inline-size < 1000px) {
+  .detalhe {
+    display: none;
+  }
+}
+
+.sobrancelha {
+  margin-block-end: var(--vx-space-12);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--vx-text-3);
+}
+
+.cartaoDeDetalhe {
+  overflow: hidden;
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-12);
+  background: var(--vx-surface-3);
+}
+
+.capaLarga {
+  position: relative;
+  display: grid;
+  place-items: center;
+  block-size: 110px;
+  overflow: hidden;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--vx-surface-4) 0 10px,
+    var(--vx-surface-3) 10px 20px
+  );
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-2xs);
+  color: var(--vx-text-4);
+}
+
+.capaLarga img {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+.pilulaDaCapa {
+  position: absolute;
+  inset-block-start: var(--vx-space-12);
+  inset-inline-start: var(--vx-space-12);
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-06);
+  block-size: 20px;
+  padding-inline: var(--vx-space-08);
+  border-radius: var(--vx-radius-pill);
+  /* Véu escuro sobre a capa — o `--vx-scrim`, que é exatamente isto. */
+  background: var(--vx-scrim);
+  font-family: var(--vx-font-ui);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  color: var(--vx-success-text);
+}
+
+.ponto {
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-success);
+}
+
+.corpoDoDetalhe {
+  padding: var(--vx-space-16);
+}
+
+.quandoDoDetalhe {
+  margin-block-end: var(--vx-space-06);
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  color: var(--vx-accent-text);
+}
+
+.nomeDoDetalhe {
+  margin-block-end: var(--vx-space-10);
+  font-size: var(--vx-size-base);
+  font-weight: 600;
+  line-height: var(--vx-leading-title);
+  text-wrap: pretty;
+  color: var(--vx-text-1);
+  overflow-wrap: anywhere;
+}
+
+.descricaoDoDetalhe {
+  margin-block-end: var(--vx-space-14);
+  font-size: var(--vx-size-md);
+  line-height: 1.5;
+  text-wrap: pretty;
+  color: var(--vx-text-2);
+  overflow-wrap: anywhere;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-09);
+  margin-block-end: var(--vx-space-16);
+}
+
+.linhaDeInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-09);
+  min-inline-size: 0;
+  font-size: var(--vx-size-md);
+  color: var(--vx-text-2);
+}
+
+.linhaDeInfo svg {
+  flex: none;
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+  color: var(--vx-text-3);
+}
+
+.linhaDeInfo[data-forte="true"] {
+  color: var(--vx-text-1);
+}
+
+.botoesDoDetalhe {
+  display: flex;
+  gap: var(--vx-space-08);
+  margin-block-end: var(--vx-space-16);
+}
+
+.botoesDoDetalhe .botaoDeCartao {
+  block-size: 36px;
+  padding-inline: var(--vx-space-14);
+  font-size: var(--vx-size-md);
+}
+
+.botoesDoDetalhe .botaoDeCartao[data-tom="interesse"],
+.botoesDoDetalhe .botaoDeCartao[data-tom="interessado"] {
+  flex: 1;
+}
+
+.botoesDoDetalhe .botaoDeCartao[data-tom="neutro"] {
+  color: var(--vx-text-1);
+}
+
+.pessoas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-07);
+}
+
+.pessoa {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-09);
+  min-inline-size: 0;
+}
+
+.nomeDaPessoa {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-1);
+}
+
+.pessoa[data-organiza="true"] .nomeDaPessoa {
+  color: var(--vx-accent-text);
+}
+
+.organiza {
+  font-size: var(--vx-size-2xs);
+  font-weight: 600;
+  color: var(--vx-text-4);
+}
+
+.verTodos {
+  align-self: flex-start;
+  padding-block-start: var(--vx-space-02);
+  border: 0;
+  background: transparent;
+  color: var(--vx-accent-text);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+}

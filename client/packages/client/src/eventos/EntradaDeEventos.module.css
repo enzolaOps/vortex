@@ -1,0 +1,104 @@
+/* ============================================================
+   "Eventos" no topo da coluna de canais
+   ------------------------------------------------------------
+   Valores do `Vortex Eventos e Entrada.dc.html`, seção 0: 34px,
+   `0 9px`, raio 6, véu de acento no ativo, contagem em pílula
+   de 18px. A barra de 3px é a mesma assinatura das linhas de
+   canal, e só acende aqui no ATIVO — não há "não lido" de
+   evento.
+   ============================================================ */
+
+.entrada {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  inline-size: 100%;
+  /* 34px é a DIMENSÃO desta linha no design, maior que a do canal (30):
+     ela é destino, não item de lista. */
+  block-size: 34px;
+  margin-block-end: var(--vx-space-08);
+  padding-inline: var(--vx-space-09);
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-base);
+  text-align: start;
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.entrada:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.entrada:active {
+  background: var(--vx-state-press);
+}
+
+.entrada:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.entrada[aria-current="true"] {
+  background: var(--vx-state-selected);
+  color: var(--vx-text-1);
+  font-weight: 600;
+}
+
+.barra {
+  position: absolute;
+  inset-inline-start: calc(var(--vx-space-08) * -1);
+  inset-block-start: var(--vx-space-07);
+  inline-size: var(--vx-lamina-w);
+  block-size: var(--vx-space-20);
+  border-start-end-radius: var(--vx-lamina-w);
+  border-end-end-radius: var(--vx-lamina-w);
+  background: var(--vx-accent);
+  opacity: 0;
+  transition: opacity var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.entrada[aria-current="true"] .barra {
+  opacity: 1;
+}
+
+.icone {
+  flex: none;
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+  color: var(--vx-text-4);
+}
+
+.entrada[aria-current="true"] .icone {
+  color: var(--vx-accent-text);
+}
+
+.rotulo {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contagem {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  /* 18px: dimensão da pílula no design. */
+  block-size: 18px;
+  min-inline-size: 18px;
+  padding-inline: var(--vx-space-05);
+  border-radius: var(--vx-radius-pill);
+  background: color-mix(in oklab, var(--vx-accent) 20%, transparent);
+  color: var(--vx-accent-text);
+  font-size: var(--vx-size-2xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}

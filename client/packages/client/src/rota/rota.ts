@@ -37,6 +37,7 @@ import {
   assinarNavegacao,
   irPara,
   irParaAmigos,
+  irParaEventos,
   irParaCasa,
   lerLocal,
   type AbaDePessoas,
@@ -56,6 +57,7 @@ const ID = "[0-9A-Za-z_-]{1,64}";
 
 const SERVIDOR = new RegExp(`^/servidor/(${ID})(?:/canal/(${ID})(?:/(${ID}))?)?$`);
 const CONVERSA = new RegExp(`^/dm/(${ID})$`);
+const EVENTOS = new RegExp(`^/servidor/(${ID})/eventos$`);
 
 /**
  * Os caminhos de FORA — os que existem antes de haver sessão.
@@ -91,11 +93,13 @@ const EXCLUIR = new RegExp(`^/delete/(${TOKEN})$`);
 */
 const REDEFINIR = new RegExp(`^/(?:redefinir|login/reset)/(${TOKEN})$`);
 const CONVITE = new RegExp(`^/convite/(${ID})$`);
+const AUTORIZAR_QR = new RegExp(`^/qr/(${ID})$`);
 
 const ENTRADA: Readonly<Record<string, TelaDeEntrada>> = {
   "/entrar": { tipo: "entrar" },
   "/entrar/criar": { tipo: "criar" },
   "/entrar/recuperar": { tipo: "recuperar" },
+  "/entrar/qr": { tipo: "qr" },
   // O endereço NÃO entra na URL: e-mail em barra de endereço fica em
   // histórico, em log de proxy e em print de tela.
   "/entrar/conferir": { tipo: "conferirEmail", email: undefined },
@@ -120,6 +124,10 @@ export function caminhoDaEntrada(tela: TelaDeEntrada): string {
       return `/delete/${tela.token}`;
     case "convite":
       return `/convite/${tela.codigo}`;
+    case "qr":
+      return "/entrar/qr";
+    case "autorizarQr":
+      return `/qr/${tela.id}`;
   }
 }
 
@@ -139,6 +147,9 @@ export function interpretarEntrada(caminho: string): TelaDeEntrada | undefined {
 
   const c = CONVITE.exec(caminho);
   if (c) return { tipo: "convite", codigo: c[1]! };
+
+  const q = AUTORIZAR_QR.exec(caminho);
+  if (q) return { tipo: "autorizarQr", id: q[1]! };
 
   return undefined;
 }
@@ -194,6 +205,7 @@ const SLUG: Record<AbaDePessoas, string> = {
   recebido: "pedidos",
   enviado: "enviados",
   bloqueado: "bloqueados",
+  solicitacoes: "solicitacoes",
 };
 
 const ABA_DO_SLUG: Record<string, AbaDePessoas | undefined> =
@@ -214,6 +226,8 @@ export function caminhoDe(local: Local): string {
       return local.aba === "amigo" ? "/amigos" : `/amigos/${SLUG[local.aba]}`;
     case "dm":
       return `/dm/${local.channelId}`;
+    case "eventos":
+      return `/servidor/${local.serverId}/eventos`;
     case "servidor":
       return local.channelId === undefined
         ? `/servidor/${local.serverId}`
@@ -264,6 +278,11 @@ export function interpretar(caminho: string): {
     };
   }
 
+  const eventos = EVENTOS.exec(caminho);
+  if (eventos) {
+    return { local: { tipo: "eventos", serverId: eventos[1]! }, mensagemId: undefined };
+  }
+
   const conversa = CONVERSA.exec(caminho);
   if (conversa) {
     return { local: { tipo: "dm", channelId: conversa[1]! }, mensagemId: undefined };
@@ -283,6 +302,9 @@ function aplicar(local: Local): void {
       return;
     case "dm":
       abrirConversa(local.channelId);
+      return;
+    case "eventos":
+      irParaEventos(local.serverId);
       return;
     case "servidor":
       irPara(local.serverId, local.channelId);

@@ -68,3 +68,18 @@
   inline-size: var(--vx-icon-1);
   block-size: var(--vx-icon-1);
 }
+
+/*
+  ⚠ **Em composer estreito sobra só o emoji, e quem forçou foi o chat da sala.**
+  Ele reusa este composer numa caixa de 420px, e as seis ferramentas somavam
+  202px de uma linha de 346: o campo onde se escreve media 64px e cada frase
+  quebrava em três linhas. O design desenha o composer do chat embutido sem
+  ferramenta nenhuma ("＋ Mensagem para…"); o emoji fica porque é o único dos
+  seis que funciona sem depender de nada. Container query e não media query:
+  o que encolhe é o composer, não a janela (lei nº 6).
+*/
+@container (inline-size < 480px) {
+  .ferramentas > :not(:first-child) {
+    display: none;
+  }
+}

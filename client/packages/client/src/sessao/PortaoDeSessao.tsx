@@ -65,8 +65,10 @@ export function PortaoDeSessao({ children }: { children: ReactNode }) {
   */
   useEffect(() => {
     if (sessao.estado !== "dentro") return;
-    if (lerEntrada().tipo !== "convite") return;
-    abrirModal("adicionarServidor");
+    const tipo = lerEntrada().tipo;
+    if (tipo === "convite") abrirModal("adicionarServidor");
+    // O link do QR sobrevive ao login pelo mesmo caminho.
+    if (tipo === "autorizarQr") abrirModal("autorizarQr");
   }, [sessao.estado]);
 
   /*

@@ -62,6 +62,7 @@ impl<'a> Reference<'a> {
                     .into_iter()
                     .next()
                     .ok_or(create_error!(NotFound))?,
+                roles: vec![],
             })
         } else {
             db.fetch_invite(self.id).await

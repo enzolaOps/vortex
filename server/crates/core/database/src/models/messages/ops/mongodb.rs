@@ -1,8 +1,9 @@
 use bson::{to_bson, Document};
+use iso8601_timestamp::Timestamp;
 use futures::try_join;
 use futures::StreamExt;
 use mongodb::options::FindOptions;
-use revolt_models::v0::MessageSort;
+use revolt_models::v0::{MessageSearchHas, MessageSort};
 use revolt_result::Result;
 use std::collections::{HashMap, HashSet};
 use std::time::SystemTime;
@@ -36,6 +37,13 @@ impl AbstractMessages for MongoDb {
         // 1. Apply message filters
         if let Some(channel) = query.filter.channel {
             filter.insert("channel", channel);
+        } else if let Some(channels) = query.filter.channels {
+            filter.insert(
+                "channel",
+                doc! {
+                    "$in": channels
+                },
+            );
         }
 
         if let Some(author) = query.filter.author {
@@ -57,6 +65,27 @@ impl AbstractMessages for MongoDb {
 
         if let Some(pinned) = query.filter.pinned {
             filter.insert("pinned", pinned);
+        };
+
+        // Vortex: filtro por tipo de conteúdo da busca
+        if let Some(has) = query.filter.has {
+            match has {
+                MessageSearchHas::Attachment => {
+                    filter.insert("attachments.0", doc! { "$exists": true });
+                }
+                MessageSearchHas::Image => {
+                    filter.insert("attachments.metadata.type", "Image");
+                }
+                MessageSearchHas::Video => {
+                    filter.insert("attachments.metadata.type", "Video");
+                }
+                MessageSearchHas::Audio => {
+                    filter.insert("attachments.metadata.type", "Audio");
+                }
+                MessageSearchHas::Link => {
+                    filter.insert("content", doc! { "$regex": "https?://" });
+                }
+            }
         };
 
         // 2. Find query limit
@@ -284,6 +313,62 @@ impl AbstractMessages for MongoDb {
                 doc! {
                     "$unset": {
                         format!("reactions.{emoji}"): 1
+                    }
+                },
+            )
+            .await
+            .map(|_| ())
+            .map_err(|_| create_database_error!("update_one", COL))
+    }
+
+    /// Replace a user's vote on a message's poll (Vortex)
+    async fn set_poll_vote(
+        &self,
+        id: &str,
+        user: &str,
+        answers: &[String],
+        all_answers: &[String],
+    ) -> Result<()> {
+        // Duas atualizações e não uma: `$pull` e `$addToSet` no MESMO caminho
+        // (votar de novo na mesma resposta) é conflito de operador no Mongo.
+        // Cada uma é atômica; entre as duas, quem lê vê o voto retirado, que é
+        // o estado intermediário honesto de "trocando de resposta".
+        let mut pull = Document::new();
+        for answer in all_answers {
+            pull.insert(format!("poll.votes.{answer}"), user);
+        }
+
+        if !pull.is_empty() {
+            self.col::<Document>(COL)
+                .update_one(doc! { "_id": id }, doc! { "$pull": pull })
+                .await
+                .map_err(|_| create_database_error!("update_one", COL))?;
+        }
+
+        let mut add = Document::new();
+        for answer in answers {
+            add.insert(format!("poll.votes.{answer}"), user);
+        }
+
+        if !add.is_empty() {
+            self.col::<Document>(COL)
+                .update_one(doc! { "_id": id }, doc! { "$addToSet": add })
+                .await
+                .map_err(|_| create_database_error!("update_one", COL))?;
+        }
+
+        Ok(())
+    }
+
+    /// Mark a message's poll as ended (Vortex)
+    async fn end_poll(&self, id: &str, ended_at: &Timestamp) -> Result<()> {
+        self.col::<Document>(COL)
+            .update_one(
+                doc! { "_id": id, "poll": { "$exists": true } },
+                doc! {
+                    "$set": {
+                        "poll.ended_at": to_bson(ended_at)
+                            .map_err(|_| create_database_error!("to_bson", COL))?
                     }
                 },
             )

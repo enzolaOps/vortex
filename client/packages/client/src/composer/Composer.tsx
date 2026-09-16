@@ -10,7 +10,16 @@ import {
   type KeyboardEvent,
 } from "react";
 
-import { FerramentasDoComposer } from "./FerramentasDoComposer";
+import { FerramentasDoComposer, type MontarInsercao } from "./FerramentasDoComposer";
+import { GravadorDeVoz } from "./GravadorDeVoz";
+import {
+  assinarGravacao,
+  cancelarGravacao,
+  comecarGravacao,
+  finalizarGravacao,
+  lerGravacao,
+  podeGravar,
+} from "./gravacaoDeVoz";
 import { Tooltip } from "../components/ui/Tooltip";
 import {
   ATRIBUTO_DE_COLUNA,
@@ -33,6 +42,7 @@ import {
   useMembrosDoServidor,
   useRascunho,
   useServidorAtivo,
+  useTopico,
 } from "../store/hooks";
 import { escreverRascunho, limparRascunho } from "../store/rascunhos";
 import { alvosDeMencao } from "../sdk/completarMencao";
@@ -84,6 +94,13 @@ export function Composer({ channelId }: { channelId: string }) {
   */
   const canal = useChannel(channelId);
   const modoLento = canal?.modoLento ?? 0;
+  /*
+    Dentro de um tópico, o composer diz duas coisas que não diria no canal: o
+    placeholder ("Responder no tópico") e que a resposta NÃO notifica o pai.
+    O segundo é o que tira a hesitação de responder num tópico movimentado.
+  */
+  const topico = useTopico(channelId);
+  const pai = useChannel(topico?.paiId ?? "");
   const serverId = useServidorAtivo();
   const idsServidor = useMembrosDoServidor(serverId);
   const ids =
@@ -169,6 +186,22 @@ export function Composer({ channelId }: { channelId: string }) {
     () => alvoDeResposta(channelId),
   );
 
+  /*
+    A gravação de voz, se for DESTE canal.
+
+    O store é um por aba e o composer é um por canal: sem a comparação, abrir
+    outro canal durante uma gravação mostraria o gravador do primeiro no
+    composer do segundo — e "enviar" mandaria o áudio para o canal errado.
+  */
+  const gravacao = useSyncExternalStore(assinarGravacao, lerGravacao);
+  const gravandoAqui =
+    gravacao.fase !== "parada" && gravacao.channelId === channelId;
+
+  /* Trocar de canal ou desmontar o composer DESCARTA a gravação deste canal:
+     um microfone aberto sem nenhum controle na tela é a pior falha possível
+     de um gravador. */
+  useEffect(() => () => cancelarGravacao(channelId), [channelId]);
+
   const entradaRef = useRef<HTMLTextAreaElement>(null);
   useEffect(
     () => ouvirFocoNoComposer(channelId, () => entradaRef.current?.focus()),
@@ -191,10 +224,13 @@ export function Composer({ channelId }: { channelId: string }) {
    * saltar para o final. A `textarea` guarda a seleção mesmo enquanto o
    * seletor tem o foco, então `selectionStart` continua valendo.
    */
-  function inserir(texto: string) {
+  function inserir(cru: string | MontarInsercao) {
     const campo = entradaRef.current;
     const a = campo?.selectionStart ?? valor.length;
     const b = campo?.selectionEnd ?? valor.length;
+    /* Quem precisa ver as bordas da seleção monta o texto — o link do GIF,
+       que ganha espaço onde encostaria numa palavra (`isolar`). */
+    const texto = typeof cru === "string" ? cru : cru(valor, a, b);
     alterar(valor.slice(0, a) + texto + valor.slice(b));
     /* Depois do commit, senão o cursor volta para o fim junto com o valor. */
     queueMicrotask(() => {
@@ -247,6 +283,44 @@ export function Composer({ channelId }: { channelId: string }) {
     return respondendoA === undefined
       ? undefined
       : { id: respondendoA.messageId, mencionar: respondendoA.mencionar };
+  }
+
+  /**
+   * Manda um texto pronto — o link de um GIF — sem passar pelo rascunho.
+   *
+   * ⚠ **O rascunho FICA.** Quem estava no meio de uma frase e mandou um GIF
+   * não pediu para perder a frase. A resposta armada vai junto e é desarmada,
+   * como no envio normal: o GIF é a resposta.
+   */
+  function enviarSo(texto: string) {
+    if (!temPermissao) return;
+    const id = enviarMensagem(channelId, texto, paraEnvio());
+    if (!id) return;
+    cancelarResposta(channelId);
+    pedirFimDaLista(channelId);
+  }
+
+  /**
+   * Manda a gravação como mensagem SÓ de áudio.
+   *
+   * ⚠ **O rascunho FICA**, ao contrário de `enviarArquivos`. Lá o arquivo é
+   * anexo do que se escreveu; aqui a voz substitui o texto, e quem tinha meia
+   * frase digitada antes de apertar o microfone não pediu para mandá-la junto
+   * — nem para perdê-la.
+   *
+   * O progresso de upload é o da LINHA otimista, como qualquer anexo: é a
+   * superfície que o design desenha para isso, e o gravador some no instante
+   * em que o arquivo fica pronto.
+   */
+  function enviarVoz() {
+    if (!temPermissao) return;
+    void finalizarGravacao().then((arquivo) => {
+      if (arquivo === undefined) return;
+      const id = enviarMensagem(channelId, "", paraEnvio(), [arquivo]);
+      if (!id) return;
+      cancelarResposta(channelId);
+      pedirFimDaLista(channelId);
+    });
   }
 
   function enviar() {
@@ -391,6 +465,15 @@ export function Composer({ channelId }: { channelId: string }) {
           em vez de acender só a caixa de texto enquanto o cursor está num
           botão vizinho.
         */}
+        {/*
+          Gravando, o gravador OCUPA o lugar da caixa em vez de morar dentro
+          dela: são dois modos exclusivos (não se digita enquanto grava), e a
+          caixa inteira com campo, ferramentas e faixa por baixo de um gravador
+          seria uma segunda superfície viva sem uso.
+        */}
+        {gravandoAqui ? (
+          <GravadorDeVoz channelId={channelId} aoEnviar={enviarVoz} />
+        ) : (
         <div className={cn(css.campo, "flex-1")} data-excedido={String(excedido)}>
           {sugestoes ? (
             <SugestoesDeMencao
@@ -489,16 +572,23 @@ export function Composer({ channelId }: { channelId: string }) {
                 */
                 disabled={!temPermissao}
                 placeholder={
-                  temPermissao
-                    ? "Escreva uma mensagem…"
-                    : "Você não pode escrever neste canal"
+                  !temPermissao
+                    ? "Você não pode escrever neste canal"
+                    : topico
+                      ? "Responder no tópico"
+                      : "Escreva uma mensagem…"
                 }
               />
             </div>
 
             <FerramentasDoComposer
+              channelId={channelId}
               desabilitado={!temPermissao}
               aoInserir={inserir}
+              aoEnviar={enviarSo}
+              aoGravar={
+                podeGravar() ? () => void comecarGravacao(channelId) : undefined
+              }
             />
 
             {/*
@@ -560,6 +650,11 @@ export function Composer({ channelId }: { channelId: string }) {
               para a esquerda quando o rascunho esvaziasse.
             */}
             <span className={css.estado}>
+              {topico?.arquivado ? (
+                <span className={css.dica}>Tópico arquivado · responder reabre</span>
+              ) : topico && pai ? (
+                <span className={css.dica}>Suas respostas aqui não notificam #{pai.name}</span>
+              ) : null}
               {modoLento > 0 ? (
                 <span className={css.dica}>Modo lento · {modoLento} s</span>
               ) : null}
@@ -582,6 +677,7 @@ export function Composer({ channelId }: { channelId: string }) {
             )}
           </div>
         </div>
+        )}
         </div>
       </div>
     </div>

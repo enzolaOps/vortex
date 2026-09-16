@@ -127,8 +127,32 @@ pub enum ErrorType {
     TooManyRoles {
         max: usize,
     },
+    /// Vortex: o servidor chegou ao teto de figurinhas
+    TooManyStickers {
+        max: usize,
+    },
+    /// Vortex: o servidor chegou ao teto de efeitos sonoros
+    TooManySounds {
+        max: usize,
+    },
     AlreadyInServer,
     CannotTimeoutYourself,
+    /// Vortex: a política do servidor impede a entrada
+    ///
+    /// `reason`: `Closed`, `InvitesPaused`, `JoinsFrozen` ou `EmailUnverified`
+    JoinBlocked {
+        reason: String,
+    },
+    /// Vortex: o pedido de entrada foi registrado e aguarda a moderação
+    JoinRequestPending,
+    /// Vortex: o nível de verificação do servidor ainda não foi cumprido
+    ///
+    /// `level`: `Low`, `Medium` ou `High`
+    VerificationRequired {
+        level: String,
+    },
+    /// Vortex: menções em massa estão silenciadas pela emergência
+    MentionsSilenced,
 
     // ? Bot related errors
     ReachedMaximumBots,
@@ -211,6 +235,8 @@ pub enum ErrorType {
     InvalidToken,
     MissingInvite,
     InvalidInvite,
+    /// Vortex: the channel this invite points to has its invites paused
+    InvitesPaused,
 
     CompromisedPassword,
     ShortPassword,
