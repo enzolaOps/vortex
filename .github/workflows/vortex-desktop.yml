@@ -86,11 +86,16 @@ jobs:
 
       # O Flatpak precisa do construtor e do runtime; o Windows não precisa de
       # nada além do Node. Passo condicional em vez de dois jobs quase iguais.
+      #
+      # ⚠ Os `-dev` do X11 não são do Flatpak: o `electron-packager` recompila
+      # o `uiohook-napi` (atalho de apertar-para-falar) contra o Electron, e o
+      # libuiohook inclui `X11/keysym.h`, XTest, Xrandr, Xinerama, Xt e XKB.
+      # Sem eles o `make` para em "X11/keysym.h: No such file or directory".
       - name: Preparar Flatpak
         if: matrix.plataforma == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder elfutils
+          sudo apt-get install -y flatpak flatpak-builder elfutils             libx11-dev libxtst-dev libxt-dev libxrandr-dev libxinerama-dev             libxkbfile-dev libxkbcommon-x11-dev
           sudo flatpak remote-add --if-not-exists flathub \
             https://flathub.org/repo/flathub.flatpakrepo
           sudo flatpak install -y flathub \
