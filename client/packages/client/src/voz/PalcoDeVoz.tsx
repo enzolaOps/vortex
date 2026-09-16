@@ -60,14 +60,20 @@ export function PalcoDeVoz() {
   const dono = chamada.tela ? eu : chamada.transmitindo[0];
 
   return (
-    /*
-      ⚠ **UM menu de participante para o palco inteiro**, e não um por
-      ladrilho: a grade, a fila da prancha e a lista "na sala" só marcam
-      `data-participante`, e a captura decide o alvo. Ver
-      `store/menuDoParticipante.ts`.
-    */
-    <ComMenuDoParticipante channelId={chamada.channelId}>
-      <section data-palco className={css.palco} aria-label={rotuloDe(palco)}>
+    <section data-palco className={css.palco} aria-label={rotuloDe(palco)}>
+      {/*
+        ⚠ **UM menu de participante para a TELA inteira**, e não um por
+        ladrilho: a grade, a fila da prancha e a lista "na sala" só marcam
+        `data-participante`, e a captura decide o alvo. Ver
+        `store/menuDoParticipante.ts`.
+
+        ⚠ **Em volta da tela e NÃO da seção, e o chat é a razão.** A captura
+        chama `preventDefault` fora de um participante — senão o Radix abriria
+        uma caixa vazia —, e o `Trigger` do menu de mensagem ignora evento já
+        prevenido. Com o chat embutido dentro deste gatilho, o clique direito
+        numa mensagem do chat da sala não abria menu nenhum, sem erro.
+      */}
+      <ComMenuDoParticipante channelId={chamada.channelId}>
         <div className={css.tela}>
           {/*
             ⚠ **A SALA entra na prancha sozinha quando há transmissão, e antes
@@ -94,14 +100,14 @@ export function PalcoDeVoz() {
             <GradeDeChamada />
           )}
         </div>
-        {/*
-          O chat do PRÓPRIO canal, ao lado da sala — ver `ChatDaSala`. Irmão da
-          tela e não filho: as três telas medem a largura delas por container
-          query, e o chat entrando tem de encolher a tela, não sobrepor.
-        */}
-        {chatAberto ? <ChatDaSala channelId={chamada.channelId} /> : null}
-      </section>
-    </ComMenuDoParticipante>
+      </ComMenuDoParticipante>
+      {/*
+        O chat do PRÓPRIO canal, ao lado da sala — ver `ChatDaSala`. Irmão da
+        tela e não filho: as três telas medem a largura delas por container
+        query, e o chat entrando tem de encolher a tela, não sobrepor.
+      */}
+      {chatAberto ? <ChatDaSala channelId={chamada.channelId} /> : null}
+    </section>
   );
 }
 
