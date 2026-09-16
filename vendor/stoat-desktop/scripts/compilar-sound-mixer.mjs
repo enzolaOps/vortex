@@ -18,7 +18,7 @@
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -96,21 +96,38 @@ function geradorDoVisualStudio() {
     "vswhere.exe",
   );
   if (!existsSync(vswhere)) throw new Error("vswhere ausente: Visual Studio não instalado.");
-  const versao = rodar(vswhere, [
-    "-latest",
-    "-products",
-    "*",
-    "-requires",
-    "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
-    "-property",
-    "installationVersion",
-  ]);
+  const consulta = (propriedade) =>
+    rodar(vswhere, [
+      "-latest",
+      "-products",
+      "*",
+      "-requires",
+      "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+      "-property",
+      propriedade,
+    ]);
+  const versao = consulta("installationVersion");
   const major = versao.split(".")[0];
   /* O ano não vem do vswhere: `catalog_productLineVersion` do VS 2026 é "18". */
   const ano = { 16: "2019", 17: "2022", 18: "2026" }[major];
   if (!ano) throw new Error(`Visual Studio "${versao}" sem gerador do CMake conhecido.`);
   const plataforma = { x64: "x64", ia32: "Win32", arm64: "ARM64" }[process.arch] ?? "x64";
-  return { gerador: `Visual Studio ${major} ${ano}`, plataforma };
+
+  /*
+    ⚠ **Compilador do VS 2022 (v143) quando o VS 2026 o tem ao lado.** O MSVC
+    19.51 do VS 2026 dá "error C1001: Internal compiler error" em
+    `node-addon-api/napi-inl.h` (a 4.3.0 do lockfile do projeto) — medido no
+    runner `windows-latest`. Trocar o `node-addon-api` mudaria o que entra no
+    binário; trocar o compilador, não.
+  */
+  let toolset;
+  if (Number(major) >= 18) {
+    const msvc = join(consulta("installationPath"), "VC", "Tools", "MSVC");
+    const versoes = existsSync(msvc) ? readdirSync(msvc) : [];
+    console.error(`MSVC instalados: ${versoes.join(", ") || "nenhum"}`);
+    if (versoes.some((v) => /^14\.[34]\d\./.test(v))) toolset = "v143";
+  }
+  return { gerador: `Visual Studio ${major} ${ano}`, plataforma, toolset };
 }
 
 function sha256(arquivo) {
@@ -161,12 +178,14 @@ rodar("npm", ["install", "--no-save", "--ignore-scripts", "--no-audit", "--no-fu
   env,
   shell: true,
 });
-const { gerador, plataforma } = geradorDoVisualStudio();
-console.error(`cmake-js com o gerador "${gerador}" (${plataforma})`);
+const { gerador, plataforma, toolset } = geradorDoVisualStudio();
+console.error(`cmake-js com o gerador "${gerador}" (${plataforma}, toolset ${toolset ?? "padrão"})`);
 /* A saída do cmake-js vai para o stderr: o stdout deste script é o caminho do
    `.node`, lido por quem o chama, e capturá-la esconderia o erro do compilador
    atrás de um "Process terminated: 1". */
-execFileSync("npx", ["cmake-js", "rebuild", "-G", `"${gerador}"`, "-A", plataforma], {
+const argsDoCmakeJs = ["cmake-js", "rebuild", "-G", `"${gerador}"`, "-A", plataforma];
+if (toolset) argsDoCmakeJs.push("-T", toolset);
+execFileSync("npx", argsDoCmakeJs, {
   cwd: pasta,
   env,
   shell: true,
