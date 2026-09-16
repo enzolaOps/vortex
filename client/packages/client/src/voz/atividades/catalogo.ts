@@ -1,4 +1,4 @@
-import type { PendenciaId } from "../../pendente/pendencias";
+import { aindaNao, type PendenciaId } from "../../pendente/pendencias";
 
 /**
  * O catálogo de atividades — os quatro itens do `ActivitiesModal` da
@@ -38,24 +38,32 @@ export const ATIVIDADES: readonly Atividade[] = [
     nome: "Assistir junto",
     capacidade: "até 10 pessoas",
     destaque: false,
-    host: { tipo: "pendente", pendencia: "atividades" /* etapa 1: era "atividadeAssistirJunto" */ },
+    host: { tipo: "pendente", pendencia: "atividadeAssistirJunto" },
   },
   {
     id: "poker",
     nome: "Poker",
     capacidade: "2 a 8 pessoas",
     destaque: false,
-    host: { tipo: "pendente", pendencia: "atividades" /* etapa 1: era "atividadePoker" */ },
+    host: { tipo: "pendente", pendencia: "atividadePoker" },
   },
   {
     id: "xadrez",
     nome: "Xadrez",
     capacidade: "2 pessoas",
     destaque: false,
-    host: { tipo: "pendente", pendencia: "atividades" /* etapa 1: era "atividadeXadrez" */ },
+    host: { tipo: "pendente", pendencia: "atividadeXadrez" },
   },
 ];
 
 export function atividadePorId(id: string): Atividade | undefined {
   return ATIVIDADES.find((a) => a.id === id);
+}
+
+/**
+ * Diz o que a atividade sem host fará e do que depende. Mora com o catálogo
+ * porque é ele quem sabe qual pendência cada item carrega.
+ */
+export function explicarPendente(a: Atividade): void {
+  if (a.host.tipo === "pendente") aindaNao(a.host.pendencia)();
 }

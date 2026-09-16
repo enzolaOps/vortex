@@ -1,9 +1,14 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../sdk/client", () => ({ client: { events: { on: vi.fn() }, api: {} } }));
+vi.mock("../../sdk/client", () => ({
+  client: {
+    events: { on: vi.fn() },
+    api: { config: { baseURL: "http://api.local", headers: {} } },
+  },
+}));
 
 const { lerMensagemDoHost } = await import("./protocolo");
 const {
@@ -15,7 +20,9 @@ const {
   limparAtividades,
   TETO_DO_REGISTRO,
 } = await import("../../store/atividades");
-const { aplicarEventoDeAtividade, operacaoCabe } = await import("../../sdk/atividades");
+const { aplicarEventoDeAtividade, enviarOperacao, iniciarAtividade, operacaoCabe } = await import(
+  "../../sdk/atividades"
+);
 
 const SESSAO = {
   _id: "S1",
@@ -36,6 +43,7 @@ function op(texto: string, extra: Record<string, unknown> = {}) {
 }
 
 beforeEach(() => limparAtividades());
+afterEach(() => vi.unstubAllGlobals());
 
 describe("host do quadro", () => {
   /*
@@ -125,5 +133,39 @@ describe("store de atividades", () => {
     expect(lerRegistro("C")[0]!.op).toBe("10");
     aplicarEventoDeAtividade(op("limpo", { snapshot: true }));
     expect(lerRegistro("C").map((o) => o.op)).toEqual(["limpo"]);
+  });
+});
+
+/*
+  ⚠ As duas rotas são do FORK, e o `stoat-api` manda `{}` em rota que ele não
+  conhece: sem o corpo o servidor recusa `kind` vazio e a atividade nunca
+  começa, sem erro que diga por quê. O teste olha o `fetch` de verdade.
+*/
+describe("rede das atividades", () => {
+  function dublarFetch(status: number, corpo: string) {
+    const f = vi.fn(() => Promise.resolve(new Response(corpo || null, { status })));
+    vi.stubGlobal("fetch", f);
+    return f;
+  }
+
+  it("iniciar manda o tipo no corpo e abre a sessão devolvida", async () => {
+    const f = dublarFetch(200, JSON.stringify(SESSAO));
+    await iniciarAtividade("C", "quadro");
+    const [url, init] = f.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("http://api.local/channels/C/activity");
+    expect(init.body).toBe(JSON.stringify({ kind: "quadro" }));
+    expect(lerSessao("C")?.id).toBe("S1");
+  });
+
+  it("a operação leva sessão, carga e snapshot no corpo", async () => {
+    const f = dublarFetch(204, "");
+    await enviarOperacao("C", "S1", '{"t":"limpar"}', true);
+    const [url, init] = f.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("http://api.local/channels/C/activity/op");
+    expect(JSON.parse(init.body as string)).toEqual({
+      activity_id: "S1",
+      op: '{"t":"limpar"}',
+      snapshot: true,
+    });
   });
 });

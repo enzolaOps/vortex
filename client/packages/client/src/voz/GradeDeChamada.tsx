@@ -9,10 +9,13 @@ import { memo, useEffect, useState, useSyncExternalStore } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
 import { Tooltip } from "../components/ui/Tooltip";
+import { buscarAtividade } from "../sdk/atividades";
 import { assinarVideo } from "../sdk/chamada";
+import { assinarSessao, lerSessao } from "../store/atividades";
 import { assinarChamada, falando, lerChamada } from "../store/chamada";
 import { useChannel, usePessoa, useServer } from "../store/hooks";
 import { fecharPalco } from "../store/palcoDeVoz";
+import { LadrilhoDeAtividade } from "./atividades/LadrilhoDeAtividade";
 import { Cronometro, Doca, FaixaDeVideo } from "./pecasDeVoz";
 import css from "./GradeDeChamada.module.css";
 
@@ -83,9 +86,29 @@ export function GradeDeChamada() {
     célula fica menor que o rosto que ela existe para mostrar, e paginar
     esconderia justamente quem está falando.
   */
+  const comAtividade =
+    useSyncExternalStore(assinarSessao(chamada.channelId), () =>
+      lerSessao(chamada.channelId),
+    ) !== undefined;
+
+  /*
+    Quem entra na sala DEPOIS de a atividade começar não recebeu o
+    `ActivityUpdate`: a grade pergunta ao abrir. O resultado vai para o store
+    (não para `setState`), e falha de rede só deixa a grade sem o ladrilho.
+  */
+  useEffect(() => {
+    if (!chamada.channelId) return;
+    buscarAtividade(chamada.channelId).catch(() => undefined);
+  }, [chamada.channelId]);
+
+  /* O ladrilho da atividade ocupa 2×2: com uma coluna só ele criaria uma
+     trilha implícita fora da conta. */
   const colunas = Math.min(
     5,
-    Math.max(1, Math.ceil(Math.sqrt(chamada.participantes.length))),
+    Math.max(
+      comAtividade ? 2 : 1,
+      Math.ceil(Math.sqrt(chamada.participantes.length)),
+    ),
   );
 
   /*
@@ -155,6 +178,7 @@ export function GradeDeChamada() {
           className={css.grade}
           style={{ gridTemplateColumns: `repeat(${String(colunas)}, minmax(0, 1fr))` }}
         >
+          <LadrilhoDeAtividade channelId={chamada.channelId} />
           {chamada.participantes.map((id) => (
             <Ladrilho
               key={id}

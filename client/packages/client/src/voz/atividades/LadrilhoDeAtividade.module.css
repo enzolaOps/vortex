@@ -42,7 +42,9 @@
   overflow: hidden;
   padding: var(--vx-space-02) var(--vx-space-08);
   border-radius: var(--vx-radius-pill);
-  background: color-mix(in srgb, var(--vx-surface-0) 70%, transparent);
+  /* Véu sobre conteúdo de terceiro (o host): é o papel de `--vx-scrim`, e não
+     de `surface-0`, que o design reserva a rail e gutter. */
+  background: var(--vx-scrim);
   color: var(--vx-text-1);
   font-size: var(--vx-size-xs);
   font-weight: 600;

@@ -26,6 +26,7 @@ import { EditorDePasta } from "../../servidores/EditorDePasta";
 import { SeletorDeTela } from "../../voz/SeletorDeTela";
 import { TransferirPropriedade } from "../../servidores/TransferirPropriedade";
 import { AutorizarQr } from "../../sessao/AutorizarQr";
+import { ModalDeAtividades } from "../../voz/atividades/ModalDeAtividades";
 
 /**
  * O registro de modais, e o ponto dele é o TIPO.
@@ -63,6 +64,7 @@ const REGISTRO: Record<ModalId, ComponentType<{ aoFechar: () => void }>> = {
   excluirConta: ModalDeExcluirConta,
   transferirPropriedade: TransferirPropriedade,
   autorizarQr: AutorizarQr,
+  atividades: ModalDeAtividades,
 };
 
 /**

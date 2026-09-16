@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 
-import { EyeSlash } from "../components/ui/icones";
 import { chaveDeMembro } from "../sdk/domain";
 import { usuarioLocalId } from "../sdk/adapter";
 import { precisaVerificar, revelar } from "../store/filtroDeMidia";
@@ -24,6 +23,11 @@ import css from "./MidiaFiltrada.module.css";
  *
  * A imagem velada NÃO é carregada: quem escolheu não ver não deveria pagar o
  * download, e o navegador não deveria ter o arquivo em cache.
+ *
+ * ⚠ **Cobre em vez de borrar, e é o design:** o véu dele é `surface.sunken` a
+ * 92% sobre o xadrez de placeholder — a 92% um `blur()` embaixo não se vê, e
+ * borrar exigiria baixar justamente a imagem que a política mandou esconder.
+ * Os textos e a amostra são os de `PrivacidadeDoServidor`, a mesma prévia.
  *
  * Assina cinco stores, mas só em linhas com mídia — que são poucas — e cada um
  * muda por ação humana (política, cargo, clique em mostrar), nunca por
@@ -53,12 +57,14 @@ export function MidiaFiltrada({
   if (!velada) return <>{children}</>;
 
   return (
-    <button type="button" className={css.veu} onClick={() => revelar(anexoId)}>
-      <EyeSlash aria-hidden />
-      <span className={css.titulo}>Mídia não verificada</span>
-      <span className={css.detalhe}>
-        Este servidor filtra mídia explícita · mostrar
-      </span>
+    <button
+      type="button"
+      className={css.veu}
+      aria-label="Conteúdo sensível — revelar"
+      onClick={() => revelar(anexoId)}
+    >
+      <span className={css.titulo}>Conteúdo sensível</span>
+      <span className={css.detalhe}>clique para revelar</span>
     </button>
   );
 }

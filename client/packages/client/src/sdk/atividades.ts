@@ -9,6 +9,7 @@
  */
 import { client } from "./client";
 import { tipoDoErro } from "./erros";
+import { postarCru } from "./requisicaoCrua";
 import {
   anexarOperacao,
   definirSessao,
@@ -86,10 +87,8 @@ export async function buscarAtividade(channelId: string): Promise<void> {
 }
 
 export async function iniciarAtividade(channelId: string, tipo: string): Promise<void> {
-  const s = (await client.api.post(
-    `/channels/${channelId}/activity` as never,
-    { kind: tipo } as never,
-  )) as SessaoCrua;
+  // Rota do fork: `client.api.post` descartaria o corpo — ver `requisicaoCrua`.
+  const s = await postarCru<SessaoCrua>(`/channels/${channelId}/activity`, { kind: tipo });
   definirSessao(channelId, sessao(s), (s.ops ?? []).map(operacao));
 }
 
@@ -116,8 +115,9 @@ export async function enviarOperacao(
   snapshot: boolean,
 ): Promise<void> {
   if (!operacaoCabe(op)) return;
-  await client.api.post(
-    `/channels/${channelId}/activity/op` as never,
-    { activity_id: atividadeId, op, snapshot } as never,
-  );
+  await postarCru(`/channels/${channelId}/activity/op`, {
+    activity_id: atividadeId,
+    op,
+    snapshot,
+  });
 }

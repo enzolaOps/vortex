@@ -6,7 +6,12 @@
  * `explicit_content_filter` no servidor (quem administra escolhe, todo mundo
  * recebe), e nenhum pixel passa por lá: num Raspberry Pi, classificar cada
  * imagem enviada custaria CPU que o chat ao vivo divide, e o serviço que
- * recebe o upload (`autumn`) nem é publicado por este fork. Ver o PR.
+ * recebe o upload (`autumn`) nem é publicado por este fork. Ordem de grandeza
+ * (números PUBLICADOS, não medidos aqui): um classificador MobileNetV2
+ * quantizado pesa ~3 MB e roda em dezenas de ms por imagem 224×224 numa GPU de
+ * desktop; no CPU do Pi são ~0,1 s de inferência MAIS a decodificação e o
+ * redimensionamento de uma foto de celular, que custam várias vezes isso —
+ * por upload, disputando CPU com a API. No cliente o custo é de quem vê.
  *
  * ⚠ **Sem analisador, "verificar" quer dizer "esconder até alguém decidir".**
  * O modelo de classificação não entrou nesta rodada (ele é uma dependência de

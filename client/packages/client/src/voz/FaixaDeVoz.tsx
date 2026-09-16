@@ -10,6 +10,7 @@ import { useSyncExternalStore } from "react";
 import { alternarCamera, alternarTela, sairDaChamada } from "../sdk/chamada";
 import { aindaNao } from "../pendente/pendencias";
 import { assinarChamada, lerChamada, type QualidadeDeVoz } from "../store/chamada";
+import { abrirModal } from "../store/modais";
 import { cn } from "../lib/cn";
 import { selecionarCanal } from "../store/navegacao";
 import { Tooltip } from "../components/ui/Tooltip";
@@ -225,17 +226,18 @@ export function FaixaDeVoz() {
           </button>
         </Tooltip>
 
-        {/* Desenhados sem implementação — ver `pendente/pendencias.ts`. */}
         <Tooltip texto="Atividades">
           <button
             type="button"
             className={css.acao}
             aria-label="Atividades"
-            onClick={aindaNao("atividades")}
+            onClick={() => abrirModal("atividades")}
           >
             <Rows />
           </button>
         </Tooltip>
+
+        {/* Desenhado sem implementação — ver `pendente/pendencias.ts`. */}
 
         <Tooltip texto="Soundboard">
           <button

@@ -6,13 +6,12 @@ import { Dialog, DialogClose, DialogContent } from "../../components/ui/Dialog";
 import { X } from "../../components/ui/icones";
 import { toast } from "../../components/ui/toastStore";
 import { cn } from "../../lib/cn";
-import { aindaNao } from "../../pendente/pendencias";
 import { iniciarAtividade } from "../../sdk/atividades";
 import { motivoDoErro } from "../../sdk/erros";
 import { assinarChamada, lerChamada } from "../../store/chamada";
 import { useChannel } from "../../store/hooks";
 import { definirPalco } from "../../store/palcoDeVoz";
-import { ATIVIDADES, type Atividade } from "./catalogo";
+import { ATIVIDADES, explicarPendente, type Atividade } from "./catalogo";
 import css from "./ModalDeAtividades.module.css";
 
 /**
@@ -39,7 +38,7 @@ export function ModalDeAtividades({ aoFechar }: { aoFechar: () => void }) {
 
   function iniciar(a: Atividade) {
     if (a.host.tipo === "pendente") {
-      aindaNao(a.host.pendencia)();
+      explicarPendente(a);
       return;
     }
     if (!chamada.channelId) return;

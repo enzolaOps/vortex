@@ -25,6 +25,7 @@ export async function postarCru<T>(caminho: string, corpo: unknown): Promise<T> 
     body: JSON.stringify(corpo),
   });
   const texto = r.status === 204 ? "" : await r.text();
+  // eslint-disable-next-line @typescript-eslint/only-throw-error -- o TEXTO, como o stoat-api: é o que `erros.ts` lê
   if (!r.ok) throw texto;
   return (texto ? JSON.parse(texto) : null) as T;
 }
