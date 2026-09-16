@@ -1,6 +1,6 @@
 import { type JSONSchema } from "json-schema-typed";
 
-import { ipcMain } from "electron";
+import { ipc } from "./remetente";
 import Store from "electron-store";
 
 import { aoFecharInicial, type AoFechar } from "./preferenciasDoCliente";
@@ -278,7 +278,7 @@ class Config {
 
 export const config = new Config();
 
-ipcMain.on("config", (_, newConfig: Partial<DesktopConfig>) => {
+ipc.on("config", (_, newConfig: Partial<DesktopConfig>) => {
   console.info("Received new configuration", newConfig);
   Object.entries(newConfig).forEach(
     ([key, value]) => (config[key as keyof DesktopConfig] = value as never),

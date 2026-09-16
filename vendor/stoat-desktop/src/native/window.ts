@@ -6,7 +6,6 @@ import {
   MenuItem,
   app,
   dialog,
-  ipcMain,
   nativeImage,
   screen,
 } from "electron";
@@ -26,11 +25,18 @@ import { registrarAudioDaJanela } from "./audioDaJanela";
 import { registrarControles } from "./controles";
 import { registrarNotificacoes } from "./notificacoes";
 import { registrarOverlay } from "./overlay";
+import { ipc, registrarJanelaPrincipal } from "./remetente";
 import { registrarSeletorDeTela } from "./telaCompartilhada";
 import { updateTrayMenu } from "./tray";
 
 // global reference to main window
 export let mainWindow: BrowserWindow;
+
+/* O guarda de IPC confere o remetente contra ESTA janela — ver `remetente.ts`. */
+registrarJanelaPrincipal(() => mainWindow);
+
+/* O guarda de IPC confere o remetente contra ESTA janela — ver emetente.ts. */
+registrarJanelaPrincipal(() => mainWindow);
 
 // currently in-use build
 export const BUILD_URL = new URL(
@@ -249,11 +255,11 @@ export function createMainWindow() {
   registrarAtenuacao();
 
   // push world events to the window
-  ipcMain.on("minimise", () => mainWindow.minimize());
-  ipcMain.on("maximise", () =>
+  ipc.on("minimise", () => mainWindow.minimize());
+  ipc.on("maximise", () =>
     mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize(),
   );
-  ipcMain.on("close", () => mainWindow.close());
+  ipc.on("close", () => mainWindow.close());
 
   // mainWindow.webContents.openDevTools();
 

@@ -1,4 +1,5 @@
-import { app, ipcMain } from "electron";
+import { app } from "electron";
+import { ipc } from "./remetente";
 
 /**
  * "Atenuar outros apps": baixa o volume dos OUTROS programas enquanto alguém
@@ -93,7 +94,7 @@ async function atenuar(sim: boolean): Promise<void> {
 }
 
 export function registrarAtenuacao(): void {
-  ipcMain.on("vortexAtenuar", (_e, sim: unknown) => void atenuar(sim === true));
+  ipc.on("vortexAtenuar", (_e, sim: unknown) => void atenuar(sim === true));
   /* Sair do app no meio de uma fala não pode deixar o computador a 50%. */
   app.on("will-quit", () => void atenuar(false));
 }

@@ -1,11 +1,11 @@
 import {
   desktopCapturer,
-  ipcMain,
   screen,
   session,
   shell,
   systemPreferences,
 } from "electron";
+import { ipc } from "./remetente";
 
 import { registrarJanelaEntregue } from "./audioDaJanela";
 
@@ -87,7 +87,7 @@ export function registrarSeletorDeTela(): void {
   const sistema = soSistema();
 
   /** O cliente pergunta se deve abrir o seletor próprio. */
-  ipcMain.handle("telaSeletorProprio", () => !sistema);
+  ipc.handle("telaSeletorProprio", () => !sistema);
 
   /*
     A permissão de captura do sistema.
@@ -101,14 +101,14 @@ export function registrarSeletorDeTela(): void {
     ainda não perguntou", e a captura vai disparar o diálogo — avisar antes é
     melhor que a pessoa clicar em transmitir e ver a tela congelar.
   */
-  ipcMain.handle("telaPermissao", () => {
+  ipc.handle("telaPermissao", () => {
     if (process.platform !== "darwin") return "concedida";
     return systemPreferences.getMediaAccessStatus("screen") === "granted"
       ? "concedida"
       : "pendente";
   });
 
-  ipcMain.handle("telaAbrirAjustes", async () => {
+  ipc.handle("telaAbrirAjustes", async () => {
     /* O deep link das preferências de privacidade do macOS. Em outra
        plataforma não há o que abrir, e o botão nem é renderizado. */
     if (process.platform !== "darwin") return;
@@ -117,7 +117,7 @@ export function registrarSeletorDeTela(): void {
     );
   });
 
-  ipcMain.handle("telaFontes", async (): Promise<FonteDeTela[]> => {
+  ipc.handle("telaFontes", async (): Promise<FonteDeTela[]> => {
     const fontes = await desktopCapturer.getSources({
       types: ["screen", "window"],
       thumbnailSize: MINIATURA,
@@ -155,7 +155,7 @@ export function registrarSeletorDeTela(): void {
     }));
   });
 
-  ipcMain.handle("telaEscolher", (_e, id: unknown, audio: unknown) => {
+  ipc.handle("telaEscolher", (_e, id: unknown, audio: unknown) => {
     /*
       ⚠ Validado AQUI e não só no cliente. O preload é uma superfície que
       conteúdo de terceiro alcança se houver XSS, e o briefing manda o main
@@ -166,7 +166,7 @@ export function registrarSeletorDeTela(): void {
     return true;
   });
 
-  ipcMain.handle("telaCancelar", () => {
+  ipc.handle("telaCancelar", () => {
     armada = undefined;
   });
 

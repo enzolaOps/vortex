@@ -1,4 +1,5 @@
-import { app, BrowserWindow, ipcMain, session, shell } from "electron";
+import { app, BrowserWindow, session, shell } from "electron";
+import { ipc } from "./remetente";
 
 import { version } from "../../package.json";
 import { registrarPreferencias } from "./preferencias";
@@ -43,7 +44,7 @@ export function registrarPonteDoVortex(): void {
     `setAlwaysOnTop` a `destroy`. É a mesma revalidação que o seletor de tela
     faz no `id` da fonte, e o briefing pede por nome: "IPC validado no main".
   */
-  ipcMain.handle("vortexJanela", (_e, acao: unknown) => {
+  ipc.handle("vortexJanela", (_e, acao: unknown) => {
     const j = janela();
     if (!j) return;
     const fn = CONTROLES[acao as ControleDeJanela] as
@@ -52,7 +53,7 @@ export function registrarPonteDoVortex(): void {
     if (fn) fn(j);
   });
 
-  ipcMain.handle("vortexEstadoDaJanela", () => estado());
+  ipc.handle("vortexEstadoDaJanela", () => estado());
 
   /*
     ⚠ **Ler e gravar preferências moram em `preferencias.ts`.** A versão que
@@ -62,15 +63,15 @@ export function registrarPonteDoVortex(): void {
   */
   registrarPreferencias();
 
-  ipcMain.handle("vortexTamanhoDoCache", () =>
+  ipc.handle("vortexTamanhoDoCache", () =>
     session.defaultSession.getCacheSize(),
   );
 
-  ipcMain.handle("vortexLimparCache", () =>
+  ipc.handle("vortexLimparCache", () =>
     session.defaultSession.clearCache(),
   );
 
-  ipcMain.handle("vortexAbrirPastaDeLogs", () =>
+  ipc.handle("vortexAbrirPastaDeLogs", () =>
     shell.openPath(app.getPath("logs")),
   );
 

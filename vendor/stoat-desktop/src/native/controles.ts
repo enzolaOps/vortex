@@ -1,4 +1,5 @@
-import { app, ipcMain } from "electron";
+import { app } from "electron";
+import { ipc } from "./remetente";
 
 import { alternarOverlay, alternarSilencioDoOverlay } from "./overlay";
 import { definirChamadaEmPip } from "./preferencias";
@@ -216,9 +217,9 @@ export function registrarControles(): void {
      exatamente o que antivírus e o próprio Windows tratam com desconfiança. */
   app.on("will-quit", () => void pararControles());
 
-  ipcMain.handle("vortexDefinirAtalhos", (_e, atalhos: unknown) => definirAtalhos(atalhos));
+  ipc.handle("vortexDefinirAtalhos", (_e, atalhos: unknown) => definirAtalhos(atalhos));
 
-  ipcMain.on("vortexEstadoDeVoz", (_e, estado: unknown) => {
+  ipc.on("vortexEstadoDeVoz", (_e, estado: unknown) => {
     const o = (typeof estado === "object" && estado !== null ? estado : {}) as Record<
       string,
       unknown
