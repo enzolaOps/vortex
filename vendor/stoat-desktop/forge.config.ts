@@ -71,6 +71,9 @@ const makers: ForgeConfig["makers"] = [
       productName: STRINGS.name,
       productDescription: STRINGS.description,
       runtimeVersion: "25.08",
+      // Sem isto a BaseApp do Electron é pedida no ramo "stable", que o
+      // Flathub não publica: os ramos dela acompanham o runtime.
+      baseVersion: "25.08",
       icon: {
         "16x16": `${ASSET_DIR}/hicolor/16x16.png`,
         "32x32": `${ASSET_DIR}/hicolor/32x32.png`,
@@ -152,7 +155,16 @@ const config: ForgeConfig = {
     //   ...globSync(ASSET_DIR + "/**/*"),
     // ],
   },
-  rebuildConfig: {},
+  rebuildConfig: {
+    /*
+      ⚠ **O `uiohook-napi` NÃO é recompilado.** É N-API e traz `prebuilds/` para
+      as seis plataformas, que o `node-gyp-build` acha sozinho — o mesmo binário
+      serve a qualquer Electron. Recompilar exigia o X11 de desenvolvimento no
+      Linux e, no Windows, um Visual Studio que o `@electron/node-gyp` reconheça:
+      ele só aceita 2019 e 2022, e o runner `windows-latest` tem o 2026.
+    */
+    ignoreModules: ["uiohook-napi"],
+  },
   makers,
   hooks: {
     // Copy the node-pipewire dist to the app on linux
