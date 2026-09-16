@@ -103,7 +103,7 @@ pub enum ChannelPermission {
     /// Access server audit logs
     ViewAuditLogs = 1 << 40,
 
-    // * Vortex (44 é dos pedidos de entrada)
+    // * Vortex
     /// Edit and delete scheduled server events created by anyone
     ///
     /// Bits novos do fork, no começo da área livre: nenhum bit existente foi
@@ -113,9 +113,11 @@ pub enum ChannelPermission {
     CreateEvents = 1 << 42,
     /// Tocar efeitos sonoros do painel do servidor numa sala de voz
     UseSoundboard = 1 << 43,
+    /// Vortex: revisar, aprovar e recusar pedidos de entrada
+    ManageJoinRequests = 1 << 44,
 
     // * Misc. permissions
-    // % Bits 44 to 52: free area
+    // % Bits 45 to 52: free area
     // % Bits 53 to 64: do not use
 
     // * Grant all permissions

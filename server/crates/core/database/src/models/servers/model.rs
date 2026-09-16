@@ -76,6 +76,13 @@ auto_derived_partial!(
         /// Whether this server should be publicly discoverable
         #[serde(skip_serializing_if = "crate::if_false", default)]
         pub discoverable: bool,
+
+        /// Vortex: política de acesso e segurança
+        ///
+        /// Guardada com o tipo do modelo `v0` de propósito: é o mesmo formato no
+        /// banco e no fio, e duplicá-lo só criaria uma conversão que pode divergir.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub security: Option<v0::ServerSecurity>,
     },
     "PartialServer"
 );
@@ -154,6 +161,7 @@ auto_derived!(
         SystemMessages,
         Icon,
         Banner,
+        Security,
         Tag,
         TagBadge,
     }
@@ -191,6 +199,7 @@ impl Server {
             icon: None,
             roles: HashMap::new(),
             system_messages: None,
+            security: None,
             tag: None,
             tag_badge: None,
             characteristics: vec![],
@@ -269,6 +278,7 @@ impl Server {
             FieldsServer::SystemMessages => self.system_messages = None,
             FieldsServer::Icon => self.icon = None,
             FieldsServer::Banner => self.banner = None,
+            FieldsServer::Security => self.security = None,
             FieldsServer::Tag => self.tag = None,
             FieldsServer::TagBadge => self.tag_badge = None,
         }
@@ -290,6 +300,7 @@ impl Server {
                 default_permissions,
                 (FieldsServer::Icon) icon,
                 (FieldsServer::Banner) banner,
+                (FieldsServer::Security) security,
                 (FieldsServer::Tag) tag,
                 (FieldsServer::TagBadge) tag_badge,
                 characteristics,

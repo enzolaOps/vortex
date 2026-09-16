@@ -95,6 +95,11 @@ export const PERMISSOES: readonly GrupoDePermissoes[] = [
         rotulo: "Mudar apelidos",
         detalhe: "Trocar o apelido de outras pessoas no servidor.",
       },
+      {
+        id: "ManageJoinRequests",
+        rotulo: "Moderar pedidos de entrada",
+        detalhe: "Aprovar ou recusar quem pediu para entrar.",
+      },
     ],
   },
   {
@@ -389,12 +394,15 @@ export function mesclarPermissoes(atual: bigint, marcadas: readonly string[]): b
 const TABELA = {
   ...(Permission as unknown as Record<string, bigint>),
   /*
-    ⚠ **Bit do fork, fora da tabela do `stoat.js`.** `UseSoundboard` entrou em
-    `ChannelPermission` do `delta` no bit 43 (41 e 42 são dos eventos, 44 dos
-    pedidos de entrada — distribuição combinada entre os forks). O SDK é submodule pinado; sem esta linha o editor de
-    cargos mostraria o interruptor e gravaria zero.
+    ⚠ **Bits do fork, fora da tabela do `stoat.js`.** `UseSoundboard` entrou em
+    `ChannelPermission` do `delta` no bit 43 e `ManageJoinRequests` no 44 (41 e
+    42 são dos eventos — distribuição combinada entre os forks). O SDK é
+    submodule pinado; sem estas linhas o editor de cargos mostraria o
+    interruptor e gravaria zero. Ver também `BIT_GERENCIAR_PEDIDOS` em
+    `seguranca.ts`.
   */
   UseSoundboard: 1n << 43n,
+  ManageJoinRequests: 1n << 44n,
 } as Record<string, bigint>;
 
 /**

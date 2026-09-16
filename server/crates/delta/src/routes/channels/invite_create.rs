@@ -39,6 +39,21 @@ pub async fn create_invite(
     let permissions = calculate_channel_permissions(&mut query).await;
     permissions.throw_if_lacking_channel_permission(ChannelPermission::InviteOthers)?;
 
+    // Vortex: com a emergência pausando convites, nem criar um novo funciona.
+    if let Some(server_id) = channel.server() {
+        let server = db.fetch_server(server_id).await?;
+        if server
+            .security
+            .as_ref()
+            .and_then(|security| security.active_emergency())
+            .is_some_and(|emergency| emergency.pause_invites)
+        {
+            return Err(create_error!(JoinBlocked {
+                reason: "InvitesPaused".to_string()
+            }));
+        }
+    }
+
     if !roles.is_empty() {
         // Giving roles through a link is assigning them: same permission and
         // the same ranking rule as editing a member.

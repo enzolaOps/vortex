@@ -9,7 +9,9 @@ use revolt_database::{
     Channel, Database, Member, MemberCompositeKey, Presence, RelationshipStatus,
 };
 use revolt_models::v0;
-use revolt_permissions::{calculate_channel_permissions, ChannelPermission};
+use revolt_permissions::{
+    calculate_channel_permissions, calculate_server_permissions, ChannelPermission,
+};
 use revolt_presence::filter_online;
 use revolt_result::Result;
 
@@ -638,6 +640,31 @@ impl State {
                     if member.roles.contains(role_id) {
                         queue_server = Some(id.clone());
                     }
+                }
+            }
+
+            // Vortex: pedido de entrada é assunto de quem modera, não do servidor
+            // inteiro — quem pediu para entrar não precisa ser anunciado a todos.
+            EventV1::ServerJoinRequestCreate { id, .. }
+            | EventV1::ServerJoinRequestDelete { id, .. } => {
+                let Some(server) = self.cache.servers.get(id) else {
+                    return false;
+                };
+
+                let Some(user) = self.cache.users.get(&self.cache.user_id) else {
+                    return false;
+                };
+
+                let mut query = DatabasePermissionQuery::new(db, user).server(server);
+                if let Some(member) = self.cache.members.get(id) {
+                    query = query.member(member);
+                }
+
+                if !calculate_server_permissions(&mut query)
+                    .await
+                    .has_channel_permission(ChannelPermission::ManageJoinRequests)
+                {
+                    return false;
                 }
             }
 

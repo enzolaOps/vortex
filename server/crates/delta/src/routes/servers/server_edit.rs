@@ -51,6 +51,7 @@ pub async fn edit(
         && data.analytics.is_none()
         && data.discoverable.is_none()
         && data.owner.is_none()
+        && data.security.is_none()
         && data.remove.is_empty()
     {
         return Ok(Json(server.into(db).await));
@@ -63,6 +64,7 @@ pub async fn edit(
         || data.characteristics.is_some()
         || data.system_messages.is_some()
         || data.analytics.is_some()
+        || data.security.is_some()
         || !data.remove.is_empty()
     {
         permissions.throw_if_lacking_channel_permission(ChannelPermission::ManageServer)?;
@@ -106,6 +108,7 @@ pub async fn edit(
         discoverable,
         analytics,
         owner,
+        security,
         remove,
     } = data;
 
@@ -158,6 +161,16 @@ pub async fn edit(
         owner: owner.clone(),
         ..Default::default()
     };
+
+    // Vortex: política de acesso e segurança é mesclada sobre a atual, para
+    // que mudar um interruptor não apague os outros nem a emergência.
+    if let Some(security) = security {
+        if !security.is_empty() {
+            let mut current = server.security.clone().unwrap_or_default();
+            security.apply(&mut current);
+            partial.security = Some(current);
+        }
+    }
 
     // 1. Remove fields from object
     if remove.contains(&v0::FieldsServer::Banner) {

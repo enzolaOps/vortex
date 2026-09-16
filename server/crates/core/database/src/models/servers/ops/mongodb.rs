@@ -171,6 +171,7 @@ impl IntoDocumentPath for FieldsServer {
     fn as_path(&self) -> Option<&'static str> {
         Some(match self {
             FieldsServer::Banner => "banner",
+            FieldsServer::Security => "security",
             FieldsServer::Categories => "categories",
             FieldsServer::Description => "description",
             FieldsServer::Icon => "icon",
@@ -256,8 +257,8 @@ impl MongoDb {
         self.delete_associated_channel_objects(Bson::Document(doc! { "$in": &channels }))
             .await?;
 
-        // Delete members and bans.
-        for with in &["server_members", "server_bans"] {
+        // Delete members, bans and (Vortex) join requests.
+        for with in &["server_members", "server_bans", "server_join_requests"] {
             self.col::<Document>(with)
                 .delete_many(doc! {
                     "_id.server": &server_id
@@ -271,6 +272,14 @@ impl MongoDb {
             "used_for.id": &server_id
         })
         .await?;
+
+        // Vortex: o modelo gerado a partir deste servidor some com ele.
+        self.col::<Document>("server_templates")
+            .delete_many(doc! {
+                "server": &server_id
+            })
+            .await
+            .map_err(|_| create_database_error!("delete_many", "server_templates"))?;
 
         self.col::<Document>("audit_logs")
             .delete_many(doc! {

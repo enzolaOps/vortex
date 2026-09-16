@@ -50,6 +50,21 @@ function comoObjeto(e: unknown): unknown {
   }
 }
 
+/** `JoinBlocked.reason` — por que a política do servidor barrou a entrada. */
+const BLOQUEIO_DE_ENTRADA: Record<string, string> = {
+  Closed: "Este servidor está fechado para novas entradas.",
+  InvitesPaused: "Os convites deste servidor estão pausados por emergência.",
+  JoinsFrozen: "Entradas neste servidor estão congeladas por emergência.",
+  EmailUnverified: "Este servidor exige e-mail verificado para entrar.",
+};
+
+/** `VerificationRequired.level` — o que falta cumprir para falar. */
+const VERIFICACAO_PARA_FALAR: Record<string, string> = {
+  Low: "Confirme seu e-mail para falar neste servidor.",
+  Medium:
+    "Este servidor exige e-mail confirmado e conta com pelo menos 5 minutos para falar.",
+  High: "Este servidor exige 10 minutos como membro antes de falar.",
+};
 /**
  * Quanto o servidor mandou esperar, em ms — ou `undefined` se não mandou.
  *
@@ -109,6 +124,13 @@ const POR_TIPO: Record<string, string> = {
   AccountOwnsServers:
     "Transfira ou exclua os servidores que você administra antes de excluir sua conta.",
 
+  /* ------------------------------------ acesso e segurança (fork do `api`) */
+  JoinRequestPending:
+    "Pedido enviado. Este servidor aprova entradas manualmente.",
+  MentionsSilenced:
+    "Menções a todos estão silenciadas pela emergência deste servidor.",
+  NotOwner: "Só o dono do servidor pode fazer isto.",
+
   /* --------------------------------------------- servidor de mídia (autumn) */
   /*
     ⚠ **O `autumn` é um serviço SEPARADO e responde com o mesmo envelope.**
@@ -149,6 +171,12 @@ function porStatus(status: number | undefined): string | undefined {
  * o arquivo e a linha do Rust onde a falha aconteceu; jogar isso na tela
  * expõe a versão do servidor e não ajuda ninguém que esteja tentando entrar.
  */
+/** O `type` do protocolo, para quem decide o caminho e não só a frase. */
+export function tipoDoErro(e: unknown): string | undefined {
+  const tipo = (comoObjeto(e) as { type?: unknown } | null)?.type;
+  return typeof tipo === "string" ? tipo : undefined;
+}
+
 export function motivoDoErro(e: unknown): string {
   const corpo = comoObjeto(e);
   const tipo = (corpo as { type?: unknown } | null)?.type;
@@ -169,6 +197,26 @@ export function motivoDoErro(e: unknown): string {
     return teto === undefined
       ? "Esse arquivo é grande demais."
       : `Esse arquivo passa do limite de ${teto}.`;
+  }
+
+  /*
+    ⚠ **As duas recusas de política carregam o MOTIVO, e o motivo é a frase.**
+    "Não deu para entrar" sem dizer que o servidor está fechado ou que falta
+    confirmar o e-mail manda a pessoa tentar o mesmo convite de novo.
+  */
+  if (tipo === "JoinBlocked") {
+    const razao = (corpo as { reason?: unknown } | null)?.reason;
+    return (
+      BLOQUEIO_DE_ENTRADA[String(razao)] ??
+      "Este servidor não está aceitando entradas agora."
+    );
+  }
+  if (tipo === "VerificationRequired") {
+    const nivel = (corpo as { level?: unknown } | null)?.level;
+    return (
+      VERIFICACAO_PARA_FALAR[String(nivel)] ??
+      "Este servidor exige verificação antes de falar."
+    );
   }
 
   if (typeof tipo === "string") {

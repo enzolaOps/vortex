@@ -53,6 +53,10 @@ impl<'r> Responder<'r, 'static> for Error {
             ErrorType::InvalidRole => Status::NotFound,
             ErrorType::Banned => Status::Forbidden,
             ErrorType::AlreadyInServer => Status::Conflict,
+            ErrorType::JoinBlocked { .. } => Status::Forbidden,
+            ErrorType::JoinRequestPending => Status::Forbidden,
+            ErrorType::VerificationRequired { .. } => Status::Forbidden,
+            ErrorType::MentionsSilenced => Status::Forbidden,
             ErrorType::CannotTimeoutYourself => Status::BadRequest,
 
             ErrorType::TooManyServers { .. } => Status::BadRequest,

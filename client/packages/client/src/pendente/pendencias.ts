@@ -84,13 +84,6 @@ export const PENDENCIAS = {
     faz: "Deixar só quem tem o cargo escolhido exibir a tag.",
     depende: "um campo de cargo exigido na tag do servidor — o fork guarda só a tag e o emblema",
   },
-  /* --------------------------------------------- modelo do servidor */
-  modeloDoServidor: {
-    superficie: "Configurações do servidor · Modelo do servidor",
-    faz: "Gerar um modelo com canais, categorias, cargos e permissões, e aplicá-lo noutro servidor.",
-    depende:
-      "o conceito de modelo no protocolo — não há campo nem rota, ou seja fork do serviço `api`",
-  },
   /* --------------------------------------------------------- entrada */
   /*
     ⚠ **O QR é do design e o protocolo não tem o conceito.** Entrar por código
@@ -286,44 +279,17 @@ export const PENDENCIAS = {
 
   /* ------------------------------------------- acesso e segurança do servidor */
   /*
-    ⚠ **As seis são a MESMA causa, e ela é maior que "falta a rota": o Stoat
-    não tem o CONCEITO.** Medido no `OpenAPI.json` de `stoat-api@0.14.0`:
-    `verification_level`, `join_request`, `approval`, `explicit_content_filter`
-    e `dm_settings` dão ZERO ocorrências, e as rotas de `/servers/{id}` são só
-    membros, banimentos, convites, cargos, permissões, emojis e auditoria.
-
-    Ficam separadas em vez de virar uma entrada só porque destravam em ORDEM
-    diferente: requisito de conta e nível de verificação são um campo em
-    `DataEditServer`; fila de aprovação é um recurso novo com rota, evento e
-    tela de moderação atrás.
-
-    ⚠ **E nenhuma delas vira store de cliente**, ao contrário de
-    `privacidadeDoServidor.ts`. Aquela é a decisão de UMA pessoa sobre o que
-    ela recebe, e é o cliente dela que a aplica. Estas são política do
-    SERVIDOR: guardá-las nesta máquina daria uma regra que só quem a marcou
-    enxerga e que servidor nenhum aplica — o mesmo defeito que manteve `criar
-    enquete` como pendência.
+    ⚠ **O grupo encolheu de sete para três quando o fork do `api` ganhou
+    `security`.** Modo de entrada, fila de aprovação, e-mail verificado, nível
+    de verificação, DM entre membros, filtro de convites e emergência saíram
+    daqui: são campo, rota e evento do servidor agora. Sobraram os três que
+    precisam de algo que nem o fork tem.
   */
-  modoDeEntrada: {
-    superficie: "Configurações do servidor · Acesso",
-    faz: "Escolher entre entrada por convite, aprovação manual e servidor fechado.",
-    depende: "modo de entrada no protocolo — não há campo em `DataEditServer`",
-  },
-  filaDeAprovacao: {
-    superficie: "Configurações do servidor · Acesso",
-    faz: "Revisar, aprovar e recusar quem pediu para entrar.",
+  telefoneVerificado: {
+    superficie: "Configurações do servidor · Acesso e Segurança",
+    faz: "Exigir telefone verificado para entrar e para o nível de verificação mais alto.",
     depende:
-      "pedido de entrada no protocolo — rota, evento e o próprio conceito não existem",
-  },
-  requisitosDeEntrada: {
-    superficie: "Configurações do servidor · Acesso",
-    faz: "Exigir email ou telefone verificado antes de deixar entrar.",
-    depende: "requisito de conta no protocolo",
-  },
-  nivelDeVerificacao: {
-    superficie: "Configurações do servidor · Segurança",
-    faz: "Escalonar o que uma conta nova precisa cumprir antes de falar.",
-    depende: "`verification_level` no protocolo",
+      "telefone na conta — o sistema de contas do Stoat não tem campo nem verificação de telefone",
   },
   filtroDeMidia: {
     superficie: "Configurações do servidor · Segurança",
@@ -331,22 +297,11 @@ export const PENDENCIAS = {
     depende:
       "`explicit_content_filter` no protocolo + um analisador no lado do servidor",
   },
-  contatoEntreMembros: {
+  pausaAutomatica: {
     superficie: "Configurações do servidor · Segurança",
-    faz: "Limitar DM entre membros e filtrar convites de terceiros.",
-    depende: "política de DM por servidor no protocolo",
-  },
-  /*
-    ⚠ **Esta é a única do grupo cuja auditoria JÁ EXISTE** —
-    `/servers/{target}/audit_logs` está no schema. O que falta são as três
-    escritas que ela dispararia: pausar convite (só existe revogar), silenciar
-    @everyone e congelar entrada. Nenhuma tem rota.
-  */
-  emergencia: {
-    superficie: "Configurações do servidor · Segurança",
-    faz: "Pausar convites, silenciar @everyone e congelar entradas por 1 hora.",
+    faz: "Pausar convites sozinho num pico anormal de entradas e avisar a moderação.",
     depende:
-      "pausar convite, silenciar cargo e congelar entrada — três escritas que o protocolo não tem",
+      "detecção de pico no serviço `api` — a emergência manual existe, o gatilho automático não",
   },
 
   /* --------------------------------------------- configurações de canal */

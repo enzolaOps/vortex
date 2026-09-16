@@ -1,4 +1,6 @@
-use revolt_database::{util::reference::Reference, Channel, Database, Invite, Member, User, AMQP};
+use revolt_database::{
+    util::reference::Reference, Channel, Database, Invite, Member, ServerJoinRequest, User, AMQP,
+};
 use revolt_models::v0::{self, InviteJoinResponse};
 use revolt_result::{create_error, Result};
 use rocket::{serde::json::Json, State};
@@ -39,6 +41,25 @@ pub async fn join(
             }
 
             let server = db.fetch_server(server).await?;
+
+            // Vortex: política de entrada. Servidor sem `security` passa direto.
+            if server.check_join_policy(db, &user).await? {
+                if db.fetch_ban(&server.id, &user.id).await.is_ok() {
+                    return Err(create_error!(Banned));
+                }
+
+                if db.fetch_member(&server.id, &user.id).await.is_ok() {
+                    return Err(create_error!(AlreadyInServer));
+                }
+
+                // Aprovação manual: o convite vira pedido. Responder com erro e
+                // não com uma variante nova de `InviteJoinResponse` é o que
+                // mantém cliente antigo funcionando — ele mostra a falha em vez
+                // de tratar um pedido como entrada.
+                ServerJoinRequest::create(db, &server, &user).await?;
+                return Err(create_error!(JoinRequestPending));
+            }
+
             let (_, channels) =
                 Member::create_with_roles(db, &server, &user, None, roles.clone()).await?;
 

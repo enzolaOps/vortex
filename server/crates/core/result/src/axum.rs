@@ -50,6 +50,10 @@ impl IntoResponse for Error {
             ErrorType::InvalidRole => StatusCode::NOT_FOUND,
             ErrorType::Banned => StatusCode::FORBIDDEN,
             ErrorType::AlreadyInServer => StatusCode::CONFLICT,
+            ErrorType::JoinBlocked { .. } => StatusCode::FORBIDDEN,
+            ErrorType::JoinRequestPending => StatusCode::FORBIDDEN,
+            ErrorType::VerificationRequired { .. } => StatusCode::FORBIDDEN,
+            ErrorType::MentionsSilenced => StatusCode::FORBIDDEN,
             ErrorType::CannotTimeoutYourself => StatusCode::BAD_REQUEST,
 
             ErrorType::TooManyServers { .. } => StatusCode::BAD_REQUEST,
