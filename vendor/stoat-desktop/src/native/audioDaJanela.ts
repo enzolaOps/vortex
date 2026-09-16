@@ -1,5 +1,5 @@
 import { type WebContents } from "electron";
-import { ipc } from "./remetente";
+import { registrar, semArgumentos } from "./registroDeIpc";
 
 /**
  * O áudio de UMA janela compartilhada, e não o do computador inteiro.
@@ -129,9 +129,20 @@ export async function audioDaJanelaDisponivel(): Promise<boolean> {
 }
 
 export function registrarAudioDaJanela(): void {
-  ipc.handle("audioJanelaDisponivel", () => audioDaJanelaDisponivel());
+  registrar("audioJanelaDisponivel", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: () => audioDaJanelaDisponivel(),
+  });
 
-  ipc.handle("audioJanelaIniciar", async (e) => {
+  /* Nenhum argumento: a janela autorizada é a que o handler de captura
+     entregou, nunca uma que o renderer mande. */
+  registrar("audioJanelaIniciar", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: async (_nada, e) => {
     const id = janelaEntregue;
     const hwnd = id === undefined ? undefined : hwndDoId(id);
     const n = await carregar();
@@ -161,7 +172,13 @@ export function registrarAudioDaJanela(): void {
       console.error("Não deu para capturar o áudio da janela:", erro);
       return false;
     }
+    },
   });
 
-  ipc.handle("audioJanelaParar", (e) => parar(e.sender));
+  registrar("audioJanelaParar", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: (_nada, e) => parar(e.sender),
+  });
 }

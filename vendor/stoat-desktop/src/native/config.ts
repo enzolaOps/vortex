@@ -1,6 +1,6 @@
 import { type JSONSchema } from "json-schema-typed";
 
-import { ipc } from "./remetente";
+import { objeto, registrar } from "./registroDeIpc";
 import Store from "electron-store";
 
 import { aoFecharInicial, type AoFechar } from "./preferenciasDoCliente";
@@ -278,9 +278,43 @@ class Config {
 
 export const config = new Config();
 
-ipc.on("config", (_, newConfig: Partial<DesktopConfig>) => {
-  console.info("Received new configuration", newConfig);
-  Object.entries(newConfig).forEach(
-    ([key, value]) => (config[key as keyof DesktopConfig] = value as never),
-  );
+/**
+ * O que o renderer pode escrever por `desktopConfig.set`: só chave que o
+ * `schema` conhece, com o tipo que ele declara. Chave desconhecida é
+ * descartada (um cliente mais novo manda chaves a mais); o objeto inteiro só é
+ * recusado se não for objeto.
+ */
+function configValida(bruto: unknown): Partial<DesktopConfig> | undefined {
+  const o = objeto(bruto);
+  if (!o) return undefined;
+  const esquemas = schema as Record<string, { type?: string; enum?: unknown[] }>;
+  const saida: Record<string, unknown> = {};
+  for (const [chave, valor] of Object.entries(o)) {
+    if (!Object.hasOwn(esquemas, chave)) continue;
+    const e = esquemas[chave];
+    const ok =
+      e.type === "boolean"
+        ? typeof valor === "boolean"
+        : e.type === "string"
+          ? typeof valor === "string" && (!e.enum || e.enum.includes(valor))
+          : e.type === "array"
+            ? Array.isArray(valor)
+            : e.type === "object"
+              ? objeto(valor) !== undefined
+              : false;
+    if (ok) saida[chave] = valor;
+  }
+  return saida as Partial<DesktopConfig>;
+}
+
+registrar("config", {
+  via: "send",
+  quem: ["principal"],
+  validar: configValida,
+  executar: (newConfig) => {
+    console.info("Received new configuration", newConfig);
+    Object.entries(newConfig).forEach(
+      ([key, value]) => (config[key as keyof DesktopConfig] = value as never),
+    );
+  },
 });

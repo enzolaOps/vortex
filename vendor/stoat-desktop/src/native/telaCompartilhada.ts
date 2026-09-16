@@ -5,7 +5,7 @@ import {
   shell,
   systemPreferences,
 } from "electron";
-import { ipc } from "./remetente";
+import { registrar, semArgumentos } from "./registroDeIpc";
 
 import { registrarJanelaEntregue } from "./audioDaJanela";
 
@@ -87,7 +87,12 @@ export function registrarSeletorDeTela(): void {
   const sistema = soSistema();
 
   /** O cliente pergunta se deve abrir o seletor próprio. */
-  ipc.handle("telaSeletorProprio", () => !sistema);
+  registrar("telaSeletorProprio", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: () => !sistema,
+  });
 
   /*
     A permissão de captura do sistema.
@@ -101,23 +106,37 @@ export function registrarSeletorDeTela(): void {
     ainda não perguntou", e a captura vai disparar o diálogo — avisar antes é
     melhor que a pessoa clicar em transmitir e ver a tela congelar.
   */
-  ipc.handle("telaPermissao", () => {
-    if (process.platform !== "darwin") return "concedida";
-    return systemPreferences.getMediaAccessStatus("screen") === "granted"
-      ? "concedida"
-      : "pendente";
+  registrar("telaPermissao", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: () => {
+      if (process.platform !== "darwin") return "concedida";
+      return systemPreferences.getMediaAccessStatus("screen") === "granted"
+        ? "concedida"
+        : "pendente";
+    },
   });
 
-  ipc.handle("telaAbrirAjustes", async () => {
+  registrar("telaAbrirAjustes", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: async () => {
     /* O deep link das preferências de privacidade do macOS. Em outra
        plataforma não há o que abrir, e o botão nem é renderizado. */
     if (process.platform !== "darwin") return;
     await shell.openExternal(
       "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture",
     );
+    },
   });
 
-  ipc.handle("telaFontes", async (): Promise<FonteDeTela[]> => {
+  registrar("telaFontes", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: async (): Promise<FonteDeTela[]> => {
     const fontes = await desktopCapturer.getSources({
       types: ["screen", "window"],
       thumbnailSize: MINIATURA,
@@ -153,21 +172,34 @@ export function registrarSeletorDeTela(): void {
       miniatura: f.thumbnail.toDataURL(),
       icone: f.appIcon?.resize({ width: ICONE, height: ICONE }).toDataURL(),
     }));
+    },
   });
 
-  ipc.handle("telaEscolher", (_e, id: unknown, audio: unknown) => {
+  registrar("telaEscolher", {
+    via: "invoke",
+    quem: ["principal"],
     /*
       ⚠ Validado AQUI e não só no cliente. O preload é uma superfície que
       conteúdo de terceiro alcança se houver XSS, e o briefing manda o main
       revalidar tudo. `id` que não seja string de fonte é descartado.
     */
-    if (typeof id !== "string" || !/^(screen|window):/.test(id)) return false;
-    armada = { id, audio: audio === true };
-    return true;
+    validar: (id: unknown, audio: unknown) =>
+      typeof id === "string" && /^(screen|window):/.test(id)
+        ? { id, audio: audio === true }
+        : undefined,
+    executar: (escolha) => {
+      armada = escolha;
+      return true;
+    },
   });
 
-  ipc.handle("telaCancelar", () => {
-    armada = undefined;
+  registrar("telaCancelar", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: () => {
+      armada = undefined;
+    },
   });
 
   session.defaultSession.setDisplayMediaRequestHandler(

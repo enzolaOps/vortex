@@ -1,6 +1,6 @@
 import { app } from "electron";
 import { type Mixer, type MixerCarregado, criarAtenuacao } from "./atenuacaoModelo";
-import { ipc } from "./remetente";
+import { booleano, registrar } from "./registroDeIpc";
 
 /**
  * "Atenuar outros apps": baixa o volume dos OUTROS programas enquanto alguém
@@ -54,7 +54,12 @@ function carregar() {
 const { atenuar, aoSair } = criarAtenuacao({ carregar, proprio: process.execPath });
 
 export function registrarAtenuacao(): void {
-  ipc.on("vortexAtenuar", (_e, sim: unknown) => void atenuar(sim === true));
+  registrar("vortexAtenuar", {
+    via: "send",
+    quem: ["principal"],
+    validar: booleano,
+    executar: (sim) => void atenuar(sim),
+  });
   /* Sair do app no meio de uma fala não pode deixar o computador a 50% —
      e `will-quit` com `void` saía antes de o mixer terminar de carregar. */
   app.on("before-quit", (e) => aoSair(e, () => app.quit()));

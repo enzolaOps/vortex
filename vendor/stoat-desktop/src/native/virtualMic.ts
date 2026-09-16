@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Disable any checks because node-pipewire doesn't have types for our submodule
 import { app } from "electron";
-import { ipc } from "./remetente";
+import { registrar, semArgumentos } from "./registroDeIpc";
 
 import { sinkName, sourceName } from "../constants";
 
@@ -15,7 +15,12 @@ export const isWayland =
   process.platform === "linux" &&
   (process.env.XDG_SESSION_TYPE === "wayland" || !!process.env.WAYLAND_DISPLAY);
 
-ipc.handle("getIsWayland", () => isWayland);
+registrar("getIsWayland", {
+  via: "invoke",
+  quem: ["principal"],
+  validar: semArgumentos,
+  executar: () => isWayland,
+});
 
 export async function initVirtualMic() {
   // Only available on Wayland

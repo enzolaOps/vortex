@@ -1,5 +1,12 @@
 import { contextBridge, ipcRenderer } from "electron";
 
+import {
+  CANAL_DA_PORTA,
+  COMANDOS_DO_OVERLAY,
+  type ParaOOverlay,
+  lerParaOOverlay,
+} from "./native/portasDoOverlayModelo";
+
 /**
  * O preload da janela do OVERLAY do jogo — ver `native/overlay.ts`.
  *
@@ -11,54 +18,99 @@ import { contextBridge, ipcRenderer } from "electron";
  * para existir numa página que só desenha o que a principal publica.
  *
  * Aqui atravessam DUAS pontes, e só elas: `vortexOverlay` (estado, mensagens,
- * interação e o comando dos botões de voz) e `vortexOverlaySilencio`. O main
- * ainda confere o remetente de todo canal (`native/remetente.ts`).
+ * interação e o comando dos botões de voz) e `vortexOverlaySilencio`.
+ *
+ * ⚠ **Nenhuma delas usa canal de IPC.** O main entrega UMA porta a esta
+ * página a cada carregamento (`CANAL_DA_PORTA`), e é por ela que tudo passa —
+ * ver `native/portasDoOverlayModelo.ts`. O `ipcRenderer` aqui só RECEBE a
+ * porta; ele nunca manda nada.
+ *
+ * ⚠ **O preload guarda o último valor de cada coisa e o reentrega a quem
+ * assina depois.** O retrato chega na porta assim que ela é entregue, o que
+ * pode ser antes de o React montar; sem a reentrega, o overlay abriria vazio
+ * até a chamada mudar de novo.
  *
  * ⚠ **`publicar` e `mensagem` existem e não fazem nada.** O contrato do
  * cliente (`ponteDeOverlay` em `client/…/overlay/modelo.ts`) só reconhece a
  * ponte com os seis verbos; tirar os dois faria o overlay não se desenhar.
- * Publicar é papel da principal, e o main recusaria de qualquer forma — aqui
- * eles nem chegam ao IPC.
+ * Publicar é papel da principal, e esta porta nem aceita isso no main.
  */
+
+let porta: MessagePort | undefined;
+
+const ultimo: {
+  estado?: ParaOOverlay & { tipo: "estado" };
+  interacao?: ParaOOverlay & { tipo: "interacao" };
+  silencio?: ParaOOverlay & { tipo: "silencio" };
+} = {};
+
+const ouvintes = {
+  estado: new Set<(e: unknown) => void>(),
+  mensagem: new Set<(m: unknown) => void>(),
+  interacao: new Set<(sim: boolean) => void>(),
+  silencio: new Set<(sim: boolean) => void>(),
+};
+
+function avisar<T>(conjunto: Set<(v: T) => void>, valor: T): void {
+  for (const f of conjunto) {
+    try {
+      f(valor);
+    } catch (erro) {
+      console.error("Ouvinte do overlay lançou:", erro);
+    }
+  }
+}
+
+function receber(dado: unknown): void {
+  const m = lerParaOOverlay(dado);
+  if (!m) return;
+  switch (m.tipo) {
+    case "estado":
+      ultimo.estado = m;
+      return avisar(ouvintes.estado, m.estado);
+    case "mensagem":
+      return avisar(ouvintes.mensagem, m.mensagem);
+    case "interacao":
+      ultimo.interacao = m;
+      return avisar(ouvintes.interacao, m.interagindo);
+    case "silencio":
+      ultimo.silencio = m;
+      return avisar(ouvintes.silencio, m.silenciadas);
+  }
+}
+
+ipcRenderer.on(CANAL_DA_PORTA, (evento) => {
+  const nova = evento.ports[0];
+  if (!nova) return;
+  /* Uma porta por página: a anterior (se o main recriou) deixa de falar. */
+  porta?.close();
+  porta = nova;
+  nova.onmessage = (e) => receber(e.data);
+});
+
+function assinar<T>(conjunto: Set<(v: T) => void>, ouvinte: (v: T) => void, atual?: T): () => void {
+  conjunto.add(ouvinte);
+  if (atual !== undefined) ouvinte(atual);
+  return () => void conjunto.delete(ouvinte);
+}
+
 contextBridge.exposeInMainWorld("vortexOverlay", {
   publicar: (): void => undefined,
   mensagem: (): void => undefined,
-  assinarEstado: (ouvinte: (e: unknown) => void) => {
-    const alca = (_evento: unknown, e: unknown) => ouvinte(e);
-    ipcRenderer.on("vortexOverlayEstado", alca);
-    void ipcRenderer
-      .invoke("vortexOverlayEstadoAtual")
-      .then((atual?: { estado?: unknown }) => {
-        if (atual?.estado) ouvinte(atual.estado);
-      });
-    return () => ipcRenderer.off("vortexOverlayEstado", alca);
+  assinarEstado: (ouvinte: (e: unknown) => void) =>
+    assinar(ouvintes.estado, ouvinte, ultimo.estado?.estado),
+  assinarMensagens: (ouvinte: (m: unknown) => void) => assinar(ouvintes.mensagem, ouvinte),
+  assinarInteracao: (ouvinte: (sim: boolean) => void) =>
+    assinar(ouvintes.interacao, ouvinte, ultimo.interacao?.interagindo),
+  /* Só as intenções da lista fechada saem daqui; o main confere de novo. */
+  comando: (c: unknown) => {
+    if (!(COMANDOS_DO_OVERLAY as readonly unknown[]).includes(c)) return;
+    porta?.postMessage({ tipo: "comando", comando: c });
   },
-  assinarMensagens: (ouvinte: (m: unknown) => void) => {
-    const alca = (_evento: unknown, m: unknown) => ouvinte(m);
-    ipcRenderer.on("vortexOverlayMensagem", alca);
-    return () => ipcRenderer.off("vortexOverlayMensagem", alca);
-  },
-  assinarInteracao: (ouvinte: (sim: unknown) => void) => {
-    const alca = (_evento: unknown, sim: unknown) => ouvinte(sim);
-    ipcRenderer.on("vortexOverlayInteracao", alca);
-    void ipcRenderer
-      .invoke("vortexOverlayEstadoAtual")
-      .then((atual?: { interagindo?: unknown }) => {
-        if (atual) ouvinte(atual.interagindo === true);
-      });
-    return () => ipcRenderer.off("vortexOverlayInteracao", alca);
-  },
-  comando: (c: unknown) => ipcRenderer.send("vortexOverlayComando", c),
 });
 
 /** Ver `alternarSilencioDoOverlay`. Um booleano atravessa. */
 contextBridge.exposeInMainWorld("vortexOverlaySilencio", {
-  assinar: (ouvinte: (silenciadas: boolean) => void) => {
-    const alca = (_evento: unknown, sim: unknown) => ouvinte(sim === true);
-    ipcRenderer.on("vortexOverlaySilencio", alca);
-    void ipcRenderer.invoke("vortexOverlaySilencioAtual").then((atual: unknown) => {
-      if (typeof atual === "boolean") ouvinte(atual);
-    });
-    return () => ipcRenderer.off("vortexOverlaySilencio", alca);
-  },
+  assinar: (ouvinte: (silenciadas: boolean) => void) =>
+    assinar(ouvintes.silencio, ouvinte, ultimo.silencio?.silenciadas),
 });

@@ -6,6 +6,10 @@ import {
 } from "./native/atualizacao";
 import { config } from "./native/config";
 import { registrarPonteDoVortex } from "./native/ponteDoVortex";
+import {
+  abrirNoNavegadorDoSistema,
+  navegacaoDaPrincipalPermitida,
+} from "./native/privilegioModelo";
 import { initTray } from "./native/tray";
 import { initVirtualMic } from "./native/virtualMic";
 import { BUILD_URL, createMainWindow, mainWindow } from "./native/window";
@@ -71,23 +75,23 @@ if (acquiredLock) {
   });
 
   // ensure URLs launch in external context
+  /*
+    Vale para TODO `webContents`, a principal inclusive: navegar só dentro da
+    origem do app, e nenhuma janela nova — link externo vai para o navegador
+    do sistema. O overlay troca as duas regras por "nada" ao ser criado (ver
+    `overlay.ts`). A decisão mora em `privilegioModelo.ts`, com teste.
+  */
   app.on("web-contents-created", (_, contents) => {
-    // prevent navigation out of build URL origin
     contents.on("will-navigate", (event, navigationUrl) => {
-      if (new URL(navigationUrl).origin !== BUILD_URL.origin) {
+      if (!navegacaoDaPrincipalPermitida(navigationUrl, BUILD_URL.origin)) {
         event.preventDefault();
       }
     });
 
-    // handle links externally
     contents.setWindowOpenHandler(({ url }) => {
-      if (
-        url.startsWith("http:") ||
-        url.startsWith("https:") ||
-        url.startsWith("mailto:")
-      ) {
+      if (abrirNoNavegadorDoSistema(url)) {
         setImmediate(() => {
-          shell.openExternal(url);
+          void shell.openExternal(url);
         });
       }
 

@@ -25,25 +25,19 @@ import { registrarAudioDaJanela } from "./audioDaJanela";
 import { registrarControles } from "./controles";
 import { registrarNotificacoes } from "./notificacoes";
 import { registrarOverlay } from "./overlay";
-import { ipc, registrarJanelaPrincipal } from "./remetente";
+import { BUILD_URL } from "./enderecoDoApp";
+import { registrar, registrarJanelaPrincipal, semArgumentos } from "./registroDeIpc";
 import { registrarSeletorDeTela } from "./telaCompartilhada";
 import { updateTrayMenu } from "./tray";
 
 // global reference to main window
 export let mainWindow: BrowserWindow;
 
-/* O guarda de IPC confere o remetente contra ESTA janela — ver `remetente.ts`. */
+/* O registro de IPC confere o remetente contra ESTA janela — ver `registroDeIpc.ts`. */
 registrarJanelaPrincipal(() => mainWindow);
 
-/* O guarda de IPC confere o remetente contra ESTA janela — ver emetente.ts. */
-registrarJanelaPrincipal(() => mainWindow);
-
-// currently in-use build
-export const BUILD_URL = new URL(
-  app.commandLine.hasSwitch("force-server")
-    ? app.commandLine.getSwitchValue("force-server")
-    : __VORTEX_APP_URL__,
-);
+// currently in-use build (mora em `enderecoDoApp.ts`)
+export { BUILD_URL };
 
 // internal window state
 let shouldQuit = false;
@@ -255,11 +249,25 @@ export function createMainWindow() {
   registrarAtenuacao();
 
   // push world events to the window
-  ipc.on("minimise", () => mainWindow.minimize());
-  ipc.on("maximise", () =>
-    mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize(),
-  );
-  ipc.on("close", () => mainWindow.close());
+  registrar("minimise", {
+    via: "send",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: () => mainWindow.minimize(),
+  });
+  registrar("maximise", {
+    via: "send",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: () =>
+      mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize(),
+  });
+  registrar("close", {
+    via: "send",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: () => mainWindow.close(),
+  });
 
   // mainWindow.webContents.openDevTools();
 

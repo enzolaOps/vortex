@@ -1,5 +1,5 @@
 import { app } from "electron";
-import { ipc } from "./remetente";
+import { registrar, semArgumentos } from "./registroDeIpc";
 
 import { definirIniciarComSistema, iniciarComSistemaNoSistema } from "./autoLaunch";
 import { config } from "./config";
@@ -8,6 +8,7 @@ import {
   preferenciasParaOCliente,
   validarGravacao,
   type ConfigDasPreferencias,
+  type Gravacao,
   type PreferenciasLidas,
 } from "./preferenciasDoCliente";
 import { mainWindow } from "./window";
@@ -102,10 +103,7 @@ export function aplicarPreferenciasNaJanela(): void {
   aplicarSempreNoTopo();
 }
 
-async function gravarPreferencia(chave: unknown, valor: unknown): Promise<void> {
-  const g = validarGravacao(chave, valor);
-  if (!g) return;
-
+async function gravarPreferencia(g: Gravacao): Promise<void> {
   const campos = camposDaGravacao(g, process.platform);
   const destino = config as unknown as Record<string, unknown>;
   for (const [campo, v] of Object.entries(campos)) destino[campo] = v;
@@ -126,29 +124,39 @@ async function gravarPreferencia(chave: unknown, valor: unknown): Promise<void> 
 }
 
 export function registrarPreferencias(): void {
-  ipc.handle("vortexLerPreferencias", () => lerPreferencias());
+  registrar("vortexLerPreferencias", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: () => lerPreferencias(),
+  });
 
   /*
     ⚠ **Chave E tipo conferidos, e não repassados.** `config` é um store em
     disco que o main lê para decidir comportamento; aceitar chave ou valor
     arbitrário do renderer deixaria conteúdo de terceiro escrevê-lo.
   */
-  ipc.handle("vortexGravarPreferencia", (_e, chave: unknown, valor: unknown) =>
-    gravarPreferencia(chave, valor),
-  );
+  registrar("vortexGravarPreferencia", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: (chave: unknown, valor: unknown) => validarGravacao(chave, valor),
+    executar: (g) => gravarPreferencia(g),
+  });
 
   /*
     "Reiniciar agora", do aviso de aceleração de hardware. Ponte PRÓPRIA
     (`vortexReinicio`) pela razão de versão de sempre. Só a janela principal
     pode pedir: reiniciar é derrubar a chamada de quem está nela.
   */
-  ipc.handle("vortexReiniciar", (e) => {
-    if (!mainWindow || mainWindow.isDestroyed() || e.sender.id !== mainWindow.webContents.id) {
-      return;
-    }
-    app.relaunch();
-    /* `quit` e não `exit`: passa pelo `before-quit`, que libera o `close`
-       de esconder na bandeja e para o hook de teclado. */
-    app.quit();
+  registrar("vortexReiniciar", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: () => {
+      app.relaunch();
+      /* `quit` e não `exit`: passa pelo `before-quit`, que libera o `close`
+         de esconder na bandeja e para o hook de teclado. */
+      app.quit();
+    },
   });
 }
