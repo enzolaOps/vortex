@@ -752,6 +752,13 @@ button.iconeCaixa:disabled {
   color: var(--vx-text-1);
 }
 
+/* Holográfico: o preset cheio no fundo e o texto escuro, os dois do `style`
+   porque um é par do outro. 700 como o design. */
+.pill[data-pintura="holografico"] {
+  background-color: transparent;
+  font-weight: 700;
+}
+
 .pill {
   display: inline-flex;
   align-items: center;

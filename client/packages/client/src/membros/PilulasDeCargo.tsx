@@ -3,6 +3,7 @@ import { memo } from "react";
 import { cargosDoServidor } from "../sdk/cargos";
 import { IconeDeCargo } from "./IconeDeCargo";
 import { usePinturaDeCargo } from "../store/hooks";
+import { TINTA_HOLOGRAFICA } from "../tema/cargo";
 import css from "./PilulasDeCargo.module.css";
 
 /**
@@ -25,12 +26,12 @@ const Pilula = memo(function Pilula({
   denso: boolean;
 }) {
   const pintura = usePinturaDeCargo(cor);
-  const gradiente = pintura?.tipo === "gradiente";
+  const semPonto = pintura !== undefined && pintura.tipo !== "solida";
 
   return (
     <span
       className={denso ? css.densa : css.pilula}
-      data-pintura={gradiente ? "gradiente" : undefined}
+      data-pintura={semPonto ? pintura.tipo : undefined}
       /*
         ⚠ **A cor é DADO e por isso vai em `style`** — é a mesma exceção da cor
         de cargo no nome do autor, e a única classe de cor literal que este
@@ -42,12 +43,16 @@ const Pilula = memo(function Pilula({
       style={
         pintura === undefined
           ? undefined
-          : pintura.tipo === "gradiente"
-            ? { backgroundImage: pintura.fundo }
-            : {
-                color: pintura.cor,
-                backgroundColor: `color-mix(in oklab, ${pintura.cor} 15%, transparent)`,
-              }
+          : pintura.tipo === "holografico"
+            ? // O preset em opacidade cheia e o texto escuro do design — o par
+              // não muda com o tema porque o fundo não muda.
+              { backgroundImage: pintura.fundo, color: TINTA_HOLOGRAFICA }
+            : pintura.tipo === "gradiente"
+              ? { backgroundImage: pintura.fundo }
+              : {
+                  color: pintura.cor,
+                  backgroundColor: `color-mix(in oklab, ${pintura.cor} 15%, transparent)`,
+                }
       }
     >
       {/* Sem o ponto no modo denso: há uma pílula por linha numa tabela de
@@ -60,7 +65,7 @@ const Pilula = memo(function Pilula({
           o ícone é escolha de quem administra, o ponto é só decoração. */}
       {iconeUrl ? (
         <IconeDeCargo url={iconeUrl} nome={undefined} tamanho={denso ? "pequeno" : "medio"} />
-      ) : denso || gradiente ? null : (
+      ) : denso || semPonto ? null : (
         <span className={css.ponto} aria-hidden />
       )}
       {nome}
