@@ -86,18 +86,13 @@ jobs:
 
       # O Flatpak precisa do construtor e do runtime; o Windows não precisa de
       # nada além do Node. Passo condicional em vez de dois jobs quase iguais.
-      #
-      # ⚠ Os `-dev` do X11 não são do Flatpak: o `electron-packager` recompila
-      # o `uiohook-napi` (atalho de apertar-para-falar) contra o Electron, e o
-      # libuiohook inclui `X11/keysym.h`, XTest, Xrandr, Xinerama, Xt e XKB.
-      # Sem eles o `make` para em "X11/keysym.h: No such file or directory".
+      # Sem `-dev` do X11: o `uiohook-napi` usa o prebuild (ver `rebuildConfig`
+      # em `forge.config.ts`) e não é recompilado.
       - name: Preparar Flatpak
         if: matrix.plataforma == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder elfutils \
-            libx11-dev libxtst-dev libxt-dev libxrandr-dev libxinerama-dev \
-            libxkbfile-dev libxkbcommon-x11-dev
+          sudo apt-get install -y flatpak flatpak-builder elfutils
           # ⚠ Em `--user`, não com `sudo`: o `flatpak-bundler` do maker confere
           # cada ref e, achando-a só no sistema, roda `flatpak update` sem
           # `--user` — o que exige root. A BaseApp do Electron é a `base` que o

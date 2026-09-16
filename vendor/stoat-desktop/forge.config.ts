@@ -155,7 +155,16 @@ const config: ForgeConfig = {
     //   ...globSync(ASSET_DIR + "/**/*"),
     // ],
   },
-  rebuildConfig: {},
+  rebuildConfig: {
+    /*
+      ⚠ **O `uiohook-napi` NÃO é recompilado.** É N-API e traz `prebuilds/` para
+      as seis plataformas, que o `node-gyp-build` acha sozinho — o mesmo binário
+      serve a qualquer Electron. Recompilar exigia o X11 de desenvolvimento no
+      Linux e, no Windows, um Visual Studio que o `@electron/node-gyp` reconheça:
+      ele só aceita 2019 e 2022, e o runner `windows-latest` tem o 2026.
+    */
+    ignoreModules: ["uiohook-napi"],
+  },
   makers,
   hooks: {
     // Copy the node-pipewire dist to the app on linux
