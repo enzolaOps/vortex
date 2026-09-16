@@ -40,6 +40,8 @@ import {
   ConnectionState,
   Room,
   ConnectionQuality,
+  LocalAudioTrack,
+  LocalVideoTrack,
   RoomEvent,
   Track,
   VideoQuality,
@@ -48,8 +50,11 @@ import {
   type RemoteTrack,
   type RemoteTrackPublication,
   type ScreenShareCaptureOptions,
+  type AudioProcessorOptions,
+  type TrackProcessor,
   type TrackPublishOptions,
 } from "livekit-client";
+import type { BackgroundProcessorWrapper } from "@livekit/track-processors";
 import {
   codificacaoDe,
   constraintsDe,
@@ -84,6 +89,15 @@ import { toast } from "../components/ui/toastStore";
 import { ALTURA_DE, ponteDeTela } from "./seletorDeTela";
 import { pedirEscolhaDeTela } from "../store/seletorDeTela";
 import { motivoDoErro } from "./erros";
+import {
+  coalescer,
+  fundoEfetivo,
+  planoDeFundo,
+  querRuidoForte,
+  TAXA_DO_RNNOISE,
+} from "../voz/processamento";
+import type { SupressorDeRuido } from "../voz/ruidoForte";
+import type { FundoDeVideo } from "../store/preferenciasDeVoz";
 
 /**
  * A sala, module-level.
@@ -745,10 +759,15 @@ export async function entrarNaChamada(channelId: string): Promise<boolean> {
       deveTransmitir(),
       constraintsDeAudio(),
     );
+    void aplicarRuido();
     await aplicarSaida(r);
     let modo = lerPreferenciasDeVoz().modo;
     pararDeOuvirPreferencias = assinarPreferenciasDeVoz(() => {
       void trocarDispositivos(r);
+      /* Os dois voltam cedo quando nada mudou: a assinatura acorda a cada
+         passo do deslizante de volume, e isso não pode baixar WASM. */
+      void aplicarRuido();
+      void aplicarFundo();
       /* Trocar para push-to-talk com a chamada aberta fecha o microfone na
          hora, e voltar para detecção o reabre. */
       if (lerPreferenciasDeVoz().modo !== modo) {
@@ -822,6 +841,7 @@ export async function sairDaChamada(): Promise<void> {
   pararDeOuvirPreferencias = undefined;
   pararDeOuvirTecla?.();
   pararDeOuvirTecla = undefined;
+  esquecerProcessadores();
   if (!r) return;
   r.removeAllListeners();
   await r.disconnect();
@@ -874,6 +894,175 @@ function deveTransmitir(): boolean {
 
 async function aplicarMicrofone(): Promise<void> {
   await sala?.localParticipant.setMicrophoneEnabled(deveTransmitir());
+  /* Em push-to-talk a faixa só passa a existir no primeiro aperto. */
+  void aplicarRuido();
+}
+
+/* ------------------------------------------------ processadores de mídia */
+
+/*
+  ⚠ **As duas bibliotecas pesadas NUNCA entram por aqui estaticamente.** O
+  RNNoise (`voz/ruidoForte.ts`) e o segmentador (`voz/fundoDeVideo.ts`) chegam
+  por `await import()`, dentro das funções abaixo, e só quando a opção está
+  ligada — o fundo, só com a câmera aberta. Os `import type` do topo somem na
+  compilação. Quem entra numa chamada com "Padrão" e sem fundo não baixa um
+  byte de nenhum dos dois.
+*/
+
+const NOME_DO_RUIDO = "vortex-ruido-forte";
+
+/**
+ * O contexto do RNNoise, um por chamada.
+ *
+ * ⚠ **Nosso, e não o da `Room`.** O LiveKit só cria contexto com
+ * `webAudioMix`, que está desligado aqui, e o dele nasceria na taxa do
+ * hardware — 44,1 kHz em muita placa. O RNNoise exige 48 kHz; na taxa errada
+ * a voz sai picotada sem erro nenhum.
+ */
+let contextoDeRuido: AudioContext | undefined;
+/** A última tentativa falhou: não tentar de novo até a escolha mudar. */
+let ruidoFalhou = false;
+
+/**
+ * O RNNoise na forma de processador do LiveKit.
+ *
+ * `restart` chega quando a faixa de entrada é trocada (outro microfone) e SEM
+ * `audioContext` — por isso o contexto do `init` fica guardado.
+ */
+function processadorDeRuido(): TrackProcessor<Track.Kind.Audio, AudioProcessorOptions> {
+  let supressor: SupressorDeRuido | undefined;
+  let contexto: AudioContext | undefined;
+  const processador: TrackProcessor<Track.Kind.Audio, AudioProcessorOptions> = {
+    name: NOME_DO_RUIDO,
+    processedTrack: undefined,
+    async init(opts) {
+      contexto = opts.audioContext;
+      const { suprimirRuido } = await import("../voz/ruidoForte");
+      supressor = await suprimirRuido(opts.track, contexto);
+      processador.processedTrack = supressor.faixa;
+    },
+    async restart(opts) {
+      await processador.destroy();
+      if (!contexto) throw new Error("processador reiniciado sem init");
+      await processador.init({ ...opts, audioContext: contexto });
+    },
+    destroy() {
+      supressor?.destruir();
+      supressor = undefined;
+      processador.processedTrack = undefined;
+      return Promise.resolve();
+    },
+  };
+  return processador;
+}
+
+function faixaDoMicrofone(): LocalAudioTrack | undefined {
+  const t = sala?.localParticipant.getTrackPublication(Track.Source.Microphone)?.track;
+  return t instanceof LocalAudioTrack ? t : undefined;
+}
+
+/**
+ * Liga ou desliga a supressão FORTE na faixa do microfone, conforme a
+ * preferência. Coalescida: trocar de nível três vezes seguidas aplica a última.
+ */
+const aplicarRuido = coalescer(async () => {
+  const faixa = faixaDoMicrofone();
+  const quer = querRuidoForte(lerPreferenciasDeVoz().ruido);
+  if (!quer) ruidoFalhou = false;
+  if (!faixa) return;
+  const tem = faixa.getProcessor()?.name === NOME_DO_RUIDO;
+  if (quer === tem || (quer && ruidoFalhou)) return;
+
+  try {
+    if (!quer) {
+      await faixa.stopProcessor();
+      return;
+    }
+    contextoDeRuido ??= new AudioContext({ sampleRate: TAXA_DO_RNNOISE });
+    faixa.setAudioContext(contextoDeRuido);
+    await faixa.setProcessor(processadorDeRuido());
+  } catch (e) {
+    ruidoFalhou = true;
+    /* A faixa segue com a supressão do navegador — a de "Padrão" —, e a
+       pessoa continua sendo ouvida. */
+    toast({
+      tipo: "erro",
+      titulo: "Supressão agressiva indisponível.",
+      descricao: `Seguindo com a supressão padrão. ${motivo(e)}`,
+    });
+  }
+});
+
+/** O que está aplicado na câmera agora, e por qual processador. */
+let fundoAplicado: FundoDeVideo = "nenhum";
+let processadorDeFundo: BackgroundProcessorWrapper | undefined;
+/** A escolha que falhou — não recarregar o modelo a cada preferência mexida. */
+let fundoFalhou: FundoDeVideo | undefined;
+
+function faixaDaCamera(): LocalVideoTrack | undefined {
+  const t = sala?.localParticipant.getTrackPublication(Track.Source.Camera)?.track;
+  return t instanceof LocalVideoTrack ? t : undefined;
+}
+
+/**
+ * Aplica o fundo pedido à faixa da câmera.
+ *
+ * ⚠ **Trocar entre desfoque e imagem NÃO recria o segmentador** — `switchTo`
+ * reaproveita o modelo carregado. Só criar e remover baixam ou soltam o
+ * MediaPipe. Ver `planoDeFundo`.
+ */
+const aplicarFundo = coalescer(async () => {
+  const faixa = faixaDaCamera();
+  /* A faixa trocou ou sumiu: o processador que eu conhecia não está nela. */
+  if (!faixa || (processadorDeFundo && faixa.getProcessor() !== processadorDeFundo)) {
+    processadorDeFundo = undefined;
+    fundoAplicado = "nenhum";
+  }
+  const desejado = fundoEfetivo(lerPreferenciasDeVoz().fundo, lerChamada().camera);
+  if (desejado !== fundoFalhou) fundoFalhou = undefined;
+  if (!faixa || desejado === fundoFalhou) return;
+
+  const plano = planoDeFundo(fundoAplicado, desejado);
+  try {
+    if (plano === "nada") return;
+    if (plano === "remover") {
+      await faixa.stopProcessor();
+      processadorDeFundo = undefined;
+      fundoAplicado = "nenhum";
+      return;
+    }
+    const fundo = await import("../voz/fundoDeVideo");
+    if (plano === "trocar" && processadorDeFundo) {
+      await processadorDeFundo.switchTo(fundo.opcoesDeFundo(desejado));
+      fundoAplicado = desejado;
+      return;
+    }
+    if (desejado === "nenhum") return;
+    if (!fundo.suportaFundo()) {
+      throw new Error("Este navegador não tem WebGL2 para segmentar o vídeo.");
+    }
+    const novo = fundo.criarProcessadorDeFundo(desejado);
+    await faixa.setProcessor(novo);
+    processadorDeFundo = novo;
+    fundoAplicado = desejado;
+  } catch (e) {
+    fundoFalhou = desejado;
+    toast({
+      tipo: "erro",
+      titulo: "Fundo do vídeo indisponível.",
+      descricao: e instanceof Error ? e.message : "O vídeo segue sem efeito.",
+    });
+  }
+});
+
+/** A sala acabou; o que era dela também. As faixas morrem com o `disconnect`. */
+function esquecerProcessadores(): void {
+  processadorDeFundo = undefined;
+  fundoAplicado = "nenhum";
+  fundoFalhou = undefined;
+  ruidoFalhou = false;
+  void contextoDeRuido?.close();
+  contextoDeRuido = undefined;
 }
 
 /**
@@ -991,6 +1180,8 @@ export async function alternarCamera(): Promise<void> {
   try {
     await p.setCameraEnabled(camera);
     definirChamada({ camera });
+    /* Depois do store: `fundoEfetivo` lê a câmera dele. */
+    void aplicarFundo();
     publicarVideoLocal(p, "camera", Track.Source.Camera, camera);
   } catch {
     // Permissão negada é o caso comum, e não é erro do app.

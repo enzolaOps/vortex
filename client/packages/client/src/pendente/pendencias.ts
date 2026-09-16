@@ -190,30 +190,6 @@ export const PENDENCIAS = {
     depende: "exportação de dados no protocolo — não há rota, nem no upstream",
   },
 
-  /* ------------------------------------------------------- voz e vídeo */
-  /*
-    ⚠ **NENHUMA destas pendências é "a tela não existe".** Todas as
-    preferências desta seção são guardadas, e quatro chegam ao WebRTC de
-    verdade (`constraintsDeAudio` em `store/preferenciasDeVoz.ts`). O que está
-    aqui é o que precisa de algo que o navegador ou o sistema não dão.
-
-    ⚠ **O medidor de nível ao vivo saiu daqui**, e não porque passou a
-    funcionar: ele nunca foi DESENHADO. A seção tem "Volume de entrada", que é
-    um deslizante real, e nenhum medidor ao lado dele — uma entrada num
-    registro de controles pendentes, sem controle, é dívida que ninguém
-    consegue ver na tela para cobrar.
-  */
-  ruidoAgressivo: {
-    superficie: "Configurações · Voz e vídeo",
-    faz: "Supressão de ruído mais forte que a do navegador.",
-    depende: "RNNoise (`@livekit/krisp-noise-filter`) — o `noiseSuppression` do navegador é booleano",
-  },
-  fundoDeVideo: {
-    superficie: "Configurações · Voz e vídeo",
-    faz: "Desfocar o fundo ou trocá-lo por uma imagem.",
-    depende: "segmentação de imagem (`@livekit/track-processors`) — meio megabyte de modelo",
-  },
-
   /* ---------------------------------------------------------------- voz */
   /*
     ⚠ Os dois são CONCEITO que o protocolo Stoat não tem — nem tipo, nem
