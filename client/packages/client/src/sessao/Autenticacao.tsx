@@ -9,6 +9,7 @@ import { TelaDeConferirEmail } from "./TelaDeConferirEmail";
 import { TelaDeConvite } from "./TelaDeConvite";
 import { TelaDeCriarConta } from "./TelaDeCriarConta";
 import { TelaDeLogin } from "./TelaDeLogin";
+import { TelaDeQr } from "./TelaDeQr";
 import { TelaDeRecuperarSenha } from "./TelaDeRecuperarSenha";
 import { TelaDeExcluirConta } from "./TelaDeExcluirConta";
 import { TelaDeRedefinirSenha } from "./TelaDeRedefinirSenha";
@@ -43,6 +44,16 @@ export function Autenticacao({
     entrar: () => <TelaDeLogin entrando={entrando} motivo={motivo} />,
     criar: () => <TelaDeCriarConta motivo={motivo} />,
     recuperar: () => <TelaDeRecuperarSenha motivo={motivo} />,
+    qr: () => <TelaDeQr />,
+    /* Sem sessão, o link do QR cai na entrada — e o pedido espera do outro
+       lado, como o convite. */
+    autorizarQr: () => (
+      <TelaDeLogin
+        entrando={entrando}
+        motivo={motivo}
+        aviso="Entre para autorizar o aparelho que mostrou o código QR."
+      />
+    ),
     conferirEmail: () => (
       <TelaDeConferirEmail
         email={tela.tipo === "conferirEmail" ? tela.email : undefined}

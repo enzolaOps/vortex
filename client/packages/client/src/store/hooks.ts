@@ -63,6 +63,13 @@ import { rascunhos, RASCUNHO_VAZIO } from "./rascunhos";
 import { assinarLayout, lerSemente } from "./layout";
 import { corDeCargo, pinturaDeCargo, type PinturaDeCargo } from "../tema/cargo";
 import type { Modo } from "../tema/derivar";
+import {
+  assinarPolitica,
+  assinarRevelado,
+  estaRevelado,
+  lerPolitica,
+  type PoliticaDeMidia,
+} from "./filtroDeMidia";
 
 const NO_IDS: readonly string[] = [];
 const NO_SECOES: readonly SecaoDeMembros[] = [];
@@ -405,6 +412,19 @@ export function usePinturaDeCargo(
 ): PinturaDeCargo | undefined {
   const modo = useModoDoTema();
   return pinturaDeCargo(bruta, modo);
+}
+
+/**
+ * A política de mídia explícita de um servidor. Muda por ação de quem
+ * administra — quase nunca —, e acorda só as mídias daquele servidor.
+ */
+export function usePoliticaDeMidia(serverId: string): PoliticaDeMidia {
+  return useSyncExternalStore(assinarPolitica(serverId), () => lerPolitica(serverId));
+}
+
+/** Se esta aba já decidiu mostrar o anexo velado. */
+export function useRevelado(anexoId: string): boolean {
+  return useSyncExternalStore(assinarRevelado(anexoId), () => estaRevelado(anexoId));
 }
 
 /* ---------------------------------------------- tópicos, fórum e galeria */

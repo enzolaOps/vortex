@@ -7,6 +7,7 @@ import { useSyncExternalStore, type CSSProperties } from "react";
 import type { AnexoSnapshot } from "../sdk/domain";
 import { administrar } from "../store/administracao";
 import { aindaNao } from "../pendente/pendencias";
+import { MidiaFiltrada } from "./MidiaFiltrada";
 import { ReprodutorDeVoz } from "./ReprodutorDeVoz";
 import {
   assinarCanalVortex,
@@ -193,6 +194,7 @@ function Anexo({
         } as CSSProperties
       }
     >
+      <MidiaFiltrada messageId={messageId} anexoId={anexo.id}>
       {anexo.tipo === "video" ? (
         <video className={css.arquivoDeMidia} src={anexo.url} controls />
       ) : (
@@ -236,6 +238,7 @@ function Anexo({
         />
         </button>
       )}
+      </MidiaFiltrada>
       {spoiler ? <CapaDeSpoiler anexoId={anexo.id} /> : null}
       </div>
 

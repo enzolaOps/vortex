@@ -26,6 +26,8 @@ import { PrivacidadeDoServidor } from "../../servidores/PrivacidadeDoServidor";
 import { EditorDePasta } from "../../servidores/EditorDePasta";
 import { SeletorDeTela } from "../../voz/SeletorDeTela";
 import { TransferirPropriedade } from "../../servidores/TransferirPropriedade";
+import { AutorizarQr } from "../../sessao/AutorizarQr";
+import { ModalDeAtividades } from "../../voz/atividades/ModalDeAtividades";
 import { ModalDeTopico } from "../../topicos/ModalDeTopico";
 import { ModalDeNotificacoes } from "../../servidores/ModalDeNotificacoes";
 
@@ -65,6 +67,8 @@ const REGISTRO: Record<ModalId, ComponentType<{ aoFechar: () => void }>> = {
   apelido: ModalDeApelido,
   excluirConta: ModalDeExcluirConta,
   transferirPropriedade: TransferirPropriedade,
+  autorizarQr: AutorizarQr,
+  atividades: ModalDeAtividades,
   topico: ModalDeTopico,
   notificacoes: ModalDeNotificacoes,
 };

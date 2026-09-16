@@ -83,6 +83,10 @@ auto_derived_partial!(
         /// banco e no fio, e duplicá-lo só criaria uma conversão que pode divergir.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub security: Option<v0::ServerSecurity>,
+
+        /// Vortex: whose media is checked for explicit content
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub explicit_content_filter: Option<ExplicitContentFilter>,
     },
     "PartialServer"
 );
@@ -119,6 +123,14 @@ auto_derived_partial!(
 );
 
 auto_derived!(
+    /// Vortex: explicit media filter policy
+    #[derive(Copy)]
+    pub enum ExplicitContentFilter {
+        Disabled,
+        MembersWithoutRoles,
+        AllMembers,
+    }
+
     /// Channel category
     pub struct Category {
         /// Unique ID for this category
@@ -203,6 +215,7 @@ impl Server {
             tag: None,
             tag_badge: None,
             characteristics: vec![],
+            explicit_content_filter: None,
         };
 
         let channels: Vec<Channel> = if create_default_channels {

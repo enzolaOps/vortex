@@ -4,7 +4,6 @@ import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
 import { Caixa } from "../components/ui/Marcador";
-import { aindaNao } from "../pendente/pendencias";
 import { definirEntrada } from "../store/entrada";
 import { definirUsuarioLocal } from "../sdk/adapter";
 import { entrar } from "../sdk/autenticacao";
@@ -34,11 +33,14 @@ import css from "./TelaDeLogin.module.css";
 export function TelaDeLogin({
   entrando,
   motivo,
+  aviso,
 }: {
   /** Login em voo: o botão vira `loading` e os campos travam. */
   entrando: boolean;
   /** O que deu errado da última vez, já traduzido. */
   motivo: string | undefined;
+  /** Por que a pessoa caiu aqui, quando veio de um link. */
+  aviso?: string;
 }) {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -110,6 +112,12 @@ export function TelaDeLogin({
             `role="alert"` porque isto responde a uma ação que a pessoa ACABOU
             de fazer — interromper o leitor de tela é o certo aqui.
           */}
+          {aviso ? (
+            <Banner tom="info" className={css.aviso}>
+              {aviso}
+            </Banner>
+          ) : null}
+
           {motivo ? (
             <Banner tom="perigo" role="alert" className={css.aviso}>
               {motivo}
@@ -177,7 +185,7 @@ export function TelaDeLogin({
           <Botao
             variante="sutil"
             disabled={entrando}
-            onClick={aindaNao("entrarComQr")}
+            onClick={() => definirEntrada({ tipo: "qr" })}
           >
             Continuar com código QR
           </Botao>

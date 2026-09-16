@@ -84,28 +84,11 @@ export const PENDENCIAS = {
     faz: "Deixar só quem tem o cargo escolhido exibir a tag.",
     depende: "um campo de cargo exigido na tag do servidor — o fork guarda só a tag e o emblema",
   },
-  /* --------------------------------------------------------- entrada */
   /*
-    ⚠ **O QR é do design e o protocolo não tem o conceito.** Entrar por código
-    exige um canal onde o aparelho já autenticado autoriza a sessão nova — no
-    Stoat não há rota, evento nem tipo para isso. Fica desenhado porque a tela
-    de entrada é a primeira que alguém vê, e um caminho a menos ali é a
-    diferença entre entrar e desistir.
+    ⚠ **Saíram daqui:** emblema da tag, modelo do servidor, figurinhas,
+    efeitos sonoros, ruído agressivo e fundo de vídeo (implementados), e entrar
+    com QR e exportar dados (rotas `/auth/qr` e `/auth/export` do fork).
   */
-  entrarComQr: {
-    superficie: "Tela de entrada",
-    faz: "Entrar lendo um código com um aparelho onde a sessão já está aberta.",
-    depende:
-      "autorização de sessão por outro dispositivo no protocolo — não há rota nem evento",
-  },
-
-
-  /* --------------------------------------------------------- privacidade */
-  exportarDados: {
-    superficie: "Configurações · Privacidade",
-    faz: "Pedir uma cópia de tudo que a conta guarda, por e-mail.",
-    depende: "exportação de dados no protocolo — não há rota, nem no upstream",
-  },
 
   /* ---------------------------------------------------------------- voz */
   /*
@@ -115,10 +98,28 @@ export const PENDENCIAS = {
     back-end não sustenta. Clicá-los diz o que fariam, em vez de não fazer
     nada.
   */
-  atividades: {
-    superficie: "Faixa de voz",
-    faz: "Abrir uma atividade compartilhada na sala — jogo, quadro, vídeo.",
-    depende: "conceito de atividade no protocolo, e um host para embutir",
+  /*
+    ⚠ **As atividades EXISTEM — sessão por canal, registro, fluxo de operações
+    e host isolado, com o quadro branco de ponta a ponta.** O que fica aqui é o
+    host de cada uma das outras três do catálogo. Nenhuma precisa de servidor:
+    o fork guarda operações opacas e o host embutido as interpreta.
+  */
+  atividadeAssistirJunto: {
+    superficie: "Iniciar atividade · Assistir junto",
+    faz: "Assistir a um vídeo junto, com play, pausa e posição sincronizados.",
+    depende:
+      "o host da atividade — um player dentro do iframe isolado, e decidir de onde vem o vídeo (a CSP proíbe mídia de terceiro)",
+  },
+  atividadePoker: {
+    superficie: "Iniciar atividade · Poker",
+    faz: "Jogar poker de 2 a 8 pessoas na sala.",
+    depende:
+      "o host da atividade — e embaralhar sem que um cliente veja as cartas dos outros, que operações abertas na sala não garantem",
+  },
+  atividadeXadrez: {
+    superficie: "Iniciar atividade · Xadrez",
+    faz: "Jogar xadrez entre duas pessoas, com a sala assistindo.",
+    depende: "o host da atividade (tabuleiro e validação de lances)",
   },
   /* ------------------------------------------------------------ composer */
   /*
@@ -255,12 +256,6 @@ export const PENDENCIAS = {
     faz: "Exigir telefone verificado para entrar e para o nível de verificação mais alto.",
     depende:
       "telefone na conta — o sistema de contas do Stoat não tem campo nem verificação de telefone",
-  },
-  filtroDeMidia: {
-    superficie: "Configurações do servidor · Segurança",
-    faz: "Analisar a mídia enviada e borrar o que for explícito.",
-    depende:
-      "`explicit_content_filter` no protocolo + um analisador no lado do servidor",
   },
   pausaAutomatica: {
     superficie: "Configurações do servidor · Segurança",

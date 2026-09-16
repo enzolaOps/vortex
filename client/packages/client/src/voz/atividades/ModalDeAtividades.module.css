@@ -1,0 +1,176 @@
+/* ============================================================
+   Iniciar atividade
+   ------------------------------------------------------------
+   Medido em `Vortex Voz - Completo`, seção "Atividades
+   compartilhadas": 400 de largura, raio 12, cabeçalho
+   `16 18 12`, busca de 32, lista `8 18 12` com teto de 300,
+   itens `10` com raio 9, rodapé `11 18` em `surface-3`.
+   ============================================================ */
+
+.painel {
+  inline-size: 400px;
+  max-inline-size: calc(100vw - var(--vx-space-32));
+  overflow: hidden;
+}
+
+.cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-16) var(--vx-space-18) var(--vx-space-12);
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--vx-size-xl);
+  font-weight: 600;
+  line-height: var(--vx-leading-title);
+  color: var(--vx-text-1);
+}
+
+.subtitulo {
+  margin: var(--vx-space-02) 0 0;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+.fechar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: 28px;
+  block-size: 28px;
+  border-radius: var(--vx-radius-06);
+  color: var(--vx-text-3);
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.fechar svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+.fechar:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.fechar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.buscaFaixa {
+  padding: 0 var(--vx-space-18) var(--vx-space-08);
+}
+
+/* O modal é `surface-4`; o campo desce um degrau, como o design. */
+.busca {
+  background: var(--vx-surface-3);
+}
+
+.busca svg {
+  flex: none;
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+.lista {
+  max-block-size: 300px;
+  overflow-y: auto;
+  padding: var(--vx-space-08) var(--vx-space-18) var(--vx-space-12);
+}
+
+.lista:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.sobrancelha {
+  composes: sobrancelha from "../../styles/sobrancelha.module.css";
+  margin-block-end: var(--vx-space-08);
+  color: var(--vx-text-3);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-11);
+  margin-block-end: var(--vx-space-06);
+  padding: var(--vx-space-10);
+  border: 1px solid transparent;
+  border-radius: var(--vx-radius-09);
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    border-color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.item:hover {
+  background: var(--vx-state-hover);
+}
+
+.item[aria-pressed="true"] {
+  border-color: var(--vx-accent);
+  background: color-mix(in srgb, var(--vx-accent) 8%, transparent);
+}
+
+.item:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/* O xadrez de "ainda não chegou nada" do design — a atividade não tem ícone. */
+.miniatura {
+  flex: none;
+  inline-size: 38px;
+  block-size: 38px;
+  border-radius: var(--vx-radius-09);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--vx-surface-4) 0 7px,
+    var(--vx-surface-3) 7px 14px
+  );
+}
+
+.textos {
+  display: grid;
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.nome {
+  overflow: hidden;
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.capacidade {
+  overflow: hidden;
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vazio {
+  margin: var(--vx-space-08) 0 0;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+.rodape {
+  margin: 0;
+  padding: var(--vx-space-11) var(--vx-space-18);
+  border-block-start: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-3);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}

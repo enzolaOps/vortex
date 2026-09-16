@@ -20,6 +20,8 @@ log = { workspace = true }
 dashmap = { workspace = true }
 linkify = { workspace = true }
 once_cell = { workspace = true }
+# Vortex: exportação de dados. Já está no Cargo.lock pelo grafo do workspace.
+flate2 = "1.1.9"
 
 # Lang. Utilities
 regex = { workspace = true }

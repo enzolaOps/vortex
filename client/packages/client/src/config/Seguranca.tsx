@@ -5,7 +5,10 @@ import { Botao } from "../components/ui/Botao";
 import { CartaoDeOpcao } from "../components/ui/CartaoDeOpcao";
 import { Interruptor } from "../components/ui/Interruptor";
 import { Selo } from "../components/ui/Selo";
+import { toast } from "../components/ui/toastStore";
 import { aindaNao } from "../pendente/pendencias";
+import { motivoDoErro } from "../sdk/erros";
+import { salvarPoliticaDeMidia } from "../sdk/filtroDeMidia";
 import {
   ativarEmergencia,
   emergenciaVigente,
@@ -14,6 +17,8 @@ import {
   podeGerenciarSeguranca,
   type NivelDeVerificacao,
 } from "../sdk/seguranca";
+import { definirPolitica, lerPolitica, type PoliticaDeMidia } from "../store/filtroDeMidia";
+import { usePoliticaDeMidia } from "../store/hooks";
 import { usePolitica } from "../store/seguranca";
 import css from "./Seguranca.module.css";
 
@@ -54,8 +59,6 @@ const FILTROS = [
   },
 ] as const;
 
-type Filtro = (typeof FILTROS)[number]["id"];
-
 const HORA = new Intl.DateTimeFormat("pt-BR", {
   hour: "2-digit",
   minute: "2-digit",
@@ -71,9 +74,14 @@ const HORA = new Intl.DateTimeFormat("pt-BR", {
  * convite, entrada e envio. Nada disto é regra de cliente: outro cliente Stoat
  * falando com o mesmo servidor encontra as mesmas recusas.
  *
- * O que continua pendente tem razão própria: telefone (não existe na conta),
- * filtro de mídia (não há analisador) e pausa automática (não há detecção de
- * pico). Os controles mostram o estado VERDADEIRO — desligado — e o clique diz
+ * ⚠ **O filtro de mídia também é REAL, e mora ao lado da política.** O fork
+ * acrescentou `explicit_content_filter` ao servidor, IRMÃO de `security` e não
+ * dentro dela: é gravado lá e aplicado por todo cliente Vortex que recebe a
+ * mídia (ver `store/filtroDeMidia.ts`) — a análise roda no cliente, nunca no
+ * servidor.
+ *
+ * O que continua pendente tem razão própria: telefone (não existe na conta) e
+ * pausa automática (não há detecção de pico). Os controles mostram o estado VERDADEIRO — desligado — e o clique diz
  * do que dependem.
  *
  * ⚠ **"Permitir DMs entre membros" nasce DESLIGADO, e antes nascia ligado.** A
@@ -95,9 +103,24 @@ export function Seguranca({ serverId }: { serverId: string }) {
 function SegurancaDoServidor({ serverId }: { serverId: string }) {
   const politica = usePolitica(serverId);
   const gerencia = podeGerenciarSeguranca(serverId);
-  /* O filtro de mídia é pendente: o cartão escolhido vale só enquanto a página
-     está aberta, e o toast diz por quê. */
-  const [filtro, setFiltro] = useState<Filtro>("nao");
+  const filtro = usePoliticaDeMidia(serverId);
+
+  /* Otimista: a página responde na hora, o `ServerUpdate` do socket confirma,
+     e a falha devolve o que era — com o motivo, porque um filtro que parece
+     ligado e não está é exatamente a proteção falsa que isto evita. */
+  function escolherFiltro(novo: PoliticaDeMidia) {
+    const antes = lerPolitica(serverId);
+    if (antes === novo) return;
+    definirPolitica(serverId, novo);
+    salvarPoliticaDeMidia(serverId, novo).catch((e: unknown) => {
+      definirPolitica(serverId, antes);
+      toast({
+        tipo: "erro",
+        titulo: "Não deu para salvar o filtro de mídia.",
+        descricao: motivoDoErro(e),
+      });
+    });
+  }
 
   return (
     <div className={css.pagina}>
@@ -145,10 +168,8 @@ function SegurancaDoServidor({ serverId }: { serverId: string }) {
             marcado={filtro === f.id}
             titulo={f.titulo}
             detalhe={f.detalhe}
-            aoEscolher={() => {
-              setFiltro(f.id);
-              if (f.id !== "nao") aindaNao("filtroDeMidia")();
-            }}
+            disabled={!gerencia}
+            aoEscolher={() => escolherFiltro(f.id)}
           />
         ))}
       </div>

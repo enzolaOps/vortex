@@ -1,0 +1,108 @@
+/* ============================================================
+   Entrar com código QR
+   ------------------------------------------------------------
+   Sem desenho no design — a casca é a do cadastro, e o que é
+   próprio desta tela mora aqui.
+   ============================================================ */
+
+/* O palco quadrado: reserva o lado inteiro enquanto o código não chega, para
+   a confirmação e os botões não subirem e descerem a cada renovação. */
+.palco {
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  inline-size: min(240px, 100%);
+  aspect-ratio: 1;
+  max-inline-size: 100%;
+}
+
+.vazio {
+  display: grid;
+  place-items: center;
+  inline-size: 100%;
+  block-size: 100%;
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-12);
+  background: var(--vx-surface-2);
+  color: var(--vx-text-3);
+}
+
+.qr {
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: var(--vx-radius-12);
+}
+
+/*
+  ⚠ **Branco e preto literais, e não tokens — é a única cor do app que não
+  pode seguir o tema.** Leitor de QR procura módulo ESCURO sobre fundo CLARO;
+  no tema claro os tokens de texto e superfície invertem, e um QR invertido é
+  ignorado por boa parte das câmeras de celular sem erro nenhum — a pessoa só
+  acha que a câmera "não pegou".
+*/
+.qrFundo {
+  fill: #fff;
+}
+
+.qrModulos {
+  fill: #000;
+}
+
+.confirmacao {
+  display: grid;
+  justify-items: center;
+  gap: var(--vx-space-04);
+}
+
+.rotulo {
+  composes: sobrancelhaDeSecao from "../styles/sobrancelha.module.css";
+  color: var(--vx-text-3);
+}
+
+.codigo {
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-2xl);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  color: var(--vx-text-1);
+}
+
+.validade {
+  font-size: var(--vx-size-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--vx-text-3);
+}
+
+/* ------------------------------------------ confirmação no outro aparelho */
+
+.pedido {
+  display: grid;
+  gap: var(--vx-space-12);
+}
+
+.aparelho {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+  padding: var(--vx-space-10) var(--vx-space-12);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-3);
+  font-size: var(--vx-size-md);
+  color: var(--vx-text-1);
+}
+
+.aparelho svg {
+  flex: none;
+  inline-size: var(--vx-icon-2);
+  block-size: var(--vx-icon-2);
+  color: var(--vx-text-3);
+}
+
+.recado {
+  margin: 0;
+  font-size: var(--vx-size-md);
+  line-height: 1.5;
+  color: var(--vx-text-2);
+}
