@@ -120,12 +120,16 @@ const portas = criarComutador({
  * Liga o ciclo de vida da porta a um `webContents`: porta nova a cada página
  * carregada, porta fechada quando a página sai, o renderer cai ou a janela
  * fecha.
+ *
+ * ⚠ **`did-navigate` e não `did-start-navigation`, e foi medido no Electron.**
+ * O segundo dispara ANTES do `will-navigate` que barra a navigação: a página
+ * do overlay tentava sair, era barrada e ficava de pé com a porta já fechada —
+ * sem estado, sem mensagem e sem comando até recarregar. `did-navigate` só
+ * vem com a página nova confirmada (e não com o `pushState` do roteador).
  */
 function vigiarPorta(papel: Papel, wc: WebContents): void {
   wc.on("did-finish-load", () => portas.conectar(papel));
-  wc.on("did-start-navigation", (e) => {
-    if (e.isMainFrame && !e.isSameDocument) portas.desconectar(papel);
-  });
+  wc.on("did-navigate", () => portas.desconectar(papel));
   wc.on("render-process-gone", () => portas.desconectar(papel));
   wc.once("destroyed", () => portas.desconectar(papel));
 }
