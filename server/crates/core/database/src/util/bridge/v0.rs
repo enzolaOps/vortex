@@ -73,11 +73,13 @@ impl From<crate::Invite> for Invite {
                 server,
                 creator,
                 channel,
+                roles,
             } => Invite::Server {
                 code,
                 server,
                 creator,
                 channel,
+                roles,
             },
         }
     }
@@ -232,6 +234,8 @@ impl From<crate::Channel> for Channel {
                 nsfw,
                 voice,
                 slowmode,
+                spoiler,
+                invites_paused,
             } => Channel::TextChannel {
                 id,
                 server,
@@ -244,6 +248,8 @@ impl From<crate::Channel> for Channel {
                 nsfw,
                 voice: voice.map(|voice| voice.into()),
                 slowmode,
+                spoiler,
+                invites_paused,
             },
         }
     }
@@ -298,6 +304,8 @@ impl From<Channel> for crate::Channel {
                 nsfw,
                 voice,
                 slowmode,
+                spoiler,
+                invites_paused,
             } => crate::Channel::TextChannel {
                 id,
                 server,
@@ -310,6 +318,8 @@ impl From<Channel> for crate::Channel {
                 nsfw,
                 voice: voice.map(|voice| voice.into()),
                 slowmode,
+                spoiler,
+                invites_paused,
             },
         }
     }
@@ -330,6 +340,8 @@ impl From<crate::PartialChannel> for PartialChannel {
             last_message_id: value.last_message_id,
             voice: value.voice.map(|voice| voice.into()),
             slowmode: value.slowmode,
+            spoiler: value.spoiler,
+            invites_paused: value.invites_paused,
         }
     }
 }
@@ -349,6 +361,8 @@ impl From<PartialChannel> for crate::PartialChannel {
             last_message_id: value.last_message_id,
             voice: value.voice.map(|voice| voice.into()),
             slowmode: value.slowmode,
+            spoiler: value.spoiler,
+            invites_paused: value.invites_paused,
         }
     }
 }
@@ -386,6 +400,35 @@ impl From<crate::Emoji> for Emoji {
             name: value.name,
             animated: value.animated,
             nsfw: value.nsfw,
+        }
+    }
+}
+
+impl From<crate::Sticker> for Sticker {
+    fn from(value: crate::Sticker) -> Self {
+        Sticker {
+            id: value.id,
+            server: value.server,
+            creator_id: value.creator_id,
+            name: value.name,
+            description: value.description,
+            emoji: value.emoji,
+            content_type: value.content_type,
+            filename: value.filename,
+        }
+    }
+}
+
+impl From<crate::SoundboardSound> for SoundboardSound {
+    fn from(value: crate::SoundboardSound) -> Self {
+        SoundboardSound {
+            id: value.id,
+            server: value.server,
+            creator_id: value.creator_id,
+            name: value.name,
+            emoji: value.emoji,
+            volume: value.volume,
+            filename: value.filename,
         }
     }
 }
@@ -515,6 +558,7 @@ impl crate::Message {
             attachments: self
                 .attachments
                 .map(|v| v.into_iter().map(|f| f.into()).collect()),
+            stickers: self.stickers,
             edited: self.edited,
             embeds: self.embeds,
             mentions: self.mentions,
@@ -525,6 +569,7 @@ impl crate::Message {
             masquerade: self.masquerade.map(Into::into),
             flags: self.flags.unwrap_or_default(),
             pinned: self.pinned,
+            poll: self.poll.map(Into::into),
         }
     }
 }
@@ -544,6 +589,7 @@ impl From<crate::PartialMessage> for PartialMessage {
             attachments: value
                 .attachments
                 .map(|v| v.into_iter().map(|f| f.into()).collect()),
+            stickers: value.stickers,
             edited: value.edited,
             embeds: value.embeds,
             mentions: value.mentions,
@@ -554,6 +600,7 @@ impl From<crate::PartialMessage> for PartialMessage {
             masquerade: value.masquerade.map(Into::into),
             flags: value.flags,
             pinned: value.pinned,
+            poll: value.poll.map(Into::into),
         }
     }
 }
@@ -611,6 +658,109 @@ impl From<crate::AppendMessage> for AppendMessage {
     fn from(value: crate::AppendMessage) -> Self {
         AppendMessage {
             embeds: value.embeds,
+        }
+    }
+}
+
+impl From<crate::ServerEvent> for ServerEvent {
+    fn from(value: crate::ServerEvent) -> Self {
+        ServerEvent {
+            id: value.id,
+            server: value.server,
+            creator: value.creator,
+            name: value.name,
+            description: value.description,
+            starts_at: value.starts_at,
+            ends_at: value.ends_at,
+            location: value.location.into(),
+            image: value.image.map(Into::into),
+            recurrence: value.recurrence.map(Into::into),
+            remind: value.remind,
+            interested: value.interested,
+        }
+    }
+}
+
+impl From<crate::ServerEventLocation> for ServerEventLocation {
+    fn from(value: crate::ServerEventLocation) -> Self {
+        match value {
+            crate::ServerEventLocation::Channel { channel } => {
+                ServerEventLocation::Channel { channel }
+            }
+            crate::ServerEventLocation::External { url } => ServerEventLocation::External { url },
+        }
+    }
+}
+
+impl From<ServerEventLocation> for crate::ServerEventLocation {
+    fn from(value: ServerEventLocation) -> Self {
+        match value {
+            ServerEventLocation::Channel { channel } => {
+                crate::ServerEventLocation::Channel { channel }
+            }
+            ServerEventLocation::External { url } => crate::ServerEventLocation::External { url },
+        }
+    }
+}
+
+impl From<crate::ServerEventRecurrence> for ServerEventRecurrence {
+    fn from(value: crate::ServerEventRecurrence) -> Self {
+        match value {
+            crate::ServerEventRecurrence::Weekly => ServerEventRecurrence::Weekly,
+            crate::ServerEventRecurrence::Biweekly => ServerEventRecurrence::Biweekly,
+            crate::ServerEventRecurrence::Monthly => ServerEventRecurrence::Monthly,
+        }
+    }
+}
+
+impl From<ServerEventRecurrence> for crate::ServerEventRecurrence {
+    fn from(value: ServerEventRecurrence) -> Self {
+        match value {
+            ServerEventRecurrence::Weekly => crate::ServerEventRecurrence::Weekly,
+            ServerEventRecurrence::Biweekly => crate::ServerEventRecurrence::Biweekly,
+            ServerEventRecurrence::Monthly => crate::ServerEventRecurrence::Monthly,
+        }
+    }
+}
+
+impl From<crate::Poll> for Poll {
+    fn from(value: crate::Poll) -> Self {
+        Poll {
+            question: value.question,
+            answers: value
+                .answers
+                .into_iter()
+                .map(|answer| PollAnswer {
+                    id: answer.id,
+                    text: answer.text,
+                })
+                .collect(),
+            max_answers: value.max_answers,
+            expires_at: value.expires_at,
+            hide_results: value.hide_results,
+            ended_at: value.ended_at,
+            votes: value.votes,
+        }
+    }
+}
+
+impl From<Poll> for crate::Poll {
+    fn from(value: Poll) -> Self {
+        crate::Poll {
+            question: value.question,
+            answers: value
+                .answers
+                .into_iter()
+                .map(|answer| crate::PollAnswer {
+                    id: answer.id,
+                    text: answer.text,
+                })
+                .collect(),
+            max_answers: value.max_answers,
+            expires_at: value.expires_at,
+            hide_results: value.hide_results,
+            ended_at: value.ended_at,
+            votes: value.votes,
         }
     }
 }
@@ -680,6 +830,7 @@ impl From<crate::Member> for Member {
             timeout: value.timeout,
             can_publish: value.can_publish,
             can_receive: value.can_receive,
+            show_tag: value.show_tag,
         }
     }
 }
@@ -696,6 +847,7 @@ impl From<Member> for crate::Member {
             timeout: value.timeout,
             can_publish: value.can_publish,
             can_receive: value.can_receive,
+            show_tag: value.show_tag,
         }
     }
 }
@@ -712,6 +864,7 @@ impl From<crate::PartialMember> for PartialMember {
             timeout: value.timeout,
             can_publish: value.can_publish,
             can_receive: value.can_receive,
+            show_tag: value.show_tag,
         }
     }
 }
@@ -728,6 +881,7 @@ impl From<PartialMember> for crate::PartialMember {
             timeout: value.timeout,
             can_publish: value.can_publish,
             can_receive: value.can_receive,
+            show_tag: value.show_tag,
         }
     }
 }
@@ -810,6 +964,9 @@ impl crate::Server {
             default_permissions: self.default_permissions,
             icon: self.icon.map(|f| f.into()),
             banner: self.banner.map(|f| f.into()),
+            tag: self.tag,
+            tag_badge: self.tag_badge.map(|f| f.into()),
+            characteristics: self.characteristics,
             flags: self.flags.unwrap_or_default() as u32,
             nsfw: self.nsfw,
             analytics: self.analytics,
@@ -840,6 +997,9 @@ impl From<Server> for crate::Server {
             default_permissions: value.default_permissions,
             icon: value.icon.map(|f| f.into()),
             banner: value.banner.map(|f| f.into()),
+            tag: value.tag,
+            tag_badge: value.tag_badge.map(|f| f.into()),
+            characteristics: value.characteristics,
             flags: Some(value.flags as i32),
             nsfw: value.nsfw,
             analytics: value.analytics,
@@ -867,6 +1027,9 @@ impl From<crate::PartialServer> for PartialServer {
             default_permissions: value.default_permissions,
             icon: value.icon.map(|f| f.into()),
             banner: value.banner.map(|f| f.into()),
+            tag: value.tag,
+            tag_badge: value.tag_badge.map(|f| f.into()),
+            characteristics: value.characteristics,
             flags: value.flags.map(|v| v as u32),
             nsfw: value.nsfw,
             analytics: value.analytics,
@@ -895,6 +1058,9 @@ impl From<PartialServer> for crate::PartialServer {
             default_permissions: value.default_permissions,
             icon: value.icon.map(|f| f.into()),
             banner: value.banner.map(|f| f.into()),
+            tag: value.tag,
+            tag_badge: value.tag_badge.map(|f| f.into()),
+            characteristics: value.characteristics,
             flags: value.flags.map(|v| v as i32),
             nsfw: value.nsfw,
             analytics: value.analytics,
@@ -913,6 +1079,8 @@ impl From<crate::FieldsServer> for FieldsServer {
             crate::FieldsServer::Description => FieldsServer::Description,
             crate::FieldsServer::Icon => FieldsServer::Icon,
             crate::FieldsServer::SystemMessages => FieldsServer::SystemMessages,
+            crate::FieldsServer::Tag => FieldsServer::Tag,
+            crate::FieldsServer::TagBadge => FieldsServer::TagBadge,
         }
     }
 }
@@ -926,6 +1094,8 @@ impl From<FieldsServer> for crate::FieldsServer {
             FieldsServer::Description => crate::FieldsServer::Description,
             FieldsServer::Icon => crate::FieldsServer::Icon,
             FieldsServer::SystemMessages => crate::FieldsServer::SystemMessages,
+            FieldsServer::Tag => crate::FieldsServer::Tag,
+            FieldsServer::TagBadge => crate::FieldsServer::TagBadge,
         }
     }
 }
@@ -936,6 +1106,8 @@ impl From<crate::Category> for Category {
             id: value.id,
             title: value.title,
             channels: value.channels,
+            default_permissions: value.default_permissions,
+            role_permissions: value.role_permissions,
         }
     }
 }
@@ -946,6 +1118,8 @@ impl From<Category> for crate::Category {
             id: value.id,
             title: value.title,
             channels: value.channels,
+            default_permissions: value.default_permissions,
+            role_permissions: value.role_permissions,
         }
     }
 }
@@ -982,6 +1156,7 @@ impl From<crate::Role> for Role {
             hoist: value.hoist,
             rank: value.rank,
             icon: value.icon.map(|f| f.into()),
+            mentionable: value.mentionable,
         }
     }
 }
@@ -996,6 +1171,7 @@ impl From<Role> for crate::Role {
             hoist: value.hoist,
             rank: value.rank,
             icon: value.icon.map(|f| f.into()),
+            mentionable: value.mentionable,
         }
     }
 }
@@ -1010,6 +1186,7 @@ impl From<crate::PartialRole> for PartialRole {
             hoist: value.hoist,
             rank: value.rank,
             icon: value.icon.map(|f| f.into()),
+            mentionable: value.mentionable,
         }
     }
 }
@@ -1024,6 +1201,7 @@ impl From<PartialRole> for crate::PartialRole {
             hoist: value.hoist,
             rank: value.rank,
             icon: value.icon.map(|f| f.into()),
+            mentionable: value.mentionable,
         }
     }
 }
@@ -1472,6 +1650,9 @@ impl From<crate::VoiceInformation> for VoiceInformation {
             // Zero no documento é lixo de cliente: o slider gravava 0 para
             // "sem limite", e o join tratava como teto de zero vagas.
             max_users: value.max_users.filter(|&n| n > 0),
+            bitrate: value.bitrate,
+            rtc_region: value.rtc_region,
+            video_quality: value.video_quality.map(Into::into),
         }
     }
 }
@@ -1480,6 +1661,32 @@ impl From<VoiceInformation> for crate::VoiceInformation {
     fn from(value: VoiceInformation) -> Self {
         crate::VoiceInformation {
             max_users: value.max_users.filter(|&n| n > 0),
+            // Fora da faixa vira ausência, e não um teto aparado em silêncio:
+            // quem manda 0 ou 10000 não escolheu um bitrate. A rota recusa
+            // antes de chegar aqui; isto só protege documento escrito à mão.
+            bitrate: value.bitrate.filter(|b| (8..=384).contains(b)),
+            rtc_region: value.rtc_region.filter(|r| !r.is_empty()),
+            video_quality: value.video_quality.map(Into::into),
+        }
+    }
+}
+
+impl From<crate::VideoQualityMode> for VideoQualityMode {
+    fn from(value: crate::VideoQualityMode) -> Self {
+        match value {
+            crate::VideoQualityMode::Auto => VideoQualityMode::Auto,
+            crate::VideoQualityMode::Hd720p30 => VideoQualityMode::Hd720p30,
+            crate::VideoQualityMode::Hd1080p60 => VideoQualityMode::Hd1080p60,
+        }
+    }
+}
+
+impl From<VideoQualityMode> for crate::VideoQualityMode {
+    fn from(value: VideoQualityMode) -> Self {
+        match value {
+            VideoQualityMode::Auto => crate::VideoQualityMode::Auto,
+            VideoQualityMode::Hd720p30 => crate::VideoQualityMode::Hd720p30,
+            VideoQualityMode::Hd1080p60 => crate::VideoQualityMode::Hd1080p60,
         }
     }
 }

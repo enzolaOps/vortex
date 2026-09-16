@@ -1,0 +1,32 @@
+/* ============================================================
+   Ícone de cargo
+   ------------------------------------------------------------
+   A imagem de `Role.icon` ao lado do nome. Ver o componente para
+   as quatro decisões; aqui ficam as medidas.
+   ============================================================ */
+
+.icone {
+  display: inline-block;
+  flex: none;
+  object-fit: contain;
+  /* `text-bottom` e não `middle`: dentro de texto corrido (autor compacto) o
+     `middle` alinha pela altura-x e deixa a imagem subindo acima das
+     maiúsculas do nome. */
+  vertical-align: text-bottom;
+  user-select: none;
+}
+
+.pequeno {
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+}
+
+.medio {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+.grande {
+  inline-size: var(--vx-icon-2);
+  block-size: var(--vx-icon-2);
+}

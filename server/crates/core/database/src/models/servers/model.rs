@@ -53,6 +53,16 @@ auto_derived_partial!(
         #[serde(skip_serializing_if = "Option::is_none")]
         pub banner: Option<File>,
 
+        /// Short tag shown next to the name of members who choose to display it
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub tag: Option<String>,
+        /// Badge image accompanying the tag
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub tag_badge: Option<File>,
+        /// Topics describing this server (up to five)
+        #[serde(skip_serializing_if = "Vec::is_empty", default)]
+        pub characteristics: Vec<String>,
+
         /// Bitfield of server flags
         #[serde(skip_serializing_if = "Option::is_none")]
         pub flags: Option<i32>,
@@ -101,6 +111,9 @@ auto_derived_partial!(
         /// Custom icon attachment
         #[serde(skip_serializing_if = "Option::is_none")]
         pub icon: Option<File>,
+        /// Vortex: whether members without `MentionRoles` may mention this role
+        #[serde(skip_serializing_if = "crate::if_false", default)]
+        pub mentionable: bool,
     },
     "PartialRole"
 );
@@ -114,6 +127,15 @@ auto_derived!(
         pub title: String,
         /// Channels in this category
         pub channels: Vec<String>,
+        /// Default permissions copied to channels synced with this category
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub default_permissions: Option<OverrideField>,
+        /// Role permissions copied to channels synced with this category
+        #[serde(
+            default = "HashMap::<String, OverrideField>::new",
+            skip_serializing_if = "HashMap::<String, OverrideField>::is_empty"
+        )]
+        pub role_permissions: HashMap<String, OverrideField>,
     }
 
     /// System message channel assignments
@@ -140,6 +162,8 @@ auto_derived!(
         Icon,
         Banner,
         Security,
+        Tag,
+        TagBadge,
     }
 
     /// Optional fields on server object
@@ -176,6 +200,9 @@ impl Server {
             roles: HashMap::new(),
             system_messages: None,
             security: None,
+            tag: None,
+            tag_badge: None,
+            characteristics: vec![],
         };
 
         let channels: Vec<Channel> = if create_default_channels {
@@ -235,6 +262,11 @@ impl Server {
         .p(self.id.clone())
         .await;
 
+        // Vortex: eventos agendados morrem com o servidor. Falha aqui não
+        // impede apagar o servidor — o evento órfão só é lido por quem ainda
+        // é membro, e não sobra membro.
+        db.delete_server_events(&self.id).await.ok();
+
         db.delete_server(&self.id).await
     }
 
@@ -247,6 +279,8 @@ impl Server {
             FieldsServer::Icon => self.icon = None,
             FieldsServer::Banner => self.banner = None,
             FieldsServer::Security => self.security = None,
+            FieldsServer::Tag => self.tag = None,
+            FieldsServer::TagBadge => self.tag_badge = None,
         }
     }
 
@@ -267,6 +301,9 @@ impl Server {
                 (FieldsServer::Icon) icon,
                 (FieldsServer::Banner) banner,
                 (FieldsServer::Security) security,
+                (FieldsServer::Tag) tag,
+                (FieldsServer::TagBadge) tag_badge,
+                characteristics,
                 nsfw,
                 analytics,
                 discoverable,
@@ -375,6 +412,7 @@ impl Role {
             hoist: Some(self.hoist),
             rank: Some(self.rank),
             icon: self.icon,
+            mentionable: Some(self.mentionable),
         }
     }
 
@@ -389,6 +427,7 @@ impl Role {
             hoist: false,
             permissions: Default::default(),
             icon: None,
+            mentionable: false,
         };
 
         db.insert_role(&server.id, &role).await?;
@@ -455,6 +494,7 @@ impl Role {
                 hoist,
                 rank,
                 (FieldsRole::Icon) icon,
+                mentionable,
             )
         );
 

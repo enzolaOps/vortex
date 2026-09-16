@@ -6,6 +6,7 @@ mod block_user;
 mod change_username;
 mod edit_user;
 mod fetch_dms;
+mod fetch_interested_events;
 mod fetch_profile;
 mod fetch_self;
 mod fetch_user;
@@ -37,5 +38,7 @@ pub fn routes() -> (Vec<Route>, OpenApi) {
         block_user::block,
         unblock_user::unblock,
         send_friend_request::send_friend_request,
+        // Vortex: scheduled events
+        fetch_interested_events::fetch_interested_events,
     ]
 }

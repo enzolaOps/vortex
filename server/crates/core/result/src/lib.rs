@@ -127,6 +127,14 @@ pub enum ErrorType {
     TooManyRoles {
         max: usize,
     },
+    /// Vortex: o servidor chegou ao teto de figurinhas
+    TooManyStickers {
+        max: usize,
+    },
+    /// Vortex: o servidor chegou ao teto de efeitos sonoros
+    TooManySounds {
+        max: usize,
+    },
     AlreadyInServer,
     CannotTimeoutYourself,
     /// Vortex: a política do servidor impede a entrada
@@ -227,6 +235,8 @@ pub enum ErrorType {
     InvalidToken,
     MissingInvite,
     InvalidInvite,
+    /// Vortex: the channel this invite points to has its invites paused
+    InvitesPaused,
 
     CompromisedPassword,
     ShortPassword,

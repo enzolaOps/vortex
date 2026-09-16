@@ -1,5 +1,14 @@
+import { toast } from "../components/ui/toastStore";
+import {
+  analisarConsulta,
+  intervaloDasDatas,
+  menorCursor,
+  tipoDoFiltro,
+} from "../busca/filtros";
 import {
   buscarNoCanal,
+  buscarNoServidor,
+  resolverAutor,
   POR_PAGINA,
   type OrdemDeBusca,
   type ResultadoDeBusca,
@@ -19,8 +28,20 @@ import {
  * empurrá-la para lá a cada clique, e as duas divergiriam ao trocar de canal.
  */
 
+/**
+ * Onde a busca procura.
+ *
+ * `servidor` é do fork (`POST /servers/{id}/search`). Ele não muda o que a
+ * tela desenha — cada cartão já carrega o canal de origem —, muda de onde a
+ * página vem e o que acontece ao trocar de canal (ver `apontarBuscaPara`).
+ */
+export type EscopoDeBusca = "canal" | "servidor";
+
 export type EstadoDeBusca = {
   readonly channelId: string | undefined;
+  /** Servidor do canal apontado; `undefined` em DM, onde só existe `canal`. */
+  readonly serverId: string | undefined;
+  readonly escopo: EscopoDeBusca;
   readonly consulta: string;
   readonly ordem: OrdemDeBusca;
   readonly resultados: readonly ResultadoDeBusca[];
@@ -35,6 +56,8 @@ export type EstadoDeBusca = {
 
 const VAZIO: EstadoDeBusca = {
   channelId: undefined,
+  serverId: undefined,
+  escopo: "canal",
   consulta: "",
   ordem: "recentes",
   resultados: [],
@@ -92,17 +115,57 @@ export function definirOrdem(ordem: OrdemDeBusca): void {
 }
 
 /**
+ * O `✕` de um chip e o `+ filtro` escrevem no TEXTO — o chip é projeção dele.
+ * Tirar um filtro refaz a busca se já havia resultado na tela: a lista antiga
+ * com o chip sumido afirmaria um filtro que não vale mais.
+ */
+export function trocarConsulta(consulta: string, refazer: boolean): void {
+  publicar({ consulta });
+  if (refazer && estado.total !== undefined) void executar(1);
+}
+
+/**
  * Abre o painel para um canal.
  *
  * ⚠ Trocar de canal LIMPA tudo, e não é zelo: os resultados carregam o nome do
  * canal de origem e o "Pular para mensagem" pede um salto naquele canal. Manter
  * a lista ao mudar de canal daria um painel que pula para outro lugar.
  */
-export function apontarBuscaPara(channelId: string | undefined): void {
-  if (estado.channelId === channelId) return;
+export function apontarBuscaPara(
+  channelId: string | undefined,
+  serverId: string | undefined,
+): void {
+  if (estado.channelId === channelId && estado.serverId === serverId) return;
+  /*
+    ⚠ **Em escopo de SERVIDOR, trocar de canal dentro do mesmo servidor NÃO
+    limpa** — e é o caso comum, não a exceção: "Pular para mensagem" num
+    resultado de outro canal ABRE aquele canal, e limpar ali apagaria a lista
+    no exato clique que a usou. Os resultados continuam válidos, porque cada
+    um carrega o próprio canal.
+  */
+  if (
+    estado.escopo === "servidor" &&
+    serverId !== undefined &&
+    estado.serverId === serverId
+  ) {
+    publicar({ channelId });
+    return;
+  }
   cursores = [];
-  estado = { ...VAZIO, channelId };
+  estado = { ...VAZIO, channelId, serverId };
   for (const o of ouvintes) o();
+}
+
+/**
+ * Troca o escopo e REFAZ a busca, pela mesma razão de `definirOrdem`: a lista
+ * antiga sob o rótulo novo afirmaria uma busca que ninguém fez.
+ */
+export function definirEscopo(escopo: EscopoDeBusca): void {
+  if (escopo === "servidor" && estado.serverId === undefined) return;
+  if (estado.escopo === escopo) return;
+  cursores = [];
+  publicar({ escopo, resultados: [], total: undefined, pagina: 1, selecionado: undefined });
+  if (estado.consulta.trim().length > 0) void executar(1);
 }
 
 export function selecionarResultado(id: string | undefined): void {
@@ -119,16 +182,70 @@ export function selecionarResultado(id: string | undefined): void {
  * chamada. É a limitação real, e ela coincide com o desenho.
  */
 export async function executar(pagina: number): Promise<void> {
-  const { channelId, consulta, ordem } = estado;
-  const limpa = consulta.trim();
-  if (channelId === undefined || limpa.length === 0) return;
+  const { channelId, serverId, escopo, consulta, ordem } = estado;
+  if (channelId === undefined) return;
+  if (escopo === "servidor" && serverId === undefined) return;
+
+  /*
+    O TEXTO do campo é a fonte dos filtros — ver `busca/filtros.ts`. Filtro
+    que não se entende PARA a busca e diz, em vez de ser ignorado: `tem:planilha`
+    ignorado devolveria tudo, com cara de resultado filtrado.
+  */
+  const { texto, filtros } = analisarConsulta(consulta);
+  if (texto.length === 0 && filtros.length === 0) return;
+
+  const invalido = filtros.find((f) => !f.valido);
+  if (invalido) {
+    toast({
+      tipo: "info",
+      titulo: `Filtro não reconhecido: ${invalido.bruto}`,
+      descricao: "Use de:nome, tem:arquivo|imagem|video|audio|link ou antes:/depois:/durante:AAAA-MM-DD.",
+    });
+    return;
+  }
+
+  const de = filtros.find((f) => f.chave === "de");
+  const autorId = de ? resolverAutor(de.valor, channelId) : undefined;
+  if (de && autorId === undefined) {
+    toast({
+      tipo: "info",
+      titulo: `Não achei ninguém chamado "${de.valor}".`,
+      descricao: "O filtro de autor procura entre as pessoas que já apareceram nesta sessão.",
+    });
+    return;
+  }
+  const tem = filtros.find((f) => f.chave === "tem");
+  const intervalo = intervaloDasDatas(filtros);
 
   if (pagina === 1) cursores = [];
-  const antesDe = pagina > 1 ? cursores[pagina - 2] : undefined;
-  if (pagina > 1 && antesDe === undefined) return;
+  const cursorDaPagina = pagina > 1 ? cursores[pagina - 2] : undefined;
+  if (pagina > 1 && cursorDaPagina === undefined) return;
 
   publicar({ buscando: true });
-  const r = await buscarNoCanal({ channelId, consulta: limpa, ordem, antesDe });
+  const filtrosDaChamada = {
+    consulta: texto,
+    ordem,
+    antesDe: menorCursor(cursorDaPagina, intervalo.antesDe),
+    depoisDe: intervalo.depoisDe,
+    autorId,
+    tem: tem ? tipoDoFiltro(tem.valor) : undefined,
+  };
+  const r =
+    escopo === "servidor" && serverId !== undefined
+      ? await buscarNoServidor({ serverId, ...filtrosDaChamada })
+      : await buscarNoCanal({ channelId, ...filtrosDaChamada });
+
+  /*
+    A resposta pode chegar depois de a pessoa trocar de escopo ou de servidor.
+    Aplicá-la escreveria resultados de uma busca que já não é a da tela.
+  */
+  if (
+    estado.escopo !== escopo ||
+    estado.serverId !== serverId ||
+    (escopo === "canal" && estado.channelId !== channelId)
+  ) {
+    return;
+  }
 
   if (r === undefined) {
     publicar({ buscando: false });

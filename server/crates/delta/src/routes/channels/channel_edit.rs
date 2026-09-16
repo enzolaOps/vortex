@@ -10,7 +10,7 @@ use revolt_result::{create_error, Result};
 use rocket::{serde::json::Json, State};
 use validator::Validate;
 
-use crate::util::audit_log_reason::AuditLogReason;
+use crate::util::{audit_log_reason::AuditLogReason, voice::validate_voice_information};
 
 /// # Edit Channel
 ///
@@ -33,6 +33,10 @@ pub async fn edit(
         })
     })?;
 
+    if let Some(voice) = &data.voice {
+        validate_voice_information(voice).await?;
+    }
+
     let mut channel = target.as_channel(db).await?;
     let mut query = DatabasePermissionQuery::new(db, &user).channel(&channel);
     calculate_channel_permissions(&mut query)
@@ -46,6 +50,8 @@ pub async fn edit(
         && data.owner.is_none()
         && data.voice.is_none()
         && data.slowmode.is_none()
+        && data.spoiler.is_none()
+        && data.invites_paused.is_none()
         && data.remove.is_empty()
     {
         return Ok(Json(channel.into()));
@@ -208,6 +214,8 @@ pub async fn edit(
             nsfw,
             voice,
             slowmode,
+            spoiler,
+            invites_paused,
             ..
         } => {
             if data.remove.contains(&v0::FieldsChannel::Icon) {
@@ -262,6 +270,16 @@ pub async fn edit(
             if let Some(new_slowmode) = data.slowmode {
                 *slowmode = Some(new_slowmode);
                 partial.slowmode = Some(new_slowmode);
+            }
+
+            if let Some(new_spoiler) = data.spoiler {
+                *spoiler = new_spoiler;
+                partial.spoiler = Some(new_spoiler);
+            }
+
+            if let Some(new_invites_paused) = data.invites_paused {
+                *invites_paused = new_invites_paused;
+                partial.invites_paused = Some(new_invites_paused);
             }
         }
         _ => return Err(create_error!(InvalidOperation)),

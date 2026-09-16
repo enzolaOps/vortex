@@ -11,7 +11,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../components/ui/DropdownMenu";
-import { aindaNao } from "../pendente/pendencias";
+import { criarEnquete } from "../sdk/enquetes";
+import { lerCanalAtivo } from "../store/navegacao";
+import { MARCAS } from "../store/enquetes";
 import {
   Popover,
   PopoverContent,
@@ -23,28 +25,34 @@ import css from "./Enquete.module.css";
 /** Quantas respostas cabem. O número é do design ("até 10"). */
 const MAXIMO_DE_RESPOSTAS = 10;
 
-/**
- * As marcas das respostas, na ordem.
- *
- * Letras encaixotadas e não números: o design as usa, e elas resolvem um
- * problema real — a contagem de votos ao lado da opção também é um número, e
- * "2 · 38%" numa linha que começa com "2." lê como duas coisas iguais.
- */
-const MARCAS = ["🅰", "🅱", "🅲", "🅳", "🅴", "🅵", "🅶", "🅷", "🅸", "🅹"] as const;
+/*
+  As marcas das respostas vêm de `store/enquetes.ts`: letras encaixotadas e não
+  números, porque a contagem ao lado da opção também é um número, e "2 · 38%"
+  numa linha que começa com "2." lê como duas coisas iguais. Uma lista só para
+  o modal e para a linha — a letra que o autor vê é a que quem vota vê.
+*/
 
 const DURACOES = ["8 horas", "1 dia", "3 dias", "1 semana"] as const;
+
+/** As durações em horas — o que `duration_hours` recebe no protocolo. */
+const HORAS_DE: Record<(typeof DURACOES)[number], number> = {
+  "8 horas": 8,
+  "1 dia": 24,
+  "3 dias": 72,
+  "1 semana": 168,
+};
 
 /**
  * O modal de criar enquete — 1:1 com o design.
  *
- * ⚠ **"Criar" é PENDÊNCIA, e o resto do formulário é real.** Enquete não
- * existe no protocolo Stoat (ver `store/enquetes.ts`): não há tipo de
- * mensagem, campo nem evento. Guardar a enquete só no cliente daria uma
- * contagem que só quem criou enxerga — pior que a ausência, porque parece
- * funcionar.
+ * ⚠ **"Criar" deixou de ser pendência.** O serviço `api` do fork ganhou
+ * `Message.poll`: a enquete é uma mensagem, criada pelo mesmo `POST`, e por
+ * isso passa por modo lento, idempotência e permissão de enviar como qualquer
+ * outra. O formulário não mudou — ele era a parte que sobrevivia.
  *
- * O formulário funciona de verdade porque ele é a parte que sobrevive: quando
- * o protocolo tiver enquete, o que muda é o que acontece no botão.
+ * ⚠ **O canal é o ABERTO no momento de criar**, lido na hora do clique e não
+ * na abertura do modal: é o mesmo lugar onde o botão do composer foi clicado,
+ * e o modal prende o foco, então não há como trocar de canal com ele aberto.
  */
 export function CriarEnquete({ aoFechar }: { aoFechar: () => void }) {
   const [pergunta, setPergunta] = useState("");
@@ -70,6 +78,7 @@ export function CriarEnquete({ aoFechar }: { aoFechar: () => void }) {
   const [duracao, setDuracao] = useState<string>(DURACOES[1]);
   const [multipla, setMultipla] = useState(false);
   const [resultadoNoFim, setResultadoNoFim] = useState(false);
+  const [criando, setCriando] = useState(false);
 
   function mudarResposta(id: string, texto: string) {
     setRespostas((r) => r.map((v) => (v.id === id ? { ...v, texto } : v)));
@@ -333,8 +342,22 @@ export function CriarEnquete({ aoFechar }: { aoFechar: () => void }) {
           <Botao onClick={aoFechar}>Cancelar</Botao>
           <Botao
             variante="primario"
-            disabled={!completa}
-            onClick={aindaNao("enquete")}
+            disabled={!completa || criando}
+            onClick={() => {
+              const channelId = lerCanalAtivo();
+              if (!channelId) return;
+              setCriando(true);
+              void criarEnquete(channelId, {
+                pergunta,
+                respostas: respostas.map((r) => r.texto),
+                duracaoHoras: HORAS_DE[duracao as (typeof DURACOES)[number]] ?? 24,
+                multipla,
+                resultadoNoFim,
+              }).then((ok) => {
+                setCriando(false);
+                if (ok) aoFechar();
+              });
+            }}
           >
             Criar
           </Botao>

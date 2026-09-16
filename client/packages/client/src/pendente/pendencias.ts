@@ -27,38 +27,18 @@ import { toast } from "../components/ui/toastStore";
  *    removida, o módulo inteiro vira código morto e o `pnpm utilities` acusa.
  */
 export const PENDENCIAS = {
-  /* ------------------------------------------ perfil do servidor */
+  /* ---------------------------------------------------------- eventos */
   /*
-    Quatro entradas, divididas pela mesma régua de sempre — o que falta é
-    UPLOAD ou é CONCEITO.
-
-    ⚠ Ícone e banner têm campo no protocolo (`Server.icon`, `Server.banner`) e
-    param no servidor de mídia, que é um `POST` cru para a URL de
-    `client.configuration.features.autumn` — inverificável sem instância
-    alcançável, a mesma razão que segura o envio de emoji. Faixa e
-    características não têm campo nenhum: são conceito de outro cliente.
+    O resto do assistente de evento é real — local, quando, repetição,
+    lembrete, nome, descrição e capa. Anunciar não: o design promete "publica
+    o card ao criar", e card de evento dentro de um canal é embed que o
+    protocolo não tem. Mandar um link em texto seria outra coisa com o mesmo
+    rótulo.
   */
-  iconeDoServidor: {
-    superficie: "Configurações do servidor · Perfil do servidor",
-    faz: "Trocar ou remover a imagem que identifica o servidor.",
-    depende: "upload para o servidor de mídia — o campo Server.icon JÁ existe",
-  },
-  bannerDoServidor: {
-    superficie: "Configurações do servidor · Perfil do servidor",
-    faz: "Pôr a arte larga que aparece atrás do card de convite.",
-    depende: "upload para o servidor de mídia — o campo Server.banner JÁ existe",
-  },
-  caracteristicasDoServidor: {
-    superficie: "Configurações do servidor · Perfil do servidor",
-    faz: "Marcar até cinco assuntos que descrevem o servidor.",
-    depende:
-      "o conceito de característica no protocolo — não há campo, rota nem evento",
-  },
-  previaDoConvite: {
-    superficie: "Configurações do servidor · Perfil do servidor · Prévia",
-    faz: "Entrar no servidor pelo botão do card, como quem recebe o convite.",
-    depende:
-      "só a tela — é a prévia de um card, e entrar num servidor onde já se está não é ação",
+  anunciarEvento: {
+    superficie: "Criar evento · passo Detalhes",
+    faz: "Publicar o card do evento no canal de avisos ao criar.",
+    depende: "embed de evento na mensagem — o protocolo não tem",
   },
 
   /* --------------------------------------------- editor de cargo */
@@ -83,83 +63,27 @@ export const PENDENCIAS = {
     depende:
       "só a tela — o preset é um gradiente estático que colour já aceita; falta reconhecê-lo na leitura e a pílula clara de texto escuro",
   },
-  iconeDeCargo: {
-    superficie: "Configurações do servidor · Cargos · Exibição",
-    faz: "Pôr uma imagem ou emoji ao lado do nome de quem tem o cargo.",
-    depende: "upload para o servidor de mídia — o campo Role.icon JÁ existe",
-  },
-  mencionarCargo: {
-    superficie: "Configurações do servidor · Cargos · Exibição",
-    faz: "Decidir se qualquer membro pode mencionar o cargo.",
-    depende: "um campo de menção em Role — hoje qualquer cargo pode ser mencionado",
-  },
-  linkDeCargo: {
-    superficie: "Configurações do servidor · Cargos · Links",
-    faz: "Criar um link que dá o cargo a quem entrar por ele.",
-    depende: "o conceito de convite com cargo no protocolo",
-  },
-  gerenciarMembrosDoCargo: {
-    superficie: "Configurações do servidor · Cargos · Gerenciar membros",
-    faz: "Adicionar e remover várias pessoas do cargo de uma vez.",
-    depende:
-      "só a tela — a escrita existe e já funciona no menu da member list, uma pessoa por vez",
-  },
-
-  /* ------------------------------------------- permissões padrão */
   /*
-    ⚠ **`@everyone` é cargo de verdade no protocolo, mas não vem em
-    `fetchRoles`** — ele é o campo `default_permissions` do servidor, e não uma
-    entrada da lista de cargos. Editá-lo é `Server.edit`, com uma tela que
-    reusa a matriz de permissões do editor. A entrada existe para o alvo dizer
-    isso em vez de não fazer nada.
+    A IMAGEM entrou (`config/IconeDoCargo.tsx`); sobrou o emoji. `Role.icon` é
+    um arquivo do `autumn` na tag `icons` — emoji personalizado mora em
+    `emojis` e o servidor recusa, e emoji Unicode não é arquivo nenhum.
   */
-  permissoesPadrao: {
-    superficie: "Configurações do servidor · Cargos",
-    faz: "Editar as permissões que TODO membro tem, antes de qualquer cargo.",
+  emojiComoIconeDeCargo: {
+    superficie: "Configurações do servidor · Cargos · Exibição",
+    faz: "Usar um emoji como ícone do cargo, em vez de uma imagem.",
     depende:
-      "a matriz de permissões apontando para `default_permissions` em vez de um cargo",
+      "desenhar o emoji numa imagem e subi-la em `icons` — o protocolo só guarda arquivo",
   },
-
   /* ----------------------------------------------- tag do servidor */
   /*
-    ⚠ **Duas entradas para uma tela, e a divisão é por DEPENDÊNCIA.** A tag em
-    si precisa de um campo que o protocolo não tem; o emblema precisa disso E
-    do servidor de mídia. Quem for implementar a primeira não destrava a
-    segunda, e uma entrada só esconderia isso.
+    Tag, emblema e a escolha de exibir são do fork e FUNCIONAM. O que sobra é
+    a restrição por cargo: o fork não guarda qual cargo a tag exige.
   */
-  tagDoServidor: {
+  exigirCargoDaTag: {
     superficie: "Configurações do servidor · Tag do servidor",
-    faz: "Guardar a tag e exibi-la ao lado de quem escolher mostrá-la.",
-    depende:
-      "um campo de tag em `Server` — não existe em `DataEditServer`, ou seja fork do serviço `api`",
+    faz: "Deixar só quem tem o cargo escolhido exibir a tag.",
+    depende: "um campo de cargo exigido na tag do servidor — o fork guarda só a tag e o emblema",
   },
-  emblemaDaTag: {
-    superficie: "Configurações do servidor · Tag do servidor",
-    faz: "Enviar a imagem que acompanha a tag.",
-    depende: "o campo de tag no protocolo E upload para o servidor de mídia",
-  },
-  /* ------------------------------------------------------ figurinhas */
-  /*
-    ⚠ O Stoat tem EMOJI de servidor e não figurinha. São coisas diferentes:
-    emoji vive dentro de uma linha de texto, figurinha é a mensagem inteira.
-  */
-  figurinhas: {
-    superficie: "Configurações do servidor · Figurinhas",
-    faz: "Enviar, renomear e apagar as figurinhas do servidor.",
-    depende: "um tipo de figurinha no protocolo E upload para o servidor de mídia",
-  },
-  /* ------------------------------------------------ efeitos sonoros */
-  /*
-    ⚠ Duas ausências empilhadas: o protocolo não tem o conceito, e TOCAR o som
-    numa sala é publicar áudio no LiveKit — não é enviar mensagem.
-  */
-  efeitosSonoros: {
-    superficie: "Configurações do servidor · Painel de efeitos sonoros",
-    faz: "Enviar sons e tocá-los na sala de voz para todo mundo ouvir.",
-    depende:
-      "o conceito no protocolo E uma trilha de áudio publicada no LiveKit pelo servidor",
-  },
-
   /* --------------------------------------------------------- entrada */
   /*
     ⚠ **O QR é do design e o protocolo não tem o conceito.** Entrar por código
@@ -222,9 +146,9 @@ export const PENDENCIAS = {
   },
   /* ------------------------------------------------------------ composer */
   /*
-    ⚠ **O seletor de emoji EXISTE e funciona.** O que sobrou pendente é o que
-    ele não alcança sozinho, e os três estão separados de propósito: um é
-    ONDE o seletor abre, um é dado do servidor, um é modificador de glifo.
+    ⚠ **O seletor de emoji EXISTE e funciona**, com tom de pele. O que sobrou
+    pendente é o que ele não alcança sozinho: ONDE o seletor abre e o dado do
+    servidor.
 
     ⚠ **A lista curada de ~170 emojis NÃO é pendência**, e já esteve aqui como
     `emojiCompleto`. Ela não tem controle: nada na tela promete os 3.800 do
@@ -232,61 +156,23 @@ export const PENDENCIAS = {
     que é onde quem for trocar o dataset vai olhar — mesma família da etiqueta
     FÓRUM e da reação SUPER, que ficam fora deste registro pelo mesmo motivo.
   */
-  tomDePele: {
-    superficie: "Seletor de emoji",
-    faz: "Escolher o tom de pele padrão dos emojis de pessoa.",
-    depende: "modificadores Fitzpatrick no dataset de emoji",
-  },
   gif: {
     superficie: "Composer",
     faz: "Seletor de GIF.",
     depende: "provedor de GIF (rede externa)",
   },
-  figurinha: {
-    superficie: "Composer",
-    faz: "Seletor de figurinhas do servidor.",
-    depende: "figurinhas no protocolo + upload",
-  },
-  /* Dois consumidores, uma entrada: o conceito é o mesmo, e duplicar a
-     pendência daria duas frases para manter em dia sobre o mesmo bloqueio. */
-  soundboard: {
-    superficie: "Composer e faixa de voz",
-    faz: "Tocar um efeito sonoro curto — no canal ou para a sala inteira.",
-    depende: "soundboard no protocolo + upload",
-  },
-  /*
-    ⚠ **A linha de enquete na timeline EXISTE agora**, e o que ficou pendente é
-    só criar — porque criar é o que precisa de um servidor que saiba guardar.
-    Ver `store/enquetes.ts`: uma enquete guardada só no cliente daria uma
-    contagem que só quem criou enxerga.
-  */
-  enquete: {
-    superficie: "Criar enquete",
-    faz: "Publicar a enquete para todo mundo do canal poder votar.",
-    depende: "enquete no protocolo (tipo de mensagem + evento de voto)",
-  },
-  /*
-    ⚠ **Tocar já EXISTE** — ver `list/ReprodutorDeVoz.tsx`. O que continua
-    pendente é gravar, e a dependência é a mesma de `anexar`: sem upload, uma
-    gravação não tem para onde ir, e pedir o microfone para produzir um arquivo
-    que morre na aba é pior que não ter o botão.
-  */
-  mensagemDeVoz: {
-    superficie: "Composer",
-    faz: "Gravar e enviar mensagem de voz.",
-    depende: "upload ao servidor de mídia (autumn) + `MediaRecorder`",
-  },
 
   /* ------------------------------------------------------- linha de mensagem */
-  baixarAnexo: {
-    superficie: "Visualizador de mídia",
-    faz: "Salvar o arquivo no computador.",
-    depende: "`Content-Disposition` do servidor de mídia — `<a download>` de origem cruzada é ignorado pelo navegador",
-  },
+  /*
+    ⚠ O `depende` dizia "`Attachment.description` no protocolo", e o campo NÃO
+    existe: `File` (`crates/core/models/src/v0/files.rs`) não tem descrição e
+    `DataMessageSend.attachments` é lista de IDs. É fork, não tela.
+  */
   textoAlternativo: {
     superficie: "Anexo",
     faz: "Ler e escrever a descrição de uma imagem para quem não a vê.",
-    depende: "`Attachment.description` no protocolo + campo no envio",
+    depende:
+      "descrição de anexo no protocolo — `File` não tem o campo e o envio leva só IDs (fork de delta + autumn)",
   },
 
   /* --------------------------------------------------- coluna de canais */
@@ -302,49 +188,30 @@ export const PENDENCIAS = {
     faz: "Abrir o painel de tópicos ativos, seguindo e arquivados.",
     depende: "threads no protocolo + painel `topicos` em `PainelId`",
   },
-  /*
-    ⚠ **`buscaNoCanal` SAIU daqui — o painel existe e a busca é real.** O que
-    sobrou pendente são as duas coisas que o protocolo não sabe fazer, e elas
-    ficam separadas porque bloqueiam por razões diferentes: uma é sintaxe de
-    consulta que a rota não aceita, a outra é escopo que a rota não tem.
-  */
-  filtroDeBusca: {
-    superficie: "Painel de busca",
-    faz: "Filtrar por autor (`de:`), por tipo de anexo (`tem:`) e por data.",
-    depende:
-      "`POST /channels/{id}/search` aceita só `query`, `sort`, `limit` e cursor — filtrar no cliente esvaziaria páginas inteiras e a contagem mentiria",
+
+  /* ------------------------------------------- modal do sino (notificações) */
+  notificarEventosDoServidor: {
+    superficie: "Notificações do servidor",
+    faz: "Avisar quando um evento agendado do servidor começar.",
+    depende: "evento agendado no protocolo — não há tipo, campo nem rota",
   },
-  buscaNoServidor: {
-    superficie: "Painel de busca",
-    faz: "Buscar em todos os canais do servidor de uma vez.",
-    depende:
-      "a rota de busca é POR CANAL — varrer N canais no cliente seriam N chamadas e uma ordenação que nenhuma delas conhece",
+  seguirTopicosAutomaticamente: {
+    superficie: "Notificações do canal",
+    faz: "Seguir sozinho os tópicos em que você responder.",
+    depende: "threads no protocolo",
   },
   /*
-    ⚠ **`caixaDeEntrada` SAIU daqui — o painel existe.** O que dependia de
-    protocolo era só a aba de tópicos, e ela diz isso na própria tela.
+    ⚠ **`caixaDeEntrada` e `marcarTudoLido` SAÍRAM daqui.** O painel existe, e
+    marcar tudo é uma fila de `ack` com concorrência limitada
+    (`marcarTodosLidos`). O que dependia de protocolo era só a aba de tópicos,
+    e ela diz isso na própria tela.
   */
-  marcarTudoLido: {
-    superficie: "Caixa de entrada",
-    faz: "Zerar as não-lidas de todos os canais de uma vez.",
-    depende: "`ack` em lote — hoje é uma chamada por canal, e são dezenas",
-  },
 
   /* ------------------------------------------- ações da mensagem (fase 5) */
   topicoDaMensagem: {
     superficie: "Ações da mensagem",
     faz: "Abrir um tópico a partir desta mensagem.",
     depende: "threads no protocolo",
-  },
-  marcarNaoLida: {
-    superficie: "Menu da mensagem",
-    faz: "Voltar o cursor de leitura para antes desta mensagem.",
-    depende: "`ack` para trás — o protocolo só move o cursor para a frente",
-  },
-  removerEmbed: {
-    superficie: "Menu da mensagem",
-    faz: "Esconder o cartão de link gerado para esta mensagem.",
-    depende: "supressão de embed no protocolo",
   },
 
   /* ------------------------------------------- menu do usuário na timeline */
@@ -356,21 +223,6 @@ export const PENDENCIAS = {
     HASTEADO, e nada mais. `cargosIds` e `abaixoDeMim` destravaram os três de
     uma vez, junto com as pílulas de cargo e o item "acima da sua hierarquia".
   */
-  /* ------------------------------------------------- criar categoria */
-  /*
-    ⚠ **Categoria não tem PERMISSÃO no protocolo.** `Category` é
-    `{id, title, channels}` e nada mais — a própria referência diz que a lista
-    de acesso escreve "overrides de categoria", e eles não existem no Stoat. A
-    lista de "quem pode ver" vem junto com a privacidade, porque só faz sentido
-    com ela: sem privacidade não há a quem restringir.
-  */
-  categoriaPrivada: {
-    superficie: "Criar categoria",
-    faz: "Fechar a categoria e escolher quem enxerga — canais criados nela herdam.",
-    depende:
-      "permissão em categoria no protocolo — `Category` só tem id, título e canais",
-  },
-
   /* --------------------------------------------------- assistir */
   /*
     ⚠ **Um pendente só na tela de assistir, e o resto dela é REAL** — vale
@@ -461,88 +313,28 @@ export const PENDENCIAS = {
     então a tela mostra o estado real e o controle não move. A tabela medida
     está em `sdk/canal.ts`.
   */
-  canalDeSpoiler: {
-    superficie: "Configurações do canal",
-    faz: "Entrar com toda a mídia borrada, com clique para revelar.",
-    depende: "conceito de spoiler no protocolo — não há campo nem evento",
-  },
-  bitrateDeVoz: {
-    superficie: "Configurações do canal",
-    faz: "Escolher a qualidade de áudio da sala.",
-    depende: "bitrate no protocolo + repasse ao LiveKit",
-  },
-  regiaoDeVoz: {
-    superficie: "Configurações do canal",
-    faz: "Fixar a região do servidor de voz, em vez de deixar automática.",
-    depende: "região de voz no protocolo",
-  },
-  modoDeVideo: {
-    superficie: "Configurações do canal",
-    faz: "Fixar resolução e taxa de quadros do vídeo.",
-    depende: "modo de vídeo no protocolo + repasse ao LiveKit",
-  },
-  sincronizarComCategoria: {
-    superficie: "Permissões do canal",
-    faz: "Copiar as permissões da categoria para este canal e manter em sincronia.",
-    depende: "categoria não tem permissões no protocolo — ela é só um array de IDs",
-  },
-  pausarConvites: {
-    superficie: "Convites do canal",
-    faz: "Suspender todos os convites do canal sem apagá-los.",
-    depende: "pausar convite no protocolo — só existe revogar",
-  },
 
   /* -------------------------------------------------------- perfil */
   /*
-    ⚠ **As duas abas que o design desenha e que o SDK não sabe buscar.** O
-    Stoat tem `GET /users/{id}/mutual`, mas sem método no cliente e devolvendo
-    ID cru — a lista precisaria dos objetos resolvidos para virar tela.
-
-    Elas entram DESENHADAS porque a faixa de abas com uma aba só faria o
-    perfil parecer uma tela pela metade, e porque a régua deste projeto é
-    construir 1:1 agora e implementar depois.
+    ⚠ **O interruptor existia e gravava, e não havia NADA atrás dele** — nem na
+    casca nem no cliente. As outras preferências da tela Desktop chegaram à
+    casca; esta seria a única gravada sem efeito, então virou pendente.
   */
-  servidoresEmComum: {
-    superficie: "Perfil completo",
-    faz: "Listar os servidores em que vocês dois estão.",
-    depende: "`GET /users/{id}/mutual` sem método no SDK, e os IDs resolvidos",
-  },
-  amigosEmComum: {
-    superficie: "Perfil completo",
-    faz: "Listar as pessoas que vocês dois têm em comum.",
-    depende: "a mesma rota de mútuos, mais as relações já carregadas",
+  preCarregarAnexos: {
+    superficie: "Configurações · Desktop",
+    faz: "Baixar as imagens dos canais com não lidas antes de você abri-los.",
+    depende:
+      "decidir o que pré-carregar (quais canais, quantas mensagens) e um limite de banda — não há nada disso no app hoje",
   },
   /*
-    ⚠ **Ela nasceu em `SUPERFICIES_AUSENTES` e MUDOU DE LISTA ao ganhar um
-    controle** — é a regra que a doutrina deste arquivo escreve por extenso:
-    "entrada daqui muda de lista quando ganhar um controle, e não fica nas
-    duas". O menu da conversa foi construído 1:1 com o design, e a favorita
-    deixou de ser buraco para virar item desenhado.
+    O `⋯` da chamada direta. O design desenha o alvo na barra e não desenha o
+    menu; ensurdecer, que é o item óbvio, já está no painel de usuário e no
+    cartão flutuante — inventar a lista seria escrever o design.
   */
-  favoritarConversa: {
-    superficie: "Menu da conversa, na coluna da casa",
-    faz: "Fixar a conversa no topo da lista, acima da ordem por recência.",
-    depende:
-      "campo de favorito no protocolo — `Channel` do Stoat não tem, e guardá-lo só no cliente daria uma ordem que só esta máquina enxerga",
-  },
-  /*
-    ⚠ **Desenhado e NÃO ligado por razão de SEGURANÇA, não de custo.**
-
-    O snapshot do canal carrega nome, tópico, modo lento, restrição de idade e
-    limite de voz — tudo o que `salvarCanal` precisa. O que ele **não** carrega
-    são os overrides de permissão, e `salvarPermissaoDeCanal` é por cargo, um a
-    um. Duplicar a partir do snapshot produziria um canal PÚBLICO a partir de
-    um restrito, em silêncio, e o dono só descobriria quando alguém lesse o que
-    não devia.
-
-    Um "Duplicar" que copia a aparência e perde a restrição é pior que a
-    ausência: ele parece ter funcionado.
-  */
-  duplicarCanal: {
-    superficie: "Menu do canal, na coluna",
-    faz: "Criar um canal novo com as mesmas configurações e permissões.",
-    depende:
-      "os overrides de permissão no snapshot do canal — hoje só nome, tópico, modo lento, idade e limite chegam, e duplicar sem eles abriria um canal restrito",
+  menuDaChamada: {
+    superficie: "Chamada direta, na barra de controles",
+    faz: "Abrir as ações que não cabem na barra (ensurdecer, dispositivos, tela cheia).",
+    depende: "o conteúdo do menu, que o design não desenha",
   },
 } as const satisfies Record<
   string,
@@ -591,28 +383,6 @@ export type PendenciaId = keyof typeof PENDENCIAS;
  */
 export const SUPERFICIES_AUSENTES = {
   /* ------------------------------------------------------------- voz */
-  /*
-    ⚠ **As duas primeiras são o par que torna a voz 1:1 INALCANÇÁVEL, e não
-    incompleta.** Não é uma tela faltando no fim de um fluxo: sem a chamada
-    recebida não há como ATENDER, então nenhuma ligação de DM chega ao outro
-    lado. É a de maior valor das nove.
-
-    E ela é a única que não teria controle nem depois de pronta: quem chama é
-    a outra pessoa. Por isso não há como registrá-la em `PENDENCIAS` nem
-    hoje nem nunca — ela nasce de um evento, não de um clique.
-  */
-  chamadaRecebida: {
-    superficie: "Sobreposta ao app, e em tela cheia",
-    faz: "Anunciar quem está ligando, com atender e recusar.",
-    depende: "nada no protocolo — é trabalho de tela mais o evento do LiveKit",
-    referencia: "components/voice/IncomingCall.tsx",
-  },
-  chamadaDireta: {
-    superficie: "Coluna de conteúdo, numa DM",
-    faz: "A chamada de duas pessoas: vídeo grande, o seu no canto, controles.",
-    depende: "a chamada recebida, que é quem abre esta — e um botão de ligar na DM",
-    referencia: "components/voice/CallStage.tsx · DirectCallStage",
-  },
   chatDoCanalDeVoz: {
     superficie: "Painel dentro da sala de voz",
     faz: "O chat embutido do canal de voz, com entradas e saídas como eventos do sistema.",
@@ -627,62 +397,12 @@ export const SUPERFICIES_AUSENTES = {
     referencia: "components/voice/VoiceUserMenu.tsx",
   },
 
-  /* --------------------------------------------------------- eventos */
   /*
-    ⚠ **Três arquivos da referência e zero rastro aqui** — a maior ausência
-    das nove em volume. O protocolo do Stoat não tem evento agendado, então
-    ela cai na mesma família do Fórum: entra junto com o fork do serviço
-    `api`. A diferença é que o Fórum já estava registrado e esta não estava.
+    ⚠ **`duracaoDoSilencio` e `notificacoesPorServidorECanal` SAÍRAM daqui.**
+    O servidor tem silêncio próprio (`silenciarServidor`, submenu no menu do
+    servidor) e o sino abre `ModalDeNotificacoes`, com herança servidor →
+    canal.
   */
-  eventosDoServidor: {
-    superficie: "Destino próprio do servidor, com cartão e assistente",
-    faz: "Agendar, listar e confirmar presença em eventos do servidor.",
-    depende: "evento agendado no protocolo — não há tipo, campo nem rota",
-    referencia:
-      "screens/events/EventsScreen.tsx · CreateEventWizard.tsx · components/events/EventCard.tsx",
-  },
-
-  /* ----------------------------------------------------------- casa */
-  solicitacoesDeMensagem: {
-    superficie: "Aba na tela de pessoas",
-    faz: "Separar a DM de quem você não conhece, para aceitar ou recusar antes de ler.",
-    depende:
-      "o protocolo não separa — toda DM entra igual, então a fila é conceito de cliente",
-    referencia: "components/directs/MessageRequestsPanel.tsx",
-  },
-
-  /* -------------------------------------------------- notificações */
-  /*
-    ⚠ **Metade desta entrada nasceu OBSOLETA, e vale saber por quê.** Ela dizia
-    "no menu do canal e do servidor" e "falta o store com relógio" — e o
-    relógio existe desde que silenciar canal foi construído:
-    `DURACOES_DE_SILENCIO` tem os cinco prazos, `silencioAte` guarda o PRAZO (e
-    não o tempo restante, senão o store publicaria a cada tique), e
-    `ListaDeCanais` já monta o submenu, com "Reativar avisos" do outro lado.
-    Verificado em navegador: os cinco prazos abrem, e silenciar por eles some
-    com o canal da coluna.
-
-    O que sobra é só o SERVIDOR, e ele não tem silenciar nenhum — nem submenu,
-    nem item. Registrar trabalho já feito como pendente é o defeito inverso do
-    que este registro existe para evitar: encolhe a lista de quem procura o que
-    fazer, e a lista para de merecer confiança na primeira vez que alguém abre
-    uma entrada e encontra a feature pronta.
-  */
-  duracaoDoSilencio: {
-    superficie: "Submenu do silenciar, no menu do SERVIDOR",
-    faz: "Silenciar o servidor inteiro por 15 minutos, 1 hora, 8 horas, 24 horas ou até eu reativar.",
-    depende:
-      "silêncio por SERVIDOR — `store/silencio.ts` é keyed por CANAL, e o rollup de não-lidas teria de consultá-lo; o prazo em si já existe e é o mesmo",
-    referencia: "components/navigation/MuteDurationSubmenu.tsx",
-  },
-  notificacoesPorServidorECanal: {
-    superficie: "Modal do sino, no servidor e no canal",
-    faz: "Escolher entre tudo, só menções ou nada, por servidor e por canal.",
-    depende:
-      "distinto de `permissaoDeNotificacao`, que é o pedido ao navegador — este é a REGRA",
-    referencia: "components/notifications/NotificationModals.tsx",
-  },
-
 } as const satisfies Record<
   string,
   { superficie: string; faz: string; depende: string; referencia: string }

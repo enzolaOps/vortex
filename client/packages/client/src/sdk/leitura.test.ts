@@ -3,8 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CHANNEL_ID, seed } from "../dev/firehose";
 import { client } from "./client";
 import {
+  aplicarAckRemoto,
   channelMessageIds,
+  channels,
   definirCanalAberto,
+  marcarNaoLidaA,
   messages,
   primeiraNaoLida,
 } from "./adapter";
@@ -107,6 +110,82 @@ describe("cursor de leitura", () => {
     // Exatamente uma: o divisor é uma posição, não um intervalo.
     expect(marcadas).toHaveLength(1);
     expect(marcadas[0]).toBe(primeiraNaoLida(CHANNEL_ID));
+  });
+});
+
+/**
+ * Marcar como não lida — o cursor andando PARA TRÁS.
+ *
+ * O que estes testes guardam é que a marca sobrevive ao gesto seguinte: sair
+ * do canal avança o cursor até o fim, e sem o desvio o item de menu valeria
+ * até o próximo clique no rail.
+ */
+describe("marcar como não lida", () => {
+  function naoLidas(channelId: string): number {
+    channels.subscriber(channelId)(() => {});
+    return channels.peek(channelId)?.naoLidas ?? 0;
+  }
+
+  it("a mensagem escolhida vira a primeira não lida, e o canal conta", () => {
+    definirCanalAberto(CHANNEL_ID);
+    const lista = ids();
+    const alvo = lista[lista.length - 5]!;
+
+    marcarNaoLidaA(alvo);
+
+    expect(primeiraNaoLida(CHANNEL_ID)).toBe(alvo);
+    expect(naoLidas(CHANNEL_ID)).toBeGreaterThan(0);
+  });
+
+  it("sair do canal NÃO desfaz a marca", () => {
+    definirCanalAberto(CHANNEL_ID);
+    const lista = ids();
+    const alvo = lista[lista.length - 3]!;
+
+    marcarNaoLidaA(alvo);
+    definirCanalAberto(OUTRO);
+
+    expect(primeiraNaoLida(CHANNEL_ID)).toBe(alvo);
+  });
+
+  it("o desvio vale uma vez: voltar e sair de novo é leitura normal", () => {
+    definirCanalAberto(CHANNEL_ID);
+    const lista = ids();
+    marcarNaoLidaA(lista[lista.length - 2]!);
+    definirCanalAberto(OUTRO);
+    definirCanalAberto(CHANNEL_ID);
+    definirCanalAberto(OUTRO);
+
+    expect(primeiraNaoLida(CHANNEL_ID)).toBeUndefined();
+  });
+});
+
+/**
+ * O cursor que chega de OUTRO dispositivo, pelo `ChannelAck`.
+ */
+describe("ack de outro dispositivo", () => {
+  it("para trás, com o canal fechado, move o divisor", () => {
+    definirCanalAberto(CHANNEL_ID);
+    definirCanalAberto(OUTRO);
+    const lista = ids();
+    const anterior = lista[lista.length - 4]!;
+
+    aplicarAckRemoto(CHANNEL_ID, anterior);
+
+    expect(primeiraNaoLida(CHANNEL_ID)).toBe(lista[lista.length - 3]);
+  });
+
+  /* O eco do próprio `ack` de abrir o canal não pode apagar o divisor. */
+  it("para a frente, com o canal ABERTO, não mexe no divisor", () => {
+    definirCanalAberto(CHANNEL_ID);
+    definirCanalAberto(OUTRO);
+    const nova = criarUma();
+    virarFrame();
+    definirCanalAberto(CHANNEL_ID);
+
+    aplicarAckRemoto(CHANNEL_ID, nova);
+
+    expect(primeiraNaoLida(CHANNEL_ID)).toBe(nova);
   });
 });
 

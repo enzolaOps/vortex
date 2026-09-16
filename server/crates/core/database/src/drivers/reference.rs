@@ -6,7 +6,8 @@ use crate::{
     Account, AccountInvite, AuditLogEntry, Bot, Channel, ChannelCompositeKey, ChannelUnread,
     DiscoverBan, DiscoverRequest, DiscoverRequestType, Emoji, File, FileHash, Invite, MFATicket,
     Member, MemberCompositeKey, Message, PolicyChange, RatelimitEvent, Report, Server, ServerBan,
-    ServerJoinRequest, Session, Snapshot, User, UserSettings, Webhook,
+    ServerEvent, ServerJoinRequest, Session, Snapshot, SoundboardSound, Sticker, User, UserSettings,
+    Webhook,
 };
 
 database_derived!(
@@ -20,6 +21,8 @@ database_derived!(
         pub channel_unreads: Arc<Mutex<HashMap<ChannelCompositeKey, ChannelUnread>>>,
         pub channel_webhooks: Arc<Mutex<HashMap<String, Webhook>>>,
         pub emojis: Arc<Mutex<HashMap<String, Emoji>>>,
+        pub stickers: Arc<Mutex<HashMap<String, Sticker>>>,
+        pub soundboard_sounds: Arc<Mutex<HashMap<String, SoundboardSound>>>,
         pub discover_requests: Arc<Mutex<HashMap<(DiscoverRequestType, String), DiscoverRequest>>>,
         pub discover_bans: Arc<Mutex<HashMap<String, DiscoverBan>>>,
         pub file_hashes: Arc<Mutex<HashMap<String, FileHash>>>,
@@ -32,6 +35,7 @@ database_derived!(
         pub server_bans: Arc<Mutex<HashMap<MemberCompositeKey, ServerBan>>>,
         pub server_join_requests: Arc<Mutex<HashMap<MemberCompositeKey, ServerJoinRequest>>>,
         pub server_templates: Arc<Mutex<HashMap<String, revolt_models::v0::ServerTemplate>>>,
+        pub server_events: Arc<Mutex<HashMap<String, ServerEvent>>>,
         pub server_members: Arc<Mutex<HashMap<MemberCompositeKey, Member>>>,
         pub servers: Arc<Mutex<HashMap<String, Server>>>,
         pub safety_reports: Arc<Mutex<HashMap<String, Report>>>,

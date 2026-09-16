@@ -41,6 +41,9 @@ pub async fn edit(
         && data.description.is_none()
         && data.icon.is_none()
         && data.banner.is_none()
+        && data.tag.is_none()
+        && data.tag_badge.is_none()
+        && data.characteristics.is_none()
         && data.system_messages.is_none()
         && data.categories.is_none()
         // && data.nsfw.is_none()
@@ -56,6 +59,9 @@ pub async fn edit(
         || data.description.is_some()
         || data.icon.is_some()
         || data.banner.is_some()
+        || data.tag.is_some()
+        || data.tag_badge.is_some()
+        || data.characteristics.is_some()
         || data.system_messages.is_some()
         || data.analytics.is_some()
         || data.security.is_some()
@@ -92,6 +98,9 @@ pub async fn edit(
         description,
         icon,
         banner,
+        tag,
+        tag_badge,
+        characteristics,
         categories,
         system_messages,
         flags,
@@ -103,9 +112,46 @@ pub async fn edit(
         remove,
     } = data;
 
+    // Vortex: a tag é identificador curto, sempre em caixa alta, e o que
+    // chega fora da forma é recusado em vez de corrigido — corrigir no
+    // servidor faria a tela mostrar uma tag diferente da que foi digitada.
+    if let Some(tag) = &tag {
+        if !tag.chars().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit()) {
+            return Err(create_error!(FailedValidation {
+                error: "tag: only uppercase letters and digits".to_string()
+            }));
+        }
+    }
+
+    // Características: até cinco (o validador conta), cada uma com texto,
+    // sem repetição. Espaço nas pontas sai, que é ruído e não escolha.
+    let characteristics = match characteristics {
+        Some(list) => {
+            let mut clean: Vec<String> = Vec::with_capacity(list.len());
+            for item in list {
+                let item = item.trim().to_string();
+                let length = item.chars().count();
+                if length == 0 || length > 32 {
+                    return Err(create_error!(FailedValidation {
+                        error: "characteristics: each must have 1 to 32 characters".to_string()
+                    }));
+                }
+
+                if !clean.contains(&item) {
+                    clean.push(item);
+                }
+            }
+
+            Some(clean)
+        }
+        None => None,
+    };
+
     let mut partial = PartialServer {
         name,
         description,
+        tag,
+        characteristics,
         categories: categories.map(|v| v.into_iter().map(Into::into).collect()),
         system_messages: system_messages.map(Into::into),
         flags,
@@ -139,6 +185,12 @@ pub async fn edit(
         }
     }
 
+    if remove.contains(&v0::FieldsServer::TagBadge) {
+        if let Some(badge) = &server.tag_badge {
+            db.mark_attachment_as_deleted(&badge.id).await?;
+        }
+    }
+
     // 2. Validate changes
     if let Some(system_messages) = &partial.system_messages {
         for id in system_messages.clone().into_channel_ids() {
@@ -149,8 +201,27 @@ pub async fn edit(
     }
 
     if let Some(categories) = &mut partial.categories {
+        // Vortex: as sobreposições da categoria só mudam pela rota própria
+        // (`PUT /servers/:id/categories/:category_id/permissions`), que confere
+        // `ManagePermissions`. Aqui elas são COPIADAS da categoria existente
+        // com o mesmo id: um cliente que só conhece `{id, title, channels}`
+        // reenvia o array sem os campos, e aceitar isso apagaria a
+        // privacidade de toda categoria a cada reordenação de canal.
+        let existing = server.categories.clone().unwrap_or_default();
+
         let mut channel_ids = HashSet::new();
         for category in categories {
+            match existing.iter().find(|c| c.id == category.id) {
+                Some(previous) => {
+                    category.default_permissions = previous.default_permissions;
+                    category.role_permissions = previous.role_permissions.clone();
+                }
+                None => {
+                    category.default_permissions = None;
+                    category.role_permissions = Default::default();
+                }
+            }
+
             for channel in &category.channels {
                 if channel_ids.contains(channel) {
                     return Err(create_error!(InvalidOperation));
@@ -175,6 +246,13 @@ pub async fn edit(
     if let Some(banner) = banner {
         partial.banner = Some(File::use_server_banner(db, &banner, &server.id, &user.id).await?);
         server.banner = partial.banner.clone();
+    }
+
+    // 4.1. Apply new tag badge
+    if let Some(tag_badge) = tag_badge {
+        partial.tag_badge =
+            Some(File::use_server_tag_badge(db, &tag_badge, &server.id, &user.id).await?);
+        server.tag_badge = partial.tag_badge.clone();
     }
 
     // 5. Transfer ownership

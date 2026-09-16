@@ -19,6 +19,7 @@ import {
   RiAtLine,
   RiBarChartFill,
   RiBold,
+  RiCalendarEventFill,
   RiChat1Fill,
   RiChat3Fill,
   RiCheckLine,
@@ -81,6 +82,7 @@ import {
   RiSquareLine,
   RiStarFill,
   RiStickyNoteFill,
+  RiStopFill,
   RiSubtractLine,
   RiTeamLine,
   RiTrophyFill,
@@ -178,6 +180,7 @@ export const ArrowSquareOut = vx(RiExternalLinkFill);
 export const ArrowsClockwise = vx(RiLoopLeftFill);
 export const ArrowsOut = vx(RiExpandDiagonalFill);
 export const BellSimple = vx(RiNotification3Fill);
+export const Calendar = vx(RiCalendarEventFill);
 export const ChartBar = vx(RiBarChartFill);
 export const ChatCircle = vx(RiChat1Fill);
 export const ChatCircleDots = vx(RiChat3Fill);
@@ -209,6 +212,8 @@ export const Phone = vx(RiPhoneFill);
 export const PhoneX = vx(RiCloseCircleFill);
 export const PictureInPicture = vx(RiPictureInPicture2Fill);
 export const Play = vx(RiPlayFill);
+/* Parar a prévia de um efeito sonoro — o ■ do design. */
+export const Stop = vx(RiStopFill);
 export const ProhibitInset = vx(RiForbidFill);
 export const Rows = vx(RiListCheck);
 export const ShieldCheck = vx(RiShieldCheckFill);

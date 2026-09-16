@@ -9,7 +9,9 @@ import { Permission } from "stoat.js";
 
 import { client } from "./client";
 import { toast } from "../components/ui/toastStore";
-import { motivoDoErro } from "./erros";
+import { esperaDoLimite, motivoDoErro } from "./erros";
+import { aplicarEventoCru, ehMencionavel, superficie } from "./superficieVortex";
+import { executarEmLote, type ResultadoDeLote } from "../lib/lote";
 
 /**
  * As permissões que a interface mostra, agrupadas como quem administra pensa.
@@ -60,8 +62,8 @@ export const PERMISSOES: readonly GrupoDePermissoes[] = [
       },
       {
         id: "ManageCustomisation",
-        rotulo: "Gerenciar emojis",
-        detalhe: "Adicionar e remover emojis do servidor.",
+        rotulo: "Gerenciar expressões",
+        detalhe: "Adicionar e remover emojis, figurinhas e efeitos sonoros.",
       },
     ],
   },
@@ -139,6 +141,11 @@ export const PERMISSOES: readonly GrupoDePermissoes[] = [
       { id: "Speak", rotulo: "Falar", detalhe: "Usar o microfone." },
       { id: "Listen", rotulo: "Ouvir", detalhe: "Escutar quem está falando." },
       { id: "Video", rotulo: "Câmera e tela", detalhe: "Compartilhar vídeo." },
+      {
+        id: "UseSoundboard",
+        rotulo: "Usar soundboard",
+        detalhe: "Tocar sons do painel do servidor.",
+      },
       { id: "MuteMembers", rotulo: "Silenciar na voz", detalhe: "Cortar o microfone de outros." },
       {
         id: "DeafenMembers",
@@ -156,10 +163,25 @@ export type Cargo = {
   readonly cor: string | undefined;
   /** Aparece em seção própria na member list. */
   readonly destacado: boolean;
+  /**
+   * Quem não tem `MentionRoles` pode mencionar este cargo.
+   *
+   * ⚠ Superfície do servidor do Vortex: o SDK descarta `mentionable` na
+   * hidratação, e quem o lê do fio é `superficieVortex.ts`.
+   */
+  readonly mencionavel: boolean;
   /** Quanto MENOR, mais alto — é a ordem do protocolo. */
   readonly rank: number;
   /** As permissões concedidas, por nome do protocolo. */
   readonly concedidas: readonly string[];
+  /**
+   * A imagem que acompanha o nome de quem tem o cargo, ou ausência.
+   *
+   * URL já resolvida contra o `autumn` — o `File` do SDK não sai daqui. Vazio
+   * também quando a instância não tem servidor de mídia: aí não há de onde
+   * baixar, e uma `<img>` quebrada seria pior que nenhuma.
+   */
+  readonly iconeUrl: string | undefined;
 };
 
 /**
@@ -183,11 +205,13 @@ export function cargosDoServidor(serverId: string): readonly Cargo[] {
     nome: c.name,
     cor: c.colour ?? undefined,
     destacado: c.hoist ?? false,
+    mencionavel: ehMencionavel(superficie, serverId, c.id),
     rank: c.rank ?? 0,
     /* Vazio de propósito: o submenu de cargos não desenha permissão, e
        traduzir o bitmask de cada cargo a cada abertura de menu seria trabalho
        por nada. Quem precisa delas é a página de configurações. */
     concedidas: [],
+    iconeUrl: c.icon?.createFileURL() || undefined,
   }));
 }
 
@@ -336,6 +360,29 @@ function paraBits(ids: readonly string[], tabela: Record<string, bigint>): bigin
 }
 
 /**
+ * O valor novo de uma máscara, mexendo SÓ nos bits que a tela mostra.
+ *
+ * ⚠ **A lista `PERMISSOES` é curada — e é por isso que gravar `paraBits(ids)`
+ * cru apagava permissão.** `ChangeNickname`, `ChangeAvatar`, `Masquerade` e as
+ * reservadas não aparecem na matriz; uma máscara montada só do que está
+ * marcado na tela zera todas elas no servidor. No `@everyone` isso é grave de
+ * verdade: o padrão do Stoat concede `ChangeNickname` e `ChangeAvatar` a todo
+ * mundo, e "salvar sem mexer em nada" tiraria de todos os membros o direito de
+ * trocar o próprio apelido — sem erro, sem nada na tela que o denunciasse.
+ *
+ * Os bits fora da lista atravessam intactos; os de dentro passam a ser
+ * exatamente os marcados. Vale igual para o editor de cargo, que tinha o mesmo
+ * furo desde que nasceu.
+ */
+export function mesclarPermissoes(atual: bigint, marcadas: readonly string[]): bigint {
+  let curados = 0n;
+  for (const grupo of PERMISSOES) {
+    for (const p of grupo.itens) curados |= TABELA[p.id] ?? 0n;
+  }
+  return (atual & ~curados) | paraBits(marcadas, TABELA);
+}
+
+/**
  * A tabela de bits do protocolo.
  *
  * ⚠ Era um `await import("stoat.js")`, e o build reclamou com razão:
@@ -344,12 +391,19 @@ function paraBits(ids: readonly string[], tabela: Record<string, bigint>): bigin
  * tornava toda função desta seção assíncrona sem motivo. Import estático, como
  * o resto de `src/sdk/`.
  */
-const TABELA: Record<string, bigint> = {
+const TABELA = {
   ...(Permission as unknown as Record<string, bigint>),
-  /* Bit do fork (44), que o enum do SDK não conhece — ver
-     `BIT_GERENCIAR_PEDIDOS` em `seguranca.ts`. */
+  /*
+    ⚠ **Bits do fork, fora da tabela do `stoat.js`.** `UseSoundboard` entrou em
+    `ChannelPermission` do `delta` no bit 43 e `ManageJoinRequests` no 44 (41 e
+    42 são dos eventos — distribuição combinada entre os forks). O SDK é
+    submodule pinado; sem estas linhas o editor de cargos mostraria o
+    interruptor e gravaria zero. Ver também `BIT_GERENCIAR_PEDIDOS` em
+    `seguranca.ts`.
+  */
+  UseSoundboard: 1n << 43n,
   ManageJoinRequests: 1n << 44n,
-};
+} as Record<string, bigint>;
 
 /**
  * Síncrona desde que a tabela virou import estático.
@@ -368,8 +422,10 @@ export function listarCargos(serverId: string): Promise<readonly Cargo[]> {
       nome: r.name,
       cor: r.colour ?? undefined,
       destacado: r.hoist === true,
+      mencionavel: ehMencionavel(superficie, serverId, r.id),
       rank: r.rank ?? 0,
       concedidas: concedidasDe(BigInt(r.permissions?.a ?? 0), TABELA),
+      iconeUrl: r.icon?.createFileURL() || undefined,
     }));
     return Promise.resolve(lista);
   } catch (e) {
@@ -428,13 +484,27 @@ export async function salvarCargo(
   nome: string,
   cor: string | undefined,
   destacado: boolean,
+  mencionavel: boolean,
 ): Promise<boolean> {
   try {
     await client.servers.get(serverId)?.editRole(roleId, {
       name: nome,
       hoist: destacado,
+      mentionable: mencionavel,
       ...(cor ? { colour: cor } : { remove: ["Colour"] }),
     } as never);
+    /*
+      Grava já, sem esperar o `ServerRoleUpdate`: a tela relista os cargos
+      logo depois do `await`, e o evento pode chegar um quadro atrasado —
+      o interruptor voltaria para o valor velho. Aplicar o mesmo evento aqui
+      é idempotente quando ele chegar.
+    */
+    aplicarEventoCru(superficie, {
+      type: "ServerRoleUpdate",
+      id: serverId,
+      role_id: roleId,
+      data: { mentionable: mencionavel },
+    });
     return true;
   } catch (e) {
     falhou("Não deu para salvar o cargo.", e);
@@ -456,8 +526,10 @@ export async function salvarPermissoes(
   ids: readonly string[],
 ): Promise<boolean> {
   try {
-    const allow = paraBits(ids, TABELA);
-    await client.servers.get(serverId)?.setPermissions(roleId, {
+    const servidor = client.servers.get(serverId);
+    const atual = BigInt(servidor?.roles.get(roleId)?.permissions?.a ?? 0);
+    const allow = mesclarPermissoes(atual, ids);
+    await servidor?.setPermissions(roleId, {
       allow: allow.toString(),
       deny: "0",
     } as never);
@@ -479,6 +551,258 @@ export async function apagarCargo(
     falhou("Não deu para apagar o cargo.", e);
     return false;
   }
+}
+
+/* ------------------------------------------------- permissões padrão */
+
+/**
+ * O que TODO membro pode, antes de qualquer cargo.
+ *
+ * ⚠ **`@everyone` não é uma entrada de `roles`** — é `default_permissions`,
+ * campo do SERVIDOR, e um número só (não o par allow/deny dos cargos). Por
+ * isso ele não vem em `listarCargos` e não tem rank: é o piso sobre o qual a
+ * hierarquia soma.
+ */
+export function lerPermissoesPadrao(serverId: string): readonly string[] {
+  const servidor = client.servers.get(serverId);
+  if (!servidor) return [];
+  return concedidasDe(BigInt(servidor.defaultPermissions ?? 0), TABELA);
+}
+
+/**
+ * Grava `default_permissions`.
+ *
+ * ⚠ **`PUT /servers/{id}/permissions/default` com `{ permissions: número }`**,
+ * e não o `{ allow, deny }` dos cargos — lido da fonte
+ * (`delta/src/routes/servers/permissions_set_default.rs`, que desserializa
+ * `DataPermissionsValue`). O SDK já monta o corpo certo quando o segundo
+ * argumento de `setPermissions("default", …)` é número.
+ *
+ * `Number` e não a string do `BigInt`: o campo é `u64` em JSON NUMÉRICO, e as
+ * permissões vão até o bit 39 — bem dentro dos 53 bits exatos de um `double`.
+ *
+ * ⚠ O servidor RECUSA conceder o que quem salva não tem
+ * (`throw_permission_override`). A frase de `NotElevated`/`MissingPermission`
+ * sai do toast.
+ */
+export async function salvarPermissoesPadrao(
+  serverId: string,
+  ids: readonly string[],
+): Promise<boolean> {
+  const servidor = client.servers.get(serverId);
+  if (!servidor) return false;
+  try {
+    const novo = mesclarPermissoes(BigInt(servidor.defaultPermissions ?? 0), ids);
+    await servidor.setPermissions("default", Number(novo));
+    return true;
+  } catch (e) {
+    falhou("Não deu para salvar as permissões padrão.", e);
+    return false;
+  }
+}
+
+/* -------------------------------------------------- ícone do cargo */
+
+/**
+ * Põe (ou tira) a imagem do cargo.
+ *
+ * O arquivo já subiu ao `autumn` pela tag `icons` — é a tag que o servidor
+ * exige: `File::use_role_icon` busca o anexo em `icons` e recusa qualquer
+ * outra (`crates/core/database/src/models/files/model.rs`). O ID vai em
+ * `DataEditRole.icon`; tirar é `remove: ["Icon"]`, que também marca o arquivo
+ * antigo como apagado lá.
+ *
+ * ⚠ **Lança em vez de devolver `false`**, ao contrário das vizinhas. A tela de
+ * ícone tem estado de erro PRÓPRIO, junto do controle — um toast solto longe
+ * da caixa que falhou diria o que houve sem dizer onde.
+ */
+export async function definirIconeDoCargo(
+  serverId: string,
+  roleId: string,
+  arquivoId: string | undefined,
+): Promise<void> {
+  const servidor = client.servers.get(serverId);
+  if (!servidor) throw new Error("Este servidor não está carregado.");
+  try {
+    await servidor.editRole(
+      roleId,
+      (arquivoId === undefined ? { remove: ["Icon"] } : { icon: arquivoId }) as never,
+    );
+  } catch (e) {
+    throw new Error(motivoDoErro(e), { cause: e });
+  }
+}
+
+/* ------------------------------------------------ membros do cargo */
+
+/**
+ * Até onde EU alcanço neste servidor.
+ *
+ * `topo` é o rank do meu cargo mais alto — menor é mais alto, como no
+ * protocolo. Só mexo em cargo com rank MAIOR que ele (`roles_edit.rs` e
+ * `member_edit.rs` recusam com `NotElevated` o resto).
+ *
+ * ⚠ **Dono é `-Infinity`**, porque é o que o servidor faz: `get_member_rank`
+ * devolve `i64::MIN` para quem é dono, e todo cargo fica abaixo dele.
+ *
+ * ⚠ **Sem sessão, também `-Infinity` e tudo permitido** — a mesma exceção
+ * estreita de `pode()`, pela mesma razão: sem `Ready` não há tabela de cargos
+ * a consultar, e responder "não pode" esconderia a tela de si mesma no arnês,
+ * que é onde ela é construída e medida. Com sessão, o default de "não sei" é
+ * não pode.
+ */
+export type Alcance = {
+  readonly topo: number;
+  /** `AssignRoles` — dar e tirar cargo de alguém. */
+  readonly podeAtribuir: boolean;
+  /** `ManageRole` — editar o cargo em si, ícone incluído. */
+  readonly podeEditarCargos: boolean;
+  /** `ManagePermissions` — mexer na matriz, inclusive a do `@everyone`. */
+  readonly podeEditarPermissoes: boolean;
+};
+
+export function meuAlcance(serverId: string): Alcance {
+  if (client.user === undefined) {
+    return {
+      topo: -Infinity,
+      podeAtribuir: true,
+      podeEditarCargos: true,
+      podeEditarPermissoes: true,
+    };
+  }
+  const servidor = client.servers.get(serverId);
+  if (!servidor) {
+    return {
+      topo: Infinity,
+      podeAtribuir: false,
+      podeEditarCargos: false,
+      podeEditarPermissoes: false,
+    };
+  }
+
+  const dono = servidor.ownerId === client.user.id;
+  const eu = servidor.member;
+  const ranks = (eu?.orderedRoles ?? []).map((c) => c.rank ?? Infinity);
+  const tem = (p: "AssignRoles" | "ManageRole" | "ManagePermissions") => {
+    try {
+      return servidor.havePermission(p);
+    } catch {
+      return false;
+    }
+  };
+
+  return {
+    topo: dono ? -Infinity : Math.min(Infinity, ...ranks),
+    podeAtribuir: dono || tem("AssignRoles"),
+    podeEditarCargos: dono || tem("ManageRole"),
+    podeEditarPermissoes: dono || tem("ManagePermissions"),
+  };
+}
+
+/**
+ * Uma pessoa do servidor, do jeito que a aba "Gerenciar membros" precisa.
+ *
+ * ⚠ **Lido do SDK na abertura da aba, e não assinado.** Filtrar dez mil
+ * pessoas por nome exige ler dez mil nomes; um `useMembro` por pessoa
+ * assinaria a member list inteira dentro de uma tela de configuração. É a
+ * decisão de "ordenar quando é observável", já tomada pela contagem da coluna
+ * de cargos — e a consequência é a mesma: mudança feita por OUTRA pessoa com a
+ * aba aberta só aparece ao reabrir. As feitas daqui releem ao terminar.
+ */
+export type PessoaParaCargo = {
+  readonly id: string;
+  readonly nome: string;
+  readonly username: string;
+  readonly cargosIds: readonly string[];
+  /**
+   * Posso mexer nos cargos DESTA pessoa?
+   *
+   * `member_edit.rs` recusa editar quem está no mesmo nível ou acima
+   * (`NotElevated`), exceto a si mesmo. Saber antes é o que deixa a tela
+   * travar a linha em vez de oferecer uma escolha que volta erro.
+   */
+  readonly editavel: boolean;
+};
+
+/**
+ * ⚠ **Recebe os IDs em vez de varrer `client.serverMembers`**, e o motivo é o
+ * React Compiler: ele memoiza chamada de função pelos ARGUMENTOS, então
+ * `pessoasDoServidor(serverId)` saía do cache enquanto o `serverId` fosse o
+ * mesmo — e a coluna de cargos seguia dizendo 1 depois de a aba adicionar
+ * três pessoas. Com a lista do store (`useMembrosDoServidor`) como argumento,
+ * hidratar ou mudar membros troca o argumento e a leitura acontece de novo.
+ * De quebra, o custo é o da lista do servidor, não o de todos os servidores.
+ */
+export function pessoasDoServidor(
+  serverId: string,
+  userIds: readonly string[],
+): readonly PessoaParaCargo[] {
+  const semSessao = client.user === undefined;
+  const eu = semSessao ? undefined : client.servers.get(serverId)?.member;
+  const dono = !semSessao && client.servers.get(serverId)?.ownerId === client.user?.id;
+
+  const out: PessoaParaCargo[] = [];
+  for (const userId of userIds) {
+    const m = client.serverMembers.getByKey({ server: serverId, user: userId });
+    if (!m) continue;
+    const usuario = m.user;
+    const souEu = !semSessao && m.id.user === client.user?.id;
+    out.push({
+      id: m.id.user,
+      nome: m.nickname || usuario?.displayName || usuario?.username || m.id.user,
+      username: usuario?.username ?? "",
+      cargosIds: m.roles ?? [],
+      editavel:
+        semSessao || dono || souEu || (eu !== undefined && m.inferiorTo(eu)),
+    });
+  }
+  return out;
+}
+
+/** A frase que ESTE módulo escreveu — a única que passa crua para a tela. */
+class FraseProntaDeLote extends Error {}
+
+/**
+ * Dá (ou tira) um cargo de várias pessoas.
+ *
+ * Uma chamada por pessoa, com simultaneidade baixa e 429 honrado — o porquê
+ * está em `lib/lote.ts`. Quem já está no estado pedido é pulado sem chamada:
+ * dar o cargo a quem já o tem gastaria limite de taxa para escrever a mesma
+ * lista.
+ *
+ * ⚠ **A lista de cargos é relida por pessoa, na hora da escrita.** `edit({
+ * roles })` substitui a lista inteira (ver `alternarCargo`); usar uma lista
+ * lida quando a aba abriu apagaria qualquer cargo que alguém deu à pessoa no
+ * meio do caminho.
+ */
+export async function aplicarCargoEmLote(
+  serverId: string,
+  roleId: string,
+  userIds: readonly string[],
+  dar: boolean,
+  aoProgredir?: (terminados: number, total: number) => void,
+): Promise<ResultadoDeLote<string>> {
+  return executarEmLote(
+    userIds,
+    async (userId) => {
+      const membro = client.serverMembers.getByKey({ server: serverId, user: userId });
+      if (!membro) throw new FraseProntaDeLote("Essa pessoa não está mais no servidor.");
+      const atuais = membro.roles ?? [];
+      const tem = atuais.includes(roleId);
+      if (tem === dar) return;
+      await membro.edit({
+        roles: dar ? [...atuais, roleId] : atuais.filter((r) => r !== roleId),
+      });
+    },
+    {
+      concorrencia: 2,
+      aoProgredir,
+      esperaDe: esperaDoLimite,
+      /* Só a frase que ESTE módulo escreveu passa crua. Um `TypeError` de rede
+         tem mensagem em inglês ("Failed to fetch") e iria parar na linha. */
+      motivoDe: (e) => (e instanceof FraseProntaDeLote ? e.message : motivoDoErro(e)),
+    },
+  );
 }
 
 /* -------------------------------------------------------------- emojis */
