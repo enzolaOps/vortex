@@ -225,6 +225,9 @@ pub async fn apply_server_template(
                     .iter()
                     .filter_map(|id| channel_ids.get(id).cloned())
                     .collect(),
+                // Categoria nova de modelo nasce sem sincronia de permissões.
+                default_permissions: None,
+                role_permissions: HashMap::new(),
             });
         }
         partial.categories = Some(categories);
