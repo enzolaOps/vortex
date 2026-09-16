@@ -68,3 +68,13 @@
   font-size: var(--vx-size-sm);
   font-weight: 600;
 }
+
+/*
+  O ícone de cargo depois do nome.
+
+  Margem e não `gap`: o nome é `span` inline (no compacto ele corre dentro do
+  parágrafo), e entre um texto e uma imagem inline o navegador não põe vão.
+*/
+.icone {
+  margin-inline-start: var(--vx-space-04);
+}

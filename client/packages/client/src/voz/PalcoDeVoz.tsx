@@ -9,9 +9,11 @@ import {
   lerPalco,
   type Palco,
 } from "../store/palcoDeVoz";
+import { useChannel } from "../store/hooks";
 import { AssistirTransmissao } from "./AssistirTransmissao";
 import { ChatDaSala } from "./ChatDaSala";
 import { ComMenuDoParticipante } from "./MenuDoParticipante";
+import { ChamadaDireta } from "./ChamadaDireta";
 import { GradeDeChamada } from "./GradeDeChamada";
 import { PalcoDeTransmissao } from "./PalcoDeTransmissao";
 import css from "./PalcoDeVoz.module.css";
@@ -32,6 +34,7 @@ export function PalcoDeVoz() {
   const palco = useSyncExternalStore(assinarPalco, lerPalco);
   const chamada = useSyncExternalStore(assinarChamada, lerChamada);
   const chatAberto = useSyncExternalStore(assinarChatDaSala, lerChatDaSala);
+  const canal = useChannel(chamada.channelId);
   const foraDaChamada = chamada.estado === "fora";
 
   /*
@@ -96,6 +99,14 @@ export function PalcoDeVoz() {
             <AssistirTransmissao userId={palco.userId} />
           ) : dono ? (
             <PalcoDeTransmissao dono={dono} proprio={dono === eu} />
+          ) : canal?.tipo === "dm" ? (
+            /*
+              A conversa de duas pessoas tem tela própria — ver `ChamadaDireta`.
+              Só `dm`: o grupo de DM continua na grade, que é o que o design
+              desenha para ele. A transmissão ganha das duas, pela mesma razão
+              de sempre.
+            */
+            <ChamadaDireta channelId={chamada.channelId} />
           ) : (
             <GradeDeChamada />
           )}
@@ -122,6 +133,6 @@ export function PalcoDeVoz() {
  */
 function rotuloDe(palco: Palco): string {
   if (palco.tipo === "transmitindo") return "Você está transmitindo";
-  if (palco.tipo === "grade") return "Chamada em vídeo";
+  if (palco.tipo === "grade") return "Chamada";
   return "Assistindo a uma transmissão";
 }

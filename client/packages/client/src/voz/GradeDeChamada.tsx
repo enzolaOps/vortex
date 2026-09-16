@@ -9,12 +9,11 @@ import { memo, useEffect, useState, useSyncExternalStore } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
 import { Tooltip } from "../components/ui/Tooltip";
-import { assinarVideo } from "../sdk/chamada";
 import { assinarChamada, falando, lerChamada } from "../store/chamada";
 import { useChannel, usePessoa, useServer } from "../store/hooks";
 import { abrirMenuDoParticipante } from "../store/menuDoParticipante";
 import { BotaoDoChatDaSala } from "./ChatDaSala";
-import { Cronometro, Doca, FaixaDeVideo } from "./pecasDeVoz";
+import { Cronometro, Doca, FaixaDeVideo, useVideo } from "./pecasDeVoz";
 import css from "./GradeDeChamada.module.css";
 
 /**
@@ -364,23 +363,6 @@ const Ladrilho = memo(function Ladrilho({
 /* ============================================================
    Hooks
    ============================================================ */
-
-/**
- * Pede o vídeo de alguém enquanto este componente existe, e devolve ao sair.
- *
- * ⚠ **A devolução é a metade que se esquece, e a que custa.** Sem ela, fechar
- * a grade deixaria dez faixas descendo para uma tela que não existe mais —
- * invisível na interface e visível na conta de banda.
- */
-function useVideo(userId: string, fonte: "camera" | "tela", quero: boolean) {
-  useEffect(() => {
-    if (!quero) return;
-    assinarVideo(userId, fonte, true);
-    return () => {
-      assinarVideo(userId, fonte, false);
-    };
-  }, [userId, fonte, quero]);
-}
 
 /**
  * "Está falando" com histerese, para a célula grande não piscar.

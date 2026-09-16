@@ -69,6 +69,11 @@ pub async fn edit(
         }
     }
 
+    // Vortex: exibir a tag do servidor é escolha de quem a exibe, e só dela.
+    if data.show_tag.is_some() && user.id != member.id.user {
+        return Err(create_error!(InvalidOperation));
+    }
+
     if data.pronouns.is_some() || data.remove.contains(&v0::FieldsMember::Pronouns) {
         if user.id != member.id.user {
             return Err(create_error!(InvalidOperation))
@@ -192,6 +197,7 @@ pub async fn edit(
         can_publish,
         can_receive,
         voice_channel: _,
+        show_tag,
     } = data;
 
     let mut partial = PartialMember {
@@ -201,6 +207,7 @@ pub async fn edit(
         timeout,
         can_publish,
         can_receive,
+        show_tag,
         ..Default::default()
     };
 

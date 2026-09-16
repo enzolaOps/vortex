@@ -38,6 +38,9 @@ import {
   DropdownMenuItem,
   DropdownMenuCheckboxItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "../components/ui/DropdownMenu";
 import {
@@ -47,6 +50,7 @@ import {
   type SecaoId,
 } from "../store/config";
 import { entrarNaChamada } from "../sdk/chamada";
+import { duplicarCanal } from "../sdk/servidores";
 import { definirPalco } from "../store/palcoDeVoz";
 import { ComMenuDoParticipante } from "../voz/MenuDoParticipante";
 import { assinarChamada, falando, lerChamada } from "../store/chamada";
@@ -54,8 +58,11 @@ import { administrar } from "../store/administracao";
 import { abrirConfigDeCanal } from "../store/config";
 import { ListaDeConversas } from "../casa/ListaDeConversas";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
+import { EntradaDeEventos } from "../eventos/EntradaDeEventos";
 import { contagem, rotuloDeNaoLidas } from "../lib/plural";
-import { marcarCanalLido } from "../sdk/adapter";
+import { marcarCanalLido, usuarioLocalId } from "../sdk/adapter";
+import { exibirMinhaTag } from "../sdk/perfilDoServidor";
+import { useExibeTag, usePerfilDoServidor } from "../store/perfilDoServidor";
 import { pode, type Acao } from "../sdk/permissoes";
 import {
   chaveDeMembro,
@@ -68,9 +75,15 @@ import { assinarColapso, colapsadas, definirColapsoDeTodas, alternarColapso } fr
 import {
   alternarSilencio,
   assinarSilencio,
+  definirNivelDoServidor,
   DURACOES_DE_SILENCIO,
   estaSilenciado,
+  nivelDoServidor,
+  reativarServidor,
+  silenciarServidor,
   silencioAte,
+  silencioDoServidorAte,
+  servidorSilenciado,
 } from "../store/silencio";
 import { abrirPaleta } from "../store/paleta";
 import { ItemDeId } from "../components/ui/ItemDeId";
@@ -287,7 +300,9 @@ const Canal = memo(function Canal({
             <span className="sr-only">você está nesta sala</span>
           ) : null}
 
-          {canal.silenciado ? <RestanteDoSilencio channelId={id} /> : null}
+          {canal.silenciado ? (
+            <RestanteDoSilencio channelId={id} serverId={canal.serverId} />
+          ) : null}
 
           {/* Antes do contador, como no design: o cronômetro é sobre VOCÊ e
               a lotação é sobre a sala. */}
@@ -350,29 +365,13 @@ const Canal = memo(function Canal({
           um submenu com uma opção pede dois gestos para fazer o que um faz, e
           é o tipo de simetria que parece organizada e custa um clique por uso.
         */}
-        {canal.silenciado ? (
-          <ContextMenuItem onSelect={() => alternarSilencio(id)}>
-            <BellSimple size={ICONE.calha} aria-hidden />
-            Reativar avisos
-          </ContextMenuItem>
-        ) : (
-          <ContextMenuSub>
-            <ContextMenuSubTrigger>
-              <BellSimpleSlash size={ICONE.calha} aria-hidden />
-              Silenciar canal
-            </ContextMenuSubTrigger>
-            <ContextMenuSubContent>
-              {DURACOES_DE_SILENCIO.map((d) => (
-                <ContextMenuItem
-                  key={d.rotulo}
-                  onSelect={() => alternarSilencio(id, d.ms)}
-                >
-                  {d.rotulo}
-                </ContextMenuItem>
-              ))}
-            </ContextMenuSubContent>
-          </ContextMenuSub>
-        )}
+        <SilencioDoCanal channelId={id} />
+        <ContextMenuItem
+          onSelect={() => administrar({ tipo: "notificacoesDoCanal", channelId: id })}
+        >
+          <BellSimple size={ICONE.calha} aria-hidden />
+          Notificações…
+        </ContextMenuItem>
 
         {/*
           Daqui para baixo é administração, e cada item só existe se a pessoa
@@ -422,12 +421,20 @@ const Canal = memo(function Canal({
               Editar canal
             </ContextMenuItem>
             {/*
-              Do design, ao lado de "Editar canal" — e desenhado sem ligar por
-              razão de segurança, não de custo. Ver `duplicarCanal` no registro:
-              o snapshot não carrega os overrides de permissão, e duplicar sem
-              eles abriria um canal restrito.
+              Do design, ao lado de "Editar canal". Copia configurações E
+              permissões — ver `duplicarCanal` em `sdk/servidores.ts`: sem os
+              overrides ele não cria nada, porque duplicar sem eles abriria um
+              canal restrito. Abre a cópia ao terminar: quem duplica vai mexer
+              nela em seguida, e a cópia tem o MESMO nome do original — sem
+              navegar, não haveria como saber qual das duas linhas é a nova.
             */}
-            <ContextMenuItem onSelect={aindaNao("duplicarCanal")}>
+            <ContextMenuItem
+              onSelect={() =>
+                void duplicarCanal(id).then((novo) => {
+                  if (novo) selecionarCanal(novo);
+                })
+              }
+            >
               <Copy size={ICONE.calha} aria-hidden />
               Duplicar canal
             </ContextMenuItem>
@@ -719,12 +726,125 @@ const Cronometro = memo(function Cronometro({ desde }: { desde: number }) {
  * ícone". No lugar, não ao lado — a linha tem 232px e o sino já disse o que o
  * número diz.
  */
+/**
+ * Silenciar o canal, no menu dele — ou reativar, se o silêncio é DELE.
+ *
+ * ⚠ **Pergunta ao store do canal, e não a `canal.silenciado`.** O snapshot
+ * junta canal e servidor (é o que a linha precisa para apagar o realce); o
+ * menu não pode, porque "Reativar avisos" num canal mudo pelo SERVIDOR chamaria
+ * `alternarSilencio` e SILENCIARIA o canal — o contrário do rótulo, e invisível
+ * até o servidor voltar.
+ *
+ * Componente próprio para assinar: o conteúdo do menu é calculado no render da
+ * linha, e silenciar só o canal com o servidor já mudo não muda o snapshot.
+ */
+function SilencioDoCanal({ channelId }: { channelId: string }) {
+  const proprio = useSyncExternalStore(assinarSilencio, () => estaSilenciado(channelId));
+  if (proprio) {
+    return (
+      <ContextMenuItem onSelect={() => alternarSilencio(channelId)}>
+        <BellSimple size={ICONE.calha} aria-hidden />
+        Reativar avisos
+      </ContextMenuItem>
+    );
+  }
+  return (
+    <ContextMenuSub>
+      <ContextMenuSubTrigger>
+        <BellSimpleSlash size={ICONE.calha} aria-hidden />
+        Silenciar canal
+      </ContextMenuSubTrigger>
+      <ContextMenuSubContent>
+        {DURACOES_DE_SILENCIO.map((d) => (
+          <ContextMenuItem key={d.rotulo} onSelect={() => alternarSilencio(channelId, d.ms)}>
+            {d.rotulo}
+          </ContextMenuItem>
+        ))}
+      </ContextMenuSubContent>
+    </ContextMenuSub>
+  );
+}
+
+/**
+ * O que o menu do servidor oferece sobre avisos: o padrão e o silêncio.
+ *
+ * ⚠ **Montado só com o menu aberto**, e é por isso que pode assinar o store:
+ * no cabeçalho da coluna, a assinatura acordaria o painel inteiro a cada
+ * silêncio de canal.
+ *
+ * O submenu "Notificações" é o da referência (`ServerMenu`), com os três
+ * níveis; o modal completo — interruptores e exceções por canal — fica no fim
+ * dele, porque é onde quem quer mais do que o padrão procura. O silêncio segue
+ * `MuteDurationSubmenu`: cinco prazos, e "Reativar avisos" quando já está mudo.
+ */
+function AvisosDoServidor({ serverId }: { serverId: string }) {
+  const nivel = useSyncExternalStore(assinarSilencio, () => nivelDoServidor(serverId));
+  const mudo = useSyncExternalStore(assinarSilencio, () => servidorSilenciado(serverId));
+  const efetivo = nivel ?? "mencoes";
+
+  return (
+    <>
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger>Notificações</DropdownMenuSubTrigger>
+        <DropdownMenuSubContent>
+          {NIVEIS_DO_MENU.map((n) => (
+            <DropdownMenuCheckboxItem
+              key={n.id}
+              marcado={efetivo === n.id}
+              aoAlternar={() => definirNivelDoServidor(serverId, n.id)}
+            >
+              {n.rotulo}
+            </DropdownMenuCheckboxItem>
+          ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onSelect={() => administrar({ tipo: "notificacoesDoServidor", serverId })}
+          >
+            Exceções por canal…
+          </DropdownMenuItem>
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
+
+      {mudo ? (
+        <DropdownMenuItem onSelect={() => reativarServidor(serverId)}>
+          Reativar avisos do servidor
+        </DropdownMenuItem>
+      ) : (
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>Silenciar servidor</DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            {DURACOES_DE_SILENCIO.map((d) => (
+              <DropdownMenuItem key={d.rotulo} onSelect={() => silenciarServidor(serverId, d.ms)}>
+                {d.rotulo}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+      )}
+    </>
+  );
+}
+
+/* Os rótulos da referência — "Só @menções" com o `@`, como no modal. */
+const NIVEIS_DO_MENU = [
+  { id: "todas", rotulo: "Todas as mensagens" },
+  { id: "mencoes", rotulo: "Só @menções" },
+  { id: "nada", rotulo: "Nada" },
+] as const;
+
 const RestanteDoSilencio = memo(function RestanteDoSilencio({
   channelId,
+  serverId,
 }: {
   channelId: string;
+  serverId: string | undefined;
 }) {
-  const ate = useSyncExternalStore(assinarSilencio, () => silencioAte(channelId));
+  /* O prazo do CANAL, senão o do servidor: com o servidor mudo, cada linha
+     diz quanto falta para ele voltar, como diria de um silêncio só dela. */
+  const ate = useSyncExternalStore(
+    assinarSilencio,
+    () => silencioAte(channelId) ?? (serverId ? silencioDoServidorAte(serverId) : undefined),
+  );
   const [agora, setAgora] = useState(() => Date.now());
 
   useEffect(() => {
@@ -1066,7 +1186,11 @@ export function ListaDeCanais() {
 
   return (
     <div className={css.coluna}>
-      {local.tipo !== "servidor" ? <ListaDeConversas /> : <CanaisDoServidor />}
+      {local.tipo !== "servidor" && local.tipo !== "eventos" ? (
+        <ListaDeConversas />
+      ) : (
+        <CanaisDoServidor />
+      )}
       <FaixaDeVoz />
     </div>
   );
@@ -1099,6 +1223,9 @@ const PERMISSAO_DA_SECAO: Partial<Record<SecaoId, Acao>> = {
 function CanaisDoServidor() {
   const serverId = useServidorAtivo();
   const servidor = useServer(serverId);
+  /* Tag do servidor (do fork): substitui a sigla e é onde cada um a liga. */
+  const perfil = usePerfilDoServidor(serverId);
+  const exiboTag = useExibeTag(serverId, usuarioLocalId() ?? "");
   const grupos = useCategorias(serverId);
   const canalAtivo = useCanalAtivo();
   /*
@@ -1230,15 +1357,12 @@ function CanaisDoServidor() {
               {/*
                 O badge de identificador curto, ao lado do nome — é do design.
 
-                ⚠ **Mostra a SIGLA, não a "tag do servidor" do protocolo.** A
-                tag é campo configurável de servidor (`Tag do servidor` nas
-                configurações do design) e não existe aqui; a sigla é derivada
-                do nome e é verdade sobre ele. Quando a tag existir, ela
-                substitui isto sem mexer no layout.
+                A TAG do servidor quando quem administra escolheu uma (do
+                fork); a SIGLA, derivada do nome, quando não há.
               */}
               {servidor ? (
                   <span className={css.tag} aria-hidden>
-                    {servidor.sigla}
+                    {perfil.tag ?? servidor.sigla}
                   </span>
                 ) : null}
               </span>
@@ -1293,6 +1417,9 @@ function CanaisDoServidor() {
             ))}
 
             <DropdownMenuSeparator />
+            <AvisosDoServidor serverId={serverId} />
+
+            <DropdownMenuSeparator />
             {/*
               A alternância que o design põe aqui, e a que ele põe ao lado
               dela NÃO entrou.
@@ -1304,6 +1431,19 @@ function CanaisDoServidor() {
               alterna sem mudar nada é o defeito que o lint de `onSelect` foi
               instalado para matar.
             */}
+            {/*
+              Exibir a tag é escolha de CADA membro, e mora aqui porque é
+              sobre este servidor e sobre você — as configurações do servidor
+              são de quem administra. Sem tag, não há o que exibir.
+            */}
+            {perfil.tag !== undefined ? (
+              <DropdownMenuCheckboxItem
+                marcado={exiboTag}
+                aoAlternar={() => void exibirMinhaTag(serverId, !exiboTag)}
+              >
+                Exibir a tag {perfil.tag} no meu nome
+              </DropdownMenuCheckboxItem>
+            ) : null}
             <DropdownMenuCheckboxItem
               marcado={ocultar}
               aoAlternar={() => alternarOcultarSilenciados(serverId)}
@@ -1366,6 +1506,10 @@ function CanaisDoServidor() {
         <ContextMenuTrigger asChild disabled={!podeCriar}>
           {/* Ver `MessageList`: rolável sem foco é inoperável por teclado. */}
           <div className={css.rolagem} tabIndex={0}>
+        {/* Os eventos agendados — primeira linha da coluna, acima das
+            categorias, como no design. Componente próprio: ele assina o
+            relógio de minuto, e a coluna inteira não precisa acordar junto. */}
+        <EntradaDeEventos serverId={serverId} />
         {vazio ? (
           <EstadoVazio
             compacto

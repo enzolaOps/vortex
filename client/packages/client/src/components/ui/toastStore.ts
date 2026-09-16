@@ -37,6 +37,13 @@ export type Toast = {
   readonly tipo: TipoDeToast;
   readonly acao?: AcaoDeToast;
   /**
+   * A segunda saída, para o aviso que pede uma RESPOSTA e não só um desfazer —
+   * o pedido de amizade tem aceitar e recusar. Vem ANTES da principal na tela,
+   * como no design (✕ e depois ✓): a principal fica na ponta, onde o olho
+   * termina de ler.
+   */
+  readonly acaoSecundaria?: AcaoDeToast;
+  /**
    * Quantas vezes o MESMO aviso chegou seguido. Ausente é uma vez.
    *
    * ⚠ Existe porque cinco toasts idênticos empilhados foi relatado com captura

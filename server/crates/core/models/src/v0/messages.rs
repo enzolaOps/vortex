@@ -44,6 +44,9 @@ auto_derived_partial!(
         /// Array of attachments
         #[serde(skip_serializing_if = "Option::is_none")]
         pub attachments: Option<Vec<File>>,
+        /// Ids das figurinhas enviadas (Vortex)
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub stickers: Option<Vec<String>>,
         /// Time at which this message was last edited
         #[serde(skip_serializing_if = "Option::is_none")]
         pub edited: Option<Timestamp>,
@@ -71,6 +74,9 @@ auto_derived_partial!(
         /// Whether or not the message in pinned
         #[serde(skip_serializing_if = "crate::if_option_false")]
         pub pinned: Option<bool>,
+        /// Poll attached to this message (Vortex)
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub poll: Option<Poll>,
 
         /// Bitfield of message flags
         ///
@@ -82,6 +88,70 @@ auto_derived_partial!(
         pub flags: u32,
     },
     "PartialMessage"
+);
+
+auto_derived!(
+    /// Poll attached to a message (Vortex)
+    ///
+    /// Clients that do not know polls ignore this field and show the message
+    /// content, which the Vortex client fills with the question.
+    pub struct Poll {
+        /// Question being asked
+        pub question: String,
+        /// Possible answers, in display order
+        pub answers: Vec<PollAnswer>,
+        /// How many answers each person may pick at once
+        pub max_answers: u8,
+        /// When the poll stops accepting votes
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub expires_at: Option<Timestamp>,
+        /// Whether counts should stay hidden until the poll ends
+        ///
+        /// Enforced by clients: vote ids travel with the message, like reactions.
+        #[serde(skip_serializing_if = "crate::if_false", default)]
+        pub hide_results: bool,
+        /// When the poll was ended early by its author
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub ended_at: Option<Timestamp>,
+        /// Answer id to the ids of the users who picked it
+        #[serde(skip_serializing_if = "IndexMap::is_empty", default)]
+        pub votes: IndexMap<String, IndexSet<String>>,
+    }
+
+    /// One answer of a poll (Vortex)
+    pub struct PollAnswer {
+        /// Answer id, unique within the poll
+        pub id: String,
+        /// Answer text
+        pub text: String,
+    }
+
+    /// Poll to create together with a message (Vortex)
+    #[cfg_attr(feature = "validator", derive(Validate))]
+    pub struct DataPoll {
+        /// Question being asked
+        #[cfg_attr(feature = "validator", validate(length(min = 1, max = 300)))]
+        pub question: String,
+        /// Possible answers, in display order
+        #[cfg_attr(feature = "validator", validate(length(min = 2, max = 10)))]
+        pub answers: Vec<String>,
+        /// How many answers each person may pick at once, defaults to 1
+        pub max_answers: Option<u8>,
+        /// How long the poll accepts votes, in hours, defaults to 24
+        #[cfg_attr(feature = "validator", validate(range(min = 1, max = 768)))]
+        pub duration_hours: Option<u32>,
+        /// Whether counts should stay hidden until the poll ends
+        #[serde(default)]
+        pub hide_results: bool,
+    }
+
+    /// Vote on a poll (Vortex)
+    ///
+    /// Replaces the user's previous vote. An empty list removes it.
+    pub struct DataPollVote {
+        /// Ids of the picked answers
+        pub answers: Vec<String>,
+    }
 );
 
 auto_derived!(
@@ -193,6 +263,20 @@ auto_derived!(
         Oldest,
     }
 
+    /// Vortex: kind of content a searched message must carry
+    pub enum MessageSearchHas {
+        /// Any attachment
+        Attachment,
+        /// An image attachment
+        Image,
+        /// A video attachment
+        Video,
+        /// An audio attachment
+        Audio,
+        /// A link in the content
+        Link,
+    }
+
     /// Push Notification
     pub struct PushNotification {
         /// Known author name
@@ -265,6 +349,8 @@ auto_derived!(
         pub content: Option<String>,
         /// Attachments to include in message
         pub attachments: Option<Vec<String>>,
+        /// Figurinhas a enviar (Vortex) — ids de `Sticker`, no máximo uma
+        pub stickers: Option<Vec<String>>,
         /// Messages to reply to
         pub replies: Option<Vec<ReplyIntent>>,
         /// Embeds to include in message
@@ -282,6 +368,11 @@ auto_derived!(
         ///
         /// https://docs.rs/revolt-models/latest/revolt_models/v0/enum.MessageFlags.html
         pub flags: Option<u32>,
+
+        /// Poll to attach to this message (Vortex)
+        #[cfg_attr(feature = "validator", validate)]
+        #[serde(default)]
+        pub poll: Option<DataPoll>,
     }
 
     /// Options for querying messages
@@ -339,6 +430,11 @@ auto_derived!(
         pub sort: MessageSort,
         /// Whether to include user (and member, if server channel) objects
         pub include_users: Option<bool>,
+        /// Vortex: only messages sent by this user
+        #[cfg_attr(feature = "validator", validate(length(min = 26, max = 26)))]
+        pub author: Option<String>,
+        /// Vortex: only messages carrying this kind of content
+        pub has: Option<MessageSearchHas>,
     }
 
     /// Changes to make to message
@@ -382,6 +478,8 @@ auto_derived!(
         /// Message will mention all users who are online and can see the channel.
         /// This cannot be true if MentionsEveryone is true
         MentionsOnline = 3,
+        /// Vortex: generated embeds were removed and must not be generated again
+        SuppressEmbeds = 4,
     }
 
     /// Optional fields on message

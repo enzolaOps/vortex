@@ -20,6 +20,10 @@ async fn validate_user_permissions() {
 
     #[async_trait]
     impl PermissionQuery for Scenario {
+        async fn share_server_allowing_member_dms(&mut self) -> bool {
+            false
+        }
+
         async fn are_we_privileged(&mut self) -> bool {
             false
         }
@@ -117,6 +121,10 @@ async fn validate_group_permissions() {
 
     #[async_trait]
     impl PermissionQuery for Scenario {
+        async fn share_server_allowing_member_dms(&mut self) -> bool {
+            false
+        }
+
         async fn are_we_privileged(&mut self) -> bool {
             false
         }
@@ -221,6 +229,10 @@ async fn validate_server_permissions() {
 
     #[async_trait]
     impl PermissionQuery for Scenario {
+        async fn share_server_allowing_member_dms(&mut self) -> bool {
+            false
+        }
+
         async fn are_we_privileged(&mut self) -> bool {
             false
         }
@@ -326,6 +338,10 @@ async fn validate_timed_out_member() {
 
     #[async_trait]
     impl PermissionQuery for Scenario {
+        async fn share_server_allowing_member_dms(&mut self) -> bool {
+            false
+        }
+
         async fn are_we_privileged(&mut self) -> bool {
             false
         }
@@ -430,6 +446,10 @@ async fn validate_channel_default_below_server_roles() {
 
     #[async_trait]
     impl PermissionQuery for Scenario {
+        async fn share_server_allowing_member_dms(&mut self) -> bool {
+            false
+        }
+
         async fn are_we_privileged(&mut self) -> bool {
             false
         }

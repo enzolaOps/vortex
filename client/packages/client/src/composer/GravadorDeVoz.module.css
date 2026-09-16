@@ -1,0 +1,186 @@
+/* ============================================================
+   Gravador de mensagem de voz — "Gravando · no composer"
+   ------------------------------------------------------------
+   Valores do design, medidos no arquivo: caixa de raio 10 em
+   `surface-3` com borda em danger a 40%, `10px 12px`, vão 12;
+   parar em 34 redondo; onda de barras de 3px com vão 2 e 28 de
+   altura; tempo em mono 12; lixeira e enviar em 30 redondos.
+   ============================================================ */
+
+/*
+  Ocupa o lugar da `.campo` do composer — a mesma borda de 10 e a mesma
+  superfície —, então trocar entre escrever e gravar não move a linha de base
+  do composer; só a borda muda de cor, que é o aviso de que o microfone está
+  aberto.
+*/
+.caixa {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-12);
+  padding: var(--vx-space-10) var(--vx-space-12);
+  border: 1px solid var(--vx-danger-border);
+  border-radius: var(--vx-radius-10);
+  background: var(--vx-surface-3);
+}
+
+/*
+  Revisando, a borda volta ao véu: o microfone já está FECHADO, e manter o
+  vermelho diria o contrário do que está acontecendo.
+*/
+.caixa[data-fase="revisando"],
+.caixa[data-fase="preparando"] {
+  border-color: var(--vx-hairline-10);
+}
+
+.parar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: 34px;
+  block-size: 34px;
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  /* `rgba(232,89,107,0.18)` do design: danger a 18%, composto sobre a caixa. */
+  background: color-mix(in oklab, var(--vx-danger) 18%, transparent);
+  color: var(--vx-danger-text);
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.parar svg,
+.descartar svg,
+.enviar svg {
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+}
+
+.parar:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--vx-danger) 28%, transparent);
+}
+
+/* Revisando, o botão é TOCAR: sai do vermelho de "gravando". */
+.caixa[data-fase="revisando"] .parar,
+.caixa[data-fase="preparando"] .parar {
+  background: var(--vx-accent);
+  color: var(--vx-on-accent);
+}
+
+.caixa[data-fase="revisando"] .parar:hover {
+  background: var(--vx-accent-hover);
+}
+
+/* ------------------------------------------------ forma de onda */
+
+/*
+  Barras apoiadas na BASE, como no player da timeline — e o mesmo número fixo
+  de barras qualquer que seja a duração, pela razão que o design escreve.
+*/
+.onda {
+  display: flex;
+  flex: 1;
+  align-items: flex-end;
+  gap: var(--vx-space-02);
+  min-inline-size: 0;
+  block-size: 28px;
+  overflow: hidden;
+}
+
+.barra {
+  flex: none;
+  inline-size: 3px;
+  block-size: 25%;
+  border-radius: var(--vx-radius-02);
+  background: var(--vx-danger);
+}
+
+/* O que ainda não foi gravado: o trilho, como o `#2A3038` do design. */
+.barra[data-vazia="true"] {
+  background: var(--vx-track);
+}
+
+.caixa[data-fase="revisando"] .barra:not([data-vazia="true"]),
+.caixa[data-fase="preparando"] .barra:not([data-vazia="true"]) {
+  background: var(--vx-track-forte);
+}
+
+.tempo {
+  flex: none;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--vx-danger-text);
+}
+
+.caixa[data-fase="revisando"] .tempo,
+.caixa[data-fase="preparando"] .tempo {
+  color: var(--vx-text-2);
+}
+
+.acoes {
+  display: flex;
+  flex: none;
+  gap: var(--vx-space-06);
+}
+
+.descartar,
+.enviar {
+  display: grid;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 30px;
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.descartar {
+  background: var(--vx-track);
+  color: var(--vx-text-2);
+}
+
+.descartar:hover:not(:disabled) {
+  background: var(--vx-track-forte);
+  color: var(--vx-text-1);
+}
+
+.enviar {
+  background: var(--vx-accent);
+  color: var(--vx-on-accent);
+}
+
+.enviar:hover:not(:disabled) {
+  background: var(--vx-accent-hover);
+}
+
+.parar:active:not(:disabled),
+.descartar:active:not(:disabled),
+.enviar:active:not(:disabled) {
+  scale: 0.94;
+}
+
+.parar:disabled,
+.descartar:disabled,
+.enviar:disabled {
+  cursor: default;
+}
+
+.enviar[aria-busy="true"] {
+  cursor: progress;
+}
+
+.parar:focus-visible,
+.descartar:focus-visible,
+.enviar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* `margin-top: 8px`, 11px em `#4C5563` — a linha de pista do design. */
+.pista {
+  margin: var(--vx-space-08) 0 0;
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
+}

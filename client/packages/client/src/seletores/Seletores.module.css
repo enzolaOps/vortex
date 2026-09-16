@@ -88,11 +88,67 @@
   border: 2px solid var(--vx-surface-4);
   box-shadow: 0 0 0 1px var(--vx-border-strong);
   cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  line-height: 1;
+  font-size: var(--vx-size-base);
 }
 
 .tomDePele:focus-visible {
   outline: 2px solid var(--vx-accent);
   outline-offset: 2px;
+}
+
+/*
+  Com um tom escolhido, o círculo deixa de ser a cor e passa a EMOLDURAR a mão
+  naquele tom — cor de pele não é token deste app, e quem a desenha é o glifo.
+*/
+.tomDePele:not([data-tom="padrao"]) {
+  background: var(--vx-surface-3);
+}
+
+/* A escolha: seis alvos numa fileira, no tamanho de célula da grade. */
+.tons {
+  padding: var(--vx-space-06);
+}
+
+.gradeDeTons {
+  display: flex;
+  gap: var(--vx-space-02);
+}
+
+.opcaoDeTom {
+  display: grid;
+  place-items: center;
+  inline-size: 36px;
+  block-size: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--vx-radius-08);
+  background: transparent;
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.opcaoDeTom:hover {
+  background: var(--vx-state-hover);
+}
+
+.opcaoDeTom:active {
+  background: var(--vx-state-press);
+}
+
+.opcaoDeTom[aria-checked="true"] {
+  background: var(--vx-state-selected);
+  box-shadow: inset 0 0 0 1px var(--vx-accent);
+}
+
+.opcaoDeTom:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
 }
 
 /* ----------------------------------------------------------- rodapé */
@@ -261,6 +317,53 @@
 }
 
 /*
+  O ladrilho de servidor no rail do seletor — o mesmo gradiente do rail do
+  app, para o pacote ser reconhecido pela cor antes de pela sigla. 10px e 700:
+  a sigla tem até duas letras dentro de 30.
+*/
+.categoriaDeServidor {
+  composes: categoria;
+  font-size: var(--vx-size-2xs);
+  font-weight: 700;
+}
+
+.categoriaDeServidor:hover {
+  filter: brightness(1.1);
+}
+
+/*
+  A figurinha dentro do ladrilho: CONTIDA. O arquivo é 320×320 mas quem sobe
+  nem sempre respeita, e cortar uma figurinha tira a cara dela.
+*/
+.miniatura {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
+}
+
+.miniaturaPequena {
+  inline-size: 24px;
+  block-size: 24px;
+  flex: none;
+  border-radius: var(--vx-radius-06);
+  object-fit: contain;
+}
+
+.figurinhaGlifo {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.previaNomeFigurinha {
+  overflow: hidden;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  color: var(--vx-text-1);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
   A caixa tracejada de "existe e não é seu".
 
   Tracejada e não sólida: sólida leria como um card vazio à espera de conteúdo;
@@ -285,7 +388,7 @@
   block-size: 20px;
   padding-inline: var(--vx-space-07);
   border-radius: var(--vx-radius-04);
-  font-size: var(--vx-size-xs);
+  font-size: var(--vx-size-2xs);
   font-weight: 700;
 }
 
@@ -314,19 +417,57 @@
   align-items: center;
   gap: var(--vx-space-06);
   padding: var(--vx-space-10) var(--vx-space-08);
-  border: 1px solid var(--vx-border-subtle);
+  /* Véu e não `border-subtle`: o sólido é mais ESCURO que a `surface-3` do
+     ladrilho e a borda sumia. O design pede 8%; 6% é o degrau de hairline
+     mais próximo, o mesmo da régua do cabeçalho deste painel. */
+  border: 1px solid var(--vx-hairline-06);
   border-radius: var(--vx-radius-09);
   background: var(--vx-surface-3);
   cursor: pointer;
 }
 
-.som:hover:not(:disabled) {
+.som:hover:not(:disabled):not([aria-disabled="true"]) {
   border-color: var(--vx-accent);
 }
 
-.som:disabled {
+.som:disabled,
+.som[aria-disabled="true"] {
   opacity: 0.4;
-  cursor: default;
+  cursor: not-allowed;
+}
+
+/* Tocando: acento tingido e borda em acento — o ladrilho "anúncio" do design. */
+.som[data-tocando] {
+  border-color: var(--vx-accent);
+  background: var(--vx-state-selected);
+}
+
+.somGlifo svg {
+  inline-size: var(--vx-icon-2);
+  block-size: var(--vx-icon-2);
+  color: var(--vx-text-3);
+}
+
+/*
+  9px, fora da escala e no design: a tecla e o "tocando" são RÓTULO de um
+  ladrilho cujo nome já está em 11. No degrau de 11 a tecla competia em peso
+  com o nome que ela anota — o mesmo motivo do rótulo de pasta no rail.
+*/
+.somTocando {
+  font-family: var(--vx-font-mono);
+  font-size: 9px;
+  color: var(--vx-accent-text);
+}
+
+.cabecalhoDeSons {
+  display: grid;
+  min-inline-size: 0;
+}
+
+.tituloDeSons {
+  font-size: var(--vx-size-base);
+  font-weight: 600;
+  color: var(--vx-text-1);
 }
 
 .som:focus-visible {
@@ -347,14 +488,15 @@
 
 .somTecla {
   font-family: var(--vx-font-mono);
-  font-size: var(--vx-size-xs);
+  font-size: 9px;
   color: var(--vx-text-4);
 }
 
+/* `margin-bottom: 7px` no cabeçalho e `margin-top: 9px` na dica, no design. */
 .volume {
   inline-size: 100%;
   display: grid;
-  gap: var(--vx-space-08);
+  gap: var(--vx-space-07);
 }
 
 .volumeCabecalho {
@@ -370,6 +512,7 @@
 }
 
 .volumeDica {
+  margin-block-start: var(--vx-space-02);
   font-size: var(--vx-size-xs);
   color: var(--vx-text-4);
 }

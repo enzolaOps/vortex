@@ -1,6 +1,6 @@
 use revolt_database::{util::reference::Reference, Channel, Database, Invite};
 use revolt_models::v0;
-use revolt_result::Result;
+use revolt_result::{create_error, Result};
 use rocket::{serde::json::Json, State};
 
 /// # Fetch Invite
@@ -22,8 +22,15 @@ pub async fn fetch(db: &State<Database>, target: Reference<'_>) -> Result<Json<v
                     server,
                     name,
                     description,
+                    invites_paused,
                     ..
                 } => {
+                    // Vortex: a prévia também recusa, para que a tela de convite
+                    // diga "pausado" antes de a pessoa tentar entrar.
+                    if invites_paused {
+                        return Err(create_error!(InvitesPaused));
+                    }
+
                     let server = db.fetch_server(&server).await?;
 
                     v0::InviteResponse::Server {
