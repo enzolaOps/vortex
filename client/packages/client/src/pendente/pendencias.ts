@@ -199,10 +199,28 @@ export const PENDENCIAS = {
     back-end não sustenta. Clicá-los diz o que fariam, em vez de não fazer
     nada.
   */
-  atividades: {
-    superficie: "Faixa de voz",
-    faz: "Abrir uma atividade compartilhada na sala — jogo, quadro, vídeo.",
-    depende: "conceito de atividade no protocolo, e um host para embutir",
+  /*
+    ⚠ **As atividades EXISTEM — sessão por canal, registro, fluxo de operações
+    e host isolado, com o quadro branco de ponta a ponta.** O que fica aqui é o
+    host de cada uma das outras três do catálogo. Nenhuma precisa de servidor:
+    o fork guarda operações opacas e o host embutido as interpreta.
+  */
+  atividadeAssistirJunto: {
+    superficie: "Iniciar atividade · Assistir junto",
+    faz: "Assistir a um vídeo junto, com play, pausa e posição sincronizados.",
+    depende:
+      "o host da atividade — um player dentro do iframe isolado, e decidir de onde vem o vídeo (a CSP proíbe mídia de terceiro)",
+  },
+  atividadePoker: {
+    superficie: "Iniciar atividade · Poker",
+    faz: "Jogar poker de 2 a 8 pessoas na sala.",
+    depende:
+      "o host da atividade — e embaralhar sem que um cliente veja as cartas dos outros, que operações abertas na sala não garantem",
+  },
+  atividadeXadrez: {
+    superficie: "Iniciar atividade · Xadrez",
+    faz: "Jogar xadrez entre duas pessoas, com a sala assistindo.",
+    depende: "o host da atividade (tabuleiro e validação de lances)",
   },
   /* ------------------------------------------------------------ composer */
   /*

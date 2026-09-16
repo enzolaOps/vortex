@@ -154,10 +154,13 @@ function cspDoVortex(): Plugin {
            console acusava — a política ficava "correta" e o produto errado. */
         "font-src 'self' data:",
         ["connect-src 'self'", ...extras].join(" "),
-        /* Nada disto existe no produto, e declarar o vazio é o que impede que
-           passe a existir por acidente: o `<iframe>` do Discover do upstream
-           foi removido de propósito. */
-        "frame-src 'none'",
+        /* ⚠ **`'self'` e mais nada: o único iframe do produto é o host de
+           ATIVIDADE**, servido pelo próprio app em `/atividades/` e montado com
+           `sandbox="allow-scripts"` (origem opaca — sem acesso ao token, ao
+           armazenamento ou ao DOM daqui). Conteúdo de terceiro embutido
+           continua proibido: o `<iframe>` do Discover do upstream foi removido
+           de propósito, e uma atividade de fora entraria por esta linha. */
+        "frame-src 'self'",
         "object-src 'none'",
         "worker-src 'self' blob:",
         /* `base-uri` é o furo que quase todo mundo esquece: um `<base>`

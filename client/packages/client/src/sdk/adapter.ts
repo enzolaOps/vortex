@@ -16,6 +16,7 @@
  * `stoat.js`. O lint de boundary garante isso.
  */
 import { createEffect, createRoot, createSignal } from "solid-js";
+import { ligarAtividades } from "./atividades";
 import { ligarFiltroDeMidia } from "./filtroDeMidia";
 import { decodeTime, monotonicFactory } from "ulid";
 import { VoiceParticipant, type Message } from "stoat.js";
@@ -961,6 +962,7 @@ export function startAdapter() {
   started = true;
   // Vortex: a política de mídia explícita vem do evento cru — ver o módulo.
   ligarFiltroDeMidia();
+  ligarAtividades();
 
   /**
    * O estado de leitura que o SERVIDOR conhece, na entrada.
