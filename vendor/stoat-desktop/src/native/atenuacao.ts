@@ -1,4 +1,5 @@
 import { app } from "electron";
+import { type Mixer, type MixerCarregado, criarAtenuacao } from "./atenuacaoModelo";
 import { booleano, registrar } from "./registroDeIpc";
 
 /**
@@ -20,12 +21,7 @@ import { booleano, registrar } from "./registroDeIpc";
  * carregam o executável de forma confiável, e no macOS não há API pública.
  */
 
-const FATOR = 0.5;
-
-type Sessao = { appName: string; volume: number };
-type Mixer = { getDefaultDevice(tipo: number): { sessions: Sessao[] } };
-
-let mixer: Promise<{ m: Mixer; saida: number } | undefined> | undefined;
+let mixer: Promise<MixerCarregado | undefined> | undefined;
 
 function carregar() {
   if (process.platform !== "win32") return Promise.resolve(undefined);
@@ -55,43 +51,7 @@ function carregar() {
   return mixer;
 }
 
-/** Por executável: o volume original e o que nós pusemos. */
-const atenuadas = new Map<string, { original: number; posto: number }>();
-
-function sessoesDeOutros(m: Mixer, saida: number): Sessao[] {
-  const proprio = process.execPath.toLowerCase();
-  return m
-    .getDefaultDevice(saida)
-    .sessions.filter((s) => s.appName && s.appName.toLowerCase() !== proprio);
-}
-
-async function atenuar(sim: boolean): Promise<void> {
-  const x = await carregar();
-  if (!x) return;
-  try {
-    const sessoes = sessoesDeOutros(x.m, x.saida);
-    if (sim) {
-      for (const s of sessoes) {
-        if (atenuadas.has(s.appName)) continue;
-        const posto = s.volume * FATOR;
-        atenuadas.set(s.appName, { original: s.volume, posto });
-        s.volume = posto;
-      }
-      return;
-    }
-    for (const s of sessoes) {
-      const a = atenuadas.get(s.appName);
-      if (!a) continue;
-      /* Mexeram no volume enquanto estava atenuado: a escolha é da pessoa. */
-      if (Math.abs(s.volume - a.posto) < 0.02) s.volume = a.original;
-    }
-    atenuadas.clear();
-  } catch (e) {
-    /* Um programa que fechou no meio da conversa leva a sessão junto. */
-    console.error("Não deu para ajustar o volume dos outros apps:", e);
-    if (!sim) atenuadas.clear();
-  }
-}
+const { atenuar, aoSair } = criarAtenuacao({ carregar, proprio: process.execPath });
 
 export function registrarAtenuacao(): void {
   registrar("vortexAtenuar", {
@@ -100,6 +60,7 @@ export function registrarAtenuacao(): void {
     validar: booleano,
     executar: (sim) => void atenuar(sim),
   });
-  /* Sair do app no meio de uma fala não pode deixar o computador a 50%. */
-  app.on("will-quit", () => void atenuar(false));
+  /* Sair do app no meio de uma fala não pode deixar o computador a 50% —
+     e `will-quit` com `void` saía antes de o mixer terminar de carregar. */
+  app.on("before-quit", (e) => aoSair(e, () => app.quit()));
 }
