@@ -300,12 +300,12 @@ async function recarregarFila(serverId: string): Promise<void> {
  * Quem pode moderar a fila deste servidor.
  *
  * ⚠ **Pelo bit cru, e não por `havePermission`.** `ManageJoinRequests` é bit
- * do fork (41, logo depois de `ViewAuditLogs`), e o enum de permissões do SDK
+ * do fork (44 — 41 a 43 são de eventos e soundboard), e o enum de permissões do SDK
  * não o conhece — `havePermission("ManageJoinRequests")` compararia contra
  * `undefined`. O dono recebe `GrantAll` do cálculo do SDK, então o bit está
  * ligado para ele sem caso especial.
  */
-export const BIT_GERENCIAR_PEDIDOS = 1n << 41n;
+export const BIT_GERENCIAR_PEDIDOS = 1n << 44n;
 
 export function podeModerarPedidos(serverId: string): boolean {
   /* Mesma exceção de `pode()`: sem sessão não há tabela de cargos, e o arnês

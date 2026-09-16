@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 
 import { motivoDoErro, tipoDoErro } from "./erros";
 
+import { bitDaPermissao } from "./cargos";
 import {
   aplicarEventoCru,
+  BIT_GERENCIAR_PEDIDOS,
   emergenciaVigente,
   filas,
   idadeDaConta,
@@ -260,5 +262,25 @@ describe("recusas de política, em português", () => {
       "JoinRequestPending",
     );
     expect(tipoDoErro("<html>502</html>")).toBeUndefined();
+  });
+});
+
+describe("bit de moderar pedidos", () => {
+  /* O bit precisa ser o MESMO do `channel.rs` do fork (44), e o editor de
+     cargos e a checagem da fila precisam concordar: bits 41 a 43 são de
+     eventos e soundboard, e um bit trocado daria a permissão errada. */
+  it("é o bit 44 nos dois lugares do cliente", () => {
+    expect(BIT_GERENCIAR_PEDIDOS).toBe(1n << 44n);
+    expect(bitDaPermissao("ManageJoinRequests")).toBe(BIT_GERENCIAR_PEDIDOS);
+  });
+
+  it("confere com o `channel.rs` do servidor", async () => {
+    const { readFileSync } = await import("node:fs");
+    const rs = readFileSync(
+      new URL("../../../../../server/crates/core/permissions/src/models/channel.rs", import.meta.url),
+      "utf-8",
+    );
+    const m = /ManageJoinRequests = 1 << (\d+)/.exec(rs);
+    expect(m?.[1]).toBe("44");
   });
 });

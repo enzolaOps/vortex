@@ -346,9 +346,9 @@ function paraBits(ids: readonly string[], tabela: Record<string, bigint>): bigin
  */
 const TABELA: Record<string, bigint> = {
   ...(Permission as unknown as Record<string, bigint>),
-  /* Bit do fork (41), que o enum do SDK não conhece — ver
+  /* Bit do fork (44), que o enum do SDK não conhece — ver
      `BIT_GERENCIAR_PEDIDOS` em `seguranca.ts`. */
-  ManageJoinRequests: 1n << 41n,
+  ManageJoinRequests: 1n << 44n,
 };
 
 /**

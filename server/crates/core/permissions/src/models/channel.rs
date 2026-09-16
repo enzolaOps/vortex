@@ -104,10 +104,11 @@ pub enum ChannelPermission {
     ViewAuditLogs = 1 << 40,
 
     /// Vortex: revisar, aprovar e recusar pedidos de entrada
-    ManageJoinRequests = 1 << 41,
+    /// (41–43 ficam com eventos e soundboard; ver a distribuição dos PRs K2/K5)
+    ManageJoinRequests = 1 << 44,
 
     // * Misc. permissions
-    // % Bits 42 to 52: free area
+    // % Bits 45 to 52: free area
     // % Bits 53 to 64: do not use
 
     // * Grant all permissions
