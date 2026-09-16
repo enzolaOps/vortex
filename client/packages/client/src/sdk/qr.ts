@@ -17,6 +17,7 @@
 import { client } from "./client";
 import { concluirEntradaPorQr } from "./autenticacao";
 import { tipoDoErro } from "./erros";
+import { postarCru } from "./requisicaoCrua";
 
 /** O nome da sessão que o QR vai criar, na lista de dispositivos da conta. */
 const NOME_DO_APARELHO = "Vortex (web · QR)";
@@ -38,10 +39,9 @@ type RespostaDeCriar = {
 };
 
 export async function pedirQr(): Promise<PedidoDeQr> {
-  const r = (await client.api.post(
-    "/auth/qr/create" as never,
-    { friendly_name: NOME_DO_APARELHO } as never,
-  )) as unknown as RespostaDeCriar;
+  const r = await postarCru<RespostaDeCriar>("/auth/qr/create", {
+    friendly_name: NOME_DO_APARELHO,
+  });
   return { id: r.id, segredo: r.secret, codigo: r.code, expiraEm: r.expires_at };
 }
 
@@ -70,10 +70,9 @@ type RespostaDeTroca =
  */
 export async function trocarQr(pedido: PedidoDeQr): Promise<ResultadoDaTroca> {
   try {
-    const r = (await client.api.post(
-      `/auth/qr/${pedido.id}/exchange` as never,
-      { secret: pedido.segredo } as never,
-    )) as unknown as RespostaDeTroca;
+    const r = await postarCru<RespostaDeTroca>(`/auth/qr/${pedido.id}/exchange`, {
+      secret: pedido.segredo,
+    });
     if (r.result === "Pending") return "pendente";
     await concluirEntradaPorQr(r);
     return "concluida";

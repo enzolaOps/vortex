@@ -10,9 +10,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 */
 const api = { post: vi.fn(), get: vi.fn(), delete: vi.fn() };
 const concluir = vi.fn();
+/* Rota do fork com corpo não passa por `client.api` — ver `requisicaoCrua.ts`. */
+const cru = vi.fn();
 
 vi.mock("./client", () => ({ client: { api } }));
 vi.mock("./autenticacao", () => ({ concluirEntradaPorQr: concluir }));
+vi.mock("./requisicaoCrua", () => ({ postarCru: cru }));
 
 const { autorizarQr, pedirQr, recusarQr, trocarQr, verPedidoDeQr } = await import("./qr");
 
@@ -24,13 +27,14 @@ beforeEach(() => {
   api.get.mockReset();
   api.delete.mockReset();
   concluir.mockReset();
+  cru.mockReset();
 });
 
 describe("pedirQr", () => {
   it("traduz a resposta e nunca manda o segredo de volta", async () => {
-    api.post.mockResolvedValue({ id: "abc", secret: "s", code: "654321", expires_at: 9 });
+    cru.mockResolvedValue({ id: "abc", secret: "s", code: "654321", expires_at: 9 });
     expect(await pedirQr()).toEqual({ id: "abc", segredo: "s", codigo: "654321", expiraEm: 9 });
-    expect(api.post).toHaveBeenCalledWith("/auth/qr/create", {
+    expect(cru).toHaveBeenCalledWith("/auth/qr/create", {
       friendly_name: "Vortex (web · QR)",
     });
   });
@@ -38,34 +42,34 @@ describe("pedirQr", () => {
 
 describe("trocarQr", () => {
   it("manda o segredo no corpo, nunca na URL", async () => {
-    api.post.mockResolvedValue({ result: "Pending" });
+    cru.mockResolvedValue({ result: "Pending" });
     await trocarQr(PEDIDO);
-    const [caminho, corpo] = api.post.mock.calls[0]!;
+    const [caminho, corpo] = cru.mock.calls[0] as unknown[];
     expect(caminho).toBe("/auth/qr/abc/exchange");
     expect(String(caminho)).not.toContain(PEDIDO.segredo);
     expect(corpo).toEqual({ secret: PEDIDO.segredo });
   });
 
   it("Pending continua perguntando e não conclui", async () => {
-    api.post.mockResolvedValue({ result: "Pending" });
+    cru.mockResolvedValue({ result: "Pending" });
     expect(await trocarQr(PEDIDO)).toBe("pendente");
     expect(concluir).not.toHaveBeenCalled();
   });
 
   it("Success conclui pelo caminho do login", async () => {
     const sessao = { result: "Success", _id: "s", token: "t", user_id: "u" };
-    api.post.mockResolvedValue(sessao);
+    cru.mockResolvedValue(sessao);
     expect(await trocarQr(PEDIDO)).toBe("concluida");
     expect(concluir).toHaveBeenCalledWith(sessao);
   });
 
   it("NotFound vira expirado, e não erro", async () => {
-    api.post.mockRejectedValue(NAO_EXISTE);
+    cru.mockRejectedValue(NAO_EXISTE);
     expect(await trocarQr(PEDIDO)).toBe("expirado");
   });
 
   it("falha de rede sobe — ela não é um código vencido", async () => {
-    api.post.mockRejectedValue(new TypeError("Failed to fetch"));
+    cru.mockRejectedValue(new TypeError("Failed to fetch"));
     await expect(trocarQr(PEDIDO)).rejects.toThrow();
   });
 });
