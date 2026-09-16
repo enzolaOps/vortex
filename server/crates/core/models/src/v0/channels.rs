@@ -116,6 +116,20 @@ auto_derived!(
             /// The channel's slowmode delay in seconds
             #[serde(skip_serializing_if = "Option::is_none")]
             slowmode: Option<u64>,
+
+            /// Vortex: whether all media in this channel is hidden behind a spoiler
+            #[cfg_attr(
+                feature = "serde",
+                serde(skip_serializing_if = "crate::if_false", default)
+            )]
+            spoiler: bool,
+
+            /// Vortex: whether joining through this channel's invites is paused
+            #[cfg_attr(
+                feature = "serde",
+                serde(skip_serializing_if = "crate::if_false", default)
+            )]
+            invites_paused: bool,
         },
     }
 
@@ -185,6 +199,10 @@ auto_derived!(
         pub voice: Option<VoiceInformation>,
         #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
         pub slowmode: Option<u64>,
+        #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+        pub spoiler: Option<bool>,
+        #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+        pub invites_paused: Option<bool>,
     }
 
     /// Optional fields on channel object
@@ -228,6 +246,12 @@ auto_derived!(
         /// The channel's slow mode delay in seconds, up to 6 hours
         #[cfg_attr(feature = "validator", validate(range(min = 0, max = 21600)))]
         pub slowmode: Option<u64>,
+
+        /// Vortex: whether all media in this channel is hidden behind a spoiler
+        pub spoiler: Option<bool>,
+
+        /// Vortex: whether joining through this channel's invites is paused
+        pub invites_paused: Option<bool>,
 
         /// Fields to remove from channel
         #[cfg_attr(feature = "serde", serde(default))]

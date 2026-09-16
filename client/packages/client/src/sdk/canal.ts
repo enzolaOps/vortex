@@ -1,4 +1,5 @@
 import { client, conectado } from "./client";
+import { aplicarSuperficieVortex } from "./adapter";
 import { corpoDeVoz, lerConfigDeVoz } from "./vozDoCanal";
 
 /**
@@ -24,15 +25,19 @@ function lerConfigDeVozComoEdicao(channelId: string) {
  * | restrição de idade   | `nsfw` ✓                                     |
  * | limite de usuários   | `voice.max_users` ✓                          |
  * | modo lento           | `slowmode` ✓                                 |
- * | **canal de spoiler** | ⚠ não existe                                 |
+ * | canal de spoiler     | `spoiler` ✓ (servidor do Vortex)             |
  * | bitrate              | `voice.bitrate` ✓ (fork)                     |
  * | região de voz        | `voice.rtc_region` ✓ (fork)                  |
  * | modo de vídeo        | `voice.video_quality` ✓ (fork)               |
  *
+ * `spoiler` e `invites_paused` são superfície a mais do servidor do Vortex —
+ * clientes Stoat os ignoram, e o SDK os descarta na leitura (quem lê é
+ * `superficieVortex.ts`). O `edit` do SDK repassa o corpo, então escrever não
+ * precisou de nada além do campo.
+ *
  * ⚠ **Os três de voz deixaram de ser pendência** quando o serviço `api` deste
- * repositório os ganhou — ver `sdk/vozDoCanal.ts`. O de spoiler continua
- * desenhado assim mesmo — é a regra desta rodada — e
- * cada um tem entrada em `pendente/pendencias.ts`, que é o que troca "não faz
+ * repositório os ganhou — ver `sdk/vozDoCanal.ts`. O que ainda for desenhado
+ * sem back-end tem entrada em `pendente/pendencias.ts`, que é o que troca "não faz
  * nada" por "diz o que fará e do que depende".
  *
  * ⚠ **`slowmode` merece uma nota própria, e ela mudou de sinal.** O texto
@@ -62,7 +67,18 @@ export type EdicaoDeCanal = {
   readonly modoLentoSegundos: number;
   /** Bitrate, região e modo de vídeo. Só em canal de voz, junto do limite. */
   readonly voz?: Omit<Parameters<typeof corpoDeVoz>[0], "limiteDeUsuarios">;
+  /** Toda mídia do canal entra coberta. Exclusivo com `restritoPorIdade` na tela. */
+  readonly spoiler: boolean;
 };
+
+/**
+ * Aplica no estado local o que acabou de ser gravado, sem esperar o
+ * `ChannelUpdate` — a tela relê o snapshot logo após o `await`, e o evento pode
+ * chegar um quadro depois. Idempotente quando ele chegar.
+ */
+function gravarLocal(channelId: string, data: Record<string, unknown>): void {
+  aplicarSuperficieVortex({ type: "ChannelUpdate", id: channelId, data });
+}
 
 export async function salvarCanal(
   channelId: string,
@@ -91,6 +107,7 @@ export async function salvarCanal(
       corte é de contrato.
     */
     slowmode: Math.max(0, Math.min(21600, Math.trunc(edicao.modoLentoSegundos))),
+    spoiler: edicao.spoiler,
   };
   if (edicao.limiteDeUsuarios !== undefined) {
     /*
@@ -108,6 +125,27 @@ export async function salvarCanal(
 
   try {
     await canal.edit(dados);
+    gravarLocal(channelId, { spoiler: edicao.spoiler });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Pausa ou retoma TODOS os convites do canal.
+ *
+ * ⚠ **Não revoga nada.** O convite continua existindo e quem tem o link o
+ * mantém; o servidor recusa a entrada com `InvitesPaused` enquanto durar. É a
+ * diferença para "Revogar": pausar se desfaz, revogar não.
+ */
+export async function pausarConvites(channelId: string, pausado: boolean): Promise<boolean> {
+  if (!conectado()) return false;
+  const canal = client.channels.get(channelId);
+  if (!canal) return false;
+  try {
+    await canal.edit({ invites_paused: pausado } as never);
+    gravarLocal(channelId, { invites_paused: pausado });
     return true;
   } catch {
     return false;
@@ -157,6 +195,73 @@ export function overrideDoCargo(
     allow: BigInt(bruto?.a ?? 0),
     deny: BigInt(bruto?.d ?? 0),
   };
+}
+
+/**
+ * TODAS as permissões de um canal — o padrão e cada cargo — em tipo do app.
+ *
+ * ⚠ **Existe por causa de "Duplicar canal", e a razão é de segurança.** O
+ * snapshot do canal carrega nome, tópico, modo lento, idade e limite; não
+ * carrega os overrides. Um canal duplicado a partir do snapshot nasceria
+ * PÚBLICO a partir de um restrito, em silêncio — e o dono só descobriria
+ * quando alguém lesse o que não devia. Por isso a leitura é própria, e por
+ * isso ela devolve `undefined` quando não sabe: duplicar exige saber.
+ *
+ * Par zerado não entra: `{allow: 0, deny: 0}` é HERDAR, que é o que um canal
+ * novo já faz sem escrita nenhuma.
+ */
+export type PermissoesDeCanal = {
+  /** O override de @everyone. `undefined` = herda do servidor. */
+  readonly padrao: OverrideDeCanal | undefined;
+  readonly porCargo: Readonly<Record<string, OverrideDeCanal>>;
+};
+
+export function permissoesDoCanal(
+  channelId: string,
+): PermissoesDeCanal | undefined {
+  const canal = client.channels.get(channelId);
+  // Canal fora do cache, ou sem servidor: não há o que ler com certeza.
+  if (!canal || !canal.serverId) return undefined;
+
+  const par = (
+    bruto: { a?: bigint | number; d?: bigint | number } | undefined,
+  ): OverrideDeCanal | undefined => {
+    const allow = BigInt(bruto?.a ?? 0);
+    const deny = BigInt(bruto?.d ?? 0);
+    return allow === 0n && deny === 0n ? undefined : { allow, deny };
+  };
+
+  const porCargo: Record<string, OverrideDeCanal> = {};
+  for (const [roleId, bruto] of Object.entries(canal.rolePermissions ?? {})) {
+    const p = par(bruto);
+    if (p) porCargo[roleId] = p;
+  }
+  return { padrao: par(canal.defaultPermissions), porCargo };
+}
+
+/**
+ * A ordem das escritas de permissão num canal NOVO.
+ *
+ * ⚠ **O padrão vem PRIMEIRO**, e é a única ordem segura: é nele que mora o
+ * `deny ViewChannel` que torna um canal privado. Escrever os cargos antes
+ * deixaria o canal aberto a todo mundo durante as N chamadas de cargo, em vez
+ * de durante uma.
+ *
+ * `roleId` `undefined` é o cargo padrão — a assinatura de `setPermissions`.
+ */
+export function escritasDePermissao(
+  p: PermissoesDeCanal,
+): readonly {
+  readonly roleId: string | undefined;
+  readonly override: OverrideDeCanal;
+}[] {
+  const escritas: { roleId: string | undefined; override: OverrideDeCanal }[] =
+    [];
+  if (p.padrao) escritas.push({ roleId: undefined, override: p.padrao });
+  for (const [roleId, override] of Object.entries(p.porCargo)) {
+    escritas.push({ roleId, override });
+  }
+  return escritas;
 }
 
 /**

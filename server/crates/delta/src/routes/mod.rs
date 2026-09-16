@@ -135,7 +135,9 @@ fn custom_openapi_spec() -> OpenApi {
           {
             "name": "Customisation",
             "tags": [
-              "Emojis"
+              "Emojis",
+              "Stickers",
+              "Soundboard"
             ]
           },
           {

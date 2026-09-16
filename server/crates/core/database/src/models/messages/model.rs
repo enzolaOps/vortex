@@ -49,6 +49,9 @@ auto_derived_partial!(
         /// Array of attachments
         #[serde(skip_serializing_if = "Option::is_none")]
         pub attachments: Option<Vec<File>>,
+        /// Ids das figurinhas enviadas (Vortex)
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub stickers: Option<Vec<String>>,
         /// Time at which this message was last edited
         #[serde(skip_serializing_if = "Option::is_none")]
         pub edited: Option<Timestamp>,
@@ -217,12 +220,16 @@ auto_derived!(
     pub struct MessageFilter {
         /// Parent channel ID
         pub channel: Option<String>,
+        /// Any of these parent channel IDs (ignored when `channel` is set)
+        pub channels: Option<Vec<String>>,
         /// Message author ID
         pub author: Option<String>,
         /// Search query
         pub query: Option<String>,
         /// Search for pinned
         pub pinned: Option<bool>,
+        /// Vortex: only messages carrying this kind of content
+        pub has: Option<v0::MessageSearchHas>,
     }
 
     /// Message Query
@@ -281,6 +288,7 @@ impl Default for Message {
             content: None,
             system: None,
             attachments: None,
+            stickers: None,
             edited: None,
             embeds: None,
             mentions: None,
@@ -397,6 +405,7 @@ impl Message {
             && (data.attachments.as_ref().is_none_or(|v| v.is_empty()))
             && (data.embeds.as_ref().is_none_or(|v| v.is_empty()))
             && data.poll.is_none()
+            && (data.stickers.as_ref().is_none_or(|v| v.is_empty()))
         {
             return Err(create_error!(EmptyMessage));
         }
@@ -492,6 +501,9 @@ impl Message {
             ..
         } = message_mentions;
 
+        // Vortex: cargos marcados como mencionáveis dispensam `MentionRoles`.
+        let mut mentionable_roles: HashSet<String> = HashSet::new();
+
         if allow_mass_mentions && server_id.is_some() && !role_mentions.is_empty() {
             let server_data = db
                 .fetch_server(server_id.unwrap().as_str())
@@ -499,6 +511,14 @@ impl Message {
                 .expect("Failed to fetch server");
 
             role_mentions.retain(|role_id| server_data.roles.contains_key(role_id));
+
+            mentionable_roles.extend(
+                server_data
+                    .roles
+                    .iter()
+                    .filter(|(_, role)| role.mentionable)
+                    .map(|(role_id, _)| role_id.clone()),
+            );
         }
 
         // Validate the user can perform a mass mention
@@ -536,6 +556,7 @@ impl Message {
 
                 if !role_mentions.is_empty()
                     && !perms.has_channel_permission(ChannelPermission::MentionRoles)
+                    && !only_mentionable_roles(&role_mentions, &mentionable_roles)
                 {
                     return Err(create_error!(MissingPermission {
                         permission: ChannelPermission::MentionRoles.to_string()
@@ -693,6 +714,28 @@ impl Message {
         // Vortex: attach the poll, if any.
         if let Some(poll) = data.poll {
             message.poll = Some(Poll::from_data(poll)?);
+        }
+
+        // Vortex: figurinhas. A mensagem guarda só o id — o arquivo continua
+        // servido pelo autumn mesmo depois de a figurinha ser apagada.
+        if let Some(stickers) = data.stickers.as_ref().filter(|v| !v.is_empty()) {
+            if stickers.len() > 1 {
+                return Err(create_error!(InvalidOperation));
+            }
+
+            for sticker_id in stickers {
+                let sticker = db.fetch_sticker(sticker_id).await?;
+
+                // Figurinha de servidor só para quem está nele — o seletor
+                // mostra os pacotes alheios bloqueados, e a regra mora aqui.
+                if let MessageAuthor::User(user) = &author {
+                    if db.fetch_member(&sticker.server, &user.id).await.is_err() {
+                        return Err(create_error!(InvalidOperation));
+                    }
+                }
+            }
+
+            message.stickers.replace(stickers.clone());
         }
 
         // Process included embeds.
@@ -861,6 +904,15 @@ impl Message {
             media: media.map(|m| m.into()),
             colour: embed.colour,
         }))
+    }
+
+    /// Vortex: whether the generated embeds of this message were removed
+    pub fn has_suppressed_embeds(&self) -> bool {
+        if let Some(flags) = self.flags {
+            MessageFlagsValue(flags).has(MessageFlags::SuppressEmbeds)
+        } else {
+            false
+        }
     }
 
     /// Whether this message has suppressed notifications
@@ -1389,5 +1441,77 @@ impl Interactions {
     /// Check if default initialisation of fields
     pub fn is_default(&self) -> bool {
         !self.restrict_reactions && self.reactions.is_none()
+    }
+}
+
+/// Vortex: whether every mentioned role is flagged as mentionable, which lets a
+/// member without `MentionRoles` mention them.
+pub fn only_mentionable_roles(
+    role_mentions: &HashSet<String>,
+    mentionable_roles: &HashSet<String>,
+) -> bool {
+    role_mentions
+        .iter()
+        .all(|role_id| mentionable_roles.contains(role_id))
+}
+
+/// Vortex: the embeds that survive "remove embeds" — only the ones the author
+/// sent explicitly (`Text`). Link previews generated by the server go away.
+pub fn embeds_without_generated(embeds: Option<&Vec<Embed>>) -> Vec<Embed> {
+    embeds
+        .map(|embeds| {
+            embeds
+                .iter()
+                .filter(|embed| matches!(embed, Embed::Text(_)))
+                .cloned()
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+#[cfg(test)]
+mod vortex_tests {
+    use std::collections::HashSet;
+
+    use revolt_models::v0::{Embed, Text};
+
+    use super::{embeds_without_generated, only_mentionable_roles, MessageFlagsValue};
+    use revolt_models::v0::MessageFlags;
+
+    fn set(ids: &[&str]) -> HashSet<String> {
+        ids.iter().map(|id| id.to_string()).collect()
+    }
+
+    #[test]
+    fn mentionable_roles_allow_mention() {
+        assert!(only_mentionable_roles(&set(&["a"]), &set(&["a", "b"])));
+    }
+
+    #[test]
+    fn one_non_mentionable_role_blocks_mention() {
+        assert!(!only_mentionable_roles(&set(&["a", "c"]), &set(&["a", "b"])));
+    }
+
+    #[test]
+    fn remove_embeds_keeps_only_text() {
+        let text = Embed::Text(Text {
+            icon_url: None,
+            url: None,
+            title: Some("x".to_string()),
+            description: None,
+            media: None,
+            colour: None,
+        });
+        let embeds = vec![Embed::None, text.clone()];
+        assert_eq!(embeds_without_generated(Some(&embeds)), vec![text]);
+        assert!(embeds_without_generated(None).is_empty());
+    }
+
+    #[test]
+    fn suppress_embeds_flag_does_not_touch_other_bits() {
+        let mut flags = MessageFlagsValue(1 << MessageFlags::SuppressNotifications as u32);
+        flags.set(MessageFlags::SuppressEmbeds, true);
+        assert!(flags.has(MessageFlags::SuppressEmbeds));
+        assert!(flags.has(MessageFlags::SuppressNotifications));
     }
 }

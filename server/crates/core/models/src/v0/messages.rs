@@ -44,6 +44,9 @@ auto_derived_partial!(
         /// Array of attachments
         #[serde(skip_serializing_if = "Option::is_none")]
         pub attachments: Option<Vec<File>>,
+        /// Ids das figurinhas enviadas (Vortex)
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub stickers: Option<Vec<String>>,
         /// Time at which this message was last edited
         #[serde(skip_serializing_if = "Option::is_none")]
         pub edited: Option<Timestamp>,
@@ -260,6 +263,20 @@ auto_derived!(
         Oldest,
     }
 
+    /// Vortex: kind of content a searched message must carry
+    pub enum MessageSearchHas {
+        /// Any attachment
+        Attachment,
+        /// An image attachment
+        Image,
+        /// A video attachment
+        Video,
+        /// An audio attachment
+        Audio,
+        /// A link in the content
+        Link,
+    }
+
     /// Push Notification
     pub struct PushNotification {
         /// Known author name
@@ -332,6 +349,8 @@ auto_derived!(
         pub content: Option<String>,
         /// Attachments to include in message
         pub attachments: Option<Vec<String>>,
+        /// Figurinhas a enviar (Vortex) — ids de `Sticker`, no máximo uma
+        pub stickers: Option<Vec<String>>,
         /// Messages to reply to
         pub replies: Option<Vec<ReplyIntent>>,
         /// Embeds to include in message
@@ -411,6 +430,11 @@ auto_derived!(
         pub sort: MessageSort,
         /// Whether to include user (and member, if server channel) objects
         pub include_users: Option<bool>,
+        /// Vortex: only messages sent by this user
+        #[cfg_attr(feature = "validator", validate(length(min = 26, max = 26)))]
+        pub author: Option<String>,
+        /// Vortex: only messages carrying this kind of content
+        pub has: Option<MessageSearchHas>,
     }
 
     /// Changes to make to message
@@ -454,6 +478,8 @@ auto_derived!(
         /// Message will mention all users who are online and can see the channel.
         /// This cannot be true if MentionsEveryone is true
         MentionsOnline = 3,
+        /// Vortex: generated embeds were removed and must not be generated again
+        SuppressEmbeds = 4,
     }
 
     /// Optional fields on message

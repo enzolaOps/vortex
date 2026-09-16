@@ -1,0 +1,60 @@
+/* ============================================================
+   Cargos · Links
+   ------------------------------------------------------------
+   Medido no design (`Configurações do Servidor`, aba Links): coluna
+   de 560, título 15/600 com 6 abaixo, texto 13 em text-3 com 16
+   abaixo, e a linha do endereço em 36 de altura — mono 12 em
+   text-2 sobre #1B2028 com borda branca a 10%, raio 6.
+   ============================================================ */
+
+.aba {
+  max-inline-size: 560px;
+}
+
+.titulo {
+  margin: 0 0 var(--vx-space-06);
+  font-size: var(--vx-size-lg);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.texto {
+  margin: 0 0 var(--vx-space-16);
+  font-size: var(--vx-size-md);
+  color: var(--vx-text-3);
+  text-wrap: pretty;
+}
+
+.texto strong {
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+/* Mais de um link dá mais de uma linha — o vão é o mesmo da linha. */
+.lista {
+  display: grid;
+  gap: var(--vx-space-08);
+}
+
+.linha {
+  display: flex;
+  gap: var(--vx-space-08);
+}
+
+.endereco {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-inline-size: 0;
+  overflow: hidden;
+  block-size: 36px;
+  padding-inline: var(--vx-space-12);
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-2);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

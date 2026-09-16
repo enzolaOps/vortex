@@ -4,6 +4,7 @@ import { Amigos } from "../casa/Amigos";
 import { TelaDeEventos } from "../eventos/TelaDeEventos";
 import { CabecalhoDeCanal } from "../canais/CabecalhoDeCanal";
 import { Popout } from "../voz/Popout";
+import { ChamadaRecebida } from "../voz/ChamadaRecebida";
 import { ComposerDoCanal, ConteudoDoCanal } from "./ConteudoDoCanal";
 import { Configuracoes } from "../config/Configuracoes";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
@@ -175,6 +176,13 @@ export function Cliente({ ferramentas }: { ferramentas?: ReactNode }) {
             é a JANELA.
           */}
           <Popout />
+          {/*
+            A chamada recebida, na camada sobreposta pela mesma razão do
+            popout: ela chega com você em qualquer lugar do app — na casa, nas
+            configurações, dentro de outra chamada. Devolve `null` quando nada
+            toca.
+          */}
+          <ChamadaRecebida />
           {/* O overlay de depuração — devolve `null` com a preferência
               desligada, que é o caso de quase toda sessão. */}
           <OverlayDeDebug />

@@ -4,7 +4,6 @@ import { CaretDown, ICONE } from "../../components/ui/icones";
 
 import { Campo } from "../../components/ui/Campo";
 import { Deslizante } from "../../components/ui/Deslizante";
-import { aindaNao } from "../../pendente/pendencias";
 import {
   Popover,
   PopoverContent,
@@ -96,6 +95,7 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
   const [nome, setNome] = useState(canal?.name ?? "");
   const [assunto, setAssunto] = useState(canal?.topico ?? "");
   const [idade, setIdade] = useState(canal?.restritoPorIdade ?? false);
+  const [spoiler, setSpoiler] = useState(canal?.spoiler ?? false);
   const [limite, setLimite] = useState(canal?.limiteDeUsuarios ?? 0);
   const [lento, setLento] = useState(canal?.modoLentoSegundos ?? 0);
   /*
@@ -154,6 +154,7 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
     (nome !== canal.name ||
     assunto !== (canal.topico ?? "") ||
     idade !== canal.restritoPorIdade ||
+    spoiler !== canal.spoiler ||
     lento !== canal.modoLentoSegundos ||
     (ehVoz &&
       (limite !== (canal.limiteDeUsuarios ?? 0) ||
@@ -197,6 +198,7 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
         setNome(canal.name);
         setAssunto(canal.topico ?? "");
         setIdade(canal.restritoPorIdade);
+        setSpoiler(canal.spoiler);
         setLimite(canal.limiteDeUsuarios ?? 0);
         setLento(canal.modoLentoSegundos);
         setBitrate(voz.bitrateKbps);
@@ -213,6 +215,7 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
           limiteDeUsuarios: ehVoz ? limite : undefined,
           modoLentoSegundos: lento,
           voz: ehVoz ? { bitrateKbps: bitrate, regiao, modoDeVideo } : undefined,
+          spoiler,
         }).finally(() => setSalvando(false));
       },
     });
@@ -225,6 +228,7 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
     nome,
     assunto,
     idade,
+    spoiler,
     limite,
     lento,
     voz,
@@ -278,9 +282,9 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
               {/*
                 Os quatro de formatação são REAIS: envolvem a seleção em
                 markdown, que o caminho de leitura já entende desde
-                `markdown/analisar.ts`. Spoiler e emoji dependem de coisas que
-                não existem — spoiler não está no protocolo e o seletor de emoji
-                não tem âncora fora do composer.
+                `markdown/analisar.ts`. O spoiler de TEXTO escreve `!!…!!`, a
+                marca que os clientes Stoat entendem — é outra coisa que o
+                "Canal de spoiler" logo abaixo, que cobre a MÍDIA do canal.
               */}
               <Formato rotulo="Negrito" marca="**" valor={assunto} aoAplicar={setAssunto}>
                 B
@@ -295,13 +299,9 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
                 S
               </Formato>
               <span className={css.reguaDivisa} aria-hidden />
-              <button
-                type="button"
-                className={css.reguaBotao}
-                onClick={aindaNao("canalDeSpoiler")}
-              >
+              <Formato rotulo="Spoiler" marca="!!" valor={assunto} aoAplicar={setAssunto}>
                 spoiler
-              </button>
+              </Formato>
               {/* Um `Popover.Root` por FORMULÁRIO, e não por linha de lista —
                   a conta que criou `store/seletorDeReacao.ts` não se aplica
                   aqui: esta tela tem um campo de assunto, não dez mil. */}
@@ -379,24 +379,40 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
 
         <section className={secao.bloco}>
           <h2 className={secao.subtitulo}>Visibilidade do conteúdo</h2>
+          {/*
+            UMA escolha entre três, como o design e a referência desenham —
+            mas o protocolo guarda dois booleanos (`nsfw` e `spoiler`). A tela
+            mantém os dois exclusivos; um canal que chegue com os dois ligados
+            (escrito por outro cliente) mostra "Restrição de idade", que é a
+            mais forte.
+          */}
           <CartaoDeOpcao
-            marcado={!idade}
+            marcado={!idade && !spoiler}
             titulo="Padrão"
             detalhe="Sem aviso; mídia carrega direto."
-            aoEscolher={() => setIdade(false)}
+            aoEscolher={() => {
+              setIdade(false);
+              setSpoiler(false);
+            }}
           />
           <CartaoDeOpcao
-            marcado={false}
+            marcado={spoiler && !idade}
             titulo="Canal de spoiler"
             detalhe="Toda mídia entra borrada, com clique para revelar."
-            aoEscolher={aindaNao("canalDeSpoiler")}
+            aoEscolher={() => {
+              setSpoiler(true);
+              setIdade(false);
+            }}
           />
           <CartaoDeOpcao
             marcado={idade}
             titulo="Restrição de idade"
             selo={<Selo tom="perigoSuave">+18</Selo>}
             detalhe="Exige confirmação na entrada; some da prévia de convite."
-            aoEscolher={() => setIdade(true)}
+            aoEscolher={() => {
+              setIdade(true);
+              setSpoiler(false);
+            }}
           />
         </section>
 

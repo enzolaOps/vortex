@@ -150,6 +150,28 @@ export function ponte(): PonteDesktop | undefined {
 }
 
 /**
+ * "Reiniciar agora" — para a preferência que só vale no próximo início.
+ *
+ * ⚠ **Ponte SEPARADA de `vortex`, e a razão é versão.** O cliente é carregado
+ * por URL e atualiza antes da casca: um verbo novo em `PonteDesktop` faria
+ * `verbosFaltandoNaPonte` acusar toda casca anterior, e o cliente cairia sem
+ * barra de título. Ausente aqui, o botão só não aparece.
+ */
+export type PonteDeReinicio = { readonly reiniciar: () => Promise<void> };
+
+declare global {
+  interface Window {
+    readonly vortexReinicio?: PonteDeReinicio;
+  }
+}
+
+export function ponteDeReinicio(): PonteDeReinicio | undefined {
+  if (typeof window === "undefined") return undefined;
+  const p = window.vortexReinicio as Record<string, unknown> | undefined;
+  return p && typeof p.reiniciar === "function" ? window.vortexReinicio : undefined;
+}
+
+/**
  * A versão, para as telas que a mostram.
  *
  * ⚠ **Duas fontes e nenhuma inventada.** Na casca, a versão é a do pacote

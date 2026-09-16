@@ -60,6 +60,8 @@ impl<'r> Responder<'r, 'static> for Error {
             ErrorType::TooManyEmoji { .. } => Status::BadRequest,
             ErrorType::TooManyChannels { .. } => Status::BadRequest,
             ErrorType::TooManyRoles { .. } => Status::BadRequest,
+            ErrorType::TooManyStickers { .. } => Status::BadRequest,
+            ErrorType::TooManySounds { .. } => Status::BadRequest,
 
             ErrorType::ReachedMaximumBots => Status::BadRequest,
             ErrorType::IsBot => Status::BadRequest,
@@ -113,6 +115,7 @@ impl<'r> Responder<'r, 'static> for Error {
             ErrorType::InvalidToken => Status::Unauthorized,
             ErrorType::MissingInvite => Status::BadRequest,
             ErrorType::InvalidInvite => Status::BadRequest,
+            ErrorType::InvitesPaused => Status::Forbidden,
             ErrorType::CompromisedPassword => Status::BadRequest,
             ErrorType::ShortPassword => Status::BadRequest,
             ErrorType::Blacklisted => {

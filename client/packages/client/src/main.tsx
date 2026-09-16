@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 
 import { ligarSonsDeVoz } from "./som/sons";
 import { ligarAtalhosDeVoz } from "./sdk/atalhosDeVoz";
+import { ligarChamadasRecebidas } from "./notificacao/chamadas";
 import { ROTA_DO_OVERLAY } from "./overlay/modelo";
 import { Overlay } from "./overlay/Overlay";
 import { ligarPublicadorDoOverlay } from "./overlay/publicador";
@@ -10,6 +11,7 @@ import { ligarLembretesDeEventos } from "./eventos/lembretes";
 
 import { ARNES_ATIVO } from "./dev/arnesAtivo";
 import { ligarRota } from "./rota/rota";
+import { ouvirCliquesDoPush } from "./notificacao/push";
 import { iniciarPintura } from "./tema/pintor";
 import { App } from "./App";
 import { PortaoDeSessao } from "./sessao/PortaoDeSessao";
@@ -92,6 +94,20 @@ ligarSonsDeVoz();
   stores e teclado, e nenhum componente vive o mesmo tanto que a sessão.
 */
 ligarAtalhosDeVoz();
+
+/*
+  O clique numa notificação de push, com o Vortex já aberto: o service worker
+  manda o caminho e esta aba o aplica pelo roteador. Module-level pelo mesmo
+  motivo da rota — `navigator.serviceWorker` não pertence a componente nenhum.
+*/
+if (!ARNES_ATIVO) ouvirCliquesDoPush();
+
+/*
+  O relógio da chamada recebida — o toque que repete, a expiração e o "já
+  atendeu por outro caminho". Module-level pela mesma razão dos sons: o toque
+  precisa continuar mesmo quando o aviso na tela não está montado.
+*/
+ligarChamadasRecebidas();
 
 /* O que o overlay do jogo mostra — só na casca, e só nesta janela. */
 ligarPublicadorDoOverlay();

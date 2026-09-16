@@ -268,6 +268,8 @@ mod test {
             last_message_id: None,
             voice: None,
             slowmode: None,
+            spoiler: None,
+            invites_paused: None,
         };
         locked_channel
             .update(&harness.db, partial, vec![])
@@ -291,6 +293,7 @@ mod test {
                 content: Some(format!("<@{}>", second_user.id)),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: None,
                 embeds: None,
                 masquerade: None,
@@ -332,6 +335,7 @@ mod test {
                 content: Some(format!("<@{}>", second_user.id)),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: None,
                 embeds: None,
                 masquerade: None,
@@ -382,6 +386,7 @@ mod test {
                 content: Some(format!("<@{}>", second_user.id)),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: None,
                 embeds: None,
                 masquerade: None,
@@ -425,6 +430,7 @@ mod test {
                 content: Some("Message with reply".to_string()),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: Some(vec![v0::ReplyIntent {
                     id: message.id.clone(),
                     mention: false,
@@ -477,6 +483,7 @@ mod test {
                 content: Some("Message with missing reply".to_string()),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: Some(vec![v0::ReplyIntent {
                     id: message.id.clone(),
                     mention: false,
@@ -515,6 +522,7 @@ mod test {
                 content: Some("Message with missing reply".to_string()),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: Some(vec![v0::ReplyIntent {
                     id: message.id.clone(),
                     mention: false,
@@ -547,6 +555,7 @@ mod test {
                 content: Some("Message with missing reply".to_string()),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: Some(vec![v0::ReplyIntent {
                     id: message.id.clone(),
                     mention: false,
@@ -602,6 +611,7 @@ mod test {
                 content: Some(format!("Mentioning @everyone and role <%{}>", &role.id)),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: None,
                 embeds: None,
                 masquerade: None,
@@ -648,6 +658,7 @@ mod test {
                 content: Some(format!("Mentioning `@everyone` and role `<%{}>`", &role.id)),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: None,
                 embeds: None,
                 masquerade: None,
@@ -719,6 +730,7 @@ mod test {
                 content: Some(format!("Mentioning @everyone and role <%{}>", &role.id)),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: None,
                 embeds: None,
                 masquerade: None,

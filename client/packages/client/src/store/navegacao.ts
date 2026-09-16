@@ -77,6 +77,13 @@ export const ABAS_DE_PESSOAS = [
   "recebido",
   "enviado",
   "bloqueado",
+  /*
+    ⚠ **A única aba que não é uma relação.** Solicitação é CONVERSA — a DM de
+    quem não é amigo — e não um estado entre duas pessoas; ela mora aqui
+    porque é na tela de pessoas que se decide quem entra. Ver
+    `store/solicitacoes.ts`.
+  */
+  "solicitacoes",
 ] as const;
 export type AbaDePessoas = (typeof ABAS_DE_PESSOAS)[number];
 

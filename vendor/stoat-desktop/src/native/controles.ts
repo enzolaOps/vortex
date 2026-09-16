@@ -1,6 +1,7 @@
 import { app, ipcMain } from "electron";
 
-import { alternarOverlay } from "./overlay";
+import { alternarOverlay, alternarSilencioDoOverlay } from "./overlay";
+import { definirChamadaEmPip } from "./preferencias";
 import { definirEstadoDeVoz } from "./tray";
 import { mainWindow } from "./window";
 
@@ -35,7 +36,19 @@ type Combinacao = {
   shift: boolean;
 };
 
-const ACOES = ["pushToTalk", "mutar", "ensurdecer", "desconectar", "overlay"] as const;
+/*
+  ⚠ Ação que a casca não conhece é IGNORADA (o `flatMap` de `definirAtalhos`
+  só olha estas): um cliente mais novo que a casca manda chaves a mais, e elas
+  não podem derrubar as que ela entende.
+*/
+const ACOES = [
+  "pushToTalk",
+  "mutar",
+  "ensurdecer",
+  "desconectar",
+  "overlay",
+  "silenciarOverlay",
+] as const;
 type Acao = (typeof ACOES)[number];
 
 type EventoDeTecla = { keycode: number };
@@ -129,6 +142,11 @@ function aoApertar(e: EventoDeTecla): void {
       alternarOverlay();
       return;
     }
+    /* Silenciar as mensagens do overlay também: é estado da janela dele. */
+    if (acao === "silenciarOverlay") {
+      alternarSilencioDoOverlay();
+      return;
+    }
     if (acao === "pushToTalk") falando = true;
     enviar(acao === "pushToTalk" ? "pushToTalkInicio" : acao);
     return;
@@ -210,6 +228,9 @@ export function registrarControles(): void {
       mudo: o.mudo === true,
       surdo: o.surdo === true,
     });
+    /* `pip` só existe em clientes novos; ausente é `false`, que é o estado
+       de uma casca que nunca soube dele. */
+    definirChamadaEmPip(o.naChamada === true && o.pip === true);
   });
 }
 

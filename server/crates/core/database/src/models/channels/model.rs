@@ -115,6 +115,14 @@ auto_derived!(
             /// The channel's slowmode delay in seconds
             #[serde(skip_serializing_if = "Option::is_none")]
             slowmode: Option<u64>,
+
+            /// Vortex: whether all media in this channel is hidden behind a spoiler
+            #[serde(skip_serializing_if = "crate::if_false", default)]
+            spoiler: bool,
+
+            /// Vortex: whether joining through this channel's invites is paused
+            #[serde(skip_serializing_if = "crate::if_false", default)]
+            invites_paused: bool,
         },
     }
 
@@ -172,6 +180,10 @@ auto_derived!(
         pub voice: Option<VoiceInformation>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub slowmode: Option<u64>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub spoiler: Option<bool>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub invites_paused: Option<bool>,
     }
 
     /// Optional fields on channel object
@@ -234,6 +246,8 @@ impl Channel {
                 nsfw: data.nsfw.unwrap_or(false),
                 voice: data.voice.map(|voice| voice.into()),
                 slowmode: None,
+                spoiler: false,
+                invites_paused: false,
             },
             v0::LegacyServerChannelType::Voice => Channel::TextChannel {
                 id: id.clone(),
@@ -247,6 +261,8 @@ impl Channel {
                 nsfw: data.nsfw.unwrap_or(false),
                 voice: Some(data.voice.unwrap_or_default().into()),
                 slowmode: None,
+                spoiler: false,
+                invites_paused: false,
             },
         };
 
@@ -641,6 +657,8 @@ impl Channel {
                 default_permissions,
                 role_permissions,
                 voice,
+                spoiler,
+                invites_paused,
                 ..
             } => {
                 if let Some(v) = partial.name {
@@ -669,6 +687,14 @@ impl Channel {
 
                 if let Some(v) = partial.voice {
                     voice.replace(v);
+                }
+
+                if let Some(v) = partial.spoiler {
+                    *spoiler = v;
+                }
+
+                if let Some(v) = partial.invites_paused {
+                    *invites_paused = v;
                 }
             }
         }
@@ -745,6 +771,8 @@ impl Channel {
                 nsfw,
                 voice,
                 slowmode,
+                spoiler,
+                invites_paused,
                 ..
             } => {
                 if partial.name.is_some() {
@@ -783,6 +811,14 @@ impl Channel {
 
                 if partial.slowmode.is_some() {
                     before.slowmode = *slowmode;
+                }
+
+                if partial.spoiler.is_some() {
+                    before.spoiler = Some(*spoiler);
+                }
+
+                if partial.invites_paused.is_some() {
+                    before.invites_paused = Some(*invites_paused);
                 }
             }
         }

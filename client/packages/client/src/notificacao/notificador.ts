@@ -4,11 +4,19 @@ import { tocar } from "../som/sons";
 import { lerMeuStatus } from "../store/meuStatus";
 import { abrirConversa, irPara } from "../store/navegacao";
 import { lerNotificacoes } from "../store/notificacoes";
-import { estaSilenciado, nivelDoCanal } from "../store/silencio";
+import {
+  estaSilenciado,
+  nivelEfetivo,
+  opcoesDoServidor,
+  servidorSilenciado,
+} from "../store/silencio";
 import {
   decidirEntrega,
+  decidirEntregaDeEvento,
   textoDaNotificacao,
+  textoDeAmizade,
   type MensagemRecebida,
+  type MudancaDeAmizade,
 } from "./decidir";
 
 /**
@@ -98,10 +106,14 @@ export function notificarMensagem(m: MensagemRecebida): void {
   if (ARNES_ATIVO) return;
   const prefs = lerNotificacoes();
   const janelaEmFoco = typeof document !== "undefined" && document.hasFocus();
+  const opcoes = m.serverId ? opcoesDoServidor(m.serverId) : undefined;
   const entrega = decidirEntrega(m, {
     prefs,
-    nivel: nivelDoCanal(m.channelId),
+    nivel: nivelEfetivo(m.channelId, m.serverId),
     silenciado: estaSilenciado(m.channelId),
+    servidorSilenciado: m.serverId ? servidorSilenciado(m.serverId) : false,
+    suprimirTodos: opcoes?.suprimirTodos ?? false,
+    suprimirCargos: opcoes?.suprimirCargos ?? false,
     naoPerturbe: lerMeuStatus().presenca === "dnd",
     agora: new Date(),
     janelaEmFoco,
@@ -128,6 +140,74 @@ export function notificarMensagem(m: MensagemRecebida): void {
     espelho?.(m, titulo, corpo);
     /* Menção e DM com a janela atrás: a barra de tarefas pisca até olharem. */
     if (entrega.evento !== "mensagem") ponteDeNotificacoes()?.chamarAtencao();
+  }
+}
+
+/** Uma mudança de relação, já traduzida pelo adapter. */
+export type AmizadeRecebida = {
+  readonly userId: string;
+  readonly nome: string;
+  readonly mudanca: MudancaDeAmizade;
+};
+
+/**
+ * Pedido de amizade e aceite — o evento "amizade" da matriz.
+ *
+ * ⚠ **Aceitar e recusar moram no próprio toast**, como no design: um pedido
+ * que só diz "chegou" obriga a abrir a tela de pessoas para responder, e o
+ * aviso existe justamente para poupar esse caminho. As duas ações chegam por
+ * parâmetro e não por import de `sdk/social`, pela mesma razão do espelho: o
+ * adapter chama este módulo.
+ */
+export function notificarAmizade(
+  a: AmizadeRecebida,
+  responder: { aceitar: () => void; recusar: () => void },
+): void {
+  if (ARNES_ATIVO) return;
+  const prefs = lerNotificacoes();
+  const janelaEmFoco = typeof document !== "undefined" && document.hasFocus();
+  const entrega = decidirEntregaDeEvento("amizade", {
+    prefs,
+    naoPerturbe: lerMeuStatus().presenca === "dnd",
+    agora: new Date(),
+    janelaEmFoco,
+  });
+  if (!entrega) return;
+
+  const { titulo, corpo } = textoDeAmizade(a.mudanca, a.nome);
+  if (entrega.canais.has("som")) tocar("mensagem");
+  if (entrega.canais.has("toast")) {
+    toast({
+      tipo: "info",
+      titulo,
+      descricao: corpo,
+      ...(a.mudanca === "pedido"
+        ? {
+            acao: {
+              rotulo: "Aceitar",
+              descricaoAlternativa: `Aceite o pedido de ${a.nome} na tela de pessoas, aba Pedidos`,
+              aoAtivar: responder.aceitar,
+            },
+            acaoSecundaria: {
+              rotulo: "Recusar",
+              descricaoAlternativa: `Recuse o pedido de ${a.nome} na tela de pessoas, aba Pedidos`,
+              aoAtivar: responder.recusar,
+            },
+          }
+        : {}),
+    });
+  }
+  if (entrega.canais.has("push") && typeof Notification !== "undefined" && Notification.permission === "granted") {
+    try {
+      const n = new Notification(titulo, { body: corpo, tag: `amizade:${a.userId}`, silent: true });
+      n.onclick = () => {
+        ponteDeNotificacoes()?.focar();
+        if (typeof window !== "undefined") window.focus();
+        n.close();
+      };
+    } catch {
+      /* Contexto sem construtor — sem notificação. */
+    }
   }
 }
 

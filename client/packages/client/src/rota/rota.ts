@@ -196,6 +196,7 @@ const SLUG: Record<AbaDePessoas, string> = {
   recebido: "pedidos",
   enviado: "enviados",
   bloqueado: "bloqueados",
+  solicitacoes: "solicitacoes",
 };
 
 const ABA_DO_SLUG: Record<string, AbaDePessoas | undefined> =

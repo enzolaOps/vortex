@@ -57,6 +57,8 @@ impl IntoResponse for Error {
             ErrorType::TooManyEmoji { .. } => StatusCode::BAD_REQUEST,
             ErrorType::TooManyChannels { .. } => StatusCode::BAD_REQUEST,
             ErrorType::TooManyRoles { .. } => StatusCode::BAD_REQUEST,
+            ErrorType::TooManyStickers { .. } => StatusCode::BAD_REQUEST,
+            ErrorType::TooManySounds { .. } => StatusCode::BAD_REQUEST,
 
             ErrorType::ReachedMaximumBots => StatusCode::BAD_REQUEST,
             ErrorType::IsBot => StatusCode::BAD_REQUEST,
@@ -110,6 +112,7 @@ impl IntoResponse for Error {
             ErrorType::InvalidToken => StatusCode::UNAUTHORIZED,
             ErrorType::MissingInvite => StatusCode::BAD_REQUEST,
             ErrorType::InvalidInvite => StatusCode::BAD_REQUEST,
+            ErrorType::InvitesPaused => StatusCode::FORBIDDEN,
             ErrorType::CompromisedPassword => StatusCode::BAD_REQUEST,
             ErrorType::ShortPassword => StatusCode::BAD_REQUEST,
             ErrorType::Blacklisted => {

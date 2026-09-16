@@ -7,8 +7,8 @@ use revolt_models::v0::{
     FieldsChannel, FieldsMember, FieldsMessage, FieldsRole, FieldsServer, FieldsUser,
     FieldsWebhook, Member, MemberCompositeKey, Message, PartialChannel, PartialEmoji,
     PartialMember, PartialMessage, PartialRole, Poll, PartialServer, PartialUser, PartialUserVoiceState,
-    PartialWebhook, PolicyChange, RemovalIntention, Report, Server, ServerEvent, User, UserSettings,
-    UserVoiceState, Webhook,
+    PartialWebhook, PolicyChange, RemovalIntention, Report, Server, ServerEvent, SoundboardSound, Sticker,
+    User, UserSettings, UserVoiceState, Webhook,
 };
 
 use crate::{Account, Database, Session};
@@ -314,6 +314,30 @@ pub enum EventV1 {
         id: String,
     },
 
+    /// Figurinha nova (Vortex)
+    StickerCreate(Sticker),
+
+    /// Figurinha editada — o objeto inteiro (Vortex)
+    StickerUpdate(Sticker),
+
+    /// Figurinha apagada (Vortex)
+    StickerDelete {
+        id: String,
+        server: String,
+    },
+
+    /// Efeito sonoro novo (Vortex)
+    SoundboardSoundCreate(SoundboardSound),
+
+    /// Efeito sonoro editado — o objeto inteiro (Vortex)
+    SoundboardSoundUpdate(SoundboardSound),
+
+    /// Efeito sonoro apagado (Vortex)
+    SoundboardSoundDelete {
+        id: String,
+        server: String,
+    },
+
     /// New report
     ReportCreate(Report),
     /// New channel
@@ -413,6 +437,15 @@ pub enum EventV1 {
         id: String,
         channel_id: String,
         data: PartialUserVoiceState,
+    },
+    /// Alguém tocou um efeito sonoro na sala (Vortex)
+    ///
+    /// Cada cliente DENTRO da sala toca o arquivo localmente; quem tocou já
+    /// ouviu no clique e ignora o próprio evento.
+    VoiceSoundboardPlay {
+        channel_id: String,
+        user_id: String,
+        sound: SoundboardSound,
     },
     UserMoveVoiceChannel {
         node: String,
