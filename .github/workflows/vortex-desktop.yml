@@ -71,13 +71,18 @@ jobs:
         with:
           ref: ${{ env.TAG || github.ref }}
 
-      - uses: pnpm/action-setup@v4
-
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: pnpm
-          cache-dependency-path: vendor/stoat-desktop/pnpm-lock.yaml
+
+      # ⚠ Sem `pnpm/action-setup`: a política do repositório só libera ações
+      # da GitHub e de `docker/*`, e uma ação de terceiro derruba o run antes
+      # do primeiro passo (`startup_failure`) — a release sairia sem
+      # instalador nem atualização. O corepack do Node usa o `packageManager`
+      # da casca (versão e hash). Sem `cache: pnpm` no setup-node, porque ele
+      # procura o pnpm antes de o corepack ativá-lo.
+      - name: Ativar o pnpm da casca
+        run: corepack enable && pnpm --version
 
       # O Flatpak precisa do construtor e do runtime; o Windows não precisa de
       # nada além do Node. Passo condicional em vez de dois jobs quase iguais.
