@@ -23,6 +23,9 @@ auto_derived!(
             creator: String,
             /// Id of the server channel this invite points to
             channel: String,
+            /// Roles given to whoever joins the server through this invite
+            #[serde(skip_serializing_if = "Vec::is_empty", default)]
+            roles: Vec<String>,
         },
         /// Invite to a group channel
         Group {
@@ -61,6 +64,7 @@ impl Invite {
         db: &Database,
         creator: &User,
         channel: &Channel,
+        roles: Vec<String>,
     ) -> Result<Invite> {
         let code = nanoid::nanoid!(8, &ALPHABET);
         let invite = match &channel {
@@ -75,6 +79,7 @@ impl Invite {
                     creator: creator.id.clone(),
                     server: server.clone(),
                     channel: id.clone(),
+                    roles,
                 })
             }
             _ => Err(create_error!(InvalidOperation)),
@@ -96,6 +101,7 @@ impl Invite {
                         server: server.id,
                         creator: server.owner,
                         channel,
+                        roles: vec![],
                     });
                 }
             }

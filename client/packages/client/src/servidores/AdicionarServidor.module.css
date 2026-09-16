@@ -579,3 +579,112 @@
 .seletorDeIcone {
   display: none;
 }
+
+/* ============================================================
+   Categoria privada — "Quem pode ver"
+   ------------------------------------------------------------
+   Medido no design: ficha em pílula de 24 com respiro 0 9 0 6,
+   ponto de 8, gap 6, 12/600, fundo na cor do cargo a 14%;
+   amostra de cor de 9×9 com raio 3 na linha da lista.
+   ============================================================ */
+
+.quemVe {
+  display: grid;
+  gap: var(--vx-space-08);
+}
+
+.fichas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-06);
+}
+
+.ficha {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-06);
+  block-size: 24px;
+  padding-inline: var(--vx-space-06) var(--vx-space-09);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+}
+
+.pontoDaFicha {
+  flex: none;
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: var(--vx-radius-pill);
+}
+
+.tirarFicha {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--vx-text-2);
+  font: inherit;
+  cursor: pointer;
+  transition: color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.tirarFicha:hover {
+  color: var(--vx-text-1);
+}
+
+.tirarFicha:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+  border-radius: var(--vx-radius-03);
+}
+
+/* A lista SEM moldura — o design desenha as linhas soltas sob as fichas. */
+.cargosQueVeem {
+  display: flex;
+  flex-direction: column;
+  max-block-size: 240px;
+  overflow-y: auto;
+}
+
+/* 7 8, raio 6, gap 9 e véu no hover — os números do design. */
+.cargoQueVe {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-09);
+  padding: var(--vx-space-07) var(--vx-space-08);
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: background-color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.cargoQueVe:hover {
+  background: var(--vx-state-hover);
+}
+
+.cargoQueVe:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.amostraDeCargo {
+  flex: none;
+  inline-size: 9px;
+  block-size: 9px;
+  border-radius: var(--vx-radius-03);
+}
+
+.nomeDoCargoQueVe {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--vx-size-md);
+  color: var(--vx-text-2);
+}

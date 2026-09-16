@@ -1,9 +1,17 @@
 import { ArrowLeft, Check, Minus, X } from "../../components/ui/icones";
 import { useEffect, useState } from "react";
 
+import { Banner } from "../../components/ui/Banner";
 import { Botao } from "../../components/ui/Botao";
 import { Interruptor } from "../../components/ui/Interruptor";
-import { aindaNao } from "../../pendente/pendencias";
+import {
+  categoriaDoCanal,
+  conjuntoDoCanal,
+  divergencias,
+  sincronizarComCategoria,
+  temSobreposicoes,
+} from "../../sdk/categorias";
+import { pode } from "../../sdk/permissoes";
 import {
   overrideDoCargo,
   salvarPermissaoDeCanal,
@@ -15,7 +23,7 @@ import {
   PERMISSOES,
   type Cargo,
 } from "../../sdk/cargos";
-import { useChannel, useCorDeCargo } from "../../store/hooks";
+import { useCategorias, useChannel, useCorDeCargo } from "../../store/hooks";
 import secao from "../Secao.module.css";
 import { CampoDeBusca } from "../../components/ui/CampoDeBusca";
 import css from "./Canal.module.css";
@@ -33,13 +41,15 @@ import css from "./Canal.module.css";
  * ela se responde com uma lista de cinco linhas. A matriz de trinta bits por
  * cargo é a pergunta rara, e pôr as duas juntas faz a rara esconder a comum.
  *
- * ⚠ **O banner de dessincronização NÃO entra.** O design o desenha em warning,
- * dizendo "este canal tem N overrides diferentes da categoria" — e categoria
- * não tem permissões no protocolo do Stoat: ela é um array de IDs dentro de
- * `Server`, sem campo de permissão nenhum. Não há com o que comparar, então o
- * banner seria um aviso permanentemente falso. É a mesma linha que o projeto
- * traçou em "Conectado · 42 ms": não inventar dado numa superfície onde a
- * pessoa decide algo.
+ * **O banner de dessincronização entra, e depende do fork.** Categoria com
+ * permissões é do serviço `api` do Vortex (`Category.role_permissions`); o
+ * banner compara o conjunto do canal com o da categoria que o contém e diz
+ * quantos ALVOS divergem.
+ *
+ * ⚠ **Só aparece quando a categoria TEM sobreposições.** Categoria sem
+ * nenhuma é o caso de todo servidor Stoat de fábrica, e ali qualquer canal
+ * com um override "diverge" — um aviso amarelo em todo canal com permissão
+ * própria seria ruído permanente, não informação.
  */
 export function PermissoesDoCanal({ channelId }: { channelId: string }) {
   const canal = useChannel(channelId);
@@ -47,6 +57,9 @@ export function PermissoesDoCanal({ channelId }: { channelId: string }) {
 
   const [cargos, setCargos] = useState<readonly Cargo[]>([]);
   const [avancadas, setAvancadas] = useState(false);
+  /* Assinado só para acordar quando as sobreposições da categoria mudam — elas
+     chegam num `ServerUpdate` de `categories`, que é o que este store publica. */
+  useCategorias(serverId ?? "");
 
   useEffect(() => {
     if (!serverId) return;
@@ -71,12 +84,24 @@ export function PermissoesDoCanal({ channelId }: { channelId: string }) {
     );
   }
 
+  const categoria = categoriaDoCanal(channelId);
+  const podeSincronizar =
+    categoria !== undefined && pode(channelId, "gerenciarPermissoes");
+  const divergentes =
+    categoria !== undefined && temSobreposicoes(categoria.conjunto)
+      ? divergencias(conjuntoDoCanal(channelId), categoria.conjunto)
+      : 0;
+  const sincronizar = podeSincronizar
+    ? () => void sincronizarComCategoria(channelId)
+    : undefined;
+
   if (avancadas) {
     return (
       <Avancadas
         channelId={channelId}
         nomeDoCanal={canal.name}
         cargos={cargos}
+        aoSincronizar={sincronizar}
         aoVoltar={() => setAvancadas(false)}
       />
     );
@@ -100,6 +125,30 @@ export function PermissoesDoCanal({ channelId }: { channelId: string }) {
         Use canal privado para o caso comum. A matriz por cargo fica em
         Permissões avançadas.
       </p>
+
+      {categoria !== undefined && divergentes > 0 ? (
+        <Banner
+          tom="aviso"
+          titulo="Permissões dessincronizadas da categoria"
+          acoes={
+            <>
+              <Botao variante="sutil" onClick={() => setAvancadas(true)}>
+                Ver diferença
+              </Botao>
+              {sincronizar ? (
+                <Botao variante="avisoSutil" onClick={sincronizar}>
+                  Sincronizar agora
+                </Botao>
+              ) : null}
+            </>
+          }
+        >
+          Este canal tem {divergentes}{" "}
+          {divergentes === 1 ? "override próprio" : "overrides próprios"} e não
+          segue mais <strong>{categoria.titulo}</strong>. Sincronizar substitui
+          os overrides locais pelos da categoria.
+        </Banner>
+      ) : null}
 
       <section className={css.cartaoChave}>
         <span className={css.cartaoTexto}>
@@ -305,11 +354,14 @@ function Avancadas({
   channelId,
   nomeDoCanal,
   cargos,
+  aoSincronizar,
   aoVoltar,
 }: {
   channelId: string;
   nomeDoCanal: string;
   cargos: readonly Cargo[];
+  /** Ausente quando o canal não está em categoria ou falta o direito. */
+  aoSincronizar: (() => void) | undefined;
   aoVoltar: () => void;
 }) {
   const [alvo, setAlvo] = useState("default");
@@ -351,9 +403,11 @@ function Avancadas({
           Permissões avançadas{" "}
           <span className={css.avancadasAlvo}>#{nomeDoCanal}</span>
         </h2>
-        <Botao variante="sutil" onClick={aindaNao("sincronizarComCategoria")}>
-          Sincronizar com a categoria
-        </Botao>
+        {aoSincronizar ? (
+          <Botao variante="sutil" onClick={aoSincronizar}>
+            Sincronizar com a categoria
+          </Botao>
+        ) : null}
       </header>
 
       <div className={css.avancadasCorpo}>

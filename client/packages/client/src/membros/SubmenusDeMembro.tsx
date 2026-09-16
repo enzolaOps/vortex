@@ -115,18 +115,28 @@ export function SubmenuDeCargos({
 export function SubmenuDeVoz({
   serverId,
   userId,
+  rotulo = "Mover para canal",
+  atual,
 }: {
   serverId: string;
   userId: string;
+  /** O menu do participante de voz diz "Mover para outro canal", como o design. */
+  rotulo?: string;
+  /**
+   * A sala em que a pessoa está, quando quem abre o menu SABE qual é. A member
+   * list não sabe sem varrer os canais; o menu da sala sabe de graça.
+   */
+  atual?: string;
 }) {
-  const canais = useCanaisDeVoz(serverId);
+  const todos = useCanaisDeVoz(serverId);
+  const canais = atual === undefined ? todos : todos.filter((id) => id !== atual);
   if (canais.length === 0) return null;
 
   return (
     <ContextMenuSub>
       <ContextMenuSubTrigger>
         <Hash aria-hidden />
-        Mover para canal
+        {rotulo}
       </ContextMenuSubTrigger>
       <ContextMenuSubContent>
         {canais.map((id) => (

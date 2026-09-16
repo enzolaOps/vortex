@@ -11,7 +11,7 @@ import { lazy, Suspense, type ComponentType, type ReactNode } from "react";
 import { Girador } from "../components/ui/Girador";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/Popover";
 import { Tooltip } from "../components/ui/Tooltip";
-import { aindaNao } from "../pendente/pendencias";
+import { enviarFigurinha } from "../sdk/adapter";
 import { SeletorDeEmoji } from "../seletores/SeletorDeEmoji";
 import { SeletorDeFigurinhas } from "../seletores/SeletorDeFigurinhas";
 import { fonteDeGifs } from "../sdk/fonteDeGifs";
@@ -60,9 +60,9 @@ function CarregandoGif() {
  * emoji funciona de verdade — inserir texto no rascunho é o que o composer já
  * faz a cada tecla.
  *
- * As outras duas continuam pendentes por razões diferentes: enquete abre o
- * modal de criação (que é 1:1 e não escreve no protocolo) e mensagem de voz
- * muda o MODO do composer, que é a única das seis que não é um painel.
+ * As outras duas não são painel: enquete abre o modal de criação (que é 1:1 e
+ * não escreve no protocolo) e mensagem de voz muda o MODO do composer — o
+ * gravador ocupa o lugar da caixa, ver `GravadorDeVoz`.
  *
  * A ordem é a do design, e ela não é aleatória: emoji primeiro porque é o mais
  * usado por ordens de grandeza, voz por último porque é o único que muda o
@@ -77,14 +77,22 @@ type Ferramenta = {
   readonly Icone: ComponentType<{ size?: number | string }>;
 } & (
   | { readonly painel: (aoFechar: () => void) => ReactNode; readonly acao?: never }
-  | { readonly painel?: never; readonly acao: () => void }
+  | {
+      readonly painel?: never;
+      /** `undefined` = a ação não está disponível aqui, e o botão desliga. */
+      readonly acao: (() => void) | undefined;
+    }
 );
 
 export function FerramentasDoComposer({
+  channelId,
   desabilitado,
   aoInserir,
   aoEnviar,
+  aoGravar,
 }: {
+  /** Para onde a figurinha vai — ela é mensagem inteira, não texto do rascunho. */
+  channelId: string;
   desabilitado: boolean;
   /**
    * Insere texto no rascunho. É como o emoji chega ao campo. Uma função monta
@@ -98,6 +106,12 @@ export function FerramentasDoComposer({
    * escrevendo continua lá.
    */
   aoEnviar: (texto: string) => void;
+  /**
+   * Começa a mensagem de voz. `undefined` = não dá para gravar aqui (sem
+   * microfone no navegador ou sem servidor de mídia), e o botão desliga em
+   * vez de pedir um microfone cujo áudio não teria para onde ir.
+   */
+  aoGravar: (() => void) | undefined;
 }) {
   const ferramentas: readonly Ferramenta[] = [
     {
@@ -145,7 +159,14 @@ export function FerramentasDoComposer({
       id: "figurinha",
       rotulo: "Figurinha",
       Icone: Sticker,
-      painel: () => <SeletorDeFigurinhas />,
+      painel: (aoFechar) => (
+        <SeletorDeFigurinhas
+          aoEscolher={(f) => {
+            enviarFigurinha(channelId, f.id);
+            aoFechar();
+          }}
+        />
+      ),
     },
     {
       id: "soundboard",
@@ -163,7 +184,8 @@ export function FerramentasDoComposer({
       id: "mensagemDeVoz",
       rotulo: "Mensagem de voz",
       Icone: Microphone,
-      acao: aindaNao("mensagemDeVoz"),
+      /* Muda o MODO do composer — ver `GravadorDeVoz`. */
+      acao: aoGravar,
     },
   ];
 
@@ -178,7 +200,7 @@ export function FerramentasDoComposer({
               type="button"
               className={css.ferramenta}
               aria-label={f.rotulo}
-              disabled={desabilitado}
+              disabled={desabilitado || f.acao === undefined}
               onClick={f.acao}
             >
               <f.Icone />

@@ -59,3 +59,10 @@
 .itemPerigo[data-highlighted] {
   background: color-mix(in oklab, var(--vx-danger) 14%, transparent);
 }
+
+/* O realce do item de AVISO — âmbar a 12%, como o design. Mesma decisão do
+   `.itemPerigo`: `color-mix` sobre o token em vez de um `--vx-warning-soft`
+   que só existiria atrás deste item. */
+.itemAviso[data-highlighted] {
+  background: color-mix(in oklab, var(--vx-warning) 12%, transparent);
+}

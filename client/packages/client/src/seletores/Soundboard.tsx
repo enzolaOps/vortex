@@ -1,62 +1,60 @@
 import { useState, useSyncExternalStore } from "react";
 
 import { Deslizante } from "../components/ui/Deslizante";
-import { aindaNao } from "../pendente/pendencias";
+import { LockSimple } from "../components/ui/icones";
+import { TECLAS_DO_SOUNDBOARD } from "../expressoes/atalhos";
+import { useSonsDoServidor, useTocando, useVolumeDoPainel } from "../expressoes/hooks";
+import { podeUsarSoundboard, tocarNaSala } from "../sdk/efeitosSonoros";
+import type { EfeitoSonoro } from "../sdk/expressoes";
 import { assinarChamada, lerChamada } from "../store/chamada";
+import { useChannel, useServer } from "../store/hooks";
+import { definirVolumeDoPainel } from "../store/soundboard";
 import { CascaDeSeletor } from "./CascaDeSeletor";
 import css from "./Seletores.module.css";
 
 /**
- * Os sons do design, com a tecla que cada um dispara.
- *
- * A numeração é a informação que faz o painel deixar de ser necessário: o
- * design escreve *"teclas 1–9 disparam os sons sem abrir o painel"*, e um
- * painel que ensina a não precisar dele é o certo para um gesto que se repete.
- */
-const SONS = [
-  { glifo: "🥁", nome: "tambor", tecla: "1" },
-  { glifo: "📣", nome: "anúncio", tecla: "2" },
-  { glifo: "🎺", nome: "fanfarra", tecla: "3" },
-  { glifo: "💥", nome: "explosão", tecla: "4" },
-  { glifo: "🦆", nome: "pato", tecla: "5" },
-] as const;
-
-/**
  * O painel de sons.
  *
- * ⚠ **Soundboard não existe no protocolo**, como a figurinha. E ele tem uma
- * dependência a mais que as outras três: tocar um som numa sala de voz é
- * publicar uma faixa de áudio no LiveKit, não mandar uma mensagem — então nem
- * o transporte que o app já tem serve sem trabalho.
+ * ⚠ **Era casca com cinco sons de exemplo — "soundboard não existe no
+ * protocolo".** O fork do `delta` tem os sons do servidor e o evento que leva
+ * um toque à sala (ver `sdk/efeitosSonoros.ts`). O painel agora mostra os sons
+ * do servidor DA CHAMADA — e não do canal aberto: é na sala que o som toca, e
+ * quem está numa chamada de outro servidor lendo este canal espera os sons de
+ * lá.
  *
- * O que a casca acerta é a regra de contexto: o painel só faz sentido DENTRO
- * de uma chamada, e o design marca isso com o selo "EM VOZ" no cabeçalho.
- * Fora dela ele diz que não há onde tocar, em vez de mostrar nove botões que
- * não teriam para onde mandar o áudio.
+ * A regra de contexto do design continua: fora de uma chamada os sons ficam
+ * esmaecidos e o selo diz "FORA DE VOZ" — somem não, porque sumir faria parecer
+ * que o servidor não tem som nenhum.
  */
 export function Soundboard() {
   const [busca, setBusca] = useState("");
-  const [volume, setVolume] = useState(70);
-  const naSala = useSyncExternalStore(
-    assinarChamada,
-    () => lerChamada().estado === "dentro",
+  const volume = useVolumeDoPainel();
+  const channelId = useSyncExternalStore(assinarChamada, () =>
+    lerChamada().estado === "dentro" ? lerChamada().channelId : "",
   );
-
-  const filtro = busca.trim().toLowerCase();
-  const visiveis = SONS.filter((s) => s.nome.includes(filtro));
+  const canal = useChannel(channelId);
+  const servidor = useServer(canal?.serverId ?? "");
 
   return (
     <CascaDeSeletor
       estreita
       rotulo="Painel de sons"
-      busca={{ valor: busca, aoMudar: setBusca, placeholder: "Buscar som" }}
-      acaoDaBusca={
-        naSala ? (
-          <span className={css.selo}>EM VOZ</span>
-        ) : (
-          <span className={css.seloApagado}>FORA DE VOZ</span>
-        )
+      cabecalho={
+        <>
+          <div className={css.cabecalhoDeSons}>
+            <span className={css.tituloDeSons}>Painel de sons</span>
+            <span className={css.previaOrigem}>
+              {canal && servidor ? `${canal.name} · ${servidor.name}` : "Entre numa sala para tocar"}
+            </span>
+          </div>
+          {channelId ? (
+            <span className={css.selo}>EM VOZ</span>
+          ) : (
+            <span className={css.seloApagado}>FORA DE VOZ</span>
+          )}
+        </>
       }
+      busca={{ valor: busca, aoMudar: setBusca, placeholder: "Buscar som" }}
       rodape={
         <div className={css.volume}>
           <div className={css.volumeCabecalho}>
@@ -71,7 +69,7 @@ export function Soundboard() {
             min={0}
             max={100}
             passo={5}
-            aoMudar={setVolume}
+            aoMudar={definirVolumeDoPainel}
           />
           <p className={css.volumeDica}>
             Teclas 1–9 disparam os sons sem abrir o painel.
@@ -79,30 +77,85 @@ export function Soundboard() {
         </div>
       }
     >
-      <div className={css.gradeDeSons}>
-        {visiveis.map((s) => (
-          <button
-            key={s.nome}
-            type="button"
-            className={css.som}
-            onClick={aindaNao("soundboard")}
-            /*
-              Fora da chamada o botão fica desabilitado, e não escondido.
-
-              É a regra que o design escreve para os seletores: sem permissão
-              (ou sem contexto) o item aparece esmaecido, porque some-lo faria
-              parecer que o servidor não tem som nenhum.
-            */
-            disabled={!naSala}
-          >
-            <span className={css.somGlifo} aria-hidden>
-              {s.glifo}
-            </span>
-            <span className={css.somNome}>{s.nome}</span>
-            <span className={css.somTecla}>{s.tecla}</span>
-          </button>
-        ))}
-      </div>
+      {servidor && channelId ? (
+        <GradeDeSons serverId={servidor.id} channelId={channelId} busca={busca} />
+      ) : (
+        <p className={css.bloqueio}>Os sons tocam para a sala em que você está.</p>
+      )}
     </CascaDeSeletor>
+  );
+}
+
+function GradeDeSons({
+  serverId,
+  channelId,
+  busca,
+}: {
+  serverId: string;
+  channelId: string;
+  busca: string;
+}) {
+  const lista = useSonsDoServidor(serverId);
+  if (lista.estado === "carregando") return <p className={css.bloqueio}>Carregando…</p>;
+  if (lista.estado === "falhou") {
+    return <p className={css.bloqueio}>Não deu para carregar os sons deste servidor.</p>;
+  }
+  if (lista.itens.length === 0) {
+    return <p className={css.bloqueio}>Este servidor ainda não tem efeitos sonoros.</p>;
+  }
+
+  const pode = podeUsarSoundboard(channelId);
+  const filtro = busca.trim().toLowerCase();
+  const visiveis = lista.itens
+    .map((som, i) => ({ som, tecla: i < TECLAS_DO_SOUNDBOARD ? String(i + 1) : undefined }))
+    .filter(({ som }) => filtro === "" || som.nome.toLowerCase().includes(filtro));
+
+  if (visiveis.length === 0) return <p className={css.bloqueio}>Nenhum som com esse nome.</p>;
+
+  return (
+    <div className={css.gradeDeSons}>
+      {visiveis.map(({ som, tecla }) => (
+        <LadrilhoDeSom key={som.id} som={som} tecla={tecla} channelId={channelId} pode={pode} />
+      ))}
+    </div>
+  );
+}
+
+function LadrilhoDeSom({
+  som,
+  tecla,
+  channelId,
+  pode,
+}: {
+  som: EfeitoSonoro;
+  tecla: string | undefined;
+  channelId: string;
+  pode: boolean;
+}) {
+  const tocando = useTocando(som.id);
+  return (
+    <button
+      type="button"
+      className={css.som}
+      data-tocando={tocando || undefined}
+      /*
+        Sem permissão o ladrilho fica ESMAECIDO e com o motivo — regra do
+        design para os seletores. `aria-disabled` e não `disabled`: o `title`
+        precisa do ponteiro, e botão desabilitado não recebe eventos.
+      */
+      aria-disabled={!pode || undefined}
+      title={pode ? undefined : 'Falta a permissão "usar soundboard"'}
+      onClick={() => {
+        if (pode) tocarNaSala(channelId, som);
+      }}
+    >
+      <span className={css.somGlifo} aria-hidden>
+        {pode ? (som.emoji ?? "🔊") : <LockSimple aria-hidden />}
+      </span>
+      <span className={css.somNome}>{som.nome}</span>
+      <span className={tocando ? css.somTocando : css.somTecla}>
+        {!pode ? "sem perm." : tocando ? "tocando" : (tecla ?? "")}
+      </span>
+    </button>
   );
 }

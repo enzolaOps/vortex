@@ -216,6 +216,19 @@
   color: var(--vx-text-3);
 }
 
+/*
+  "⇧⌘M silencia", em mono e `text.disabled`. ⚠ O design escreve 9px; a
+  escala de tipo não tem o degrau (9px é onde as contraformas somem em tela,
+  e ficou fora dela de propósito), então sai no 10 — o menor que existe.
+*/
+.mensagemAtalho {
+  flex: none;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-2xs);
+  white-space: nowrap;
+  color: var(--vx-text-4);
+}
+
 .mensagemTexto {
   margin: 0;
   font-size: var(--vx-size-xs);

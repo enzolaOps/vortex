@@ -96,6 +96,14 @@ pub struct GlobalLimits {
     message_reactions: i64,
     /// max server emoji
     server_emoji: i64,
+    /// max figurinhas por servidor (Vortex)
+    server_stickers: i64,
+    /// max efeitos sonoros por servidor (Vortex)
+    server_sounds: i64,
+    /// teto de uma figurinha, em bytes (Vortex)
+    sticker_size: i64,
+    /// teto de um efeito sonoro, em bytes (Vortex)
+    sound_size: i64,
     /// max server roles
     server_roles: i64,
     /// max server channels
@@ -238,6 +246,10 @@ pub async fn root() -> Result<Json<RevoltConfig>> {
                     message_replies: config.features.limits.global.message_replies as i64,
                     message_reactions: config.features.limits.global.message_reactions as i64,
                     server_emoji: config.features.limits.global.server_emoji as i64,
+                    server_stickers: config.features.limits.global.server_stickers as i64,
+                    server_sounds: config.features.limits.global.server_sounds as i64,
+                    sticker_size: config.features.limits.global.sticker_size as i64,
+                    sound_size: config.features.limits.global.sound_size as i64,
                     server_roles: config.features.limits.global.server_roles as i64,
                     server_channels: config.features.limits.global.server_channels as i64,
                     body_limit_size: config.features.limits.global.body_limit_size as i64,

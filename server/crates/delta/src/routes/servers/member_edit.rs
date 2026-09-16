@@ -69,6 +69,11 @@ pub async fn edit(
         }
     }
 
+    // Vortex: exibir a tag do servidor é escolha de quem a exibe, e só dela.
+    if data.show_tag.is_some() && user.id != member.id.user {
+        return Err(create_error!(InvalidOperation));
+    }
+
     if data.pronouns.is_some() || data.remove.contains(&v0::FieldsMember::Pronouns) {
         if user.id != member.id.user {
             return Err(create_error!(InvalidOperation))
@@ -192,6 +197,7 @@ pub async fn edit(
         can_publish,
         can_receive,
         voice_channel: _,
+        show_tag,
     } = data;
 
     let mut partial = PartialMember {
@@ -201,6 +207,7 @@ pub async fn edit(
         timeout,
         can_publish,
         can_receive,
+        show_tag,
         ..Default::default()
     };
 
@@ -299,11 +306,13 @@ pub async fn edit(
             let node = get_channel_node(&channel).await?.unwrap();
             let channel = Reference::from_unchecked(&channel).as_channel(db).await?;
 
+            // The member being edited, not the moderator: their LiveKit
+            // grants are the ones that changed.
             sync_user_voice_permissions(
                 db,
                 voice_client,
                 &node,
-                &user,
+                &target_user,
                 &channel,
                 Some(&server),
                 None,
@@ -317,7 +326,8 @@ pub async fn edit(
         {
             let node = get_channel_node(&channel).await?.unwrap();
 
-            voice_client.remove_user(&node, &user.id, &channel).await?;
+            // Disconnect the member being edited, not the moderator.
+            voice_client.remove_user(&node, &target_user.id, &channel).await?;
         };
     }
 

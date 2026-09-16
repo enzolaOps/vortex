@@ -18,9 +18,14 @@ mod ratelimit_events;
 mod safety_reports;
 mod safety_snapshots;
 mod server_bans;
+mod server_join_requests;
+mod server_events;
 mod server_members;
+mod server_templates;
 mod servers;
 mod sessions;
+mod soundboard_sounds;
+mod stickers;
 mod user_settings;
 mod users;
 
@@ -44,9 +49,14 @@ pub use ratelimit_events::*;
 pub use safety_reports::*;
 pub use safety_snapshots::*;
 pub use server_bans::*;
+pub use server_join_requests::*;
+pub use server_events::*;
 pub use server_members::*;
+pub use server_templates::*;
 pub use servers::*;
 pub use sessions::*;
+pub use soundboard_sounds::*;
+pub use stickers::*;
 pub use user_settings::*;
 pub use users::*;
 
@@ -66,6 +76,8 @@ pub trait AbstractDatabase:
     + channel_unreads::AbstractChannelUnreads
     + channel_webhooks::AbstractWebhooks
     + emojis::AbstractEmojis
+    + stickers::AbstractStickers
+    + soundboard_sounds::AbstractSoundboardSounds
     + file_hashes::AbstractAttachmentHashes
     + files::AbstractAttachments
     + messages::AbstractMessages
@@ -74,7 +86,10 @@ pub trait AbstractDatabase:
     + safety_reports::AbstractReport
     + safety_snapshots::AbstractSnapshot
     + server_bans::AbstractServerBans
+    + server_join_requests::AbstractServerJoinRequests
+    + server_events::AbstractServerEvents
     + server_members::AbstractServerMembers
+    + server_templates::AbstractServerTemplates
     + servers::AbstractServers
     + user_settings::AbstractUserSettings
     + users::AbstractUsers

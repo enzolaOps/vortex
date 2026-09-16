@@ -1,0 +1,672 @@
+/* ============================================================
+   Criar evento — assistente de três passos e prévia do card
+   ------------------------------------------------------------
+   Valores do `Vortex Eventos e Entrada.dc.html`, seção 1. A
+   referência (`CreateEventWizard.tsx`) decide o que existe:
+   três passos, prévia ao lado, voltar sem perder dado.
+   ============================================================ */
+
+/*
+  O palco — o `DialogContent` sem a pele de painel.
+
+  ⚠ Isto vence as utilities do `Dialog` (`bg-surface-4`, `border`,
+  `shadow-e3`, `rounded-12`, `overflow-hidden`) sem `!important`: elas moram
+  em `@layer utilities`, e CSS fora de camada ganha de qualquer camada. O
+  painel de verdade é o filho `.painel`; a prévia fica ao lado dele, sobre o
+  véu, como o design desenha.
+*/
+.palco {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--vx-space-20);
+  inline-size: fit-content;
+  max-inline-size: calc(100vw - var(--vx-space-32));
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* ---------------------------------------------------------- painel */
+
+.painel {
+  display: flex;
+  flex-direction: column;
+  /* 520: DIMENSÃO do painel no design. */
+  inline-size: 520px;
+  max-inline-size: 100%;
+  max-block-size: 90vh;
+  overflow: hidden;
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-12);
+  background: var(--vx-surface-4);
+  box-shadow: var(--vx-elev-3);
+}
+
+.cabecalho {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--vx-space-18) var(--vx-space-22) var(--vx-space-14);
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+.titulo {
+  font-size: var(--vx-size-xl);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.subtitulo {
+  margin-block-start: var(--vx-space-02);
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+.fechar {
+  display: grid;
+  place-items: center;
+  inline-size: var(--vx-space-24);
+  block-size: var(--vx-space-24);
+  border-radius: var(--vx-radius-06);
+  color: var(--vx-text-3);
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.fechar svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+.fechar:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.fechar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/* ---------------------------------------------------------- passos */
+
+.passos {
+  display: flex;
+  flex: none;
+  gap: var(--vx-space-06);
+  padding: var(--vx-space-14) var(--vx-space-22) 0;
+  list-style: none;
+}
+
+.passo {
+  flex: 1;
+  padding-block: var(--vx-space-07);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  text-align: center;
+}
+
+.passo[data-estado="atual"] {
+  background: color-mix(in oklab, var(--vx-accent) 14%, transparent);
+  color: var(--vx-accent-text);
+}
+
+.passo[data-estado="feito"] {
+  color: var(--vx-success-text);
+}
+
+/* ----------------------------------------------------------- corpo */
+
+.corpo {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  padding: var(--vx-space-20) var(--vx-space-22) var(--vx-space-18);
+}
+
+.sobrancelha,
+.rotuloDeCampo {
+  display: block;
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--vx-text-3);
+}
+
+.sobrancelha {
+  margin-block-end: var(--vx-space-10);
+}
+
+.sobrancelha[data-degrau="repeticao"] {
+  margin-block-end: var(--vx-space-09);
+}
+
+/* O rótulo do campo abaixo dos cartões respira 16 acima; o colado a um
+   campo (grade, nome) não. */
+.rotuloDeCampo {
+  margin-block: var(--vx-space-16) var(--vx-space-07);
+}
+
+.rotuloDeCampo[data-colado] {
+  margin-block-start: 0;
+}
+
+.linhaDoRotulo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-block-end: var(--vx-space-07);
+}
+
+.linhaDoRotulo .rotuloDeCampo {
+  margin-block-end: 0;
+}
+
+.contador {
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Cartões de tipo de local. */
+.cartoes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-07);
+}
+
+.cartaoDeLocal {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-11);
+  inline-size: 100%;
+  padding: var(--vx-space-11) var(--vx-space-13);
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-09);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-1);
+  text-align: start;
+  cursor: pointer;
+  transition: border-color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.cartaoDeLocal:hover {
+  border-color: var(--vx-hairline-16);
+}
+
+.cartaoDeLocal[aria-checked="true"] {
+  border-color: var(--vx-accent);
+  background: color-mix(in oklab, var(--vx-accent) 8%, transparent);
+}
+
+.cartaoDeLocal:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.glifo {
+  display: grid;
+  flex: none;
+  place-items: center;
+  /* 18: a caixa do glifo no design. */
+  inline-size: 18px;
+  color: var(--vx-text-2);
+}
+
+.glifo svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+.textosDoCartao {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+
+.tituloDoCartao {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+}
+
+.detalheDoCartao {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.radio {
+  flex: none;
+  inline-size: var(--vx-space-16);
+  block-size: var(--vx-space-16);
+  border: 1px solid var(--vx-hairline-16);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-surface-2);
+}
+
+.cartaoDeLocal[aria-checked="true"] .radio {
+  border-color: var(--vx-accent);
+  background: radial-gradient(circle, var(--vx-accent) 0 4px, transparent 5px);
+}
+
+/* Campos. */
+.entrada,
+.selecao,
+.area {
+  inline-size: 100%;
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-base);
+  transition:
+    border-color var(--vx-duration-fast) var(--vx-ease-out),
+    box-shadow var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.entrada {
+  /* 36: altura do campo no design. */
+  block-size: 36px;
+  padding-inline: var(--vx-space-12);
+}
+
+.entrada[data-mono] {
+  font-family: var(--vx-font-mono);
+}
+
+.area {
+  display: block;
+  padding: var(--vx-space-10) var(--vx-space-12);
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.entrada:focus,
+.area:focus {
+  outline: none;
+  border-color: var(--vx-accent);
+  box-shadow: 0 0 0 3px var(--vx-accent-ring);
+}
+
+.selecao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-08);
+  block-size: 36px;
+  padding-inline: var(--vx-space-11) var(--vx-space-10);
+  text-align: start;
+  cursor: pointer;
+}
+
+.selecao:hover {
+  border-color: var(--vx-hairline-16);
+}
+
+.selecao:focus-visible,
+.selecao[data-state="open"] {
+  outline: none;
+  border-color: var(--vx-accent);
+  box-shadow: 0 0 0 3px var(--vx-accent-ring);
+}
+
+.selecao svg {
+  flex: none;
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+  color: var(--vx-text-3);
+}
+
+.valor {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--vx-space-12);
+  margin-block-end: var(--vx-space-16);
+}
+
+.bloco {
+  margin-block-end: var(--vx-space-16);
+}
+
+/* Repetição. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-06);
+  margin-block-end: var(--vx-space-14);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  /* 26: altura do chip no design. */
+  block-size: 26px;
+  padding-inline: var(--vx-space-11);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.chip:hover {
+  color: var(--vx-text-1);
+}
+
+.chip[aria-checked="true"] {
+  background: color-mix(in oklab, var(--vx-accent) 16%, transparent);
+  color: var(--vx-accent-text);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.linhaDeInterruptor {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-16);
+  padding: var(--vx-space-12) var(--vx-space-14);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-3);
+}
+
+.interruptorTitulo {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.interruptorDica {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.capa {
+  display: grid;
+  place-items: center;
+  inline-size: 100%;
+  /* 88: altura da área de capa no design. */
+  block-size: 88px;
+  border: 1px dashed var(--vx-hairline-16);
+  border-radius: var(--vx-radius-08);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--vx-surface-3) 0 10px,
+    color-mix(in oklab, var(--vx-surface-3) 45%, var(--vx-surface-2)) 10px 20px
+  );
+  color: var(--vx-text-3);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  cursor: pointer;
+}
+
+.capa:hover {
+  color: var(--vx-text-1);
+}
+
+.capa:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.erro {
+  margin-block-start: var(--vx-space-12);
+  font-size: var(--vx-size-sm);
+  color: var(--vx-danger-text);
+}
+
+/* ---------------------------------------------------------- rodapé */
+
+.rodape {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--vx-space-14) var(--vx-space-22);
+  border-block-start: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-3);
+}
+
+.acoes {
+  display: flex;
+  gap: var(--vx-space-08);
+}
+
+.voltar,
+.cancelar,
+.continuar {
+  block-size: 36px;
+  border-radius: var(--vx-radius-06);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.voltar {
+  padding-inline: var(--vx-space-14);
+  border: 1px solid var(--vx-hairline-16);
+  background: transparent;
+  color: var(--vx-text-1);
+}
+
+.voltar:hover {
+  background: var(--vx-state-hover);
+}
+
+/* `visibility` e não desmontar: a caixa segura o lugar e "Cancelar" não
+   salta de lado ao passar do passo 1 para o 2. */
+.voltar[data-oculto] {
+  visibility: hidden;
+}
+
+.cancelar {
+  padding-inline: var(--vx-space-14);
+  background: transparent;
+  color: var(--vx-text-2);
+}
+
+.cancelar:hover {
+  color: var(--vx-text-1);
+}
+
+.continuar {
+  padding-inline: var(--vx-space-18);
+  background: var(--vx-accent);
+  color: var(--vx-on-accent);
+}
+
+.continuar:hover:not(:disabled) {
+  background: var(--vx-accent-hover);
+}
+
+.continuar:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.voltar:focus-visible,
+.cancelar:focus-visible,
+.continuar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------- prévia */
+
+.previa {
+  /* 380: DIMENSÃO da coluna de prévia no design. */
+  inline-size: 380px;
+  flex: none;
+}
+
+/* Sem lugar para as duas colunas, a prévia sai: o formulário é o que a
+   pessoa precisa para terminar. Media e não container query porque o
+   modal é ancorado na JANELA, não num painel. */
+@media (inline-size < 960px) {
+  .previa {
+    display: none;
+  }
+}
+
+.sobrancelhaDaPrevia {
+  margin-block-end: var(--vx-space-12);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--vx-text-3);
+}
+
+.cartao {
+  overflow: hidden;
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-12);
+  background: var(--vx-surface-3);
+}
+
+.capaDoCartao {
+  display: grid;
+  place-items: center;
+  /* 120: altura da capa no card do design. */
+  block-size: 120px;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--vx-surface-4) 0 10px,
+    var(--vx-surface-3) 10px 20px
+  );
+  color: var(--vx-text-4);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-2xs);
+}
+
+.corpoDoCartao {
+  padding: var(--vx-space-16);
+}
+
+.quando {
+  margin-block-end: var(--vx-space-06);
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  color: var(--vx-accent-text);
+}
+
+.nomeDoCartao {
+  margin-block-end: var(--vx-space-08);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--vx-text-1);
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+
+.descricaoDoCartao {
+  margin-block-end: var(--vx-space-12);
+  font-size: var(--vx-size-md);
+  line-height: 1.5;
+  color: var(--vx-text-2);
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+
+.lugar {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-09);
+  margin-block-end: var(--vx-space-14);
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+.lugar svg {
+  flex: none;
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+}
+
+.nomeDoLugar {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selo {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  /* 19: altura do selo no design. */
+  block-size: 19px;
+  margin-inline-start: var(--vx-space-04);
+  padding-inline: var(--vx-space-07);
+  border-radius: var(--vx-radius-04);
+  background: var(--vx-state-hover);
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-2xs);
+  font-weight: 600;
+}
+
+.botoesDaPrevia {
+  display: flex;
+  gap: var(--vx-space-08);
+}
+
+.interesseDaPrevia,
+.compartilharDaPrevia {
+  display: grid;
+  place-items: center;
+  /* 34: altura dos botões do card no design. */
+  block-size: 34px;
+  border-radius: var(--vx-radius-06);
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+}
+
+.interesseDaPrevia {
+  flex: 1;
+  background: var(--vx-accent);
+  color: var(--vx-on-accent);
+}
+
+.compartilharDaPrevia {
+  inline-size: 34px;
+  border: 1px solid var(--vx-hairline-16);
+  color: var(--vx-text-2);
+}
+
+.nota {
+  margin-block-start: var(--vx-space-14);
+  font-size: var(--vx-size-xs);
+  line-height: 1.55;
+  color: var(--vx-text-4);
+  text-wrap: pretty;
+}

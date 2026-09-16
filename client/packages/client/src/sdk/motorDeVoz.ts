@@ -49,6 +49,7 @@ import {
   type RemoteParticipant,
   type RemoteTrack,
   type RemoteTrackPublication,
+  type RoomOptions,
   type ScreenShareCaptureOptions,
   type AudioProcessorOptions,
   type TrackProcessor,
@@ -72,6 +73,7 @@ import {
 } from "./audioDeJanela";
 import { criarAtenuador, ponteDeAtenuacao } from "./atenuacao";
 import { client } from "./client";
+import { lerConfigDeVoz, publicacaoDe as publicacaoDoCanal } from "./vozDoCanal";
 import { sairDaSalaLocalmente } from "./adapter";
 import type { Chamada, QualidadeDeVoz } from "../store/chamada";
 import {
@@ -83,6 +85,7 @@ import {
   lerChamada,
 } from "../store/chamada";
 import { definirPalco, lerPalco } from "../store/palcoDeVoz";
+import { assinarVolumeEfetivo, volumeEfetivo } from "../store/volumesDeVoz";
 import { criarAssinaturaDeVideo } from "./assinaturaDeVideo";
 import { chaveDeVideo, faixasDeVideo, type FonteDeVideo } from "../store/video";
 import { toast } from "../components/ui/toastStore";
@@ -196,6 +199,43 @@ async function noMaisRapido(): Promise<string | undefined> {
   }
 }
 
+/**
+ * Os tetos de publicação que o CANAL escolheu — bitrate e modo de vídeo.
+ *
+ * ⚠ **Nos padrões da sala, e não em cada `setMicrophoneEnabled`.** O
+ * microfone é publicado por mais de um caminho (entrar, sair do mudo,
+ * push-to-talk), e a câmera por outro; opção por chamada teria de ser repetida
+ * em cada um, e o primeiro que esquecesse publicaria no padrão do LiveKit sem
+ * erro nenhum. `publishDefaults` vale para todos.
+ *
+ * A transmissão de tela NÃO passa por aqui: ela tem `screenShareEncoding`
+ * próprio, escolhido no HUD.
+ */
+function opcoesDaSala(channelId: string): RoomOptions {
+  const p = publicacaoDoCanal(lerConfigDeVoz(channelId));
+  return {
+    publishDefaults: {
+      ...(p.audioMaxBitrate === undefined
+        ? {}
+        : { audioPreset: { maxBitrate: p.audioMaxBitrate } }),
+      ...(p.video === undefined
+        ? {}
+        : { videoEncoding: { maxBitrate: p.video.maxBitrate, maxFramerate: p.video.fps } }),
+    },
+    ...(p.video === undefined
+      ? {}
+      : {
+          videoCaptureDefaults: {
+            resolution: {
+              width: p.video.largura,
+              height: p.video.altura,
+              frameRate: p.video.fps,
+            },
+          },
+        }),
+  };
+}
+
 /** Quem está na sala agora, do ponto de vista do LiveKit. */
 function participantesDe(r: Room): string[] {
   const ids: string[] = [];
@@ -240,6 +280,10 @@ function ligarEventos(r: Room, channelId: string): void {
     as chaves (`usuário:fonte`) são estáveis entre chamadas.
   */
   r.on(RoomEvent.Disconnected, () => {
+    /* Queda pelo servidor não passa por `sairDaChamada` — sem isto o ouvinte
+       de volume ficaria preso a uma sala morta (erro nº 5 do briefing). */
+    pararDeOuvirVolumes?.();
+    pararDeOuvirVolumes = undefined;
     atenuador.atualizar(false, false, true);
     pararAudioDaJanela();
     faixasDeVideo.limpar();
@@ -422,6 +466,12 @@ function ligarEventos(r: Room, channelId: string): void {
   r.on(RoomEvent.TrackSubscribed, (faixa: RemoteTrack, pub, participante) => {
     if (faixa.kind === Track.Kind.Audio) {
       elementoDeAudio().appendChild(faixa.attach());
+      /*
+        O volume guardado desta pessoa chega AQUI, na faixa recém-assinada.
+        Antes dela não há onde aplicar, e aplicar só quando o deslizante mexe
+        faria quem você baixou ontem voltar a 100% em toda chamada nova.
+      */
+      definirVolumeDe(participante.identity, volumeEfetivo(participante.identity));
       return;
     }
 
@@ -664,14 +714,17 @@ export function definirQualidadeDeStream(
  * `0` e o "silenciar so para mim" do design. Vale de 0 a 2 no LiveKit (200% no
  * desenho), e o ganho acima de 1 e o que salva quem fala baixo.
  */
-export function definirVolumeDe(userId: string, volume: number): void {
+function definirVolumeDe(userId: string, volume: number): void {
+  /*
+    ⚠ **Limitado a 1, e acima disso LANÇAVA.** Sem `webAudioMix` o LiveKit
+    escreve em `HTMLMediaElement.volume`, que dá `IndexSizeError` fora de
+    [0, 1] — o deslizante de 200% derrubava o handler a partir de 101. Ver
+    `VOLUME_MAXIMO` em `store/volumesDeVoz.ts`.
+  */
+  const ganho = Math.min(1, Math.max(0, volume));
   const p = participanteRemoto(userId);
-  p?.setVolume(volume, Track.Source.Microphone);
-  p?.setVolume(volume, Track.Source.ScreenShareAudio);
-}
-
-export function volumeDe(userId: string): number {
-  return participanteRemoto(userId)?.getVolume(Track.Source.Microphone) ?? 1;
+  p?.setVolume(ganho, Track.Source.Microphone);
+  p?.setVolume(ganho, Track.Source.ScreenShareAudio);
 }
 
 function participanteRemoto(userId: string): RemoteParticipant | undefined {
@@ -738,7 +791,7 @@ export async function entrarNaChamada(channelId: string): Promise<boolean> {
     const no = await noMaisRapido();
     const auth = await canal.joinCall(no);
 
-    const r = new Room();
+    const r = new Room(opcoesDaSala(channelId));
     sala = r;
     ligarEventos(r, channelId);
 
@@ -780,6 +833,9 @@ export async function entrarNaChamada(channelId: string): Promise<boolean> {
       }
     });
     pararDeOuvirTecla = assinarPushToTalk(() => void aplicarMicrofone());
+    pararDeOuvirVolumes = assinarVolumeEfetivo((userId) =>
+      definirVolumeDe(userId, volumeEfetivo(userId)),
+    );
     return true;
   } catch (e) {
     /*
@@ -842,6 +898,8 @@ export async function sairDaChamada(): Promise<void> {
   pararDeOuvirTecla?.();
   pararDeOuvirTecla = undefined;
   esquecerProcessadores();
+  pararDeOuvirVolumes?.();
+  pararDeOuvirVolumes = undefined;
   if (!r) return;
   r.removeAllListeners();
   await r.disconnect();
@@ -879,6 +937,8 @@ export async function sairDaChamada(): Promise<void> {
  * causa de uma troca de dispositivo.
  */
 let pararDeOuvirPreferencias: (() => void) | undefined;
+/** Volume individual e silêncio só para mim — ver `store/volumesDeVoz.ts`. */
+let pararDeOuvirVolumes: (() => void) | undefined;
 let pararDeOuvirTecla: (() => void) | undefined;
 
 /** Mudo, surdo e push-to-talk decidindo juntos — ver `microfoneAberto`. */

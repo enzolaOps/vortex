@@ -1,7 +1,7 @@
 import * as Primitivo from "@radix-ui/react-dropdown-menu";
 import type { ComponentProps, ReactNode } from "react";
 
-import { Check } from "./icones";
+import { CaretRight, Check, ICONE } from "./icones";
 
 import { cn } from "../../lib/cn";
 import {
@@ -108,6 +108,39 @@ export function DropdownMenuCheckboxItem({
         {marcado ? <Check size={12} aria-hidden /> : null}
       </span>
     </Primitivo.CheckboxItem>
+  );
+}
+
+/**
+ * Submenu — a mesma anatomia de `ContextMenuSub`, pela mesma razão: caixa e
+ * item reusam `menuContent` e `menuItem`, senão o submenu do dropdown seria a
+ * terceira escrita da mesma superfície.
+ *
+ * Nasceu com "Silenciar servidor", que abre os cinco prazos do design.
+ */
+export const DropdownMenuSub = Primitivo.Sub;
+
+export function DropdownMenuSubTrigger({
+  className,
+  children,
+  ...props
+}: ComponentProps<typeof Primitivo.SubTrigger>) {
+  return (
+    <Primitivo.SubTrigger {...props} className={cn(menuItem, menuItemNormal, className)}>
+      {children}
+      <CaretRight size={ICONE.selo} className="ms-auto text-text-4" aria-hidden />
+    </Primitivo.SubTrigger>
+  );
+}
+
+export function DropdownMenuSubContent({
+  className,
+  ...props
+}: ComponentProps<typeof Primitivo.SubContent>) {
+  return (
+    <Primitivo.Portal>
+      <Primitivo.SubContent {...props} sideOffset={2} className={cn(menuContent, className)} />
+    </Primitivo.Portal>
   );
 }
 

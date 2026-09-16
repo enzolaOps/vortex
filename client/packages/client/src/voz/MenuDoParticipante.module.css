@@ -1,0 +1,68 @@
+/* ============================================================
+   Menu do participante de voz
+   ------------------------------------------------------------
+   Valores do design ("Menu do usuário em voz"), lidos com
+   `scripts/espec.mjs`: cabeçalho `8px 9px` com vão 9, rótulo
+   do volume 11px em text-3 com `6px 9px 4px`, trilho com
+   `2px 9px 10px`.
+   ============================================================ */
+
+.cabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-09);
+  padding: var(--vx-space-08) var(--vx-space-09);
+}
+
+.identidade {
+  display: grid;
+  min-inline-size: 0;
+}
+
+.nome {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.onde {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.volume {
+  display: grid;
+}
+
+.rotuloDoVolume {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--vx-space-06) var(--vx-space-09) var(--vx-space-04);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+/* O número em mono: sem isso "95%" e "100%" mudam de largura enquanto o
+   polegar anda, e o rótulo treme ao lado. */
+.valorDoVolume {
+  font-family: var(--vx-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.volume > input {
+  margin-inline: var(--vx-space-09);
+  inline-size: auto;
+  margin-block-end: var(--vx-space-06);
+}
+
+/* Mesmo item barrado do `MenuDoUsuario`: o `disabled` já apaga, e somar
+   opacidade aqui o faria mais apagado que qualquer outro desabilitado. */
+.barrado {
+  font-size: var(--vx-size-sm);
+}

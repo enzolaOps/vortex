@@ -48,6 +48,9 @@ auto_derived_partial!(
         /// Whether the member is server-wide voice deafened
         #[serde(skip_serializing_if = "is_true", default = "default_true")]
         pub can_receive: bool,
+        /// Whether the member displays the server tag next to their name
+        #[serde(skip_serializing_if = "crate::if_false", default)]
+        pub show_tag: bool,
         // This value only exists in the database, not the models.
         // If it is not-None, the database layer should return None to member fetching queries.
         // pub pending_deletion_at: Option<Timestamp>
@@ -98,6 +101,7 @@ impl Default for Member {
             timeout: None,
             can_publish: true,
             can_receive: true,
+            show_tag: false,
         }
     }
 }
@@ -110,6 +114,22 @@ impl Member {
         server: &Server,
         user: &User,
         channels: Option<Vec<Channel>>,
+    ) -> Result<(Member, Vec<Channel>)> {
+        Member::create_with_roles(db, server, user, channels, vec![]).await
+    }
+
+    /// Create a new member in a server, already holding the given roles
+    ///
+    /// Vortex: used by invites that grant roles. The roles are applied BEFORE
+    /// the join events and the channel visibility check, so the member arrives
+    /// seeing the channels those roles unlock. Roles that no longer exist in
+    /// the server are dropped silently.
+    pub async fn create_with_roles(
+        db: &Database,
+        server: &Server,
+        user: &User,
+        channels: Option<Vec<Channel>>,
+        roles: Vec<String>,
     ) -> Result<(Member, Vec<Channel>)> {
         if db.fetch_ban(&server.id, &user.id).await.is_ok() {
             return Err(create_error!(Banned));
@@ -129,6 +149,27 @@ impl Member {
 
         if let Some(updated) = db.insert_or_merge_member(&member).await? {
             member = updated;
+        }
+
+        let mut granted_roles = member.roles.clone();
+        for role in roles {
+            if server.roles.contains_key(&role) && !granted_roles.contains(&role) {
+                granted_roles.push(role);
+            }
+        }
+
+        if granted_roles != member.roles {
+            db.update_member(
+                &member.id,
+                &PartialMember {
+                    roles: Some(granted_roles.clone()),
+                    ..Default::default()
+                },
+                vec![],
+            )
+            .await?;
+
+            member.roles = granted_roles;
         }
 
         let should_fetch = channels.is_none();

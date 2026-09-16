@@ -1,0 +1,34 @@
+/* ============================================================
+   Tag do servidor
+   ------------------------------------------------------------
+   Medido no design (`Vortex App`, `DMs, Voz e Modais`): 16 de
+   altura, respiro 0 5, raio 4, mono 10/700 com 0.04em, fundo em
+   acento a 16% e texto em accent-text. No perfil aberto sobe
+   para 18 e respiro 0 6.
+   ============================================================ */
+
+.tag {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  /* `align-self` e não `vertical-align`: as linhas de cabeçalho são flex com
+     baseline, e a caixa alinhada pela própria baseline desceria. Mesmo motivo
+     do crachá de cargo. */
+  align-self: center;
+  block-size: 16px;
+  padding-inline: var(--vx-space-05);
+  border-radius: var(--vx-radius-04);
+  background: color-mix(in oklab, var(--vx-accent) 16%, transparent);
+  color: var(--vx-accent-text);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-2xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.grande {
+  block-size: 18px;
+  padding-inline: var(--vx-space-06);
+}

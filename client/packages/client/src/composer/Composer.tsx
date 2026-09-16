@@ -11,6 +11,15 @@ import {
 } from "react";
 
 import { FerramentasDoComposer, type MontarInsercao } from "./FerramentasDoComposer";
+import { GravadorDeVoz } from "./GravadorDeVoz";
+import {
+  assinarGravacao,
+  cancelarGravacao,
+  comecarGravacao,
+  finalizarGravacao,
+  lerGravacao,
+  podeGravar,
+} from "./gravacaoDeVoz";
 import { Tooltip } from "../components/ui/Tooltip";
 import {
   ATRIBUTO_DE_COLUNA,
@@ -169,6 +178,22 @@ export function Composer({ channelId }: { channelId: string }) {
     () => alvoDeResposta(channelId),
   );
 
+  /*
+    A gravação de voz, se for DESTE canal.
+
+    O store é um por aba e o composer é um por canal: sem a comparação, abrir
+    outro canal durante uma gravação mostraria o gravador do primeiro no
+    composer do segundo — e "enviar" mandaria o áudio para o canal errado.
+  */
+  const gravacao = useSyncExternalStore(assinarGravacao, lerGravacao);
+  const gravandoAqui =
+    gravacao.fase !== "parada" && gravacao.channelId === channelId;
+
+  /* Trocar de canal ou desmontar o composer DESCARTA a gravação deste canal:
+     um microfone aberto sem nenhum controle na tela é a pior falha possível
+     de um gravador. */
+  useEffect(() => () => cancelarGravacao(channelId), [channelId]);
+
   const entradaRef = useRef<HTMLTextAreaElement>(null);
   useEffect(
     () => ouvirFocoNoComposer(channelId, () => entradaRef.current?.focus()),
@@ -265,6 +290,29 @@ export function Composer({ channelId }: { channelId: string }) {
     if (!id) return;
     cancelarResposta(channelId);
     pedirFimDaLista(channelId);
+  }
+
+  /**
+   * Manda a gravação como mensagem SÓ de áudio.
+   *
+   * ⚠ **O rascunho FICA**, ao contrário de `enviarArquivos`. Lá o arquivo é
+   * anexo do que se escreveu; aqui a voz substitui o texto, e quem tinha meia
+   * frase digitada antes de apertar o microfone não pediu para mandá-la junto
+   * — nem para perdê-la.
+   *
+   * O progresso de upload é o da LINHA otimista, como qualquer anexo: é a
+   * superfície que o design desenha para isso, e o gravador some no instante
+   * em que o arquivo fica pronto.
+   */
+  function enviarVoz() {
+    if (!temPermissao) return;
+    void finalizarGravacao().then((arquivo) => {
+      if (arquivo === undefined) return;
+      const id = enviarMensagem(channelId, "", paraEnvio(), [arquivo]);
+      if (!id) return;
+      cancelarResposta(channelId);
+      pedirFimDaLista(channelId);
+    });
   }
 
   function enviar() {
@@ -409,6 +457,15 @@ export function Composer({ channelId }: { channelId: string }) {
           em vez de acender só a caixa de texto enquanto o cursor está num
           botão vizinho.
         */}
+        {/*
+          Gravando, o gravador OCUPA o lugar da caixa em vez de morar dentro
+          dela: são dois modos exclusivos (não se digita enquanto grava), e a
+          caixa inteira com campo, ferramentas e faixa por baixo de um gravador
+          seria uma segunda superfície viva sem uso.
+        */}
+        {gravandoAqui ? (
+          <GravadorDeVoz channelId={channelId} aoEnviar={enviarVoz} />
+        ) : (
         <div className={cn(css.campo, "flex-1")} data-excedido={String(excedido)}>
           {sugestoes ? (
             <SugestoesDeMencao
@@ -515,9 +572,13 @@ export function Composer({ channelId }: { channelId: string }) {
             </div>
 
             <FerramentasDoComposer
+              channelId={channelId}
               desabilitado={!temPermissao}
               aoInserir={inserir}
               aoEnviar={enviarSo}
+              aoGravar={
+                podeGravar() ? () => void comecarGravacao(channelId) : undefined
+              }
             />
 
             {/*
@@ -601,6 +662,7 @@ export function Composer({ channelId }: { channelId: string }) {
             )}
           </div>
         </div>
+        )}
         </div>
       </div>
     </div>

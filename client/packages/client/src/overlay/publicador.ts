@@ -39,13 +39,16 @@ let canalAssinado = "";
 function montar(): EstadoDoOverlay {
   const config = lerOverlay();
   const atalhos = lerAtalhosDeVoz();
-  const combinacao = acoesEmConflito(atalhos).has("overlay") ? undefined : atalhos.overlay;
+  const conflito = acoesEmConflito(atalhos);
+  const combinacao = conflito.has("overlay") ? undefined : atalhos.overlay;
+  const silenciar = conflito.has("silenciarOverlay") ? undefined : atalhos.silenciarOverlay;
   const c = lerChamada();
 
   return {
     ativo: config.ativo,
     posicao: config.posicao,
     atalho: combinacao ? teclasDaCombinacao(combinacao) : undefined,
+    atalhoSilenciar: silenciar ? teclasDaCombinacao(silenciar) : undefined,
     voz:
       c.estado === "fora"
         ? undefined

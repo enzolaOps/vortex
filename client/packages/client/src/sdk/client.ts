@@ -7,7 +7,7 @@
  */
 import { Client, ConnectionState } from "stoat.js";
 
-import { estaSilenciado } from "../store/silencio";
+import { estaMudo } from "../store/silencio";
 import { API_URL } from "./config";
 
 export const client = new Client({
@@ -26,7 +26,7 @@ export const client = new Client({
     Ligar aqui é o que faz `channel.muted` valer em todo lugar que o SDK o
     consulta, em vez de o app ter uma segunda verdade paralela à do modelo.
   */
-  channelIsMuted: (channel) => estaSilenciado(channel.id),
+  channelIsMuted: (channel) => estaMudo(channel.id, channel.serverId),
 });
 
 /**
