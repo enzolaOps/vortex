@@ -39,12 +39,6 @@ export const PENDENCIAS = {
     depende:
       "o conceito de característica no protocolo — não há campo, rota nem evento",
   },
-  previaDoConvite: {
-    superficie: "Configurações do servidor · Perfil do servidor · Prévia",
-    faz: "Entrar no servidor pelo botão do card, como quem recebe o convite.",
-    depende:
-      "só a tela — é a prévia de um card, e entrar num servidor onde já se está não é ação",
-  },
 
   /* --------------------------------------------- editor de cargo */
   /*
@@ -214,9 +208,9 @@ export const PENDENCIAS = {
   },
   /* ------------------------------------------------------------ composer */
   /*
-    ⚠ **O seletor de emoji EXISTE e funciona.** O que sobrou pendente é o que
-    ele não alcança sozinho, e os três estão separados de propósito: um é
-    ONDE o seletor abre, um é dado do servidor, um é modificador de glifo.
+    ⚠ **O seletor de emoji EXISTE e funciona**, com tom de pele. O que sobrou
+    pendente é o que ele não alcança sozinho: ONDE o seletor abre e o dado do
+    servidor.
 
     ⚠ **A lista curada de ~170 emojis NÃO é pendência**, e já esteve aqui como
     `emojiCompleto`. Ela não tem controle: nada na tela promete os 3.800 do
@@ -224,11 +218,6 @@ export const PENDENCIAS = {
     que é onde quem for trocar o dataset vai olhar — mesma família da etiqueta
     FÓRUM e da reação SUPER, que ficam fora deste registro pelo mesmo motivo.
   */
-  tomDePele: {
-    superficie: "Seletor de emoji",
-    faz: "Escolher o tom de pele padrão dos emojis de pessoa.",
-    depende: "modificadores Fitzpatrick no dataset de emoji",
-  },
   gif: {
     superficie: "Composer",
     faz: "Seletor de GIF.",
@@ -523,25 +512,6 @@ export const PENDENCIAS = {
 
   /* -------------------------------------------------------- perfil */
   /*
-    ⚠ **As duas abas que o design desenha e que o SDK não sabe buscar.** O
-    Stoat tem `GET /users/{id}/mutual`, mas sem método no cliente e devolvendo
-    ID cru — a lista precisaria dos objetos resolvidos para virar tela.
-
-    Elas entram DESENHADAS porque a faixa de abas com uma aba só faria o
-    perfil parecer uma tela pela metade, e porque a régua deste projeto é
-    construir 1:1 agora e implementar depois.
-  */
-  servidoresEmComum: {
-    superficie: "Perfil completo",
-    faz: "Listar os servidores em que vocês dois estão.",
-    depende: "`GET /users/{id}/mutual` sem método no SDK, e os IDs resolvidos",
-  },
-  amigosEmComum: {
-    superficie: "Perfil completo",
-    faz: "Listar as pessoas que vocês dois têm em comum.",
-    depende: "a mesma rota de mútuos, mais as relações já carregadas",
-  },
-  /*
     ⚠ **Ela nasceu em `SUPERFICIES_AUSENTES` e MUDOU DE LISTA ao ganhar um
     controle** — é a regra que a doutrina deste arquivo escreve por extenso:
     "entrada daqui muda de lista quando ganhar um controle, e não fica nas
@@ -553,25 +523,6 @@ export const PENDENCIAS = {
     faz: "Fixar a conversa no topo da lista, acima da ordem por recência.",
     depende:
       "campo de favorito no protocolo — `Channel` do Stoat não tem, e guardá-lo só no cliente daria uma ordem que só esta máquina enxerga",
-  },
-  /*
-    ⚠ **Desenhado e NÃO ligado por razão de SEGURANÇA, não de custo.**
-
-    O snapshot do canal carrega nome, tópico, modo lento, restrição de idade e
-    limite de voz — tudo o que `salvarCanal` precisa. O que ele **não** carrega
-    são os overrides de permissão, e `salvarPermissaoDeCanal` é por cargo, um a
-    um. Duplicar a partir do snapshot produziria um canal PÚBLICO a partir de
-    um restrito, em silêncio, e o dono só descobriria quando alguém lesse o que
-    não devia.
-
-    Um "Duplicar" que copia a aparência e perde a restrição é pior que a
-    ausência: ele parece ter funcionado.
-  */
-  duplicarCanal: {
-    superficie: "Menu do canal, na coluna",
-    faz: "Criar um canal novo com as mesmas configurações e permissões.",
-    depende:
-      "os overrides de permissão no snapshot do canal — hoje só nome, tópico, modo lento, idade e limite chegam, e duplicar sem eles abriria um canal restrito",
   },
   /*
     ⚠ **O interruptor existia e gravava, e não havia NADA atrás dele** — nem na
@@ -668,15 +619,6 @@ export const SUPERFICIES_AUSENTES = {
     depende: "evento agendado no protocolo — não há tipo, campo nem rota",
     referencia:
       "screens/events/EventsScreen.tsx · CreateEventWizard.tsx · components/events/EventCard.tsx",
-  },
-
-  /* ----------------------------------------------------------- casa */
-  solicitacoesDeMensagem: {
-    superficie: "Aba na tela de pessoas",
-    faz: "Separar a DM de quem você não conhece, para aceitar ou recusar antes de ler.",
-    depende:
-      "o protocolo não separa — toda DM entra igual, então a fila é conceito de cliente",
-    referencia: "components/directs/MessageRequestsPanel.tsx",
   },
 
   /*

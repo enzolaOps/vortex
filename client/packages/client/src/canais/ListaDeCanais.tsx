@@ -50,6 +50,7 @@ import {
   type SecaoId,
 } from "../store/config";
 import { entrarNaChamada } from "../sdk/chamada";
+import { duplicarCanal } from "../sdk/servidores";
 import { definirPalco } from "../store/palcoDeVoz";
 import { assinarChamada, falando, lerChamada } from "../store/chamada";
 import { administrar } from "../store/administracao";
@@ -416,12 +417,20 @@ const Canal = memo(function Canal({
               Editar canal
             </ContextMenuItem>
             {/*
-              Do design, ao lado de "Editar canal" — e desenhado sem ligar por
-              razão de segurança, não de custo. Ver `duplicarCanal` no registro:
-              o snapshot não carrega os overrides de permissão, e duplicar sem
-              eles abriria um canal restrito.
+              Do design, ao lado de "Editar canal". Copia configurações E
+              permissões — ver `duplicarCanal` em `sdk/servidores.ts`: sem os
+              overrides ele não cria nada, porque duplicar sem eles abriria um
+              canal restrito. Abre a cópia ao terminar: quem duplica vai mexer
+              nela em seguida, e a cópia tem o MESMO nome do original — sem
+              navegar, não haveria como saber qual das duas linhas é a nova.
             */}
-            <ContextMenuItem onSelect={aindaNao("duplicarCanal")}>
+            <ContextMenuItem
+              onSelect={() =>
+                void duplicarCanal(id).then((novo) => {
+                  if (novo) selecionarCanal(novo);
+                })
+              }
+            >
               <Copy size={ICONE.calha} aria-hidden />
               Duplicar canal
             </ContextMenuItem>

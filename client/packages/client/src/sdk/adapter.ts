@@ -59,6 +59,14 @@ import {
 } from "../store/conexao";
 import { confirmarNaFila, esquecerDaFila } from "../store/fila";
 import { assinarSilencio, estaMudo } from "../store/silencio";
+import { assinarPrivacidade, lerPrivacidade } from "../store/privacidade";
+import {
+  assinarSolicitacoes,
+  decisaoSobre,
+  destinoDaConversa,
+  inicioDasSolicitacoes,
+  type Destino,
+} from "../store/solicitacoes";
 import {
   atualizarContador,
   definirCanalVisto,
@@ -106,6 +114,7 @@ import {
   toMessageSnapshot,
   presencaDe,
   toServerSnapshot,
+  relacaoDoProtocolo,
 } from "./map";
 
 /* ----------------------------------------------------------- layout */
@@ -1113,6 +1122,14 @@ export function startAdapter() {
     recontarServidores();
   });
 
+  /*
+    O filtro de desconhecidos e as decisões da fila mudam QUAL lista uma
+    conversa ocupa. Os dois são gesto humano — um interruptor, um "Aceitar" —,
+    então republicar a varredura inteira aqui é o preço certo.
+  */
+  assinarPrivacidade(publicarConversas);
+  assinarSolicitacoes(publicarConversas);
+
   // Permissão mudou: as linhas na tela precisam reperguntar. Ver
   // `repensarPermissoes`.
   client.on("serverRoleUpdate", repensarPermissoes);
@@ -1280,6 +1297,8 @@ export function startAdapter() {
     const antes = pessoas.peek(user.id)?.relacao;
     if (antes !== undefined && antes !== toRelacaoSnapshot(user).relacao) {
       publicarRelacoes();
+      // Virar amigo tira a conversa da fila; bloquear a tira da coluna.
+      publicarConversas();
     }
   });
 
@@ -2376,6 +2395,18 @@ export const pessoas = createEntityStore<RelacaoSnapshot>((id) => {
 });
 
 /**
+ * A chave da fila de solicitações dentro do store de conversas.
+ *
+ * O mesmo store e não um segundo: as duas listas nascem da MESMA varredura e
+ * uma conversa passa de uma para a outra num gesto só (aceitar). Com dois
+ * stores haveria um quadro em que ela está nas duas, ou em nenhuma.
+ */
+export const SOLICITACOES = "@solicitacoes";
+
+/** O destino de cada conversa na última publicação — ver `avisarChegada`. */
+const destinoPublicado = new Map<string, Destino>();
+
+/**
  * Republica a coluna da casa e as abas de amigos.
  *
  * Varredura sobre todas as conversas e todas as pessoas — cara, e por isso
@@ -2388,15 +2419,74 @@ export const pessoas = createEntityStore<RelacaoSnapshot>((id) => {
  */
 export function publicarConversas(): void {
   const lista: { id: string; em: number }[] = [];
+  const fila: { id: string; em: number }[] = [];
+  destinoPublicado.clear();
   for (const canal of client.channels.toList()) {
     const t = canal.type;
     if (t !== "DirectMessage" && t !== "Group" && t !== "SavedMessages") continue;
     const ultimo = canal.lastMessageId;
-    lista.push({ id: canal.id, em: ultimo ? decodeTime(ultimo) : 0 });
+    const item = { id: canal.id, em: ultimo ? decodeTime(ultimo) : 0 };
+    const destino = t === "DirectMessage" ? destinoDe(canal) : "conversa";
+    destinoPublicado.set(canal.id, destino);
+    if (destino === "conversa") lista.push(item);
+    else if (destino === "solicitacao") fila.push(item);
   }
   // Mais recente primeiro; empate pelo ID, que é estável e cronológico.
-  lista.sort((a, b) => b.em - a.em || b.id.localeCompare(a.id));
+  const porRecencia = (
+    a: { id: string; em: number },
+    b: { id: string; em: number },
+  ) => b.em - a.em || b.id.localeCompare(a.id);
+  lista.sort(porRecencia);
+  fila.sort(porRecencia);
   conversas.set(RAIZ, lista.map((c) => c.id));
+  conversas.set(SOLICITACOES, fila.map((c) => c.id));
+}
+
+
+/**
+ * A regra está em `store/solicitacoes.ts`, pura; aqui só se traduz o canal do
+ * SDK para a entrada que ela lê. O ID do canal é ULID, e o tempo dele é o
+ * momento em que a DM foi CRIADA — que é o que separa conversa antiga de
+ * desconhecido chegando.
+ */
+function destinoDe(canal: {
+  readonly id: string;
+  readonly lastMessageId: string | undefined;
+  readonly recipientIds: Iterable<string>;
+}): Destino {
+  let criadaEm = 0;
+  try {
+    criadaEm = decodeTime(canal.id);
+  } catch {
+    /* ID fora do formato ULID: trata como antiga, que é o lado seguro — não
+       esconde conversa nenhuma. */
+  }
+  /*
+    ⚠ `recipientIds` menos eu, e NÃO `canal.recipient` — o getter do SDK faz
+    `client.user!.id` e estoura antes do `Ready`. Mesma armadilha registrada
+    em `toChannelSnapshot`, e o teste desta varredura caiu nela primeiro.
+  */
+  let outro: string | undefined;
+  for (const id of canal.recipientIds) {
+    if (id !== usuarioLocal) {
+      outro = id;
+      break;
+    }
+  }
+  const r = outro ? client.users.get(outro)?.relationship : undefined;
+  return destinoDaConversa(
+    {
+      tipo: "dm",
+      relacao: r === undefined ? undefined : relacaoDoProtocolo(r),
+      criadaEm,
+      ultimaMensagemId: canal.lastMessageId,
+    },
+    {
+      filtrar: lerPrivacidade().filtrarDesconhecidos,
+      inicio: inicioDasSolicitacoes(),
+      decisao: decisaoSobre(canal.id),
+    },
+  );
 }
 
 export function publicarRelacoes(): void {
@@ -2882,6 +2972,23 @@ function avisarChegada(message: Message): void {
   if (!usuarioLocal || message.authorId === usuarioLocal) return;
   const canal = message.channel;
   const tipo = canal?.type;
+  if (canal && tipo === "DirectMessage") {
+    const destino = destinoDe(canal);
+    /*
+      ⚠ **A fila muda por MENSAGEM num caso só**, e é aqui que ele é pego: a
+      conversa recusada volta quando a pessoa escreve de novo. Republicar a
+      coluna por mensagem seria o `n log n` que `publicarConversas` existe
+      para evitar — então só quando o destino desta conversa MUDOU, que é
+      raro, e só para DM, que nunca é a carga do firehose.
+    */
+    if (destino !== destinoPublicado.get(canal.id)) publicarConversas();
+    /*
+      Solicitação não interrompe. O toast e o som levariam o TEXTO de um
+      desconhecido para a tela antes de a pessoa decidir abrir — exatamente o
+      que a fila existe para impedir. Ela aparece na aba, contada.
+    */
+    if (destino !== "conversa") return;
+  }
   const direta = message.mentionIds?.includes(usuarioLocal) ?? false;
   const cargo = message.roleMentions?.some((r) => r.assigned) ?? false;
   notificarMensagem({

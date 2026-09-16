@@ -582,10 +582,21 @@ export function Servidor({ serverId }: { serverId: string }) {
               hoje à tarde para uma divulgação.
             */}
             <p className={css.criadoEm}>Criado em {servidor?.criadoEmTexto}</p>
+            {/*
+              ⚠ **Figura do botão, e não alvo.** A referência renderiza o mesmo
+              card da página de convite e o deixa sem ação aqui; e entrar num
+              servidor onde você já está não é ação nenhuma. Um botão que
+              recebe foco e clique para dizer "não faz nada" é o alvo inerte
+              que o registro de pendências existia para marcar — `inert` tira
+              o botão do foco, do clique e da árvore de acessibilidade, e o
+              que sobra é o que isto é: a prévia de como o card aparece para
+              quem recebe o convite.
+            */}
             <Botao
               variante="primario"
               className={css.entrar}
-              onClick={aindaNao("previaDoConvite")}
+              inert
+              tabIndex={-1}
             >
               Entrar no servidor
             </Botao>

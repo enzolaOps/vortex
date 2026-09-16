@@ -39,7 +39,7 @@ import {
 } from "../sdk/adapter";
 import type { PresenceStatus } from "../sdk/domain";
 import { client } from "../sdk/client";
-import { dublarRedeDoServidor } from "./rede";
+import { dublarRedeDoServidor, registrarPreviaDublada } from "./rede";
 
 const nextId = monotonicFactory();
 
@@ -658,6 +658,41 @@ function semearConversas(): void {
       // observável, e não um empate resolvido pelo ID.
       last_message_id: ulidEm(Date.now() - n * 3_600_000),
     } as never);
+  }
+
+  /*
+    ⚠ **Duas DMs de DESCONHECIDO criadas AGORA** — arnês mais pobre que o
+    protocolo de novo. As cinco de cima têm ID de 2025, anterior a qualquer
+    `inicio` da fila de solicitações, então todas ficam na coluna e a aba de
+    solicitações só seria vista vazia. Uma com texto comum e outra com link de
+    convite: sem a segunda, o ramo "SUSPEITO" nasceria inalcançável.
+  */
+  const desconhecidas = [
+    {
+      outro: userIds[2]!,
+      texto:
+        "oi! vi seu post sobre a matriz de permissões, posso perguntar uma coisa?",
+    },
+    {
+      outro: userIds[6]!,
+      texto: "ganhe nitro grátis entrando aqui https://discord.gg/promo-zone",
+    },
+  ];
+  for (const [n, d] of desconhecidas.entries()) {
+    const id = ulidEm(Date.now() - n * 1000);
+    const mensagemId = ulidEm(Date.now() - n * 1000 + 1);
+    client.channels.getOrCreate(id, {
+      _id: id,
+      channel_type: "DirectMessage",
+      active: true,
+      recipients: [eu, d.outro],
+      last_message_id: mensagemId,
+    } as never);
+    registrarPreviaDublada(id, {
+      _id: mensagemId,
+      author: d.outro,
+      content: d.texto,
+    });
   }
 
   // Um grupo, para a linha com contagem de participantes existir.
