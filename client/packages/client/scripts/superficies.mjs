@@ -98,6 +98,22 @@ const PERMITIDO = {
       "subir a opacidade do MESMO tom mantém a família em vez de trocar de " +
       "cor — a mesma decisão da pílula do popout.",
   },
+  "voz/ChamadaDireta.module.css": {
+    ".pilula":
+      "Véu sobre a mídia a 78%, do design (`rgba(8,9,11,0.78)`) — a pílula " +
+      "com nome e cronômetro pousa sobre o vídeo de quem está do outro lado, " +
+      "e um tom sólido apagaria um pedaço do rosto que se está vendo.",
+    ".barra":
+      "O mesmo véu, a 82% (`rgba(8,9,11,0.82)`), sob os controles flutuantes. " +
+      "Mesma decisão do HUD da transmissão.",
+  },
+  "voz/ChamadaRecebida.module.css": {
+    ".telaCheia":
+      "O chão da tela cheia de chamada recebida. O design escreve #0A0C0F e a " +
+      "referência `bg-surface-sunken` — é moldura em volta do avatar grande de " +
+      "quem liga, a mesma razão do palco e do popout: o que cerca a " +
+      "identidade some para ela ser a única coisa com luz.",
+  },
   "voz/Popout.module.css": {
     ".popout":
       "O chão da JANELA flutuante, e não um painel dentro do app. Mesma " +

@@ -66,6 +66,10 @@ import {
 } from "../notificacao/notificador";
 import { dentro } from "../store/sessao";
 import {
+  sinalizarChamada,
+  sinalizarFimDeChamada,
+} from "../notificacao/chamadas";
+import {
   baldeDe,
   SEM_CARGO,
   usuarioDaChave,
@@ -1042,6 +1046,8 @@ export function startAdapter() {
     } else if (e.type === "ServerMemberUpdate" && e.id) {
       anotar(e.id.server, e.id.user, e.data?.can_publish);
       republicarVoz();
+    } else {
+      traduzirSinalDeChamada(evento);
     }
   });
 
@@ -2710,6 +2716,75 @@ export function proximaMencao(
   const atual = vivas.indexOf(depoisDe);
   if (atual === -1) return vivas[0];
   return vivas[(atual + 1) % vivas.length];
+}
+
+/**
+ * Uma chamada numa DM ou grupo, traduzida do evento CRU.
+ *
+ * ⚠ **Cru porque o SDK não trata dois dos três.** `VoiceCallUpdate` não tem
+ * `case` em `events/v1.ts` — o `stoat.js` o descarta —, e é justamente o sinal
+ * que o protocolo desenhou para "está tocando": o `voice-ingress` o publica em
+ * privado para cada destinatário quando a PRIMEIRA pessoa entra na sala, e com
+ * `ended: true` no canal quando a sala esvazia. Ver `store/chamadaRecebida.ts`
+ * para as duas fontes e a deduplicação.
+ *
+ * ⚠ **`VoiceChannelJoin`/`Leave` são lidos SEM depender da ordem** em que o SDK
+ * aplica o mesmo evento no `ReactiveMap`: a pergunta é "há alguém ALÉM de
+ * quem entrou/saiu?", e excluir essa pessoa da contagem dá a mesma resposta
+ * antes e depois de o SDK mexer no mapa.
+ *
+ * Só DM e grupo tocam. Canal de voz de servidor é LUGAR, não chamada — entrar
+ * numa sala de servidor não liga para ninguém.
+ */
+function traduzirSinalDeChamada(evento: unknown): void {
+  const e = evento as {
+    type?: string;
+    initiator_id?: string;
+    channel_id?: string;
+    ended?: boolean;
+    id?: string;
+    user?: string;
+    state?: { id?: string };
+  };
+  if (
+    e.type !== "VoiceCallUpdate" &&
+    e.type !== "VoiceChannelJoin" &&
+    e.type !== "VoiceChannelLeave"
+  ) {
+    return;
+  }
+
+  const channelId = e.type === "VoiceCallUpdate" ? e.channel_id : e.id;
+  if (channelId === undefined) return;
+  const canal = client.channels.get(channelId);
+  if (canal?.type !== "DirectMessage" && canal?.type !== "Group") return;
+
+  const outrosAlem = (quem: string | undefined) =>
+    [...canal.voiceParticipants.keys()].some((id) => id !== quem);
+
+  if (e.type === "VoiceChannelLeave") {
+    if (!outrosAlem(e.user)) sinalizarFimDeChamada(channelId);
+    return;
+  }
+  if (e.type === "VoiceCallUpdate" && e.ended) {
+    sinalizarFimDeChamada(channelId);
+    return;
+  }
+
+  const quemLigou = e.type === "VoiceCallUpdate" ? e.initiator_id : e.state?.id;
+  if (quemLigou === undefined) return;
+  /* Entrar numa sala que já tinha gente é juntar-se a uma chamada, não ligar. */
+  if (e.type === "VoiceChannelJoin" && outrosAlem(quemLigou)) return;
+
+  const pessoa = client.users.get(quemLigou);
+  sinalizarChamada({
+    channelId,
+    quemLigou,
+    eu: usuarioLocal,
+    quemLigouNome: pessoa?.displayName ?? "Alguém",
+    grupoNome: canal.type === "Group" ? canal.name : undefined,
+    amigo: pessoa?.relationship === "Friend",
+  });
 }
 
 /**
