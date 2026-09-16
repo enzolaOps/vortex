@@ -163,10 +163,14 @@ rodar("npm", ["install", "--no-save", "--ignore-scripts", "--no-audit", "--no-fu
 });
 const { gerador, plataforma } = geradorDoVisualStudio();
 console.error(`cmake-js com o gerador "${gerador}" (${plataforma})`);
-rodar("npx", ["cmake-js", "rebuild", "-G", `"${gerador}"`, "-A", plataforma], {
+/* A saída do cmake-js vai para o stderr: o stdout deste script é o caminho do
+   `.node`, lido por quem o chama, e capturá-la esconderia o erro do compilador
+   atrás de um "Process terminated: 1". */
+execFileSync("npx", ["cmake-js", "rebuild", "-G", `"${gerador}"`, "-A", plataforma], {
   cwd: pasta,
   env,
   shell: true,
+  stdio: ["ignore", 2, "inherit"],
 });
 
 const saida = join(pasta, "dist", "addons", "win-sound-mixer.node");

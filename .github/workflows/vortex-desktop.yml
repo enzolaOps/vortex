@@ -95,11 +95,18 @@ jobs:
         if: matrix.plataforma == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder elfutils             libx11-dev libxtst-dev libxt-dev libxrandr-dev libxinerama-dev             libxkbfile-dev libxkbcommon-x11-dev
-          sudo flatpak remote-add --if-not-exists flathub \
+          sudo apt-get install -y flatpak flatpak-builder elfutils \
+            libx11-dev libxtst-dev libxt-dev libxrandr-dev libxinerama-dev \
+            libxkbfile-dev libxkbcommon-x11-dev
+          # ⚠ Em `--user`, não com `sudo`: o `flatpak-bundler` do maker confere
+          # cada ref e, achando-a só no sistema, roda `flatpak update` sem
+          # `--user` — o que exige root. A BaseApp do Electron é a `base` que o
+          # maker pede.
+          flatpak remote-add --user --if-not-exists flathub \
             https://flathub.org/repo/flathub.flatpakrepo
-          sudo flatpak install -y flathub \
-            org.freedesktop.Platform//25.08 org.freedesktop.Sdk//25.08
+          flatpak install --user -y --noninteractive flathub \
+            org.freedesktop.Platform//25.08 org.freedesktop.Sdk//25.08 \
+            org.electronjs.Electron2.BaseApp//25.08
 
       - name: Instalar dependências
         run: pnpm install --frozen-lockfile
@@ -144,6 +151,9 @@ jobs:
           # Lido por `forge.config.ts` para pular os makers que só existem em
           # teste local (o .deb).
           PLATFORM: ${{ matrix.plataforma }}
+          # O maker do Flatpak só diz "flatpak failed with status code 1"; o
+          # comando e a saída dele só aparecem com o log de depuração.
+          DEBUG: ${{ matrix.plataforma == 'linux' && 'electron-installer-flatpak*,flatpak-bundler' || '' }}
         run: pnpm make
 
       - name: Reunir os artefatos
