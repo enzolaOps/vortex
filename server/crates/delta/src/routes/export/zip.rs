@@ -10,6 +10,7 @@
 //! aceitável porque quem chama parte as mensagens em arquivos de até mil: uma
 //! entrada nunca passa de alguns megabytes, e no Pi memória limitada por
 //! entrada é melhor que um arquivo único crescendo sem teto.
+use std::convert::TryFrom;
 use std::io::{self, Write};
 
 use flate2::{write::DeflateEncoder, Compression, Crc};
