@@ -86,13 +86,24 @@ export function Toaster() {
               expira, e quem usa leitor de tela precisa saber como fazer a mesma
               coisa quando ele já tiver sumido.
             */
-            <Primitivo.Action
-              altText={t.acao.descricaoAlternativa}
-              onClick={t.acao.aoAtivar}
-              className="mt-08 rounded-06 border border-border-strong px-08 py-04 text-sm text-text-1 hover:bg-state-hover"
-            >
-              {t.acao.rotulo}
-            </Primitivo.Action>
+            <div className="mt-08 flex gap-06">
+              {t.acaoSecundaria ? (
+                <Primitivo.Action
+                  altText={t.acaoSecundaria.descricaoAlternativa}
+                  onClick={t.acaoSecundaria.aoAtivar}
+                  className="rounded-06 border border-border-strong px-08 py-04 text-sm text-text-1 hover:bg-state-hover"
+                >
+                  {t.acaoSecundaria.rotulo}
+                </Primitivo.Action>
+              ) : null}
+              <Primitivo.Action
+                altText={t.acao.descricaoAlternativa}
+                onClick={t.acao.aoAtivar}
+                className="rounded-06 border border-border-strong px-08 py-04 text-sm text-text-1 hover:bg-state-hover"
+              >
+                {t.acao.rotulo}
+              </Primitivo.Action>
+            </div>
           ) : null}
 
           <Primitivo.Close

@@ -125,7 +125,7 @@ export function CabecalhoDeCanal({ channelId }: { channelId?: string }) {
         presas a ela flutuariam no meio da tela, longe de onde a mão as
         procura.
       */}
-      <AcoesDoCanal channelId={channelId} nome={canal.name} />
+      <AcoesDoCanal channelId={channelId} nome={canal.name} tipo={canal.tipo} />
     </header>
   );
 }

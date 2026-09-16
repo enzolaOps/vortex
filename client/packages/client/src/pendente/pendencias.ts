@@ -29,25 +29,10 @@ import { toast } from "../components/ui/toastStore";
 export const PENDENCIAS = {
   /* ------------------------------------------ perfil do servidor */
   /*
-    Quatro entradas, divididas pela mesma régua de sempre — o que falta é
-    UPLOAD ou é CONCEITO.
-
-    ⚠ Ícone e banner têm campo no protocolo (`Server.icon`, `Server.banner`) e
-    param no servidor de mídia, que é um `POST` cru para a URL de
-    `client.configuration.features.autumn` — inverificável sem instância
-    alcançável, a mesma razão que segura o envio de emoji. Faixa e
-    características não têm campo nenhum: são conceito de outro cliente.
+    Ícone e banner saíram daqui: sobem ao `autumn` e vão em `Server.edit`
+    (`config/Servidor.tsx`). Faixa e características não têm campo nenhum:
+    são conceito de outro cliente.
   */
-  iconeDoServidor: {
-    superficie: "Configurações do servidor · Perfil do servidor",
-    faz: "Trocar ou remover a imagem que identifica o servidor.",
-    depende: "upload para o servidor de mídia — o campo Server.icon JÁ existe",
-  },
-  bannerDoServidor: {
-    superficie: "Configurações do servidor · Perfil do servidor",
-    faz: "Pôr a arte larga que aparece atrás do card de convite.",
-    depende: "upload para o servidor de mídia — o campo Server.banner JÁ existe",
-  },
   caracteristicasDoServidor: {
     superficie: "Configurações do servidor · Perfil do servidor",
     faz: "Marcar até cinco assuntos que descrevem o servidor.",
@@ -261,28 +246,18 @@ export const PENDENCIAS = {
     faz: "Publicar a enquete para todo mundo do canal poder votar.",
     depende: "enquete no protocolo (tipo de mensagem + evento de voto)",
   },
-  /*
-    ⚠ **Tocar já EXISTE** — ver `list/ReprodutorDeVoz.tsx`. O que continua
-    pendente é gravar, e a dependência é a mesma de `anexar`: sem upload, uma
-    gravação não tem para onde ir, e pedir o microfone para produzir um arquivo
-    que morre na aba é pior que não ter o botão.
-  */
-  mensagemDeVoz: {
-    superficie: "Composer",
-    faz: "Gravar e enviar mensagem de voz.",
-    depende: "upload ao servidor de mídia (autumn) + `MediaRecorder`",
-  },
 
   /* ------------------------------------------------------- linha de mensagem */
-  baixarAnexo: {
-    superficie: "Visualizador de mídia",
-    faz: "Salvar o arquivo no computador.",
-    depende: "`Content-Disposition` do servidor de mídia — `<a download>` de origem cruzada é ignorado pelo navegador",
-  },
+  /*
+    ⚠ O `depende` dizia "`Attachment.description` no protocolo", e o campo NÃO
+    existe: `File` (`crates/core/models/src/v0/files.rs`) não tem descrição e
+    `DataMessageSend.attachments` é lista de IDs. É fork, não tela.
+  */
   textoAlternativo: {
     superficie: "Anexo",
     faz: "Ler e escrever a descrição de uma imagem para quem não a vê.",
-    depende: "`Attachment.description` no protocolo + campo no envio",
+    depende:
+      "descrição de anexo no protocolo — `File` não tem o campo e o envio leva só IDs (fork de delta + autumn)",
   },
 
   /* --------------------------------------------------- coluna de canais */
@@ -297,6 +272,18 @@ export const PENDENCIAS = {
     superficie: "Cabeçalho do canal",
     faz: "Abrir o painel de tópicos ativos, seguindo e arquivados.",
     depende: "threads no protocolo + painel `topicos` em `PainelId`",
+  },
+
+  /* ------------------------------------------- modal do sino (notificações) */
+  notificarEventosDoServidor: {
+    superficie: "Notificações do servidor",
+    faz: "Avisar quando um evento agendado do servidor começar.",
+    depende: "evento agendado no protocolo — não há tipo, campo nem rota",
+  },
+  seguirTopicosAutomaticamente: {
+    superficie: "Notificações do canal",
+    faz: "Seguir sozinho os tópicos em que você responder.",
+    depende: "threads no protocolo",
   },
   /*
     ⚠ **`buscaNoCanal` SAIU daqui — o painel existe e a busca é real.** O que
@@ -317,14 +304,11 @@ export const PENDENCIAS = {
       "a rota de busca é POR CANAL — varrer N canais no cliente seriam N chamadas e uma ordenação que nenhuma delas conhece",
   },
   /*
-    ⚠ **`caixaDeEntrada` SAIU daqui — o painel existe.** O que dependia de
-    protocolo era só a aba de tópicos, e ela diz isso na própria tela.
+    ⚠ **`caixaDeEntrada` e `marcarTudoLido` SAÍRAM daqui.** O painel existe, e
+    marcar tudo é uma fila de `ack` com concorrência limitada
+    (`marcarTodosLidos`). O que dependia de protocolo era só a aba de tópicos,
+    e ela diz isso na própria tela.
   */
-  marcarTudoLido: {
-    superficie: "Caixa de entrada",
-    faz: "Zerar as não-lidas de todos os canais de uma vez.",
-    depende: "`ack` em lote — hoje é uma chamada por canal, e são dezenas",
-  },
 
   /* ------------------------------------------- ações da mensagem (fase 5) */
   topicoDaMensagem: {
@@ -540,6 +524,27 @@ export const PENDENCIAS = {
     depende:
       "campo de favorito no protocolo — `Channel` do Stoat não tem, e guardá-lo só no cliente daria uma ordem que só esta máquina enxerga",
   },
+  /*
+    ⚠ **O interruptor existia e gravava, e não havia NADA atrás dele** — nem na
+    casca nem no cliente. As outras preferências da tela Desktop chegaram à
+    casca; esta seria a única gravada sem efeito, então virou pendente.
+  */
+  preCarregarAnexos: {
+    superficie: "Configurações · Desktop",
+    faz: "Baixar as imagens dos canais com não lidas antes de você abri-los.",
+    depende:
+      "decidir o que pré-carregar (quais canais, quantas mensagens) e um limite de banda — não há nada disso no app hoje",
+  },
+  /*
+    O `⋯` da chamada direta. O design desenha o alvo na barra e não desenha o
+    menu; ensurdecer, que é o item óbvio, já está no painel de usuário e no
+    cartão flutuante — inventar a lista seria escrever o design.
+  */
+  menuDaChamada: {
+    superficie: "Chamada direta, na barra de controles",
+    faz: "Abrir as ações que não cabem na barra (ensurdecer, dispositivos, tela cheia).",
+    depende: "o conteúdo do menu, que o design não desenha",
+  },
 } as const satisfies Record<
   string,
   { superficie: string; faz: string; depende: string }
@@ -587,28 +592,6 @@ export type PendenciaId = keyof typeof PENDENCIAS;
  */
 export const SUPERFICIES_AUSENTES = {
   /* ------------------------------------------------------------- voz */
-  /*
-    ⚠ **As duas primeiras são o par que torna a voz 1:1 INALCANÇÁVEL, e não
-    incompleta.** Não é uma tela faltando no fim de um fluxo: sem a chamada
-    recebida não há como ATENDER, então nenhuma ligação de DM chega ao outro
-    lado. É a de maior valor das nove.
-
-    E ela é a única que não teria controle nem depois de pronta: quem chama é
-    a outra pessoa. Por isso não há como registrá-la em `PENDENCIAS` nem
-    hoje nem nunca — ela nasce de um evento, não de um clique.
-  */
-  chamadaRecebida: {
-    superficie: "Sobreposta ao app, e em tela cheia",
-    faz: "Anunciar quem está ligando, com atender e recusar.",
-    depende: "nada no protocolo — é trabalho de tela mais o evento do LiveKit",
-    referencia: "components/voice/IncomingCall.tsx",
-  },
-  chamadaDireta: {
-    superficie: "Coluna de conteúdo, numa DM",
-    faz: "A chamada de duas pessoas: vídeo grande, o seu no canto, controles.",
-    depende: "a chamada recebida, que é quem abre esta — e um botão de ligar na DM",
-    referencia: "components/voice/CallStage.tsx · DirectCallStage",
-  },
   chatDoCanalDeVoz: {
     superficie: "Painel dentro da sala de voz",
     faz: "O chat embutido do canal de voz, com entradas e saídas como eventos do sistema.",
@@ -638,38 +621,12 @@ export const SUPERFICIES_AUSENTES = {
       "screens/events/EventsScreen.tsx · CreateEventWizard.tsx · components/events/EventCard.tsx",
   },
 
-  /* -------------------------------------------------- notificações */
   /*
-    ⚠ **Metade desta entrada nasceu OBSOLETA, e vale saber por quê.** Ela dizia
-    "no menu do canal e do servidor" e "falta o store com relógio" — e o
-    relógio existe desde que silenciar canal foi construído:
-    `DURACOES_DE_SILENCIO` tem os cinco prazos, `silencioAte` guarda o PRAZO (e
-    não o tempo restante, senão o store publicaria a cada tique), e
-    `ListaDeCanais` já monta o submenu, com "Reativar avisos" do outro lado.
-    Verificado em navegador: os cinco prazos abrem, e silenciar por eles some
-    com o canal da coluna.
-
-    O que sobra é só o SERVIDOR, e ele não tem silenciar nenhum — nem submenu,
-    nem item. Registrar trabalho já feito como pendente é o defeito inverso do
-    que este registro existe para evitar: encolhe a lista de quem procura o que
-    fazer, e a lista para de merecer confiança na primeira vez que alguém abre
-    uma entrada e encontra a feature pronta.
+    ⚠ **`duracaoDoSilencio` e `notificacoesPorServidorECanal` SAÍRAM daqui.**
+    O servidor tem silêncio próprio (`silenciarServidor`, submenu no menu do
+    servidor) e o sino abre `ModalDeNotificacoes`, com herança servidor →
+    canal.
   */
-  duracaoDoSilencio: {
-    superficie: "Submenu do silenciar, no menu do SERVIDOR",
-    faz: "Silenciar o servidor inteiro por 15 minutos, 1 hora, 8 horas, 24 horas ou até eu reativar.",
-    depende:
-      "silêncio por SERVIDOR — `store/silencio.ts` é keyed por CANAL, e o rollup de não-lidas teria de consultá-lo; o prazo em si já existe e é o mesmo",
-    referencia: "components/navigation/MuteDurationSubmenu.tsx",
-  },
-  notificacoesPorServidorECanal: {
-    superficie: "Modal do sino, no servidor e no canal",
-    faz: "Escolher entre tudo, só menções ou nada, por servidor e por canal.",
-    depende:
-      "distinto de `permissaoDeNotificacao`, que é o pedido ao navegador — este é a REGRA",
-    referencia: "components/notifications/NotificationModals.tsx",
-  },
-
 } as const satisfies Record<
   string,
   { superficie: string; faz: string; depende: string; referencia: string }

@@ -38,6 +38,9 @@ import {
   DropdownMenuItem,
   DropdownMenuCheckboxItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "../components/ui/DropdownMenu";
 import {
@@ -68,9 +71,15 @@ import { assinarColapso, colapsadas, definirColapsoDeTodas, alternarColapso } fr
 import {
   alternarSilencio,
   assinarSilencio,
+  definirNivelDoServidor,
   DURACOES_DE_SILENCIO,
   estaSilenciado,
+  nivelDoServidor,
+  reativarServidor,
+  silenciarServidor,
   silencioAte,
+  silencioDoServidorAte,
+  servidorSilenciado,
 } from "../store/silencio";
 import { abrirPaleta } from "../store/paleta";
 import { ItemDeId } from "../components/ui/ItemDeId";
@@ -287,7 +296,9 @@ const Canal = memo(function Canal({
             <span className="sr-only">você está nesta sala</span>
           ) : null}
 
-          {canal.silenciado ? <RestanteDoSilencio channelId={id} /> : null}
+          {canal.silenciado ? (
+            <RestanteDoSilencio channelId={id} serverId={canal.serverId} />
+          ) : null}
 
           {/* Antes do contador, como no design: o cronômetro é sobre VOCÊ e
               a lotação é sobre a sala. */}
@@ -350,29 +361,13 @@ const Canal = memo(function Canal({
           um submenu com uma opção pede dois gestos para fazer o que um faz, e
           é o tipo de simetria que parece organizada e custa um clique por uso.
         */}
-        {canal.silenciado ? (
-          <ContextMenuItem onSelect={() => alternarSilencio(id)}>
-            <BellSimple size={ICONE.calha} aria-hidden />
-            Reativar avisos
-          </ContextMenuItem>
-        ) : (
-          <ContextMenuSub>
-            <ContextMenuSubTrigger>
-              <BellSimpleSlash size={ICONE.calha} aria-hidden />
-              Silenciar canal
-            </ContextMenuSubTrigger>
-            <ContextMenuSubContent>
-              {DURACOES_DE_SILENCIO.map((d) => (
-                <ContextMenuItem
-                  key={d.rotulo}
-                  onSelect={() => alternarSilencio(id, d.ms)}
-                >
-                  {d.rotulo}
-                </ContextMenuItem>
-              ))}
-            </ContextMenuSubContent>
-          </ContextMenuSub>
-        )}
+        <SilencioDoCanal channelId={id} />
+        <ContextMenuItem
+          onSelect={() => administrar({ tipo: "notificacoesDoCanal", channelId: id })}
+        >
+          <BellSimple size={ICONE.calha} aria-hidden />
+          Notificações…
+        </ContextMenuItem>
 
         {/*
           Daqui para baixo é administração, e cada item só existe se a pessoa
@@ -723,12 +718,125 @@ const Cronometro = memo(function Cronometro({ desde }: { desde: number }) {
  * ícone". No lugar, não ao lado — a linha tem 232px e o sino já disse o que o
  * número diz.
  */
+/**
+ * Silenciar o canal, no menu dele — ou reativar, se o silêncio é DELE.
+ *
+ * ⚠ **Pergunta ao store do canal, e não a `canal.silenciado`.** O snapshot
+ * junta canal e servidor (é o que a linha precisa para apagar o realce); o
+ * menu não pode, porque "Reativar avisos" num canal mudo pelo SERVIDOR chamaria
+ * `alternarSilencio` e SILENCIARIA o canal — o contrário do rótulo, e invisível
+ * até o servidor voltar.
+ *
+ * Componente próprio para assinar: o conteúdo do menu é calculado no render da
+ * linha, e silenciar só o canal com o servidor já mudo não muda o snapshot.
+ */
+function SilencioDoCanal({ channelId }: { channelId: string }) {
+  const proprio = useSyncExternalStore(assinarSilencio, () => estaSilenciado(channelId));
+  if (proprio) {
+    return (
+      <ContextMenuItem onSelect={() => alternarSilencio(channelId)}>
+        <BellSimple size={ICONE.calha} aria-hidden />
+        Reativar avisos
+      </ContextMenuItem>
+    );
+  }
+  return (
+    <ContextMenuSub>
+      <ContextMenuSubTrigger>
+        <BellSimpleSlash size={ICONE.calha} aria-hidden />
+        Silenciar canal
+      </ContextMenuSubTrigger>
+      <ContextMenuSubContent>
+        {DURACOES_DE_SILENCIO.map((d) => (
+          <ContextMenuItem key={d.rotulo} onSelect={() => alternarSilencio(channelId, d.ms)}>
+            {d.rotulo}
+          </ContextMenuItem>
+        ))}
+      </ContextMenuSubContent>
+    </ContextMenuSub>
+  );
+}
+
+/**
+ * O que o menu do servidor oferece sobre avisos: o padrão e o silêncio.
+ *
+ * ⚠ **Montado só com o menu aberto**, e é por isso que pode assinar o store:
+ * no cabeçalho da coluna, a assinatura acordaria o painel inteiro a cada
+ * silêncio de canal.
+ *
+ * O submenu "Notificações" é o da referência (`ServerMenu`), com os três
+ * níveis; o modal completo — interruptores e exceções por canal — fica no fim
+ * dele, porque é onde quem quer mais do que o padrão procura. O silêncio segue
+ * `MuteDurationSubmenu`: cinco prazos, e "Reativar avisos" quando já está mudo.
+ */
+function AvisosDoServidor({ serverId }: { serverId: string }) {
+  const nivel = useSyncExternalStore(assinarSilencio, () => nivelDoServidor(serverId));
+  const mudo = useSyncExternalStore(assinarSilencio, () => servidorSilenciado(serverId));
+  const efetivo = nivel ?? "mencoes";
+
+  return (
+    <>
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger>Notificações</DropdownMenuSubTrigger>
+        <DropdownMenuSubContent>
+          {NIVEIS_DO_MENU.map((n) => (
+            <DropdownMenuCheckboxItem
+              key={n.id}
+              marcado={efetivo === n.id}
+              aoAlternar={() => definirNivelDoServidor(serverId, n.id)}
+            >
+              {n.rotulo}
+            </DropdownMenuCheckboxItem>
+          ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onSelect={() => administrar({ tipo: "notificacoesDoServidor", serverId })}
+          >
+            Exceções por canal…
+          </DropdownMenuItem>
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
+
+      {mudo ? (
+        <DropdownMenuItem onSelect={() => reativarServidor(serverId)}>
+          Reativar avisos do servidor
+        </DropdownMenuItem>
+      ) : (
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>Silenciar servidor</DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            {DURACOES_DE_SILENCIO.map((d) => (
+              <DropdownMenuItem key={d.rotulo} onSelect={() => silenciarServidor(serverId, d.ms)}>
+                {d.rotulo}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+      )}
+    </>
+  );
+}
+
+/* Os rótulos da referência — "Só @menções" com o `@`, como no modal. */
+const NIVEIS_DO_MENU = [
+  { id: "todas", rotulo: "Todas as mensagens" },
+  { id: "mencoes", rotulo: "Só @menções" },
+  { id: "nada", rotulo: "Nada" },
+] as const;
+
 const RestanteDoSilencio = memo(function RestanteDoSilencio({
   channelId,
+  serverId,
 }: {
   channelId: string;
+  serverId: string | undefined;
 }) {
-  const ate = useSyncExternalStore(assinarSilencio, () => silencioAte(channelId));
+  /* O prazo do CANAL, senão o do servidor: com o servidor mudo, cada linha
+     diz quanto falta para ele voltar, como diria de um silêncio só dela. */
+  const ate = useSyncExternalStore(
+    assinarSilencio,
+    () => silencioAte(channelId) ?? (serverId ? silencioDoServidorAte(serverId) : undefined),
+  );
   const [agora, setAgora] = useState(() => Date.now());
 
   useEffect(() => {
@@ -1288,6 +1396,9 @@ function CanaisDoServidor() {
                 {NOME_DA_SECAO[secao]}
               </DropdownMenuItem>
             ))}
+
+            <DropdownMenuSeparator />
+            <AvisosDoServidor serverId={serverId} />
 
             <DropdownMenuSeparator />
             {/*

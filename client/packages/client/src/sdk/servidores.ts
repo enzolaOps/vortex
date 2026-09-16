@@ -1066,3 +1066,65 @@ function msDeEspera(erro: unknown): number | undefined {
   /* Uma folga: o relógio do servidor e o daqui não são o mesmo. */
   return ms + 250;
 }
+
+/* ------------------------------------------ ícone e banner, em Configurações */
+
+/** Qual das duas imagens do servidor. Domínio, e não o nome do campo. */
+export type ImagemDoServidor = "icone" | "banner";
+
+/**
+ * A tag do `autumn` de cada imagem.
+ *
+ * ⚠ **Tag errada não falha no ENVIO — falha no `PATCH`.** O `autumn` aceita um
+ * PNG em `attachments` sem reclamar, e é o `Server.edit` que recusa um ID
+ * subido na tag errada. Mapear aqui, ao lado do campo, é o que impede a tela de
+ * escolher uma e o protocolo esperar outra.
+ */
+export const TAG_DA_IMAGEM = {
+  icone: "icons",
+  banner: "banners",
+} as const satisfies Record<ImagemDoServidor, "icons" | "banners">;
+
+/**
+ * Veste ou tira o ícone ou o banner de um servidor que já existe.
+ *
+ * `anexoId` ausente = remover, pelo `remove` do protocolo (`Icon`/`Banner`).
+ * `icon: null` não é o caminho: `DataEditServer` não aceita nulo, e o campo só
+ * some quando nomeado em `remove`.
+ *
+ * ⚠ **Irmã de `vestirIconeNoServidor`, e não a mesma função.** Aquela existe
+ * para o servidor RECÉM-CRIADO, que ainda não chegou à coleção do SDK e cai no
+ * limite de taxa do próprio fluxo de criação — daí o caminho cru e a espera.
+ * Aqui o servidor está aberto em Configurações, está na coleção, e falha é
+ * falha: o toast diz e a tela desfaz a prévia.
+ */
+export async function trocarImagemDoServidor(
+  serverId: string,
+  qual: ImagemDoServidor,
+  anexoId: string | undefined,
+): Promise<boolean> {
+  const servidor = client.servers.get(serverId);
+  if (servidor === undefined) return false;
+
+  const nome = qual === "icone" ? "ícone" : "banner";
+  try {
+    if (anexoId === undefined) {
+      await servidor.edit({ remove: [qual === "icone" ? "Icon" : "Banner"] });
+    } else if (qual === "icone") {
+      await servidor.edit({ icon: anexoId });
+    } else {
+      await servidor.edit({ banner: anexoId });
+    }
+    return true;
+  } catch (e) {
+    toast({
+      tipo: "erro",
+      titulo:
+        anexoId === undefined
+          ? `Não deu para remover o ${nome}.`
+          : `Não deu para trocar o ${nome}.`,
+      descricao: motivo(e),
+    });
+    return false;
+  }
+}
