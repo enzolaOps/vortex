@@ -163,6 +163,20 @@
   outline-offset: 2px;
 }
 
+/*
+  Baixando: o anel NÃO herda o `opacity: 0.35` do desabilitado. Desabilitado
+  diz "não dá"; aqui dá, e já está acontecendo — apagar o anel faria o
+  progresso parecer botão morto.
+*/
+.acaoDoTopo[data-estado="baixando"]:disabled {
+  opacity: 1;
+  cursor: progress;
+}
+
+.acaoDoTopo[data-estado="erro"] {
+  color: var(--vx-danger-text);
+}
+
 /* -------------------------------------------------------- setas */
 
 .seta {
