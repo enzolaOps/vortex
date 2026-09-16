@@ -1,14 +1,24 @@
-import { BrowserWindow, Notification, type Session, screen, session } from "electron";
+import {
+  BrowserWindow,
+  MessageChannelMain,
+  type MessagePortMain,
+  Notification,
+  type Session,
+  type WebContents,
+  screen,
+  session,
+} from "electron";
 import { join } from "node:path";
 
 import { config } from "./config";
 import {
-  objeto,
-  registrar,
-  registrarJanelaDoOverlay,
-  semArgumentos,
-  umDe,
-} from "./registroDeIpc";
+  CANAL_DA_PORTA,
+  type EstadoDoOverlay,
+  type MensagemDoOverlay,
+  type Papel,
+  criarComutador,
+} from "./portasDoOverlayModelo";
+import { registrarJanelaDoOverlay } from "./registroDeIpc";
 import {
   PARTICAO_DO_OVERLAY,
   protegerConteudoDoOverlay,
@@ -40,30 +50,95 @@ import { BUILD_URL, mainWindow } from "./window";
  * jogo.
  */
 
-type Estado = {
-  ativo: boolean;
-  voz: unknown;
-  [k: string]: unknown;
-};
-
-/** O que a principal publica precisa ser objeto com `ativo` booleano — é o
-    que `reavaliar` lê; o resto atravessa como veio. */
-function estadoValido(bruto: unknown): Estado | undefined {
-  const o = objeto(bruto);
-  return o && typeof o.ativo === "boolean" ? (o as Estado) : undefined;
-}
-
-const comandoDoOverlay = umDe(["mutar", "ensurdecer", "desconectar"] as const);
-
 let janela: BrowserWindow | undefined;
-let estado: Estado | undefined;
+let estado: EstadoDoOverlay | undefined;
 let interagindo = false;
 
-/* O guarda de IPC aceita os canais do overlay só desta janela. */
+/*
+  O registro de IPC conhece esta janela pelo papel "overlay". Hoje nenhum canal
+  aceita esse papel — o overlay fala só pela porta —, e é isso que torna
+  qualquer `ipcRenderer.send` vindo dele uma recusa.
+*/
 registrarJanelaDoOverlay(() => janela);
 
 function vivo(w: BrowserWindow | undefined): w is BrowserWindow {
   return w !== undefined && !w.isDestroyed();
+}
+
+function daOrigemDoApp(url: string): boolean {
+  try {
+    return new URL(url).origin === BUILD_URL.origin;
+  } catch {
+    return false;
+  }
+}
+
+/* ------------------------------------------- o canal privado (portas) */
+
+/** Ver `portasDoOverlayModelo.ts`. */
+const portas = criarComutador({
+  criarPar: () => new MessageChannelMain(),
+  entregar: (papel, porta) => {
+    const w = papel === "principal" ? mainWindow : janela;
+    /* A porta só vai para a página do APP: uma janela que navegou para
+       outro lugar não recebe canal nenhum. */
+    if (!vivo(w) || !daOrigemDoApp(w.webContents.getURL())) return false;
+    w.webContents.postMessage(CANAL_DA_PORTA, null, [porta as MessagePortMain]);
+    return true;
+  },
+  daPrincipal: (m) => {
+    if (m.tipo === "estado") publicarEstado(m.estado);
+    else repassarMensagem(m.mensagem);
+  },
+  /* Os botões do widget de voz viram o mesmo comando do atalho e da bandeja. */
+  doOverlay: (m) => {
+    if (vivo(mainWindow)) mainWindow.webContents.send("vortexComandoDeVoz", m.comando);
+  },
+  /*
+    ⚠ **O overlay recebe o retrato ao CONECTAR, e o preload o guarda.** Medido
+    no Electron quando isto era IPC: empurrar no `did-finish-load` chegava
+    antes de o React registrar o ouvinte, e o primeiro estado se perdia. A
+    porta chega ao preload — que roda antes da página — e ele reentrega o
+    último valor a cada ouvinte novo.
+  */
+  aoConectar: (papel) => {
+    if (papel !== "overlay") return;
+    if (estado) portas.enviarAoOverlay({ tipo: "estado", estado });
+    portas.enviarAoOverlay({ tipo: "interacao", interagindo });
+    portas.enviarAoOverlay({ tipo: "silencio", silenciadas });
+  },
+  /* A principal recarregou ou fechou: a chamada que ela publicou não existe
+     mais, e o overlay não pode continuar mostrando-a. */
+  aoDesconectar: (papel) => {
+    if (papel !== "principal") return;
+    estado = undefined;
+    reavaliar();
+  },
+});
+
+/**
+ * Liga o ciclo de vida da porta a um `webContents`: porta nova a cada página
+ * carregada, porta fechada quando a página sai, o renderer cai ou a janela
+ * fecha.
+ */
+function vigiarPorta(papel: Papel, wc: WebContents): void {
+  wc.on("did-finish-load", () => portas.conectar(papel));
+  wc.on("did-start-navigation", (e) => {
+    if (e.isMainFrame && !e.isSameDocument) portas.desconectar(papel);
+  });
+  wc.on("render-process-gone", () => portas.desconectar(papel));
+  wc.once("destroyed", () => portas.desconectar(papel));
+}
+
+function publicarEstado(novo: EstadoDoOverlay): void {
+  estado = novo;
+  portas.enviarAoOverlay({ tipo: "estado", estado });
+  reavaliar();
+}
+
+function repassarMensagem(m: MensagemDoOverlay): void {
+  if (!vivo(janela) || !janela.isVisible() || silenciadas) return;
+  portas.enviarAoOverlay({ tipo: "mensagem", mensagem: m });
 }
 
 let sessaoProtegida: Session | undefined;
@@ -101,8 +176,9 @@ function criar(): BrowserWindow {
         ⚠ **Preload PRÓPRIO, e não o da janela principal.** O principal expõe
         fechar a janela, o hook global de teclado, o volume do sistema e as
         preferências; aqui só atravessam as pontes do overlay (estado,
-        silêncio, comando). O main ainda confere o remetente de todo canal —
-        ver `registroDeIpc.ts` —, mas a ponte que não existe é a que não vaza.
+        silêncio, comando), e elas falam por uma PORTA entregue pelo main
+        (`portasDoOverlayModelo.ts`), não por canal de IPC. A ponte que não
+        existe é a que não vaza.
       */
       preload: join(__dirname, "preloadDoOverlay.js"),
       /* Sessão própria, só em memória, sem rede além dos assets e sem
@@ -122,6 +198,7 @@ function criar(): BrowserWindow {
   /* Depois do construtor: o `web-contents-created` de `main.ts` já pôs a
      regra da principal (abrir link no navegador), e esta a substitui. */
   protegerConteudoDoOverlay(w.webContents);
+  vigiarPorta("overlay", w.webContents);
   void w.loadURL(new URL("/overlay", BUILD_URL).toString());
   /* Clicou fora (voltou ao jogo): trava de novo. */
   w.on("blur", () => definirInteracao(false));
@@ -176,7 +253,7 @@ function definirInteracao(sim: boolean): void {
     janela.show();
     janela.focus();
   }
-  janela.webContents.send("vortexOverlayInteracao", sim);
+  portas.enviarAoOverlay({ tipo: "interacao", interagindo: sim });
 }
 
 /** O atalho "Alternar overlay" — chamado pelo hook de teclado. */
@@ -199,7 +276,7 @@ export function alternarOverlay(): void {
 let silenciadas = false;
 
 function publicarSilencio(): void {
-  if (vivo(janela)) janela.webContents.send("vortexOverlaySilencio", silenciadas);
+  portas.enviarAoOverlay({ tipo: "silencio", silenciadas });
 }
 
 /** O atalho "Silenciar mensagens no overlay" — chamado pelo hook de teclado. */
@@ -262,62 +339,10 @@ function avisarTelaCheia(chave: string): void {
 
 export function registrarOverlay(): void {
   /*
-    Só a janela PRINCIPAL publica; a do overlay só lê. O papel declarado em
-    cada canal é o que impede a página do overlay — ou algo injetado nela — de
-    reescrever o que ela mesma mostra.
+    Nenhum canal de IPC: a principal publica pela porta DELA, o overlay pede
+    pela DELE, e o main valida e repassa — ver `portasDoOverlayModelo.ts`.
   */
-  registrar("vortexOverlayPublicar", {
-    via: "send",
-    quem: ["principal"],
-    validar: estadoValido,
-    executar: (bruto) => {
-      estado = bruto;
-      if (vivo(janela)) janela.webContents.send("vortexOverlayEstado", estado);
-      reavaliar();
-    },
-  });
-
-  registrar("vortexOverlayMensagem", {
-    via: "send",
-    quem: ["principal"],
-    validar: objeto,
-    executar: (m) => {
-      if (!vivo(janela) || !janela.isVisible() || silenciadas) return;
-      janela.webContents.send("vortexOverlayMensagem", m);
-    },
-  });
-
-  /*
-    ⚠ **A página PEDE o estado ao assinar, em vez de a casca empurrá-lo no
-    `did-finish-load`.** Medido no Electron: o evento chega antes de o React
-    montar e registrar o ouvinte, e o primeiro estado se perdia — o overlay
-    abria vazio até a chamada mudar de novo.
-  */
-  registrar("vortexOverlayEstadoAtual", {
-    via: "invoke",
-    quem: ["overlay"],
-    validar: semArgumentos,
-    executar: () => ({ estado, interagindo }),
-  });
-
-  /* Canal próprio, lido pela ponte `vortexOverlaySilencio`: uma casca antiga
-     não o tem, e o overlay então nem mostra a dica do atalho. */
-  registrar("vortexOverlaySilencioAtual", {
-    via: "invoke",
-    quem: ["overlay"],
-    validar: semArgumentos,
-    executar: () => silenciadas,
-  });
-
-  /* Os botões do widget de voz viram o mesmo comando do atalho e da bandeja. */
-  registrar("vortexOverlayComando", {
-    via: "send",
-    quem: ["overlay"],
-    validar: comandoDoOverlay,
-    executar: (c) => {
-      if (vivo(mainWindow)) mainWindow.webContents.send("vortexComandoDeVoz", c);
-    },
-  });
+  if (vivo(mainWindow)) vigiarPorta("principal", mainWindow.webContents);
 
   if (vivo(mainWindow)) {
     mainWindow.on("focus", reavaliar);

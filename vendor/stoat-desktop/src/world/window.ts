@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 
 import { version } from "../../package.json";
+import { CANAL_DA_PORTA } from "../native/portasDoOverlayModelo";
 
 contextBridge.exposeInMainWorld("native", {
   versions: {
@@ -95,58 +96,54 @@ contextBridge.exposeInMainWorld("vortexNotificacoes", {
 });
 
 /**
- * O overlay do jogo — ver `native/overlay.ts`. A mesma ponte serve às duas
- * janelas: a principal publica, a do overlay assina. O main confere quem
- * mandou cada mensagem.
+ * O overlay do jogo — ver `native/overlay.ts`. Nesta janela a ponte só
+ * PUBLICA; quem assina é a janela do overlay, com preload próprio
+ * (`preloadDoOverlay.ts`).
+ *
+ * ⚠ **Por porta, e não por canal de IPC.** O main entrega a esta página uma
+ * porta a cada carregamento (`CANAL_DA_PORTA`) e fica no meio: lê o estado
+ * para decidir se o overlay aparece e repassa. Ver
+ * `native/portasDoOverlayModelo.ts`.
+ *
+ * O último estado publicado é guardado e reenviado quando a porta chega —
+ * o cliente publica assim que monta, e isso pode ser antes da entrega.
+ * Mensagem não: ela só vale no instante em que acontece.
+ *
+ * Os quatro verbos de assinatura existem só porque o contrato do cliente
+ * (`ponteDeOverlay`) exige os seis; nesta janela eles não recebem nada.
  */
-contextBridge.exposeInMainWorld("vortexOverlay", {
-  publicar: (estado: unknown) => ipcRenderer.send("vortexOverlayPublicar", estado),
-  mensagem: (m: unknown) => ipcRenderer.send("vortexOverlayMensagem", m),
-  assinarEstado: (ouvinte: (e: unknown) => void) => {
-    const alca = (_evento: unknown, e: unknown) => ouvinte(e);
-    ipcRenderer.on("vortexOverlayEstado", alca);
-    void ipcRenderer
-      .invoke("vortexOverlayEstadoAtual")
-      .then((atual?: { estado?: unknown }) => {
-        if (atual?.estado) ouvinte(atual.estado);
-      });
-    return () => ipcRenderer.off("vortexOverlayEstado", alca);
-  },
-  assinarMensagens: (ouvinte: (m: unknown) => void) => {
-    const alca = (_evento: unknown, m: unknown) => ouvinte(m);
-    ipcRenderer.on("vortexOverlayMensagem", alca);
-    return () => ipcRenderer.off("vortexOverlayMensagem", alca);
-  },
-  assinarInteracao: (ouvinte: (sim: unknown) => void) => {
-    const alca = (_evento: unknown, sim: unknown) => ouvinte(sim);
-    ipcRenderer.on("vortexOverlayInteracao", alca);
-    void ipcRenderer
-      .invoke("vortexOverlayEstadoAtual")
-      .then((atual?: { interagindo?: unknown }) => {
-        if (atual) ouvinte(atual.interagindo === true);
-      });
-    return () => ipcRenderer.off("vortexOverlayInteracao", alca);
-  },
-  comando: (c: unknown) => ipcRenderer.send("vortexOverlayComando", c),
+let portaDoOverlay: MessagePort | undefined;
+let estadoDoOverlay: unknown;
+
+function postarNoOverlay(mensagem: unknown): void {
+  try {
+    portaDoOverlay?.postMessage(mensagem);
+  } catch (erro) {
+    /* Estado com algo que não se clona (função, nó do DOM) não derruba o app. */
+    console.error("Não deu para publicar no overlay:", erro);
+  }
+}
+
+ipcRenderer.on(CANAL_DA_PORTA, (evento) => {
+  const nova = evento.ports[0];
+  if (!nova) return;
+  portaDoOverlay?.close();
+  portaDoOverlay = nova;
+  if (estadoDoOverlay !== undefined) postarNoOverlay({ tipo: "estado", estado: estadoDoOverlay });
 });
 
-/**
- * O silêncio das mensagens do overlay — ver `alternarSilencioDoOverlay`.
- *
- * ⚠ **Ponte SEPARADA de `vortexOverlay`**, e é a razão de versão aplicada à
- * própria página do overlay: um verbo novo lá faria o overlay de uma casca
- * antiga não reconhecer a ponte inteira. Ausente, o overlay só não mostra a
- * dica "silencia". Um booleano atravessa, e só para a janela do overlay.
- */
-contextBridge.exposeInMainWorld("vortexOverlaySilencio", {
-  assinar: (ouvinte: (silenciadas: boolean) => void) => {
-    const alca = (_evento: unknown, sim: unknown) => ouvinte(sim === true);
-    ipcRenderer.on("vortexOverlaySilencio", alca);
-    void ipcRenderer.invoke("vortexOverlaySilencioAtual").then((atual: unknown) => {
-      if (typeof atual === "boolean") ouvinte(atual);
-    });
-    return () => ipcRenderer.off("vortexOverlaySilencio", alca);
+const semAssinatura = (): (() => void) => () => undefined;
+
+contextBridge.exposeInMainWorld("vortexOverlay", {
+  publicar: (estado: unknown) => {
+    estadoDoOverlay = estado;
+    postarNoOverlay({ tipo: "estado", estado });
   },
+  mensagem: (m: unknown) => postarNoOverlay({ tipo: "mensagem", mensagem: m }),
+  assinarEstado: semAssinatura,
+  assinarMensagens: semAssinatura,
+  assinarInteracao: semAssinatura,
+  comando: (): void => undefined,
 });
 
 /**

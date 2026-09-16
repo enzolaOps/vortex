@@ -130,16 +130,16 @@ describe("registro de IPC", () => {
 
   it("canal do overlay só aceita a janela do overlay", () => {
     const { registro, disparar } = montar();
-    registro.registrar("vortexOverlayComando", {
+    registro.registrar("canalDoOverlay", {
       via: "invoke",
       quem: ["overlay"],
       validar: umDe(["mutar", "ensurdecer", "desconectar"]),
       executar: (c) => c,
     });
-    assert.equal(disparar("vortexOverlayComando", evento(PRINCIPAL), "mutar"), undefined);
-    assert.equal(disparar("vortexOverlayComando", evento(ESTRANHA), "mutar"), undefined);
-    assert.equal(disparar("vortexOverlayComando", evento(OVERLAY), "fechar"), undefined);
-    assert.equal(disparar("vortexOverlayComando", evento(OVERLAY), "mutar"), "mutar");
+    assert.equal(disparar("canalDoOverlay", evento(PRINCIPAL), "mutar"), undefined);
+    assert.equal(disparar("canalDoOverlay", evento(ESTRANHA), "mutar"), undefined);
+    assert.equal(disparar("canalDoOverlay", evento(OVERLAY), "fechar"), undefined);
+    assert.equal(disparar("canalDoOverlay", evento(OVERLAY), "mutar"), "mutar");
   });
 
   it("canal com dois papéis aceita os dois e mais ninguém", () => {
