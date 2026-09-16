@@ -55,20 +55,30 @@ pub async fn snapshot_server(db: &Database, server: &Server) -> Result<v0::Serve
                 voice,
                 default_permissions,
                 role_permissions,
+                slowmode,
+                forum,
+                thread,
+                spoiler,
                 ..
-            } => Some(v0::ServerTemplateChannel {
+            } if thread.is_none() => Some(v0::ServerTemplateChannel {
                 id,
                 name,
                 description,
-                channel_type: if voice.is_some() {
-                    v0::LegacyServerChannelType::Voice
-                } else {
-                    v0::LegacyServerChannelType::Text
+                // Vortex: fórum e galeria são canais de texto com `forum`; sem
+                // olhar para ele o modelo os recriava como texto comum.
+                channel_type: match (&forum, &voice) {
+                    (Some(forum), _) if forum.media => v0::LegacyServerChannelType::Media,
+                    (Some(_), _) => v0::LegacyServerChannelType::Forum,
+                    (None, Some(_)) => v0::LegacyServerChannelType::Voice,
+                    (None, None) => v0::LegacyServerChannelType::Text,
                 },
                 nsfw,
                 voice: voice.map(Into::into),
                 default_permissions,
                 role_permissions,
+                slowmode,
+                forum,
+                spoiler,
             }),
             _ => None,
         })
@@ -194,18 +204,27 @@ pub async fn apply_server_template(
             .filter_map(|(id, value)| role_ids.get(id).map(|new| (new.clone(), value.clone())))
             .collect();
 
-        if template_channel.default_permissions.is_some() || !role_permissions.is_empty() {
-            channel
-                .update(
-                    db,
-                    PartialChannel {
-                        default_permissions: template_channel.default_permissions.clone(),
-                        role_permissions: Some(role_permissions),
-                        ..Default::default()
-                    },
-                    vec![],
-                )
-                .await?;
+        // `create_server_channel` só conhece tipo, nome, descrição, nsfw e voz;
+        // o resto do canal vem numa atualização logo depois.
+        let partial = PartialChannel {
+            default_permissions: template_channel.default_permissions.clone(),
+            role_permissions: (!role_permissions.is_empty()).then_some(role_permissions),
+            slowmode: template_channel.slowmode,
+            forum: template_channel
+                .forum
+                .clone()
+                .filter(|forum| !forum.tags.is_empty()),
+            spoiler: template_channel.spoiler.then_some(true),
+            ..Default::default()
+        };
+
+        if partial.default_permissions.is_some()
+            || partial.role_permissions.is_some()
+            || partial.slowmode.is_some()
+            || partial.forum.is_some()
+            || partial.spoiler.is_some()
+        {
+            channel.update(db, partial, vec![]).await?;
         }
 
         channel_ids.insert(template_channel.id.clone(), channel.id().to_string());

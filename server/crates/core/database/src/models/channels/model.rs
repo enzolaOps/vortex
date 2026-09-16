@@ -783,6 +783,7 @@ impl Channel {
                 default_permissions,
                 role_permissions,
                 voice,
+                slowmode,
                 forum,
                 thread,
                 spoiler,
@@ -823,6 +824,10 @@ impl Channel {
 
                 if let Some(v) = partial.voice {
                     voice.replace(v);
+                }
+
+                if let Some(v) = partial.slowmode {
+                    slowmode.replace(v);
                 }
 
                 if let Some(v) = partial.spoiler {
