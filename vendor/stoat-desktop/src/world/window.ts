@@ -131,6 +131,34 @@ contextBridge.exposeInMainWorld("vortexOverlay", {
 });
 
 /**
+ * O silêncio das mensagens do overlay — ver `alternarSilencioDoOverlay`.
+ *
+ * ⚠ **Ponte SEPARADA de `vortexOverlay`**, e é a razão de versão aplicada à
+ * própria página do overlay: um verbo novo lá faria o overlay de uma casca
+ * antiga não reconhecer a ponte inteira. Ausente, o overlay só não mostra a
+ * dica "silencia". Um booleano atravessa, e só para a janela do overlay.
+ */
+contextBridge.exposeInMainWorld("vortexOverlaySilencio", {
+  assinar: (ouvinte: (silenciadas: boolean) => void) => {
+    const alca = (_evento: unknown, sim: unknown) => ouvinte(sim === true);
+    ipcRenderer.on("vortexOverlaySilencio", alca);
+    void ipcRenderer.invoke("vortexOverlaySilencioAtual").then((atual: unknown) => {
+      if (typeof atual === "boolean") ouvinte(atual);
+    });
+    return () => ipcRenderer.off("vortexOverlaySilencio", alca);
+  },
+});
+
+/**
+ * "Reiniciar agora", do aviso de preferência que só vale no próximo início —
+ * ver `native/preferencias.ts`. Ponte separada pela razão de versão; nenhum
+ * argumento atravessa.
+ */
+contextBridge.exposeInMainWorld("vortexReinicio", {
+  reiniciar: () => ipcRenderer.invoke("vortexReiniciar"),
+});
+
+/**
  * "Atenuar outros apps" — ver `native/atenuacao.ts`. Um booleano atravessa,
  * nada mais. Ponte separada pela mesma razão das outras.
  */

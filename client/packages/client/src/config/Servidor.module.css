@@ -104,6 +104,9 @@
   com outro raio e outro peso de letra — o mesmo que o rail usa em 44.
 */
 .ladrilho {
+  /* Âncora da imagem que cobre o gradiente — ver `.imagemDoLadrilho`. */
+  position: relative;
+  overflow: hidden;
   display: grid;
   flex: none;
   place-items: center;
@@ -137,6 +140,26 @@
 .pista {
   font-size: var(--vx-size-xs);
   color: var(--vx-text-4);
+}
+
+/*
+  A imagem COBRE a sigla e o gradiente, e não os substitui — a mesma técnica
+  do `Avatar` e do ladrilho do rail. `cover` centrado é o recorte: é o que todo
+  cliente aplica ao ler um ícone não quadrado, então a prévia mostra exatamente
+  o que os outros vão ver.
+*/
+.imagemDoLadrilho,
+.imagemDoBanner {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+/* O `input` de arquivo do sistema — acionado pelos botões, nunca visto. */
+.seletor {
+  display: none;
 }
 
 /* -------------------------------------- faixa do card de convite */
@@ -205,6 +228,10 @@
   se confere caractere a caractere não deve variar de largura.
 */
 .dropzone {
+  /* Âncora do banner que já existe, desenhado ATRÁS das duas linhas. */
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -218,8 +245,43 @@
   cursor: pointer;
 }
 
-.dropzone:hover {
+.dropzone:hover:not(:disabled),
+.dropzone[data-sobre="true"] {
   background: var(--vx-state-hover);
+}
+
+.dropzone[data-sobre="true"] {
+  border-color: var(--vx-accent);
+}
+
+.dropzone:disabled {
+  cursor: default;
+}
+
+.dropzone[aria-busy="true"] {
+  cursor: progress;
+}
+
+/*
+  Com banner, a imagem vai para trás e as duas linhas ganham uma pastilha em
+  `surface-3` por baixo: texto de 11px sobre uma foto qualquer não tem
+  contraste garantido, e `text-3`/`text-4` já têm par medido contra
+  `surface-3` nos dois temas. ⚠ `scrim` seria o palpite óbvio e erra no claro:
+  ele escurece, e o texto do tema claro é escuro.
+*/
+.dropzone[data-com-imagem="true"] .imagemDoBanner {
+  z-index: -1;
+}
+
+.dropzone[data-com-imagem="true"] .dropzoneMedida,
+.dropzone[data-com-imagem="true"] .dropzoneGesto {
+  padding: var(--vx-space-02) var(--vx-space-06);
+  border-radius: var(--vx-radius-04);
+  background: var(--vx-surface-3);
+}
+
+.removerBanner {
+  margin-block-start: var(--vx-space-08);
 }
 
 .dropzone:focus-visible {
@@ -275,17 +337,21 @@
   gap: var(--vx-space-08);
 }
 
+/* Design (`Configurações do Servidor`): 26 · 0 10 · pílula · #1B2028 ·
+   borda branca a 10% · 12/600 · gap 6. A borda era `border-subtle`, que é
+   calibrada para divisória sobre surface-0..2 e some sobre surface-3. */
 .caracteristica {
   display: inline-flex;
   align-items: center;
   gap: var(--vx-space-06);
   block-size: 26px;
   padding-inline: var(--vx-space-10);
-  border: 1px solid var(--vx-border-subtle);
+  border: 1px solid var(--vx-hairline-10);
   border-radius: var(--vx-radius-pill);
   background: var(--vx-surface-3);
   font-size: var(--vx-size-sm);
-  color: var(--vx-text-2);
+  font-weight: 600;
+  color: var(--vx-text-1);
 }
 
 .tirar {
@@ -310,11 +376,14 @@
   display: inline-flex;
   align-items: center;
   block-size: 26px;
-  padding-inline: var(--vx-space-10);
-  border: 1px dashed var(--vx-border-strong);
+  /* 0 11 e tracejado a 16%, do design — um ponto a mais que o chip cheio,
+     que tem o ✕ ocupando o fim. */
+  padding-inline: var(--vx-space-11);
+  border: 1px dashed var(--vx-hairline-16);
   border-radius: var(--vx-radius-pill);
   background: transparent;
   font-size: var(--vx-size-sm);
+  font-weight: 600;
   color: var(--vx-text-3);
   cursor: pointer;
 }
@@ -326,6 +395,25 @@
 .acrescentar:focus-visible {
   outline: 2px solid var(--vx-accent);
   outline-offset: 2px;
+}
+
+/* O chip tracejado virado campo: mesma altura e mesma pílula, para a linha
+   não pular quando se clica em "adicionar". */
+.acrescentarCampo {
+  block-size: 26px;
+  inline-size: 160px;
+  padding-inline: var(--vx-space-10);
+  border: 1px solid var(--vx-accent);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-surface-3);
+  font: inherit;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-1);
+  outline: none;
+}
+
+.acrescentarCampo::placeholder {
+  color: var(--vx-text-4);
 }
 
 /* ============================================================
@@ -351,7 +439,10 @@
   box-shadow: var(--vx-elev-3);
 }
 
+/* Âncora do banner, que ocupa a faixa inteira quando existe. */
 .faixaDoCartao {
+  position: relative;
+  overflow: hidden;
   block-size: 104px;
 }
 
@@ -366,7 +457,14 @@
   A borda não é enfeite: é ela que recorta o ladrilho contra a faixa colorida
   atrás. Sem o anel, um ícone escuro sobre uma faixa escura perde o contorno.
 */
+/*
+  `position: relative` faz duas coisas: ancora a imagem do ícone e põe o
+  ladrilho À FRENTE da faixa. Com banner, a faixa é posicionada, e um irmão
+  posterior não posicionado pintaria POR BAIXO dela nos 26px sobrepostos.
+*/
 .iconeDoCartao {
+  position: relative;
+  overflow: hidden;
   display: grid;
   place-items: center;
   inline-size: 56px;

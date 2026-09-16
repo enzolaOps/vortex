@@ -6,6 +6,7 @@ import { PontoDePresenca } from "../presenca/PontoDePresenca";
 import { chaveDeMembro } from "../sdk/domain";
 import { useCorDeCargo, useMembro } from "../store/hooks";
 import { PilulasDeCargo } from "./PilulasDeCargo";
+import { TagDoServidor } from "../presenca/TagDoServidor";
 import css from "./CartaoDePerfil.module.css";
 
 /**
@@ -80,12 +81,15 @@ export function CorpoDePerfil({
         </Avatar>
 
         <div className={css.identidade}>
-          <p
-            className={css.nome}
-            style={corDeCargo ? { color: corDeCargo } : undefined}
-          >
-            {membro.displayName}
-          </p>
+          <span className={css.linhaDoNome}>
+            <p
+              className={css.nome}
+              style={corDeCargo ? { color: corDeCargo } : undefined}
+            >
+              {membro.displayName}
+            </p>
+            <TagDoServidor serverId={serverId} userId={userId} />
+          </span>
           {temApelido ? <p className={css.username}>{membro.username}</p> : null}
         </div>
       </div>

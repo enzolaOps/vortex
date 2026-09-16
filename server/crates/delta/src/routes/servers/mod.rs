@@ -5,6 +5,7 @@ mod audit_log_query;
 mod ban_create;
 mod ban_list;
 mod ban_remove;
+mod category_permissions_set;
 mod channel_create;
 mod discover;
 mod emoji_list;
@@ -15,6 +16,7 @@ mod member_experimental_query;
 mod member_fetch;
 mod member_fetch_all;
 mod member_remove;
+mod message_search;
 mod permissions_set;
 mod permissions_set_default;
 mod roles_create;
@@ -27,6 +29,7 @@ mod server_create;
 mod server_delete;
 mod server_edit;
 mod server_fetch;
+mod tag_members_fetch;
 
 pub fn routes() -> (Vec<Route>, OpenApi) {
     openapi_get_routes_spec![
@@ -56,6 +59,9 @@ pub fn routes() -> (Vec<Route>, OpenApi) {
         expressions_list::list_sounds,
         roles_edit_positions::edit_role_ranks,
         audit_log_query::query,
+        message_search::search,
+        tag_members_fetch::fetch_tag_members,
+        category_permissions_set::set_category_permissions,
         discover::discover_add::discover_add,
         discover::discover_get::discover_get,
         discover::discover_remove::discover_remove,

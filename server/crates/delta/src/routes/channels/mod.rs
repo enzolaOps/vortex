@@ -14,6 +14,7 @@ mod message_bulk_delete;
 mod message_clear_reactions;
 mod message_delete;
 mod message_edit;
+mod message_embeds_remove;
 mod message_fetch;
 mod message_pin;
 mod message_query;
@@ -24,6 +25,7 @@ mod message_unpin;
 mod message_unreact;
 mod permissions_set;
 mod permissions_set_default;
+mod permissions_sync;
 mod voice_join;
 mod voice_soundboard;
 mod voice_stop_ring;
@@ -44,6 +46,7 @@ pub fn routes() -> (Vec<Route>, OpenApi) {
         message_pin::message_pin,
         message_fetch::fetch,
         message_edit::edit,
+        message_embeds_remove::remove_embeds,
         message_bulk_delete::bulk_delete_messages,
         message_delete::delete,
         message_unpin::message_unpin,
@@ -55,6 +58,7 @@ pub fn routes() -> (Vec<Route>, OpenApi) {
         voice_stop_ring::stop_ring,
         permissions_set::set_role_permissions,
         permissions_set_default::set_default_channel_permissions,
+        permissions_sync::sync_channel_permissions,
         message_react::react_message,
         message_unreact::unreact_message,
         message_clear_reactions::clear_reactions,

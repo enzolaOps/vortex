@@ -96,12 +96,18 @@ describe("semeadura de não lidas no Ready", () => {
     parar();
   });
 
-  it("o servidor herda a contagem dos canais dele", () => {
+  /*
+    ⚠ **Esta asserção era RELATIVA (`antes + 1`), e o relativo escondia um
+    defeito.** A semeadura somava ao servidor por cima do que já havia, então
+    cada `Ready` — e o protocolo manda um a cada RECONEXÃO — dobrava as
+    menções do rail. O teste media `antes` já inflado pelos testes anteriores
+    deste arquivo e passava. Com o rollup recontado a partir dos canais, o
+    servidor é a soma deles, e reconectar não muda nada.
+  */
+  it("o servidor herda a contagem dos canais dele, e um segundo Ready não soma de novo", () => {
     const canal = client.channels.get(CHANNEL_ID)!;
     const parar = servers.subscriber(canal.serverId)(() => {});
-    // Relativo, não absoluto: o firehose já produz menções ao vivo, e um
-    // número fixo aqui testaria o arnês em vez do código.
-    const antes = servers.getSnapshot(canal.serverId)?.mencoes ?? 0;
+    const pararCanal = channels.subscriber(canal.id)(() => {});
 
     unreadDoServidor(canal.id, "01ANTIGO0000000000000000AA", [
       "01M0000000000000000000000A",
@@ -109,7 +115,14 @@ describe("semeadura de não lidas no Ready", () => {
     client.emit("ready");
     virarFrame();
 
-    expect(servers.getSnapshot(canal.serverId)?.mencoes).toBe(antes + 1);
+    const mencoesDoCanal = channels.getSnapshot(canal.id)?.mencoes ?? 0;
+    expect(mencoesDoCanal).toBe(1);
+    expect(servers.getSnapshot(canal.serverId)?.mencoes).toBe(mencoesDoCanal);
+
+    client.emit("ready");
+    virarFrame();
+    expect(servers.getSnapshot(canal.serverId)?.mencoes).toBe(mencoesDoCanal);
+    pararCanal();
     parar();
   });
 });

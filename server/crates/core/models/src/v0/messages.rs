@@ -196,6 +196,20 @@ auto_derived!(
         Oldest,
     }
 
+    /// Vortex: kind of content a searched message must carry
+    pub enum MessageSearchHas {
+        /// Any attachment
+        Attachment,
+        /// An image attachment
+        Image,
+        /// A video attachment
+        Video,
+        /// An audio attachment
+        Audio,
+        /// A link in the content
+        Link,
+    }
+
     /// Push Notification
     pub struct PushNotification {
         /// Known author name
@@ -344,6 +358,11 @@ auto_derived!(
         pub sort: MessageSort,
         /// Whether to include user (and member, if server channel) objects
         pub include_users: Option<bool>,
+        /// Vortex: only messages sent by this user
+        #[cfg_attr(feature = "validator", validate(length(min = 26, max = 26)))]
+        pub author: Option<String>,
+        /// Vortex: only messages carrying this kind of content
+        pub has: Option<MessageSearchHas>,
     }
 
     /// Changes to make to message
@@ -387,6 +406,8 @@ auto_derived!(
         /// Message will mention all users who are online and can see the channel.
         /// This cannot be true if MentionsEveryone is true
         MentionsOnline = 3,
+        /// Vortex: generated embeds were removed and must not be generated again
+        SuppressEmbeds = 4,
     }
 
     /// Optional fields on message

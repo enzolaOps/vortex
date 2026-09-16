@@ -145,6 +145,22 @@ function tetoDeUpload(tag: TagDeAnexo): number | undefined {
   return maior;
 }
 
+/**
+ * "2,5 MB" — o teto desta tag, para a pista ao lado do botão de enviar.
+ *
+ * ⚠ **O design escreve "até 8 MB" no ícone do servidor, e o teto default do
+ * `autumn` para `icons` é 2,5 MB.** Uma pista que promete o triplo do que o
+ * servidor aceita é pior que pista nenhuma: a pessoa escolhe um PNG de 5 MB
+ * confiando nela e lê a recusa. O número vem da mesma configuração que a
+ * checagem de `subirAnexo` consulta, então a pista e a recusa nunca divergem.
+ *
+ * `undefined` quando a instância não publica teto — aí quem chama omite o
+ * número, em vez de inventar um.
+ */
+export function tetoDeUploadTexto(tag: TagDeAnexo): string | undefined {
+  return formatarBytes(tetoDeUpload(tag));
+}
+
 export function subirAnexo(
   arquivo: File,
   tag: TagDeAnexo = "attachments",

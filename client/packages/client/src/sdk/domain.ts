@@ -682,6 +682,15 @@ export type ChannelSnapshot = {
    */
   readonly modoLento: number;
   /**
+   * Canal de spoiler — toda mídia entra coberta, com clique para revelar.
+   *
+   * ⚠ **Superfície do servidor do Vortex, não do Stoat.** O SDK descarta o
+   * campo na hidratação; quem o lê do fio é `sdk/superficieVortex.ts`.
+   */
+  readonly spoiler: boolean;
+  /** Entrar pelos convites deste canal está suspenso — mesma origem. */
+  readonly convitesPausados: boolean;
+  /**
    * O outro lado de uma conversa direta. Só existe em `dm`.
    *
    * Calculado no adapter a partir de `recipientIds` menos eu, e NÃO lido de
@@ -820,6 +829,21 @@ export type MemberSnapshot = ComSigla & {
    * `cargosDoServidor`, que assina o servidor uma vez.
    */
   readonly cargosIds: readonly string[];
+  /**
+   * A imagem do cargo mais alto que TEM ícone, já resolvida — ou ausência.
+   *
+   * ⚠ **O cargo do ícone não é necessariamente o da cor nem o hasteado.** É a
+   * regra do próprio SDK (`ServerMember.iconRole`): o mais alto entre os que
+   * têm ícone. Uma pessoa com "Admin" colorido sem ícone e "Artista" abaixo com
+   * ícone mostra a cor de um e a imagem do outro, como o protocolo define.
+   *
+   * Dois campos planos e não um objeto: o snapshot é comparado por valor, e um
+   * `{ url, nome }` novo a cada tradução faria toda republicação parecer
+   * mudança — o erro nº 1 do briefing.
+   */
+  readonly iconeDeCargoUrl: string | undefined;
+  /** O nome do cargo do ícone, para o `alt` e o título. */
+  readonly iconeDeCargoNome: string | undefined;
   /**
    * Esta pessoa está ABAIXO de mim na hierarquia?
    *

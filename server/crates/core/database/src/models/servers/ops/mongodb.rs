@@ -175,6 +175,8 @@ impl IntoDocumentPath for FieldsServer {
             FieldsServer::Description => "description",
             FieldsServer::Icon => "icon",
             FieldsServer::SystemMessages => "system_messages",
+            FieldsServer::Tag => "tag",
+            FieldsServer::TagBadge => "tag_badge",
         })
     }
 }

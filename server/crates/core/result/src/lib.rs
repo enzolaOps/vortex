@@ -219,6 +219,8 @@ pub enum ErrorType {
     InvalidToken,
     MissingInvite,
     InvalidInvite,
+    /// Vortex: the channel this invite points to has its invites paused
+    InvitesPaused,
 
     CompromisedPassword,
     ShortPassword,

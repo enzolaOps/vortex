@@ -1,4 +1,4 @@
-import { ponte, type AoFechar } from "../sdk/desktop";
+import { AO_FECHAR, ponte, type AoFechar } from "../sdk/desktop";
 
 /**
  * As preferências que só existem no app instalado.
@@ -45,7 +45,31 @@ export type Desktop = {
   readonly reduzirEmSegundoPlano: boolean;
   readonly preCarregarAnexos: boolean;
 
+  /**
+   * O que está EM USO neste processo — só a casca sabe, e só muda reiniciando.
+   *
+   * ⚠ **A barra de título desenha por `barraNativaEmUso`, nunca por
+   * `barraNativa`.** A moldura da janela é decidida ao criá-la: se a barra
+   * custom sumisse ao marcar "barra do sistema", a janela atual ficaria sem
+   * moldura nenhuma e sem barra nossa até o próximo início — uma janela que
+   * não fecha.
+   */
+  readonly barraNativaEmUso: boolean;
+  readonly aceleracaoEmUso: boolean;
 };
+
+/** O que a tela pode escrever: o que está em uso e `naCasca` são só leitura. */
+export type MudancaDeDesktop = Partial<
+  Omit<Desktop, "naCasca" | "barraNativaEmUso" | "aceleracaoEmUso">
+>;
+
+/** Quais escolhas só valem depois de reiniciar, na ordem em que a tela as cita. */
+export function pendentesDeReinicio(d: Desktop): ("aceleracao" | "barra")[] {
+  const pendentes: ("aceleracao" | "barra")[] = [];
+  if (d.aceleracaoDeHardware !== d.aceleracaoEmUso) pendentes.push("aceleracao");
+  if (d.barraNativa !== d.barraNativaEmUso) pendentes.push("barra");
+  return pendentes;
+}
 
 /*
   ⚠ **`aceleracaoDeHardware` começa LIGADA e é a única que exige reinício.** O
@@ -68,6 +92,8 @@ const PADRAO: Desktop = {
   reduzirEmSegundoPlano: true,
   preCarregarAnexos: false,
 
+  barraNativaEmUso: false,
+  aceleracaoEmUso: true,
 };
 
 let estado: Desktop = PADRAO;
@@ -99,13 +125,20 @@ function publicar(mudanca: Partial<Desktop>): void {
  * inteiro por `hidratar` — que é o mesmo caminho da abertura, e por isso não
  * há um segundo mecanismo de correção a manter.
  */
-export function definirDesktop(mudanca: Partial<Desktop>): void {
+export function definirDesktop(mudanca: MudancaDeDesktop): void {
   publicar(mudanca);
   const p = ponte();
   if (!p) return;
-  for (const [chave, valor] of Object.entries(mudanca)) {
-    void p.gravarPreferencia(chave, valor);
-  }
+  /*
+    ⚠ **Depois de gravar, RELÊ.** A casca é quem decide o que vale: ela recusa
+    chave que não entende (casca antiga), acopla "minimizar para a bandeja" a
+    "ao fechar", e no macOS ignora a barra nativa. Sem reler, a tela mostraria
+    o que a pessoa clicou em vez do que ficou gravado — que é exatamente como
+    o defeito de "nada persiste" passou despercebido.
+  */
+  void Promise.all(
+    Object.entries(mudanca).map(([chave, valor]) => p.gravarPreferencia(chave, valor)),
+  ).then(hidratarDesktop, hidratarDesktop);
 }
 
 /**
@@ -131,12 +164,39 @@ export async function hidratarDesktop(): Promise<void> {
   }
 
   const cru = await p.lerPreferencias();
+  estado = desktopDaLeitura(cru);
+  for (const o of ouvintes) o();
+}
+
+/**
+ * A leitura crua da casca vira o snapshot. Exportada para o teste.
+ *
+ * ⚠ **Sem as chaves de "em uso" (casca antiga), o em uso é a PREFERÊNCIA.**
+ * Uma casca que não as manda também nunca gravou a preferência, então as duas
+ * são o padrão — e a barra custom continua desenhada, que é o que ela sempre
+ * foi.
+ */
+export function desktopDaLeitura(cru: Record<string, unknown>): Desktop {
   const proximo: Record<string, unknown> = { ...PADRAO, naCasca: true };
   for (const chave of Object.keys(PADRAO)) {
-    if (chave in cru) proximo[chave] = cru[chave];
+    if (chave === "naCasca" || chave === "barraNativaEmUso" || chave === "aceleracaoEmUso") {
+      continue;
+    }
+    if (chave in cru && typeof cru[chave] === typeof PADRAO[chave as keyof Desktop]) {
+      proximo[chave] = cru[chave];
+    }
   }
-  estado = proximo as unknown as Desktop;
-  for (const o of ouvintes) o();
+  /* O único campo que não é booleano: valor fora da união cai no padrão. */
+  if (!(AO_FECHAR as readonly unknown[]).includes(proximo.aoFechar)) {
+    proximo.aoFechar = PADRAO.aoFechar;
+  }
+  proximo.barraNativaEmUso =
+    typeof cru.barraNativaEmUso === "boolean" ? cru.barraNativaEmUso : proximo.barraNativa;
+  proximo.aceleracaoEmUso =
+    typeof cru.aceleracaoEmUso === "boolean"
+      ? cru.aceleracaoEmUso
+      : proximo.aceleracaoDeHardware;
+  return proximo as unknown as Desktop;
 }
 
 /** Estado limpo entre testes. O módulo é global e sobrevive. */

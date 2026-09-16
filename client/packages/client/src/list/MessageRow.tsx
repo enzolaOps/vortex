@@ -70,6 +70,8 @@ import {
 import { CartaoDeUpload } from "./CartaoDeUpload";
 import {
   alternarFixada,
+  marcarNaoLidaA,
+  removerEmbeds,
   alternarReacao,
   editarMensagem,
   usuarioLocalId,
@@ -134,6 +136,7 @@ import {
 import { Citacao } from "./Citacao";
 import { Embeds } from "./Embeds";
 import { CrachaDeCargo } from "../presenca/NomeDoAutor";
+import { TagDoServidor } from "../presenca/TagDoServidor";
 import { TextoDaMensagem } from "./TextoDaMensagem";
 import css from "./MessageRow.module.css";
 
@@ -1348,6 +1351,8 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                     {/* O crachá de cargo — "VTX", "MOD". Assina o membro
                         sozinho; ver `CrachaDeCargo`. */}
                     <CrachaDeCargo userId={message.authorId} />
+                    {/* A tag do servidor, se a pessoa a exibe — assina sozinha. */}
+                    <TagDoServidor userId={message.authorId} />
                   </span>
                 ) : (
                   <span className="text-lg font-semibold text-text-2">
@@ -1469,6 +1474,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                       <>
                         <NomeDoAutor userId={message.authorId} denso />
                         <CrachaDeCargo userId={message.authorId} />
+                        <TagDoServidor userId={message.authorId} />
                       </>
                     ) : undefined
                   }
@@ -1499,7 +1505,11 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             {/* Depois do texto e ANTES das reações: o anexo faz parte do que
                 foi dito; a reação é o que os outros responderam. */}
             {message.anexos.length > 0 ? (
-              <Anexos anexos={message.anexos} messageId={message.id} />
+              <Anexos
+                anexos={message.anexos}
+                messageId={message.id}
+                channelId={message.channelId}
+              />
             ) : null}
 
             {/* A figurinha É a mensagem — assina a si mesma por ID, então
@@ -1789,7 +1799,7 @@ function ItensDaMensagem({ messageId }: { messageId: string }) {
         </ContextMenuItem>
       ) : null}
 
-      <ContextMenuItem onSelect={aindaNao("marcarNaoLida")}>
+      <ContextMenuItem onSelect={() => marcarNaoLidaA(message.id)}>
         <EnvelopeSimple aria-hidden />
         Marcar como não lida
       </ContextMenuItem>
@@ -1826,9 +1836,12 @@ function ItensDaMensagem({ messageId }: { messageId: string }) {
         mais forte que a composição da tela — item que não tem sobre o que agir
         é ruído permanente para o caso mais comum, porque a maioria das
         mensagens não tem cartão de link nenhum.
+
+        Do autor OU de quem gerencia mensagens — é a mesma regra que o servidor
+        aplica na rota, e a mesma de apagar.
       */}
-      {message.embeds.length > 0 && souOAutor ? (
-        <ContextMenuItem onSelect={aindaNao("removerEmbed")}>
+      {message.embeds.length > 0 && (souOAutor || gerencio) ? (
+        <ContextMenuItem onSelect={() => removerEmbeds(message.id)}>
           <Info aria-hidden />
           Remover embed
         </ContextMenuItem>

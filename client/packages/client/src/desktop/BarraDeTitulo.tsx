@@ -33,7 +33,7 @@ import css from "./BarraDeTitulo.module.css";
  * plataforma do app, e ela mora aqui — não em `MessageRow.desktop.tsx`.
  */
 export function BarraDeTitulo() {
-  const { naCasca, barraNativa } = useSyncExternalStore(
+  const { naCasca, barraNativaEmUso } = useSyncExternalStore(
     assinarDesktop,
     lerDesktop,
   );
@@ -58,7 +58,9 @@ export function BarraDeTitulo() {
   */
   /* ⚠ `naCasca` do SNAPSHOT e não `naDesktop()`: aquele é global mutável sem
      subscrição, e o componente nunca voltava a rodar. Ver `store/desktop.ts`. */
-  const visivel = naCasca && !barraNativa;
+  /* ⚠ `EmUso` e não a preferência: a moldura só troca reiniciando, e sumir com
+     a barra antes disso deixaria a janela sem controle nenhum. */
+  const visivel = naCasca && !barraNativaEmUso;
   useEffect(() => {
     const raiz = document.documentElement;
     raiz.style.setProperty("--vx-barra-h", visivel ? "34px" : "0px");

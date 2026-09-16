@@ -184,6 +184,29 @@ impl File {
         .await
     }
 
+    /// Use a file for a server tag badge
+    ///
+    /// Vortex: the badge is a small square image, so it rides the `icons`
+    /// tag that autumn already serves. A tag of its own would mean changing
+    /// and republishing autumn for the same limits.
+    pub async fn use_server_tag_badge(
+        db: &Database,
+        id: &str,
+        parent: &str,
+        uploader_id: &str,
+    ) -> Result<File> {
+        db.find_and_use_attachment(
+            id,
+            "icons",
+            FileUsedFor {
+                id: parent.to_owned(),
+                object_type: FileUsedForType::ServerIcon,
+            },
+            uploader_id.to_owned(),
+        )
+        .await
+    }
+
     /// Use a file for a channel icon
     pub async fn use_channel_icon(
         db: &Database,

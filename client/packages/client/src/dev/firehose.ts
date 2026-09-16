@@ -16,6 +16,10 @@ import { definirEnquete } from "../store/enquetes";
 import { registrarFigurinhaLocal } from "../sdk/figurinhasDeMensagem";
 import { FIGURINHAS_DO_ARNES, semearExpressoesDoArnes } from "./expressoesDoArnes";
 import {
+  definirPerfilDoServidor,
+  definirQuemExibeTag,
+} from "../store/perfilDoServidor";
+import {
   definirChamada,
   definirFalantes,
   encerrarChamada,
@@ -23,7 +27,7 @@ import {
 } from "../store/chamada";
 import { definirPalco } from "../store/palcoDeVoz";
 import { chaveDeVideo, faixasDeVideo } from "../store/video";
-import { selecionarCanal } from "../store/navegacao";
+import { abrirConversa, selecionarCanal } from "../store/navegacao";
 
 import { count, countMax } from "./stats";
 import {
@@ -41,7 +45,7 @@ import {
 } from "../sdk/adapter";
 import type { PresenceStatus } from "../sdk/domain";
 import { client } from "../sdk/client";
-import { dublarRedeDoServidor } from "./rede";
+import { dublarRedeDoServidor, registrarPreviaDublada } from "./rede";
 
 const nextId = monotonicFactory();
 
@@ -565,6 +569,25 @@ const RECADOS = [
     });
 
     /*
+      Tag, emblema e características — campos do fork que o SDK descarta, então
+      a semeadura escreve direto no store (é o que o evento cru faria).
+
+      ⚠ Só no servidor principal, e só um em cada quatro exibindo: sem um
+      servidor sem tag e sem alguém que NÃO exibe, nem a ausência nem o
+      seletor do menu seriam exercitados.
+    */
+    if (servidor.id === SERVER_ID) {
+      definirPerfilDoServidor(servidor.id, {
+        tag: "VTX",
+        caracteristicas: ["🛠 produto", "🎨 design", "💬 open source"],
+      });
+      definirQuemExibeTag(
+        servidor.id,
+        membros.filter((_, i) => i % 4 === 0),
+      );
+    }
+
+    /*
       Gente DENTRO dos canais de voz, desde a semeadura.
 
       É o ponto inteiro da sala: `Ready.voice_states` entrega os ocupantes no
@@ -660,6 +683,41 @@ function semearConversas(): void {
       // observável, e não um empate resolvido pelo ID.
       last_message_id: ulidEm(Date.now() - n * 3_600_000),
     } as never);
+  }
+
+  /*
+    ⚠ **Duas DMs de DESCONHECIDO criadas AGORA** — arnês mais pobre que o
+    protocolo de novo. As cinco de cima têm ID de 2025, anterior a qualquer
+    `inicio` da fila de solicitações, então todas ficam na coluna e a aba de
+    solicitações só seria vista vazia. Uma com texto comum e outra com link de
+    convite: sem a segunda, o ramo "SUSPEITO" nasceria inalcançável.
+  */
+  const desconhecidas = [
+    {
+      outro: userIds[2]!,
+      texto:
+        "oi! vi seu post sobre a matriz de permissões, posso perguntar uma coisa?",
+    },
+    {
+      outro: userIds[6]!,
+      texto: "ganhe nitro grátis entrando aqui https://discord.gg/promo-zone",
+    },
+  ];
+  for (const [n, d] of desconhecidas.entries()) {
+    const id = ulidEm(Date.now() - n * 1000);
+    const mensagemId = ulidEm(Date.now() - n * 1000 + 1);
+    client.channels.getOrCreate(id, {
+      _id: id,
+      channel_type: "DirectMessage",
+      active: true,
+      recipients: [eu, d.outro],
+      last_message_id: mensagemId,
+    } as never);
+    registrarPreviaDublada(id, {
+      _id: mensagemId,
+      author: d.outro,
+      content: d.texto,
+    });
   }
 
   // Um grupo, para a linha com contagem de participantes existir.
@@ -1210,6 +1268,93 @@ export function chamadaFalsa(): () => void {
     definirFalantes(falantes);
   }, 700);
 
+  return () => {
+    clearInterval(timer);
+    definirFalantes([]);
+    encerrarChamada();
+  };
+}
+
+/**
+ * A DM das chamadas diretas falsas — a primeira de `semearConversas`, com
+ * `userIds[1]` do outro lado.
+ */
+const DM_DO_ARNES = "01JQ000000000000000A000000";
+
+/**
+ * Alguém liga para você numa DM — pelo caminho do PROTOCOLO, e não do store.
+ *
+ * ⚠ **Emite os eventos crus no `EventClient`, e é o ponto.** O adapter lê
+ * `VoiceChannelJoin` e `VoiceCallUpdate` do evento cru, porque o SDK descarta
+ * o segundo; semear o store de toque direto exercitaria o aviso e deixaria de
+ * fora a tradução, que é a parte que quebra em silêncio. Aqui os dois sinais
+ * chegam na ordem do `voice-ingress` — o `Join` primeiro —, então a
+ * deduplicação também é exercitada.
+ *
+ * Atender tenta a sala de verdade e falha sem LiveKit, com o toast de erro:
+ * é o que o produto faz sem servidor de voz. A tela da chamada tem botão
+ * próprio (`chamadaDiretaFalsa`).
+ */
+export function chamadaRecebidaFalsa(): void {
+  ensureWorld();
+  const quem = userIds[1]!;
+  const agora = new Date().toISOString();
+  client.events.emit("event", {
+    type: "VoiceChannelJoin",
+    id: DM_DO_ARNES,
+    state: {
+      id: quem,
+      joined_at: agora,
+      is_receiving: true,
+      is_publishing: true,
+      screensharing: false,
+      camera: false,
+    },
+  } as never);
+  client.events.emit("event", {
+    type: "VoiceCallUpdate",
+    initiator_id: quem,
+    channel_id: DM_DO_ARNES,
+    started_at: agora,
+    ended: false,
+  } as never);
+}
+
+/** Quem ligou desiste — a sala esvazia e o toque para. */
+export function desistirDaChamadaFalsa(): void {
+  client.events.emit("event", {
+    type: "VoiceChannelLeave",
+    id: DM_DO_ARNES,
+    user: userIds[1]!,
+  } as never);
+}
+
+/**
+ * A chamada DIRETA em andamento — a tela de duas pessoas, sem WebRTC.
+ *
+ * Mesma família da `chamadaFalsa`: enche o store que o app enxerga e deixa o
+ * motor de fora. O outro lado fala a cada ~900ms para o anel aparecer.
+ */
+export function chamadaDiretaFalsa(): () => void {
+  ensureWorld();
+  const eu = userIds[0]!;
+  const outro = userIds[1]!;
+  definirChamada({
+    estado: "dentro",
+    desde: Date.now() - (4 * 60 + 12) * 1000,
+    channelId: DM_DO_ARNES,
+    participantes: [eu, outro],
+    mudo: false,
+    surdo: false,
+    camera: false,
+    tela: false,
+    qualidade: "otima",
+  });
+  abrirConversa(DM_DO_ARNES);
+  definirPalco({ tipo: "grade" });
+  const timer = setInterval(() => {
+    definirFalantes(Math.floor(Date.now() / 900) % 2 === 0 ? [outro] : []);
+  }, 900);
   return () => {
     clearInterval(timer);
     definirFalantes([]);

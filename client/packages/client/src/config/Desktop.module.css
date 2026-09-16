@@ -16,6 +16,16 @@
 }
 
 /*
+  "Mudar a aceleração de hardware exige reiniciar o app." — logo abaixo do
+  grupo que o causou. O design separa o cartão do aviso por 12, e o grupo já
+  reserva 26 embaixo de si: o aviso sobe a diferença e devolve os 26 depois,
+  para a seção seguinte não encostar.
+*/
+.avisoDeReinicio {
+  margin-block: calc(var(--vx-space-12) - var(--vx-space-26)) var(--vx-space-26);
+}
+
+/*
   O aviso do anti-cheat.
 
   ⚠ Fora do cartão e logo abaixo dele: ele não é uma opção, é a ressalva do

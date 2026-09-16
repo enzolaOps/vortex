@@ -2,7 +2,7 @@ use bson::{to_bson, Document};
 use futures::try_join;
 use futures::StreamExt;
 use mongodb::options::FindOptions;
-use revolt_models::v0::MessageSort;
+use revolt_models::v0::{MessageSearchHas, MessageSort};
 use revolt_result::Result;
 use std::collections::{HashMap, HashSet};
 use std::time::SystemTime;
@@ -36,6 +36,13 @@ impl AbstractMessages for MongoDb {
         // 1. Apply message filters
         if let Some(channel) = query.filter.channel {
             filter.insert("channel", channel);
+        } else if let Some(channels) = query.filter.channels {
+            filter.insert(
+                "channel",
+                doc! {
+                    "$in": channels
+                },
+            );
         }
 
         if let Some(author) = query.filter.author {
@@ -57,6 +64,27 @@ impl AbstractMessages for MongoDb {
 
         if let Some(pinned) = query.filter.pinned {
             filter.insert("pinned", pinned);
+        };
+
+        // Vortex: filtro por tipo de conteúdo da busca
+        if let Some(has) = query.filter.has {
+            match has {
+                MessageSearchHas::Attachment => {
+                    filter.insert("attachments.0", doc! { "$exists": true });
+                }
+                MessageSearchHas::Image => {
+                    filter.insert("attachments.metadata.type", "Image");
+                }
+                MessageSearchHas::Video => {
+                    filter.insert("attachments.metadata.type", "Video");
+                }
+                MessageSearchHas::Audio => {
+                    filter.insert("attachments.metadata.type", "Audio");
+                }
+                MessageSearchHas::Link => {
+                    filter.insert("content", doc! { "$regex": "https?://" });
+                }
+            }
         };
 
         // 2. Find query limit
