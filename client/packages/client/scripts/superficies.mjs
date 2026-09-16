@@ -53,6 +53,13 @@ const PAPEL = {
  * chão e não conteúdo. "É o padrão" não é razão.
  */
 const PERMITIDO = {
+  "list/Anexos.module.css": {
+    ".capaDeSpoiler":
+      "Véu sobre a MÍDIA de um canal de spoiler, e não superfície: o design " +
+      "escreve o tom afundado a 90% (`rgba(10,12,15,0.9)`) porque a capa tem " +
+      "de esconder a imagem de baixo em qualquer cor dela. `--vx-scrim` é o " +
+      "véu de modal, translúcido demais para cobrir o que não se quer ver.",
+  },
   "overlay/Overlay.module.css": {
     ".widget":
       "Os widgets do overlay do jogo pousam sobre o JOGO, e não sobre o app: " +

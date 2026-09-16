@@ -73,11 +73,6 @@ export const PENDENCIAS = {
     depende:
       "desenhar o emoji numa imagem e subi-la em `icons` — o protocolo só guarda arquivo",
   },
-  mencionarCargo: {
-    superficie: "Configurações do servidor · Cargos · Exibição",
-    faz: "Decidir se qualquer membro pode mencionar o cargo.",
-    depende: "um campo de menção em Role — hoje qualquer cargo pode ser mencionado",
-  },
   linkDeCargo: {
     superficie: "Configurações do servidor · Cargos · Links",
     faz: "Criar um link que dá o cargo a quem entrar por ele.",
@@ -270,17 +265,10 @@ export const PENDENCIAS = {
     depende: "threads no protocolo",
   },
   /*
-    ⚠ **`buscaNoCanal` SAIU daqui — o painel existe e a busca é real.** O que
-    sobrou pendente são as duas coisas que o protocolo não sabe fazer, e elas
-    ficam separadas porque bloqueiam por razões diferentes: uma é sintaxe de
-    consulta que a rota não aceita, a outra é escopo que a rota não tem.
+    ⚠ **`buscaNoCanal` e `filtroDeBusca` SAÍRAM daqui** — o painel e os
+    filtros `de:`/`tem:`/datas existem (os dois primeiros no servidor do
+    Vortex). Sobra o escopo que a rota não tem.
   */
-  filtroDeBusca: {
-    superficie: "Painel de busca",
-    faz: "Filtrar por autor (`de:`), por tipo de anexo (`tem:`) e por data.",
-    depende:
-      "`POST /channels/{id}/search` aceita só `query`, `sort`, `limit` e cursor — filtrar no cliente esvaziaria páginas inteiras e a contagem mentiria",
-  },
   buscaNoServidor: {
     superficie: "Painel de busca",
     faz: "Buscar em todos os canais do servidor de uma vez.",
@@ -299,16 +287,6 @@ export const PENDENCIAS = {
     superficie: "Ações da mensagem",
     faz: "Abrir um tópico a partir desta mensagem.",
     depende: "threads no protocolo",
-  },
-  marcarNaoLida: {
-    superficie: "Menu da mensagem",
-    faz: "Voltar o cursor de leitura para antes desta mensagem.",
-    depende: "`ack` para trás — o protocolo só move o cursor para a frente",
-  },
-  removerEmbed: {
-    superficie: "Menu da mensagem",
-    faz: "Esconder o cartão de link gerado para esta mensagem.",
-    depende: "supressão de embed no protocolo",
   },
 
   /* ------------------------------------------- menu do usuário na timeline */
@@ -463,11 +441,6 @@ export const PENDENCIAS = {
     então a tela mostra o estado real e o controle não move. A tabela medida
     está em `sdk/canal.ts`.
   */
-  canalDeSpoiler: {
-    superficie: "Configurações do canal",
-    faz: "Entrar com toda a mídia borrada, com clique para revelar.",
-    depende: "conceito de spoiler no protocolo — não há campo nem evento",
-  },
   bitrateDeVoz: {
     superficie: "Configurações do canal",
     faz: "Escolher a qualidade de áudio da sala.",
@@ -488,26 +461,8 @@ export const PENDENCIAS = {
     faz: "Copiar as permissões da categoria para este canal e manter em sincronia.",
     depende: "categoria não tem permissões no protocolo — ela é só um array de IDs",
   },
-  pausarConvites: {
-    superficie: "Convites do canal",
-    faz: "Suspender todos os convites do canal sem apagá-los.",
-    depende: "pausar convite no protocolo — só existe revogar",
-  },
 
   /* -------------------------------------------------------- perfil */
-  /*
-    ⚠ **Ela nasceu em `SUPERFICIES_AUSENTES` e MUDOU DE LISTA ao ganhar um
-    controle** — é a regra que a doutrina deste arquivo escreve por extenso:
-    "entrada daqui muda de lista quando ganhar um controle, e não fica nas
-    duas". O menu da conversa foi construído 1:1 com o design, e a favorita
-    deixou de ser buraco para virar item desenhado.
-  */
-  favoritarConversa: {
-    superficie: "Menu da conversa, na coluna da casa",
-    faz: "Fixar a conversa no topo da lista, acima da ordem por recência.",
-    depende:
-      "campo de favorito no protocolo — `Channel` do Stoat não tem, e guardá-lo só no cliente daria uma ordem que só esta máquina enxerga",
-  },
   /*
     ⚠ **O interruptor existia e gravava, e não havia NADA atrás dele** — nem na
     casca nem no cliente. As outras preferências da tela Desktop chegaram à

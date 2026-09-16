@@ -62,6 +62,16 @@ pub async fn worker(db: Database) {
             .await;
 
             if let Ok(embeds) = embeds {
+                // Vortex: a remoção dos embeds pode ter chegado enquanto o
+                // January gerava a prévia — não devolver o cartão que alguém tirou.
+                if db
+                    .fetch_message(&task.id)
+                    .await
+                    .is_ok_and(|message| message.has_suppressed_embeds())
+                {
+                    return;
+                }
+
                 if let Err(err) = Message::append(
                     &db,
                     task.id,

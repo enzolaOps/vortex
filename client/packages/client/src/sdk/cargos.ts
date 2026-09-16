@@ -10,6 +10,7 @@ import { Permission } from "stoat.js";
 import { client } from "./client";
 import { toast } from "../components/ui/toastStore";
 import { esperaDoLimite, motivoDoErro } from "./erros";
+import { aplicarEventoCru, ehMencionavel, superficie } from "./superficieVortex";
 import { executarEmLote, type ResultadoDeLote } from "../lib/lote";
 
 /**
@@ -152,6 +153,13 @@ export type Cargo = {
   readonly cor: string | undefined;
   /** Aparece em seção própria na member list. */
   readonly destacado: boolean;
+  /**
+   * Quem não tem `MentionRoles` pode mencionar este cargo.
+   *
+   * ⚠ Superfície do servidor do Vortex: o SDK descarta `mentionable` na
+   * hidratação, e quem o lê do fio é `superficieVortex.ts`.
+   */
+  readonly mencionavel: boolean;
   /** Quanto MENOR, mais alto — é a ordem do protocolo. */
   readonly rank: number;
   /** As permissões concedidas, por nome do protocolo. */
@@ -187,6 +195,7 @@ export function cargosDoServidor(serverId: string): readonly Cargo[] {
     nome: c.name,
     cor: c.colour ?? undefined,
     destacado: c.hoist ?? false,
+    mencionavel: ehMencionavel(superficie, serverId, c.id),
     rank: c.rank ?? 0,
     /* Vazio de propósito: o submenu de cargos não desenha permissão, e
        traduzir o bitmask de cada cargo a cada abertura de menu seria trabalho
@@ -391,6 +400,7 @@ export function listarCargos(serverId: string): Promise<readonly Cargo[]> {
       nome: r.name,
       cor: r.colour ?? undefined,
       destacado: r.hoist === true,
+      mencionavel: ehMencionavel(superficie, serverId, r.id),
       rank: r.rank ?? 0,
       concedidas: concedidasDe(BigInt(r.permissions?.a ?? 0), TABELA),
       iconeUrl: r.icon?.createFileURL() || undefined,
@@ -452,13 +462,27 @@ export async function salvarCargo(
   nome: string,
   cor: string | undefined,
   destacado: boolean,
+  mencionavel: boolean,
 ): Promise<boolean> {
   try {
     await client.servers.get(serverId)?.editRole(roleId, {
       name: nome,
       hoist: destacado,
+      mentionable: mencionavel,
       ...(cor ? { colour: cor } : { remove: ["Colour"] }),
     } as never);
+    /*
+      Grava já, sem esperar o `ServerRoleUpdate`: a tela relista os cargos
+      logo depois do `await`, e o evento pode chegar um quadro atrasado —
+      o interruptor voltaria para o valor velho. Aplicar o mesmo evento aqui
+      é idempotente quando ele chegar.
+    */
+    aplicarEventoCru(superficie, {
+      type: "ServerRoleUpdate",
+      id: serverId,
+      role_id: roleId,
+      data: { mentionable: mencionavel },
+    });
     return true;
   } catch (e) {
     falhou("Não deu para salvar o cargo.", e);

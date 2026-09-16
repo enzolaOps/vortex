@@ -671,6 +671,15 @@ export type ChannelSnapshot = {
    */
   readonly modoLento: number;
   /**
+   * Canal de spoiler — toda mídia entra coberta, com clique para revelar.
+   *
+   * ⚠ **Superfície do servidor do Vortex, não do Stoat.** O SDK descarta o
+   * campo na hidratação; quem o lê do fio é `sdk/superficieVortex.ts`.
+   */
+  readonly spoiler: boolean;
+  /** Entrar pelos convites deste canal está suspenso — mesma origem. */
+  readonly convitesPausados: boolean;
+  /**
    * O outro lado de uma conversa direta. Só existe em `dm`.
    *
    * Calculado no adapter a partir de `recipientIds` menos eu, e NÃO lido de

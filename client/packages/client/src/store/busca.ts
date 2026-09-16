@@ -1,5 +1,13 @@
+import { toast } from "../components/ui/toastStore";
+import {
+  analisarConsulta,
+  intervaloDasDatas,
+  menorCursor,
+  tipoDoFiltro,
+} from "../busca/filtros";
 import {
   buscarNoCanal,
+  resolverAutor,
   POR_PAGINA,
   type OrdemDeBusca,
   type ResultadoDeBusca,
@@ -92,6 +100,16 @@ export function definirOrdem(ordem: OrdemDeBusca): void {
 }
 
 /**
+ * O `✕` de um chip e o `+ filtro` escrevem no TEXTO — o chip é projeção dele.
+ * Tirar um filtro refaz a busca se já havia resultado na tela: a lista antiga
+ * com o chip sumido afirmaria um filtro que não vale mais.
+ */
+export function trocarConsulta(consulta: string, refazer: boolean): void {
+  publicar({ consulta });
+  if (refazer && estado.total !== undefined) void executar(1);
+}
+
+/**
  * Abre o painel para um canal.
  *
  * ⚠ Trocar de canal LIMPA tudo, e não é zelo: os resultados carregam o nome do
@@ -120,15 +138,53 @@ export function selecionarResultado(id: string | undefined): void {
  */
 export async function executar(pagina: number): Promise<void> {
   const { channelId, consulta, ordem } = estado;
-  const limpa = consulta.trim();
-  if (channelId === undefined || limpa.length === 0) return;
+  if (channelId === undefined) return;
+
+  /*
+    O TEXTO do campo é a fonte dos filtros — ver `busca/filtros.ts`. Filtro
+    que não se entende PARA a busca e diz, em vez de ser ignorado: `tem:planilha`
+    ignorado devolveria tudo, com cara de resultado filtrado.
+  */
+  const { texto, filtros } = analisarConsulta(consulta);
+  if (texto.length === 0 && filtros.length === 0) return;
+
+  const invalido = filtros.find((f) => !f.valido);
+  if (invalido) {
+    toast({
+      tipo: "info",
+      titulo: `Filtro não reconhecido: ${invalido.bruto}`,
+      descricao: "Use de:nome, tem:arquivo|imagem|video|audio|link ou antes:/depois:/durante:AAAA-MM-DD.",
+    });
+    return;
+  }
+
+  const de = filtros.find((f) => f.chave === "de");
+  const autorId = de ? resolverAutor(de.valor, channelId) : undefined;
+  if (de && autorId === undefined) {
+    toast({
+      tipo: "info",
+      titulo: `Não achei ninguém chamado "${de.valor}".`,
+      descricao: "O filtro de autor procura entre as pessoas que já apareceram nesta sessão.",
+    });
+    return;
+  }
+  const tem = filtros.find((f) => f.chave === "tem");
+  const intervalo = intervaloDasDatas(filtros);
 
   if (pagina === 1) cursores = [];
-  const antesDe = pagina > 1 ? cursores[pagina - 2] : undefined;
-  if (pagina > 1 && antesDe === undefined) return;
+  const cursorDaPagina = pagina > 1 ? cursores[pagina - 2] : undefined;
+  if (pagina > 1 && cursorDaPagina === undefined) return;
 
   publicar({ buscando: true });
-  const r = await buscarNoCanal({ channelId, consulta: limpa, ordem, antesDe });
+  const r = await buscarNoCanal({
+    channelId,
+    consulta: texto,
+    ordem,
+    antesDe: menorCursor(cursorDaPagina, intervalo.antesDe),
+    depoisDe: intervalo.depoisDe,
+    autorId,
+    tem: tem ? tipoDoFiltro(tem.valor) : undefined,
+  });
 
   if (r === undefined) {
     publicar({ buscando: false });

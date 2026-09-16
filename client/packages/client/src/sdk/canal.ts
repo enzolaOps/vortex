@@ -1,4 +1,5 @@
 import { client, conectado } from "./client";
+import { aplicarSuperficieVortex } from "./adapter";
 
 /**
  * Escrita de configuração de CANAL — a camada anticorrupção, como sempre.
@@ -13,12 +14,17 @@ import { client, conectado } from "./client";
  * | restrição de idade   | `nsfw` ✓                                     |
  * | limite de usuários   | `voice.max_users` ✓                          |
  * | modo lento           | `slowmode` ✓                                 |
- * | **canal de spoiler** | ⚠ não existe                                 |
+ * | canal de spoiler     | `spoiler` ✓ (servidor do Vortex)             |
  * | **bitrate**          | ⚠ não existe                                 |
  * | **região de voz**    | ⚠ não existe                                 |
  * | **modo de vídeo**    | ⚠ não existe                                 |
  *
- * Os cinco de baixo são desenhados assim mesmo — é a regra desta rodada — e
+ * `spoiler` e `invites_paused` são superfície a mais do servidor do Vortex —
+ * clientes Stoat os ignoram, e o SDK os descarta na leitura (quem lê é
+ * `superficieVortex.ts`). O `edit` do SDK repassa o corpo, então escrever não
+ * precisou de nada além do campo.
+ *
+ * Os três de baixo são desenhados assim mesmo — é a regra desta rodada — e
  * cada um tem entrada em `pendente/pendencias.ts`, que é o que troca "não faz
  * nada" por "diz o que fará e do que depende".
  *
@@ -47,7 +53,18 @@ export type EdicaoDeCanal = {
   readonly limiteDeUsuarios: number | undefined;
   /** Segundos entre mensagens. `0` é desativado; o teto do protocolo é 21600. */
   readonly modoLentoSegundos: number;
+  /** Toda mídia do canal entra coberta. Exclusivo com `restritoPorIdade` na tela. */
+  readonly spoiler: boolean;
 };
+
+/**
+ * Aplica no estado local o que acabou de ser gravado, sem esperar o
+ * `ChannelUpdate` — a tela relê o snapshot logo após o `await`, e o evento pode
+ * chegar um quadro depois. Idempotente quando ele chegar.
+ */
+function gravarLocal(channelId: string, data: Record<string, unknown>): void {
+  aplicarSuperficieVortex({ type: "ChannelUpdate", id: channelId, data });
+}
 
 export async function salvarCanal(
   channelId: string,
@@ -76,6 +93,7 @@ export async function salvarCanal(
       corte é de contrato.
     */
     slowmode: Math.max(0, Math.min(21600, Math.trunc(edicao.modoLentoSegundos))),
+    spoiler: edicao.spoiler,
   };
   if (edicao.limiteDeUsuarios !== undefined) {
     /*
@@ -93,6 +111,27 @@ export async function salvarCanal(
 
   try {
     await canal.edit(dados);
+    gravarLocal(channelId, { spoiler: edicao.spoiler });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Pausa ou retoma TODOS os convites do canal.
+ *
+ * ⚠ **Não revoga nada.** O convite continua existindo e quem tem o link o
+ * mantém; o servidor recusa a entrada com `InvitesPaused` enquanto durar. É a
+ * diferença para "Revogar": pausar se desfaz, revogar não.
+ */
+export async function pausarConvites(channelId: string, pausado: boolean): Promise<boolean> {
+  if (!conectado()) return false;
+  const canal = client.channels.get(channelId);
+  if (!canal) return false;
+  try {
+    await canal.edit({ invites_paused: pausado } as never);
+    gravarLocal(channelId, { invites_paused: pausado });
     return true;
   } catch {
     return false;
