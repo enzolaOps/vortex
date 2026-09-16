@@ -10,7 +10,7 @@ import {
   type KeyboardEvent,
 } from "react";
 
-import { FerramentasDoComposer } from "./FerramentasDoComposer";
+import { FerramentasDoComposer, type MontarInsercao } from "./FerramentasDoComposer";
 import { Tooltip } from "../components/ui/Tooltip";
 import {
   ATRIBUTO_DE_COLUNA,
@@ -191,10 +191,13 @@ export function Composer({ channelId }: { channelId: string }) {
    * saltar para o final. A `textarea` guarda a seleção mesmo enquanto o
    * seletor tem o foco, então `selectionStart` continua valendo.
    */
-  function inserir(texto: string) {
+  function inserir(cru: string | MontarInsercao) {
     const campo = entradaRef.current;
     const a = campo?.selectionStart ?? valor.length;
     const b = campo?.selectionEnd ?? valor.length;
+    /* Quem precisa ver as bordas da seleção monta o texto — o link do GIF,
+       que ganha espaço onde encostaria numa palavra (`isolar`). */
+    const texto = typeof cru === "string" ? cru : cru(valor, a, b);
     alterar(valor.slice(0, a) + texto + valor.slice(b));
     /* Depois do commit, senão o cursor volta para o fim junto com o valor. */
     queueMicrotask(() => {
@@ -247,6 +250,21 @@ export function Composer({ channelId }: { channelId: string }) {
     return respondendoA === undefined
       ? undefined
       : { id: respondendoA.messageId, mencionar: respondendoA.mencionar };
+  }
+
+  /**
+   * Manda um texto pronto — o link de um GIF — sem passar pelo rascunho.
+   *
+   * ⚠ **O rascunho FICA.** Quem estava no meio de uma frase e mandou um GIF
+   * não pediu para perder a frase. A resposta armada vai junto e é desarmada,
+   * como no envio normal: o GIF é a resposta.
+   */
+  function enviarSo(texto: string) {
+    if (!temPermissao) return;
+    const id = enviarMensagem(channelId, texto, paraEnvio());
+    if (!id) return;
+    cancelarResposta(channelId);
+    pedirFimDaLista(channelId);
   }
 
   function enviar() {
@@ -499,6 +517,7 @@ export function Composer({ channelId }: { channelId: string }) {
             <FerramentasDoComposer
               desabilitado={!temPermissao}
               aoInserir={inserir}
+              aoEnviar={enviarSo}
             />
 
             {/*

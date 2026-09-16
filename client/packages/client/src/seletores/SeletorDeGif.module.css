@@ -1,0 +1,62 @@
+/*
+  Estilos que SÓ o seletor de GIF usa, fora de `Seletores.module.css` de
+  propósito: o seletor é carregado sob demanda (`FerramentasDoComposer`), e o
+  CSS de um módulo separado vai junto com o chunk dele em vez de engordar a
+  folha inicial. O xadrez e o contorno da caixa continuam em `.gif`, que é
+  compartilhado com a figurinha.
+
+  ⚠ `.caixa:has(.midia)` e não `.caixa`: com uma classe só a especificidade
+  empataria com `.gif` do outro módulo, e quem ganharia seria a ordem das
+  folhas no bundle — a armadilha que já inflou a largura do `Dialog`.
+*/
+
+/*
+  Masonry em `columns`, e não em grid.
+
+  O design explica por quê: as alturas do GIF variam, e emoji e figurinha usam
+  grid fixo "para o alvo ser previsível". `columns` é a única forma nativa de
+  empacotar alturas livres sem medir nada em JS.
+*/
+.masonry {
+  columns: 2;
+  column-gap: var(--vx-space-08);
+  padding-block-end: var(--vx-space-12);
+}
+
+/*
+  O GIF de verdade cobre o xadrez, e o xadrez fica por baixo de propósito:
+  enquanto o `webm` não chega, a caixa já tem a proporção certa e diz "ainda
+  não chegou" com o mesmo tratamento de toda mídia vazia. Falha de rede cai no
+  mesmo xadrez sem estado nenhum — a regra do avatar sobre o gradiente.
+*/
+.caixa:has(.midia) {
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+}
+
+.midia {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+/* Carregando: centrado na área onde o grid vai aparecer. */
+.estadoDoGif {
+  display: grid;
+  place-items: center;
+  padding-block: var(--vx-space-40);
+  color: var(--vx-text-3);
+}
+
+/* A sentinela da próxima página — altura para o observador ter o que ver. */
+.sentinela {
+  display: grid;
+  place-items: center;
+  min-block-size: var(--vx-space-24);
+  color: var(--vx-text-3);
+}
+

@@ -97,6 +97,20 @@ function cspDoVortex(): Plugin {
         }
       }
 
+      /*
+        O `gifbox` (proxy de GIF do servidor) entra em `connect-src` só quando
+        o build o configura — e só ele: a prévia do GIF passa pelo `january`, e
+        a mídia do provedor nunca é buscada pelo navegador. Ver `sdk/gifs.ts`.
+      */
+      const gifbox = env.VITE_GIFBOX_URL ?? "";
+      if (gifbox.trim() !== "") {
+        try {
+          extras.add(new URL(gifbox).origin);
+        } catch {
+          /* idem */
+        }
+      }
+
       const politica = [
         "default-src 'self'",
         /*

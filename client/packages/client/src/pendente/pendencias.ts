@@ -220,10 +220,15 @@ export const PENDENCIAS = {
     faz: "Escolher o tom de pele padrão dos emojis de pessoa.",
     depende: "modificadores Fitzpatrick no dataset de emoji",
   },
-  gif: {
-    superficie: "Composer",
-    faz: "Seletor de GIF.",
-    depende: "provedor de GIF (rede externa)",
+  /*
+    ⚠ **O seletor de GIF saiu daqui: ele busca e envia pelo `gifbox`** — o
+    proxy do próprio servidor, que guarda a chave do provedor. O que sobrou é
+    a estrela ao lado da busca.
+  */
+  gifFavoritos: {
+    superficie: "Seletor de GIF",
+    faz: "Guardar GIFs favoritos e abri-los pela estrela.",
+    depende: "lista guardada por conta — o `gifbox` não tem favoritos e o protocolo não tem campo para eles",
   },
   figurinha: {
     superficie: "Composer",
