@@ -11,9 +11,9 @@
 //!   pelo Mongo com o chat ao vivo.
 //! - **Uma por conta a cada 24 h.** O pedido repetido devolve o estado atual em
 //!   vez de enfileirar outro.
-//! - **Mensagens paginadas de 100 em 100, com pausa entre páginas**, e gravadas
-//!   em arquivos de mil. A memória por passo é limitada pelo tamanho da página,
-//!   não pelo histórico da pessoa.
+//! - **Mensagens paginadas de mil em mil, com pausa entre páginas**, uma página
+//!   por arquivo do ZIP. A memória por passo é limitada pelo tamanho da página,
+//!   não pelo histórico da pessoa (a razão de mil e não cem está no `worker`).
 //! - **Disco, não Redis nem S3.** Um ZIP de alguns MB no Valkey disputaria a
 //!   memória que o Pi não tem; S3 exigiria o crate de arquivos inteiro, com os
 //!   codecs de imagem, dentro da API. O arquivo vive em

@@ -3,13 +3,14 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("./client", () => ({ client: { api: {} } }));
 vi.mock("./config", () => ({ API_URL: "http://api.local" }));
 
-const { descreverExportacao, traduzirExportacao } = await import("./exportacao");
+const { descreverExportacao, traduzirExportacao, TRAVADA_MS } = await import("./exportacao");
 
 const HORA = 60 * 60 * 1000;
 
 function corpo(extra: Record<string, unknown>) {
   return traduzirExportacao({
     state: "Ready",
+    requested_at: 0,
     messages: 1234,
     next_request_at: 24 * HORA,
     expires_at: 48 * HORA,
@@ -60,6 +61,12 @@ describe("descreverExportacao", () => {
   it("link vencido e intervalo cumprido: solicitar de novo", () => {
     const e = corpo({ expires_at: 2 * HORA, next_request_at: 3 * HORA });
     expect(descreverExportacao(e, 5 * HORA).acao).toBe("solicitar");
+  });
+
+  it("gerando há mais que o teto: o processo morreu, solicitar de novo", () => {
+    const e = corpo({ state: "Running", requested_at: HORA });
+    expect(descreverExportacao(e, HORA + TRAVADA_MS - 1).acao).toBe("gerando");
+    expect(descreverExportacao(e, HORA + TRAVADA_MS).acao).toBe("solicitar");
   });
 
   it("falhou: solicitar de novo na hora", () => {

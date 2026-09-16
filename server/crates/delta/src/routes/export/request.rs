@@ -20,8 +20,12 @@ pub async fn request(db: &State<Database>, session: Session) -> Result<Json<Data
     let agora = store::agora_ms();
     if let Some(atual) = store::ler(&session.user_id).await? {
         // Falha libera um novo pedido na hora: a pessoa não esperou 24 h por nada.
-        let em_curso = matches!(atual.state, ExportState::Queued | ExportState::Running);
-        if em_curso || (atual.state != ExportState::Failed && agora < atual.next_request_at) {
+        // Em curso há tempo demais é processo que morreu, não fila longa.
+        let em_curso = matches!(atual.state, ExportState::Queued | ExportState::Running)
+            && agora - atual.requested_at < store::TRAVADA_MS;
+        let ativa = matches!(atual.state, ExportState::Queued | ExportState::Running);
+        let espera = !ativa && atual.state != ExportState::Failed && agora < atual.next_request_at;
+        if em_curso || espera {
             return Ok(Json(atual));
         }
     }

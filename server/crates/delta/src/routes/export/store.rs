@@ -10,6 +10,13 @@ use serde::{Deserialize, Serialize};
 pub const VALIDADE_MS: i64 = 48 * 60 * 60 * 1000;
 /// Intervalo mínimo entre dois pedidos da mesma conta.
 pub const INTERVALO_MS: i64 = 24 * 60 * 60 * 1000;
+/// Quanto uma exportação pode ficar "na fila" ou "gerando" antes de ser tida
+/// como morta.
+///
+/// ⚠ A fila mora na MEMÓRIA do processo: se a API reinicia no meio (deploy,
+/// queda de energia no Pi), o Redis continua dizendo `Running` e ninguém mais
+/// vai terminá-la. Sem este teto a conta ficaria 72 h sem poder pedir de novo.
+pub const TRAVADA_MS: i64 = 6 * 60 * 60 * 1000;
 
 /// # Estado de uma exportação
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Copy, PartialEq, Eq)]

@@ -15,6 +15,8 @@ export type FaseDaExportacao = "naFila" | "gerando" | "pronta" | "falhou";
 
 export type Exportacao = {
   readonly fase: FaseDaExportacao;
+  /** Unix ms do pedido. */
+  readonly pedidaEm: number;
   readonly mensagens: number;
   /** Unix ms a partir do qual um pedido novo é aceito. */
   readonly proximoPedidoEm: number;
@@ -27,6 +29,7 @@ export type Exportacao = {
 
 type Corpo = {
   state: "Queued" | "Running" | "Ready" | "Failed";
+  requested_at: number;
   messages: number;
   next_request_at: number;
   expires_at?: number;
@@ -46,6 +49,7 @@ export function traduzirExportacao(c: Corpo): Exportacao {
   const pronta = c.state === "Ready" && c.download !== undefined;
   return {
     fase: FASE[c.state],
+    pedidaEm: c.requested_at,
     mensagens: c.messages,
     proximoPedidoEm: c.next_request_at,
     // O último segmento é só o nome com que o navegador salva o arquivo.
@@ -69,9 +73,18 @@ export async function lerExportacao(): Promise<Exportacao | null | undefined> {
 }
 
 export async function pedirExportacao(): Promise<Exportacao> {
-  const c = (await client.api.post("/auth/export/request" as never)) as unknown as Corpo;
+  const c = (await client.api.post("/auth/export/request" as never)) as Corpo;
   return traduzirExportacao(c);
 }
+
+/**
+ * Quanto uma exportação pode ficar na fila ou gerando antes de ser tida como
+ * morta — o `TRAVADA_MS` do servidor. A fila mora na memória da API; se ela
+ * reinicia no meio, o estado fica "gerando" para sempre, e o servidor passa a
+ * aceitar um pedido novo depois deste prazo. A tela precisa saber o mesmo, ou
+ * o botão ficaria girando sobre um trabalho que ninguém mais faz.
+ */
+export const TRAVADA_MS = 6 * 60 * 60 * 1000;
 
 export type AcaoDaExportacao = "solicitar" | "gerando" | "baixar" | "aguardar";
 
@@ -97,6 +110,11 @@ export function descreverExportacao(
   const padrao = "Mensagens, servidores e configurações em JSON · até 48 h";
   if (e === null) return { detalhe: padrao, acao: "solicitar" };
 
+  const emCurso = e.fase === "naFila" || e.fase === "gerando";
+  if (emCurso && agora - e.pedidaEm >= TRAVADA_MS) {
+    return { detalhe: "A geração parou no meio. Peça de novo.", acao: "solicitar" };
+  }
+
   if (e.fase === "naFila") {
     return { detalhe: "Na fila — uma exportação por vez neste servidor", acao: "gerando" };
   }
@@ -115,7 +133,7 @@ export function descreverExportacao(
     const partes = [
       "Pronto",
       e.tamanhoTexto,
-      `link vale até ${DATA.format(e.expiraEm!)}`,
+      `link vale até ${DATA.format(e.expiraEm)}`,
       e.enviadaPorEmail ? "enviado por e-mail" : undefined,
     ].filter((p): p is string => p !== undefined);
     return { detalhe: partes.join(" · "), acao: "baixar" };

@@ -20,12 +20,19 @@ use super::zip::EscritorDeZip;
 /// Uma exportação por vez no processo inteiro.
 static FILA: Lazy<Semaphore> = Lazy::new(|| Semaphore::new(1));
 
-/// Página de consulta ao Mongo.
-const PAGINA: i64 = 100;
+/// Página de consulta ao Mongo — do tamanho de um arquivo do ZIP.
+///
+/// ⚠ **Grande de propósito, e a razão é o índice.** `messages` tem índice só
+/// em `author`, não em `(author, _id)`: cada página faz o Mongo buscar TODAS as
+/// mensagens da pessoa, filtrar `_id > cursor` e ordenar as primeiras N. O
+/// custo total é ~n²/PAGINA documentos lidos, então 1.000 em vez de 100 corta
+/// a varredura em dez vezes pelo preço de ~1 MB de memória por página. Criar o
+/// índice composto seria migração de banco para uma rota rara.
+const PAGINA: i64 = 1000;
 /// Mensagens por arquivo dentro do ZIP.
 const POR_ARQUIVO: usize = 1000;
 /// Respiro entre páginas — o chat ao vivo divide a mesma CPU.
-const PAUSA: Duration = Duration::from_millis(40);
+const PAUSA: Duration = Duration::from_millis(100);
 
 type Zip = EscritorDeZip<BufWriter<File>>;
 
