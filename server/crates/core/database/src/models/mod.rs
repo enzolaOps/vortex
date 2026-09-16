@@ -21,6 +21,8 @@ mod server_bans;
 mod server_members;
 mod servers;
 mod sessions;
+mod soundboard_sounds;
+mod stickers;
 mod user_settings;
 mod users;
 
@@ -47,6 +49,8 @@ pub use server_bans::*;
 pub use server_members::*;
 pub use servers::*;
 pub use sessions::*;
+pub use soundboard_sounds::*;
+pub use stickers::*;
 pub use user_settings::*;
 pub use users::*;
 
@@ -66,6 +70,8 @@ pub trait AbstractDatabase:
     + channel_unreads::AbstractChannelUnreads
     + channel_webhooks::AbstractWebhooks
     + emojis::AbstractEmojis
+    + stickers::AbstractStickers
+    + soundboard_sounds::AbstractSoundboardSounds
     + file_hashes::AbstractAttachmentHashes
     + files::AbstractAttachments
     + messages::AbstractMessages

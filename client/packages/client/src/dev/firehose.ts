@@ -13,6 +13,8 @@
 import { decodeTime, monotonicFactory, ulid } from "ulid";
 
 import { definirEnquete } from "../store/enquetes";
+import { registrarFigurinhaLocal } from "../sdk/figurinhasDeMensagem";
+import { FIGURINHAS_DO_ARNES, semearExpressoesDoArnes } from "./expressoesDoArnes";
 import {
   definirPerfilDoServidor,
   definirQuemExibeTag,
@@ -893,6 +895,17 @@ function createMessage(seed: number, quando?: number): string {
   const id = quando === undefined ? nextId() : nextId(quando);
   const author = autorDe(seed);
   const system = sistemaDe(seed, author, id);
+  /*
+    Uma em 97 é FIGURINHA — a mensagem inteira, sem texto. Anotada ANTES do
+    `getOrCreate`, pelo mesmo mapa que o evento cru alimenta: é o caminho que o
+    SDK descarta e que precisa de exercício. Fora da amostra de altura por
+    tipo, como o anexo.
+  */
+  const figurinha =
+    !system && seed % 97 === 13
+      ? FIGURINHAS_DO_ARNES[seed % FIGURINHAS_DO_ARNES.length]?.id
+      : undefined;
+  if (figurinha) registrarFigurinhaLocal(id, figurinha);
 
   client.messages.getOrCreate(
     id,
@@ -903,7 +916,7 @@ function createMessage(seed: number, quando?: number): string {
       // O protocolo põe o texto da linha de sistema em `system`, NÃO em
       // `content` — e é por isso que a linha renderizava vazia antes: o
       // componente lia `content` e encontrava string vazia.
-      content: system ? "" : body(seed),
+      content: system || figurinha ? "" : body(seed),
       // Uma em cada 13 é resposta à anterior — o suficiente para a citação
       // aparecer na janela visível sem dominar a lista, e para o teste de
       // altura de linha ver os dois casos.
@@ -1406,6 +1419,7 @@ export async function seed(count: number, chunk = 250): Promise<string[]> {
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
   }
+  semearExpressoesDoArnes(SERVER_ID);
   seedChannel(CHANNEL_ID, ids);
   semearEnquetes(ids);
   ultimaLista = ids;

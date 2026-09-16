@@ -107,6 +107,21 @@ export function urlDeEmoji(id: string): string | undefined {
 }
 
 /**
+ * O endereço do ARQUIVO ORIGINAL de uma figurinha ou efeito sonoro.
+ *
+ * ⚠ **O original, e não a prévia (`/attachments/{id}`).** A rota de prévia
+ * redireciona tudo que não é imagem estática para `/{tag}/{id}/{nome}` — um
+ * caminho relativo à RAIZ, que se perde quando o `autumn` mora atrás de um
+ * prefixo no proxy. O som não tocaria e a figurinha animada sumiria, sem erro
+ * nenhum. É por isso que o servidor devolve `filename` junto.
+ */
+export function urlDoOriginal(id: string, nomeDoArquivo: string): string | undefined {
+  const base = enderecoDoAutumn();
+  if (base === undefined || nomeDoArquivo === "") return undefined;
+  return `${base}/attachments/${id}/${encodeURIComponent(nomeDoArquivo)}`;
+}
+
+/**
  * O maior teto publicado para esta tag, ou nada.
  *
  * Lê `features.limits` com narrowing manual porque `RevoltConfig` do SDK não

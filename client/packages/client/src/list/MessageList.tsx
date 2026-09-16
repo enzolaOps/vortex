@@ -307,6 +307,12 @@ const TETO_DE_LARGURA = 400;
 const TETO_DE_ALTURA = 340;
 const ALTURA_DE_ARQUIVO = 41;
 const RESPIRO_DE_ANEXO = 8;
+/**
+ * A figurinha na linha: caixa FIXA de 160 mais o respiro — a mesma conta de
+ * `FigurinhaNaLinha.module.css`. Exata como o anexo: a caixa não depende do
+ * arquivo chegar, então a âncora não se move quando a imagem carrega.
+ */
+const ALTURA_DE_FIGURINHA = 160 + RESPIRO_DE_ANEXO;
 
 function alturaDeAnexos(anexos: readonly AnexoSnapshot[]): number {
   if (anexos.length === 0) return 0;
@@ -519,6 +525,7 @@ export function MessageList({ channelId }: { channelId: string }) {
         porTipo > 0
           ? porTipo +
             alturaDeAnexos(m.anexos) +
+            (m.figurinha ? ALTURA_DE_FIGURINHA : 0) +
             alturaDeBlocos(m.blocos) +
             alturaDeEmbeds(m.embeds)
           : 0;
@@ -1176,6 +1183,8 @@ export function MessageList({ channelId }: { channelId: string }) {
       existir: 139px de média contra uma constante de 93 que continuava certa.
     */
     if (m.anexos.length > 0) continue;
+    // Figurinha pela mesma razão: 168px fixos que as constantes não descrevem.
+    if (m.figurinha) continue;
     // Mesma razão, para os blocos que a fórmula estima: uma linha com bloco de
     // código de vinte linhas na amostra faria a média saltar com a frequência
     // de código no canal, e a assertion acusaria mudança de forma que não

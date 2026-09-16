@@ -44,6 +44,9 @@ auto_derived_partial!(
         /// Array of attachments
         #[serde(skip_serializing_if = "Option::is_none")]
         pub attachments: Option<Vec<File>>,
+        /// Ids das figurinhas enviadas (Vortex)
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub stickers: Option<Vec<String>>,
         /// Time at which this message was last edited
         #[serde(skip_serializing_if = "Option::is_none")]
         pub edited: Option<Timestamp>,
@@ -279,6 +282,8 @@ auto_derived!(
         pub content: Option<String>,
         /// Attachments to include in message
         pub attachments: Option<Vec<String>>,
+        /// Figurinhas a enviar (Vortex) — ids de `Sticker`, no máximo uma
+        pub stickers: Option<Vec<String>>,
         /// Messages to reply to
         pub replies: Option<Vec<ReplyIntent>>,
         /// Embeds to include in message

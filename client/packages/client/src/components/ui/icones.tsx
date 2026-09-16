@@ -81,6 +81,7 @@ import {
   RiSquareLine,
   RiStarFill,
   RiStickyNoteFill,
+  RiStopFill,
   RiSubtractLine,
   RiTeamLine,
   RiTrophyFill,
@@ -209,6 +210,8 @@ export const Phone = vx(RiPhoneFill);
 export const PhoneX = vx(RiCloseCircleFill);
 export const PictureInPicture = vx(RiPictureInPicture2Fill);
 export const Play = vx(RiPlayFill);
+/* Parar a prévia de um efeito sonoro — o ■ do design. */
+export const Stop = vx(RiStopFill);
 export const ProhibitInset = vx(RiForbidFill);
 export const Rows = vx(RiListCheck);
 export const ShieldCheck = vx(RiShieldCheckFill);

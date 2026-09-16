@@ -233,6 +233,17 @@ impl MongoDb {
             .await
             .map_err(|_| create_database_error!("update_many", "emojis"))?;
 
+        // Vortex: figurinhas e efeitos sonoros morrem com o servidor. Os
+        // arquivos ficam — mensagens antigas apontam para eles pelo id.
+        for with in &["stickers", "soundboard_sounds"] {
+            self.col::<Document>(with)
+                .delete_many(doc! {
+                    "server": &server_id
+                })
+                .await
+                .map_err(|_| create_database_error!("delete_many", with))?;
+        }
+
         // Delete all channels.
         self.col::<Document>("channels")
             .delete_many(doc! {

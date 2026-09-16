@@ -10,6 +10,7 @@ import type { ComponentType, ReactNode } from "react";
 
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/Popover";
 import { Tooltip } from "../components/ui/Tooltip";
+import { enviarFigurinha } from "../sdk/adapter";
 import { SeletorDeEmoji } from "../seletores/SeletorDeEmoji";
 import { SeletorDeFigurinhas } from "../seletores/SeletorDeFigurinhas";
 import { SeletorDeGif } from "../seletores/SeletorDeGif";
@@ -48,10 +49,13 @@ type Ferramenta = {
 );
 
 export function FerramentasDoComposer({
+  channelId,
   desabilitado,
   aoInserir,
   aoGravar,
 }: {
+  /** Para onde a figurinha vai — ela é mensagem inteira, não texto do rascunho. */
+  channelId: string;
   desabilitado: boolean;
   /** Insere texto no rascunho. É como o emoji chega ao campo. */
   aoInserir: (texto: string) => void;
@@ -87,7 +91,14 @@ export function FerramentasDoComposer({
       id: "figurinha",
       rotulo: "Figurinha",
       Icone: Sticker,
-      painel: () => <SeletorDeFigurinhas />,
+      painel: (aoFechar) => (
+        <SeletorDeFigurinhas
+          aoEscolher={(f) => {
+            enviarFigurinha(channelId, f.id);
+            aoFechar();
+          }}
+        />
+      ),
     },
     {
       id: "soundboard",

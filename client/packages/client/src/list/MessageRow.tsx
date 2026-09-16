@@ -114,6 +114,7 @@ import { caminhoDe } from "../rota/rota";
 import { lerLocal } from "../store/navegacao";
 import { useMessage } from "../store/hooks";
 import { Anexos } from "./Anexos";
+import { FigurinhaNaLinha } from "./FigurinhaNaLinha";
 import { EnqueteDaMensagem } from "../enquete/EnqueteDaMensagem";
 import { MenuDoUsuario } from "../membros/MenuDoUsuario";
 import { aindaNao } from "../pendente/pendencias";
@@ -1510,6 +1511,10 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                 channelId={message.channelId}
               />
             ) : null}
+
+            {/* A figurinha É a mensagem — assina a si mesma por ID, então
+                renomeá-la acorda só esta caixa, nunca a linha. */}
+            {message.figurinha ? <FigurinhaNaLinha id={message.figurinha} /> : null}
 
             {/* O cartão de link vem DEPOIS do anexo e antes das reações: o
                 anexo é o que a pessoa mandou, o cartão é o que o servidor

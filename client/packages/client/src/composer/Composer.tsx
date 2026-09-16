@@ -554,6 +554,7 @@ export function Composer({ channelId }: { channelId: string }) {
             </div>
 
             <FerramentasDoComposer
+              channelId={channelId}
               desabilitado={!temPermissao}
               aoInserir={inserir}
               aoGravar={

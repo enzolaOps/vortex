@@ -49,6 +49,9 @@ auto_derived_partial!(
         /// Array of attachments
         #[serde(skip_serializing_if = "Option::is_none")]
         pub attachments: Option<Vec<File>>,
+        /// Ids das figurinhas enviadas (Vortex)
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub stickers: Option<Vec<String>>,
         /// Time at which this message was last edited
         #[serde(skip_serializing_if = "Option::is_none")]
         pub edited: Option<Timestamp>,
@@ -252,6 +255,7 @@ impl Default for Message {
             content: None,
             system: None,
             attachments: None,
+            stickers: None,
             edited: None,
             embeds: None,
             mentions: None,
@@ -300,6 +304,7 @@ impl Message {
         if (data.content.as_ref().is_none_or(|v| v.is_empty()))
             && (data.attachments.as_ref().is_none_or(|v| v.is_empty()))
             && (data.embeds.as_ref().is_none_or(|v| v.is_empty()))
+            && (data.stickers.as_ref().is_none_or(|v| v.is_empty()))
         {
             return Err(create_error!(EmptyMessage));
         }
@@ -603,6 +608,28 @@ impl Message {
 
         if !attachments.is_empty() {
             message.attachments.replace(attachments);
+        }
+
+        // Vortex: figurinhas. A mensagem guarda só o id — o arquivo continua
+        // servido pelo autumn mesmo depois de a figurinha ser apagada.
+        if let Some(stickers) = data.stickers.as_ref().filter(|v| !v.is_empty()) {
+            if stickers.len() > 1 {
+                return Err(create_error!(InvalidOperation));
+            }
+
+            for sticker_id in stickers {
+                let sticker = db.fetch_sticker(sticker_id).await?;
+
+                // Figurinha de servidor só para quem está nele — o seletor
+                // mostra os pacotes alheios bloqueados, e a regra mora aqui.
+                if let MessageAuthor::User(user) = &author {
+                    if db.fetch_member(&sticker.server, &user.id).await.is_err() {
+                        return Err(create_error!(InvalidOperation));
+                    }
+                }
+            }
+
+            message.stickers.replace(stickers.clone());
         }
 
         // Process included embeds.

@@ -404,6 +404,35 @@ impl From<crate::Emoji> for Emoji {
     }
 }
 
+impl From<crate::Sticker> for Sticker {
+    fn from(value: crate::Sticker) -> Self {
+        Sticker {
+            id: value.id,
+            server: value.server,
+            creator_id: value.creator_id,
+            name: value.name,
+            description: value.description,
+            emoji: value.emoji,
+            content_type: value.content_type,
+            filename: value.filename,
+        }
+    }
+}
+
+impl From<crate::SoundboardSound> for SoundboardSound {
+    fn from(value: crate::SoundboardSound) -> Self {
+        SoundboardSound {
+            id: value.id,
+            server: value.server,
+            creator_id: value.creator_id,
+            name: value.name,
+            emoji: value.emoji,
+            volume: value.volume,
+            filename: value.filename,
+        }
+    }
+}
+
 impl From<crate::EmojiParent> for EmojiParent {
     fn from(value: crate::EmojiParent) -> Self {
         match value {
@@ -529,6 +558,7 @@ impl crate::Message {
             attachments: self
                 .attachments
                 .map(|v| v.into_iter().map(|f| f.into()).collect()),
+            stickers: self.stickers,
             edited: self.edited,
             embeds: self.embeds,
             mentions: self.mentions,
@@ -558,6 +588,7 @@ impl From<crate::PartialMessage> for PartialMessage {
             attachments: value
                 .attachments
                 .map(|v| v.into_iter().map(|f| f.into()).collect()),
+            stickers: value.stickers,
             edited: value.edited,
             embeds: value.embeds,
             mentions: value.mentions,
