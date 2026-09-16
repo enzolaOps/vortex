@@ -117,6 +117,21 @@ auto_derived!(
             #[serde(skip_serializing_if = "Option::is_none")]
             slowmode: Option<u64>,
 
+            /// Vortex: present when this channel's content is a set of posts
+            /// (a forum, or a media gallery) instead of a single conversation
+            #[cfg_attr(
+                feature = "serde",
+                serde(skip_serializing_if = "Option::is_none", default)
+            )]
+            forum: Option<ForumInformation>,
+
+            /// Vortex: present when this channel is a thread inside another channel
+            #[cfg_attr(
+                feature = "serde",
+                serde(skip_serializing_if = "Option::is_none", default)
+            )]
+            thread: Option<ThreadInformation>,
+
             /// Vortex: whether all media in this channel is hidden behind a spoiler
             #[cfg_attr(
                 feature = "serde",
@@ -131,6 +146,80 @@ auto_derived!(
             )]
             invites_paused: bool,
         },
+    }
+
+    /// Vortex: information for a forum or media channel
+    #[derive(Default)]
+    pub struct ForumInformation {
+        /// Whether posts are media items shown as a gallery
+        #[cfg_attr(
+            feature = "serde",
+            serde(skip_serializing_if = "crate::if_false", default)
+        )]
+        pub media: bool,
+        /// Tags available to posts in this channel
+        #[cfg_attr(
+            feature = "serde",
+            serde(skip_serializing_if = "Vec::is_empty", default)
+        )]
+        pub tags: Vec<ForumTag>,
+    }
+
+    /// Vortex: a tag that posts in a forum can carry
+    pub struct ForumTag {
+        /// Unique Id (within the channel)
+        pub id: String,
+        /// Display name
+        pub name: String,
+        /// Colour as `#rrggbb`
+        #[cfg_attr(
+            feature = "serde",
+            serde(skip_serializing_if = "Option::is_none", default)
+        )]
+        pub colour: Option<String>,
+    }
+
+    /// Vortex: information for a thread channel
+    #[derive(Default)]
+    pub struct ThreadInformation {
+        /// Id of the channel this thread belongs to
+        pub parent: String,
+        /// Id of the user who started the thread
+        pub owner: String,
+        /// Id of the opening message
+        ///
+        /// For a thread started from a message this is that message, which lives
+        /// in the parent channel. For a post it is the first message sent inside
+        /// the thread.
+        #[cfg_attr(
+            feature = "serde",
+            serde(skip_serializing_if = "Option::is_none", default)
+        )]
+        pub message: Option<String>,
+        /// Whether this thread is archived
+        #[cfg_attr(
+            feature = "serde",
+            serde(skip_serializing_if = "crate::if_false", default)
+        )]
+        pub archived: bool,
+        /// Ids of the parent's forum tags applied to this thread
+        #[cfg_attr(
+            feature = "serde",
+            serde(skip_serializing_if = "Vec::is_empty", default)
+        )]
+        pub tags: Vec<String>,
+        /// Ids of the users following this thread
+        #[cfg_attr(
+            feature = "serde",
+            serde(skip_serializing_if = "Vec::is_empty", default)
+        )]
+        pub followers: Vec<String>,
+        /// Whether this thread is pinned to the top of its forum
+        #[cfg_attr(
+            feature = "serde",
+            serde(skip_serializing_if = "crate::if_false", default)
+        )]
+        pub pinned: bool,
     }
 
     /// Voice information for a channel
@@ -199,6 +288,10 @@ auto_derived!(
         pub voice: Option<VoiceInformation>,
         #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
         pub slowmode: Option<u64>,
+        #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+        pub forum: Option<ForumInformation>,
+        #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+        pub thread: Option<ThreadInformation>,
         #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
         pub spoiler: Option<bool>,
         #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
@@ -290,6 +383,10 @@ auto_derived!(
         Text,
         /// Voice Channel
         Voice,
+        /// Vortex: Forum Channel (a text channel whose content is posts)
+        Forum,
+        /// Vortex: Media Channel (a text channel whose content is media posts)
+        Media,
     }
 
     /// Create new server channel
@@ -367,6 +464,71 @@ auto_derived!(
         ///
         /// Only used when the user is the first one connected.
         pub recipients: Option<Vec<String>>,
+    }
+
+    /// Vortex: create a thread inside a channel
+    #[derive(Default)]
+    #[cfg_attr(feature = "validator", derive(validator::Validate))]
+    pub struct DataCreateThread {
+        /// Thread name (the post title, in a forum)
+        #[cfg_attr(feature = "validator", validate(length(min = 1, max = 100)))]
+        pub name: String,
+        /// Id of the message in the parent channel this thread starts from
+        #[cfg_attr(feature = "validator", validate(length(min = 26, max = 26)))]
+        #[cfg_attr(
+            feature = "serde",
+            serde(skip_serializing_if = "Option::is_none", default)
+        )]
+        pub message: Option<String>,
+        /// Ids of the parent's forum tags to apply
+        #[cfg_attr(feature = "validator", validate(length(max = 5)))]
+        #[cfg_attr(feature = "serde", serde(default))]
+        pub tags: Vec<String>,
+    }
+
+    /// Vortex: edit a thread
+    #[derive(Default)]
+    #[cfg_attr(feature = "validator", derive(validator::Validate))]
+    pub struct DataEditThread {
+        /// New thread name
+        #[cfg_attr(feature = "validator", validate(length(min = 1, max = 100)))]
+        pub name: Option<String>,
+        /// Whether the thread is archived
+        pub archived: Option<bool>,
+        /// Ids of the parent's forum tags to apply
+        #[cfg_attr(feature = "validator", validate(length(max = 5)))]
+        pub tags: Option<Vec<String>>,
+        /// Whether the post is pinned to the top of its forum
+        pub pinned: Option<bool>,
+    }
+
+    /// Vortex: edit the tags of a forum or media channel
+    #[cfg_attr(feature = "validator", derive(validator::Validate))]
+    pub struct DataEditForum {
+        /// Tags available to posts in this channel
+        #[cfg_attr(feature = "validator", validate(length(max = 20)))]
+        pub tags: Vec<ForumTag>,
+    }
+
+    /// Vortex: options for listing the threads of a server
+    #[cfg_attr(feature = "rocket", derive(FromForm))]
+    pub struct OptionsFetchThreads {
+        /// Only threads of this channel
+        pub channel: Option<String>,
+        /// Archived threads instead of active ones
+        pub archived: Option<bool>,
+    }
+
+    /// Vortex: threads of a server
+    pub struct ThreadListResponse {
+        /// Thread channels
+        pub threads: Vec<Channel>,
+        /// Opening messages of the threads, where they exist
+        pub messages: Vec<super::Message>,
+        /// Authors of the opening messages
+        pub users: Vec<super::User>,
+        /// Number of messages inside each thread, by thread id
+        pub message_counts: HashMap<String, u64>,
     }
 
     pub struct ChannelSlowmode {

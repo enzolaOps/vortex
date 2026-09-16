@@ -34,6 +34,7 @@ mod server_delete;
 mod server_edit;
 mod server_events;
 mod server_fetch;
+mod threads_fetch;
 mod template;
 mod tag_members_fetch;
 
@@ -77,6 +78,7 @@ pub fn routes() -> (Vec<Route>, OpenApi) {
         discover::discover_add::discover_add,
         discover::discover_get::discover_get,
         discover::discover_remove::discover_remove,
+        threads_fetch::fetch_threads,
         emergency::activate,
         emergency::end,
         join_request_list::list,

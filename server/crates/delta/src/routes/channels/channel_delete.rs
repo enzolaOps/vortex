@@ -70,6 +70,18 @@ pub async fn delete(
             permissions.throw_if_lacking_channel_permission(ChannelPermission::ManageChannel)?;
             channel.delete(db).await?;
 
+            // Vortex: a thread does not outlive its channel.
+            if channel.thread().is_none() {
+                let threads = db
+                    .fetch_threads(&[server.clone()], Some(channel.id()), None)
+                    .await
+                    .unwrap_or_default();
+
+                for thread in threads {
+                    thread.delete(db).await.ok();
+                }
+            }
+
             AuditLogEntryAction::ChannelDelete {
                 channel: channel.id().to_string(),
                 name: name.clone(),

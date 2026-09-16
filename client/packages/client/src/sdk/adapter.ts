@@ -115,6 +115,7 @@ import {
   type ServerSnapshot,
 } from "./domain";
 import { calcularLayout, type Layout } from "./agrupamento";
+import { aplicarEventoCru as aplicarEventoCruDeCanal } from "./vortexCanal";
 import { criarNotificadorDeDigitacao } from "./digitando";
 import { instalarSync, puxarConfiguracoes } from "./sincronizar";
 import { aplicarEventoCru, avisarCanaisVortex, superficie } from "./superficieVortex";
@@ -1110,6 +1111,9 @@ export function startAdapter() {
     member list inteira toda vez que alguém fosse silenciado.
   */
   client.events.on("event", (evento: unknown) => {
+    /* Tópico e fórum também só existem no payload cru — ver `vortexCanal.ts`.
+       Antes da hidratação, e é por isso que o registro guarda o nome. */
+    aplicarEventoCruDeCanal(evento);
     /* A voz por canal do fork mora no evento cru pela mesma razão do
        `can_publish` abaixo — ver `sdk/vozDoCanal.ts`. */
     anotarEventoDeVoz(evento);

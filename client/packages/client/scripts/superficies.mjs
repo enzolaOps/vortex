@@ -95,6 +95,23 @@ const PERMITIDO = {
     ".hud": "O mesmo véu, a 82%, sob os controles do transmissor.",
     ".selo": "O mesmo véu, a 70%, atrás do selo de ladrilho separado.",
   },
+  "forum/GaleriaDeMidia.module.css": {
+    ".selo":
+      "Véu sobre a MÍDIA do item, não superfície: o design escreve " +
+      "`rgba(8,9,11,0.75)` — `surface.sunken` byte a byte — atrás do selo " +
+      "GIF/VÍDEO no canto da imagem. Um tom sólido recortaria um retângulo " +
+      "da miniatura; o véu lê como camada por cima dela.",
+    ".spoiler":
+      "O véu que ESCONDE a mídia marcada como spoiler, a 90%. O design " +
+      "escreve `rgba(10,12,15,0.9)`, quase-acerto de `surface.sunken`, e a " +
+      "referência usa o token. Precisa ser o tom mais escuro: é ele que " +
+      "impede a imagem de vazar por baixo antes do clique.",
+    ".sobreposicao":
+      "O degradê da legenda no modo denso, sobre a imagem, de " +
+      "`surface.sunken` a 85% para transparente — valor da referência (o " +
+      "design só esconde o rodapé). Mesma razão do selo: texto sobre mídia " +
+      "precisa de véu, e o véu não pode ser uma faixa sólida.",
+  },
   "membros/ModalDePerfil.module.css": {
     ".acaoDoBanner":
       "Véu sobre o BANNER a 50%, não superfície. Os dois alvos pousam sobre " +

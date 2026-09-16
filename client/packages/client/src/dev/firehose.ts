@@ -45,12 +45,15 @@ import {
 } from "../sdk/adapter";
 import type { PresenceStatus } from "../sdk/domain";
 import { client } from "../sdk/client";
+import { anotarCanais, semearListagem } from "../sdk/vortexCanal";
 import { dublarRedeDoServidor, registrarPreviaDublada } from "./rede";
 
 const nextId = monotonicFactory();
 
 export const CHANNEL_ID = "01JQ0000000000000000000000";
 export const SERVER_ID = "01JQ0000000000000000000001";
+const FORUM_ID = "01JQ000000000000000000001F";
+const GALERIA_ID = "01JQ000000000000000000001G";
 const USER_COUNT = 40;
 
 /**
@@ -96,6 +99,8 @@ type Servidor = {
     teto?: number;
     /** Segundos entre mensagens. O "Modo lento · 30 s" do design. */
     lento?: number;
+    /** Fórum (ou galeria, com `media`) — o objeto cru que só este fork manda. */
+    forum?: { media?: boolean; tags?: { id: string; name: string; colour?: string }[] };
   }[];
   categorias?: { id: string; title: string; channels: string[] }[];
   /** Quantos dos `userIds` pertencem a ele. */
@@ -119,6 +124,31 @@ const MUNDO: Servidor[] = [
       // Restrito: o cadeado do design. Um canal só, porque o marcador tem de
       // se distinguir varrendo — se todos tivessem, ele não diria nada.
       { id: "01JQ000000000000000000001P", nome: "liderança", privado: true },
+      /*
+        Fórum e galeria — os tipos que este fork acrescenta. As tags e as
+        descrições são as do design, palavra por palavra, para a tela medir o
+        mesmo que a desenhada.
+      */
+      {
+        id: FORUM_ID,
+        nome: "ideias",
+        topico: "Um post por ideia. Use as tags e feche quando decidir.",
+        forum: {
+          tags: [
+            { id: "bug", name: "bug", colour: "#E8596B" },
+            { id: "melhoria", name: "melhoria", colour: "#35C2CC" },
+            { id: "pesquisa", name: "pesquisa", colour: "#8B7BE8" },
+            { id: "resolvido", name: "resolvido", colour: "#46C98A" },
+            { id: "backlog", name: "backlog", colour: "#6E7783" },
+          ],
+        },
+      },
+      {
+        id: GALERIA_ID,
+        nome: "galeria",
+        topico: "Referências visuais. Sempre com legenda e crédito.",
+        forum: { media: true },
+      },
       // Sala COM teto e sala SEM: o "3/8" e a ausência dele. Com teto em todas,
       // o caso `undefined` nunca renderizaria.
       { id: "01JQ0000000000000000000012", nome: "voz-geral", voz: true, dentro: 2, teto: 8 },
@@ -137,6 +167,8 @@ const MUNDO: Servidor[] = [
           "01JQ0000000000000000000010",
           "01JQ0000000000000000000011",
           "01JQ000000000000000000001P",
+          FORUM_ID,
+          GALERIA_ID,
         ],
       },
       {
@@ -400,7 +432,7 @@ const RECADOS = [
     for (const canal of servidor.canais) {
       // Canal de voz é TextChannel COM objeto `voice` — o protocolo não tem
       // um `channel_type` de voz. Ver `ehCanalDeVoz` em `map.ts`.
-      client.channels.getOrCreate(canal.id, {
+      const cru = {
         _id: canal.id,
         channel_type: "TextChannel",
         server: servidor.id,
@@ -417,7 +449,11 @@ const RECADOS = [
         */
         ...(canal.privado ? { default_permissions: { a: "0", d: "1" } } : {}),
         ...(canal.lento ? { slowmode: canal.lento } : {}),
-      } as never);
+        ...(canal.forum ? { forum: canal.forum } : {}),
+      };
+      client.channels.getOrCreate(canal.id, cru as never);
+      // O SDK descarta `forum` na hidratação; o registro guarda — ver `vortexCanal.ts`.
+      anotarCanais([cru]);
     }
 
     client.servers.getOrCreate(servidor.id, {
@@ -644,6 +680,139 @@ const RECADOS = [
   }
 
   semearConversas();
+  semearTopicos();
+}
+
+/**
+ * Posts do fórum, itens da galeria e tópicos de mensagem.
+ *
+ * ⚠ **O arnês mais pobre que o protocolo, de novo — e dessa vez preventivo.**
+ * Sem isto as três telas nasceriam construídas e inalcançáveis sem servidor:
+ * a listagem de tópicos é REST, e o firehose não tem rede. Escreve pelo mesmo
+ * registro que o evento cru escreve (`anotarCanais` + `semearListagem`), então
+ * quem lê não distingue arnês de servidor.
+ *
+ * Arquivado, spoiler, gif, vídeo, post sem mídia e tópico que eu sigo — um de
+ * cada, porque cada um é um ramo da tela que só aparece com o dado.
+ */
+function semearTopicos(): void {
+  const eu = userIds[0]!;
+  const agora = Date.now();
+  const hora = 3_600_000;
+  const canais: object[] = [];
+  const aberturas: object[] = [];
+  const contagens: Record<string, number> = {};
+
+  const topico = (
+    pai: string,
+    nome: string,
+    quando: number,
+    autor: string,
+    extra: {
+      tags?: string[];
+      archived?: boolean;
+      pinned?: boolean;
+      seguir?: boolean;
+      mensagens: number;
+      reacoes?: Record<string, number>;
+    },
+    corpo: string,
+    anexo?: { nome: string; tipo: "Image" | "Video"; gif?: boolean; bytes?: number },
+    daMensagem?: boolean,
+  ) => {
+    const id = ulidEm(quando);
+    const mid = ulidEm(quando + 1);
+    canais.push({
+      _id: id,
+      channel_type: "TextChannel",
+      server: SERVER_ID,
+      name: nome,
+      last_message_id: ulidEm(quando + 5 * 60_000),
+      thread: {
+        parent: pai,
+        owner: autor,
+        message: mid,
+        archived: extra.archived ?? false,
+        ...(extra.pinned ? { pinned: true } : {}),
+        tags: extra.tags ?? [],
+        followers: extra.seguir ? [autor, eu] : [autor],
+      },
+    });
+    aberturas.push({
+      _id: mid,
+      channel: daMensagem ? pai : id,
+      author: autor,
+      content: corpo,
+      // O `🎯 4` do card: o mapa cru `emoji → IDs`, com gente de verdade.
+      ...(extra.reacoes
+        ? {
+            reactions: Object.fromEntries(
+              Object.entries(extra.reacoes).map(([emoji, n]) => [emoji, userIds.slice(0, n)]),
+            ),
+          }
+        : {}),
+      ...(anexo
+        ? {
+            attachments: [
+              {
+                _id: "a" + mid,
+                tag: "attachments",
+                filename: anexo.nome,
+                content_type: anexo.gif ? "image/gif" : anexo.tipo === "Video" ? "video/mp4" : "image/png",
+                size: anexo.bytes ?? 180_000,
+                metadata: { type: anexo.tipo, width: 800, height: 600 },
+              },
+            ],
+          }
+        : {}),
+    });
+    contagens[id] = extra.mensagens;
+  };
+
+  const p = (i: number) => userIds[(i * 7) % userIds.length]!;
+  topico(FORUM_ID, "Rail duplica a pasta ao arrastar servidor de volta", agora - 20 * hora, p(1), { tags: ["bug", "resolvido"], pinned: true, seguir: true, mensagens: 13, reacoes: { "👀": 1, "🎯": 4 } }, "Reproduz em 100% das vezes com duas pastas aninhadas. Gravação anexada.", { nome: "captura.png", tipo: "Image" });
+  topico(FORUM_ID, "Densidade compacta deveria ser o padrão em telas pequenas?", agora - 3 * hora, p(2), { tags: ["pesquisa"], pinned: true, mensagens: 9, reacoes: { "🧠": 6 } }, "Abaixo de 1024 o confortável come metade da altura útil da timeline.");
+  topico(FORUM_ID, "Tri-state precisa de atalho de teclado", agora - 6 * hora, p(3), { tags: ["melhoria"], seguir: true, mensagens: 6, reacoes: { "⚡": 9 } }, "Editar 40 permissões com mouse é lento. Proposta: 1/2/3 sobre a linha focada.");
+  topico(FORUM_ID, "Soundboard com sons externos: onde entra a permissão?", agora - 26 * hora, p(4), { tags: ["melhoria", "backlog"], mensagens: 4, reacoes: { "👀": 2 } }, "Hoje a matriz separa usar soundboard e usar sons externos, mas a UI não deixa isso claro.", { nome: "diagrama.png", tipo: "Image" });
+  topico(FORUM_ID, "Estudo: leitura da timeline em ultrawide", agora - 50 * hora, p(5), { tags: ["pesquisa", "resolvido"], archived: true, mensagens: 15, reacoes: { "🧠": 11 } }, "Testamos 1040 e 1200 de largura máxima com 6 pessoas. 1040 ganhou em varredura.", { nome: "grafico.png", tipo: "Image" });
+  topico(FORUM_ID, "Cor de cargo holográfica quebra contraste no tema claro", agora - 74 * hora, p(6), { tags: ["bug"], mensagens: 7, reacoes: { "🐛": 3 } }, "No claro o gradiente cai para 2.1:1 sobre superfície branca.", { nome: "captura-claro.png", tipo: "Image" });
+
+  /*
+    Os doze itens da referência, espaçados de 5 h: a galeria agrupa por DIA de
+    publicação, e com todos no mesmo dia o rótulo "Ontem" nunca apareceria —
+    o arnês mais pobre que a tela. Tamanhos distintos pela mesma razão: o
+    total da barra só prova a soma se as parcelas diferirem.
+  */
+  const midias: [string, string, "Image" | "Video", boolean?][] = [
+    ["Rail com pastas — v4", "rail-v4.png", "Image"],
+    ["Matriz tri-state em 1440", "matriz.png", "Image"],
+    ["Gravação do bug de arraste", "arraste.mp4", "Video"],
+    ["Estudo de densidade", "densidade.png", "Image"],
+    ["Referência de overlay in-game", "overlay.gif", "Image", true],
+    ["Print do crash — conteúdo sensível", "SPOILER_crash.png", "Image"],
+    ["Paleta no tema claro", "paleta.png", "Image"],
+    ["Fluxo de compartilhar tela", "tela.mp4", "Video"],
+    ["Ícones — grade 20", "icones.png", "Image"],
+    ["Antes e depois do composer", "composer.png", "Image"],
+    ["Teste de waveform", "waveform.gif", "Image", true],
+    ["Card de convite — variações", "convite.png", "Image"],
+  ];
+  midias.forEach(([legenda, arquivo, tipo, gif], i) =>
+    topico(GALERIA_ID, legenda, agora - (i + 1) * 5 * hora, p(i + 1), { mensagens: ((i * 5) % 8) + 1 }, "", {
+      nome: arquivo,
+      tipo,
+      gif,
+      bytes: tipo === "Video" ? 38_000_000 + i * 1_000_000 : 240_000 + i * 90_000,
+    }),
+  );
+
+  // Tópicos de MENSAGEM em #geral — a abertura mora no canal pai.
+  topico("01JQ0000000000000000000010", "Revisão do editor de cargo", agora - 30 * hora, p(8), { seguir: true, mensagens: 5 }, "Abri a revisão do editor de cargo — comentem aqui para não perder o fio.", undefined, true);
+  topico("01JQ0000000000000000000010", "Bitrate padrão das salas", agora - 28 * hora, p(9), { mensagens: 3 }, "Qual bitrate a gente deixa de padrão nas salas novas?", undefined, true);
+
+  for (const c of canais) client.channels.getOrCreate((c as { _id: string })._id, c as never);
+  anotarCanais(canais);
+  semearListagem(contagens, aberturas);
 }
 
 /**

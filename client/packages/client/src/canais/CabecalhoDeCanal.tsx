@@ -13,7 +13,9 @@ import {
   superficieAberta,
 } from "../store/drawer";
 import { assinarLayout, painelVisivel } from "../store/layout";
-import { useChannel } from "../store/hooks";
+import { useChannel, useForum, useTopico } from "../store/hooks";
+import { AcoesDaGaleria } from "../forum/GaleriaDeMidia";
+import { CabecalhoDeTopico } from "../topicos/CabecalhoDeTopico";
 import css from "./CabecalhoDeCanal.module.css";
 
 /**
@@ -66,6 +68,8 @@ function GatilhoDeCanais() {
 
 export function CabecalhoDeCanal({ channelId }: { channelId?: string }) {
   const canal = useChannel(channelId ?? "");
+  const topico = useTopico(channelId ?? "");
+  const forum = useForum(channelId ?? "");
 
   if (!channelId) {
     return (
@@ -86,12 +90,23 @@ export function CabecalhoDeCanal({ channelId }: { channelId?: string }) {
     );
   }
 
+  // O tópico aberto tem cabeçalho próprio: voltar, seguir, arquivar.
+  if (topico) {
+    return <CabecalhoDeTopico channelId={channelId} gatilho={<GatilhoDeCanais />} />;
+  }
+
   const Icone = canal.tipo === "voz" ? SpeakerHigh : Hash;
 
   return (
     <header className={css.cabecalho}>
       <GatilhoDeCanais />
-      <Icone aria-hidden className={css.icone} />
+      {forum ? (
+        <span className={css.glifoDeForum} aria-hidden>
+          {forum.midia ? "▦" : "▤"}
+        </span>
+      ) : (
+        <Icone aria-hidden className={css.icone} />
+      )}
       {/*
         O id existe para a LISTA se nomear por ele.
 
@@ -125,7 +140,11 @@ export function CabecalhoDeCanal({ channelId }: { channelId?: string }) {
         presas a ela flutuariam no meio da tela, longe de onde a mão as
         procura.
       */}
-      <AcoesDoCanal channelId={channelId} nome={canal.name} tipo={canal.tipo} />
+      {forum?.midia ? (
+        <AcoesDaGaleria channelId={channelId} />
+      ) : (
+        <AcoesDoCanal channelId={channelId} nome={canal.name} tipo={canal.tipo} forum={forum !== null} />
+      )}
     </header>
   );
 }

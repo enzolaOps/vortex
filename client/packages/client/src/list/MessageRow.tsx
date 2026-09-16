@@ -120,7 +120,7 @@ import { FigurinhaNaLinha } from "./FigurinhaNaLinha";
 import { EnqueteDaMensagem } from "../enquete/EnqueteDaMensagem";
 import { encerrarEnquete } from "../sdk/enquetes";
 import { MenuDoUsuario } from "../membros/MenuDoUsuario";
-import { aindaNao } from "../pendente/pendencias";
+import { abrirTopicoDaMensagem, podeCriarTopico } from "../topicos/acoes";
 import { abrirSeletorDeReacao } from "../store/seletorDeReacao";
 import {
   Popover,
@@ -1326,12 +1326,14 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
               }
             />
 
-            <BotaoDeIcone
-              tamanho="sm"
-              rotulo="Criar tópico"
-              icone={<ChatsCircle aria-hidden />}
-              onClick={aindaNao("topicoDaMensagem")}
-            />
+            {podeCriarTopico(message.channelId) ? (
+              <BotaoDeIcone
+                tamanho="sm"
+                rotulo="Criar tópico"
+                icone={<ChatsCircle aria-hidden />}
+                onClick={() => abrirTopicoDaMensagem(message.channelId, message.id)}
+              />
+            ) : null}
 
             <BotaoDeIcone
               tamanho="sm"
@@ -1776,10 +1778,12 @@ function ItensDaMensagem({ messageId }: { messageId: string }) {
         Encaminhar
       </ContextMenuItem>
 
-      <ContextMenuItem onSelect={aindaNao("topicoDaMensagem")}>
-        <ChatsCircle aria-hidden />
-        Criar tópico
-      </ContextMenuItem>
+      {podeCriarTopico(message.channelId) ? (
+        <ContextMenuItem onSelect={() => abrirTopicoDaMensagem(message.channelId, message.id)}>
+          <ChatsCircle aria-hidden />
+          Criar tópico
+        </ContextMenuItem>
+      ) : null}
 
       <ContextMenuSeparator />
 

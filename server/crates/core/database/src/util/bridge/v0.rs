@@ -234,6 +234,8 @@ impl From<crate::Channel> for Channel {
                 nsfw,
                 voice,
                 slowmode,
+                forum,
+                thread,
                 spoiler,
                 invites_paused,
             } => Channel::TextChannel {
@@ -248,6 +250,8 @@ impl From<crate::Channel> for Channel {
                 nsfw,
                 voice: voice.map(|voice| voice.into()),
                 slowmode,
+                forum,
+                thread,
                 spoiler,
                 invites_paused,
             },
@@ -304,6 +308,8 @@ impl From<Channel> for crate::Channel {
                 nsfw,
                 voice,
                 slowmode,
+                forum,
+                thread,
                 spoiler,
                 invites_paused,
             } => crate::Channel::TextChannel {
@@ -318,6 +324,8 @@ impl From<Channel> for crate::Channel {
                 nsfw,
                 voice: voice.map(|voice| voice.into()),
                 slowmode,
+                forum,
+                thread,
                 spoiler,
                 invites_paused,
             },
@@ -340,6 +348,8 @@ impl From<crate::PartialChannel> for PartialChannel {
             last_message_id: value.last_message_id,
             voice: value.voice.map(|voice| voice.into()),
             slowmode: value.slowmode,
+            forum: value.forum,
+            thread: value.thread,
             spoiler: value.spoiler,
             invites_paused: value.invites_paused,
         }
@@ -361,6 +371,8 @@ impl From<PartialChannel> for crate::PartialChannel {
             last_message_id: value.last_message_id,
             voice: value.voice.map(|voice| voice.into()),
             slowmode: value.slowmode,
+            forum: value.forum,
+            thread: value.thread,
             spoiler: value.spoiler,
             invites_paused: value.invites_paused,
         }

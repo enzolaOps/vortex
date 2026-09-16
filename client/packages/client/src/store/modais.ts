@@ -49,6 +49,7 @@ export const MODAIS = [
   "perfil",
   "excluirConta",
   "transferirPropriedade",
+  "topico",
   "notificacoes",
 ] as const;
 

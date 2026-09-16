@@ -4,7 +4,7 @@ import {
   ICONE,
 } from "../components/ui/icones";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 
 import { aoTerminarArraste, estaArrastando } from "../store/arraste";
 import {
@@ -460,8 +460,29 @@ function conferirEstimativa(
  * clássicas de chat deixaram de ser necessárias, e cada uma quebra seleção de
  * texto ou acessibilidade.
  */
-export function MessageList({ channelId }: { channelId: string }) {
+export function MessageList({
+  channelId,
+  topo,
+}: {
+  channelId: string;
+  /**
+   * Um bloco ANTES da primeira mensagem, que rola junto — a mensagem-raiz do
+   * tópico aberto.
+   *
+   * ⚠ **Rola, não gruda**, e é instrução do design: "rolar para cima deve
+   * mostrar o contexto, não travá-lo". Fora do trilho virtual, e o
+   * virtualizador sabe dele por `scrollMargin` — sem a margem, os `start`
+   * das linhas ignorariam o bloco e toda rolagem por índice pararia a altura
+   * dele fora do alvo.
+   *
+   * `undefined` em todo canal que não é tópico: margem zero, e a conta das
+   * linhas é idêntica à de antes.
+   */
+  topo?: ReactNode;
+}) {
   const ids = useChannelMessageIds(channelId);
+  const topoRef = useRef<HTMLDivElement>(null);
+  const [alturaDoTopo, setAlturaDoTopo] = useState(0);
   count("listRenders");
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -498,6 +519,24 @@ export function MessageList({ channelId }: { channelId: string }) {
     lê-la aqui é o que permite aos efeitos dependerem da existência do `ref`.
   */
   const temLista = ids.length > 0;
+
+  /*
+    A altura do bloco de topo, medida — nunca estimada. Mudar dela (a imagem
+    da raiz carregando, a largura mudando) move todas as linhas, e é por isso
+    que ela vira `scrollMargin` e não um número fixo.
+
+    O `setState` mora no callback do observador, não no corpo do efeito.
+  */
+  const temTopo = topo !== undefined;
+  useEffect(() => {
+    const el = topoRef.current;
+    if (!temTopo || !el) return;
+    const obs = new ResizeObserver(() => {
+      setAlturaDoTopo(Math.round(el.offsetHeight));
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [temTopo, temLista]);
 
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual, spike
   const virtualizer = useVirtualizer({
@@ -545,6 +584,7 @@ export function MessageList({ channelId }: { channelId: string }) {
     anchorTo: "end",
     followOnAppend: true,
     scrollEndThreshold: LIMIAR_DE_FIM,
+    scrollMargin: alturaDoTopo,
     overscan: 6,
     // NÃO passar `useFlushSync: false`. Medido no spike: sem o flush
     // síncrono a compensação estimativa→real não segura a âncora — o
@@ -1276,12 +1316,17 @@ export function MessageList({ channelId }: { channelId: string }) {
       */
       <div className={`${css.scroll} flex flex-col justify-end`}>
         <div className={css.coluna}>
+          {topo}
           <EstadoVazio
             icone={<ChatCircleDots size={ICONE.calha} />}
-            titulo="Este é o começo do canal."
-            detalhe="Ainda não há nada aqui — o que você escrever será a primeira mensagem."
+            titulo={topo === undefined ? "Este é o começo do canal." : "Nenhuma resposta ainda."}
+            detalhe={
+              topo === undefined
+                ? "Ainda não há nada aqui — o que você escrever será a primeira mensagem."
+                : "O que você escrever aqui abre a conversa do tópico."
+            }
             acao={{
-              rotulo: "Escrever a primeira",
+              rotulo: topo === undefined ? "Escrever a primeira" : "Responder",
               aoClicar: () => pedirFocoNoComposer(channelId),
             }}
           />
@@ -1433,6 +1478,7 @@ export function MessageList({ channelId }: { channelId: string }) {
           das duas — o texto da linha e o campo —, e é lá que o marcador
           mora. Comparar as faixas passaria sempre e não guardaria nada. */}
       <div className={css.coluna}>
+        {topo !== undefined ? <div ref={topoRef}>{topo}</div> : null}
         <div
           ref={medidaRef}
           className="relative w-full"
@@ -1446,7 +1492,7 @@ export function MessageList({ channelId }: { channelId: string }) {
               data-alvo={String(item.key) === alvoDeBusca || undefined}
               ref={virtualizer.measureElement}
               className={css.linhaVirtual}
-              style={{ transform: `translateY(${item.start}px)` }}
+              style={{ transform: `translateY(${item.start - alturaDoTopo}px)` }}
             >
               <MessageRow id={String(item.key)} />
             </div>

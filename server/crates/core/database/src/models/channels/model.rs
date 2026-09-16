@@ -116,6 +116,14 @@ auto_derived!(
             #[serde(skip_serializing_if = "Option::is_none")]
             slowmode: Option<u64>,
 
+            /// Vortex: present when this channel's content is posts (forum or media)
+            #[serde(skip_serializing_if = "Option::is_none", default)]
+            forum: Option<v0::ForumInformation>,
+
+            /// Vortex: present when this channel is a thread inside another channel
+            #[serde(skip_serializing_if = "Option::is_none", default)]
+            thread: Option<v0::ThreadInformation>,
+
             /// Vortex: whether all media in this channel is hidden behind a spoiler
             #[serde(skip_serializing_if = "crate::if_false", default)]
             spoiler: bool,
@@ -180,6 +188,10 @@ auto_derived!(
         pub voice: Option<VoiceInformation>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub slowmode: Option<u64>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub forum: Option<v0::ForumInformation>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub thread: Option<v0::ThreadInformation>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub spoiler: Option<bool>,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -246,6 +258,8 @@ impl Channel {
                 nsfw: data.nsfw.unwrap_or(false),
                 voice: data.voice.map(|voice| voice.into()),
                 slowmode: None,
+                forum: None,
+                thread: None,
                 spoiler: false,
                 invites_paused: false,
             },
@@ -261,9 +275,35 @@ impl Channel {
                 nsfw: data.nsfw.unwrap_or(false),
                 voice: Some(data.voice.unwrap_or_default().into()),
                 slowmode: None,
+                forum: None,
+                thread: None,
                 spoiler: false,
                 invites_paused: false,
             },
+            // Vortex: forum and media are text channels with a `forum` object,
+            // so clients that do not know the concept still see a text channel.
+            v0::LegacyServerChannelType::Forum | v0::LegacyServerChannelType::Media => {
+                Channel::TextChannel {
+                    id: id.clone(),
+                    server: server.id.to_owned(),
+                    name: data.name,
+                    description: data.description,
+                    icon: None,
+                    last_message_id: None,
+                    default_permissions: None,
+                    role_permissions: HashMap::new(),
+                    nsfw: data.nsfw.unwrap_or(false),
+                    voice: None,
+                    slowmode: None,
+                    forum: Some(v0::ForumInformation {
+                        media: matches!(data.channel_type, v0::LegacyServerChannelType::Media),
+                        tags: vec![],
+                    }),
+                    thread: None,
+                    spoiler: false,
+                    invites_paused: false,
+                }
+            }
         };
 
         db.insert_channel(&channel).await?;
@@ -480,6 +520,92 @@ impl Channel {
         }
     }
 
+    /// Vortex: this channel's thread information, when it is a thread
+    pub fn thread(&self) -> Option<&v0::ThreadInformation> {
+        match self {
+            Channel::TextChannel {
+                thread: Some(thread),
+                ..
+            } => Some(thread),
+            _ => None,
+        }
+    }
+
+    /// Vortex: this channel's forum information, when it is a forum or media channel
+    pub fn forum(&self) -> Option<&v0::ForumInformation> {
+        match self {
+            Channel::TextChannel {
+                forum: Some(forum), ..
+            } => Some(forum),
+            _ => None,
+        }
+    }
+
+    /// Vortex: create a thread inside a server channel
+    ///
+    /// The thread is a text channel of the same server that is NOT added to
+    /// `server.channels`: clients that do not know threads never list it, and
+    /// the ones that do find it by `thread.parent`.
+    ///
+    /// Permission overrides are copied from the parent at creation, so a thread
+    /// of a private channel is exactly as private. Later changes to the parent
+    /// are not propagated.
+    pub async fn create_thread(
+        db: &Database,
+        parent: &Channel,
+        owner: &str,
+        data: v0::DataCreateThread,
+    ) -> Result<Channel> {
+        let Channel::TextChannel {
+            id: parent_id,
+            server,
+            default_permissions,
+            role_permissions,
+            nsfw,
+            slowmode,
+            thread: None,
+            voice: None,
+            ..
+        } = parent
+        else {
+            return Err(create_error!(InvalidOperation));
+        };
+
+        let channel = Channel::TextChannel {
+            id: Ulid::new().to_string(),
+            server: server.clone(),
+            name: data.name,
+            description: None,
+            icon: None,
+            last_message_id: None,
+            default_permissions: *default_permissions,
+            role_permissions: role_permissions.clone(),
+            nsfw: *nsfw,
+            voice: None,
+            slowmode: *slowmode,
+            forum: None,
+            thread: Some(v0::ThreadInformation {
+                parent: parent_id.clone(),
+                owner: owner.to_string(),
+                message: data.message,
+                archived: false,
+                tags: data.tags,
+                followers: vec![owner.to_string()],
+                pinned: false,
+            }),
+            spoiler: false,
+            invites_paused: false,
+        };
+
+        db.insert_channel(&channel).await?;
+
+        EventV1::ChannelCreate(channel.clone().into())
+            .p(server.clone())
+            .await;
+
+        Ok(channel)
+    }
+
     /// Gets this channel's voice information
     pub fn voice(&self) -> Option<Cow<VoiceInformation>> {
         match self {
@@ -657,10 +783,20 @@ impl Channel {
                 default_permissions,
                 role_permissions,
                 voice,
+                forum,
+                thread,
                 spoiler,
                 invites_paused,
                 ..
             } => {
+                if let Some(v) = partial.forum {
+                    forum.replace(v);
+                }
+
+                if let Some(v) = partial.thread {
+                    thread.replace(v);
+                }
+
                 if let Some(v) = partial.name {
                     *name = v;
                 }
@@ -771,10 +907,20 @@ impl Channel {
                 nsfw,
                 voice,
                 slowmode,
+                forum,
+                thread,
                 spoiler,
                 invites_paused,
                 ..
             } => {
+                if partial.forum.is_some() {
+                    before.forum = forum.clone();
+                };
+
+                if partial.thread.is_some() {
+                    before.thread = thread.clone();
+                };
+
                 if partial.name.is_some() {
                     before.name = Some(name.clone());
                 };

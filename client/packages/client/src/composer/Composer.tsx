@@ -42,6 +42,7 @@ import {
   useMembrosDoServidor,
   useRascunho,
   useServidorAtivo,
+  useTopico,
 } from "../store/hooks";
 import { escreverRascunho, limparRascunho } from "../store/rascunhos";
 import { alvosDeMencao } from "../sdk/completarMencao";
@@ -93,6 +94,13 @@ export function Composer({ channelId }: { channelId: string }) {
   */
   const canal = useChannel(channelId);
   const modoLento = canal?.modoLento ?? 0;
+  /*
+    Dentro de um tópico, o composer diz duas coisas que não diria no canal: o
+    placeholder ("Responder no tópico") e que a resposta NÃO notifica o pai.
+    O segundo é o que tira a hesitação de responder num tópico movimentado.
+  */
+  const topico = useTopico(channelId);
+  const pai = useChannel(topico?.paiId ?? "");
   const serverId = useServidorAtivo();
   const idsServidor = useMembrosDoServidor(serverId);
   const ids =
@@ -564,9 +572,11 @@ export function Composer({ channelId }: { channelId: string }) {
                 */
                 disabled={!temPermissao}
                 placeholder={
-                  temPermissao
-                    ? "Escreva uma mensagem…"
-                    : "Você não pode escrever neste canal"
+                  !temPermissao
+                    ? "Você não pode escrever neste canal"
+                    : topico
+                      ? "Responder no tópico"
+                      : "Escreva uma mensagem…"
                 }
               />
             </div>
@@ -640,6 +650,11 @@ export function Composer({ channelId }: { channelId: string }) {
               para a esquerda quando o rascunho esvaziasse.
             */}
             <span className={css.estado}>
+              {topico?.arquivado ? (
+                <span className={css.dica}>Tópico arquivado · responder reabre</span>
+              ) : topico && pai ? (
+                <span className={css.dica}>Suas respostas aqui não notificam #{pai.name}</span>
+              ) : null}
               {modoLento > 0 ? (
                 <span className={css.dica}>Modo lento · {modoLento} s</span>
               ) : null}

@@ -92,6 +92,7 @@ import {
   useCategorias,
   useColapso,
   useChannel,
+  useForum,
   useMembro,
   useServer,
   useServidorAtivo,
@@ -99,7 +100,7 @@ import {
   useLocal,
 } from "../store/hooks";
 import { Avatar } from "../components/ui/Avatar";
-import { aindaNao } from "../pendente/pendencias";
+import { podeCriarTopico } from "../topicos/acoes";
 import {
   alternarOcultarSilenciados,
   assinarExibicao,
@@ -181,6 +182,8 @@ const Canal = memo(function Canal({
     const c = lerChamada();
     return c.channelId === id && c.estado === "dentro" ? c.desde : 0;
   });
+  // Fórum e galeria são canal de texto no protocolo; só o `forum` cru diz.
+  const forum = useForum(id);
 
   /*
     ⚠ **O hook fica ACIMA do early return, e a primeira versão não ficava.**
@@ -266,8 +269,20 @@ const Canal = memo(function Canal({
           />
 
           {/* Ícones Phosphor, weight regular, 20px — um set só, sem exceção. */}
-          <Icone className={css.icone} aria-hidden />
+          {/*
+            Fórum e galeria com os GLIFOS do design (▤ ▦), não com ícone do set:
+            são os mesmos do seletor de tipo no "Criar canal", e o par precisa
+            concordar entre a escolha e a coluna.
+          */}
+          {forum ? (
+            <span className={css.glifoDeForum} aria-hidden>
+              {forum.midia ? "▦" : "▤"}
+            </span>
+          ) : (
+            <Icone className={css.icone} aria-hidden />
+          )}
           <span className={css.nome}>{canal.name}</span>
+          {forum && !forum.midia ? <span className={css.etiquetaDeForum}>FÓRUM</span> : null}
 
           {/*
             Cadeado, sino cortado e teto de sala — os três marcadores que o
@@ -491,15 +506,35 @@ const Canal = memo(function Canal({
               </button>
             ) : null}
 
-            {/* Desenhado sem implementação — ver `pendente/pendencias.ts`. */}
-            <button
-              type="button"
-              className={css.acaoDaLinha}
-              aria-label={`Criar tópico em ${canal.name}`}
-              onClick={aindaNao("criarTopico")}
-            >
-              <Plus aria-hidden />
-            </button>
+            {/*
+              O `+` da linha abre o que o canal tem por assunto: tópico num canal
+              de texto, post num fórum, mídia numa galeria. Nenhum em sala de
+              voz — o protocolo não aceita tópico lá, e alvo que o servidor
+              recusaria não é renderizado.
+            */}
+            {podeCriarTopico(id) ? (
+              <button
+                type="button"
+                className={css.acaoDaLinha}
+                aria-label={`Criar tópico em ${canal.name}`}
+                onClick={() =>
+                  administrar({ tipo: "criarTopico", channelId: id, mensagemId: undefined })
+                }
+              >
+                <Plus aria-hidden />
+              </button>
+            ) : forum && pode(id, "enviar") ? (
+              <button
+                type="button"
+                className={css.acaoDaLinha}
+                aria-label={forum.midia ? `Enviar mídia em ${canal.name}` : `Novo post em ${canal.name}`}
+                onClick={() =>
+                  administrar({ tipo: forum.midia ? "enviarMidia" : "novoPost", forumId: id })
+                }
+              >
+                <Plus aria-hidden />
+              </button>
+            ) : null}
           </span>
     </div>
 
