@@ -89,7 +89,7 @@ export async function iniciarAtividade(channelId: string, tipo: string): Promise
   const s = (await client.api.post(
     `/channels/${channelId}/activity` as never,
     { kind: tipo } as never,
-  )) as unknown as SessaoCrua;
+  )) as SessaoCrua;
   definirSessao(channelId, sessao(s), (s.ops ?? []).map(operacao));
 }
 

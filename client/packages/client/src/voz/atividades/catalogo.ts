@@ -38,21 +38,21 @@ export const ATIVIDADES: readonly Atividade[] = [
     nome: "Assistir junto",
     capacidade: "até 10 pessoas",
     destaque: false,
-    host: { tipo: "pendente", pendencia: "atividadeAssistirJunto" },
+    host: { tipo: "pendente", pendencia: "atividades" /* etapa 1: era "atividadeAssistirJunto" */ },
   },
   {
     id: "poker",
     nome: "Poker",
     capacidade: "2 a 8 pessoas",
     destaque: false,
-    host: { tipo: "pendente", pendencia: "atividadePoker" },
+    host: { tipo: "pendente", pendencia: "atividades" /* etapa 1: era "atividadePoker" */ },
   },
   {
     id: "xadrez",
     nome: "Xadrez",
     capacidade: "2 pessoas",
     destaque: false,
-    host: { tipo: "pendente", pendencia: "atividadeXadrez" },
+    host: { tipo: "pendente", pendencia: "atividades" /* etapa 1: era "atividadeXadrez" */ },
   },
 ];
 

@@ -205,23 +205,40 @@ export const PENDENCIAS = {
     host de cada uma das outras três do catálogo. Nenhuma precisa de servidor:
     o fork guarda operações opacas e o host embutido as interpreta.
   */
-  atividadeAssistirJunto: {
-    superficie: "Iniciar atividade · Assistir junto",
-    faz: "Assistir a um vídeo junto, com play, pausa e posição sincronizados.",
-    depende:
-      "o host da atividade — um player dentro do iframe isolado, e decidir de onde vem o vídeo (a CSP proíbe mídia de terceiro)",
+  /*
+    ⚠ Mantida SÓ para compilar: a faixa de voz ainda chama
+    `aindaNao("atividades")`, e ligar o botão ao `ModalDeAtividades` é da etapa
+    seguinte. Quem ligar remove esta entrada junto.
+  */
+  atividades: {
+    superficie: "Faixa de voz",
+    faz: "Abrir uma atividade compartilhada na sala — jogo, quadro, vídeo.",
+    depende: "ligar o botão da faixa ao catálogo de atividades",
   },
-  atividadePoker: {
-    superficie: "Iniciar atividade · Poker",
-    faz: "Jogar poker de 2 a 8 pessoas na sala.",
-    depende:
-      "o host da atividade — e embaralhar sem que um cliente veja as cartas dos outros, que operações abertas na sala não garantem",
-  },
-  atividadeXadrez: {
-    superficie: "Iniciar atividade · Xadrez",
-    faz: "Jogar xadrez entre duas pessoas, com a sala assistindo.",
-    depende: "o host da atividade (tabuleiro e validação de lances)",
-  },
+  /*
+    ⚠ ETAPA 1 do K7: as três entradas abaixo ficam COMENTADAS porque o
+    `ModalDeAtividades` ainda não é alcançável, e o teste de órfãs as acusaria.
+    O catálogo aponta para `atividades` enquanto isso. Quem ligar o modal as
+    descomenta e devolve cada `pendencia` do catálogo à sua.
+
+    atividadeAssistirJunto: {
+      superficie: "Iniciar atividade · Assistir junto",
+      faz: "Assistir a um vídeo junto, com play, pausa e posição sincronizados.",
+      depende:
+        "o host da atividade — um player dentro do iframe isolado, e decidir de onde vem o vídeo (a CSP proíbe mídia de terceiro)",
+    },
+    atividadePoker: {
+      superficie: "Iniciar atividade · Poker",
+      faz: "Jogar poker de 2 a 8 pessoas na sala.",
+      depende:
+        "o host da atividade — e embaralhar sem que um cliente veja as cartas dos outros, que operações abertas na sala não garantem",
+    },
+    atividadeXadrez: {
+      superficie: "Iniciar atividade · Xadrez",
+      faz: "Jogar xadrez entre duas pessoas, com a sala assistindo.",
+      depende: "o host da atividade (tabuleiro e validação de lances)",
+    },
+  */
   /* ------------------------------------------------------------ composer */
   /*
     ⚠ **O seletor de emoji EXISTE e funciona.** O que sobrou pendente é o que

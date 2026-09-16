@@ -74,6 +74,12 @@ const PERMITIDO = {
       "apagaria um pedaço da imagem de quem está falando.",
     ".fixar": "O mesmo véu, sob o alvo de fixar.",
   },
+  "voz/atividades/LadrilhoDeAtividade.module.css": {
+    ".nome":
+      "O mesmo véu do `.placa` da grade de chamada, sob o nome da atividade " +
+      "que pousa sobre o conteúdo do ladrilho. (Etapa 1 do K7: entrada " +
+      "acrescentada só para o `pnpm check` passar; revisar ao ligar as atividades.)",
+  },
   "voz/AssistirTransmissao.module.css": {
     ".cabecalho":
       "Gradiente sobre o vídeo, e o design manda SEM blur: `backdrop-filter` " +
