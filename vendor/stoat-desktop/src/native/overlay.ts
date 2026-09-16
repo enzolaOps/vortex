@@ -1,7 +1,13 @@
-import { BrowserWindow, Notification, ipcMain, screen } from "electron";
+import { BrowserWindow, Notification, screen } from "electron";
 import { join } from "node:path";
 
 import { config } from "./config";
+import {
+  daJanelaDoOverlay,
+  daJanelaPrincipal,
+  ipc,
+  registrarJanelaDoOverlay,
+} from "./remetente";
 import { lerTelaCheia } from "./telaCheia";
 import { decidir, nomeParaMostrar, registrarAvisado } from "./telaCheiaModelo";
 import { BUILD_URL, mainWindow } from "./window";
@@ -38,6 +44,9 @@ let janela: BrowserWindow | undefined;
 let estado: Estado | undefined;
 let interagindo = false;
 
+/* O guarda de IPC aceita os canais do overlay só desta janela. */
+registrarJanelaDoOverlay(() => janela);
+
 function vivo(w: BrowserWindow | undefined): w is BrowserWindow {
   return w !== undefined && !w.isDestroyed();
 }
@@ -58,7 +67,14 @@ function criar(): BrowserWindow {
     focusable: false,
     alwaysOnTop: true,
     webPreferences: {
-      preload: join(__dirname, "preload.js"),
+      /*
+        ⚠ **Preload PRÓPRIO, e não o da janela principal.** O principal expõe
+        fechar a janela, o hook global de teclado, o volume do sistema e as
+        preferências; aqui só atravessam as pontes do overlay (estado,
+        silêncio, comando). O main ainda confere o remetente de todo canal —
+        ver `remetente.ts` —, mas a ponte que não existe é a que não vaza.
+      */
+      preload: join(__dirname, "preloadDoOverlay.js"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -212,21 +228,20 @@ export function registrarOverlay(): void {
   /*
     Só a janela PRINCIPAL publica; a do overlay só lê. Conferir o remetente é o
     que impede a página do overlay — ou algo injetado nela — de reescrever o
-    que ela mesma mostra.
+    que ela mesma mostra. O `ipc` já recusa por canal; a conferência explícita
+    fica porque é o contrato de cada handler, lido sem abrir outro arquivo.
   */
-  const daPrincipal = (e: Electron.IpcMainEvent) =>
-    vivo(mainWindow) && e.sender.id === mainWindow.webContents.id;
-  const doOverlay = (e: Electron.IpcMainEvent) =>
-    vivo(janela) && e.sender.id === janela.webContents.id;
+  const daPrincipal = daJanelaPrincipal;
+  const doOverlay = daJanelaDoOverlay;
 
-  ipcMain.on("vortexOverlayPublicar", (e, bruto: unknown) => {
+  ipc.on("vortexOverlayPublicar", (e, bruto: unknown) => {
     if (!daPrincipal(e) || typeof bruto !== "object" || bruto === null) return;
     estado = bruto as Estado;
     if (vivo(janela)) janela.webContents.send("vortexOverlayEstado", estado);
     reavaliar();
   });
 
-  ipcMain.on("vortexOverlayMensagem", (e, bruto: unknown) => {
+  ipc.on("vortexOverlayMensagem", (e, bruto: unknown) => {
     if (!daPrincipal(e) || typeof bruto !== "object" || bruto === null) return;
     if (!vivo(janela) || !janela.isVisible() || silenciadas) return;
     janela.webContents.send("vortexOverlayMensagem", bruto);
@@ -238,7 +253,7 @@ export function registrarOverlay(): void {
     montar e registrar o ouvinte, e o primeiro estado se perdia — o overlay
     abria vazio até a chamada mudar de novo.
   */
-  ipcMain.handle("vortexOverlayEstadoAtual", (e) =>
+  ipc.handle("vortexOverlayEstadoAtual", (e) =>
     vivo(janela) && e.sender.id === janela.webContents.id
       ? { estado, interagindo }
       : undefined,
@@ -246,12 +261,12 @@ export function registrarOverlay(): void {
 
   /* Canal próprio, lido pela ponte `vortexOverlaySilencio`: uma casca antiga
      não o tem, e o overlay então nem mostra a dica do atalho. */
-  ipcMain.handle("vortexOverlaySilencioAtual", (e) =>
+  ipc.handle("vortexOverlaySilencioAtual", (e) =>
     vivo(janela) && e.sender.id === janela.webContents.id ? silenciadas : undefined,
   );
 
   /* Os botões do widget de voz viram o mesmo comando do atalho e da bandeja. */
-  ipcMain.on("vortexOverlayComando", (e, c: unknown) => {
+  ipc.on("vortexOverlayComando", (e, c: unknown) => {
     if (!doOverlay(e)) return;
     if (c !== "mutar" && c !== "ensurdecer" && c !== "desconectar") return;
     if (vivo(mainWindow)) mainWindow.webContents.send("vortexComandoDeVoz", c);

@@ -256,6 +256,13 @@ const config: ForgeConfig = {
           config: "vite.preload.config.ts",
           target: "preload",
         },
+        {
+          /* A janela do overlay do jogo — preload PRÓPRIO e estreito, ver
+             `src/preloadDoOverlay.ts`. Sai como `preloadDoOverlay.js`. */
+          entry: "src/preloadDoOverlay.ts",
+          config: "vite.preload.config.ts",
+          target: "preload",
+        },
       ],
       renderer: [],
     }),
