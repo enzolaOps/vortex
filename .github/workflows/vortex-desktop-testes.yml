@@ -5,8 +5,9 @@
 # IPC — registro central, privilégio do overlay, portas — só eram conferidas
 # por quem lembrasse de rodá-las localmente.
 #
-# Ações pinadas por SHA, como os outros workflows do repositório: sem isso o
-# run nem começa (`startup_failure`).
+# Só ações da GitHub, pinadas por SHA como nos outros workflows: a política
+# do repositório recusa as de terceiros e o run nem começa
+# (`startup_failure`).
 #
 # Leve de propósito: Linux só, sem Electron. `--ignore-scripts` pula o
 # download do binário do Electron e a compilação dos addons nativos, que os
@@ -45,16 +46,15 @@ jobs:
         with:
           persist-credentials: false
 
-      # A versão do pnpm vem do `packageManager` da CASCA, não da raiz.
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
-        with:
-          package_json_file: vendor/stoat-desktop/package.json
-
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 24
-          cache: pnpm
-          cache-dependency-path: vendor/stoat-desktop/pnpm-lock.yaml
+
+      # ⚠ Sem `pnpm/action-setup`: a política do repositório só libera ações
+      # da GitHub e de `docker/*`, e ela derruba o run antes do primeiro passo.
+      # O corepack do Node lê o `packageManager` da CASCA (versão e hash).
+      - name: Ativar o pnpm da casca
+        run: corepack enable && pnpm --version
 
       - name: Instalar dependências
         run: pnpm install --frozen-lockfile --ignore-scripts
