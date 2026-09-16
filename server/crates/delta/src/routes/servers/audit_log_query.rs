@@ -105,6 +105,8 @@ mod test {
                 archived: None,
                 voice: None,
                 slowmode: None,
+                spoiler: None,
+                invites_paused: None,
                 remove: Vec::new(),
             })
             .dispatch()
@@ -127,6 +129,8 @@ mod test {
                 archived: None,
                 voice: None,
                 slowmode: None,
+                spoiler: None,
+                invites_paused: None,
                 remove: Vec::new(),
             })
             .dispatch()

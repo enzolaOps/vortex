@@ -2,6 +2,7 @@ import {
   ArrowBendUpLeft,
   ArrowBendUpRight,
   ArrowClockwise,
+  ChartBar,
   ChatsCircle,
   Copy,
   DotsThree,
@@ -70,7 +71,10 @@ import {
 import { CartaoDeUpload } from "./CartaoDeUpload";
 import {
   alternarFixada,
+  marcarNaoLidaA,
+  removerEmbeds,
   alternarReacao,
+  republicarEnquete,
   editarMensagem,
   usuarioLocalId,
 } from "../sdk/adapter";
@@ -112,9 +116,11 @@ import { caminhoDe } from "../rota/rota";
 import { lerLocal } from "../store/navegacao";
 import { useMessage } from "../store/hooks";
 import { Anexos } from "./Anexos";
+import { FigurinhaNaLinha } from "./FigurinhaNaLinha";
 import { EnqueteDaMensagem } from "../enquete/EnqueteDaMensagem";
+import { encerrarEnquete } from "../sdk/enquetes";
 import { MenuDoUsuario } from "../membros/MenuDoUsuario";
-import { aindaNao } from "../pendente/pendencias";
+import { abrirTopicoDaMensagem, podeCriarTopico } from "../topicos/acoes";
 import { abrirSeletorDeReacao } from "../store/seletorDeReacao";
 import {
   Popover,
@@ -133,6 +139,7 @@ import {
 import { Citacao } from "./Citacao";
 import { Embeds } from "./Embeds";
 import { CrachaDeCargo } from "../presenca/NomeDoAutor";
+import { TagDoServidor } from "../presenca/TagDoServidor";
 import { TextoDaMensagem } from "./TextoDaMensagem";
 import css from "./MessageRow.module.css";
 
@@ -1319,12 +1326,14 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
               }
             />
 
-            <BotaoDeIcone
-              tamanho="sm"
-              rotulo="Criar tópico"
-              icone={<ChatsCircle aria-hidden />}
-              onClick={aindaNao("topicoDaMensagem")}
-            />
+            {podeCriarTopico(message.channelId) ? (
+              <BotaoDeIcone
+                tamanho="sm"
+                rotulo="Criar tópico"
+                icone={<ChatsCircle aria-hidden />}
+                onClick={() => abrirTopicoDaMensagem(message.channelId, message.id)}
+              />
+            ) : null}
 
             <BotaoDeIcone
               tamanho="sm"
@@ -1347,6 +1356,8 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                     {/* O crachá de cargo — "VTX", "MOD". Assina o membro
                         sozinho; ver `CrachaDeCargo`. */}
                     <CrachaDeCargo userId={message.authorId} />
+                    {/* A tag do servidor, se a pessoa a exibe — assina sozinha. */}
+                    <TagDoServidor userId={message.authorId} />
                   </span>
                 ) : (
                   <span className="text-lg font-semibold text-text-2">
@@ -1468,6 +1479,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                       <>
                         <NomeDoAutor userId={message.authorId} denso />
                         <CrachaDeCargo userId={message.authorId} />
+                        <TagDoServidor userId={message.authorId} />
                       </>
                     ) : undefined
                   }
@@ -1498,8 +1510,16 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             {/* Depois do texto e ANTES das reações: o anexo faz parte do que
                 foi dito; a reação é o que os outros responderam. */}
             {message.anexos.length > 0 ? (
-              <Anexos anexos={message.anexos} messageId={message.id} />
+              <Anexos
+                anexos={message.anexos}
+                messageId={message.id}
+                channelId={message.channelId}
+              />
             ) : null}
+
+            {/* A figurinha É a mensagem — assina a si mesma por ID, então
+                renomeá-la acorda só esta caixa, nunca a linha. */}
+            {message.figurinha ? <FigurinhaNaLinha id={message.figurinha} /> : null}
 
             {/* O cartão de link vem DEPOIS do anexo e antes das reações: o
                 anexo é o que a pessoa mandou, o cartão é o que o servidor
@@ -1535,6 +1555,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             {message.enquete ? (
               <EnqueteDaMensagem
                 messageId={message.id}
+                channelId={message.channelId}
                 enquete={message.enquete}
               />
             ) : null}
@@ -1757,10 +1778,12 @@ function ItensDaMensagem({ messageId }: { messageId: string }) {
         Encaminhar
       </ContextMenuItem>
 
-      <ContextMenuItem onSelect={aindaNao("topicoDaMensagem")}>
-        <ChatsCircle aria-hidden />
-        Criar tópico
-      </ContextMenuItem>
+      {podeCriarTopico(message.channelId) ? (
+        <ContextMenuItem onSelect={() => abrirTopicoDaMensagem(message.channelId, message.id)}>
+          <ChatsCircle aria-hidden />
+          Criar tópico
+        </ContextMenuItem>
+      ) : null}
 
       <ContextMenuSeparator />
 
@@ -1777,6 +1800,27 @@ function ItensDaMensagem({ messageId }: { messageId: string }) {
         </ContextMenuItem>
       ) : null}
 
+      {/*
+        Encerrar a enquete antes do prazo — do autor ou de quem gerencia
+        mensagens, a mesma regra que o servidor aplica em `poll/end`.
+        ⚠ O design não desenha este item; ele existe porque o protocolo tem a
+        rota e nenhuma outra superfície do design a alcança.
+      */}
+      {message.enquete &&
+      message.enquete.fechaEm !== undefined &&
+      (souOAutor || gerencio) ? (
+        <ContextMenuItem
+          onSelect={() =>
+            void encerrarEnquete(message.channelId, message.id, () =>
+              republicarEnquete(message.id),
+            )
+          }
+        >
+          <ChartBar aria-hidden />
+          Encerrar enquete
+        </ContextMenuItem>
+      ) : null}
+
       {gerencio ? (
         <ContextMenuItem onSelect={() => alternarFixada(message.id)}>
           {message.fixada ? <PushPinSlash aria-hidden /> : <PushPin aria-hidden />}
@@ -1784,7 +1828,7 @@ function ItensDaMensagem({ messageId }: { messageId: string }) {
         </ContextMenuItem>
       ) : null}
 
-      <ContextMenuItem onSelect={aindaNao("marcarNaoLida")}>
+      <ContextMenuItem onSelect={() => marcarNaoLidaA(message.id)}>
         <EnvelopeSimple aria-hidden />
         Marcar como não lida
       </ContextMenuItem>
@@ -1821,9 +1865,12 @@ function ItensDaMensagem({ messageId }: { messageId: string }) {
         mais forte que a composição da tela — item que não tem sobre o que agir
         é ruído permanente para o caso mais comum, porque a maioria das
         mensagens não tem cartão de link nenhum.
+
+        Do autor OU de quem gerencia mensagens — é a mesma regra que o servidor
+        aplica na rota, e a mesma de apagar.
       */}
-      {message.embeds.length > 0 && souOAutor ? (
-        <ContextMenuItem onSelect={aindaNao("removerEmbed")}>
+      {message.embeds.length > 0 && (souOAutor || gerencio) ? (
+        <ContextMenuItem onSelect={() => removerEmbeds(message.id)}>
           <Info aria-hidden />
           Remover embed
         </ContextMenuItem>

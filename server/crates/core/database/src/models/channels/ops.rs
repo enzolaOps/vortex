@@ -2,6 +2,7 @@ use crate::{
     revolt_result::Result, util::ChunkedDatabaseGenerator, Channel, FieldsChannel, PartialChannel,
 };
 use revolt_permissions::OverrideField;
+use std::collections::HashMap;
 
 #[cfg(feature = "mongodb")]
 mod mongodb;
@@ -72,4 +73,19 @@ pub trait AbstractChannels: Sync + Send {
         channel_id: &str,
         message_id: Option<&str>,
     ) -> Result<()>;
+
+    /// Vortex: fetch thread channels of the given servers
+    ///
+    /// `parent` narrows to the threads of one channel; `archived` picks active
+    /// (`Some(false)`), archived (`Some(true)`) or both (`None`).
+    async fn fetch_threads(
+        &self,
+        server_ids: &[String],
+        parent: Option<&str>,
+        archived: Option<bool>,
+    ) -> Result<Vec<Channel>>;
+
+    /// Vortex: number of messages in each of the given channels
+    async fn count_messages_in_channels(&self, channel_ids: &[String])
+        -> Result<HashMap<String, u64>>;
 }

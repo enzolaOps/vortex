@@ -2,10 +2,11 @@ import { Trophy } from "../components/ui/icones";
 
 import { plural } from "../lib/plural";
 import { republicarEnquete } from "../sdk/adapter";
+import { votarNaEnquete } from "../sdk/enquetes";
 import {
+  estaEncerrada,
   porcentagem,
   totalDeVotos,
-  votar,
   type Enquete,
   type OpcaoDeEnquete,
 } from "../store/enquetes";
@@ -26,12 +27,14 @@ import css from "./Enquete.module.css";
  */
 export function EnqueteDaMensagem({
   messageId,
+  channelId,
   enquete,
 }: {
   messageId: string;
+  channelId: string;
   enquete: Enquete;
 }) {
-  const encerrada = enquete.fechaEm === undefined;
+  const encerrada = encerradaAgora(enquete);
   const total = totalDeVotos(enquete);
   /*
     Esconder a contagem só vale enquanto a enquete está ABERTA e você não
@@ -40,7 +43,7 @@ export function EnqueteDaMensagem({
     de custar e passa a servir.
   */
   const escondido =
-    enquete.resultadoNoFim && !encerrada && enquete.meuVoto === undefined;
+    enquete.resultadoNoFim && !encerrada && enquete.meusVotos.length === 0;
 
   /* A vencedora ganha o troféu. Empate: a primeira, que é a ordem do autor. */
   const vencedora = encerrada
@@ -80,10 +83,11 @@ export function EnqueteDaMensagem({
             escondido={escondido}
             encerrada={encerrada}
             venceu={vencedora?.id === o.id}
-            aoVotar={() => {
-              votar(messageId, o.id);
-              republicarEnquete(messageId);
-            }}
+            aoVotar={() =>
+              void votarNaEnquete(channelId, messageId, o.id, () =>
+                republicarEnquete(messageId),
+              )
+            }
           />
         ))}
       </div>
@@ -119,7 +123,7 @@ function Opcao({
   aoVotar: () => void;
 }) {
   const pct = porcentagem(enquete, opcao);
-  const minha = enquete.meuVoto === opcao.id;
+  const minha = enquete.meusVotos.includes(opcao.id);
 
   return (
     <button
@@ -150,6 +154,17 @@ function Opcao({
       </span>
     </button>
   );
+}
+
+/**
+ * Encerrada agora — pelo autor ou pelo relógio.
+ *
+ * Função de módulo e não expressão no render: o snapshot da enquete é
+ * cacheado e não sabe que o tempo andou, então a pergunta tem de olhar o
+ * relógio na hora — do mesmo jeito que `prazo` já olha.
+ */
+function encerradaAgora(e: Enquete): boolean {
+  return estaEncerrada(e, Date.now());
 }
 
 /**

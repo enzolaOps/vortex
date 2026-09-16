@@ -19,6 +19,7 @@ import {
   pessoas,
   presence,
   RAIZ,
+  SOLICITACOES,
   relacoes,
   serverIds,
   servers,
@@ -37,6 +38,8 @@ import type {
   Relacao,
   RelacaoSnapshot,
   ServerSnapshot,
+  ForumSnapshot,
+  TopicoSnapshot,
 } from "../sdk/domain";
 import {
   assinarNavegacao,
@@ -46,6 +49,15 @@ import {
   type Local,
 } from "./navegacao";
 import { TOTAIS, totaisNaoLidos, type Contagem } from "../sdk/adapter";
+import {
+  CHAVE_SIGO,
+  chaveDoCanal,
+  chaveDoServidor,
+  foruns,
+  listasDeTopicos,
+  topicos,
+  type Recorte,
+} from "../sdk/topicos";
 import { assinarColapso, estaColapsada } from "./colapso";
 import { rascunhos, RASCUNHO_VAZIO } from "./rascunhos";
 import { assinarLayout, lerSemente } from "./layout";
@@ -308,6 +320,18 @@ export function useConversas(): readonly string[] {
 }
 
 /**
+ * A fila de solicitações de mensagem — DMs de quem não é amigo, ainda não
+ * aceitas. Mesma varredura e mesmo store da coluna; ver `SOLICITACOES`.
+ */
+export function useSolicitacoesDeMensagem(): readonly string[] {
+  const getSnapshot = () => conversas.getSnapshot(SOLICITACOES) ?? NO_IDS;
+  if (import.meta.env.DEV) {
+    assertStable(getSnapshot, "useSolicitacoesDeMensagem()");
+  }
+  return useSyncExternalStore(conversas.subscriber(SOLICITACOES), getSnapshot);
+}
+
+/**
  * Uma pessoa. Assinada por ID, como toda entidade.
  *
  * Diferente de `useMembro`: aquele é a pessoa DENTRO de um servidor (apelido,
@@ -401,4 +425,40 @@ export function usePoliticaDeMidia(serverId: string): PoliticaDeMidia {
 /** Se esta aba já decidiu mostrar o anexo velado. */
 export function useRevelado(anexoId: string): boolean {
   return useSyncExternalStore(assinarRevelado(anexoId), () => estaRevelado(anexoId));
+}
+
+/* ---------------------------------------------- tópicos, fórum e galeria */
+
+/** Um tópico (ou post, ou item de galeria). `undefined` para canal que não é tópico. */
+export function useTopico(id: string): TopicoSnapshot | undefined {
+  const getSnapshot = () => topicos.getSnapshot(id);
+  if (import.meta.env.DEV) assertStable(getSnapshot, `useTopico(${id})`);
+  return useSyncExternalStore(topicos.subscriber(id), getSnapshot);
+}
+
+function useListaDeTopicos(chave: string): readonly string[] {
+  const getSnapshot = () => listasDeTopicos.getSnapshot(chave) ?? NO_IDS;
+  if (import.meta.env.DEV) assertStable(getSnapshot, `useListaDeTopicos(${chave})`);
+  return useSyncExternalStore(listasDeTopicos.subscriber(chave), getSnapshot);
+}
+
+/** Os tópicos de um canal — os posts, num fórum; os itens, numa galeria. */
+export function useTopicosDoCanal(paiId: string): readonly string[] {
+  return useListaDeTopicos(chaveDoCanal(paiId));
+}
+
+export function useTopicosDoServidor(serverId: string, recorte: Recorte): readonly string[] {
+  return useListaDeTopicos(chaveDoServidor(serverId, recorte));
+}
+
+/** Os tópicos que eu sigo e não estão arquivados, de todos os servidores. */
+export function useTopicosQueSigo(): readonly string[] {
+  return useListaDeTopicos(CHAVE_SIGO);
+}
+
+/** `null` para canal que não é fórum nem galeria. */
+export function useForum(channelId: string): ForumSnapshot | null {
+  const getSnapshot = () => foruns.getSnapshot(channelId) ?? null;
+  if (import.meta.env.DEV) assertStable(getSnapshot, `useForum(${channelId})`);
+  return useSyncExternalStore(foruns.subscriber(channelId), getSnapshot);
 }

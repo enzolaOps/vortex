@@ -1,0 +1,324 @@
+/* ============================================================
+   Canal de mídia (galeria)
+   ------------------------------------------------------------
+   Valores do design (`Vortex Canais - Fórum, Mídia e Tópicos`,
+   artboard "Mídia").
+   ============================================================ */
+
+.tela {
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-block-size: 0;
+  background: var(--vx-surface-2);
+  container-type: inline-size;
+}
+
+/* `padding:12px 22px; gap:10px; border-bottom 6%` */
+.barra {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vx-space-10);
+  padding: var(--vx-space-12) var(--vx-space-22);
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+/* `width:240px` */
+.busca {
+  inline-size: 240px;
+  background: var(--vx-surface-3);
+}
+
+.espaco {
+  flex: 1;
+}
+
+/* `font-size:12px; color:#77808E` */
+.total {
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+}
+
+/* `padding:18px 22px 30px` */
+.scroll {
+  flex: 1;
+  padding: var(--vx-space-18) var(--vx-space-22) var(--vx-space-32);
+}
+
+.corpoVazio {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  padding: var(--vx-space-18) var(--vx-space-22) var(--vx-space-32);
+}
+
+.vazio {
+  margin: 0;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-md);
+  text-align: center;
+}
+
+/* -------------------------------------------------------------- o item */
+
+/* `border-radius:10px; overflow:hidden; surface-3; borda 7%` */
+.card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-10);
+  background: var(--vx-surface-3);
+  transition: border-color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.card:hover {
+  border-color: var(--vx-hairline-16);
+}
+
+.card:has(:focus-visible) {
+  border-color: var(--vx-accent);
+}
+
+.abrir {
+  display: block;
+  inline-size: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.abrir:focus-visible {
+  outline: none;
+}
+
+/* `aspect-ratio:4/3; xadrez 10/20` */
+.quadro {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 4 / 3;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--vx-surface-4) 0 10px,
+    var(--vx-surface-3) 10px 20px
+  );
+}
+
+.midia {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+.rotuloDoQuadro {
+  max-inline-size: 90%;
+  overflow: hidden;
+  color: var(--vx-text-4);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-2xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* `right:7px; top:7px; height:18px; padding:0 6px; radius 4; sunken a 75%; 10/700` */
+.selo {
+  position: absolute;
+  inset-block-start: var(--vx-space-07);
+  inset-inline-end: var(--vx-space-07);
+  display: flex;
+  align-items: center;
+  block-size: 18px;
+  padding-inline: var(--vx-space-06);
+  border-radius: var(--vx-radius-04);
+  background: color-mix(in oklab, var(--vx-surface-0) 75%, transparent);
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-2xs);
+  font-weight: 700;
+}
+
+/* `inset:0; rgba(10,12,15,0.9); 11/600 text-2` — cobre só o quadro 4:3. */
+.spoiler {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 4 / 3;
+  border: 0;
+  background: color-mix(in oklab, var(--vx-surface-0) 90%, transparent);
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.spoiler:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/* `padding:9px 11px; space-between; gap:10px` */
+.pe {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-10);
+  padding: var(--vx-space-09) var(--vx-space-11);
+}
+
+.textos {
+  min-inline-size: 0;
+}
+
+/* `font-size:12px; font-weight:600; ellipsis` */
+.legenda {
+  overflow: hidden;
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.autor,
+.respostas {
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+}
+
+.autor {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.respostas {
+  flex: none;
+}
+
+/*
+  Denso: a legenda sai do card e vira overlay NO HOVER. `opacity` e não
+  `visibility` aqui de propósito: o overlay é `aria-hidden` e não tem alvo —
+  quem abre é o botão do quadro, que continua anunciando o nome.
+*/
+.sobreposicao {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--vx-space-08);
+  padding: var(--vx-space-08);
+  background: linear-gradient(
+    0deg,
+    color-mix(in oklab, var(--vx-surface-0) 85%, transparent),
+    transparent
+  );
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.cardDenso:hover .sobreposicao,
+.cardDenso:has(:focus-visible) .sobreposicao {
+  opacity: 1;
+}
+
+.legendaDensa {
+  min-inline-size: 0;
+  overflow: hidden;
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-2xs);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.respostasDensas {
+  flex: none;
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-2xs);
+}
+
+/* `margin-top:20px; padding:18px; radius 10; tracejado 12%; 12 text-3` */
+.soltar {
+  display: block;
+  inline-size: 100%;
+  margin-block-start: var(--vx-space-20);
+  padding: var(--vx-space-18);
+  border: 1px dashed rgb(255 255 255 / 12%);
+  border-radius: var(--vx-radius-10);
+  background: transparent;
+  color: var(--vx-text-3);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.soltar:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-2);
+}
+
+.soltar:active {
+  background: var(--vx-state-press);
+}
+
+.soltar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------- ações do cabeçalho */
+
+.acoesDoCabecalho {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-14);
+  margin-inline-start: auto;
+}
+
+/* `height:30px; padding:0 13px; 12/600` */
+.enviar {
+  block-size: 30px;
+  padding-inline: var(--vx-space-13);
+}
+
+@container (inline-size < 520px) {
+  .busca {
+    inline-size: 100%;
+  }
+}
+
+/*
+  O rótulo de dia — \`11/600, 0.08em, caixa alta, text-3, margin-bottom 10\`.
+  PADDING e não margin: a linha é medida pelo virtualizador, e margem de filho
+  de caixa absoluta fica fora da medição — o item de baixo subiria 10px.
+  Entre dias o respiro de cima soma ao \`gap\` da última linha do dia anterior;
+  o primeiro rótulo não tem, porque o respiro do scroller já é o topo.
+*/
+.grupo {
+  composes: sobrancelhaDeSecao from "../styles/sobrancelha.module.css";
+  padding-block: var(--vx-space-12) var(--vx-space-10);
+  color: var(--vx-text-3);
+}
+
+[data-index="0"] > .grupo {
+  padding-block-start: 0;
+}

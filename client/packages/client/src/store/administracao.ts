@@ -81,6 +81,12 @@ export type Alvo =
   */
   | { readonly tipo: "enquete" }
   /*
+    Criar ou editar um evento agendado. Sem `eventoId` é criar — a mesma
+    assimetria de `criarCanal`/`editarCanal`, com um formulário só: o
+    assistente de três passos é o mesmo nos dois casos.
+  */
+  | { readonly tipo: "evento"; readonly serverId: string; readonly eventoId?: string }
+  /*
     ⚠ **Criar grupo NÃO carrega alvo, gerenciar carrega o canal.** A assimetria
     é a mesma de `criarCanal` contra `editarCanal`: um formulário em branco não
     tem sobre o que operar, e um que edita não pode nascer sem saber o quê.
@@ -113,10 +119,34 @@ export type Alvo =
    * `DataEditServer` tem `owner?: string | null` — é `PATCH /servers/{id}`.
    */
   | { readonly tipo: "transferirPropriedade"; readonly serverId: string }
+  /*
+    O sino — as regras de notificação do servidor e do canal. Um MODAL para os
+    dois alvos, como criar e editar canal: o canal herda do servidor, e as duas
+    telas precisam concordar sobre o nome de cada nível e sobre o que "herdar"
+    mostra.
+  */
+  | { readonly tipo: "notificacoesDoServidor"; readonly serverId: string }
+  | { readonly tipo: "notificacoesDoCanal"; readonly channelId: string }
   | {
       readonly tipo: "apelido";
       readonly serverId: string;
       readonly userId: string;
+    }
+  /*
+    Tópico, post e mídia: os três são `POST /channels/:id/threads` e abrem o
+    mesmo modal. O tópico de mensagem carrega a mensagem; o do canal, não.
+  */
+  | {
+      readonly tipo: "criarTopico";
+      readonly channelId: string;
+      readonly mensagemId: string | undefined;
+    }
+  | { readonly tipo: "novoPost"; readonly forumId: string }
+  | {
+      readonly tipo: "enviarMidia";
+      readonly forumId: string;
+      /** O arquivo já escolhido — quando ele chegou arrastado para a galeria. */
+      readonly arquivo?: File;
     }
   | {
       readonly tipo: "moderar";
@@ -173,6 +203,7 @@ const MODAL_DE: Record<
   | "link"
   | "encaminhar"
   | "enquete"
+  | "evento"
   | "novoGrupo"
   | "grupo"
   | "privacidadeDoServidor"
@@ -180,6 +211,8 @@ const MODAL_DE: Record<
   | "pasta"
   | "perfil"
   | "transferirPropriedade"
+  | "topico"
+  | "notificacoes"
 > = {
   criarCanal: "canal",
   editarCanal: "canal",
@@ -196,6 +229,7 @@ const MODAL_DE: Record<
   moderar: "moderar",
   encaminhar: "encaminhar",
   enquete: "enquete",
+  evento: "evento",
   novoGrupo: "novoGrupo",
   grupo: "grupo",
   privacidadeDoServidor: "privacidadeDoServidor",
@@ -207,6 +241,11 @@ const MODAL_DE: Record<
      precisa concordar. */
   apagarServidor: "exclusao",
   transferirPropriedade: "transferirPropriedade",
+  criarTopico: "topico",
+  novoPost: "topico",
+  enviarMidia: "topico",
+  notificacoesDoServidor: "notificacoes",
+  notificacoesDoCanal: "notificacoes",
 };
 
 /** Estado limpo entre testes. O módulo é global e sobrevive. */

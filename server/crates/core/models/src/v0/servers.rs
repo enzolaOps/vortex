@@ -1,4 +1,4 @@
-use super::{Channel, File, RE_COLOUR};
+use super::{Channel, DataEditServerSecurity, File, ServerSecurity, RE_COLOUR};
 
 use revolt_permissions::{Override, OverrideField};
 use std::collections::HashMap;
@@ -53,6 +53,20 @@ auto_derived_partial!(
         #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
         pub banner: Option<File>,
 
+        /// Short tag (2 to 4 letters or digits) shown next to the name of
+        /// members who choose to display it
+        #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+        pub tag: Option<String>,
+        /// Badge image accompanying the tag
+        #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+        pub tag_badge: Option<File>,
+        /// Topics describing this server (up to five)
+        #[cfg_attr(
+            feature = "serde",
+            serde(skip_serializing_if = "Vec::is_empty", default)
+        )]
+        pub characteristics: Vec<String>,
+
         /// Bitfield of server flags
         #[cfg_attr(
             feature = "serde",
@@ -81,6 +95,10 @@ auto_derived_partial!(
 
         /// Approximate amount of members in the server
         pub approximate_member_count: usize,
+
+        /// Vortex: política de acesso e segurança (ausente = comportamento do Stoat)
+        #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+        pub security: Option<ServerSecurity>,
 
         /// Vortex: whose media is checked for explicit content
         ///
@@ -132,6 +150,12 @@ auto_derived_partial!(
         /// Role icon
         #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
         pub icon: Option<File>,
+        /// Vortex: whether members without `MentionRoles` may mention this role
+        #[cfg_attr(
+            feature = "serde",
+            serde(skip_serializing_if = "crate::if_false", default)
+        )]
+        pub mentionable: bool,
     },
     "PartialRole"
 );
@@ -144,6 +168,10 @@ auto_derived!(
         SystemMessages,
         Icon,
         Banner,
+        /// Vortex: volta a política de acesso e segurança ao padrão
+        Security,
+        Tag,
+        TagBadge,
     }
 
     /// Optional fields on server object
@@ -163,6 +191,24 @@ auto_derived!(
         pub title: String,
         /// Channels in this category
         pub channels: Vec<String>,
+        /// Default permissions copied to channels synced with this category
+        ///
+        /// Read-only in `PATCH /servers/:id`: use
+        /// `PUT /servers/:id/categories/:category_id/permissions`.
+        #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+        pub default_permissions: Option<OverrideField>,
+        /// Role permissions copied to channels synced with this category
+        ///
+        /// Read-only in `PATCH /servers/:id`: use
+        /// `PUT /servers/:id/categories/:category_id/permissions`.
+        #[cfg_attr(
+            feature = "serde",
+            serde(
+                default = "HashMap::<String, OverrideField>::new",
+                skip_serializing_if = "HashMap::<String, OverrideField>::is_empty"
+            )
+        )]
+        pub role_permissions: HashMap<String, OverrideField>,
     }
 
     /// System message channel assignments
@@ -260,6 +306,15 @@ auto_derived!(
         /// Attachment Id for banner
         pub banner: Option<String>,
 
+        /// Server tag, 2 to 4 letters or digits
+        #[cfg_attr(feature = "validator", validate(length(min = 2, max = 4)))]
+        pub tag: Option<String>,
+        /// Attachment Id for the tag badge
+        pub tag_badge: Option<String>,
+        /// Topics describing this server, up to five
+        #[cfg_attr(feature = "validator", validate(length(min = 0, max = 5)))]
+        pub characteristics: Option<Vec<String>>,
+
         /// Category structure for server
         #[cfg_attr(feature = "validator", validate)]
         pub categories: Option<Vec<Category>>,
@@ -281,6 +336,10 @@ auto_derived!(
 
         /// User id of the new owner
         pub owner: Option<String>,
+
+        /// Vortex: mudança parcial da política de acesso e segurança
+        #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+        pub security: Option<DataEditServerSecurity>,
 
         /// Vortex: explicit media filter policy
         #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
@@ -314,6 +373,8 @@ auto_derived!(
         /// Provide an Autumn attachment Id.
         #[cfg_attr(feature = "validator", validate(length(min = 1, max = 128)))]
         pub icon: Option<String>,
+        /// Vortex: whether members without `MentionRoles` may mention this role
+        pub mentionable: Option<bool>,
         /// Fields to remove from role object
         #[cfg_attr(feature = "serde", serde(default))]
         pub remove: Vec<FieldsRole>,
@@ -330,6 +391,21 @@ auto_derived!(
     pub struct OptionsServerDelete {
         /// Whether to not send a leave message
         pub leave_silently: Option<bool>,
+    }
+
+    /// Members who display the server tag
+    pub struct ServerTagMembers {
+        /// User ids
+        pub members: Vec<String>,
+    }
+
+    /// New permissions for a category
+    pub struct DataSetCategoryPermissions {
+        /// Allow / deny values for everyone, `null` to clear
+        pub default_permissions: Option<Override>,
+        /// Allow / deny values per role; roles left out are cleared
+        #[cfg_attr(feature = "serde", serde(default))]
+        pub role_permissions: HashMap<String, Override>,
     }
 
     /// New role positions

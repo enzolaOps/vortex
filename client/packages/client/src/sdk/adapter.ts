@@ -43,15 +43,25 @@ import { createEntityStore } from "../store/entities";
 import { createEphemeralStore } from "../store/ephemeral";
 import { client, conectado } from "./client";
 import { subirAnexo } from "./anexos";
+import {
+  figurinhaDaMensagem,
+  instalarFigurinhasDeMensagem,
+  registrarFigurinhaLocal,
+} from "./figurinhasDeMensagem";
+import { instalarExpressoes } from "./eventosDeExpressoes";
 import { formatarBytes } from "../lib/bytes";
 import { toast } from "../components/ui/toastStore";
+import { motivoDoErro } from "./erros";
 import {
   criarMedidorDeTaxa,
   esquecerUpload,
   progressoDeUpload,
   registrarCancelamento,
 } from "../store/uploads";
-import { lerEnquete } from "../store/enquetes";
+import { definirEuDasEnquetes, lerEnquete } from "../store/enquetes";
+import { anotarEventoDeEnquete, buscarMensagensComEnquetes } from "./enquetes";
+import { anotarEventoDeVoz } from "./vozDoCanal";
+import { anotarEventoDeServidor } from "./eventos";
 import { semearStatusDoServidor } from "./perfil";
 import { aguardar, desistir, reconciliar } from "./nonce";
 import {
@@ -60,13 +70,32 @@ import {
   lerConexao,
 } from "../store/conexao";
 import { confirmarNaFila, esquecerDaFila } from "../store/fila";
-import { assinarSilencio } from "../store/silencio";
+import { assinarSilencio, estaMudo } from "../store/silencio";
+import { assinarFavoritos, lerFavoritos, ordenarComFavoritas } from "../store/favoritos";
+import { assinarPrivacidade, lerPrivacidade } from "../store/privacidade";
+import {
+  assinarSolicitacoes,
+  decisaoSobre,
+  destinoDaConversa,
+  inicioDasSolicitacoes,
+  type Destino,
+} from "../store/solicitacoes";
 import {
   atualizarContador,
   definirCanalVisto,
+  notificarAmizade,
   notificarMensagem,
 } from "../notificacao/notificador";
+import { mudancaDeAmizade } from "../notificacao/decidir";
+import { emFila } from "../lib/fila";
+import { somarPorServidor } from "./somaDeNaoLidas";
+import { aceitarAmizade, desfazerAmizade } from "./social";
+import { sincronizarPush } from "../notificacao/push";
 import { dentro } from "../store/sessao";
+import {
+  sinalizarChamada,
+  sinalizarFimDeChamada,
+} from "../notificacao/chamadas";
 import {
   baldeDe,
   SEM_CARGO,
@@ -88,8 +117,11 @@ import {
   type ServerSnapshot,
 } from "./domain";
 import { calcularLayout, type Layout } from "./agrupamento";
+import { aplicarEventoCru as aplicarEventoCruDeCanal } from "./vortexCanal";
 import { criarNotificadorDeDigitacao } from "./digitando";
 import { instalarSync, puxarConfiguracoes } from "./sincronizar";
+import { aplicarEventoCru, avisarCanaisVortex, superficie } from "./superficieVortex";
+import { ulidAnterior } from "../lib/ulid";
 import {
   ehCanalDeVoz,
   toChannelSnapshot,
@@ -98,6 +130,7 @@ import {
   toMessageSnapshot,
   presencaDe,
   toServerSnapshot,
+  relacaoDoProtocolo,
 } from "./map";
 
 /* ----------------------------------------------------------- layout */
@@ -142,6 +175,9 @@ export function layoutDe(id: string): Layout {
  */
 const cursorDeLeitura = new Map<string, string>();
 
+/** Canais marcados como não lidos nesta sessão — ver `avancarCursor`. */
+const naoLidaManual = new Set<string>();
+
 
 /**
  * A primeira não lida de um canal — a que recebe o divisor.
@@ -173,6 +209,13 @@ function primeiraNaoLidaDe(channelId: string): string | undefined {
  * viu quando saiu.
  */
 function avancarCursor(channelId: string): void {
+  /*
+    Quem marcou como não lida AQUI pediu exatamente o contrário de "saí, então
+    li". Sem este desvio, o item de menu valeria até o próximo clique no rail.
+    Consumido uma vez: voltar ao canal e sair de novo é leitura normal.
+  */
+  if (naoLidaManual.delete(channelId)) return;
+
   const ids = idsOf(channelId);
   const ultima = ids[ids.length - 1];
   if (!ultima) return;
@@ -567,7 +610,7 @@ function despacharEnvio(id: string): void {
   }
 
   marcarEnvio(id, "pending");
-  void postar(id, channelId, texto, respondendoA, undefined);
+  void postar(id, channelId, texto, respondendoA, undefined, figurinhaDaMensagem(id));
 }
 
 /**
@@ -871,6 +914,49 @@ export function alternarFixada(messageId: string): void {
   else void alvo?.unpin().catch(() => undefined);
 }
 
+/**
+ * Aplica um evento CRU da superfície do Vortex e republica quem mudou.
+ *
+ * Exportado para a escrita otimista: quem acabou de gravar `spoiler` ou
+ * `invites_paused` aplica o mesmo evento que o servidor vai mandar, sem
+ * esperar o socket — a tela relê o snapshot logo depois do `await`, e o evento
+ * pode chegar um quadro atrasado. Idempotente quando ele chegar.
+ */
+export function aplicarSuperficieVortex(evento: unknown): void {
+  const mudou = aplicarEventoCru(superficie, evento);
+  for (const id of mudou.canais) reemitirCanal(id);
+  avisarCanaisVortex(mudou.canais);
+}
+
+/**
+ * Tira as prévias de link de uma mensagem — o "Remover embed" do menu.
+ *
+ * Otimista como fixar: o cartão some na hora, e só o que o SERVIDOR gerou sai
+ * (`Text` é embed que o autor mandou de propósito e fica). A rota é do servidor
+ * do Vortex (`DELETE …/embeds`), e ela liga `SuppressEmbeds` na mensagem para o
+ * worker de prévia não devolver o cartão numa edição.
+ *
+ * ⚠ **Sem rollback se o servidor recusar**, pela razão da reação: o
+ * `MessageUpdate` seguinte traz o estado certo, e um rollback correndo contra
+ * ele faria o cartão piscar duas vezes. A recusa vira toast.
+ */
+export function removerEmbeds(messageId: string): void {
+  const message = client.messages.get(messageId);
+  if (!message) return;
+
+  client.messages.updateUnderlyingObject(messageId, {
+    embeds: (message.embeds ?? []).filter((e) => e.type === "Text"),
+  } as never);
+
+  if (!conectado()) return;
+  const idServidor = idDoSdk(messageId);
+  void client.api
+    .delete(`/channels/${message.channelId}/messages/${idServidor}/embeds` as never)
+    .catch((e: unknown) => {
+      toast({ tipo: "erro", titulo: "Não deu para remover a prévia.", descricao: motivoDoErro(e) });
+    });
+}
+
 /** Publicação imediata, para setup — não há frame para esperar. */
 function publishNow(channelId: string) {
   dirty.delete(channelId);
@@ -964,6 +1050,15 @@ export function startAdapter() {
   ligarFiltroDeMidia();
   ligarAtividades();
 
+  /*
+    Figurinhas e efeitos sonoros — conceitos do Vortex que o SDK não conhece.
+    A figurinha de uma mensagem chega DEPOIS de o snapshot dela existir (ver
+    `instalarFigurinhasDeMensagem`), e é por isso que a republicação é injetada:
+    a mensagem acorda pela própria chave, como numa enquete.
+  */
+  instalarFigurinhasDeMensagem((id) => republicarEnquete(chaveLocal(id)));
+  instalarExpressoes();
+
   /**
    * O estado de leitura que o SERVIDOR conhece, na entrada.
    *
@@ -1021,14 +1116,37 @@ export function startAdapter() {
     member list inteira toda vez que alguém fosse silenciado.
   */
   client.events.on("event", (evento: unknown) => {
+    /* Tópico e fórum também só existem no payload cru — ver `vortexCanal.ts`.
+       Antes da hidratação, e é por isso que o registro guarda o nome. */
+    aplicarEventoCruDeCanal(evento);
+    /* A voz por canal do fork mora no evento cru pela mesma razão do
+       `can_publish` abaixo — ver `sdk/vozDoCanal.ts`. */
+    anotarEventoDeVoz(evento);
+    /* Enquete é campo do fork que a hidratação descarta — ver `sdk/enquetes.ts`. */
+    for (const id of anotarEventoDeEnquete(evento)) republicarEnquete(id);
+    /* Evento agendado é superfície do fork que o SDK não conhece — ver
+       `sdk/eventos.ts`. */
+    anotarEventoDeServidor(evento);
     const e = evento as {
       type?: string;
-      members?: readonly { _id?: { server?: string; user?: string }; can_publish?: boolean }[];
+      members?: readonly {
+        _id?: { server?: string; user?: string };
+        can_publish?: boolean;
+        can_receive?: boolean;
+      }[];
       id?: { server?: string; user?: string };
-      data?: { can_publish?: boolean };
+      data?: { can_publish?: boolean; can_receive?: boolean };
+      clear?: readonly string[];
     };
 
+    /*
+      ⚠ **`can_receive` entrou junto, e pelo mesmo caminho.** É o "ensurdecer
+      no servidor" do menu do participante: sem ele o item não teria como
+      saber se está marcado, e alternar às cegas desfaria o que outro
+      moderador acabou de fazer.
+    */
     const anotar = (
+      conjunto: Set<ChaveDeMembro>,
       serverId: string | undefined,
       userId: string | undefined,
       pode: boolean | undefined,
@@ -1037,17 +1155,58 @@ export function startAdapter() {
       /* `undefined` é "o servidor não falou disto", que NÃO é o mesmo que
          `true` — mas para a tela dá no mesmo, e guardar a ausência faria o
          mapa crescer com todo mundo que nunca foi silenciado. */
-      if (pode === false) mudosPeloServidor.add(chaveDeMembro(serverId, userId));
-      else mudosPeloServidor.delete(chaveDeMembro(serverId, userId));
+      if (pode === false) conjunto.add(chaveDeMembro(serverId, userId));
+      else conjunto.delete(chaveDeMembro(serverId, userId));
     };
 
     if (e.type === "Ready" && e.members) {
-      for (const m of e.members) anotar(m._id?.server, m._id?.user, m.can_publish);
+      for (const m of e.members) {
+        anotar(mudosPeloServidor, m._id?.server, m._id?.user, m.can_publish);
+        anotar(surdosPeloServidor, m._id?.server, m._id?.user, m.can_receive);
+      }
       republicarVoz();
     } else if (e.type === "ServerMemberUpdate" && e.id) {
-      anotar(e.id.server, e.id.user, e.data?.can_publish);
+      /*
+        ⚠ **Só mexe no campo que o evento TRAZ, e antes mexia sempre.** O
+        update é PARCIAL: trocar o apelido de alguém chega com `data:
+        {nickname}` e nada de `can_publish` — e a versão anterior lia essa
+        ausência como "pode falar", destravando em silêncio quem estava mudo
+        pelo servidor. Voltar ao padrão vem em `clear`, não na ausência.
+      */
+      const { server, user } = e.id;
+      if (e.data && "can_publish" in e.data) {
+        anotar(mudosPeloServidor, server, user, e.data.can_publish);
+      } else if (e.clear?.includes("CanPublish")) {
+        anotar(mudosPeloServidor, server, user, true);
+      }
+      if (e.data && "can_receive" in e.data) {
+        anotar(surdosPeloServidor, server, user, e.data.can_receive);
+      } else if (e.clear?.includes("CanReceive")) {
+        anotar(surdosPeloServidor, server, user, true);
+      }
       republicarVoz();
+    } else {
+      traduzirSinalDeChamada(evento);
     }
+
+    if (e.type === "Ready" || e.type === "UserRelationship") {
+      observarRelacoes(evento);
+    }
+  });
+
+  /*
+    A superfície a mais do servidor do Vortex — `spoiler`, `invites_paused` e
+    `mentionable` —, que o SDK descarta na hidratação. Mesmo arranjo do
+    `can_publish` acima; a decisão mora em `superficieVortex.ts`, que é puro.
+  */
+  client.events.on("event", aplicarSuperficieVortex);
+
+  /*
+    O cursor de leitura andou em OUTRO dispositivo — para a frente (leu lá) ou
+    para trás (marcou como não lida lá). O SDK só emite; o estado é daqui.
+  */
+  client.on("channelAcknowledged", (canal, messageId) => {
+    aplicarAckRemoto(canal.id, messageId);
   });
 
   client.on("connected", () => {
@@ -1093,7 +1252,24 @@ export function startAdapter() {
   */
   assinarSilencio(() => {
     for (const id of channels.assinados()) reemitirCanal(id);
+    /*
+      O rollup também: silenciar um canal ou um servidor tira as não-lidas
+      dele do rail e da caixa de entrada. Recontar inteiro é barato aqui — a
+      varredura é sobre canais COM contagem, e silenciar é clique humano, não
+      evento do firehose.
+    */
+    recontarServidores();
   });
+
+  /* Favoritar é ação humana e muda a ORDEM — republica a coluna da casa. */
+  assinarFavoritos(publicarConversas);
+  /*
+    O filtro de desconhecidos e as decisões da fila mudam QUAL lista uma
+    conversa ocupa. Os dois são gesto humano — um interruptor, um "Aceitar" —,
+    então republicar a varredura inteira aqui é o preço certo.
+  */
+  assinarPrivacidade(publicarConversas);
+  assinarSolicitacoes(publicarConversas);
 
   // Permissão mudou: as linhas na tela precisam reperguntar. Ver
   // `repensarPermissoes`.
@@ -1186,19 +1362,14 @@ export function startAdapter() {
         mencoes,
       });
       reemitirCanal(channelId);
-
-      const serverId = canal?.serverId;
-      if (!serverId) continue;
-      const servidor = contagemDe(contagemPorServidor, serverId);
-      contagemPorServidor.set(serverId, {
-        naoLidas: servidor.naoLidas + (temNaoLida ? 1 : 0),
-        mencoes: servidor.mencoes + mencoes,
-      });
-      reemitirServidor(serverId);
-      reemitirTotais();
     }
+    /* Uma recontagem no fim, e não uma soma por canal: é a mesma regra do
+       silêncio (canal mudo não acende o servidor) num lugar só. */
+    recontarServidores();
 
     void puxarConfiguracoes();
+    /* Sessão nova é inscrição nova: o push é por SESSÃO no servidor. */
+    void sincronizarPush();
   });
 
   client.on("messageCreate", (message) => {
@@ -1267,6 +1438,8 @@ export function startAdapter() {
     const antes = pessoas.peek(user.id)?.relacao;
     if (antes !== undefined && antes !== toRelacaoSnapshot(user).relacao) {
       publicarRelacoes();
+      // Virar amigo tira a conversa da fila; bloquear a tira da coluna.
+      publicarConversas();
     }
   });
 
@@ -1412,7 +1585,7 @@ export async function carregarHistorico(channelId: string): Promise<void> {
   historicoPedido.add(channelId);
 
   try {
-    const { messages: doServidor } = await canal.fetchMessagesWithUsers({
+    const doServidor = await buscarMensagensComEnquetes(canal.id, {
       limit: LIMITE_DE_HISTORICO,
     });
 
@@ -1523,7 +1696,7 @@ export async function carregarPaginaAnterior(channelId: string): Promise<void> {
 
   paginaEmVoo.add(channelId);
   try {
-    const { messages: doServidor } = await canal.fetchMessagesWithUsers({
+    const doServidor = await buscarMensagensComEnquetes(canal.id, {
       limit: LIMITE_DE_HISTORICO,
       before: cursor,
     });
@@ -1650,6 +1823,7 @@ export function usuarioLocalId(): string | undefined {
 
 export function definirUsuarioLocal(id: string): void {
   usuarioLocal = id;
+  definirEuDasEnquetes(id);
   /*
     O arnês entra sem senha, e é assim que ele deve entrar.
 
@@ -1864,6 +2038,55 @@ export function enviarMensagem(
   return id;
 }
 
+/* ---------------------------------------------------------- figurinha */
+
+/**
+ * Envia uma figurinha como mensagem inteira.
+ *
+ * O mesmo caminho otimista de `enviarMensagem` — nonce registrado antes, linha
+ * nascendo `pending`, confirmação pelo socket —, com o conteúdo vazio e a
+ * figurinha anotada na chave LOCAL antes de a linha existir. Separada e não um
+ * parâmetro a mais lá: aquela recusa texto vazio de propósito, e uma figurinha
+ * não vem com texto nem com anexo.
+ *
+ * ⚠ **O reenvio ao reconectar leva a figurinha junto** — `despacharEnvio` a lê
+ * do mesmo mapa. Sem isso a pendente sairia como mensagem vazia e o servidor
+ * responderia `EmptyMessage`, com a linha virando "falhou" sem motivo visível.
+ */
+export function enviarFigurinha(channelId: string, figurinhaId: string): string | undefined {
+  if (!usuarioLocal || !client.channels.get(channelId) || figurinhaId === "") {
+    return undefined;
+  }
+
+  const id = proximoId();
+  aguardar(id, id, channelId);
+  registrarFigurinhaLocal(id, figurinhaId);
+  estadosDeEnvio.set(id, "pending");
+
+  client.messages.getOrCreate(
+    id,
+    { _id: id, channel: channelId, author: usuarioLocal, content: "", nonce: id },
+    true,
+  );
+
+  if (lerConexao() !== "conectado") return id;
+
+  if (simulacao.ativa) {
+    setTimeout(() => {
+      if (simulacao.falhar) {
+        desistir(id);
+        marcarEnvio(id, "failed");
+      } else {
+        marcarEnvio(id, "sent");
+      }
+    }, simulacao.latenciaMs ?? 600);
+    return id;
+  }
+
+  void postar(id, channelId, "", undefined, undefined, figurinhaId);
+  return id;
+}
+
 /* ------------------------------------------------------------- upload */
 
 /**
@@ -2037,9 +2260,12 @@ async function postar(
   content: string,
   respondendoA: RespostaDeEnvio | undefined,
   anexos: readonly string[] | undefined,
+  /** A figurinha da mensagem — campo do Vortex que o tipo do SDK não conhece. */
+  figurinha?: string,
 ): Promise<void> {
   try {
     await client.channels.get(channelId)?.sendMessage({
+      ...(figurinha ? ({ stickers: [figurinha] } as object) : {}),
       content,
       /*
         O nonce está DEPRECADO no schema em favor de `Idempotency-Key`, e vai
@@ -2177,6 +2403,9 @@ export const fixadas = createEntityStore<readonly string[]>();
  */
 const mudosPeloServidor = new Set<ChaveDeMembro>();
 
+/** Quem está surdo POR ORDEM DO SERVIDOR — `can_receive: false`. Mesma forma. */
+const surdosPeloServidor = new Set<ChaveDeMembro>();
+
 /**
  * Republica as salas que já têm assinante.
  *
@@ -2276,6 +2505,9 @@ export const vozPorCanal = createEntityStore<readonly ParticipanteDeVoz[]>(
           mudoPeloServidor:
             canal.serverId !== undefined &&
             mudosPeloServidor.has(chaveDeMembro(canal.serverId, userId)),
+          surdoPeloServidor:
+            canal.serverId !== undefined &&
+            surdosPeloServidor.has(chaveDeMembro(canal.serverId, userId)),
         });
       }
 
@@ -2363,6 +2595,18 @@ export const pessoas = createEntityStore<RelacaoSnapshot>((id) => {
 });
 
 /**
+ * A chave da fila de solicitações dentro do store de conversas.
+ *
+ * O mesmo store e não um segundo: as duas listas nascem da MESMA varredura e
+ * uma conversa passa de uma para a outra num gesto só (aceitar). Com dois
+ * stores haveria um quadro em que ela está nas duas, ou em nenhuma.
+ */
+export const SOLICITACOES = "@solicitacoes";
+
+/** O destino de cada conversa na última publicação — ver `avisarChegada`. */
+const destinoPublicado = new Map<string, Destino>();
+
+/**
  * Republica a coluna da casa e as abas de amigos.
  *
  * Varredura sobre todas as conversas e todas as pessoas — cara, e por isso
@@ -2375,15 +2619,75 @@ export const pessoas = createEntityStore<RelacaoSnapshot>((id) => {
  */
 export function publicarConversas(): void {
   const lista: { id: string; em: number }[] = [];
+  const fila: { id: string; em: number }[] = [];
+  destinoPublicado.clear();
   for (const canal of client.channels.toList()) {
     const t = canal.type;
     if (t !== "DirectMessage" && t !== "Group" && t !== "SavedMessages") continue;
     const ultimo = canal.lastMessageId;
-    lista.push({ id: canal.id, em: ultimo ? decodeTime(ultimo) : 0 });
+    const item = { id: canal.id, em: ultimo ? decodeTime(ultimo) : 0 };
+    const destino = t === "DirectMessage" ? destinoDe(canal) : "conversa";
+    destinoPublicado.set(canal.id, destino);
+    if (destino === "conversa") lista.push(item);
+    else if (destino === "solicitacao") fila.push(item);
   }
   // Mais recente primeiro; empate pelo ID, que é estável e cronológico.
-  lista.sort((a, b) => b.em - a.em || b.id.localeCompare(a.id));
-  conversas.set(RAIZ, lista.map((c) => c.id));
+  const porRecencia = (
+    a: { id: string; em: number },
+    b: { id: string; em: number },
+  ) => b.em - a.em || b.id.localeCompare(a.id);
+  lista.sort(porRecencia);
+  fila.sort(porRecencia);
+  // Favoritas por cima, sem mexer na recência do resto — `store/favoritos.ts`.
+  conversas.set(RAIZ, ordenarComFavoritas(lista.map((c) => c.id), lerFavoritos()));
+  conversas.set(SOLICITACOES, fila.map((c) => c.id));
+}
+
+
+/**
+ * A regra está em `store/solicitacoes.ts`, pura; aqui só se traduz o canal do
+ * SDK para a entrada que ela lê. O ID do canal é ULID, e o tempo dele é o
+ * momento em que a DM foi CRIADA — que é o que separa conversa antiga de
+ * desconhecido chegando.
+ */
+function destinoDe(canal: {
+  readonly id: string;
+  readonly lastMessageId: string | undefined;
+  readonly recipientIds: Iterable<string>;
+}): Destino {
+  let criadaEm = 0;
+  try {
+    criadaEm = decodeTime(canal.id);
+  } catch {
+    /* ID fora do formato ULID: trata como antiga, que é o lado seguro — não
+       esconde conversa nenhuma. */
+  }
+  /*
+    ⚠ `recipientIds` menos eu, e NÃO `canal.recipient` — o getter do SDK faz
+    `client.user!.id` e estoura antes do `Ready`. Mesma armadilha registrada
+    em `toChannelSnapshot`, e o teste desta varredura caiu nela primeiro.
+  */
+  let outro: string | undefined;
+  for (const id of canal.recipientIds) {
+    if (id !== usuarioLocal) {
+      outro = id;
+      break;
+    }
+  }
+  const r = outro ? client.users.get(outro)?.relationship : undefined;
+  return destinoDaConversa(
+    {
+      tipo: "dm",
+      relacao: r === undefined ? undefined : relacaoDoProtocolo(r),
+      criadaEm,
+      ultimaMensagemId: canal.lastMessageId,
+    },
+    {
+      filtrar: lerPrivacidade().filtrarDesconhecidos,
+      inicio: inicioDasSolicitacoes(),
+      decisao: decisaoSobre(canal.id),
+    },
+  );
 }
 
 export function publicarRelacoes(): void {
@@ -2558,6 +2862,111 @@ export function definirCanalAberto(channelId: string | undefined): void {
   }
 }
 
+/**
+ * Marca o canal como não lido A PARTIR desta mensagem.
+ *
+ * O cursor vai para a mensagem ANTERIOR — a lista tem o ID dela; na primeira
+ * carregada, o ULID imediatamente abaixo, que o servidor aceita porque `ack`
+ * não confere se a mensagem existe. O `ack` para trás não precisou de rota
+ * nova: a rota GRAVA o cursor em vez de avançá-lo, e o `ChannelAck` chega aos
+ * outros dispositivos.
+ *
+ * ⚠ **Menções já lidas não voltam**, e é o protocolo: o servidor apaga do
+ * `ChannelUnread` as menções até o cursor quando o cursor avança, e voltar o
+ * cursor não as restaura. A contagem de não lidas volta; o selo de menção não.
+ */
+export function marcarNaoLidaA(messageId: string): void {
+  const message = client.messages.get(idDoSdk(messageId));
+  if (!message) return;
+  const channelId = message.channelId;
+  const ids = idsOf(channelId);
+  const indice = ids.indexOf(messageId);
+
+  const anteriorNaLista = indice > 0 ? ids[indice - 1] : undefined;
+  const novoCursor = anteriorNaLista ?? ulidAnterior(idDoSdk(messageId));
+  if (novoCursor === undefined) return;
+
+  const antigo = cursorDeLeitura.get(channelId);
+  cursorDeLeitura.set(channelId, novoCursor);
+  naoLidaManual.add(channelId);
+
+  // Só duas linhas mudam de marca: a que era a primeira não lida e a nova.
+  const antigaPrimeira = antigo === undefined ? -1 : ids.indexOf(antigo) + 1;
+  if (antigaPrimeira > 0) recalcularLayout(channelId, antigaPrimeira, antigaPrimeira);
+  if (indice >= 0) recalcularLayout(channelId, indice, indice);
+
+  somarNaoLida(channelId);
+
+  if (conectado()) {
+    const idServidor = anteriorNaLista === undefined ? novoCursor : idDoSdk(anteriorNaLista);
+    void client.channels.get(channelId)?.ack(idServidor, true);
+  }
+}
+
+/** Liga a não lida de um canal que não tinha — sem somar em cima de existente. */
+function somarNaoLida(channelId: string): void {
+  const atual = contagemDe(contagemPorCanal, channelId);
+  if (atual.naoLidas > 0) return;
+  contagemPorCanal.set(channelId, { naoLidas: 1, mencoes: atual.mencoes });
+  reemitirCanal(channelId);
+
+  const serverId = client.channels.get(channelId)?.serverId;
+  if (serverId) {
+    const servidor = contagemDe(contagemPorServidor, serverId);
+    contagemPorServidor.set(serverId, {
+      naoLidas: servidor.naoLidas + 1,
+      mencoes: servidor.mencoes,
+    });
+    reemitirServidor(serverId);
+  }
+  reemitirTotais();
+}
+
+/**
+ * O cursor que chegou de fora. Exportado para teste — o caminho real é o
+ * evento `ChannelAck`.
+ *
+ * ⚠ **O próprio `ack` deste dispositivo também volta pelo socket**, e aplicá-lo
+ * de novo é inofensivo: mesmo cursor, nada a republicar.
+ */
+export function aplicarAckRemoto(channelId: string, messageIdDoServidor: string): void {
+  const chave = apelidos.get(messageIdDoServidor) ?? messageIdDoServidor;
+  const ids = idsOf(channelId);
+  const antigo = cursorDeLeitura.get(channelId);
+  if (antigo === chave) return;
+
+  /*
+    ⚠ **No canal ABERTO, cursor que avança não move o divisor.** Abrir o canal
+    manda `ack` da última mensagem, e o eco dele volta por aqui: aplicá-lo
+    faria o divisor sumir no mesmo quadro em que a pessoa entrou para vê-lo —
+    a regra que `avancarCursor` existe para garantir. Só a CONTAGEM zera; o
+    cursor anda ao sair, como sempre. Voltar para trás vale mesmo aberto.
+  */
+  /* A POSIÇÃO na lista decide quando os dois estão nela; fora dela, a ordem
+     do ULID — que é a mesma, exceto para ID local de mensagem otimista. */
+  const posAntigo = antigo === undefined ? -1 : ids.indexOf(antigo);
+  const posNovo = ids.indexOf(chave);
+  const avanca =
+    antigo === undefined ||
+    (posAntigo >= 0 && posNovo >= 0
+      ? posNovo > posAntigo
+      : idDoSdk(antigo) < messageIdDoServidor);
+  if (channelId === canalAberto && avanca) {
+    zerarContagem(channelId);
+    return;
+  }
+
+  cursorDeLeitura.set(channelId, chave);
+  const antigaPrimeira = antigo === undefined ? -1 : ids.indexOf(antigo) + 1;
+  const novaPrimeira = ids.indexOf(chave) + 1;
+  if (antigaPrimeira > 0) recalcularLayout(channelId, antigaPrimeira, antigaPrimeira);
+  if (novaPrimeira > 0) recalcularLayout(channelId, novaPrimeira, novaPrimeira);
+
+  const ultima = client.channels.get(channelId)?.lastMessageId;
+  if (ultima && ultima > messageIdDoServidor) somarNaoLida(channelId);
+  else zerarContagem(channelId);
+}
+
 /** O ponto onde a leitura parou. Para a lista saber até onde rolar. */
 export function primeiraNaoLida(channelId: string): string | undefined {
   return primeiraNaoLidaDe(channelId);
@@ -2581,27 +2990,104 @@ export function marcarCanalLido(channelId: string): void {
     if (ultima) void client.channels.get(channelId)?.ack(idDoSdk(ultima));
   }
 
+  zerarContagem(channelId);
+}
+
+/** Tira as não lidas e menções de um canal, sem avisar o servidor. */
+function zerarContagem(channelId: string): void {
   const atual = contagemPorCanal.get(channelId);
   if (!atual) return;
 
   contagemPorCanal.delete(channelId);
 
-  const serverId = client.channels.get(channelId)?.serverId;
-  if (serverId) {
-    const servidor = contagemDe(contagemPorServidor, serverId);
-    const restante = {
-      naoLidas: Math.max(0, servidor.naoLidas - atual.naoLidas),
-      mencoes: Math.max(0, servidor.mencoes - atual.mencoes),
-    };
-    if (restante.naoLidas === 0 && restante.mencoes === 0) {
-      contagemPorServidor.delete(serverId);
-    } else {
-      contagemPorServidor.set(serverId, restante);
+  if (client.channels.get(channelId)?.serverId) recontarServidores();
+
+  reemitirCanal(channelId);
+}
+
+/**
+ * Recalcula o rollup de todos os servidores a partir das contagens por canal.
+ *
+ * ⚠ **Recontar e não subtrair**, desde que o silêncio entrou no rollup. A
+ * subtração assumia que tudo que o canal contou tinha sido somado ao servidor
+ * — e com canal mudo isso deixou de ser verdade: a não-lida fica no canal e
+ * NÃO sobe. Subtrair o que nunca foi somado zeraria o servidor por causa de
+ * outro canal. A regra mora em `somarPorServidor`, e só lá.
+ *
+ * Só republica o servidor cuja soma MUDOU, pela mesma razão da comparação em
+ * `somarTotais`: sem ela, abrir um canal acordaria o rail inteiro.
+ */
+function recontarServidores(): void {
+  const nova = somarPorServidor(
+    contagemPorCanal,
+    (id) => client.channels.get(id)?.serverId,
+    estaMudo,
+  );
+  const tocados = new Set([...contagemPorServidor.keys(), ...nova.keys()]);
+  for (const serverId of tocados) {
+    const antes = contagemPorServidor.get(serverId);
+    const depois = nova.get(serverId);
+    if (antes?.naoLidas === depois?.naoLidas && antes?.mencoes === depois?.mencoes) {
+      continue;
     }
+    if (depois) contagemPorServidor.set(serverId, depois);
+    else contagemPorServidor.delete(serverId);
     reemitirServidor(serverId);
-    reemitirTotais();
+  }
+  reemitirTotais();
+}
+
+/**
+ * Marca como lidos TODOS os canais com não-lida — "Marcar tudo como lido" da
+ * caixa de entrada.
+ *
+ * ⚠ **Em fila de três, e cada canal só zera quando o servidor confirma.** O
+ * protocolo não tem `ack` em lote; disparar quarenta `PUT` no mesmo tique bate
+ * no limitador de taxa, e os que voltassem 429 ficariam zerados na tela e não
+ * lidos no servidor — a leitura mentindo até o próximo `Ready`. Zerando por
+ * confirmação, o que falhou continua aparecendo não lido, que é verdade.
+ *
+ * ⚠ **A rota crua, e não `Channel.ack()`.** Sem `skipRateLimiter` o `ack` do
+ * SDK AGENDA a requisição com 1,5 s de atraso e devolve na hora; com ele,
+ * dispara e também devolve na hora, porque não retorna a promessa do `PUT`.
+ * Nos dois casos a fila esperaria nada e não limitaria nada.
+ *
+ * Sem socket, zera localmente e não escreve: é o mesmo contrato de
+ * `marcarCanalLido` ("o servidor reconcilia no próximo `Ready`").
+ */
+export async function marcarTodosLidos(
+  aoProgredir?: (feitos: number, total: number) => void,
+): Promise<{ readonly total: number; readonly falhas: number }> {
+  const alvos = [...contagemPorCanal.keys()];
+  if (alvos.length === 0) return { total: 0, falhas: 0 };
+
+  if (!conectado()) {
+    for (const id of alvos) zerarLocalmente(id);
+    return { total: alvos.length, falhas: 0 };
   }
 
+  const { falhas } = await emFila(
+    alvos,
+    async (channelId) => {
+      const ids = channelMessageIds.peek(channelId);
+      const ultima = ids?.[ids.length - 1];
+      const alvo = ultima ? idDoSdk(ultima) : client.channels.get(channelId)?.lastMessageId;
+      if (alvo) {
+        await client.api.put(`/channels/${channelId}/ack/${alvo}` as never);
+      }
+      zerarLocalmente(channelId);
+    },
+    3,
+    (feitos) => aoProgredir?.(feitos, alvos.length),
+  );
+  return { total: alvos.length, falhas: falhas.length };
+}
+
+/** Zera a contagem de um canal sem escrever no servidor. */
+function zerarLocalmente(channelId: string): void {
+  if (!contagemPorCanal.delete(channelId)) return;
+  if (client.channels.get(channelId)?.serverId) recontarServidores();
+  else reemitirTotais();
   reemitirCanal(channelId);
 }
 
@@ -2718,6 +3204,75 @@ export function proximaMencao(
 }
 
 /**
+ * Uma chamada numa DM ou grupo, traduzida do evento CRU.
+ *
+ * ⚠ **Cru porque o SDK não trata dois dos três.** `VoiceCallUpdate` não tem
+ * `case` em `events/v1.ts` — o `stoat.js` o descarta —, e é justamente o sinal
+ * que o protocolo desenhou para "está tocando": o `voice-ingress` o publica em
+ * privado para cada destinatário quando a PRIMEIRA pessoa entra na sala, e com
+ * `ended: true` no canal quando a sala esvazia. Ver `store/chamadaRecebida.ts`
+ * para as duas fontes e a deduplicação.
+ *
+ * ⚠ **`VoiceChannelJoin`/`Leave` são lidos SEM depender da ordem** em que o SDK
+ * aplica o mesmo evento no `ReactiveMap`: a pergunta é "há alguém ALÉM de
+ * quem entrou/saiu?", e excluir essa pessoa da contagem dá a mesma resposta
+ * antes e depois de o SDK mexer no mapa.
+ *
+ * Só DM e grupo tocam. Canal de voz de servidor é LUGAR, não chamada — entrar
+ * numa sala de servidor não liga para ninguém.
+ */
+function traduzirSinalDeChamada(evento: unknown): void {
+  const e = evento as {
+    type?: string;
+    initiator_id?: string;
+    channel_id?: string;
+    ended?: boolean;
+    id?: string;
+    user?: string;
+    state?: { id?: string };
+  };
+  if (
+    e.type !== "VoiceCallUpdate" &&
+    e.type !== "VoiceChannelJoin" &&
+    e.type !== "VoiceChannelLeave"
+  ) {
+    return;
+  }
+
+  const channelId = e.type === "VoiceCallUpdate" ? e.channel_id : e.id;
+  if (channelId === undefined) return;
+  const canal = client.channels.get(channelId);
+  if (canal?.type !== "DirectMessage" && canal?.type !== "Group") return;
+
+  const outrosAlem = (quem: string | undefined) =>
+    [...canal.voiceParticipants.keys()].some((id) => id !== quem);
+
+  if (e.type === "VoiceChannelLeave") {
+    if (!outrosAlem(e.user)) sinalizarFimDeChamada(channelId);
+    return;
+  }
+  if (e.type === "VoiceCallUpdate" && e.ended) {
+    sinalizarFimDeChamada(channelId);
+    return;
+  }
+
+  const quemLigou = e.type === "VoiceCallUpdate" ? e.initiator_id : e.state?.id;
+  if (quemLigou === undefined) return;
+  /* Entrar numa sala que já tinha gente é juntar-se a uma chamada, não ligar. */
+  if (e.type === "VoiceChannelJoin" && outrosAlem(quemLigou)) return;
+
+  const pessoa = client.users.get(quemLigou);
+  sinalizarChamada({
+    channelId,
+    quemLigou,
+    eu: usuarioLocal,
+    quemLigouNome: pessoa?.displayName ?? "Alguém",
+    grupoNome: canal.type === "Group" ? canal.name : undefined,
+    amigo: pessoa?.relationship === "Friend",
+  });
+}
+
+/**
  * A mensagem que chegou, traduzida para o notificador.
  *
  * ⚠ **Só depois de sabermos que não é nossa**, e barata antes disso: este é o
@@ -2728,6 +3283,23 @@ function avisarChegada(message: Message): void {
   if (!usuarioLocal || message.authorId === usuarioLocal) return;
   const canal = message.channel;
   const tipo = canal?.type;
+  if (canal && tipo === "DirectMessage") {
+    const destino = destinoDe(canal);
+    /*
+      ⚠ **A fila muda por MENSAGEM num caso só**, e é aqui que ele é pego: a
+      conversa recusada volta quando a pessoa escreve de novo. Republicar a
+      coluna por mensagem seria o `n log n` que `publicarConversas` existe
+      para evitar — então só quando o destino desta conversa MUDOU, que é
+      raro, e só para DM, que nunca é a carga do firehose.
+    */
+    if (destino !== destinoPublicado.get(canal.id)) publicarConversas();
+    /*
+      Solicitação não interrompe. O toast e o som levariam o TEXTO de um
+      desconhecido para a tela antes de a pessoa decidir abrir — exatamente o
+      que a fila existe para impedir. Ela aparece na aba, contada.
+    */
+    if (destino !== "conversa") return;
+  }
   const direta = message.mentionIds?.includes(usuarioLocal) ?? false;
   const cargo = message.roleMentions?.some((r) => r.assigned) ?? false;
   notificarMensagem({
@@ -2740,7 +3312,10 @@ function avisarChegada(message: Message): void {
     servidorNome: canal?.server?.name,
     texto: message.content,
     minha: false,
-    mencionaVoce: direta || (message.mentioned && !cargo),
+    mencionaVoce: direta,
+    /* `mentioned` do SDK junta direta, cargo e massa; o que sobra dos dois
+       primeiros é `@everyone`/`@online`. */
+    mencionaTodos: !direta && !cargo && message.mentioned,
     mencionaCargo: cargo,
   });
 }
@@ -2758,12 +3333,78 @@ function contabilizarNaoLida(channelId: string, conteudo: string): void {
 
   const serverId = client.channels.get(channelId)?.serverId;
   if (!serverId) return;
+  /*
+    Canal ou servidor mudo não acende o servidor — só a menção sobe. É a regra
+    de `somarPorServidor` aplicada em O(1), porque este é o caminho de
+    `messageCreate`: recontar tudo aqui seria pagar a varredura por mensagem.
+    Os dois caminhos concordam porque perguntam a mesma coisa (`estaMudo`).
+  */
+  const soma = estaMudo(channelId, serverId) ? 0 : 1;
+  if (soma === 0 && mencao === 0) return;
   const servidor = contagemDe(contagemPorServidor, serverId);
   contagemPorServidor.set(serverId, {
-    naoLidas: servidor.naoLidas + 1,
+    naoLidas: servidor.naoLidas + soma,
     mencoes: servidor.mencoes + mencao,
   });
   reemitirServidor(serverId);
+  /*
+    ⚠ **O total não acompanhava a mensagem ao vivo.** Só leitura e semeadura o
+    republicavam, então a aba da caixa de entrada e o contador de menções no
+    ícone do app ficavam no número da abertura até a pessoa ler um canal. A
+    soma é sobre SERVIDORES com contagem (poucos), e as duas saídas comparam
+    antes de publicar — o firehose não acorda ninguém por isto.
+  */
+  reemitirTotais();
+}
+
+/**
+ * A relação que cada pessoa tinha na última vez que o protocolo falou dela.
+ *
+ * ⚠ **Mapa próprio, alimentado pelo evento CRU, e não o `previousUser` do
+ * `userUpdate`.** Pedido de amizade chega quase sempre de quem a sessão nunca
+ * viu, e o SDK roda sem `partials`: para pessoa fora do cache, o
+ * `UserRelationship` não vira `userUpdate` nenhum. O evento cru traz a pessoa
+ * inteira e o status novo, e este mapa traz o anterior — que é o que separa
+ * "ela aceitou o meu pedido" de "eu aceitei o dela" (ver `mudancaDeAmizade`).
+ *
+ * Semeado no `Ready`: sem isto, o primeiro aceite depois de abrir o app viria
+ * de `undefined` e não seria reconhecido como aceite.
+ */
+const relacaoConhecida = new Map<string, string>();
+
+function observarRelacoes(evento: unknown): void {
+  const e = evento as {
+    type?: string;
+    users?: readonly { _id?: string; relationship?: string }[];
+    user?: { _id?: string; username?: string; display_name?: string; relationship?: string };
+    status?: string;
+  };
+
+  if (e.type === "Ready") {
+    for (const u of e.users ?? []) {
+      if (u._id && u.relationship) relacaoConhecida.set(u._id, u.relationship);
+    }
+    return;
+  }
+
+  const userId = e.user?._id;
+  const status = e.status ?? e.user?.relationship;
+  if (!userId || !status) return;
+  const mudanca = mudancaDeAmizade(relacaoConhecida.get(userId), status);
+  relacaoConhecida.set(userId, status);
+  if (!mudanca) return;
+
+  notificarAmizade(
+    {
+      userId,
+      nome: e.user?.display_name ?? e.user?.username ?? "Alguém",
+      mudanca,
+    },
+    {
+      aceitar: () => void aceitarAmizade(userId),
+      recusar: () => void desfazerAmizade(userId),
+    },
+  );
 }
 
 /* -------------------------------------------------------------- entidades */

@@ -1,5 +1,6 @@
 import {
   CaretRight,
+  Check,
   ICONE,
 } from "./icones";
 import * as Primitivo from "@radix-ui/react-context-menu";
@@ -9,6 +10,7 @@ import { cn } from "../../lib/cn";
 import {
   menuContent,
   menuItem,
+  menuItemAviso,
   menuItemNormal,
   menuItemPerigo,
   menuLabel,
@@ -66,13 +68,68 @@ export function ContextMenuContent({
 export function ContextMenuItem({
   className,
   perigo,
+  aviso,
   ...props
-}: ComponentProps<typeof Primitivo.Item> & { perigo?: boolean }) {
+}: ComponentProps<typeof Primitivo.Item> & { perigo?: boolean; aviso?: boolean }) {
   return (
     <Primitivo.Item
       {...props}
-      className={cn(menuItem, perigo ? menuItemPerigo : menuItemNormal, className)}
+      className={cn(menuItem, tomDoItem(perigo, aviso), className)}
     />
+  );
+}
+
+/**
+ * ⚠ **Aviso é o terceiro tom, e ele não é um perigo mais fraco.** O design
+ * pinta "Mudo no servidor" e "Ensurdecer no servidor" em âmbar e "Desconectar
+ * do canal" em vermelho, no mesmo bloco: restringir alguém é reversível e
+ * administrativo, tirá-lo da sala é uma ação que interrompe. É a mesma
+ * distinção do selo `SRV` na linha da sala.
+ */
+function tomDoItem(perigo?: boolean, aviso?: boolean): string {
+  if (perigo) return menuItemPerigo;
+  if (aviso) return menuItemAviso;
+  return menuItemNormal;
+}
+
+/**
+ * Item que ALTERNA — o par do `DropdownMenuCheckboxItem`, e pela mesma razão:
+ * dentro de um `menu` o leitor de tela precisa de `menuitemcheckbox` para
+ * anunciar "marcado", e um rótulo que alternasse com o estado faria quem lê
+ * depressa clicar no oposto do que quer.
+ *
+ * Não fecha ao escolher: a marca mudando É a confirmação.
+ */
+export function ContextMenuCheckboxItem({
+  className,
+  children,
+  marcado,
+  aoAlternar,
+  aviso,
+  ...props
+}: Omit<
+  ComponentProps<typeof Primitivo.CheckboxItem>,
+  "checked" | "onCheckedChange" | "onSelect"
+> & {
+  marcado: boolean;
+  aoAlternar: () => void;
+  aviso?: boolean;
+}) {
+  return (
+    <Primitivo.CheckboxItem
+      {...props}
+      checked={marcado}
+      onSelect={(e) => {
+        e.preventDefault();
+        aoAlternar();
+      }}
+      className={cn(menuItem, tomDoItem(false, aviso), className)}
+    >
+      {children}
+      <span className="ms-auto ps-16 flex w-12">
+        {marcado ? <Check size={12} aria-hidden /> : null}
+      </span>
+    </Primitivo.CheckboxItem>
   );
 }
 

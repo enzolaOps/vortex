@@ -64,6 +64,11 @@ export type EstadoDoOverlay = {
   readonly posicao: Posicao;
   /** Tokens de `<Combinacao>` do atalho de alternar, ou nada. */
   readonly atalho: readonly string[] | undefined;
+  /**
+   * O de silenciar as mensagens, ou nada. Opcional porque uma casca antiga
+   * repassa o estado de um cliente antigo sem ele.
+   */
+  readonly atalhoSilenciar?: readonly string[] | undefined;
   readonly voz:
     | {
         readonly canal: string;
@@ -121,6 +126,48 @@ export function ponteDeOverlay(): PonteDeOverlay | undefined {
   return Object.keys(VERBOS).every((v) => typeof p[v] === "function")
     ? window.vortexOverlay
     : undefined;
+}
+
+/**
+ * O silêncio das mensagens, que a CASCA guarda (o atalho é ouvido pelo hook do
+ * main, com o jogo em foco).
+ *
+ * ⚠ **Ponte separada de `vortexOverlay`**: um verbo novo lá faria o overlay
+ * de uma casca antiga recusar a ponte inteira. Ausente, quer dizer que a casca
+ * não sabe silenciar — e o overlay não oferece o atalho.
+ */
+export type PonteDeSilencio = {
+  readonly assinar: (ouvinte: (silenciadas: boolean) => void) => () => void;
+};
+
+declare global {
+  interface Window {
+    readonly vortexOverlaySilencio?: PonteDeSilencio;
+  }
+}
+
+export function ponteDeSilencio(): PonteDeSilencio | undefined {
+  if (typeof window === "undefined") return undefined;
+  const p = window.vortexOverlaySilencio as Record<string, unknown> | undefined;
+  return p && typeof p.assinar === "function" ? window.vortexOverlaySilencio : undefined;
+}
+
+/**
+ * A dica do widget de mensagem — "⇧ Ctrl N silencia", ou "… volta" com as
+ * mensagens já silenciadas —, ou nada.
+ *
+ * ⚠ **Só com a casca capaz E um atalho valendo.** Mostrar a combinação sem a
+ * casca saber silenciar é a tela prometendo uma tecla que não faz nada; sem
+ * atalho (apagado ou em conflito) não há o que escrever.
+ */
+export function dicaDeSilencio(
+  teclas: readonly string[] | undefined,
+  silenciadas: boolean | undefined,
+  mac: boolean,
+): string | undefined {
+  /* `undefined` = a casca nunca respondeu, ou seja, não sabe silenciar. */
+  if (silenciadas === undefined || !teclas || teclas.length === 0) return undefined;
+  return `${textoDoAtalho(teclas, mac)} ${silenciadas ? "volta" : "silencia"}`;
 }
 
 /** A rota da janela do overlay. */

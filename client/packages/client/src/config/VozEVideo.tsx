@@ -7,7 +7,6 @@ import { Interruptor } from "../components/ui/Interruptor";
 import { CartaoDeOpcao } from "../components/ui/CartaoDeOpcao";
 import { Segmentado } from "../components/ui/Segmentado";
 import { cn } from "../lib/cn";
-import { aindaNao } from "../pendente/pendencias";
 import {
   useFaixaLocal,
   useNivelDeEntrada,
@@ -366,16 +365,12 @@ export function VozEVideo() {
               id: n,
               rotulo: ROTULO_DO_RUIDO[n],
             }))}
-            aoEscolher={(ruido) => {
-              /*
-                ⚠ "Agressiva" é a única das três que o navegador não sabe
-                fazer: `noiseSuppression` é BOOLEANO. Ela guarda a escolha e
-                diz do que depende, em vez de silenciosamente valer o mesmo que
-                "Padrão" — que é o defeito de parecer que funcionou.
-              */
-              definirPreferenciasDeVoz({ ruido });
-              if (ruido === "agressiva") aindaNao("ruidoAgressivo")();
-            }}
+            /*
+              "Agressiva" é o RNNoise (`voz/ruidoForte.ts`), aplicado pelo
+              motor de voz na faixa do microfone — carregado só quando esta
+              opção vale e há chamada aberta. Falhar cai para "Padrão" e diz.
+            */
+            aoEscolher={(ruido) => definirPreferenciasDeVoz({ ruido })}
           />
         </LinhaDeAjuste>
 
@@ -522,10 +517,9 @@ export function VozEVideo() {
                 id: f,
                 rotulo: ROTULO_DO_FUNDO[f],
               }))}
-              aoEscolher={(fundo) => {
-                definirPreferenciasDeVoz({ fundo });
-                if (fundo !== "nenhum") aindaNao("fundoDeVideo")();
-              }}
+              /* Aplicado pelo motor só com a câmera ligada — ver
+                 `voz/fundoDeVideo.ts`. */
+              aoEscolher={(fundo) => definirPreferenciasDeVoz({ fundo })}
             />
           </div>
         </div>

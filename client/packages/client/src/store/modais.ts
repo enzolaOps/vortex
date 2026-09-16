@@ -39,6 +39,7 @@ export const MODAIS = [
   "link",
   "encaminhar",
   "enquete",
+  "evento",
   "novoGrupo",
   "grupo",
   "privacidadeDoServidor",
@@ -50,6 +51,8 @@ export const MODAIS = [
   "transferirPropriedade",
   "autorizarQr",
   "atividades",
+  "topico",
+  "notificacoes",
 ] as const;
 
 export type ModalId = (typeof MODAIS)[number];

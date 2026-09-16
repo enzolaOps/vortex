@@ -41,3 +41,15 @@ export function duracaoCurta(ms: number): string {
     ? `${String(horas)} h`
     : `${String(horas)} h ${String(resto)} min`;
 }
+
+/**
+ * `0:08` — o relógio do player e do gravador de voz, no formato do design.
+ *
+ * Mora aqui e não no player porque tem dois consumidores que precisam
+ * concordar: o tempo que o gravador mostra ao parar é o que o player vai
+ * mostrar como duração, e dois formatadores divergiriam no primeiro minuto.
+ */
+export function relogio(segundos: number): string {
+  const s = Math.max(0, Math.floor(segundos));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}

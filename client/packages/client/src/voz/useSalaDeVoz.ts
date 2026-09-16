@@ -22,8 +22,8 @@ import { assinarPalco, lerPalco } from "../store/palcoDeVoz";
  *
  * As três condições são todas necessárias. Estar numa chamada não basta —
  * quem está numa chamada e foi ler outro canal quer ver o outro canal. Estar
- * olhando o canal da chamada também não basta: o chat embutido é o que
- * "Voltar ao chat" abre, e nesse momento a chamada continua de pé.
+ * olhando o canal da chamada também não basta: com o palco fechado (a chamada
+ * minimizada no cartão), a coluna volta a ser a conversa de sempre.
  */
 export function useNaSala(channelId: string): boolean {
   const chamada = useSyncExternalStore(assinarChamada, lerChamada);

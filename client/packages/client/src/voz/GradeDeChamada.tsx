@@ -1,5 +1,5 @@
 import {
-  ChatCircle,
+  DotsThree,
   ICONE,
   MicrophoneSlash,
   Monitor,
@@ -10,13 +10,13 @@ import { memo, useEffect, useState, useSyncExternalStore } from "react";
 import { Avatar } from "../components/ui/Avatar";
 import { Tooltip } from "../components/ui/Tooltip";
 import { buscarAtividade } from "../sdk/atividades";
-import { assinarVideo } from "../sdk/chamada";
 import { assinarSessao, lerSessao } from "../store/atividades";
 import { assinarChamada, falando, lerChamada } from "../store/chamada";
 import { useChannel, usePessoa, useServer } from "../store/hooks";
-import { fecharPalco } from "../store/palcoDeVoz";
+import { abrirMenuDoParticipante } from "../store/menuDoParticipante";
 import { LadrilhoDeAtividade } from "./atividades/LadrilhoDeAtividade";
-import { Cronometro, Doca, FaixaDeVideo } from "./pecasDeVoz";
+import { BotaoDoChatDaSala } from "./ChatDaSala";
+import { Cronometro, Doca, FaixaDeVideo, useVideo } from "./pecasDeVoz";
 import css from "./GradeDeChamada.module.css";
 
 /**
@@ -161,16 +161,7 @@ export function GradeDeChamada() {
           ))}
         </div>
 
-        <Tooltip texto="Voltar ao chat" lado="abaixo">
-          <button
-            type="button"
-            className={css.acaoDoCabecalho}
-            aria-label="Voltar ao chat"
-            onClick={fecharPalco}
-          >
-            <ChatCircle size={ICONE.controle} aria-hidden />
-          </button>
-        </Tooltip>
+        <BotaoDoChatDaSala className={css.acaoDoCabecalho} />
       </header>
 
       <div className={css.miolo}>
@@ -288,6 +279,8 @@ const Ladrilho = memo(function Ladrilho({
       /* Um stream ocupa 2×2 por padrão: numa célula de 84px a tela de alguém
          não é legível, e uma prévia ilegível é a mesma coisa que nenhuma. */
       data-tela={transmitindo}
+      /* Quem é, para o menu do participante — o Root é um só, no palco. */
+      data-participante={userId}
     >
       {/*
         ⚠ **O avatar fica SEMPRE, e o vídeo cobre.** A primeira versão
@@ -345,17 +338,34 @@ const Ladrilho = memo(function Ladrilho({
         vinte paradas invisíveis antes de chegar na doca. É a mesma decisão da
         barra de ações da linha de mensagem.
       */}
-      <Tooltip texto={fixado ? "Desfixar" : "Fixar participante"} lado="acima">
+      <div className={css.acoesDoLadrilho}>
+        <Tooltip texto={fixado ? "Desfixar" : "Fixar participante"} lado="acima">
+          <button
+            type="button"
+            className={css.fixar}
+            aria-label={`Fixar ${pessoa?.displayName ?? "participante"}`}
+            aria-pressed={fixado}
+            onClick={fixado ? aoDesfixar : aoFixar}
+          >
+            <PushPin size={ICONE.metadado} weight={fixado ? "fill" : "regular"} aria-hidden />
+          </button>
+        </Tooltip>
+        {/*
+          O `⋯` abre o MESMO menu do clique direito, despachando o evento que o
+          `Trigger` do palco já escuta — ver `abrirMenuDoParticipante`. Sem
+          ele, volume e moderação existiriam só para quem sabe do botão
+          direito, que é a afordância que menos gente descobre.
+        */}
         <button
           type="button"
           className={css.fixar}
-          aria-label={`Fixar ${pessoa?.displayName ?? "participante"}`}
-          aria-pressed={fixado}
-          onClick={fixado ? aoDesfixar : aoFixar}
+          aria-label={`Opções de ${pessoa?.displayName ?? "participante"}`}
+          aria-haspopup="menu"
+          onClick={(e) => abrirMenuDoParticipante(e.currentTarget)}
         >
-          <PushPin size={ICONE.metadado} weight={fixado ? "fill" : "regular"} aria-hidden />
+          <DotsThree size={ICONE.metadado} aria-hidden />
         </button>
-      </Tooltip>
+      </div>
 
       {/*
         ⚠ **O botão "Assistir" SAIU, e ele tinha virado inalcançável.**
@@ -377,23 +387,6 @@ const Ladrilho = memo(function Ladrilho({
 /* ============================================================
    Hooks
    ============================================================ */
-
-/**
- * Pede o vídeo de alguém enquanto este componente existe, e devolve ao sair.
- *
- * ⚠ **A devolução é a metade que se esquece, e a que custa.** Sem ela, fechar
- * a grade deixaria dez faixas descendo para uma tela que não existe mais —
- * invisível na interface e visível na conta de banda.
- */
-function useVideo(userId: string, fonte: "camera" | "tela", quero: boolean) {
-  useEffect(() => {
-    if (!quero) return;
-    assinarVideo(userId, fonte, true);
-    return () => {
-      assinarVideo(userId, fonte, false);
-    };
-  }, [userId, fonte, quero]);
-}
 
 /**
  * "Está falando" com histerese, para a célula grande não piscar.

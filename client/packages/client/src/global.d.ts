@@ -6,3 +6,5 @@
  * substituída literalmente e o `package.json` não entra no bundle.
  */
 declare const __VERSAO__: string;
+/** Versão do `@mediapipe/tasks-vision` — o caminho do runtime do fundo de vídeo. */
+declare const __VERSAO_MEDIAPIPE__: string;

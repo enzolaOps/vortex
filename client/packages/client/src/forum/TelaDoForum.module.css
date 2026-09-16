@@ -1,0 +1,395 @@
+/* ============================================================
+   Canal de fórum
+   ------------------------------------------------------------
+   Valores do design (`Vortex Canais - Fórum, Mídia e Tópicos`,
+   artboard "Fórum"). A barra de título é a linha de cabeçalho do
+   shell (`CabecalhoDeCanal`); aqui começa a barra de filtros.
+   ============================================================ */
+
+.tela {
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-block-size: 0;
+  background: var(--vx-surface-2);
+  container-type: inline-size;
+}
+
+/* `padding:14px 22px 12px; gap:10px; wrap; border-bottom 6%` */
+.barra {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vx-space-10);
+  padding: var(--vx-space-14) var(--vx-space-22) var(--vx-space-12);
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+/* `height:32px; padding:0 14px; 13/600` */
+.novo {
+  block-size: 32px;
+  padding-inline: var(--vx-space-14);
+  font-size: var(--vx-size-md);
+}
+
+/* `width:220px; surface-3; borda 10%` */
+.busca {
+  inline-size: 220px;
+  background: var(--vx-surface-3);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-06);
+}
+
+/*
+  O filtro de tag: `height:26px; padding:0 10px; pílula; 12/600`.
+  Repouso `surface-3`/`text-2`; escolhido na COR da tag — fundo a 18%, anel
+  interno a 50%. A cor chega por `--cor-da-tag`, já validada como `#rrggbb`.
+*/
+.filtro {
+  --cor-da-tag: var(--vx-accent);
+  display: inline-flex;
+  align-items: center;
+  block-size: 26px;
+  padding-inline: var(--vx-space-10);
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.filtro:hover {
+  color: var(--vx-text-1);
+}
+
+.filtro:active {
+  background: var(--vx-state-press);
+}
+
+.filtro:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.filtro[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--cor-da-tag) 18%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cor-da-tag) 50%, transparent);
+  color: var(--cor-da-tag);
+}
+
+.espaco {
+  flex: 1;
+}
+
+/* O rótulo "Fixados": `11/600, 0.08em, caixa alta, text-3; margin-bottom:10px`. */
+.grupo {
+  composes: sobrancelhaDeSecao from "../styles/sobrancelha.module.css";
+  margin-block-end: var(--vx-space-10);
+  color: var(--vx-text-3);
+}
+
+/* `padding:16px 22px 30px` */
+.scroll {
+  flex: 1;
+  padding: var(--vx-space-16) var(--vx-space-22) var(--vx-space-32);
+}
+
+.corpoVazio {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  padding: var(--vx-space-16) var(--vx-space-22) var(--vx-space-32);
+}
+
+/* ------------------------------------------------------------ o card */
+
+/* Lista: `display:flex; gap:14px; padding:14px; radius 12; surface-3; borda 7%` */
+.card {
+  display: flex;
+  gap: var(--vx-space-14);
+  min-block-size: 100px;
+  padding: var(--vx-space-14);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-12);
+  background: var(--vx-surface-3);
+  cursor: pointer;
+  transition: border-color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.card:hover {
+  border-color: var(--vx-hairline-16);
+}
+
+.card:has(:focus-visible) {
+  border-color: var(--vx-accent);
+}
+
+/* Grade: coluna, sem respiro — a miniatura sangra até a borda. */
+.cardEmGrade {
+  flex-direction: column;
+  gap: 0;
+  min-block-size: 240px;
+  overflow: hidden;
+  padding: 0;
+}
+
+/* `width:96px; height:72px; radius 8; xadrez` */
+.miniatura {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  inline-size: 96px;
+  block-size: 72px;
+  overflow: hidden;
+  border-radius: var(--vx-radius-08);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--vx-surface-4) 0 8px,
+    var(--vx-surface-3) 8px 16px
+  );
+}
+
+/* `height:132px` full-bleed, listras de 10 */
+.miniaturaEmGrade {
+  inline-size: 100%;
+  block-size: 132px;
+  border-radius: 0;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--vx-surface-4) 0 10px,
+    var(--vx-surface-3) 10px 20px
+  );
+}
+
+.midia {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+/* `font-family: JetBrains Mono; font-size:10px; color:#4C5563` */
+.semMidia {
+  overflow: hidden;
+  padding-inline: var(--vx-space-04);
+  color: var(--vx-text-4);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-2xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* `flex:1; flex-direction:column; gap:7px` */
+.conteudo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--vx-space-07);
+  min-inline-size: 0;
+}
+
+.conteudoEmGrade {
+  padding: var(--vx-space-14);
+}
+
+.selos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vx-space-08);
+}
+
+/* `height:19px; padding:0 7px; radius 4; 10/700` — neutro a 24% */
+.fixado,
+.fechado,
+.tag {
+  display: inline-flex;
+  align-items: center;
+  block-size: 19px;
+  padding-inline: var(--vx-space-07);
+  border: 0;
+  border-radius: var(--vx-radius-04);
+  font-family: inherit;
+  font-size: var(--vx-size-2xs);
+}
+
+/* `📌 fixado`: branco a 6%, `text-2`, 10/600. */
+.fixado {
+  background: var(--vx-hairline-06);
+  color: var(--vx-text-2);
+  font-weight: 600;
+}
+
+.fechado {
+  background: color-mix(in oklab, var(--vx-neutral) 24%, transparent);
+  color: var(--vx-text-2);
+  font-weight: 700;
+}
+
+/* Tag no card: cor a 14%, 10/600. Clicar filtra. */
+.tag {
+  --cor-da-tag: var(--vx-text-2);
+  background: color-mix(in srgb, var(--cor-da-tag) 14%, transparent);
+  color: var(--cor-da-tag);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tag:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 1px;
+}
+
+/* `font-size:15px; font-weight:600; line-height:1.35` */
+.titulo {
+  margin: 0;
+  font-size: var(--vx-size-lg);
+  font-weight: 600;
+  line-height: 1.35;
+  text-wrap: pretty;
+}
+
+.abrir {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--vx-text-1);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.abrir:focus-visible {
+  outline: none;
+}
+
+/* `font-size:13px; color:#A5AEBB; line-height:1.45` — duas linhas. */
+.resumo {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-md);
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* `gap:12px; wrap; margin-top:2px` */
+.rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vx-space-12);
+  margin-block-start: var(--vx-space-02);
+}
+
+.autor {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-07);
+  min-inline-size: 0;
+}
+
+.autor .avatar {
+  inline-size: 20px;
+  block-size: 20px;
+}
+
+.nomeDoAutor {
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-sm);
+}
+
+.meta {
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+}
+
+.numeros {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+}
+
+/* `height:18px; padding:0 7px; pílula danger; 10/700` */
+.novas {
+  display: inline-flex;
+  align-items: center;
+  block-size: 18px;
+  padding-inline: var(--vx-space-07);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-danger);
+  color: var(--vx-on-danger);
+  font-size: var(--vx-size-2xs);
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------------ vazio */
+
+/* `padding:48px 20px; radius 12; borda tracejada 10%` */
+.vazio {
+  display: grid;
+  justify-items: center;
+  padding: var(--vx-space-48) var(--vx-space-20);
+  border: 1px dashed var(--vx-hairline-10);
+  border-radius: var(--vx-radius-12);
+  text-align: center;
+}
+
+/* `36×36; radius 10; surface-3; text-4; margin 0 auto 12px` */
+.vazioIcone {
+  display: grid;
+  place-items: center;
+  inline-size: 36px;
+  block-size: 36px;
+  margin-block-end: var(--vx-space-12);
+  border-radius: var(--vx-radius-10);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-4);
+}
+
+.vazioIcone svg {
+  inline-size: var(--vx-icon-2);
+  block-size: var(--vx-icon-2);
+}
+
+.vazioTitulo {
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-base);
+  font-weight: 600;
+}
+
+.vazioDetalhe {
+  margin-block-start: var(--vx-space-04);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+}
+
+.vazioAcao {
+  margin-block-start: var(--vx-space-14);
+}
+
+/* Estreito: a busca ocupa a linha, e o card de lista perde a miniatura. */
+@container (inline-size < 520px) {
+  .busca {
+    inline-size: 100%;
+  }
+
+  .card:not(.cardEmGrade) .miniatura {
+    display: none;
+  }
+}

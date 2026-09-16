@@ -1,0 +1,198 @@
+/* ============================================================
+   Cabeçalho do tópico aberto
+   ------------------------------------------------------------
+   `height:50px; padding:0 18px; gap:12px; border-bottom 6%`.
+   ============================================================ */
+
+.cabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-12);
+  min-inline-size: 0;
+  block-size: 50px;
+  padding-inline: var(--vx-space-18);
+  border-block-end: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-2);
+  container-type: inline-size;
+}
+
+/* `‹` em `text-3` — alvo de 24px, o menor do cabeçalho. */
+.voltar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: 24px;
+  block-size: 24px;
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-3);
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-instant) var(--vx-ease-out),
+    color var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.voltar svg {
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+}
+
+.voltar:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.voltar:active {
+  background: var(--vx-state-press);
+}
+
+.voltar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.glifo {
+  flex: none;
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+  color: var(--vx-text-4);
+}
+
+.textos {
+  min-inline-size: 0;
+}
+
+/* `font-size:15px; font-weight:600; nowrap + ellipsis` */
+.nome {
+  margin: 0;
+  overflow: hidden;
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-lg);
+  font-weight: 600;
+  line-height: var(--vx-leading-title);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* `font-size:11px; color:#77808E` */
+.sub {
+  margin: 0;
+  overflow: hidden;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fim {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-12);
+  margin-inline-start: auto;
+}
+
+/* A pílula do design: `height:20px; padding:0 8px; 11/600`. */
+.seguir,
+.arquivado {
+  display: flex;
+  align-items: center;
+  block-size: 20px;
+  padding-inline: var(--vx-space-08);
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+}
+
+.seguir {
+  background: var(--vx-state-hover-elevado);
+  color: var(--vx-text-2);
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.seguir:hover {
+  color: var(--vx-text-1);
+}
+
+.seguir:active {
+  background: var(--vx-state-press);
+}
+
+.seguir:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* Seguindo: `background:rgba(53,194,204,0.16); color:#7EE3E9` */
+.seguindo,
+.seguindo:hover {
+  background: color-mix(in oklab, var(--vx-accent) 16%, transparent);
+  color: var(--vx-accent-text);
+}
+
+.arquivado {
+  background: color-mix(in oklab, var(--vx-neutral) 24%, transparent);
+  color: var(--vx-text-2);
+}
+
+.acoes {
+  display: flex;
+  gap: var(--vx-space-02);
+}
+
+/* `30×30; radius 6; text-2; hover véu 6%` */
+.acao {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  inline-size: 30px;
+  block-size: 30px;
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-2);
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-instant) var(--vx-ease-out),
+    color var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.acao svg {
+  inline-size: var(--vx-icon-2);
+  block-size: var(--vx-icon-2);
+}
+
+.acao:hover {
+  background: var(--vx-state-hover-elevado);
+  color: var(--vx-text-1);
+}
+
+.acao:active {
+  background: var(--vx-state-press);
+}
+
+.acao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.acaoAtiva,
+.acaoAtiva:hover {
+  background: var(--vx-accent-soft);
+  color: var(--vx-accent-text);
+}
+
+/* Estreito: a contagem e o "arquivado" cedem antes do nome. */
+@container (inline-size < 560px) {
+  .sub,
+  .arquivado {
+    display: none;
+  }
+}

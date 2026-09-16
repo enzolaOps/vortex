@@ -1,4 +1,5 @@
 use std::collections::hash_map::Entry;
+use std::collections::HashMap;
 
 use super::AbstractChannels;
 use crate::util::ChunkedDatabaseGenerator;
@@ -221,5 +222,41 @@ impl AbstractChannels for ReferenceDb {
             _ => (),
         };
         Ok(())
+    }
+
+    async fn fetch_threads(
+        &self,
+        server_ids: &[String],
+        parent: Option<&str>,
+        archived: Option<bool>,
+    ) -> Result<Vec<Channel>> {
+        let channels = self.channels.lock().await;
+        Ok(channels
+            .values()
+            .filter(|channel| {
+                let (Some(server), Some(thread)) = (channel.server(), channel.thread()) else {
+                    return false;
+                };
+
+                server_ids.iter().any(|id| id == server)
+                    && parent.map_or(true, |parent| thread.parent == parent)
+                    && archived.map_or(true, |archived| thread.archived == archived)
+            })
+            .cloned()
+            .collect())
+    }
+
+    async fn count_messages_in_channels(
+        &self,
+        channel_ids: &[String],
+    ) -> Result<HashMap<String, u64>> {
+        let messages = self.messages.lock().await;
+        let mut counts: HashMap<String, u64> = HashMap::new();
+        for message in messages.values() {
+            if channel_ids.iter().any(|id| id == &message.channel) {
+                *counts.entry(message.channel.clone()).or_default() += 1;
+            }
+        }
+        Ok(counts)
     }
 }

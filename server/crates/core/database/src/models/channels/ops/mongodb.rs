@@ -8,6 +8,7 @@ use futures::StreamExt;
 use mongodb::options::ReadConcern;
 use revolt_permissions::OverrideField;
 use revolt_result::Result;
+use std::collections::HashMap;
 
 static COL: &str = "channels";
 
@@ -346,6 +347,68 @@ impl AbstractChannels for MongoDb {
                 .map(|_| ())
                 .map_err(|_| create_database_error!("update_one", "channels"))
         }
+    }
+
+    async fn fetch_threads(
+        &self,
+        server_ids: &[String],
+        parent: Option<&str>,
+        archived: Option<bool>,
+    ) -> Result<Vec<Channel>> {
+        let mut filter = doc! {
+            "channel_type": "TextChannel",
+            "server": { "$in": server_ids },
+            "thread": { "$exists": true },
+        };
+
+        if let Some(parent) = parent {
+            filter.insert("thread.parent", parent);
+        }
+
+        // `archived: false` is never stored (skip_serializing_if), so active
+        // means "not true" rather than "false".
+        match archived {
+            Some(true) => {
+                filter.insert("thread.archived", true);
+            }
+            Some(false) => {
+                filter.insert("thread.archived", doc! { "$ne": true });
+            }
+            None => {}
+        }
+
+        query!(self, find, COL, filter)
+    }
+
+    async fn count_messages_in_channels(
+        &self,
+        channel_ids: &[String],
+    ) -> Result<HashMap<String, u64>> {
+        #[derive(serde::Deserialize)]
+        struct Count {
+            #[serde(rename = "_id")]
+            id: String,
+            n: i64,
+        }
+
+        let mut cursor = self
+            .col::<Document>("messages")
+            .aggregate(vec![
+                doc! { "$match": { "channel": { "$in": channel_ids } } },
+                doc! { "$group": { "_id": "$channel", "n": { "$sum": 1 } } },
+            ])
+            .await
+            .map_err(|_| create_database_error!("aggregate", "messages"))?
+            .with_type::<Count>();
+
+        let mut counts = HashMap::new();
+        while let Some(result) = cursor.next().await {
+            if let Ok(count) = result {
+                counts.insert(count.id, count.n.max(0) as u64);
+            }
+        }
+
+        Ok(counts)
     }
 }
 

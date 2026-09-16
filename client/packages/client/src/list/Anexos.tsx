@@ -2,13 +2,21 @@ import {
   DownloadSimple,
   FileArrowDown,
 } from "../components/ui/icones";
-import type { CSSProperties } from "react";
+import { useSyncExternalStore, type CSSProperties } from "react";
 
 import type { AnexoSnapshot } from "../sdk/domain";
 import { administrar } from "../store/administracao";
 import { aindaNao } from "../pendente/pendencias";
 import { MidiaFiltrada } from "./MidiaFiltrada";
 import { ReprodutorDeVoz } from "./ReprodutorDeVoz";
+import {
+  assinarCanalVortex,
+  assinarRevelados,
+  camposDe,
+  foiRevelado,
+  revelar,
+  superficie,
+} from "../sdk/superficieVortex";
 import css from "./Anexos.module.css";
 
 /**
@@ -32,16 +40,51 @@ export function Anexos({
     derivar nenhum dos três.
   */
   messageId,
+  channelId,
 }: {
   anexos: readonly AnexoSnapshot[];
   messageId: string;
+  channelId: string;
 }) {
+  /*
+    O canal de spoiler é lido AQUI, uma vez por mensagem com anexo, e por um
+    booleano — não pelo snapshot do canal, que republica a cada não lida,
+    permissão ou silêncio. Só as linhas com anexo assinam; texto não paga nada.
+  */
+  const spoiler = useSyncExternalStore(
+    (ouvinte) => assinarCanalVortex(channelId, ouvinte),
+    () => camposDe(superficie, channelId).spoiler,
+  );
+
   return (
     <div className={css.anexos}>
       {anexos.map((a) => (
-        <Anexo key={a.id} anexo={a} messageId={messageId} />
+        <Anexo key={a.id} anexo={a} messageId={messageId} spoiler={spoiler} />
       ))}
     </div>
+  );
+}
+
+/**
+ * A capa do canal de spoiler — "clique para revelar", sobre a mídia.
+ *
+ * ⚠ **Sobrepõe, nunca substitui.** A caixa da mídia já tem o tamanho do
+ * metadata do protocolo; trocar a imagem por um bloco de outra altura moveria
+ * a âncora da lista no clique. Cobrir mantém a linha idêntica antes e depois.
+ *
+ * `button` porque revelar é ação: sem ele a capa não recebe foco nem Enter.
+ */
+function CapaDeSpoiler({ anexoId }: { anexoId: string }) {
+  const revelado = useSyncExternalStore(assinarRevelados, () => foiRevelado(anexoId));
+  if (revelado) return null;
+  return (
+    <button
+      type="button"
+      className={css.capaDeSpoiler}
+      onClick={() => revelar(anexoId)}
+    >
+      clique para revelar
+    </button>
   );
 }
 
@@ -65,8 +108,10 @@ function RodapeDoAnexo({ anexo }: { anexo: AnexoSnapshot }) {
       </span>
 
       <span className={css.acoes}>
-        {/* Desenhado sem implementação — ver `pendente/pendencias.ts`. O
-            protocolo tem `description` no anexo; ler e escrever ainda não. */}
+        {/* Desenhado sem implementação — ver `pendente/pendencias.ts`. ⚠ O
+            comentário anterior dizia que o protocolo tem `description` no
+            anexo, e NÃO tem: `File` (files.rs) não carrega descrição e o envio
+            leva só IDs. Não há o que ler nem onde escrever sem fork. */}
         <button
           type="button"
           className={css.acao}
@@ -93,9 +138,11 @@ function RodapeDoAnexo({ anexo }: { anexo: AnexoSnapshot }) {
 function Anexo({
   anexo,
   messageId,
+  spoiler,
 }: {
   anexo: AnexoSnapshot;
   messageId: string;
+  spoiler: boolean;
 }) {
   /*
     Áudio vira PLAYER, e é a primeira coisa que o componente pergunta.
@@ -192,6 +239,7 @@ function Anexo({
         </button>
       )}
       </MidiaFiltrada>
+      {spoiler ? <CapaDeSpoiler anexoId={anexo.id} /> : null}
       </div>
 
       <RodapeDoAnexo anexo={anexo} />
