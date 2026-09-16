@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
@@ -8,7 +8,18 @@ import { X } from "../components/ui/icones";
 import { corDoTextoDe, gradienteDe } from "../lib/gradiente";
 import { sigla } from "../lib/sigla";
 import { aindaNao } from "../pendente/pendencias";
-import { salvarServidor } from "../sdk/servidores";
+import {
+  subirAnexo,
+  temServidorDeMidia,
+  tetoDeUploadTexto,
+} from "../sdk/anexos";
+import {
+  salvarServidor,
+  TAG_DA_IMAGEM,
+  trocarImagemDoServidor,
+  type ImagemDoServidor,
+} from "../sdk/servidores";
+import { toast } from "../components/ui/toastStore";
 import { definirBarraDeSalvar } from "../store/barraDeSalvar";
 import { useMembrosDoServidor, useServer } from "../store/hooks";
 import css from "./Servidor.module.css";
@@ -66,6 +77,106 @@ const CARACTERISTICAS = ["🛠 produto", "🎨 design", "💬 open source"] as c
 
 const NUMERO = new Intl.NumberFormat("pt-BR");
 
+/** Os tipos que o `autumn` sabe redimensionar para ícone e banner. */
+const ACEITA = "image/png,image/jpeg,image/gif,image/webp";
+
+/**
+ * Trocar e remover uma das duas imagens do servidor.
+ *
+ * ⚠ **A troca é IMEDIATA, fora da barra de salvar**, e é a mesma decisão de
+ * `GerenciarGrupo`: escolher um arquivo JÁ é a intenção inteira, e prendê-lo
+ * atrás de "Salvar" obrigaria a faixa a guardar um `File` e a acender
+ * "alterações não salvas" por um upload que já aconteceu — o `autumn` guardou
+ * o arquivo no instante do envio, e descartar a faixa não o desfaria.
+ *
+ * A prévia local ganha do servidor enquanto o envio está em voo: quem acabou
+ * de escolher precisa ver a imagem, e o snapshot só troca quando o
+ * `ServerUpdate` dá a volta. Falhou → a prévia some, porque mostrar uma imagem
+ * que não colou é pior que mostrar a antiga.
+ *
+ * ⚠ **Sem recorte, e a ausência é das duas fontes.** Nem a referência nem o
+ * design desenham um passo de recorte; o ladrilho e a faixa mostram a imagem
+ * em `object-fit: cover`, centrada — que é o recorte que todo cliente aplica
+ * ao ler, e a prévia mostra exatamente ele.
+ */
+function useImagemDoServidor(
+  serverId: string,
+  qual: ImagemDoServidor,
+  /** O que o snapshot do servidor diz hoje. */
+  doServidor: string | undefined,
+) {
+  const [previa, setPrevia] = useState<string | undefined>(undefined);
+  const [estado, setEstado] = useState<"parado" | "subindo" | "removendo">(
+    "parado",
+  );
+  /*
+    A URL que acabou de ser removida, e não um booleano.
+
+    O servidor responde "removido" antes de o `ServerUpdate` republicar o
+    snapshot; sem isto a imagem antiga voltaria até ele chegar. Guardar QUAL
+    foi removida, e não "foi removida", é o que deixa uma imagem NOVA posta por
+    outra pessoa aparecer — um booleano a esconderia até a tela ser reaberta.
+  */
+  const [removida, setRemovida] = useState<string | undefined>(undefined);
+
+  /* Cada `createObjectURL` prende o arquivo na memória da aba até ser
+     revogado — o erro nº 5 do briefing, numa tela que se reabre. */
+  useEffect(() => {
+    return () => {
+      if (previa !== undefined) URL.revokeObjectURL(previa);
+    };
+  }, [previa]);
+
+  const nome = qual === "icone" ? "ícone" : "banner";
+
+  function escolher(arquivo: File) {
+    if (!arquivo.type.startsWith("image/")) {
+      toast({
+        tipo: "erro",
+        titulo: "Isso não é uma imagem.",
+        descricao: "Use PNG, JPG, GIF ou WebP.",
+      });
+      return;
+    }
+    setPrevia(URL.createObjectURL(arquivo));
+    setRemovida(undefined);
+    setEstado("subindo");
+    void subirAnexo(arquivo, TAG_DA_IMAGEM[qual])
+      .then((id) => trocarImagemDoServidor(serverId, qual, id))
+      .then((colou) => {
+        if (!colou) setPrevia(undefined);
+      })
+      .catch((e: unknown) => {
+        setPrevia(undefined);
+        toast({
+          tipo: "erro",
+          titulo: `Não deu para enviar o ${nome}.`,
+          descricao: e instanceof Error ? e.message : "Tente outra imagem.",
+        });
+      })
+      .finally(() => setEstado("parado"));
+  }
+
+  function remover() {
+    const antes = doServidor;
+    setEstado("removendo");
+    void trocarImagemDoServidor(serverId, qual, undefined)
+      .then((ok) => {
+        if (!ok) return;
+        setPrevia(undefined);
+        setRemovida(antes);
+      })
+      .finally(() => setEstado("parado"));
+  }
+
+  /* A prévia local primeiro; depois o servidor, menos o que acabou de sair. */
+  const url =
+    previa ??
+    (doServidor !== undefined && doServidor === removida ? undefined : doServidor);
+
+  return { url, estado, escolher, remover };
+}
+
 /**
  * Perfil do servidor — o formulário e o cartão de convite ao vivo.
  *
@@ -88,6 +199,12 @@ const NUMERO = new Intl.NumberFormat("pt-BR");
 export function Servidor({ serverId }: { serverId: string }) {
   const servidor = useServer(serverId);
   const membros = useMembrosDoServidor(serverId);
+  const icone = useImagemDoServidor(serverId, "icone", servidor?.avatarUrl);
+  const banner = useImagemDoServidor(serverId, "banner", servidor?.bannerUrl);
+  const seletorDeIcone = useRef<HTMLInputElement>(null);
+  const seletorDeBanner = useRef<HTMLInputElement>(null);
+  const [sobreOBanner, setSobreOBanner] = useState(false);
+  const temMidia = temServidorDeMidia();
 
   const nomeSalvo = servidor?.name ?? "";
   const descricaoSalva = servidor?.descricao ?? "";
@@ -137,6 +254,17 @@ export function Servidor({ serverId }: { serverId: string }) {
   const gradiente = gradienteDe(serverId);
   const corDoTexto = corDoTextoDe(serverId);
 
+  const iconeUrl = icone.url;
+  const bannerUrl = banner.url;
+  const tetoDoIcone = tetoDeUploadTexto("icons");
+
+  function soltarBanner(e: DragEvent<HTMLButtonElement>) {
+    e.preventDefault();
+    setSobreOBanner(false);
+    const arquivo = e.dataTransfer.files[0];
+    if (arquivo && temMidia) banner.escolher(arquivo);
+  }
+
   return (
     <div className={css.par}>
       <div className={css.formulario}>
@@ -158,23 +286,58 @@ export function Servidor({ serverId }: { serverId: string }) {
               style={{ backgroundImage: gradiente, color: corDoTexto }}
             >
               {inicial}
+              {/* A imagem COBRE o gradiente, como no `Avatar`: enquanto ela
+                  carrega, o ladrilho mostra a identidade de sempre. */}
+              {iconeUrl !== undefined ? (
+                <img className={css.imagemDoLadrilho} src={iconeUrl} alt="" />
+              ) : null}
             </span>
             <div className={css.iconeTextos}>
               <div className={css.iconeAcoes}>
-                <Botao variante="neutro" onClick={aindaNao("iconeDoServidor")}>
+                <Botao
+                  variante="neutro"
+                  disabled={!temMidia || icone.estado === "removendo"}
+                  carregando={icone.estado === "subindo"}
+                  rotuloCarregando="Enviando"
+                  onClick={() => seletorDeIcone.current?.click()}
+                >
                   Enviar imagem
                 </Botao>
                 <Botao
                   variante="perigoSutil"
-                  onClick={aindaNao("iconeDoServidor")}
+                  disabled={iconeUrl === undefined || icone.estado === "subindo"}
+                  carregando={icone.estado === "removendo"}
+                  rotuloCarregando="Removendo"
+                  onClick={icone.remover}
                 >
                   Remover
                 </Botao>
               </div>
+              {/*
+                ⚠ **O teto é o do SERVIDOR, e o design escreve "até 8 MB".** O
+                default do `autumn` para `icons` é 2,5 MB; prometer o triplo é
+                garantir a recusa. Ver `tetoDeUploadTexto`.
+              */}
               <span className={css.pista}>
-                Recomendado 512×512 · PNG, JPG ou GIF até 8 MB
+                {temMidia
+                  ? `Recomendado 512×512 · PNG, JPG ou GIF${tetoDoIcone ? ` até ${tetoDoIcone}` : ""}`
+                  : "Este servidor não tem onde guardar imagens."}
               </span>
             </div>
+            {/* O `input` do sistema, escondido — mesma razão do composer. */}
+            <input
+              ref={seletorDeIcone}
+              type="file"
+              accept={ACEITA}
+              className={css.seletor}
+              tabIndex={-1}
+              aria-hidden
+              onChange={(e) => {
+                const arquivo = e.target.files?.[0];
+                e.target.value = "";
+                if (arquivo) icone.escolher(arquivo);
+              }}
+            />
           </div>
         </div>
 
@@ -230,16 +393,68 @@ export function Servidor({ serverId }: { serverId: string }) {
         {/* ------------------------------------------------ banner */}
         <div>
           <p className={css.sobrancelha}>Banner / splash de convite</p>
+          {/*
+            A área de envio mostra o banner que JÁ está no servidor — é a
+            promessa de `ServerSnapshot.bannerUrl`, e um retângulo tracejado
+            dizendo "arraste" sobre um banner que existe mentiria sobre ele.
+          */}
           <button
             type="button"
             className={css.dropzone}
-            onClick={aindaNao("bannerDoServidor")}
+            data-sobre={sobreOBanner || undefined}
+            data-com-imagem={bannerUrl !== undefined || undefined}
+            aria-busy={banner.estado === "subindo" || undefined}
+            disabled={!temMidia || banner.estado !== "parado"}
+            onClick={() => seletorDeBanner.current?.click()}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setSobreOBanner(true);
+            }}
+            onDragLeave={() => setSobreOBanner(false)}
+            onDrop={soltarBanner}
           >
+            {bannerUrl !== undefined ? (
+              <img className={css.imagemDoBanner} src={bannerUrl} alt="" />
+            ) : null}
             <span className={css.dropzoneMedida}>
-              arraste o banner · 1920×480
+              {banner.estado === "subindo"
+                ? "enviando o banner…"
+                : bannerUrl !== undefined
+                  ? "arraste outro banner · 1920×480"
+                  : "arraste o banner · 1920×480"}
             </span>
-            <span className={css.dropzoneGesto}>ou clique para enviar</span>
+            <span className={css.dropzoneGesto}>
+              {temMidia
+                ? "ou clique para enviar"
+                : "este servidor não tem onde guardar imagens"}
+            </span>
           </button>
+          <input
+            ref={seletorDeBanner}
+            type="file"
+            accept={ACEITA}
+            className={css.seletor}
+            tabIndex={-1}
+            aria-hidden
+            onChange={(e) => {
+              const arquivo = e.target.files?.[0];
+              e.target.value = "";
+              if (arquivo) banner.escolher(arquivo);
+            }}
+          />
+          {bannerUrl !== undefined ? (
+            <Botao
+              variante="perigoSutil"
+              tamanho="pequeno"
+              className={css.removerBanner}
+              disabled={banner.estado === "subindo"}
+              carregando={banner.estado === "removendo"}
+              rotuloCarregando="Removendo"
+              onClick={banner.remover}
+            >
+              Remover banner
+            </Botao>
+          ) : null}
         </div>
 
         {/* ---------------------------------------------- descrição */}
@@ -300,10 +515,19 @@ export function Servidor({ serverId }: { serverId: string }) {
       <div className={css.previa}>
         <p className={css.sobrancelha}>Prévia ao vivo</p>
         <div className={css.cartao}>
+          {/*
+            Com banner, a faixa É o banner — é assim que a landing de convite
+            (`AdicionarServidor`) o desenha, e a prévia não pode divergir do
+            card que quem recebe o convite vê.
+          */}
           <div
             className={css.faixaDoCartao}
             style={{ background: pintura(faixa) }}
-          />
+          >
+            {bannerUrl !== undefined ? (
+              <img className={css.imagemDoBanner} src={bannerUrl} alt="" />
+            ) : null}
+          </div>
           <div className={css.corpoDoCartao}>
             <span
               aria-hidden
@@ -311,6 +535,9 @@ export function Servidor({ serverId }: { serverId: string }) {
               style={{ backgroundImage: gradiente, color: corDoTexto }}
             >
               {inicial}
+              {iconeUrl !== undefined ? (
+                <img className={css.imagemDoLadrilho} src={iconeUrl} alt="" />
+              ) : null}
             </span>
             <div className={css.linhaDoNome}>
               <span className={css.nomeDoCartao}>{nome || "Servidor"}</span>
@@ -355,10 +582,21 @@ export function Servidor({ serverId }: { serverId: string }) {
               hoje à tarde para uma divulgação.
             */}
             <p className={css.criadoEm}>Criado em {servidor?.criadoEmTexto}</p>
+            {/*
+              ⚠ **Figura do botão, e não alvo.** A referência renderiza o mesmo
+              card da página de convite e o deixa sem ação aqui; e entrar num
+              servidor onde você já está não é ação nenhuma. Um botão que
+              recebe foco e clique para dizer "não faz nada" é o alvo inerte
+              que o registro de pendências existia para marcar — `inert` tira
+              o botão do foco, do clique e da árvore de acessibilidade, e o
+              que sobra é o que isto é: a prévia de como o card aparece para
+              quem recebe o convite.
+            */}
             <Botao
               variante="primario"
               className={css.entrar}
-              onClick={aindaNao("previaDoConvite")}
+              inert
+              tabIndex={-1}
             >
               Entrar no servidor
             </Botao>

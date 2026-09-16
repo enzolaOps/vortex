@@ -1,0 +1,249 @@
+/* ============================================================
+   Chamada direta — 1:1 com o design
+   ------------------------------------------------------------
+   "Chamada 1:1 em andamento", `Vortex Voz - Completo.dc.html`.
+   O design a desenha como cartão de 520×440 numa prancha; aqui
+   ela PREENCHE o palco, como as outras três telas — as medidas
+   internas (pílula, conferência, barra) são as de lá.
+   ============================================================ */
+
+.palco {
+  position: relative;
+  flex: 1;
+  min-block-size: 0;
+  overflow: hidden;
+  /* O listrado do design (`#141A20` / `#101519`, faixas de 14px): diz
+     "espaço de vídeo" enquanto não há vídeo, que é o que ele é. */
+  background: repeating-linear-gradient(
+    135deg,
+    var(--vx-surface-2) 0 14px,
+    var(--vx-surface-1) 14px 28px
+  );
+}
+
+/* ------------------------------------------------- o outro lado */
+
+.centro {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.centro > span {
+  inline-size: 96px;
+  block-size: 96px;
+  font-size: var(--vx-size-2xl);
+  /* O anel de fala é SOMBRA e não borda: borda mudaria a caixa, e a caixa
+     é o centro da tela. */
+  transition: box-shadow var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.centro[data-dentro="false"] > span {
+  opacity: 0.55;
+}
+
+.centro[data-falando="true"] > span {
+  box-shadow: 0 0 0 3px var(--vx-success);
+}
+
+/* O vídeo cobre o avatar — ver o comentário de `Remoto`. */
+.videoRemoto {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
+}
+
+/* ------------------------------------------------------- pílula */
+
+.pilula {
+  position: absolute;
+  inset-block-start: var(--vx-space-14);
+  inset-inline-start: var(--vx-space-14);
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+  block-size: 28px;
+  padding-inline: var(--vx-space-11);
+  border-radius: var(--vx-radius-pill);
+  /* `rgba(8,9,11,0.78)` do design: véu sobre a mídia, não superfície. */
+  background: color-mix(in srgb, var(--vx-surface-0) 78%, transparent);
+  font-size: var(--vx-size-sm);
+}
+
+.nome {
+  color: var(--vx-text-1);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.estado {
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-xs);
+}
+
+.tempo > span {
+  color: var(--vx-success-text);
+  font-size: var(--vx-size-xs);
+}
+
+/* ------------------------------------------------- conferência */
+
+.proprio {
+  position: absolute;
+  inset-block-start: var(--vx-space-14);
+  inset-inline-end: var(--vx-space-14);
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  inline-size: 132px;
+  block-size: 80px;
+  padding: var(--vx-space-07);
+  border: 1px solid var(--vx-hairline-16);
+  border-radius: var(--vx-radius-09);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--vx-surface-3) 0 10px,
+    color-mix(in srgb, var(--vx-surface-2) 55%, var(--vx-surface-3)) 10px 20px
+  );
+}
+
+.videoProprio {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+.videoProprio[data-espelhada="true"] {
+  transform: scaleX(-1);
+}
+
+.semCamera {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+/* 34px da referência — entre o `xs` (22) e o `sm` (32) da escala de avatar. */
+.semCamera > span {
+  inline-size: 34px;
+  block-size: 34px;
+}
+
+.voce {
+  position: relative;
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-2xs);
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------- barra */
+
+.barra {
+  position: absolute;
+  inset-block-end: var(--vx-space-16);
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-07);
+  padding: var(--vx-space-07);
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-pill);
+  /* `rgba(8,9,11,0.82)` do design. */
+  background: color-mix(in srgb, var(--vx-surface-0) 82%, transparent);
+}
+
+.controle {
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: 40px;
+  block-size: 40px;
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-surface-4);
+  color: var(--vx-text-1);
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.controle svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+.controle:hover {
+  background: var(--vx-track);
+}
+
+.controle[data-secundario="true"] {
+  color: var(--vx-text-2);
+}
+
+.controle[data-perigo="true"] {
+  background: color-mix(in srgb, var(--vx-danger) 18%, transparent);
+  color: var(--vx-danger-text);
+}
+
+/* Ligado e não perigo — câmera e tela no ar. O acento é "isto está ativo". */
+.controle[data-ativo="true"] {
+  background: var(--vx-state-selected);
+  color: var(--vx-accent-text);
+}
+
+.controle:focus-visible,
+.desligar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.divisa {
+  inline-size: 1px;
+  block-size: 22px;
+  margin-inline: var(--vx-space-03);
+  background: var(--vx-hairline-10);
+}
+
+.desligar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  block-size: 40px;
+  padding-inline: var(--vx-space-18);
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-danger);
+  color: var(--vx-on-danger);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.desligar:hover {
+  background: color-mix(in oklab, var(--vx-danger) 88%, #fff);
+}
+
+/*
+  Coluna estreita: a barra não cabe inteira (seis alvos de 40 mais o
+  "Desligar" dão ~390px). A conferência sai antes — ela é "estou enquadrado?",
+  e numa coluna de 400px a pergunta é menos urgente que o microfone.
+*/
+@container (inline-size < 440px) {
+  .proprio {
+    display: none;
+  }
+
+  .barra {
+    gap: var(--vx-space-04);
+    padding: var(--vx-space-04);
+  }
+}

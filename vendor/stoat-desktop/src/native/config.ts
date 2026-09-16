@@ -3,6 +3,7 @@ import { type JSONSchema } from "json-schema-typed";
 import { ipcMain } from "electron";
 import Store from "electron-store";
 
+import { aoFecharInicial, type AoFechar } from "./preferenciasDoCliente";
 import { mainWindow } from "./window";
 
 const schema = {
@@ -44,6 +45,23 @@ const schema = {
       } as JSONSchema.Boolean,
     },
   } as JSONSchema.Object,
+
+  /* ---- as da tela Desktop do cliente — ver `preferenciasDoCliente.ts` ---- */
+  iniciarComSistema: { type: "boolean" } as JSONSchema.Boolean,
+  aoFechar: {
+    type: "string",
+    enum: ["bandeja", "encerrar", "perguntar"],
+  } as JSONSchema.String,
+  lembrarJanela: { type: "boolean" } as JSONSchema.Boolean,
+  sempreNoTopoEmChamada: { type: "boolean" } as JSONSchema.Boolean,
+  reduzirEmSegundoPlano: { type: "boolean" } as JSONSchema.Boolean,
+  /** Estado da janela por ARRANJO de monitores — ver `assinaturaDasTelas`. */
+  janelasPorArranjo: { type: "object" } as JSONSchema.Object,
+  /** Jogos já avisados sobre tela cheia exclusiva — ver `telaCheiaModelo.ts`. */
+  jogosAvisadosDeTelaCheia: {
+    type: "array",
+    items: { type: "string" },
+  } as JSONSchema.Array,
 };
 
 const store = new Store({
@@ -62,8 +80,28 @@ const store = new Store({
       height: 0,
       isMaximised: false,
     },
-  } as DesktopConfig,
+    iniciarComSistema: false,
+    /* `aoFechar` fica SEM padrão: quem nunca o gravou herda do
+       `minimiseToTray` — ver `aoFecharInicial`. */
+    lembrarJanela: true,
+    sempreNoTopoEmChamada: false,
+    reduzirEmSegundoPlano: true,
+    janelasPorArranjo: {},
+    jogosAvisadosDeTelaCheia: [],
+  } as Partial<DesktopConfig>,
 });
+
+type Chave = keyof DesktopConfig;
+const bruto = store as never as {
+  get(k: string): unknown;
+  set(k: string, v: unknown): void;
+};
+function ler<K extends Chave>(k: K): DesktopConfig[K] {
+  return bruto.get(k) as DesktopConfig[K];
+}
+function gravar<K extends Chave>(k: K, v: DesktopConfig[K]): void {
+  bruto.set(k, v);
+}
 
 /**
  * Shim for `electron-store` because typings are broken
@@ -181,6 +219,60 @@ class Config {
     ).set("windowState", value);
 
     this.sync();
+  }
+
+  /*
+    As da tela Desktop. ⚠ **Sem `sync()`**: aquele canal alimenta o cliente
+    Solid do upstream, que não conhece estas chaves — e alguns destes setters
+    rodam antes de a janela existir, onde `sync()` derrubaria o main.
+  */
+  get iniciarComSistema() {
+    return ler("iniciarComSistema");
+  }
+  set iniciarComSistema(v: boolean) {
+    gravar("iniciarComSistema", v);
+  }
+
+  get aoFechar(): AoFechar {
+    return aoFecharInicial(ler("aoFechar"), this.minimiseToTray);
+  }
+  set aoFechar(v: AoFechar) {
+    gravar("aoFechar", v);
+  }
+
+  get lembrarJanela() {
+    return ler("lembrarJanela");
+  }
+  set lembrarJanela(v: boolean) {
+    gravar("lembrarJanela", v);
+  }
+
+  get sempreNoTopoEmChamada() {
+    return ler("sempreNoTopoEmChamada");
+  }
+  set sempreNoTopoEmChamada(v: boolean) {
+    gravar("sempreNoTopoEmChamada", v);
+  }
+
+  get reduzirEmSegundoPlano() {
+    return ler("reduzirEmSegundoPlano");
+  }
+  set reduzirEmSegundoPlano(v: boolean) {
+    gravar("reduzirEmSegundoPlano", v);
+  }
+
+  get janelasPorArranjo() {
+    return ler("janelasPorArranjo") ?? {};
+  }
+  set janelasPorArranjo(v: DesktopConfig["janelasPorArranjo"]) {
+    gravar("janelasPorArranjo", v);
+  }
+
+  get jogosAvisadosDeTelaCheia() {
+    return ler("jogosAvisadosDeTelaCheia") ?? [];
+  }
+  set jogosAvisadosDeTelaCheia(v: string[]) {
+    gravar("jogosAvisadosDeTelaCheia", v);
   }
 }
 
