@@ -1,4 +1,4 @@
-import { BrowserWindow, Notification, screen } from "electron";
+import { BrowserWindow, Notification, type Session, screen, session } from "electron";
 import { join } from "node:path";
 
 import { config } from "./config";
@@ -9,6 +9,11 @@ import {
   semArgumentos,
   umDe,
 } from "./registroDeIpc";
+import {
+  PARTICAO_DO_OVERLAY,
+  protegerConteudoDoOverlay,
+  protegerSessaoDoOverlay,
+} from "./privilegioModelo";
 import { lerTelaCheia } from "./telaCheia";
 import { decidir, nomeParaMostrar, registrarAvisado } from "./telaCheiaModelo";
 import { BUILD_URL, mainWindow } from "./window";
@@ -61,6 +66,21 @@ function vivo(w: BrowserWindow | undefined): w is BrowserWindow {
   return w !== undefined && !w.isDestroyed();
 }
 
+let sessaoProtegida: Session | undefined;
+
+/**
+ * A sessão do overlay, protegida ANTES da primeira requisição — ver
+ * `privilegioModelo.ts`. Uma só por execução: `fromPartition` devolve a mesma
+ * sessão, e registrar os handlers de novo a cada janela seria trabalho à toa.
+ */
+function sessaoDoOverlay(): Session {
+  if (!sessaoProtegida) {
+    sessaoProtegida = session.fromPartition(PARTICAO_DO_OVERLAY);
+    protegerSessaoDoOverlay(sessaoProtegida, () => BUILD_URL.origin);
+  }
+  return sessaoProtegida;
+}
+
 function criar(): BrowserWindow {
   const w = new BrowserWindow({
     show: false,
@@ -85,6 +105,9 @@ function criar(): BrowserWindow {
         ver `registroDeIpc.ts` —, mas a ponte que não existe é a que não vaza.
       */
       preload: join(__dirname, "preloadDoOverlay.js"),
+      /* Sessão própria, só em memória, sem rede além dos assets e sem
+         permissão nenhuma — ver `privilegioModelo.ts`. */
+      session: sessaoDoOverlay(),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -96,6 +119,9 @@ function criar(): BrowserWindow {
   w.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   w.setIgnoreMouseEvents(true, { forward: true });
   w.setMenu(null);
+  /* Depois do construtor: o `web-contents-created` de `main.ts` já pôs a
+     regra da principal (abrir link no navegador), e esta a substitui. */
+  protegerConteudoDoOverlay(w.webContents);
   void w.loadURL(new URL("/overlay", BUILD_URL).toString());
   /* Clicou fora (voltou ao jogo): trava de novo. */
   w.on("blur", () => definirInteracao(false));
