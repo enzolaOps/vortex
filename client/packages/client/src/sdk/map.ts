@@ -753,6 +753,11 @@ export function toMemberSnapshot(
     ? [...membro.orderedRoles].reverse().map((c) => c.id)
     : [];
 
+  /* O mais alto com ícone — `iconRole` do SDK. A URL sai vazia sem servidor
+     de mídia configurado, e vazio vira ausência pela mesma razão de `cor`. */
+  const cargoDoIcone = membro?.iconRole ?? undefined;
+  const iconeDeCargoUrl = cargoDoIcone?.icon?.createFileURL() || undefined;
+
   /*
     ⚠ **Hierarquia, e o default de "não sei" é NÃO PODE.**
 
@@ -792,6 +797,8 @@ export function toMemberSnapshot(
     cor,
     cargo,
     cargosIds,
+    iconeDeCargoUrl,
+    iconeDeCargoNome: iconeDeCargoUrl === undefined ? undefined : cargoDoIcone?.name,
     abaixoDeMim,
     silenciadoAte,
     entrouEm: entrouEmMs === undefined ? undefined : DATA_CURTA.format(entrouEmMs),

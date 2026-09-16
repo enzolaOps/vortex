@@ -50,6 +50,20 @@ function comoObjeto(e: unknown): unknown {
   }
 }
 
+/**
+ * Quanto o servidor mandou esperar, em ms — ou `undefined` se não mandou.
+ *
+ * Lê a mesma assinatura de 429 que `motivoDoErro` lê (`retry_after`, com o
+ * corpo em texto ou objeto), e existe para quem REPETE: a execução em lote de
+ * cargos espera exatamente o que foi pedido em vez de chutar um intervalo.
+ * Um lugar só para as duas leituras, senão elas divergem na primeira vez que o
+ * formato do corpo mudar.
+ */
+export function esperaDoLimite(e: unknown): number | undefined {
+  const espera = (comoObjeto(e) as { retry_after?: unknown } | null)?.retry_after;
+  return typeof espera === "number" && espera > 0 ? espera : undefined;
+}
+
 /** As respostas que valem uma frase própria. */
 const POR_TIPO: Record<string, string> = {
   /* --------------------------------------------------------------- entrada */
@@ -187,8 +201,8 @@ export function motivoDoErro(e: unknown): string {
     que renova o limite. O servidor já mandou quanto falta; repeti-lo é a
     diferença entre um aviso e uma instrução.
   */
-  const espera = (corpo as { retry_after?: unknown } | null)?.retry_after;
-  if (typeof espera === "number" && espera > 0) {
+  const espera = esperaDoLimite(corpo);
+  if (espera !== undefined) {
     const seg = Math.max(1, Math.ceil(espera / 1000));
     return `Tentativas demais. Espere ${String(seg)} segundo${seg === 1 ? "" : "s"}.`;
   }
