@@ -8,13 +8,22 @@ import { SeletorDeCor } from "../components/ui/SeletorDeCor";
 import {
   apagarCargo,
   criarCargo,
+  lerPermissoesPadrao,
+  meuAlcance,
+  pessoasDoServidor,
   reordenarCargos,
   listarCargos,
   PERMISSOES,
   salvarCargo,
   salvarPermissoes,
+  salvarPermissoesPadrao,
+  type Alcance,
   type Cargo,
+  type PessoaParaCargo,
 } from "../sdk/cargos";
+import { IconeDoCargo } from "./IconeDoCargo";
+import { IconeDeCargo } from "../membros/IconeDeCargo";
+import { MembrosDoCargo } from "./MembrosDoCargo";
 import css from "./Secao.module.css";
 import cargoCss from "./Cargos.module.css";
 import { CaretRight } from "../components/ui/icones";
@@ -32,8 +41,6 @@ import {
   type PinturaDeCargo,
 } from "../tema/cargo";
 import { propsDoNome } from "../membros/pinturaDoNome";
-import { chaveDeMembro } from "../sdk/domain";
-import { members } from "../sdk/adapter";
 import { LinhaDeAjuste } from "./Pagina";
 import { LinksDoCargo } from "./LinksDoCargo";
 import { Abas } from "../components/ui/Abas";
@@ -126,6 +133,16 @@ function LinhaDeCargo({
   );
 }
 
+/**
+ * A seleção do `@everyone` na coluna.
+ *
+ * Um valor fora do espaço de IDs de cargo — eles são ULID, e `@` não é
+ * caractere de ULID —, então a mesma `useState` escolhe entre "um cargo" e
+ * "as permissões padrão" sem um segundo estado que precise concordar com o
+ * primeiro.
+ */
+const EVERYONE = "@everyone";
+
 export function Cargos({ serverId }: { serverId: string }) {
   const membrosDoServidor = useMembrosDoServidor(serverId);
   const [lista, setLista] = useState<readonly Cargo[] | undefined>(undefined);
@@ -139,7 +156,10 @@ export function Cargos({ serverId }: { serverId: string }) {
     void listarCargos(serverId).then((l) => {
       setLista(l);
       // Mantém a seleção se o cargo ainda existir; senão cai no primeiro.
-      setSelecionado((s) => (s && l.some((c) => c.id === s) ? s : l[0]?.id));
+      // O `@everyone` não é cargo da lista e não "deixa de existir".
+      setSelecionado((s) =>
+        s === EVERYONE || (s && l.some((c) => c.id === s)) ? s : l[0]?.id,
+      );
     });
   }
 
@@ -165,26 +185,49 @@ export function Cargos({ serverId }: { serverId: string }) {
     vazio o componente sai cedo, e o `useMemo` deixaria de existir naquele
     render.
 
-    ⚠ **Lido com `getSnapshot` e não com um hook por membro.** Um
-    `useMembro` por pessoa assinaria a member list inteira dentro de uma tela
-    de configuração — num servidor de dez mil, dez mil subscrições para
-    desenhar três números.
+    ⚠ **Lido do SDK e não com um hook por membro.** Um `useMembro` por pessoa
+    assinaria a member list inteira dentro de uma tela de configuração — num
+    servidor de dez mil, dez mil subscrições para desenhar três números.
 
-    ⚠ **A consequência é dita: a contagem NÃO acompanha ao vivo.** Se alguém
-    ganhar um cargo com esta tela aberta, o número só muda ao reabrir. É a
-    mesma decisão de "ordenar quando é observável" — a página é aberta
-    deliberadamente, e a alternativa custa a subscrição de todo mundo.
+    ⚠ **Era `members.getSnapshot` e passou a ser `pessoasDoServidor`**, a mesma
+    fonte da aba "Gerenciar membros". Com as duas lendo de lugares diferentes,
+    o número da coluna e o do cabeçalho da aba discordavam — e o snapshot só
+    existe para quem alguém assinou, então a coluna contava menos do que havia.
+
+    ⚠ **A contagem NÃO acompanha mudança feita por OUTRA pessoa** com a tela
+    aberta. As feitas daqui avisam por `versaoDeMembros`, que é o único motivo
+    de ela estar entre as dependências.
   */
+  /*
+    ⚠ **A releitura depois de uma escrita chega como ESTADO, e não como um
+    contador de versão numa dependência.** A primeira versão fazia
+    `useMemo(() => pessoasDoServidor(serverId), [serverId, versao])`, e o React
+    Compiler memoiza pelo que o corpo USA: `pessoasDoServidor(serverId)` com o
+    mesmo `serverId` saía do cache, a versão era ignorada, e a aba adicionava
+    três pessoas enquanto a coluna seguia dizendo 1. Medido no navegador.
+    Função externa com os mesmos argumentos é, para o compilador, o mesmo
+    resultado — a mudança precisa entrar como dado.
+  */
+  const [relidas, setRelidas] = useState<
+    { ids: readonly string[]; pessoas: readonly PessoaParaCargo[] } | undefined
+  >(undefined);
+  /* A releitura vale enquanto a lista de membros for a mesma de quando ela foi
+     feita; hidratar ou entrar alguém troca a lista e a leitura volta a ser a
+     do render. */
+  const pessoas =
+    relidas?.ids === membrosDoServidor
+      ? relidas.pessoas
+      : pessoasDoServidor(serverId, membrosDoServidor);
   const contagens = useMemo(() => {
     const m = new Map<string, number>();
-    for (const userId of membrosDoServidor) {
-      const snap = members.getSnapshot(chaveDeMembro(serverId, userId));
-      for (const id of snap?.cargosIds ?? []) {
+    for (const p of pessoas) {
+      for (const id of p.cargosIds) {
         m.set(id, (m.get(id) ?? 0) + 1);
       }
     }
     return m;
-  }, [membrosDoServidor, serverId]);
+  }, [pessoas]);
+  const totalDeMembros = pessoas.length;
 
   if (!serverId) {
     return <p className={css.recado}>Abra um servidor para ver isto.</p>;
@@ -202,6 +245,7 @@ export function Cargos({ serverId }: { serverId: string }) {
   */
   const cargos = lista;
   const cargo = cargos.find((c) => c.id === selecionado);
+  const alcance = meuAlcance(serverId);
 
   /*
     O filtro é do CLIENTE: a lista inteira já veio numa chamada, e uma volta
@@ -342,7 +386,10 @@ export function Cargos({ serverId }: { serverId: string }) {
           <button
             type="button"
             className={cargoCss.everyone}
-            onClick={aindaNao("permissoesPadrao")}
+            aria-current={selecionado === EVERYONE}
+            onClick={() => {
+              setSelecionado(EVERYONE);
+            }}
           >
             <span className={cargoCss.bolinha} aria-hidden />
             <span className={cargoCss.everyoneTextos}>
@@ -410,13 +457,24 @@ export function Cargos({ serverId }: { serverId: string }) {
         </div>
       </div>
 
-      {cargo ? (
+      {selecionado === EVERYONE ? (
+        <EditorDePermissoesPadrao
+          key={`${serverId}:everyone`}
+          serverId={serverId}
+          podeEditar={alcance.podeEditarPermissoes}
+          total={totalDeMembros}
+        />
+      ) : cargo ? (
         <EditorDeCargo
           key={cargo.id}
           serverId={serverId}
           cargo={cargo}
+          alcance={alcance}
           contagem={contagens.get(cargo.id) ?? 0}
           aoMudar={recarregar}
+          aoMudarMembros={(novas) => {
+            setRelidas({ ids: membrosDoServidor, pessoas: novas });
+          }}
         />
       ) : null}
     </div>
@@ -492,13 +550,18 @@ type EstiloDeCargo = (typeof ESTILOS)[number]["id"];
 function EditorDeCargo({
   serverId,
   cargo,
+  alcance,
   contagem,
   aoMudar,
+  aoMudarMembros,
 }: {
   serverId: string;
   cargo: Cargo;
+  alcance: Alcance;
   contagem: number;
   aoMudar: () => void;
+  /** A aba de membros escreveu — a coluna recontará a partir destas. */
+  aoMudarMembros: (pessoas: readonly PessoaParaCargo[]) => void;
 }) {
   const [aba, setAba] = useState<AbaDoCargo>("exibicao");
   const [nome, setNome] = useState(cargo.nome);
@@ -524,8 +587,8 @@ function EditorDeCargo({
     salvo && salvo.direcao !== "" ? "gradiente" : "solido",
   );
   const [destacado, setDestacado] = useState(cargo.destacado);
+  const [mencionavel, setMencionavel] = useState(cargo.mencionavel);
   const [marcadas, setMarcadas] = useState<readonly string[]>(cargo.concedidas);
-  const [buscaDePermissao, setBuscaDePermissao] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
 
@@ -544,26 +607,6 @@ function EditorDeCargo({
   // A faixa do cartão "Gradiente" mostra o gradiente da cor ATUAL mesmo com
   // "Sólido" marcado — é prévia da escolha, como a faixa do cartão sólido.
   const faixaGradiente = usePinturaDeCargo(gradienteParaGravar(cor, fim));
-
-  function alternar(id: string) {
-    setMarcadas((m) => (m.includes(id) ? m.filter((x) => x !== id) : [...m, id]));
-  }
-
-  /*
-    O filtro da matriz varre rótulo E consequência: quem procura "banir" pode
-    estar atrás da permissão ou do efeito dela, e olhar só o nome devolveria
-    vazio para metade das buscas honestas.
-  */
-  const termoP = buscaDePermissao.trim().toLowerCase();
-  const gruposVisiveis = PERMISSOES.map((g) => ({
-    ...g,
-    itens: g.itens.filter(
-      (perm) =>
-        termoP === "" ||
-        perm.rotulo.toLowerCase().includes(termoP) ||
-        perm.detalhe.toLowerCase().includes(termoP),
-    ),
-  })).filter((g) => g.itens.length > 0);
 
   return (
     <div className={cargoCss.editor}>
@@ -721,18 +764,12 @@ function EditorDeCargo({
               </div>
             </div>
 
-            <div>
-              <p className={cargoCss.sobrancelha}>Ícone do cargo</p>
-              <div className={cargoCss.icone}>
-                <span aria-hidden className={cargoCss.iconeVazio} />
-                <Botao variante="neutro" onClick={aindaNao("iconeDeCargo")}>
-                  Enviar imagem
-                </Botao>
-                <Botao variante="sutil" onClick={aindaNao("iconeDeCargo")}>
-                  Usar emoji
-                </Botao>
-              </div>
-            </div>
+            <IconeDoCargo
+              serverId={serverId}
+              cargo={cargo}
+              podeEditar={alcance.podeEditarCargos && cargo.rank > alcance.topo}
+              aoMudar={aoMudar}
+            />
 
             <div className={cargoCss.alternadores}>
               <LinhaDeAjuste
@@ -750,18 +787,14 @@ function EditorDeCargo({
                 detalhe={`Qualquer membro pode usar @${nome}.`}
               >
                 {/*
-                  ⚠ Pendente, e o interruptor mostra o estado VERDADEIRO: o
-                  protocolo não tem `mentionable`, e hoje qualquer cargo pode
-                  ser mencionado. Nascer desligado afirmaria o contrário do
-                  que o servidor faz — a regra que Acesso e Segurança já
-                  registram.
+                  `mentionable` do servidor do Vortex. Desligado não impede
+                  quem TEM "Mencionar cargos" — é a permissão que decide para
+                  quem modera; isto abre a menção para todo o resto.
                 */}
                 <Interruptor
                   rotulo="Permitir menção"
-                  ligado
-                  aoAlternar={() => {
-                    aindaNao("mencionarCargo")();
-                  }}
+                  ligado={mencionavel}
+                  aoAlternar={setMencionavel}
                 />
               </LinhaDeAjuste>
             </div>
@@ -782,11 +815,18 @@ function EditorDeCargo({
                 <div className={cargoCss.previaMembro}>
                   <Avatar id="previa-cargo" sigla="M" />
                   <span className={cargoCss.previaTextos}>
-                    <span
-                      className={cargoCss.previaNome}
-                      {...propsDoNome(pintura)}
-                    >
-                      Marina Alcântara
+                    {/* O ícone entra na prévia como entra na member list —
+                        irmão do nome, pela mesma razão do recorte. */}
+                    <span className={cargoCss.previaLinhaDoNome}>
+                      <span
+                        className={cargoCss.previaNome}
+                        {...propsDoNome(pintura)}
+                      >
+                        Marina Alcântara
+                      </span>
+                      {cargo.iconeUrl ? (
+                        <IconeDeCargo url={cargo.iconeUrl} nome={nome} />
+                      ) : null}
                     </span>
                     <span className={cargoCss.previaRecado}>no deep work</span>
                   </span>
@@ -814,88 +854,15 @@ function EditorDeCargo({
           </aside>
         </div>
       ) : aba === "permissoes" ? (
-        <div className={cargoCss.permissoesAba}>
-          <div className={cargoCss.barraDePermissoes}>
-            <CampoDeBusca
-              aria-label="Buscar permissão"
-              placeholder="Buscar permissão"
-              value={buscaDePermissao}
-              onChange={(e) => {
-                setBuscaDePermissao(e.currentTarget.value);
-              }}
-            />
-            <Botao
-              variante="sutil"
-              disabled={marcadas.length === 0}
-              onClick={() => {
-                setMarcadas([]);
-              }}
-            >
-              Limpar permissões
-            </Botao>
-          </div>
-
-          {/*
-            ⚠ O aviso não é decoração: Administrador IGNORA toda a cadeia de
-            resolução, inclusive negações explícitas de canal. Quem marca sem
-            saber acha que concedeu uma coisa e concedeu todas.
-          */}
-          <Banner tom="aviso" titulo="Administrador concede tudo.">
-            Ativar essa permissão ignora toda a cadeia de resolução, inclusive
-            negações explícitas de canal.
-          </Banner>
-
-          {gruposVisiveis.length === 0 ? (
-            <EstadoVazio
-              compacto
-              titulo="Nenhuma permissão com esse nome"
-              detalhe="Afrouxe a busca."
-            />
-          ) : (
-            gruposVisiveis.map((grupo) => (
-              <fieldset key={grupo.titulo} className={cargoCss.grupo}>
-                <legend className={cargoCss.legenda}>{grupo.titulo}</legend>
-                {grupo.itens.map((perm) => (
-                  <Caixa
-                    key={perm.id}
-                    className={cargoCss.permissao}
-                    marcado={marcadas.includes(perm.id)}
-                    disabled={salvando}
-                    aoAlternar={() => {
-                      alternar(perm.id);
-                    }}
-                  >
-                    <span className={cargoCss.textoDaPermissao}>
-                      <span className={cargoCss.rotulo}>{perm.rotulo}</span>
-                      <span className={css.detalhe}>{perm.detalhe}</span>
-                    </span>
-                  </Caixa>
-                ))}
-              </fieldset>
-            ))
-          )}
-        </div>
+        <MatrizDePermissoes
+          marcadas={marcadas}
+          aoMudar={setMarcadas}
+          desabilitada={salvando || !alcance.podeEditarPermissoes}
+        />
       ) : aba === "links" ? (
         <LinksDoCargo serverId={serverId} roleId={cargo.id} nome={nome} />
       ) : (
-        <div className={cargoCss.abaSimples}>
-          <Banner
-            tom="aviso"
-            acoes={
-              <Botao variante="neutro" onClick={aindaNao("gerenciarMembrosDoCargo")}>
-                O que falta
-              </Botao>
-            }
-          >
-            Dar e tirar este cargo de alguém já funciona, pelo menu da member
-            list. O que falta é fazer o mesmo em lote a partir daqui.
-          </Banner>
-
-          <p className={css.detalhe}>
-            {contagem} {contagem === 1 ? "pessoa tem" : "pessoas têm"}{" "}
-            <strong>{nome}</strong>.
-          </p>
-        </div>
+        <MembrosDoCargo serverId={serverId} cargo={cargo} aoMudar={aoMudarMembros} />
       )}
 
       <div className={css.acoes}>
@@ -915,8 +882,16 @@ function EditorDeCargo({
               nome.trim(),
               bruta,
               destacado,
+              mencionavel,
             )
-              .then(() => salvarPermissoes(serverId, cargo.id, marcadas))
+              /* Sem `ManagePermissions` a matriz é só leitura, e mandá-la
+                 mesmo assim trocaria um salvar bem-sucedido por um toast de
+                 recusa sobre algo que a pessoa nem podia ter mudado. */
+              .then((ok) =>
+                ok && alcance.podeEditarPermissoes
+                  ? salvarPermissoes(serverId, cargo.id, marcadas)
+                  : ok,
+              )
               .then((ok) => {
                 if (ok) aoMudar();
               })
@@ -953,6 +928,208 @@ function EditorDeCargo({
           </Botao>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * A matriz de permissões — a do cargo e a do `@everyone` são a MESMA peça.
+ *
+ * ⚠ **Extraída no dia em que ganhou o segundo consumidor**, e é o motivo de
+ * existir: as permissões padrão reusam busca, aviso de Administrador, grupos e
+ * caixas exatamente como o editor de cargo. Duas cópias divergiriam na
+ * primeira permissão acrescentada a uma e esquecida na outra — as seis cópias
+ * do `Avatar` já contaram essa história.
+ *
+ * Controlada: quem chama guarda o rascunho e decide quando gravar.
+ */
+function MatrizDePermissoes({
+  marcadas,
+  aoMudar,
+  desabilitada,
+}: {
+  marcadas: readonly string[];
+  aoMudar: (proximas: readonly string[]) => void;
+  desabilitada: boolean;
+}) {
+  const [busca, setBusca] = useState("");
+
+  /*
+    O filtro da matriz varre rótulo E consequência: quem procura "banir" pode
+    estar atrás da permissão ou do efeito dela, e olhar só o nome devolveria
+    vazio para metade das buscas honestas.
+  */
+  const termo = busca.trim().toLowerCase();
+  const gruposVisiveis = PERMISSOES.map((g) => ({
+    ...g,
+    itens: g.itens.filter(
+      (perm) =>
+        termo === "" ||
+        perm.rotulo.toLowerCase().includes(termo) ||
+        perm.detalhe.toLowerCase().includes(termo),
+    ),
+  })).filter((g) => g.itens.length > 0);
+
+  return (
+    <div className={cargoCss.permissoesAba}>
+      <div className={cargoCss.barraDePermissoes}>
+        <CampoDeBusca
+          aria-label="Buscar permissão"
+          placeholder="Buscar permissão"
+          value={busca}
+          onChange={(e) => {
+            setBusca(e.currentTarget.value);
+          }}
+        />
+        {/* Só com escrita: "Limpar" numa matriz de leitura é um alvo que não
+            pode fazer nada. */}
+        {desabilitada ? null : (
+          <Botao
+            variante="sutil"
+            disabled={marcadas.length === 0}
+            onClick={() => {
+              aoMudar([]);
+            }}
+          >
+            Limpar permissões
+          </Botao>
+        )}
+      </div>
+
+      {/*
+        ⚠ O aviso não é decoração: Administrador IGNORA toda a cadeia de
+        resolução, inclusive negações explícitas de canal. Quem marca sem
+        saber acha que concedeu uma coisa e concedeu todas.
+      */}
+      <Banner tom="aviso" titulo="Administrador concede tudo.">
+        Ativar essa permissão ignora toda a cadeia de resolução, inclusive
+        negações explícitas de canal.
+      </Banner>
+
+      {gruposVisiveis.length === 0 ? (
+        <EstadoVazio
+          compacto
+          titulo="Nenhuma permissão com esse nome"
+          detalhe="Afrouxe a busca."
+        />
+      ) : (
+        gruposVisiveis.map((grupo) => (
+          <fieldset key={grupo.titulo} className={cargoCss.grupo}>
+            <legend className={cargoCss.legenda}>{grupo.titulo}</legend>
+            {grupo.itens.map((perm) => (
+              <Caixa
+                key={perm.id}
+                className={cargoCss.permissao}
+                marcado={marcadas.includes(perm.id)}
+                disabled={desabilitada}
+                aoAlternar={() => {
+                  aoMudar(
+                    marcadas.includes(perm.id)
+                      ? marcadas.filter((x) => x !== perm.id)
+                      : [...marcadas, perm.id],
+                  );
+                }}
+              >
+                <span className={cargoCss.textoDaPermissao}>
+                  <span className={cargoCss.rotulo}>{perm.rotulo}</span>
+                  <span className={css.detalhe}>{perm.detalhe}</span>
+                </span>
+              </Caixa>
+            ))}
+          </fieldset>
+        ))
+      )}
+    </div>
+  );
+}
+
+/**
+ * As permissões padrão — o que TODO membro pode antes de qualquer cargo.
+ *
+ * ⚠ **Sem as abas do editor de cargo, e a ausência é o protocolo.** O
+ * `@everyone` não tem nome, cor, ícone, link nem lista de membros: é o campo
+ * `default_permissions` do servidor, um número só. Exibição, Links e Gerenciar
+ * membros seriam três abas de controles sem destino.
+ *
+ * ⚠ **A referência não desenha este editor** — só o botão tracejado que o
+ * abre. Cabeçalho, matriz e barra de salvar são os do editor de cargo, para o
+ * mesmo gesto dar na mesma tela.
+ */
+function EditorDePermissoesPadrao({
+  serverId,
+  podeEditar,
+  total,
+}: {
+  serverId: string;
+  podeEditar: boolean;
+  total: number;
+}) {
+  const [salvas, setSalvas] = useState(() => lerPermissoesPadrao(serverId));
+  const [marcadas, setMarcadas] = useState<readonly string[]>(salvas);
+  const [salvando, setSalvando] = useState(false);
+
+  const mudou =
+    marcadas.length !== salvas.length || marcadas.some((id) => !salvas.includes(id));
+
+  return (
+    <div className={cargoCss.editor}>
+      <header className={cargoCss.cabecalhoDoEditor}>
+        <span aria-hidden className={cargoCss.pontoDoEditor} />
+        <h2 className={cargoCss.tituloDoEditor}>Permissões padrão — @everyone</h2>
+        <span className={cargoCss.membrosDoCargo}>
+          {total} {total === 1 ? "membro" : "membros"}
+        </span>
+      </header>
+
+      <p className={css.detalhe}>
+        Valem para todo mundo no servidor, antes de qualquer cargo. Um cargo só
+        soma a elas; tirar algo de alguém é sobreposição de canal.
+      </p>
+
+      {podeEditar ? null : (
+        <Banner tom="info">
+          Você não tem permissão para mudar as permissões deste servidor. Esta
+          é a lista do que todo membro pode hoje.
+        </Banner>
+      )}
+
+      <MatrizDePermissoes
+        marcadas={marcadas}
+        aoMudar={setMarcadas}
+        desabilitada={salvando || !podeEditar}
+      />
+
+      {podeEditar ? (
+        <div className={css.acoes}>
+          <Botao
+            variante="primario"
+            disabled={!mudou}
+            carregando={salvando}
+            rotuloCarregando="Salvando…"
+            onClick={() => {
+              setSalvando(true);
+              void salvarPermissoesPadrao(serverId, marcadas)
+                .then((ok) => {
+                  if (ok) setSalvas(marcadas);
+                })
+                .finally(() => setSalvando(false));
+            }}
+          >
+            Salvar permissões
+          </Botao>
+          {mudou ? (
+            <Botao
+              variante="sutil"
+              disabled={salvando}
+              onClick={() => {
+                setMarcadas(salvas);
+              }}
+            >
+              Descartar
+            </Botao>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

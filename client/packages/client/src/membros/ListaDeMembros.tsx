@@ -40,6 +40,7 @@ import {
 } from "../store/hooks";
 import css from "./ListaDeMembros.module.css";
 import { propsDoNome } from "./pinturaDoNome";
+import { IconeDeCargo } from "./IconeDeCargo";
 
 /**
  * Alturas estimadas, por TIPO de linha.
@@ -194,6 +195,12 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
           Esta é uma das DUAS superfícies onde o gradiente entra (a outra é a
           pílula); no autor da mensagem ele vira a primeira parada.
         */}
+        {/*
+          O ícone de cargo é IRMÃO do nome e não filho: o nome recorta com
+          reticências e pode pintar texto em gradiente, e uma imagem dentro dele
+          seria cortada junto — ou somiria atrás do `background-clip`. Na
+          linha de fora, o nome encolhe e o ícone fica.
+        */}
         <span className={css.linhaDoNome}>
           <span className={css.nome} {...propsDoNome(pintura)}>
             {membro.displayName}
@@ -201,6 +208,9 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
           {/* A tag do servidor, se a pessoa a exibe — assina sozinha, então
               ligar a tag não republica o membro. */}
           <TagDoServidor userId={id} />
+          {membro.iconeDeCargoUrl ? (
+            <IconeDeCargo url={membro.iconeDeCargoUrl} nome={membro.iconeDeCargoNome} />
+          ) : null}
         </span>
 
         {membro.statusTexto ? (

@@ -68,6 +68,8 @@ pub async fn search(
         after,
         sort,
         include_users,
+        author,
+        has,
     } = options;
 
     Message::fetch_with_users(
@@ -77,6 +79,8 @@ pub async fn search(
                 channels: Some(readable),
                 query,
                 pinned,
+                author,
+                has,
                 ..Default::default()
             },
             time_period: MessageTimePeriod::Absolute {

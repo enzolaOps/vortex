@@ -139,8 +139,9 @@
   texto em vez de uma lista de PESSOAS. Num painel onde cada linha é um nome
   próprio, o nome é o conteúdo, não o rótulo de algo.
 */
-/* Nome e tag do servidor na mesma linha — a tag é `flex: none`, então quem
-   encolhe com reticências é o nome. Gap 8 é o da referência (`gap-2`). */
+/* Nome, tag do servidor e ícone de cargo na mesma linha — tag e ícone não
+   encolhem, então quem corta com reticências é o nome. Gap 8 é o da
+   referência (`gap-2`). */
 .linhaDoNome {
   min-inline-size: 0;
   display: flex;

@@ -40,6 +40,23 @@ import { client } from "../sdk/client";
 const ulidEm = (ms: number) => ulid(ms);
 
 const AGORA = Date.now();
+
+/**
+ * As mensagens das DMs de desconhecido que o firehose semeia, pela rota que
+ * `fetchMessage` chama. Registradas por `semearConversas`, servidas pelo
+ * envelope abaixo.
+ */
+const PREVIAS = new Map<string, unknown>();
+
+export function registrarPreviaDublada(
+  channelId: string,
+  mensagem: { readonly _id: string; readonly author: string; readonly content: string },
+): void {
+  PREVIAS.set(`/channels/${channelId}/messages/${mensagem._id}`, {
+    ...mensagem,
+    channel: channelId,
+  });
+}
 const HORA = 3_600_000;
 
 /**
@@ -131,6 +148,26 @@ export function dublarRedeDoServidor(
   (api as unknown as { __dublado?: boolean }).__dublado = true;
 
   api.get = (rota: string, ...resto: unknown[]) => {
+    /*
+      ⚠ **Em comum e prévia de solicitação, e as duas são REDE.** Sem elas as
+      abas do perfil e a fila de desconhecidos só apareciam no estado de erro.
+      Servidores: o do arnês. Amigos: um em cada três ids, que é outra
+      distribuição que a das relações — uma lista igual à de amigos não prova
+      que a interseção veio da resposta e não do cache.
+    */
+    if (rota.endsWith("/mutual")) {
+      const alvoId = rota.split("/")[2] ?? "";
+      const n = alvoId.charCodeAt(alvoId.length - 1) % 4;
+      return Promise.resolve({
+        servers: n === 0 ? [] : [serverId],
+        users: userIds
+          .filter((id, i) => i > 0 && id !== alvoId && i % 3 === n % 3)
+          .slice(0, n + 1),
+        channels: [],
+      });
+    }
+    const previa = PREVIAS.get(rota);
+    if (previa !== undefined) return Promise.resolve(previa);
     if (!rota.endsWith("/audit_logs")) return original(rota, ...resto);
     return Promise.resolve({
       users: userIds.slice(0, 3).map((id, i) => ({

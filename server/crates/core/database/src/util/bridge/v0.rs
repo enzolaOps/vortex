@@ -234,6 +234,8 @@ impl From<crate::Channel> for Channel {
                 nsfw,
                 voice,
                 slowmode,
+                spoiler,
+                invites_paused,
             } => Channel::TextChannel {
                 id,
                 server,
@@ -246,6 +248,8 @@ impl From<crate::Channel> for Channel {
                 nsfw,
                 voice: voice.map(|voice| voice.into()),
                 slowmode,
+                spoiler,
+                invites_paused,
             },
         }
     }
@@ -300,6 +304,8 @@ impl From<Channel> for crate::Channel {
                 nsfw,
                 voice,
                 slowmode,
+                spoiler,
+                invites_paused,
             } => crate::Channel::TextChannel {
                 id,
                 server,
@@ -312,6 +318,8 @@ impl From<Channel> for crate::Channel {
                 nsfw,
                 voice: voice.map(|voice| voice.into()),
                 slowmode,
+                spoiler,
+                invites_paused,
             },
         }
     }
@@ -332,6 +340,8 @@ impl From<crate::PartialChannel> for PartialChannel {
             last_message_id: value.last_message_id,
             voice: value.voice.map(|voice| voice.into()),
             slowmode: value.slowmode,
+            spoiler: value.spoiler,
+            invites_paused: value.invites_paused,
         }
     }
 }
@@ -351,6 +361,8 @@ impl From<PartialChannel> for crate::PartialChannel {
             last_message_id: value.last_message_id,
             voice: value.voice.map(|voice| voice.into()),
             slowmode: value.slowmode,
+            spoiler: value.spoiler,
+            invites_paused: value.invites_paused,
         }
     }
 }
@@ -1002,6 +1014,7 @@ impl From<crate::Role> for Role {
             hoist: value.hoist,
             rank: value.rank,
             icon: value.icon.map(|f| f.into()),
+            mentionable: value.mentionable,
         }
     }
 }
@@ -1016,6 +1029,7 @@ impl From<Role> for crate::Role {
             hoist: value.hoist,
             rank: value.rank,
             icon: value.icon.map(|f| f.into()),
+            mentionable: value.mentionable,
         }
     }
 }
@@ -1030,6 +1044,7 @@ impl From<crate::PartialRole> for PartialRole {
             hoist: value.hoist,
             rank: value.rank,
             icon: value.icon.map(|f| f.into()),
+            mentionable: value.mentionable,
         }
     }
 }
@@ -1044,6 +1059,7 @@ impl From<PartialRole> for crate::PartialRole {
             hoist: value.hoist,
             rank: value.rank,
             icon: value.icon.map(|f| f.into()),
+            mentionable: value.mentionable,
         }
     }
 }

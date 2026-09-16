@@ -14,6 +14,7 @@ mod message_bulk_delete;
 mod message_clear_reactions;
 mod message_delete;
 mod message_edit;
+mod message_embeds_remove;
 mod message_fetch;
 mod message_pin;
 mod message_query;
@@ -44,6 +45,7 @@ pub fn routes() -> (Vec<Route>, OpenApi) {
         message_pin::message_pin,
         message_fetch::fetch,
         message_edit::edit,
+        message_embeds_remove::remove_embeds,
         message_bulk_delete::bulk_delete_messages,
         message_delete::delete,
         message_unpin::message_unpin,

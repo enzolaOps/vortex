@@ -104,6 +104,9 @@ auto_derived_partial!(
         /// Custom icon attachment
         #[serde(skip_serializing_if = "Option::is_none")]
         pub icon: Option<File>,
+        /// Vortex: whether members without `MentionRoles` may mention this role
+        #[serde(skip_serializing_if = "crate::if_false", default)]
+        pub mentionable: bool,
     },
     "PartialRole"
 );
@@ -393,6 +396,7 @@ impl Role {
             hoist: Some(self.hoist),
             rank: Some(self.rank),
             icon: self.icon,
+            mentionable: Some(self.mentionable),
         }
     }
 
@@ -407,6 +411,7 @@ impl Role {
             hoist: false,
             permissions: Default::default(),
             icon: None,
+            mentionable: false,
         };
 
         db.insert_role(&server.id, &role).await?;
@@ -473,6 +478,7 @@ impl Role {
                 hoist,
                 rank,
                 (FieldsRole::Icon) icon,
+                mentionable,
             )
         );
 

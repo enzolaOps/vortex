@@ -44,6 +44,7 @@ import { NOMES_POR_REACAO } from "./domain";
 import type { Enquete } from "../store/enquetes";
 import { formatarBytes } from "../lib/bytes";
 import { sigla } from "../lib/sigla";
+import { camposDe, superficie } from "./superficieVortex";
 
 /**
  * `reactions` chega como ReactiveMap<emoji, ReactiveSet<userId>>. Achatar aqui
@@ -591,6 +592,9 @@ export function toChannelSnapshot(
       são os do domínio.
     */
     modoLento: channel.slowmode,
+    /* Lidos do evento CRU — o SDK os descarta. Ver `superficieVortex.ts`. */
+    spoiler: camposDe(superficie, channel.id).spoiler,
+    convitesPausados: camposDe(superficie, channel.id).convitesPausados,
   };
 }
 
@@ -623,6 +627,11 @@ const RELACAO: Record<string, Relacao> = {
   BlockedOther: "bloqueadoPor",
 };
 
+/** A relação crua do protocolo → a do produto. Ver `RELACAO`. */
+export function relacaoDoProtocolo(bruta: string): Relacao {
+  return RELACAO[bruta] ?? "nenhuma";
+}
+
 export function toRelacaoSnapshot(user: User): RelacaoSnapshot {
   const displayName = user.displayName || user.username;
   return {
@@ -631,7 +640,7 @@ export function toRelacaoSnapshot(user: User): RelacaoSnapshot {
     sigla: sigla(displayName),
     avatarUrl: urlDeAvatar(user),
     username: user.username,
-    relacao: RELACAO[user.relationship] ?? "nenhuma",
+    relacao: relacaoDoProtocolo(user.relationship),
     status: toPresence(user.status?.presence),
   };
 }
@@ -748,6 +757,11 @@ export function toMemberSnapshot(
     ? [...membro.orderedRoles].reverse().map((c) => c.id)
     : [];
 
+  /* O mais alto com ícone — `iconRole` do SDK. A URL sai vazia sem servidor
+     de mídia configurado, e vazio vira ausência pela mesma razão de `cor`. */
+  const cargoDoIcone = membro?.iconRole ?? undefined;
+  const iconeDeCargoUrl = cargoDoIcone?.icon?.createFileURL() || undefined;
+
   /*
     ⚠ **Hierarquia, e o default de "não sei" é NÃO PODE.**
 
@@ -787,6 +801,8 @@ export function toMemberSnapshot(
     cor,
     cargo,
     cargosIds,
+    iconeDeCargoUrl,
+    iconeDeCargoNome: iconeDeCargoUrl === undefined ? undefined : cargoDoIcone?.name,
     abaixoDeMim,
     silenciadoAte,
     entrouEm: entrouEmMs === undefined ? undefined : DATA_CURTA.format(entrouEmMs),

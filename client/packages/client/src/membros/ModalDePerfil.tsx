@@ -5,7 +5,6 @@ import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { Interruptor } from "../components/ui/Interruptor";
 import { Phone, X } from "../components/ui/icones";
 import { gradienteDe } from "../lib/gradiente";
-import { aindaNao } from "../pendente/pendencias";
 import { entrarNaChamada } from "../sdk/chamada";
 import { abrirConversaCom } from "../sdk/social";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
@@ -22,6 +21,7 @@ import {
   estaSilenciado,
   lerNota,
 } from "../store/sobrePessoas";
+import { AmigosEmComum, ServidoresEmComum, useEmComum } from "./EmComum";
 import { PilulasDeCargo } from "./PilulasDeCargo";
 import { TagDoServidor } from "../presenca/TagDoServidor";
 import css from "./ModalDePerfil.module.css";
@@ -92,6 +92,13 @@ function Conteudo({
     () => estaSilenciado(userId),
   );
   const [aba, setAba] = useState<Aba>("sobre");
+  /*
+    Buscada na ABERTURA do perfil e não na troca de aba: as duas abas de "em
+    comum" saem da mesma rota, e quem alterna entre elas não pediu duas
+    consultas. Também não espera o clique — o perfil é aberto para conhecer
+    alguém, e as abas estão a um gesto de distância.
+  */
+  const emComum = useEmComum(userId);
 
   if (!membro) return <p className={css.carregando}>carregando…</p>;
 
@@ -231,22 +238,53 @@ function Conteudo({
               key={id}
               type="button"
               role="tab"
+              id={`aba-perfil-${id}`}
               aria-selected={aba === id}
+              aria-controls="painel-perfil"
+              tabIndex={aba === id ? 0 : -1}
               className={css.aba}
-              onClick={
-                id === "sobre"
-                  ? () => setAba(id)
-                  : id === "servidores"
-                    ? aindaNao("servidoresEmComum")
-                    : aindaNao("amigosEmComum")
-              }
+              onClick={() => setAba(id)}
+              onKeyDown={(e) => {
+                const passo =
+                  e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+                if (passo === 0) return;
+                e.preventDefault();
+                const i = ABAS.indexOf(id);
+                const proxima = ABAS[(i + passo + ABAS.length) % ABAS.length]!;
+                setAba(proxima);
+                document.getElementById(`aba-perfil-${proxima}`)?.focus();
+              }}
             >
               {NOME_DA_ABA[id]}
             </button>
           ))}
         </div>
 
-        <div className={css.colunas}>
+        {aba === "servidores" ? (
+          <div
+            id="painel-perfil"
+            role="tabpanel"
+            aria-labelledby="aba-perfil-servidores"
+            className={css.painelDaAba}
+          >
+            <ServidoresEmComum consulta={emComum} aoAbrir={aoFechar} />
+          </div>
+        ) : aba === "amigos" ? (
+          <div
+            id="painel-perfil"
+            role="tabpanel"
+            aria-labelledby="aba-perfil-amigos"
+            className={css.painelDaAba}
+          >
+            <AmigosEmComum consulta={emComum} />
+          </div>
+        ) : (
+        <div
+          id="painel-perfil"
+          role="tabpanel"
+          aria-labelledby="aba-perfil-sobre"
+          className={css.colunas}
+        >
           <div className={css.secao}>
             <p className={css.rotulo}>Sobre</p>
             {membro.statusTexto ? (
@@ -294,6 +332,7 @@ function Conteudo({
             </p>
           </div>
         </div>
+        )}
       </div>
     </>
   );

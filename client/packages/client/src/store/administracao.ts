@@ -113,6 +113,14 @@ export type Alvo =
    * `DataEditServer` tem `owner?: string | null` — é `PATCH /servers/{id}`.
    */
   | { readonly tipo: "transferirPropriedade"; readonly serverId: string }
+  /*
+    O sino — as regras de notificação do servidor e do canal. Um MODAL para os
+    dois alvos, como criar e editar canal: o canal herda do servidor, e as duas
+    telas precisam concordar sobre o nome de cada nível e sobre o que "herdar"
+    mostra.
+  */
+  | { readonly tipo: "notificacoesDoServidor"; readonly serverId: string }
+  | { readonly tipo: "notificacoesDoCanal"; readonly channelId: string }
   | {
       readonly tipo: "apelido";
       readonly serverId: string;
@@ -180,6 +188,7 @@ const MODAL_DE: Record<
   | "pasta"
   | "perfil"
   | "transferirPropriedade"
+  | "notificacoes"
 > = {
   criarCanal: "canal",
   editarCanal: "canal",
@@ -207,6 +216,8 @@ const MODAL_DE: Record<
      precisa concordar. */
   apagarServidor: "exclusao",
   transferirPropriedade: "transferirPropriedade",
+  notificacoesDoServidor: "notificacoes",
+  notificacoesDoCanal: "notificacoes",
 };
 
 /** Estado limpo entre testes. O módulo é global e sobrevive. */

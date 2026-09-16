@@ -2,6 +2,7 @@ import { decodeTime } from "ulid";
 
 import { client } from "./client";
 import { toast } from "../components/ui/toastStore";
+import { escolherAutor, type TipoDeConteudo } from "../busca/filtros";
 
 /**
  * Busca de mensagens — a camada anticorrupção.
@@ -10,17 +11,18 @@ import { toast } from "../components/ui/toastStore";
  * `limit` e os cursores `before`/`after`. É `POST /channels/{id}/search`, e
  * `stoat.js` o expõe como `Channel.search`.
  *
- * ⚠ **O que ele NÃO tem, e a tela desenha:** filtro por autor (`de:marina`) e
- * por tipo de anexo (`tem:arquivo`). Os dois estão no registro de pendências.
+ * ⚠ **O que o servidor do Vortex acrescenta:** `author` (`de:marina`) e `has`
+ * (`tem:arquivo`). As datas (`antes:`/`depois:`/`durante:`) não precisaram de
+ * campo: viram os cursores `before`/`after`, que já existiam. Filtrar no
+ * CLIENTE seria pior que não ter filtro — a busca devolve uma página, e
+ * filtrar depois esvaziaria páginas inteiras.
  *
  * **Busca no servidor inteiro é do fork** (`POST /servers/{id}/search`, serviço
- * `api` do Vortex): mesmos parâmetros e cursores, e o SERVIDOR tira da consulta
- * os canais que a pessoa não pode ler antes de ir ao banco. Varrer N canais no
- * cliente seriam N chamadas e uma ordenação que nenhuma delas conhece — por
- * isso a rota, e não um laço aqui. Um servidor Stoat de fábrica responde 404,
- * que chega à tela como falha de busca, não como "nada encontrado". Fazer o filtro no cliente seria pior
- * que não tê-lo: a busca devolve uma página de resultados, então filtrar
- * depois esvaziaria páginas inteiras e a contagem mentiria.
+ * `api` do Vortex): mesmos parâmetros, filtros e cursores, e o SERVIDOR tira da
+ * consulta os canais que a pessoa não pode ler antes de ir ao banco. Varrer N
+ * canais no cliente seriam N chamadas e uma ordenação que nenhuma delas conhece
+ * — por isso a rota, e não um laço aqui. Um servidor Stoat de fábrica responde
+ * 404, que chega à tela como falha de busca, não como "nada encontrado".
  *
  * ⚠ **Paginação é por CURSOR, não por página.** O protocolo não sabe "página
  * 3"; sabe "antes desta mensagem". O store guarda a pilha de cursores, que é o
@@ -41,6 +43,37 @@ export type ResultadoDeBusca = {
 };
 
 export type OrdemDeBusca = "recentes" | "relevantes";
+
+/** `tem:` → o `has` do servidor do Vortex. Não sai daqui. */
+const HAS: Record<TipoDeConteudo, string> = {
+  arquivo: "Attachment",
+  imagem: "Image",
+  video: "Video",
+  audio: "Audio",
+  link: "Link",
+};
+
+/**
+ * `de:nome` → o ID de alguém que a sessão conhece.
+ *
+ * Varre as pessoas em cache: quem escreveu no canal aparece nele, e buscar
+ * alguém que a sessão nunca viu por nome exigiria uma rota que não existe.
+ */
+export function resolverAutor(nome: string, channelId: string): string | undefined {
+  const serverId = client.channels.get(channelId)?.serverId || undefined;
+  const candidatos = client.users.toList().map((u) => {
+    const apelido = serverId
+      ? client.serverMembers.getByKey({ server: serverId, user: u.id })?.nickname
+      : undefined;
+    return {
+      id: u.id,
+      nomes: [u.username, u.displayName, apelido].filter(
+        (n): n is string => typeof n === "string" && n.length > 0,
+      ),
+    };
+  });
+  return escolherAutor(nome, candidatos);
+}
 
 /** A grafia do protocolo. Não sai daqui. */
 const SORT = {
@@ -117,18 +150,26 @@ export function servidorDoCanal(channelId: string): string | undefined {
 
 export async function buscarNoServidor(opcoes: {
   serverId: string;
+  /** Texto livre. Vazio é legítimo quando há filtro — "tudo de marina". */
   consulta: string;
   ordem: OrdemDeBusca;
   antesDe: string | undefined;
+  depoisDe?: string | undefined;
+  autorId?: string | undefined;
+  tem?: TipoDeConteudo | undefined;
 }): Promise<readonly ResultadoDeBusca[] | undefined> {
   try {
     const resposta: unknown = await client.api.post(
       `/servers/${opcoes.serverId}/search` as never,
       {
-        query: opcoes.consulta,
+        /* O servidor valida `query` com tamanho mínimo 1: vazio vai AUSENTE. */
+        ...(opcoes.consulta.length > 0 ? { query: opcoes.consulta } : {}),
         sort: SORT[opcoes.ordem],
         limit: POR_PAGINA,
         ...(opcoes.antesDe !== undefined ? { before: opcoes.antesDe } : {}),
+        ...(opcoes.depoisDe !== undefined ? { after: opcoes.depoisDe } : {}),
+        ...(opcoes.autorId !== undefined ? { author: opcoes.autorId } : {}),
+        ...(opcoes.tem !== undefined ? { has: HAS[opcoes.tem] } : {}),
       } as never,
     );
     return traduzirResultadosCrus(
@@ -147,20 +188,29 @@ export async function buscarNoServidor(opcoes: {
 
 export async function buscarNoCanal(opcoes: {
   channelId: string;
+  /** Texto livre. Vazio é legítimo quando há filtro — "tudo de marina". */
   consulta: string;
   ordem: OrdemDeBusca;
-  /** ID da mensagem antes da qual buscar — a página seguinte. */
+  /** ID da mensagem antes da qual buscar — a página seguinte ou `antes:`. */
   antesDe: string | undefined;
+  /** `depois:` e o começo de `durante:`. */
+  depoisDe?: string | undefined;
+  autorId?: string | undefined;
+  tem?: TipoDeConteudo | undefined;
 }): Promise<readonly ResultadoDeBusca[] | undefined> {
   const canal = client.channels.get(opcoes.channelId);
   if (!canal) return undefined;
 
   try {
     const mensagens = await canal.search({
-      query: opcoes.consulta,
+      /* O servidor valida `query` com tamanho mínimo 1: vazio vai AUSENTE. */
+      ...(opcoes.consulta.length > 0 ? { query: opcoes.consulta } : {}),
       sort: SORT[opcoes.ordem],
       limit: POR_PAGINA,
       ...(opcoes.antesDe !== undefined ? { before: opcoes.antesDe } : {}),
+      ...(opcoes.depoisDe !== undefined ? { after: opcoes.depoisDe } : {}),
+      ...(opcoes.autorId !== undefined ? { author: opcoes.autorId } : {}),
+      ...(opcoes.tem !== undefined ? { has: HAS[opcoes.tem] } : {}),
     });
 
     return mensagens.map((m) => ({

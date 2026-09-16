@@ -4,15 +4,22 @@ import {
   Plus,
   X,
 } from "../components/ui/icones";
-import { memo, useEffect, useSyncExternalStore } from "react";
+import { memo, useEffect, useRef, useSyncExternalStore } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../components/ui/DropdownMenu";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { Girador } from "../components/ui/Girador";
 import { Selo } from "../components/ui/Selo";
 import { toast } from "../components/ui/toastStore";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
-import { aindaNao } from "../pendente/pendencias";
 import type { ResultadoDeBusca } from "../sdk/busca";
 import {
   apontarBuscaPara,
@@ -24,23 +31,36 @@ import {
   lerBusca,
   paginasConhecidas,
   selecionarResultado,
+  trocarConsulta,
 } from "../store/busca";
+import {
+  acrescentarFiltro,
+  analisarConsulta,
+  tirarFiltro,
+  TIPOS_DE_CONTEUDO,
+  type TipoDeConteudo,
+} from "./filtros";
 import { pedirIrParaMensagem } from "../store/comandos";
 import { fecharDrawer } from "../store/drawer";
 import { useCanalAtivo, useServidorAtivo } from "../store/hooks";
 import { selecionarCanal } from "../store/navegacao";
 import css from "./PainelDeBusca.module.css";
 
-/**
- * Os filtros que o design desenha.
- *
- * ⚠ **Nenhum dos dois existe no protocolo.** `POST /channels/{id}/search`
- * aceita `query`, `sort`, `limit` e cursor — e nada mais. Eles ficam na tela
- * porque a regra deste projeto é construir 1:1 e registrar o que não funciona;
- * tirar o `✕` deles seria pior, porque aí eles pareceriam filtros ATIVOS que
- * não fazem nada.
- */
-const FILTROS = ["de:marina", "tem:arquivo"] as const;
+/** Como cada tipo aparece no menu `+ filtro`. A chave é a grafia do campo. */
+const ROTULO_DO_TIPO: Record<TipoDeConteudo, string> = {
+  arquivo: "tem:arquivo",
+  imagem: "tem:imagem",
+  video: "tem:video",
+  audio: "tem:audio",
+  link: "tem:link",
+};
+
+/** `AAAA-MM-DD` de hoje, no fuso de quem busca — o `durante:` do menu. */
+function hoje(): string {
+  const d = new Date();
+  const dois = (n: number) => String(n).padStart(2, "0");
+  return `${String(d.getFullYear())}-${dois(d.getMonth() + 1)}-${dois(d.getDate())}`;
+}
 
 /**
  * Um resultado. Assina o próprio autor pelo `NomeDoAutor`.
@@ -150,8 +170,8 @@ const Resultado = memo(function Resultado({
  * é o defeito que aquele store foi escrito para matar.
  *
  * A busca é REAL — `Channel.search` do protocolo, com ordem e cursor, e
- * `POST /servers/{id}/search` do fork para o servidor inteiro. O que não é
- * real está dito na tela e no registro: filtro por autor ou por anexo.
+ * `POST /servers/{id}/search` do fork para o servidor inteiro, e os
+ * filtros `de:`, `tem:` e de data valem nos dois escopos.
  */
 export function PainelDeBusca() {
   const b = useSyncExternalStore(assinarBusca, lerBusca);
@@ -173,6 +193,16 @@ export function PainelDeBusca() {
   /* O design diz "em 3 canais": só tem sentido quando a busca atravessa canais. */
   const canaisNaPagina = new Set(b.resultados.map((r) => r.channelId)).size;
   const alvo = noServidor ? "no servidor" : "neste canal";
+  const campo = useRef<HTMLInputElement>(null);
+  /* Os chips são PROJEÇÃO do texto — ver `busca/filtros.ts`. */
+  const { filtros } = analisarConsulta(b.consulta);
+
+  /* O `+ filtro` escreve o começo e devolve o foco ao campo, onde a pessoa
+     termina de digitar: `de:` sem nome não diz nada, e um submenu de pessoas
+     seria uma segunda busca dentro da busca. */
+  function acrescentar(trecho: string) {
+    trocarConsulta(acrescentarFiltro(b.consulta, trecho), false);
+  }
 
   return (
     <aside
@@ -216,6 +246,7 @@ export function PainelDeBusca() {
         >
           <MagnifyingGlass size={ICONE.controle} aria-hidden />
           <input
+            ref={campo}
             type="search"
             className={css.entrada}
             placeholder={`Buscar ${alvo}`}
@@ -226,27 +257,58 @@ export function PainelDeBusca() {
         </form>
 
         <div className={css.filtros}>
-          {FILTROS.map((f) => (
-            <span key={f} className={css.filtro}>
-              {f}
+          {filtros.map((f, i) => (
+            <span
+              key={`${f.bruto}-${String(i)}`}
+              className={css.filtro}
+              data-invalido={!f.valido}
+              title={f.valido ? undefined : "Filtro não reconhecido"}
+            >
+              {f.bruto}
               <button
                 type="button"
                 className={css.tirarFiltro}
-                aria-label={`Tirar o filtro ${f}`}
-                onClick={aindaNao("filtroDeBusca")}
+                aria-label={`Tirar o filtro ${f.bruto}`}
+                onClick={() => trocarConsulta(tirarFiltro(b.consulta, f.bruto), true)}
               >
                 <X size={ICONE.selo} aria-hidden />
               </button>
             </span>
           ))}
-          <button
-            type="button"
-            className={css.maisFiltro}
-            onClick={aindaNao("filtroDeBusca")}
-          >
-            <Plus size={ICONE.selo} aria-hidden />
-            filtro
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className={css.maisFiltro}>
+                <Plus size={ICONE.selo} aria-hidden />
+                filtro
+              </button>
+            </DropdownMenuTrigger>
+            {/* Sem o `preventDefault`, o Radix devolve o foco ao gatilho
+                DEPOIS do nosso `focus()` e a pessoa digita no vazio. */}
+            <DropdownMenuContent
+              align="start"
+              onCloseAutoFocus={(e) => {
+                e.preventDefault();
+                campo.current?.focus();
+              }}
+            >
+              <DropdownMenuLabel>Autor</DropdownMenuLabel>
+              <DropdownMenuItem onSelect={() => acrescentar("de:")}>de:nome</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Conteúdo</DropdownMenuLabel>
+              {TIPOS_DE_CONTEUDO.map((t) => (
+                <DropdownMenuItem key={t} onSelect={() => acrescentar(ROTULO_DO_TIPO[t])}>
+                  {ROTULO_DO_TIPO[t]}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Data</DropdownMenuLabel>
+              <DropdownMenuItem onSelect={() => acrescentar(`durante:${hoje()}`)}>
+                durante:{hoje()}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => acrescentar("antes:")}>antes:AAAA-MM-DD</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => acrescentar("depois:")}>depois:AAAA-MM-DD</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <div className={css.ordem}>
