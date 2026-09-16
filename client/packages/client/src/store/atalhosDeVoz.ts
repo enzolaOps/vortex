@@ -21,6 +21,7 @@ export const ACOES_DE_VOZ = [
   "ensurdecer",
   "desconectar",
   "overlay",
+  "silenciarOverlay",
 ] as const;
 export type AcaoDeVoz = (typeof ACOES_DE_VOZ)[number];
 
@@ -30,6 +31,7 @@ export const ROTULO_DA_ACAO: Record<AcaoDeVoz, string> = {
   ensurdecer: "Ensurdecer",
   desconectar: "Desconectar da voz",
   overlay: "Alternar overlay",
+  silenciarOverlay: "Silenciar mensagens no overlay",
 };
 
 export type CombinacaoDeTeclas = {
@@ -52,6 +54,15 @@ export const ATALHOS_PADRAO: AtalhosDeVoz = {
   desconectar: { codigo: "Backspace", mod: true, alt: false, shift: true },
   /* "Atalho para abrir · ⇧ `", da tela Desktop do design. */
   overlay: { codigo: "Backquote", mod: false, alt: false, shift: true },
+  /*
+    ⚠ **Divergência do design, e forçada por ele.** O widget de mensagem do
+    overlay escreve "⇧⌘M silencia" — e ⇧⌘M é o padrão de MUTAR na tabela de
+    atalhos do mesmo arquivo. Com as duas iguais, a detecção de conflito
+    desligaria as duas, e o padrão de fábrica nasceria sem mutar. ⇧⌘N é a
+    vizinha livre; o widget mostra a combinação GRAVADA, então a tela nunca
+    afirma a do design.
+  */
+  silenciarOverlay: { codigo: "KeyN", mod: true, alt: false, shift: true },
 };
 
 /** Teclas que só modificam: gravar uma delas sozinha não é combinação. */

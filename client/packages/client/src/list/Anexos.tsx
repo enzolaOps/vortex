@@ -107,8 +107,10 @@ function RodapeDoAnexo({ anexo }: { anexo: AnexoSnapshot }) {
       </span>
 
       <span className={css.acoes}>
-        {/* Desenhado sem implementação — ver `pendente/pendencias.ts`. O
-            protocolo tem `description` no anexo; ler e escrever ainda não. */}
+        {/* Desenhado sem implementação — ver `pendente/pendencias.ts`. ⚠ O
+            comentário anterior dizia que o protocolo tem `description` no
+            anexo, e NÃO tem: `File` (files.rs) não carrega descrição e o envio
+            leva só IDs. Não há o que ler nem onde escrever sem fork. */}
         <button
           type="button"
           className={css.acao}

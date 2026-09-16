@@ -1,6 +1,7 @@
 import { Pause, Play } from "../components/ui/icones";
 import { useEffect, useRef, useState } from "react";
 
+import { relogio } from "../lib/duracao";
 import type { AnexoSnapshot } from "../sdk/domain";
 import css from "./ReprodutorDeVoz.module.css";
 
@@ -50,20 +51,14 @@ function ondaDe(id: string): readonly number[] {
   return out;
 }
 
-/** `0:08` — o formato do design. */
-function relogio(segundos: number): string {
-  const s = Math.max(0, Math.floor(segundos));
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-}
 
 const VELOCIDADES = [1, 1.5, 2] as const;
 
 /**
  * Uma mensagem de voz na timeline.
  *
- * ⚠ **É a metade do design que PODE existir hoje.** Gravar depende de subir o
- * arquivo ao servidor de mídia — a mesma dependência de `anexar` —, então o
- * gravador do composer continua sendo a pendência `mensagemDeVoz`. Tocar não
+ * O gravador mora no composer (`composer/GravadorDeVoz.tsx`) e sobe WAV, que
+ * é o que o `autumn` classifica como áudio — ver `composer/wav.ts`. Tocar não
  * depende de nada: o anexo de áudio vem no protocolo (`Metadata.type ===
  * "Audio"`), e qualquer servidor Stoat já o entrega.
  *

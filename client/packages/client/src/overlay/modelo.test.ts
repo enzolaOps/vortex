@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ancoras, duracao, ehPosicao, textoDoAtalho } from "./modelo";
+import { ancoras, dicaDeSilencio, duracao, ehPosicao, textoDoAtalho } from "./modelo";
 
 describe("posição dos widgets", () => {
   /* O padrão do design: voz em cima·fim, mensagem baixo·fim, dica baixo·início. */
@@ -50,5 +50,18 @@ describe("texto", () => {
     expect(duracao(2537)).toBe("42:17");
     expect(duracao(3725)).toBe("1:02:05");
     expect(duracao(-4)).toBe("00:00");
+  });
+
+  /* "⇧⌘M silencia", do design — com a combinação gravada. */
+  it("dica de silenciar, e o verbo muda com o estado", () => {
+    expect(dicaDeSilencio(["shift", "mod", "N"], false, true)).toBe("⇧ ⌘ N silencia");
+    expect(dicaDeSilencio(["shift", "mod", "N"], true, false)).toBe("⇧ Ctrl N volta");
+  });
+
+  /* Casca que não sabe silenciar não pode ver a tela prometer a tecla. */
+  it("sem resposta da casca ou sem atalho, não há dica", () => {
+    expect(dicaDeSilencio(["shift", "mod", "N"], undefined, false)).toBeUndefined();
+    expect(dicaDeSilencio(undefined, false, false)).toBeUndefined();
+    expect(dicaDeSilencio([], false, false)).toBeUndefined();
   });
 });

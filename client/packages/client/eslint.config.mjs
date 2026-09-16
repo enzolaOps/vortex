@@ -222,6 +222,10 @@ export default tseslint.config(
       "dist-casca",
       "node_modules",
       "scripts/coletor.js",
+      /* O service worker é JS cru servido da raiz (ver o próprio arquivo), fora
+         de tsconfig — o lint com tipos morreria nele como no `coletor.js`. Quem
+         o guarda é `src/notificacao/sw.test.ts`, que o executa. */
+      "public/sw.js",
       "scripts/**/*.d.mts",
     ],
   },

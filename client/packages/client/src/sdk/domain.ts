@@ -819,6 +819,21 @@ export type MemberSnapshot = ComSigla & {
    */
   readonly cargosIds: readonly string[];
   /**
+   * A imagem do cargo mais alto que TEM ícone, já resolvida — ou ausência.
+   *
+   * ⚠ **O cargo do ícone não é necessariamente o da cor nem o hasteado.** É a
+   * regra do próprio SDK (`ServerMember.iconRole`): o mais alto entre os que
+   * têm ícone. Uma pessoa com "Admin" colorido sem ícone e "Artista" abaixo com
+   * ícone mostra a cor de um e a imagem do outro, como o protocolo define.
+   *
+   * Dois campos planos e não um objeto: o snapshot é comparado por valor, e um
+   * `{ url, nome }` novo a cada tradução faria toda republicação parecer
+   * mudança — o erro nº 1 do briefing.
+   */
+  readonly iconeDeCargoUrl: string | undefined;
+  /** O nome do cargo do ícone, para o `alt` e o título. */
+  readonly iconeDeCargoNome: string | undefined;
+  /**
    * Esta pessoa está ABAIXO de mim na hierarquia?
    *
    * ⚠ Campo e não cálculo no componente: a comparação é `inferiorTo` do SDK,

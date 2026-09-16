@@ -17,6 +17,7 @@ import {
   alternarMudo,
   alternarSurdo,
   alternarTela,
+  assinarVideo,
   sairDaChamada,
 } from "../sdk/chamada";
 import {
@@ -145,6 +146,31 @@ export const FaixaDeVideo = memo(function FaixaDeVideo({
     />
   );
 });
+
+/* ============================================================
+   Pedido de vídeo
+   ============================================================ */
+
+/**
+ * Pede o vídeo de alguém enquanto este componente existe, e devolve ao sair.
+ *
+ * Mora aqui e não na grade desde que a chamada DIRETA passou a pedir o vídeo
+ * de quem está do outro lado — duas cópias do pedido e da devolução seriam
+ * duas chances de esquecer a devolução.
+ *
+ * ⚠ **A devolução é a metade que se esquece, e a que custa.** Sem ela, fechar
+ * a grade deixaria dez faixas descendo para uma tela que não existe mais —
+ * invisível na interface e visível na conta de banda.
+ */
+export function useVideo(userId: string, fonte: "camera" | "tela", quero: boolean) {
+  useEffect(() => {
+    if (!quero) return;
+    assinarVideo(userId, fonte, true);
+    return () => {
+      assinarVideo(userId, fonte, false);
+    };
+  }, [userId, fonte, quero]);
+}
 
 /* ============================================================
    Doca de controles

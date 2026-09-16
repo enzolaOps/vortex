@@ -41,6 +41,7 @@ describe("caminho ↔ lugar", () => {
     ["/amigos/bloqueados", { tipo: "amigos", aba: "bloqueado" }],
     ["/amigos/pedidos", { tipo: "amigos", aba: "recebido" }],
     ["/amigos/enviados", { tipo: "amigos", aba: "enviado" }],
+    ["/amigos/solicitacoes", { tipo: "amigos", aba: "solicitacoes" }],
   ];
 
   it.each(casos)("%s vai e volta sem perder nada", (caminho, local) => {

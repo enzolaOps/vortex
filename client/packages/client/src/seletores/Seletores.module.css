@@ -88,11 +88,67 @@
   border: 2px solid var(--vx-surface-4);
   box-shadow: 0 0 0 1px var(--vx-border-strong);
   cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  line-height: 1;
+  font-size: var(--vx-size-base);
 }
 
 .tomDePele:focus-visible {
   outline: 2px solid var(--vx-accent);
   outline-offset: 2px;
+}
+
+/*
+  Com um tom escolhido, o círculo deixa de ser a cor e passa a EMOLDURAR a mão
+  naquele tom — cor de pele não é token deste app, e quem a desenha é o glifo.
+*/
+.tomDePele:not([data-tom="padrao"]) {
+  background: var(--vx-surface-3);
+}
+
+/* A escolha: seis alvos numa fileira, no tamanho de célula da grade. */
+.tons {
+  padding: var(--vx-space-06);
+}
+
+.gradeDeTons {
+  display: flex;
+  gap: var(--vx-space-02);
+}
+
+.opcaoDeTom {
+  display: grid;
+  place-items: center;
+  inline-size: 36px;
+  block-size: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--vx-radius-08);
+  background: transparent;
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.opcaoDeTom:hover {
+  background: var(--vx-state-hover);
+}
+
+.opcaoDeTom:active {
+  background: var(--vx-state-press);
+}
+
+.opcaoDeTom[aria-checked="true"] {
+  background: var(--vx-state-selected);
+  box-shadow: inset 0 0 0 1px var(--vx-accent);
+}
+
+.opcaoDeTom:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
 }
 
 /* ----------------------------------------------------------- rodapé */

@@ -165,6 +165,73 @@ export function overrideDoCargo(
 }
 
 /**
+ * TODAS as permissões de um canal — o padrão e cada cargo — em tipo do app.
+ *
+ * ⚠ **Existe por causa de "Duplicar canal", e a razão é de segurança.** O
+ * snapshot do canal carrega nome, tópico, modo lento, idade e limite; não
+ * carrega os overrides. Um canal duplicado a partir do snapshot nasceria
+ * PÚBLICO a partir de um restrito, em silêncio — e o dono só descobriria
+ * quando alguém lesse o que não devia. Por isso a leitura é própria, e por
+ * isso ela devolve `undefined` quando não sabe: duplicar exige saber.
+ *
+ * Par zerado não entra: `{allow: 0, deny: 0}` é HERDAR, que é o que um canal
+ * novo já faz sem escrita nenhuma.
+ */
+export type PermissoesDeCanal = {
+  /** O override de @everyone. `undefined` = herda do servidor. */
+  readonly padrao: OverrideDeCanal | undefined;
+  readonly porCargo: Readonly<Record<string, OverrideDeCanal>>;
+};
+
+export function permissoesDoCanal(
+  channelId: string,
+): PermissoesDeCanal | undefined {
+  const canal = client.channels.get(channelId);
+  // Canal fora do cache, ou sem servidor: não há o que ler com certeza.
+  if (!canal || !canal.serverId) return undefined;
+
+  const par = (
+    bruto: { a?: bigint | number; d?: bigint | number } | undefined,
+  ): OverrideDeCanal | undefined => {
+    const allow = BigInt(bruto?.a ?? 0);
+    const deny = BigInt(bruto?.d ?? 0);
+    return allow === 0n && deny === 0n ? undefined : { allow, deny };
+  };
+
+  const porCargo: Record<string, OverrideDeCanal> = {};
+  for (const [roleId, bruto] of Object.entries(canal.rolePermissions ?? {})) {
+    const p = par(bruto);
+    if (p) porCargo[roleId] = p;
+  }
+  return { padrao: par(canal.defaultPermissions), porCargo };
+}
+
+/**
+ * A ordem das escritas de permissão num canal NOVO.
+ *
+ * ⚠ **O padrão vem PRIMEIRO**, e é a única ordem segura: é nele que mora o
+ * `deny ViewChannel` que torna um canal privado. Escrever os cargos antes
+ * deixaria o canal aberto a todo mundo durante as N chamadas de cargo, em vez
+ * de durante uma.
+ *
+ * `roleId` `undefined` é o cargo padrão — a assinatura de `setPermissions`.
+ */
+export function escritasDePermissao(
+  p: PermissoesDeCanal,
+): readonly {
+  readonly roleId: string | undefined;
+  readonly override: OverrideDeCanal;
+}[] {
+  const escritas: { roleId: string | undefined; override: OverrideDeCanal }[] =
+    [];
+  if (p.padrao) escritas.push({ roleId: undefined, override: p.padrao });
+  for (const [roleId, override] of Object.entries(p.porCargo)) {
+    escritas.push({ roleId, override });
+  }
+  return escritas;
+}
+
+/**
  * Escreve o par de um cargo neste canal.
  *
  * ⚠ **`BigInt` e não `number`, pela mesma razão do editor de cargos:** voz e
