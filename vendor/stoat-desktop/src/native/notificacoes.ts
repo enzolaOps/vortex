@@ -1,5 +1,5 @@
 import { app, nativeImage } from "electron";
-import { ipc } from "./remetente";
+import { numeroFinito, registrar, semArgumentos } from "./registroDeIpc";
 
 import { mainWindow } from "./window";
 
@@ -56,20 +56,35 @@ function contador(bruto: unknown): void {
 }
 
 export function registrarNotificacoes(): void {
-  ipc.on("vortexContador", (_e, n: unknown) => contador(n));
-
-  ipc.on("vortexChamarAtencao", () => {
-    if (!mainWindow || mainWindow.isDestroyed() || mainWindow.isFocused()) return;
-    /* Pisca até alguém olhar — o Windows para sozinho quando a janela ganha
-       foco, e o `focus` abaixo garante o mesmo nas outras plataformas. */
-    mainWindow.flashFrame(true);
-    mainWindow.once("focus", () => mainWindow.flashFrame(false));
+  registrar("vortexContador", {
+    via: "send",
+    quem: ["principal"],
+    validar: numeroFinito,
+    executar: (n) => contador(n),
   });
 
-  ipc.on("vortexFocar", () => {
-    if (!mainWindow || mainWindow.isDestroyed()) return;
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.show();
-    mainWindow.focus();
+  registrar("vortexChamarAtencao", {
+    via: "send",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: () => {
+      if (!mainWindow || mainWindow.isDestroyed() || mainWindow.isFocused()) return;
+      /* Pisca até alguém olhar — o Windows para sozinho quando a janela ganha
+         foco, e o `focus` abaixo garante o mesmo nas outras plataformas. */
+      mainWindow.flashFrame(true);
+      mainWindow.once("focus", () => mainWindow.flashFrame(false));
+    },
+  });
+
+  registrar("vortexFocar", {
+    via: "send",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: () => {
+      if (!mainWindow || mainWindow.isDestroyed()) return;
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    },
   });
 }

@@ -12,7 +12,8 @@ import { contextBridge, ipcRenderer } from "electron";
  *
  * Aqui atravessam DUAS pontes, e só elas: `vortexOverlay` (estado, mensagens,
  * interação e o comando dos botões de voz) e `vortexOverlaySilencio`. O main
- * ainda confere o remetente de todo canal (`native/remetente.ts`).
+ * ainda confere papel, frame, origem e payload de todo canal
+ * (`native/registroDeIpc.ts`).
  *
  * ⚠ **`publicar` e `mensagem` existem e não fazem nada.** O contrato do
  * cliente (`ponteDeOverlay` em `client/…/overlay/modelo.ts`) só reconhece a

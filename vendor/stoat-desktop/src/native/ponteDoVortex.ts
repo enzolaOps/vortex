@@ -1,5 +1,5 @@
 import { app, BrowserWindow, session, shell } from "electron";
-import { ipc } from "./remetente";
+import { registrar, semArgumentos, umDe } from "./registroDeIpc";
 
 import { version } from "../../package.json";
 import { registrarPreferencias } from "./preferencias";
@@ -29,6 +29,15 @@ import { mainWindow } from "./window";
 /** O que a janela pode fazer consigo mesma — espelha `ControleDeJanela`. */
 type ControleDeJanela = "minimizar" | "maximizar" | "restaurar" | "fechar";
 
+const VERBOS_DE_JANELA: readonly ControleDeJanela[] = [
+  "minimizar",
+  "maximizar",
+  "restaurar",
+  "fechar",
+];
+
+const verboDeJanela = umDe(VERBOS_DE_JANELA);
+
 const CONTROLES: Record<ControleDeJanela, (j: BrowserWindow) => void> = {
   minimizar: (j) => j.minimize(),
   maximizar: (j) => j.maximize(),
@@ -44,16 +53,22 @@ export function registrarPonteDoVortex(): void {
     `setAlwaysOnTop` a `destroy`. É a mesma revalidação que o seletor de tela
     faz no `id` da fonte, e o briefing pede por nome: "IPC validado no main".
   */
-  ipc.handle("vortexJanela", (_e, acao: unknown) => {
-    const j = janela();
-    if (!j) return;
-    const fn = CONTROLES[acao as ControleDeJanela] as
-      | ((j: BrowserWindow) => void)
-      | undefined;
-    if (fn) fn(j);
+  registrar("vortexJanela", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: verboDeJanela,
+    executar: (acao) => {
+      const j = janela();
+      if (j) CONTROLES[acao](j);
+    },
   });
 
-  ipc.handle("vortexEstadoDaJanela", () => estado());
+  registrar("vortexEstadoDaJanela", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: () => estado(),
+  });
 
   /*
     ⚠ **Ler e gravar preferências moram em `preferencias.ts`.** A versão que
@@ -63,17 +78,26 @@ export function registrarPonteDoVortex(): void {
   */
   registrarPreferencias();
 
-  ipc.handle("vortexTamanhoDoCache", () =>
-    session.defaultSession.getCacheSize(),
-  );
+  registrar("vortexTamanhoDoCache", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: () => session.defaultSession.getCacheSize(),
+  });
 
-  ipc.handle("vortexLimparCache", () =>
-    session.defaultSession.clearCache(),
-  );
+  registrar("vortexLimparCache", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: () => session.defaultSession.clearCache(),
+  });
 
-  ipc.handle("vortexAbrirPastaDeLogs", () =>
-    shell.openPath(app.getPath("logs")),
-  );
+  registrar("vortexAbrirPastaDeLogs", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: () => shell.openPath(app.getPath("logs")),
+  });
 
   /*
     O estado da janela é EMPURRADO, e não perguntado em laço.

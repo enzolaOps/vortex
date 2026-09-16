@@ -3,11 +3,12 @@ import { join } from "node:path";
 
 import { config } from "./config";
 import {
-  daJanelaDoOverlay,
-  daJanelaPrincipal,
-  ipc,
+  objeto,
+  registrar,
   registrarJanelaDoOverlay,
-} from "./remetente";
+  semArgumentos,
+  umDe,
+} from "./registroDeIpc";
 import { lerTelaCheia } from "./telaCheia";
 import { decidir, nomeParaMostrar, registrarAvisado } from "./telaCheiaModelo";
 import { BUILD_URL, mainWindow } from "./window";
@@ -39,6 +40,15 @@ type Estado = {
   voz: unknown;
   [k: string]: unknown;
 };
+
+/** O que a principal publica precisa ser objeto com `ativo` booleano — é o
+    que `reavaliar` lê; o resto atravessa como veio. */
+function estadoValido(bruto: unknown): Estado | undefined {
+  const o = objeto(bruto);
+  return o && typeof o.ativo === "boolean" ? (o as Estado) : undefined;
+}
+
+const comandoDoOverlay = umDe(["mutar", "ensurdecer", "desconectar"] as const);
 
 let janela: BrowserWindow | undefined;
 let estado: Estado | undefined;
@@ -72,7 +82,7 @@ function criar(): BrowserWindow {
         fechar a janela, o hook global de teclado, o volume do sistema e as
         preferências; aqui só atravessam as pontes do overlay (estado,
         silêncio, comando). O main ainda confere o remetente de todo canal —
-        ver `remetente.ts` —, mas a ponte que não existe é a que não vaza.
+        ver `registroDeIpc.ts` —, mas a ponte que não existe é a que não vaza.
       */
       preload: join(__dirname, "preloadDoOverlay.js"),
       contextIsolation: true,
@@ -226,25 +236,29 @@ function avisarTelaCheia(chave: string): void {
 
 export function registrarOverlay(): void {
   /*
-    Só a janela PRINCIPAL publica; a do overlay só lê. Conferir o remetente é o
-    que impede a página do overlay — ou algo injetado nela — de reescrever o
-    que ela mesma mostra. O `ipc` já recusa por canal; a conferência explícita
-    fica porque é o contrato de cada handler, lido sem abrir outro arquivo.
+    Só a janela PRINCIPAL publica; a do overlay só lê. O papel declarado em
+    cada canal é o que impede a página do overlay — ou algo injetado nela — de
+    reescrever o que ela mesma mostra.
   */
-  const daPrincipal = daJanelaPrincipal;
-  const doOverlay = daJanelaDoOverlay;
-
-  ipc.on("vortexOverlayPublicar", (e, bruto: unknown) => {
-    if (!daPrincipal(e) || typeof bruto !== "object" || bruto === null) return;
-    estado = bruto as Estado;
-    if (vivo(janela)) janela.webContents.send("vortexOverlayEstado", estado);
-    reavaliar();
+  registrar("vortexOverlayPublicar", {
+    via: "send",
+    quem: ["principal"],
+    validar: estadoValido,
+    executar: (bruto) => {
+      estado = bruto;
+      if (vivo(janela)) janela.webContents.send("vortexOverlayEstado", estado);
+      reavaliar();
+    },
   });
 
-  ipc.on("vortexOverlayMensagem", (e, bruto: unknown) => {
-    if (!daPrincipal(e) || typeof bruto !== "object" || bruto === null) return;
-    if (!vivo(janela) || !janela.isVisible() || silenciadas) return;
-    janela.webContents.send("vortexOverlayMensagem", bruto);
+  registrar("vortexOverlayMensagem", {
+    via: "send",
+    quem: ["principal"],
+    validar: objeto,
+    executar: (m) => {
+      if (!vivo(janela) || !janela.isVisible() || silenciadas) return;
+      janela.webContents.send("vortexOverlayMensagem", m);
+    },
   });
 
   /*
@@ -253,23 +267,30 @@ export function registrarOverlay(): void {
     montar e registrar o ouvinte, e o primeiro estado se perdia — o overlay
     abria vazio até a chamada mudar de novo.
   */
-  ipc.handle("vortexOverlayEstadoAtual", (e) =>
-    vivo(janela) && e.sender.id === janela.webContents.id
-      ? { estado, interagindo }
-      : undefined,
-  );
+  registrar("vortexOverlayEstadoAtual", {
+    via: "invoke",
+    quem: ["overlay"],
+    validar: semArgumentos,
+    executar: () => ({ estado, interagindo }),
+  });
 
   /* Canal próprio, lido pela ponte `vortexOverlaySilencio`: uma casca antiga
      não o tem, e o overlay então nem mostra a dica do atalho. */
-  ipc.handle("vortexOverlaySilencioAtual", (e) =>
-    vivo(janela) && e.sender.id === janela.webContents.id ? silenciadas : undefined,
-  );
+  registrar("vortexOverlaySilencioAtual", {
+    via: "invoke",
+    quem: ["overlay"],
+    validar: semArgumentos,
+    executar: () => silenciadas,
+  });
 
   /* Os botões do widget de voz viram o mesmo comando do atalho e da bandeja. */
-  ipc.on("vortexOverlayComando", (e, c: unknown) => {
-    if (!doOverlay(e)) return;
-    if (c !== "mutar" && c !== "ensurdecer" && c !== "desconectar") return;
-    if (vivo(mainWindow)) mainWindow.webContents.send("vortexComandoDeVoz", c);
+  registrar("vortexOverlayComando", {
+    via: "send",
+    quem: ["overlay"],
+    validar: comandoDoOverlay,
+    executar: (c) => {
+      if (vivo(mainWindow)) mainWindow.webContents.send("vortexComandoDeVoz", c);
+    },
   });
 
   if (vivo(mainWindow)) {

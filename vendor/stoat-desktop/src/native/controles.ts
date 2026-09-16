@@ -1,5 +1,5 @@
 import { app } from "electron";
-import { ipc } from "./remetente";
+import { objeto, registrar } from "./registroDeIpc";
 
 import { alternarOverlay, alternarSilencioDoOverlay } from "./overlay";
 import { definirChamadaEmPip } from "./preferencias";
@@ -217,21 +217,29 @@ export function registrarControles(): void {
      exatamente o que antivírus e o próprio Windows tratam com desconfiança. */
   app.on("will-quit", () => void pararControles());
 
-  ipc.handle("vortexDefinirAtalhos", (_e, atalhos: unknown) => definirAtalhos(atalhos));
+  /* A forma de cada combinação é conferida em `definirAtalhos`; aqui só o
+     envelope: um objeto por ação. */
+  registrar("vortexDefinirAtalhos", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: objeto,
+    executar: (atalhos) => definirAtalhos(atalhos),
+  });
 
-  ipc.on("vortexEstadoDeVoz", (_e, estado: unknown) => {
-    const o = (typeof estado === "object" && estado !== null ? estado : {}) as Record<
-      string,
-      unknown
-    >;
-    definirEstadoDeVoz({
-      naChamada: o.naChamada === true,
-      mudo: o.mudo === true,
-      surdo: o.surdo === true,
-    });
-    /* `pip` só existe em clientes novos; ausente é `false`, que é o estado
-       de uma casca que nunca soube dele. */
-    definirChamadaEmPip(o.naChamada === true && o.pip === true);
+  registrar("vortexEstadoDeVoz", {
+    via: "send",
+    quem: ["principal"],
+    validar: objeto,
+    executar: (o) => {
+      definirEstadoDeVoz({
+        naChamada: o.naChamada === true,
+        mudo: o.mudo === true,
+        surdo: o.surdo === true,
+      });
+      /* `pip` só existe em clientes novos; ausente é `false`, que é o estado
+         de uma casca que nunca soube dele. */
+      definirChamadaEmPip(o.naChamada === true && o.pip === true);
+    },
   });
 }
 
