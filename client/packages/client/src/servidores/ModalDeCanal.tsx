@@ -8,7 +8,7 @@ import { ICONE, Lock } from "../components/ui/icones";
 import { Escolha } from "../components/ui/Escolha";
 import { Interruptor } from "../components/ui/Interruptor";
 import { Caixa, MarcaDeOpcao } from "../components/ui/Marcador";
-import { aindaNao, type PendenciaId } from "../pendente/pendencias";
+import { aindaNao } from "../pendente/pendencias";
 import { fecharCanal } from "../sdk/canal";
 import { CATEGORIA_PADRAO } from "../sdk/domain";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
@@ -36,12 +36,12 @@ import css from "./AdicionarServidor.module.css";
  * estabeleceu, e a mesma que `menuDeMensagem` já seguia.
  */
 /**
- * Os quatro tipos que o design desenha, e só dois existem.
+ * Os quatro tipos que o design desenha.
  *
- * ⚠ `forum` e a galeria de mídia dão ZERO ocorrências no schema do Stoat — não
- * são campos que faltam, são conceitos que não existem. Ficam na lista com o
- * registro de pendências atrás: clicar diz o que o tipo fará e do que depende,
- * em vez de sumir da lista e ninguém saber que ele foi pensado.
+ * ⚠ **Fórum e mídia existem no protocolo DESTE fork, e não no Stoat.** São
+ * `TextChannel` com um objeto `forum` (`media` na galeria) — um cliente
+ * Stoat antigo vê um canal de texto comum. Eram pendência enquanto o servidor
+ * não os conhecia; ver `sdk/vortexCanal.ts`.
  */
 const TIPOS = [
   {
@@ -49,35 +49,30 @@ const TIPOS = [
     glifo: "#",
     rotulo: "Texto",
     detalhe: "Mensagens, imagens, threads",
-    pendencia: undefined,
   },
   {
     id: "voz",
     glifo: "◈",
     rotulo: "Voz",
     detalhe: "Áudio, vídeo, tela e chat embutido",
-    pendencia: undefined,
   },
   {
     id: "forum",
     glifo: "▤",
     rotulo: "Fórum",
     detalhe: "Posts organizados por tópico",
-    pendencia: "canalDeForum",
   },
   {
     id: "midia",
     glifo: "▦",
     rotulo: "Mídia",
     detalhe: "Galeria de imagens e vídeos",
-    pendencia: "canalDeMidia",
   },
 ] as const satisfies readonly {
   id: string;
   glifo: string;
   rotulo: string;
   detalhe: string;
-  pendencia: PendenciaId | undefined;
 }[];
 
 type TipoDeCanal = (typeof TIPOS)[number]["id"];
@@ -252,7 +247,12 @@ function FormaDeCanal({
         e.preventDefault();
         if (!podeEnviar) return;
         setEnviando(true);
-        void criarCanal(serverId, limpo, voz, escolhida)
+        void criarCanal(
+          serverId,
+          limpo,
+          tipo === "forum" || tipo === "midia" ? tipo : voz,
+          escolhida,
+        )
           .then(async (id) => {
             if (!id) return;
             /*
@@ -280,16 +280,7 @@ function FormaDeCanal({
             aria-checked={tipo === t.id}
             className={css.tipo}
             disabled={enviando}
-            onClick={() => {
-              /* Tipo sem protocolo não vira seleção: marcar "Fórum" e deixar
-                 o formulário seguir criaria um canal de TEXTO com o rótulo
-                 errado — pior que não oferecer. */
-              if (t.pendencia) {
-                aindaNao(t.pendencia)();
-                return;
-              }
-              setTipo(t.id);
-            }}
+            onClick={() => setTipo(t.id)}
           >
             <span className={css.tipoGlifo} aria-hidden>
               {t.glifo}

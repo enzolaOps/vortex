@@ -10,7 +10,7 @@ use validator::Validate;
 
 /// # Edit Thread
 ///
-/// Vortex: renames, archives, reopens or retags a thread. The one who started
+/// Vortex: renames, archives, reopens, retags or pins a thread. The one who started
 /// the thread can do it; so can anyone who manages the channel.
 #[openapi(tag = "Channel Information")]
 #[patch("/<target>/thread", data = "<data>")]
@@ -35,12 +35,27 @@ pub async fn edit_thread(
     let mut query = DatabasePermissionQuery::new(db, &user).channel(&channel);
     let permissions = calculate_channel_permissions(&mut query).await;
     permissions.throw_if_lacking_channel_permission(ChannelPermission::ViewChannel)?;
-    if info.owner != user.id {
+    // Pinning alone is a moderation of the forum, not of the thread, and is
+    // checked on its own below.
+    let edits_thread = data.name.is_some() || data.archived.is_some() || data.tags.is_some();
+    if edits_thread && info.owner != user.id {
         permissions.throw_if_lacking_channel_permission(ChannelPermission::ManageChannel)?;
     }
 
-    if data.name.is_none() && data.archived.is_none() && data.tags.is_none() {
+    if !edits_thread && data.pinned.is_none() {
         return Err(create_error!(NoEffect));
+    }
+
+    // Pinning orders the forum for everyone, so starting the post is not
+    // enough: it takes the same permission as pinning a message.
+    if let Some(pinned) = data.pinned {
+        let parent = db.fetch_channel(&info.parent).await?;
+        if parent.forum().is_none() {
+            return Err(create_error!(InvalidOperation));
+        }
+
+        permissions.throw_if_lacking_channel_permission(ChannelPermission::ManageMessages)?;
+        info.pinned = pinned;
     }
 
     if let Some(archived) = data.archived {

@@ -118,6 +118,22 @@ export type Alvo =
       readonly serverId: string;
       readonly userId: string;
     }
+  /*
+    Tópico, post e mídia: os três são `POST /channels/:id/threads` e abrem o
+    mesmo modal. O tópico de mensagem carrega a mensagem; o do canal, não.
+  */
+  | {
+      readonly tipo: "criarTopico";
+      readonly channelId: string;
+      readonly mensagemId: string | undefined;
+    }
+  | { readonly tipo: "novoPost"; readonly forumId: string }
+  | {
+      readonly tipo: "enviarMidia";
+      readonly forumId: string;
+      /** O arquivo já escolhido — quando ele chegou arrastado para a galeria. */
+      readonly arquivo?: File;
+    }
   | {
       readonly tipo: "moderar";
       readonly serverId: string;
@@ -180,6 +196,7 @@ const MODAL_DE: Record<
   | "pasta"
   | "perfil"
   | "transferirPropriedade"
+  | "topico"
 > = {
   criarCanal: "canal",
   editarCanal: "canal",
@@ -207,6 +224,9 @@ const MODAL_DE: Record<
      precisa concordar. */
   apagarServidor: "exclusao",
   transferirPropriedade: "transferirPropriedade",
+  criarTopico: "topico",
+  novoPost: "topico",
+  enviarMidia: "topico",
 };
 
 /** Estado limpo entre testes. O módulo é global e sobrevive. */

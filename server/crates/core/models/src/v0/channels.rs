@@ -200,6 +200,12 @@ auto_derived!(
             serde(skip_serializing_if = "Vec::is_empty", default)
         )]
         pub followers: Vec<String>,
+        /// Whether this thread is pinned to the top of its forum
+        #[cfg_attr(
+            feature = "serde",
+            serde(skip_serializing_if = "crate::if_false", default)
+        )]
+        pub pinned: bool,
     }
 
     /// Voice information for a channel
@@ -439,6 +445,8 @@ auto_derived!(
         /// Ids of the parent's forum tags to apply
         #[cfg_attr(feature = "validator", validate(length(max = 5)))]
         pub tags: Option<Vec<String>>,
+        /// Whether the post is pinned to the top of its forum
+        pub pinned: Option<bool>,
     }
 
     /// Vortex: edit the tags of a forum or media channel

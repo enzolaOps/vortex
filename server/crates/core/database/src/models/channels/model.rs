@@ -554,6 +554,7 @@ impl Channel {
                 archived: false,
                 tags: data.tags,
                 followers: vec![owner.to_string()],
+                pinned: false,
             }),
         };
 

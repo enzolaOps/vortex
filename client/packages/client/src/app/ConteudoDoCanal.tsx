@@ -2,6 +2,10 @@ import { Composer } from "../composer/Composer";
 import { MessageList } from "../list/MessageList";
 import { PalcoDeVoz } from "../voz/PalcoDeVoz";
 import { useNaSala } from "../voz/useSalaDeVoz";
+import { GaleriaDeMidia } from "../forum/GaleriaDeMidia";
+import { TelaDoForum } from "../forum/TelaDoForum";
+import { useForum, useTopico } from "../store/hooks";
+import { RaizDoTopico } from "../topicos/RaizDoTopico";
 
 /**
  * O que a coluna de conteúdo mostra num canal: a conversa, ou a sala de voz.
@@ -36,8 +40,28 @@ export function ConteudoDoCanal({ channelId }: { channelId: string }) {
   /* Em variável e não dentro do `if`: o hook roda incondicionalmente das duas
      formas, mas a regra do lint lê a POSIÇÃO e não a semântica. */
   const naSala = useNaSala(channelId);
+  /*
+    Fórum e galeria NÃO têm timeline: o canal é a lista de posts, e a conversa
+    mora dentro de cada um. O tópico aberto é a timeline de sempre com a
+    mensagem-raiz no topo do scroller.
+  */
+  const forum = useForum(channelId);
+  const topico = useTopico(channelId);
   if (naSala) return <PalcoDeVoz />;
-  return <MessageList key={channelId} channelId={channelId} />;
+  if (forum) {
+    return forum.midia ? (
+      <GaleriaDeMidia key={channelId} channelId={channelId} />
+    ) : (
+      <TelaDoForum key={channelId} channelId={channelId} />
+    );
+  }
+  return (
+    <MessageList
+      key={channelId}
+      channelId={channelId}
+      topo={topico ? <RaizDoTopico channelId={channelId} /> : undefined}
+    />
+  );
 }
 
 /**
@@ -49,6 +73,8 @@ export function ConteudoDoCanal({ channelId }: { channelId: string }) {
  */
 export function ComposerDoCanal({ channelId }: { channelId: string }) {
   const naSala = useNaSala(channelId);
-  if (naSala) return null;
+  // Num fórum ou galeria não se escreve no canal — escreve-se num post.
+  const forum = useForum(channelId);
+  if (naSala || forum) return null;
   return <Composer channelId={channelId} />;
 }
