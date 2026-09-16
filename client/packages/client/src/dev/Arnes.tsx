@@ -22,6 +22,8 @@ import { readCounters, resetCounters, type Counters } from "./stats";
 import { ALTURA_ESTIMADA } from "../list/MessageList";
 import { ligarAtalhoDaPaleta } from "../store/paleta";
 import { configurarSimulacaoDeEnvio } from "../sdk/adapter";
+import { dublarProvedorDeGif } from "../sdk/fonteDeGifs";
+import { provedorDeGifFalso } from "./gifsFalsos";
 import { pedirEscolhaDeTela } from "../store/seletorDeTela";
 import { dublarPonteDeTela } from "./telaFalsa";
 import { definirConexao, lerConexao } from "../store/conexao";
@@ -87,6 +89,12 @@ export function Arnes() {
   useEffect(() => {
     configurarSimulacaoDeEnvio({ ativa: true, falhar: falharEnvio });
   }, [falharEnvio]);
+
+  /* GIF sem `gifbox`: o dublê grava as prévias num canvas. Ver `gifsFalsos.ts`. */
+  useEffect(() => {
+    dublarProvedorDeGif(provedorDeGifFalso);
+    return () => dublarProvedorDeGif(undefined);
+  }, []);
 
   /**
    * Troca de tema é sobrescrever a camada 1 e nada mais.

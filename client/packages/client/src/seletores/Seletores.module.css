@@ -237,19 +237,6 @@
   outline-offset: 2px;
 }
 
-/*
-  Masonry em `columns`, e não em grid.
-
-  O design explica por quê: as alturas do GIF variam, e emoji e figurinha usam
-  grid fixo "para o alvo ser previsível". `columns` é a única forma nativa de
-  empacotar alturas livres sem medir nada em JS.
-*/
-.masonry {
-  columns: 2;
-  column-gap: var(--vx-space-08);
-  padding-block-end: var(--vx-space-12);
-}
-
 .gif,
 .figurinha {
   inline-size: 100%;
@@ -291,12 +278,6 @@
 .figurinha:focus-visible {
   outline: 2px solid var(--vx-accent);
   outline-offset: 2px;
-}
-
-.gifRotulo {
-  font-family: var(--vx-font-mono);
-  font-size: var(--vx-size-xs);
-  color: var(--vx-text-4);
 }
 
 /* ------------------------------------------------------- figurinhas */

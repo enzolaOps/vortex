@@ -29,6 +29,7 @@ export function CascaDeSeletor({
   acaoDaBusca,
   rodape,
   estreita = false,
+  desabilitarBusca = false,
   children,
 }: {
   /** O que este seletor é, para o leitor de tela. */
@@ -52,6 +53,12 @@ export function CascaDeSeletor({
   rodape?: ReactNode;
   /** O soundboard: 352 em vez de 400, e sem altura fixa. */
   estreita?: boolean;
+  /**
+   * Busca sem nada para buscar — o seletor de GIF numa instância que não
+   * configurou GIFs. O campo fica (a casca é a mesma dos outros três) e diz
+   * pelo estado desligado que não aceita texto.
+   */
+  desabilitarBusca?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -77,7 +84,8 @@ export function CascaDeSeletor({
               sempre sabe o que procura. Sem isto, o primeiro gesto é sempre
               clicar no campo.
             */
-            autoFocus
+            autoFocus={!desabilitarBusca}
+            disabled={desabilitarBusca}
           />
           {acaoDaBusca}
         </div>

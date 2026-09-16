@@ -107,30 +107,6 @@ export const PENDENCIAS = {
     depende: "exportação de dados no protocolo — não há rota, nem no upstream",
   },
 
-  /* ------------------------------------------------------- voz e vídeo */
-  /*
-    ⚠ **NENHUMA destas pendências é "a tela não existe".** Todas as
-    preferências desta seção são guardadas, e quatro chegam ao WebRTC de
-    verdade (`constraintsDeAudio` em `store/preferenciasDeVoz.ts`). O que está
-    aqui é o que precisa de algo que o navegador ou o sistema não dão.
-
-    ⚠ **O medidor de nível ao vivo saiu daqui**, e não porque passou a
-    funcionar: ele nunca foi DESENHADO. A seção tem "Volume de entrada", que é
-    um deslizante real, e nenhum medidor ao lado dele — uma entrada num
-    registro de controles pendentes, sem controle, é dívida que ninguém
-    consegue ver na tela para cobrar.
-  */
-  ruidoAgressivo: {
-    superficie: "Configurações · Voz e vídeo",
-    faz: "Supressão de ruído mais forte que a do navegador.",
-    depende: "RNNoise (`@livekit/krisp-noise-filter`) — o `noiseSuppression` do navegador é booleano",
-  },
-  fundoDeVideo: {
-    superficie: "Configurações · Voz e vídeo",
-    faz: "Desfocar o fundo ou trocá-lo por uma imagem.",
-    depende: "segmentação de imagem (`@livekit/track-processors`) — meio megabyte de modelo",
-  },
-
   /* ---------------------------------------------------------------- voz */
   /*
     ⚠ Os dois são CONCEITO que o protocolo Stoat não tem — nem tipo, nem
@@ -156,10 +132,15 @@ export const PENDENCIAS = {
     que é onde quem for trocar o dataset vai olhar — mesma família da etiqueta
     FÓRUM e da reação SUPER, que ficam fora deste registro pelo mesmo motivo.
   */
-  gif: {
-    superficie: "Composer",
-    faz: "Seletor de GIF.",
-    depende: "provedor de GIF (rede externa)",
+  /*
+    ⚠ **O seletor de GIF saiu daqui: ele busca e envia pelo `gifbox`** — o
+    proxy do próprio servidor, que guarda a chave do provedor. O que sobrou é
+    a estrela ao lado da busca.
+  */
+  gifFavoritos: {
+    superficie: "Seletor de GIF",
+    faz: "Guardar GIFs favoritos e abri-los pela estrela.",
+    depende: "lista guardada por conta — o `gifbox` não tem favoritos e o protocolo não tem campo para eles",
   },
 
   /* ------------------------------------------------------- linha de mensagem */
