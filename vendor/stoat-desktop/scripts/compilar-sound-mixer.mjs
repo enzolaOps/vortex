@@ -184,7 +184,7 @@ console.error(`cmake-js com o gerador "${gerador}" (${plataforma}, toolset ${too
    `.node`, lido por quem o chama, e capturá-la esconderia o erro do compilador
    atrás de um "Process terminated: 1". */
 const argsDoCmakeJs = ["cmake-js", "rebuild", "-G", `"${gerador}"`, "-A", plataforma];
-if (toolset) argsDoCmakeJs.push("-T", toolset);
+if (toolset) argsDoCmakeJs.push("--toolset", toolset); // `-T` é --target no cmake-js
 execFileSync("npx", argsDoCmakeJs, {
   cwd: pasta,
   env,
