@@ -39,6 +39,7 @@ export const MODAIS = [
   "link",
   "encaminhar",
   "enquete",
+  "evento",
   "novoGrupo",
   "grupo",
   "privacidadeDoServidor",

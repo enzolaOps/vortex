@@ -53,7 +53,16 @@ export type Local =
       /** `undefined` = servidor sem canal visível. Estado legítimo. */
       readonly channelId: string | undefined;
     }
-  | { readonly tipo: "dm"; readonly channelId: string };
+  | { readonly tipo: "dm"; readonly channelId: string }
+  /**
+   * Os eventos agendados de um servidor.
+   *
+   * ⚠ **Lugar próprio e não painel nem modal**, porque o design o desenha
+   * assim: a coluna de canais continua a do servidor, com "Eventos" marcado no
+   * topo, e o conteúdo vira a lista. É também endereço —
+   * `/servidor/X/eventos` —, que é o que "Compartilhar" copia.
+   */
+  | { readonly tipo: "eventos"; readonly serverId: string };
 
 /**
  * As quatro abas da tela de pessoas.
@@ -117,7 +126,7 @@ export function lerLocal(): Local {
  * que se perderia se todo mundo passasse a assinar o objeto inteiro.
  */
 export function lerServidorAtivo(): string {
-  return local.tipo === "servidor" ? local.serverId : "";
+  return local.tipo === "servidor" || local.tipo === "eventos" ? local.serverId : "";
 }
 
 export function lerCanalAtivo(): string {
@@ -148,7 +157,9 @@ function publicar(novo: Local): void {
 export function selecionarCanal(channelId: string): void {
   if (lerCanalAtivo() === channelId) return;
 
-  if (local.tipo === "servidor") {
+  /* Dos eventos, abrir um canal volta para o servidor — a coluna à esquerda
+     é a mesma, e o canal clicado é dele. */
+  if (local.tipo === "servidor" || local.tipo === "eventos") {
     publicar({ tipo: "servidor", serverId: local.serverId, channelId });
     return;
   }
@@ -189,6 +200,11 @@ export function irPara(serverId: string, channelId: string | undefined): void {
     return;
   }
   publicar({ tipo: "servidor", serverId, channelId });
+}
+
+export function irParaEventos(serverId: string): void {
+  if (local.tipo === "eventos" && local.serverId === serverId) return;
+  publicar({ tipo: "eventos", serverId });
 }
 
 export function abrirConversa(channelId: string): void {

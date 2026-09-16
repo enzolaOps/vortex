@@ -1,5 +1,16 @@
 import { client, conectado } from "./client";
 import { aplicarSuperficieVortex } from "./adapter";
+import { corpoDeVoz, lerConfigDeVoz } from "./vozDoCanal";
+
+/**
+ * ⚠ **Sem `voz` na edição, manda a que já está gravada.** O servidor substitui
+ * o objeto `voice` inteiro: um salvar que só mexesse no limite apagaria o
+ * bitrate e a região escolhidos antes.
+ */
+function lerConfigDeVozComoEdicao(channelId: string) {
+  const c = lerConfigDeVoz(channelId);
+  return { bitrateKbps: c.bitrateKbps, regiao: c.regiao, modoDeVideo: c.modoDeVideo };
+}
 
 /**
  * Escrita de configuração de CANAL — a camada anticorrupção, como sempre.
@@ -15,17 +26,18 @@ import { aplicarSuperficieVortex } from "./adapter";
  * | limite de usuários   | `voice.max_users` ✓                          |
  * | modo lento           | `slowmode` ✓                                 |
  * | canal de spoiler     | `spoiler` ✓ (servidor do Vortex)             |
- * | **bitrate**          | ⚠ não existe                                 |
- * | **região de voz**    | ⚠ não existe                                 |
- * | **modo de vídeo**    | ⚠ não existe                                 |
+ * | bitrate              | `voice.bitrate` ✓ (fork)                     |
+ * | região de voz        | `voice.rtc_region` ✓ (fork)                  |
+ * | modo de vídeo        | `voice.video_quality` ✓ (fork)               |
  *
  * `spoiler` e `invites_paused` são superfície a mais do servidor do Vortex —
  * clientes Stoat os ignoram, e o SDK os descarta na leitura (quem lê é
  * `superficieVortex.ts`). O `edit` do SDK repassa o corpo, então escrever não
  * precisou de nada além do campo.
  *
- * Os três de baixo são desenhados assim mesmo — é a regra desta rodada — e
- * cada um tem entrada em `pendente/pendencias.ts`, que é o que troca "não faz
+ * ⚠ **Os três de voz deixaram de ser pendência** quando o serviço `api` deste
+ * repositório os ganhou — ver `sdk/vozDoCanal.ts`. O que ainda for desenhado
+ * sem back-end tem entrada em `pendente/pendencias.ts`, que é o que troca "não faz
  * nada" por "diz o que fará e do que depende".
  *
  * ⚠ **`slowmode` merece uma nota própria, e ela mudou de sinal.** O texto
@@ -53,6 +65,8 @@ export type EdicaoDeCanal = {
   readonly limiteDeUsuarios: number | undefined;
   /** Segundos entre mensagens. `0` é desativado; o teto do protocolo é 21600. */
   readonly modoLentoSegundos: number;
+  /** Bitrate, região e modo de vídeo. Só em canal de voz, junto do limite. */
+  readonly voz?: Omit<Parameters<typeof corpoDeVoz>[0], "limiteDeUsuarios">;
   /** Toda mídia do canal entra coberta. Exclusivo com `restritoPorIdade` na tela. */
   readonly spoiler: boolean;
 };
@@ -103,10 +117,10 @@ export async function salvarCanal(
       substitui o objeto e apaga o teto sem desligar a voz (`remove: Voice`
       faria isso).
     */
-    dados["voice"] =
-      edicao.limiteDeUsuarios > 0
-        ? { max_users: edicao.limiteDeUsuarios }
-        : {};
+    dados["voice"] = corpoDeVoz({
+      limiteDeUsuarios: edicao.limiteDeUsuarios,
+      ...(edicao.voz ?? lerConfigDeVozComoEdicao(channelId)),
+    });
   }
 
   try {
@@ -136,6 +150,25 @@ export async function pausarConvites(channelId: string, pausado: boolean): Promi
   } catch {
     return false;
   }
+}
+
+/**
+ * Os nós de voz que o servidor anuncia — as opções de "Região de voz".
+ *
+ * Os nomes são as chaves de `hosts.livekit` na configuração da instância, e é
+ * isso que `voice.rtc_region` precisa conter: o servidor recusa com
+ * `UnknownNode` um nome que não esteja lá. Nó marcado `private` não aparece
+ * na lista pública e por isso não é oferecido.
+ */
+export function nosDeVoz(): readonly string[] {
+  const nos = (
+    client.configuration as
+      | { features?: { livekit?: { nodes?: readonly { name?: unknown }[] } } }
+      | undefined
+  )?.features?.livekit?.nodes;
+  return (nos ?? [])
+    .map((n) => n.name)
+    .filter((n): n is string => typeof n === "string" && n !== "");
 }
 
 /**

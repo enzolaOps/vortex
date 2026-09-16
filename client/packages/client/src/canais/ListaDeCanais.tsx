@@ -57,6 +57,7 @@ import { administrar } from "../store/administracao";
 import { abrirConfigDeCanal } from "../store/config";
 import { ListaDeConversas } from "../casa/ListaDeConversas";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
+import { EntradaDeEventos } from "../eventos/EntradaDeEventos";
 import { contagem, rotuloDeNaoLidas } from "../lib/plural";
 import { marcarCanalLido, usuarioLocalId } from "../sdk/adapter";
 import { exibirMinhaTag } from "../sdk/perfilDoServidor";
@@ -1173,7 +1174,11 @@ export function ListaDeCanais() {
 
   return (
     <div className={css.coluna}>
-      {local.tipo !== "servidor" ? <ListaDeConversas /> : <CanaisDoServidor />}
+      {local.tipo !== "servidor" && local.tipo !== "eventos" ? (
+        <ListaDeConversas />
+      ) : (
+        <CanaisDoServidor />
+      )}
       <FaixaDeVoz />
     </div>
   );
@@ -1489,6 +1494,10 @@ function CanaisDoServidor() {
         <ContextMenuTrigger asChild disabled={!podeCriar}>
           {/* Ver `MessageList`: rolável sem foco é inoperável por teclado. */}
           <div className={css.rolagem} tabIndex={0}>
+        {/* Os eventos agendados — primeira linha da coluna, acima das
+            categorias, como no design. Componente próprio: ele assina o
+            relógio de minuto, e a coluna inteira não precisa acordar junto. */}
+        <EntradaDeEventos serverId={serverId} />
         {vazio ? (
           <EstadoVazio
             compacto

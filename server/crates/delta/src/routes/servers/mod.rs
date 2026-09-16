@@ -28,6 +28,7 @@ mod server_ack;
 mod server_create;
 mod server_delete;
 mod server_edit;
+mod server_events;
 mod server_fetch;
 mod tag_members_fetch;
 
@@ -59,6 +60,12 @@ pub fn routes() -> (Vec<Route>, OpenApi) {
         expressions_list::list_sounds,
         roles_edit_positions::edit_role_ranks,
         audit_log_query::query,
+        server_events::fetch_events,
+        server_events::create_event,
+        server_events::edit_event,
+        server_events::delete_event,
+        server_events::add_interest,
+        server_events::remove_interest,
         message_search::search,
         tag_members_fetch::fetch_tag_members,
         category_permissions_set::set_category_permissions,

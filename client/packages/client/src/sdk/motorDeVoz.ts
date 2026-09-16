@@ -47,6 +47,7 @@ import {
   type RemoteParticipant,
   type RemoteTrack,
   type RemoteTrackPublication,
+  type RoomOptions,
   type ScreenShareCaptureOptions,
   type TrackPublishOptions,
 } from "livekit-client";
@@ -67,6 +68,7 @@ import {
 } from "./audioDeJanela";
 import { criarAtenuador, ponteDeAtenuacao } from "./atenuacao";
 import { client } from "./client";
+import { lerConfigDeVoz, publicacaoDe as publicacaoDoCanal } from "./vozDoCanal";
 import { sairDaSalaLocalmente } from "./adapter";
 import type { Chamada, QualidadeDeVoz } from "../store/chamada";
 import {
@@ -180,6 +182,43 @@ async function noMaisRapido(): Promise<string | undefined> {
     // tem um padrão, e a sonda é otimização, não requisito.
     return undefined;
   }
+}
+
+/**
+ * Os tetos de publicação que o CANAL escolheu — bitrate e modo de vídeo.
+ *
+ * ⚠ **Nos padrões da sala, e não em cada `setMicrophoneEnabled`.** O
+ * microfone é publicado por mais de um caminho (entrar, sair do mudo,
+ * push-to-talk), e a câmera por outro; opção por chamada teria de ser repetida
+ * em cada um, e o primeiro que esquecesse publicaria no padrão do LiveKit sem
+ * erro nenhum. `publishDefaults` vale para todos.
+ *
+ * A transmissão de tela NÃO passa por aqui: ela tem `screenShareEncoding`
+ * próprio, escolhido no HUD.
+ */
+function opcoesDaSala(channelId: string): RoomOptions {
+  const p = publicacaoDoCanal(lerConfigDeVoz(channelId));
+  return {
+    publishDefaults: {
+      ...(p.audioMaxBitrate === undefined
+        ? {}
+        : { audioPreset: { maxBitrate: p.audioMaxBitrate } }),
+      ...(p.video === undefined
+        ? {}
+        : { videoEncoding: { maxBitrate: p.video.maxBitrate, maxFramerate: p.video.fps } }),
+    },
+    ...(p.video === undefined
+      ? {}
+      : {
+          videoCaptureDefaults: {
+            resolution: {
+              width: p.video.largura,
+              height: p.video.altura,
+              frameRate: p.video.fps,
+            },
+          },
+        }),
+  };
 }
 
 /** Quem está na sala agora, do ponto de vista do LiveKit. */
@@ -724,7 +763,7 @@ export async function entrarNaChamada(channelId: string): Promise<boolean> {
     const no = await noMaisRapido();
     const auth = await canal.joinCall(no);
 
-    const r = new Room();
+    const r = new Room(opcoesDaSala(channelId));
     sala = r;
     ligarEventos(r, channelId);
 

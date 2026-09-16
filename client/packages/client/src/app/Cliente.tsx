@@ -1,6 +1,7 @@
 import { Profiler, useEffect, useSyncExternalStore, type ReactNode } from "react";
 
 import { Amigos } from "../casa/Amigos";
+import { TelaDeEventos } from "../eventos/TelaDeEventos";
 import { CabecalhoDeCanal } from "../canais/CabecalhoDeCanal";
 import { Popout } from "../voz/Popout";
 import { ChamadaRecebida } from "../voz/ChamadaRecebida";
@@ -70,6 +71,12 @@ export function Cliente({ ferramentas }: { ferramentas?: ReactNode }) {
     shell.
   */
   const naCasaDeAmigos = local.tipo === "amigos";
+  /*
+    Os eventos do servidor também ocupam a coluna de CONTEÚDO, pela mesma
+    razão da tela de pessoas — e trazem o próprio cabeçalho de 50px, com abas
+    e "Criar evento", então o do canal não é montado.
+  */
+  const eventosDe = local.tipo === "eventos" ? local.serverId : undefined;
 
   /*
     ⚠ **O `<Profiler>` envolve o app inteiro, em DESENVOLVIMENTO.** É de onde
@@ -105,7 +112,7 @@ export function Cliente({ ferramentas }: { ferramentas?: ReactNode }) {
       */
       usuario={<PainelDeUsuario />}
       cabecalho={
-        canal && !naCasaDeAmigos ? (
+        eventosDe !== undefined ? undefined : canal && !naCasaDeAmigos ? (
           <CabecalhoDeCanal channelId={canal} />
         ) : (
           <CabecalhoDeCanal />
@@ -127,6 +134,8 @@ export function Cliente({ ferramentas }: { ferramentas?: ReactNode }) {
       conteudo={
         naCasaDeAmigos ? (
           <Amigos />
+        ) : eventosDe !== undefined ? (
+          <TelaDeEventos key={eventosDe} serverId={eventosDe} />
         ) : canal ? (
           /*
             ⚠ **Quem escolhe entre a conversa e a SALA DE VOZ é ele, e não este

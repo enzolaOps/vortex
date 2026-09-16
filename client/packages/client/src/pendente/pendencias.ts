@@ -27,6 +27,20 @@ import { toast } from "../components/ui/toastStore";
  *    removida, o módulo inteiro vira código morto e o `pnpm utilities` acusa.
  */
 export const PENDENCIAS = {
+  /* ---------------------------------------------------------- eventos */
+  /*
+    O resto do assistente de evento é real — local, quando, repetição,
+    lembrete, nome, descrição e capa. Anunciar não: o design promete "publica
+    o card ao criar", e card de evento dentro de um canal é embed que o
+    protocolo não tem. Mandar um link em texto seria outra coisa com o mesmo
+    rótulo.
+  */
+  anunciarEvento: {
+    superficie: "Criar evento · passo Detalhes",
+    faz: "Publicar o card do evento no canal de avisos ao criar.",
+    depende: "embed de evento na mensagem — o protocolo não tem",
+  },
+
   /* --------------------------------------------- editor de cargo */
   /*
     Quatro entradas para uma aba, e a divisão é por DEPENDÊNCIA — igual à da
@@ -153,17 +167,6 @@ export const PENDENCIAS = {
     superficie: "Composer",
     faz: "Seletor de GIF.",
     depende: "provedor de GIF (rede externa)",
-  },
-  /*
-    ⚠ **A linha de enquete na timeline EXISTE agora**, e o que ficou pendente é
-    só criar — porque criar é o que precisa de um servidor que saiba guardar.
-    Ver `store/enquetes.ts`: uma enquete guardada só no cliente daria uma
-    contagem que só quem criou enxerga.
-  */
-  enquete: {
-    superficie: "Criar enquete",
-    faz: "Publicar a enquete para todo mundo do canal poder votar.",
-    depende: "enquete no protocolo (tipo de mensagem + evento de voto)",
   },
 
   /* ------------------------------------------------------- linha de mensagem */
@@ -355,21 +358,6 @@ export const PENDENCIAS = {
     então a tela mostra o estado real e o controle não move. A tabela medida
     está em `sdk/canal.ts`.
   */
-  bitrateDeVoz: {
-    superficie: "Configurações do canal",
-    faz: "Escolher a qualidade de áudio da sala.",
-    depende: "bitrate no protocolo + repasse ao LiveKit",
-  },
-  regiaoDeVoz: {
-    superficie: "Configurações do canal",
-    faz: "Fixar a região do servidor de voz, em vez de deixar automática.",
-    depende: "região de voz no protocolo",
-  },
-  modoDeVideo: {
-    superficie: "Configurações do canal",
-    faz: "Fixar resolução e taxa de quadros do vídeo.",
-    depende: "modo de vídeo no protocolo + repasse ao LiveKit",
-  },
 
   /* -------------------------------------------------------- perfil */
   /*
@@ -452,21 +440,6 @@ export const SUPERFICIES_AUSENTES = {
     depende:
       "a tabela de cargos resolvida para a hierarquia, e `ServerMember.edit({voice_channel})` para mover",
     referencia: "components/voice/VoiceUserMenu.tsx",
-  },
-
-  /* --------------------------------------------------------- eventos */
-  /*
-    ⚠ **Três arquivos da referência e zero rastro aqui** — a maior ausência
-    das nove em volume. O protocolo do Stoat não tem evento agendado, então
-    ela cai na mesma família do Fórum: entra junto com o fork do serviço
-    `api`. A diferença é que o Fórum já estava registrado e esta não estava.
-  */
-  eventosDoServidor: {
-    superficie: "Destino próprio do servidor, com cartão e assistente",
-    faz: "Agendar, listar e confirmar presença em eventos do servidor.",
-    depende: "evento agendado no protocolo — não há tipo, campo nem rota",
-    referencia:
-      "screens/events/EventsScreen.tsx · CreateEventWizard.tsx · components/events/EventCard.tsx",
   },
 
   /*

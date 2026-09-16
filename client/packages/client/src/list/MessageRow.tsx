@@ -2,6 +2,7 @@ import {
   ArrowBendUpLeft,
   ArrowBendUpRight,
   ArrowClockwise,
+  ChartBar,
   ChatsCircle,
   Copy,
   DotsThree,
@@ -73,6 +74,7 @@ import {
   marcarNaoLidaA,
   removerEmbeds,
   alternarReacao,
+  republicarEnquete,
   editarMensagem,
   usuarioLocalId,
 } from "../sdk/adapter";
@@ -116,6 +118,7 @@ import { useMessage } from "../store/hooks";
 import { Anexos } from "./Anexos";
 import { FigurinhaNaLinha } from "./FigurinhaNaLinha";
 import { EnqueteDaMensagem } from "../enquete/EnqueteDaMensagem";
+import { encerrarEnquete } from "../sdk/enquetes";
 import { MenuDoUsuario } from "../membros/MenuDoUsuario";
 import { aindaNao } from "../pendente/pendencias";
 import { abrirSeletorDeReacao } from "../store/seletorDeReacao";
@@ -1550,6 +1553,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             {message.enquete ? (
               <EnqueteDaMensagem
                 messageId={message.id}
+                channelId={message.channelId}
                 enquete={message.enquete}
               />
             ) : null}
@@ -1789,6 +1793,27 @@ function ItensDaMensagem({ messageId }: { messageId: string }) {
           <PencilSimple aria-hidden />
           Editar
           <span className={menuAtalho}>E</span>
+        </ContextMenuItem>
+      ) : null}
+
+      {/*
+        Encerrar a enquete antes do prazo — do autor ou de quem gerencia
+        mensagens, a mesma regra que o servidor aplica em `poll/end`.
+        ⚠ O design não desenha este item; ele existe porque o protocolo tem a
+        rota e nenhuma outra superfície do design a alcança.
+      */}
+      {message.enquete &&
+      message.enquete.fechaEm !== undefined &&
+      (souOAutor || gerencio) ? (
+        <ContextMenuItem
+          onSelect={() =>
+            void encerrarEnquete(message.channelId, message.id, () =>
+              republicarEnquete(message.id),
+            )
+          }
+        >
+          <ChartBar aria-hidden />
+          Encerrar enquete
         </ContextMenuItem>
       ) : null}
 

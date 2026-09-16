@@ -131,6 +131,25 @@ auto_derived!(
         /// Maximium amount of users allowed in the voice channel at once
         #[serde(skip_serializing_if = "Option::is_none")]
         pub max_users: Option<usize>,
+        /// Audio bitrate for this voice channel, in kbps (Vortex)
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub bitrate: Option<u32>,
+        /// Voice node pinned for this channel (Vortex)
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub rtc_region: Option<String>,
+        /// Video quality ceiling for this voice channel (Vortex)
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub video_quality: Option<VideoQualityMode>,
+    }
+
+    /// Video quality ceiling of a voice channel (Vortex)
+    pub enum VideoQualityMode {
+        #[serde(rename = "auto")]
+        Auto,
+        #[serde(rename = "720p30")]
+        Hd720p30,
+        #[serde(rename = "1080p60")]
+        Hd1080p60,
     }
 );
 

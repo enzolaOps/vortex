@@ -56,7 +56,10 @@ import {
   progressoDeUpload,
   registrarCancelamento,
 } from "../store/uploads";
-import { lerEnquete } from "../store/enquetes";
+import { definirEuDasEnquetes, lerEnquete } from "../store/enquetes";
+import { anotarEventoDeEnquete, buscarMensagensComEnquetes } from "./enquetes";
+import { anotarEventoDeVoz } from "./vozDoCanal";
+import { anotarEventoDeServidor } from "./eventos";
 import { semearStatusDoServidor } from "./perfil";
 import { aguardar, desistir, reconciliar } from "./nonce";
 import {
@@ -1107,6 +1110,14 @@ export function startAdapter() {
     member list inteira toda vez que alguém fosse silenciado.
   */
   client.events.on("event", (evento: unknown) => {
+    /* A voz por canal do fork mora no evento cru pela mesma razão do
+       `can_publish` abaixo — ver `sdk/vozDoCanal.ts`. */
+    anotarEventoDeVoz(evento);
+    /* Enquete é campo do fork que a hidratação descarta — ver `sdk/enquetes.ts`. */
+    for (const id of anotarEventoDeEnquete(evento)) republicarEnquete(id);
+    /* Evento agendado é superfície do fork que o SDK não conhece — ver
+       `sdk/eventos.ts`. */
+    anotarEventoDeServidor(evento);
     const e = evento as {
       type?: string;
       members?: readonly { _id?: { server?: string; user?: string }; can_publish?: boolean }[];
@@ -1533,7 +1544,7 @@ export async function carregarHistorico(channelId: string): Promise<void> {
   historicoPedido.add(channelId);
 
   try {
-    const { messages: doServidor } = await canal.fetchMessagesWithUsers({
+    const doServidor = await buscarMensagensComEnquetes(canal.id, {
       limit: LIMITE_DE_HISTORICO,
     });
 
@@ -1644,7 +1655,7 @@ export async function carregarPaginaAnterior(channelId: string): Promise<void> {
 
   paginaEmVoo.add(channelId);
   try {
-    const { messages: doServidor } = await canal.fetchMessagesWithUsers({
+    const doServidor = await buscarMensagensComEnquetes(canal.id, {
       limit: LIMITE_DE_HISTORICO,
       before: cursor,
     });
@@ -1771,6 +1782,7 @@ export function usuarioLocalId(): string | undefined {
 
 export function definirUsuarioLocal(id: string): void {
   usuarioLocal = id;
+  definirEuDasEnquetes(id);
   /*
     O arnês entra sem senha, e é assim que ele deve entrar.
 

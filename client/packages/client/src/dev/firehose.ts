@@ -12,7 +12,7 @@
  */
 import { decodeTime, monotonicFactory, ulid } from "ulid";
 
-import { definirEnquete } from "../store/enquetes";
+import { definirEnqueteBruta, lerEuDasEnquetes } from "../store/enquetes";
 import { registrarFigurinhaLocal } from "../sdk/figurinhasDeMensagem";
 import { FIGURINHAS_DO_ARNES, semearExpressoesDoArnes } from "./expressoesDoArnes";
 import {
@@ -1484,28 +1484,41 @@ function semearEnquetes(ids: readonly string[]): void {
   const encerrada = ids[ids.length - 3];
   if (!aberta || !encerrada) return;
 
-  definirEnquete(aberta, {
+  /* Votos são IDs, como o protocolo manda — contagem é derivada no store. */
+  const gente = (n: number, prefixo: string) =>
+    new Set(Array.from({ length: n }, (_, i) => `${prefixo}${String(i)}`));
+  const eu = lerEuDasEnquetes();
+
+  definirEnqueteBruta(aberta, {
     pergunta: "Qual densidade vai como padrão?",
-    opcoes: [
-      { id: "a", marca: "🅰", texto: "Confortável", votos: 14 },
-      { id: "b", marca: "🅱", texto: "Compacto", votos: 9 },
+    respostas: [
+      { id: "r0", texto: "Confortável" },
+      { id: "r1", texto: "Compacto" },
     ],
     maximo: 1,
-    meuVoto: undefined,
-    fechaEm: Date.now() + 22 * 3_600_000,
-    resultadoNoFim: false,
+    expiraEm: Date.now() + 22 * 3_600_000,
+    encerradaEm: undefined,
+    esconder: false,
+    votos: new Map([
+      ["r0", gente(14, "a")],
+      ["r1", gente(9, "b")],
+    ]),
   });
 
-  definirEnquete(encerrada, {
+  definirEnqueteBruta(encerrada, {
     pergunta: "Bitrate padrão das salas?",
-    opcoes: [
-      { id: "a", marca: "🅰", texto: "64 kbps", votos: 16 },
-      { id: "b", marca: "🅱", texto: "96 kbps", votos: 9 },
+    respostas: [
+      { id: "r0", texto: "64 kbps" },
+      { id: "r1", texto: "96 kbps" },
     ],
     maximo: 1,
-    meuVoto: "a",
-    fechaEm: undefined,
-    resultadoNoFim: false,
+    expiraEm: Date.now() - 3_600_000,
+    encerradaEm: Date.now() - 3_600_000,
+    esconder: false,
+    votos: new Map([
+      ["r0", eu ? new Set([...gente(15, "c"), eu]) : gente(16, "c")],
+      ["r1", gente(9, "d")],
+    ]),
   });
 }
 

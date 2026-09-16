@@ -1,3 +1,4 @@
+use iso8601_timestamp::Timestamp;
 use std::collections::HashMap;
 use std::time::SystemTime;
 use revolt_result::Result;
@@ -36,6 +37,21 @@ pub trait AbstractMessages: Sync + Send {
 
     /// Remove reaction from a message
     async fn clear_reaction(&self, id: &str, emoji: &str) -> Result<()>;
+
+    /// Replace a user's vote on a message's poll (Vortex)
+    ///
+    /// `all_answers` lists every answer id of the poll, so the previous vote
+    /// can be removed wherever it was.
+    async fn set_poll_vote(
+        &self,
+        id: &str,
+        user: &str,
+        answers: &[String],
+        all_answers: &[String],
+    ) -> Result<()>;
+
+    /// Mark a message's poll as ended (Vortex)
+    async fn end_poll(&self, id: &str, ended_at: &Timestamp) -> Result<()>;
 
     /// Delete a message from the database by its id
     async fn delete_message(&self, id: &str) -> Result<()>;

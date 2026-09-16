@@ -81,6 +81,12 @@ export type Alvo =
   */
   | { readonly tipo: "enquete" }
   /*
+    Criar ou editar um evento agendado. Sem `eventoId` é criar — a mesma
+    assimetria de `criarCanal`/`editarCanal`, com um formulário só: o
+    assistente de três passos é o mesmo nos dois casos.
+  */
+  | { readonly tipo: "evento"; readonly serverId: string; readonly eventoId?: string }
+  /*
     ⚠ **Criar grupo NÃO carrega alvo, gerenciar carrega o canal.** A assimetria
     é a mesma de `criarCanal` contra `editarCanal`: um formulário em branco não
     tem sobre o que operar, e um que edita não pode nascer sem saber o quê.
@@ -181,6 +187,7 @@ const MODAL_DE: Record<
   | "link"
   | "encaminhar"
   | "enquete"
+  | "evento"
   | "novoGrupo"
   | "grupo"
   | "privacidadeDoServidor"
@@ -205,6 +212,7 @@ const MODAL_DE: Record<
   moderar: "moderar",
   encaminhar: "encaminhar",
   enquete: "enquete",
+  evento: "evento",
   novoGrupo: "novoGrupo",
   grupo: "grupo",
   privacidadeDoServidor: "privacidadeDoServidor",

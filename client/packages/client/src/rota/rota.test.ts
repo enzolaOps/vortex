@@ -32,6 +32,7 @@ describe("caminho ↔ lugar", () => {
     ["/servidor/" + S, { tipo: "servidor", serverId: S, channelId: undefined }],
     [`/servidor/${S}/canal/${C}`, { tipo: "servidor", serverId: S, channelId: C }],
     [`/dm/${C}`, { tipo: "dm", channelId: C }],
+    [`/servidor/${S}/eventos`, { tipo: "eventos", serverId: S }],
     /*
       A aba de pessoas é parte do LUGAR desde que Privacidade precisou mandar
       alguém para os bloqueados. A padrão NÃO entra no caminho: `/amigos` e

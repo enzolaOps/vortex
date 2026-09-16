@@ -256,6 +256,45 @@ export function decidirEntregaDeChamada(
   return canais.size > 0 ? { evento: "chamada", canais } : undefined;
 }
 
+/**
+ * O lembrete de "10 minutos antes" de um evento — por onde, ou nada.
+ *
+ * Mesma ordem da mensagem nas partes que valem para ele: não perturbe e
+ * horário de silêncio calam; a linha "Evento do servidor" da matriz decide os
+ * canais. Silêncio de canal e nível NÃO entram — o lembrete é de algo em que a
+ * pessoa marcou interesse, não de uma conversa que ela escolheu calar.
+ */
+export function decidirLembreteDeEvento(ctx: {
+  readonly prefs: Preferencias;
+  readonly naoPerturbe: boolean;
+  readonly agora: Date;
+  readonly janelaEmFoco: boolean;
+}): ReadonlySet<CanalDeEntrega> {
+  const canais = new Set<CanalDeEntrega>();
+  if (ctx.naoPerturbe || emSilencioNoturno(ctx.prefs, ctx.agora)) return canais;
+  for (const canal of ["toast", "som", "push"] as const) {
+    if (!ctx.prefs.matriz.has(chaveDaMatriz("evento", canal))) continue;
+    if (canal === "toast" && !ctx.janelaEmFoco) continue;
+    if (canal === "push" && (ctx.janelaEmFoco || !ctx.prefs.desktop)) continue;
+    canais.add(canal);
+  }
+  /*
+    ⚠ **O padrão da matriz para evento é só "push"**, e push só sai com a
+    janela ATRÁS. Com o app à frente o lembrete sumiria inteiro — então, sem
+    nenhum canal de dentro do app marcado, o push vira toast. Quem desmarcou
+    tudo continua sem nada: a troca só acontece se push estava pedido.
+  */
+  if (
+    canais.size === 0 &&
+    ctx.janelaEmFoco &&
+    ctx.prefs.matriz.has(chaveDaMatriz("evento", "push")) &&
+    !ctx.naoPerturbe
+  ) {
+    canais.add("toast");
+  }
+  return canais;
+}
+
 /** O título e o corpo, respeitando a prévia. */
 export function textoDaNotificacao(
   m: MensagemRecebida,

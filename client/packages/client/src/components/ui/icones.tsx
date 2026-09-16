@@ -19,6 +19,7 @@ import {
   RiAtLine,
   RiBarChartFill,
   RiBold,
+  RiCalendarEventFill,
   RiChat1Fill,
   RiChat3Fill,
   RiCheckLine,
@@ -179,6 +180,7 @@ export const ArrowSquareOut = vx(RiExternalLinkFill);
 export const ArrowsClockwise = vx(RiLoopLeftFill);
 export const ArrowsOut = vx(RiExpandDiagonalFill);
 export const BellSimple = vx(RiNotification3Fill);
+export const Calendar = vx(RiCalendarEventFill);
 export const ChartBar = vx(RiBarChartFill);
 export const ChatCircle = vx(RiChat1Fill);
 export const ChatCircleDots = vx(RiChat3Fill);
