@@ -1,0 +1,109 @@
+/* ============================================================
+   Chat do canal de voz
+   ------------------------------------------------------------
+   Valores do design ("Chat de texto embutido no canal de
+   voz"), lidos com `scripts/espec.mjs`: cartão de 420 com
+   raio 12 em `surface-2`, cabeçalho `12px 14px`, nome 14/600,
+   subtítulo 11 em text-3, nota 11 em text-4.
+
+   ⚠ A borda do design é véu a 7%; a escala de hairline tem 6
+   e 10. 6 é o degrau que o próprio design usa nas divisórias
+   internas deste cartão, e 1% de véu não é perceptível —
+   um degrau novo para ele seria.
+   ============================================================ */
+
+.chat {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  /* DIMENSÃO de componente, a do design. O `min` segura a sala: numa coluna
+     de 1000px o chat com 420 deixaria a grade com menos da metade. */
+  inline-size: min(420px, 40%);
+  min-block-size: 0;
+  margin: var(--vx-space-12);
+  margin-inline-start: 0;
+  overflow: hidden;
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-12);
+  background: var(--vx-surface-2);
+  /* O composer e a lista reagem ao PRÓPRIO tamanho — lei nº 6. */
+  container-type: inline-size;
+}
+
+.cabecalho {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-10);
+  padding: var(--vx-space-12) var(--vx-space-14);
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+.glifo {
+  flex: none;
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+  color: var(--vx-accent-text);
+}
+
+.titulos {
+  display: grid;
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.nome {
+  overflow: hidden;
+  font-size: var(--vx-size-base);
+  font-weight: 600;
+  color: var(--vx-text-1);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subtitulo {
+  overflow: hidden;
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Ver o comentário no TSX: a altura definida é o que segura a virtualização. */
+.lista {
+  display: grid;
+  flex: 1;
+  grid-template-rows: minmax(0, 1fr);
+  min-block-size: 0;
+}
+
+.rodape {
+  flex: none;
+  border-block-start: 1px solid var(--vx-hairline-06);
+  padding-block-start: var(--vx-space-10);
+}
+
+.nota {
+  margin: 0;
+  padding: 0 var(--vx-space-20) var(--vx-space-10);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
+  text-wrap: pretty;
+}
+
+/*
+  Estreito demais para dividir a sala, o chat passa a COBRIR a sala em vez de
+  espremê-la — abaixo de ~760px de palco uma grade de 60% vira ladrilhos de
+  avatar sem rosto. Fechar devolve a sala, e o botão do cabeçalho da sala o
+  reabre. Container query sobre o PALCO, que é quem sabe a largura total.
+*/
+@container (inline-size < 760px) {
+  .chat {
+    position: absolute;
+    inset: 0;
+    inline-size: auto;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+  }
+}

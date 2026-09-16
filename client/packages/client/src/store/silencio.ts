@@ -80,10 +80,69 @@ export function alternarSilencio(channelId: string, duracaoMs = Infinity): void 
   for (const ouvinte of ouvintes) ouvinte();
 }
 
+/* --------------------------------------------- silêncio por servidor */
+
+/**
+ * Até quando cada SERVIDOR fica silenciado — a mesma forma de `silenciados`.
+ *
+ * ⚠ **Mapa próprio, e não "silenciar cada canal do servidor".** Escrever o
+ * prazo em todos os canais seria o atalho óbvio e errado de três jeitos: canal
+ * criado depois nasceria falando; reativar o servidor apagaria o silêncio que
+ * a pessoa tinha posto num canal específico ANTES; e o menu do canal diria
+ * "Reativar avisos" para um silêncio que ninguém pôs nele. O design escreve a
+ * cadeia com os dois elos separados — "silenciado do servidor → silenciado do
+ * canal" —, e dois elos pedem dois mapas.
+ *
+ * Quem pergunta "este canal está mudo?" é `estaMudo`, que junta os dois; o SDK
+ * responde `channel.muted` por ele (ver `sdk/client.ts`).
+ */
+const servidoresSilenciados = new Map<string, number>();
+
+export function servidorSilenciado(serverId: string): boolean {
+  const ate = servidoresSilenciados.get(serverId);
+  if (ate === undefined) return false;
+  if (Date.now() < ate) return true;
+  servidoresSilenciados.delete(serverId);
+  return false;
+}
+
+/** O prazo do servidor, para quem mostra o restante. */
+export function silencioDoServidorAte(serverId: string): number | undefined {
+  return servidorSilenciado(serverId) ? servidoresSilenciados.get(serverId) : undefined;
+}
+
+/** Silencia o servidor por um prazo; `Infinity` é "até eu reativar". */
+export function silenciarServidor(serverId: string, duracaoMs = Infinity): void {
+  servidoresSilenciados.set(
+    serverId,
+    duracaoMs === Infinity ? Infinity : Date.now() + duracaoMs,
+  );
+  for (const ouvinte of ouvintes) ouvinte();
+}
+
+export function reativarServidor(serverId: string): void {
+  if (!servidoresSilenciados.delete(serverId)) return;
+  for (const ouvinte of ouvintes) ouvinte();
+}
+
+/**
+ * O canal está mudo — por ele mesmo OU pelo servidor dele.
+ *
+ * É a pergunta que o rollup de não-lidas e o realce da coluna fazem. O
+ * notificador NÃO a usa: ele precisa dos dois elos separados, porque a cadeia
+ * do design os ordena.
+ */
+export function estaMudo(channelId: string, serverId: string | undefined): boolean {
+  return estaSilenciado(channelId) || (serverId !== undefined && servidorSilenciado(serverId));
+}
+
 /** Estado limpo entre testes. */
 export function limparSilencio(): void {
   silenciados.clear();
   niveis.clear();
+  servidoresSilenciados.clear();
+  niveisDeServidor.clear();
+  opcoesDeServidor.clear();
 }
 
 /* ------------------------------------------- nível por canal */
@@ -144,5 +203,87 @@ export function definirNivelDoCanal(
     alternarSilencio(channelId);
   }
 
+  for (const ouvinte of ouvintes) ouvinte();
+}
+
+/* ------------------------------------------- nível por servidor */
+
+/**
+ * O PADRÃO do servidor — de onde o canal sem exceção herda.
+ *
+ * ⚠ **"Nada" aqui NÃO silencia o servidor**, ao contrário do canal, e a
+ * diferença está escrita no próprio design: "Nada · só badge de não lido, sem
+ * notificação". Silenciar o servidor apaga também o realce da coluna e do
+ * rail; o padrão "nada" só cala o aviso. Acoplar os dois como no canal faria
+ * escolher "nada" no modal esconder as bolinhas de não-lida do rail — uma
+ * consequência que a opção não anuncia.
+ *
+ * `undefined` = segue o padrão global (só menções), pela mesma razão do canal.
+ */
+const niveisDeServidor = new Map<string, NivelDeNotificacao>();
+
+export function nivelDoServidor(serverId: string): NivelDeNotificacao | undefined {
+  return niveisDeServidor.get(serverId);
+}
+
+export function definirNivelDoServidor(
+  serverId: string,
+  nivel: NivelDeNotificacao | undefined,
+): void {
+  if (niveisDeServidor.get(serverId) === nivel) return;
+  if (nivel === undefined) niveisDeServidor.delete(serverId);
+  else niveisDeServidor.set(serverId, nivel);
+  for (const ouvinte of ouvintes) ouvinte();
+}
+
+/**
+ * O nível que VALE num canal: a exceção do canal, senão o padrão do servidor.
+ *
+ * É a ponta final da cadeia do design — "padrão do servidor → exceção do
+ * canal". `undefined` continua sendo "ninguém escolheu": o notificador aplica
+ * o padrão global (só menções).
+ */
+export function nivelEfetivo(
+  channelId: string,
+  serverId: string | undefined,
+): NivelDeNotificacao | undefined {
+  return niveis.get(channelId) ?? (serverId ? niveisDeServidor.get(serverId) : undefined);
+}
+
+/**
+ * Os dois interruptores do modal do servidor que têm efeito hoje.
+ *
+ * "Notificar eventos do servidor" é o terceiro do design e fica pendente: o
+ * protocolo não tem evento agendado.
+ */
+export type OpcoesDoServidor = {
+  readonly suprimirTodos: boolean;
+  readonly suprimirCargos: boolean;
+};
+
+/* Os padrões do design: @everyone suprimido, cargo não. Menção em massa num
+   servidor grande é a notificação que mais faz alguém desligar tudo. */
+const OPCOES_PADRAO: OpcoesDoServidor = { suprimirTodos: true, suprimirCargos: false };
+
+const opcoesDeServidor = new Map<string, OpcoesDoServidor>();
+
+/** Referência estável: o padrão é uma constante, a escolha é trocada inteira. */
+export function opcoesDoServidor(serverId: string): OpcoesDoServidor {
+  return opcoesDeServidor.get(serverId) ?? OPCOES_PADRAO;
+}
+
+export function definirOpcoesDoServidor(
+  serverId: string,
+  mudanca: Partial<OpcoesDoServidor>,
+): void {
+  const atual = opcoesDoServidor(serverId);
+  const proxima = { ...atual, ...mudanca };
+  if (
+    proxima.suprimirTodos === atual.suprimirTodos &&
+    proxima.suprimirCargos === atual.suprimirCargos
+  ) {
+    return;
+  }
+  opcoesDeServidor.set(serverId, proxima);
   for (const ouvinte of ouvintes) ouvinte();
 }

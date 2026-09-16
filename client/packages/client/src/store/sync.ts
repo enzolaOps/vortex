@@ -12,6 +12,7 @@ export const CHAVES_SYNC = [
   "vortex:notificacoes",
   "vortex:privacidadeDoServidor",
   "vortex:densidade",
+  "vortex:favoritos",
 ] as const;
 
 export type ChaveSync = (typeof CHAVES_SYNC)[number];

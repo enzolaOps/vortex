@@ -119,6 +119,21 @@ export function urlDeAnexo(tag: string, id: string): string | undefined {
 }
 
 /**
+ * O endereço do ARQUIVO ORIGINAL de uma figurinha ou efeito sonoro.
+ *
+ * ⚠ **O original, e não a prévia (`/attachments/{id}`).** A rota de prévia
+ * redireciona tudo que não é imagem estática para `/{tag}/{id}/{nome}` — um
+ * caminho relativo à RAIZ, que se perde quando o `autumn` mora atrás de um
+ * prefixo no proxy. O som não tocaria e a figurinha animada sumiria, sem erro
+ * nenhum. É por isso que o servidor devolve `filename` junto.
+ */
+export function urlDoOriginal(id: string, nomeDoArquivo: string): string | undefined {
+  const base = enderecoDoAutumn();
+  if (base === undefined || nomeDoArquivo === "") return undefined;
+  return `${base}/attachments/${id}/${encodeURIComponent(nomeDoArquivo)}`;
+}
+
+/**
  * O maior teto publicado para esta tag, ou nada.
  *
  * Lê `features.limits` com narrowing manual porque `RevoltConfig` do SDK não
@@ -140,6 +155,22 @@ function tetoDeUpload(tag: TagDeAnexo): number | undefined {
     if (typeof v === "number" && (maior === undefined || v > maior)) maior = v;
   }
   return maior;
+}
+
+/**
+ * "2,5 MB" — o teto desta tag, para a pista ao lado do botão de enviar.
+ *
+ * ⚠ **O design escreve "até 8 MB" no ícone do servidor, e o teto default do
+ * `autumn` para `icons` é 2,5 MB.** Uma pista que promete o triplo do que o
+ * servidor aceita é pior que pista nenhuma: a pessoa escolhe um PNG de 5 MB
+ * confiando nela e lê a recusa. O número vem da mesma configuração que a
+ * checagem de `subirAnexo` consulta, então a pista e a recusa nunca divergem.
+ *
+ * `undefined` quando a instância não publica teto — aí quem chama omite o
+ * número, em vez de inventar um.
+ */
+export function tetoDeUploadTexto(tag: TagDeAnexo): string | undefined {
+  return formatarBytes(tetoDeUpload(tag));
 }
 
 export function subirAnexo(

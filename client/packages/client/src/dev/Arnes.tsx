@@ -2,8 +2,11 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { Cliente } from "../app/Cliente";
 import {
+  chamadaDiretaFalsa,
   chamadaEmVideoFalsa,
   chamadaFalsa,
+  chamadaRecebidaFalsa,
+  desistirDaChamadaFalsa,
   transmissaoFalsa,
   editarUltima,
   falarEmOutroCanal,
@@ -19,6 +22,8 @@ import { readCounters, resetCounters, type Counters } from "./stats";
 import { ALTURA_ESTIMADA } from "../list/MessageList";
 import { ligarAtalhoDaPaleta } from "../store/paleta";
 import { configurarSimulacaoDeEnvio } from "../sdk/adapter";
+import { dublarProvedorDeGif } from "../sdk/fonteDeGifs";
+import { provedorDeGifFalso } from "./gifsFalsos";
 import { pedirEscolhaDeTela } from "../store/seletorDeTela";
 import { dublarPonteDeTela } from "./telaFalsa";
 import { definirConexao, lerConexao } from "../store/conexao";
@@ -84,6 +89,12 @@ export function Arnes() {
   useEffect(() => {
     configurarSimulacaoDeEnvio({ ativa: true, falhar: falharEnvio });
   }, [falharEnvio]);
+
+  /* GIF sem `gifbox`: o dublê grava as prévias num canvas. Ver `gifsFalsos.ts`. */
+  useEffect(() => {
+    dublarProvedorDeGif(provedorDeGifFalso);
+    return () => dublarProvedorDeGif(undefined);
+  }, []);
 
   /**
    * Troca de tema é sobrescrever a camada 1 e nada mais.
@@ -441,6 +452,39 @@ export function Arnes() {
             className="rounded-06 border border-border-subtle bg-surface-2 px-12 py-04 text-sm text-text-1"
           >
             grade falsa
+          </button>
+
+          {/*
+            ⚠ **Sem estes três a chamada em DM seria inalcançável no
+            navegador** — o toque nasce de um evento que só um servidor com
+            LiveKit publica, e a tela de duas pessoas só abre com uma sala de
+            verdade. "chamada recebida" emite os eventos CRUS, então a tradução
+            do adapter é exercitada junto. Ver `chamadaRecebidaFalsa`.
+          */}
+          <button
+            onClick={() => chamadaRecebidaFalsa()}
+            className="rounded-06 border border-border-subtle bg-surface-2 px-12 py-04 text-sm text-text-1"
+          >
+            chamada recebida
+          </button>
+          <button
+            onClick={() => desistirDaChamadaFalsa()}
+            className="rounded-06 border border-border-subtle bg-surface-2 px-12 py-04 text-sm text-text-1"
+          >
+            quem ligou desiste
+          </button>
+          <button
+            onClick={() => {
+              if (pararChamada.current) {
+                pararChamada.current();
+                pararChamada.current = null;
+              } else {
+                pararChamada.current = chamadaDiretaFalsa();
+              }
+            }}
+            className="rounded-06 border border-border-subtle bg-surface-2 px-12 py-04 text-sm text-text-1"
+          >
+            chamada direta falsa
           </button>
 
           {/*

@@ -19,6 +19,7 @@ import {
   pessoas,
   presence,
   RAIZ,
+  SOLICITACOES,
   relacoes,
   serverIds,
   servers,
@@ -309,6 +310,18 @@ export function useConversas(): readonly string[] {
   const getSnapshot = () => conversas.getSnapshot(RAIZ) ?? NO_IDS;
   if (import.meta.env.DEV) assertStable(getSnapshot, "useConversas()");
   return useSyncExternalStore(conversas.subscriber(RAIZ), getSnapshot);
+}
+
+/**
+ * A fila de solicitações de mensagem — DMs de quem não é amigo, ainda não
+ * aceitas. Mesma varredura e mesmo store da coluna; ver `SOLICITACOES`.
+ */
+export function useSolicitacoesDeMensagem(): readonly string[] {
+  const getSnapshot = () => conversas.getSnapshot(SOLICITACOES) ?? NO_IDS;
+  if (import.meta.env.DEV) {
+    assertStable(getSnapshot, "useSolicitacoesDeMensagem()");
+  }
+  return useSyncExternalStore(conversas.subscriber(SOLICITACOES), getSnapshot);
 }
 
 /**

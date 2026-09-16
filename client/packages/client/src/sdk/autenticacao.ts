@@ -50,6 +50,7 @@ import {
   type MetodoDeMfa,
 } from "../store/sessao";
 import { motivoDoErro } from "./erros";
+import { instalarPerfilDoServidor } from "./perfilDoServidor";
 import { lerEscolhaDeIdentidade } from "../store/entrada";
 
 /**
@@ -160,6 +161,9 @@ function instalar(sessao: {
     preserva o socket já aberto; reinstalar o abriria de novo.
   */
   startAdapter();
+  /* Tag, emblema e características: campos do fork que o SDK descarta —
+     lidos do evento cru, então o ouvinte vem antes do socket, como o do adapter. */
+  instalarPerfilDoServidor();
 
   client.useExistingSession(sessao);
   void conectar();

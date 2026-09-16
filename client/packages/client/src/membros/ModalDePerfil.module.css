@@ -368,3 +368,15 @@
   color: var(--vx-text-3);
   font-size: var(--vx-size-md);
 }
+
+/*
+  As abas de "em comum" ocupam a largura inteira, sem as duas colunas do
+  "Sobre": são uma lista só, e partir uma lista em 1.4fr/1fr deixaria a
+  segunda coluna vazia. A altura mínima segura o modal: sem ela, trocar de aba
+  encolheria a caixa e o cabeçalho pularia debaixo do ponteiro.
+*/
+.painelDaAba {
+  min-inline-size: 0;
+  min-block-size: 160px;
+  margin-block-start: var(--vx-space-12);
+}

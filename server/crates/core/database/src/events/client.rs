@@ -6,9 +6,9 @@ use revolt_models::v0::{
     AppendMessage, Channel, ChannelSlowmode, ChannelUnread, ChannelVoiceState, Emoji,
     FieldsChannel, FieldsMember, FieldsMessage, FieldsRole, FieldsServer, FieldsUser,
     FieldsWebhook, Member, MemberCompositeKey, Message, PartialChannel, PartialEmoji,
-    PartialMember, PartialMessage, PartialRole, PartialServer, PartialUser, PartialUserVoiceState,
-    PartialWebhook, PolicyChange, RemovalIntention, Report, Server, User, UserSettings,
-    UserVoiceState, Webhook,
+    PartialMember, PartialMessage, PartialRole, Poll, PartialServer, PartialUser, PartialUserVoiceState,
+    PartialWebhook, PolicyChange, RemovalIntention, Report, Server, ServerEvent, ServerJoinRequest,
+    SoundboardSound, Sticker, User, UserSettings, UserVoiceState, Webhook,
 };
 
 use crate::{Account, Database, Session};
@@ -141,6 +141,25 @@ pub enum EventV1 {
         emoji_id: String,
     },
 
+    /// A user's vote on a poll changed (Vortex)
+    ///
+    /// `answers` replaces the user's previous vote; empty means no vote.
+    MessagePollVote {
+        id: String,
+        channel_id: String,
+        user_id: String,
+        answers: Vec<String>,
+    },
+
+    /// A poll was ended early by its author (Vortex)
+    ///
+    /// Carries the final poll, votes included.
+    MessagePollEnd {
+        id: String,
+        channel_id: String,
+        poll: Poll,
+    },
+
     /// Remove a reaction from message
     MessageRemoveReaction {
         id: String,
@@ -152,6 +171,33 @@ pub enum EventV1 {
     BulkMessageDelete {
         channel: String,
         ids: Vec<String>,
+    },
+
+    /// Scheduled server event created (Vortex)
+    ServerEventCreate {
+        event: ServerEvent,
+    },
+
+    /// Scheduled server event edited (Vortex)
+    ///
+    /// Carries the whole event: edits are rare and a partial would need its
+    /// own clear list for every optional field.
+    ServerEventUpdate {
+        event: ServerEvent,
+    },
+
+    /// Scheduled server event deleted (Vortex)
+    ServerEventDelete {
+        id: String,
+        server: String,
+    },
+
+    /// A user marked or unmarked interest in a scheduled event (Vortex)
+    ServerEventInterest {
+        id: String,
+        server: String,
+        user_id: String,
+        interested: bool,
     },
 
     /// New server
@@ -221,6 +267,21 @@ pub enum EventV1 {
         ranks: Vec<String>,
     },
 
+    /// Vortex: pedido de entrada criado
+    ///
+    /// Publicado no tópico do servidor, mas o `bonfire` só o entrega a quem tem
+    /// `ManageJoinRequests` — quem pediu não é assunto dos outros membros.
+    ServerJoinRequestCreate {
+        id: String,
+        request: ServerJoinRequest,
+    },
+
+    /// Vortex: pedido de entrada aprovado, recusado ou cancelado
+    ServerJoinRequestDelete {
+        id: String,
+        user: String,
+    },
+
     /// Update existing user
     UserUpdate {
         id: String,
@@ -266,6 +327,30 @@ pub enum EventV1 {
     /// Delete emoji
     EmojiDelete {
         id: String,
+    },
+
+    /// Figurinha nova (Vortex)
+    StickerCreate(Sticker),
+
+    /// Figurinha editada — o objeto inteiro (Vortex)
+    StickerUpdate(Sticker),
+
+    /// Figurinha apagada (Vortex)
+    StickerDelete {
+        id: String,
+        server: String,
+    },
+
+    /// Efeito sonoro novo (Vortex)
+    SoundboardSoundCreate(SoundboardSound),
+
+    /// Efeito sonoro editado — o objeto inteiro (Vortex)
+    SoundboardSoundUpdate(SoundboardSound),
+
+    /// Efeito sonoro apagado (Vortex)
+    SoundboardSoundDelete {
+        id: String,
+        server: String,
     },
 
     /// New report
@@ -367,6 +452,15 @@ pub enum EventV1 {
         id: String,
         channel_id: String,
         data: PartialUserVoiceState,
+    },
+    /// Alguém tocou um efeito sonoro na sala (Vortex)
+    ///
+    /// Cada cliente DENTRO da sala toca o arquivo localmente; quem tocou já
+    /// ouviu no clique e ignora o próprio evento.
+    VoiceSoundboardPlay {
+        channel_id: String,
+        user_id: String,
+        sound: SoundboardSound,
     },
     UserMoveVoiceChannel {
         node: String,

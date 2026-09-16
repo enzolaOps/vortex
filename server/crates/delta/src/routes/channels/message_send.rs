@@ -29,7 +29,7 @@ pub async fn message_send(
     data: Json<v0::DataMessageSend>,
     idempotency: IdempotencyKey,
 ) -> Result<Json<v0::Message>> {
-    let data = data.into_inner();
+    let mut data = data.into_inner();
     data.validate().map_err(|error| {
         create_error!(FailedValidation {
             error: error.to_string()
@@ -41,6 +41,18 @@ pub async fn message_send(
     let mut query = DatabasePermissionQuery::new(db, &user).channel(&channel);
     let permissions = calculate_channel_permissions(&mut query).await;
     permissions.throw_if_lacking_channel_permission(ChannelPermission::SendMessage)?;
+
+    // Vortex: nível de verificação, emergência e filtro de convites em DM.
+    crate::util::server_security::enforce_message_policy(
+        db,
+        &user,
+        &channel,
+        query.server_ref().as_deref(),
+        query.member_ref().as_deref(),
+        &permissions,
+        &mut data,
+    )
+    .await?;
 
     // Verify permissions for masquerade
     if let Some(masq) = &data.masquerade {
@@ -320,6 +332,8 @@ mod test {
             slowmode: None,
             forum: None,
             thread: None,
+            spoiler: None,
+            invites_paused: None,
         };
         locked_channel
             .update(&harness.db, partial, vec![])
@@ -343,11 +357,13 @@ mod test {
                 content: Some(format!("<@{}>", second_user.id)),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: None,
                 embeds: None,
                 masquerade: None,
                 interactions: None,
                 flags: None,
+                poll: None,
             },
             v0::MessageAuthor::User(&user.clone().into(&harness.db, Some(&user)).await),
             Some(user.clone().into(&harness.db, Some(&user)).await),
@@ -383,11 +399,13 @@ mod test {
                 content: Some(format!("<@{}>", second_user.id)),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: None,
                 embeds: None,
                 masquerade: None,
                 interactions: None,
                 flags: None,
+                poll: None,
             },
             v0::MessageAuthor::User(&user.clone().into(&harness.db, Some(&user)).await),
             Some(user.clone().into(&harness.db, Some(&user)).await),
@@ -432,11 +450,13 @@ mod test {
                 content: Some(format!("<@{}>", second_user.id)),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: None,
                 embeds: None,
                 masquerade: None,
                 interactions: None,
                 flags: None,
+                poll: None,
             },
             v0::MessageAuthor::User(&user.clone().into(&harness.db, Some(&user)).await),
             Some(user.clone().into(&harness.db, Some(&user)).await),
@@ -474,6 +494,7 @@ mod test {
                 content: Some("Message with reply".to_string()),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: Some(vec![v0::ReplyIntent {
                     id: message.id.clone(),
                     mention: false,
@@ -483,6 +504,7 @@ mod test {
                 masquerade: None,
                 interactions: None,
                 flags: None,
+                poll: None,
             },
             v0::MessageAuthor::User(&user.clone().into(&harness.db, Some(&user)).await),
             Some(user.clone().into(&harness.db, Some(&user)).await),
@@ -525,6 +547,7 @@ mod test {
                 content: Some("Message with missing reply".to_string()),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: Some(vec![v0::ReplyIntent {
                     id: message.id.clone(),
                     mention: false,
@@ -534,6 +557,7 @@ mod test {
                 masquerade: None,
                 interactions: None,
                 flags: None,
+                poll: None,
             },
             v0::MessageAuthor::User(&user.clone().into(&harness.db, Some(&user)).await),
             Some(user.clone().into(&harness.db, Some(&user)).await),
@@ -562,6 +586,7 @@ mod test {
                 content: Some("Message with missing reply".to_string()),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: Some(vec![v0::ReplyIntent {
                     id: message.id.clone(),
                     mention: false,
@@ -571,6 +596,7 @@ mod test {
                 masquerade: None,
                 interactions: None,
                 flags: None,
+                poll: None,
             },
             v0::MessageAuthor::User(&user.clone().into(&harness.db, Some(&user)).await),
             Some(user.clone().into(&harness.db, Some(&user)).await),
@@ -593,6 +619,7 @@ mod test {
                 content: Some("Message with missing reply".to_string()),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: Some(vec![v0::ReplyIntent {
                     id: message.id.clone(),
                     mention: false,
@@ -602,6 +629,7 @@ mod test {
                 masquerade: None,
                 interactions: None,
                 flags: None,
+                poll: None,
             },
             v0::MessageAuthor::User(&user.clone().into(&harness.db, Some(&user)).await),
             Some(user.clone().into(&harness.db, Some(&user)).await),
@@ -647,11 +675,13 @@ mod test {
                 content: Some(format!("Mentioning @everyone and role <%{}>", &role.id)),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: None,
                 embeds: None,
                 masquerade: None,
                 interactions: None,
                 flags: None,
+                poll: None,
             },
             v0::MessageAuthor::User(
                 &other_user
@@ -692,11 +722,13 @@ mod test {
                 content: Some(format!("Mentioning `@everyone` and role `<%{}>`", &role.id)),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: None,
                 embeds: None,
                 masquerade: None,
                 interactions: None,
                 flags: None,
+                poll: None,
             },
             v0::MessageAuthor::User(
                 &other_user
@@ -762,11 +794,13 @@ mod test {
                 content: Some(format!("Mentioning @everyone and role <%{}>", &role.id)),
                 nonce: None,
                 attachments: None,
+                stickers: None,
                 replies: None,
                 embeds: None,
                 masquerade: None,
                 interactions: None,
                 flags: None,
+                poll: None,
             },
             v0::MessageAuthor::User(
                 &other_user

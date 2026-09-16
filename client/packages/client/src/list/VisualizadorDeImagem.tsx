@@ -6,14 +6,17 @@ import {
   DownloadSimple,
   Minus,
   Plus,
+  WarningCircle,
   X,
 } from "../components/ui/icones";
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
-import { aindaNao } from "../pendente/pendencias";
+import { Girador } from "../components/ui/Girador";
+import { toast } from "../components/ui/toastStore";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
+import { baixarAnexo } from "../sdk/baixar";
 import { assinarAlvo, lerAlvo } from "../store/administracao";
 import { fecharModal } from "../store/modais";
 import { useChannel, useMessage } from "../store/hooks";
@@ -129,20 +132,11 @@ export function VisualizadorDeImagem({ aoFechar }: { aoFechar: () => void }) {
 
           <div className={css.acoesDoTopo}>
             {/*
-              "Abrir em nova aba" no lugar de baixar, e o design desenha os
-              dois. `<a download>` de origem cruzada é IGNORADO pelo navegador
-              e vira navegação silenciosa — um botão que promete uma coisa e
-              faz outra. Baixar de verdade depende do servidor de mídia mandar
-              `Content-Disposition`, que é a mesma dependência de `anexar`.
+              Baixar é REAL: `fetch` → blob → `<a download>` desta origem. O
+              `<a download>` direto para o `autumn` é de origem cruzada, e o
+              navegador ignora o atributo — ver `sdk/baixar.ts`.
             */}
-            <button
-              type="button"
-              className={css.acaoDoTopo}
-              aria-label="Baixar"
-              onClick={aindaNao("baixarAnexo")}
-            >
-              <DownloadSimple aria-hidden />
-            </button>
+            <BotaoDeBaixar key={atual.id} url={atual.url} nome={atual.nome} />
             <button
               type="button"
               className={css.acaoDoTopo}
@@ -263,10 +257,13 @@ export function VisualizadorDeImagem({ aoFechar }: { aoFechar: () => void }) {
             {/*
               "alt ausente" é informação, não erro.
 
-              O protocolo tem `Attachment.description` e o app ainda não o lê
-              (pendência `textoAlternativo`); dizer isso aqui é o que faz
-              alguém reparar. Um rodapé calado sobre acessibilidade é como
-              ninguém descobre que ela falta.
+              ⚠ **O protocolo NÃO tem descrição de anexo**, e este comentário
+              dizia que tinha. Conferido na fonte: `File` em
+              `crates/core/models/src/v0/files.rs` não tem campo de descrição,
+              e `DataMessageSend.attachments` leva só IDs — não há onde
+              escrever nem de onde ler (pendência `textoAlternativo`). Dizer
+              isso aqui é o que faz alguém reparar: um rodapé calado sobre
+              acessibilidade é como ninguém descobre que ela falta.
             */}
             alt ausente
           </span>
@@ -295,5 +292,57 @@ export function VisualizadorDeImagem({ aoFechar }: { aoFechar: () => void }) {
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * O botão de baixar, com os três estados que um download tem.
+ *
+ * ⚠ **`key` pelo anexo no chamador, e é o que zera o estado ao trocar de
+ * mídia.** Sem ela, uma falha na imagem 2 continuaria pintada de erro ao
+ * passar para a 3 — e zerar num efeito é o `setState` em cascata que o lint
+ * do projeto reprova.
+ *
+ * O erro fica no botão E vai ao toast: o toast diz o PORQUÊ ("o arquivo não
+ * existe mais"), o botão diz ONDE, e o rótulo passa a "Tentar baixar de novo"
+ * — um botão vermelho que continua dizendo "Baixar" não conta que o primeiro
+ * clique falhou.
+ */
+function BotaoDeBaixar({ url, nome }: { url: string; nome: string }) {
+  const [estado, setEstado] = useState<"parado" | "baixando" | "erro">("parado");
+
+  function baixar() {
+    setEstado("baixando");
+    baixarAnexo(url, nome).then(
+      () => setEstado("parado"),
+      (e: unknown) => {
+        setEstado("erro");
+        toast({
+          tipo: "erro",
+          titulo: "Não deu para baixar o arquivo.",
+          descricao: e instanceof Error ? e.message : "Tente de novo.",
+        });
+      },
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={css.acaoDoTopo}
+      data-estado={estado}
+      aria-label={estado === "erro" ? "Tentar baixar de novo" : "Baixar"}
+      aria-busy={estado === "baixando" || undefined}
+      disabled={estado === "baixando"}
+      onClick={baixar}
+    >
+      {estado === "baixando" ? (
+        <Girador tamanho={12} rotulo="Baixando" />
+      ) : estado === "erro" ? (
+        <WarningCircle aria-hidden />
+      ) : (
+        <DownloadSimple aria-hidden />
+      )}
+    </button>
   );
 }

@@ -28,6 +28,11 @@ pub async fn calculate_user_permissions<P: PermissionQuery>(query: &mut P) -> Pe
 
     if query.have_mutual_connection().await && (query.are_we_a_bot().await || query.user_is_bot().await) {
         permissions += UserPermission::SendMessage as u64;
+    } else if query.have_mutual_connection().await
+        && query.share_server_allowing_member_dms().await
+    {
+        // Vortex: um servidor em comum pode liberar DM entre os seus membros.
+        permissions += UserPermission::SendMessage as u64;
     };
 
     permissions.into()

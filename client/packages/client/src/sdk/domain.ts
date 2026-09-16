@@ -321,6 +321,17 @@ export type MessageSnapshot = {
   readonly enquete: Enquete | undefined;
 
   /**
+   * A figurinha que esta mensagem carrega — só o ID.
+   *
+   * Campo do Vortex (`Message.stickers` no fork do `delta`) que o `stoat.js`
+   * descarta na hidratação; quem o recupera é `sdk/figurinhasDeMensagem.ts`.
+   * O snapshot leva o ID e não a figurinha: o nome e a URL moram no store
+   * `figurinhas`, e é a própria figurinha na linha que o assina — renomeá-la
+   * não republica mensagem nenhuma.
+   */
+  readonly figurinha: string | undefined;
+
+  /**
    * Primeira mensagem do autor naquela janela: mostra avatar, nome e hora.
    *
    * Mensagens consecutivas do mesmo autor dentro de uma janela curta agrupam
@@ -671,6 +682,15 @@ export type ChannelSnapshot = {
    */
   readonly modoLento: number;
   /**
+   * Canal de spoiler — toda mídia entra coberta, com clique para revelar.
+   *
+   * ⚠ **Superfície do servidor do Vortex, não do Stoat.** O SDK descarta o
+   * campo na hidratação; quem o lê do fio é `sdk/superficieVortex.ts`.
+   */
+  readonly spoiler: boolean;
+  /** Entrar pelos convites deste canal está suspenso — mesma origem. */
+  readonly convitesPausados: boolean;
+  /**
    * O outro lado de uma conversa direta. Só existe em `dm`.
    *
    * Calculado no adapter a partir de `recipientIds` menos eu, e NÃO lido de
@@ -810,6 +830,21 @@ export type MemberSnapshot = ComSigla & {
    */
   readonly cargosIds: readonly string[];
   /**
+   * A imagem do cargo mais alto que TEM ícone, já resolvida — ou ausência.
+   *
+   * ⚠ **O cargo do ícone não é necessariamente o da cor nem o hasteado.** É a
+   * regra do próprio SDK (`ServerMember.iconRole`): o mais alto entre os que
+   * têm ícone. Uma pessoa com "Admin" colorido sem ícone e "Artista" abaixo com
+   * ícone mostra a cor de um e a imagem do outro, como o protocolo define.
+   *
+   * Dois campos planos e não um objeto: o snapshot é comparado por valor, e um
+   * `{ url, nome }` novo a cada tradução faria toda republicação parecer
+   * mudança — o erro nº 1 do briefing.
+   */
+  readonly iconeDeCargoUrl: string | undefined;
+  /** O nome do cargo do ícone, para o `alt` e o título. */
+  readonly iconeDeCargoNome: string | undefined;
+  /**
    * Esta pessoa está ABAIXO de mim na hierarquia?
    *
    * ⚠ Campo e não cálculo no componente: a comparação é `inferiorTo` do SDK,
@@ -937,6 +972,11 @@ export type ParticipanteDeVoz = {
    * resposta.
    */
   readonly mudoPeloServidor: boolean;
+  /**
+   * Surdo POR ORDEM DO SERVIDOR — `can_receive: false` no `ServerMember`.
+   * Mesma distinção de `mudoPeloServidor`: só quem modera desfaz.
+   */
+  readonly surdoPeloServidor: boolean;
 };
 
 export function baldeDe(status: PresenceStatus): Balde {

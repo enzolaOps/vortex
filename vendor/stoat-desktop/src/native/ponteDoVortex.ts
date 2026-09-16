@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, session, shell } from "electron";
 
 import { version } from "../../package.json";
-import { config } from "./config";
+import { registrarPreferencias } from "./preferencias";
 import { mainWindow } from "./window";
 
 /**
@@ -54,31 +54,13 @@ export function registrarPonteDoVortex(): void {
 
   ipcMain.handle("vortexEstadoDaJanela", () => estado());
 
-  ipcMain.handle("vortexLerPreferencias", () => ({
-    customFrame: config.customFrame,
-    minimiseToTray: config.minimiseToTray,
-    startMinimisedToTray: config.startMinimisedToTray,
-    spellchecker: config.spellchecker,
-    hardwareAcceleration: config.hardwareAcceleration,
-  }));
-
   /*
-    ⚠ **Chave conferida contra a lista, e não repassada.** `config` é um store
-    em disco: aceitar chave arbitrária do renderer deixaria conteúdo de
-    terceiro escrever qualquer coisa nele, inclusive campos que o main lê para
-    decidir comportamento de segurança.
+    ⚠ **Ler e gravar preferências moram em `preferencias.ts`.** A versão que
+    estava aqui só aceitava as chaves do UPSTREAM (`customFrame`,
+    `minimiseToTray`…), e o cliente manda as dele (`barraNativa`, `aoFechar`…):
+    tudo o que a tela Desktop gravava era descartado sem erro.
   */
-  ipcMain.handle("vortexGravarPreferencia", (_e, chave: unknown, valor: unknown) => {
-    const permitidas = [
-      "customFrame",
-      "minimiseToTray",
-      "startMinimisedToTray",
-      "spellchecker",
-      "hardwareAcceleration",
-    ];
-    if (typeof chave !== "string" || !permitidas.includes(chave)) return;
-    (config as unknown as Record<string, unknown>)[chave] = valor;
-  });
+  registrarPreferencias();
 
   ipcMain.handle("vortexTamanhoDoCache", () =>
     session.defaultSession.getCacheSize(),

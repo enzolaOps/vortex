@@ -1,4 +1,5 @@
 import { CartaoDePerfil } from "../membros/CartaoDePerfil";
+import { IconeDeCargo } from "../membros/IconeDeCargo";
 import { chaveDeMembro } from "../sdk/domain";
 import { useCorDeCargo, useMembro, useServidorAtivo } from "../store/hooks";
 import css from "./NomeDoAutor.module.css";
@@ -75,6 +76,20 @@ export function NomeDoAutor({
       style={corDeCargo ? { color: corDeCargo } : undefined}
     >
       {membro?.displayName ?? userId}
+      {/*
+        O ícone do cargo, DENTRO do alvo do cartão: é parte do nome para quem
+        lê, e fora dele um clique na imagem não abriria o perfil. Assina o
+        mesmo snapshot que o nome já assina — nenhuma subscrição a mais na
+        linha mais quente do app.
+      */}
+      {membro?.iconeDeCargoUrl ? (
+        <IconeDeCargo
+          url={membro.iconeDeCargoUrl}
+          nome={membro.iconeDeCargoNome}
+          tamanho={citado ? "pequeno" : "grande"}
+          className={css.icone}
+        />
+      ) : null}
     </span>
     </CartaoDePerfil>
   );

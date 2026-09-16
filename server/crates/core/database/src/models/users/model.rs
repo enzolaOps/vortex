@@ -285,6 +285,31 @@ impl User {
                 .is_empty())
     }
 
+    /// Vortex: servidores em comum cuja política de segurança satisfaz `predicate`
+    ///
+    /// Servidor sem `security` nunca satisfaz: ausência é o comportamento do Stoat.
+    pub async fn mutual_servers_with_policy<F>(
+        &self,
+        db: &Database,
+        user_b: &str,
+        predicate: F,
+    ) -> Result<Vec<crate::Server>>
+    where
+        F: Fn(&revolt_models::v0::ServerSecurity) -> bool + Send,
+    {
+        let ids = db.fetch_mutual_server_ids(&self.id, user_b).await?;
+        if ids.is_empty() {
+            return Ok(vec![]);
+        }
+
+        Ok(db
+            .fetch_servers(&ids)
+            .await?
+            .into_iter()
+            .filter(|server| server.security.as_ref().is_some_and(&predicate))
+            .collect())
+    }
+
     /// Check if this user can acquire another server
     pub async fn can_acquire_server(&self, db: &Database) -> Result<()> {
         if db.fetch_server_count(&self.id).await? <= self.limits().await.servers {

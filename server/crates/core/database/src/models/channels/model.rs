@@ -123,6 +123,14 @@ auto_derived!(
             /// Vortex: present when this channel is a thread inside another channel
             #[serde(skip_serializing_if = "Option::is_none", default)]
             thread: Option<v0::ThreadInformation>,
+
+            /// Vortex: whether all media in this channel is hidden behind a spoiler
+            #[serde(skip_serializing_if = "crate::if_false", default)]
+            spoiler: bool,
+
+            /// Vortex: whether joining through this channel's invites is paused
+            #[serde(skip_serializing_if = "crate::if_false", default)]
+            invites_paused: bool,
         },
     }
 
@@ -131,6 +139,25 @@ auto_derived!(
         /// Maximium amount of users allowed in the voice channel at once
         #[serde(skip_serializing_if = "Option::is_none")]
         pub max_users: Option<usize>,
+        /// Audio bitrate for this voice channel, in kbps (Vortex)
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub bitrate: Option<u32>,
+        /// Voice node pinned for this channel (Vortex)
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub rtc_region: Option<String>,
+        /// Video quality ceiling for this voice channel (Vortex)
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub video_quality: Option<VideoQualityMode>,
+    }
+
+    /// Video quality ceiling of a voice channel (Vortex)
+    pub enum VideoQualityMode {
+        #[serde(rename = "auto")]
+        Auto,
+        #[serde(rename = "720p30")]
+        Hd720p30,
+        #[serde(rename = "1080p60")]
+        Hd1080p60,
     }
 );
 
@@ -165,6 +192,10 @@ auto_derived!(
         pub forum: Option<v0::ForumInformation>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub thread: Option<v0::ThreadInformation>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub spoiler: Option<bool>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub invites_paused: Option<bool>,
     }
 
     /// Optional fields on channel object
@@ -229,6 +260,8 @@ impl Channel {
                 slowmode: None,
                 forum: None,
                 thread: None,
+                spoiler: false,
+                invites_paused: false,
             },
             v0::LegacyServerChannelType::Voice => Channel::TextChannel {
                 id: id.clone(),
@@ -244,6 +277,8 @@ impl Channel {
                 slowmode: None,
                 forum: None,
                 thread: None,
+                spoiler: false,
+                invites_paused: false,
             },
             // Vortex: forum and media are text channels with a `forum` object,
             // so clients that do not know the concept still see a text channel.
@@ -265,6 +300,8 @@ impl Channel {
                         tags: vec![],
                     }),
                     thread: None,
+                    spoiler: false,
+                    invites_paused: false,
                 }
             }
         };
@@ -556,6 +593,8 @@ impl Channel {
                 followers: vec![owner.to_string()],
                 pinned: false,
             }),
+            spoiler: false,
+            invites_paused: false,
         };
 
         db.insert_channel(&channel).await?;
@@ -746,6 +785,8 @@ impl Channel {
                 voice,
                 forum,
                 thread,
+                spoiler,
+                invites_paused,
                 ..
             } => {
                 if let Some(v) = partial.forum {
@@ -782,6 +823,14 @@ impl Channel {
 
                 if let Some(v) = partial.voice {
                     voice.replace(v);
+                }
+
+                if let Some(v) = partial.spoiler {
+                    *spoiler = v;
+                }
+
+                if let Some(v) = partial.invites_paused {
+                    *invites_paused = v;
                 }
             }
         }
@@ -860,6 +909,8 @@ impl Channel {
                 slowmode,
                 forum,
                 thread,
+                spoiler,
+                invites_paused,
                 ..
             } => {
                 if partial.forum.is_some() {
@@ -906,6 +957,14 @@ impl Channel {
 
                 if partial.slowmode.is_some() {
                     before.slowmode = *slowmode;
+                }
+
+                if partial.spoiler.is_some() {
+                    before.spoiler = Some(*spoiler);
+                }
+
+                if partial.invites_paused.is_some() {
+                    before.invites_paused = Some(*invites_paused);
                 }
             }
         }

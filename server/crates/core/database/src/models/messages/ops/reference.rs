@@ -3,7 +3,9 @@ use crate::{
     PartialMessage, ReferenceDb,
 };
 use futures::future::try_join_all;
+use iso8601_timestamp::Timestamp;
 use indexmap::IndexSet;
+use revolt_models::v0::MessageSearchHas;
 use revolt_result::Result;
 use std::collections::HashMap;
 use std::time::SystemTime;
@@ -43,6 +45,10 @@ impl AbstractMessages for ReferenceDb {
                     if &message.channel != channel {
                         return false;
                     }
+                } else if let Some(channels) = &query.filter.channels {
+                    if !channels.contains(&message.channel) {
+                        return false;
+                    }
                 }
 
                 if let Some(author) = &query.filter.author {
@@ -63,6 +69,39 @@ impl AbstractMessages for ReferenceDb {
 
                 if let Some(pinned) = query.filter.pinned {
                     if message.pinned.unwrap_or_default() == pinned {
+                        return false;
+                    }
+                }
+
+                if let Some(has) = &query.filter.has {
+                    let kind = |wanted: &str| {
+                        message.attachments.as_ref().is_some_and(|files| {
+                            files.iter().any(|file| {
+                                matches!(
+                                    (&file.metadata, wanted),
+                                    (crate::Metadata::Image { .. }, "Image")
+                                        | (crate::Metadata::Video { .. }, "Video")
+                                        | (crate::Metadata::Audio, "Audio")
+                                )
+                            })
+                        })
+                    };
+
+                    let matches = match has {
+                        MessageSearchHas::Attachment => message
+                            .attachments
+                            .as_ref()
+                            .is_some_and(|files| !files.is_empty()),
+                        MessageSearchHas::Image => kind("Image"),
+                        MessageSearchHas::Video => kind("Video"),
+                        MessageSearchHas::Audio => kind("Audio"),
+                        MessageSearchHas::Link => message
+                            .content
+                            .as_ref()
+                            .is_some_and(|c| c.contains("http://") || c.contains("https://")),
+                    };
+
+                    if !matches {
                         return false;
                     }
                 }
@@ -275,6 +314,46 @@ impl AbstractMessages for ReferenceDb {
         } else {
             Err(create_error!(NotFound))
         }
+    }
+
+    /// Replace a user's vote on a message's poll (Vortex)
+    async fn set_poll_vote(
+        &self,
+        id: &str,
+        user: &str,
+        answers: &[String],
+        all_answers: &[String],
+    ) -> Result<()> {
+        let mut messages = self.messages.lock().await;
+        let Some(poll) = messages.get_mut(id).and_then(|m| m.poll.as_mut()) else {
+            return Err(create_error!(NotFound));
+        };
+
+        for answer in all_answers {
+            if let Some(users) = poll.votes.get_mut(answer) {
+                users.shift_remove(user);
+            }
+        }
+
+        for answer in answers {
+            poll.votes
+                .entry(answer.clone())
+                .or_default()
+                .insert(user.to_string());
+        }
+
+        Ok(())
+    }
+
+    /// Mark a message's poll as ended (Vortex)
+    async fn end_poll(&self, id: &str, ended_at: &Timestamp) -> Result<()> {
+        let mut messages = self.messages.lock().await;
+        let Some(poll) = messages.get_mut(id).and_then(|m| m.poll.as_mut()) else {
+            return Err(create_error!(NotFound));
+        };
+
+        poll.ended_at = Some(*ended_at);
+        Ok(())
     }
 
     /// Delete a message from the database by its id

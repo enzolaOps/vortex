@@ -4,7 +4,6 @@ import { CaretDown, ICONE } from "../../components/ui/icones";
 
 import { Campo } from "../../components/ui/Campo";
 import { Deslizante } from "../../components/ui/Deslizante";
-import { aindaNao } from "../../pendente/pendencias";
 import {
   Popover,
   PopoverContent,
@@ -18,7 +17,18 @@ import {
 } from "../../components/ui/DropdownMenu";
 import { SeletorDeEmoji } from "../../seletores/SeletorDeEmoji";
 import { definirBarraDeSalvar } from "../../store/barraDeSalvar";
-import { salvarCanal } from "../../sdk/canal";
+import { nosDeVoz, salvarCanal } from "../../sdk/canal";
+import {
+  BITRATE_MAX,
+  BITRATE_MIN,
+  BITRATE_PADRAO,
+  BITRATE_PASSO,
+  MODOS_DE_VIDEO,
+  ROTULO_DO_MODO,
+  useConfigDeVoz,
+  type ModoDeVideo,
+} from "../../sdk/vozDoCanal";
+import { Escolha } from "../../components/ui/Escolha";
 import { useChannel } from "../../store/hooks";
 import secao from "../Secao.module.css";
 import { CartaoDeOpcao } from "../../components/ui/CartaoDeOpcao";
@@ -80,16 +90,36 @@ function rotuloDoModoLento(s: number): string {
 
 export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
   const canal = useChannel(channelId);
+  const voz = useConfigDeVoz(channelId);
 
   const [nome, setNome] = useState(canal?.name ?? "");
   const [assunto, setAssunto] = useState(canal?.topico ?? "");
   const [idade, setIdade] = useState(canal?.restritoPorIdade ?? false);
+  const [spoiler, setSpoiler] = useState(canal?.spoiler ?? false);
   const [limite, setLimite] = useState(canal?.limiteDeUsuarios ?? 0);
   const [lento, setLento] = useState(canal?.modoLentoSegundos ?? 0);
+  /*
+    `undefined` no bitrate é "o canal nunca escolheu": o deslizante mostra o
+    padrão, e só grava quando alguém mexe — assim abrir e salvar outra coisa
+    não transforma "padrão do cliente" em "64 escolhido".
+  */
+  const [bitrate, setBitrate] = useState<number | undefined>(voz.bitrateKbps);
+  const [regiao, setRegiao] = useState<string | undefined>(voz.regiao);
+  const [modoDeVideo, setModoDeVideo] = useState<ModoDeVideo>(voz.modoDeVideo);
   const [salvando, setSalvando] = useState(false);
   const [emojiAberto, setEmojiAberto] = useState(false);
 
   const ehVoz = canal?.tipo === "voz";
+  /*
+    A região gravada entra na lista mesmo que o servidor não a anuncie mais:
+    um nó retirado da configuração continuaria escolhido no canal, e a tela
+    mostrando "Automática" afirmaria o contrário do que o `join_call` faz.
+  */
+  const anunciadas = nosDeVoz();
+  const regioes =
+    voz.regiao && !anunciadas.includes(voz.regiao)
+      ? [...anunciadas, voz.regiao]
+      : anunciadas;
 
   /*
     ⚠ **O modo lento precisa entrar aqui, e esquecê-lo custou o bug que a
@@ -124,8 +154,13 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
     (nome !== canal.name ||
     assunto !== (canal.topico ?? "") ||
     idade !== canal.restritoPorIdade ||
+    spoiler !== canal.spoiler ||
     lento !== canal.modoLentoSegundos ||
-    (ehVoz && limite !== (canal.limiteDeUsuarios ?? 0)));
+    (ehVoz &&
+      (limite !== (canal.limiteDeUsuarios ?? 0) ||
+        bitrate !== voz.bitrateKbps ||
+        regiao !== voz.regiao ||
+        modoDeVideo !== voz.modoDeVideo)));
 
   /*
     ⚠ **A faixa de salvar SAIU desta página, e virou rodapé do PANE.**
@@ -163,8 +198,12 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
         setNome(canal.name);
         setAssunto(canal.topico ?? "");
         setIdade(canal.restritoPorIdade);
+        setSpoiler(canal.spoiler);
         setLimite(canal.limiteDeUsuarios ?? 0);
         setLento(canal.modoLentoSegundos);
+        setBitrate(voz.bitrateKbps);
+        setRegiao(voz.regiao);
+        setModoDeVideo(voz.modoDeVideo);
       },
       aoSalvar: () => {
         if (nome.trim() === "") return;
@@ -175,6 +214,8 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
           restritoPorIdade: idade,
           limiteDeUsuarios: ehVoz ? limite : undefined,
           modoLentoSegundos: lento,
+          voz: ehVoz ? { bitrateKbps: bitrate, regiao, modoDeVideo } : undefined,
+          spoiler,
         }).finally(() => setSalvando(false));
       },
     });
@@ -187,8 +228,13 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
     nome,
     assunto,
     idade,
+    spoiler,
     limite,
     lento,
+    voz,
+    bitrate,
+    regiao,
+    modoDeVideo,
   ]);
 
   useEffect(() => () => definirBarraDeSalvar(undefined), []);
@@ -236,9 +282,9 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
               {/*
                 Os quatro de formatação são REAIS: envolvem a seleção em
                 markdown, que o caminho de leitura já entende desde
-                `markdown/analisar.ts`. Spoiler e emoji dependem de coisas que
-                não existem — spoiler não está no protocolo e o seletor de emoji
-                não tem âncora fora do composer.
+                `markdown/analisar.ts`. O spoiler de TEXTO escreve `!!…!!`, a
+                marca que os clientes Stoat entendem — é outra coisa que o
+                "Canal de spoiler" logo abaixo, que cobre a MÍDIA do canal.
               */}
               <Formato rotulo="Negrito" marca="**" valor={assunto} aoAplicar={setAssunto}>
                 B
@@ -253,13 +299,9 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
                 S
               </Formato>
               <span className={css.reguaDivisa} aria-hidden />
-              <button
-                type="button"
-                className={css.reguaBotao}
-                onClick={aindaNao("canalDeSpoiler")}
-              >
+              <Formato rotulo="Spoiler" marca="!!" valor={assunto} aoAplicar={setAssunto}>
                 spoiler
-              </button>
+              </Formato>
               {/* Um `Popover.Root` por FORMULÁRIO, e não por linha de lista —
                   a conta que criou `store/seletorDeReacao.ts` não se aplica
                   aqui: esta tela tem um campo de assunto, não dez mil. */}
@@ -337,24 +379,40 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
 
         <section className={secao.bloco}>
           <h2 className={secao.subtitulo}>Visibilidade do conteúdo</h2>
+          {/*
+            UMA escolha entre três, como o design e a referência desenham —
+            mas o protocolo guarda dois booleanos (`nsfw` e `spoiler`). A tela
+            mantém os dois exclusivos; um canal que chegue com os dois ligados
+            (escrito por outro cliente) mostra "Restrição de idade", que é a
+            mais forte.
+          */}
           <CartaoDeOpcao
-            marcado={!idade}
+            marcado={!idade && !spoiler}
             titulo="Padrão"
             detalhe="Sem aviso; mídia carrega direto."
-            aoEscolher={() => setIdade(false)}
+            aoEscolher={() => {
+              setIdade(false);
+              setSpoiler(false);
+            }}
           />
           <CartaoDeOpcao
-            marcado={false}
+            marcado={spoiler && !idade}
             titulo="Canal de spoiler"
             detalhe="Toda mídia entra borrada, com clique para revelar."
-            aoEscolher={aindaNao("canalDeSpoiler")}
+            aoEscolher={() => {
+              setSpoiler(true);
+              setIdade(false);
+            }}
           />
           <CartaoDeOpcao
             marcado={idade}
             titulo="Restrição de idade"
             selo={<Selo tom="perigoSuave">+18</Selo>}
             detalhe="Exige confirmação na entrada; some da prévia de convite."
-            aoEscolher={() => setIdade(true)}
+            aoEscolher={() => {
+              setIdade(true);
+              setSpoiler(false);
+            }}
           />
         </section>
 
@@ -363,23 +421,26 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
             <h2 className={css.vozTitulo}>Quando o canal é de voz</h2>
             <div className={css.vozGrade}>
               {/*
-                Deslizante de verdade, com o valor do design — mas quem MUDA é
-                pendente: bitrate não existe no protocolo. Mostrar o controle
-                vivo e o valor fixo é o mesmo trato do modo lento.
+                Os quatro são REAIS desde que o serviço `api` do fork ganhou
+                `bitrate`, `rtc_region` e `video_quality` — ver
+                `sdk/vozDoCanal.ts`. O motor aplica bitrate e modo de vídeo ao
+                publicar; a região é aplicada pelo servidor no `join_call`.
               */}
-              <CampoDeslizante rotulo="Bitrate" valor="64 kbps">
+              <CampoDeslizante
+                rotulo="Bitrate"
+                valor={`${String(bitrate ?? BITRATE_PADRAO)} kbps`}
+              >
                 <Deslizante
                   id="bitrate-de-voz"
                   rotulo="Bitrate"
-                  min={8}
-                  max={128}
-                  passo={8}
-                  valor={64}
-                  texto="64 kbps"
-                  aoMudar={aindaNao("bitrateDeVoz")}
+                  min={BITRATE_MIN}
+                  max={BITRATE_MAX}
+                  passo={BITRATE_PASSO}
+                  valor={bitrate ?? BITRATE_PADRAO}
+                  texto={`${String(bitrate ?? BITRATE_PADRAO)} kbps`}
+                  aoMudar={setBitrate}
                 />
               </CampoDeslizante>
-              {/* O único dos quatro que o protocolo aceita. */}
               <CampoDeslizante
                 rotulo="Limite de usuários"
                 valor={limite === 0 ? "Sem limite" : String(limite)}
@@ -395,15 +456,19 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
                   aoMudar={setLimite}
                 />
               </CampoDeslizante>
-              <PendenteEscolha
+              <Escolha
                 rotulo="Região de voz"
-                valor="Automática"
-                id="regiaoDeVoz"
+                valor={regiao ?? ""}
+                opcoes={["", ...regioes]}
+                rotuloDe={(v) => (v === "" ? "Automática" : v)}
+                aoEscolher={(v) => setRegiao(v === "" ? undefined : v)}
               />
-              <PendenteEscolha
+              <Escolha
                 rotulo="Modo de vídeo"
-                valor="Automático"
-                id="modoDeVideo"
+                valor={modoDeVideo}
+                opcoes={MODOS_DE_VIDEO}
+                rotuloDe={(v) => ROTULO_DO_MODO[v as ModoDeVideo]}
+                aoEscolher={(v) => setModoDeVideo(v as ModoDeVideo)}
               />
             </div>
           </section>
@@ -465,26 +530,6 @@ function CampoDeslizante({
         <span className={css.deslizanteValor}>{valor}</span>
       </span>
       {children}
-    </div>
-  );
-}
-
-/** A cara de uma `Escolha` sobre algo que o protocolo não tem. */
-function PendenteEscolha({
-  rotulo,
-  valor,
-  id,
-}: {
-  rotulo: string;
-  valor: string;
-  id: Parameters<typeof aindaNao>[0];
-}) {
-  return (
-    <div className={css.selecao}>
-      <span className={css.rotuloLeve}>{rotulo}</span>
-      <button type="button" className={css.pendente} onClick={aindaNao(id)}>
-        {valor}
-      </button>
     </div>
   );
 }

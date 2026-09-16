@@ -8,6 +8,7 @@
  */
 import { escreverPreset, lerPreset } from "../preset/preset";
 import { definirDensidade, lerDensidade } from "../store/densidade";
+import { definirFavoritos, deTexto, lerFavoritos } from "../store/favoritos";
 import { aplicarPreset, lerBruto, lerLayout } from "../store/layout";
 import {
   definirNotificacoes,
@@ -66,6 +67,8 @@ function snapshot(chave: ChaveSync): string {
       return exportarPrivacidadeDoServidor();
     case "vortex:densidade":
       return lerDensidade();
+    case "vortex:favoritos":
+      return JSON.stringify(lerFavoritos());
   }
 }
 
@@ -104,6 +107,9 @@ function hidratar(chave: ChaveSync, data: string): void {
         break;
       case "vortex:densidade":
         if (data === "compacto" || data === "confortavel") definirDensidade(data);
+        break;
+      case "vortex:favoritos":
+        definirFavoritos(deTexto(data));
         break;
     }
   });

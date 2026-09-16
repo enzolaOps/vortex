@@ -1,5 +1,15 @@
 import { useState, useSyncExternalStore } from "react";
 
+import { CampoDeBusca } from "../components/ui/CampoDeBusca";
+import { primeiroCanalDe } from "../sdk/adapter";
+import {
+  conjuntoPrivado,
+  salvarPermissoesDaCategoria,
+  sincronizarComCategoria,
+} from "../sdk/categorias";
+import { cargosDoServidor, type Cargo } from "../sdk/cargos";
+import { pode } from "../sdk/permissoes";
+
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
 import { criarPasta } from "../store/pastas";
@@ -7,8 +17,7 @@ import { ICONE, Lock } from "../components/ui/icones";
 
 import { Escolha } from "../components/ui/Escolha";
 import { Interruptor } from "../components/ui/Interruptor";
-import { Caixa, MarcaDeOpcao } from "../components/ui/Marcador";
-import { aindaNao } from "../pendente/pendencias";
+import { Caixa, MarcaDeCaixa, MarcaDeOpcao } from "../components/ui/Marcador";
 import { fecharCanal } from "../sdk/canal";
 import { CATEGORIA_PADRAO } from "../sdk/domain";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
@@ -20,7 +29,12 @@ import {
   renomearCategoria,
 } from "../sdk/servidores";
 import { administrar, assinarAlvo, lerAlvo } from "../store/administracao";
-import { useCategorias, useChannel, useServer } from "../store/hooks";
+import {
+  useCategorias,
+  useChannel,
+  useCorDeCargo,
+  useServer,
+} from "../store/hooks";
 import { selecionarCanal } from "../store/navegacao";
 import css from "./AdicionarServidor.module.css";
 
@@ -436,12 +450,14 @@ function FormaDeEdicao({
 /**
  * Criar ou renomear categoria — e criar tem duas etapas quando se pede.
  *
- * ⚠ **"Categoria privada" é PENDENTE, e a razão é o protocolo.** `Category` é
- * `{id, title, channels}` e nada mais. A própria referência diz que a lista de
- * acesso escreve "overrides de categoria" — e eles não existem no Stoat. Por
- * isso o interruptor não vira, e a lista de "quem pode ver" não é desenhada:
- * ela só faz sentido com a privacidade, e um seletor de cargos que escreve em
- * lugar nenhum é superfície grande para retorno zero.
+ * **"Categoria privada" é do fork** (`Category.default_permissions` e
+ * `role_permissions`): @everyone perde `ViewChannel` e os cargos escolhidos o
+ * ganham. Canais criados dentro dela sincronizam com ela — ver `criarCanal`.
+ *
+ * ⚠ **"Quem pode ver" lista só CARGOS, e o design também desenha membros.**
+ * Sobreposição de categoria, como a de canal, é por cargo: o protocolo não tem
+ * sobreposição por pessoa. Uma linha de membro marcável aqui escreveria em
+ * lugar nenhum.
  *
  * ⚠ **"Mover canais para cá depois" é REAL.** Mover é reescrever o array de
  * `categories`, que este cliente já faz. A referência diz que ele "abre o
@@ -462,9 +478,16 @@ function FormaDeCategoria({
   const atual = grupos.find((g) => g.id === categoriaId);
   const [nome, setNome] = useState(atual?.titulo ?? "");
   const [mover, setMover] = useState(false);
+  const [privada, setPrivada] = useState(false);
+  const [quemVe, setQuemVe] = useState<readonly string[]>([]);
+  const [buscaDeCargo, setBuscaDeCargo] = useState("");
+  /* Fechar a categoria é escrever permissão; sem o direito, o cartão não existe. */
+  const podeFechar = pode(primeiroCanalDe(serverId) ?? "", "gerenciarPermissoes");
   const [enviando, setEnviando] = useState(false);
   /** A categoria recém-criada, quando a segunda etapa foi pedida. */
-  const [criada, setCriada] = useState<string | undefined>(undefined);
+  const [criada, setCriada] = useState<
+    { readonly id: string; readonly privada: boolean } | undefined
+  >(undefined);
 
   const limpo = nome.trim();
   const podeEnviar = limpo.length > 0 && !enviando;
@@ -473,7 +496,8 @@ function FormaDeCategoria({
     return (
       <EscolherCanais
         serverId={serverId}
-        categoriaId={criada}
+        categoriaId={criada.id}
+        privada={criada.privada}
         nome={limpo}
         aoFechar={aoFechar}
       />
@@ -498,12 +522,21 @@ function FormaDeCategoria({
         }
 
         void criarCategoriaEDevolverId(serverId, limpo)
-          .then((id) => {
+          .then(async (id) => {
             if (id === undefined) return;
+            /*
+              Duas escritas, como `criarCanal`: o protocolo cria categoria
+              reescrevendo o array, e a permissão tem rota própria. Se a
+              segunda falhar, a categoria existe ABERTA e o toast diz isso —
+              desfazer a criação apagaria o que a pessoa pediu.
+            */
+            if (privada) {
+              await salvarPermissoesDaCategoria(serverId, id, conjuntoPrivado(quemVe));
+            }
             /* Sem "mover", criar já termina. Com, a mesma janela vira o
                seletor — é o que a referência chama de "abre o seletor de
                canais ao criar". */
-            if (mover) setCriada(id);
+            if (mover) setCriada({ id, privada });
             else aoFechar();
           })
           .finally(() => setEnviando(false));
@@ -529,22 +562,34 @@ function FormaDeCategoria({
 
       {categoriaId ? null : (
         <>
-          <div className={css.privado}>
-            <span className={css.privadoTexto}>
-              <Lock size={ICONE.controle} className={css.cadeado} aria-hidden />
-              <span>
-                <span className={css.privadoTitulo}>Categoria privada</span>
-                <span className={css.privadoDetalhe}>
-                  Canais criados aqui herdam a restrição
+          {podeFechar ? (
+            <div className={css.privado}>
+              <span className={css.privadoTexto}>
+                <Lock size={ICONE.controle} className={css.cadeado} aria-hidden />
+                <span>
+                  <span className={css.privadoTitulo}>Categoria privada</span>
+                  <span className={css.privadoDetalhe}>
+                    Canais criados aqui herdam a restrição
+                  </span>
                 </span>
               </span>
-            </span>
-            <Interruptor
-              ligado={false}
-              rotulo="Categoria privada"
-              aoAlternar={aindaNao("categoriaPrivada")}
+              <Interruptor
+                ligado={privada}
+                rotulo="Categoria privada"
+                aoAlternar={setPrivada}
+              />
+            </div>
+          ) : null}
+
+          {podeFechar && privada ? (
+            <QuemPodeVer
+              serverId={serverId}
+              busca={buscaDeCargo}
+              aoBuscar={setBuscaDeCargo}
+              marcados={quemVe}
+              aoMudar={setQuemVe}
             />
-          </div>
+          ) : null}
 
           <div className={css.privado}>
             <span className={css.privadoTexto}>
@@ -598,11 +643,14 @@ function FormaDeCategoria({
 function EscolherCanais({
   serverId,
   categoriaId,
+  privada,
   nome,
   aoFechar,
 }: {
   serverId: string;
   categoriaId: string;
+  /** Categoria fechada: o que vai para dentro dela sincroniza com ela. */
+  privada: boolean;
   nome: string;
   aoFechar: () => void;
 }) {
@@ -655,8 +703,18 @@ function EscolherCanais({
           onClick={() => {
             setEnviando(true);
             void moverCanaisParaCategoria(serverId, categoriaId, [...marcados])
-              .then((ok) => {
-                if (ok) aoFechar();
+              .then(async (ok) => {
+                if (!ok) return;
+                /*
+                  ⚠ Mover para uma categoria PRIVADA sincroniza, e mover para
+                  uma aberta não. A pessoa acabou de fechar a categoria e de
+                  escolher o que vai para dentro; deixar esses canais abertos
+                  seria um vazamento que a tela não mostra.
+                */
+                if (privada) {
+                  await Promise.all([...marcados].map((id) => sincronizarComCategoria(id)));
+                }
+                aoFechar();
               })
               .finally(() => setEnviando(false));
           }}
@@ -694,5 +752,142 @@ function LinhaDeCanalParaMover({
       {canal.tipo === "voz" ? "◈ " : "# "}
       {canal.name}
     </Caixa>
+  );
+}
+
+/**
+ * "Quem pode ver" — os cargos que ENXERGAM a categoria fechada.
+ *
+ * Os marcados viram fichas no topo (é o que a referência faz: a escolha fica
+ * à vista enquanto a lista rola), e a lista abaixo mostra só os que faltam.
+ */
+function QuemPodeVer({
+  serverId,
+  busca,
+  aoBuscar,
+  marcados,
+  aoMudar,
+}: {
+  serverId: string;
+  busca: string;
+  aoBuscar: (b: string) => void;
+  marcados: readonly string[];
+  aoMudar: (m: readonly string[]) => void;
+}) {
+  /* Leitura síncrona do cache: o modal abre sobre um servidor já carregado. */
+  const cargos = cargosDoServidor(serverId);
+  const filtro = busca.trim().toLowerCase();
+  const escolhidos = cargos.filter((c) => marcados.includes(c.id));
+  const resto = cargos.filter(
+    (c) =>
+      !marcados.includes(c.id) &&
+      (filtro === "" || c.nome.toLowerCase().includes(filtro)),
+  );
+
+  return (
+    <div className={css.quemVe}>
+      <p className={css.sobrancelha}>Quem pode ver</p>
+      <CampoDeBusca
+        denso
+        placeholder="Cargos"
+        aria-label="Filtrar cargos"
+        value={busca}
+        onChange={(e) => aoBuscar(e.target.value)}
+      />
+      {escolhidos.length > 0 ? (
+        <div className={css.fichas}>
+          {escolhidos.map((c) => (
+            <FichaDeCargo
+              key={c.id}
+              cargo={c}
+              aoTirar={() => aoMudar(marcados.filter((x) => x !== c.id))}
+            />
+          ))}
+        </div>
+      ) : null}
+      {cargos.length === 0 ? (
+        <p className={css.privadoNota}>
+          Este servidor não tem cargos: fechada, a categoria só é vista por quem
+          administra.
+        </p>
+      ) : resto.length > 0 ? (
+        <div className={css.cargosQueVeem}>
+          {resto.map((c) => (
+            <LinhaDeCargoQueVe
+              key={c.id}
+              cargo={c}
+              aoMarcar={() => aoMudar([...marcados, c.id])}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** Uma ficha. Componente próprio porque a cor passa pelo clamp, que é hook. */
+function FichaDeCargo({ cargo, aoTirar }: { cargo: Cargo; aoTirar: () => void }) {
+  const tinta = useCorDeCargo(cargo.cor);
+  return (
+    <span
+      className={css.ficha}
+      style={
+        tinta
+          ? {
+              background: `color-mix(in oklab, ${tinta} 14%, transparent)`,
+              color: tinta,
+            }
+          : undefined
+      }
+    >
+      <span
+        className={css.pontoDaFicha}
+        style={{ background: tinta ?? "var(--vx-neutral)" }}
+        aria-hidden
+      />
+      {cargo.nome}
+      <button
+        type="button"
+        className={css.tirarFicha}
+        aria-label={`Tirar ${cargo.nome}`}
+        onClick={aoTirar}
+      >
+        ✕
+      </button>
+    </span>
+  );
+}
+
+/**
+ * Uma linha da lista — amostra, nome na cor do cargo e a caixa no FIM, como o
+ * design. `button` com `role="checkbox"` e só a marca dentro: a `Caixa` põe o
+ * quadrado no início e embrulharia a linha num segundo botão.
+ */
+function LinhaDeCargoQueVe({
+  cargo,
+  aoMarcar,
+}: {
+  cargo: Cargo;
+  aoMarcar: () => void;
+}) {
+  const tinta = useCorDeCargo(cargo.cor);
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={false}
+      className={css.cargoQueVe}
+      onClick={aoMarcar}
+    >
+      <span
+        className={css.amostraDeCargo}
+        style={{ background: tinta ?? "var(--vx-neutral)" }}
+        aria-hidden
+      />
+      <span className={css.nomeDoCargoQueVe} style={tinta ? { color: tinta } : undefined}>
+        {cargo.nome}
+      </span>
+      <MarcaDeCaixa />
+    </button>
   );
 }

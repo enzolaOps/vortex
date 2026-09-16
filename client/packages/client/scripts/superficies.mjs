@@ -53,6 +53,13 @@ const PAPEL = {
  * chão e não conteúdo. "É o padrão" não é razão.
  */
 const PERMITIDO = {
+  "list/Anexos.module.css": {
+    ".capaDeSpoiler":
+      "Véu sobre a MÍDIA de um canal de spoiler, e não superfície: o design " +
+      "escreve o tom afundado a 90% (`rgba(10,12,15,0.9)`) porque a capa tem " +
+      "de esconder a imagem de baixo em qualquer cor dela. `--vx-scrim` é o " +
+      "véu de modal, translúcido demais para cobrir o que não se quer ver.",
+  },
   "overlay/Overlay.module.css": {
     ".widget":
       "Os widgets do overlay do jogo pousam sobre o JOGO, e não sobre o app: " +
@@ -114,6 +121,22 @@ const PERMITIDO = {
       "O mesmo véu, mais fechado (70%). O hover precisa de um degrau, e " +
       "subir a opacidade do MESMO tom mantém a família em vez de trocar de " +
       "cor — a mesma decisão da pílula do popout.",
+  },
+  "voz/ChamadaDireta.module.css": {
+    ".pilula":
+      "Véu sobre a mídia a 78%, do design (`rgba(8,9,11,0.78)`) — a pílula " +
+      "com nome e cronômetro pousa sobre o vídeo de quem está do outro lado, " +
+      "e um tom sólido apagaria um pedaço do rosto que se está vendo.",
+    ".barra":
+      "O mesmo véu, a 82% (`rgba(8,9,11,0.82)`), sob os controles flutuantes. " +
+      "Mesma decisão do HUD da transmissão.",
+  },
+  "voz/ChamadaRecebida.module.css": {
+    ".telaCheia":
+      "O chão da tela cheia de chamada recebida. O design escreve #0A0C0F e a " +
+      "referência `bg-surface-sunken` — é moldura em volta do avatar grande de " +
+      "quem liga, a mesma razão do palco e do popout: o que cerca a " +
+      "identidade some para ela ser a única coisa com luz.",
   },
   "voz/Popout.module.css": {
     ".popout":

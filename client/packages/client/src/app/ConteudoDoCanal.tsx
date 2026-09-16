@@ -31,11 +31,12 @@ export function ConteudoDoCanal({ channelId }: { channelId: string }) {
     lista nova na rolagem da anterior. Pô-la aqui daria o mesmo efeito hoje e
     deixaria de dar no dia em que este componente ganhasse estado.
 
-    ⚠ **Custo assumido: alternar sala ↔ chat REMONTA a lista.** É o mesmo custo
-    de trocar de canal, pago num canal de voz — cujo histórico é curto por
-    natureza. Manter as duas montadas custaria a lista medindo enquanto está
-    invisível, que é a família de defeito que a assertion de linha em 0px já
-    registrou.
+    ⚠ **Custo assumido: entrar e sair da sala REMONTA a lista** — a da coluna
+    dá lugar à do chat embutido (`ChatDaSala`), que é outra instância. É o
+    mesmo custo de trocar de canal, pago num canal de voz, cujo histórico é
+    curto por natureza. Manter as duas montadas custaria a lista medindo
+    enquanto está invisível, que é a família de defeito que a assertion de
+    linha em 0px já registrou.
   */
   /* Em variável e não dentro do `if`: o hook roda incondicionalmente das duas
      formas, mas a regra do lint lê a POSIÇÃO e não a semântica. */
@@ -67,9 +68,9 @@ export function ConteudoDoCanal({ channelId }: { channelId: string }) {
 /**
  * O composer, ausente enquanto a sala ocupa a coluna.
  *
- * Uma caixa de escrever embaixo de uma grade de participantes prometeria um
- * chat que aquela tela não tem — o chat do canal de voz é o que "Voltar ao
- * chat" abre, com o composer junto, porque lá ele é a conversa de sempre.
+ * ⚠ **A sala tem o PRÓPRIO composer, dentro do chat embutido** (`ChatDaSala`).
+ * Um segundo embaixo da grade daria duas caixas de escrever para o mesmo
+ * canal, com o mesmo rascunho — e digitar numa faria o texto aparecer na outra.
  */
 export function ComposerDoCanal({ channelId }: { channelId: string }) {
   const naSala = useNaSala(channelId);

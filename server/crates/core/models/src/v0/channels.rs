@@ -131,6 +131,20 @@ auto_derived!(
                 serde(skip_serializing_if = "Option::is_none", default)
             )]
             thread: Option<ThreadInformation>,
+
+            /// Vortex: whether all media in this channel is hidden behind a spoiler
+            #[cfg_attr(
+                feature = "serde",
+                serde(skip_serializing_if = "crate::if_false", default)
+            )]
+            spoiler: bool,
+
+            /// Vortex: whether joining through this channel's invites is paused
+            #[cfg_attr(
+                feature = "serde",
+                serde(skip_serializing_if = "crate::if_false", default)
+            )]
+            invites_paused: bool,
         },
     }
 
@@ -216,6 +230,35 @@ auto_derived!(
         #[cfg_attr(feature = "validator", validate(range(min = 1)))]
         #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
         pub max_users: Option<usize>,
+        /// Audio bitrate for this voice channel, in kbps (Vortex)
+        ///
+        /// Applied by the client when publishing the microphone track.
+        /// Absent means the client default.
+        #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none", default))]
+        pub bitrate: Option<u32>,
+        /// Voice node pinned for this channel (Vortex)
+        ///
+        /// Must be one of the configured LiveKit nodes. Absent means automatic.
+        #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none", default))]
+        pub rtc_region: Option<String>,
+        /// Video quality ceiling for this voice channel (Vortex)
+        ///
+        /// Applied by the client when publishing camera and screen tracks.
+        #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none", default))]
+        pub video_quality: Option<VideoQualityMode>,
+    }
+
+    /// Video quality ceiling of a voice channel (Vortex)
+    pub enum VideoQualityMode {
+        /// Let the client decide
+        #[cfg_attr(feature = "serde", serde(rename = "auto"))]
+        Auto,
+        /// Up to 1280x720 at 30 fps
+        #[cfg_attr(feature = "serde", serde(rename = "720p30"))]
+        Hd720p30,
+        /// Up to 1920x1080 at 60 fps
+        #[cfg_attr(feature = "serde", serde(rename = "1080p60"))]
+        Hd1080p60,
     }
 
     /// Partial representation of a channel
@@ -249,6 +292,10 @@ auto_derived!(
         pub forum: Option<ForumInformation>,
         #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
         pub thread: Option<ThreadInformation>,
+        #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+        pub spoiler: Option<bool>,
+        #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+        pub invites_paused: Option<bool>,
     }
 
     /// Optional fields on channel object
@@ -292,6 +339,12 @@ auto_derived!(
         /// The channel's slow mode delay in seconds, up to 6 hours
         #[cfg_attr(feature = "validator", validate(range(min = 0, max = 21600)))]
         pub slowmode: Option<u64>,
+
+        /// Vortex: whether all media in this channel is hidden behind a spoiler
+        pub spoiler: Option<bool>,
+
+        /// Vortex: whether joining through this channel's invites is paused
+        pub invites_paused: Option<bool>,
 
         /// Fields to remove from channel
         #[cfg_attr(feature = "serde", serde(default))]

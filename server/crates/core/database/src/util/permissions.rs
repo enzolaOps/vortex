@@ -110,6 +110,22 @@ impl PermissionQuery for DatabasePermissionQuery<'_> {
         }
     }
 
+    /// Vortex: do we share a server whose policy allows DMs between members?
+    async fn share_server_allowing_member_dms(&mut self) -> bool {
+        if let Some(user) = &self.user {
+            !self
+                .perspective
+                .mutual_servers_with_policy(self.database, &user.id, |security| {
+                    security.allow_member_dms
+                })
+                .await
+                .unwrap_or_default()
+                .is_empty()
+        } else {
+            false
+        }
+    }
+
     // * For calculating server permission
 
     /// Is our perspective user the server's owner?

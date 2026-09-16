@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { seed } from "../dev/firehose";
 import { semearVoz, vozPorCanal } from "./adapter";
+import { dadosDaModeracao } from "./cargos";
 import { client } from "./client";
 
 /**
@@ -120,5 +121,48 @@ describe("sala de voz", () => {
 
     expect((vozPorCanal.peek(VOZ_GERAL) ?? []).length).toBe(3);
     expect(naJogos).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Mudo e surdo PELO SERVIDOR chegam por evento CRU, fora do Solid.
+   *
+   * ⚠ O terceiro passo é o que guarda o defeito consertado: o update é
+   * PARCIAL, e trocar o apelido de alguém chega sem `can_publish`. Ler essa
+   * ausência como "pode falar" destravava em silêncio quem estava mudo.
+   */
+  it("mudo e surdo do servidor seguem o evento, e update parcial não os apaga", () => {
+    assinar(VOZ_GERAL);
+    const alvo = (vozPorCanal.peek(VOZ_GERAL) ?? [])[0]!;
+    const server = client.channels.get(VOZ_GERAL)!.serverId;
+    const id = { server, user: alvo.userId };
+    const ler = () =>
+      (vozPorCanal.peek(VOZ_GERAL) ?? []).find((p) => p.userId === alvo.userId)!;
+    const emitir = (e: object) =>
+      (client.events as unknown as { emit: (n: string, e: object) => void }).emit(
+        "event",
+        e,
+      );
+
+    emitir({ type: "ServerMemberUpdate", id, data: { can_publish: false, can_receive: false }, clear: [] });
+    expect(ler().mudoPeloServidor).toBe(true);
+    expect(ler().surdoPeloServidor).toBe(true);
+
+    emitir({ type: "ServerMemberUpdate", id, data: { nickname: "outro" }, clear: [] });
+    expect(ler().mudoPeloServidor).toBe(true);
+    expect(ler().surdoPeloServidor).toBe(true);
+
+    emitir({ type: "ServerMemberUpdate", id, data: {}, clear: ["CanPublish"] });
+    expect(ler().mudoPeloServidor).toBe(false);
+    expect(ler().surdoPeloServidor).toBe(true);
+
+    emitir({ type: "ServerMemberUpdate", id, data: { can_receive: true }, clear: [] });
+    expect(ler().surdoPeloServidor).toBe(false);
+  });
+
+  it("a moderação de voz vira o campo certo do protocolo", () => {
+    expect(dadosDaModeracao({ tipo: "mudo", ligar: true })).toEqual({ can_publish: false });
+    expect(dadosDaModeracao({ tipo: "mudo", ligar: false })).toEqual({ can_publish: true });
+    expect(dadosDaModeracao({ tipo: "surdo", ligar: true })).toEqual({ can_receive: false });
+    expect(dadosDaModeracao({ tipo: "desconectar" })).toEqual({ remove: ["VoiceChannel"] });
   });
 });

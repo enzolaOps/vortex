@@ -57,7 +57,8 @@
   border: 1px solid var(--vx-hairline-06);
   /* 12, do design: cartão é PAINEL, e 8 é o raio de controle. */
   border-radius: var(--vx-radius-12);
-  background: var(--vx-surface-1);
+  /* `#1B2028` no design: o cartão é `surface-3`, um degrau ACIMA da página. */
+  background: var(--vx-surface-3);
 }
 
 /*
@@ -77,7 +78,14 @@
   place-items: center;
   inline-size: 100%;
   block-size: 130px;
-  background: var(--vx-surface-2);
+  overflow: hidden;
+  /* O xadrez de "mídia" do design (`#232A33`/`#1B2028`), o mesmo da figurinha
+     na linha — ele fica atrás da imagem transparente e diz onde a caixa está. */
+  background: repeating-linear-gradient(
+    135deg,
+    var(--vx-surface-4) 0 10px,
+    var(--vx-surface-3) 10px 20px
+  );
   font-size: 44px;
 }
 
@@ -89,10 +97,11 @@
   padding: var(--vx-space-11) var(--vx-space-12);
 }
 
+/* `margin-bottom: 6px` entre nome e descrição, no design. */
 .textos {
   display: grid;
   min-inline-size: 0;
-  gap: var(--vx-space-02);
+  gap: var(--vx-space-06);
 }
 
 .nome {
@@ -113,7 +122,8 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
-  font-size: var(--vx-size-sm);
+  font-size: var(--vx-size-xs);
+  line-height: 1.4;
   color: var(--vx-text-3);
   text-wrap: pretty;
 }
@@ -121,6 +131,55 @@
 .acoes {
   display: flex;
   gap: var(--vx-space-06);
+}
+
+.barra {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-12);
+}
+
+.contagem {
+  margin-inline-end: auto;
+  font-size: var(--vx-size-md);
+  color: var(--vx-text-3);
+}
+
+/* Editar e Excluir do cartão: TEXTO, 11/600 com gap 12 — do design. */
+.acoesDeTexto {
+  display: flex;
+  gap: var(--vx-space-12);
+}
+
+.acao,
+.acaoPerigo {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  color: var(--vx-text-2);
+  cursor: pointer;
+  transition: color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.acaoPerigo {
+  color: var(--vx-danger-text);
+}
+
+.acao:hover {
+  color: var(--vx-text-1);
+}
+
+.acaoPerigo:hover {
+  text-decoration: underline;
+}
+
+.acao:focus-visible,
+.acaoPerigo:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
 }
 
 /*
@@ -134,6 +193,8 @@
 .vaga {
   display: grid;
   gap: var(--vx-space-06);
+  /* `min-height: 220px` no design: a vaga não encolhe quando é a única. */
+  min-block-size: 220px;
   border: 1px dashed var(--vx-hairline-16);
   border-radius: var(--vx-radius-12);
   transition: border-color var(--vx-duration-fast) var(--vx-ease-out);
@@ -169,16 +230,18 @@
   outline: none;
 }
 
+/* `＋` 18 em `text-4` e título 12/600 em `text-3` — a vaga é convite, não
+   conteúdo, e no design ela pesa menos que os cartões ao lado. */
 .mais {
-  font-size: var(--vx-size-2xl);
+  font-size: 18px;
   line-height: 1;
-  color: var(--vx-text-3);
+  color: var(--vx-text-4);
 }
 
 .vagaTitulo {
-  font-size: var(--vx-size-md);
+  font-size: var(--vx-size-sm);
   font-weight: 600;
-  color: var(--vx-text-1);
+  color: var(--vx-text-3);
 }
 
 .vagaContagem {
@@ -189,4 +252,37 @@
 .recado {
   margin: 0;
   color: var(--vx-text-3);
+}
+
+/*
+  A figurinha dentro do quadro de 130: CONTIDA, nunca recortada — ela é
+  320×320 e o quadro é largo, e cortar o topo de uma figurinha tira justamente
+  a cara que a identifica.
+*/
+.imagem {
+  /*
+    Tamanho CHEIO e não teto: com `max-block-size: 100%` a porcentagem não
+    resolvia contra a trilha do grid, e a figurinha de 320 vazava por cima do
+    nome — medido no navegador. `contain` faz a caixa inteira sem distorcer.
+  */
+  inline-size: 100%;
+  block-size: 100%;
+  min-block-size: 0;
+  padding: var(--vx-space-10);
+  object-fit: contain;
+}
+
+/* 15 com 7 de vão até o nome, do design. */
+.emojiDoNome {
+  margin-inline-end: var(--vx-space-07);
+  font-size: var(--vx-size-lg);
+}
+
+.vagaBotao:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.seletor {
+  display: none;
 }

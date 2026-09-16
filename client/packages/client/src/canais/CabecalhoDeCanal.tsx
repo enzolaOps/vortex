@@ -143,7 +143,7 @@ export function CabecalhoDeCanal({ channelId }: { channelId?: string }) {
       {forum?.midia ? (
         <AcoesDaGaleria channelId={channelId} />
       ) : (
-        <AcoesDoCanal channelId={channelId} nome={canal.name} forum={forum !== null} />
+        <AcoesDoCanal channelId={channelId} nome={canal.name} tipo={canal.tipo} forum={forum !== null} />
       )}
     </header>
   );
