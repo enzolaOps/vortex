@@ -1,0 +1,183 @@
+/* Página pública de download. Mesma superfície da entrada, cartão único. */
+
+.tela {
+  display: grid;
+  place-items: center;
+  min-block-size: 100%;
+  padding: var(--vx-space-16);
+  background: var(--vx-surface-0);
+}
+
+.cartao {
+  display: flex;
+  flex-direction: column;
+  inline-size: min(440px, 100%);
+  padding: var(--vx-space-32);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-12);
+  background: var(--vx-surface-1);
+  box-shadow: var(--vx-elev-3);
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+  margin-block-end: var(--vx-space-24);
+}
+
+.ladrilho {
+  display: grid;
+  place-items: center;
+  inline-size: 28px;
+  block-size: 28px;
+  border-radius: var(--vx-radius-08);
+  background: linear-gradient(140deg, #35c2cc, #1e7f92);
+  color: var(--vx-on-accent);
+  font-size: var(--vx-size-md);
+  font-weight: 700;
+}
+
+.nome {
+  font-size: var(--vx-size-lg);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.titulo {
+  margin: 0 0 var(--vx-space-08);
+  font-size: var(--vx-size-2xl);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--vx-text-1);
+}
+
+.lead {
+  margin: 0 0 var(--vx-space-24);
+  font-size: var(--vx-size-md);
+  line-height: 1.5;
+  color: var(--vx-text-2);
+}
+
+/* Âncora de verdade: meio-clique e "copiar endereço" funcionam. */
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vx-space-08);
+  block-size: 40px;
+  padding-inline: var(--vx-space-18);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-accent);
+  color: var(--vx-on-accent);
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.cta:hover {
+  background: var(--vx-accent-hover);
+}
+
+.cta:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta {
+    transition: none;
+  }
+}
+
+.dica {
+  margin: var(--vx-space-08) 0 0;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+.linux {
+  margin-block-start: var(--vx-space-28);
+  padding-block-start: var(--vx-space-24);
+  border-block-start: 1px solid var(--vx-hairline-10);
+}
+
+.secao {
+  margin: 0 0 var(--vx-space-06);
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--vx-text-3);
+}
+
+.leadCurto {
+  margin: 0 0 var(--vx-space-16);
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-2);
+}
+
+.bloco {
+  margin-block-end: var(--vx-space-16);
+}
+
+.bloco:last-child {
+  margin-block-end: 0;
+}
+
+.blocoTopo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-08);
+  margin-block-end: var(--vx-space-06);
+}
+
+.blocoTitulo {
+  margin: 0;
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.pre {
+  margin: 0;
+  padding: var(--vx-space-12);
+  overflow-x: auto;
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-0);
+  color: var(--vx-text-1);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.macos {
+  margin: var(--vx-space-20) 0 0;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+.rodape {
+  margin: var(--vx-space-24) 0 0;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+.entrar {
+  border: 0;
+  background: none;
+  color: var(--vx-accent-text);
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.entrar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+  border-radius: var(--vx-radius-04);
+}

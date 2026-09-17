@@ -1,7 +1,8 @@
 import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
 
 import { ligarLogoutDoServidor, restaurarSessao } from "../sdk/autenticacao";
-import { lerEntrada } from "../store/entrada";
+import { assinarEntrada, lerEntrada } from "../store/entrada";
+import { TelaDeDownload } from "./TelaDeDownload";
 import { abrirModal } from "../store/modais";
 import { assinarSessao, lerSessao, type EstadoDaSessao } from "../store/sessao";
 import { Autenticacao } from "./Autenticacao";
@@ -18,6 +19,7 @@ import { TelaDeNome } from "./TelaDeNome";
  */
 export function PortaoDeSessao({ children }: { children: ReactNode }) {
   const sessao = useSyncExternalStore(assinarSessao, lerSessao);
+  const entrada = useSyncExternalStore(assinarEntrada, lerEntrada);
   const jaRestaurou = useRef(false);
 
   useEffect(() => {
@@ -85,6 +87,10 @@ export function PortaoDeSessao({ children }: { children: ReactNode }) {
     Com `Record<EstadoDaSessao, …>`, estado novo não compila até ter tela.
     Mesma mecânica de `NOME_DO_PAINEL` sobre `PainelId` e do registro de modais.
   */
+  /* Download é PÚBLICO: quem já tem sessão e abre o link ainda vê a página,
+     não o shell. Sem isto, `/download` logado caía no chat com a URL errada. */
+  if (entrada.tipo === "download") return <TelaDeDownload />;
+
   const TELA: Record<EstadoDaSessao, () => ReactNode> = {
     /*
       Nada, e não um carregando.
