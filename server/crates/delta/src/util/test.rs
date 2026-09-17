@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use futures::StreamExt;
-use rand::Rng;
+use rand::RngExt;
 use redis_kiss::redis::aio::PubSub;
 use revolt_database::util::email::normalise_email;
 use revolt_database::util::password::hash_password;
@@ -55,9 +55,8 @@ impl TestHarness {
     }
 
     pub fn rand_string() -> String {
-        let mut rng = rand::thread_rng();
-        (&mut rng)
-            .sample_iter(rand::distributions::Alphanumeric)
+        rand::rng()
+            .sample_iter(rand::distr::Alphanumeric)
             .take(20)
             .map(char::from)
             .collect()
