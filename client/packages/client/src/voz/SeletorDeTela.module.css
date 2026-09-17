@@ -85,13 +85,30 @@
 .grade {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-content: start;
   gap: var(--vx-space-12);
   /*
-    ⚠ **Sem teto de altura, e o teto que eu tinha posto era errado.** Com 300px
-    seis janelas ficavam em uma linha e meia, com rolagem interna — a referência
-    deixa as duas linhas inteiras e o modal cresce até o limite do `Dialog`
-    (80vh), que é quem já resolve o caso extremo.
+    ⚠ **Teto de 300px e rolagem SÓ aqui — é o design, por decisão de quem
+    usa.** A referência deixava a grade crescer e o painel inteiro rolar, e com
+    quinze janelas a faixa de opções e o botão de transmitir saíam da vista.
+    Agora abas, opções e rodapé ficam parados e só as fontes rolam. Com poucas
+    fontes a grade encolhe até o conteúdo: é `max-`, não altura.
   */
+  max-block-size: 300px;
+  overflow-y: auto;
+  /* A largura dos cartões não pula quando a aba troca entre lista curta e
+     longa. */
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  /*
+    ⚠ **O respiro de 4px é para o destaque não ser recortado.** Container com
+    `overflow` recorta o anel de 3px do escolhido e o foco (2px + 2px de
+    afastamento). A margem negativa devolve o respiro, então os cartões seguem
+    alinhados às abas e à faixa de opções como antes.
+  */
+  padding: var(--vx-space-04);
+  margin: calc(var(--vx-space-04) * -1);
+  scroll-padding-block: var(--vx-space-04);
 }
 
 .fonte {
