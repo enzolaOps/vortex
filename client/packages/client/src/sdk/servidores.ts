@@ -941,58 +941,8 @@ export function souDono(serverId: string): boolean {
 
 /* ----------------------------------------------------------- moderação */
 
-export async function expulsar(
-  serverId: string,
-  userId: string,
-): Promise<boolean> {
-  try {
-    await client.servers.get(serverId)?.kickUser(userId);
-    return true;
-  } catch (e) {
-    toast({ tipo: "erro", titulo: "Não deu para expulsar.", descricao: motivo(e) });
-    return false;
-  }
-}
-
-export async function banir(
-  serverId: string,
-  userId: string,
-  razao: string | undefined,
-): Promise<boolean> {
-  try {
-    await client.servers.get(serverId)?.banUser(userId, razao ? { reason: razao } : {});
-    return true;
-  } catch (e) {
-    toast({ tipo: "erro", titulo: "Não deu para banir.", descricao: motivo(e) });
-    return false;
-  }
-}
-
-/**
- * Deixa alguém de castigo por um tempo.
- *
- * Minutos e não uma data: quem modera pensa em "meia hora", não em
- * `2026-08-27T21:14:00Z`. A conversão para o instante fica aqui, que é a
- * fronteira do protocolo.
- */
-export async function silenciarMembro(
-  serverId: string,
-  userId: string,
-  minutos: number,
-): Promise<boolean> {
-  try {
-    const membro = client.serverMembers.get(serverId + userId);
-    if (!membro) return false;
-    if (minutos <= 0) await membro.removeTimeout();
-    else {
-      await membro.setTimeout(new Date(Date.now() + minutos * 60_000).toISOString());
-    }
-    return true;
-  } catch (e) {
-    toast({ tipo: "erro", titulo: "Não deu para aplicar.", descricao: motivo(e) });
-    return false;
-  }
-}
+/* Expulsar, banir e castigar moram em `sdk/moderacao.ts`: sempre em lote,
+   com motivo de auditoria e `delete_message_seconds`. */
 
 /**
  * Move canais para uma categoria.

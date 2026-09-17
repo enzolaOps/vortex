@@ -18,9 +18,10 @@ import {
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { Girador } from "../components/ui/Girador";
 import { Selo } from "../components/ui/Selo";
-import { toast } from "../components/ui/toastStore";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
-import type { ResultadoDeBusca } from "../sdk/busca";
+import { servidorDoCanal, type ResultadoDeBusca } from "../sdk/busca";
+import { copiarTexto } from "../lib/copiar";
+import { linkDoResultado } from "./link";
 import {
   apontarBuscaPara,
   assinarBusca,
@@ -126,39 +127,47 @@ const Resultado = memo(function Resultado({
         </span>
       </button>
 
-      <div className={css.acoes}>
-        <button type="button" className={css.acao} onClick={abrir}>
-          Pular para mensagem
-        </button>
-        <button
-          type="button"
-          className={css.acaoNeutra}
-          onClick={() => {
-            /*
-              O permalink já existe e é rota de verdade desde a etapa 3 — este
-              botão só o escreve na área de transferência.
-            */
-            const url = `${location.origin}/servidor/-/canal/${r.channelId}/${r.id}`;
-            void navigator.clipboard
-              .writeText(url)
-              .then(() => {
-                toast({ tipo: "info", titulo: "Link copiado." });
-              })
-              .catch(() => {
-                toast({
-                  tipo: "erro",
-                  titulo: "Não deu para copiar.",
-                  descricao: url,
-                });
-              });
-          }}
-        >
-          Copiar link
-        </button>
-      </div>
+      {/*
+        Ações só no SELECIONADO (D-LAC-06): com elas em todo cartão, a lista de
+        25 resultados vira 50 alvos repetidos entre prévias, e o clique no
+        cartão já faz o mesmo que "Pular". Selecionar é o que as revela.
+      */}
+      {selecionado ? <AcoesDoResultado r={r} aoPular={abrir} /> : null}
     </li>
   );
 });
+
+function AcoesDoResultado({
+  r,
+  aoPular,
+}: {
+  r: ResultadoDeBusca;
+  aoPular: () => void;
+}) {
+  /* Lido só no cartão selecionado — um por vez, não um por resultado. */
+  const link = linkDoResultado(
+    location.origin,
+    servidorDoCanal(r.channelId),
+    r.channelId,
+    r.id,
+  );
+  return (
+    <div className={css.acoes}>
+      <button type="button" className={css.acao} onClick={aoPular}>
+        Pular para mensagem
+      </button>
+      {link !== undefined ? (
+        <button
+          type="button"
+          className={css.acaoNeutra}
+          onClick={() => void copiarTexto(link, "Link")}
+        >
+          Copiar link
+        </button>
+      ) : null}
+    </div>
+  );
+}
 
 /**
  * Painel de busca.

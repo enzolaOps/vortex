@@ -172,6 +172,22 @@
   color: var(--vx-danger-text);
 }
 
+/* "Atribuir cargo" — não destrutivo, então sem cor semântica: o texto
+   principal da barra. */
+.loteAcao {
+  composes: loteAcaoAviso;
+  color: var(--vx-text-1);
+}
+
+/* O lugar do botão enquanto o lote corre — números tabulares para o
+   contador não tremer a barra a cada pessoa. */
+.loteAndamento {
+  font-size: var(--vx-size-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--vx-text-2);
+}
+
+.loteAcao:focus-visible,
 .loteAcaoAviso:focus-visible,
 .loteAcaoPerigo:focus-visible {
   outline: 2px solid var(--vx-accent);
@@ -183,4 +199,12 @@
   font-size: var(--vx-size-sm);
   color: var(--vx-text-3);
   text-wrap: pretty;
+}
+
+/* Quem não recebeu o cargo — mesma lista do `MembrosDoCargo`. */
+.falhas {
+  display: grid;
+  gap: var(--vx-space-02);
+  margin: var(--vx-space-06) 0 0;
+  padding-inline-start: var(--vx-space-16);
 }

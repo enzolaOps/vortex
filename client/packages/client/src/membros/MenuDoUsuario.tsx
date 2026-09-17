@@ -268,7 +268,7 @@ export function MenuDoUsuario({ userId }: { userId: string }) {
           <ContextMenuItem
             perigo
             onSelect={() =>
-              administrar({ tipo: "moderar", serverId, userId, acao: "castigo" })
+              administrar({ tipo: "moderar", serverId, userIds: [userId], acao: "castigo" })
             }
           >
             <ProhibitInset aria-hidden />
@@ -280,7 +280,7 @@ export function MenuDoUsuario({ userId }: { userId: string }) {
         <ContextMenuItem
           perigo
           onSelect={() =>
-            administrar({ tipo: "moderar", serverId, userId, acao: "expulsar" })
+            administrar({ tipo: "moderar", serverId, userIds: [userId], acao: "expulsar" })
           }
         >
           <SignOut aria-hidden />
@@ -291,7 +291,7 @@ export function MenuDoUsuario({ userId }: { userId: string }) {
         <ContextMenuItem
           perigo
           onSelect={() =>
-            administrar({ tipo: "moderar", serverId, userId, acao: "banir" })
+            administrar({ tipo: "moderar", serverId, userIds: [userId], acao: "banir" })
           }
         >
           <Hammer aria-hidden />
