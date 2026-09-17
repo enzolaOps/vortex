@@ -64,7 +64,6 @@ impl AbstractAttachments for ReferenceDb {
         Ok(files
             .values()
             .filter(|file| file.hash.as_ref().is_some_and(|h| h == hash))
-            .cloned()
             .count())
     }
 

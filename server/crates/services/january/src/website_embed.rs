@@ -19,10 +19,10 @@ fn url_to_absolute(page_url: &str, url: String) -> String {
         if page.is_err() {
             return "".to_string();
         }
-        return format!("{}{}", &page.unwrap().origin().unicode_serialization(), url);
+        return format!("{}{}", page.unwrap().origin().unicode_serialization(), url);
     }
     //Relative
-    format!("{}/{}", &page_url.trim_end_matches('/'), url)
+    format!("{}/{}", page_url.trim_end_matches('/'), url)
 }
 
 /// Create website metadata from URL and document

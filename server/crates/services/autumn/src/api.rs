@@ -255,6 +255,7 @@ async fn upload_file(
     {
         if !file_hash.iv.is_empty() {
             let tag: &'static str = tag.into();
+            #[allow(clippy::disallowed_methods)] // o arquivo reaproveita um hash já enviado
             db.insert_attachment(&file_hash.into_file(
                 id.clone(),
                 tag.to_owned(),
@@ -327,6 +328,7 @@ async fn upload_file(
 
     // Finally, create the file and return its ID
     let tag: &'static str = tag.into();
+    #[allow(clippy::disallowed_methods)] // o arquivo nasce do hash que acabou de subir
     db.insert_attachment(&file_hash.into_file(id.clone(), tag.to_owned(), filename, user.id))
         .await?;
 

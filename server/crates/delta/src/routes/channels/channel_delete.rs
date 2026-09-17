@@ -73,7 +73,7 @@ pub async fn delete(
             // Vortex: a thread does not outlive its channel.
             if channel.thread().is_none() {
                 let threads = db
-                    .fetch_threads(&[server.clone()], Some(channel.id()), None)
+                    .fetch_threads(std::slice::from_ref(server), Some(channel.id()), None)
                     .await
                     .unwrap_or_default();
 

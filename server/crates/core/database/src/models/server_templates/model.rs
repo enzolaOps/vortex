@@ -36,7 +36,7 @@ pub async fn snapshot_server(db: &Database, server: &Server) -> Result<v0::Serve
         .map(|(id, role)| v0::ServerTemplateRole {
             id: id.clone(),
             name: role.name.clone(),
-            permissions: role.permissions.clone(),
+            permissions: role.permissions,
             colour: role.colour.clone(),
             hoist: role.hoist,
             rank: role.rank,
@@ -167,7 +167,7 @@ pub async fn apply_server_template(
             db,
             &server.id,
             PartialRole {
-                permissions: Some(template_role.permissions.clone()),
+                permissions: Some(template_role.permissions),
                 colour: template_role.colour.clone(),
                 hoist: Some(template_role.hoist),
                 ..Default::default()
@@ -201,13 +201,13 @@ pub async fn apply_server_template(
         let role_permissions: HashMap<String, OverrideField> = template_channel
             .role_permissions
             .iter()
-            .filter_map(|(id, value)| role_ids.get(id).map(|new| (new.clone(), value.clone())))
+            .filter_map(|(id, value)| role_ids.get(id).map(|new| (new.clone(), *value)))
             .collect();
 
         // `create_server_channel` só conhece tipo, nome, descrição, nsfw e voz;
         // o resto do canal vem numa atualização logo depois.
         let partial = PartialChannel {
-            default_permissions: template_channel.default_permissions.clone(),
+            default_permissions: template_channel.default_permissions,
             role_permissions: (!role_permissions.is_empty()).then_some(role_permissions),
             slowmode: template_channel.slowmode,
             forum: template_channel

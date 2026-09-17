@@ -29,6 +29,7 @@ impl<'z, 'x> BulkDatabasePermissionQuery<'x> {
     where
         'z: 'x,
     {
+        #[allow(clippy::unnecessary_unwrap)]
         let member_perms = if self.cached_member_perms.is_some() {
             // This isn't done as an if let to prevent borrow checker errors with the mut self call when the perms aren't cached.
             let perms = self.cached_member_perms.as_ref().unwrap();
@@ -298,7 +299,7 @@ async fn calculate_members_permissions<'a>(
             })
             .collect::<Vec<(i64, Override)>>();
 
-        server_roles.sort_by(|a, b| b.0.cmp(&a.0));
+        server_roles.sort_by_key(|role| std::cmp::Reverse(role.0));
         for (_, role_override) in server_roles {
             permission.apply(role_override);
         }
@@ -315,7 +316,7 @@ async fn calculate_members_permissions<'a>(
             })
             .collect::<Vec<(i64, Override)>>();
 
-        roles.sort_by(|a, b| b.0.cmp(&a.0));
+        roles.sort_by_key(|role| std::cmp::Reverse(role.0));
         let overrides = roles.into_iter().map(|(_, v)| v);
 
         for role_override in overrides {
@@ -330,36 +331,4 @@ async fn calculate_members_permissions<'a>(
     }
 
     resp
-}
-
-/// Calculates a member's server permissions
-fn calculate_server_permissions(server: &Server, user: &User, member: &Member) -> PermissionValue {
-    if user.privileged || server.owner == user.id {
-        return ChannelPermission::GrantAllSafe.into();
-    }
-
-    let mut permissions: PermissionValue = server.default_permissions.into();
-
-    let mut roles = server
-        .roles
-        .iter()
-        .filter(|(id, _)| member.roles.contains(id))
-        .map(|(_, role)| {
-            let v: Override = role.permissions.into();
-            (role.rank, v)
-        })
-        .collect::<Vec<(i64, Override)>>();
-
-    roles.sort_by(|a, b| b.0.cmp(&a.0));
-    let role_overrides: Vec<Override> = roles.into_iter().map(|(_, v)| v).collect();
-
-    for role in role_overrides {
-        permissions.apply(role);
-    }
-
-    if member.in_timeout() {
-        permissions.restrict(*ALLOW_IN_TIMEOUT);
-    }
-
-    permissions
 }

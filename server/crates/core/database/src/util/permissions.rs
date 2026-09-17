@@ -185,7 +185,7 @@ impl PermissionQuery for DatabasePermissionQuery<'_> {
                 })
                 .collect::<Vec<(i64, Override)>>();
 
-            roles.sort_by(|a, b| b.0.cmp(&a.0));
+            roles.sort_by_key(|role| std::cmp::Reverse(role.0));
             roles.into_iter().map(|(_, v)| v).collect()
         } else {
             vec![]
@@ -292,7 +292,7 @@ impl PermissionQuery for DatabasePermissionQuery<'_> {
                             })
                             .collect::<Vec<(i64, Override)>>();
 
-                        roles.sort_by(|a, b| b.0.cmp(&a.0));
+                        roles.sort_by_key(|role| std::cmp::Reverse(role.0));
                         roles.into_iter().map(|(_, v)| v).collect()
                     } else {
                         vec![]
@@ -466,22 +466,22 @@ impl<'a> DatabasePermissionQuery<'a> {
     }
 
     /// Access the underlying user
-    pub fn user_ref(&self) -> &Option<Cow<User>> {
+    pub fn user_ref(&self) -> &Option<Cow<'_, User>> {
         &self.user
     }
 
     /// Access the underlying server
-    pub fn channel_ref(&self) -> &Option<Cow<Channel>> {
+    pub fn channel_ref(&self) -> &Option<Cow<'_, Channel>> {
         &self.channel
     }
 
     /// Access the underlying server
-    pub fn server_ref(&self) -> &Option<Cow<Server>> {
+    pub fn server_ref(&self) -> &Option<Cow<'_, Server>> {
         &self.server
     }
 
     /// Access the underlying member
-    pub fn member_ref(&self) -> &Option<Cow<Member>> {
+    pub fn member_ref(&self) -> &Option<Cow<'_, Member>> {
         &self.member
     }
 

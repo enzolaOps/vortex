@@ -1,7 +1,6 @@
 #![allow(deprecated)]
 use std::{borrow::Cow, collections::HashMap};
 
-use redis_kiss::get_connection;
 use revolt_config::config;
 use revolt_models::v0::{self, MessageAuthor};
 use revolt_permissions::OverrideField;
@@ -17,6 +16,7 @@ use crate::{
 use crate::IntoDocumentPath;
 
 auto_derived!(
+    #[allow(clippy::large_enum_variant)]
     #[serde(tag = "channel_type")]
     pub enum Channel {
         /// Personal "Saved Notes" channel which allows users to save messages
@@ -607,7 +607,7 @@ impl Channel {
     }
 
     /// Gets this channel's voice information
-    pub fn voice(&self) -> Option<Cow<VoiceInformation>> {
+    pub fn voice(&self) -> Option<Cow<'_, VoiceInformation>> {
         match self {
             Self::DirectMessage { .. } | Self::Group { .. } => {
                 Some(Cow::Owned(VoiceInformation::default()))
@@ -701,26 +701,24 @@ impl Channel {
                 }
                 _ => {}
             },
-            FieldsChannel::DefaultPermissions => match self {
-                Self::TextChannel {
+            FieldsChannel::DefaultPermissions => {
+                if let Self::TextChannel {
                     default_permissions,
                     ..
-                } => {
+                } = self
+                {
                     default_permissions.take();
                 }
-                _ => {}
-            },
-            FieldsChannel::Voice => match self {
-                Self::TextChannel { voice, .. } => {
+            }
+            FieldsChannel::Voice => {
+                if let Self::TextChannel { voice, .. } = self {
                     voice.take();
                 }
-                _ => {}
-            },
-            FieldsChannel::Slowmode => match self {
-                Self::TextChannel { slowmode, .. } => {
+            }
+            FieldsChannel::Slowmode => {
+                if let Self::TextChannel { slowmode, .. } = self {
                     slowmode.take();
                 }
-                _ => {}
             }
         }
     }

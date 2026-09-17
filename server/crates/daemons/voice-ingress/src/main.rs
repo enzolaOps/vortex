@@ -10,6 +10,7 @@ mod api;
 mod guard;
 
 #[rocket::main]
+#[allow(clippy::result_large_err)]
 async fn main() -> Result<(), rocket::Error> {
     revolt_config::configure!(voice_ingress);
 

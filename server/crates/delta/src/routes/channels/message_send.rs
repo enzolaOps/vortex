@@ -190,7 +190,7 @@ pub async fn message_send(
     let thread_channel = channel.thread().is_some().then(|| channel.clone());
     if let Some(info) = channel.thread() {
         // The first message of a media post is the media itself.
-        if info.message.is_none() && data.attachments.as_ref().map_or(true, |a| a.is_empty()) {
+        if info.message.is_none() && data.attachments.as_ref().is_none_or(|a| a.is_empty()) {
             if let Ok(parent) = db.fetch_channel(&info.parent).await {
                 if parent.forum().is_some_and(|forum| forum.media) {
                     return Err(create_error!(InvalidOperation));
@@ -673,7 +673,7 @@ mod test {
             Some(&harness.amqp),
             channel.clone(),
             v0::DataMessageSend {
-                content: Some(format!("Mentioning @everyone and role <%{}>", &role.id)),
+                content: Some(format!("Mentioning @everyone and role <%{}>", role.id)),
                 nonce: None,
                 attachments: None,
                 stickers: None,
@@ -720,7 +720,7 @@ mod test {
             Some(&harness.amqp),
             channel.clone(),
             v0::DataMessageSend {
-                content: Some(format!("Mentioning `@everyone` and role `<%{}>`", &role.id)),
+                content: Some(format!("Mentioning `@everyone` and role `<%{}>`", role.id)),
                 nonce: None,
                 attachments: None,
                 stickers: None,
@@ -793,7 +793,7 @@ mod test {
             Some(&harness.amqp),
             channel.clone(),
             v0::DataMessageSend {
-                content: Some(format!("Mentioning @everyone and role <%{}>", &role.id)),
+                content: Some(format!("Mentioning @everyone and role <%{}>", role.id)),
                 nonce: None,
                 attachments: None,
                 stickers: None,
