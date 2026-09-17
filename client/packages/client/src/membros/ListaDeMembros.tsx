@@ -21,6 +21,7 @@ import {
 import { count } from "../dev/stats";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { Avatar } from "../components/ui/Avatar";
+import { remedir } from "../lib/remedir";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
 import { TagDoServidor } from "../presenca/TagDoServidor";
 import {
@@ -383,7 +384,7 @@ export function ListaDeMembros() {
       const largura = entry?.contentRect.width ?? 0;
       if (largura === ultimaLargura.current) return;
       ultimaLargura.current = largura;
-      virtualizer.measure();
+      remedir(virtualizer);
     });
 
     observer.observe(element);
