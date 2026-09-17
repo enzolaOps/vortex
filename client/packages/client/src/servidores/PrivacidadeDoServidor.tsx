@@ -9,6 +9,7 @@ import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { Interruptor } from "../components/ui/Interruptor";
 import { CartaoDeOpcao } from "../components/ui/CartaoDeOpcao";
 import { toast } from "../components/ui/toastStore";
+import { aindaNao } from "../pendente/pendencias";
 import { assinarAlvo, lerAlvo } from "../store/administracao";
 import { useServer } from "../store/hooks";
 import {
@@ -63,10 +64,10 @@ const FILTRO: Record<FiltroDeConteudo, { titulo: string; detalhe: string }> = {
  * sempre tomada no contexto daquele servidor. Quem quer fechar as DMs de um
  * servidor está olhando para ele.
  *
- * ⚠ **Nenhuma destas preferências existe no protocolo.** Ver
- * `store/privacidadeDoServidor.ts`: o Revolt não tem privacidade por servidor
- * em lugar nenhum do schema, então elas valem nesta máquina até haver um
- * serviço `api` que as guarde. A tela diz isso no rodapé.
+ * O protocolo não tem privacidade por servidor; ela é sincronizada em
+ * `UserSettings`, e o efeito de cada controle está descrito em
+ * `store/privacidadeDoServidor.ts` — mídia no cliente, DM e amizade recusadas
+ * pelo `delta`, presença ainda pendente.
  */
 export function PrivacidadeDoServidor({ aoFechar }: { aoFechar: () => void }) {
   const alvo = useSyncExternalStore(assinarAlvo, lerAlvo);
@@ -163,28 +164,20 @@ export function PrivacidadeDoServidor({ aoFechar }: { aoFechar: () => void }) {
                 Desligado, você aparece como offline neste servidor
               </p>
             </div>
-            <Interruptor
-              ligado={p.mostrarPresenca}
-              rotulo="Mostrar minha presença aqui"
-              aoAlternar={(v) =>
-                definirPrivacidadeDoServidor(serverId, { mostrarPresenca: v })
-              }
-            />
-          </div>
+            {/*
+              ⚠ **Pendente, e mostra o estado VERDADEIRO.** Presença por
+              servidor precisa do `bonfire`; até lá sua presença aparece em
+              todo servidor, então o interruptor fica ligado e diz que ainda
+              não faz — um desligado que não esconde nada afirmaria o
+              contrário do que acontece.
 
-          <div className={css.linha}>
-            <div className={css.textos}>
-              <div className={css.titulo}>Mostrar atividade em jogo</div>
-              <p className={css.detalhe}>
-                O que você está jogando fica visível para os membros
-              </p>
-            </div>
+              "Mostrar atividade em jogo" saiu desta lista: o protocolo não
+              tem atividade de jogo, e não há o que mostrar nem esconder.
+            */}
             <Interruptor
-              ligado={p.mostrarAtividade}
-              rotulo="Mostrar atividade em jogo"
-              aoAlternar={(v) =>
-                definirPrivacidadeDoServidor(serverId, { mostrarAtividade: v })
-              }
+              ligado
+              rotulo="Mostrar minha presença aqui"
+              aoAlternar={aindaNao("presencaPorServidor")}
             />
           </div>
 

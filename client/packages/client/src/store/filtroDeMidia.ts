@@ -24,6 +24,8 @@
  * mídias daquele servidor.
  */
 
+import type { FiltroDeConteudo } from "./privacidadeDoServidor";
+
 export type PoliticaDeMidia = "nao" | "semCargo" | "todos";
 
 type Ouvinte = () => void;
@@ -93,6 +95,27 @@ export function precisaVerificar(
   if (p === "nao" || autorEhVoce) return false;
   if (p === "todos") return true;
   return (cargosDoAutor?.length ?? 0) === 0;
+}
+
+/**
+ * O filtro PESSOAL deste servidor vela esta mídia?
+ *
+ * ⚠ **Soma, nunca subtrai, a política do servidor.** Quem administra decide o
+ * mínimo para todo mundo; a escolha pessoal só cobre mais. "Não filtrar" aqui
+ * não revela o que a política cobriu — senão a página de Segurança prometeria
+ * uma proteção que qualquer membro desliga para si.
+ *
+ * Quem enviou nunca vê a própria mídia velada, pela mesma razão de
+ * `precisaVerificar`.
+ */
+export function veladaPeloFiltroPessoal(
+  filtro: FiltroDeConteudo,
+  autorEhAmigo: boolean,
+  autorEhVoce: boolean,
+): boolean {
+  if (autorEhVoce || filtro === "nao") return false;
+  if (filtro === "tudo") return true;
+  return !autorEhAmigo;
 }
 
 /* ---------------------------------------------------------- revelados */
