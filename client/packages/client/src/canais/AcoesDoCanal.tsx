@@ -2,6 +2,7 @@ import {
   BellSimple,
   BellSimpleSlash,
   ChatsCircle,
+  DotsThree,
   Phone,
   PushPin,
   Tray,
@@ -12,6 +13,11 @@ import { useSyncExternalStore } from "react";
 import { cn } from "../lib/cn";
 import { NOME_DO_PAINEL, type PainelId } from "../preset/schema";
 import { Tooltip } from "../components/ui/Tooltip";
+import {
+  despacharMenuEm,
+  MenuDeContexto,
+} from "../components/ui/MenuDeContexto";
+import { ItensDoCanal } from "../menus/ItensDoCanal";
 import { assinarLayout, painelVisivel } from "../store/layout";
 import {
   alternarSuperficie,
@@ -171,6 +177,7 @@ export function AcoesDoCanal({
         <BotaoDePainel painel="membros">
           <Users />
         </BotaoDePainel>
+        <MenuDoCanal channelId={channelId} />
       </div>
     );
   }
@@ -228,6 +235,41 @@ export function AcoesDoCanal({
           onClick={() => alternarSuperficie("busca")}
         />
       </Tooltip>
+
+      <MenuDoCanal channelId={channelId} />
     </div>
+  );
+}
+
+/**
+ * O `⋯` do cabeçalho — e ele abre o MESMO menu da linha na coluna.
+ *
+ * ⚠ **O cabeçalho não tinha menu nenhum**, e o design desenha um `⋯` ali.
+ * Quem estava com o canal aberto e queria convidar, silenciar ou editar
+ * precisava voltar à coluna e mirar a linha: o lugar onde a pessoa está era o
+ * único sem as ações do lugar onde ela está.
+ *
+ * O botão despacha o `contextmenu` que o gatilho já escuta — o mesmo arranjo
+ * do `⋯` da barra de ações da mensagem, e o que garante que os dois caminhos
+ * não possam divergir. `abaixo` porque um menu nascendo no canto de cima de um
+ * botão de 32px cobre o próprio botão.
+ */
+function MenuDoCanal({ channelId }: { channelId: string }) {
+  return (
+    <MenuDeContexto
+      gatilho={
+        <button
+          type="button"
+          className={css.acao}
+          aria-haspopup="menu"
+          aria-label="Mais ações do canal"
+          onClick={(e) => despacharMenuEm(e.currentTarget, "abaixo")}
+        >
+          <DotsThree aria-hidden />
+        </button>
+      }
+    >
+      <ItensDoCanal channelId={channelId} />
+    </MenuDeContexto>
   );
 }

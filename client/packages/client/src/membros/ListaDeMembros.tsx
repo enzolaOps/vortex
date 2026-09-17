@@ -24,7 +24,6 @@ import { Avatar } from "../components/ui/Avatar";
 import { remedir } from "../lib/remedir";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
 import { TagDoServidor } from "../presenca/TagDoServidor";
-import { ContextMenuContent } from "../components/ui/ContextMenu";
 import { MenuDeContexto } from "../components/ui/MenuDeContexto";
 import { chaveDeMembro } from "../sdk/domain";
 import { assinarConexao, lerConexao } from "../store/conexao";
@@ -289,7 +288,11 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
  */
 function MenuDaMemberList() {
   const alvo = useSyncExternalStore(assinarMenuDeMensagem, lerAlvoDoMenu);
-  if (alvo?.tipo !== "usuario") return <ContextMenuContent />;
+  /* ⚠ **`null` e não um `Content` vazio.** A mira já recusa abrir sem alvo
+     desde a onda 1.5A, então este ramo é inalcançável — e um `Content` vazio
+     aqui seria a caixa que aquela onda veio matar, esperando a primeira
+     regressão para reaparecer. */
+  if (alvo?.tipo !== "usuario") return null;
   return <MenuDoUsuario userId={alvo.userId} />;
 }
 

@@ -9,6 +9,9 @@ import { NomeDoAutor } from "../presenca/NomeDoAutor";
 import { pedirIrParaMensagem } from "../store/comandos";
 import { useCanalAtivo, useChannel, useFixadas, useMessage } from "../store/hooks";
 import { TextoDaMensagem } from "../list/TextoDaMensagem";
+import { MenuDaMensagem } from "../list/MessageRow";
+import { MenuDeContexto } from "../components/ui/MenuDeContexto";
+import { mirarAlvoDoMenu } from "../store/menuDeMensagem";
 import css from "./PainelDeFixados.module.css";
 
 /**
@@ -34,7 +37,11 @@ const Fixada = memo(function Fixada({
   if (!message) return <li className={css.item} aria-hidden />;
 
   return (
-    <li className={css.item}>
+    /* ⚠ **`data-menu-mensagem`: o menu da mensagem existia SÓ na timeline.**
+       Uma fixada é uma mensagem; o clique direito nela caía no menu do
+       navegador, e responder, copiar texto, encaminhar e desafixar estavam a
+       um "ir até a mensagem" de distância. Ver `menus` e `alvoNoDom`. */
+    <li className={css.item} data-menu-mensagem={id}>
       {/*
         O cartão inteiro leva à mensagem, e as ações são IRMÃS do botão.
 
@@ -157,16 +164,23 @@ export function PainelDeFixados({ aoFechar }: { aoFechar?: () => void }) {
           detalhe="Fixe uma mensagem pelo menu dela para guardar o que importa."
         />
       ) : (
-        <ul className={css.lista}>
-          {ids.map((id) => (
-            <Fixada
-              key={id}
-              channelId={channelId}
-              id={id}
-              podeDesafixar={podeDesafixar}
-            />
-          ))}
-        </ul>
+        <MenuDeContexto
+          mirar={mirarAlvoDoMenu}
+          gatilho={
+            <ul className={css.lista}>
+              {ids.map((id) => (
+                <Fixada
+                  key={id}
+                  channelId={channelId}
+                  id={id}
+                  podeDesafixar={podeDesafixar}
+                />
+              ))}
+            </ul>
+          }
+        >
+          <MenuDaMensagem />
+        </MenuDeContexto>
       )}
 
       {/*

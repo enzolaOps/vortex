@@ -4,6 +4,9 @@ import { useState } from "react";
 import { Avatar } from "../components/ui/Avatar";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { enviarMensagem, marcarCanalLido, marcarTodosLidos } from "../sdk/adapter";
+import { MenuDaMensagem } from "../list/MessageRow";
+import { MenuDeContexto } from "../components/ui/MenuDeContexto";
+import { mirarAlvoDoMenu } from "../store/menuDeMensagem";
 import { contagem, plural } from "../lib/plural";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
 import { irPara } from "../store/navegacao";
@@ -168,15 +171,24 @@ export function CaixaDeEntrada({ aoFechar }: { aoFechar?: () => void }) {
         </div>
       </header>
 
-      <div className={css.lista} tabIndex={0} role="tabpanel">
-        {aba === "topicos" ? (
-          <TopicosQueSigo />
-        ) : (
-          servidores.map((id) => (
-            <GrupoDeServidor key={id} serverId={id} aba={aba} />
-          ))
-        )}
-      </div>
+      {/* O menu da MENSAGEM para as prévias — ver `Cartao`. Um Root para o
+          painel inteiro, como na timeline e na member list. */}
+      <MenuDeContexto
+        mirar={mirarAlvoDoMenu}
+        gatilho={
+          <div className={css.lista} tabIndex={0} role="tabpanel">
+            {aba === "topicos" ? (
+              <TopicosQueSigo />
+            ) : (
+              servidores.map((id) => (
+                <GrupoDeServidor key={id} serverId={id} aba={aba} />
+              ))
+            )}
+          </div>
+        }
+      >
+        <MenuDaMensagem />
+      </MenuDeContexto>
     </div>
   );
 }
@@ -239,7 +251,13 @@ function LinhaDeTopico({ id }: { id: string }) {
           <span className={css.hora}>{ultima?.createdAtCurto ?? ""}</span>
         </span>
         {ultima ? (
-          <span className={css.mensagem}>
+          /* ⚠ **`data-menu-mensagem` na PRÉVIA e não no cartão.** O cartão é
+             sobre o CANAL — abrir, marcar lido —, e a prévia é sobre a
+             mensagem: responder, copiar, encaminhar. Marcar o cartão inteiro
+             faria o clique direito no nome do canal abrir o menu de uma
+             mensagem, que é a troca de entidade que esta onda veio consertar.
+             O menu do CANAL aqui fica registrado como pendência. */
+          <span className={css.mensagem} data-menu-mensagem={ultima.id}>
             <Avatar id={ultima.authorId ?? ""} tamanho="xs" />
             <span className={css.mensagemTexto}>
               {ultima.authorId ? (
@@ -361,7 +379,13 @@ function LinhaDaCaixa({
           um esqueleto que promete um texto que nunca vem.
         */}
         {ultima ? (
-          <span className={css.mensagem}>
+          /* ⚠ **`data-menu-mensagem` na PRÉVIA e não no cartão.** O cartão é
+             sobre o CANAL — abrir, marcar lido —, e a prévia é sobre a
+             mensagem: responder, copiar, encaminhar. Marcar o cartão inteiro
+             faria o clique direito no nome do canal abrir o menu de uma
+             mensagem, que é a troca de entidade que esta onda veio consertar.
+             O menu do CANAL aqui fica registrado como pendência. */
+          <span className={css.mensagem} data-menu-mensagem={ultima.id}>
             <Avatar id={ultima.authorId ?? ""} tamanho="xs" />
             <span className={css.mensagemTexto}>
               {ultima.authorId ? (

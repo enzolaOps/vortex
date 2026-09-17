@@ -54,6 +54,7 @@ import {
   rotuloDeReacao,
 } from "../lib/plural";
 import { cn } from "../lib/cn";
+import { atalho } from "../lib/plataforma";
 import { BotaoDeIcone } from "../components/ui/BotaoDeIcone";
 import { menuAtalho } from "../components/ui/menu";
 import { AvatarDoAutor } from "../presenca/AvatarDoAutor";
@@ -111,9 +112,11 @@ import {
   assinarConexao,
   lerConexao,
 } from "../store/conexao";
-import { caminhoDe } from "../rota/rota";
-import { lerLocal } from "../store/navegacao";
-import { useMessage } from "../store/hooks";
+import { useChannel, useMessage } from "../store/hooks";
+import {
+  assinarReacoesFrequentes,
+  reacoesRapidas,
+} from "../store/reacoesFrequentes";
 import { Anexos } from "./Anexos";
 import { FigurinhaNaLinha } from "./FigurinhaNaLinha";
 import { EnqueteDaMensagem } from "../enquete/EnqueteDaMensagem";
@@ -298,14 +301,15 @@ function BotaoEntrarNaChamada({ channelId }: { channelId: string }) {
  * produto.
  */
 /**
- * As reações rápidas — as do DESIGN, e a lista é semente, não curadoria.
+ * As reações rápidas — agora as SUAS, e a lista do design virou semente.
  *
- * O próprio design diz o que ela deve virar: *"emojis frequentes do usuário,
- * nunca curadoria do produto"*. Frequência por usuário é store que ainda não
- * existe, então o que está aqui é o ponto de partida — e a nota fica para que
- * ninguém confunda a semente com a decisão.
+ * ⚠ **O comentário anterior admitia a dívida em prosa:** *"frequência por
+ * usuário é store que ainda não existe, então o que está aqui é o ponto de
+ * partida"*. O design é explícito — *"emojis frequentes do usuário, nunca
+ * curadoria do produto"* — e o store existe desde
+ * `store/reacoesFrequentes.ts`, que completa com a semente enquanto o
+ * histórico for menor que quatro.
  */
-const REACOES_RAPIDAS = ["✅", "🧠", "🔥", "👀"] as const;
 
 /**
  * As três da barra de hover — um subconjunto, não uma segunda lista.
@@ -318,11 +322,9 @@ const REACOES_RAPIDAS = ["✅", "🧠", "🔥", "👀"] as const;
  * Derivado do array acima em vez de escrito de novo: duas listas de emoji que
  * precisam concordar acabam divergindo, e a que diverge é sempre a menor.
  */
-const REACOES_DA_BARRA = [
-  REACOES_RAPIDAS[0],
-  REACOES_RAPIDAS[1],
-  REACOES_RAPIDAS[2],
-] as const;
+function reacoesDaBarra(rapidas: readonly string[]): readonly string[] {
+  return rapidas.slice(0, 3);
+}
 
 /**
  * Abre o menu de contexto da lista a partir de um BOTÃO.
@@ -809,6 +811,17 @@ function QuemReagiu({
 export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
   const message = useMessage(id);
   /*
+    Os três emojis da barra de hover, que passaram a ser os SEUS.
+
+    ⚠ **Mais uma subscrição por linha, e ela é barata pela mesma razão do alvo
+    do menu:** `reacoesRapidas` devolve a referência CACHEADA e o store só
+    notifica quando a ORDEM muda de fato — reagir com o que já era o primeiro
+    não acorda ninguém. Ler sem assinar seria mais barato e estaria errado: a
+    barra é `visibility: hidden` e apontar para ela não re-renderiza a linha,
+    então o conjunto ficaria congelado no que era quando a linha montou.
+  */
+  const rapidas = useSyncExternalStore(assinarReacoesFrequentes, reacoesRapidas);
+  /*
     Booleano, e é o que torna esta subscrição barata.
 
     Toda linha montada assina o alvo do menu, mas `useSyncExternalStore` compara
@@ -1275,7 +1288,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             */}
             {pode(message.channelId, "reagir") ? (
               <>
-                {REACOES_DA_BARRA.map((emoji) => (
+                {reacoesDaBarra(rapidas).map((emoji) => (
                   <BotaoDeIcone
                     key={emoji}
                     tamanho="sm"
@@ -1643,12 +1656,15 @@ export function MenuDaMensagem() {
     Os dois menus, escolhidos pelo TIPO do alvo.
 
     O componente é um só porque o `ContextMenu` é um só — ver
-    `store/menuDeMensagem.ts`. `alvo === null` (clique direito no vão entre
-    linhas) devolve conteúdo vazio, que é melhor que agir sobre a mensagem do
-    clique anterior.
+    `store/menuDeMensagem.ts`.
+
+    ⚠ **`null` sem alvo, e não um `Content` vazio.** A mira recusa abrir desde
+    a onda 1.5A, então o ramo é inalcançável; deixar a caixa vazia aqui seria
+    guardá-la esperando a primeira regressão.
   */
   if (alvo?.tipo === "usuario") return <MenuDoUsuario userId={alvo.userId} />;
-  return <ItensDaMensagem messageId={alvo?.tipo === "mensagem" ? alvo.id : ""} />;
+  if (alvo?.tipo === "mensagem") return <ItensDaMensagem messageId={alvo.id} />;
+  return null;
 }
 
 /**
@@ -1659,12 +1675,23 @@ export function MenuDaMensagem() {
  * faz com a própria), copiar (o que se leva embora), e destrutivo por último.
  * Ação destrutiva no fim é a regra que o design escreve por extenso.
  */
-function ItensDaMensagem({ messageId }: { messageId: string }) {
+export function ItensDaMensagem({ messageId }: { messageId: string }) {
   const message = useMessage(messageId);
   const eu = usuarioLocalId();
-  const local = lerLocal();
+  const rapidas = useSyncExternalStore(
+    assinarReacoesFrequentes,
+    reacoesRapidas,
+  );
+  /*
+    O canal da MENSAGEM, e não o da rota — ver `linkavel` logo abaixo.
 
-  if (!message) return <ContextMenuContent />;
+    O hook fica acima do early return: `useChannel("")` devolve ausência sem
+    assinar nada, e mover a chamada para depois do `if` faria a contagem de
+    hooks mudar entre renders. Regra das Hooks não é estilo.
+  */
+  const canal = useChannel(message?.channelId ?? "");
+
+  if (!message) return null;
 
   const souOAutor = message.authorId !== undefined && message.authorId === eu;
   const gerencio = pode(message.channelId, "fixar");
@@ -1675,8 +1702,16 @@ function ItensDaMensagem({ messageId }: { messageId: string }) {
     mensagem; conversa direta é `/dm/:c` e para por aí. Renderizar "Copiar
     link" numa DM daria um link que abre o lugar certo na posição errada — que
     é pior que não ter o item, porque quem cola não descobre.
+
+    ⚠ **Lido da MENSAGEM e não da rota atual, e a diferença é um link errado.**
+    Antes ele saía de `lerLocal()` e de `caminhoDe(local)`: no chat embutido da
+    sala de voz, nas fixadas, na busca e na caixa de entrada a rota é outra
+    coisa que não o canal da mensagem — o link copiado apontava para o canal
+    ABERTO, com o id de uma mensagem que não mora lá. Quem cola descobre que
+    não funciona; quem copiou, não.
   */
-  const linkavel = local.tipo === "servidor" && local.channelId !== undefined;
+  const serverId = canal?.serverId;
+  const linkavel = serverId !== undefined;
 
   return (
     <ContextMenuContent>
@@ -1695,7 +1730,7 @@ function ItensDaMensagem({ messageId }: { messageId: string }) {
       {pode(message.channelId, "reagir") ? (
         <>
           <div className={css.rapidas} role="group" aria-label="Reagir">
-            {REACOES_RAPIDAS.map((emoji) => (
+            {rapidas.map((emoji) => (
               <ContextMenuItem
                 key={emoji}
                 asChild
@@ -1838,14 +1873,20 @@ function ItensDaMensagem({ messageId }: { messageId: string }) {
         <ContextMenuItem
           onSelect={() =>
             void copiarTexto(
-              `${location.origin}${caminhoDe(local)}/${message.id}`,
+              `${location.origin}/servidor/${serverId ?? ""}/canal/${message.channelId}/${message.id}`,
               "Link",
             )
           }
         >
           <Link aria-hidden />
           Copiar link
-          <span className={menuAtalho}>&#8679;&#8984;C</span>
+          {/* ⚠ **A tecla como a PLATAFORMA a chama.** Isto era `⇧⌘C` fixo,
+              inclusive no Windows, onde a combinação é `Ctrl+Shift+C` — o
+              mesmo defeito que o botão da paleta já tinha consertado na coluna
+              de canais, repetido aqui porque o menu não consultava nada. */}
+          <span className={menuAtalho}>
+            {atalho({ mod: true, shift: true, tecla: "C" })}
+          </span>
         </ContextMenuItem>
       ) : null}
 

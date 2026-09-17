@@ -2,10 +2,8 @@ import {
   CaretDown,
   DownloadSimple,
   Envelope,
-  FolderSimplePlus,
   ICONE,
   Plus,
-  ShieldCheck,
 } from "../components/ui/icones";
 import { memo, useSyncExternalStore } from "react";
 
@@ -15,6 +13,7 @@ import {
   ContextMenuSeparator,
 } from "../components/ui/ContextMenu";
 import { MenuDeContexto } from "../components/ui/MenuDeContexto";
+import { ItensDoServidor } from "../menus/ItensDoServidor";
 import { Tooltip } from "../components/ui/Tooltip";
 import { contagem, rotuloDeNaoLidas } from "../lib/plural";
 import { linkDeDownload, plataformaDoNavegador } from "../lib/downloadDoDesktop";
@@ -32,7 +31,6 @@ import {
   alternarColapsoDaPasta,
   assinarPastas,
   lerPastas,
-  moverParaPasta,
   removerPasta,
   type Pasta,
 } from "../store/pastas";
@@ -62,7 +60,6 @@ const ItemDeServidor = memo(function ItemDeServidor({
   naPasta?: boolean;
 }) {
   const servidor = useServer(id);
-  const pastas = useSyncExternalStore(assinarPastas, lerPastas);
 
   // Placeholder com a MESMA caixa do item real. `null` aqui não trava nada
   // (o rail não é virtualizado), mas encolher e crescer faria o rail pular
@@ -201,55 +198,15 @@ const ItemDeServidor = memo(function ItemDeServidor({
     >
 
       {/*
-        O menu que gerencia pastas.
+        O menu do SERVIDOR, e ele é o MESMO do `▾` do cabeçalho da coluna e do
+        clique direito nele.
 
-        ⚠ **Por menu e não por ARRASTE**, e a escolha não é preguiça: o design
-        mostra pastas, não o gesto que as cria. Arrastar é o caminho de todo
-        cliente da categoria e vai entrar — mas ele é exclusivo de ponteiro, e
-        um recurso que só existe para quem tem mouse é o mesmo defeito que a
-        auditoria apontou na paleta de comandos. Menu funciona com teclado no
-        primeiro dia; o arraste soma depois, listado como pendência.
+        ⚠ **Eram dois menus sem um item em comum.** Este dava privacidade e
+        pastas; o `▾` dava criar canal e as treze seções de configuração. A
+        mesma entidade respondendo coisas diferentes conforme onde a mão pousa
+        — ver `menus/ItensDoServidor.tsx`.
       */}
-      <ContextMenuContent>
-        {/*
-          ⚠ **Privacidade é o PRIMEIRO item, e é do design.** Ela é a única
-          coisa deste menu que muda o que os OUTROS podem fazer com você;
-          pasta e ordem são arrumação. Num menu curto a posição é a hierarquia.
-        */}
-        <ContextMenuItem
-          onSelect={() =>
-            administrar({ tipo: "privacidadeDoServidor", serverId: id })
-          }
-        >
-          <ShieldCheck size={ICONE.calha} aria-hidden />
-          Privacidade neste servidor
-        </ContextMenuItem>
-
-        <ContextMenuSeparator />
-
-        <ContextMenuItem
-          onSelect={() => administrar({ tipo: "criarPasta", serverId: id })}
-        >
-          <FolderSimplePlus size={ICONE.calha} aria-hidden />
-          Nova pasta com este
-        </ContextMenuItem>
-
-        {pastas.length > 0 ? <ContextMenuSeparator /> : null}
-
-        {pastas.map((p) =>
-          p.servidores.includes(id) ? (
-            <ContextMenuItem key={p.id} onSelect={() => moverParaPasta(id, null)}>
-              Tirar de {p.nome}
-            </ContextMenuItem>
-          ) : (
-            <ContextMenuItem key={p.id} onSelect={() => moverParaPasta(id, p.id)}>
-              Mover para {p.nome}
-            </ContextMenuItem>
-          ),
-        )}
-
-        <ItemDeId id={id} />
-      </ContextMenuContent>
+      <ItensDoServidor serverId={id} />
     </MenuDeContexto>
   );
 });

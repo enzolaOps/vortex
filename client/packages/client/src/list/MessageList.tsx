@@ -9,6 +9,10 @@ import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } fro
 import { remedir } from "../lib/remedir";
 import { aoTerminarArraste, estaArrastando } from "../store/arraste";
 import { MenuDeContexto } from "../components/ui/MenuDeContexto";
+import {
+  acaoDaTecla,
+  executarAtalhoDeMensagem,
+} from "../menus/atalhosDaMensagem";
 import { ID_DO_NOME_DO_CANAL } from "../canais/CabecalhoDeCanal";
 import { mirarAlvoDoMenu } from "../store/menuDeMensagem";
 import {
@@ -1159,6 +1163,30 @@ export function MessageList({
       evento.preventDefault();
       scrollRef.current?.focus();
       return;
+    }
+
+    /*
+      Os atalhos que o MENU exibe, agora com handler.
+
+      ⚠ **`R`, `E`, `⌫` e `⇧⌘C` estavam escritos ao lado dos itens e não
+      faziam nada** — a auditoria de clique direito os mediu como "atalhos
+      exibidos sem handler". Chamam as MESMAS funções dos itens, e por isso
+      não podem divergir em permissão. Ver `menus/atalhosDaMensagem.ts`.
+
+      ⚠ **Só com uma LINHA focada**, e o `preventDefault` é condicional: com o
+      foco no container, `Backspace` continua sendo do navegador; e quando a
+      ação não é permitida (editar mensagem alheia), a tecla passa em vez de
+      ser engolida em silêncio.
+    */
+    if (naLinha) {
+      const acao = acaoDaTecla(evento);
+      const alvoDaLinha = alvo.dataset.menuMensagem;
+      if (acao && alvoDaLinha !== undefined) {
+        if (executarAtalhoDeMensagem(acao, alvoDaLinha)) {
+          evento.preventDefault();
+          return;
+        }
+      }
     }
 
     /*

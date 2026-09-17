@@ -148,7 +148,19 @@ export function aoTeclarNoGatilho(
  * As coordenadas são as do nó e não `(0,0)`: o Radix ancora o menu no ponto do
  * evento, e a origem jogaria a caixa no canto da janela.
  */
-export function despacharMenuEm(no: HTMLElement): void {
+export function despacharMenuEm(
+  no: HTMLElement,
+  /**
+   * Onde o menu nasce.
+   *
+   * `canto` é o padrão e serve ao teclado, que pede o menu "sobre este item".
+   * `abaixo` serve aos gatilhos de BOTÃO — o `▾` do cabeçalho do servidor, o
+   * `⋯` do canal e o da tabela de membros: um menu que nasce no canto de cima
+   * de um botão de 28px cobre o próprio botão, e a pessoa perde a referência
+   * do que abriu.
+   */
+  ancora: "canto" | "abaixo" = "canto",
+): void {
   /*
     O construtor vem do `window` DO NÓ, e não do global.
 
@@ -164,10 +176,55 @@ export function despacharMenuEm(no: HTMLElement): void {
     new janela.MouseEvent("contextmenu", {
       bubbles: true,
       cancelable: true,
-      clientX: Math.round(caixa.left + 8),
-      clientY: Math.round(caixa.top + 8),
+      clientX: Math.round(caixa.left + (ancora === "abaixo" ? 0 : 8)),
+      clientY: Math.round(
+        ancora === "abaixo" ? caixa.bottom + 4 : caixa.top + 8,
+      ),
     }),
   );
+}
+
+/**
+ * Para onde o foco volta quando o menu fecha.
+ *
+ * ⚠ **O Radix devolve o foco ao GATILHO, e o gatilho aqui é a superfície.** Na
+ * timeline ele é o container de dez mil linhas: abrir o menu com `Shift+F10`
+ * numa linha e fechar com `Esc` largava o foco na lista inteira, e a pessoa
+ * perdia o lugar — medido, `document.activeElement` voltava com
+ * `role="log"`. Onde o gesto nasceu é a resposta certa, e é o que todo menu de
+ * sistema faz.
+ *
+ * Module-level e não estado: quem escreve é um handler de evento, quem lê é o
+ * `ContextMenuContent`, e não há árvore de componentes entre os dois. É a lei
+ * nº 1 pela mesma razão do alvo do menu.
+ */
+let devolverPara: HTMLElement | null = null;
+
+/** O que pode receber foco de volta — o item, não o container. */
+const FOCAVEL =
+  '[tabindex]:not([tabindex="-1"]), [tabindex="-1"], button, a[href], [role="listitem"]';
+
+function lembrarFoco(no: EventTarget | null, gatilho: HTMLElement): void {
+  const cru = no as Partial<HTMLElement> | null;
+  const candidato =
+    typeof cru?.closest === "function"
+      ? (cru as HTMLElement).closest<HTMLElement>(FOCAVEL)
+      : null;
+  /* O gatilho é o último recurso e não o primeiro: sem candidato o
+     comportamento volta a ser o do Radix, que já era o que havia. */
+  devolverPara = candidato ?? gatilho;
+}
+
+/**
+ * O nó que deve receber o foco, consumido UMA vez.
+ *
+ * Consumir importa: guardar depois de devolver faria um menu aberto por clique
+ * em outro lugar mandar o foco para a linha do gesto anterior.
+ */
+export function consumirFocoDeVolta(): HTMLElement | null {
+  const no = devolverPara;
+  devolverPara = null;
+  return no;
 }
 
 /** Resolve e grava o alvo a partir do nó que recebeu o gesto. */
@@ -221,7 +278,11 @@ export function MenuDeContexto({
         */
         onContextMenu={(evento) => {
           if (evento.defaultPrevented) return;
-          if (!mira(evento.target)) evento.preventDefault();
+          if (!mira(evento.target)) {
+            evento.preventDefault();
+            return;
+          }
+          lembrarFoco(evento.target, evento.currentTarget);
         }}
         onKeyDown={(evento) => {
           const no = aoTeclarNoGatilho(

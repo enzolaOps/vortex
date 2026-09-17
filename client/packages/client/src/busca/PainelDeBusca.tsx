@@ -17,6 +17,9 @@ import {
 } from "../components/ui/DropdownMenu";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { Girador } from "../components/ui/Girador";
+import { MenuDaMensagem } from "../list/MessageRow";
+import { MenuDeContexto } from "../components/ui/MenuDeContexto";
+import { mirarAlvoDoMenu } from "../store/menuDeMensagem";
 import { Selo } from "../components/ui/Selo";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
 import { servidorDoCanal, type ResultadoDeBusca } from "../sdk/busca";
@@ -88,7 +91,10 @@ const Resultado = memo(function Resultado({
   }
 
   return (
-    <li className={css.item}>
+    /* ⚠ **`data-menu-mensagem`: o menu da mensagem existia SÓ na timeline.**
+       Um resultado é uma mensagem, e o clique direito nele caía no menu do
+       navegador. Ver `menus` e `alvoNoDom`. */
+    <li className={css.item} data-menu-mensagem={r.id}>
       {/*
         ⚠ As ações são IRMÃS do cartão e não filhas: botão dentro de botão é
         HTML inválido — o navegador reestrutura a árvore e o clique interno
@@ -364,11 +370,18 @@ export function PainelDeBusca() {
           <Girador tamanho={20} rotulo="Buscando" />
         </div>
       ) : b.resultados.length > 0 ? (
-        <ul className={css.lista} tabIndex={0}>
-          {b.resultados.map((r) => (
-            <Resultado key={r.id} r={r} selecionado={r.id === b.selecionado} />
-          ))}
-        </ul>
+        <MenuDeContexto
+          mirar={mirarAlvoDoMenu}
+          gatilho={
+            <ul className={css.lista} tabIndex={0}>
+              {b.resultados.map((r) => (
+                <Resultado key={r.id} r={r} selecionado={r.id === b.selecionado} />
+              ))}
+            </ul>
+          }
+        >
+          <MenuDaMensagem />
+        </MenuDeContexto>
       ) : (
         <div className={css.vazio}>
           {/*
