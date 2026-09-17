@@ -5,19 +5,36 @@ import {
 } from "../components/ui/icones";
 import { memo, useEffect, useMemo, useState } from "react";
 
+import { Banner } from "../components/ui/Banner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "../components/ui/DropdownMenu";
+import type { FalhaDeLote } from "../lib/lote";
+
 import { Avatar } from "../components/ui/Avatar";
 import { cn } from "../lib/cn";
 import { Caixa } from "../components/ui/Marcador";
 import { Escolha } from "../components/ui/Escolha";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { PilulasDeCargo } from "../membros/PilulasDeCargo";
-import { cargosDoServidor } from "../sdk/cargos";
+import {
+  aplicarCargoEmLote,
+  cargosDoServidor,
+  meuAlcance,
+  pessoasDoServidor,
+  type Cargo,
+} from "../sdk/cargos";
 import { chaveDeMembro } from "../sdk/domain";
 import { members } from "../sdk/adapter";
 import { carregarMembros } from "../sdk/servidores";
 import { administrar } from "../store/administracao";
 import { useMembro, useMembrosDoServidor } from "../store/hooks";
 import { CabecalhoDeSecao } from "./Pagina";
+import { cargoAoAlcance, separarParaCargo } from "./selecaoDeCargo";
 import css from "./Membros.module.css";
 import tab from "./Tabela.module.css";
 
@@ -105,7 +122,7 @@ const Linha = memo(function Linha({
             administrar({
               tipo: "moderar",
               serverId,
-              userId,
+              userIds: [userId],
               acao: "castigo",
             })
           }
@@ -137,6 +154,14 @@ export function Membros({ serverId }: { serverId: string }) {
   const [cargo, setCargo] = useState(TODOS);
   const [ordem, setOrdem] = useState<Ordem>(ORDENS[0]);
   const [marcados, setMarcados] = useState<ReadonlySet<string>>(new Set());
+  /* "Atribuir cargo" em andamento e o que falhou nele. A moderação guarda os
+     dela no próprio modal; cargo não tem modal (não é destrutivo). */
+  const [atribuindo, setAtribuindo] = useState<
+    { readonly nome: string; readonly terminados: number; readonly total: number } | undefined
+  >(undefined);
+  const [falhasDeCargo, setFalhasDeCargo] = useState<
+    { readonly nome: string; readonly lista: readonly FalhaDeLote<string>[] } | undefined
+  >(undefined);
 
   /*
     ⚠ **Carrega a lista COMPLETA ao abrir, e é o que separa esta tela da
@@ -215,6 +240,34 @@ export function Membros({ serverId }: { serverId: string }) {
     setMarcados((atual) => (atual.size === 0 ? atual : new Set()));
   }
 
+  /** Tira da seleção quem deu certo: sobra exatamente quem falhou. */
+  function tirarFeitos(feitos: readonly string[]) {
+    if (feitos.length === 0) return;
+    const f = new Set(feitos);
+    setMarcados((atual) => new Set([...atual].filter((id) => !f.has(id))));
+  }
+
+  function atribuir(c: Cargo) {
+    if (atribuindo) return;
+    const selecao = [...marcados];
+    const { editaveis, barradas } = separarParaCargo(
+      selecao,
+      pessoasDoServidor(serverId, selecao),
+      c.rank,
+      meuAlcance(serverId),
+    );
+    setFalhasDeCargo(undefined);
+    setAtribuindo({ nome: c.nome, terminados: 0, total: editaveis.length });
+    void aplicarCargoEmLote(serverId, c.id, editaveis, true, (terminados, total) => {
+      setAtribuindo({ nome: c.nome, terminados, total });
+    }).then((r) => {
+      setAtribuindo(undefined);
+      tirarFeitos(r.feitos);
+      const lista = [...barradas, ...r.falhas];
+      setFalhasDeCargo(lista.length > 0 ? { nome: c.nome, lista } : undefined);
+    });
+  }
+
   function alternar(id: string) {
     setMarcados((atual) => {
       const proximo = new Set(atual);
@@ -273,6 +326,25 @@ export function Membros({ serverId }: { serverId: string }) {
         </span>
       </div>
 
+      {falhasDeCargo !== undefined ? (
+        <Banner
+          tom="perigo"
+          titulo={
+            falhasDeCargo.lista.length === 1
+              ? `1 pessoa não recebeu ${falhasDeCargo.nome}.`
+              : `${String(falhasDeCargo.lista.length)} pessoas não receberam ${falhasDeCargo.nome}.`
+          }
+        >
+          <ul className={css.falhas}>
+            {falhasDeCargo.lista.map((f) => (
+              <li key={f.item}>
+                <NomeDaPessoa serverId={serverId} userId={f.item} /> — {f.motivo}
+              </li>
+            ))}
+          </ul>
+        </Banner>
+      ) : null}
+
       <div className={cn(tab.tabela, css.tabela)} role="table">
         <div className={tab.cabecalho} role="row">
           <span />
@@ -325,9 +397,16 @@ export function Membros({ serverId }: { serverId: string }) {
               : `${String(marcados.size)} selecionados`}
           </span>
           <span className={css.divisa} aria-hidden />
-          <BotaoDeLote rotulo="Castigar" tom="aviso" ids={marcados} serverId={serverId} acao="castigo" />
-          <BotaoDeLote rotulo="Expulsar" tom="perigo" ids={marcados} serverId={serverId} acao="expulsar" />
-          <BotaoDeLote rotulo="Banir" tom="perigo" ids={marcados} serverId={serverId} acao="banir" />
+          {atribuindo !== undefined ? (
+            <span className={css.loteAndamento}>
+              {`Atribuindo ${atribuindo.nome} · ${String(atribuindo.terminados)} de ${String(atribuindo.total)}…`}
+            </span>
+          ) : (
+            <AtribuirCargo serverId={serverId} cargos={cargos} aoEscolher={atribuir} />
+          )}
+          <BotaoDeLote rotulo="Castigar" tom="aviso" ids={marcados} serverId={serverId} acao="castigo" aoConcluir={tirarFeitos} />
+          <BotaoDeLote rotulo="Expulsar" tom="perigo" ids={marcados} serverId={serverId} acao="expulsar" aoConcluir={tirarFeitos} />
+          <BotaoDeLote rotulo="Banir" tom="perigo" ids={marcados} serverId={serverId} acao="banir" aoConcluir={tirarFeitos} />
         </div>
       ) : null}
 
@@ -386,13 +465,12 @@ function Filtrada({
 }
 
 /**
- * Uma ação em lote.
+ * Uma ação de moderação em lote.
  *
- * ⚠ **Abre o modal de moderação UMA vez, com o primeiro alvo** — e não dispara
- * a ação nos N selecionados. O modal existe justamente para dizer a
- * consequência antes de ela acontecer, e um lote que pula a confirmação é
- * banir doze pessoas com um clique. A execução em lote entra quando o modal
- * souber receber uma lista; até lá, o botão faz o que promete para um.
+ * Abre o modal com a SELEÇÃO INTEIRA — ele diz o plural antes de agir, que é
+ * a razão de existir (banir doze com um clique é a ação destrutiva mais fácil
+ * de errar desta página). `aoConcluir` recebe quem deu certo, e a seleção
+ * fica só com quem falhou.
  */
 function BotaoDeLote({
   rotulo,
@@ -400,25 +478,76 @@ function BotaoDeLote({
   ids,
   serverId,
   acao,
+  aoConcluir,
 }: {
   rotulo: string;
   tom: "aviso" | "perigo";
   ids: ReadonlySet<string>;
   serverId: string;
   acao: "castigo" | "expulsar" | "banir";
+  aoConcluir: (feitos: readonly string[]) => void;
 }) {
-  const primeiro = [...ids][0];
   return (
     <button
       type="button"
       className={tom === "perigo" ? css.loteAcaoPerigo : css.loteAcaoAviso}
-      disabled={primeiro === undefined}
+      disabled={ids.size === 0}
       onClick={() => {
-        if (primeiro === undefined) return;
-        administrar({ tipo: "moderar", serverId, userId: primeiro, acao });
+        if (ids.size === 0) return;
+        administrar({ tipo: "moderar", serverId, userIds: [...ids], acao, aoConcluir });
       }}
     >
       {rotulo}
     </button>
   );
+}
+
+/**
+ * "Atribuir cargo" (D-SRVPG-07), primeiro da barra como no design.
+ *
+ * ⚠ **Travar e não esconder**, a regra de `selecaoDeCargo.ts`: cargo no meu
+ * nível ou acima aparece desabilitado com o motivo, em vez de sumir — sumir
+ * faria parecer que o servidor não tem o cargo. Sem permissão de dar cargo
+ * nenhum, o botão não existe: é ruído permanente para quem nunca vai tê-la.
+ */
+function AtribuirCargo({
+  serverId,
+  cargos,
+  aoEscolher,
+}: {
+  serverId: string;
+  cargos: readonly Cargo[];
+  aoEscolher: (c: Cargo) => void;
+}) {
+  const alcance = meuAlcance(serverId);
+  if (!alcance.podeAtribuir || cargos.length === 0) return null;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button type="button" className={css.loteAcao}>
+          Atribuir cargo
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" side="top">
+        <DropdownMenuLabel>Dar cargo aos selecionados</DropdownMenuLabel>
+        {cargos.map((c) =>
+          cargoAoAlcance(c.rank, alcance) ? (
+            <DropdownMenuItem key={c.id} onSelect={() => aoEscolher(c)}>
+              {c.nome}
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem key={c.id} disabled>
+              {c.nome} · acima da sua hierarquia
+            </DropdownMenuItem>
+          ),
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/** Assina a própria pessoa — lei nº 1. */
+function NomeDaPessoa({ serverId, userId }: { serverId: string; userId: string }) {
+  const membro = useMembro(chaveDeMembro(serverId, userId));
+  return <strong>{membro?.displayName ?? userId}</strong>;
 }

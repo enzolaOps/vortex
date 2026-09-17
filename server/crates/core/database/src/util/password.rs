@@ -49,7 +49,7 @@ pub async fn assert_safe(password: &str) -> Result<()> {
         let result = match CLIENT
             .get(format!(
                 "{}/hash/{pwd_hash}",
-                &config.api.security.easypwned
+                config.api.security.easypwned
             ))
             .send()
             .await

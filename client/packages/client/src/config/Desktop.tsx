@@ -36,6 +36,12 @@ import {
   LinhaDeAjuste,
   PaginaDeAjustes,
 } from "./Pagina";
+import {
+  assinarAtualizacao,
+  instalarAtualizacao,
+  lerAtualizacao,
+  verificarAtualizacao,
+} from "../store/atualizacao";
 import css from "./Desktop.module.css";
 
 const ROTULO_AO_FECHAR: Record<AoFechar, string> = {
@@ -291,23 +297,7 @@ export function Desktop() {
           </Botao>
         </LinhaDeAjuste>
 
-        <LinhaDeAjuste
-          titulo="Versão instalada"
-          /* Electron só aparece quando a casca o informa — no navegador o
-             campo some em vez de inventar um número. */
-          detalhe={
-            electron === undefined
-              ? `${versao} · canal estável`
-              : `${versao} · canal estável · Electron ${electron}`
-          }
-        >
-          <Botao
-            tamanho="pequeno"
-            onClick={() => void ponte()?.verificarAtualizacao()}
-          >
-            Verificar
-          </Botao>
-        </LinhaDeAjuste>
+        <LinhaDaVersao versao={versao} electron={electron} />
       </GrupoDeAjustes>
 
       <p className={pg.recado}>
@@ -446,5 +436,68 @@ function SecaoDoOverlay() {
         </div>
       ) : null}
     </CartaoDeAjustes>
+  );
+}
+
+/**
+ * "Versão instalada", com o estado da atualização.
+ *
+ * ⚠ **É aqui que `verificando`, `baixando` e `falhou` aparecem fora do
+ * bloqueio.** A faixa do topo cala os passos intermediários de propósito; mas
+ * quem clicou em "Verificar" perguntou, e um botão que não dá resposta nenhuma
+ * foi exatamente o defeito relatado (D-CASCA-19..21).
+ *
+ * ⚠ **Componente próprio, e é escopo:** assinar o store de atualização na
+ * página inteira re-renderizaria todos os ajustes a cada evento da casca.
+ */
+function LinhaDaVersao({
+  versao,
+  electron,
+}: {
+  versao: string;
+  electron: string | undefined;
+}) {
+  const tela = useSyncExternalStore(assinarAtualizacao, lerAtualizacao);
+  /* Electron só aparece quando a casca o informa — no navegador o campo some
+     em vez de inventar um número. */
+  const base =
+    electron === undefined
+      ? `${versao} · canal estável`
+      : `${versao} · canal estável · Electron ${electron}`;
+  const { estado, versao: nova, progresso } = tela.casca;
+
+  const detalhe = tela.falhou
+    ? `${base} · falha ao atualizar`
+    : estado === "verificando"
+      ? `${base} · consultando o canal estável…`
+      : estado === "baixando"
+        ? /* Progresso só quando a casca o tem; o Squirrel não reporta bytes. */
+          `${base} · baixando${nova ? ` ${nova}` : ""}${progresso > 0 && progresso < 100 ? ` · ${progresso}%` : ""}`
+        : estado === "pronta"
+          ? `${base} · ${nova ?? "atualização"} pronta para instalar`
+          : `${base} · atualizado`;
+
+  if (estado === "pronta" && !tela.falhou) {
+    return (
+      <LinhaDeAjuste titulo="Versão instalada" detalhe={detalhe}>
+        <Botao tamanho="pequeno" variante="primario" onClick={instalarAtualizacao}>
+          Reiniciar agora
+        </Botao>
+      </LinhaDeAjuste>
+    );
+  }
+
+  return (
+    <LinhaDeAjuste titulo="Versão instalada" detalhe={detalhe}>
+      <Botao
+        tamanho="pequeno"
+        variante={tela.falhou ? "perigoSutil" : "neutro"}
+        carregando={!tela.falhou && (estado === "verificando" || estado === "baixando")}
+        rotuloCarregando={estado === "baixando" ? "Baixando…" : "Verificando…"}
+        onClick={verificarAtualizacao}
+      >
+        {tela.falhou ? "Tentar de novo" : "Verificar"}
+      </Botao>
+    </LinhaDeAjuste>
   );
 }

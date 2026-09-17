@@ -141,3 +141,39 @@ export function instanciaMandaEmail(): boolean {
       ?.features?.email !== false
   );
 }
+
+/** Quanto esperar pela configuração antes de desistir. */
+const TETO_DA_CONFIGURACAO_MS = 15_000;
+const PASSO_MS = 50;
+
+/**
+ * Espera o `GET {baseURL}/` que o construtor do `Client` dispara.
+ *
+ * O SDK não emite evento quando a configuração chega, então a espera é por
+ * sondagem. Devolve `false` se ela não chegar dentro do teto.
+ */
+export async function esperarConfiguracao(): Promise<boolean> {
+  const limite = Date.now() + TETO_DA_CONFIGURACAO_MS;
+  while (client.configuration?.ws === undefined) {
+    if (Date.now() > limite) return false;
+    await new Promise((r) => setTimeout(r, PASSO_MS));
+  }
+  return true;
+}
+
+/**
+ * A versão mínima da casca desktop que este servidor aceita.
+ *
+ * ⚠ **Campo do fork, não do Stoat**: o `delta` do Vortex o expõe em
+ * `features.desktop_min_version`, e o tipo do SDK (upstream) não o conhece —
+ * daí a leitura estreita, como `exigeConvite`. Ausente quando o servidor não
+ * exige versão, ou quando é um servidor Stoat sem o campo.
+ */
+export function versaoMinimaDoDesktop(): string | undefined {
+  const v = (
+    client.configuration as
+      | { features?: { desktop_min_version?: unknown } }
+      | undefined
+  )?.features?.desktop_min_version;
+  return typeof v === "string" && v.trim() !== "" ? v : undefined;
+}

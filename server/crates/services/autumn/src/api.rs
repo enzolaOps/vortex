@@ -217,7 +217,7 @@ async fn upload_file(
     let original_hash = {
         let mut hasher = sha2::Sha256::new();
         hasher.update(&buf);
-        hasher.finalize()
+        hex_lower(&hasher.finalize())
     };
 
     // Generate an ID for this file
@@ -250,11 +250,12 @@ async fn upload_file(
 
     // Find an existing hash and use that if possible
     let file_hash_exists = if let Ok(file_hash) = db
-        .fetch_attachment_hash(&format!("{original_hash:02x}"))
+        .fetch_attachment_hash(&original_hash)
         .await
     {
         if !file_hash.iv.is_empty() {
             let tag: &'static str = tag.into();
+            #[allow(clippy::disallowed_methods)] // o arquivo reaproveita um hash já enviado
             db.insert_attachment(&file_hash.into_file(
                 id.clone(),
                 tag.to_owned(),
@@ -288,22 +289,22 @@ async fn upload_file(
     let processed_hash = {
         let mut hasher = sha2::Sha256::new();
         hasher.update(&buf);
-        hasher.finalize()
+        hex_lower(&hasher.finalize())
     };
     let process_ratio = new_file_size as f32 / original_file_size as f32;
     let time_to_process = Instant::now() - now;
 
-    tracing::info!("Received file {filename}\nOriginal hash: {original_hash:02x}\nOriginal size: {original_file_size} bytes\nMime type: {mime_type}\nMetadata: {metadata:?}\nProcessed file size: {new_file_size} bytes ({:.2}%).\nProcessed hash: {processed_hash:02x}\nProcessing took {time_to_process:?}", process_ratio * 100.0);
+    tracing::info!("Received file {filename}\nOriginal hash: {original_hash}\nOriginal size: {original_file_size} bytes\nMime type: {mime_type}\nMetadata: {metadata:?}\nProcessed file size: {new_file_size} bytes ({:.2}%).\nProcessed hash: {processed_hash}\nProcessing took {time_to_process:?}", process_ratio * 100.0);
 
     // Create hash entry in database
     let file_hash = FileHash {
-        id: format!("{original_hash:02x}"),
-        processed_hash: format!("{processed_hash:02x}"),
+        id: original_hash.clone(),
+        processed_hash,
 
         created_at: Timestamp::now_utc(),
 
         bucket_id: config.files.s3.default_bucket,
-        path: format!("{original_hash:02x}"),
+        path: original_hash.clone(),
         iv: String::new(), // indicates file is not uploaded yet
 
         metadata,
@@ -327,6 +328,7 @@ async fn upload_file(
 
     // Finally, create the file and return its ID
     let tag: &'static str = tag.into();
+    #[allow(clippy::disallowed_methods)] // o arquivo nasce do hash que acabou de subir
     db.insert_attachment(&file_hash.into_file(id.clone(), tag.to_owned(), filename, user.id))
         .await?;
 
@@ -567,4 +569,29 @@ async fn fetch_file_mod(
         )
             .into_response()
     })
+}
+
+/// Lowercase hex of a digest; sha2 0.11 digests no longer implement `LowerHex`
+fn hex_lower(bytes: &[u8]) -> String {
+    use std::fmt::Write;
+
+    bytes.iter().fold(String::with_capacity(bytes.len() * 2), |mut out, b| {
+        let _ = write!(out, "{b:02x}");
+        out
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use sha2::Digest;
+
+    #[test]
+    fn hex_lower_matches_the_sha256_digest_format() {
+        let mut hasher = sha2::Sha256::new();
+        hasher.update(b"");
+        assert_eq!(
+            super::hex_lower(&hasher.finalize()),
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        );
+    }
 }

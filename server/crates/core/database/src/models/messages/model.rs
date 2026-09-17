@@ -504,9 +504,12 @@ impl Message {
         // Vortex: cargos marcados como mencionáveis dispensam `MentionRoles`.
         let mut mentionable_roles: HashSet<String> = HashSet::new();
 
-        if allow_mass_mentions && server_id.is_some() && !role_mentions.is_empty() {
+        if let Some(server_id) = server_id
+            .as_deref()
+            .filter(|_| allow_mass_mentions && !role_mentions.is_empty())
+        {
             let server_data = db
-                .fetch_server(server_id.unwrap().as_str())
+                .fetch_server(server_id)
                 .await
                 .expect("Failed to fetch server");
 
@@ -531,7 +534,7 @@ impl Message {
         } else if mentions_everyone || mentions_online || !role_mentions.is_empty() {
             debug!(
                 "Mentioned everyone: {}, mentioned online: {}, mentioned roles: {:?}",
-                mentions_everyone, mentions_online, &role_mentions
+                mentions_everyone, mentions_online, role_mentions
             );
             if let Some(user) = match author {
                 MessageAuthor::User(user) => Some(Ok(user)),
@@ -1246,7 +1249,7 @@ impl Message {
 
         db.delete_message(&self.id).await?;
 
-        if let Ok(mut channel) = db.fetch_channel(&self.channel).await {
+        if let Ok(channel) = db.fetch_channel(&self.channel).await {
             match &channel {
                 Channel::DirectMessage {
                     last_message_id, ..
@@ -1256,26 +1259,26 @@ impl Message {
                 }
                 | Channel::TextChannel {
                     last_message_id, ..
-                } => {
-                    if last_message_id.is_some() && last_message_id.as_ref().unwrap() == &self.id {
-                        let new_last_message_id =
-                            db.fetch_last_message(channel.id()).await.unwrap();
+                }
+                    if last_message_id.is_some() && last_message_id.as_ref().unwrap() == &self.id =>
+                {
+                    let new_last_message_id =
+                        db.fetch_last_message(channel.id()).await.unwrap();
 
-                        db.update_last_messsage_id(channel.id(), new_last_message_id.as_deref())
-                            .await?;
+                    db.update_last_messsage_id(channel.id(), new_last_message_id.as_deref())
+                        .await?;
 
-                        if new_last_message_id.is_some() {
-                            EventV1::ChannelUpdate {
-                                id: channel.id().to_string(),
-                                data: revolt_models::v0::PartialChannel {
-                                    last_message_id: new_last_message_id,
-                                    ..Default::default()
-                                },
-                                clear: vec![],
-                            }
-                            .p(channel.id().to_string())
-                            .await;
+                    if new_last_message_id.is_some() {
+                        EventV1::ChannelUpdate {
+                            id: channel.id().to_string(),
+                            data: revolt_models::v0::PartialChannel {
+                                last_message_id: new_last_message_id,
+                                ..Default::default()
+                            },
+                            clear: vec![],
                         }
+                        .p(channel.id().to_string())
+                        .await;
                     }
                 }
                 _ => (),

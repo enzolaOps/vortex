@@ -16,7 +16,7 @@ use revolt_database::{
 use revolt_models::v0;
 
 use revolt_permissions::{
-    calculate_channel_permissions, calculate_server_permissions, ChannelPermission, UserPermission,
+    calculate_channel_permissions, calculate_server_permissions, ChannelPermission,
 };
 use revolt_result::{create_error, Result};
 use rocket::{form::validate::Contains, serde::json::Json, State};
@@ -74,10 +74,10 @@ pub async fn edit(
         return Err(create_error!(InvalidOperation));
     }
 
-    if data.pronouns.is_some() || data.remove.contains(&v0::FieldsMember::Pronouns) {
-        if user.id != member.id.user {
-            return Err(create_error!(InvalidOperation))
-        }
+    if (data.pronouns.is_some() || data.remove.contains(&v0::FieldsMember::Pronouns))
+        && user.id != member.id.user
+    {
+        return Err(create_error!(InvalidOperation));
     }
 
     if data.avatar.is_some() || data.remove.contains(&v0::FieldsMember::Avatar) {

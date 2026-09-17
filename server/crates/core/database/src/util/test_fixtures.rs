@@ -9,6 +9,7 @@ use crate::{Channel, Database, Member, Server, User};
 static RE_ID: Lazy<Regex> = Lazy::new(|| Regex::new("__ID:(\\d+)__").unwrap());
 
 #[derive(Debug, Deserialize)]
+#[allow(clippy::large_enum_variant)]
 #[serde(tag = "_object_type")]
 enum LoadedFixture {
     User(User),

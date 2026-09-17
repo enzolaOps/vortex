@@ -148,11 +148,22 @@ export type Alvo =
       /** O arquivo já escolhido — quando ele chegou arrastado para a galeria. */
       readonly arquivo?: File;
     }
+  /*
+    Moderação de UMA pessoa ou de várias — o menu da pessoa passa uma lista de
+    um, a barra de lote da página de Membros passa a seleção inteira. O modal
+    diz o plural, executa em lote e mostra quem falhou.
+
+    `aoConcluir` recebe quem DEU CERTO, em qualquer desfecho: a página de
+    Membros tira esses da seleção e deixa marcados exatamente os que falharam,
+    que é o que torna "tentar de novo" um clique. Função e não dado porque o
+    dono da seleção é um `useState` da página, não um store.
+  */
   | {
       readonly tipo: "moderar";
       readonly serverId: string;
-      readonly userId: string;
+      readonly userIds: readonly string[];
       readonly acao: "expulsar" | "banir" | "castigo";
+      readonly aoConcluir?: (feitos: readonly string[]) => void;
     };
 
 type Ouvinte = () => void;

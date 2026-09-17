@@ -1,9 +1,9 @@
 /* ============================================================
    Atualização
    ------------------------------------------------------------
-   Faixa quando está pronta, bloqueio quando é obrigatória. Os
-   outros quatro estados do ciclo não desenham nada, e o porquê
-   está no `Atualizacao.tsx`.
+   Faixa quando está pronta ou falhou, bloqueio quando é
+   obrigatória. Verificando e baixando só aparecem dentro do
+   bloqueio e em Configurações; o porquê está no `Atualizacao.tsx`.
    ============================================================ */
 
 /*
@@ -82,6 +82,73 @@
   outline-offset: 2px;
 }
 
+/* -------------------------------------------------------- falha */
+
+/*
+  Mesma geometria da faixa de "pronta", no tom de perigo: a falha nunca vira
+  modal (regra do design), e duas faixas com alturas diferentes fariam o
+  conteúdo pular de um estado para o outro.
+
+  ⚠ Fundo por `color-mix` sobre `--vx-danger`, como o `Banner` — um token
+  `danger-soft` custaria classificação e par de contraste para um preenchimento
+  que só existe atrás desta faixa.
+*/
+.faixaDeFalha {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-10);
+  block-size: 34px;
+  padding-inline: var(--vx-space-14);
+  border-block-end: 1px solid color-mix(in oklab, var(--vx-danger) 28%, transparent);
+  background: color-mix(in oklab, var(--vx-danger) 16%, transparent);
+  color: var(--vx-danger-text);
+  font-size: var(--vx-size-sm);
+}
+
+.secundario,
+.tentarDeNovo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-06);
+  block-size: 24px;
+  padding-inline: var(--vx-space-10);
+  border: 0;
+  border-radius: var(--vx-radius-05);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.secundario {
+  background: transparent;
+  color: var(--vx-text-2);
+}
+
+.secundario:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.tentarDeNovo {
+  background: var(--vx-danger);
+  color: var(--vx-on-danger);
+}
+
+.tentarDeNovo:hover {
+  background: color-mix(in oklab, var(--vx-danger) 88%, black);
+}
+
+.secundario:focus-visible,
+.tentarDeNovo:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
 /* -------------------------------------------------------- bloqueio */
 
 /*
@@ -126,6 +193,21 @@
   font-size: var(--vx-size-xl);
   font-weight: 600;
   color: var(--vx-text-1);
+}
+
+/* "4.3.0 · exigida pelo servidor" — em mono, como a versão da faixa. */
+.exigida {
+  margin: 0 0 var(--vx-space-12);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-danger-text);
+}
+
+.erroDeBloqueio {
+  margin: 0 0 var(--vx-space-16);
+  font-size: var(--vx-size-sm);
+  color: var(--vx-danger-text);
+  text-wrap: pretty;
 }
 
 .textoDeBloqueio {

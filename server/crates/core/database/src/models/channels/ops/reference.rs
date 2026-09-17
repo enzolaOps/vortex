@@ -85,7 +85,7 @@ impl AbstractChannels for ReferenceDb {
     // Fetch direct message channel (DM or Saved Messages)
     async fn find_direct_message_channel(&self, user_a: &str, user_b: &str) -> Result<Channel> {
         let channels = self.channels.lock().await;
-        for (_, data) in channels.iter() {
+        for data in channels.values() {
             if data.contains_user(user_a) && data.contains_user(user_b) {
                 return Ok(data.to_owned());
             }
@@ -239,8 +239,8 @@ impl AbstractChannels for ReferenceDb {
                 };
 
                 server_ids.iter().any(|id| id == server)
-                    && parent.map_or(true, |parent| thread.parent == parent)
-                    && archived.map_or(true, |archived| thread.archived == archived)
+                    && parent.is_none_or(|parent| thread.parent == parent)
+                    && archived.is_none_or(|archived| thread.archived == archived)
             })
             .cloned()
             .collect())

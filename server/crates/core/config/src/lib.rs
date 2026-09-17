@@ -480,6 +480,14 @@ pub struct Features {
     pub mass_mentions_send_notifications: bool,
     pub mass_mentions_enabled: bool,
 
+    /// Versão mínima da casca desktop que este servidor aceita.
+    ///
+    /// Ausente por padrão: sem ela, nenhuma casca é bloqueada. Com ela, o
+    /// cliente compara com a versão instalada e entra na tela de atualização
+    /// obrigatória quando a instalada é menor.
+    #[serde(default)]
+    pub desktop_min_version: Option<String>,
+
     #[serde(default)]
     pub advanced: FeaturesAdvanced,
 }
@@ -629,5 +637,35 @@ mod tests {
     #[tokio::test]
     async fn it_works() {
         init().await;
+    }
+
+    /// Monta as configurações a partir do `Revolt.toml` embutido, mais um
+    /// trecho extra — sem a busca por arquivos no diretório atual, que tornaria
+    /// o teste dependente de onde ele roda.
+    fn montar(extra: &str) -> crate::Settings {
+        config::Config::builder()
+            .add_source(config::File::from_str(
+                include_str!("../Revolt.toml"),
+                config::FileFormat::Toml,
+            ))
+            .add_source(config::File::from_str(extra, config::FileFormat::Toml))
+            .build()
+            .unwrap()
+            .try_deserialize::<crate::Settings>()
+            .unwrap()
+    }
+
+    #[test]
+    fn desktop_min_version_ausente_por_padrao() {
+        assert_eq!(montar("").features.desktop_min_version, None);
+    }
+
+    #[test]
+    fn desktop_min_version_lida_de_features() {
+        let settings = montar("[features]\ndesktop_min_version = \"4.2.0\"\n");
+        assert_eq!(
+            settings.features.desktop_min_version.as_deref(),
+            Some("4.2.0")
+        );
     }
 }

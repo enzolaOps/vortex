@@ -26,7 +26,7 @@ pub async fn fetch_threads(
 
     let threads = db
         .fetch_threads(
-            &[server.id.clone()],
+            std::slice::from_ref(&server.id),
             options.channel.as_deref(),
             Some(options.archived.unwrap_or(false)),
         )

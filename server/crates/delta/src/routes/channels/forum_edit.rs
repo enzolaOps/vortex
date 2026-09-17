@@ -40,7 +40,7 @@ pub async fn edit_forum(
         let name_ok = !tag.name.trim().is_empty() && tag.name.chars().count() <= 32;
         let id_ok = !tag.id.is_empty() && tag.id.len() <= 32;
         // The colour reaches the client as style, so only `#rrggbb` passes.
-        let colour_ok = tag.colour.as_ref().map_or(true, |colour| {
+        let colour_ok = tag.colour.as_ref().is_none_or(|colour| {
             colour.len() == 7
                 && colour.starts_with('#')
                 && colour[1..].chars().all(|c| c.is_ascii_hexdigit())

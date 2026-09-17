@@ -98,3 +98,38 @@ export function selecaoValida(
     .filter((p) => selecao.has(p.id) && marcavel(p, rankDoCargo, alcance))
     .map((p) => p.id);
 }
+
+/**
+ * Divide uma seleção de membros para "Atribuir cargo" em lote.
+ *
+ * A barra da página de Membros não mostra caixa travada — quem seleciona ali
+ * seleciona pessoas, não candidatos a um cargo que ainda nem foi escolhido.
+ * Então a trava de hierarquia age DEPOIS da escolha: quem está acima de mim
+ * (ou saiu do cache) não gera chamada nenhuma — o servidor recusaria com
+ * `NotElevated` — e volta como falha com o motivo escrito, junto das falhas de
+ * rede, para ficar marcado igual a elas.
+ *
+ * A ordem é a da SELEÇÃO, como em `executarEmLote`: a lista de falhas vira
+ * linhas na tela e não deve embaralhar entre tentativas.
+ */
+export function separarParaCargo(
+  selecao: readonly string[],
+  pessoas: readonly PessoaParaCargo[],
+  rankDoCargo: number,
+  alcance: Alcance,
+): {
+  editaveis: string[];
+  barradas: { item: string; motivo: string }[];
+} {
+  const porId = new Map(pessoas.map((p) => [p.id, p]));
+  const editaveis: string[] = [];
+  const barradas: { item: string; motivo: string }[] = [];
+  for (const id of selecao) {
+    const p = porId.get(id);
+    if (!p) barradas.push({ item: id, motivo: "Essa pessoa não está mais no servidor." });
+    else if (!marcavel(p, rankDoCargo, alcance))
+      barradas.push({ item: id, motivo: "Acima da sua hierarquia." });
+    else editaveis.push(id);
+  }
+  return { editaveis, barradas };
+}

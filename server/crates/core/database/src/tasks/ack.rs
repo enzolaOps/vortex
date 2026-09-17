@@ -148,7 +148,7 @@ pub async fn handle_ack_event(
                     db.add_mention_to_unread(channel, user, &message_ids)
                         .await?;
                 }
-                info!("Added {} mentions for user {}", message_ids.len(), &user);
+                info!("Added {} mentions for user {}", message_ids.len(), user);
             }
 
             let mut mass_mentions = vec![];
@@ -187,7 +187,7 @@ pub async fn handle_ack_event(
             if !mass_mentions.is_empty() {
                 debug!(
                     "Sending mass mention push event to AMQP; channel {}",
-                    &mass_mentions[0].message.channel
+                    mass_mentions[0].message.channel
                 );
 
                 let channel = db

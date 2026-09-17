@@ -4,81 +4,102 @@ import {
   ICONE,
   WarningOctagon,
 } from "../components/ui/icones";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 
 import { Botao } from "../components/ui/Botao";
-import { ponte, type Atualizacao as Estado } from "../sdk/desktop";
+import {
+  assinarAtualizacao,
+  baixarManualmente,
+  instalarAtualizacao,
+  lerAtualizacao,
+  verificarAtualizacao,
+} from "../store/atualizacao";
 import { assinarDesktop, lerDesktop } from "../store/desktop";
 import css from "./Atualizacao.module.css";
 
-const INICIAL: Estado = { estado: "em-dia", versao: undefined, progresso: 0 };
-
 /**
- * A atualização — faixa quando está pronta, BLOQUEIO quando é obrigatória.
+ * A atualização — faixa quando está pronta ou falhou, BLOQUEIO quando é
+ * obrigatória.
  *
- * ⚠ **Seis estados e só dois desenham algo.** `em-dia`, `verificando` e
- * `baixando` são silenciosos de propósito: atualização que anuncia cada passo
- * treina a pessoa a ignorar o aviso, e aí ele não serve para o caso que
- * importa. `falhou` também cala — o app tenta de novo sozinho, e um erro que
- * a pessoa não pode resolver é ruído.
+ * ⚠ **`em-dia`, `verificando` e `baixando` não desenham faixa.** Atualização
+ * que anuncia cada passo treina a pessoa a ignorar o aviso. Esses três estados
+ * aparecem onde alguém foi PERGUNTAR: a linha "Versão instalada" em
+ * Configurações > Desktop, e dentro do bloqueio.
  *
- * ⚠ **A obrigatória é o ÚNICO momento em que o app impede o uso**, e é o que o
- * design escreve: ela cobre a janela inteira e não tem "depois". A razão é que
- * ela não é uma escolha — a versão parou de conversar com o servidor, então
- * não há app para usar atrás do véu.
+ * ⚠ **`falhou` vira faixa, nunca modal** — é a regra do design. Antes ele
+ * calava com o argumento de que o app tenta de novo sozinho; mas a tentativa
+ * seguinte é uma hora depois, e quem está numa versão com correção de
+ * segurança pendente precisa saber que ela não chegou.
+ *
+ * ⚠ **A obrigatória é o ÚNICO momento em que o app impede o uso**: o servidor
+ * exige uma versão maior que a instalada (`features.desktop_min_version`),
+ * então não há app para usar atrás do véu.
  */
 export function Atualizacao() {
   const { naCasca } = useSyncExternalStore(assinarDesktop, lerDesktop);
-  const [a, setA] = useState<Estado>(INICIAL);
-  const [instalando, setInstalando] = useState(false);
-
-  useEffect(() => ponte()?.assinarAtualizacao(setA), [naCasca]);
+  const tela = useSyncExternalStore(assinarAtualizacao, lerAtualizacao);
 
   if (!naCasca) return null;
 
-  if (a.estado === "obrigatoria") {
+  if (tela.bloqueada) {
+    const ocupada =
+      tela.instalando ||
+      (!tela.falhou &&
+        (tela.casca.estado === "verificando" || tela.casca.estado === "baixando"));
     return (
       /*
         `alertdialog` e não `dialog`: ele interrompe o leitor de tela, e aqui
-        isso é o correto — ao contrário da faixa de conexão, esta é a situação
-        em que a pessoa PRECISA parar. É a única do app com esse papel.
+        isso é o correto — esta é a situação em que a pessoa PRECISA parar.
       */
-      <div className={css.bloqueio} role="alertdialog" aria-modal="true">
+      <div
+        className={css.bloqueio}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="vx-atualizacao-titulo"
+        aria-describedby="vx-atualizacao-texto"
+      >
         <div className={css.cartaoDeBloqueio}>
           <WarningOctagon
             size={ICONE.ilustracao}
-            weight="fill"
             className={css.glifoDeBloqueio}
             aria-hidden
           />
-          <h1 className={css.tituloDeBloqueio}>Atualização necessária</h1>
-          <p className={css.textoDeBloqueio}>
-            Esta versão não conversa mais com o servidor. Atualize para
-            continuar — leva menos de um minuto.
+          <h1 id="vx-atualizacao-titulo" className={css.tituloDeBloqueio}>
+            Atualização obrigatória
+          </h1>
+          {tela.exigida !== undefined ? (
+            <p className={css.exigida}>{tela.exigida} · exigida pelo servidor</p>
+          ) : null}
+          <p id="vx-atualizacao-texto" className={css.textoDeBloqueio}>
+            Esta versão perdeu compatibilidade com o servidor. O app fica
+            bloqueado até atualizar.
           </p>
+          {tela.falhou ? (
+            <p className={css.erroDeBloqueio} role="alert">
+              Não foi possível atualizar automaticamente. Tente de novo ou
+              baixe o instalador.
+            </p>
+          ) : null}
           <Botao
             variante="primario"
             tamanho="grande"
-            carregando={instalando}
-            rotuloCarregando="Reiniciando…"
-            onClick={() => {
-              setInstalando(true);
-              void ponte()?.instalarEReiniciar();
-            }}
+            carregando={ocupada}
+            rotuloCarregando={
+              tela.casca.estado === "baixando" ? "Baixando…" : "Atualizando…"
+            }
+            onClick={instalarAtualizacao}
           >
-            Atualizar e reiniciar
+            {tela.falhou ? "Tentar de novo" : "Atualizar e reiniciar"}
           </Botao>
           {/*
             ⚠ **"Ou baixar manualmente" existe porque o auto-update FALHA** —
             atrás de proxy corporativo, com o instalador em pasta somente
-            leitura, com antivírus no meio. Sem esta saída, a tela de bloqueio
-            vira uma parede: o app não abre e não há o que fazer.
+            leitura, com antivírus no meio, ou numa casca antiga que não sabe
+            instalar sem ter baixado antes. Sem esta saída, a tela de bloqueio
+            vira uma parede. Ela abre o INSTALADOR da plataforma; antes abria a
+            pasta de logs, que não ajuda ninguém a sair dali.
           */}
-          <button
-            type="button"
-            className={css.manual}
-            onClick={() => void ponte()?.abrirPastaDeLogs()}
-          >
+          <button type="button" className={css.manual} onClick={baixarManualmente}>
             ou baixar manualmente
           </button>
         </div>
@@ -86,7 +107,36 @@ export function Atualizacao() {
     );
   }
 
-  if (a.estado !== "pronta") return null;
+  if (tela.falhou) {
+    return (
+      <div className={css.faixaDeFalha} role="status">
+        <WarningOctagon size={ICONE.controle} aria-hidden />
+        <span className={css.titulo}>Falha ao atualizar</span>
+        {tela.casca.versao !== undefined ? (
+          <span className={css.versao}>{tela.casca.versao}</span>
+        ) : null}
+        <span className={css.espaco} />
+        <span className={css.tempo}>Você continua na versão atual</span>
+        <button
+          type="button"
+          className={css.secundario}
+          onClick={baixarManualmente}
+        >
+          Baixar manualmente
+        </button>
+        <button
+          type="button"
+          className={css.tentarDeNovo}
+          onClick={verificarAtualizacao}
+        >
+          <ArrowClockwise size={ICONE.metadado} aria-hidden />
+          Tentar de novo
+        </button>
+      </div>
+    );
+  }
+
+  if (tela.casca.estado !== "pronta") return null;
 
   return (
     /*
@@ -97,18 +147,14 @@ export function Atualizacao() {
       cobriria as ações dele para sempre.
     */
     <div className={css.faixa} role="status">
-      <DownloadSimple size={ICONE.controle} weight="fill" aria-hidden />
+      <DownloadSimple size={ICONE.controle} aria-hidden />
       <span className={css.titulo}>Atualização pronta</span>
-      {a.versao !== undefined ? (
-        <span className={css.versao}>{a.versao} · baixada</span>
+      {tela.casca.versao !== undefined ? (
+        <span className={css.versao}>{tela.casca.versao} · baixada</span>
       ) : null}
       <span className={css.espaco} />
       <span className={css.tempo}>Instala em ~8 s</span>
-      <button
-        type="button"
-        className={css.reiniciar}
-        onClick={() => void ponte()?.instalarEReiniciar()}
-      >
+      <button type="button" className={css.reiniciar} onClick={instalarAtualizacao}>
         <ArrowClockwise size={ICONE.metadado} aria-hidden />
         Reiniciar agora
       </button>

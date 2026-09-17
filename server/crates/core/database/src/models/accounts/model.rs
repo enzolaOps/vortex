@@ -696,8 +696,8 @@ impl Account {
 
     /// Removes all information from the account and marks it as fully deleted
     pub async fn mark_deleted(&mut self, db: &Database) -> Result<()> {
-        self.email = format!("Deleted User {}", &self.id);
-        self.email_normalised = format!("Deleted User {}", &self.id);
+        self.email = format!("Deleted User {}", self.id);
+        self.email_normalised = format!("Deleted User {}", self.id);
         self.deletion = Some(DeletionInfo::Deleted);
 
         self.save(db).await?;
