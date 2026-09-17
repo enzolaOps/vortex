@@ -9,6 +9,7 @@ pub mod idempotency;
 pub mod ip;
 pub mod password;
 pub mod permissions;
+pub mod privacidade_do_servidor;
 pub mod reference;
 pub mod shield;
 pub mod test_fixtures;

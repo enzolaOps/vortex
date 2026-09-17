@@ -76,6 +76,9 @@ pub enum ErrorType {
     Blocked,
     BlockedByOther,
     NotFriends,
+    /// Vortex: a privacidade por servidor do destinatário recusa conversa nova
+    /// ou pedido de amizade vindos dos servidores em comum
+    PrivacyRestricted,
     TooManyPendingFriendRequests {
         max: usize,
     },
