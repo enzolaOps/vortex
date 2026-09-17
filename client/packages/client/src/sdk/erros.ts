@@ -130,6 +130,13 @@ const POR_TIPO: Record<string, string> = {
   MentionsSilenced:
     "Menções a todos estão silenciadas pela emergência deste servidor.",
   NotOwner: "Só o dono do servidor pode fazer isto.",
+  /*
+    Privacidade por servidor do DESTINATÁRIO. A frase não diz qual servidor
+    nem qual regra: isso contaria a quem foi recusado como a outra pessoa
+    configurou cada lugar em que vocês estão.
+  */
+  PrivacyRestricted:
+    "Esta pessoa não aceita conversas nem pedidos de amizade vindos dos servidores em comum.",
 
   /* --------------------------------------------- servidor de mídia (autumn) */
   /*

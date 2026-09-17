@@ -19,11 +19,17 @@ const DESCONHECIDO: EntradaDeConversa = {
 
 function destino(
   e: Partial<EntradaDeConversa> = {},
-  ctx: { filtrar?: boolean; decisao?: Decisao } = {},
+  ctx: { filtrar?: boolean; decisao?: Decisao; restrita?: boolean } = {},
 ) {
   return destinoDaConversa(
     { ...DESCONHECIDO, ...e },
-    { filtrar: ctx.filtrar ?? true, inicio: INICIO, decisao: ctx.decisao },
+    {
+      filtrar: ctx.filtrar ?? true,
+      inicio: INICIO,
+      decisao: ctx.decisao,
+      restritaPorPrivacidade:
+        ctx.restrita === undefined ? undefined : () => ctx.restrita ?? false,
+    },
   );
 }
 
@@ -95,5 +101,43 @@ describe("sinal de suspeita", () => {
     "",
   ])("%s não é suspeito", (texto) => {
     expect(sinalDeSuspeita(texto)).toBeUndefined();
+  });
+});
+
+describe("privacidade por servidor", () => {
+  it("restrita vai para a fila MESMO com o filtro global desligado", () => {
+    expect(destino({}, { filtrar: false, restrita: true })).toBe("solicitacao");
+    expect(destino({}, { filtrar: false, restrita: false })).toBe("conversa");
+  });
+
+  it("amigo, quem você procurou e conversa aceita nem perguntam", () => {
+    let perguntou = false;
+    const ctx = {
+      filtrar: false,
+      inicio: INICIO,
+      decisao: undefined,
+      restritaPorPrivacidade: () => {
+        perguntou = true;
+        return true;
+      },
+    };
+    expect(destinoDaConversa({ ...DESCONHECIDO, relacao: "amigo" }, ctx)).toBe("conversa");
+    expect(destinoDaConversa({ ...DESCONHECIDO, relacao: "enviado" }, ctx)).toBe("conversa");
+    expect(
+      destinoDaConversa(DESCONHECIDO, { ...ctx, decisao: { estado: "aceita" } }),
+    ).toBe("conversa");
+    expect(perguntou).toBe(false);
+  });
+
+  it("conversa antiga e sem mensagem ficam onde estão; recusada some", () => {
+    expect(destino({ criadaEm: INICIO - 1 }, { filtrar: false, restrita: true })).toBe(
+      "conversa",
+    );
+    expect(
+      destino({ ultimaMensagemId: undefined }, { filtrar: false, restrita: true }),
+    ).toBe("conversa");
+    expect(
+      destino({}, { filtrar: false, restrita: true, decisao: { estado: "recusada", ate: "M1" } }),
+    ).toBe("oculta");
   });
 });

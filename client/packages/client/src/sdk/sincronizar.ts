@@ -2,7 +2,8 @@
  * Sync de preferências via UserSettings do protocolo Stoat.
  *
  * Não é fork: `POST /sync/settings/fetch|set` e `UserSettingsUpdate` já
- * existem. Chaves `vortex:*` o cliente oficial ignora.
+ * existem. Chaves `vortex:*` o cliente oficial ignora; `notifications` é a
+ * dele, no formato dele, e é compartilhada de propósito (`store/silencio.ts`).
  *
  * // ponytail: last-write-wins por chave (timestamp do protocolo).
  */
@@ -24,6 +25,14 @@ import {
   exportarPrivacidadeDoServidor,
   hidratarPrivacidadeDoServidor,
 } from "../store/privacidadeDoServidor";
+import {
+  CHAVE_NOTIFICACOES,
+  CHAVE_OPCOES_DE_SERVIDOR,
+  exportarNotificacoes,
+  exportarOpcoesDeServidor,
+  hidratarNotificacoes,
+  hidratarOpcoesDeServidor,
+} from "../store/silencio";
 import {
   aplicarRemoto,
   avisarSync,
@@ -69,6 +78,10 @@ function snapshot(chave: ChaveSync): string {
       return lerDensidade();
     case "vortex:favoritos":
       return JSON.stringify(lerFavoritos());
+    case CHAVE_NOTIFICACOES:
+      return exportarNotificacoes();
+    case CHAVE_OPCOES_DE_SERVIDOR:
+      return exportarOpcoesDeServidor();
   }
 }
 
@@ -110,6 +123,12 @@ function hidratar(chave: ChaveSync, data: string): void {
         break;
       case "vortex:favoritos":
         definirFavoritos(deTexto(data));
+        break;
+      case CHAVE_NOTIFICACOES:
+        hidratarNotificacoes(data);
+        break;
+      case CHAVE_OPCOES_DE_SERVIDOR:
+        hidratarOpcoesDeServidor(data);
         break;
     }
   });

@@ -150,6 +150,19 @@ export const PENDENCIAS = {
     busca é real e os filtros também (`busca/filtros.ts`).**
   */
 
+  /* ------------------------------------- privacidade neste servidor (modal) */
+  /*
+    DM, pedido de amizade e filtro de mídia funcionam. Presença não: esconder
+    a presença de UM servidor exige o `bonfire` decidir, por destinatário, o
+    que cada evento de presença diz — o cliente não tem como mentir para os
+    outros sobre si mesmo.
+  */
+  presencaPorServidor: {
+    superficie: "Privacidade neste servidor",
+    faz: "Aparecer como offline só neste servidor.",
+    depende: "presença por servidor no bonfire (evento filtrado por destinatário)",
+  },
+
   /* ------------------------------------------- modal do sino (notificações) */
   notificarEventosDoServidor: {
     superficie: "Notificações do servidor",
