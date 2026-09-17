@@ -69,7 +69,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ env.TAG || github.ref }}
+          # Dispatch com `tag` anexa a uma release já publicada, mas o código
+          # vem da branch de onde se disparou — senão um hotfix na main não
+          # consegue reempacotar a v1.3.1 (o checkout da tag traria o bug).
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.ref || env.TAG || github.ref }}
 
       - uses: actions/setup-node@v7
         with:

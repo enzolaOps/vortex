@@ -1,7 +1,7 @@
 import { MakerDeb } from "@electron-forge/maker-deb";
 import { MakerFlatpak } from "@electron-forge/maker-flatpak";
 import { MakerSquirrel } from "@electron-forge/maker-squirrel";
-import { MakerZip } from "@electron-forge/maker-zip";
+import { MakerZIP } from "@electron-forge/maker-zip";
 import { MakerFlatpakOptionsConfig } from "@electron-forge/maker-flatpak/dist/Config";
 import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import { VitePlugin } from "@electron-forge/plugin-vite";
@@ -75,7 +75,7 @@ const makers: ForgeConfig["makers"] = [
     },
   }),
   /* Arch e o resto: zip do app empacotado. Sem sandbox, sem runtime extra. */
-  new MakerZip({}, ["linux"]),
+  new MakerZIP({}, ["linux"]),
 ];
 
 /* Flatpak só fora do CI: no runner ele pede runtime do Flathub (~minutos) e
