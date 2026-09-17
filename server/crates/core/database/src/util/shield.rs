@@ -36,7 +36,7 @@ pub async fn validate_shield(input: ShieldValidationInput) -> Result<()> {
 
     if !shield.host.is_empty() {
         if let Ok(response) = CLIENT
-            .post(format!("{}/validate", &shield.host))
+            .post(format!("{}/validate", shield.host))
             .json(&input)
             .header("Authorization", &shield.key)
             .send()

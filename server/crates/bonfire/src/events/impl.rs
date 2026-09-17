@@ -1,7 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
 use futures::future::join_all;
-use redis_kiss::AsyncCommands;
 use revolt_database::{
     events::client::{EventV1, ReadyPayloadFields},
     util::permissions::DatabasePermissionQuery,
@@ -76,10 +75,10 @@ impl Cache {
                     for channel in self.channels.values() {
                         match channel {
                             Channel::DirectMessage { recipients, .. }
-                            | Channel::Group { recipients, .. } => {
-                                if recipients.contains(user_id) {
-                                    return true;
-                                }
+                            | Channel::Group { recipients, .. }
+                                if recipients.contains(user_id) =>
+                            {
+                                return true;
                             }
                             _ => {}
                         }

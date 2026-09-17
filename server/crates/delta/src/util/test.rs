@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use futures::StreamExt;
-use rand::Rng;
+use rand::RngExt;
 use redis_kiss::redis::aio::PubSub;
 use revolt_database::util::email::normalise_email;
 use revolt_database::util::password::hash_password;
@@ -55,9 +55,8 @@ impl TestHarness {
     }
 
     pub fn rand_string() -> String {
-        let mut rng = rand::thread_rng();
-        (&mut rng)
-            .sample_iter(rand::distributions::Alphanumeric)
+        rand::rng()
+            .sample_iter(rand::distr::Alphanumeric)
             .take(20)
             .map(char::from)
             .collect()
@@ -115,10 +114,10 @@ impl TestHarness {
     pub async fn new_role(
         &self,
         server: &Server,
-        rank: i64,
+        _rank: i64,
         overrides: Option<OverrideField>,
     ) -> Role {
-        let mut role = Role::create(&self.db, &server, TestHarness::rand_string())
+        let mut role = Role::create(&self.db, server, TestHarness::rand_string())
             .await
             .expect("Failed to create test role");
 
@@ -251,7 +250,7 @@ impl TestHarness {
         for entry in results.into_iter().rev() {
             if entry.envelope.to[0].address == mailbox {
                 client
-                    .delete(format!("http://localhost:14080/delete/{}", &entry.id))
+                    .delete(format!("http://localhost:14080/delete/{}", entry.id))
                     .send()
                     .await
                     .unwrap();

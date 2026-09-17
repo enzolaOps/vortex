@@ -63,7 +63,7 @@ mod tests {
         ));
 
         harness
-            .wait_for_event(&format!("{}!", &account.id), |e| {
+            .wait_for_event(&format!("{}!", account.id), |e| {
                 if let EventV1::DeleteAllSessions { user_id, .. } = e {
                     user_id == &account.id
                 } else {

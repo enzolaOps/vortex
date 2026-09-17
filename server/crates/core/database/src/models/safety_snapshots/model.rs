@@ -17,6 +17,7 @@ auto_derived!(
 
     /// Enum to map into different models
     /// that can be saved in a snapshot
+    #[allow(clippy::large_enum_variant)]
     #[serde(tag = "_type")]
     pub enum SnapshotContent {
         Message {

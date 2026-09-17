@@ -9,6 +9,7 @@ use rocket::FromForm;
 
 auto_derived!(
     /// Channel
+    #[allow(clippy::large_enum_variant)]
     #[serde(tag = "channel_type")]
     pub enum Channel {
         /// Personal "Saved Notes" channel which allows users to save messages

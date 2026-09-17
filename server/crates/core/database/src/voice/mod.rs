@@ -33,14 +33,14 @@ pub async fn raise_if_in_voice(user: &User, channel: &UserVoiceChannel) -> Resul
     if user.bot.is_some() {
         // bots can be in as many voice channels as it wants so we just check if its already connected to the one its trying to connect to
         if conn
-            .sismember(format!("vc:{}", &user.id), channel)
+            .sismember(format!("vc:{}", user.id), channel)
             .await
             .to_internal_error()?
         {
             return Err(create_error!(AlreadyConnected));
         };
     } else if conn
-        .scard::<_, u32>(format!("vc:{}", &user.id)) // check if the current vc set is empty
+        .scard::<_, u32>(format!("vc:{}", user.id)) // check if the current vc set is empty
         .await
         .to_internal_error()?
         > 0
@@ -177,7 +177,7 @@ pub async fn create_voice_state(
 ) -> Result<UserVoiceState> {
     let unique_key = format!(
         "{}:{}",
-        &user_id,
+        user_id,
         channel.server_id.as_ref().unwrap_or(&channel.id)
     );
 
@@ -191,7 +191,7 @@ pub async fn create_voice_state(
     };
 
     Pipeline::new()
-        .sadd(format!("vc_members:{}", &channel.id), user_id)
+        .sadd(format!("vc_members:{}", channel.id), user_id)
         .sadd(format!("vc:{user_id}"), channel)
         .set(&unique_key, &channel.id)
         .set(
@@ -223,12 +223,12 @@ pub async fn create_voice_state(
 pub async fn delete_voice_state(channel: &UserVoiceChannel, user_id: &str) -> Result<()> {
     let unique_key = format!(
         "{}:{}",
-        &user_id,
+        user_id,
         channel.server_id.as_ref().unwrap_or(&channel.id)
     );
 
     Pipeline::new()
-        .srem(format!("vc_members:{}", &channel.id), user_id)
+        .srem(format!("vc_members:{}", channel.id), user_id)
         .srem(format!("vc:{user_id}"), channel)
         .del(&[
             format!("joined_at:{unique_key}"),
@@ -250,8 +250,8 @@ pub async fn delete_channel_voice_state(
     let parent_id = channel.server_id.as_ref().unwrap_or(&channel.id);
 
     let mut pipeline = Pipeline::new();
-    pipeline.del(format!("vc_members:{}", &channel.id));
-    pipeline.del(format!("node:{}", &channel.id));
+    pipeline.del(format!("vc_members:{}", channel.id));
+    pipeline.del(format!("node:{}", channel.id));
 
     for user_id in user_ids {
         let unique_key = format!("{user_id}:{parent_id}");
@@ -310,7 +310,7 @@ pub async fn update_voice_state(
 ) -> Result<()> {
     let unique_key = format!(
         "{}:{}",
-        &user_id,
+        user_id,
         channel.server_id.as_ref().unwrap_or(&channel.id)
     );
 
@@ -341,10 +341,10 @@ pub async fn update_voice_state(
 pub async fn get_voice_channel_members(channel: &UserVoiceChannel) -> Result<Option<Vec<String>>> {
     get_connection()
         .await?
-        .smembers::<_, Option<Vec<String>>>(format!("vc_members:{}", &channel.id))
+        .smembers::<_, Option<Vec<String>>>(format!("vc_members:{}", channel.id))
         .await
         .to_internal_error()
-        .map(|opt| opt.and_then(|v| if v.is_empty() { None } else { Some(v) }))
+        .map(|opt| opt.filter(|v| !v.is_empty()))
 }
 
 pub async fn get_voice_state(
@@ -353,7 +353,7 @@ pub async fn get_voice_state(
 ) -> Result<Option<UserVoiceState>> {
     let unique_key = format!(
         "{}:{}",
-        &user_id,
+        user_id,
         channel.server_id.as_ref().unwrap_or(&channel.id)
     );
 

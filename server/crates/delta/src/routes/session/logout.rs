@@ -42,7 +42,7 @@ mod tests {
             ErrorType::UnknownUser
         ));
 
-        let event = harness.wait_for_event(&format!("{}!", &session.user_id), |evt| matches!(evt, EventV1::DeleteSession { .. })).await;
+        let event = harness.wait_for_event(&format!("{}!", session.user_id), |evt| matches!(evt, EventV1::DeleteSession { .. })).await;
         if let EventV1::DeleteSession {
             user_id,
             session_id,

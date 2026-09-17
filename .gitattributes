@@ -10,3 +10,9 @@
 # `atividades.test.ts` o confere lendo o disco — fixar LF evita que o checkout
 # no Windows (`core.autocrlf=true`) produza bytes diferentes dos hasheados.
 client/packages/client/public/atividades/*.html text eol=lf
+
+# Listas embutidas por `include_str!` e partidas em `'\n'`: com CRLF cada linha
+# vira `"password\r"`, e o conjunto nunca casa. Um binário compilado a partir de
+# um checkout Windows aceitava senha vazada e e-mail de lista bloqueada, e o
+# teste `fail_invalid_password` reprova. O CI em Linux não vê.
+server/crates/core/database/**/*.txt text eol=lf

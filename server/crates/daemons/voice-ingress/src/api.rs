@@ -263,7 +263,7 @@ pub async fn ingress(
                                 )
                                 .await?;
                         } else {
-                            log::error!("Broken State: Call started message ID ({}) does not contain a CallStarted system message.", &message.id)
+                            log::error!("Broken State: Call started message ID ({}) does not contain a CallStarted system message.", message.id)
                         }
                     };
                 };

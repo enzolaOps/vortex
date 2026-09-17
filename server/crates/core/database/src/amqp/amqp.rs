@@ -51,10 +51,10 @@ impl AMQP {
             Connection::connect(
                 &format!(
                     "amqp://{}:{}@{}:{}",
-                    &config.rabbit.username,
-                    &config.rabbit.password,
-                    &config.rabbit.host,
-                    &config.rabbit.port,
+                    config.rabbit.username,
+                    config.rabbit.password,
+                    config.rabbit.host,
+                    config.rabbit.port,
                 ),
                 ConnectionProperties::default(),
             )
@@ -280,7 +280,7 @@ impl AMQP {
         let mut headers = FieldTable::default();
         headers.insert(
             "x-deduplication-header".into(),
-            AMQPValue::LongString(format!("{}-{}", &user_id, &channel_id).into()),
+            AMQPValue::LongString(format!("{}-{}", user_id, channel_id).into()),
         );
 
         self.ack_notification_message

@@ -523,15 +523,13 @@ async fn worker(
                             }
                         }
                     }
-                    ClientMessage::Ping { data, responded } => {
-                        if responded.is_none() {
-                            write
-                                .lock()
-                                .await
-                                .send(config.encode(&EventV1::Pong { data }))
-                                .await
-                                .ok();
-                        }
+                    ClientMessage::Ping { data, responded } if responded.is_none() => {
+                        write
+                            .lock()
+                            .await
+                            .send(config.encode(&EventV1::Pong { data }))
+                            .await
+                            .ok();
                     }
                     _ => {}
                 }

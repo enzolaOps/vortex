@@ -25,7 +25,7 @@ pub async fn list(
 
     let mut requests = db.fetch_join_requests(&server.id).await?;
     // Mais antigo primeiro: é a ordem de uma fila.
-    requests.sort_by(|a, b| a.created_at.cmp(&b.created_at));
+    requests.sort_by_key(|a| a.created_at);
 
     let ids: Vec<String> = requests.iter().map(|request| request.id.user.clone()).collect();
     let users = User::fetch_many_ids_as_mutuals(db, &user, &ids).await?;

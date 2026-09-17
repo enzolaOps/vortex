@@ -220,7 +220,7 @@ impl Consumer for ApnsOutboundConsumer {
 
                 debug!(
                     "Sending friend request received for user: {:}",
-                    &payload.user_id
+                    payload.user_id
                 );
                 self.client.send(apn_payload).await
             }
@@ -263,7 +263,7 @@ impl Consumer for ApnsOutboundConsumer {
 
                 debug!(
                     "Sending friend request accept for user: {:}",
-                    &payload.user_id
+                    payload.user_id
                 );
                 self.client.send(apn_payload).await
             }
@@ -296,7 +296,7 @@ impl Consumer for ApnsOutboundConsumer {
 
                 debug!(
                     "Sending generic notification for user: {:}",
-                    &payload.user_id
+                    payload.user_id
                 );
                 self.client.send(apn_payload).await
             }
@@ -335,7 +335,7 @@ impl Consumer for ApnsOutboundConsumer {
 
                 debug!(
                     "Sending message notification for user: {:}",
-                    &payload.user_id
+                    payload.user_id
                 );
                 self.client.send(apn_payload).await
             }
@@ -351,7 +351,7 @@ impl Consumer for ApnsOutboundConsumer {
                     data: BTreeMap::new(),
                 };
 
-                debug!("Sending badge update for user: {:}", &payload.user_id);
+                debug!("Sending badge update for user: {:}", payload.user_id);
                 self.client.send(apn_payload).await
             }
 
@@ -379,7 +379,7 @@ impl Consumer for ApnsOutboundConsumer {
 
                 debug!(
                     "Sending call start/stop notification for user: {:}",
-                    &payload.user_id
+                    payload.user_id
                 );
                 self.client.send(apn_payload).await
             }
@@ -396,7 +396,7 @@ impl Consumer for ApnsOutboundConsumer {
             })) => {
                 info!(
                     "Removing APNS subscription id {:} (user: {:}) due to invalid token",
-                    &payload.session_id, &payload.user_id
+                    payload.session_id, payload.user_id
                 );
 
                 if let Err(err) = self
