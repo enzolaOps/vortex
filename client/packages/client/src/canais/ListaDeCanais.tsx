@@ -23,15 +23,14 @@ import {
 import { memo, useEffect, useState, useSyncExternalStore } from "react";
 
 import {
-  ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuSub,
   ContextMenuSubContent,
   ContextMenuSubTrigger,
-  ContextMenuTrigger,
 } from "../components/ui/ContextMenu";
+import { MenuDeContexto } from "../components/ui/MenuDeContexto";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -63,7 +62,7 @@ import { contagem, rotuloDeNaoLidas } from "../lib/plural";
 import { marcarCanalLido, usuarioLocalId } from "../sdk/adapter";
 import { exibirMinhaTag } from "../sdk/perfilDoServidor";
 import { useExibeTag, usePerfilDoServidor } from "../store/perfilDoServidor";
-import { pode, type Acao } from "../sdk/permissoes";
+import { pode, podeNoServidor, type Acao } from "../sdk/permissoes";
 import {
   chaveDeMembro,
   type CategoriaDeCanais,
@@ -219,8 +218,8 @@ const Canal = memo(function Canal({
   return (
     <>
     <div className={css.linhaDeCanal}>
-    <ContextMenu>
-      <ContextMenuTrigger asChild>
+    <MenuDeContexto
+      gatilho={
         <button
           type="button"
           className={css.canal}
@@ -359,8 +358,8 @@ const Canal = memo(function Canal({
         ) : null}
         </button>
 
-      </ContextMenuTrigger>
-
+      }
+    >
       <ContextMenuContent>
         {/* Regra do briefing: ação que a pessoa não pode executar não é
             renderizada. Ver `sdk/permissoes.ts`. */}
@@ -479,7 +478,7 @@ const Canal = memo(function Canal({
 
         <ItemDeId id={id} />
       </ContextMenuContent>
-    </ContextMenu>
+    </MenuDeContexto>
 
           {/*
             As ações da linha, do design — visíveis no hover e no canal ativo.
@@ -1017,10 +1016,20 @@ const Categoria = memo(function Categoria({
   /*
     A permissão é do CANAL no protocolo, e categoria não é canal — ela nem é
     entidade lá, é um campo do servidor. Pergunto pelo primeiro canal dela, que
-    é o alvo mais próximo que existe; categoria vazia cai no `""` e a resposta
-    é negativa, que é o lado seguro.
+    é o alvo mais próximo que existe, porque uma sobrescrita por canal só
+    aparece ali.
+
+    ⚠ **Categoria VAZIA caía no `pode("")`, que é `false`, e o menu ficava sem
+    ação nenhuma para quem administra o servidor.** Era o pior lugar para isso
+    acontecer: categoria sem canal é exatamente onde a única coisa a fazer é
+    criar o primeiro. Sem canal não há sobrescrita possível, então perguntar
+    ao SERVIDOR é a resposta certa e não um contorno.
   */
-  const podeGerenciar = pode(categoria.canais[0] ?? "", "gerenciarCanais");
+  const primeiro = categoria.canais[0];
+  const podeGerenciar =
+    primeiro === undefined
+      ? podeNoServidor(serverId, "gerenciarCanais")
+      : pode(primeiro, "gerenciarCanais");
   const mostrar = !temCabecalho || !colapsada;
 
   return (
@@ -1035,8 +1044,8 @@ const Categoria = memo(function Categoria({
           acontece uma vez por mês.
         */
         <>
-        <ContextMenu>
-          <ContextMenuTrigger asChild>
+        <MenuDeContexto
+          gatilho={
             <button
               type="button"
               className={css.secao}
@@ -1050,8 +1059,8 @@ const Categoria = memo(function Categoria({
               />
               <span className={css.tituloDaSecao}>{categoria.titulo}</span>
             </button>
-          </ContextMenuTrigger>
-
+          }
+        >
           <ContextMenuContent>
             {podeGerenciar ? (
               <>
@@ -1137,7 +1146,7 @@ const Categoria = memo(function Categoria({
 
             <ItemDeId id={categoria.id} />
           </ContextMenuContent>
-        </ContextMenu>
+        </MenuDeContexto>
 
         {/*
           O `+` da categoria — do design, e ele é o caminho CURTO.
@@ -1264,14 +1273,20 @@ function CanaisDoServidor() {
   const grupos = useCategorias(serverId);
   const canalAtivo = useCanalAtivo();
   /*
-    Pergunto pelo primeiro canal que existir. Servidor sem canal nenhum não tem
-    a quem perguntar — e aí `pode("")` responde `false` com servidor presente,
-    o que esconderia o botão justamente de quem acabou de criar o servidor.
-    `gerenciarServidor` no próprio servidor seria a pergunta certa; enquanto o
-    SDK só responde por canal, o dono cai no caminho sem servidor e vê o botão.
+    Pergunto pelo primeiro canal que existir, porque sobrescrita por canal só
+    aparece ali.
+
+    ⚠ **Servidor sem canal nenhum caía no `pode("")`, que é `false`**, e isso
+    escondia as ações de criar justamente de quem acabou de criar o servidor —
+    o comentário anterior descrevia o beco e terminava com "enquanto o SDK só
+    responde por canal". Ele responde por servidor também, e `podeNoServidor`
+    é a pergunta certa quando não há canal a que perguntar.
   */
-  const primeiro = grupos.flatMap((g) => g.canais)[0] ?? "";
-  const podeCriar = pode(primeiro, "gerenciarCanais");
+  const primeiro = grupos.flatMap((g) => g.canais)[0];
+  const podeCriar =
+    primeiro === undefined
+      ? podeNoServidor(serverId, "gerenciarCanais")
+      : pode(primeiro, "gerenciarCanais");
 
   /*
     Categoria vazia aparece só para quem pode criar canal nela.
@@ -1441,7 +1456,13 @@ function CanaisDoServidor() {
 
             {DE_SERVIDOR.filter((secao) => {
               const exigida = PERMISSAO_DA_SECAO[secao];
-              return exigida === undefined || pode(primeiro, exigida);
+              if (exigida === undefined) return true;
+              /* Mesma razão de `podeCriar`: sem canal, quem responde é o
+                 servidor — senão o dono de um servidor recém-criado não vê
+                 nenhuma seção de configuração. */
+              return primeiro === undefined
+                ? podeNoServidor(serverId, exigida)
+                : pode(primeiro, exigida);
             }).map((secao) => (
               <DropdownMenuItem
                 key={secao}
@@ -1537,9 +1558,10 @@ function CanaisDoServidor() {
         item cinza ensina que a ação existe e que você não a tem, ruído
         permanente para quem nunca vai tê-la.
       */}
-      <ContextMenu>
-        <ContextMenuTrigger asChild disabled={!podeCriar}>
-          {/* Ver `MessageList`: rolável sem foco é inoperável por teclado. */}
+      <MenuDeContexto
+        desabilitado={!podeCriar}
+        gatilho={
+          /* Ver `MessageList`: rolável sem foco é inoperável por teclado. */
           <div className={css.rolagem} tabIndex={0}>
         {/* Os eventos agendados — primeira linha da coluna, acima das
             categorias, como no design. Componente próprio: ele assina o
@@ -1594,8 +1616,8 @@ function CanaisDoServidor() {
           </nav>
         )}
           </div>
-        </ContextMenuTrigger>
-
+        }
+      >
         <ContextMenuContent>
           <ContextMenuItem
             onSelect={() =>
@@ -1628,7 +1650,7 @@ function CanaisDoServidor() {
             Criar categoria
           </ContextMenuItem>
         </ContextMenuContent>
-      </ContextMenu>
+      </MenuDeContexto>
     </div>
   );
 }

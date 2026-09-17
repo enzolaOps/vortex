@@ -37,7 +37,7 @@
   ⚠ **`align-self: flex-start` não é cosmético, e a primeira versão do
   conserto errou aqui.** Tirar só o `block-size` deixa o `stretch` do flex
   esticar a calha até a altura da linha inteira: medido, ela ia de 40 para
-  151px numa linha alta. E a calha carrega o `data-menu-autor` — o alvo do
+  151px numa linha alta. E a calha carrega o `data-menu-usuario` — o alvo do
   menu do AUTOR. Esticada, clicar com o direito em qualquer ponto da coluna
   esquerda abriria o menu da pessoa em vez do da mensagem, ao longo de
   parágrafos inteiros. Com `flex-start` ela volta a ser exatamente o avatar.
@@ -451,6 +451,38 @@
   /* Entrada: a visibilidade troca no quadro zero, senão a opacidade animaria
      algo que ainda não está na tela. */
   transition: var(--vx-revelar-entra);
+}
+
+/*
+  ⚠ **No TOQUE a barra não existe, e é `:hover` grudado que a fazia existir.**
+
+  Num dispositivo sem ponteiro fino o navegador emula `:hover` no último
+  elemento tocado e NÃO o desfaz: tocar uma mensagem para rolar deixava oito
+  alvos flutuando por cima do texto até alguém tocar noutra linha. Pior, eles
+  pousam sobre o conteúdo da própria mensagem — a barra sobrepõe em vez de
+  reservar espaço, porque mudar a altura da linha destruiria a âncora.
+
+  Ela sempre foi afordância de PONTEIRO, e isso está escrito desde que foi
+  construída. O caminho do toque é o toque longo, que abre o mesmo menu de
+  contexto; o do teclado é `Enter` na linha focada. Nenhum dos dois passa por
+  aqui, e por isso `:focus-within` e o menu aberto continuam revelando: uma
+  pessoa com teclado físico num tablet não perde a barra.
+
+  `(hover: none) and (pointer: coarse)`: as duas juntas descrevem o
+  dispositivo de toque. Só a primeira pegaria também um notebook com o
+  ponteiro desligado.
+*/
+@media (hover: none) and (pointer: coarse) {
+  .linha:hover .acoes {
+    visibility: hidden;
+    opacity: 0;
+  }
+
+  .linha:focus-within .acoes,
+  .acoes[data-menu-aberto] {
+    visibility: visible;
+    opacity: 1;
+  }
 }
 
 .linha[data-abre-grupo="true"] .acoes {
@@ -1263,11 +1295,11 @@
   — "Ana-" numa linha, "vx" na outra, os selos embaixo. O design desenha só
   nome e hora ali; o cartão de perfil, aberto no nome, continua com os cargos.
 */
-:global([data-variante="sala"]) .cabecalhoDoGrupo [data-menu-autor] > :not(:first-child) {
+:global([data-variante="sala"]) .cabecalhoDoGrupo [data-menu-usuario] > :not(:first-child) {
   display: none;
 }
 
-:global([data-variante="sala"]) .cabecalhoDoGrupo [data-menu-autor] > :first-child {
+:global([data-variante="sala"]) .cabecalhoDoGrupo [data-menu-usuario] > :first-child {
   font-size: var(--vx-size-md);
 }
 

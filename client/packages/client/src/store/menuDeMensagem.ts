@@ -79,6 +79,56 @@ export function definirAlvoDoMenu(novo: AlvoDoMenu | null): void {
   for (const ouvinte of ouvintes) ouvinte();
 }
 
+/**
+ * O alvo LIDO DO DOM, a partir do nó que recebeu o gesto.
+ *
+ * ⚠ **Substituiu o `onContextMenu` que cada linha carregava**, e a troca não é
+ * cosmética: um handler por linha só responde a `contextmenu`, e o long-press
+ * do Radix abre o menu sem disparar nenhum. Com a resolução aqui, o MESMO
+ * código responde ao clique direito, ao toque longo e à tecla Menu — e a linha
+ * volta a ser dois atributos estáticos em vez de uma closure nova por render
+ * no componente mais quente do app.
+ *
+ * A ordem importa: o autor ganha da mensagem, porque a calha do avatar mora
+ * DENTRO da linha e clicar nela é perguntar pela pessoa.
+ *
+ * `data-menu-mensagem` e não `article`: a linha de SISTEMA também é um
+ * `article`, e ela não tem menu — nem responder, nem editar, nem apagar fazem
+ * sentido sobre "Marina entrou no canal". Ela abria uma caixa vazia.
+ */
+export function alvoNoDom(no: EventTarget | null): AlvoDoMenu | null {
+  /* Pato e não `instanceof Element`: nó de texto, e alvo vindo de outro
+     `window` (o popout) não é `Element` DESTE realm. Mesma razão de
+     `alvoDoEvento` em `menuDoParticipante.ts`. */
+  const cru = no as Partial<Element> | null;
+  if (typeof cru?.closest !== "function") return null;
+  const el = cru as Element;
+
+  const userId = el
+    .closest<HTMLElement>("[data-menu-usuario]")
+    ?.dataset.menuUsuario;
+  if (userId) return { tipo: "usuario", userId };
+
+  const id = el
+    .closest<HTMLElement>("[data-menu-mensagem]")
+    ?.dataset.menuMensagem;
+  if (id) return { tipo: "mensagem", id };
+
+  return null;
+}
+
+/**
+ * A mira das superfícies que usam este store: resolve, grava e responde.
+ *
+ * Uma função só porque gravar e responder precisam acontecer na mesma ordem
+ * em três eventos diferentes — ver `MenuDeContexto`.
+ */
+export function mirarAlvoDoMenu(no: EventTarget | null): boolean {
+  const alvo = alvoNoDom(no);
+  definirAlvoDoMenu(alvo);
+  return alvo !== null;
+}
+
 function mesmo(a: AlvoDoMenu | null, b: AlvoDoMenu | null): boolean {
   if (a === null || b === null) return a === b;
   if (a.tipo !== b.tipo) return false;

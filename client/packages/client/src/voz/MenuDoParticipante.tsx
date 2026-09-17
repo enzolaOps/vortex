@@ -2,13 +2,12 @@ import { useSyncExternalStore, type ReactElement } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
 import {
-  ContextMenu,
   ContextMenuCheckboxItem,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
-  ContextMenuTrigger,
 } from "../components/ui/ContextMenu";
+import { MenuDeContexto } from "../components/ui/MenuDeContexto";
 import { Deslizante } from "../components/ui/Deslizante";
 import { Hammer, PhoneX, UserCircle } from "../components/ui/icones";
 import { menuLargo } from "../components/ui/menu";
@@ -63,9 +62,13 @@ import css from "./MenuDoParticipante.module.css";
 /**
  * A superfície que carrega participantes: UM `ContextMenu` para ela inteira.
  *
- * O filho único recebe o clique direito; a captura resolve quem é o alvo pelo
+ * O filho único recebe o clique direito; a mira resolve quem é o alvo pelo
  * `data-participante` mais próximo, e fora de um participante o menu não abre
  * (sem `preventDefault` o Radix abriria uma caixa vazia).
+ *
+ * ⚠ **A mira roda também no `pointerdown`**, e é o que conserta o toque: o
+ * long-press do Radix abre sem `contextmenu` nenhum, então o menu vinha com o
+ * participante do gesto anterior. Ver `MenuDeContexto`.
  */
 export function ComMenuDoParticipante({
   channelId,
@@ -75,19 +78,16 @@ export function ComMenuDoParticipante({
   children: ReactElement;
 }) {
   return (
-    <ContextMenu>
-      <ContextMenuTrigger
-        asChild
-        onContextMenuCapture={(evento) => {
-          const alvo = alvoDoEvento(evento.target, channelId);
-          definirAlvoDoParticipante(alvo);
-          if (!alvo) evento.preventDefault();
-        }}
-      >
-        {children}
-      </ContextMenuTrigger>
+    <MenuDeContexto
+      mirar={(no) => {
+        const alvo = alvoDoEvento(no, channelId);
+        definirAlvoDoParticipante(alvo);
+        return alvo !== null;
+      }}
+      gatilho={children}
+    >
       <MenuDoParticipante />
-    </ContextMenu>
+    </MenuDeContexto>
   );
 }
 

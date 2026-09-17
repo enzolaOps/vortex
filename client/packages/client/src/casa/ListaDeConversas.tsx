@@ -32,12 +32,11 @@ import { bloquear, desfazerAmizade, sairDaConversa } from "../sdk/social";
 import { alternarSilencio, estaSilenciado } from "../store/silencio";
 import css from "./ListaDeConversas.module.css";
 import {
-  ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
-  ContextMenuTrigger,
 } from "../components/ui/ContextMenu";
+import { MenuDeContexto } from "../components/ui/MenuDeContexto";
 import { ItemDeId } from "../components/ui/ItemDeId";
 import { Tooltip } from "../components/ui/Tooltip";
 import { administrar } from "../store/administracao";
@@ -179,8 +178,7 @@ const Conversa = memo(function Conversa({
   const outroId = canal.destinatarioId;
 
   return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>{linha}</ContextMenuTrigger>
+    <MenuDeContexto gatilho={linha}>
       <ContextMenuContent>
         {/*
           ⚠ **O menu da conversa passou a existir, e o argumento que o impedia
@@ -288,7 +286,7 @@ const Conversa = memo(function Conversa({
 
         <ItemDeId id={id} />
       </ContextMenuContent>
-    </ContextMenu>
+    </MenuDeContexto>
   );
 });
 

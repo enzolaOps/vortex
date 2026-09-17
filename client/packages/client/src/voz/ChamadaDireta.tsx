@@ -54,7 +54,26 @@ export function ChamadaDireta({ channelId }: { channelId: string }) {
   const outroComCamera = outroDentro && chamada.comCamera.includes(outro);
 
   return (
-    <section className={css.palco} aria-label="Chamada direta">
+    /*
+      ⚠ **`data-participante` na TELA, e sem ele o clique direito na chamada
+      direta era morto — nem menu do app, nem nativo.** O
+      `ComMenuDoParticipante` envolve o palco inteiro e resolve o alvo pelo
+      ladrilho mais próximo; esta tela não marcava nenhum, então a mira
+      devolvia "sem alvo" e o gatilho recusava abrir.
+
+      Na SEÇÃO e não no avatar: com câmera ligada, o vídeo cobre a tela como
+      irmão do avatar, e marcar só o avatar deixaria o clique direito morto
+      justamente onde há o que olhar. O PiP próprio marca a si mesmo, e
+      `closest` resolve o mais próximo.
+
+      Numa chamada de DM não há moderação (não existe `ServerMember`): o que
+      sobra é volume, "silenciar só para mim" e "ver perfil".
+    */
+    <section
+      className={css.palco}
+      aria-label="Chamada direta"
+      data-participante={outro}
+    >
       {outro ? (
         <Remoto userId={outro} dentro={outroDentro} comCamera={outroComCamera} />
       ) : null}
@@ -152,11 +171,19 @@ function Remoto({
 
   return (
     <>
-      <div className={css.centro} data-falando={dentro && fala} data-dentro={dentro}>
+      <div
+        className={css.centro}
+        data-falando={dentro && fala}
+        data-dentro={dentro}
+      >
         <Avatar id={userId} sigla={pessoa?.sigla} url={pessoa?.avatarUrl} tamanho="lg" />
       </div>
       {comCamera ? (
-        <FaixaDeVideo userId={userId} fonte="camera" className={css.videoRemoto} />
+        <FaixaDeVideo
+          userId={userId}
+          fonte="camera"
+          className={css.videoRemoto}
+        />
       ) : null}
     </>
   );
@@ -195,7 +222,9 @@ function Identidade({
 function Proprio({ userId, camera }: { userId: string; camera: boolean }) {
   const pessoa = usePessoa(userId);
   return (
-    <div className={css.proprio}>
+    /* Marca a si mesmo: `closest` resolve o mais próximo, então o PiP abre o
+       menu de VOCÊ e o resto da tela o do outro lado. */
+    <div className={css.proprio} data-participante={userId}>
       {camera ? (
         <FaixaDeVideo
           userId={userId}

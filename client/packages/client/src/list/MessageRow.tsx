@@ -81,7 +81,6 @@ import {
 import {
   alvoDeMensagem,
   assinarMenuDeMensagem,
-  definirAlvoDoMenu,
   lerAlvoDoMenu,
 } from "../store/menuDeMensagem";
 import {
@@ -335,9 +334,9 @@ const REACOES_DA_BARRA = [
  * que alguém acrescenta um item num só.
  *
  * Em vez disso, o botão despacha o evento que o `Trigger` já escuta. Ele
- * BORBULHA: passa pela captura do container (que limpa o alvo) e pelo handler
- * da linha (que escreve o alvo certo), então o alvo se resolve sozinho pelo
- * mesmo caminho do clique direito. Nada de novo para manter em sincronia.
+ * BORBULHA até o gatilho da lista, e lá `alvoNoDom` resolve quem é o alvo a
+ * partir do nó de origem — o mesmo caminho do clique direito, do toque longo e
+ * da tecla Menu. Nada de novo para manter em sincronia.
  *
  * As coordenadas são as do próprio botão, e não as do ponteiro: o menu pousa
  * ancorado ao `⋯`, que é onde a pessoa está olhando.
@@ -1015,32 +1014,22 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
           /*
             A linha só DIZ quem ela é; quem abre o menu é a lista.
 
-            Sem `preventDefault`: o `Trigger` do Radix está no container e
-            precisa receber o mesmo evento para abrir no ponteiro. Aqui só se
-            escreve o alvo, e a ordem faz o resto — o container limpa na
-            captura, a linha escreve na bolha.
-          */
-          /*
-            Dois menus, um `ContextMenu`.
+            ⚠ **Era um `onContextMenu` aqui, e ele cobria UM dos três gestos.**
+            O long-press do Radix abre o menu sem disparar `contextmenu`
+            nenhum, então no toque o alvo era o do gesto anterior — "Excluir"
+            na mensagem errada. Agora quem resolve é `alvoNoDom`, uma função
+            pura do DOM que o `MenuDeContexto` chama nos três caminhos
+            (ponteiro, toque e tecla Menu).
 
-            O design tem menu de mensagem E menu do usuário na timeline. A
-            saída óbvia — um segundo `ContextMenu` em volta do autor — desfaria
-            a economia que o store inteiro existe para garantir: em vez de uma
-            árvore de menu por linha, duas.
+            O que sobra na linha são dois atributos ESTÁTICOS, e isso é mais
+            barato do que era: uma closure por render a menos no componente
+            mais quente do app.
 
-            Aqui um handler só decide qual alvo escrever, olhando de ONDE o
-            clique veio. `closest` num clique direito é barato e roda uma vez
-            por gesto humano, não por evento de firehose.
+            ⚠ **A linha de SISTEMA não leva este atributo** (ela tem `article`
+            próprio, mais acima) — responder, editar e apagar não existem sobre
+            "Marina entrou no canal", e o menu abria vazio ali.
           */
-          onContextMenu={(e) => {
-            const autor = (e.target as Element).closest?.("[data-menu-autor]");
-            const userId = autor?.getAttribute("data-menu-autor");
-            definirAlvoDoMenu(
-              userId
-                ? { tipo: "usuario", userId }
-                : { tipo: "mensagem", id: message.id },
-            );
-          }}
+          data-menu-mensagem={message.id}
           ref={elemento}
           /*
             Roving tabindex: UMA linha por vez é parada de tabulação.
@@ -1226,7 +1215,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
           */}
           <div
             className={cn(css.calha, "relative mt-02")}
-            data-menu-autor={message.authorId}
+            data-menu-usuario={message.authorId}
           >
             {compacto ? (
               <time className={css.horaCompacta}>{message.createdAtCurto}</time>
@@ -1353,7 +1342,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                 {message.authorId ? (
                   /* `display: contents` — a caixa não existe, só o atributo
                      que diz ao menu de contexto quem é o autor daqui. */
-                  <span className="contents" data-menu-autor={message.authorId}>
+                  <span className="contents" data-menu-usuario={message.authorId}>
                     <NomeDoAutor userId={message.authorId} />
                     {/* O crachá de cargo — "VTX", "MOD". Assina o membro
                         sozinho; ver `CrachaDeCargo`. */}

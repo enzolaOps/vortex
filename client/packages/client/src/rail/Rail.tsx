@@ -10,12 +10,11 @@ import {
 import { memo, useSyncExternalStore } from "react";
 
 import {
-  ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
-  ContextMenuTrigger,
 } from "../components/ui/ContextMenu";
+import { MenuDeContexto } from "../components/ui/MenuDeContexto";
 import { Tooltip } from "../components/ui/Tooltip";
 import { contagem, rotuloDeNaoLidas } from "../lib/plural";
 import { linkDeDownload, plataformaDoNavegador } from "../lib/downloadDoDesktop";
@@ -89,21 +88,21 @@ const ItemDeServidor = memo(function ItemDeServidor({
       lê a direção real do documento, e o rail volta a não saber de que lado
       da tela ele está.
     */
-    <ContextMenu>
-      {/*
-        ⚠ **A ponte entre os dois `asChild`, e sem ela o menu não abre.**
+    <MenuDeContexto
+      gatilho={
+        /*
+          ⚠ **A ponte entre os dois `asChild`, e sem ela o menu não abre.**
 
-        `ContextMenuTrigger asChild` funde os próprios handlers no filho — e o
-        filho aqui é o `Tooltip`, que é um `Root` do Radix e não renderiza DOM
-        nenhum. Os handlers do menu não pousavam em elemento algum: o botão
-        direito simplesmente não fazia nada, sem erro.
+          O gatilho funde os próprios handlers no filho — e o filho aqui é o
+          `Tooltip`, que é um `Root` do Radix e não renderiza DOM nenhum. Os
+          handlers do menu não pousavam em elemento algum: o botão direito
+          simplesmente não fazia nada, sem erro.
 
-        É a MESMA armadilha já registrada na member list, onde o gatilho
-        disputava com o cartão de perfil. `display: contents` para a ponte não
-        criar caixa: o rail é um flex, e um wrapper com layout próprio mudaria
-        o alinhamento dos ladrilhos.
-      */}
-      <ContextMenuTrigger asChild>
+          É a MESMA armadilha já registrada na member list, onde o gatilho
+          disputava com o cartão de perfil. `display: contents` para a ponte
+          não criar caixa: o rail é um flex, e um wrapper com layout próprio
+          mudaria o alinhamento dos ladrilhos.
+        */
         <span className={css.ponte}>
     <Tooltip texto={servidor.name} lado="fim">
       <button
@@ -198,7 +197,8 @@ const ItemDeServidor = memo(function ItemDeServidor({
       </button>
     </Tooltip>
         </span>
-      </ContextMenuTrigger>
+      }
+    >
 
       {/*
         O menu que gerencia pastas.
@@ -250,7 +250,7 @@ const ItemDeServidor = memo(function ItemDeServidor({
 
         <ItemDeId id={id} />
       </ContextMenuContent>
-    </ContextMenu>
+    </MenuDeContexto>
   );
 });
 
@@ -276,8 +276,8 @@ const PastaDoRail = memo(function PastaDoRail({
 
   return (
     <div className={css.pasta} data-colapsada={pasta.colapsada}>
-      <ContextMenu>
-        <ContextMenuTrigger asChild>
+      <MenuDeContexto
+        gatilho={
           <button
             type="button"
             className={css.alcaDaPasta}
@@ -292,8 +292,8 @@ const PastaDoRail = memo(function PastaDoRail({
               data-aberta={!pasta.colapsada}
             />
           </button>
-        </ContextMenuTrigger>
-
+        }
+      >
         <ContextMenuContent>
           <ContextMenuItem onSelect={() => alternarColapsoDaPasta(pasta.id)}>
             {pasta.colapsada ? "Expandir pasta" : "Recolher pasta"}
@@ -317,7 +317,7 @@ const PastaDoRail = memo(function PastaDoRail({
 
           <ItemDeId id={pasta.id} />
         </ContextMenuContent>
-      </ContextMenu>
+      </MenuDeContexto>
 
       {/*
         Colapsada, os ladrilhos continuam MONTADOS e o CSS os recorta.
