@@ -214,7 +214,12 @@ contextBridge.exposeInMainWorld("vortex", {
     return () => ipcRenderer.off("vortexAtualizacao", alca);
   },
   verificarAtualizacao: () => ipcRenderer.invoke("vortexVerificarAtualizacao"),
-  instalarEReiniciar: () => ipcRenderer.invoke("vortexInstalarEReiniciar"),
+  /* O argumento só atravessa quando existe: sem ele o canal recebe o pedido
+     de sempre, e com ele a tela de bloqueio pede a instalação obrigatória. */
+  instalarEReiniciar: (opcoes?: unknown) =>
+    opcoes === undefined
+      ? ipcRenderer.invoke("vortexInstalarEReiniciar")
+      : ipcRenderer.invoke("vortexInstalarEReiniciar", opcoes),
 
   tamanhoDoCache: () => ipcRenderer.invoke("vortexTamanhoDoCache"),
   limparCache: () => ipcRenderer.invoke("vortexLimparCache"),

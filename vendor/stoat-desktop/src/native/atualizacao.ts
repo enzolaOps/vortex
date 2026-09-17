@@ -1,4 +1,5 @@
 import { app, autoUpdater, BrowserWindow } from "electron";
+import { criarAtualizacao, validarPedidoDeInstalacao } from "./atualizacaoModelo";
 import { registrar, semArgumentos } from "./registroDeIpc";
 import { updateElectronApp } from "update-electron-app";
 
@@ -60,91 +61,77 @@ export function ligarAtualizacaoAutomatica(): void {
 /**
  * O ciclo de vida da atualização, no vocabulário do cliente.
  *
- * ⚠ **A tela de atualização do cliente existe desde antes desta casca** —
- * `desktop/Atualizacao.tsx`, com os seis estados que o design desenha — e
- * nunca recebeu um evento, porque `window.vortex` não existia. Construída e
- * inalcançável, como o painel de fixadas.
+ * ⚠ **A decisão mora em `atualizacaoModelo.ts`**, que é puro e testado; aqui
+ * só se liga o `autoUpdater` a ela. A divisão existe porque o defeito que ela
+ * conserta era de DECISÃO: a tela de bloqueio pedia instalação e o canal só
+ * agia em `pronta`, então a atualização obrigatória nunca instalava.
  *
  * ⚠ **Os eventos vêm do `autoUpdater` do Electron, não da biblioteca.** O
  * `update-electron-app` é uma casca fina em cima dele: quem emite
  * `checking-for-update`, `update-available` e `update-downloaded` é o módulo
  * nativo. Assinar ali é assinar a fonte.
  *
- * ⚠ **`baixando` com progresso é o estado que NÃO temos.** O `autoUpdater` do
- * Squirrel.Windows não reporta bytes — ele avisa que começou e que terminou. O
- * cliente tem `progresso`, e mandar um número inventado seria a mesma mentira
- * do "Conectado · 42 ms" que a faixa de voz recusou. Vai `0`, e a tela mostra
- * "baixando" sem barra.
+ * ⚠ **Sem progresso intermediário.** O Squirrel.Windows não reporta bytes; o
+ * modelo manda 0 enquanto baixa e 100 quando está pronta.
  */
-type EstadoDeAtualizacao =
-  | "em-dia"
-  | "verificando"
-  | "baixando"
-  | "pronta"
-  | "obrigatoria"
-  | "falhou";
-
-let atual: { estado: EstadoDeAtualizacao; versao: string | undefined; progresso: number } = {
-  estado: "em-dia",
-  versao: undefined,
-  progresso: 0,
-};
-
 export function registrarAtualizacaoNaPonte(): void {
-  const emitir = (
-    estado: EstadoDeAtualizacao,
-    versao?: string,
-  ) => {
-    atual = { estado, versao: versao ?? atual.versao, progresso: 0 };
-    for (const j of BrowserWindow.getAllWindows()) {
-      if (!j.isDestroyed()) j.webContents.send("vortexAtualizacao", atual);
-    }
-  };
+  const disponivel = app.isPackaged && process.platform !== "linux";
+
+  const ciclo = criarAtualizacao({
+    disponivel,
+    checar: () => void autoUpdater.checkForUpdates(),
+    instalar: () => autoUpdater.quitAndInstall(),
+    emitir: (atual) => {
+      for (const j of BrowserWindow.getAllWindows()) {
+        if (!j.isDestroyed()) j.webContents.send("vortexAtualizacao", atual);
+      }
+    },
+  });
 
   registrar("vortexEstadoDaAtualizacao", {
     via: "invoke",
     quem: ["principal"],
     validar: semArgumentos,
-    executar: () => atual,
+    executar: () => ciclo.estado(),
   });
 
   /*
     ⚠ **Os três verbos existem mesmo sem atualizador de pé** — no Linux e em
-    desenvolvimento o `autoUpdater` não tem feed. Devolver `em-dia` é honesto:
-    não há atualização esperando. Lançar faria a tela do cliente quebrar num
-    lugar onde não há defeito nenhum.
+    desenvolvimento o `autoUpdater` não tem feed. Verificar vira no-op e
+    `em-dia` segue honesto; só o pedido OBRIGATÓRIO falha, porque ali "não há
+    como atualizar" é exatamente o que a pessoa bloqueada precisa saber para
+    baixar à mão.
   */
   registrar("vortexVerificarAtualizacao", {
     via: "invoke",
     quem: ["principal"],
     validar: semArgumentos,
-    executar: () => {
-      if (!app.isPackaged || process.platform === "linux") return;
-      try {
-        autoUpdater.checkForUpdates();
-      } catch {
-        emitir("falhou");
-      }
-    },
+    executar: () => ciclo.verificar(),
   });
 
+  /*
+    ⚠ **Argumento opcional e não verbo novo.** `{ obrigatoria: true }` vem da
+    tela de bloqueio. Um verbo novo em `PonteDesktop` faria o cliente tratar
+    toda casca anterior como ausente; um argumento a mais é ignorado pelo
+    preload antigo, e o cliente cai no "baixar manualmente".
+  */
   registrar("vortexInstalarEReiniciar", {
     via: "invoke",
     quem: ["principal"],
-    validar: semArgumentos,
-    executar: () => {
-      if (atual.estado !== "pronta") return;
-      autoUpdater.quitAndInstall();
-    },
+    validar: validarPedidoDeInstalacao,
+    executar: (pedido) => ciclo.pedirInstalacao(pedido),
   });
 
-  if (!app.isPackaged || process.platform === "linux") return;
+  if (!disponivel) return;
 
-  autoUpdater.on("checking-for-update", () => emitir("verificando"));
-  autoUpdater.on("update-available", () => emitir("baixando"));
-  autoUpdater.on("update-not-available", () => emitir("em-dia"));
-  autoUpdater.on("error", () => emitir("falhou"));
+  autoUpdater.on("checking-for-update", () => ciclo.aoEvento({ tipo: "verificando" }));
+  autoUpdater.on("update-available", () => ciclo.aoEvento({ tipo: "disponivel" }));
+  autoUpdater.on("update-not-available", () => ciclo.aoEvento({ tipo: "nada" }));
+  autoUpdater.on("error", () => ciclo.aoEvento({ tipo: "erro" }));
   autoUpdater.on("update-downloaded", (_e, _notas, nome) =>
-    emitir("pronta", typeof nome === "string" ? nome : undefined),
+    ciclo.aoEvento({
+      tipo: "baixada",
+      versao: typeof nome === "string" ? nome : undefined,
+    }),
   );
 }
