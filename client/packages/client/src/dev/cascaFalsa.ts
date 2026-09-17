@@ -22,25 +22,51 @@ import { hidratarDesktop } from "../store/desktop";
 
 let parar: (() => void) | undefined;
 
+/* Quem ouve a atualização agora — os verbos falsos respondem por aqui. */
+let ouvinteDaAtualizacao: ((a: Atualizacao) => void) | undefined;
+const temporizadores = new Set<ReturnType<typeof setTimeout>>();
+
+function emitirDepois(ms: number, a: Atualizacao): void {
+  const id = setTimeout(() => {
+    temporizadores.delete(id);
+    ouvinteDaAtualizacao?.(a);
+  }, ms);
+  temporizadores.add(id);
+}
+
 function ciclo(ouvinte: (a: Atualizacao) => void): () => void {
   /*
-    Percorre os estados que DESENHAM algo, e para na obrigatória — que é a
-    tela de bloqueio. Os três silenciosos passam rápido de propósito: o ciclo
-    existe para ver as duas superfícies, não para simular o tempo real de um
-    download.
+    Percorre os SEIS estados, na ordem do design, e para na obrigatória — que
+    é a tela de bloqueio. Um passo a cada 2 s, para dar tempo de medir cada
+    superfície: a faixa (pronta, falhou), a linha de Configurações > Desktop
+    (verificando, baixando) e o bloqueio.
+
+    ⚠ **O bloqueio cobre o arnês, inclusive o botão que desliga a casca.** É o
+    comportamento de produto. Para sair, F5: a casca falsa é injetada por
+    JavaScript e não sobrevive ao recarregamento.
   */
   const roteiro: Atualizacao[] = [
     { estado: "em-dia", versao: undefined, progresso: 0 },
     { estado: "verificando", versao: undefined, progresso: 0 },
-    { estado: "baixando", versao: "4.2.1", progresso: 40 },
+    { estado: "baixando", versao: "4.2.1", progresso: 0 },
     { estado: "pronta", versao: "4.2.1", progresso: 100 },
+    { estado: "falhou", versao: "4.2.1", progresso: 0 },
+    { estado: "obrigatoria", versao: "4.3.0", progresso: 0 },
   ];
+  ouvinteDaAtualizacao = ouvinte;
   let i = 0;
+  ouvinte(roteiro[0]!);
   const id = setInterval(() => {
-    ouvinte(roteiro[i] ?? roteiro[roteiro.length - 1]!);
     i = Math.min(i + 1, roteiro.length - 1);
-  }, 1200);
-  return () => clearInterval(id);
+    ouvinte(roteiro[i]!);
+    if (i === roteiro.length - 1) clearInterval(id);
+  }, 2000);
+  return () => {
+    clearInterval(id);
+    for (const t of temporizadores) clearTimeout(t);
+    temporizadores.clear();
+    ouvinteDaAtualizacao = undefined;
+  };
 }
 
 const PREFERENCIAS = new Map<string, unknown>();
@@ -85,9 +111,24 @@ const FALSA = {
   },
 
   assinarAtualizacao: ciclo,
-  verificarAtualizacao: () => Promise.resolve(),
-  instalarEReiniciar: () => {
-    console.info("[casca falsa] instalar e reiniciar");
+  /* Verificar responde como a casca: consulta e volta "em dia". */
+  verificarAtualizacao: () => {
+    emitirDepois(0, { estado: "verificando", versao: undefined, progresso: 0 });
+    emitirDepois(1500, { estado: "em-dia", versao: undefined, progresso: 0 });
+    return Promise.resolve();
+  },
+  /*
+    O pedido obrigatório percorre o caminho de FALHA — verificando, baixando,
+    falhou —, porque é o único que o arnês consegue mostrar inteiro: o de
+    sucesso termina num reinício que uma aba não tem como fazer.
+  */
+  instalarEReiniciar: (opcoes) => {
+    console.info("[casca falsa] instalar e reiniciar", opcoes ?? {});
+    if (opcoes?.obrigatoria) {
+      emitirDepois(0, { estado: "verificando", versao: "4.3.0", progresso: 0 });
+      emitirDepois(1500, { estado: "baixando", versao: "4.3.0", progresso: 0 });
+      emitirDepois(3000, { estado: "falhou", versao: "4.3.0", progresso: 0 });
+    }
     return Promise.resolve();
   },
 

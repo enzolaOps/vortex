@@ -35,6 +35,7 @@ import { toast } from "../components/ui/toastStore";
 import { definirUsuarioLocal, startAdapter } from "./adapter";
 import { escolherNome, precisaEscolherNome } from "./conta";
 import { client } from "./client";
+import { esperarConfiguracao } from "./config";
 import {
   dentro,
   desativada,
@@ -209,19 +210,6 @@ async function conectar(): Promise<void> {
     return;
   }
   client.connect();
-}
-
-/** Quanto esperar pela configuração antes de desistir. */
-const TETO_DA_CONFIGURACAO_MS = 15_000;
-const PASSO_MS = 50;
-
-async function esperarConfiguracao(): Promise<boolean> {
-  const limite = Date.now() + TETO_DA_CONFIGURACAO_MS;
-  while (client.configuration?.ws === undefined) {
-    if (Date.now() > limite) return false;
-    await new Promise((r) => setTimeout(r, PASSO_MS));
-  }
-  return true;
 }
 
 /**
