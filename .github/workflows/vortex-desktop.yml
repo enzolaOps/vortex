@@ -10,8 +10,8 @@
 # instalado com a da release; com o `package.json` fixo em 0.1.0, nenhuma
 # atualização seria reconhecida como mais nova.
 #
-# Nomes ESTÁVEIS para o instalador (`Vortex-Setup.exe`, `Vortex.flatpak`): o
-# botão "Baixar para desktop" do cliente aponta para
+# Nomes ESTÁVEIS para o instalador (`Vortex-Setup.exe`, `Vortex.deb`,
+# `Vortex-linux.zip`): o botão "Baixar para desktop" do cliente aponta para
 # `releases/latest/download/<nome>`.
 #
 # Segredos opcionais (Settings → Secrets → Actions):
@@ -84,24 +84,11 @@ jobs:
       - name: Ativar o pnpm da casca
         run: corepack enable && pnpm --version
 
-      # O Flatpak precisa do construtor e do runtime; o Windows não precisa de
-      # nada além do Node. Passo condicional em vez de dois jobs quase iguais.
-      # Sem `-dev` do X11: o `uiohook-napi` usa o prebuild (ver `rebuildConfig`
-      # em `forge.config.ts`) e não é recompilado.
-      - name: Preparar Flatpak
+      # .deb precisa de fakeroot. Sem `-dev` do X11: o `uiohook-napi` usa o
+      # prebuild (ver `rebuildConfig` em `forge.config.ts`).
+      - name: Ferramentas do .deb
         if: matrix.plataforma == 'linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder elfutils
-          # ⚠ Em `--user`, não com `sudo`: o `flatpak-bundler` do maker confere
-          # cada ref e, achando-a só no sistema, roda `flatpak update` sem
-          # `--user` — o que exige root. A BaseApp do Electron é a `base` que o
-          # maker pede.
-          flatpak remote-add --user --if-not-exists flathub \
-            https://flathub.org/repo/flathub.flatpakrepo
-          flatpak install --user -y --noninteractive flathub \
-            org.freedesktop.Platform//25.08 org.freedesktop.Sdk//25.08 \
-            org.electronjs.Electron2.BaseApp//25.08
+        run: sudo apt-get update && sudo apt-get install -y fakeroot
 
       - name: Instalar dependências
         run: pnpm install --frozen-lockfile
@@ -143,12 +130,9 @@ jobs:
 
       - name: Empacotar
         env:
-          # Lido por `forge.config.ts` para pular os makers que só existem em
-          # teste local (o .deb).
+          # Lido por `forge.config.ts`: no CI o Flatpak não entra (Ubuntu/Arch
+          # recebem .deb e zip). Sem isto, `pnpm make` local ainda gera Flatpak.
           PLATFORM: ${{ matrix.plataforma }}
-          # O maker do Flatpak só diz "flatpak failed with status code 1"; o
-          # comando e a saída dele só aparecem com o log de depuração.
-          DEBUG: ${{ matrix.plataforma == 'linux' && 'electron-installer-flatpak*,flatpak-bundler' || '' }}
         run: pnpm make
 
       - name: Reunir os artefatos
@@ -158,11 +142,14 @@ jobs:
           # instalador, o manifesto de atualização e o pacote do Squirrel.
           find out/make -type f \
             \( -name "*.exe" -o -name "*.nupkg" -o -name "RELEASES" \
-               -o -name "*.flatpak" \) \
+               -o -name "*.deb" -o -name "*.zip" \) \
             -exec cp {} entrega/ \;
-          # Nome estável para o link de download do cliente.
-          for f in entrega/*.flatpak; do
-            [ -e "$f" ] && mv "$f" entrega/Vortex.flatpak
+          # Nomes estáveis para o link de download do cliente.
+          for f in entrega/*.deb; do
+            [ -e "$f" ] && mv "$f" entrega/Vortex.deb
+          done
+          for f in entrega/*.zip; do
+            [ -e "$f" ] && mv "$f" entrega/Vortex-linux.zip
           done
           ls -la entrega/
           if [ -z "$(ls -A entrega)" ]; then

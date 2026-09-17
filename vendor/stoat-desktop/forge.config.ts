@@ -1,6 +1,7 @@
 import { MakerDeb } from "@electron-forge/maker-deb";
 import { MakerFlatpak } from "@electron-forge/maker-flatpak";
 import { MakerSquirrel } from "@electron-forge/maker-squirrel";
+import { MakerZip } from "@electron-forge/maker-zip";
 import { MakerFlatpakOptionsConfig } from "@electron-forge/maker-flatpak/dist/Config";
 import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import { VitePlugin } from "@electron-forge/plugin-vite";
@@ -64,6 +65,23 @@ const makers: ForgeConfig["makers"] = [
         }
       : {}),
   }),
+  /* Ubuntu/Debian: `apt install ./Vortex.deb`. Forge ignora no Windows. */
+  new MakerDeb({
+    options: {
+      productName: STRINGS.name,
+      productDescription: STRINGS.description,
+      categories: ["Network"],
+      icon: `${ASSET_DIR}/icon.png`,
+    },
+  }),
+  /* Arch e o resto: zip do app empacotado. Sem sandbox, sem runtime extra. */
+  new MakerZip({}, ["linux"]),
+];
+
+/* Flatpak só fora do CI: no runner ele pede runtime do Flathub (~minutos) e
+   não é o que Ubuntu/Arch instalam. `pnpm make` local continua podendo gerá-lo. */
+if (!process.env.PLATFORM) {
+  makers.push(
   new MakerFlatpak({
     options: {
       id: APP_ID,
@@ -124,20 +142,6 @@ const makers: ForgeConfig["makers"] = [
       files: [],
     } as MakerFlatpakOptionsConfig,
   }),
-];
-
-// skip these makers in CI/CD
-if (!process.env.PLATFORM) {
-  makers.push(
-    // testing purposes
-    new MakerDeb({
-      options: {
-        productName: STRINGS.name,
-        productDescription: STRINGS.description,
-        categories: ["Network"],
-        icon: `${ASSET_DIR}/icon.png`,
-      },
-    }),
   );
 }
 
