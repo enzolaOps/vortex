@@ -3,9 +3,9 @@ import { useSyncExternalStore } from "react";
 import { Botao } from "../components/ui/Botao";
 import { Escolha } from "../components/ui/Escolha";
 import { Interruptor } from "../components/ui/Interruptor";
-import { aindaNao } from "../pendente/pendencias";
 import { fecharConfig } from "../store/config";
 import { useRelacao } from "../store/hooks";
+import { ExportarDados } from "./ExportarDados";
 import { irParaAmigos } from "../store/navegacao";
 import {
   assinarPrivacidade,
@@ -123,14 +123,7 @@ export function Privacidade() {
           />
         </LinhaDeAjuste>
 
-        <LinhaDeAjuste
-          titulo="Solicitar meus dados"
-          detalhe="Recebe um arquivo por e-mail em até 30 dias"
-        >
-          <Botao tamanho="pequeno" onClick={aindaNao("exportarDados")}>
-            Solicitar
-          </Botao>
-        </LinhaDeAjuste>
+        <ExportarDados />
       </GrupoDeAjustes>
 
       <p className={pg.recado}>

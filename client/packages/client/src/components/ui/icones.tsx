@@ -19,6 +19,7 @@ import {
   RiAtLine,
   RiBarChartFill,
   RiBold,
+  RiCalendarEventFill,
   RiChat1Fill,
   RiChat3Fill,
   RiCheckLine,
@@ -81,6 +82,7 @@ import {
   RiSquareLine,
   RiStarFill,
   RiStickyNoteFill,
+  RiStopFill,
   RiSubtractLine,
   RiTeamLine,
   RiTrophyFill,
@@ -178,6 +180,7 @@ export const ArrowSquareOut = vx(RiExternalLinkFill);
 export const ArrowsClockwise = vx(RiLoopLeftFill);
 export const ArrowsOut = vx(RiExpandDiagonalFill);
 export const BellSimple = vx(RiNotification3Fill);
+export const Calendar = vx(RiCalendarEventFill);
 export const ChartBar = vx(RiBarChartFill);
 export const ChatCircle = vx(RiChat1Fill);
 export const ChatCircleDots = vx(RiChat3Fill);
@@ -209,6 +212,8 @@ export const Phone = vx(RiPhoneFill);
 export const PhoneX = vx(RiCloseCircleFill);
 export const PictureInPicture = vx(RiPictureInPicture2Fill);
 export const Play = vx(RiPlayFill);
+/* Parar a prévia de um efeito sonoro — o ■ do design. */
+export const Stop = vx(RiStopFill);
 export const ProhibitInset = vx(RiForbidFill);
 export const Rows = vx(RiListCheck);
 export const ShieldCheck = vx(RiShieldCheckFill);
@@ -329,5 +334,21 @@ export const FORA_DA_ESCALA = [
       "O glifo acompanha o alvo mas não é o alvo: 13 dentro de 28 é o do " +
       "design. Subir para 14 apagaria o degrau contra `.md`/`.lg`, que já " +
       "são 14; descer para 12 é menor do que o design desenha.",
+  },
+  {
+    px: 11,
+    onde: "overlay/Overlay.module.css .cabecalho svg",
+    porque:
+      "O ícone de voz ao lado do nome do canal no widget do overlay do jogo, " +
+      "que tem 186px e texto de 11px. O design o escreve em 11: ele " +
+      "acompanha o rótulo, e em 14 pesaria mais que o próprio nome.",
+  },
+  {
+    px: 13,
+    onde: "overlay/Overlay.module.css .botao svg",
+    porque:
+      "Os três controles do widget do overlay, em alvos de 24px de altura. " +
+      "É o 13 do design e o mesmo raciocínio do `BotaoDeIcone`: o glifo " +
+      "acompanha o alvo sem ser o alvo.",
   },
 ] as const;

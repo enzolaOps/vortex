@@ -18,6 +18,11 @@ import {
 } from "../store/chamada";
 import { toast } from "../components/ui/toastStore";
 import type { QualidadeDaTela } from "../store/qualidadeDaTela";
+import { lerChamadaRecebida } from "../store/chamadaRecebida";
+import { abrirConversa } from "../store/navegacao";
+import { definirPalco } from "../store/palcoDeVoz";
+import { atenderNoStore, recusarNoStore } from "../notificacao/chamadas";
+import { enviarMensagem } from "./adapter";
 
 type Motor = typeof import("./motorDeVoz");
 
@@ -74,6 +79,69 @@ export async function entrarNaChamada(channelId: string): Promise<boolean> {
   const m = await motorOuAviso();
   if (m === undefined) return false;
   return m.entrarNaChamada(channelId);
+}
+
+/**
+ * Ligar numa DM ou grupo — o botão do cabeçalho.
+ *
+ * ⚠ **Ligar é ENTRAR na sala da conversa.** O Stoat não tem "chamada avulsa":
+ * a chamada é sempre de um canal, e quem está do outro lado recebe o toque
+ * porque o `voice-ingress` avisa os destinatários quando a primeira pessoa
+ * entra. Não há rota de "tocar" a chamar; entrar é o sinal.
+ *
+ * Já dentro da sala desta conversa, o mesmo botão só traz a chamada de volta
+ * para a tela — entrar de novo desconectaria e reconectaria por nada.
+ */
+export async function ligar(channelId: string): Promise<boolean> {
+  const c = lerChamada();
+  if (c.estado !== "fora" && c.channelId === channelId) {
+    definirPalco({ tipo: "grade" });
+    return true;
+  }
+  return entrarNaChamada(channelId);
+}
+
+/**
+ * Atender a chamada que está tocando.
+ *
+ * ⚠ **A ordem é: tirar o toque, navegar, preparar, entrar.** O toque sai
+ * PRIMEIRO porque `entrarNaChamada` leva segundos de rede, e uma campainha
+ * tocando durante o "conectando…" faz a pessoa apertar de novo.
+ *
+ * `semMicrofone` e `comCamera` são as duas escolhas da tela cheia. Microfone
+ * é preferência de store (é o que `entrarNaChamada` lê antes de abrir o
+ * dispositivo); câmera só existe dentro da sala, então liga depois.
+ */
+export async function atenderChamada(opcoes?: {
+  readonly semMicrofone?: boolean;
+  readonly comCamera?: boolean;
+}): Promise<boolean> {
+  const t = lerChamadaRecebida();
+  if (!t) return false;
+  atenderNoStore();
+  abrirConversa(t.channelId);
+  if (opcoes?.semMicrofone && !lerChamada().mudo) alternarMudoNoStore();
+  const entrou = await entrarNaChamada(t.channelId);
+  if (entrou && opcoes?.comCamera && !lerChamada().camera) await alternarCamera();
+  return entrou;
+}
+
+/**
+ * Recusar.
+ *
+ * ⚠ **Não existe "recusar" no protocolo** — nem rota, nem evento. Quem ligou
+ * continua na sala até desistir; do lado de cá recusar é parar de tocar e não
+ * tocar de novo pela mesma chamada (ver `ignorados` no store).
+ *
+ * `recado` é a mensagem opcional da tela cheia: ela vai como mensagem comum na
+ * conversa, que é a única forma que o Stoat tem de dizer alguma coisa a quem
+ * ligou.
+ */
+export function recusarChamada(recado?: string): void {
+  const t = lerChamadaRecebida();
+  if (!t) return;
+  recusarNoStore();
+  if (recado) enviarMensagem(t.channelId, recado);
 }
 
 /**
@@ -181,14 +249,6 @@ export function definirQualidadeDeStream(
   qualidade: "auto" | "alta" | "media" | "soAudio",
 ): void {
   motor?.definirQualidadeDeStream(userId, fonte, qualidade);
-}
-
-export function definirVolumeDe(userId: string, volume: number): void {
-  motor?.definirVolumeDe(userId, volume);
-}
-
-export function volumeDe(userId: string): number {
-  return motor?.volumeDe(userId) ?? 1;
 }
 
 /**

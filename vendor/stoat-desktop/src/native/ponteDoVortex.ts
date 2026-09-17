@@ -1,7 +1,8 @@
-import { app, BrowserWindow, ipcMain, session, shell } from "electron";
+import { app, BrowserWindow, session, shell } from "electron";
+import { registrar, semArgumentos, umDe } from "./registroDeIpc";
 
 import { version } from "../../package.json";
-import { config } from "./config";
+import { registrarPreferencias } from "./preferencias";
 import { mainWindow } from "./window";
 
 /**
@@ -28,6 +29,15 @@ import { mainWindow } from "./window";
 /** O que a janela pode fazer consigo mesma — espelha `ControleDeJanela`. */
 type ControleDeJanela = "minimizar" | "maximizar" | "restaurar" | "fechar";
 
+const VERBOS_DE_JANELA: readonly ControleDeJanela[] = [
+  "minimizar",
+  "maximizar",
+  "restaurar",
+  "fechar",
+];
+
+const verboDeJanela = umDe(VERBOS_DE_JANELA);
+
 const CONTROLES: Record<ControleDeJanela, (j: BrowserWindow) => void> = {
   minimizar: (j) => j.minimize(),
   maximizar: (j) => j.maximize(),
@@ -43,54 +53,51 @@ export function registrarPonteDoVortex(): void {
     `setAlwaysOnTop` a `destroy`. É a mesma revalidação que o seletor de tela
     faz no `id` da fonte, e o briefing pede por nome: "IPC validado no main".
   */
-  ipcMain.handle("vortexJanela", (_e, acao: unknown) => {
-    const j = janela();
-    if (!j) return;
-    const fn = CONTROLES[acao as ControleDeJanela] as
-      | ((j: BrowserWindow) => void)
-      | undefined;
-    if (fn) fn(j);
+  registrar("vortexJanela", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: verboDeJanela,
+    executar: (acao) => {
+      const j = janela();
+      if (j) CONTROLES[acao](j);
+    },
   });
 
-  ipcMain.handle("vortexEstadoDaJanela", () => estado());
-
-  ipcMain.handle("vortexLerPreferencias", () => ({
-    customFrame: config.customFrame,
-    minimiseToTray: config.minimiseToTray,
-    startMinimisedToTray: config.startMinimisedToTray,
-    spellchecker: config.spellchecker,
-    hardwareAcceleration: config.hardwareAcceleration,
-  }));
+  registrar("vortexEstadoDaJanela", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: () => estado(),
+  });
 
   /*
-    ⚠ **Chave conferida contra a lista, e não repassada.** `config` é um store
-    em disco: aceitar chave arbitrária do renderer deixaria conteúdo de
-    terceiro escrever qualquer coisa nele, inclusive campos que o main lê para
-    decidir comportamento de segurança.
+    ⚠ **Ler e gravar preferências moram em `preferencias.ts`.** A versão que
+    estava aqui só aceitava as chaves do UPSTREAM (`customFrame`,
+    `minimiseToTray`…), e o cliente manda as dele (`barraNativa`, `aoFechar`…):
+    tudo o que a tela Desktop gravava era descartado sem erro.
   */
-  ipcMain.handle("vortexGravarPreferencia", (_e, chave: unknown, valor: unknown) => {
-    const permitidas = [
-      "customFrame",
-      "minimiseToTray",
-      "startMinimisedToTray",
-      "spellchecker",
-      "hardwareAcceleration",
-    ];
-    if (typeof chave !== "string" || !permitidas.includes(chave)) return;
-    (config as unknown as Record<string, unknown>)[chave] = valor;
+  registrarPreferencias();
+
+  registrar("vortexTamanhoDoCache", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: () => session.defaultSession.getCacheSize(),
   });
 
-  ipcMain.handle("vortexTamanhoDoCache", () =>
-    session.defaultSession.getCacheSize(),
-  );
+  registrar("vortexLimparCache", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: () => session.defaultSession.clearCache(),
+  });
 
-  ipcMain.handle("vortexLimparCache", () =>
-    session.defaultSession.clearCache(),
-  );
-
-  ipcMain.handle("vortexAbrirPastaDeLogs", () =>
-    shell.openPath(app.getPath("logs")),
-  );
+  registrar("vortexAbrirPastaDeLogs", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: () => shell.openPath(app.getPath("logs")),
+  });
 
   /*
     O estado da janela é EMPURRADO, e não perguntado em laço.

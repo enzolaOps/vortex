@@ -33,6 +33,7 @@ export const PAINEIS = [
   "fixados",
   "caixaDeEntrada",
   "busca",
+  "topicos",
 ] as const;
 
 export type PainelId = (typeof PAINEIS)[number];
@@ -55,6 +56,7 @@ export const NOME_DO_PAINEL: Record<PainelId, string> = {
   fixados: "fixados",
   caixaDeEntrada: "caixa de entrada",
   busca: "busca",
+  topicos: "tópicos",
 };
 
 /**
@@ -161,6 +163,10 @@ export const LARGURA = {
     que é a única coisa que ela serve.
   */
   busca: { min: 300, max: 560, padrao: 380 },
+  /* 340, do design — o painel de tópicos ao lado do tópico aberto. O cartão
+     empilha nome, canal com contagem e a linha de participantes; abaixo de
+     ~260 o nome do canal pai trunca em toda linha. */
+  topicos: { min: 260, max: 520, padrao: 340 },
 } as const satisfies Record<PainelId, { min: number; max: number; padrao: number }>;
 
 export function limitarLargura(painel: PainelId | null, largura: number): number {

@@ -20,6 +20,8 @@ export function propsDoNome(pintura: PinturaDeCargo | undefined): {
 } {
   if (!pintura) return {};
   if (pintura.tipo === "solida") return { style: { color: pintura.cor } };
+  // Holográfico e gradiente têm a MESMA mecânica no nome — texto recortado —,
+  // e só diferem na pílula. Um atributo só mantém uma regra de CSS só.
   return {
     "data-pintura": "gradiente",
     style: {

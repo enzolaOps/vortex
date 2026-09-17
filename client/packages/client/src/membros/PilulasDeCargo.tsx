@@ -1,7 +1,9 @@
 import { memo } from "react";
 
 import { cargosDoServidor } from "../sdk/cargos";
+import { IconeDeCargo } from "./IconeDeCargo";
 import { usePinturaDeCargo } from "../store/hooks";
+import { TINTA_HOLOGRAFICA } from "../tema/cargo";
 import css from "./PilulasDeCargo.module.css";
 
 /**
@@ -15,19 +17,21 @@ import css from "./PilulasDeCargo.module.css";
 const Pilula = memo(function Pilula({
   nome,
   cor,
+  iconeUrl,
   denso,
 }: {
   nome: string;
   cor: string | undefined;
+  iconeUrl: string | undefined;
   denso: boolean;
 }) {
   const pintura = usePinturaDeCargo(cor);
-  const gradiente = pintura?.tipo === "gradiente";
+  const semPonto = pintura !== undefined && pintura.tipo !== "solida";
 
   return (
     <span
       className={denso ? css.densa : css.pilula}
-      data-pintura={gradiente ? "gradiente" : undefined}
+      data-pintura={semPonto ? pintura.tipo : undefined}
       /*
         ⚠ **A cor é DADO e por isso vai em `style`** — é a mesma exceção da cor
         de cargo no nome do autor, e a única classe de cor literal que este
@@ -39,19 +43,31 @@ const Pilula = memo(function Pilula({
       style={
         pintura === undefined
           ? undefined
-          : pintura.tipo === "gradiente"
-            ? { backgroundImage: pintura.fundo }
-            : {
-                color: pintura.cor,
-                backgroundColor: `color-mix(in oklab, ${pintura.cor} 15%, transparent)`,
-              }
+          : pintura.tipo === "holografico"
+            ? // O preset em opacidade cheia e o texto escuro do design — o par
+              // não muda com o tema porque o fundo não muda.
+              { backgroundImage: pintura.fundo, color: TINTA_HOLOGRAFICA }
+            : pintura.tipo === "gradiente"
+              ? { backgroundImage: pintura.fundo }
+              : {
+                  color: pintura.cor,
+                  backgroundColor: `color-mix(in oklab, ${pintura.cor} 15%, transparent)`,
+                }
       }
     >
       {/* Sem o ponto no modo denso: há uma pílula por linha numa tabela de
           mil, e o ponto repetido mil vezes vira textura, não informação. E
           sem ele no gradiente: um ponto de UMA cor contradiria o fundo de
           duas, e o design o tira. */}
-      {denso || gradiente ? null : <span className={css.ponto} aria-hidden />}
+      {/* Com ícone, a imagem toma o lugar do ponto — as duas marcam o mesmo
+          "de que cargo é isto", e ponto e ícone lado a lado seriam dois
+          sinais para uma informação. Aparece também no denso e no gradiente:
+          o ícone é escolha de quem administra, o ponto é só decoração. */}
+      {iconeUrl ? (
+        <IconeDeCargo url={iconeUrl} nome={undefined} tamanho={denso ? "pequeno" : "medio"} />
+      ) : denso || semPonto ? null : (
+        <span className={css.ponto} aria-hidden />
+      )}
       {nome}
     </span>
   );
@@ -104,7 +120,7 @@ export function PilulasDeCargo({
   return (
     <div className={css.pilulas}>
       {cargos.map((c) => (
-        <Pilula key={c.id} nome={c.nome} cor={c.cor} denso={denso} />
+        <Pilula key={c.id} nome={c.nome} cor={c.cor} iconeUrl={c.iconeUrl} denso={denso} />
       ))}
     </div>
   );

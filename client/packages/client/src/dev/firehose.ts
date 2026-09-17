@@ -12,7 +12,13 @@
  */
 import { decodeTime, monotonicFactory, ulid } from "ulid";
 
-import { definirEnquete } from "../store/enquetes";
+import { definirEnqueteBruta, lerEuDasEnquetes } from "../store/enquetes";
+import { registrarFigurinhaLocal } from "../sdk/figurinhasDeMensagem";
+import { FIGURINHAS_DO_ARNES, semearExpressoesDoArnes } from "./expressoesDoArnes";
+import {
+  definirPerfilDoServidor,
+  definirQuemExibeTag,
+} from "../store/perfilDoServidor";
 import {
   definirChamada,
   definirFalantes,
@@ -21,7 +27,7 @@ import {
 } from "../store/chamada";
 import { definirPalco } from "../store/palcoDeVoz";
 import { chaveDeVideo, faixasDeVideo } from "../store/video";
-import { selecionarCanal } from "../store/navegacao";
+import { abrirConversa, selecionarCanal } from "../store/navegacao";
 
 import { count, countMax } from "./stats";
 import {
@@ -39,12 +45,15 @@ import {
 } from "../sdk/adapter";
 import type { PresenceStatus } from "../sdk/domain";
 import { client } from "../sdk/client";
-import { dublarRedeDoServidor } from "./rede";
+import { anotarCanais, semearListagem } from "../sdk/vortexCanal";
+import { dublarRedeDoServidor, registrarPreviaDublada } from "./rede";
 
 const nextId = monotonicFactory();
 
 export const CHANNEL_ID = "01JQ0000000000000000000000";
 export const SERVER_ID = "01JQ0000000000000000000001";
+const FORUM_ID = "01JQ000000000000000000001F";
+const GALERIA_ID = "01JQ000000000000000000001G";
 const USER_COUNT = 40;
 
 /**
@@ -90,6 +99,8 @@ type Servidor = {
     teto?: number;
     /** Segundos entre mensagens. O "Modo lento · 30 s" do design. */
     lento?: number;
+    /** Fórum (ou galeria, com `media`) — o objeto cru que só este fork manda. */
+    forum?: { media?: boolean; tags?: { id: string; name: string; colour?: string }[] };
   }[];
   categorias?: { id: string; title: string; channels: string[] }[];
   /** Quantos dos `userIds` pertencem a ele. */
@@ -113,6 +124,31 @@ const MUNDO: Servidor[] = [
       // Restrito: o cadeado do design. Um canal só, porque o marcador tem de
       // se distinguir varrendo — se todos tivessem, ele não diria nada.
       { id: "01JQ000000000000000000001P", nome: "liderança", privado: true },
+      /*
+        Fórum e galeria — os tipos que este fork acrescenta. As tags e as
+        descrições são as do design, palavra por palavra, para a tela medir o
+        mesmo que a desenhada.
+      */
+      {
+        id: FORUM_ID,
+        nome: "ideias",
+        topico: "Um post por ideia. Use as tags e feche quando decidir.",
+        forum: {
+          tags: [
+            { id: "bug", name: "bug", colour: "#E8596B" },
+            { id: "melhoria", name: "melhoria", colour: "#35C2CC" },
+            { id: "pesquisa", name: "pesquisa", colour: "#8B7BE8" },
+            { id: "resolvido", name: "resolvido", colour: "#46C98A" },
+            { id: "backlog", name: "backlog", colour: "#6E7783" },
+          ],
+        },
+      },
+      {
+        id: GALERIA_ID,
+        nome: "galeria",
+        topico: "Referências visuais. Sempre com legenda e crédito.",
+        forum: { media: true },
+      },
       // Sala COM teto e sala SEM: o "3/8" e a ausência dele. Com teto em todas,
       // o caso `undefined` nunca renderizaria.
       { id: "01JQ0000000000000000000012", nome: "voz-geral", voz: true, dentro: 2, teto: 8 },
@@ -131,6 +167,8 @@ const MUNDO: Servidor[] = [
           "01JQ0000000000000000000010",
           "01JQ0000000000000000000011",
           "01JQ000000000000000000001P",
+          FORUM_ID,
+          GALERIA_ID,
         ],
       },
       {
@@ -394,7 +432,7 @@ const RECADOS = [
     for (const canal of servidor.canais) {
       // Canal de voz é TextChannel COM objeto `voice` — o protocolo não tem
       // um `channel_type` de voz. Ver `ehCanalDeVoz` em `map.ts`.
-      client.channels.getOrCreate(canal.id, {
+      const cru = {
         _id: canal.id,
         channel_type: "TextChannel",
         server: servidor.id,
@@ -411,7 +449,11 @@ const RECADOS = [
         */
         ...(canal.privado ? { default_permissions: { a: "0", d: "1" } } : {}),
         ...(canal.lento ? { slowmode: canal.lento } : {}),
-      } as never);
+        ...(canal.forum ? { forum: canal.forum } : {}),
+      };
+      client.channels.getOrCreate(canal.id, cru as never);
+      // O SDK descarta `forum` na hidratação; o registro guarda — ver `vortexCanal.ts`.
+      anotarCanais([cru]);
     }
 
     client.servers.getOrCreate(servidor.id, {
@@ -474,7 +516,14 @@ const RECADOS = [
       roles: {
         [CARGOS.fundacao]: {
           name: "fundação",
-          colour: "#bcaef2",
+          /*
+            O preset holográfico — o mesmo texto que `HOLOGRAFICO` em
+            `tema/cargo.ts`. Literal e não import de propósito: o arnês faz o
+            papel do SERVIDOR, e o servidor não importa constante do cliente.
+            Se as duas divergirem, o cargo vira gradiente comum na tela, que é
+            o que aconteceria com um `colour` escrito por outro cliente.
+          */
+          colour: "linear-gradient(100deg, #8FE9F0, #C9B6F5 45%, #F3C6A8)",
           hoist: true,
           rank: 0,
           permissions: { a: 0, d: 0 },
@@ -563,6 +612,25 @@ const RECADOS = [
     });
 
     /*
+      Tag, emblema e características — campos do fork que o SDK descarta, então
+      a semeadura escreve direto no store (é o que o evento cru faria).
+
+      ⚠ Só no servidor principal, e só um em cada quatro exibindo: sem um
+      servidor sem tag e sem alguém que NÃO exibe, nem a ausência nem o
+      seletor do menu seriam exercitados.
+    */
+    if (servidor.id === SERVER_ID) {
+      definirPerfilDoServidor(servidor.id, {
+        tag: "VTX",
+        caracteristicas: ["🛠 produto", "🎨 design", "💬 open source"],
+      });
+      definirQuemExibeTag(
+        servidor.id,
+        membros.filter((_, i) => i % 4 === 0),
+      );
+    }
+
+    /*
       Gente DENTRO dos canais de voz, desde a semeadura.
 
       É o ponto inteiro da sala: `Ready.voice_states` entrega os ocupantes no
@@ -619,6 +687,139 @@ const RECADOS = [
   }
 
   semearConversas();
+  semearTopicos();
+}
+
+/**
+ * Posts do fórum, itens da galeria e tópicos de mensagem.
+ *
+ * ⚠ **O arnês mais pobre que o protocolo, de novo — e dessa vez preventivo.**
+ * Sem isto as três telas nasceriam construídas e inalcançáveis sem servidor:
+ * a listagem de tópicos é REST, e o firehose não tem rede. Escreve pelo mesmo
+ * registro que o evento cru escreve (`anotarCanais` + `semearListagem`), então
+ * quem lê não distingue arnês de servidor.
+ *
+ * Arquivado, spoiler, gif, vídeo, post sem mídia e tópico que eu sigo — um de
+ * cada, porque cada um é um ramo da tela que só aparece com o dado.
+ */
+function semearTopicos(): void {
+  const eu = userIds[0]!;
+  const agora = Date.now();
+  const hora = 3_600_000;
+  const canais: object[] = [];
+  const aberturas: object[] = [];
+  const contagens: Record<string, number> = {};
+
+  const topico = (
+    pai: string,
+    nome: string,
+    quando: number,
+    autor: string,
+    extra: {
+      tags?: string[];
+      archived?: boolean;
+      pinned?: boolean;
+      seguir?: boolean;
+      mensagens: number;
+      reacoes?: Record<string, number>;
+    },
+    corpo: string,
+    anexo?: { nome: string; tipo: "Image" | "Video"; gif?: boolean; bytes?: number },
+    daMensagem?: boolean,
+  ) => {
+    const id = ulidEm(quando);
+    const mid = ulidEm(quando + 1);
+    canais.push({
+      _id: id,
+      channel_type: "TextChannel",
+      server: SERVER_ID,
+      name: nome,
+      last_message_id: ulidEm(quando + 5 * 60_000),
+      thread: {
+        parent: pai,
+        owner: autor,
+        message: mid,
+        archived: extra.archived ?? false,
+        ...(extra.pinned ? { pinned: true } : {}),
+        tags: extra.tags ?? [],
+        followers: extra.seguir ? [autor, eu] : [autor],
+      },
+    });
+    aberturas.push({
+      _id: mid,
+      channel: daMensagem ? pai : id,
+      author: autor,
+      content: corpo,
+      // O `🎯 4` do card: o mapa cru `emoji → IDs`, com gente de verdade.
+      ...(extra.reacoes
+        ? {
+            reactions: Object.fromEntries(
+              Object.entries(extra.reacoes).map(([emoji, n]) => [emoji, userIds.slice(0, n)]),
+            ),
+          }
+        : {}),
+      ...(anexo
+        ? {
+            attachments: [
+              {
+                _id: "a" + mid,
+                tag: "attachments",
+                filename: anexo.nome,
+                content_type: anexo.gif ? "image/gif" : anexo.tipo === "Video" ? "video/mp4" : "image/png",
+                size: anexo.bytes ?? 180_000,
+                metadata: { type: anexo.tipo, width: 800, height: 600 },
+              },
+            ],
+          }
+        : {}),
+    });
+    contagens[id] = extra.mensagens;
+  };
+
+  const p = (i: number) => userIds[(i * 7) % userIds.length]!;
+  topico(FORUM_ID, "Rail duplica a pasta ao arrastar servidor de volta", agora - 20 * hora, p(1), { tags: ["bug", "resolvido"], pinned: true, seguir: true, mensagens: 13, reacoes: { "👀": 1, "🎯": 4 } }, "Reproduz em 100% das vezes com duas pastas aninhadas. Gravação anexada.", { nome: "captura.png", tipo: "Image" });
+  topico(FORUM_ID, "Densidade compacta deveria ser o padrão em telas pequenas?", agora - 3 * hora, p(2), { tags: ["pesquisa"], pinned: true, mensagens: 9, reacoes: { "🧠": 6 } }, "Abaixo de 1024 o confortável come metade da altura útil da timeline.");
+  topico(FORUM_ID, "Tri-state precisa de atalho de teclado", agora - 6 * hora, p(3), { tags: ["melhoria"], seguir: true, mensagens: 6, reacoes: { "⚡": 9 } }, "Editar 40 permissões com mouse é lento. Proposta: 1/2/3 sobre a linha focada.");
+  topico(FORUM_ID, "Soundboard com sons externos: onde entra a permissão?", agora - 26 * hora, p(4), { tags: ["melhoria", "backlog"], mensagens: 4, reacoes: { "👀": 2 } }, "Hoje a matriz separa usar soundboard e usar sons externos, mas a UI não deixa isso claro.", { nome: "diagrama.png", tipo: "Image" });
+  topico(FORUM_ID, "Estudo: leitura da timeline em ultrawide", agora - 50 * hora, p(5), { tags: ["pesquisa", "resolvido"], archived: true, mensagens: 15, reacoes: { "🧠": 11 } }, "Testamos 1040 e 1200 de largura máxima com 6 pessoas. 1040 ganhou em varredura.", { nome: "grafico.png", tipo: "Image" });
+  topico(FORUM_ID, "Cor de cargo holográfica quebra contraste no tema claro", agora - 74 * hora, p(6), { tags: ["bug"], mensagens: 7, reacoes: { "🐛": 3 } }, "No claro o gradiente cai para 2.1:1 sobre superfície branca.", { nome: "captura-claro.png", tipo: "Image" });
+
+  /*
+    Os doze itens da referência, espaçados de 5 h: a galeria agrupa por DIA de
+    publicação, e com todos no mesmo dia o rótulo "Ontem" nunca apareceria —
+    o arnês mais pobre que a tela. Tamanhos distintos pela mesma razão: o
+    total da barra só prova a soma se as parcelas diferirem.
+  */
+  const midias: [string, string, "Image" | "Video", boolean?][] = [
+    ["Rail com pastas — v4", "rail-v4.png", "Image"],
+    ["Matriz tri-state em 1440", "matriz.png", "Image"],
+    ["Gravação do bug de arraste", "arraste.mp4", "Video"],
+    ["Estudo de densidade", "densidade.png", "Image"],
+    ["Referência de overlay in-game", "overlay.gif", "Image", true],
+    ["Print do crash — conteúdo sensível", "SPOILER_crash.png", "Image"],
+    ["Paleta no tema claro", "paleta.png", "Image"],
+    ["Fluxo de compartilhar tela", "tela.mp4", "Video"],
+    ["Ícones — grade 20", "icones.png", "Image"],
+    ["Antes e depois do composer", "composer.png", "Image"],
+    ["Teste de waveform", "waveform.gif", "Image", true],
+    ["Card de convite — variações", "convite.png", "Image"],
+  ];
+  midias.forEach(([legenda, arquivo, tipo, gif], i) =>
+    topico(GALERIA_ID, legenda, agora - (i + 1) * 5 * hora, p(i + 1), { mensagens: ((i * 5) % 8) + 1 }, "", {
+      nome: arquivo,
+      tipo,
+      gif,
+      bytes: tipo === "Video" ? 38_000_000 + i * 1_000_000 : 240_000 + i * 90_000,
+    }),
+  );
+
+  // Tópicos de MENSAGEM em #geral — a abertura mora no canal pai.
+  topico("01JQ0000000000000000000010", "Revisão do editor de cargo", agora - 30 * hora, p(8), { seguir: true, mensagens: 5 }, "Abri a revisão do editor de cargo — comentem aqui para não perder o fio.", undefined, true);
+  topico("01JQ0000000000000000000010", "Bitrate padrão das salas", agora - 28 * hora, p(9), { mensagens: 3 }, "Qual bitrate a gente deixa de padrão nas salas novas?", undefined, true);
+
+  for (const c of canais) client.channels.getOrCreate((c as { _id: string })._id, c as never);
+  anotarCanais(canais);
+  semearListagem(contagens, aberturas);
 }
 
 /**
@@ -658,6 +859,41 @@ function semearConversas(): void {
       // observável, e não um empate resolvido pelo ID.
       last_message_id: ulidEm(Date.now() - n * 3_600_000),
     } as never);
+  }
+
+  /*
+    ⚠ **Duas DMs de DESCONHECIDO criadas AGORA** — arnês mais pobre que o
+    protocolo de novo. As cinco de cima têm ID de 2025, anterior a qualquer
+    `inicio` da fila de solicitações, então todas ficam na coluna e a aba de
+    solicitações só seria vista vazia. Uma com texto comum e outra com link de
+    convite: sem a segunda, o ramo "SUSPEITO" nasceria inalcançável.
+  */
+  const desconhecidas = [
+    {
+      outro: userIds[2]!,
+      texto:
+        "oi! vi seu post sobre a matriz de permissões, posso perguntar uma coisa?",
+    },
+    {
+      outro: userIds[6]!,
+      texto: "ganhe nitro grátis entrando aqui https://discord.gg/promo-zone",
+    },
+  ];
+  for (const [n, d] of desconhecidas.entries()) {
+    const id = ulidEm(Date.now() - n * 1000);
+    const mensagemId = ulidEm(Date.now() - n * 1000 + 1);
+    client.channels.getOrCreate(id, {
+      _id: id,
+      channel_type: "DirectMessage",
+      active: true,
+      recipients: [eu, d.outro],
+      last_message_id: mensagemId,
+    } as never);
+    registrarPreviaDublada(id, {
+      _id: mensagemId,
+      author: d.outro,
+      content: d.texto,
+    });
   }
 
   // Um grupo, para a linha com contagem de participantes existir.
@@ -835,6 +1071,17 @@ function createMessage(seed: number, quando?: number): string {
   const id = quando === undefined ? nextId() : nextId(quando);
   const author = autorDe(seed);
   const system = sistemaDe(seed, author, id);
+  /*
+    Uma em 97 é FIGURINHA — a mensagem inteira, sem texto. Anotada ANTES do
+    `getOrCreate`, pelo mesmo mapa que o evento cru alimenta: é o caminho que o
+    SDK descarta e que precisa de exercício. Fora da amostra de altura por
+    tipo, como o anexo.
+  */
+  const figurinha =
+    !system && seed % 97 === 13
+      ? FIGURINHAS_DO_ARNES[seed % FIGURINHAS_DO_ARNES.length]?.id
+      : undefined;
+  if (figurinha) registrarFigurinhaLocal(id, figurinha);
 
   client.messages.getOrCreate(
     id,
@@ -845,7 +1092,7 @@ function createMessage(seed: number, quando?: number): string {
       // O protocolo põe o texto da linha de sistema em `system`, NÃO em
       // `content` — e é por isso que a linha renderizava vazia antes: o
       // componente lia `content` e encontrava string vazia.
-      content: system ? "" : body(seed),
+      content: system || figurinha ? "" : body(seed),
       // Uma em cada 13 é resposta à anterior — o suficiente para a citação
       // aparecer na janela visível sem dominar a lista, e para o teste de
       // altura de linha ver os dois casos.
@@ -1205,6 +1452,93 @@ export function chamadaFalsa(): () => void {
 }
 
 /**
+ * A DM das chamadas diretas falsas — a primeira de `semearConversas`, com
+ * `userIds[1]` do outro lado.
+ */
+const DM_DO_ARNES = "01JQ000000000000000A000000";
+
+/**
+ * Alguém liga para você numa DM — pelo caminho do PROTOCOLO, e não do store.
+ *
+ * ⚠ **Emite os eventos crus no `EventClient`, e é o ponto.** O adapter lê
+ * `VoiceChannelJoin` e `VoiceCallUpdate` do evento cru, porque o SDK descarta
+ * o segundo; semear o store de toque direto exercitaria o aviso e deixaria de
+ * fora a tradução, que é a parte que quebra em silêncio. Aqui os dois sinais
+ * chegam na ordem do `voice-ingress` — o `Join` primeiro —, então a
+ * deduplicação também é exercitada.
+ *
+ * Atender tenta a sala de verdade e falha sem LiveKit, com o toast de erro:
+ * é o que o produto faz sem servidor de voz. A tela da chamada tem botão
+ * próprio (`chamadaDiretaFalsa`).
+ */
+export function chamadaRecebidaFalsa(): void {
+  ensureWorld();
+  const quem = userIds[1]!;
+  const agora = new Date().toISOString();
+  client.events.emit("event", {
+    type: "VoiceChannelJoin",
+    id: DM_DO_ARNES,
+    state: {
+      id: quem,
+      joined_at: agora,
+      is_receiving: true,
+      is_publishing: true,
+      screensharing: false,
+      camera: false,
+    },
+  } as never);
+  client.events.emit("event", {
+    type: "VoiceCallUpdate",
+    initiator_id: quem,
+    channel_id: DM_DO_ARNES,
+    started_at: agora,
+    ended: false,
+  } as never);
+}
+
+/** Quem ligou desiste — a sala esvazia e o toque para. */
+export function desistirDaChamadaFalsa(): void {
+  client.events.emit("event", {
+    type: "VoiceChannelLeave",
+    id: DM_DO_ARNES,
+    user: userIds[1]!,
+  } as never);
+}
+
+/**
+ * A chamada DIRETA em andamento — a tela de duas pessoas, sem WebRTC.
+ *
+ * Mesma família da `chamadaFalsa`: enche o store que o app enxerga e deixa o
+ * motor de fora. O outro lado fala a cada ~900ms para o anel aparecer.
+ */
+export function chamadaDiretaFalsa(): () => void {
+  ensureWorld();
+  const eu = userIds[0]!;
+  const outro = userIds[1]!;
+  definirChamada({
+    estado: "dentro",
+    desde: Date.now() - (4 * 60 + 12) * 1000,
+    channelId: DM_DO_ARNES,
+    participantes: [eu, outro],
+    mudo: false,
+    surdo: false,
+    camera: false,
+    tela: false,
+    qualidade: "otima",
+  });
+  abrirConversa(DM_DO_ARNES);
+  definirPalco({ tipo: "grade" });
+  const timer = setInterval(() => {
+    definirFalantes(Math.floor(Date.now() / 900) % 2 === 0 ? [outro] : []);
+  }, 900);
+  return () => {
+    clearInterval(timer);
+    definirFalantes([]);
+    encerrarChamada();
+  };
+}
+
+/**
  * A sala onde a chamada falsa acontece — `voz-geral`.
  *
  * A primeira das duas com gente, e a que tem teto (`3/8`), então o cartão, o
@@ -1261,6 +1595,7 @@ export async function seed(count: number, chunk = 250): Promise<string[]> {
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
   }
+  semearExpressoesDoArnes(SERVER_ID);
   seedChannel(CHANNEL_ID, ids);
   semearEnquetes(ids);
   ultimaLista = ids;
@@ -1325,28 +1660,41 @@ function semearEnquetes(ids: readonly string[]): void {
   const encerrada = ids[ids.length - 3];
   if (!aberta || !encerrada) return;
 
-  definirEnquete(aberta, {
+  /* Votos são IDs, como o protocolo manda — contagem é derivada no store. */
+  const gente = (n: number, prefixo: string) =>
+    new Set(Array.from({ length: n }, (_, i) => `${prefixo}${String(i)}`));
+  const eu = lerEuDasEnquetes();
+
+  definirEnqueteBruta(aberta, {
     pergunta: "Qual densidade vai como padrão?",
-    opcoes: [
-      { id: "a", marca: "🅰", texto: "Confortável", votos: 14 },
-      { id: "b", marca: "🅱", texto: "Compacto", votos: 9 },
+    respostas: [
+      { id: "r0", texto: "Confortável" },
+      { id: "r1", texto: "Compacto" },
     ],
     maximo: 1,
-    meuVoto: undefined,
-    fechaEm: Date.now() + 22 * 3_600_000,
-    resultadoNoFim: false,
+    expiraEm: Date.now() + 22 * 3_600_000,
+    encerradaEm: undefined,
+    esconder: false,
+    votos: new Map([
+      ["r0", gente(14, "a")],
+      ["r1", gente(9, "b")],
+    ]),
   });
 
-  definirEnquete(encerrada, {
+  definirEnqueteBruta(encerrada, {
     pergunta: "Bitrate padrão das salas?",
-    opcoes: [
-      { id: "a", marca: "🅰", texto: "64 kbps", votos: 16 },
-      { id: "b", marca: "🅱", texto: "96 kbps", votos: 9 },
+    respostas: [
+      { id: "r0", texto: "64 kbps" },
+      { id: "r1", texto: "96 kbps" },
     ],
     maximo: 1,
-    meuVoto: "a",
-    fechaEm: undefined,
-    resultadoNoFim: false,
+    expiraEm: Date.now() - 3_600_000,
+    encerradaEm: Date.now() - 3_600_000,
+    esconder: false,
+    votos: new Map([
+      ["r0", eu ? new Set([...gente(15, "c"), eu]) : gente(16, "c")],
+      ["r1", gente(9, "d")],
+    ]),
   });
 }
 

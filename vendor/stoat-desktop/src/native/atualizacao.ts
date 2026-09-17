@@ -1,4 +1,5 @@
-import { app, autoUpdater, BrowserWindow, ipcMain } from "electron";
+import { app, autoUpdater, BrowserWindow } from "electron";
+import { registrar, semArgumentos } from "./registroDeIpc";
 import { updateElectronApp } from "update-electron-app";
 
 /**
@@ -100,7 +101,12 @@ export function registrarAtualizacaoNaPonte(): void {
     }
   };
 
-  ipcMain.handle("vortexEstadoDaAtualizacao", () => atual);
+  registrar("vortexEstadoDaAtualizacao", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: () => atual,
+  });
 
   /*
     ⚠ **Os três verbos existem mesmo sem atualizador de pé** — no Linux e em
@@ -108,18 +114,28 @@ export function registrarAtualizacaoNaPonte(): void {
     não há atualização esperando. Lançar faria a tela do cliente quebrar num
     lugar onde não há defeito nenhum.
   */
-  ipcMain.handle("vortexVerificarAtualizacao", () => {
-    if (!app.isPackaged || process.platform === "linux") return;
-    try {
-      autoUpdater.checkForUpdates();
-    } catch {
-      emitir("falhou");
-    }
+  registrar("vortexVerificarAtualizacao", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: () => {
+      if (!app.isPackaged || process.platform === "linux") return;
+      try {
+        autoUpdater.checkForUpdates();
+      } catch {
+        emitir("falhou");
+      }
+    },
   });
 
-  ipcMain.handle("vortexInstalarEReiniciar", () => {
-    if (atual.estado !== "pronta") return;
-    autoUpdater.quitAndInstall();
+  registrar("vortexInstalarEReiniciar", {
+    via: "invoke",
+    quem: ["principal"],
+    validar: semArgumentos,
+    executar: () => {
+      if (atual.estado !== "pronta") return;
+      autoUpdater.quitAndInstall();
+    },
   });
 
   if (!app.isPackaged || process.platform === "linux") return;

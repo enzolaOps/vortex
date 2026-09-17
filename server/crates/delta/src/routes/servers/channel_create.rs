@@ -9,7 +9,7 @@ use rocket::serde::json::Json;
 use rocket::State;
 use validator::Validate;
 
-use crate::util::audit_log_reason::AuditLogReason;
+use crate::util::{audit_log_reason::AuditLogReason, voice::validate_voice_information};
 
 /// # Create Channel
 ///
@@ -29,6 +29,10 @@ pub async fn create_server_channel(
             error: error.to_string()
         })
     })?;
+
+    if let Some(voice) = &data.voice {
+        validate_voice_information(voice).await?;
+    }
 
     let mut server = server.as_server(db).await?;
     let mut query = DatabasePermissionQuery::new(db, &user).server(&server);

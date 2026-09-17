@@ -1,14 +1,32 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
 import { CartaoDeOpcao } from "../components/ui/CartaoDeOpcao";
 import { Interruptor } from "../components/ui/Interruptor";
 import { Selo } from "../components/ui/Selo";
+import { toast } from "../components/ui/toastStore";
 import { aindaNao } from "../pendente/pendencias";
+import { motivoDoErro } from "../sdk/erros";
+import { salvarPoliticaDeMidia } from "../sdk/filtroDeMidia";
+import {
+  ativarEmergencia,
+  emergenciaVigente,
+  encerrarEmergencia,
+  editarPolitica,
+  podeGerenciarSeguranca,
+  type NivelDeVerificacao,
+} from "../sdk/seguranca";
+import { definirPolitica, lerPolitica, type PoliticaDeMidia } from "../store/filtroDeMidia";
+import { usePoliticaDeMidia } from "../store/hooks";
+import { usePolitica } from "../store/seguranca";
 import css from "./Seguranca.module.css";
 
-const NIVEIS = [
+const NIVEIS: readonly {
+  readonly id: NivelDeVerificacao;
+  readonly titulo: string;
+  readonly detalhe: string;
+}[] = [
   { id: "nenhum", titulo: "Nenhum", detalhe: "Sem restrição." },
   {
     id: "baixo",
@@ -25,13 +43,7 @@ const NIVEIS = [
     titulo: "Alto · 10 minutos no servidor",
     detalhe: "Só fala depois de 10 min como membro.",
   },
-  {
-    id: "muitoAlto",
-    titulo: "Muito alto · telefone verificado",
-    detalhe: "Reduz spam e também entrada legítima.",
-    selo: "RESTRITIVO",
-  },
-] as const;
+];
 
 const FILTROS = [
   { id: "nao", titulo: "Não verificar", detalhe: "Nada é analisado." },
@@ -47,110 +59,123 @@ const FILTROS = [
   },
 ] as const;
 
-type Nivel = (typeof NIVEIS)[number]["id"];
-type Filtro = (typeof FILTROS)[number]["id"];
+const HORA = new Intl.DateTimeFormat("pt-BR", {
+  hour: "2-digit",
+  minute: "2-digit",
+});
 
 /**
  * Segurança — verificação, filtro de mídia e limites de contato.
  *
- * ⚠ **Mesma situação de Acesso, e a mesma decisão: nada é guardado.** Nenhum
- * dos oito controles tem campo no protocolo — `verification_level`,
- * `explicit_content_filter` e `dm_settings` dão zero ocorrências no schema. A
- * escolha vale só enquanto a página está aberta, e o banner diz por quê.
+ * ⚠ **Nível de verificação, contato entre membros e emergência são do fork do
+ * `api`, e aplicados no SERVIDOR** — o nível no envio de mensagem (cargo
+ * dispensa, como no Discord), a DM entre membros no cálculo de permissão de
+ * usuário, o filtro de convites no corpo da DM e a emergência nas rotas de
+ * convite, entrada e envio. Nada disto é regra de cliente: outro cliente Stoat
+ * falando com o mesmo servidor encontra as mesmas recusas.
  *
- * ⚠ **Não confundir com "Privacidade neste servidor"**, que EXISTE e é outra
- * coisa: aquela é a decisão de UMA pessoa sobre o que ela recebe, guardada
- * localmente porque é o cliente dela que a aplica. Esta é política do
- * SERVIDOR sobre todo mundo — guardá-la nesta máquina não governaria nada, e
- * um moderador que a visse grudar acreditaria que o servidor está protegido.
+ * ⚠ **O filtro de mídia também é REAL, e mora ao lado da política.** O fork
+ * acrescentou `explicit_content_filter` ao servidor, IRMÃO de `security` e não
+ * dentro dela: é gravado lá e aplicado por todo cliente Vortex que recebe a
+ * mídia (ver `store/filtroDeMidia.ts`) — a análise roda no cliente, nunca no
+ * servidor.
  *
- * ⚠ **"Ações de emergência" também não é só rota faltando.** O design diz
- * "Registrado na auditoria", e `/servers/{target}/audit_logs` de fato existe —
- * mas pausar convites, silenciar @everyone e congelar entradas são três
- * escritas que o protocolo não tem. O botão fica desenhado, em `perigoSutil` e
- * não em `perigo`: ele ABRE a decisão, não a executa.
+ * O que continua pendente tem razão própria: telefone (não existe na conta) e
+ * pausa automática (não há detecção de pico). Os controles mostram o estado VERDADEIRO — desligado — e o clique diz
+ * do que dependem.
+ *
+ * ⚠ **"Permitir DMs entre membros" nasce DESLIGADO, e antes nascia ligado.** A
+ * versão sem back-end afirmava que ligado era o que o servidor fazia; medido no
+ * `calculate_user_permissions` do Stoat, é o contrário — sem amizade, só bot
+ * abre DM. O design desenha o interruptor ligado como exemplo, e o que vale
+ * aqui é o que o servidor faz.
+ *
+ * Não confundir com "Privacidade neste servidor", que é a decisão de UMA
+ * pessoa sobre o que ela recebe, guardada no cliente dela.
  */
 export function Seguranca({ serverId }: { serverId: string }) {
-  const [nivel, setNivel] = useState<Nivel>("nenhum");
-  const [filtro, setFiltro] = useState<Filtro>("nao");
-
   if (!serverId) {
     return <p className={css.recado}>Abra um servidor para ver isto.</p>;
+  }
+  return <SegurancaDoServidor serverId={serverId} />;
+}
+
+function SegurancaDoServidor({ serverId }: { serverId: string }) {
+  const politica = usePolitica(serverId);
+  const gerencia = podeGerenciarSeguranca(serverId);
+  const filtro = usePoliticaDeMidia(serverId);
+
+  /* Otimista: a página responde na hora, o `ServerUpdate` do socket confirma,
+     e a falha devolve o que era — com o motivo, porque um filtro que parece
+     ligado e não está é exatamente a proteção falsa que isto evita. */
+  function escolherFiltro(novo: PoliticaDeMidia) {
+    const antes = lerPolitica(serverId);
+    if (antes === novo) return;
+    definirPolitica(serverId, novo);
+    salvarPoliticaDeMidia(serverId, novo).catch((e: unknown) => {
+      definirPolitica(serverId, antes);
+      toast({
+        tipo: "erro",
+        titulo: "Não deu para salvar o filtro de mídia.",
+        descricao: motivoDoErro(e),
+      });
+    });
   }
 
   return (
     <div className={css.pagina}>
-      <Banner tom="aviso" titulo="Nada aqui chega ao servidor ainda">
-        Nível de verificação, filtro de mídia e limites de DM não existem no
-        protocolo Stoat. Os controles estão desenhados; o comportamento real do
-        servidor não muda ao mexer neles.
-      </Banner>
-
-              {/*
+      {/*
         ⚠ **Sobrancelha e grupo são IRMÃOS, e não um `<section>` em volta dos
-        dois.** O `pnpm confronto` acusou "nº de blocos: design 6 · app 5": o
-        design põe as seis caixas desta página no mesmo nível, e o `<section>`
-        colava duas delas num nó que o design não tem. Sem consequência visual,
-        e com uma consequência real na comparação — um wrapper a mais desalinha
-        tudo o que vem depois dele.
-
-        A semântica não se perde: cada sobrancelha rotula o `radiogroup` que a
-        segue por `aria-label`, que é o que o leitor de tela usa de fato.
+        dois.** O design põe as seis caixas desta página no mesmo nível; a
+        semântica fica no `aria-label` de cada `radiogroup`.
       */}
       <div className={css.sobrancelha}>Nível de verificação</div>
-        <div
-          className={css.grupo}
-          role="radiogroup"
-          aria-label="Nível de verificação"
-        >
-          {NIVEIS.map((n) => (
-            <CartaoDeOpcao
-              key={n.id}
-              marcado={nivel === n.id}
-              titulo={n.titulo}
-              detalhe={n.detalhe}
-              selo={
-                "selo" in n ? <Selo tom="aviso">{n.selo}</Selo> : undefined
-              }
-              aoEscolher={() => {
-                setNivel(n.id);
-                if (n.id !== "nenhum") aindaNao("nivelDeVerificacao")();
-              }}
-            />
-          ))}
-        </div>
+      <div
+        className={css.grupo}
+        role="radiogroup"
+        aria-label="Nível de verificação"
+      >
+        {NIVEIS.map((n) => (
+          <CartaoDeOpcao
+            key={n.id}
+            marcado={politica.nivel === n.id}
+            titulo={n.titulo}
+            detalhe={n.detalhe}
+            disabled={!gerencia}
+            aoEscolher={() => {
+              if (politica.nivel !== n.id) void editarPolitica(serverId, { nivel: n.id });
+            }}
+          />
+        ))}
+        <CartaoDeOpcao
+          marcado={false}
+          titulo="Muito alto · telefone verificado"
+          detalhe="Reduz spam e também entrada legítima."
+          selo={<Selo tom="aviso">RESTRITIVO</Selo>}
+          aoEscolher={aindaNao("telefoneVerificado")}
+        />
+      </div>
 
-              <div className={css.sobrancelha}>Filtro de mídia explícita</div>
-        <div
-          className={css.grupo}
-          role="radiogroup"
-          aria-label="Filtro de mídia explícita"
-        >
-          {FILTROS.map((f) => (
-            <CartaoDeOpcao
-              key={f.id}
-              marcado={filtro === f.id}
-              titulo={f.titulo}
-              detalhe={f.detalhe}
-              aoEscolher={() => {
-                setFiltro(f.id);
-                if (f.id !== "nao") aindaNao("filtroDeMidia")();
-              }}
-            />
-          ))}
-        </div>
+      <div className={css.sobrancelha}>Filtro de mídia explícita</div>
+      <div
+        className={css.grupo}
+        role="radiogroup"
+        aria-label="Filtro de mídia explícita"
+      >
+        {FILTROS.map((f) => (
+          <CartaoDeOpcao
+            key={f.id}
+            marcado={filtro === f.id}
+            titulo={f.titulo}
+            detalhe={f.detalhe}
+            disabled={!gerencia}
+            aoEscolher={() => escolherFiltro(f.id)}
+          />
+        ))}
+      </div>
 
-      {/*
-        ⚠ **Sobrancelha, e não título de cartão.** As outras duas seções desta
-        mesma página já usavam a sobrancelha; esta usava um título de 13/600
-        DENTRO do cartão — ou seja, a página se contradizia sobre como um grupo
-        se anuncia. A referência usa `text-eyebrow` nas três. Fora do cartão
-        pelo mesmo motivo das outras: o rótulo nomeia o grupo, não é a primeira
-        linha dele.
-      */}
       <div className={css.sobrancelha}>Contato entre membros</div>
       <div className={css.cartao}>
-
         <div className={css.linha}>
           <div>
             <div className={css.linhaTitulo}>Permitir DMs entre membros</div>
@@ -158,16 +183,13 @@ export function Seguranca({ serverId }: { serverId: string }) {
               Desligar bloqueia DM de quem não é amigo
             </div>
           </div>
-          {/*
-            ⚠ Ligado como valor de repouso, e não desligado: é o que o servidor
-            REALMENTE faz hoje. Um interruptor pendente tem de mostrar o estado
-            verdadeiro, senão ele não é "ainda não faz" — é uma afirmação falsa
-            sobre o servidor.
-          */}
           <Interruptor
-            ligado
+            ligado={politica.dmEntreMembros}
             rotulo="Permitir DMs entre membros"
-            aoAlternar={aindaNao("contatoEntreMembros")}
+            disabled={!gerencia}
+            aoAlternar={(ligado) =>
+              void editarPolitica(serverId, { dmEntreMembros: ligado })
+            }
           />
         </div>
 
@@ -179,9 +201,12 @@ export function Seguranca({ serverId }: { serverId: string }) {
             </div>
           </div>
           <Interruptor
-            ligado={false}
+            ligado={politica.filtraConvitesEmDm}
             rotulo="Filtrar convites em DM"
-            aoAlternar={aindaNao("contatoEntreMembros")}
+            disabled={!gerencia}
+            aoAlternar={(ligado) =>
+              void editarPolitica(serverId, { filtraConvitesEmDm: ligado })
+            }
           />
         </div>
 
@@ -197,33 +222,88 @@ export function Seguranca({ serverId }: { serverId: string }) {
           <Interruptor
             ligado={false}
             rotulo="Pausar convites automaticamente"
-            aoAlternar={aindaNao("contatoEntreMembros")}
+            aoAlternar={aindaNao("pausaAutomatica")}
           />
         </div>
       </div>
 
+      {gerencia ? <BannerDeEmergencia serverId={serverId} /> : null}
+    </div>
+  );
+}
+
+function BannerDeEmergencia({ serverId }: { serverId: string }) {
+  const politica = usePolitica(serverId);
+  const [ocupado, setOcupado] = useState(false);
+  /*
+    O relógio é ESTADO, e não `Date.now()` no render: a emergência expira
+    sozinha, e o banner precisa voltar ao "Ativar" no minuto certo sem ninguém
+    tocar na página. O timeout atualiza o relógio no instante do prazo; ler a
+    hora no render seria impuro e não acordaria nada.
+  */
+  const [agora, setAgora] = useState(() => Date.now());
+  const vigente = emergenciaVigente(politica, agora);
+  const ate = vigente?.ateMs;
+
+  useEffect(() => {
+    if (ate === undefined) return;
+    const t = setTimeout(() => setAgora(Date.now()), Math.max(0, ate - Date.now()));
+    return () => clearTimeout(t);
+  }, [ate]);
+
+  const agir = (ativar: boolean) => {
+    setOcupado(true);
+    void (ativar ? ativarEmergencia(serverId) : encerrarEmergencia(serverId)).finally(
+      () => {
+        setAgora(Date.now());
+        setOcupado(false);
+      },
+    );
+  };
+
+  if (vigente) {
+    return (
       <Banner
         tom="perigo"
-        titulo="Ações de segurança de emergência"
+        titulo={`Emergência ativa até ${HORA.format(vigente.ateMs)}`}
         acoes={
           <Botao
             variante="perigoSutil"
             tamanho="pequeno"
-            onClick={aindaNao("emergencia")}
+            carregando={ocupado}
+            onClick={() => agir(false)}
           >
-            Ativar
+            Encerrar
           </Botao>
         }
       >
-        {/*
-          ⚠ **Sem o ⏻ do design, e é regra do `Banner`:** o glifo é decidido
-          pelo TOM, nunca passado por quem chama — deixá-lo livre produziria o
-          mesmo aviso com três ícones diferentes em três telas, e o ícone é
-          metade do que faz um banner ser reconhecido de relance.
-        */}
-        Pausa convites, silencia @everyone e congela novos membros por 1 hora.
-        Registrado na auditoria.
+        Convites pausados, @everyone silenciado e novas entradas congeladas.
+        Tudo volta ao normal sozinho no fim do prazo.
       </Banner>
-    </div>
+    );
+  }
+
+  return (
+    <Banner
+      tom="perigo"
+      titulo="Ações de segurança de emergência"
+      acoes={
+        <Botao
+          variante="perigoSutil"
+          tamanho="pequeno"
+          carregando={ocupado}
+          onClick={() => agir(true)}
+        >
+          Ativar
+        </Botao>
+      }
+    >
+      {/*
+        ⚠ **Sem o ⏻ do design, e é regra do `Banner`:** o glifo é decidido
+        pelo TOM, nunca passado por quem chama.
+      */}
+      Pausa convites, silencia @everyone e congela novos membros por 1 hora.
+      Registrado na auditoria.
+    </Banner>
   );
 }

@@ -1,8 +1,10 @@
 import { Profiler, useEffect, useSyncExternalStore, type ReactNode } from "react";
 
 import { Amigos } from "../casa/Amigos";
+import { TelaDeEventos } from "../eventos/TelaDeEventos";
 import { CabecalhoDeCanal } from "../canais/CabecalhoDeCanal";
 import { Popout } from "../voz/Popout";
+import { ChamadaRecebida } from "../voz/ChamadaRecebida";
 import { ComposerDoCanal, ConteudoDoCanal } from "./ConteudoDoCanal";
 import { Configuracoes } from "../config/Configuracoes";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
@@ -14,6 +16,7 @@ import { PainelDeEdicao } from "../layout/PainelDeEdicao";
 import { PainelDeFixados } from "../fixados/PainelDeFixados";
 import { PainelDeBusca } from "../busca/PainelDeBusca";
 import { CaixaDeEntrada } from "../caixa/CaixaDeEntrada";
+import { PainelDeTopicos } from "../topicos/PainelDeTopicos";
 import { Rail } from "../rail/Rail";
 import { Shell } from "../shell/Shell";
 import { PainelDeUsuario } from "../usuario/PainelDeUsuario";
@@ -69,6 +72,12 @@ export function Cliente({ ferramentas }: { ferramentas?: ReactNode }) {
     shell.
   */
   const naCasaDeAmigos = local.tipo === "amigos";
+  /*
+    Os eventos do servidor também ocupam a coluna de CONTEÚDO, pela mesma
+    razão da tela de pessoas — e trazem o próprio cabeçalho de 50px, com abas
+    e "Criar evento", então o do canal não é montado.
+  */
+  const eventosDe = local.tipo === "eventos" ? local.serverId : undefined;
 
   /*
     ⚠ **O `<Profiler>` envolve o app inteiro, em DESENVOLVIMENTO.** É de onde
@@ -92,6 +101,7 @@ export function Cliente({ ferramentas }: { ferramentas?: ReactNode }) {
         fixados: <PainelDeFixados />,
         caixaDeEntrada: <CaixaDeEntrada />,
         busca: <PainelDeBusca />,
+        topicos: <PainelDeTopicos />,
       }}
       /*
         O cabeçalho é LINHA PRÓPRIA do shell agora, e não mais um irmão da
@@ -104,7 +114,7 @@ export function Cliente({ ferramentas }: { ferramentas?: ReactNode }) {
       */
       usuario={<PainelDeUsuario />}
       cabecalho={
-        canal && !naCasaDeAmigos ? (
+        eventosDe !== undefined ? undefined : canal && !naCasaDeAmigos ? (
           <CabecalhoDeCanal channelId={canal} />
         ) : (
           <CabecalhoDeCanal />
@@ -126,6 +136,8 @@ export function Cliente({ ferramentas }: { ferramentas?: ReactNode }) {
       conteudo={
         naCasaDeAmigos ? (
           <Amigos />
+        ) : eventosDe !== undefined ? (
+          <TelaDeEventos key={eventosDe} serverId={eventosDe} />
         ) : canal ? (
           /*
             ⚠ **Quem escolhe entre a conversa e a SALA DE VOZ é ele, e não este
@@ -166,6 +178,13 @@ export function Cliente({ ferramentas }: { ferramentas?: ReactNode }) {
             é a JANELA.
           */}
           <Popout />
+          {/*
+            A chamada recebida, na camada sobreposta pela mesma razão do
+            popout: ela chega com você em qualquer lugar do app — na casa, nas
+            configurações, dentro de outra chamada. Devolve `null` quando nada
+            toca.
+          */}
+          <ChamadaRecebida />
           {/* O overlay de depuração — devolve `null` com a preferência
               desligada, que é o caso de quase toda sessão. */}
           <OverlayDeDebug />

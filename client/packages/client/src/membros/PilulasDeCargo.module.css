@@ -70,3 +70,18 @@
 .densa[data-pintura="gradiente"] {
   padding-inline: var(--vx-space-08);
 }
+
+/*
+  Holográfico — mesmo recuo simétrico, e 700 como o design. A cor do texto
+  NÃO fica aqui: ela é par do fundo e vem do `style` junto com ele
+  (`TINTA_HOLOGRAFICA`), para os dois não poderem divergir.
+*/
+.pilula[data-pintura="holografico"] {
+  padding-inline: var(--vx-space-09);
+  background-color: transparent;
+  font-weight: 700;
+}
+
+.densa[data-pintura="holografico"] {
+  padding-inline: var(--vx-space-08);
+}

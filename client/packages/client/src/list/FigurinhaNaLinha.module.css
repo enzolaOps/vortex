@@ -1,0 +1,37 @@
+/*
+  160×160 FIXO — é DIMENSÃO de componente, e é o número que a estimativa de
+  altura da lista soma (`ALTURA_DE_FIGURINHA`). Mudar um sem o outro faz a
+  âncora andar a cada figurinha que entra.
+*/
+.caixa {
+  display: grid;
+  place-items: center;
+  inline-size: 160px;
+  block-size: 160px;
+  margin-block-start: var(--vx-space-08);
+  border-radius: var(--vx-radius-10);
+  /* O xadrez de "ainda não chegou" dos seletores — ele some atrás da imagem
+     quando ela carrega, e fica quando a figurinha foi removida. */
+  background: repeating-linear-gradient(
+    135deg,
+    var(--vx-surface-3) 0 10px,
+    color-mix(in oklab, var(--vx-surface-3) 45%, var(--vx-surface-2)) 10px 20px
+  );
+  overflow: hidden;
+}
+
+/* Contida e nunca recortada: quem sobe nem sempre respeita o quadrado. */
+.imagem {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
+  background: var(--vx-surface-2);
+}
+
+.aviso {
+  padding: var(--vx-space-08);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
+  text-align: center;
+}

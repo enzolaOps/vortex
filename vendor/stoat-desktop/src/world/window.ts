@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 
 import { version } from "../../package.json";
+import { CANAL_DA_PORTA } from "../native/portasDoOverlayModelo";
 
 contextBridge.exposeInMainWorld("native", {
   versions: {
@@ -60,6 +61,106 @@ contextBridge.exposeInMainWorld("vortexAudioDeJanela", {
     ipcRenderer.on("audioJanelaBloco", alca);
     return () => ipcRenderer.off("audioJanelaBloco", alca);
   },
+});
+
+/**
+ * Atalhos de voz globais e a bandeja — ver `native/controles.ts`.
+ *
+ * Ponte SEPARADA pela mesma razão de `vortexAudioDeJanela`: um verbo novo em
+ * `vortex` faria cascas antigas parecerem incompletas para o cliente novo.
+ *
+ * Nenhuma tecla atravessa: o main manda só o COMANDO da combinação que o
+ * próprio cliente cadastrou.
+ */
+contextBridge.exposeInMainWorld("vortexControles", {
+  definirAtalhos: (atalhos: unknown) =>
+    ipcRenderer.invoke("vortexDefinirAtalhos", atalhos),
+  assinarComandos: (ouvinte: (c: unknown) => void) => {
+    const alca = (_evento: unknown, c: unknown) => ouvinte(c);
+    ipcRenderer.on("vortexComandoDeVoz", alca);
+    return () => ipcRenderer.off("vortexComandoDeVoz", alca);
+  },
+  publicarEstadoDeVoz: (estado: unknown) =>
+    ipcRenderer.send("vortexEstadoDeVoz", estado),
+});
+
+/**
+ * Contador no ícone, piscar a barra de tarefas e focar a janela — ver
+ * `native/notificacoes.ts`. Ponte separada pela mesma razão das outras duas.
+ * Só números atravessam; o main valida.
+ */
+contextBridge.exposeInMainWorld("vortexNotificacoes", {
+  contador: (n: number) => ipcRenderer.send("vortexContador", n),
+  chamarAtencao: () => ipcRenderer.send("vortexChamarAtencao"),
+  focar: () => ipcRenderer.send("vortexFocar"),
+});
+
+/**
+ * O overlay do jogo — ver `native/overlay.ts`. Nesta janela a ponte só
+ * PUBLICA; quem assina é a janela do overlay, com preload próprio
+ * (`preloadDoOverlay.ts`).
+ *
+ * ⚠ **Por porta, e não por canal de IPC.** O main entrega a esta página uma
+ * porta a cada carregamento (`CANAL_DA_PORTA`) e fica no meio: lê o estado
+ * para decidir se o overlay aparece e repassa. Ver
+ * `native/portasDoOverlayModelo.ts`.
+ *
+ * O último estado publicado é guardado e reenviado quando a porta chega —
+ * o cliente publica assim que monta, e isso pode ser antes da entrega.
+ * Mensagem não: ela só vale no instante em que acontece.
+ *
+ * Os quatro verbos de assinatura existem só porque o contrato do cliente
+ * (`ponteDeOverlay`) exige os seis; nesta janela eles não recebem nada.
+ */
+let portaDoOverlay: MessagePort | undefined;
+let estadoDoOverlay: unknown;
+
+function postarNoOverlay(mensagem: unknown): void {
+  try {
+    portaDoOverlay?.postMessage(mensagem);
+  } catch (erro) {
+    /* Estado com algo que não se clona (função, nó do DOM) não derruba o app. */
+    console.error("Não deu para publicar no overlay:", erro);
+  }
+}
+
+ipcRenderer.on(CANAL_DA_PORTA, (evento) => {
+  const nova = evento.ports[0];
+  if (!nova) return;
+  portaDoOverlay?.close();
+  portaDoOverlay = nova;
+  if (estadoDoOverlay !== undefined) postarNoOverlay({ tipo: "estado", estado: estadoDoOverlay });
+});
+
+const semAssinatura = (): (() => void) => () => undefined;
+
+contextBridge.exposeInMainWorld("vortexOverlay", {
+  publicar: (estado: unknown) => {
+    estadoDoOverlay = estado;
+    postarNoOverlay({ tipo: "estado", estado });
+  },
+  mensagem: (m: unknown) => postarNoOverlay({ tipo: "mensagem", mensagem: m }),
+  assinarEstado: semAssinatura,
+  assinarMensagens: semAssinatura,
+  assinarInteracao: semAssinatura,
+  comando: (): void => undefined,
+});
+
+/**
+ * "Reiniciar agora", do aviso de preferência que só vale no próximo início —
+ * ver `native/preferencias.ts`. Ponte separada pela razão de versão; nenhum
+ * argumento atravessa.
+ */
+contextBridge.exposeInMainWorld("vortexReinicio", {
+  reiniciar: () => ipcRenderer.invoke("vortexReiniciar"),
+});
+
+/**
+ * "Atenuar outros apps" — ver `native/atenuacao.ts`. Um booleano atravessa,
+ * nada mais. Ponte separada pela mesma razão das outras.
+ */
+contextBridge.exposeInMainWorld("vortexAtenuacao", {
+  atenuar: (sim: boolean) => ipcRenderer.send("vortexAtenuar", sim === true),
 });
 
 /**

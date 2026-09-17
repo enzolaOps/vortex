@@ -10,9 +10,17 @@ import { ulid } from "ulid";
 
 import { client } from "./client";
 import { publicarCanaisDe } from "./adapter";
+import { anotarCanais } from "./vortexCanal";
+import { escritasDePermissao, permissoesDoCanal } from "./canal";
+import { ehCanalDeVoz } from "./map";
 import { toast } from "../components/ui/toastStore";
 import { sigla } from "../lib/sigla";
-import { motivoDoErro } from "./erros";
+import { motivoDoErro, tipoDoErro } from "./erros";
+import {
+  conjuntoDaCategoriaPorId,
+  sincronizarComCategoria,
+  temSobreposicoes,
+} from "./categorias";
 
 /**
  * O convite, reduzido ao que a tela de pré-visualização mostra.
@@ -137,6 +145,23 @@ export async function entrarPorConvite(): Promise<string | undefined> {
     pendente = undefined;
     return servidor.id;
   } catch (e) {
+    /*
+      ⚠ **Aprovação manual volta como ERRO do protocolo, e não é falha.** O
+      fork responde `JoinRequestPending` em vez de uma variante nova de
+      `InviteJoinResponse` para cliente antigo não tratar pedido como entrada.
+      Aqui o pedido foi registrado, e dizer "Não deu para entrar" em vermelho
+      mandaria a pessoa pedir de novo.
+    */
+    if (tipoDoErro(e) === "JoinRequestPending") {
+      pendente = undefined;
+      toast({
+        tipo: "info",
+        titulo: "Pedido enviado",
+        descricao:
+          "Este servidor aprova entradas manualmente. Você entra assim que a moderação aprovar.",
+      });
+      return undefined;
+    }
     toast({ tipo: "erro", titulo: "Não deu para entrar.", descricao: motivo(e) });
     return undefined;
   }
@@ -269,7 +294,11 @@ export async function criarServidor(
 export async function criarCanal(
   serverId: string,
   nome: string,
-  voz: boolean,
+  /**
+   * `true`/`false` é voz/texto, como sempre foi. `"forum"` e `"midia"` são os
+   * dois tipos que só este fork conhece — ver o ramo abaixo.
+   */
+  voz: boolean | "forum" | "midia",
   categoriaId: string,
   /** O servidor já em mãos — ver `servidorPara`. */
   dado?: Server,
@@ -278,14 +307,31 @@ export async function criarCanal(
   try {
     const servidor = servidorPara(serverId, dado);
     if (!servidor) return undefined;
-    const canal = await servidor.createChannel({
-      // O protocolo NÃO tem `VoiceChannel`: canal de voz é `Text` com um
-      // objeto `voice`. A descoberta está registrada em `map.ts`, e é o mesmo
-      // engano que fez o arnês criar um tipo que não existe.
-      type: voz ? "Voice" : "Text",
-      name: nome,
-    });
-    id = canal.id;
+    if (voz === "forum" || voz === "midia") {
+      /*
+        ⚠ **Fórum e galeria pela rota CRUA.** `Server.createChannel` tipa
+        `type` como `Text | Voice` e hidrata a resposta — e a hidratação
+        DESCARTA o objeto `forum`, que é o que faz o canal ser fórum. A mesma
+        chamada, com o corpo anotado antes de hidratar. No servidor, os dois
+        são `TextChannel` com `forum`: um cliente Stoat antigo vê texto.
+      */
+      const cru = (await client.api.post(
+        `/servers/${serverId}/channels` as never,
+        { type: voz === "forum" ? "Forum" : "Media", name: nome } as never,
+      )) as { _id: string };
+      client.channels.getOrCreate(cru._id, cru as never);
+      anotarCanais([cru]);
+      id = cru._id;
+    } else {
+      const canal = await servidor.createChannel({
+        // O protocolo NÃO tem `VoiceChannel`: canal de voz é `Text` com um
+        // objeto `voice`. A descoberta está registrada em `map.ts`, e é o mesmo
+        // engano que fez o arnês criar um tipo que não existe.
+        type: voz ? "Voice" : "Text",
+        name: nome,
+      });
+      id = canal.id;
+    }
   } catch (e) {
     toast({
       tipo: "erro",
@@ -304,8 +350,157 @@ export async function criarCanal(
     dado,
   );
 
+  /*
+    "Canais criados aqui herdam a restrição" — é a promessa da categoria
+    privada. Herdar é o servidor COPIAR as sobreposições dela para o canal;
+    sem esta chamada o canal nasceria aberto dentro de uma categoria fechada.
+    Categoria sem sobreposição nenhuma não pede nada: sincronizar ali só
+    trocaria "nada" por "nada".
+  */
+  const conjunto = conjuntoDaCategoriaPorId(serverId, categoriaId);
+  if (conjunto !== undefined && temSobreposicoes(conjunto)) {
+    await sincronizarComCategoria(id);
+  }
+
   publicarCanaisDe(serverId);
   return id;
+}
+
+/**
+ * Onde o canal duplicado entra: logo DEPOIS do original, na mesma categoria.
+ *
+ * Pura e separada porque é a parte que pode errar em silêncio — um canal
+ * duplicado que aparece no fim de outra categoria "funcionou" e está no lugar
+ * errado. Original fora de categoria: nada muda, e o novo fica solto como ele.
+ */
+export function inserirDepois<C extends { channels: string[] }>(
+  categorias: readonly C[],
+  originalId: string,
+  novoId: string,
+): C[] {
+  return categorias.map((c) => {
+    const i = c.channels.indexOf(originalId);
+    if (i === -1) return c;
+    const channels = [...c.channels];
+    channels.splice(i + 1, 0, novoId);
+    return { ...c, channels };
+  });
+}
+
+/**
+ * Duplica um canal: configurações E permissões.
+ *
+ * ⚠ **Sem as permissões não duplica, e a ordem é o mecanismo.** Ver
+ * `permissoesDoCanal`: o snapshot não as carrega, e um canal restrito
+ * duplicado sem elas nasceria aberto. Por isso:
+ *
+ * 1. Lê as permissões ANTES de criar. Não deu para ler → nada é criado.
+ * 2. Cria com o que `DataCreateServerChannel` aceita (nome, tópico, idade,
+ *    voz com teto).
+ * 3. Escreve as permissões, o padrão primeiro — ver `escritasDePermissao`.
+ * 4. **Se qualquer escrita de permissão falhar, APAGA o canal novo.** Um canal
+ *    com metade das restrições é pior que canal nenhum, e é o único estado
+ *    deste fluxo que ninguém veria de fora.
+ * 5. Modo lento e posição vêm por último: falhar neles deixa um canal com as
+ *    restrições certas no lugar errado, que se conserta à mão sem vazar nada.
+ *
+ * ⚠ **A janela que sobra, dita:** entre (2) e (3) o canal existe com as
+ * permissões herdadas do servidor. Ele está VAZIO — não há o que ler —, e o
+ * protocolo não aceita permissão na criação, então ela não fecha no cliente.
+ */
+export async function duplicarCanal(
+  channelId: string,
+): Promise<string | undefined> {
+  const canal = client.channels.get(channelId);
+  const serverId = canal?.serverId;
+  const servidor = serverId ? client.servers.get(serverId) : undefined;
+  const permissoes = permissoesDoCanal(channelId);
+  if (!canal || !serverId || !servidor || !permissoes) {
+    toast({
+      tipo: "erro",
+      titulo: "Não deu para duplicar o canal.",
+      descricao:
+        "As permissões dele não estão carregadas, e duplicar sem elas abriria um canal restrito.",
+    });
+    return undefined;
+  }
+
+  const voz = ehCanalDeVoz(canal);
+  const teto = client.channels.getUnderlyingObject(channelId).voice?.maxUsers;
+
+  let novo: string;
+  try {
+    const criado = await servidor.createChannel({
+      type: voz ? "Voice" : "Text",
+      name: canal.name,
+      description: canal.description ?? null,
+      nsfw: canal.mature === true,
+      ...(voz && teto !== undefined && teto > 0
+        ? { voice: { max_users: teto } }
+        : {}),
+    });
+    novo = criado.id;
+  } catch (e) {
+    toast({
+      tipo: "erro",
+      titulo: "Não deu para duplicar o canal.",
+      descricao: motivo(e),
+    });
+    return undefined;
+  }
+
+  try {
+    for (const { roleId, override } of escritasDePermissao(permissoes)) {
+      await client.channels.get(novo)?.setPermissions(roleId, {
+        allow: Number(override.allow),
+        deny: Number(override.deny),
+      });
+    }
+  } catch (e) {
+    /*
+      Desfaz. Se APAGAR também falhar, o toast diz o que ficou para trás — é
+      a única saída honesta de um canal que existe com restrição pela metade.
+    */
+    let apagado = true;
+    try {
+      await client.channels.get(novo)?.delete();
+    } catch {
+      apagado = false;
+    }
+    toast({
+      tipo: "erro",
+      titulo: apagado
+        ? "Não deu para copiar as permissões — nada foi duplicado."
+        : "Não deu para copiar as permissões, e a cópia ficou no servidor. Apague-a.",
+      descricao: motivo(e),
+    });
+    publicarCanaisDe(serverId);
+    return undefined;
+  }
+
+  if (canal.slowmode > 0) {
+    try {
+      await client.channels.get(novo)?.edit({ slowmode: canal.slowmode });
+    } catch (e) {
+      toast({
+        tipo: "erro",
+        titulo: "O canal foi duplicado sem o modo lento.",
+        descricao: motivo(e),
+      });
+    }
+  }
+
+  const naCategoria = (servidor.categories ?? []).some((c) =>
+    c.channels.includes(channelId),
+  );
+  if (naCategoria) {
+    await reescreverCategorias(serverId, (atuais) =>
+      inserirDepois(atuais, channelId, novo),
+    );
+  }
+
+  publicarCanaisDe(serverId);
+  return novo;
 }
 
 export async function renomearCanal(
@@ -926,4 +1121,66 @@ function msDeEspera(erro: unknown): number | undefined {
   }
   /* Uma folga: o relógio do servidor e o daqui não são o mesmo. */
   return ms + 250;
+}
+
+/* ------------------------------------------ ícone e banner, em Configurações */
+
+/** Qual das duas imagens do servidor. Domínio, e não o nome do campo. */
+export type ImagemDoServidor = "icone" | "banner";
+
+/**
+ * A tag do `autumn` de cada imagem.
+ *
+ * ⚠ **Tag errada não falha no ENVIO — falha no `PATCH`.** O `autumn` aceita um
+ * PNG em `attachments` sem reclamar, e é o `Server.edit` que recusa um ID
+ * subido na tag errada. Mapear aqui, ao lado do campo, é o que impede a tela de
+ * escolher uma e o protocolo esperar outra.
+ */
+export const TAG_DA_IMAGEM = {
+  icone: "icons",
+  banner: "banners",
+} as const satisfies Record<ImagemDoServidor, "icons" | "banners">;
+
+/**
+ * Veste ou tira o ícone ou o banner de um servidor que já existe.
+ *
+ * `anexoId` ausente = remover, pelo `remove` do protocolo (`Icon`/`Banner`).
+ * `icon: null` não é o caminho: `DataEditServer` não aceita nulo, e o campo só
+ * some quando nomeado em `remove`.
+ *
+ * ⚠ **Irmã de `vestirIconeNoServidor`, e não a mesma função.** Aquela existe
+ * para o servidor RECÉM-CRIADO, que ainda não chegou à coleção do SDK e cai no
+ * limite de taxa do próprio fluxo de criação — daí o caminho cru e a espera.
+ * Aqui o servidor está aberto em Configurações, está na coleção, e falha é
+ * falha: o toast diz e a tela desfaz a prévia.
+ */
+export async function trocarImagemDoServidor(
+  serverId: string,
+  qual: ImagemDoServidor,
+  anexoId: string | undefined,
+): Promise<boolean> {
+  const servidor = client.servers.get(serverId);
+  if (servidor === undefined) return false;
+
+  const nome = qual === "icone" ? "ícone" : "banner";
+  try {
+    if (anexoId === undefined) {
+      await servidor.edit({ remove: [qual === "icone" ? "Icon" : "Banner"] });
+    } else if (qual === "icone") {
+      await servidor.edit({ icon: anexoId });
+    } else {
+      await servidor.edit({ banner: anexoId });
+    }
+    return true;
+  } catch (e) {
+    toast({
+      tipo: "erro",
+      titulo:
+        anexoId === undefined
+          ? `Não deu para remover o ${nome}.`
+          : `Não deu para trocar o ${nome}.`,
+      descricao: motivo(e),
+    });
+    return false;
+  }
 }

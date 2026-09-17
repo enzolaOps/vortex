@@ -22,6 +22,13 @@ pub trait PermissionQuery {
     /// Do we have a mutual connection with the currently selected user?
     async fn have_mutual_connection(&mut self) -> bool;
 
+    /// Vortex: do we share a server whose policy allows DMs between members?
+    ///
+    /// `false` keeps the upstream rule (only friends and bots DM). No default
+    /// body: under `async_trait` it would require `Self: Send`, which the
+    /// generic calculators do not ask of `P`.
+    async fn share_server_allowing_member_dms(&mut self) -> bool;
+
     // * For calculating server permission
 
     /// Is our perspective user the server's owner?

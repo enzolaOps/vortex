@@ -6,10 +6,12 @@ use revolt_database::{
     events::client::{EventV1, ReadyPayloadFields},
     util::permissions::DatabasePermissionQuery,
     voice::{get_channel_voice_state, UserVoiceChannel},
-    Channel, Database, Member, MemberCompositeKey, Presence, RelationshipStatus,
+    Channel, Database, Member, MemberCompositeKey, Presence, RelationshipStatus, Role,
 };
 use revolt_models::v0;
-use revolt_permissions::{calculate_channel_permissions, ChannelPermission};
+use revolt_permissions::{
+    calculate_channel_permissions, calculate_server_permissions, ChannelPermission,
+};
 use revolt_presence::filter_online;
 use revolt_result::Result;
 
@@ -140,6 +142,18 @@ impl State {
         // Fetch DMs and server channels.
         let mut channels = db.find_direct_messages(&user.id).await?;
         channels.append(&mut db.fetch_channels(&channel_ids).await?);
+
+        // Vortex: active threads travel with their servers. They are not in
+        // `server.channels`, so clients that do not know threads never list
+        // them; subscribing here is what delivers their messages live.
+        if !server_ids.is_empty() {
+            channels.append(
+                &mut db
+                    .fetch_threads(&server_ids, None, Some(false))
+                    .await
+                    .unwrap_or_default(),
+            );
+        }
 
         // Filter server channels by permission.
         let channels = self.cache.filter_accessible_channels(db, channels).await;
@@ -400,6 +414,27 @@ impl State {
         }
     }
 
+    /// Vortex: forget the threads of a server the user left or that was deleted
+    ///
+    /// Threads are not in `server.channels`, so the loops over that list miss
+    /// them.
+    async fn remove_cached_threads(&mut self, server_id: &str) {
+        let threads: Vec<String> = self
+            .cache
+            .channels
+            .iter()
+            .filter(|(_, channel)| {
+                channel.thread().is_some() && channel.server() == Some(server_id)
+            })
+            .map(|(id, _)| id.clone())
+            .collect();
+
+        for id in threads {
+            self.remove_subscription(&id).await;
+            self.cache.channels.remove(&id);
+        }
+    }
+
     /// Push presence change to the user and all associated server topics
     pub async fn broadcast_presence_change(&self, target: bool) {
         let config = revolt_config::config().await;
@@ -575,6 +610,7 @@ impl State {
                             self.cache.channels.remove(channel);
                         }
                     }
+                    self.remove_cached_threads(id).await;
                     self.cache.members.remove(id);
                 }
             }
@@ -587,6 +623,7 @@ impl State {
                         self.cache.channels.remove(channel);
                     }
                 }
+                self.remove_cached_threads(id).await;
                 self.cache.members.remove(id);
             }
             EventV1::ServerMemberUpdate { id, data, clear } => {
@@ -612,13 +649,31 @@ impl State {
                 ..
             } => {
                 if let Some(server) = self.cache.servers.get_mut(id) {
-                    if let Some(role) = server.roles.get_mut(role_id) {
-                        for field in &clear.clone() {
-                            role.remove_field(&field.clone().into());
-                        }
+                    // Vortex: `ServerRoleUpdate` também é o evento de CRIAÇÃO de
+                    // cargo. Aplicar só a cargo já em cache deixava todo cargo
+                    // criado depois da conexão fora do cálculo de permissão até
+                    // reconectar. Cargo desconhecido entra com padrões seguros —
+                    // sem permissão e com o rank mais fraco — e o `data` parcial
+                    // sobrescreve o que trouxer.
+                    let role = server
+                        .roles
+                        .entry(role_id.clone())
+                        .or_insert_with(|| Role {
+                            id: role_id.clone(),
+                            name: String::new(),
+                            permissions: Default::default(),
+                            colour: None,
+                            hoist: false,
+                            rank: i64::MAX,
+                            icon: None,
+                            mentionable: false,
+                        });
 
-                        role.apply_options(data.clone().into());
+                    for field in &clear.clone() {
+                        role.remove_field(&field.clone().into());
                     }
+
+                    role.apply_options(data.clone().into());
                 }
 
                 if data.rank.is_some() || data.permissions.is_some() {
@@ -629,15 +684,58 @@ impl State {
                     }
                 }
             }
+            EventV1::ServerRoleRanksUpdate { id, ranks } => {
+                // Vortex: a ordem dos cargos decide qual override vence, então
+                // reordenar muda permissão tanto quanto editar o cargo.
+                if let Some(server) = self.cache.servers.get_mut(id) {
+                    for (rank, role_id) in ranks.iter().enumerate() {
+                        if let Some(role) = server.roles.get_mut(role_id) {
+                            role.rank = rank as i64;
+                        }
+                    }
+                }
+
+                if let Some(member) = self.cache.members.get(id) {
+                    if member.roles.iter().any(|role| ranks.contains(role)) {
+                        queue_server = Some(id.clone());
+                    }
+                }
+            }
             EventV1::ServerRoleDelete { id, role_id } => {
                 if let Some(server) = self.cache.servers.get_mut(id) {
                     server.roles.remove(role_id);
                 }
 
-                if let Some(member) = self.cache.members.get(id) {
+                if let Some(member) = self.cache.members.get_mut(id) {
                     if member.roles.contains(role_id) {
+                        member.roles.retain(|role| role != role_id);
                         queue_server = Some(id.clone());
                     }
+                }
+            }
+
+            // Vortex: pedido de entrada é assunto de quem modera, não do servidor
+            // inteiro — quem pediu para entrar não precisa ser anunciado a todos.
+            EventV1::ServerJoinRequestCreate { id, .. }
+            | EventV1::ServerJoinRequestDelete { id, .. } => {
+                let Some(server) = self.cache.servers.get(id) else {
+                    return false;
+                };
+
+                let Some(user) = self.cache.users.get(&self.cache.user_id) else {
+                    return false;
+                };
+
+                let mut query = DatabasePermissionQuery::new(db, user).server(server);
+                if let Some(member) = self.cache.members.get(id) {
+                    query = query.member(member);
+                }
+
+                if !calculate_server_permissions(&mut query)
+                    .await
+                    .has_channel_permission(ChannelPermission::ManageJoinRequests)
+                {
+                    return false;
                 }
             }
 

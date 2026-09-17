@@ -22,8 +22,8 @@ export type ModoDeEntrada = (typeof MODOS_DE_ENTRADA)[number];
  * Supressão de ruído.
  *
  * Três níveis na tela, dois no navegador: `noiseSuppression` é booleano em
- * `getUserMedia`. "Agressiva" precisa de RNNoise ou do add-on do LiveKit —
- * está registrada como pendência e o rótulo não mente sobre isso.
+ * `getUserMedia`. "Agressiva" soma o RNNoise por cima do do navegador — ver
+ * `voz/ruidoForte.ts`, aplicado pelo motor de voz.
  */
 export const NIVEIS_DE_RUIDO = ["desligada", "padrao", "agressiva"] as const;
 export type NivelDeRuido = (typeof NIVEIS_DE_RUIDO)[number];

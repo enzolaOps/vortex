@@ -50,6 +50,7 @@ import {
   type MetodoDeMfa,
 } from "../store/sessao";
 import { motivoDoErro } from "./erros";
+import { instalarPerfilDoServidor } from "./perfilDoServidor";
 import { lerEscolhaDeIdentidade } from "../store/entrada";
 
 /**
@@ -160,6 +161,9 @@ function instalar(sessao: {
     preserva o socket já aberto; reinstalar o abriria de novo.
   */
   startAdapter();
+  /* Tag, emblema e características: campos do fork que o SDK descarta —
+     lidos do evento cru, então o ouvinte vem antes do socket, como o do adapter. */
+  instalarPerfilDoServidor();
 
   client.useExistingSession(sessao);
   void conectar();
@@ -299,6 +303,20 @@ async function concluir(r: RespostaDeLogin): Promise<void> {
   }
 
   dentro(r.user_id);
+}
+
+/**
+ * A troca do QR entrega a MESMA forma do login por senha (`Success` ou
+ * `Disabled`), e conclui pelo mesmo caminho: instalar, conectar, onboarding.
+ * Um segundo caminho de conclusão seria um segundo lugar para esquecer o
+ * `connect()` — que é exatamente o defeito que este arquivo existe para conter.
+ */
+export async function concluirEntradaPorQr(
+  r:
+    | { result: "Success"; _id: string; token: string; user_id: string }
+    | { result: "Disabled"; user_id: string },
+): Promise<void> {
+  await concluir(r);
 }
 
 async function postLogin(corpo: Record<string, unknown>): Promise<void> {

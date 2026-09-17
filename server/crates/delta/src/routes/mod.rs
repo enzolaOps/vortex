@@ -15,11 +15,15 @@ mod root;
 mod safety;
 mod servers;
 mod sync;
+mod templates;
 mod users;
 mod webhooks;
 mod account;
 mod session;
 mod mfa;
+// Vortex
+mod export;
+mod qr;
 
 pub fn mount(config: Settings, mut rocket: Rocket<Build>) -> Rocket<Build> {
     let settings = OpenApiSettings::default();
@@ -34,11 +38,14 @@ pub fn mount(config: Settings, mut rocket: Rocket<Build>) -> Rocket<Build> {
             "/channels" => channels::routes(),
             "/servers" => servers::routes(),
             "/invites" => invites::routes(),
+            "/templates" => templates::routes(),
             "/custom" => customisation::routes(),
             "/safety" => safety::routes(),
             "/auth/account" => account::routes(),
             "/auth/session" => session::routes(),
             "/auth/mfa" => mfa::routes(),
+            "/auth/qr" => qr::routes(),
+            "/auth/export" => export::routes(),
             "/onboard" => onboard::routes(),
             "/policy" => policy::routes(),
             "/push" => push::routes(),
@@ -55,11 +62,14 @@ pub fn mount(config: Settings, mut rocket: Rocket<Build>) -> Rocket<Build> {
             "/channels" => channels::routes(),
             "/servers" => servers::routes(),
             "/invites" => invites::routes(),
+            "/templates" => templates::routes(),
             "/custom" => customisation::routes(),
             "/safety" => safety::routes(),
             "/auth/account" => account::routes(),
             "/auth/session" => session::routes(),
             "/auth/mfa" => mfa::routes(),
+            "/auth/qr" => qr::routes(),
+            "/auth/export" => export::routes(),
             "/onboard" => onboard::routes(),
             "/policy" => policy::routes(),
             "/push" => push::routes(),
@@ -135,7 +145,9 @@ fn custom_openapi_spec() -> OpenApi {
           {
             "name": "Customisation",
             "tags": [
-              "Emojis"
+              "Emojis",
+              "Stickers",
+              "Soundboard"
             ]
           },
           {

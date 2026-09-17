@@ -1,0 +1,57 @@
+/*
+  O véu ocupa a caixa que `.midia` já reservou pela proporção do anexo. Nada
+  aqui pode dar altura própria: é a mesma caixa com outro conteúdo — revelar
+  troca o conteúdo e a altura da linha não se move (a âncora da lista não
+  percebe).
+
+  Valores do design (`Vortex Lacunas`, "Mídia filtrada na timeline"): rótulo
+  12/600, dica 11 em texto terciário, 5 de vão. O véu é `--vx-scrim` e não
+  `surface-0` a 92% pela mesma razão escrita em
+  `PrivacidadeDoServidor.module.css`: o tom mais escuro é de rail e gutter, e
+  "véu sobre conteúdo" tem token próprio.
+*/
+.veu {
+  position: relative;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--vx-space-05);
+  inline-size: 100%;
+  block-size: 100%;
+  padding: var(--vx-space-12);
+  border: 0;
+  /* O véu SOBRE o xadrez de placeholder do design, numa pilha só de fundo:
+     o xadrez diz "há mídia aqui, coberta"; um bloco liso pareceria imagem
+     preta. */
+  background:
+    linear-gradient(var(--vx-scrim), var(--vx-scrim)),
+    repeating-conic-gradient(
+        var(--vx-surface-2) 0% 25%,
+        color-mix(in oklab, var(--vx-surface-3) 45%, var(--vx-surface-2)) 0% 50%
+      )
+      0 0 / 16px 16px;
+  color: var(--vx-text-2);
+  font-family: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+.veu:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.titulo {
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+.detalhe {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.veu:hover .detalhe {
+  color: var(--vx-text-2);
+}

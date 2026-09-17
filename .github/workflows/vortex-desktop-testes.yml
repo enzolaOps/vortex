@@ -1,0 +1,66 @@
+# Testes e lint da casca desktop (`vendor/stoat-desktop/`) nos PRs que a tocam.
+#
+# ⚠ **Até aqui, nada no CI rodava `pnpm test` da casca.** O único workflow
+# dela (`vortex-desktop.yml`) empacota em release; as guardas de segurança do
+# IPC — registro central, privilégio do overlay, portas — só eram conferidas
+# por quem lembrasse de rodá-las localmente.
+#
+# Só ações da GitHub, pinadas por SHA como nos outros workflows: a política
+# do repositório recusa as de terceiros e o run nem começa
+# (`startup_failure`).
+#
+# Leve de propósito: Linux só, sem Electron. `--ignore-scripts` pula o
+# download do binário do Electron e a compilação dos addons nativos, que os
+# testes não usam — eles testam a DECISÃO pura, sem `electron` (ver
+# `scripts/testar.mjs`).
+#
+# ⚠ Sem `tsc`: a casca tem erros de tipo antigos (`?asset` do Vite e a
+# sobrecarga de `BrowserWindow.on` em `ponteDoVortex.ts`), e um passo que
+# nasce vermelho é um passo que alguém desliga.
+name: Vortex desktop — testes
+
+on:
+  pull_request:
+    paths:
+      - "vendor/stoat-desktop/**"
+      - ".github/workflows/vortex-desktop-testes.yml"
+
+concurrency:
+  group: vortex-desktop-testes-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  testes:
+    name: Testes e lint da casca
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: vendor/stoat-desktop
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+
+      # ⚠ Sem `pnpm/action-setup`: a política do repositório só libera ações
+      # da GitHub e de `docker/*`, e ela derruba o run antes do primeiro passo.
+      # O corepack do Node lê o `packageManager` da CASCA (versão e hash).
+      - name: Ativar o pnpm da casca
+        run: corepack enable && pnpm --version
+
+      - name: Instalar dependências
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Testes
+        run: pnpm test
+
+      - name: Lint
+        run: pnpm lint

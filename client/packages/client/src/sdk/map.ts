@@ -42,8 +42,10 @@ import type {
 } from "./domain";
 import { NOMES_POR_REACAO } from "./domain";
 import type { Enquete } from "../store/enquetes";
+import { figurinhaDaMensagem } from "./figurinhasDeMensagem";
 import { formatarBytes } from "../lib/bytes";
 import { sigla } from "../lib/sigla";
+import { camposDe, superficie } from "./superficieVortex";
 
 /**
  * `reactions` chega como ReactiveMap<emoji, ReactiveSet<userId>>. Achatar aqui
@@ -267,7 +269,7 @@ export function toMessageSnapshot(
   sendState: SendState,
   /** Quem sou eu — para saber quais reações são minhas. Vem de fora, como tudo. */
   euId: string | undefined,
-  /** A enquete, pelo mesmo motivo de `sendState`: o protocolo não a carrega. */
+  /** A enquete — o `stoat.js` a descarta na hidratação; vem de `store/enquetes.ts`. */
   enquete: Enquete | undefined,
 ): MessageSnapshot {
   return {
@@ -288,7 +290,17 @@ export function toMessageSnapshot(
       editada troca de chave sozinha, e "ok" digitado por trinta pessoas divide
       uma árvore só.
     */
-    blocos: analisar(message.content),
+    /*
+      A pergunta da enquete chega TAMBÉM no `content` — é o que um cliente sem
+      enquete mostra (ver `sdk/enquetes.ts`). Aqui a caixa da enquete já diz a
+      pergunta, e repeti-la como parágrafo em cima seria a mesma frase duas
+      vezes. Só quando é IGUAL: texto a mais escrito pelo autor continua.
+    */
+    blocos: analisar(
+      enquete !== undefined && message.content.trim() === enquete.pergunta
+        ? ""
+        : message.content,
+    ),
     anexos: toAnexos(message),
     /** Menciona VOCÊ — a linha inteira se destaca por isso. */
     mencionaVoce: euId !== undefined && message.content.includes(`<@${euId}>`),
@@ -306,6 +318,7 @@ export function toMessageSnapshot(
     // trabalho para o qual existe.
     sendState,
     enquete,
+    figurinha: figurinhaDaMensagem(message.id, message.nonce),
     iniciaGrupo: layout.iniciaGrupo,
     dia: layout.dia,
     primeiraNaoLida: layout.primeiraNaoLida,
@@ -591,6 +604,9 @@ export function toChannelSnapshot(
       são os do domínio.
     */
     modoLento: channel.slowmode,
+    /* Lidos do evento CRU — o SDK os descarta. Ver `superficieVortex.ts`. */
+    spoiler: camposDe(superficie, channel.id).spoiler,
+    convitesPausados: camposDe(superficie, channel.id).convitesPausados,
   };
 }
 
@@ -623,6 +639,11 @@ const RELACAO: Record<string, Relacao> = {
   BlockedOther: "bloqueadoPor",
 };
 
+/** A relação crua do protocolo → a do produto. Ver `RELACAO`. */
+export function relacaoDoProtocolo(bruta: string): Relacao {
+  return RELACAO[bruta] ?? "nenhuma";
+}
+
 export function toRelacaoSnapshot(user: User): RelacaoSnapshot {
   const displayName = user.displayName || user.username;
   return {
@@ -631,7 +652,7 @@ export function toRelacaoSnapshot(user: User): RelacaoSnapshot {
     sigla: sigla(displayName),
     avatarUrl: urlDeAvatar(user),
     username: user.username,
-    relacao: RELACAO[user.relationship] ?? "nenhuma",
+    relacao: relacaoDoProtocolo(user.relationship),
     status: toPresence(user.status?.presence),
   };
 }
@@ -748,6 +769,11 @@ export function toMemberSnapshot(
     ? [...membro.orderedRoles].reverse().map((c) => c.id)
     : [];
 
+  /* O mais alto com ícone — `iconRole` do SDK. A URL sai vazia sem servidor
+     de mídia configurado, e vazio vira ausência pela mesma razão de `cor`. */
+  const cargoDoIcone = membro?.iconRole ?? undefined;
+  const iconeDeCargoUrl = cargoDoIcone?.icon?.createFileURL() || undefined;
+
   /*
     ⚠ **Hierarquia, e o default de "não sei" é NÃO PODE.**
 
@@ -787,6 +813,8 @@ export function toMemberSnapshot(
     cor,
     cargo,
     cargosIds,
+    iconeDeCargoUrl,
+    iconeDeCargoNome: iconeDeCargoUrl === undefined ? undefined : cargoDoIcone?.name,
     abaixoDeMim,
     silenciadoAte,
     entrouEm: entrouEmMs === undefined ? undefined : DATA_CURTA.format(entrouEmMs),

@@ -321,6 +321,17 @@ export type MessageSnapshot = {
   readonly enquete: Enquete | undefined;
 
   /**
+   * A figurinha que esta mensagem carrega — só o ID.
+   *
+   * Campo do Vortex (`Message.stickers` no fork do `delta`) que o `stoat.js`
+   * descarta na hidratação; quem o recupera é `sdk/figurinhasDeMensagem.ts`.
+   * O snapshot leva o ID e não a figurinha: o nome e a URL moram no store
+   * `figurinhas`, e é a própria figurinha na linha que o assina — renomeá-la
+   * não republica mensagem nenhuma.
+   */
+  readonly figurinha: string | undefined;
+
+  /**
    * Primeira mensagem do autor naquela janela: mostra avatar, nome e hora.
    *
    * Mensagens consecutivas do mesmo autor dentro de uma janela curta agrupam
@@ -671,6 +682,15 @@ export type ChannelSnapshot = {
    */
   readonly modoLento: number;
   /**
+   * Canal de spoiler — toda mídia entra coberta, com clique para revelar.
+   *
+   * ⚠ **Superfície do servidor do Vortex, não do Stoat.** O SDK descarta o
+   * campo na hidratação; quem o lê do fio é `sdk/superficieVortex.ts`.
+   */
+  readonly spoiler: boolean;
+  /** Entrar pelos convites deste canal está suspenso — mesma origem. */
+  readonly convitesPausados: boolean;
+  /**
    * O outro lado de uma conversa direta. Só existe em `dm`.
    *
    * Calculado no adapter a partir de `recipientIds` menos eu, e NÃO lido de
@@ -810,6 +830,21 @@ export type MemberSnapshot = ComSigla & {
    */
   readonly cargosIds: readonly string[];
   /**
+   * A imagem do cargo mais alto que TEM ícone, já resolvida — ou ausência.
+   *
+   * ⚠ **O cargo do ícone não é necessariamente o da cor nem o hasteado.** É a
+   * regra do próprio SDK (`ServerMember.iconRole`): o mais alto entre os que
+   * têm ícone. Uma pessoa com "Admin" colorido sem ícone e "Artista" abaixo com
+   * ícone mostra a cor de um e a imagem do outro, como o protocolo define.
+   *
+   * Dois campos planos e não um objeto: o snapshot é comparado por valor, e um
+   * `{ url, nome }` novo a cada tradução faria toda republicação parecer
+   * mudança — o erro nº 1 do briefing.
+   */
+  readonly iconeDeCargoUrl: string | undefined;
+  /** O nome do cargo do ícone, para o `alt` e o título. */
+  readonly iconeDeCargoNome: string | undefined;
+  /**
    * Esta pessoa está ABAIXO de mim na hierarquia?
    *
    * ⚠ Campo e não cálculo no componente: a comparação é `inferiorTo` do SDK,
@@ -937,8 +972,75 @@ export type ParticipanteDeVoz = {
    * resposta.
    */
   readonly mudoPeloServidor: boolean;
+  /**
+   * Surdo POR ORDEM DO SERVIDOR — `can_receive: false` no `ServerMember`.
+   * Mesma distinção de `mudoPeloServidor`: só quem modera desfaz.
+   */
+  readonly surdoPeloServidor: boolean;
 };
 
 export function baldeDe(status: PresenceStatus): Balde {
   return status === "offline" ? "offline" : "online";
 }
+
+/* ---------------------------------------------- tópicos, fórum e galeria */
+
+export type { MetaDeForum as ForumSnapshot, TagDeForum } from "./vortexCanal";
+
+/**
+ * A mensagem de abertura de um post — o que o card do fórum e o item da
+ * galeria desenham.
+ *
+ * Reduzida e com a URL pronta: o card não assina a mensagem inteira (ela nem
+ * sempre está carregada — a listagem traz a abertura, não o histórico).
+ */
+export type AberturaDePost = {
+  readonly id: string;
+  readonly autorId: string;
+  readonly texto: string;
+  /** A abertura mora DENTRO do tópico (post) e não no canal pai (tópico de mensagem). */
+  readonly noTopico: boolean;
+  readonly midia:
+    | {
+        /** `undefined` quando a instância não tem servidor de mídia. */
+        readonly url: string | undefined;
+        readonly nome: string;
+        readonly tipo: "imagem" | "video" | "gif";
+        readonly largura: number | undefined;
+        readonly altura: number | undefined;
+        readonly spoiler: boolean;
+        readonly tamanho: number | undefined;
+      }
+    | undefined;
+  /** A reação com mais gente na abertura. */
+  readonly reacao: { readonly emoji: string; readonly total: number } | undefined;
+};
+
+/**
+ * Um tópico — e, com pai de fórum, um post; com pai de galeria, um item.
+ *
+ * É canal no protocolo, e o que é de canal (não-lidas, digitação, mensagens)
+ * continua vindo de `useChannel(id)`. Aqui só o que é de TÓPICO.
+ */
+export type TopicoSnapshot = {
+  readonly id: string;
+  readonly nome: string;
+  readonly paiId: string;
+  readonly serverId: string | undefined;
+  readonly donoId: string;
+  readonly aberturaId: string | undefined;
+  readonly arquivado: boolean;
+  /** Fixado no topo do fórum pai. */
+  readonly fixado: boolean;
+  /** IDs das tags do fórum pai. */
+  readonly tags: readonly string[];
+  /** Quem segue — é quem o painel mostra como participantes. */
+  readonly seguidores: readonly string[];
+  readonly seguindo: boolean;
+  /** `undefined` = a listagem ainda não disse; zero seria afirmar que ninguém respondeu. */
+  readonly respostas: number | undefined;
+  /** ms, do ULID da última mensagem — ou do próprio tópico, se não houver. */
+  readonly ultimaEm: number;
+  readonly ultimoAutorId: string | undefined;
+  readonly abertura: AberturaDePost | undefined;
+};

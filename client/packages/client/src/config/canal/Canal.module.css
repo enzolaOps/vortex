@@ -98,22 +98,6 @@
   outline-offset: -2px;
 }
 
-/* O controle DESENHADO que ainda não faz nada. Mesma forma, papel diferente. */
-.pendente {
-  composes: gatilhoDeLista;
-}
-
-.selecao {
-  display: grid;
-  gap: var(--vx-space-04);
-  min-inline-size: 0;
-}
-
-.rotuloLeve {
-  font-size: var(--vx-size-xs);
-  color: var(--vx-text-3);
-}
-
 /* --------------------------------------- faixa de não-salvo */
 
 /* ============================================================
@@ -704,6 +688,31 @@
 
 .revogar:hover {
   text-decoration: underline;
+}
+
+/* Linha de convite com o canal pausado — o `opacity: 0.55` do design. */
+.tabelaLinha[data-pausado="true"] {
+  opacity: 0.55;
+}
+
+.retomar {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.retomar:hover {
+  color: var(--vx-text-1);
+}
+
+.retomar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
 }
 
 .revogar:focus-visible {

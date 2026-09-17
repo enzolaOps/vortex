@@ -1,5 +1,5 @@
 import {
-  ChatCircle,
+  DotsThree,
   ICONE,
   MicrophoneSlash,
   Monitor,
@@ -9,11 +9,14 @@ import { memo, useEffect, useState, useSyncExternalStore } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
 import { Tooltip } from "../components/ui/Tooltip";
-import { assinarVideo } from "../sdk/chamada";
+import { buscarAtividade } from "../sdk/atividades";
+import { assinarSessao, lerSessao } from "../store/atividades";
 import { assinarChamada, falando, lerChamada } from "../store/chamada";
 import { useChannel, usePessoa, useServer } from "../store/hooks";
-import { fecharPalco } from "../store/palcoDeVoz";
-import { Cronometro, Doca, FaixaDeVideo } from "./pecasDeVoz";
+import { abrirMenuDoParticipante } from "../store/menuDoParticipante";
+import { LadrilhoDeAtividade } from "./atividades/LadrilhoDeAtividade";
+import { BotaoDoChatDaSala } from "./ChatDaSala";
+import { Cronometro, Doca, FaixaDeVideo, useVideo } from "./pecasDeVoz";
 import css from "./GradeDeChamada.module.css";
 
 /**
@@ -83,9 +86,29 @@ export function GradeDeChamada() {
     célula fica menor que o rosto que ela existe para mostrar, e paginar
     esconderia justamente quem está falando.
   */
+  const comAtividade =
+    useSyncExternalStore(assinarSessao(chamada.channelId), () =>
+      lerSessao(chamada.channelId),
+    ) !== undefined;
+
+  /*
+    Quem entra na sala DEPOIS de a atividade começar não recebeu o
+    `ActivityUpdate`: a grade pergunta ao abrir. O resultado vai para o store
+    (não para `setState`), e falha de rede só deixa a grade sem o ladrilho.
+  */
+  useEffect(() => {
+    if (!chamada.channelId) return;
+    buscarAtividade(chamada.channelId).catch(() => undefined);
+  }, [chamada.channelId]);
+
+  /* O ladrilho da atividade ocupa 2×2: com uma coluna só ele criaria uma
+     trilha implícita fora da conta. */
   const colunas = Math.min(
     5,
-    Math.max(1, Math.ceil(Math.sqrt(chamada.participantes.length))),
+    Math.max(
+      comAtividade ? 2 : 1,
+      Math.ceil(Math.sqrt(chamada.participantes.length)),
+    ),
   );
 
   /*
@@ -138,16 +161,7 @@ export function GradeDeChamada() {
           ))}
         </div>
 
-        <Tooltip texto="Voltar ao chat" lado="abaixo">
-          <button
-            type="button"
-            className={css.acaoDoCabecalho}
-            aria-label="Voltar ao chat"
-            onClick={fecharPalco}
-          >
-            <ChatCircle size={ICONE.controle} aria-hidden />
-          </button>
-        </Tooltip>
+        <BotaoDoChatDaSala className={css.acaoDoCabecalho} />
       </header>
 
       <div className={css.miolo}>
@@ -155,6 +169,7 @@ export function GradeDeChamada() {
           className={css.grade}
           style={{ gridTemplateColumns: `repeat(${String(colunas)}, minmax(0, 1fr))` }}
         >
+          <LadrilhoDeAtividade channelId={chamada.channelId} />
           {chamada.participantes.map((id) => (
             <Ladrilho
               key={id}
@@ -264,6 +279,8 @@ const Ladrilho = memo(function Ladrilho({
       /* Um stream ocupa 2×2 por padrão: numa célula de 84px a tela de alguém
          não é legível, e uma prévia ilegível é a mesma coisa que nenhuma. */
       data-tela={transmitindo}
+      /* Quem é, para o menu do participante — o Root é um só, no palco. */
+      data-participante={userId}
     >
       {/*
         ⚠ **O avatar fica SEMPRE, e o vídeo cobre.** A primeira versão
@@ -321,17 +338,34 @@ const Ladrilho = memo(function Ladrilho({
         vinte paradas invisíveis antes de chegar na doca. É a mesma decisão da
         barra de ações da linha de mensagem.
       */}
-      <Tooltip texto={fixado ? "Desfixar" : "Fixar participante"} lado="acima">
+      <div className={css.acoesDoLadrilho}>
+        <Tooltip texto={fixado ? "Desfixar" : "Fixar participante"} lado="acima">
+          <button
+            type="button"
+            className={css.fixar}
+            aria-label={`Fixar ${pessoa?.displayName ?? "participante"}`}
+            aria-pressed={fixado}
+            onClick={fixado ? aoDesfixar : aoFixar}
+          >
+            <PushPin size={ICONE.metadado} weight={fixado ? "fill" : "regular"} aria-hidden />
+          </button>
+        </Tooltip>
+        {/*
+          O `⋯` abre o MESMO menu do clique direito, despachando o evento que o
+          `Trigger` do palco já escuta — ver `abrirMenuDoParticipante`. Sem
+          ele, volume e moderação existiriam só para quem sabe do botão
+          direito, que é a afordância que menos gente descobre.
+        */}
         <button
           type="button"
           className={css.fixar}
-          aria-label={`Fixar ${pessoa?.displayName ?? "participante"}`}
-          aria-pressed={fixado}
-          onClick={fixado ? aoDesfixar : aoFixar}
+          aria-label={`Opções de ${pessoa?.displayName ?? "participante"}`}
+          aria-haspopup="menu"
+          onClick={(e) => abrirMenuDoParticipante(e.currentTarget)}
         >
-          <PushPin size={ICONE.metadado} weight={fixado ? "fill" : "regular"} aria-hidden />
+          <DotsThree size={ICONE.metadado} aria-hidden />
         </button>
-      </Tooltip>
+      </div>
 
       {/*
         ⚠ **O botão "Assistir" SAIU, e ele tinha virado inalcançável.**
@@ -353,23 +387,6 @@ const Ladrilho = memo(function Ladrilho({
 /* ============================================================
    Hooks
    ============================================================ */
-
-/**
- * Pede o vídeo de alguém enquanto este componente existe, e devolve ao sair.
- *
- * ⚠ **A devolução é a metade que se esquece, e a que custa.** Sem ela, fechar
- * a grade deixaria dez faixas descendo para uma tela que não existe mais —
- * invisível na interface e visível na conta de banda.
- */
-function useVideo(userId: string, fonte: "camera" | "tela", quero: boolean) {
-  useEffect(() => {
-    if (!quero) return;
-    assinarVideo(userId, fonte, true);
-    return () => {
-      assinarVideo(userId, fonte, false);
-    };
-  }, [userId, fonte, quero]);
-}
 
 /**
  * "Está falando" com histerese, para a célula grande não piscar.

@@ -4,10 +4,13 @@ import { describe, expect, it } from "vitest";
 
 import {
   corDeCargo,
+  ehHolografico,
   FIM_DO_GRADIENTE,
   gradienteParaGravar,
+  HOLOGRAFICO,
   lerGradiente,
   pinturaDeCargo,
+  TINTA_HOLOGRAFICA,
 } from "./cargo";
 import { hexParaOklch, oklchParaHex, razao } from "./cor";
 import { derivar, SEMENTE_PADRAO, type Modo } from "./derivar";
@@ -224,6 +227,62 @@ describe("gradiente de cargo", () => {
   it("onde o gradiente não entra, sobra a PRIMEIRA parada — e não mais a ausência", () => {
     const bruta = gradienteParaGravar("#35C2CC", FIM_DO_GRADIENTE);
     expect(corDeCargo(bruta, "escuro")).toBe(corDeCargo("#35C2CC", "escuro"));
+  });
+
+  describe("holográfico", () => {
+    it("o preset passa no RE_COLOUR do servidor", () => {
+      expect(RE_COLOUR.test(HOLOGRAFICO), HOLOGRAFICO).toBe(true);
+    });
+
+    it("é reconhecido pelas PARADAS, não pelo texto", () => {
+      expect(ehHolografico(lerGradiente(HOLOGRAFICO))).toBe(true);
+      expect(
+        ehHolografico(lerGradiente("LINEAR-GRADIENT(100deg,#8fe9f0,#c9b6f5 45%,#f3c6a8)")),
+      ).toBe(true);
+      // Uma parada fora do lugar é um gradiente comum.
+      expect(
+        ehHolografico(lerGradiente("linear-gradient(100deg, #8FE9F0, #C9B6F5 40%, #F3C6A8)")),
+      ).toBe(false);
+      expect(pinturaDeCargo(gradienteParaGravar("#8FE9F0", "#F3C6A8"), "escuro")?.tipo).toBe(
+        "gradiente",
+      );
+    });
+
+    it("toda parada do nome passa 4,5:1 nas quatro superfícies, nos dois temas", () => {
+      for (const modo of MODOS) {
+        const tokens = derivar(SEMENTE_PADRAO[modo]);
+        const p = pinturaDeCargo(HOLOGRAFICO, modo);
+        expect(p?.tipo).toBe("holografico");
+        if (p?.tipo !== "holografico") continue;
+        const paradas = p.texto.match(/#[0-9a-f]{6}/g)!;
+        expect(paradas).toHaveLength(3);
+        for (const hex of paradas) {
+          for (const s of SUPERFICIES) {
+            expect(razao(hex, tokens[s]), `${modo} ${hex} ${s}`).toBeGreaterThanOrEqual(4.5);
+          }
+        }
+      }
+    });
+
+    it("no escuro o nome é o do design byte a byte; no claro vai para o clamp", () => {
+      const escuro = pinturaDeCargo(HOLOGRAFICO, "escuro");
+      const claro = pinturaDeCargo(HOLOGRAFICO, "claro");
+      if (escuro?.tipo !== "holografico" || claro?.tipo !== "holografico") {
+        throw new Error("não reconheceu o preset");
+      }
+      expect(escuro.texto).toBe(
+        "linear-gradient(in oklab 100deg, #8fe9f0, #c9b6f5 45%, #f3c6a8)",
+      );
+      expect(claro.texto).not.toContain("#8fe9f0");
+    });
+
+    it("a tinta da pílula passa 4,5:1 contra as três paradas do fundo", () => {
+      for (const hex of ["#8FE9F0", "#C9B6F5", "#F3C6A8"]) {
+        expect(razao(TINTA_HOLOGRAFICA, hex), hex).toBeGreaterThanOrEqual(4.5);
+      }
+      expect(pinturaDeCargo(HOLOGRAFICO, "claro")?.tipo === "holografico" &&
+        pinturaDeCargo(HOLOGRAFICO, "claro")).toMatchObject({ fundo: HOLOGRAFICO });
+    });
   });
 
   it("cônico e radial degradam para a primeira parada", () => {

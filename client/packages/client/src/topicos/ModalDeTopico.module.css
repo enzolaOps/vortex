@@ -1,0 +1,162 @@
+/* ============================================================
+   Abrir tópico · novo post · enviar mídia
+   ------------------------------------------------------------
+   Sem artboard no design — ver o componente. Os valores são os
+   dos formulários vizinhos (criar canal, criar categoria), para
+   o modal não parecer outro produto.
+   ============================================================ */
+
+.painel {
+  display: grid;
+  gap: var(--vx-space-16);
+  inline-size: 420px;
+  max-inline-size: 100%;
+}
+
+.corpo {
+  display: grid;
+  gap: var(--vx-space-12);
+}
+
+.grupo {
+  display: grid;
+  gap: var(--vx-space-06);
+}
+
+.sobrancelha {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  color: var(--vx-text-3);
+}
+
+.acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--vx-space-08);
+}
+
+.aviso {
+  margin: 0;
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-md);
+  line-height: var(--vx-leading-message);
+}
+
+/* As tags como no filtro do fórum: pílula de 26, 12/600. */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-06);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  block-size: 26px;
+  padding-inline: var(--vx-space-10);
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.tag:hover {
+  color: var(--vx-text-1);
+}
+
+.tag:active {
+  background: var(--vx-state-press);
+}
+
+.tag:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.tag:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.tagMarcada {
+  --cor-da-tag: var(--vx-accent);
+  background: color-mix(in srgb, var(--cor-da-tag) 18%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cor-da-tag) 50%, transparent);
+  color: var(--cor-da-tag);
+}
+
+.area {
+  min-block-size: 96px;
+  padding: var(--vx-space-09) var(--vx-space-11);
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  line-height: var(--vx-leading-message);
+  resize: vertical;
+}
+
+.area::placeholder {
+  color: var(--vx-text-4);
+}
+
+.area:focus-visible {
+  border-color: var(--vx-accent);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--vx-accent-ring);
+}
+
+.seletor {
+  display: none;
+}
+
+/* A faixa tracejada do design da galeria ("Arraste arquivos aqui…"). */
+.soltar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vx-space-08);
+  padding: var(--vx-space-18);
+  border: 1px dashed var(--vx-hairline-16);
+  border-radius: var(--vx-radius-10);
+  background: transparent;
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.soltar svg {
+  inline-size: var(--vx-icon-2);
+  block-size: var(--vx-icon-2);
+}
+
+.soltar:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.soltar:active {
+  background: var(--vx-state-press);
+}
+
+.soltar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.soltar:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

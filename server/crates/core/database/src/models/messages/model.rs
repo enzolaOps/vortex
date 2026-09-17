@@ -49,6 +49,9 @@ auto_derived_partial!(
         /// Array of attachments
         #[serde(skip_serializing_if = "Option::is_none")]
         pub attachments: Option<Vec<File>>,
+        /// Ids das figurinhas enviadas (Vortex)
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub stickers: Option<Vec<String>>,
         /// Time at which this message was last edited
         #[serde(skip_serializing_if = "Option::is_none")]
         pub edited: Option<Timestamp>,
@@ -76,6 +79,9 @@ auto_derived_partial!(
         /// Whether or not the message in pinned
         #[serde(skip_serializing_if = "crate::if_option_false")]
         pub pinned: Option<bool>,
+        /// Poll attached to this message (Vortex)
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub poll: Option<Poll>,
 
         /// Bitfield of message flags
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -85,6 +91,36 @@ auto_derived_partial!(
 );
 
 auto_derived!(
+    /// Poll attached to a message (Vortex)
+    pub struct Poll {
+        /// Question being asked
+        pub question: String,
+        /// Possible answers, in display order
+        pub answers: Vec<PollAnswer>,
+        /// How many answers each person may pick at once
+        pub max_answers: u8,
+        /// When the poll stops accepting votes
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub expires_at: Option<Timestamp>,
+        /// Whether counts should stay hidden until the poll ends
+        #[serde(skip_serializing_if = "crate::if_false", default)]
+        pub hide_results: bool,
+        /// When the poll was ended early by its author
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub ended_at: Option<Timestamp>,
+        /// Answer id to the ids of the users who picked it
+        #[serde(skip_serializing_if = "IndexMap::is_empty", default)]
+        pub votes: IndexMap<String, IndexSet<String>>,
+    }
+
+    /// One answer of a poll (Vortex)
+    pub struct PollAnswer {
+        /// Answer id, unique within the poll
+        pub id: String,
+        /// Answer text
+        pub text: String,
+    }
+
     /// System Event
     #[serde(tag = "type")]
     pub enum SystemMessage {
@@ -184,12 +220,16 @@ auto_derived!(
     pub struct MessageFilter {
         /// Parent channel ID
         pub channel: Option<String>,
+        /// Any of these parent channel IDs (ignored when `channel` is set)
+        pub channels: Option<Vec<String>>,
         /// Message author ID
         pub author: Option<String>,
         /// Search query
         pub query: Option<String>,
         /// Search for pinned
         pub pinned: Option<bool>,
+        /// Vortex: only messages carrying this kind of content
+        pub has: Option<v0::MessageSearchHas>,
     }
 
     /// Message Query
@@ -248,6 +288,7 @@ impl Default for Message {
             content: None,
             system: None,
             attachments: None,
+            stickers: None,
             edited: None,
             embeds: None,
             mentions: None,
@@ -258,7 +299,74 @@ impl Default for Message {
             masquerade: None,
             flags: None,
             pinned: None,
+            poll: None,
         }
+    }
+}
+
+/// Tamanho máximo do texto de uma resposta de enquete, em caracteres.
+pub const POLL_ANSWER_MAX_LENGTH: usize = 100;
+
+impl Poll {
+    /// Build a poll from API data, validating what `validator` cannot see
+    pub fn from_data(data: v0::DataPoll) -> Result<Poll> {
+        let answers: Vec<PollAnswer> = data
+            .answers
+            .into_iter()
+            .enumerate()
+            .map(|(index, text)| PollAnswer {
+                // Letra e não índice cru: `poll.votes.0` é ambíguo num caminho
+                // do Mongo (campo "0" ou posição 0 de um array).
+                id: format!("r{index}"),
+                text: text.trim().to_string(),
+            })
+            .collect();
+
+        if answers
+            .iter()
+            .any(|answer| answer.text.is_empty() || answer.text.chars().count() > POLL_ANSWER_MAX_LENGTH)
+        {
+            return Err(create_error!(FailedValidation {
+                error: format!(
+                    "poll answers must have between 1 and {POLL_ANSWER_MAX_LENGTH} characters"
+                )
+            }));
+        }
+
+        let max_answers = data.max_answers.unwrap_or(1);
+        if max_answers == 0 || max_answers as usize > answers.len() {
+            return Err(create_error!(FailedValidation {
+                error: "poll max_answers must be between 1 and the number of answers".to_string()
+            }));
+        }
+
+        let question = data.question.trim().to_string();
+        if question.is_empty() {
+            return Err(create_error!(FailedValidation {
+                error: "poll question must not be empty".to_string()
+            }));
+        }
+
+        Ok(Poll {
+            question,
+            answers,
+            max_answers,
+            expires_at: Timestamp::now_utc().checked_add(iso8601_timestamp::Duration::hours(
+                data.duration_hours.unwrap_or(24) as i64,
+            )),
+            hide_results: data.hide_results,
+            ended_at: None,
+            votes: IndexMap::new(),
+        })
+    }
+
+    /// Whether the poll still accepts votes
+    pub fn is_open(&self) -> bool {
+        self.ended_at.is_none()
+            && self
+                .expires_at
+                .as_ref()
+                .is_none_or(|expires_at| expires_at > &Timestamp::now_utc())
     }
 }
 
@@ -296,6 +404,8 @@ impl Message {
         if (data.content.as_ref().is_none_or(|v| v.is_empty()))
             && (data.attachments.as_ref().is_none_or(|v| v.is_empty()))
             && (data.embeds.as_ref().is_none_or(|v| v.is_empty()))
+            && data.poll.is_none()
+            && (data.stickers.as_ref().is_none_or(|v| v.is_empty()))
         {
             return Err(create_error!(EmptyMessage));
         }
@@ -391,6 +501,9 @@ impl Message {
             ..
         } = message_mentions;
 
+        // Vortex: cargos marcados como mencionáveis dispensam `MentionRoles`.
+        let mut mentionable_roles: HashSet<String> = HashSet::new();
+
         if allow_mass_mentions && server_id.is_some() && !role_mentions.is_empty() {
             let server_data = db
                 .fetch_server(server_id.unwrap().as_str())
@@ -398,6 +511,14 @@ impl Message {
                 .expect("Failed to fetch server");
 
             role_mentions.retain(|role_id| server_data.roles.contains_key(role_id));
+
+            mentionable_roles.extend(
+                server_data
+                    .roles
+                    .iter()
+                    .filter(|(_, role)| role.mentionable)
+                    .map(|(role_id, _)| role_id.clone()),
+            );
         }
 
         // Validate the user can perform a mass mention
@@ -435,6 +556,7 @@ impl Message {
 
                 if !role_mentions.is_empty()
                     && !perms.has_channel_permission(ChannelPermission::MentionRoles)
+                    && !only_mentionable_roles(&role_mentions, &mentionable_roles)
                 {
                     return Err(create_error!(MissingPermission {
                         permission: ChannelPermission::MentionRoles.to_string()
@@ -587,6 +709,33 @@ impl Message {
 
         if !attachments.is_empty() {
             message.attachments.replace(attachments);
+        }
+
+        // Vortex: attach the poll, if any.
+        if let Some(poll) = data.poll {
+            message.poll = Some(Poll::from_data(poll)?);
+        }
+
+        // Vortex: figurinhas. A mensagem guarda só o id — o arquivo continua
+        // servido pelo autumn mesmo depois de a figurinha ser apagada.
+        if let Some(stickers) = data.stickers.as_ref().filter(|v| !v.is_empty()) {
+            if stickers.len() > 1 {
+                return Err(create_error!(InvalidOperation));
+            }
+
+            for sticker_id in stickers {
+                let sticker = db.fetch_sticker(sticker_id).await?;
+
+                // Figurinha de servidor só para quem está nele — o seletor
+                // mostra os pacotes alheios bloqueados, e a regra mora aqui.
+                if let MessageAuthor::User(user) = &author {
+                    if db.fetch_member(&sticker.server, &user.id).await.is_err() {
+                        return Err(create_error!(InvalidOperation));
+                    }
+                }
+            }
+
+            message.stickers.replace(stickers.clone());
         }
 
         // Process included embeds.
@@ -755,6 +904,15 @@ impl Message {
             media: media.map(|m| m.into()),
             colour: embed.colour,
         }))
+    }
+
+    /// Vortex: whether the generated embeds of this message were removed
+    pub fn has_suppressed_embeds(&self) -> bool {
+        if let Some(flags) = self.flags {
+            MessageFlagsValue(flags).has(MessageFlags::SuppressEmbeds)
+        } else {
+            false
+        }
     }
 
     /// Whether this message has suppressed notifications
@@ -969,6 +1127,84 @@ impl Message {
 
         // Add emoji
         db.add_reaction(&self.id, emoji, &user.id).await
+    }
+
+    /// Replace a user's vote on this message's poll (Vortex)
+    ///
+    /// An empty list removes the vote. Answers are deduplicated and must exist.
+    pub async fn vote_poll(&self, db: &Database, user: &User, answers: Vec<String>) -> Result<()> {
+        let Some(poll) = &self.poll else {
+            return Err(create_error!(NotFound));
+        };
+
+        if !poll.is_open() {
+            return Err(create_error!(InvalidOperation));
+        }
+
+        let mut picked: IndexSet<String> = IndexSet::new();
+        for answer in answers {
+            if !poll.answers.iter().any(|a| a.id == answer) {
+                return Err(create_error!(InvalidProperty));
+            }
+            picked.insert(answer);
+        }
+
+        if picked.len() > poll.max_answers as usize {
+            return Err(create_error!(InvalidProperty));
+        }
+
+        let all_answers: Vec<String> = poll.answers.iter().map(|a| a.id.clone()).collect();
+        let picked: Vec<String> = picked.into_iter().collect();
+
+        db.set_poll_vote(&self.id, &user.id, &picked, &all_answers)
+            .await?;
+
+        EventV1::MessagePollVote {
+            id: self.id.to_string(),
+            channel_id: self.channel.to_string(),
+            user_id: user.id.to_string(),
+            answers: picked,
+        }
+        .p(self.channel.to_string())
+        .await;
+
+        Ok(())
+    }
+
+    /// End this message's poll before it expires (Vortex)
+    pub async fn end_poll(&mut self, db: &Database) -> Result<()> {
+        match &self.poll {
+            None => return Err(create_error!(NotFound)),
+            Some(poll) if !poll.is_open() => return Err(create_error!(InvalidOperation)),
+            Some(_) => {}
+        }
+
+        let ended_at = Timestamp::now_utc();
+        db.end_poll(&self.id, &ended_at).await?;
+
+        // Relê do banco para mandar os votos que chegaram depois da leitura
+        // desta mensagem: o evento substitui a enquete inteira no cliente.
+        let fresh = db.fetch_message(&self.id).await?.poll;
+        if let Some(poll) = &mut self.poll {
+            poll.ended_at = Some(ended_at);
+        }
+
+        let Some(poll) = fresh.or_else(|| self.poll.clone()) else {
+            return Err(create_error!(NotFound));
+        };
+
+        // Evento próprio e não `MessageUpdate`: o `stoat.js` carimba
+        // `editedAt` em todo `MessageUpdate`, e encerrar uma enquete marcaria a
+        // mensagem como "editada" em todo cliente.
+        EventV1::MessagePollEnd {
+            id: self.id.clone(),
+            channel_id: self.channel.clone(),
+            poll: poll.into(),
+        }
+        .p(self.channel.clone())
+        .await;
+
+        Ok(())
     }
 
     /// Validate the sum of content of a message is under threshold
@@ -1205,5 +1441,77 @@ impl Interactions {
     /// Check if default initialisation of fields
     pub fn is_default(&self) -> bool {
         !self.restrict_reactions && self.reactions.is_none()
+    }
+}
+
+/// Vortex: whether every mentioned role is flagged as mentionable, which lets a
+/// member without `MentionRoles` mention them.
+pub fn only_mentionable_roles(
+    role_mentions: &HashSet<String>,
+    mentionable_roles: &HashSet<String>,
+) -> bool {
+    role_mentions
+        .iter()
+        .all(|role_id| mentionable_roles.contains(role_id))
+}
+
+/// Vortex: the embeds that survive "remove embeds" — only the ones the author
+/// sent explicitly (`Text`). Link previews generated by the server go away.
+pub fn embeds_without_generated(embeds: Option<&Vec<Embed>>) -> Vec<Embed> {
+    embeds
+        .map(|embeds| {
+            embeds
+                .iter()
+                .filter(|embed| matches!(embed, Embed::Text(_)))
+                .cloned()
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+#[cfg(test)]
+mod vortex_tests {
+    use std::collections::HashSet;
+
+    use revolt_models::v0::{Embed, Text};
+
+    use super::{embeds_without_generated, only_mentionable_roles, MessageFlagsValue};
+    use revolt_models::v0::MessageFlags;
+
+    fn set(ids: &[&str]) -> HashSet<String> {
+        ids.iter().map(|id| id.to_string()).collect()
+    }
+
+    #[test]
+    fn mentionable_roles_allow_mention() {
+        assert!(only_mentionable_roles(&set(&["a"]), &set(&["a", "b"])));
+    }
+
+    #[test]
+    fn one_non_mentionable_role_blocks_mention() {
+        assert!(!only_mentionable_roles(&set(&["a", "c"]), &set(&["a", "b"])));
+    }
+
+    #[test]
+    fn remove_embeds_keeps_only_text() {
+        let text = Embed::Text(Text {
+            icon_url: None,
+            url: None,
+            title: Some("x".to_string()),
+            description: None,
+            media: None,
+            colour: None,
+        });
+        let embeds = vec![Embed::None, text.clone()];
+        assert_eq!(embeds_without_generated(Some(&embeds)), vec![text]);
+        assert!(embeds_without_generated(None).is_empty());
+    }
+
+    #[test]
+    fn suppress_embeds_flag_does_not_touch_other_bits() {
+        let mut flags = MessageFlagsValue(1 << MessageFlags::SuppressNotifications as u32);
+        flags.set(MessageFlags::SuppressEmbeds, true);
+        assert!(flags.has(MessageFlags::SuppressEmbeds));
+        assert!(flags.has(MessageFlags::SuppressNotifications));
     }
 }

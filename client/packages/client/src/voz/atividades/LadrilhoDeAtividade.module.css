@@ -1,0 +1,53 @@
+/*
+  O ladrilho da atividade — mesma moldura e mesmo tamanho de um stream na
+  grade (`GradeDeChamada.module.css .ladrilho[data-tela]`): 2×2, raio 9,
+  hairline de 10%.
+*/
+.ladrilho {
+  position: relative;
+  grid-column: span 2;
+  grid-row: span 2;
+  min-block-size: 0;
+  overflow: hidden;
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-09);
+  background: var(--vx-surface-3);
+}
+
+.host {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  border: 0;
+}
+
+/* A placa fica EMBAIXO, como a do participante — em cima ela cobriria a barra
+   de ferramentas do próprio host. */
+.placa {
+  position: absolute;
+  inset-inline: var(--vx-space-06);
+  inset-block-end: var(--vx-space-06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-08);
+  pointer-events: none;
+}
+
+.placa > * {
+  pointer-events: auto;
+}
+
+.nome {
+  overflow: hidden;
+  padding: var(--vx-space-02) var(--vx-space-08);
+  border-radius: var(--vx-radius-pill);
+  /* Véu sobre conteúdo de terceiro (o host): é o papel de `--vx-scrim`, e não
+     de `surface-0`, que o design reserva a rail e gutter. */
+  background: var(--vx-scrim);
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

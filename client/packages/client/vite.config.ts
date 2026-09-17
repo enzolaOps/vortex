@@ -1,4 +1,6 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import tailwindcss from "@tailwindcss/vite";
@@ -95,6 +97,20 @@ function cspDoVortex(): Plugin {
         }
       }
 
+      /*
+        O `gifbox` (proxy de GIF do servidor) entra em `connect-src` só quando
+        o build o configura — e só ele: a prévia do GIF passa pelo `january`, e
+        a mídia do provedor nunca é buscada pelo navegador. Ver `sdk/gifs.ts`.
+      */
+      const gifbox = env.VITE_GIFBOX_URL ?? "";
+      if (gifbox.trim() !== "") {
+        try {
+          extras.add(new URL(gifbox).origin);
+        } catch {
+          /* idem */
+        }
+      }
+
       const politica = [
         "default-src 'self'",
         /*
@@ -119,7 +135,17 @@ function cspDoVortex(): Plugin {
           aparecem primeiro — foi bloqueando avatar e fonte que as duas linhas
           acima foram descobertas.
         */
-        ctx.server ? "script-src 'self' 'unsafe-inline'" : "script-src 'self'",
+        /*
+          ⚠ **`'wasm-unsafe-eval'` é a ÚNICA concessão, e ela não é `eval`.**
+          Ela autoriza COMPILAR WebAssembly — o RNNoise da supressão de ruído
+          forte e o segmentador do fundo de vídeo. Não libera `eval()`, `new
+          Function` nem script inline: um XSS continua sem ter onde executar
+          texto. Sem ela, `WebAssembly.instantiate` é bloqueado e as duas
+          opções de Voz e vídeo falhariam com um aviso genérico.
+        */
+        ctx.server
+          ? "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'"
+          : "script-src 'self' 'wasm-unsafe-eval'",
         "style-src 'self' 'unsafe-inline'",
         /* `data:` para o gradiente do avatar quando ele vira SVG embutido;
            `blob:` para anexo que a pessoa acabou de escolher e ainda não subiu. */
@@ -154,10 +180,13 @@ function cspDoVortex(): Plugin {
            console acusava — a política ficava "correta" e o produto errado. */
         "font-src 'self' data:",
         ["connect-src 'self'", ...extras].join(" "),
-        /* Nada disto existe no produto, e declarar o vazio é o que impede que
-           passe a existir por acidente: o `<iframe>` do Discover do upstream
-           foi removido de propósito. */
-        "frame-src 'none'",
+        /* ⚠ **`'self'` e mais nada: o único iframe do produto é o host de
+           ATIVIDADE**, servido pelo próprio app em `/atividades/` e montado com
+           `sandbox="allow-scripts"` (origem opaca — sem acesso ao token, ao
+           armazenamento ou ao DOM daqui). Conteúdo de terceiro embutido
+           continua proibido: o `<iframe>` do Discover do upstream foi removido
+           de propósito, e uma atividade de fora entraria por esta linha. */
+        "frame-src 'self'",
         "object-src 'none'",
         "worker-src 'self' blob:",
         /* `base-uri` é o furo que quase todo mundo esquece: um `<base>`
@@ -212,6 +241,77 @@ function marcaDoVortex(): Plugin {
   };
 }
 
+/**
+ * O runtime do MediaPipe servido pela PRÓPRIA origem.
+ *
+ * `@livekit/track-processors` (fundo do vídeo) carrega, por padrão, o runtime
+ * WASM do MediaPipe de `cdn.jsdelivr.net`. A CSP bloqueia — e deve: seria a
+ * câmera de quem usa dependendo de um domínio de terceiro. Este plugin serve
+ * os arquivos de `node_modules` em `/mediapipe/<versão>/` no dev server e os
+ * emite no build.
+ *
+ * ⚠ **Só os de SIMD**, e é decisão de peso: o par sem SIMD dobraria o artefato
+ * (~9 MB cada) para navegadores que já não existem na base desta ferramenta —
+ * Chromium tem SIMD desde 2021 e o Electron é Chromium. Sem ele, um navegador
+ * antigo cai no aviso de "fundo indisponível", que já existe para falta de
+ * WebGL2.
+ *
+ * ⚠ **Resolvido A PARTIR do `@livekit/track-processors`**, e não do cliente:
+ * o `nodeLinker: isolated` só deixa cada pacote enxergar o que declarou, e o
+ * MediaPipe é dependência DELE. Resolver daqui falharia no primeiro build.
+ *
+ * Os arquivos só são baixados por quem liga o fundo com a câmera aberta —
+ * emitidos no `dist` não é o mesmo que carregados na abertura.
+ */
+const exigir = createRequire(import.meta.url);
+const DIR_DO_MEDIAPIPE = (() => {
+  const processadores = dirname(exigir.resolve("@livekit/track-processors"));
+  const doProcessador = createRequire(join(processadores, "index.js"));
+  /* O `exports` do MediaPipe não expõe `package.json`; a entrada `require`
+     (`vision_bundle.cjs`) mora na raiz do pacote, e a pasta dela serve. */
+  return dirname(doProcessador.resolve("@mediapipe/tasks-vision"));
+})();
+const VERSAO_DO_MEDIAPIPE: string = (
+  JSON.parse(readFileSync(join(DIR_DO_MEDIAPIPE, "package.json"), "utf8")) as {
+    version: string;
+  }
+).version;
+const ARQUIVOS_DO_MEDIAPIPE = readdirSync(join(DIR_DO_MEDIAPIPE, "wasm")).filter(
+  (f) => f.startsWith("vision_wasm_internal."),
+);
+
+function mediapipeLocal(): Plugin {
+  const prefixo = `/mediapipe/${VERSAO_DO_MEDIAPIPE}/`;
+  const tipo = (f: string) =>
+    f.endsWith(".wasm") ? "application/wasm" : "text/javascript";
+
+  return {
+    name: "vortex-mediapipe",
+
+    configureServer(server) {
+      server.middlewares.use(prefixo, (req, res, next) => {
+        const nome = (req.url ?? "").replace(/^\//, "").split("?")[0] ?? "";
+        if (!ARQUIVOS_DO_MEDIAPIPE.includes(nome)) {
+          next();
+          return;
+        }
+        res.setHeader("Content-Type", tipo(nome));
+        res.end(readFileSync(join(DIR_DO_MEDIAPIPE, "wasm", nome)));
+      });
+    },
+
+    generateBundle() {
+      for (const nome of ARQUIVOS_DO_MEDIAPIPE) {
+        this.emitFile({
+          type: "asset",
+          fileName: `mediapipe/${VERSAO_DO_MEDIAPIPE}/${nome}`,
+          source: readFileSync(join(DIR_DO_MEDIAPIPE, "wasm", nome)),
+        });
+      }
+    },
+  };
+}
+
 /*
   A versão, para a tela de Avançado.
 
@@ -230,6 +330,7 @@ const VERSAO: string =
 export default defineConfig({
   define: {
     __VERSAO__: JSON.stringify(VERSAO),
+    __VERSAO_MEDIAPIPE__: JSON.stringify(VERSAO_DO_MEDIAPIPE),
   },
 
   /*
@@ -256,6 +357,7 @@ export default defineConfig({
     react({ compiler: true }),
     tailwindcss(),
     marcaDoVortex(),
+    mediapipeLocal(),
     cspDoVortex(),
   ],
 

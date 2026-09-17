@@ -1,0 +1,12 @@
+# Scripts de shell rodam DENTRO de contêiner Linux (`server/Dockerfile` executa
+# `sh /tmp/build-image-layer.sh`). Num checkout Windows com `core.autocrlf=true`
+# eles chegam com CRLF, e o `dash` morre na linha 2 com
+# `set: Illegal option -` — o build local da imagem do servidor falha antes de
+# compilar qualquer crate. O CI roda em Linux e nunca vê isto.
+*.sh text eol=lf
+
+# Arquivos cujo conteúdo é HASHEADO: `quadro.html` libera o próprio `<script>`
+# por `sha256-` na CSP. O hash é calculado sobre o texto com LF, e o teste de
+# `atividades.test.ts` o confere lendo o disco — fixar LF evita que o checkout
+# no Windows (`core.autocrlf=true`) produza bytes diferentes dos hasheados.
+client/packages/client/public/atividades/*.html text eol=lf

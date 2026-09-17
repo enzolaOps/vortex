@@ -1,8 +1,9 @@
 import { type JSONSchema } from "json-schema-typed";
 
-import { ipcMain } from "electron";
+import { objeto, registrar } from "./registroDeIpc";
 import Store from "electron-store";
 
+import { aoFecharInicial, type AoFechar } from "./preferenciasDoCliente";
 import { mainWindow } from "./window";
 
 const schema = {
@@ -44,6 +45,23 @@ const schema = {
       } as JSONSchema.Boolean,
     },
   } as JSONSchema.Object,
+
+  /* ---- as da tela Desktop do cliente — ver `preferenciasDoCliente.ts` ---- */
+  iniciarComSistema: { type: "boolean" } as JSONSchema.Boolean,
+  aoFechar: {
+    type: "string",
+    enum: ["bandeja", "encerrar", "perguntar"],
+  } as JSONSchema.String,
+  lembrarJanela: { type: "boolean" } as JSONSchema.Boolean,
+  sempreNoTopoEmChamada: { type: "boolean" } as JSONSchema.Boolean,
+  reduzirEmSegundoPlano: { type: "boolean" } as JSONSchema.Boolean,
+  /** Estado da janela por ARRANJO de monitores — ver `assinaturaDasTelas`. */
+  janelasPorArranjo: { type: "object" } as JSONSchema.Object,
+  /** Jogos já avisados sobre tela cheia exclusiva — ver `telaCheiaModelo.ts`. */
+  jogosAvisadosDeTelaCheia: {
+    type: "array",
+    items: { type: "string" },
+  } as JSONSchema.Array,
 };
 
 const store = new Store({
@@ -62,8 +80,28 @@ const store = new Store({
       height: 0,
       isMaximised: false,
     },
-  } as DesktopConfig,
+    iniciarComSistema: false,
+    /* `aoFechar` fica SEM padrão: quem nunca o gravou herda do
+       `minimiseToTray` — ver `aoFecharInicial`. */
+    lembrarJanela: true,
+    sempreNoTopoEmChamada: false,
+    reduzirEmSegundoPlano: true,
+    janelasPorArranjo: {},
+    jogosAvisadosDeTelaCheia: [],
+  } as Partial<DesktopConfig>,
 });
+
+type Chave = keyof DesktopConfig;
+const bruto = store as never as {
+  get(k: string): unknown;
+  set(k: string, v: unknown): void;
+};
+function ler<K extends Chave>(k: K): DesktopConfig[K] {
+  return bruto.get(k) as DesktopConfig[K];
+}
+function gravar<K extends Chave>(k: K, v: DesktopConfig[K]): void {
+  bruto.set(k, v);
+}
 
 /**
  * Shim for `electron-store` because typings are broken
@@ -182,13 +220,101 @@ class Config {
 
     this.sync();
   }
+
+  /*
+    As da tela Desktop. ⚠ **Sem `sync()`**: aquele canal alimenta o cliente
+    Solid do upstream, que não conhece estas chaves — e alguns destes setters
+    rodam antes de a janela existir, onde `sync()` derrubaria o main.
+  */
+  get iniciarComSistema() {
+    return ler("iniciarComSistema");
+  }
+  set iniciarComSistema(v: boolean) {
+    gravar("iniciarComSistema", v);
+  }
+
+  get aoFechar(): AoFechar {
+    return aoFecharInicial(ler("aoFechar"), this.minimiseToTray);
+  }
+  set aoFechar(v: AoFechar) {
+    gravar("aoFechar", v);
+  }
+
+  get lembrarJanela() {
+    return ler("lembrarJanela");
+  }
+  set lembrarJanela(v: boolean) {
+    gravar("lembrarJanela", v);
+  }
+
+  get sempreNoTopoEmChamada() {
+    return ler("sempreNoTopoEmChamada");
+  }
+  set sempreNoTopoEmChamada(v: boolean) {
+    gravar("sempreNoTopoEmChamada", v);
+  }
+
+  get reduzirEmSegundoPlano() {
+    return ler("reduzirEmSegundoPlano");
+  }
+  set reduzirEmSegundoPlano(v: boolean) {
+    gravar("reduzirEmSegundoPlano", v);
+  }
+
+  get janelasPorArranjo() {
+    return ler("janelasPorArranjo") ?? {};
+  }
+  set janelasPorArranjo(v: DesktopConfig["janelasPorArranjo"]) {
+    gravar("janelasPorArranjo", v);
+  }
+
+  get jogosAvisadosDeTelaCheia() {
+    return ler("jogosAvisadosDeTelaCheia") ?? [];
+  }
+  set jogosAvisadosDeTelaCheia(v: string[]) {
+    gravar("jogosAvisadosDeTelaCheia", v);
+  }
 }
 
 export const config = new Config();
 
-ipcMain.on("config", (_, newConfig: Partial<DesktopConfig>) => {
-  console.info("Received new configuration", newConfig);
-  Object.entries(newConfig).forEach(
-    ([key, value]) => (config[key as keyof DesktopConfig] = value as never),
-  );
+/**
+ * O que o renderer pode escrever por `desktopConfig.set`: só chave que o
+ * `schema` conhece, com o tipo que ele declara. Chave desconhecida é
+ * descartada (um cliente mais novo manda chaves a mais); o objeto inteiro só é
+ * recusado se não for objeto.
+ */
+function configValida(bruto: unknown): Partial<DesktopConfig> | undefined {
+  const o = objeto(bruto);
+  if (!o) return undefined;
+  const esquemas = schema as Record<string, { type?: string; enum?: unknown[] }>;
+  const saida: Record<string, unknown> = {};
+  for (const [chave, valor] of Object.entries(o)) {
+    if (!Object.hasOwn(esquemas, chave)) continue;
+    const e = esquemas[chave];
+    const ok =
+      e.type === "boolean"
+        ? typeof valor === "boolean"
+        : e.type === "string"
+          ? typeof valor === "string" && (!e.enum || e.enum.includes(valor))
+          : e.type === "array"
+            ? Array.isArray(valor)
+            : e.type === "object"
+              ? objeto(valor) !== undefined
+              : false;
+    if (ok) saida[chave] = valor;
+  }
+  return saida as Partial<DesktopConfig>;
+}
+
+registrar("config", {
+  via: "send",
+  quem: ["principal"],
+  validar: configValida,
+  executar: (newConfig) => {
+    console.info("Received new configuration", newConfig);
+    Object.entries(newConfig).forEach(
+      ([key, value]) => (config[key as keyof DesktopConfig] = value as never),
+    );
+  },
 });
