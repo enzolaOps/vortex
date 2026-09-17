@@ -1195,3 +1195,138 @@
 .esqueletoDeAvatar {
   block-size: var(--vx-avatar-md);
 }
+
+/* ============================================================
+   Chat da sala de voz
+   ------------------------------------------------------------
+   A MESMA linha, com a forma do design daquele painel
+   ("Chat de texto embutido no canal de voz", Vortex Voz -
+   Completo): coluna de ~420px, `padding: 12px 14px` e `gap: 10px`
+   no container, avatar de 28, nome e texto em 13 (1,45), hora
+   em 11 com `gap: 7px`, e evento de sistema como pílula de
+   largura cheia em 12 com `padding: 8px 10px` e raio 8.
+
+   Ligada por `data-variante="sala"` no container da lista — CSS,
+   nunca prop na linha. Nada disto vale fora da sala: a timeline
+   continua com a forma dela.
+
+   ⚠ **O `gap` do design mora no respiro das linhas, e não num
+   container**, pelo mesmo motivo de `.linhaVirtual`: as linhas são
+   `absolute`. 5 em cima e 5 embaixo somam os 10 entre duas falas;
+   a continuação do mesmo autor não tem os 5 de cima, que é o
+   agrupamento dizendo "ainda é a mesma pessoa".
+   ============================================================ */
+
+.faixaDaLinha,
+.linhaDeSistema {
+  /* Os ganchos da variante. Na timeline a forma vem das utilities do TSX. */
+  min-inline-size: 0;
+}
+
+:global([data-variante="sala"]) .faixaDaLinha,
+:global([data-variante="sala"]) .linhaDeSistema {
+  padding-inline: var(--vx-space-14);
+  padding-block: var(--vx-space-05);
+}
+
+:global([data-variante="sala"]) .faixaDaLinha[data-abre-grupo="false"] {
+  padding-block-start: 0;
+}
+
+:global([data-variante="sala"]) .linhaDaMensagem {
+  gap: var(--vx-space-10);
+}
+
+:global([data-variante="sala"]) .calha {
+  inline-size: var(--vx-avatar-sala);
+}
+
+/* O `Avatar` é o filho direto do gatilho do autor. */
+:global([data-variante="sala"]) .calha button > span {
+  inline-size: var(--vx-avatar-sala);
+  block-size: var(--vx-avatar-sala);
+  font-size: var(--vx-size-sm);
+}
+
+.cabecalhoDoGrupo {
+  min-inline-size: 0;
+}
+
+:global([data-variante="sala"]) .cabecalhoDoGrupo {
+  gap: var(--vx-space-07);
+}
+
+/*
+  Só o nome: crachá de cargo e tag do servidor ficam de fora na sala.
+
+  ⚠ Numa coluna de 290px nome e selos não cabiam numa linha e o NOME quebrava
+  — "Ana-" numa linha, "vx" na outra, os selos embaixo. O design desenha só
+  nome e hora ali; o cartão de perfil, aberto no nome, continua com os cargos.
+*/
+:global([data-variante="sala"]) .cabecalhoDoGrupo [data-menu-autor] > :not(:first-child) {
+  display: none;
+}
+
+:global([data-variante="sala"]) .cabecalhoDoGrupo [data-menu-autor] > :first-child {
+  font-size: var(--vx-size-md);
+}
+
+:global([data-variante="sala"]) .corpo {
+  font-size: var(--vx-size-md);
+  line-height: var(--vx-leading-compact);
+}
+
+/*
+  A pílula ocupa a largura toda, e aqui isso é o certo.
+
+  A timeline a faz ABRAÇAR o texto porque lá a coluna vai a 1040px e uma barra
+  de ponta a ponta para quatro palavras lê como banner. Na sala a coluna é a
+  frase: o design a desenha cheia, com véu neutro onde não há cor.
+
+  ⚠ **Bloco e não flex, e é o conserto do "nome, ação e horário cortados".**
+  Como flex com `wrap`, a frase era UM item: hora e duração ficavam presas ao
+  lado dela e, sem espaço, a frase encolhia e quebrava por caractere. Em bloco
+  as três correm como texto e quebram onde o texto quebraria.
+*/
+:global([data-variante="sala"]) .aviso {
+  display: block;
+  flex: 1;
+  background: var(--vx-state-hover);
+  line-height: var(--vx-leading-compact);
+}
+
+/* O nome dentro da frase é TEXTO da frase no design ("Marina entrou no
+   canal"), não o nome em 15/600 da timeline: lá ele abre a linha, aqui está
+   no meio dela, e em 15 dentro de uma pílula de 12 a frase pulava de corpo. */
+:global([data-variante="sala"]) .aviso :global(span) {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+:global([data-variante="sala"]) .aviso > * + * {
+  margin-inline-start: var(--vx-space-04);
+}
+
+:global([data-variante="sala"]) .avisoPresenca {
+  background: color-mix(in oklab, var(--vx-success) 7%, transparent);
+}
+
+/* "Saiu do canal" em vermelho é o que o design pinta NA SALA, onde entrada e
+   saída são a própria conversa. Na timeline a saída segue neutra. */
+.avisoSaida {
+  min-inline-size: 0;
+}
+
+:global([data-variante="sala"]) .avisoSaida {
+  background: color-mix(in oklab, var(--vx-danger) 7%, transparent);
+  color: var(--vx-danger-text);
+}
+
+:global([data-variante="sala"]) .novas,
+:global([data-variante="sala"]) .dia {
+  padding-inline: var(--vx-space-14);
+}
+
+:global([data-variante="sala"]) .citacaoRecuada {
+  padding-inline-start: calc(var(--vx-avatar-sala) + var(--vx-space-10));
+}

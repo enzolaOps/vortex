@@ -69,11 +69,11 @@ export function ChatDaSala({ channelId }: { channelId: string }) {
         que sobra entre o cabeçalho e o composer.
       */}
       <div className={css.lista}>
-        <MessageList key={channelId} channelId={channelId} />
+        <MessageList key={channelId} channelId={channelId} variante="sala" />
       </div>
 
       <footer className={css.rodape}>
-        <Composer channelId={channelId} />
+        <Composer channelId={channelId} variante="sala" />
         <p className={css.nota}>
           Histórico persiste depois que todos saem.
         </p>

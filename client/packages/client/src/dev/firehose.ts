@@ -1362,6 +1362,71 @@ export function chamadaEmVideoFalsa(): void {
   definirPalco({ tipo: "grade" });
 }
 
+/**
+ * O histórico do chat embutido na sala — e ele não existia.
+ *
+ * ⚠ **Arnês mais pobre que o protocolo, 12ª vez.** A sala do arnês nascia sem
+ * mensagem nenhuma, então o chat da sala só mostrava o estado vazio — e o
+ * defeito que quem usa relatou (linhas de sistema escrevendo umas por cima das
+ * outras, buracos entre mensagens curtas) era inalcançável aqui. É a forma
+ * da captura: uma fileira de "iniciou uma chamada", um divisor de dia, duas
+ * mensagens curtas do mesmo autor e mais chamadas.
+ *
+ * Pelo caminho de MASSA (`seedChannel`), como `seed`. Uma vez só: chamar a
+ * chamada falsa de novo não duplica o histórico.
+ */
+function semearChatDaSala(sala: string, dentro: readonly string[]): void {
+  if ((channelMessageIds.peek(sala)?.length ?? 0) > 0) return;
+  const pessoas = dentro.length > 0 ? dentro : userIds.slice(0, 3);
+  const quem = (i: number) => pessoas[i % pessoas.length]!;
+  const ids: string[] = [];
+  let quando = Date.now() - 2 * 86_400_000;
+
+  const criar = (
+    autor: string,
+    conteudo: string,
+    sistema?: object,
+    passo = 37 * 60_000,
+  ) => {
+    quando += passo;
+    const id = ulid(quando);
+    client.messages.getOrCreate(
+      id,
+      {
+        _id: id,
+        channel: sala,
+        author: autor,
+        content: conteudo,
+        ...(sistema ? { system: sistema } : {}),
+      } as never,
+      // `false`: não emite `messageCreate`. O adapter já está ligado quando a
+      // chamada falsa roda, e carga em massa pelo caminho de evento é o que
+      // `seed` documenta como destruidor de âncora.
+      false,
+    );
+    ids.push(id);
+  };
+  const chamada = (i: number, dura?: number) =>
+    criar(quem(i), "", {
+      type: "call_started",
+      by: quem(i),
+      ...(dura === undefined
+        ? {}
+        : { finished_at: new Date(quando + 37 * 60_000 + dura).toISOString() }),
+    });
+
+  for (let i = 0; i < 5; i++) chamada(i, 4_000);
+  quando += 86_400_000;
+  criar(quem(0), "teste");
+  // Um minuto depois: CONTINUA o grupo, que é a terceira forma de linha.
+  criar(quem(0), "teste 2", undefined, 60_000);
+  for (let i = 0; i < 3; i++) chamada(2, 8 * 60_000);
+  criar(quem(1), "alguém ouvindo? o áudio caiu aqui por uns segundos");
+  chamada(1);
+
+  seedChannel(sala, ids);
+}
+
 export function chamadaFalsa(): () => void {
   ensureWorld();
 
@@ -1424,6 +1489,7 @@ export function chamadaFalsa(): () => void {
     canto e mais nada, que é exatamente o defeito que esta rodada consertou no
     produto — o arnês reproduziria o bug já corrigido.
   */
+  semearChatDaSala(sala, dentro);
   selecionarCanal(sala);
   definirPalco({ tipo: "grade" });
 

@@ -162,6 +162,21 @@
 }
 
 /*
+  No chat da sala o ritmo é o do design daquele painel — `gap: 10px` entre
+  itens e `padding: 12px 14px` no container —, e ele mora no respiro das
+  linhas (ver "Chat da sala de voz" em `MessageRow.module.css`). Os 2px daqui
+  somariam a ele. A coluna completa os 12 de cima e de baixo: 7 aqui mais os
+  5 que a primeira e a última linha já trazem.
+*/
+.scroll[data-variante="sala"] .linhaVirtual {
+  padding-block-end: 0;
+}
+
+.scroll[data-variante="sala"] .coluna {
+  padding-block: var(--vx-space-07);
+}
+
+/*
   Com um resultado aberto, o resto do canal recua — do design: *"a mensagem
   alvo fica em accent 8% e o resto do canal cai para 50% de opacidade até
   Voltar ao presente"*.

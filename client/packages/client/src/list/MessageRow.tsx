@@ -968,10 +968,11 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
           para entrar, sair, renomear e chamada — decoração que não distingue
           nada.
         */}
-        <article className="flex px-20 pt-06 pb-06">
+        <article className={cn(css.linhaDeSistema, "flex px-20 pt-06 pb-06")}>
           <div
             className={cn(
               css.aviso,
+              message.sistema.tipo === "saiu" && css.avisoSaida,
               (message.sistema.tipo === "entrou" ||
                 message.sistema.tipo === "chamada") &&
                 css.avisoPresenca,
@@ -1102,6 +1103,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
               mecanismo. Véu compõe com o que estiver por baixo, então a linha
               destacada por menção continua legível sob os dois.
             */
+            css.faixaDaLinha,
             "relative flex flex-col px-20 hover:bg-state-hover data-[alvo=true]:bg-state-hover-elevado",
 
             /*
@@ -1347,7 +1349,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
 
 
             {!compacto && message.iniciaGrupo ? (
-              <div className="flex items-baseline gap-08">
+              <div className={cn(css.cabecalhoDoGrupo, "flex items-baseline gap-08")}>
                 {message.authorId ? (
                   /* `display: contents` — a caixa não existe, só o atributo
                      que diz ao menu de contexto quem é o autor daqui. */

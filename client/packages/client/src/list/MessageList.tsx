@@ -6,6 +6,7 @@ import {
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 
+import { remedir } from "../lib/remedir";
 import { aoTerminarArraste, estaArrastando } from "../store/arraste";
 import {
   ContextMenu,
@@ -276,6 +277,31 @@ const ALTURA_POR_TIPO: Record<
 };
 
 /**
+ * A linha do chat embutido na sala de voz — outra FORMA, não outra densidade.
+ *
+ * O design desenha esse chat numa coluna de ~420px com avatar de 28, texto de
+ * 13 e evento de sistema como pílula de largura cheia. Reusar as constantes
+ * da timeline (avatar 40, corpo 15, pílula que abraça o texto) errava por
+ * dezenas de pixels em cada linha, e é a estimativa que decide se o
+ * `followOnAppend` engata quando chega mensagem com a sala aberta.
+ *
+ * MEDIDOS no arnês, com o chat em 420px (o teto do design) e o histórico da
+ * chamada falsa. Numa coluna mais estreita o texto quebra em mais linhas e
+ * elas crescem — o virtualizador remede assim que a linha aparece, e
+ * `remedir` garante que isso não se perca numa troca de largura.
+ */
+const ALTURA_DA_SALA: Record<TipoDeLinhaDaLista, number> = {
+  sistema: 43,
+  abreGrupo: 45,
+  continua: 24,
+};
+
+type TipoDeLinhaDaLista = "sistema" | "abreGrupo" | "continua";
+
+/** Onde a lista está: a timeline do canal ou o chat embutido na sala de voz. */
+export type VarianteDaLista = "timeline" | "sala";
+
+/**
  * A estimativa ainda descreve a linha que existe?
  *
  * Este número já se moveu quatro vezes — 44 → 73 → 76 → 78 — e nas quatro
@@ -427,6 +453,7 @@ function conferirEstimativa(
   densidade: Densidade,
   tipo: TipoDeLinha,
   media: number,
+  variante: VarianteDaLista,
 ) {
   /*
     A chave inclui a DENSIDADE.
@@ -435,9 +462,12 @@ function conferirEstimativa(
     sobre `continua` no compacto — que é outra constante, de outra forma de
     linha, e o mais provável de estar errado justamente por ser o novo.
   */
-  const chave = `${densidade}:${tipo}`;
+  const chave = `${variante}:${densidade}:${tipo}`;
   if (AVISADO.has(chave)) return;
-  const esperada = ALTURA_POR_TIPO[densidade][tipo];
+  // A sala tem constantes próprias: comparar a linha dela com as da timeline
+  // acusaria "mudou de forma" numa linha que só é de OUTRA forma.
+  const esperada =
+    variante === "sala" ? ALTURA_DA_SALA[tipo] : ALTURA_POR_TIPO[densidade][tipo];
   if (esperada <= 0) return;
   const erro = Math.abs(media - esperada) / esperada;
   if (erro < 0.15) return;
@@ -463,8 +493,19 @@ function conferirEstimativa(
 export function MessageList({
   channelId,
   topo,
+  variante = "timeline",
 }: {
   channelId: string;
+  /**
+   * `sala` é o chat embutido na sala de voz: a mesma lista, com a forma do
+   * design daquele painel (ver `MessageRow.module.css`, seção "Chat da sala").
+   *
+   * ⚠ **Atributo no container e CSS, nunca prop na linha.** Passar a variante
+   * para cada `MessageRow` faria a linha mais quente do app depender de mais
+   * um valor; o atributo muda a forma sem acordar ninguém — a mesma técnica
+   * do `data-busca` que escurece as outras linhas.
+   */
+  variante?: VarianteDaLista;
   /**
    * Um bloco ANTES da primeira mensagem, que rola junto — a mensagem-raiz do
    * tópico aberto.
@@ -551,7 +592,8 @@ export function MessageList({
     estimateSize: (i) => {
       const m = messages.getSnapshot(ids[i] ?? "");
       if (!m) return ALTURA_ESTIMADA;
-      const alturas = ALTURA_POR_TIPO[densidade];
+      const alturas =
+        variante === "sala" ? ALTURA_DA_SALA : ALTURA_POR_TIPO[densidade];
       const porTipo = m.sistema
         ? alturas.sistema
         : m.iniciaGrupo
@@ -899,7 +941,7 @@ export function MessageList({
          */
         if (estaArrastando()) return;
 
-        virtualizer.measure();
+        remedir(virtualizer);
 
         if (import.meta.env.DEV && virtualizer.getVirtualItems().length > 0) {
           const medidas = virtualizer.measurementsCache.length;
@@ -978,7 +1020,7 @@ export function MessageList({
   useEffect(
     () =>
       aoTerminarArraste(() => {
-        virtualizer.measure();
+        remedir(virtualizer);
         if (colado.current) virtualizer.scrollToEnd();
       }),
     [virtualizer],
@@ -1247,13 +1289,13 @@ export function MessageList({
     // linhas, uma mensagem longa sozinha desloca o número.
     const c = readCounters();
     if (c.alturaGrupoAmostras > 200) {
-      conferirEstimativa(densidade, "abreGrupo", c.alturaGrupoSoma / c.alturaGrupoAmostras);
+      conferirEstimativa(densidade, "abreGrupo", c.alturaGrupoSoma / c.alturaGrupoAmostras, variante);
     }
     if (c.alturaContinuaAmostras > 200) {
-      conferirEstimativa(densidade, "continua", c.alturaContinuaSoma / c.alturaContinuaAmostras);
+      conferirEstimativa(densidade, "continua", c.alturaContinuaSoma / c.alturaContinuaAmostras, variante);
     }
     if (c.alturaSistemaAmostras > 200) {
-      conferirEstimativa(densidade, "sistema", c.alturaSistemaSoma / c.alturaSistemaAmostras);
+      conferirEstimativa(densidade, "sistema", c.alturaSistemaSoma / c.alturaSistemaAmostras, variante);
     }
   }
 
@@ -1314,7 +1356,10 @@ export function MessageList({
         250px dali, com preto no meio, o que fazia o convite ("escreva a
         primeira") apontar para um lugar diferente de onde a coisa acontece.
       */
-      <div className={`${css.scroll} flex flex-col justify-end`}>
+      <div
+        className={`${css.scroll} flex flex-col justify-end`}
+        data-variante={variante}
+      >
         <div className={css.coluna}>
           {topo}
           <EstadoVazio
@@ -1394,11 +1439,19 @@ export function MessageList({
         quente do app, por um realce.
       */
       data-busca={alvoDeBusca !== undefined || undefined}
+      data-variante={variante}
     >
       {/* Fora do container rolável não dá: ela precisa flutuar SOBRE a lista,
           e uma barra no fluxo empurraria a primeira linha para baixo — numa
           lista ancorada, isso é a âncora se movendo por causa de um aviso. */}
-      {indiceNaoLida !== -1 ? (
+      {/*
+        ⚠ **Não na sala.** O design do chat embutido não tem a faixa, e ali
+        ela era o pior dos dois mundos: uma barra teal de largura cheia no topo
+        de um painel de 290px, EMPILHADA com o divisor vermelho de novas logo
+        abaixo — dois avisos para o mesmo fato. O divisor na posição continua
+        dizendo onde você parou.
+      */}
+      {indiceNaoLida !== -1 && variante !== "sala" ? (
         <button
           type="button"
           className={css.barraNaoLidas}
@@ -1454,7 +1507,7 @@ export function MessageList({
         se usa repetidamente, e um alvo que atravessa a coluna toda a cada uso
         seria ruído. As duas podem coexistir na tela.
       */}
-      {há ? (
+      {há && variante !== "sala" ? (
         <button
           type="button"
           className={css.irParaMencao}
