@@ -6,6 +6,7 @@ import {
   filtrarPessoas,
   marcavel,
   selecaoValida,
+  separarParaCargo,
 } from "./selecaoDeCargo";
 
 const CARGO = "01CARGO";
@@ -105,5 +106,27 @@ describe("selecaoValida", () => {
     ];
     const r = selecaoValida(new Set(["a", "b", "fora"]), visiveis, 9, alcance());
     expect(r).toEqual(["a"]);
+  });
+});
+
+describe("separarParaCargo", () => {
+  it("quem está acima ou sumiu vira falha escrita, na ordem da seleção", () => {
+    const gente = [
+      pessoa({ id: "a" }),
+      pessoa({ id: "chefe", editavel: false }),
+      pessoa({ id: "b" }),
+    ];
+    const r = separarParaCargo(["chefe", "a", "sumiu", "b"], gente, 5, alcance());
+    expect(r.editaveis).toEqual(["a", "b"]);
+    expect(r.barradas).toEqual([
+      { item: "chefe", motivo: "Acima da sua hierarquia." },
+      { item: "sumiu", motivo: "Essa pessoa não está mais no servidor." },
+    ]);
+  });
+
+  it("cargo no mesmo nível do meu barra todo mundo", () => {
+    const r = separarParaCargo(["a"], [pessoa({ id: "a" })], 2, alcance({ topo: 2 }));
+    expect(r.editaveis).toEqual([]);
+    expect(r.barradas.map((b) => b.item)).toEqual(["a"]);
   });
 });

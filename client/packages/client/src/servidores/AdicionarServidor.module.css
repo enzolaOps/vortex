@@ -688,3 +688,12 @@
   font-size: var(--vx-size-md);
   color: var(--vx-text-2);
 }
+
+/* Quem ficou de fora de um lote de moderação — mesma lista do
+   `MembrosDoCargo`, dentro do `Banner` de perigo. */
+.falhas {
+  display: grid;
+  gap: var(--vx-space-02);
+  margin: var(--vx-space-06) 0 0;
+  padding-inline-start: var(--vx-space-16);
+}
