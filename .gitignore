@@ -59,3 +59,9 @@ AGENTS.local.md
 /.github/agents/
 /.github/hooks/
 /.github/skills/
+
+# Grafo de conhecimento do `graphify`, gerado localmente e reconstruído com
+# `--update`. É derivado do código, então versioná-lo só produziria diffs
+# enormes a cada mudança. SEM âncora de propósito: além da raiz, a ferramenta
+# guarda o cache da extração na pasta escaneada (`client/graphify-out/`).
+graphify-out/
