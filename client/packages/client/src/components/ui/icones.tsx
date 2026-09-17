@@ -351,4 +351,12 @@ export const FORA_DA_ESCALA = [
       "É o 13 do design e o mesmo raciocínio do `BotaoDeIcone`: o glifo " +
       "acompanha o alvo sem ser o alvo.",
   },
+  {
+    px: 11,
+    onde: "voz/SeletorDeTela.module.css .selo svg",
+    porque:
+      "O conferido dentro do disco de 18px no canto da miniatura escolhida. " +
+      "A referência o escreve em 11 e o design em 10; em 14 o traço encosta " +
+      "na borda do disco e ele deixa de ler como selo.",
+  },
 ] as const;

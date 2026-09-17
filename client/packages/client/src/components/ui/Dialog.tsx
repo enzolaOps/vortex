@@ -2,7 +2,9 @@ import * as Primitivo from "@radix-ui/react-dialog";
 import type { ComponentProps, ReactNode } from "react";
 
 import { cn } from "../../lib/cn";
+import { BotaoDeIcone } from "./BotaoDeIcone";
 import css from "./Dialog.module.css";
+import { X } from "./icones";
 
 /**
  * Dialog.
@@ -27,6 +29,8 @@ export function DialogContent({
   descricao,
   tituloOculto = false,
   rodape,
+  fechavel = false,
+  classeDoRodape,
   className,
   children,
   ...props
@@ -62,6 +66,23 @@ export function DialogContent({
    * corpo rola.
    */
   rodape?: ReactNode;
+  /**
+   * O ✕ no canto do cabeçalho.
+   *
+   * Opt-in, e não padrão: a referência o põe em todo modal, mas os consumidores
+   * de hoje foram medidos sem ele — ligá-lo para todos mudaria a altura de um
+   * cabeçalho que ninguém pediu para mudar. `Esc` e o véu continuam fechando.
+   */
+  fechavel?: boolean;
+  /**
+   * Classe extra da faixa do rodapé.
+   *
+   * Existe para o modal cujo rodapé continua uma seção de cima — o seletor de
+   * tela pinta opções e rodapé em `surface-3`, e o `surface-1` padrão cortaria
+   * as duas em degraus diferentes. Classe de CSS Module vence as utilities
+   * daqui porque elas moram numa camada.
+   */
+  classeDoRodape?: string;
 }) {
   return (
     <Primitivo.Portal>
@@ -133,14 +154,21 @@ export function DialogContent({
           <>
             {/* `16px 18px 12px`, do design. O respiro de baixo é menor porque
                 o corpo logo abaixo traz o próprio. */}
-            <div className="flex-none px-18 pt-16 pb-12">
-              <Primitivo.Title className="text-xl leading-title font-semibold text-text-1">
-                {titulo}
-              </Primitivo.Title>
-              {descricao ? (
-                <Primitivo.Description className="mt-02 text-sm text-text-3">
-                  {descricao}
-                </Primitivo.Description>
+            <div className="flex flex-none items-start justify-between gap-16 px-18 pt-16 pb-12">
+              <div className="flex-1">
+                <Primitivo.Title className="text-xl leading-title font-semibold text-text-1">
+                  {titulo}
+                </Primitivo.Title>
+                {descricao ? (
+                  <Primitivo.Description className="mt-02 text-sm text-text-3">
+                    {descricao}
+                  </Primitivo.Description>
+                ) : null}
+              </div>
+              {fechavel ? (
+                <Primitivo.Close asChild>
+                  <BotaoDeIcone rotulo="Fechar" tamanho="sm" icone={<X aria-hidden />} />
+                </Primitivo.Close>
               ) : null}
             </div>
 
@@ -149,7 +177,12 @@ export function DialogContent({
             </div>
 
             {rodape ? (
-              <div className="flex flex-none items-center justify-end gap-08 border-t border-hairline-06 bg-surface-1 px-18 py-14">
+              <div
+                className={cn(
+                  "flex flex-none items-center justify-end gap-08 border-t border-hairline-06 bg-surface-1 px-18 py-14",
+                  classeDoRodape,
+                )}
+              >
                 {rodape}
               </div>
             ) : null}
