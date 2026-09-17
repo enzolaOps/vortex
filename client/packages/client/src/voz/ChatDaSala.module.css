@@ -83,9 +83,11 @@
   padding-block-start: var(--vx-space-10);
 }
 
+/* 14 e não os 12 do design: a nota alinha com o campo e com as linhas, que
+   estão em 14 pela invariante de alinhamento (ver `Composer.module.css`). */
 .nota {
   margin: 0;
-  padding: 0 var(--vx-space-20) var(--vx-space-10);
+  padding: 0 var(--vx-space-14) var(--vx-space-10);
   font-size: var(--vx-size-xs);
   color: var(--vx-text-4);
   text-wrap: pretty;

@@ -123,6 +123,21 @@ const SINTAXE_GERAL = [
           message:
             "Direção física proibida (lei nº 6). Use a propriedade lógica: start/end, ms/me, ps/pe, border-s/e, rounded-s/e, text-start/end. Painel que assume lado vira reescrita quando o usuário puder reordenar.",
         },
+        {
+          /**
+           * `virtualizer.measure()` cru.
+           *
+           * Ele APAGA as medidas e não mede nada: as linhas montadas voltam à
+           * estimativa até o `ResizeObserver` delas disparar de novo — e no fim
+           * de arraste e na ordem normal dos observadores ele não dispara. O
+           * sintoma é linha escrevendo por cima da outra e buraco entre
+           * mensagens, sem erro nenhum. Foi o defeito do chat da sala de voz.
+           */
+          selector:
+            "CallExpression[arguments.length=0][callee.type='MemberExpression'][callee.property.name='measure']",
+          message:
+            "`measure()` cru apaga as alturas medidas e deixa as linhas montadas na estimativa (sobreposição e buracos). Use `remedir(virtualizer)` de `lib/remedir.ts`.",
+        },
 ];
 
 /**

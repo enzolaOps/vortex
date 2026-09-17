@@ -633,3 +633,52 @@
 .seletorDeArquivo {
   display: none;
 }
+
+/* ============================================================
+   Composer do chat da sala de voz
+   ------------------------------------------------------------
+   O design ("Chat de texto embutido no canal de voz"): caixa em
+   `surface-3` com raio 8, `padding: 8px 10px`, `gap: 10px`, texto
+   em 13, e só "＋ · campo · 🙂". Sem faixa de atalho — a nota do
+   painel embaixo já diz o que precisa ser dito.
+
+   ⚠ **14 de recuo e não os 12 do rodapé do design.** O próprio
+   design desalinha os dois em 2px (lista em 14, rodapé em 12); aqui
+   vale a invariante do briefing — composer terminando na mesma
+   vertical que a linha —, e é ela que `dev/alinhamento.ts` confere.
+   ============================================================ */
+
+.rodape[data-variante="sala"] {
+  padding-block: 0 var(--vx-space-07);
+}
+
+.rodape[data-variante="sala"] .coluna {
+  padding-inline: var(--vx-space-14);
+}
+
+.rodape[data-variante="sala"] .campo {
+  padding: var(--vx-space-08) var(--vx-space-10);
+  border-radius: var(--vx-radius-08);
+}
+
+.rodape[data-variante="sala"] .linha {
+  align-items: center;
+  gap: var(--vx-space-10);
+}
+
+/* Os alvos da linha em 24, o tamanho do "＋" que já era 24: com enviar e o
+   emoji em 32 a caixa media 50px contra os ~38 do design, e crescia só por
+   causa deles. */
+.rodape[data-variante="sala"] .linha button {
+  inline-size: var(--vx-space-24);
+  block-size: var(--vx-space-24);
+}
+
+.rodape[data-variante="sala"] .entrada,
+.rodape[data-variante="sala"] .replica {
+  font-size: var(--vx-size-md);
+}
+
+.rodape[data-variante="sala"] .faixa {
+  display: none;
+}

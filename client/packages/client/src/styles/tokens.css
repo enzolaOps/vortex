@@ -771,6 +771,7 @@
      prévia e a faria competir com a mensagem que ela introduz. */
   --vx-avatar-2xs: 16px;
   --vx-avatar-xs: 22px; /* linha de sala de voz, chip */
+  --vx-avatar-sala: 28px; /* chat embutido na sala de voz */
   --vx-avatar-sm: 32px; /* member list, lista de conversas */
   --vx-avatar-md: 40px; /* linha de mensagem, rail */
   --vx-avatar-lg: 56px; /* cartão de perfil, cabeçalho de grupo */

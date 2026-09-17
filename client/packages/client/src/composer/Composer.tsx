@@ -82,7 +82,17 @@ const AVISAR_A_PARTIR_DE = LIMITE_DE_CONTEUDO * 0.9;
  * quando o miolo trocar. O rascunho segue `string` inclusive depois disso: o
  * protocolo carrega texto, documento rico é representação de edição.
  */
-export function Composer({ channelId }: { channelId: string }) {
+export function Composer({
+  channelId,
+  variante = "timeline",
+}: {
+  channelId: string;
+  /**
+   * `sala` é o composer do chat embutido na sala de voz — a forma do design
+   * daquele painel, por atributo e CSS, como a `MessageList` da mesma sala.
+   */
+  variante?: "timeline" | "sala";
+}) {
   const valor = useRascunho(channelId);
   /*
     O canal, só pelo modo lento.
@@ -413,7 +423,7 @@ export function Composer({ channelId }: { channelId: string }) {
   }
 
   return (
-    <div className={css.rodape}>
+    <div className={css.rodape} data-variante={variante}>
       <div className={css.coluna}>
         {/* O marcador vai no CONTEÚDO, não na faixa: é ele que a assertion
             compara com o conteúdo da linha de mensagem. */}
@@ -574,7 +584,9 @@ export function Composer({ channelId }: { channelId: string }) {
                 placeholder={
                   !temPermissao
                     ? "Você não pode escrever neste canal"
-                    : topico
+                    : variante === "sala"
+                      ? `Mensagem para ${canal?.name ?? "a sala"}`
+                      : topico
                       ? "Responder no tópico"
                       : "Escreva uma mensagem…"
                 }

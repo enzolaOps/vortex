@@ -8,6 +8,7 @@ import { contagem, plural } from "../lib/plural";
 import { quando } from "../lib/quando";
 import { carregarTopicos, type Recorte } from "../sdk/topicos";
 import { selecionarCanal } from "../store/navegacao";
+import { remedir } from "../lib/remedir";
 import { useAgoraPorMinuto } from "../store/relogio";
 import {
   useCanalAtivo,
@@ -119,7 +120,7 @@ export function PainelDeTopicos({ aoFechar }: { aoFechar?: () => void }) {
       const w = e?.contentRect.width ?? 0;
       if (w === ultimaLargura.current) return;
       ultimaLargura.current = w;
-      virtualizer.measure();
+      remedir(virtualizer);
     });
     obs.observe(el);
     return () => obs.disconnect();
