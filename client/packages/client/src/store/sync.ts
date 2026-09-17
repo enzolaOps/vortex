@@ -13,6 +13,9 @@ export const CHAVES_SYNC = [
   "vortex:privacidadeDoServidor",
   "vortex:densidade",
   "vortex:favoritos",
+  /* Chave do cliente OFICIAL, compartilhada de propósito — `store/silencio.ts`. */
+  "notifications",
+  "vortex:notificacoesDoServidor",
 ] as const;
 
 export type ChaveSync = (typeof CHAVES_SYNC)[number];
