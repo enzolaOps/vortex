@@ -14,6 +14,7 @@ import { TelaDeRecuperarSenha } from "./TelaDeRecuperarSenha";
 import { TelaDeExcluirConta } from "./TelaDeExcluirConta";
 import { TelaDeRedefinirSenha } from "./TelaDeRedefinirSenha";
 import { TelaDeVerificarEmail } from "./TelaDeVerificarEmail";
+import { TelaDeDownload } from "./TelaDeDownload";
 
 /**
  * Qual das telas de fora aparece.
@@ -80,6 +81,7 @@ export function Autenticacao({
         motivo={motivo}
       />
     ),
+    download: () => <TelaDeDownload />,
   };
 
   return TELA[tela.tipo]();

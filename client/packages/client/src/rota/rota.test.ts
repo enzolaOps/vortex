@@ -272,6 +272,18 @@ describe("convite por link", () => {
   });
 });
 
+describe("download", () => {
+  it("é caminho de FORA", () => {
+    expect(interpretarEntrada("/download")).toEqual({ tipo: "download" });
+  });
+
+  it("vai e volta", () => {
+    expect(interpretarEntrada(caminhoDaEntrada({ tipo: "download" }))).toEqual({
+      tipo: "download",
+    });
+  });
+});
+
 describe("o link de e-mail do SERVIDOR", () => {
   /*
     ⚠ A API monta `{hosts.app}/login/reset/{token}` — fixo em
