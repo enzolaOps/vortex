@@ -35,6 +35,12 @@ const NOME_DA_ABA: Record<Aba, string> = {
   aba: "Abas",
 };
 
+/** O que a segunda linha do cartão diz quando a casca não sabe mais nada. */
+const NOME_DO_TIPO: Record<FonteDeTela["tipo"], string> = {
+  tela: "tela",
+  janela: "janela",
+};
+
 /**
  * O que o áudio pega em cada categoria — e é o que separa as duas.
  *
@@ -151,11 +157,21 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
       <DialogContent
         titulo="Compartilhar tela"
         descricao={
-          canal
-            ? `em #${canal.name} · ${String(chamada.participantes.length)} pessoas vão ver`
-            : "Escolha o que as pessoas da sala vão ver."
+          canal ? (
+            <>
+              {/* O nome do lugar em destaque e sem `#`: é a sala de voz, e a
+                  referência escreve o nome dela como a coluna de canais o
+                  mostra. */}
+              em <span className={css.sala}>{canal.name}</span> ·{" "}
+              {chamada.participantes.length} pessoas vão ver
+            </>
+          ) : (
+            "Escolha o que as pessoas da sala vão ver."
+          )
         }
         className={css.painel}
+        fechavel
+        classeDoRodape={css.rodape}
         rodape={
           <>
             <p className={css.consequencia}>{trocaDe(resolucao, taxa)}</p>
@@ -219,7 +235,7 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
             titulo="O sistema precisa autorizar a captura"
             acoes={
               <Botao
-                variante="sutil"
+                variante="avisoSutil"
                 tamanho="pequeno"
                 onClick={() => void ponteDeTela()?.abrirAjustes()}
               >
@@ -275,17 +291,24 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
                   <img className={css.miniatura} src={f.miniatura} alt="" />
                   {escolhida === f.id ? (
                     <span className={css.selo} aria-hidden>
-                      <Check size={ICONE.selo} weight="bold" />
+                      {/* Sem `size`: o dono do tamanho é `.selo svg`. */}
+                      <Check weight="bold" />
                     </span>
                   ) : null}
                 </span>
                 <span className={css.textos}>
                   <span className={css.nome}>{f.nome}</span>
-                  {/* Segunda linha só quando há o que dizer — ver `meta` no
-                      contrato: janela não tem dimensão conhecida. */}
-                  {f.meta !== undefined ? (
-                    <span className={css.meta}>{f.meta}</span>
-                  ) : null}
+                  {/*
+                    ⚠ A segunda linha existe SEMPRE, como na referência. Sem
+                    ela o cartão de janela ficava 16px mais baixo que o de
+                    tela e a grade perdia o ritmo. Quando a casca não sabe
+                    nada além do tipo — janela, porque `desktopCapturer` não
+                    devolve o tamanho dela —, a linha diz o tipo. Inventar
+                    "1728×1080" seria dado falso.
+                  */}
+                  <span className={css.meta}>
+                    {f.meta ?? NOME_DO_TIPO[f.tipo]}
+                  </span>
                 </span>
               </button>
             ))}
@@ -295,7 +318,7 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
         <div className={css.opcoes}>
           <div className={css.audio}>
             <span className={css.audioTexto}>
-              <SpeakerHigh size={ICONE.controle} className={css.glifo} aria-hidden />
+              <SpeakerHigh size={ICONE.metadado} className={css.glifo} aria-hidden />
               <span>
                 <span className={css.audioTitulo}>
                   Compartilhar áudio da fonte

@@ -9,7 +9,7 @@ import type { FonteDeTela, PonteDeTela } from "../sdk/seletorDeTela";
  * casca falsa, e o mesmo defeito que o painel de fixadas teve por meses —
  * existir sem caminho até ele.
  *
- * ⚠ **Duas fontes de cada tipo, e não uma.** Com uma só, a aba de janelas
+ * ⚠ **Duas telas e quinze janelas.** Com uma só, a aba de janelas
  * mostraria um cartão e a grade nunca exercitaria o refluxo — que é onde um
  * nome longo trunca ou estoura. Uma amostra que não varia não prova layout.
  */
@@ -47,7 +47,9 @@ const FONTES: readonly FonteDeTela[] = [
     id: "window:1",
     nome: "Figma — Vortex DS",
     tipo: "janela",
-    meta: "janela",
+    /* Sem meta, como a casca entrega: `desktopCapturer` não dá o tamanho de
+       uma janela. É o caso que o cartão precisa aguentar. */
+    meta: undefined,
     miniatura: PNG("figma", "#1f3a34"),
     icone: ICONE,
   },
@@ -55,7 +57,9 @@ const FONTES: readonly FonteDeTela[] = [
     id: "window:2",
     nome: "Visual Studio Code",
     tipo: "janela",
-    meta: "janela",
+    /* Sem meta, como a casca entrega: `desktopCapturer` não dá o tamanho de
+       uma janela. É o caso que o cartão precisa aguentar. */
+    meta: undefined,
     miniatura: PNG("code", "#3a2f1f"),
     icone: ICONE,
   },
@@ -64,10 +68,23 @@ const FONTES: readonly FonteDeTela[] = [
     id: "window:3",
     nome: "Um nome de janela absurdamente longo que precisa truncar sem quebrar o cartão",
     tipo: "janela",
-    meta: "janela",
+    /* Sem meta, como a casca entrega: `desktopCapturer` não dá o tamanho de
+       uma janela. É o caso que o cartão precisa aguentar. */
+    meta: undefined,
     miniatura: PNG("janela", "#3a1f2f"),
     icone: ICONE,
   },
+  /* Doze janelas a mais: com três a grade cabe numa linha e nunca prova o
+     que acontece quando o corpo do modal precisa rolar — que é o caso de
+     quem tem o dia inteiro de apps abertos. */
+  ...Array.from({ length: 12 }, (_, i): FonteDeTela => ({
+    id: `window:${String(i + 4)}`,
+    nome: `Janela ${String(i + 4)}`,
+    tipo: "janela",
+    meta: undefined,
+    miniatura: PNG(`janela ${String(i + 4)}`, "#24303c"),
+    icone: ICONE,
+  })),
 ];
 
 export function dublarPonteDeTela(): void {
