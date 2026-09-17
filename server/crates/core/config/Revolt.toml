@@ -228,6 +228,9 @@ webhooks_enabled = false
 mass_mentions_send_notifications = true
 # Can role/everyone pings be used at all
 mass_mentions_enabled = true
+# Versão mínima da casca desktop do Vortex. Ausente = nenhuma casca é bloqueada.
+# Com ela, o cliente desktop abaixo desta versão entra na tela de atualização obrigatória.
+# desktop_min_version = "4.2.0"
 
 [features.limits]
 

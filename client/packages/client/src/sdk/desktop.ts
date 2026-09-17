@@ -68,7 +68,19 @@ export type PonteDesktop = {
 
   readonly assinarAtualizacao: (ouvinte: (a: Atualizacao) => void) => () => void;
   readonly verificarAtualizacao: () => Promise<void>;
-  readonly instalarEReiniciar: () => Promise<void>;
+  /**
+   * `{ obrigatoria: true }` pede à casca que instale MESMO sem nada baixado:
+   * ela verifica, baixa e instala ao terminar. Sem o argumento, só age em
+   * `pronta`.
+   *
+   * ⚠ **Argumento opcional e não verbo novo.** Um verbo novo aqui faria
+   * `verbosFaltandoNaPonte` tratar toda casca anterior como ausente. O preload
+   * antigo descarta o argumento, e a tela de bloqueio oferece o download
+   * manual para esse caso.
+   */
+  readonly instalarEReiniciar: (opcoes?: {
+    readonly obrigatoria?: boolean;
+  }) => Promise<void>;
 
   readonly tamanhoDoCache: () => Promise<number>;
   readonly limparCache: () => Promise<void>;

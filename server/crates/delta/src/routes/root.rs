@@ -59,6 +59,11 @@ pub struct RevoltFeatures {
     pub limits: LimitsConfig,
     /// Legal links
     pub legal_links: LegalLinks,
+    /// Minimum desktop shell version accepted by this node
+    ///
+    /// Omitted when the node does not require one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub desktop_min_version: Option<String>,
 }
 
 /// # Limits For Users
@@ -268,6 +273,7 @@ pub async fn root() -> Result<Json<RevoltConfig>> {
                 privacy_policy: config.features.legal_links.privacy_policy,
                 guidelines: config.features.legal_links.guidelines,
             },
+            desktop_min_version: config.features.desktop_min_version,
         },
         ws: config.hosts.events,
         app: config.hosts.app,
@@ -302,6 +308,16 @@ mod test {
         let harness = crate::util::test::TestHarness::new().await;
         let response = harness.client.get("/").dispatch().await;
         assert_eq!(response.status(), Status::Ok);
+    }
+
+    #[rocket::async_test]
+    async fn desktop_min_version_omitida_por_padrao() {
+        let harness = crate::util::test::TestHarness::new().await;
+        let response = harness.client.get("/").dispatch().await;
+        assert_eq!(response.status(), Status::Ok);
+        let corpo: serde_json::Value =
+            serde_json::from_str(&response.into_string().await.unwrap()).unwrap();
+        assert!(corpo["features"].get("desktop_min_version").is_none());
     }
 
     #[rocket::async_test]
