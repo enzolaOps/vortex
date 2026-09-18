@@ -47,7 +47,16 @@ try {
     logLevel: "warning",
   });
   const compilados = testes(saida, ".test.mjs");
-  const r = spawnSync(process.execPath, ["--test", ...compilados], { stdio: "inherit" });
+  /*
+    ⚠ **`VORTEX_CASCA_RAIZ` porque `process.cwd()` NÃO serve.** O runner do
+    Node roda cada arquivo num processo próprio, e o `cwd` dele acaba sendo a
+    pasta temporária do build — então um teste que precise de arquivo do
+    pacote (o `.gif` do instalador) procuraria no lixo. A raiz vai explícita.
+  */
+  const r = spawnSync(process.execPath, ["--test", ...compilados], {
+    stdio: "inherit",
+    env: { ...process.env, VORTEX_CASCA_RAIZ: RAIZ },
+  });
   process.exitCode = r.status ?? 1;
 } finally {
   rmSync(saida, { recursive: true, force: true });
