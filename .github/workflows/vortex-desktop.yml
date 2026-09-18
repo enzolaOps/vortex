@@ -87,11 +87,11 @@ jobs:
       - name: Ativar o pnpm da casca
         run: corepack enable && pnpm --version
 
-      # .deb precisa de fakeroot. Sem `-dev` do X11: o `uiohook-napi` usa o
-      # prebuild (ver `rebuildConfig` em `forge.config.ts`).
-      - name: Ferramentas do .deb
+      # .deb precisa de fakeroot. O pacote Arch (pkg.tar.zst) precisa de
+      # bsdtar + zstd. Sem `-dev` do X11: o `uiohook-napi` usa o prebuild.
+      - name: Ferramentas do .deb e do pacman
         if: matrix.plataforma == 'linux'
-        run: sudo apt-get update && sudo apt-get install -y fakeroot
+        run: sudo apt-get update && sudo apt-get install -y fakeroot libarchive-tools zstd
 
       - name: Instalar dependências
         run: pnpm install --frozen-lockfile
@@ -138,6 +138,10 @@ jobs:
           PLATFORM: ${{ matrix.plataforma }}
         run: pnpm make
 
+      - name: Pacote pacman (Arch)
+        if: matrix.plataforma == 'linux'
+        run: sh scripts/empacotar-arch.sh entrega/Vortex.pkg.tar.zst
+
       - name: Reunir os artefatos
         run: |
           mkdir -p entrega
@@ -145,7 +149,7 @@ jobs:
           # instalador, o manifesto de atualização e o pacote do Squirrel.
           find out/make -type f \
             \( -name "*.exe" -o -name "*.nupkg" -o -name "RELEASES" \
-               -o -name "*.deb" -o -name "*.zip" \) \
+               -o -name "*.deb" -o -name "*.zip" -o -name "*.pkg.tar.zst" \) \
             -exec cp {} entrega/ \;
           # Nomes estáveis para o link de download do cliente.
           for f in entrega/*.deb; do

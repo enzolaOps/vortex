@@ -20,10 +20,12 @@ describe("link de download do desktop", () => {
     );
   });
 
-  it("Linux genérico (Arch) baixa o zip", () => {
-    expect(linkDeDownload("Linux")).toMatch(/\/download\/Vortex-linux\.zip$/);
+  it("Linux genérico (Arch) baixa o pacote pacman", () => {
+    expect(linkDeDownload("Linux")).toMatch(
+      /\/download\/Vortex\.pkg\.tar\.zst$/,
+    );
     expect(linkDeDownload("X11; Linux x86_64")).toMatch(
-      /\/download\/Vortex-linux\.zip$/,
+      /\/download\/Vortex\.pkg\.tar\.zst$/,
     );
   });
 
