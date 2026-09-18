@@ -708,7 +708,11 @@
     display: none;
   }
 
+  /* O selo LIVE sai junto com o nome, e pela mesma razão do `CHEIO`: ele é
+     `flex: none` e tem 40px, então numa fileira só de avatares ele é o único
+     que não encolhe e quebraria a linha. */
   .nomeNaSala,
+  .aoVivo,
   .estadoDeVoz {
     display: none;
   }
@@ -1124,9 +1128,73 @@
   alvo do `:hover` que as revela.
 */
 .linhaDeCanal {
+  /* `relative` é a âncora do alvo de soltura, que cobre a linha inteira
+     durante um arraste de participante. Sem ela o overlay ancoraria na
+     prancha e cobriria a coluna. */
+  position: relative;
   display: flex;
   align-items: center;
   min-inline-size: 0;
+}
+
+/* ================================================== arrastar para mover
+
+   O canal-alvo durante o arraste de alguém de uma sala para outra.
+
+   ⚠ **Overlay e não borda no `.canal`.** A linha de voz pendura a SALA
+   embaixo dela, e uma borda no botão marcaria só o nome do canal — o
+   alvo de soltura é a linha inteira, que é onde o ponteiro está. O
+   overlay também não reflui nada: um `border` no botão mudaria a
+   altura da linha no meio do gesto.
+
+   `pointer-events: none` é load-bearing: com ele ativo o overlay vira
+   o alvo dos eventos de arraste, o `dragleave` do wrapper dispara no
+   quadro em que o anel aparece, e o anel pisca sem parar.
+*/
+.alvoDeSoltura {
+  position: absolute;
+  inset: 0;
+  z-index: var(--vx-z-realce);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: var(--vx-space-08);
+  border: 1px dashed var(--vx-accent);
+  border-radius: var(--vx-radius-06);
+  background: color-mix(in oklab, var(--vx-accent) 6%, transparent);
+  color: var(--vx-accent-text);
+  font-size: var(--vx-size-2xs);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+/*
+  Recusa, com MOTIVO — "canal cheio" e "sem permissão" são coisas
+  diferentes e o design escreve as duas. Vermelho e não cinza: o alvo
+  existe e está dizendo não, que é informação; apagado leria como
+  "este canal não participa do gesto".
+*/
+.alvoDeSoltura[data-veredito="cheio"],
+.alvoDeSoltura[data-veredito="semPermissao"] {
+  border-color: var(--vx-danger);
+  background: color-mix(in oklab, var(--vx-danger) 6%, transparent);
+  color: var(--vx-danger-text);
+}
+
+/*
+  `grab` só em quem PODE mover — o cursor é a única pista de que a
+  linha é arrastável, e mostrá-lo a quem o servidor vai recusar
+  prometeria um gesto que não existe.
+*/
+.naSala[data-arrastavel="true"] {
+  cursor: grab;
+}
+
+.naSala[data-arrastavel="true"]:active {
+  cursor: grabbing;
 }
 
 /* --------------------------------------------------- marcadores da linha */

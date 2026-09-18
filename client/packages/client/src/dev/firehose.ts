@@ -39,6 +39,7 @@ import {
   registrarServidor,
   seedChannel,
   semearMudoDoServidor,
+  semearSurdoDoServidor,
   semearVoz,
   semearPresenca,
   startAdapter,
@@ -655,6 +656,13 @@ const RECADOS = [
              semeava um estado inalcançável, que é exatamente o defeito que a
              semeadura existe para evitar. */
           semearMudoDoServidor(servidor.id, userId, n === 1 && k === 0);
+          /* ⚠ E o `can_receive`, que NUNCA tinha sido semeado: o campo existia
+             no snapshot desde o menu do participante e nenhuma pessoa do rig
+             o tinha em `true`, então o ícone de ensurdecido pelo servidor
+             nascia inalcançável. Outra sala e outra pessoa que o mudo, de
+             propósito: com os dois na mesma linha nunca se veria o caso de um
+             só, que é o mais comum. */
+          semearSurdoDoServidor(servidor.id, userId, n === 0 && k === 1);
         });
         semearVoz(
           canal.id,

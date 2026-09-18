@@ -99,6 +99,26 @@
 }
 
 /*
+  "· 42 ms" ao lado do estado — o design escreve os dois juntos.
+
+  ⚠ **Ele NÃO herda a cor do estado**, e é deliberado: o adjetivo é o veredito
+  ("conexão ótima") e o número é a prova. Com a mesma tinta verde, o olho lê
+  uma frase só e o número compete com a palavra que já respondeu a pergunta;
+  em `text-3` ele fica onde metadado fica, para quem for procurar.
+
+  Mono e tabular porque o número muda a cada segundo: com fonte proporcional a
+  linha inteira tremeria de 8 para 12 e de volta.
+*/
+.rtt {
+  flex: none;
+  color: var(--vx-text-3);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-2xs);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
   O ponto é a segunda pista, nunca a única.
 
   Qualidade de conexão comunicada só por cor some para quem não distingue

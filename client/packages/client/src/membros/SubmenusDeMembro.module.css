@@ -1,0 +1,39 @@
+/* ============================================================
+   Submenu "Mover para canal" — nome à esquerda, lotação à direita
+   ------------------------------------------------------------
+   O design escreve `Sala do time 3/8`, com a contagem encostada
+   no fim do item, na mesma posição em que um menu põe o atalho.
+   É metadado sobre o destino, e lê-lo é opcional: quem procura o
+   canal lê o nome, quem procura vaga lê o número.
+   ============================================================ */
+
+/*
+  O nome é o único que ENCOLHE. Sem isto, um canal de nome longo
+  empurraria a contagem para fora do item — e a contagem é o que
+  explica por que ele está desabilitado.
+*/
+.nomeDoDestino {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.lotacao {
+  flex: none;
+  margin-inline-start: auto;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-2xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+  Cheio vira `danger`, e é o mesmo tratamento que o selo `CHEIO`
+  da coluna de canais recebe: o item já está cinza por estar
+  desabilitado, e sem a cor o motivo se perde dentro do próprio
+  apagamento.
+*/
+.lotacao[data-cheio="true"] {
+  color: var(--vx-danger-text);
+}

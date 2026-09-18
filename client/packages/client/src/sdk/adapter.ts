@@ -61,6 +61,12 @@ import {
 import { definirEuDasEnquetes, lerEnquete } from "../store/enquetes";
 import { anotarEventoDeEnquete, buscarMensagensComEnquetes } from "./enquetes";
 import { anotarEventoDeVoz } from "./vozDoCanal";
+import {
+  avisarMudoDoServidor,
+  avisarSurdoDoServidor,
+  lerMovimentoImposto,
+  registrarMovimentoImposto,
+} from "./vozImposta";
 import { anotarEventoDeServidor } from "./eventos";
 import { semearStatusDoServidor } from "./perfil";
 import { aguardar, desistir, reconciliar } from "./nonce";
@@ -1181,6 +1187,23 @@ export function startAdapter() {
         pelo servidor. Voltar ao padrão vem em `clear`, não na ausência.
       */
       const { server, user } = e.id;
+      /*
+        ⚠ **A transição precisa ser lida ANTES e DEPOIS, e só para VOCÊ.**
+
+        `anotar` é idempotente — ele não distingue "passou a ser" de "já era".
+        Sem a leitura de antes, um `ServerMemberUpdate` qualquer que reafirmasse
+        `can_publish: false` dispararia o aviso de novo, e o servidor reafirma
+        campos com frequência. E o aviso é sobre o PRÓPRIO microfone: quem é
+        silenciado aparece com `SRV` na coluna para todo mundo, mas só quem
+        perdeu a voz precisa da frase.
+      */
+      const chave =
+        server !== undefined && user !== undefined && user === usuarioLocal
+          ? chaveDeMembro(server, user)
+          : undefined;
+      const mudoAntes = chave !== undefined && mudosPeloServidor.has(chave);
+      const surdoAntes = chave !== undefined && surdosPeloServidor.has(chave);
+
       if (e.data && "can_publish" in e.data) {
         anotar(mudosPeloServidor, server, user, e.data.can_publish);
       } else if (e.clear?.includes("CanPublish")) {
@@ -1191,8 +1214,30 @@ export function startAdapter() {
       } else if (e.clear?.includes("CanReceive")) {
         anotar(surdosPeloServidor, server, user, true);
       }
+
+      if (chave !== undefined) {
+        const mudoDepois = mudosPeloServidor.has(chave);
+        const surdoDepois = surdosPeloServidor.has(chave);
+        if (mudoDepois !== mudoAntes) avisarMudoDoServidor(!mudoDepois);
+        if (surdoDepois !== surdoAntes) avisarSurdoDoServidor(!surdoDepois);
+      }
       republicarVoz();
     } else {
+      /*
+        ⚠ **O servidor te MOVEU de canal — e isto não existia.** O SDK descarta
+        `UserMoveVoiceChannel` (o `case` dele é um `// todo` vazio), então o
+        único sinal que chegava era o LiveKit fechando a conexão: a chamada
+        sumia e nada dizia por quê. Ver `sdk/vozImposta.ts` para a corrida entre
+        os dois sinais.
+      */
+      const movimento = lerMovimentoImposto(evento);
+      if (movimento) {
+        registrarMovimentoImposto({
+          ...movimento,
+          nomeDe: client.channels.get(movimento.de)?.name ?? "a sala anterior",
+          nomePara: client.channels.get(movimento.para)?.name ?? "outra sala",
+        });
+      }
       traduzirSinalDeChamada(evento);
     }
 
@@ -3777,6 +3822,26 @@ export function semearMudoDoServidor(
   const chave = chaveDeMembro(serverId, userId);
   if (mudo) mudosPeloServidor.add(chave);
   else mudosPeloServidor.delete(chave);
+  republicarVoz();
+}
+
+/**
+ * O mesmo para `can_receive` — ensurdecido pelo servidor.
+ *
+ * ⚠ **Arnês mais pobre que o protocolo, de novo.** `surdoPeloServidor` entrou
+ * no snapshot quando o menu do participante precisou saber se o item estava
+ * marcado, e nada nunca o pôs em `true`: o campo existia, compilava, tinha
+ * consumidor no menu e NUNCA tinha sido visto na coluna. O selo dele nasceria
+ * inalcançável, exatamente como o `SRV` teria nascido sem a função acima.
+ */
+export function semearSurdoDoServidor(
+  serverId: string,
+  userId: string,
+  surdo: boolean,
+): void {
+  const chave = chaveDeMembro(serverId, userId);
+  if (surdo) surdosPeloServidor.add(chave);
+  else surdosPeloServidor.delete(chave);
   republicarVoz();
 }
 

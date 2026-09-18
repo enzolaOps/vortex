@@ -38,6 +38,7 @@ import {
 import {
   AudioPresets,
   ConnectionState,
+  DisconnectReason,
   Room,
   ConnectionQuality,
   LocalAudioTrack,
@@ -75,6 +76,7 @@ import { criarAtenuador, ponteDeAtenuacao } from "./atenuacao";
 import { client } from "./client";
 import { lerConfigDeVoz, publicacaoDe as publicacaoDoCanal } from "./vozDoCanal";
 import { sairDaSalaLocalmente } from "./adapter";
+import { registrarRemocaoImposta } from "./vozImposta";
 import type { Chamada, QualidadeDeVoz } from "../store/chamada";
 import {
   alternarMudoNoStore,
@@ -279,7 +281,7 @@ function ligarEventos(r: Room, channelId: string): void {
     é o vazamento, é a faixa MORTA reaparecendo na chamada seguinte, porque
     as chaves (`usuário:fonte`) são estáveis entre chamadas.
   */
-  r.on(RoomEvent.Disconnected, () => {
+  r.on(RoomEvent.Disconnected, (motivo?: DisconnectReason) => {
     /* Queda pelo servidor não passa por `sairDaChamada` — sem isto o ouvinte
        de volume ficaria preso a uma sala morta (erro nº 5 do briefing). */
     pararDeOuvirVolumes?.();
@@ -290,6 +292,28 @@ function ligarEventos(r: Room, channelId: string): void {
     /* A contagem morre com a sala. Sem isto, entrar de novo começaria com
        assinantes fantasmas e a primeira borda nunca chegaria a zero. */
     assinatura.limpar();
+
+    /*
+      ⚠ **Sair porque alguém te TIROU era indistinguível de a rede cair**, e a
+      chamada sumia calada nos dois casos.
+
+      `PARTICIPANT_REMOVED` é o que o `RoomService.RemoveParticipant` produz, e
+      é exatamente o que `voice_client.remove_user` chama no servidor — nos
+      DOIS caminhos de moderação: `remove: ["VoiceChannel"]` (desconectar) e
+      `voice_channel` (mover, que remove do nó antigo antes de emitir o token
+      do novo). Por isso quem decide a frase não é este handler: ele só relata
+      o fato, e `sdk/vozImposta.ts` espera o segundo sinal antes de falar.
+
+      Os outros motivos NÃO entram: `CLIENT_INITIATED` é a saída normal (e nem
+      chega aqui, porque `sairDaChamada` remove os ouvintes antes), e queda de
+      rede o SDK já traduz na faixa de conexão.
+    */
+    if (motivo === DisconnectReason.PARTICIPANT_REMOVED) {
+      registrarRemocaoImposta({
+        canal: channelId,
+        nome: client.channels.get(channelId)?.name ?? "a sala",
+      });
+    }
     encerrarChamada();
   });
   r.on(RoomEvent.Reconnecting, () => definirChamada({ estado: "reconectando" }));

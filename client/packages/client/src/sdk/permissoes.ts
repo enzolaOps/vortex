@@ -71,6 +71,15 @@ export type Acao =
   | "silenciarNaVoz"
   /** Ensurdecer no servidor: `can_receive`. */
   | "ensurdecerNaVoz"
+  /**
+   * Entrar num canal de voz — `Connect`.
+   *
+   * ⚠ Existe para o ARRASTE, e a pergunta é sobre QUEM MOVE: `member_edit.rs`
+   * calcula as permissões do canal de destino sobre o moderador e exige
+   * `Connect` ali antes de mover alguém para lá. Sem esta entrada, o alvo
+   * aceitaria a soltura e o servidor devolveria 403.
+   */
+  | "conectar"
   /* --- fork: permissões de categoria e link que dá cargo -------------- */
   /** Fechar categoria, sincronizar canal com ela. `ManagePermissions`. */
   | "gerenciarPermissoes"
@@ -112,6 +121,7 @@ const PERMISSAO: Record<Acao, string | undefined> = {
   moverMembros: "MoveMembers",
   silenciarNaVoz: "MuteMembers",
   ensurdecerNaVoz: "DeafenMembers",
+  conectar: "Connect",
 
   gerenciarPermissoes: "ManagePermissions",
   atribuirCargos: "AssignRoles",

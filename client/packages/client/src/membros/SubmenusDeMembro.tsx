@@ -2,11 +2,13 @@ import {
   Check,
   Hash,
   ICONE,
+  PhoneX,
   UsersThree,
 } from "../components/ui/icones";
 
 import {
   ContextMenuItem,
+  ContextMenuSeparator,
   ContextMenuSub,
   ContextMenuSubContent,
   ContextMenuSubTrigger,
@@ -15,10 +17,17 @@ import { usuarioLocalId } from "../sdk/adapter";
 import {
   alternarCargo,
   cargosDoServidor,
+  moderarVoz,
   moverParaCanalDeVoz,
 } from "../sdk/cargos";
 import { chaveDeMembro } from "../sdk/domain";
-import { useCanaisDeVoz, useChannel, useMembro } from "../store/hooks";
+import {
+  useCanaisDeVoz,
+  useChannel,
+  useMembro,
+  useVozDoCanal,
+} from "../store/hooks";
+import css from "./SubmenusDeMembro.module.css";
 
 /**
  * Os submenus que a fase 6 destravou.
@@ -117,6 +126,7 @@ export function SubmenuDeVoz({
   userId,
   rotulo = "Mover para canal",
   atual,
+  comDesconectar = false,
 }: {
   serverId: string;
   userId: string;
@@ -127,6 +137,16 @@ export function SubmenuDeVoz({
    * list não sabe sem varrer os canais; o menu da sala sabe de graça.
    */
   atual?: string;
+  /**
+   * "Desconectar da voz" no fim do submenu, como o design o desenha.
+   *
+   * ⚠ **Só onde ele ainda não existe.** O menu do participante de voz já tem
+   * "Desconectar do canal" no próprio bloco de moderação, e o design separa os
+   * dois com `｜` justamente porque são o mesmo grupo. Repeti-lo lá daria dois
+   * alvos para a mesma ação no mesmo menu, e o `CLAUDE.md` já registra o que
+   * acontece com duplicatas: divergem no primeiro que muda.
+   */
+  comDesconectar?: boolean;
 }) {
   const todos = useCanaisDeVoz(serverId);
   const canais = atual === undefined ? todos : todos.filter((id) => id !== atual);
@@ -147,6 +167,20 @@ export function SubmenuDeVoz({
             userId={userId}
           />
         ))}
+        {comDesconectar ? (
+          <>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              perigo
+              onSelect={() =>
+                void moderarVoz(serverId, userId, { tipo: "desconectar" })
+              }
+            >
+              <PhoneX aria-hidden />
+              Desconectar da voz
+            </ContextMenuItem>
+          </>
+        ) : null}
       </ContextMenuSubContent>
     </ContextMenuSub>
   );
@@ -170,13 +204,42 @@ function Destino({
   userId: string;
 }) {
   const canal = useChannel(channelId);
+  /*
+    ⚠ **A lotação assina AQUI e não no submenu.** Ela é o dado que decide se o
+    item está desabilitado, e só o item dele precisa saber — pendurá-la no pai
+    faria alguém entrar numa sala qualquer re-renderizar a lista inteira de
+    destinos com o menu aberto.
+  */
+  const dentro = useVozDoCanal(channelId);
   if (!canal) return null;
+
+  const teto = canal.limite ?? 0;
+  const cheio = teto > 0 && dentro.length >= teto;
 
   return (
     <ContextMenuItem
+      /*
+        ⚠ **Desabilitado, e NÃO escondido.** É a mesma regra do seletor de
+        cargo: sumir faria a pessoa procurar um canal que existe. E o motivo
+        vai escrito ao lado — "cheio · 25/25" diz o que o item cinza sozinho
+        não diria.
+      */
+      disabled={cheio}
       onSelect={() => void moverParaCanalDeVoz(serverId, userId, channelId)}
     >
-      {canal.name}
+      <span className={css.nomeDoDestino}>{canal.name}</span>
+      {/*
+        A contagem é METADADO do item, alinhada à direita como o atalho de um
+        menu — é o que o design desenha (`Sala do time 3/8`). Sem teto não há
+        número: "3/∞" não é informação, e um canal sem limite não tem o que
+        contar contra.
+      */}
+      {teto > 0 ? (
+        <span className={css.lotacao} data-cheio={cheio}>
+          {cheio ? "cheio · " : ""}
+          {dentro.length}/{teto}
+        </span>
+      ) : null}
     </ContextMenuItem>
   );
 }
