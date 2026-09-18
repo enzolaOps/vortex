@@ -1,5 +1,6 @@
 import { BrowserWindow, app, shell } from "electron";
 
+import { tratarSquirrel } from "./native/atalhosDoSquirrel";
 import {
   ligarAtualizacaoAutomatica,
   registrarAtualizacaoNaPonte,
@@ -14,13 +15,23 @@ import { initTray } from "./native/tray";
 import { initVirtualMic } from "./native/virtualMic";
 import { BUILD_URL, createMainWindow, mainWindow } from "./native/window";
 
+/*
+  ⚠ **ANTES de qualquer janela, bandeja ou ponte.** Depois de instalar, o
+  Squirrel roda o app com `--squirrel-install`; é o APP que cria o atalho e
+  SAI. Enquanto isso não era feito, o instalador abria uma janela comum, o
+  processo nunca encerrava, nenhum atalho era criado — e o `Setup.exe` deixava
+  a animação de carregamento pendurada sobre essa janela, porque ele a mostra
+  justamente enquanto espera este processo terminar.
+*/
+const encerrandoPeloSquirrel = tratarSquirrel();
+
 // disable hw-accel if so requested
 if (!config.hardwareAcceleration) {
   app.disableHardwareAcceleration();
 }
 
 // ensure only one copy of the application can run
-const acquiredLock = app.requestSingleInstanceLock();
+const acquiredLock = !encerrandoPeloSquirrel && app.requestSingleInstanceLock();
 
 if (acquiredLock) {
   // create and configure the app when electron is ready
@@ -98,6 +109,11 @@ if (acquiredLock) {
       return { action: "deny" };
     });
   });
-} else {
+} else if (!encerrandoPeloSquirrel) {
+  /*
+    ⚠ O `quit` daqui é o da SEGUNDA instância. Quando quem manda é o Squirrel,
+    quem encerra é `tratarSquirrel()`, e só depois que o `Update.exe` fecha —
+    sair antes mataria a escrita do atalho no meio.
+  */
   app.quit();
 }
