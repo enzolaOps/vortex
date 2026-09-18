@@ -21,6 +21,7 @@ import {
 import { GerenciarGrupo } from "../../casa/GerenciarGrupo";
 import { NovoGrupo } from "../../casa/NovoGrupo";
 import { ModalDeExcluirConta } from "../../config/ModalDeExcluirConta";
+import { ModalDeDesativarConta } from "../../config/ModalDeDesativarConta";
 import { ModalDeApelido } from "../../membros/ModalDeApelido";
 import { PrivacidadeDoServidor } from "../../servidores/PrivacidadeDoServidor";
 import { EditorDePasta } from "../../servidores/EditorDePasta";
@@ -66,6 +67,7 @@ const REGISTRO: Record<ModalId, ComponentType<{ aoFechar: () => void }>> = {
   privacidadeDoServidor: PrivacidadeDoServidor,
   apelido: ModalDeApelido,
   excluirConta: ModalDeExcluirConta,
+  desativarConta: ModalDeDesativarConta,
   transferirPropriedade: TransferirPropriedade,
   autorizarQr: AutorizarQr,
   atividades: ModalDeAtividades,

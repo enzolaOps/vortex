@@ -1,0 +1,130 @@
+/* ============================================================
+   Perfil global — avatar e banner (D-AUTH-38/39)
+   ------------------------------------------------------------
+   As medidas e a estrutura são as do bloco de ícone e banner
+   de `Servidor.module.css`, e isso é DELIBERADO: as duas telas
+   fazem a mesma pergunta ("qual imagem te representa aqui") e
+   duas geometrias diferentes para ela fariam Configurações ler
+   como dois produtos.
+   ============================================================ */
+
+.sobrancelha {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  margin: 0 0 var(--vx-space-08);
+  color: var(--vx-text-3);
+}
+
+.avatar {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-14);
+}
+
+.avatarTextos {
+  display: grid;
+  gap: var(--vx-space-08);
+  min-inline-size: 0;
+}
+
+.avatarAcoes {
+  display: flex;
+  gap: var(--vx-space-08);
+}
+
+.pista {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
+}
+
+/* O `input` de arquivo do sistema — acionado pelos botões, nunca visto. */
+.seletor {
+  display: none;
+}
+
+/* ------------------------------------------------------------ banner */
+
+/*
+  A primeira linha é MONO e traz a medida (`1200×480`); a segunda diz o gesto.
+  Mono porque é especificação: número que se confere caractere a caractere não
+  deve variar de largura.
+*/
+.dropzone {
+  /* Âncora do banner que já existe, desenhado ATRÁS das duas linhas. */
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vx-space-06);
+  inline-size: 100%;
+  block-size: 96px;
+  border: 1px dashed var(--vx-hairline-10);
+  border-radius: var(--vx-radius-08);
+  background: transparent;
+  cursor: pointer;
+}
+
+.dropzone:hover:not(:disabled),
+.dropzone[data-sobre="true"] {
+  background: var(--vx-state-hover);
+}
+
+.dropzone[data-sobre="true"] {
+  border-color: var(--vx-accent);
+}
+
+.dropzone:disabled {
+  cursor: default;
+}
+
+.dropzone[aria-busy="true"] {
+  cursor: progress;
+}
+
+.dropzone:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.imagemDoBanner {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+/*
+  Com banner, a imagem vai para trás e as duas linhas ganham uma pastilha em
+  `surface-3` por baixo: texto de 11px sobre uma foto qualquer não tem
+  contraste garantido, e `text-3`/`text-4` já têm par medido contra `surface-3`
+  nos dois temas. ⚠ `scrim` seria o palpite óbvio e erra no claro: ele
+  escurece, e o texto do tema claro é escuro.
+*/
+.dropzone[data-com-imagem="true"] .imagemDoBanner {
+  z-index: -1;
+}
+
+.dropzone[data-com-imagem="true"] .dropzoneMedida,
+.dropzone[data-com-imagem="true"] .dropzoneGesto {
+  padding: var(--vx-space-02) var(--vx-space-06);
+  border-radius: var(--vx-radius-04);
+  background: var(--vx-surface-3);
+}
+
+.dropzoneMedida {
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.dropzoneGesto {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
+}
+
+.removerBanner {
+  margin-block-start: var(--vx-space-08);
+}

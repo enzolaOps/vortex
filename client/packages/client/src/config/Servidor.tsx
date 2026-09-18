@@ -7,11 +7,7 @@ import { SeletorDeCor } from "../components/ui/SeletorDeCor";
 import { X } from "../components/ui/icones";
 import { corDoTextoDe, gradienteDe } from "../lib/gradiente";
 import { sigla } from "../lib/sigla";
-import {
-  subirAnexo,
-  temServidorDeMidia,
-  tetoDeUploadTexto,
-} from "../sdk/anexos";
+import { temServidorDeMidia, tetoDeUploadTexto } from "../sdk/anexos";
 import { salvarCaracteristicas } from "../sdk/perfilDoServidor";
 import {
   salvarServidor,
@@ -19,10 +15,10 @@ import {
   trocarImagemDoServidor,
   type ImagemDoServidor,
 } from "../sdk/servidores";
-import { toast } from "../components/ui/toastStore";
 import { definirBarraDeSalvar } from "../store/barraDeSalvar";
 import { useMembrosDoServidor, useServer } from "../store/hooks";
 import { usePerfilDoServidor } from "../store/perfilDoServidor";
+import { useImagemEnviavel } from "./useImagemEnviavel";
 import css from "./Servidor.module.css";
 import secao from "./Secao.module.css";
 
@@ -88,21 +84,12 @@ const ACEITA = "image/png,image/jpeg,image/gif,image/webp";
 /**
  * Trocar e remover uma das duas imagens do servidor.
  *
- * ⚠ **A troca é IMEDIATA, fora da barra de salvar**, e é a mesma decisão de
- * `GerenciarGrupo`: escolher um arquivo JÁ é a intenção inteira, e prendê-lo
- * atrás de "Salvar" obrigaria a faixa a guardar um `File` e a acender
- * "alterações não salvas" por um upload que já aconteceu — o `autumn` guardou
- * o arquivo no instante do envio, e descartar a faixa não o desfaria.
- *
- * A prévia local ganha do servidor enquanto o envio está em voo: quem acabou
- * de escolher precisa ver a imagem, e o snapshot só troca quando o
- * `ServerUpdate` dá a volta. Falhou → a prévia some, porque mostrar uma imagem
- * que não colou é pior que mostrar a antiga.
- *
- * ⚠ **Sem recorte, e a ausência é das duas fontes.** Nem a referência nem o
- * design desenham um passo de recorte; o ladrilho e a faixa mostram a imagem
- * em `object-fit: cover`, centrada — que é o recorte que todo cliente aplica
- * ao ler, e a prévia mostra exatamente ele.
+ * ⚠ **O corpo saiu daqui e virou `useImagemEnviavel`** quando o avatar e o
+ * banner do PERFIL passaram a precisar do mesmo comportamento: cinco
+ * armadilhas (prévia local ganhando do servidor, `revokeObjectURL`, a URL
+ * removida guardada por valor, falha desfazendo a prévia, estado de três
+ * termos) reescritas quatro vezes seriam quatro chances de divergir. O que
+ * sobrou aqui é o que é do SERVIDOR: qual tag, qual campo, qual nome.
  */
 function useImagemDoServidor(
   serverId: string,
@@ -110,76 +97,12 @@ function useImagemDoServidor(
   /** O que o snapshot do servidor diz hoje. */
   doServidor: string | undefined,
 ) {
-  const [previa, setPrevia] = useState<string | undefined>(undefined);
-  const [estado, setEstado] = useState<"parado" | "subindo" | "removendo">(
-    "parado",
-  );
-  /*
-    A URL que acabou de ser removida, e não um booleano.
-
-    O servidor responde "removido" antes de o `ServerUpdate` republicar o
-    snapshot; sem isto a imagem antiga voltaria até ele chegar. Guardar QUAL
-    foi removida, e não "foi removida", é o que deixa uma imagem NOVA posta por
-    outra pessoa aparecer — um booleano a esconderia até a tela ser reaberta.
-  */
-  const [removida, setRemovida] = useState<string | undefined>(undefined);
-
-  /* Cada `createObjectURL` prende o arquivo na memória da aba até ser
-     revogado — o erro nº 5 do briefing, numa tela que se reabre. */
-  useEffect(() => {
-    return () => {
-      if (previa !== undefined) URL.revokeObjectURL(previa);
-    };
-  }, [previa]);
-
-  const nome = qual === "icone" ? "ícone" : "banner";
-
-  function escolher(arquivo: File) {
-    if (!arquivo.type.startsWith("image/")) {
-      toast({
-        tipo: "erro",
-        titulo: "Isso não é uma imagem.",
-        descricao: "Use PNG, JPG, GIF ou WebP.",
-      });
-      return;
-    }
-    setPrevia(URL.createObjectURL(arquivo));
-    setRemovida(undefined);
-    setEstado("subindo");
-    void subirAnexo(arquivo, TAG_DA_IMAGEM[qual])
-      .then((id) => trocarImagemDoServidor(serverId, qual, id))
-      .then((colou) => {
-        if (!colou) setPrevia(undefined);
-      })
-      .catch((e: unknown) => {
-        setPrevia(undefined);
-        toast({
-          tipo: "erro",
-          titulo: `Não deu para enviar o ${nome}.`,
-          descricao: e instanceof Error ? e.message : "Tente outra imagem.",
-        });
-      })
-      .finally(() => setEstado("parado"));
-  }
-
-  function remover() {
-    const antes = doServidor;
-    setEstado("removendo");
-    void trocarImagemDoServidor(serverId, qual, undefined)
-      .then((ok) => {
-        if (!ok) return;
-        setPrevia(undefined);
-        setRemovida(antes);
-      })
-      .finally(() => setEstado("parado"));
-  }
-
-  /* A prévia local primeiro; depois o servidor, menos o que acabou de sair. */
-  const url =
-    previa ??
-    (doServidor !== undefined && doServidor === removida ? undefined : doServidor);
-
-  return { url, estado, escolher, remover };
+  return useImagemEnviavel({
+    tag: TAG_DA_IMAGEM[qual],
+    nome: qual === "icone" ? "ícone" : "banner",
+    doServidor,
+    aplicar: (id) => trocarImagemDoServidor(serverId, qual, id),
+  });
 }
 
 /**

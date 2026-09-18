@@ -225,6 +225,17 @@ export type MessageSnapshot = {
    * segura o custo de verdade é o cache por conteúdo em `markdown/analisar.ts`.
    */
   readonly blocos: readonly BlocoDeMensagem[];
+  /**
+   * O código do convite escrito na mensagem, quando há um (D-EVT-40).
+   *
+   * Derivado na ESCRITA pelo mesmo motivo de `blocos` e `mencionaVoce`: é uma
+   * varredura sobre `content`, e fazê-la no render a repetiria a cada
+   * re-render da linha mais quente do app.
+   *
+   * `undefined` na esmagadora maioria — uma comparação de referência a mais no
+   * snapshot, que é o mesmo preço que `enquete` e `figurinha` já pagam.
+   */
+  readonly conviteCodigo: string | undefined;
   /** Menciona VOCÊ. A linha inteira se destaca. */
   readonly mencionaVoce: boolean;
   /** Anexos, já traduzidos. Vazio é o caso comum. */

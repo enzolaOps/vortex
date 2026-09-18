@@ -24,6 +24,7 @@ import type {
 } from "stoat.js";
 
 import { analisar, hrefSeguro } from "../markdown/analisar";
+import { conviteNoTexto } from "./conviteNoTexto";
 import type { Layout } from "./agrupamento";
 import type {
   CanalTipo,
@@ -302,6 +303,9 @@ export function toMessageSnapshot(
         : message.content,
     ),
     anexos: toAnexos(message),
+    /* O embed de convite (D-EVT-40). Ver `conviteNoTexto` para por que o
+       reconhecimento é estreito: o cartão traz um botão que muda de servidor. */
+    conviteCodigo: conviteNoTexto(message.content),
     /** Menciona VOCÊ — a linha inteira se destaca por isso. */
     mencionaVoce: euId !== undefined && message.content.includes(`<@${euId}>`),
     createdAt: message.createdAt.getTime(),

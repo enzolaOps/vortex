@@ -151,6 +151,86 @@ export async function trocarEmail(novo: string, senha: string): Promise<boolean>
   }
 }
 
+/* ------------------------------------------------- avatar e banner (meus) */
+
+/** Qual das duas imagens do perfil. Domínio, e não o nome do campo. */
+export type ImagemDoPerfil = "avatar" | "banner";
+
+/**
+ * A tag do `autumn` de cada uma.
+ *
+ * ⚠ **Tag errada não falha no ENVIO — falha no `PATCH`.** O `autumn` aceita o
+ * PNG e é o `User.edit` que recusa um ID subido na tag errada. E as duas são
+ * diferentes: `avatars` tem teto de 4 MB, `backgrounds` de 6 MB. Mapear aqui,
+ * ao lado do campo, é o que impede a tela de escolher uma e o protocolo
+ * esperar outra — a mesma decisão de `TAG_DA_IMAGEM` no servidor.
+ */
+export const TAG_DA_IMAGEM_DO_PERFIL = {
+  avatar: "avatars",
+  banner: "backgrounds",
+} as const satisfies Record<ImagemDoPerfil, "avatars" | "backgrounds">;
+
+/**
+ * O banner do próprio perfil, que NÃO está no cache do usuário.
+ *
+ * ⚠ **`profile.background` vem de `fetchProfile()`, uma chamada própria** — o
+ * `Ready` não o manda, pela mesma razão que não manda a bio. Por isso ele não
+ * entra em `lerMeuPerfil`, que é síncrono e lê o cache: um campo que só existe
+ * depois da rede misturado a campos que existem sempre daria uma tela que
+ * pisca de vazio para cheio sem nada dizer que estava carregando.
+ *
+ * `undefined` é "não tem banner" e também "não deu para saber" — e aqui as
+ * duas podem colapsar sem mentir, porque a única consequência é a área de
+ * soltar aparecer vazia, que é o estado em que se ENVIA um.
+ */
+export async function lerMeuBanner(): Promise<string | undefined> {
+  try {
+    const perfil = await client.user?.fetchProfile();
+    return perfil?.bannerURL;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Veste ou tira o avatar ou o banner do próprio perfil (D-AUTH-38/39).
+ *
+ * `anexoId` ausente = remover, pelo `remove` do protocolo (`Avatar`/
+ * `ProfileBackground`). `avatar: null` não é o caminho: quem apaga o campo é o
+ * `remove`, e é a mesma regra já escrita em `salvarPerfil` para pronomes e bio.
+ *
+ * ⚠ **O banner mora dentro de `profile`, que é aplicado como PARCIAL.** Mandar
+ * `profile: { background: id }` não apaga a bio — o servidor mescla. Montar o
+ * objeto inteiro aqui é que apagaria, e seria o defeito silencioso clássico:
+ * trocar a foto de capa e perder o texto de "sobre mim".
+ */
+export async function trocarImagemDoPerfil(
+  qual: ImagemDoPerfil,
+  anexoId: string | undefined,
+): Promise<boolean> {
+  const nome = qual === "avatar" ? "avatar" : "banner";
+  try {
+    if (anexoId === undefined) {
+      await client.user?.edit({
+        remove: [qual === "avatar" ? "Avatar" : "ProfileBackground"] as never,
+      });
+    } else if (qual === "avatar") {
+      await client.user?.edit({ avatar: anexoId });
+    } else {
+      await client.user?.edit({ profile: { background: anexoId } });
+    }
+    return true;
+  } catch (e) {
+    falhou(
+      anexoId === undefined
+        ? `Não deu para remover o ${nome}.`
+        : `Não deu para trocar o ${nome}.`,
+      e,
+    );
+    return false;
+  }
+}
+
 /* --------------------------------------------------------------- status */
 
 /**
@@ -338,7 +418,69 @@ export function administraServidor(): boolean {
   return client.servers.toList().some((s) => s.ownerId === eu);
 }
 
+/**
+ * Os servidores de que sou DONA, com nome (D-AUTH-33).
+ *
+ * ⚠ **A lista, e não o booleano, e a diferença é acionável.** `administraServidor`
+ * responde "está bloqueada"; ela não responde "por causa de quais" nem dá o
+ * que fazer a respeito. O bloqueio ficava numa frase — "transfira ou exclua os
+ * servidores que você administra" — que obrigava a pessoa a sair do modal,
+ * descobrir sozinha quais são, e voltar. Com a lista, cada linha carrega o
+ * botão que resolve aquela linha.
+ *
+ * Nome e ID, nunca o objeto do SDK: é a camada anticorrupção de sempre.
+ */
+export type ServidorQueEuDono = {
+  readonly id: string;
+  readonly nome: string;
+};
+
+export function servidoresQueEuDono(): readonly ServidorQueEuDono[] {
+  const eu = client.user?.id;
+  if (!eu) return [];
+  return client.servers
+    .toList()
+    .filter((s) => s.ownerId === eu)
+    .map((s) => ({ id: s.id, nome: s.name }));
+}
+
 export type FatorDaConta = "senha" | "recuperacao";
+
+/**
+ * Desativa a conta (D-AUTH-31).
+ *
+ * ⚠ **Não é a exclusão, e a diferença é o produto inteiro:** desativar some do
+ * app e volta ao entrar de novo; excluir manda um e-mail e apaga. Foram
+ * separadas no protocolo (`/auth/account/disable` contra `/delete`) justamente
+ * porque a segunda não tem volta — e é por isso que a primeira não pede
+ * confirmação por e-mail nem digitação de nada além do fator.
+ *
+ * ⚠ **O protocolo exige um TICKET de MFA**, como derrubar dispositivo:
+ * `mfa.createTicket` troca a senha por um bilhete de uso único, e é o bilhete
+ * que autoriza. Desativar é o que alguém faria com uma sessão roubada para
+ * tirar o dono do ar sem tocar na senha.
+ *
+ * ⚠ **O servidor DERRUBA todas as sessões** (`EventV1::DeleteAllSessions`), e
+ * é por isso que quem chama sai em seguida: sem sair, o app ficaria numa tela
+ * viva com um socket morto — o mesmo defeito que `ligarLogoutDoServidor`
+ * existe para evitar.
+ */
+export async function desativarConta(
+  fator: FatorDaConta,
+  valor: string,
+): Promise<boolean> {
+  try {
+    const mfa = await client.account.mfa();
+    const bilhete = await mfa.createTicket(
+      fator === "recuperacao" ? { recovery_code: valor } : { password: valor },
+    );
+    await bilhete.disableAccount();
+    return true;
+  } catch (e) {
+    falhou("Não deu para desativar a conta.", e);
+    return false;
+  }
+}
 
 /**
  * Pede o e-mail de confirmação da exclusão.

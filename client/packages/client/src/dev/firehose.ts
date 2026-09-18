@@ -290,6 +290,21 @@ function body(seed: number): string {
     ser encontrada rolando, e raro o suficiente para a lista continuar
     parecendo conversa em vez de documentação.
   */
+  /*
+    ⚠ **Um link de convite, e a ausência dele é a 12ª vez que este arnês fica
+    mais pobre que o protocolo.** O embed de convite no chat (D-EVT-40) lê o
+    CORPO da mensagem; sem um link colado ali ele nasceria construído e
+    inalcançável — a família do painel de fixadas, que só chegava à tela para
+    quem o posicionasse à mão.
+
+    Uma em 53, e primo com as outras frequências pela mesma razão: várias num
+    canal de dez mil e raro o bastante para a lista continuar parecendo
+    conversa.
+  */
+  if (seed % 53 === 7) {
+    out.push("https://vortex.exemplo/convite/a9Kq2");
+  }
+
   const texto = out.join(" ");
 
   if (seed % 29 === 4) {

@@ -170,6 +170,33 @@ export function dublarRedeDoServidor(
         channels: [],
       });
     }
+    /*
+      ⚠ **O convite, e sem ele o embed no chat (D-EVT-40) nasceria
+      INALCANÇÁVEL.** `GET /invites/{code}` é rede como as outras quatro
+      páginas deste arquivo, e é a linha de mensagem que o chama — ou seja, o
+      cartão existiria, compilaria, teria teste, e não haveria como olhar. É a
+      família do painel de fixadas, e a 12ª vez que o arnês aparece mais pobre
+      que o protocolo.
+
+      ⚠ **O servidor do convite NÃO é o do arnês**, de propósito: com ele o
+      cartão cairia direto em `jaSouMembro` e o botão diria "Abrir". O caminho
+      que interessa — "Entrar", e os desfechos de pedido e banimento — só
+      existe para um servidor de fora.
+    */
+    if (/^\/invites\/[^/]+$/.test(rota)) {
+      return Promise.resolve({
+        type: "Server",
+        code: rota.slice("/invites/".length),
+        server_id: "01JQ000000000000CONVITE01",
+        server_name: "Vortex Core",
+        member_count: 1204,
+        channel_id: "01JQ00000000000CONVITECH1",
+        channel_name: "boas-vindas",
+        channel_description: "Comece por aqui.",
+        user_name: "Júlia Prado",
+      });
+    }
+
     const previa = PREVIAS.get(rota);
     if (previa !== undefined) return Promise.resolve(previa);
     if (!rota.endsWith("/audit_logs")) return original(rota, ...resto);
