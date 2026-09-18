@@ -39,9 +39,15 @@ COPY brand/ brand/
 WORKDIR /build/client
 
 COPY client/package.json client/pnpm-workspace.yaml client/pnpm-lock.yaml ./
-COPY client/packages/ packages/
+# Só os manifests: copiar `packages/` inteiro invalidava o `pnpm install` a
+# cada linha de TS, e o cache GHA das camadas não tinha o que reaproveitar.
+COPY client/packages/client/package.json packages/client/package.json
+COPY client/packages/stoat.js/package.json packages/stoat.js/package.json
 
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
+
+COPY client/packages/ packages/
 
 # O SDK é TypeScript no repositório e precisa ser compilado antes do cliente.
 # É o único `build:deps` desta ilha — as outras duas dependências que o
