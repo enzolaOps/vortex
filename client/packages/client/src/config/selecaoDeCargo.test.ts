@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import type { Alcance, PessoaParaCargo } from "../sdk/cargos";
 import {
+  acimaDaMinhaHierarquia,
   cargoAoAlcance,
+  cargoMovivel,
   filtrarPessoas,
   marcavel,
+  reordenacaoPermitida,
   selecaoValida,
   separarParaCargo,
 } from "./selecaoDeCargo";
@@ -128,5 +131,81 @@ describe("separarParaCargo", () => {
     const r = separarParaCargo(["a"], [pessoa({ id: "a" })], 2, alcance({ topo: 2 }));
     expect(r.editaveis).toEqual([]);
     expect(r.barradas.map((b) => b.item)).toEqual(["a"]);
+  });
+});
+
+describe("acimaDaMinhaHierarquia", () => {
+  it("mesmo nível conta como acima — é o que o servidor faz", () => {
+    expect(acimaDaMinhaHierarquia(2, alcance({ topo: 2 }))).toBe(true);
+    expect(acimaDaMinhaHierarquia(3, alcance({ topo: 2 }))).toBe(false);
+    expect(acimaDaMinhaHierarquia(1, alcance({ topo: 2 }))).toBe(true);
+  });
+
+  it("dono alcança tudo", () => {
+    expect(acimaDaMinhaHierarquia(-99, alcance({ topo: -Infinity }))).toBe(false);
+  });
+});
+
+describe("cargoMovivel", () => {
+  it("pede ManageRole, não AssignRoles", () => {
+    const soAtribuir = alcance({ podeEditarCargos: false, podeAtribuir: true });
+    expect(cargoMovivel(5, soAtribuir)).toBe(false);
+    const soGerir = alcance({ podeEditarCargos: true, podeAtribuir: false });
+    expect(cargoMovivel(5, soGerir)).toBe(true);
+    /* E o inverso continua valendo para dar e tirar cargo. */
+    expect(cargoAoAlcance(5, soGerir)).toBe(false);
+  });
+
+  it("trava do meu nível para cima", () => {
+    expect(cargoMovivel(2, alcance({ topo: 2 }))).toBe(false);
+  });
+});
+
+describe("reordenacaoPermitida", () => {
+  /* Hierarquia do mais alto (rank menor) para o mais baixo. */
+  const HIER = [
+    { id: "nucleo", rank: 0 },
+    { id: "admin", rank: 1 },
+    { id: "mod", rank: 2 },
+    { id: "design", rank: 3 },
+    { id: "membro", rank: 4 },
+  ];
+
+  it("deixa trocar dois que estão abaixo de mim", () => {
+    const depois = ["nucleo", "admin", "mod", "membro", "design"];
+    expect(reordenacaoPermitida(HIER, depois, alcance({ topo: 2 }))).toBe(true);
+  });
+
+  it("recusa mover um que está acima de mim", () => {
+    const depois = ["admin", "nucleo", "mod", "design", "membro"];
+    expect(reordenacaoPermitida(HIER, depois, alcance({ topo: 2 }))).toBe(false);
+  });
+
+  /*
+    ⚠ O caso que uma regra só sobre o cargo MOVIDO deixaria passar: subir
+    `design` (abaixo de mim) até o topo EMPURRA `nucleo` e `admin` de posição, e
+    o servidor recusa com `NotElevated`.
+  */
+  it("recusa quando mover um de baixo desloca um de cima", () => {
+    const depois = ["design", "nucleo", "admin", "mod", "membro"];
+    expect(reordenacaoPermitida(HIER, depois, alcance({ topo: 2 }))).toBe(false);
+  });
+
+  it("dono reordena qualquer coisa", () => {
+    const depois = ["membro", "design", "mod", "admin", "nucleo"];
+    expect(reordenacaoPermitida(HIER, depois, alcance({ topo: -Infinity }))).toBe(
+      true,
+    );
+  });
+
+  it("sem ManageRole ninguém reordena, nem o que está abaixo", () => {
+    const depois = ["nucleo", "admin", "mod", "membro", "design"];
+    expect(
+      reordenacaoPermitida(
+        HIER,
+        depois,
+        alcance({ topo: 2, podeEditarCargos: false }),
+      ),
+    ).toBe(false);
   });
 });

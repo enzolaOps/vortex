@@ -62,13 +62,78 @@ export function filtrarPessoas(
 }
 
 /**
- * Posso dar ou tirar ESTE cargo?
+ * O motivo, escrito uma vez.
  *
- * O servidor recusa mexer em cargo do mesmo nível ou acima do meu mais alto
- * (`rank <= topo` → `NotElevated`). Menor rank é mais alto.
+ * ⚠ **Uma string e não quatro cópias.** Ela aparece no `title` da linha de
+ * cargo, no tri-state da matriz de permissões e nas falhas do lote — e a
+ * primeira divergência entre elas seria a pessoa lendo dois motivos
+ * diferentes para a mesma recusa.
+ */
+export const MOTIVO_HIERARQUIA = "Bloqueado — acima da sua hierarquia";
+
+/**
+ * Este cargo está no meu nível ou acima dele?
+ *
+ * ⚠ **A comparação de rank em UM lugar só.** O servidor recusa mexer em cargo
+ * do mesmo nível ou acima do meu mais alto (`rank <= topo` → `NotElevated`,
+ * em `roles_edit.rs`, `permissions_set.rs` e `roles_edit_positions.rs`), e
+ * menor rank é mais alto. Cada chamador acrescenta a PERMISSÃO que lhe cabe —
+ * `AssignRoles` para dar cargo, `ManageRole` para mover, `ManagePermissions`
+ * para a matriz —, mas a hierarquia é a mesma regra para os três.
+ */
+export function acimaDaMinhaHierarquia(
+  rankDoCargo: number,
+  alcance: Alcance,
+): boolean {
+  return rankDoCargo <= alcance.topo;
+}
+
+/**
+ * Posso dar ou tirar ESTE cargo?
  */
 export function cargoAoAlcance(rankDoCargo: number, alcance: Alcance): boolean {
-  return alcance.podeAtribuir && rankDoCargo > alcance.topo;
+  return alcance.podeAtribuir && !acimaDaMinhaHierarquia(rankDoCargo, alcance);
+}
+
+/**
+ * Posso MOVER ou EDITAR este cargo?
+ *
+ * ⚠ **`ManageRole` e não `AssignRoles`, e a distinção não é cosmética.** Dar
+ * um cargo a alguém e editar o cargo em si são permissões diferentes no
+ * protocolo; usar `cargoAoAlcance` aqui travaria a hierarquia para quem tem
+ * `ManageRole` sem `AssignRoles` — que é o moderador que só mexe na estrutura.
+ */
+export function cargoMovivel(rankDoCargo: number, alcance: Alcance): boolean {
+  return alcance.podeEditarCargos && !acimaDaMinhaHierarquia(rankDoCargo, alcance);
+}
+
+/**
+ * Esta reordenação é aceitável para o servidor?
+ *
+ * ⚠ **Espelha `roles_edit_positions.rs` em vez de aproximar.** O servidor não
+ * pergunta "o cargo movido está abaixo de mim"; ele exige que **nenhum** cargo
+ * com `rank <= topo` MUDE DE POSIÇÃO — e com boa razão: descer um cargo meu
+ * uma casa promove o de cima, que pode estar acima de mim. Uma regra só sobre
+ * o movido deixaria passar exatamente a reordenação que o servidor recusa,
+ * então a tela reordenaria de forma otimista e o servidor devolveria
+ * `NotElevated` depois.
+ *
+ * As duas listas são a hierarquia COMPLETA, do mais alto para o mais baixo —
+ * é o que a rota recebe.
+ */
+export function reordenacaoPermitida(
+  antes: readonly { readonly id: string; readonly rank: number }[],
+  depois: readonly string[],
+  alcance: Alcance,
+): boolean {
+  if (!alcance.podeEditarCargos) return false;
+  for (let i = 0; i < antes.length; i++) {
+    const c = antes[i];
+    if (!c) continue;
+    if (!acimaDaMinhaHierarquia(c.rank, alcance)) continue;
+    if (depois.indexOf(c.id) !== i) return false;
+  }
+  return true;
 }
 
 /**
@@ -127,6 +192,9 @@ export function separarParaCargo(
   for (const id of selecao) {
     const p = porId.get(id);
     if (!p) barradas.push({ item: id, motivo: "Essa pessoa não está mais no servidor." });
+    /* A frase aqui é de FALHA DE LOTE e não o rótulo do controle travado —
+       `MOTIVO_HIERARQUIA` é o do controle, e juntar os dois daria uma lista de
+       falhas escrita em travessão. */
     else if (!marcavel(p, rankDoCargo, alcance))
       barradas.push({ item: id, motivo: "Acima da sua hierarquia." });
     else editaveis.push(id);

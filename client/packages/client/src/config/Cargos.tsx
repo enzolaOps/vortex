@@ -21,12 +21,18 @@ import {
   type Cargo,
   type PessoaParaCargo,
 } from "../sdk/cargos";
+import {
+  cargoMovivel,
+  MOTIVO_HIERARQUIA,
+  reordenacaoPermitida,
+} from "./selecaoDeCargo";
+import { toast } from "../components/ui/toastStore";
 import { IconeDoCargo } from "./IconeDoCargo";
 import { IconeDeCargo } from "../membros/IconeDeCargo";
 import { MembrosDoCargo } from "./MembrosDoCargo";
 import css from "./Secao.module.css";
 import cargoCss from "./Cargos.module.css";
-import { CaretRight } from "../components/ui/icones";
+import { CaretRight, Lock } from "../components/ui/icones";
 import { CampoDeBusca } from "../components/ui/CampoDeBusca";
 import {
   useCorDeCargo,
@@ -63,9 +69,15 @@ import { Avatar } from "../components/ui/Avatar";
  * de fora por ser um atalho perigoso de um clique, e `Masquerade` por ser de
  * bot. Uma tela que espelha campo a campo vira despejo de bits.
  *
- * ⚠ **Sem arrastar para reordenar.** `DataEditRole.rank` **não tem efeito** —
- * ordenar é `setRoleOrdering` com a lista inteira, e um arrasto que parece
- * funcionar e não salva é pior que não ter arrasto. Fica como pendência dita.
+ * ⚠ **Arrastar reordena de verdade, e a justificativa contra ENVELHECEU.** O
+ * comentário aqui dizia "sem arrastar, porque `DataEditRole.rank` não tem
+ * efeito". A primeira metade segue verdadeira — o campo é documentado como
+ * *"**Removed** - no effect"* no próprio `DataEditRole` —, mas a conclusão
+ * não: quem reordena é `PATCH /servers/:id/roles/ranks`, que `reordenarCargos`
+ * já chamava por `setRoleOrdering`. O que faltava não era a escrita, era a
+ * TRAVA: o servidor recusa com `NotElevated` qualquer reordenação que mexa na
+ * posição de um cargo no seu nível ou acima (`roles_edit_positions.rs`), e a
+ * tela não conhecia essa regra — ela reordenava otimista e só descobria depois.
  */
 /**
  * Uma linha da hierarquia.
@@ -83,15 +95,20 @@ import { Avatar } from "../components/ui/Avatar";
 function LinhaDeCargo({
   cargo,
   ativa,
+  travado,
   contagem,
   aoEscolher,
   onKeyDown,
+  aoArmarArraste,
 }: {
   cargo: Cargo;
   ativa: boolean;
+  /** Acima do meu cargo mais alto, ou sem `ManageRole`. */
+  travado: boolean;
   contagem: number;
   aoEscolher: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLButtonElement>) => void;
+  aoArmarArraste: (() => void) | undefined;
 }) {
   const cor = useCorDeCargo(cargo.cor);
 
@@ -100,20 +117,41 @@ function LinhaDeCargo({
       type="button"
       className={cargoCss.cargo}
       aria-current={ativa}
+      /*
+        ⚠ **Travado NÃO é `disabled`, e a diferença é o que a linha serve
+        para fazer.** Ela é o SELETOR do editor à direita: desabilitá-la
+        tiraria de quem modera a capacidade de LER as permissões de um cargo
+        acima do seu, que é informação legítima. O que trava é o gesto de
+        MOVER e a edição no editor — e o cadeado diz qual dos dois.
+
+        `data-travado` e `title` em vez de esconder a linha: um cargo que
+        some da hierarquia faz a pessoa acreditar que ele não existe, que é
+        pior que um cadeado.
+      */
+      data-travado={travado || undefined}
+      title={travado ? MOTIVO_HIERARQUIA : undefined}
       onClick={aoEscolher}
       onKeyDown={onKeyDown}
     >
       {/*
         A alça de arraste do design.
 
-        ⚠ Ela ainda NÃO arrasta — quem move é `Alt` + setas. Ela está aqui
-        porque é o que diz que a linha é movível: sem nenhum sinal, a
-        ordenação por teclado seria um recurso que só existe para quem leu a
-        dica. `aria-hidden` porque o botão inteiro já é o alvo, e um segundo
-        nome dentro dele daria duas leituras para uma linha.
+        ⚠ **`span` e não `button`, e é regra deste repositório:** a linha
+        inteira já é um `<button>`, e botão dentro de botão é HTML inválido —
+        o navegador reestrutura a árvore e o clique de dentro aciona os dois.
+        O gesto de teclado mora no botão da linha (`Alt` + setas), então a
+        alça não precisa de foco próprio; ela só ARMA o arraste no
+        `pointerdown`, sem o qual a linha inteira seria arrastável.
+
+        Travada, ela vira cadeado — o 🔒 do design, com opacidade 0,6 no CSS.
       */}
-      <span aria-hidden className={cargoCss.alca}>
-        ⠿
+      <span
+        aria-hidden
+        className={cargoCss.alca}
+        data-travada={travado || undefined}
+        onPointerDown={aoArmarArraste}
+      >
+        {travado ? <Lock aria-hidden /> : "⠿"}
       </span>
       <span
         className={cargoCss.bolinha}
@@ -153,6 +191,17 @@ export function Cargos({ serverId }: { serverId: string }) {
   const [ocupado, setOcupado] = useState(false);
   const [busca, setBusca] = useState("");
   const [criando, setCriando] = useState(false);
+  /*
+    O arraste, em dois estados.
+
+    ⚠ **A lista NÃO reordena enquanto a mão está no caminho**, ao contrário
+    da enquete: lá o commit é local e de graça, aqui cada passagem por uma
+    linha seria um `PATCH` da hierarquia inteira. Então `arrastando` marca o
+    fantasma (60%, do design) e `destino` desenha a linha de acento onde ele
+    vai cair; o commit acontece uma vez, no soltar.
+  */
+  const [arrastando, setArrastando] = useState<string | undefined>(undefined);
+  const [destino, setDestino] = useState<string | undefined>(undefined);
 
   function recarregar() {
     void listarCargos(serverId).then((l) => {
@@ -273,26 +322,42 @@ export function Cargos({ serverId }: { serverId: string }) {
    * ⚠ **Não move com filtro ativo.** Com a lista filtrada, "o vizinho de cima"
    * na tela não é o vizinho de cima na hierarquia — o gesto acertaria uma
    * posição que a pessoa não está vendo. Melhor recusar que errar em silêncio.
+   *
+   * ⚠ **A HIERARQUIA é conferida antes de escrever, e não depois de o servidor
+   * recusar.** `reordenacaoPermitida` espelha `roles_edit_positions.rs`:
+   * nenhum cargo no meu nível ou acima pode MUDAR DE POSIÇÃO. Sem isso o
+   * otimismo mostrava a lista reordenada, o `PATCH` voltava `NotElevated`, e a
+   * recarga a desfazia — um movimento que acontece e volta sozinho, que é
+   * exatamente o "parece funcionar e não salva" que o comentário do topo
+   * temia. Aqui o gesto é recusado com o motivo escrito.
    */
-  function mover(id: string, passo: -1 | 1) {
+  function mover(id: string, destinoId: string) {
     if (termo !== "" || ocupado) return;
     const i = cargos.findIndex((c) => c.id === id);
-    const j = i + passo;
-    if (i < 0 || j < 0 || j >= cargos.length) return;
+    const j = cargos.findIndex((c) => c.id === destinoId);
+    if (i < 0 || j < 0 || i === j) return;
 
     const nova = [...cargos];
     const [movido] = nova.splice(i, 1);
     if (!movido) return;
     nova.splice(j, 0, movido);
 
+    const ids = nova.map((c) => c.id);
+    if (!reordenacaoPermitida(cargos, ids, alcance)) {
+      toast({
+        tipo: "erro",
+        titulo: "Não dá para mover por aí.",
+        descricao:
+          "Você só reordena cargos abaixo do seu mais alto — e sem deslocar os de cima.",
+      });
+      return;
+    }
+
     /* Otimista: a lista reordena na hora e o servidor confirma. Sem isso,
        cada Alt+seta esperaria uma volta de rede antes de a tela responder. */
     setLista(nova);
     setOcupado(true);
-    void reordenarCargos(
-      serverId,
-      nova.map((c) => c.id),
-    )
+    void reordenarCargos(serverId, ids)
       .then((ok) => {
         /* Falhou: o servidor é a verdade, e recarregar é mais honesto que
            tentar desfazer o splice — o estado de lá pode ter mudado por outra
@@ -300,6 +365,14 @@ export function Cargos({ serverId }: { serverId: string }) {
         if (!ok) recarregar();
       })
       .finally(() => setOcupado(false));
+  }
+
+  /** Uma casa acima ou abaixo — o caminho de teclado, sobre o mesmo `mover`. */
+  function empurrar(id: string, passo: -1 | 1) {
+    const i = cargos.findIndex((c) => c.id === id);
+    const vizinho = cargos[i + passo];
+    if (!vizinho) return;
+    mover(id, vizinho.id);
   }
 
   return (
@@ -405,7 +478,9 @@ export function Cargos({ serverId }: { serverId: string }) {
 
           <div className={cargoCss.hierarquia}>
             <span className={cargoCss.hierarquiaRotulo}>Hierarquia</span>
-            <span className={cargoCss.hierarquiaDica}>Alt + ↑ ↓ para mover</span>
+            <span className={cargoCss.hierarquiaDica}>
+              arraste ⠿ ou Alt + ↑ ↓ para mover
+            </span>
           </div>
 
           {visiveis.length === 0 ? (
@@ -418,32 +493,81 @@ export function Cargos({ serverId }: { serverId: string }) {
             />
           ) : (
             <ul className={cargoCss.cargos}>
-              {visiveis.map((c) => (
-                <li key={c.id}>
-                  <LinhaDeCargo
-                    cargo={c}
-                    ativa={c.id === selecionado}
-                    contagem={contagens.get(c.id) ?? 0}
-                    aoEscolher={() => {
-                      setSelecionado(c.id);
+              {visiveis.map((c) => {
+                const travado = !cargoMovivel(c.rank, alcance);
+                return (
+                  /*
+                    ⚠ **O `draggable` mora no `<li>` e não na alça.** Arrastar
+                    uma alça de 14px move um fantasma de 14px; o que a pessoa
+                    espera ver seguindo o ponteiro é a LINHA. É a mesma
+                    divisão da enquete: a alça arma, a linha arrasta.
+
+                    ⚠ **E nunca com filtro ativo**: com a lista filtrada, a
+                    linha sob o ponteiro não é a vizinha na hierarquia, e o
+                    gesto acertaria uma posição que ninguém está vendo. É a
+                    mesma recusa que `mover` já fazia pelo teclado.
+                  */
+                  <li
+                    key={c.id}
+                    draggable={arrastando === c.id}
+                    data-arrastando={arrastando === c.id || undefined}
+                    data-destino={
+                      arrastando !== undefined && destino === c.id && arrastando !== c.id
+                        ? true
+                        : undefined
+                    }
+                    onDragStart={(e) => {
+                      e.dataTransfer.effectAllowed = "move";
+                      /* Firefox só inicia o arraste se houver carga. */
+                      e.dataTransfer.setData("text/plain", c.id);
                     }}
-                    /*
-                      ⚠ **Reordenar por TECLADO primeiro, e o arraste soma
-                      depois.** É a regra que a enquete já estabeleceu neste
-                      projeto: reordenar que só funciona com mouse é o defeito
-                      que a auditoria apontou na paleta de comandos. `Alt` e
-                      não seta pura, senão a navegação entre os cargos deixaria
-                      de existir.
-                    */
-                    onKeyDown={(e) => {
-                      if (!e.altKey) return;
-                      if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+                    onDragOver={(e) => {
+                      if (arrastando === undefined) return;
                       e.preventDefault();
-                      mover(c.id, e.key === "ArrowUp" ? -1 : 1);
+                      setDestino(c.id);
                     }}
-                  />
-                </li>
-              ))}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (arrastando !== undefined) mover(arrastando, c.id);
+                      setArrastando(undefined);
+                      setDestino(undefined);
+                    }}
+                    onDragEnd={() => {
+                      setArrastando(undefined);
+                      setDestino(undefined);
+                    }}
+                  >
+                    <LinhaDeCargo
+                      cargo={c}
+                      ativa={c.id === selecionado}
+                      travado={travado}
+                      contagem={contagens.get(c.id) ?? 0}
+                      aoEscolher={() => {
+                        setSelecionado(c.id);
+                      }}
+                      aoArmarArraste={
+                        travado || termo !== ""
+                          ? undefined
+                          : () => setArrastando(c.id)
+                      }
+                      /*
+                        ⚠ **Reordenar por TECLADO primeiro, e o arraste soma
+                        depois.** É a regra que a enquete já estabeleceu neste
+                        projeto: reordenar que só funciona com mouse é o
+                        defeito que a auditoria apontou na paleta de comandos.
+                        `Alt` e não seta pura, senão a navegação entre os
+                        cargos deixaria de existir.
+                      */
+                      onKeyDown={(e) => {
+                        if (!e.altKey) return;
+                        if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+                        e.preventDefault();
+                        empurrar(c.id, e.key === "ArrowUp" ? -1 : 1);
+                      }}
+                    />
+                  </li>
+                );
+              })}
             </ul>
           )}
 
@@ -452,9 +576,19 @@ export function Cargos({ serverId }: { serverId: string }) {
             não respondem — e um item que não responde SEM explicação é o
             defeito que "acima da sua hierarquia" já registrou.
           */}
+          {/*
+            ⚠ **"Cargos de integração" SAIU do aviso, e isso é conserto de uma
+            afirmação falsa.** O design os desenha travados com 🔒, e o texto
+            aqui os prometia — mas `Role` no protocolo tem `_id`, `name`,
+            `permissions`, `colour`, `hoist`, `rank`, `icon` e o `mentionable`
+            do Vortex, e nada que diga "gerido por um bot". Prometer uma trava
+            que nenhum servidor sabe produzir é a família do comentário que
+            afirma uma medida que não existe. O cadeado que a coluna mostra é o
+            de HIERARQUIA, que é real.
+          */}
           <p className={cargoCss.aviso}>
-            Você só pode editar e mover cargos abaixo do seu mais alto. Cargos
-            gerenciados por integração ficam travados.
+            Você só pode editar e mover cargos abaixo do seu mais alto — os
+            acima aparecem com cadeado.
           </p>
         </div>
       </div>
@@ -624,6 +758,15 @@ function EditorDeCargo({
   // "Sólido" marcado — é prévia da escolha, como a faixa do cartão sólido.
   const faixaGradiente = usePinturaDeCargo(gradienteParaGravar(cor, fim));
 
+  /*
+    ⚠ **A hierarquia trava o EDITOR inteiro, não só o ícone.** Antes só o
+    `IconeDoCargo` conferia o rank; a matriz de permissões olhava apenas
+    `podeEditarPermissoes`, e `permissions_set.rs` recusa com `NotElevated`
+    mexer nas permissões de cargo no meu nível ou acima. O resultado era um
+    editor que aceitava tudo e devolvia um toast de recusa ao salvar.
+  */
+  const travado = !cargoMovivel(cargo.rank, alcance);
+
   return (
     <div className={cargoCss.editor}>
       {/*
@@ -644,6 +787,18 @@ function EditorDeCargo({
           {contagem} {contagem === 1 ? "membro" : "membros"}
         </span>
       </header>
+
+      {/*
+        O motivo, uma vez, no topo — e não repetido em cada controle cinza.
+        Trinta bits desabilitados sem explicação é o defeito que
+        "acima da sua hierarquia" já registrou neste projeto.
+      */}
+      {travado ? (
+        <Banner tom="aviso">
+          {MOTIVO_HIERARQUIA}. Você pode ler este cargo, mas não editá-lo nem
+          movê-lo.
+        </Banner>
+      ) : null}
 
       <Abas
         rotulo="Editor de cargo"
@@ -779,7 +934,7 @@ function EditorDeCargo({
             <IconeDoCargo
               serverId={serverId}
               cargo={cargo}
-              podeEditar={alcance.podeEditarCargos && cargo.rank > alcance.topo}
+              podeEditar={!travado}
               aoMudar={aoMudar}
             />
 
@@ -869,7 +1024,7 @@ function EditorDeCargo({
         <MatrizDePermissoes
           marcadas={marcadas}
           aoMudar={setMarcadas}
-          desabilitada={salvando || !alcance.podeEditarPermissoes}
+          desabilitada={salvando || travado || !alcance.podeEditarPermissoes}
         />
       ) : aba === "links" ? (
         <LinksDoCargo serverId={serverId} roleId={cargo.id} nome={nome} />
@@ -880,7 +1035,7 @@ function EditorDeCargo({
       <div className={css.acoes}>
         <Botao
           variante="primario"
-          disabled={salvando || !nome.trim()}
+          disabled={salvando || travado || !nome.trim()}
           onClick={() => {
             setSalvando(true);
             /*
@@ -933,7 +1088,7 @@ function EditorDeCargo({
         ) : (
           <Botao
             variante="sutil"
-            disabled={salvando}
+            disabled={salvando || travado}
             onClick={() => setConfirmando(true)}
           >
             Apagar cargo

@@ -20,9 +20,14 @@ import {
 import {
   bitDaPermissao,
   listarCargos,
+  meuAlcance,
   PERMISSOES,
   type Cargo,
 } from "../../sdk/cargos";
+import {
+  acimaDaMinhaHierarquia,
+  MOTIVO_HIERARQUIA,
+} from "../selecaoDeCargo";
 import { useCategorias, useChannel, useCorDeCargo } from "../../store/hooks";
 import secao from "../Secao.module.css";
 import { CampoDeBusca } from "../../components/ui/CampoDeBusca";
@@ -99,6 +104,7 @@ export function PermissoesDoCanal({ channelId }: { channelId: string }) {
     return (
       <Avancadas
         channelId={channelId}
+        serverId={serverId}
         nomeDoCanal={canal.name}
         cargos={cargos}
         aoSincronizar={sincronizar}
@@ -352,18 +358,26 @@ const OPCOES: readonly { valor: Estado; rotulo: string }[] = [
  */
 function Avancadas({
   channelId,
+  serverId,
   nomeDoCanal,
   cargos,
   aoSincronizar,
   aoVoltar,
 }: {
   channelId: string;
+  serverId: string;
   nomeDoCanal: string;
   cargos: readonly Cargo[];
   /** Ausente quando o canal não está em categoria ou falta o direito. */
   aoSincronizar: (() => void) | undefined;
   aoVoltar: () => void;
 }) {
+  /*
+    Lido na render e não assinado: `meuAlcance` consulta o cache do SDK, e a
+    tabela de cargos só muda quando alguém edita a hierarquia — que é a mesma
+    decisão de "ordenar quando é observável" já tomada na coluna de cargos.
+  */
+  const alcance = meuAlcance(serverId);
   const [alvo, setAlvo] = useState("default");
   const [busca, setBusca] = useState("");
   const [edicao, setEdicao] = useState<
@@ -392,6 +406,23 @@ function Avancadas({
     [{ id: "default", nome: "@everyone", cor: undefined }, ...cargos];
   const atual = alvos.find((a) => a.id === alvo) ?? alvos[0]!;
   const filtro = busca.trim().toLowerCase();
+
+  /*
+    ⚠ **A linha travada por HIERARQUIA — D-FND-21, e ela não existia.** Os três
+    botões só olhavam `salvando`, e `permissions_set.rs` recusa com
+    `NotElevated` mexer nas permissões de canal de um cargo no meu nível ou
+    acima. Sem a trava, quem modera clicava, via o tri-state mudar e recebia um
+    toast de recusa — o estado local já trocado, discordando do servidor.
+
+    `@everyone` fica fora da comparação de rank de propósito: ele não é um
+    cargo da hierarquia, não tem `rank`, e o servidor o gateia só por
+    `ManagePermissions`. Tratá-lo como rank 0 o travaria para todo mundo que
+    não é dono.
+  */
+  const cargoAtual = cargos.find((c) => c.id === alvo);
+  const acima =
+    cargoAtual !== undefined && acimaDaMinhaHierarquia(cargoAtual.rank, alcance);
+  const travado = acima || !alcance.podeEditarPermissoes;
 
   return (
     <div className={`${secao.forma} ${secao.larga}`}>
@@ -432,7 +463,7 @@ function Avancadas({
             </span>
             <Botao
               variante="sutil"
-              disabled={salvando}
+              disabled={salvando || travado}
               onClick={() => escrever({ allow: 0n, deny: 0n })}
             >
               Herdar tudo
@@ -440,6 +471,19 @@ function Avancadas({
           </div>
 
           <div className={css.matrizLista}>
+            {/*
+              O motivo UMA vez, no topo da matriz — e não trinta vezes, uma por
+              linha cinza. É a mesma escolha do editor de cargo: controle
+              desabilitado sem explicação é o defeito que "acima da sua
+              hierarquia" já registrou neste projeto.
+            */}
+            {travado ? (
+              <Banner tom="aviso">
+                {acima
+                  ? `${MOTIVO_HIERARQUIA}. Este cargo está no seu nível ou acima dele.`
+                  : "Você não pode alterar permissões neste servidor."}
+              </Banner>
+            ) : null}
             {/*
               O filtro é um campo simples e não o `Campo` de formulário: aqui
               ele é busca, e o design afunda busca em `surface-0` enquanto põe
@@ -514,7 +558,8 @@ function Avancadas({
                               className={css.triBotao}
                               aria-checked={estado === o.valor}
                               aria-label={o.rotulo}
-                              disabled={salvando}
+                              disabled={salvando || travado}
+                              title={travado ? MOTIVO_HIERARQUIA : undefined}
                               onClick={() =>
                                 escrever(aplicar(override, bit, o.valor))
                               }
