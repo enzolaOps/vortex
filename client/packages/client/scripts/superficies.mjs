@@ -189,6 +189,15 @@ const PERMITIDO = {
       "Tela cheia sem shell: aqui não há rail nem conteúdo, então ela É o " +
       "chão. Mesma família do `body`.",
   },
+  "sessao/TelaDeDownload.module.css": {
+    ".tela":
+      "Mesma razão da tela de login: página pública sem shell, então ela É " +
+      "o chão. Mesma família do `body`.",
+    ".pre":
+      "O poço do comando, dentro de um cartão em `surface-1`. Afundá-lo é " +
+      "o que o separa do texto sem gastar borda — a mesma decisão da prévia " +
+      "de encaminhar dentro do modal.",
+  },
   "desktop/BarraDeTitulo.module.css": {
     ".barra":
       "Cromo de JANELA, e nao conteudo — mesma familia do rail, que e o " +

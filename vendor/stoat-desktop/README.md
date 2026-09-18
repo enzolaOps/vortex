@@ -79,15 +79,16 @@ Publishing a GitHub Release (tag `vX.Y.Z`) is all it takes. The
 1. sets the shell version from the tag — Squirrel only recognises an update
    when the version is higher than the installed one;
 2. builds `Vortex-Setup.exe` + `RELEASES` + `.nupkg` on Windows and
-   `Vortex.flatpak` on Linux;
+   `Vortex.deb` (Ubuntu/Debian) + `Vortex.pkg.tar.zst` (Arch) on Linux;
 3. attaches them to the release.
 
 Installed Windows copies check `update.electronjs.org` every hour, download in
 the background and apply the update on the next restart — no dialog, because
-the app is often in a voice call.
+the app is often in a voice call. Linux has no auto-update feed: a new release
+is a new download.
 
 The client's "Download for desktop" button links to
-`releases/latest/download/Vortex-Setup.exe` (or `Vortex.flatpak`).
+`releases/latest/download/Vortex-Setup.exe`, `Vortex.deb` or `Vortex.pkg.tar.zst`.
 
 To package an existing tag again, run the workflow manually with the `tag`
 input. Without it the build only uploads a workflow artifact.

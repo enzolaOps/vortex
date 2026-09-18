@@ -10,6 +10,7 @@ const {
   politicaParaProtocolo,
   precisaVerificar,
   assinarPolitica,
+  veladaPeloFiltroPessoal,
 } = await import("./filtroDeMidia");
 const { aplicarEventoDeFiltro } = await import("../sdk/filtroDeMidia");
 
@@ -80,5 +81,21 @@ describe("eventos crus", () => {
     expect(deB).not.toHaveBeenCalled();
     // A mesma função de assinatura por chave — referência estável para o React.
     expect(assinarPolitica("a")).toBe(assinarPolitica("a"));
+  });
+});
+
+describe("veladaPeloFiltroPessoal", () => {
+  it("não filtrar nunca vela; filtrar tudo vela sempre", () => {
+    expect(veladaPeloFiltroPessoal("nao", false, false)).toBe(false);
+    expect(veladaPeloFiltroPessoal("tudo", true, false)).toBe(true);
+  });
+
+  it("de quem não é amigo vela só não-amigo", () => {
+    expect(veladaPeloFiltroPessoal("deNaoAmigos", false, false)).toBe(true);
+    expect(veladaPeloFiltroPessoal("deNaoAmigos", true, false)).toBe(false);
+  });
+
+  it("a própria mídia nunca vela", () => {
+    expect(veladaPeloFiltroPessoal("tudo", false, true)).toBe(false);
   });
 });

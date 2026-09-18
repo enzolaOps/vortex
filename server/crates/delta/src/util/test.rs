@@ -6,7 +6,8 @@ use redis_kiss::redis::aio::PubSub;
 use revolt_database::util::email::normalise_email;
 use revolt_database::util::password::hash_password;
 use revolt_database::{
-    events::client::EventV1, Channel, Database, Member, Message, PartialRole, Server, User, AMQP,
+    events::client::EventV1, Channel, Database, Member, Message, PartialRole, PartialServer,
+    Server, User, AMQP,
 };
 use revolt_database::{util::idempotency::IdempotencyKey, Role};
 use revolt_database::{Account, EmailVerification, Session};
@@ -136,6 +137,43 @@ impl TestHarness {
         };
 
         role
+    }
+
+    /// Vortex: servidor que libera DM entre membros, com `membros` dentro.
+    pub async fn new_server_with_member_dms(&self, owner: &User, membros: &[&User]) -> Server {
+        let (mut server, _) = self.new_server(owner).await;
+        server
+            .update(
+                &self.db,
+                PartialServer {
+                    security: Some(v0::ServerSecurity {
+                        allow_member_dms: true,
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                },
+                vec![],
+            )
+            .await
+            .expect("`Server` security");
+        for membro in membros {
+            Member::create(&self.db, &server, membro, None)
+                .await
+                .expect("`Member`");
+        }
+        server
+    }
+
+    /// Vortex: grava a privacidade por servidor de alguém, no formato do cliente.
+    pub async fn set_server_privacy(&self, user: &User, json: serde_json::Value) {
+        let settings = std::collections::HashMap::from([(
+            revolt_database::util::privacidade_do_servidor::CHAVE.to_string(),
+            (1_i64, json.to_string()),
+        )]);
+        self.db
+            .set_user_settings(&user.id, &settings)
+            .await
+            .expect("`UserSettings`");
     }
 
     pub async fn new_channel(&self, server: &Server) -> Channel {

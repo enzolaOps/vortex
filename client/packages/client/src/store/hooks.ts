@@ -345,6 +345,21 @@ export function usePessoa(userId: string): RelacaoSnapshot | undefined {
 }
 
 /**
+ * Esta pessoa é minha amiga? Booleano, e a razão é escopo.
+ *
+ * `usePessoa` devolveria o snapshot inteiro, que carrega PRESENÇA — e presença
+ * é mais da metade da carga do firehose. Quem só quer saber de amizade (o véu
+ * de mídia) não pode acordar a cada piscada; comparado por valor, este só
+ * re-renderiza quando a relação muda.
+ */
+export function useEhAmigo(userId: string): boolean {
+  return useSyncExternalStore(
+    pessoas.subscriber(userId),
+    () => pessoas.getSnapshot(userId)?.relacao === "amigo",
+  );
+}
+
+/**
  * Uma aba da tela de amigos.
  *
  * Keyed pela relação, e não uma lista só com filtro no componente: trocar de

@@ -5,15 +5,16 @@
  * expõe `channel.muted` como uma pergunta que o APP responde, via a opção
  * `channelIsMuted` — a decisão é do cliente por desenho do protocolo.
  *
- * Sincronizar entre dispositivos é possível (vai em configuração de usuário) e
- * fica listado. Local é o estado honesto de um app sem sessão, e a forma não
- * muda quando a sincronia chegar: o store continua sendo a fonte, e quem
- * sincroniza escreve nele.
+ * Persistido em `localStorage` e sincronizado entre dispositivos por
+ * `UserSettings` (ver o fim do arquivo e `sdk/sincronizar.ts`). O store
+ * continua sendo a fonte: quem sincroniza escreve nele.
  *
  * Como o colapso de categoria, e pela mesma razão: preferência de leitura por
  * canal, mudada por clique humano, lida por um booleano. Um store por chave
  * seria maquinário para dezenas de itens.
  */
+
+import { avisarSync } from "./sync";
 
 /**
  * Até quando cada canal fica silenciado, em epoch ms.
@@ -95,7 +96,11 @@ export function duracaoDoSilencio(channelId: string): number | undefined {
  */
 export function alternarSilencio(channelId: string, duracaoMs = Infinity): void {
   if (estaSilenciado(channelId)) silenciados.delete(channelId);
-  else silenciar(channelId, duracaoMs);
+  else {
+    silenciar(channelId, duracaoMs);
+    return;
+  }
+  persistirNotificacoes();
   for (const ouvinte of ouvintes) ouvinte();
 }
 
@@ -112,12 +117,14 @@ export function silenciar(channelId: string, duracaoMs = Infinity): void {
     ate: duracaoMs === Infinity ? Infinity : Date.now() + duracaoMs,
     duracaoMs,
   });
+  persistirNotificacoes();
   for (const ouvinte of ouvintes) ouvinte();
 }
 
 /** Reativa os avisos do canal. Sem efeito se ele já falava. */
 export function reativarCanal(channelId: string): void {
   if (!silenciados.delete(channelId)) return;
+  persistirNotificacoes();
   for (const ouvinte of ouvintes) ouvinte();
 }
 
@@ -165,11 +172,13 @@ export function silenciarServidor(serverId: string, duracaoMs = Infinity): void 
     ate: duracaoMs === Infinity ? Infinity : Date.now() + duracaoMs,
     duracaoMs,
   });
+  persistirNotificacoes();
   for (const ouvinte of ouvintes) ouvinte();
 }
 
 export function reativarServidor(serverId: string): void {
   if (!servidoresSilenciados.delete(serverId)) return;
+  persistirNotificacoes();
   for (const ouvinte of ouvintes) ouvinte();
 }
 
@@ -191,6 +200,12 @@ export function limparSilencio(): void {
   servidoresSilenciados.clear();
   niveisDeServidor.clear();
   opcoesDeServidor.clear();
+  try {
+    localStorage.removeItem(LOCAL_NOTIFICACOES);
+    localStorage.removeItem(LOCAL_OPCOES);
+  } catch {
+    /* mesma regra da escrita */
+  }
 }
 
 /* ------------------------------------------- nível por canal */
@@ -251,6 +266,7 @@ export function definirNivelDoCanal(
     alternarSilencio(channelId);
   }
 
+  persistirNotificacoes();
   for (const ouvinte of ouvintes) ouvinte();
 }
 
@@ -281,6 +297,7 @@ export function definirNivelDoServidor(
   if (niveisDeServidor.get(serverId) === nivel) return;
   if (nivel === undefined) niveisDeServidor.delete(serverId);
   else niveisDeServidor.set(serverId, nivel);
+  persistirNotificacoes();
   for (const ouvinte of ouvintes) ouvinte();
 }
 
@@ -333,5 +350,228 @@ export function definirOpcoesDoServidor(
     return;
   }
   opcoesDeServidor.set(serverId, proxima);
+  persistirOpcoes();
   for (const ouvinte of ouvintes) ouvinte();
 }
+
+/* ------------------------------------------- persistência e sincronia */
+
+/*
+  Duas chaves, e a divisão tem razão.
+
+  ⚠ **`notifications` é a chave do cliente OFICIAL**, no formato dele
+  (`vendor/stoat-web/.../NotificationOptions.ts`): quem abre a mesma conta no
+  Stoat vê os mesmos silêncios e níveis, e o que ele escrever chega aqui. As
+  opções de supressão não existem lá, e enfiá-las numa chave compartilhada
+  seria apostar que o outro cliente preserva campo que não conhece — ele não
+  preserva, `clean()` reconstrói o objeto. Por isso moram em chave própria.
+
+  ⚠ **"Até eu reativar" é mute SEM `until`, nunca `Infinity`.**
+  `JSON.stringify(Infinity)` vira `null`, e o formato upstream já diz "sem
+  prazo" pela ausência do campo. Prazo vencido não é gravado: ele já deixou de
+  valer na leitura, e mandá-lo para outro dispositivo só faria o outro lado
+  apagá-lo de novo.
+*/
+export const CHAVE_NOTIFICACOES = "notifications";
+export const CHAVE_OPCOES_DE_SERVIDOR = "vortex:notificacoesDoServidor";
+
+/* Local com prefixo próprio: `notifications` cru no `localStorage` do domínio
+   seria nome genérico demais para uma origem que outras bibliotecas dividem. */
+const LOCAL_NOTIFICACOES = "vortex:silencio";
+const LOCAL_OPCOES = "vortex:notificacoesDoServidor";
+
+const PARA_PROTOCOLO: Record<NivelDeNotificacao, string> = {
+  todas: "all",
+  mencoes: "mention",
+  nada: "none",
+};
+
+function nivelDoProtocolo(v: unknown): NivelDeNotificacao | undefined {
+  if (v === "all") return "todas";
+  if (v === "mention") return "mencoes";
+  if (v === "none") return "nada";
+  return undefined;
+}
+
+function objeto(v: unknown): Record<string, unknown> | undefined {
+  return typeof v === "object" && v !== null && !Array.isArray(v)
+    ? (v as Record<string, unknown>)
+    : undefined;
+}
+
+export function exportarNotificacoes(): string {
+  const agora = Date.now();
+  const mutes = (m: Map<string, Silencio>) => {
+    const o: Record<string, { until?: number }> = {};
+    for (const [id, s] of m) {
+      if (s.ate === Infinity) o[id] = {};
+      else if (s.ate > agora) o[id] = { until: s.ate };
+    }
+    return o;
+  };
+  const niveisDe = (m: Map<string, NivelDeNotificacao>) => {
+    const o: Record<string, string> = {};
+    for (const [id, n] of m) o[id] = PARA_PROTOCOLO[n];
+    return o;
+  };
+  return JSON.stringify({
+    server: niveisDe(niveisDeServidor),
+    channel: niveisDe(niveis),
+    server_mutes: mutes(servidoresSilenciados),
+    channel_mutes: mutes(silenciados),
+  });
+}
+
+export function exportarOpcoesDeServidor(): string {
+  const o: Record<string, OpcoesDoServidor> = {};
+  for (const [id, op] of opcoesDeServidor) {
+    if (
+      op.suprimirTodos !== OPCOES_PADRAO.suprimirTodos ||
+      op.suprimirCargos !== OPCOES_PADRAO.suprimirCargos
+    ) {
+      o[id] = op;
+    }
+  }
+  return JSON.stringify(o);
+}
+
+/** Aplica nos mapas crus. `false` = o texto não é o formato, nada mudou. */
+function lerNotificacoes(cru: string): boolean {
+  const r = objeto(JSON.parse(cru));
+  if (!r) return false;
+  const agora = Date.now();
+  const proximosNiveis = new Map<string, NivelDeNotificacao>();
+  const proximosDeServidor = new Map<string, NivelDeNotificacao>();
+  const proximosMutes = new Map<string, Silencio>();
+  const proximosMutesDeServidor = new Map<string, Silencio>();
+
+  const lerNiveis = (
+    v: unknown,
+    destino: Map<string, NivelDeNotificacao>,
+    mutes: Map<string, Silencio>,
+  ) => {
+    for (const [id, n] of Object.entries(objeto(v) ?? {})) {
+      // O upstream antigo guardava o silêncio como nível "muted".
+      if (n === "muted") mutes.set(id, { ate: Infinity, duracaoMs: Infinity });
+      const nivel = nivelDoProtocolo(n);
+      if (nivel) destino.set(id, nivel);
+    }
+  };
+  /*
+    ⚠ **A DURAÇÃO escolhida não existe no formato do fio, e não é inventada.**
+    O upstream guarda só `until`, então um silêncio vindo de outro dispositivo
+    não diz qual das cinco opções a pessoa marcou. `NaN` não é igual a nenhuma
+    delas, então o menu mostra o tempo restante e NENHUM ✓ — que é a verdade.
+    Aproximar pelo prazo restante marcaria a opção errada em metade dos casos,
+    que é exatamente o que motivou guardar a duração aqui.
+  */
+  const lerMutes = (v: unknown, destino: Map<string, Silencio>) => {
+    for (const [id, e] of Object.entries(objeto(v) ?? {})) {
+      const mute = objeto(e);
+      if (!mute) continue;
+      const ate = mute.until;
+      if (typeof ate === "number" && Number.isFinite(ate)) {
+        if (ate > agora) destino.set(id, { ate, duracaoMs: Number.NaN });
+      } else {
+        destino.set(id, { ate: Infinity, duracaoMs: Infinity });
+      }
+    }
+  };
+
+  lerNiveis(r.channel, proximosNiveis, proximosMutes);
+  lerNiveis(r.server, proximosDeServidor, proximosMutesDeServidor);
+  lerMutes(r.channel_mutes, proximosMutes);
+  lerMutes(r.server_mutes, proximosMutesDeServidor);
+
+  /*
+    ⚠ **Troca os mapas crus, e NÃO passa pelos setters.** `definirNivelDoCanal`
+    acopla "nada" ao silêncio; aplicado a um estado que veio de fora, ele
+    reescreveria o que o outro dispositivo decidiu — e um canal com "nada" e
+    SEM silêncio, que o cliente oficial produz, viraria um silêncio que
+    ninguém pôs.
+  */
+  niveis.clear();
+  niveisDeServidor.clear();
+  silenciados.clear();
+  servidoresSilenciados.clear();
+  for (const [k, v] of proximosNiveis) niveis.set(k, v);
+  for (const [k, v] of proximosDeServidor) niveisDeServidor.set(k, v);
+  for (const [k, v] of proximosMutes) silenciados.set(k, v);
+  for (const [k, v] of proximosMutesDeServidor) servidoresSilenciados.set(k, v);
+  return true;
+}
+
+function lerOpcoes(cru: string): boolean {
+  const r = objeto(JSON.parse(cru));
+  if (!r) return false;
+  opcoesDeServidor.clear();
+  for (const [id, v] of Object.entries(r)) {
+    const o = objeto(v);
+    if (
+      o &&
+      typeof o.suprimirTodos === "boolean" &&
+      typeof o.suprimirCargos === "boolean"
+    ) {
+      opcoesDeServidor.set(id, {
+        suprimirTodos: o.suprimirTodos,
+        suprimirCargos: o.suprimirCargos,
+      });
+    }
+  }
+  return true;
+}
+
+function gravar(chaveLocal: string, valor: string): void {
+  try {
+    localStorage.setItem(chaveLocal, valor);
+  } catch {
+    /* armazenamento bloqueado: vale nesta aba */
+  }
+}
+
+function persistirNotificacoes(): void {
+  const valor = exportarNotificacoes();
+  gravar(LOCAL_NOTIFICACOES, valor);
+  avisarSync(CHAVE_NOTIFICACOES, valor);
+}
+
+function persistirOpcoes(): void {
+  const valor = exportarOpcoesDeServidor();
+  gravar(LOCAL_OPCOES, valor);
+  avisarSync(CHAVE_OPCOES_DE_SERVIDOR, valor);
+}
+
+/**
+ * Troca o estado pelo que veio do servidor, e acorda quem assina.
+ *
+ * Lança com JSON podre: quem chama (`sdk/sincronizar.ts`) já trata isso como
+ * "fica o local".
+ */
+export function hidratarNotificacoes(cru: string): void {
+  if (!lerNotificacoes(cru)) return;
+  gravar(LOCAL_NOTIFICACOES, exportarNotificacoes());
+  for (const ouvinte of ouvintes) ouvinte();
+}
+
+export function hidratarOpcoesDeServidor(cru: string): void {
+  if (!lerOpcoes(cru)) return;
+  gravar(LOCAL_OPCOES, exportarOpcoesDeServidor());
+  for (const ouvinte of ouvintes) ouvinte();
+}
+
+/* Carga inicial. No fim do módulo porque os mapas acima precisam existir. */
+function carregarLocal(): void {
+  try {
+    const n = localStorage.getItem(LOCAL_NOTIFICACOES);
+    if (n) lerNotificacoes(n);
+  } catch {
+    /* JSON podre ou armazenamento bloqueado: começa vazio */
+  }
+  try {
+    const o = localStorage.getItem(LOCAL_OPCOES);
+    if (o) lerOpcoes(o);
+  } catch {
+    /* idem */
+  }
+}
+carregarLocal();
