@@ -13,8 +13,9 @@ const UBUNTU = `curl -fsSL -o Vortex.deb ${DEB}
 sudo apt install ./Vortex.deb`;
 
 const ARCH = `curl -fsSL -o Vortex-linux.zip ${ZIP}
-unzip Vortex-linux.zip
-./vortex-desktop`;
+unzip -o Vortex-linux.zip
+chmod +x Vortex-linux-x64/vortex-desktop
+./Vortex-linux-x64/vortex-desktop`;
 
 /**
  * Página pública de download — `/download`.
