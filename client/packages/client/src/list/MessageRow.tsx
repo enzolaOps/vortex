@@ -2,11 +2,13 @@ import {
   ArrowBendUpLeft,
   ArrowBendUpRight,
   ArrowClockwise,
+  ArrowSquareOut,
   ChartBar,
   ChatsCircle,
   Copy,
   DotsThree,
   EnvelopeSimple,
+  FileArrowDown,
   ICONE,
   Info,
   Link,
@@ -55,6 +57,10 @@ import {
 } from "../lib/plural";
 import { cn } from "../lib/cn";
 import { atalho } from "../lib/plataforma";
+import { copiarImagem } from "../lib/copiar";
+import { toast } from "../components/ui/toastStore";
+import { baixarAnexo } from "../sdk/baixar";
+import { assinarPontoDoMenu, lerPontoDoMenu } from "../store/pontoDoMenu";
 import { BotaoDeIcone } from "../components/ui/BotaoDeIcone";
 import { menuAtalho } from "../components/ui/menu";
 import { AvatarDoAutor } from "../presenca/AvatarDoAutor";
@@ -1683,6 +1689,15 @@ export function ItensDaMensagem({ messageId }: { messageId: string }) {
     reacoesRapidas,
   );
   /*
+    O que estava sob o ponteiro — seleção, link, imagem, arquivo.
+
+    ASSINADO e não lido no render: dois cliques direitos seguidos na MESMA
+    linha, um no texto e outro na imagem, não mudam o alvo, então sem a
+    subscrição o menu reabriria com o ponto do gesto anterior. Ver
+    `store/pontoDoMenu.ts`.
+  */
+  const ponto = useSyncExternalStore(assinarPontoDoMenu, lerPontoDoMenu);
+  /*
     O canal da MENSAGEM, e não o da rota — ver `linkavel` logo abaixo.
 
     O hook fica acima do early return: `useChannel("")` devolve ausência sem
@@ -1860,6 +1875,115 @@ export function ItensDaMensagem({ messageId }: { messageId: string }) {
       </ContextMenuItem>
 
       <ContextMenuSeparator />
+
+      {/*
+        O que estava SOB O PONTEIRO — o bloco que o menu nativo levava embora.
+
+        ⚠ **O Radix chama `preventDefault` no `contextmenu`, e com ele somem
+        "Copiar seleção", "Copiar endereço do link", "Abrir link", "Copiar
+        imagem" e "Salvar imagem".** A auditoria de clique direito mediu isso
+        como a quebra nº 7: o app substituiu o menu do navegador sem repor
+        metade do que ele fazia. Numa superfície onde o conteúdo é escrito por
+        outras pessoas, "copiar o endereço do link" é também a única forma de
+        conferir para onde ele vai ANTES de clicar.
+
+        Cada item só existe quando há sobre o que agir — a mesma regra do
+        "Remover embed": item que não tem alvo é ruído permanente, e aqui o
+        caso comum (clique no texto liso) não tem nenhum deles.
+      */}
+      {ponto.selecao !== "" ? (
+        <ContextMenuItem
+          onSelect={() => void copiarTexto(ponto.selecao, "Seleção")}
+        >
+          <Copy aria-hidden />
+          Copiar seleção
+        </ContextMenuItem>
+      ) : null}
+
+      {ponto.link !== undefined ? (
+        <>
+          {/*
+            ⚠ **`abrirLinkExterno` e não `window.open` cru.** Todo link da
+            timeline foi escrito por outra pessoa, e o aviso de destino
+            (`AvisoDeLink`) é a superfície de segurança que o analisador de
+            markdown não consegue cobrir sozinho: ele barra `javascript:` e
+            `data:`, e não pode barrar um `https:` que simplesmente não é para
+            onde a pessoa acha que vai. Abrir por aqui pulando o aviso faria do
+            menu o caminho mais fácil para o pior caso.
+          */}
+          <ContextMenuItem
+            onSelect={() =>
+              administrar({
+                tipo: "linkExterno",
+                href: ponto.link ?? "",
+                /* O TEXTO é o próprio endereço aqui: o menu foi aberto sobre o
+                   link, e o aviso só endurece quando o texto escrito difere do
+                   destino — o que já se vê na linha. */
+                texto: ponto.link ?? "",
+              })
+            }
+          >
+            <ArrowSquareOut aria-hidden />
+            Abrir link
+          </ContextMenuItem>
+          <ContextMenuItem
+            onSelect={() => void copiarTexto(ponto.link ?? "", "Endereço")}
+          >
+            <Link aria-hidden />
+            Copiar endereço do link
+          </ContextMenuItem>
+        </>
+      ) : null}
+
+      {ponto.imagem !== undefined ? (
+        <>
+          <ContextMenuItem
+            onSelect={() => void copiarImagem(ponto.imagem ?? "")}
+          >
+            <Copy aria-hidden />
+            Copiar imagem
+          </ContextMenuItem>
+          {/*
+            Salvar passa por `baixarAnexo`, que já existe e resolve o que um
+            `<a download>` não resolve: o `autumn` é de ORIGEM CRUZADA, e o
+            navegador ignora o atributo — vira navegação, com o nome que a URL
+            disser e sem nada que a interface consiga contar quando falha.
+          */}
+          <ContextMenuItem
+            onSelect={() =>
+              void baixarAnexo(
+                ponto.imagem ?? "",
+                ponto.nomeDaImagem ?? "imagem",
+              ).catch((e: unknown) => {
+                toast({
+                  tipo: "erro",
+                  titulo: "Não deu para salvar",
+                  descricao: e instanceof Error ? e.message : undefined,
+                });
+              })
+            }
+          >
+            <FileArrowDown aria-hidden />
+            Salvar imagem
+          </ContextMenuItem>
+        </>
+      ) : null}
+
+      {ponto.arquivo !== undefined ? (
+        <ContextMenuItem
+          onSelect={() => void copiarTexto(ponto.arquivo ?? "", "Endereço")}
+        >
+          <Link aria-hidden />
+          Copiar link do arquivo
+        </ContextMenuItem>
+      ) : null}
+
+      {ponto.selecao !== "" ||
+      ponto.link !== undefined ||
+      ponto.imagem !== undefined ||
+      ponto.arquivo !== undefined ? (
+        <ContextMenuSeparator />
+      ) : null}
 
       <ContextMenuItem
         onSelect={() => void copiarTexto(message.content, "Texto")}

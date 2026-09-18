@@ -27,6 +27,7 @@ export type PreferenciasGravaveis = {
   aoFechar: AoFechar;
   aceleracaoDeHardware: boolean;
   reduzirEmSegundoPlano: boolean;
+  corretorOrtografico: boolean;
 };
 
 export type ChaveGravavel = keyof PreferenciasGravaveis;
@@ -57,6 +58,7 @@ export type ConfigDasPreferencias = {
   aoFechar: AoFechar;
   hardwareAcceleration: boolean;
   reduzirEmSegundoPlano: boolean;
+  spellchecker: boolean;
 };
 
 const ehBooleano = (v: unknown): v is boolean => typeof v === "boolean";
@@ -79,6 +81,7 @@ const VALIDADORES: { [K in ChaveGravavel]: (v: unknown) => v is PreferenciasGrav
   aoFechar: ehAoFechar,
   aceleracaoDeHardware: ehBooleano,
   reduzirEmSegundoPlano: ehBooleano,
+  corretorOrtografico: ehBooleano,
 };
 
 export type Gravacao = {
@@ -134,6 +137,15 @@ export function camposDaGravacao(
       return { hardwareAcceleration: g.valor };
     case "reduzirEmSegundoPlano":
       return { reduzirEmSegundoPlano: g.valor };
+    /*
+      ⚠ **O nome muda de lado a lado, e é de propósito.** O store da casca é
+      do upstream e a chave lá é `spellchecker`; o cliente é em português e
+      grava `corretorOrtografico`. Traduzir aqui é o trabalho deste módulo —
+      e o teste continua exigindo que a chave CRUA do upstream seja recusada,
+      senão o renderer escreveria direto no store da casca.
+    */
+    case "corretorOrtografico":
+      return { spellchecker: g.valor };
   }
 }
 
@@ -154,6 +166,7 @@ export function preferenciasParaOCliente(
     aoFechar: c.aoFechar,
     aceleracaoDeHardware: c.hardwareAcceleration,
     reduzirEmSegundoPlano: c.reduzirEmSegundoPlano,
+    corretorOrtografico: c.spellchecker,
     barraNativaEmUso: mac ? false : !emUso.customFrame,
     aceleracaoEmUso: emUso.hardwareAcceleration,
   };

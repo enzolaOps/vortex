@@ -1,3 +1,5 @@
+import { definirPontoDoMenu, pontoNoDom } from "./pontoDoMenu";
+
 /**
  * Quem o menu de contexto da lista está mirando.
  *
@@ -126,6 +128,25 @@ export function alvoNoDom(no: EventTarget | null): AlvoDoMenu | null {
 export function mirarAlvoDoMenu(no: EventTarget | null): boolean {
   const alvo = alvoNoDom(no);
   definirAlvoDoMenu(alvo);
+
+  /*
+    O PONTO do clique, na mesma passagem.
+
+    ⚠ **Store separado, e por custo.** A linha inteira assina o alvo; o ponto
+    tem um leitor só, que é o conteúdo do menu. Pendurá-lo no alvo faria cada
+    gesto acordar duas linhas por um dado que elas não leem. Ver
+    `store/pontoDoMenu.ts`.
+
+    A LINHA é o escopo da seleção, e não o documento: selecionar num lugar e
+    clicar com o direito noutro é gesto comum de quem lê rolando.
+  */
+  const cru = no as Partial<Element> | null;
+  const linha =
+    typeof cru?.closest === "function"
+      ? (cru as Element).closest("[data-menu-mensagem]")
+      : null;
+  definirPontoDoMenu(pontoNoDom(no, linha));
+
   return alvo !== null;
 }
 
