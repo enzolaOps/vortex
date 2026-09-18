@@ -7,14 +7,13 @@ import css from "./TelaDeDownload.module.css";
 
 const WINDOWS = linkDeDownload("Windows");
 const DEB = linkDeDownload("X11; Ubuntu; Linux x86_64");
-const ZIP = linkDeDownload("Linux");
+const PACMAN = linkDeDownload("Linux");
 
 const UBUNTU = `curl -fsSL -o Vortex.deb ${DEB}
 sudo apt install ./Vortex.deb`;
 
-const ARCH = `curl -fsSL -o Vortex-linux.zip ${ZIP}
-unzip Vortex-linux.zip
-./vortex-desktop`;
+const ARCH = `curl -fsSL -o Vortex.pkg.tar.zst ${PACMAN}
+sudo pacman -U Vortex.pkg.tar.zst`;
 
 /**
  * Página pública de download — `/download`.
@@ -53,7 +52,7 @@ export function TelaDeDownload() {
             Linux
           </h2>
           <p className={css.leadCurto}>
-            Ubuntu e Debian usam o <code>.deb</code>. Arch e o resto, o zip.
+            Ubuntu e Debian usam o <code>.deb</code>. Arch, o pacote do pacman.
           </p>
 
           <Bloco rotulo="Ubuntu / Debian" comando={UBUNTU} />
