@@ -389,6 +389,58 @@
   font-size: var(--vx-size-sm);
   letter-spacing: 0.1em;
   color: var(--vx-text-4);
+  cursor: grab;
+}
+
+/*
+  A alça de um cargo travado.
+
+  ⚠ **Ela vira CADEADO e perde o `grab`** — o cursor é a promessa do gesto, e
+  mantê-lo num item que recusa o arraste é prometer o que não se cumpre. A
+  opacidade 0,6 é a do design para o item travado.
+*/
+.alca[data-travada="true"] {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/*
+  ⚠ **A opacidade 0,6 do design fica na ALÇA e não na linha inteira, e a
+  divergência é medida.** O nome do cargo sai na cor do servidor passada pelo
+  clamp de L, que é o que garante 4,5:1 — `opacity` no ancestral multiplica a
+  luminância depois do clamp, e a garantia cai sem nada acusar: `pnpm contrast`
+  lê tokens, não composição de camada. O cadeado e o cursor carregam o estado;
+  a legibilidade fica.
+*/
+.cargo[data-travado="true"] .contagemDeMembros {
+  opacity: 0.6;
+}
+
+.alca svg {
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+}
+
+/*
+  O fantasma do arraste — 60%, do design.
+
+  Nem `transform` nem altura mudam: a lista não reordena durante o gesto, e
+  mexer na caixa de uma linha com o ponteiro em cima faria o alvo fugir.
+*/
+.cargos > li[data-arrastando="true"] {
+  opacity: 0.6;
+}
+
+/*
+  A linha de destino, em acento.
+
+  `box-shadow` e não borda nem elemento: os dois somariam altura à linha, e a
+  hierarquia inteira reflui no meio do arraste. A sombra é pintada FORA da
+  caixa e não custa layout nenhum.
+*/
+.cargos > li[data-destino="true"] {
+  box-shadow: inset 0 2px 0 0 var(--vx-accent);
+  border-radius: var(--vx-radius-06);
 }
 
 /* A contagem: metadado, tabular para alinhar entre linhas. */

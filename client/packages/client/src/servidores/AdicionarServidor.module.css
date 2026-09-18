@@ -697,3 +697,40 @@
   margin: var(--vx-space-06) 0 0;
   padding-inline-start: var(--vx-space-16);
 }
+
+/* --- histórico do alvo, no modal de moderação ------------------- */
+
+/*
+  Contexto e não aviso: superfície neutra em `surface-1`, e nunca um `Banner`.
+  A faixa de perigo logo acima é a que precisa ser lida primeiro, e duas caixas
+  coloridas na mesma coluna disputam a mesma atenção — este bloco informa uma
+  decisão, não a interrompe.
+*/
+.historico {
+  padding: var(--vx-space-09);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-1);
+}
+
+.historicoTitulo {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  margin: 0 0 var(--vx-space-06);
+  color: var(--vx-text-3);
+}
+
+.historicoLista {
+  display: grid;
+  gap: var(--vx-space-04);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-2);
+}
+
+/* Tabular para as datas alinharem entre linhas — é por elas que se varre. */
+.historicoQuando {
+  font-variant-numeric: tabular-nums;
+  color: var(--vx-text-3);
+}

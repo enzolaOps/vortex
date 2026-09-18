@@ -13,12 +13,19 @@
 }
 
 /*
-  ⚠ **Três colunas, e o design tem cinco.** "Banido por" e "Data" não existem
-  em `ServerBan` — ver `sdk/servidores.ts`. As proporções das que ficam são as
-  do design (`1.3fr 1.6fr`), com a ponta de ação em 90px.
+  As CINCO colunas do design.
+
+  ⚠ Este comentário dizia "três, e o design tem cinco — 'Banido por' e 'Data'
+  não existem em `ServerBan`". A primeira metade continua verdadeira sobre o
+  OBJETO; as duas colunas vêm da auditoria (`BanCreate`), e a tabela voltou a
+  ter as cinco.
+
+  `1.3fr 1.6fr` são as proporções do design para conta e motivo. As duas novas
+  são FIXAS e não `fr`: nome de moderador e data têm largura previsível, e
+  deixá-las crescer roubaria do motivo, que é a coluna que se lê.
 */
 .tabela {
-  --colunas: 1.3fr 1.6fr 90px;
+  --colunas: 1.3fr 1.6fr 140px 130px 90px;
   /* 1000, da referência (`ServerBansPage`). Era 1080, que é o teto de
      Convites — as duas foram escritas juntas e herdaram o mesmo número. */
   max-inline-size: 1000px;
