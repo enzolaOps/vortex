@@ -52,7 +52,9 @@ export type TelaDeEntrada =
    * código se perderia — a pessoa criaria a conta e não saberia mais para onde
    * ia. Com ela, o convite espera do outro lado da entrada.
    */
-  | { readonly tipo: "convite"; readonly codigo: string };
+  | { readonly tipo: "convite"; readonly codigo: string }
+  /** Página pública de download do app desktop — não precisa de sessão. */
+  | { readonly tipo: "download" };
 
 type Ouvinte = () => void;
 

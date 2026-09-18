@@ -103,6 +103,7 @@ const ENTRADA: Readonly<Record<string, TelaDeEntrada>> = {
   // O endereço NÃO entra na URL: e-mail em barra de endereço fica em
   // histórico, em log de proxy e em print de tela.
   "/entrar/conferir": { tipo: "conferirEmail", email: undefined },
+  "/download": { tipo: "download" },
 };
 
 /** O caminho de uma tela de entrada. */
@@ -128,6 +129,8 @@ export function caminhoDaEntrada(tela: TelaDeEntrada): string {
       return "/entrar/qr";
     case "autorizarQr":
       return `/qr/${tela.id}`;
+    case "download":
+      return "/download";
   }
 }
 

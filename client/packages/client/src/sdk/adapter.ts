@@ -75,6 +75,13 @@ import { registrarUsoDeReacao } from "../store/reacoesFrequentes";
 import { assinarFavoritos, lerFavoritos, ordenarComFavoritas } from "../store/favoritos";
 import { assinarPrivacidade, lerPrivacidade } from "../store/privacidade";
 import {
+  aceitaDm,
+  algumaRestricaoDeDm,
+  assinarPrivacidadeDoServidor,
+  lerPrivacidadeDoServidor,
+  privacidadeRestringe,
+} from "../store/privacidadeDoServidor";
+import {
   assinarSolicitacoes,
   decisaoSobre,
   destinoDaConversa,
@@ -90,7 +97,7 @@ import {
 import { mudancaDeAmizade } from "../notificacao/decidir";
 import { emFila } from "../lib/fila";
 import { somarPorServidor } from "./somaDeNaoLidas";
-import { aceitarAmizade, desfazerAmizade } from "./social";
+import { aceitarAmizade, buscarEmComum, desfazerAmizade } from "./social";
 import { sincronizarPush } from "../notificacao/push";
 import { dentro } from "../store/sessao";
 import {
@@ -1282,6 +1289,7 @@ export function startAdapter() {
     então republicar a varredura inteira aqui é o preço certo.
   */
   assinarPrivacidade(publicarConversas);
+  assinarPrivacidadeDoServidor(publicarConversas);
   assinarSolicitacoes(publicarConversas);
 
   // Permissão mudou: as linhas na tela precisam reperguntar. Ver
@@ -2699,8 +2707,54 @@ function destinoDe(canal: {
       filtrar: lerPrivacidade().filtrarDesconhecidos,
       inicio: inicioDasSolicitacoes(),
       decisao: decisaoSobre(canal.id),
+      restritaPorPrivacidade: () =>
+        outro !== undefined && restritaPorPrivacidade(outro),
     },
   );
+}
+
+/* ------------------------------------------- privacidade por servidor */
+
+/*
+  Servidores em comum por pessoa, para a regra de DM da privacidade por
+  servidor. Cache da SESSÃO: servidores em comum mudam quando alguém entra ou
+  sai de um servidor, que é raro, e a regra só DESVIA conversa — um valor
+  velho erra para a fila ou para a coluna, nunca apaga nada.
+
+  ⚠ **A busca só acontece se alguma escolha restringe DM** (`algumaRestricaoDeDm`).
+  Quem nunca abriu o modal não paga uma requisição por conversa.
+*/
+const emComumPorPessoa = new Map<string, readonly string[]>();
+const buscandoEmComum = new Set<string>();
+
+function restritaPorPrivacidade(userId: string): boolean {
+  if (!algumaRestricaoDeDm()) return false;
+  const servidores = emComumPorPessoa.get(userId);
+  if (servidores === undefined) {
+    if (conectado() && !buscandoEmComum.has(userId)) {
+      buscandoEmComum.add(userId);
+      void buscarEmComum(userId).then((r) => {
+        buscandoEmComum.delete(userId);
+        if (!r) return;
+        emComumPorPessoa.set(userId, r.servidores);
+        publicarConversas();
+      });
+    }
+    return false;
+  }
+  return privacidadeRestringe(servidores, (serverId) =>
+    aceitaDm(lerPrivacidadeDoServidor(serverId), compartilhaCargo(serverId, userId)),
+  );
+}
+
+/* Membro não carregado conta como sem cargo — o lado que só desvia para a
+   fila, e é o mesmo critério que o `delta` aplica com o membro em mãos. */
+function compartilhaCargo(serverId: string, userId: string): boolean {
+  if (!usuarioLocal) return false;
+  const meus = client.serverMembers.getByKey({ server: serverId, user: usuarioLocal })?.roles;
+  const deles = client.serverMembers.getByKey({ server: serverId, user: userId })?.roles;
+  if (!meus || !deles) return false;
+  return meus.some((id) => deles.includes(id));
 }
 
 export function publicarRelacoes(): void {

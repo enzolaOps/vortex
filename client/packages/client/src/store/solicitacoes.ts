@@ -70,6 +70,15 @@ export function destinoDaConversa(
     readonly filtrar: boolean;
     readonly inicio: number;
     readonly decisao: Decisao | undefined;
+    /**
+     * A privacidade por servidor da pessoa LOCAL barra este remetente?
+     * (`store/privacidadeDoServidor.ts`, `privacidadeRestringe`).
+     *
+     * Função e não booleano: responder pode custar uma busca de servidores em
+     * comum, e só vale pagar quando a conversa chegou até esta pergunta —
+     * amigo, bloqueado e conversa aceita saem antes.
+     */
+    readonly restritaPorPrivacidade?: () => boolean;
   },
 ): Destino {
   // Grupo e notas: não há "outro lado" desconhecido. Grupo só inclui quem é
@@ -91,10 +100,20 @@ export function destinoDaConversa(
   // Amigo, e quem VOCÊ procurou: não é desconhecido chegando.
   if (e.relacao === "amigo" || e.relacao === "enviado") return "conversa";
 
-  if (!contexto.filtrar) return "conversa";
   if (e.criadaEm < contexto.inicio) return "conversa";
   // Sem mensagem não há o que ler antes de decidir.
   if (e.ultimaMensagemId === undefined) return "conversa";
+  /*
+    ⚠ **A privacidade por servidor vale com o filtro global DESLIGADO.** São
+    duas escolhas diferentes: "filtrar desconhecidos" é sobre qualquer pessoa,
+    "ninguém deste servidor" é sobre as pessoas de um lugar. Quem fechou as DMs
+    de um servidor não pediu que isso dependesse de outro interruptor. E ela
+    DESVIA para a fila, nunca esconde: o servidor já recusa conversa nova, e o
+    que chega aqui é conversa que existia antes da escolha.
+  */
+  if (!contexto.filtrar && !contexto.restritaPorPrivacidade?.()) {
+    return "conversa";
+  }
 
   if (decisao?.estado === "recusada" && decisao.ate === e.ultimaMensagemId) {
     return "oculta";

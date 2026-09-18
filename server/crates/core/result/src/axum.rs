@@ -25,6 +25,7 @@ impl IntoResponse for Error {
             ErrorType::Blocked => StatusCode::CONFLICT,
             ErrorType::BlockedByOther => StatusCode::FORBIDDEN,
             ErrorType::NotFriends => StatusCode::FORBIDDEN,
+            ErrorType::PrivacyRestricted => StatusCode::FORBIDDEN,
             ErrorType::TooManyPendingFriendRequests { .. } => StatusCode::BAD_REQUEST,
 
             ErrorType::UnknownChannel => StatusCode::NOT_FOUND,

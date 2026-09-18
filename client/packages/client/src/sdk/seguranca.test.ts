@@ -248,6 +248,12 @@ describe("recusas de política, em português", () => {
     expect(motivoDoErro(JSON.stringify({ type: "JoinBlocked", reason }))).toBe(frase);
   });
 
+  it("privacidade por servidor do destinatário", () => {
+    expect(motivoDoErro({ type: "PrivacyRestricted" })).toBe(
+      "Esta pessoa não aceita conversas nem pedidos de amizade vindos dos servidores em comum.",
+    );
+  });
+
   it("nível de verificação diz o que falta cumprir", () => {
     expect(motivoDoErro({ type: "VerificationRequired", level: "High" })).toBe(
       "Este servidor exige 10 minutos como membro antes de falar.",
