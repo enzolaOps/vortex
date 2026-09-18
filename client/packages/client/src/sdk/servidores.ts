@@ -70,12 +70,26 @@ function motivo(e: unknown): string {
 /* ------------------------------------------------------------- convites */
 
 /**
- * O convite guardado entre a busca e o "entrar".
+ * Os convites buscados, entre a busca e o "entrar".
  *
  * Module-level e não no store: é o objeto do SDK, com o método `join` dentro,
  * e ele não pode sair daqui — a tela recebe o tipo `Convite`, que é domínio.
+ *
+ * ⚠ **Mapa por CÓDIGO, e não uma variável só.** Enquanto o único caminho até
+ * aqui era o modal, "o convite pendente" era sempre o último buscado. Com o
+ * embed no chat (D-EVT-40) há vários na tela ao mesmo tempo: uma linha que
+ * monta ao rolar sobrescreveria o convite que o modal está mostrando, e o
+ * botão "Entrar" levaria a pessoa para OUTRO servidor — sem erro nenhum.
+ * Entrar passa a dizer em qual código está entrando.
  */
-let pendente: ServerPublicInvite | undefined;
+const buscados = new Map<string, ServerPublicInvite>();
+
+/**
+ * Teto do mapa. Cada entrada é um objeto do SDK preso à sessão, e rolar por um
+ * canal cheio de convites acumularia um por linha — o erro nº 5 do briefing.
+ * O convite mais antigo sai; quem precisar dele busca de novo.
+ */
+const TETO_DE_CONVITES = 64;
 
 /**
  * Busca um convite pelo código.
@@ -109,7 +123,11 @@ export async function buscarConvite(
       return { erro: "Este tipo de convite ainda não é suportado aqui." };
     }
 
-    pendente = convite;
+    if (buscados.size >= TETO_DE_CONVITES) {
+      const maisAntigo = buscados.keys().next().value;
+      if (maisAntigo !== undefined) buscados.delete(maisAntigo);
+    }
+    buscados.set(convite.code, convite);
     return {
       codigo: convite.code,
       serverId: convite.serverId,
@@ -133,18 +151,42 @@ export async function buscarConvite(
 }
 
 /**
- * Entra no servidor do convite buscado.
+ * O que aconteceu ao tentar entrar.
  *
- * Devolve o ID para quem chamou navegar — este módulo não navega: `sdk/` traduz
- * protocolo, e para onde a pessoa vai é do store de navegação.
+ * ⚠ **União marcada, e não `string | undefined`.** Dois dos quatro desfechos
+ * não são falha nem sucesso: o pedido registrado (D-EVT-38) e o banimento
+ * (D-EVT-39) são ESTADOS que a tela desenha, com ícone e frase próprios.
+ * Enquanto os dois eram `undefined` mais um toast, o modal continuava
+ * mostrando o botão "Entrar no servidor" — quem foi banido clicava de novo, e
+ * quem já tinha pedido pedia duas vezes.
  */
-export async function entrarPorConvite(): Promise<string | undefined> {
-  if (!pendente) return undefined;
+export type ResultadoDeEntrada =
+  | { readonly tipo: "entrou"; readonly serverId: string }
+  | { readonly tipo: "pedido" }
+  | { readonly tipo: "banido" }
+  | { readonly tipo: "falhou"; readonly motivo: string };
+
+/**
+ * Entra no servidor de um convite já buscado.
+ *
+ * Devolve o desfecho para quem chamou navegar e desenhar — este módulo não
+ * navega: `sdk/` traduz protocolo, e para onde a pessoa vai é do store de
+ * navegação.
+ */
+export async function entrarPorConvite(
+  codigo: string,
+): Promise<ResultadoDeEntrada> {
+  const convite = buscados.get(codigo);
+  if (!convite) {
+    return { tipo: "falhou", motivo: "Busque o convite de novo." };
+  }
   try {
-    const servidor = await pendente.join();
-    pendente = undefined;
-    return servidor.id;
+    const servidor = await convite.join();
+    buscados.delete(codigo);
+    return { tipo: "entrou", serverId: servidor.id };
   } catch (e) {
+    const tipo = tipoDoErro(e);
+
     /*
       ⚠ **Aprovação manual volta como ERRO do protocolo, e não é falha.** O
       fork responde `JoinRequestPending` em vez de uma variante nova de
@@ -152,18 +194,26 @@ export async function entrarPorConvite(): Promise<string | undefined> {
       Aqui o pedido foi registrado, e dizer "Não deu para entrar" em vermelho
       mandaria a pessoa pedir de novo.
     */
-    if (tipoDoErro(e) === "JoinRequestPending") {
-      pendente = undefined;
-      toast({
-        tipo: "info",
-        titulo: "Pedido enviado",
-        descricao:
-          "Este servidor aprova entradas manualmente. Você entra assim que a moderação aprovar.",
-      });
-      return undefined;
+    if (tipo === "JoinRequestPending") {
+      buscados.delete(codigo);
+      return { tipo: "pedido" };
     }
-    toast({ tipo: "erro", titulo: "Não deu para entrar.", descricao: motivo(e) });
-    return undefined;
+
+    /*
+      ⚠ **Banido tem estado próprio, e o convite NÃO é descartado.** O código
+      continua válido — quem some da lista é a pessoa —, e um administrador
+      pode perdoar enquanto a tela está aberta. Apagar a entrada aqui obrigaria
+      a buscar de novo para tentar depois.
+
+      ⚠ **O motivo do banimento NÃO vem no fio.** `create_error!(Banned)` é um
+      envelope sem campo, e ler `GET /servers/{id}/bans` exige a permissão que
+      quem foi banido por definição não tem. O design escreve "Motivo
+      informado: divulgação em massa"; inventar um seria afirmar um fato sobre
+      uma decisão de moderação que ninguém tomou.
+    */
+    if (tipo === "Banned") return { tipo: "banido" };
+
+    return { tipo: "falhou", motivo: motivo(e) };
   }
 }
 

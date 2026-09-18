@@ -59,6 +59,20 @@ export function Conta() {
   );
 }
 
+/**
+ * Desativar e excluir — as duas, e a ordem é a do design.
+ *
+ * ⚠ **São ações diferentes, e o protocolo as separa** (`/auth/account/disable`
+ * contra `/delete`). Desativar some do app e volta ao entrar de novo; excluir
+ * manda um e-mail e apaga. Enquanto só a segunda existia, quem queria sumir
+ * por um tempo não tinha opção nenhuma — e a que estava na tela era a que não
+ * tem volta.
+ *
+ * ⚠ **O bloqueio por posse de servidor NÃO desabilita mais o botão.** Ele
+ * mudou de lugar para dentro do modal, onde há espaço para dizer QUAIS
+ * servidores e dar o botão de transferir de cada um. Um botão cinza com uma
+ * frase ao lado mandava a pessoa procurar sozinha o que a impedia.
+ */
 function ZonaDePerigo() {
   const dono = administraServidor();
 
@@ -66,14 +80,20 @@ function ZonaDePerigo() {
     <section className={css.bloco}>
       <h2 className={css.subtitulo}>Zona de perigo</h2>
       <p className={css.recado}>
+        Desativar some do app e volta a qualquer momento ao entrar de novo.
         {dono
-          ? "Transfira ou exclua os servidores que você administra antes de excluir a conta."
-          : "A exclusão é permanente. Um e-mail pede a confirmação; depois disso há 7 dias para cancelar."}
+          ? " A exclusão é permanente, e pede que você transfira ou exclua antes os servidores que administra."
+          : " A exclusão é permanente: um e-mail pede a confirmação, e depois disso há 7 dias para cancelar."}
       </p>
       <div className={css.acoes}>
         <Botao
+          variante="neutro"
+          onClick={() => abrirModal("desativarConta")}
+        >
+          Desativar conta
+        </Botao>
+        <Botao
           variante="perigoSutil"
-          disabled={dono}
           onClick={() => abrirModal("excluirConta")}
         >
           Excluir minha conta

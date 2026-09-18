@@ -146,6 +146,7 @@ import {
 } from "../store/sobrePessoas";
 import { Citacao } from "./Citacao";
 import { Embeds } from "./Embeds";
+import { ConviteNaMensagem } from "../servidores/ConviteNaMensagem";
 import { CrachaDeCargo } from "../presenca/NomeDoAutor";
 import { TagDoServidor } from "../presenca/TagDoServidor";
 import { TextoDaMensagem } from "./TextoDaMensagem";
@@ -1536,6 +1537,13 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                 achou sobre o que ela escreveu. */}
             {message.embeds.length > 0 ? (
               <Embeds embeds={message.embeds} />
+            ) : null}
+
+            {/* O convite, no mesmo lugar e pelo mesmo motivo do cartão de
+                link — com a diferença de que quem o resolve é o cliente, e
+                não o servidor. Ver `ConviteNaMensagem`. */}
+            {message.conviteCodigo !== undefined ? (
+              <ConviteNaMensagem codigo={message.conviteCodigo} />
             ) : null}
 
             {/*

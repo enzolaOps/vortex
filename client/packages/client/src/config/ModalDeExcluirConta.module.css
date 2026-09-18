@@ -1,0 +1,36 @@
+/* ============================================================
+   Excluir conta — a lista de servidores que bloqueiam
+   ------------------------------------------------------------
+   Ela só existe para quem é dona de algum. Cada linha carrega
+   o botão que resolve aquela linha: o bloqueio sem a lista era
+   uma frase que mandava a pessoa procurar sozinha.
+   ============================================================ */
+
+.servidores {
+  display: grid;
+  gap: var(--vx-space-04);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.servidor {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  padding-block: var(--vx-space-06);
+  padding-inline: var(--vx-space-10);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-2);
+}
+
+.nome {
+  flex: 1;
+  min-inline-size: 0;
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

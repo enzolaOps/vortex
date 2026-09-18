@@ -48,6 +48,7 @@ export const MODAIS = [
   "pasta",
   "perfil",
   "excluirConta",
+  "desativarConta",
   "transferirPropriedade",
   "autorizarQr",
   "atividades",

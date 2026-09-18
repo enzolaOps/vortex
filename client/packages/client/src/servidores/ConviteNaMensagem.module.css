@@ -1,0 +1,105 @@
+/* ============================================================
+   Convite no chat (D-EVT-40)
+   ------------------------------------------------------------
+   Irmão do cartão de link (`list/Embeds.module.css`) e de
+   propósito: os dois são "conteúdo de outro lugar" pendurado
+   numa mensagem, e dois desenhos diferentes para a mesma
+   posição fariam a timeline ler como duas timelines.
+   ============================================================ */
+
+/*
+  ⚠ **`surface-1` e não o `#14181E` que o design escreve.**
+
+  Aquele valor é `surface-2`, que é a superfície da TIMELINE — o mockup o usa
+  porque o painel de exemplo dele é `surface-3`. Um cartão do mesmo tom do
+  conteúdo por trás é o defeito que o chip de reação já teve nesta base. O
+  cartão de link ao lado resolveu isto afundando, e afundar é o gesto certo:
+  quem lê a conversa lê o que a pessoa escreveu e olha o cartão depois.
+
+  Raio 8 e barra de 3px em acento vêm do vizinho pelo mesmo motivo.
+*/
+.cartao {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-12);
+  max-inline-size: 460px;
+  padding-block: var(--vx-space-12);
+  padding-inline: var(--vx-space-14);
+  margin-block-start: var(--vx-space-08);
+  border-radius: var(--vx-radius-08);
+  border-inline-start: 3px solid var(--vx-accent);
+  background: var(--vx-surface-1);
+}
+
+/*
+  A caixa reservada enquanto o `GET /invites/{code}` não volta.
+
+  A altura é a do cartão montado (avatar de 40 mais o respiro de 12 em cima e
+  embaixo), então a linha não muda de tamanho quando a resposta chega. Sem
+  isto o virtualizador perderia a âncora por causa de uma requisição.
+*/
+.esqueleto {
+  max-inline-size: 460px;
+  block-size: calc(var(--vx-avatar-md) + var(--vx-space-12) * 2);
+  margin-block-start: var(--vx-space-08);
+  border-radius: var(--vx-radius-08);
+  border-inline-start: 3px solid var(--vx-border-subtle);
+  background: var(--vx-surface-1);
+}
+
+.marca {
+  flex: none;
+}
+
+.textos {
+  flex: 1;
+  min-inline-size: 0;
+  display: grid;
+  gap: var(--vx-space-02);
+}
+
+/* "Convite para servidor" — diz o que o cartão é antes de dizer qual. */
+.sobrancelha {
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+}
+
+.nome {
+  font-size: var(--vx-size-base);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detalhe {
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+}
+
+.acao {
+  flex: none;
+}
+
+/*
+  O que sobrou do botão depois de "Entrar" — pedido registrado ou banimento.
+
+  Texto e não botão: as duas são condições, não ações, e um alvo que não faz
+  nada é o defeito que o lint de `onSelect` existe para matar. O tom sai do
+  `data-tom` porque a caixa é a mesma; só a cor da palavra muda.
+*/
+.desfecho {
+  flex: none;
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  text-align: end;
+  max-inline-size: 96px;
+}
+
+.desfecho[data-tom="aviso"] {
+  color: var(--vx-warning);
+}
+
+.desfecho[data-tom="perigo"] {
+  color: var(--vx-danger-text);
+}

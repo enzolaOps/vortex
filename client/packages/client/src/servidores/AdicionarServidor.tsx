@@ -6,6 +6,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
+import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
 import { CartaoDeOpcao } from "../components/ui/CartaoDeOpcao";
@@ -503,6 +504,18 @@ export function PreviaDoConvite({
   aoVoltar?: () => void;
 }) {
   const [entrando, setEntrando] = useState(false);
+  /**
+   * O que aconteceu ao tentar entrar, quando não foi entrar.
+   *
+   * ⚠ **Estado da TELA, e antes eram dois toasts.** O pedido de aprovação
+   * (D-EVT-38) e o banimento (D-EVT-39) sumiam em cinco segundos deixando o
+   * botão "Entrar no servidor" aceso — quem foi banido clicava de novo, e quem
+   * já tinha pedido pedia duas vezes. Aqui eles substituem o botão, que é a
+   * única forma de a interface parar de oferecer o que não vai acontecer.
+   */
+  const [desfecho, setDesfecho] = useState<"pedido" | "banido" | undefined>(
+    undefined,
+  );
 
   return (
     <div className={css.corpo}>
@@ -562,38 +575,67 @@ export function PreviaDoConvite({
         </div>
       </div>
 
-      <Botao
-        variante="primario"
-        disabled={entrando}
-        onClick={() => {
-          /*
-            Já sou membro: abre em vez de entrar.
+      {desfecho === "pedido" ? (
+        <Banner tom="aviso" titulo="Pedido enviado" role="status">
+          Este servidor aprova entradas manualmente. Você recebe uma DM quando
+          um moderador responder.
+        </Banner>
+      ) : desfecho === "banido" ? (
+        /*
+          ⚠ **O design escreve "Motivo informado: divulgação em massa" e o
+          motivo NÃO vem no fio.** `create_error!(Banned)` é um envelope sem
+          campo, e `GET /servers/{id}/bans` exige a permissão que quem foi
+          banido por definição não tem. Escrever um motivo inventado seria
+          afirmar um fato sobre uma decisão de moderação que ninguém tomou.
+        */
+        <Banner tom="perigo" titulo="Você foi banida deste servidor" role="alert">
+          Só um administrador do servidor pode reverter isto.
+        </Banner>
+      ) : (
+        <Botao
+          variante="primario"
+          disabled={entrando}
+          onClick={() => {
+            /*
+              Já sou membro: abre em vez de entrar.
 
-            Chamar `join` de novo não quebra nada — o protocolo é idempotente
-            aqui — mas o botão dizendo "Entrar" para quem já está dentro é a
-            interface mentindo sobre o que vai acontecer.
-          */
-          if (convite.jaSouMembro) {
-            selecionarServidor(convite.serverId);
-            aoFechar();
-            return;
-          }
-          setEntrando(true);
-          void entrarPorConvite()
-            .then((id) => {
-              if (!id) return;
-              selecionarServidor(id);
+              Chamar `join` de novo não quebra nada — o protocolo é idempotente
+              aqui — mas o botão dizendo "Entrar" para quem já está dentro é a
+              interface mentindo sobre o que vai acontecer.
+            */
+            if (convite.jaSouMembro) {
+              selecionarServidor(convite.serverId);
               aoFechar();
-            })
-            .finally(() => setEntrando(false));
-        }}
-      >
-        {convite.jaSouMembro
-          ? "Abrir"
-          : entrando
-            ? "Entrando…"
-            : "Entrar no servidor"}
-      </Botao>
+              return;
+            }
+            setEntrando(true);
+            void entrarPorConvite(convite.codigo)
+              .then((r) => {
+                if (r.tipo === "entrou") {
+                  selecionarServidor(r.serverId);
+                  aoFechar();
+                  return;
+                }
+                if (r.tipo === "falhou") {
+                  toast({
+                    tipo: "erro",
+                    titulo: "Não deu para entrar.",
+                    descricao: r.motivo,
+                  });
+                  return;
+                }
+                setDesfecho(r.tipo);
+              })
+              .finally(() => setEntrando(false));
+          }}
+        >
+          {convite.jaSouMembro
+            ? "Abrir"
+            : entrando
+              ? "Entrando…"
+              : "Entrar no servidor"}
+        </Botao>
+      )}
 
       {aoVoltar ? (
         <Botao variante="sutil" onClick={aoVoltar} disabled={entrando}>
@@ -603,7 +645,7 @@ export function PreviaDoConvite({
 
       {/* Depois do botão e apagada: é condição, não decisão — a referência a
           põe em caption justamente para não competir com a ação. */}
-      {convite.jaSouMembro ? null : (
+      {convite.jaSouMembro || desfecho !== undefined ? null : (
         <p className={css.regras}>
           Ao entrar você aceita as regras do servidor.
         </p>
