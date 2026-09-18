@@ -69,5 +69,15 @@ mkdir -p "$(dirname "$saida")"
 # Path absoluto: o bsdtar roda DENTRO de `$pkg`, e `entrega/...` relativo
 # apontava para um diretório que não existe — a v1.3.2 Linux abortou aqui
 # e nem o .deb foi anexado.
-( cd "$pkg" && bsdtar --uid 0 --gid 0 -c --zstd -f "$saida" . )
+#
+# ⚠ **Não arquivar `.`.** `bsdtar -c .` prefixa tudo com `./`, e o pacman
+# compara o nome com `.PKGINFO` — `./.PKGINFO` vira "missing package
+# metadata" / "invalid or corrupted package". Listar `.PKGINFO` primeiro
+# é o que o makepkg faz.
+( cd "$pkg" && bsdtar --uid 0 --gid 0 -c --zstd -f "$saida" .PKGINFO opt usr )
+primeiro=$(bsdtar -tf "$saida" | head -n 1)
+if [ "$primeiro" != ".PKGINFO" ]; then
+  echo "empacotar-arch: primeiro arquivo é '$primeiro', tem de ser .PKGINFO" >&2
+  exit 1
+fi
 echo "$saida"
