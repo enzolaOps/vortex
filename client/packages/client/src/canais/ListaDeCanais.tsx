@@ -46,7 +46,22 @@ import {
   type EstadoDeVoz,
   type ParticipanteDeVoz,
 } from "../sdk/domain";
-import { categorias } from "../sdk/adapter";
+import { categorias, usuarioLocalId, vozPorCanal } from "../sdk/adapter";
+import { moverParaCanalDeVoz } from "../sdk/cargos";
+import {
+  alvoDoArraste,
+  assinarArrasteDeVoz,
+  comecarArrasteDeVoz,
+  entrarNoAlvo,
+  lerArrasteDeVoz,
+  nomeArrastado,
+  sairDoAlvo,
+  terminarArrasteDeVoz,
+  TEXTO_DO_VEREDITO,
+  useArrastandoAlguem,
+  vereditoDeSoltura,
+  vereditoDoAlvo,
+} from "../store/arrasteDeVoz";
 import { assinarColapso, colapsadas, definirColapsoDeTodas, alternarColapso } from "../store/colapso";
 import {
   assinarSilencio,
@@ -187,7 +202,64 @@ const Canal = memo(function Canal({
 
   return (
     <>
-    <div className={css.linhaDeCanal}>
+    <div
+      className={css.linhaDeCanal}
+      /*
+        ⚠ **Os handlers moram no WRAPPER e não no `<button>`.** O botão é o
+        filho do `ContextMenuTrigger asChild`, e o Radix funde handlers ali —
+        pendurar mais quatro nele é o caminho mais curto para um deles sumir na
+        próxima mexida no menu. O wrapper já é o alvo do `:hover` das ações de
+        linha, então ele é a caixa da LINHA por definição.
+
+        ⚠ **`dragover` não toca o store**, de propósito: o navegador o dispara
+        a cada ~50ms enquanto o ponteiro fica parado. Quem decide é o
+        `dragenter`, uma vez; aqui só se lê o veredito já escrito.
+      */
+      onDragEnter={
+        canal.tipo === "voz"
+          ? () => {
+              const a = lerArrasteDeVoz();
+              if (!a || a.deCanal === id) return;
+              entrarNoAlvo(
+                id,
+                vereditoDeSoltura({
+                  ocupados: vozPorCanal.getSnapshot(id)?.length ?? 0,
+                  limite: canal.limite,
+                  podeConectar: pode(id, "conectar"),
+                  podeMover: pode(id, "moverMembros"),
+                }),
+              );
+            }
+          : undefined
+      }
+      onDragOver={
+        canal.tipo === "voz"
+          ? (evento) => {
+              if (alvoDoArraste() !== id) return;
+              if (vereditoDoAlvo() !== "valido") return;
+              /* `preventDefault` é o que diz ao navegador "aqui pode soltar".
+                 Sem ele o cursor fica em `not-allowed` e o `drop` não vem —
+                 que é exatamente o que queremos nos vereditos de recusa. */
+              evento.preventDefault();
+              evento.dataTransfer.dropEffect = "move";
+            }
+          : undefined
+      }
+      onDragLeave={canal.tipo === "voz" ? () => sairDoAlvo(id) : undefined}
+      onDrop={
+        canal.tipo === "voz"
+          ? (evento) => {
+              evento.preventDefault();
+              const a = lerArrasteDeVoz();
+              const valido = alvoDoArraste() === id && vereditoDoAlvo() === "valido";
+              terminarArrasteDeVoz();
+              if (!a || !valido) return;
+              void moverParaCanalDeVoz(a.serverId, a.userId, id);
+            }
+          : undefined
+      }
+    >
+    {canal.tipo === "voz" ? <AlvoDeSoltura channelId={id} /> : null}
     <MenuDeContexto
       gatilho={
         <button
@@ -208,8 +280,38 @@ const Canal = memo(function Canal({
               selecionarCanal(id);
               return;
             }
-            if (conectadoAqui) definirPalco({ tipo: "grade" });
-            else void entrarNaChamada(id);
+            if (conectadoAqui) {
+              definirPalco({ tipo: "grade" });
+              return;
+            }
+            /*
+              ⚠ **Sala cheia não TENTA entrar, e antes tentava.** O servidor já
+              barra (`voice_join.rs` devolve `CannotJoinCall`), mas o caminho
+              até lá é: pedir o nó mais rápido, pedir o token, e só então ouvir
+              não — com um toast de erro no fim de uma ida e volta de rede.
+
+              O que ele faz no lugar é o que o design manda: *"continua clicável
+              para abrir chat embutido"*. O selo `CHEIO` ao lado já diz por que
+              não entrou; abrir a conversa é resposta visível, e não silêncio.
+
+              ⚠ **`ManageChannel` fura o teto no SERVIDOR, e aqui não.**
+              `voice_join.rs` isenta quem administra o canal, e a isenção NÃO é
+              espelhada — é a mesma decisão já escrita no veredito de soltura
+              do arraste: o teto é escolha de quem configurou a sala, e oferecer
+              a exceção no alvo que todo mundo clica a transforma no caminho
+              normal. Duas regras diferentes para o mesmo teto, uma no clique e
+              outra no arraste, seria pior que a divergência contra o servidor.
+
+              Leitura sem assinatura: quem assina a lotação é o `TetoDaSala`, e
+              fazer a linha assiná-la a repintaria a cada entrada e saída de
+              gente numa sala que ela só nomeia.
+            */
+            const teto = canal.limite ?? 0;
+            if (teto > 0 && (vozPorCanal.getSnapshot(id)?.length ?? 0) >= teto) {
+              selecionarCanal(id);
+              return;
+            }
+            void entrarNaChamada(id);
           }}
         >
           {/*
@@ -409,13 +511,31 @@ const Canal = memo(function Canal({
  */
 const NaSala = memo(function NaSala({
   serverId,
+  channelId,
   participante,
 }: {
   serverId: string;
+  channelId: string;
   participante: ParticipanteDeVoz;
 }) {
   const membro = useMembro(chaveDeMembro(serverId, participante.userId));
   const Icone = ICONE_DE_VOZ[participante.estado];
+
+  /*
+    ⚠ **Só quem tem "Mover membros" arrasta, e é instrução do design.** Sem a
+    condição, todo mundo poderia começar um arraste que só o servidor
+    recusaria — e um gesto que parece funcionar e volta 403 é pior que um
+    gesto que não começa.
+
+    `abaixoDeMim` é a mesma hierarquia que o servidor confere (`NotElevated`),
+    e a mesma que o menu do participante já usa. Você não se arrasta: mover-se
+    é entrar no outro canal, que é um clique.
+  */
+  const podeArrastar =
+    serverId !== "" &&
+    participante.userId !== usuarioLocalId() &&
+    membro?.abaixoDeMim === true &&
+    pode(channelId, "moverMembros");
 
   /*
     ⚠ **Quem está falando AGORA — e a coluna nunca soube disso.**
@@ -442,6 +562,28 @@ const NaSala = memo(function NaSala({
       className={css.naSala}
       data-falando={falandoAgora}
       data-participante={participante.userId}
+      data-arrastavel={podeArrastar}
+      draggable={podeArrastar}
+      onDragStart={(evento) => {
+        /*
+          ⚠ **O `setData` não é cerimônia:** sem uma carga o Firefox nem
+          inicia o arraste. O que vale é o store — o `dataTransfer` só
+          atravessa o processo do navegador, e o que precisamos (servidor,
+          sala de origem, nome) não cabe numa string sem virar um segundo
+          formato para manter em dia.
+        */
+        evento.dataTransfer.effectAllowed = "move";
+        evento.dataTransfer.setData("text/plain", participante.userId);
+        comecarArrasteDeVoz({
+          userId: participante.userId,
+          serverId,
+          nome: membro?.displayName ?? participante.userId,
+          deCanal: channelId,
+        });
+      }}
+      /* Soltar fora de qualquer alvo também termina — `dragend` é o único
+         evento que chega nos dois casos, inclusive no Esc durante o arraste. */
+      onDragEnd={() => terminarArrasteDeVoz()}
     >
       <Avatar
         id={participante.userId}
@@ -472,14 +614,31 @@ const NaSala = memo(function NaSala({
         ouvindo" é o caso comum — o padrão não precisa de marca. O rótulo
         acompanha porque estado nunca é só forma.
       */}
-      {participante.estado !== "voz" ? (
+      {/*
+        ⚠ **Transmitindo vira o selo LIVE, e não o glifo ◧.**
+
+        O design põe o selo exatamente nesta posição da linha (`rgba(232,89,107,
+        0.2)` atrás de `#F0808D`, 9/700), e a razão de ele ganhar do glifo é de
+        legibilidade: numa coluna de 232px, `LIVE` se lê sem conhecer a
+        convenção e `◧` obriga a consultar a legenda.
+
+        ⚠ **E "LIVE" aqui significa TRANSMITINDO, não "com espectadores".** A
+        legenda do design escreve "stream com espectadores", e essa contagem
+        não existe: `UserVoiceState` tem `screensharing` e nada sobre quem
+        assiste, e o `livekit-client` só conhece as assinaturas da PRÓPRIA
+        conexão. Contar espectadores é webhook do LiveKit → serviço `api` →
+        campo novo, ou seja fork de backend. A divergência está registrada no
+        `CLAUDE.md`; o que o selo afirma é verdade sobre o dado que existe.
+      */}
+      {participante.estado === "tela" ? (
+        <Selo forma="etiqueta" tom="perigoSuave" className={css.aoVivo}>
+          LIVE
+          <span className="sr-only"> — compartilhando a tela</span>
+        </Selo>
+      ) : participante.estado === "video" ? (
         <>
           <Icone aria-hidden className={css.estadoDeVoz} />
-          <span className="sr-only">
-            {participante.estado === "tela"
-              ? "compartilhando a tela"
-              : "com a câmera ligada"}
-          </span>
+          <span className="sr-only">com a câmera ligada</span>
         </>
       ) : null}
 
@@ -513,13 +672,34 @@ const NaSala = memo(function NaSala({
         "não pode falar aqui" é decisão de quem modera, e só quem modera
         desfaz. Quem espera resposta reage de forma oposta aos dois.
       */}
-      {participante.mudoPeloServidor ? (
+      {/*
+        ⚠ **Surdo pelo servidor chegava no snapshot e NUNCA era desenhado.**
+        `surdoPeloServidor` existe em `ParticipanteDeVoz` desde que o menu do
+        participante precisou saber se o item estava marcado — campo lido,
+        mapeado e invisível, a mesma família do `statusTexto` da member list.
+
+        Ele vem ANTES do microfone e a sigla `SRV` sai UMA vez mesmo com os
+        dois: quem impôs foi o mesmo servidor, e repetir três letras numa linha
+        de 232px gastaria largura para dizer o que já está dito.
+      */}
+      {participante.mudoPeloServidor || participante.surdoPeloServidor ? (
         <>
-          <MicrophoneSlash aria-hidden className={css.estadoSrv} />
+          {participante.surdoPeloServidor ? (
+            <SpeakerSlash aria-hidden className={css.estadoSrv} />
+          ) : null}
+          {participante.mudoPeloServidor ? (
+            <MicrophoneSlash aria-hidden className={css.estadoSrv} />
+          ) : null}
           <span className={css.srv} aria-hidden>
             SRV
           </span>
-          <span className="sr-only">silenciado pelo servidor</span>
+          <span className="sr-only">
+            {participante.surdoPeloServidor && participante.mudoPeloServidor
+              ? "silenciado e ensurdecido pelo servidor"
+              : participante.surdoPeloServidor
+                ? "ensurdecido pelo servidor"
+                : "silenciado pelo servidor"}
+          </span>
         </>
       ) : null}
 
@@ -703,6 +883,48 @@ const TetoDaSala = memo(function TetoDaSala({
   );
 });
 
+/**
+ * O canal-alvo durante um arraste — anel, véu e "soltar X aqui".
+ *
+ * ⚠ **Componente próprio porque ele ASSINA o arraste, e a linha do canal não.**
+ * Pôr as duas subscrições no corpo de `Canal` faria toda linha de voz do
+ * servidor re-renderizar — glifo, nome, contador, cronômetro, menu e as duas
+ * ações de hover — a cada `dragenter`. Aqui acorda um `<span>` que só existe
+ * durante o arraste. É a mesma separação do `TetoDaSala` e do `Cronometro`.
+ *
+ * `arrastando` é booleano e `souOAlvo` também: `useSyncExternalStore` compara
+ * por `Object.is`, então entrar num alvo acorda DUAS linhas — a que deixou de
+ * ser e a que passou a ser — e nenhuma outra.
+ *
+ * ⚠ **`pointer-events: none` no overlay.** Sem isso ele vira o alvo dos
+ * eventos de arraste e o `dragleave` do wrapper dispara no instante em que o
+ * anel aparece, num ciclo que pisca.
+ */
+const AlvoDeSoltura = memo(function AlvoDeSoltura({
+  channelId,
+}: {
+  channelId: string;
+}) {
+  const arrastando = useArrastandoAlguem();
+  const souOAlvo = useSyncExternalStore(
+    assinarArrasteDeVoz,
+    () => alvoDoArraste() === channelId,
+  );
+  const veredicto = useSyncExternalStore(assinarArrasteDeVoz, vereditoDoAlvo);
+
+  if (!arrastando || !souOAlvo) return null;
+
+  /* O nome é lido sem assinar: ele é escrito no mesmo instante em que
+     `arrastando` passa a ser verdadeiro, e a subscrição acima já é o que
+     acorda este componente. Uma terceira assinatura para um valor que só muda
+     junto com a primeira seria trabalho por nada. */
+  return (
+    <span className={css.alvoDeSoltura} data-veredito={veredicto} aria-hidden>
+      {TEXTO_DO_VEREDITO[veredicto](nomeArrastado())}
+    </span>
+  );
+});
+
 const Sala = memo(function Sala({
   channelId,
   serverId,
@@ -722,7 +944,12 @@ const Sala = memo(function Sala({
     <ComMenuDoParticipante channelId={channelId}>
       <ul className={css.sala}>
         {dentro.map((p) => (
-          <NaSala key={p.userId} serverId={serverId} participante={p} />
+          <NaSala
+            key={p.userId}
+            serverId={serverId}
+            channelId={channelId}
+            participante={p}
+          />
         ))}
       </ul>
     </ComMenuDoParticipante>

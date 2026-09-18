@@ -281,7 +281,13 @@ export function MenuDoUsuario({
             sem submenu era.
           */}
           {emVoz && podeMover ? (
-            <SubmenuDeVoz serverId={serverId} userId={userId} />
+            /*
+              "Desconectar da voz" fecha o submenu, como o design o desenha —
+              e só aqui: o menu do participante de voz já tem o item dele no
+              bloco de moderação, e dois alvos para a mesma ação divergem no
+              primeiro que muda.
+            */
+            <SubmenuDeVoz serverId={serverId} userId={userId} comDesconectar />
           ) : null}
           {/*
             ⚠ **O rótulo NÃO alterna com o estado.** "Silenciar" e

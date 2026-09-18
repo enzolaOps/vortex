@@ -5,13 +5,18 @@ import {
   Rows,
   VideoCamera,
 } from "../components/ui/icones";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/Popover";
 import { AtalhosDoSoundboard } from "../expressoes/AtalhosDoSoundboard";
 import { Soundboard } from "../seletores/Soundboard";
 
-import { alternarCamera, alternarTela, sairDaChamada } from "../sdk/chamada";
+import {
+  alternarCamera,
+  alternarTela,
+  estatisticasDeVoz,
+  sairDaChamada,
+} from "../sdk/chamada";
 import { assinarChamada, lerChamada, type QualidadeDeVoz } from "../store/chamada";
 import { abrirModal } from "../store/modais";
 import { cn } from "../lib/cn";
@@ -85,6 +90,57 @@ const BARRAS_ACESAS: Record<QualidadeDeVoz, number> = {
  * nenhum medidor de sinal faz e o que lê como defeito de renderização.
  * Reproduzir seria copiar um deslize; a rampa é o que a forma significa.
  */
+/**
+ * O RTT, ao lado do estado — o "· 42 ms" do design.
+ *
+ * ⚠ **Componente próprio, e ele é o único da faixa que acorda por segundo.**
+ * Pôr o `setInterval` na `FaixaDeVoz` faria a faixa inteira re-renderizar —
+ * destino, medidor, e os cinco botões — sessenta vezes por minuto; pôr o
+ * número no store da chamada acordaria também o cartão e a coluna. É a mesma
+ * separação do `Cronometro` e do `falando`: o que muda depressa não mora onde
+ * muita gente escuta.
+ *
+ * ⚠ **O número é MEDIDO, e isto não desfaz a decisão registrada.** O
+ * `CLAUDE.md` recusa derivar milissegundos de `ConnectionQuality`, que é
+ * CLASSIFICAÇÃO — e continua recusando: `estatisticasDeVoz` lê
+ * `currentRoundTripTime` do par de candidatos NOMINADO do `RTCStatsReport`,
+ * que é latência de verdade. O adjetivo fica: ele responde "dá para falar?",
+ * o número responde "quanto?", e quem troca de rede quer os dois.
+ *
+ * Um segundo entre amostras, como no overlay de debug: `getStats()` percorre
+ * todos os transceptores e a latência de rede não muda em 16ms.
+ *
+ * Ausente enquanto não há amostra — e ausente é o certo, não "0 ms": o RTT só
+ * existe depois de o ICE nomear um par, e afirmar zero seria o melhor caso
+ * possível escrito na tela exatamente quando nada foi medido.
+ */
+function Rtt() {
+  const [ms, setMs] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    let vivo = true;
+    const amostrar = () => {
+      void estatisticasDeVoz().then((v) => {
+        if (vivo) setMs(v);
+      });
+    };
+    amostrar();
+    const t = setInterval(amostrar, 1000);
+    return () => {
+      vivo = false;
+      clearInterval(t);
+    };
+  }, []);
+
+  if (ms === undefined) return null;
+  return (
+    <span className={css.rtt}>
+      {` · ${String(ms)} ms`}
+      <span className="sr-only"> de latência</span>
+    </span>
+  );
+}
+
 function Medidor({ acesas }: { acesas: number }) {
   return (
     <span className={css.medidor} aria-hidden>
@@ -160,6 +216,10 @@ export function FaixaDeVoz() {
                 justamente quem mais precisa saber que a linha caiu. */}
             <span className={css.ponto} aria-hidden />
             {estado}
+            {/* Só DENTRO da sala: durante "entrando…" e "reconectando…" o RTT
+                seria o da conexão anterior, e o estado da conexão já ganha do
+                da qualidade pela mesma razão. */}
+            {chamada.estado === "dentro" ? <Rtt /> : null}
           </span>
 
           <span className={css.lugar}>
