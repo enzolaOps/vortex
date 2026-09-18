@@ -8,12 +8,13 @@ import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } fro
 
 import { remedir } from "../lib/remedir";
 import { aoTerminarArraste, estaArrastando } from "../store/arraste";
+import { MenuDeContexto } from "../components/ui/MenuDeContexto";
 import {
-  ContextMenu,
-  ContextMenuTrigger,
-} from "../components/ui/ContextMenu";
+  acaoDaTecla,
+  executarAtalhoDeMensagem,
+} from "../menus/atalhosDaMensagem";
 import { ID_DO_NOME_DO_CANAL } from "../canais/CabecalhoDeCanal";
-import { definirAlvoDoMenu } from "../store/menuDeMensagem";
+import { mirarAlvoDoMenu } from "../store/menuDeMensagem";
 import {
   lerFocoDeMensagem,
   limparFocoDeMensagem,
@@ -1165,36 +1166,40 @@ export function MessageList({
     }
 
     /*
-      Abrir o menu da linha focada, sem depender do navegador.
+      Os atalhos que o MENU exibe, agora com handler.
 
-      `Shift+F10` e a tecla de menu JÁ funcionam pelo caminho nativo: com o
-      `article` focável, o navegador dispara `contextmenu` nele, a linha escreve
-      o alvo e o `Trigger` abre. Mas isso é comportamento do navegador, e eu não
-      consegui exercitá-lo por automação — dispatch de tecla por CDP não passa
-      pela tradução que gera o evento.
+      ⚠ **`R`, `E`, `⌫` e `⇧⌘C` estavam escritos ao lado dos itens e não
+      faziam nada** — a auditoria de clique direito os mediu como "atalhos
+      exibidos sem handler". Chamam as MESMAS funções dos itens, e por isso
+      não podem divergir em permissão. Ver `menus/atalhosDaMensagem.ts`.
 
-      Então o caminho garantido é este: `Enter` sintetiza o mesmo `contextmenu`
-      que o clique direito envia, no mesmo elemento. Nada de segundo menu e nada
-      de segunda lista de itens para manter em sincronia — é o mesmo evento pelo
-      mesmo caminho, e por isso não pode divergir do que o ponteiro faz.
-
-      As coordenadas são as da linha, não zero: o Radix ancora o menu no ponto
-      do evento, e `(0,0)` o jogaria no canto da janela, longe da mensagem que
-      ele age sobre.
+      ⚠ **Só com uma LINHA focada**, e o `preventDefault` é condicional: com o
+      foco no container, `Backspace` continua sendo do navegador; e quando a
+      ação não é permitida (editar mensagem alheia), a tecla passa em vez de
+      ser engolida em silêncio.
     */
-    if (naLinha && (evento.key === "Enter" || evento.key === "ContextMenu")) {
-      evento.preventDefault();
-      const caixa = alvo.getBoundingClientRect();
-      alvo.dispatchEvent(
-        new MouseEvent("contextmenu", {
-          bubbles: true,
-          cancelable: true,
-          clientX: Math.round(caixa.left + 8),
-          clientY: Math.round(caixa.top + 8),
-        }),
-      );
-      return;
+    if (naLinha) {
+      const acao = acaoDaTecla(evento);
+      const alvoDaLinha = alvo.dataset.menuMensagem;
+      if (acao && alvoDaLinha !== undefined) {
+        if (executarAtalhoDeMensagem(acao, alvoDaLinha)) {
+          evento.preventDefault();
+          return;
+        }
+      }
     }
+
+    /*
+      ⚠ **`Enter`, tecla Menu e `Shift+F10` saíram daqui e viraram mecanismo.**
+
+      Este bloco sintetizava o `contextmenu` que o clique direito envia, e
+      estava certo — mas só existia na timeline: a member list, a voz, o rail e
+      a coluna de canais não tinham caminho de teclado nenhum. A mesma síntese
+      mora agora em `MenuDeContexto`, que a aplica às seis superfícies, e a
+      linha continua abrindo com `Enter` por causa do `abrirComEnter` lá.
+
+      O que ficou aqui são as SETAS, que são navegação da lista e não do menu.
+    */
 
     if (ids.length === 0) return;
 
@@ -1389,11 +1394,16 @@ export function MessageList({
       árvores de menu do Radix criadas e destruídas por segundo enquanto
       ninguém tinha aberto menu nenhum.
 
-      O `Trigger` envolve o container rolável, então o clique direito abre no
-      ponteiro como antes. Quem é o alvo vem do store, escrito pela linha.
+      O gatilho envolve o container rolável, então o clique direito abre no
+      ponteiro como antes. Quem é o alvo, `mirarAlvoDoMenu` resolve do DOM —
+      e é o mesmo caminho para ponteiro, toque longo e tecla Menu. Fora de uma
+      linha não há alvo, e o menu não abre: caixa vazia é pior que nenhuma
+      resposta.
     */
-    <ContextMenu>
-      <ContextMenuTrigger asChild>
+    <MenuDeContexto
+      mirar={mirarAlvoDoMenu}
+      abrirComEnter
+      gatilho={
     <div
       ref={scrollRef}
       role="log"
@@ -1407,24 +1417,6 @@ export function MessageList({
       aria-labelledby={ID_DO_NOME_DO_CANAL}
       aria-live="polite"
       aria-relevant="additions"
-      /*
-        Limpa o alvo na CAPTURA, antes de a linha escrever o seu na bolha.
-
-        Sem isto, clique direito no vão entre linhas abriria o menu com o alvo
-        do clique anterior, e "Copiar texto" copiaria outra mensagem. Bug que
-        não dá erro e só aparece quando alguém repara que colou coisa errada.
-
-        E fora de uma linha o menu não abre. Isto é decidível AQUI, na captura,
-        porque a pergunta é sobre o alvo do evento e não sobre o que a bolha
-        vai escrever — sem `preventDefault` o Radix abriria uma caixa vazia,
-        que é pior que nenhuma resposta.
-      */
-      onContextMenuCapture={(evento) => {
-        definirAlvoDoMenu(null);
-        if (!(evento.target as Element).closest("article")) {
-          evento.preventDefault();
-        }
-      }}
       // Região que rola e não recebe foco é inoperável por teclado: setas e
       // Page Down agem sobre o que está focado. Zero e não menos um — a
       // parada de tabulação É o recurso.
@@ -1553,14 +1545,14 @@ export function MessageList({
         </div>
       </div>
     </div>
-      </ContextMenuTrigger>
-
+      }
+    >
       <MenuDaMensagem />
 
       {/* Um seletor de emoji para a lista inteira — ver o componente: a barra
           de ações e o "＋" são montados em toda linha, e um `Popover.Root` em
           cada seria o custo que tirou o `ContextMenu` da linha. */}
       <SeletorDeReacaoDaLista />
-    </ContextMenu>
+    </MenuDeContexto>
   );
 }

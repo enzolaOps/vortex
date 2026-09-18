@@ -1,14 +1,19 @@
+import { useSyncExternalStore } from "react";
+
 import {
+  ContextMenuCheckboxItem,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
 } from "../components/ui/ContextMenu";
+import { Deslizante } from "../components/ui/Deslizante";
 import {
   EnvelopeSimple,
   Hammer,
   Note,
   PencilSimple,
   Phone,
+  PhoneX,
   ProhibitInset,
   SignOut,
   UserCircle,
@@ -25,12 +30,20 @@ import { administrar } from "../store/administracao";
 import {
   useMembro,
   useServidorAtivo,
+  useVozDoCanal,
 } from "../store/hooks";
 import {
   abrirConversa,
   lerLocal,
 } from "../store/navegacao";
 import { alternarSilencioDe } from "../store/sobrePessoas";
+import {
+  assinarVolume,
+  definirVolume,
+  lerVolume,
+  VOLUME_MAXIMO,
+} from "../store/volumesDeVoz";
+import { moderarVoz } from "../sdk/cargos";
 import { menuLargo } from "../components/ui/menu";
 import { entrarNaChamada } from "../sdk/chamada";
 import { abrirConversaCom } from "../sdk/social";
@@ -74,14 +87,47 @@ import css from "./MenuDoUsuario.module.css";
  * "você não pode banir esta pessoa PORQUE ela está acima de você" é diferente
  * de esconder o item e deixar a pessoa procurando.
  */
-export function MenuDoUsuario({ userId }: { userId: string }) {
-  const serverId = useServidorAtivo();
+export function MenuDoUsuario({
+  userId,
+  serverId: serverIdDado,
+  voz,
+}: {
+  userId: string;
+  /**
+   * O servidor, quando quem abre o menu sabe qual.
+   *
+   * ⚠ **A sala de voz e o popout NÃO estão no servidor ativo.** Ler o servidor
+   * da navegação funciona na timeline e na member list e mente nas outras
+   * duas: numa chamada aberta com outro servidor selecionado, moderar agiria
+   * sobre o servidor errado — ou, numa DM em chamada, sobre um que não existe.
+   */
+  serverId?: string;
+  /**
+   * O canal da SALA, quando o menu é aberto de dentro da voz.
+   *
+   * ⚠ **A voz tinha um menu PRÓPRIO, e era a terceira variante da mesma
+   * pessoa.** A timeline e a member list já compartilhavam este; a sala
+   * respondia volume, silêncio local, mover, mudo/surdo do servidor e
+   * desconectar — sem "ver perfil" completo, sem cargos, sem apelido, sem
+   * castigo. O `CLAUDE.md` já tinha a regra: dois menus com os mesmos itens
+   * divergem no primeiro que ganha um item novo.
+   */
+  voz?: string;
+}) {
+  const ativo = useServidorAtivo();
+  const serverId = serverIdDado ?? ativo;
   const membro = useMembro(chaveDeMembro(serverId, userId));
   const souEu = userId === usuarioLocalId();
   /* Canal ativo para as permissões — moderação é resolvida por canal em todo
      o resto do app, e este menu não pode ser a exceção. */
+  /*
+    O canal que responde às permissões: o da SALA quando o menu nasce na voz,
+    senão o canal aberto. Moderação é resolvida por canal em todo o resto do
+    app, e este menu não pode ser a exceção.
+  */
   const local = lerLocal();
-  const canalId = local.tipo === "servidor" ? (local.channelId ?? "") : "";
+  const canalId =
+    voz ?? (local.tipo === "servidor" ? (local.channelId ?? "") : "");
 
   /*
     As três perguntas que a fase 6 destravou.
@@ -252,6 +298,23 @@ export function MenuDoUsuario({ userId }: { userId: string }) {
         </>
       ) : null}
 
+      {/*
+        O bloco de VOZ — só quando o menu nasce dentro de uma sala.
+
+        Componente próprio porque ele assina três coisas (volume, sala,
+        silêncio) que não existem fora da voz: com os hooks aqui em cima, todo
+        menu de usuário da timeline pagaria por elas.
+      */}
+      {voz !== undefined ? (
+        <BlocoDeVoz
+          userId={userId}
+          channelId={voz}
+          serverId={serverId}
+          souEu={souEu}
+          abaixo={abaixo}
+        />
+      ) : null}
+
       {barradoPorHierarquia ? (
         <>
           <ContextMenuSeparator />
@@ -307,5 +370,135 @@ export function MenuDoUsuario({ userId }: { userId: string }) {
       */}
       <ItemDeId id={userId} />
     </ContextMenuContent>
+  );
+}
+
+/**
+ * O que só existe DENTRO de uma sala de voz.
+ *
+ * ⚠ **Volume e silêncio local não são a mesma coisa, e os dois eixos vivem em
+ * stores separados** (`volumesDeVoz` e `sobrePessoas`) — o motor lê os dois
+ * por `volumeEfetivo`. "Silenciar só para mim" fica no bloco de cima, onde já
+ * estava, porque ele vale FORA da sala também.
+ *
+ * ⚠ **Moderação de voz só existe em sala de SERVIDOR.** Uma chamada de DM não
+ * tem `ServerMember`, então não há onde escrever mudo, surdo ou mover — e os
+ * itens simplesmente não aparecem, em vez de falhar calados.
+ *
+ * Componente próprio porque ele assina três coisas que não existem fora da
+ * voz: com os hooks no menu, todo clique direito da timeline pagaria por elas.
+ */
+function BlocoDeVoz({
+  userId,
+  channelId,
+  serverId,
+  souEu,
+  abaixo,
+}: {
+  userId: string;
+  channelId: string;
+  serverId: string;
+  souEu: boolean;
+  abaixo: boolean;
+}) {
+  const sala = useVozDoCanal(channelId);
+  const participante = sala.find((p) => p.userId === userId);
+  const volume = useSyncExternalStore(
+    (ouvinte) => assinarVolume(userId, ouvinte),
+    () => lerVolume(userId),
+  );
+
+  const deServidor = serverId !== "" && !souEu;
+  const podeMover = deServidor && pode(channelId, "moverMembros");
+  const podeMudo = deServidor && pode(channelId, "silenciarNaVoz");
+  const podeSurdo = deServidor && pode(channelId, "ensurdecerNaVoz");
+
+  return (
+    <>
+      <ContextMenuSeparator />
+
+      {souEu ? null : (
+        /*
+          ⚠ **As setas param no deslizante.** Dentro de um `menu` o Radix usa
+          ↑↓ para andar entre itens e as letras para busca por digitação; sem
+          o `stopPropagation`, apertar → no volume andaria o foco para o item
+          seguinte em vez de subir o volume. Chega-se a ele por Tab.
+        */
+        <div className={css.volume} onKeyDown={(e) => e.stopPropagation()}>
+          <label className={css.rotuloDoVolume} htmlFor="volume-do-participante">
+            Volume individual
+            <span className={css.valorDoVolume}>{volume}%</span>
+          </label>
+          <Deslizante
+            id="volume-do-participante"
+            valor={volume}
+            min={0}
+            max={VOLUME_MAXIMO}
+            passo={5}
+            rotulo="Volume individual"
+            texto={`${String(volume)} por cento`}
+            aoMudar={(v) => definirVolume(userId, v)}
+          />
+        </div>
+      )}
+
+      {podeMover && abaixo ? (
+        <SubmenuDeVoz
+          serverId={serverId}
+          userId={userId}
+          rotulo="Mover para outro canal"
+          atual={channelId}
+        />
+      ) : null}
+
+      {abaixo && (podeMudo || podeSurdo || podeMover) ? (
+        <>
+          {/*
+            ⚠ **Aviso é o terceiro tom, e não é um perigo mais fraco.**
+            Restringir alguém é reversível e administrativo; tirá-lo da sala é
+            uma ação que interrompe.
+          */}
+          {podeMudo ? (
+            <ContextMenuCheckboxItem
+              aviso
+              marcado={participante?.mudoPeloServidor === true}
+              aoAlternar={() =>
+                void moderarVoz(serverId, userId, {
+                  tipo: "mudo",
+                  ligar: participante?.mudoPeloServidor !== true,
+                })
+              }
+            >
+              Mudo no servidor
+            </ContextMenuCheckboxItem>
+          ) : null}
+          {podeSurdo ? (
+            <ContextMenuCheckboxItem
+              aviso
+              marcado={participante?.surdoPeloServidor === true}
+              aoAlternar={() =>
+                void moderarVoz(serverId, userId, {
+                  tipo: "surdo",
+                  ligar: participante?.surdoPeloServidor !== true,
+                })
+              }
+            >
+              Ensurdecer no servidor
+            </ContextMenuCheckboxItem>
+          ) : null}
+          {podeMover ? (
+            <ContextMenuItem
+              perigo
+              onSelect={() =>
+                void moderarVoz(serverId, userId, { tipo: "desconectar" })
+              }
+            >
+              <PhoneX aria-hidden />
+              Desconectar do canal
+            </ContextMenuItem>
+          ) : null}
+        </>
+      ) : null}
+    </>
   );
 }

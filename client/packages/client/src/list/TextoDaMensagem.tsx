@@ -63,6 +63,15 @@ const Mencao = memo(function Mencao({
       <button
         type="button"
         className={css.mencao}
+        /*
+          ⚠ **O clique direito numa menção caía no menu da MENSAGEM.** Ela é o
+          nome de uma pessoa no meio do texto, e o gesto sobre ela pergunta
+          pela pessoa — a auditoria de clique direito mediu isto como uma das
+          divergências de "mesma entidade, menus diferentes". O atributo é o
+          mesmo que a calha do avatar carrega, e `alvoNoDom` resolve o mais
+          próximo, então a menção ganha do `data-menu-mensagem` da linha.
+        */
+        data-menu-usuario={userId}
         onClick={() => administrar({ tipo: "perfil", serverId, userId })}
       >
         {nome}

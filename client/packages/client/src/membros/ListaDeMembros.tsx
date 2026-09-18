@@ -6,8 +6,8 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 
 import {
   assinarMenuDeMensagem,
-  definirAlvoDoMenu,
   lerAlvoDoMenu,
+  mirarAlvoDoMenu,
 } from "../store/menuDeMensagem";
 import { MenuDoUsuario } from "./MenuDoUsuario";
 import {
@@ -24,11 +24,7 @@ import { Avatar } from "../components/ui/Avatar";
 import { remedir } from "../lib/remedir";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
 import { TagDoServidor } from "../presenca/TagDoServidor";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuTrigger,
-} from "../components/ui/ContextMenu";
+import { MenuDeContexto } from "../components/ui/MenuDeContexto";
 import { chaveDeMembro } from "../sdk/domain";
 import { assinarConexao, lerConexao } from "../store/conexao";
 import { CartaoDePerfil } from "./CartaoDePerfil";
@@ -251,14 +247,15 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
     proteção deixa de ser necessária — a linha agora só ESCREVE quem ela é, e
     o menu completo passa a existir para todo mundo, com cada item gateado por
     `pode()` lá dentro como sempre esteve.
+
+    ⚠ **E o que a linha escreve é um ATRIBUTO, não mais um `onContextMenu`.**
+    O handler só respondia ao clique direito; o long-press do Radix abre sem
+    `contextmenu` nenhum, então no toque o menu vinha com a pessoa do gesto
+    ANTERIOR. Agora quem resolve é `alvoNoDom`, a mesma função da timeline, e
+    ela serve aos três caminhos de abertura — ver `MenuDeContexto`.
   */
   return (
-    <span
-      className={css.alvo}
-      onContextMenu={() => {
-        definirAlvoDoMenu({ tipo: "usuario", userId: id });
-      }}
-    >
+    <span className={css.alvo} data-menu-usuario={id}>
       <CartaoDePerfil serverId={serverId} userId={id}>
         {linha}
       </CartaoDePerfil>
@@ -291,7 +288,11 @@ const LinhaDeMembro = memo(function LinhaDeMembro({
  */
 function MenuDaMemberList() {
   const alvo = useSyncExternalStore(assinarMenuDeMensagem, lerAlvoDoMenu);
-  if (alvo?.tipo !== "usuario") return <ContextMenuContent />;
+  /* ⚠ **`null` e não um `Content` vazio.** A mira já recusa abrir sem alvo
+     desde a onda 1.5A, então este ramo é inalcançável — e um `Content` vazio
+     aqui seria a caixa que aquela onda veio matar, esperando a primeira
+     regressão para reaparecer. */
+  if (alvo?.tipo !== "usuario") return null;
   return <MenuDoUsuario userId={alvo.userId} />;
 }
 
@@ -438,19 +439,19 @@ export function ListaDeMembros() {
   }
 
   return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>
-        {/* Ver `MessageList`: rolável sem foco é inoperável por teclado. */}
-        <div
-          ref={scrollRef}
-          className={css.painel}
-          tabIndex={0}
-          /* A captura LIMPA antes de a linha escrever: clique no vão entre
-             linhas não deve agir sobre quem foi clicado por último. */
-          onContextMenuCapture={() => {
-            definirAlvoDoMenu(null);
-          }}
-        >
+    /*
+      O menu da coluna inteira.
+
+      `mirarAlvoDoMenu` resolve do DOM: vão entre linhas e CABEÇALHO DE SEÇÃO
+      não têm `data-menu-usuario`, então o menu não abre ali — ele abria uma
+      caixa vazia nos dois. E o mesmo caminho vale para o toque longo e para a
+      tecla Menu, que esta coluna não tinha.
+    */
+    <MenuDeContexto
+      mirar={mirarAlvoDoMenu}
+      gatilho={
+        /* Ver `MessageList`: rolável sem foco é inoperável por teclado. */
+        <div ref={scrollRef} className={css.painel} tabIndex={0}>
       <div
         className={css.pista}
         style={{ height: `${virtualizer.getTotalSize()}px` }}
@@ -517,9 +518,9 @@ export function ListaDeMembros() {
         </p>
         ) : null}
         </div>
-      </ContextMenuTrigger>
-
+      }
+    >
       <MenuDaMemberList />
-    </ContextMenu>
+    </MenuDeContexto>
   );
 }

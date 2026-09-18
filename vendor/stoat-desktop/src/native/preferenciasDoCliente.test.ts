@@ -29,6 +29,7 @@ const CHAVES_DO_CLIENTE = [
   "aoFechar",
   "aceleracaoDeHardware",
   "reduzirEmSegundoPlano",
+  "corretorOrtografico",
 ];
 
 const PADRAO: ConfigDasPreferencias = {
@@ -41,6 +42,7 @@ const PADRAO: ConfigDasPreferencias = {
   aoFechar: "bandeja",
   hardwareAcceleration: true,
   reduzirEmSegundoPlano: true,
+  spellchecker: true,
 };
 
 describe("gravação", () => {
@@ -69,6 +71,18 @@ describe("gravação", () => {
     const g = validarGravacao("barraNativa", true)!;
     assert.deepEqual(camposDaGravacao(g, "win32"), { customFrame: false });
     assert.deepEqual(camposDaGravacao(g, "darwin"), {});
+  });
+
+  /*
+    ⚠ O cliente escreve em português e o store da casca é o do upstream. A
+    tradução é o trabalho deste módulo — e o teste acima ("recusa as chaves do
+    upstream") continua exigindo que `spellchecker` CRU não seja aceito, senão
+    o renderer escreveria direto no arquivo que o main lê na partida.
+  */
+  it("o corretor traduz o nome da chave", () => {
+    assert.deepEqual(camposDaGravacao(validarGravacao("corretorOrtografico", false)!, "win32"), {
+      spellchecker: false,
+    });
   });
 
   /* A tela mostra as duas; guardadas soltas dariam "minimizar sim, ao fechar encerrar". */

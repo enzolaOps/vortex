@@ -2,9 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   alvoDeMensagem,
+  alvoNoDom,
   assinarMenuDeMensagem,
   definirAlvoDoMenu,
   lerAlvoDoMenu,
+  mirarAlvoDoMenu,
 } from "./menuDeMensagem";
 
 /**
@@ -95,5 +97,90 @@ describe("alvo do menu de mensagem", () => {
     expect(Object.is(alvoDeMensagem(), alvoDeMensagem())).toBe(true);
     expect(typeof alvoDeMensagem()).toBe("string");
     expect(Object.is(lerAlvoDoMenu(), lerAlvoDoMenu())).toBe(true);
+  });
+});
+
+/**
+ * A guarda que a auditoria de clique direito pediu: **nenhum gatilho abre
+ * menu vazio**.
+ *
+ * Três das seis quebras eram exatamente isso — mensagem de sistema, vão da
+ * member list e cabeçalho de seção abriam uma caixa sem nenhum item. Uma caixa
+ * vazia não dá erro, não some sozinha e parece um menu quebrado; quem a vê
+ * conclui que o app está com defeito, e está certo.
+ *
+ * ⚠ **Estes casos vêm do DOM real das superfícies**, e é o que faz o teste
+ * valer: a resolução deixou de ser um handler por linha e passou a ser uma
+ * função pura sobre atributos. Errar um nome de atributo aqui devolveria
+ * exatamente o defeito que a mudança veio matar.
+ */
+describe("alvo resolvido do DOM", () => {
+  beforeEach(() => {
+    definirAlvoDoMenu(null);
+    document.body.innerHTML = "";
+  });
+
+  function montar(html: string): void {
+    document.body.innerHTML = html;
+  }
+
+  function em(seletor: string): Element {
+    const no = document.querySelector(seletor);
+    if (!no) throw new Error(`sem ${seletor}`);
+    return no;
+  }
+
+  it("a linha de mensagem devolve a mensagem", () => {
+    montar('<article data-menu-mensagem="m1"><p id="texto">oi</p></article>');
+    expect(alvoNoDom(em("#texto"))).toEqual({ tipo: "mensagem", id: "m1" });
+  });
+
+  it("a calha do autor GANHA da linha — clicar no avatar pergunta pela pessoa", () => {
+    montar(
+      '<article data-menu-mensagem="m1"><div data-menu-usuario="u1"><img id="avatar"></div></article>',
+    );
+    expect(alvoNoDom(em("#avatar"))).toEqual({ tipo: "usuario", userId: "u1" });
+  });
+
+  it("a linha da member list devolve a pessoa", () => {
+    montar('<span data-menu-usuario="u9"><span id="nome">Ana</span></span>');
+    expect(alvoNoDom(em("#nome"))).toEqual({ tipo: "usuario", userId: "u9" });
+  });
+
+  /*
+    ⚠ Os quatro casos que abriam caixa vazia. A linha de SISTEMA é um
+    `<article>` como as outras — era por `closest("article")` que ela passava.
+  */
+  it("sistema, vão, cabeçalho de seção e fora de tudo NÃO têm alvo", () => {
+    montar(`
+      <div id="vao"></div>
+      <article id="sistema"><span id="frase">Marina entrou no canal</span></article>
+      <div role="presentation"><h2 id="secao">fundação — 12</h2></div>
+    `);
+    expect(alvoNoDom(em("#vao"))).toBeNull();
+    expect(alvoNoDom(em("#frase"))).toBeNull();
+    expect(alvoNoDom(em("#secao"))).toBeNull();
+    expect(alvoNoDom(null)).toBeNull();
+  });
+
+  /* Pato e não `instanceof`: no popout o alvo vem de outro `window`. */
+  it("alvo sem `closest` não quebra — devolve ausência", () => {
+    expect(alvoNoDom({} as EventTarget)).toBeNull();
+    expect(alvoNoDom(document.createTextNode("oi"))).toBeNull();
+  });
+
+  it("`mirarAlvoDoMenu` GRAVA e responde na mesma chamada", () => {
+    montar('<article data-menu-mensagem="m7"><p id="texto">oi</p></article>');
+
+    expect(mirarAlvoDoMenu(em("#texto"))).toBe(true);
+    expect(lerAlvoDoMenu()).toEqual({ tipo: "mensagem", id: "m7" });
+
+    /*
+      ⚠ **E LIMPA quando não há alvo.** Sem isso o menu recusaria abrir mas o
+      store continuaria apontando para o gesto anterior — e o `⋯` da linha, que
+      despacha o mesmo evento, agiria sobre a mensagem errada.
+    */
+    expect(mirarAlvoDoMenu(document.body)).toBe(false);
+    expect(lerAlvoDoMenu()).toBeNull();
   });
 });

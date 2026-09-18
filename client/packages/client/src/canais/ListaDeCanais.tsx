@@ -1,14 +1,10 @@
 import {
-  BellSimple,
   BellSimpleSlash,
   CaretDown,
   CaretRight,
   Check,
-  Copy,
-  GearSix,
   Hash,
   ICONE,
-  LinkSimple,
   Lock,
   MicrophoneSlash,
   Monitor,
@@ -23,47 +19,27 @@ import {
 import { memo, useEffect, useState, useSyncExternalStore } from "react";
 
 import {
-  ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
-  ContextMenuSub,
-  ContextMenuSubContent,
-  ContextMenuSubTrigger,
-  ContextMenuTrigger,
 } from "../components/ui/ContextMenu";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuCheckboxItem,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from "../components/ui/DropdownMenu";
-import {
-  abrirConfig,
-  DE_SERVIDOR,
-  NOME_DA_SECAO,
-  type SecaoId,
-} from "../store/config";
+import { despacharMenuEm, MenuDeContexto } from "../components/ui/MenuDeContexto";
+import { ItensDoCanal } from "../menus/ItensDoCanal";
+import { ItensDoServidor } from "../menus/ItensDoServidor";
+
 import { entrarNaChamada } from "../sdk/chamada";
-import { duplicarCanal } from "../sdk/servidores";
 import { definirPalco } from "../store/palcoDeVoz";
 import { ComMenuDoParticipante } from "../voz/MenuDoParticipante";
 import { assinarChamada, falando, lerChamada } from "../store/chamada";
 import { administrar } from "../store/administracao";
-import { abrirConfigDeCanal } from "../store/config";
 import { ListaDeConversas } from "../casa/ListaDeConversas";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { EntradaDeEventos } from "../eventos/EntradaDeEventos";
 import { contagem, rotuloDeNaoLidas } from "../lib/plural";
-import { marcarCanalLido, usuarioLocalId } from "../sdk/adapter";
-import { exibirMinhaTag } from "../sdk/perfilDoServidor";
-import { useExibeTag, usePerfilDoServidor } from "../store/perfilDoServidor";
-import { pode, type Acao } from "../sdk/permissoes";
+import { usePerfilDoServidor } from "../store/perfilDoServidor";
+import { pode, podeNoServidor } from "../sdk/permissoes";
+import { atalho } from "../lib/plataforma";
+import { marcarCanalLido } from "../sdk/adapter";
 import {
   chaveDeMembro,
   type CategoriaDeCanais,
@@ -73,17 +49,10 @@ import {
 import { categorias } from "../sdk/adapter";
 import { assinarColapso, colapsadas, definirColapsoDeTodas, alternarColapso } from "../store/colapso";
 import {
-  alternarSilencio,
   assinarSilencio,
-  definirNivelDoServidor,
-  DURACOES_DE_SILENCIO,
   estaSilenciado,
-  nivelDoServidor,
-  reativarServidor,
-  silenciarServidor,
   silencioAte,
   silencioDoServidorAte,
-  servidorSilenciado,
 } from "../store/silencio";
 import { abrirPaleta } from "../store/paleta";
 import { ItemDeId } from "../components/ui/ItemDeId";
@@ -127,7 +96,7 @@ import css from "./ListaDeCanais.module.css";
  * todo navegador; `userAgentData` ainda não é universal. Fora do render de
  * propósito: é constante da máquina, não estado.
  */
-const TECLA_DA_PALETA = /mac/i.test(navigator.platform) ? "⌘K" : "Ctrl K";
+const TECLA_DA_PALETA = atalho({ mod: true, tecla: "K" });
 
 const ICONE_DE_VOZ: Record<EstadoDeVoz, typeof VideoCamera> = {
   voz: SpeakerHigh,
@@ -219,8 +188,8 @@ const Canal = memo(function Canal({
   return (
     <>
     <div className={css.linhaDeCanal}>
-    <ContextMenu>
-      <ContextMenuTrigger asChild>
+    <MenuDeContexto
+      gatilho={
         <button
           type="button"
           className={css.canal}
@@ -359,127 +328,10 @@ const Canal = memo(function Canal({
         ) : null}
         </button>
 
-      </ContextMenuTrigger>
-
-      <ContextMenuContent>
-        {/* Regra do briefing: ação que a pessoa não pode executar não é
-            renderizada. Ver `sdk/permissoes.ts`. */}
-        <ContextMenuItem
-          onSelect={() => marcarCanalLido(id)}
-          disabled={!temNaoLidas || !pode(id, "marcarLida")}
-        >
-          <Check size={ICONE.calha} aria-hidden />
-          Marcar como lida
-        </ContextMenuItem>
-
-        {/*
-          Silenciar é preferência de LEITURA, não permissão: qualquer pessoa
-          pode silenciar qualquer canal que enxerga.
-
-          ⚠ **Silenciado vira ITEM e não submenu.** Reativar é uma coisa só —
-          um submenu com uma opção pede dois gestos para fazer o que um faz, e
-          é o tipo de simetria que parece organizada e custa um clique por uso.
-        */}
-        <SilencioDoCanal channelId={id} />
-        <ContextMenuItem
-          onSelect={() => administrar({ tipo: "notificacoesDoCanal", channelId: id })}
-        >
-          <BellSimple size={ICONE.calha} aria-hidden />
-          Notificações…
-        </ContextMenuItem>
-
-        {/*
-          Daqui para baixo é administração, e cada item só existe se a pessoa
-          PODE. Não é `disabled`: um item cinza ensina que a ação existe e que
-          você não a tem, o que é ruído permanente para quem nunca vai tê-la.
-          A regra do briefing é não RENDERIZAR.
-        */}
-        {canal.tipo === "voz" ? (
-          <>
-            <ContextMenuSeparator />
-            <ContextMenuItem onSelect={() => void entrarNaChamada(id)}>
-              <SpeakerHigh size={ICONE.calha} aria-hidden />
-              Entrar na sala
-            </ContextMenuItem>
-            {/*
-              ⚠ **Existe porque o clique deixou de abrir o chat.** Sem este
-              item, ler a conversa de uma sala em que você NÃO está perderia o
-              único caminho que tinha — uma capacidade some sem que nada na
-              tela diga que ela sumiu, que é o pior jeito de perder uma.
-            */}
-            <ContextMenuItem onSelect={() => selecionarCanal(id)}>
-              <Hash size={ICONE.calha} aria-hidden />
-              Abrir o chat
-            </ContextMenuItem>
-          </>
-        ) : null}
-
-        {pode(id, "criarConvite") ? (
-          <>
-            <ContextMenuSeparator />
-            <ContextMenuItem
-              onSelect={() => administrar({ tipo: "convite", channelId: id })}
-            >
-              <LinkSimple size={ICONE.calha} aria-hidden />
-              Criar convite
-            </ContextMenuItem>
-          </>
-        ) : null}
-
-        {pode(id, "gerenciarCanais") ? (
-          <>
-            <ContextMenuSeparator />
-            <ContextMenuItem
-              onSelect={() => administrar({ tipo: "editarCanal", channelId: id })}
-            >
-              <PencilSimple size={ICONE.calha} aria-hidden />
-              Editar canal
-            </ContextMenuItem>
-            {/*
-              Do design, ao lado de "Editar canal". Copia configurações E
-              permissões — ver `duplicarCanal` em `sdk/servidores.ts`: sem os
-              overrides ele não cria nada, porque duplicar sem eles abriria um
-              canal restrito. Abre a cópia ao terminar: quem duplica vai mexer
-              nela em seguida, e a cópia tem o MESMO nome do original — sem
-              navegar, não haveria como saber qual das duas linhas é a nova.
-            */}
-            <ContextMenuItem
-              onSelect={() =>
-                void duplicarCanal(id).then((novo) => {
-                  if (novo) selecionarCanal(novo);
-                })
-              }
-            >
-              <Copy size={ICONE.calha} aria-hidden />
-              Duplicar canal
-            </ContextMenuItem>
-            {/*
-              ⚠ **Renomear e CONFIGURAR são dois destinos, e o design os
-              separa.** O modal de editar resolve o caso de um campo — trocar o
-              nome sem sair do lugar. As configurações são quatro telas com
-              permissões e exclusão, e enfiá-las num modal repetiria o erro que
-              o upstream comete com as 42 páginas dele: nada linkável, voltar
-              que não fecha e F5 que cai na inicial.
-            */}
-            <ContextMenuItem
-              onSelect={() => abrirConfigDeCanal("canal", id)}
-            >
-              <GearSix size={ICONE.calha} aria-hidden />
-              Configurações do canal
-            </ContextMenuItem>
-            <ContextMenuItem
-              perigo
-              onSelect={() => administrar({ tipo: "apagarCanal", channelId: id })}
-            >
-              <Trash size={ICONE.calha} aria-hidden />
-              Apagar canal
-            </ContextMenuItem>
-          </>
-        ) : null}
-
-        <ItemDeId id={id} />
-      </ContextMenuContent>
-    </ContextMenu>
+      }
+    >
+      <ItensDoCanal channelId={id} />
+    </MenuDeContexto>
 
           {/*
             As ações da linha, do design — visíveis no hover e no canal ativo.
@@ -761,111 +613,7 @@ const Cronometro = memo(function Cronometro({ desde }: { desde: number }) {
  * ícone". No lugar, não ao lado — a linha tem 232px e o sino já disse o que o
  * número diz.
  */
-/**
- * Silenciar o canal, no menu dele — ou reativar, se o silêncio é DELE.
- *
- * ⚠ **Pergunta ao store do canal, e não a `canal.silenciado`.** O snapshot
- * junta canal e servidor (é o que a linha precisa para apagar o realce); o
- * menu não pode, porque "Reativar avisos" num canal mudo pelo SERVIDOR chamaria
- * `alternarSilencio` e SILENCIARIA o canal — o contrário do rótulo, e invisível
- * até o servidor voltar.
- *
- * Componente próprio para assinar: o conteúdo do menu é calculado no render da
- * linha, e silenciar só o canal com o servidor já mudo não muda o snapshot.
- */
-function SilencioDoCanal({ channelId }: { channelId: string }) {
-  const proprio = useSyncExternalStore(assinarSilencio, () => estaSilenciado(channelId));
-  if (proprio) {
-    return (
-      <ContextMenuItem onSelect={() => alternarSilencio(channelId)}>
-        <BellSimple size={ICONE.calha} aria-hidden />
-        Reativar avisos
-      </ContextMenuItem>
-    );
-  }
-  return (
-    <ContextMenuSub>
-      <ContextMenuSubTrigger>
-        <BellSimpleSlash size={ICONE.calha} aria-hidden />
-        Silenciar canal
-      </ContextMenuSubTrigger>
-      <ContextMenuSubContent>
-        {DURACOES_DE_SILENCIO.map((d) => (
-          <ContextMenuItem key={d.rotulo} onSelect={() => alternarSilencio(channelId, d.ms)}>
-            {d.rotulo}
-          </ContextMenuItem>
-        ))}
-      </ContextMenuSubContent>
-    </ContextMenuSub>
-  );
-}
 
-/**
- * O que o menu do servidor oferece sobre avisos: o padrão e o silêncio.
- *
- * ⚠ **Montado só com o menu aberto**, e é por isso que pode assinar o store:
- * no cabeçalho da coluna, a assinatura acordaria o painel inteiro a cada
- * silêncio de canal.
- *
- * O submenu "Notificações" é o da referência (`ServerMenu`), com os três
- * níveis; o modal completo — interruptores e exceções por canal — fica no fim
- * dele, porque é onde quem quer mais do que o padrão procura. O silêncio segue
- * `MuteDurationSubmenu`: cinco prazos, e "Reativar avisos" quando já está mudo.
- */
-function AvisosDoServidor({ serverId }: { serverId: string }) {
-  const nivel = useSyncExternalStore(assinarSilencio, () => nivelDoServidor(serverId));
-  const mudo = useSyncExternalStore(assinarSilencio, () => servidorSilenciado(serverId));
-  const efetivo = nivel ?? "mencoes";
-
-  return (
-    <>
-      <DropdownMenuSub>
-        <DropdownMenuSubTrigger>Notificações</DropdownMenuSubTrigger>
-        <DropdownMenuSubContent>
-          {NIVEIS_DO_MENU.map((n) => (
-            <DropdownMenuCheckboxItem
-              key={n.id}
-              marcado={efetivo === n.id}
-              aoAlternar={() => definirNivelDoServidor(serverId, n.id)}
-            >
-              {n.rotulo}
-            </DropdownMenuCheckboxItem>
-          ))}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onSelect={() => administrar({ tipo: "notificacoesDoServidor", serverId })}
-          >
-            Exceções por canal…
-          </DropdownMenuItem>
-        </DropdownMenuSubContent>
-      </DropdownMenuSub>
-
-      {mudo ? (
-        <DropdownMenuItem onSelect={() => reativarServidor(serverId)}>
-          Reativar avisos do servidor
-        </DropdownMenuItem>
-      ) : (
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>Silenciar servidor</DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            {DURACOES_DE_SILENCIO.map((d) => (
-              <DropdownMenuItem key={d.rotulo} onSelect={() => silenciarServidor(serverId, d.ms)}>
-                {d.rotulo}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-      )}
-    </>
-  );
-}
-
-/* Os rótulos da referência — "Só @menções" com o `@`, como no modal. */
-const NIVEIS_DO_MENU = [
-  { id: "todas", rotulo: "Todas as mensagens" },
-  { id: "mencoes", rotulo: "Só @menções" },
-  { id: "nada", rotulo: "Nada" },
-] as const;
 
 const RestanteDoSilencio = memo(function RestanteDoSilencio({
   channelId,
@@ -1017,10 +765,20 @@ const Categoria = memo(function Categoria({
   /*
     A permissão é do CANAL no protocolo, e categoria não é canal — ela nem é
     entidade lá, é um campo do servidor. Pergunto pelo primeiro canal dela, que
-    é o alvo mais próximo que existe; categoria vazia cai no `""` e a resposta
-    é negativa, que é o lado seguro.
+    é o alvo mais próximo que existe, porque uma sobrescrita por canal só
+    aparece ali.
+
+    ⚠ **Categoria VAZIA caía no `pode("")`, que é `false`, e o menu ficava sem
+    ação nenhuma para quem administra o servidor.** Era o pior lugar para isso
+    acontecer: categoria sem canal é exatamente onde a única coisa a fazer é
+    criar o primeiro. Sem canal não há sobrescrita possível, então perguntar
+    ao SERVIDOR é a resposta certa e não um contorno.
   */
-  const podeGerenciar = pode(categoria.canais[0] ?? "", "gerenciarCanais");
+  const primeiro = categoria.canais[0];
+  const podeGerenciar =
+    primeiro === undefined
+      ? podeNoServidor(serverId, "gerenciarCanais")
+      : pode(primeiro, "gerenciarCanais");
   const mostrar = !temCabecalho || !colapsada;
 
   return (
@@ -1035,8 +793,8 @@ const Categoria = memo(function Categoria({
           acontece uma vez por mês.
         */
         <>
-        <ContextMenu>
-          <ContextMenuTrigger asChild>
+        <MenuDeContexto
+          gatilho={
             <button
               type="button"
               className={css.secao}
@@ -1050,9 +808,34 @@ const Categoria = memo(function Categoria({
               />
               <span className={css.tituloDaSecao}>{categoria.titulo}</span>
             </button>
-          </ContextMenuTrigger>
-
+          }
+        >
           <ContextMenuContent>
+            {/*
+              ⚠ **"Marcar como lida" faltava, e a categoria é onde ela mais
+              paga.** O item existe no canal desde sempre; numa categoria de
+              quinze canais, zerá-los um a um são quinze menus abertos. É item
+              do design, e não pede permissão nenhuma — ler o que já está na
+              sua tela não é ação de servidor.
+
+              ⚠ **Silenciar categoria NÃO entra, e a razão é de plumbing.** Ela
+              pediria um TERCEIRO elo na cadeia do silêncio, e `estaMudo`, que
+              responde "este canal está mudo?" ao rollup e ao realce da coluna,
+              não recebe a categoria — o silêncio existiria no menu e não
+              valeria em lugar nenhum. Ver `menus/silenciar.ts`.
+            */}
+            <ContextMenuItem
+              onSelect={() => {
+                for (const id of categoria.canais) marcarCanalLido(id);
+              }}
+              disabled={categoria.canais.length === 0}
+            >
+              <Check size={ICONE.calha} aria-hidden />
+              Marcar categoria como lida
+            </ContextMenuItem>
+
+            <ContextMenuSeparator />
+
             {podeGerenciar ? (
               <>
                 <ContextMenuItem
@@ -1137,7 +920,7 @@ const Categoria = memo(function Categoria({
 
             <ItemDeId id={categoria.id} />
           </ContextMenuContent>
-        </ContextMenu>
+        </MenuDeContexto>
 
         {/*
           O `+` da categoria — do design, e ele é o caminho CURTO.
@@ -1231,47 +1014,29 @@ export function ListaDeCanais() {
   );
 }
 
-/**
- * O que cada seção de servidor exige para APARECER no menu.
- *
- * `Record` sobre as seções de servidor: seção nova não compila até alguém
- * decidir quem pode vê-la, que é a mesma mecânica de `NOME_DA_SECAO` e do
- * registro de modais.
- *
- * `servidor` é `undefined` de propósito — todo mundo precisa dela, porque é
- * onde mora "sair do servidor". Esconder a visão geral de quem não administra
- * seria prender a pessoa dentro do servidor.
- *
- * Item sem permissão NÃO é renderizado, e não é `disabled`: item cinza ensina
- * que a ação existe e que você não a tem, ruído permanente para quem nunca vai
- * tê-la. É a regra que a etapa de administração já segue.
- */
-const PERMISSAO_DA_SECAO: Partial<Record<SecaoId, Acao>> = {
-  cargos: "gerenciarServidor",
-  convites: "criarConvite",
-  acesso: "gerenciarServidor",
-  banimentos: "banir",
-  seguranca: "gerenciarServidor",
-  emojis: "gerenciarServidor",
-};
 
 function CanaisDoServidor() {
   const serverId = useServidorAtivo();
   const servidor = useServer(serverId);
   /* Tag do servidor (do fork): substitui a sigla e é onde cada um a liga. */
   const perfil = usePerfilDoServidor(serverId);
-  const exiboTag = useExibeTag(serverId, usuarioLocalId() ?? "");
   const grupos = useCategorias(serverId);
   const canalAtivo = useCanalAtivo();
   /*
-    Pergunto pelo primeiro canal que existir. Servidor sem canal nenhum não tem
-    a quem perguntar — e aí `pode("")` responde `false` com servidor presente,
-    o que esconderia o botão justamente de quem acabou de criar o servidor.
-    `gerenciarServidor` no próprio servidor seria a pergunta certa; enquanto o
-    SDK só responde por canal, o dono cai no caminho sem servidor e vê o botão.
+    Pergunto pelo primeiro canal que existir, porque sobrescrita por canal só
+    aparece ali.
+
+    ⚠ **Servidor sem canal nenhum caía no `pode("")`, que é `false`**, e isso
+    escondia as ações de criar justamente de quem acabou de criar o servidor —
+    o comentário anterior descrevia o beco e terminava com "enquanto o SDK só
+    responde por canal". Ele responde por servidor também, e `podeNoServidor`
+    é a pergunta certa quando não há canal a que perguntar.
   */
-  const primeiro = grupos.flatMap((g) => g.canais)[0] ?? "";
-  const podeCriar = pode(primeiro, "gerenciarCanais");
+  const primeiro = grupos.flatMap((g) => g.canais)[0];
+  const podeCriar =
+    primeiro === undefined
+      ? podeNoServidor(serverId, "gerenciarCanais")
+      : pode(primeiro, "gerenciarCanais");
 
   /*
     Categoria vazia aparece só para quem pode criar canal nela.
@@ -1375,12 +1140,26 @@ function CanaisDoServidor() {
           de porta no MESMO passo, e porta é alvo clicável numa tela que já
           existe, não rota.
         */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+        {/*
+          ⚠ **O `▾` abre o MESMO menu do clique direito no ladrilho do rail.**
+
+          Eram dois menus sem um item em comum — ver `menus/ItensDoServidor`. E
+          o clique direito AQUI, no cabeçalho, caía no menu do navegador: a
+          entidade mais visível da coluna era a única sem menu de contexto.
+
+          `MenuDeContexto` e não `DropdownMenu`: o botão despacha o
+          `contextmenu` que o gatilho já escuta — o mesmo arranjo do `⋯` da
+          barra de ações da mensagem. Com as duas famílias de primitivo, o
+          conteúdo teria de ser escrito duas vezes.
+        */}
+        <MenuDeContexto
+          gatilho={
             <button
               type="button"
               className={css.servidor}
+              aria-haspopup="menu"
               aria-label={`Opções de ${servidor?.name ?? "servidor"}`}
+              onClick={(e) => despacharMenuEm(e.currentTarget, "abaixo")}
             >
               {/* Nome e tag num grupo; a seta fica fora dele e ancora na
                   ponta. Ver `.servidor` e `.identidade`. */}
@@ -1389,13 +1168,13 @@ function CanaisDoServidor() {
                   {servidor?.name ?? "…"}
                 </span>
 
-              {/*
-                O badge de identificador curto, ao lado do nome — é do design.
+                {/*
+                  O badge de identificador curto, ao lado do nome — é do design.
 
-                A TAG do servidor quando quem administra escolheu uma (do
-                fork); a SIGLA, derivada do nome, quando não há.
-              */}
-              {servidor ? (
+                  A TAG do servidor quando quem administra escolheu uma (do
+                  fork); a SIGLA, derivada do nome, quando não há.
+                */}
+                {servidor ? (
                   <span className={css.tag} aria-hidden>
                     {perfil.tag ?? servidor.sigla}
                   </span>
@@ -1404,89 +1183,10 @@ function CanaisDoServidor() {
 
               <CaretDown aria-hidden className={css.divisaDoMenu} />
             </button>
-          </DropdownMenuTrigger>
-
-          <DropdownMenuContent>
-            {/*
-              Criar canal e categoria SAÍRAM do cabeçalho e vieram para cá.
-
-              O design não tem `+` no cabeçalho da coluna — ele tem um por
-              CATEGORIA, e o menu do servidor é onde "Criar canal" mora. O
-              motivo de o botão existir no cabeçalho continua válido (servidor
-              recém-criado não tem categoria de onde partir), e aqui ele
-              continua alcançável nesse caso.
-            */}
-            {podeCriar ? (
-              <>
-                <DropdownMenuItem
-                  onSelect={() =>
-                    administrar({
-                      tipo: "criarCanal",
-                      serverId,
-                      categoriaId: undefined,
-                      voz: false,
-                    })
-                  }
-                >
-                  Criar canal
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => administrar({ tipo: "criarCategoria", serverId })}
-                >
-                  Criar categoria
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-              </>
-            ) : null}
-
-            {DE_SERVIDOR.filter((secao) => {
-              const exigida = PERMISSAO_DA_SECAO[secao];
-              return exigida === undefined || pode(primeiro, exigida);
-            }).map((secao) => (
-              <DropdownMenuItem
-                key={secao}
-                onSelect={() => abrirConfig(secao, serverId)}
-              >
-                {NOME_DA_SECAO[secao]}
-              </DropdownMenuItem>
-            ))}
-
-            <DropdownMenuSeparator />
-            <AvisosDoServidor serverId={serverId} />
-
-            <DropdownMenuSeparator />
-            {/*
-              A alternância que o design põe aqui, e a que ele põe ao lado
-              dela NÃO entrou.
-
-              ⚠ **"Mostrar todos os canais" fica de fora porque o protocolo não
-              o comporta.** Ele significaria listar os canais que existem no
-              servidor e que esta sessão não pode ver — e canal sem permissão
-              de ver não chega ao cliente. Não há o que revelar, e um item que
-              alterna sem mudar nada é o defeito que o lint de `onSelect` foi
-              instalado para matar.
-            */}
-            {/*
-              Exibir a tag é escolha de CADA membro, e mora aqui porque é
-              sobre este servidor e sobre você — as configurações do servidor
-              são de quem administra. Sem tag, não há o que exibir.
-            */}
-            {perfil.tag !== undefined ? (
-              <DropdownMenuCheckboxItem
-                marcado={exiboTag}
-                aoAlternar={() => void exibirMinhaTag(serverId, !exiboTag)}
-              >
-                Exibir a tag {perfil.tag} no meu nome
-              </DropdownMenuCheckboxItem>
-            ) : null}
-            <DropdownMenuCheckboxItem
-              marcado={ocultar}
-              aoAlternar={() => alternarOcultarSilenciados(serverId)}
-            >
-              Ocultar canais silenciados
-            </DropdownMenuCheckboxItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          }
+        >
+          <ItensDoServidor serverId={serverId} />
+        </MenuDeContexto>
       </header>
 
       {/*
@@ -1537,9 +1237,10 @@ function CanaisDoServidor() {
         item cinza ensina que a ação existe e que você não a tem, ruído
         permanente para quem nunca vai tê-la.
       */}
-      <ContextMenu>
-        <ContextMenuTrigger asChild disabled={!podeCriar}>
-          {/* Ver `MessageList`: rolável sem foco é inoperável por teclado. */}
+      <MenuDeContexto
+        desabilitado={!podeCriar}
+        gatilho={
+          /* Ver `MessageList`: rolável sem foco é inoperável por teclado. */
           <div className={css.rolagem} tabIndex={0}>
         {/* Os eventos agendados — primeira linha da coluna, acima das
             categorias, como no design. Componente próprio: ele assina o
@@ -1594,8 +1295,8 @@ function CanaisDoServidor() {
           </nav>
         )}
           </div>
-        </ContextMenuTrigger>
-
+        }
+      >
         <ContextMenuContent>
           <ContextMenuItem
             onSelect={() =>
@@ -1628,7 +1329,7 @@ function CanaisDoServidor() {
             Criar categoria
           </ContextMenuItem>
         </ContextMenuContent>
-      </ContextMenu>
+      </MenuDeContexto>
     </div>
   );
 }

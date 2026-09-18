@@ -1,0 +1,19 @@
+/*
+  O restante, no gatilho do submenu.
+
+  ⚠ **Não é `menuAtalho`, e a diferença é semântica.** Aquele é a TECLA que
+  executa o item — mono, porque a pessoa vai reproduzi-la. Isto é um estado
+  ("12 min restantes"), que se lê e não se digita: fonte do corpo, e a mesma
+  cor de metadado que o resto do menu usa para hint.
+
+  A seta do submenu também ancora com `ms-auto`, então o `margin-inline-start`
+  aqui seria o segundo a disputar a ponta. `margin-inline-end` empurra a nota
+  para perto da seta sem colar nela.
+*/
+.restante {
+  margin-inline-start: auto;
+  margin-inline-end: var(--vx-space-06);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-2xs);
+  white-space: nowrap;
+}

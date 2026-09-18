@@ -3,9 +3,19 @@ import {
   ICONE,
   MagnifyingGlass,
 } from "../components/ui/icones";
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import { Banner } from "../components/ui/Banner";
+import {
+  despacharMenuEm,
+  MenuDeContexto,
+} from "../components/ui/MenuDeContexto";
+import { MenuDoUsuario } from "../membros/MenuDoUsuario";
+import {
+  assinarMenuDeMensagem,
+  lerAlvoDoMenu,
+  mirarAlvoDoMenu,
+} from "../store/menuDeMensagem";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,6 +56,18 @@ const ORDENS = [
 ] as const;
 type Ordem = (typeof ORDENS)[number];
 
+/**
+ * O menu da tabela — um Root para as 1.204 linhas.
+ *
+ * Mesmo store da timeline e da member list (`menuDeMensagem`), porque é o
+ * mesmo conceito: quem recebeu o gesto escreve QUEM ele é, e um único Root lê.
+ */
+function MenuDaTabela({ serverId }: { serverId: string }) {
+  const alvo = useSyncExternalStore(assinarMenuDeMensagem, lerAlvoDoMenu);
+  if (alvo?.tipo !== "usuario") return null;
+  return <MenuDoUsuario userId={alvo.userId} serverId={serverId} />;
+}
+
 const SEM_CARGO = "Sem cargo";
 const TODOS = "Todos os cargos";
 
@@ -72,7 +94,14 @@ const Linha = memo(function Linha({
   if (!membro) return <div className={tab.linha} aria-hidden />;
 
   return (
-    <div className={tab.linha} role="row">
+    /*
+      ⚠ **`data-menu-usuario` — a linha só DIZ de quem é.** Um `ContextMenu`
+      por linha numa tabela de 1.204 pessoas é o custo que a member list e a
+      lista de mensagens já removeram; o Root é um só, na tabela, e a
+      resolução é a mesma função de DOM (`alvoNoDom`). De quebra, o clique
+      direito na linha passou a existir — ele não existia aqui.
+    */
+    <div className={tab.linha} role="row" data-menu-usuario={userId}>
       <Caixa
         marcado={marcado}
         rotulo={`Selecionar ${membro.displayName}`}
@@ -114,18 +143,19 @@ const Linha = memo(function Linha({
       <span className={tab.meta}>{membro.entrouEm ?? "—"}</span>
 
       <span className={tab.acao}>
+        {/*
+          ⚠ **O `⋯` abria DIRETO o modal de castigo, e isso é outra coisa.**
+          Um botão de "mais ações" que executa UMA ação — a mais destrutiva das
+          três, ainda por cima — é a promessa errada: quem clica espera
+          escolher. Agora ele despacha o `contextmenu` que o gatilho da tabela
+          escuta, e o menu é o MESMO da timeline, da member list e da voz.
+        */}
         <button
           type="button"
           className={css.maisAcoes}
+          aria-haspopup="menu"
           aria-label={`Ações para ${membro.displayName}`}
-          onClick={() =>
-            administrar({
-              tipo: "moderar",
-              serverId,
-              userIds: [userId],
-              acao: "castigo",
-            })
-          }
+          onClick={(e) => despacharMenuEm(e.currentTarget, "abaixo")}
         >
           <DotsThree size={ICONE.calha} aria-hidden />
         </button>
@@ -345,6 +375,7 @@ export function Membros({ serverId }: { serverId: string }) {
         </Banner>
       ) : null}
 
+      <MenuDeContexto mirar={mirarAlvoDoMenu} gatilho={
       <div className={cn(tab.tabela, css.tabela)} role="table">
         <div className={tab.cabecalho} role="row">
           <span />
@@ -382,6 +413,9 @@ export function Membros({ serverId }: { serverId: string }) {
           ))
         )}
       </div>
+      }>
+        <MenuDaTabela serverId={serverId} />
+      </MenuDeContexto>
 
       {/*
         ⚠ **A barra de lote só existe com alguém selecionado**, e ela FLUTUA
