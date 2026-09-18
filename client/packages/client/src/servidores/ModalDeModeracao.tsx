@@ -13,6 +13,10 @@ import {
   expulsarEmLote,
   type JanelaDeExclusao,
 } from "../sdk/moderacao";
+import {
+  historicoDoMembro,
+  type EntradaDeAuditoria,
+} from "../sdk/auditoria";
 import { assinarAlvo, lerAlvo } from "../store/administracao";
 import { useMembro } from "../store/hooks";
 import css from "./AdicionarServidor.module.css";
@@ -206,6 +210,22 @@ export function ModalDeModeracao({ aoFechar }: { aoFechar: () => void }) {
         <div className={css.corpo}>
           <p className={css.aviso}>{AVISO}</p>
 
+          {/*
+            ⚠ **O histórico de quem está sendo moderado, e é aqui que ele
+            pertence.** "O que já fizeram com esta pessoa" é a pergunta que se
+            faz ANTES de decidir entre castigo e banimento — um segundo
+            castigo em duas semanas é um caso diferente do primeiro. Ler o
+            registro numa tela e agir em outra é o gesto que esta caixa existe
+            para poupar.
+
+            Só com UM alvo: em lote não há uma história, há doze, e um bloco
+            que some quando se seleciona a segunda pessoa é melhor que um que
+            mostra a de quem calhou de ser o primeiro da lista.
+          */}
+          {varias ? null : (
+            <HistoricoDoAlvo serverId={moderar.serverId} userId={primeiro} />
+          )}
+
           <Campo
             id={idDoMotivo}
             rotulo={acao === "expulsar" ? "Motivo (opcional)" : "Motivo"}
@@ -277,4 +297,67 @@ export function ModalDeModeracao({ aoFechar }: { aoFechar: () => void }) {
 function NomeDoMembro({ serverId, userId }: { serverId: string; userId: string }) {
   const membro = useMembro(chaveDeMembro(serverId, userId));
   return <strong>{membro?.displayName ?? userId}</strong>;
+}
+
+/** Quantas entradas cabem sem o histórico virar a tela. */
+const TETO_DO_HISTORICO = 5;
+
+/**
+ * O que a auditoria já registrou SOBRE esta pessoa.
+ *
+ * ⚠ **Filtrado no SERVIDOR por `target`, e não aqui.** Trazer a página inteira
+ * e procurar a pessoa nela só funciona enquanto ela estiver entre as últimas
+ * cem entradas — num servidor movimentado, o castigo de duas semanas atrás
+ * está fora. `historicoDoMembro` manda `target` e o servidor escolhe.
+ *
+ * ⚠ **Ausente quando não há nada E quando não deu para saber.** A diferença
+ * importaria numa tela de leitura; aqui o bloco é CONTEXTO para uma decisão
+ * que já está sendo tomada, e uma faixa de erro sobre uma consulta secundária
+ * competiria com o aviso destrutivo logo acima. `listarAuditoria` já não
+ * levanta toast no modo silencioso, que é o mesmo arranjo da tela de
+ * Banimentos: quem modera pode não ter `ViewAuditLogs`.
+ */
+function HistoricoDoAlvo({
+  serverId,
+  userId,
+}: {
+  serverId: string;
+  userId: string;
+}) {
+  const [entradas, setEntradas] = useState<
+    readonly EntradaDeAuditoria[] | undefined
+  >(undefined);
+
+  useEffect(() => {
+    if (!serverId || !userId) return;
+    let vivo = true;
+    void historicoDoMembro(serverId, userId).then((l) => {
+      if (vivo) setEntradas(l);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [serverId, userId]);
+
+  if (entradas === undefined || entradas.length === 0) return null;
+
+  return (
+    <div className={css.historico}>
+      <p className={css.historicoTitulo}>
+        Já registrado sobre essa pessoa
+        {entradas.length > TETO_DO_HISTORICO
+          ? ` · ${String(entradas.length)} entradas`
+          : ""}
+      </p>
+      <ul className={css.historicoLista}>
+        {entradas.slice(0, TETO_DO_HISTORICO).map((e) => (
+          <li key={e.id}>
+            <span className={css.historicoQuando}>{e.quandoTexto}</span>{" "}
+            <strong>{e.autor}</strong> {e.frase}
+            {e.razao === undefined ? null : ` · ${e.razao}`}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }

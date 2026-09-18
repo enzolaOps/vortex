@@ -420,5 +420,9 @@ export function historicoDoMembro(
   serverId: string,
   userId: string,
 ): Promise<readonly EntradaDeAuditoria[] | undefined> {
-  return listarAuditoria(serverId, { alvoId: userId, limite: 100 });
+  return listarAuditoria(serverId, {
+    alvoId: userId,
+    limite: 100,
+    silencioso: true,
+  });
 }
