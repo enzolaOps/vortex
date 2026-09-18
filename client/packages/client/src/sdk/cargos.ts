@@ -907,10 +907,12 @@ export async function listarEmojis(serverId: string): Promise<readonly Emoji[]> 
  *
  * ⚠ **O ID do emoji É o ID do arquivo — não há dois.** A rota é
  * `PUT /custom/emoji/{id}` onde `{id}` é o que o servidor de mídia devolveu.
- * Lido da fonte (`crates/delta/src/routes/customisation/emoji_create.rs`), e
- * é o que explica por que o protocolo não tem "editar emoji": renomear seria
- * apagar e subir de novo, com ID novo, quebrando toda mensagem que usava o
- * antigo.
+ * Lido da fonte (`crates/delta/src/routes/customisation/emoji_create.rs`).
+ *
+ * ⚠ Este comentário concluía daqui que "o protocolo não tem editar emoji" e
+ * que renomear seria apagar e subir de novo. **Errado** — ver `renomearEmoji`
+ * logo abaixo. O que o ID ser o do arquivo implica é o contrário: trocar a
+ * IMAGEM é que exige um emoji novo; trocar o NOME não.
  *
  * ⚠ **O nome é validado por regex no servidor** (`RE_EMOJI`, 1–32). Um nome
  * com espaço ou acento volta `FailedValidation`, e a frase que a pessoa lê sai
@@ -951,6 +953,44 @@ export async function criarEmoji(
  */
 export function nomeDeEmoji(emojiId: string): string | undefined {
   return client.emojis.get(emojiId)?.name;
+}
+
+/**
+ * Renomeia um emoji — o alias, sem tocar na imagem.
+ *
+ * ⚠ **`PATCH /custom/emoji/{id}` EXISTE, e este arquivo afirmava o contrário.**
+ * O comentário de `criarEmoji` logo acima dizia que "o protocolo não tem editar
+ * emoji: renomear seria apagar e subir de novo, com ID novo, quebrando toda
+ * mensagem que usava o antigo". A rota está montada em
+ * `customisation/mod.rs` (`emoji_edit::edit_emoji`) e no OpenAPI do
+ * `stoat-api`; ela recebe `DataEditEmoji { name }`, exige
+ * `ManageCustomisation` e grava `EmojiUpdate` na auditoria. O ID não muda, e é
+ * justamente por isso que as mensagens antigas sobrevivem — elas referenciam o
+ * ID, não o nome.
+ *
+ * ⚠ **`client.api` direto, como a auditoria e o convite.** O `stoat.js` não
+ * envolve esta rota: `client.emojis.get(id)` tem `delete()` e não `edit()`.
+ * O `as never` é o mesmo escape já usado ali; a rota consta do `queryParams`
+ * do `stoat-api`, então o `name` cai no CORPO e não na query.
+ *
+ * ⚠ **Sem atualizar o cache do SDK aqui.** A resposta é o `Emoji` novo, mas
+ * `client.emojis` é hidratado pelo socket; escrever nele à mão criaria uma
+ * segunda fonte da verdade para um objeto que o evento vai reescrever. Quem
+ * chama relê a lista.
+ */
+export async function renomearEmoji(
+  emojiId: string,
+  nome: string,
+): Promise<boolean> {
+  try {
+    await client.api.patch(`/custom/emoji/${emojiId}` as never, {
+      name: nome,
+    } as never);
+    return true;
+  } catch (e) {
+    falhou("Não deu para renomear o emoji.", e);
+    return false;
+  }
 }
 
 export async function apagarEmoji(emojiId: string): Promise<boolean> {

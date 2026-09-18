@@ -2,7 +2,14 @@ import { useEffect, useRef, useState } from "react";
 
 import { Botao } from "../components/ui/Botao";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
-import { apagarEmoji, criarEmoji, listarEmojis, type Emoji } from "../sdk/cargos";
+import {
+  apagarEmoji,
+  criarEmoji,
+  listarEmojis,
+  renomearEmoji,
+  type Emoji,
+} from "../sdk/cargos";
+import { avaliarAlias, MAX_ALIAS } from "./aliasDeEmoji";
 import { subirAnexo, temServidorDeMidia } from "../sdk/anexos";
 import { toast } from "../components/ui/toastStore";
 import css from "./Secao.module.css";
@@ -28,8 +35,13 @@ import { cn } from "../lib/cn";
  * MÍDIA pela tag `emojis`, e o `id` devolvido É o id do emoji —
  * `PUT /custom/emoji/{id}`. Não há dois identificadores.
  *
- * ⚠ **E o protocolo não tem editar emoji** — só criar e apagar. Renomear é
- * apagar e subir de novo, o que quebra toda mensagem que usava o antigo.
+ * ⚠ **O alias é editável inline, e este comentário dizia que não podia ser.**
+ * Ele afirmava que "o protocolo não tem editar emoji — renomear é apagar e
+ * subir de novo, o que quebra toda mensagem que usava o antigo". Medido no
+ * `stoat-api` e na fonte: `PATCH /custom/emoji/{id}` existe, está montada em
+ * `customisation/mod.rs`, recebe `{ name }` e grava `EmojiUpdate` na
+ * auditoria. O ID não muda — e é o ID que as mensagens antigas referenciam,
+ * então nenhuma quebra.
  */
 export function Emojis({ serverId }: { serverId: string }) {
   const [lista, setLista] = useState<readonly Emoji[] | undefined>(undefined);
@@ -48,10 +60,11 @@ export function Emojis({ serverId }: { serverId: string }) {
    * Derivar `festa_da_firma` acerta na esmagadora maioria e dá um nome que a
    * pessoa reconhece.
    *
-   * ⚠ Renomear NÃO existe no protocolo, e é o que torna essa escolha delicada:
-   * quem quiser outro nome tem de apagar e subir de novo. É por isso que o
-   * nome derivado aparece no toast de sucesso — para a pessoa saber qual ficou
-   * antes de usá-lo em vinte mensagens.
+   * ⚠ O nome derivado aparece no toast de sucesso para a pessoa saber qual
+   * ficou. Este comentário dizia ainda que "renomear NÃO existe no protocolo,
+   * e é o que torna essa escolha delicada" — **existe**, e a coluna de alias é
+   * editável na própria linha, o que tira o peso da derivação: errar o nome do
+   * arquivo deixou de custar apagar e subir de novo.
    */
   function enviarEmoji(arquivo: File) {
     const nome = nomeDeEmoji(arquivo.name);
@@ -200,7 +213,16 @@ export function Emojis({ serverId }: { serverId: string }) {
                 informação que distingue uma linha da outra.
               */}
               <img className={emojiCss.imagem} src={e.url} alt={e.nome} />
-              <span className={emojiCss.alias}>:{e.nome}:</span>
+              <AliasEditavel
+                emoji={e}
+                lista={lista}
+                desabilitado={ocupado}
+                aoRenomear={(nome) => {
+                  setLista((l) =>
+                    l?.map((x) => (x.id === e.id ? { ...x, nome } : x)),
+                  );
+                }}
+              />
               {e.porNome === undefined ? (
                 <span className={emojiCss.semAutor}>não registrado</span>
               ) : (
@@ -239,6 +261,123 @@ export function Emojis({ serverId }: { serverId: string }) {
 
 /* 1000, o mesmo teto de Banimentos — quatro colunas com uma ponta de ação. */
 const LARGURA = { "--vx-editor-w": "1000px" } as React.CSSProperties;
+
+/**
+ * O alias, editável na própria linha.
+ *
+ * ⚠ **Salva ao SAIR do campo, e é instrução do design.** Um botão "salvar" por
+ * linha numa tabela de vinte emojis é vinte alvos permanentes para uma ação
+ * que acontece uma vez por emoji na vida. `Enter` confirma tirando o foco
+ * (assim há um caminho só de escrita) e `Esc` desfaz — sem ele, quem começou a
+ * digitar por engano não teria como sair sem gravar.
+ *
+ * ⚠ **A colisão BLOQUEIA em vez de avisar.** O servidor não recusa alias
+ * repetido — `emoji_edit.rs` só valida o formato —, então dois `:festa:` no
+ * mesmo servidor são gravaveis e tornam o seletor de emoji ambíguo para todo
+ * mundo. Quem guarda a unicidade é esta tela, e por isso ela não escreve: o
+ * campo fica em `danger` dizendo de quem é o alias, e o foco volta para ele.
+ *
+ * ⚠ **Componente próprio, e não estado por índice no pai.** A tabela é um
+ * `.map()`; guardar "qual linha está sendo editada" no pai faria cada tecla
+ * digitada re-renderizar as vinte linhas e recarregar as vinte `<img>` do
+ * `autumn`. É a mesma razão de `NomeDoAutor` existir.
+ */
+function AliasEditavel({
+  emoji,
+  lista,
+  desabilitado,
+  aoRenomear,
+}: {
+  emoji: Emoji;
+  lista: readonly Emoji[];
+  desabilitado: boolean;
+  aoRenomear: (nome: string) => void;
+}) {
+  const [texto, setTexto] = useState(emoji.nome);
+  const [colisao, setColisao] = useState<
+    { readonly dono: string | undefined } | undefined
+  >(undefined);
+  const [salvando, setSalvando] = useState(false);
+
+  function confirmar() {
+    const v = avaliarAlias(texto, emoji.id, emoji.nome, lista);
+    if (v.tipo === "nada") {
+      setTexto(emoji.nome);
+      setColisao(undefined);
+      return;
+    }
+    if (v.tipo === "colisao") {
+      setColisao({ dono: v.dono });
+      return;
+    }
+    setColisao(undefined);
+    setTexto(v.nome);
+    setSalvando(true);
+    void renomearEmoji(emoji.id, v.nome)
+      .then((ok) => {
+        if (ok) {
+          toast({ tipo: "info", titulo: `Agora é :${v.nome}:.` });
+          aoRenomear(v.nome);
+        } else {
+          /* O servidor recusou (formato, permissão, rede). A verdade é o que
+             ele tem, e o campo volta a mostrá-la. */
+          setTexto(emoji.nome);
+        }
+      })
+      .finally(() => setSalvando(false));
+  }
+
+  return (
+    <span className={emojiCss.aliasCampo}>
+      <span aria-hidden className={emojiCss.aliasDoisPontos}>
+        :
+      </span>
+      <input
+        className={emojiCss.aliasEntrada}
+        /* O nome do emoji no rótulo: numa tabela de vinte campos idênticos,
+           "Alias" repetido vinte vezes deixa quem navega por controles sem
+           saber qual linha está editando. */
+        aria-label={`Alias de :${emoji.nome}:`}
+        aria-invalid={colisao !== undefined || undefined}
+        data-colisao={colisao !== undefined || undefined}
+        maxLength={MAX_ALIAS}
+        disabled={desabilitado || salvando}
+        value={texto}
+        onChange={(e) => {
+          setTexto(e.target.value);
+          /* A borda vermelha some assim que a pessoa mexe: mantê-la enquanto
+             o texto já é outro seria o aviso falando do passado. */
+          setColisao(undefined);
+        }}
+        onBlur={confirmar}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            e.currentTarget.blur();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            setTexto(emoji.nome);
+            setColisao(undefined);
+            e.currentTarget.blur();
+          }
+        }}
+      />
+      <span aria-hidden className={emojiCss.aliasDoisPontos}>
+        :
+      </span>
+      {colisao ? (
+        /* `role="alert"` e não texto solto: o campo perdeu o foco para chegar
+           aqui, e sem anúncio quem usa leitor de tela sairia da linha sem
+           saber que a mudança não foi gravada. */
+        <span role="alert" className={emojiCss.aliasErro}>
+          {colisao.dono === undefined
+            ? "esse alias já é de outro emoji"
+            : `esse alias já é de outro emoji, de ${colisao.dono}`}
+        </span>
+      ) : null}
+    </span>
+  );
+}
 
 /**
  * O nome de emoji derivado do nome do arquivo.

@@ -121,9 +121,81 @@
   object-fit: contain;
 }
 
-.alias {
-  composes: mono from "./Tabela.module.css";
+/* ------------------------------------------------ alias editável */
+
+/*
+  O alias é editável NA LINHA, e o campo precisa parecer texto até ser tocado.
+
+  Os dois-pontos ficam FORA do `input`: dentro, a pessoa teria de puxá-los para
+  fora para digitar o nome, e um deles sobreviveria a cada edição apressada —
+  `::festa:`. Fora, eles são o que sempre foram: a moldura do código do emoji.
+*/
+.aliasCampo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-02);
+  min-inline-size: 0;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-sm);
   color: var(--vx-text-1);
+}
+
+.aliasDoisPontos {
+  flex: none;
+  color: var(--vx-text-4);
+}
+
+/*
+  Sem moldura em repouso: numa tabela de vinte linhas, vinte caixas de campo
+  transformam a coluna numa parede de formulário, e o que se lê a maior parte
+  do tempo é o NOME. A borda aparece no hover e no foco — é o mesmo gesto de
+  revelação das ações de linha da coluna de canais.
+*/
+.aliasEntrada {
+  min-inline-size: 0;
+  inline-size: 100%;
+  padding: var(--vx-space-02) var(--vx-space-04);
+  border: 1px solid transparent;
+  border-radius: var(--vx-radius-04);
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  transition: border-color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.aliasEntrada:hover:not(:disabled) {
+  border-color: var(--vx-hairline-16);
+}
+
+.aliasEntrada:focus-visible {
+  border-color: var(--vx-accent);
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.aliasEntrada:disabled {
+  cursor: not-allowed;
+  opacity: var(--vx-lamina-3);
+}
+
+/*
+  A colisão.
+
+  ⚠ **Borda E texto, nunca só a borda.** A cor sozinha é a informação que
+  quem não distingue vermelho de cinza não recebe — e aqui ela é a diferença
+  entre "gravou" e "não gravou".
+*/
+.aliasEntrada[data-colisao="true"],
+.aliasEntrada[data-colisao="true"]:hover:not(:disabled) {
+  border-color: var(--vx-danger);
+}
+
+.aliasErro {
+  flex: none;
+  font-family: var(--vx-font-ui);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-danger-text);
 }
 
 /* Ausência de autor é itálica e um tom abaixo — igual ao "sem motivo" de
