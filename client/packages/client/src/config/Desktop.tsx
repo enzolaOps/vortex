@@ -249,6 +249,28 @@ export function Desktop() {
         </AvisoDeReinicio>
       ) : null}
 
+      <CabecalhoDeSecao titulo="Digitação" />
+
+      <GrupoDeAjustes>
+        <LinhaDeAjuste
+          titulo="Corretor ortográfico"
+          detalhe="Sublinha palavras erradas no composer, no idioma do sistema"
+        >
+          {/*
+            ⚠ **Vale NA HORA, e por isso não leva selo de reinício.** O motor
+            é ligado no `webPreferences` da janela, mas alternar depois é
+            `setSpellCheckerEnabled` na sessão — que é o que a casca faz aqui,
+            junto de escolher o idioma. O menu de clique direito num campo
+            mostra o mesmo estado.
+          */}
+          <Interruptor
+            ligado={d.corretorOrtografico}
+            rotulo="Corretor ortográfico"
+            aoAlternar={(v) => definirDesktop({ corretorOrtografico: v })}
+          />
+        </LinhaDeAjuste>
+      </GrupoDeAjustes>
+
       <CabecalhoDeSecao titulo="Overlay no jogo" />
 
       <SecaoDoOverlay />

@@ -161,6 +161,38 @@ function semServidorParaPerguntar(): boolean {
  * perguntar "posso banir neste canal" é a mesma pergunta que "posso banir
  * neste servidor", e ter as duas convidaria a divergirem.
  */
+/**
+ * A pessoa pode fazer isto neste SERVIDOR, sem passar por um canal?
+ *
+ * ⚠ **Existe por uma razão só, e ela é estreita: a CATEGORIA VAZIA.** O
+ * comentário de `pode` diz que não há função separada para servidor porque
+ * "posso banir neste canal" e "posso banir neste servidor" são a mesma
+ * pergunta — e continua verdade sempre que há um canal para perguntar. Numa
+ * categoria sem nenhum canal não há, e a coluna caía no `pode("")`, que
+ * devolve `false`: quem administra o servidor abria o menu da categoria vazia
+ * e não via ação nenhuma, justamente onde a única saída é criar o primeiro
+ * canal dentro dela.
+ *
+ * Não é um atalho para trocar `pode` por isto: a permissão de CANAL pode ser
+ * sobrescrita por canal, e perguntar ao servidor devolveria a resposta errada
+ * onde existe sobrescrita. Use só onde não há canal.
+ */
+export function podeNoServidor(serverId: string, acao: Acao): boolean {
+  const permissao = PERMISSAO[acao];
+  if (permissao === undefined) return true;
+  if (semServidorParaPerguntar()) return true;
+
+  const servidor = client.servers.get(serverId);
+  if (!servidor) return false;
+
+  try {
+    return servidor.havePermission(permissao as never);
+  } catch {
+    /* Mesma regra de `pode`: com servidor presente, "não sei" é `false`. */
+    return false;
+  }
+}
+
 export function pode(channelId: string, acao: Acao): boolean {
   const permissao = PERMISSAO[acao];
   // Não é permissão de servidor — ninguém precisa autorizar você a ler o que

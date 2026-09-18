@@ -2,11 +2,13 @@ import {
   ArrowBendUpLeft,
   ArrowBendUpRight,
   ArrowClockwise,
+  ArrowSquareOut,
   ChartBar,
   ChatsCircle,
   Copy,
   DotsThree,
   EnvelopeSimple,
+  FileArrowDown,
   ICONE,
   Info,
   Link,
@@ -54,6 +56,11 @@ import {
   rotuloDeReacao,
 } from "../lib/plural";
 import { cn } from "../lib/cn";
+import { atalho } from "../lib/plataforma";
+import { copiarImagem } from "../lib/copiar";
+import { toast } from "../components/ui/toastStore";
+import { baixarAnexo } from "../sdk/baixar";
+import { assinarPontoDoMenu, lerPontoDoMenu } from "../store/pontoDoMenu";
 import { BotaoDeIcone } from "../components/ui/BotaoDeIcone";
 import { menuAtalho } from "../components/ui/menu";
 import { AvatarDoAutor } from "../presenca/AvatarDoAutor";
@@ -81,7 +88,6 @@ import {
 import {
   alvoDeMensagem,
   assinarMenuDeMensagem,
-  definirAlvoDoMenu,
   lerAlvoDoMenu,
 } from "../store/menuDeMensagem";
 import {
@@ -112,9 +118,11 @@ import {
   assinarConexao,
   lerConexao,
 } from "../store/conexao";
-import { caminhoDe } from "../rota/rota";
-import { lerLocal } from "../store/navegacao";
-import { useMessage } from "../store/hooks";
+import { useChannel, useMessage } from "../store/hooks";
+import {
+  assinarReacoesFrequentes,
+  reacoesRapidas,
+} from "../store/reacoesFrequentes";
 import { Anexos } from "./Anexos";
 import { FigurinhaNaLinha } from "./FigurinhaNaLinha";
 import { EnqueteDaMensagem } from "../enquete/EnqueteDaMensagem";
@@ -299,14 +307,15 @@ function BotaoEntrarNaChamada({ channelId }: { channelId: string }) {
  * produto.
  */
 /**
- * As reações rápidas — as do DESIGN, e a lista é semente, não curadoria.
+ * As reações rápidas — agora as SUAS, e a lista do design virou semente.
  *
- * O próprio design diz o que ela deve virar: *"emojis frequentes do usuário,
- * nunca curadoria do produto"*. Frequência por usuário é store que ainda não
- * existe, então o que está aqui é o ponto de partida — e a nota fica para que
- * ninguém confunda a semente com a decisão.
+ * ⚠ **O comentário anterior admitia a dívida em prosa:** *"frequência por
+ * usuário é store que ainda não existe, então o que está aqui é o ponto de
+ * partida"*. O design é explícito — *"emojis frequentes do usuário, nunca
+ * curadoria do produto"* — e o store existe desde
+ * `store/reacoesFrequentes.ts`, que completa com a semente enquanto o
+ * histórico for menor que quatro.
  */
-const REACOES_RAPIDAS = ["✅", "🧠", "🔥", "👀"] as const;
 
 /**
  * As três da barra de hover — um subconjunto, não uma segunda lista.
@@ -319,11 +328,9 @@ const REACOES_RAPIDAS = ["✅", "🧠", "🔥", "👀"] as const;
  * Derivado do array acima em vez de escrito de novo: duas listas de emoji que
  * precisam concordar acabam divergindo, e a que diverge é sempre a menor.
  */
-const REACOES_DA_BARRA = [
-  REACOES_RAPIDAS[0],
-  REACOES_RAPIDAS[1],
-  REACOES_RAPIDAS[2],
-] as const;
+function reacoesDaBarra(rapidas: readonly string[]): readonly string[] {
+  return rapidas.slice(0, 3);
+}
 
 /**
  * Abre o menu de contexto da lista a partir de um BOTÃO.
@@ -335,9 +342,9 @@ const REACOES_DA_BARRA = [
  * que alguém acrescenta um item num só.
  *
  * Em vez disso, o botão despacha o evento que o `Trigger` já escuta. Ele
- * BORBULHA: passa pela captura do container (que limpa o alvo) e pelo handler
- * da linha (que escreve o alvo certo), então o alvo se resolve sozinho pelo
- * mesmo caminho do clique direito. Nada de novo para manter em sincronia.
+ * BORBULHA até o gatilho da lista, e lá `alvoNoDom` resolve quem é o alvo a
+ * partir do nó de origem — o mesmo caminho do clique direito, do toque longo e
+ * da tecla Menu. Nada de novo para manter em sincronia.
  *
  * As coordenadas são as do próprio botão, e não as do ponteiro: o menu pousa
  * ancorado ao `⋯`, que é onde a pessoa está olhando.
@@ -810,6 +817,17 @@ function QuemReagiu({
 export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
   const message = useMessage(id);
   /*
+    Os três emojis da barra de hover, que passaram a ser os SEUS.
+
+    ⚠ **Mais uma subscrição por linha, e ela é barata pela mesma razão do alvo
+    do menu:** `reacoesRapidas` devolve a referência CACHEADA e o store só
+    notifica quando a ORDEM muda de fato — reagir com o que já era o primeiro
+    não acorda ninguém. Ler sem assinar seria mais barato e estaria errado: a
+    barra é `visibility: hidden` e apontar para ela não re-renderiza a linha,
+    então o conjunto ficaria congelado no que era quando a linha montou.
+  */
+  const rapidas = useSyncExternalStore(assinarReacoesFrequentes, reacoesRapidas);
+  /*
     Booleano, e é o que torna esta subscrição barata.
 
     Toda linha montada assina o alvo do menu, mas `useSyncExternalStore` compara
@@ -1015,32 +1033,22 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
           /*
             A linha só DIZ quem ela é; quem abre o menu é a lista.
 
-            Sem `preventDefault`: o `Trigger` do Radix está no container e
-            precisa receber o mesmo evento para abrir no ponteiro. Aqui só se
-            escreve o alvo, e a ordem faz o resto — o container limpa na
-            captura, a linha escreve na bolha.
-          */
-          /*
-            Dois menus, um `ContextMenu`.
+            ⚠ **Era um `onContextMenu` aqui, e ele cobria UM dos três gestos.**
+            O long-press do Radix abre o menu sem disparar `contextmenu`
+            nenhum, então no toque o alvo era o do gesto anterior — "Excluir"
+            na mensagem errada. Agora quem resolve é `alvoNoDom`, uma função
+            pura do DOM que o `MenuDeContexto` chama nos três caminhos
+            (ponteiro, toque e tecla Menu).
 
-            O design tem menu de mensagem E menu do usuário na timeline. A
-            saída óbvia — um segundo `ContextMenu` em volta do autor — desfaria
-            a economia que o store inteiro existe para garantir: em vez de uma
-            árvore de menu por linha, duas.
+            O que sobra na linha são dois atributos ESTÁTICOS, e isso é mais
+            barato do que era: uma closure por render a menos no componente
+            mais quente do app.
 
-            Aqui um handler só decide qual alvo escrever, olhando de ONDE o
-            clique veio. `closest` num clique direito é barato e roda uma vez
-            por gesto humano, não por evento de firehose.
+            ⚠ **A linha de SISTEMA não leva este atributo** (ela tem `article`
+            próprio, mais acima) — responder, editar e apagar não existem sobre
+            "Marina entrou no canal", e o menu abria vazio ali.
           */
-          onContextMenu={(e) => {
-            const autor = (e.target as Element).closest?.("[data-menu-autor]");
-            const userId = autor?.getAttribute("data-menu-autor");
-            definirAlvoDoMenu(
-              userId
-                ? { tipo: "usuario", userId }
-                : { tipo: "mensagem", id: message.id },
-            );
-          }}
+          data-menu-mensagem={message.id}
           ref={elemento}
           /*
             Roving tabindex: UMA linha por vez é parada de tabulação.
@@ -1226,7 +1234,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
           */}
           <div
             className={cn(css.calha, "relative mt-02")}
-            data-menu-autor={message.authorId}
+            data-menu-usuario={message.authorId}
           >
             {compacto ? (
               <time className={css.horaCompacta}>{message.createdAtCurto}</time>
@@ -1286,7 +1294,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             */}
             {pode(message.channelId, "reagir") ? (
               <>
-                {REACOES_DA_BARRA.map((emoji) => (
+                {reacoesDaBarra(rapidas).map((emoji) => (
                   <BotaoDeIcone
                     key={emoji}
                     tamanho="sm"
@@ -1353,7 +1361,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
                 {message.authorId ? (
                   /* `display: contents` — a caixa não existe, só o atributo
                      que diz ao menu de contexto quem é o autor daqui. */
-                  <span className="contents" data-menu-autor={message.authorId}>
+                  <span className="contents" data-menu-usuario={message.authorId}>
                     <NomeDoAutor userId={message.authorId} />
                     {/* O crachá de cargo — "VTX", "MOD". Assina o membro
                         sozinho; ver `CrachaDeCargo`. */}
@@ -1654,12 +1662,15 @@ export function MenuDaMensagem() {
     Os dois menus, escolhidos pelo TIPO do alvo.
 
     O componente é um só porque o `ContextMenu` é um só — ver
-    `store/menuDeMensagem.ts`. `alvo === null` (clique direito no vão entre
-    linhas) devolve conteúdo vazio, que é melhor que agir sobre a mensagem do
-    clique anterior.
+    `store/menuDeMensagem.ts`.
+
+    ⚠ **`null` sem alvo, e não um `Content` vazio.** A mira recusa abrir desde
+    a onda 1.5A, então o ramo é inalcançável; deixar a caixa vazia aqui seria
+    guardá-la esperando a primeira regressão.
   */
   if (alvo?.tipo === "usuario") return <MenuDoUsuario userId={alvo.userId} />;
-  return <ItensDaMensagem messageId={alvo?.tipo === "mensagem" ? alvo.id : ""} />;
+  if (alvo?.tipo === "mensagem") return <ItensDaMensagem messageId={alvo.id} />;
+  return null;
 }
 
 /**
@@ -1670,12 +1681,32 @@ export function MenuDaMensagem() {
  * faz com a própria), copiar (o que se leva embora), e destrutivo por último.
  * Ação destrutiva no fim é a regra que o design escreve por extenso.
  */
-function ItensDaMensagem({ messageId }: { messageId: string }) {
+export function ItensDaMensagem({ messageId }: { messageId: string }) {
   const message = useMessage(messageId);
   const eu = usuarioLocalId();
-  const local = lerLocal();
+  const rapidas = useSyncExternalStore(
+    assinarReacoesFrequentes,
+    reacoesRapidas,
+  );
+  /*
+    O que estava sob o ponteiro — seleção, link, imagem, arquivo.
 
-  if (!message) return <ContextMenuContent />;
+    ASSINADO e não lido no render: dois cliques direitos seguidos na MESMA
+    linha, um no texto e outro na imagem, não mudam o alvo, então sem a
+    subscrição o menu reabriria com o ponto do gesto anterior. Ver
+    `store/pontoDoMenu.ts`.
+  */
+  const ponto = useSyncExternalStore(assinarPontoDoMenu, lerPontoDoMenu);
+  /*
+    O canal da MENSAGEM, e não o da rota — ver `linkavel` logo abaixo.
+
+    O hook fica acima do early return: `useChannel("")` devolve ausência sem
+    assinar nada, e mover a chamada para depois do `if` faria a contagem de
+    hooks mudar entre renders. Regra das Hooks não é estilo.
+  */
+  const canal = useChannel(message?.channelId ?? "");
+
+  if (!message) return null;
 
   const souOAutor = message.authorId !== undefined && message.authorId === eu;
   const gerencio = pode(message.channelId, "fixar");
@@ -1686,8 +1717,16 @@ function ItensDaMensagem({ messageId }: { messageId: string }) {
     mensagem; conversa direta é `/dm/:c` e para por aí. Renderizar "Copiar
     link" numa DM daria um link que abre o lugar certo na posição errada — que
     é pior que não ter o item, porque quem cola não descobre.
+
+    ⚠ **Lido da MENSAGEM e não da rota atual, e a diferença é um link errado.**
+    Antes ele saía de `lerLocal()` e de `caminhoDe(local)`: no chat embutido da
+    sala de voz, nas fixadas, na busca e na caixa de entrada a rota é outra
+    coisa que não o canal da mensagem — o link copiado apontava para o canal
+    ABERTO, com o id de uma mensagem que não mora lá. Quem cola descobre que
+    não funciona; quem copiou, não.
   */
-  const linkavel = local.tipo === "servidor" && local.channelId !== undefined;
+  const serverId = canal?.serverId;
+  const linkavel = serverId !== undefined;
 
   return (
     <ContextMenuContent>
@@ -1706,7 +1745,7 @@ function ItensDaMensagem({ messageId }: { messageId: string }) {
       {pode(message.channelId, "reagir") ? (
         <>
           <div className={css.rapidas} role="group" aria-label="Reagir">
-            {REACOES_RAPIDAS.map((emoji) => (
+            {rapidas.map((emoji) => (
               <ContextMenuItem
                 key={emoji}
                 asChild
@@ -1837,6 +1876,115 @@ function ItensDaMensagem({ messageId }: { messageId: string }) {
 
       <ContextMenuSeparator />
 
+      {/*
+        O que estava SOB O PONTEIRO — o bloco que o menu nativo levava embora.
+
+        ⚠ **O Radix chama `preventDefault` no `contextmenu`, e com ele somem
+        "Copiar seleção", "Copiar endereço do link", "Abrir link", "Copiar
+        imagem" e "Salvar imagem".** A auditoria de clique direito mediu isso
+        como a quebra nº 7: o app substituiu o menu do navegador sem repor
+        metade do que ele fazia. Numa superfície onde o conteúdo é escrito por
+        outras pessoas, "copiar o endereço do link" é também a única forma de
+        conferir para onde ele vai ANTES de clicar.
+
+        Cada item só existe quando há sobre o que agir — a mesma regra do
+        "Remover embed": item que não tem alvo é ruído permanente, e aqui o
+        caso comum (clique no texto liso) não tem nenhum deles.
+      */}
+      {ponto.selecao !== "" ? (
+        <ContextMenuItem
+          onSelect={() => void copiarTexto(ponto.selecao, "Seleção")}
+        >
+          <Copy aria-hidden />
+          Copiar seleção
+        </ContextMenuItem>
+      ) : null}
+
+      {ponto.link !== undefined ? (
+        <>
+          {/*
+            ⚠ **`abrirLinkExterno` e não `window.open` cru.** Todo link da
+            timeline foi escrito por outra pessoa, e o aviso de destino
+            (`AvisoDeLink`) é a superfície de segurança que o analisador de
+            markdown não consegue cobrir sozinho: ele barra `javascript:` e
+            `data:`, e não pode barrar um `https:` que simplesmente não é para
+            onde a pessoa acha que vai. Abrir por aqui pulando o aviso faria do
+            menu o caminho mais fácil para o pior caso.
+          */}
+          <ContextMenuItem
+            onSelect={() =>
+              administrar({
+                tipo: "linkExterno",
+                href: ponto.link ?? "",
+                /* O TEXTO é o próprio endereço aqui: o menu foi aberto sobre o
+                   link, e o aviso só endurece quando o texto escrito difere do
+                   destino — o que já se vê na linha. */
+                texto: ponto.link ?? "",
+              })
+            }
+          >
+            <ArrowSquareOut aria-hidden />
+            Abrir link
+          </ContextMenuItem>
+          <ContextMenuItem
+            onSelect={() => void copiarTexto(ponto.link ?? "", "Endereço")}
+          >
+            <Link aria-hidden />
+            Copiar endereço do link
+          </ContextMenuItem>
+        </>
+      ) : null}
+
+      {ponto.imagem !== undefined ? (
+        <>
+          <ContextMenuItem
+            onSelect={() => void copiarImagem(ponto.imagem ?? "")}
+          >
+            <Copy aria-hidden />
+            Copiar imagem
+          </ContextMenuItem>
+          {/*
+            Salvar passa por `baixarAnexo`, que já existe e resolve o que um
+            `<a download>` não resolve: o `autumn` é de ORIGEM CRUZADA, e o
+            navegador ignora o atributo — vira navegação, com o nome que a URL
+            disser e sem nada que a interface consiga contar quando falha.
+          */}
+          <ContextMenuItem
+            onSelect={() =>
+              void baixarAnexo(
+                ponto.imagem ?? "",
+                ponto.nomeDaImagem ?? "imagem",
+              ).catch((e: unknown) => {
+                toast({
+                  tipo: "erro",
+                  titulo: "Não deu para salvar",
+                  descricao: e instanceof Error ? e.message : undefined,
+                });
+              })
+            }
+          >
+            <FileArrowDown aria-hidden />
+            Salvar imagem
+          </ContextMenuItem>
+        </>
+      ) : null}
+
+      {ponto.arquivo !== undefined ? (
+        <ContextMenuItem
+          onSelect={() => void copiarTexto(ponto.arquivo ?? "", "Endereço")}
+        >
+          <Link aria-hidden />
+          Copiar link do arquivo
+        </ContextMenuItem>
+      ) : null}
+
+      {ponto.selecao !== "" ||
+      ponto.link !== undefined ||
+      ponto.imagem !== undefined ||
+      ponto.arquivo !== undefined ? (
+        <ContextMenuSeparator />
+      ) : null}
+
       <ContextMenuItem
         onSelect={() => void copiarTexto(message.content, "Texto")}
         disabled={message.content.length === 0}
@@ -1849,14 +1997,20 @@ function ItensDaMensagem({ messageId }: { messageId: string }) {
         <ContextMenuItem
           onSelect={() =>
             void copiarTexto(
-              `${location.origin}${caminhoDe(local)}/${message.id}`,
+              `${location.origin}/servidor/${serverId ?? ""}/canal/${message.channelId}/${message.id}`,
               "Link",
             )
           }
         >
           <Link aria-hidden />
           Copiar link
-          <span className={menuAtalho}>&#8679;&#8984;C</span>
+          {/* ⚠ **A tecla como a PLATAFORMA a chama.** Isto era `⇧⌘C` fixo,
+              inclusive no Windows, onde a combinação é `Ctrl+Shift+C` — o
+              mesmo defeito que o botão da paleta já tinha consertado na coluna
+              de canais, repetido aqui porque o menu não consultava nada. */}
+          <span className={menuAtalho}>
+            {atalho({ mod: true, shift: true, tecla: "C" })}
+          </span>
         </ContextMenuItem>
       ) : null}
 

@@ -5,9 +5,11 @@ import {
   Menu,
   MenuItem,
   app,
+  clipboard,
   dialog,
   nativeImage,
   screen,
+  shell,
 } from "electron";
 
 import windowIconAsset from "../../assets/icon.png?asset";
@@ -27,6 +29,12 @@ import { registrarNotificacoes } from "./notificacoes";
 import { registrarOverlay } from "./overlay";
 import { BUILD_URL } from "./enderecoDoApp";
 import { registrar, registrarJanelaPrincipal, semArgumentos } from "./registroDeIpc";
+import {
+  idiomasDoCorretor,
+  menuNativo,
+  type AcaoDoMenu,
+} from "./menuNativoModelo";
+import { abrirNoNavegadorDoSistema } from "./privilegioModelo";
 import { registrarSeletorDeTela } from "./telaCompartilhada";
 import { updateTrayMenu } from "./tray";
 
@@ -102,6 +110,9 @@ export function createMainWindow() {
   }
 
   aplicarPreferenciasNaJanela();
+  /* O corretor é reaplicado na PARTIDA: `webPreferences.spellcheck` liga o
+     motor, mas quem escolheu desligá-lo — e em que idioma — está no store. */
+  aplicarCorretor();
 
   // load the entrypoint
   mainWindow
@@ -189,47 +200,76 @@ export function createMainWindow() {
   // send the config
   mainWindow.webContents.on("did-finish-load", () => config.sync());
 
-  // configure spellchecker context menu
+  /*
+    O menu NATIVO — e ele agora é um menu de verdade.
+
+    ⚠ **O que havia era um menu de corretor com um botão solto**: sugestões,
+    "Add to dictionary" e — sempre, em qualquer lugar, em inglês — "Toggle
+    spellcheck". Como o último entrava incondicionalmente, a guarda
+    `items.length > 0` era sempre verdadeira e a caixa abria em cima de
+    qualquer coisa. E campo de texto não tinha recortar, copiar nem colar pelo
+    ponteiro: num Electron, onde o menu do navegador não existe, isso quer
+    dizer que NÃO HAVIA como colar com o mouse.
+
+    ⚠ **Este evento só chega onde o app não abriu o próprio menu.** Quando a
+    página chama `preventDefault` no `contextmenu` — o que o gatilho do Radix
+    faz —, o Chromium não manda o pedido e o evento não dispara. O que sobra é
+    o `textarea` do composer, os campos de login e o vão da janela.
+
+    A DECISÃO mora em `menuNativoModelo.ts`, pura e testada; aqui ficam só os
+    efeitos, que não têm o que testar sem Electron.
+  */
   mainWindow.webContents.on("context-menu", (_, params) => {
-    const menu = new Menu();
+    const alvo = mainWindow?.webContents;
+    if (!alvo) return;
 
-    // add all suggestions
-    for (const suggestion of params.dictionarySuggestions) {
-      menu.append(
-        new MenuItem({
-          label: suggestion,
-          click: () => mainWindow.webContents.replaceMisspelling(suggestion),
-        }),
-      );
-    }
-
-    // allow users to add the misspelled word to the dictionary
-    if (params.misspelledWord) {
-      menu.append(
-        new MenuItem({
-          label: "Add to dictionary",
-          click: () =>
-            mainWindow.webContents.session.addWordToSpellCheckerDictionary(
-              params.misspelledWord,
-            ),
-        }),
-      );
-    }
-
-    // add an option to toggle spellchecker
-    menu.append(
-      new MenuItem({
-        label: "Toggle spellcheck",
-        click() {
-          config.spellchecker = !config.spellchecker;
+    const itens = menuNativo(
+      {
+        isEditable: params.isEditable,
+        editFlags: {
+          canCut: params.editFlags.canCut,
+          canCopy: params.editFlags.canCopy,
+          canPaste: params.editFlags.canPaste,
+          canSelectAll: params.editFlags.canSelectAll,
         },
-      }),
+        selectionText: params.selectionText,
+        linkURL: params.linkURL,
+        mediaType: params.mediaType,
+        srcURL: params.srcURL,
+        misspelledWord: params.misspelledWord,
+        dictionarySuggestions: params.dictionarySuggestions,
+      },
+      {
+        corretorLigado: config.spellchecker,
+        /* A MESMA função que o `setWindowOpenHandler` consulta — ver
+           `privilegioModelo.ts`. Duas listas de esquema permitido divergiriam,
+           e a que divergisse seria a que ninguém abriu naquela semana. */
+        abrirLinkPermitido: abrirNoNavegadorDoSistema(params.linkURL),
+      },
     );
 
-    // show menu if we've generated enough entries
-    if (menu.items.length > 0) {
-      menu.popup();
+    /* Lista vazia é "não abra nada", e é metade do conserto. */
+    if (itens.length === 0) return;
+
+    const menu = new Menu();
+    for (const item of itens) {
+      if (item.tipo === "separador") {
+        menu.append(new MenuItem({ type: "separator" }));
+        continue;
+      }
+      if (item.tipo === "sugestao") {
+        menu.append(
+          new MenuItem({
+            label: item.palavra,
+            click: () => alvo.replaceMisspelling(item.palavra),
+          }),
+        );
+        continue;
+      }
+      menu.append(new MenuItem(efeitoDoItem(item.acao, item.rotulo, alvo, params)));
     }
+
+    menu.popup();
   });
 
   /*
@@ -319,3 +359,101 @@ export function quitApp() {
 app.on("before-quit", () => {
   shouldQuit = true;
 });
+
+/**
+ * O EFEITO de cada item — a metade que precisa do Electron.
+ *
+ * ⚠ **`checked` no item do corretor e não rótulo que alterna.** "Ligar
+ * corretor"/"Desligar corretor" no mesmo lugar faz quem lê depressa clicar no
+ * oposto do que quer, e é a mesma regra que o lint do cliente guarda para
+ * `aria-pressed`. O menu nativo tem `type: "checkbox"`; usá-lo é de graça.
+ *
+ * ⚠ **`downloadURL` e não `<a download>`**: o `autumn` é de outra origem, e
+ * este é o caminho de download do Electron — o mesmo que o `will-download` da
+ * sessão já intercepta.
+ */
+function efeitoDoItem(
+  acao: AcaoDoMenu,
+  rotulo: string,
+  alvo: Electron.WebContents,
+  params: Electron.ContextMenuParams,
+): Electron.MenuItemConstructorOptions {
+  switch (acao) {
+    case "aprenderPalavra":
+      return {
+        label: rotulo,
+        click: () =>
+          alvo.session.addWordToSpellCheckerDictionary(params.misspelledWord),
+      };
+    case "alternarCorretor":
+      return {
+        label: rotulo,
+        type: "checkbox",
+        checked: config.spellchecker,
+        click: () => {
+          config.spellchecker = !config.spellchecker;
+          aplicarCorretor();
+        },
+      };
+    case "recortar":
+      return { label: rotulo, click: () => alvo.cut() };
+    case "copiar":
+      return { label: rotulo, click: () => alvo.copy() };
+    case "colar":
+      return { label: rotulo, click: () => alvo.paste() };
+    case "colarSemFormato":
+      return { label: rotulo, click: () => alvo.pasteAndMatchStyle() };
+    case "selecionarTudo":
+      return { label: rotulo, click: () => alvo.selectAll() };
+    case "abrirLink":
+      return {
+        label: rotulo,
+        /* `shell.openExternal` entrega ao sistema uma URL escrita por outra
+           pessoa — o modelo já filtrou o esquema por `abrirNoNavegadorDoSistema`,
+           que é a mesma guarda do `setWindowOpenHandler`. */
+        click: () => void shell.openExternal(params.linkURL),
+      };
+    case "copiarLink":
+      return { label: rotulo, click: () => clipboard.writeText(params.linkURL) };
+    case "copiarImagem":
+      return { label: rotulo, click: () => alvo.copyImageAt(params.x, params.y) };
+    case "salvarImagem":
+      return { label: rotulo, click: () => alvo.downloadURL(params.srcURL) };
+    case "copiarEnderecoDaImagem":
+      return { label: rotulo, click: () => clipboard.writeText(params.srcURL) };
+  }
+}
+
+/**
+ * Aplica o corretor à sessão: ligado/desligado e o IDIOMA.
+ *
+ * ⚠ **As duas coisas nunca eram aplicadas.** `config.spellchecker` era
+ * gravado pelo menu e lido por ninguém — o `webPreferences` da janela decide
+ * na criação, então alternar só valia no próximo início, sem nada dizer isso.
+ * E `setSpellCheckerLanguages` jamais foi chamado, então o corretor ficava em
+ * inglês num app em português: toda palavra sublinhada, que é o mesmo que não
+ * ter corretor com o custo de riscar a tela.
+ *
+ * ⚠ **A lista disponível é consultada e o pedido FILTRADO por ela** — o método
+ * lança com um código que a sessão não conhece, e uma exceção no caminho de
+ * partida derrubaria a janela por causa de um corretor. No macOS a lista é
+ * ignorada (o corretor é o do sistema) e a chamada é no-op.
+ */
+export function aplicarCorretor(): void {
+  const sessao = mainWindow?.webContents.session;
+  if (!sessao) return;
+
+  sessao.setSpellCheckerEnabled(config.spellchecker);
+  if (!config.spellchecker) return;
+
+  try {
+    const idiomas = idiomasDoCorretor(
+      app.getLocale(),
+      sessao.availableSpellCheckerLanguages,
+    );
+    if (idiomas.length > 0) sessao.setSpellCheckerLanguages(idiomas);
+  } catch {
+    /* Sessão sem suporte a lista (macOS) ou código recusado: o corretor
+       continua no padrão dela, que é melhor que a janela não abrir. */
+  }
+}

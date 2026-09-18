@@ -42,7 +42,17 @@ export function RaizDoTopico({ channelId }: { channelId: string }) {
 
   return (
     <div className={css.raiz}>
-      <article className={css.card}>
+      {/*
+        ⚠ **O clique direito no card abria uma CAIXA VAZIA.** Ele é um
+        `<article>` dentro do gatilho da `MessageList`, então o menu abria —
+        mas nenhuma linha tinha escrito alvo nenhum, e `ItensDaMensagem` com
+        id vazio renderiza conteúdo vazio. Agora o card DIZ de que mensagem
+        ele é, pela mesma resolução de DOM da timeline (`alvoNoDom`).
+
+        Só quando a origem já chegou: sem ela o menu não teria o que mostrar,
+        e a mira devolve "sem alvo" — o menu não abre em vez de abrir vazio.
+      */}
+      <article className={css.card} data-menu-mensagem={origem?.id}>
         {tags.length > 0 || t.arquivado ? (
           <div className={css.tags}>
             {tags.map((tag) => (
@@ -62,10 +72,16 @@ export function RaizDoTopico({ channelId }: { channelId: string }) {
         <h2 className={css.titulo}>{t.nome}</h2>
 
         <div className={css.corpo}>
-          <Avatar id={autorId} tamanho="sm" className={css.avatar} />
+          {/* Avatar e nome abrem o menu da PESSOA, como na timeline — a mesma
+              precedência, porque `closest` resolve o mais próximo. */}
+          <span className="contents" data-menu-usuario={autorId}>
+            <Avatar id={autorId} tamanho="sm" className={css.avatar} />
+          </span>
           <div className={css.texto}>
             <div className={css.autoria}>
-              <NomeDoAutor userId={autorId} />
+              <span className="contents" data-menu-usuario={autorId}>
+                <NomeDoAutor userId={autorId} />
+              </span>
               <span className={css.quando}>
                 {deMensagem ? "iniciou o tópico" : "iniciou o post"} ·{" "}
                 {quando(decodeTime(t.id), agora, "detalhado")}

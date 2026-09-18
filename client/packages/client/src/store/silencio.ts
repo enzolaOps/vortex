@@ -28,7 +28,21 @@ import { avisarSync } from "./sync";
  * `agora < ate` funciona igual, e o valor DIZ que não há prazo em vez de
  * fingir um.
  */
-const silenciados = new Map<string, number>();
+/**
+ * ⚠ **Guarda o PRAZO e a DURAÇÃO escolhida, e a segunda entrou para o ✓.**
+ *
+ * Só com o prazo não dá para dizer QUAL das cinco a pessoa escolheu: vinte
+ * minutos depois de "Por 1 hora" e quarenta depois de "Por 8 horas" são dois
+ * instantes futuros quaisquer. O menu do design marca a escolha com ✓, e
+ * marcar por aproximação diria a errada em metade dos casos.
+ *
+ * Um objeto e não um segundo `Map`: dois mapas sobre o mesmo fato acabam
+ * discordando, que é o argumento que este arquivo já usa contra silenciar
+ * canal por canal para silenciar o servidor.
+ */
+type Silencio = { readonly ate: number; readonly duracaoMs: number };
+
+const silenciados = new Map<string, Silencio>();
 const ouvintes = new Set<() => void>();
 
 /** As cinco do design, na ordem dele. */
@@ -57,16 +71,21 @@ export function assinarSilencio(ouvinte: () => void): () => void {
  * "volta sozinho sem notificar o histórico perdido", que é exatamente isto.
  */
 export function estaSilenciado(channelId: string): boolean {
-  const ate = silenciados.get(channelId);
-  if (ate === undefined) return false;
-  if (Date.now() < ate) return true;
+  const s = silenciados.get(channelId);
+  if (s === undefined) return false;
+  if (Date.now() < s.ate) return true;
   silenciados.delete(channelId);
   return false;
 }
 
 /** O prazo, para quem mostra o restante. `undefined` = não silenciado. */
 export function silencioAte(channelId: string): number | undefined {
-  return estaSilenciado(channelId) ? silenciados.get(channelId) : undefined;
+  return estaSilenciado(channelId) ? silenciados.get(channelId)?.ate : undefined;
+}
+
+/** A duração ESCOLHIDA, para o ✓ do menu. `undefined` = não silenciado. */
+export function duracaoDoSilencio(channelId: string): number | undefined {
+  return estaSilenciado(channelId) ? silenciados.get(channelId)?.duracaoMs : undefined;
 }
 
 /**
@@ -77,7 +96,34 @@ export function silencioAte(channelId: string): number | undefined {
  */
 export function alternarSilencio(channelId: string, duracaoMs = Infinity): void {
   if (estaSilenciado(channelId)) silenciados.delete(channelId);
-  else silenciados.set(channelId, duracaoMs === Infinity ? Infinity : Date.now() + duracaoMs);
+  else {
+    silenciar(channelId, duracaoMs);
+    return;
+  }
+  persistirNotificacoes();
+  for (const ouvinte of ouvintes) ouvinte();
+}
+
+/**
+ * Silencia por um prazo, SEM alternar.
+ *
+ * ⚠ **O submenu das cinco durações precisa disto e não de `alternarSilencio`.**
+ * Escolher "Por 8 horas" com o canal já silenciado por 15 minutos é TROCAR o
+ * prazo; com o alternador, o mesmo clique REATIVARIA os avisos — o contrário
+ * do que o item diz.
+ */
+export function silenciar(channelId: string, duracaoMs = Infinity): void {
+  silenciados.set(channelId, {
+    ate: duracaoMs === Infinity ? Infinity : Date.now() + duracaoMs,
+    duracaoMs,
+  });
+  persistirNotificacoes();
+  for (const ouvinte of ouvintes) ouvinte();
+}
+
+/** Reativa os avisos do canal. Sem efeito se ele já falava. */
+export function reativarCanal(channelId: string): void {
+  if (!silenciados.delete(channelId)) return;
   persistirNotificacoes();
   for (const ouvinte of ouvintes) ouvinte();
 }
@@ -98,27 +144,34 @@ export function alternarSilencio(channelId: string, duracaoMs = Infinity): void 
  * Quem pergunta "este canal está mudo?" é `estaMudo`, que junta os dois; o SDK
  * responde `channel.muted` por ele (ver `sdk/client.ts`).
  */
-const servidoresSilenciados = new Map<string, number>();
+const servidoresSilenciados = new Map<string, Silencio>();
 
 export function servidorSilenciado(serverId: string): boolean {
-  const ate = servidoresSilenciados.get(serverId);
-  if (ate === undefined) return false;
-  if (Date.now() < ate) return true;
+  const s = servidoresSilenciados.get(serverId);
+  if (s === undefined) return false;
+  if (Date.now() < s.ate) return true;
   servidoresSilenciados.delete(serverId);
   return false;
 }
 
 /** O prazo do servidor, para quem mostra o restante. */
 export function silencioDoServidorAte(serverId: string): number | undefined {
-  return servidorSilenciado(serverId) ? servidoresSilenciados.get(serverId) : undefined;
+  return servidorSilenciado(serverId) ? servidoresSilenciados.get(serverId)?.ate : undefined;
+}
+
+/** A duração ESCOLHIDA do servidor, para o ✓ do menu. */
+export function duracaoDoSilencioDoServidor(serverId: string): number | undefined {
+  return servidorSilenciado(serverId)
+    ? servidoresSilenciados.get(serverId)?.duracaoMs
+    : undefined;
 }
 
 /** Silencia o servidor por um prazo; `Infinity` é "até eu reativar". */
 export function silenciarServidor(serverId: string, duracaoMs = Infinity): void {
-  servidoresSilenciados.set(
-    serverId,
-    duracaoMs === Infinity ? Infinity : Date.now() + duracaoMs,
-  );
+  servidoresSilenciados.set(serverId, {
+    ate: duracaoMs === Infinity ? Infinity : Date.now() + duracaoMs,
+    duracaoMs,
+  });
   persistirNotificacoes();
   for (const ouvinte of ouvintes) ouvinte();
 }
@@ -348,11 +401,11 @@ function objeto(v: unknown): Record<string, unknown> | undefined {
 
 export function exportarNotificacoes(): string {
   const agora = Date.now();
-  const mutes = (m: Map<string, number>) => {
+  const mutes = (m: Map<string, Silencio>) => {
     const o: Record<string, { until?: number }> = {};
-    for (const [id, ate] of m) {
-      if (ate === Infinity) o[id] = {};
-      else if (ate > agora) o[id] = { until: ate };
+    for (const [id, s] of m) {
+      if (s.ate === Infinity) o[id] = {};
+      else if (s.ate > agora) o[id] = { until: s.ate };
     }
     return o;
   };
@@ -389,30 +442,38 @@ function lerNotificacoes(cru: string): boolean {
   const agora = Date.now();
   const proximosNiveis = new Map<string, NivelDeNotificacao>();
   const proximosDeServidor = new Map<string, NivelDeNotificacao>();
-  const proximosMutes = new Map<string, number>();
-  const proximosMutesDeServidor = new Map<string, number>();
+  const proximosMutes = new Map<string, Silencio>();
+  const proximosMutesDeServidor = new Map<string, Silencio>();
 
   const lerNiveis = (
     v: unknown,
     destino: Map<string, NivelDeNotificacao>,
-    mutes: Map<string, number>,
+    mutes: Map<string, Silencio>,
   ) => {
     for (const [id, n] of Object.entries(objeto(v) ?? {})) {
       // O upstream antigo guardava o silêncio como nível "muted".
-      if (n === "muted") mutes.set(id, Infinity);
+      if (n === "muted") mutes.set(id, { ate: Infinity, duracaoMs: Infinity });
       const nivel = nivelDoProtocolo(n);
       if (nivel) destino.set(id, nivel);
     }
   };
-  const lerMutes = (v: unknown, destino: Map<string, number>) => {
+  /*
+    ⚠ **A DURAÇÃO escolhida não existe no formato do fio, e não é inventada.**
+    O upstream guarda só `until`, então um silêncio vindo de outro dispositivo
+    não diz qual das cinco opções a pessoa marcou. `NaN` não é igual a nenhuma
+    delas, então o menu mostra o tempo restante e NENHUM ✓ — que é a verdade.
+    Aproximar pelo prazo restante marcaria a opção errada em metade dos casos,
+    que é exatamente o que motivou guardar a duração aqui.
+  */
+  const lerMutes = (v: unknown, destino: Map<string, Silencio>) => {
     for (const [id, e] of Object.entries(objeto(v) ?? {})) {
       const mute = objeto(e);
       if (!mute) continue;
       const ate = mute.until;
       if (typeof ate === "number" && Number.isFinite(ate)) {
-        if (ate > agora) destino.set(id, ate);
+        if (ate > agora) destino.set(id, { ate, duracaoMs: Number.NaN });
       } else {
-        destino.set(id, Infinity);
+        destino.set(id, { ate: Infinity, duracaoMs: Infinity });
       }
     }
   };

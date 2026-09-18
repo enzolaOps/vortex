@@ -11,7 +11,7 @@ import {
   type Gravacao,
   type PreferenciasLidas,
 } from "./preferenciasDoCliente";
-import { mainWindow } from "./window";
+import { aplicarCorretor, mainWindow } from "./window";
 
 /**
  * Os EFEITOS das preferências da tela Desktop — a tradução pura mora em
@@ -30,6 +30,7 @@ import { mainWindow } from "./window";
  * | barraNativa              | `frame` da janela                              | reinício     |
  * | aceleracaoDeHardware     | `disableHardwareAcceleration`                  | reinício     |
  * | reduzirEmSegundoPlano    | `setBackgroundThrottling`                      | na hora      |
+ * | corretorOrtografico      | `setSpellCheckerEnabled` + idioma da sessão    | na hora      |
  *
  * ⚠ **`preCarregarAnexos` NÃO está aqui**, e a ausência é a decisão: não há
  * comportamento nenhum atrás dela, nem na casca nem no cliente. Gravá-la
@@ -68,6 +69,7 @@ function configAtual(): ConfigDasPreferencias {
     aoFechar: config.aoFechar,
     hardwareAcceleration: config.hardwareAcceleration,
     reduzirEmSegundoPlano: config.reduzirEmSegundoPlano,
+    spellchecker: config.spellchecker,
   };
 }
 
@@ -117,6 +119,16 @@ async function gravarPreferencia(g: Gravacao): Promise<void> {
       return;
     case "reduzirEmSegundoPlano":
       aplicarPreferenciasNaJanela();
+      return;
+    /*
+      ⚠ **O setter de `config.spellchecker` já liga o motor na sessão**, mas
+      não escolhe IDIOMA — e um corretor em inglês num app em português
+      sublinha tudo, que é o mesmo que não ter corretor com o custo de riscar
+      a tela. `aplicarCorretor` faz as duas coisas, e é a mesma função da
+      partida: dois caminhos divergiriam no primeiro que ganhasse uma regra.
+    */
+    case "corretorOrtografico":
+      aplicarCorretor();
       return;
     default:
       return;

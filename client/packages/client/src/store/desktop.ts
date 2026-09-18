@@ -46,6 +46,17 @@ export type Desktop = {
   readonly preCarregarAnexos: boolean;
 
   /**
+   * O corretor ortográfico do Chromium, no composer e em todo campo.
+   *
+   * ⚠ **Ele existia no store da casca e ninguém o lia.** O menu nativo
+   * gravava `spellchecker`, `config.sync()` mandava a chave ao renderer e
+   * nenhuma tela a mostrava — e na partida seguinte o valor era ignorado,
+   * porque quem liga o motor é o `webPreferences` da janela. A casca traduz o
+   * nome: lá a chave é `spellchecker`, do upstream.
+   */
+  readonly corretorOrtografico: boolean;
+
+  /**
    * O que está EM USO neste processo — só a casca sabe, e só muda reiniciando.
    *
    * ⚠ **A barra de título desenha por `barraNativaEmUso`, nunca por
@@ -91,6 +102,8 @@ const PADRAO: Desktop = {
   aceleracaoDeHardware: true,
   reduzirEmSegundoPlano: true,
   preCarregarAnexos: false,
+  /* Ligado, como o store da casca — o padrão mostra o estado VERDADEIRO. */
+  corretorOrtografico: true,
 
   barraNativaEmUso: false,
   aceleracaoEmUso: true,

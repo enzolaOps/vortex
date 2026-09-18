@@ -16,6 +16,7 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "test": "node scripts/testar.mjs",
+    "assets:splash": "node scripts/gerar-splash.mjs",
     "lint": "eslint --ext .ts,.tsx .",
     "lint:fix": "eslint --ext --fix .ts,.tsx .",
     "fmt": "prettier --check 'src/**/*.{ts,tsx,json}'",

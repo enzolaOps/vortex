@@ -7,6 +7,7 @@ import * as Primitivo from "@radix-ui/react-context-menu";
 import type { ComponentProps, ReactNode } from "react";
 
 import { cn } from "../../lib/cn";
+import { consumirFocoDeVolta } from "./MenuDeContexto";
 import {
   menuContent,
   menuItem,
@@ -47,12 +48,33 @@ export const ContextMenuTrigger = Primitivo.Trigger;
 export function ContextMenuContent({
   className,
   children,
+  onCloseAutoFocus,
   ...props
 }: ComponentProps<typeof Primitivo.Content>) {
   return (
     <Primitivo.Portal>
       <Primitivo.Content
         {...props}
+        /*
+          O foco volta para ONDE O GESTO NASCEU, e não para o gatilho.
+
+          ⚠ **O gatilho aqui é a superfície inteira.** Na timeline ele é o
+          container de dez mil linhas: fechar o menu com `Esc` largava o foco
+          na lista e a pessoa perdia o lugar. Medido — `document.activeElement`
+          voltava com `role="log"`. Ver `consumirFocoDeVolta`.
+
+          `isConnected` porque a linha pode ter saído da janela virtualizada
+          enquanto o menu estava aberto; sem alvo vivo, o comportamento do
+          Radix continua valendo.
+        */
+        onCloseAutoFocus={(evento) => {
+          onCloseAutoFocus?.(evento);
+          if (evento.defaultPrevented) return;
+          const no = consumirFocoDeVolta();
+          if (!no?.isConnected) return;
+          evento.preventDefault();
+          no.focus();
+        }}
         className={cn(
           menuContent,
           "max-h-(--radix-context-menu-content-available-height)",

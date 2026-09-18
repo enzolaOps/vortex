@@ -87,6 +87,24 @@ jobs:
       - name: Ativar o pnpm da casca
         run: corepack enable && pnpm --version
 
+      - name: Store do pnpm
+        id: pnpm
+        run: echo "store=$(pnpm store path)" >> "$GITHUB_OUTPUT"
+
+      # Store + binário do Electron (dezenas de MB no postinstall). Ação da
+      # GitHub, passa na política. A chave acompanha o lockfile; restore-keys
+      # reaproveita o store velho e o pnpm busca só o que faltou.
+      - name: Cache do pnpm e do Electron
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: |
+            ${{ steps.pnpm.outputs.store }}
+            ~/.cache/electron
+            ~/AppData/Local/electron/Cache
+          key: ${{ runner.os }}-desktop-${{ hashFiles('vendor/stoat-desktop/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-desktop-
+
       # .deb precisa de fakeroot. O pacote Arch (pkg.tar.zst) precisa de
       # bsdtar + zstd. Sem `-dev` do X11: o `uiohook-napi` usa o prebuild.
       - name: Ferramentas do .deb e do pacman

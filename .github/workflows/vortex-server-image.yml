@@ -100,6 +100,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+      # Sem Swatinem/rust-cache: ação de terceiro, a política derruba o job.
+      - name: Cache do cargo
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            server/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('server/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
       - run: rustup update stable && rustup default stable
       - run: cargo check -p revolt-delta -p revolt-bonfire --locked
 

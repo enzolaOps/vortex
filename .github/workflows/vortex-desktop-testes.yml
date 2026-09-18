@@ -53,8 +53,21 @@ jobs:
       # ⚠ Sem `pnpm/action-setup`: a política do repositório só libera ações
       # da GitHub e de `docker/*`, e ela derruba o run antes do primeiro passo.
       # O corepack do Node lê o `packageManager` da CASCA (versão e hash).
+      # Sem `cache: pnpm` no setup-node: ele chama `pnpm` antes do corepack.
       - name: Ativar o pnpm da casca
         run: corepack enable && pnpm --version
+
+      - name: Store do pnpm
+        id: pnpm
+        run: echo "store=$(pnpm store path)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache do pnpm
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: ${{ steps.pnpm.outputs.store }}
+          key: ${{ runner.os }}-desktop-${{ hashFiles('vendor/stoat-desktop/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-desktop-
 
       - name: Instalar dependências
         run: pnpm install --frozen-lockfile --ignore-scripts

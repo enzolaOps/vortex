@@ -60,7 +60,14 @@ tamanho=$(du -sb "$pkg" | cut -f1)
   echo "license = AGPL-3.0-or-later"
 } > "$pkg/.PKGINFO"
 
-saida="${1:-$raiz/out/make/Vortex.pkg.tar.zst}"
+saida=${1:-out/make/Vortex.pkg.tar.zst}
+case "$saida" in
+  /*) ;;
+  *) saida=$raiz/$saida ;;
+esac
 mkdir -p "$(dirname "$saida")"
+# Path absoluto: o bsdtar roda DENTRO de `$pkg`, e `entrega/...` relativo
+# apontava para um diretório que não existe — a v1.3.2 Linux abortou aqui
+# e nem o .deb foi anexado.
 ( cd "$pkg" && bsdtar --uid 0 --gid 0 -c --zstd -f "$saida" . )
 echo "$saida"

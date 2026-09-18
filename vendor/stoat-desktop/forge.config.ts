@@ -16,7 +16,16 @@ import path from "node:path";
 const STRINGS = {
   author: "enzolaOps",
   name: "Vortex",
+  /*
+    ⚠ **Nome do BINÁRIO, e ele é carregado no Linux.** `Exec=` e
+    `StartupWMClass=` do `.desktop`, o `bin` do `.deb`, o Flatpak e
+    `scripts/empacotar-arch.sh` dependem dele. No Windows ele nomeia o
+    executável e o stub na raiz da instalação, que é para onde o atalho aponta
+    — ver a decisão sobre o nome em `MakerSquirrel` abaixo.
+  */
   execName: "vortex-desktop",
+  /* A identidade do pacote Squirrel. Vale a mesma decisão: nunca muda. */
+  pacote: "vortex-desktop",
   description: "Desktop shell for the Vortex chat platform.",
 };
 
@@ -45,8 +54,31 @@ const makers: ForgeConfig["makers"] = [
    * conditional needed.
    */
   new MakerSquirrel({
-    name: STRINGS.execName,
+    /*
+      ⚠ **`name` é a IDENTIDADE DO PACOTE, e mudá-la é irreversível para quem
+      já instalou.** É ela que nomeia `%LOCALAPPDATA%\vortex-desktop\`, o
+      `RELEASES` e o `vortex-desktop-X.Y.Z-full.nupkg` que o
+      `update.electronjs.org` serve. Um nome diferente é OUTRO app para o
+      Squirrel: quem tem a 1.3.1 nunca mais receberia atualização e ficaria com
+      duas instalações. Fica como está, para sempre.
+
+      O nome que a pessoa VÊ não depende disto. O atalho é nomeado pelo
+      `ProductName` do executável (`packagerConfig.name` = "Vortex"), e o
+      `Vortex-Setup.exe` abaixo é o que ela baixa.
+    */
+    name: STRINGS.pacote,
     setupIcon: `${ASSET_DIR}/icon.ico`,
+    /*
+      ⚠ **A animação que o `Setup.exe` mostra enquanto instala.** Sem esta
+      linha o `electron-winstaller` usa a de fábrica, que é VERDE
+      (`#75c7b0`/`#a7ecb2`/`#8ce1bd` na paleta dela) — o retângulo verde que
+      aparecia por cima da janela do app. A cor era dela; a PERMANÊNCIA era do
+      app não tratar `--squirrel-install` e nunca encerrar, que é o que
+      `src/native/atalhosDoSquirrel.ts` conserta.
+
+      Gerada por `scripts/gerar-splash.mjs`, com teste que reconstrói os bytes.
+    */
+    loadingGif: `${ASSET_DIR}/instalacao.gif`,
     /*
       ⚠ Nome SEM versão: o botão "Baixar para desktop" do cliente aponta para
       `releases/latest/download/Vortex-Setup.exe`, e um nome com a versão

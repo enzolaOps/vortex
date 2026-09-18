@@ -129,6 +129,14 @@ export function AssistirTransmissao({ userId }: { userId: string }) {
   return (
     <div
       className={css.tela}
+      /*
+        ⚠ **O clique direito aqui era MORTO — nem menu do app, nem nativo.**
+        A tela de quem transmite é o único ladrilho da voz que não marcava de
+        quem ela é, então o `ComMenuDoParticipante` que envolve o palco não
+        tinha alvo e recusava abrir. Volume, "silenciar só para mim" e "ver
+        perfil" são exatamente o que se quer assistindo alguém.
+      */
+      data-participante={userId}
       data-chrome={visivel}
       onPointerMove={mostrar}
       onPointerDown={mostrar}

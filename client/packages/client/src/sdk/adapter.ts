@@ -77,6 +77,7 @@ import {
 } from "../store/conexao";
 import { confirmarNaFila, esquecerDaFila } from "../store/fila";
 import { assinarSilencio, estaMudo } from "../store/silencio";
+import { registrarUsoDeReacao } from "../store/reacoesFrequentes";
 import { assinarFavoritos, lerFavoritos, ordenarComFavoritas } from "../store/favoritos";
 import { assinarPrivacidade, lerPrivacidade } from "../store/privacidade";
 import {
@@ -677,6 +678,18 @@ export function alternarReacao(messageId: string, emoji: string): void {
     otimista que corre contra esse evento produz o chip piscando duas vezes.
     Fica dito.
   */
+  /*
+    A frequência de uso, para o conjunto rápido do menu ser SEU.
+
+    ⚠ **Só ao PÔR, nunca ao tirar.** Contar o desfazer premiaria o emoji que a
+    pessoa clicou por engano — duas vezes, porque errar e corrigir somaria dois
+    usos ao que ela não queria.
+
+    Aqui e não no componente: reagir acontece por três caminhos (menu, barra de
+    hover, seletor), e contar em cada um seria a mesma regra escrita três vezes.
+  */
+  if (!tinha) registrarUsoDeReacao(emoji);
+
   if (!conectado()) return;
   const alvo = client.messages.get(idDoSdk(messageId));
   if (tinha) void alvo?.unreact(emoji).catch(() => undefined);

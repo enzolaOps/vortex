@@ -163,9 +163,21 @@ export function Paleta({ aoFechar }: { aoFechar: () => void }) {
                   aria-selected={i === cursor}
                   data-ativo={i === cursor}
                   className={css.item}
-                  // `onMouseDown` e não `onClick`: o clique tira o foco do
-                  // campo antes de disparar, e o Dialog fecharia no blur.
+                  /*
+                    `onMouseDown` e não `onClick`: o clique tira o foco do
+                    campo antes de disparar, e o Dialog fecharia no blur.
+
+                    ⚠ **`button !== 0` sai, e sem essa linha o botão DIREITO e
+                    o do MEIO executavam o item.** `mousedown` dispara para os
+                    três botões; `click` só para o principal, então trocar
+                    `click` por `mousedown` trouxe junto dois gatilhos que
+                    ninguém quis. Clicar com o direito num resultado NAVEGAVA
+                    para ele — a paleta é a superfície de "ir para", e ir para
+                    o lugar errado por um gesto que não é de ativação é o pior
+                    caso possível dela.
+                  */
                   onMouseDown={(e) => {
+                    if (e.button !== 0) return;
                     e.preventDefault();
                     escolher(entrada);
                   }}
