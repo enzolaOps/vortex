@@ -75,6 +75,10 @@ export function dublarRedeDoServidor(
   if (servidor === undefined) return;
 
   const alvo = servidor as unknown as Record<string, unknown>;
+  /* Os cargos REAIS do servidor semeado: a entrada de auditoria que muda cargo
+     precisa citar IDs que o cache do SDK resolve, senão ela exercita só o ramo
+     de fallback e a frase sai com ULID no lugar de "Design". */
+  const cargoIds = servidor.orderedRoles.map((c) => c.id);
 
   /* ------------------------------------------------------- convites */
   /*
@@ -169,12 +173,55 @@ export function dublarRedeDoServidor(
     const previa = PREVIAS.get(rota);
     if (previa !== undefined) return Promise.resolve(previa);
     if (!rota.endsWith("/audit_logs")) return original(rota, ...resto);
+    /*
+      ⚠ **O filtro `type` é HONRADO aqui, e ignorá-lo escondia um consumidor
+      inteiro.** A tela de Banimentos consulta a auditoria com
+      `type=BanCreate` para preencher "Banido por" e "Data"; um envelope que
+      devolve tudo faz a página funcionar por acidente — ela receberia as
+      cinco entradas e acharia a de banimento no meio. No servidor de verdade
+      o filtro corta, e com ele o número de entradas devolvidas muda. É a
+      enésima vez que o arnês é mais pobre que o protocolo, e a primeira em
+      que ele é mais GENEROSO: devolver a mais também esconde defeito.
+    */
+    const filtros = (resto[0] ?? {}) as { type?: string; target?: string };
+    type Entrada = {
+      readonly _id: string;
+      readonly target?: string;
+      readonly action: { readonly type: string };
+    };
+    /*
+      ⚠ **Ordena por `_id` DECRESCENTE, como o servidor.** O Mongo devolve
+      `sort: { _id: -1 }`, e a tela conta com isso: a régua de dia só aparece
+      quando o dia MUDA em relação à linha anterior, então uma lista fora de
+      ordem produziria duas réguas do mesmo dia e um "16 de setembro" acima de
+      um evento das 19h. Medido na primeira corrida com este envelope — a
+      ordem do array-fonte vazou para a tela.
+    */
+    const filtrar = <T extends Entrada>(lista: readonly T[]): readonly T[] =>
+      lista
+        .filter(
+          (e) =>
+            (filtros.type === undefined || e.action.type === filtros.type) &&
+            (filtros.target === undefined || e.target === filtros.target),
+        )
+        .sort((a, b) => (a._id < b._id ? 1 : a._id > b._id ? -1 : 0));
     return Promise.resolve({
-      users: userIds.slice(0, 3).map((id, i) => ({
-        _id: id,
-        username: ["Marina", "Téo", "Rafa"][i],
-      })),
-      audit_logs: [
+      users: [
+        ...userIds.slice(0, 3).map((id, i) => ({
+          _id: id,
+          username: ["Marina", "Téo", "Rafa"][i],
+        })),
+        /*
+          ⚠ **As contas banidas entram em `users`.** Sem elas o alvo de um
+          `BanCreate` viria sem nome resolvido, e a coluna "Banido por" da
+          tabela de Banimentos casaria por ID mas a tela de auditoria
+          mostraria o ULID cru — o caso que `alvo === undefined` cobre,
+          exercitado por `no_alvo` mais abaixo.
+        */
+        { _id: "01JQ00000000000000BAN00001", username: "spam_842" },
+        { _id: "01JQ00000000000000BAN00002", username: "raid_bot_11" },
+      ],
+      audit_logs: filtrar([
         {
           _id: ulidEm(AGORA - HORA),
           user: userIds[0],
@@ -195,11 +242,48 @@ export function dublarRedeDoServidor(
           reason: "revisão de permissões",
           action: { type: "ChannelRolePermissionsEdit" },
         },
+        /*
+          ⚠ **Mudança de CARGO, e ela não existia.** `MemberEdit` com `roles`
+          é a única entrada que produz a frase específica do design ("atribuiu
+          Design a Téo") em vez de "editou um membro"; sem ela, o caminho que
+          resolve nome de cargo e monta a frase nunca chegava à tela. É a
+          mesma família do `ehMencao` que passou três fases sem devolver
+          `true`.
+
+          Os IDs de cargo saem do FIREHOSE, não de constantes: o mapa de nomes
+          vem do cache do SDK, e IDs inventados exercitariam só o ramo de
+          fallback (que cai no ID cru).
+        */
+        {
+          _id: ulidEm(AGORA - 3 * HORA),
+          user: userIds[0],
+          target: userIds[1],
+          action: {
+            type: "MemberEdit",
+            user: userIds[1],
+            before: { roles: cargoIds.slice(0, 1) },
+            after: cargoIds.length > 1 ? { roles: cargoIds.slice(0, 2) } : { roles: [] },
+          },
+        },
+        /*
+          ⚠ **Duas contas banidas, e só DUAS das três que `fetchBans` devolve.**
+          A terceira fica de fora de propósito: a auditoria guarda uma janela,
+          não a história inteira, e "banimento fora do registro" é um estado
+          que a tabela precisa dizer em vez de deixar em branco. Uma amostra
+          onde toda linha tem autoria nunca prova isso.
+        */
         {
           _id: ulidEm(AGORA - 20 * HORA),
           user: userIds[2],
+          target: "01JQ00000000000000BAN00001",
           reason: "divulgação em massa",
-          action: { type: "BanCreate" },
+          action: { type: "BanCreate", user: "01JQ00000000000000BAN00001" },
+        },
+        {
+          _id: ulidEm(AGORA - 34 * HORA),
+          user: userIds[0],
+          target: "01JQ00000000000000BAN00002",
+          action: { type: "BanCreate", user: "01JQ00000000000000BAN00002" },
         },
         {
           _id: ulidEm(AGORA - 26 * HORA),
@@ -218,7 +302,7 @@ export function dublarRedeDoServidor(
           user: userIds[1],
           action: { type: "AlgoQueAindaNaoExiste" },
         },
-      ],
+      ]),
     });
   };
 }

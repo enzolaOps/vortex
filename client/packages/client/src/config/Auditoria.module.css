@@ -13,6 +13,58 @@
   max-inline-size: 900px;
 }
 
+/*
+  O cabeçalho do design: a janela consultada à esquerda, o chip que a remove ao
+  lado. Linha própria acima dos filtros porque ele não filtra o que está na
+  tela — ele diz o que a CONSULTA trouxe, e misturá-lo aos três controles faria
+  parecer um quarto filtro.
+*/
+.topo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  flex-wrap: wrap;
+}
+
+.janela {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--vx-text-1);
+}
+
+/*
+  O chip removível.
+
+  `7px 9px` não cabe aqui — é a geometria do item de menu, e este é um alvo
+  numa linha de texto. Pílula com o acento a 10%, que é o mesmo véu do item
+  selecionado, porque ele diz "isto está em vigor".
+*/
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-05);
+  padding: var(--vx-space-02) var(--vx-space-08);
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-state-selected);
+  color: var(--vx-accent-text);
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.chip:hover {
+  background: var(--vx-state-hover);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
 .filtros {
   display: flex;
   flex-wrap: wrap;
@@ -22,6 +74,12 @@
 
 .filtro {
   inline-size: 240px;
+}
+
+/* Cresce: ela é o controle que se usa, e os dois `Escolha` têm largura fixa. */
+.busca {
+  flex: 1;
+  min-inline-size: 200px;
 }
 
 /* Empurrada para a ponta: ela ANOTA o resultado do filtro, e ao lado dos
@@ -76,6 +134,20 @@
   flex: 1;
   min-inline-size: 0;
   font-size: var(--vx-size-md);
+  color: var(--vx-text-2);
+}
+
+/*
+  Sobre quem foi.
+
+  Peso de NOME e não de frase — é a mesma hierarquia do autor, um tom abaixo:
+  numa linha "Ana · atribuiu Design · a Téo", os dois nomes são o que se varre e
+  o verbo é o que se lê. `flex: none` porque quem encolhe é a frase.
+*/
+.alvo {
+  flex: none;
+  font-size: var(--vx-size-md);
+  font-weight: 600;
   color: var(--vx-text-2);
 }
 
