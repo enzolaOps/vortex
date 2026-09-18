@@ -28,7 +28,16 @@ mkdir -p \
   "$pkg/usr/share/icons/hicolor/256x256/apps"
 
 cp -a "$app"/. "$pkg/opt/vortex-desktop/"
+# `cp -a app/. dest` herda o modo do diretório do Forge, que no runner
+# sai 700. Pacman instala root:root, e o exec do usuário vira
+# "Permission denied" — o binário é 755, a pasta não deixa atravessar.
+chmod 755 "$pkg/opt/vortex-desktop"
+chmod -R a+rX "$pkg/opt/vortex-desktop" "$pkg/usr"
 chmod 755 "$pkg/opt/vortex-desktop/vortex-desktop"
+if [ "$(($(stat -c %a "$pkg/opt/vortex-desktop") % 2))" -ne 1 ]; then
+  echo "empacotar-arch: opt/vortex-desktop sem execute para others" >&2
+  exit 1
+fi
 if [ -f "$pkg/opt/vortex-desktop/chrome-sandbox" ]; then
   chmod 4755 "$pkg/opt/vortex-desktop/chrome-sandbox"
 fi
