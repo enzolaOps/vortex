@@ -27,6 +27,40 @@ export function definirSegurando(v: boolean): void {
   for (const o of ouvintes) o();
 }
 
+/*
+  O atraso ao soltar — "Atraso ao soltar 120 ms" do design.
+
+  ⚠ **Mora AQUI e não no motor**, e é o que o faz valer de verdade: o motor
+  assina `segurando` e fecha o microfone quando ele vira `false`, então segurar
+  o `false` por N ms segura o microfone aberto por N ms, venha a tecla do
+  listener da janela ou do hook global da casca. Um atraso no motor teria de
+  ser repetido para cada caminho que escreve aqui.
+*/
+let soltura: ReturnType<typeof setTimeout> | undefined;
+
+/** A tecla desceu. Cancela uma soltura pendente — reapertar não pisca. */
+export function apertarTecla(): void {
+  if (soltura !== undefined) {
+    clearTimeout(soltura);
+    soltura = undefined;
+  }
+  definirSegurando(true);
+}
+
+/** A tecla subiu. O microfone fecha depois de `atrasoMs`. */
+export function soltarTecla(atrasoMs: number): void {
+  if (soltura !== undefined) clearTimeout(soltura);
+  soltura = undefined;
+  if (atrasoMs <= 0) {
+    definirSegurando(false);
+    return;
+  }
+  soltura = setTimeout(() => {
+    soltura = undefined;
+    definirSegurando(false);
+  }, atrasoMs);
+}
+
 /**
  * O microfone deve estar transmitindo?
  *

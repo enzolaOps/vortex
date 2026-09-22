@@ -20,20 +20,16 @@ import css from "./VozEVideo.module.css";
 const MAC = typeof navigator !== "undefined" && /mac/i.test(navigator.platform);
 
 /**
- * Os atalhos de voz, gravados de verdade.
+ * A gravação de uma combinação — o "Editar" da tabela e o "Regravar" do bloco
+ * de push-to-talk são o MESMO gesto.
  *
- * "Editar" arma a gravação: a próxima combinação com uma tecla principal vira
- * o atalho, `Esc` desiste. Enquanto grava, nenhum atalho dispara (ver
- * `pausarAtalhos`) — senão gravar a combinação de mutar, com ela já valendo,
- * mutaria no meio.
- *
- * ⚠ **Conflito marca as DUAS linhas e desliga as duas**, como o design pede:
- * disparar mutar e desconectar com a mesma tecla seria pior que nada.
+ * ⚠ **Um hook e não duas cópias**: a gravação pausa os atalhos, captura a
+ * tecla antes do app e trata `Esc`. Duas cópias divergem na primeira que
+ * esquecer de pausar — e gravar a combinação de mutar com ela valendo mutaria
+ * no meio.
  */
-export function TabelaDeAtalhos() {
-  const atalhos = useSyncExternalStore(assinarAtalhosDeVoz, lerAtalhosDeVoz);
+export function useGravacaoDeAtalho() {
   const [gravando, setGravando] = useState<AcaoDeVoz | undefined>(undefined);
-  const conflito = acoesEmConflito(atalhos);
 
   useEffect(() => {
     if (!gravando) return;
@@ -57,6 +53,25 @@ export function TabelaDeAtalhos() {
       pausarAtalhos(false);
     };
   }, [gravando]);
+
+  return [gravando, setGravando] as const;
+}
+
+/**
+ * Os atalhos de voz, gravados de verdade.
+ *
+ * "Editar" arma a gravação: a próxima combinação com uma tecla principal vira
+ * o atalho, `Esc` desiste. Enquanto grava, nenhum atalho dispara (ver
+ * `pausarAtalhos`) — senão gravar a combinação de mutar, com ela já valendo,
+ * mutaria no meio.
+ *
+ * ⚠ **Conflito marca as DUAS linhas e desliga as duas**, como o design pede:
+ * disparar mutar e desconectar com a mesma tecla seria pior que nada.
+ */
+export function TabelaDeAtalhos() {
+  const atalhos = useSyncExternalStore(assinarAtalhosDeVoz, lerAtalhosDeVoz);
+  const [gravando, setGravando] = useGravacaoDeAtalho();
+  const conflito = acoesEmConflito(atalhos);
 
   return (
     <div className={css.tabela}>
