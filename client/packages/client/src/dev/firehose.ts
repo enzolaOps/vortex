@@ -1072,6 +1072,43 @@ function anexosDe(seed: number) {
     };
   }
 
+  /*
+    ⚠ **Imagem MAIS vídeo na mesma mensagem — 14ª vez que o arnês fica mais
+    pobre que o protocolo, e esta escondia duas coisas de uma vez.**
+
+    Toda mensagem do firehose tinha NO MÁXIMO um anexo, e nenhuma tinha vídeo.
+    Consequência: a galeria do visualizador — setas, contador "i de N" e a
+    tira de miniaturas — nunca tinha sido vista a partir da timeline, porque
+    ela só aparece com mais de uma mídia; e o ramo de VÍDEO do visualizador
+    era inalcançável por clique, porque a linha desenha vídeo com `<video>` e
+    só a imagem abre o lightbox. Era assim que um `.mp4` na segunda posição
+    da galeria saía como `<img>` quebrado sem ninguém ver.
+
+    Período 37, primo com os outros três (41, 29, 17), para as quatro formas
+    de anexo caberem na mesma janela sem se atropelarem.
+  */
+  if (seed % 37 === 11) {
+    const p = PROPORCOES[seed % PROPORCOES.length]!;
+    return {
+      attachments: [
+        {
+          _id: `f${seed}a`,
+          tag: "attachments",
+          filename: `captura-${seed}.png`,
+          size: 90_000 + (seed % 400) * 1_100,
+          metadata: { type: "Image", width: p.largura, height: p.altura },
+        },
+        {
+          _id: `f${seed}b`,
+          tag: "attachments",
+          filename: `gravacao-${seed}.mp4`,
+          size: 2_400_000 + (seed % 700) * 2_000,
+          metadata: { type: "Video", width: 1280, height: 720 },
+        },
+      ],
+    };
+  }
+
   if (seed % 17 !== 3) return {};
 
   const p = PROPORCOES[seed % PROPORCOES.length]!;
