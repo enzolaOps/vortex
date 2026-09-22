@@ -33,6 +33,7 @@ import { ComMenuDoParticipante } from "../voz/MenuDoParticipante";
 import { assinarChamada, falando, lerChamada } from "../store/chamada";
 import { administrar } from "../store/administracao";
 import { ListaDeConversas } from "../casa/ListaDeConversas";
+import { NotaDePresencaOffline } from "../conexao/NotaDePresencaOffline";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { EntradaDeEventos } from "../eventos/EntradaDeEventos";
 import { contagem, rotuloDeNaoLidas } from "../lib/plural";
@@ -1236,6 +1237,7 @@ export function ListaDeCanais() {
       ) : (
         <CanaisDoServidor />
       )}
+      <NotaDePresencaOffline />
       <FaixaDeVoz />
     </div>
   );

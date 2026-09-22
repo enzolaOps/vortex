@@ -509,12 +509,28 @@ export function Arnes() {
             seletor de tela
           </button>
 
+          {/*
+            ⚠ **Ele alternava entre DOIS estados e o store tem três** — e o que
+            faltava era justamente `sem-conexao`, onde vive a degradação
+            inteira do app: rail dessaturado, ações do cabeçalho fora,
+            timeline em cache, composer em fila. Nada disso tinha como ser
+            visto aqui. É o padrão que esta tabela já nomeou uma dúzia de
+            vezes, com a diferença de que o que faltava não era campo do
+            protocolo, era um ESTADO que o próprio store declara.
+
+            O ciclo é a ordem em que uma queda acontece: tenta, desiste, volta.
+          */}
           <button
-            onClick={() =>
+            onClick={() => {
+              const agora = lerConexao();
               definirConexao(
-                lerConexao() === "conectado" ? "reconectando" : "conectado",
-              )
-            }
+                agora === "conectado"
+                  ? "reconectando"
+                  : agora === "reconectando"
+                    ? "sem-conexao"
+                    : "conectado",
+              );
+            }}
             className="rounded-06 border border-border-subtle bg-surface-2 px-12 py-04 text-sm text-text-1"
           >
             derrubar conexão

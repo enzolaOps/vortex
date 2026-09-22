@@ -1456,6 +1456,23 @@ export function MessageList({
       ) : null}
 
       {/*
+        A nota de cache (D-LAC-49).
+
+        ⚠ **Sempre montada e escondida por CSS**, e não condicional em JS: a
+        lista NÃO assina a conexão. Ela é o componente mais caro do app e um
+        engasgo de rede não pode remontá-la — quem assina a conexão por linha
+        é o estado de envio, num componente próprio, exatamente por isso.
+
+        ⚠ **Grudada no topo, como as duas faixas acima e pela mesma razão.**
+        Ela some e volta com a conexão; se estivesse no fluxo, cada queda de
+        rede empurraria a primeira linha e a âncora se moveria por causa de um
+        aviso.
+      */}
+      <p className={css.notaDeCache}>
+        Mostrando as últimas mensagens em cache. Nada novo chega até reconectar.
+      </p>
+
+      {/*
         Você pulou para um resultado de busca.
 
         ⚠ **Ela FLUTUA, como a de não lidas e pela mesma razão**: uma faixa no

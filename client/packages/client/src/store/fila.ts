@@ -23,6 +23,24 @@
 const confirmadas = new Set<string>();
 const ouvintes = new Set<() => void>();
 
+/**
+ * Quantas mensagens estão esperando a rede, por canal.
+ *
+ * ⚠ **Duas estruturas e não uma, e a segunda é o que torna isto idempotente.**
+ * `canalDePendente` diz de que canal é cada ID; sem ela, o adapter marcando a
+ * mesma mensagem duas vezes (o caminho de envio passa por mais de um ponto)
+ * contaria duas, e o rodapé do composer diria "2 mensagens na fila" com uma
+ * só. Um contador que mente sobre o que foi escrito é pior que não ter
+ * contador.
+ *
+ * Vive aqui e não no adapter porque é a mesma pergunta que o resto deste
+ * módulo responde — "o que está esperando a rede?" — e porque o rodapé do
+ * composer precisa de um store observável, exatamente pela razão registrada no
+ * cabeçalho: o snapshot da mensagem não muda quando isto muda.
+ */
+const canalDePendente = new Map<string, string>();
+const porCanal = new Map<string, number>();
+
 export function assinarFila(ouvinte: () => void): () => void {
   ouvintes.add(ouvinte);
   return () => {
@@ -48,11 +66,45 @@ export function confirmarNaFila(id: string): void {
  * briefing na sua forma mais barata de evitar.
  */
 export function esquecerDaFila(id: string): void {
-  if (!confirmadas.delete(id)) return;
+  const saiu = desmarcarPendente(id);
+  if (!confirmadas.delete(id) && !saiu) return;
   for (const o of ouvintes) o();
+}
+
+/** Esta mensagem está esperando a rede, neste canal. */
+export function marcarPendente(id: string, channelId: string): void {
+  if (canalDePendente.get(id) === channelId) return;
+  desmarcarPendente(id);
+  canalDePendente.set(id, channelId);
+  porCanal.set(channelId, (porCanal.get(channelId) ?? 0) + 1);
+  for (const o of ouvintes) o();
+}
+
+/**
+ * Esta mensagem não espera mais — enviou, falhou ou foi descartada.
+ *
+ * Devolve se havia o que tirar, para quem chama não emitir à toa.
+ */
+export function desmarcarPendente(id: string): boolean {
+  const channelId = canalDePendente.get(id);
+  if (channelId === undefined) return false;
+  canalDePendente.delete(id);
+  const restam = (porCanal.get(channelId) ?? 1) - 1;
+  // Entrada zerada é vazamento: o número de canais que a sessão viu não tem
+  // teto, e o erro nº 5 do briefing custa uma linha para não acontecer.
+  if (restam > 0) porCanal.set(channelId, restam);
+  else porCanal.delete(channelId);
+  return true;
+}
+
+/** Quantas mensagens deste canal esperam a rede. Zero é o caso normal. */
+export function lerPendentesDoCanal(channelId: string): number {
+  return porCanal.get(channelId) ?? 0;
 }
 
 /** Estado limpo entre testes. O módulo é global e sobrevive. */
 export function limparFila(): void {
   confirmadas.clear();
+  canalDePendente.clear();
+  porCanal.clear();
 }

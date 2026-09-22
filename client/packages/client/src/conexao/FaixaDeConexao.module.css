@@ -4,6 +4,12 @@
    Flutua no topo, nunca no fluxo: empurrar o layout mudaria a
    altura do container da lista virtualizada, e isso é a âncora
    se movendo por causa de um aviso.
+
+   ⚠ Divergência 1:1 REGISTRADA. O design faz dela uma faixa de
+   34px que EMPURRA o conteúdo e nunca sobrepõe o cabeçalho do
+   canal. Aqui ela sobrepõe, pela razão do parágrafo acima. Os
+   34px de altura, o recuo, o ponto de 7px, o meta em mono e o
+   botão de borda são os do design.
    ============================================================ */
 
 .faixa {
@@ -16,41 +22,65 @@
 
   display: flex;
   align-items: center;
-  gap: var(--vx-space-08);
+  /* 10px é o gap do design entre os elementos da faixa. */
+  gap: var(--vx-space-10);
+  block-size: 34px;
   inline-size: fit-content;
+  max-inline-size: calc(100% - var(--vx-space-32));
   margin-inline: auto;
-  padding-inline: var(--vx-space-12);
-  padding-block: var(--vx-space-08);
+  padding-inline: var(--vx-space-16);
 
-  border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-06);
-  background: var(--vx-surface-3);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-08);
+  /*
+    ⚠ **O fundo do design é o TOM a 10%, e ali ele compõe sobre o canvas
+    porque a faixa é largura cheia dentro do app.** Flutuando, 10% de tom
+    translúcido deixaria a timeline aparecer por baixo do texto. `color-mix`
+    sobre `surface-3` dá a MESMA cor resultante, opaca — a mesma técnica do
+    realce do item destrutivo e do xadrez de placeholder.
+  */
+  background: color-mix(in oklab, var(--tom) 10%, var(--vx-surface-3));
+  box-shadow: var(--vx-elev-2);
   color: var(--vx-text-1);
-  font-size: var(--vx-size-sm);
   animation: vxCamadaChega var(--vx-duration-base) var(--vx-ease-enter);
 }
 
 /*
-  Sem conexão ganha a borda semântica; reconectando fica no neutro.
+  UM componente, os tons do design — e o tom é uma variável, não uma regra por
+  peça. Sem isto o ponto, o título e a borda do botão seriam três regras por
+  estado, ou seja seis, e a primeira a divergir seria a que ninguém abriu.
 
-  A distinção é a mesma do toast: "espere" e "não deu" são coisas diferentes, e
-  pintar as duas de vermelho gastaria o vermelho na mais comum das duas — que é
-  justamente a que quase sempre se resolve sozinha.
+  "Espere" em acento e "não deu" em vermelho: pintar as duas de vermelho
+  gastaria o vermelho na mais comum das duas, que é justamente a que quase
+  sempre se resolve sozinha.
 */
+.faixa[data-estado="reconectando"] {
+  --tom: var(--vx-accent-text);
+}
+
 .faixa[data-estado="sem-conexao"] {
-  border-color: var(--vx-danger);
+  --tom: var(--vx-danger-text);
+}
+
+/* O ponto de 7px do design — é ele que carrega a cor do estado. */
+.ponto {
+  flex: none;
+  inline-size: 7px;
+  block-size: 7px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--tom);
 }
 
 /*
-  A pulsação diz "está acontecendo".
+  A pulsação diz "isto parou e ninguém está tentando".
 
   Só `opacity`, que é o que a regra de movimento do design system permite junto
   com `transform` — roda no compositor e não toca layout. E ela some para quem
   pediu menos movimento: uma animação infinita é exatamente o que essa
-  preferência existe para desligar, e o ícone sozinho continua dizendo o
-  estado.
+  preferência existe para desligar, e o texto sozinho continua dizendo o
+  estado. 1,4s é a duração do design.
 */
-.pulsando {
+.faixa[data-estado="sem-conexao"] .ponto {
   animation: respirar 1.4s var(--vx-ease-out) infinite;
 }
 
@@ -65,7 +95,69 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pulsando {
+  .faixa[data-estado="sem-conexao"] .ponto {
     animation: none;
   }
+}
+
+.titulo {
+  flex: none;
+  color: var(--tom);
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+}
+
+/*
+  A descrição é a única parte que pode faltar numa janela estreita: ela
+  explica, e as outras três identificam. `min-inline-size: 0` mais reticências
+  a deixam encolher antes de empurrar o botão para fora da caixa.
+*/
+.descricao {
+  min-inline-size: 0;
+  overflow: hidden;
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+  Mono, como o design: o contador e o horário são números que MUDAM no lugar, e
+  em fonte proporcional cada tique desloca o que vem depois.
+*/
+.meta {
+  flex: none;
+  color: var(--vx-text-3);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.acao {
+  flex: none;
+  block-size: 24px;
+  padding-inline: var(--vx-space-11);
+  border: 1px solid color-mix(in oklab, var(--tom) 40%, transparent);
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--tom);
+  font-family: inherit;
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.acao:hover {
+  background: color-mix(in oklab, var(--tom) 14%, transparent);
+}
+
+.acao:active {
+  background: color-mix(in oklab, var(--tom) 22%, transparent);
+}
+
+.acao:focus-visible {
+  outline: 2px solid var(--tom);
+  outline-offset: 2px;
 }

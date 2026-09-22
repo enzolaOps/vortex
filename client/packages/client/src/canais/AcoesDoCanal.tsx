@@ -178,6 +178,7 @@ export function AcoesDoCanal({
           <Users />
         </BotaoDePainel>
         <MenuDoCanal channelId={channelId} />
+        <NotaDeOffline />
       </div>
     );
   }
@@ -237,8 +238,27 @@ export function AcoesDoCanal({
       </Tooltip>
 
       <MenuDoCanal channelId={channelId} />
+      <NotaDeOffline />
     </div>
   );
+}
+
+/**
+ * "busca e painéis exigem conexão" (D-LAC-48).
+ *
+ * ⚠ **Sempre montada, escondida por CSS, e não condicional em JS.** As ações
+ * do cabeçalho não assinam a conexão: o cabeçalho remonta a cada troca de
+ * canal e as seis ações são seis componentes com store próprio. Um nó com
+ * `display: none` custa um elemento e sai da árvore de acessibilidade
+ * enquanto está escondido — que é a diferença entre esconder por CSS e
+ * esconder por opacidade.
+ *
+ * As ações somem em vez de ficarem cinzas com tooltip: D-LAC-53 escreve a
+ * regra, e ela é a mesma que o projeto já aplica ao item administrativo de
+ * quem não tem permissão.
+ */
+function NotaDeOffline() {
+  return <span className={css.notaOffline}>busca e painéis exigem conexão</span>;
 }
 
 /**

@@ -292,3 +292,29 @@
   line-height: 1.5;
   text-wrap: pretty;
 }
+
+/* ============================================================
+   Offline — D-LAC-52
+   ------------------------------------------------------------
+   O painel a 75% e o RECADO some.
+
+   O recado ("focada, volto mais tarde") é o campo mais perecível
+   depois da presença: ele muda o dia inteiro e o cliente só sabe
+   o que sabia quando caiu. Presença sumiu por ser mentira em
+   potencial; o recado some pela mesma razão, e o NOME fica —
+   nome é o que praticamente não muda, e é o que faz a lista em
+   cache continuar servindo para achar alguém.
+
+   O rótulo "Membros · em cache" que o design põe no cabeçalho do
+   painel NÃO tem onde morar: este painel não tem cabeçalho
+   visível, só `aria-label`. O rótulo entrou ali e no texto da
+   nota; um cabeçalho novo é trabalho de outra superfície.
+   ============================================================ */
+
+html[data-offline="sem-conexao"] .painel {
+  opacity: 0.75;
+}
+
+html[data-offline="sem-conexao"] .recado {
+  display: none;
+}

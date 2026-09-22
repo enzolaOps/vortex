@@ -43,3 +43,41 @@ export const client = new Client({
 export function conectado(): boolean {
   return client.events.state() === ConnectionState.Connected;
 }
+
+/**
+ * "Tentar agora" — religar sem esperar o próximo passo do backoff.
+ *
+ * `client.connect()` limpa o timer de reconexão pendente e abre o socket na
+ * hora, então ele serve às duas entradas: sair de uma pausa e encurtar uma
+ * espera que já está em minutos (o `retryDelayFunction` do SDK cresce).
+ *
+ * ⚠ **`autoReconnect` volta a `true` aqui**, senão uma pausa anterior deixaria
+ * esta tentativa ser a ÚLTIMA — ela falharia e nada mais tentaria, com a faixa
+ * dizendo "reconectando" para sempre.
+ *
+ * ⚠ **Sem sessão não há o que reconectar**, e o SDK lança ao montar a URL: o
+ * guarda é estreito de propósito, porque o caminho normal até aqui é um botão
+ * numa faixa que só existe depois de a sessão ter funcionado uma vez.
+ */
+export function reconectarAgora(): void {
+  if (client.sessionId === undefined) return;
+  client.options.autoReconnect = true;
+  client.connect();
+}
+
+/**
+ * "Cancelar" — parar de tentar.
+ *
+ * Existe porque o backoff do SDK é infinito: num avião, num túnel ou com o
+ * servidor fora, o app fica abrindo socket para sempre, e quem está lendo o
+ * histórico em cache não tem como dizer "deixa pra lá".
+ *
+ * ⚠ **Desligar `autoReconnect` ANTES de desconectar**, porque é o handler de
+ * `Disconnected` que agenda o próximo — na ordem inversa a pausa agendaria
+ * uma tentativa e só depois se desligaria, ou seja o cancelar cancelaria tudo
+ * menos a próxima.
+ */
+export function pausarReconexao(): void {
+  client.options.autoReconnect = false;
+  client.events.disconnect();
+}

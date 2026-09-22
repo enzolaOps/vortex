@@ -186,6 +186,24 @@ export function PainelDeUsuario() {
               <span className={css.segunda}>
                 {status.texto ?? (usuario ? `@${usuario}` : "sem servidor")}
               </span>
+              {/*
+                "sem conexão" no lugar do recado, offline (D-LAC-47).
+
+                ⚠ **Sempre montado e trocado por CSS**, não condicional: este
+                painel não assina a conexão, e assiná-lo aqui faria o rodapé
+                inteiro — nome, recado, status, os três controles de áudio —
+                re-renderizar a cada engasgo de rede, para trocar duas
+                palavras.
+
+                ⚠ **A PRESENÇA ESCOLHIDA não muda, e isso é divergência
+                deliberada.** O design escreve o status como "sem conexão"; a
+                decisão registrada deste projeto é que a sua presença é
+                escolha sua, e quem escolheu invisível continua invisível
+                enquanto o wi-fi cai. O que a linha diz é o fato novo — o app
+                não está falando com o servidor —, e o ponto vira anel neutro
+                porque essa é a parte que o servidor deixou de confirmar.
+              */}
+              <span className={css.semConexao}>sem conexão</span>
             </span>
           </button>
         </DropdownMenuTrigger>

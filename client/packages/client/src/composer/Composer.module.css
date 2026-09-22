@@ -204,6 +204,25 @@
 }
 
 /*
+  Offline a caixa ganha borda de aviso — `danger` a 28%, o valor do design
+  (D-LAC-51).
+
+  ⚠ **28% e não a cor cheia**, e a diferença é semântica: a cor cheia é o que
+  `data-excedido` usa para dizer "isto NÃO vai sair". Aqui vai sair, só que
+  depois. Duas bordas vermelhas idênticas para dois destinos opostos seriam a
+  pior versão disto.
+
+  ⚠ **`:where()` no ancestral, e sem ele o foco sumiria.** Um seletor
+  `html[data-offline] .campo` pesa mais que `.campo:focus-within`, então a
+  borda offline venceria a de foco e, escrevendo, a caixa não mostraria mais
+  onde o cursor está. `:where()` zera a especificidade do ancestral — a mesma
+  técnica que resolveu a largura do `Dialog` virando piso.
+*/
+:where(html[data-offline="sem-conexao"]) .campo {
+  border-color: color-mix(in oklab, var(--vx-danger) 28%, transparent);
+}
+
+/*
   A pilha: réplica invisível e textarea na MESMA célula.
 
   É o mecanismo de altura automática sem medir nada em JavaScript — a réplica
@@ -309,6 +328,17 @@
   .dica {
     display: none;
   }
+}
+
+/*
+  A mesma dica, em aviso — "envio pausado até a sessão voltar" (D-LAC-51).
+
+  `composes` e não uma regra própria: assim ela herda o corte em 480px junto,
+  e a segunda não pode divergir da primeira quando alguém mexer no corte.
+*/
+.dicaAviso {
+  composes: dica;
+  color: var(--vx-warning);
 }
 
 /* ------------------------------------------------------------

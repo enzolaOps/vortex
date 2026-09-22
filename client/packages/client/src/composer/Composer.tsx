@@ -45,6 +45,8 @@ import {
   useTopico,
 } from "../store/hooks";
 import { escreverRascunho, limparRascunho } from "../store/rascunhos";
+import { assinarConexao, lerConexao } from "../store/conexao";
+import { assinarFila, lerPendentesDoCanal } from "../store/fila";
 import { alvosDeMencao } from "../sdk/completarMencao";
 import {
   aplicarMencoesDoCanal,
@@ -104,6 +106,28 @@ export function Composer({
   */
   const canal = useChannel(channelId);
   const modoLento = canal?.modoLento ?? 0;
+  /*
+    O estado da conexão (D-LAC-51).
+
+    ⚠ **Aqui a subscrição é cabível e na linha de mensagem não seria**, pelo
+    mesmo argumento do parágrafo acima: o composer é UM componente. O que ele
+    troca — placeholder, rodapé e a borda da caixa — é o que separa "vai sair
+    agora" de "vai sair quando a rede voltar", e essa diferença decide se a
+    pessoa fica esperando ou fecha a aba.
+  */
+  const conexao = useSyncExternalStore(assinarConexao, lerConexao);
+  const semConexao = conexao === "sem-conexao";
+  const reconectando = conexao === "reconectando";
+  /*
+    Quantas mensagens deste canal estão esperando a rede.
+
+    Assina `store/fila` e não o snapshot da mensagem: o snapshot é cacheado por
+    conteúdo e estado de envio, e nenhum dos dois muda quando outra mensagem
+    entra na fila — a armadilha que o cabeçalho daquele módulo já registra.
+  */
+  const naFila = useSyncExternalStore(assinarFila, () =>
+    lerPendentesDoCanal(channelId),
+  );
   /*
     Dentro de um tópico, o composer diz duas coisas que não diria no canal: o
     placeholder ("Responder no tópico") e que a resposta NÃO notifica o pai.
@@ -505,7 +529,19 @@ export function Composer({
                 type="button"
                 className={css.anexar}
                 aria-label="Anexar arquivo"
-                disabled={!temPermissao || !temMidia}
+                /*
+                  ⚠ **Offline ele fica DESABILITADO e não some, e é a única
+                  exceção deliberada ao "nada visível-mas-desabilitado" de
+                  D-LAC-53 nesta superfície** — porque é o que D-LAC-51
+                  desenha, e porque a razão da regra não se aplica: a caixa do
+                  composer tem posições fixas, e tirar o `+` da borda de início
+                  deslocaria o campo inteiro a cada oscilação de rede.
+
+                  Anexar precisa de rede de verdade: o arquivo vai para o
+                  servidor de mídia ANTES de a mensagem existir, então não há
+                  como pô-lo na fila junto com o texto.
+                */
+                disabled={!temPermissao || !temMidia || semConexao}
                 onClick={() => seletorDeArquivo.current?.click()}
               >
                 <Plus aria-hidden />
@@ -581,10 +617,21 @@ export function Composer({
                   oito estados, e o único que não existia nesta superfície.
                 */
                 disabled={!temPermissao}
+                /*
+                  ⚠ **Offline o campo CONTINUA ligado, ao contrário de sem
+                  permissão — e a diferença é o que o placeholder diz.** Sem
+                  permissão o texto nunca sairia; sem conexão ele sai, só que
+                  depois. Desligar aqui apagaria a única coisa que este app
+                  consegue fazer offline que um app quebrado não faz.
+                */
                 placeholder={
                   !temPermissao
                     ? "Você não pode escrever neste canal"
-                    : variante === "sala"
+                    : semConexao
+                      ? "Sem conexão — o que você escrever entra na fila"
+                      : reconectando
+                        ? "Reconectando… o envio fica na fila"
+                        : variante === "sala"
                       ? `Mensagem para ${canal?.name ?? "a sala"}`
                       : topico
                       ? "Responder no tópico"
@@ -662,6 +709,31 @@ export function Composer({
               para a esquerda quando o rascunho esvaziasse.
             */}
             <span className={css.estado}>
+              {/*
+                O estado da rede vem PRIMEIRO na faixa, e ganha do resto.
+
+                Modo lento e rascunho salvo falam sobre o que acontece quando a
+                mensagem sai; sem rede a pergunta anterior — ela vai sair? — é
+                a única que importa. Empilhar as três faria a informação nova
+                aparecer depois de duas que já estavam ali.
+
+                ⚠ **O número é REAL** (`store/fila`), e é por isso que a linha
+                só existe quando há o que contar: "0 mensagens na fila" seria
+                ruído permanente em toda queda de rede, e "1 mensagem" sem
+                contador seria a invenção que este projeto já pagou caro.
+              */}
+              {semConexao && naFila > 0 ? (
+                <span className={css.dica}>
+                  {naFila === 1
+                    ? "1 mensagem na fila"
+                    : `${String(naFila)} mensagens na fila`}
+                  {" · envia ao reconectar"}
+                </span>
+              ) : reconectando ? (
+                <span className={css.dicaAviso}>
+                  envio pausado até a sessão voltar
+                </span>
+              ) : null}
               {topico?.arquivado ? (
                 <span className={css.dica}>Tópico arquivado · responder reabre</span>
               ) : topico && pai ? (

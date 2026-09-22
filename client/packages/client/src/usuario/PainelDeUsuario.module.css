@@ -152,6 +152,53 @@
   white-space: nowrap;
 }
 
+/* ============================================================
+   Offline — D-LAC-47
+   ------------------------------------------------------------
+   Anel neutro no lugar do ponto, "sem conexão" no lugar do
+   recado, avatar a 60%.
+   ============================================================ */
+
+.semConexao {
+  composes: segunda;
+  display: none;
+  color: var(--vx-danger-text);
+}
+
+html[data-offline="sem-conexao"] .semConexao {
+  display: block;
+}
+
+html[data-offline="sem-conexao"] .segunda:not(.semConexao) {
+  display: none;
+}
+
+/*
+  O ponto vira o anel vazio — a mesma forma de `.pontoOffline`, e não a cor
+  dele: o que se diz aqui não é "estou offline para os outros", é "o app não
+  tem como saber". Anel vazio é a forma que o app já usa para ausência de
+  informação de presença.
+*/
+html[data-offline="sem-conexao"] .ponto {
+  border: 2px solid var(--vx-status-offline);
+  background: transparent;
+}
+
+html[data-offline="sem-conexao"] .ponto::after {
+  content: none;
+}
+
+/*
+  ⚠ **`:first-child` e não uma classe, porque o avatar é um componente
+  compartilhado** — `components/ui/Avatar` serve treze superfícies, e uma
+  regra lá dentro apagaria todos os avatares do app. Aqui o primeiro filho do
+  botão de identidade é o avatar por construção: os outros dois são a pilha de
+  textos e nada mais entra entre eles sem que esta regra apareça na revisão.
+*/
+html[data-offline="sem-conexao"] .identidade > :first-child {
+  opacity: 0.6;
+}
+
 /* ------------------------------------------------------- controles */
 
 .controles {
