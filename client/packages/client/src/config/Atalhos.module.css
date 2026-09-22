@@ -66,3 +66,66 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ============================================================
+   Busca de atalho
+   ------------------------------------------------------------
+   O design a põe no cabeçalho da página, à direita do título;
+   aqui a página não tem slot de cabeçalho, então ela é a
+   primeira linha do conteúdo — mesma geometria, mesmo lugar na
+   ordem de leitura.
+
+   34px de altura, 260 de largura e raio 6 são os do design.
+   `block-size` e `inline-size` são DIMENSÃO de componente e não
+   degrau de escala, que é por que o `pnpm escala` os deixa de
+   fora.
+   ============================================================ */
+.barraDeBusca {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-08);
+  inline-size: 260px;
+  block-size: 34px;
+  margin-block-end: var(--vx-space-20);
+  padding-inline: var(--vx-space-11);
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-2);
+}
+
+/*
+  O anel vai na CAIXA e não no `input`.
+
+  O campo não tem borda própria — ela é da caixa —, então um anel no input
+  desenharia um retângulo menor dentro de outro. `:focus-within` é o que faz o
+  foco do campo acender a moldura que a pessoa vê como sendo o campo.
+*/
+.barraDeBusca:focus-within {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.lupa {
+  flex: none;
+  color: var(--vx-text-3);
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+}
+
+.campoDeBusca {
+  flex: 1;
+  min-inline-size: 0;
+  border: 0;
+  background: transparent;
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+}
+
+.campoDeBusca:focus-visible {
+  outline: none;
+}
+
+.campoDeBusca::placeholder {
+  color: var(--vx-text-3);
+}

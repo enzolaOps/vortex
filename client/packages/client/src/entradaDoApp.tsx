@@ -18,6 +18,7 @@ import { createRoot } from "react-dom/client";
 
 import { ligarSonsDeVoz } from "./som/sons";
 import { ligarAtalhosDeVoz } from "./sdk/atalhosDeVoz";
+import { ligarAtalhos } from "./atalhos/ligar";
 import { ligarChamadasRecebidas } from "./notificacao/chamadas";
 import { ligarPublicadorDoOverlay } from "./overlay/publicador";
 import { ligarLembretesDeEventos } from "./eventos/lembretes";
@@ -92,6 +93,19 @@ export function montarApp(root: HTMLElement): void {
     stores e teclado, e nenhum componente vive o mesmo tanto que a sessão.
   */
   ligarAtalhosDeVoz();
+
+  /*
+    Os atalhos do app — navegação, mensagens e painéis.
+
+    ⚠ **Esta linha não existia, e a ausência era o defeito.** O único atalho
+    com handler era ⌘K, e ele era ligado por `dev/Arnes.tsx` — o arnês. No
+    produto, nenhuma das vinte e quatro combinações que a página de
+    Configurações → Atalhos anuncia fazia nada.
+
+    Module-level pela mesma razão dos sons e da rota: o listener é do
+    `document`, e nenhum componente vive o mesmo tanto que a sessão.
+  */
+  ligarAtalhos();
 
   /*
     O clique numa notificação de push, com o Vortex já aberto: o service worker
