@@ -1,13 +1,14 @@
 import { useMemo, useState } from "react";
 
-import { Combinacao, teclaExibida } from "../components/ui/Tecla";
+import { Combinacao } from "../components/ui/Tecla";
+import { casa } from "../atalhos/busca";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { MagnifyingGlass } from "../components/ui/icones";
 import {
   GRUPOS_DA_PAGINA,
   linhasDaPagina,
-  type LinhaDeAtalho,
 } from "../atalhos/registro";
+import { atalho } from "../lib/plataforma";
 import { classes as pg, PaginaDeAjustes } from "./Pagina";
 import css from "./Atalhos.module.css";
 
@@ -37,35 +38,6 @@ import css from "./Atalhos.module.css";
  * A ordem dos grupos é a de quem procura: navegação primeiro, porque é o que
  * se aprende no primeiro dia.
  */
-
-/**
- * O filtro: por RÓTULO ou por TECLA.
- *
- * ⚠ **A tecla é comparada na notação da PLATAFORMA e também na neutra.** Quem
- * digita "⌘K" num Mac e quem digita "ctrl" no Windows procuram a mesma coisa,
- * e os tokens gravados são `["mod","K"]` — sem comparar as duas formas, buscar
- * pelo símbolo que a própria tela mostra não acharia nada. A tradução para
- * exibição mora no `<Combinacao>`, então aqui basta casar contra o token cru e
- * contra o texto renderizado.
- */
-function casa(linha: LinhaDeAtalho, busca: string): boolean {
-  if (!busca) return true;
-  const termo = normalizar(busca);
-  if (normalizar(linha.rotulo).includes(termo)) return true;
-  return linha.teclas.some(
-    (t) =>
-      normalizar(t).includes(termo) ||
-      normalizar(teclaExibida(t)).includes(termo),
-  );
-}
-
-/** Sem acento e em minúscula — a mesma normalização do índice da paleta. */
-function normalizar(texto: string): string {
-  return texto
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
-}
 
 export function Atalhos() {
   const [busca, setBusca] = useState("");
@@ -107,7 +79,7 @@ export function Atalhos() {
           /* A tecla do exemplo sai da PLATAFORMA: um texto de ajuda que
              ensina `⌘K` a quem usa Windows ensina o atalho errado, que é
              exatamente o que `lib/plataforma.ts` existe para impedir. */
-          detalhe={`Busque por ação ("responder") ou por tecla ("${teclaExibida("mod")}K").`}
+          detalhe={`Busque por ação ("responder") ou por tecla ("${atalho({ mod: true, tecla: "K" })}").`}
         />
       ) : (
         <div className={css.grade}>
