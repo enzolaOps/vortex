@@ -118,6 +118,51 @@
   outline-offset: 2px;
 }
 
+/*
+  O `▾` de dispositivo (D-TELA-18): pílula de 16px no canto inferior do
+  controle, com borda da cor da DOCA — é o recorte que a separa do círculo
+  embaixo, e é o valor do design (`2px solid #0F1318`, que é `surface-1`).
+*/
+.comOpcoes {
+  position: relative;
+  display: grid;
+}
+
+.opcoes {
+  position: absolute;
+  inset-inline-end: -1px;
+  inset-block-end: -1px;
+  display: grid;
+  place-items: center;
+  inline-size: 16px;
+  block-size: 16px;
+  padding: 0;
+  border: 2px solid var(--vx-surface-1);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-surface-4);
+  color: var(--vx-text-2);
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.opcoes svg {
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+}
+
+.opcoes:hover,
+.opcoes[data-state="open"] {
+  background: var(--vx-track);
+  color: var(--vx-text-1);
+}
+
+.opcoes:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 1px;
+}
+
 .divisaDaDoca {
   inline-size: 1px;
   block-size: 24px;

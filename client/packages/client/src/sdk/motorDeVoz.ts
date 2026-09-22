@@ -50,6 +50,7 @@ import {
   type RemoteParticipant,
   type RemoteTrack,
   type RemoteTrackPublication,
+  type RemoteVideoTrack,
   type RoomOptions,
   type ScreenShareCaptureOptions,
   type AudioProcessorOptions,
@@ -733,6 +734,30 @@ export function definirQualidadeDeStream(
 }
 
 /**
+ * O que está CHEGANDO do vídeo de alguém, contra o que a fonte publica.
+ *
+ * ⚠ **Do `RTCStatsReport` e não de `getSettings()` da faixa remota**: em
+ * faixa recebida o navegador não é obrigado a preencher as dimensões, e a
+ * camada que o SFU escolheu só aparece no `frameHeight` do inbound-rtp. A
+ * publicada vem do `TrackInfo` do servidor — é o que decide se a fonte
+ * chegou a ter 720p (ver `voz/quedaDeQualidade.ts`).
+ */
+export async function resolucaoRecebida(
+  userId: string,
+  fonte: FonteDeVideo,
+): Promise<{ recebida: number | undefined; publicada: number | undefined } | undefined> {
+  const pub = publicacaoDeVideo(userId, fonte);
+  const faixa = pub?.track;
+  if (!pub || !faixa || !ehVideoRemoto(faixa)) return undefined;
+  const stats = await faixa.getReceiverStats().catch(() => undefined);
+  return { recebida: stats?.frameHeight, publicada: pub.dimensions?.height };
+}
+
+function ehVideoRemoto(t: RemoteTrack): t is RemoteVideoTrack {
+  return t.kind === Track.Kind.Video;
+}
+
+/**
  * O volume de UMA pessoa, so para voce.
  *
  * `0` e o "silenciar so para mim" do design. Vale de 0 a 2 no LiveKit (200% no
@@ -1169,10 +1194,24 @@ async function aplicarSaida(r: Room): Promise<void> {
 }
 
 async function trocarDispositivos(r: Room): Promise<void> {
-  const { entradaId } = lerPreferenciasDeVoz();
+  const { entradaId, cameraId } = lerPreferenciasDeVoz();
   try {
     if (entradaId !== undefined) {
       await r.switchActiveDevice("audioinput", entradaId);
+    }
+  } catch {
+    /* Idem. */
+  }
+  /*
+    ⚠ A câmera era escolhida em Configurações e NUNCA chegava ao LiveKit:
+    `cameraId` era gravado, lido pela prévia da própria tela e ignorado aqui.
+    O `▾` da doca (D-TELA-18) tornou isso visível — escolher a câmera durante
+    a chamada e continuar vendo a outra. `switchActiveDevice` também grava o
+    padrão de captura da sala, então ligar a câmera depois já sai na certa.
+  */
+  try {
+    if (cameraId !== undefined) {
+      await r.switchActiveDevice("videoinput", cameraId);
     }
   } catch {
     /* Idem. */

@@ -1,5 +1,4 @@
 import {
-  ArrowsOut,
   Check,
   ICONE,
   Microphone,
@@ -32,6 +31,7 @@ import {
   alternarTela,
   assinarVideo,
   definirQualidadeDeStream,
+  resolucaoRecebida,
 } from "../sdk/chamada";
 import { administrar } from "../store/administracao";
 import { assinarChamada, falando, lerChamada } from "../store/chamada";
@@ -49,7 +49,8 @@ import {
   VOLUME_MAXIMO,
 } from "../store/volumesDeVoz";
 import { chaveDeVideo, faixasDeVideo } from "../store/video";
-import { emTelaCheia, FaixaDeVideo, SeloAoVivo } from "./pecasDeVoz";
+import { BotaoDeTelaCheia, FaixaDeVideo, SeloAoVivo } from "./pecasDeVoz";
+import { criarDetectorDeQueda } from "./quedaDeQualidade";
 import css from "./AssistirTransmissao.module.css";
 
 /**
@@ -89,6 +90,53 @@ export function AssistirTransmissao({ userId }: { userId: string }) {
   const [menu, setMenu] = useState(false);
   const [submenu, setSubmenu] = useState(false);
   const [qualidade, setQualidade] = useState<Qualidade>("auto");
+  /** O "Só áudio" atual foi decisão da REDE, e não sua (D-TELA-22). */
+  const [caiuSozinho, setCaiuSozinho] = useState(false);
+
+  /*
+    ⚠ **O fallback automático, e só em "Automática".** Quem escolheu 1080p ou
+    720p escolheu um teto, e desligar o vídeo por cima dessa escolha seria o
+    app desfazendo o que a pessoa acabou de pedir. A regra mora em
+    `quedaDeQualidade.ts`; aqui é só a amostra e a reação.
+
+    ⚠ **A amostra NÃO vira estado.** Ela chega uma vez por segundo e o que a
+    tela desenha só muda UMA vez — quando cai. Pôr a altura recebida em
+    `useState` (ou num store assinado aqui) re-renderizaria a tela inteira
+    de assistir a cada segundo por um número que ninguém vê. O detector vive
+    dentro do efeito e só o desfecho chega ao React.
+  */
+  useEffect(() => {
+    if (qualidade !== "auto") return;
+    const detector = criarDetectorDeQueda();
+    let vivo = true;
+    const t = setInterval(() => {
+      void resolucaoRecebida(userId, "tela").then((amostra) => {
+        if (!vivo || !detector.amostra(amostra, Date.now())) return;
+        vivo = false;
+        definirQualidadeDeStream(userId, "tela", "soAudio");
+        setQualidade("soAudio");
+        setCaiuSozinho(true);
+        toast({
+          tipo: "info",
+          titulo: "Só áudio: a conexão não sustentou 720p",
+          descricao:
+            "O vídeo foi pausado para o som não cortar. Para voltar, use “Voltar ao vídeo” ou Qualidade do stream › Automática.",
+        });
+      });
+    }, 1000);
+    return () => {
+      vivo = false;
+      clearInterval(t);
+    };
+  }, [userId, qualidade]);
+
+  const soAudio = qualidade === "soAudio";
+
+  function escolherQualidade(q: Qualidade) {
+    setQualidade(q);
+    setCaiuSozinho(false);
+    definirQualidadeDeStream(userId, "tela", q);
+  }
   /*
     ⚠ **Do store, e não de `useState` lido do LiveKit.** O volume daqui e o do
     menu do participante são o MESMO ajuste; com estado local, baixar alguém
@@ -141,7 +189,12 @@ export function AssistirTransmissao({ userId }: { userId: string }) {
       onPointerMove={mostrar}
       onPointerDown={mostrar}
     >
-      <FaixaDeVideo userId={userId} fonte="tela" className={css.video} />
+      {/* Em "Só áudio" a faixa é pausada no servidor mas pode continuar no
+          store — sem esconder o `<video>` a tela mostraria o último quadro
+          congelado, que lê como transmissão travada e não como escolha. */}
+      {soAudio ? null : (
+        <FaixaDeVideo userId={userId} fonte="tela" className={css.video} />
+      )}
 
       {/*
         ⚠ **O texto no meio só existe SEM quadro.** Sobre a imagem ele seria
@@ -149,16 +202,29 @@ export function AssistirTransmissao({ userId }: { userId: string }) {
         a mesma razão que tirou o selo de língua de cima da primeira linha do
         bloco de código.
       */}
-      {chegou ? null : (
+      {chegou && !soAudio ? null : (
         <div className={css.placa}>
           <span className={css.placaLinha}>
             stream de {autor?.displayName ?? "alguém"}
           </span>
-          <span className={css.placaNota}>
-            {qualidade === "soAudio"
-              ? "só áudio — o vídeo foi desligado por você"
-              : "pedindo o vídeo…"}
+          <span className={css.placaNota} role={caiuSozinho ? "status" : undefined}>
+            {caiuSozinho
+              ? "só áudio — a conexão não sustentou 720p por 10 s"
+              : soAudio
+                ? "só áudio — o vídeo foi desligado por você"
+                : "pedindo o vídeo…"}
           </span>
+          {/* Como voltar, no lugar onde a pessoa está olhando — o toast
+              some, e o submenu fica atrás de dois cliques. */}
+          {caiuSozinho ? (
+            <button
+              type="button"
+              className={css.voltarAoVideo}
+              onClick={() => escolherQualidade("auto")}
+            >
+              Voltar ao vídeo
+            </button>
+          ) : null}
         </div>
       )}
 
@@ -194,16 +260,8 @@ export function AssistirTransmissao({ userId }: { userId: string }) {
 
         <div className={css.acoes}>
           <BotaoDePip />
-          <Tooltip texto="Tela cheia" lado="abaixo">
-            <button
-              type="button"
-              className={css.acao}
-              aria-label="Tela cheia"
-              onClick={emTelaCheia}
-            >
-              <ArrowsOut size={ICONE.controle} aria-hidden />
-            </button>
-          </Tooltip>
+          {/* ⤢ e, em tela cheia, ⤡ "sair da tela cheia" (D-TELA-20). */}
+          <BotaoDeTelaCheia className={css.acao} />
         </div>
       </header>
 
@@ -309,10 +367,7 @@ export function AssistirTransmissao({ userId }: { userId: string }) {
               aria-checked={qualidade === q}
               className={css.itemDoSubmenu}
               data-secundario={q === "soAudio"}
-              onClick={() => {
-                setQualidade(q);
-                definirQualidadeDeStream(userId, "tela", q);
-              }}
+              onClick={() => escolherQualidade(q)}
             >
               {NOME_DA_QUALIDADE[q]}
               {qualidade === q ? (
