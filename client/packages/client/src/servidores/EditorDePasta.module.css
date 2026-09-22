@@ -65,6 +65,71 @@
   font-size: var(--vx-size-sm);
 }
 
+/*
+  O `＋` do design: 30×30 com borda TRACEJADA, como o `+` do rail.
+
+  Tracejado e não sólido porque ele não é um degrau da paleta — é a porta para
+  fora dela, e a borda aberta é o que diz isso sem rótulo.
+*/
+.corLivre {
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: 30px;
+  block-size: 30px;
+  /* A MESMA borda do `+` tracejado do rail — dois alvos de "acrescente algo"
+     com tracejados diferentes leriam como componentes de famílias distintas.
+     O design escreve 22% aqui e o projeto não tem o degrau; `border-subtle` é
+     o que o irmão já usa. */
+  border: 1px dashed var(--vx-border-subtle);
+  border-radius: var(--vx-radius-08);
+  background: transparent;
+  color: var(--vx-text-3);
+  cursor: pointer;
+  transition: color var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.corLivre svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+.corLivre:hover,
+.corLivre[aria-expanded="true"] {
+  color: var(--vx-text-1);
+}
+
+.corLivre:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/*
+  O campo de hex ocupa o LUGAR do rótulo, com a mesma caixa.
+
+  Um campo ao lado do rótulo mostraria o mesmo valor duas vezes, e a primeira
+  divergência entre os dois seria a que ninguém vê.
+*/
+.hexCampo {
+  composes: hex;
+  inline-size: 10ch;
+  outline: none;
+}
+
+.hexCampo:focus-visible {
+  border-color: var(--vx-accent);
+}
+
+/*
+  Hex incompleto não é erro — é o caminho de `#35c2cc`.
+
+  Por isso a borda avisa em vez de a tecla ser recusada, e o aviso não vira
+  `role="alert"`: ele anuncia a cada caractere de quem está digitando.
+*/
+.hexCampo[data-invalida] {
+  border-color: var(--vx-danger);
+}
+
 /* --------------------------------------------------- servidores */
 
 .lista {
@@ -82,6 +147,46 @@
 
 .item:hover {
   background: var(--vx-state-hover);
+}
+
+/* O fantasma: a linha que está na mão fica a 60%, como o arraste de cargo. */
+.item[data-arrastando] {
+  opacity: 0.6;
+}
+
+/*
+  A alça — `⠿` no design, `DotsSixVertical` aqui.
+
+  Ela é o que ARMA o arraste, então precisa de alvo próprio: sem ela a linha
+  inteira seria arrastável e selecionar o nome de um servidor viraria um
+  arraste.
+*/
+.arrastar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: var(--vx-space-20);
+  block-size: var(--vx-space-20);
+  border: 0;
+  border-radius: var(--vx-radius-04);
+  background: transparent;
+  color: var(--vx-text-4);
+  cursor: grab;
+  transition: color var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.arrastar svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+.arrastar:hover {
+  color: var(--vx-text-2);
+}
+
+.arrastar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
 }
 
 .ladrilho {

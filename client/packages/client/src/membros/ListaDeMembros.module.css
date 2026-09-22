@@ -30,6 +30,30 @@
   inset-block-start: 0;
 }
 
+/*
+  O cabeçalho de cargo grudado — D-APP-39.
+
+  ⚠ **`sticky` sozinho não gruda nada numa lista virtualizada**, e é por isso
+  que ele tem metade em `grudar.ts`: a linha que saiu de vista deixa de existir
+  no DOM, então o `rangeExtractor` é quem a mantém montada. O CSS só cuida do
+  que acontece depois disso.
+
+  `position: sticky` e não `absolute` com `translateY`: as duas coisas são
+  incompatíveis, e por isso a linha grudada é a única que NÃO recebe transform
+  inline (ver `ListaDeMembros.tsx`). Como os irmãos são todos `absolute`, ela
+  fica sozinha no fluxo da pista e gruda no topo do painel.
+
+  Fundo próprio, e ele não é decoração: sem superfície embaixo, as linhas de
+  membro passariam POR TRÁS do cabeçalho e o texto se sobreporia. É o mesmo
+  tom da coluna, então em repouso o degrau é invisível — o que se vê é o
+  rótulo parando de subir.
+*/
+.linha[data-grudada] {
+  position: sticky;
+  z-index: var(--vx-z-realce);
+  background: var(--vx-surface-1);
+}
+
 .secao {
   composes: sobrancelhaDeSecao from "../styles/sobrancelha.module.css";
   display: flex;

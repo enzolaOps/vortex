@@ -16,6 +16,7 @@ import {
   publicarConversas,
   publicarRelacoes,
 } from "../sdk/adapter";
+import { colapsarPastasAoTrocarDeServidor } from "./pastas";
 
 /**
  * O lugar, como UNIÃO MARCADA — e isto deixou de ser detalhe.
@@ -144,8 +145,22 @@ export function lerCanalAtivo(): string {
  */
 function publicar(novo: Local): void {
   const canalAntes = lerCanalAtivo();
+  const servidorAntes = lerServidorAtivo();
   local = novo;
   const canalDepois = lerCanalAtivo();
+
+  /*
+    Trocar de servidor fecha as pastas que não o contêm — D-EVT-45.
+
+    Aqui e não em `selecionarServidor` porque este é o ÚNICO ponto por onde
+    todo destino passa: o rail, a rota de permalink, o `popstate` e o convite
+    chamam caminhos diferentes, e pendurar a regra num deles a deixaria valendo
+    só para quem clicasse no lugar certo.
+  */
+  const servidorDepois = lerServidorAtivo();
+  if (servidorDepois !== "" && servidorDepois !== servidorAntes) {
+    colapsarPastasAoTrocarDeServidor(servidorDepois);
+  }
 
   if (canalAntes !== canalDepois) {
     definirCanalAberto(canalDepois || undefined);

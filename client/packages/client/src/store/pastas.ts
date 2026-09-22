@@ -46,24 +46,41 @@ export type Pasta = {
 };
 
 /**
- * As cores oferecidas, e são as da referência.
+ * As cinco cores oferecidas, na ordem do design.
  *
- * Lista fechada em vez de seletor livre: a cor tinge um fundo a 10% atrás de
- * ícones coloridos, e um hex qualquer pode sumir ou brigar com eles. Seis
- * degraus cobrem a necessidade — distinguir três ou quatro pastas — sem abrir
- * a porta para uma escolha que não funciona.
+ * ⚠ **Eram SEIS numa ordem própria, e sem o `＋` que o design desenha ao lado.**
+ * A lista é o atalho, não a cerceadura: o design põe cinco atalhos mais um
+ * campo de hex livre, porque a cor tinge um fundo a 10% — nada pousa em cima
+ * dela, então um hex qualquer não pode reprovar contraste de texto nenhum. O
+ * que ele PODE fazer é sumir, e a resposta a isso é o `＋` mostrar a prévia,
+ * não a lista proibir.
  */
 export const CORES_DE_PASTA = [
   "#35C2CC",
+  "#8B7BE8",
   "#46C98A",
   "#E2B15C",
   "#E8596B",
-  "#8B7BE8",
-  "#6E7783",
 ] as const;
 
 /* O primeiro degrau: é o acento do produto, e o default óbvio. */
 const COR_PADRAO = CORES_DE_PASTA[0];
+
+/**
+ * Um hex de seis dígitos, e só.
+ *
+ * ⚠ **Ela guarda uma fronteira de SEGURANÇA, não de gosto.** A cor sai do
+ * `localStorage` e vai para uma custom property lida por `color-mix` — a
+ * mesma família do `colour` de cargo, que este projeto já reconstrói de
+ * números em vez de deixar a string do servidor chegar ao `style`. Três
+ * dígitos, `rgb()`, `var(--…)` e nome de cor ficam de fora porque nenhum
+ * deles é necessário e todos ampliam o que pode chegar ao CSS.
+ */
+const HEX = /^#[0-9a-f]{6}$/i;
+
+export function corDePastaValida(bruta: unknown): bruta is string {
+  return typeof bruta === "string" && HEX.test(bruta);
+}
 
 type Ouvinte = () => void;
 
@@ -100,12 +117,10 @@ function ler(): readonly Pasta[] {
           nome: o.nome,
           servidores,
           colapsada: o.colapsada === true,
-          /* Cor desconhecida cai no padrão em vez de ser aceita: um hex
-             arbitrário vindo do armazenamento é exatamente o que a lista
-             fechada existe para impedir. */
-          cor: CORES_DE_PASTA.some((c) => c === o.cor)
-            ? (o.cor as string)
-            : COR_PADRAO,
+          /* Forma errada cai no padrão em vez de ser aceita: o que vem do
+             armazenamento chega a uma custom property, e é `corDePastaValida`
+             quem decide o que pode chegar lá. */
+          cor: corDePastaValida(o.cor) ? o.cor : COR_PADRAO,
           sempreExpandida: o.sempreExpandida === true,
         },
       ];
@@ -191,22 +206,70 @@ export function editarPasta(
     readonly nome?: string;
     readonly cor?: string;
     readonly sempreExpandida?: boolean;
+    /**
+     * A lista inteira, na ordem — nunca um "mover de A para B".
+     *
+     * ⚠ **Ela existe porque `Remover` APLICAVA NA HORA e `Cancelar` não
+     * desfazia.** O editor é um modal com rodapé de Cancelar/Salvar, e uma
+     * ação que escapa dele torna o Cancelar uma promessa falsa: quem tira
+     * três servidores e desiste não recupera nenhum.
+     *
+     * Lista inteira e não operação porque o editor já tem a ordem final na
+     * mão — mandar o delta obrigaria os dois lados a concordar sobre o
+     * estado de partida, que é justamente o que o modal não garante.
+     *
+     * Lista VAZIA desfaz a pasta, pela mesma regra de `moverParaPasta`: caixa
+     * vazia permanente no rail é ruído que ninguém vai limpar depois.
+     */
+    readonly servidores?: readonly string[];
   },
 ): void {
-  gravar(
-    pastas.map((p) =>
-      p.id === id
-        ? {
-            ...p,
-            nome: dados.nome?.trim() || p.nome,
-            cor: CORES_DE_PASTA.some((c) => c === dados.cor)
-              ? (dados.cor as string)
-              : p.cor,
-            sempreExpandida: dados.sempreExpandida ?? p.sempreExpandida,
-          }
-        : p,
-    ),
+  const novas = pastas.map((p) =>
+    p.id === id
+      ? {
+          ...p,
+          nome: dados.nome?.trim() || p.nome,
+          cor: corDePastaValida(dados.cor) ? dados.cor : p.cor,
+          sempreExpandida: dados.sempreExpandida ?? p.sempreExpandida,
+          /* Filtra pelos que JÁ estavam dentro: o editor não é caminho de
+             entrada, e aceitar um ID qualquer daqui deixaria o mesmo servidor
+             em duas pastas — que é o estado que `moverParaPasta` tira de onde
+             está antes de pôr justamente para impedir. */
+          servidores:
+            dados.servidores === undefined
+              ? p.servidores
+              : dados.servidores.filter((s) => p.servidores.includes(s)),
+        }
+      : p,
   );
+
+  gravar(novas.filter((p) => p.servidores.length > 0));
+}
+
+/**
+ * O colapso AUTOMÁTICO ao trocar de servidor.
+ *
+ * ⚠ **Ele não existia, e por isso "Mostrar sempre expandida" não controlava
+ * nada** — o interruptor só bloqueava o colapso MANUAL, ou seja prometia
+ * ignorar uma regra que o app não tinha. A regra é a do design: ao abrir um
+ * servidor, as pastas que não o contêm se fecham.
+ *
+ * FECHA as outras e nunca ABRE a de destino: abrir seria o app desfazer um
+ * colapso que alguém acabou de pedir. Quem entra num servidor dentro de uma
+ * pasta fechada já a abriu para clicar nele.
+ *
+ * Só grava se ALGUMA mudou — sem isso, todo clique no mesmo servidor
+ * escreveria no `localStorage` e republicaria o rail inteiro.
+ */
+export function colapsarPastasAoTrocarDeServidor(serverId: string): void {
+  let mudou = false;
+  const novas = pastas.map((p) => {
+    if (p.sempreExpandida || p.colapsada) return p;
+    if (p.servidores.includes(serverId)) return p;
+    mudou = true;
+    return { ...p, colapsada: true };
+  });
+  if (mudou) gravar(novas);
 }
 
 export function alternarColapsoDaPasta(id: string): void {
