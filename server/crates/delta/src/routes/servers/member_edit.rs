@@ -230,7 +230,17 @@ pub async fn edit(
 
     let before = member.generate_diff(&partial, &remove);
 
-    member.update(db, partial.clone(), remove.clone()).await?;
+    // Vortex: quem moveu ou desconectou, para o evento dizer "por Fulano".
+    let by = autor_de_voz(
+        &user.id,
+        &member.id.user,
+        new_voice_channel.is_some(),
+        remove.contains(&FieldsMember::VoiceChannel),
+    );
+
+    member
+        .update_by(db, partial.clone(), remove.clone(), by.clone())
+        .await?;
 
     AuditLogEntryAction::MemberEdit {
         user: member.id.user.clone(),
@@ -292,6 +302,7 @@ pub async fn edit(
                 from: channel,
                 to: new_voice_channel.id().to_string(),
                 token,
+                by: by.clone(),
             }
             .private(target_user.id.clone())
             .await;
@@ -332,4 +343,77 @@ pub async fn edit(
     }
 
     Ok(Json(member.into()))
+}
+
+/// Vortex: o autor de uma ação de VOZ sobre outra pessoa, e só dela.
+///
+/// ⚠ **Estreito de propósito.** O evento de membro vai para o servidor
+/// inteiro, e dizer a todo mundo quem trocou o apelido ou o cargo de alguém é
+/// o que o registro de auditoria guarda atrás de `ViewAuditLog`. Mover e
+/// desconectar da voz são diferentes: o design escreve o autor na própria
+/// sala ("Ana moveu Téo para Foco"), à vista de quem está nela. Mexer na
+/// própria voz não tem autor a anunciar.
+fn autor_de_voz(
+    quem_edita: &str,
+    alvo: &str,
+    moveu: bool,
+    desconectou: bool,
+) -> Option<String> {
+    if quem_edita == alvo || !(moveu || desconectou) {
+        return None;
+    }
+    Some(quem_edita.to_string())
+}
+
+#[cfg(test)]
+mod test {
+    use revolt_database::{events::client::EventV1, Member};
+    use rocket::http::{Header, Status};
+
+    use super::autor_de_voz;
+    use crate::util::test::TestHarness;
+
+    #[test]
+    fn autor_so_em_acao_de_voz_sobre_outra_pessoa() {
+        assert_eq!(autor_de_voz("ana", "teo", true, false), Some("ana".into()));
+        assert_eq!(autor_de_voz("ana", "teo", false, true), Some("ana".into()));
+        // Apelido, cargo, castigo: sem autor no evento.
+        assert_eq!(autor_de_voz("ana", "teo", false, false), None);
+        // A própria voz não tem autor a anunciar.
+        assert_eq!(autor_de_voz("teo", "teo", true, false), None);
+        assert_eq!(autor_de_voz("teo", "teo", false, true), None);
+    }
+
+    /// Edição que não é de voz continua publicando o evento SEM `by` — o
+    /// contrato aditivo visto de ponta a ponta, pelo pub/sub de verdade.
+    #[rocket::async_test]
+    async fn edicao_comum_nao_anuncia_autor() {
+        let mut harness = TestHarness::new().await;
+        let (_, session, user) = harness.new_user().await;
+        let (server, _) = harness.new_server(&user).await;
+        Member::create(&harness.db, &server, &user, None)
+            .await
+            .unwrap();
+
+        let response = harness
+            .client
+            .patch(format!("/servers/{}/members/{}", server.id, user.id))
+            .header(Header::new("x-session-token", session.token.clone()))
+            .json(&serde_json::json!({ "nickname": "Apelido" }))
+            .dispatch()
+            .await;
+        assert_eq!(response.status(), Status::Ok);
+        drop(response);
+
+        let event = harness
+            .wait_for_event(&server.id, |event| {
+                matches!(event, EventV1::ServerMemberUpdate { id, .. } if id.user == user.id)
+            })
+            .await;
+
+        match event {
+            EventV1::ServerMemberUpdate { by, .. } => assert_eq!(by, None),
+            _ => unreachable!(),
+        }
+    }
 }

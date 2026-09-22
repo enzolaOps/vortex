@@ -228,6 +228,14 @@ pub enum EventV1 {
         data: PartialMember,
         #[serde(default)]
         clear: Vec<FieldsMember>,
+        /// Vortex: quem moveu ou desconectou este membro da voz.
+        ///
+        /// Só vem quando a edição foi uma ação de VOZ feita por OUTRA pessoa;
+        /// apelido, cargo e castigo seguem sem autor, que continua sendo dado
+        /// do registro de auditoria. Aditivo: omitido quando ausente, então
+        /// um cliente Stoat que não o conhece nem o vê.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        by: Option<String>,
     },
 
     /// User joins server
@@ -467,6 +475,10 @@ pub enum EventV1 {
         from: String,
         to: String,
         token: String,
+        /// Vortex: quem fez o movimento. Mesmo contrato do `by` de
+        /// `ServerMemberUpdate`: opcional e omitido quando ausente.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        by: Option<String>,
     },
     /// User's active slowmodes
     UserSlowmodes {
@@ -530,5 +542,50 @@ impl EventV1 {
     /// Publish internal global event
     pub async fn global(self) {
         self.p("global".to_string()).await;
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::EventV1;
+    use serde_json::json;
+
+    /// Vortex: o `by` dos dois eventos de voz é ADITIVO. Ausente, ele some do
+    /// fio (um cliente Stoat recebe exatamente o que recebia); e um payload sem
+    /// ele — de um `delta` upstream — continua desserializando.
+    #[test]
+    fn by_de_voz_e_aditivo() {
+        let sem: EventV1 = serde_json::from_value(json!({
+            "type": "ServerMemberUpdate",
+            "id": { "server": "S", "user": "U" },
+            "data": {},
+            "clear": ["VoiceChannel"],
+        }))
+        .unwrap();
+        let fio = serde_json::to_value(&sem).unwrap();
+        assert!(fio.get("by").is_none(), "by ausente não pode ir ao fio: {fio}");
+
+        let com: EventV1 = serde_json::from_value(json!({
+            "type": "ServerMemberUpdate",
+            "id": { "server": "S", "user": "U" },
+            "data": {},
+            "by": "ANA",
+        }))
+        .unwrap();
+        assert_eq!(serde_json::to_value(&com).unwrap()["by"], "ANA");
+
+        let movido: EventV1 = serde_json::from_value(json!({
+            "type": "UserMoveVoiceChannel",
+            "node": "n", "from": "A", "to": "B", "token": "t",
+        }))
+        .unwrap();
+        assert!(serde_json::to_value(&movido).unwrap().get("by").is_none());
+
+        let movido: EventV1 = serde_json::from_value(json!({
+            "type": "UserMoveVoiceChannel",
+            "node": "n", "from": "A", "to": "B", "token": "t", "by": "ANA",
+        }))
+        .unwrap();
+        assert_eq!(serde_json::to_value(&movido).unwrap()["by"], "ANA");
     }
 }
