@@ -17,6 +17,8 @@
  * das duas mudar.
  */
 
+import { plural } from "../lib/plural";
+
 /** As marcas das respostas, pela posição. São do design, não do autor. */
 export const MARCAS = ["🅰", "🅱", "🅲", "🅳", "🅴", "🅵", "🅶", "🅷", "🅸", "🅹"] as const;
 
@@ -224,6 +226,31 @@ export function totalDeVotos(e: Enquete): number {
   let n = 0;
   for (const o of e.opcoes) n += o.votos;
   return n;
+}
+
+/**
+ * A linha da esquerda no rodapé — os três desfechos que o design escreve.
+ *
+ * `18 votos · você votou` · `18 votos · resultado no fim` · `18 votos`.
+ *
+ * ⚠ **O total aparece nos TRÊS**, e a versão anterior o trocava por "Resultado
+ * só no fim". Quantas pessoas responderam não enviesa ninguém, porque não diz
+ * em QUÊ — o que "resultado no fim" esconde é a porcentagem por resposta, e
+ * essa continua escondida. Esconder o total junto tirava da tela a única pista
+ * de que a enquete está viva.
+ *
+ * Função de módulo e não expressão no JSX porque é uma decisão com três ramos
+ * e uma precedência (escondido ganha de votou), e jsdom não precisa de layout
+ * para conferir isso.
+ */
+export function rodapeDaEnquete(
+  total: number,
+  escondido: boolean,
+  votou: boolean,
+): string {
+  const base = plural(total, "voto", "votos");
+  if (escondido) return `${base} · resultado no fim`;
+  return votou ? `${base} · você votou` : base;
 }
 
 /**

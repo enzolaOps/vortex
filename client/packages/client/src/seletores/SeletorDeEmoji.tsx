@@ -8,7 +8,11 @@ import {
 import { listarEmojis, type Emoji as EmojiDoServidor } from "../sdk/cargos";
 import { urlDeEmoji } from "../sdk/anexos";
 import { useServidorAtivo } from "../store/hooks";
-import { CascaDeSeletor, SecaoDeSeletor } from "./CascaDeSeletor";
+import {
+  CascaDeSeletor,
+  CELULA_DA_GRADE,
+  SecaoDeSeletor,
+} from "./CascaDeSeletor";
 import { assinarTomDePele, definirTomDePele, lerTomDePele } from "../store/tomDePele";
 import { CATEGORIAS, buscar, type Emoji } from "./emojis";
 import {
@@ -215,6 +219,7 @@ export function SeletorDeEmoji({
                 key={e.id}
                 type="button"
                 className={css.emoji}
+                {...CELULA_DA_GRADE}
                 aria-label={`:${e.nome}:`}
                 title={`:${e.nome}:`}
                 onClick={() => aoEscolher(`:${e.id}:`)}
@@ -305,6 +310,7 @@ function Grade({
           key={e.glifo}
           type="button"
           className={css.emoji}
+          {...CELULA_DA_GRADE}
           aria-label={e.nome}
           /* O tom entra no GLIFO antes de sair daqui: quem abriu o seletor
              recebe texto pronto, e o protocolo recebe Unicode comum. */

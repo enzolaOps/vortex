@@ -9,7 +9,12 @@ import {
   WarningCircle,
   X,
 } from "../components/ui/icones";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+} from "react";
 
 import { Avatar } from "../components/ui/Avatar";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
@@ -18,9 +23,10 @@ import { toast } from "../components/ui/toastStore";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
 import { baixarAnexo } from "../sdk/baixar";
 import { assinarAlvo, lerAlvo } from "../store/administracao";
+import { pedirIrParaMensagem } from "../store/comandos";
 import { fecharModal } from "../store/modais";
 import { useChannel, useMessage } from "../store/hooks";
-import { responderA } from "../store/resposta";
+import { selecionarCanal } from "../store/navegacao";
 import css from "./VisualizadorDeImagem.module.css";
 
 /**
@@ -147,13 +153,28 @@ export function VisualizadorDeImagem({ aoFechar }: { aoFechar: () => void }) {
             >
               <ArrowSquareOut aria-hidden />
             </button>
+            {/*
+              ⚠ **`↰` é "ir à mensagem", e não "responder".**
+
+              O glifo é o mesmo nos dois, e a primeira versão deste botão
+              armava uma resposta — o que faz a galeria fechar deixando um
+              alvo de resposta armado num canal que a pessoa talvez nem esteja
+              lendo. O que o design promete aqui é NAVEGAÇÃO: voltar ao ponto
+              da conversa de onde a mídia veio.
+
+              O salto é pedido ANTES de trocar de canal, como na busca: a
+              mídia pode ter sido aberta da galeria do fórum ou de um
+              resultado, e a lista do canal de destino ainda não montou — o
+              pedido fica na gaveta de pendentes até ela consumir.
+            */}
             {message ? (
               <button
                 type="button"
                 className={css.acaoDoTopo}
-                aria-label="Responder"
+                aria-label="Ir à mensagem"
                 onClick={() => {
-                  responderA(message.channelId, message.id);
+                  pedirIrParaMensagem(message.channelId, message.id);
+                  selecionarCanal(message.channelId);
                   fecharModal();
                 }}
               >
@@ -173,29 +194,51 @@ export function VisualizadorDeImagem({ aoFechar }: { aoFechar: () => void }) {
 
         {/* ---------------------------------------------------- a mídia */}
         <div className={css.palco}>
-          <img
-            className={css.imagem}
-            src={atual.url}
-            alt={atual.nome}
-            /*
-              `width`/`height` como ATRIBUTOS, não só CSS: é o que dá ao
-              navegador a proporção antes do primeiro byte, e o que impede o
-              palco de saltar quando a imagem chega.
-            */
-            width={atual.largura}
-            height={atual.altura}
-            style={{
-              ...(proporcao !== undefined
-                ? { aspectRatio: String(proporcao) }
-                : {}),
+          {/*
+            ⚠ **Vídeo é `<video>`, e o layout NÃO muda por causa disso.**
+
+            O design escreve a regra por extenso: *"nunca troca o layout entre
+            imagem e vídeo — o vídeo só adiciona a barra de progresso"*. Antes
+            daqui a galeria desenhava TODA mídia com `<img>`: um `.mp4` entrava
+            na tira de miniaturas, a seta parava nele e o quadro ficava em
+            branco, sem erro nenhum.
+
+            Os dois usam a MESMA classe, os mesmos atributos de dimensão e o
+            mesmo `scale` — a única diferença é `controls`, que é exatamente a
+            barra de progresso que o design promete e nada mais.
+
+            `preload="metadata"`: baixar o arquivo inteiro ao abrir a galeria
+            pagaria dezenas de megabytes por um vídeo que a pessoa talvez só
+            esteja passando com a seta. O metadata é o que dá duração e a
+            barra.
+          */}
+          {atual.tipo === "video" ? (
+            <video
+              className={css.imagem}
+              key={atual.id}
+              src={atual.url}
+              controls
+              playsInline
+              preload="metadata"
+              width={atual.largura}
+              height={atual.altura}
+              style={estiloDaMidia(proporcao, zoom)}
+            />
+          ) : (
+            <img
+              className={css.imagem}
+              src={atual.url}
+              alt={atual.nome}
               /*
-                Zoom por `scale` e não por `width`: `transform` roda no
-                compositor e não relayoutar o palco — a mesma regra de
-                movimento que vale no resto do app.
+                `width`/`height` como ATRIBUTOS, não só CSS: é o que dá ao
+                navegador a proporção antes do primeiro byte, e o que impede o
+                palco de saltar quando a imagem chega.
               */
-              scale: String((ZOOMS[zoom] ?? 100) / 100),
-            }}
-          />
+              width={atual.largura}
+              height={atual.altura}
+              style={estiloDaMidia(proporcao, zoom)}
+            />
+          )}
         </div>
 
         {midias.length > 1 ? (
@@ -252,8 +295,23 @@ export function VisualizadorDeImagem({ aoFechar }: { aoFechar: () => void }) {
           ) : null}
 
           <span className={css.legenda}>
+            {/*
+              O nome e as DIMENSÕES entram aqui, e não no cabeçalho.
+
+              O design escreve `densidades.png · 2400×1500` na área da mídia e
+              `1 de 3 · 284 KB · alt definido` no rodapé — mas a primeira é o
+              PLACEHOLDER do mockup, o texto que fica no lugar da foto que o
+              arquivo de desenho não tem. Reproduzi-la como elemento poria um
+              nome de arquivo escrito por cima de toda imagem. O rodapé é o
+              único lugar do desenho que carrega metadado de arquivo, e é onde
+              os dois passam a morar — mono, como o resto da linha.
+            */}
+            {`${atual.nome} · `}
             {midias.length > 1 ? `${i + 1} de ${midias.length} · ` : ""}
             {atual.tamanhoTexto ? `${atual.tamanhoTexto} · ` : ""}
+            {atual.largura && atual.altura
+              ? `${atual.largura}×${atual.altura} · `
+              : ""}
             {/*
               "alt ausente" é informação, não erro.
 
@@ -293,6 +351,26 @@ export function VisualizadorDeImagem({ aoFechar }: { aoFechar: () => void }) {
       </DialogContent>
     </Dialog>
   );
+}
+
+/**
+ * O estilo da mídia no palco — o mesmo para imagem e para vídeo.
+ *
+ * Função e não dois objetos escritos à mão: o design proíbe o layout mudar
+ * entre os dois tipos, e duas cópias do mesmo estilo divergem no primeiro
+ * ajuste — exatamente a forma de defeito que a regra existe para evitar.
+ *
+ * Zoom por `scale` e não por `width`: `transform` roda no compositor e não
+ * relayouta o palco — a mesma regra de movimento que vale no resto do app.
+ */
+function estiloDaMidia(
+  proporcao: number | undefined,
+  zoom: number,
+): CSSProperties {
+  return {
+    ...(proporcao !== undefined ? { aspectRatio: String(proporcao) } : {}),
+    scale: String((ZOOMS[zoom] ?? 100) / 100),
+  };
 }
 
 /**

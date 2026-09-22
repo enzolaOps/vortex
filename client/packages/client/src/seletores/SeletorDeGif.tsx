@@ -13,7 +13,7 @@ import {
 } from "../sdk/gifs";
 import type { MontarInsercao } from "../composer/FerramentasDoComposer";
 import { isolar } from "../composer/isolar";
-import { CascaDeSeletor } from "./CascaDeSeletor";
+import { CascaDeSeletor, CELULA_DA_GRADE } from "./CascaDeSeletor";
 import css from "./Seletores.module.css";
 import gifCss from "./SeletorDeGif.module.css";
 
@@ -298,6 +298,7 @@ function Galeria({
                 key={g.id}
                 type="button"
                 className={`${css.gif} ${gifCss.caixa}`}
+                {...CELULA_DA_GRADE}
                 style={{ aspectRatio: `${g.largura} / ${g.altura}` }}
                 aria-label="Enviar GIF"
                 onClick={(e) => escolher(e, g)}

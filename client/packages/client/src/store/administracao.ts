@@ -75,6 +75,13 @@ export type Alvo =
   */
   | { readonly tipo: "encaminhar"; readonly messageId: string }
   /*
+    "Ver votos" da enquete. Alvo é a MENSAGEM pela mesma razão do lightbox: o
+    voto é guardado por RESPOSTA (`resposta → quem votou`), então quem sabe
+    montar a lista é quem tem a enquete inteira, e a enquete mora na mensagem.
+    Um alvo por resposta daria um modal que só sabe mostrar uma coluna.
+  */
+  | { readonly tipo: "verVotos"; readonly messageId: string }
+  /*
     Criar enquete. Sem alvo além do canal, que o modal lê da navegação — e é
     por isso que a variante não carrega campo nenhum: o alvo de "criar" é o
     lugar onde se está, não um objeto que já existe.
@@ -224,6 +231,7 @@ const MODAL_DE: Record<
   | "transferirPropriedade"
   | "topico"
   | "notificacoes"
+  | "votos"
 > = {
   criarCanal: "canal",
   editarCanal: "canal",
@@ -240,6 +248,7 @@ const MODAL_DE: Record<
   moderar: "moderar",
   encaminhar: "encaminhar",
   enquete: "enquete",
+  verVotos: "votos",
   evento: "evento",
   novoGrupo: "novoGrupo",
   grupo: "grupo",

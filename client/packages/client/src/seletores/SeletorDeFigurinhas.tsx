@@ -6,7 +6,11 @@ import { assinarRecentes, lerRecentes, usarFigurinha } from "../expressoes/recen
 import { gradienteDe, corDoTextoDe } from "../lib/gradiente";
 import type { Figurinha } from "../sdk/expressoes";
 import { useServer, useServerIds, useServidorAtivo } from "../store/hooks";
-import { CascaDeSeletor, SecaoDeSeletor } from "./CascaDeSeletor";
+import {
+  CascaDeSeletor,
+  CELULA_DA_GRADE,
+  SecaoDeSeletor,
+} from "./CascaDeSeletor";
 import css from "./Seletores.module.css";
 
 /**
@@ -216,6 +220,7 @@ function BotaoDeFigurinha({
     <button
       type="button"
       className={css.figurinha}
+      {...CELULA_DA_GRADE}
       aria-label={figurinha.nome}
       onClick={() => aoEscolher(figurinha)}
       onPointerEnter={() => aoSobre(figurinha)}

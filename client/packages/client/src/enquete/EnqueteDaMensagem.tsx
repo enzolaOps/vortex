@@ -1,11 +1,12 @@
 import { Trophy } from "../components/ui/icones";
 
-import { plural } from "../lib/plural";
 import { republicarEnquete } from "../sdk/adapter";
 import { votarNaEnquete } from "../sdk/enquetes";
+import { administrar } from "../store/administracao";
 import {
   estaEncerrada,
   porcentagem,
+  rodapeDaEnquete,
   totalDeVotos,
   type Enquete,
   type OpcaoDeEnquete,
@@ -93,13 +94,37 @@ export function EnqueteDaMensagem({
       </div>
 
       <div className={css.rodape}>
+        {/*
+          ⚠ **A contagem TOTAL aparece mesmo com o resultado escondido**, e a
+          versão anterior a trocava por "Resultado só no fim". O design escreve
+          os três desfechos da mesma linha — `18 votos · você votou`,
+          `18 votos · resultado no fim`, `18 votos` —, e o total é o que ele
+          mantém nos três: quantas pessoas responderam não enviesa ninguém,
+          porque não diz em QUÊ. O que "resultado no fim" esconde é a
+          porcentagem por resposta, e essa continua escondida.
+        */}
         <span>
-          {escondido
-            ? "Resultado só no fim"
-            : plural(total, "voto", "votos")}
+          {rodapeDaEnquete(total, escondido, enquete.meusVotos.length > 0)}
         </span>
         <span className={css.rodapeDireita}>
-          {encerrada ? null : <span className={css.link}>Ver votos</span>}
+          {/*
+            "Ver votos" só existe onde a contagem já está visível.
+
+            Encerrada ele sai porque o design não o desenha no estado final —
+            ali a linha é "25 votos · encerrada ontem às 20:00". E com o
+            resultado escondido ele sairia de qualquer forma: a lista de quem
+            votou em quê diz mais do que a porcentagem que o modo existe para
+            esconder.
+          */}
+          {encerrada || escondido ? null : (
+            <button
+              type="button"
+              className={css.link}
+              onClick={() => administrar({ tipo: "verVotos", messageId })}
+            >
+              Ver votos
+            </button>
+          )}
           <span>{encerrada ? "encerrada" : prazo(enquete.fechaEm)}</span>
         </span>
       </div>
