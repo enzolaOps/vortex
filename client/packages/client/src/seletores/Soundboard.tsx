@@ -9,7 +9,7 @@ import type { EfeitoSonoro } from "../sdk/expressoes";
 import { assinarChamada, lerChamada } from "../store/chamada";
 import { useChannel, useServer } from "../store/hooks";
 import { definirVolumeDoPainel } from "../store/soundboard";
-import { CascaDeSeletor } from "./CascaDeSeletor";
+import { CascaDeSeletor, CELULA_DA_GRADE } from "./CascaDeSeletor";
 import css from "./Seletores.module.css";
 
 /**
@@ -137,6 +137,7 @@ function LadrilhoDeSom({
     <button
       type="button"
       className={css.som}
+      {...CELULA_DA_GRADE}
       data-tocando={tocando || undefined}
       /*
         Sem permissão o ladrilho fica ESMAECIDO e com o motivo — regra do
