@@ -471,7 +471,98 @@
   gap: var(--vx-space-12);
 }
 
+/*
+  "Ver votos" — e ele é BOTÃO, não `span`.
+
+  Passou três fases como texto clicável que não abria nada. Como `button` ele
+  recebe foco, responde a Enter e é anunciado como acionável; o reset existe
+  porque o desenho continua sendo o de um link dentro de uma linha de metadado,
+  não o de um alvo com caixa.
+*/
 .link {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
   color: var(--vx-accent-text);
   cursor: pointer;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+  border-radius: var(--vx-radius-03);
+}
+
+/* ============================================================
+   "Quem votou" — o modal do rodapé da enquete
+   ============================================================ */
+
+.painelDeVotos {
+  inline-size: 100%;
+  max-inline-size: 420px;
+}
+
+.votos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-16);
+  /*
+    Teto de altura com rolagem interna: uma enquete de dez respostas com
+    dezenas de votos em cada uma passaria da janela, e um modal mais alto que
+    a tela perde o botão de fechar.
+  */
+  max-block-size: 52vh;
+  overflow-y: auto;
+}
+
+.grupoDeVotos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-08);
+}
+
+.tituloDaResposta {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-09);
+  margin: 0;
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+}
+
+.contagemDaResposta {
+  flex: none;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  font-weight: 400;
+  color: var(--vx-text-3);
+}
+
+.listaDeVotos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-06) var(--vx-space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.votante {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-06);
+  min-inline-size: 0;
+  font-size: var(--vx-size-sm);
+}
+
+.semVoto {
+  margin: 0;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
 }
