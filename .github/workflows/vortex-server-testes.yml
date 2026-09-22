@@ -1,0 +1,81 @@
+# Testes do servidor (delta + bonfire) sem Docker e sem Mongo.
+#
+# ⚠ Por que existe: nesta máquina de desenvolvimento não há Docker nem cargo, e
+# o `vortex-server-image.yml` só roda `cargo check` no PR — nada executava os
+# testes Rust. Aqui eles rodam contra o banco de REFERÊNCIA em memória
+# (`TEST_DB=REFERENCE`), que é o mesmo que as corridas em `rust:1.98` usavam.
+#
+# ⚠ `taiki-e/install-action` NÃO é usado: a política do repositório só permite
+# ações da GitHub e `docker/*` (`verified_allowed: false`), e ação de fora
+# derruba o job antes do primeiro passo. O nextest vem do binário oficial.
+name: Vortex server testes
+
+on:
+  push:
+    paths:
+      - "server/**"
+      - ".github/workflows/vortex-server-testes.yml"
+  pull_request:
+    paths:
+      - "server/**"
+      - ".github/workflows/vortex-server-testes.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: vortex-server-testes-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  testes:
+    name: Testes (delta + bonfire)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      TEST_DB: REFERENCE
+      CARGO_TERM_COLOR: always
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      # Mesma chave-base do `vortex-server-image.yml` (PR #274), com sufixo
+      # próprio: o `target/` de teste não é o de `cargo check`.
+      - name: Cache do cargo
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            server/target
+          key: ${{ runner.os }}-cargo-testes-${{ hashFiles('server/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-testes-
+
+      # `server/rust-toolchain.toml` pina 1.98.0; o rustup o instala sozinho.
+      - name: Toolchain 1.98
+        run: |
+          rustup show active-toolchain || rustup toolchain install
+          rustup component add clippy
+          cargo --version
+
+      - name: Instalar cargo-nextest
+        run: |
+          mkdir -p ~/.cargo/bin
+          curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ~/.cargo/bin
+          cargo nextest --version
+
+      - name: Testes
+        run: cargo nextest run --locked -p revolt-delta -p revolt-bonfire -p revolt-models -p revolt-database --no-fail-fast
+
+      # ⚠ `continue-on-error`: a `main` já carrega avisos de clippy que não são
+      # deste workflow (pendência conhecida). Com `-D warnings` bloqueando, o
+      # primeiro PR a tocar o servidor herdaria a dívida de todos os outros.
+      - name: Clippy
+        continue-on-error: true
+        run: cargo clippy --locked -p revolt-delta -p revolt-bonfire -p revolt-models -p revolt-database -- -D warnings
