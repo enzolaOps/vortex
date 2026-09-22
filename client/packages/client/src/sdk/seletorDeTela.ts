@@ -226,7 +226,7 @@ type MidiaDoNavegador = {
 export function capacidadeDeCaptura(
   midia: MidiaDoNavegador | undefined = typeof navigator === "undefined"
     ? undefined
-    : (navigator.mediaDevices as MidiaDoNavegador | undefined),
+    : navigator.mediaDevices,
 ): CapacidadeDeCaptura {
   if (typeof midia?.getDisplayMedia !== "function") {
     return { captura: false, audio: false };

@@ -1787,8 +1787,9 @@ async function comSeletorProprio(
   | undefined
 > {
   const escolha = await pedirEscolhaDeTela("casca");
+  /* Sem fonte não há o que armar: na casca a fonte é sempre escolhida no
+     painel, e `undefined` aqui só viria de um pedido do modo errado. */
   if (!escolha?.fonteId) return undefined;
-  const fonteId = escolha.fonteId;
 
   /*
     ⚠ **Janela com som não pede áudio ao `getDisplayMedia`.** O único áudio
@@ -1799,11 +1800,11 @@ async function comSeletorProprio(
   */
   const audioDeJanela =
     escolha.audio &&
-    ehJanela(fonteId) &&
+    ehJanela(escolha.fonteId) &&
     ponteDeAudioDeJanela() !== undefined;
-  const audioDoSistema = escolha.audio && !ehJanela(fonteId);
+  const audioDoSistema = escolha.audio && !ehJanela(escolha.fonteId);
 
-  const armou = await ponte.escolher(fonteId, audioDoSistema);
+  const armou = await ponte.escolher(escolha.fonteId, audioDoSistema);
   if (!armou) {
     toast({
       tipo: "erro",
