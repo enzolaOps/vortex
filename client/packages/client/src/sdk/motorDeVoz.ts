@@ -63,7 +63,6 @@ import {
   definirQualidadeEscolhida,
   esquecerQualidadeDaTela,
   pedeMovimento,
-  QUALIDADE_PADRAO,
   type QualidadeDaTela,
 } from "../store/qualidadeDaTela";
 
@@ -92,7 +91,10 @@ import { criarAssinaturaDeVideo } from "./assinaturaDeVideo";
 import { chaveDeVideo, faixasDeVideo, type FonteDeVideo } from "../store/video";
 import { toast } from "../components/ui/toastStore";
 import { ALTURA_DE, ponteDeTela } from "./seletorDeTela";
-import { pedirEscolhaDeTela } from "../store/seletorDeTela";
+import {
+  concluirEscolhaDeTela,
+  pedirEscolhaDeTela,
+} from "../store/seletorDeTela";
 import { motivoDoErro } from "./erros";
 import {
   coalescer,
@@ -1410,13 +1412,36 @@ export async function alternarTela(): Promise<void> {
     sistema e o handler nem roda. Quem sabe disso é a casca.
   */
   const ponte = ponteDeTela();
-  const escolha = ponte && (await ponte.seletorProprio())
-    ? await comSeletorProprio(ponte)
-    : {
-        opcoes: capturaDe(QUALIDADE_PADRAO),
-        qualidade: QUALIDADE_PADRAO,
-        audioDeJanela: false,
-      };
+  const proprio = ponte !== undefined && (await ponte.seletorProprio());
+
+  /*
+    ⚠ **O painel do Vortex abre nos DOIS caminhos, e só na casca ele lista
+    fontes.** No navegador o ◧ ia direto ao `getDisplayMedia`, então áudio e
+    qualidade não eram escolhíveis e o motivo de um toggle indisponível nunca
+    chegava à tela. Agora o painel decide o que é do app e "Transmitir" chama o
+    sistema — que é quem mostra telas, janelas e abas.
+
+    ⚠ O `getDisplayMedia` continua dentro da ativação do clique: o clique em
+    "Transmitir" resolve a promessa, e o caminho até a captura é de
+    microtarefas, sem `setTimeout` nem rede no meio.
+  */
+  try {
+    await transmitir(p, ponte, proprio);
+  } finally {
+    /* O modal fica em "Iniciando" até aqui: no ar, falhou ou cancelou. */
+    concluirEscolhaDeTela();
+  }
+}
+
+async function transmitir(
+  p: LocalParticipant,
+  ponte: ReturnType<typeof ponteDeTela>,
+  proprio: boolean,
+): Promise<void> {
+  const escolha =
+    ponte && proprio
+      ? await comSeletorProprio(ponte)
+      : await comSeletorDoSistema();
 
   /* `undefined` = cancelou no painel. Cancelar não é falha. */
   if (escolha === undefined) return;
@@ -1710,6 +1735,38 @@ export async function trocarFonteDaTela(): Promise<void> {
 }
 
 /**
+ * Pergunta áudio e qualidade; a FONTE quem escolhe é o sistema.
+ *
+ * ⚠ **Áudio desligado vira `audio: false` explícito.** `comAudioDaTela` só
+ * preenche quando o campo não é `false`, e sem isto a caixa de áudio do
+ * seletor do sistema apareceria marcada para quem acabou de dizer que não.
+ */
+async function comSeletorDoSistema(): Promise<
+  | {
+      opcoes: ScreenShareCaptureOptions;
+      qualidade: QualidadeDaTela;
+      audioDeJanela: boolean;
+    }
+  | undefined
+> {
+  const escolha = await pedirEscolhaDeTela("sistema");
+  if (!escolha) return undefined;
+
+  const qualidade: QualidadeDaTela = {
+    resolucao: escolha.resolucao,
+    taxa: escolha.taxa,
+  };
+  return {
+    opcoes: {
+      ...capturaDe(qualidade),
+      ...(escolha.audio ? {} : { audio: false }),
+    },
+    qualidade,
+    audioDeJanela: false,
+  };
+}
+
+/**
  * Pergunta o que transmitir e ARMA a escolha na casca.
  *
  * Devolve as constraints para o LiveKit, ou `undefined` se a pessoa cancelou.
@@ -1729,8 +1786,9 @@ async function comSeletorProprio(
     }
   | undefined
 > {
-  const escolha = await pedirEscolhaDeTela();
-  if (!escolha) return undefined;
+  const escolha = await pedirEscolhaDeTela("casca");
+  if (!escolha?.fonteId) return undefined;
+  const fonteId = escolha.fonteId;
 
   /*
     ⚠ **Janela com som não pede áudio ao `getDisplayMedia`.** O único áudio
@@ -1741,11 +1799,11 @@ async function comSeletorProprio(
   */
   const audioDeJanela =
     escolha.audio &&
-    ehJanela(escolha.fonteId) &&
+    ehJanela(fonteId) &&
     ponteDeAudioDeJanela() !== undefined;
-  const audioDoSistema = escolha.audio && !ehJanela(escolha.fonteId);
+  const audioDoSistema = escolha.audio && !ehJanela(fonteId);
 
-  const armou = await ponte.escolher(escolha.fonteId, audioDoSistema);
+  const armou = await ponte.escolher(fonteId, audioDoSistema);
   if (!armou) {
     toast({
       tipo: "erro",

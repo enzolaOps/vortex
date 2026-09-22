@@ -323,6 +323,12 @@
   text-wrap: pretty;
 }
 
+/* O motivo de um botão que não vai funcionar: o segundo vermelho do design,
+   o de TEXTO, e não `--vx-danger`, que é calibrado para preenchimento. */
+.consequencia[data-perigo] {
+  color: var(--vx-danger-text);
+}
+
 .acoes {
   display: flex;
   flex: none;

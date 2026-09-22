@@ -198,3 +198,75 @@ export function trocaDe(resolucao: Resolucao, taxa: Taxa): string {
     ? "1440p ou 60 fps consomem ~8 Mbps de upload; espectadores em rede fraca caem para 720p automaticamente."
     : "Combinação recomendada: legível para texto e estável em upload doméstico.";
 }
+
+/**
+ * O que o NAVEGADOR sabe fazer com captura de tela.
+ *
+ * ⚠ **Detecção por recurso, não por nome de navegador.** `getDisplayMedia`
+ * ausente é celular e WebView antiga: sem ele não há transmissão nenhuma.
+ * Áudio junto da tela só o Chromium entrega (aba em todo sistema, tela inteira
+ * no Windows) — Safari e Firefox capturam só o vídeo. O sinal é
+ * `suppressLocalAudioPlayback`: a constraint que só existe onde a captura de
+ * áudio de tela existe. Ler o `userAgent` mentiria para todo navegador que se
+ * disfarça de outro.
+ *
+ * ⚠ O toggle de áudio aparece DESABILITADO com o motivo, nunca escondido — é
+ * a regra do design, e é o que diz a quem usa Firefox por que o som não vai.
+ */
+export type CapacidadeDeCaptura = {
+  readonly captura: boolean;
+  readonly audio: boolean;
+};
+
+type MidiaDoNavegador = {
+  readonly getDisplayMedia?: unknown;
+  readonly getSupportedConstraints?: () => object;
+};
+
+export function capacidadeDeCaptura(
+  midia: MidiaDoNavegador | undefined = typeof navigator === "undefined"
+    ? undefined
+    : (navigator.mediaDevices as MidiaDoNavegador | undefined),
+): CapacidadeDeCaptura {
+  if (typeof midia?.getDisplayMedia !== "function") {
+    return { captura: false, audio: false };
+  }
+  const suportadas = (midia.getSupportedConstraints?.() ?? {}) as Record<
+    string,
+    unknown
+  >;
+  return {
+    captura: true,
+    audio: suportadas["suppressLocalAudioPlayback"] === true,
+  };
+}
+
+/**
+ * Chama `reler` quando a pessoa VOLTA para a janela.
+ *
+ * ⚠ **É o gesto de quem acabou de conceder a permissão.** "Abrir ajustes"
+ * leva às preferências do sistema; a pessoa marca o Vortex e volta. Ler a
+ * permissão uma vez ao montar deixava o banner aceso até alguém fechar e
+ * reabrir o modal — exatamente o que o texto dele promete não precisar.
+ * `focus` cobre a troca de janela; `visibilitychange` cobre a janela que
+ * estava minimizada ou em outra área de trabalho.
+ */
+export function aoVoltarParaAJanela(
+  reler: () => void,
+  janela: EventTarget | undefined = typeof window === "undefined"
+    ? undefined
+    : window,
+  doc: (EventTarget & { readonly visibilityState?: string }) | undefined =
+    typeof document === "undefined" ? undefined : document,
+): () => void {
+  const aoFocar = () => reler();
+  const aoMudar = () => {
+    if (doc?.visibilityState !== "hidden") reler();
+  };
+  janela?.addEventListener("focus", aoFocar);
+  doc?.addEventListener("visibilitychange", aoMudar);
+  return () => {
+    janela?.removeEventListener("focus", aoFocar);
+    doc?.removeEventListener("visibilitychange", aoMudar);
+  };
+}
