@@ -70,7 +70,6 @@ import {
   registrarMovimentoImposto,
 } from "./vozImposta";
 import {
-  anotarAutorDeVoz,
   ehLinhaDeSala,
   linhasDoEvento,
   registrarLinhaDeSala,
@@ -1235,13 +1234,6 @@ export function startAdapter() {
         silenciado aparece com `SRV` na coluna para todo mundo, mas só quem
         perdeu a voz precisa da frase.
       */
-      /* "por Fulano" (D-LAC-24/25): `by` é do fork e só vem em ação de VOZ.
-         Anotado para as linhas da sala e, se o alvo sou eu, para o aviso. */
-      anotarAutorDeVoz(evento, Date.now());
-      const autorDoAviso = lerAutorImposto(evento, usuarioLocal);
-      if (autorDoAviso !== undefined && server !== undefined) {
-        registrarAutorImposto(nomeDe(server, autorDoAviso));
-      }
       const chave =
         server !== undefined && user !== undefined && user === usuarioLocal
           ? chaveDeMembro(server, user)
@@ -1275,6 +1267,15 @@ export function startAdapter() {
         sumia e nada dizia por quê. Ver `sdk/vozImposta.ts` para a corrida entre
         os dois sinais.
       */
+      /* "por Fulano" da desconexão (D-LAC-25): evento PRIVADO do fork, só
+         para quem foi tirado — ver `sdk/vozImposta.ts`. */
+      const autorDaRemocao = lerAutorImposto(evento, usuarioLocal);
+      if (autorDaRemocao) {
+        registrarAutorImposto(
+          autorDaRemocao.canal,
+          nomeDe(autorDaRemocao.server, autorDaRemocao.por),
+        );
+      }
       const movimento = lerMovimentoImposto(evento);
       if (movimento) {
         const servidorDoMovimento = client.channels.get(movimento.para)?.serverId;
@@ -1909,7 +1910,7 @@ function soltarLinhasDaSala(canal: string): void {
 function inserirLinhasDeSala(evento: unknown): void {
   const chamada = lerChamada();
   const canal = chamada.estado === "fora" ? "" : chamada.channelId;
-  const linhas = linhasDoEvento(evento, canal, Date.now());
+  const linhas = linhasDoEvento(evento, canal);
   if (linhas.length === 0) return;
 
   if (!chamadaAssinada) {

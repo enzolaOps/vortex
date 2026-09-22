@@ -29,6 +29,12 @@
  * que o cabeçalho do chat já promete ("visível só para conectados"). Sair da
  * sala apaga as linhas dela.
  *
+ * ⚠ **Sem "por Fulano" nas linhas, e é decisão de privacidade.** O design
+ * escreve "Ana moveu Téo para Foco", mas quem moveu ou desconectou alguém só
+ * é contado À PESSOA AFETADA, por evento privado — dizê-lo à sala inteira é o
+ * que o registro de auditoria guarda atrás de `ViewAuditLog`. A sala lê "Téo
+ * foi movido para Foco" e "Nando saiu do canal".
+ *
  * Módulo PURO: traduz o evento cru e guarda o registro das linhas. Quem as
  * põe na lista é o adapter.
  */
@@ -43,45 +49,6 @@ export type LinhaDeSala = {
 };
 
 /**
- * Quanto um "por Fulano" vale depois de chegar.
- *
- * O autor vem do `delta` (`ServerMemberUpdate.by`) ANTES do movimento ou da
- * saída, que vêm do `voice-ingress` depois do webhook do LiveKit. A folga é
- * larga porque são dois serviços e uma fila no meio; errar para mais só
- * arrisca atribuir a um moderador uma saída espontânea dentro de 10s depois de
- * ele ter mexido na mesma pessoa.
- */
-export const VALIDADE_DO_AUTOR_MS = 10_000;
-
-const autores = new Map<string, { readonly por: string; readonly em: number }>();
-
-/**
- * O servidor disse quem mexeu na voz de alguém.
- *
- * Lido de `ServerMemberUpdate.by`, campo do fork: um `delta` Stoat não o
- * manda, e aí a linha sai sem autor ("Téo foi movido para Foco").
- */
-export function anotarAutorDeVoz(evento: unknown, agora: number): void {
-  const e = evento as {
-    type?: string;
-    id?: { user?: unknown };
-    by?: unknown;
-  };
-  if (e.type !== "ServerMemberUpdate") return;
-  if (typeof e.by !== "string" || e.by === "") return;
-  if (typeof e.id?.user !== "string") return;
-  autores.set(e.id.user, { por: e.by, em: agora });
-}
-
-function autorRecente(userId: string, agora: number): string | undefined {
-  const a = autores.get(userId);
-  if (a === undefined) return undefined;
-  // Consumido: o mesmo "por" não pode assinar duas linhas.
-  autores.delete(userId);
-  return agora - a.em <= VALIDADE_DO_AUTOR_MS ? a.por : undefined;
-}
-
-/**
  * Evento cru → linhas, para a sala em que se está.
  *
  * `canalDaChamada` vazio é "fora de chamada", e aí nada entra.
@@ -89,7 +56,6 @@ function autorRecente(userId: string, agora: number): string | undefined {
 export function linhasDoEvento(
   evento: unknown,
   canalDaChamada: string,
-  agora: number,
 ): readonly LinhaDeSala[] {
   if (canalDaChamada === "") return [];
   const e = evento as {
@@ -109,17 +75,7 @@ export function linhasDoEvento(
 
   if (e.type === "VoiceChannelLeave") {
     if (e.id !== canalDaChamada || typeof e.user !== "string") return [];
-    const por = autorRecente(e.user, agora);
-    return [
-      {
-        canal: canalDaChamada,
-        userId: e.user,
-        sistema:
-          por !== undefined
-            ? { tipo: "desconectou", userId: e.user, porId: por }
-            : { tipo: "saiu", userId: e.user },
-      },
-    ];
+    return [{ canal: canalDaChamada, userId: e.user, sistema: { tipo: "saiu", userId: e.user } }];
   }
 
   if (e.type === "UserVoiceStateUpdate") {
@@ -134,13 +90,8 @@ export function linhasDoEvento(
   if (e.type === "VoiceChannelMove") {
     if (typeof e.user !== "string" || typeof e.to !== "string") return [];
     if (e.from !== canalDaChamada && e.to !== canalDaChamada) return [];
-    const por = autorRecente(e.user, agora);
     return [
-      {
-        canal: canalDaChamada,
-        userId: e.user,
-        sistema: { tipo: "moveu", userId: e.user, porId: por, paraId: e.to },
-      },
+      { canal: canalDaChamada, userId: e.user, sistema: { tipo: "moveu", userId: e.user, paraId: e.to } },
     ];
   }
 
@@ -191,5 +142,4 @@ export function soltarLinhasDe(canal: string): readonly string[] {
 /** Estado limpo entre testes. */
 export function limparEventosDaSala(): void {
   linhas.clear();
-  autores.clear();
 }

@@ -140,63 +140,83 @@ describe("a corrida entre o LiveKit e o socket", () => {
 });
 
 describe("por Fulano (D-LAC-24/25)", () => {
-  it("lê o `by` do movimento quando o servidor do Vortex o manda", () => {
+  it("lê o `by` do movimento, que já vem no evento privado", () => {
     expect(
       lerMovimentoImposto({ type: "UserMoveVoiceChannel", from: "01A", to: "01B", by: "01ANA" }),
     ).toEqual({ de: "01A", para: "01B", por: "01ANA" });
   });
 
-  it("movimento com autor diz quem moveu", () => {
+  it("movimento com autor diz quem moveu; sem autor, o texto de sempre", () => {
     registrarMovimentoImposto({ ...MOVIMENTO, porNome: "Ana Ribeiro" });
     registrarRemocaoImposta(REMOCAO);
     expect(lerToasts()[0]?.descricao).toBe("Por Ana Ribeiro.");
-  });
+    for (const t of lerToasts()) dispensarToast(t.id);
 
-  it("movimento sem autor cai no texto de sempre", () => {
     registrarMovimentoImposto(MOVIMENTO);
     registrarRemocaoImposta(REMOCAO);
     expect(lerToasts()[0]?.descricao).toBe("Um moderador mudou você de canal.");
   });
 
-  it("desconexão com o autor do ServerMemberUpdate diz quem desconectou", () => {
-    // O `delta` grava o membro antes de falar com o LiveKit: o autor chega primeiro.
-    registrarAutorImposto("Ana Ribeiro");
+  /* As três ordens do autor da DESCONEXÃO, que chega por evento privado
+     enquanto a remoção chega pelo LiveKit. Um aviso só em todas. */
+  it("privado antes da remoção: assina", () => {
+    registrarAutorImposto("01SALA", "Ana Ribeiro");
     registrarRemocaoImposta(REMOCAO);
     vi.advanceTimersByTime(JANELA_MS);
+    expect(lerToasts()).toHaveLength(1);
     expect(lerToasts()[0]?.descricao).toBe("Por Ana Ribeiro, em Sala do time.");
   });
 
-  it("autor velho não assina uma desconexão de muito depois", () => {
-    registrarAutorImposto("Ana Ribeiro");
+  it("remoção antes do privado, dentro da janela: assina", () => {
+    registrarRemocaoImposta(REMOCAO);
+    vi.advanceTimersByTime(JANELA_MS / 2);
+    registrarAutorImposto("01SALA", "Ana Ribeiro");
+    vi.advanceTimersByTime(JANELA_MS);
+    expect(lerToasts()).toHaveLength(1);
+    expect(lerToasts()[0]?.descricao).toBe("Por Ana Ribeiro, em Sala do time.");
+  });
+
+  it("privado ausente: o texto sem autor", () => {
+    registrarRemocaoImposta(REMOCAO);
+    vi.advanceTimersByTime(JANELA_MS);
+    expect(lerToasts()).toHaveLength(1);
+    expect(lerToasts()[0]?.descricao).toBe("Um moderador tirou você de Sala do time.");
+  });
+
+  it("privado atrasado: o aviso já saiu sem autor, e não sai de novo", () => {
+    registrarRemocaoImposta(REMOCAO);
+    vi.advanceTimersByTime(JANELA_MS);
+    registrarAutorImposto("01SALA", "Ana Ribeiro");
+    vi.advanceTimersByTime(JANELA_MS * 4);
+    expect(lerToasts()).toHaveLength(1);
+    expect(lerToasts()[0]?.descricao).toBe("Um moderador tirou você de Sala do time.");
+
+    /* E o autor atrasado não assina uma desconexão que venha muito depois. */
+    for (const t of lerToasts()) dispensarToast(t.id);
     vi.advanceTimersByTime(JANELA_MS * 10);
     registrarRemocaoImposta(REMOCAO);
     vi.advanceTimersByTime(JANELA_MS);
     expect(lerToasts()[0]?.descricao).toBe("Um moderador tirou você de Sala do time.");
   });
 
-  it("o autor é consumido pela resolução, e não vaza para a próxima", () => {
-    registrarAutorImposto("Ana Ribeiro");
-    registrarRemocaoImposta(REMOCAO);
-    vi.advanceTimersByTime(JANELA_MS);
-    for (const t of lerToasts()) dispensarToast(t.id);
-
+  it("autor de OUTRA sala não assina a remoção desta", () => {
+    registrarAutorImposto("01OUTRA", "Ana Ribeiro");
     registrarRemocaoImposta(REMOCAO);
     vi.advanceTimersByTime(JANELA_MS);
     expect(lerToasts()[0]?.descricao).toBe("Um moderador tirou você de Sala do time.");
   });
 
-  it("lê o autor só de ServerMemberUpdate sobre mim, e nunca eu mesma", () => {
-    const e = (user: string, by?: string) => ({
-      type: "ServerMemberUpdate",
-      id: { server: "S", user },
-      data: {},
-      ...(by === undefined ? {} : { by }),
-    });
-    expect(lerAutorImposto(e("EU", "ANA"), "EU")).toBe("ANA");
-    expect(lerAutorImposto(e("OUTRO", "ANA"), "EU")).toBeUndefined();
-    expect(lerAutorImposto(e("EU"), "EU")).toBeUndefined();
-    expect(lerAutorImposto(e("EU", "EU"), "EU")).toBeUndefined();
-    expect(lerAutorImposto(e("EU", "ANA"), undefined)).toBeUndefined();
+  it("lê só o evento privado do fork, e nunca o público de membro", () => {
+    const privado = { type: "UserVoiceDisconnected", server: "S", channel: "01SALA", by: "ANA" };
+    expect(lerAutorImposto(privado, "EU")).toEqual({ canal: "01SALA", server: "S", por: "ANA" });
+    expect(lerAutorImposto({ ...privado, by: "EU" }, "EU")).toBeUndefined();
+    expect(lerAutorImposto({ ...privado, channel: undefined }, "EU")).toBeUndefined();
+    expect(
+      lerAutorImposto(
+        { type: "ServerMemberUpdate", id: { server: "S", user: "EU" }, data: {}, by: "ANA" },
+        "EU",
+      ),
+    ).toBeUndefined();
   });
 });
 

@@ -5,8 +5,6 @@ import { definirChamada, limparChamada } from "../store/chamada";
 import { channelMessageIds, messages } from "./adapter";
 import { client } from "./client";
 import {
-  VALIDADE_DO_AUTOR_MS,
-  anotarAutorDeVoz,
   ehLinhaDeSala,
   limparEventosDaSala,
   linhasDoEvento,
@@ -38,67 +36,41 @@ describe("tradução do evento cru", () => {
   beforeEach(() => limparEventosDaSala());
 
   it("fora de chamada nada vira linha", () => {
-    expect(linhasDoEvento({ type: "VoiceChannelJoin", id: SALA, state: estado("JU") }, "", 0)).toEqual(
+    expect(linhasDoEvento({ type: "VoiceChannelJoin", id: SALA, state: estado("JU") }, "")).toEqual(
       [],
     );
   });
 
   it("só a sala em que se está", () => {
     expect(
-      linhasDoEvento({ type: "VoiceChannelJoin", id: OUTRA, state: estado("JU") }, SALA, 0),
+      linhasDoEvento({ type: "VoiceChannelJoin", id: OUTRA, state: estado("JU") }, SALA),
     ).toEqual([]);
     expect(
-      linhasDoEvento({ type: "VoiceChannelJoin", id: SALA, state: estado("JU") }, SALA, 0),
+      linhasDoEvento({ type: "VoiceChannelJoin", id: SALA, state: estado("JU") }, SALA),
     ).toEqual([{ canal: SALA, userId: "JU", sistema: { tipo: "entrou", userId: "JU" } }]);
   });
 
-  it("saída espontânea é `saiu`; com autor recente é `desconectou`", () => {
-    expect(linhasDoEvento({ type: "VoiceChannelLeave", id: SALA, user: "NANDO" }, SALA, 0)).toEqual([
+  it("saída vira `saiu`, e movimento entra de qualquer lado, SEM autor", () => {
+    expect(linhasDoEvento({ type: "VoiceChannelLeave", id: SALA, user: "NANDO" }, SALA)).toEqual([
       { canal: SALA, userId: "NANDO", sistema: { tipo: "saiu", userId: "NANDO" } },
     ]);
-
-    anotarAutorDeVoz(
-      { type: "ServerMemberUpdate", id: { server: "S", user: "NANDO" }, data: {}, by: "ANA" },
-      1000,
-    );
-    expect(
-      linhasDoEvento({ type: "VoiceChannelLeave", id: SALA, user: "NANDO" }, SALA, 2000)[0]?.sistema,
-    ).toEqual({ tipo: "desconectou", userId: "NANDO", porId: "ANA" });
-  });
-
-  it("o autor vence e é consumido", () => {
-    anotarAutorDeVoz({ type: "ServerMemberUpdate", id: { user: "TEO" }, by: "ANA" }, 0);
-    const velho = linhasDoEvento(
-      { type: "VoiceChannelLeave", id: SALA, user: "TEO" },
-      SALA,
-      VALIDADE_DO_AUTOR_MS + 1,
-    );
-    expect(velho[0]?.sistema.tipo).toBe("saiu");
-
-    anotarAutorDeVoz({ type: "ServerMemberUpdate", id: { user: "TEO" }, by: "ANA" }, 0);
-    linhasDoEvento({ type: "VoiceChannelLeave", id: SALA, user: "TEO" }, SALA, 1);
-    // Segunda saída não herda o "por" da primeira.
-    expect(
-      linhasDoEvento({ type: "VoiceChannelLeave", id: SALA, user: "TEO" }, SALA, 2)[0]?.sistema.tipo,
-    ).toBe("saiu");
-  });
-
-  it("movimento entra de qualquer lado, com ou sem autor", () => {
-    const mov = { type: "VoiceChannelMove", user: "TEO", from: SALA, to: OUTRA, state: estado("TEO") };
-    expect(linhasDoEvento(mov, SALA, 0)[0]?.sistema).toEqual({
+    /* Mesmo que um payload traga `by`, a sala não o lê: autor é só da pessoa
+       afetada, por evento privado. */
+    const mov = {
+      type: "VoiceChannelMove",
+      user: "TEO",
+      from: SALA,
+      to: OUTRA,
+      by: "ANA",
+      state: estado("TEO"),
+    };
+    expect(linhasDoEvento(mov, SALA)[0]?.sistema).toEqual({
       tipo: "moveu",
       userId: "TEO",
-      porId: undefined,
       paraId: OUTRA,
     });
-    anotarAutorDeVoz({ type: "ServerMemberUpdate", id: { user: "TEO" }, by: "ANA" }, 0);
-    expect(linhasDoEvento(mov, OUTRA, 10)[0]?.sistema).toEqual({
-      tipo: "moveu",
-      userId: "TEO",
-      porId: "ANA",
-      paraId: OUTRA,
-    });
-    expect(linhasDoEvento(mov, "01TERCEIRA", 0)).toEqual([]);
+    expect(linhasDoEvento(mov, OUTRA)[0]?.sistema.tipo).toBe("moveu");
+    expect(linhasDoEvento(mov, "01TERCEIRA")).toEqual([]);
   });
 
   it("começar a transmitir vira linha; parar não", () => {
@@ -108,17 +80,11 @@ describe("tradução do evento cru", () => {
       channel_id: SALA,
       data: { screensharing },
     });
-    expect(linhasDoEvento(upd(true), SALA, 0)[0]?.sistema).toEqual({ tipo: "transmitiu", userId: "JU" });
-    expect(linhasDoEvento(upd(false), SALA, 0)).toEqual([]);
-    expect(linhasDoEvento({ ...upd(true), channel_id: OUTRA }, SALA, 0)).toEqual([]);
+    expect(linhasDoEvento(upd(true), SALA)[0]?.sistema).toEqual({ tipo: "transmitiu", userId: "JU" });
+    expect(linhasDoEvento(upd(false), SALA)).toEqual([]);
+    expect(linhasDoEvento({ ...upd(true), channel_id: OUTRA }, SALA)).toEqual([]);
   });
 
-  it("ServerMemberUpdate sem `by` (um delta Stoat) não anota nada", () => {
-    anotarAutorDeVoz({ type: "ServerMemberUpdate", id: { user: "TEO" }, data: {} }, 0);
-    expect(
-      linhasDoEvento({ type: "VoiceChannelLeave", id: SALA, user: "TEO" }, SALA, 1)[0]?.sistema.tipo,
-    ).toBe("saiu");
-  });
 });
 
 describe("ponte até a lista", () => {

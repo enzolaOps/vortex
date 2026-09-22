@@ -625,7 +625,7 @@ impl State {
                 self.remove_cached_threads(id).await;
                 self.cache.members.remove(id);
             }
-            EventV1::ServerMemberUpdate { id, data, clear, .. } => {
+            EventV1::ServerMemberUpdate { id, data, clear } => {
                 if id.user == self.cache.user_id {
                     if let Some(member) = self.cache.members.get_mut(&id.server) {
                         for field in &clear.clone() {

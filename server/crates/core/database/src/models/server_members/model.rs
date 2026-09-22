@@ -253,20 +253,6 @@ impl Member {
         partial: PartialMember,
         remove: Vec<FieldsMember>,
     ) -> Result<()> {
-        self.update_by(db, partial, remove, None).await
-    }
-
-    /// Update member data, dizendo no evento QUEM fez a edição.
-    ///
-    /// Vortex: `by` só é preenchido por quem chama quando a edição é uma ação
-    /// de voz sobre outra pessoa (mover, desconectar) — ver `member_edit.rs`.
-    pub async fn update_by(
-        &mut self,
-        db: &Database,
-        partial: PartialMember,
-        remove: Vec<FieldsMember>,
-        by: Option<String>,
-    ) -> Result<()> {
         for field in &remove {
             self.remove_field(field);
         }
@@ -279,7 +265,6 @@ impl Member {
             id: self.id.clone().into(),
             data: partial.into(),
             clear: remove.into_iter().map(|field| field.into()).collect(),
-            by,
         }
         .p(self.id.server.clone())
         .await;

@@ -228,14 +228,6 @@ pub enum EventV1 {
         data: PartialMember,
         #[serde(default)]
         clear: Vec<FieldsMember>,
-        /// Vortex: quem moveu ou desconectou este membro da voz.
-        ///
-        /// Só vem quando a edição foi uma ação de VOZ feita por OUTRA pessoa;
-        /// apelido, cargo e castigo seguem sem autor, que continua sendo dado
-        /// do registro de auditoria. Aditivo: omitido quando ausente, então
-        /// um cliente Stoat que não o conhece nem o vê.
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        by: Option<String>,
     },
 
     /// User joins server
@@ -475,10 +467,28 @@ pub enum EventV1 {
         from: String,
         to: String,
         token: String,
-        /// Vortex: quem fez o movimento. Mesmo contrato do `by` de
-        /// `ServerMemberUpdate`: opcional e omitido quando ausente.
+        /// Vortex: quem fez o movimento (D-LAC-24).
+        ///
+        /// Pode morar aqui porque este evento já é PRIVADO — só o tópico
+        /// `{usuário}!` de quem foi movido o recebe (ele carrega o token do
+        /// LiveKit). Opcional e omitido quando ausente: um cliente Stoat não o
+        /// vê, e um `delta` Stoat não o manda.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         by: Option<String>,
+    },
+    /// Vortex: um moderador tirou VOCÊ da voz (D-LAC-25).
+    ///
+    /// ⚠ **Evento próprio, privado, e nunca um `by` no `ServerMemberUpdate`.**
+    /// Aquele vai ao servidor inteiro, e quem desconectou alguém é dado da
+    /// auditoria (`ViewAuditLog`), não de todo membro. Uma cópia privada do
+    /// `ServerMemberUpdate` com `by` também não servia: o SDK e o `bonfire`
+    /// aplicariam a mesma edição de membro duas vezes. Este não muda estado
+    /// nenhum — só diz o autor, e o cliente o casa com a remoção que o LiveKit
+    /// já anunciou. Um cliente Stoat desconhece o tipo e o ignora.
+    UserVoiceDisconnected {
+        server: String,
+        channel: String,
+        by: String,
     },
     /// User's active slowmodes
     UserSlowmodes {
@@ -550,30 +560,26 @@ mod test {
     use super::EventV1;
     use serde_json::json;
 
-    /// Vortex: o `by` dos dois eventos de voz é ADITIVO. Ausente, ele some do
-    /// fio (um cliente Stoat recebe exatamente o que recebia); e um payload sem
-    /// ele — de um `delta` upstream — continua desserializando.
+    /// Vortex: o `ServerMemberUpdate`, que vai ao servidor inteiro, sai
+    /// igual ao da `main` — sem campo de autor nenhum.
     #[test]
-    fn by_de_voz_e_aditivo() {
-        let sem: EventV1 = serde_json::from_value(json!({
+    fn evento_publico_de_membro_nao_tem_autor() {
+        let e: EventV1 = serde_json::from_value(json!({
             "type": "ServerMemberUpdate",
             "id": { "server": "S", "user": "U" },
             "data": {},
             "clear": ["VoiceChannel"],
-        }))
-        .unwrap();
-        let fio = serde_json::to_value(&sem).unwrap();
-        assert!(fio.get("by").is_none(), "by ausente não pode ir ao fio: {fio}");
-
-        let com: EventV1 = serde_json::from_value(json!({
-            "type": "ServerMemberUpdate",
-            "id": { "server": "S", "user": "U" },
-            "data": {},
             "by": "ANA",
         }))
         .unwrap();
-        assert_eq!(serde_json::to_value(&com).unwrap()["by"], "ANA");
+        let fio = serde_json::to_value(&e).unwrap();
+        assert!(fio.get("by").is_none(), "autor vazou para o evento público: {fio}");
+    }
 
+    /// O `by` do movimento (privado) é aditivo: ausente, some do fio; e um
+    /// payload sem ele — de um `delta` upstream — continua desserializando.
+    #[test]
+    fn by_do_movimento_e_aditivo() {
         let movido: EventV1 = serde_json::from_value(json!({
             "type": "UserMoveVoiceChannel",
             "node": "n", "from": "A", "to": "B", "token": "t",
