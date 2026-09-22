@@ -15,32 +15,93 @@
  * de componente.
  */
 import {
-  canaisDeTexto,
-  canaisDeVoz,
-  categorias,
   channels,
+  conversas,
   members,
   membrosOffline,
   membrosOnline,
   RAIZ,
-  serverIds,
   servers,
+  vozPorCanal,
 } from "../sdk/adapter";
+import { canaisOrdenados, servidoresOrdenados } from "../sdk/ordem";
 import { chaveDeMembro } from "../sdk/domain";
+import { chaveDoCanal, listasDeTopicos, topicos } from "../sdk/topicos";
+import { ATALHOS } from "../atalhos/registro";
 
-export type TipoDeEntrada = "servidor" | "canal" | "pessoa";
+export type TipoDeEntrada =
+  | "servidor"
+  | "canal"
+  | "pessoa"
+  | "topico"
+  | "acao";
+
+/**
+ * Os cinco chips de filtro do design, e o PREFIXO que cada um representa.
+ *
+ * ⚠ **Um dono só para o filtro: a string de busca.** O design escreve a
+ * promessa por extenso — *"quem digita e quem clica chega ao mesmo estado"* —,
+ * e a única forma de garanti-la é o chip ESCREVER o prefixo no campo em vez de
+ * guardar um estado paralelo. Com dois donos, digitar `#` deixaria o chip
+ * apagado e clicar no chip deixaria o campo sem o prefixo; os dois seriam
+ * "corretos" e a tela se contradiria.
+ */
+export const CHIPS = [
+  { prefixo: "#", tipo: "canal", rotulo: "canais" },
+  { prefixo: "@", tipo: "pessoa", rotulo: "pessoas" },
+  { prefixo: "*", tipo: "servidor", rotulo: "servidores" },
+  { prefixo: "!", tipo: "topico", rotulo: "tópicos" },
+  { prefixo: ">", tipo: "acao", rotulo: "ações" },
+] as const satisfies readonly {
+  prefixo: string;
+  tipo: TipoDeEntrada;
+  rotulo: string;
+}[];
 
 export type Entrada = {
   readonly tipo: TipoDeEntrada;
   readonly id: string;
   readonly rotulo: string;
-  /** Onde isto vive — o nome do servidor, para canais e pessoas. */
+  /** Onde isto vive — o nome do servidor, o canal pai, o estado do canal. */
   readonly contexto: string | undefined;
   /** Só para canal: decide o ícone. */
   readonly canalDeVoz?: boolean;
-  /** Servidor a abrir junto, quando a entrada é canal ou pessoa. */
+  /** Servidor a abrir junto, quando a entrada é canal, tópico ou pessoa. */
   readonly serverId?: string;
+  /** Não lidas do canal — vira selo `danger`. */
+  readonly naoLidas?: number;
+  readonly mencoes?: number;
+  /** Gente na sala de voz — vira selo `success` ("3 na chamada"). */
+  readonly naSala?: number;
+  readonly silenciado?: boolean;
+  /** Só para `acao`: o que ↵ executa. */
+  readonly executar?: () => void;
 };
+
+/**
+ * O que a busca PEDE: um tipo (do prefixo) e o termo que sobrou.
+ *
+ * ⚠ **O prefixo só conta no INÍCIO**, e o espaço depois dele é opcional. Um
+ * `#` no meio da frase é parte do nome de um canal, e tratá-lo como filtro
+ * faria `ver #geral` deixar de achar nada.
+ */
+export function analisarBusca(bruto: string): {
+  readonly tipo: TipoDeEntrada | undefined;
+  readonly termo: string;
+} {
+  const chip = CHIPS.find((c) => bruto.startsWith(c.prefixo));
+  if (!chip) return { tipo: undefined, termo: bruto };
+  return { tipo: chip.tipo, termo: bruto.slice(chip.prefixo.length).trimStart() };
+}
+
+/** Escreve (ou apaga) o prefixo, preservando o que já estava digitado. */
+export function alternarPrefixo(bruto: string, prefixo: string): string {
+  const { tipo, termo } = analisarBusca(bruto);
+  const doChip = CHIPS.find((c) => c.prefixo === prefixo);
+  /* Clicar no chip ATIVO desativa — é toggle, e está no design. */
+  if (doChip && tipo === doChip.tipo) return termo;
+  return `${prefixo}${termo}`;
+}
 
 /**
  * Monta o índice. Ordem: servidores, canais, pessoas.
@@ -57,39 +118,89 @@ export type Entrada = {
 export function montarIndice(servidorAtivo: string): readonly Entrada[] {
   const out: Entrada[] = [];
 
-  const idsDeServidor = serverIds.peek(RAIZ) ?? [];
+  const idsDeServidor = servidoresOrdenados();
 
   for (const id of idsDeServidor) {
     const servidor = servers.peek(id);
     if (!servidor) continue;
-    out.push({ tipo: "servidor", id, rotulo: servidor.name, contexto: undefined });
+    out.push({
+      tipo: "servidor",
+      id,
+      rotulo: servidor.name,
+      contexto: undefined,
+      naoLidas: servidor.naoLidas,
+      mencoes: servidor.mencoes,
+    });
   }
 
   for (const serverId of idsDeServidor) {
     const nomeDoServidor = servers.peek(serverId)?.name;
 
-    // Pelas CATEGORIAS quando existem: é a ordem que quem administra definiu,
-    // e a paleta não deve reordenar o que a coluna respeita.
-    const grupos = categorias.peek(serverId);
-    const idsDeCanal = grupos
-      ? grupos.flatMap((g) => [...g.canais])
-      : [
-          ...(canaisDeTexto.peek(serverId) ?? []),
-          ...(canaisDeVoz.peek(serverId) ?? []),
-        ];
-
-    for (const id of idsDeCanal) {
+    /* A ordem da COLUNA, e a mesma que os atalhos ⌥↑/↓ percorrem — ver
+       `sdk/ordem.ts`. A paleta não deve reordenar o que a coluna respeita. */
+    for (const id of canaisOrdenados(serverId)) {
       const canal = channels.peek(id);
       if (!canal) continue;
+      const deVoz = canal.tipo === "voz";
       out.push({
         tipo: "canal",
         id,
         rotulo: canal.name,
         contexto: nomeDoServidor,
-        canalDeVoz: canal.tipo === "voz",
+        canalDeVoz: deVoz,
         serverId,
+        naoLidas: canal.naoLidas,
+        mencoes: canal.mencoes,
+        silenciado: canal.silenciado,
+        /* `vozPorCanal` já é o store da sala, lido sem assinar — é o mesmo
+           dado que a coluna de canais desenha, e não uma segunda contagem. */
+        naSala: deVoz ? (vozPorCanal.peek(id)?.length ?? 0) : undefined,
       });
+
+      /*
+        Os TÓPICOS que a sessão já conhece.
+
+        ⚠ **Só os já carregados, e a degradação é dita.** A lista de tópicos de
+        um canal chega por REDE (`listasDeTopicos`), e montar o índice não pode
+        disparar busca — ele roda a cada abertura da paleta, num gesto humano
+        que precisa ser instantâneo. Quem abriu o painel de tópicos daquele
+        canal os encontra aqui; quem nunca abriu, não. É a mesma escolha de
+        indexar pessoas só do servidor ativo.
+      */
+      for (const topicoId of listasDeTopicos.peek(chaveDoCanal(id)) ?? []) {
+        const t = topicos.peek(topicoId);
+        if (!t) continue;
+        out.push({
+          tipo: "topico",
+          id: topicoId,
+          rotulo: t.nome,
+          contexto: canal.name,
+          serverId,
+        });
+      }
     }
+  }
+
+  /*
+    As conversas da casa — DM, grupo e notas.
+
+    ⚠ **Faltavam, e a ausência era maior do que parece:** a paleta é a
+    superfície de MOVIMENTO do app, e o lugar para onde mais se vai num
+    cliente de chat é uma conversa. Sem elas, `⌘K` servia a servidores e
+    canais e obrigava a voltar ao rail para falar com alguém.
+  */
+  for (const id of conversas.peek(RAIZ) ?? []) {
+    const canal = channels.peek(id);
+    if (!canal) continue;
+    out.push({
+      tipo: "canal",
+      id,
+      rotulo: canal.name,
+      contexto: "Conversas",
+      naoLidas: canal.naoLidas,
+      mencoes: canal.mencoes,
+      silenciado: canal.silenciado,
+    });
   }
 
   if (servidorAtivo) {
@@ -110,6 +221,27 @@ export function montarIndice(servidorAtivo: string): readonly Entrada[] {
         serverId: servidorAtivo,
       });
     }
+  }
+
+  /*
+    As AÇÕES, e elas são o registro de atalhos.
+
+    ⚠ **Não é uma segunda lista de comandos.** `atalhos/registro.ts` já é a
+    tabela de "coisas que o app faz por uma tecla", com handler obrigatório
+    por tipo — reusá-la aqui significa que um comando novo aparece na paleta
+    e na página de atalhos no mesmo commit, e que nenhum dos dois pode
+    anunciar algo que não executa. Só as de escopo `documento`: as de composer
+    dependem do cursor estar num campo, e a paleta acabou de tirá-lo de lá.
+  */
+  for (const a of ATALHOS) {
+    if (a.escopo !== "documento") continue;
+    out.push({
+      tipo: "acao",
+      id: a.id,
+      rotulo: a.rotulo,
+      contexto: undefined,
+      executar: a.executar,
+    });
   }
 
   return out;

@@ -8,7 +8,11 @@
 
 .painel {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  /* campo · chips · rolagem · rodapé — as quatro linhas do design, e a de
+     rolagem é a única que cresce. Contar filhos aqui seria o defeito que a
+     coluna de conteúdo já cobrou uma vez: os outros três são fixos e SEMPRE
+     existem, então a contagem é verdade. */
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   inline-size: min(560px, calc(100vw - var(--vx-space-32)));
   max-block-size: min(60vh, 480px);
   padding: 0;
@@ -134,4 +138,134 @@
 */
 .item:active {
   background: var(--vx-state-press);
+}
+
+/* ============================================================
+   Chips de filtro
+   ------------------------------------------------------------
+   Eles ESCREVEM o prefixo no campo; não guardam estado próprio.
+   Ver o comentário de `CHIPS` em `indice.ts`.
+   ============================================================ */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-06);
+  padding: var(--vx-space-08) var(--vx-space-08) var(--vx-space-06);
+  border-block-end: 1px solid var(--vx-hairline-06);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-05);
+  padding: var(--vx-space-04) var(--vx-space-09);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-pill);
+  background: transparent;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out),
+    border-color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.chip:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-2);
+}
+
+.chip[data-ativo="true"] {
+  border-color: transparent;
+  background: var(--vx-state-selected);
+  color: var(--vx-accent-text);
+}
+
+/* O glifo é o que liga o chip ao que se digita — mono, e mais apagado que o
+   rótulo, porque ele é notação e não nome. */
+.prefixo {
+  font-family: var(--vx-font-mono);
+  opacity: 0.7;
+}
+
+.rolagem {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+/* A sobrancelha que diz de ONDE vem a lista — "Visitados recentemente" ou
+   "Resultados". Sem ela, recentes e resultados são a mesma tela dizendo
+   coisas diferentes. */
+.rotuloDoGrupo {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  margin: 0;
+  padding: var(--vx-space-08) var(--vx-space-09) var(--vx-space-06);
+  color: var(--vx-text-3);
+}
+
+/* ============================================================
+   Selo da linha
+   ------------------------------------------------------------
+   Um por linha, nunca dois — ver o comentário de `Selo`.
+   ============================================================ */
+.selo {
+  flex: none;
+  padding: var(--vx-space-02) var(--vx-space-06);
+  border-radius: var(--vx-radius-04);
+  font-size: var(--vx-size-2xs);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.selo[data-tom="mencao"],
+.selo[data-tom="naoLida"] {
+  background: color-mix(in srgb, var(--vx-danger) 14%, transparent);
+  color: var(--vx-danger-text);
+}
+
+.selo[data-tom="voz"] {
+  background: color-mix(in srgb, var(--vx-success) 14%, transparent);
+  color: var(--vx-success);
+}
+
+.selo[data-tom="mudo"] {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-3);
+}
+
+/* A dica de ↵ das AÇÕES: é ela que diz que aquela linha EXECUTA em vez de
+   levar a algum lugar. */
+.dica {
+  flex: none;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-2xs);
+  color: var(--vx-text-4);
+}
+
+/* ============================================================
+   Rodapé
+   ------------------------------------------------------------
+   Teclas à esquerda, contagem à direita — a composição do design.
+   ============================================================ */
+.rodape {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-16);
+  padding: var(--vx-space-09) var(--vx-space-14);
+  border-block-start: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-2);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+}
+
+.tecla {
+  font-family: var(--vx-font-mono);
+  color: var(--vx-text-2);
+}
+
+/* Empurra a contagem para a borda sem um espaçador vazio no JSX. */
+.contagem {
+  margin-inline-start: auto;
 }

@@ -49,6 +49,20 @@ const MODIFICADOR: Record<string, string> = MAC
  * Símbolo desconhecido passa direto: é o caso de `"K"`, `"↑ / ↓"` e
  * `"no composer"`, que não dependem de plataforma.
  */
+/**
+ * O texto que um token vira nesta máquina.
+ *
+ * Existe para a BUSCA da página de atalhos: quem digita "⌘" num Mac ou "ctrl"
+ * no Windows procura o que os olhos leem, e o token gravado é `"mod"`. Sem
+ * isto a busca por tecla só acharia a notação neutra, que ninguém vê.
+ *
+ * Exportar a função e não o mapa: o mapa é detalhe, e um segundo consumidor
+ * dele acabaria com a própria cópia do `?? t`.
+ */
+export function teclaExibida(token: string): string {
+  return MODIFICADOR[token] ?? token;
+}
+
 export function Combinacao({
   teclas,
   className,

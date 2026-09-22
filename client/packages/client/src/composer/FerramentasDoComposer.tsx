@@ -6,7 +6,13 @@ import {
   Smiley,
   Sticker,
 } from "../components/ui/icones";
-import { lazy, Suspense, type ComponentType, type ReactNode } from "react";
+import {
+  lazy,
+  Suspense,
+  useSyncExternalStore,
+  type ComponentType,
+  type ReactNode,
+} from "react";
 
 import { Girador } from "../components/ui/Girador";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/Popover";
@@ -18,6 +24,11 @@ import { fonteDeGifs } from "../sdk/fonteDeGifs";
 import { CascaDeSeletor } from "../seletores/CascaDeSeletor";
 import { Soundboard } from "../seletores/Soundboard";
 import { administrar } from "../store/administracao";
+import {
+  assinarFerramentaDoComposer,
+  definirFerramentaDoComposer,
+  lerFerramentaDoComposer,
+} from "../store/ferramentaDoComposer";
 import css from "./FerramentasDoComposer.module.css";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 
@@ -215,14 +226,19 @@ export function FerramentasDoComposer({
 /**
  * Uma ferramenta que abre painel.
  *
- * Componente próprio para cada uma ter o PRÓPRIO estado de aberto/fechado —
- * um estado só no pai faria as quatro compartilharem uma variável e o
- * `aoFechar` do emoji fecharia o GIF.
+ * ⚠ **O aberto/fechado saiu do Radix e foi para um store module-level**, e a
+ * razão é ⌘E e ⌘G: os dois eram anunciados na página de atalhos e não abriam
+ * nada, porque o estado morava dentro deste componente e um listener de
+ * `document` não alcança estado de componente. Ver
+ * `store/ferramentaDoComposer.ts`.
  *
- * ⚠ **O conteúdo é montado só quando ABRE.** `Popover.Content` do Radix não
- * renderiza nada fechado, e é isso que faz o seletor de emoji — 170 botões e
- * um índice — custar zero enquanto ninguém o abriu. Montar sempre e esconder
- * seria pagar quatro painéis por composer.
+ * Cada instância assina SOZINHA, e a comparação é por string — abrir o emoji
+ * acorda o botão do emoji e o do painel que fechou, não os seis.
+ *
+ * ⚠ **O conteúdo continua sendo montado só quando ABRE.** `Popover.Content` do
+ * Radix não renderiza nada fechado, e é isso que faz o seletor de emoji — 170
+ * botões e um índice — custar zero enquanto ninguém o abriu. Montar sempre e
+ * esconder seria pagar quatro painéis por composer.
  */
 function SeletorEmPopover({
   ferramenta,
@@ -231,8 +247,16 @@ function SeletorEmPopover({
   ferramenta: Ferramenta & { painel: (aoFechar: () => void) => ReactNode };
   desabilitado: boolean;
 }) {
+  const aberta = useSyncExternalStore(
+    assinarFerramentaDoComposer,
+    lerFerramentaDoComposer,
+  );
+
   return (
-    <Popover>
+    <Popover
+      open={aberta === ferramenta.id && !desabilitado}
+      onOpenChange={(v) => definirFerramentaDoComposer(ferramenta.id, v)}
+    >
       <Tooltip texto={ferramenta.rotulo}>
         <PopoverTrigger asChild>
           <button

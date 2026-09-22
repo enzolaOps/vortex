@@ -30,6 +30,7 @@ import { temServidorDeMidia } from "../sdk/anexos";
 import { LIMITE_DE_CONTEUDO } from "../sdk/domain";
 import { pode } from "../sdk/permissoes";
 import { cn } from "../lib/cn";
+import { executarAtalho } from "../atalhos/ligar";
 import { ouvirFocoNoComposer, pedirFimDaLista } from "../store/comandos";
 import {
   alvoDeResposta,
@@ -396,6 +397,26 @@ export function Composer({
         }
         return;
       }
+    }
+
+    /*
+      ↑ no composer VAZIO edita a última mensagem sua.
+
+      ⚠ **Só com o campo vazio**, e a condição é o que torna a tecla segura:
+      com texto escrito, ↑ é o movimento normal do cursor dentro do
+      `<textarea>` — sequestrá-lo ali quebraria a edição de qualquer mensagem
+      de mais de uma linha. Vazio, não há para onde o cursor subir, e a tecla
+      está livre.
+
+      O handler mora no REGISTRO e não aqui: é ele que garante que nada seja
+      anunciado na página de atalhos sem implementação. `executarAtalho`
+      devolve se houve alguém para executar, e é isso que decide o
+      `preventDefault` — sem a resposta, o composer teria que repetir a
+      decisão que o registro já tomou.
+    */
+    if (evento.key === "ArrowUp" && valor.length === 0) {
+      if (executarAtalho("editarAUltima")) evento.preventDefault();
+      return;
     }
 
     // Escape desarma a resposta antes de qualquer outra coisa.

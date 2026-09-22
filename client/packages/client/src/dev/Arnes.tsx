@@ -20,7 +20,7 @@ import { createFrameRecorder, verdict, type FrameReport } from "./frames";
 import { medirPrepend, type ResultadoPrepend } from "./prepend";
 import { readCounters, resetCounters, type Counters } from "./stats";
 import { ALTURA_ESTIMADA } from "../list/MessageList";
-import { ligarAtalhoDaPaleta } from "../store/paleta";
+import { ligarAtalhos } from "../atalhos/ligar";
 import { configurarSimulacaoDeEnvio } from "../sdk/adapter";
 import { dublarProvedorDeGif } from "../sdk/fonteDeGifs";
 import { provedorDeGifFalso } from "./gifsFalsos";
@@ -111,17 +111,21 @@ export function Arnes() {
 
 
   /**
-   * O atalho da paleta.
+   * Os atalhos.
    *
-   * `ligarAtalhoDaPaleta` é module-level e idempotente — chamá-lo aqui é só
-   * garantir que aconteça uma vez. O listener NÃO vive num `useEffect` deste
+   * `ligarAtalhos` é module-level e idempotente — chamá-lo aqui é só garantir
+   * que aconteça uma vez. O listener NÃO vive num `useEffect` deste
    * componente: um atalho de teclado no `document` não pertence a árvore de
    * componente nenhuma, e prendê-lo aqui faria o App re-renderizar a cada
    * abertura.
    *
+   * ⚠ **O arnês chamava `ligarAtalhoDaPaleta` e era o ÚNICO chamador dela** —
+   * ⌘K funcionava aqui e não no produto. Agora o produto liga os atalhos em
+   * `entradaDoApp`, e esta linha só cobre o arnês, que não passa por lá.
+   *
    * Quem MONTA a paleta é o `<Modais />`, e o App não sabe que ela existe.
    */
-  ligarAtalhoDaPaleta();
+  ligarAtalhos();
 
   const ids = useRef<readonly string[]>([]);
   const recorder = useRef(createFrameRecorder());
