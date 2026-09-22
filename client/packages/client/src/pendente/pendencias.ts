@@ -202,12 +202,10 @@ export const PENDENCIAS = {
     `RemoteParticipant.setVolume`, e "transmitir também" é o mesmo
     `alternarTela` de sempre. Os quatro escrevem no LiveKit de verdade.
 
-    ⚠ **A contagem de quem está ASSISTINDO fica de fora do registro**, pelo
-    contrato dele: não há controle para clicar. Ela é DADO que nem o protocolo
-    do Stoat nem o `livekit-client` produzem — quem publica não recebe
-    contagem de assinantes, isso é webhook de servidor. Mesma família da
-    etiqueta FÓRUM e do selo LIVE. O cabeçalho mostra "N na sala", que é
-    verdade.
+    A contagem e a lista de quem está ASSISTINDO deixaram de ser dado
+    ausente: cada cliente anuncia o que assiste no atributo `vx.assiste` (o
+    token concede `can_update_own_metadata`), e todos leem o dos outros — ver
+    `sdk/espectadores.ts`. Em servidor sem o grant o palco volta a "N na sala".
   */
 
   /* ------------------------------------------------ transmitir tela */
@@ -218,12 +216,12 @@ export const PENDENCIAS = {
     que o design desenha e o LiveKit não entrega é escolher a codificação DE
     DENTRO da transmissão em curso.
 
-    A contagem de quem está ASSISTINDO fica de fora do registro de propósito,
-    pelo contrato dele: não há controle para clicar. Ela é DADO que nem o
-    protocolo do Stoat nem o `livekit-client` produzem — quem publica não
-    recebe contagem de assinantes; isso é webhook de servidor. É a mesma
-    família da etiqueta FÓRUM e do selo LIVE, e mora em comentário no arquivo
-    que a mostraria.
+    "👁 N assistindo" e a coluna de espectadores são REAIS: vêm do atributo
+    `vx.assiste` que cada espectador escreve ao assinar a tela (ver
+    `sdk/anuncioDeAssistir.ts`). O selo LIVE da coluna de canais segue
+    significando TRANSMITINDO — atributo de participante só é visível para
+    quem está DENTRO da sala, e a coluna mostra salas de que você não
+    participa.
   */
 
   /* ---------------------------------------------------- criar canal */

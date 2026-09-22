@@ -1,6 +1,7 @@
 import {
   ArrowsClockwise,
   ArrowsOut,
+  Eye,
   Gear,
   ICONE,
   MicrophoneSlash,
@@ -56,6 +57,15 @@ import {
 import { useChannel, usePessoa, useServer } from "../store/hooks";
 import { chaveDeVideo, faixasDeVideo } from "../store/video";
 import { definirPalco } from "../store/palcoDeVoz";
+import {
+  assinarAnuncio,
+  assinarContagemDisponivel,
+  assinarEspectadores,
+  contagemDisponivel,
+  lerAnuncio,
+  lerEspectadores,
+} from "../store/espectadores";
+import { estadoDoEspectador, ordemDosEspectadores } from "./espectador";
 import { BotaoDoChatDaSala } from "./ChatDaSala";
 import { Cronometro, Doca, emTelaCheia, SeloAoVivo } from "./pecasDeVoz";
 import css from "./PalcoDeTransmissao.module.css";
@@ -152,7 +162,7 @@ export function PalcoDeTransmissao({
             assistindo={assistindo}
             pausada={chamada.telaPausada}
             audio={chamada.telaAudio}
-            naSala={chamada.participantes.length}
+            participantes={chamada.participantes}
             aoAlternarAssistir={() => setAssistindo((v) => !v)}
           />
 
@@ -178,7 +188,7 @@ export function PalcoDeTransmissao({
           </div>
         </div>
 
-        <NaSala participantes={chamada.participantes} />
+        <NaSala dono={dono} participantes={chamada.participantes} />
       </div>
 
       {/*
@@ -220,7 +230,7 @@ function Prancha({
   assistindo,
   pausada,
   audio,
-  naSala,
+  participantes,
   aoAlternarAssistir,
 }: {
   dono: string;
@@ -229,7 +239,7 @@ function Prancha({
   assistindo: boolean;
   pausada: boolean;
   audio: AudioDaTela;
-  naSala: number;
+  participantes: readonly string[];
   aoAlternarAssistir: () => void;
 }) {
   const video = useRef<HTMLVideoElement | null>(null);
@@ -368,19 +378,7 @@ function Prancha({
       {fonte ? <span className={css.chipDaFonte}>{fonte}</span> : null}
 
       <div className={css.medidas}>
-        {/*
-          ⚠ **"na sala", e NUNCA "assistindo".** O design escreve "3
-          assistindo", e nem o protocolo do Stoat nem o `livekit-client`
-          produzem esse número: quem publica não recebe contagem de
-          assinantes — isso é webhook de servidor. Escrever "assistindo" sobre
-          a contagem de quem está na sala seria afirmar na tela algo que
-          ninguém mediu, na superfície em que a pessoa decide o que deixar
-          aparecer. É a mesma recusa que impediu a faixa de voz de derivar "42
-          ms" de uma classificação.
-        */}
-        <span className={css.chip}>
-          {naSala === 1 ? "1 na sala" : `${String(naSala)} na sala`}
-        </span>
+        <ChipDeAudiencia dono={dono} participantes={participantes} />
         {medidas ? (
           <span className={css.chip} data-bom>
             <span className={css.pontoBom} aria-hidden />
@@ -603,6 +601,46 @@ function BotaoDePip() {
   );
 }
 
+/**
+ * "👁 N assistindo" no HUD da prancha (D-TELA-13).
+ *
+ * ⚠ **"N na sala" quando a contagem não existe, e nunca "0 assistindo".** Sem
+ * o grant `can_update_own_metadata` no token (servidor anterior a este fork),
+ * ninguém consegue anunciar o que assiste, e escrever "assistindo" sobre a
+ * contagem da sala afirmaria na tela algo que ninguém mediu — na superfície
+ * em que a pessoa decide o que deixar aparecer. É a mesma recusa que impediu a
+ * faixa de voz de derivar "42 ms" de uma classificação.
+ *
+ * Componente próprio pela lei nº 1: a lista de espectadores muda quando
+ * alguém abre ou fecha a tela, e isso não pode acordar a prancha — que
+ * carrega o `<video>`.
+ */
+function ChipDeAudiencia({
+  dono,
+  participantes,
+}: {
+  dono: string;
+  participantes: readonly string[];
+}) {
+  const disponivel = useSyncExternalStore(assinarContagemDisponivel, contagemDisponivel);
+  const espectadores = useSyncExternalStore(assinarEspectadores(dono), () =>
+    lerEspectadores(dono),
+  );
+
+  if (!disponivel) {
+    const n = participantes.length;
+    return <span className={css.chip}>{n === 1 ? "1 na sala" : `${String(n)} na sala`}</span>;
+  }
+
+  const { assistindo } = ordemDosEspectadores(participantes, espectadores, dono);
+  return (
+    <span className={css.chip}>
+      <Eye size={ICONE.selo} aria-hidden />
+      {String(assistindo)} assistindo
+    </span>
+  );
+}
+
 /* ============================================================
    Fila e coluna de quem está na sala
    ============================================================ */
@@ -675,52 +713,129 @@ const LadrilhoDePessoa = memo(function LadrilhoDePessoa({
 });
 
 /**
- * A coluna lateral.
+ * A coluna lateral — "Espectadores" (D-TELA-16).
  *
- * ⚠ **"Na sala", e o design diz "Espectadores".** A divergência é de DADO, não
- * de desenho: não há como saber quem está assistindo — ver o comentário das
- * medidas. Manter o título do design sobre a lista de quem está na sala seria
- * o pior dos dois mundos, porque a lista PARECE responder a pergunta. A nota
- * do rodapé, que é do design, continua verdadeira e agora explica a diferença.
+ * Quem assiste vem do atributo `vx.assiste` que cada cliente anuncia (ver
+ * `sdk/espectadores.ts`); o dono da tela sai da lista, e quem está na sala sem
+ * assistir fica, esmaecido e dizendo isso.
+ *
+ * ⚠ **Servidor sem o grant novo volta para "Na sala".** Ali ninguém consegue
+ * anunciar, e a coluna com o título do design diria "0 de 4" com três
+ * pessoas olhando — o pior dos dois mundos, porque a lista PARECE responder a
+ * pergunta. O fallback é o que a coluna era antes: quem está na sala, e a
+ * nota dizendo que o servidor não informa quem assiste.
+ *
+ * Assina só a LISTA de quem assiste esta tela; o estado de cada um (1080p,
+ * rede, tela cheia) é assinado pela linha dele.
  */
-function NaSala({ participantes }: { participantes: readonly string[] }) {
+function NaSala({
+  dono,
+  participantes,
+}: {
+  dono: string;
+  participantes: readonly string[];
+}) {
+  const disponivel = useSyncExternalStore(assinarContagemDisponivel, contagemDisponivel);
+  const espectadores = useSyncExternalStore(assinarEspectadores(dono), () =>
+    lerEspectadores(dono),
+  );
+
+  if (!disponivel) {
+    return (
+      <aside className={css.coluna} aria-label="Quem está na sala">
+        <div className={css.cabecalhoDaColuna}>
+          <span className={css.tituloDaColuna}>Na sala</span>
+          <span className={css.contagem}>{participantes.length}</span>
+        </div>
+
+        <div className={css.listaDaColuna}>
+          {participantes.map((id) => (
+            <LinhaDaSala key={id} userId={id} />
+          ))}
+
+          <p className={css.nota}>
+            Quem entra no canal depois vê a transmissão com um clique — ninguém
+            recebe nada em tela cheia automaticamente. O servidor não informa
+            quem está assistindo.
+          </p>
+        </div>
+      </aside>
+    );
+  }
+
+  const { lista, assistindo, total } = ordemDosEspectadores(
+    participantes,
+    espectadores,
+    dono,
+  );
+
   return (
-    <aside className={css.coluna} aria-label="Quem está na sala">
+    <aside className={css.coluna} aria-label="Espectadores">
       <div className={css.cabecalhoDaColuna}>
-        <span className={css.tituloDaColuna}>Na sala</span>
-        <span className={css.contagem}>{participantes.length}</span>
+        <span className={css.tituloDaColuna}>Espectadores</span>
+        <span className={css.contagem}>
+          {String(assistindo)} de {String(total)}
+        </span>
       </div>
 
       <div className={css.listaDaColuna}>
-        {participantes.map((id) => (
-          <LinhaDaSala key={id} userId={id} />
+        {lista.map((id) => (
+          <LinhaDaSala key={id} userId={id} dono={dono} />
         ))}
 
         <p className={css.nota}>
           Quem entra no canal depois vê a transmissão com um clique — ninguém
-          recebe nada em tela cheia automaticamente. O servidor não informa
-          quem está assistindo.
+          recebe nada em tela cheia automaticamente.
         </p>
       </div>
     </aside>
   );
 }
 
-const LinhaDaSala = memo(function LinhaDaSala({ userId }: { userId: string }) {
+/**
+ * Uma pessoa na coluna. Com `dono`, diz o que ela está vendo daquela tela;
+ * sem, é só presença na sala (o fallback).
+ *
+ * ⚠ **Assina o anúncio DESTA pessoa, e só ele** — lei nº 1. A resolução que
+ * chega muda com a rede; quando muda a de uma pessoa, acorda a linha dela.
+ */
+const LinhaDaSala = memo(function LinhaDaSala({
+  userId,
+  dono,
+}: {
+  userId: string;
+  dono?: string;
+}) {
   const pessoa = usePessoa(userId);
   const chamada = useSyncExternalStore(assinarChamada, lerChamada);
+  const anuncio = useSyncExternalStore(assinarAnuncio(userId), () => lerAnuncio(userId));
+  const estado = dono === undefined ? undefined : estadoDoEspectador(anuncio, dono);
+  const nome = <span className={css.nomeNaSala}>{pessoa?.displayName ?? "alguém"}</span>;
 
   return (
     /* `data-participante`: o clique direito aqui abre o menu do participante
        — o Root é um só, no palco. */
-    <div className={css.linhaDaSala} data-participante={userId}>
+    <div
+      className={css.linhaDaSala}
+      data-participante={userId}
+      data-fora={estado && !estado.assistindo ? true : undefined}
+    >
       <Avatar
         id={userId}
         sigla={pessoa?.sigla}
         url={pessoa?.avatarUrl}
         tamanho="sm"
       />
-      <span className={css.nomeNaSala}>{pessoa?.displayName ?? "alguém"}</span>
+      {estado ? (
+        <span className={css.identidadeNaSala}>
+          {nome}
+          <span className={css.estadoNaSala} data-rede={estado.rede ? true : undefined}>
+            {estado.texto}
+          </span>
+        </span>
+      ) : (
+        nome
+      )}
       {chamada.mudo && userId === chamada.participantes[0] ? (
         <MicrophoneSlash size={ICONE.metadado} className={css.mudo} aria-label="mudo" />
       ) : null}

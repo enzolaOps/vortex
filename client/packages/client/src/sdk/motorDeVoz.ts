@@ -43,6 +43,7 @@ import {
   ConnectionQuality,
   LocalAudioTrack,
   LocalVideoTrack,
+  RemoteVideoTrack,
   RoomEvent,
   Track,
   VideoQuality,
@@ -103,6 +104,70 @@ import {
 } from "../voz/processamento";
 import type { SupressorDeRuido } from "../voz/ruidoForte";
 import type { FundoDeVideo } from "../store/preferenciasDeVoz";
+import { criarAnuncioDeAssistir, type AnuncioDeAssistir } from "./anuncioDeAssistir";
+import { CHAVE_ASSISTE, decodificarAssistindo } from "./espectadores";
+import {
+  definirAnuncio,
+  definirContagemDisponivel,
+  esquecerAnuncio,
+  limparEspectadores,
+} from "../store/espectadores";
+
+/**
+ * O anúncio do que ESTA conexão assiste (ver `anuncioDeAssistir.ts`).
+ *
+ * Um por sala, como os ouvintes: nasce em `ligarEventos` e morre na saída.
+ */
+let anuncio: AnuncioDeAssistir | undefined;
+
+/**
+ * Espectadores: quem pode anunciar e o que cada um anuncia.
+ *
+ * ⚠ **A permissão da PRÓPRIA conexão decide a contagem inteira.** Servidor
+ * sem o grant `can_update_own_metadata` não deixa ninguém escrever o
+ * atributo; ali a contagem seria sempre zero, e a interface volta para "N na
+ * sala" em vez de afirmar "0 assistindo".
+ */
+function lerEspectadoresDaSala(r: Room): void {
+  definirContagemDisponivel(r.localParticipant.permissions?.canUpdateMetadata === true);
+  for (const p of r.remoteParticipants.values()) {
+    definirAnuncio(p.identity, decodificarAssistindo(p.attributes[CHAVE_ASSISTE]));
+  }
+}
+
+function esquecerEspectadores(): void {
+  anuncio?.limpar();
+  anuncio = undefined;
+  limparEspectadores();
+}
+
+function criarAnuncio(r: Room): AnuncioDeAssistir {
+  return criarAnuncioDeAssistir({
+    podeEscrever: () => r.localParticipant.permissions?.canUpdateMetadata === true,
+    escrever: (valor) => r.localParticipant.setAttributes({ [CHAVE_ASSISTE]: valor }),
+    aoEscrever: (lista) => {
+      const eu = r.localParticipant.identity;
+      if (eu) definirAnuncio(eu, lista);
+    },
+    telaCheia: () => document.fullscreenElement !== null,
+    async medir(dono) {
+      const pub = publicacaoDeVideo(dono, "tela");
+      if (!pub?.isSubscribed) return undefined;
+      const faixa = pub.track instanceof RemoteVideoTrack ? pub.track : undefined;
+      /*
+        A altura que CHEGA sai da estatística do receptor, e não das
+        `settings` da faixa: o simulcast troca de camada sem avisar a faixa, e
+        é justamente essa troca que "(rede)" existe para mostrar.
+      */
+      const stats = await faixa?.getReceiverStats().catch(() => undefined);
+      return {
+        ativa: pub.isEnabled,
+        recebida: stats?.frameHeight ?? faixa?.mediaStreamTrack.getSettings().height,
+        publicada: pub.dimensions?.height,
+      };
+    },
+  });
+}
 
 /**
  * A sala, module-level.
@@ -251,7 +316,28 @@ function ligarEventos(r: Room, channelId: string): void {
   const publicar = () =>
     definirChamada({ channelId, participantes: participantesDe(r) });
 
+  anuncio?.limpar();
+  anuncio = criarAnuncio(r);
+
+  /*
+    Espectadores: o atributo `vx.assiste` de cada participante (ver
+    `espectadores.ts`). Chega por evento, e na entrada e na reconexão é lido
+    de uma vez — atributo que mudou durante uma queda não gera evento.
+  */
+  r.on(RoomEvent.ParticipantAttributesChanged, (mudou, participante) => {
+    if (!(CHAVE_ASSISTE in mudou)) return;
+    definirAnuncio(
+      participante.identity,
+      decodificarAssistindo(participante.attributes[CHAVE_ASSISTE]),
+    );
+  });
+  r.on(RoomEvent.ParticipantPermissionsChanged, (_antes, participante) => {
+    if (participante.identity !== r.localParticipant.identity) return;
+    definirContagemDisponivel(participante.permissions?.canUpdateMetadata === true);
+  });
+
   r.on(RoomEvent.Connected, () => {
+    lerEspectadoresDaSala(r);
     definirChamada({
       estado: "dentro",
       desde: Date.now(),
@@ -292,6 +378,7 @@ function ligarEventos(r: Room, channelId: string): void {
     /* A contagem morre com a sala. Sem isto, entrar de novo começaria com
        assinantes fantasmas e a primeira borda nunca chegaria a zero. */
     assinatura.limpar();
+    esquecerEspectadores();
 
     /*
       ⚠ **Sair porque alguém te TIROU era indistinguível de a rede cair**, e a
@@ -334,6 +421,7 @@ function ligarEventos(r: Room, channelId: string): void {
   r.on(RoomEvent.Reconnected, () => {
     definirChamada({ estado: "dentro", participantes: participantesDe(r) });
     publicarFontes(r);
+    lerEspectadoresDaSala(r);
     /*
       ⚠ **E as fontes LOCAIS junto — `publicarFontes` varre só os remotos.**
 
@@ -392,6 +480,9 @@ function ligarEventos(r: Room, channelId: string): void {
 
     faixasDeVideo.apagar(chaveDeVideo(participante.identity, "tela"));
     faixasDeVideo.apagar(chaveDeVideo(participante.identity, "camera"));
+    /* Nas duas pontas: ela deixa de assistir, e a tela dela deixa de existir. */
+    esquecerAnuncio(participante.identity);
+    anuncio?.terminou(participante.identity);
 
     const palco = lerPalco();
     if (palco.tipo === "assistindo" && palco.userId === participante.identity) {
@@ -514,6 +605,8 @@ function ligarEventos(r: Room, channelId: string): void {
       chaveDeVideo(participante.identity, fonte),
       faixa.mediaStreamTrack,
     );
+    /* Assinar a tela É assistir — o anúncio nasce na chegada da faixa. */
+    if (fonte === "tela") anuncio?.comecou(participante.identity);
   });
 
   r.on(RoomEvent.TrackUnsubscribed, (faixa: RemoteTrack, pub, participante) => {
@@ -523,6 +616,7 @@ function ligarEventos(r: Room, channelId: string): void {
     }
     const fonte = fonteDe(pub.source);
     if (!fonte) return;
+    if (fonte === "tela") anuncio?.terminou(participante.identity);
     /*
       ⚠ **Só apaga se a faixa guardada é ESTA.** Parar e voltar a assistir
       manda o pedido de saída e o de entrada em sequência, e o
@@ -715,6 +809,10 @@ export function definirQualidadeDeStream(
 ): void {
   const pub = publicacaoDeVideo(userId, fonte);
   if (!pub) return;
+
+  /* O espectador diz o que escolheu: "720p" pedido não é "720p (rede)", e só
+     áudio deixa de contar como assistir. */
+  if (fonte === "tela") anuncio?.pediuMenos(userId, qualidade === "media");
 
   if (qualidade === "soAudio") {
     pub.setEnabled(false);
@@ -926,6 +1024,9 @@ export async function sairDaChamada(): Promise<void> {
   pararDeOuvirVolumes = undefined;
   if (!r) return;
   r.removeAllListeners();
+  /* Os ouvintes saíram antes do `disconnect`, então o `Disconnected` não
+     roda: o anúncio e o que os outros anunciavam morrem aqui. */
+  esquecerEspectadores();
   await r.disconnect();
   encerrarChamada();
 

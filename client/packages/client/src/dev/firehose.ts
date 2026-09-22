@@ -27,6 +27,11 @@ import {
 } from "../store/chamada";
 import { definirPalco } from "../store/palcoDeVoz";
 import { chaveDeVideo, faixasDeVideo } from "../store/video";
+import {
+  definirAnuncio,
+  definirContagemDisponivel,
+  limparEspectadores,
+} from "../store/espectadores";
 import { abrirConversa, selecionarCanal } from "../store/navegacao";
 
 import { count, countMax } from "./stats";
@@ -1317,6 +1322,7 @@ export function transmissaoFalsa(): void {
     transmitindo: ligando ? outros.slice(0, 1) : [],
   });
   faixaSinteticaDeTela(ligando);
+  espectadoresSinteticos(ligando);
   /*
     ⚠ **A SALA, espelhando o motor.** Ele deixou de abrir a prancha ao começar
     a transmitir — a prévia aparece num ladrilho da grade —, e um arnês que
@@ -1371,6 +1377,29 @@ export function transmissaoFalsa(): void {
  * do `LocalTrackUnpublished` existe para preservar.
  */
 let pinturaDaTela: ReturnType<typeof setInterval> | undefined;
+
+/**
+ * Quem assiste a sua tela, sem LiveKit.
+ *
+ * ⚠ **Arnês mais pobre que o protocolo, de novo, se isto faltasse.** Os
+ * anúncios de `vx.assiste` só chegam de uma sala de verdade, então a coluna
+ * "Espectadores" e o "N assistindo" nasceriam inalcançáveis no `/dev`. Uma
+ * pessoa em cada uma das quatro frases do design — 1080p, 720p pela rede,
+ * tela cheia e "não está assistindo" —, porque uma amostra só não prova que as
+ * quatro se distinguem.
+ */
+function espectadoresSinteticos(ligando: boolean): void {
+  const [dono, ...outros] = lerChamada().participantes;
+  if (!ligando || !dono) {
+    limparEspectadores();
+    return;
+  }
+  definirContagemDisponivel(true);
+  const [a, b, c] = outros;
+  if (a) definirAnuncio(a, [{ dono, altura: 1080, rede: false, cheia: false }]);
+  if (b) definirAnuncio(b, [{ dono, altura: 720, rede: true, cheia: false }]);
+  if (c) definirAnuncio(c, [{ dono, altura: 1080, rede: false, cheia: true }]);
+}
 
 function faixaSinteticaDeTela(ligando: boolean): void {
   const quem = lerChamada().participantes[0];
