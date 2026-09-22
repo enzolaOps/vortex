@@ -36,14 +36,14 @@ import {
 import * as acoes from "./acoes";
 
 export const GRUPOS_DE_ATALHO = ["Navegação", "Mensagens", "Painéis"] as const;
-export type GrupoDeAtalho = (typeof GRUPOS_DE_ATALHO)[number];
 
 /**
  * Os grupos que a PÁGINA desenha, na ordem do design.
  *
- * "Voz e chamada" não é um grupo do registro porque as combinações dele não
- * moram aqui: mutar, ensurdecer e desconectar são REMAPEÁVEIS e vivem em
- * `store/atalhosDeVoz.ts`, com o listener próprio de `sdk/atalhosDeVoz.ts`.
+ * "Voz e chamada" é o grupo com DUAS fontes. Atender e recusar moram aqui,
+ * como `superficie` (quem escuta é `voz/ChamadaRecebida`); mutar, ensurdecer
+ * e desconectar NÃO: são REMAPEÁVEIS e vivem em `store/atalhosDeVoz.ts`, com
+ * o listener próprio de `sdk/atalhosDeVoz.ts`.
  * Escrevê-las de novo aqui daria duas tabelas que precisam concordar — e a
  * que diverge seria a que ninguém abriu naquela semana. A página lê a
  * combinação GRAVADA, então ela nunca afirma uma tecla que o app não escuta.
@@ -52,6 +52,7 @@ export const GRUPOS_DA_PAGINA = [
   ...GRUPOS_DE_ATALHO,
   "Voz e chamada",
 ] as const;
+export type GrupoDeAtalho = (typeof GRUPOS_DA_PAGINA)[number];
 
 /**
  * Quem executa, e é aqui que a garantia mora.
@@ -258,7 +259,7 @@ export const ATALHOS: readonly Atalho[] = [
   },
   {
     id: "atenderChamada",
-    grupo: "Mensagens",
+    grupo: "Voz e chamada",
     rotulo: "Atender chamada",
     combinacao: tecla("Enter", { mod: true }),
     escopo: "superficie",
@@ -266,7 +267,7 @@ export const ATALHOS: readonly Atalho[] = [
   },
   {
     id: "recusarChamada",
-    grupo: "Mensagens",
+    grupo: "Voz e chamada",
     rotulo: "Recusar chamada",
     combinacao: tecla("Escape"),
     escopo: "superficie",
