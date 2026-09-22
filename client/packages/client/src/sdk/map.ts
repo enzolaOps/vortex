@@ -47,6 +47,7 @@ import { figurinhaDaMensagem } from "./figurinhasDeMensagem";
 import { formatarBytes } from "../lib/bytes";
 import { sigla } from "../lib/sigla";
 import { camposDe, superficie } from "./superficieVortex";
+import { lerConfigDeVoz } from "./vozDoCanal";
 
 /**
  * `reactions` chega como ReactiveMap<emoji, ReactiveSet<userId>>. Achatar aqui
@@ -602,6 +603,9 @@ export function toChannelSnapshot(
       outra razão (ver `ehCanalDeVoz`).
     */
     limite: tipo === "voz" ? teto : undefined,
+    /* Lido do evento CRU pelo store de voz — a hidratação reduz `voice` a
+       `{ maxUsers }`. Quem republica quando muda é `consumirModosAlterados`. */
+    modoDaSala: tipo === "voz" ? lerConfigDeVoz(channel.id).modoDaSala : undefined,
     /*
       `slowmode` é getter público e devolve `0` quando não há — sem
       normalização a fazer. É o raro campo do protocolo cujo nome e forma já

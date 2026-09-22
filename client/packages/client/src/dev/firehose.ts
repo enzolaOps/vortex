@@ -31,6 +31,7 @@ import { abrirConversa, selecionarCanal } from "../store/navegacao";
 
 import { count, countMax } from "./stats";
 import {
+  aplicarVozDoCanal,
   channelMessageIds,
   definirUsuarioLocal,
   estadoDaFila,
@@ -98,6 +99,8 @@ type Servidor = {
     */
     privado?: boolean;
     teto?: number;
+    /** `voice.kind` do fork — sala de vídeo ou palco (D-VOZ-04). */
+    sala?: "video" | "stage";
     /** Segundos entre mensagens. O "Modo lento · 30 s" do design. */
     lento?: number;
     /** Fórum (ou galeria, com `media`) — o objeto cru que só este fork manda. */
@@ -159,6 +162,20 @@ const MUNDO: Servidor[] = [
       // componente renderizasse um cabeçalho "ninguém aqui" por canal, cada
       // servidor pagaria altura permanente para dizer que não há nada.
       { id: "01JQ0000000000000000000014", nome: "voz-silencio", voz: true, dentro: 0 },
+      /*
+        Sala de VÍDEO e PALCO — `voice.kind` do fork (D-VOZ-04). O nome e o
+        "1/25" são os do design; sem elas o ícone por tipo nasceria
+        construído e inalcançável.
+      */
+      {
+        id: "01JQ0000000000000000000015",
+        nome: "Apresentações",
+        voz: true,
+        dentro: 1,
+        teto: 25,
+        sala: "video",
+      },
+      { id: "01JQ0000000000000000000016", nome: "palco", voz: true, dentro: 0, sala: "stage" },
     ],
     categorias: [
       {
@@ -179,6 +196,8 @@ const MUNDO: Servidor[] = [
           "01JQ0000000000000000000012",
           "01JQ0000000000000000000013",
           "01JQ0000000000000000000014",
+          "01JQ0000000000000000000015",
+          "01JQ0000000000000000000016",
         ],
       },
     ],
@@ -456,7 +475,9 @@ const RECADOS = [
         // Tópico só em alguns: um arnês onde todo canal tem descrição nunca
         // exercitaria o cabeçalho sem tópico, que é o caso comum.
         ...(canal.topico ? { description: canal.topico } : {}),
-        ...(canal.voz ? { voice: { max_users: canal.teto } } : {}),
+        ...(canal.voz
+          ? { voice: { max_users: canal.teto, ...(canal.sala ? { kind: canal.sala } : {}) } }
+          : {}),
         /*
           `default_permissions` com `ViewChannel` NEGADO — é assim que o
           protocolo diz "restrito", e é o que `potentiallyRestrictedChannel`
@@ -470,6 +491,8 @@ const RECADOS = [
       client.channels.getOrCreate(canal.id, cru as never);
       // O SDK descarta `forum` na hidratação; o registro guarda — ver `vortexCanal.ts`.
       anotarCanais([cru]);
+      // E `voice.kind` também — o store de voz lê o cru, como no socket.
+      if (canal.voz) aplicarVozDoCanal({ type: "ChannelCreate", ...cru });
     }
 
     client.servers.getOrCreate(servidor.id, {
@@ -1876,6 +1899,22 @@ export async function semearNaoLidas(quantas = 9): Promise<void> {
   */
   await new Promise((resolve) => setTimeout(resolve, 1000));
   for (let i = 0; i < quantas; i++) falarEmOutroCanal();
+  /* Duas no chat da sala de vídeo — o "▣ Apresentações 2" do design. Sem
+     isto o contador na linha de voz (D-VOZ-04) nasceria inalcançável: o
+     `falarEmOutroCanal` pula voz de propósito. */
+  for (let i = 0; i < 2; i++) falarNoCanal(SALA_DE_VIDEO_ID);
+}
+
+const SALA_DE_VIDEO_ID = "01JQ0000000000000000000015";
+
+function falarNoCanal(alvo: string): void {
+  falas++;
+  const id = nextId();
+  client.messages.getOrCreate(
+    id,
+    { _id: id, channel: alvo, author: autorDe(falas), content: body(falas) },
+    true,
+  );
 }
 
 let ultimaLista: readonly string[] = [];

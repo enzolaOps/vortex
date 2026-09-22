@@ -23,9 +23,12 @@ import {
   BITRATE_MIN,
   BITRATE_PADRAO,
   BITRATE_PASSO,
+  MODOS_DA_SALA,
   MODOS_DE_VIDEO,
+  ROTULO_DA_SALA,
   ROTULO_DO_MODO,
   useConfigDeVoz,
+  type ModoDaSala,
   type ModoDeVideo,
 } from "../../sdk/vozDoCanal";
 import { Escolha } from "../../components/ui/Escolha";
@@ -106,6 +109,7 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
   const [bitrate, setBitrate] = useState<number | undefined>(voz.bitrateKbps);
   const [regiao, setRegiao] = useState<string | undefined>(voz.regiao);
   const [modoDeVideo, setModoDeVideo] = useState<ModoDeVideo>(voz.modoDeVideo);
+  const [modoDaSala, setModoDaSala] = useState<ModoDaSala>(voz.modoDaSala);
   const [salvando, setSalvando] = useState(false);
   const [emojiAberto, setEmojiAberto] = useState(false);
 
@@ -160,7 +164,8 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
       (limite !== (canal.limiteDeUsuarios ?? 0) ||
         bitrate !== voz.bitrateKbps ||
         regiao !== voz.regiao ||
-        modoDeVideo !== voz.modoDeVideo)));
+        modoDeVideo !== voz.modoDeVideo ||
+        modoDaSala !== voz.modoDaSala)));
 
   /*
     ⚠ **A faixa de salvar SAIU desta página, e virou rodapé do PANE.**
@@ -204,6 +209,7 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
         setBitrate(voz.bitrateKbps);
         setRegiao(voz.regiao);
         setModoDeVideo(voz.modoDeVideo);
+        setModoDaSala(voz.modoDaSala);
       },
       aoSalvar: () => {
         if (nome.trim() === "") return;
@@ -214,7 +220,7 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
           restritoPorIdade: idade,
           limiteDeUsuarios: ehVoz ? limite : undefined,
           modoLentoSegundos: lento,
-          voz: ehVoz ? { bitrateKbps: bitrate, regiao, modoDeVideo } : undefined,
+          voz: ehVoz ? { modoDaSala, bitrateKbps: bitrate, regiao, modoDeVideo } : undefined,
           spoiler,
         }).finally(() => setSalvando(false));
       },
@@ -235,6 +241,7 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
     bitrate,
     regiao,
     modoDeVideo,
+    modoDaSala,
   ]);
 
   useEffect(() => () => definirBarraDeSalvar(undefined), []);
@@ -426,6 +433,17 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
                 `sdk/vozDoCanal.ts`. O motor aplica bitrate e modo de vídeo ao
                 publicar; a região é aplicada pelo servidor no `join_call`.
               */}
+              {/*
+                Voz, vídeo ou palco — `voice.kind` do fork (D-VOZ-04). Muda o
+                ícone na coluna e o layout inicial; clientes Stoat veem voz.
+              */}
+              <Escolha
+                rotulo="Tipo de sala"
+                valor={modoDaSala}
+                opcoes={MODOS_DA_SALA}
+                rotuloDe={(v) => ROTULO_DA_SALA[v as ModoDaSala]}
+                aoEscolher={(v) => setModoDaSala(v as ModoDaSala)}
+              />
               <CampoDeslizante
                 rotulo="Bitrate"
                 valor={`${String(bitrate ?? BITRATE_PADRAO)} kbps`}

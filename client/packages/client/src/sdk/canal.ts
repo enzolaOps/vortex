@@ -1,5 +1,5 @@
 import { client, conectado } from "./client";
-import { aplicarSuperficieVortex } from "./adapter";
+import { aplicarSuperficieVortex, aplicarVozDoCanal } from "./adapter";
 import { corpoDeVoz, lerConfigDeVoz } from "./vozDoCanal";
 
 /**
@@ -9,7 +9,12 @@ import { corpoDeVoz, lerConfigDeVoz } from "./vozDoCanal";
  */
 function lerConfigDeVozComoEdicao(channelId: string) {
   const c = lerConfigDeVoz(channelId);
-  return { bitrateKbps: c.bitrateKbps, regiao: c.regiao, modoDeVideo: c.modoDeVideo };
+  return {
+    modoDaSala: c.modoDaSala,
+    bitrateKbps: c.bitrateKbps,
+    regiao: c.regiao,
+    modoDeVideo: c.modoDeVideo,
+  };
 }
 
 /**
@@ -65,7 +70,7 @@ export type EdicaoDeCanal = {
   readonly limiteDeUsuarios: number | undefined;
   /** Segundos entre mensagens. `0` é desativado; o teto do protocolo é 21600. */
   readonly modoLentoSegundos: number;
-  /** Bitrate, região e modo de vídeo. Só em canal de voz, junto do limite. */
+  /** Tipo da sala, bitrate, região e modo de vídeo. Só em canal de voz, junto do limite. */
   readonly voz?: Omit<Parameters<typeof corpoDeVoz>[0], "limiteDeUsuarios">;
   /** Toda mídia do canal entra coberta. Exclusivo com `restritoPorIdade` na tela. */
   readonly spoiler: boolean;
@@ -126,6 +131,10 @@ export async function salvarCanal(
   try {
     await canal.edit(dados);
     gravarLocal(channelId, { spoiler: edicao.spoiler });
+    /* O tipo da sala troca o ícone da coluna — sem esperar o socket. */
+    if (dados["voice"] !== undefined) {
+      aplicarVozDoCanal({ type: "ChannelUpdate", id: channelId, data: { voice: dados["voice"] } });
+    }
     return true;
   } catch {
     return false;
