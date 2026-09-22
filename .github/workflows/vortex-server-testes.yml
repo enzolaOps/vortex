@@ -105,8 +105,8 @@ jobs:
       # ⚠ Dois testes ficam de fora, e só estes dois: eles chamam
       # `fetch_mutual_*`, que na `ReferenceDb` é `todo!()` (reference.rs:75/80)
       # — pendência já registrada no briefing. Contra o banco de referência eles
-      # não testam a regra, testam o `todo!`. Medido na primeira corrida verde
-      # sobre a `main` intacta: 135 de 137, e os dois que faltavam eram estes.
+      # não testam a regra, testam o `todo!`. Medido na corrida sobre a
+      # `main` intacta: 135 de 137 passaram, e os dois que falharam eram estes.
       - name: Testes
         run: >-
           cargo nextest run --locked
@@ -114,9 +114,9 @@ jobs:
           --no-fail-fast
           -E 'not (test(=routes::users::open_dm::test::privacidade_por_servidor_barra_dm_nova) | test(=routes::users::send_friend_request::test::privacidade_por_servidor_barra_pedido_de_amizade))'
 
-      # ⚠ `continue-on-error`: a `main` já carrega avisos de clippy que não são
-      # deste workflow (pendência conhecida). Com `-D warnings` bloqueando, o
-      # primeiro PR a tocar o servidor herdaria a dívida de todos os outros.
+      # Bloqueante: a suspeita era de avisos antigos na `main`, e a corrida
+      # sobre a `main` intacta (35740041224) passou com `-D warnings` limpo
+      # nestes quatro crates. Se um aviso novo do toolchain aparecer, ele
+      # reprova aqui em vez de entrar calado.
       - name: Clippy
-        continue-on-error: true
         run: cargo clippy --locked -p revolt-delta -p revolt-bonfire -p revolt-models -p revolt-database -- -D warnings
