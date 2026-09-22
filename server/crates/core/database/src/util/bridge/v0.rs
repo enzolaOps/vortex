@@ -1693,6 +1693,7 @@ impl From<crate::VoiceInformation> for VoiceInformation {
             bitrate: value.bitrate,
             rtc_region: value.rtc_region,
             video_quality: value.video_quality.map(Into::into),
+            kind: value.kind.map(Into::into),
         }
     }
 }
@@ -1707,6 +1708,27 @@ impl From<VoiceInformation> for crate::VoiceInformation {
             bitrate: value.bitrate.filter(|b| (8..=384).contains(b)),
             rtc_region: value.rtc_region.filter(|r| !r.is_empty()),
             video_quality: value.video_quality.map(Into::into),
+            kind: value.kind.map(Into::into),
+        }
+    }
+}
+
+impl From<crate::VoiceChannelKind> for VoiceChannelKind {
+    fn from(value: crate::VoiceChannelKind) -> Self {
+        match value {
+            crate::VoiceChannelKind::Voice => VoiceChannelKind::Voice,
+            crate::VoiceChannelKind::Video => VoiceChannelKind::Video,
+            crate::VoiceChannelKind::Stage => VoiceChannelKind::Stage,
+        }
+    }
+}
+
+impl From<VoiceChannelKind> for crate::VoiceChannelKind {
+    fn from(value: VoiceChannelKind) -> Self {
+        match value {
+            VoiceChannelKind::Voice => crate::VoiceChannelKind::Voice,
+            VoiceChannelKind::Video => crate::VoiceChannelKind::Video,
+            VoiceChannelKind::Stage => crate::VoiceChannelKind::Stage,
         }
     }
 }

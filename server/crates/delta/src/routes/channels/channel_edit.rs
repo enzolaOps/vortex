@@ -10,7 +10,10 @@ use revolt_result::{create_error, Result};
 use rocket::{serde::json::Json, State};
 use validator::Validate;
 
-use crate::util::{audit_log_reason::AuditLogReason, voice::validate_voice_information};
+use crate::util::{
+    audit_log_reason::AuditLogReason,
+    voice::{keep_voice_kind, validate_voice_information},
+};
 
 /// # Edit Channel
 ///
@@ -263,6 +266,7 @@ pub async fn edit(
             }
 
             if let Some(new_voice) = data.voice {
+                let new_voice = keep_voice_kind(voice.as_ref(), new_voice);
                 *voice = Some(new_voice.clone().into());
                 partial.voice = Some(new_voice.into());
             }
@@ -314,4 +318,106 @@ pub async fn edit(
     };
 
     Ok(Json(channel.into()))
+}
+
+#[cfg(test)]
+mod test {
+    use crate::util::test::TestHarness;
+    use revolt_models::v0;
+    use rocket::http::{ContentType, Header, Status};
+
+    fn tipo_da_sala(channel: &v0::Channel) -> Option<v0::VoiceChannelKind> {
+        match channel {
+            v0::Channel::TextChannel { voice, .. } => voice.as_ref().and_then(|v| v.kind.clone()),
+            _ => None,
+        }
+    }
+
+    /// Um cliente que não conhece `kind` (Stoat) muda o limite de vagas e
+    /// manda o objeto `voice` sem ele: o canal de vídeo tem de continuar vídeo.
+    #[rocket::async_test]
+    async fn edicao_de_voz_sem_kind_preserva_o_tipo() {
+        let harness = TestHarness::new().await;
+        let (_, session, user) = harness.new_user().await;
+        let (server, _) = harness.new_server(&user).await;
+
+        let response = harness
+            .client
+            .post(format!("/servers/{}/channels", server.id))
+            .header(Header::new("x-session-token", session.token.to_string()))
+            .header(ContentType::JSON)
+            .body(
+                json!({
+                    "type": "Voice",
+                    "name": "Apresentações",
+                    "voice": { "max_users": 25, "kind": "video" }
+                })
+                .to_string(),
+            )
+            .dispatch()
+            .await;
+        assert_eq!(response.status(), Status::Ok);
+        let criado: v0::Channel = response.into_json().await.expect("`Channel`");
+        assert_eq!(tipo_da_sala(&criado), Some(v0::VoiceChannelKind::Video));
+
+        let response = harness
+            .client
+            .patch(format!("/channels/{}", criado.id()))
+            .header(Header::new("x-session-token", session.token.to_string()))
+            .header(ContentType::JSON)
+            .body(json!({ "voice": { "max_users": 4 } }).to_string())
+            .dispatch()
+            .await;
+        assert_eq!(response.status(), Status::Ok);
+        let editado: v0::Channel = response.into_json().await.expect("`Channel`");
+        assert_eq!(tipo_da_sala(&editado), Some(v0::VoiceChannelKind::Video));
+
+        // E o que foi gravado, não só o que a rota devolveu.
+        let gravado: v0::Channel = harness
+            .db
+            .fetch_channel(criado.id())
+            .await
+            .expect("`Channel`")
+            .into();
+        assert_eq!(tipo_da_sala(&gravado), Some(v0::VoiceChannelKind::Video));
+        match gravado {
+            v0::Channel::TextChannel { voice, .. } => {
+                assert_eq!(voice.and_then(|v| v.max_users), Some(4));
+            }
+            _ => panic!("canal de servidor"),
+        }
+    }
+
+    /// `kind` explícito na edição troca o tipo — inclusive rebaixando a voz.
+    #[rocket::async_test]
+    async fn edicao_com_kind_troca_o_tipo() {
+        let harness = TestHarness::new().await;
+        let (_, session, user) = harness.new_user().await;
+        let (server, _) = harness.new_server(&user).await;
+
+        let response = harness
+            .client
+            .post(format!("/servers/{}/channels", server.id))
+            .header(Header::new("x-session-token", session.token.to_string()))
+            .header(ContentType::JSON)
+            .body(
+                json!({ "type": "Voice", "name": "Palco", "voice": { "kind": "stage" } })
+                    .to_string(),
+            )
+            .dispatch()
+            .await;
+        let criado: v0::Channel = response.into_json().await.expect("`Channel`");
+        assert_eq!(tipo_da_sala(&criado), Some(v0::VoiceChannelKind::Stage));
+
+        let response = harness
+            .client
+            .patch(format!("/channels/{}", criado.id()))
+            .header(Header::new("x-session-token", session.token.to_string()))
+            .header(ContentType::JSON)
+            .body(json!({ "voice": { "kind": "voice" } }).to_string())
+            .dispatch()
+            .await;
+        let editado: v0::Channel = response.into_json().await.expect("`Channel`");
+        assert_eq!(tipo_da_sala(&editado), Some(v0::VoiceChannelKind::Voice));
+    }
 }
