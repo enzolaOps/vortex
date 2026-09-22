@@ -24,7 +24,10 @@
   display: grid;
   /* lista · faixa de voz. A faixa devolve `null` fora da chamada — a linha
      colapsa sozinha. O painel de usuário saiu daqui: é chrome do app. */
-  grid-template-rows: minmax(0, 1fr) auto;
+  /* + a nota de offline entre as duas. `1fr` PRIMEIRO e as de baixo `auto`:
+     sem conteúdo colapsam a zero, e a lista segue com o resto (o oposto da
+     armadilha do `Shell`, onde o `1fr` era o último). */
+  grid-template-rows: minmax(0, 1fr) auto auto;
   block-size: 100%;
   min-block-size: 0;
 }
@@ -1400,4 +1403,25 @@
   color: var(--vx-text-4);
   font-size: var(--vx-size-2xs);
   font-weight: 600;
+}
+
+/*
+  Offline (D-LAC-45). CSS a partir do `<html>`, sem subscrição: a coluna não
+  acorda num engasgo de rede. Canais a 60% e AINDA clicáveis — abrir mostra o
+  histórico em cache, que é o que o offline oferece. Contagens somem (parariam
+  no último número, indistinguível de um vivo); a lâmina fica. A sala de voz não
+  pode ser entrada e quem está dentro é presença: esmaece e esconde a lista.
+*/
+html[data-offline="sem-conexao"] .canal {
+  opacity: 0.6;
+}
+
+html[data-offline="sem-conexao"] .contador,
+html[data-offline="sem-conexao"] .naSala {
+  display: none;
+}
+
+html[data-offline="sem-conexao"] .sala {
+  cursor: not-allowed;
+  opacity: 0.6;
 }

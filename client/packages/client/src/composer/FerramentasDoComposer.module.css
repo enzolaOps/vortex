@@ -83,3 +83,20 @@
     display: none;
   }
 }
+
+/* ============================================================
+   Offline — D-LAC-51
+   ------------------------------------------------------------
+   As seis somem. Emoji customizado, GIF, figurinha e efeito
+   sonoro dependem de rede (catálogo, busca, servidor de mídia),
+   e gravar áudio produziria um arquivo sem para onde ir.
+
+   Somem em vez de ficarem cinzas — D-LAC-53, a mesma regra do
+   item administrativo sem permissão. A EXCEÇÃO desta superfície
+   é o `+` de anexar, que fica desabilitado, e a razão está
+   escrita no `Composer.tsx`: ele é uma posição fixa da caixa.
+   ============================================================ */
+
+html[data-offline="sem-conexao"] .ferramentas {
+  display: none;
+}

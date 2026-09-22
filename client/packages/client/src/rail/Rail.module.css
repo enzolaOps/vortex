@@ -678,3 +678,38 @@
 .ponte {
   display: contents;
 }
+
+/* ============================================================
+   Offline — D-LAC-44
+   ------------------------------------------------------------
+   O rail dessatura e o `+` de criar servidor sai de cena.
+
+   ⚠ CSS a partir do `<html>`, e não uma subscrição aqui. O rail
+   monta dezenas de ladrilhos; fazer cada um assinar a conexão —
+   ou o rail inteiro re-renderizar — para trocar um filtro é
+   pagar em render o que o navegador faz em pintura. Quem
+   escreve o atributo é `FaixaDeConexao`, o único assinante da
+   conexão na raiz.
+
+   ⚠ E é `="sem-conexao"` e não o atributo pelado: com um
+   engasgo de três segundos o app inteiro piscando de cinza é
+   pior que o engasgo. Presença é o que fica velha nos DOIS
+   estados, e é só ela que casa com o atributo sem valor.
+   ============================================================ */
+
+html[data-offline="sem-conexao"] .rail {
+  filter: saturate(0.4);
+}
+
+/*
+  Criar servidor é escrita no servidor: offline o botão não teria como
+  cumprir. Ele SOME em vez de ficar cinza — a regra do projeto para ação
+  indisponível, a mesma que tira o item administrativo do menu de quem não
+  pode em vez de desenhá-lo apagado (D-LAC-53: nada visível-mas-desabilitado).
+
+  `:has` no item e não `display: none` na marca: esconder só o quadrado
+  deixaria para trás a caixa do ladrilho e a parada de tabulação dele.
+*/
+html[data-offline="sem-conexao"] .item:has(.marcaAdicionar) {
+  display: none;
+}

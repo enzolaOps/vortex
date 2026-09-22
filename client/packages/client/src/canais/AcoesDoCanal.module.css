@@ -132,3 +132,30 @@
     display: none;
   }
 }
+
+/* ============================================================
+   Offline — D-LAC-48
+   ------------------------------------------------------------
+   As ações do cabeçalho somem e a linha diz por quê.
+
+   Os seis alvos abrem painéis e busca, e os dois dependem do
+   servidor: tópicos e resultados vêm por rede, e a chamada de
+   voz não tem como nascer. Somem em vez de ficarem cinzas com
+   tooltip — D-LAC-53 escreve a regra, e é a mesma que tira o
+   item administrativo do menu de quem não pode.
+   ============================================================ */
+
+.notaOffline {
+  display: none;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  white-space: nowrap;
+}
+
+html[data-offline="sem-conexao"] .acoes > :not(.notaOffline) {
+  display: none;
+}
+
+html[data-offline="sem-conexao"] .notaOffline {
+  display: inline;
+}

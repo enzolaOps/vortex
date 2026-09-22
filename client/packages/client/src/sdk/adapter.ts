@@ -75,7 +75,12 @@ import {
   definirConexao,
   lerConexao,
 } from "../store/conexao";
-import { confirmarNaFila, esquecerDaFila } from "../store/fila";
+import {
+  confirmarNaFila,
+  desmarcarPendente,
+  esquecerDaFila,
+  marcarPendente,
+} from "../store/fila";
 import { assinarSilencio, estaMudo } from "../store/silencio";
 import { registrarUsoDeReacao } from "../store/reacoesFrequentes";
 import { assinarFavoritos, lerFavoritos, ordenarComFavoritas } from "../store/favoritos";
@@ -411,6 +416,16 @@ function marcarEnvio(id: string, estado: SendState) {
   else estadosDeEnvio.set(id, estado);
 
   const message = client.messages.get(idDoSdk(id));
+
+  /*
+    O contador de fila do canal acompanha, e este é o funil.
+
+    Só `pending` conta: `subindo` é upload EM CURSO (a rede está de pé) e
+    `failed` é o que já desistiu — nenhum dos dois "envia ao reconectar", que é
+    o que o rodapé do composer promete. Ver `store/fila.ts`.
+  */
+  if (estado === "pending" && message) marcarPendente(id, message.channelId);
+  else desmarcarPendente(id);
   if (message && messages.subscriberCount(id) > 0) {
     messages.set(
       id,
@@ -2037,6 +2052,7 @@ export function enviarMensagem(
   // parada em `subindo` nunca seria retomada — e a linha diria "enviando…"
   // para sempre, com upload nenhum acontecendo.
   estadosDeEnvio.set(id, temArquivo && temRede ? "subindo" : "pending");
+  if (!(temArquivo && temRede)) marcarPendente(id, channelId);
 
   client.messages.getOrCreate(
     id,
@@ -2128,6 +2144,7 @@ export function enviarFigurinha(channelId: string, figurinhaId: string): string 
   aguardar(id, id, channelId);
   registrarFigurinhaLocal(id, figurinhaId);
   estadosDeEnvio.set(id, "pending");
+  marcarPendente(id, channelId);
 
   client.messages.getOrCreate(
     id,

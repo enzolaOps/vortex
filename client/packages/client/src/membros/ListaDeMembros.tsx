@@ -456,7 +456,15 @@ export function ListaDeMembros() {
         className={css.pista}
         style={{ height: `${virtualizer.getTotalSize()}px` }}
         role="list"
-        aria-label="Membros"
+        /*
+          "Membros · em cache" offline (D-LAC-52).
+
+          ⚠ **O design põe o rótulo VISÍVEL no cabeçalho do painel, e este
+          painel não tem cabeçalho** — só este nome de região. Ele vai aqui e
+          na nota do rodapé; inventar um cabeçalho para a coluna é outra
+          superfície, e fica registrado como divergência.
+        */
+        aria-label={semConexao ? "Membros · em cache" : "Membros"}
       >
         {items.map((item) => {
           const linha = linhas[item.index];
@@ -513,8 +521,8 @@ export function ListaDeMembros() {
       */}
       {semConexao ? (
         <p className={css.congelada}>
-          Presença indisponível offline — todos aparecem sem status. Lista
-          congelada no último estado conhecido.
+          Membros · em cache. Presença indisponível offline — todos aparecem sem
+          status. Lista congelada no último estado conhecido.
         </p>
         ) : null}
         </div>

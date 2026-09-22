@@ -113,6 +113,45 @@
   font-size: var(--vx-size-sm);
 }
 
+/* ============================================================
+   Offline — D-LAC-49
+   ------------------------------------------------------------
+   A timeline em cache continua legível e rolável, com uma nota
+   dizendo que ela é cache e o conteúdo a 85%.
+
+   `display: none` em repouso e não `opacity`/`visibility`: sem
+   caixa ela sai da árvore de acessibilidade e não ocupa espaço
+   no container de rolagem enquanto a conexão está de pé.
+   ============================================================ */
+
+.notaDeCache {
+  display: none;
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--vx-z-realce);
+  padding: var(--vx-space-08) var(--vx-space-14);
+  border-block-end: 1px solid var(--vx-hairline-06);
+  background: var(--vx-surface-4);
+  box-shadow: var(--vx-elev-1);
+  color: var(--vx-text-2);
+  font-size: var(--vx-size-sm);
+}
+
+html[data-offline="sem-conexao"] .notaDeCache {
+  display: block;
+}
+
+/*
+  ⚠ A opacidade vai na `.coluna` e NUNCA nas linhas.
+
+  Por linha seriam dezenas de camadas de composição sob o ponteiro; e no
+  container de rolagem ela apagaria junto as faixas grudadas — inclusive a
+  nota que acabou de explicar por que tudo está apagado.
+*/
+html[data-offline="sem-conexao"] .coluna {
+  opacity: 0.85;
+}
+
 .voltarAoPresente {
   flex: none;
   border: 0;
