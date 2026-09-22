@@ -527,6 +527,23 @@ export type SistemaSnapshot =
     }
   | { readonly tipo: "renomeou"; readonly porId: string; readonly nome: string }
   /**
+   * Sala de voz: alguém foi movido (D-LAC-27). `porId` ausente quando o
+   * servidor não disse quem moveu — um `delta` Stoat não manda `by`.
+   *
+   * ⚠ Estas duas e as de `entrou`/`saiu` na sala são linhas EFÊMERAS, só de
+   * quem está na chamada — ver `sdk/eventosDaSala.ts`.
+   */
+  | {
+      readonly tipo: "moveu";
+      readonly userId: string;
+      readonly porId: string | undefined;
+      readonly paraId: string;
+    }
+  /** Sala de voz: alguém começou a compartilhar a tela (D-VOZ-13). */
+  | { readonly tipo: "transmitiu"; readonly userId: string }
+  /** Sala de voz: um moderador desconectou alguém (D-LAC-27). */
+  | { readonly tipo: "desconectou"; readonly userId: string; readonly porId: string }
+  /**
    * Uma chamada foi iniciada neste canal.
    *
    * ⚠ **Era `texto` com a frase pronta, e a tradução jogava fora TUDO o que

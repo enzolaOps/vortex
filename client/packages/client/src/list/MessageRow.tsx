@@ -204,9 +204,44 @@ function FraseDeSistema({ sistema }: { sistema: SistemaSnapshot }) {
           <NomeDoAutor userId={sistema.porId} /> iniciou uma chamada
         </>
       );
+    case "moveu":
+      return sistema.porId !== undefined ? (
+        <>
+          <NomeDoAutor userId={sistema.porId} /> moveu{" "}
+          <NomeDoAutor userId={sistema.userId} /> para{" "}
+          <NomeDoCanal channelId={sistema.paraId} />
+        </>
+      ) : (
+        <>
+          <NomeDoAutor userId={sistema.userId} /> foi movido para{" "}
+          <NomeDoCanal channelId={sistema.paraId} />
+        </>
+      );
+    case "transmitiu":
+      return (
+        <>
+          <NomeDoAutor userId={sistema.userId} /> começou a compartilhar a tela
+        </>
+      );
+    case "desconectou":
+      return (
+        <>
+          <NomeDoAutor userId={sistema.porId} /> desconectou{" "}
+          <NomeDoAutor userId={sistema.userId} />
+        </>
+      );
     case "texto":
       return <>{sistema.texto}</>;
   }
+}
+
+/**
+ * O destino de um "moveu", assinando o canal sozinho — pela mesma razão do
+ * `NomeDoAutor`: renomear a sala não re-renderiza a linha inteira.
+ */
+function NomeDoCanal({ channelId }: { channelId: string }) {
+  const canal = useChannel(channelId);
+  return <>{canal?.name ?? "outra sala"}</>;
 }
 
 /**
@@ -991,7 +1026,9 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
           <div
             className={cn(
               css.aviso,
-              message.sistema.tipo === "saiu" && css.avisoSaida,
+              (message.sistema.tipo === "saiu" ||
+                message.sistema.tipo === "desconectou") &&
+                css.avisoSaida,
               (message.sistema.tipo === "entrou" ||
                 message.sistema.tipo === "chamada") &&
                 css.avisoPresenca,

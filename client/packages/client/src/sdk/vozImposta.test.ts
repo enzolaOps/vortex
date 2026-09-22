@@ -6,8 +6,10 @@ import {
   avisarMudoDoServidor,
   avisarSurdoDoServidor,
   definirEntradaDeVoz,
+  lerAutorImposto,
   lerMovimentoImposto,
   limparVozImposta,
+  registrarAutorImposto,
   registrarMovimentoImposto,
   registrarRemocaoImposta,
 } from "./vozImposta";
@@ -134,6 +136,67 @@ describe("a corrida entre o LiveKit e o socket", () => {
 
     expect(lerToasts()).toHaveLength(1);
     expect(lerToasts()[0]?.titulo).toBe("Você foi movida para Foco.");
+  });
+});
+
+describe("por Fulano (D-LAC-24/25)", () => {
+  it("lê o `by` do movimento quando o servidor do Vortex o manda", () => {
+    expect(
+      lerMovimentoImposto({ type: "UserMoveVoiceChannel", from: "01A", to: "01B", by: "01ANA" }),
+    ).toEqual({ de: "01A", para: "01B", por: "01ANA" });
+  });
+
+  it("movimento com autor diz quem moveu", () => {
+    registrarMovimentoImposto({ ...MOVIMENTO, porNome: "Ana Ribeiro" });
+    registrarRemocaoImposta(REMOCAO);
+    expect(lerToasts()[0]?.descricao).toBe("Por Ana Ribeiro.");
+  });
+
+  it("movimento sem autor cai no texto de sempre", () => {
+    registrarMovimentoImposto(MOVIMENTO);
+    registrarRemocaoImposta(REMOCAO);
+    expect(lerToasts()[0]?.descricao).toBe("Um moderador mudou você de canal.");
+  });
+
+  it("desconexão com o autor do ServerMemberUpdate diz quem desconectou", () => {
+    // O `delta` grava o membro antes de falar com o LiveKit: o autor chega primeiro.
+    registrarAutorImposto("Ana Ribeiro");
+    registrarRemocaoImposta(REMOCAO);
+    vi.advanceTimersByTime(JANELA_MS);
+    expect(lerToasts()[0]?.descricao).toBe("Por Ana Ribeiro, em Sala do time.");
+  });
+
+  it("autor velho não assina uma desconexão de muito depois", () => {
+    registrarAutorImposto("Ana Ribeiro");
+    vi.advanceTimersByTime(JANELA_MS * 10);
+    registrarRemocaoImposta(REMOCAO);
+    vi.advanceTimersByTime(JANELA_MS);
+    expect(lerToasts()[0]?.descricao).toBe("Um moderador tirou você de Sala do time.");
+  });
+
+  it("o autor é consumido pela resolução, e não vaza para a próxima", () => {
+    registrarAutorImposto("Ana Ribeiro");
+    registrarRemocaoImposta(REMOCAO);
+    vi.advanceTimersByTime(JANELA_MS);
+    for (const t of lerToasts()) dispensarToast(t.id);
+
+    registrarRemocaoImposta(REMOCAO);
+    vi.advanceTimersByTime(JANELA_MS);
+    expect(lerToasts()[0]?.descricao).toBe("Um moderador tirou você de Sala do time.");
+  });
+
+  it("lê o autor só de ServerMemberUpdate sobre mim, e nunca eu mesma", () => {
+    const e = (user: string, by?: string) => ({
+      type: "ServerMemberUpdate",
+      id: { server: "S", user },
+      data: {},
+      ...(by === undefined ? {} : { by }),
+    });
+    expect(lerAutorImposto(e("EU", "ANA"), "EU")).toBe("ANA");
+    expect(lerAutorImposto(e("OUTRO", "ANA"), "EU")).toBeUndefined();
+    expect(lerAutorImposto(e("EU"), "EU")).toBeUndefined();
+    expect(lerAutorImposto(e("EU", "EU"), "EU")).toBeUndefined();
+    expect(lerAutorImposto(e("EU", "ANA"), undefined)).toBeUndefined();
   });
 });
 

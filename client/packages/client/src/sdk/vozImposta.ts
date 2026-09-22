@@ -33,14 +33,14 @@
  *
  * ---
  *
- * ⚠ **Não dizemos QUEM moveu, e o design pede.** D-LAC-24 escreve "por Ana
- * Ribeiro". O protocolo não carrega o autor em nenhum dos dois sinais:
- * `UserMoveVoiceChannel` tem `{user, from, to, token, node}` e
- * `ServerMemberUpdate` tem `{id, data, clear}`. O autor existe no registro de
- * auditoria (`member_edit.rs` grava um `AuditLogEntry`), e ir buscá-lo custaria
- * uma chamada de rede no instante do aviso, sobre uma rota que exige
- * `ViewAuditLog` — permissão que justamente quem acabou de ser movido quase
- * nunca tem. Um nome inventado seria pior que a ausência dele.
+ * **Dizemos QUEM moveu quando o servidor conta** (D-LAC-24/25, "por Ana
+ * Ribeiro"). O `delta` do Vortex acrescenta `by` a `UserMoveVoiceChannel` e a
+ * `ServerMemberUpdate` — este último só quando a edição foi mover ou
+ * desconectar OUTRA pessoa da voz. Um `delta` Stoat não manda o campo, e aí o
+ * aviso cai no texto de antes ("um moderador"): um nome inventado seria pior
+ * que a ausência dele. O autor da remoção chega por um evento e a remoção por
+ * outro, então ele entra na MESMA janela abaixo, por
+ * {@link registrarAutorImposto}.
  *
  * ---
  *
@@ -67,6 +67,8 @@ export type MovimentoImposto = {
   readonly para: string;
   readonly nomeDe: string;
   readonly nomePara: string;
+  /** Quem moveu, já como nome. Ausente contra um servidor sem o campo `by`. */
+  readonly porNome?: string;
 };
 
 export type RemocaoImposta = {
@@ -76,6 +78,14 @@ export type RemocaoImposta = {
 
 let movimento: MovimentoImposto | undefined;
 let remocao: RemocaoImposta | undefined;
+/**
+ * Quem mexeu na sua voz, lido de `ServerMemberUpdate.by`.
+ *
+ * Vale só para a resolução em curso — ou a próxima dentro de
+ * {@link JANELA_MS}: guardado solto, um autor de uma edição antiga assinaria
+ * uma desconexão de rede de horas depois.
+ */
+let autor: { readonly nome: string; readonly em: number } | undefined;
 let prazo: ReturnType<typeof setTimeout> | undefined;
 
 /**
@@ -108,8 +118,11 @@ function resolver(): void {
   prazo = undefined;
   const m = movimento;
   const r = remocao;
+  const por =
+    autor !== undefined && Date.now() - autor.em <= JANELA_MS * 2 ? autor.nome : undefined;
   movimento = undefined;
   remocao = undefined;
+  autor = undefined;
 
   if (m) {
     /*
@@ -121,7 +134,10 @@ function resolver(): void {
     toast({
       tipo: "info",
       titulo: `Você foi movida para ${m.nomePara}.`,
-      descricao: "Um moderador mudou você de canal.",
+      descricao:
+        (m.porNome ?? por) !== undefined
+          ? `Por ${m.porNome ?? por}.`
+          : "Um moderador mudou você de canal.",
       acao: {
         rotulo: `Voltar para ${m.nomeDe}`,
         descricaoAlternativa: `Para voltar, entre de novo em ${m.nomeDe} pela coluna de canais.`,
@@ -141,7 +157,10 @@ function resolver(): void {
     toast({
       tipo: "erro",
       titulo: "Você foi desconectada da voz.",
-      descricao: `Um moderador tirou você de ${r.nome}.`,
+      descricao:
+        por !== undefined
+          ? `Por ${por}, em ${r.nome}.`
+          : `Um moderador tirou você de ${r.nome}.`,
       acao: {
         rotulo: "Reconectar",
         descricaoAlternativa: `Para voltar, entre de novo em ${r.nome} pela coluna de canais.`,
@@ -179,6 +198,31 @@ export function registrarRemocaoImposta(r: RemocaoImposta): void {
 }
 
 /**
+ * O servidor disse quem mexeu na sua voz (`ServerMemberUpdate.by`).
+ *
+ * Não abre janela sozinho: o autor só significa algo junto de uma remoção ou
+ * de um movimento, e é um destes que decide. Chega ANTES dos dois — o `delta`
+ * grava o membro e só então fala com o LiveKit.
+ */
+export function registrarAutorImposto(nome: string): void {
+  autor = { nome, em: Date.now() };
+}
+
+/**
+ * `ServerMemberUpdate` sobre VOCÊ, com o autor da ação de voz.
+ *
+ * Cru pelo mesmo motivo de {@link lerMovimentoImposto}: o SDK não tipa `by`,
+ * que é campo do fork.
+ */
+export function lerAutorImposto(evento: unknown, eu: string | undefined): string | undefined {
+  const e = evento as { type?: string; id?: { user?: unknown }; by?: unknown };
+  if (e.type !== "ServerMemberUpdate" || eu === undefined) return undefined;
+  if (e.id?.user !== eu) return undefined;
+  if (typeof e.by !== "string" || e.by === "" || e.by === eu) return undefined;
+  return e.by;
+}
+
+/**
  * Lê `UserMoveVoiceChannel` de um evento cru do socket.
  *
  * ⚠ **Cru porque o SDK o DESCARTA.** O `case "UserMoveVoiceChannel"` em
@@ -191,12 +235,15 @@ export function registrarRemocaoImposta(r: RemocaoImposta): void {
  */
 export function lerMovimentoImposto(
   evento: unknown,
-): { readonly de: string; readonly para: string } | undefined {
-  const e = evento as { type?: string; from?: unknown; to?: unknown };
+): { readonly de: string; readonly para: string; readonly por?: string } | undefined {
+  const e = evento as { type?: string; from?: unknown; to?: unknown; by?: unknown };
   if (e.type !== "UserMoveVoiceChannel") return undefined;
   if (typeof e.from !== "string" || typeof e.to !== "string") return undefined;
   if (e.from === "" || e.to === "" || e.from === e.to) return undefined;
-  return { de: e.from, para: e.to };
+  // `by` é do fork (D-LAC-24): ausente num `delta` Stoat, e aí não há "por".
+  return typeof e.by === "string" && e.by !== ""
+    ? { de: e.from, para: e.to, por: e.by }
+    : { de: e.from, para: e.to };
 }
 
 /**
@@ -243,4 +290,5 @@ export function limparVozImposta(): void {
   prazo = undefined;
   movimento = undefined;
   remocao = undefined;
+  autor = undefined;
 }

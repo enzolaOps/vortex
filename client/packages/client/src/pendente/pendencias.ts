@@ -343,17 +343,13 @@ export const SUPERFICIES_AUSENTES = {
     `member_edit.rs` aceita `voice_channel`, `can_publish`, `can_receive` e
     `remove: ["VoiceChannel"]` desde o upstream.
 
-    O que sobra do chat é só a metade que o protocolo não guarda: entrar e sair
-    da sala não vira mensagem de sistema, e mostrar só para quem estava olhando
-    contradiria a promessa do próprio design de que "o histórico persiste".
+    ⚠ **`entradasNoChatDaSala` também saiu** — ver `sdk/eventosDaSala.ts`.
+    Entrar, sair, ser movido, ser desconectado e começar a transmitir viram
+    linha no chat, EFÊMERAS e só para quem está na chamada: o design diz que
+    são "eventos do sistema, não mensagens" (D-VOZ-13), e gravá-las exigiria
+    forkar o `voice-ingress` e uma variante de `SystemMessage` que os serviços
+    upstream não desserializam.
   */
-  entradasNoChatDaSala: {
-    superficie: "Chat embutido do canal de voz",
-    faz: "Entradas, saídas e início de transmissão como eventos no meio da conversa.",
-    depende:
-      "mensagem de sistema de voz no protocolo — `VoiceChannelJoin`/`Leave` são eventos de socket, não gravados",
-    referencia: "components/voice/VoiceChannelChat.tsx",
-  },
 
   /*
     ⚠ **`duracaoDoSilencio` e `notificacoesPorServidorECanal` SAÍRAM daqui.**
