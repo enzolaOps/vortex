@@ -83,6 +83,7 @@ import {
   useServidorAtivo,
   useVozDoCanal,
   useLocal,
+  useTopicosSeguidosPorPai,
 } from "../store/hooks";
 import { Avatar } from "../components/ui/Avatar";
 import { podeCriarTopico } from "../topicos/acoes";
@@ -95,6 +96,7 @@ import { FaixaDeVoz } from "../voz/FaixaDeVoz";
 import { selecionarCanal } from "../store/navegacao";
 import { Selo } from "../components/ui/Selo";
 import { GatilhoDeBusca } from "../components/ui/CampoDeBusca";
+import { LinhaDeTopico, SomaDaCategoria } from "./Aninhados";
 import css from "./ListaDeCanais.module.css";
 
 /**
@@ -131,10 +133,16 @@ const Canal = memo(function Canal({
   id,
   serverId,
   ativo,
+  topicos,
+  canalAtivo,
 }: {
   id: string;
   serverId: string;
   ativo: boolean;
+  /** Tópicos SEGUIDOS deste canal — `undefined` no caso comum, que é nenhum. */
+  topicos?: readonly string[];
+  /** Qual canal está aberto: um tópico também é canal, e pode ser o aberto. */
+  canalAtivo: string;
 }) {
   const canal = useChannel(id);
 
@@ -499,6 +507,25 @@ const Canal = memo(function Canal({
         tem alvos próprios, e herdar o menu do canal daria "Marcar como lida"
         ao clicar com o direito numa pessoa. */}
     {canal.tipo === "voz" ? <Sala channelId={id} serverId={serverId} /> : null}
+
+    {/*
+      Os tópicos seguidos, aninhados sob o canal pai — D-APP-12.
+
+      Irmãos da linha e não filhos dela, pela mesma razão pela qual as ações
+      saíram de dentro do `<button>`: um alvo clicável dentro de outro é HTML
+      inválido e o navegador reestrutura a árvore sozinho.
+
+      Fora do `ContextMenu` do canal de propósito, como a sala: o menu daqui é
+      sobre o CANAL, e clicar com o direito num tópico oferecendo "Marcar canal
+      como lido" é a troca de entidade que a onda de menus veio consertar.
+    */}
+    {topicos?.map((topicoId) => (
+      <LinhaDeTopico
+        key={topicoId}
+        id={topicoId}
+        ativo={topicoId === canalAtivo}
+      />
+    ))}
     </>
   );
 });
@@ -973,10 +1000,13 @@ const Categoria = memo(function Categoria({
   categoria,
   serverId,
   canalAtivo,
+  topicosPorPai,
 }: {
   categoria: CategoriaDeCanais;
   serverId: string;
   canalAtivo: string;
+  /** Tópicos seguidos, por canal pai — ver o agrupamento em `ListaDeCanais`. */
+  topicosPorPai: ReadonlyMap<string, readonly string[]>;
 }) {
   const colapsada = useColapso(categoria.id);
   /*
@@ -1035,6 +1065,20 @@ const Categoria = memo(function Categoria({
                 data-aberta={!colapsada}
               />
               <span className={css.tituloDaSecao}>{categoria.titulo}</span>
+
+              {/*
+                O badge somado da categoria RECOLHIDA — D-CANAIS-35.
+
+                Recolher escondia os canais e, com eles, toda não-lida que
+                estivesse dentro: o cabeçalho ficava idêntico ao de uma
+                categoria sem nada para ler. O badge sai do cabeçalho quando
+                ela abre, porque aí cada canal mostra o próprio — é instrução
+                literal do design, e sem ela o mesmo número apareceria duas
+                vezes na mesma coluna.
+              */}
+              {colapsada ? (
+                <SomaDaCategoria ids={categoria.canais} />
+              ) : null}
             </button>
           }
         >
@@ -1198,6 +1242,8 @@ const Categoria = memo(function Categoria({
               id={id}
               serverId={serverId}
               ativo={id === canalAtivo}
+              topicos={topicosPorPai.get(id)}
+              canalAtivo={canalAtivo}
             />
           ))
         : null}
@@ -1332,6 +1378,23 @@ function CanaisDoServidor() {
   /* Sobre o que se VÊ, não sobre o que existe: para quem não administra, um
      servidor só com categoria vazia não tem canal nenhum na tela. */
   const vazio = visiveis.length === 0;
+
+  /*
+    Os tópicos QUE EU SIGO, agrupados pelo canal pai — D-APP-12.
+
+    ⚠ **Uma subscrição para a coluna inteira, e não `useTopicosDoCanal` por
+    linha.** As duas diferenças que decidem: (a) por linha seriam dezenas de
+    subscrições numa coluna que já monta três nós por canal, e (b)
+    `useTopicosDoCanal` devolve TODOS os tópicos do canal — num fórum de 200
+    posts, a coluna listaria os 200 embaixo dele. O que se aninha é o que a
+    pessoa SEGUE, que é o mesmo recorte do painel de tópicos.
+
+    O agrupamento roda no render, como o `agrupar` do rail e pela mesma razão:
+    ele depende de duas fontes e o React Compiler memoiza o corpo. Canal sem
+    tópico seguido recebe `undefined`, que é o caso esmagadoramente comum —
+    assim o `memo` da `Categoria` e o do `Canal` continuam segurando.
+  */
+  const topicosPorPai = useTopicosSeguidosPorPai();
 
   if (!serverId) {
     return (
@@ -1489,6 +1552,7 @@ function CanaisDoServidor() {
                 categoria={grupo}
                 serverId={serverId}
                 canalAtivo={canalAtivo}
+                topicosPorPai={topicosPorPai}
               />
             ))}
 

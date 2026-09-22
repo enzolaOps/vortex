@@ -3,6 +3,8 @@
  */
 import { useMemo, useSyncExternalStore } from "react";
 
+import type { EntityStore } from "./entities";
+
 import {
   canaisDeTexto,
   categorias,
@@ -165,6 +167,124 @@ export function useTotaisNaoLidos(): Contagem {
 
 /** Referência compartilhada — a armadilha nº 1. */
 const SEM_TOTAIS: Contagem = { naoLidas: 0, mencoes: 0 };
+
+/**
+ * A soma de não-lidas e menções de UM conjunto de servidores — a pasta do rail.
+ *
+ * ⚠ **`useTotaisNaoLidos` não serve, e a diferença é o escopo:** ele é o rollup
+ * GLOBAL que o adapter mantém para a caixa de entrada, e uma pasta precisa da
+ * soma dos servidores dentro dela. Um rollup por pasta no adapter seria o
+ * adapter conhecendo um conceito que só existe no cliente.
+ *
+ * Assina os N servidores de uma vez, e o `getSnapshot` devolve REFERÊNCIA
+ * CACHEADA — é a armadilha nº 1 do briefing, e num getter que SOMA ela é mais
+ * fácil de cair do que num que lê: montar `{naoLidas, mencoes}` a cada chamada
+ * daria objeto novo em toda comparação e o loop de render que trava a aba.
+ *
+ * A chave é a string de IDs e não o array: `agrupar` monta arrays novos a cada
+ * render do rail, e uma dependência por identidade recriaria a subscrição
+ * inteira em toda passagem.
+ */
+export function useSomaDeServidores(ids: readonly string[]): Contagem {
+  return useSoma(servers, ids, "useSomaDeServidores");
+}
+
+/**
+ * A mesma soma, para os canais de uma categoria recolhida — D-CANAIS-35.
+ *
+ * ⚠ **Ela ignora canal SILENCIADO**, e essa é a única diferença em relação à
+ * soma de servidores: o realce de um canal mudo já é apagado na linha dele
+ * (ver `silencio.ts`), e somá-lo no cabeçalho reacenderia pela porta dos
+ * fundos exatamente o que alguém pediu para calar.
+ */
+export function useSomaDeCanais(ids: readonly string[]): Contagem {
+  return useSoma(channels, ids, "useSomaDeCanais", NAO_SILENCIADO);
+}
+
+/*
+  Os dois filtros são constantes de MÓDULO, e não literais no call site.
+
+  Uma seta escrita na chamada tem identidade nova a cada render, e ela é
+  dependência do `useMemo` que monta a subscrição — o efeito seria desassinar
+  e reassinar os N servidores em toda passagem do rail, sem nada quebrar e sem
+  nada acusar.
+*/
+const TUDO = () => true;
+const NAO_SILENCIADO = (c: ChannelSnapshot) => !c.silenciado;
+
+/** Um snapshot que tem o que contar. */
+type ComContagem = { readonly naoLidas: number; readonly mencoes: number };
+
+function useSoma<T extends ComContagem>(
+  fonte: EntityStore<T>,
+  ids: readonly string[],
+  nome: string,
+  conta: (snapshot: T) => boolean = TUDO,
+): Contagem {
+  const chave = `${nome}:${ids.join(",")}`;
+
+  const { subscribe, getSnapshot } = useMemo(() => {
+    const lista = chave.slice(nome.length + 1).split(",").filter(Boolean);
+
+    /* Propriedades com seta, não métodos: as duas são DESTRUTURADAS logo
+       abaixo, e o lint reprova arrancar um método do objeto dono dele. */
+    return {
+      subscribe: (aoMudar: () => void) => {
+        const soltar = lista.map((id) => fonte.subscriber(id)(aoMudar));
+        return () => {
+          for (const f of soltar) f();
+        };
+      },
+      getSnapshot: (): Contagem => {
+        let naoLidas = 0;
+        let mencoes = 0;
+        for (const id of lista) {
+          const s = fonte.getSnapshot(id);
+          if (!s || !conta(s)) continue;
+          naoLidas += s.naoLidas;
+          mencoes += s.mencoes;
+        }
+        const anterior = SOMAS.get(chave) ?? SEM_TOTAIS;
+        if (naoLidas === anterior.naoLidas && mencoes === anterior.mencoes) {
+          return anterior;
+        }
+        const novo = { naoLidas, mencoes };
+        guardarSoma(chave, novo);
+        return novo;
+      },
+    };
+  }, [chave, nome, fonte, conta]);
+
+  if (import.meta.env.DEV) assertStable(getSnapshot, chave);
+  return useSyncExternalStore(subscribe, getSnapshot);
+}
+
+/**
+ * A referência cacheada de cada soma — a armadilha nº 1, num getter que DERIVA.
+ *
+ * ⚠ **Ela mora no MÓDULO, e as duas alternativas óbvias são proibidas aqui.**
+ * Um `let` fechado pelo `getSnapshot` é reprovado pelo lint do compiler
+ * (*"Cannot reassign variable after render completes"*), e um `useRef` também
+ * (*"Cannot access refs during render"*) — e os dois estão certos: o getter é
+ * chamado DURANTE o render por `useSyncExternalStore`. O que sobra é uma caixa
+ * que não pertence a render nenhum.
+ *
+ * Chaveada por `nome:ids`, então duas pastas com os mesmos servidores
+ * compartilham a entrada — o valor é o mesmo, e quem pergunta é a soma, não a
+ * identidade de quem pergunta.
+ *
+ * ⚠ **Teto, senão é o erro nº 5 com outra roupa.** A chave muda toda vez que
+ * alguém entra ou sai de um servidor, ou que um canal é criado — numa sessão
+ * de 8h isso é entrada nova sem fim. O corte é grosseiro de propósito: um Map
+ * de 64 números não merece um LRU.
+ */
+const SOMAS = new Map<string, Contagem>();
+const TETO_DE_SOMAS = 64;
+
+function guardarSoma(chave: string, valor: Contagem): void {
+  if (SOMAS.size >= TETO_DE_SOMAS) SOMAS.clear();
+  SOMAS.set(chave, valor);
+}
 
 export function useServer(id: string): ServerSnapshot | undefined {
   const getSnapshot = () => servers.getSnapshot(id);
@@ -469,6 +589,36 @@ export function useTopicosDoServidor(serverId: string, recorte: Recorte): readon
 /** Os tópicos que eu sigo e não estão arquivados, de todos os servidores. */
 export function useTopicosQueSigo(): readonly string[] {
   return useListaDeTopicos(CHAVE_SIGO);
+}
+
+/**
+ * Os tópicos seguidos, agrupados pelo canal pai — o que a coluna aninha.
+ *
+ * Mora aqui e não na coluna porque o agrupamento precisa LER `topicos`, e o
+ * store só é conhecido desta fronteira. E o resultado é cacheado pela
+ * identidade da lista: sem isso a `Categoria` e o `Canal`, que são `memo`,
+ * receberiam um `Map` novo a cada render da coluna e nenhum dos dois
+ * seguraria.
+ *
+ * Assina só a LISTA. `paiId` não muda depois que o tópico existe — o que muda
+ * é quem está nela, e é ela que republica.
+ */
+export function useTopicosSeguidosPorPai(): ReadonlyMap<
+  string,
+  readonly string[]
+> {
+  const ids = useTopicosQueSigo();
+  return useMemo(() => {
+    const por = new Map<string, string[]>();
+    for (const id of ids) {
+      const t = topicos.getSnapshot(id);
+      if (!t) continue;
+      const lista = por.get(t.paiId);
+      if (lista) lista.push(id);
+      else por.set(t.paiId, [id]);
+    }
+    return por;
+  }, [ids]);
 }
 
 /** `null` para canal que não é fórum nem galeria. */

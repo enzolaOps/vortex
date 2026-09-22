@@ -5,7 +5,7 @@ import {
   ICONE,
   Plus,
 } from "../components/ui/icones";
-import { memo, useSyncExternalStore } from "react";
+import { memo, useSyncExternalStore, type CSSProperties } from "react";
 
 import {
   ContextMenuContent,
@@ -24,6 +24,8 @@ import {
   useServer,
   useServerIds,
   useServidorAtivo,
+  useSomaDeServidores,
+  useCorDeCargo,
 } from "../store/hooks";
 import { administrar } from "../store/administracao";
 import {
@@ -231,8 +233,68 @@ const PastaDoRail = memo(function PastaDoRail({
 }) {
   const temAtivo = pasta.servidores.includes(ativo);
 
+  /*
+    A soma dos servidores dentro — D-EVT-48.
+
+    Colapsada, os ladrilhos deixam de existir na tela, e sem esta soma a pasta
+    fechada esconderia toda não-lida que estivesse dentro dela. É a mesma razão
+    pela qual o comentário antigo mantinha os ladrilhos montados e recortados;
+    a soma resolve o mesmo problema mostrando o NÚMERO em vez de escondendo os
+    ícones atrás de um `overflow`.
+  */
+  const soma = useSomaDeServidores(pasta.servidores);
+  const temNaoLidas = soma.naoLidas > 0;
+
+  /*
+    A tinta da seta, passada pelo MESMO clamp de L da cor de cargo.
+
+    O design oferece cinco hexes escolhidos e pode escrever `color: folderHex`
+    cru; aqui o `＋` aceita qualquer um, e um hex escuro sobre um fundo a 20%
+    dele mesmo daria uma seta que não se vê. Reusar o clamp em vez de escrever
+    um segundo é o que garante que as duas superfícies envelheçam juntas.
+  */
+  const tinta = useCorDeCargo(pasta.cor);
+
+  /*
+    Uma declaração só, na caixa da pasta — a alça HERDA as duas.
+
+    ⚠ **E aqui quase entrou uma correção para um defeito que não existe.**
+    Medindo a troca de cor, a caixa seguia a cor nova e a alça ficava na
+    anterior; reload fazia as duas concordarem, o que parecia invalidação de
+    `color-mix()` com custom property herdada. Era o PAINEL DO NAVEGADOR
+    ESCONDIDO: sem quadros, a `CSSTransition` da alça fica com
+    `currentTime: 0` para sempre, e `getComputedStyle` devolve o valor de
+    PARTIDA. Com `getAnimations().finish()` ela vai para
+    `oklab(0.748 −0.137 …/0.2)`, que é a cor certa — e trocando a var só no
+    ancestral a alça acompanha igual.
+
+    Fica escrito porque a conclusão errada era a confortável, e o conserto dela
+    (duplicar as duas custom properties em todo filho que compõe cor) teria
+    ficado no código para sempre.
+  */
+  const pintura = {
+    "--vx-pasta-cor": pasta.cor,
+    "--vx-pasta-tinta": tinta,
+  } as CSSProperties;
+
   return (
-    <div className={css.pasta} data-colapsada={pasta.colapsada}>
+    <div
+      className={css.pasta}
+      data-colapsada={pasta.colapsada}
+      /*
+        A cor da pasta chega por custom property, e o CSS a compõe.
+
+        ⚠ **Ela era GRAVADA e o rail não a usava** — o fundo era sempre
+        `--vx-state-selected`, ou seja o acento, e escolher uma cor no editor
+        não mudava nada na tela. `style` inline é o lugar certo pela mesma
+        razão do gradiente do ladrilho: o valor vem do DADO, não de quem
+        programa.
+
+        Ela tinge o FUNDO (10%) e a alça (20%) — nunca os ícones, que precisam
+        manter a identidade de cada servidor. É instrução literal do design.
+      */
+      style={pintura}
+    >
       <MenuDeContexto
         gatilho={
           <button
@@ -277,26 +339,69 @@ const PastaDoRail = memo(function PastaDoRail({
       </MenuDeContexto>
 
       {/*
-        Colapsada, os ladrilhos continuam MONTADOS e o CSS os recorta.
+        ⚠ **O comentário anterior aqui dizia que os ladrilhos ficavam MONTADOS
+        e recortados, para a pasta não perder o realce de não-lida ao fechar —
+        e essa razão morreu.** Quem carrega a não-lida agora é a soma, que vale
+        fechada e aberta; o recorte a `block-size: 0` custava quarenta nós de
+        DOM invisíveis por pasta e não desenhava a prévia que o design pede.
 
-        Desmontá-los faria a pasta perder o realce de não-lida ao ser fechada —
-        e não-lida escondida é exatamente o que faz alguém parar de usar
-        pastas.
+        Colapsada: até QUATRO ladrilhos de 19px em grade 2×2 — os gradientes
+        saem só do ID, então a prévia não assina servidor nenhum. Aberta: os
+        ladrilhos de verdade, cada um assinando a si mesmo.
       */}
-      <div className={css.conteudoDaPasta}>
-        {pasta.servidores.map((id) => (
-          <ItemDeServidor key={id} id={id} ativo={id === ativo} naPasta />
-        ))}
-      </div>
+      {pasta.colapsada ? (
+        <div className={css.previaDaPasta} aria-hidden>
+          {pasta.servidores.slice(0, 4).map((id) => (
+            <span
+              key={id}
+              className={css.previaDeServidor}
+              style={{ backgroundImage: gradienteDe(id) }}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className={css.conteudoDaPasta}>
+          {pasta.servidores.map((id) => (
+            <ItemDeServidor key={id} id={id} ativo={id === ativo} naPasta />
+          ))}
+        </div>
+      )}
 
       <span className={css.nomeDaPasta} aria-hidden>
         {pasta.nome}
       </span>
 
-      {/* A barra da pasta acende quando o servidor aberto está dentro dela e
-          ela está fechada — senão a pessoa perde de vista onde está. */}
-      {pasta.colapsada && temAtivo ? (
-        <span className={css.barra} data-estado="ativa" aria-hidden />
+      {/*
+        A soma das menções, sobre a prévia — e só com a pasta fechada.
+
+        Aberta, cada ladrilho já mostra o próprio contador, e um total por cima
+        somaria o mesmo número duas vezes na mesma caixa.
+      */}
+      {pasta.colapsada && soma.mencoes > 0 ? (
+        <Selo forma="contagem" tom="perigo" className={css.contadorDaPasta}>
+          {contagem(soma.mencoes)}
+        </Selo>
+      ) : null}
+
+      {/*
+        A barra: ATIVA quando o servidor aberto está dentro, ATENÇÃO quando há
+        não-lida somada. Só com a pasta fechada — aberta, quem marca é a barra
+        do ladrilho de dentro, e duas barras na mesma coluna diriam a mesma
+        coisa duas vezes.
+      */}
+      {pasta.colapsada && (temAtivo || temNaoLidas) ? (
+        <span
+          className={css.barra}
+          data-estado={temAtivo ? "ativa" : "atencao"}
+          aria-hidden
+        />
+      ) : null}
+
+      {/* O dado, nunca só por forma — a mesma regra do ladrilho de servidor. */}
+      {pasta.colapsada && (temNaoLidas || soma.mencoes > 0) ? (
+        <span className="sr-only">
+          {rotuloDeNaoLidas(soma.naoLidas, soma.mencoes)}
+        </span>
       ) : null}
     </div>
   );

@@ -555,8 +555,13 @@
   A diferença de tamanho é o que diz "estes pertencem ao grupo".
 
   Aqui: vão e recuo sobem para `--vx-space-08`/`--vx-space-04` (8/4), o raio
-  passa a ser o proporcional (52 × 31% ≈ 16, o número do design), e o fundo
-  já era `--vx-state-selected`, que É o acento a 10%.
+  passa a ser o proporcional (52 × 31% ≈ 16, o número do design).
+
+  ⚠ **O fundo era `--vx-state-selected` — o acento a 10%, sempre.** A cor
+  escolhida no editor era gravada e ninguém a lia: cinco swatches que não
+  mudavam nada na tela. Agora ela chega por `--vx-pasta-cor` e o fundo é a
+  MESMA composição (10%) sobre ela, com o acento de reserva para pasta antiga
+  sem cor válida.
 */
 .pasta {
   position: relative;
@@ -567,7 +572,11 @@
   padding-block: var(--vx-space-04);
   padding-inline: var(--vx-space-04);
   border-radius: var(--vx-radius-ladrilho);
-  background: var(--vx-state-selected);
+  background: color-mix(
+    in oklab,
+    var(--vx-pasta-cor, var(--vx-accent)) 10%,
+    transparent
+  );
 }
 
 /*
@@ -592,14 +601,73 @@
   block-size: var(--vx-space-24);
   border: 0;
   border-radius: var(--vx-radius-08);
-  background: color-mix(in oklab, var(--vx-accent) 20%, transparent);
-  color: var(--vx-accent-text);
+  background: color-mix(
+    in oklab,
+    var(--vx-pasta-cor, var(--vx-accent)) 20%,
+    transparent
+  );
+  /*
+    ⚠ **A seta sai da cor da pasta CLAMPADA, não da cor crua.** O design
+    escreve `color: folderHex` e ele só oferece cinco hexes escolhidos; aqui o
+    `＋` aceita qualquer um, e um hex escuro sobre um fundo a 20% dele mesmo
+    seria uma seta invisível. `--vx-pasta-tinta` chega do TSX já passada pelo
+    clamp de L, o mesmo que governa cor de cargo.
+  */
+  color: var(--vx-pasta-tinta, var(--vx-accent-text));
   cursor: pointer;
   transition: background var(--vx-duration-instant) var(--vx-ease-out);
 }
 
 .alcaDaPasta:hover {
-  background: var(--vx-accent-soft);
+  background: color-mix(
+    in oklab,
+    var(--vx-pasta-cor, var(--vx-accent)) 32%,
+    transparent
+  );
+}
+
+/*
+  A prévia da pasta fechada — D-EVT-48.
+
+  Os números são do design: caixa de 52, raio 16, recuo 5, vão 3, ladrilhos de
+  19 com raio 6. `flex-wrap` com 19 + 3 + 19 = 41 dentro de 42 úteis fecha a
+  grade 2×2 sozinha, sem `grid-template` — e é o que o design escreve.
+
+  ⚠ **52 e não 42, e a primeira versão errou exatamente isso.** O preflight
+  põe `box-sizing: border-box`, então a largura INCLUI o recuo de 5 de cada
+  lado: com 42 sobravam 32 úteis, 19 + 3 + 19 não cabia, e os ladrilhos
+  empilhavam em coluna. Medido antes: os dois em x = 20, um embaixo do outro.
+
+  Só gradiente, sem inicial e sem avatar: em 19px uma sigla de duas letras não
+  se lê e um avatar é um borrão. O que a prévia entrega é "quantos e de que
+  cores", que é o que identifica a pasta de relance.
+*/
+.previaDaPasta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-03);
+  inline-size: 52px;
+  padding: var(--vx-space-05);
+}
+
+.previaDeServidor {
+  inline-size: 19px;
+  block-size: 19px;
+  border-radius: var(--vx-radius-06);
+  background-size: cover;
+}
+
+/*
+  A soma das menções, no canto da prévia.
+
+  `absolute` sobre a caixa da pasta e não dentro da prévia: a prévia tem
+  `overflow` implícito nenhum, mas ela tem 52px de largura e o selo de contagem
+  passa disso — ancorado nela, ele empurraria a grade.
+*/
+.contadorDaPasta {
+  position: absolute;
+  inset-block-start: var(--vx-space-02);
+  inset-inline-end: var(--vx-space-02);
 }
 
 .setaDaPasta {
@@ -615,21 +683,6 @@
   flex-direction: column;
   align-items: center;
   gap: var(--vx-space-08);
-}
-
-/*
-  Colapsada: os ladrilhos continuam MONTADOS e são recortados.
-
-  Desmontá-los faria a pasta perder o realce de não-lida ao fechar — e
-  não-lida escondida é exatamente o que faz alguém parar de usar pastas.
-
-  `block-size: 0` com `overflow: hidden` em vez de `display: none` pela mesma
-  razão do `visibility` nas ações de linha: o conteúdo continua existindo para
-  quem lê a árvore, e a caixa colapsa sem reflow de irmãos.
-*/
-.pasta[data-colapsada="true"] .conteudoDaPasta {
-  block-size: 0;
-  overflow: hidden;
 }
 
 /*

@@ -2,7 +2,9 @@ import {
   ProhibitInset,
   
 } from "../components/ui/icones";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
+
+import { ultimaSecaoAte } from "./grudar";
 
 import {
   assinarMenuDeMensagem,
@@ -353,6 +355,33 @@ export function ListaDeMembros() {
     return out;
   }, [secoes, offline]);
 
+  /*
+    Os índices dos cabeçalhos — é sobre eles que o `rangeExtractor` decide qual
+    fica grudado. Lista pequena (uma entrada por cargo hasteado mais offline),
+    derivada das linhas que já foram montadas acima.
+  */
+  const indicesDeSecao = useMemo(
+    () => linhas.flatMap((l, i) => (l.tipo === "secao" ? [i] : [])),
+    [linhas],
+  );
+
+  /*
+    ⚠ **O cabeçalho grudado precisa estar na JANELA, e é isso que o extrator
+    garante.** Numa lista virtualizada a linha que saiu de vista deixa de
+    existir no DOM — então `position: sticky` sozinho não gruda nada: não há o
+    que grudar. `rangeExtractor` acrescenta à janela o índice do cabeçalho da
+    seção em que a rolagem está, mesmo ele estando dezenas de linhas acima.
+  */
+  const extrair = useMemo(
+    () => (faixa: { startIndex: number; endIndex: number; overscan: number; count: number }) => {
+      const grudada = ultimaSecaoAte(indicesDeSecao, faixa.startIndex);
+      const janela = defaultRangeExtractor(faixa);
+      if (grudada === undefined || janela.includes(grudada)) return janela;
+      return [grudada, ...janela];
+    },
+    [indicesDeSecao],
+  );
+
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual, spike
   const virtualizer = useVirtualizer({
     count: linhas.length,
@@ -363,6 +392,7 @@ export function ListaDeMembros() {
     // lista, e com índice a chave sob o scroll muda de significado.
     getItemKey: (i) => linhas[i]?.chave ?? i,
     overscan: 8,
+    rangeExtractor: extrair,
   });
 
   /**
@@ -393,6 +423,15 @@ export function ListaDeMembros() {
   }, [virtualizer]);
 
   const items = virtualizer.getVirtualItems();
+
+  /*
+    Qual cabeçalho está grudado AGORA.
+
+    Lido de `virtualizer.range`, que é a mesma faixa que o extrator recebeu —
+    computar de outro jeito arriscaria grudar um índice que o extrator não pôs
+    na janela, e aí não haveria elemento para grudar.
+  */
+  const grudada = ultimaSecaoAte(indicesDeSecao, virtualizer.range?.startIndex ?? 0);
 
   /*
     UMA subscrição para a coluna inteira — não uma por linha. O que muda por
@@ -470,13 +509,26 @@ export function ListaDeMembros() {
           const linha = linhas[item.index];
           if (!linha) return null;
 
+          const eGrudada = item.index === grudada;
+
           return (
             <div
               key={item.key}
               data-index={item.index}
               ref={virtualizer.measureElement}
               className={css.linha}
-              style={{ transform: `translateY(${item.start}px)` }}
+              data-grudada={eGrudada || undefined}
+              /*
+                ⚠ **A linha grudada NÃO recebe `transform`, e é a única.**
+
+                `position: sticky` e `transform` são incompatíveis: o
+                `translateY` fixaria o cabeçalho na posição dele dentro da
+                pista, que é exatamente o que ele precisa deixar de ter. O
+                estilo inline venceria a regra do módulo, então o jeito é não
+                escrevê-lo — não há `!important` que resolva isso do lado do
+                CSS.
+              */
+              style={eGrudada ? undefined : { transform: `translateY(${item.start}px)` }}
               /*
                 Cabeçalho de seção NÃO é item de lista.
 
