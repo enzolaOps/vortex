@@ -33,6 +33,38 @@ jobs:
     name: Testes (delta + bonfire)
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    # ⚠ O banco é de referência, mas eventos, filas e e-mail NÃO são: o
+    # `TestHarness` do delta assina o pub/sub do Redis, abre o RabbitMQ e lê o
+    # maildev. Sem os três, todo teste cai em `FailedConnection` antes de testar
+    # qualquer coisa — foi o que a primeira corrida mostrou. Portas e
+    # credenciais são as de `crates/core/config/Revolt.test.toml`.
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+      rabbit:
+        image: rabbitmq:4-management
+        env:
+          RABBITMQ_DEFAULT_USER: rabbituser
+          RABBITMQ_DEFAULT_PASS: rabbitpass
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 5s
+          --health-timeout 10s
+          --health-retries 20
+      maildev:
+        image: maildev/maildev:2.2.1
+        env:
+          MAILDEV_SMTP_PORT: 25
+          MAILDEV_WEB_PORT: 8080
+          MAILDEV_INCOMING_USER: smtp
+          MAILDEV_INCOMING_PASS: smtp
+        ports:
+          - 14025:25
+          - 14080:8080
     env:
       TEST_DB: REFERENCE
       CARGO_TERM_COLOR: always
