@@ -734,3 +734,65 @@
   font-variant-numeric: tabular-nums;
   color: var(--vx-text-3);
 }
+
+/* ============================================================
+   Criar categoria — a prévia na coluna (D-CANAIS-30)
+   ------------------------------------------------------------
+   `surface-1` e o cabeçalho da coluna de canais por `composes`:
+   a prévia é a afirmação de como a categoria vai aparecer, e
+   uma cópia dos valores divergiria da coluna no primeiro ajuste.
+   ============================================================ */
+
+.previa {
+  display: grid;
+  gap: var(--vx-space-06);
+}
+
+.previaRotulo {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  color: var(--vx-text-3);
+}
+
+.previaColuna {
+  padding: var(--vx-space-04) var(--vx-space-08) var(--vx-space-08);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-12);
+  background: var(--vx-surface-1);
+}
+
+.previaSecao {
+  composes: sobrancelhaDeSecao from "../styles/sobrancelha.module.css";
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-05);
+  padding: var(--vx-space-06) var(--vx-space-06) var(--vx-space-05);
+  color: var(--vx-text-3);
+}
+
+.previaSeta {
+  composes: chevron from "../canais/ListaDeCanais.module.css";
+}
+
+.previaNome {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.previaGlifo {
+  flex: none;
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+}
+
+.previaCanal {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-07);
+  block-size: 30px;
+  padding-inline: var(--vx-space-08);
+  color: var(--vx-text-4);
+  font-size: var(--vx-size-base);
+}

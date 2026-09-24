@@ -1,7 +1,10 @@
 import {
+  ArrowBendUpLeft,
+  LockSimple,
   PaperPlaneRight,
   Plus,
 } from "../components/ui/icones";
+import { Botao } from "../components/ui/Botao";
 import {
   useEffect,
   useRef,
@@ -12,6 +15,7 @@ import {
 
 import { FerramentasDoComposer, type MontarInsercao } from "./FerramentasDoComposer";
 import { GravadorDeVoz } from "./GravadorDeVoz";
+import { composerSomenteLeitura } from "./somenteLeitura";
 import {
   assinarGravacao,
   cancelarGravacao,
@@ -237,11 +241,61 @@ export function Composer({
      de um gravador. */
   useEffect(() => () => cancelarGravacao(channelId), [channelId]);
 
+
+  /*
+    Tópico ARQUIVADO é somente leitura — D-CANAIS-10 e D-CANAIS-25.
+
+    O design é literal: "o post fechado perde o composer mas mantém tudo
+    legível", e "arquivado é somente leitura com composer substituído por
+    'responder reabre este tópico'". A versão anterior deixava o campo aberto e
+    só escrevia a dica no rodapé — quem abria um tópico arquivado via a mesma
+    caixa de sempre e não tinha como saber que escrever o reabriria.
+
+    ⚠ **O gesto de reabrir é RESPONDER, não clicar.** O botão da faixa devolve
+    o composer, e é o ENVIO que desarquiva — é o servidor quem faz isso
+    (`message_send.rs`, "Replying reopens an archived thread"). Desarquivar no
+    clique reabriria o tópico de quem só quis ver o campo e desistiu.
+
+    Guardado por CANAL e não como booleano: o composer não remonta ao trocar de
+    canal, e um `true` solto devolveria o campo no próximo tópico arquivado
+    aberto. Rascunho presente ou resposta armada (pelo menu da mensagem) também
+    devolvem o campo — os dois são o gesto de responder já feito.
+  */
+  const [reabrirEm, setReabrirEm] = useState<string | undefined>(undefined);
   const entradaRef = useRef<HTMLTextAreaElement>(null);
+  /* O campo só monta depois do gesto, então o foco vai no efeito — por ref e
+     não por estado, que custaria um render a mais só para desligar a flag. */
+  const focarAoReabrir = useRef(false);
+  /*
+    Pedir foco (o "Responder" do vazio do tópico, a tecla de atalho) num tópico
+    arquivado É o gesto de responder: sem isto o pedido cairia num campo que
+    não está montado e o botão não faria nada.
+  */
   useEffect(
-    () => ouvirFocoNoComposer(channelId, () => entradaRef.current?.focus()),
+    () =>
+      ouvirFocoNoComposer(channelId, () => {
+        if (entradaRef.current) {
+          entradaRef.current.focus();
+          return;
+        }
+        focarAoReabrir.current = true;
+        setReabrirEm(channelId);
+      }),
     [channelId],
   );
+  const somenteLeitura = composerSomenteLeitura({
+    arquivado: topico?.arquivado === true,
+    channelId,
+    reabrirEm,
+    rascunho: valor,
+    respondendo: respondendoA !== undefined,
+    gravando: gravandoAqui,
+  });
+  useEffect(() => {
+    if (somenteLeitura || !focarAoReabrir.current) return;
+    focarAoReabrir.current = false;
+    entradaRef.current?.focus();
+  }, [somenteLeitura]);
 
   function alterar(texto: string) {
     escreverRascunho(channelId, texto);
@@ -526,7 +580,28 @@ export function Composer({
           caixa inteira com campo, ferramentas e faixa por baixo de um gravador
           seria uma segunda superfície viva sem uso.
         */}
-        {gravandoAqui ? (
+        {somenteLeitura ? (
+          <div className={css.arquivado} role="status">
+            <LockSimple aria-hidden className={css.arquivadoIcone} />
+            <span className={css.arquivadoTexto}>
+              <span className={css.arquivadoTitulo}>Tópico arquivado</span>
+              {" · responder reabre este tópico"}
+            </span>
+            {temPermissao ? (
+              <Botao
+                variante="neutro"
+                tamanho="pequeno"
+                icone={<ArrowBendUpLeft aria-hidden />}
+                onClick={() => {
+                  focarAoReabrir.current = true;
+                  setReabrirEm(channelId);
+                }}
+              >
+                Responder
+              </Botao>
+            ) : null}
+          </div>
+        ) : gravandoAqui ? (
           <GravadorDeVoz channelId={channelId} aoEnviar={enviarVoz} />
         ) : (
         <div className={cn(css.campo, "flex-1")} data-excedido={String(excedido)}>

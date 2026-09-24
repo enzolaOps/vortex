@@ -198,6 +198,10 @@ auto_derived!(
         )]
         pub message: Option<String>,
         /// Whether this thread is archived
+        ///
+        /// Over the wire this is whether it counts as archived NOW: besides the
+        /// ones archived by hand, the server reports a thread with no activity
+        /// for seven days as archived, without a job and without storing it.
         #[cfg_attr(
             feature = "serde",
             serde(skip_serializing_if = "crate::if_false", default)
@@ -221,6 +225,22 @@ auto_derived!(
             serde(skip_serializing_if = "crate::if_false", default)
         )]
         pub pinned: bool,
+        /// Whether this post is being looked into by whoever moderates its forum
+        #[cfg_attr(
+            feature = "serde",
+            serde(skip_serializing_if = "crate::if_false", default)
+        )]
+        pub in_review: bool,
+        /// ULID minted the last time this thread was reopened
+        ///
+        /// Its time part counts as activity: a thread with no activity for
+        /// seven days counts as archived, and reopening it by hand — or by
+        /// replying — must restart that clock.
+        #[cfg_attr(
+            feature = "serde",
+            serde(skip_serializing_if = "Option::is_none", default)
+        )]
+        pub reopened: Option<String>,
     }
 
     /// Voice information for a channel
@@ -520,6 +540,8 @@ auto_derived!(
         pub tags: Option<Vec<String>>,
         /// Whether the post is pinned to the top of its forum
         pub pinned: Option<bool>,
+        /// Whether the post is being looked into
+        pub in_review: Option<bool>,
     }
 
     /// Vortex: edit the tags of a forum or media channel

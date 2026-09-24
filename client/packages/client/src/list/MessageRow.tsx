@@ -22,6 +22,7 @@ import {
   Trash,
 } from "../components/ui/icones";
 import {
+  Fragment,
   lazy,
   memo,
   Suspense,
@@ -118,7 +119,8 @@ import {
   assinarConexao,
   lerConexao,
 } from "../store/conexao";
-import { useChannel, useMessage } from "../store/hooks";
+import { useChannel, useMessage, useTopico } from "../store/hooks";
+import { rotuloDoDivisorDeNovas } from "./divisorDeNovas";
 import {
   assinarReacoesFrequentes,
   reacoesRapidas,
@@ -127,6 +129,7 @@ import { Anexos } from "./Anexos";
 import { FigurinhaNaLinha } from "./FigurinhaNaLinha";
 import { EnqueteDaMensagem } from "../enquete/EnqueteDaMensagem";
 import { encerrarEnquete } from "../sdk/enquetes";
+import { recorteDaFrase } from "../sdk/entradasNoTopico";
 import { MenuDoUsuario } from "../membros/MenuDoUsuario";
 import { abrirTopicoDaMensagem, podeCriarTopico } from "../topicos/acoes";
 import { abrirSeletorDeReacao } from "../store/seletorDeReacao";
@@ -217,9 +220,39 @@ function FraseDeSistema({ sistema }: { sistema: SistemaSnapshot }) {
           <NomeDoAutor userId={sistema.userId} /> começou a compartilhar a tela
         </>
       );
+    case "entrouNoTopico":
+      return <FraseDeEntrada userIds={sistema.userIds} />;
     case "texto":
       return <>{sistema.texto}</>;
   }
+}
+
+/**
+ * "Rafa e Nando entraram no tópico" — D-CANAIS-23.
+ *
+ * Os separadores são do português: vírgula entre os primeiros, "e" antes do
+ * último. Passando de `NOMES_NA_FRASE`, o fim vira "e mais N": a frase é de
+ * 12px numa pílula que abraça o conteúdo, e cinco nomes a quebrariam em duas.
+ */
+function FraseDeEntrada({ userIds }: { userIds: readonly string[] }) {
+  const { nomes, resto } = recorteDaFrase(userIds);
+  const partes = nomes.map((id, i) => {
+    const ultimo = resto === 0 && i === nomes.length - 1;
+    const sep = i === 0 ? "" : ultimo ? " e " : ", ";
+    return (
+      <Fragment key={id}>
+        {sep}
+        <NomeDoAutor userId={id} />
+      </Fragment>
+    );
+  });
+  return (
+    <>
+      {partes}
+      {resto > 0 ? ` e mais ${resto}` : ""}{" "}
+      {userIds.length === 1 ? "entrou" : "entraram"} no tópico
+    </>
+  );
 }
 
 /**
@@ -396,7 +429,14 @@ function abrirMenuDaLinha(botao: HTMLElement): void {
  * SAI do canal. Avançar na entrada faria o divisor sumir no mesmo frame em que
  * apareceu.
  */
-function DivisorDeNovas() {
+function DivisorDeNovas({ channelId }: { channelId: string }) {
+  /*
+    Num tópico o que chega são RESPOSTAS — D-CANAIS-22, e é a palavra do
+    design ("NOVAS RESPOSTAS"). A subscrição mora AQUI e não na linha: o
+    divisor monta numa linha só por canal, e assinar o tópico na `MessageRow`
+    acordaria as dez mil linhas a cada mudança dele (seguir, arquivar, tag).
+  */
+  const rotulo = rotuloDoDivisorDeNovas(useTopico(channelId) !== undefined);
   return (
     /*
       `role="separator"` só aceita nome do AUTOR: o texto dentro dele não é
@@ -404,9 +444,9 @@ function DivisorDeNovas() {
       régua horizontal da coluna, e existe para marcar onde a pessoa parou —
       não existia para quem usa leitor de tela.
     */
-    <div className={css.novas} role="separator" aria-label="novas mensagens">
+    <div className={css.novas} role="separator" aria-label={rotulo}>
       <span className={css.novasLinha} />
-      <span className={css.novasRotulo}>novas mensagens</span>
+      <span className={css.novasRotulo}>{rotulo}</span>
     </div>
   );
 }
@@ -975,7 +1015,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
   if (message.sistema) {
     return (
       <>
-        {message.primeiraNaoLida ? <DivisorDeNovas /> : null}
+        {message.primeiraNaoLida ? <DivisorDeNovas channelId={message.channelId} /> : null}
         {message.dia ? <DivisorDeDia rotulo={message.dia} /> : null}
         {/*
           ⚠ **O design TEM esta linha, e a versão anterior deste comentário
@@ -1014,11 +1054,18 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             className={cn(
               css.aviso,
               message.sistema.tipo === "saiu" && css.avisoSaida,
+              message.sistema.tipo === "entrouNoTopico" && css.avisoTopico,
               (message.sistema.tipo === "entrou" ||
                 message.sistema.tipo === "chamada") &&
                 css.avisoPresenca,
             )}
           >
+            {message.sistema.tipo === "entrouNoTopico" ? (
+              /* O 🧵 do design, em `accent-text`: o mesmo glifo que marca
+                 tópico no painel de tópicos, e não um emoji — emoji não
+                 recebe a cor que o design lhe dá. */
+              <ChatsCircle aria-hidden className={css.avisoIcone} />
+            ) : null}
             <span className={cn(css.minZero, "wrap-anywhere")}>
               <FraseDeSistema sistema={message.sistema} />
             </span>
@@ -1665,7 +1712,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
       {/* Antes do divisor de data: "parei aqui" vem antes de "e este é outro
           dia", porque o primeiro é sobre a pessoa e o segundo sobre o
           histórico. */}
-      {message.primeiraNaoLida ? <DivisorDeNovas /> : null}
+      {message.primeiraNaoLida ? <DivisorDeNovas channelId={message.channelId} /> : null}
       {message.dia ? <DivisorDeDia rotulo={message.dia} /> : null}
 
       {linha}

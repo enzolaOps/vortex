@@ -145,7 +145,13 @@ import {
   type ServerSnapshot,
 } from "./domain";
 import { calcularLayout, type Layout } from "./agrupamento";
-import { aplicarEventoCru as aplicarEventoCruDeCanal } from "./vortexCanal";
+import { aplicarEventoCru as aplicarEventoCruDeCanal, lerTopico } from "./vortexCanal";
+import {
+  ehEntradaNoTopico,
+  juntarOuAbrir,
+  quemEntrou,
+  registrarEntrada,
+} from "./entradasNoTopico";
 import { criarNotificadorDeDigitacao } from "./digitando";
 import { instalarSync, puxarConfiguracoes } from "./sincronizar";
 import { aplicarEventoCru, avisarCanaisVortex, superficie } from "./superficieVortex";
@@ -1182,7 +1188,9 @@ export function startAdapter() {
   client.events.on("event", (evento: unknown) => {
     /* Tópico e fórum também só existem no payload cru — ver `vortexCanal.ts`.
        Antes da hidratação, e é por isso que o registro guarda o nome. */
+    const seguiamAntes = seguidoresAntesDoEvento(evento);
     aplicarEventoCruDeCanal(evento);
+    if (seguiamAntes) inserirEntradasNoTopico(seguiamAntes.canal, seguiamAntes.seguidores);
     /* A voz por canal do fork mora no evento cru pela mesma razão do
        `can_publish` abaixo — ver `sdk/vozDoCanal.ts`. */
     aplicarVozDoCanal(evento);
@@ -1888,7 +1896,7 @@ if (import.meta.env.DEV) {
 function ultimaDoServidor(ids: readonly string[]): string | undefined {
   for (let i = ids.length - 1; i >= 0; i -= 1) {
     const id = ids[i];
-    if (id !== undefined && !ehLinhaDeSala(id)) return id;
+    if (id !== undefined && !ehLinhaDeSala(id) && !ehEntradaNoTopico(id)) return id;
   }
   return undefined;
 }
@@ -1962,6 +1970,78 @@ function inserirLinhasDeSala(evento: unknown): void {
     publish(linha.canal);
     salaComLinhas = linha.canal;
   }
+}
+
+/* ---------------------------------------------------- entradas no tópico */
+
+/**
+ * Quem seguia o tópico ANTES do `ChannelUpdate` — tirado antes de o registro
+ * de `vortexCanal.ts` o aplicar, porque depois só sobra a lista nova.
+ *
+ * Só `ChannelUpdate` com `thread`: é o que seguir e responder publicam. Um
+ * `ChannelCreate` não é entrada — o dono nasce seguindo.
+ */
+function seguidoresAntesDoEvento(
+  evento: unknown,
+): { readonly canal: string; readonly seguidores: readonly string[] } | undefined {
+  const e = evento as { type?: unknown; id?: unknown; data?: { thread?: unknown } };
+  if (e.type !== "ChannelUpdate" || typeof e.id !== "string" || e.data?.thread === undefined) {
+    return undefined;
+  }
+  const meta = lerTopico(e.id);
+  return meta && { canal: e.id, seguidores: meta.seguidores };
+}
+
+/**
+ * "Rafa e Nando entraram no tópico" (D-CANAIS-23) — ver `sdk/entradasNoTopico.ts`.
+ *
+ * Mesma mecânica das linhas da sala: mensagem LOCAL do SDK com `isNew =
+ * false`, então não conta como não lida, não toca som e não passa pela
+ * reconciliação por nonce.
+ *
+ * ⚠ **Só em tópico cuja conversa está na memória ou na tela.** Um evento de
+ * seguir num tópico que ninguém abriu criaria a lista dele com uma linha só —
+ * e a linha ficaria esperando um histórico que talvez nunca venha.
+ */
+function inserirEntradasNoTopico(canal: string, antes: readonly string[]): void {
+  const meta = lerTopico(canal);
+  const novos = quemEntrou(antes, meta?.seguidores, {
+    eu: usuarioLocal,
+    respondeu: meta?.ultimoAutorId,
+  });
+  if (novos.length === 0) return;
+  const ids = index.get(canal);
+  const naMemoria = (ids?.length ?? 0) > 0 || channelMessageIds.subscriberCount(canal) > 0;
+  if (!naMemoria || !client.channels.get(canal)) return;
+  const lista = idsOf(canal);
+
+  const juntar = juntarOuAbrir(lista[lista.length - 1], canal, novos, Date.now());
+  if (juntar) {
+    registrarEntrada(juntar.juntarEm, canal, juntar.userIds);
+    /* O objeto do SDK não mudou, então o efeito Solid da linha não re-roda:
+       quem a acorda é um snapshot novo — a mecânica de `republicarEnquete`. */
+    republicarEnquete(juntar.juntarEm);
+    return;
+  }
+
+  const id = proximoId();
+  registrarEntrada(id, canal, novos);
+  client.messages.getOrCreate(
+    id,
+    {
+      _id: id,
+      channel: canal,
+      author: novos[0]!,
+      content: "",
+      /* Só para o SDK hidratar como linha de sistema; o FATO é lido do
+         registro em `toSistema`. */
+      system: { type: "text", content: "" },
+    },
+    false,
+  );
+  lista.push(id);
+  recalcularLayout(canal, lista.length - 1, lista.length - 1);
+  publish(canal);
 }
 
 /** Semeia o canal sem passar por evento — é setup, não carga medida. */

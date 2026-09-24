@@ -22,6 +22,7 @@ import { useAgoraPorMinuto } from "../store/relogio";
 import { topicos } from "../sdk/topicos";
 import { GradeVirtual } from "./GradeVirtual";
 import { Pilulas } from "./Pilulas";
+import { estadoDoPost } from "./estado";
 import { recortarForum, type OrdemDoForum } from "./recorte";
 import css from "./TelaDoForum.module.css";
 
@@ -226,6 +227,7 @@ const CartaoDePost = memo(function CartaoDePost({
     .map((tid) => forum?.tags.find((x) => x.id === tid))
     .filter((x): x is TagDeForum => x !== undefined);
   const naoLidas = canal?.naoLidas ?? 0;
+  const estado = estadoDoPost(t);
 
   return (
     /*
@@ -244,13 +246,15 @@ const CartaoDePost = memo(function CartaoDePost({
       <Miniatura topico={t} grade={grade} />
 
       <div className={cn(css.conteudo, grade && css.conteudoEmGrade)}>
-        {t.fixado || t.arquivado || tags.length > 0 ? (
+        {t.fixado || estado !== undefined || tags.length > 0 ? (
           <div className={css.selos}>
             {t.fixado ? (
               // O glifo é o do design, como o 💬 do rodapé deste card.
               <span className={css.fixado}>📌 fixado</span>
             ) : null}
-            {t.arquivado ? <span className={css.fechado}>fechado</span> : null}
+            {estado ? (
+              <span className={estado === "fechado" ? css.fechado : css.emAnalise}>{estado}</span>
+            ) : null}
             {tags.map((tag) => (
               <button
                 key={tag.id}
