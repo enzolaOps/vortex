@@ -114,6 +114,8 @@ import {
   notificarAmizade,
   notificarMensagem,
 } from "../notificacao/notificador";
+import { avisarFalhaDeEnvio } from "../notificacao/falhaDeEnvio";
+import { pode } from "./permissoes";
 import { mudancaDeAmizade } from "../notificacao/decidir";
 import { emFila } from "../lib/fila";
 import { somarPorServidor } from "./somaDeNaoLidas";
@@ -523,7 +525,7 @@ function reenviarPendente(id: string): void {
     setTimeout(() => {
       if (simulacao.falhar) {
         desistir(id);
-        marcarEnvio(id, "failed");
+        falharEnvio(id);
       } else {
         marcarEnvio(id, "sent");
       }
@@ -575,7 +577,7 @@ export function reenviar(id: string): void {
         // Desiste do nonce: sem isto o mapa cresce para sempre numa sessão de
         // 8h com rede instável, que é o erro nº 5 do briefing.
         desistir(id);
-        marcarEnvio(id, "failed");
+        falharEnvio(id);
       } else {
         marcarEnvio(id, "sent");
       }
@@ -2228,7 +2230,7 @@ export function enviarMensagem(
         // Desiste do nonce: sem isto o mapa cresce para sempre numa sessão de
         // 8h com rede instável, que é o erro nº 5 do briefing.
         desistir(id);
-        marcarEnvio(id, "failed");
+        falharEnvio(id);
       } else {
         marcarEnvio(id, "sent");
       }
@@ -2284,7 +2286,7 @@ export function enviarFigurinha(channelId: string, figurinhaId: string): string 
     setTimeout(() => {
       if (simulacao.falhar) {
         desistir(id);
-        marcarEnvio(id, "failed");
+        falharEnvio(id);
       } else {
         marcarEnvio(id, "sent");
       }
@@ -2494,13 +2496,61 @@ async function postar(
       Desiste do nonce: sem isto o mapa cresce para sempre numa sessão de 8h
       com rede instável, que é o erro nº 5 do briefing.
 
-      Sem toast. A falha já está na LINHA, com "reenviar" ao lado — é onde a
-      pessoa está olhando, e um toast por mensagem que não sai transformaria
-      uma queda de rede numa pilha de avisos sobre o mesmo fato.
+      O toast vem junto, e o que o impede de virar pilha está em
+      `notificacao/falhaDeEnvio.ts` (D-NOTIF-24).
     */
     desistir(id);
-    marcarEnvio(id, "failed");
+    falharEnvio(id);
   }
+}
+
+/**
+ * Marca a falha E avisa por toast — o funil de toda falha de envio de TEXTO.
+ *
+ * O upload (`enviarComArquivos`) não passa por aqui: ele já tem toast próprio,
+ * com a causa que o servidor devolveu (arquivo grande demais, tipo recusado),
+ * e dois toasts para a mesma falha diriam a mesma coisa de dois jeitos.
+ */
+function falharEnvio(id: string): void {
+  marcarEnvio(id, "failed");
+  const channelId = client.messages.get(idDoSdk(id))?.channelId;
+  if (channelId === undefined) return;
+  avisarFalhaDeEnvio(rotuloDoCanal(channelId), lerConexao() === "conectado", () =>
+    reenviarFalhadasDe(channelId),
+  );
+}
+
+/** Todas as falhadas do canal, na ordem em que foram escritas. */
+function reenviarFalhadasDe(channelId: string): void {
+  const falhadas: string[] = [];
+  for (const [id, estado] of estadosDeEnvio) {
+    if (estado === "failed" && client.messages.get(idDoSdk(id))?.channelId === channelId) {
+      falhadas.push(id);
+    }
+  }
+  // Copiado antes: `reenviar` muda o mapa que estava sendo percorrido.
+  for (const id of falhadas) reenviar(id);
+}
+
+/**
+ * Onde a mensagem estava indo, como a pessoa o chama: `#canal`, o nome de
+ * quem está do outro lado da DM, o nome do grupo.
+ *
+ * ⚠ Na DM, `recipientIds` menos eu e NÃO `canal.recipient` — o getter do SDK
+ * faz `client.user!.id` e estoura antes do `Ready` (ver `destinoDe`).
+ */
+function rotuloDoCanal(channelId: string): string {
+  const canal = client.channels.get(channelId);
+  if (!canal) return "conversa";
+  if (canal.type === "TextChannel") return `#${canal.name}`;
+  if (canal.type === "SavedMessages") return "Notas";
+  if (canal.type === "DirectMessage") {
+    for (const outro of canal.recipientIds) {
+      if (outro !== usuarioLocal) return client.users.get(outro)?.displayName ?? "conversa";
+    }
+    return "conversa";
+  }
+  return canal.name || "conversa";
 }
 
 /* -------------------------------------------------------------- digitação */
@@ -3558,6 +3608,24 @@ function avisarChegada(message: Message): void {
   }
   const direta = message.mentionIds?.includes(usuarioLocal) ?? false;
   const cargo = message.roleMentions?.some((r) => r.assigned) ?? false;
+  /*
+    O "Responder…" do toast (D-NOTIF-20) é uma resposta COM menção, que é o
+    padrão do composer (`store/resposta`): quem te mencionou é avisado de que
+    você respondeu. Sem permissão de escrever ali, o campo nem aparece — a
+    regra do projeto é não renderizar ação que a pessoa não pode executar.
+
+    ⚠ PREGUIÇOSO: este é o caminho de `messageCreate`, o mais quente do app, e
+    `pode()` consulta a tabela de permissões. Só a menção que vira toast chega
+    a perguntar — a mensagem comum de um canal movimentado não paga nada.
+  */
+  const channelId = message.channelId;
+  const mensagemId = message.id;
+  const responder = () =>
+    pode(channelId, "enviar")
+      ? (texto: string) => {
+          enviarMensagem(channelId, texto, { id: mensagemId, mencionar: true });
+        }
+      : undefined;
   notificarMensagem({
     mensagemId: message.id,
     channelId: message.channelId,
@@ -3573,7 +3641,7 @@ function avisarChegada(message: Message): void {
        primeiros é `@everyone`/`@online`. */
     mencionaTodos: !direta && !cargo && message.mentioned,
     mencionaCargo: cargo,
-  });
+  }, responder);
 }
 
 function contabilizarNaoLida(channelId: string, conteudo: string): void {

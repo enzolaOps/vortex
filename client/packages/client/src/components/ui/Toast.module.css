@@ -43,3 +43,128 @@
   inline-size: 400px;
   max-inline-size: calc(100vw - 32px);
 }
+
+/*
+  A entrada do design (D-NOTIF-25): `translateX` + opacidade em 180 ms.
+
+  Era a `camada-chega` genérica, que sobe em Y — certa para menu e popover,
+  que nascem de um gatilho, e errada aqui: o toast vem da BORDA DIREITA, e é
+  de lá que ele deve parecer chegar. `translate` e não `transform`, pela
+  mesma razão da utility: o Radix escreve `transform` durante o swipe.
+
+  A distância é `--vx-entrada`, que o `prefers-reduced-motion` zera.
+*/
+.caixa[data-state="open"] {
+  animation: vxToastChega var(--vx-duration-base) var(--vx-ease-enter);
+}
+
+.caixa[data-state="closed"] {
+  animation: vxToastSai var(--vx-duration-fast) var(--vx-ease-out) forwards;
+}
+
+@keyframes vxToastChega {
+  from {
+    opacity: 0;
+    translate: var(--vx-entrada) 0;
+  }
+}
+
+@keyframes vxToastSai {
+  to {
+    opacity: 0;
+    translate: var(--vx-entrada) 0;
+  }
+}
+
+/* O erro do design: vermelho a 30%, e não o cheio — a borda cheia gritava
+   mais alto que o título, que é quem diz o que aconteceu. */
+.caixa[data-tipo="erro"] {
+  border-color: color-mix(in srgb, var(--vx-danger) 30%, transparent);
+}
+
+/* O ladrilho de 36px (D-NOTIF-23/24). 36 é DIMENSÃO de componente. */
+.ladrilho {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  inline-size: 36px;
+  block-size: 36px;
+  border-radius: var(--vx-radius-10);
+  background: var(--vx-track);
+  color: var(--vx-text-2);
+}
+
+.ladrilho[data-icone="alerta"] {
+  background: color-mix(in srgb, var(--vx-danger) 16%, transparent);
+  color: var(--vx-danger-text);
+}
+
+.ladrilho svg {
+  inline-size: var(--vx-icon-1);
+  block-size: var(--vx-icon-1);
+}
+
+/* "Responder…" (D-NOTIF-20): campo e ✓ de 28px, lado a lado. */
+.resposta {
+  display: flex;
+  gap: var(--vx-space-08);
+  margin-block-start: var(--vx-space-09);
+}
+
+.campo,
+.enviar {
+  block-size: 28px;
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-2);
+}
+
+.campo {
+  flex: 1;
+  min-inline-size: 0;
+  padding-inline: var(--vx-space-09);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-1);
+}
+
+.campo::placeholder {
+  color: var(--vx-text-4);
+}
+
+.campo:focus-visible,
+.enviar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+.enviar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  inline-size: 28px;
+  color: var(--vx-text-2);
+  transition: color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.enviar:hover:not(:disabled) {
+  color: var(--vx-text-1);
+}
+
+.enviar:disabled {
+  color: var(--vx-text-4);
+}
+
+.enviar svg {
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+}
+
+/* A coluna de texto. `min-w-0` não emite CSS neste projeto (a base de
+   spacing do Tailwind está desligada), e sem o mínimo zerado um título longo
+   empurraria o ✕ para fora da caixa. */
+.conteudo {
+  flex: 1;
+  min-inline-size: 0;
+}

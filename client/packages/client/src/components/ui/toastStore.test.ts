@@ -4,6 +4,8 @@ import {
   assinarToasts,
   dispensarToast,
   lerToasts,
+  naoExpira,
+  substituirToast,
   toast,
 } from "./toastStore";
 
@@ -57,5 +59,48 @@ describe("store de toast", () => {
     toast({ titulo: "segundo", tipo: "info" });
 
     expect(lerToasts().map((t) => t.titulo)).toEqual(["primeiro", "segundo"]);
+  });
+});
+
+describe("expiração por toast (D-NOTIF-25)", () => {
+  it("o padrão é por tipo: info expira, erro não", () => {
+    expect(naoExpira({ tipo: "info" })).toBe(false);
+    expect(naoExpira({ tipo: "erro" })).toBe(true);
+  });
+
+  it("`expira` sobrepõe o padrão nos dois sentidos", () => {
+    expect(naoExpira({ tipo: "erro", expira: true })).toBe(false);
+    expect(naoExpira({ tipo: "info", expira: false })).toBe(true);
+  });
+
+  it("o corte da pilha poupa o que não expira, e só isso", () => {
+    toast({ titulo: "erro que fica", tipo: "erro" });
+    toast({ titulo: "erro que expira", tipo: "erro", expira: true });
+    toast({ titulo: "c", tipo: "info" });
+    toast({ titulo: "d", tipo: "info" });
+
+    expect(lerToasts().map((t) => t.titulo)).toEqual(["erro que fica", "c", "d"]);
+  });
+});
+
+describe("substituirToast", () => {
+  it("troca na MESMA posição, com id novo", () => {
+    toast({ titulo: "a", tipo: "info" });
+    const b = toast({ titulo: "b", tipo: "info" });
+    toast({ titulo: "c", tipo: "info" });
+
+    const novo = substituirToast(b, { titulo: "B", tipo: "info" });
+
+    expect(novo).toBeDefined();
+    expect(novo).not.toBe(b);
+    expect(lerToasts().map((t) => t.titulo)).toEqual(["a", "B", "c"]);
+    expect(lerToasts()[1]?.id).toBe(novo);
+  });
+
+  it("id que já saiu devolve ausência e não acorda ninguém", () => {
+    const ouvinte = vi.fn();
+    assinarToasts(ouvinte);
+    expect(substituirToast("sumiu", { titulo: "x", tipo: "info" })).toBeUndefined();
+    expect(ouvinte).not.toHaveBeenCalled();
   });
 });

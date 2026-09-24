@@ -1,4 +1,5 @@
-import { toast } from "../components/ui/toastStore";
+import { lerToasts, substituirToast, toast } from "../components/ui/toastStore";
+import type { EventoDeNotificacao } from "../store/notificacoes";
 import { ARNES_ATIVO } from "../dev/arnesAtivo";
 import { tocar } from "../som/sons";
 import { lerMeuStatus } from "../store/meuStatus";
@@ -102,7 +103,90 @@ function notificarNoSistema(m: MensagemRecebida, titulo: string, corpo: string):
   }
 }
 
-export function notificarMensagem(m: MensagemRecebida): void {
+/**
+ * O toast agregado vivo, se houver (D-NOTIF-23). Módulo e não store: ninguém
+ * assina isto, e quem decide se ele ainda vale é a pilha de toasts.
+ */
+let agregado: { id: string; n: number } | undefined;
+
+/**
+ * O toast de uma mensagem que chegou — separado de `notificarMensagem` para
+ * ser testável sem a cadeia de decisão (que lê a janela e o relógio).
+ *
+ * ⚠ **Prévia desligada AGREGA (D-NOTIF-23).** Sem conteúdo, cinco toasts
+ * seguidos diriam cinco vezes "Nova mensagem" e empurrariam para fora da
+ * pilha de três o aviso que importava. A primeira mensagem sai como sempre,
+ * com o autor (nome não é conteúdo); a partir da segunda, enquanto aquele
+ * toast estiver na tela, ele vira "N novas mensagens · Prévia de conteúdo
+ * desligada", sem "Abrir" — as mensagens podem ser de canais diferentes, e
+ * abrir UM deles seria escolher pela pessoa. Com a prévia ligada não agrega:
+ * cada toast tem conteúdo próprio, e juntar esconderia o que ele mostra.
+ *
+ * ⚠ **"Responder…" só em MENÇÃO (D-NOTIF-20)**, como no design, e só com a
+ * prévia ligada: responder a um texto que o toast não mostra é responder no
+ * escuro. `responder` chega do adapter pronta — ele já decidiu se a pessoa
+ * pode escrever no canal; sem permissão ele não a passa.
+ */
+export function avisarNoToast(
+  m: MensagemRecebida,
+  texto: { titulo: string; corpo: string },
+  opcoes: {
+    previa: boolean;
+    evento: EventoDeNotificacao;
+    /** Preguiçoso: só é chamado para menção com prévia. Ver o adapter. */
+    responder?: ResponderPeloToast;
+  },
+): void {
+  const acao = {
+    rotulo: "Abrir",
+    descricaoAlternativa: `Abrir a conversa de ${m.autorNome}`,
+    aoAtivar: () => abrir(m),
+  };
+
+  if (!opcoes.previa) {
+    const vivo =
+      agregado !== undefined && lerToasts().some((t) => t.id === agregado?.id);
+    if (vivo && agregado) {
+      const n = agregado.n + 1;
+      const id = substituirToast(agregado.id, {
+        tipo: "info",
+        titulo: `${n} novas mensagens`,
+        descricao: "Prévia de conteúdo desligada",
+        icone: "mensagens",
+      });
+      agregado = id === undefined ? undefined : { id, n };
+      if (id !== undefined) return;
+    }
+    agregado = {
+      id: toast({ tipo: "info", titulo: texto.titulo, descricao: texto.corpo, acao }),
+      n: 1,
+    };
+    return;
+  }
+
+  const mencao = opcoes.evento === "mencaoDireta" || opcoes.evento === "mencaoDeCargo";
+  const responder = mencao ? opcoes.responder?.() : undefined;
+  toast({
+    tipo: "info",
+    titulo: texto.titulo,
+    descricao: texto.corpo,
+    acao,
+    ...(responder
+      ? { resposta: { rotulo: "Responder…", aoEnviar: responder } }
+      : {}),
+  });
+}
+
+/**
+ * Como responder pelo toast: devolve o envio, ou `undefined` quando a pessoa
+ * não pode escrever no canal.
+ */
+export type ResponderPeloToast = () => ((texto: string) => void) | undefined;
+
+export function notificarMensagem(
+  m: MensagemRecebida,
+  responder?: ResponderPeloToast,
+): void {
   if (ARNES_ATIVO) return;
   const prefs = lerNotificacoes();
   const janelaEmFoco = typeof document !== "undefined" && document.hasFocus();
@@ -124,16 +208,15 @@ export function notificarMensagem(m: MensagemRecebida): void {
   const { titulo, corpo } = textoDaNotificacao(m, prefs.previa);
   if (entrega.canais.has("som")) tocar("mensagem");
   if (entrega.canais.has("toast")) {
-    toast({
-      tipo: "info",
-      titulo,
-      descricao: corpo,
-      acao: {
-        rotulo: "Abrir",
-        descricaoAlternativa: `Abrir a conversa de ${m.autorNome}`,
-        aoAtivar: () => abrir(m),
+    avisarNoToast(
+      m,
+      { titulo, corpo },
+      {
+        previa: prefs.previa,
+        evento: entrega.evento,
+        ...(responder ? { responder } : {}),
       },
-    });
+    );
   }
   if (entrega.canais.has("push")) {
     notificarNoSistema(m, titulo, corpo);
