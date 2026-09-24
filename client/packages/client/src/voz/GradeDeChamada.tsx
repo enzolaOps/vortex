@@ -264,6 +264,7 @@ export function GradeDeChamada() {
         surdo={chamada.surdo}
         camera={chamada.camera}
         tela={chamada.tela}
+        onde="grade"
       />
     </>
   );

@@ -90,8 +90,15 @@
   background: var(--vx-surface-1);
 }
 
+/*
+  `flex: none` porque 44px é ALVO DE TOQUE (D-DVM-17), e não sugestão: sem
+  ele a doca apertada encolhia os controles sem `▾` para 34px enquanto os com
+  `▾` (embrulhados em `.comOpcoes`) ficavam em 44 — dois tamanhos lado a lado
+  na mesma fileira. Quem cede espaço é o rótulo de sair, abaixo.
+*/
 .controleDaDoca {
   display: grid;
+  flex: none;
   place-items: center;
   inline-size: 44px;
   block-size: 44px;
@@ -184,6 +191,25 @@
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
+}
+
+/*
+  ⚠ **Abaixo de 560px o rótulo de sair some e fica o ícone**, e a conta é a
+  da fileira: seis controles de 44, a divisa e "Sair da chamada" (164px) não
+  cabem numa tela de ~500px — e com os controles travados em 44 (acima), sem
+  isto a doca transbordaria. O nome continua no `aria-label` do botão.
+  Container e não janela: a tela é a coluna que quem usa arrasta.
+*/
+@container (inline-size < 560px) {
+  .desligar {
+    justify-content: center;
+    inline-size: 44px;
+    padding-inline: 0;
+  }
+
+  .rotuloDeSair {
+    display: none;
+  }
 }
 
 .desligar:hover {

@@ -225,7 +225,7 @@ export function PalcoDeTransmissao({
         surdo={chamada.surdo}
         camera={chamada.camera}
         tela={chamada.tela}
-        mais
+        onde="palco"
       />
     </>
   );
