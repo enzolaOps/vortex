@@ -22,6 +22,7 @@ import {
   Trash,
 } from "../components/ui/icones";
 import {
+  Fragment,
   lazy,
   memo,
   Suspense,
@@ -128,6 +129,7 @@ import { Anexos } from "./Anexos";
 import { FigurinhaNaLinha } from "./FigurinhaNaLinha";
 import { EnqueteDaMensagem } from "../enquete/EnqueteDaMensagem";
 import { encerrarEnquete } from "../sdk/enquetes";
+import { recorteDaFrase } from "../sdk/entradasNoTopico";
 import { MenuDoUsuario } from "../membros/MenuDoUsuario";
 import { abrirTopicoDaMensagem, podeCriarTopico } from "../topicos/acoes";
 import { abrirSeletorDeReacao } from "../store/seletorDeReacao";
@@ -218,9 +220,39 @@ function FraseDeSistema({ sistema }: { sistema: SistemaSnapshot }) {
           <NomeDoAutor userId={sistema.userId} /> começou a compartilhar a tela
         </>
       );
+    case "entrouNoTopico":
+      return <FraseDeEntrada userIds={sistema.userIds} />;
     case "texto":
       return <>{sistema.texto}</>;
   }
+}
+
+/**
+ * "Rafa e Nando entraram no tópico" — D-CANAIS-23.
+ *
+ * Os separadores são do português: vírgula entre os primeiros, "e" antes do
+ * último. Passando de `NOMES_NA_FRASE`, o fim vira "e mais N": a frase é de
+ * 12px numa pílula que abraça o conteúdo, e cinco nomes a quebrariam em duas.
+ */
+function FraseDeEntrada({ userIds }: { userIds: readonly string[] }) {
+  const { nomes, resto } = recorteDaFrase(userIds);
+  const partes = nomes.map((id, i) => {
+    const ultimo = resto === 0 && i === nomes.length - 1;
+    const sep = i === 0 ? "" : ultimo ? " e " : ", ";
+    return (
+      <Fragment key={id}>
+        {sep}
+        <NomeDoAutor userId={id} />
+      </Fragment>
+    );
+  });
+  return (
+    <>
+      {partes}
+      {resto > 0 ? ` e mais ${resto}` : ""}{" "}
+      {userIds.length === 1 ? "entrou" : "entraram"} no tópico
+    </>
+  );
 }
 
 /**
@@ -1022,11 +1054,18 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
             className={cn(
               css.aviso,
               message.sistema.tipo === "saiu" && css.avisoSaida,
+              message.sistema.tipo === "entrouNoTopico" && css.avisoTopico,
               (message.sistema.tipo === "entrou" ||
                 message.sistema.tipo === "chamada") &&
                 css.avisoPresenca,
             )}
           >
+            {message.sistema.tipo === "entrouNoTopico" ? (
+              /* O 🧵 do design, em `accent-text`: o mesmo glifo que marca
+                 tópico no painel de tópicos, e não um emoji — emoji não
+                 recebe a cor que o design lhe dá. */
+              <ChatsCircle aria-hidden className={css.avisoIcone} />
+            ) : null}
             <span className={cn(css.minZero, "wrap-anywhere")}>
               <FraseDeSistema sistema={message.sistema} />
             </span>

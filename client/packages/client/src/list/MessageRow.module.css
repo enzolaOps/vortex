@@ -1162,6 +1162,29 @@
 }
 
 /*
+  Entrada no tópico (D-CANAIS-23): o véu neutro do design
+  (`rgba(255,255,255,0.03)`) com o texto em `text-3` — é notícia de
+  burocracia, não chegada a uma sala, e por isso NÃO leva o verde de
+  `.avisoPresenca`. Quem tem cor é só o glifo, em `accent-text` (`#7EE3E9`).
+
+  ⚠ **O respiro do design é `12px 14px` e aqui fica o de toda linha de
+  sistema** (`.aviso`): as linhas de sistema têm a mesma altura, que é o que
+  `ALTURA_POR_TIPO` estima por tipo e não por variante. Quatro pixels de
+  respiro a mais numa linha rara não pagam uma estimativa a mais.
+*/
+.avisoTopico {
+  background: var(--vx-state-hover);
+}
+
+.avisoIcone {
+  flex: none;
+  align-self: center;
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+  color: var(--vx-accent-text);
+}
+
+/*
   Hora e duração: metadado DENTRO da frase, não na borda da coluna.
 
   `currentColor` a 70% em vez de `--vx-text-3`: a caixa muda de cor com o tipo

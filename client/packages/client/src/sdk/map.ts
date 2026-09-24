@@ -48,6 +48,7 @@ import { formatarBytes } from "../lib/bytes";
 import { sigla } from "../lib/sigla";
 import { camposDe, superficie } from "./superficieVortex";
 import { linhaDeSala } from "./eventosDaSala";
+import { lerEntrada } from "./entradasNoTopico";
 import { lerConfigDeVoz } from "./vozDoCanal";
 
 /**
@@ -162,6 +163,9 @@ export function toSistema(message: Message): SistemaSnapshot | undefined {
   /* Entrou/saiu/moveu na sala de voz: linha LOCAL, o fato mora no registro. */
   const daSala = linhaDeSala(message.id);
   if (daSala !== undefined) return daSala;
+  /* Entrou no tópico: linha LOCAL também — ver `sdk/entradasNoTopico.ts`. */
+  const noTopico = lerEntrada(message.id);
+  if (noTopico !== undefined) return noTopico;
   const sm = message.systemMessage;
   if (!sm) return undefined;
 
