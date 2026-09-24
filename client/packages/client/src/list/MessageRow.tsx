@@ -17,8 +17,6 @@ import {
   PushPin,
   PushPinSlash,
   Smiley,
-  TextB,
-  TextItalic,
   Trash,
 } from "../components/ui/icones";
 import {
@@ -130,12 +128,7 @@ import { encerrarEnquete } from "../sdk/enquetes";
 import { MenuDoUsuario } from "../membros/MenuDoUsuario";
 import { abrirTopicoDaMensagem, podeCriarTopico } from "../topicos/acoes";
 import { abrirSeletorDeReacao } from "../store/seletorDeReacao";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "../components/ui/Popover";
-import { SeletorDeEmoji } from "../seletores/SeletorDeEmoji";
+import { ReguaDeFormatacao } from "../composer/ReguaDeFormatacao";
 import {
   assinarDensidade,
   lerDensidade,
@@ -511,50 +504,6 @@ function EditorDaLinha({
     });
   }
 
-  const [emojiAberto, setEmojiAberto] = useState(false);
-
-  /**
-   * Envolve a seleção com um marcador de markdown.
-   *
-   * Escreve no ESTADO e devolve o cursor ao campo, em vez de mexer no valor do
-   * DOM: o campo é controlado, e mexer nele por fora produziria o clássico
-   * valor que aparece e some no próximo `setState`.
-   *
-   * Sem seleção o marcador é inserido vazio com o cursor no meio — que é o que
-   * todo editor faz, e o que permite marcar antes de escrever.
-   */
-  function envolver(marca: string) {
-    const campo = campoRef.current;
-    if (!campo) return;
-    const { selectionStart: a, selectionEnd: b } = campo;
-    setTexto(texto.slice(0, a) + marca + texto.slice(a, b) + marca + texto.slice(b));
-    /* Depois do commit do React, senão o cursor volta para o fim. */
-    queueMicrotask(() => {
-      campo.focus();
-      campo.setSelectionRange(a + marca.length, b + marca.length);
-    });
-  }
-
-  /**
-   * Insere no CURSOR, e não no fim.
-   *
-   * Concatenar faria o glifo saltar para o final de uma frase já escrita — a
-   * mesma decisão que o seletor do composer já registra.
-   */
-  function inserir(glifo: string) {
-    const campo = campoRef.current;
-    if (!campo) {
-      setTexto(texto + glifo);
-      return;
-    }
-    const { selectionStart: a, selectionEnd: b } = campo;
-    setTexto(texto.slice(0, a) + glifo + texto.slice(b));
-    queueMicrotask(() => {
-      campo.focus();
-      campo.setSelectionRange(a + glifo.length, a + glifo.length);
-    });
-  }
-
   return (
     <div className={css.editor}>
       <textarea
@@ -594,62 +543,25 @@ function EditorDaLinha({
         hairline, e a diferença não é decorativa: com a régua fora, a borda de
         foco do campo terminava antes dos controles que pertencem a ele.
 
-        Negrito e itálico são REAIS, não desenho: o markdown já existe no
-        caminho de leitura desde que `markdown/analisar.ts` foi construído, e
-        `**` em volta da seleção é o mesmo texto que qualquer cliente Stoat
-        entende. O emoji abre o mesmo seletor do composer, e insere no
-        cursor.
+        É a MESMA régua do assunto do canal, com três botões em vez de seis
+        (D-CCANAL-04) — ver `composer/ReguaDeFormatacao`. Um `Popover.Root`
+        dela é barato aqui: só UMA linha está em edição por vez.
       */}
-      <div className={css.reguaDeEdicao}>
-        <div className={css.reguaAcoes}>
-          <button
-            type="button"
-            className={css.reguaBotao}
-            aria-label="Negrito"
-            onClick={() => envolver("**")}
-          >
-            <TextB aria-hidden />
-          </button>
-          <button
-            type="button"
-            className={css.reguaBotao}
-            aria-label="Itálico"
-            onClick={() => envolver("*")}
-          >
-            <TextItalic aria-hidden />
-          </button>
-          {/*
-            ⚠ **Um `Popover.Root` aqui é barato, ao contrário do da reação** —
-            e a diferença é quantos existem. Este vive dentro do editor, e só
-            UMA linha está em edição por vez; o da reação seria montado em toda
-            linha da janela, que é a conta que criou
-            `store/seletorDeReacao.ts`.
-          */}
-          <Popover open={emojiAberto} onOpenChange={setEmojiAberto}>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                className={css.reguaBotao}
-                aria-label="Emoji"
-              >
-                <Smiley aria-hidden />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent side="top" align="start" sideOffset={6}>
-              <SeletorDeEmoji
-                aoEscolher={(glifo) => {
-                  inserir(glifo);
-                  setEmojiAberto(false);
-                }}
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-        <span className={css.dicaDeEdicao}>
-          <kbd className={css.tecla}>esc</kbd> cancela ·{" "}
-          <kbd className={css.tecla}>↵</kbd> salva
-        </span>
-      </div>
+      <ReguaDeFormatacao
+        className={css.reguaDeEdicao}
+        campo={campoRef}
+        valor={texto}
+        aoMudar={setTexto}
+        botoes={["negrito", "italico", "emoji"]}
+        compacta
+        ladoDoEmoji="top"
+        dica={
+          <span className={css.dicaDeEdicao}>
+            <kbd className={css.tecla}>esc</kbd> cancela ·{" "}
+            <kbd className={css.tecla}>↵</kbd> salva
+          </span>
+        }
+      />
     </div>
   );
 }

@@ -1,21 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { CaretDown, ICONE } from "../../components/ui/icones";
+import { CaretDown, ICONE, Lock } from "../../components/ui/icones";
 
 import { Campo } from "../../components/ui/Campo";
 import { Deslizante } from "../../components/ui/Deslizante";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "../../components/ui/Popover";
+import { ReguaDeFormatacao } from "../../composer/ReguaDeFormatacao";
+import { tomDoContador } from "../../composer/formatacao";
+import { degrausDeModoLento, rotuloDoModoLento } from "./modoLento";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "../../components/ui/DropdownMenu";
-import { SeletorDeEmoji } from "../../seletores/SeletorDeEmoji";
 import { definirBarraDeSalvar } from "../../store/barraDeSalvar";
 import { nosDeVoz, salvarCanal } from "../../sdk/canal";
 import {
@@ -63,37 +60,13 @@ import css from "./Canal.module.css";
  * O que é real e o que é desenho continua vindo de `DataEditChannel` — a
  * tabela está em `sdk/canal.ts`.
  */
-/**
- * Os degraus de modo lento, em segundos.
- *
- * ⚠ **Param em 6 h porque é o TETO do protocolo** — o validador do servidor
- * recusa acima de 21600 com um 400 que chegaria à tela como "não deu para
- * salvar", sem dizer qual campo. Quem garante o corte é o `min` em
- * `sdk/canal.ts`; esta lista é de exibição.
- *
- * Os passos são os de todo cliente da categoria, e não uma escala inventada:
- * quem liga modo lento está reagindo a uma enxurrada, e escolher entre 5 s e
- * 10 s é decisão que se toma de relance.
- */
-const DEGRAUS_DE_MODO_LENTO = [
-  0, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200, 21600,
-] as const;
-
-/** `0` é DESATIVADO e não "zero segundos" — a diferença é o que a linha diz. */
-function rotuloDoModoLento(s: number): string {
-  if (s <= 0) return "Desativado";
-  if (s < 60) return `${String(s)} segundos`;
-  if (s < 3600) {
-    const m = s / 60;
-    return m === 1 ? "1 minuto" : `${String(m)} minutos`;
-  }
-  const h = s / 3600;
-  return h === 1 ? "1 hora" : `${String(h)} horas`;
-}
+/** O teto do assunto — o `maxLength` do campo e o denominador do contador. */
+const LIMITE_DO_ASSUNTO = 1024;
 
 export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
   const canal = useChannel(channelId);
   const voz = useConfigDeVoz(channelId);
+  const campoDoAssunto = useRef<HTMLTextAreaElement>(null);
 
   const [nome, setNome] = useState(canal?.name ?? "");
   const [assunto, setAssunto] = useState(canal?.topico ?? "");
@@ -111,7 +84,6 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
   const [modoDeVideo, setModoDeVideo] = useState<ModoDeVideo>(voz.modoDeVideo);
   const [modoDaSala, setModoDaSala] = useState<ModoDaSala>(voz.modoDaSala);
   const [salvando, setSalvando] = useState(false);
-  const [emojiAberto, setEmojiAberto] = useState(false);
 
   const ehVoz = canal?.tipo === "voz";
   /*
@@ -273,6 +245,12 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
             disabled={salvando}
             value={nome}
             onChange={(e) => setNome(normalizar(e.target.value))}
+            /*
+              O cadeado diz o ACESSO, como na coluna de canais (D-CCANAL-02).
+              Ele só aparece quando o canal é privado: o prefixo é a exceção
+              que merece aviso, e um `#` fixo repetiria o que o título já diz.
+            */
+            prefixo={canal.privado ? <Lock size={ICONE.selo} aria-hidden /> : undefined}
             dica="Minúsculas, sem espaços — hífens são convertidos automaticamente."
           />
         </section>
@@ -281,66 +259,43 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
           {/* Rótulo e contador na MESMA linha — é onde o design os põe. */}
           <p className={css.rotuloComContador}>
             <span>Assunto do canal</span>
-            <span className={css.contador}>{assunto.length} / 1024</span>
+            {/*
+              O tom muda perto do teto (D-CCANAL-03): o corte em 1024 é
+              silencioso — o `maxLength` só para de aceitar tecla —, e sem o
+              aviso a pessoa descobre o limite pela letra que não entrou.
+            */}
+            <span
+              className={css.contador}
+              data-tom={tomDoContador(assunto.length, LIMITE_DO_ASSUNTO)}
+            >
+              {assunto.length} / {LIMITE_DO_ASSUNTO}
+            </span>
           </p>
 
           <div className={css.caixaDeTexto}>
-            <div className={css.regua} role="toolbar" aria-label="Formatação">
-              {/*
-                Os quatro de formatação são REAIS: envolvem a seleção em
-                markdown, que o caminho de leitura já entende desde
-                `markdown/analisar.ts`. O spoiler de TEXTO escreve `!!…!!`, a
-                marca que os clientes Stoat entendem — é outra coisa que o
-                "Canal de spoiler" logo abaixo, que cobre a MÍDIA do canal.
-              */}
-              <Formato rotulo="Negrito" marca="**" valor={assunto} aoAplicar={setAssunto}>
-                B
-              </Formato>
-              <Formato rotulo="Itálico" marca="*" valor={assunto} aoAplicar={setAssunto}>
-                I
-              </Formato>
-              <Formato rotulo="Sublinhado" marca="__" valor={assunto} aoAplicar={setAssunto}>
-                U
-              </Formato>
-              <Formato rotulo="Riscado" marca="~~" valor={assunto} aoAplicar={setAssunto}>
-                S
-              </Formato>
-              <span className={css.reguaDivisa} aria-hidden />
-              <Formato rotulo="Spoiler" marca="!!" valor={assunto} aoAplicar={setAssunto}>
-                spoiler
-              </Formato>
-              {/* Um `Popover.Root` por FORMULÁRIO, e não por linha de lista —
-                  a conta que criou `store/seletorDeReacao.ts` não se aplica
-                  aqui: esta tela tem um campo de assunto, não dez mil. */}
-              <Popover open={emojiAberto} onOpenChange={setEmojiAberto}>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    className={css.reguaBotao}
-                    aria-label="Emoji"
-                  >
-                    🙂
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent side="bottom" align="start" sideOffset={6}>
-                  <SeletorDeEmoji
-                    aoEscolher={(glifo) => {
-                      setAssunto(assunto + glifo);
-                      setEmojiAberto(false);
-                    }}
-                  />
-                </PopoverContent>
-              </Popover>
-              <span className={css.reguaDica}>markdown ok</span>
-            </div>
+            {/*
+              A MESMA régua do editor de mensagem, com os seis botões em vez
+              de três (D-CCANAL-04). Ela envolve a SELEÇÃO — a daqui envolvia
+              o texto inteiro, porque não tinha o `ref` do campo.
+            */}
+            <ReguaDeFormatacao
+              className={css.regua}
+              campo={campoDoAssunto}
+              valor={assunto}
+              aoMudar={setAssunto}
+              botoes={["negrito", "italico", "sublinhado", "riscado", "spoiler", "emoji"]}
+              limite={LIMITE_DO_ASSUNTO}
+              dica={<span className={css.reguaDica}>markdown ok</span>}
+            />
 
             <textarea
+              ref={campoDoAssunto}
               className={css.areaDeTexto}
               aria-label="Assunto do canal"
               disabled={salvando}
               value={assunto}
-              maxLength={1024}
-              onChange={(e) => setAssunto(e.target.value)}
+              maxLength={LIMITE_DO_ASSUNTO}
+              onChange={(e) => setAssunto(e.target.value.slice(0, LIMITE_DO_ASSUNTO))}
             />
           </div>
         </section>
@@ -367,7 +322,7 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              {DEGRAUS_DE_MODO_LENTO.map((d) => (
+              {degrausDeModoLento(lento).map((d) => (
                 <DropdownMenuCheckboxItem
                   key={d}
                   marcado={lento === d}
@@ -495,39 +450,6 @@ export function VisaoGeralDoCanal({ channelId }: { channelId: string }) {
       </div>
 
     </>
-  );
-}
-
-/**
- * Um botão da régua que envolve o texto inteiro na marca de markdown.
- *
- * ⚠ Envolve TUDO e não a seleção, e a diferença é honesta: sem uma referência
- * ao `textarea` não há seleção para ler, e passá-la por props só para isto
- * amarraria a régua ao campo. O assunto é uma frase; envolver a frase é o caso
- * comum. A régua do editor de mensagem, que tem o `ref`, envolve a seleção.
- */
-function Formato({
-  rotulo,
-  marca,
-  valor,
-  aoAplicar,
-  children,
-}: {
-  rotulo: string;
-  marca: string;
-  valor: string;
-  aoAplicar: (v: string) => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      className={css.reguaBotao}
-      aria-label={rotulo}
-      onClick={() => aoAplicar(`${marca}${valor}${marca}`)}
-    >
-      {children}
-    </button>
   );
 }
 

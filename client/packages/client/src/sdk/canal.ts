@@ -1,3 +1,4 @@
+import { BIT_VER_CANAL } from "./bits";
 import { client, conectado } from "./client";
 import { aplicarSuperficieVortex, aplicarVozDoCanal } from "./adapter";
 import { corpoDeVoz, lerConfigDeVoz } from "./vozDoCanal";
@@ -190,22 +191,6 @@ export function nosDeVoz(): readonly string[] {
  */
 export type OverrideDeCanal = { readonly allow: bigint; readonly deny: bigint };
 
-export function overrideDoCargo(
-  channelId: string,
-  roleId: string,
-): OverrideDeCanal {
-  const canal = client.channels.get(channelId);
-  const bruto = (
-    canal as unknown as {
-      rolePermissions?: Record<string, { a?: number; d?: number }>;
-    }
-  )?.rolePermissions?.[roleId];
-  return {
-    allow: BigInt(bruto?.a ?? 0),
-    deny: BigInt(bruto?.d ?? 0),
-  };
-}
-
 /**
  * TODAS as permissões de um canal — o padrão e cada cargo — em tipo do app.
  *
@@ -315,14 +300,19 @@ export async function salvarPermissaoDeCanal(
  * `setPermissions(undefined, …)` escreve o override de todo mundo. Passar uma
  * string vazia não faz o mesmo — escreveria num cargo que não existe.
  *
- * Bit 0 do `Permission` é `ViewChannel`; a máscara é 1.
+ * `ViewChannel` é o bit 20 — `BIT_VER_CANAL`. Este comentário dizia "bit 0",
+ * e a escrita gravava `deny: 1`: um canal "privado" ABERTO a todo mundo e
+ * sem ninguém que o gerenciasse. Ver `bits.ts`.
  */
 export async function fecharCanal(channelId: string): Promise<boolean> {
   if (!conectado()) return false;
   const canal = client.channels.get(channelId);
   if (!canal) return false;
   try {
-    await canal.setPermissions(undefined, { allow: 0, deny: 1 });
+    await canal.setPermissions(undefined, {
+      allow: 0,
+      deny: Number(BIT_VER_CANAL),
+    });
     return true;
   } catch {
     return false;
