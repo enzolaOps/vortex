@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { dbDoRms, rmsDe } from "../lib/nivelDeAudio";
+
 /**
  * Câmera e microfone ABERTOS FORA DA CHAMADA, para as duas telas de teste.
  *
@@ -109,26 +111,55 @@ export function useFaixaLocal() {
   return { estado, erro, faixa, abrir, fechar };
 }
 
-/**
- * Quantas barras do medidor acender, de 0 a `barras`.
- *
- * ⚠ **Mede de verdade, com `AnalyserNode`** — a tela dizia por extenso que o
- * medidor era um gabarito parado, e a razão dada era a certa: barra animada
- * com número inventado é a mesma mentira do "Conectado · 42 ms" que a faixa de
- * voz recusou. Agora o número existe, então a barra pode se mexer.
- *
- * ⚠ **O estado só muda quando o número de barras muda**, e não a cada quadro.
- * O RMS varia continuamente; um `setState` por `requestAnimationFrame`
- * re-renderizaria a página inteira 60 vezes por segundo para acender a mesma
- * barra. A quantização em degraus é o throttle natural desta medida — mesma
- * ideia do throttle na fronteira do store efêmero.
- */
-export function useNivelDeEntrada(
-  faixa: MediaStream | null,
-  barras: number,
-): number {
-  const [aceso, setAceso] = useState(0);
+/*
+  O nível do microfone de TESTE, em dB — um store efêmero, não estado de
+  componente.
 
+  ⚠ **Store e não `useState`, e a razão é a lei nº 1.** O nível muda dezenas de
+  vezes por segundo, e a tela tem DOIS medidores lendo o mesmo número (o do
+  teste e o do limiar manual). Com `useState` na página, cada passo do RMS
+  re-renderizaria a página inteira — interruptores, seletores, a tabela de
+  atalhos — para acender uma barra. Aqui só os medidores assinam, e cada um
+  acorda sozinho.
+
+  ⚠ **Throttle na FRONTEIRA**, como o store de fala: o laço mede a cada quadro,
+  mas publica só quando o dB inteiro muda e no máximo a cada 50 ms. 20 Hz é
+  mais rápido do que o olho acompanha um medidor e 3× mais lento que o
+  `requestAnimationFrame`.
+*/
+let nivelDb: number | undefined;
+const ouvintesDoNivel = new Set<() => void>();
+
+export function assinarNivelDeEntrada(ouvinte: () => void): () => void {
+  ouvintesDoNivel.add(ouvinte);
+  return () => {
+    ouvintesDoNivel.delete(ouvinte);
+  };
+}
+
+/** `undefined` = nenhum teste medindo, que é diferente de silêncio. */
+export function lerNivelDeEntrada(): number | undefined {
+  return nivelDb;
+}
+
+function publicarNivel(db: number | undefined): void {
+  if (db === nivelDb) return;
+  nivelDb = db;
+  for (const o of ouvintesDoNivel) o();
+}
+
+const INTERVALO_DO_NIVEL_MS = 50;
+
+/**
+ * Mede a faixa aberta com um `AnalyserNode` e publica no store acima.
+ *
+ * ⚠ **Mede de verdade** — a tela dizia por extenso que o medidor era um
+ * gabarito parado, e a razão dada era a certa: barra animada com número
+ * inventado é a mesma mentira do "Conectado · 42 ms" que a faixa de voz
+ * recusou. A conta de dB é a de `lib/nivelDeAudio.ts`, a MESMA que a porta de
+ * voz do motor usa — é o que mantém a marca do limiar honesta.
+ */
+export function useMedirEntrada(faixa: MediaStream | null): void {
   useEffect(() => {
     if (!faixa) return;
 
@@ -142,28 +173,14 @@ export function useNivelDeEntrada(
 
     const amostra = new Float32Array(analisador.fftSize);
     let vivo = true;
-    let anterior = -1;
+    let publicadoEm = -Infinity;
 
-    function quadro() {
+    function quadro(agora: number) {
       if (!vivo) return;
-      analisador.getFloatTimeDomainData(amostra);
-
-      let soma = 0;
-      for (const v of amostra) soma += v * v;
-      const rms = Math.sqrt(soma / amostra.length);
-
-      /*
-        Escala em dB e não linear: a voz normal fica em RMS ~0,02–0,1, e num
-        medidor linear isso é a primeira barra e mais nada. −60 dB é o piso
-        útil de um microfone de mesa.
-      */
-      const db = 20 * Math.log10(Math.max(rms, 1e-6));
-      const frac = Math.min(1, Math.max(0, (db + 60) / 60));
-      const n = Math.round(frac * barras);
-
-      if (n !== anterior) {
-        anterior = n;
-        setAceso(n);
+      if (agora - publicadoEm >= INTERVALO_DO_NIVEL_MS) {
+        analisador.getFloatTimeDomainData(amostra);
+        publicadoEm = agora;
+        publicarNivel(Math.round(dbDoRms(rmsDe(amostra))));
       }
       requestAnimationFrame(quadro);
     }
@@ -172,20 +189,15 @@ export function useNivelDeEntrada(
     return () => {
       vivo = false;
       fonte.disconnect();
+      /* Sem faixa não há o que medir: o medidor volta a "— dB" em vez de
+         congelar no último número. */
+      publicarNivel(undefined);
       /* `close()` devolve o dispositivo de áudio ao sistema. Sem ele, cada
          abertura da tela deixa um `AudioContext` vivo — o erro nº 5 do
          briefing, e o navegador tem teto de contextos por aba. */
       void ctx.close();
     };
-  }, [faixa, barras]);
-
-  /*
-    ⚠ **Zerado na LEITURA e não por `setState` no efeito.** Chamar `setAceso(0)`
-    ao desligar é uma renderização em cascata — o lint deste projeto a reprova,
-    e o mesmo padrão já apareceu no seletor de emoji e nas telas de convite. A
-    resposta é a mesma das três: derivar de quem o valor É, em vez de zerar.
-  */
-  return faixa ? aceso : 0;
+  }, [faixa]);
 }
 
 /** Onde o teste de microfone está. */

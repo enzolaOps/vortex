@@ -14,7 +14,8 @@ import {
   type AcaoDeVoz,
   type CombinacaoDeTeclas,
 } from "../store/atalhosDeVoz";
-import { definirSegurando } from "../store/pushToTalk";
+import { apertarTecla, soltarTecla } from "../store/pushToTalk";
+import { lerPreferenciasDeVoz } from "../store/preferenciasDeVoz";
 
 /**
  * Os atalhos de voz em funcionamento, e o estado de voz para a bandeja.
@@ -82,10 +83,10 @@ export function ponteDeControles(): PonteDeControles | undefined {
 export function executarComando(c: ComandoDeVoz): void {
   switch (c) {
     case "pushToTalkInicio":
-      definirSegurando(true);
+      apertarTecla();
       return;
     case "pushToTalkFim":
-      definirSegurando(false);
+      soltarTecla(lerPreferenciasDeVoz().atrasoAoSoltarMs);
       return;
     case "mutar":
       void alternarMudo();
@@ -162,7 +163,7 @@ let reenviar: (() => void) | undefined;
 export function pausarAtalhos(sim: boolean): void {
   if (pausado === sim) return;
   pausado = sim;
-  if (!sim) definirSegurando(false);
+  if (!sim) soltarTecla(0);
   reenviar?.();
 }
 
@@ -217,5 +218,5 @@ export function ligarAtalhosDeVoz(): void {
   window.addEventListener("keyup", aoTeclado);
   /* Trocar de janela com a tecla segurada: o `keyup` vai para outra janela, e
      o microfone ficaria aberto sem ninguém apertando nada. */
-  window.addEventListener("blur", () => definirSegurando(false));
+  window.addEventListener("blur", () => soltarTecla(0));
 }

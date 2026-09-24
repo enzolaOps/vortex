@@ -72,6 +72,7 @@ import {
   ponteDeAudioDeJanela,
 } from "./audioDeJanela";
 import { criarAtenuador, ponteDeAtenuacao } from "./atenuacao";
+import { ligarPortaDeVoz } from "./portaDeVoz";
 import { client } from "./client";
 import { lerConfigDeVoz, publicacaoDe as publicacaoDoCanal } from "./vozDoCanal";
 import { sairDaSalaLocalmente } from "./adapter";
@@ -859,6 +860,13 @@ export async function entrarNaChamada(channelId: string): Promise<boolean> {
       }
     });
     pararDeOuvirTecla = assinarPushToTalk(() => void aplicarMicrofone());
+    /* O limiar manual — ver `portaDeVoz.ts`. Liga sempre e decide a cada
+       passo se vale, para acompanhar a troca de modo com a chamada aberta. */
+    pararPortaDeVoz = ligarPortaDeVoz(
+      () =>
+        r.localParticipant.getTrackPublication(Track.Source.Microphone)
+          ?.audioTrack,
+    );
     pararDeOuvirVolumes = assinarVolumeEfetivo((userId) =>
       definirVolumeDe(userId, volumeEfetivo(userId)),
     );
@@ -923,6 +931,8 @@ export async function sairDaChamada(): Promise<void> {
   pararDeOuvirPreferencias = undefined;
   pararDeOuvirTecla?.();
   pararDeOuvirTecla = undefined;
+  pararPortaDeVoz?.();
+  pararPortaDeVoz = undefined;
   esquecerProcessadores();
   pararDeOuvirVolumes?.();
   pararDeOuvirVolumes = undefined;
@@ -966,6 +976,7 @@ let pararDeOuvirPreferencias: (() => void) | undefined;
 /** Volume individual e silêncio só para mim — ver `store/volumesDeVoz.ts`. */
 let pararDeOuvirVolumes: (() => void) | undefined;
 let pararDeOuvirTecla: (() => void) | undefined;
+let pararPortaDeVoz: (() => void) | undefined;
 
 /** Mudo, surdo e push-to-talk decidindo juntos — ver `microfoneAberto`. */
 function deveTransmitir(): boolean {

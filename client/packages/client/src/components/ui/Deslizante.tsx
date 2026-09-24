@@ -25,6 +25,7 @@ export function Deslizante({
   rotulo,
   texto,
   aoMudar,
+  sobreposto = false,
 }: {
   id: string;
   valor: number;
@@ -34,12 +35,18 @@ export function Deslizante({
   rotulo: string;
   texto: string;
   aoMudar: (valor: number) => void;
+  /**
+   * Invisível e esticado sobre o PAI, que desenha a trilha por conta própria —
+   * o medidor do limiar manual. Ponteiro, teclado e ARIA continuam sendo do
+   * input nativo; só a pintura sai daqui. O pai precisa de `position`.
+   */
+  sobreposto?: boolean;
 }) {
   return (
     <input
       id={id}
       type="range"
-      className={css.deslizante}
+      className={sobreposto ? css.sobreposto : css.deslizante}
       min={min}
       max={max}
       step={passo}

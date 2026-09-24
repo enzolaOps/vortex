@@ -86,3 +86,22 @@
   cursor: not-allowed;
   opacity: var(--vx-lamina-3);
 }
+
+/*
+  A variante SOBREPOSTA: o input sem pintura nenhuma, esticado sobre o pai.
+
+  ⚠ **Invisível, mas é ele que recebe ponteiro, teclado e foco.** O recuo
+  negativo leva a área de toque além da caixa do pai — um trilho de 8px de
+  altura seria um alvo que se erra. O anel de foco é de quem desenha a marca
+  (`:has(:focus-visible)` no pai), porque um anel no input invisível
+  contornaria uma caixa que ninguém vê.
+*/
+.sobreposto {
+  position: absolute;
+  inset: -8px 0;
+  inline-size: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: ew-resize;
+  appearance: none;
+}

@@ -69,49 +69,64 @@
 .medidor {
   display: flex;
   align-items: center;
-  gap: var(--vx-space-10);
+  gap: var(--vx-space-12);
 }
 
+/* 52px, a mesma largura do número do outro lado: o trilho fica centrado no
+   cartão e não anda quando o rótulo ou o número mudam. */
 .rotuloDoMedidor {
-  composes: sobrancelha from "../styles/sobrancelha.module.css";
   flex: none;
+  inline-size: 52px;
+  font-size: var(--vx-size-xs);
   color: var(--vx-text-3);
 }
 
 /*
-  As barras do medidor.
+  O medidor: 28 barras dentro de um trilho, do design.
 
-  ⚠ **Elas MEDEM agora** — `useNivelDeEntrada` liga um `AnalyserNode` na faixa
-  do teste e acende por RMS em dB. O comentário anterior dizia que eram um
-  gabarito parado, e a razão dada era a certa enquanto não havia analisador:
-  barra que se mexe com número inventado é a mesma mentira do "Conectado ·
-  42 ms" que a faixa de voz recusou.
+  ⚠ **Elas MEDEM** — `useMedirEntrada` liga um `AnalyserNode` na faixa do
+  teste e publica o dB num store efêmero; quem assina são só `BarrasDoMedidor`
+  e `TextoDoNivel`. Fora do teste elas ficam apagadas: sem faixa aberta não há
+  o que medir.
 
-  Fora do teste elas continuam paradas e apagadas, pelo mesmo princípio: sem
-  faixa aberta não há o que medir.
+  Trilho em `surface-2` (o `#14181E` do design), barras apagadas em `track`.
 */
-.barras {
+.trilhoDoMedidor {
   display: flex;
   flex: 1;
-  gap: var(--vx-space-03);
+  gap: var(--vx-space-02);
   min-inline-size: 0;
+  block-size: 8px;
+  padding: 1px;
+  overflow: hidden;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-surface-2);
 }
 
 .barra {
   flex: 1;
-  block-size: 10px;
   border-radius: var(--vx-radius-02);
   background: var(--vx-track);
 }
 
 /*
+  Três faixas, pelas regras literais do design: verde até a 19ª barra, amarelo
+  até a 24ª, vermelho acima. A cor diz "alto" e "estourando" sem ler número.
+
   ⚠ **Sem transição.** Um medidor de entrada existe para dizer "o microfone
   está pegando a minha voz AGORA"; qualquer suavização atrasa a resposta e
-  desfaz o único trabalho dele. É o oposto da decisão de suavizar um progresso
-  de upload, onde o valor real salta e o olho quer continuidade.
+  desfaz o único trabalho dele.
 */
-.barraAcesa {
-  background: var(--vx-accent);
+.barraOk {
+  background: var(--vx-success);
+}
+
+.barraAlto {
+  background: var(--vx-warning);
+}
+
+.barraPico {
+  background: var(--vx-danger);
 }
 
 /*
@@ -135,11 +150,16 @@
   color: var(--vx-danger);
 }
 
+/* 52px de largura, alinhado à direita: "−46 dB" e "— dB" não podem empurrar
+   o trilho a cada troca de número. */
 .db {
   flex: none;
+  inline-size: 52px;
   font-family: var(--vx-font-mono);
   font-size: var(--vx-size-xs);
-  color: var(--vx-text-4);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  color: var(--vx-text-2);
 }
 
 /* ---------------------------------------------------- modo de entrada */
@@ -150,6 +170,70 @@
   display: grid;
   gap: var(--vx-space-08);
   margin-block-end: var(--vx-space-16);
+}
+
+/* --------------------------------- sensibilidade e push-to-talk */
+
+/* Título à esquerda, controle à direita — a cabeça dos dois blocos. */
+.cabecaDoBloco {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-16);
+  margin-block-end: var(--vx-space-12);
+}
+
+.teclaDoBloco {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-08);
+}
+
+/* O limiar manual mora abaixo de uma régua dentro do mesmo cartão: ele é
+   consequência do interruptor de cima, não um bloco à parte. */
+.limiar {
+  padding-block-start: var(--vx-space-14);
+  border-block-start: 1px solid var(--vx-hairline-06);
+}
+
+.rotuloDoLimiar {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+/*
+  O medidor arrastável: barras, a marca e um range nativo TRANSPARENTE por
+  cima. A posição da marca vem de `--vx-limiar`, escrita pelo componente com a
+  mesma fração que acende as barras.
+*/
+.medidorArrastavel {
+  position: relative;
+  display: flex;
+}
+
+/* 2×20 em `warning`, centrada no trilho de 8: sobra 6 acima e 6 abaixo. */
+.marcaDoLimiar {
+  position: absolute;
+  inset-block-start: -6px;
+  inset-inline-start: var(--vx-limiar, 0%);
+  inline-size: 2px;
+  block-size: 20px;
+  margin-inline-start: -1px;
+  border-radius: var(--vx-radius-02);
+  background: var(--vx-warning);
+  pointer-events: none;
+}
+
+.medidorArrastavel:has(:focus-visible) .marcaDoLimiar {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.legendaDoLimiar {
+  margin: var(--vx-space-14) 0 0;
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-4);
 }
 
 /* ------------------------------------------------------------- vídeo */
