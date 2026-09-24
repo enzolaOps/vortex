@@ -25,8 +25,10 @@ impl AbstractUserSettings for ReferenceDb {
     /// Update a subset of user settings
     async fn set_user_settings(&self, id: &str, settings: &UserSettings) -> Result<()> {
         let mut user_settings = self.user_settings.lock().await;
-        if let Some(settings) = user_settings.get_mut(id) {
-            settings.extend(settings.clone());
+        // Vortex: o `settings` de dentro sombreava o parâmetro, e a segunda
+        // escrita do mesmo usuário estendia o mapa CONSIGO MESMO — nada mudava.
+        if let Some(existentes) = user_settings.get_mut(id) {
+            existentes.extend(settings.clone());
         } else {
             user_settings.insert(id.to_string(), settings.clone());
         }

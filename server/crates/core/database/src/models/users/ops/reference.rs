@@ -1,6 +1,6 @@
 use revolt_result::Result;
 
-use crate::{FieldsUser, PartialUser, RelationshipStatus, User};
+use crate::{Channel, FieldsUser, MemberCompositeKey, PartialUser, RelationshipStatus, User};
 use crate::{ReferenceDb, Relationship};
 
 use super::AbstractUsers;
@@ -66,18 +66,60 @@ impl AbstractUsers for ReferenceDb {
     }
 
     /// Fetch ids of users that both users are friends with
-    async fn fetch_mutual_user_ids(&self, _user_a: &str, _user_b: &str) -> Result<Vec<String>> {
-        todo!()
+    ///
+    /// Vortex: era `todo!()`, e o que dependia dele (privacidade de DM e de
+    /// pedido de amizade) ficava fora da suíte. Mesma semântica da consulta do
+    /// MongoDB: quem tem `Friend` com as DUAS pessoas.
+    async fn fetch_mutual_user_ids(&self, user_a: &str, user_b: &str) -> Result<Vec<String>> {
+        let users = self.users.lock().await;
+        let amigo_de = |user: &User, alvo: &str| {
+            user.relations.as_ref().is_some_and(|relations| {
+                relations
+                    .iter()
+                    .any(|r| r.id == alvo && r.status == RelationshipStatus::Friend)
+            })
+        };
+        Ok(users
+            .values()
+            .filter(|user| amigo_de(user, user_a) && amigo_de(user, user_b))
+            .map(|user| user.id.clone())
+            .collect())
     }
 
     /// Fetch ids of channels that both users are in
-    async fn fetch_mutual_channel_ids(&self, _user_a: &str, _user_b: &str) -> Result<Vec<String>> {
-        todo!()
+    ///
+    /// Vortex: grupos e DMs (abertas ou não), como a consulta do MongoDB.
+    async fn fetch_mutual_channel_ids(&self, user_a: &str, user_b: &str) -> Result<Vec<String>> {
+        let channels = self.channels.lock().await;
+        Ok(channels
+            .values()
+            .filter_map(|channel| match channel {
+                Channel::DirectMessage { id, recipients, .. }
+                | Channel::Group { id, recipients, .. }
+                    if recipients.iter().any(|r| r == user_a)
+                        && recipients.iter().any(|r| r == user_b) =>
+                {
+                    Some(id.clone())
+                }
+                _ => None,
+            })
+            .collect())
     }
 
     /// Fetch ids of servers that both users share
-    async fn fetch_mutual_server_ids(&self, _user_a: &str, _user_b: &str) -> Result<Vec<String>> {
-        todo!()
+    async fn fetch_mutual_server_ids(&self, user_a: &str, user_b: &str) -> Result<Vec<String>> {
+        let members = self.server_members.lock().await;
+        Ok(members
+            .keys()
+            .filter(|key| key.user == user_a)
+            .filter(|key| {
+                members.contains_key(&MemberCompositeKey {
+                    server: key.server.clone(),
+                    user: user_b.to_string(),
+                })
+            })
+            .map(|key| key.server.clone())
+            .collect())
     }
 
     /// Update a user by their id given some data

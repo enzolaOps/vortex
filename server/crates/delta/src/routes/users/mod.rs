@@ -13,6 +13,7 @@ mod fetch_user;
 mod fetch_user_flags;
 mod find_mutual;
 mod get_default_avatar;
+mod lookup_user;
 mod open_dm;
 mod remove_friend;
 mod send_friend_request;
@@ -38,6 +39,8 @@ pub fn routes() -> (Vec<Route>, OpenApi) {
         block_user::block,
         unblock_user::unblock,
         send_friend_request::send_friend_request,
+        // Vortex: exact username lookup for "adicionar amigo"
+        lookup_user::lookup_user,
         // Vortex: scheduled events
         fetch_interested_events::fetch_interested_events,
     ]

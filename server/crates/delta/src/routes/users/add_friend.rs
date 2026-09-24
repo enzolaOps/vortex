@@ -1,3 +1,4 @@
+use revolt_database::util::politica_de_pedido::verificar_pedido;
 use revolt_database::util::privacidade_do_servidor::{verificar_contato, Contato};
 use revolt_database::util::reference::Reference;
 use revolt_database::{Database, User, AMQP};
@@ -25,6 +26,7 @@ pub async fn add(
 
     // Vortex: esta rota também CRIA pedido quando não há relação — sem a
     // checagem aqui, ela contornaria a de `send_friend_request`.
+    verificar_pedido(db, &user, &target).await?;
     verificar_contato(db, &user, &target, Contato::Amizade).await?;
     user.add_friend(db, amqp, &mut target).await?;
     Ok(Json(target.into(db, &user).await))

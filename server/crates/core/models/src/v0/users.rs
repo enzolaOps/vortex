@@ -285,6 +285,38 @@ auto_derived!(
         /// Username and discriminator combo separated by #
         pub username: String,
     }
+
+    /// Vortex: result of looking up a user by exact `username#discriminator`
+    /// before sending a friend request
+    pub struct FriendLookup {
+        /// User id
+        #[cfg_attr(feature = "serde", serde(rename = "_id"))]
+        pub id: String,
+        /// Display name, or username when there is none
+        pub display_name: String,
+        /// Your relationship with this user
+        pub relationship: RelationshipStatus,
+        /// Why a new friend request would be refused, if it would
+        #[cfg_attr(
+            feature = "serde",
+            serde(skip_serializing_if = "Option::is_none", default)
+        )]
+        pub restriction: Option<FriendRequestRestriction>,
+    }
+
+    /// Vortex: reason a new friend request would be refused
+    pub enum FriendRequestRestriction {
+        /// Target accepts requests from nobody
+        Nobody,
+        /// Target only accepts requests from friends of friends
+        FriendsOfFriends,
+        /// Target only accepts requests from members of their servers
+        MutualServers,
+        /// Target's per-server privacy refuses requests from every shared server
+        ServerPrivacy,
+        /// Target is a bot
+        Bot,
+    }
 );
 
 auto_derived_partial!(

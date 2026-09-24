@@ -176,6 +176,24 @@ impl TestHarness {
             .expect("`UserSettings`");
     }
 
+    /// Vortex: grava a política "quem pode me mandar pedido de amizade".
+    pub async fn set_friend_request_policy(&self, user: &User, politica: &str) {
+        let valor = serde_json::json!({
+            "versao": 2,
+            "filtrarDesconhecidos": true,
+            "politicaDePedido": politica,
+            "telemetria": false,
+        });
+        let settings = std::collections::HashMap::from([(
+            revolt_database::util::politica_de_pedido::CHAVE.to_string(),
+            (1_i64, valor.to_string()),
+        )]);
+        self.db
+            .set_user_settings(&user.id, &settings)
+            .await
+            .expect("`UserSettings`");
+    }
+
     pub async fn new_channel(&self, server: &Server) -> Channel {
         Channel::create_server_channel(
             &self.db,

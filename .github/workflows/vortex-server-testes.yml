@@ -102,17 +102,15 @@ jobs:
           curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ~/.cargo/bin
           cargo nextest --version
 
-      # ⚠ Dois testes ficam de fora, e só estes dois: eles chamam
-      # `fetch_mutual_*`, que na `ReferenceDb` é `todo!()` (reference.rs:75/80)
-      # — pendência já registrada no briefing. Contra o banco de referência eles
-      # não testam a regra, testam o `todo!`. Medido na corrida sobre a
-      # `main` intacta: 135 de 137 passaram, e os dois que falharam eram estes.
+      # Sem exclusões: `fetch_mutual_*` era `todo!()` na `ReferenceDb` e os
+      # dois testes de privacidade (DM e pedido de amizade) ficavam de fora.
+      # Implementado na issue #287, junto com o `set_user_settings` que
+      # estendia o mapa consigo mesmo.
       - name: Testes
         run: >-
           cargo nextest run --locked
           -p revolt-delta -p revolt-bonfire -p revolt-models -p revolt-database
           --no-fail-fast
-          -E 'not (test(=routes::users::open_dm::test::privacidade_por_servidor_barra_dm_nova) | test(=routes::users::send_friend_request::test::privacidade_por_servidor_barra_pedido_de_amizade))'
 
       # Bloqueante: a suspeita era de avisos antigos na `main`, e a corrida
       # sobre a `main` intacta (35740041224) passou com `-D warnings` limpo

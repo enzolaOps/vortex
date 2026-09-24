@@ -18,6 +18,10 @@ impl<'a> RatelimitResolver<Request<'a>> for DeltaRatelimits {
             let method = request.method();
             match (segment, resource, method) {
                 ("users", target, Method::Patch) => ("user_edit", target),
+                // Vortex: a consulta por username tem balde próprio e curto —
+                // ela responde "existe?" sem efeito colateral, que é o que
+                // uma varredura de nomes procuraria.
+                ("users", Some("lookup"), Method::Post) => ("user_lookup", None),
                 ("users", _, _) => {
                     if let Some("default_avatar") = extra {
                         return ("default_avatar", None);
@@ -57,6 +61,7 @@ impl<'a> RatelimitResolver<Request<'a>> for DeltaRatelimits {
         match bucket {
             "user_edit" => 2,
             "users" => 20,
+            "user_lookup" => 10,
             "bots" => 10,
             "messaging" => 10,
             "channels" => 15,
