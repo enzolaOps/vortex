@@ -65,6 +65,7 @@ import {
   lerEspectadores,
 } from "../store/espectadores";
 import { estadoDoEspectador, ordemDosEspectadores } from "./espectador";
+import { estadoNaChamada } from "./grade";
 import { BotaoDoChatDaSala } from "./ChatDaSala";
 import { usuarioLocalId } from "../sdk/adapter";
 import {
@@ -824,6 +825,9 @@ function NaSala({
  * ⚠ **Assina o anúncio DESTA pessoa, e só ele** — lei nº 1. A resolução que
  * chega muda com a rede; quando muda a de uma pessoa, acorda a linha dela.
  */
+/** A linha só desenha o mudo, que vem inteiro de `Chamada`. */
+const SEM_SALA: readonly never[] = [];
+
 const LinhaDaSala = memo(function LinhaDaSala({
   userId,
   dono,
@@ -861,7 +865,14 @@ const LinhaDaSala = memo(function LinhaDaSala({
       ) : (
         nome
       )}
-      {chamada.mudo && userId === chamada.participantes[0] ? (
+      {/*
+        ⚠ **Era `chamada.mudo && userId === participantes[0]`**: o ícone só
+        existia para VOCÊ, e a coluna mostrava todo mundo com o microfone
+        aberto (D-DVM-15). `estadoNaChamada` é a regra única de "você vem de
+        `Chamada`, os outros vêm das listas"; a sala do protocolo não entra
+        porque aqui só o mudo é desenhado.
+      */}
+      {estadoNaChamada(chamada, SEM_SALA, userId).mudo ? (
         <MicrophoneSlash size={ICONE.metadado} className={css.mudo} aria-label="mudo" />
       ) : null}
     </div>
