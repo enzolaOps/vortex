@@ -24,6 +24,13 @@
 }
 
 .nomeDoCanal {
+  /* O único texto do cabeçalho que ENCOLHE: é o que sobra quando a largura
+     acaba, e sem isto ele quebrava em duas linhas dentro de uma barra de
+     52px. */
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--vx-text-1);
   font-size: var(--vx-size-md);
   font-weight: 600;
@@ -38,6 +45,96 @@
 
 .espaco {
   flex: 1;
+}
+
+/*
+  "excelente · 38 ms" — a pílula de qualidade do design (D-DVM-11).
+
+  O tom vem de `chipDaConexao`, e a cor é o TOM a 14% atrás do texto na mesma
+  família — `color-mix` do próprio token, como o preenchimento do divisor de
+  novas mensagens: um `--vx-success-soft` custaria entrada em `TokenName`,
+  classificação e par de contraste para um fundo que só existe aqui.
+*/
+.chipDaConexao {
+  --tom: var(--vx-success);
+  --tinta: var(--vx-success-text);
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-06);
+  block-size: 20px;
+  padding-inline: var(--vx-space-08);
+  border-radius: var(--vx-radius-pill);
+  background: color-mix(in oklab, var(--tom) 14%, transparent);
+  color: var(--tinta);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.chipDaConexao[data-tom="aviso"] {
+  --tom: var(--vx-warning);
+  --tinta: var(--vx-warning);
+}
+
+.chipDaConexao[data-tom="perigo"] {
+  --tom: var(--vx-danger);
+  --tinta: var(--vx-danger-text);
+}
+
+.chipDaConexao[data-tom="neutro"] {
+  --tom: var(--vx-text-3);
+  --tinta: var(--vx-text-3);
+}
+
+.pontoDaConexao {
+  flex: none;
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--tom);
+}
+
+/* Herda a tinta do chip: o número é parte da mesma leitura, e o mono é o que
+   impede o chip de mudar de largura a cada amostra. */
+.rtt {
+  font-family: var(--vx-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ⤢ · ◱ · 💬 — grupo de 2px, como o design. */
+.acoesDoCabecalho {
+  display: flex;
+  flex: none;
+  gap: var(--vx-space-02);
+}
+
+/*
+  Tela estreita — com o chat da sala aberto a grade fica com ~500px.
+
+  O cabeçalho inteiro pede ~780px. O que sai primeiro é o que ESTÁ EM OUTRO
+  LUGAR: o nome do servidor (a coluna de canais já diz), depois a qualidade
+  (a faixa de voz no rodapé da coluna diz a mesma coisa), depois a contagem
+  (a grade mostra as pessoas). Disposição e ações ficam: são os únicos
+  controles, e controle escondido é controle que não existe. Container query
+  e não media: a largura é a da `.tela` do palco, que o chat divide.
+*/
+@container (inline-size < 780px) {
+  .nomeDoServidor {
+    display: none;
+  }
+}
+
+@container (inline-size < 730px) {
+  .chipDaConexao {
+    display: none;
+  }
+}
+
+@container (inline-size < 640px) {
+  .contagem {
+    display: none;
+  }
 }
 
 /*
@@ -252,6 +349,48 @@
 .glifoMudo {
   flex: none;
   color: var(--vx-danger-text);
+}
+
+/* Câmera é estado de PUBLICAÇÃO e não alarme: o tom do metadado, como o
+   "cam" em mono do design. */
+.glifoCamera {
+  flex: none;
+  color: var(--vx-text-3);
+}
+
+/* Imposto pelo servidor — aviso e não perigo, como na coluna de canais. */
+.glifoSrv {
+  flex: none;
+  color: var(--vx-warning);
+}
+
+.srv {
+  flex: none;
+  color: var(--vx-warning);
+  font-size: var(--vx-size-2xs);
+  font-weight: 700;
+}
+
+/* "+N": contagem, não estado — mono e no tom do metadado. */
+.maisEstados {
+  flex: none;
+  color: var(--vx-text-3);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-2xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+  Ensurdecido esmaece o avatar — o `opacity: 0.6` que o design põe no
+  ladrilho inteiro do Nando.
+
+  ⚠ **No avatar e não no ladrilho**, e é contraste: a placa com o nome mora
+  dentro do ladrilho, e opacidade num ancestral multiplica a luminância do
+  texto depois de qualquer garantia — o `pnpm contrast` lê tokens, não
+  composição de camada. Mesma decisão da opacidade do cargo travado.
+*/
+.ladrilho[data-surdo="true"] .avatar {
+  opacity: 0.6;
 }
 
 /* --------------------------------------------------------- ações */

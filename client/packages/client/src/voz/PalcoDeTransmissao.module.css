@@ -107,9 +107,8 @@
     assistindo o Bruno. Vermelho ali afirma que você está transmitindo quando
     não está, no lugar onde essa confusão é mais cara.
 
-    Sem `data-proprio` a moldura é a hairline de sempre: o que separa a
-    prancha do fundo é a superfície, e o realce fica reservado para o estado
-    que precisa dele.
+    A de outra pessoa ganha o acento — ver `[data-proprio="false"]`. A
+    hairline abaixo é a base que os dois estados sobrescrevem.
   */
   border: 1px solid var(--vx-hairline-10);
   border-radius: var(--vx-radius-12);
@@ -132,6 +131,22 @@
 
 .prancha[data-proprio="true"] {
   border: 2px solid var(--vx-danger);
+}
+
+/*
+  A tela de OUTRA pessoa é o "stream em foco" do design: `2px solid #35C2CC`
+  (D-DVM-13). O parágrafo acima dizia que sem `data-proprio` a moldura era a
+  hairline — e a metade certa dele continua: vermelho ali seria mentira. O
+  que faltava era a outra metade da frase do design, *"nunca accent, que é
+  'stream em foco'"*: o acento É a moldura da tela que se assiste.
+
+  ⚠ **Nunca junto com a borda de fala.** A prancha é a TELA, não a pessoa:
+  quem fala acende o ladrilho dela na fila, e a prancha não assina `falando`.
+  É o "nunca as duas na mesma célula" do design, garantido por não haver
+  como as duas chegarem ao mesmo elemento.
+*/
+.prancha[data-proprio="false"] {
+  border: 2px solid var(--vx-accent);
 }
 
 .prancha[data-pausada="true"] .video {

@@ -3,20 +3,43 @@ import {
   ICONE,
   MicrophoneSlash,
   Monitor,
+  PictureInPicture,
   PushPin,
+  SpeakerSlash,
+  VideoCamera,
 } from "../components/ui/icones";
 import { memo, useEffect, useState, useSyncExternalStore } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
 import { Tooltip } from "../components/ui/Tooltip";
+import {
+  iconesDoParticipante,
+  ROTULO_DO_ICONE,
+  type IconeDeVoz,
+} from "../canais/iconesDeVoz";
 import { buscarAtividade } from "../sdk/atividades";
 import { assinarSessao, lerSessao } from "../store/atividades";
 import { assinarChamada, falando, lerChamada } from "../store/chamada";
-import { useChannel, usePessoa, useServer } from "../store/hooks";
+import { useChannel, usePessoa, useServer, useVozDoCanal } from "../store/hooks";
 import { abrirMenuDoParticipante } from "../store/menuDoParticipante";
+import { fecharPalco } from "../store/palcoDeVoz";
+import { definirFormaDoPopout } from "../store/popout";
 import { LadrilhoDeAtividade } from "./atividades/LadrilhoDeAtividade";
 import { BotaoDoChatDaSala } from "./ChatDaSala";
-import { Cronometro, Doca, FaixaDeVideo, useVideo } from "./pecasDeVoz";
+import { Rtt } from "./FaixaDeVoz";
+import {
+  capacidadeDaChamada,
+  chipDaConexao,
+  contagemDaChamada,
+  estadoDaPlaca,
+} from "./grade";
+import {
+  BotaoDeTelaCheia,
+  Cronometro,
+  Doca,
+  FaixaDeVideo,
+  useVideo,
+} from "./pecasDeVoz";
 import css from "./GradeDeChamada.module.css";
 
 /**
@@ -120,6 +143,14 @@ export function GradeDeChamada() {
   */
   const eu = chamada.participantes[0];
 
+  /*
+    O que o PROTOCOLO sabe de cada um — surdo e o que o servidor impôs
+    (D-DVM-14). Assinado uma vez aqui, por canal, e não por ladrilho: a lista
+    muda por ação humana, e vinte ladrilhos assinando o mesmo canal seriam
+    vinte comparações a cada entrada na sala para descobrir o próprio item.
+  */
+  const sala = useVozDoCanal(chamada.channelId);
+
   const grande =
     disposicao === "fixado"
       ? (fixado ?? chamada.participantes[0])
@@ -133,10 +164,14 @@ export function GradeDeChamada() {
         <Monitor size={ICONE.controle} className={css.glifo} aria-hidden />
         <span className={css.nomeDoCanal}>{canal?.name ?? "voz"}</span>
         <span className={css.nomeDoServidor}>{servidor?.name ?? ""}</span>
+        <ChipDaConexao />
+        {/* "7 de 25" (D-VOZ-25): o total é o grupo, ou o teto da sala — ver
+            `capacidadeDaChamada`. */}
         <span className={css.contagem}>
-          {chamada.participantes.length === 1
-            ? "1 na chamada"
-            : `${String(chamada.participantes.length)} na chamada`}
+          {contagemDaChamada(
+            chamada.participantes.length,
+            capacidadeDaChamada(canal),
+          )}
         </span>
         <Cronometro desde={chamada.desde} />
 
@@ -161,7 +196,17 @@ export function GradeDeChamada() {
           ))}
         </div>
 
-        <BotaoDoChatDaSala className={css.acaoDoCabecalho} />
+        {/*
+          ⤢ · ◱ · 💬, na ordem do design (D-DVM-11). Antes os dois primeiros
+          só existiam no palco de TRANSMISSÃO — ou seja, numa chamada sem
+          ninguém transmitindo não havia como pôr a grade em tela cheia nem
+          devolvê-la a uma janela pequena sem sair da sala.
+        */}
+        <div className={css.acoesDoCabecalho}>
+          <BotaoDeTelaCheia className={css.acaoDoCabecalho} />
+          <BotaoDePopout />
+          <BotaoDoChatDaSala className={css.acaoDoCabecalho} />
+        </div>
       </header>
 
       <div className={css.miolo}>
@@ -170,7 +215,9 @@ export function GradeDeChamada() {
           style={{ gridTemplateColumns: `repeat(${String(colunas)}, minmax(0, 1fr))` }}
         >
           <LadrilhoDeAtividade channelId={chamada.channelId} />
-          {chamada.participantes.map((id) => (
+          {chamada.participantes.map((id) => {
+            const doProtocolo = sala.find((p) => p.userId === id);
+            return (
             <Ladrilho
               key={id}
               userId={id}
@@ -185,6 +232,9 @@ export function GradeDeChamada() {
                 id === eu ? chamada.tela : chamada.transmitindo.includes(id)
               }
               mudo={id === eu ? chamada.mudo : chamada.mudos.includes(id)}
+              surdo={id === eu ? chamada.surdo : doProtocolo?.surdo === true}
+              mudoPeloServidor={doProtocolo?.mudoPeloServidor === true}
+              surdoPeloServidor={doProtocolo?.surdoPeloServidor === true}
               aoFixar={() => {
                 setFixado(id);
                 setDisposicao("fixado");
@@ -194,7 +244,8 @@ export function GradeDeChamada() {
                 setDisposicao("grade");
               }}
             />
-          ))}
+            );
+          })}
         </div>
 
         <p className={css.nota}>{NOTA[disposicao]}</p>
@@ -233,6 +284,9 @@ const Ladrilho = memo(function Ladrilho({
   temCamera,
   transmitindo,
   mudo,
+  surdo,
+  mudoPeloServidor,
+  surdoPeloServidor,
   aoFixar,
   aoDesfixar,
 }: {
@@ -244,6 +298,9 @@ const Ladrilho = memo(function Ladrilho({
   temCamera: boolean;
   transmitindo: boolean;
   mudo: boolean;
+  surdo: boolean;
+  mudoPeloServidor: boolean;
+  surdoPeloServidor: boolean;
   aoFixar: () => void;
   aoDesfixar: () => void;
 }) {
@@ -270,10 +327,32 @@ const Ladrilho = memo(function Ladrilho({
 
   const destaque = disposicao === "orador" ? oradorEstavel : grande;
 
+  /*
+    Os ícones da placa, com o MESMO teto e a mesma ordem de criticidade da
+    linha da sala na coluna de canais (D-DVM-14, D-VOZ-29). A placa é mais
+    estreita que um ladrilho de 84px pode pagar — sem teto, quem transmite,
+    ensurdecido e silenciado pelo servidor empurraria o nome para reticência.
+  */
+  const { visiveis, recolhidos } = iconesDoParticipante(
+    estadoDaPlaca({
+      transmitindo,
+      camera: temCamera,
+      mudo,
+      surdo,
+      mudoPeloServidor,
+      surdoPeloServidor,
+    }),
+  );
+  const primeiroSrv = visiveis.find((i) => i === "srvSurdo" || i === "srvMudo");
+
   return (
     <div
       className={css.ladrilho}
       data-falando={ativo}
+      /* Ensurdecido esmaece o AVATAR, como o design (opacity 0.6 no ladrilho
+         do Nando) — e só o avatar: a placa com o nome fica em opacidade
+         cheia, senão o texto perderia contraste sobre o véu. */
+      data-surdo={surdo || surdoPeloServidor}
       data-grande={destaque}
       data-video={temCamera || transmitindo}
       /* Um stream ocupa 2×2 por padrão: numa célula de 84px a tela de alguém
@@ -295,6 +374,7 @@ const Ladrilho = memo(function Ladrilho({
         sigla={pessoa?.sigla}
         url={pessoa?.avatarUrl}
         tamanho={destaque ? "lg" : "md"}
+        className={css.avatar}
       />
       {/*
         ⚠ **A tela ganha da câmera quando as duas estão no ar.** É o que o
@@ -322,11 +402,16 @@ const Ladrilho = memo(function Ladrilho({
             <span className="sr-only">falando</span>
           </>
         ) : null}
-        {transmitindo ? (
-          <Monitor size={ICONE.selo} className={css.glifoDaPlaca} aria-label="transmitindo" />
-        ) : null}
-        {mudo ? (
-          <MicrophoneSlash size={ICONE.selo} className={css.glifoMudo} aria-label="mudo" />
+        {visiveis.map((icone) => (
+          <GlifoDaPlaca key={icone} icone={icone} comSigla={icone === primeiroSrv} />
+        ))}
+        {recolhidos.length > 0 ? (
+          <span className={css.maisEstados}>
+            +{recolhidos.length}
+            <span className="sr-only">
+              {`, também ${recolhidos.map((i) => ROTULO_DO_ICONE[i]).join(", ")}`}
+            </span>
+          </span>
         ) : null}
       </span>
 
@@ -383,6 +468,119 @@ const Ladrilho = memo(function Ladrilho({
     </div>
   );
 });
+
+/**
+ * Um ícone de estado na placa de nome.
+ *
+ * Mesma pintura da linha da sala na coluna de canais, com uma diferença: a
+ * TELA aqui é o glifo e não o selo `LIVE`. Na coluna, o selo se lê sem
+ * conhecer a convenção; na placa ele disputaria a largura com o nome dentro
+ * de um ladrilho de 84px, e quem transmite já está com a tela cobrindo o
+ * próprio ladrilho — o conteúdo diz o estado antes do ícone.
+ *
+ * ⚠ **SRV é aviso e não perigo**, como na coluna: não poder falar é restrição
+ * administrativa, não falha. A sigla sai uma vez só, mesmo com os dois ícones
+ * do servidor.
+ */
+function GlifoDaPlaca({ icone, comSigla }: { icone: IconeDeVoz; comSigla: boolean }) {
+  const rotulo = <span className="sr-only">{ROTULO_DO_ICONE[icone]}</span>;
+  switch (icone) {
+    case "tela":
+      return (
+        <>
+          <Monitor size={ICONE.selo} className={css.glifoDaPlaca} aria-hidden />
+          {rotulo}
+        </>
+      );
+    case "video":
+      return (
+        <>
+          <VideoCamera size={ICONE.selo} className={css.glifoCamera} aria-hidden />
+          {rotulo}
+        </>
+      );
+    case "srvSurdo":
+    case "srvMudo":
+      return (
+        <>
+          {icone === "srvSurdo" ? (
+            <SpeakerSlash size={ICONE.selo} className={css.glifoSrv} aria-hidden />
+          ) : (
+            <MicrophoneSlash size={ICONE.selo} className={css.glifoSrv} aria-hidden />
+          )}
+          {comSigla ? (
+            <span className={css.srv} aria-hidden>
+              SRV
+            </span>
+          ) : null}
+          {rotulo}
+        </>
+      );
+    case "surdo":
+      return (
+        <>
+          <SpeakerSlash size={ICONE.selo} className={css.glifoMudo} aria-hidden />
+          {rotulo}
+        </>
+      );
+    case "mudo":
+      return (
+        <>
+          <MicrophoneSlash size={ICONE.selo} className={css.glifoMudo} aria-hidden />
+          {rotulo}
+        </>
+      );
+  }
+}
+
+/**
+ * "excelente · 38 ms" no cabeçalho da grade (D-DVM-11).
+ *
+ * Componente próprio pela lei nº 1: o RTT amostra por segundo, e o chip é o
+ * único pedaço do cabeçalho que precisa acordar para isso — a grade inteira
+ * re-renderizando a cada segundo repintaria vinte ladrilhos por um número.
+ * `Rtt` já é componente separado e cuida disso; aqui fica só a classificação.
+ */
+function ChipDaConexao() {
+  const chamada = useSyncExternalStore(assinarChamada, lerChamada);
+  const chip = chipDaConexao(chamada.estado, chamada.qualidade);
+
+  return (
+    <span className={css.chipDaConexao} data-tom={chip.tom}>
+      <span className={css.pontoDaConexao} aria-hidden />
+      {chip.texto}
+      {chip.comRtt ? <Rtt className={css.rtt} /> : null}
+    </span>
+  );
+}
+
+/**
+ * ◱ — devolve a chamada a uma janela pequena (D-DVM-11).
+ *
+ * ⚠ **É o POPOUT, e não o picture-in-picture do navegador.** O PiP nativo
+ * leva UM `<video>`; a grade é uma sala de pessoas, e na maior parte do tempo
+ * ninguém tem câmera — o PiP abriria um retângulo preto ou nada. O popout já
+ * existe para isto: mostra o orador, o cronômetro e os controles, e fica sobre
+ * o app enquanto a pessoa lê outro canal. Fechar o palco é o que o faz
+ * aparecer (ele some quando a sala está na tela, ver `useNaSala`).
+ */
+function BotaoDePopout() {
+  return (
+    <Tooltip texto="Janela flutuante" lado="abaixo">
+      <button
+        type="button"
+        className={css.acaoDoCabecalho}
+        aria-label="Janela flutuante"
+        onClick={() => {
+          definirFormaDoPopout("popout");
+          fecharPalco();
+        }}
+      >
+        <PictureInPicture size={ICONE.controle} aria-hidden />
+      </button>
+    </Tooltip>
+  );
+}
 
 /* ============================================================
    Hooks
