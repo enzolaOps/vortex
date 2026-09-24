@@ -24,6 +24,35 @@ export function ponteDeAtenuacao(): PonteDeAtenuacao | undefined {
 
 export const SEGURAR_MS = 800;
 
+/**
+ * A preferência vale AGORA?
+ *
+ * ⚠ **Transmitir som desliga a atenuação enquanto ela durar, e não é capricho.**
+ * A casca baixa o volume de sessão de TODO aplicativo que não seja o Vortex —
+ * medido em `vendor/stoat-desktop/src/native/atenuacaoModelo.test.ts`, sob
+ * "alcance da atenuação". Compartilhar a tela inteira com som captura por
+ * `audio: "loopback"`, que é o mix do DISPOSITIVO, ou seja o mix já atenuado:
+ * quem assiste ouviria a transmissão cair pela metade a cada fala, sem nada na
+ * tela dizendo por quê.
+ *
+ * A exceção certa seria isentar só a FONTE transmitida, e ela não cabe aqui: a
+ * casca conhece as sessões por executável e a janela escolhida por PID, e ligar
+ * os dois é Win32 novo (`QueryFullProcessImageName`) — enquanto isto é um
+ * booleano que o cliente já tem. Para a tela inteira nem existe fonte única a
+ * isentar, porque o loopback é tudo o que toca.
+ *
+ * ⚠ **A preferência de quem usa não é tocada** — ela continua ligada, e volta a
+ * valer quando a transmissão sai do ar ou o som dela é mudado.
+ */
+export function atenuacaoValeAgora(estado: {
+  /** `atenuarOutrosApps`, como a pessoa a deixou. */
+  readonly preferencia: boolean;
+  /** Há faixa de áudio de tela publicada E não mudada. */
+  readonly transmitindoAudio: boolean;
+}): boolean {
+  return estado.preferencia && !estado.transmitindoAudio;
+}
+
 export function criarAtenuador(opcoes: {
   enviar: (sim: boolean) => void;
   segurarMs?: number;

@@ -72,7 +72,11 @@ import {
   ehJanela,
   ponteDeAudioDeJanela,
 } from "./audioDeJanela";
-import { criarAtenuador, ponteDeAtenuacao } from "./atenuacao";
+import {
+  atenuacaoValeAgora,
+  criarAtenuador,
+  ponteDeAtenuacao,
+} from "./atenuacao";
 import { ligarPortaDeVoz } from "./portaDeVoz";
 import { client } from "./client";
 import { lerConfigDeVoz, publicacaoDe as publicacaoDoCanal } from "./vozDoCanal";
@@ -571,7 +575,7 @@ function ligarEventos(r: Room, channelId: string): void {
     /* "Atenuar outros apps": só a fala dos OUTROS conta — você falando não
        precisa de silêncio em volta para se ouvir. */
     const outro = falantes.some((p) => p !== r.localParticipant);
-    atenuador.atualizar(outro, lerPreferenciasDeVoz().atenuarOutrosApps);
+    atenuador.atualizar(outro, atenuacaoLigada());
   });
 
   /*
@@ -977,9 +981,7 @@ export async function entrarNaChamada(channelId: string): Promise<boolean> {
         void aplicarMicrofone();
       }
       /* Desligar a preferência no meio de uma fala devolve o volume na hora. */
-      if (!lerPreferenciasDeVoz().atenuarOutrosApps) {
-        atenuador.atualizar(false, false, true);
-      }
+      revisarAtenuacao();
     });
     pararDeOuvirTecla = assinarPushToTalk(() => void aplicarMicrofone());
     /* O limiar manual — ver `portaDeVoz.ts`. Liga sempre e decide a cada
@@ -1295,6 +1297,28 @@ function esquecerProcessadores(): void {
 const atenuador = criarAtenuador({
   enviar: (sim) => ponteDeAtenuacao()?.atenuar(sim),
 });
+
+/** A preferência, menos o que a transmissão de som proíbe. Ver `atenuacao.ts`. */
+function atenuacaoLigada(): boolean {
+  return atenuacaoValeAgora({
+    preferencia: lerPreferenciasDeVoz().atenuarOutrosApps,
+    /* `"mudo"` não conta: a faixa existe e não sai daqui, então não há mix a
+       proteger. Ver `Chamada.telaAudio`. */
+    transmitindoAudio: lerChamada().telaAudio === "ligado",
+  });
+}
+
+/**
+ * Devolve o volume dos outros apps AGORA se a atenuação deixou de valer.
+ *
+ * Chamado em toda mudança de `telaAudio`: começar a transmitir com som no meio
+ * de uma fala deixaria o computador a 50% dentro da própria transmissão, e o
+ * caminho normal (`ActiveSpeakersChanged`) só passaria por aqui quando alguém
+ * parasse de falar.
+ */
+function revisarAtenuacao(): void {
+  if (!atenuacaoLigada()) atenuador.atualizar(false, false, true);
+}
 
 async function aplicarSaida(r: Room): Promise<void> {
   const { saidaId } = lerPreferenciasDeVoz();
@@ -1639,6 +1663,9 @@ async function transmitir(
           ? "sem"
           : "ligado",
     });
+    /* Depois do store, porque ele é quem responde se há som no ar: transmitir
+       som e atenuar outros apps se contradizem — ver `atenuacaoValeAgora`. */
+    revisarAtenuacao();
     /*
       ⚠ **A faixa local de TELA no store, e ela NUNCA esteve lá.**
 
@@ -1883,6 +1910,7 @@ export async function alternarAudioDaTela(): Promise<void> {
   if (ligando) await faixa.unmute();
   else await faixa.mute();
   definirChamada({ telaAudio: ligando ? "ligado" : "mudo" });
+  revisarAtenuacao();
 }
 
 /**
