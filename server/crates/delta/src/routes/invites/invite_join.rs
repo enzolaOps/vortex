@@ -216,12 +216,12 @@ mod test {
     async fn failed_join_gives_the_use_back() {
         let harness = TestHarness::new().await;
         let (_, owner_session, owner) = harness.new_user().await;
-        let (_, channels) = harness.new_server(&owner).await;
+        let (server, channels) = harness.new_server(&owner).await;
         let channel = channels.first().expect("channel").id().to_string();
 
         let code = create_invite(
             &harness,
-            owner_session.clone(),
+            owner_session,
             &channel,
             v0::DataCreateInvite {
                 max_uses: Some(1),
@@ -231,8 +231,12 @@ mod test {
         .await;
 
         // Quem já é membro falha ao entrar, e a tentativa não pode gastar o uso.
+        let (_, member_session, member) = harness.new_user().await;
+        Member::create(&harness.db, &server, &member, None)
+            .await
+            .expect("member");
         let response = TestHarness::with_session(
-            owner_session,
+            member_session,
             harness.client.post(format!("/invites/{code}")),
         )
         .await;
@@ -458,6 +462,9 @@ mod test {
             .expect("role");
 
         // O dono nunca é temporário, e a varredura dele não mexe em nada.
+        Member::create(&harness.db, &server, &owner, None)
+            .await
+            .expect("owner member");
         Member::remove_temporary_memberships(&harness.db, &owner.id)
             .await
             .expect("owner");
