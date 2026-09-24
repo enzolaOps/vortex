@@ -118,7 +118,8 @@ import {
   assinarConexao,
   lerConexao,
 } from "../store/conexao";
-import { useChannel, useMessage } from "../store/hooks";
+import { useChannel, useMessage, useTopico } from "../store/hooks";
+import { rotuloDoDivisorDeNovas } from "./divisorDeNovas";
 import {
   assinarReacoesFrequentes,
   reacoesRapidas,
@@ -396,7 +397,14 @@ function abrirMenuDaLinha(botao: HTMLElement): void {
  * SAI do canal. Avançar na entrada faria o divisor sumir no mesmo frame em que
  * apareceu.
  */
-function DivisorDeNovas() {
+function DivisorDeNovas({ channelId }: { channelId: string }) {
+  /*
+    Num tópico o que chega são RESPOSTAS — D-CANAIS-22, e é a palavra do
+    design ("NOVAS RESPOSTAS"). A subscrição mora AQUI e não na linha: o
+    divisor monta numa linha só por canal, e assinar o tópico na `MessageRow`
+    acordaria as dez mil linhas a cada mudança dele (seguir, arquivar, tag).
+  */
+  const rotulo = rotuloDoDivisorDeNovas(useTopico(channelId) !== undefined);
   return (
     /*
       `role="separator"` só aceita nome do AUTOR: o texto dentro dele não é
@@ -404,9 +412,9 @@ function DivisorDeNovas() {
       régua horizontal da coluna, e existe para marcar onde a pessoa parou —
       não existia para quem usa leitor de tela.
     */
-    <div className={css.novas} role="separator" aria-label="novas mensagens">
+    <div className={css.novas} role="separator" aria-label={rotulo}>
       <span className={css.novasLinha} />
-      <span className={css.novasRotulo}>novas mensagens</span>
+      <span className={css.novasRotulo}>{rotulo}</span>
     </div>
   );
 }
@@ -975,7 +983,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
   if (message.sistema) {
     return (
       <>
-        {message.primeiraNaoLida ? <DivisorDeNovas /> : null}
+        {message.primeiraNaoLida ? <DivisorDeNovas channelId={message.channelId} /> : null}
         {message.dia ? <DivisorDeDia rotulo={message.dia} /> : null}
         {/*
           ⚠ **O design TEM esta linha, e a versão anterior deste comentário
@@ -1665,7 +1673,7 @@ export const MessageRow = memo(function MessageRow({ id }: { id: string }) {
       {/* Antes do divisor de data: "parei aqui" vem antes de "e este é outro
           dia", porque o primeiro é sobre a pessoa e o segundo sobre o
           histórico. */}
-      {message.primeiraNaoLida ? <DivisorDeNovas /> : null}
+      {message.primeiraNaoLida ? <DivisorDeNovas channelId={message.channelId} /> : null}
       {message.dia ? <DivisorDeDia rotulo={message.dia} /> : null}
 
       {linha}
