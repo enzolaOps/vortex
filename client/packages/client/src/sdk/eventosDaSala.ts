@@ -75,21 +75,27 @@ export function linhasDoEvento(
 
   if (e.type === "VoiceChannelLeave") {
     if (e.id !== canalDaChamada || typeof e.user !== "string") return [];
+    /* Sair não manda `screensharing: false`. Sem isto, voltar e transmitir de
+       novo não geraria linha. */
+    transmitindo.delete(e.user);
     return [{ canal: canalDaChamada, userId: e.user, sistema: { tipo: "saiu", userId: e.user } }];
   }
 
   if (e.type === "UserVoiceStateUpdate") {
-    /* Só o COMEÇO da transmissão: parar não tem linha no design, e um
-       `screensharing: false` a cada reconexão viraria ruído. */
+    /* Só a TRANSIÇÃO para transmitir. O `voice-ingress` manda `screensharing:
+       true` na faixa de vídeo E na de áudio, e de novo no unmute — um `true`
+       por evento duplicaria a linha. Parar não tem linha no design. */
     const u = evento as { id?: unknown; channel_id?: unknown; data?: { screensharing?: unknown } };
     if (u.channel_id !== canalDaChamada || typeof u.id !== "string") return [];
-    if (u.data?.screensharing !== true) return [];
+    if (!comecouATransmitir(u.id, u.data?.screensharing)) return [];
     return [{ canal: canalDaChamada, userId: u.id, sistema: { tipo: "transmitiu", userId: u.id } }];
   }
 
   if (e.type === "VoiceChannelMove") {
     if (typeof e.user !== "string" || typeof e.to !== "string") return [];
     if (e.from !== canalDaChamada && e.to !== canalDaChamada) return [];
+    /* Movido para fora: o leave é suprimido, então o `false` também não vem. */
+    if (e.from === canalDaChamada && e.to !== canalDaChamada) transmitindo.delete(e.user);
     return [
       { canal: canalDaChamada, userId: e.user, sistema: { tipo: "moveu", userId: e.user, paraId: e.to } },
     ];
@@ -99,6 +105,27 @@ export function linhasDoEvento(
 }
 
 /* ------------------------------------------------------------- registro */
+
+/**
+ * Quem está transmitindo nesta sala.
+ *
+ * A linha nasce na borda false→true, não no evento. O fio não diz qual faixa
+ * foi: vídeo e áudio da tela são os dois `screensharing: true`.
+ *
+ * ponytail: um `false` da faixa de vídeo com o áudio ainda no ar reseta a
+ * borda. Separar as duas faixas exige o `voice-ingress` dizer a fonte.
+ */
+const transmitindo = new Set<string>();
+
+function comecouATransmitir(userId: string, screensharing: unknown): boolean {
+  if (screensharing === true) {
+    if (transmitindo.has(userId)) return false;
+    transmitindo.add(userId);
+    return true;
+  }
+  if (screensharing === false) transmitindo.delete(userId);
+  return false;
+}
 
 /**
  * As linhas vivas, por ID local.
@@ -136,10 +163,12 @@ export function soltarLinhasDe(canal: string): readonly string[] {
     ids.push(id);
     linhas.delete(id);
   }
+  transmitindo.clear();
   return ids;
 }
 
 /** Estado limpo entre testes. */
 export function limparEventosDaSala(): void {
   linhas.clear();
+  transmitindo.clear();
 }

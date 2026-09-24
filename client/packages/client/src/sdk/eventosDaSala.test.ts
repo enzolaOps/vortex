@@ -8,6 +8,7 @@ import {
   ehLinhaDeSala,
   limparEventosDaSala,
   linhasDoEvento,
+  soltarLinhasDe,
 } from "./eventosDaSala";
 
 /**
@@ -83,6 +84,29 @@ describe("tradução do evento cru", () => {
     expect(linhasDoEvento(upd(true), SALA)[0]?.sistema).toEqual({ tipo: "transmitiu", userId: "JU" });
     expect(linhasDoEvento(upd(false), SALA)).toEqual([]);
     expect(linhasDoEvento({ ...upd(true), channel_id: OUTRA }, SALA)).toEqual([]);
+  });
+
+  it("segundo true não duplica; false, saída e soltar liberam o próximo começo", () => {
+    const upd = (screensharing: boolean) => ({
+      type: "UserVoiceStateUpdate",
+      id: "JU",
+      channel_id: SALA,
+      data: { screensharing },
+    });
+    expect(linhasDoEvento(upd(true), SALA)).toHaveLength(1);
+    /* Faixa de áudio da tela e unmute: o mesmo true, sem linha nova. */
+    expect(linhasDoEvento(upd(true), SALA)).toEqual([]);
+    /* Movido para fora: o leave é suprimido, então o false também não vem. */
+    linhasDoEvento({ type: "VoiceChannelMove", user: "JU", from: SALA, to: OUTRA }, SALA);
+    expect(linhasDoEvento(upd(true), SALA)).toHaveLength(1);
+    expect(linhasDoEvento(upd(false), SALA)).toEqual([]);
+    expect(linhasDoEvento(upd(true), SALA)).toHaveLength(1);
+
+    linhasDoEvento({ type: "VoiceChannelLeave", id: SALA, user: "JU" }, SALA);
+    expect(linhasDoEvento(upd(true), SALA)).toHaveLength(1);
+
+    soltarLinhasDe(SALA);
+    expect(linhasDoEvento(upd(true), SALA)).toHaveLength(1);
   });
 
 });
