@@ -33,14 +33,17 @@
  *
  * ---
  *
- * ⚠ **Não dizemos QUEM moveu, e o design pede.** D-LAC-24 escreve "por Ana
- * Ribeiro". O protocolo não carrega o autor em nenhum dos dois sinais:
- * `UserMoveVoiceChannel` tem `{user, from, to, token, node}` e
- * `ServerMemberUpdate` tem `{id, data, clear}`. O autor existe no registro de
- * auditoria (`member_edit.rs` grava um `AuditLogEntry`), e ir buscá-lo custaria
- * uma chamada de rede no instante do aviso, sobre uma rota que exige
- * `ViewAuditLog` — permissão que justamente quem acabou de ser movido quase
- * nunca tem. Um nome inventado seria pior que a ausência dele.
+ * **Dizemos QUEM moveu quando o servidor conta** (D-LAC-24/25, "por Ana
+ * Ribeiro"), e ele conta SÓ a você: o autor nunca vai no evento público de
+ * membro, que o servidor inteiro recebe. No movimento ele vem no próprio
+ * `UserMoveVoiceChannel.by` (que já é privado); na desconexão, num evento
+ * privado pequeno, `UserVoiceDisconnected {server, channel, by}`, que não muda
+ * estado nenhum — por isso não há o que aplicar duas vezes. Esse autor chega
+ * por um caminho e a remoção por outro (o LiveKit), então ele entra na MESMA
+ * janela abaixo, por {@link registrarAutorImposto}, e só assina a remoção do
+ * MESMO canal. Se não chegar, ou chegar depois de a janela resolver, o aviso
+ * sai no texto de antes ("um moderador"): um nome inventado seria pior que a
+ * ausência dele. Um `delta` Stoat não manda nada disso e cai no mesmo texto.
  *
  * ---
  *
@@ -67,6 +70,8 @@ export type MovimentoImposto = {
   readonly para: string;
   readonly nomeDe: string;
   readonly nomePara: string;
+  /** Quem moveu, já como nome. Ausente contra um servidor sem o campo `by`. */
+  readonly porNome?: string;
 };
 
 export type RemocaoImposta = {
@@ -76,6 +81,14 @@ export type RemocaoImposta = {
 
 let movimento: MovimentoImposto | undefined;
 let remocao: RemocaoImposta | undefined;
+/**
+ * Quem mexeu na sua voz, lido de `ServerMemberUpdate.by`.
+ *
+ * Vale só para a resolução em curso — ou a próxima dentro de
+ * {@link JANELA_MS}: guardado solto, um autor de uma edição antiga assinaria
+ * uma desconexão de rede de horas depois.
+ */
+let autor: { readonly canal: string; readonly nome: string; readonly em: number } | undefined;
 let prazo: ReturnType<typeof setTimeout> | undefined;
 
 /**
@@ -108,8 +121,18 @@ function resolver(): void {
   prazo = undefined;
   const m = movimento;
   const r = remocao;
+  /* O autor só assina a remoção do MESMO canal, e só se for recente: um aviso
+     de outra sala, ou de uma edição antiga, não pode virar "por Fulano". */
+  const por =
+    autor !== undefined &&
+    r !== undefined &&
+    autor.canal === r.canal &&
+    Date.now() - autor.em <= JANELA_MS * 2
+      ? autor.nome
+      : undefined;
   movimento = undefined;
   remocao = undefined;
+  autor = undefined;
 
   if (m) {
     /*
@@ -121,7 +144,10 @@ function resolver(): void {
     toast({
       tipo: "info",
       titulo: `Você foi movida para ${m.nomePara}.`,
-      descricao: "Um moderador mudou você de canal.",
+      descricao:
+        (m.porNome ?? por) !== undefined
+          ? `Por ${m.porNome ?? por}.`
+          : "Um moderador mudou você de canal.",
       acao: {
         rotulo: `Voltar para ${m.nomeDe}`,
         descricaoAlternativa: `Para voltar, entre de novo em ${m.nomeDe} pela coluna de canais.`,
@@ -141,7 +167,10 @@ function resolver(): void {
     toast({
       tipo: "erro",
       titulo: "Você foi desconectada da voz.",
-      descricao: `Um moderador tirou você de ${r.nome}.`,
+      descricao:
+        por !== undefined
+          ? `Por ${por}, em ${r.nome}.`
+          : `Um moderador tirou você de ${r.nome}.`,
       acao: {
         rotulo: "Reconectar",
         descricaoAlternativa: `Para voltar, entre de novo em ${r.nome} pela coluna de canais.`,
@@ -179,6 +208,34 @@ export function registrarRemocaoImposta(r: RemocaoImposta): void {
 }
 
 /**
+ * O servidor disse, só a você, quem te tirou da voz.
+ *
+ * Não abre janela nem avisa sozinho: o autor só significa algo junto da
+ * remoção do LiveKit, e é ela que decide. Pode chegar antes ou depois dela —
+ * dentro da janela, assina; fora, é descartado na próxima resolução.
+ */
+export function registrarAutorImposto(canal: string, nome: string): void {
+  autor = { canal, nome, em: Date.now() };
+}
+
+/**
+ * `UserVoiceDisconnected`, o evento privado do fork com o autor.
+ *
+ * Cru porque o SDK não conhece o tipo — e o descarta sem erro, que é o que
+ * torna o evento seguro para um cliente Stoat.
+ */
+export function lerAutorImposto(
+  evento: unknown,
+  eu: string | undefined,
+): { readonly canal: string; readonly server: string; readonly por: string } | undefined {
+  const e = evento as { type?: string; server?: unknown; channel?: unknown; by?: unknown };
+  if (e.type !== "UserVoiceDisconnected") return undefined;
+  if (typeof e.channel !== "string" || typeof e.server !== "string") return undefined;
+  if (typeof e.by !== "string" || e.by === "" || e.by === eu) return undefined;
+  return { canal: e.channel, server: e.server, por: e.by };
+}
+
+/**
  * Lê `UserMoveVoiceChannel` de um evento cru do socket.
  *
  * ⚠ **Cru porque o SDK o DESCARTA.** O `case "UserMoveVoiceChannel"` em
@@ -191,12 +248,15 @@ export function registrarRemocaoImposta(r: RemocaoImposta): void {
  */
 export function lerMovimentoImposto(
   evento: unknown,
-): { readonly de: string; readonly para: string } | undefined {
-  const e = evento as { type?: string; from?: unknown; to?: unknown };
+): { readonly de: string; readonly para: string; readonly por?: string } | undefined {
+  const e = evento as { type?: string; from?: unknown; to?: unknown; by?: unknown };
   if (e.type !== "UserMoveVoiceChannel") return undefined;
   if (typeof e.from !== "string" || typeof e.to !== "string") return undefined;
   if (e.from === "" || e.to === "" || e.from === e.to) return undefined;
-  return { de: e.from, para: e.to };
+  // `by` é do fork (D-LAC-24): ausente num `delta` Stoat, e aí não há "por".
+  return typeof e.by === "string" && e.by !== ""
+    ? { de: e.from, para: e.to, por: e.by }
+    : { de: e.from, para: e.to };
 }
 
 /**
@@ -243,4 +303,5 @@ export function limparVozImposta(): void {
   prazo = undefined;
   movimento = undefined;
   remocao = undefined;
+  autor = undefined;
 }

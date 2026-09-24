@@ -64,9 +64,18 @@ import { anotarEventoDeVoz, consumirModosAlterados } from "./vozDoCanal";
 import {
   avisarMudoDoServidor,
   avisarSurdoDoServidor,
+  lerAutorImposto,
   lerMovimentoImposto,
+  registrarAutorImposto,
   registrarMovimentoImposto,
 } from "./vozImposta";
+import {
+  ehLinhaDeSala,
+  linhasDoEvento,
+  registrarLinhaDeSala,
+  soltarLinhasDe,
+} from "./eventosDaSala";
+import { assinarChamada, lerChamada } from "../store/chamada";
 import { anotarEventoDeServidor } from "./eventos";
 import { semearStatusDoServidor } from "./perfil";
 import { aguardar, desistir, reconciliar } from "./nonce";
@@ -1272,15 +1281,30 @@ export function startAdapter() {
         sumia e nada dizia por quê. Ver `sdk/vozImposta.ts` para a corrida entre
         os dois sinais.
       */
+      /* "por Fulano" da desconexão (D-LAC-25): evento PRIVADO do fork, só
+         para quem foi tirado — ver `sdk/vozImposta.ts`. */
+      const autorDaRemocao = lerAutorImposto(evento, usuarioLocal);
+      if (autorDaRemocao) {
+        registrarAutorImposto(
+          autorDaRemocao.canal,
+          nomeDe(autorDaRemocao.server, autorDaRemocao.por),
+        );
+      }
       const movimento = lerMovimentoImposto(evento);
       if (movimento) {
+        const servidorDoMovimento = client.channels.get(movimento.para)?.serverId;
         registrarMovimentoImposto({
-          ...movimento,
+          de: movimento.de,
+          para: movimento.para,
           nomeDe: client.channels.get(movimento.de)?.name ?? "a sala anterior",
           nomePara: client.channels.get(movimento.para)?.name ?? "outra sala",
+          ...(movimento.por !== undefined && servidorDoMovimento
+            ? { porNome: nomeDe(servidorDoMovimento, movimento.por) }
+            : {}),
         });
       }
       traduzirSinalDeChamada(evento);
+      inserirLinhasDeSala(evento);
     }
 
     if (e.type === "Ready" || e.type === "UserRelationship") {
@@ -1850,6 +1874,94 @@ export function estadoDoHistorico(channelId: string) {
 if (import.meta.env.DEV) {
   (globalThis as unknown as Record<string, unknown>).__historico =
     estadoDoHistorico;
+}
+
+/* ------------------------------------------------------ linhas da sala */
+
+/**
+ * O último ID da lista que o SERVIDOR conhece.
+ *
+ * ⚠ Linha de sala (`sdk/eventosDaSala.ts`) é local: mandá-la como cursor de
+ * `ack` gravaria no protocolo um ULID inventado — e, sendo mais novo que tudo,
+ * marcaria como lida a próxima mensagem de verdade antes de ela chegar.
+ */
+function ultimaDoServidor(ids: readonly string[]): string | undefined {
+  for (let i = ids.length - 1; i >= 0; i -= 1) {
+    const id = ids[i];
+    if (id !== undefined && !ehLinhaDeSala(id)) return id;
+  }
+  return undefined;
+}
+
+/** A sala cujas linhas estão na lista agora — no máximo uma. */
+let salaComLinhas = "";
+let chamadaAssinada = false;
+
+function soltarLinhasDaSala(canal: string): void {
+  if (canal === "") return;
+  const soltas = new Set(soltarLinhasDe(canal));
+  if (soltas.size > 0) {
+    const ids = idsOf(canal);
+    const restantes = ids.filter((id) => !soltas.has(id));
+    ids.length = 0;
+    ids.push(...restantes);
+    for (const id of soltas) client.messages.delete(id);
+    recalcularLayout(canal, 0, ids.length - 1);
+    publish(canal);
+  }
+  if (salaComLinhas === canal) salaComLinhas = "";
+}
+
+/**
+ * Entrou, saiu, foi movido — como linha de sistema no chat da sala.
+ *
+ * ⚠ **Mensagem LOCAL do SDK e não entrada à parte na lista**, e é o que a faz
+ * custar zero componente novo: `vizinho`, `recalcularLayout` e a linha de
+ * sistema da `MessageRow` já sabem tratá-la. `getOrCreate` com `isNew = false`
+ * não emite `messageCreate` — ou seja, não conta como não lida, não toca som
+ * e não passa pela reconciliação por nonce.
+ */
+function inserirLinhasDeSala(evento: unknown): void {
+  const chamada = lerChamada();
+  const canal = chamada.estado === "fora" ? "" : chamada.channelId;
+  const linhas = linhasDoEvento(evento, canal);
+  if (linhas.length === 0) return;
+
+  if (!chamadaAssinada) {
+    chamadaAssinada = true;
+    /* Sair da sala (ou trocar de sala) apaga as linhas: elas são "visível só
+       para conectados", e guardá-las seria acumular uma por entrada numa
+       sessão de 8h. */
+    assinarChamada(() => {
+      const agora = lerChamada();
+      const atual = agora.estado === "fora" ? "" : agora.channelId;
+      if (salaComLinhas !== "" && salaComLinhas !== atual) soltarLinhasDaSala(salaComLinhas);
+    });
+  }
+
+  for (const linha of linhas) {
+    if (!client.channels.get(linha.canal)) continue;
+    const id = proximoId();
+    registrarLinhaDeSala(id, linha.canal, linha.sistema);
+    client.messages.getOrCreate(
+      id,
+      {
+        _id: id,
+        channel: linha.canal,
+        author: linha.userId,
+        content: "",
+        /* Só para o SDK hidratar como linha de sistema; o FATO é lido do
+           registro em `toSistema`. */
+        system: { type: "text", content: "" },
+      },
+      false,
+    );
+    const ids = idsOf(linha.canal);
+    ids.push(id);
+    recalcularLayout(linha.canal, ids.length - 1, ids.length - 1);
+    publish(linha.canal);
+    salaComLinhas = linha.canal;
+  }
 }
 
 /** Semeia o canal sem passar por evento — é setup, não carga medida. */
@@ -3025,7 +3137,8 @@ export function marcarNaoLidaA(messageId: string): void {
   const ids = idsOf(channelId);
   const indice = ids.indexOf(messageId);
 
-  const anteriorNaLista = indice > 0 ? ids[indice - 1] : undefined;
+  /* Linha efêmera da sala não é cursor: o servidor não conhece o ID dela. */
+  const anteriorNaLista = indice > 0 ? ultimaDoServidor(ids.slice(0, indice)) : undefined;
   const novoCursor = anteriorNaLista ?? ulidAnterior(idDoSdk(messageId));
   if (novoCursor === undefined) return;
 
@@ -3129,7 +3242,7 @@ export function marcarCanalLido(channelId: string): void {
   */
   if (conectado()) {
     const ids = channelMessageIds.peek(channelId);
-    const ultima = ids?.[ids.length - 1];
+    const ultima = ultimaDoServidor(ids ?? []);
     if (ultima) void client.channels.get(channelId)?.ack(idDoSdk(ultima));
   }
 

@@ -47,6 +47,7 @@ import { figurinhaDaMensagem } from "./figurinhasDeMensagem";
 import { formatarBytes } from "../lib/bytes";
 import { sigla } from "../lib/sigla";
 import { camposDe, superficie } from "./superficieVortex";
+import { linhaDeSala } from "./eventosDaSala";
 import { lerConfigDeVoz } from "./vozDoCanal";
 
 /**
@@ -158,6 +159,9 @@ const ROTULO_BRUTO: Record<string, string> = {
   inteiro para exercer um `switch`.
 */
 export function toSistema(message: Message): SistemaSnapshot | undefined {
+  /* Entrou/saiu/moveu na sala de voz: linha LOCAL, o fato mora no registro. */
+  const daSala = linhaDeSala(message.id);
+  if (daSala !== undefined) return daSala;
   const sm = message.systemMessage;
   if (!sm) return undefined;
 

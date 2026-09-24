@@ -80,6 +80,13 @@ export type Acao =
    * aceitaria a soltura e o servidor devolveria 403.
    */
   | "conectar"
+  /**
+   * Transmitir câmera ou tela num canal de voz — `Video`.
+   *
+   * O seletor de tela pergunta ANTES de capturar: sem isto a pessoa escolheria
+   * fonte, áudio e qualidade para o servidor recusar a publicação no fim.
+   */
+  | "transmitirVideo"
   /* --- fork: permissões de categoria e link que dá cargo -------------- */
   /** Fechar categoria, sincronizar canal com ela. `ManagePermissions`. */
   | "gerenciarPermissoes"
@@ -122,6 +129,7 @@ const PERMISSAO: Record<Acao, string | undefined> = {
   silenciarNaVoz: "MuteMembers",
   ensurdecerNaVoz: "DeafenMembers",
   conectar: "Connect",
+  transmitirVideo: "Video",
 
   gerenciarPermissoes: "ManagePermissions",
   atribuirCargos: "AssignRoles",

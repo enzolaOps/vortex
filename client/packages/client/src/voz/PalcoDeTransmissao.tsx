@@ -1,6 +1,5 @@
 import {
   ArrowsClockwise,
-  ArrowsOut,
   Gear,
   ICONE,
   MicrophoneSlash,
@@ -57,7 +56,17 @@ import { useChannel, usePessoa, useServer } from "../store/hooks";
 import { chaveDeVideo, faixasDeVideo } from "../store/video";
 import { definirPalco } from "../store/palcoDeVoz";
 import { BotaoDoChatDaSala } from "./ChatDaSala";
-import { Cronometro, Doca, emTelaCheia, SeloAoVivo } from "./pecasDeVoz";
+import { usuarioLocalId } from "../sdk/adapter";
+import {
+  BotaoDeTelaCheia,
+  Cronometro,
+  Doca,
+  emTelaCheia,
+  FaixaDeVideo,
+  sairDaTelaCheia,
+  SeloAoVivo,
+  useEmTelaCheia,
+} from "./pecasDeVoz";
 import css from "./PalcoDeTransmissao.module.css";
 
 /**
@@ -97,6 +106,9 @@ export function PalcoDeTransmissao({
   const canal = useChannel(chamada.channelId);
   const servidor = useServer(canal?.serverId ?? "");
   const pessoa = usePessoa(dono);
+  /* Quem você é, para o ladrilho da própria câmera — o mesmo arranjo da
+     chamada direta. */
+  const eu = chamada.participantes[0] ?? usuarioLocalId();
 
   /*
     ⚠ **Assistir começa LIGADO, e é o pedido de quem usa: "sem a necessidade
@@ -125,21 +137,14 @@ export function PalcoDeTransmissao({
           <span className={css.nomeDoServidor}>{pessoa?.displayName ?? "alguém"}</span>
         )}
         <SeloAoVivo />
-        <Cronometro desde={chamada.desde} />
+        {/* ⚠ Desde a TRANSMISSÃO na sua; ver `telaDesde`. A de outra pessoa
+            segue em `desde`: nada no protocolo diz quando ela começou. */}
+        <Cronometro desde={proprio ? chamada.telaDesde : chamada.desde} />
         <span className={css.espaco} />
         <div className={css.acoesDoCabecalho}>
           <BotaoDoChatDaSala className={css.acaoDoCabecalho} />
           <BotaoDePip />
-          <Tooltip texto="Tela cheia" lado="abaixo">
-            <button
-              type="button"
-              className={css.acaoDoCabecalho}
-              aria-label="Tela cheia"
-              onClick={emTelaCheia}
-            >
-              <ArrowsOut size={ICONE.controle} aria-hidden />
-            </button>
-          </Tooltip>
+          <BotaoDeTelaCheia className={css.acaoDoCabecalho} />
         </div>
       </header>
 
@@ -163,6 +168,22 @@ export function PalcoDeTransmissao({
           <div className={css.fila}>
             {chamada.camera ? (
               <div className={css.ladrilho} data-proprio>
+                {/*
+                  ⚠ O VÍDEO da câmera, e não só o rótulo (D-TELA-15). Pelo
+                  mesmo store de faixas que a grade lê — `publicarVideoLocal`
+                  já põe a sua câmera lá —, e não por um getter local: dois
+                  caminhos para a mesma faixa é o que o comentário daquela
+                  função existe para impedir. Sem faixa, `FaixaDeVideo`
+                  devolve `null` e o glifo continua sendo o estado.
+                */}
+                {eu === undefined ? null : (
+                  <FaixaDeVideo
+                    userId={eu}
+                    fonte="camera"
+                    className={css.videoDoLadrilho}
+                    espelhada
+                  />
+                )}
                 <VideoCamera size={ICONE.calha} aria-hidden className={css.glifoDoLadrilho} />
                 <span className={css.nomeDoLadrilho}>Você · câmera</span>
                 <span className={css.selo}>SEPARADO</span>
@@ -193,6 +214,7 @@ export function PalcoDeTransmissao({
         surdo={chamada.surdo}
         camera={chamada.camera}
         tela={chamada.tela}
+        mais
       />
     </>
   );
@@ -238,6 +260,7 @@ function Prancha({
   /** O que a captura PEDIU. Comparar com o entregue é o que acende o aviso. */
   const [taxaPedida, setTaxaPedida] = useState<number | undefined>(undefined);
   const entregue = useEntrega(pausada);
+  const telaCheia = useEmTelaCheia();
 
   /*
     A faixa de OUTRA pessoa vem do store; a sua vem do getter local.
@@ -502,9 +525,11 @@ function Prancha({
           <button
             type="button"
             className={css.itemDoHud}
-            onClick={emTelaCheia}
+            onClick={telaCheia ? sairDaTelaCheia : emTelaCheia}
           >
-            <span className={css.rotuloDoHud}>Tela cheia</span>
+            <span className={css.rotuloDoHud}>
+              {telaCheia ? "Sair da tela cheia" : "Tela cheia"}
+            </span>
           </button>
         </div>
       )}

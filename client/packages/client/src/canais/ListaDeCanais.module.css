@@ -716,7 +716,8 @@
      que não encolhe e quebraria a linha. */
   .nomeNaSala,
   .aoVivo,
-  .estadoDeVoz {
+  .estadoDeVoz,
+  .maisEstados {
     display: none;
   }
 }
@@ -1358,6 +1359,22 @@
   font-size: var(--vx-size-2xs);
   font-weight: 700;
   color: var(--vx-warning);
+}
+
+/*
+  "+N" — os estados que não couberam no teto de três (D-VOZ-02).
+
+  Mono e `text-3`: é CONTAGEM, não estado — pintá-lo na cor do que ele esconde
+  faria um "+1" competir com os três ícones que ficaram, e o tooltip é que diz
+  quais são.
+*/
+.maisEstados {
+  flex: none;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-2xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--vx-text-3);
+  cursor: default;
 }
 
 /*

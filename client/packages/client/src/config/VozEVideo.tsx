@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 
 import { Botao } from "../components/ui/Botao";
 import { Deslizante } from "../components/ui/Deslizante";
@@ -6,15 +6,22 @@ import { Escolha } from "../components/ui/Escolha";
 import { Interruptor } from "../components/ui/Interruptor";
 import { CartaoDeOpcao } from "../components/ui/CartaoDeOpcao";
 import { Segmentado } from "../components/ui/Segmentado";
-import { cn } from "../lib/cn";
 import {
   useFaixaLocal,
-  useNivelDeEntrada,
+  useMedirEntrada,
   useTesteDeMicrofone,
 } from "./midiaDeTeste";
+import { BarrasDoMedidor, LimiarManual, TextoDoNivel } from "./MedidorDeEntrada";
+import { Combinacao } from "../components/ui/Tecla";
+import {
+  assinarAtalhosDeVoz,
+  lerAtalhosDeVoz,
+  teclasDaCombinacao,
+} from "../store/atalhosDeVoz";
 import {
   assinarPreferenciasDeVoz,
   definirPreferenciasDeVoz,
+  ATRASO_MAX_MS,
   FUNDOS_DE_VIDEO,
   lerPreferenciasDeVoz,
   NIVEIS_DE_RUIDO,
@@ -32,53 +39,16 @@ import {
   PaginaDeAjustes,
 } from "./Pagina";
 import css from "./VozEVideo.module.css";
-import { TabelaDeAtalhos } from "./TabelaDeAtalhos";
+import { TabelaDeAtalhos, useGravacaoDeAtalho } from "./TabelaDeAtalhos";
 import { assinarDesktop, lerDesktop } from "../store/desktop";
+import { PADRAO_DO_SISTEMA, useDispositivos } from "../store/dispositivos";
 
-/**
- * Os dispositivos que o navegador enumera.
- *
- * ⚠ **Sem permissão, `enumerateDevices` devolve entradas com `label` VAZIO** —
- * o navegador esconde o nome do hardware até alguém abrir o microfone uma vez.
- * Por isso a primeira opção é sempre "Padrão do sistema", que é verdade e é o
- * que a maioria quer: com a lista anônima, escolher "Dispositivo 2" é adivinhar.
- *
- * Fora de `sdk/`: `mediaDevices` é API do navegador, não do protocolo, e não
- * arrasta o LiveKit — que é meio megabyte que esta tela não deve baixar.
- */
-const PADRAO = "Padrão do sistema";
-
-function useDispositivos(tipo: MediaDeviceKind): readonly MediaDeviceInfo[] {
-  const [lista, setLista] = useState<readonly MediaDeviceInfo[]>([]);
-
-  useEffect(() => {
-    let vivo = true;
-    function ler() {
-      void navigator.mediaDevices
-        ?.enumerateDevices()
-        .then((ds) => {
-          if (vivo) setLista(ds.filter((d) => d.kind === tipo));
-        })
-        .catch(() => {
-          /* Sem permissão nem hardware. A lista fica só com o padrão. */
-        });
-    }
-    ler();
-    /*
-      ⚠ O listener é obrigatório e tem cleanup: plugar um fone durante a
-      sessão muda a lista, e sem isto a tela mostraria para sempre os
-      dispositivos que existiam quando ela abriu. Listener sem cleanup é o erro
-      nº 5 do briefing.
-    */
-    navigator.mediaDevices?.addEventListener("devicechange", ler);
-    return () => {
-      vivo = false;
-      navigator.mediaDevices?.removeEventListener("devicechange", ler);
-    };
-  }, [tipo]);
-
-  return lista;
-}
+/*
+  A lista de dispositivos mora em `store/dispositivos.ts` desde que a doca da
+  chamada passou a escolher dispositivo também — um listener de
+  `devicechange` para as duas superfícies, e não um por tela.
+*/
+const PADRAO = PADRAO_DO_SISTEMA;
 
 /** Rótulos para o seletor: o padrão primeiro, depois o que tiver nome. */
 function rotulosDe(ds: readonly MediaDeviceInfo[]): string[] {
@@ -189,7 +159,8 @@ export function VozEVideo() {
   */
   const mic = useFaixaLocal();
   const cam = useFaixaLocal();
-  const nivel = useNivelDeEntrada(mic.faixa, BARRAS.length);
+  /* Publica no store efêmero do nível — só os medidores assinam. */
+  useMedirEntrada(mic.faixa);
   const teste = useTesteDeMicrofone();
 
   return (
@@ -245,6 +216,9 @@ export function VozEVideo() {
           </div>
           <Botao
             tamanho="pequeno"
+            /* "Parar teste" em vermelho suave, do design: enquanto grava, o
+               botão é a SAÍDA, e ela precisa se distinguir do convite. */
+            variante={mic.estado === "ligado" ? "perigoSutil" : "primario"}
             carregando={mic.estado === "abrindo"}
             rotuloCarregando="Abrindo…"
             onClick={() => {
@@ -271,47 +245,20 @@ export function VozEVideo() {
                 });
             }}
           >
-            {mic.estado === "ligado" ? "Parar" : "Testar"}
+            {mic.estado === "ligado" ? "Parar teste" : "Vamos testar"}
           </Botao>
         </div>
 
         {/*
-          O medidor MEDE — `useNivelDeEntrada` liga um `AnalyserNode` na faixa
-          aberta pelo botão acima e acende por RMS em dB. Sem teste rodando ele
-          fica em zero, que continua sendo a verdade: não há o que medir.
-
-          ⚠ **O `aria-valuetext` diz o estado e não o número.** "42 por cento"
-          não significa nada para quem não vê as barras; "sem medição" e
-          "medindo" respondem a pergunta que a pessoa tem.
+          O medidor MEDE — `useMedirEntrada` liga um `AnalyserNode` na faixa
+          aberta pelo botão acima e publica o dB num store efêmero; as barras e
+          o número assinam sozinhos. Sem teste rodando o número vira "— dB",
+          que continua sendo a verdade: não há o que medir.
         */}
         <div className={css.medidor}>
           <span className={css.rotuloDoMedidor}>Entrada</span>
-          <div
-            className={css.barras}
-            role="meter"
-            aria-label="Nível de entrada"
-            aria-valuenow={Math.round((nivel / BARRAS.length) * 100)}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuetext={
-              mic.estado === "ligado" ? "medindo" : "sem medição"
-            }
-          >
-            {BARRAS.map((b, i) => (
-              <span
-                key={b}
-                className={cn(css.barra, i < nivel && css.barraAcesa)}
-                aria-hidden
-              />
-            ))}
-          </div>
-          <span className={css.db}>
-            {teste.fase === "tocando"
-              ? "▶"
-              : mic.estado === "ligado"
-                ? `${String(nivel)}/${String(BARRAS.length)}`
-                : "— dB"}
-          </span>
+          <BarrasDoMedidor medindo={mic.estado === "ligado"} />
+          <TextoDoNivel tocando={teste.fase === "tocando"} />
         </div>
         {mic.erro !== undefined ? (
           <p className={css.erroDeMidia} role="alert">
@@ -339,17 +286,34 @@ export function VozEVideo() {
         ))}
       </div>
 
-      <GrupoDeAjustes>
-        <LinhaDeAjuste titulo="Sensibilidade automática">
-          <Interruptor
-            ligado={p.sensibilidadeAutomatica}
-            rotulo="Sensibilidade automática"
-            aoAlternar={(v) =>
-              definirPreferenciasDeVoz({ sensibilidadeAutomatica: v })
-            }
-          />
-        </LinhaDeAjuste>
-      </GrupoDeAjustes>
+      {/*
+        ⚠ **Um bloco OU o outro, pelo modo** (D-VOZ-32). Sensibilidade não
+        significa nada em push-to-talk — quem abre o microfone é a tecla —, e
+        a tecla não significa nada em detecção. Mostrar os dois obrigava a
+        pessoa a descobrir qual dos dois estava valendo.
+      */}
+      {p.modo === "deteccao" ? (
+        <CartaoDeAjustes>
+          <div className={css.cabecaDoBloco}>
+            <div className={pg.titulo}>Sensibilidade automática</div>
+            <Interruptor
+              ligado={p.sensibilidadeAutomatica}
+              rotulo="Sensibilidade automática"
+              aoAlternar={(v) =>
+                definirPreferenciasDeVoz({ sensibilidadeAutomatica: v })
+              }
+            />
+          </div>
+          {/* O limiar só existe com a automática DESLIGADA: com ela ligada
+              quem decide é o navegador, e uma marca arrastável ali seria um
+              controle sem efeito. */}
+          {p.sensibilidadeAutomatica ? null : (
+            <LimiarManual limiarDb={p.limiarDb} />
+          )}
+        </CartaoDeAjustes>
+      ) : (
+        <BlocoDePushToTalk atrasoMs={p.atrasoAoSoltarMs} />
+      )}
 
       <CabecalhoDeSecao titulo="Processamento de áudio" />
 
@@ -552,6 +516,68 @@ export function VozEVideo() {
   );
 }
 
+/**
+ * O bloco do push-to-talk: a tecla, o "Regravar" e o atraso ao soltar.
+ *
+ * "Regravar" é a MESMA gravação do "Editar" da tabela de atalhos — o hook é
+ * compartilhado, e a combinação gravada aqui aparece lá, porque o atalho é um
+ * só. O atraso é real: `soltarTecla` segura o microfone aberto por ele.
+ */
+function BlocoDePushToTalk({ atrasoMs }: { atrasoMs: number }) {
+  const atalhos = useSyncExternalStore(assinarAtalhosDeVoz, lerAtalhosDeVoz);
+  const [gravando, setGravando] = useGravacaoDeAtalho();
+  const tecla = atalhos.pushToTalk;
+  const estaGravando = gravando === "pushToTalk";
+
+  return (
+    <CartaoDeAjustes>
+      <div className={css.cabecaDoBloco}>
+        <div className={pg.texto}>
+          <div className={pg.titulo}>Tecla de push-to-talk</div>
+          <p className={pg.detalhe}>
+            Funciona também com o app em segundo plano
+          </p>
+        </div>
+        <div className={css.teclaDoBloco}>
+          {estaGravando ? (
+            <span className={css.gravando} aria-live="polite">
+              Pressione a combinação… (Esc cancela)
+            </span>
+          ) : tecla ? (
+            <Combinacao teclas={teclasDaCombinacao(tecla)} />
+          ) : (
+            <span className={css.semAtalho}>sem atalho</span>
+          )}
+          <Botao
+            variante="sutil"
+            tamanho="pequeno"
+            aria-pressed={estaGravando}
+            onClick={() => setGravando(estaGravando ? undefined : "pushToTalk")}
+          >
+            {estaGravando ? "Cancelar" : "Regravar"}
+          </Botao>
+        </div>
+      </div>
+      <div className={css.linhaDoVolume}>
+        <span className={css.rotuloDoLimiar}>Atraso ao soltar</span>
+        <span className={css.valor}>{atrasoMs} ms</span>
+      </div>
+      <Deslizante
+        id="atraso-ao-soltar"
+        valor={atrasoMs}
+        min={0}
+        max={ATRASO_MAX_MS}
+        passo={10}
+        rotulo="Atraso ao soltar"
+        texto={`${String(atrasoMs)} milissegundos`}
+        aoMudar={(atrasoAoSoltarMs) =>
+          definirPreferenciasDeVoz({ atrasoAoSoltarMs })
+        }
+      />
+    </CartaoDeAjustes>
+  );
+}
+
 const MODOS = [
   {
     id: "deteccao",
@@ -563,15 +589,4 @@ const MODOS = [
     rotulo: "Push-to-talk",
     detalhe: "Transmite só enquanto a tecla estiver pressionada.",
   },
-] as const;
-
-/*
-  As barras do medidor.
-
-  Array de constantes e não `Array.from`: o `key` do projeto não pode ser
-  índice, e a lista é fixa — vinte segmentos, sempre os mesmos.
-*/
-const BARRAS = [
-  "b01", "b02", "b03", "b04", "b05", "b06", "b07", "b08", "b09", "b10",
-  "b11", "b12", "b13", "b14", "b15", "b16", "b17", "b18", "b19", "b20",
 ] as const;

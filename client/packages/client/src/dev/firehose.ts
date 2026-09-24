@@ -1340,6 +1340,7 @@ export function transmissaoFalsa(): void {
     transmitindo: ligando ? outros.slice(0, 1) : [],
   });
   faixaSinteticaDeTela(ligando);
+  faixaSinteticaDeTela(ligando, "camera");
   /*
     ⚠ **A SALA, espelhando o motor.** Ele deixou de abrir a prancha ao começar
     a transmitir — a prévia aparece num ladrilho da grade —, e um arnês que
@@ -1393,16 +1394,24 @@ export function transmissaoFalsa(): void {
  * chegou" de "a faixa congelou", que é exatamente a diferença que a limpeza
  * do `LocalTrackUnpublished` existe para preservar.
  */
-let pinturaDaTela: ReturnType<typeof setInterval> | undefined;
+/*
+  ⚠ Arnês mais pobre que o protocolo — e agora pela CÂMERA. `transmissaoFalsa`
+  acende `camera: true` para o ladrilho "Você · câmera" existir, mas só a
+  TELA tinha faixa sintética: o ladrilho nascia sem vídeo, e o vídeo dele
+  (D-TELA-15) seria construído e inalcançável no `/dev`. Uma pintura por
+  fonte, e a da câmera com outra cor para as duas não se confundirem.
+*/
+const pinturas = new Map<"tela" | "camera", ReturnType<typeof setInterval>>();
 
-function faixaSinteticaDeTela(ligando: boolean): void {
+function faixaSinteticaDeTela(ligando: boolean, fonte: "tela" | "camera" = "tela"): void {
   const quem = lerChamada().participantes[0];
   if (!quem) return;
-  const chave = chaveDeVideo(quem, "tela");
+  const chave = chaveDeVideo(quem, fonte);
 
-  if (pinturaDaTela !== undefined) {
-    clearInterval(pinturaDaTela);
-    pinturaDaTela = undefined;
+  const anterior = pinturas.get(fonte);
+  if (anterior !== undefined) {
+    clearInterval(anterior);
+    pinturas.delete(fonte);
   }
   if (!ligando) {
     faixasDeVideo.apagar(chave);
@@ -1420,14 +1429,14 @@ function faixaSinteticaDeTela(ligando: boolean): void {
     quadro += 1;
     pincel.fillStyle = "#14181e";
     pincel.fillRect(0, 0, 640, 360);
-    pincel.fillStyle = "#35c2cc";
+    pincel.fillStyle = fonte === "tela" ? "#35c2cc" : "#e8596b";
     pincel.fillRect((quadro * 8) % 640, 150, 120, 60);
     pincel.fillStyle = "#e6eaf0";
     pincel.font = "20px monospace";
-    pincel.fillText("tela sintética do arnês", 24, 40);
+    pincel.fillText(`${fonte === "tela" ? "tela" : "câmera"} sintética do arnês`, 24, 40);
   };
   pintar();
-  pinturaDaTela = setInterval(pintar, 200);
+  pinturas.set(fonte, setInterval(pintar, 200));
 
   const faixa = tela.captureStream(5).getVideoTracks()[0];
   if (faixa) faixasDeVideo.set(chave, faixa);

@@ -239,6 +239,20 @@ impl TestHarness {
             .await
     }
 
+    /// Vortex: tópicos, FORA de `topico`, em que um evento que casa com
+    /// `predicate` já passou pelo buffer. Serve para provar AUSÊNCIA depois
+    /// de esperar um sentinela publicado por último.
+    pub fn eventos_fora_de<F>(&self, topico: &str, predicate: F) -> Vec<String>
+    where
+        F: Fn(&EventV1) -> bool,
+    {
+        self.event_buffer
+            .iter()
+            .filter(|(t, e)| t != topico && predicate(e))
+            .map(|(t, _)| t.clone())
+            .collect()
+    }
+
     pub async fn wait_for_event<F>(&mut self, topic: &str, predicate: F) -> EventV1
     where
         F: Fn(&EventV1) -> bool,
