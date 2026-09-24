@@ -28,6 +28,11 @@
   color: var(--vx-text-3);
 }
 
+/* O alt pendente: alvo do tamanho do texto, não da linha inteira. */
+.alt {
+  justify-self: start;
+}
+
 .acoes {
   display: flex;
   justify-content: flex-end;

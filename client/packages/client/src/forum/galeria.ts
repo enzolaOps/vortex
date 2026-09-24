@@ -1,6 +1,7 @@
 import { decodeTime } from "ulid";
 
 import { formatarBytes } from "../lib/bytes";
+import { relogio } from "../lib/duracao";
 import { rotuloDeDia } from "../sdk/agrupamento";
 import type { TopicoSnapshot } from "../sdk/domain";
 
@@ -101,4 +102,45 @@ export function totalDaGaleria(
   const itens = `${ids.length.toLocaleString("pt-BR")} ${ids.length === 1 ? "item" : "itens"}`;
   const peso = conhecidos > 0 ? formatarBytes(bytes) : undefined;
   return peso ? `${itens} · ${peso}` : itens;
+}
+
+/**
+ * O selo de tipo no canto do item (D-CANAIS-15): GIF diz "GIF", vídeo diz a
+ * DURAÇÃO ("0:12"), imagem não tem selo.
+ *
+ * A duração não vem do protocolo — `Metadata::Video` tem só largura e altura.
+ * Ela vem do PRÓPRIO arquivo: o `<video preload="metadata">` que já desenha o
+ * quadro lê o cabeçalho e o navegador expõe `duration`. É dado medido, não
+ * inventado. Enquanto ele não chegou (spoiler escondido, instância sem
+ * servidor de mídia, rede lenta) o selo diz "VÍDEO": o tipo é certo, a
+ * duração ainda não — e `0:00` afirmaria um vídeo vazio.
+ *
+ * `Infinity` é o que o navegador devolve para transmissão sem fim conhecido,
+ * e `NaN` antes do cabeçalho; nenhum dos dois é duração.
+ */
+export function seloDaMidia(
+  tipo: "imagem" | "video" | "gif" | undefined,
+  duracaoSegundos: number | undefined,
+): string | undefined {
+  if (tipo === "gif") return "GIF";
+  if (tipo !== "video") return undefined;
+  return duracaoSegundos !== undefined && Number.isFinite(duracaoSegundos) && duracaoSegundos > 0
+    ? relogio(duracaoSegundos)
+    : "VÍDEO";
+}
+
+/**
+ * Duração já medida, por URL. Module-level e não estado da célula: a grade é
+ * virtualizada e a célula remonta ao rolar — sem isto o selo voltaria a
+ * "VÍDEO" e piscaria para "0:12" a cada passada. Uma entrada por vídeo que a
+ * sessão viu; sem teto, pela mesma conta do cache do gradiente.
+ */
+const duracoes = new Map<string, number>();
+
+export function duracaoConhecida(url: string | undefined): number | undefined {
+  return url === undefined ? undefined : duracoes.get(url);
+}
+
+export function lembrarDuracao(url: string, segundos: number): void {
+  if (Number.isFinite(segundos) && segundos > 0) duracoes.set(url, segundos);
 }
