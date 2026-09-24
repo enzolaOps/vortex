@@ -84,8 +84,29 @@ export function lerNota(userId: string): string {
   return notas.get(userId) ?? NOTA_VAZIA;
 }
 
+/**
+ * O teto da nota — D-DMN-11, "N / 256".
+ *
+ * O protocolo não guarda nota nenhuma, então o número é do design e não de um
+ * servidor que recusaria o 257º caractere. O teto existe pelo que a caixa É:
+ * um lembrete de uma linha ou duas sobre alguém, e não um arquivo.
+ */
+export const LIMITE_DA_NOTA = 256;
+
+/**
+ * Grava a nota, a cada tecla.
+ *
+ * ⚠ **O texto vai como foi DIGITADO, sem `trimEnd`.** A versão anterior
+ * aparava o fim a cada tecla, e como o campo é controlado pelo store o
+ * espaço digitado sumia antes da letra seguinte: "Onde nos" virava "Ondenos".
+ * Só a nota inteira em branco vira ausência — aí não há palavra para colar.
+ *
+ * Corta no teto aqui e não só no `maxLength` do campo: colar um texto longo
+ * passa pelo mesmo caminho, e o store é quem garante o que fica gravado.
+ */
 export function escreverNota(userId: string, texto: string): void {
-  const limpo = texto.trimEnd();
+  const limpo =
+    texto.trim() === "" ? "" : texto.slice(0, LIMITE_DA_NOTA);
   if (lerNota(userId) === limpo) return;
   if (limpo === "") notas.delete(userId);
   else notas.set(userId, limpo);

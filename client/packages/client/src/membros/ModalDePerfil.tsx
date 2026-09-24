@@ -18,6 +18,7 @@ import {
   assinarNota,
   assinarSilencioDe,
   escreverNota,
+  LIMITE_DA_NOTA,
   estaSilenciado,
   lerNota,
 } from "../store/sobrePessoas";
@@ -309,10 +310,20 @@ function Conteudo({
               className={css.nota}
               rows={3}
               value={nota}
+              maxLength={LIMITE_DA_NOTA}
+              aria-describedby="nota-contador"
               placeholder="Onde nos conhecemos, o que combinamos…"
               onChange={(e) => escreverNota(userId, e.target.value)}
             />
-            <p className={css.dica}>Salva automaticamente</p>
+            {/* O contador em mono, à direita, como o design: é número que
+                muda a cada tecla, e dígito de largura fixa não faz a linha
+                tremer. */}
+            <p className={css.dicaDaNota}>
+              <span>Salva automaticamente</span>
+              <span id="nota-contador" className={css.contador}>
+                {nota.length} / {LIMITE_DA_NOTA}
+              </span>
+            </p>
 
             {/*
               ⚠ **"só para mim" está no rótulo, e não é enfeite.** Silenciar

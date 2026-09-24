@@ -11,19 +11,15 @@ import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { MarcaDeCaixa } from "../components/ui/Marcador";
 import { publicarRelacoes } from "../sdk/adapter";
-import { criarGrupo } from "../sdk/social";
+import { abrirConversaCom, criarGrupo } from "../sdk/social";
 import { abrirConversa } from "../store/navegacao";
 import { usePessoa, useRelacao } from "../store/hooks";
 import css from "./NovoGrupo.module.css";
-
-/**
- * O teto do protocolo.
- *
- * ⚠ **Dez INCLUINDO você**, e é por isso que a conta na tela soma um. O Revolt
- * recusa o 11º recipiente com 400, e descobrir isso depois de escolher dez
- * pessoas é o pior momento — a tela conta para frente e trava antes.
- */
-export const TETO = 10;
+import {
+  acaoDoNovoGrupo,
+  dicaDoNovoGrupo,
+  TETO,
+} from "./rodapeDoNovoGrupo";
 
 /*
   ⚠ **`Candidata`, `Filtrada` e `Ficha` são EXPORTADAS, e o modal de gerenciar
@@ -116,7 +112,34 @@ export function NovoGrupo({ aoFechar }: { aoFechar: () => void }) {
   }, []);
 
   const cheio = escolhidos.length + 1 >= TETO;
-  const restantes = TETO - escolhidos.length - 1;
+  const acao = acaoDoNovoGrupo(escolhidos.length);
+
+  function confirmar() {
+    setCriando(true);
+    /*
+      ⚠ Uma pessoa só ABRE A DM (D-DMN-06): um grupo de dois é a conversa
+      que já existe com um nome e um dono a mais, e criá-lo deixaria duas
+      conversas com a mesma pessoa na coluna. `openDM` é idempotente, então
+      reabrir a existente e abrir a primeira são a mesma chamada.
+
+      Sem nome no formulário de grupo: o protocolo exige um, e o design não
+      pede. O nome padrão é editável no painel de gerenciar — que é onde
+      alguém pensa nisso.
+    */
+    const pedido =
+      acao === "abrirDm"
+        ? abrirConversaCom(escolhidos[0] ?? "")
+        : criarGrupo("Novo grupo", escolhidos);
+    void pedido
+      .then((id) => {
+        if (id === undefined) return;
+        /* Abrir a conversa: criar e continuar olhando a lista é o fluxo
+           interrompido no último passo. */
+        abrirConversa(id);
+        aoFechar();
+      })
+      .finally(() => setCriando(false));
+  }
 
   function alternar(id: string) {
     setEscolhidos((atual) =>
@@ -142,33 +165,16 @@ export function NovoGrupo({ aoFechar }: { aoFechar: () => void }) {
               de o botão recusar é tarde.
             */}
             <span className={css.restantes}>
-              {restantes === 1 ? "1 vaga restante" : `${String(restantes)} vagas restantes`}
+              {dicaDoNovoGrupo(escolhidos.length)}
             </span>
             <Botao
               variante="primario"
-              disabled={escolhidos.length === 0}
+              disabled={acao === "nenhuma"}
               carregando={criando}
-              rotuloCarregando="Criando…"
-              onClick={() => {
-                setCriando(true);
-                /*
-                  Sem nome no formulário: o protocolo exige um, e o design não
-                  pede. O nome padrão sai dos participantes e é editável no
-                  painel de gerenciar — que é onde alguém pensa nisso.
-                */
-                void criarGrupo("Novo grupo", escolhidos)
-                  .then((id) => {
-                    if (id === undefined) return;
-                    /* Abrir a conversa recém-criada: criar um grupo e
-                       continuar olhando a lista é o fluxo interrompido no
-                       último passo. */
-                    abrirConversa(id);
-                    aoFechar();
-                  })
-                  .finally(() => setCriando(false));
-              }}
+              rotuloCarregando={acao === "abrirDm" ? "Abrindo…" : "Criando…"}
+              onClick={confirmar}
             >
-              Criar grupo
+              {acao === "abrirDm" ? "Abrir DM" : "Criar grupo"}
             </Botao>
           </>
         }

@@ -363,6 +363,20 @@
   text-wrap: pretty;
 }
 
+/* A dica da nota divide a linha com o contador — D-DMN-11. A distância até a
+   caixa é o `gap` da `.secao`, como a de todo irmão dela. */
+.dicaDaNota {
+  composes: dica;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--vx-space-08);
+}
+
+.contador {
+  font-family: var(--vx-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
 .carregando {
   padding: var(--vx-space-24);
   color: var(--vx-text-3);

@@ -11,7 +11,8 @@ import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { Selo } from "../components/ui/Selo";
 import { CaretLeft, MagnifyingGlass } from "../components/ui/icones";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
-import { Candidata, Ficha, Filtrada, TETO } from "./NovoGrupo";
+import { Candidata, Ficha, Filtrada } from "./NovoGrupo";
+import { TETO } from "./rodapeDoNovoGrupo";
 import cssNovo from "./NovoGrupo.module.css";
 import { gradienteDe } from "../lib/gradiente";
 import { subirAnexo, temServidorDeMidia } from "../sdk/anexos";
@@ -43,13 +44,11 @@ function Membro({
   dono,
   souDono,
   aoRemover,
-  aoTransferir,
 }: {
   id: string;
   dono: boolean;
   souDono: boolean;
   aoRemover: () => void;
-  aoTransferir: () => void;
 }) {
   const pessoa = usePessoa(id);
 
@@ -66,28 +65,19 @@ function Membro({
           Dono
         </Selo>
       ) : souDono ? (
-        <>
-          {/*
-            ⚠ **Transferir aparece por MEMBRO e não numa lista à parte**, e é
-            o que faz a ação ser possível sem uma segunda tela: transferir é
-            escolher UMA pessoa, e o lugar onde se escolhe uma pessoa é a
-            linha dela.
-          */}
-          <button
-            type="button"
-            className={css.acao}
-            onClick={aoTransferir}
-          >
-            Transferir
-          </button>
-          <button
-            type="button"
-            className={css.acaoPerigo}
-            onClick={aoRemover}
-          >
-            Remover
-          </button>
-        </>
+        /*
+          Só Remover na linha, como o design. Transferir foi para o RODAPÉ
+          (D-DMN-09): é ação sobre o GRUPO — muda quem manda nele —, e com
+          ela repetida em cada linha a lista de membros lia como três
+          botões por pessoa, o do meio quase nunca usado.
+        */
+        <button
+          type="button"
+          className={css.acaoPerigo}
+          onClick={aoRemover}
+        >
+          Remover
+        </button>
       ) : null}
     </div>
   );
@@ -102,7 +92,7 @@ function Membro({
  * as três telas são a mesma conversa sobre o mesmo grupo — abrir um modal
  * sobre o outro para escolher três amigos seria maquinário para uma volta.
  */
-type Modo = "membros" | "adicionar" | "notificacoes";
+type Modo = "membros" | "adicionar" | "notificacoes" | "transferir";
 
 /**
  * Escolher quem entra no grupo.
@@ -308,6 +298,80 @@ function Notificacoes({
   );
 }
 
+/** O nome de uma pessoa, assinando só ela. */
+function NomeDe({ id }: { id: string }) {
+  const pessoa = usePessoa(id);
+  return <>{pessoa?.displayName ?? "alguém"}</>;
+}
+
+/**
+ * Escolher quem herda o grupo.
+ *
+ * ⚠ **Escolher e CONFIRMAR são dois gestos**, e não um clique por linha:
+ * transferir tira de você o poder de desfazer — quem herda é quem decide se
+ * devolve. Um clique errado numa lista de nomes parecidos não pode custar o
+ * grupo.
+ */
+function Transferir({
+  channelId,
+  candidatos,
+  aoVoltar,
+}: {
+  channelId: string;
+  candidatos: readonly string[];
+  aoVoltar: () => void;
+}) {
+  const [herdeiro, setHerdeiro] = useState<string | undefined>(undefined);
+  const [enviando, setEnviando] = useState(false);
+
+  return (
+    <>
+      <div className={css.tituloDaLista}>
+        <button type="button" className={css.acao} onClick={aoVoltar}>
+          <CaretLeft size={ICONE.selo} aria-hidden /> Voltar
+        </button>
+        <span className={css.sobrancelha}>Transferir propriedade</span>
+      </div>
+
+      <div
+        className={css.lista}
+        role="radiogroup"
+        aria-label="Novo dono do grupo"
+      >
+        {candidatos.map((id) => (
+          <Opcao
+            key={id}
+            marcado={herdeiro === id}
+            aoEscolher={() => setHerdeiro(id)}
+          >
+            <NomeDe id={id} />
+          </Opcao>
+        ))}
+      </div>
+
+      <div className={css.rodape}>
+        <Botao
+          variante="primario"
+          disabled={herdeiro === undefined}
+          carregando={enviando}
+          rotuloCarregando="Transferindo…"
+          onClick={() => {
+            if (herdeiro === undefined) return;
+            setEnviando(true);
+            void transferirGrupo(channelId, herdeiro)
+              .then((ok) => {
+                if (ok) aoVoltar();
+              })
+              .finally(() => setEnviando(false));
+          }}
+        >
+          Transferir
+        </Botao>
+      </div>
+    </>
+  );
+}
+
 /**
  * Gerenciar grupo.
  *
@@ -497,6 +561,12 @@ export function GerenciarGrupo({ aoFechar }: { aoFechar: () => void }) {
             jaDentro={grupo.membrosIds}
             aoVoltar={() => setModo("membros")}
           />
+        ) : modo === "transferir" ? (
+          <Transferir
+            channelId={channelId}
+            candidatos={outros}
+            aoVoltar={() => setModo("membros")}
+          />
         ) : modo === "notificacoes" ? (
           <Notificacoes
             channelId={channelId}
@@ -523,7 +593,6 @@ export function GerenciarGrupo({ aoFechar }: { aoFechar: () => void }) {
             dono
             souDono={souDono}
             aoRemover={() => undefined}
-            aoTransferir={() => undefined}
           />
           {outros.map((id) => (
             <Membro
@@ -532,7 +601,6 @@ export function GerenciarGrupo({ aoFechar }: { aoFechar: () => void }) {
               dono={false}
               souDono={souDono}
               aoRemover={() => void removerDoGrupo(channelId, id)}
-              aoTransferir={() => void transferirGrupo(channelId, id)}
             />
           ))}
         </div>
@@ -545,6 +613,20 @@ export function GerenciarGrupo({ aoFechar }: { aoFechar: () => void }) {
           >
             Notificações do grupo
           </button>
+          {/*
+            Só para o dono e só com alguém para herdar: um item que o servidor
+            recusaria é a ação que a pessoa não pode executar, e essa não se
+            renderiza.
+          */}
+          {souDono && outros.length > 0 ? (
+            <button
+              type="button"
+              className={css.itemDeRodape}
+              onClick={() => setModo("transferir")}
+            >
+              Transferir propriedade
+            </button>
+          ) : null}
           <button
             type="button"
             className={css.itemDestrutivo}
