@@ -61,6 +61,19 @@ export type PreferenciasDeVoz = {
   readonly volumeDeSaida: number;
   readonly modo: ModoDeEntrada;
   readonly sensibilidadeAutomatica: boolean;
+  /**
+   * O limiar manual, em dBFS — vale só com a sensibilidade automática
+   * DESLIGADA e no modo detecção. Abaixo dele o motor não transmite; ver
+   * `sdk/portaDeVoz.ts`.
+   */
+  readonly limiarDb: number;
+  /**
+   * Quanto o push-to-talk espera depois de soltar a tecla, em ms.
+   *
+   * ⚠ Existe porque a última sílaba sai DEPOIS do dedo: quem solta a tecla
+   * junto com a palavra corta a consoante final. Ver `soltarTecla`.
+   */
+  readonly atrasoAoSoltarMs: number;
   readonly ruido: NivelDeRuido;
   readonly eco: boolean;
   readonly ganho: boolean;
@@ -91,6 +104,9 @@ const PADRAO: PreferenciasDeVoz = {
   volumeDeSaida: 60,
   modo: "deteccao",
   sensibilidadeAutomatica: true,
+  /* Os dois valores do design: "−42 dB" e "120 ms". */
+  limiarDb: -42,
+  atrasoAoSoltarMs: 120,
   ruido: "padrao",
   eco: true,
   ganho: true,
@@ -110,6 +126,22 @@ const PADRAO: PreferenciasDeVoz = {
 
 function volume(v: unknown, recuo: number): number {
   return typeof v === "number" && Number.isFinite(v) ? Math.min(100, Math.max(0, v)) : recuo;
+}
+
+/** Faixas válidas dos dois números novos — a tela e a leitura usam as mesmas. */
+export const LIMIAR_MIN_DB = -60;
+export const LIMIAR_MAX_DB = 0;
+export const ATRASO_MAX_MS = 500;
+
+function numeroEntre(
+  v: unknown,
+  min: number,
+  max: number,
+  recuo: number,
+): number {
+  return typeof v === "number" && Number.isFinite(v)
+    ? Math.min(max, Math.max(min, Math.round(v)))
+    : recuo;
 }
 
 function idDeDispositivo(v: unknown): string | undefined {
@@ -137,6 +169,13 @@ function ler(): PreferenciasDeVoz {
         typeof r.sensibilidadeAutomatica === "boolean"
           ? r.sensibilidadeAutomatica
           : PADRAO.sensibilidadeAutomatica,
+      limiarDb: numeroEntre(r.limiarDb, LIMIAR_MIN_DB, LIMIAR_MAX_DB, PADRAO.limiarDb),
+      atrasoAoSoltarMs: numeroEntre(
+        r.atrasoAoSoltarMs,
+        0,
+        ATRASO_MAX_MS,
+        PADRAO.atrasoAoSoltarMs,
+      ),
       ruido: ruido ?? PADRAO.ruido,
       eco: typeof r.eco === "boolean" ? r.eco : PADRAO.eco,
       ganho: typeof r.ganho === "boolean" ? r.ganho : PADRAO.ganho,

@@ -26,7 +26,18 @@ import { Avatar } from "../components/ui/Avatar";
 import { definirPresenca, definirStatusTexto, lerMeuPerfil } from "../sdk/perfil";
 import type { PresencaEscolhida } from "../sdk/domain";
 import css from "./PainelDeUsuario.module.css";
+import {
+  assinarPreferenciasDeVoz,
+  lerPreferenciasDeVoz,
+  type ModoDeEntrada,
+} from "../store/preferenciasDeVoz";
 import { sigla } from "../lib/sigla";
+
+/** Minúsculo e sem ponto: é subtexto sob o nome, como no design. */
+const ROTULO_DO_MODO: Record<ModoDeEntrada, string> = {
+  deteccao: "detecção de voz",
+  pressionar: "pressionar para falar",
+};
 
 /**
  * As quatro escolhas, na ordem em que se procura por elas.
@@ -124,6 +135,12 @@ function Recado({ aoFechar }: { aoFechar: () => void }) {
 export function PainelDeUsuario() {
   const status = useSyncExternalStore(assinarMeuStatus, lerMeuStatus);
   const chamada = useSyncExternalStore(assinarChamada, lerChamada);
+  /* Preferência de clique humano, não de fala: assinar não acorda o painel
+     por nível de áudio. */
+  const { modo } = useSyncExternalStore(
+    assinarPreferenciasDeVoz,
+    lerPreferenciasDeVoz,
+  );
   const [aberto, setAberto] = useState(false);
 
   /*
@@ -183,8 +200,13 @@ export function PainelDeUsuario() {
               {/* Recado quando há; nome de usuário quando não. A linha nunca
                   fica vazia — altura constante é o que impede o painel de
                   pular ao trocar o recado. */}
+              {/* Em chamada, o MODO DE ENTRADA toma a linha (D-VOZ-09): é o
+                  que responde "estão me ouvindo agora?" — em push-to-talk,
+                  só enquanto a tecla desce. Fora dela o recado volta. */}
               <span className={css.segunda}>
-                {status.texto ?? (usuario ? `@${usuario}` : "sem servidor")}
+                {chamada.estado !== "fora"
+                  ? ROTULO_DO_MODO[modo]
+                  : (status.texto ?? (usuario ? `@${usuario}` : "sem servidor"))}
               </span>
               {/*
                 "sem conexão" no lugar do recado, offline (D-LAC-47).

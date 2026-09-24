@@ -1,7 +1,9 @@
 import { useSyncExternalStore } from "react";
 
+import type { ChannelSnapshot } from "./domain";
+
 /**
- * A voz de um canal: bitrate, região e modo de vídeo.
+ * A voz de um canal: tipo da sala, bitrate, região e modo de vídeo.
  *
  * ⚠ **São campos do FORK, não do Stoat.** `VoiceInformation` ganhou
  * `bitrate` (kbps), `rtc_region` e `video_quality` no serviço `api` deste
@@ -15,6 +17,10 @@ import { useSyncExternalStore } from "react";
  * `ChannelCreate`, `ChannelUpdate`) antes da hidratação. E pendurar isto no
  * snapshot do canal republicaria a coluna inteira por uma configuração que só
  * duas telas leem: esta página e o motor de voz ao entrar.
+ *
+ * A exceção é `modoDaSala`: a coluna de canais desenha o ícone por ele, então
+ * ele TAMBÉM vai no snapshot (`map.ts`), e só a mudança dele republica o canal
+ * — ver `consumirModosAlterados`.
  */
 
 export const MODOS_DE_VIDEO = ["auto", "720p30", "1080p60"] as const;
@@ -39,7 +45,51 @@ export const BITRATE_PASSO = 8;
  */
 export const BITRATE_PADRAO = 64;
 
+/**
+ * O TIPO da sala — voz, vídeo ou palco (D-VOZ-04).
+ *
+ * ⚠ **Não é `CanalTipo` novo, de propósito.** Os três são o MESMO canal de voz
+ * no protocolo (`TextChannel` com `voice`), com `voice.kind` do fork dizendo
+ * como a sala se apresenta. Um valor novo em `CanalTipo` faria todo
+ * `tipo === "voz"` do app deixar a sala de fora — e o canal cairia na timeline
+ * de texto sem erro nenhum. Clientes Stoat ignoram `kind` e veem voz comum.
+ *
+ * Só a apresentação muda hoje: ícone na coluna e a grade como layout inicial
+ * no vídeo. Regras de palco (mão levantada, plateia) ficam para depois.
+ */
+export type ModoDaSala = NonNullable<ChannelSnapshot["modoDaSala"]>;
+export const MODOS_DA_SALA = ["voz", "video", "palco"] as const satisfies readonly ModoDaSala[];
+
+/** O nome no fio. O domínio fala português; o protocolo, o do servidor. */
+const KIND_DO_MODO: Record<ModoDaSala, string> = {
+  voz: "voice",
+  video: "video",
+  palco: "stage",
+};
+
+function modoDoKind(kind: unknown): ModoDaSala {
+  if (kind === "video") return "video";
+  if (kind === "stage") return "palco";
+  return "voz";
+}
+
+/**
+ * Se entrar na sala abre o palco na grade. Só vídeo: é o layout inicial dele,
+ * e nunca liga a câmera — isso continua sendo decisão de quem entra.
+ */
+export function abreNaGrade(modo: ModoDaSala): boolean {
+  return modo === "video";
+}
+
+export const ROTULO_DA_SALA: Record<ModoDaSala, string> = {
+  voz: "Voz",
+  video: "Vídeo",
+  palco: "Palco",
+};
+
 export type ConfigDeVoz = {
+  /** Voz, vídeo ou palco. Ausente no fio é voz. */
+  readonly modoDaSala: ModoDaSala;
   /** `undefined` = o canal nunca escolheu; vale o padrão do cliente. */
   readonly bitrateKbps: number | undefined;
   /** Nome do nó LiveKit. `undefined` = automática. */
@@ -48,6 +98,7 @@ export type ConfigDeVoz = {
 };
 
 export const VOZ_PADRAO: ConfigDeVoz = {
+  modoDaSala: "voz",
   bitrateKbps: undefined,
   regiao: undefined,
   modoDeVideo: "auto",
@@ -66,7 +117,9 @@ export function lerVozBruta(voice: unknown): ConfigDeVoz {
     bitrate?: unknown;
     rtc_region?: unknown;
     video_quality?: unknown;
+    kind?: unknown;
   };
+  const modoDaSala = modoDoKind(v.kind);
   const bitrate =
     typeof v.bitrate === "number" &&
     Number.isInteger(v.bitrate) &&
@@ -79,29 +132,39 @@ export function lerVozBruta(voice: unknown): ConfigDeVoz {
   const modo = MODOS_DE_VIDEO.includes(v.video_quality as ModoDeVideo)
     ? (v.video_quality as ModoDeVideo)
     : "auto";
-  if (bitrate === undefined && regiao === undefined && modo === "auto") {
+  if (
+    bitrate === undefined &&
+    regiao === undefined &&
+    modo === "auto" &&
+    modoDaSala === "voz"
+  ) {
     return VOZ_PADRAO;
   }
-  return { bitrateKbps: bitrate, regiao, modoDeVideo: modo };
+  return { modoDaSala, bitrateKbps: bitrate, regiao, modoDeVideo: modo };
 }
 
 /**
  * O objeto `voice` que vai no `PATCH`.
  *
  * ⚠ **O servidor SUBSTITUI o objeto inteiro**, não mescla: mandar só o
- * bitrate apagaria o limite de usuários. Por isso os quatro campos saem
- * sempre juntos daqui, e quem chama não tem como montar um corpo parcial.
+ * bitrate apagaria o limite de usuários. Por isso os campos saem sempre
+ * juntos daqui, e quem chama não tem como montar um corpo parcial.
+ *
+ * `kind` vai SEMPRE, inclusive `voice`: o servidor mantém o gravado quando a
+ * edição o omite (é o que protege o canal de um cliente Stoat que não conhece
+ * o campo), então rebaixar vídeo para voz só acontece dito por extenso.
  *
  * Ausência é "sem limite", "automática" e "padrão" — zero no fio era o defeito
  * de `max_users` que o `#212` já consertou uma vez.
  */
 export function corpoDeVoz(edicao: {
+  readonly modoDaSala: ModoDaSala;
   readonly limiteDeUsuarios: number;
   readonly bitrateKbps: number | undefined;
   readonly regiao: string | undefined;
   readonly modoDeVideo: ModoDeVideo;
 }): Record<string, unknown> {
-  const corpo: Record<string, unknown> = {};
+  const corpo: Record<string, unknown> = { kind: KIND_DO_MODO[edicao.modoDaSala] };
   if (edicao.limiteDeUsuarios > 0) corpo["max_users"] = edicao.limiteDeUsuarios;
   if (edicao.bitrateKbps !== undefined) {
     corpo["bitrate"] = Math.max(
@@ -168,9 +231,26 @@ export function lerConfigDeVoz(channelId: string): ConfigDeVoz {
   return porCanal.get(channelId) ?? VOZ_PADRAO;
 }
 
+/**
+ * Canais cujo MODO mudou desde a última leitura — o modo é o único campo daqui
+ * que o snapshot do canal carrega (a coluna desenha o ícone por ele), então é
+ * o único que obriga o adapter a republicar o canal. Bitrate e região não.
+ */
+const modosAlterados = new Set<string>();
+
+/** Esvazia e devolve os canais cujo modo mudou. Ver `modosAlterados`. */
+export function consumirModosAlterados(): readonly string[] {
+  if (modosAlterados.size === 0) return [];
+  const ids = [...modosAlterados];
+  modosAlterados.clear();
+  return ids;
+}
+
 function gravar(channelId: string, config: ConfigDeVoz): boolean {
   const atual = porCanal.get(channelId) ?? VOZ_PADRAO;
+  if (atual.modoDaSala !== config.modoDaSala) modosAlterados.add(channelId);
   if (
+    atual.modoDaSala === config.modoDaSala &&
     atual.bitrateKbps === config.bitrateKbps &&
     atual.regiao === config.regiao &&
     atual.modoDeVideo === config.modoDeVideo
@@ -247,4 +327,5 @@ export function useConfigDeVoz(channelId: string): ConfigDeVoz {
 /** Estado limpo entre testes. O módulo é global e sobrevive. */
 export function limparConfigDeVoz(): void {
   porCanal.clear();
+  modosAlterados.clear();
 }

@@ -204,9 +204,31 @@ function FraseDeSistema({ sistema }: { sistema: SistemaSnapshot }) {
           <NomeDoAutor userId={sistema.porId} /> iniciou uma chamada
         </>
       );
+    case "moveu":
+      return (
+        <>
+          <NomeDoAutor userId={sistema.userId} /> foi movido para{" "}
+          <NomeDoCanal channelId={sistema.paraId} />
+        </>
+      );
+    case "transmitiu":
+      return (
+        <>
+          <NomeDoAutor userId={sistema.userId} /> começou a compartilhar a tela
+        </>
+      );
     case "texto":
       return <>{sistema.texto}</>;
   }
+}
+
+/**
+ * O destino de um "moveu", assinando o canal sozinho — pela mesma razão do
+ * `NomeDoAutor`: renomear a sala não re-renderiza a linha inteira.
+ */
+function NomeDoCanal({ channelId }: { channelId: string }) {
+  const canal = useChannel(channelId);
+  return <>{canal?.name ?? "outra sala"}</>;
 }
 
 /**

@@ -36,6 +36,7 @@ import { abrirConversa, selecionarCanal } from "../store/navegacao";
 
 import { count, countMax } from "./stats";
 import {
+  aplicarVozDoCanal,
   channelMessageIds,
   definirUsuarioLocal,
   estadoDaFila,
@@ -103,6 +104,8 @@ type Servidor = {
     */
     privado?: boolean;
     teto?: number;
+    /** `voice.kind` do fork — sala de vídeo ou palco (D-VOZ-04). */
+    sala?: "video" | "stage";
     /** Segundos entre mensagens. O "Modo lento · 30 s" do design. */
     lento?: number;
     /** Fórum (ou galeria, com `media`) — o objeto cru que só este fork manda. */
@@ -164,6 +167,20 @@ const MUNDO: Servidor[] = [
       // componente renderizasse um cabeçalho "ninguém aqui" por canal, cada
       // servidor pagaria altura permanente para dizer que não há nada.
       { id: "01JQ0000000000000000000014", nome: "voz-silencio", voz: true, dentro: 0 },
+      /*
+        Sala de VÍDEO e PALCO — `voice.kind` do fork (D-VOZ-04). O nome e o
+        "1/25" são os do design; sem elas o ícone por tipo nasceria
+        construído e inalcançável.
+      */
+      {
+        id: "01JQ0000000000000000000015",
+        nome: "Apresentações",
+        voz: true,
+        dentro: 1,
+        teto: 25,
+        sala: "video",
+      },
+      { id: "01JQ0000000000000000000016", nome: "palco", voz: true, dentro: 0, sala: "stage" },
     ],
     categorias: [
       {
@@ -184,6 +201,8 @@ const MUNDO: Servidor[] = [
           "01JQ0000000000000000000012",
           "01JQ0000000000000000000013",
           "01JQ0000000000000000000014",
+          "01JQ0000000000000000000015",
+          "01JQ0000000000000000000016",
         ],
       },
     ],
@@ -461,7 +480,9 @@ const RECADOS = [
         // Tópico só em alguns: um arnês onde todo canal tem descrição nunca
         // exercitaria o cabeçalho sem tópico, que é o caso comum.
         ...(canal.topico ? { description: canal.topico } : {}),
-        ...(canal.voz ? { voice: { max_users: canal.teto } } : {}),
+        ...(canal.voz
+          ? { voice: { max_users: canal.teto, ...(canal.sala ? { kind: canal.sala } : {}) } }
+          : {}),
         /*
           `default_permissions` com `ViewChannel` NEGADO — é assim que o
           protocolo diz "restrito", e é o que `potentiallyRestrictedChannel`
@@ -475,6 +496,8 @@ const RECADOS = [
       client.channels.getOrCreate(canal.id, cru as never);
       // O SDK descarta `forum` na hidratação; o registro guarda — ver `vortexCanal.ts`.
       anotarCanais([cru]);
+      // E `voice.kind` também — o store de voz lê o cru, como no socket.
+      if (canal.voz) aplicarVozDoCanal({ type: "ChannelCreate", ...cru });
     }
 
     client.servers.getOrCreate(servidor.id, {
@@ -1323,6 +1346,7 @@ export function transmissaoFalsa(): void {
   });
   faixaSinteticaDeTela(ligando);
   espectadoresSinteticos(ligando);
+  faixaSinteticaDeTela(ligando, "camera");
   /*
     ⚠ **A SALA, espelhando o motor.** Ele deixou de abrir a prancha ao começar
     a transmitir — a prévia aparece num ladrilho da grade —, e um arnês que
@@ -1376,7 +1400,14 @@ export function transmissaoFalsa(): void {
  * chegou" de "a faixa congelou", que é exatamente a diferença que a limpeza
  * do `LocalTrackUnpublished` existe para preservar.
  */
-let pinturaDaTela: ReturnType<typeof setInterval> | undefined;
+/*
+  ⚠ Arnês mais pobre que o protocolo — e agora pela CÂMERA. `transmissaoFalsa`
+  acende `camera: true` para o ladrilho "Você · câmera" existir, mas só a
+  TELA tinha faixa sintética: o ladrilho nascia sem vídeo, e o vídeo dele
+  (D-TELA-15) seria construído e inalcançável no `/dev`. Uma pintura por
+  fonte, e a da câmera com outra cor para as duas não se confundirem.
+*/
+const pinturas = new Map<"tela" | "camera", ReturnType<typeof setInterval>>();
 
 /**
  * Quem assiste a sua tela, sem LiveKit.
@@ -1401,14 +1432,15 @@ function espectadoresSinteticos(ligando: boolean): void {
   if (c) definirAnuncio(c, [{ dono, altura: 1080, rede: false, cheia: true }]);
 }
 
-function faixaSinteticaDeTela(ligando: boolean): void {
+function faixaSinteticaDeTela(ligando: boolean, fonte: "tela" | "camera" = "tela"): void {
   const quem = lerChamada().participantes[0];
   if (!quem) return;
-  const chave = chaveDeVideo(quem, "tela");
+  const chave = chaveDeVideo(quem, fonte);
 
-  if (pinturaDaTela !== undefined) {
-    clearInterval(pinturaDaTela);
-    pinturaDaTela = undefined;
+  const anterior = pinturas.get(fonte);
+  if (anterior !== undefined) {
+    clearInterval(anterior);
+    pinturas.delete(fonte);
   }
   if (!ligando) {
     faixasDeVideo.apagar(chave);
@@ -1426,14 +1458,14 @@ function faixaSinteticaDeTela(ligando: boolean): void {
     quadro += 1;
     pincel.fillStyle = "#14181e";
     pincel.fillRect(0, 0, 640, 360);
-    pincel.fillStyle = "#35c2cc";
+    pincel.fillStyle = fonte === "tela" ? "#35c2cc" : "#e8596b";
     pincel.fillRect((quadro * 8) % 640, 150, 120, 60);
     pincel.fillStyle = "#e6eaf0";
     pincel.font = "20px monospace";
-    pincel.fillText("tela sintética do arnês", 24, 40);
+    pincel.fillText(`${fonte === "tela" ? "tela" : "câmera"} sintética do arnês`, 24, 40);
   };
   pintar();
-  pinturaDaTela = setInterval(pintar, 200);
+  pinturas.set(fonte, setInterval(pintar, 200));
 
   const faixa = tela.captureStream(5).getVideoTracks()[0];
   if (faixa) faixasDeVideo.set(chave, faixa);
@@ -1905,6 +1937,22 @@ export async function semearNaoLidas(quantas = 9): Promise<void> {
   */
   await new Promise((resolve) => setTimeout(resolve, 1000));
   for (let i = 0; i < quantas; i++) falarEmOutroCanal();
+  /* Duas no chat da sala de vídeo — o "▣ Apresentações 2" do design. Sem
+     isto o contador na linha de voz (D-VOZ-04) nasceria inalcançável: o
+     `falarEmOutroCanal` pula voz de propósito. */
+  for (let i = 0; i < 2; i++) falarNoCanal(SALA_DE_VIDEO_ID);
+}
+
+const SALA_DE_VIDEO_ID = "01JQ0000000000000000000015";
+
+function falarNoCanal(alvo: string): void {
+  falas++;
+  const id = nextId();
+  client.messages.getOrCreate(
+    id,
+    { _id: id, channel: alvo, author: autorDe(falas), content: body(falas) },
+    true,
+  );
 }
 
 let ultimaLista: readonly string[] = [];

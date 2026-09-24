@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   assinarChamada,
@@ -90,5 +90,51 @@ describe("definirChamada", () => {
     parar();
 
     expect(avisos).toBe(1);
+  });
+});
+
+/**
+ * O cronômetro da transmissão conta desde a TRANSMISSÃO (D-TELA-11).
+ *
+ * Contava desde a entrada na chamada: quem entrava às 14h e transmitia às
+ * 14h30 via "AO VIVO 30:00" no primeiro segundo no ar.
+ */
+describe("telaDesde", () => {
+  beforeEach(() => {
+    limparChamada();
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("nasce na transição de `tela`, e não na entrada da chamada", () => {
+    vi.setSystemTime(1_000_000);
+    definirChamada({ estado: "dentro", desde: Date.now() });
+    expect(lerChamada().telaDesde).toBe(0);
+
+    vi.setSystemTime(1_000_000 + 30 * 60_000);
+    definirChamada({ tela: true });
+    expect(lerChamada().telaDesde).toBe(1_000_000 + 30 * 60_000);
+    expect(lerChamada().desde).toBe(1_000_000);
+  });
+
+  it("repetir `tela: true` (releitura na reconexão) NÃO zera o relógio", () => {
+    vi.setSystemTime(5_000);
+    definirChamada({ tela: true });
+    vi.setSystemTime(9_000);
+    definirChamada({ tela: true, camera: true });
+    expect(lerChamada().telaDesde).toBe(5_000);
+  });
+
+  it("morre com a transmissão e recomeça do zero na seguinte", () => {
+    vi.setSystemTime(5_000);
+    definirChamada({ tela: true });
+    definirChamada({ tela: false, telaPausada: false, telaAudio: "sem" });
+    expect(lerChamada().telaDesde).toBe(0);
+
+    vi.setSystemTime(8_000);
+    definirChamada({ tela: true });
+    expect(lerChamada().telaDesde).toBe(8_000);
   });
 });

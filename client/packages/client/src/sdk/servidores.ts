@@ -9,7 +9,8 @@ import { PublicChannelInvite, ServerPublicInvite, type Server } from "stoat.js";
 import { ulid } from "ulid";
 
 import { client } from "./client";
-import { publicarCanaisDe } from "./adapter";
+import { aplicarVozDoCanal, publicarCanaisDe } from "./adapter";
+import { lerConfigDeVoz } from "./vozDoCanal";
 import { anotarCanais } from "./vortexCanal";
 import { escritasDePermissao, permissoesDoCanal } from "./canal";
 import { ehCanalDeVoz } from "./map";
@@ -346,9 +347,10 @@ export async function criarCanal(
   nome: string,
   /**
    * `true`/`false` é voz/texto, como sempre foi. `"forum"` e `"midia"` são os
-   * dois tipos que só este fork conhece — ver o ramo abaixo.
+   * dois tipos que só este fork conhece — ver o ramo abaixo. `"video"` e
+   * `"palco"` são sala de voz com `voice.kind` (D-VOZ-04).
    */
-  voz: boolean | "forum" | "midia",
+  voz: boolean | "forum" | "midia" | "video" | "palco",
   categoriaId: string,
   /** O servidor já em mãos — ver `servidorPara`. */
   dado?: Server,
@@ -373,14 +375,22 @@ export async function criarCanal(
       anotarCanais([cru]);
       id = cru._id;
     } else {
+      /*
+        Vídeo e palco são VOZ com `voice.kind`. O tipo do SDK não conhece o
+        campo (`as never`), e a hidratação da resposta o descarta — por isso a
+        anotação local logo abaixo, e o `ChannelCreate` do socket confirma.
+      */
+      const kind = voz === "video" ? "video" : voz === "palco" ? "stage" : undefined;
       const canal = await servidor.createChannel({
         // O protocolo NÃO tem `VoiceChannel`: canal de voz é `Text` com um
         // objeto `voice`. A descoberta está registrada em `map.ts`, e é o mesmo
         // engano que fez o arnês criar um tipo que não existe.
         type: voz ? "Voice" : "Text",
         name: nome,
+        ...(kind ? ({ voice: { kind } } as never) : {}),
       });
       id = canal.id;
+      if (kind) aplicarVozDoCanal({ type: "ChannelCreate", _id: id, voice: { kind } });
     }
   } catch (e) {
     toast({
@@ -477,6 +487,9 @@ export async function duplicarCanal(
 
   const voz = ehCanalDeVoz(canal);
   const teto = client.channels.getUnderlyingObject(channelId).voice?.maxUsers;
+  /* Duplicar uma sala de vídeo tem de dar uma sala de vídeo. */
+  const modo = voz ? lerConfigDeVoz(channelId).modoDaSala : "voz";
+  const kind = modo === "video" ? "video" : modo === "palco" ? "stage" : undefined;
 
   let novo: string;
   try {
@@ -485,11 +498,17 @@ export async function duplicarCanal(
       name: canal.name,
       description: canal.description ?? null,
       nsfw: canal.mature === true,
-      ...(voz && teto !== undefined && teto > 0
-        ? { voice: { max_users: teto } }
+      ...(voz && ((teto !== undefined && teto > 0) || kind)
+        ? ({
+            voice: {
+              ...(teto !== undefined && teto > 0 ? { max_users: teto } : {}),
+              ...(kind ? { kind } : {}),
+            },
+          } as never)
         : {}),
     });
     novo = criado.id;
+    if (kind) aplicarVozDoCanal({ type: "ChannelCreate", _id: novo, voice: { kind } });
   } catch (e) {
     toast({
       tipo: "erro",

@@ -10,6 +10,7 @@ import {
   Monitor,
   PencilSimple,
   Plus,
+  Presentation,
   SpeakerHigh,
   SpeakerSlash,
   Trash,
@@ -97,6 +98,12 @@ import { selecionarCanal } from "../store/navegacao";
 import { Selo } from "../components/ui/Selo";
 import { GatilhoDeBusca } from "../components/ui/CampoDeBusca";
 import { LinhaDeTopico, SomaDaCategoria } from "./Aninhados";
+import { Tooltip } from "../components/ui/Tooltip";
+import {
+  iconesDoParticipante,
+  ROTULO_DO_ICONE,
+  type IconeDeVoz,
+} from "./iconesDeVoz";
 import css from "./ListaDeCanais.module.css";
 
 /**
@@ -207,7 +214,29 @@ const Canal = memo(function Canal({
     cadeado diria a coisa errada sobre o que acontece lá dentro, então o
     cadeado vem depois do nome, como no design.
   */
-  const Icone = canal.tipo === "voz" ? SpeakerHigh : Hash;
+  /*
+    Vídeo e palco são VOZ com `voice.kind` (D-VOZ-04): mesmo canal, mesmo
+    clique, outro ícone. O design desenha ▣ para vídeo; a coluna usa o set de
+    ícones, como já faz com o ◈ da voz.
+  */
+  const Icone =
+    canal.tipo !== "voz"
+      ? Hash
+      : canal.modoDaSala === "video"
+        ? VideoCamera
+        : canal.modoDaSala === "palco"
+          ? Presentation
+          : SpeakerHigh;
+
+  /*
+    O número da linha. Texto conta MENÇÕES — a decisão já registrada: não
+    lida é posicional (a barra) e menção é contagem. A sala de voz conta as
+    NÃO LIDAS do chat embutido, como o design desenha ("▣ Apresentações 2
+    1/25"): quem está fora da sala não tem outro sinal de que a conversa lá
+    dentro andou, e a barra curta sozinha se perde entre os participantes.
+  */
+  const contador =
+    canal.tipo === "voz" ? Math.max(canal.naoLidas, canal.mencoes) : canal.mencoes;
 
   return (
     <>
@@ -391,20 +420,18 @@ const Canal = memo(function Canal({
             já está lá dentro — dado que hoje só existe em `data-conectado`, que
             leitor de tela nenhum lê, e no cronômetro, que é visual.
           */}
+          {canal.modoDaSala === "video" || canal.modoDaSala === "palco" ? (
+            <span className="sr-only">
+              {canal.modoDaSala === "video" ? "sala de vídeo" : "sala de palco"}
+            </span>
+          ) : null}
+
           {conectadoAqui ? (
             <span className="sr-only">você está nesta sala</span>
           ) : null}
 
           {canal.silenciado ? (
             <RestanteDoSilencio channelId={id} serverId={canal.serverId} />
-          ) : null}
-
-          {/* Antes do contador, como no design: o cronômetro é sobre VOCÊ e
-              a lotação é sobre a sala. */}
-          {desdeAqui > 0 ? <Cronometro desde={desdeAqui} /> : null}
-
-          {canal.tipo === "voz" && canal.limite !== undefined ? (
-            <TetoDaSala channelId={id} limite={canal.limite} />
           ) : null}
 
           {/*
@@ -415,15 +442,23 @@ const Canal = memo(function Canal({
             de existir — e ela silenciou justamente porque ele continua
             existindo e ela quer olhar na hora dela.
           */}
-          {canal.mencoes > 0 ? (
+          {contador > 0 ? (
             <Selo
               forma="contagem"
               tom="perigo"
               className={css.contador}
               data-silenciado={canal.silenciado}
             >
-              {contagem(canal.mencoes)}
+              {contagem(contador)}
             </Selo>
+          ) : null}
+
+          {/* Depois das não lidas e antes da lotação, como no design: o
+              cronômetro é sobre VOCÊ e a lotação é sobre a sala. */}
+          {desdeAqui > 0 ? <Cronometro desde={desdeAqui} /> : null}
+
+          {canal.tipo === "voz" && canal.limite !== undefined ? (
+            <TetoDaSala channelId={id} limite={canal.limite} />
           ) : null}
 
           {/*
@@ -547,7 +582,6 @@ const NaSala = memo(function NaSala({
   participante: ParticipanteDeVoz;
 }) {
   const membro = useMembro(chaveDeMembro(serverId, participante.userId));
-  const Icone = ICONE_DE_VOZ[participante.estado];
 
   /*
     ⚠ **Só quem tem "Mover membros" arrasta, e é instrução do design.** Sem a
@@ -584,6 +618,10 @@ const NaSala = memo(function NaSala({
     falando.subscriber(participante.userId),
     () => falando.getSnapshot(participante.userId) ?? false,
   );
+  const { visiveis, recolhidos } = iconesDoParticipante(participante);
+  /* A sigla `SRV` sai UMA vez mesmo com os dois ícones de servidor: quem impôs
+     foi o mesmo servidor, e repetir três letras gasta largura à toa. */
+  const primeiroSrv = visiveis.find((i) => i === "srvSurdo" || i === "srvMudo");
 
   return (
     <li
@@ -658,93 +696,101 @@ const NaSala = memo(function NaSala({
         campo novo, ou seja fork de backend. A divergência está registrada no
         `CLAUDE.md`; o que o selo afirma é verdade sobre o dado que existe.
       */}
-      {participante.estado === "tela" ? (
-        <Selo forma="etiqueta" tom="perigoSuave" className={css.aoVivo}>
-          LIVE
-          <span className="sr-only"> — compartilhando a tela</span>
-        </Selo>
-      ) : participante.estado === "video" ? (
-        <>
-          <Icone aria-hidden className={css.estadoDeVoz} />
-          <span className="sr-only">com a câmera ligada</span>
-        </>
-      ) : null}
-
       {/*
-        Mudo e surdo, DEPOIS do estado — e podem aparecer junto com ele.
-
-        ⚠ Eles não entram na união `estado` de propósito: estado é o que a
-        pessoa está PUBLICANDO (voz, vídeo, tela) e é excludente; mudo e surdo
-        são modificadores. Dá para estar compartilhando a tela e mudo ao mesmo
-        tempo, e uma união só não representaria isso.
-
-        Surdo IMPLICA mudo no protocolo — quem não ouve também não fala —,
-        então mostrar os dois seria dizer a mesma coisa duas vezes numa linha
-        de 205px. O fone ganha, porque é o estado maior.
+        Os ícones de estado, com TETO de três (D-VOZ-02). Quais aparecem e
+        quais colapsam no "+N" é `iconesDoParticipante` — puro e testado —; o
+        que fica aqui é só a pintura de cada um. A ordem de criticidade e as
+        razões de cada glifo moram lá.
       */}
-      {/*
-        SRV — silenciado POR ORDEM do servidor.
-
-        ⚠ **AVISO e não perigo, e eu tinha errado.** A referência e o design
-        escrevem os dois em `#E2B15C`, e o âmbar é o certo: vermelho é falha
-        ou destruição, e não poder falar num servidor é RESTRIÇÃO
-        administrativa — a mesma razão pela qual a faixa de voz instável
-        deixou de ser vermelha nesta mesma tela.
-
-        **Glifo mais sigla**, e não a sigla sozinha. O ícone diz "microfone" de
-        relance e as três letras dizem QUEM desligou; sozinha, a sigla obriga
-        a conhecer a convenção antes de entender a linha.
-
-        Vem ANTES do microfone comum e aparece JUNTO com ele: são fatos
-        diferentes. "Está sem microfone agora" é escolha que a pessoa desfaz;
-        "não pode falar aqui" é decisão de quem modera, e só quem modera
-        desfaz. Quem espera resposta reage de forma oposta aos dois.
-      */}
-      {/*
-        ⚠ **Surdo pelo servidor chegava no snapshot e NUNCA era desenhado.**
-        `surdoPeloServidor` existe em `ParticipanteDeVoz` desde que o menu do
-        participante precisou saber se o item estava marcado — campo lido,
-        mapeado e invisível, a mesma família do `statusTexto` da member list.
-
-        Ele vem ANTES do microfone e a sigla `SRV` sai UMA vez mesmo com os
-        dois: quem impôs foi o mesmo servidor, e repetir três letras numa linha
-        de 232px gastaria largura para dizer o que já está dito.
-      */}
-      {participante.mudoPeloServidor || participante.surdoPeloServidor ? (
-        <>
-          {participante.surdoPeloServidor ? (
-            <SpeakerSlash aria-hidden className={css.estadoSrv} />
-          ) : null}
-          {participante.mudoPeloServidor ? (
-            <MicrophoneSlash aria-hidden className={css.estadoSrv} />
-          ) : null}
-          <span className={css.srv} aria-hidden>
-            SRV
+      {visiveis.map((icone) => (
+        <IconeDoParticipante
+          key={icone}
+          icone={icone}
+          comSigla={icone === primeiroSrv}
+        />
+      ))}
+      {recolhidos.length > 0 ? (
+        <Tooltip texto={recolhidos.map((i) => ROTULO_DO_ICONE[i]).join(" · ")}>
+          <span className={css.maisEstados}>
+            +{recolhidos.length}
+            <span className="sr-only">
+              {`, também ${recolhidos.map((i) => ROTULO_DO_ICONE[i]).join(", ")}`}
+            </span>
           </span>
-          <span className="sr-only">
-            {participante.surdoPeloServidor && participante.mudoPeloServidor
-              ? "silenciado e ensurdecido pelo servidor"
-              : participante.surdoPeloServidor
-                ? "ensurdecido pelo servidor"
-                : "silenciado pelo servidor"}
-          </span>
-        </>
-      ) : null}
-
-      {participante.surdo ? (
-        <>
-          <SpeakerSlash aria-hidden className={css.estadoMudo} />
-          <span className="sr-only">sem ouvir</span>
-        </>
-      ) : participante.mudo ? (
-        <>
-          <MicrophoneSlash aria-hidden className={css.estadoMudo} />
-          <span className="sr-only">com o microfone desligado</span>
-        </>
+        </Tooltip>
       ) : null}
     </li>
   );
 });
+
+/**
+ * Um ícone de estado da linha da sala.
+ *
+ * ⚠ **Transmitindo vira o selo LIVE, e não o glifo ◧**: numa coluna de 232px
+ * `LIVE` se lê sem conhecer a convenção. E "LIVE" significa TRANSMITINDO, não
+ * "com espectadores" — essa contagem não existe no protocolo.
+ *
+ * ⚠ **SRV é AVISO e não perigo:** não poder falar num servidor é restrição
+ * administrativa, não falha. Glifo mais sigla — o ícone diz "microfone", as
+ * três letras dizem QUEM desligou.
+ */
+function IconeDoParticipante({
+  icone,
+  comSigla,
+}: {
+  icone: IconeDeVoz;
+  comSigla: boolean;
+}) {
+  const Video = ICONE_DE_VOZ.video;
+  const rotulo = <span className="sr-only">{ROTULO_DO_ICONE[icone]}</span>;
+  switch (icone) {
+    case "tela":
+      return (
+        <Selo forma="etiqueta" tom="perigoSuave" className={css.aoVivo}>
+          LIVE
+          <span className="sr-only"> — {ROTULO_DO_ICONE.tela}</span>
+        </Selo>
+      );
+    case "video":
+      return (
+        <>
+          <Video aria-hidden className={css.estadoDeVoz} />
+          {rotulo}
+        </>
+      );
+    case "srvSurdo":
+    case "srvMudo":
+      return (
+        <>
+          {icone === "srvSurdo" ? (
+            <SpeakerSlash aria-hidden className={css.estadoSrv} />
+          ) : (
+            <MicrophoneSlash aria-hidden className={css.estadoSrv} />
+          )}
+          {comSigla ? (
+            <span className={css.srv} aria-hidden>
+              SRV
+            </span>
+          ) : null}
+          {rotulo}
+        </>
+      );
+    case "surdo":
+      return (
+        <>
+          <SpeakerSlash aria-hidden className={css.estadoMudo} />
+          {rotulo}
+        </>
+      );
+    case "mudo":
+      return (
+        <>
+          <MicrophoneSlash aria-hidden className={css.estadoMudo} />
+          {rotulo}
+        </>
+      );
+  }
+}
 
 /**
  * A sala de um canal de voz.

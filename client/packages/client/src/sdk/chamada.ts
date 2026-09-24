@@ -23,6 +23,7 @@ import { abrirConversa } from "../store/navegacao";
 import { definirPalco } from "../store/palcoDeVoz";
 import { atenderNoStore, recusarNoStore } from "../notificacao/chamadas";
 import { enviarMensagem } from "./adapter";
+import { abreNaGrade, lerConfigDeVoz } from "./vozDoCanal";
 
 type Motor = typeof import("./motorDeVoz");
 
@@ -78,7 +79,16 @@ async function motorOuAviso(): Promise<Motor | undefined> {
 export async function entrarNaChamada(channelId: string): Promise<boolean> {
   const m = await motorOuAviso();
   if (m === undefined) return false;
-  return m.entrarNaChamada(channelId);
+  const entrou = await m.entrarNaChamada(channelId);
+  /*
+    Sala de VÍDEO abre na grade (D-VOZ-04) — é o layout inicial, e só isso:
+    a câmera continua desligada até a pessoa ligar. Entrar numa sala de vídeo
+    não é consentir em aparecer.
+  */
+  if (entrou && abreNaGrade(lerConfigDeVoz(channelId).modoDaSala)) {
+    definirPalco({ tipo: "grade" });
+  }
+  return entrou;
 }
 
 /**
@@ -249,6 +259,20 @@ export function definirQualidadeDeStream(
   qualidade: "auto" | "alta" | "media" | "soAudio",
 ): void {
   motor?.definirQualidadeDeStream(userId, fonte, qualidade);
+}
+
+/**
+ * A altura que está CHEGANDO do vídeo de alguém, e a que a fonte publica.
+ *
+ * `motor?.` pela razão das vizinhas: sem motor não há o que receber. Quem
+ * chama é a tela de assistir, uma vez por segundo — e só enquanto a
+ * qualidade é "Automática" (D-TELA-22).
+ */
+export async function resolucaoRecebida(
+  userId: string,
+  fonte: "camera" | "tela",
+): Promise<{ recebida: number | undefined; publicada: number | undefined } | undefined> {
+  return motor?.resolucaoRecebida(userId, fonte);
 }
 
 /**

@@ -26,6 +26,7 @@ import {
   RiCheckboxCircleFill,
   RiCloseCircleFill,
   RiCloseLine,
+  RiCollapseDiagonalFill,
   RiComputerFill,
   RiDeleteBin6Fill,
   RiDiscussFill,
@@ -70,6 +71,7 @@ import {
   RiPhoneFill,
   RiPictureInPicture2Fill,
   RiPlayFill,
+  RiPresentationFill,
   RiPushpinFill,
   RiPushpinLine,
   RiRefreshFill,
@@ -178,6 +180,7 @@ export const ArrowClockwise = vx(RiRefreshFill);
 export const ArrowCounterClockwise = vx(RiArrowGoBackFill);
 export const ArrowSquareOut = vx(RiExternalLinkFill);
 export const ArrowsClockwise = vx(RiLoopLeftFill);
+export const ArrowsIn = vx(RiCollapseDiagonalFill);
 export const ArrowsOut = vx(RiExpandDiagonalFill);
 export const BellSimple = vx(RiNotification3Fill);
 export const Calendar = vx(RiCalendarEventFill);
@@ -212,6 +215,8 @@ export const Phone = vx(RiPhoneFill);
 export const PhoneX = vx(RiCloseCircleFill);
 export const PictureInPicture = vx(RiPictureInPicture2Fill);
 export const Play = vx(RiPlayFill);
+/** Palco: sala de apresentação — o alto-falante diria "conversa". */
+export const Presentation = vx(RiPresentationFill);
 /* Parar a prévia de um efeito sonoro — o ■ do design. */
 export const Stop = vx(RiStopFill);
 export const ProhibitInset = vx(RiForbidFill);

@@ -47,6 +47,8 @@ import { figurinhaDaMensagem } from "./figurinhasDeMensagem";
 import { formatarBytes } from "../lib/bytes";
 import { sigla } from "../lib/sigla";
 import { camposDe, superficie } from "./superficieVortex";
+import { linhaDeSala } from "./eventosDaSala";
+import { lerConfigDeVoz } from "./vozDoCanal";
 
 /**
  * `reactions` chega como ReactiveMap<emoji, ReactiveSet<userId>>. Achatar aqui
@@ -157,6 +159,9 @@ const ROTULO_BRUTO: Record<string, string> = {
   inteiro para exercer um `switch`.
 */
 export function toSistema(message: Message): SistemaSnapshot | undefined {
+  /* Entrou/saiu/moveu na sala de voz: linha LOCAL, o fato mora no registro. */
+  const daSala = linhaDeSala(message.id);
+  if (daSala !== undefined) return daSala;
   const sm = message.systemMessage;
   if (!sm) return undefined;
 
@@ -602,6 +607,9 @@ export function toChannelSnapshot(
       outra razão (ver `ehCanalDeVoz`).
     */
     limite: tipo === "voz" ? teto : undefined,
+    /* Lido do evento CRU pelo store de voz — a hidratação reduz `voice` a
+       `{ maxUsers }`. Quem republica quando muda é `consumirModosAlterados`. */
+    modoDaSala: tipo === "voz" ? lerConfigDeVoz(channel.id).modoDaSala : undefined,
     /*
       `slowmode` é getter público e devolve `0` quando não há — sem
       normalização a fazer. É o raro campo do protocolo cujo nome e forma já

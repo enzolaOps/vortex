@@ -148,6 +148,19 @@ auto_derived!(
         /// Video quality ceiling for this voice channel (Vortex)
         #[serde(skip_serializing_if = "Option::is_none", default)]
         pub video_quality: Option<VideoQualityMode>,
+        /// Kind of room this voice channel is (Vortex); absent means voice
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        pub kind: Option<VoiceChannelKind>,
+    }
+
+    /// Kind of room a voice channel is (Vortex)
+    pub enum VoiceChannelKind {
+        #[serde(rename = "voice")]
+        Voice,
+        #[serde(rename = "video")]
+        Video,
+        #[serde(rename = "stage")]
+        Stage,
     }
 
     /// Video quality ceiling of a voice channel (Vortex)

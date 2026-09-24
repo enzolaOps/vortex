@@ -34,10 +34,12 @@ import css from "./ChatDaSala.module.css";
  * sala remonta a lista, e o virtualizador não reaproveita medição e âncora de
  * outro canal.
  *
- * O que o design desenha e NÃO entrou: entradas e saídas como eventos do
- * sistema no meio da conversa. O Stoat não grava `VoiceChannelJoin` como
- * mensagem, então elas existiriam só para quem estava olhando na hora — e o
- * próprio design diz que o histórico "persiste depois que todos saem".
+ * Entrar, sair, ser movido e começar a transmitir aparecem como linha de
+ * sistema no meio da conversa (D-VOZ-13, D-LAC-27) — e aparecem SÓ para quem
+ * está conectado, como o subtítulo abaixo já diz. O design as chama de
+ * "eventos do sistema, não mensagens": elas não são gravadas, e o "histórico
+ * persiste" da nota do rodapé fala das MENSAGENS. A decisão e o porquê estão
+ * em `sdk/eventosDaSala.ts`; a lista não sabe que elas são diferentes.
  */
 export function ChatDaSala({ channelId }: { channelId: string }) {
   const canal = useChannel(channelId);

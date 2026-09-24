@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { verbosFaltando, type PonteDeTela } from "./seletorDeTela";
+import {
+  aoVoltarParaAJanela,
+  capacidadeDeCaptura,
+  verbosFaltando,
+  type PonteDeTela,
+} from "./seletorDeTela";
 
 /**
  * A casca velha, e por que este teste existe.
@@ -90,5 +95,75 @@ describe("verbosFaltando", () => {
     */
     const doFuturo = { ...ponteCompleta(), gravarTela: () => Promise.resolve() };
     expect(verbosFaltando(doFuturo)).toEqual([]);
+  });
+});
+
+describe("capacidadeDeCaptura — o que o navegador entrega", () => {
+  const getDisplayMedia = () => Promise.resolve();
+
+  it("sem getDisplayMedia não há captura nem áudio", () => {
+    expect(capacidadeDeCaptura(undefined)).toEqual({
+      captura: false,
+      audio: false,
+    });
+    expect(capacidadeDeCaptura({})).toEqual({ captura: false, audio: false });
+  });
+
+  it("Chromium: a constraint de áudio de tela existe", () => {
+    expect(
+      capacidadeDeCaptura({
+        getDisplayMedia,
+        getSupportedConstraints: () => ({ suppressLocalAudioPlayback: true }),
+      }),
+    ).toEqual({ captura: true, audio: true });
+  });
+
+  it("Firefox/Safari: captura sem áudio, e o toggle vai desabilitado", () => {
+    expect(
+      capacidadeDeCaptura({
+        getDisplayMedia,
+        getSupportedConstraints: () => ({ width: true }),
+      }),
+    ).toEqual({ captura: true, audio: false });
+  });
+});
+
+describe("aoVoltarParaAJanela — a permissão revalida sozinha", () => {
+  function montar() {
+    const janela = new EventTarget();
+    const doc = Object.assign(new EventTarget(), {
+      visibilityState: "visible",
+    });
+    let leituras = 0;
+    const soltar = aoVoltarParaAJanela(
+      () => {
+        leituras += 1;
+      },
+      janela,
+      doc,
+    );
+    return { janela, doc, soltar, leituras: () => leituras };
+  }
+
+  it("relê ao focar a janela e ao ela voltar a ficar visível", () => {
+    const m = montar();
+    m.janela.dispatchEvent(new Event("focus"));
+    m.doc.dispatchEvent(new Event("visibilitychange"));
+    expect(m.leituras()).toBe(2);
+  });
+
+  it("não relê quando a janela SOME", () => {
+    const m = montar();
+    m.doc.visibilityState = "hidden";
+    m.doc.dispatchEvent(new Event("visibilitychange"));
+    expect(m.leituras()).toBe(0);
+  });
+
+  it("solta os ouvintes — sem isso o modal fechado seguiria lendo", () => {
+    const m = montar();
+    m.soltar();
+    m.janela.dispatchEvent(new Event("focus"));
+    m.doc.dispatchEvent(new Event("visibilitychange"));
+    expect(m.leituras()).toBe(0);
   });
 });

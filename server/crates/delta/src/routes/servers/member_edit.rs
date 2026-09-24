@@ -230,6 +230,16 @@ pub async fn edit(
 
     let before = member.generate_diff(&partial, &remove);
 
+    // Vortex: quem moveu ou desconectou, para o aviso PRIVADO dizer "por
+    // Fulano". O `ServerMemberUpdate` abaixo segue sem autor — ele vai ao
+    // servidor inteiro.
+    let by = autor_de_voz(
+        &user.id,
+        &member.id.user,
+        new_voice_channel.is_some(),
+        remove.contains(&FieldsMember::VoiceChannel),
+    );
+
     member.update(db, partial.clone(), remove.clone()).await?;
 
     AuditLogEntryAction::MemberEdit {
@@ -292,6 +302,7 @@ pub async fn edit(
                 from: channel,
                 to: new_voice_channel.id().to_string(),
                 token,
+                by: by.clone(),
             }
             .private(target_user.id.clone())
             .await;
@@ -328,8 +339,147 @@ pub async fn edit(
 
             // Disconnect the member being edited, not the moderator.
             voice_client.remove_user(&node, &target_user.id, &channel).await?;
+
+            if let Some(by) = &by {
+                avisar_autor_da_desconexao(&target_user.id, &server.id, &channel, by).await;
+            }
         };
     }
 
     Ok(Json(member.into()))
+}
+
+/// Vortex: conta SÓ a quem foi desconectado quem o desconectou (D-LAC-25).
+///
+/// Tópico privado `{usuário}!`, o mesmo do `UserMoveVoiceChannel`. Depois do
+/// `remove_user` de propósito: o cliente já está esperando a remoção do
+/// LiveKit para decidir o aviso, e um autor que chegue antes de haver o que
+/// assinar é só guardado — ver `sdk/vozImposta.ts`.
+async fn avisar_autor_da_desconexao(alvo: &str, servidor: &str, canal: &str, por: &str) {
+    EventV1::UserVoiceDisconnected {
+        server: servidor.to_string(),
+        channel: canal.to_string(),
+        by: por.to_string(),
+    }
+    .private(alvo.to_string())
+    .await;
+}
+
+/// Vortex: o autor de uma ação de VOZ sobre outra pessoa, e só dela.
+///
+/// ⚠ **Quem recebe é só o alvo.** Dizer ao servidor inteiro quem mexeu em
+/// quem é o que o registro de auditoria guarda atrás de `ViewAuditLog`; por
+/// isso o autor viaja em eventos privados (`UserMoveVoiceChannel` e
+/// `UserVoiceDisconnected`), nunca no `ServerMemberUpdate`. Mexer na própria
+/// voz não tem autor a anunciar.
+fn autor_de_voz(
+    quem_edita: &str,
+    alvo: &str,
+    moveu: bool,
+    desconectou: bool,
+) -> Option<String> {
+    if quem_edita == alvo || !(moveu || desconectou) {
+        return None;
+    }
+    Some(quem_edita.to_string())
+}
+
+#[cfg(test)]
+mod test {
+    use revolt_database::{events::client::EventV1, Member};
+    use rocket::http::{Header, Status};
+
+    use super::{autor_de_voz, avisar_autor_da_desconexao};
+    use crate::util::test::TestHarness;
+
+    #[test]
+    fn autor_so_em_acao_de_voz_sobre_outra_pessoa() {
+        assert_eq!(autor_de_voz("ana", "teo", true, false), Some("ana".into()));
+        assert_eq!(autor_de_voz("ana", "teo", false, true), Some("ana".into()));
+        // Apelido, cargo, castigo: sem autor no evento.
+        assert_eq!(autor_de_voz("ana", "teo", false, false), None);
+        // A própria voz não tem autor a anunciar.
+        assert_eq!(autor_de_voz("teo", "teo", true, false), None);
+        assert_eq!(autor_de_voz("teo", "teo", false, true), None);
+    }
+
+    /// Edição que não é de voz continua publicando o evento SEM `by` — o
+    /// contrato aditivo visto de ponta a ponta, pelo pub/sub de verdade.
+    #[rocket::async_test]
+    async fn edicao_comum_nao_anuncia_autor() {
+        let mut harness = TestHarness::new().await;
+        let (_, session, user) = harness.new_user().await;
+        let (server, _) = harness.new_server(&user).await;
+        Member::create(&harness.db, &server, &user, None)
+            .await
+            .unwrap();
+
+        let response = harness
+            .client
+            .patch(format!("/servers/{}/members/{}", server.id, user.id))
+            .header(Header::new("x-session-token", session.token.clone()))
+            .json(&serde_json::json!({ "nickname": "Apelido" }))
+            .dispatch()
+            .await;
+        assert_eq!(response.status(), Status::Ok);
+        drop(response);
+
+        let event = harness
+            .wait_for_event(&server.id, |event| {
+                matches!(event, EventV1::ServerMemberUpdate { id, .. } if id.user == user.id)
+            })
+            .await;
+
+        let fio = serde_json::to_value(&event).unwrap();
+        assert!(fio.get("by").is_none(), "autor no evento público: {fio}");
+    }
+
+    /// O autor da desconexão vai SÓ ao tópico privado do alvo. A prova da
+    /// ausência: depois de o privado chegar, um sentinela no tópico do
+    /// servidor é esperado — tudo que foi publicado antes dele já passou pelo
+    /// buffer, e nada ali pode ser o aviso de autor.
+    #[rocket::async_test]
+    async fn autor_da_desconexao_so_vai_ao_alvo() {
+        let mut harness = TestHarness::new().await;
+        let (_, _, alvo) = harness.new_user().await;
+        let (_, _, moderador) = harness.new_user().await;
+        let (server, channels) = harness.new_server(&moderador).await;
+        let canal = channels[0].id().to_string();
+
+        avisar_autor_da_desconexao(&alvo.id, &server.id, &canal, &moderador.id).await;
+
+        let privado = harness
+            .wait_for_event(&format!("{}!", alvo.id), |e| {
+                matches!(e, EventV1::UserVoiceDisconnected { .. })
+            })
+            .await;
+        match privado {
+            EventV1::UserVoiceDisconnected {
+                server: s,
+                channel: c,
+                by,
+            } => {
+                assert_eq!(s, server.id);
+                assert_eq!(c, canal);
+                assert_eq!(by, moderador.id);
+            }
+            _ => unreachable!(),
+        }
+
+        EventV1::ServerDelete {
+            id: "sentinela".to_string(),
+        }
+        .p(server.id.clone())
+        .await;
+        harness
+            .wait_for_event(&server.id, |e| {
+                matches!(e, EventV1::ServerDelete { id } if id == "sentinela")
+            })
+            .await;
+
+        let vazados = harness.eventos_fora_de(&format!("{}!", alvo.id), |e| {
+            matches!(e, EventV1::UserVoiceDisconnected { .. })
+        });
+        assert_eq!(vazados, Vec::<String>::new(), "autor publicado fora do alvo");
+    }
 }
