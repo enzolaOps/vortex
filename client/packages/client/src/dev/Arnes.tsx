@@ -24,7 +24,11 @@ import { ligarAtalhos } from "../atalhos/ligar";
 import { configurarSimulacaoDeEnvio } from "../sdk/adapter";
 import { dublarProvedorDeGif } from "../sdk/fonteDeGifs";
 import { provedorDeGifFalso } from "./gifsFalsos";
-import { pedirEscolhaDeTela } from "../store/seletorDeTela";
+import {
+  concluirEscolhaDeTela,
+  pedirEscolhaDeTela,
+  type ModoDoSeletor,
+} from "../store/seletorDeTela";
 import { dublarPonteDeTela } from "./telaFalsa";
 import { definirConexao, lerConexao } from "../store/conexao";
 import { alternarCascaFalsa } from "./cascaFalsa";
@@ -503,15 +507,29 @@ export function Arnes() {
             mínimo para as duas abas terem conteúdo. Escolher aqui não
             transmite nada — devolve a escolha e o arnês a descarta.
           */}
-          <button
-            onClick={() => {
-              dublarPonteDeTela();
-              void pedirEscolhaDeTela();
-            }}
-            className="rounded-06 border border-border-subtle bg-surface-2 px-12 py-04 text-sm text-text-1"
-          >
-            seletor de tela
-          </button>
+          {/*
+            As duas variantes: `casca` com as fontes dubladas, `sistema` como a
+            web a vê. Escolher deixa o painel em "Iniciando" por 1,5s antes de
+            fechar — é o que o motor faz enquanto captura e publica, e sem o
+            atraso o estado nunca chegaria à tela do arnês.
+          */}
+          {(["casca", "sistema"] as const satisfies readonly ModoDoSeletor[]).map(
+            (modo) => (
+              <button
+                key={modo}
+                onClick={() => {
+                  if (modo === "casca") dublarPonteDeTela();
+                  void pedirEscolhaDeTela(modo).then(async (e) => {
+                    if (e) await new Promise((r) => setTimeout(r, 1500));
+                    concluirEscolhaDeTela();
+                  });
+                }}
+                className="rounded-06 border border-border-subtle bg-surface-2 px-12 py-04 text-sm text-text-1"
+              >
+                {modo === "casca" ? "seletor de tela" : "seletor de tela (web)"}
+              </button>
+            ),
+          )}
 
           {/*
             ⚠ **Ele alternava entre DOIS estados e o store tem três** — e o que

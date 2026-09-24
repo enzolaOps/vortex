@@ -3,7 +3,7 @@ import {
   ICONE,
   SpeakerHigh,
 } from "../components/ui/icones";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
@@ -11,7 +11,10 @@ import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { Interruptor } from "../components/ui/Interruptor";
 import { Segmentado } from "../components/ui/Segmentado";
+import { pode } from "../sdk/permissoes";
 import {
+  aoVoltarParaAJanela,
+  capacidadeDeCaptura,
   ponteDeTela,
   RESOLUCOES,
   TAXAS,
@@ -22,7 +25,13 @@ import {
 } from "../sdk/seletorDeTela";
 import { lerChamada } from "../store/chamada";
 import { useChannel } from "../store/hooks";
-import { responderEscolhaDeTela } from "../store/seletorDeTela";
+import { QUALIDADE_PADRAO } from "../store/qualidadeDaTela";
+import {
+  assinarSeletorDeTela,
+  lerSeletorDeTela,
+  responderEscolhaDeTela,
+} from "../store/seletorDeTela";
+import { estadoDoTransmitir, motivoDoTransmitir } from "./estadoDoTransmitir";
 import css from "./SeletorDeTela.module.css";
 
 /** As três abas da referência. */
@@ -56,6 +65,20 @@ const DICA_DE_AUDIO: Record<Aba, string> = {
 };
 
 /**
+ * A dica de áudio quando quem escolhe a fonte é o NAVEGADOR.
+ *
+ * ⚠ Não depende de aba: aqui não há aba, e o que o áudio pega só se sabe
+ * depois que o sistema devolve a fonte. A frase diz o que o Chromium oferece,
+ * que é o único que oferece alguma coisa.
+ */
+const DICA_DE_AUDIO_DO_SISTEMA =
+  "O navegador oferece o som da aba e, no Windows, o da tela inteira";
+
+/** O motivo do toggle desabilitado — nunca escondido, regra do design. */
+const SEM_AUDIO_NO_NAVEGADOR =
+  "Este navegador não captura áudio junto da tela";
+
+/**
  * Escolher o que transmitir.
  *
  * ⚠ **A estrutura é a da REFERÊNCIA, não a do `.dc.html`.** A primeira versão
@@ -82,6 +105,10 @@ const DICA_DE_AUDIO: Record<Aba, string> = {
  * `concedida`, e o banner não aparece.
  */
 export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
+  const seletor = useSyncExternalStore(assinarSeletorDeTela, lerSeletorDeTela);
+  const casca = seletor.modo === "casca";
+  const iniciando = seletor.fase === "iniciando";
+
   const [fontes, setFontes] = useState<readonly FonteDeTela[] | "carregando">(
     "carregando",
   );
@@ -90,8 +117,10 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
   const [aba, setAba] = useState<Aba>("janela");
   const [escolhida, setEscolhida] = useState<string | undefined>(undefined);
   const [audio, setAudio] = useState(true);
-  const [resolucao, setResolucao] = useState<Resolucao>("1080p");
-  const [taxa, setTaxa] = useState<Taxa>(30);
+  const [resolucao, setResolucao] = useState<Resolucao>(
+    QUALIDADE_PADRAO.resolucao,
+  );
+  const [taxa, setTaxa] = useState<Taxa>(QUALIDADE_PADRAO.taxa);
   const [permissao, setPermissao] = useState<"concedida" | "pendente">(
     "concedida",
   );
@@ -99,7 +128,36 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
   const chamada = lerChamada();
   const canal = useChannel(chamada.channelId ?? "");
 
+  /*
+    ⚠ **A permissão é RELIDA ao voltar para a janela**, e não só ao montar. O
+    banner promete "revalida sozinho quando a permissão é concedida"; lida uma
+    vez, ele ficava aceso até alguém fechar e reabrir o modal.
+  */
   useEffect(() => {
+    if (!casca) return;
+    let vivo = true;
+    const reler = () => {
+      void ponteDeTela()
+        ?.permissao()
+        .then((p) => {
+          if (vivo) setPermissao(p);
+        });
+    };
+    reler();
+    const soltar = aoVoltarParaAJanela(reler);
+    return () => {
+      vivo = false;
+      soltar();
+    };
+  }, [casca]);
+
+  /*
+    As fontes dependem da permissão: no macOS, sem ela, o `desktopCapturer`
+    devolve miniaturas vazias. Quando a permissão muda, a lista é pedida de
+    novo — é o outro meio do "revalida sozinho".
+  */
+  useEffect(() => {
+    if (!casca) return;
     let vivo = true;
     void ponteDeTela()
       ?.fontes()
@@ -108,18 +166,24 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
         setFontes(f);
         /* A primeira da aba aberta já vem escolhida: um painel que abre sem
            nada marcado obriga um clique a mais para a ação que quase todo mundo
-           quer. */
-        setEscolhida(f.find((x) => x.tipo === "janela")?.id ?? f[0]?.id);
-      });
-    void ponteDeTela()
-      ?.permissao()
-      .then((p) => {
-        if (vivo) setPermissao(p);
+           quer. Uma escolha que ainda existe na lista nova é preservada. */
+        setEscolhida((atual) =>
+          atual !== undefined && f.some((x) => x.id === atual)
+            ? atual
+            : (f.find((x) => x.tipo === "janela")?.id ?? f[0]?.id),
+        );
       });
     return () => {
       vivo = false;
     };
-  }, []);
+  }, [casca, permissao]);
+
+  const capacidade = capacidadeDeCaptura();
+  /* Na casca o áudio vem do loopback dela, que existe em toda plataforma. */
+  const audioDisponivel = casca || capacidade.audio;
+  const podeVideo =
+    chamada.channelId === undefined ||
+    pode(chamada.channelId, "transmitirVideo");
 
   /*
     ⚠ Cancelar por `Esc`, pelo véu ou pelo botão passa TODO pelo mesmo lugar. O
@@ -128,7 +192,10 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
     compartilhar mudo pelo resto da sessão.
   */
   function cancelar(): void {
-    void ponteDeTela()?.cancelar();
+    /* "Iniciando" não se cancela pelo modal: a captura já foi pedida, e quem
+       responde agora é o motor — ele fecha quando publicar ou falhar. */
+    if (iniciando) return;
+    if (casca) void ponteDeTela()?.cancelar();
     responderEscolhaDeTela(undefined);
     aoFechar();
   }
@@ -147,10 +214,30 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
     resolução fica três linhas acima, fora do alcance do olhar de quem já
     decidiu clicar.
   */
+  const estado = estadoDoTransmitir({
+    fase: seletor.fase,
+    modo: seletor.modo,
+    temFonte: escolhida !== undefined,
+    podeVideo,
+    suportaCaptura: capacidade.captura,
+  });
+  const motivo = motivoDoTransmitir(estado, seletor.modo);
   const rotulo =
-    escolhida === undefined
+    estado.tipo === "semFonte"
       ? "Escolha uma fonte"
-      : `Transmitir ${resolucao} · ${String(taxa)} fps`;
+      : estado.tipo === "pronto"
+        ? `Transmitir ${resolucao} · ${String(taxa)} fps`
+        : "Transmitir";
+
+  function transmitir(): void {
+    if (estado.tipo !== "pronto") return;
+    responderEscolhaDeTela({
+      fonteId: casca ? escolhida : undefined,
+      audio: audio && audioDisponivel,
+      resolucao,
+      taxa,
+    });
+  }
 
   return (
     <Dialog open onOpenChange={(v) => !v && cancelar()}>
@@ -170,28 +257,33 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
           )
         }
         className={css.painel}
-        fechavel
+        fechavel={!iniciando}
         classeDoRodape={css.rodape}
         rodape={
           <>
-            <p className={css.consequencia}>{trocaDe(resolucao, taxa)}</p>
+            {/*
+              O lugar da frase de consequência vira o do MOTIVO quando há um: é
+              o que o design põe ao lado do botão, e as duas frases nunca valem
+              juntas — com o botão inerte, a consequência de uma combinação que
+              não vai ao ar não informa nada.
+            */}
+            <p
+              className={css.consequencia}
+              data-perigo={motivo?.perigo === true || undefined}
+              role={motivo?.perigo === true ? "status" : undefined}
+            >
+              {motivo?.texto ?? trocaDe(resolucao, taxa)}
+            </p>
             <span className={css.acoes}>
-              <Botao variante="sutil" onClick={cancelar}>
+              <Botao variante="sutil" onClick={cancelar} disabled={iniciando}>
                 Cancelar
               </Botao>
               <Botao
                 variante="primario"
-                disabled={escolhida === undefined}
-                onClick={() => {
-                  if (escolhida === undefined) return;
-                  responderEscolhaDeTela({
-                    fonteId: escolhida,
-                    audio,
-                    resolucao,
-                    taxa,
-                  });
-                  aoFechar();
-                }}
+                disabled={estado.tipo !== "pronto" && !iniciando}
+                carregando={iniciando}
+                rotuloCarregando="Iniciando"
+                onClick={transmitir}
               >
                 {rotulo}
               </Botao>
@@ -199,6 +291,8 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
           </>
         }
       >
+        {casca ? (
+          <>
         <div className={css.abas} role="tablist" aria-label="Tipo de fonte">
           {ABAS.map((t) => (
             <button
@@ -315,6 +409,24 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
           </div>
         )}
 
+          </>
+        ) : (
+          /*
+            ⚠ **Sem fontes, e é a versão honesta.** Na web nenhuma página vê a
+            lista de telas, janelas e abas antes de o sistema entregá-la — ela
+            aparece na janela do navegador, DEPOIS de "Transmitir". Desenhar
+            cartões aqui seria inventar fontes; o painel decide o que é do app
+            (áudio e qualidade) e diz de onde vem o resto.
+          */
+          <div className={css.vazio}>
+            <EstadoVazio
+              compacto
+              titulo="O navegador mostra as fontes"
+              detalhe="Telas, janelas e abas aparecem na janela do sistema depois de Transmitir."
+            />
+          </div>
+        )}
+
         <div className={css.opcoes}>
           <div className={css.audio}>
             <span className={css.audioTexto}>
@@ -333,13 +445,22 @@ export function SeletorDeTela({ aoFechar }: { aoFechar: () => void }) {
                     CATEGORIA porque é isso que muda o que o áudio pega: a tela
                     inteira leva o som do sistema, um aplicativo leva só o
                     dele. */}
-                <span className={css.audioDica}>{DICA_DE_AUDIO[aba]}</span>
+                <span className={css.audioDica}>
+                  {!audioDisponivel
+                    ? SEM_AUDIO_NO_NAVEGADOR
+                    : casca
+                      ? DICA_DE_AUDIO[aba]
+                      : DICA_DE_AUDIO_DO_SISTEMA}
+                </span>
               </span>
             </span>
+            {/* Desabilitado e DESLIGADO onde não há áudio: ligado e inerte
+                afirmaria que o som vai junto. */}
             <Interruptor
-              ligado={audio}
+              ligado={audio && audioDisponivel}
               rotulo="Compartilhar áudio da fonte"
               aoAlternar={setAudio}
+              disabled={!audioDisponivel || iniciando}
             />
           </div>
 
