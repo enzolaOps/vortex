@@ -252,6 +252,20 @@ export function definirQualidadeDeStream(
 }
 
 /**
+ * A altura que está CHEGANDO do vídeo de alguém, e a que a fonte publica.
+ *
+ * `motor?.` pela razão das vizinhas: sem motor não há o que receber. Quem
+ * chama é a tela de assistir, uma vez por segundo — e só enquanto a
+ * qualidade é "Automática" (D-TELA-22).
+ */
+export async function resolucaoRecebida(
+  userId: string,
+  fonte: "camera" | "tela",
+): Promise<{ recebida: number | undefined; publicada: number | undefined } | undefined> {
+  return motor?.resolucaoRecebida(userId, fonte);
+}
+
+/**
  * O que a transmissão está entregando de verdade — quadros e banda.
  *
  * Sem motor não há transmissão, então `undefined` é a resposta certa e não vale

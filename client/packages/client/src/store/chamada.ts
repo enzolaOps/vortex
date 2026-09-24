@@ -117,6 +117,22 @@ export type Chamada = {
    * muita gente escuta.
    */
   readonly desde: number;
+  /**
+   * Quando a SUA transmissão começou, em epoch ms. `0` sem transmissão.
+   *
+   * ⚠ **Não é `desde`, e o cronômetro do palco usava `desde`.** Quem entra
+   * na chamada às 14h e compartilha a tela às 14h30 via "AO VIVO 30:00" no
+   * primeiro segundo no ar — o selo afirmando meia hora de transmissão que
+   * não aconteceu. O design escreve "Timer da transmissão".
+   *
+   * ⚠ **DERIVADO em `definirChamada`, nunca escrito por quem publica a
+   * faixa.** São três caminhos no motor que ligam e desligam `tela` (o
+   * nosso, o botão do navegador, a releitura na reconexão) e o arnês é o
+   * quarto; carimbar o instante em cada um é quatro chances de esquecer um.
+   * Aqui ele nasce na TRANSIÇÃO de `tela` e morre com ela — e a releitura de
+   * uma reconexão, que repete `tela: true`, não zera o relógio.
+   */
+  readonly telaDesde: number;
 };
 
 const VAZIA: Chamada = {
@@ -134,6 +150,7 @@ const VAZIA: Chamada = {
   telaPausada: false,
   telaAudio: "sem",
   desde: 0,
+  telaDesde: 0,
 };
 
 type Ouvinte = () => void;
@@ -153,10 +170,16 @@ export function lerChamada(): Chamada {
 }
 
 export function definirChamada(mudanca: Partial<Chamada>): void {
-  const nova = { ...chamada, ...mudanca };
+  const nova = { ...chamada, ...mudanca, ...instanteDaTela(mudanca) };
   if (igual(nova, chamada)) return;
   chamada = nova;
   for (const ouvinte of ouvintes) ouvinte();
+}
+
+/** O carimbo de `telaDesde` — só na TRANSIÇÃO de `tela`. Ver o campo. */
+function instanteDaTela(mudanca: Partial<Chamada>): Partial<Chamada> {
+  if (mudanca.tela === undefined || mudanca.tela === chamada.tela) return {};
+  return { telaDesde: mudanca.tela ? Date.now() : 0 };
 }
 
 /**

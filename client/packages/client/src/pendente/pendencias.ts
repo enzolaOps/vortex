@@ -289,6 +289,16 @@ export const PENDENCIAS = {
     faz: "Abrir as ações que não cabem na barra (ensurdecer, dispositivos, tela cheia).",
     depende: "o conteúdo do menu, que o design não desenha",
   },
+  /*
+    O `⋯` da doca do palco de transmissão (D-TELA-18). Mesma situação do de
+    cima: o design põe o alvo e não o menu — e dispositivos, que seria o item
+    óbvio, já estão no `▾` do microfone e da câmera ao lado.
+  */
+  menuDaDoca: {
+    superficie: "Palco de transmissão, na doca de controles",
+    faz: "Abrir as ações da chamada que não cabem na doca.",
+    depende: "o conteúdo do menu, que o design não desenha",
+  },
 } as const satisfies Record<
   string,
   { superficie: string; faz: string; depende: string }

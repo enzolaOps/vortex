@@ -1,9 +1,15 @@
 import {
+  ArrowsIn,
+  ArrowsOut,
+  CaretDown,
+  DotsThree,
   ICONE,
   Microphone,
   MicrophoneSlash,
   Monitor,
+  MusicNotes,
   PhoneX,
+  Rows,
   SpeakerHigh,
   SpeakerSlash,
   VideoCamera,
@@ -11,7 +17,18 @@ import {
 } from "../components/ui/icones";
 import { memo, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../components/ui/DropdownMenu";
+import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/Popover";
 import { Tooltip } from "../components/ui/Tooltip";
+import { aindaNao } from "../pendente/pendencias";
 import {
   alternarCamera,
   alternarMudo,
@@ -20,6 +37,19 @@ import {
   assinarVideo,
   sairDaChamada,
 } from "../sdk/chamada";
+import { Soundboard } from "../seletores/Soundboard";
+import { abrirConfig } from "../store/config";
+import {
+  comNome,
+  PADRAO_DO_SISTEMA,
+  useDispositivos,
+} from "../store/dispositivos";
+import { abrirModal } from "../store/modais";
+import {
+  assinarPreferenciasDeVoz,
+  definirPreferenciasDeVoz,
+  lerPreferenciasDeVoz,
+} from "../store/preferenciasDeVoz";
 import {
   chaveDeVideo,
   faixasDeVideo,
@@ -195,6 +225,7 @@ export function Doca({
   surdo,
   camera,
   tela,
+  mais,
 }: {
   mudo: boolean;
   surdo: boolean;
@@ -208,35 +239,44 @@ export function Doca({
    * transmitir.
    */
   tela: boolean;
+  /**
+   * O `⋯` do fim do grupo. Só o palco de transmissão o desenha (D-TELA-18);
+   * a grade (D-DVM-17) termina em `◎`.
+   */
+  mais?: boolean;
 }) {
   return (
     <footer className={css.doca}>
-      <ControleDaDoca
-        nome="Microfone"
-        ligado={!mudo}
-        acao={mudo ? "Ativar microfone" : "Silenciar microfone"}
-        perigo={mudo}
-        onClick={() => void alternarMudo()}
-      >
-        {mudo ? (
-          <MicrophoneSlash size={ICONE.controle} aria-hidden />
-        ) : (
-          <Microphone size={ICONE.controle} aria-hidden />
-        )}
-      </ControleDaDoca>
+      <ComOpcoes rotulo="Opções de áudio" menu={<OpcoesDoMicrofone />}>
+        <ControleDaDoca
+          nome="Microfone"
+          ligado={!mudo}
+          acao={mudo ? "Ativar microfone" : "Silenciar microfone"}
+          perigo={mudo}
+          onClick={() => void alternarMudo()}
+        >
+          {mudo ? (
+            <MicrophoneSlash size={ICONE.controle} aria-hidden />
+          ) : (
+            <Microphone size={ICONE.controle} aria-hidden />
+          )}
+        </ControleDaDoca>
+      </ComOpcoes>
 
-      <ControleDaDoca
-        nome="Câmera"
-        ligado={camera}
-        acao={camera ? "Desligar câmera" : "Ligar câmera"}
-        onClick={() => void alternarCamera()}
-      >
-        {camera ? (
-          <VideoCamera size={ICONE.controle} aria-hidden />
-        ) : (
-          <VideoCameraSlash size={ICONE.controle} aria-hidden />
-        )}
-      </ControleDaDoca>
+      <ComOpcoes rotulo="Opções de câmera" menu={<OpcoesDaCamera />}>
+        <ControleDaDoca
+          nome="Câmera"
+          ligado={camera}
+          acao={camera ? "Desligar câmera" : "Ligar câmera"}
+          onClick={() => void alternarCamera()}
+        >
+          {camera ? (
+            <VideoCamera size={ICONE.controle} aria-hidden />
+          ) : (
+            <VideoCameraSlash size={ICONE.controle} aria-hidden />
+          )}
+        </ControleDaDoca>
+      </ComOpcoes>
 
       <ControleDaDoca
         nome="Áudio recebido"
@@ -263,6 +303,41 @@ export function Doca({
         </ControleDaDoca>
       )}
 
+      {/* ◎ e ♪ — os mesmos destinos da faixa de voz do rodapé, porque o
+          palco a COBRE: sem eles aqui, abrir uma atividade ou tocar um som
+          exigiria sair da tela de quem está no ar. As teclas 1–9 do
+          soundboard seguem montadas UMA vez, na faixa. */}
+      <ControleDaDoca
+        nome="Atividades"
+        acao="Atividades"
+        onClick={() => abrirModal("atividades")}
+      >
+        <Rows size={ICONE.controle} aria-hidden />
+      </ControleDaDoca>
+
+      <Popover>
+        <Tooltip texto="Soundboard" lado="acima">
+          <PopoverTrigger asChild>
+            <button type="button" className={css.controleDaDoca} aria-label="Soundboard">
+              <MusicNotes size={ICONE.controle} aria-hidden />
+            </button>
+          </PopoverTrigger>
+        </Tooltip>
+        <PopoverContent className="p-02" side="top">
+          <Soundboard />
+        </PopoverContent>
+      </Popover>
+
+      {mais ? (
+        <ControleDaDoca
+          nome="Mais opções"
+          acao="Mais opções"
+          onClick={aindaNao("menuDaDoca")}
+        >
+          <DotsThree size={ICONE.controle} aria-hidden />
+        </ControleDaDoca>
+      ) : null}
+
       <span className={css.divisaDaDoca} aria-hidden />
 
       <button
@@ -277,6 +352,151 @@ export function Doca({
   );
 }
 
+/* ============================================================
+   ▾ — opções de dispositivo (D-TELA-18)
+   ============================================================ */
+
+/**
+ * O controle com o `▾` no canto.
+ *
+ * ⚠ **Dois botões IRMÃOS, e nunca um dentro do outro.** Botão dentro de
+ * botão é HTML inválido: o navegador reestrutura a árvore e o clique no `▾`
+ * acionaria também o microfone — silenciar-se sem querer para trocar de
+ * fone. O invólucro só dá o contexto de posição.
+ *
+ * O controle continua no mesmo lugar com o menu aberto ou fechado: é regra
+ * do design ("controles ficam no mesmo lugar"), e é por isso que o `▾` é
+ * `absolute` e não entra no fluxo.
+ */
+function ComOpcoes({
+  rotulo,
+  menu,
+  children,
+}: {
+  rotulo: string;
+  menu: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={css.comOpcoes}>
+      {children}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button type="button" className={css.opcoes} aria-label={rotulo}>
+            <CaretDown aria-hidden />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="top" align="start">
+          {menu}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
+/*
+  ⚠ **As listas vivem no CONTEÚDO do menu, e ele só monta aberto.** O
+  `devicechange` e a assinatura das preferências existem enquanto alguém
+  está escolhendo — a doca fechada não escuta nada, e ligar um fone no meio
+  da chamada não acorda a barra.
+*/
+
+function usePreferencias() {
+  return useSyncExternalStore(assinarPreferenciasDeVoz, lerPreferenciasDeVoz);
+}
+
+function ListaDeDispositivos({
+  tipo,
+  titulo,
+  escolhido,
+  aoEscolher,
+}: {
+  tipo: MediaDeviceKind;
+  titulo: string;
+  escolhido: string | undefined;
+  aoEscolher: (id: string | undefined) => void;
+}) {
+  const lista = comNome(useDispositivos(tipo));
+  /* Um id guardado de um fone que não está mais plugado cai no padrão —
+     marcar um item que não existe deixaria o menu sem nenhuma marca. */
+  const vale = lista.some((d) => d.deviceId === escolhido) ? escolhido : undefined;
+
+  return (
+    <>
+      <DropdownMenuLabel>{titulo}</DropdownMenuLabel>
+      <DropdownMenuCheckboxItem
+        marcado={vale === undefined}
+        aoAlternar={() => aoEscolher(undefined)}
+      >
+        {PADRAO_DO_SISTEMA}
+      </DropdownMenuCheckboxItem>
+      {lista.map((d) => (
+        <DropdownMenuCheckboxItem
+          key={d.deviceId}
+          marcado={vale === d.deviceId}
+          aoAlternar={() => aoEscolher(d.deviceId)}
+        >
+          {d.label}
+        </DropdownMenuCheckboxItem>
+      ))}
+    </>
+  );
+}
+
+function ItemDeConfiguracoes() {
+  return (
+    <DropdownMenuItem onSelect={() => abrirConfig("vozEVideo")}>
+      Configurações de voz e vídeo
+    </DropdownMenuItem>
+  );
+}
+
+/*
+  Escrever a preferência É trocar o dispositivo: o motor assina as
+  preferências enquanto a sala existe e chama `switchActiveDevice` — o mesmo
+  caminho de Configurações › Voz e vídeo, então as duas telas não podem
+  discordar sobre qual microfone está aberto.
+*/
+
+function OpcoesDoMicrofone() {
+  const p = usePreferencias();
+  return (
+    <>
+      <ListaDeDispositivos
+        tipo="audioinput"
+        titulo="Microfone"
+        escolhido={p.entradaId}
+        aoEscolher={(entradaId) => definirPreferenciasDeVoz({ entradaId })}
+      />
+      <DropdownMenuSeparator />
+      <ListaDeDispositivos
+        tipo="audiooutput"
+        titulo="Saída de áudio"
+        escolhido={p.saidaId}
+        aoEscolher={(saidaId) => definirPreferenciasDeVoz({ saidaId })}
+      />
+      <DropdownMenuSeparator />
+      <ItemDeConfiguracoes />
+    </>
+  );
+}
+
+function OpcoesDaCamera() {
+  const p = usePreferencias();
+  return (
+    <>
+      <ListaDeDispositivos
+        tipo="videoinput"
+        titulo="Câmera"
+        escolhido={p.cameraId}
+        aoEscolher={(cameraId) => definirPreferenciasDeVoz({ cameraId })}
+      />
+      <DropdownMenuSeparator />
+      <ItemDeConfiguracoes />
+    </>
+  );
+}
+
 export function ControleDaDoca({
   nome,
   ligado,
@@ -286,7 +506,12 @@ export function ControleDaDoca({
   children,
 }: {
   nome: string;
-  ligado: boolean;
+  /**
+   * Estado de um controle que ALTERNA. Ausente num que só abre algo (◎, ⋯):
+   * `aria-pressed="false"` ali anunciaria "desligado" sobre um botão que
+   * não tem estado.
+   */
+  ligado?: boolean;
   acao: string;
   perigo?: boolean;
   onClick: () => void;
@@ -331,4 +556,58 @@ export function ControleDaDoca({
 export function emTelaCheia(): void {
   const palco = document.querySelector("[data-palco]");
   if (palco instanceof HTMLElement) void palco.requestFullscreen?.();
+}
+
+/** Sai da tela cheia — o `⤡` do design (D-TELA-20). */
+export function sairDaTelaCheia(): void {
+  if (document.fullscreenElement) void document.exitFullscreen?.();
+}
+
+function assinarTelaCheia(ouvinte: () => void): () => void {
+  document.addEventListener("fullscreenchange", ouvinte);
+  return () => document.removeEventListener("fullscreenchange", ouvinte);
+}
+
+function lerTelaCheia(): boolean {
+  return (document.fullscreenElement ?? null) !== null;
+}
+
+/**
+ * O documento está em tela cheia?
+ *
+ * ⚠ **Ouve `fullscreenchange`, e não guarda o que o botão pediu.** A saída
+ * mais comum é o `Esc` do NAVEGADOR, que não passa por código nosso; um
+ * estado local ficaria dizendo "tela cheia" numa janela que já saiu dela, e
+ * o botão mostraria `⤡` para uma ação que não tem o que desfazer.
+ */
+export function useEmTelaCheia(): boolean {
+  return useSyncExternalStore(assinarTelaCheia, lerTelaCheia, () => false);
+}
+
+/**
+ * `⤢` fora da tela cheia, `⤡ Sair da tela cheia` dentro (D-TELA-20).
+ *
+ * Um botão só que troca, e não dois: o alvo fica no MESMO lugar, então quem
+ * entrou com um clique sai com um clique sem procurar. O `Esc` nativo
+ * continua valendo — este botão é para quem não sabe dele, ou está no mouse.
+ */
+export function BotaoDeTelaCheia({ className }: { className: string | undefined }) {
+  const cheia = useEmTelaCheia();
+  const rotulo = cheia ? "Sair da tela cheia" : "Tela cheia";
+  return (
+    <Tooltip texto={rotulo} lado="abaixo">
+      <button
+        type="button"
+        className={className}
+        aria-label={rotulo}
+        onClick={cheia ? sairDaTelaCheia : emTelaCheia}
+      >
+        {cheia ? (
+          <ArrowsIn size={ICONE.controle} aria-hidden />
+        ) : (
+          <ArrowsOut size={ICONE.controle} aria-hidden />
+        )}
+      </button>
+    </Tooltip>
+  );
 }

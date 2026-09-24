@@ -94,6 +94,10 @@ const PERMITIDO = {
     ".chipDaFonte, .chip": "Véu sobre a mídia, não superfície — `color-mix` com 78% de opacidade sobre conteúdo em movimento. Um tom sólido apagaria um pedaço do que está sendo transmitido.",
     ".hud": "O mesmo véu, a 82%, sob os controles do transmissor.",
     ".selo": "O mesmo véu, a 70%, atrás do selo de ladrilho separado.",
+    ".videoDoLadrilho ~ .nomeDoLadrilho":
+      "O mesmo véu, a 70%, atrás do rótulo 'Você · câmera' quando o vídeo " +
+      "da câmera está no ladrilho — é a placa da grade (`GradeDeChamada " +
+      ".placa`), pela mesma razão: um tom sólido apagaria um pedaço do rosto.",
   },
   "forum/GaleriaDeMidia.module.css": {
     ".selo":

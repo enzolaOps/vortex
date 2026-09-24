@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 
 import { Botao } from "../components/ui/Botao";
 import { Deslizante } from "../components/ui/Deslizante";
@@ -41,51 +41,14 @@ import {
 import css from "./VozEVideo.module.css";
 import { TabelaDeAtalhos, useGravacaoDeAtalho } from "./TabelaDeAtalhos";
 import { assinarDesktop, lerDesktop } from "../store/desktop";
+import { PADRAO_DO_SISTEMA, useDispositivos } from "../store/dispositivos";
 
-/**
- * Os dispositivos que o navegador enumera.
- *
- * ⚠ **Sem permissão, `enumerateDevices` devolve entradas com `label` VAZIO** —
- * o navegador esconde o nome do hardware até alguém abrir o microfone uma vez.
- * Por isso a primeira opção é sempre "Padrão do sistema", que é verdade e é o
- * que a maioria quer: com a lista anônima, escolher "Dispositivo 2" é adivinhar.
- *
- * Fora de `sdk/`: `mediaDevices` é API do navegador, não do protocolo, e não
- * arrasta o LiveKit — que é meio megabyte que esta tela não deve baixar.
- */
-const PADRAO = "Padrão do sistema";
-
-function useDispositivos(tipo: MediaDeviceKind): readonly MediaDeviceInfo[] {
-  const [lista, setLista] = useState<readonly MediaDeviceInfo[]>([]);
-
-  useEffect(() => {
-    let vivo = true;
-    function ler() {
-      void navigator.mediaDevices
-        ?.enumerateDevices()
-        .then((ds) => {
-          if (vivo) setLista(ds.filter((d) => d.kind === tipo));
-        })
-        .catch(() => {
-          /* Sem permissão nem hardware. A lista fica só com o padrão. */
-        });
-    }
-    ler();
-    /*
-      ⚠ O listener é obrigatório e tem cleanup: plugar um fone durante a
-      sessão muda a lista, e sem isto a tela mostraria para sempre os
-      dispositivos que existiam quando ela abriu. Listener sem cleanup é o erro
-      nº 5 do briefing.
-    */
-    navigator.mediaDevices?.addEventListener("devicechange", ler);
-    return () => {
-      vivo = false;
-      navigator.mediaDevices?.removeEventListener("devicechange", ler);
-    };
-  }, [tipo]);
-
-  return lista;
-}
+/*
+  A lista de dispositivos mora em `store/dispositivos.ts` desde que a doca da
+  chamada passou a escolher dispositivo também — um listener de
+  `devicechange` para as duas superfícies, e não um por tela.
+*/
+const PADRAO = PADRAO_DO_SISTEMA;
 
 /** Rótulos para o seletor: o padrão primeiro, depois o que tiver nome. */
 function rotulosDe(ds: readonly MediaDeviceInfo[]): string[] {

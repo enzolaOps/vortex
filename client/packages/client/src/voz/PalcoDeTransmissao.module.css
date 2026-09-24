@@ -371,6 +371,43 @@
   white-space: nowrap;
 }
 
+/*
+  O vídeo da própria câmera (D-TELA-15). `FaixaDeVideo` devolve `null` sem
+  faixa, então os seletores de irmão abaixo só valem com imagem — sem
+  estado a mais no componente, e o glifo continua sendo o repouso.
+
+  `cover` e não `contain`: é rosto numa caixa de 118px, e faixa preta em
+  volta de uma webcam lê como defeito. A tela compartilhada, que é conteúdo,
+  segue em `contain` na prancha.
+*/
+.videoDoLadrilho {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+.videoDoLadrilho[data-espelhada="true"] {
+  transform: scaleX(-1);
+}
+
+.videoDoLadrilho ~ .glifoDoLadrilho {
+  display: none;
+}
+
+/* Sobre a imagem o rótulo vira placa no canto, como na grade — no centro
+   ele cobriria o rosto que o ladrilho existe para mostrar. */
+.videoDoLadrilho ~ .nomeDoLadrilho {
+  position: absolute;
+  inset-inline-start: var(--vx-space-06);
+  inset-block-end: var(--vx-space-06);
+  max-inline-size: calc(100% - 2 * var(--vx-space-06));
+  padding: var(--vx-space-02) var(--vx-space-06);
+  border-radius: var(--vx-radius-04);
+  background: color-mix(in srgb, var(--vx-surface-0) 70%, transparent);
+}
+
 .selo {
   position: absolute;
   inset-inline-end: var(--vx-space-08);

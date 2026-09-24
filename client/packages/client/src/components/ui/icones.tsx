@@ -26,6 +26,7 @@ import {
   RiCheckboxCircleFill,
   RiCloseCircleFill,
   RiCloseLine,
+  RiCollapseDiagonalFill,
   RiComputerFill,
   RiDeleteBin6Fill,
   RiDiscussFill,
@@ -178,6 +179,7 @@ export const ArrowClockwise = vx(RiRefreshFill);
 export const ArrowCounterClockwise = vx(RiArrowGoBackFill);
 export const ArrowSquareOut = vx(RiExternalLinkFill);
 export const ArrowsClockwise = vx(RiLoopLeftFill);
+export const ArrowsIn = vx(RiCollapseDiagonalFill);
 export const ArrowsOut = vx(RiExpandDiagonalFill);
 export const BellSimple = vx(RiNotification3Fill);
 export const Calendar = vx(RiCalendarEventFill);
