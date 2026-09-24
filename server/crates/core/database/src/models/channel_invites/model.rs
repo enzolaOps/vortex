@@ -1,3 +1,4 @@
+use iso8601_timestamp::Timestamp;
 use revolt_result::{create_error, Result};
 
 use crate::{Channel, Database, User};
@@ -26,6 +27,25 @@ auto_derived!(
             /// Roles given to whoever joins the server through this invite
             #[serde(skip_serializing_if = "Vec::is_empty", default)]
             roles: Vec<String>,
+            /// Vortex: how many people joined through this invite
+            ///
+            /// Counted on join, atomically against `max_uses` (see `use_invite`).
+            #[serde(skip_serializing_if = "crate::if_zero_u32", default)]
+            uses: u32,
+            /// Vortex: how many joins this invite allows, `None` for unlimited
+            #[serde(skip_serializing_if = "Option::is_none", default)]
+            max_uses: Option<u32>,
+            /// Vortex: when this invite stops working, `None` for never
+            ///
+            /// Checked when the invite is READ or USED, never by a job: the fork
+            /// does not publish `crond`, so nothing would run it. An expired
+            /// invite stays listed (with its state) until someone deletes it.
+            #[serde(skip_serializing_if = "Option::is_none", default)]
+            expires_at: Option<Timestamp>,
+            /// Vortex: whoever joins through it is removed when their last
+            /// session disconnects, unless they hold a role by then
+            #[serde(skip_serializing_if = "crate::if_false", default)]
+            temporary: bool,
         },
         /// Invite to a group channel
         Group {
@@ -43,6 +63,20 @@ auto_derived!(
     }
 );
 
+/// Vortex: the limits of a new server invite
+///
+/// All optional and additive: the default is the plain invite the Stoat
+/// protocol always had — never expires, unlimited, permanent membership.
+#[derive(Debug, Clone, Default)]
+pub struct InviteLimits {
+    /// How many joins it allows
+    pub max_uses: Option<u32>,
+    /// When it stops working
+    pub expires_at: Option<Timestamp>,
+    /// Remove whoever joins through it when they disconnect
+    pub temporary: bool,
+}
+
 #[allow(clippy::disallowed_methods)]
 impl Invite {
     /// Get the invite code for this invite
@@ -59,29 +93,87 @@ impl Invite {
         }
     }
 
+    /// Vortex: refuse an invite that expired or ran out of uses
+    ///
+    /// Called on every read and use of an invite. Group invites and the
+    /// pseudo-invite of a discoverable server have no limits and always pass.
+    pub fn check_usable(&self) -> Result<()> {
+        if let Invite::Server {
+            uses,
+            max_uses,
+            expires_at,
+            ..
+        } = self
+        {
+            if expires_at.is_some_and(|at| *at <= *Timestamp::now_utc()) {
+                return Err(create_error!(InviteExpired));
+            }
+
+            if max_uses.is_some_and(|max| *uses >= max) {
+                return Err(create_error!(InviteExhausted));
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Vortex: whether whoever joins through this invite is a temporary member
+    pub fn is_temporary(&self) -> bool {
+        matches!(
+            self,
+            Invite::Server {
+                temporary: true,
+                ..
+            }
+        )
+    }
+
+    /// Vortex: whether this invite has a use limit
+    pub fn has_max_uses(&self) -> bool {
+        matches!(
+            self,
+            Invite::Server {
+                max_uses: Some(_),
+                ..
+            }
+        )
+    }
+
     /// Create a new invite from given information
     pub async fn create_channel_invite(
         db: &Database,
         creator: &User,
         channel: &Channel,
         roles: Vec<String>,
+        limits: InviteLimits,
     ) -> Result<Invite> {
         let code = nanoid::nanoid!(8, &ALPHABET);
         let invite = match &channel {
-            Channel::Group { id, .. } => Ok(Invite::Group {
-                code,
-                creator: creator.id.clone(),
-                channel: id.clone(),
-            }),
-            Channel::TextChannel { id, server, .. } => {
-                Ok(Invite::Server {
+            Channel::Group { id, .. } => {
+                // Limits are a server-invite concept: a group invite that
+                // silently ignored them would promise something it can't keep.
+                if limits.max_uses.is_some() || limits.expires_at.is_some() || limits.temporary
+                {
+                    return Err(create_error!(InvalidOperation));
+                }
+
+                Ok(Invite::Group {
                     code,
                     creator: creator.id.clone(),
-                    server: server.clone(),
                     channel: id.clone(),
-                    roles,
                 })
             }
+            Channel::TextChannel { id, server, .. } => Ok(Invite::Server {
+                code,
+                creator: creator.id.clone(),
+                server: server.clone(),
+                channel: id.clone(),
+                roles,
+                uses: 0,
+                max_uses: limits.max_uses,
+                expires_at: limits.expires_at,
+                temporary: limits.temporary,
+            }),
             _ => Err(create_error!(InvalidOperation)),
         }?;
 
@@ -102,6 +194,10 @@ impl Invite {
                         creator: server.owner,
                         channel,
                         roles: vec![],
+                        uses: 0,
+                        max_uses: None,
+                        expires_at: None,
+                        temporary: false,
                     });
                 }
             }

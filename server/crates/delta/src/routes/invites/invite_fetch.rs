@@ -9,7 +9,12 @@ use rocket::{serde::json::Json, State};
 #[openapi(tag = "Invites")]
 #[get("/<target>")]
 pub async fn fetch(db: &State<Database>, target: Reference<'_>) -> Result<Json<v0::InviteResponse>> {
-    Ok(Json(match target.as_invite(db).await? {
+    let invite = target.as_invite(db).await?;
+    // Vortex: an expired or used-up invite answers as such on the preview,
+    // before anyone tries to join.
+    invite.check_usable()?;
+
+    Ok(Json(match invite {
         Invite::Server {
             channel, creator, ..
         } => {

@@ -1,3 +1,5 @@
+use iso8601_timestamp::Timestamp;
+
 use super::{Channel, File, Server, User};
 
 auto_derived!(
@@ -18,6 +20,19 @@ auto_derived!(
             /// Roles given to whoever joins the server through this invite
             #[serde(skip_serializing_if = "Vec::is_empty", default)]
             roles: Vec<String>,
+            /// Vortex: how many people joined through this invite
+            #[serde(skip_serializing_if = "crate::if_zero_u32", default)]
+            uses: u32,
+            /// Vortex: how many joins this invite allows, absent for unlimited
+            #[serde(skip_serializing_if = "Option::is_none", default)]
+            max_uses: Option<u32>,
+            /// Vortex: when this invite stops working, absent for never
+            #[serde(skip_serializing_if = "Option::is_none", default)]
+            expires_at: Option<Timestamp>,
+            /// Vortex: whoever joins through this invite is removed when their
+            /// last session disconnects, unless they were given a role
+            #[serde(skip_serializing_if = "crate::if_false", default)]
+            temporary: bool,
         },
         /// Invite to a group channel
         Group {
@@ -39,6 +54,21 @@ auto_derived!(
         /// Requires `AssignRoles`, and every role must rank below yours.
         #[serde(default)]
         pub roles: Vec<String>,
+        /// Vortex: how many joins the invite allows (1..=1000), absent for unlimited
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub max_uses: Option<u32>,
+        /// Vortex: seconds until the invite expires (60..=2592000), absent for never
+        ///
+        /// Relative and not a date: the server's clock decides, so a client with
+        /// a wrong clock can't make an invite that is born expired.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub max_age: Option<u32>,
+        /// Vortex: remove whoever joins through it when they disconnect
+        ///
+        /// Server invites only, and not together with `roles` — a role is what
+        /// keeps a temporary member.
+        #[serde(default, skip_serializing_if = "crate::if_false")]
+        pub temporary: bool,
     }
 
     /// Public invite response

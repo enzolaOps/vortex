@@ -118,6 +118,8 @@ impl IntoResponse for Error {
             ErrorType::MissingInvite => StatusCode::BAD_REQUEST,
             ErrorType::InvalidInvite => StatusCode::BAD_REQUEST,
             ErrorType::InvitesPaused => StatusCode::FORBIDDEN,
+            ErrorType::InviteExpired => StatusCode::FORBIDDEN,
+            ErrorType::InviteExhausted => StatusCode::FORBIDDEN,
             ErrorType::CompromisedPassword => StatusCode::BAD_REQUEST,
             ErrorType::ShortPassword => StatusCode::BAD_REQUEST,
             ErrorType::Blacklisted => {

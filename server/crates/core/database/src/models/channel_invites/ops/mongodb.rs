@@ -1,3 +1,4 @@
+use bson::Document;
 use futures::StreamExt;
 use revolt_result::Result;
 
@@ -43,5 +44,38 @@ impl AbstractChannelInvites for MongoDb {
     /// Delete an invite by its code
     async fn delete_invite(&self, code: &str) -> Result<()> {
         query!(self, delete_one_by_id, COL, code).map(|_| ())
+    }
+
+    /// Count one use of an invite, atomically against `max_uses`
+    async fn use_invite(&self, code: &str) -> Result<bool> {
+        let result = self
+            .col::<Document>(COL)
+            .update_one(
+                doc! {
+                    "_id": code,
+                    "$or": [
+                        { "max_uses": { "$exists": false } },
+                        { "max_uses": null },
+                        { "$expr": { "$lt": [ { "$ifNull": [ "$uses", 0 ] }, "$max_uses" ] } }
+                    ]
+                },
+                doc! { "$inc": { "uses": 1_i64 } },
+            )
+            .await
+            .map_err(|_| create_database_error!("update_one", COL))?;
+
+        Ok(result.modified_count > 0)
+    }
+
+    /// Give back a use counted by `use_invite`
+    async fn release_invite_use(&self, code: &str) -> Result<()> {
+        self.col::<Document>(COL)
+            .update_one(
+                doc! { "_id": code, "uses": { "$gt": 0 } },
+                doc! { "$inc": { "uses": -1_i64 } },
+            )
+            .await
+            .map(|_| ())
+            .map_err(|_| create_database_error!("update_one", COL))
     }
 }

@@ -63,6 +63,10 @@ impl<'a> Reference<'a> {
                     .next()
                     .ok_or(create_error!(NotFound))?,
                 roles: vec![],
+                uses: 0,
+                max_uses: None,
+                expires_at: None,
+                temporary: false,
             })
         } else {
             db.fetch_invite(self.id).await

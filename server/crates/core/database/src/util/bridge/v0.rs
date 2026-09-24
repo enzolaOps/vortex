@@ -74,12 +74,20 @@ impl From<crate::Invite> for Invite {
                 creator,
                 channel,
                 roles,
+                uses,
+                max_uses,
+                expires_at,
+                temporary,
             } => Invite::Server {
                 code,
                 server,
                 creator,
                 channel,
                 roles,
+                uses,
+                max_uses,
+                expires_at,
+                temporary,
             },
         }
     }
@@ -860,6 +868,8 @@ impl From<Member> for crate::Member {
             can_publish: value.can_publish,
             can_receive: value.can_receive,
             show_tag: value.show_tag,
+            // Vortex: database only — a client never writes it.
+            temporary: false,
         }
     }
 }
@@ -894,6 +904,7 @@ impl From<PartialMember> for crate::PartialMember {
             can_publish: value.can_publish,
             can_receive: value.can_receive,
             show_tag: value.show_tag,
+            temporary: None,
         }
     }
 }

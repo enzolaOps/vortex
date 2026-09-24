@@ -17,7 +17,7 @@ use revolt_config::report_internal_error;
 use revolt_database::{
     events::{client::EventV1, server::ClientMessage},
     iso8601_timestamp::Timestamp,
-    Database, User, UserHint,
+    Database, Member, User, UserHint,
 };
 use revolt_presence::{create_session, delete_session};
 
@@ -200,6 +200,10 @@ pub async fn client(db: &'static Database, stream: TcpStream, addr: SocketAddr) 
     // If this was the last session, notify other users that we just went offline.
     if last_session {
         state.broadcast_presence_change(false).await;
+
+        // Vortex: temporary invites remove their members on disconnect. Here
+        // and not in a job — the fork does not publish `crond`.
+        report_internal_error!(Member::remove_temporary_memberships(db, &user_id).await).ok();
     }
 }
 

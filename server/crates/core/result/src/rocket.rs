@@ -121,6 +121,8 @@ impl<'r> Responder<'r, 'static> for Error {
             ErrorType::MissingInvite => Status::BadRequest,
             ErrorType::InvalidInvite => Status::BadRequest,
             ErrorType::InvitesPaused => Status::Forbidden,
+            ErrorType::InviteExpired => Status::Forbidden,
+            ErrorType::InviteExhausted => Status::Forbidden,
             ErrorType::CompromisedPassword => Status::BadRequest,
             ErrorType::ShortPassword => Status::BadRequest,
             ErrorType::Blacklisted => {

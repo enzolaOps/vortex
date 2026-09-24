@@ -240,6 +240,10 @@ pub enum ErrorType {
     InvalidInvite,
     /// Vortex: the channel this invite points to has its invites paused
     InvitesPaused,
+    /// Vortex: the invite reached its `expires_at`
+    InviteExpired,
+    /// Vortex: the invite reached its `max_uses`
+    InviteExhausted,
 
     CompromisedPassword,
     ShortPassword,

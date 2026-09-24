@@ -40,6 +40,31 @@ impl AbstractChannelInvites for ReferenceDb {
             .collect())
     }
 
+    /// Count one use of an invite, atomically against `max_uses`
+    async fn use_invite(&self, code: &str) -> Result<bool> {
+        let mut invites = self.channel_invites.lock().await;
+        match invites.get_mut(code) {
+            Some(Invite::Server { uses, max_uses, .. }) => {
+                if max_uses.is_some_and(|max| *uses >= max) {
+                    Ok(false)
+                } else {
+                    *uses += 1;
+                    Ok(true)
+                }
+            }
+            _ => Ok(false),
+        }
+    }
+
+    /// Give back a use counted by `use_invite`
+    async fn release_invite_use(&self, code: &str) -> Result<()> {
+        let mut invites = self.channel_invites.lock().await;
+        if let Some(Invite::Server { uses, .. }) = invites.get_mut(code) {
+            *uses = uses.saturating_sub(1);
+        }
+        Ok(())
+    }
+
     /// Delete an invite by its code
     async fn delete_invite(&self, code: &str) -> Result<()> {
         let mut invites = self.channel_invites.lock().await;

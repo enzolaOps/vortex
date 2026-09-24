@@ -38,7 +38,12 @@ impl AbstractServerMembers for MongoDb {
                             "joined_at": member.joined_at.duration_since(Timestamp::UNIX_EPOCH).whole_milliseconds() as i64,
                         },
                         "$unset": {
-                            "pending_deletion_at": ""
+                            "pending_deletion_at": "",
+                            // Vortex: a rejoin is a new membership. Whoever
+                            // joins through a temporary invite gets the flag
+                            // again right after; any other join must not
+                            // inherit it from a membership that already ended.
+                            "temporary": ""
                         }
                     },
                 )

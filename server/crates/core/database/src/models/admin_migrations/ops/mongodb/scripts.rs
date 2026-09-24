@@ -1091,6 +1091,10 @@ pub async fn run_migrations(db: &MongoDb, revision: i32) -> i32 {
                     creator,
                     channel,
                     roles: vec![],
+                    uses: 0,
+                    max_uses: None,
+                    expires_at: None,
+                    temporary: false,
                 },
                 OldInvite::Group {
                     code,

@@ -1,6 +1,7 @@
 use revolt_database::{
+    iso8601_timestamp::{Duration, Timestamp},
     util::{permissions::DatabasePermissionQuery, reference::Reference},
-    AuditLogEntryAction, Database, Invite, User,
+    AuditLogEntryAction, Database, Invite, InviteLimits, User,
 };
 use revolt_models::v0;
 use revolt_permissions::{calculate_channel_permissions, ChannelPermission, PermissionQuery};
@@ -10,6 +11,13 @@ use rocket::{serde::json::Json, State};
 
 use crate::util::audit_log_reason::AuditLogReason;
 
+/// Vortex: the most uses an invite can be limited to
+const MAX_USES: u32 = 1000;
+/// Vortex: the shortest an invite can live, in seconds (one minute)
+const MIN_AGE: u32 = 60;
+/// Vortex: the longest an invite can live, in seconds (30 days)
+const MAX_AGE: u32 = 30 * 24 * 60 * 60;
+
 /// # Create Invite
 ///
 /// Creates an invite to this channel.
@@ -17,8 +25,8 @@ use crate::util::audit_log_reason::AuditLogReason;
 /// Channel must be a `TextChannel`.
 ///
 /// Vortex: an optional body with `roles` makes an invite that gives those
-/// roles to whoever joins through it. Clients that send no body get the same
-/// plain invite as before.
+/// roles to whoever joins through it; `max_uses`, `max_age` and `temporary`
+/// limit it. Clients that send no body get the same plain invite as before.
 #[openapi(tag = "Channel Invites")]
 #[post("/<target>/invites", data = "<data>")]
 pub async fn create_invite(
@@ -32,7 +40,29 @@ pub async fn create_invite(
         return Err(create_error!(IsBot));
     }
 
-    let roles = data.map(|data| data.into_inner().roles).unwrap_or_default();
+    let data = data.map(|data| data.into_inner()).unwrap_or_default();
+    let roles = data.roles;
+
+    // Vortex: limits. Out of range is refused, not clamped — a client asking
+    // for 5000 uses and getting 1000 would show a number that isn't true.
+    if data.max_uses.is_some_and(|max| !(1..=MAX_USES).contains(&max))
+        || data.max_age.is_some_and(|age| !(MIN_AGE..=MAX_AGE).contains(&age))
+    {
+        return Err(create_error!(InvalidOperation));
+    }
+
+    // A role is what keeps a temporary member, so the two contradict.
+    if data.temporary && !roles.is_empty() {
+        return Err(create_error!(InvalidOperation));
+    }
+
+    let limits = InviteLimits {
+        max_uses: data.max_uses,
+        expires_at: data
+            .max_age
+            .map(|age| Timestamp::now_utc() + Duration::seconds(age as i64)),
+        temporary: data.temporary,
+    };
 
     let channel = target.as_channel(db).await?;
     let mut query = DatabasePermissionQuery::new(db, &user).channel(&channel);
@@ -82,7 +112,7 @@ pub async fn create_invite(
         }
     }
 
-    let invite = Invite::create_channel_invite(db, &user, &channel, roles).await?;
+    let invite = Invite::create_channel_invite(db, &user, &channel, roles, limits).await?;
 
     if let Some(server_id) = channel.server() {
         AuditLogEntryAction::InviteCreate {

@@ -436,6 +436,7 @@ mod test {
             can_publish: None,
             can_receive: None,
             show_tag: None,
+            temporary: None,
         };
         second_member
             .update(&harness.db, partial, vec![])
@@ -780,6 +781,7 @@ mod test {
                     can_publish: None,
                     can_receive: None,
                     show_tag: None,
+                    temporary: None,
                 },
                 vec![],
             )

@@ -51,6 +51,13 @@ auto_derived_partial!(
         /// Whether the member displays the server tag next to their name
         #[serde(skip_serializing_if = "crate::if_false", default)]
         pub show_tag: bool,
+        /// Vortex: joined through a temporary invite
+        ///
+        /// Removed when their last session disconnects, unless they hold a
+        /// role by then (see `remove_temporary_memberships`). Database only:
+        /// the bridge does not export it, so clients see a normal member.
+        #[serde(skip_serializing_if = "crate::if_false", default)]
+        pub temporary: bool,
         // This value only exists in the database, not the models.
         // If it is not-None, the database layer should return None to member fetching queries.
         // pub pending_deletion_at: Option<Timestamp>
@@ -102,6 +109,7 @@ impl Default for Member {
             can_publish: true,
             can_receive: true,
             show_tag: false,
+            temporary: false,
         }
     }
 }
@@ -327,6 +335,33 @@ impl Member {
         } else {
             false
         }
+    }
+
+    /// Vortex: remove every temporary membership of a user
+    ///
+    /// Called by `bonfire` when the user's LAST session closes — an event, not
+    /// a job, because the fork does not publish `crond`. A role given after
+    /// joining keeps the member, which is how a moderator makes a guest stay.
+    /// The server owner is never temporary: creating a server is not a join.
+    pub async fn remove_temporary_memberships(db: &Database, user_id: &str) -> Result<()> {
+        for member in db.fetch_all_memberships(user_id).await? {
+            if !member.temporary || !member.roles.is_empty() {
+                continue;
+            }
+
+            if let Ok(server) = db.fetch_server(&member.id.server).await {
+                if server.owner == member.id.user {
+                    continue;
+                }
+
+                member
+                    .remove(db, &server, RemovalIntention::Leave, false)
+                    .await
+                    .ok();
+            }
+        }
+
+        Ok(())
     }
 
     /// Remove member from server
