@@ -1,0 +1,122 @@
+# Testes do servidor (delta + bonfire) sem Docker e sem Mongo.
+#
+# ⚠ Por que existe: nesta máquina de desenvolvimento não há Docker nem cargo, e
+# o `vortex-server-image.yml` só roda `cargo check` no PR — nada executava os
+# testes Rust. Aqui eles rodam contra o banco de REFERÊNCIA em memória
+# (`TEST_DB=REFERENCE`), que é o mesmo que as corridas em `rust:1.98` usavam.
+#
+# ⚠ `taiki-e/install-action` NÃO é usado: a política do repositório só permite
+# ações da GitHub e `docker/*` (`verified_allowed: false`), e ação de fora
+# derruba o job antes do primeiro passo. O nextest vem do binário oficial.
+name: Vortex server testes
+
+on:
+  push:
+    paths:
+      - "server/**"
+      - ".github/workflows/vortex-server-testes.yml"
+  pull_request:
+    paths:
+      - "server/**"
+      - ".github/workflows/vortex-server-testes.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: vortex-server-testes-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  testes:
+    name: Testes (delta + bonfire)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    # ⚠ O banco é de referência, mas eventos, filas e e-mail NÃO são: o
+    # `TestHarness` do delta assina o pub/sub do Redis, abre o RabbitMQ e lê o
+    # maildev. Sem os três, todo teste cai em `FailedConnection` antes de testar
+    # qualquer coisa — foi o que a primeira corrida mostrou. Portas e
+    # credenciais são as de `crates/core/config/Revolt.test.toml`.
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+      rabbit:
+        image: rabbitmq:4-management
+        env:
+          RABBITMQ_DEFAULT_USER: rabbituser
+          RABBITMQ_DEFAULT_PASS: rabbitpass
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 5s
+          --health-timeout 10s
+          --health-retries 20
+      maildev:
+        image: maildev/maildev:2.2.1
+        env:
+          MAILDEV_SMTP_PORT: 25
+          MAILDEV_WEB_PORT: 8080
+          MAILDEV_INCOMING_USER: smtp
+          MAILDEV_INCOMING_PASS: smtp
+        ports:
+          - 14025:25
+          - 14080:8080
+    env:
+      TEST_DB: REFERENCE
+      CARGO_TERM_COLOR: always
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      # Mesma chave-base do `vortex-server-image.yml` (PR #274), com sufixo
+      # próprio: o `target/` de teste não é o de `cargo check`.
+      - name: Cache do cargo
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            server/target
+          key: ${{ runner.os }}-cargo-testes-${{ hashFiles('server/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-testes-
+
+      # `server/rust-toolchain.toml` pina 1.98.0; o rustup o instala sozinho.
+      - name: Toolchain 1.98
+        run: |
+          rustup show active-toolchain || rustup toolchain install
+          rustup component add clippy
+          cargo --version
+
+      - name: Instalar cargo-nextest
+        run: |
+          mkdir -p ~/.cargo/bin
+          curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ~/.cargo/bin
+          cargo nextest --version
+
+      # ⚠ Dois testes ficam de fora, e só estes dois: eles chamam
+      # `fetch_mutual_*`, que na `ReferenceDb` é `todo!()` (reference.rs:75/80)
+      # — pendência já registrada no briefing. Contra o banco de referência eles
+      # não testam a regra, testam o `todo!`. Medido na corrida sobre a
+      # `main` intacta: 135 de 137 passaram, e os dois que falharam eram estes.
+      - name: Testes
+        run: >-
+          cargo nextest run --locked
+          -p revolt-delta -p revolt-bonfire -p revolt-models -p revolt-database
+          --no-fail-fast
+          -E 'not (test(=routes::users::open_dm::test::privacidade_por_servidor_barra_dm_nova) | test(=routes::users::send_friend_request::test::privacidade_por_servidor_barra_pedido_de_amizade))'
+
+      # Bloqueante: a suspeita era de avisos antigos na `main`, e a corrida
+      # sobre a `main` intacta (35740041224) passou com `-D warnings` limpo
+      # nestes quatro crates. Se um aviso novo do toolchain aparecer, ele
+      # reprova aqui em vez de entrar calado.
+      - name: Clippy
+        run: cargo clippy --locked -p revolt-delta -p revolt-bonfire -p revolt-models -p revolt-database -- -D warnings

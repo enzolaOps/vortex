@@ -1,0 +1,174 @@
+/**
+ * Entrar, sair e ser movido de uma sala de voz, como LINHA no chat dela.
+ *
+ * ⚠ **Efêmero, e é decisão, não falta.** A alternativa era gravar uma
+ * mensagem de sistema nova no servidor, e ela cai por três razões medidas:
+ *
+ * 1. **Quem sabe que alguém SAIU é o `voice-ingress`**, pelo webhook do
+ *    LiveKit — não o `delta`. Não existe rota de saída no protocolo. Gravar a
+ *    saída exigiria forkar e publicar um terceiro serviço, que o briefing
+ *    manda não fazer sem necessidade.
+ * 2. **Uma variante nova de `SystemMessage` no Mongo quebra os serviços
+ *    upstream que desserializam mensagem** (`pushd`, `crond`, o próprio
+ *    `voice-ingress`, todos pinados no Stoat): o enum deles não conhece a
+ *    variante e o `serde` recusa o documento. No `stoat.js` ela nem quebra,
+ *    mas vira a linha "`voice_joined` is not supported." para todo cliente
+ *    Stoat.
+ * 3. **Toda entrada e saída viraria não lida** para o servidor inteiro, num
+ *    canal de voz movimentado. O design separa as duas coisas: *"entradas e
+ *    saídas são eventos do sistema, não mensagens"* (D-VOZ-13).
+ *
+ * Os eventos já chegam pelo socket (`VoiceChannelJoin`, `…Leave`, `…Move` e
+ * `UserVoiceStateUpdate` para a transmissão); o que faltava era desenhá-los. A frase "o histórico persiste
+ * depois que todos saem" continua verdadeira para as MENSAGENS — é delas que
+ * o design fala.
+ *
+ * ⚠ **Só a sala em que VOCÊ está.** Os eventos vêm para o servidor inteiro, e
+ * guardar uma linha por entrada em todo canal de voz de todo servidor numa
+ * sessão de 8h é o erro nº 5 do briefing. Quem está na sala é quem vê — é o
+ * que o cabeçalho do chat já promete ("visível só para conectados"). Sair da
+ * sala apaga as linhas dela.
+ *
+ * ⚠ **Sem "por Fulano" nas linhas, e é decisão de privacidade.** O design
+ * escreve "Ana moveu Téo para Foco", mas quem moveu ou desconectou alguém só
+ * é contado À PESSOA AFETADA, por evento privado — dizê-lo à sala inteira é o
+ * que o registro de auditoria guarda atrás de `ViewAuditLog`. A sala lê "Téo
+ * foi movido para Foco" e "Nando saiu do canal".
+ *
+ * Módulo PURO: traduz o evento cru e guarda o registro das linhas. Quem as
+ * põe na lista é o adapter.
+ */
+import type { SistemaSnapshot } from "./domain";
+
+/** Uma linha a inserir no chat de uma sala. */
+export type LinhaDeSala = {
+  readonly canal: string;
+  /** Quem é o sujeito da linha — vai de `author` da mensagem local. */
+  readonly userId: string;
+  readonly sistema: SistemaSnapshot;
+};
+
+/**
+ * Evento cru → linhas, para a sala em que se está.
+ *
+ * `canalDaChamada` vazio é "fora de chamada", e aí nada entra.
+ */
+export function linhasDoEvento(
+  evento: unknown,
+  canalDaChamada: string,
+): readonly LinhaDeSala[] {
+  if (canalDaChamada === "") return [];
+  const e = evento as {
+    type?: string;
+    id?: unknown;
+    user?: unknown;
+    from?: unknown;
+    to?: unknown;
+    state?: { id?: unknown };
+  };
+
+  if (e.type === "VoiceChannelJoin") {
+    const user = e.state?.id;
+    if (e.id !== canalDaChamada || typeof user !== "string") return [];
+    return [{ canal: canalDaChamada, userId: user, sistema: { tipo: "entrou", userId: user } }];
+  }
+
+  if (e.type === "VoiceChannelLeave") {
+    if (e.id !== canalDaChamada || typeof e.user !== "string") return [];
+    /* Sair não manda `screensharing: false`. Sem isto, voltar e transmitir de
+       novo não geraria linha. */
+    transmitindo.delete(e.user);
+    return [{ canal: canalDaChamada, userId: e.user, sistema: { tipo: "saiu", userId: e.user } }];
+  }
+
+  if (e.type === "UserVoiceStateUpdate") {
+    /* Só a TRANSIÇÃO para transmitir. O `voice-ingress` manda `screensharing:
+       true` na faixa de vídeo E na de áudio, e de novo no unmute — um `true`
+       por evento duplicaria a linha. Parar não tem linha no design. */
+    const u = evento as { id?: unknown; channel_id?: unknown; data?: { screensharing?: unknown } };
+    if (u.channel_id !== canalDaChamada || typeof u.id !== "string") return [];
+    if (!comecouATransmitir(u.id, u.data?.screensharing)) return [];
+    return [{ canal: canalDaChamada, userId: u.id, sistema: { tipo: "transmitiu", userId: u.id } }];
+  }
+
+  if (e.type === "VoiceChannelMove") {
+    if (typeof e.user !== "string" || typeof e.to !== "string") return [];
+    if (e.from !== canalDaChamada && e.to !== canalDaChamada) return [];
+    /* Movido para fora: o leave é suprimido, então o `false` também não vem. */
+    if (e.from === canalDaChamada && e.to !== canalDaChamada) transmitindo.delete(e.user);
+    return [
+      { canal: canalDaChamada, userId: e.user, sistema: { tipo: "moveu", userId: e.user, paraId: e.to } },
+    ];
+  }
+
+  return [];
+}
+
+/* ------------------------------------------------------------- registro */
+
+/**
+ * Quem está transmitindo nesta sala.
+ *
+ * A linha nasce na borda false→true, não no evento. O fio não diz qual faixa
+ * foi: vídeo e áudio da tela são os dois `screensharing: true`.
+ *
+ * ponytail: um `false` da faixa de vídeo com o áudio ainda no ar reseta a
+ * borda. Separar as duas faixas exige o `voice-ingress` dizer a fonte.
+ */
+const transmitindo = new Set<string>();
+
+function comecouATransmitir(userId: string, screensharing: unknown): boolean {
+  if (screensharing === true) {
+    if (transmitindo.has(userId)) return false;
+    transmitindo.add(userId);
+    return true;
+  }
+  if (screensharing === false) transmitindo.delete(userId);
+  return false;
+}
+
+/**
+ * As linhas vivas, por ID local.
+ *
+ * É o que `toSistema` consulta antes do SDK: a mensagem local carrega um
+ * `system` de texto vazio só para o SDK a hidratar como linha de sistema, e o
+ * FATO mora aqui — senão a frase seria congelada no idioma do instante.
+ */
+const linhas = new Map<string, { readonly canal: string; readonly sistema: SistemaSnapshot }>();
+
+export function registrarLinhaDeSala(id: string, canal: string, sistema: SistemaSnapshot): void {
+  linhas.set(id, { canal, sistema });
+}
+
+export function linhaDeSala(id: string): SistemaSnapshot | undefined {
+  return linhas.get(id)?.sistema;
+}
+
+/**
+ * É uma linha efêmera, e portanto um ID que o SERVIDOR não conhece.
+ *
+ * ⚠ É a guarda de todo caminho que manda um ID da lista para a rede — `ack`
+ * sobretudo: marcar como lido até uma linha local mandaria um ULID inventado
+ * como cursor de leitura.
+ */
+export function ehLinhaDeSala(id: string): boolean {
+  return linhas.has(id);
+}
+
+/** Tira do registro as linhas de um canal e devolve os IDs, para a lista soltá-los. */
+export function soltarLinhasDe(canal: string): readonly string[] {
+  const ids: string[] = [];
+  for (const [id, l] of linhas) {
+    if (l.canal !== canal) continue;
+    ids.push(id);
+    linhas.delete(id);
+  }
+  transmitindo.clear();
+  return ids;
+}
+
+/** Estado limpo entre testes. */
+export function limparEventosDaSala(): void {
+  linhas.clear();
+  transmitindo.clear();
+}
