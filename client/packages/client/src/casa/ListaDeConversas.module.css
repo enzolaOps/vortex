@@ -18,19 +18,27 @@
   container-type: inline-size;
 }
 
-.cabecalho {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--vx-space-08);
-  min-inline-size: 0;
-  padding-inline: var(--vx-space-12);
-  padding-block: var(--vx-space-12);
+/*
+  A faixa de "Encontrar ou iniciar conversa" — no lugar do antigo título
+  "Conversas", como no design (`10px 10px 8px`, régua embaixo).
+*/
+.faixaDeBusca {
+  padding-inline: var(--vx-space-10);
+  padding-block: var(--vx-space-10) var(--vx-space-08);
   border-block-end: 1px solid var(--vx-border-subtle);
-  color: var(--vx-text-1);
-  font-size: var(--vx-size-lg);
-  font-weight: 500;
-  line-height: var(--vx-leading-title);
+}
+
+/* `surface-0`: a coluna é `surface-1`, e o campo afunda um degrau — o mesmo
+   gatilho da coluna de canais. */
+.busca {
+  background: var(--vx-surface-0);
+}
+
+/* Amigos e caixa de entrada: os itens FIXOS, fora da rolagem. */
+.fixos {
+  display: grid;
+  gap: var(--vx-space-02);
+  padding: var(--vx-space-08);
 }
 
 .rolagem {
@@ -44,8 +52,7 @@
 
 /* --- as linhas ------------------------------------------------ */
 
-.conversa,
-.amigos {
+.conversa {
   display: flex;
   align-items: center;
   gap: var(--vx-space-12);
@@ -66,26 +73,72 @@
     color var(--vx-duration-fast) var(--vx-ease-out);
 }
 
-/* A linha de amigos fica fora da rolagem, então precisa do recuo dela. */
-.amigos {
-  inline-size: auto;
-  margin-inline: var(--vx-space-08);
-  margin-block-start: var(--vx-space-08);
+/*
+  O item fixo: 36px, ícone de 14 sem ladrilho, texto em 14 — o design o
+  desenha mais leve que a linha de conversa, porque ele é LUGAR e não gente.
+*/
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-09);
+  block-size: var(--vx-space-36);
+  min-inline-size: 0;
+  padding-inline: var(--vx-space-09);
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-base);
+  text-align: start;
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
 }
 
-.conversa:hover,
-.amigos:hover {
+.item > .nome {
+  flex: 1;
+}
+
+.item:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+/* Selecionado: acento a 12% e o glifo em `accent-text`, como no design. */
+.item[aria-current="true"],
+.item[aria-pressed="true"] {
+  background: var(--vx-state-selected);
+  color: var(--vx-text-1);
+  font-weight: 600;
+}
+
+.item[aria-current="true"] > svg,
+.item[aria-pressed="true"] > svg {
+  color: var(--vx-accent-text);
+}
+
+/* Contagem da caixa: NEUTRA, 11px — não-lida é inventário, não chamado. */
+.contagem {
+  flex: none;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.conversa:hover {
   background: var(--vx-surface-2);
   color: var(--vx-text-1);
 }
 
 .conversa:active,
-.amigos:active {
+.item:active {
   background: var(--vx-surface-3);
 }
 
 .conversa:focus-visible,
-.amigos:focus-visible {
+.item:focus-visible {
   outline: 2px solid var(--vx-accent);
   outline-offset: -2px;
 }
@@ -97,8 +150,7 @@
   contável, e a coluna já tem o servidor ativo marcado no rail. Dois acentos
   na mesma varredura de olho competem em vez de orientar.
 */
-.conversa[aria-current="true"],
-.amigos[aria-current="true"] {
+.conversa[aria-current="true"] {
   background: var(--vx-surface-2);
   color: var(--vx-accent);
   font-weight: 500;
@@ -137,8 +189,10 @@
   inset-inline-end: 0;
 }
 
+/* Ocupa o resto: é o que empurra hora, selo e marcadores para a ponta. */
 .texto {
   display: grid;
+  flex: 1;
   min-inline-size: 0;
 }
 
@@ -186,7 +240,24 @@
   }
 }
 
-.tituloDaColuna {
+/* --- as seções: "Fixadas" e "Mensagens diretas" ------------------ */
+
+.secao {
+  composes: sobrancelhaDeSecao from "../styles/sobrancelha.module.css";
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-08);
+  padding-inline: var(--vx-space-08);
+  padding-block: var(--vx-space-12) var(--vx-space-06);
+  color: var(--vx-text-3);
+}
+
+.secao:first-child {
+  padding-block-start: var(--vx-space-04);
+}
+
+.tituloDaSecao {
   min-inline-size: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -194,7 +265,7 @@
 }
 
 /*
-  O `+` do cabeçalho.
+  O `+` do cabeçalho da seção "Mensagens diretas".
 
   ⚠ Ele fica AQUI e não num menu, ao contrário do `+` da coluna de canais — que
   saiu do cabeçalho porque o design põe um por categoria. Aqui não há categoria
@@ -236,4 +307,81 @@
   block-size: 100%;
   object-fit: cover;
   border-radius: inherit;
+}
+
+/* --- a linha com o ✕ ------------------------------------------ */
+
+/*
+  O wrapper da linha: o botão da conversa E o ✕. Ver o comentário no TSX —
+  botão dentro de botão é inválido, e o gatilho do menu aceita um filho só.
+*/
+.linha {
+  display: flex;
+  align-items: center;
+  min-inline-size: 0;
+  border-radius: var(--vx-radius-06);
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.linha > .conversa {
+  flex: 1;
+  inline-size: auto;
+}
+
+/* O hover é da LINHA, ✕ incluído: passar do nome para o ✕ não pode apagar o
+   realce, e o realce cobre o alvo que ele revelou. */
+.linha:hover {
+  background: var(--vx-surface-2);
+}
+
+.linha:hover > .conversa {
+  color: var(--vx-text-1);
+}
+
+/*
+  ✕ para fechar a DM — só no hover e no foco, como no design.
+
+  ⚠ **`display: none` e não `visibility: hidden`**, pela razão da coluna de
+  canais: no fluxo, a caixa oculta encurtaria o nome de toda conversa o tempo
+  todo, por um alvo que quase nunca está visível. Com `display` o nome só
+  encurta enquanto o ✕ aparece, e ele sai da tabulação igual.
+*/
+.fechar {
+  display: none;
+  flex: none;
+  place-items: center;
+  inline-size: var(--vx-space-24);
+  block-size: var(--vx-space-24);
+  border: 0;
+  border-radius: var(--vx-radius-04);
+  background: transparent;
+  color: var(--vx-text-3);
+  cursor: pointer;
+  transition: color var(--vx-duration-instant) var(--vx-ease-out);
+}
+
+.linha:hover > .fechar,
+.linha:focus-within > .fechar {
+  display: grid;
+}
+
+.fechar:hover {
+  color: var(--vx-text-1);
+}
+
+.fechar:active {
+  scale: 0.94;
+}
+
+.fechar:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/* 🔇 e 📌 no fim da linha: `text-4`, o tom de pontuação — dizem o estado sem
+   competir com o nome nem com a contagem. */
+.marcador {
+  display: flex;
+  flex: none;
+  color: var(--vx-text-4);
 }

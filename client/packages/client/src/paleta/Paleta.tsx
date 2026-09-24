@@ -18,6 +18,7 @@ import {
 } from "../store/navegacao";
 import { administrar } from "../store/administracao";
 import { abrirConversaCom } from "../sdk/social";
+import { lerBuscaInicial } from "../store/paleta";
 import { plural } from "../lib/plural";
 import css from "./Paleta.module.css";
 import {
@@ -59,7 +60,8 @@ const GLIFO_DO_TIPO = {
  */
 export function Paleta({ aoFechar }: { aoFechar: () => void }) {
   const servidorAtivo = useServidorAtivo();
-  const [busca, setBusca] = useState("");
+  // Vazio, salvo quando quem abriu pediu um filtro — ver `abrirPaletaCom`.
+  const [busca, setBusca] = useState(lerBuscaInicial);
   const [cursor, setCursor] = useState(0);
   const listaRef = useRef<HTMLUListElement>(null);
   const campoRef = useRef<HTMLInputElement>(null);

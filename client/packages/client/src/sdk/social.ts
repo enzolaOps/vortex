@@ -9,7 +9,8 @@
  * handler vira erro não tratado no console em vez de mensagem na tela.
  */
 import { client } from "./client";
-import { publicarConversas, publicarRelacoes } from "./adapter";
+import { pessoas, publicarConversas, publicarRelacoes } from "./adapter";
+import { toRelacaoSnapshot } from "./map";
 import { toast } from "../components/ui/toastStore";
 import { motivoDoErro } from "./erros";
 import { aceitarSolicitacao } from "../store/solicitacoes";
@@ -26,6 +27,20 @@ function falhou(oQue: string, e: unknown): void {
      aqui lia `e.response.status`, que o `stoat-api` nunca produz. */
   const detalhe = motivoDoErro(e);
   toast({ tipo: "erro", titulo: oQue, descricao: detalhe });
+}
+
+/**
+ * O nome de exibição de alguém, sem assinar.
+ *
+ * `pessoas.peek` só tem quem alguma tela já assinou; a paleta monta o índice
+ * na abertura e precisa do nome de todo amigo, aberto ou não. O objeto do SDK
+ * fica aqui dentro — sai uma `string`.
+ */
+export function nomeDaPessoa(userId: string): string | undefined {
+  const pronta = pessoas.peek(userId);
+  if (pronta) return pronta.displayName;
+  const u = client.users.get(userId);
+  return u ? toRelacaoSnapshot(u).displayName : undefined;
 }
 
 /**

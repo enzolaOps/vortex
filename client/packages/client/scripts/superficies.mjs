@@ -221,6 +221,12 @@ const PERMITIDO = {
       "Campo, mesma regra do `Campo.entrada`. Verificado byte a byte no " +
       "`Vortex App.dc.html`: o campo de 30px da coluna é `#08090B`.",
   },
+  "casa/ListaDeConversas.module.css": {
+    ".busca":
+      "Campo, a mesma regra de `canais/ListaDeCanais .busca` — é o mesmo " +
+      "gatilho no mesmo slot. `Vortex DMs, Voz e Modais.dc.html`: o " +
+      "\"Encontrar ou iniciar conversa\" de 30px é `#08090B`.",
+  },
   "caixa/CaixaDeEntrada.module.css": {
     ".respostaCampo": "Campo de entrada — a mesma regra do `Campo.entrada`.",
     ".respostaEnviar":

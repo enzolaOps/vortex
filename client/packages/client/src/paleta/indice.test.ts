@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { combina, pontuar } from "./indice";
+import { combina, pessoasDaCasa, pontuar, prefixoDe } from "./indice";
 
 /**
  * O filtro da paleta.
@@ -80,5 +80,38 @@ describe("pontuar", () => {
 describe("ordem sem busca", () => {
   it("todos empatam, para a ordem do índice sobreviver", () => {
     expect(pontuar("Vortex", "")).toBe(pontuar("um-nome-de-canal-bem-longo", ""));
+  });
+});
+
+/**
+ * As pessoas da casa — o que o "Encontrar ou iniciar conversa" encontra.
+ */
+describe("pessoasDaCasa", () => {
+  const nomes: Record<string, string> = { ana: "Ana", beto: "Beto", caio: "Caio" };
+  const nome = (id: string) => nomes[id];
+
+  it("conversas primeiro, na ordem da coluna, e depois os amigos", () => {
+    const r = pessoasDaCasa(["beto", undefined], ["ana", "caio"], nome);
+    expect(r.map((e) => [e.id, e.contexto])).toEqual([
+      ["beto", "Conversa direta"],
+      ["ana", "Amigo"],
+      ["caio", "Amigo"],
+    ]);
+  });
+
+  it("o amigo com quem já há conversa entra uma vez só", () => {
+    const r = pessoasDaCasa(["ana"], ["ana", "beto"], nome);
+    expect(r.map((e) => e.id)).toEqual(["ana", "beto"]);
+    expect(r[0]!.contexto).toBe("Conversa direta");
+  });
+
+  /* Sem `serverId` é o que faz a paleta ABRIR A CONVERSA ao escolher. */
+  it("sem servidor, e só pessoas com nome resolvido", () => {
+    const r = pessoasDaCasa(["fantasma"], ["ana"], nome);
+    expect(r).toEqual([{ tipo: "pessoa", id: "ana", rotulo: "Ana", contexto: "Amigo" }]);
+  });
+
+  it("o prefixo de pessoas é o do chip", () => {
+    expect(prefixoDe("pessoa")).toBe("@");
   });
 });

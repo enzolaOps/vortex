@@ -26,6 +26,35 @@ import { abrirModal, fecharModal, lerModal } from "./modais";
  * paleta invisível para quem não a conhece.
  */
 export function abrirPaleta(): void {
+  buscaInicial = "";
   if (lerModal() === "paleta") fecharModal();
   else abrirModal("paleta");
+}
+
+/**
+ * O texto com que a paleta ABRE — vazio, salvo quando quem abriu pediu um
+ * filtro.
+ *
+ * ⚠ **É o prefixo, e não um estado de filtro paralelo.** A paleta tem um dono
+ * só para o filtro, a string de busca (ver `analisarBusca`); abrir "já em
+ * pessoas" é abrir com `@` escrito no campo, e apagá-lo com Backspace desfaz o
+ * filtro exatamente como se a pessoa o tivesse digitado.
+ *
+ * Lido pelo inicializador do `useState` da paleta — leitura pura, sem
+ * consumir: o `StrictMode` invoca inicializadores duas vezes, e um valor que
+ * se apagasse na primeira leitura faria a segunda abrir sem filtro.
+ */
+let buscaInicial = "";
+
+export function lerBuscaInicial(): string {
+  return buscaInicial;
+}
+
+/**
+ * Abre a paleta com `busca` já escrita no campo. Não alterna: quem chama é um
+ * gatilho visível, e a paleta aberta cobre o gatilho.
+ */
+export function abrirPaletaCom(busca: string): void {
+  buscaInicial = busca;
+  abrirModal("paleta");
 }

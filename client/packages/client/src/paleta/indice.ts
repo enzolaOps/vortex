@@ -21,6 +21,7 @@ import {
   membrosOffline,
   membrosOnline,
   RAIZ,
+  relacoes,
   servers,
   vozPorCanal,
 } from "../sdk/adapter";
@@ -28,6 +29,7 @@ import { canaisOrdenados, servidoresOrdenados } from "../sdk/ordem";
 import { chaveDeMembro } from "../sdk/domain";
 import { chaveDoCanal, listasDeTopicos, topicos } from "../sdk/topicos";
 import { ATALHOS } from "../atalhos/registro";
+import { nomeDaPessoa } from "../sdk/social";
 
 export type TipoDeEntrada =
   | "servidor"
@@ -203,6 +205,22 @@ export function montarIndice(servidorAtivo: string): readonly Entrada[] {
     });
   }
 
+  /*
+    Na CASA, as pessoas são as da casa: com quem você já conversa e seus
+    amigos. É a mesma regra de "pessoas só do servidor ativo" aplicada ao
+    lugar que não é servidor — e é o que dá ao "Encontrar ou iniciar conversa"
+    da coluna o que encontrar. Sem isto, `@` na casa devolvia lista vazia.
+  */
+  if (!servidorAtivo) {
+    const destinatarios: (string | undefined)[] = [];
+    for (const id of conversas.peek(RAIZ) ?? []) {
+      destinatarios.push(channels.peek(id)?.destinatarioId);
+    }
+    out.push(
+      ...pessoasDaCasa(destinatarios, relacoes.peek("amigo") ?? [], nomeDaPessoa),
+    );
+  }
+
   if (servidorAtivo) {
     const nomeDoServidor = servers.peek(servidorAtivo)?.name;
     const pessoas = [
@@ -244,6 +262,44 @@ export function montarIndice(servidorAtivo: string): readonly Entrada[] {
     });
   }
 
+  return out;
+}
+
+/**
+ * O prefixo de um tipo — quem abre a paleta já filtrada escreve ESTE texto no
+ * campo, e não um estado paralelo (ver `CHIPS`).
+ */
+export function prefixoDe(tipo: TipoDeEntrada): string {
+  return CHIPS.find((c) => c.tipo === tipo)?.prefixo ?? "";
+}
+
+/**
+ * As pessoas da casa: primeiro com quem já há conversa direta (na ordem da
+ * coluna, que é recência), depois os amigos que ainda não têm uma.
+ *
+ * Sem `serverId`, e é isso que faz escolher uma delas ABRIR A CONVERSA em vez
+ * de um perfil de membro — `openDM` é idempotente, então a mesma entrada serve
+ * para "encontrar" e para "iniciar". Cada pessoa entra uma vez: o amigo com
+ * quem você já conversa é a conversa, não um segundo resultado.
+ *
+ * Pura, com o nome injetado, para ser testável sem SDK.
+ */
+export function pessoasDaCasa(
+  destinatarios: readonly (string | undefined)[],
+  amigos: readonly string[],
+  nome: (userId: string) => string | undefined,
+): Entrada[] {
+  const out: Entrada[] = [];
+  const vistos = new Set<string>();
+  const incluir = (id: string | undefined, contexto: string) => {
+    if (id === undefined || vistos.has(id)) return;
+    const rotulo = nome(id);
+    if (rotulo === undefined) return;
+    vistos.add(id);
+    out.push({ tipo: "pessoa", id, rotulo, contexto });
+  };
+  for (const id of destinatarios) incluir(id, "Conversa direta");
+  for (const id of amigos) incluir(id, "Amigo");
   return out;
 }
 
