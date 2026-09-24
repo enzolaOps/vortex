@@ -903,45 +903,16 @@
    pertencem ao campo.
    ============================================================ */
 
+/*
+  Só o CONTÊINER é daqui: flex, espaçamento entre botões e botões são da
+  `ReguaDeFormatacao`. Repetir `display`/`gap` aqui brigaria com a de lá na
+  mesma especificidade, e quem ganharia é a ordem dos CSS Modules no bundle —
+  a armadilha da largura do `Dialog`.
+*/
 .reguaDeEdicao {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--vx-space-08);
   margin-block-start: var(--vx-space-08);
   padding-block-start: var(--vx-space-08);
   border-block-start: 1px solid var(--vx-border-subtle);
-}
-
-.reguaAcoes {
-  display: flex;
-  /* 1px, como na barra de ações: os botões da régua são uma fileira só. */
-  gap: 1px;
-}
-
-.reguaBotao {
-  display: grid;
-  place-items: center;
-  inline-size: 26px;
-  block-size: 26px;
-  border-radius: var(--vx-radius-05);
-  color: var(--vx-text-2);
-  cursor: pointer;
-}
-
-.reguaBotao svg {
-  inline-size: var(--vx-icon-2);
-  block-size: var(--vx-icon-2);
-}
-
-.reguaBotao:hover {
-  background: var(--vx-state-hover);
-  color: var(--vx-text-1);
-}
-
-.reguaBotao:focus-visible {
-  outline: 2px solid var(--vx-accent);
-  outline-offset: -2px;
 }
 
 /*

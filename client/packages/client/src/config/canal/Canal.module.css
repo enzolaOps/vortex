@@ -33,8 +33,11 @@
   treme e empurra o próprio rótulo. É o mesmo critério que manteve o `3/8` da
   sala de voz FORA do mono, onde ele muda uma vez a cada muitos minutos.
 
-  `text-3` e não `text-4`: o quarto degrau é o tom de desativado, e o contador
-  é informação viva — no design ele sai em `#77808E`, o mesmo do rótulo.
+  ⚠ **`text-4` em repouso, e o comentário anterior afirmava o contrário.** Ele
+  dizia que o design pinta o contador em `#77808E` (o do rótulo); o design
+  escreve `#4C5563` abaixo de 90%, `#E2B15C` a partir de 90% e `#F0808D` no
+  limite (D-CCANAL-03). Longe do teto o número é metadado; perto dele vira
+  aviso, e é o tom que diz qual dos dois.
 */
 .contador {
   margin: 0;
@@ -43,7 +46,15 @@
   font-size: var(--vx-size-xs);
   letter-spacing: normal;
   text-transform: none;
-  color: var(--vx-text-3);
+  color: var(--vx-text-4);
+}
+
+.contador[data-tom="aviso"] {
+  color: var(--vx-warning);
+}
+
+.contador[data-tom="perigo"] {
+  color: var(--vx-danger-text);
 }
 
 /* --------------------------------------------- controle pendente */
@@ -829,50 +840,21 @@
   border-color: var(--vx-accent);
 }
 
+/*
+  Só o contêiner: botões, divisa e espaçamento entre eles são da
+  `ReguaDeFormatacao`, a mesma do editor de mensagem (D-CCANAL-04). Sem
+  `display`/`gap` aqui pela razão escrita em `MessageRow.module.css
+  .reguaDeEdicao` — mesma especificidade, e ganharia a ordem do bundle.
+*/
 .regua {
-  display: flex;
-  align-items: center;
-  gap: 1px;
   padding: var(--vx-space-05) var(--vx-space-06);
   border-block-end: 1px solid var(--vx-hairline-06);
 }
 
-.reguaBotao {
-  display: grid;
-  place-items: center;
-  min-inline-size: 28px;
-  block-size: 26px;
-  padding-inline: var(--vx-space-08);
-  border: 0;
-  border-radius: var(--vx-radius-05);
-  background: transparent;
-  color: var(--vx-text-2);
-  font-family: inherit;
-  font-size: var(--vx-size-sm);
-  cursor: pointer;
-}
-
-.reguaBotao:hover {
-  background: var(--vx-state-hover);
-  color: var(--vx-text-1);
-}
-
-/* `outline` e não o anel: o botão vive dentro da caixa, que recorta. */
-.reguaBotao:focus-visible {
-  outline: 2px solid var(--vx-accent);
-  outline-offset: -2px;
-}
-
-.reguaDivisa {
-  inline-size: 1px;
-  block-size: 16px;
-  margin-inline: var(--vx-space-04);
-  background: var(--vx-hairline-10);
-}
-
+/* Mono, como o design escreve — é nome de formato, não frase. */
 .reguaDica {
-  margin-inline-start: auto;
   padding-inline-end: var(--vx-space-04);
+  font-family: var(--vx-font-mono);
   font-size: var(--vx-size-xs);
   color: var(--vx-text-4);
 }
