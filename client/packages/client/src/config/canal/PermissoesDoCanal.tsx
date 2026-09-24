@@ -1,5 +1,5 @@
 import { ArrowLeft, Check, Minus, X } from "../../components/ui/icones";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { Banner } from "../../components/ui/Banner";
 import { Botao } from "../../components/ui/Botao";
@@ -7,6 +7,7 @@ import { Interruptor } from "../../components/ui/Interruptor";
 import {
   categoriaDoCanal,
   conjuntoDoCanal,
+  diferencasDoCanal,
   divergencias,
   sincronizarComCategoria,
   temSobreposicoes,
@@ -31,6 +32,7 @@ import {
 import { useCategorias, useChannel, useCorDeCargo } from "../../store/hooks";
 import secao from "../Secao.module.css";
 import { CampoDeBusca } from "../../components/ui/CampoDeBusca";
+import { ListaDeDiff } from "../ListaDeDiff";
 import css from "./Canal.module.css";
 
 /**
@@ -62,6 +64,8 @@ export function PermissoesDoCanal({ channelId }: { channelId: string }) {
 
   const [cargos, setCargos] = useState<readonly Cargo[]>([]);
   const [avancadas, setAvancadas] = useState(false);
+  const [verDiferenca, setVerDiferenca] = useState(false);
+  const idDaDiferenca = useId();
   /* Assinado só para acordar quando as sobreposições da categoria mudam — elas
      chegam num `ServerUpdate` de `categories`, que é o que este store publica. */
   useCategorias(serverId ?? "");
@@ -138,8 +142,21 @@ export function PermissoesDoCanal({ channelId }: { channelId: string }) {
           titulo="Permissões dessincronizadas da categoria"
           acoes={
             <>
-              <Botao variante="sutil" onClick={() => setAvancadas(true)}>
-                Ver diferença
+              {/*
+                ⚠ **Abria a MATRIZ, e a matriz não diz o que difere.** Ela
+                mostra o canal inteiro, bit a bit, sem a categoria ao lado — a
+                pessoa teria de lembrar o que a categoria decide e comparar de
+                cabeça. Agora abre o diff da auditoria (D-CCANAL-10), aqui
+                mesmo, logo abaixo do banner: − o que o canal decide, + o que
+                "Sincronizar agora" põe no lugar.
+              */}
+              <Botao
+                variante="sutil"
+                aria-expanded={verDiferenca}
+                aria-controls={idDaDiferenca}
+                onClick={() => setVerDiferenca((v) => !v)}
+              >
+                {verDiferenca ? "Ocultar diferença" : "Ver diferença"}
               </Botao>
               {sincronizar ? (
                 <Botao variante="avisoSutil" onClick={sincronizar}>
@@ -154,6 +171,31 @@ export function PermissoesDoCanal({ channelId }: { channelId: string }) {
           segue mais <strong>{categoria.titulo}</strong>. Sincronizar substitui
           os overrides locais pelos da categoria.
         </Banner>
+      ) : null}
+
+      {/*
+        O diff some junto com o banner: ele é a explicação DO banner, e depois
+        de sincronizar não há o que explicar — `divergentes` cai a zero e os
+        dois saem no mesmo render (D-CCANAL-10, "some só após sincronizar").
+      */}
+      {categoria !== undefined && divergentes > 0 && verDiferenca ? (
+        <section id={idDaDiferenca} className={css.diferenca}>
+          <p className={css.diferencaLegenda}>
+            <span className={css.diferencaAntes}>− este canal</span>
+            <span className={css.diferencaDepois}>
+              + {categoria.titulo}
+            </span>
+          </p>
+          <ListaDeDiff
+            rotulo={`Diferença entre este canal e ${categoria.titulo}`}
+            linhas={diferencasDoCanal(
+              conjuntoDoCanal(channelId),
+              categoria.conjunto,
+              cargos.map((c) => c.id),
+              (id) => cargos.find((c) => c.id === id)?.nome ?? "cargo removido",
+            )}
+          />
+        </section>
       ) : null}
 
       <section className={css.cartaoChave}>

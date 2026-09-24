@@ -153,6 +153,42 @@
   color: var(--vx-text-3);
 }
 
+/*
+  O diff do banner de dessincronização (D-CCANAL-10).
+
+  A lista em si é `ListaDeDiff`, a mesma da auditoria; o que mora aqui é só a
+  legenda que diz de que lado está cada sinal — na auditoria o `−`/`+` é
+  "antes/depois" no TEMPO, e aqui é "canal/categoria" no ESPAÇO. Sem a
+  legenda, quem veio da auditoria leria o `+` como "o que já aconteceu".
+*/
+/* Cartão AFUNDADO como a lista de acesso logo abaixo: a lista do diff pinta
+   `surface-2`, que é o fundo desta tela, e solta ali ela não teria borda. */
+.diferenca {
+  display: grid;
+  gap: var(--vx-space-08);
+  padding: var(--vx-space-12);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-10);
+  background: var(--vx-surface-1);
+}
+
+.diferencaLegenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-12);
+  margin: 0;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+}
+
+.diferencaAntes {
+  color: var(--vx-danger-text);
+}
+
+.diferencaDepois {
+  color: var(--vx-success-text);
+}
+
 /* A lista de acesso: cartão AFUNDADO, como o de voz. */
 .listaDeAcesso {
   border: 1px solid var(--vx-hairline-06);

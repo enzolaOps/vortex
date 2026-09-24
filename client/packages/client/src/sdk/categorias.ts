@@ -1,6 +1,6 @@
 import { toast } from "../components/ui/toastStore";
 import type { OverrideDeCanal } from "./canal";
-import { bitDaPermissao } from "./cargos";
+import { bitDaPermissao, PERMISSOES } from "./cargos";
 import { client, conectado } from "./client";
 import { motivoDoErro } from "./erros";
 
@@ -63,6 +63,105 @@ export function divergencias(
     if (!iguais(canal.cargos[id], categoria.cargos[id])) n += 1;
   }
   return n;
+}
+
+/** Uma linha do diff — o mesmo par que o registro de auditoria desenha. */
+export type LinhaDeDiff = {
+  readonly campo: string;
+  readonly antes: string;
+  readonly depois: string;
+};
+
+/** O alvo @everyone no diff. Chave própria para não colidir com ID de cargo. */
+export const ALVO_PADRAO = "@everyone";
+
+/**
+ * O que "Ver diferença" mostra (D-CCANAL-09/10): por ALVO que diverge, o que o
+ * canal decide hoje (`antes`) e o que ele passa a decidir se sincronizar
+ * (`depois`, o da categoria).
+ *
+ * ⚠ **Antes = canal e depois = categoria**, e a direção é a da ação que o
+ * banner oferece: "Sincronizar substitui os overrides locais pelos da
+ * categoria". O diff descreve o que o botão ao lado vai FAZER — o `−` é o que
+ * some, o `+` é o que entra.
+ *
+ * ⚠ **Um alvo por linha, e não um bit por linha.** É a mesma unidade do banner
+ * ("3 overrides próprios"): três linhas para três. Por bit, um cargo com cinco
+ * permissões trocadas viraria cinco linhas com a mesma chave, e o número do
+ * banner deixaria de bater com o que se lê embaixo.
+ *
+ * Os valores dizem o override INTEIRO do alvo, dos dois lados — como o diff da
+ * auditoria diz o campo inteiro. A comparação é do olho, e ela só funciona com
+ * os dois estados completos lado a lado.
+ */
+export function diferencasDoCanal(
+  canal: ConjuntoDeSobreposicoes,
+  categoria: ConjuntoDeSobreposicoes,
+  ordemDosCargos: readonly string[],
+  nomeDoCargo: (id: string) => string,
+): LinhaDeDiff[] {
+  const saida: LinhaDeDiff[] = [];
+  if (!iguais(canal.padrao, categoria.padrao)) {
+    saida.push({
+      campo: ALVO_PADRAO,
+      antes: descreverOverride(canal.padrao),
+      depois: descreverOverride(categoria.padrao),
+    });
+  }
+
+  /* Ordem da tela (hierarquia), e o que ela não conhece por último — um cargo
+     apagado que ainda tem override continua sendo diferença real. */
+  const alvos = new Set([...Object.keys(canal.cargos), ...Object.keys(categoria.cargos)]);
+  const conhecidos = ordemDosCargos.filter((id) => alvos.has(id));
+  const resto = [...alvos].filter((id) => !ordemDosCargos.includes(id)).sort();
+  for (const id of [...conhecidos, ...resto]) {
+    const a = canal.cargos[id];
+    const b = categoria.cargos[id];
+    if (iguais(a, b)) continue;
+    saida.push({ campo: nomeDoCargo(id), antes: descreverOverride(a), depois: descreverOverride(b) });
+  }
+  return saida;
+}
+
+/**
+ * "✓ Ver o canal, … · ✕ …", ou "herda tudo".
+ *
+ * Os glifos são os da legenda da matriz (✕ nega · ✓ permite), para que a
+ * mesma pessoa leia as duas telas com o mesmo vocabulário. Bit que a tela de
+ * cargos não lista (reservado, `Masquerade`) é CONTADO em vez de sumir: um
+ * diff que omite parte do que muda afirma que os dois lados são mais parecidos
+ * do que são.
+ */
+export function descreverOverride(o: OverrideDeCanal | undefined): string {
+  if (o === undefined || vazio(o)) return "herda tudo";
+  const partes: string[] = [];
+  const permite = rotulosDe(o.allow);
+  const nega = rotulosDe(o.deny);
+  if (permite.length > 0) partes.push(`✓ ${permite.join(", ")}`);
+  if (nega.length > 0) partes.push(`✕ ${nega.join(", ")}`);
+  return partes.join(" · ");
+}
+
+function rotulosDe(valor: bigint): string[] {
+  if (valor === 0n) return [];
+  const saida: string[] = [];
+  let conhecido = 0n;
+  for (const grupo of PERMISSOES) {
+    for (const p of grupo.itens) {
+      const bit = bitDaPermissao(p.id);
+      if (bit === 0n) continue;
+      conhecido |= bit;
+      if ((valor & bit) === bit) saida.push(p.rotulo);
+    }
+  }
+  let resto = valor & ~conhecido;
+  let outras = 0;
+  while (resto > 0n) {
+    if ((resto & 1n) === 1n) outras += 1;
+    resto >>= 1n;
+  }
+  if (outras > 0) saida.push(outras === 1 ? "1 outra" : `${String(outras)} outras`);
+  return saida;
 }
 
 /** A categoria tem alguma sobreposição? Sem nenhuma, não há o que herdar. */

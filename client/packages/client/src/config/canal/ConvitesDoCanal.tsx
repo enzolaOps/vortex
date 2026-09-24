@@ -35,6 +35,14 @@ import css from "./Canal.module.css";
  * não um número inventado. É a mesma linha de "Conectado · 42 ms": numa
  * superfície onde a pessoa decide revogar, dado falso é pior que dado ausente.
  *
+ * ⚠ **O estado "temporário · 30 min" (D-CCANAL-25) também não existe**, pela
+ * mesma razão: `Invite` no `delta` tem `code`, `server`, `creator`, `channel`
+ * e `roles`. Os três campos nascem de um fork só — o modal de convite que os
+ * ESCREVE (D-DVM-33/34) e a tabela de convites do servidor (D-SRVPG-09) —, e
+ * fazê-lo aqui para uma tabela que só LÊ daria colunas sempre em "∞/Nunca"
+ * até alguém construir quem escreve. Quando o fork chegar, as duas células
+ * de travessão abaixo são o único ponto a trocar.
+ *
  * "Pausar todos" é do servidor do Vortex (`invites_paused` no canal): suspende a
  * ENTRADA por todos os links sem apagá-los. Pausado é estado do CANAL, não de
  * cada convite — por isso toda linha fica apagada junto, e o "Retomar" de

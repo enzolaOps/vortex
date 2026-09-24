@@ -181,64 +181,11 @@
   outline-offset: 2px;
 }
 
-.diffLista {
-  display: grid;
-  gap: var(--vx-space-06);
-  margin: var(--vx-space-08) 0 0;
-  padding: var(--vx-space-10) var(--vx-space-12);
-  border-radius: var(--vx-radius-06);
-  background: var(--vx-surface-2);
-}
-
-/*
-  ⚠ **Coluna de chave FIXA em 150, e é instrução do design.** Com a chave
-  dimensionada pelo conteúdo, cada linha começaria num lugar e o olho perderia
-  a lista — o valor de um diff é justamente varrer QUAIS campos mudaram antes
-  de ler o que virou o quê.
-*/
-.diffLinha {
-  display: grid;
-  grid-template-columns: 150px minmax(0, 1fr);
-  gap: var(--vx-space-10);
-}
-
-.diffCampo {
-  overflow: hidden;
-  font-family: var(--vx-font-mono);
-  font-size: var(--vx-size-xs);
-  color: var(--vx-text-3);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.diffValores {
-  display: grid;
-  gap: var(--vx-space-02);
-  margin: 0;
-  min-inline-size: 0;
-}
-
-/*
-  O par sempre junto e sempre nesta ordem — antes em cima, depois embaixo.
-
-  Mono nos dois: são valores comparados caractere a caractere, e proporcional
-  faria `#E8596B` e `#E8596C` parecerem do mesmo tamanho. As cores são as
-  semânticas do app, não verde/vermelho de terminal: `danger` para o que saiu e
-  `success` para o que entrou.
-*/
-.antes,
-.depois {
-  overflow-wrap: anywhere;
-  font-family: var(--vx-font-mono);
-  font-size: var(--vx-size-xs);
-}
-
-.antes {
-  color: var(--vx-danger-text);
-}
-
-.depois {
-  color: var(--vx-success-text);
+/* O respiro entre o resumo e a lista é de quem ABRE: a lista é
+   `ListaDeDiff`, compartilhada com o banner de permissões do canal, e não
+   carrega margem própria. */
+.diff[open] > .diffResumo {
+  margin-block-end: var(--vx-space-08);
 }
 
 .recado {

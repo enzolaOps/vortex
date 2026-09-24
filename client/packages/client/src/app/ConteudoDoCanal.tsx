@@ -4,8 +4,9 @@ import { PalcoDeVoz } from "../voz/PalcoDeVoz";
 import { useNaSala } from "../voz/useSalaDeVoz";
 import { GaleriaDeMidia } from "../forum/GaleriaDeMidia";
 import { TelaDoForum } from "../forum/TelaDoForum";
-import { useForum, useTopico } from "../store/hooks";
+import { useExigeConfirmacaoDeIdade, useForum, useTopico } from "../store/hooks";
 import { RaizDoTopico } from "../topicos/RaizDoTopico";
+import { PortaoDeIdade } from "./PortaoDeIdade";
 
 /**
  * O que a coluna de conteúdo mostra num canal: a conversa, ou a sala de voz.
@@ -48,7 +49,18 @@ export function ConteudoDoCanal({ channelId }: { channelId: string }) {
   */
   const forum = useForum(channelId);
   const topico = useTopico(channelId);
+  const exigeIdade = useExigeConfirmacaoDeIdade(channelId);
   if (naSala) return <PalcoDeVoz />;
+  /*
+    Canal +18 pede confirmação ANTES de montar qualquer coisa do canal
+    (D-CCANAL-06) — lista, fórum ou galeria. Depois da sala de voz de
+    propósito: quem já está dentro da chamada já passou pela porta, e trocar a
+    grade pelo aviso no meio dela seria a chamada sumindo.
+
+    ⚠ **A lista NÃO monta atrás do aviso.** Montá-la escondida buscaria o
+    histórico e desenharia as mídias que o aviso existe para não mostrar.
+  */
+  if (exigeIdade) return <PortaoDeIdade channelId={channelId} />;
   if (forum) {
     return forum.midia ? (
       <GaleriaDeMidia key={channelId} channelId={channelId} />
@@ -76,6 +88,8 @@ export function ComposerDoCanal({ channelId }: { channelId: string }) {
   const naSala = useNaSala(channelId);
   // Num fórum ou galeria não se escreve no canal — escreve-se num post.
   const forum = useForum(channelId);
-  if (naSala || forum) return null;
+  // Sem composer atrás do aviso: escrever num canal que você ainda não viu.
+  const exigeIdade = useExigeConfirmacaoDeIdade(channelId);
+  if (naSala || forum || exigeIdade) return null;
   return <Composer channelId={channelId} />;
 }

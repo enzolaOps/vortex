@@ -12,6 +12,7 @@ import {
 } from "../sdk/auditoria";
 import { CampoDeBusca } from "../components/ui/CampoDeBusca";
 import css from "./Auditoria.module.css";
+import { ListaDeDiff } from "./ListaDeDiff";
 
 /**
  * A janela padrão, em dias.
@@ -353,17 +354,7 @@ function Entrada({
             {entrada.mudancas.length} campo
             {entrada.mudancas.length === 1 ? "" : "s"}
           </summary>
-          <dl className={css.diffLista}>
-            {entrada.mudancas.map((m) => (
-              <div key={m.campo} className={css.diffLinha}>
-                <dt className={css.diffCampo}>{m.campo}</dt>
-                <dd className={css.diffValores}>
-                  <span className={css.antes}>− {m.antes}</span>
-                  <span className={css.depois}>+ {m.depois}</span>
-                </dd>
-              </div>
-            ))}
-          </dl>
+          <ListaDeDiff linhas={entrada.mudancas} />
         </details>
       ) : null}
     </li>

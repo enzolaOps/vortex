@@ -61,6 +61,7 @@ import {
   type Recorte,
 } from "../sdk/topicos";
 import { assinarColapso, estaColapsada } from "./colapso";
+import { assinarIdade, idadeConfirmada } from "./idade";
 import { rascunhos, RASCUNHO_VAZIO } from "./rascunhos";
 import { assinarLayout, lerSemente } from "./layout";
 import { corDeCargo, pinturaDeCargo, type PinturaDeCargo } from "../tema/cargo";
@@ -560,6 +561,26 @@ export function usePoliticaDeMidia(serverId: string): PoliticaDeMidia {
 /** Se esta aba já decidiu mostrar o anexo velado. */
 export function useRevelado(anexoId: string): boolean {
   return useSyncExternalStore(assinarRevelado(anexoId), () => estaRevelado(anexoId));
+}
+
+/**
+ * Se o canal é +18 e esta pessoa ainda não confirmou a idade (D-CCANAL-06).
+ *
+ * ⚠ **Assina um BOOLEANO do canal, e não o snapshot.** Quem chama é a coluna
+ * de conteúdo, e o snapshot do canal republica a cada mensagem nova (não
+ * lidas, última mensagem). Com o snapshot inteiro, a coluna acordaria sob o
+ * firehose por um campo que muda uma vez na vida do canal; com o booleano, o
+ * React compara `false === false` e não re-renderiza.
+ */
+export function useExigeConfirmacaoDeIdade(channelId: string): boolean {
+  const restrito = useSyncExternalStore(
+    channels.subscriber(channelId),
+    () => channels.getSnapshot(channelId)?.restritoPorIdade === true,
+  );
+  const confirmado = useSyncExternalStore(assinarIdade, () =>
+    idadeConfirmada(channelId),
+  );
+  return restrito && !confirmado;
 }
 
 /* ---------------------------------------------- tópicos, fórum e galeria */

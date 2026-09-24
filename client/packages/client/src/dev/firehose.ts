@@ -110,8 +110,21 @@ type Servidor = {
     lento?: number;
     /** Fórum (ou galeria, com `media`) — o objeto cru que só este fork manda. */
     forum?: { media?: boolean; tags?: { id: string; name: string; colour?: string }[] };
+    /**
+     * `nsfw` — restrição de idade (D-CCANAL-06). Arnês mais pobre que o
+     * protocolo, 13ª vez: o campo existe desde o Revolt e nenhum canal do
+     * firehose o tinha, então a porta de confirmação nasceria inalcançável.
+     */
+    adulto?: boolean;
   }[];
-  categorias?: { id: string; title: string; channels: string[] }[];
+  categorias?: {
+    id: string;
+    title: string;
+    channels: string[];
+    /** Sobreposições da categoria (fork do `api`) — o banner de
+        dessincronização só existe quando a categoria tem alguma. */
+    default_permissions?: { a: string; d: string };
+  }[];
   /** Quantos dos `userIds` pertencem a ele. */
   membros: number;
 };
@@ -212,15 +225,31 @@ const MUNDO: Servidor[] = [
     id: "01JQ0000000000000000000002",
     nome: "Ponte de Estado",
     canais: [
-      { id: "01JQ0000000000000000000020", nome: "adapter" },
+      /* `adapter` segue a categoria (privado = o mesmo `ViewChannel` negado
+         que ela carrega) e `medições` não: um sincronizado e um divergente,
+         para o banner de dessincronização e o diff dele (D-CCANAL-09/10). */
+      { id: "01JQ0000000000000000000020", nome: "adapter", privado: true },
       { id: "01JQ0000000000000000000021", nome: "medições" },
+    ],
+    categorias: [
+      {
+        id: "01JQC0000000000000000PONTE",
+        title: "ponte",
+        channels: ["01JQ0000000000000000000020", "01JQ0000000000000000000021"],
+        default_permissions: { a: "0", d: "1" },
+      },
     ],
     membros: 12,
   },
   {
     id: "01JQ0000000000000000000003",
     nome: "Rascunhos",
-    canais: [{ id: "01JQ0000000000000000000030", nome: "ideias" }],
+    canais: [
+      { id: "01JQ0000000000000000000030", nome: "ideias" },
+      // +18 num servidor que não é o do firehose: a porta substitui a lista,
+      // e no `spike` ela esconderia as dez mil mensagens que o gate mede.
+      { id: "01JQ0000000000000000000031", nome: "sem-filtro", adulto: true },
+    ],
     membros: 5,
   },
 ];
@@ -491,6 +520,7 @@ const RECADOS = [
         */
         ...(canal.privado ? { default_permissions: { a: "0", d: "1" } } : {}),
         ...(canal.lento ? { slowmode: canal.lento } : {}),
+        ...(canal.adulto ? { nsfw: true } : {}),
         ...(canal.forum ? { forum: canal.forum } : {}),
       };
       client.channels.getOrCreate(canal.id, cru as never);
