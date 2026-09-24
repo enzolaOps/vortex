@@ -168,3 +168,39 @@ export function castigarEmLote(
     aoProgredir,
   );
 }
+
+/**
+ * "Avisar por DM" do castigo (D-SRVPG-40): abre a conversa com cada pessoa e
+ * manda o texto.
+ *
+ * ⚠ **Rota direta, e pelo mesmo motivo das três acima:** `User.openDM()` exige
+ * o usuário em cache, e num lote vindo da página de Membros nem todo
+ * selecionado precisa estar. `GET /users/{id}/dm` é idempotente no protocolo
+ * — conversa existente volta a mesma.
+ *
+ * ⚠ **Só quem REALMENTE foi castigado** chega aqui: quem chama passa os
+ * `feitos` do lote, nunca a seleção. Avisar alguém cujo castigo falhou seria
+ * afirmar um fato que o servidor recusou.
+ *
+ * A falha não desfaz nada — o castigo já valeu. Quem chama só conta quantos
+ * não foram avisados (privacidade de DM é o motivo comum).
+ */
+export function avisarPorDmEmLote(
+  userIds: readonly string[],
+  texto: string,
+): Promise<ResultadoDeLote<string>> {
+  return emLote(
+    userIds,
+    async (userId) => {
+      const canal = (await client.api.get(`/users/${userId}/dm` as never)) as {
+        _id?: string;
+      };
+      if (!canal._id) throw new Error("conversa sem ID");
+      await client.api.post(
+        `/channels/${canal._id}/messages` as never,
+        { content: texto } as never,
+      );
+    },
+    undefined,
+  );
+}

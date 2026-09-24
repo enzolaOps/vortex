@@ -22,6 +22,7 @@ export type VarianteDeBotao =
   | "sutil"
   | "perigo"
   | "perigoSutil"
+  | "aviso"
   | "avisoSutil";
 
 export function Botao({

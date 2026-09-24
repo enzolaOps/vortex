@@ -102,6 +102,7 @@ function montar(): Par[] {
   // menção, o selo de erro e o de sucesso são texto de 10px dentro da cor.
   lista.push({ fg: "--vx-on-danger", bg: "--vx-danger", min: 4.5, tipo: "texto" });
   lista.push({ fg: "--vx-on-success", bg: "--vx-success", min: 4.5, tipo: "texto" });
+  lista.push({ fg: "--vx-on-warning", bg: "--vx-warning", min: 4.5, tipo: "texto" });
 
   // Presença: ponto pequeno, precisa se separar do fundo em que é desenhado.
   for (const fg of STATUS) {

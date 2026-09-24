@@ -87,6 +87,7 @@ import {
   RiStopFill,
   RiSubtractLine,
   RiTeamLine,
+  RiTimerFill,
   RiTrophyFill,
   RiUnpinLine,
   RiUpload2Fill,
@@ -228,6 +229,7 @@ export const SpeakerHigh = vx(RiVolumeUpFill);
 export const SpeakerSlash = vx(RiVolumeMuteFill);
 export const Star = vx(RiStarFill);
 export const Sticker = vx(RiEmojiStickerFill);
+export const Timer = vx(RiTimerFill);
 export const Trash = vx(RiDeleteBin6Fill);
 export const Tray = vx(RiInbox2Fill);
 export const Trophy = vx(RiTrophyFill);

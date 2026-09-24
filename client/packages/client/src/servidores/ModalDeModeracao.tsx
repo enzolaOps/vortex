@@ -1,13 +1,17 @@
-import { useEffect, useId, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useState, useSyncExternalStore, type ReactNode } from "react";
 
+import { Avatar } from "../components/ui/Avatar";
 import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
-import { Campo } from "../components/ui/Campo";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
-import { Segmentado } from "../components/ui/Segmentado";
+import { ProhibitInset, SignOut, Timer } from "../components/ui/icones";
+import { Interruptor } from "../components/ui/Interruptor";
+import { toast } from "../components/ui/toastStore";
 import type { FalhaDeLote, ResultadoDeLote } from "../lib/lote";
-import { chaveDeMembro } from "../sdk/domain";
+import { plural } from "../lib/plural";
+import { chaveDeMembro, type MemberSnapshot } from "../sdk/domain";
 import {
+  avisarPorDmEmLote,
   banirEmLote,
   castigarEmLote,
   expulsarEmLote,
@@ -18,8 +22,18 @@ import {
   type EntradaDeAuditoria,
 } from "../sdk/auditoria";
 import { assinarAlvo, lerAlvo } from "../store/administracao";
-import { useMembro } from "../store/hooks";
-import css from "./AdicionarServidor.module.css";
+import { useMembro, useServer } from "../store/hooks";
+import { useAgoraPorMinuto } from "../store/relogio";
+import antigo from "./AdicionarServidor.module.css";
+import css from "./ModalDeModeracao.module.css";
+import {
+  avisoDeCastigo,
+  DURACAO_PADRAO,
+  DURACOES_DE_CASTIGO,
+  entrouHa,
+  idCurto,
+  terminoDoCastigo,
+} from "./textoDaModeracao";
 
 /**
  * Expulsar, banir e deixar de castigo — uma pessoa ou várias.
@@ -37,13 +51,12 @@ import css from "./AdicionarServidor.module.css";
  * modal com o PRIMEIRO selecionado e mais ninguém: "banir 12" banía um. Agora
  * ele recebe a lista, diz o plural, mostra o progresso e, quando alguém falha,
  * fica aberto dizendo QUEM e por quê — com "Tentar de novo" só para esses.
+ *
+ * A casca é a do design (D-SRVPG-44): ícone semântico à esquerda, título e
+ * consequência no cabeçalho, card do alvo, motivo sempre presente e o rodapé
+ * na faixa. O card NÃO aparece no castigo — o design não o desenha ali, e o
+ * cabeçalho já nomeia a pessoa ("Téo não poderá falar…").
  */
-const DURACOES = [
-  { id: "5", rotulo: "5 min" },
-  { id: "60", rotulo: "1 hora" },
-  { id: "1440", rotulo: "1 dia" },
-  { id: "10080", rotulo: "7 dias" },
-] as const;
 
 /* D-SRVPG-43: Nenhuma · 1 h · 24 h · 7 dias. */
 const EXCLUSOES = [
@@ -62,6 +75,18 @@ type IdDeExclusao = (typeof EXCLUSOES)[number]["id"];
 const ATRASO_DO_BANIR_MS = 400;
 
 type Andamento = { readonly terminados: number; readonly total: number };
+type Acao = "expulsar" | "banir" | "castigo";
+
+/*
+  D-SRVPG-44: o ícone semântico. O design escreve ⏱ ⤴ ⛔ como caracteres; aqui
+  são os ícones do ponto único, porque glifo de fonte muda de desenho entre
+  sistemas e o resto do app não usa nenhum.
+*/
+const GLIFO: Record<Acao, ReactNode> = {
+  castigo: <Timer aria-hidden />,
+  expulsar: <SignOut aria-hidden />,
+  banir: <ProhibitInset aria-hidden />,
+};
 
 export function ModalDeModeracao({ aoFechar }: { aoFechar: () => void }) {
   const alvo = useSyncExternalStore(assinarAlvo, lerAlvo);
@@ -70,12 +95,15 @@ export function ModalDeModeracao({ aoFechar }: { aoFechar: () => void }) {
   /* A lista que falta — começa com todos e encolhe a cada tentativa. */
   const [pendentes, setPendentes] = useState<readonly string[] | undefined>(undefined);
   const [razao, setRazao] = useState("");
-  const [minutos, setMinutos] = useState("60");
+  const [minutos, setMinutos] = useState<number>(DURACAO_PADRAO);
   const [exclusao, setExclusao] = useState<IdDeExclusao>("0");
+  /* D-SRVPG-40: ligado por padrão, como o design (`dmWarn: true`). */
+  const [avisarPorDm, setAvisarPorDm] = useState(true);
   const [andamento, setAndamento] = useState<Andamento | undefined>(undefined);
   const [falhas, setFalhas] = useState<readonly FalhaDeLote<string>[]>([]);
   const [armado, setArmado] = useState(false);
   const idDoMotivo = useId();
+  const agora = useAgoraPorMinuto();
 
   useEffect(() => {
     /* setState ASSÍNCRONO, no timer — não é o render em cascata que o lint
@@ -91,41 +119,45 @@ export function ModalDeModeracao({ aoFechar }: { aoFechar: () => void }) {
   const alvos = pendentes ?? moderar?.userIds ?? [];
   const primeiro = alvos[0] ?? "";
   const membro = useMembro(chaveDeMembro(moderar?.serverId ?? "", primeiro));
+  const servidor = useServer(moderar?.serverId ?? "");
 
   if (!moderar) return null;
 
   const enviando = andamento !== undefined;
   const acao = moderar.acao;
   const varias = alvos.length > 1;
-  const quem = varias
-    ? `${String(alvos.length)} pessoas`
-    : (membro?.displayName ?? "essa pessoa");
+  const n = String(alvos.length);
+  const nome = membro?.displayName ?? "Essa pessoa";
 
-  const TITULO = {
-    expulsar: varias ? `Expulsar ${quem}` : "Expulsar do servidor",
-    banir: varias ? `Banir ${quem}` : "Banir do servidor",
-    castigo: varias ? `Castigar ${quem}` : "Deixar de castigo",
-  }[acao];
+  const TITULO: Record<Acao, string> = {
+    castigo: varias ? `Castigar ${n} pessoas` : "Castigar membro",
+    expulsar: varias ? `Expulsar ${n} pessoas` : "Expulsar membro",
+    banir: varias ? `Banir ${n} pessoas` : "Banir membro",
+  };
 
-  const AVISO = {
-    expulsar: varias
-      ? `${quem} saem do servidor e podem voltar pelo próximo convite.`
-      : `${quem} sai do servidor e pode voltar pelo próximo convite.`,
-    banir: varias
-      ? `${quem} saem do servidor e NÃO podem voltar, nem por convite.`
-      : `${quem} sai do servidor e NÃO pode voltar, nem por convite.`,
+  /* D-SRVPG-38/41/42: a consequência, com as palavras do design. */
+  const CONSEQUENCIA: Record<Acao, string> = {
     castigo: varias
-      ? `${quem} continuam no servidor, mas não conseguem falar até o prazo acabar.`
-      : `${quem} continua no servidor, mas não consegue falar até o prazo acabar.`,
-  }[acao];
+      ? `${n} pessoas não poderão falar, reagir nem entrar em voz.`
+      : `${nome} não poderá falar, reagir nem entrar em voz.`,
+    expulsar: varias
+      ? `${n} pessoas saem do servidor, mas podem voltar com um novo convite.`
+      : `${nome} sai do servidor, mas pode voltar com um novo convite.`,
+    banir: varias
+      ? "As contas não conseguirão voltar, nem com convite novo."
+      : "A conta não conseguirá voltar, nem com convite novo.",
+  };
 
-  const DICA_DO_MOTIVO = {
-    expulsar: "Opcional, mas registrado na auditoria.",
-    banir: "Esperado — fica no registro de banimentos e na auditoria.",
-    castigo: "Vai para a auditoria.",
-  }[acao];
+  const ACAO: Record<Acao, string> = {
+    castigo: varias ? `Castigar ${n}` : "Castigar",
+    expulsar: varias ? `Expulsar ${n}` : "Expulsar",
+    /* D-SRVPG-42: "permanentemente" está no BOTÃO, e não só no texto — é a
+       última coisa lida antes do clique. */
+    banir: varias ? `Banir ${n} permanentemente` : "Banir permanentemente",
+  };
 
   const janela = EXCLUSOES.find((e) => e.id === exclusao) ?? EXCLUSOES[0];
+  const termino = terminoDoCastigo(agora, minutos);
 
   function executar() {
     if (!moderar || enviando || alvos.length === 0) return;
@@ -148,17 +180,24 @@ export function ModalDeModeracao({ aoFechar }: { aoFechar: () => void }) {
         progredir,
       );
     } else {
-      p = castigarEmLote(
-        moderar.serverId,
-        ids,
-        { minutos: Number(minutos), motivo },
-        progredir,
-      );
+      p = castigarEmLote(moderar.serverId, ids, { minutos, motivo }, progredir);
     }
 
     void p.then((r) => {
       setAndamento(undefined);
       moderar.aoConcluir?.(r.feitos);
+      if (acao === "castigo" && avisarPorDm && r.feitos.length > 0) {
+        /* O término é recalculado AGORA, e não o da tela: o texto chega a
+           quem foi castigado e precisa bater com o instante gravado. */
+        avisar(
+          r.feitos,
+          avisoDeCastigo({
+            servidor: servidor?.name ?? "um servidor",
+            termino: terminoDoCastigo(Date.now(), minutos),
+            motivo,
+          }),
+        );
+      }
       if (r.falhas.length === 0) {
         aoFechar();
         return;
@@ -169,46 +208,63 @@ export function ModalDeModeracao({ aoFechar }: { aoFechar: () => void }) {
   }
 
   const bloqueadoPeloAtraso = acao === "banir" && !armado;
+  const mostraTermino = acao === "castigo";
 
   return (
     <Dialog open onOpenChange={(v) => !v && !enviando && aoFechar()}>
       <DialogContent
-        titulo={TITULO}
+        titulo={TITULO[acao]}
+        descricao={CONSEQUENCIA[acao]}
+        icone={
+          <span className={css.icone} data-acao={acao}>
+            {GLIFO[acao]}
+          </span>
+        }
+        fechavel
         className={css.painel}
         /*
           D-SRVPG-45: o destrutivo nunca é o foco inicial. O Radix focaria o
-          primeiro tabulável, que num modal sem campo seria o botão de ação;
-          o motivo existe nos três, e é onde a pessoa escreve primeiro.
+          primeiro tabulável, que agora seria o ✕ ou um chip; o motivo existe
+          nos três, e é onde a pessoa escreve primeiro.
         */
         onOpenAutoFocus={(e) => {
           e.preventDefault();
           document.getElementById(idDoMotivo)?.focus();
         }}
+        classeDoRodape={mostraTermino ? css.rodapeDividido : undefined}
         /* Cancelar ANTES de confirmar: a ação destrutiva fica na ponta, que é
            onde o ponteiro chega por último e onde o design a põe. */
         rodape={
           <>
-            <Botao variante="sutil" onClick={aoFechar} disabled={enviando}>
-              {falhas.length > 0 ? "Fechar" : "Cancelar"}
-            </Botao>
-            <Botao
-              variante="perigo"
-              disabled={enviando || bloqueadoPeloAtraso || alvos.length === 0}
-              carregando={enviando}
-              rotuloCarregando={
-                andamento && andamento.total > 1
-                  ? `Aplicando ${String(andamento.terminados)} de ${String(andamento.total)}…`
-                  : "Aplicando…"
-              }
-              onClick={executar}
-            >
-              {falhas.length > 0 ? "Tentar de novo" : TITULO}
-            </Botao>
+            {mostraTermino ? <span className={css.termino}>Termina {termino}</span> : null}
+            <div className={css.acoes}>
+              <Botao variante="sutil" onClick={aoFechar} disabled={enviando}>
+                {falhas.length > 0 ? "Fechar" : "Cancelar"}
+              </Botao>
+              <Botao
+                /* Âmbar restringe, vermelho remove — o mesmo tom do ícone. */
+                variante={acao === "castigo" ? "aviso" : "perigo"}
+                disabled={enviando || bloqueadoPeloAtraso || alvos.length === 0}
+                carregando={enviando}
+                rotuloCarregando={
+                  andamento && andamento.total > 1
+                    ? `Aplicando ${String(andamento.terminados)} de ${String(andamento.total)}…`
+                    : "Aplicando…"
+                }
+                onClick={executar}
+              >
+                {falhas.length > 0 ? "Tentar de novo" : ACAO[acao]}
+              </Botao>
+            </div>
           </>
         }
       >
         <div className={css.corpo}>
-          <p className={css.aviso}>{AVISO}</p>
+          {/* D-SRVPG-41/42: o card do alvo, só com UM alvo e só onde o design o
+              desenha. Em lote não há "o" alvo — o título já diz quantos. */}
+          {varias || acao === "castigo" ? null : (
+            <CartaoDoAlvo userId={primeiro} membro={membro} acao={acao} agora={agora} />
+          )}
 
           {/*
             ⚠ **O histórico de quem está sendo moderado, e é aqui que ele
@@ -226,47 +282,75 @@ export function ModalDeModeracao({ aoFechar }: { aoFechar: () => void }) {
             <HistoricoDoAlvo serverId={moderar.serverId} userId={primeiro} />
           )}
 
-          <Campo
-            id={idDoMotivo}
-            rotulo={acao === "expulsar" ? "Motivo (opcional)" : "Motivo"}
-            dica={DICA_DO_MOTIVO}
-            autoComplete="off"
-            /* O cabeçalho corta em 512 BYTES; caracteres acentuados valem 2. */
-            maxLength={512}
-            disabled={enviando}
-            value={razao}
-            onChange={(e) => {
-              setRazao(e.target.value);
-            }}
-          />
-
           {acao === "castigo" ? (
-            <Segmentado
-              rotulo="Por quanto tempo"
-              valor={minutos}
+            <GradeDeEscolha
+              rotulo="Duração"
+              colunas={3}
+              valor={String(minutos)}
               desabilitado={enviando}
-              opcoes={DURACOES.map((d) => ({ id: d.id, rotulo: d.rotulo }))}
+              opcoes={DURACOES_DE_CASTIGO.map((d) => ({
+                id: String(d.minutos),
+                rotulo: d.rotulo,
+              }))}
               aoEscolher={(id) => {
-                setMinutos(id);
+                setMinutos(Number(id));
               }}
             />
           ) : null}
 
           {acao === "banir" ? (
-            <>
-              <Segmentado<IdDeExclusao>
-                rotulo="Excluir mensagens recentes"
-                valor={exclusao}
-                desabilitado={enviando}
-                opcoes={EXCLUSOES.map((d) => ({ id: d.id, rotulo: d.rotulo }))}
-                aoEscolher={setExclusao}
-              />
-              {janela.id !== "0" ? (
-                <Banner tom="aviso">
-                  {`Serão excluídas todas as mensagens ${varias ? "destas contas" : "desta conta"} ${janela.frase} em todos os canais. Não há como desfazer.`}
-                </Banner>
-              ) : null}
-            </>
+            <GradeDeEscolha
+              rotulo="Excluir mensagens recentes"
+              colunas={4}
+              valor={exclusao}
+              desabilitado={enviando}
+              opcoes={EXCLUSOES.map((d) => ({ id: d.id, rotulo: d.rotulo }))}
+              aoEscolher={(id) => {
+                const achada = EXCLUSOES.find((e) => e.id === id);
+                if (achada) setExclusao(achada.id);
+              }}
+            />
+          ) : null}
+
+          <div>
+            <label className={css.rotuloDoMotivo} htmlFor={idDoMotivo}>
+              {acao === "castigo" ? "Motivo · vai para a auditoria" : "Motivo"}
+            </label>
+            <textarea
+              id={idDoMotivo}
+              className={css.motivo}
+              rows={2}
+              placeholder={PLACEHOLDER_DO_MOTIVO[acao]}
+              autoComplete="off"
+              /* O cabeçalho corta em 512 BYTES; caracteres acentuados valem 2. */
+              maxLength={512}
+              disabled={enviando}
+              value={razao}
+              onChange={(e) => {
+                setRazao(e.target.value);
+              }}
+            />
+            {acao === "castigo" ? (
+              <div className={css.linhaDoAviso}>
+                {/* O rótulo visível é texto e o nome acessível vai no
+                    interruptor — um `<label>` aqui apontaria para um botão. */}
+                <span className={css.rotuloDoAviso} aria-hidden>
+                  Avisar por DM
+                </span>
+                <Interruptor
+                  rotulo="Avisar por DM"
+                  ligado={avisarPorDm}
+                  disabled={enviando}
+                  aoAlternar={setAvisarPorDm}
+                />
+              </div>
+            ) : null}
+          </div>
+
+          {acao === "banir" && janela.id !== "0" ? (
+            <Banner tom="perigo">
+              {`Serão excluídas todas as mensagens ${varias ? "destas contas" : "desta conta"} ${janela.frase} em todos os canais. Não há como desfazer.`}
+            </Banner>
           ) : null}
 
           {falhas.length > 0 ? (
@@ -278,7 +362,7 @@ export function ModalDeModeracao({ aoFechar }: { aoFechar: () => void }) {
                   : `${String(falhas.length)} pessoas não foram alteradas.`
               }
             >
-              <ul className={css.falhas}>
+              <ul className={antigo.falhas}>
                 {falhas.map((f) => (
                   <li key={f.item}>
                     <NomeDoMembro serverId={moderar.serverId} userId={f.item} /> — {f.motivo}
@@ -290,6 +374,155 @@ export function ModalDeModeracao({ aoFechar }: { aoFechar: () => void }) {
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/*
+  D-SRVPG-41/42: "opcional" no expulsar e "esperado" no banir — o design diz
+  as duas palavras, e a diferença é o peso que cada decisão carrega no
+  registro. O castigo não tem placeholder: o rótulo já diz para onde vai.
+*/
+const PLACEHOLDER_DO_MOTIVO: Record<Acao, string | undefined> = {
+  castigo: undefined,
+  expulsar: "Opcional, mas registrado na auditoria",
+  banir: "Esperado — fica no registro de banimentos e na auditoria",
+};
+
+/**
+ * Manda o aviso e conta quem não recebeu.
+ *
+ * Fora do modal e sem `await`: o modal já fechou quando isto termina, e o
+ * castigo valeu de qualquer jeito. Quem não aceita DM de quem modera (a
+ * privacidade por servidor existe) é o caso comum de falha, e ele merece ser
+ * dito — senão quem castigou acredita que avisou.
+ */
+function avisar(userIds: readonly string[], texto: string): void {
+  void avisarPorDmEmLote(userIds, texto).then((r) => {
+    if (r.falhas.length === 0) return;
+    toast({
+      tipo: "info",
+      titulo: `${plural(r.falhas.length, "pessoa não recebeu", "pessoas não receberam")} o aviso por DM.`,
+      descricao: "O castigo foi aplicado mesmo assim.",
+    });
+  });
+}
+
+/**
+ * Chips de escolha única em grade — as durações do castigo e a janela de
+ * exclusão do banimento.
+ *
+ * `radiogroup` com tabulação itinerante, como o `Segmentado`: uma parada de
+ * Tab para o grupo e setas entre as opções. O `Segmentado` não serve aqui —
+ * ele é uma pílula contínua de largura de conteúdo, e o design quer uma GRADE
+ * de caixas iguais, que é o que faz seis durações lerem como uma régua.
+ */
+function GradeDeEscolha({
+  rotulo,
+  colunas,
+  valor,
+  opcoes,
+  desabilitado,
+  aoEscolher,
+}: {
+  rotulo: string;
+  colunas: 3 | 4;
+  valor: string;
+  opcoes: readonly { readonly id: string; readonly rotulo: string }[];
+  desabilitado: boolean;
+  aoEscolher: (id: string) => void;
+}) {
+  const idDoRotulo = useId();
+
+  function aoTeclar(e: React.KeyboardEvent<HTMLButtonElement>, i: number) {
+    const passo =
+      e.key === "ArrowRight" || e.key === "ArrowDown"
+        ? 1
+        : e.key === "ArrowLeft" || e.key === "ArrowUp"
+          ? -1
+          : 0;
+    if (passo === 0) return;
+    e.preventDefault();
+    const j = (i + passo + opcoes.length) % opcoes.length;
+    const proxima = opcoes[j];
+    if (!proxima) return;
+    aoEscolher(proxima.id);
+    /* O foco acompanha a escolha: com tabulação itinerante, só o marcado é
+       tabulável, e deixar o foco no antigo o tornaria inalcançável. */
+    const irmao = e.currentTarget.parentElement?.children[j];
+    if (irmao instanceof HTMLElement) irmao.focus();
+  }
+
+  return (
+    <div>
+      <span className={css.rotulo} id={idDoRotulo}>
+        {rotulo}
+      </span>
+      <div
+        className={css.grade}
+        data-colunas={colunas}
+        role="radiogroup"
+        aria-labelledby={idDoRotulo}
+      >
+        {opcoes.map((o, i) => (
+          <button
+            key={o.id}
+            type="button"
+            role="radio"
+            aria-checked={o.id === valor}
+            tabIndex={o.id === valor ? 0 : -1}
+            className={css.chip}
+            disabled={desabilitado}
+            onClick={() => {
+              aoEscolher(o.id);
+            }}
+            onKeyDown={(e) => {
+              aoTeclar(e, i);
+            }}
+          >
+            {o.rotulo}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Quem vai sair — o card do design (D-SRVPG-41/42).
+ *
+ * ⚠ **Expulsar mostra o HANDLE e banir mostra o ID**, como o design desenha.
+ * Expulsar é sobre um membro presente, que se reconhece pelo nome de usuário;
+ * banir é sobre a CONTA, que pode nem estar mais no servidor (o spam que entra
+ * e sai), e é pelo ID que o registro de banimentos a mostra depois.
+ */
+function CartaoDoAlvo({
+  userId,
+  membro,
+  acao,
+  agora,
+}: {
+  userId: string;
+  membro: MemberSnapshot | undefined;
+  acao: "expulsar" | "banir";
+  agora: number;
+}) {
+  const meta =
+    acao === "banir"
+      ? idCurto(userId)
+      : [membro?.username, entrouHa(membro?.entrouEmMs, agora)]
+          .filter((p): p is string => Boolean(p))
+          .join(" · ");
+  return (
+    <div className={css.alvo}>
+      <Avatar id={userId} sigla={membro?.sigla} url={membro?.avatarUrl} tamanho="sm" />
+      <div className={css.alvoNomes}>
+        <span className={css.alvoNome}>{membro?.displayName ?? userId}</span>
+        {meta ? <span className={css.alvoMeta}>{meta}</span> : null}
+      </div>
+      {acao === "expulsar" && membro?.cargo ? (
+        <span className={css.alvoCargo}>{membro.cargo}</span>
+      ) : null}
+    </div>
   );
 }
 
@@ -342,17 +575,17 @@ function HistoricoDoAlvo({
   if (entradas === undefined || entradas.length === 0) return null;
 
   return (
-    <div className={css.historico}>
-      <p className={css.historicoTitulo}>
+    <div className={antigo.historico}>
+      <p className={antigo.historicoTitulo}>
         Já registrado sobre essa pessoa
         {entradas.length > TETO_DO_HISTORICO
           ? ` · ${String(entradas.length)} entradas`
           : ""}
       </p>
-      <ul className={css.historicoLista}>
+      <ul className={antigo.historicoLista}>
         {entradas.slice(0, TETO_DO_HISTORICO).map((e) => (
           <li key={e.id}>
-            <span className={css.historicoQuando}>{e.quandoTexto}</span>{" "}
+            <span className={antigo.historicoQuando}>{e.quandoTexto}</span>{" "}
             <strong>{e.autor}</strong> {e.frase}
             {e.razao === undefined ? null : ` · ${e.razao}`}
           </li>

@@ -113,6 +113,8 @@ type Rampa = {
   /* O que se escreve EM CIMA do vermelho — ver `sobrePerigo` no derivar. */
   readonly sobrePerigo: Semantica;
   readonly aviso: Semantica;
+  /* O que se escreve EM CIMA do âmbar — o botão "Castigar" da moderação. */
+  readonly sobreAviso: Semantica;
   readonly sucesso: Semantica;
   /* O verde de TEXTO, pelo mesmo motivo de `perigoTexto`. Ver o token. */
   readonly sucessoTexto: Semantica;
@@ -205,6 +207,7 @@ const RAMPAS: Record<Modo, Rampa> = {
     perigoTexto: { l: 0.727685, c: 0.137474, h: 13.749 },
     sobrePerigo: { l: 0.155772, c: 0.039295, h: 15.439 },
     aviso: { l: 0.788215, c: 0.117607, h: 79.445 },
+    sobreAviso: { l: 0.219272, c: 0.038529, h: 78.69 },
     sucesso: { l: 0.748358, c: 0.146918, h: 158.512 },
     sucessoTexto: { l: 0.7933, c: 0.141339, h: 159.488 },
     sobreSucesso: { l: 0.23354, c: 0.042346, h: 168.417 },
@@ -257,6 +260,7 @@ const RAMPAS: Record<Modo, Rampa> = {
        escuros o bastante e um tingido escuro sumiria dentro deles. */
     sobrePerigo: { l: 1, c: 0, h: 0 },
     aviso: { l: 0.472782, c: 0.098779, h: 77.361 },
+    sobreAviso: { l: 1, c: 0, h: 0 },
     sucesso: { l: 0.480897, c: 0.113976, h: 154.976 },
     /* No claro os dois coincidem, como `perigoTexto` e `acentoTexto`. */
     sucessoTexto: { l: 0.480897, c: 0.113976, h: 154.976 },
@@ -342,6 +346,7 @@ export function derivar(s: Semente): Record<TokenName, string> {
        `on-accent`: o badge de menção usava `surface-0`, um preto NEUTRO. */
     "--vx-on-danger": semantica(r.sobrePerigo),
     "--vx-warning": semantica(r.aviso),
+    "--vx-on-warning": semantica(r.sobreAviso),
     "--vx-success": semantica(r.sucesso),
     "--vx-success-text": semantica(r.sucessoTexto),
     "--vx-on-success": semantica(r.sobreSucesso),

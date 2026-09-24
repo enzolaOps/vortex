@@ -1,0 +1,239 @@
+/*
+  Os três modais de moderação — a casca do design (D-SRVPG-44).
+
+  Valores de `Vortex Servidor - Páginas Restantes.dc.html`, seção "Modais de
+  moderação": painel de 400, ícone de 36 em círculo tingido, card do alvo em
+  `surface-3`, chips de 32 e motivo em área de texto de duas linhas.
+*/
+
+.painel {
+  inline-size: 400px;
+  max-inline-size: 100%;
+}
+
+.corpo {
+  display: grid;
+  gap: var(--vx-space-14);
+}
+
+/* --- o ícone semântico ----------------------------------------- */
+
+/*
+  O TOM é o significado: âmbar restringe sem remover (castigo), vermelho
+  remove (expulsar), vermelho mais denso remove para sempre (banir). O design
+  separa os dois vermelhos só pela opacidade do fundo — 16% e 20% —, e a
+  diferença é pequena de propósito: os dois tiram a pessoa, e o que distingue
+  "pode voltar" de "não pode" é o texto logo ao lado.
+*/
+.icone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 36px;
+  block-size: 36px;
+  border-radius: var(--vx-radius-pill);
+}
+
+.icone svg {
+  inline-size: var(--vx-icon-2);
+  block-size: var(--vx-icon-2);
+}
+
+.icone[data-acao="castigo"] {
+  background: color-mix(in oklab, var(--vx-warning) 16%, transparent);
+  color: var(--vx-warning);
+}
+
+.icone[data-acao="expulsar"] {
+  background: color-mix(in oklab, var(--vx-danger) 16%, transparent);
+  color: var(--vx-danger-text);
+}
+
+.icone[data-acao="banir"] {
+  background: color-mix(in oklab, var(--vx-danger) 20%, transparent);
+  color: var(--vx-danger-text);
+}
+
+/* --- o card do alvo -------------------------------------------- */
+
+.alvo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-10);
+  padding: var(--vx-space-11) var(--vx-space-12);
+  border-radius: var(--vx-radius-08);
+  background: var(--vx-surface-3);
+}
+
+.alvoNomes {
+  display: grid;
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.alvoNome {
+  overflow: hidden;
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Mono: é identificador (handle, ID), e é por ele que se confere a conta. */
+.alvoMeta {
+  overflow: hidden;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alvoCargo {
+  display: flex;
+  flex: none;
+  align-items: center;
+  /* 20: altura da pílula no design. */
+  block-size: 20px;
+  padding-inline: var(--vx-space-07);
+  border-radius: var(--vx-radius-04);
+  background: var(--vx-hairline-06);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  color: var(--vx-text-2);
+}
+
+/* --- rótulos, chips e motivo ----------------------------------- */
+
+.rotulo {
+  composes: sobrancelha from "../styles/sobrancelha.module.css";
+  display: block;
+  margin: 0 0 var(--vx-space-08);
+  color: var(--vx-text-3);
+}
+
+/* O motivo encosta 1px mais — é o que o design escreve (7 contra 8). */
+.rotuloDoMotivo {
+  composes: rotulo;
+  margin-block-end: var(--vx-space-07);
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--vx-space-06);
+}
+
+.grade[data-colunas="4"] {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 32: altura do chip no design. */
+  block-size: 32px;
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  color: var(--vx-text-2);
+  cursor: pointer;
+  transition:
+    border-color var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.chip:hover:not(:disabled) {
+  border-color: var(--vx-border-strong);
+  color: var(--vx-text-1);
+}
+
+.chip[aria-checked="true"] {
+  border-color: var(--vx-accent);
+  background: color-mix(in oklab, var(--vx-accent) 16%, transparent);
+  color: var(--vx-accent-text);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/*
+  Área de texto de duas linhas — o design a desenha assim nos três. Um
+  `<input>` de uma linha cortaria o motivo que a auditoria vai guardar, e é
+  exatamente o texto que outra pessoa lerá meses depois.
+*/
+.motivo {
+  display: block;
+  inline-size: 100%;
+  padding: var(--vx-space-09) var(--vx-space-11);
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  line-height: var(--vx-leading-compact);
+  color: var(--vx-text-1);
+  resize: none;
+  transition: border-color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.motivo::placeholder {
+  color: var(--vx-text-3);
+}
+
+.motivo:hover:not(:disabled) {
+  border-color: var(--vx-border-strong);
+}
+
+.motivo:focus-visible {
+  outline: none;
+  border-color: var(--vx-accent);
+  box-shadow: 0 0 0 3px var(--vx-accent-ring);
+}
+
+.motivo:disabled {
+  opacity: 0.5;
+}
+
+.linhaDoAviso {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-12);
+  margin-block-start: var(--vx-space-12);
+}
+
+.rotuloDoAviso {
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  color: var(--vx-text-1);
+}
+
+/* --- o rodapé -------------------------------------------------- */
+
+/* No castigo o rodapé DIVIDE: quando termina à esquerda, ações à direita. */
+.rodapeDividido {
+  justify-content: space-between;
+}
+
+.termino {
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
+}
+
+.acoes {
+  display: flex;
+  gap: var(--vx-space-08);
+}

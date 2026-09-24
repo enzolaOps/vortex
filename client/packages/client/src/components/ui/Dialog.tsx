@@ -30,6 +30,7 @@ export function DialogContent({
   tituloOculto = false,
   rodape,
   fechavel = false,
+  icone,
   classeDoRodape,
   className,
   children,
@@ -74,6 +75,18 @@ export function DialogContent({
    * cabeçalho que ninguém pediu para mudar. `Esc` e o véu continuam fechando.
    */
   fechavel?: boolean;
+  /**
+   * O ícone semântico À ESQUERDA do título (D-SRVPG-44).
+   *
+   * O design o desenha nos três modais de moderação — ⏱ castigar, ⤴ expulsar,
+   * ⛔ banir — como a primeira coisa que o olho encontra: antes de ler o
+   * título, a pessoa já sabe se o que vai confirmar restringe ou remove.
+   *
+   * A caixa (círculo, tom) é de QUEM CHAMA: o tom é o significado, e o
+   * significado é do consumidor. Aqui mora só o lugar, com o vão de 12 do
+   * design entre ele e o título.
+   */
+  icone?: ReactNode;
   /**
    * Classe extra da faixa do rodapé.
    *
@@ -154,7 +167,13 @@ export function DialogContent({
           <>
             {/* `16px 18px 12px`, do design. O respiro de baixo é menor porque
                 o corpo logo abaixo traz o próprio. */}
-            <div className="flex flex-none items-start justify-between gap-16 px-18 pt-16 pb-12">
+            <div
+              className={cn(
+                "flex flex-none items-start justify-between px-18 pt-16 pb-12",
+                icone === undefined ? "gap-16" : "gap-12",
+              )}
+            >
+              {icone === undefined ? null : <div className="flex-none">{icone}</div>}
               <div className="flex-1">
                 <Primitivo.Title className="text-xl leading-title font-semibold text-text-1">
                   {titulo}

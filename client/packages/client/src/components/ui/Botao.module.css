@@ -211,6 +211,23 @@
 }
 
 /*
+  Âmbar SÓLIDO — o fim de um fluxo que restringe sem remover.
+
+  O design o usa no "Castigar" da moderação: a pessoa fica, mas perde a voz.
+  Vermelho diria "sai" (expulsar e banir são `perigo`), e o acento diria
+  "confirma uma coisa neutra". Texto tingido pelo mesmo argumento de
+  `--vx-on-danger`.
+*/
+.aviso {
+  background: var(--vx-warning);
+  color: var(--vx-on-warning);
+}
+
+.aviso:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--vx-warning) 88%, black);
+}
+
+/*
   Destrutivo SUTIL — a ENTRADA de um fluxo destrutivo, não o fim dele.
 
   A distinção é a razão de existirem dois: "Apagar servidor" numa página de

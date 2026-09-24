@@ -162,6 +162,8 @@
   --vx-on-accent: #04181b;
   --vx-on-danger: #1a0507;
   --vx-on-success: #04241a;
+  /* Sobre o âmbar: o botão "Castigar" do design (`#241804`). */
+  --vx-on-warning: #241804;
 
   /*
     O trilho — o sexto neutro, ACIMA de `surface-4`.
@@ -849,6 +851,7 @@
   --vx-on-accent: #ffffff;
   --vx-on-danger: #ffffff;
   --vx-on-success: #ffffff;
+  --vx-on-warning: #ffffff;
   --vx-track: #d8dbe0;
   --vx-track-forte: #b4bcc6;
   --vx-accent-soft: #d7f3f8;
@@ -909,6 +912,7 @@
     --vx-on-accent: #ffffff;
     --vx-on-danger: #ffffff;
     --vx-on-success: #ffffff;
+    --vx-on-warning: #ffffff;
     --vx-track: #d8dbe0;
     --vx-track-forte: #b4bcc6;
     --vx-accent-soft: #d7f3f8;
@@ -983,6 +987,7 @@
   --color-on-accent: var(--vx-on-accent);
   --color-on-danger: var(--vx-on-danger);
   --color-on-success: var(--vx-on-success);
+  --color-on-warning: var(--vx-on-warning);
   --color-track: var(--vx-track);
 
   --color-danger: var(--vx-danger);

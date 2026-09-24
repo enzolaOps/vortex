@@ -29,13 +29,27 @@ const client = {
     delete: registrar("delete"),
     put: registrar("put"),
     patch: registrar("patch"),
+    post: registrar("post"),
+    get: vi.fn((caminho: string) => {
+      const userId = caminho.split("/")[2] ?? "";
+      if (falhar.has(userId)) {
+        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors -- o stoat-api lança o TEXTO
+        return Promise.reject('{"type":"PrivacyRestricted"}');
+      }
+      return Promise.resolve({ _id: `dm-${userId}` });
+    }),
   },
 };
 
 vi.mock("./client", () => ({ client, conectado: () => true }));
 
-const { banirEmLote, cabecalhoDeMotivo, castigarEmLote, expulsarEmLote } =
-  await import("./moderacao");
+const {
+  avisarPorDmEmLote,
+  banirEmLote,
+  cabecalhoDeMotivo,
+  castigarEmLote,
+  expulsarEmLote,
+} = await import("./moderacao");
 
 /** O que o servidor lê: os bytes do cabeçalho decodificados como UTF-8. */
 function comoOServidorLe(byteString: string): string {
@@ -126,5 +140,27 @@ describe("lote", () => {
     expect(r.falhas.map((f) => f.item)).toEqual(["B", "D"]);
     expect(r.falhas[0]!.motivo).not.toBe("");
     expect(progresso.at(-1)).toBe(4);
+  });
+});
+
+describe("avisar por DM", () => {
+  it("abre a conversa e manda o texto no canal DELA", async () => {
+    const r = await avisarPorDmEmLote(["u1", "u2"], "Você está de castigo.");
+    expect(r.falhas).toEqual([]);
+    const posts = chamadas.filter((c) => c.metodo === "post").map((c) => c.c);
+    expect(posts.map((p) => p.caminho).sort()).toEqual([
+      "/channels/dm-u1/messages",
+      "/channels/dm-u2/messages",
+    ]);
+    expect(posts[0]?.corpo).toEqual({ content: "Você está de castigo." });
+  });
+
+  it("quem não aceita DM falha sozinho, sem mensagem e sem derrubar os outros", async () => {
+    falhar.add("u2");
+    const r = await avisarPorDmEmLote(["u1", "u2", "u3"], "x");
+    expect(r.falhas.map((f) => f.item)).toEqual(["u2"]);
+    const destinos = chamadas.filter((c) => c.metodo === "post").map((c) => c.c.caminho);
+    expect(destinos).not.toContain("/channels/dm-u2/messages");
+    expect(destinos).toHaveLength(2);
   });
 });
