@@ -16,6 +16,7 @@ import {
   lerPush,
   type EstadoDoPush,
 } from "../notificacao/push";
+import { definirPresenca } from "../sdk/perfil";
 import { assinarMeuStatus, lerMeuStatus } from "../store/meuStatus";
 import {
   alternarDia,
@@ -107,11 +108,32 @@ export function Notificacoes() {
       {naoPerturbe ? (
         <Banner
           tom="perigo"
-          titulo="Não perturbe está ligado"
+          titulo="Não perturbe está ativo"
           className={pg.faixa}
+          acoes={
+            /*
+              "Desativar" do design (D-NOTIF-02), e ele NÃO é um segundo
+              dono do estado: escreve a mesma presença que o menu do rodapé
+              escreve, pelo mesmo `definirPresenca`. O que o comentário acima
+              recusa é um INTERRUPTOR aqui — que diria "desligado" com a
+              pessoa em Ausente, porque não perturbe não é booleano. Um botão
+              que só existe enquanto o DND vale não tem esse problema.
+
+              Volta para `online` e não para "o que era antes": o protocolo
+              não guarda a presença anterior, e inventar uma memória local
+              para isso daria um terceiro lugar onde ela mora.
+            */
+            <Botao
+              variante="perigoSutil"
+              tamanho="pequeno"
+              onClick={() => void definirPresenca("online")}
+            >
+              Desativar
+            </Botao>
+          }
         >
-          Nada notifica enquanto ele estiver ativo — nem as chamadas. Troque a
-          presença no rodapé da coluna para voltar a receber.
+          Nada notifica — nem chamadas nem menções diretas. As regras abaixo
+          voltam a valer quando você desativar.
         </Banner>
       ) : null}
 
@@ -324,6 +346,14 @@ function lerPermissao(): Permissao {
  * pede; `denied` não pode ser pedido de novo por página nenhuma — o navegador
  * só o desfaz nas configurações do site, e o texto diz isso em vez de oferecer
  * um botão que não faria nada.
+ *
+ * ⚠ **Divergência deliberada do "Abrir ajustes" do design (D-NOTIF-10).** No
+ * navegador nenhuma página abre as configurações do site — `chrome://` e
+ * `about:` são recusados por `window.open`. Na casca o botão PODERIA abrir os
+ * ajustes do sistema, mas o estado que o justifica não chega: o Electron
+ * reporta `granted` mesmo com o Windows ou o macOS calando o app, então o
+ * aviso de bloqueio nunca apareceria lá. Um botão alcançável só onde não
+ * funciona e funcional só onde é inalcançável é o pior dos dois.
  */
 function PermissaoDoSistema() {
   const [permissao, setPermissao] = useState<Permissao>(lerPermissao);
