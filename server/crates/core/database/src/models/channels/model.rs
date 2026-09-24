@@ -15,6 +15,24 @@ use crate::{
 #[cfg(feature = "mongodb")]
 use crate::IntoDocumentPath;
 
+/// Vortex: days without activity after which a thread counts as archived
+pub const THREAD_ARCHIVE_AFTER_DAYS: u64 = 7;
+
+/// Vortex: the smallest ULID that is still recent activity for a thread at `now_ms`
+pub fn thread_archive_cutoff(now_ms: u64) -> String {
+    let week = THREAD_ARCHIVE_AFTER_DAYS * 24 * 60 * 60 * 1000;
+    Ulid::from_parts(now_ms.saturating_sub(week), 0).to_string()
+}
+
+/// Vortex: [`thread_archive_cutoff`] for the current time
+pub fn thread_archive_cutoff_now() -> String {
+    let now_ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or_default();
+    thread_archive_cutoff(now_ms)
+}
+
 auto_derived!(
     #[allow(clippy::large_enum_variant)]
     #[serde(tag = "channel_type")]
@@ -544,6 +562,49 @@ impl Channel {
         }
     }
 
+    /// Vortex: whether this thread counts as archived at `cutoff`
+    ///
+    /// Archived by hand, or without activity since `cutoff` (see
+    /// [`thread_archive_cutoff`]). Activity is the latest of three ULIDs: the
+    /// thread's own id (its creation), its last message and the last time it
+    /// was reopened. ULIDs sort by time as strings, which is also what lets the
+    /// database answer the same question with a plain `$gte`.
+    ///
+    /// Derived on read instead of written by a job: `crond` is the upstream
+    /// image and is not published by this fork, and a derived state has no
+    /// window in which the job has not run yet.
+    pub fn thread_archived(&self, cutoff: &str) -> bool {
+        let Channel::TextChannel {
+            id,
+            last_message_id,
+            thread: Some(info),
+            ..
+        } = self
+        else {
+            return false;
+        };
+
+        if info.archived {
+            return true;
+        }
+
+        let recent = |ulid: &str| ulid >= cutoff;
+        let active = recent(id)
+            || last_message_id.as_deref().is_some_and(recent)
+            || info.reopened.as_deref().is_some_and(recent);
+        !active
+    }
+
+    /// Vortex: this thread's information with `archived` as it stands at `cutoff`
+    ///
+    /// Routes that write the thread back start from this, so the update they
+    /// publish never tells clients that an idle thread is active.
+    pub fn thread_now(&self, cutoff: &str) -> Option<v0::ThreadInformation> {
+        let mut info = self.thread()?.clone();
+        info.archived = self.thread_archived(cutoff);
+        Some(info)
+    }
+
     /// Vortex: this channel's forum information, when it is a forum or media channel
     pub fn forum(&self) -> Option<&v0::ForumInformation> {
         match self {
@@ -605,6 +666,8 @@ impl Channel {
                 tags: data.tags,
                 followers: vec![owner.to_string()],
                 pinned: false,
+                in_review: false,
+                reopened: None,
             }),
             spoiler: false,
             invites_paused: false,
@@ -1177,6 +1240,155 @@ mod tests {
             assert!(!calculate_channel_permissions(&mut query)
                 .await
                 .has_channel_permission(ChannelPermission::SendMessage));
+        });
+    }
+}
+
+#[cfg(test)]
+mod thread_archive_tests {
+    use std::collections::HashMap;
+
+    use revolt_models::v0;
+    use ulid::Ulid;
+
+    use super::{thread_archive_cutoff, Channel};
+
+    const DAY: u64 = 24 * 60 * 60 * 1000;
+    /// A fixed "now", so the tests do not depend on the clock.
+    const NOW: u64 = 1_780_000_000_000;
+
+    fn ulid_at(ms: u64) -> String {
+        Ulid::from_parts(ms, 1).to_string()
+    }
+
+    fn thread(
+        id: String,
+        last_message_id: Option<String>,
+        archived: bool,
+        reopened: Option<String>,
+    ) -> Channel {
+        Channel::TextChannel {
+            id,
+            server: "server".to_string(),
+            name: "thread".to_string(),
+            description: None,
+            icon: None,
+            last_message_id,
+            default_permissions: None,
+            role_permissions: HashMap::new(),
+            nsfw: false,
+            voice: None,
+            slowmode: None,
+            forum: None,
+            thread: Some(v0::ThreadInformation {
+                parent: "parent".to_string(),
+                owner: "owner".to_string(),
+                archived,
+                reopened,
+                ..Default::default()
+            }),
+            spoiler: false,
+            invites_paused: false,
+        }
+    }
+
+    #[test]
+    fn a_thread_idle_for_a_week_counts_as_archived() {
+        let cutoff = thread_archive_cutoff(NOW);
+
+        let fresh = thread(ulid_at(NOW - 6 * DAY), None, false, None);
+        assert!(!fresh.thread_archived(&cutoff));
+
+        let idle = thread(ulid_at(NOW - 8 * DAY), None, false, None);
+        assert!(idle.thread_archived(&cutoff));
+    }
+
+    #[test]
+    fn a_recent_message_keeps_the_thread_active() {
+        let cutoff = thread_archive_cutoff(NOW);
+
+        let replied = thread(ulid_at(NOW - 30 * DAY), Some(ulid_at(NOW - DAY)), false, None);
+        assert!(!replied.thread_archived(&cutoff));
+
+        let stale = thread(ulid_at(NOW - 30 * DAY), Some(ulid_at(NOW - 8 * DAY)), false, None);
+        assert!(stale.thread_archived(&cutoff));
+    }
+
+    #[test]
+    fn reopening_restarts_the_clock() {
+        let cutoff = thread_archive_cutoff(NOW);
+
+        let reopened = thread(
+            ulid_at(NOW - 30 * DAY),
+            Some(ulid_at(NOW - 20 * DAY)),
+            false,
+            Some(ulid_at(NOW - DAY)),
+        );
+        assert!(!reopened.thread_archived(&cutoff));
+    }
+
+    #[test]
+    fn archived_by_hand_stays_archived_while_active() {
+        let cutoff = thread_archive_cutoff(NOW);
+
+        let archived = thread(ulid_at(NOW - DAY), None, true, None);
+        assert!(archived.thread_archived(&cutoff));
+        assert!(archived.thread_now(&cutoff).is_some_and(|info| info.archived));
+    }
+
+    #[test]
+    fn thread_now_reports_the_derived_state() {
+        let cutoff = thread_archive_cutoff(NOW);
+
+        let idle = thread(ulid_at(NOW - 8 * DAY), None, false, None);
+        assert!(idle.thread_now(&cutoff).is_some_and(|info| info.archived));
+
+        let fresh = thread(ulid_at(NOW - DAY), None, false, None);
+        assert!(fresh.thread_now(&cutoff).is_some_and(|info| !info.archived));
+    }
+
+    #[tokio::test]
+    async fn fetch_threads_splits_by_the_derived_state() {
+        database_test!(|db| async move {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as u64;
+
+            let fresh = thread(ulid_at(now - DAY), None, false, None);
+            let idle = thread(ulid_at(now - 8 * DAY), None, false, None);
+            let replied = thread(ulid_at(now - 30 * DAY), Some(ulid_at(now - DAY)), false, None);
+            let by_hand = thread(ulid_at(now - DAY), None, true, None);
+            for channel in [&fresh, &idle, &replied, &by_hand] {
+                db.insert_channel(channel).await.unwrap();
+            }
+
+            let ids = |channels: Vec<Channel>| {
+                let mut ids: Vec<String> =
+                    channels.iter().map(|c| c.id().to_string()).collect();
+                ids.sort();
+                ids
+            };
+            let sorted = |mut list: Vec<String>| {
+                list.sort();
+                list
+            };
+            let server = ["server".to_string()];
+
+            let active = db.fetch_threads(&server, None, Some(false)).await.unwrap();
+            assert_eq!(
+                ids(active),
+                sorted(vec![fresh.id().to_string(), replied.id().to_string()])
+            );
+
+            let archived = db.fetch_threads(&server, None, Some(true)).await.unwrap();
+            assert_eq!(
+                ids(archived),
+                sorted(vec![idle.id().to_string(), by_hand.id().to_string()])
+            );
+
+            let all = db.fetch_threads(&server, None, None).await.unwrap();
+            assert_eq!(all.len(), 4);
         });
     }
 }

@@ -39,6 +39,7 @@ function item(
     aberturaId: undefined,
     arquivado: false,
     fixado: false,
+    emAnalise: false,
     tags: [],
     seguidores: [],
     seguindo: false,

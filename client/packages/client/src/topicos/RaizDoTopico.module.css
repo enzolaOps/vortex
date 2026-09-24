@@ -26,7 +26,8 @@
 
 /* `height:20px; padding:0 8px; radius 4; cor a 14%; 11/600` */
 .tag,
-.estado {
+.estado,
+.emAnalise {
   display: flex;
   align-items: center;
   block-size: 20px;
@@ -46,6 +47,12 @@
 .estado {
   background: var(--vx-state-hover);
   color: var(--vx-text-2);
+}
+
+/* `em análise`: `rgba(226,177,92,0.14)` com `#E2B15C` — o aviso a 14%, como as tags. */
+.emAnalise {
+  background: color-mix(in srgb, var(--vx-warning) 14%, transparent);
+  color: var(--vx-warning);
 }
 
 /* `font-size:17px; font-weight:600; margin-bottom:10px` */

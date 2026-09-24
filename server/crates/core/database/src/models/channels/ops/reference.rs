@@ -230,6 +230,7 @@ impl AbstractChannels for ReferenceDb {
         parent: Option<&str>,
         archived: Option<bool>,
     ) -> Result<Vec<Channel>> {
+        let cutoff = crate::thread_archive_cutoff_now();
         let channels = self.channels.lock().await;
         Ok(channels
             .values()
@@ -240,7 +241,7 @@ impl AbstractChannels for ReferenceDb {
 
                 server_ids.iter().any(|id| id == server)
                     && parent.is_none_or(|parent| thread.parent == parent)
-                    && archived.is_none_or(|archived| thread.archived == archived)
+                    && archived.is_none_or(|archived| channel.thread_archived(&cutoff) == archived)
             })
             .cloned()
             .collect())

@@ -69,6 +69,7 @@ export function derivarTopico(
     aberturaId: meta.aberturaId,
     arquivado: meta.arquivado,
     fixado: meta.fixado,
+    emAnalise: meta.emAnalise,
     tags: meta.tags,
     seguidores: meta.seguidores,
     seguindo: meuId !== undefined && meta.seguidores.includes(meuId),
@@ -358,6 +359,33 @@ export async function fixarPost(id: string, fixado: boolean): Promise<boolean> {
     toast({
       tipo: "erro",
       titulo: fixado ? "Não deu para fixar o post." : "Não deu para soltar o post.",
+      descricao: motivoDoErro(e),
+    });
+    return false;
+  }
+}
+
+/**
+ * Marca (ou desmarca) um post como "em análise" — D-CANAIS-09.
+ *
+ * Mesma régua de fixar, e pela mesma razão: o selo diz algo a TODO mundo que
+ * abre o fórum, então é moderação (`ManageMessages` no pai), não do autor.
+ */
+export async function marcarEmAnalise(id: string, emAnalise: boolean): Promise<boolean> {
+  const antes = lerTopico(id);
+  if (antes) escreverTopico(id, { ...antes, emAnalise });
+  try {
+    const cru = (await client.api.patch(
+      `/channels/${id}/thread` as never,
+      { in_review: emAnalise } as never,
+    )) as unknown as CanalCru;
+    anotarCanais([cru]);
+    return true;
+  } catch (e) {
+    if (antes) escreverTopico(id, antes);
+    toast({
+      tipo: "erro",
+      titulo: emAnalise ? "Não deu para marcar o post em análise." : "Não deu para tirar o post de análise.",
       descricao: motivoDoErro(e),
     });
     return false;

@@ -1061,6 +1061,8 @@ export type TopicoSnapshot = {
   readonly arquivado: boolean;
   /** Fixado no topo do fórum pai. */
   readonly fixado: boolean;
+  /** Post que a moderação do fórum marcou como "em análise". */
+  readonly emAnalise: boolean;
   /** IDs das tags do fórum pai. */
   readonly tags: readonly string[];
   /** Quem segue — é quem o painel mostra como participantes. */

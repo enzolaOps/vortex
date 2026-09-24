@@ -770,6 +770,7 @@ function semearTopicos(): void {
       tags?: string[];
       archived?: boolean;
       pinned?: boolean;
+      inReview?: boolean;
       seguir?: boolean;
       mensagens: number;
       reacoes?: Record<string, number>;
@@ -792,6 +793,7 @@ function semearTopicos(): void {
         message: mid,
         archived: extra.archived ?? false,
         ...(extra.pinned ? { pinned: true } : {}),
+        ...(extra.inReview ? { in_review: true } : {}),
         tags: extra.tags ?? [],
         followers: extra.seguir ? [autor, eu] : [autor],
       },
@@ -828,7 +830,7 @@ function semearTopicos(): void {
   };
 
   const p = (i: number) => userIds[(i * 7) % userIds.length]!;
-  topico(FORUM_ID, "Rail duplica a pasta ao arrastar servidor de volta", agora - 20 * hora, p(1), { tags: ["bug", "resolvido"], pinned: true, seguir: true, mensagens: 13, reacoes: { "👀": 1, "🎯": 4 } }, "Reproduz em 100% das vezes com duas pastas aninhadas. Gravação anexada.", { nome: "captura.png", tipo: "Image" });
+  topico(FORUM_ID, "Rail duplica a pasta ao arrastar servidor de volta", agora - 20 * hora, p(1), { tags: ["bug", "resolvido"], pinned: true, inReview: true, seguir: true, mensagens: 13, reacoes: { "👀": 1, "🎯": 4 } }, "Reproduz em 100% das vezes com duas pastas aninhadas. Gravação anexada.", { nome: "captura.png", tipo: "Image" });
   topico(FORUM_ID, "Densidade compacta deveria ser o padrão em telas pequenas?", agora - 3 * hora, p(2), { tags: ["pesquisa"], pinned: true, mensagens: 9, reacoes: { "🧠": 6 } }, "Abaixo de 1024 o confortável come metade da altura útil da timeline.");
   topico(FORUM_ID, "Tri-state precisa de atalho de teclado", agora - 6 * hora, p(3), { tags: ["melhoria"], seguir: true, mensagens: 6, reacoes: { "⚡": 9 } }, "Editar 40 permissões com mouse é lento. Proposta: 1/2/3 sobre a linha focada.");
   topico(FORUM_ID, "Soundboard com sons externos: onde entra a permissão?", agora - 26 * hora, p(4), { tags: ["melhoria", "backlog"], mensagens: 4, reacoes: { "👀": 2 } }, "Hoje a matriz separa usar soundboard e usar sons externos, mas a UI não deixa isso claro.", { nome: "diagrama.png", tipo: "Image" });
