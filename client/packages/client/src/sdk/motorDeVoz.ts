@@ -1370,11 +1370,27 @@ export async function alternarMudo(): Promise<void> {
  * estava muda antes, voltar a transmitir seria uma decisão que ela não tomou.
  */
 export async function alternarSurdo(): Promise<void> {
-  const { surdo } = alternarSurdoNoStore();
+  alternarSurdoNoStore();
   await aplicarMicrofone();
+  /* O estado já está no store; aqui só se reaplica o ganho de quem JÁ está na
+     sala. Quem chegar depois pega o mesmo valor em `TrackSubscribed`. */
+  aplicarVolumeDeTodos();
+}
 
-  const el = elementoDeAudio();
-  for (const audio of el.querySelectorAll("audio")) audio.muted = surdo;
+/**
+ * Reaplica o ganho efetivo de todo mundo que está na sala agora.
+ *
+ * ⚠ **Substitui o `querySelectorAll("audio")` que morava em `alternarSurdo`, e
+ * a diferença é o defeito.** Aquele laço só alcançava os elementos existentes
+ * NAQUELE instante: ensurdecer e depois abrir a transmissão de alguém fazia o
+ * som da tela tocar, e quem entrasse na sala depois do ensurdecer era ouvido.
+ * Agora o surdo mora em `volumeEfetivo` (ver `store/volumesDeVoz.ts`), que é
+ * por onde TODA faixa passa — a nova, em `TrackSubscribed`, e as antigas aqui.
+ */
+function aplicarVolumeDeTodos(): void {
+  for (const p of sala?.remoteParticipants.values() ?? []) {
+    definirVolumeDe(p.identity, volumeEfetivo(p.identity));
+  }
 }
 
 /**

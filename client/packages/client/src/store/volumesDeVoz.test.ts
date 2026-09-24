@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { alternarSurdoNoStore, definirChamada, lerChamada } from "./chamada";
 import { alternarSilencioDe, estaSilenciado } from "./sobrePessoas";
 import {
   assinarVolume,
@@ -13,10 +14,14 @@ import {
 } from "./volumesDeVoz";
 
 const PESSOA = "01JQPESSOA000000000000001";
+/** Nunca tocada por nenhum teste: é a "faixa que chega depois". */
+const RECEM_CHEGADA = "01JQPESSOA000000000000002";
 
 beforeEach(() => {
   limparVolumes();
   if (estaSilenciado(PESSOA)) alternarSilencioDe(PESSOA);
+  if (estaSilenciado(RECEM_CHEGADA)) alternarSilencioDe(RECEM_CHEGADA);
+  definirChamada({ surdo: false, mudo: false });
 });
 
 describe("volume individual", () => {
@@ -62,6 +67,46 @@ describe("volume efetivo", () => {
     expect(lerVolume(PESSOA)).toBe(60);
     alternarSilencioDe(PESSOA);
     expect(volumeEfetivo(PESSOA)).toBe(0.6);
+  });
+
+  /**
+   * ⚠ **O defeito que estes três casos guardam é de ALCANCE, não de valor.**
+   *
+   * `alternarSurdo` varria `querySelectorAll("audio")`, ou seja só os elementos
+   * que existiam naquele instante. Como `TrackSubscribed` aplica
+   * `volumeEfetivo` a toda faixa recém-assinada, é aqui — e só aqui — que o
+   * surdo alcança quem chega depois: quem entra na sala já ensurdecido, e o
+   * áudio da tela de alguém cuja transmissão você abre já ensurdecido.
+   */
+  describe("surdo", () => {
+    it("vale para faixa que chega depois, de alguém nunca visto", () => {
+      expect(volumeEfetivo(RECEM_CHEGADA)).toBe(1);
+      alternarSurdoNoStore();
+      expect(lerChamada().surdo).toBe(true);
+      // Ninguém mexeu nesta pessoa; o ganho aplicado na assinatura já é 0.
+      expect(volumeEfetivo(RECEM_CHEGADA)).toBe(0);
+    });
+
+    it("desensurdecer devolve o volume guardado de cada pessoa", () => {
+      definirVolume(PESSOA, 40);
+      alternarSurdoNoStore();
+      expect(volumeEfetivo(PESSOA)).toBe(0);
+      expect(lerVolume(PESSOA)).toBe(40);
+      alternarSurdoNoStore();
+      expect(volumeEfetivo(PESSOA)).toBe(0.4);
+    });
+
+    it("quem está silenciado só para mim continua em 0 depois de desensurdecer", () => {
+      definirVolume(PESSOA, 70);
+      alternarSilencioDe(PESSOA);
+      alternarSurdoNoStore();
+      expect(volumeEfetivo(PESSOA)).toBe(0);
+      alternarSurdoNoStore();
+      expect(lerChamada().surdo).toBe(false);
+      // O eixo por pessoa sobreviveu ao eixo global.
+      expect(volumeEfetivo(PESSOA)).toBe(0);
+      expect(volumeEfetivo(RECEM_CHEGADA)).toBe(1);
+    });
   });
 
   it("o motor ouve os dois eixos, com o ID de quem mudou", () => {
