@@ -52,7 +52,52 @@ export type Toast = {
    * mesma frase ocupando o canto inferior.
    */
   readonly repeticoes?: number;
+  /**
+   * Se o toast some sozinho. Ausente é o padrão por tipo: `info` expira,
+   * `erro` não (ver `Toaster`).
+   *
+   * ⚠ **Existe para o erro cuja saída mora em OUTRO lugar.** A falha de envio
+   * (D-NOTIF-24) deixa a mensagem na linha, com o texto e o "tentar de novo":
+   * o toast é só um ponteiro para ela, e um ponteiro que não some fica velho
+   * — dizendo "falhou" depois que a pessoa já reenviou pela linha. O erro que
+   * CARREGA a saída (o texto que não deu para copiar) continua sem expirar.
+   */
+  readonly expira?: boolean;
+  /**
+   * O ladrilho de 36px à esquerda, do design (D-NOTIF-23/24). Ausente é o
+   * toast sem ladrilho, que é o de antes — nem todo aviso tem um objeto.
+   */
+  readonly icone?: IconeDeToast;
+  /**
+   * O campo "Responder…" do toast de menção (D-NOTIF-20).
+   *
+   * Callback e não ID de canal: o store não conhece o SDK, e quem sabe
+   * responder (o adapter) entrega a função pronta, como `acao` faz.
+   */
+  readonly resposta?: RespostaDeToast;
 };
+
+export type IconeDeToast = "mensagens" | "alerta";
+
+export type RespostaDeToast = {
+  /** O placeholder do campo — é também o nome acessível dele. */
+  readonly rotulo: string;
+  readonly aoEnviar: (texto: string) => void;
+};
+
+/**
+ * Quanto um toast que expira fica na tela: 6 s, do design (D-NOTIF-25).
+ *
+ * Era 5 s. O segundo a mais não é capricho: o toast de menção agora tem um
+ * campo de resposta, e cinco segundos mal dão para ler a prévia e decidir.
+ * Enquanto o ponteiro ou o foco estiverem na pilha, o Radix pausa o relógio.
+ */
+export const DURACAO_DO_TOAST_MS = 6000;
+
+/** A regra única de expiração — o corte da pilha e o `Toaster` leem daqui. */
+export function naoExpira(t: Pick<Toast, "tipo" | "expira">): boolean {
+  return t.expira === undefined ? t.tipo === "erro" : !t.expira;
+}
 
 const VAZIO: readonly Toast[] = [];
 
@@ -101,10 +146,10 @@ export function toast(entrada: Omit<Toast, "id">): string {
   sequencia += 1;
   const id = `t${sequencia}`;
   /*
-    ⚠ O corte preserva os ERROS: eles não expiram sozinhos (decisão já
-    registrada — cinco segundos é o tempo de confirmar um acerto e o errado de
+    ⚠ O corte preserva o que NÃO EXPIRA (por padrão, os erros — decisão já
+    registrada: seis segundos é o tempo de confirmar um acerto e o errado de
     relatar um erro), então descartá-los por pressão de fila apagaria a única
-    coisa da pilha que ninguém leu ainda.
+    coisa da pilha que ninguém leu ainda. O que expira sai de qualquer jeito.
   */
   /*
     ⚠ **Repetição idêntica CONTA, em vez de empilhar ou de sumir.**
@@ -137,7 +182,7 @@ export function toast(entrada: Omit<Toast, "id">): string {
     const excedente = proximos.length - PILHA_MAXIMA;
     let cortados = 0;
     toasts = proximos.filter((t) => {
-      if (cortados >= excedente || t.tipo === "erro" || t.id === id) return true;
+      if (cortados >= excedente || naoExpira(t) || t.id === id) return true;
       cortados += 1;
       return false;
     });
@@ -155,4 +200,28 @@ export function dispensarToast(id: string) {
   if (restantes.length === toasts.length) return;
   toasts = restantes.length === 0 ? VAZIO : restantes;
   avisar();
+}
+
+/**
+ * Troca um toast por outro NA MESMA POSIÇÃO, com id novo. Devolve o id novo,
+ * ou `undefined` se o antigo já tinha saído (quem chama decide se dispara um).
+ *
+ * ⚠ **Id novo de propósito**: é a chave do `Root` no `Toaster`, então trocar
+ * o id remonta o toast — e remontar é o único jeito de reiniciar o relógio do
+ * Radix, que só arma o timer quando `open` ou `duration` mudam. O toast
+ * agregado (D-NOTIF-23) precisa disso: "4 novas mensagens" que expira seis
+ * segundos depois da PRIMEIRA sumiria no meio de uma rajada. A entrada
+ * animada que a remontagem repete é o sinal de que chegou mais uma.
+ */
+export function substituirToast(
+  id: string,
+  entrada: Omit<Toast, "id">,
+): string | undefined {
+  const i = toasts.findIndex((t) => t.id === id);
+  if (i === -1) return undefined;
+  sequencia += 1;
+  const novo = `t${sequencia}`;
+  toasts = toasts.map((t, j) => (j === i ? { ...entrada, id: novo } : t));
+  avisar();
+  return novo;
 }

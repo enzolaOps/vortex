@@ -200,6 +200,7 @@ export function limparSilencio(): void {
   servidoresSilenciados.clear();
   niveisDeServidor.clear();
   opcoesDeServidor.clear();
+  semSeguirTopicos.clear();
   try {
     localStorage.removeItem(LOCAL_NOTIFICACOES);
     localStorage.removeItem(LOCAL_OPCOES);
@@ -316,19 +317,34 @@ export function nivelEfetivo(
 }
 
 /**
- * Os dois interruptores do modal do servidor que têm efeito hoje.
+ * Os três interruptores do modal do servidor.
  *
- * "Notificar eventos do servidor" é o terceiro do design e fica pendente: o
- * protocolo não tem evento agendado.
+ * ⚠ **"Notificar eventos do servidor" deixou de ser pendência (D-NOTIF-12).**
+ * Ela esperava evento agendado no protocolo, e o fork o tem: `eventos/` lista,
+ * cria e lembra "começa em 10 minutos" a quem marcou interesse. Desligar aqui
+ * cala esse lembrete para os eventos DESTE servidor — é o único aviso de
+ * evento que o cliente produz, e é o que o detalhe "Início de evento agendado"
+ * descreve.
  */
 export type OpcoesDoServidor = {
   readonly suprimirTodos: boolean;
   readonly suprimirCargos: boolean;
+  readonly notificarEventos: boolean;
 };
 
-/* Os padrões do design: @everyone suprimido, cargo não. Menção em massa num
-   servidor grande é a notificação que mais faz alguém desligar tudo. */
-const OPCOES_PADRAO: OpcoesDoServidor = { suprimirTodos: true, suprimirCargos: false };
+/* Os padrões do design: @everyone suprimido, cargo não, eventos sim. Menção
+   em massa num servidor grande é a notificação que mais faz alguém desligar
+   tudo. */
+const OPCOES_PADRAO: OpcoesDoServidor = {
+  suprimirTodos: true,
+  suprimirCargos: false,
+  notificarEventos: true,
+};
+
+const mesmasOpcoes = (a: OpcoesDoServidor, b: OpcoesDoServidor): boolean =>
+  a.suprimirTodos === b.suprimirTodos &&
+  a.suprimirCargos === b.suprimirCargos &&
+  a.notificarEventos === b.notificarEventos;
 
 const opcoesDeServidor = new Map<string, OpcoesDoServidor>();
 
@@ -343,13 +359,35 @@ export function definirOpcoesDoServidor(
 ): void {
   const atual = opcoesDoServidor(serverId);
   const proxima = { ...atual, ...mudanca };
-  if (
-    proxima.suprimirTodos === atual.suprimirTodos &&
-    proxima.suprimirCargos === atual.suprimirCargos
-  ) {
-    return;
-  }
+  if (mesmasOpcoes(proxima, atual)) return;
   opcoesDeServidor.set(serverId, proxima);
+  persistirOpcoes();
+  for (const ouvinte of ouvintes) ouvinte();
+}
+
+/**
+ * "Seguir tópicos automaticamente", por canal — D-NOTIF-16.
+ *
+ * ⚠ **Guarda-se a EXCEÇÃO, e o padrão é seguir.** O `delta` deste fork segue
+ * o tópico sozinho quando alguém responde nele (`message_send.rs`: *"Replying
+ * follows the thread"*), então "ligado" é o que o servidor já faz e não
+ * precisa de registro; o que se guarda são os canais onde a pessoa pediu o
+ * contrário. Quem desfaz o seguir automático é o envio — ver `postar` no
+ * adapter.
+ *
+ * O canal é o PAI do tópico: é no modal dele que o interruptor mora, e é ele
+ * que a pessoa reconhece ("os tópicos de #produto").
+ */
+const semSeguirTopicos = new Set<string>();
+
+export function segueTopicosAutomaticamente(channelId: string): boolean {
+  return !semSeguirTopicos.has(channelId);
+}
+
+export function definirSeguirTopicos(channelId: string, seguir: boolean): void {
+  if (seguir === segueTopicosAutomaticamente(channelId)) return;
+  if (seguir) semSeguirTopicos.delete(channelId);
+  else semSeguirTopicos.add(channelId);
   persistirOpcoes();
   for (const ouvinte of ouvintes) ouvinte();
 }
@@ -422,16 +460,21 @@ export function exportarNotificacoes(): string {
   });
 }
 
+/**
+ * Entrada reservada da mesma chave: a lista de canais que NÃO seguem tópico
+ * ao responder. Mesma chave e não uma nova, porque é a mesma família de
+ * decisão (opções de notificação que o cliente oficial não conhece) e uma
+ * chave de sincronia a mais é um caminho a mais para divergir. `@` não é
+ * caractere de ULID, então não colide com ID de servidor.
+ */
+const CHAVE_SEM_SEGUIR = "@semSeguirTopicos";
+
 export function exportarOpcoesDeServidor(): string {
-  const o: Record<string, OpcoesDoServidor> = {};
+  const o: Record<string, OpcoesDoServidor | readonly string[]> = {};
   for (const [id, op] of opcoesDeServidor) {
-    if (
-      op.suprimirTodos !== OPCOES_PADRAO.suprimirTodos ||
-      op.suprimirCargos !== OPCOES_PADRAO.suprimirCargos
-    ) {
-      o[id] = op;
-    }
+    if (!mesmasOpcoes(op, OPCOES_PADRAO)) o[id] = op;
   }
+  if (semSeguirTopicos.size > 0) o[CHAVE_SEM_SEGUIR] = [...semSeguirTopicos];
   return JSON.stringify(o);
 }
 
@@ -505,6 +548,11 @@ function lerOpcoes(cru: string): boolean {
   const r = objeto(JSON.parse(cru));
   if (!r) return false;
   opcoesDeServidor.clear();
+  semSeguirTopicos.clear();
+  const semSeguir = r[CHAVE_SEM_SEGUIR];
+  if (Array.isArray(semSeguir)) {
+    for (const id of semSeguir) if (typeof id === "string") semSeguirTopicos.add(id);
+  }
   for (const [id, v] of Object.entries(r)) {
     const o = objeto(v);
     if (
@@ -515,6 +563,12 @@ function lerOpcoes(cru: string): boolean {
       opcoesDeServidor.set(id, {
         suprimirTodos: o.suprimirTodos,
         suprimirCargos: o.suprimirCargos,
+        /* Ausente é o formato de antes do interruptor existir — vale o
+           padrão, que é avisar. */
+        notificarEventos:
+          typeof o.notificarEventos === "boolean"
+            ? o.notificarEventos
+            : OPCOES_PADRAO.notificarEventos,
       });
     }
   }

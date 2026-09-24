@@ -14,6 +14,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "../components/ui/DropdownMenu";
 import { Tooltip } from "../components/ui/Tooltip";
@@ -60,7 +63,11 @@ const ESCOLHAS: readonly {
   {
     id: "dnd",
     rotulo: "Não perturbe",
-    detalhe: "Some das notificações, continua recebendo.",
+    /* O texto do design (D-NOTIF-30). O anterior dizia "continua recebendo"
+       — verdade sobre as mensagens, mas a pergunta de quem escolhe não
+       perturbe é o que deixa de chegar, e a resposta é TUDO, chamada
+       inclusive. */
+    detalhe: "Suprime toda notificação",
   },
   {
     id: "invisivel",
@@ -265,7 +272,32 @@ export function PainelDeUsuario() {
           ))}
 
           <DropdownMenuSeparator />
-          <Recado aoFechar={() => setAberto(false)} />
+          {/*
+            "Definir status personalizado ›" é SUBMENU no design (D-NOTIF-30),
+            e o campo mora dentro dele.
+
+            Aberto no menu principal, o campo disputava as teclas com o
+            typeahead do Radix: digitar "O" no recado podia saltar o foco para
+            "Online". Dentro do submenu não há item a quem o typeahead leve.
+
+            ⚠ **O `onFocus` é o caminho do TECLADO.** Aberto pela seta, o Radix
+            foca a CAIXA do submenu e não o primeiro filho — e dentro de um
+            menu o Tab é engolido, então sem o repasse o campo seria
+            inalcançável por teclado. Pelo ponteiro a caixa não recebe foco e
+            nada acontece: a pessoa clica no campo.
+          */}
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>Definir status personalizado</DropdownMenuSubTrigger>
+            <DropdownMenuSubContent
+              onFocus={(e) => {
+                if (e.target === e.currentTarget) {
+                  e.currentTarget.querySelector("input")?.focus();
+                }
+              }}
+            >
+              <Recado aoFechar={() => setAberto(false)} />
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
         </DropdownMenuContent>
       </DropdownMenu>
 
