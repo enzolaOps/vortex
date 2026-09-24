@@ -51,7 +51,6 @@ import {
   type RemoteParticipant,
   type RemoteTrack,
   type RemoteTrackPublication,
-  type RemoteVideoTrack,
   type RoomOptions,
   type ScreenShareCaptureOptions,
   type AudioProcessorOptions,
