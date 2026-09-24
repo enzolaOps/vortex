@@ -54,6 +54,10 @@ import type { PresenceStatus } from "../sdk/domain";
 import { client } from "../sdk/client";
 import { anotarCanais, semearListagem } from "../sdk/vortexCanal";
 import { dublarRedeDoServidor, registrarPreviaDublada } from "./rede";
+import { BIT_VER_CANAL } from "../sdk/bits";
+
+/** `ViewChannel` negado, no formato do fio (string decimal). */
+const VER_CANAL_NEGADO = String(BIT_VER_CANAL);
 
 const nextId = monotonicFactory();
 
@@ -236,7 +240,7 @@ const MUNDO: Servidor[] = [
         id: "01JQC0000000000000000PONTE",
         title: "ponte",
         channels: ["01JQ0000000000000000000020", "01JQ0000000000000000000021"],
-        default_permissions: { a: "0", d: "1" },
+        default_permissions: { a: "0", d: VER_CANAL_NEGADO },
       },
     ],
     membros: 12,
@@ -515,10 +519,11 @@ const RECADOS = [
         /*
           `default_permissions` com `ViewChannel` NEGADO — é assim que o
           protocolo diz "restrito", e é o que `potentiallyRestrictedChannel`
-          lê. Bit 0 (`ViewChannel`), em string porque o protocolo transporta
-          permissão como string decimal.
+          lê. Bit 20 (`ViewChannel`) — era "1", que é o bit 0
+          (`ManageChannel`); ver `sdk/bits.ts`. Em string porque o protocolo
+          transporta permissão como string decimal.
         */
-        ...(canal.privado ? { default_permissions: { a: "0", d: "1" } } : {}),
+        ...(canal.privado ? { default_permissions: { a: "0", d: VER_CANAL_NEGADO } } : {}),
         ...(canal.lento ? { slowmode: canal.lento } : {}),
         ...(canal.adulto ? { nsfw: true } : {}),
         ...(canal.forum ? { forum: canal.forum } : {}),

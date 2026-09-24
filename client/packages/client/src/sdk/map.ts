@@ -7,6 +7,7 @@
 import { decodeTime } from "ulid";
 
 import { duracaoCurta } from "../lib/duracao";
+import { BIT_VER_CANAL } from "./bits";
 
 import { TextEmbed, WebsiteEmbed } from "stoat.js";
 
@@ -465,12 +466,12 @@ function tipoDoCanal(channel: Channel): ChannelSnapshot["tipo"] {
  * nega ver ao cargo padrão?* — ou seja, "é do time todo ou de um grupo?". É a
  * primeira cláusula sozinha.
  *
- * Bit 0 do `Permission` do protocolo é `ViewChannel`; `d` é a máscara de
- * NEGADO. `BigInt` e não `number` porque as permissões deste protocolo passam
+ * `ViewChannel` é o bit 20 (`BIT_VER_CANAL`) — este comentário dizia "bit 0",
+ * que é `ManageChannel`; ver `bits.ts`. `d` é a máscara de NEGADO. `BigInt` e não `number` porque as permissões deste protocolo passam
  * do bit 31 e os operadores bitwise do JavaScript truncam em 32 — a mesma
  * armadilha já registrada no editor de cargos.
  */
-const VER_CANAL = 1n;
+const VER_CANAL = BIT_VER_CANAL;
 
 /** Descarta teto nulo ou zero: no fio, 0 nunca quis dizer "sem limite". */
 function tetoHidratado(n: number | null | undefined): number | undefined {

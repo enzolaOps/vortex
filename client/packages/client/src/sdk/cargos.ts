@@ -626,6 +626,32 @@ export function lerPermissoesPadrao(serverId: string): readonly string[] {
 }
 
 /**
+ * O que o SERVIDOR decide antes de qualquer canal — o piso de @everyone e o
+ * par allow/deny de cada cargo, em bits.
+ *
+ * Existe para a matriz do canal dizer o VALOR de um bit que o canal herda
+ * (D-CCANAL-21, "Herdando de Produto · negado"): herdar é deixar o servidor
+ * decidir, e sem estes números a sub-linha só poderia dizer "herdando" — que
+ * é o texto fixo que a auditoria apontou. `Cargo.concedidas` não serve: ela
+ * carrega só o `allow`, e um cargo que NEGA um bit no servidor sairia como
+ * "herda o piso".
+ */
+export function baseDoServidor(serverId: string): {
+  readonly padrao: bigint;
+  readonly cargos: Readonly<Record<string, { allow: bigint; deny: bigint }>>;
+} {
+  const servidor = client.servers.get(serverId);
+  const cargos: Record<string, { allow: bigint; deny: bigint }> = {};
+  for (const r of servidor?.orderedRoles ?? []) {
+    cargos[r.id] = {
+      allow: BigInt(r.permissions?.a ?? 0),
+      deny: BigInt(r.permissions?.d ?? 0),
+    };
+  }
+  return { padrao: BigInt(servidor?.defaultPermissions ?? 0), cargos };
+}
+
+/**
  * Grava `default_permissions`.
  *
  * ⚠ **`PUT /servers/{id}/permissions/default` com `{ permissions: número }`**,
