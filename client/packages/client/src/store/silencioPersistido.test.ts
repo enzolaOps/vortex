@@ -15,6 +15,8 @@ import {
   nivelDoCanal,
   nivelDoServidor,
   opcoesDoServidor,
+  definirSeguirTopicos,
+  segueTopicosAutomaticamente,
   servidorSilenciado,
   silencioAte,
   silenciarServidor,
@@ -83,7 +85,12 @@ describe("ida e volta", () => {
     silenciarServidor(SERVIDOR, 60_000);
     definirNivelDoServidor(SERVIDOR, "todas");
     definirNivelDoCanal(OUTRO, "mencoes");
-    definirOpcoesDoServidor(SERVIDOR, { suprimirTodos: false, suprimirCargos: true });
+    definirOpcoesDoServidor(SERVIDOR, {
+      suprimirTodos: false,
+      suprimirCargos: true,
+      notificarEventos: false,
+    });
+    definirSeguirTopicos(OUTRO, false);
     const ate = silencioAte(OUTRO);
 
     const notificacoes = exportarNotificacoes();
@@ -102,7 +109,26 @@ describe("ida e volta", () => {
     expect(opcoesDoServidor(SERVIDOR)).toEqual({
       suprimirTodos: false,
       suprimirCargos: true,
+      notificarEventos: false,
     });
+    expect(segueTopicosAutomaticamente(OUTRO)).toBe(false);
+    expect(segueTopicosAutomaticamente(CANAL)).toBe(true);
+  });
+
+  it("opção gravada antes de 'notificar eventos' existir vale o padrão (avisar)", () => {
+    hidratarOpcoesDeServidor(
+      JSON.stringify({ [SERVIDOR]: { suprimirTodos: false, suprimirCargos: false } }),
+    );
+    expect(opcoesDoServidor(SERVIDOR).notificarEventos).toBe(true);
+    expect(opcoesDoServidor(SERVIDOR).suprimirTodos).toBe(false);
+  });
+
+  it("seguir tópicos é o padrão, e religar tira o canal da exportação", () => {
+    expect(segueTopicosAutomaticamente(CANAL)).toBe(true);
+    definirSeguirTopicos(CANAL, false);
+    expect(JSON.parse(exportarOpcoesDeServidor())).toEqual({ "@semSeguirTopicos": [CANAL] });
+    definirSeguirTopicos(CANAL, true);
+    expect(exportarOpcoesDeServidor()).toBe("{}");
   });
 
   it("o F5: o módulo recarregado lê o localStorage", async () => {

@@ -50,7 +50,13 @@ import {
   lerServidorAtivo,
   type Local,
 } from "./navegacao";
-import { TOTAIS, totaisNaoLidos, type Contagem } from "../sdk/adapter";
+import {
+  CONVERSAS,
+  naoLidasDeConversas,
+  TOTAIS,
+  totaisNaoLidos,
+  type Contagem,
+} from "../sdk/adapter";
 import {
   CHAVE_SIGO,
   chaveDoCanal,
@@ -163,6 +169,18 @@ export function useTotaisNaoLidos(): Contagem {
   const getSnapshot = () => totaisNaoLidos.getSnapshot(TOTAIS) ?? SEM_TOTAIS;
   if (import.meta.env.DEV) assertStable(getSnapshot, "useTotaisNaoLidos");
   return useSyncExternalStore(totaisNaoLidos.subscriber(TOTAIS), getSnapshot);
+}
+
+/**
+ * O número da entrada Conversas no rail: não-lidas de DM e grupo — ver
+ * `naoLidasDeConversas` no adapter. Número e não objeto, então o snapshot já
+ * é estável por valor.
+ */
+export function useNaoLidasDeConversas(): number {
+  return useSyncExternalStore(
+    naoLidasDeConversas.subscriber(CONVERSAS),
+    () => naoLidasDeConversas.getSnapshot(CONVERSAS) ?? 0,
+  );
 }
 
 /** Referência compartilhada — a armadilha nº 1. */

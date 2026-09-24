@@ -490,11 +490,18 @@ export function lembretesDevidos(
   eu: string | undefined,
   agora: number,
   jaAvisados: ReadonlySet<string>,
+  /**
+   * "Notificar eventos do servidor" (D-NOTIF-12), por servidor. Evento de
+   * servidor calado não é devido — e não vira "avisado": religar o
+   * interruptor dentro da janela ainda lembra.
+   */
+  servidorNotifica: (serverId: string) => boolean = () => true,
 ): readonly { readonly chave: string; readonly evento: EventoDoServidor }[] {
   if (eu === undefined) return [];
   const devidos: { chave: string; evento: EventoDoServidor }[] = [];
   for (const e of eventos) {
     if (!e.lembrar || !e.interessados.includes(eu)) continue;
+    if (!servidorNotifica(e.serverId)) continue;
     const { inicio } = ocorrenciaAtual(e, agora);
     if (agora < inicio - LEMBRETE_ANTES || agora >= inicio) continue;
     const chave = `${e.id}@${String(inicio)}`;

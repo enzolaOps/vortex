@@ -90,7 +90,7 @@ import {
   esquecerDaFila,
   marcarPendente,
 } from "../store/fila";
-import { assinarSilencio, estaMudo } from "../store/silencio";
+import { assinarSilencio, estaMudo, segueTopicosAutomaticamente } from "../store/silencio";
 import { registrarUsoDeReacao } from "../store/reacoesFrequentes";
 import { assinarFavoritos, lerFavoritos, ordenarComFavoritas } from "../store/favoritos";
 import { assinarPrivacidade, lerPrivacidade } from "../store/privacidade";
@@ -118,7 +118,7 @@ import { avisarFalhaDeEnvio } from "../notificacao/falhaDeEnvio";
 import { pode } from "./permissoes";
 import { mudancaDeAmizade } from "../notificacao/decidir";
 import { emFila } from "../lib/fila";
-import { somarPorServidor } from "./somaDeNaoLidas";
+import { somarConversas, somarPorServidor } from "./somaDeNaoLidas";
 import { aceitarAmizade, buscarEmComum, desfazerAmizade } from "./social";
 import { sincronizarPush } from "../notificacao/push";
 import { dentro } from "../store/sessao";
@@ -147,7 +147,8 @@ import {
   type ServerSnapshot,
 } from "./domain";
 import { calcularLayout, type Layout } from "./agrupamento";
-import { aplicarEventoCru as aplicarEventoCruDeCanal } from "./vortexCanal";
+import { aplicarEventoCru as aplicarEventoCruDeCanal, lerTopico } from "./vortexCanal";
+import { desfazerSeguirAoResponder } from "./seguirAoResponder";
 import { criarNotificadorDeDigitacao } from "./digitando";
 import { instalarSync, puxarConfiguracoes } from "./sincronizar";
 import { aplicarEventoCru, avisarCanaisVortex, superficie } from "./superficieVortex";
@@ -2474,6 +2475,12 @@ async function postar(
   /** A figurinha da mensagem — campo do Vortex que o tipo do SDK não conhece. */
   figurinha?: string,
 ): Promise<void> {
+  /* Lido ANTES do envio: depois dele o servidor já pôs a pessoa na lista. */
+  const desfazerSeguir = desfazerSeguirAoResponder(
+    lerTopico(channelId),
+    usuarioLocalId(),
+    segueTopicosAutomaticamente,
+  );
   try {
     await client.channels.get(channelId)?.sendMessage({
       ...(figurinha ? ({ stickers: [figurinha] } as object) : {}),
@@ -2491,6 +2498,14 @@ async function postar(
         : {}),
       ...(anexos && anexos.length > 0 ? { attachments: [...anexos] } : {}),
     });
+    /*
+      D-NOTIF-16. Fire-and-forget e SEM toast na falha: a mensagem foi, e o
+      que sobra de um erro aqui é seguir um tópico — o estado que o servidor
+      aplica a todo mundo, desfazível no cabeçalho do tópico.
+    */
+    if (desfazerSeguir) {
+      void client.api.delete(`/channels/${channelId}/follow` as never).catch(() => undefined);
+    }
   } catch {
     /*
       Desiste do nonce: sem isto o mapa cresce para sempre numa sessão de 8h
@@ -3092,6 +3107,40 @@ function somarTotais(): void {
 }
 
 
+/**
+ * O número da entrada Conversas no rail — DMs e grupos, D-NOTIF-17.
+ *
+ * Store próprio e não uma chave em `totaisNaoLidos`, porque os dois têm
+ * gatilhos diferentes: o total acorda a cada mensagem de SERVIDOR, e este só
+ * a cada mensagem de conversa. Uma chave no mesmo store faria a varredura de
+ * conversas rodar no caminho de `messageCreate` de todo canal de servidor.
+ *
+ * A soma é sobre `contagemPorCanal` — canais COM contagem, dezenas —, só roda
+ * com assinante, e compara antes de publicar, pela mesma razão de
+ * `somarTotais`.
+ */
+export const CONVERSAS = "@conversas";
+export const naoLidasDeConversas = createEntityStore<number>(() => {
+  somarNaoLidasDeConversas();
+});
+
+const TIPOS_DE_CONVERSA = new Set(["DirectMessage", "Group"]);
+
+function reemitirConversas(): void {
+  if (naoLidasDeConversas.subscriberCount(CONVERSAS) === 0) return;
+  somarNaoLidasDeConversas();
+}
+
+function somarNaoLidasDeConversas(): void {
+  const soma = somarConversas(
+    contagemPorCanal,
+    (id) => TIPOS_DE_CONVERSA.has(client.channels.get(id)?.type ?? ""),
+    (id) => estaMudo(id, undefined),
+  );
+  if (naoLidasDeConversas.peek(CONVERSAS) === soma) return;
+  naoLidasDeConversas.set(CONVERSAS, soma);
+}
+
 function contagemDe(mapa: Map<string, Contagem>, id: string): Contagem {
   return mapa.get(id) ?? ZERO;
 }
@@ -3224,6 +3273,8 @@ function somarNaoLida(channelId: string): void {
       mencoes: servidor.mencoes,
     });
     reemitirServidor(serverId);
+  } else {
+    reemitirConversas();
   }
   reemitirTotais();
 }
@@ -3307,6 +3358,7 @@ function zerarContagem(channelId: string): void {
   contagemPorCanal.delete(channelId);
 
   if (client.channels.get(channelId)?.serverId) recontarServidores();
+  else reemitirConversas();
 
   reemitirCanal(channelId);
 }
@@ -3341,6 +3393,9 @@ function recontarServidores(): void {
     reemitirServidor(serverId);
   }
   reemitirTotais();
+  /* Semeadura e silêncio passam por aqui, e os dois mudam a conta das
+     conversas também — silenciar uma DM tira o número dela do rail. */
+  reemitirConversas();
 }
 
 /**
@@ -3393,7 +3448,10 @@ export async function marcarTodosLidos(
 function zerarLocalmente(channelId: string): void {
   if (!contagemPorCanal.delete(channelId)) return;
   if (client.channels.get(channelId)?.serverId) recontarServidores();
-  else reemitirTotais();
+  else {
+    reemitirTotais();
+    reemitirConversas();
+  }
   reemitirCanal(channelId);
 }
 
@@ -3656,7 +3714,10 @@ function contabilizarNaoLida(channelId: string, conteudo: string): void {
   reemitirCanal(channelId);
 
   const serverId = client.channels.get(channelId)?.serverId;
-  if (!serverId) return;
+  if (!serverId) {
+    reemitirConversas();
+    return;
+  }
   /*
     Canal ou servidor mudo não acende o servidor — só a menção sobe. É a regra
     de `somarPorServidor` aplicada em O(1), porque este é o caminho de

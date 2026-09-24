@@ -164,16 +164,12 @@ export const PENDENCIAS = {
   },
 
   /* ------------------------------------------- modal do sino (notificações) */
-  notificarEventosDoServidor: {
-    superficie: "Notificações do servidor",
-    faz: "Avisar quando um evento agendado do servidor começar.",
-    depende: "evento agendado no protocolo — não há tipo, campo nem rota",
-  },
-  seguirTopicosAutomaticamente: {
-    superficie: "Notificações do canal",
-    faz: "Seguir sozinho os tópicos em que você responder.",
-    depende: "threads no protocolo",
-  },
+  /*
+    ⚠ **`notificarEventosDoServidor` e `seguirTopicosAutomaticamente` SAÍRAM
+    daqui (D-NOTIF-12 e 16).** As duas esperavam protocolo — evento agendado e
+    threads — e o fork tem os dois. O primeiro cala o lembrete de evento do
+    servidor; o segundo desfaz, no envio, o seguir que o `delta` faz sozinho.
+  */
   /*
     ⚠ **`caixaDeEntrada` e `marcarTudoLido` SAÍRAM daqui.** O painel existe, e
     marcar tudo é uma fila de `ack` com concorrência limitada
