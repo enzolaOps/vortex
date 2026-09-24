@@ -485,6 +485,36 @@
   white-space: nowrap;
 }
 
+/* Quem não está assistindo fica na lista, esmaecido — é do design (0,55), e
+   o que diz "não está assistindo" é o texto, não a opacidade. */
+.linhaDaSala[data-fora] {
+  opacity: 0.55;
+}
+
+.identidadeNaSala {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+
+.identidadeNaSala .nomeNaSala {
+  flex: none;
+}
+
+.estadoNaSala {
+  overflow: hidden;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* "720p (rede)": a resolução caiu sem a pessoa pedir. */
+.estadoNaSala[data-rede] {
+  color: var(--vx-warning);
+}
+
 .mudo {
   flex: none;
   color: var(--vx-danger-text);

@@ -84,18 +84,11 @@ impl VoiceClient {
                 &serde_json::to_string(&user.clone().into(db, None).await).to_internal_error()?,
             )
             .with_ttl(Duration::from_secs(10))
-            .with_grants(VideoGrants {
-                room_join: true,
-                can_publish: true,
-                can_publish_data: false,
-                can_publish_sources: allowed_sources
-                    .into_iter()
-                    .map(ToString::to_string)
-                    .collect(),
-                can_subscribe: permissions.has_channel_permission(ChannelPermission::Listen),
-                room: channel.id().to_string(),
-                ..Default::default()
-            })
+            .with_grants(video_grants(
+                channel.id(),
+                allowed_sources,
+                permissions.has_channel_permission(ChannelPermission::Listen),
+            ))
             .to_jwt()
             .to_internal_error()
     }
@@ -171,5 +164,67 @@ impl VoiceClient {
             .list_participants(channel_id)
             .await
             .to_internal_error()
+    }
+}
+
+/// Os grants do token de voz.
+///
+/// Vortex: `can_update_own_metadata` é concedido para que cada cliente
+/// anuncie, num ATRIBUTO de participante, qual transmissão está assistindo e
+/// em que qualidade — é o único caminho até a contagem e a lista de
+/// espectadores. O LiveKit não entrega a quem publica quem assina a faixa, e
+/// webhook não serve: não existe evento de assinatura entre os webhooks do
+/// servidor (só `track_published`/`track_unpublished`).
+///
+/// O grant também deixa o participante reescrever o próprio `name` e
+/// `metadata` no LiveKit. Nenhum consumidor deste fork confia neles — o
+/// `voice-ingress` usa só `identity`, que vem do token e o grant não altera, e
+/// os clientes resolvem a pessoa pelo `identity`. Atributo é dado escrito pelo
+/// próprio cliente: serve para EXIBIÇÃO, nunca para autorização.
+pub(crate) fn video_grants(
+    room: &str,
+    allowed_sources: Vec<&'static str>,
+    can_subscribe: bool,
+) -> VideoGrants {
+    VideoGrants {
+        room_join: true,
+        can_publish: true,
+        can_publish_data: false,
+        can_update_own_metadata: true,
+        can_publish_sources: allowed_sources
+            .into_iter()
+            .map(ToString::to_string)
+            .collect(),
+        can_subscribe,
+        room: room.to_string(),
+        ..Default::default()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::video_grants;
+
+    #[test]
+    fn token_permite_anunciar_o_que_assiste() {
+        let grants = video_grants("canal", vec!["microphone"], true);
+        assert!(grants.can_update_own_metadata);
+    }
+
+    #[test]
+    fn grant_novo_nao_amplia_o_resto() {
+        let grants = video_grants("canal", vec!["microphone"], false);
+        assert!(grants.room_join);
+        assert!(grants.can_publish);
+        assert!(!grants.can_publish_data);
+        assert!(!grants.can_subscribe);
+        assert!(!grants.room_admin);
+        assert!(!grants.room_create);
+        assert!(!grants.room_list);
+        assert!(!grants.room_record);
+        assert!(!grants.hidden);
+        assert!(!grants.recorder);
+        assert_eq!(grants.room, "canal");
+        assert_eq!(grants.can_publish_sources, vec!["microphone".to_string()]);
     }
 }
