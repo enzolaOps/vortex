@@ -1,3 +1,4 @@
+import { lerChamada } from "./chamada";
 import { assinarQualquerSilencio, estaSilenciado } from "./sobrePessoas";
 
 /**
@@ -105,19 +106,36 @@ export function assinarVolume(userId: string, ouvinte: Ouvinte): () => void {
 /**
  * O ganho que o LiveKit deve aplicar, de 0 a 1.
  *
- * Silenciado ganha do volume — é o eixo maior, como o fone ganha do microfone
+ * Três eixos, e a ordem é do mais geral para o mais particular: **surdo** ganha
+ * de **silenciado**, que ganha do **volume** — como o fone ganha do microfone
  * na linha da sala.
+ *
+ * ⚠ **Surdo entra AQUI, e não num `muted` espalhado pelos `<audio>`.** Ele
+ * morava em `alternarSurdo`, que varria `querySelectorAll("audio")` — ou seja,
+ * só os elementos que existiam NAQUELE instante. Faixa assinada depois
+ * (alguém entra na sala, ou você abre a transmissão de alguém) nascia
+ * tocando, sem erro nenhum. Com o surdo no ganho efetivo, ele alcança toda
+ * faixa por onde o volume já passa: a recém-assinada em `TrackSubscribed` e as
+ * antigas quando o motor reaplica.
+ *
+ * Nenhum dos três ESCREVE nos outros: desensurdecer devolve o volume por
+ * pessoa, e quem estava em "silenciar só para mim" continua em 0.
  */
 export function volumeEfetivo(userId: string): number {
+  if (lerChamada().surdo) return 0;
   if (estaSilenciado(userId)) return 0;
   return lerVolume(userId) / 100;
 }
 
 /**
- * Quem mudou, por qualquer dos dois eixos.
+ * Quem mudou, por qualquer dos dois eixos POR PESSOA.
  *
  * O consumidor é o motor de voz, que não sabe de antemão quem vai entrar na
  * sala e por isso não pode assinar por ID.
+ *
+ * ⚠ **Surdo não passa por aqui**, e é de propósito: o ouvinte recebe o ID de
+ * QUEM mudou, e surdo não é de ninguém — é seu. Quem o aplica é o motor, que
+ * reaplica o ganho de todo mundo no mesmo gesto em que alterna o estado.
  */
 export function assinarVolumeEfetivo(
   ouvinte: (userId: string) => void,
