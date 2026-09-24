@@ -23,6 +23,7 @@ import { abrirConversa } from "../store/navegacao";
 import { definirPalco } from "../store/palcoDeVoz";
 import { atenderNoStore, recusarNoStore } from "../notificacao/chamadas";
 import { enviarMensagem } from "./adapter";
+import { abreNaGrade, lerConfigDeVoz } from "./vozDoCanal";
 
 type Motor = typeof import("./motorDeVoz");
 
@@ -78,7 +79,16 @@ async function motorOuAviso(): Promise<Motor | undefined> {
 export async function entrarNaChamada(channelId: string): Promise<boolean> {
   const m = await motorOuAviso();
   if (m === undefined) return false;
-  return m.entrarNaChamada(channelId);
+  const entrou = await m.entrarNaChamada(channelId);
+  /*
+    Sala de VÍDEO abre na grade (D-VOZ-04) — é o layout inicial, e só isso:
+    a câmera continua desligada até a pessoa ligar. Entrar numa sala de vídeo
+    não é consentir em aparecer.
+  */
+  if (entrou && abreNaGrade(lerConfigDeVoz(channelId).modoDaSala)) {
+    definirPalco({ tipo: "grade" });
+  }
+  return entrou;
 }
 
 /**

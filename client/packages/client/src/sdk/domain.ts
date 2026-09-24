@@ -690,6 +690,13 @@ export type ChannelSnapshot = {
    */
   readonly limite: number | undefined;
   /**
+   * Voz, vídeo ou palco — `voice.kind` do fork (D-VOZ-04). `undefined` fora
+   * de canal de voz. Não é `CanalTipo`: os três são o mesmo canal de voz, e um
+   * tipo novo deixaria a sala de fora de todo `tipo === "voz"`. Ver
+   * `sdk/vozDoCanal.ts`.
+   */
+  readonly modoDaSala?: "voz" | "video" | "palco";
+  /**
    * Modo lento, em segundos entre mensagens — o "Modo lento · 30 s" do design.
    *
    * `0` é o normal e significa desligado; o protocolo usa zero e não ausência,

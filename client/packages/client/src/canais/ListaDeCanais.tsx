@@ -10,6 +10,7 @@ import {
   Monitor,
   PencilSimple,
   Plus,
+  Presentation,
   SpeakerHigh,
   SpeakerSlash,
   Trash,
@@ -213,7 +214,29 @@ const Canal = memo(function Canal({
     cadeado diria a coisa errada sobre o que acontece lá dentro, então o
     cadeado vem depois do nome, como no design.
   */
-  const Icone = canal.tipo === "voz" ? SpeakerHigh : Hash;
+  /*
+    Vídeo e palco são VOZ com `voice.kind` (D-VOZ-04): mesmo canal, mesmo
+    clique, outro ícone. O design desenha ▣ para vídeo; a coluna usa o set de
+    ícones, como já faz com o ◈ da voz.
+  */
+  const Icone =
+    canal.tipo !== "voz"
+      ? Hash
+      : canal.modoDaSala === "video"
+        ? VideoCamera
+        : canal.modoDaSala === "palco"
+          ? Presentation
+          : SpeakerHigh;
+
+  /*
+    O número da linha. Texto conta MENÇÕES — a decisão já registrada: não
+    lida é posicional (a barra) e menção é contagem. A sala de voz conta as
+    NÃO LIDAS do chat embutido, como o design desenha ("▣ Apresentações 2
+    1/25"): quem está fora da sala não tem outro sinal de que a conversa lá
+    dentro andou, e a barra curta sozinha se perde entre os participantes.
+  */
+  const contador =
+    canal.tipo === "voz" ? Math.max(canal.naoLidas, canal.mencoes) : canal.mencoes;
 
   return (
     <>
@@ -397,20 +420,18 @@ const Canal = memo(function Canal({
             já está lá dentro — dado que hoje só existe em `data-conectado`, que
             leitor de tela nenhum lê, e no cronômetro, que é visual.
           */}
+          {canal.modoDaSala === "video" || canal.modoDaSala === "palco" ? (
+            <span className="sr-only">
+              {canal.modoDaSala === "video" ? "sala de vídeo" : "sala de palco"}
+            </span>
+          ) : null}
+
           {conectadoAqui ? (
             <span className="sr-only">você está nesta sala</span>
           ) : null}
 
           {canal.silenciado ? (
             <RestanteDoSilencio channelId={id} serverId={canal.serverId} />
-          ) : null}
-
-          {/* Antes do contador, como no design: o cronômetro é sobre VOCÊ e
-              a lotação é sobre a sala. */}
-          {desdeAqui > 0 ? <Cronometro desde={desdeAqui} /> : null}
-
-          {canal.tipo === "voz" && canal.limite !== undefined ? (
-            <TetoDaSala channelId={id} limite={canal.limite} />
           ) : null}
 
           {/*
@@ -421,15 +442,23 @@ const Canal = memo(function Canal({
             de existir — e ela silenciou justamente porque ele continua
             existindo e ela quer olhar na hora dela.
           */}
-          {canal.mencoes > 0 ? (
+          {contador > 0 ? (
             <Selo
               forma="contagem"
               tom="perigo"
               className={css.contador}
               data-silenciado={canal.silenciado}
             >
-              {contagem(canal.mencoes)}
+              {contagem(contador)}
             </Selo>
+          ) : null}
+
+          {/* Depois das não lidas e antes da lotação, como no design: o
+              cronômetro é sobre VOCÊ e a lotação é sobre a sala. */}
+          {desdeAqui > 0 ? <Cronometro desde={desdeAqui} /> : null}
+
+          {canal.tipo === "voz" && canal.limite !== undefined ? (
+            <TetoDaSala channelId={id} limite={canal.limite} />
           ) : null}
 
           {/*

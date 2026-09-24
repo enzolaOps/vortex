@@ -247,6 +247,25 @@ auto_derived!(
         /// Applied by the client when publishing camera and screen tracks.
         #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none", default))]
         pub video_quality: Option<VideoQualityMode>,
+        /// Kind of room this voice channel is (Vortex)
+        ///
+        /// Absent means a plain voice room. Clients that do not know the
+        /// field (Stoat) keep seeing an ordinary voice channel.
+        #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none", default))]
+        pub kind: Option<VoiceChannelKind>,
+    }
+
+    /// Kind of room a voice channel is (Vortex)
+    pub enum VoiceChannelKind {
+        /// Plain voice room
+        #[cfg_attr(feature = "serde", serde(rename = "voice"))]
+        Voice,
+        /// Video room: opens on the grid
+        #[cfg_attr(feature = "serde", serde(rename = "video"))]
+        Video,
+        /// Stage room for presentations
+        #[cfg_attr(feature = "serde", serde(rename = "stage"))]
+        Stage,
     }
 
     /// Video quality ceiling of a voice channel (Vortex)
@@ -560,5 +579,38 @@ impl Channel {
             Channel::SavedMessages { .. } => Some("Saved Messages"),
             Channel::TextChannel { name, .. } | Channel::Group { name, .. } => Some(name),
         }
+    }
+}
+
+#[cfg(all(test, feature = "serde"))]
+mod test {
+    use super::{VoiceChannelKind, VoiceInformation};
+
+    #[test]
+    fn voz_sem_kind_desserializa_como_ausente() {
+        let voz: VoiceInformation = serde_json::from_str(r#"{"max_users":5}"#).unwrap();
+        assert_eq!(voz.kind, None);
+        assert_eq!(voz.max_users, Some(5));
+        // Ausente não é escrito: quem não conhece o campo recebe o JSON de sempre.
+        assert_eq!(serde_json::to_string(&voz).unwrap(), r#"{"max_users":5}"#);
+    }
+
+    #[test]
+    fn kind_ida_e_volta() {
+        for (texto, kind) in [
+            ("voice", VoiceChannelKind::Voice),
+            ("video", VoiceChannelKind::Video),
+            ("stage", VoiceChannelKind::Stage),
+        ] {
+            let json = format!(r#"{{"kind":"{texto}"}}"#);
+            let voz: VoiceInformation = serde_json::from_str(&json).unwrap();
+            assert_eq!(voz.kind, Some(kind));
+            assert_eq!(serde_json::to_string(&voz).unwrap(), json);
+        }
+    }
+
+    #[test]
+    fn kind_desconhecido_e_recusado() {
+        assert!(serde_json::from_str::<VoiceInformation>(r#"{"kind":"forum"}"#).is_err());
     }
 }

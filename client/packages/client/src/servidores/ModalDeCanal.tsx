@@ -36,6 +36,11 @@ import {
   useServer,
 } from "../store/hooks";
 import { selecionarCanal } from "../store/navegacao";
+import {
+  MODOS_DA_SALA,
+  ROTULO_DA_SALA,
+  type ModoDaSala,
+} from "../sdk/vozDoCanal";
 import css from "./AdicionarServidor.module.css";
 
 /**
@@ -208,6 +213,7 @@ function FormaDeCanal({
   const [tipo, setTipo] = useState<TipoDeCanal>(vozInicial ? "voz" : "texto");
   const [privado, setPrivado] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  const [sala, setSala] = useState<ModoDaSala>("voz");
 
   /*
     ⚠ **Canal não nasce sem categoria — decisão de produto.** As categorias
@@ -264,7 +270,11 @@ function FormaDeCanal({
         void criarCanal(
           serverId,
           limpo,
-          tipo === "forum" || tipo === "midia" ? tipo : voz,
+          tipo === "forum" || tipo === "midia"
+            ? tipo
+            : voz && sala !== "voz"
+              ? sala
+              : voz,
           escolhida,
         )
           .then(async (id) => {
@@ -333,6 +343,22 @@ function FormaDeCanal({
           onChange={(e) => setNome(e.target.value)}
         />
       </div>
+
+      {/*
+        Vídeo e palco são VOZ com `voice.kind` (D-VOZ-04) — não um quinto e um
+        sexto cartão de tipo: o design desenha quatro, e os três são a mesma
+        sala no protocolo. A escolha só aparece onde ela existe.
+      */}
+      {voz ? (
+        <Escolha
+          rotulo="Tipo de sala"
+          valor={sala}
+          disabled={enviando}
+          opcoes={MODOS_DA_SALA}
+          aoEscolher={(v) => setSala(v as ModoDaSala)}
+          rotuloDe={(v) => ROTULO_DA_SALA[v as ModoDaSala]}
+        />
+      ) : null}
 
       <Escolha
         rotulo="Categoria"

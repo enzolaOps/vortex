@@ -60,7 +60,7 @@ import {
 } from "../store/uploads";
 import { definirEuDasEnquetes, lerEnquete } from "../store/enquetes";
 import { anotarEventoDeEnquete, buscarMensagensComEnquetes } from "./enquetes";
-import { anotarEventoDeVoz } from "./vozDoCanal";
+import { anotarEventoDeVoz, consumirModosAlterados } from "./vozDoCanal";
 import {
   avisarMudoDoServidor,
   avisarSurdoDoServidor,
@@ -972,6 +972,20 @@ export function alternarFixada(messageId: string): void {
  * esperar o socket — a tela relê o snapshot logo depois do `await`, e o evento
  * pode chegar um quadro atrasado. Idempotente quando ele chegar.
  */
+/**
+ * Anota a voz crua de um canal e republica quem mudou de TIPO de sala.
+ *
+ * O snapshot já foi republicado pelo ouvinte do SDK com o modo velho (ele
+ * roda antes deste — ver `superficieVortex.ts`), e o tipo é o único campo da
+ * voz que a coluna desenha. Exportado para a escrita otimista, como
+ * `aplicarSuperficieVortex`: criar ou salvar um canal de vídeo não espera o
+ * socket para trocar o ícone.
+ */
+export function aplicarVozDoCanal(evento: unknown): void {
+  anotarEventoDeVoz(evento);
+  for (const id of consumirModosAlterados()) reemitirCanal(id);
+}
+
 export function aplicarSuperficieVortex(evento: unknown): void {
   const mudou = aplicarEventoCru(superficie, evento);
   for (const id of mudou.canais) reemitirCanal(id);
@@ -1171,7 +1185,7 @@ export function startAdapter() {
     aplicarEventoCruDeCanal(evento);
     /* A voz por canal do fork mora no evento cru pela mesma razão do
        `can_publish` abaixo — ver `sdk/vozDoCanal.ts`. */
-    anotarEventoDeVoz(evento);
+    aplicarVozDoCanal(evento);
     /* Enquete é campo do fork que a hidratação descarta — ver `sdk/enquetes.ts`. */
     for (const id of anotarEventoDeEnquete(evento)) republicarEnquete(id);
     /* Evento agendado é superfície do fork que o SDK não conhece — ver

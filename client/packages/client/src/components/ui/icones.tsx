@@ -71,6 +71,7 @@ import {
   RiPhoneFill,
   RiPictureInPicture2Fill,
   RiPlayFill,
+  RiPresentationFill,
   RiPushpinFill,
   RiPushpinLine,
   RiRefreshFill,
@@ -214,6 +215,8 @@ export const Phone = vx(RiPhoneFill);
 export const PhoneX = vx(RiCloseCircleFill);
 export const PictureInPicture = vx(RiPictureInPicture2Fill);
 export const Play = vx(RiPlayFill);
+/** Palco: sala de apresentação — o alto-falante diria "conversa". */
+export const Presentation = vx(RiPresentationFill);
 /* Parar a prévia de um efeito sonoro — o ■ do design. */
 export const Stop = vx(RiStopFill);
 export const ProhibitInset = vx(RiForbidFill);
