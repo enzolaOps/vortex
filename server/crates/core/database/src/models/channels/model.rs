@@ -1358,7 +1358,9 @@ mod thread_archive_tests {
             let fresh = thread(ulid_at(now - DAY), None, false, None);
             let idle = thread(ulid_at(now - 8 * DAY), None, false, None);
             let replied = thread(ulid_at(now - 30 * DAY), Some(ulid_at(now - DAY)), false, None);
-            let by_hand = thread(ulid_at(now - DAY), None, true, None);
+            // A day apart from `fresh`: same instant and same random part would
+            // be the same id, and the second insert would be refused.
+            let by_hand = thread(ulid_at(now - 2 * DAY), None, true, None);
             for channel in [&fresh, &idle, &replied, &by_hand] {
                 db.insert_channel(channel).await.unwrap();
             }
