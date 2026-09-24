@@ -3,20 +3,52 @@ import {
   ICONE,
   MicrophoneSlash,
   Monitor,
+  PictureInPicture,
   PushPin,
+  SpeakerSlash,
+  VideoCamera,
 } from "../components/ui/icones";
-import { memo, useEffect, useState, useSyncExternalStore } from "react";
+import { memo, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
 import { Tooltip } from "../components/ui/Tooltip";
+import {
+  iconesDoParticipante,
+  ROTULO_DO_ICONE,
+  type IconeDeVoz,
+} from "../canais/iconesDeVoz";
 import { buscarAtividade } from "../sdk/atividades";
 import { assinarSessao, lerSessao } from "../store/atividades";
 import { assinarChamada, falando, lerChamada } from "../store/chamada";
-import { useChannel, usePessoa, useServer } from "../store/hooks";
+import { useChannel, usePessoa, useServer, useVozDoCanal } from "../store/hooks";
+import { pode } from "../sdk/permissoes";
+import { administrar } from "../store/administracao";
+import { abrirModal } from "../store/modais";
 import { abrirMenuDoParticipante } from "../store/menuDoParticipante";
+import { fecharPalco } from "../store/palcoDeVoz";
+import { definirFormaDoPopout } from "../store/popout";
 import { LadrilhoDeAtividade } from "./atividades/LadrilhoDeAtividade";
 import { BotaoDoChatDaSala } from "./ChatDaSala";
-import { Cronometro, Doca, FaixaDeVideo, useVideo } from "./pecasDeVoz";
+import { Rtt } from "./FaixaDeVoz";
+import {
+  capacidadeDaChamada,
+  chipDaConexao,
+  contagemDaChamada,
+  estadoDaPlaca,
+  estadoNaChamada,
+  ORADOR_INICIAL,
+  proximoOrador,
+  repartirGrade,
+  rotuloNaLista,
+  type EstadoDoOrador,
+} from "./grade";
+import {
+  BotaoDeTelaCheia,
+  Cronometro,
+  Doca,
+  FaixaDeVideo,
+  useVideo,
+} from "./pecasDeVoz";
 import css from "./GradeDeChamada.module.css";
 
 /**
@@ -48,19 +80,16 @@ const NOME_DA_DISPOSICAO: Record<Disposicao, string> = {
  * ⚠ **A do orador descreve uma histerese de 1,2 s que EXISTE, e não por
  * capricho de fidelidade:** sem ela a célula grande trocaria a cada
  * interjeição, e uma grade que pisca é pior que uma grade parada. Ver
- * `useOradorEstavel`.
+ * `proximoOrador`.
  */
 const NOTA: Record<Disposicao, string> = {
   grade:
-    "Grade: todos com peso igual; as colunas acompanham quantas pessoas há, até cinco.",
+    "Grade: todos com peso igual; as colunas acompanham quantas pessoas há, até cinco. Acima de 16, os últimos entram como fila de avatares.",
   orador:
     "Orador ativo: a célula grande troca por detecção de voz com histerese de 1,2 s — sem isso a grade pisca a cada interjeição.",
   fixado:
     "Fixado: a escolha manual sobrevive a quem fala, e o layout não muda até desfixar.",
 };
-
-/** A histerese do design. */
-const HISTERESE_MS = 1200;
 
 export function GradeDeChamada() {
   const chamada = useSyncExternalStore(assinarChamada, lerChamada);
@@ -101,31 +130,40 @@ export function GradeDeChamada() {
     buscarAtividade(chamada.channelId).catch(() => undefined);
   }, [chamada.channelId]);
 
-  /* O ladrilho da atividade ocupa 2×2: com uma coluna só ele criaria uma
-     trilha implícita fora da conta. */
-  const colunas = Math.min(
-    5,
-    Math.max(
-      comAtividade ? 2 : 1,
-      Math.ceil(Math.sqrt(chamada.participantes.length)),
-    ),
-  );
+  /*
+    O que o PROTOCOLO sabe de cada um — surdo e o que o servidor impôs
+    (D-DVM-14). Assinado uma vez aqui, por canal, e não por ladrilho: a lista
+    muda por ação humana, e vinte ladrilhos assinando o mesmo canal seriam
+    vinte comparações a cada entrada na sala para descobrir o próprio item.
+    Quem junta as duas fontes é `estadoNaChamada`, uma vez para a grade e a
+    lista lateral.
+  */
+  const sala = useVozDoCanal(chamada.channelId);
 
   /*
-    ⚠ **Você não está em `comCamera` nem em `mudos`, e isso é de propósito.**
-    As duas listas são varridas de `remoteParticipants` — o seu próprio estado
-    de transporte já mora em `Chamada.camera` e `Chamada.mudo` desde a fase 6,
-    e duplicá-lo nas listas daria duas fontes para o mesmo fato, com a segunda
-    sempre um evento atrás. Quem resolve é aqui, uma vez.
+    A célula grande do orador é UMA e é decidida aqui (D-VOZ-27) — ver
+    `proximoOrador`. Enquanto ninguém falou, ela vai para a primeira pessoa
+    que não é você: abrir "Orador ativo" e ver a própria cara em 2×2 seria o
+    único caso em que a disposição mostra justamente quem não precisa ser
+    visto.
   */
-  const eu = chamada.participantes[0];
+  const orador = useOradorAtivo(chamada.participantes, disposicao === "orador");
 
   const grande =
     disposicao === "fixado"
       ? (fixado ?? chamada.participantes[0])
       : disposicao === "orador"
-        ? undefined
+        ? (orador ?? chamada.participantes[1] ?? chamada.participantes[0])
         : undefined;
+
+  const { ladrilhos, fila } = repartirGrade(chamada.participantes, grande);
+
+  /* O ladrilho da atividade ocupa 2×2: com uma coluna só ele criaria uma
+     trilha implícita fora da conta. */
+  const colunas = Math.min(
+    5,
+    Math.max(comAtividade ? 2 : 1, Math.ceil(Math.sqrt(ladrilhos.length))),
+  );
 
   return (
     <>
@@ -133,10 +171,14 @@ export function GradeDeChamada() {
         <Monitor size={ICONE.controle} className={css.glifo} aria-hidden />
         <span className={css.nomeDoCanal}>{canal?.name ?? "voz"}</span>
         <span className={css.nomeDoServidor}>{servidor?.name ?? ""}</span>
+        <ChipDaConexao />
+        {/* "7 de 25" (D-VOZ-25): o total é o grupo, ou o teto da sala — ver
+            `capacidadeDaChamada`. */}
         <span className={css.contagem}>
-          {chamada.participantes.length === 1
-            ? "1 na chamada"
-            : `${String(chamada.participantes.length)} na chamada`}
+          {contagemDaChamada(
+            chamada.participantes.length,
+            capacidadeDaChamada(canal),
+          )}
         </span>
         <Cronometro desde={chamada.desde} />
 
@@ -161,43 +203,60 @@ export function GradeDeChamada() {
           ))}
         </div>
 
-        <BotaoDoChatDaSala className={css.acaoDoCabecalho} />
+        {/*
+          ⤢ · ◱ · 💬, na ordem do design (D-DVM-11). Antes os dois primeiros
+          só existiam no palco de TRANSMISSÃO — ou seja, numa chamada sem
+          ninguém transmitindo não havia como pôr a grade em tela cheia nem
+          devolvê-la a uma janela pequena sem sair da sala.
+        */}
+        <div className={css.acoesDoCabecalho}>
+          <BotaoDeTelaCheia className={css.acaoDoCabecalho} />
+          <BotaoDePopout />
+          <BotaoDoChatDaSala className={css.acaoDoCabecalho} />
+        </div>
       </header>
 
       <div className={css.miolo}>
-        <div
-          className={css.grade}
-          style={{ gridTemplateColumns: `repeat(${String(colunas)}, minmax(0, 1fr))` }}
-        >
-          <LadrilhoDeAtividade channelId={chamada.channelId} />
-          {chamada.participantes.map((id) => (
-            <Ladrilho
-              key={id}
-              userId={id}
-              disposicao={disposicao}
-              grande={grande === id}
-              fixado={fixado === id}
-              eu={id === eu}
-              temCamera={
-                id === eu ? chamada.camera : chamada.comCamera.includes(id)
-              }
-              transmitindo={
-                id === eu ? chamada.tela : chamada.transmitindo.includes(id)
-              }
-              mudo={id === eu ? chamada.mudo : chamada.mudos.includes(id)}
-              aoFixar={() => {
-                setFixado(id);
-                setDisposicao("fixado");
-              }}
-              aoDesfixar={() => {
-                setFixado(undefined);
-                setDisposicao("grade");
-              }}
-            />
-          ))}
+        <div className={css.palco}>
+          <div
+            className={css.grade}
+            style={{ gridTemplateColumns: `repeat(${String(colunas)}, minmax(0, 1fr))` }}
+          >
+            <LadrilhoDeAtividade channelId={chamada.channelId} />
+            {ladrilhos.map((id) => {
+              const e = estadoNaChamada(chamada, sala, id);
+              return (
+                <Ladrilho
+                  key={id}
+                  userId={id}
+                  grande={grande === id}
+                  fixado={fixado === id}
+                  eu={e.eu}
+                  temCamera={e.camera}
+                  transmitindo={e.transmitindo}
+                  mudo={e.mudo}
+                  surdo={e.surdo}
+                  mudoPeloServidor={e.mudoPeloServidor}
+                  surdoPeloServidor={e.surdoPeloServidor}
+                  aoFixar={() => {
+                    setFixado(id);
+                    setDisposicao("fixado");
+                  }}
+                  aoDesfixar={() => {
+                    setFixado(undefined);
+                    setDisposicao("grade");
+                  }}
+                />
+              );
+            })}
+          </div>
+
+          {fila.length > 0 ? <FilaDeAvatares ids={fila} /> : null}
+
+          <p className={css.nota}>{NOTA[disposicao]}</p>
         </div>
 
-        <p className={css.nota}>{NOTA[disposicao]}</p>
+        <ListaNaChamada channelId={chamada.channelId} />
       </div>
 
       <Doca
@@ -205,6 +264,7 @@ export function GradeDeChamada() {
         surdo={chamada.surdo}
         camera={chamada.camera}
         tela={chamada.tela}
+        onde="grade"
       />
     </>
   );
@@ -226,24 +286,28 @@ export function GradeDeChamada() {
  */
 const Ladrilho = memo(function Ladrilho({
   userId,
-  disposicao,
   grande,
   fixado,
   eu,
   temCamera,
   transmitindo,
   mudo,
+  surdo,
+  mudoPeloServidor,
+  surdoPeloServidor,
   aoFixar,
   aoDesfixar,
 }: {
   userId: string;
-  disposicao: Disposicao;
   grande: boolean;
   fixado: boolean;
   eu: boolean;
   temCamera: boolean;
   transmitindo: boolean;
   mudo: boolean;
+  surdo: boolean;
+  mudoPeloServidor: boolean;
+  surdoPeloServidor: boolean;
   aoFixar: () => void;
   aoDesfixar: () => void;
 }) {
@@ -252,7 +316,6 @@ const Ladrilho = memo(function Ladrilho({
     falando.subscriber(userId),
     () => falando.getSnapshot(userId) ?? false,
   );
-  const oradorEstavel = useOradorEstavel(ativo);
 
   useVideo(userId, "camera", temCamera && !eu);
   /*
@@ -268,12 +331,36 @@ const Ladrilho = memo(function Ladrilho({
   */
   useVideo(userId, "tela", transmitindo && !eu);
 
-  const destaque = disposicao === "orador" ? oradorEstavel : grande;
+  /* Quem decide o destaque é a GRADE — uma célula só, com histerese no nível
+     da sala (ver `proximoOrador`). */
+  const destaque = grande;
+
+  /*
+    Os ícones da placa, com o MESMO teto e a mesma ordem de criticidade da
+    linha da sala na coluna de canais (D-DVM-14, D-VOZ-29). A placa é mais
+    estreita que um ladrilho de 84px pode pagar — sem teto, quem transmite,
+    ensurdecido e silenciado pelo servidor empurraria o nome para reticência.
+  */
+  const { visiveis, recolhidos } = iconesDoParticipante(
+    estadoDaPlaca({
+      transmitindo,
+      camera: temCamera,
+      mudo,
+      surdo,
+      mudoPeloServidor,
+      surdoPeloServidor,
+    }),
+  );
+  const primeiroSrv = visiveis.find((i) => i === "srvSurdo" || i === "srvMudo");
 
   return (
     <div
       className={css.ladrilho}
       data-falando={ativo}
+      /* Ensurdecido esmaece o AVATAR, como o design (opacity 0.6 no ladrilho
+         do Nando) — e só o avatar: a placa com o nome fica em opacidade
+         cheia, senão o texto perderia contraste sobre o véu. */
+      data-surdo={surdo || surdoPeloServidor}
       data-grande={destaque}
       data-video={temCamera || transmitindo}
       /* Um stream ocupa 2×2 por padrão: numa célula de 84px a tela de alguém
@@ -295,6 +382,7 @@ const Ladrilho = memo(function Ladrilho({
         sigla={pessoa?.sigla}
         url={pessoa?.avatarUrl}
         tamanho={destaque ? "lg" : "md"}
+        className={css.avatar}
       />
       {/*
         ⚠ **A tela ganha da câmera quando as duas estão no ar.** É o que o
@@ -322,11 +410,16 @@ const Ladrilho = memo(function Ladrilho({
             <span className="sr-only">falando</span>
           </>
         ) : null}
-        {transmitindo ? (
-          <Monitor size={ICONE.selo} className={css.glifoDaPlaca} aria-label="transmitindo" />
-        ) : null}
-        {mudo ? (
-          <MicrophoneSlash size={ICONE.selo} className={css.glifoMudo} aria-label="mudo" />
+        {visiveis.map((icone) => (
+          <GlifoDaPlaca key={icone} icone={icone} comSigla={icone === primeiroSrv} />
+        ))}
+        {recolhidos.length > 0 ? (
+          <span className={css.maisEstados}>
+            +{recolhidos.length}
+            <span className="sr-only">
+              {`, também ${recolhidos.map((i) => ROTULO_DO_ICONE[i]).join(", ")}`}
+            </span>
+          </span>
         ) : null}
       </span>
 
@@ -384,37 +477,338 @@ const Ladrilho = memo(function Ladrilho({
   );
 });
 
+/**
+ * Um ícone de estado na placa de nome.
+ *
+ * Mesma pintura da linha da sala na coluna de canais, com uma diferença: a
+ * TELA aqui é o glifo e não o selo `LIVE`. Na coluna, o selo se lê sem
+ * conhecer a convenção; na placa ele disputaria a largura com o nome dentro
+ * de um ladrilho de 84px, e quem transmite já está com a tela cobrindo o
+ * próprio ladrilho — o conteúdo diz o estado antes do ícone.
+ *
+ * ⚠ **SRV é aviso e não perigo**, como na coluna: não poder falar é restrição
+ * administrativa, não falha. A sigla sai uma vez só, mesmo com os dois ícones
+ * do servidor.
+ */
+function GlifoDaPlaca({ icone, comSigla }: { icone: IconeDeVoz; comSigla: boolean }) {
+  const rotulo = <span className="sr-only">{ROTULO_DO_ICONE[icone]}</span>;
+  switch (icone) {
+    case "tela":
+      return (
+        <>
+          <Monitor size={ICONE.selo} className={css.glifoDaPlaca} aria-hidden />
+          {rotulo}
+        </>
+      );
+    case "video":
+      return (
+        <>
+          <VideoCamera size={ICONE.selo} className={css.glifoCamera} aria-hidden />
+          {rotulo}
+        </>
+      );
+    case "srvSurdo":
+    case "srvMudo":
+      return (
+        <>
+          {icone === "srvSurdo" ? (
+            <SpeakerSlash size={ICONE.selo} className={css.glifoSrv} aria-hidden />
+          ) : (
+            <MicrophoneSlash size={ICONE.selo} className={css.glifoSrv} aria-hidden />
+          )}
+          {comSigla ? (
+            <span className={css.srv} aria-hidden>
+              SRV
+            </span>
+          ) : null}
+          {rotulo}
+        </>
+      );
+    case "surdo":
+      return (
+        <>
+          <SpeakerSlash size={ICONE.selo} className={css.glifoMudo} aria-hidden />
+          {rotulo}
+        </>
+      );
+    case "mudo":
+      return (
+        <>
+          <MicrophoneSlash size={ICONE.selo} className={css.glifoMudo} aria-hidden />
+          {rotulo}
+        </>
+      );
+  }
+}
+
+/**
+ * "excelente · 38 ms" no cabeçalho da grade (D-DVM-11).
+ *
+ * Componente próprio pela lei nº 1: o RTT amostra por segundo, e o chip é o
+ * único pedaço do cabeçalho que precisa acordar para isso — a grade inteira
+ * re-renderizando a cada segundo repintaria vinte ladrilhos por um número.
+ * `Rtt` já é componente separado e cuida disso; aqui fica só a classificação.
+ */
+function ChipDaConexao() {
+  const chamada = useSyncExternalStore(assinarChamada, lerChamada);
+  const chip = chipDaConexao(chamada.estado, chamada.qualidade);
+
+  return (
+    <span className={css.chipDaConexao} data-tom={chip.tom}>
+      <span className={css.pontoDaConexao} aria-hidden />
+      {chip.texto}
+      {chip.comRtt ? <Rtt className={css.rtt} /> : null}
+    </span>
+  );
+}
+
+/**
+ * ◱ — devolve a chamada a uma janela pequena (D-DVM-11).
+ *
+ * ⚠ **É o POPOUT, e não o picture-in-picture do navegador.** O PiP nativo
+ * leva UM `<video>`; a grade é uma sala de pessoas, e na maior parte do tempo
+ * ninguém tem câmera — o PiP abriria um retângulo preto ou nada. O popout já
+ * existe para isto: mostra o orador, o cronômetro e os controles, e fica sobre
+ * o app enquanto a pessoa lê outro canal. Fechar o palco é o que o faz
+ * aparecer (ele some quando a sala está na tela, ver `useNaSala`).
+ */
+function BotaoDePopout() {
+  return (
+    <Tooltip texto="Janela flutuante" lado="abaixo">
+      <button
+        type="button"
+        className={css.acaoDoCabecalho}
+        aria-label="Janela flutuante"
+        onClick={() => {
+          definirFormaDoPopout("popout");
+          fecharPalco();
+        }}
+      >
+        <PictureInPicture size={ICONE.controle} aria-hidden />
+      </button>
+    </Tooltip>
+  );
+}
+
 /* ============================================================
    Hooks
    ============================================================ */
 
 /**
- * "Está falando" com histerese, para a célula grande não piscar.
+ * Quem ocupa a célula grande do orador — com a histerese no nível da SALA.
  *
- * ⚠ **Ela sobe na hora e desce devagar, e a assimetria é o ponto.** Quem
- * começa a falar precisa aparecer imediatamente; quem para de falar entre duas
- * palavras não deve sair da célula grande. Sem isso a grade troca de foco a
- * cada interjeição — é o que o design descreve, e o número (1,2 s) é dele.
+ * ⚠ **Assina a fala de cada pessoa e só re-renderiza a grade quando o ORADOR
+ * muda.** O store de fala acorda dezenas de vezes por segundo numa sala
+ * movimentada (lei nº 1); `setOrador` com o mesmo valor é descartado pelo
+ * React, então a grade só repinta quando a célula grande troca de dono — no
+ * máximo uma vez a cada 1,2 s por construção.
  *
- * É a mesma assimetria da faixa de reconexão: avisar espera, parar de avisar é
- * imediato — aqui invertida, pela mesma razão de sempre (o que incomoda é a
- * troca, não o estado).
+ * `ativo` falso não assina nada: nas outras disposições a grade não tem por
+ * que acordar com quem fala (o anel verde é do ladrilho, que assina sozinho).
  */
-function useOradorEstavel(ativo: boolean): boolean {
-  const [estavel, setEstavel] = useState(ativo);
+function useOradorAtivo(presentes: readonly string[], ativo: boolean): string | undefined {
+  const [orador, setOrador] = useState<string | undefined>(undefined);
+  /* Sobrevive a quem entra e sai: re-assinar não pode zerar a histerese. */
+  const estado = useRef<EstadoDoOrador>(ORADOR_INICIAL);
 
-  /*
-    ⚠ **Os dois lados passam por `setTimeout`, e a subida usa 0 ms.** O lint
-    do projeto proíbe `setState` no CORPO de um efeito — ele produz render em
-    cascata —, então mesmo a subida imediata é agendada. Zero milissegundo cai
-    no mesmo quadro, e o que se ganha é a regra valendo sem exceção: quem
-    vier depois não precisa decidir quando ela vale.
-  */
   useEffect(() => {
-    if (ativo === estavel) return;
-    const t = setTimeout(() => setEstavel(ativo), ativo ? 0 : HISTERESE_MS);
-    return () => clearTimeout(t);
-  }, [ativo, estavel]);
+    if (!ativo) return;
+    let revisao: ReturnType<typeof setTimeout> | undefined;
 
-  return estavel;
+    const avaliar = () => {
+      clearTimeout(revisao);
+      const falantes = presentes.filter((id) => falando.getSnapshot(id) === true);
+      const r = proximoOrador(estado.current, falantes, presentes, Date.now());
+      estado.current = r.estado;
+      setOrador(r.estado.orador);
+      if (r.revisarEm !== undefined) revisao = setTimeout(avaliar, r.revisarEm);
+    };
+
+    const saidas = presentes.map((id) => falando.subscriber(id)(avaliar));
+    /* Agendado e não chamado: `setState` síncrono no corpo do efeito é render
+       em cascata, e o lint do projeto o reprova. Zero ms cai no mesmo quadro. */
+    const inicial = setTimeout(avaliar, 0);
+    return () => {
+      clearTimeout(inicial);
+      clearTimeout(revisao);
+      for (const sair of saidas) sair();
+    };
+  }, [presentes, ativo]);
+
+  return ativo ? orador : undefined;
 }
+
+/* ============================================================
+   Fila de avatares
+   ============================================================ */
+
+/**
+ * Quem não coube nos 16 ladrilhos (D-VOZ-26).
+ *
+ * Presença e não conteúdo: avatar com o anel de fala e mais nada. Cada um
+ * carrega `data-participante`, então o clique direito abre o MESMO menu do
+ * ladrilho — volume e moderação não podem depender de a pessoa ter entrado
+ * cedo.
+ */
+function FilaDeAvatares({ ids }: { ids: readonly string[] }) {
+  return (
+    <ul className={css.filaDeAvatares} aria-label={`Mais ${String(ids.length)} na chamada`}>
+      {ids.map((id) => (
+        <AvatarNaFila key={id} userId={id} />
+      ))}
+    </ul>
+  );
+}
+
+const AvatarNaFila = memo(function AvatarNaFila({ userId }: { userId: string }) {
+  const pessoa = usePessoa(userId);
+  const ativo = useSyncExternalStore(
+    falando.subscriber(userId),
+    () => falando.getSnapshot(userId) ?? false,
+  );
+  const nome = pessoa?.displayName ?? "alguém";
+  return (
+    <li className={css.itemDaFila} data-falando={ativo} data-participante={userId}>
+      <Tooltip texto={nome} lado="acima">
+        <button
+          type="button"
+          className={css.avatarDaFila}
+          aria-label={`Opções de ${nome}`}
+          aria-haspopup="menu"
+          onClick={(e) => abrirMenuDoParticipante(e.currentTarget)}
+        >
+          <Avatar id={userId} sigla={pessoa?.sigla} url={pessoa?.avatarUrl} tamanho="sm" />
+        </button>
+      </Tooltip>
+    </li>
+  );
+});
+
+/* ============================================================
+   Lista lateral — "Na chamada — N"
+   ============================================================ */
+
+/**
+ * A coluna "Na chamada" da grade (D-DVM-15, D-DVM-16).
+ *
+ * ⚠ **Ela existia só no palco de TRANSMISSÃO**, ou seja, só aparecia quando
+ * alguém compartilhava tela. Numa chamada de dez pessoas sem tela, a única
+ * forma de saber quem estava mudo era caçar o ícone em cada ladrilho.
+ *
+ * Assina a CHAMADA e a SALA (mudam por ação humana); a fala é de cada linha.
+ * Some por container query quando a grade fica estreita — com o chat da sala
+ * aberto os ladrilhos precisam da largura mais que a lista.
+ */
+function ListaNaChamada({ channelId }: { channelId: string }) {
+  const chamada = useSyncExternalStore(assinarChamada, lerChamada);
+  const sala = useVozDoCanal(channelId);
+  /* Convidar só existe para quem pode convidar: botão que abre um erro é o
+     "controle que não faz nada" com um passo a mais. */
+  const podeConvidar = channelId !== "" && pode(channelId, "criarConvite");
+
+  return (
+    <aside className={css.lista} aria-label="Na chamada">
+      <div className={css.tituloDaLista}>
+        Na chamada — {String(chamada.participantes.length)}
+      </div>
+      <ul className={css.linhasDaLista}>
+        {chamada.participantes.map((id) => {
+          const e = estadoNaChamada(chamada, sala, id);
+          return (
+            <LinhaNaChamada
+              key={id}
+              userId={id}
+              camera={e.camera}
+              transmitindo={e.transmitindo}
+              mudo={e.mudo}
+              surdo={e.surdo}
+              mudoPeloServidor={e.mudoPeloServidor}
+              surdoPeloServidor={e.surdoPeloServidor}
+            />
+          );
+        })}
+      </ul>
+      <div className={css.rodapeDaLista}>
+        {podeConvidar ? (
+          <button
+            type="button"
+            className={css.botaoDaLista}
+            onClick={() => administrar({ tipo: "convite", channelId })}
+          >
+            Convidar
+          </button>
+        ) : null}
+        <button
+          type="button"
+          className={css.botaoDaLista}
+          onClick={() => abrirModal("atividades")}
+        >
+          Atividades
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+const LinhaNaChamada = memo(function LinhaNaChamada({
+  userId,
+  camera,
+  transmitindo,
+  mudo,
+  surdo,
+  mudoPeloServidor,
+  surdoPeloServidor,
+}: {
+  userId: string;
+  camera: boolean;
+  transmitindo: boolean;
+  mudo: boolean;
+  surdo: boolean;
+  mudoPeloServidor: boolean;
+  surdoPeloServidor: boolean;
+}) {
+  const pessoa = usePessoa(userId);
+  const ativo = useSyncExternalStore(
+    falando.subscriber(userId),
+    () => falando.getSnapshot(userId) ?? false,
+  );
+  const rotulo = rotuloNaLista(
+    { eu: false, camera, transmitindo, mudo, surdo, mudoPeloServidor, surdoPeloServidor },
+    ativo,
+  );
+  const nome = pessoa?.displayName ?? "alguém";
+
+  return (
+    /* `data-participante`: o clique direito abre o menu do participante — o
+       Root é um só, no palco, como nos ladrilhos. */
+    <li
+      className={css.linhaDaLista}
+      data-participante={userId}
+      data-tom={rotulo.tom}
+      data-esmaecido={rotulo.esmaecido}
+    >
+      <Avatar
+        id={userId}
+        sigla={pessoa?.sigla}
+        url={pessoa?.avatarUrl}
+        tamanho="xs"
+        className={css.avatarDaLista}
+      />
+      <span className={css.identidadeDaLista}>
+        <span className={css.nomeDaLista}>{nome}</span>
+        {rotulo.texto === undefined ? null : (
+          <span className={css.estadoDaLista}>{rotulo.texto}</span>
+        )}
+      </span>
+      <button
+        type="button"
+        className={css.maisDaLista}
+        aria-label={`Opções de ${nome}`}
+        aria-haspopup="menu"
+        onClick={(e) => abrirMenuDoParticipante(e.currentTarget)}
+      >
+        <DotsThree size={ICONE.metadado} aria-hidden />
+      </button>
+    </li>
+  );
+});

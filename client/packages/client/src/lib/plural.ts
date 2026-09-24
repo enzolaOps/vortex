@@ -56,3 +56,18 @@ export function rotuloDeReacao(r: {
   }`;
 }
 
+
+/**
+ * "2 amigos em comum", do aviso de chamada recebida (D-VOZ-23) — ou NADA.
+ *
+ * ⚠ **Ausência em três casos, e cada um tem razão.** Carregando e falha de
+ * rede (`undefined`) não sabem quantos são, e afirmar "0" por causa de uma
+ * rede caída é mentir sobre duas pessoas. E zero não vira chip: o chip existe
+ * para dizer "você conhece quem conhece esta pessoa", e "0 amigo em comum" —
+ * que é o que o CLDR de português daria — não informa nada numa tela onde a
+ * decisão é atender ou não.
+ */
+export function rotuloDeAmigosEmComum(amigos: number | undefined): string | undefined {
+  if (amigos === undefined || amigos === 0) return undefined;
+  return plural(amigos, "amigo em comum", "amigos em comum");
+}

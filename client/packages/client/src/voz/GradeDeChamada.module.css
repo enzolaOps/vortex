@@ -24,6 +24,13 @@
 }
 
 .nomeDoCanal {
+  /* O único texto do cabeçalho que ENCOLHE: é o que sobra quando a largura
+     acaba, e sem isto ele quebrava em duas linhas dentro de uma barra de
+     52px. */
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--vx-text-1);
   font-size: var(--vx-size-md);
   font-weight: 600;
@@ -38,6 +45,96 @@
 
 .espaco {
   flex: 1;
+}
+
+/*
+  "excelente · 38 ms" — a pílula de qualidade do design (D-DVM-11).
+
+  O tom vem de `chipDaConexao`, e a cor é o TOM a 14% atrás do texto na mesma
+  família — `color-mix` do próprio token, como o preenchimento do divisor de
+  novas mensagens: um `--vx-success-soft` custaria entrada em `TokenName`,
+  classificação e par de contraste para um fundo que só existe aqui.
+*/
+.chipDaConexao {
+  --tom: var(--vx-success);
+  --tinta: var(--vx-success-text);
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-06);
+  block-size: 20px;
+  padding-inline: var(--vx-space-08);
+  border-radius: var(--vx-radius-pill);
+  background: color-mix(in oklab, var(--tom) 14%, transparent);
+  color: var(--tinta);
+  font-size: var(--vx-size-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.chipDaConexao[data-tom="aviso"] {
+  --tom: var(--vx-warning);
+  --tinta: var(--vx-warning);
+}
+
+.chipDaConexao[data-tom="perigo"] {
+  --tom: var(--vx-danger);
+  --tinta: var(--vx-danger-text);
+}
+
+.chipDaConexao[data-tom="neutro"] {
+  --tom: var(--vx-text-3);
+  --tinta: var(--vx-text-3);
+}
+
+.pontoDaConexao {
+  flex: none;
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--tom);
+}
+
+/* Herda a tinta do chip: o número é parte da mesma leitura, e o mono é o que
+   impede o chip de mudar de largura a cada amostra. */
+.rtt {
+  font-family: var(--vx-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ⤢ · ◱ · 💬 — grupo de 2px, como o design. */
+.acoesDoCabecalho {
+  display: flex;
+  flex: none;
+  gap: var(--vx-space-02);
+}
+
+/*
+  Tela estreita — com o chat da sala aberto a grade fica com ~500px.
+
+  O cabeçalho inteiro pede ~780px. O que sai primeiro é o que ESTÁ EM OUTRO
+  LUGAR: o nome do servidor (a coluna de canais já diz), depois a qualidade
+  (a faixa de voz no rodapé da coluna diz a mesma coisa), depois a contagem
+  (a grade mostra as pessoas). Disposição e ações ficam: são os únicos
+  controles, e controle escondido é controle que não existe. Container query
+  e não media: a largura é a da `.tela` do palco, que o chat divide.
+*/
+@container (inline-size < 780px) {
+  .nomeDoServidor {
+    display: none;
+  }
+}
+
+@container (inline-size < 730px) {
+  .chipDaConexao {
+    display: none;
+  }
+}
+
+@container (inline-size < 640px) {
+  .contagem {
+    display: none;
+  }
 }
 
 /*
@@ -112,14 +209,25 @@
 
 /* ---------------------------------------------------------- miolo */
 
+/* Grade à esquerda, "Na chamada" à direita — o arranjo do design (vão 14). */
 .miolo {
+  display: flex;
+  flex: 1;
+  gap: var(--vx-space-14);
+  min-block-size: 0;
+  padding: var(--vx-space-14);
+}
+
+/* Quem rola é a coluna da grade, não o miolo: com a lista ao lado, rolar o
+   miolo levaria a lista junto e o título "Na chamada" sumiria. */
+.palco {
   display: flex;
   flex: 1;
   flex-direction: column;
   gap: var(--vx-space-12);
+  min-inline-size: 0;
   min-block-size: 0;
   overflow-y: auto;
-  padding: var(--vx-space-14);
 }
 
 /*
@@ -254,6 +362,48 @@
   color: var(--vx-danger-text);
 }
 
+/* Câmera é estado de PUBLICAÇÃO e não alarme: o tom do metadado, como o
+   "cam" em mono do design. */
+.glifoCamera {
+  flex: none;
+  color: var(--vx-text-3);
+}
+
+/* Imposto pelo servidor — aviso e não perigo, como na coluna de canais. */
+.glifoSrv {
+  flex: none;
+  color: var(--vx-warning);
+}
+
+.srv {
+  flex: none;
+  color: var(--vx-warning);
+  font-size: var(--vx-size-2xs);
+  font-weight: 700;
+}
+
+/* "+N": contagem, não estado — mono e no tom do metadado. */
+.maisEstados {
+  flex: none;
+  color: var(--vx-text-3);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-2xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+  Ensurdecido esmaece o avatar — o `opacity: 0.6` que o design põe no
+  ladrilho inteiro do Nando.
+
+  ⚠ **No avatar e não no ladrilho**, e é contraste: a placa com o nome mora
+  dentro do ladrilho, e opacidade num ancestral multiplica a luminância do
+  texto depois de qualquer garantia — o `pnpm contrast` lê tokens, não
+  composição de camada. Mesma decisão da opacidade do cargo travado.
+*/
+.ladrilho[data-surdo="true"] .avatar {
+  opacity: 0.6;
+}
+
 /* --------------------------------------------------------- ações */
 
 /*
@@ -309,3 +459,256 @@
   verdadeira. A guarda acusou a regra órfã na primeira corrida, como fizera
   com as seis cópias do `Avatar` — ela faz o inventário sozinha.
 */
+
+/* -------------------------------------------------- fila de avatares */
+
+/*
+  Quem passou dos 16 ladrilhos (D-VOZ-26). O design escreve a regra e não
+  desenha a fila; a forma é a da pilha de avatares da linha de sala — 32px,
+  vão de 6, quebrando linha em vez de rolar de lado (rolagem horizontal
+  dentro de uma coluna que já rola na vertical esconde gente nas duas
+  direções).
+*/
+.filaDeAvatares {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: var(--vx-space-06);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.itemDaFila {
+  display: contents;
+}
+
+.avatarDaFila {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  background: none;
+  cursor: pointer;
+}
+
+/* O anel de fala do design (`box-shadow: 0 0 0 2px`): não ocupa caixa, então
+   acender não mexe na fila. */
+.itemDaFila[data-falando="true"] .avatarDaFila {
+  box-shadow: 0 0 0 2px var(--vx-success);
+}
+
+.avatarDaFila:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------ lista lateral "Na chamada" */
+
+/*
+  "Na chamada — N" (D-DVM-15, D-DVM-16), 1:1 com o design: 272px, raio 12,
+  `surface-1` com hairline, título 13/600, linhas 7·9 com raio 8.
+
+  ⚠ `272px` é DIMENSÃO do painel e não degrau: é a largura em que o nome e a
+  segunda linha cabem sem reticência nos nomes do design.
+*/
+.lista {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  inline-size: 272px;
+  min-block-size: 0;
+  overflow: hidden;
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-12);
+  background: var(--vx-surface-1);
+}
+
+/*
+  Some quando a grade fica estreita — com o chat da sala aberto a `.tela`
+  passa a ~500px, e ali os ladrilhos precisam da largura mais que a lista.
+  Os estados continuam na placa de cada ladrilho; o que se perde é só o
+  resumo. Container query pela mesma razão do cabeçalho: a largura é a da
+  `.tela`, que o chat divide.
+*/
+@container (inline-size < 760px) {
+  .lista {
+    display: none;
+  }
+}
+
+.tituloDaLista {
+  flex: none;
+  padding: var(--vx-space-12) var(--vx-space-14);
+  border-block-end: 1px solid var(--vx-hairline-06);
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+}
+
+.linhasDaLista {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-block-size: 0;
+  margin: 0;
+  overflow-y: auto;
+  padding: var(--vx-space-08);
+  list-style: none;
+}
+
+.linhaDaLista {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-10);
+  padding: var(--vx-space-07) var(--vx-space-09);
+  border-radius: var(--vx-radius-08);
+  transition: background var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.linhaDaLista:hover {
+  background: var(--vx-state-hover);
+}
+
+/* Quem fala ganha o fundo verde a 8% e o anel, como a Marina do design. */
+.linhaDaLista[data-tom="falando"] {
+  background: color-mix(in oklab, var(--vx-success) 8%, transparent);
+}
+
+/* 28px é a medida do design para esta coluna — entre o `xs` (22) da linha
+   de sala e o `sm` (32) da member list, e nenhum dos dois serve. */
+.avatarDaLista {
+  flex: none;
+  inline-size: 28px;
+  block-size: 28px;
+}
+
+.linhaDaLista[data-tom="falando"] .avatarDaLista {
+  box-shadow: 0 0 0 2px var(--vx-success);
+}
+
+/*
+  Ensurdecido esmaece — no AVATAR e não na linha, que é onde o design põe o
+  `opacity: 0.6`. Mesma decisão do ladrilho: opacidade num ancestral
+  multiplica a luminância do nome depois de qualquer garantia de contraste.
+*/
+.linhaDaLista[data-esmaecido="true"] .avatarDaLista {
+  opacity: 0.6;
+}
+
+.identidadeDaLista {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+
+.nomeDaLista {
+  overflow: hidden;
+  color: var(--vx-text-1);
+  font-size: var(--vx-size-md);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* O TOM pinta o nome, como o design: acento em quem fala, vermelho de texto
+   em quem está mudo, aviso em quem transmite. */
+.linhaDaLista[data-tom="falando"] .nomeDaLista {
+  color: var(--vx-accent-text);
+}
+
+.linhaDaLista[data-tom="mudo"] .nomeDaLista {
+  color: var(--vx-danger-text);
+}
+
+.linhaDaLista[data-tom="tela"] .nomeDaLista {
+  color: var(--vx-warning);
+}
+
+.estadoDaLista {
+  overflow: hidden;
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.linhaDaLista[data-tom="falando"] .estadoDaLista {
+  color: var(--vx-success-text);
+}
+
+.linhaDaLista[data-tom="tela"] .estadoDaLista {
+  color: var(--vx-accent-text);
+}
+
+/*
+  O `⋯` do design (D-DVM-15): aparece no hover, no foco e com o teclado.
+  `visibility` e não `opacity`, pela razão de sempre — vinte paradas de
+  tabulação invisíveis antes da doca.
+*/
+.maisDaLista {
+  display: grid;
+  place-items: center;
+  flex: none;
+  visibility: hidden;
+  inline-size: 24px;
+  block-size: 24px;
+  border: 0;
+  border-radius: var(--vx-radius-06);
+  background: none;
+  color: var(--vx-text-3);
+  cursor: pointer;
+}
+
+.linhaDaLista:hover .maisDaLista,
+.linhaDaLista:focus-within .maisDaLista {
+  visibility: visible;
+}
+
+.maisDaLista:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.maisDaLista:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/* Convidar · Atividades (D-DVM-16) — os dois botões do rodapé do design. */
+.rodapeDaLista {
+  display: flex;
+  flex: none;
+  gap: var(--vx-space-06);
+  padding: var(--vx-space-10) var(--vx-space-12);
+  border-block-start: 1px solid var(--vx-hairline-06);
+}
+
+.botaoDaLista {
+  flex: 1;
+  block-size: 30px;
+  border: 1px solid var(--vx-hairline-10);
+  border-radius: var(--vx-radius-06);
+  background: var(--vx-surface-3);
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.botaoDaLista:hover {
+  background: var(--vx-surface-4);
+  color: var(--vx-text-1);
+}
+
+.botaoDaLista:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
