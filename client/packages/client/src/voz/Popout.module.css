@@ -370,3 +370,41 @@
 .redondo[data-perigo="true"]:hover {
   background: color-mix(in srgb, var(--vx-danger) 34%, transparent);
 }
+
+/* ============================================================
+   Na janela do sistema (D-VOZ-15)
+   ------------------------------------------------------------
+   Na casca o popout é uma janela própria, do tamanho dele, e
+   quem a posiciona e a arrasta é o sistema. Ver
+   `popoutNoSistema.ts`.
+   ============================================================ */
+
+/* Sem âncora fixa: a janela É o canto. O deslocamento do arraste não vale
+   aqui — a posição da janela é do sistema. */
+.ancora[data-sistema="true"] {
+  position: static;
+}
+
+/* A sombra cairia inteira FORA da janela, que tem o tamanho exato do
+   popout: não seria vista, e só deixaria a regra mentindo. */
+.popout[data-sistema="true"] {
+  box-shadow: none;
+}
+
+/*
+  ⚠ **A região de arraste é a mesma alça do cartão**: o cabeçalho, e no mínimo
+  o palco. E todo botão dentro dela sai com `no-drag` explícito — região de
+  arraste engole o clique sem erro nenhum, e é a regra da barra de título
+  (`BarraDeTitulo.module.css`) valendo aqui também.
+
+  Sem o prefixo `-webkit-`, pela razão escrita lá: o build o descarta.
+*/
+.popout[data-sistema="true"] .cabecalho,
+.popout[data-sistema="true"][data-forma="pip"] .palco {
+  cursor: default;
+  app-region: drag;
+}
+
+.popout[data-sistema="true"] button {
+  app-region: no-drag;
+}

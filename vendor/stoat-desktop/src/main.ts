@@ -1,4 +1,4 @@
-import { BrowserWindow, app, shell } from "electron";
+import { BrowserWindow, app } from "electron";
 
 import { tratarSquirrel } from "./native/atalhosDoSquirrel";
 import {
@@ -7,10 +7,8 @@ import {
 } from "./native/atualizacao";
 import { config } from "./native/config";
 import { registrarPonteDoVortex } from "./native/ponteDoVortex";
-import {
-  abrirNoNavegadorDoSistema,
-  navegacaoDaPrincipalPermitida,
-} from "./native/privilegioModelo";
+import { prepararJanelaNova, tratarJanelaNova } from "./native/popoutDeVoz";
+import { navegacaoDaPrincipalPermitida } from "./native/privilegioModelo";
 import { initTray } from "./native/tray";
 import { initVirtualMic } from "./native/virtualMic";
 import { BUILD_URL, createMainWindow, mainWindow } from "./native/window";
@@ -99,15 +97,15 @@ if (acquiredLock) {
       }
     });
 
-    contents.setWindowOpenHandler(({ url }) => {
-      if (abrirNoNavegadorDoSistema(url)) {
-        setImmediate(() => {
-          void shell.openExternal(url);
-        });
-      }
-
-      return { action: "deny" };
-    });
+    /*
+      A única janela que se abre é o popout da chamada (D-VOZ-15), e só
+      pedida pela principal — ver `native/popoutDeVozModelo.ts`. Todo o resto
+      segue igual: link externo ao navegador do sistema, nada mais.
+    */
+    contents.setWindowOpenHandler((detalhes) =>
+      tratarJanelaNova(contents, detalhes),
+    );
+    contents.on("did-create-window", prepararJanelaNova);
   });
 } else if (!encerrandoPeloSquirrel) {
   /*

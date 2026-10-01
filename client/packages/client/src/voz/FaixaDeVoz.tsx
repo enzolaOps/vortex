@@ -114,7 +114,7 @@ const BARRAS_ACESAS: Record<QualidadeDeVoz, number> = {
  * existe depois de o ICE nomear um par, e afirmar zero seria o melhor caso
  * possível escrito na tela exatamente quando nada foi medido.
  */
-function Rtt() {
+export function Rtt({ className = css.rtt }: { className?: string }) {
   const [ms, setMs] = useState<number | undefined>(undefined);
 
   useEffect(() => {
@@ -134,7 +134,7 @@ function Rtt() {
 
   if (ms === undefined) return null;
   return (
-    <span className={css.rtt}>
+    <span className={className}>
       {` · ${String(ms)} ms`}
       <span className="sr-only"> de latência</span>
     </span>

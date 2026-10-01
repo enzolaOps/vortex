@@ -277,26 +277,6 @@ export const PENDENCIAS = {
     depende:
       "decidir o que pré-carregar (quais canais, quantas mensagens) e um limite de banda — não há nada disso no app hoje",
   },
-  /*
-    O `⋯` da chamada direta. O design desenha o alvo na barra e não desenha o
-    menu; ensurdecer, que é o item óbvio, já está no painel de usuário e no
-    cartão flutuante — inventar a lista seria escrever o design.
-  */
-  menuDaChamada: {
-    superficie: "Chamada direta, na barra de controles",
-    faz: "Abrir as ações que não cabem na barra (ensurdecer, dispositivos, tela cheia).",
-    depende: "o conteúdo do menu, que o design não desenha",
-  },
-  /*
-    O `⋯` da doca do palco de transmissão (D-TELA-18). Mesma situação do de
-    cima: o design põe o alvo e não o menu — e dispositivos, que seria o item
-    óbvio, já estão no `▾` do microfone e da câmera ao lado.
-  */
-  menuDaDoca: {
-    superficie: "Palco de transmissão, na doca de controles",
-    faz: "Abrir as ações da chamada que não cabem na doca.",
-    depende: "o conteúdo do menu, que o design não desenha",
-  },
 } as const satisfies Record<
   string,
   { superficie: string; faz: string; depende: string }

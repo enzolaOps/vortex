@@ -15,11 +15,15 @@ import {
   useRef,
   useSyncExternalStore,
   type PointerEvent as EventoDePonteiro,
+  type ReactElement,
 } from "react";
+import { createPortal } from "react-dom";
 
 import { Avatar } from "../components/ui/Avatar";
 import { Tooltip } from "../components/ui/Tooltip";
 import { temaDoDocumento, useReduzirMovimento } from "../lib/efeito";
+import { ponteDeNotificacoes } from "../notificacao/notificador";
+import { naDesktop } from "../sdk/desktop";
 import {
   alternarCamera,
   alternarMudo,
@@ -42,7 +46,16 @@ import {
   moverPopout,
   reiniciarPopout,
 } from "../store/popout";
+import {
+  abrirJanelaDoPopout,
+  assinarJanelaDoPopout,
+  definirTituloDaJanela,
+  fecharJanelaDoPopout,
+  focoDaPrincipal,
+  lerJanelaDoPopout,
+} from "./janelaDoPopout";
 import { Cronometro, FaixaDeVideo } from "./pecasDeVoz";
+import { popoutVisivel } from "./popoutNoSistema";
 import { useNaSala } from "./useSalaDeVoz";
 import css from "./Popout.module.css";
 
@@ -87,7 +100,25 @@ export function Popout() {
   const raiz = useRef<HTMLDivElement | null>(null);
   const arraste = useArraste(raiz, popout.dx, popout.dy);
 
+  /*
+    ⚠ **Na casca, o popout é uma JANELA DO SISTEMA (D-VOZ-15)**, sempre no
+    topo e visível com o Vortex atrás de outro app. No navegador ele continua
+    sendo o cartão. A casca que não sabe abrir a janela nega o pedido, a
+    janela vira `indisponivel`, e o cartão volta — sem ponte nova para
+    conferir versão. Ver `popoutNoSistema.ts`.
+  */
+  const janela = useSyncExternalStore(assinarJanelaDoPopout, lerJanelaDoPopout);
+  const noSistema = naDesktop() && janela.tipo !== "indisponivel";
+  const principalComFoco = useSyncExternalStore(focoDaPrincipal.assinar, focoDaPrincipal.ler);
+
   const fora = chamada.estado === "fora";
+  const visivel = popoutVisivel({
+    fora,
+    fechado: popout.forma === "fechado",
+    naSala,
+    noSistema,
+    principalComFoco,
+  });
 
   /*
     ⚠ **Sair da chamada devolve forma E posição ao repouso.** Sem isto, quem
@@ -100,9 +131,26 @@ export function Popout() {
     if (fora) reiniciarPopout();
   }, [fora]);
 
-  if (fora || naSala || popout.forma === "fechado") return null;
+  /* A janela existe enquanto o popout é visível — e só na casca. */
+  const querJanela = noSistema && visivel;
+  useEffect(() => {
+    if (!querJanela) return;
+    abrirJanelaDoPopout();
+    return fecharJanelaDoPopout;
+  }, [querJanela]);
 
   const nome = canal?.name ?? "voz";
+  const aberta = janela.tipo === "aberta";
+  useEffect(() => {
+    if (aberta) definirTituloDaJanela(`Chamada em ${nome}`);
+  }, [aberta, nome]);
+
+  if (!visivel) return null;
+  /* Na casca, entre pedir a janela e ela existir: nada, e não um quadro do
+     cartão que some em seguida. */
+  if (noSistema && janela.tipo !== "aberta") return null;
+  const sistema = janela.tipo === "aberta";
+
   const pip = popout.forma === "pip";
 
   /* Estilo e não classe: a posição é DADO, e muda a cada arraste. */
@@ -111,8 +159,13 @@ export function Popout() {
     "--vx-popout-dy": `${String(popout.dy)}px`,
   } as React.CSSProperties;
 
-  return (
-    <div ref={raiz} className={css.ancora} style={posicao}>
+  const conteudo = (
+    <div
+      ref={raiz}
+      className={css.ancora}
+      style={sistema ? undefined : posicao}
+      data-sistema={sistema}
+    >
       <BorderBeam
         size="sm"
         colorVariant="ocean"
@@ -124,6 +177,7 @@ export function Popout() {
         <section
           className={css.popout}
           data-forma={popout.forma}
+          data-sistema={sistema}
           aria-label={`Chamada em ${nome}`}
         >
       {pip ? null : (
@@ -137,7 +191,15 @@ export function Popout() {
           teclado, num botão que o design já desenha. Uma parada de tabulação
           invisível que só move pixels seria pior que a ausência.
         */
-        <header className={css.cabecalho} onPointerDown={arraste.aoDescer}>
+        /*
+          Na janela do sistema quem arrasta é o PRÓPRIO sistema, pela região
+          de arraste do CSS (`app-region: drag`); o gesto por ponteiro daqui
+          moveria o elemento dentro de uma janela do tamanho dele.
+        */
+        <header
+          className={css.cabecalho}
+          onPointerDown={sistema ? undefined : arraste.aoDescer}
+        >
           {/*
             ⚠ **O nome NAVEGA e abre a chamada — as duas coisas, num alvo só.**
 
@@ -153,6 +215,13 @@ export function Popout() {
             onClick={() => {
               selecionarCanal(chamada.channelId);
               definirPalco(destinoDoPalco(chamada));
+              /* Da janela do sistema, "me leva até a chamada" é também
+                 trazer o app para a frente — é o "resto volta ao expandir"
+                 do design. */
+              if (sistema) {
+                ponteDeNotificacoes()?.focar();
+                window.focus();
+              }
             }}
           >
             {nome}
@@ -170,32 +239,34 @@ export function Popout() {
             entrega ao sistema operacional. Este é a segunda forma do popout,
             desenhada, com a contagem e os dois controles.
           */}
-          <Tooltip texto="Minimizar" lado="abaixo">
+          <ComDica sistema={sistema} texto="Minimizar" lado="abaixo">
             <button
               type="button"
               className={css.acaoDoCabecalho}
               aria-label="Minimizar a janela da chamada"
+              title={sistema ? "Minimizar" : undefined}
               onClick={() => definirFormaDoPopout("pip")}
             >
               <PictureInPicture size={ICONE.metadado} aria-hidden />
             </button>
-          </Tooltip>
-          <Tooltip texto="Fechar a janela" lado="abaixo">
+          </ComDica>
+          <ComDica sistema={sistema} texto="Fechar a janela" lado="abaixo">
             <button
               type="button"
               className={css.acaoDoCabecalho}
               aria-label="Fechar a janela da chamada"
+              title={sistema ? "Fechar a janela" : undefined}
               onClick={() => definirFormaDoPopout("fechado")}
             >
               <X size={ICONE.metadado} aria-hidden />
             </button>
-          </Tooltip>
+          </ComDica>
         </header>
       )}
 
       <div
         className={css.palco}
-        onPointerDown={pip ? arraste.aoDescer : undefined}
+        onPointerDown={pip && !sistema ? arraste.aoDescer : undefined}
       >
         <Mostra chamada={chamada} />
 
@@ -228,6 +299,7 @@ export function Popout() {
         {pip ? (
           <div className={css.controlesDoPip}>
             <BotaoRedondo
+              sistema={sistema}
               nome="Microfone"
               ligado={!chamada.mudo}
               perigo={chamada.mudo}
@@ -241,6 +313,7 @@ export function Popout() {
               )}
             </BotaoRedondo>
             <BotaoRedondo
+              sistema={sistema}
               nome="Sair da chamada"
               perigo
               acao="Sair da chamada"
@@ -262,6 +335,7 @@ export function Popout() {
         */
         <footer className={css.rodape}>
           <BotaoRedondo
+            sistema={sistema}
             nome="Microfone"
             ligado={!chamada.mudo}
             perigo={chamada.mudo}
@@ -275,6 +349,7 @@ export function Popout() {
             )}
           </BotaoRedondo>
           <BotaoRedondo
+            sistema={sistema}
             nome="Câmera"
             ligado={chamada.camera}
             acao={chamada.camera ? "Desligar câmera" : "Ligar câmera"}
@@ -287,6 +362,7 @@ export function Popout() {
             )}
           </BotaoRedondo>
           <BotaoRedondo
+            sistema={sistema}
             nome="Sair da chamada"
             perigo
             acao="Sair da chamada"
@@ -299,6 +375,36 @@ export function Popout() {
         </section>
       </BorderBeam>
     </div>
+  );
+
+  return janela.tipo === "aberta" ? createPortal(conteudo, janela.alvo) : conteudo;
+}
+
+/**
+ * O `Tooltip` do Radix, ou nada — na janela do sistema.
+ *
+ * ⚠ **O tooltip abriria na JANELA PRINCIPAL**: o `Portal` do Radix escreve no
+ * `body` do documento onde o React foi montado, não no da janela do popout.
+ * A pessoa passaria o ponteiro no `✕` flutuando sobre outro app e a dica
+ * apareceria no Vortex, atrás. Lá, quem diz a ação é o `title` do botão, que
+ * o sistema desenha na janela certa.
+ */
+function ComDica({
+  sistema,
+  texto,
+  lado,
+  children,
+}: {
+  sistema: boolean;
+  texto: string;
+  lado: "acima" | "abaixo";
+  children: ReactElement;
+}) {
+  if (sistema) return children;
+  return (
+    <Tooltip texto={texto} lado={lado}>
+      {children}
+    </Tooltip>
   );
 }
 
@@ -466,6 +572,7 @@ const Miniatura = memo(function Miniatura({ userId }: { userId: string }) {
    ============================================================ */
 
 function BotaoRedondo({
+  sistema,
   nome,
   ligado,
   acao,
@@ -473,6 +580,8 @@ function BotaoRedondo({
   onClick,
   children,
 }: {
+  /** Na janela do sistema — ver `ComDica`. */
+  sistema: boolean;
   nome: string;
   ligado?: boolean;
   acao: string;
@@ -491,10 +600,11 @@ function BotaoRedondo({
   children: React.ReactNode;
 }) {
   return (
-    <Tooltip texto={acao} lado="acima">
+    <ComDica sistema={sistema} texto={acao} lado="acima">
       <button
         type="button"
         className={css.redondo}
+        title={sistema ? acao : undefined}
         /* Nome do RECURSO no rótulo e estado no `aria-pressed`; a ação vai no
            tooltip. É a regra que o lint deste projeto já cobrou uma vez, e
            `Sair da chamada` fica sem `aria-pressed` porque não alterna nada. */
@@ -505,7 +615,7 @@ function BotaoRedondo({
       >
         {children}
       </button>
-    </Tooltip>
+    </ComDica>
   );
 }
 

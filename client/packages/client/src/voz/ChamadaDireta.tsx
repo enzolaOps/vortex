@@ -11,7 +11,6 @@ import { useSyncExternalStore } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
 import { Tooltip } from "../components/ui/Tooltip";
-import { aindaNao } from "../pendente/pendencias";
 import {
   alternarCamera,
   alternarMudo,
@@ -22,7 +21,7 @@ import { usuarioLocalId } from "../sdk/adapter";
 import { assinarChamada, falando, lerChamada } from "../store/chamada";
 import { useChannel, usePessoa } from "../store/hooks";
 import { fecharPalco } from "../store/palcoDeVoz";
-import { Cronometro, FaixaDeVideo, useVideo } from "./pecasDeVoz";
+import { Cronometro, FaixaDeVideo, MenuDaChamada, useVideo } from "./pecasDeVoz";
 import css from "./ChamadaDireta.module.css";
 
 /**
@@ -119,14 +118,18 @@ export function ChamadaDireta({ channelId }: { channelId: string }) {
         <Controle nome="Abrir chat" acao="Abrir chat" onClick={fecharPalco}>
           <ChatCircle aria-hidden />
         </Controle>
-        <Controle
-          nome="Mais ações"
-          acao="Mais ações"
-          secundario
-          onClick={aindaNao("menuDaChamada")}
-        >
-          <DotsThree aria-hidden />
-        </Controle>
+        {/* O MESMO menu do `⋯` da doca do palco — ensurdecer e os
+            dispositivos, que esta barra não tem, moram nele. */}
+        <MenuDaChamada acao="Mais ações">
+          <button
+            type="button"
+            className={css.controle}
+            aria-label="Mais ações"
+            data-secundario="true"
+          >
+            <DotsThree aria-hidden />
+          </button>
+        </MenuDaChamada>
 
         <span className={css.divisa} aria-hidden />
 
@@ -248,7 +251,6 @@ function Controle({
   ligado,
   ativo,
   perigo,
-  secundario,
   onClick,
   children,
 }: {
@@ -259,7 +261,6 @@ function Controle({
   /** Em acento: câmera e tela no ar. O microfone aberto é o NORMAL, não ativo. */
   ativo?: boolean;
   perigo?: boolean;
-  secundario?: boolean;
   onClick: () => void;
   children: React.ReactNode;
 }) {
@@ -272,7 +273,6 @@ function Controle({
         aria-pressed={ligado}
         data-perigo={perigo ?? false}
         data-ativo={ativo ?? false}
-        data-secundario={secundario ?? false}
         onClick={onClick}
       >
         {children}
