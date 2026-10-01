@@ -119,7 +119,7 @@ vi.mock("../store/perfilDoServidor", () => ({
 import { ItensDaConversa } from "./ItensDaConversa";
 import { ItensDoCanal } from "./ItensDoCanal";
 import { ItensDoServidor } from "./ItensDoServidor";
-import { limparSilencio } from "../store/silencio";
+import { limparSilencio, silenciar } from "../store/silencio";
 
 let alvo: HTMLDivElement;
 let raiz: Root;
@@ -267,6 +267,56 @@ describe("menu do CANAL", () => {
     const rotulos = textos(desenhar(<ItensDoCanal channelId="voz1" />));
     expect(tem(rotulos, "Entrar na sala")).toBe(true);
     expect(tem(rotulos, "Abrir o chat")).toBe(true);
+  });
+});
+
+describe("submenu de SILENCIAR (D-NOTIF-26/27)", () => {
+  it("sem silêncio: nenhuma marcada e sem nota", () => {
+    permitir = true;
+    desenhar(<ItensDoCanal channelId="c1" />);
+    expect(alvo.querySelectorAll("[data-marcado]")).toHaveLength(0);
+    expect(alvo.textContent).not.toContain("Volta a notificar");
+    expect(alvo.textContent).not.toContain("continua contando");
+  });
+
+  it("temporário: ✓ na escolhida e a nota com o restante", () => {
+    permitir = true;
+    silenciar("c1", 60 * 60_000);
+    desenhar(<ItensDoCanal channelId="c1" />);
+    const marcados = [...alvo.querySelectorAll("[data-marcado]")];
+    expect(marcados.map((n) => n.textContent)).toEqual(["Por 1 hora"]);
+    expect(alvo.textContent).toContain(
+      "Volta a notificar automaticamente · 1 h restantes.",
+    );
+  });
+
+  it("menu montado ANTES de silenciar: o relógio velho não infla o prazo", () => {
+    permitir = true;
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(1_000_000_000);
+      desenhar(<ItensDoCanal channelId="c1" />);
+      /* 5 minutos depois, sem o intervalo de minuto ter disparado: com o
+         relógio da montagem, 1 h viraria 65 min e arredondaria para "2 h". */
+      vi.setSystemTime(1_000_000_000 + 5 * 60_000);
+      act(() => silenciar("c1", 60 * 60_000));
+      expect(alvo.textContent).toContain("1 h restantes");
+      expect(alvo.textContent).not.toContain("2 h restantes");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("até reativar: a nota diz que a contagem continua", () => {
+    permitir = true;
+    silenciar("c1");
+    desenhar(<ItensDoCanal channelId="c1" />);
+    expect(
+      [...alvo.querySelectorAll("[data-marcado]")].map((n) => n.textContent),
+    ).toEqual(["Até eu reativar"]);
+    expect(alvo.textContent).toContain(
+      "O canal continua contando não lidos, sem notificar.",
+    );
   });
 });
 

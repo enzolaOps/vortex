@@ -86,4 +86,56 @@ export function restanteDeSilencio(
   return `${String(Math.ceil(min / 60))} h restantes`;
 }
 
+/**
+ * O instante contra o qual o restante é calculado.
+ *
+ * ⚠ **Nunca ANTES do início do silêncio.** O submenu guarda um relógio de
+ * minuto que nasce na montagem, e ele pode estar montado desde antes de a
+ * pessoa escolher o prazo. Medido no arnês: "Por 1 hora" escolhida com o
+ * relógio 40 s atrasado dava "2 h restantes", porque 61 minutos arredondam
+ * para cima. O início (`ate - duração`) é um piso verdadeiro para o instante
+ * atual, e custa uma subtração em vez de um `setState` num efeito.
+ *
+ * ⚠ **Duração `NaN` é esperada**: silêncio hidratado do protocolo não diz
+ * qual prazo foi escolhido (ver `lerMutes` em `store/silencio.ts`). Sem piso
+ * conhecido, vale o relógio — e o `NaN` nunca pode vazar para o rótulo.
+ */
+export function relogioDoSilencio(
+  agora: number,
+  ate: number | undefined,
+  duracaoMs: number | undefined,
+): number {
+  if (ate === undefined || duracaoMs === undefined) return agora;
+  if (!Number.isFinite(ate) || !Number.isFinite(duracaoMs)) return agora;
+  return Math.max(agora, ate - duracaoMs);
+}
+
+/**
+ * A nota do fim do submenu (D-NOTIF-27), ou a ausência dela.
+ *
+ * Responde a pergunta que a escolha deixa: "e depois?". Com prazo, quando
+ * volta; sem prazo, o que continua valendo — a contagem de não lidos, que é o
+ * que separa silenciar de sair do canal.
+ *
+ * ⚠ **Sem nota quando não há silêncio.** Explicar os prazos antes de alguém
+ * escolher um é texto que se lê uma vez e vira ruído permanente no menu.
+ *
+ * ⚠ **Prazo vencido também não tem nota**, e pela mesma razão do
+ * `restanteDeSilencio`: "Volta a notificar · 0 min restantes" diria que ainda
+ * está mudo quando já não está.
+ */
+export function notaDeSilencio(
+  tipo: AlvoDeSilencio["tipo"],
+  ate: number | undefined,
+  agora: number,
+): string | undefined {
+  if (ate === undefined) return undefined;
+  if (ate === Infinity) {
+    const quem = tipo === "servidor" ? "O servidor" : "O canal";
+    return `Silenciado até você reativar. ${quem} continua contando não lidos, sem notificar.`;
+  }
+  const restante = restanteDeSilencio(ate, agora);
+  return restante ? `Volta a notificar automaticamente · ${restante}.` : undefined;
+}
+
 export { DURACOES_DE_SILENCIO };

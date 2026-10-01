@@ -15,6 +15,7 @@ import { tocar } from "../som/sons";
 import { lerMeuStatus } from "../store/meuStatus";
 import { irParaEventos } from "../store/navegacao";
 import { lerNotificacoes } from "../store/notificacoes";
+import { opcoesDoServidor } from "../store/silencio";
 
 /**
  * O lembrete de "10 minutos antes" — o que o interruptor "Lembrar
@@ -91,6 +92,7 @@ function varrer(): void {
     usuarioLocalId(),
     agora,
     avisados,
+    (serverId) => opcoesDoServidor(serverId).notificarEventos,
   )) {
     avisados.add(chave);
     avisar(evento, agora);
