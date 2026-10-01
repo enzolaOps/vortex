@@ -1,0 +1,89 @@
+/* ============================================================
+   Régua de formatação — uma peça, dois consumidores
+   ------------------------------------------------------------
+   Os valores são os do design nas DUAS réguas que ele desenha:
+   assunto do canal (28×26, corpo 13) e editor de mensagem
+   (26×26, corpo 12). O contêiner — borda, respiro, de que lado
+   fica a hairline — é de quem consome, porque é ali que as duas
+   diferem: uma fica acima do campo, a outra abaixo.
+   ============================================================ */
+
+.regua {
+  display: flex;
+  align-items: center;
+  /* 1px, como na barra de ações: os botões são uma fileira só. */
+  gap: 1px;
+}
+
+/* O span existe só para a divisa andar junto do botão; não é caixa. */
+.grupo {
+  display: contents;
+}
+
+.botao {
+  display: grid;
+  place-items: center;
+  min-inline-size: 28px;
+  block-size: 26px;
+  padding-inline: 0;
+  border: 0;
+  border-radius: var(--vx-radius-05);
+  background: transparent;
+  color: var(--vx-text-2);
+  font-family: inherit;
+  font-size: var(--vx-size-md);
+  cursor: pointer;
+  transition:
+    background-color var(--vx-duration-fast) var(--vx-ease-out),
+    color var(--vx-duration-fast) var(--vx-ease-out);
+}
+
+.regua[data-compacta] .botao {
+  min-inline-size: 26px;
+  font-size: var(--vx-size-sm);
+}
+
+.botao:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+/* `outline` e não o anel: a régua vive dentro de caixa que recorta. */
+.botao:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
+/* O glifo É o formato — como o design desenha. */
+.botao[data-formato="negrito"] {
+  font-weight: 700;
+}
+
+.botao[data-formato="italico"] {
+  font-style: italic;
+}
+
+.botao[data-formato="sublinhado"] {
+  text-decoration: underline;
+}
+
+.botao[data-formato="riscado"] {
+  text-decoration: line-through;
+}
+
+/* O único rótulo em palavra: largura do texto, com respiro, e um degrau menor. */
+.botao[data-formato="spoiler"] {
+  padding-inline: var(--vx-space-08);
+  font-size: var(--vx-size-sm);
+}
+
+.divisa {
+  inline-size: 1px;
+  block-size: 16px;
+  margin-inline: var(--vx-space-04);
+  background: var(--vx-hairline-10);
+}
+
+.dica {
+  margin-inline-start: auto;
+}
