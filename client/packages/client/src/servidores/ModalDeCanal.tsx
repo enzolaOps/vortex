@@ -13,7 +13,8 @@ import { pode } from "../sdk/permissoes";
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
 import { criarPasta } from "../store/pastas";
-import { ICONE, Lock } from "../components/ui/icones";
+import { CaretRight, Hash, ICONE, Lock, LockSimple } from "../components/ui/icones";
+import { rotuloDePrevia } from "./previaDeCategoria";
 
 import { Escolha } from "../components/ui/Escolha";
 import { Interruptor } from "../components/ui/Interruptor";
@@ -588,6 +589,27 @@ function FormaDeCategoria({
 
       {categoriaId ? null : (
         <>
+          {/*
+            A prévia na coluna — D-CANAIS-30. Só ao CRIAR: renomear acontece
+            sobre uma categoria que já está na tela, e a linha "nenhum canal
+            ainda" seria falsa. `aria-hidden` porque repete o campo acima; o
+            que ela acrescenta é visual (a caixa alta e o cadeado).
+          */}
+          <div className={css.previa} aria-hidden>
+            <span className={css.previaRotulo}>Prévia na sidebar</span>
+            <div className={css.previaColuna}>
+              <div className={css.previaSecao}>
+                <CaretRight className={css.previaSeta} data-aberta="true" />
+                <span className={css.previaNome}>{rotuloDePrevia(nome)}</span>
+                {privada ? <LockSimple className={css.previaGlifo} /> : null}
+              </div>
+              <div className={css.previaCanal}>
+                <Hash className={css.previaGlifo} />
+                <span>nenhum canal ainda</span>
+              </div>
+            </div>
+          </div>
+
           {podeFechar ? (
             <div className={css.privado}>
               <span className={css.privadoTexto}>

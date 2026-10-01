@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 import { ulid } from "ulid";
 
 import type { AberturaDePost, TopicoSnapshot } from "../sdk/domain";
-import { recortarGaleria, totalDaGaleria } from "./galeria";
+import {
+  duracaoConhecida,
+  lembrarDuracao,
+  recortarGaleria,
+  seloDaMidia,
+  totalDaGaleria,
+} from "./galeria";
 import { linhasDaGrade } from "./linhas";
 
 /**
@@ -33,6 +39,7 @@ function item(
     aberturaId: undefined,
     arquivado: false,
     fixado: false,
+    emAnalise: false,
     tags: [],
     seguidores: [],
     seguindo: false,
@@ -148,5 +155,38 @@ describe("linhasDaGrade", () => {
       { tipo: "itens", chave: "a:1", ids: ["a"] },
       { tipo: "itens", chave: "b:1", ids: ["b"] },
     ]);
+  });
+});
+
+describe("seloDaMidia", () => {
+  it("vídeo mostra a duração medida; GIF mostra GIF; imagem não tem selo", () => {
+    expect(seloDaMidia("video", 12.4)).toBe("0:12");
+    expect(seloDaMidia("video", 75)).toBe("1:15");
+    expect(seloDaMidia("gif", 3)).toBe("GIF");
+    expect(seloDaMidia("imagem", undefined)).toBeUndefined();
+    expect(seloDaMidia(undefined, undefined)).toBeUndefined();
+  });
+
+  it("sem duração conhecida, diz o tipo — nunca 0:00", () => {
+    expect(seloDaMidia("video", undefined)).toBe("VÍDEO");
+    expect(seloDaMidia("video", Number.NaN)).toBe("VÍDEO");
+    expect(seloDaMidia("video", Number.POSITIVE_INFINITY)).toBe("VÍDEO");
+    expect(seloDaMidia("video", 0)).toBe("VÍDEO");
+  });
+});
+
+describe("duração lembrada por URL", () => {
+  it("sobrevive à célula: quem remonta lê o que já foi medido", () => {
+    expect(duracaoConhecida("https://m/a.mp4")).toBeUndefined();
+    lembrarDuracao("https://m/a.mp4", 12);
+    expect(duracaoConhecida("https://m/a.mp4")).toBe(12);
+    expect(duracaoConhecida(undefined)).toBeUndefined();
+  });
+
+  it("não guarda o que não é duração", () => {
+    lembrarDuracao("https://m/b.mp4", Number.POSITIVE_INFINITY);
+    lembrarDuracao("https://m/c.mp4", Number.NaN);
+    expect(duracaoConhecida("https://m/b.mp4")).toBeUndefined();
+    expect(duracaoConhecida("https://m/c.mp4")).toBeUndefined();
   });
 });

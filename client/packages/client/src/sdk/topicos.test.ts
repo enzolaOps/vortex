@@ -30,6 +30,7 @@ function meta(extra: Partial<MetaDeTopico> = {}): MetaDeTopico {
     aberturaId: undefined,
     arquivado: false,
     fixado: false,
+    emAnalise: false,
     tags: [],
     seguidores: [],
     ultimaMensagemId: undefined,

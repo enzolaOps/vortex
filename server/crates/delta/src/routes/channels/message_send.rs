@@ -215,7 +215,11 @@ pub async fn message_send(
     .await?;
 
     if let Some(mut thread_channel) = thread_channel {
-        if let Some(mut info) = thread_channel.thread().cloned() {
+        // The derived state: a thread idle for a week counts as archived even
+        // though nothing was stored, and replying must reopen it all the same.
+        if let Some(mut info) =
+            thread_channel.thread_now(&revolt_database::thread_archive_cutoff_now())
+        {
             let mut changed = false;
 
             if info.message.is_none() {
@@ -223,9 +227,12 @@ pub async fn message_send(
                 changed = true;
             }
 
-            // Replying reopens an archived thread.
+            // Replying reopens an archived thread. The reply is the activity
+            // that restarts the week, marked here and not left to
+            // `last_message_id`, which is written later by a queued task.
             if info.archived {
                 info.archived = false;
+                info.reopened = Some(message.id.clone());
                 changed = true;
             }
 

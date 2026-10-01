@@ -15,7 +15,9 @@ async fn set_following(
     follow: bool,
 ) -> Result<EmptyResponse> {
     let mut channel: Channel = target.as_channel(db).await?;
-    let Some(mut info) = channel.thread().cloned() else {
+    // The derived state, so following an idle thread does not publish it as
+    // active — see `Channel::thread_archived`.
+    let Some(mut info) = channel.thread_now(&revolt_database::thread_archive_cutoff_now()) else {
         return Err(create_error!(InvalidOperation));
     };
 

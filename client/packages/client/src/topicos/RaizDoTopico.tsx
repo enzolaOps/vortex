@@ -8,6 +8,7 @@ import { TextoDaMensagem } from "../list/TextoDaMensagem";
 import { useForum, useMessage, useTopico } from "../store/hooks";
 import { useAgoraPorMinuto } from "../store/relogio";
 import type { TagDeForum } from "../sdk/domain";
+import { estadoDoPost } from "../forum/estado";
 import css from "./RaizDoTopico.module.css";
 
 /**
@@ -39,6 +40,7 @@ export function RaizDoTopico({ channelId }: { channelId: string }) {
   const autorId = origem?.authorId ?? t.abertura?.autorId ?? t.donoId;
   const midia = deMensagem ? t.abertura?.midia : undefined;
   const textoDaOrigem = deMensagem ? (origem ?? t.abertura?.texto) : undefined;
+  const estado = estadoDoPost(t);
 
   return (
     <div className={css.raiz}>
@@ -53,7 +55,7 @@ export function RaizDoTopico({ channelId }: { channelId: string }) {
         e a mira devolve "sem alvo" — o menu não abre em vez de abrir vazio.
       */}
       <article className={css.card} data-menu-mensagem={origem?.id}>
-        {tags.length > 0 || t.arquivado ? (
+        {tags.length > 0 || estado !== undefined ? (
           <div className={css.tags}>
             {tags.map((tag) => (
               <span
@@ -65,7 +67,9 @@ export function RaizDoTopico({ channelId }: { channelId: string }) {
                 {tag.nome}
               </span>
             ))}
-            {t.arquivado ? <span className={css.estado}>arquivado</span> : null}
+            {/* Um selo só, com a prioridade do card do fórum: fechado ganha. */}
+            {estado === "fechado" ? <span className={css.estado}>arquivado</span> : null}
+            {estado === "em análise" ? <span className={css.emAnalise}>em análise</span> : null}
           </div>
         ) : null}
 

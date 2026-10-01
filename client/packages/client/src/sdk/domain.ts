@@ -536,6 +536,15 @@ export type SistemaSnapshot =
   | { readonly tipo: "moveu"; readonly userId: string; readonly paraId: string }
   /** Sala de voz: alguém começou a compartilhar a tela (D-VOZ-13). */
   | { readonly tipo: "transmitiu"; readonly userId: string }
+  /**
+   * Tópico: gente passou a segui-lo (D-CANAIS-23) — "Rafa e Nando entraram no
+   * tópico". Uma lista e não um `userId`: entradas seguidas se juntam numa
+   * linha só, como o design escreve.
+   *
+   * ⚠ EFÊMERA como as da sala, derivada do `thread.followers` que o
+   * `ChannelUpdate` já traz — ver `sdk/entradasNoTopico.ts`.
+   */
+  | { readonly tipo: "entrouNoTopico"; readonly userIds: readonly string[] }
 
   /**
    * Uma chamada foi iniciada neste canal.
@@ -1061,6 +1070,8 @@ export type TopicoSnapshot = {
   readonly arquivado: boolean;
   /** Fixado no topo do fórum pai. */
   readonly fixado: boolean;
+  /** Post que a moderação do fórum marcou como "em análise". */
+  readonly emAnalise: boolean;
   /** IDs das tags do fórum pai. */
   readonly tags: readonly string[];
   /** Quem segue — é quem o painel mostra como participantes. */

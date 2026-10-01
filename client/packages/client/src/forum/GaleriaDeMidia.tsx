@@ -16,7 +16,14 @@ import {
 import { useChannel, usePessoa, useTopico, useTopicosDoCanal } from "../store/hooks";
 import { selecionarCanal } from "../store/navegacao";
 import { useAgoraPorMinuto } from "../store/relogio";
-import { recortarGaleria, totalDaGaleria, type FiltroDaGaleria } from "./galeria";
+import {
+  duracaoConhecida,
+  lembrarDuracao,
+  recortarGaleria,
+  seloDaMidia,
+  totalDaGaleria,
+  type FiltroDaGaleria,
+} from "./galeria";
 import { GradeVirtual } from "./GradeVirtual";
 import { Pilulas } from "./Pilulas";
 import css from "./GaleriaDeMidia.module.css";
@@ -75,7 +82,7 @@ export function GaleriaDeMidia({ channelId }: { channelId: string }) {
         soltar(e.dataTransfer.files[0]);
       }}
     >
-      Arraste arquivos aqui para publicar · legenda obrigatória
+      Arraste arquivos aqui para publicar · legenda obrigatória, alt recomendado
     </button>
   ) : null;
 
@@ -137,12 +144,19 @@ const Item = memo(function Item({ id, denso }: { id: string; denso: boolean }) {
   const autor = usePessoa(t?.abertura?.autorId ?? t?.donoId ?? "");
   // Estado de UI desta célula: revelar um spoiler é gesto de quem olha, e some ao rolar.
   const [revelado, setRevelado] = useState(false);
+  /*
+    A duração do vídeo, lida do próprio arquivo pelo `<video>` que já desenha
+    o quadro. Parte do que a sessão já mediu, para a célula que remonta ao
+    rolar não voltar a "VÍDEO" e piscar.
+  */
+  const url = t?.abertura?.midia?.url;
+  const [duracao, setDuracao] = useState(() => duracaoConhecida(url));
 
   if (!t) return <div className={css.card} aria-hidden />;
 
   const m = t.abertura?.midia;
   const escondido = m?.spoiler === true && !revelado;
-  const selo = m?.tipo === "gif" ? "GIF" : m?.tipo === "video" ? "VÍDEO" : undefined;
+  const selo = seloDaMidia(m?.tipo, duracao);
   const respostas = t.respostas ?? 0;
 
   return (
@@ -156,7 +170,17 @@ const Item = memo(function Item({ id, denso }: { id: string; denso: boolean }) {
         <span className={css.quadro}>
           {m?.url && !escondido ? (
             m.tipo === "video" ? (
-              <video src={m.url} className={css.midia} preload="metadata" muted />
+              <video
+                src={m.url}
+                className={css.midia}
+                preload="metadata"
+                muted
+                onLoadedMetadata={(e) => {
+                  const d = e.currentTarget.duration;
+                  if (m.url) lembrarDuracao(m.url, d);
+                  if (Number.isFinite(d) && d > 0) setDuracao(d);
+                }}
+              />
             ) : (
               <img src={m.url} alt="" className={css.midia} loading="lazy" />
             )

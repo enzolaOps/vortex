@@ -213,6 +213,7 @@
 /* `height:19px; padding:0 7px; radius 4; 10/700` — neutro a 24% */
 .fixado,
 .fechado,
+.emAnalise,
 .tag {
   display: inline-flex;
   align-items: center;
@@ -234,6 +235,13 @@
 .fechado {
   background: color-mix(in oklab, var(--vx-neutral) 24%, transparent);
   color: var(--vx-text-2);
+  font-weight: 700;
+}
+
+/* `em análise`: `rgba(226,177,92,0.16)` com `#E2B15C`, 10/700 — o aviso a 16%. */
+.emAnalise {
+  background: color-mix(in srgb, var(--vx-warning) 16%, transparent);
+  color: var(--vx-warning);
   font-weight: 700;
 }
 

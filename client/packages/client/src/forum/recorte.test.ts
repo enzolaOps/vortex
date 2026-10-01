@@ -21,6 +21,7 @@ function post(extra: Partial<TopicoSnapshot> & { id: string }): TopicoSnapshot {
     aberturaId: undefined,
     arquivado: false,
     fixado: false,
+    emAnalise: false,
     tags: [],
     seguidores: [],
     seguindo: false,

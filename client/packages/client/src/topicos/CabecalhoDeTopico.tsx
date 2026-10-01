@@ -18,7 +18,7 @@ import { Tooltip } from "../components/ui/Tooltip";
 import { cn } from "../lib/cn";
 import { plural } from "../lib/plural";
 import { pode } from "../sdk/permissoes";
-import { arquivarTopico, fixarPost, seguirTopico } from "../sdk/topicos";
+import { arquivarTopico, fixarPost, marcarEmAnalise, seguirTopico } from "../sdk/topicos";
 import { usuarioLocalId } from "../sdk/adapter";
 import { pedirIrParaMensagem } from "../store/comandos";
 import { useChannel, useForum, useTopico } from "../store/hooks";
@@ -134,6 +134,12 @@ export function CabecalhoDeTopico({
               {podeFixar ? (
                 <DropdownMenuItem onSelect={() => void fixarPost(channelId, !t.fixado)}>
                   {t.fixado ? "Desafixar post" : "Fixar post"}
+                </DropdownMenuItem>
+              ) : null}
+              {/* "Em análise" tem a régua de fixar no servidor — `thread_edit.rs`. */}
+              {podeFixar ? (
+                <DropdownMenuItem onSelect={() => void marcarEmAnalise(channelId, !t.emAnalise)}>
+                  {t.emAnalise ? "Tirar de análise" : "Marcar em análise"}
                 </DropdownMenuItem>
               ) : null}
               {podeArquivar ? (

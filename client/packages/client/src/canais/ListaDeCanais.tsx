@@ -391,7 +391,16 @@ const Canal = memo(function Canal({
             <Icone className={css.icone} aria-hidden />
           )}
           <span className={css.nome}>{canal.name}</span>
-          {forum && !forum.midia ? <span className={css.etiquetaDeForum}>FÓRUM</span> : null}
+          {/*
+            A etiqueta só no ATIVO (D-CANAIS-01). O glifo ▤ já distingue fórum
+            de canal em toda linha; repetir "FÓRUM" em cada uma é ruído numa
+            coluna que se varre, e no ativo ela responde a outra pergunta —
+            "que tipo de lugar é este em que estou" — que o glifo pequeno ao
+            lado do nome em negrito não responde sozinho.
+          */}
+          {forum && !forum.midia && ativo ? (
+            <span className={css.etiquetaDeForum}>FÓRUM</span>
+          ) : null}
 
           {/*
             Cadeado, sino cortado e teto de sala — os três marcadores que o

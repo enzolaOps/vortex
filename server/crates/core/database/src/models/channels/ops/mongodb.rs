@@ -366,13 +366,27 @@ impl AbstractChannels for MongoDb {
         }
 
         // `archived: false` is never stored (skip_serializing_if), so active
-        // means "not true" rather than "false".
+        // means "not true" rather than "false" — and, besides that, some
+        // activity since the cutoff. ULIDs sort by time as strings, so the
+        // same rule as `Channel::thread_archived` is three `$gte`.
+        let cutoff = crate::thread_archive_cutoff_now();
+        let active = doc! {
+            "thread.archived": { "$ne": true },
+            "$or": [
+                { "_id": { "$gte": cutoff.clone() } },
+                { "last_message_id": { "$gte": cutoff.clone() } },
+                { "thread.reopened": { "$gte": cutoff } },
+            ],
+        };
+
         match archived {
             Some(true) => {
-                filter.insert("thread.archived", true);
+                filter.insert("$nor", vec![active]);
             }
             Some(false) => {
-                filter.insert("thread.archived", doc! { "$ne": true });
+                for (key, value) in active {
+                    filter.insert(key, value);
+                }
             }
             None => {}
         }

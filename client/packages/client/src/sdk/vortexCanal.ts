@@ -53,6 +53,11 @@ export type MetaDeTopico = {
    * canal comum, e um tópico antigo sem o campo é "não fixado", não "não sei".
    */
   readonly fixado: boolean;
+  /**
+   * "Em análise" — o estado de um post que a moderação do fórum está olhando
+   * (D-CANAIS-09). Campo do fork (`in_review`); ausente é "não", como `pinned`.
+   */
+  readonly emAnalise: boolean;
   readonly tags: readonly string[];
   readonly seguidores: readonly string[];
   /** A última mensagem de dentro — é dela que sai a última atividade. */
@@ -141,6 +146,7 @@ export function traduzirTopico(
     message?: unknown;
     archived?: unknown;
     pinned?: unknown;
+    in_review?: unknown;
     tags?: unknown;
     followers?: unknown;
   };
@@ -156,6 +162,7 @@ export function traduzirTopico(
     aberturaId: texto(t.message),
     arquivado: t.archived === true,
     fixado: t.pinned === true,
+    emAnalise: t.in_review === true,
     tags: textos(t.tags),
     seguidores: textos(t.followers),
     ultimaMensagemId,
@@ -542,6 +549,7 @@ function mesmoTopico(a: MetaDeTopico | undefined, b: MetaDeTopico | undefined): 
     a.aberturaId === b.aberturaId &&
     a.arquivado === b.arquivado &&
     a.fixado === b.fixado &&
+    a.emAnalise === b.emAnalise &&
     a.serverId === b.serverId &&
     mesmaLista(a.tags, b.tags) &&
     mesmaLista(a.seguidores, b.seguidores)

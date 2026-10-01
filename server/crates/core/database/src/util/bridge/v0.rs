@@ -188,6 +188,10 @@ impl From<crate::FieldsWebhook> for FieldsWebhook {
 impl From<crate::Channel> for Channel {
     #[allow(deprecated)]
     fn from(value: crate::Channel) -> Self {
+        // Vortex: a thread idle for a week is reported archived without being
+        // stored so — see `Channel::thread_archived`.
+        let thread_archived = value.thread().is_some()
+            && value.thread_archived(&crate::thread_archive_cutoff_now());
         match value {
             crate::Channel::SavedMessages { id, user } => Channel::SavedMessages { id, user },
             crate::Channel::DirectMessage {
@@ -251,7 +255,10 @@ impl From<crate::Channel> for Channel {
                 voice: voice.map(|voice| voice.into()),
                 slowmode,
                 forum,
-                thread,
+                thread: thread.map(|mut info| {
+                    info.archived = thread_archived;
+                    info
+                }),
                 spoiler,
                 invites_paused,
             },

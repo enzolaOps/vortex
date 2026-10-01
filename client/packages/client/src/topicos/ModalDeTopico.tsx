@@ -6,6 +6,7 @@ import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { UploadSimple } from "../components/ui/icones";
 import { cn } from "../lib/cn";
 import { enviarMensagem } from "../sdk/adapter";
+import { aindaNao } from "../pendente/pendencias";
 import { temServidorDeMidia } from "../sdk/anexos";
 import { criarTopico, nomeDeTopicoDe } from "../sdk/topicos";
 import { assinarAlvo, lerAlvo } from "../store/administracao";
@@ -280,6 +281,24 @@ function FormaDeMidia({
         disabled={!temMidia || enviando}
         onChange={(e) => setLegenda(e.target.value)}
       />
+
+      {/*
+        "Legenda obrigatória, alt recomendado" (D-CANAIS-18). A recomendação
+        tem controle, e ele é PENDENTE: `File` não tem descrição no protocolo
+        e o envio leva só IDs — um campo onde se digita e o texto some no
+        envio seria pior que o botão que diz que ainda não guarda. Mesma
+        entrada do `alt` do rodapé do anexo, e as duas saem juntas.
+      */}
+      <Botao
+        variante="sutil"
+        tamanho="pequeno"
+        type="button"
+        className={css.alt}
+        disabled={!temMidia || enviando}
+        onClick={aindaNao("textoAlternativo")}
+      >
+        Texto alternativo · recomendado
+      </Botao>
 
       <div className={css.acoes}>
         <Botao variante="neutro" type="button" onClick={aoFechar}>

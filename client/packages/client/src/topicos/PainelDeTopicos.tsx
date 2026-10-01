@@ -7,6 +7,7 @@ import { cn } from "../lib/cn";
 import { contagem, plural } from "../lib/plural";
 import { quando } from "../lib/quando";
 import { carregarTopicos, type Recorte } from "../sdk/topicos";
+import { DIAS_SEM_ATIVIDADE_PARA_ARQUIVAR } from "../forum/estado";
 import { selecionarCanal } from "../store/navegacao";
 import { remedir } from "../lib/remedir";
 import { useAgoraPorMinuto } from "../store/relogio";
@@ -181,7 +182,7 @@ export function PainelDeTopicos({ aoFechar }: { aoFechar?: () => void }) {
             </span>
             <span className={css.vazioDetalhe}>
               {recorte === "arquivados"
-                ? "Arquive um tópico pelo cabeçalho dele. Responder reabre o tópico."
+                ? `Tópicos sem atividade por ${DIAS_SEM_ATIVIDADE_PARA_ARQUIVAR} dias vêm para cá e podem ser reabertos com uma resposta.`
                 : recorte === "seguindo"
                   ? "Responder num tópico passa a segui-lo."
                   : "Abra um tópico a partir de uma mensagem ou da linha do canal."}
