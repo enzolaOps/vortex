@@ -56,6 +56,15 @@ export type Convite = {
   readonly avatarDeQuemConvidou: string | undefined;
   /** Já sou membro — o botão diz "Abrir" em vez de "Entrar". */
   readonly jaSouMembro: boolean;
+  /**
+   * O canal de destino é +18 (D-CCANAL-06: "some da prévia de convite").
+   *
+   * ⚠ **Campo do fork (`channel_mature`), lido do corpo CRU:** o SDK monta o
+   * `ServerPublicInvite` com os campos que ele conhece e descarta o resto. O
+   * servidor já retém o assunto do canal nesse caso; a tela deixa de dizer o
+   * nome também, porque a confirmação de idade vem DEPOIS de entrar.
+   */
+  readonly restritoPorIdade: boolean;
 };
 
 const novoId = (): string => ulid();
@@ -129,6 +138,8 @@ export async function buscarConvite(
       if (maisAntigo !== undefined) buscados.delete(maisAntigo);
     }
     buscados.set(convite.code, convite);
+    const restritoPorIdade =
+      (bruto as { readonly channel_mature?: unknown }).channel_mature === true;
     return {
       codigo: convite.code,
       serverId: convite.serverId,
@@ -142,9 +153,14 @@ export async function buscarConvite(
          seria a forma do protocolo vazando para a tela. */
       iconeUrl: convite.serverIcon?.createFileURL(),
       bannerUrl: convite.serverBanner?.createFileURL(),
-      assuntoDoCanal: convite.channelDescription || undefined,
+      /* O servidor já o retém para canal +18. Descartar aqui também é
+         redundância deliberada: a tela não depende de a outra ponta lembrar. */
+      assuntoDoCanal: restritoPorIdade
+        ? undefined
+        : convite.channelDescription || undefined,
       avatarDeQuemConvidou: convite.userAvatar?.createFileURL(),
       jaSouMembro: client.servers.get(convite.serverId) !== undefined,
+      restritoPorIdade,
     };
   } catch (e) {
     return { erro: motivo(e) };

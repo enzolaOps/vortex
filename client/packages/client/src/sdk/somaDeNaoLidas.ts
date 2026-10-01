@@ -36,3 +36,32 @@ export function somarPorServidor(
   }
   return soma;
 }
+
+/**
+ * O número da entrada Conversas no rail — D-NOTIF-17.
+ *
+ * O design diz *"Pill numérico = menções diretas, DMs e chamadas. Sempre em
+ * danger."* Numa DM ou num grupo TODA mensagem é dirigida a você, então a
+ * não-lida já é o número — somar a menção por cima contaria a mesma mensagem
+ * duas vezes.
+ *
+ * ⚠ **Conversa muda conta só a MENÇÃO**, a mesma regra de `somarPorServidor`
+ * um degrau ao lado: silenciar uma DM é pedir para ela parar de acender, e o
+ * que atravessa o silêncio em todo cliente da categoria é alguém chamando pelo
+ * nome.
+ *
+ * Só `dm` e `grupo`: canal de servidor sobe pelo rollup do servidor, e as
+ * notas são suas — mensagem sua não é aviso.
+ */
+export function somarConversas(
+  contagens: Iterable<readonly [string, ContagemDeCanal]>,
+  ehConversa: (channelId: string) => boolean,
+  mudo: (channelId: string) => boolean,
+): number {
+  let soma = 0;
+  for (const [channelId, c] of contagens) {
+    if (!ehConversa(channelId)) continue;
+    soma += mudo(channelId) ? c.mencoes : c.naoLidas;
+  }
+  return soma;
+}

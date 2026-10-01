@@ -69,6 +69,15 @@ auto_derived!(
             /// Description of server channel
             #[serde(skip_serializing_if = "Option::is_none")]
             channel_description: Option<String>,
+            /// Vortex: whether the channel is age-restricted
+            ///
+            /// When true the description is withheld: the preview must not show
+            /// what is behind the confirmation the client asks for on entry.
+            #[cfg_attr(
+                feature = "serde",
+                serde(skip_serializing_if = "crate::if_false", default)
+            )]
+            channel_mature: bool,
             /// Name of user who created the invite
             user_name: String,
             /// Avatar of the user who created the invite

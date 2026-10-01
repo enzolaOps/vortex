@@ -5,7 +5,6 @@ import { CartaoDeOpcao } from "../components/ui/CartaoDeOpcao";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { Interruptor } from "../components/ui/Interruptor";
 import { corDoTextoDe, gradienteDe } from "../lib/gradiente";
-import { aindaNao } from "../pendente/pendencias";
 import { assinarAlvo, lerAlvo } from "../store/administracao";
 import {
   useCanaisDeTexto,
@@ -19,10 +18,12 @@ import {
   definirNivelDoCanal,
   definirNivelDoServidor,
   definirOpcoesDoServidor,
+  definirSeguirTopicos,
   estaSilenciado,
   nivelDoCanal,
   nivelDoServidor,
   opcoesDoServidor,
+  segueTopicosAutomaticamente,
   type NivelDeNotificacao,
 } from "../store/silencio";
 import css from "./ModalDeNotificacoes.module.css";
@@ -135,15 +136,15 @@ function DoServidor({ serverId, aoFechar }: { serverId: string; aoFechar: () => 
             />
           </Linha>
           {/*
-            Pendente: o protocolo não tem evento agendado. Ligado porque é o
-            padrão do design e porque, quando os eventos existirem, avisar é o
-            que se espera — não é afirmação sobre um estado do servidor.
+            Real desde que o fork tem evento agendado (D-NOTIF-12): cala o
+            lembrete "começa em 10 minutos" dos eventos DESTE servidor — ver
+            `eventos/lembretes.ts`.
           */}
           <Linha titulo="Notificar eventos do servidor" detalhe="Início de evento agendado">
             <Interruptor
-              ligado
+              ligado={opcoes.notificarEventos}
               rotulo="Notificar eventos do servidor"
-              aoAlternar={aindaNao("notificarEventosDoServidor")}
+              aoAlternar={(v) => definirOpcoesDoServidor(serverId, { notificarEventos: v })}
             />
           </Linha>
         </div>
@@ -259,6 +260,9 @@ function DoCanal({ channelId, aoFechar }: { channelId: string; aoFechar: () => v
   );
   const herdado = doServidor ?? PADRAO_GLOBAL;
   const escolha: EscolhaDoCanal = excecao ?? "herdar";
+  const seguirTopicos = useSyncExternalStore(assinarSilencio, () =>
+    segueTopicosAutomaticamente(channelId),
+  );
   const Glifo = canal?.tipo === "voz" ? SpeakerHigh : Hash;
 
   const escolher = (e: EscolhaDoCanal) => {
@@ -313,10 +317,16 @@ function DoCanal({ channelId, aoFechar }: { channelId: string; aoFechar: () => v
           titulo="Seguir tópicos automaticamente"
           detalhe="Threads que você responder entram na caixa de entrada"
         >
+          {/*
+            Real (D-NOTIF-16): o servidor segue o tópico sozinho quando você
+            responde, e desligado o envio desfaz esse seguir — ver
+            `segueTopicosAutomaticamente` em `silencio.ts` e `postar` no
+            adapter.
+          */}
           <Interruptor
-            ligado
+            ligado={seguirTopicos}
             rotulo="Seguir tópicos automaticamente"
-            aoAlternar={aindaNao("seguirTopicosAutomaticamente")}
+            aoAlternar={(v) => definirSeguirTopicos(channelId, v)}
           />
         </Linha>
       </DialogContent>

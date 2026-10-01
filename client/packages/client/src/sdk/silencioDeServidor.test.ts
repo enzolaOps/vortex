@@ -7,6 +7,8 @@ import {
   marcarCanalLido,
   marcarTodosLidos,
   servers,
+  CONVERSAS,
+  naoLidasDeConversas,
   totaisNaoLidos,
   TOTAIS,
 } from "./adapter";
@@ -128,5 +130,28 @@ describe("marcar tudo como lido", () => {
 
   it("nada por ler: não faz nada", async () => {
     expect(await marcarTodosLidos()).toEqual({ total: 0, falhas: 0 });
+  });
+});
+
+describe("número da entrada Conversas (D-NOTIF-17)", () => {
+  const DM = "01JQ000000000000000A000001";
+
+  it("mensagem em DM soma, ler zera, silenciar tira — e servidor não entra", () => {
+    naoLidasDeConversas.subscriber(CONVERSAS)(() => {});
+    marcarCanalLido(DM);
+    expect(naoLidasDeConversas.peek(CONVERSAS)).toBe(0);
+
+    falar(DM);
+    falar(DM);
+    falar(GERAL);
+    expect(naoLidasDeConversas.peek(CONVERSAS)).toBe(2);
+
+    alternarSilencio(DM);
+    expect(naoLidasDeConversas.peek(CONVERSAS)).toBe(0);
+    alternarSilencio(DM);
+    expect(naoLidasDeConversas.peek(CONVERSAS)).toBe(2);
+
+    marcarCanalLido(DM);
+    expect(naoLidasDeConversas.peek(CONVERSAS)).toBe(0);
   });
 });

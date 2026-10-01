@@ -164,16 +164,12 @@ export const PENDENCIAS = {
   },
 
   /* ------------------------------------------- modal do sino (notificações) */
-  notificarEventosDoServidor: {
-    superficie: "Notificações do servidor",
-    faz: "Avisar quando um evento agendado do servidor começar.",
-    depende: "evento agendado no protocolo — não há tipo, campo nem rota",
-  },
-  seguirTopicosAutomaticamente: {
-    superficie: "Notificações do canal",
-    faz: "Seguir sozinho os tópicos em que você responder.",
-    depende: "threads no protocolo",
-  },
+  /*
+    ⚠ **`notificarEventosDoServidor` e `seguirTopicosAutomaticamente` SAÍRAM
+    daqui (D-NOTIF-12 e 16).** As duas esperavam protocolo — evento agendado e
+    threads — e o fork tem os dois. O primeiro cala o lembrete de evento do
+    servidor; o segundo desfaz, no envio, o seguir que o `delta` faz sozinho.
+  */
   /*
     ⚠ **`caixaDeEntrada` e `marcarTudoLido` SAÍRAM daqui.** O painel existe, e
     marcar tudo é uma fila de `ack` com concorrência limitada
@@ -276,26 +272,6 @@ export const PENDENCIAS = {
     faz: "Baixar as imagens dos canais com não lidas antes de você abri-los.",
     depende:
       "decidir o que pré-carregar (quais canais, quantas mensagens) e um limite de banda — não há nada disso no app hoje",
-  },
-  /*
-    O `⋯` da chamada direta. O design desenha o alvo na barra e não desenha o
-    menu; ensurdecer, que é o item óbvio, já está no painel de usuário e no
-    cartão flutuante — inventar a lista seria escrever o design.
-  */
-  menuDaChamada: {
-    superficie: "Chamada direta, na barra de controles",
-    faz: "Abrir as ações que não cabem na barra (ensurdecer, dispositivos, tela cheia).",
-    depende: "o conteúdo do menu, que o design não desenha",
-  },
-  /*
-    O `⋯` da doca do palco de transmissão (D-TELA-18). Mesma situação do de
-    cima: o design põe o alvo e não o menu — e dispositivos, que seria o item
-    óbvio, já estão no `▾` do microfone e da câmera ao lado.
-  */
-  menuDaDoca: {
-    superficie: "Palco de transmissão, na doca de controles",
-    faz: "Abrir as ações da chamada que não cabem na doca.",
-    depende: "o conteúdo do menu, que o design não desenha",
   },
 } as const satisfies Record<
   string,

@@ -215,6 +215,10 @@ const PERMITIDO = {
       "para buscar afunda, o que recebe entrada para guardar fica no plano do " +
       "painel. A diferença fica visível justamente aqui, onde o filtro da " +
       "matriz aparece na mesma tela que campos de formulário em `surface-3`.",
+    ".buscaDeAlvos":
+      "A busca da coluna de alvos da matriz — a mesma regra do `.filtro`. " +
+      "Verificado no `Vortex Configurações do Canal.dc.html`: o campo " +
+      "\"Cargos e membros\" é `#08090B`.",
   },
   "canais/ListaDeCanais.module.css": {
     ".busca":

@@ -246,6 +246,13 @@ describe("lembrete", () => {
     expect(lembretesDevidos([e], "EU", AGORA, new Set([chave]))).toHaveLength(0);
   });
 
+  it("servidor com 'notificar eventos' desligado não lembra (D-NOTIF-12)", () => {
+    const e = ev({ inicioEm: AGORA + 5 * MIN, interessados: ["EU"] });
+    const calado = (serverId: string) => serverId !== e.serverId;
+    expect(lembretesDevidos([e], "EU", AGORA, new Set(), calado)).toHaveLength(0);
+    expect(lembretesDevidos([e], "EU", AGORA, new Set(), () => true)).toHaveLength(1);
+  });
+
   it("semanal lembra de novo na semana seguinte", () => {
     const e = ev({ inicioEm: AGORA + 5 * MIN, interessados: ["EU"], repeticao: "semanal" });
     const [primeiro] = lembretesDevidos([e], "EU", AGORA, new Set());

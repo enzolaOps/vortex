@@ -176,7 +176,16 @@
 
 .barra {
   position: absolute;
-  inset-inline-start: calc(var(--vx-space-08) * -1);
+  /*
+    ⚠ **Zero, e era −8 — a barra do ativo estava INVISÍVEL.** O −8 alcançava
+    a borda do painel quando o rail tinha 8px de recuo lateral; o recuo saiu
+    ("vão de 8px e sem recuo lateral", no `.rail`) e o item passou a começar
+    na própria borda. Medido: barra em x = −8..−5, inteira fora do rail e
+    cortada pelo `overflow-x: hidden` — nenhum servidor aberto era marcado, e
+    nenhuma guarda viu, porque a regra, o token e o contraste estavam certos.
+    Achado medindo o ponto de não lida (D-NOTIF-18), que herdava a mesma base.
+  */
+  inset-inline-start: 0;
   inline-size: var(--vx-lamina-w);
   /* Cantos só do lado de fora: a barra nasce colada na borda do painel. */
   border-start-end-radius: var(--vx-lamina-w);
@@ -184,6 +193,8 @@
   background: var(--vx-text-1);
   transition:
     block-size var(--vx-duration-fast) var(--vx-ease-out),
+    inline-size var(--vx-duration-fast) var(--vx-ease-out),
+    inset-inline-start var(--vx-duration-fast) var(--vx-ease-out),
     opacity var(--vx-duration-fast) var(--vx-ease-out);
 }
 
@@ -194,10 +205,26 @@
   opacity: 0;
 }
 
-/* Não lido: um traço curto. O design usa um ponto; a barra curta diz a
-   mesma coisa e reusa a mesma peça, em vez de somar uma segunda forma. */
+/*
+  Não lido: o PONTO branco do design — D-NOTIF-18.
+
+  ⚠ **Era um traço curto, e a divergência estava justificada aqui** ("a barra
+  curta diz a mesma coisa e reusa a mesma peça"). Não diz: o design escreve a
+  regra como forma — *"Ponto branco no rail = há mensagem não lida sem
+  menção"* — e um traço de 3px colado na borda lia como a barra do ativo
+  encolhida, ou seja, como o estado vizinho. O ponto é 8×8, solto da borda,
+  como no design (`left:-12px` do ladrilho de 44).
+
+  Continua sendo a MESMA peça: ponto, traço alto e repouso são estados de um
+  elemento só, e a transição entre eles anda sozinha. Fora de fluxo
+  (`absolute`), então largura e posição animando não refluem nada.
+*/
 .barra[data-estado="atencao"] {
-  block-size: var(--vx-space-08);
+  /* 2px da borda = os 12 antes do ladrilho de 44 num rail de 72. */
+  inset-inline-start: var(--vx-space-02);
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: var(--vx-radius-pill);
   opacity: 1;
 }
 

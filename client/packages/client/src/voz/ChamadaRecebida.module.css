@@ -263,6 +263,13 @@
   font-size: var(--vx-size-md);
 }
 
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--vx-space-06);
+}
+
 .contexto {
   display: flex;
   align-items: center;

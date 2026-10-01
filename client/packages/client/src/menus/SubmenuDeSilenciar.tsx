@@ -14,8 +14,10 @@ import {
   DURACOES_DE_SILENCIO,
   duracaoDoAlvo,
   estaMudoOAlvo,
+  notaDeSilencio,
   prazoDoAlvo,
   reativarAlvo,
+  relogioDoSilencio,
   restanteDeSilencio,
   silenciarAlvo,
   type AlvoDeSilencio,
@@ -66,7 +68,12 @@ export function SubmenuDeSilenciar({
     return () => clearInterval(id);
   }, [ate]);
 
-  const restante = restanteDeSilencio(ate, agora);
+  /* Ver `relogioDoSilencio`: o `agora` da montagem pode ser anterior à
+     escolha do prazo. */
+  const agoraEfetivo = relogioDoSilencio(agora, ate, escolhida);
+
+  const restante = restanteDeSilencio(ate, agoraEfetivo);
+  const nota = notaDeSilencio(alvo.tipo, ate, agoraEfetivo);
 
   return (
     <ContextMenuSub>
@@ -102,6 +109,15 @@ export function SubmenuDeSilenciar({
             {d.rotulo}
           </ContextMenuCheckboxItem>
         ))}
+
+        {/* A nota do design (D-NOTIF-27): o que acontece DEPOIS da escolha.
+            Texto e não item — não recebe foco nem executa nada. */}
+        {nota ? (
+          <>
+            <ContextMenuSeparator />
+            <p className={css.nota}>{nota}</p>
+          </>
+        ) : null}
       </ContextMenuSubContent>
     </ContextMenuSub>
   );

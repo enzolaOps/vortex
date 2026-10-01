@@ -33,8 +33,11 @@
   treme e empurra o próprio rótulo. É o mesmo critério que manteve o `3/8` da
   sala de voz FORA do mono, onde ele muda uma vez a cada muitos minutos.
 
-  `text-3` e não `text-4`: o quarto degrau é o tom de desativado, e o contador
-  é informação viva — no design ele sai em `#77808E`, o mesmo do rótulo.
+  ⚠ **`text-4` em repouso, e o comentário anterior afirmava o contrário.** Ele
+  dizia que o design pinta o contador em `#77808E` (o do rótulo); o design
+  escreve `#4C5563` abaixo de 90%, `#E2B15C` a partir de 90% e `#F0808D` no
+  limite (D-CCANAL-03). Longe do teto o número é metadado; perto dele vira
+  aviso, e é o tom que diz qual dos dois.
 */
 .contador {
   margin: 0;
@@ -43,7 +46,15 @@
   font-size: var(--vx-size-xs);
   letter-spacing: normal;
   text-transform: none;
-  color: var(--vx-text-3);
+  color: var(--vx-text-4);
+}
+
+.contador[data-tom="aviso"] {
+  color: var(--vx-warning);
+}
+
+.contador[data-tom="perigo"] {
+  color: var(--vx-danger-text);
 }
 
 /* --------------------------------------------- controle pendente */
@@ -142,6 +153,42 @@
   color: var(--vx-text-3);
 }
 
+/*
+  O diff do banner de dessincronização (D-CCANAL-10).
+
+  A lista em si é `ListaDeDiff`, a mesma da auditoria; o que mora aqui é só a
+  legenda que diz de que lado está cada sinal — na auditoria o `−`/`+` é
+  "antes/depois" no TEMPO, e aqui é "canal/categoria" no ESPAÇO. Sem a
+  legenda, quem veio da auditoria leria o `+` como "o que já aconteceu".
+*/
+/* Cartão AFUNDADO como a lista de acesso logo abaixo: a lista do diff pinta
+   `surface-2`, que é o fundo desta tela, e solta ali ela não teria borda. */
+.diferenca {
+  display: grid;
+  gap: var(--vx-space-08);
+  padding: var(--vx-space-12);
+  border: 1px solid var(--vx-hairline-06);
+  border-radius: var(--vx-radius-10);
+  background: var(--vx-surface-1);
+}
+
+.diferencaLegenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-12);
+  margin: 0;
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-size-xs);
+}
+
+.diferencaAntes {
+  color: var(--vx-danger-text);
+}
+
+.diferencaDepois {
+  color: var(--vx-success-text);
+}
+
 /* A lista de acesso: cartão AFUNDADO, como o de voz. */
 .listaDeAcesso {
   border: 1px solid var(--vx-hairline-06);
@@ -232,6 +279,14 @@
   font-size: var(--vx-size-xs);
   font-weight: 600;
   color: var(--vx-success-text);
+}
+
+/* Veredito que não é nem "sem acesso" nem "acesso total": "3 overrides",
+   "herda do servidor". Metadado, não sentença — por isso o cinza. */
+.acessoNeutro {
+  flex: none;
+  font-size: var(--vx-size-xs);
+  color: var(--vx-text-3);
 }
 
 /* "sem acesso": chip tingido de vermelho, e o texto é de LETRA. */
@@ -348,6 +403,75 @@
   color: var(--vx-accent-text);
 }
 
+.alvoNome {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+/* A contagem de overrides do alvo, com a cor do que ele decide (D-CCANAL-16). */
+.alvoContagem {
+  flex: none;
+  font-size: var(--vx-size-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--vx-text-2);
+}
+
+.alvoContagem[data-tom="negar"] {
+  color: var(--vx-danger-text);
+}
+
+.alvoContagem[data-tom="permitir"] {
+  color: var(--vx-success-text);
+}
+
+.buscaDeAlvos {
+  margin: var(--vx-space-12) var(--vx-space-12) var(--vx-space-08);
+  background: var(--vx-surface-0);
+}
+
+.alvosVazio {
+  margin: 0;
+  padding: var(--vx-space-08) var(--vx-space-16);
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+/* "＋ Adicionar cargo": tracejado, como o `+` de servidor do rail — é um
+   lugar vazio a preencher, não uma ação sobre algo que já existe. */
+.adicionarAlvo {
+  display: block;
+  inline-size: calc(100% - var(--vx-space-16));
+  margin: var(--vx-space-12) var(--vx-space-08) 0;
+  padding: var(--vx-space-08) var(--vx-space-09);
+  /* 16% e não os 14% do design: o degrau de hairline mais próximo, e ele
+     inverte no tema claro, que um alfa branco literal não faria. */
+  border: 1px dashed var(--vx-hairline-16);
+  border-radius: var(--vx-radius-06);
+  background: transparent;
+  color: var(--vx-text-3);
+  font-family: inherit;
+  font-size: var(--vx-size-sm);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    color var(--vx-duration-instant),
+    border-color var(--vx-duration-instant);
+}
+
+.adicionarAlvo:hover {
+  color: var(--vx-text-1);
+  border-color: var(--vx-border-strong);
+}
+
+.adicionarAlvo:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: -2px;
+}
+
 .pontoDeCargo {
   flex: none;
   inline-size: 10px;
@@ -375,10 +499,65 @@
   color: var(--vx-text-1);
 }
 
-.matrizContagem {
+/* A nota do alvo (D-CCANAL-17): "base do canal · 1 override", "herda tudo". */
+.matrizNota {
   margin-inline-end: auto;
+  font-size: var(--vx-size-sm);
+  color: var(--vx-text-3);
+}
+
+/*
+  A legenda dos três glifos e a contagem ao vivo (D-CCANAL-20). A marca repete
+  o PREENCHIMENTO do botão ativo, em miniatura (20×16 no design) — é o que
+  liga a palavra ao botão sem a pessoa ter de clicar para descobrir qual é qual.
+*/
+.legenda {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-16);
+  padding: 0 var(--vx-space-28) var(--vx-space-10);
   font-size: var(--vx-size-xs);
   color: var(--vx-text-3);
+}
+
+.legendaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-06);
+}
+
+.legendaMarca {
+  display: grid;
+  place-items: center;
+  inline-size: 20px;
+  block-size: 16px;
+  border-radius: var(--vx-radius-04);
+}
+
+.legendaMarca svg {
+  inline-size: var(--vx-icon-0);
+  block-size: var(--vx-icon-0);
+}
+
+.legendaMarca[data-valor="negar"] {
+  background: color-mix(in oklab, var(--vx-danger) 18%, transparent);
+  color: var(--vx-danger-text);
+}
+
+.legendaMarca[data-valor="herdar"] {
+  background: rgb(255 255 255 / 7%);
+  color: var(--vx-text-2);
+}
+
+.legendaMarca[data-valor="permitir"] {
+  background: color-mix(in oklab, var(--vx-success) 18%, transparent);
+  color: var(--vx-success-text);
+}
+
+.legendaContagem {
+  margin-inline-start: auto;
+  font-family: var(--vx-font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .matrizLista {
@@ -829,50 +1008,21 @@
   border-color: var(--vx-accent);
 }
 
+/*
+  Só o contêiner: botões, divisa e espaçamento entre eles são da
+  `ReguaDeFormatacao`, a mesma do editor de mensagem (D-CCANAL-04). Sem
+  `display`/`gap` aqui pela razão escrita em `MessageRow.module.css
+  .reguaDeEdicao` — mesma especificidade, e ganharia a ordem do bundle.
+*/
 .regua {
-  display: flex;
-  align-items: center;
-  gap: 1px;
   padding: var(--vx-space-05) var(--vx-space-06);
   border-block-end: 1px solid var(--vx-hairline-06);
 }
 
-.reguaBotao {
-  display: grid;
-  place-items: center;
-  min-inline-size: 28px;
-  block-size: 26px;
-  padding-inline: var(--vx-space-08);
-  border: 0;
-  border-radius: var(--vx-radius-05);
-  background: transparent;
-  color: var(--vx-text-2);
-  font-family: inherit;
-  font-size: var(--vx-size-sm);
-  cursor: pointer;
-}
-
-.reguaBotao:hover {
-  background: var(--vx-state-hover);
-  color: var(--vx-text-1);
-}
-
-/* `outline` e não o anel: o botão vive dentro da caixa, que recorta. */
-.reguaBotao:focus-visible {
-  outline: 2px solid var(--vx-accent);
-  outline-offset: -2px;
-}
-
-.reguaDivisa {
-  inline-size: 1px;
-  block-size: 16px;
-  margin-inline: var(--vx-space-04);
-  background: var(--vx-hairline-10);
-}
-
+/* Mono, como o design escreve — é nome de formato, não frase. */
 .reguaDica {
-  margin-inline-start: auto;
   padding-inline-end: var(--vx-space-04);
+  font-family: var(--vx-font-mono);
   font-size: var(--vx-size-xs);
   color: var(--vx-text-4);
 }

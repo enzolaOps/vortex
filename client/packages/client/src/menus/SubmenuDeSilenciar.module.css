@@ -17,3 +17,23 @@
   font-size: var(--vx-size-2xs);
   white-space: nowrap;
 }
+
+/*
+  A nota do fim do submenu (D-NOTIF-27): "Volta a notificar automaticamente ·
+  7 h restantes." Os valores são os do design — `7px 9px`, 12px, metadado.
+
+  ⚠ **`inline-size: 0` com `min-inline-size: 100%`**: a frase é mais longa que
+  qualquer prazo, e sem isto ELA decidiria a largura do submenu — a caixa
+  engordaria ao silenciar e emagreceria ao reativar, com o ponteiro em cima.
+  Assim a nota ocupa a largura que os itens deram e quebra dentro dela.
+*/
+.nota {
+  inline-size: 0;
+  min-inline-size: 100%;
+  margin: 0;
+  padding: var(--vx-space-07) var(--vx-space-09);
+  color: var(--vx-text-3);
+  font-size: var(--vx-size-sm);
+  line-height: var(--vx-leading-message);
+  text-wrap: pretty;
+}

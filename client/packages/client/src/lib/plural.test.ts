@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { contagem, plural, rotuloDeNaoLidas } from "./plural";
+import {
+  contagem,
+  plural,
+  rotuloDeAmigosEmComum,
+  rotuloDeNaoLidas,
+} from "./plural";
 
 /**
  * "1 menções" saiu na primeira verificação em navegador, num texto que só
@@ -55,5 +60,20 @@ describe("rótulo de não-lidas", () => {
   it("com menção, as duas concordam em separado", () => {
     expect(rotuloDeNaoLidas(3, 1)).toBe("1 menção, 3 não lidas");
     expect(rotuloDeNaoLidas(1, 1)).toBe("1 menção, 1 não lida");
+  });
+});
+
+describe("amigos em comum (D-VOZ-23)", () => {
+  it("concorda em número", () => {
+    expect(rotuloDeAmigosEmComum(1)).toBe("1 amigo em comum");
+    expect(rotuloDeAmigosEmComum(2)).toBe("2 amigos em comum");
+  });
+
+  it("zero NÃO vira chip — o CLDR daria '0 amigo em comum'", () => {
+    expect(rotuloDeAmigosEmComum(0)).toBeUndefined();
+  });
+
+  it("sem resposta (carregando ou rede caída) não afirma nada", () => {
+    expect(rotuloDeAmigosEmComum(undefined)).toBeUndefined();
   });
 });

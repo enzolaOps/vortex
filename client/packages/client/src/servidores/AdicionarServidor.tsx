@@ -559,8 +559,12 @@ export function PreviaDoConvite({
 
           <span className={css.detalhe}>
             {convite.membros.toLocaleString("pt-BR")}{" "}
-            {convite.membros === 1 ? "membro" : "membros"} · você cai em #
-            {convite.nomeDoCanal}
+            {convite.membros === 1 ? "membro" : "membros"} ·{" "}
+            {/* Canal +18 some da prévia (D-CCANAL-06): nem nome nem assunto
+                antes da confirmação de idade, que só vem depois de entrar. */}
+            {convite.restritoPorIdade
+              ? "você cai num canal +18"
+              : `você cai em #${convite.nomeDoCanal}`}
           </span>
 
           <span className={css.convidou}>

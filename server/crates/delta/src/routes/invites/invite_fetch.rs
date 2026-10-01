@@ -23,6 +23,7 @@ pub async fn fetch(db: &State<Database>, target: Reference<'_>) -> Result<Json<v
                     name,
                     description,
                     invites_paused,
+                    nsfw,
                     ..
                 } => {
                     // Vortex: a prévia também recusa, para que a tela de convite
@@ -43,7 +44,10 @@ pub async fn fetch(db: &State<Database>, target: Reference<'_>) -> Result<Json<v
                         server_flags: server.flags,
                         channel_id: id,
                         channel_name: name,
-                        channel_description: description,
+                        // Vortex: canal +18 pede confirmação na entrada, então o
+                        // assunto dele não pode vazar pela prévia do convite.
+                        channel_description: if nsfw { None } else { description },
+                        channel_mature: nsfw,
                         user_name: user.username,
                         user_avatar: user.avatar.map(|f| f.into()),
                     }
@@ -238,6 +242,60 @@ mod test {
                 assert_eq!(code, invite_code);
                 assert_eq!(channel_id, channel.id());
                 assert_eq!(user_name, user.username);
+            }
+            _ => unreachable!(),
+        };
+    }
+
+    #[rocket::async_test]
+    async fn mature_channel_invite_withholds_description() {
+        let harness = TestHarness::new().await;
+        let (_, session, user) = harness.new_user().await;
+        let (server, _) = harness.new_server(&user).await;
+        let server_mut: &mut Server = &mut server.clone();
+
+        let channel = Channel::create_server_channel(
+            &harness.db,
+            server_mut,
+            DataCreateServerChannel {
+                channel_type: LegacyServerChannelType::Text,
+                name: "adultos".to_string(),
+                description: Some("assunto que nao pode vazar".to_string()),
+                nsfw: Some(true),
+                voice: None
+            },
+            true,
+        )
+        .await
+        .expect("Failed to make new channel");
+        let create_response = TestHarness::with_session(
+            session,
+            harness
+                .client
+                .post(format!("/channels/{}/invites", channel.id())),
+        )
+        .await;
+        assert_eq!(create_response.status(), Status::Ok);
+        let invite_from_create: Invite = create_response.into_json().await.expect("`Invite`");
+        let invite_code = match invite_from_create {
+            Invite::Server { code, .. } => code,
+            _ => unreachable!(),
+        };
+        let response = harness
+            .client
+            .get(format!("/invites/{}", invite_code))
+            .dispatch()
+            .await;
+        assert_eq!(response.status(), Status::Ok);
+        let invite_response: InviteResponse = response.into_json().await.expect("`FetchInvite`");
+        match invite_response {
+            InviteResponse::Server {
+                channel_description,
+                channel_mature,
+                ..
+            } => {
+                assert!(channel_mature);
+                assert_eq!(channel_description, None);
             }
             _ => unreachable!(),
         };

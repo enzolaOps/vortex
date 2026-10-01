@@ -15,7 +15,7 @@ import {
 import { MenuDeContexto } from "../components/ui/MenuDeContexto";
 import { ItensDoServidor } from "../menus/ItensDoServidor";
 import { Tooltip } from "../components/ui/Tooltip";
-import { contagem, rotuloDeNaoLidas } from "../lib/plural";
+import { contagem, plural, rotuloDeNaoLidas } from "../lib/plural";
 import { linkDeDownload, plataformaDoNavegador } from "../lib/downloadDoDesktop";
 import { assinarDesktop, lerDesktop } from "../store/desktop";
 import { corDoTextoDe, gradienteDe } from "../lib/gradiente";
@@ -26,6 +26,7 @@ import {
   useServidorAtivo,
   useSomaDeServidores,
   useCorDeCargo,
+  useNaoLidasDeConversas,
 } from "../store/hooks";
 import { administrar } from "../store/administracao";
 import {
@@ -37,6 +38,7 @@ import {
   type Pasta,
 } from "../store/pastas";
 import { abrirModal } from "../store/modais";
+import { assinarChamadaRecebida, lerChamadaRecebida } from "../store/chamadaRecebida";
 import { irParaCasa, selecionarServidor } from "../store/navegacao";
 import { Selo } from "../components/ui/Selo";
 import css from "./Rail.module.css";
@@ -75,6 +77,12 @@ const ItemDeServidor = memo(function ItemDeServidor({
   }
 
   const temNaoLidas = servidor.naoLidas > 0;
+  /*
+    O ponto é "não lida SEM menção" (D-NOTIF-18). Com menção quem fala é o
+    pill, e os dois juntos diriam a mesma coisa duas vezes — o design escreve
+    a regra como exclusão: "Ponto branco = há mensagem não lida sem menção".
+  */
+  const pontoDeNaoLida = temNaoLidas && servidor.mencoes === 0;
 
   return (
     /*
@@ -126,7 +134,7 @@ const ItemDeServidor = memo(function ItemDeServidor({
         */}
         <span
           className={css.barra}
-          data-estado={ativo ? "ativa" : temNaoLidas ? "atencao" : "repouso"}
+          data-estado={ativo ? "ativa" : pontoDeNaoLida ? "atencao" : "repouso"}
           aria-hidden
         />
 
@@ -389,7 +397,7 @@ const PastaDoRail = memo(function PastaDoRail({
         do ladrilho de dentro, e duas barras na mesma coluna diriam a mesma
         coisa duas vezes.
       */}
-      {pasta.colapsada && (temAtivo || temNaoLidas) ? (
+      {pasta.colapsada && (temAtivo || (temNaoLidas && soma.mencoes === 0)) ? (
         <span
           className={css.barra}
           data-estado={temAtivo ? "ativa" : "atencao"}
@@ -406,6 +414,66 @@ const PastaDoRail = memo(function PastaDoRail({
     </div>
   );
 });
+
+/**
+ * A entrada Conversas — DM, grupo e notas.
+ *
+ * Componente próprio para as DUAS subscrições dele não acordarem o rail
+ * inteiro: o número de conversas muda a cada mensagem de DM, e o toque de
+ * chamada entra e sai sozinho.
+ *
+ * ⚠ **O pill conta DMs e CHAMADAS, e é D-NOTIF-17.** O design escreve a regra
+ * inteira — *"Pill numérico = menções diretas, DMs e chamadas. Sempre em
+ * danger."* — e o rail só tinha o pill no ladrilho de servidor: uma DM nova
+ * não deixava marca nenhuma na coluna que responde "para onde eu vou agora".
+ * A chamada tocando soma um porque é a mais urgente das três e é a única que
+ * não vira não-lida em canal nenhum.
+ */
+function EntradaDeConversas({ ativa }: { ativa: boolean }) {
+  const naoLidas = useNaoLidasDeConversas();
+  const tocando = useSyncExternalStore(assinarChamadaRecebida, lerChamadaRecebida);
+  const pendentes = naoLidas + (tocando === undefined ? 0 : 1);
+
+  return (
+    <Tooltip texto="Conversas" lado="fim">
+      <button
+        type="button"
+        className={css.item}
+        aria-current={ativa}
+        aria-label="Conversas"
+        data-naolidas={pendentes > 0}
+        onClick={irParaCasa}
+      >
+        <span
+          className={css.barra}
+          /* Sem ponto: aqui tudo que conta é pill — DM, menção e chamada. */
+          data-estado={ativa ? "ativa" : "repouso"}
+          aria-hidden
+        />
+        <span className={`${css.marca} ${css.marcaCasa}`} aria-hidden>
+          {/* Envelope, e é o ícone do design — não uma casa. A entrada
+              agrega DM, grupo e notas, e o desenho dela é correspondência.
+              `fill` só no ativo: é a variação SEMÂNTICA do ícone. */}
+          <Envelope size={ICONE.calha} weight={ativa ? "fill" : "regular"} />
+
+          {pendentes > 0 ? (
+            <Selo forma="contagem" tom="perigo" className={css.contador}>
+              {contagem(pendentes)}
+            </Selo>
+          ) : null}
+        </span>
+        <span className={css.nome}>Conversas</span>
+
+        {/* O dado, nunca só por forma — a mesma regra do ladrilho de servidor. */}
+        {pendentes > 0 ? (
+          <span className="sr-only">
+            {plural(pendentes, "aviso de conversa", "avisos de conversa")}
+          </span>
+        ) : null}
+      </button>
+    </Tooltip>
+  );
+}
 
 /**
  * O rail de servidores.
@@ -445,28 +513,7 @@ export function Rail() {
         listava SÓ servidores, e essa ausência derrubava quatro superfícies de
         uma vez — foi assim que o mapa de superfícies a classificou.
       */}
-      <Tooltip texto="Conversas" lado="fim">
-        <button
-          type="button"
-          className={css.item}
-          aria-current={naCasa}
-          aria-label="Conversas"
-          onClick={irParaCasa}
-        >
-          <span
-            className={css.barra}
-            data-estado={naCasa ? "ativa" : "repouso"}
-            aria-hidden
-          />
-          <span className={`${css.marca} ${css.marcaCasa}`} aria-hidden>
-            {/* Envelope, e é o ícone do design — não uma casa. A entrada
-                agrega DM, grupo e notas, e o desenho dela é correspondência.
-                `fill` só no ativo: é a variação SEMÂNTICA do Phosphor. */}
-            <Envelope size={ICONE.calha} weight={naCasa ? "fill" : "regular"} />
-          </span>
-          <span className={css.nome}>Conversas</span>
-        </button>
-      </Tooltip>
+      <EntradaDeConversas ativa={naCasa} />
 
       {/*
         O divisor entre as conversas e os servidores.

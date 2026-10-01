@@ -1,6 +1,34 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { criarAtenuador, SEGURAR_MS } from "./atenuacao";
+import { atenuacaoValeAgora, criarAtenuador, SEGURAR_MS } from "./atenuacao";
+
+/**
+ * Transmitir som e atenuar outros apps se contradizem.
+ *
+ * A casca baixa o volume de sessão de todo app que não é o Vortex — inclusive
+ * o que está sendo transmitido —, e a captura de tela inteira é `loopback`, o
+ * mix do dispositivo. Medido em
+ * `vendor/stoat-desktop/src/native/atenuacaoModelo.test.ts`.
+ */
+describe("a preferência vale agora?", () => {
+  it("sem transmissão de som, a preferência manda", () => {
+    expect(atenuacaoValeAgora({ preferencia: true, transmitindoAudio: false }))
+      .toBe(true);
+    expect(atenuacaoValeAgora({ preferencia: false, transmitindoAudio: false }))
+      .toBe(false);
+  });
+
+  it("transmitindo som, não atenua — mesmo com a preferência ligada", () => {
+    expect(atenuacaoValeAgora({ preferencia: true, transmitindoAudio: true }))
+      .toBe(false);
+  });
+
+  it("a preferência não é apagada: sai do ar e ela volta a valer", () => {
+    const pessoa = { preferencia: true };
+    expect(atenuacaoValeAgora({ ...pessoa, transmitindoAudio: true })).toBe(false);
+    expect(atenuacaoValeAgora({ ...pessoa, transmitindoAudio: false })).toBe(true);
+  });
+});
 
 describe("atenuador", () => {
   let enviados: boolean[];

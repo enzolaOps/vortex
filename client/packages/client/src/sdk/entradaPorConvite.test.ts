@@ -27,6 +27,8 @@ const respostaDeConvite = {
 };
 
 let erroDoJoin: string | undefined;
+/* Mutável: o caso +18 precisa de um assunto que o servidor sem fork mandaria. */
+let assuntoDoCanal = "";
 
 const join = vi.fn(() => {
   // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors -- o stoat-api lanca o TEXTO
@@ -42,7 +44,7 @@ vi.mock("stoat.js", async (importOriginal: () => Promise<object>) => {
     serverName = respostaDeConvite.server_name;
     memberCount = respostaDeConvite.member_count;
     channelName = respostaDeConvite.channel_name;
-    channelDescription = "";
+    channelDescription = assuntoDoCanal;
     userName = respostaDeConvite.user_name;
     serverIcon = undefined;
     serverBanner = undefined;
@@ -78,6 +80,8 @@ const { buscarConvite, entrarPorConvite } = await import("./servidores");
 
 beforeEach(() => {
   erroDoJoin = undefined;
+  assuntoDoCanal = "";
+  client.api.get.mockImplementation(() => Promise.resolve(respostaDeConvite));
   toasts.length = 0;
   join.mockClear();
 });
@@ -139,5 +143,30 @@ describe("entrar por convite", () => {
     const r = await entrarPorConvite("OUTRO1");
     expect(r.tipo).toBe("falhou");
     expect(join).not.toHaveBeenCalled();
+  });
+});
+
+describe("prévia de canal +18 (D-CCANAL-06)", () => {
+  it("canal comum mostra o assunto e não é restrito", async () => {
+    assuntoDoCanal = "Comece por aqui.";
+    const r = await buscarConvite("a9Kq2");
+    expect("erro" in r).toBe(false);
+    if ("erro" in r) return;
+    expect(r.restritoPorIdade).toBe(false);
+    expect(r.assuntoDoCanal).toBe("Comece por aqui.");
+  });
+
+  it("canal +18 marca a prévia e NÃO mostra o assunto, mesmo que ele chegue", async () => {
+    /* O servidor do fork já retém o assunto; o cliente descarta de novo para
+       não depender de a outra ponta lembrar. */
+    assuntoDoCanal = "o que não pode vazar";
+    client.api.get.mockImplementation(() =>
+      Promise.resolve({ ...respostaDeConvite, channel_mature: true }),
+    );
+    const r = await buscarConvite("a9Kq2");
+    expect("erro" in r).toBe(false);
+    if ("erro" in r) return;
+    expect(r.restritoPorIdade).toBe(true);
+    expect(r.assuntoDoCanal).toBeUndefined();
   });
 });

@@ -24,11 +24,13 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "../components/ui/DropdownMenu";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/Popover";
 import { Tooltip } from "../components/ui/Tooltip";
-import { aindaNao } from "../pendente/pendencias";
 import {
   alternarCamera,
   alternarMudo,
@@ -38,6 +40,7 @@ import {
   sairDaChamada,
 } from "../sdk/chamada";
 import { Soundboard } from "../seletores/Soundboard";
+import { assinarChamada, lerChamada } from "../store/chamada";
 import { abrirConfig } from "../store/config";
 import {
   comNome,
@@ -45,6 +48,8 @@ import {
   useDispositivos,
 } from "../store/dispositivos";
 import { abrirModal } from "../store/modais";
+import { fecharPalco } from "../store/palcoDeVoz";
+import { definirFormaDoPopout } from "../store/popout";
 import {
   assinarPreferenciasDeVoz,
   definirPreferenciasDeVoz,
@@ -225,7 +230,7 @@ export function Doca({
   surdo,
   camera,
   tela,
-  mais,
+  onde,
 }: {
   mudo: boolean;
   surdo: boolean;
@@ -240,115 +245,230 @@ export function Doca({
    */
   tela: boolean;
   /**
-   * O `⋯` do fim do grupo. Só o palco de transmissão o desenha (D-TELA-18);
-   * a grade (D-DVM-17) termina em `◎`.
+   * Qual tela a monta — e as duas não têm a mesma doca.
+   *
+   * ⚠ **O design desenha DUAS ordens, e elas não são descuido.** A grade
+   * (D-DVM-17) é `🎤 · 🎧 · 📹 · ◧ · ♪ · ◎ · Sair da chamada`: ouvir vem
+   * colado a falar, porque numa sala o par é o que se mexe junto. O palco
+   * (D-TELA-18) é `🎤▾ · 📹▾ · ◧ · ◎ · ♪ · ⋯ · Desligar`: ali quem manda é a
+   * transmissão, e os dois dispositivos de captura ficam lado a lado com o
+   * `▾`. O `⋯` só existe no palco — a grade termina em `◎`.
    */
-  mais?: boolean;
+  onde: "grade" | "palco";
 }) {
-  return (
-    <footer className={css.doca}>
-      <ComOpcoes rotulo="Opções de áudio" menu={<OpcoesDoMicrofone />}>
-        <ControleDaDoca
-          nome="Microfone"
-          ligado={!mudo}
-          acao={mudo ? "Ativar microfone" : "Silenciar microfone"}
-          perigo={mudo}
-          onClick={() => void alternarMudo()}
-        >
-          {mudo ? (
-            <MicrophoneSlash size={ICONE.controle} aria-hidden />
-          ) : (
-            <Microphone size={ICONE.controle} aria-hidden />
-          )}
-        </ControleDaDoca>
-      </ComOpcoes>
-
-      <ComOpcoes rotulo="Opções de câmera" menu={<OpcoesDaCamera />}>
-        <ControleDaDoca
-          nome="Câmera"
-          ligado={camera}
-          acao={camera ? "Desligar câmera" : "Ligar câmera"}
-          onClick={() => void alternarCamera()}
-        >
-          {camera ? (
-            <VideoCamera size={ICONE.controle} aria-hidden />
-          ) : (
-            <VideoCameraSlash size={ICONE.controle} aria-hidden />
-          )}
-        </ControleDaDoca>
-      </ComOpcoes>
-
+  const microfone = (
+    <ComOpcoes key="mic" rotulo="Opções de áudio" menu={<OpcoesDoMicrofone />}>
       <ControleDaDoca
-        nome="Áudio recebido"
-        ligado={!surdo}
-        acao={surdo ? "Voltar a ouvir" : "Parar de ouvir"}
-        perigo={surdo}
-        onClick={() => void alternarSurdo()}
+        nome="Microfone"
+        ligado={!mudo}
+        acao={mudo ? "Ativar microfone" : "Silenciar microfone"}
+        perigo={mudo}
+        onClick={() => void alternarMudo()}
       >
-        {surdo ? (
-          <SpeakerSlash size={ICONE.controle} aria-hidden />
+        {mudo ? (
+          <MicrophoneSlash size={ICONE.controle} aria-hidden />
         ) : (
-          <SpeakerHigh size={ICONE.controle} aria-hidden />
+          <Microphone size={ICONE.controle} aria-hidden />
         )}
       </ControleDaDoca>
+    </ComOpcoes>
+  );
 
-      {tela ? null : (
-        <ControleDaDoca
-          nome="Compartilhamento de tela"
-          ligado={false}
-          acao="Compartilhar tela"
-          onClick={() => void alternarTela()}
-        >
-          <Monitor size={ICONE.controle} aria-hidden />
-        </ControleDaDoca>
-      )}
-
-      {/* ◎ e ♪ — os mesmos destinos da faixa de voz do rodapé, porque o
-          palco a COBRE: sem eles aqui, abrir uma atividade ou tocar um som
-          exigiria sair da tela de quem está no ar. As teclas 1–9 do
-          soundboard seguem montadas UMA vez, na faixa. */}
+  const capturaDeCamera = (
+    <ComOpcoes key="camera" rotulo="Opções de câmera" menu={<OpcoesDaCamera />}>
       <ControleDaDoca
-        nome="Atividades"
-        acao="Atividades"
-        onClick={() => abrirModal("atividades")}
+        nome="Câmera"
+        ligado={camera}
+        acao={camera ? "Desligar câmera" : "Ligar câmera"}
+        onClick={() => void alternarCamera()}
       >
-        <Rows size={ICONE.controle} aria-hidden />
+        {camera ? (
+          <VideoCamera size={ICONE.controle} aria-hidden />
+        ) : (
+          <VideoCameraSlash size={ICONE.controle} aria-hidden />
+        )}
       </ControleDaDoca>
+    </ComOpcoes>
+  );
 
-      <Popover>
-        <Tooltip texto="Soundboard" lado="acima">
-          <PopoverTrigger asChild>
-            <button type="button" className={css.controleDaDoca} aria-label="Soundboard">
-              <MusicNotes size={ICONE.controle} aria-hidden />
+  const ouvir = (
+    <ControleDaDoca
+      key="ouvir"
+      nome="Áudio recebido"
+      ligado={!surdo}
+      acao={surdo ? "Voltar a ouvir" : "Parar de ouvir"}
+      perigo={surdo}
+      onClick={() => void alternarSurdo()}
+    >
+      {surdo ? (
+        <SpeakerSlash size={ICONE.controle} aria-hidden />
+      ) : (
+        <SpeakerHigh size={ICONE.controle} aria-hidden />
+      )}
+    </ControleDaDoca>
+  );
+
+  const compartilhar = tela ? null : (
+    <ControleDaDoca
+      key="tela"
+      nome="Compartilhamento de tela"
+      ligado={false}
+      acao="Compartilhar tela"
+      onClick={() => void alternarTela()}
+    >
+      <Monitor size={ICONE.controle} aria-hidden />
+    </ControleDaDoca>
+  );
+
+  /* ◎ e ♪ — os mesmos destinos da faixa de voz do rodapé, porque o palco a
+     COBRE: sem eles aqui, abrir uma atividade ou tocar um som exigiria sair
+     da tela. As teclas 1–9 do soundboard seguem montadas UMA vez, na faixa. */
+  const atividades = (
+    <ControleDaDoca
+      key="atividades"
+      nome="Atividades"
+      acao="Atividades"
+      onClick={() => abrirModal("atividades")}
+    >
+      <Rows size={ICONE.controle} aria-hidden />
+    </ControleDaDoca>
+  );
+
+  const soundboard = (
+    <Popover key="soundboard">
+      <Tooltip texto="Soundboard" lado="acima">
+        <PopoverTrigger asChild>
+          <button type="button" className={css.controleDaDoca} aria-label="Soundboard">
+            <MusicNotes size={ICONE.controle} aria-hidden />
+          </button>
+        </PopoverTrigger>
+      </Tooltip>
+      <PopoverContent className="p-02" side="top">
+        <Soundboard />
+      </PopoverContent>
+    </Popover>
+  );
+
+  const sair = onde === "grade" ? "Sair da chamada" : "Desligar";
+
+  const controles =
+    onde === "grade"
+      ? [microfone, ouvir, capturaDeCamera, compartilhar, soundboard, atividades]
+      : [
+          microfone,
+          capturaDeCamera,
+          ouvir,
+          compartilhar,
+          atividades,
+          soundboard,
+          <MenuDaChamada key="mais" acao="Mais opções">
+            <button type="button" className={css.controleDaDoca} aria-label="Mais opções">
+              <DotsThree size={ICONE.controle} aria-hidden />
             </button>
-          </PopoverTrigger>
-        </Tooltip>
-        <PopoverContent className="p-02" side="top">
-          <Soundboard />
-        </PopoverContent>
-      </Popover>
+          </MenuDaChamada>,
+        ];
 
-      {mais ? (
-        <ControleDaDoca
-          nome="Mais opções"
-          acao="Mais opções"
-          onClick={aindaNao("menuDaDoca")}
-        >
-          <DotsThree size={ICONE.controle} aria-hidden />
-        </ControleDaDoca>
-      ) : null}
+  return (
+    <footer className={css.doca}>
+      {controles}
 
       <span className={css.divisaDaDoca} aria-hidden />
 
+      {/* O verbo também é do design, e muda com a tela: da SALA se sai, e o
+          palco diz "Desligar" (D-TELA-18). No `aria-label` também, porque em
+          doca estreita o texto some e fica só o ícone. */}
       <button
         type="button"
         className={css.desligar}
+        aria-label={sair}
         onClick={() => void sairDaChamada()}
       >
         <PhoneX size={ICONE.controle} aria-hidden />
-        Desligar
+        <span className={css.rotuloDeSair}>{sair}</span>
       </button>
     </footer>
+  );
+}
+
+/* ============================================================
+   ⋯ — o menu da chamada (D-VOZ-24, D-TELA-18)
+   ============================================================ */
+
+/**
+ * O `⋯` da chamada direta e da doca do palco — UM menu, nas duas.
+ *
+ * ⚠ **O design desenha o alvo e não o menu, e este não inventa nada.** Os
+ * itens são ações que JÁ existem e que a barra de cada tela deixou de fora:
+ * a chamada direta não tem `🎧` nem `▾`, e sem este menu ensurdecer e trocar
+ * de fone exigiriam fechar a tela. Tela cheia e janela flutuante são as do
+ * cabeçalho da grade. Dois menus com os mesmos itens divergem no primeiro que
+ * ganha um item novo — por isso é um componente, e as duas telas só dão o
+ * gatilho.
+ *
+ * O gatilho vem como filho porque cada barra tem o PRÓPRIO botão (44px na
+ * doca, o da barra flutuante na direta). `Tooltip` por fora do
+ * `DropdownMenuTrigger`, como o `♪` do soundboard: `asChild` sobre um Root do
+ * Radix não pousa em DOM nenhum, e o clique morreria sem erro.
+ */
+export function MenuDaChamada({
+  acao,
+  children,
+}: {
+  acao: string;
+  children: React.ReactElement;
+}) {
+  return (
+    <DropdownMenu>
+      <Tooltip texto={acao} lado="acima">
+        <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
+      </Tooltip>
+      <DropdownMenuContent side="top" align="end">
+        <ItensDaChamada />
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/*
+  Só monta com o menu aberto — então as assinaturas (surdo, tela cheia) e as
+  listas de dispositivo existem enquanto alguém está escolhendo, como no `▾`.
+*/
+function ItensDaChamada() {
+  const surdo = useSyncExternalStore(assinarChamada, () => lerChamada().surdo);
+  const cheia = useEmTelaCheia();
+  return (
+    <>
+      <DropdownMenuCheckboxItem
+        marcado={surdo}
+        aoAlternar={() => void alternarSurdo()}
+      >
+        Ensurdecer
+      </DropdownMenuCheckboxItem>
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger>Microfone e saída de áudio</DropdownMenuSubTrigger>
+        <DropdownMenuSubContent>
+          <OpcoesDoMicrofone />
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger>Câmera</DropdownMenuSubTrigger>
+        <DropdownMenuSubContent>
+          <OpcoesDaCamera />
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem onSelect={cheia ? sairDaTelaCheia : emTelaCheia}>
+        {cheia ? "Sair da tela cheia" : "Tela cheia"}
+      </DropdownMenuItem>
+      <DropdownMenuItem
+        onSelect={() => {
+          definirFormaDoPopout("popout");
+          fecharPalco();
+        }}
+      >
+        Janela flutuante
+      </DropdownMenuItem>
+    </>
   );
 }
 

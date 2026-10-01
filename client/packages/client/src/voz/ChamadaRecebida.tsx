@@ -8,6 +8,8 @@ import {
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
+import { rotuloDeAmigosEmComum } from "../lib/plural";
+import { useEmComum } from "../membros/EmComum";
 import { atenderChamada, recusarChamada } from "../sdk/chamada";
 import { assinarChamada, lerChamada } from "../store/chamada";
 import {
@@ -170,6 +172,15 @@ function TelaCheia({ toque }: { toque: Toque }) {
   const [semMicrofone, setSemMicrofone] = useState<boolean | undefined>(undefined);
   const [comCamera, setComCamera] = useState(false);
   const microfoneFechado = semMicrofone ?? mudoPreferido;
+  /*
+    ⚠ **Uma consulta por TOQUE, e só na tela cheia.** O toast não desenha o
+    chip, e buscar ali pagaria `GET /users/{id}/mutual` a cada chamada que
+    ninguém abriu. A tela cheia monta uma vez por toque, então a rota sai uma
+    vez por decisão — a mesma do perfil, com a mesma regra de "não sei" ≠ 0.
+  */
+  const emComum = useEmComum(toque.quemLigou);
+  const amigosEmComum = rotuloDeAmigosEmComum(emComum.dados?.amigos.length);
+  const grupo = canal?.tipo === "grupo" ? canal.name : undefined;
 
   return (
     <div className={css.veu}>
@@ -190,8 +201,18 @@ function TelaCheia({ toque }: { toque: Toque }) {
               chamando…
             </div>
           </div>
-          {canal?.tipo === "grupo" ? (
-            <span className={css.contexto}>{canal.name}</span>
+          {/* A fileira de chips do design (`gap: 6`): o grupo de onde vem a
+              chamada e quantos amigos vocês têm em comum. Some inteira sem
+              nenhum dos dois, para não deixar um vão no `gap` do topo. */}
+          {grupo !== undefined || amigosEmComum !== undefined ? (
+            <div className={css.chips}>
+              {grupo !== undefined ? (
+                <span className={css.contexto}>{grupo}</span>
+              ) : null}
+              {amigosEmComum !== undefined ? (
+                <span className={css.contexto}>{amigosEmComum}</span>
+              ) : null}
+            </div>
           ) : null}
         </div>
 

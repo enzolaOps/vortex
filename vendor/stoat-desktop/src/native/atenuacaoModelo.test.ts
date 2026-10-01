@@ -33,6 +33,56 @@ function appDublado() {
 
 const tique = () => new Promise((r) => setTimeout(r, 0));
 
+/**
+ * O ALCANCE da atenuação — o que ela pega e o que ela deixa.
+ *
+ * ⚠ **A única isenção é o próprio Vortex.** Este bloco existe para MEDIR a
+ * consequência disso quando a pessoa compartilha som: a sessão do app que está
+ * sendo transmitido é atenuada como qualquer outra, e quem assiste ouve pelo
+ * mix já baixado. Quem decide não pedir a atenuação nessa hora é o CLIENTE,
+ * em `client/packages/client/src/sdk/atenuacao.ts` — a casca não sabe que há
+ * transmissão, e ensiná-la significaria resolver PID → executável, que é
+ * Win32 novo por uma exceção que o cliente exprime em um booleano.
+ */
+describe("alcance da atenuação", () => {
+  it("baixa TODO app que não é o Vortex, inclusive o transmitido", async () => {
+    /* O navegador cuja janela está sendo compartilhada com som. */
+    const transmitido = { appName: "chrome.exe", volume: 1 };
+    const spotify = { appName: "spotify.exe", volume: 0.8 };
+    const x = mixerDublado([
+      transmitido,
+      spotify,
+      { appName: PROPRIO, volume: 1 },
+    ]);
+    const { atenuar } = criarAtenuacao({
+      carregar: () => Promise.resolve(x),
+      proprio: PROPRIO,
+    });
+
+    await atenuar(true);
+    assert.equal(
+      transmitido.volume,
+      0.5,
+      "a fonte transmitida cai a 50% como qualquer outra",
+    );
+    assert.equal(spotify.volume, 0.4);
+
+    await atenuar(false);
+    assert.equal(transmitido.volume, 1, "e volta ao sair da fala");
+  });
+
+  it("o próprio Vortex é a única isenção", async () => {
+    const proprio = { appName: PROPRIO, volume: 1 };
+    const x = mixerDublado([proprio]);
+    const { atenuar } = criarAtenuacao({
+      carregar: () => Promise.resolve(x),
+      proprio: PROPRIO,
+    });
+    await atenuar(true);
+    assert.equal(proprio.volume, 1);
+  });
+});
+
 describe("atenuação ao fechar o app", () => {
   it("fecha sem segurar quando nunca houve atenuação", () => {
     let carregou = 0;
