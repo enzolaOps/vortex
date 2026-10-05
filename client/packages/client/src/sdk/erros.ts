@@ -104,6 +104,8 @@ const POR_TIPO: Record<string, string> = {
   /* Servidor do Vortex: o convite existe, mas o canal suspendeu a entrada. */
   InvitesPaused: "Os convites deste canal estão pausados.",
   EmailFailed: "Não deu para enviar o e-mail.",
+  /* 400 medido: senha na lista de vazadas. Sem isto a tela diz "recusou o pedido". */
+  CompromisedPassword: "Essa senha já apareceu em um vazamento. Escolha outra.",
   /*
     ⚠ `OperationFailed` é o que o servidor devolve para e-mail JÁ CADASTRADO —
     medido, com 500. Não é um erro interno de verdade, e tratá-lo como tal
