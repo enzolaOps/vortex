@@ -1,5 +1,7 @@
 import { ligarLogoutDoServidor, restaurarSessao, sair } from "nucleo/sdk/autenticacao";
 
+import { ligarRotaDeEntrada } from "./rotaDeEntrada";
+
 /**
  * Sair é de DUAS origens e elas se separam aqui: a pessoa que clica em "Sair" e o
  * servidor que derruba a sessão (token revogado, senha trocada). O portão precisa
@@ -44,6 +46,8 @@ export function reiniciarEncerramento(): void {
  * restauração abre o socket e um token revogado é recusado nessa abertura.
  */
 export function iniciarSessao(): void {
+  // A URL da abertura (link de e-mail, convite, QR) é lida ANTES de a restauração decidir a tela.
+  ligarRotaDeEntrada();
   ligarLogoutDoServidor();
   void restaurarSessao();
 }

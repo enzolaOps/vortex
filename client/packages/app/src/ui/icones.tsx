@@ -10,6 +10,9 @@ import {
   ChevronRight as LChevronRight,
   ChevronUp as LChevronUp,
   CircleAlert as LCircleAlert,
+  CircleCheck as LCircleCheck,
+  Mail as LMail,
+  QrCode as LQrCode,
   Copy as LCopy,
   Download as LDownload,
   File as LFile,
@@ -119,6 +122,9 @@ export const Arquivo = envolver(LFile);
 export const Fixar = envolver(LPin);
 export const Desafixar = envolver(LPinOff);
 export const Alerta = envolver(LCircleAlert);
+export const Confirmado = envolver(LCircleCheck);
+export const Email = envolver(LMail);
+export const CodigoQrIcone = envolver(LQrCode);
 export const Olho = envolver(LEye);
 export const OlhoFechado = envolver(LEyeOff);
 export const SemConexao = envolver(LWifiOff);
