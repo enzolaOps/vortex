@@ -20,6 +20,7 @@ import { useState, type ReactNode } from "react";
 import { ColunaDeSalas } from "../../shell";
 import { salas, shell } from "../../textos";
 import { Botao, ItemDeSala } from "../../ui/ds";
+import { MenuDoServidor } from "../admin/MenuDoServidor";
 import { ConvidarPessoas } from "./ConvidarPessoas";
 import { CriarSala } from "./CriarSala";
 import css from "./Salas.module.css";
@@ -34,7 +35,7 @@ function SalaDaColuna({ serverId, canalId }: { serverId: string; canalId: string
     <li>
       <ItemDeSala
         nome={canal.name}
-        pessoas={pessoas.map((p) => ({ id: p.id, nome: p.nome || salas.alguem }))}
+        pessoas={pessoas.map((p) => ({ id: p.id, nome: p.nome || salas.alguem, imagem: p.avatarUrl }))}
         aoVivo={pessoas.some((p) => p.estado === "tela")}
         conectado={aqui}
         desatualizada={desatualizada}
@@ -197,7 +198,12 @@ export function ColunaConectada({ rodape }: { rodape?: ReactNode }) {
     return <ColunaDeSalas rodape={rodape}>{<p className={css.nota}>{shell.salas.vazio}</p>}</ColunaDeSalas>;
   }
   return (
-    <ColunaDeSalas titulo={servidor.name} rodape={rodape} aviso={<AvisoDeConexao />}>
+    <ColunaDeSalas
+      titulo={servidor.name}
+      acoes={<MenuDoServidor serverId={serverId} />}
+      rodape={rodape}
+      aviso={<AvisoDeConexao />}
+    >
       <ListaDoServidor serverId={serverId} />
     </ColunaDeSalas>
   );

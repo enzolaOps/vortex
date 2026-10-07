@@ -169,7 +169,7 @@ describe("controles da chamada conforme a permissão", () => {
     ctl.negadas = new Set(["transmitirVideo"]);
     await abrir();
     definirChamada({ estado: "dentro", channelId: "V1", desde: Date.now() });
-    pedirEscolhaDeTela("sistema");
+    void pedirEscolhaDeTela("sistema");
     await expect.element(page.getByRole("dialog")).toBeVisible();
     await expect.element(page.getByText(voz.transmitir.semPermissao)).toBeVisible();
     expect(document.body.textContent).not.toContain(voz.transmitir.resolucao);
@@ -179,7 +179,7 @@ describe("controles da chamada conforme a permissão", () => {
   it("o diálogo de transmissão com permissão mostra o formulário", async () => {
     await abrir();
     definirChamada({ estado: "dentro", channelId: "V1", desde: Date.now() });
-    pedirEscolhaDeTela("sistema");
+    void pedirEscolhaDeTela("sistema");
     await expect.element(page.getByRole("dialog")).toBeVisible();
     await expect.element(page.getByRole("button", { name: voz.transmitir.transmitir })).toBeVisible();
   });

@@ -252,7 +252,7 @@ describe("a casca", () => {
   });
 
   it("uma seção que não é desta jornada cai no perfil", async () => {
-    await abrir("cargos");
+    await abrir("privacidade");
     await assentar();
     expect(lerConfig().secao).toBe("perfil");
   });

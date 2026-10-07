@@ -37,6 +37,10 @@ export const SECOES = [
   "desktop",
   "avancado",
   "servidor",
+  /* "Salas e canais": página de administração do app novo. Fica FORA de
+     `GRUPOS_DE_SERVIDOR` (o cliente antigo deriva o menu e o confronto
+     dele), então só a rota e a casca do `app` a conhecem. */
+  "canais",
   "membros",
   "cargos",
   "convites",
@@ -96,6 +100,7 @@ export const NOME_DA_SECAO: Record<SecaoId, string> = {
      era nosso. O nome da seção de CANAL segue "Visão geral", que é o rótulo
      dela lá. */
   servidor: "Perfil do servidor",
+  canais: "Salas e canais",
   membros: "Membros",
   cargos: "Cargos",
   convites: "Convites",

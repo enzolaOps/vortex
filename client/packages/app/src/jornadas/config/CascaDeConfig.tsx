@@ -1,11 +1,27 @@
 import { abrirConfig, assinarConfig, fecharConfig, lerConfig } from "nucleo/store/config";
+import { useServer, useServidorAtivo } from "nucleo/store/hooks";
 import { assinarMeuStatus, lerMeuStatus } from "nucleo/store/meuStatus";
 import { lerMeuPerfil } from "nucleo/sdk/perfil";
 import { useEffect, useSyncExternalStore, type ReactNode } from "react";
 
-import { config } from "../../textos";
+import { admin, config } from "../../textos";
 import { Avatar } from "../../ui/ds";
 import { ConteudoDoDialogo, Dialogo } from "../../ui/primitivos/Dialogo";
+import { Banimentos } from "../admin/Banimentos";
+import { Canais } from "../admin/Canais";
+import { Cargos } from "../admin/Cargos";
+import { Convites } from "../admin/Convites";
+import { Membros } from "../admin/Membros";
+import {
+  GRUPOS_DO_SERVIDOR,
+  NOME_DA_SECAO_DE_SERVIDOR,
+  podeAbrirSecao,
+  secaoDeServidor,
+  secoesPermitidas,
+  SUBTITULO_DA_SECAO_DE_SERVIDOR,
+  type SecaoDeServidor,
+} from "../admin/secoes";
+import { VisaoGeral } from "../admin/VisaoGeral";
 import { encerrarSessao } from "../sessao/encerrar";
 import { Aparencia } from "./Aparencia";
 import css from "./Casca.module.css";
@@ -33,6 +49,36 @@ const CONTEUDO: Record<SecaoEssencial, () => ReactNode> = {
   aparencia: () => <Aparencia />,
 };
 
+/** O conteúdo de cada seção de administração. `Record` exaustivo, como o de cima. */
+const CONTEUDO_DO_SERVIDOR: Record<SecaoDeServidor, (serverId: string) => ReactNode> = {
+  servidor: (s) => <VisaoGeral serverId={s} />,
+  canais: (s) => <Canais serverId={s} />,
+  convites: (s) => <Convites serverId={s} />,
+  cargos: (s) => <Cargos serverId={s} />,
+  membros: (s) => <Membros serverId={s} />,
+  banimentos: (s) => <Banimentos serverId={s} />,
+};
+
+/** Qual servidor se administra: o da URL ou, sem ele, o que está aberto. */
+function servidorDaAdministracao(doEndereco: string | undefined, ativo: string): string {
+  return doEndereco ?? ativo;
+}
+
+/** O servidor, no alto da navegação de administração. */
+function IdentidadeDoServidor({ serverId }: { serverId: string }) {
+  const servidor = useServer(serverId);
+  if (!servidor) return null;
+  return (
+    <div className={css.identidade}>
+      <Avatar nome={servidor.name} id={serverId} tamanho={36} imagem={servidor.avatarUrl} />
+      <div className={css.identidadeTextos}>
+        <span className={css.identidadeNome}>{servidor.name}</span>
+        <span className={css.identidadeUsuario}>{admin.servidor}</span>
+      </div>
+    </div>
+  );
+}
+
 /** Quem sou eu, no alto da navegação. */
 function Identidade() {
   // O nome muda ao salvar o perfil; sem assinar, a navegação só atualizaria na próxima abertura.
@@ -43,7 +89,7 @@ function Identidade() {
   const presenca = status.presenca === "invisivel" ? "offline" : status.presenca;
   return (
     <div className={css.identidade}>
-      <Avatar nome={eu.displayName} id={eu.username} tamanho={36} status={presenca} />
+      <Avatar nome={eu.displayName} id={eu.username} tamanho={36} imagem={eu.avatarUrl} status={presenca} />
       <div className={css.identidadeTextos}>
         <span className={css.identidadeNome}>{eu.displayName}</span>
         <span className={css.identidadeUsuario}>@{eu.username}</span>
@@ -59,16 +105,39 @@ function Identidade() {
  * e ancorou; aqui o shell continua montado por baixo, e fechar devolve a pessoa
  * exatamente onde estava. O Dialogo traz foco preso, Esc e devolução do foco; o
  * dono do estado é o store de configurações, que a URL espelha.
+ *
+ * Duas famílias de seção na mesma casca: as pessoais (perfil, conta…) e as de
+ * administração de UM servidor (PRD 4.7), que carregam o servidor na URL e só
+ * mostram o que a pessoa pode usar.
  */
 export function CascaDeConfig() {
   const aberta = useSyncExternalStore(assinarConfig, lerConfig);
-  const secao = secaoEssencial(aberta.secao);
+  const ativo = useServidorAtivo();
   const aberto = aberta.secao !== null;
+  const secaoPessoal = secaoEssencial(aberta.secao);
+  const serverId = servidorDaAdministracao(aberta.serverId, ativo);
+  const secaoPedida = secaoDeServidor(aberta.secao);
+  const permitidas = serverId === "" ? [] : secoesPermitidas(serverId);
+  // Seção de servidor sem permissão cai na primeira que a pessoa pode usar.
+  const secaoAdmin =
+    secaoPedida === undefined
+      ? undefined
+      : podeAbrirSecao(serverId, secaoPedida)
+        ? secaoPedida
+        : permitidas[0];
+  const secao = secaoPessoal ?? secaoAdmin;
 
-  // Seção que não é desta jornada (URL de administração, por exemplo) cai no perfil.
+  /*
+    O endereço acompanha o que está na tela: seção que não é desta jornada (ou administração
+    sem acesso nenhum) cai no perfil; seção proibida cai na primeira permitida; e o endereço
+    sem servidor (/config/canais) ganha o servidor aberto, para o link ser completo.
+  */
   useEffect(() => {
-    if (aberto && secao === undefined) abrirConfig("perfil");
-  }, [aberto, secao]);
+    if (!aberto) return;
+    if (secao === undefined) abrirConfig("perfil");
+    else if (secaoPedida !== undefined && secaoAdmin !== secaoPedida) abrirConfig(secaoAdmin ?? "perfil", serverId);
+    else if (secaoAdmin !== undefined && aberta.serverId === undefined && serverId !== "") abrirConfig(secaoAdmin, serverId);
+  }, [aberto, secao, secaoPedida, secaoAdmin, aberta.serverId, serverId]);
 
   return (
     <Dialogo
@@ -84,10 +153,10 @@ export function CascaDeConfig() {
         onOpenAutoFocus={(e) => {
           // O foco nasce no item da seção atual, e não no primeiro da lista.
           e.preventDefault();
-          document.querySelector<HTMLElement>(`nav[aria-label="${config.navegacao}"] [aria-current="page"]`)?.focus();
+          document.querySelector<HTMLElement>(`nav[aria-label] [aria-current="page"]`)?.focus();
         }}
       >
-        {secao !== undefined && (
+        {secaoPessoal !== undefined && (
           <>
             <nav className={css.navegacao} aria-label={config.navegacao}>
               <Identidade />
@@ -99,7 +168,7 @@ export function CascaDeConfig() {
                       key={s}
                       type="button"
                       className={css.item}
-                      aria-current={s === secao ? "page" : undefined}
+                      aria-current={s === secaoPessoal ? "page" : undefined}
                       onClick={() => {
                         abrirConfig(s);
                       }}
@@ -117,13 +186,51 @@ export function CascaDeConfig() {
                 {config.sair}
               </button>
             </nav>
-            <section className={css.painel} aria-label={NOME_DA_SECAO[secao]}>
+            <section className={css.painel} aria-label={NOME_DA_SECAO[secaoPessoal]}>
               <header className={css.cabecalho}>
-                <h2 className={css.tituloDaPagina}>{NOME_DA_SECAO[secao]}</h2>
-                <p className={css.subtituloDaPagina}>{SUBTITULO_DA_SECAO[secao]}</p>
+                <h2 className={css.tituloDaPagina}>{NOME_DA_SECAO[secaoPessoal]}</h2>
+                <p className={css.subtituloDaPagina}>{SUBTITULO_DA_SECAO[secaoPessoal]}</p>
               </header>
               <div className={css.corpo} tabIndex={-1}>
-                {CONTEUDO[secao]()}
+                {CONTEUDO[secaoPessoal]()}
+              </div>
+            </section>
+          </>
+        )}
+        {secaoAdmin !== undefined && (
+          <>
+            <nav className={css.navegacao} aria-label={admin.navegacao.rotulo}>
+              <IdentidadeDoServidor serverId={serverId} />
+              {GRUPOS_DO_SERVIDOR.map((g) => {
+                const itens = g.itens.filter((s) => permitidas.includes(s));
+                if (itens.length === 0) return null;
+                return (
+                  <div key={g.titulo} className={css.grupo}>
+                    <p className={css.tituloDoGrupo}>{g.titulo}</p>
+                    {itens.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        className={css.item}
+                        aria-current={s === secaoAdmin ? "page" : undefined}
+                        onClick={() => {
+                          abrirConfig(s, serverId);
+                        }}
+                      >
+                        {NOME_DA_SECAO_DE_SERVIDOR[s]}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })}
+            </nav>
+            <section className={css.painel} aria-label={NOME_DA_SECAO_DE_SERVIDOR[secaoAdmin]}>
+              <header className={css.cabecalho}>
+                <h2 className={css.tituloDaPagina}>{NOME_DA_SECAO_DE_SERVIDOR[secaoAdmin]}</h2>
+                <p className={css.subtituloDaPagina}>{SUBTITULO_DA_SECAO_DE_SERVIDOR[secaoAdmin]}</p>
+              </header>
+              <div className={css.corpo} tabIndex={-1}>
+                {CONTEUDO_DO_SERVIDOR[secaoAdmin](serverId)}
               </div>
             </section>
           </>

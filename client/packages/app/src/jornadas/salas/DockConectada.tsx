@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { irParaCasa } from "nucleo/store/navegacao";
 import { abrirServidor } from "nucleo/store/ultimoLugar";
 import { useLocal, useProntidao, useServer, useServerIds, useServidorAtivo } from "nucleo/store/hooks";
 
-import { salas } from "../../textos";
+import { admin, salas } from "../../textos";
 import { ItemDaDock } from "../../ui/ds";
-import { Casa } from "../../ui/icones";
+import { Casa, Mais } from "../../ui/icones";
+import { CriarServidor } from "../admin/CriarServidor";
 import css from "./Salas.module.css";
 
 function ServidorNaDock({ id, selecionado }: { id: string; selecionado: boolean }) {
@@ -14,6 +16,7 @@ function ServidorNaDock({ id, selecionado }: { id: string; selecionado: boolean 
     <ItemDaDock
       nome={servidor.name}
       id={id}
+      imagem={servidor.avatarUrl}
       selecionado={selecionado}
       naoLida={servidor.naoLidas > 0}
       mencoes={servidor.mencoes}
@@ -32,6 +35,23 @@ export function EsqueletoDaDock() {
       <span className={css.bloco} />
       <span className={css.bloco} />
     </div>
+  );
+}
+
+/** O "+" da dock: criar um servidor ou entrar por convite. */
+function AdicionarServidor() {
+  const [aberto, setAberto] = useState(false);
+  return (
+    <>
+      <ItemDaDock
+        nome={admin.criarServidor.titulo}
+        icone={<Mais tamanho={20} />}
+        onClick={() => {
+          setAberto(true);
+        }}
+      />
+      <CriarServidor aberto={aberto} aoMudar={setAberto} />
+    </>
   );
 }
 
@@ -58,6 +78,7 @@ export function ConteudoDaDock() {
       {ids.map((id) => (
         <ServidorNaDock key={id} id={id} selecionado={id === ativo} />
       ))}
+      <AdicionarServidor />
     </>
   );
 }
