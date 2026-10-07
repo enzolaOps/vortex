@@ -5,3 +5,4 @@ dist/
 
 # Saída do compiler de estilo, se houver. Nunca commitada.
 styled-system/
+.turbo/

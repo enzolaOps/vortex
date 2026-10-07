@@ -23,6 +23,7 @@
     "confronto": "node scripts/confronto.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
+    "guards": "pnpm contrast && pnpm classes && pnpm escala && pnpm movimento && pnpm sombra && pnpm superficies && pnpm vars",
     "gate": "node scripts/gate.mjs"
   },
   "dependencies": {
