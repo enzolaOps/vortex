@@ -7,6 +7,8 @@ import { AreaConectada } from "./AreaConectada";
 import { ColunaConectada } from "./ColunaConectada";
 import { ConteudoDaDock } from "./DockConectada";
 import { EsqueletoDeMembros, ListaDeMembros } from "./GavetaConectada";
+import { DialogoDeTransmissao } from "../voz/DialogoDeTransmissao";
+import { useSalaDoPalco } from "../voz/hooks";
 
 /**
  * Chegada (PRD §8 nº 2): depois do primeiro `Ready`, e só se a pessoa ainda não
@@ -34,8 +36,11 @@ export function ShellDasSalas({ rodapeDasSalas }: { rodapeDasSalas?: ReactNode }
   const pronto = useProntidao();
   const local = useLocal();
   const serverId = local.tipo === "servidor" ? local.serverId : undefined;
+  // O palco ocupa a área principal inteira, sem coluna à direita.
+  const palcoAberto = useSalaDoPalco(serverId).aberto;
 
   return (
+    <>
     <ShellDoApp
       dock={<ConteudoDaDock />}
       salas={<ColunaConectada rodape={rodapeDasSalas} />}
@@ -43,7 +48,9 @@ export function ShellDasSalas({ rodapeDasSalas }: { rodapeDasSalas?: ReactNode }
       membros={
         !pronto ? <EsqueletoDeMembros /> : serverId !== undefined ? <ListaDeMembros serverId={serverId} /> : undefined
       }
-      gavetaOculta={pronto && serverId === undefined}
+      gavetaOculta={(pronto && serverId === undefined) || palcoAberto}
     />
+    <DialogoDeTransmissao />
+    </>
   );
 }

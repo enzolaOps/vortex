@@ -1,4 +1,4 @@
-import { entrarNaChamada, sairDaChamada } from "nucleo/sdk/chamada";
+import { sairDaChamada } from "nucleo/sdk/chamada";
 import { pode } from "nucleo/sdk/permissoes";
 import { fixarSalaNoCanto } from "nucleo/store/preferenciasDaSala";
 import { escolherSala } from "nucleo/store/ultimoLugar";
@@ -16,6 +16,8 @@ import {
 
 import { salas } from "../../textos";
 import { WidgetDaSala, type PessoaDaSala } from "../../ui/ds";
+import { entrarComPalco } from "../voz/acoes";
+import { WidgetDaChamadaConectado } from "../voz/WidgetDaChamadaConectado";
 import css from "./Salas.module.css";
 
 function WidgetDeUmaSala({ serverId, canalId }: { serverId: string; canalId: string }) {
@@ -51,7 +53,7 @@ function WidgetDeUmaSala({ serverId, canalId }: { serverId: string; canalId: str
       onEntrar={
         !dentro && conectado && pode(canalId, "conectar")
           ? () => {
-              void entrarNaChamada(canalId);
+              void entrarComPalco(canalId);
             }
           : undefined
       }
@@ -74,12 +76,18 @@ function WidgetDeUmaSala({ serverId, canalId }: { serverId: string; canalId: str
 export function WidgetConectado({ serverId }: { serverId: string }) {
   const existentes = useCanaisDeVoz(serverId);
   const lembrada = useUltimoLugar(serverId).sala;
+  const naChamada = useEstadoDaChamada() !== "fora";
   const canalId =
     lembrada !== undefined && existentes.includes(lembrada) ? lembrada : escolherSala(serverId);
-  if (canalId === undefined) return null;
+  // Com a chamada de pé, o widget é o dela (o mesmo de qualquer servidor), e não o da sala em foco.
+  if (canalId === undefined && !naChamada) return null;
   return (
     <div className={css.camadaDeWidgets}>
-      <WidgetDeUmaSala key={canalId} serverId={serverId} canalId={canalId} />
+      {naChamada ? (
+        <WidgetDaChamadaConectado servidorAberto={serverId} />
+      ) : (
+        canalId !== undefined && <WidgetDeUmaSala key={canalId} serverId={serverId} canalId={canalId} />
+      )}
     </div>
   );
 }

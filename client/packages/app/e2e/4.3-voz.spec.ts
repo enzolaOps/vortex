@@ -3,7 +3,7 @@ import { expect, test, type APIRequestContext, type Browser, type Page } from "@
 import { contasDeTeste } from "./globalSetup";
 
 /**
- * Jornada 4.2 (PRD): "chegar ao servidor e ver quem está onde". Duas contas, dois
+ * Jornada 4.3 (PRD): "entrar na sala, assistir e transmitir, e sair para ler sem perder a tela". Duas contas, dois
  * contextos de navegador = duas pessoas. A entra numa sala pela interface e B, no
  * widget e na lista de salas, vê A em até 2 s; A sai pela interface e some para B
  * em até 2 s, sem esperar o socket cair (rota de saída da sala, ADR-002).
@@ -66,13 +66,13 @@ async function abrirComoPessoa(browser: Browser, sessao: Sessao): Promise<Page> 
   return pagina;
 }
 
-test.describe("4.2 salas @backend", () => {
+test.describe("4.3 palco @backend", () => {
   test.skip(
     () => process.env.VORTEX_E2E_BACKEND !== "1",
     "pilha local inalcançável (suba com make vortex-local-env && make vortex-local-up no pi-infra)",
   );
 
-  test("A entra na sala e B a vê em até 2 s; A sai pela interface e some para B em até 2 s", async ({
+  test("A entra e transmite; B vê o vídeo de A no foco, lê um canal com a chamada no widget, volta ao palco; A sai", async ({
     browser,
     request,
   }) => {
@@ -80,27 +80,34 @@ test.describe("4.2 salas @backend", () => {
     const sessaoA = await entrarPelaApi(request, a.email, a.senha);
     const sessaoB = await entrarPelaApi(request, b.email, b.senha);
     await prepararServidor(request, sessaoA, sessaoB);
-
     const paginaA = await abrirComoPessoa(browser, sessaoA);
     const paginaB = await abrirComoPessoa(browser, sessaoB);
 
-    // B olha a sala: nada conectou sozinho, e a sala está vazia.
-    const salaDeB = paginaB.getByRole("button", { name: new RegExp(NOME_DA_SALA) }).last();
-    await salaDeB.click();
-    const cartaoDeB = paginaB.getByRole("region", { name: NOME_DA_SALA });
-    await expect(cartaoDeB).toContainText("Ninguém está na sala agora.");
-
-    // A abre a sala e entra com um clique (o app nunca entra sozinho).
+    // A entra: o palco abre na hora e a cápsula aparece.
     await paginaA.getByRole("button", { name: new RegExp(NOME_DA_SALA) }).last().click();
     await paginaA.getByRole("button", { name: "Entrar na sala" }).click();
+    await expect(paginaA.getByTestId("palco")).toBeVisible();
+    await expect(paginaA.getByRole("button", { name: "Sair da chamada" })).toBeVisible();
 
-    // B vê A no widget e na lista de salas, em até 2 s.
-    await expect(cartaoDeB).toContainText(a.username, { timeout: PRAZO_MS });
-    await expect(paginaB.getByRole("img", { name: "1 pessoa na sala" })).toBeVisible({ timeout: PRAZO_MS });
+    // A transmite pelo diálogo (a captura é a falsa do Chromium).
+    await paginaA.getByRole("button", { name: "Compartilhar tela" }).click();
+    await paginaA.getByRole("dialog", { name: "O que você quer mostrar?" }).getByRole("button", { name: "Transmitir" }).click();
+    await expect(paginaA.getByTestId("foco-do-palco")).toBeVisible({ timeout: 10_000 });
 
-    // A sai pela interface; B deixa de ver A em até 2 s, sem esperar o socket cair.
+    // B entra e vê a transmissão de A no foco, com vídeo.
+    await paginaB.getByRole("button", { name: new RegExp(NOME_DA_SALA) }).last().click();
+    await paginaB.getByRole("button", { name: "Entrar na sala" }).click();
+    const foco = paginaB.getByTestId("foco-do-palco");
+    await expect(foco.locator("video")).toBeVisible({ timeout: 10_000 });
+
+    // B vai ler um canal: a chamada segue no widget; volta ao palco no mesmo foco.
+    await paginaB.getByRole("button", { name: /geral/ }).first().click();
+    await expect(paginaB.getByRole("region", { name: "Chamada em andamento" })).toBeVisible();
+    await paginaB.getByRole("button", { name: "Voltar ao palco" }).click({ force: true });
+    await expect(paginaB.getByTestId("foco-do-palco")).toBeVisible();
+
+    // A sai e a transmissão some para B em até 2 s.
     await paginaA.getByRole("button", { name: "Sair da chamada" }).click();
-    await expect(cartaoDeB).not.toContainText(a.username, { timeout: PRAZO_MS });
-    await expect(paginaB.getByRole("img", { name: "0 pessoa na sala" })).toBeVisible({ timeout: PRAZO_MS });
+    await expect(paginaB.getByTestId("foco-do-palco")).toHaveCount(0, { timeout: PRAZO_MS });
   });
 });

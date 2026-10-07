@@ -190,3 +190,11 @@
   justify-content: flex-end;
   gap: var(--vx-space-2);
 }
+
+/* O palco no lugar da área principal: sem vidro, ocupa a trilha inteira. */
+.areaDoPalco {
+  display: block;
+  block-size: 100%;
+  min-inline-size: 0;
+  min-block-size: 0;
+}

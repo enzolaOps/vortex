@@ -76,7 +76,11 @@ import {
   type DetalheDaConexao,
   type EstadoDaConexao,
 } from "./conexao";
-import { assinarChamada, falando, lerChamada } from "./chamada";
+import { assinarChamada, falando, lerChamada, type Chamada } from "./chamada";
+import { assinarPalco, lerPalco, type Palco } from "./palcoDeVoz";
+import { assinarFalhaDeVoz, lerFalhaDeVoz, type FalhaDeVoz } from "./falhaDeVoz";
+import { assinarSeletorDeTela, lerSeletorDeTela, type EstadoDoSeletor } from "./seletorDeTela";
+import { chaveDeVideo, faixasDeVideo, type FonteDeVideo } from "./video";
 import { assinarProntidao, lerProntidao } from "./prontidao";
 import {
   assinarPreferenciasDaSala,
@@ -822,4 +826,38 @@ export function useFalantes(ids: readonly string[]): readonly string[] {
 
   if (import.meta.env.DEV) assertStable(getSnapshot, `useFalantes(${chave})`);
   return useSyncExternalStore(subscribe, getSnapshot);
+}
+
+/* ------------------------------------------------------------- palco */
+
+/** O que o palco de voz mostra (`fechado` = a pessoa está lendo o chat). */
+export function usePalco(): Palco {
+  return useSyncExternalStore(assinarPalco, lerPalco);
+}
+
+/**
+ * A chamada inteira, SEM quem está falando (esse tem store próprio). Muda por
+ * ação humana — alguém entra, liga a câmera —, nunca por sílaba.
+ */
+export function useChamada(): Chamada {
+  return useSyncExternalStore(assinarChamada, lerChamada);
+}
+
+/** A falha da última tentativa de entrar numa sala, se ainda não foi dispensada. */
+export function useFalhaDeVoz(): FalhaDeVoz | undefined {
+  return useSyncExternalStore(assinarFalhaDeVoz, lerFalhaDeVoz);
+}
+
+/** O pedido de escolha de tela em voo (`fase: "fechado"` quando não há). */
+export function useSeletorDeTela(): EstadoDoSeletor {
+  return useSyncExternalStore(assinarSeletorDeTela, lerSeletorDeTela);
+}
+
+/**
+ * A faixa de vídeo de uma pessoa, ou `undefined` enquanto ninguém a pediu (ou
+ * ela não chegou). Quem desenha cai no avatar — comportamento certo, não bug.
+ */
+export function useFaixaDeVideo(userId: string, fonte: FonteDeVideo): MediaStreamTrack | undefined {
+  const chave = chaveDeVideo(userId, fonte);
+  return useSyncExternalStore(faixasDeVideo.subscriber(chave), () => faixasDeVideo.getSnapshot(chave));
 }

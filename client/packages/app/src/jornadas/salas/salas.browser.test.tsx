@@ -16,6 +16,8 @@ import {
 import { chaveDeMembro, SEM_CARGO, type ParticipanteDeVoz } from "nucleo/sdk/domain";
 import { definirFalantes, limparChamada } from "nucleo/store/chamada";
 import { limparConexao, pausarConexao } from "nucleo/store/conexao";
+import { limparFalhaDeVoz } from "nucleo/store/falhaDeVoz";
+import { fecharPalco } from "nucleo/store/palcoDeVoz";
 import { irParaCasa } from "nucleo/store/navegacao";
 import { limparPreferenciasDaSala } from "nucleo/store/preferenciasDaSala";
 import { definirProntidao } from "nucleo/store/prontidao";
@@ -119,6 +121,8 @@ beforeEach(() => {
   limparPreferenciasDaSala();
   limparConexao();
   limparChamada();
+  limparFalhaDeVoz();
+  fecharPalco();
   irParaCasa();
   ctl.permitir = true;
   ctl.entrou = [];
@@ -217,22 +221,24 @@ describe("widget da sala", () => {
     definirFalantes(["U1"]);
     await expect.poll(() => cartao.textContent).toContain(voz.estado.falando);
 
-    botao(salas.entrarNaSala).click();
-    expect(ctl.entrou).toEqual(["V1"]);
-
-    // Depois: fixar no canto move o widget e o ponteiro fica para trás, então vem por último.
+    // Fixar no canto move o widget e o ponteiro fica para trás: antes de entrar.
     await page.getByRole("button", { name: voz.fixarNoCanto.tl }).click();
     expect(JSON.parse(localStorage.getItem("vortex:preferencias-da-sala")!)).toMatchObject({ canto: "tl" });
+
+    // Entrar abre o palco na hora (a conexão acontece com ele já na tela).
+    botao(salas.entrarNaSala).click();
+    expect(ctl.entrou).toEqual(["V1"]);
+    await expect.poll(() => pegar("[data-testid='palco']")).not.toBeNull();
   });
 
-  it("dentro da sala, oferece Sair e não Entrar", async () => {
+  it("dentro da sala, o widget é o da chamada: oferece Sair e não Entrar", async () => {
     const { definirChamada } = await import("nucleo/store/chamada");
     definirChamada({ estado: "dentro", channelId: "V1" });
     await abrirNoServidor();
-    await page.getByRole("button", { name: /Jogatina/ }).last().click();
-    await expect.element(page.getByRole("button", { name: salas.sairDaSala })).toBeVisible();
-    expect(pegar("section[aria-label='Jogatina']")!.textContent).not.toContain(salas.entrarNaSala);
-    botao(salas.sairDaSala).click();
+    await expect.element(page.getByRole("region", { name: voz.chamada })).toBeVisible();
+    expect(pegar("[data-testid='palco']")).toBeNull();
+    expect(document.body.textContent).not.toContain(salas.entrarNaSala);
+    await page.getByRole("button", { name: voz.sairDaChamada }).click();
     expect(ctl.saiu).toBe(1);
   });
 

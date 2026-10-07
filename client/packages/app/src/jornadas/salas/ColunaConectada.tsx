@@ -1,4 +1,5 @@
 import { podeNoServidor, pode } from "nucleo/sdk/permissoes";
+import { definirPalco, fecharPalco } from "nucleo/store/palcoDeVoz";
 import { abrirTexto, lembrarSala } from "nucleo/store/ultimoLugar";
 import {
   useCanaisDeTexto,
@@ -39,6 +40,8 @@ function SalaDaColuna({ serverId, canalId }: { serverId: string; canalId: string
         desatualizada={desatualizada}
         onClick={() => {
           lembrarSala(serverId, canalId);
+          // A sala em que a pessoa está volta ao palco; a outra só vira o widget (entrar é um clique).
+          if (aqui) definirPalco({ tipo: "grade" });
         }}
       />
     </li>
@@ -58,6 +61,8 @@ function CanalDaColuna({ serverId, canalId }: { serverId: string; canalId: strin
         naoLida={canal.naoLidas > 0 && !canal.silenciado}
         mencoes={canal.silenciado ? 0 : canal.mencoes}
         onClick={() => {
+          // Ler outro canal fecha o palco; a chamada segue no widget.
+          fecharPalco();
           abrirTexto(serverId, canalId);
         }}
       />

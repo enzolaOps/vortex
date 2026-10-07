@@ -13,6 +13,8 @@ export interface CapsulaDeControleProps extends ControlesDeVozProps {
   sala: string;
   /** Tempo decorrido já formatado, ex. "12:04". */
   tempo?: string;
+  /** Estado da conexão em palavras ("Conectando…"), no lugar do tempo enquanto não há tempo. */
+  status?: string;
   /** Alguém falando agora (acende o indicador). */
   falando?: boolean;
   pessoas?: ReadonlyArray<{ nome: string; id?: string; tom?: number; falando?: boolean; mudo?: boolean }>;
@@ -33,6 +35,7 @@ export interface CapsulaDeControleProps extends ControlesDeVozProps {
 export function CapsulaDeControle({
   sala,
   tempo,
+  status,
   falando = false,
   pessoas = [],
   qualidade,
@@ -51,7 +54,7 @@ export function CapsulaDeControle({
         <IndicadorDeFala falando={falando} />
         <span className={css.info}>
           <span className={css.sala}>{sala}</span>
-          {tempo && <span className={css.tempo}>{tempo}</span>}
+          {tempo ? <span className={css.tempo}>{tempo}</span> : status ? <span className={css.status}>{status}</span> : null}
         </span>
         <ControlesDeVoz {...controles} />
       </PainelVidro>
