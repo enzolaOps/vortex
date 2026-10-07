@@ -81,6 +81,7 @@ import { ligarPortaDeVoz } from "./portaDeVoz";
 import { client } from "./client";
 import { lerConfigDeVoz, publicacaoDe as publicacaoDoCanal } from "./vozDoCanal";
 import { sairDaSalaLocalmente } from "./adapter";
+import { avisarSaidaDaSala } from "./saidaDaSala";
 import { registrarRemocaoImposta } from "./vozImposta";
 import type { Chamada, QualidadeDeVoz } from "../store/chamada";
 import {
@@ -1039,9 +1040,8 @@ export async function entrarNaChamada(channelId: string): Promise<boolean> {
 /**
  * Sai.
  *
- * ⚠ **Não existe rota de saída no protocolo** — sair é desconectar do LiveKit,
- * e o servidor descobre pelo socket. Procurar um `DELETE` aqui é procurar o que
- * não existe.
+ * Avisa o servidor pela rota `leave_call` (ADR-002) ANTES de desconectar, sem
+ * bloquear por mais de 2 s: se falhar, o webhook do LiveKit continua de plano B.
  */
 export async function sairDaChamada(): Promise<void> {
   const r = sala;
@@ -1065,6 +1065,7 @@ export async function sairDaChamada(): Promise<void> {
   /* Os ouvintes saíram antes do `disconnect`, então o `Disconnected` não
      roda: o anúncio e o que os outros anunciavam morrem aqui. */
   esquecerEspectadores();
+  await avisarSaidaDaSala(canalId);
   await r.disconnect();
   encerrarChamada();
 
