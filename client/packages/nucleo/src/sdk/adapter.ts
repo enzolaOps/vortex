@@ -509,7 +509,21 @@ export function descartarPendente(id: string): void {
   const message = client.messages.get(sdkId);
   const channelId = message?.channelId;
   client.messages.delete(sdkId);
-  if (channelId !== undefined) publishNow(channelId);
+  if (channelId === undefined) return;
+
+  /*
+    ⚠ **Tirar do índice da lista, e não só do SDK.** `messages.delete` não emite
+    `messageDelete` (esse evento vem do servidor), então o ID ficava na lista e a
+    linha continuava lá, "descartada" e visível. É o mesmo ajuste de vizinhança
+    que o evento de exclusão faz: a que vinha depois passa a olhar outro vizinho.
+  */
+  const ids = idsOf(channelId);
+  const at = ids.indexOf(id);
+  if (at !== -1) {
+    ids.splice(at, 1);
+    recalcularLayout(channelId, at, at);
+  }
+  publishNow(channelId);
 }
 
 /**
@@ -771,9 +785,16 @@ export async function editarMensagem(
   const alvo = client.messages.get(idDoSdk(messageId));
   if (!alvo) return false;
 
-  client.messages.updateUnderlyingObject(messageId, {
+  /*
+    ⚠ `editedAt` e um `Date`, e e o campo HIDRATADO: o objeto subjacente do SDK
+    guarda o que a `hydrate` produz, nao o formato do fio (`edited`, string).
+    Escrever `edited` aqui nao chegava a lugar nenhum — a linha mostrava o texto
+    novo e nunca o "(editada)", ate o evento do servidor reescrever o campo certo.
+    Tambem pelo ID do SDK: depois da reconciliacao a chave da lista e o ID local.
+  */
+  client.messages.updateUnderlyingObject(idDoSdk(messageId), {
     content: conteudo,
-    edited: new Date().toISOString(),
+    editedAt: new Date(),
   } as never);
 
   if (!conectado()) return true;

@@ -35,7 +35,7 @@ function PreviaDeResposta({
       <span className={css.previaTexto}>
         <span className={css.previaTitulo}>{chat.respondendoA(nome)}</span>
         <span className={css.previaTrecho}>
-          {alvo === undefined ? chat.respostaIndisponivel : trechoDe(alvo.content)}
+          {alvo === undefined ? chat.respostaIndisponivel : trechoDe(alvo.content, servidorId)}
         </span>
       </span>
       <button

@@ -48,8 +48,15 @@
   color: var(--vx-text-2);
 }
 
+/* O preflight zera `list-style`: sem isto a lista renderiza com recuo e SEM marcador. */
 .lista {
   padding-inline-start: var(--vx-space-6);
+}
+ul.lista {
+  list-style: disc;
+}
+ol.lista {
+  list-style: decimal;
 }
 .lista li > p {
   margin: 0;

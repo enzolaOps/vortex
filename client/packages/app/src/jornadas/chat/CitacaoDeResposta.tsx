@@ -1,3 +1,4 @@
+import { members } from "nucleo/sdk/adapter";
 import { chaveDeMembro } from "nucleo/sdk/domain";
 import { useMembro, useMessage } from "nucleo/store/hooks";
 
@@ -6,9 +7,19 @@ import { Responder } from "../../ui/icones";
 import css from "./Linha.module.css";
 import { pedirSalto } from "./saltos";
 
-/** Resumo de uma linha do que foi dito: sem quebra, sem markdown, com teto. */
-export function trechoDe(conteudo: string): string {
-  return conteudo.slice(0, 200).replace(/\s+/g, " ").trim();
+/**
+ * Resumo de uma linha do que foi dito: sem quebra e com teto. A menção crua
+ * (`<@ID>`) vira `@nome`: na prévia ninguém quer ler o identificador.
+ */
+export function trechoDe(conteudo: string, servidorId: string): string {
+  return conteudo
+    .slice(0, 200)
+    .replace(/<@([0-9A-Za-z]+)>/g, (_todo, id: string) => {
+      const nome = members.peek(chaveDeMembro(servidorId, id))?.displayName;
+      return `@${nome ?? chat.autorDesconhecido}`;
+    })
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 /**
@@ -28,7 +39,7 @@ export function CitacaoDeResposta({
   const alvo = useMessage(alvoId);
   const autor = useMembro(chaveDeMembro(servidorId, alvo?.authorId ?? ""));
   const nome = autor?.displayName ?? chat.autorDesconhecido;
-  const trecho = alvo === undefined ? chat.respostaIndisponivel : trechoDe(alvo.content) || ds.mensagem.imagem;
+  const trecho = alvo === undefined ? chat.respostaIndisponivel : trechoDe(alvo.content, servidorId) || ds.mensagem.imagem;
 
   return (
     <button
