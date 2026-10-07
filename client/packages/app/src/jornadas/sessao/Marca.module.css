@@ -1,0 +1,12 @@
+.marca {
+  display: block;
+  flex: none;
+}
+
+.espiral {
+  fill: var(--vx-accent);
+}
+
+.nucleo {
+  fill: var(--vx-speaking);
+}

@@ -14,6 +14,7 @@ import { defineConfig, devices } from "@playwright/test";
  */
 const URL_DO_APP = process.env.VORTEX_E2E_URL ?? "http://localhost:4173";
 const SOBE_O_SERVIDOR = process.env.VORTEX_E2E_URL === undefined;
+const URL_DA_API = process.env.VORTEX_E2E_API ?? "http://localhost:8880/api";
 
 export default defineConfig({
   testDir: ".",
@@ -49,6 +50,9 @@ export default defineConfig({
         cwd: "..",
         url: URL_DO_APP,
         reuseExistingServer: !process.env.CI,
+        // O build serve em :4173 e a API está noutra origem: sem isto o app falaria com
+        // `:4173/api` (a regra de mesma origem de `sdk/config.ts`) e o login nunca chegaria.
+        env: { VITE_API_URL: URL_DA_API },
         timeout: 180_000,
       }
     : undefined,

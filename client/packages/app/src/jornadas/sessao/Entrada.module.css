@@ -1,0 +1,250 @@
+/*
+  A tela de entrada e as telas irmãs (segundo fator, conta desativada, nome). Uma
+  folha só: são a mesma tela em outro passo, e cartão de largura ou respiro
+  diferente faria a troca parecer mudança de contexto.
+*/
+.pagina {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  block-size: 100%;
+  padding: var(--vx-space-4);
+  overflow-y: auto;
+}
+
+.cartao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-5);
+  box-sizing: border-box;
+  inline-size: 100%;
+  max-inline-size: 400px;
+  padding: var(--vx-space-7);
+}
+
+.cabecalho {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--vx-space-3);
+  text-align: center;
+}
+
+.titulos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--vx-type-heading-size);
+  line-height: var(--vx-type-heading-line);
+  font-weight: var(--vx-type-heading-weight);
+}
+
+.subtitulo {
+  margin: 0;
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  text-wrap: balance;
+}
+
+.recado {
+  margin: 0;
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-body-size);
+  line-height: var(--vx-type-body-line);
+  text-wrap: pretty;
+}
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-4);
+}
+
+/* O botão principal ocupa a largura toda: é a única ação da tela. */
+.largo {
+  inline-size: 100%;
+}
+
+/* ---------------------------------------------------------------- campo */
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+  min-inline-size: 0;
+}
+
+.rotulo {
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-label-size);
+  line-height: var(--vx-type-label-line);
+  font-weight: var(--vx-type-label-weight);
+}
+
+.envoltorio {
+  position: relative;
+}
+
+.entrada {
+  box-sizing: border-box;
+  inline-size: 100%;
+  block-size: 44px;
+  padding: 0 var(--vx-space-4);
+  border: 1px solid var(--vx-border-strong);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+  font-family: var(--vx-font-sans);
+  font-size: var(--vx-type-body-size);
+  line-height: var(--vx-type-body-line);
+  transition: border-color 120ms ease;
+}
+
+.entrada::placeholder {
+  color: var(--vx-text-4);
+}
+
+.entrada[aria-invalid="true"] {
+  border-color: var(--vx-danger);
+}
+
+.entrada[readonly] {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+/* Espaço para o botão de revelar dentro do campo. */
+.comRevelar {
+  padding-inline-end: calc(var(--vx-space-8) + var(--vx-space-1));
+}
+
+.revelar {
+  position: absolute;
+  inset-block-start: var(--vx-space-1);
+  inset-inline-end: var(--vx-space-1);
+}
+
+.dica {
+  margin: 0;
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+
+.erroDoCampo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  margin: 0;
+  color: var(--vx-danger);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  font-weight: var(--vx-type-label-weight);
+}
+
+.erroDoCampo svg {
+  flex: none;
+}
+
+/* ------------------------------------------------------------- manter */
+.manter {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  cursor: pointer;
+}
+
+.manter input {
+  inline-size: 18px;
+  block-size: 18px;
+  margin: 0;
+  flex: none;
+  accent-color: var(--vx-accent);
+}
+
+/* -------------------------------------------------------------- aviso */
+.aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--vx-space-2);
+  padding: var(--vx-space-3);
+  border-radius: var(--vx-radius-md);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  font-weight: var(--vx-type-label-weight);
+  color: var(--vx-text-1);
+}
+
+.aviso svg {
+  flex: none;
+}
+
+.avisoDeAtencao {
+  background: var(--vx-warning-soft);
+}
+.avisoDeAtencao svg {
+  color: var(--vx-warning);
+}
+
+.avisoDeErro {
+  background: var(--vx-danger-soft);
+}
+.avisoDeErro svg {
+  color: var(--vx-danger);
+}
+
+/* ----------------------------------------------------- escolha do fator */
+.fatores {
+  display: flex;
+  gap: var(--vx-space-1);
+  padding: var(--vx-space-1);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-state-hover);
+}
+
+.fator {
+  flex: 1;
+  min-inline-size: 0;
+  block-size: 36px;
+  padding: 0 var(--vx-space-3);
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  background: transparent;
+  color: var(--vx-text-2);
+  font-family: var(--vx-font-sans);
+  font-size: var(--vx-type-ui-size);
+  font-weight: var(--vx-type-ui-weight);
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.fator:hover {
+  color: var(--vx-text-1);
+}
+
+.fator[aria-pressed="true"] {
+  background: var(--vx-accent-soft);
+  color: var(--vx-text-1);
+  box-shadow: inset 0 0 0 1px var(--vx-accent);
+}
+
+.fator:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entrada,
+  .fator {
+    transition: none;
+  }
+}
