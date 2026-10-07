@@ -169,6 +169,11 @@ function tetoDeUpload(tag: TagDeAnexo): number | undefined {
  * `undefined` quando a instância não publica teto — aí quem chama omite o
  * número, em vez de inventar um.
  */
+/** O teto em bytes, para validar ANTES de enviar. `undefined`: o servidor não disse. */
+export function tetoDeUploadBytes(tag: TagDeAnexo): number | undefined {
+  return tetoDeUpload(tag);
+}
+
 export function tetoDeUploadTexto(tag: TagDeAnexo): string | undefined {
   return formatarBytes(tetoDeUpload(tag));
 }

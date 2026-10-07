@@ -7,6 +7,7 @@ import {
   channelMessageIds,
   channels,
   definirCanalAberto,
+  definirUsuarioLocal,
   marcarNaoLidaA,
   messages,
   primeiraNaoLida,
@@ -202,7 +203,7 @@ function criarUma(): string {
   return criarEm(CHANNEL_ID);
 }
 
-function criarEm(channelId: string): string {
+function criarEm(channelId: string, autor = "01JQ0000000000000001000005"): string {
   n += 1;
   const id = `01JQ00000000000000000L${String(n).padStart(4, "0")}`;
   client.messages.getOrCreate(
@@ -210,7 +211,7 @@ function criarEm(channelId: string): string {
     {
       _id: id,
       channel: channelId,
-      author: "01JQ0000000000000001000005",
+      author: autor,
       content: "nova",
     },
     true,
@@ -262,5 +263,36 @@ describe("o que só a mutação revelou", () => {
     virarFrame();
 
     expect(primeiraNaoLida(VIRGEM)).toBe(nova);
+  });
+});
+
+/**
+ * A PRÓPRIA mensagem nunca aparece como nova.
+ *
+ * Com o cursor na última lida, a primeira coisa que EU escrevo seria a primeira
+ * depois dele, e o divisor "novas mensagens" nasceria em cima da minha fala.
+ * Nada quebra — a interface só afirma que eu mesmo sou uma novidade para mim.
+ */
+describe("a própria mensagem", () => {
+  const EU = "01JQ0000000000000001000077";
+  const OUTRA_PESSOA = "01JQ0000000000000001000078";
+
+  it("não é a primeira não lida; a de outra pessoa depois dela é", () => {
+    definirUsuarioLocal(EU);
+    try {
+      definirCanalAberto(CHANNEL_ID);
+      definirCanalAberto(OUTRO);
+
+      const minha = criarEm(CHANNEL_ID, EU);
+      virarFrame();
+      expect(primeiraNaoLida(CHANNEL_ID)).toBeUndefined();
+      expect(messages.peek(minha)?.primeiraNaoLida ?? false).toBe(false);
+
+      const dela = criarEm(CHANNEL_ID, OUTRA_PESSOA);
+      virarFrame();
+      expect(primeiraNaoLida(CHANNEL_ID)).toBe(dela);
+    } finally {
+      definirUsuarioLocal("");
+    }
   });
 });
