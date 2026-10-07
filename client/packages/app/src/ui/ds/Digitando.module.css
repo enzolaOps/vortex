@@ -1,0 +1,48 @@
+.digitando {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  min-block-size: 20px;
+  padding: 0 var(--vx-space-4);
+  color: var(--vx-text-3);
+  font-family: var(--vx-font-sans);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  font-weight: 400;
+}
+
+.pontos {
+  display: inline-flex;
+  gap: 3px;
+}
+.pontos i {
+  inline-size: 5px;
+  block-size: 5px;
+  border-radius: 50%;
+  background: var(--vx-text-3);
+  animation: pulso 1200ms ease-in-out infinite;
+}
+.pontos i:nth-child(2) {
+  animation-delay: 160ms;
+}
+.pontos i:nth-child(3) {
+  animation-delay: 320ms;
+}
+
+@keyframes pulso {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pontos i {
+    animation: none;
+    opacity: 0.7;
+  }
+}
