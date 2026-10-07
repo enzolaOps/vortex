@@ -65,7 +65,13 @@ describe("restaurando (esqueleto do shell)", () => {
 });
 
 describe("entrada", () => {
-  const props = { entrando: false, aoEntrar: () => undefined };
+  const props = {
+    entrando: false,
+    aoEntrar: () => undefined,
+    aoRecuperarSenha: () => undefined,
+    aoCriarConta: () => undefined,
+    aoEntrarComQr: () => undefined,
+  };
 
   it("mostra os campos, o revelar senha e Manter conectado marcado", () => {
     montar(<TelaDeEntrada {...props} />);
@@ -78,10 +84,27 @@ describe("entrada", () => {
     expect(document.activeElement).toBe(campo(sessao.entrada.identificador));
   });
 
-  it("não tem controle que ainda não leva a lugar nenhum (criar conta, esqueci a senha, QR)", () => {
-    montar(<TelaDeEntrada {...props} />);
+  it("esqueci a senha, criar conta e entrar com QR levam a algum lugar (nenhum controle sem destino)", async () => {
+    const aoRecuperarSenha = vi.fn();
+    const aoCriarConta = vi.fn();
+    const aoEntrarComQr = vi.fn();
+    montar(<TelaDeEntrada {...props} {...{ aoRecuperarSenha, aoCriarConta, aoEntrarComQr }} />);
     const nomes = [...document.querySelectorAll("button, a")].map((e) => e.getAttribute("aria-label") ?? e.textContent);
-    expect(nomes.sort()).toEqual([sessao.entrada.entrar, sessao.entrada.mostrarSenha].sort());
+    expect(nomes.sort()).toEqual(
+      [
+        sessao.entrada.entrar,
+        sessao.entrada.mostrarSenha,
+        sessao.entrada.esqueciASenha,
+        sessao.entrada.comQr,
+        sessao.entrada.criarConta,
+      ].sort(),
+    );
+    await userEvent.click(botao(sessao.entrada.esqueciASenha)!);
+    await userEvent.click(botao(sessao.entrada.criarConta)!);
+    await userEvent.click(botao(sessao.entrada.comQr)!);
+    expect(aoRecuperarSenha).toHaveBeenCalledOnce();
+    expect(aoCriarConta).toHaveBeenCalledOnce();
+    expect(aoEntrarComQr).toHaveBeenCalledOnce();
   });
 
   it("revelar senha alterna o tipo do campo e anuncia o estado", async () => {
@@ -115,7 +138,7 @@ describe("entrada", () => {
 
   it("entrando: botão ocupado com o rótulo dito, campos só de leitura, sem reenvio", () => {
     const aoEntrar = vi.fn();
-    montar(<TelaDeEntrada entrando aoEntrar={aoEntrar} />);
+    montar(<TelaDeEntrada {...props} entrando aoEntrar={aoEntrar} />);
     const b = [...document.querySelectorAll<HTMLButtonElement>("button")].find(
       (x) => x.getAttribute("aria-busy") === "true",
     )!;
@@ -127,12 +150,12 @@ describe("entrada", () => {
   });
 
   it("credencial errada marca os dois campos, mantém o digitado e devolve o foco à senha", async () => {
-    montar(<EntradaControlada inicial={{ entrando: false, aoEntrar: () => undefined }} />);
+    montar(<EntradaControlada inicial={{ ...props, entrando: false }} />);
     await userEvent.fill(campo(sessao.entrada.identificador)!, "rafa@exemplo.com");
     await userEvent.fill(campo(sessao.entrada.senha)!, "errada");
-    controle.trocar?.({ entrando: true, aoEntrar: () => undefined });
+    controle.trocar?.({ ...props, entrando: true });
     await assentar();
-    controle.trocar?.({ entrando: false, causa: { tipo: "credenciais" }, aoEntrar: () => undefined });
+    controle.trocar?.({ ...props, entrando: false, causa: { tipo: "credenciais" } });
     await assentar();
     await expect.poll(() => alertas()).toEqual([sessao.entrada.erro.credenciais]);
     expect(campo(sessao.entrada.identificador)?.value).toBe("rafa@exemplo.com");
