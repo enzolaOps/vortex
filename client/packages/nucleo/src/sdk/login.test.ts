@@ -13,7 +13,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * corpo vai na requisição, o que cada um dos três resultados faz, e — o que
  * mais importa — **que `connect()` é chamado**.
  */
-const api = { post: vi.fn() };
+const api = { post: vi.fn(), get: vi.fn() };
 /*
   ⚠ `configuration` faz parte do dublê porque a conexão DEPENDE dela: sem
   `configuration.ws` o app se recusa a abrir o socket, e a razão é séria — o
@@ -338,7 +338,7 @@ describe("restaurar sessão", () => {
   */
   it("também ABRE O SOCKET", async () => {
     guardarToken({ _id: "01S", token: "t", user_id: "01EU" });
-    restaurarSessao();
+    await restaurarSessao();
 
     await tick();
     expect(client.useExistingSession).toHaveBeenCalledTimes(1);
@@ -346,10 +346,18 @@ describe("restaurar sessão", () => {
     expect(lerSessao().estado).toBe("dentro");
   });
 
-  it("sem token guardado, fica fora e não conecta", () => {
-    restaurarSessao();
+  it("sem token guardado, fica fora e não conecta", async () => {
+    await restaurarSessao();
     expect(lerSessao().estado).toBe("fora");
     expect(client.connect).not.toHaveBeenCalled();
+  });
+
+  it("F5 na tela de nome continua no onboarding, não entra no app", async () => {
+    api.get.mockResolvedValueOnce({ onboarding: true });
+    guardarToken({ _id: "01S", token: "t", user_id: "01EU" });
+    await restaurarSessao();
+    expect(lerSessao().estado).toBe("nome");
+    expect(lerSessao().userId).toBe("01EU");
   });
 });
 
@@ -415,7 +423,7 @@ describe("entrar — Manter conectado", () => {
 
     limparSessao();
     guardarToken({ _id: "01SESSAO", token: "tok", user_id: "01EU" }, { persistente: false });
-    restaurarSessao();
+    await restaurarSessao();
     expect(lerSessao().estado).toBe("dentro");
   });
 
