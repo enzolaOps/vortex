@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { BIT_VER_CANAL } from "../../sdk/bits";
-import { bitDaPermissao } from "../../sdk/cargos";
-import type { ConjuntoDeSobreposicoes } from "../../sdk/categorias";
+import { BIT_VER_CANAL } from "nucleo/sdk/bits";
+import { bitDaPermissao } from "nucleo/sdk/cargos";
+import type { ConjuntoDeSobreposicoes } from "nucleo/sdk/categorias";
 import {
   ALVO_EVERYONE,
   alvosDaMatriz,

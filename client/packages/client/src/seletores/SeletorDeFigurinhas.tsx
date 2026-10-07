@@ -2,10 +2,10 @@ import { useState, useSyncExternalStore } from "react";
 
 import { ClockCounterClockwise } from "../components/ui/icones";
 import { useFigurinha, useFigurinhasDoServidor } from "../expressoes/hooks";
-import { assinarRecentes, lerRecentes, usarFigurinha } from "../expressoes/recentes";
-import { gradienteDe, corDoTextoDe } from "../lib/gradiente";
-import type { Figurinha } from "../sdk/expressoes";
-import { useServer, useServerIds, useServidorAtivo } from "../store/hooks";
+import { assinarRecentes, lerRecentes, usarFigurinha } from "nucleo/ui-logica/expressoes/recentes";
+import { gradienteDe, corDoTextoDe } from "nucleo/lib/gradiente";
+import type { Figurinha } from "nucleo/sdk/expressoes";
+import { useServer, useServerIds, useServidorAtivo } from "nucleo/store/hooks";
 import {
   CascaDeSeletor,
   CELULA_DA_GRADE,

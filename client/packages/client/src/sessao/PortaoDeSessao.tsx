@@ -1,10 +1,10 @@
 import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
 
-import { ligarLogoutDoServidor, restaurarSessao } from "../sdk/autenticacao";
-import { assinarEntrada, lerEntrada } from "../store/entrada";
+import { ligarLogoutDoServidor, restaurarSessao } from "nucleo/sdk/autenticacao";
+import { assinarEntrada, lerEntrada } from "nucleo/store/entrada";
 import { TelaDeDownload } from "./TelaDeDownload";
-import { abrirModal } from "../store/modais";
-import { assinarSessao, lerSessao, type EstadoDaSessao } from "../store/sessao";
+import { abrirModal } from "nucleo/store/modais";
+import { assinarSessao, lerSessao, type EstadoDaSessao } from "nucleo/store/sessao";
 import { Autenticacao } from "./Autenticacao";
 import { TelaDeContaDesativada } from "./TelaDeContaDesativada";
 import { TelaDeMfa } from "./TelaDeMfa";

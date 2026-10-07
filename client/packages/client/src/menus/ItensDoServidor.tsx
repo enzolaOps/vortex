@@ -23,32 +23,32 @@ import {
   SignOut,
 } from "../components/ui/icones";
 import { ItemDeId } from "../components/ui/ItemDeId";
-import { marcarCanalLido } from "../sdk/adapter";
-import { categorias } from "../sdk/adapter";
-import { exibirMinhaTag } from "../sdk/perfilDoServidor";
-import { pode, podeNoServidor, type Acao } from "../sdk/permissoes";
-import { administrar } from "../store/administracao";
+import { marcarCanalLido } from "nucleo/sdk/adapter";
+import { categorias } from "nucleo/sdk/adapter";
+import { exibirMinhaTag } from "nucleo/sdk/perfilDoServidor";
+import { pode, podeNoServidor, type Acao } from "nucleo/sdk/permissoes";
+import { administrar } from "nucleo/store/administracao";
 import {
   abrirConfig,
   GRUPOS_DE_SERVIDOR,
   NOME_DA_SECAO,
   type SecaoId,
-} from "../store/config";
+} from "nucleo/store/config";
 import {
   alternarOcultarSilenciados,
   assinarExibicao,
   ocultaSilenciados,
-} from "../store/exibicaoDeCanais";
-import { useServer } from "../store/hooks";
-import { useExibeTag, usePerfilDoServidor } from "../store/perfilDoServidor";
-import { assinarPastas, lerPastas, moverParaPasta } from "../store/pastas";
+} from "nucleo/store/exibicaoDeCanais";
+import { useServer } from "nucleo/store/hooks";
+import { useExibeTag, usePerfilDoServidor } from "nucleo/store/perfilDoServidor";
+import { assinarPastas, lerPastas, moverParaPasta } from "nucleo/store/pastas";
 import {
   assinarSilencio,
   definirNivelDoServidor,
   NIVEIS_DE_NOTIFICACAO,
   nivelDoServidor,
-} from "../store/silencio";
-import { usuarioLocalId } from "../sdk/adapter";
+} from "nucleo/store/silencio";
+import { usuarioLocalId } from "nucleo/sdk/adapter";
 import { SubmenuDeSilenciar } from "./SubmenuDeSilenciar";
 
 /**

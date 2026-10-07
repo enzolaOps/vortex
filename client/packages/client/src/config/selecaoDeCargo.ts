@@ -1,4 +1,4 @@
-import type { Alcance, PessoaParaCargo } from "../sdk/cargos";
+import type { Alcance, PessoaParaCargo } from "nucleo/sdk/cargos";
 
 /**
  * A lógica da aba "Gerenciar membros", fora do componente.

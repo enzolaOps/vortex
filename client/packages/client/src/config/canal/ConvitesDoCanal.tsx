@@ -2,16 +2,16 @@ import { useEffect, useState } from "react";
 
 import { Botao } from "../../components/ui/Botao";
 import { EstadoVazio } from "../../components/ui/EstadoVazio";
-import { copiarTexto } from "../../lib/copiar";
-import { pausarConvites } from "../../sdk/canal";
+import { copiarTexto } from "nucleo/lib/copiar";
+import { pausarConvites } from "nucleo/sdk/canal";
 import {
   listarConvites,
   revogarConvite,
   type ConviteDoServidor,
-} from "../../sdk/servidores";
-import { administrar } from "../../store/administracao";
-import { fecharConfig } from "../../store/config";
-import { useChannel, usePessoa } from "../../store/hooks";
+} from "nucleo/sdk/servidores";
+import { administrar } from "nucleo/store/administracao";
+import { fecharConfig } from "nucleo/store/config";
+import { useChannel, usePessoa } from "nucleo/store/hooks";
 import secao from "../Secao.module.css";
 import css from "./Canal.module.css";
 

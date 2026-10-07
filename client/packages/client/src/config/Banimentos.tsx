@@ -8,11 +8,11 @@ import { Avatar } from "../components/ui/Avatar";
 import { Escolha } from "../components/ui/Escolha";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { cn } from "../lib/cn";
-import { listarBanidos, perdoar, type Banido } from "../sdk/servidores";
+import { listarBanidos, perdoar, type Banido } from "nucleo/sdk/servidores";
 import {
   autoriaDosBanimentos,
   type InformacaoDeBanimento,
-} from "../sdk/auditoria";
+} from "nucleo/sdk/auditoria";
 import css from "./Banimentos.module.css";
 import tab from "./Tabela.module.css";
 

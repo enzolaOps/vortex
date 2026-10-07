@@ -17,7 +17,7 @@
  * operações) e o próprio ID. Por isso `targetOrigin: "*"` é aceitável — e é o
  * único possível para um destino de origem opaca.
  */
-import { TETO_DA_OPERACAO } from "../../store/atividades";
+import { TETO_DA_OPERACAO } from "nucleo/store/atividades";
 
 /** Versão do contrato. Host que não a declarar é ignorado. */
 export const VERSAO_DO_CONTRATO = 1;

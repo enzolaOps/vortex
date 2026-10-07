@@ -17,7 +17,7 @@ import {
   assinarAtalhosDeVoz,
   lerAtalhosDeVoz,
   teclasDaCombinacao,
-} from "../store/atalhosDeVoz";
+} from "nucleo/store/atalhosDeVoz";
 import {
   assinarPreferenciasDeVoz,
   definirPreferenciasDeVoz,
@@ -29,7 +29,7 @@ import {
   ROTULO_DA_QUALIDADE,
   ROTULO_DO_FUNDO,
   ROTULO_DO_RUIDO,
-} from "../store/preferenciasDeVoz";
+} from "nucleo/store/preferenciasDeVoz";
 import {
   CabecalhoDeSecao,
   CartaoDeAjustes,
@@ -40,8 +40,8 @@ import {
 } from "./Pagina";
 import css from "./VozEVideo.module.css";
 import { TabelaDeAtalhos, useGravacaoDeAtalho } from "./TabelaDeAtalhos";
-import { assinarDesktop, lerDesktop } from "../store/desktop";
-import { PADRAO_DO_SISTEMA, useDispositivos } from "../store/dispositivos";
+import { assinarDesktop, lerDesktop } from "nucleo/store/desktop";
+import { PADRAO_DO_SISTEMA, useDispositivos } from "nucleo/store/dispositivos";
 
 /*
   A lista de dispositivos mora em `store/dispositivos.ts` desde que a doca da

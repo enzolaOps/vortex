@@ -13,16 +13,16 @@ import {
   desbloquear,
   desfazerAmizade,
   pedirAmizade,
-} from "../sdk/social";
-import { usePessoa, useRelacao } from "../store/hooks";
+} from "nucleo/sdk/social";
+import { usePessoa, useRelacao } from "nucleo/store/hooks";
 import {
   assinarNavegacao,
   irParaAmigos,
   lerLocal,
   type AbaDePessoas,
-} from "../store/navegacao";
+} from "nucleo/store/navegacao";
 import { SolicitacoesDeMensagem } from "./SolicitacoesDeMensagem";
-import { abrirConversa } from "../store/navegacao";
+import { abrirConversa } from "nucleo/store/navegacao";
 import css from "./Amigos.module.css";
 
 /**

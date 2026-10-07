@@ -16,11 +16,11 @@ import {
   alternarMudo,
   alternarTela,
   sairDaChamada,
-} from "../sdk/chamada";
-import { usuarioLocalId } from "../sdk/adapter";
-import { assinarChamada, falando, lerChamada } from "../store/chamada";
-import { useChannel, usePessoa } from "../store/hooks";
-import { fecharPalco } from "../store/palcoDeVoz";
+} from "nucleo/sdk/chamada";
+import { usuarioLocalId } from "nucleo/sdk/adapter";
+import { assinarChamada, falando, lerChamada } from "nucleo/store/chamada";
+import { useChannel, usePessoa } from "nucleo/store/hooks";
+import { fecharPalco } from "nucleo/store/palcoDeVoz";
 import { Cronometro, FaixaDeVideo, MenuDaChamada, useVideo } from "./pecasDeVoz";
 import css from "./ChamadaDireta.module.css";
 

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 
 import { Botao } from "../components/ui/Botao";
-import { verificarEmail } from "../sdk/conta";
-import { voltarParaEntrar } from "../store/entrada";
+import { verificarEmail } from "nucleo/sdk/conta";
+import { voltarParaEntrar } from "nucleo/store/entrada";
 import css from "./TelaDeLogin.module.css";
 
 /**

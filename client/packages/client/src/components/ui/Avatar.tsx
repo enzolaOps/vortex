@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { cn } from "../../lib/cn";
-import { corDoTextoDe, gradienteDe } from "../../lib/gradiente";
+import { corDoTextoDe, gradienteDe } from "nucleo/lib/gradiente";
 import css from "./Avatar.module.css";
 
 /**

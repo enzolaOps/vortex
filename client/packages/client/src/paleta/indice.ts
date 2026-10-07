@@ -23,10 +23,10 @@ import {
   RAIZ,
   servers,
   vozPorCanal,
-} from "../sdk/adapter";
-import { canaisOrdenados, servidoresOrdenados } from "../sdk/ordem";
-import { chaveDeMembro } from "../sdk/domain";
-import { chaveDoCanal, listasDeTopicos, topicos } from "../sdk/topicos";
+} from "nucleo/sdk/adapter";
+import { canaisOrdenados, servidoresOrdenados } from "nucleo/sdk/ordem";
+import { chaveDeMembro } from "nucleo/sdk/domain";
+import { chaveDoCanal, listasDeTopicos, topicos } from "nucleo/sdk/topicos";
 import { ATALHOS } from "../atalhos/registro";
 
 export type TipoDeEntrada =

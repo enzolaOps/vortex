@@ -15,10 +15,10 @@ import {
   X,
 } from "../components/ui/icones";
 import { Interruptor } from "../components/ui/Interruptor";
-import { toast } from "../components/ui/toastStore";
+import { toast } from "nucleo/ui-logica/toastStore";
 import { aindaNao } from "../pendente/pendencias";
-import { usuarioLocalId } from "../sdk/adapter";
-import { subirAnexo } from "../sdk/anexos";
+import { usuarioLocalId } from "nucleo/sdk/adapter";
+import { subirAnexo } from "nucleo/sdk/anexos";
 import {
   canaisParaEventos,
   criarEvento,
@@ -33,9 +33,9 @@ import {
   type EventoDoServidor,
   type Fuso,
   type Repeticao,
-} from "../sdk/eventos";
-import { assinarAlvo, lerAlvo } from "../store/administracao";
-import { useServer } from "../store/hooks";
+} from "nucleo/sdk/eventos";
+import { assinarAlvo, lerAlvo } from "nucleo/store/administracao";
+import { useServer } from "nucleo/store/hooks";
 import css from "./CriarEvento.module.css";
 
 /** O teto da descrição — o número do design ("0 / 300"). O servidor aceita 1000. */

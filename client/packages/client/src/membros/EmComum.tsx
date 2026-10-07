@@ -2,11 +2,11 @@ import { memo, useEffect, useState, type ReactNode } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
 import { Girador } from "../components/ui/Girador";
-import { corDoTextoDe, gradienteDe } from "../lib/gradiente";
+import { corDoTextoDe, gradienteDe } from "nucleo/lib/gradiente";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
-import { buscarEmComum, type EmComum as Resposta } from "../sdk/social";
-import { usePessoa, useServer } from "../store/hooks";
-import { selecionarServidor } from "../store/navegacao";
+import { buscarEmComum, type EmComum as Resposta } from "nucleo/sdk/social";
+import { usePessoa, useServer } from "nucleo/store/hooks";
+import { selecionarServidor } from "nucleo/store/navegacao";
 import css from "./EmComum.module.css";
 
 /**

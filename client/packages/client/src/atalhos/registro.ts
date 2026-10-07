@@ -32,7 +32,7 @@ import {
   type CombinacaoDeTeclas,
   lerAtalhosDeVoz,
   teclasDaCombinacao,
-} from "../store/atalhosDeVoz";
+} from "nucleo/store/atalhosDeVoz";
 import * as acoes from "./acoes";
 
 export const GRUPOS_DE_ATALHO = ["Navegação", "Mensagens", "Painéis"] as const;

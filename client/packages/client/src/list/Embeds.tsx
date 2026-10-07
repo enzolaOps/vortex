@@ -1,7 +1,7 @@
 import { memo } from "react";
 
-import type { EmbedSnapshot } from "../sdk/domain";
-import { useCorDeCargo } from "../store/hooks";
+import type { EmbedSnapshot } from "nucleo/sdk/domain";
+import { useCorDeCargo } from "nucleo/store/hooks";
 import css from "./Embeds.module.css";
 
 /**

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { CATEGORIAS } from "./emojis";
-import { aceitaTom, comTom } from "./tomDePele";
+import { aceitaTom, comTom } from "nucleo/ui-logica/seletores/tomDePele";
 
 describe("tom de pele", () => {
   it("cola o modificador depois da base", () => {

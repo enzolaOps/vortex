@@ -17,16 +17,16 @@ import {
   ROTULO_DO_ICONE,
   type IconeDeVoz,
 } from "../canais/iconesDeVoz";
-import { buscarAtividade } from "../sdk/atividades";
-import { assinarSessao, lerSessao } from "../store/atividades";
-import { assinarChamada, falando, lerChamada } from "../store/chamada";
-import { useChannel, usePessoa, useServer, useVozDoCanal } from "../store/hooks";
-import { pode } from "../sdk/permissoes";
-import { administrar } from "../store/administracao";
-import { abrirModal } from "../store/modais";
-import { abrirMenuDoParticipante } from "../store/menuDoParticipante";
-import { fecharPalco } from "../store/palcoDeVoz";
-import { definirFormaDoPopout } from "../store/popout";
+import { buscarAtividade } from "nucleo/sdk/atividades";
+import { assinarSessao, lerSessao } from "nucleo/store/atividades";
+import { assinarChamada, falando, lerChamada } from "nucleo/store/chamada";
+import { useChannel, usePessoa, useServer, useVozDoCanal } from "nucleo/store/hooks";
+import { pode } from "nucleo/sdk/permissoes";
+import { administrar } from "nucleo/store/administracao";
+import { abrirModal } from "nucleo/store/modais";
+import { abrirMenuDoParticipante } from "nucleo/store/menuDoParticipante";
+import { fecharPalco } from "nucleo/store/palcoDeVoz";
+import { definirFormaDoPopout } from "nucleo/store/popout";
 import { LadrilhoDeAtividade } from "./atividades/LadrilhoDeAtividade";
 import { BotaoDoChatDaSala } from "./ChatDaSala";
 import { Rtt } from "./FaixaDeVoz";

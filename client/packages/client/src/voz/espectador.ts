@@ -5,7 +5,7 @@
  * quatro frases do design sem montar nada.
  */
 
-import type { Assistindo } from "../store/espectadores";
+import type { Assistindo } from "nucleo/store/espectadores";
 
 export interface EstadoDoEspectador {
   readonly assistindo: boolean;

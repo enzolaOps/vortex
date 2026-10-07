@@ -32,12 +32,12 @@ import {
   RESOLUCOES,
   TAXAS,
   type QualidadeDaTela,
-} from "../store/qualidadeDaTela";
+} from "nucleo/store/qualidadeDaTela";
 import {
   definirQualidadeDaTela,
   qualidadeRealDaTela,
-} from "../sdk/chamada";
-import { toast } from "../components/ui/toastStore";
+} from "nucleo/sdk/chamada";
+import { toast } from "nucleo/ui-logica/toastStore";
 import {
   alternarAudioDaTela,
   alternarTela,
@@ -46,16 +46,16 @@ import {
   faixaDeTela,
   pausarTela,
   trocarFonteDaTela,
-} from "../sdk/chamada";
+} from "nucleo/sdk/chamada";
 import {
   assinarChamada,
   falando,
   lerChamada,
   type AudioDaTela,
-} from "../store/chamada";
-import { useChannel, usePessoa, useServer } from "../store/hooks";
-import { chaveDeVideo, faixasDeVideo } from "../store/video";
-import { definirPalco } from "../store/palcoDeVoz";
+} from "nucleo/store/chamada";
+import { useChannel, usePessoa, useServer } from "nucleo/store/hooks";
+import { chaveDeVideo, faixasDeVideo } from "nucleo/store/video";
+import { definirPalco } from "nucleo/store/palcoDeVoz";
 import {
   assinarAnuncio,
   assinarContagemDisponivel,
@@ -63,11 +63,11 @@ import {
   contagemDisponivel,
   lerAnuncio,
   lerEspectadores,
-} from "../store/espectadores";
+} from "nucleo/store/espectadores";
 import { estadoDoEspectador, ordemDosEspectadores } from "./espectador";
 import { estadoNaChamada } from "./grade";
 import { BotaoDoChatDaSala } from "./ChatDaSala";
-import { usuarioLocalId } from "../sdk/adapter";
+import { usuarioLocalId } from "nucleo/sdk/adapter";
 import {
   BotaoDeTelaCheia,
   Cronometro,

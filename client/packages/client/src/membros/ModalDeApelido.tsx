@@ -3,10 +3,10 @@ import { useState, useSyncExternalStore } from "react";
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
-import { definirApelido } from "../sdk/cargos";
-import { chaveDeMembro } from "../sdk/domain";
-import { assinarAlvo, lerAlvo } from "../store/administracao";
-import { useMembro } from "../store/hooks";
+import { definirApelido } from "nucleo/sdk/cargos";
+import { chaveDeMembro } from "nucleo/sdk/domain";
+import { assinarAlvo, lerAlvo } from "nucleo/store/administracao";
+import { useMembro } from "nucleo/store/hooks";
 import css from "../servidores/AdicionarServidor.module.css";
 
 /**

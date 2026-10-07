@@ -1,4 +1,4 @@
-import type { FonteDeTela, PonteDeTela } from "../sdk/seletorDeTela";
+import type { FonteDeTela, PonteDeTela } from "nucleo/sdk/seletorDeTela";
 
 /**
  * A ponte do seletor de tela, dublada — arnês, nunca produto.

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ROTEIROS } from "../../scripts/confronto.roteiros.mjs";
-import { DE_CANAL, DE_SERVIDOR, NOME_DA_SECAO } from "../store/config";
+import { DE_CANAL, DE_SERVIDOR, NOME_DA_SECAO } from "nucleo/store/config";
 
 /**
  * Toda categoria de configuração é CONFRONTADA com o design.

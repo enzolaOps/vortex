@@ -4,9 +4,9 @@ import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
 import { Caixa } from "../components/ui/Marcador";
-import { definirEntrada } from "../store/entrada";
-import { definirUsuarioLocal } from "../sdk/adapter";
-import { entrar } from "../sdk/autenticacao";
+import { definirEntrada } from "nucleo/store/entrada";
+import { definirUsuarioLocal } from "nucleo/sdk/adapter";
+import { entrar } from "nucleo/sdk/autenticacao";
 
 /**
  * O "eu" do arnês — o mesmo que o firehose usa.

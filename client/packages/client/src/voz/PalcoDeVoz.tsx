@@ -1,6 +1,6 @@
 import { useEffect, useSyncExternalStore } from "react";
 
-import { assinarChamada, lerChamada } from "../store/chamada";
+import { assinarChamada, lerChamada } from "nucleo/store/chamada";
 import {
   assinarChatDaSala,
   assinarPalco,
@@ -8,8 +8,8 @@ import {
   lerChatDaSala,
   lerPalco,
   type Palco,
-} from "../store/palcoDeVoz";
-import { useChannel } from "../store/hooks";
+} from "nucleo/store/palcoDeVoz";
+import { useChannel } from "nucleo/store/hooks";
 import { AssistirTransmissao } from "./AssistirTransmissao";
 import { ChatDaSala } from "./ChatDaSala";
 import { ComMenuDoParticipante } from "./MenuDoParticipante";

@@ -2,7 +2,7 @@ import { useEffect, useSyncExternalStore } from "react";
 
 import { Girador } from "../components/ui/Girador";
 import { Pause, Play, Square, Trash, UploadSimple } from "../components/ui/icones";
-import { relogio } from "../lib/duracao";
+import { relogio } from "nucleo/lib/duracao";
 import {
   alternarPrevia,
   assinarGravacao,

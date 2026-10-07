@@ -1,7 +1,7 @@
 import { MetalFx } from "metal-fx";
 import type { ReactNode } from "react";
 
-import { temaDoDocumento } from "../lib/efeito";
+import { temaDoDocumento } from "nucleo/lib/efeito";
 
 /**
  * Anel de metal no botão de entrar na chamada.

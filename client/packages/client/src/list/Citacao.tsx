@@ -1,8 +1,8 @@
 import { Avatar } from "../components/ui/Avatar";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
-import { chaveDeMembro } from "../sdk/domain";
-import { pedirIrParaMensagem } from "../store/comandos";
-import { useMembro, useMessage, useServidorAtivo } from "../store/hooks";
+import { chaveDeMembro } from "nucleo/sdk/domain";
+import { pedirIrParaMensagem } from "nucleo/store/comandos";
+import { useMembro, useMessage, useServidorAtivo } from "nucleo/store/hooks";
 import { TextoDaMensagem } from "./TextoDaMensagem";
 import css from "./Citacao.module.css";
 

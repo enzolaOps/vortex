@@ -3,15 +3,15 @@ import { useSyncExternalStore } from "react";
 import { Avatar } from "../components/ui/Avatar";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
-import { plural } from "../lib/plural";
+import { plural } from "nucleo/lib/plural";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
-import { assinarAlvo, lerAlvo } from "../store/administracao";
+import { assinarAlvo, lerAlvo } from "nucleo/store/administracao";
 import {
   assinarEnquetes,
   lerEnqueteBruta,
   MARCAS,
   type EnqueteBruta,
-} from "../store/enquetes";
+} from "nucleo/store/enquetes";
 import css from "./Enquete.module.css";
 
 /**

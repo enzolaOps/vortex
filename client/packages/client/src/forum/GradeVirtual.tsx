@@ -2,7 +2,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { cn } from "../lib/cn";
-import { remedir } from "../lib/remedir";
+import { remedir } from "nucleo/lib/remedir";
 import { linhasDaGrade, type GrupoDaGrade } from "./linhas";
 import css from "./GradeVirtual.module.css";
 

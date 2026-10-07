@@ -1,19 +1,19 @@
-import { definirEspelhoDeMensagem } from "../notificacao/notificador";
-import { channels, pessoas } from "../sdk/adapter";
+import { definirEspelhoDeMensagem } from "nucleo/notificacao/notificador";
+import { channels, pessoas } from "nucleo/sdk/adapter";
 import {
   acoesEmConflito,
   assinarAtalhosDeVoz,
   lerAtalhosDeVoz,
   teclasDaCombinacao,
-} from "../store/atalhosDeVoz";
-import { assinarChamada, falando, lerChamada } from "../store/chamada";
-import { assinarOverlay, lerOverlay } from "../store/overlay";
+} from "nucleo/store/atalhosDeVoz";
+import { assinarChamada, falando, lerChamada } from "nucleo/store/chamada";
+import { assinarOverlay, lerOverlay } from "nucleo/store/overlay";
 import {
   ponteDeOverlay,
   type EstadoDoOverlay,
   type MensagemDoOverlay,
   type PonteDeOverlay,
-} from "./modelo";
+} from "nucleo/ui-logica/overlay/modelo";
 
 /**
  * O que a janela principal manda para a janela do overlay.

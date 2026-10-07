@@ -14,28 +14,28 @@ import {
   semearNaoLidas,
   SERVER_ID,
   startFirehose,
-} from "./firehose";
+} from "nucleo/arnes/firehose";
 import { Segmentado } from "../components/ui/Segmentado";
 import { createFrameRecorder, verdict, type FrameReport } from "./frames";
 import { medirPrepend, type ResultadoPrepend } from "./prepend";
-import { readCounters, resetCounters, type Counters } from "./stats";
+import { readCounters, resetCounters, type Counters } from "nucleo/arnes/stats";
 import { ALTURA_ESTIMADA } from "../list/MessageList";
 import { ligarAtalhos } from "../atalhos/ligar";
-import { configurarSimulacaoDeEnvio } from "../sdk/adapter";
-import { dublarProvedorDeGif } from "../sdk/fonteDeGifs";
+import { configurarSimulacaoDeEnvio } from "nucleo/sdk/adapter";
+import { dublarProvedorDeGif } from "nucleo/sdk/fonteDeGifs";
 import { provedorDeGifFalso } from "./gifsFalsos";
 import {
   concluirEscolhaDeTela,
   pedirEscolhaDeTela,
   type ModoDoSeletor,
-} from "../store/seletorDeTela";
+} from "nucleo/store/seletorDeTela";
 import { dublarPonteDeTela } from "./telaFalsa";
-import { definirConexao, lerConexao } from "../store/conexao";
+import { definirConexao, lerConexao } from "nucleo/store/conexao";
 import { alternarCascaFalsa } from "./cascaFalsa";
-import { entrar } from "../store/edicao";
-import { assinarLayout, definirSemente, lerSemente } from "../store/layout";
-import { SEMENTE_PADRAO } from "../tema/derivar";
-import { selecionarServidor } from "../store/navegacao";
+import { entrar } from "nucleo/store/edicao";
+import { assinarLayout, definirSemente, lerSemente } from "nucleo/store/layout";
+import { SEMENTE_PADRAO } from "nucleo/tema/derivar";
+import { selecionarServidor } from "nucleo/store/navegacao";
 
 /**
  * Tamanhos de semeadura, para o teste de LENGTH.

@@ -3,9 +3,9 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
-import { copiarTexto } from "../lib/copiar";
-import { criarConvite } from "../sdk/servidores";
-import { assinarAlvo, lerAlvo } from "../store/administracao";
+import { copiarTexto } from "nucleo/lib/copiar";
+import { criarConvite } from "nucleo/sdk/servidores";
+import { assinarAlvo, lerAlvo } from "nucleo/store/administracao";
 import css from "./AdicionarServidor.module.css";
 
 /**

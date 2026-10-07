@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-import { TOKENS_DE_TEMA, type TokenName } from "../preset/tokens";
-import { dispensado, EXCECOES, PARES, verificar } from "./pares";
+import { TOKENS_DE_TEMA, type TokenName } from "nucleo/preset/tokens";
+import { dispensado, EXCECOES, PARES, verificar } from "nucleo/tema/pares";
 
 /**
  * O contraste do `tokens.css`. Era `scripts/contrast.mjs`.

@@ -18,7 +18,7 @@ import {
   fecharModal,
   lerModal,
   type ModalId,
-} from "../../store/modais";
+} from "nucleo/store/modais";
 import { GerenciarGrupo } from "../../casa/GerenciarGrupo";
 import { NovoGrupo } from "../../casa/NovoGrupo";
 import { ModalDeExcluirConta } from "../../config/ModalDeExcluirConta";

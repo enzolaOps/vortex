@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 
 import { Botao } from "../components/ui/Botao";
-import { toast } from "../components/ui/toastStore";
-import { motivoDoErro } from "../sdk/erros";
+import { toast } from "nucleo/ui-logica/toastStore";
+import { motivoDoErro } from "nucleo/sdk/erros";
 import {
   descreverExportacao,
   lerExportacao,
   pedirExportacao,
   type Exportacao,
-} from "../sdk/exportacao";
+} from "nucleo/sdk/exportacao";
 import { LinhaDeAjuste } from "./Pagina";
 
 /** Enquanto gera, pergunta de novo neste intervalo. */

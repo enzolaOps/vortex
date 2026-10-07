@@ -9,8 +9,8 @@ import {
   pedirExclusao,
   servidoresQueEuDono,
   type FatorDaConta,
-} from "../sdk/perfil";
-import { administrar } from "../store/administracao";
+} from "nucleo/sdk/perfil";
+import { administrar } from "nucleo/store/administracao";
 import css from "./ModalDeExcluirConta.module.css";
 
 const FATORES: readonly { readonly id: FatorDaConta; readonly rotulo: string }[] =

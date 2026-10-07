@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
 import { PreviaDoConvite } from "../servidores/AdicionarServidor";
-import { buscarConvite, type Convite } from "../sdk/servidores";
-import { voltarParaEntrar } from "../store/entrada";
+import { buscarConvite, type Convite } from "nucleo/sdk/servidores";
+import { voltarParaEntrar } from "nucleo/store/entrada";
 import css from "./TelaDeLogin.module.css";
 
 /**

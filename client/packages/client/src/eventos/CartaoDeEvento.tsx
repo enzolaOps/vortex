@@ -16,10 +16,10 @@ import {
   SpeakerHigh,
   Trash,
 } from "../components/ui/icones";
-import { copiarTexto } from "../lib/copiar";
-import { usuarioLocalId } from "../sdk/adapter";
-import { entrarNaChamada } from "../sdk/chamada";
-import { chaveDeMembro } from "../sdk/domain";
+import { copiarTexto } from "nucleo/lib/copiar";
+import { usuarioLocalId } from "nucleo/sdk/adapter";
+import { entrarNaChamada } from "nucleo/sdk/chamada";
+import { chaveDeMembro } from "nucleo/sdk/domain";
 import {
   alternarInteresse,
   apagarEvento,
@@ -27,10 +27,10 @@ import {
   quandoCurto,
   ROTULO_DA_REPETICAO,
   type EventoDoServidor,
-} from "../sdk/eventos";
-import { administrar } from "../store/administracao";
-import { useChannel, useMembro } from "../store/hooks";
-import { irPara } from "../store/navegacao";
+} from "nucleo/sdk/eventos";
+import { administrar } from "nucleo/store/administracao";
+import { useChannel, useMembro } from "nucleo/store/hooks";
+import { irPara } from "nucleo/store/navegacao";
 import css from "./Eventos.module.css";
 
 /**

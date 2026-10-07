@@ -1,13 +1,13 @@
 import { useSyncExternalStore } from "react";
 
 import { Popover, PopoverAnchor, PopoverContent } from "../components/ui/Popover";
-import { alternarReacao } from "../sdk/adapter";
+import { alternarReacao } from "nucleo/sdk/adapter";
 import { SeletorDeEmoji } from "../seletores/SeletorDeEmoji";
 import {
   assinarSeletorDeReacao,
   fecharSeletorDeReacao,
   lerAlvoDaReacao,
-} from "../store/seletorDeReacao";
+} from "nucleo/store/seletorDeReacao";
 
 /**
  * O seletor de emoji para reagir — UM para a lista inteira.

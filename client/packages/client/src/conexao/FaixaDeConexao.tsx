@@ -1,12 +1,12 @@
 import { useEffect, useSyncExternalStore } from "react";
 
 import { Girador } from "../components/ui/Girador";
-import { pausarReconexao, reconectarAgora } from "../sdk/client";
+import { pausarReconexao, reconectarAgora } from "nucleo/sdk/client";
 import {
   assinarConexao,
   lerDetalheDaConexao,
   pausarConexao,
-} from "../store/conexao";
+} from "nucleo/store/conexao";
 import css from "./FaixaDeConexao.module.css";
 
 /**

@@ -13,8 +13,8 @@ import {
   instalarAtualizacao,
   lerAtualizacao,
   verificarAtualizacao,
-} from "../store/atualizacao";
-import { assinarDesktop, lerDesktop } from "../store/desktop";
+} from "nucleo/store/atualizacao";
+import { assinarDesktop, lerDesktop } from "nucleo/store/desktop";
 import css from "./Atualizacao.module.css";
 
 /**

@@ -5,13 +5,13 @@ import { Campo } from "../components/ui/Campo";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { UploadSimple } from "../components/ui/icones";
 import { cn } from "../lib/cn";
-import { enviarMensagem } from "../sdk/adapter";
+import { enviarMensagem } from "nucleo/sdk/adapter";
 import { aindaNao } from "../pendente/pendencias";
-import { temServidorDeMidia } from "../sdk/anexos";
-import { criarTopico, nomeDeTopicoDe } from "../sdk/topicos";
-import { assinarAlvo, lerAlvo } from "../store/administracao";
-import { useForum, useMessage } from "../store/hooks";
-import { selecionarCanal } from "../store/navegacao";
+import { temServidorDeMidia } from "nucleo/sdk/anexos";
+import { criarTopico, nomeDeTopicoDe } from "nucleo/sdk/topicos";
+import { assinarAlvo, lerAlvo } from "nucleo/store/administracao";
+import { useForum, useMessage } from "nucleo/store/hooks";
+import { selecionarCanal } from "nucleo/store/navegacao";
 import css from "./ModalDeTopico.module.css";
 
 /**

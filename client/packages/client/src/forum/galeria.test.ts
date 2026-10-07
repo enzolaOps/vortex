@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ulid } from "ulid";
 
-import type { AberturaDePost, TopicoSnapshot } from "../sdk/domain";
+import type { AberturaDePost, TopicoSnapshot } from "nucleo/sdk/domain";
 import {
   duracaoConhecida,
   lembrarDuracao,

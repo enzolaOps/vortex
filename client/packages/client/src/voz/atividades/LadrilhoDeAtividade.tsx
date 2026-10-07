@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { Botao } from "../../components/ui/Botao";
-import { toast } from "../../components/ui/toastStore";
-import { usuarioLocalId } from "../../sdk/adapter";
-import { encerrarAtividade, enviarOperacao } from "../../sdk/atividades";
-import { motivoDoErro } from "../../sdk/erros";
+import { toast } from "nucleo/ui-logica/toastStore";
+import { usuarioLocalId } from "nucleo/sdk/adapter";
+import { encerrarAtividade, enviarOperacao } from "nucleo/sdk/atividades";
+import { motivoDoErro } from "nucleo/sdk/erros";
 import {
   assinarOperacoes,
   assinarSessao,
   lerRegistro,
   lerSessao,
-} from "../../store/atividades";
+} from "nucleo/store/atividades";
 import { atividadePorId } from "./catalogo";
 import { lerMensagemDoHost, VERSAO_DO_CONTRATO, type MensagemParaHost } from "./protocolo";
 import css from "./LadrilhoDeAtividade.module.css";

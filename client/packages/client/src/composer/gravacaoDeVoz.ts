@@ -1,5 +1,5 @@
-import { toast } from "../components/ui/toastStore";
-import { temServidorDeMidia } from "../sdk/anexos";
+import { toast } from "nucleo/ui-logica/toastStore";
+import { temServidorDeMidia } from "nucleo/sdk/anexos";
 import {
   DURACAO_MAXIMA_S,
   TAXA_DO_ENVIO,

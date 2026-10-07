@@ -10,10 +10,10 @@ import { Botao } from "../components/ui/Botao";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { MarcaDeCaixa } from "../components/ui/Marcador";
-import { publicarRelacoes } from "../sdk/adapter";
-import { criarGrupo } from "../sdk/social";
-import { abrirConversa } from "../store/navegacao";
-import { usePessoa, useRelacao } from "../store/hooks";
+import { publicarRelacoes } from "nucleo/sdk/adapter";
+import { criarGrupo } from "nucleo/sdk/social";
+import { abrirConversa } from "nucleo/store/navegacao";
+import { usePessoa, useRelacao } from "nucleo/store/hooks";
 import css from "./NovoGrupo.module.css";
 
 /**

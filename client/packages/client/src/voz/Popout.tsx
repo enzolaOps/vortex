@@ -21,31 +21,31 @@ import { createPortal } from "react-dom";
 
 import { Avatar } from "../components/ui/Avatar";
 import { Tooltip } from "../components/ui/Tooltip";
-import { temaDoDocumento, useReduzirMovimento } from "../lib/efeito";
-import { ponteDeNotificacoes } from "../notificacao/notificador";
-import { naDesktop } from "../sdk/desktop";
+import { temaDoDocumento, useReduzirMovimento } from "nucleo/lib/efeito";
+import { ponteDeNotificacoes } from "nucleo/notificacao/notificador";
+import { naDesktop } from "nucleo/sdk/desktop";
 import {
   alternarCamera,
   alternarMudo,
   assinarVideo,
   sairDaChamada,
-} from "../sdk/chamada";
+} from "nucleo/sdk/chamada";
 import {
   assinarChamada,
   falando,
   lerChamada,
   type Chamada,
-} from "../store/chamada";
-import { useCanalAtivo, useChannel, usePessoa } from "../store/hooks";
-import { selecionarCanal } from "../store/navegacao";
-import { definirPalco, type Palco } from "../store/palcoDeVoz";
+} from "nucleo/store/chamada";
+import { useCanalAtivo, useChannel, usePessoa } from "nucleo/store/hooks";
+import { selecionarCanal } from "nucleo/store/navegacao";
+import { definirPalco, type Palco } from "nucleo/store/palcoDeVoz";
 import {
   assinarPopout,
   definirFormaDoPopout,
   lerPopout,
   moverPopout,
   reiniciarPopout,
-} from "../store/popout";
+} from "nucleo/store/popout";
 import {
   abrirJanelaDoPopout,
   assinarJanelaDoPopout,

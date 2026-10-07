@@ -2,9 +2,9 @@ import { memo, useEffect, useState } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
 import { Botao } from "../components/ui/Botao";
-import { buscarConvite, entrarPorConvite, type Convite } from "../sdk/servidores";
-import { selecionarServidor } from "../store/navegacao";
-import { toast } from "../components/ui/toastStore";
+import { buscarConvite, entrarPorConvite, type Convite } from "nucleo/sdk/servidores";
+import { selecionarServidor } from "nucleo/store/navegacao";
+import { toast } from "nucleo/ui-logica/toastStore";
 import css from "./ConviteNaMensagem.module.css";
 
 /**

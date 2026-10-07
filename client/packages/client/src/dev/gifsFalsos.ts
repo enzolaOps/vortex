@@ -1,4 +1,4 @@
-import type { Gif, ProvedorDeGif } from "../sdk/gifs";
+import type { Gif, ProvedorDeGif } from "nucleo/sdk/gifs";
 
 /**
  * O dublê do provedor de GIF, para o arnês `/dev`.

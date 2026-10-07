@@ -3,7 +3,7 @@ import { runInNewContext } from "node:vm";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { base64UrlParaBytes, bytesParaBase64Url } from "./push";
+import { base64UrlParaBytes, bytesParaBase64Url } from "nucleo/notificacao/push";
 
 /**
  * O service worker de push, rodado DE VERDADE numa sandbox.

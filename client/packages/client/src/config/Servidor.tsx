@@ -5,19 +5,19 @@ import { Campo } from "../components/ui/Campo";
 import { Selo } from "../components/ui/Selo";
 import { SeletorDeCor } from "../components/ui/SeletorDeCor";
 import { X } from "../components/ui/icones";
-import { corDoTextoDe, gradienteDe } from "../lib/gradiente";
-import { sigla } from "../lib/sigla";
-import { temServidorDeMidia, tetoDeUploadTexto } from "../sdk/anexos";
-import { salvarCaracteristicas } from "../sdk/perfilDoServidor";
+import { corDoTextoDe, gradienteDe } from "nucleo/lib/gradiente";
+import { sigla } from "nucleo/lib/sigla";
+import { temServidorDeMidia, tetoDeUploadTexto } from "nucleo/sdk/anexos";
+import { salvarCaracteristicas } from "nucleo/sdk/perfilDoServidor";
 import {
   salvarServidor,
   TAG_DA_IMAGEM,
   trocarImagemDoServidor,
   type ImagemDoServidor,
-} from "../sdk/servidores";
-import { definirBarraDeSalvar } from "../store/barraDeSalvar";
-import { useMembrosDoServidor, useServer } from "../store/hooks";
-import { usePerfilDoServidor } from "../store/perfilDoServidor";
+} from "nucleo/sdk/servidores";
+import { definirBarraDeSalvar } from "nucleo/store/barraDeSalvar";
+import { useMembrosDoServidor, useServer } from "nucleo/store/hooks";
+import { usePerfilDoServidor } from "nucleo/store/perfilDoServidor";
 import { useImagemEnviavel } from "./useImagemEnviavel";
 import css from "./Servidor.module.css";
 import secao from "./Secao.module.css";

@@ -2,16 +2,16 @@ import { useState, useSyncExternalStore } from "react";
 
 import { Botao } from "../components/ui/Botao";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
-import { apagarMensagem } from "../sdk/adapter";
-import { apagarCanal, apagarCategoria } from "../sdk/servidores";
-import { assinarAlvo, lerAlvo } from "../store/administracao";
-import { useCategorias, useChannel } from "../store/hooks";
+import { apagarMensagem } from "nucleo/sdk/adapter";
+import { apagarCanal, apagarCategoria } from "nucleo/sdk/servidores";
+import { assinarAlvo, lerAlvo } from "nucleo/store/administracao";
+import { useCategorias, useChannel } from "nucleo/store/hooks";
 import css from "./AdicionarServidor.module.css";
-import { sairDoServidor } from "../sdk/servidores";
-import { fecharConfig } from "../store/config";
-import { irParaCasa } from "../store/navegacao";
-import { useServer } from "../store/hooks";
-import { souDono } from "../sdk/servidores";
+import { sairDoServidor } from "nucleo/sdk/servidores";
+import { fecharConfig } from "nucleo/store/config";
+import { irParaCasa } from "nucleo/store/navegacao";
+import { useServer } from "nucleo/store/hooks";
+import { souDono } from "nucleo/sdk/servidores";
 
 /**
  * Confirmação destrutiva.

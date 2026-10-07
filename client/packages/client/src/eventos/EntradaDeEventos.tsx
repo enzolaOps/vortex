@@ -1,8 +1,8 @@
 import { ClockCounterClockwise } from "../components/ui/icones";
-import { usuarioLocalId } from "../sdk/adapter";
-import { eventosDaAba, useEventosDoServidor, useRelogio } from "../sdk/eventos";
-import { useLocal } from "../store/hooks";
-import { irParaEventos } from "../store/navegacao";
+import { usuarioLocalId } from "nucleo/sdk/adapter";
+import { eventosDaAba, useEventosDoServidor, useRelogio } from "nucleo/sdk/eventos";
+import { useLocal } from "nucleo/store/hooks";
+import { irParaEventos } from "nucleo/store/navegacao";
 import css from "./EntradaDeEventos.module.css";
 
 /**

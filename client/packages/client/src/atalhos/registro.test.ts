@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { ATALHOS, GRUPOS_DA_PAGINA, linhasDaPagina } from "./registro";
-import { mesmaCombinacao } from "../store/atalhosDeVoz";
+import { mesmaCombinacao } from "nucleo/store/atalhosDeVoz";
 
 /**
  * O registro é o MECANISMO contra "atalho anunciado sem handler".

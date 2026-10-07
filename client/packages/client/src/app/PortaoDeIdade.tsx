@@ -1,7 +1,7 @@
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { EyeSlash } from "../components/ui/icones";
-import { useChannel } from "../store/hooks";
-import { confirmarIdade } from "../store/idade";
+import { useChannel } from "nucleo/store/hooks";
+import { confirmarIdade } from "nucleo/store/idade";
 
 /**
  * A porta de um canal +18 (D-CCANAL-06: "exige confirmação na entrada").

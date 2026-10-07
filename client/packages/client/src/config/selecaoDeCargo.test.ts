@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { Alcance, PessoaParaCargo } from "../sdk/cargos";
+import type { Alcance, PessoaParaCargo } from "nucleo/sdk/cargos";
 import {
   acimaDaMinhaHierarquia,
   cargoAoAlcance,

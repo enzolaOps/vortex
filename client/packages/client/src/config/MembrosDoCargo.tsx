@@ -6,16 +6,16 @@ import { Botao } from "../components/ui/Botao";
 import { CampoDeBusca } from "../components/ui/CampoDeBusca";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { Caixa } from "../components/ui/Marcador";
-import type { FalhaDeLote } from "../lib/lote";
+import type { FalhaDeLote } from "nucleo/lib/lote";
 import {
   aplicarCargoEmLote,
   meuAlcance,
   pessoasDoServidor,
   type Cargo,
   type PessoaParaCargo,
-} from "../sdk/cargos";
-import { chaveDeMembro } from "../sdk/domain";
-import { useMembro, useMembrosDoServidor } from "../store/hooks";
+} from "nucleo/sdk/cargos";
+import { chaveDeMembro } from "nucleo/sdk/domain";
+import { useMembro, useMembrosDoServidor } from "nucleo/store/hooks";
 import {
   cargoAoAlcance,
   filtrarPessoas,

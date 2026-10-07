@@ -1,8 +1,8 @@
 import { Pause, Play } from "../components/ui/icones";
 import { useEffect, useRef, useState } from "react";
 
-import { relogio } from "../lib/duracao";
-import type { AnexoSnapshot } from "../sdk/domain";
+import { relogio } from "nucleo/lib/duracao";
+import type { AnexoSnapshot } from "nucleo/sdk/domain";
 import css from "./ReprodutorDeVoz.module.css";
 
 /**

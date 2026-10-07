@@ -20,13 +20,13 @@ import {
   type Alcance,
   type Cargo,
   type PessoaParaCargo,
-} from "../sdk/cargos";
+} from "nucleo/sdk/cargos";
 import {
   cargoMovivel,
   MOTIVO_HIERARQUIA,
   reordenacaoPermitida,
 } from "./selecaoDeCargo";
-import { toast } from "../components/ui/toastStore";
+import { toast } from "nucleo/ui-logica/toastStore";
 import { IconeDoCargo } from "./IconeDoCargo";
 import { IconeDeCargo } from "../membros/IconeDeCargo";
 import { MembrosDoCargo } from "./MembrosDoCargo";
@@ -38,7 +38,7 @@ import {
   useCorDeCargo,
   useMembrosDoServidor,
   usePinturaDeCargo,
-} from "../store/hooks";
+} from "nucleo/store/hooks";
 import {
   ehHolografico,
   FIM_DO_GRADIENTE,
@@ -47,7 +47,7 @@ import {
   lerGradiente,
   TINTA_HOLOGRAFICA,
   type PinturaDeCargo,
-} from "../tema/cargo";
+} from "nucleo/tema/cargo";
 import { propsDoNome } from "../membros/pinturaDoNome";
 import { LinhaDeAjuste } from "./Pagina";
 import { LinksDoCargo } from "./LinksDoCargo";

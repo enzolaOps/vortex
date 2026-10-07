@@ -28,28 +28,28 @@ import { despacharMenuEm, MenuDeContexto } from "../components/ui/MenuDeContexto
 import { ItensDoCanal } from "../menus/ItensDoCanal";
 import { ItensDoServidor } from "../menus/ItensDoServidor";
 
-import { entrarNaChamada } from "../sdk/chamada";
-import { definirPalco } from "../store/palcoDeVoz";
+import { entrarNaChamada } from "nucleo/sdk/chamada";
+import { definirPalco } from "nucleo/store/palcoDeVoz";
 import { ComMenuDoParticipante } from "../voz/MenuDoParticipante";
-import { assinarChamada, falando, lerChamada } from "../store/chamada";
-import { administrar } from "../store/administracao";
+import { assinarChamada, falando, lerChamada } from "nucleo/store/chamada";
+import { administrar } from "nucleo/store/administracao";
 import { ListaDeConversas } from "../casa/ListaDeConversas";
 import { NotaDePresencaOffline } from "../conexao/NotaDePresencaOffline";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { EntradaDeEventos } from "../eventos/EntradaDeEventos";
-import { contagem, rotuloDeNaoLidas } from "../lib/plural";
-import { usePerfilDoServidor } from "../store/perfilDoServidor";
-import { pode, podeNoServidor } from "../sdk/permissoes";
-import { atalho } from "../lib/plataforma";
-import { marcarCanalLido } from "../sdk/adapter";
+import { contagem, rotuloDeNaoLidas } from "nucleo/lib/plural";
+import { usePerfilDoServidor } from "nucleo/store/perfilDoServidor";
+import { pode, podeNoServidor } from "nucleo/sdk/permissoes";
+import { atalho } from "nucleo/lib/plataforma";
+import { marcarCanalLido } from "nucleo/sdk/adapter";
 import {
   chaveDeMembro,
   type CategoriaDeCanais,
   type EstadoDeVoz,
   type ParticipanteDeVoz,
-} from "../sdk/domain";
-import { categorias, usuarioLocalId, vozPorCanal } from "../sdk/adapter";
-import { moverParaCanalDeVoz } from "../sdk/cargos";
+} from "nucleo/sdk/domain";
+import { categorias, usuarioLocalId, vozPorCanal } from "nucleo/sdk/adapter";
+import { moverParaCanalDeVoz } from "nucleo/sdk/cargos";
 import {
   alvoDoArraste,
   assinarArrasteDeVoz,
@@ -63,15 +63,15 @@ import {
   useArrastandoAlguem,
   vereditoDeSoltura,
   vereditoDoAlvo,
-} from "../store/arrasteDeVoz";
-import { assinarColapso, colapsadas, definirColapsoDeTodas, alternarColapso } from "../store/colapso";
+} from "nucleo/store/arrasteDeVoz";
+import { assinarColapso, colapsadas, definirColapsoDeTodas, alternarColapso } from "nucleo/store/colapso";
 import {
   assinarSilencio,
   estaSilenciado,
   silencioAte,
   silencioDoServidorAte,
-} from "../store/silencio";
-import { abrirPaleta } from "../store/paleta";
+} from "nucleo/store/silencio";
+import { abrirPaleta } from "nucleo/store/paleta";
 import { ItemDeId } from "../components/ui/ItemDeId";
 import {
   useCanalAtivo,
@@ -85,16 +85,16 @@ import {
   useVozDoCanal,
   useLocal,
   useTopicosSeguidosPorPai,
-} from "../store/hooks";
+} from "nucleo/store/hooks";
 import { Avatar } from "../components/ui/Avatar";
 import { podeCriarTopico } from "../topicos/acoes";
 import {
   alternarOcultarSilenciados,
   assinarExibicao,
   ocultaSilenciados,
-} from "../store/exibicaoDeCanais";
+} from "nucleo/store/exibicaoDeCanais";
 import { FaixaDeVoz } from "../voz/FaixaDeVoz";
-import { selecionarCanal } from "../store/navegacao";
+import { selecionarCanal } from "nucleo/store/navegacao";
 import { Selo } from "../components/ui/Selo";
 import { GatilhoDeBusca } from "../components/ui/CampoDeBusca";
 import { LinhaDeTopico, SomaDaCategoria } from "./Aninhados";

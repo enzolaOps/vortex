@@ -8,10 +8,10 @@ import { Botao } from "../components/ui/Botao";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { Interruptor } from "../components/ui/Interruptor";
 import { CartaoDeOpcao } from "../components/ui/CartaoDeOpcao";
-import { toast } from "../components/ui/toastStore";
+import { toast } from "nucleo/ui-logica/toastStore";
 import { aindaNao } from "../pendente/pendencias";
-import { assinarAlvo, lerAlvo } from "../store/administracao";
-import { useServer } from "../store/hooks";
+import { assinarAlvo, lerAlvo } from "nucleo/store/administracao";
+import { useServer } from "nucleo/store/hooks";
 import {
   ALCANCES_DE_DM,
   aplicarATodos,
@@ -21,7 +21,7 @@ import {
   lerPrivacidadeDoServidor,
   type AlcanceDeDm,
   type FiltroDeConteudo,
-} from "../store/privacidadeDoServidor";
+} from "nucleo/store/privacidadeDoServidor";
 import css from "./PrivacidadeDoServidor.module.css";
 
 const DM: Record<AlcanceDeDm, { titulo: string; detalhe: string }> = {

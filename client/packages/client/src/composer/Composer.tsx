@@ -29,30 +29,30 @@ import {
   ATRIBUTO_DE_COLUNA,
   observarAlinhamentoDeColuna,
 } from "../dev/alinhamento";
-import { digitacao, enviarMensagem } from "../sdk/adapter";
-import { temServidorDeMidia } from "../sdk/anexos";
-import { LIMITE_DE_CONTEUDO } from "../sdk/domain";
-import { pode } from "../sdk/permissoes";
+import { digitacao, enviarMensagem } from "nucleo/sdk/adapter";
+import { temServidorDeMidia } from "nucleo/sdk/anexos";
+import { LIMITE_DE_CONTEUDO } from "nucleo/sdk/domain";
+import { pode } from "nucleo/sdk/permissoes";
 import { cn } from "../lib/cn";
 import { executarAtalho } from "../atalhos/ligar";
-import { ouvirFocoNoComposer, pedirFimDaLista } from "../store/comandos";
+import { ouvirFocoNoComposer, pedirFimDaLista } from "nucleo/store/comandos";
 import {
   alvoDeResposta,
   assinarResposta,
   cancelarResposta,
   responderA,
-} from "../store/resposta";
+} from "nucleo/store/resposta";
 import {
   useChannel,
   useMembrosDoServidor,
   useRascunho,
   useServidorAtivo,
   useTopico,
-} from "../store/hooks";
-import { escreverRascunho, limparRascunho } from "../store/rascunhos";
-import { assinarConexao, lerConexao } from "../store/conexao";
-import { assinarFila, lerPendentesDoCanal } from "../store/fila";
-import { alvosDeMencao } from "../sdk/completarMencao";
+} from "nucleo/store/hooks";
+import { escreverRascunho, limparRascunho } from "nucleo/store/rascunhos";
+import { assinarConexao, lerConexao } from "nucleo/store/conexao";
+import { assinarFila, lerPendentesDoCanal } from "nucleo/store/fila";
+import { alvosDeMencao } from "nucleo/sdk/completarMencao";
 import {
   aplicarMencoesDoCanal,
   consultaDeMencao,

@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 
-import { ARNES_ATIVO } from "./dev/arnesAtivo";
+import { ARNES_ATIVO } from "nucleo/arnes/arnesAtivo";
 import { Cliente } from "./app/Cliente";
 
 /**

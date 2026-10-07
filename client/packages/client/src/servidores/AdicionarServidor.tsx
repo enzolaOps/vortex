@@ -12,19 +12,19 @@ import { Campo } from "../components/ui/Campo";
 import { CartaoDeOpcao } from "../components/ui/CartaoDeOpcao";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { cn } from "../lib/cn";
-import { corDoTextoDe, gradienteDe } from "../lib/gradiente";
-import { sigla } from "../lib/sigla";
+import { corDoTextoDe, gradienteDe } from "nucleo/lib/gradiente";
+import { sigla } from "nucleo/lib/sigla";
 import {
   buscarConvite,
   criarServidor,
   entrarPorConvite,
   vestirIconeNoServidor,
   type Convite,
-} from "../sdk/servidores";
-import { lerEntrada, voltarParaEntrar } from "../store/entrada";
-import { selecionarServidor } from "../store/navegacao";
-import { subirAnexo, temServidorDeMidia } from "../sdk/anexos";
-import { toast } from "../components/ui/toastStore";
+} from "nucleo/sdk/servidores";
+import { lerEntrada, voltarParaEntrar } from "nucleo/store/entrada";
+import { selecionarServidor } from "nucleo/store/navegacao";
+import { subirAnexo, temServidorDeMidia } from "nucleo/sdk/anexos";
+import { toast } from "nucleo/ui-logica/toastStore";
 import css from "./AdicionarServidor.module.css";
 import {
   canaisDe,

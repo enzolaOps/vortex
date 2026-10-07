@@ -8,7 +8,7 @@ import {
   derrubarOutros,
   listarDispositivos,
   type Dispositivo,
-} from "../sdk/perfil";
+} from "nucleo/sdk/perfil";
 import css from "./Secao.module.css";
 
 /**

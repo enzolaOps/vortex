@@ -1,0 +1,327 @@
+/**
+ * Entrar e sair de uma chamada — a fachada, sem LiveKit.
+ *
+ * ⚠ **Este arquivo NÃO importa `livekit-client`, e a ausência é o ponto.** O
+ * motor (`motorDeVoz.ts`) é carregado com `await import()` no primeiro clique
+ * em "entrar na sala". Com o import estático, o carregamento inicial do app
+ * saltava de 996 kB para 1.539 kB (gzip: 303 → 444) — meio megabyte em toda
+ * abertura para uma feature que a maioria das sessões nunca usa.
+ *
+ * A fachada existe para que o resto do app (menu de canal, cartão de chamada)
+ * chame `entrarNaChamada` sem arrastar o WebRTC junto.
+ */
+import {
+  alternarMudoNoStore,
+  alternarSurdoNoStore,
+  encerrarChamada,
+  lerChamada,
+} from "../store/chamada";
+import { toast } from "../ui-logica/toastStore";
+import type { QualidadeDaTela } from "../store/qualidadeDaTela";
+import { lerChamadaRecebida } from "../store/chamadaRecebida";
+import { abrirConversa } from "../store/navegacao";
+import { definirPalco } from "../store/palcoDeVoz";
+import { atenderNoStore, recusarNoStore } from "../notificacao/chamadas";
+import { enviarMensagem } from "./adapter";
+import { abreNaGrade, lerConfigDeVoz } from "./vozDoCanal";
+
+type Motor = typeof import("./motorDeVoz");
+
+let motor: Motor | undefined;
+
+/**
+ * Carrega o motor uma vez.
+ *
+ * `import()` cacheia por si só, mas guardar a referência evita uma promessa por
+ * clique em botão de microfone — que numa chamada é o alvo mais apertado que
+ * existe.
+ */
+async function carregar(): Promise<Motor> {
+  motor ??= await import("./motorDeVoz");
+  return motor;
+}
+
+/**
+ * O motor, ou nada — com o aviso na tela quando ele não vem.
+ *
+ * ⚠ **A falha aqui era MUDA, e isso não é hipotético.** `carregar()` rejeita
+ * quando o chunk não baixa, e quem chama usa `void entrarNaChamada(id)` — o
+ * `void` engole a rejeição num "unhandled promise rejection" que só existe no
+ * console. A pessoa clica em "Entrar na sala" e NÃO ACONTECE NADA, que é o
+ * modo de falha que este projeto classifica como pior que a ausência.
+ *
+ * O caso que faz isso acontecer é corriqueiro: quem está com a página aberta
+ * quando uma versão nova sobe pede o chunk pelo hash ANTIGO, que deixou de
+ * existir. Reproduzido em navegador trocando a imagem do contêiner —
+ * `Failed to fetch dynamically imported module`, 404, e a interface calada.
+ *
+ * `motor` fica `undefined` após a falha, então tentar de novo tenta de verdade;
+ * e depois de uma versão nova, recarregar resolve — que é o que o texto pede.
+ *
+ * Passam por aqui TODOS os cinco pontos que carregam o motor, e não só o de
+ * entrar: mudo, surdo, câmera e tela ficam no rodapé da coluna o dia inteiro,
+ * e um deles falhando calado é o mesmo defeito numa superfície mais visível.
+ */
+async function motorOuAviso(): Promise<Motor | undefined> {
+  try {
+    return await carregar();
+  } catch {
+    toast({
+      tipo: "erro",
+      titulo: "Não deu para carregar a voz.",
+      descricao:
+        "Se o app foi atualizado agora, recarregue a página e tente de novo.",
+    });
+    return undefined;
+  }
+}
+
+export async function entrarNaChamada(channelId: string): Promise<boolean> {
+  const m = await motorOuAviso();
+  if (m === undefined) return false;
+  const entrou = await m.entrarNaChamada(channelId);
+  /*
+    Sala de VÍDEO abre na grade (D-VOZ-04) — é o layout inicial, e só isso:
+    a câmera continua desligada até a pessoa ligar. Entrar numa sala de vídeo
+    não é consentir em aparecer.
+  */
+  if (entrou && abreNaGrade(lerConfigDeVoz(channelId).modoDaSala)) {
+    definirPalco({ tipo: "grade" });
+  }
+  return entrou;
+}
+
+/**
+ * Ligar numa DM ou grupo — o botão do cabeçalho.
+ *
+ * ⚠ **Ligar é ENTRAR na sala da conversa.** O Stoat não tem "chamada avulsa":
+ * a chamada é sempre de um canal, e quem está do outro lado recebe o toque
+ * porque o `voice-ingress` avisa os destinatários quando a primeira pessoa
+ * entra. Não há rota de "tocar" a chamar; entrar é o sinal.
+ *
+ * Já dentro da sala desta conversa, o mesmo botão só traz a chamada de volta
+ * para a tela — entrar de novo desconectaria e reconectaria por nada.
+ */
+export async function ligar(channelId: string): Promise<boolean> {
+  const c = lerChamada();
+  if (c.estado !== "fora" && c.channelId === channelId) {
+    definirPalco({ tipo: "grade" });
+    return true;
+  }
+  return entrarNaChamada(channelId);
+}
+
+/**
+ * Atender a chamada que está tocando.
+ *
+ * ⚠ **A ordem é: tirar o toque, navegar, preparar, entrar.** O toque sai
+ * PRIMEIRO porque `entrarNaChamada` leva segundos de rede, e uma campainha
+ * tocando durante o "conectando…" faz a pessoa apertar de novo.
+ *
+ * `semMicrofone` e `comCamera` são as duas escolhas da tela cheia. Microfone
+ * é preferência de store (é o que `entrarNaChamada` lê antes de abrir o
+ * dispositivo); câmera só existe dentro da sala, então liga depois.
+ */
+export async function atenderChamada(opcoes?: {
+  readonly semMicrofone?: boolean;
+  readonly comCamera?: boolean;
+}): Promise<boolean> {
+  const t = lerChamadaRecebida();
+  if (!t) return false;
+  atenderNoStore();
+  abrirConversa(t.channelId);
+  if (opcoes?.semMicrofone && !lerChamada().mudo) alternarMudoNoStore();
+  const entrou = await entrarNaChamada(t.channelId);
+  if (entrou && opcoes?.comCamera && !lerChamada().camera) await alternarCamera();
+  return entrou;
+}
+
+/**
+ * Recusar.
+ *
+ * ⚠ **Não existe "recusar" no protocolo** — nem rota, nem evento. Quem ligou
+ * continua na sala até desistir; do lado de cá recusar é parar de tocar e não
+ * tocar de novo pela mesma chamada (ver `ignorados` no store).
+ *
+ * `recado` é a mensagem opcional da tela cheia: ela vai como mensagem comum na
+ * conversa, que é a única forma que o Stoat tem de dizer alguma coisa a quem
+ * ligou.
+ */
+export function recusarChamada(recado?: string): void {
+  const t = lerChamadaRecebida();
+  if (!t) return;
+  recusarNoStore();
+  if (recado) enviarMensagem(t.channelId, recado);
+}
+
+/**
+ * Sai.
+ *
+ * Se o motor nunca foi carregado, não há sala — e carregar meio megabyte para
+ * descobrir isso seria absurdo. `encerrarChamada` limpa o store, que é tudo o
+ * que sobra nesse caso.
+ */
+export async function sairDaChamada(): Promise<void> {
+  if (!motor) {
+    encerrarChamada();
+    return;
+  }
+  await motor.sairDaChamada();
+}
+
+/**
+ * Mudo e surdo funcionam FORA da chamada, e é o que o painel de usuário pede.
+ *
+ * ⚠ Antes o guarda era `return` seco: fora da sala o botão não fazia nada. Com
+ * os controles no rodapé da coluna — onde o design os põe, e onde eles ficam o
+ * dia inteiro — isso seria um botão morto na superfície mais visível do app.
+ *
+ * Fora da chamada só o STORE muda, e o motor não é carregado: mudo é
+ * preferência, e `entrarNaChamada` já a lê para decidir se abre o microfone.
+ * Baixar meio megabyte de WebRTC para virar um booleano seria o oposto da
+ * razão de esta fachada existir.
+ */
+export async function alternarMudo(): Promise<void> {
+  if (lerChamada().estado === "fora") {
+    alternarMudoNoStore();
+    return;
+  }
+  await (await motorOuAviso())?.alternarMudo();
+}
+
+export async function alternarSurdo(): Promise<void> {
+  if (lerChamada().estado === "fora") {
+    alternarSurdoNoStore();
+    return;
+  }
+  await (await motorOuAviso())?.alternarSurdo();
+}
+
+export async function alternarCamera(): Promise<void> {
+  if (lerChamada().estado === "fora") return;
+  await (await motorOuAviso())?.alternarCamera();
+}
+
+export async function alternarTela(): Promise<void> {
+  if (lerChamada().estado === "fora") return;
+  await (await motorOuAviso())?.alternarTela();
+}
+
+/**
+ * A faixa de vídeo da transmissão, para a prévia local.
+ *
+ * ⚠ **A única função SÍNCRONA desta fachada, e ela não carrega o motor.** Se o
+ * motor não foi carregado não há sala, e sem sala não há transmissão — então
+ * `undefined` é a resposta certa, e baixar meio megabyte de WebRTC para
+ * descobrir isso seria o oposto da razão de a fachada existir.
+ *
+ * Quem chama é um efeito de componente. Uma versão assíncrona faria a caixa
+ * de prévia renderizar vazia antes de cada quadro.
+ */
+export function faixaDeTela(): MediaStreamTrack | undefined {
+  return motor?.faixaDeTela();
+}
+
+export async function pausarTela(pausar: boolean): Promise<void> {
+  if (lerChamada().estado === "fora") return;
+  await (await motorOuAviso())?.pausarTela(pausar);
+}
+
+export async function alternarAudioDaTela(): Promise<void> {
+  if (lerChamada().estado === "fora") return;
+  await (await motorOuAviso())?.alternarAudioDaTela();
+}
+
+export async function trocarFonteDaTela(): Promise<void> {
+  if (lerChamada().estado === "fora") return;
+  await (await motorOuAviso())?.trocarFonteDaTela();
+}
+
+/**
+ * Pede (ou devolve) o vídeo de alguém.
+ *
+ * ⚠ **SÍNCRONA e sem carregar o motor, ao contrário das outras.** Quem chama
+ * é um efeito de montagem de ladrilho, e a limpeza dele roda no desmonte —
+ * um `await` no caminho de limpeza é como se esquece de devolver uma
+ * assinatura. Sem motor não há sala, e sem sala não há o que assinar.
+ */
+export function assinarVideo(
+  userId: string,
+  fonte: "camera" | "tela",
+  sim: boolean,
+): boolean {
+  return motor?.assinarVideo(userId, fonte, sim) ?? false;
+}
+
+export function definirQualidadeDeStream(
+  userId: string,
+  fonte: "camera" | "tela",
+  qualidade: "auto" | "alta" | "media" | "soAudio",
+): void {
+  motor?.definirQualidadeDeStream(userId, fonte, qualidade);
+}
+
+/**
+ * A altura que está CHEGANDO do vídeo de alguém, e a que a fonte publica.
+ *
+ * `motor?.` pela razão das vizinhas: sem motor não há o que receber. Quem
+ * chama é a tela de assistir, uma vez por segundo — e só enquanto a
+ * qualidade é "Automática" (D-TELA-22).
+ */
+export async function resolucaoRecebida(
+  userId: string,
+  fonte: "camera" | "tela",
+): Promise<{ recebida: number | undefined; publicada: number | undefined } | undefined> {
+  return motor?.resolucaoRecebida(userId, fonte);
+}
+
+/**
+ * O que a transmissão está entregando de verdade — quadros e banda.
+ *
+ * Sem motor não há transmissão, então `undefined` é a resposta certa e não vale
+ * carregar meio megabyte de WebRTC para descobrir isso.
+ */
+export async function estatisticasDaTela(): Promise<
+  { fps: number | undefined; kbps: number | undefined } | undefined
+> {
+  return motor?.estatisticasDaTela();
+}
+
+/**
+ * Ida e volta da rede de voz, em milissegundos — ou nada.
+ *
+ * ⚠ **Mesmo `motor?.` do `estatisticasDaTela`, e pela mesma razão que vale
+ * dobrado aqui:** o consumidor é o overlay de depuração, que fica ligado o dia
+ * inteiro. Carregar meio megabyte de WebRTC para descobrir que não há chamada
+ * seria pagar a feature mais cara do app em toda sessão que ligasse um
+ * mostrador de FPS.
+ */
+export async function estatisticasDeVoz(): Promise<number | undefined> {
+  return motor?.estatisticasDeVoz();
+}
+
+/**
+ * Troca a qualidade da transmissão em curso.
+ *
+ * ⚠ **`motor?.` e não `carregar()`, como as vizinhas.** Sem transmissão não há
+ * o que trocar, e baixar meio megabyte de WebRTC para descobrir isso seria
+ * pagar a feature mais cara do app por um clique que não tinha o que fazer.
+ *
+ * ⚠ **Os DEGRAUS não vêm daqui.** Eles moram no motor junto da função que os
+ * aplica, e o HUD os importa de `store/qualidadeDaTela.ts` — que é um espelho
+ * de dados puros. Reexportá-los por esta fachada arrastaria `motorDeVoz` para
+ * o grafo estático de quem só quer DESENHAR a lista, que é exatamente o que
+ * este arquivo existe para impedir.
+ */
+export async function definirQualidadeDaTela(
+  q: QualidadeDaTela,
+): Promise<boolean> {
+  return (await motor?.definirQualidadeDaTela(q)) ?? false;
+}
+
+/** O que a faixa entrega agora, medido. `undefined` sem transmissão. */
+export function qualidadeRealDaTela():
+  | { altura: number; fps: number }
+  | undefined {
+  return motor?.qualidadeRealDaTela();
+}

@@ -1,4 +1,4 @@
-import { gerarQr } from "../lib/qr";
+import { gerarQr } from "nucleo/lib/qr";
 import css from "./TelaDeQr.module.css";
 
 /** Módulos de zona de silêncio em volta — a norma pede quatro. */

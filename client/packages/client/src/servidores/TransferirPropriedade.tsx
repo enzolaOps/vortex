@@ -5,11 +5,11 @@ import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
-import { assinarAlvo, lerAlvo } from "../store/administracao";
-import { chaveDeMembro } from "../sdk/domain";
-import { fecharConfig } from "../store/config";
-import { transferirPropriedade } from "../sdk/servidores";
-import { useMembro, useMembrosDoServidor, useServer } from "../store/hooks";
+import { assinarAlvo, lerAlvo } from "nucleo/store/administracao";
+import { chaveDeMembro } from "nucleo/sdk/domain";
+import { fecharConfig } from "nucleo/store/config";
+import { transferirPropriedade } from "nucleo/sdk/servidores";
+import { useMembro, useMembrosDoServidor, useServer } from "nucleo/store/hooks";
 import css from "./TransferirPropriedade.module.css";
 
 /**

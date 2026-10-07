@@ -4,7 +4,7 @@ import {
   assinarEntrada,
   lerEntrada,
   type TelaDeEntrada,
-} from "../store/entrada";
+} from "nucleo/store/entrada";
 import { TelaDeConferirEmail } from "./TelaDeConferirEmail";
 import { TelaDeConvite } from "./TelaDeConvite";
 import { TelaDeCriarConta } from "./TelaDeCriarConta";

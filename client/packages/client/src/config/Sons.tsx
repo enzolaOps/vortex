@@ -6,9 +6,9 @@ import { Deslizante } from "../components/ui/Deslizante";
 import { ICONE, Play, Stop } from "../components/ui/icones";
 import { duracaoDoAudio } from "../expressoes/duracao";
 import { useSonsDoServidor, useTocando } from "../expressoes/hooks";
-import { nomeDoArquivo } from "../expressoes/nomes";
-import { temServidorDeMidia } from "../sdk/anexos";
-import { pararLocalmente, tocarLocalmente } from "../sdk/efeitosSonoros";
+import { nomeDoArquivo } from "nucleo/ui-logica/expressoes/nomes";
+import { temServidorDeMidia } from "nucleo/sdk/anexos";
+import { pararLocalmente, tocarLocalmente } from "nucleo/sdk/efeitosSonoros";
 import {
   apagarEfeitoSonoro,
   carregarSons,
@@ -17,7 +17,7 @@ import {
   limitesDeExpressoes,
   podeGerenciarExpressoes,
   type EfeitoSonoro,
-} from "../sdk/expressoes";
+} from "nucleo/sdk/expressoes";
 import css from "./Sons.module.css";
 
 /**

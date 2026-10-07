@@ -1,9 +1,9 @@
 import { decodeTime } from "ulid";
 
-import { formatarBytes } from "../lib/bytes";
-import { relogio } from "../lib/duracao";
-import { rotuloDeDia } from "../sdk/agrupamento";
-import type { TopicoSnapshot } from "../sdk/domain";
+import { formatarBytes } from "nucleo/lib/bytes";
+import { relogio } from "nucleo/lib/duracao";
+import { rotuloDeDia } from "nucleo/sdk/agrupamento";
+import type { TopicoSnapshot } from "nucleo/sdk/domain";
 
 /**
  * O recorte da galeria de mídia: filtro de tipo, busca e grupos por dia.

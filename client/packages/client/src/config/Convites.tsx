@@ -3,16 +3,16 @@ import { useEffect, useState } from "react";
 import { Botao } from "../components/ui/Botao";
 import { cn } from "../lib/cn";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
-import { copiarTexto } from "../lib/copiar";
+import { copiarTexto } from "nucleo/lib/copiar";
 import {
   listarConvites,
   revogarConvite,
   type ConviteDoServidor,
-} from "../sdk/servidores";
-import { chaveDeMembro } from "../sdk/domain";
-import { useCanaisDeTexto, useMembro } from "../store/hooks";
-import { administrar } from "../store/administracao";
-import { fecharConfig } from "../store/config";
+} from "nucleo/sdk/servidores";
+import { chaveDeMembro } from "nucleo/sdk/domain";
+import { useCanaisDeTexto, useMembro } from "nucleo/store/hooks";
+import { administrar } from "nucleo/store/administracao";
+import { fecharConfig } from "nucleo/store/config";
 import css from "./Convites.module.css";
 import tab from "./Tabela.module.css";
 

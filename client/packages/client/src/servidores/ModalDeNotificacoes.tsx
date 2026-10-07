@@ -4,14 +4,14 @@ import { useSyncExternalStore } from "react";
 import { CartaoDeOpcao } from "../components/ui/CartaoDeOpcao";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { Interruptor } from "../components/ui/Interruptor";
-import { corDoTextoDe, gradienteDe } from "../lib/gradiente";
-import { assinarAlvo, lerAlvo } from "../store/administracao";
+import { corDoTextoDe, gradienteDe } from "nucleo/lib/gradiente";
+import { assinarAlvo, lerAlvo } from "nucleo/store/administracao";
 import {
   useCanaisDeTexto,
   useCanaisDeVoz,
   useChannel,
   useServer,
-} from "../store/hooks";
+} from "nucleo/store/hooks";
 import {
   alternarSilencio,
   assinarSilencio,
@@ -25,7 +25,7 @@ import {
   opcoesDoServidor,
   segueTopicosAutomaticamente,
   type NivelDeNotificacao,
-} from "../store/silencio";
+} from "nucleo/store/silencio";
 import css from "./ModalDeNotificacoes.module.css";
 
 /**

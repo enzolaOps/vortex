@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-import type { PinturaDeCargo } from "../tema/cargo";
+import type { PinturaDeCargo } from "nucleo/tema/cargo";
 
 /**
  * As props de um NOME pintado pelo cargo, nas superfícies onde o gradiente

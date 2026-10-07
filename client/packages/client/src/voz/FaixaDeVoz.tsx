@@ -16,13 +16,13 @@ import {
   alternarTela,
   estatisticasDeVoz,
   sairDaChamada,
-} from "../sdk/chamada";
-import { assinarChamada, lerChamada, type QualidadeDeVoz } from "../store/chamada";
-import { abrirModal } from "../store/modais";
+} from "nucleo/sdk/chamada";
+import { assinarChamada, lerChamada, type QualidadeDeVoz } from "nucleo/store/chamada";
+import { abrirModal } from "nucleo/store/modais";
 import { cn } from "../lib/cn";
-import { selecionarCanal } from "../store/navegacao";
+import { selecionarCanal } from "nucleo/store/navegacao";
 import { Tooltip } from "../components/ui/Tooltip";
-import { useChannel, useServer } from "../store/hooks";
+import { useChannel, useServer } from "nucleo/store/hooks";
 import css from "./FaixaDeVoz.module.css";
 
 /**

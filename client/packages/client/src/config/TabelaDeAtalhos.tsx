@@ -3,7 +3,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { Botao } from "../components/ui/Botao";
 import { Selo } from "../components/ui/Selo";
 import { Combinacao } from "../components/ui/Tecla";
-import { pausarAtalhos } from "../sdk/atalhosDeVoz";
+import { pausarAtalhos } from "nucleo/sdk/atalhosDeVoz";
 import {
   ACOES_DE_VOZ,
   ROTULO_DA_ACAO,
@@ -14,7 +14,7 @@ import {
   lerAtalhosDeVoz,
   teclasDaCombinacao,
   type AcaoDeVoz,
-} from "../store/atalhosDeVoz";
+} from "nucleo/store/atalhosDeVoz";
 import css from "./VozEVideo.module.css";
 
 const MAC = typeof navigator !== "undefined" && /mac/i.test(navigator.platform);

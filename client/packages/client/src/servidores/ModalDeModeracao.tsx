@@ -5,20 +5,20 @@ import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { Segmentado } from "../components/ui/Segmentado";
-import type { FalhaDeLote, ResultadoDeLote } from "../lib/lote";
-import { chaveDeMembro } from "../sdk/domain";
+import type { FalhaDeLote, ResultadoDeLote } from "nucleo/lib/lote";
+import { chaveDeMembro } from "nucleo/sdk/domain";
 import {
   banirEmLote,
   castigarEmLote,
   expulsarEmLote,
   type JanelaDeExclusao,
-} from "../sdk/moderacao";
+} from "nucleo/sdk/moderacao";
 import {
   historicoDoMembro,
   type EntradaDeAuditoria,
-} from "../sdk/auditoria";
-import { assinarAlvo, lerAlvo } from "../store/administracao";
-import { useMembro } from "../store/hooks";
+} from "nucleo/sdk/auditoria";
+import { assinarAlvo, lerAlvo } from "nucleo/store/administracao";
+import { useMembro } from "nucleo/store/hooks";
 import css from "./AdicionarServidor.module.css";
 
 /**

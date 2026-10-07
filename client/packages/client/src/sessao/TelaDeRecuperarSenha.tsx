@@ -3,9 +3,9 @@ import { useEffect, useState } from "react";
 import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
-import { pedirRedefinicao } from "../sdk/conta";
-import { instanciaMandaEmail } from "../sdk/config";
-import { irParaRedefinir, voltarParaEntrar } from "../store/entrada";
+import { pedirRedefinicao } from "nucleo/sdk/conta";
+import { instanciaMandaEmail } from "nucleo/sdk/config";
+import { irParaRedefinir, voltarParaEntrar } from "nucleo/store/entrada";
 import { PASSOS_DA_SENHA, Passos } from "./Passos";
 import css from "./TelaDeLogin.module.css";
 

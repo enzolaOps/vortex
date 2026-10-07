@@ -4,13 +4,13 @@ import { memo, useEffect, useRef, useState } from "react";
 import { Avatar } from "../components/ui/Avatar";
 import { ChatsCircle, X } from "../components/ui/icones";
 import { cn } from "../lib/cn";
-import { contagem, plural } from "../lib/plural";
-import { quando } from "../lib/quando";
-import { carregarTopicos, type Recorte } from "../sdk/topicos";
+import { contagem, plural } from "nucleo/lib/plural";
+import { quando } from "nucleo/lib/quando";
+import { carregarTopicos, type Recorte } from "nucleo/sdk/topicos";
 import { DIAS_SEM_ATIVIDADE_PARA_ARQUIVAR } from "../forum/estado";
-import { selecionarCanal } from "../store/navegacao";
-import { remedir } from "../lib/remedir";
-import { useAgoraPorMinuto } from "../store/relogio";
+import { selecionarCanal } from "nucleo/store/navegacao";
+import { remedir } from "nucleo/lib/remedir";
+import { useAgoraPorMinuto } from "nucleo/store/relogio";
 import {
   useCanalAtivo,
   useChannel,
@@ -18,7 +18,7 @@ import {
   useServidorAtivo,
   useTopico,
   useTopicosDoServidor,
-} from "../store/hooks";
+} from "nucleo/store/hooks";
 import css from "./PainelDeTopicos.module.css";
 
 /**

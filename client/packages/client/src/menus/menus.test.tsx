@@ -83,12 +83,12 @@ vi.mock("../components/ui/ItemDeId", () => ({
   permissão vazia passaria por acidente.
 */
 let permitir = true;
-vi.mock("../sdk/permissoes", () => ({
+vi.mock("nucleo/sdk/permissoes", () => ({
   pode: () => permitir,
   podeNoServidor: () => permitir,
 }));
 
-vi.mock("../sdk/adapter", () => ({
+vi.mock("nucleo/sdk/adapter", () => ({
   marcarCanalLido: () => undefined,
   usuarioLocalId: () => "eu",
   categorias: {
@@ -96,7 +96,7 @@ vi.mock("../sdk/adapter", () => ({
   },
 }));
 
-vi.mock("../store/hooks", () => ({
+vi.mock("nucleo/store/hooks", () => ({
   useChannel: (id: string) =>
     id === ""
       ? undefined
@@ -111,7 +111,7 @@ vi.mock("../store/hooks", () => ({
   useServer: () => ({ id: "s1", name: "Vortex", sigla: "VX" }),
 }));
 
-vi.mock("../store/perfilDoServidor", () => ({
+vi.mock("nucleo/store/perfilDoServidor", () => ({
   usePerfilDoServidor: () => ({ tag: undefined }),
   useExibeTag: () => false,
 }));
@@ -119,7 +119,7 @@ vi.mock("../store/perfilDoServidor", () => ({
 import { ItensDaConversa } from "./ItensDaConversa";
 import { ItensDoCanal } from "./ItensDoCanal";
 import { ItensDoServidor } from "./ItensDoServidor";
-import { limparSilencio, silenciar } from "../store/silencio";
+import { limparSilencio, silenciar } from "nucleo/store/silencio";
 
 let alvo: HTMLDivElement;
 let raiz: Root;

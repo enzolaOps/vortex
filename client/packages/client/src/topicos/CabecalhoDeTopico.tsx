@@ -16,14 +16,14 @@ import {
 } from "../components/ui/icones";
 import { Tooltip } from "../components/ui/Tooltip";
 import { cn } from "../lib/cn";
-import { plural } from "../lib/plural";
-import { pode } from "../sdk/permissoes";
-import { arquivarTopico, fixarPost, marcarEmAnalise, seguirTopico } from "../sdk/topicos";
-import { usuarioLocalId } from "../sdk/adapter";
-import { pedirIrParaMensagem } from "../store/comandos";
-import { useChannel, useForum, useTopico } from "../store/hooks";
-import { selecionarCanal } from "../store/navegacao";
-import { alternarSilencio, assinarSilencio, estaSilenciado } from "../store/silencio";
+import { plural } from "nucleo/lib/plural";
+import { pode } from "nucleo/sdk/permissoes";
+import { arquivarTopico, fixarPost, marcarEmAnalise, seguirTopico } from "nucleo/sdk/topicos";
+import { usuarioLocalId } from "nucleo/sdk/adapter";
+import { pedirIrParaMensagem } from "nucleo/store/comandos";
+import { useChannel, useForum, useTopico } from "nucleo/store/hooks";
+import { selecionarCanal } from "nucleo/store/navegacao";
+import { alternarSilencio, assinarSilencio, estaSilenciado } from "nucleo/store/silencio";
 import { ID_DO_NOME_DO_CANAL } from "../canais/CabecalhoDeCanal";
 import css from "./CabecalhoDeTopico.module.css";
 

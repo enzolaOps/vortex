@@ -7,8 +7,8 @@ import {
   confirmarExclusao,
   estadoDaExclusao,
   type EstadoDeExclusao,
-} from "../sdk/conta";
-import { voltarParaEntrar } from "../store/entrada";
+} from "nucleo/sdk/conta";
+import { voltarParaEntrar } from "nucleo/store/entrada";
 import css from "./TelaDeLogin.module.css";
 
 function formatarPrazo(iso: string): string {

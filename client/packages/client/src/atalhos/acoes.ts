@@ -15,28 +15,28 @@ import {
   marcarCanalLido,
   messages,
   usuarioLocalId,
-} from "../sdk/adapter";
+} from "nucleo/sdk/adapter";
 import {
   canaisOrdenados,
   conversasOrdenadas,
   servidoresOrdenados,
   vizinho,
-} from "../sdk/ordem";
+} from "nucleo/sdk/ordem";
 import {
   abrirConversa,
   irPara,
   irParaCasa,
   lerLocal,
   selecionarCanal,
-} from "../store/navegacao";
-import { alternarSuperficie } from "../store/drawer";
-import { editar } from "../store/edicaoDeMensagem";
-import { responderA } from "../store/resposta";
-import { abrirSeletorDeReacao } from "../store/seletorDeReacao";
-import { lerAlvoDoMenu } from "../store/menuDeMensagem";
-import { pode } from "../sdk/permissoes";
-import { abrirFerramentaDoComposer } from "../store/ferramentaDoComposer";
-import { abrirPaleta } from "../store/paleta";
+} from "nucleo/store/navegacao";
+import { alternarSuperficie } from "nucleo/store/drawer";
+import { editar } from "nucleo/store/edicaoDeMensagem";
+import { responderA } from "nucleo/store/resposta";
+import { abrirSeletorDeReacao } from "nucleo/store/seletorDeReacao";
+import { lerAlvoDoMenu } from "nucleo/store/menuDeMensagem";
+import { pode } from "nucleo/sdk/permissoes";
+import { abrirFerramentaDoComposer } from "nucleo/store/ferramentaDoComposer";
+import { abrirPaleta } from "nucleo/store/paleta";
 
 /* ------------------------------------------------------------- navegação */
 

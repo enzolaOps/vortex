@@ -3,8 +3,8 @@ import { useState } from "react";
 import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
-import { escolherNome } from "../sdk/conta";
-import { sair } from "../sdk/autenticacao";
+import { escolherNome } from "nucleo/sdk/conta";
+import { sair } from "nucleo/sdk/autenticacao";
 import css from "./TelaDeLogin.module.css";
 
 /**

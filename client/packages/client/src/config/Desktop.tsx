@@ -5,7 +5,7 @@ import { Botao } from "../components/ui/Botao";
 import { Escolha } from "../components/ui/Escolha";
 import { Interruptor } from "../components/ui/Interruptor";
 import { Selo } from "../components/ui/Selo";
-import { toast } from "../components/ui/toastStore";
+import { toast } from "nucleo/ui-logica/toastStore";
 import { aindaNao } from "../pendente/pendencias";
 import {
   AO_FECHAR,
@@ -13,21 +13,21 @@ import {
   ponteDeReinicio,
   versaoInstalada,
   type AoFechar,
-} from "../sdk/desktop";
-import { POSICOES, textoDoAtalho, type Posicao } from "../overlay/modelo";
+} from "nucleo/sdk/desktop";
+import { POSICOES, textoDoAtalho, type Posicao } from "nucleo/ui-logica/overlay/modelo";
 import {
   acoesEmConflito,
   assinarAtalhosDeVoz,
   lerAtalhosDeVoz,
   teclasDaCombinacao,
-} from "../store/atalhosDeVoz";
-import { assinarOverlay, definirOverlay, lerOverlay } from "../store/overlay";
+} from "nucleo/store/atalhosDeVoz";
+import { assinarOverlay, definirOverlay, lerOverlay } from "nucleo/store/overlay";
 import {
   assinarDesktop,
   definirDesktop,
   lerDesktop,
   pendentesDeReinicio,
-} from "../store/desktop";
+} from "nucleo/store/desktop";
 import {
   CabecalhoDeSecao,
   CartaoDeAjustes,
@@ -41,7 +41,7 @@ import {
   instalarAtualizacao,
   lerAtualizacao,
   verificarAtualizacao,
-} from "../store/atualizacao";
+} from "nucleo/store/atualizacao";
 import css from "./Desktop.module.css";
 
 const ROTULO_AO_FECHAR: Record<AoFechar, string> = {

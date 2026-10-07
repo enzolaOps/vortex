@@ -4,15 +4,15 @@ import { Avatar } from "../components/ui/Avatar";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { Interruptor } from "../components/ui/Interruptor";
 import { Phone, X } from "../components/ui/icones";
-import { gradienteDe } from "../lib/gradiente";
-import { entrarNaChamada } from "../sdk/chamada";
-import { abrirConversaCom } from "../sdk/social";
+import { gradienteDe } from "nucleo/lib/gradiente";
+import { entrarNaChamada } from "nucleo/sdk/chamada";
+import { abrirConversaCom } from "nucleo/sdk/social";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
-import { chaveDeMembro } from "../sdk/domain";
-import { assinarAlvo, lerAlvo } from "../store/administracao";
-import { abrirConfig } from "../store/config";
-import { abrirConversa } from "../store/navegacao";
-import { useCorDeCargo, useMembro } from "../store/hooks";
+import { chaveDeMembro } from "nucleo/sdk/domain";
+import { assinarAlvo, lerAlvo } from "nucleo/store/administracao";
+import { abrirConfig } from "nucleo/store/config";
+import { abrirConversa } from "nucleo/store/navegacao";
+import { useCorDeCargo, useMembro } from "nucleo/store/hooks";
 import {
   alternarSilencioDe,
   assinarNota,
@@ -20,7 +20,7 @@ import {
   escreverNota,
   estaSilenciado,
   lerNota,
-} from "../store/sobrePessoas";
+} from "nucleo/store/sobrePessoas";
 import { AmigosEmComum, ServidoresEmComum, useEmComum } from "./EmComum";
 import { PilulasDeCargo } from "./PilulasDeCargo";
 import { TagDoServidor } from "../presenca/TagDoServidor";

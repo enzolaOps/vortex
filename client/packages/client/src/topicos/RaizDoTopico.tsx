@@ -1,13 +1,13 @@
 import { decodeTime } from "ulid";
 
 import { Avatar } from "../components/ui/Avatar";
-import { plural } from "../lib/plural";
-import { quando } from "../lib/quando";
+import { plural } from "nucleo/lib/plural";
+import { quando } from "nucleo/lib/quando";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
 import { TextoDaMensagem } from "../list/TextoDaMensagem";
-import { useForum, useMessage, useTopico } from "../store/hooks";
-import { useAgoraPorMinuto } from "../store/relogio";
-import type { TagDeForum } from "../sdk/domain";
+import { useForum, useMessage, useTopico } from "nucleo/store/hooks";
+import { useAgoraPorMinuto } from "nucleo/store/relogio";
+import type { TagDeForum } from "nucleo/sdk/domain";
 import { estadoDoPost } from "../forum/estado";
 import css from "./RaizDoTopico.module.css";
 

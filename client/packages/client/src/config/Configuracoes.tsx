@@ -12,11 +12,11 @@ import {
 import { Avatar } from "../components/ui/Avatar";
 import { cn } from "../lib/cn";
 import { Tooltip } from "../components/ui/Tooltip";
-import { sigla } from "../lib/sigla";
-import { assinarDesktop, lerDesktop } from "../store/desktop";
-import { lerMeuPerfil } from "../sdk/perfil";
-import { sair } from "../sdk/autenticacao";
-import { assinarSessao, lerSessao } from "../store/sessao";
+import { sigla } from "nucleo/lib/sigla";
+import { assinarDesktop, lerDesktop } from "nucleo/store/desktop";
+import { lerMeuPerfil } from "nucleo/sdk/perfil";
+import { sair } from "nucleo/sdk/autenticacao";
+import { assinarSessao, lerSessao } from "nucleo/store/sessao";
 import {
   abrirConfig,
   assinarConfig,
@@ -27,8 +27,8 @@ import {
   fecharConfig,
   lerConfig,
   type SecaoId,
-} from "../store/config";
-import { useChannel, useServer, useServidorAtivo } from "../store/hooks";
+} from "nucleo/store/config";
+import { useChannel, useServer, useServidorAtivo } from "nucleo/store/hooks";
 import { Acesso } from "./Acesso";
 import { Aparencia } from "./Aparencia";
 import { Atalhos } from "./Atalhos";
@@ -53,11 +53,11 @@ import { NavegacaoDoCanal } from "./canal/NavegacaoDoCanal";
 import { PermissoesDoCanal } from "./canal/PermissoesDoCanal";
 import { VisaoGeralDoCanal } from "./canal/VisaoGeralDoCanal";
 import css from "./Configuracoes.module.css";
-import { gradienteDe } from "../lib/gradiente";
-import { useMembrosDoServidor } from "../store/hooks";
-import { cargosDoServidor } from "../sdk/cargos";
-import { souDono } from "../sdk/servidores";
-import { administrar } from "../store/administracao";
+import { gradienteDe } from "nucleo/lib/gradiente";
+import { useMembrosDoServidor } from "nucleo/store/hooks";
+import { cargosDoServidor } from "nucleo/sdk/cargos";
+import { souDono } from "nucleo/sdk/servidores";
+import { administrar } from "nucleo/store/administracao";
 import { Tag } from "./Tag";
 import { Modelo } from "./Modelo";
 import { Figurinhas } from "./Figurinhas";

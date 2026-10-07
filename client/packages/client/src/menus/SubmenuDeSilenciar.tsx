@@ -9,7 +9,7 @@ import {
   ContextMenuSubTrigger,
 } from "../components/ui/ContextMenu";
 import { BellSimple, BellSimpleSlash, ICONE } from "../components/ui/icones";
-import { assinarSilencio } from "../store/silencio";
+import { assinarSilencio } from "nucleo/store/silencio";
 import {
   DURACOES_DE_SILENCIO,
   duracaoDoAlvo,

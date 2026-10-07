@@ -1,4 +1,4 @@
-import type { TopicoSnapshot } from "../sdk/domain";
+import type { TopicoSnapshot } from "nucleo/sdk/domain";
 
 /**
  * O selo de estado de um post — D-CANAIS-09.

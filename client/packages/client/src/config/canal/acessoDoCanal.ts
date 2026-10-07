@@ -1,7 +1,7 @@
-import { BIT_VER_CANAL } from "../../sdk/bits";
-import type { OverrideDeCanal } from "../../sdk/canal";
-import type { ConjuntoDeSobreposicoes } from "../../sdk/categorias";
-import { bitDaPermissao, PERMISSOES } from "../../sdk/cargos";
+import { BIT_VER_CANAL } from "nucleo/sdk/bits";
+import type { OverrideDeCanal } from "nucleo/sdk/canal";
+import type { ConjuntoDeSobreposicoes } from "nucleo/sdk/categorias";
+import { bitDaPermissao, PERMISSOES } from "nucleo/sdk/cargos";
 
 /**
  * A matemática das duas telas de permissão do canal — pura, sem SDK.

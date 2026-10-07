@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { interpretar } from "../rota/rota";
+import { interpretar } from "nucleo/rota/rota";
 import { linkDoResultado } from "./link";
 
 const S = "01SERVIDOR0000000000000001";

@@ -19,11 +19,11 @@ import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { Girador } from "../components/ui/Girador";
 import { MenuDaMensagem } from "../list/MessageRow";
 import { MenuDeContexto } from "../components/ui/MenuDeContexto";
-import { mirarAlvoDoMenu } from "../store/menuDeMensagem";
+import { mirarAlvoDoMenu } from "nucleo/store/menuDeMensagem";
 import { Selo } from "../components/ui/Selo";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
-import { servidorDoCanal, type ResultadoDeBusca } from "../sdk/busca";
-import { copiarTexto } from "../lib/copiar";
+import { servidorDoCanal, type ResultadoDeBusca } from "nucleo/sdk/busca";
+import { copiarTexto } from "nucleo/lib/copiar";
 import { linkDoResultado } from "./link";
 import {
   apontarBuscaPara,
@@ -36,18 +36,18 @@ import {
   paginasConhecidas,
   selecionarResultado,
   trocarConsulta,
-} from "../store/busca";
+} from "nucleo/store/busca";
 import {
   acrescentarFiltro,
   analisarConsulta,
   tirarFiltro,
   TIPOS_DE_CONTEUDO,
   type TipoDeConteudo,
-} from "./filtros";
-import { pedirIrParaMensagem } from "../store/comandos";
-import { fecharDrawer } from "../store/drawer";
-import { useCanalAtivo, useServidorAtivo } from "../store/hooks";
-import { selecionarCanal } from "../store/navegacao";
+} from "nucleo/ui-logica/busca/filtros";
+import { pedirIrParaMensagem } from "nucleo/store/comandos";
+import { fecharDrawer } from "nucleo/store/drawer";
+import { useCanalAtivo, useServidorAtivo } from "nucleo/store/hooks";
+import { selecionarCanal } from "nucleo/store/navegacao";
 import css from "./PainelDeBusca.module.css";
 
 /** Como cada tipo aparece no menu `+ filtro`. A chave é a grafia do campo. */

@@ -2,13 +2,13 @@ import { useSyncExternalStore, type ReactElement } from "react";
 
 import { MenuDeContexto } from "../components/ui/MenuDeContexto";
 import { MenuDoUsuario } from "../membros/MenuDoUsuario";
-import { useChannel } from "../store/hooks";
+import { useChannel } from "nucleo/store/hooks";
 import {
   alvoDoEvento,
   assinarMenuDoParticipante,
   definirAlvoDoParticipante,
   lerAlvoDoParticipante,
-} from "../store/menuDoParticipante";
+} from "nucleo/store/menuDoParticipante";
 
 /**
  * A superfície que carrega participantes: UM `ContextMenu` para ela inteira.

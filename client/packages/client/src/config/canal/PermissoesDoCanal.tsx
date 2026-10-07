@@ -18,10 +18,10 @@ import {
   sincronizarComCategoria,
   temSobreposicoes,
   type ConjuntoDeSobreposicoes,
-} from "../../sdk/categorias";
-import { pode } from "../../sdk/permissoes";
-import { salvarPermissaoDeCanal, type OverrideDeCanal } from "../../sdk/canal";
-import { BIT_VER_CANAL } from "../../sdk/bits";
+} from "nucleo/sdk/categorias";
+import { pode } from "nucleo/sdk/permissoes";
+import { salvarPermissaoDeCanal, type OverrideDeCanal } from "nucleo/sdk/canal";
+import { BIT_VER_CANAL } from "nucleo/sdk/bits";
 import {
   baseDoServidor,
   bitDaPermissao,
@@ -29,12 +29,12 @@ import {
   meuAlcance,
   PERMISSOES,
   type Cargo,
-} from "../../sdk/cargos";
+} from "nucleo/sdk/cargos";
 import {
   acimaDaMinhaHierarquia,
   MOTIVO_HIERARQUIA,
 } from "../selecaoDeCargo";
-import { useCategorias, useChannel, useCorDeCargo } from "../../store/hooks";
+import { useCategorias, useChannel, useCorDeCargo } from "nucleo/store/hooks";
 import secao from "../Secao.module.css";
 import { CampoDeBusca } from "../../components/ui/CampoDeBusca";
 import { ListaDeDiff } from "../ListaDeDiff";

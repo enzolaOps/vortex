@@ -12,9 +12,9 @@ import {
   naoExpira,
   type IconeDeToast,
   type RespostaDeToast,
-} from "./toastStore";
+} from "nucleo/ui-logica/toastStore";
 
-export { toast, dispensarToast } from "./toastStore";
+export { toast, dispensarToast } from "nucleo/ui-logica/toastStore";
 
 /**
  * Toast — notificação in-app, erro de envio, reconexão.

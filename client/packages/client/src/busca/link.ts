@@ -1,4 +1,4 @@
-import { caminhoDe } from "../rota/rota";
+import { caminhoDe } from "nucleo/rota/rota";
 
 /**
  * O permalink de um resultado de busca, ou nada.

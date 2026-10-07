@@ -43,23 +43,23 @@ import {
 } from "../components/ui/HoverCard";
 
 import { ATRIBUTO_DE_COLUNA } from "../dev/alinhamento";
-import { count } from "../dev/stats";
+import { count } from "nucleo/arnes/stats";
 import { ItemDeId } from "../components/ui/ItemDeId";
-import { copiarTexto } from "../lib/copiar";
+import { copiarTexto } from "nucleo/lib/copiar";
 import {
   assinarFila,
   confirmadaNaFila,
-} from "../store/fila";
+} from "nucleo/store/fila";
 import {
   plural,
   rotuloDeReacao,
-} from "../lib/plural";
+} from "nucleo/lib/plural";
 import { cn } from "../lib/cn";
-import { atalho } from "../lib/plataforma";
-import { copiarImagem } from "../lib/copiar";
-import { toast } from "../components/ui/toastStore";
-import { baixarAnexo } from "../sdk/baixar";
-import { assinarPontoDoMenu, lerPontoDoMenu } from "../store/pontoDoMenu";
+import { atalho } from "nucleo/lib/plataforma";
+import { copiarImagem } from "nucleo/lib/copiar";
+import { toast } from "nucleo/ui-logica/toastStore";
+import { baixarAnexo } from "nucleo/sdk/baixar";
+import { assinarPontoDoMenu, lerPontoDoMenu } from "nucleo/store/pontoDoMenu";
 import { BotaoDeIcone } from "../components/ui/BotaoDeIcone";
 import { menuAtalho } from "../components/ui/menu";
 import { AvatarDoAutor } from "../presenca/AvatarDoAutor";
@@ -68,12 +68,12 @@ import type {
   MessageSnapshot,
   ReacaoSnapshot,
   SistemaSnapshot,
-} from "../sdk/domain";
+} from "nucleo/sdk/domain";
 import {
   descartarPendente,
   manterNaFila,
   reenviar,
-} from "../sdk/adapter";
+} from "nucleo/sdk/adapter";
 import { CartaoDeUpload } from "./CartaoDeUpload";
 import {
   alternarFixada,
@@ -83,24 +83,24 @@ import {
   republicarEnquete,
   editarMensagem,
   usuarioLocalId,
-} from "../sdk/adapter";
+} from "nucleo/sdk/adapter";
 import {
   alvoDeMensagem,
   assinarMenuDeMensagem,
   lerAlvoDoMenu,
-} from "../store/menuDeMensagem";
+} from "nucleo/store/menuDeMensagem";
 import {
   adotarFocoDeMensagem,
   assinarFocoDeMensagem,
   consumirPedidoDeFoco,
   lerSinalDeFoco,
-} from "../store/focoDeMensagem";
-import { pode } from "../sdk/permissoes";
-import { administrar } from "../store/administracao";
-import { assinarChamada, lerChamada } from "../store/chamada";
+} from "nucleo/store/focoDeMensagem";
+import { pode } from "nucleo/sdk/permissoes";
+import { administrar } from "nucleo/store/administracao";
+import { assinarChamada, lerChamada } from "nucleo/store/chamada";
 /* A FACHADA, nunca `sdk/motorDeVoz` — ver `BotaoEntrarNaChamada`. */
-import { entrarNaChamada } from "../sdk/chamada";
-import { useReduzirMovimento } from "../lib/efeito";
+import { entrarNaChamada } from "nucleo/sdk/chamada";
+import { useReduzirMovimento } from "nucleo/lib/efeito";
 
 const AnelDeEntrar = lazy(async () => {
   const m = await import("./AnelDeEntrar");
@@ -111,35 +111,35 @@ import {
   editar,
   lerEdicaoDeMensagem,
   pararDeEditar,
-} from "../store/edicaoDeMensagem";
-import { responderA } from "../store/resposta";
+} from "nucleo/store/edicaoDeMensagem";
+import { responderA } from "nucleo/store/resposta";
 import {
   assinarConexao,
   lerConexao,
-} from "../store/conexao";
-import { useChannel, useMessage, useTopico } from "../store/hooks";
+} from "nucleo/store/conexao";
+import { useChannel, useMessage, useTopico } from "nucleo/store/hooks";
 import { rotuloDoDivisorDeNovas } from "./divisorDeNovas";
 import {
   assinarReacoesFrequentes,
   reacoesRapidas,
-} from "../store/reacoesFrequentes";
+} from "nucleo/store/reacoesFrequentes";
 import { Anexos } from "./Anexos";
 import { FigurinhaNaLinha } from "./FigurinhaNaLinha";
 import { EnqueteDaMensagem } from "../enquete/EnqueteDaMensagem";
-import { encerrarEnquete } from "../sdk/enquetes";
-import { recorteDaFrase } from "../sdk/entradasNoTopico";
+import { encerrarEnquete } from "nucleo/sdk/enquetes";
+import { recorteDaFrase } from "nucleo/sdk/entradasNoTopico";
 import { MenuDoUsuario } from "../membros/MenuDoUsuario";
 import { abrirTopicoDaMensagem, podeCriarTopico } from "../topicos/acoes";
-import { abrirSeletorDeReacao } from "../store/seletorDeReacao";
+import { abrirSeletorDeReacao } from "nucleo/store/seletorDeReacao";
 import { ReguaDeFormatacao } from "../composer/ReguaDeFormatacao";
 import {
   assinarDensidade,
   lerDensidade,
-} from "../store/densidade";
+} from "nucleo/store/densidade";
 import {
   assinarSilencioDe,
   estaSilenciado,
-} from "../store/sobrePessoas";
+} from "nucleo/store/sobrePessoas";
 import { Citacao } from "./Citacao";
 import { Embeds } from "./Embeds";
 import { ConviteNaMensagem } from "../servidores/ConviteNaMensagem";

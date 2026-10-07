@@ -3,19 +3,19 @@ import { memo, useEffect, useState, useSyncExternalStore } from "react";
 import { Botao } from "../components/ui/Botao";
 import { CampoDeBusca } from "../components/ui/CampoDeBusca";
 import { cn } from "../lib/cn";
-import { pessoas } from "../sdk/adapter";
-import { pode } from "../sdk/permissoes";
-import { carregarTopicos, topicos } from "../sdk/topicos";
-import { administrar } from "../store/administracao";
+import { pessoas } from "nucleo/sdk/adapter";
+import { pode } from "nucleo/sdk/permissoes";
+import { carregarTopicos, topicos } from "nucleo/sdk/topicos";
+import { administrar } from "nucleo/store/administracao";
 import {
   assinarGaleria,
   definirDensidadeDaGaleria,
   lerDensidadeDaGaleria,
   type DensidadeDaGaleria,
-} from "../store/galeria";
-import { useChannel, usePessoa, useTopico, useTopicosDoCanal } from "../store/hooks";
-import { selecionarCanal } from "../store/navegacao";
-import { useAgoraPorMinuto } from "../store/relogio";
+} from "nucleo/store/galeria";
+import { useChannel, usePessoa, useTopico, useTopicosDoCanal } from "nucleo/store/hooks";
+import { selecionarCanal } from "nucleo/store/navegacao";
+import { useAgoraPorMinuto } from "nucleo/store/relogio";
 import {
   duracaoConhecida,
   lembrarDuracao,

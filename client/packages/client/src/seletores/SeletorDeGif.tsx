@@ -4,13 +4,13 @@ import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { Girador } from "../components/ui/Girador";
 import { aindaNao } from "../pendente/pendencias";
-import type { FonteDeGifs } from "../sdk/fonteDeGifs";
+import type { FonteDeGifs } from "nucleo/sdk/fonteDeGifs";
 import {
   provedorDaFonte,
   type ConsultaDeGif,
   type Gif,
   type ProvedorDeGif,
-} from "../sdk/gifs";
+} from "nucleo/sdk/gifs";
 import type { MontarInsercao } from "../composer/FerramentasDoComposer";
 import { isolar } from "../composer/isolar";
 import { CascaDeSeletor, CELULA_DA_GRADE } from "./CascaDeSeletor";

@@ -6,30 +6,30 @@ import {
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 
-import { remedir } from "../lib/remedir";
-import { aoTerminarArraste, estaArrastando } from "../store/arraste";
+import { remedir } from "nucleo/lib/remedir";
+import { aoTerminarArraste, estaArrastando } from "nucleo/store/arraste";
 import { MenuDeContexto } from "../components/ui/MenuDeContexto";
 import {
   acaoDaTecla,
   executarAtalhoDeMensagem,
 } from "../menus/atalhosDaMensagem";
 import { ID_DO_NOME_DO_CANAL } from "../canais/CabecalhoDeCanal";
-import { mirarAlvoDoMenu } from "../store/menuDeMensagem";
+import { mirarAlvoDoMenu } from "nucleo/store/menuDeMensagem";
 import {
   lerFocoDeMensagem,
   limparFocoDeMensagem,
   moverFocoDeMensagem,
-} from "../store/focoDeMensagem";
-import { count, readCounters } from "../dev/stats";
+} from "nucleo/store/focoDeMensagem";
+import { count, readCounters } from "nucleo/arnes/stats";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
-import { assinarDensidade, lerDensidade, type Densidade } from "../store/densidade";
+import { assinarDensidade, lerDensidade, type Densidade } from "nucleo/store/densidade";
 import {
   definirLongeDoFim,
   esquecerLongeDoFim,
   ouvirFimDaLista,
   ouvirIrParaMensagem,
   pedirFocoNoComposer,
-} from "../store/comandos";
+} from "nucleo/store/comandos";
 import {
   carregarHistorico,
   carregarPaginaAnterior,
@@ -37,14 +37,14 @@ import {
   primeiraNaoLida,
   proximaMencao,
   temMencao,
-} from "../sdk/adapter";
+} from "nucleo/sdk/adapter";
 import type {
   AnexoSnapshot,
   BlocoDeMensagem,
   EmbedSnapshot,
-} from "../sdk/domain";
-import { assinarBusca, lerBusca, selecionarResultado } from "../store/busca";
-import { useChannelMessageIds } from "../store/hooks";
+} from "nucleo/sdk/domain";
+import { assinarBusca, lerBusca, selecionarResultado } from "nucleo/store/busca";
+import { useChannelMessageIds } from "nucleo/store/hooks";
 import css from "./MessageList.module.css";
 import { MenuDaMensagem, MessageRow } from "./MessageRow";
 import { SeletorDeReacaoDaLista } from "./SeletorDeReacaoDaLista";

@@ -1,5 +1,5 @@
-import type { ChannelSnapshot, EstadoDeVoz, ParticipanteDeVoz } from "../sdk/domain";
-import type { Chamada, EstadoDaChamada, QualidadeDeVoz } from "../store/chamada";
+import type { ChannelSnapshot, EstadoDeVoz, ParticipanteDeVoz } from "nucleo/sdk/domain";
+import type { Chamada, EstadoDaChamada, QualidadeDeVoz } from "nucleo/store/chamada";
 
 /**
  * As decisões da grade da chamada que não precisam de DOM — puras, para terem

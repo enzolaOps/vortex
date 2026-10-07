@@ -13,9 +13,9 @@ import { CaretLeft, MagnifyingGlass } from "../components/ui/icones";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { Candidata, Ficha, Filtrada, TETO } from "./NovoGrupo";
 import cssNovo from "./NovoGrupo.module.css";
-import { gradienteDe } from "../lib/gradiente";
-import { subirAnexo, temServidorDeMidia } from "../sdk/anexos";
-import { toast } from "../components/ui/toastStore";
+import { gradienteDe } from "nucleo/lib/gradiente";
+import { subirAnexo, temServidorDeMidia } from "nucleo/sdk/anexos";
+import { toast } from "nucleo/ui-logica/toastStore";
 import {
   adicionarAoGrupo,
   lerGrupo,
@@ -24,17 +24,17 @@ import {
   sairDaConversa,
   transferirGrupo,
   trocarIconeDoGrupo,
-} from "../sdk/social";
-import { assinarAlvo, lerAlvo } from "../store/administracao";
-import { publicarRelacoes } from "../sdk/adapter";
+} from "nucleo/sdk/social";
+import { assinarAlvo, lerAlvo } from "nucleo/store/administracao";
+import { publicarRelacoes } from "nucleo/sdk/adapter";
 import {
   NIVEIS_DE_NOTIFICACAO,
   assinarSilencio,
   definirNivelDoCanal,
   nivelDoCanal,
-} from "../store/silencio";
-import { useChannel, usePessoa, useRelacao } from "../store/hooks";
-import { assinarSessao, lerSessao } from "../store/sessao";
+} from "nucleo/store/silencio";
+import { useChannel, usePessoa, useRelacao } from "nucleo/store/hooks";
+import { assinarSessao, lerSessao } from "nucleo/store/sessao";
 import css from "./GerenciarGrupo.module.css";
 
 /** Uma pessoa do grupo. Assina a si mesma. */

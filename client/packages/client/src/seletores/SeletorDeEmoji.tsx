@@ -5,15 +5,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "../components/ui/Popover";
-import { listarEmojis, type Emoji as EmojiDoServidor } from "../sdk/cargos";
-import { urlDeEmoji } from "../sdk/anexos";
-import { useServidorAtivo } from "../store/hooks";
+import { listarEmojis, type Emoji as EmojiDoServidor } from "nucleo/sdk/cargos";
+import { urlDeEmoji } from "nucleo/sdk/anexos";
+import { useServidorAtivo } from "nucleo/store/hooks";
 import {
   CascaDeSeletor,
   CELULA_DA_GRADE,
   SecaoDeSeletor,
 } from "./CascaDeSeletor";
-import { assinarTomDePele, definirTomDePele, lerTomDePele } from "../store/tomDePele";
+import { assinarTomDePele, definirTomDePele, lerTomDePele } from "nucleo/store/tomDePele";
 import { CATEGORIAS, buscar, type Emoji } from "./emojis";
 import {
   aceitaTom,
@@ -21,7 +21,7 @@ import {
   ROTULO_DO_TOM,
   TONS,
   type TomDePele,
-} from "./tomDePele";
+} from "nucleo/ui-logica/seletores/tomDePele";
 import css from "./Seletores.module.css";
 
 /** Referência estável: um `[]` novo a cada render invalidaria o filtro. */
