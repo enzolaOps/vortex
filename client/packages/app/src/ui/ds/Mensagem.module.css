@@ -161,3 +161,18 @@
     transition: none;
   }
 }
+
+/* Menciona a pessoa: realce e barra de acento na borda de início, sem mexer na altura. */
+.destacada {
+  background: var(--vx-accent-soft);
+  box-shadow: inset 2px 0 0 var(--vx-accent);
+}
+.destacada:hover,
+.destacada:focus-within {
+  background: var(--vx-accent-soft);
+}
+
+/* Pendente ou falha: o texto existe, mas ainda não é do canal. */
+.esmaecida .corpo {
+  opacity: 0.6;
+}

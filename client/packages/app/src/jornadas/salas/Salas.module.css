@@ -130,7 +130,8 @@
   (position: absolute) ancora nesta camada; só ele recebe o ponteiro.
 */
 .camadaDeWidgets {
-  --reserva-do-composer: var(--vx-space-8);
+  /* Digitando (20) + campo (~56) + respiro (16): duas vezes o degrau de 48 cobre com folga. */
+  --reserva-do-composer: calc(var(--vx-space-8) * 2);
   position: absolute;
   inset: 0 0 var(--reserva-do-composer) 0;
   z-index: 5;
@@ -138,16 +139,6 @@
 }
 .camadaDeWidgets > * {
   pointer-events: auto;
-}
-.conversa {
-  display: flex;
-  flex-direction: column;
-  block-size: 100%;
-  min-block-size: 0;
-}
-.conversa > * {
-  flex: 1;
-  min-block-size: 0;
 }
 
 /* ------------------------------------------------------------- criar sala */

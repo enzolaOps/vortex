@@ -11,6 +11,8 @@ import {
   ChevronUp as LChevronUp,
   CircleAlert as LCircleAlert,
   Copy as LCopy,
+  Download as LDownload,
+  File as LFile,
   Eye as LEye,
   EyeOff as LEyeOff,
   Crown as LCrown,
@@ -34,6 +36,8 @@ import {
   Pencil as LPencil,
   PhoneOff as LPhoneOff,
   PictureInPicture2 as LPictureInPicture2,
+  Pin as LPin,
+  PinOff as LPinOff,
   Plus as LPlus,
   Reply as LReply,
   SendHorizontal as LSendHorizontal,
@@ -110,6 +114,10 @@ export const SetaParaEsquerda = envolver(LChevronLeft);
 export const SetaParaDireita = envolver(LChevronRight);
 export const SetaParaCima = envolver(LChevronUp);
 export const Copiar = envolver(LCopy);
+export const Baixar = envolver(LDownload);
+export const Arquivo = envolver(LFile);
+export const Fixar = envolver(LPin);
+export const Desafixar = envolver(LPinOff);
 export const Alerta = envolver(LCircleAlert);
 export const Olho = envolver(LEye);
 export const OlhoFechado = envolver(LEyeOff);

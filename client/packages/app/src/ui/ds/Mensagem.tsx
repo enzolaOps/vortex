@@ -1,4 +1,4 @@
-import { memo, type ReactNode } from "react";
+import { memo, type MouseEvent, type ReactNode } from "react";
 
 import { chat, ds } from "../../textos";
 import { Imagem, MaisHorizontal, Responder, Sorriso } from "../icones";
@@ -25,9 +25,16 @@ export interface MensagemProps {
    * passou o tratador dele (controle sem ação não aparece).
    */
   acoes?: boolean;
-  onReagir?: () => void;
+  /** O evento vai junto: quem abre um menu ancorado precisa do ponto do clique. */
+  onReagir?: (e: MouseEvent<HTMLButtonElement>) => void;
   onResponder?: () => void;
-  onMaisAcoes?: () => void;
+  onMaisAcoes?: (e: MouseEvent<HTMLButtonElement>) => void;
+  /** Depois do corpo e dos anexos: reações, estado de envio, "editada". */
+  rodape?: ReactNode;
+  /** Menciona a pessoa: a linha ganha um realce e uma barra de acento. */
+  destacada?: boolean;
+  /** Ainda não confirmada pelo servidor (pendente ou falha): fica mais apagada. */
+  esmaecida?: boolean;
   tabIndex?: number;
   className?: string;
 }
@@ -60,6 +67,9 @@ function MensagemBase({
   onReagir,
   onResponder,
   onMaisAcoes,
+  rodape,
+  destacada = false,
+  esmaecida = false,
   tabIndex,
   className,
 }: MensagemProps) {
@@ -69,7 +79,14 @@ function MensagemBase({
     <article
       tabIndex={tabIndex}
       aria-label={ds.mensagem.de(autor.nome)}
-      className={juntar(css.mensagem, continuacao && css.continuacao, className)}
+      data-destacada={destacada || undefined}
+      className={juntar(
+        css.mensagem,
+        continuacao && css.continuacao,
+        destacada && css.destacada,
+        esmaecida && css.esmaecida,
+        className,
+      )}
     >
       <div className={css.calha}>
         {continuacao ? (
@@ -104,6 +121,7 @@ function MensagemBase({
             {anexo.rotulo && <span className={css.anexoRotulo}>{anexo.rotulo}</span>}
           </div>
         )}
+        {rodape}
       </div>
 
       {temAcoes && (

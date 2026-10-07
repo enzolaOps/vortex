@@ -239,7 +239,20 @@ function primeiraNaoLidaDe(channelId: string): string | undefined {
   const indice = ids.indexOf(cursor);
   if (indice === -1) return undefined;
 
-  return ids[indice + 1];
+  /*
+    ⚠ **A própria mensagem nunca é "nova".** Com o cursor na última lida, a
+    primeira coisa que EU escrevo seria a primeira depois dele, e o divisor
+    "novas mensagens" apareceria em cima da minha fala. Pula as minhas: o que
+    importa é a primeira que OUTRA pessoa escreveu depois de onde parei.
+  */
+  for (let i = indice + 1; i < ids.length; i += 1) {
+    const id = ids[i];
+    if (id === undefined) continue;
+    const autor = client.messages.get(idDoSdk(id))?.authorId;
+    if (usuarioLocal !== undefined && autor === usuarioLocal) continue;
+    return id;
+  }
+  return undefined;
 }
 
 /**
@@ -486,7 +499,9 @@ export function manterNaFila(id: string): void {
  * briefing.
  */
 export function descartarPendente(id: string): void {
-  if (estadoDeEnvioDe(id) !== "pending") return;
+  /* A falhada também: "Descartar" é a segunda saída da linha que não foi enviada. */
+  const estado = estadoDeEnvioDe(id);
+  if (estado !== "pending" && estado !== "failed") return;
   estadosDeEnvio.delete(id);
   esquecerDaFila(id);
   desistir(id);
@@ -494,7 +509,21 @@ export function descartarPendente(id: string): void {
   const message = client.messages.get(sdkId);
   const channelId = message?.channelId;
   client.messages.delete(sdkId);
-  if (channelId !== undefined) publishNow(channelId);
+  if (channelId === undefined) return;
+
+  /*
+    ⚠ **Tirar do índice da lista, e não só do SDK.** `messages.delete` não emite
+    `messageDelete` (esse evento vem do servidor), então o ID ficava na lista e a
+    linha continuava lá, "descartada" e visível. É o mesmo ajuste de vizinhança
+    que o evento de exclusão faz: a que vinha depois passa a olhar outro vizinho.
+  */
+  const ids = idsOf(channelId);
+  const at = ids.indexOf(id);
+  if (at !== -1) {
+    ids.splice(at, 1);
+    recalcularLayout(channelId, at, at);
+  }
+  publishNow(channelId);
 }
 
 /**
@@ -684,7 +713,9 @@ function despacharEnvio(id: string): void {
 export function alternarReacao(messageId: string, emoji: string): void {
   if (!usuarioLocal) return;
 
-  const message = client.messages.get(messageId);
+  /* O objeto do SERVIDOR: depois da reconciliação a chave da lista é o ID local
+     e os eventos chegam no objeto do servidor. Mutar o outro não acorda a linha. */
+  const message = client.messages.get(idDoSdk(messageId));
   if (!message) return;
 
   const quem = message.reactions.get(emoji);
@@ -754,9 +785,16 @@ export async function editarMensagem(
   const alvo = client.messages.get(idDoSdk(messageId));
   if (!alvo) return false;
 
-  client.messages.updateUnderlyingObject(messageId, {
+  /*
+    ⚠ `editedAt` e um `Date`, e e o campo HIDRATADO: o objeto subjacente do SDK
+    guarda o que a `hydrate` produz, nao o formato do fio (`edited`, string).
+    Escrever `edited` aqui nao chegava a lugar nenhum — a linha mostrava o texto
+    novo e nunca o "(editada)", ate o evento do servidor reescrever o campo certo.
+    Tambem pelo ID do SDK: depois da reconciliacao a chave da lista e o ID local.
+  */
+  client.messages.updateUnderlyingObject(idDoSdk(messageId), {
     content: conteudo,
-    edited: new Date().toISOString(),
+    editedAt: new Date(),
   } as never);
 
   if (!conectado()) return true;
@@ -948,7 +986,7 @@ function publish(channelId: string) {
 function publicarFixadas(channelId: string): void {
   const out: string[] = [];
   for (const id of idsOf(channelId)) {
-    if (client.messages.get(id)?.pinned) out.push(id);
+    if (client.messages.get(idDoSdk(id))?.pinned) out.push(id);
   }
   fixadas.set(channelId, out);
 }
@@ -961,14 +999,14 @@ function publicarFixadas(channelId: string): void {
  * escrever `pinned` de volta e republicar. Barato porque é booleano.
  */
 export function alternarFixada(messageId: string): void {
-  const message = client.messages.get(messageId);
+  const message = client.messages.get(idDoSdk(messageId));
   if (!message) return;
 
   // `updateUnderlyingObject` e não um campo nosso: `pinned` é do PROTOCOLO, e
   // manter a verdade lá é o que faz o evento de outra pessoa e a nossa ação
   // otimista chegarem no mesmo lugar.
   const fixando = !message.pinned;
-  client.messages.updateUnderlyingObject(messageId, {
+  client.messages.updateUnderlyingObject(idDoSdk(messageId), {
     pinned: fixando,
   } as never);
 
@@ -1701,6 +1739,30 @@ const historicoPedido = new Set<string>();
 /** Canais cuja lista montou antes de haver socket. Retomados no `Ready`. */
 const historicoAdiado = new Set<string>();
 
+/**
+ * Onde está o histórico de um canal, para a lista dizer a verdade.
+ *
+ * Observável e não só a sonda `estadoDoHistorico`: "o canal está vazio" e "o
+ * histórico ainda não chegou" renderizam a mesma lista de zero IDs, e a tela
+ * precisa distinguir esqueleto de começo-do-canal. `pagina` é o prepend em voo
+ * (o aviso no topo). Muda poucas vezes por canal — frequência de ação humana —,
+ * então mora no store normal.
+ */
+export type EstadoDoHistorico = {
+  readonly inicial: "carregando" | "pronto" | "falhou";
+  readonly pagina: boolean;
+};
+export const estadoDoHistoricoDoCanal = createEntityStore<EstadoDoHistorico>();
+
+function atualizarHistorico(channelId: string, parte: Partial<EstadoDoHistorico>): void {
+  const atual = estadoDoHistoricoDoCanal.peek(channelId) ?? { inicial: "carregando", pagina: false };
+  const inicial = parte.inicial ?? atual.inicial;
+  const pagina = parte.pagina ?? atual.pagina;
+  /* Referência nova só quando algo mudou: o getter devolve o objeto guardado. */
+  if (inicial === atual.inicial && pagina === atual.pagina) return;
+  estadoDoHistoricoDoCanal.set(channelId, { inicial, pagina });
+}
+
 export async function carregarHistorico(channelId: string): Promise<void> {
   if (historicoPedido.has(channelId)) return;
   /*
@@ -1717,6 +1779,7 @@ export async function carregarHistorico(channelId: string): Promise<void> {
   const canal = client.channels.get(channelId);
   if (canal === undefined || !conectado()) {
     historicoAdiado.add(channelId);
+    atualizarHistorico(channelId, { inicial: "carregando" });
     return;
   }
 
@@ -1727,6 +1790,7 @@ export async function carregarHistorico(channelId: string): Promise<void> {
   */
   historicoAdiado.delete(channelId);
   historicoPedido.add(channelId);
+  atualizarHistorico(channelId, { inicial: "carregando" });
 
   try {
     const doServidor = await buscarMensagensComEnquetes(canal.id, {
@@ -1757,6 +1821,7 @@ export async function carregarHistorico(channelId: string): Promise<void> {
     }
 
     seedChannel(channelId, doHistorico);
+    atualizarHistorico(channelId, { inicial: "pronto" });
   } catch {
     /*
       Solta a marca: sem isto, uma falha de rede na primeira abertura deixaria
@@ -1764,6 +1829,7 @@ export async function carregarHistorico(channelId: string): Promise<void> {
       novo a não ser recarregar a página.
     */
     historicoPedido.delete(channelId);
+    atualizarHistorico(channelId, { inicial: "falhou" });
   }
 }
 
@@ -1839,6 +1905,7 @@ export async function carregarPaginaAnterior(channelId: string): Promise<void> {
   const cursor = idDoSdk(maisAntiga);
 
   paginaEmVoo.add(channelId);
+  atualizarHistorico(channelId, { pagina: true });
   try {
     const doServidor = await buscarMensagensComEnquetes(canal.id, {
       limit: LIMITE_DE_HISTORICO,
@@ -1869,6 +1936,7 @@ export async function carregarPaginaAnterior(channelId: string): Promise<void> {
     ultimaTentativaDePagina = `falhou: ${e instanceof Error ? e.message : String(e)}`;
   } finally {
     paginaEmVoo.delete(channelId);
+    atualizarHistorico(channelId, { pagina: false });
   }
 }
 
