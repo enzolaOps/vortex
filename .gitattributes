@@ -16,3 +16,9 @@ client/packages/client/public/atividades/*.html text eol=lf
 # um checkout Windows aceitava senha vazada e e-mail de lista bloqueada, e o
 # teste `fail_invalid_password` reprova. O CI em Linux não vê.
 server/crates/core/database/**/*.txt text eol=lf
+
+# Arquivos GERADOS que um script confere byte a byte contra a própria saída
+# (`pnpm tokens:conferir`). O gerador escreve LF; com `core.autocrlf=true` o
+# checkout no Windows os entregava com CRLF e a conferência reprovava sem
+# nenhuma diferença real.
+*.gerado.css text eol=lf
