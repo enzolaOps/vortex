@@ -1,0 +1,379 @@
+/*
+  O palco: a área principal inteira durante uma chamada. Nunca tem vidro (TRD
+  §2): a imagem de uma transmissão não pode ser tingida por nada que está atrás.
+*/
+.palco {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-3);
+  box-sizing: border-box;
+  block-size: 100%;
+  min-inline-size: 0;
+  min-block-size: 0;
+  padding: var(--vx-space-3) var(--vx-space-4) 84px;
+  overflow: hidden;
+  border: 1px solid var(--vx-glass-border);
+  border-radius: var(--vx-radius-xl);
+  background: var(--vx-stage);
+  color: var(--vx-text-1);
+  font-family: var(--vx-font-sans);
+}
+
+.cabecalho {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-3);
+  min-block-size: 32px;
+}
+.nome {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-inline-size: 0;
+  padding-inline-start: var(--vx-space-1);
+}
+.titulo {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--vx-type-body-strong-size);
+  line-height: var(--vx-type-body-strong-line);
+  font-weight: var(--vx-type-title-weight);
+}
+.subtitulo {
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  white-space: nowrap;
+}
+.acoes {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-2);
+}
+
+/* O que está sendo mostrado: foco + tira, ou grade. Esmaece enquanto reconecta. */
+.conteudo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--vx-space-3);
+  min-block-size: 0;
+}
+.conteudo[data-congelado="true"],
+.conteudo[data-falhou="true"] {
+  opacity: 0.45;
+}
+.conteudo[data-conectando="true"] {
+  align-items: center;
+  justify-content: center;
+  gap: var(--vx-space-5);
+}
+
+.foco {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 0;
+}
+.telaDoFoco {
+  position: relative;
+  box-sizing: border-box;
+  block-size: 100%;
+  max-inline-size: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--vx-live) 45%, transparent);
+  border-radius: var(--vx-radius-lg);
+  background: var(--vx-stage);
+}
+
+.tira {
+  display: flex;
+  flex: none;
+  gap: 10px;
+  block-size: 108px;
+}
+.tira {
+  overflow-x: auto;
+}
+.tira > * {
+  flex: 1 0 140px;
+}
+
+.grade {
+  display: grid;
+  flex: 1;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  grid-auto-rows: minmax(120px, 1fr);
+  gap: 10px;
+  min-block-size: 0;
+  overflow-y: auto;
+}
+
+.itemDaGrade {
+  display: flex;
+  min-inline-size: 0;
+  min-block-size: 0;
+}
+.itemDaGrade > * {
+  flex: 1;
+}
+
+.conectandoLista {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-inline-size: 740px;
+  gap: var(--vx-space-3);
+}
+.conectandoLista > * {
+  inline-size: 236px;
+  block-size: 150px;
+}
+.conectandoTitulo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+  margin: 0;
+  font-size: var(--vx-type-title-size);
+  line-height: var(--vx-type-title-line);
+  font-weight: var(--vx-type-title-weight);
+}
+.pontos {
+  display: flex;
+  gap: 5px;
+}
+.pontos > span {
+  inline-size: 7px;
+  block-size: 7px;
+  border-radius: 50%;
+  background: var(--vx-text-1);
+  animation: pulsar 1.2s ease-in-out infinite;
+}
+.pontos > span:nth-child(2) {
+  background: var(--vx-text-3);
+  animation-delay: 0.2s;
+}
+.pontos > span:nth-child(3) {
+  background: var(--vx-text-4);
+  animation-delay: 0.4s;
+}
+@keyframes pulsar {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* Ladrilhos */
+.ladrilho {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-inline-size: 0;
+  min-block-size: 0;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-state-hover);
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+.ladrilho[data-falando="true"] {
+  box-shadow: var(--vx-shadow-speaking);
+}
+button.ladrilho {
+  cursor: pointer;
+}
+button.ladrilho:hover {
+  background: var(--vx-state-press);
+}
+button.ladrilho:focus-visible {
+  outline: 2px solid var(--vx-focus-ring);
+  outline-offset: 2px;
+}
+.internoDoBotao {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.video {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  background: var(--vx-stage);
+}
+.videoDeTela {
+  object-fit: contain;
+}
+.rotuloDoLadrilho {
+  position: absolute;
+  inset-block-end: var(--vx-space-2);
+  inset-inline-start: var(--vx-space-2);
+  max-inline-size: calc(100% - var(--vx-space-4));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  font-weight: var(--vx-type-label-weight);
+}
+.rotuloSobreVideo {
+  padding: 2px var(--vx-space-3);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-scrim);
+}
+.mudo {
+  position: absolute;
+  inset-block-start: var(--vx-space-2);
+  inset-inline-end: var(--vx-space-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 22px;
+  block-size: 22px;
+  border-radius: 50%;
+  background: var(--vx-scrim);
+  color: var(--vx-text-2);
+}
+.aoVivo {
+  position: absolute;
+  inset-block-start: 14px;
+  inset-inline-start: 14px;
+}
+.aguardando {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--vx-space-3);
+  padding: 0 var(--vx-space-6);
+  color: var(--vx-text-2);
+  text-align: center;
+}
+.aguardandoTitulo {
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-title-size);
+  line-height: var(--vx-type-title-line);
+  font-weight: var(--vx-type-label-weight);
+}
+
+/* Avisos e estados */
+.reconectando {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vx-space-2);
+  box-sizing: border-box;
+  min-block-size: 36px;
+  padding: 0 var(--vx-space-3);
+  border: 1px solid var(--vx-warning);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-warning-soft);
+  font-size: var(--vx-type-ui-size);
+  font-weight: var(--vx-type-label-weight);
+}
+.reconectandoDetalhe {
+  color: var(--vx-text-2);
+  font-weight: 400;
+}
+
+.centro {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vx-space-4);
+  padding: var(--vx-space-6);
+  text-align: center;
+}
+.centroTitulo {
+  margin: 0;
+  font-size: var(--vx-type-title-size);
+  line-height: var(--vx-type-title-line);
+  font-weight: var(--vx-type-title-weight);
+}
+.centroTexto {
+  margin: 0;
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-body-size);
+  line-height: var(--vx-type-body-line);
+}
+.iconeRedondo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 56px;
+  block-size: 56px;
+  border-radius: 50%;
+  background: var(--vx-state-hover);
+  color: var(--vx-text-2);
+}
+
+.falha {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-4);
+  box-sizing: border-box;
+  inline-size: min(460px, calc(100% - var(--vx-space-6)));
+  padding: var(--vx-space-6);
+  transform: translate(-50%, -60%);
+  border: 1px solid var(--vx-glass-border);
+  border-radius: var(--vx-radius-lg);
+  background: var(--vx-surface-overlay);
+  box-shadow: var(--vx-shadow-glass-inner), var(--vx-elev-3);
+}
+.iconeDeErro {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 44px;
+  block-size: 44px;
+  border-radius: 50%;
+  background: var(--vx-danger-soft);
+  color: var(--vx-danger);
+}
+.acoesDaFalha {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--vx-space-3);
+}
+
+/* A cápsula mora no pé do palco, centrada. */
+.capsulaNoPalco {
+  position: absolute;
+  inset-block-end: var(--vx-space-5);
+  inset-inline: 0;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.capsulaNoPalco > * {
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pontos > span {
+    animation: none;
+  }
+}

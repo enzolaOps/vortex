@@ -83,6 +83,7 @@ import {
   soltarLinhasDe,
 } from "./eventosDaSala";
 import { assinarChamada, lerChamada } from "../store/chamada";
+import { definirProntidao } from "../store/prontidao";
 import { anotarEventoDeServidor } from "./eventos";
 import { semearStatusDoServidor } from "./perfil";
 import { aguardar, desistir, reconciliar } from "./nonce";
@@ -1510,6 +1511,9 @@ export function startAdapter() {
     void puxarConfiguracoes();
     /* Sessão nova é inscrição nova: o push é por SESSÃO no servidor. */
     void sincronizarPush();
+
+    /* Por último: servidores, canais e conversas já estão publicados. */
+    definirProntidao(true);
   });
 
   client.on("messageCreate", (message) => {

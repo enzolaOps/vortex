@@ -19,6 +19,11 @@ export interface ItemDeSalaProps extends Omit<ButtonHTMLAttributes<HTMLButtonEle
   selecionado?: boolean;
   /** Você está conectado nesta sala. */
   conectado?: boolean;
+  /**
+   * A conexão caiu: o que se mostra é a última presença conhecida, esmaecida e
+   * dita como desatualizada, sem afirmar quem está onde.
+   */
+  desatualizada?: boolean;
   /** Mostra a Pilula "AO VIVO" (só sala). */
   aoVivo?: boolean;
   /** Canal com mensagens não lidas: texto mais forte e ponto de não lida. */
@@ -33,6 +38,7 @@ export function ItemDeSala({
   pessoas = [],
   selecionado = false,
   conectado = false,
+  desatualizada = false,
   aoVivo = false,
   naoLida = false,
   mencoes = 0,
@@ -54,6 +60,7 @@ export function ItemDeSala({
         selecionado && css.selecionado,
         conectado && css.conectado,
         vazia && css.vazia,
+        ehSala && desatualizada && css.desatualizada,
         !ehSala && naoLida && css.naoLidaTexto,
         className,
       )}
@@ -73,7 +80,15 @@ export function ItemDeSala({
         </span>
       )}
       {ehSala && (
-        <span className={css.contagem} role="img" aria-label={salas.naSala(pessoas.length)}>
+        <span
+          className={css.contagem}
+          role="img"
+          aria-label={
+            desatualizada
+              ? `${salas.naSala(pessoas.length)}, ${salas.presencaDesatualizada.toLowerCase()}`
+              : salas.naSala(pessoas.length)
+          }
+        >
           <span aria-hidden="true">{contagem(pessoas.length)}</span>
         </span>
       )}

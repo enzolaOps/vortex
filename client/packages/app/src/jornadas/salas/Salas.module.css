@@ -1,0 +1,200 @@
+/* ------------------------------------------------------------ listas */
+.secao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+  padding: var(--vx-space-2) var(--vx-space-2) var(--vx-space-3);
+}
+.rotuloDaSecao {
+  margin: 0;
+  padding: var(--vx-space-1) var(--vx-space-3);
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  font-weight: 600;
+}
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.lista > li {
+  display: flex;
+}
+.nota {
+  margin: 0;
+  padding: var(--vx-space-2) var(--vx-space-3);
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+
+/* ------------------------------------------------------------ avisos */
+.aviso {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+  margin: 0 var(--vx-space-2) var(--vx-space-2);
+  padding: var(--vx-space-2) var(--vx-space-3);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-state-press);
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.avisoMiudo {
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+
+/* ------------------------------------------------------- servidor vazio */
+.vazio {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+  padding: var(--vx-space-3);
+  margin: var(--vx-space-2);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-state-hover);
+}
+.vazioTitulo {
+  margin: 0;
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-body-strong-size);
+  line-height: var(--vx-type-body-strong-line);
+  font-weight: 600;
+}
+.vazioTexto {
+  margin: 0;
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.vazioAcoes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+}
+.vazioAcoes > button {
+  inline-size: 100%;
+}
+
+/* ------------------------------------------------------------ esqueleto */
+.esqueleto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+  padding: var(--vx-space-3);
+}
+.esqueletoDaDock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--vx-space-2);
+}
+.bloco {
+  display: block;
+  inline-size: 100%;
+  block-size: var(--vx-space-6);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-skeleton);
+  animation: pulsar 1400ms ease-in-out infinite;
+}
+.esqueletoDaDock .bloco {
+  inline-size: 44px;
+  block-size: 44px;
+  border-radius: 50%;
+}
+.blocoCurto {
+  inline-size: 60%;
+}
+@keyframes pulsar {
+  50% {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bloco {
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------- widget na área principal */
+/*
+  A camada dos widgets cobre a área principal MENOS a reserva do composer:
+  o canto de baixo fica acima do campo de escrever, nunca sobre ele. O widget
+  (position: absolute) ancora nesta camada; só ele recebe o ponteiro.
+*/
+.camadaDeWidgets {
+  --reserva-do-composer: var(--vx-space-8);
+  position: absolute;
+  inset: 0 0 var(--reserva-do-composer) 0;
+  z-index: 5;
+  pointer-events: none;
+}
+.camadaDeWidgets > * {
+  pointer-events: auto;
+}
+.conversa {
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-block-size: 0;
+}
+.conversa > * {
+  flex: 1;
+  min-block-size: 0;
+}
+
+/* ------------------------------------------------------------- criar sala */
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-3);
+}
+.rotulo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.campo {
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-block-size: 40px;
+  padding: 0 var(--vx-space-3);
+  border: 1px solid var(--vx-border-strong);
+  border-radius: var(--vx-radius-sm);
+  background: var(--vx-surface-solid);
+  color: var(--vx-text-1);
+  font: inherit;
+}
+.campo:focus-visible {
+  outline: 2px solid var(--vx-focus-ring);
+  outline-offset: 2px;
+}
+.erro {
+  margin: 0;
+  color: var(--vx-danger);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.rodapeDoDialogo {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--vx-space-2);
+}
+
+/* O palco no lugar da área principal: sem vidro, ocupa a trilha inteira. */
+.areaDoPalco {
+  display: block;
+  block-size: 100%;
+  min-inline-size: 0;
+  min-block-size: 0;
+}

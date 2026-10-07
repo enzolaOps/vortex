@@ -35,6 +35,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+.status {
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  white-space: nowrap;
+}
+
 /* Expande para CIMA: a cápsula mora no pé da tela. */
 .extra {
   position: absolute;

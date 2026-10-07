@@ -1,0 +1,234 @@
+/* Mais específico que `.dialogo` (uma classe): a largura daqui vence em qualquer ordem de CSS. */
+.painel[role="dialog"] {
+  inline-size: min(calc(100vw - 32px), 680px);
+  gap: var(--vx-space-5);
+  padding: var(--vx-space-6);
+}
+
+.formulario {
+  display: grid;
+  gap: var(--vx-space-5);
+}
+
+.abas {
+  display: flex;
+  gap: var(--vx-space-2);
+}
+.aba {
+  block-size: 32px;
+  padding: 0 var(--vx-space-4);
+  border: 1px solid var(--vx-border-strong);
+  border-radius: var(--vx-radius-pill);
+  background: transparent;
+  color: var(--vx-text-2);
+  font: inherit;
+  font-size: var(--vx-type-ui-size);
+  font-weight: var(--vx-type-label-weight);
+  cursor: pointer;
+}
+.aba[aria-selected="true"] {
+  border-color: var(--vx-accent);
+  background: var(--vx-accent-soft);
+  color: var(--vx-text-1);
+}
+.aba:focus-visible,
+.fonte:focus-visible,
+.opcao:focus-visible,
+.interruptor:focus-visible {
+  outline: 2px solid var(--vx-focus-ring);
+  outline-offset: 2px;
+}
+
+.fontes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--vx-space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.fonte {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--vx-text-2);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.fonte[aria-checked="true"] {
+  color: var(--vx-text-1);
+}
+.miniatura {
+  position: relative;
+  display: block;
+  inline-size: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  box-sizing: border-box;
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-stage);
+}
+.fonte[aria-checked="true"] .miniatura {
+  box-shadow: var(--vx-shadow-selected);
+}
+.miniatura img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+.marca {
+  position: absolute;
+  inset-block-start: var(--vx-space-2);
+  inset-inline-end: var(--vx-space-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 22px;
+  block-size: 22px;
+  border-radius: 50%;
+  background: var(--vx-accent);
+  color: var(--vx-text-on-accent);
+}
+.rotuloDaFonte {
+  padding: 0 var(--vx-space-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  font-weight: 500;
+}
+.fonte[aria-checked="true"] .rotuloDaFonte {
+  font-weight: 700;
+}
+.aviso {
+  margin: 0;
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+}
+
+.divisor {
+  block-size: 1px;
+  background: var(--vx-border-subtle);
+}
+
+.linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-4);
+}
+.rotulo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rotuloTitulo {
+  font-size: var(--vx-type-body-strong-size);
+  line-height: var(--vx-type-body-strong-line);
+  font-weight: var(--vx-type-label-weight);
+}
+.rotuloTexto {
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+
+.interruptor {
+  position: relative;
+  flex: none;
+  inline-size: 44px;
+  block-size: 26px;
+  padding: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--vx-border-strong);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-state-press);
+  cursor: pointer;
+}
+.interruptor[aria-checked="true"] {
+  border-color: var(--vx-accent);
+  background: var(--vx-accent);
+}
+.interruptor[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.botao {
+  position: absolute;
+  inset-block-start: 2px;
+  inset-inline-start: 2px;
+  inline-size: 20px;
+  block-size: 20px;
+  border-radius: 50%;
+  background: var(--vx-text-2);
+  transition: transform 160ms ease;
+}
+.interruptor[aria-checked="true"] .botao {
+  background: var(--vx-text-on-accent);
+  transform: translateX(18px);
+}
+
+.segmentado {
+  display: flex;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-state-hover);
+}
+.opcao {
+  block-size: 30px;
+  min-inline-size: 64px;
+  padding: 0 var(--vx-space-3);
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  background: transparent;
+  color: var(--vx-text-2);
+  font: inherit;
+  font-size: var(--vx-type-ui-size);
+  font-weight: var(--vx-type-label-weight);
+  cursor: pointer;
+}
+.opcao[aria-checked="true"] {
+  background: var(--vx-accent);
+  color: var(--vx-text-on-accent);
+}
+.opcao:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nota {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  margin: 0;
+  padding: var(--vx-space-2) var(--vx-space-3);
+  border-radius: var(--vx-radius-sm);
+  background: var(--vx-warning-soft);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+.nota svg {
+  flex: none;
+  color: var(--vx-warning);
+}
+
+.acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--vx-space-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .botao {
+    transition: none;
+  }
+}

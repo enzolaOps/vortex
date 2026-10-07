@@ -11,3 +11,4 @@ export * from "./PainelVidro";
 export * from "./Pilula";
 export * from "./WidgetDaChamada";
 export * from "./WidgetDaSala";
+export * from "./ItemDaDock";

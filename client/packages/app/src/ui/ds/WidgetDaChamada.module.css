@@ -10,6 +10,17 @@
   font-family: var(--vx-font-sans);
   transition: transform 180ms ease;
 }
+/* Arrastar: o ponteiro pega o palco e a faixa; os botões têm o clique deles. */
+.widget[data-arrastando="true"] {
+  cursor: grabbing;
+  user-select: none;
+  transition: none;
+}
+.palco,
+.faixa {
+  cursor: grab;
+  touch-action: none;
+}
 .estatico {
   position: relative;
 }
@@ -64,6 +75,12 @@
   position: absolute;
   inset-block-start: var(--vx-space-2);
   inset-inline-start: var(--vx-space-2);
+}
+
+.linhaDeCima {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-1);
 }
 
 .sobre {

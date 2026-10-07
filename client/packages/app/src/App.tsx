@@ -1,14 +1,20 @@
+import { ShellDasSalas } from "./jornadas/salas";
+import { JanelaDestacada } from "./jornadas/voz";
 import { BotaoDeSair, PortaoDeSessao } from "./jornadas/sessao";
-import { ShellDoApp } from "./shell";
+import { Avisos } from "./ui/primitivos/Avisos";
 
 /**
- * Raiz do app: o portão de sessão e, dentro dele, o shell fixo. As demais jornadas
- * (salas, chat…) entram nos próximos marcos e penduram o conteúdo na área principal.
+ * Raiz do app: o portão de sessão (M3) e, dentro dele, o shell fixo ligado à
+ * jornada de salas. A restauração da sessão é UMA só: a do portão.
  */
 export function App() {
   return (
-    <PortaoDeSessao>
-      <ShellDoApp rodapeDasSalas={<BotaoDeSair />} />
-    </PortaoDeSessao>
+    <>
+      <PortaoDeSessao>
+        <ShellDasSalas rodapeDasSalas={<BotaoDeSair />} />
+        <JanelaDestacada />
+      </PortaoDeSessao>
+      <Avisos />
+    </>
   );
 }

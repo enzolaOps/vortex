@@ -1,4 +1,5 @@
 import {
+  AppWindow as LAppWindow,
   ArrowLeft as LArrowLeft,
   AtSign as LAtSign,
   Bell as LBell,
@@ -27,6 +28,7 @@ import {
   MessageSquare as LMessageSquare,
   Mic as LMic,
   MicOff as LMicOff,
+  Monitor as LMonitor,
   MonitorUp as LMonitorUp,
   Paperclip as LPaperclip,
   Pencil as LPencil,
@@ -127,6 +129,8 @@ export const Mensagem = envolver(LMessageSquare);
 export const Microfone = envolver(LMic);
 export const MicrofoneDesligado = envolver(LMicOff);
 export const CompartilharTela = envolver(LMonitorUp);
+export const Tela = envolver(LMonitor);
+export const Janela = envolver(LAppWindow);
 export const Editar = envolver(LPencil);
 export const EncerrarChamada = envolver(LPhoneOff);
 export const ImagemSobreImagem = envolver(LPictureInPicture2);

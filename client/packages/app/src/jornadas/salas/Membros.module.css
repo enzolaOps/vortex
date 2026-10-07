@@ -1,0 +1,115 @@
+.rolagem {
+  block-size: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  overflow-anchor: none;
+}
+.rolagem:focus-visible {
+  outline: 2px solid var(--vx-focus-ring);
+  outline-offset: -2px;
+}
+.trilho {
+  position: relative;
+  inline-size: 100%;
+}
+.item {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  box-sizing: border-box;
+  padding-inline: var(--vx-space-2);
+}
+.membro {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  block-size: 100%;
+  padding-inline: var(--vx-space-2);
+  border-radius: var(--vx-radius-sm);
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.membro:hover {
+  background: var(--vx-state-hover);
+}
+.membro[data-offline] {
+  color: var(--vx-text-3);
+}
+.nome {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.soIcone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  block-size: 100%;
+}
+.cabecalho {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--vx-space-1);
+  block-size: 100%;
+  margin: 0;
+  padding: 0 var(--vx-space-2) var(--vx-space-1);
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  font-weight: 600;
+}
+.total {
+  font-family: var(--vx-font-mono);
+  font-weight: 400;
+}
+.divisoria {
+  inline-size: 24px;
+  block-size: 1px;
+  margin: var(--vx-space-2) auto 0;
+  background: var(--vx-border-subtle);
+}
+.vazio {
+  margin: 0;
+  padding: var(--vx-space-3) var(--vx-space-4);
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  text-align: center;
+}
+.desatualizada {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  margin: 0 var(--vx-space-2) var(--vx-space-1);
+  padding: var(--vx-space-1) var(--vx-space-2);
+  border-radius: var(--vx-radius-sm);
+  background: var(--vx-state-press);
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+.esqueleto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+  padding: var(--vx-space-3);
+}
+.bloco {
+  display: block;
+  block-size: var(--vx-space-6);
+  border-radius: var(--vx-radius-sm);
+  background: var(--vx-skeleton);
+  animation: pulsar 1400ms ease-in-out infinite;
+}
+@keyframes pulsar {
+  50% {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bloco {
+    animation: none;
+  }
+}

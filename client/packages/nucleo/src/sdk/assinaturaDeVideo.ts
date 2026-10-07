@@ -9,6 +9,13 @@ import { chaveDeVideo, faixasDeVideo, type FonteDeVideo } from "../store/video";
  * e os dois defeitos corrigidos junto com esta extração moravam justamente no
  * que a cópia não modelava — a identidade da PUBLICAÇÃO e o áudio da tela
  * publicado depois do vídeo. Aqui não há LiveKit: as publicações são injetadas.
+ *
+ * **Quem pede, e quando.** O app pede por ladrilho (`useAssinaturaDeVideo`, em
+ * `app/src/jornadas/voz/hooks.ts`): vídeo só desce enquanto o ladrilho está
+ * montado no palco, visível na tela (`IntersectionObserver`) e com a aba aberta.
+ * Sair do palco, rolar para fora ou ocultar a aba devolve a faixa (a devolução
+ * espera `atraso` ms para a troca foco/miniatura não passar por zero). O motor
+ * segue com `autoSubscribe: false`: áudio por evento, vídeo só por este pedido.
  */
 
 /** O pedaço de `RemoteTrackPublication` que a contabilidade usa. */

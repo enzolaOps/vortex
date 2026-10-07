@@ -1,0 +1,182 @@
+/*
+  O overlay mínimo da chamada, na janela destacada. Repouso: só quem está na
+  sala, sem fundo. Expandido (ponteiro ou foco): vidro com controles.
+  Sombra no texto porque ele pousa sobre qualquer imagem — um jogo —, e não
+  sobre uma superfície conhecida.
+*/
+.raiz {
+  display: inline-block;
+  box-sizing: border-box;
+  padding: var(--vx-space-2);
+  font-family: var(--vx-font-sans);
+  color: var(--vx-text-1);
+}
+.coluna {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--vx-space-2);
+}
+
+.painel {
+  inline-size: 160px;
+  box-sizing: border-box;
+  padding: var(--vx-space-2);
+  border: 1px solid transparent;
+  border-radius: var(--vx-radius-lg);
+  outline-offset: 2px;
+}
+.painel:focus-visible {
+  outline: 2px solid var(--vx-focus-ring);
+}
+.painelAberto {
+  /* O vidro vem do PainelVidro; o repouso não tem nenhum. */
+  outline: none;
+}
+
+.cabeca {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-1);
+  block-size: 20px;
+  margin-block-end: var(--vx-space-1);
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-caption-size);
+  font-weight: 600;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+.sala {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pessoa {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  block-size: 30px;
+  opacity: 0.72;
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  font-weight: 500;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  transition: opacity 120ms ease;
+}
+.pessoaFalando {
+  opacity: 1;
+  color: var(--vx-text-1);
+  font-weight: 600;
+}
+.nome {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.semAudio {
+  display: flex;
+  margin-inline-start: auto;
+  color: var(--vx-text-3);
+}
+.resto {
+  padding-inline-start: var(--vx-space-1);
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+.vazia {
+  margin: 0;
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+.controles {
+  display: flex;
+  justify-content: space-between;
+  margin-block-start: var(--vx-space-2);
+}
+.controle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 26px;
+  block-size: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--vx-text-3);
+  cursor: pointer;
+}
+.controle:hover {
+  background: var(--vx-state-hover);
+}
+.controle:focus-visible {
+  outline: 2px solid var(--vx-focus-ring);
+  outline-offset: 2px;
+}
+.ligado {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+.sair {
+  background: var(--vx-danger);
+  color: var(--vx-text-on-danger);
+}
+.sair:hover {
+  background: var(--vx-danger);
+}
+
+.abrir {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vx-space-1);
+  inline-size: 100%;
+  block-size: 26px;
+  margin-block-start: var(--vx-space-2);
+  padding: 0;
+  border: 1px solid var(--vx-glass-border);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-surface-glass-reading);
+  color: var(--vx-text-1);
+  font: inherit;
+  font-size: var(--vx-type-caption-size);
+  font-weight: 600;
+  cursor: pointer;
+}
+.abrir:hover {
+  background: var(--vx-state-hover);
+}
+.abrir:focus-visible {
+  outline: 2px solid var(--vx-focus-ring);
+  outline-offset: 2px;
+}
+
+.transmissao {
+  position: relative;
+  flex: none;
+  inline-size: 240px;
+  block-size: 135px;
+  overflow: hidden;
+  border: 1px solid var(--vx-glass-border);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-stage);
+  box-shadow: var(--vx-elev-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pessoa {
+    transition: none;
+  }
+}

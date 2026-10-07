@@ -232,3 +232,25 @@ export function boundsAncorados(
 
 /** O nível do "sempre no topo": acima de janelas comuns, abaixo do overlay. */
 export const NIVEL_DO_TOPO = "floating" as const;
+
+/* ------------------------------------------- os dois verbos da ponte */
+
+/**
+ * Os dois canais de IPC do popout — a ponte `vortexPopout`, no preload.
+ *
+ * ⚠ **Só dois, e só da principal.** A janela destacada é `about:blank` (origem
+ * opaca) e o registro de IPC a recusa por origem de qualquer jeito; quem pede é
+ * a janela principal, que a desenha, e o main aplica na janela que ele mesmo
+ * criou. O alvo nunca vem do renderer: ele não escolhe QUAL janela.
+ */
+export const CANAL_POPOUT_TOPO = "popout:definir-topo";
+export const CANAL_POPOUT_PROTEGER = "popout:proteger-conteudo";
+
+/**
+ * O argumento dos dois canais: um booleano, e nada além dele. `undefined`
+ * recusa — número, texto, objeto e argumento ausente não são "sim" nem "não".
+ */
+export function validarBooleanoDoPopout(valor: unknown, ...resto: unknown[]): boolean | undefined {
+  if (resto.length > 0) return undefined;
+  return typeof valor === "boolean" ? valor : undefined;
+}

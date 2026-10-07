@@ -97,6 +97,7 @@ import { assinarVolumeEfetivo, volumeEfetivo } from "../store/volumesDeVoz";
 import { criarAssinaturaDeVideo } from "./assinaturaDeVideo";
 import { chaveDeVideo, faixasDeVideo, type FonteDeVideo } from "../store/video";
 import { toast } from "../ui-logica/toastStore";
+import { definirFalhaDeVoz, limparFalhaDeVoz } from "../store/falhaDeVoz";
 import { ALTURA_DE, ponteDeTela } from "./seletorDeTela";
 import {
   concluirEscolhaDeTela,
@@ -936,6 +937,7 @@ export async function entrarNaChamada(channelId: string): Promise<boolean> {
   }
 
   await sairDaChamada();
+  limparFalhaDeVoz();
   definirChamada({ estado: "conectando", channelId, participantes: [] });
 
   try {
@@ -1028,11 +1030,21 @@ export async function entrarNaChamada(channelId: string): Promise<boolean> {
       atrás dele corrige — o estado converge em vez de ficar mentindo.
     */
     sairDaSalaLocalmente(channelId);
-    toast({
-      tipo: "erro",
-      titulo: "Não deu para entrar na chamada.",
-      descricao: motivo(e),
-    });
+    /*
+      A falha vai para o STORE, e o palco a desenha (PRD 4.3: "motivo traduzido,
+      e a pessoa não aparece como dentro"). Toast só quando não há palco aberto
+      para mostrá-la — atender uma chamada ou entrar por atalho —, senão a
+      falha seria muda.
+    */
+    const razao = motivo(e);
+    definirFalhaDeVoz({ channelId, motivo: razao });
+    if (lerPalco().tipo === "fechado") {
+      toast({
+        tipo: "erro",
+        titulo: "Não deu para entrar na chamada.",
+        descricao: razao,
+      });
+    }
     return false;
   }
 }

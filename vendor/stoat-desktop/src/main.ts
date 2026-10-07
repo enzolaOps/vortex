@@ -7,7 +7,7 @@ import {
 } from "./native/atualizacao";
 import { config } from "./native/config";
 import { registrarPonteDoVortex } from "./native/ponteDoVortex";
-import { prepararJanelaNova, tratarJanelaNova } from "./native/popoutDeVoz";
+import { prepararJanelaNova, registrarPopout, tratarJanelaNova } from "./native/popoutDeVoz";
 import { navegacaoDaPrincipalPermitida } from "./native/privilegioModelo";
 import { initTray } from "./native/tray";
 import { initVirtualMic } from "./native/virtualMic";
@@ -50,6 +50,7 @@ if (acquiredLock) {
        sem janela não há o que assinar. */
     registrarPonteDoVortex();
     registrarAtualizacaoNaPonte();
+    registrarPopout();
     ligarAtualizacaoAutomatica();
 
     // Windows specific fix for notifications

@@ -8,24 +8,30 @@ import {
 } from "electron";
 
 import {
+  CANAL_POPOUT_PROTEGER,
+  CANAL_POPOUT_TOPO,
   NIVEL_DO_TOPO,
   NOME_DO_POPOUT,
   aberturaLegitima,
   boundsAncorados,
   decidirJanelaNova,
   opcoesDoPopout,
+  validarBooleanoDoPopout,
 } from "./popoutDeVozModelo";
 import { protegerConteudoDoOverlay } from "./privilegioModelo";
+import { registrar } from "./registroDeIpc";
 import { BUILD_URL, mainWindow } from "./window";
 
 /**
  * O popout da chamada como janela do sistema — o EFEITO, fino. A decisão
  * mora em `popoutDeVozModelo.ts`, com teste.
  *
- * ⚠ **Nenhum canal de IPC.** Quem desenha a janela é a principal, por portal
- * React sobre o documento `about:blank` que ela mesma abriu; o main só decide
- * se a janela pode existir, com que forma, e a mantém no topo. Uma conexão de
- * voz por app, e a janela é superfície dela.
+ * ⚠ **Dois canais de IPC, e só.** Quem desenha a janela é a principal, por
+ * portal React sobre o documento `about:blank` que ela mesma abriu; o main
+ * decide se a janela pode existir, com que forma, a mantém no topo e, a pedido,
+ * a tira de captura de tela (`popout:definir-topo`, `popout:proteger-conteudo`
+ * — ver `registrarPopout`). Uma conexão de voz por app, e a janela é
+ * superfície dela.
  */
 
 let popout: BrowserWindow | undefined;
@@ -141,4 +147,39 @@ export function prepararJanelaNova(
 
   /* Aparecer não rouba o foco — ver `opcoesDoPopout`. */
   janela.showInactive();
+}
+
+/**
+ * Registra os dois verbos da ponte `vortexPopout`.
+ *
+ * Passam pelo registro de IPC como todo canal: remetente é o frame principal
+ * da janela PRINCIPAL, na origem do app, e o argumento é conferido antes de
+ * chegar aqui. A janela afetada é sempre a que o main guardou em `popout` —
+ * sem popout aberto, o pedido é um no-op (a casca nunca cria janela por IPC).
+ */
+export function registrarPopout(): void {
+  registrar(CANAL_POPOUT_TOPO, {
+    via: "invoke",
+    quem: ["principal"],
+    validar: validarBooleanoDoPopout,
+    executar: (sim) => {
+      if (!vivo(popout)) return false;
+      /* Soltar o topo devolve a janela ao nível comum; o nível "floating" só vale ligado. */
+      if (sim) popout.setAlwaysOnTop(true, NIVEL_DO_TOPO);
+      else popout.setAlwaysOnTop(false);
+      return true;
+    },
+  });
+
+  registrar(CANAL_POPOUT_PROTEGER, {
+    via: "invoke",
+    quem: ["principal"],
+    validar: validarBooleanoDoPopout,
+    executar: (sim) => {
+      if (!vivo(popout)) return false;
+      /* `setContentProtection`: a janela sai de captura de tela e de gravação. */
+      popout.setContentProtection(sim);
+      return true;
+    },
+  });
 }

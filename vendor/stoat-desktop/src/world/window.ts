@@ -147,6 +147,25 @@ contextBridge.exposeInMainWorld("vortexOverlay", {
 });
 
 /**
+ * A janela destacada da chamada — ver `native/popoutDeVoz.ts`.
+ *
+ * ⚠ **Dois verbos, ponte SEPARADA (a razão de versão das outras).** Cada um
+ * leva UM booleano; o main recusa o que não for isso e recusa quem não for a
+ * janela principal. Nenhum devolve objeto do Electron: resolvem com um
+ * booleano (aplicou) ou `undefined` (recusou).
+ *
+ * A janela é aberta por `window.open` com o nome combinado, que o
+ * `setWindowOpenHandler` do main libera só para a principal — não há verbo
+ * "abrir" aqui, porque a capacidade é o próprio `window.open` ser permitido.
+ */
+contextBridge.exposeInMainWorld("vortexPopout", {
+  definirTopo: (sim: boolean) =>
+    ipcRenderer.invoke("popout:definir-topo", sim),
+  protegerConteudo: (sim: boolean) =>
+    ipcRenderer.invoke("popout:proteger-conteudo", sim),
+});
+
+/**
  * "Reiniciar agora", do aviso de preferência que só vale no próximo início —
  * ver `native/preferencias.ts`. Ponte separada pela razão de versão; nenhum
  * argumento atravessa.

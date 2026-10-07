@@ -1,13 +1,14 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import { voz } from "../../textos";
-import { SetaEsquerda } from "../icones";
+import { ImagemSobreImagem, SetaEsquerda } from "../icones";
 import { juntar } from "../juntar";
 import { Botao } from "./Botao";
 import { CantosDeFixacao, ControlesDeVoz, IndicadorDeFala, type CantoVoz, type ControlesDeVozProps } from "./Controles";
 import { PainelVidro } from "./PainelVidro";
 import { Pilula } from "./Pilula";
 import css from "./WidgetDaChamada.module.css";
+import { useArrastoParaCanto } from "./useArrastoParaCanto";
 import { useExpansao } from "./useExpansao";
 
 export interface WidgetDaChamadaProps extends ControlesDeVozProps {
@@ -21,6 +22,18 @@ export interface WidgetDaChamadaProps extends ControlesDeVozProps {
   canto?: CantoVoz;
   onCanto?: (canto: CantoVoz) => void;
   onVoltar?: () => void;
+  /**
+   * O vídeo em foco (transmissão ou quem fala). Sem ele, o palco do widget fica
+   * vazio, como antes. O consumidor monta o `<video>` e a assinatura dele.
+   */
+  video?: ReactNode;
+  /**
+   * Destacar a chamada para uma janela própria. Só existe com tratador: onde o
+   * ambiente não sabe abrir a janela, o consumidor não passa e o botão não aparece.
+   */
+  onDestacar?: () => void;
+  /** A chamada já está destacada: o mesmo botão traz de volta. */
+  destacada?: boolean;
   semPosicao?: boolean;
   className?: string;
   style?: CSSProperties;
@@ -30,6 +43,9 @@ const CANTO = { tl: css.tl, tr: css.tr, bl: css.bl, br: css.br } as const;
 
 /**
  * Widget PiP da chamada, para quem lê um canal de texto com a chamada ativa.
+ *
+ * Arrastável: solto, ele se prende ao canto mais próximo (o mesmo que os quatro
+ * botões de canto escolhem, para quem não usa ponteiro).
  *
  * O consumidor o posiciona ACIMA do compositor (contêiner `position: relative`
  * que termina na borda de cima dele): o widget nunca cobre onde se escreve. Ao
@@ -43,17 +59,22 @@ export function WidgetDaChamada({
   canto = "br",
   onCanto,
   onVoltar,
+  video,
+  onDestacar,
+  destacada = false,
   semPosicao = false,
   className,
   style,
   ...controles
 }: WidgetDaChamadaProps) {
   const { aberto, props } = useExpansao({});
+  const arrasto = useArrastoParaCanto(onCanto);
   const faixa = [sala, tempo].filter(Boolean).join(" · ");
 
   return (
     <PainelVidro
       {...props}
+      {...arrasto}
       como="section"
       elevacao={3}
       role="region"
@@ -63,6 +84,7 @@ export function WidgetDaChamada({
       style={style}
     >
       <div className={css.palco}>
+        {video}
         {transmissao && (
           <>
             <span className={css.vivo}>
@@ -71,9 +93,21 @@ export function WidgetDaChamada({
             <span className={css.rotulo}>{transmissao}</span>
           </>
         )}
-        {(onVoltar ?? onCanto) && (
+        {(onVoltar ?? onCanto ?? onDestacar) && (
           <div className={css.sobre}>
-            {onCanto && <CantosDeFixacao canto={canto} onCanto={onCanto} />}
+            <div className={css.linhaDeCima}>
+              {onDestacar && (
+                <Botao
+                  variante="fantasma"
+                  tamanho="sm"
+                  icone={<ImagemSobreImagem />}
+                  aria-label={destacada ? voz.destacar.trazerDeVolta : voz.destacar.destacar}
+                  aria-pressed={destacada}
+                  onClick={onDestacar}
+                />
+              )}
+              {onCanto && <CantosDeFixacao canto={canto} onCanto={onCanto} />}
+            </div>
             {onVoltar && (
               <Botao variante="secundario" tamanho="sm" icone={<SetaEsquerda />} onClick={onVoltar}>
                 {voz.voltarAoPalco}
