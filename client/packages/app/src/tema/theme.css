@@ -42,3 +42,14 @@
     line-height: var(--vx-type-body-line);
   }
 }
+
+/*
+  Anel de foco único para todo o app: um contorno, nunca dois. Componentes que
+  vivem dentro de contêiner que recorta ajustam só o `outline-offset`.
+*/
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--vx-focus-ring);
+    outline-offset: 2px;
+  }
+}
