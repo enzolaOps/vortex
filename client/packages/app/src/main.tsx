@@ -5,6 +5,10 @@ import { createRoot } from "react-dom/client";
 
 import { App } from "./App";
 import { arnesAtivo } from "./arnes/arnesAtivo";
+import { aplicarTemaSalvo } from "./tema/personalizado";
+
+// A paleta personalizada guardada vale antes da primeira pintura: sem isto o app piscaria no tema de fábrica.
+aplicarTemaSalvo();
 
 const raiz = document.getElementById("raiz");
 if (!raiz) throw new Error("#raiz ausente no index.html");

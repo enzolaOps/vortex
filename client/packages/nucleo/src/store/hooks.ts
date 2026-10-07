@@ -745,6 +745,8 @@ export type PessoaNaSala = {
   readonly id: string;
   /** Vazio quando o membro ainda não chegou; quem desenha troca por um rótulo neutro. */
   readonly nome: string;
+  /** A foto do membro, quando há (nunca a URL do avatar padrão do servidor). */
+  readonly avatarUrl: string | undefined;
   readonly estado: EstadoDeVoz;
   readonly mudo: boolean;
   readonly surdo: boolean;
@@ -775,12 +777,15 @@ export function usePessoasDaSala(serverId: string, canalId: string): readonly Pe
         };
       },
       getSnapshot: (): readonly PessoaNaSala[] => {
-        const nomes = chaves.map((c) => members.getSnapshot(c)?.displayName ?? "");
+        const membrosDaSala = chaves.map((c) => members.getSnapshot(c));
+        /* Nome e foto juntos: trocar qualquer um dos dois refaz a lista. */
+        const nomes = membrosDaSala.map((m) => `${m?.displayName ?? ""}${m?.avatarUrl ?? ""}`);
         const guardado = PESSOAS_DA_SALA.get(voz);
         if (guardado && guardado.nomes.every((n, i) => n === nomes[i])) return guardado.lista;
         const lista = voz.map((p, i) => ({
           id: p.userId,
-          nome: nomes[i] ?? "",
+          nome: membrosDaSala[i]?.displayName ?? "",
+          avatarUrl: membrosDaSala[i]?.avatarUrl,
           estado: p.estado,
           mudo: p.mudo || p.mudoPeloServidor,
           surdo: p.surdo || p.surdoPeloServidor,

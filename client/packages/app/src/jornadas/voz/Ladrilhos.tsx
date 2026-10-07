@@ -12,6 +12,8 @@ import { VideoDaFaixa } from "./VideoDaFaixa";
 export interface PessoaDoPalco {
   readonly id: string;
   readonly nome: string;
+  /** A foto, quando há; cobre o gradiente do avatar. */
+  readonly avatarUrl?: string | undefined;
   readonly mudo: boolean;
   readonly surdo: boolean;
   readonly camera: boolean;
@@ -62,7 +64,7 @@ export function LadrilhoDePessoa({
       {comVideo ? (
         <VideoDaFaixa faixa={faixa} rotulo={nome} />
       ) : (
-        <Avatar nome={pessoa.nome || salas.alguem} id={pessoa.id} tamanho={44} />
+        <Avatar nome={pessoa.nome || salas.alguem} id={pessoa.id} tamanho={44} imagem={pessoa.avatarUrl} />
       )}
       {semAudio && (
         <span className={css.mudo} role="img" aria-label={voz.palco.mudoDe(nome)}>

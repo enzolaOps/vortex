@@ -88,6 +88,7 @@
 .rodape {
   display: flex;
   flex: none;
+  gap: var(--vx-space-1);
   padding: var(--vx-space-2);
   border-block-start: 1px solid var(--vx-border-subtle);
 }

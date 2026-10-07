@@ -7,13 +7,13 @@ import css from "./Regioes.module.css";
 export interface ColunaDeSalasProps {
   /** O nome do servidor. Sem ele, o título genérico "Salas". */
   titulo?: string;
+  /** Ações do cabeçalho, à direita do nome (menu do servidor; "Novo grupo" na casa). */
+  acoes?: ReactNode;
   /** Faixa de aviso sob o cabeçalho (conexão, por exemplo). */
   aviso?: ReactNode;
   children?: ReactNode;
   /** Fixo sob a rolagem das salas. */
   rodape?: ReactNode;
-  /** Ações do cabeçalho (por exemplo, "Novo grupo" na casa). */
-  acoes?: ReactNode;
 }
 
 /** Coluna flutuante de salas e canais, com a contagem de cada sala no item. */

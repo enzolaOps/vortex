@@ -27,11 +27,13 @@ import { VideoDaFaixa } from "./VideoDaFaixa";
 export function VideoEmFoco({
   foco,
   nome,
+  imagem,
   proprio,
   documento = document,
 }: {
   foco: FocoDoPip;
   nome: string;
+  imagem?: string | undefined;
   proprio: boolean;
   documento?: Document;
 }) {
@@ -56,7 +58,7 @@ export function VideoEmFoco({
       {comImagem && faixa ? (
         <VideoDaFaixa faixa={faixa} rotulo={rotulo} />
       ) : (
-        <Avatar nome={nome} id={foco.userId} tamanho={44} falando={falando} />
+        <Avatar nome={nome} id={foco.userId} tamanho={44} imagem={imagem} falando={falando} />
       )}
     </div>
   );

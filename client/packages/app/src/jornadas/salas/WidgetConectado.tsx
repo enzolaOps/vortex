@@ -37,6 +37,7 @@ function WidgetDeUmaSala({ serverId, canalId }: { serverId: string; canalId: str
   const lista: PessoaDaSala[] = pessoas.map((p) => ({
     id: p.id,
     nome: p.nome || salas.alguem,
+    imagem: p.avatarUrl,
     estado: p.estado === "tela" ? "transmitindo" : falantes.includes(p.id) ? "falando" : p.surdo ? "surdo" : p.mudo ? "mudo" : undefined,
   }));
 

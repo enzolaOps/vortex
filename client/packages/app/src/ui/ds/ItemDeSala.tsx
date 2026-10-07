@@ -14,7 +14,7 @@ export interface ItemDeSalaProps extends Omit<ButtonHTMLAttributes<HTMLButtonEle
   /** sala = sala de voz com pessoas; canal = canal de texto. Padrão sala. */
   tipo?: "sala" | "canal";
   /** Pessoas na sala; a contagem aparece sempre, inclusive 0. */
-  pessoas?: ReadonlyArray<{ nome: string; id?: string; tom?: number }>;
+  pessoas?: ReadonlyArray<{ nome: string; id?: string; tom?: number; imagem?: string | undefined }>;
   /** Item ativo da coluna. Um por coluna. */
   selecionado?: boolean;
   /** Você está conectado nesta sala. */

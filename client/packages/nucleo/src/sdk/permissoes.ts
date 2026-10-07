@@ -81,6 +81,13 @@ export type Acao =
    */
   | "conectar"
   /**
+   * Falar numa sala de voz — `Speak`.
+   *
+   * A cápsula de controles esconde o microfone de quem não tem: um botão que
+   * liga o microfone e não transmite nada é pior que a ausência dele.
+   */
+  | "falarNaVoz"
+  /**
    * Transmitir câmera ou tela num canal de voz — `Video`.
    *
    * O seletor de tela pergunta ANTES de capturar: sem isto a pessoa escolheria
@@ -129,6 +136,7 @@ const PERMISSAO: Record<Acao, string | undefined> = {
   silenciarNaVoz: "MuteMembers",
   ensurdecerNaVoz: "DeafenMembers",
   conectar: "Connect",
+  falarNaVoz: "Speak",
   transmitirVideo: "Video",
 
   gerenciarPermissoes: "ManagePermissions",
