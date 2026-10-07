@@ -44,6 +44,8 @@
 
 .dialogo {
   position: fixed;
+  /* Mesma camada do véu e depois dele no DOM: sem isto o véu cobre o diálogo e intercepta o ponteiro. */
+  z-index: 50;
   inset-block-start: 50%;
   inset-inline-start: 50%;
   translate: -50% -50%;

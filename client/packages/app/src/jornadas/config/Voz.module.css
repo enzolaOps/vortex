@@ -1,0 +1,115 @@
+/* Medidor de nível: 28 barras com o limiar por cima. */
+.medidor {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(28, minmax(0, 1fr));
+  gap: 2px;
+  block-size: 24px;
+  padding: var(--vx-space-2);
+  border: 1px solid var(--vx-glass-border);
+  border-radius: var(--vx-radius-sm);
+  background: var(--vx-surface-solid);
+}
+.barra {
+  border-radius: 1px;
+  background: var(--vx-state-press);
+}
+.barraOk[data-acesa="true"] {
+  background: var(--vx-quality-good);
+}
+.barraAlto[data-acesa="true"] {
+  background: var(--vx-quality-fair);
+}
+.barraPico[data-acesa="true"] {
+  background: var(--vx-live);
+}
+.limiar {
+  position: absolute;
+  inset-block: 2px;
+  inline-size: 2px;
+  margin-inline-start: -1px;
+  border-radius: 1px;
+  background: var(--vx-text-1);
+  pointer-events: none;
+}
+
+.linhaDoTeste {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+}
+.linhaDoTeste > :first-child {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+/* Modo de entrada: duas opções, a segunda abre os campos da tecla. */
+.detalhesDoModo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-3);
+  padding: var(--vx-space-3) var(--vx-space-4);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-md);
+}
+
+.teclaAtual {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 32px;
+  padding: 0 var(--vx-space-3);
+  border: 1px solid var(--vx-border-strong);
+  border-radius: var(--vx-radius-sm);
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.linhaDaTecla {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vx-space-3);
+}
+.segurando {
+  color: var(--vx-presence-online);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  font-weight: var(--vx-type-label-weight);
+}
+
+/* Prévia da câmera */
+.previa {
+  position: relative;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  inline-size: min(100%, 360px);
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--vx-glass-border);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-stage);
+  overflow: hidden;
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.previaVideo {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+.previaLegenda {
+  position: absolute;
+  inset-block-end: var(--vx-space-2);
+  inset-inline-start: var(--vx-space-3);
+  padding: var(--vx-space-1) var(--vx-space-2);
+  border-radius: var(--vx-radius-sm);
+  background: var(--vx-scrim);
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}

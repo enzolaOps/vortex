@@ -1,0 +1,124 @@
+.banner {
+  position: relative;
+  box-sizing: border-box;
+  inline-size: 100%;
+  block-size: 140px;
+  border-radius: var(--vx-radius-md);
+  border: 1px solid var(--vx-glass-border);
+  background:
+    linear-gradient(120deg, var(--vx-backdrop-glow-indigo), var(--vx-backdrop-glow-teal)),
+    var(--vx-surface-solid);
+  overflow: hidden;
+}
+.bannerImagem {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+.acoesDoBanner {
+  position: absolute;
+  inset-block-start: var(--vx-space-3);
+  inset-inline-end: var(--vx-space-3);
+  display: flex;
+  gap: var(--vx-space-2);
+}
+
+.linhaDoAvatar {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-4);
+}
+.foto {
+  position: relative;
+  flex: none;
+  inline-size: 80px;
+  block-size: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.fotoImagem {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+.seletorOculto {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+/* Prévia do cartão de perfil */
+.cartao {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  inline-size: min(100%, 320px);
+  border: 1px solid var(--vx-glass-border);
+  border-radius: var(--vx-radius-lg);
+  background: var(--vx-surface-glass-reading);
+  overflow: hidden;
+}
+.cartaoBanner {
+  position: relative;
+  block-size: 64px;
+  background:
+    linear-gradient(120deg, var(--vx-backdrop-glow-indigo), var(--vx-backdrop-glow-teal)),
+    var(--vx-surface-solid);
+}
+.cartaoBannerImagem {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+.cartaoCorpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+  padding: var(--vx-space-3) var(--vx-space-4) var(--vx-space-4);
+}
+.cartaoAvatar {
+  margin-block-start: calc(var(--vx-space-8) * -0.5);
+  inline-size: 48px;
+  block-size: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid var(--vx-surface-solid);
+  box-sizing: content-box;
+  position: relative;
+}
+.cartaoNome {
+  margin: 0;
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-heading-size);
+  line-height: var(--vx-type-heading-line);
+  font-weight: var(--vx-type-heading-weight);
+  overflow-wrap: anywhere;
+}
+.cartaoUsuario {
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+.cartaoPresenca {
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+.cartaoBio {
+  margin: 0;
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}

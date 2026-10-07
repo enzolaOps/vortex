@@ -1,0 +1,45 @@
+.amostras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-3);
+}
+.amostra {
+  inline-size: 36px;
+  block-size: 36px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.amostra[aria-checked="true"] {
+  box-shadow:
+    0 0 0 2px var(--vx-surface-solid),
+    0 0 0 4px var(--vx-text-1);
+}
+.previa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-3);
+  box-sizing: border-box;
+  padding: var(--vx-space-4);
+  border: 1px solid var(--vx-glass-border);
+  border-radius: var(--vx-radius-lg);
+  background: var(--vx-surface-glass);
+}
+.previaLinha {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+}
+.previaNome {
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-body-strong-size);
+  line-height: var(--vx-type-body-strong-line);
+  font-weight: var(--vx-type-body-strong-weight);
+}
+.previaTexto {
+  margin: 0;
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
