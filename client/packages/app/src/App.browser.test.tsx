@@ -1,3 +1,4 @@
+import "./arnes/redeFalsa";
 import { createRoot } from "react-dom/client";
 import { expect, it } from "vitest";
 

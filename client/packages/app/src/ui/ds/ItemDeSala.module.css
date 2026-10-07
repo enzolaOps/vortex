@@ -108,3 +108,9 @@
 .item:focus-visible {
   outline-offset: -2px;
 }
+
+/* Presença desatualizada: último dado conhecido, esmaecido (a contagem segue visível). */
+.desatualizada .contagem,
+.desatualizada > span:not(.nome):not(.hash) {
+  opacity: 0.7;
+}

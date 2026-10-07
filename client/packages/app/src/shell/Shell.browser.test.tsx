@@ -1,3 +1,4 @@
+import "../arnes/redeFalsa";
 import { page } from "vitest/browser";
 import { afterEach, describe, expect, it } from "vitest";
 

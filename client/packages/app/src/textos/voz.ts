@@ -34,6 +34,7 @@ export const voz = {
     falando: "Falando",
     transmitindo: "Transmitindo tela",
     mudo: "Sem áudio",
+    surdo: "Sem ouvir",
   },
   fixarNoCanto: {
     tl: "Fixar no canto superior esquerdo",

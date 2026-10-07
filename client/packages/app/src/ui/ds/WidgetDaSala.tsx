@@ -1,7 +1,7 @@
 import { useId, useRef, type CSSProperties } from "react";
 
 import { salas, voz } from "../../textos";
-import { CompartilharTela, MicrofoneDesligado, Volume } from "../icones";
+import { CompartilharTela, FoneDesligado, MicrofoneDesligado, Volume } from "../icones";
 import { juntar } from "../juntar";
 import { Avatar } from "./Avatar";
 import { Botao } from "./Botao";
@@ -15,7 +15,7 @@ export interface PessoaDaSala {
   nome: string;
   id?: string;
   tom?: number;
-  estado?: "transmitindo" | "falando" | "mudo";
+  estado?: "transmitindo" | "falando" | "mudo" | "surdo";
 }
 
 export interface WidgetDaSalaProps {
@@ -29,6 +29,15 @@ export interface WidgetDaSalaProps {
   abertoInicial?: boolean;
   onAbertoChange?: (aberto: boolean) => void;
   onEntrar?: () => void;
+  /** Sair da sala em que a pessoa está. Só existe com tratador. */
+  onSair?: () => void;
+  /** Entrando na sala: o botão de entrar fica ocupado, sem aceitar outro clique. */
+  conectando?: boolean;
+  /**
+   * A conexão caiu: a lista de quem está na sala é a última que se soube, e o
+   * widget não afirma quem está onde.
+   */
+  desatualizada?: boolean;
   onVerPalco?: () => void;
   onCanto?: (canto: CantoVoz) => void;
   /** Desliga o `position: absolute` (previews, layout próprio). */
@@ -46,6 +55,14 @@ function EstadoDaPessoa({ estado }: { estado: NonNullable<PessoaDaSala["estado"]
       <span className={juntar(css.estado, css.falandoEstado)}>
         <Volume tamanho={14} />
         {voz.estado.falando}
+      </span>
+    );
+  }
+  if (estado === "surdo") {
+    return (
+      <span className={juntar(css.estado, css.mudoEstado)}>
+        <FoneDesligado tamanho={14} />
+        {voz.estado.surdo}
       </span>
     );
   }
@@ -78,6 +95,9 @@ export function WidgetDaSala({
   abertoInicial,
   onAbertoChange,
   onEntrar,
+  onSair,
+  conectando = false,
+  desatualizada = false,
   onVerPalco,
   onCanto,
   semPosicao = false,
@@ -113,7 +133,7 @@ export function WidgetDaSala({
           <Volume tamanho={16} />
           <span className={css.nome}>{nome}</span>
           {aoVivo && <Pilula tipo="aoVivo" />}
-          <Pilula tipo="contagem" valor={pessoas.length} />
+          {!desatualizada && <Pilula tipo="contagem" valor={pessoas.length} />}
         </button>
       </PainelVidro>
 
@@ -124,7 +144,11 @@ export function WidgetDaSala({
           {onCanto && <CantosDeFixacao canto={canto} onCanto={onCanto} />}
         </div>
 
-        {pessoas.length === 0 ? (
+        {desatualizada ? (
+          <p className={css.vazia} role="status">
+            {salas.presencaDesatualizada}
+          </p>
+        ) : pessoas.length === 0 ? (
           <p className={css.vazia}>{salas.vazia}</p>
         ) : (
           <ul className={css.lista} aria-label={salas.naSala(pessoas.length)}>
@@ -145,9 +169,18 @@ export function WidgetDaSala({
           </ul>
         )}
 
-        {(onEntrar ?? onVerPalco) && (
+        {(onEntrar ?? onSair ?? onVerPalco) && (
           <div className={css.acoes}>
-            {onEntrar && <Botao onClick={onEntrar}>{salas.entrarNaSala}</Botao>}
+            {onEntrar && (
+              <Botao onClick={onEntrar} carregando={conectando}>
+                {conectando ? salas.conectando : salas.entrarNaSala}
+              </Botao>
+            )}
+            {onSair && (
+              <Botao variante="secundario" onClick={onSair}>
+                {salas.sairDaSala}
+              </Botao>
+            )}
             {onVerPalco && (
               <Botao variante="fantasma" onClick={onVerPalco}>
                 {voz.verPalco}
