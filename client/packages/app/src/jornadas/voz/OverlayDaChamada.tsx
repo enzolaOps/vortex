@@ -1,6 +1,7 @@
 import { ponteDeNotificacoes } from "nucleo/notificacao/notificador";
 import { usuarioLocalId } from "nucleo/sdk/adapter";
 import { alternarMudo, alternarSurdo } from "nucleo/sdk/chamada";
+import { pode } from "nucleo/sdk/permissoes";
 import { useChamada, useChannel, useFalantes, usePessoasDaSala } from "nucleo/store/hooks";
 import { useEffect, useRef } from "react";
 
@@ -25,12 +26,12 @@ import { VideoEmFoco } from "./VideoEmFoco";
 /** Quantas pessoas a coluna mostra antes de resumir o resto: a janela não cresce sem teto. */
 export const MAXIMO_DE_PESSOAS = 8;
 
-function Pessoa({ id, nome, mudo }: { id: string; nome: string; mudo: boolean }) {
+function Pessoa({ id, nome, mudo, imagem }: { id: string; nome: string; mudo: boolean; imagem?: string | undefined }) {
   // Cada linha assina só a si mesma: o overlay inteiro não acorda a cada sílaba.
   const falando = useFalantes([id]).length > 0;
   return (
     <li className={juntar(css.pessoa, falando && css.pessoaFalando)} data-pessoa={id} data-falando={falando}>
-      <Avatar nome={nome} id={id} tamanho={28} falando={falando} />
+      <Avatar nome={nome} id={id} tamanho={28} imagem={imagem} falando={falando} />
       <span className={css.nome}>{nome}</span>
       {mudo && (
         <span className={css.semAudio} role="img" aria-label={voz.estado.mudo}>
@@ -105,6 +106,8 @@ export function OverlayDaChamada({
   const visiveis = pessoas.slice(0, MAXIMO_DE_PESSOAS);
   const escondidas = pessoas.length - visiveis.length;
   const microfoneLigado = !chamada.mudo && !chamada.surdo;
+  // Sem `Speak` o microfone não aparece: um botão que não faz a pessoa ser ouvida é pior que a ausência.
+  const podeFalar = pode(chamada.channelId, "falarNaVoz");
 
   const conteudo = (
     <>
@@ -119,7 +122,7 @@ export function OverlayDaChamada({
       ) : (
         <ul className={css.lista} aria-label={voz.pessoasNaChamada}>
           {visiveis.map((p) => (
-            <Pessoa key={p.id} id={p.id} nome={p.nome || salas.alguem} mudo={p.mudo || p.surdo} />
+            <Pessoa key={p.id} id={p.id} nome={p.nome || salas.alguem} mudo={p.mudo || p.surdo} imagem={p.avatarUrl} />
           ))}
           {escondidas > 0 && <li className={css.resto}>{`+${String(escondidas)}`}</li>}
         </ul>
@@ -128,15 +131,17 @@ export function OverlayDaChamada({
       {aberto && (
         <>
           <div role="group" aria-label={voz.destacar.controles} className={css.controles}>
-            <button
-              type="button"
-              className={juntar(css.controle, microfoneLigado && css.ligado)}
-              aria-label={voz.microfone}
-              aria-pressed={microfoneLigado}
-              onClick={() => void alternarMudo()}
-            >
-              {microfoneLigado ? <Microfone tamanho={14} /> : <MicrofoneDesligado tamanho={14} />}
-            </button>
+            {podeFalar && (
+              <button
+                type="button"
+                className={juntar(css.controle, microfoneLigado && css.ligado)}
+                aria-label={voz.microfone}
+                aria-pressed={microfoneLigado}
+                onClick={() => void alternarMudo()}
+              >
+                {microfoneLigado ? <Microfone tamanho={14} /> : <MicrofoneDesligado tamanho={14} />}
+              </button>
+            )}
             <button
               type="button"
               className={juntar(css.controle, !chamada.surdo && css.ligado)}
@@ -199,6 +204,7 @@ export function OverlayDaChamada({
             <VideoEmFoco
               foco={transmissor}
               nome={nomeDe(transmissor.userId)}
+              imagem={pessoas.find((p) => p.id === transmissor.userId)?.avatarUrl}
               proprio={transmissor.userId === eu}
               documento={documento}
             />

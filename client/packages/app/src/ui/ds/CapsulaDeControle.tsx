@@ -17,7 +17,14 @@ export interface CapsulaDeControleProps extends ControlesDeVozProps {
   status?: string;
   /** Alguém falando agora (acende o indicador). */
   falando?: boolean;
-  pessoas?: ReadonlyArray<{ nome: string; id?: string; tom?: number; falando?: boolean; mudo?: boolean }>;
+  pessoas?: ReadonlyArray<{
+    nome: string;
+    id?: string;
+    tom?: number;
+    imagem?: string | undefined;
+    falando?: boolean;
+    mudo?: boolean;
+  }>;
   /** Chip de qualidade da transmissão, ex. "1080p60". */
   qualidade?: string;
   /** Controlado. Sem ele, expande para cima com ponteiro ou foco e recolhe com Esc. */
@@ -65,7 +72,7 @@ export function CapsulaDeControle({
             <ul className={css.lista}>
               {pessoas.map((p) => (
                 <li key={p.id ?? p.nome} className={css.pessoa}>
-                  <Avatar nome={p.nome} id={p.id} tom={p.tom} tamanho={20} falando={p.falando} />
+                  <Avatar nome={p.nome} id={p.id} tom={p.tom} tamanho={20} imagem={p.imagem} falando={p.falando} />
                   <span className={css.pessoaNome}>{p.nome}</span>
                   {p.mudo && (
                     <span className={css.mudo} role="img" aria-label={voz.estado.mudo}>

@@ -1,5 +1,5 @@
 import { contagem } from "nucleo/lib/plural";
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 
 import { ds } from "../../textos";
 import { CompartilharTela } from "../icones";
@@ -24,6 +24,13 @@ export interface AvatarProps {
   falando?: boolean;
   /** Selo de tela ao vivo no rodapé. */
   transmitindo?: boolean;
+  /**
+   * A foto da pessoa. COBRE o gradiente com as iniciais e nunca o substitui:
+   * enquanto a imagem não chega, ou se ela falhar, a identidade de sempre
+   * continua à vista. Passe só a foto do membro ou do usuário, nunca a URL do
+   * avatar padrão do servidor (uma silhueta igual para todo mundo).
+   */
+  imagem?: string | undefined;
   className?: string;
   style?: CSSProperties;
 }
@@ -66,9 +73,12 @@ export function Avatar({
   status,
   falando = false,
   transmitindo = false,
+  imagem,
   className,
   style,
 }: AvatarProps) {
+  /* A URL que falhou, não um booleano: trocar de foto dá nova chance à imagem. */
+  const [falhou, setFalhou] = useState<string | undefined>();
   const partes = [nome];
   if (falando) partes.push(ds.avatar.falando);
   if (transmitindo) partes.push(ds.avatar.transmitindo);
@@ -85,6 +95,19 @@ export function Avatar({
       style={{ ...vars, ...style }}
     >
       <span aria-hidden="true">{iniciais(nome)}</span>
+      {imagem !== undefined && imagem !== falhou && (
+        <img
+          className={css.foto}
+          src={imagem}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+          onError={() => {
+            setFalhou(imagem);
+          }}
+        />
+      )}
       {falando && <span className={css.fala} aria-hidden="true" />}
       {status && (
         <span className={juntar(css.status, css[status])} aria-hidden="true">
@@ -101,7 +124,7 @@ export function Avatar({
 }
 
 export interface PilhaDeAvataresProps {
-  itens: ReadonlyArray<{ nome: string; id?: string; tom?: number }>;
+  itens: ReadonlyArray<{ nome: string; id?: string; tom?: number; imagem?: string | undefined }>;
   /** Máximo visível antes do "+k". Padrão 4. */
   max?: number;
   /** Tamanho de cada avatar em px. Padrão 28. */
@@ -119,7 +142,7 @@ export function PilhaDeAvatares({ itens, max = 4, tamanho = 28, className }: Pil
     >
       {visiveis.map((p) => (
         <span key={p.id ?? p.nome} className={css.pilhaItem}>
-          <Avatar nome={p.nome} id={p.id} tom={p.tom} tamanho={tamanho} />
+          <Avatar nome={p.nome} id={p.id} tom={p.tom} tamanho={tamanho} imagem={p.imagem} />
         </span>
       ))}
       {resto > 0 && (

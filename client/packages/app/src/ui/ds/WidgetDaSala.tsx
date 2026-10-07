@@ -15,6 +15,8 @@ export interface PessoaDaSala {
   nome: string;
   id?: string;
   tom?: number;
+  /** A foto da pessoa, quando há. */
+  imagem?: string | undefined;
   estado?: "transmitindo" | "falando" | "mudo" | "surdo";
 }
 
@@ -159,6 +161,7 @@ export function WidgetDaSala({
                   id={p.id}
                   tom={p.tom}
                   tamanho={28}
+                  imagem={p.imagem}
                   falando={p.estado === "falando"}
                   transmitindo={p.estado === "transmitindo"}
                 />
