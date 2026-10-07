@@ -1,0 +1,61 @@
+{
+  "name": "nucleo",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "description": "A camada de lógica do Vortex: SDK (adapter), stores, markdown, tema, rota, som. Consumido como fonte TS, sem build próprio.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "pnpm typecheck && pnpm lint && pnpm test"
+  },
+  "exports": {
+    "./sdk/*": "./src/sdk/*.ts",
+    "./store/*": "./src/store/*.ts",
+    "./lib/*": "./src/lib/*.ts",
+    "./markdown/*": "./src/markdown/*.ts",
+    "./tema/*": "./src/tema/*.ts",
+    "./notificacao/*": "./src/notificacao/*.ts",
+    "./rota/*": "./src/rota/*.ts",
+    "./som/*": "./src/som/*.ts",
+    "./preset/*": "./src/preset/*.ts",
+    "./testes/*": "./src/testes/*.ts",
+    "./ui-logica/*": "./src/ui-logica/*.ts",
+    "./arnes/*": "./src/arnes/*.ts"
+  },
+  "dependencies": {
+    "@livekit/track-processors": "0.8.0",
+    "@sapphi-red/web-noise-suppressor": "0.4.0",
+    "@solid-primitives/set": "^0.7.4",
+    "@tanstack/react-virtual": "3.14.10",
+    "livekit-client": "^2.22.1",
+    "remark-breaks": "^4.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "shiki": "^4.4.3",
+    "solid-js": "^1.9.15",
+    "stoat.js": "workspace:^",
+    "ulid": "^3.0.2",
+    "unified": "^11.0.5"
+  },
+  "peerDependencies": {
+    "react": "19.2.8"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/jsdom": "^30.0.0",
+    "@types/mdast": "^4.0.4",
+    "@types/react": "19.2.18",
+    "eslint": "10.9.1",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.12.0",
+    "jsdom": "^30.0.1",
+    "react": "19.2.8",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.68.0",
+    "vite": "8.2.2",
+    "vitest": "^4.1.11"
+  }
+}

@@ -263,7 +263,10 @@ function marcaDoVortex(): Plugin {
  * Os arquivos só são baixados por quem liga o fundo com a câmera aberta —
  * emitidos no `dist` não é o mesmo que carregados na abertura.
  */
-const exigir = createRequire(import.meta.url);
+/* ⚠ Resolvido a partir do package.json do NÚCLEO: o @livekit/track-processors é
+   dependência dele desde a extração, e o nodeLinker isolated só deixa cada pacote
+   enxergar o que declarou. */
+const exigir = createRequire(new URL("../nucleo/package.json", import.meta.url));
 const DIR_DO_MEDIAPIPE = (() => {
   const processadores = dirname(exigir.resolve("@livekit/track-processors"));
   const doProcessador = createRequire(join(processadores, "index.js"));
@@ -408,6 +411,6 @@ export default defineConfig({
      * quinze suítes que nada têm com markdown quebravam todas no mesmo
      * `import`.
      */
-    setupFiles: ["./src/testes/documento.ts"],
+    setupFiles: ["../nucleo/src/testes/documento.ts"],
   },
 });
