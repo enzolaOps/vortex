@@ -81,6 +81,53 @@ const SINTAXE = [
   },
 ];
 
+/**
+ * Texto visível só no catálogo (`src/textos/`): PRD §3 nº 2. Pega literal de
+ * string como filho de JSX e nas props que um leitor de tela ou o navegador
+ * mostram. Número e pontuação passam; qualquer letra não.
+ */
+const TEM_LETRA = "/[A-Za-zÀ-ÿ]/";
+const PROPS_DE_TEXTO =
+  "/^(aria-label|aria-description|aria-placeholder|aria-roledescription|title|placeholder|alt)$/";
+const TEXTO_FORA_DO_CATALOGO =
+  "Texto visível vem de src/textos/. Importe do catálogo em vez de escrever o literal aqui.";
+const SINTAXE_TEXTO = [
+  { selector: `JSXText[value=${TEM_LETRA}]`, message: TEXTO_FORA_DO_CATALOGO },
+  {
+    selector: `JSXElement > JSXExpressionContainer > Literal[value=${TEM_LETRA}]`,
+    message: TEXTO_FORA_DO_CATALOGO,
+  },
+  {
+    selector: `JSXElement > JSXExpressionContainer > TemplateLiteral > TemplateElement[value.raw=${TEM_LETRA}]`,
+    message: TEXTO_FORA_DO_CATALOGO,
+  },
+  {
+    selector: `JSXAttribute[name.name=${PROPS_DE_TEXTO}] > Literal[value=${TEM_LETRA}]`,
+    message: TEXTO_FORA_DO_CATALOGO,
+  },
+  {
+    selector: `JSXAttribute[name.name=${PROPS_DE_TEXTO}] > JSXExpressionContainer > Literal[value=${TEM_LETRA}]`,
+    message: TEXTO_FORA_DO_CATALOGO,
+  },
+  {
+    selector: `JSXAttribute[name.name=${PROPS_DE_TEXTO}] > JSXExpressionContainer > TemplateLiteral > TemplateElement[value.raw=${TEM_LETRA}]`,
+    message: TEXTO_FORA_DO_CATALOGO,
+  },
+];
+
+/**
+ * Item de menu que não faz nada. Ou liga `onSelect`, ou declara `disabled`, ou
+ * delega a ação ao filho com `asChild`. Silêncio não é resposta (PRD §3 nº 1).
+ */
+const ITEM_INERTE = [
+  {
+    selector:
+      "JSXOpeningElement[name.name=/^ItemDeMenu(DeContexto)?$/]:not(:has(JSXAttribute[name.name=/^(onSelect|disabled|asChild)$/])):not(:has(JSXSpreadAttribute))",
+    message:
+      "Item de menu sem `onSelect`. Item que não faz nada é pior que item ausente. Ligue a ação, marque `disabled`, ou remova até a ação existir.",
+  },
+];
+
 export default tseslint.config(
   { ignores: ["dist", "node_modules", "coverage", "src/tema/*.gerado.css"] },
 
@@ -98,7 +145,7 @@ export default tseslint.config(
       "no-eval": "error",
       "no-new-func": "error",
       "no-implied-eval": "error",
-      "no-restricted-syntax": ["error", ...SINTAXE],
+      "no-restricted-syntax": ["error", ...SINTAXE, ...SINTAXE_TEXTO, ...ITEM_INERTE],
       "no-restricted-imports": restringir(RADIX, ICONES),
     },
   },
@@ -111,6 +158,13 @@ export default tseslint.config(
   {
     files: ["src/ui/icones.tsx"],
     rules: { "no-restricted-imports": restringir(RADIX) },
+  },
+
+  // O catálogo é o único lugar onde texto visível pode ser literal; testes
+  // renderizam com texto próprio.
+  {
+    files: ["src/textos/**/*.{ts,tsx}", "src/**/*.test.{ts,tsx}"],
+    rules: { "no-restricted-syntax": ["error", ...SINTAXE, ...ITEM_INERTE] },
   },
 
   // Ferramentas de linha de comando e config: fora do projeto TypeScript do app.
