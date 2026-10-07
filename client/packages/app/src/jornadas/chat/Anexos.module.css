@@ -1,0 +1,65 @@
+.anexos {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--vx-space-2);
+  margin-block-start: var(--vx-space-2);
+}
+
+.moldura {
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-skeleton);
+}
+.moldura img,
+.moldura video {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
+}
+.abrir {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.audio {
+  inline-size: min(100%, 360px);
+  block-size: 40px;
+}
+
+.arquivo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+  box-sizing: border-box;
+  inline-size: min(100%, 360px);
+  block-size: 56px;
+  padding-inline: var(--vx-space-3);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  text-decoration: none;
+}
+.arquivo:hover {
+  background: var(--vx-state-press);
+}
+.nomeDoArquivo {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.peso {
+  flex: none;
+  color: var(--vx-text-3);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-type-mono-size);
+}

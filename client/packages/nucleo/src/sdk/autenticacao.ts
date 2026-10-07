@@ -459,8 +459,12 @@ export function cancelarMfa(): void {
  * Otimista de propósito: mostrar o app e cair para o login se o token morreu é
  * melhor que segurar a pessoa numa tela de espera a cada abertura para
  * confirmar algo que quase sempre está certo.
+ *
+ * ⚠ **O token é gravado ANTES da tela de nome** (`concluir` instala e guarda,
+ * depois pergunta o onboarding). Sem esta checagem, F5 nessa tela ia para
+ * `dentro` e o app abria sem username.
  */
-export function restaurarSessao(): void {
+export async function restaurarSessao(): Promise<void> {
   const guardado = lerTokenGuardado();
   if (!guardado) {
     fora();
@@ -469,12 +473,18 @@ export function restaurarSessao(): void {
 
   try {
     instalar(guardado);
-    dentro(guardado.user_id);
   } catch {
     // Token com forma válida que o SDK recusou. Trata como ausência.
     esquecerToken();
     fora();
+    return;
   }
+
+  if (await precisaEscolherNome()) {
+    precisaDeNome(guardado.user_id);
+    return;
+  }
+  dentro(guardado.user_id);
 }
 
 /**

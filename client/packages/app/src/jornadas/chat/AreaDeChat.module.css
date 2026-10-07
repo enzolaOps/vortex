@@ -1,0 +1,25 @@
+.chat {
+  --medida-da-conversa: 56rem;
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-block-size: 0;
+}
+
+/* A lista toma o que sobra; o container de rolagem dentro dela precisa desse teto. */
+.lista {
+  flex: 1;
+  min-block-size: 0;
+}
+
+.rodape {
+  flex: none;
+  padding: 0 var(--vx-space-4) var(--vx-space-4);
+}
+
+.colunaDoRodape {
+  box-sizing: border-box;
+  inline-size: 100%;
+  max-inline-size: var(--medida-da-conversa);
+  margin-inline: auto;
+}

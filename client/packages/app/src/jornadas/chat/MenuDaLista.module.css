@@ -1,0 +1,27 @@
+.menu {
+  min-inline-size: 220px;
+}
+
+.reacoes {
+  display: flex;
+  gap: var(--vx-space-1);
+  padding: var(--vx-space-1);
+}
+
+.reacao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  inline-size: 32px;
+  block-size: 32px;
+  padding: 0;
+  font-size: var(--vx-type-title-size);
+}
+
+.rodapeDoDialogo {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--vx-space-2);
+  margin-block-start: var(--vx-space-4);
+}

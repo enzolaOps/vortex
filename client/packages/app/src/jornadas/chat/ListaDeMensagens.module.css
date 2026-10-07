@@ -17,13 +17,13 @@
 /*
   A medida de leitura: a coluna da conversa trava e se centra, e o excedente do
   ultrawide vira respiro dos dois lados em vez de texto esticado até 3000px.
-  O composer usará esta mesma coluna (M5), então o valor mora num token local.
+  O composer usa esta mesma coluna: o valor (`--medida-da-conversa`) é declarado por
+  quem monta os dois, `AreaDeChat`, e o fallback só vale fora dela.
 */
 .coluna {
-  --medida-da-conversa: 56rem;
   box-sizing: border-box;
   inline-size: 100%;
-  max-inline-size: var(--medida-da-conversa);
+  max-inline-size: var(--medida-da-conversa, 56rem);
   margin-inline: auto;
   min-inline-size: 0;
   padding-block: var(--vx-space-3);
@@ -74,23 +74,53 @@
   text-align: center;
 }
 
-/* Canal sem histórico: o vazio é o começo do canal, encostado no lugar onde a primeira mensagem vai nascer. */
-.vazio {
+/* O wrapper ancora os controles flutuantes sem mexer na altura da área de rolagem. */
+.raiz {
+  position: relative;
+  block-size: 100%;
+  min-block-size: 0;
+}
+
+/* Prepend em voo: aviso sobreposto no topo, nunca no fluxo (a âncora não pode se mexer por ele). */
+.paginando {
+  position: absolute;
+  inset-block-start: var(--vx-space-2);
+  inset-inline: 0;
+  margin: 0 auto;
+  inline-size: max-content;
+  max-inline-size: 100%;
+  padding: var(--vx-space-1) var(--vx-space-3);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-surface-overlay);
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  pointer-events: none;
+}
+
+/* "Ir para a primeira não lida": barra no topo, só quando a marca está acima do que se vê. */
+.barraDeNaoLida {
+  position: absolute;
+  inset-block-start: var(--vx-space-2);
+  inset-inline: 0;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.barraDeNaoLida > * {
+  pointer-events: auto;
+}
+
+.saltos {
+  position: absolute;
+  inset-block-end: var(--vx-space-3);
+  inset-inline-end: var(--vx-space-5);
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  gap: var(--vx-space-1);
-  block-size: 100%;
-  box-sizing: border-box;
-  padding: var(--vx-space-5);
-  color: var(--vx-text-2);
-  font-size: var(--vx-type-ui-size);
-  line-height: var(--vx-type-ui-line);
+  align-items: flex-end;
+  gap: var(--vx-space-2);
+  pointer-events: none;
 }
-.vazio p {
-  margin: 0;
-}
-.vazio p:first-child {
-  color: var(--vx-text-1);
-  font-weight: var(--vx-type-title-weight);
+.saltos > * {
+  pointer-events: auto;
 }

@@ -2,8 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CHANNEL_ID, seed } from "../arnes/firehose";
 import {
+  channelMessageIds,
   configurarSimulacaoDeEnvio,
   definirUsuarioLocal,
+  descartarPendente,
+  editarMensagem,
   enviarMensagem,
   messages,
   reenviar,
@@ -120,5 +123,49 @@ describe("reenvio", () => {
     // "pending" para sempre é o pior dos três estados: a pessoa não sabe se
     // deve esperar ou tentar de novo.
     expect(messages.peek(id)?.sendState).toBe("failed");
+  });
+});
+
+describe("descartar a que falhou", () => {
+  it("tira a linha da LISTA, e não só do SDK: sem isto ela ficava na tela, descartada e visível", () => {
+    configurarSimulacaoDeEnvio({ ativa: true, falhar: true });
+    const id = enviarMensagem(CHANNEL_ID, "vai embora")!;
+    assinar(id);
+    vi.runAllTimers();
+    virarFrame();
+    expect(messages.peek(id)?.sendState).toBe("failed");
+    expect(channelMessageIds.peek(CHANNEL_ID)).toContain(id);
+
+    descartarPendente(id);
+
+    expect(channelMessageIds.peek(CHANNEL_ID)).not.toContain(id);
+  });
+
+  it("descartar o que já chegou é no-op", () => {
+    const id = enviarMensagem(CHANNEL_ID, "essa ficou")!;
+    assinar(id);
+    vi.runAllTimers();
+    virarFrame();
+    expect(messages.peek(id)?.sendState).toBe("sent");
+
+    descartarPendente(id);
+
+    expect(channelMessageIds.peek(CHANNEL_ID)).toContain(id);
+  });
+});
+
+describe("editar", () => {
+  it("o texto novo e a marca de editada entram na hora, sem esperar o servidor", async () => {
+    const id = enviarMensagem(CHANNEL_ID, "antes")!;
+    assinar(id);
+    vi.runAllTimers();
+    virarFrame();
+    expect(messages.peek(id)?.editedAt).toBeUndefined();
+
+    expect(await editarMensagem(id, "depois")).toBe(true);
+    virarFrame();
+
+    expect(messages.peek(id)?.content).toBe("depois");
+    expect(messages.peek(id)?.editedAt).toBeTypeOf("number");
   });
 });

@@ -1,0 +1,99 @@
+/* Canal sem histórico: o vazio é o começo do canal, encostado onde a primeira mensagem vai nascer. */
+.estado {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: var(--vx-space-1);
+  box-sizing: border-box;
+  block-size: 100%;
+  inline-size: 100%;
+  max-inline-size: var(--medida-da-conversa, 56rem);
+  margin-inline: auto;
+  padding: var(--vx-space-5) var(--vx-space-4);
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.estado p {
+  margin: 0;
+}
+.titulo {
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-display-size);
+  line-height: var(--vx-type-display-line);
+  font-weight: var(--vx-type-display-weight);
+  letter-spacing: var(--vx-type-display-tracking);
+}
+.topico {
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-body-size);
+  line-height: var(--vx-type-body-line);
+}
+.dica {
+  color: var(--vx-text-3);
+}
+
+/* Esqueleto do histórico inicial: só opacidade anima. */
+.carregando {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: var(--vx-space-4);
+  box-sizing: border-box;
+  block-size: 100%;
+  inline-size: 100%;
+  max-inline-size: var(--medida-da-conversa, 56rem);
+  margin-inline: auto;
+  padding: var(--vx-space-5) var(--vx-space-4);
+  overflow: hidden;
+}
+.esqueleto {
+  display: flex;
+  gap: var(--vx-space-3);
+  animation: pulsar 1.4s ease-in-out infinite;
+}
+.avatar {
+  flex: none;
+  inline-size: 36px;
+  block-size: 36px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-skeleton);
+}
+.linhas {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+}
+.nome,
+.texto {
+  display: block;
+  block-size: 12px;
+  border-radius: var(--vx-radius-sm);
+  background: var(--vx-skeleton);
+}
+.nome {
+  inline-size: 96px;
+}
+.texto {
+  inline-size: 70%;
+}
+.texto[data-curto] {
+  inline-size: 40%;
+}
+
+@keyframes pulsar {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .esqueleto {
+    animation: none;
+  }
+}

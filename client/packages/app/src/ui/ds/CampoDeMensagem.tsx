@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 
 import { chat, ds } from "../../textos";
 import { Anexo, Enviar, Sorriso } from "../icones";
@@ -23,6 +23,14 @@ export interface CampoDeMensagemProps {
   /** Os botões de anexar e emoji só existem com tratador (controle sem ação não aparece). */
   onAnexar?: () => void;
   onEmoji?: () => void;
+  /** Acima da linha de escrita, dentro da mesma caixa: prévia de resposta, anexos. */
+  topo?: ReactNode;
+  /** Há algo além do texto a enviar (anexos): enviar vazio passa a valer. */
+  permitirVazio?: boolean;
+  /** O `textarea`, para quem precisa devolver o foco (responder, anexar). */
+  areaRef?: (el: HTMLTextAreaElement | null) => void;
+  /** Antes do tratador de Enter do campo; `preventDefault()` assume a tecla. */
+  onKeyDown?: (e: KeyboardEvent<HTMLTextAreaElement>) => void;
   className?: string;
 }
 
@@ -37,13 +45,17 @@ export function CampoDeMensagem({
   enviando = false,
   onAnexar,
   onEmoji,
+  topo,
+  permitirVazio = false,
+  areaRef,
+  onKeyDown,
   className,
 }: CampoDeMensagemProps) {
   const [interno, setInterno] = useState(valorInicial);
   const texto = valor ?? interno;
   const area = useRef<HTMLTextAreaElement>(null);
   const idDoMotivo = useId();
-  const vazio = texto.trim() === "";
+  const vazio = texto.trim() === "" && !permitirVazio;
 
   // Cresce com o conteúdo; o teto e a rolagem são do CSS.
   useLayoutEffect(() => {
@@ -65,6 +77,8 @@ export function CampoDeMensagem({
   };
 
   const aoTeclar = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    onKeyDown?.(e);
+    if (e.defaultPrevented) return;
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       enviar();
@@ -78,6 +92,7 @@ export function CampoDeMensagem({
         raio="xl"
         className={juntar(css.campo, desabilitado && css.desabilitado, enviando && css.enviando)}
       >
+        {topo}
         <div className={css.linha}>
           {onAnexar && (
             <Botao
@@ -90,7 +105,10 @@ export function CampoDeMensagem({
             />
           )}
           <textarea
-            ref={area}
+            ref={(el) => {
+              area.current = el;
+              areaRef?.(el);
+            }}
             rows={1}
             className={css.texto}
             value={texto}

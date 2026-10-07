@@ -37,7 +37,9 @@ export function ConteudoDoDialogo({
         // Sem descrição o Radix avisa no console; `undefined` diz que é de propósito.
         {...(descricao === undefined ? { "aria-describedby": undefined } : {})}
         {...props}
-        className={juntar(vidroElevado("lg"), estilos.dialogo, estilos.entrada, className)}
+        // `camada` (z-index 50, o mesmo do véu, que vem ANTES no DOM): sem ela o véu cobre o
+        // conteúdo e nenhum clique dentro do diálogo chega ao botão.
+        className={juntar(vidroElevado("lg"), estilos.camada, estilos.dialogo, estilos.entrada, className)}
       >
         <Primitivo.Title className={tituloOculto ? estilos.somenteLeitor : estilos.titulo}>
           {titulo}

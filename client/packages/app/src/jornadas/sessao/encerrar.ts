@@ -56,5 +56,5 @@ export function iniciarSessao(): void {
   ligarAtalhosDeVoz();
   ligarSonsDeVoz();
   ligarLogoutDoServidor();
-  restaurarSessao();
+  void restaurarSessao();
 }

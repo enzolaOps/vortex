@@ -10,3 +10,6 @@ test-results/
 # Saída do compiler de estilo, se houver. Nunca commitada.
 styled-system/
 .turbo/
+
+# Dump de falha do Vitest browser. Nunca commitar.
+.vitest-attachments/
