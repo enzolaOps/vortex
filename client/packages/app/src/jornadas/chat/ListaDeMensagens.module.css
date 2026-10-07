@@ -1,0 +1,96 @@
+/*
+  O container de rolagem PRECISA de altura definida (block-size: 100% de um pai que a
+  tem): sem teto ele cresce com o conteúdo e o virtualizador monta as dez mil linhas
+  de uma vez, sem erro nenhum. Quem dá a altura é a área principal do shell.
+*/
+.rolagem {
+  block-size: 100%;
+  overflow-y: auto;
+  /* Reserva a calha da barra sempre: o conteúdo não salta de lado durante o scroll. */
+  scrollbar-gutter: stable;
+  /* Vazar o scroll em app de painéis faz a página inteira rolar por baixo. */
+  overscroll-behavior: contain;
+  /* Duas âncoras no mesmo scroller (CSS default + TanStack anchorTo: end) é o textbook de deriva. */
+  overflow-anchor: none;
+}
+
+/*
+  A medida de leitura: a coluna da conversa trava e se centra, e o excedente do
+  ultrawide vira respiro dos dois lados em vez de texto esticado até 3000px.
+  O composer usará esta mesma coluna (M5), então o valor mora num token local.
+*/
+.coluna {
+  --medida-da-conversa: 56rem;
+  box-sizing: border-box;
+  inline-size: 100%;
+  max-inline-size: var(--medida-da-conversa);
+  margin-inline: auto;
+  min-inline-size: 0;
+  padding-block: var(--vx-space-3);
+}
+
+.medidor {
+  position: relative;
+  inline-size: 100%;
+}
+
+.linha {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  min-inline-size: 0;
+  /* URL longa quebra dentro da linha em vez de estourar a coluna. */
+  overflow-wrap: anywhere;
+}
+
+.placeholder {
+  block-size: 40px;
+}
+
+.divisor {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+  padding: var(--vx-space-2) var(--vx-space-4);
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-label-size);
+  line-height: var(--vx-type-label-line);
+  font-weight: var(--vx-type-label-weight);
+}
+.divisor::before,
+.divisor::after {
+  content: "";
+  flex: 1;
+  block-size: 1px;
+  background: var(--vx-glass-border);
+}
+
+.sistema {
+  margin: 0;
+  padding: var(--vx-space-2) var(--vx-space-4);
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  text-align: center;
+}
+
+/* Canal sem histórico: o vazio é o começo do canal, encostado no lugar onde a primeira mensagem vai nascer. */
+.vazio {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: var(--vx-space-1);
+  block-size: 100%;
+  box-sizing: border-box;
+  padding: var(--vx-space-5);
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.vazio p {
+  margin: 0;
+}
+.vazio p:first-child {
+  color: var(--vx-text-1);
+  font-weight: var(--vx-type-title-weight);
+}

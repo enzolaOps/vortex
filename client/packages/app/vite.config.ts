@@ -32,6 +32,18 @@ export default defineConfig({
     cspDoVortex(),
   ],
 
+  /*
+    Constantes de build que o `nucleo` espera (declaradas em `nucleo/src/global.d.ts`).
+    O `nucleo/arnes/firehose` puxa o adapter, e o adapter puxa módulos que as leem no
+    escopo do módulo: sem o `define`, o chunk do arnês lança ReferenceError ao carregar.
+    O runtime do MediaPipe (fundo de vídeo) é assunto de voz e ainda não é servido pelo
+    `app`, então a versão dele é um marcador.
+  */
+  define: {
+    __VERSAO__: JSON.stringify("0.0.0"),
+    __VERSAO_MEDIAPIPE__: JSON.stringify("0.0.0"),
+  },
+
   ssr: { resolve: { conditions: CONDICOES_NODE } },
 
   test: {

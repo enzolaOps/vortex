@@ -12,4 +12,8 @@ export const chat = {
   novasMensagens: (n: number) => plural(n, "nova mensagem", "novas mensagens"),
   digitando: (nome: string) => `${nome} está digitando…`,
   editada: "editada",
+  listaDeMensagens: "Mensagens",
+  autorDesconhecido: "Alguém",
+  eventoDoCanal: "Aconteceu algo no canal.",
+  comecoDoCanal: "Este é o começo do canal.",
 } as const;
