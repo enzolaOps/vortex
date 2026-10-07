@@ -10,6 +10,7 @@ import {
   messages,
   typing,
 } from "nucleo/sdk/adapter";
+import { readCounters, resetCounters } from "nucleo/arnes/stats";
 import { analisar } from "nucleo/markdown/analisar";
 import { chaveDeMembro, type ChannelSnapshot, type MessageSnapshot } from "nucleo/sdk/domain";
 import { limparConexao, pausarConexao } from "nucleo/store/conexao";
@@ -913,5 +914,29 @@ describe("composer", () => {
     campo().setSelectionRange(6, 9);
     await userEvent.keyboard("{Control>}b{/Control}");
     await expect.poll(() => campo().value).toBe("dizer **olá** agora");
+  });
+
+  it("a foto do autor cobre o avatar e trocá-la não re-renderiza a linha", async () => {
+    semear([snap("f1", { authorId: "U2" })]);
+    abrir();
+    const foto = () => linhaDe("f1")?.querySelector("img");
+    await expect.poll(() => linhaDe("f1")).not.toBeNull();
+    expect(foto()).toBeNull();
+    const base = { id: "U2", displayName: "Ana", sigla: "An" };
+
+    members.set(chaveDeMembro(S, "U2"), parcial({ ...base, avatarUrl: "http://localhost/a1.png" }));
+    await expect.poll(() => foto()?.getAttribute("src")).toBe("http://localhost/a1.png");
+
+    resetCounters();
+    members.set(chaveDeMembro(S, "U2"), parcial({ ...base, avatarUrl: "http://localhost/a2.png" }));
+    await expect.poll(() => foto()?.getAttribute("src")).toBe("http://localhost/a2.png");
+    await esperar(100);
+    expect(readCounters().rowRenders).toBe(0);
+
+    // O nome é da linha: trocar o nome a acorda.
+    resetCounters();
+    members.set(chaveDeMembro(S, "U2"), parcial({ ...base, displayName: "Ana Maria", avatarUrl: "http://localhost/a2.png" }));
+    await expect.poll(() => linhaDe("f1")?.textContent).toContain("Ana Maria");
+    expect(readCounters().rowRenders).toBeGreaterThan(0);
   });
 });

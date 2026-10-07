@@ -417,6 +417,24 @@ export function useMembro(chave: ChaveDeMembro): MemberSnapshot | undefined {
 }
 
 /**
+ * SÓ o nome de exibição do membro: um string, comparado por valor.
+ *
+ * Quem precisa do nome mas não da foto assina isto e não `useMembro`: trocar o
+ * avatar republica o snapshot do membro, e a linha de mensagem não pode
+ * re-renderizar por causa disso (o avatar tem componente próprio).
+ */
+export function useNomeDoMembro(chave: ChaveDeMembro): string | undefined {
+  const getSnapshot = () => members.getSnapshot(chave)?.displayName;
+  return useSyncExternalStore(members.subscriber(chave), getSnapshot);
+}
+
+/** SÓ a foto do membro (URL ou ausência), pelo mesmo motivo de `useNomeDoMembro`. */
+export function useAvatarDoMembro(chave: ChaveDeMembro): string | undefined {
+  const getSnapshot = () => members.getSnapshot(chave)?.avatarUrl;
+  return useSyncExternalStore(members.subscriber(chave), getSnapshot);
+}
+
+/**
  * Os dois baldes assinam separado.
  *
  * Alguém ficar offline republica UM dos dois arrays na maior parte das vezes —

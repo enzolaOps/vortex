@@ -10,6 +10,12 @@ import { PainelVidro } from "./PainelVidro";
 
 export interface MensagemProps {
   autor: { nome: string; id?: string; tom?: number };
+  /**
+   * O avatar já pronto. Quem sabe a foto da pessoa passa um componente que
+   * assina só ela, para trocar a foto não re-renderizar a linha. Sem ele, o
+   * avatar de iniciais.
+   */
+  avatar?: ReactNode;
   /** Horário já formatado, ex. "14:32". */
   hora: string;
   /** Corpo da mensagem. Links (`<a>`) saem em `accent` com sublinhado. */
@@ -58,6 +64,7 @@ export interface MensagemProps {
  */
 function MensagemBase({
   autor,
+  avatar,
   hora,
   children,
   continuacao = false,
@@ -92,7 +99,7 @@ function MensagemBase({
         {continuacao ? (
           <time className={css.horaNoHover}>{hora}</time>
         ) : (
-          <Avatar nome={autor.nome} id={autor.id} tom={autor.tom} tamanho={36} />
+          (avatar ?? <Avatar nome={autor.nome} id={autor.id} tom={autor.tom} tamanho={36} />)
         )}
       </div>
 
