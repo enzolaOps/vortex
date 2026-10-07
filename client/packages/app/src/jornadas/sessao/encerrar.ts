@@ -45,5 +45,5 @@ export function reiniciarEncerramento(): void {
  */
 export function iniciarSessao(): void {
   ligarLogoutDoServidor();
-  restaurarSessao();
+  void restaurarSessao();
 }
