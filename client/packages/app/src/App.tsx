@@ -1,3 +1,4 @@
+import { ChamadaRecebida } from "./jornadas/casa";
 import { ShellDasSalas } from "./jornadas/salas";
 import { JanelaDestacada } from "./jornadas/voz";
 import { BotaoDeSair, PortaoDeSessao } from "./jornadas/sessao";
@@ -13,6 +14,7 @@ export function App() {
       <PortaoDeSessao>
         <ShellDasSalas rodapeDasSalas={<BotaoDeSair />} />
         <JanelaDestacada />
+        <ChamadaRecebida />
       </PortaoDeSessao>
       <Avisos />
     </>

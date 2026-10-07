@@ -2,6 +2,7 @@ import {
   AppWindow as LAppWindow,
   ArrowLeft as LArrowLeft,
   AtSign as LAtSign,
+  Ban as LBan,
   Bell as LBell,
   BellOff as LBellOff,
   Check as LCheck,
@@ -34,6 +35,7 @@ import {
   MonitorUp as LMonitorUp,
   Paperclip as LPaperclip,
   Pencil as LPencil,
+  Phone as LPhone,
   PhoneOff as LPhoneOff,
   PictureInPicture2 as LPictureInPicture2,
   Pin as LPin,
@@ -141,6 +143,8 @@ export const Tela = envolver(LMonitor);
 export const Janela = envolver(LAppWindow);
 export const Editar = envolver(LPencil);
 export const EncerrarChamada = envolver(LPhoneOff);
+export const Telefone = envolver(LPhone);
+export const Proibido = envolver(LBan);
 export const ImagemSobreImagem = envolver(LPictureInPicture2);
 export const Mais = envolver(LPlus);
 export const Buscar = envolver(LSearch);
