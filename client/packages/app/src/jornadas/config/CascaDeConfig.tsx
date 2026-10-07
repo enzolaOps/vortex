@@ -13,6 +13,7 @@ import { Conta } from "./Conta";
 import { Dispositivos } from "./Dispositivos";
 import { Notificacoes } from "./Notificacoes";
 import { Perfil } from "./Perfil";
+import { assinarPerfilMudou, lerRevisaoDoPerfil } from "./perfilMudou";
 import {
   GRUPOS_DA_NAVEGACAO,
   NOME_DA_SECAO,
@@ -34,6 +35,8 @@ const CONTEUDO: Record<SecaoEssencial, () => ReactNode> = {
 
 /** Quem sou eu, no alto da navegação. */
 function Identidade() {
+  // O nome muda ao salvar o perfil; sem assinar, a navegação só atualizaria na próxima abertura.
+  useSyncExternalStore(assinarPerfilMudou, lerRevisaoDoPerfil);
   const eu = lerMeuPerfil();
   const status = useSyncExternalStore(assinarMeuStatus, lerMeuStatus);
   if (!eu) return null;
