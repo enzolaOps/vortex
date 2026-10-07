@@ -1,0 +1,118 @@
+.composer {
+  position: relative;
+}
+
+.topo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+  padding: var(--vx-space-1) var(--vx-space-2) var(--vx-space-2);
+  border-block-end: 1px solid var(--vx-border-subtle);
+  margin-block-end: var(--vx-space-1);
+}
+
+.previa {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  padding: var(--vx-space-1) var(--vx-space-2);
+  border-inline-start: 2px solid var(--vx-accent);
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.previaTexto {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+.previaTitulo {
+  color: var(--vx-text-2);
+  font-weight: 600;
+}
+.previaTrecho {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fechar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  inline-size: 24px;
+  block-size: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  background: transparent;
+  color: var(--vx-text-3);
+  cursor: pointer;
+}
+.fechar:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.fichas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ficha {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  max-inline-size: 240px;
+  padding: var(--vx-space-1) var(--vx-space-1) var(--vx-space-1) var(--vx-space-2);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-state-hover);
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.fichaNome {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aviso {
+  margin: 0;
+  color: var(--vx-danger);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+
+.conexao {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  margin: var(--vx-space-1) var(--vx-space-3) 0;
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+
+/* Sem permissão o campo sai e a frase entra: não há o que tentar. */
+.semPermissao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vx-space-2);
+  box-sizing: border-box;
+  margin: 0;
+  padding: var(--vx-space-3) var(--vx-space-4);
+  border: 1px dashed var(--vx-border-strong);
+  border-radius: var(--vx-radius-xl);
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}

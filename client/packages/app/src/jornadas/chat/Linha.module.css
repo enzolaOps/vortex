@@ -1,0 +1,189 @@
+/*
+  A prévia de resposta é IRMÃ da linha, não filha: se fosse filha, o hover da
+  linha cobriria a prévia e a barra de ações (que ancora na borda de cima)
+  pousaria sobre o alvo do clique "pular para a mensagem".
+  O recuo alinha com a coluna de conteúdo: padding da linha + avatar de 36px + vão.
+*/
+.citacao {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+  margin: 0;
+  padding: var(--vx-space-1) var(--vx-space-4) 0 calc(var(--vx-space-4) + 36px + var(--vx-space-3));
+  border: 0;
+  background: transparent;
+  color: var(--vx-text-3);
+  font: inherit;
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  text-align: start;
+  cursor: pointer;
+}
+.citacao:hover .citacaoTrecho {
+  color: var(--vx-text-1);
+}
+.citacao:focus-visible {
+  outline-offset: -2px;
+}
+.citacaoAutor {
+  flex: none;
+  color: var(--vx-text-2);
+  font-weight: 600;
+}
+.citacaoTrecho {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Divisor de novas mensagens: posição, não contagem. */
+.novas {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+  padding: var(--vx-space-2) var(--vx-space-4);
+  color: var(--vx-danger);
+  font-size: var(--vx-type-label-size);
+  line-height: var(--vx-type-label-line);
+  font-weight: var(--vx-type-label-weight);
+  letter-spacing: var(--vx-type-label-tracking);
+  text-transform: uppercase;
+}
+.novas::before,
+.novas::after {
+  content: "";
+  flex: 1;
+  block-size: 1px;
+  background: var(--vx-danger);
+  opacity: 0.5;
+}
+.novas span {
+  flex: none;
+}
+
+/* Reações, estado de envio e marcas, sob o corpo. */
+.rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vx-space-1) var(--vx-space-2);
+  margin-block-start: var(--vx-space-1);
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+
+.reacao {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-1);
+  block-size: 24px;
+  padding-inline: var(--vx-space-2);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-state-hover);
+  color: var(--vx-text-2);
+  font: inherit;
+  font-size: var(--vx-type-caption-size);
+  cursor: pointer;
+}
+.reacao:hover {
+  background: var(--vx-state-press);
+}
+.reacao[aria-pressed="true"] {
+  border-color: var(--vx-accent);
+  background: var(--vx-accent-soft);
+  color: var(--vx-text-1);
+}
+.reacao:disabled {
+  cursor: default;
+}
+.reacaoEmoji {
+  font-size: var(--vx-type-body-strong-size);
+  line-height: 1;
+}
+.reacaoImagem {
+  inline-size: 16px;
+  block-size: 16px;
+  object-fit: contain;
+}
+
+.marca {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-1);
+}
+
+.estado {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vx-space-2);
+  color: var(--vx-text-3);
+}
+.estadoFalha {
+  color: var(--vx-danger);
+}
+.acaoDoEstado {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--vx-accent);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.acaoDoEstado:hover {
+  color: var(--vx-accent-hover);
+}
+
+.progresso {
+  inline-size: 120px;
+  block-size: 4px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-skeleton);
+  overflow: hidden;
+}
+.progresso > i {
+  display: block;
+  block-size: 100%;
+  background: var(--vx-accent);
+  transform-origin: left center;
+}
+
+/* Edição in-line: o campo fica no lugar do corpo, na mesma coluna. */
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+}
+.editorCampo {
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-block-size: 40px;
+  max-block-size: 176px;
+  padding: var(--vx-space-2) var(--vx-space-3);
+  resize: none;
+  border: 1px solid var(--vx-border-strong);
+  border-radius: var(--vx-radius-sm);
+  background: var(--vx-surface-glass-reading);
+  color: var(--vx-text-1);
+  font-family: var(--vx-font-sans);
+  font-size: var(--vx-type-body-size);
+  line-height: var(--vx-type-body-line);
+}
+.editorCampo:focus-visible {
+  outline: 2px solid var(--vx-focus-ring);
+  outline-offset: 2px;
+}
+.editorDica {
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}

@@ -1,0 +1,264 @@
+import { digitacao, enviarMensagem } from "nucleo/sdk/adapter";
+import { temServidorDeMidia, tetoDeUploadBytes, tetoDeUploadTexto } from "nucleo/sdk/anexos";
+import { chaveDeMembro } from "nucleo/sdk/domain";
+import { pode } from "nucleo/sdk/permissoes";
+import { useChannel, useConexao, useMembro, useMessage, useRascunho } from "nucleo/store/hooks";
+import { limparRascunho, escreverRascunho } from "nucleo/store/rascunhos";
+import { cancelarResposta } from "nucleo/store/resposta";
+import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent } from "react";
+
+import { chat } from "../../textos";
+import { CampoDeMensagem } from "../../ui/ds";
+import { Arquivo, Cadeado, Fechar, Imagem, SemConexao } from "../../ui/icones";
+import { trechoDe } from "./CitacaoDeResposta";
+import css from "./Composer.module.css";
+import { useAlvoDeResposta, usePendentesDoCanal } from "./hooks";
+import { pedirFimDaLista } from "./saltos";
+
+/** O protocolo aceita até cinco anexos por mensagem. */
+const MAXIMO_DE_ANEXOS = 5;
+
+function PreviaDeResposta({
+  alvoId,
+  canalId,
+  servidorId,
+}: {
+  alvoId: string;
+  canalId: string;
+  servidorId: string;
+}) {
+  const alvo = useMessage(alvoId);
+  const autor = useMembro(chaveDeMembro(servidorId, alvo?.authorId ?? ""));
+  const nome = autor?.displayName ?? chat.autorDesconhecido;
+  return (
+    <div className={css.previa}>
+      <span className={css.previaTexto}>
+        <span className={css.previaTitulo}>{chat.respondendoA(nome)}</span>
+        <span className={css.previaTrecho}>
+          {alvo === undefined ? chat.respostaIndisponivel : trechoDe(alvo.content)}
+        </span>
+      </span>
+      <button
+        type="button"
+        className={css.fechar}
+        aria-label={chat.cancelarResposta}
+        onClick={() => {
+          cancelarResposta(canalId);
+        }}
+      >
+        <Fechar tamanho={14} />
+      </button>
+    </div>
+  );
+}
+
+function FichaDeAnexo({ arquivo, aoRemover }: { arquivo: File; aoRemover: () => void }) {
+  const ehImagem = arquivo.type.startsWith("image/");
+  return (
+    <li className={css.ficha}>
+      {ehImagem ? <Imagem tamanho={16} /> : <Arquivo tamanho={16} />}
+      <span className={css.fichaNome}>{arquivo.name}</span>
+      <button type="button" className={css.fechar} aria-label={chat.removerAnexo(arquivo.name)} onClick={aoRemover}>
+        <Fechar tamanho={14} />
+      </button>
+    </li>
+  );
+}
+
+/** Envolve a seleção do campo numa marca de markdown (Ctrl+B, Ctrl+I). */
+function envolver(el: HTMLTextAreaElement, marca: string, escrever: (texto: string) => void) {
+  const { selectionStart: de, selectionEnd: ate, value } = el;
+  const novo = `${value.slice(0, de)}${marca}${value.slice(de, ate)}${marca}${value.slice(ate)}`;
+  escrever(novo);
+  // O campo é controlado: a seleção só pode ser restaurada depois do render.
+  requestAnimationFrame(() => {
+    el.setSelectionRange(de + marca.length, ate + marca.length);
+  });
+}
+
+/**
+ * O composer do canal: rascunho por canal, markdown digitado, responder, anexar,
+ * "digitando" e envio otimista. Tudo o que é lógica mora no núcleo
+ * (`enviarMensagem` cria a linha com nonce, reconcilia e reenvia); aqui só se
+ * liga o campo a ele.
+ *
+ * Sem permissão de escrever o campo SAI e entra uma frase: um campo
+ * desabilitado ensina a tentar de novo, e a frase diz por que não há o que
+ * tentar. O rascunho mora fora do React, então trocar de canal e voltar devolve
+ * o texto onde estava.
+ */
+export function Composer({ canalId, servidorId }: { canalId: string; servidorId: string }) {
+  const canal = useChannel(canalId);
+  const rascunho = useRascunho(canalId);
+  const alvo = useAlvoDeResposta(canalId);
+  const conectado = useConexao() === "conectado";
+  const naFila = usePendentesDoCanal(canalId);
+  const [arquivos, setArquivos] = useState<File[]>([]);
+  const [aviso, setAviso] = useState<string | undefined>(undefined);
+  const area = useRef<HTMLTextAreaElement | null>(null);
+  const seletor = useRef<HTMLInputElement | null>(null);
+
+  // Armar uma resposta leva o foco ao campo: quem clicou em responder vai escrever.
+  const alvoId = alvo?.messageId;
+  useEffect(() => {
+    if (alvoId !== undefined) area.current?.focus();
+  }, [alvoId]);
+
+  if (!canal) return null;
+
+  if (!pode(canalId, "enviar")) {
+    return (
+      <p className={css.semPermissao} role="note">
+        <Cadeado tamanho={16} />
+        {canal.tipo === "voz" ? chat.semPermissaoNaSala : chat.semPermissaoParaEscrever}
+      </p>
+    );
+  }
+
+  const mudar = (texto: string) => {
+    escreverRascunho(canalId, texto);
+    if (texto.trim() === "") digitacao.aoParar(canalId);
+    else digitacao.aoDigitar(canalId);
+  };
+
+  const adicionar = (novos: readonly File[]) => {
+    const teto = tetoDeUploadBytes("attachments");
+    const aceitos: File[] = [];
+    let recusa: string | undefined;
+    for (const arquivo of novos) {
+      if (arquivo.size === 0) continue;
+      if (teto !== undefined && arquivo.size > teto) {
+        const limite = tetoDeUploadTexto("attachments");
+        recusa = `${chat.arquivoGrande(arquivo.name)}${limite === undefined ? "" : ` ${chat.limiteDeEnvio(limite)}`}`;
+        continue;
+      }
+      aceitos.push(arquivo);
+    }
+    const cabem = Math.max(0, MAXIMO_DE_ANEXOS - arquivos.length);
+    setArquivos((atuais) => [...atuais, ...aceitos.slice(0, cabem)]);
+    setAviso(recusa);
+  };
+
+  const enviar = (texto: string) => {
+    const id = enviarMensagem(
+      canalId,
+      texto,
+      alvo === undefined ? undefined : { id: alvo.messageId, mencionar: alvo.mencionar },
+      arquivos.length > 0 ? arquivos : undefined,
+    );
+    // `undefined`: o núcleo recusou (canal ainda não carregado). O rascunho fica.
+    if (id === undefined) return;
+    limparRascunho(canalId);
+    cancelarResposta(canalId);
+    setArquivos([]);
+    setAviso(undefined);
+    // Quem acabou de falar quer ver a própria fala, mesmo lendo o histórico.
+    pedirFimDaLista(canalId);
+  };
+
+  const aoTeclar = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Escape" && alvo !== undefined) {
+      e.preventDefault();
+      cancelarResposta(canalId);
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
+      if (e.key === "b" || e.key === "B") {
+        e.preventDefault();
+        envolver(e.currentTarget, "**", mudar);
+      } else if (e.key === "i" || e.key === "I") {
+        e.preventDefault();
+        envolver(e.currentTarget, "*", mudar);
+      }
+    }
+  };
+
+  const aoColar = (e: ClipboardEvent<HTMLDivElement>) => {
+    if (e.clipboardData.files.length === 0) return;
+    // Imagem colada vira anexo; texto colado segue o caminho normal do campo.
+    e.preventDefault();
+    adicionar(Array.from(e.clipboardData.files));
+  };
+  const aoSoltar = (e: DragEvent<HTMLDivElement>) => {
+    if (e.dataTransfer.files.length === 0) return;
+    e.preventDefault();
+    adicionar(Array.from(e.dataTransfer.files));
+  };
+
+  const podeAnexar = temServidorDeMidia();
+  const nome = canal.name;
+  const topo =
+    alvo !== undefined || arquivos.length > 0 || aviso !== undefined ? (
+      <div className={css.topo}>
+        {alvo !== undefined && <PreviaDeResposta alvoId={alvo.messageId} canalId={canalId} servidorId={servidorId} />}
+        {arquivos.length > 0 && (
+          <ul className={css.fichas} aria-label={chat.anexosSelecionados}>
+            {arquivos.map((arquivo, i) => (
+              <FichaDeAnexo
+                key={`${arquivo.name}:${arquivo.size}:${arquivo.lastModified}:${i}`}
+                arquivo={arquivo}
+                aoRemover={() => {
+                  setArquivos((atuais) => atuais.filter((outro) => outro !== arquivo));
+                }}
+              />
+            ))}
+          </ul>
+        )}
+        {aviso !== undefined && (
+          <p className={css.aviso} role="alert">
+            {aviso}
+          </p>
+        )}
+      </div>
+    ) : undefined;
+
+  return (
+    <div
+      className={css.composer}
+      onPaste={aoColar}
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes("Files")) e.preventDefault();
+      }}
+      onDrop={aoSoltar}
+    >
+      <CampoDeMensagem
+        valor={rascunho}
+        onChange={mudar}
+        onEnviar={enviar}
+        placeholder={chat.placeholderDoCampo(nome)}
+        permitirVazio={arquivos.length > 0}
+        topo={topo}
+        areaRef={(el) => {
+          area.current = el;
+        }}
+        onKeyDown={aoTeclar}
+        onAnexar={
+          podeAnexar
+            ? () => {
+                seletor.current?.click();
+              }
+            : undefined
+        }
+      />
+      <input
+        ref={seletor}
+        type="file"
+        multiple
+        hidden
+        data-testid="seletor-de-arquivos"
+        onChange={(e) => {
+          adicionar(Array.from(e.target.files ?? []));
+          // Limpa para permitir escolher o mesmo arquivo de novo depois de removê-lo.
+          e.target.value = "";
+        }}
+      />
+      {(!conectado || naFila > 0) && (
+        <p className={css.conexao} role="status">
+          <SemConexao tamanho={14} />
+          {chat.semConexao}
+          {naFila > 0 && <span> · {chat.naFila(naFila)}</span>}
+        </p>
+      )}
+    </div>
+  );
+}

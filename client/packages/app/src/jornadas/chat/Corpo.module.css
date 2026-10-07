@@ -1,0 +1,77 @@
+.bloco {
+  margin: 0;
+}
+.bloco + .bloco {
+  margin-block-start: var(--vx-space-1);
+}
+
+.titulo {
+  color: var(--vx-text-1);
+  font-weight: var(--vx-type-heading-weight);
+}
+.titulo[data-nivel="1"] {
+  font-size: var(--vx-type-title-size);
+  line-height: var(--vx-type-title-line);
+}
+
+.codigo {
+  padding: 0 var(--vx-space-1);
+  border-radius: var(--vx-radius-sm);
+  background: var(--vx-state-press);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-type-mono-size);
+  line-height: var(--vx-type-mono-line);
+}
+
+.pre {
+  box-sizing: border-box;
+  max-inline-size: 100%;
+  padding: var(--vx-space-2) var(--vx-space-3);
+  overflow-x: auto;
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-sm);
+  background: var(--vx-surface-solid);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-type-mono-size);
+  line-height: 1.5;
+  /* Código não quebra no meio: rola por dentro, a linha não cresce de lado. */
+  white-space: pre;
+  overflow-wrap: normal;
+}
+.pre code {
+  font: inherit;
+}
+
+.citacao {
+  padding-inline-start: var(--vx-space-3);
+  border-inline-start: 2px solid var(--vx-border-strong);
+  color: var(--vx-text-2);
+}
+
+.lista {
+  padding-inline-start: var(--vx-space-6);
+}
+.lista li > p {
+  margin: 0;
+}
+
+.regra {
+  margin-block: var(--vx-space-2);
+  border: 0;
+  border-block-start: 1px solid var(--vx-border-subtle);
+}
+
+.mencao {
+  padding: 0 var(--vx-space-1);
+  border-radius: var(--vx-radius-sm);
+  background: var(--vx-accent-soft);
+  color: var(--vx-accent);
+  font-weight: 600;
+}
+
+.emoji {
+  inline-size: 1.4em;
+  block-size: 1.4em;
+  vertical-align: -0.3em;
+  object-fit: contain;
+}

@@ -4,7 +4,7 @@ import { AreaPrincipal } from "../../shell";
 import { shell } from "../../textos";
 import { PalcoDaSala } from "../voz/Palco";
 import { useSalaDoPalco } from "../voz/hooks";
-import { ListaDeMensagens } from "../chat/ListaDeMensagens";
+import { AreaDeChat } from "../chat/AreaDeChat";
 import css from "./Salas.module.css";
 import { WidgetConectado } from "./WidgetConectado";
 import { EsqueletoDeSalas } from "./ColunaConectada";
@@ -40,9 +40,7 @@ export function AreaConectada() {
   return (
     <AreaPrincipal camada={<WidgetConectado serverId={local.serverId} />}>
       {local.channelId !== undefined ? (
-        <div className={css.conversa}>
-          <ListaDeMensagens key={local.channelId} canalId={local.channelId} servidorId={local.serverId} />
-        </div>
+        <AreaDeChat key={local.channelId} canalId={local.channelId} servidorId={local.serverId} />
       ) : undefined}
     </AreaPrincipal>
   );

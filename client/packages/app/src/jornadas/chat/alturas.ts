@@ -29,6 +29,24 @@ export const ALTURA_ESTIMADA = 80;
 /** O divisor de dia vive dentro da linha que abre o dia. */
 export const ALTURA_DO_DIVISOR = 32;
 
+/** O divisor de "novas mensagens" também vive dentro da linha. */
+export const ALTURA_DO_DIVISOR_DE_NOVAS = 36;
+
+/** A prévia da resposta, irmã da linha: uma linha de 18px mais o respiro de cima. */
+export const ALTURA_DA_CITACAO = 22;
+
+/** A fileira de reações sob o corpo: chip de 24px mais o respiro. */
+export const ALTURA_DAS_REACOES = 28;
+
+/** A linha de estado de envio ("Enviando…", "Não foi enviada"). */
+export const ALTURA_DO_ESTADO_DE_ENVIO = 22;
+
+/** Quão perto do topo (px) a lista pede a página anterior do histórico. */
+export const LIMIAR_DE_PAGINACAO = 600;
+
+/** Quão longe do fim (px) aparece o atalho "Ir para as mensagens recentes". */
+export const LIMIAR_DE_LONGE = 800;
+
 /** Quão longe do fim ainda conta como "no fim". Um número para os dois lados concordarem. */
 export const LIMIAR_DE_FIM = 80;
 
