@@ -1,0 +1,187 @@
+.widget {
+  position: absolute;
+  z-index: 5;
+  inline-size: max-content;
+  max-inline-size: calc(100% - 2 * var(--vx-space-4));
+  font-family: var(--vx-font-sans);
+}
+.estatico {
+  position: relative;
+}
+.tl {
+  inset-block-start: var(--vx-space-4);
+  inset-inline-start: var(--vx-space-4);
+}
+.tr {
+  inset-block-start: var(--vx-space-4);
+  inset-inline-end: var(--vx-space-4);
+}
+.bl {
+  inset-block-end: var(--vx-space-4);
+  inset-inline-start: var(--vx-space-4);
+}
+.br {
+  inset-block-end: var(--vx-space-4);
+  inset-inline-end: var(--vx-space-4);
+}
+
+/* A pílula é o próprio botão: um alvo, um anel. */
+.pilula {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  box-sizing: border-box;
+  padding: var(--vx-space-2) var(--vx-space-3);
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: var(--vx-text-1);
+  font-family: inherit;
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  font-weight: var(--vx-type-ui-weight);
+  cursor: pointer;
+}
+.nome {
+  max-inline-size: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-3);
+  inline-size: 288px;
+  max-inline-size: calc(100vw - 2 * var(--vx-space-4));
+  padding: var(--vx-space-3);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease,
+    visibility 0s linear 160ms;
+}
+.tl .card,
+.bl .card {
+  inset-inline-start: 0;
+}
+.tr .card,
+.br .card {
+  inset-inline-end: 0;
+}
+.tl .card,
+.tr .card {
+  inset-block-start: calc(100% + var(--vx-space-2));
+  transform: translateY(-6px);
+}
+.bl .card,
+.br .card {
+  inset-block-end: calc(100% + var(--vx-space-2));
+  transform: translateY(6px);
+}
+/* Ponte invisível sobre o vão: o ponteiro atravessa pílula e cartão sem sair do widget. */
+.card::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  block-size: var(--vx-space-2);
+}
+.tl .card::before,
+.tr .card::before {
+  inset-block-start: calc(var(--vx-space-2) * -1);
+}
+.bl .card::before,
+.br .card::before {
+  inset-block-end: calc(var(--vx-space-2) * -1);
+}
+
+.aberto .card {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+  transition-delay: 0s;
+}
+
+.topo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+}
+.titulo {
+  margin: 0;
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-heading-size);
+  line-height: var(--vx-type-heading-line);
+  font-weight: var(--vx-type-heading-weight);
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pessoa {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  font-weight: 400;
+}
+.pessoaNome {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-1);
+}
+.estado {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-1);
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+.falandoEstado {
+  color: var(--vx-speaking);
+}
+.transmitindoEstado {
+  color: var(--vx-live);
+}
+.mudoEstado {
+  color: var(--vx-muted);
+}
+
+.vazia {
+  margin: 0;
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  font-weight: 400;
+}
+
+.acoes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+}
+.acoes > button {
+  inline-size: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+    transform: none;
+  }
+}

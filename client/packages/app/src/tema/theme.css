@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+/* Fontes embarcadas (ADR-006): a família é a do DS, só a origem muda. */
+@import "@fontsource-variable/plus-jakarta-sans";
+@import "@fontsource-variable/jetbrains-mono";
+
+/* Camada 1: variáveis `--vx-*` geradas. Tema de usuário sobrescreve aqui. */
+@import "./tokens.gerado.css";
+
+/*
+  Camada 2. As escalas default do Tailwind são desligadas: o que existe é o que o
+  DS declara, e classe fora da escala simplesmente não gera CSS (e o lint reprova
+  arbitrary value). Os mapeamentos vêm de `theme.gerado.css`.
+*/
+@theme {
+  --color-*: initial;
+  --spacing-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+  --blur-*: initial;
+  --font-*: initial;
+  --text-*: initial;
+  --drop-shadow-*: initial;
+  --inset-shadow-*: initial;
+}
+
+@import "./theme.gerado.css";
+
+@layer base {
+  html,
+  body,
+  #raiz {
+    block-size: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--vx-surface-base);
+    color: var(--vx-text-1);
+    font-family: var(--vx-font-sans);
+    font-size: var(--vx-type-body-size);
+    line-height: var(--vx-type-body-line);
+  }
+}
+
+/*
+  Anel de foco único para todo o app: um contorno, nunca dois. Componentes que
+  vivem dentro de contêiner que recorta ajustam só o `outline-offset`.
+*/
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--vx-focus-ring);
+    outline-offset: 2px;
+  }
+}

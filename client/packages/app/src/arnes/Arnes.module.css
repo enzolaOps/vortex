@@ -1,0 +1,31 @@
+/* Barra do arnês: flutua no canto, fora do fluxo do shell (não muda a altura da lista medida). */
+.barra {
+  position: fixed;
+  inset-block-end: var(--vx-space-2);
+  inset-inline-start: var(--vx-space-2);
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vx-space-2);
+  max-inline-size: 60vw;
+  padding: var(--vx-space-2) var(--vx-space-3);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-surface-overlay);
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-label-size);
+}
+.condicao {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-1);
+}
+.relatorio[data-veredito="PASS"] {
+  color: var(--vx-success);
+}
+.relatorio[data-veredito="FAIL"] {
+  color: var(--vx-danger);
+}
+.relatorio[data-veredito="INVALIDA"] {
+  color: var(--vx-warning);
+}

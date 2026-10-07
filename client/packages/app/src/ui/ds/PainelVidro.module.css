@@ -1,0 +1,49 @@
+/*
+  O Vidro. ESTE é o único arquivo CSS do app que escreve `backdrop-filter`
+  (guarda: scripts/vidro.mjs). Desfoque atrás de texto custa repintura do que
+  está por baixo; centralizar aqui é o que deixa auditar o custo num lugar só.
+  O palco de vídeo nunca fica atrás de um painel de vidro.
+*/
+.vidro {
+  -webkit-backdrop-filter: blur(var(--vx-blur-glass)) saturate(var(--vx-saturate-glass));
+  backdrop-filter: blur(var(--vx-blur-glass)) saturate(var(--vx-saturate-glass));
+  border: 1px solid var(--vx-glass-border);
+  color: var(--vx-text-1);
+  box-sizing: border-box;
+}
+
+.padrao {
+  background: var(--vx-surface-glass);
+}
+.leitura {
+  background: var(--vx-surface-glass-reading);
+}
+.sobreposto {
+  background: var(--vx-surface-overlay);
+}
+
+.raioSm {
+  border-radius: var(--vx-radius-sm);
+}
+.raioMd {
+  border-radius: var(--vx-radius-md);
+}
+.raioLg {
+  border-radius: var(--vx-radius-lg);
+}
+.raioXl {
+  border-radius: var(--vx-radius-xl);
+}
+.raioPill {
+  border-radius: var(--vx-radius-pill);
+}
+
+.elev1 {
+  box-shadow: var(--vx-shadow-glass-inner), var(--vx-elev-1);
+}
+.elev2 {
+  box-shadow: var(--vx-shadow-glass-inner), var(--vx-elev-2);
+}
+.elev3 {
+  box-shadow: var(--vx-shadow-glass-inner), var(--vx-elev-3);
+}

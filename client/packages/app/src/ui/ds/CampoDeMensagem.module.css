@@ -1,0 +1,59 @@
+.campo {
+  box-sizing: border-box;
+  padding: var(--vx-space-2);
+}
+
+/*
+  Um único anel, no contêiner inteiro, e só quando o texto tem o foco do
+  teclado. Com `focus-within` o anel somaria ao dos botões internos.
+*/
+.campo:has(.texto:focus-visible) {
+  outline: 2px solid var(--vx-focus-ring);
+  outline-offset: 2px;
+}
+
+.desabilitado {
+  background: var(--vx-surface-glass);
+}
+
+.linha {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--vx-space-1);
+}
+
+.texto {
+  flex: 1;
+  min-inline-size: 0;
+  box-sizing: border-box;
+  /* Cresce de 1 a 8 linhas (8 x 22px) e depois rola por dentro. */
+  max-block-size: 176px;
+  padding: 9px var(--vx-space-2);
+  overflow-y: auto;
+  resize: none;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--vx-text-1);
+  font-family: var(--vx-font-sans);
+  font-size: var(--vx-type-body-size);
+  line-height: 22px;
+}
+.texto::placeholder {
+  color: var(--vx-text-4);
+}
+.texto:disabled {
+  color: var(--vx-text-4);
+  cursor: not-allowed;
+}
+.enviando .texto {
+  color: var(--vx-text-3);
+}
+
+.motivo {
+  margin: var(--vx-space-1) var(--vx-space-3);
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  font-weight: 400;
+}

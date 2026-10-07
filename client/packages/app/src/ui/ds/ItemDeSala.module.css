@@ -1,0 +1,110 @@
+.item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  inline-size: 100%;
+  min-block-size: 44px;
+  box-sizing: border-box;
+  padding: 0 var(--vx-space-3) 0 var(--vx-space-4);
+  border: 0;
+  border-radius: var(--vx-radius-md);
+  background: transparent;
+  color: var(--vx-text-2);
+  font-family: var(--vx-font-sans);
+  font-size: var(--vx-type-body-strong-size);
+  line-height: var(--vx-type-body-strong-line);
+  font-weight: 500;
+  text-align: start;
+  cursor: pointer;
+}
+
+.item:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+.item:active {
+  background: var(--vx-state-press);
+}
+
+.selecionado {
+  background: var(--vx-state-selected);
+  color: var(--vx-text-1);
+}
+/* Marcador de 3px: a seleção tem forma, não só fundo. */
+.selecionado::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 4px;
+  inset-block: 10px;
+  inline-size: 3px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-accent);
+}
+
+.nome {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hash {
+  margin-inline-end: -2px;
+  color: var(--vx-text-3);
+  font-weight: 600;
+}
+
+.conectado {
+  color: var(--vx-text-1);
+}
+.vazia {
+  color: var(--vx-text-3);
+}
+
+.contagem {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 20px;
+  block-size: 18px;
+  box-sizing: border-box;
+  padding: 0 6px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-state-press);
+  color: var(--vx-text-2);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-type-mono-size);
+  line-height: var(--vx-type-mono-line);
+  font-weight: var(--vx-type-mono-weight);
+  font-variant-numeric: tabular-nums;
+}
+.vazia .contagem {
+  background: transparent;
+  border: 1px solid var(--vx-border-subtle);
+  color: var(--vx-text-3);
+}
+
+.aqui {
+  display: inline-flex;
+  flex: none;
+  color: var(--vx-speaking);
+}
+
+.canal {
+  min-block-size: 36px;
+  padding-inline-start: var(--vx-space-3);
+}
+.naoLidaTexto {
+  color: var(--vx-text-1);
+  font-weight: 700;
+}
+.naoLidaTexto .hash {
+  color: var(--vx-text-2);
+}
+
+/* Segura o foco dentro do contêiner que corta (lista com rolagem). */
+.item:focus-visible {
+  outline-offset: -2px;
+}

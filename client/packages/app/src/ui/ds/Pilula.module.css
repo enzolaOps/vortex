@@ -1,0 +1,62 @@
+.pilula {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  font-family: var(--vx-font-sans);
+}
+
+.aoVivo {
+  gap: 5px;
+  block-size: 18px;
+  padding: 0 var(--vx-space-2) 0 7px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-live);
+  color: var(--vx-text-on-live);
+  font-size: var(--vx-type-badge-size);
+  line-height: var(--vx-type-badge-line);
+  font-weight: var(--vx-type-badge-weight);
+  letter-spacing: var(--vx-type-badge-tracking);
+}
+
+.ponto {
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: currentcolor;
+}
+
+.mencao {
+  min-inline-size: 22px;
+  block-size: 18px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--vx-mention);
+  color: var(--vx-text-on-mention);
+  font-size: var(--vx-type-badge-size);
+  line-height: var(--vx-type-badge-line);
+  font-weight: var(--vx-type-badge-weight);
+  letter-spacing: var(--vx-type-badge-tracking);
+}
+
+.contagem {
+  min-inline-size: 20px;
+  block-size: 18px;
+  padding: 0 6px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-state-press);
+  color: var(--vx-text-2);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-type-mono-size);
+  line-height: var(--vx-type-mono-line);
+  font-weight: var(--vx-type-mono-weight);
+  font-variant-numeric: tabular-nums;
+}
+
+.naoLida {
+  inline-size: 7px;
+  block-size: 7px;
+  border-radius: 50%;
+  background: var(--vx-unread);
+}

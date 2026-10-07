@@ -1,0 +1,231 @@
+/*
+  O vidro (blur, borda, realce, elevação) vem de ds/PainelVidro, o único dono do
+  `backdrop-filter`. Aqui fica só a tipografia base das sobreposições.
+*/
+.texto {
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+
+.camada {
+  z-index: 50;
+}
+
+.entrada[data-state="open"],
+.entrada[data-state="delayed-open"],
+.entrada[data-state="instant-open"] {
+  animation: entrar 120ms ease-out;
+}
+
+@keyframes entrar {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entrada[data-state] {
+    animation: none;
+  }
+}
+
+/* Diálogo */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--vx-scrim);
+}
+
+.dialogo {
+  position: fixed;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  translate: -50% -50%;
+  inline-size: min(calc(100vw - 32px), 480px);
+  max-block-size: calc(100vh - 64px);
+  overflow-y: auto;
+  padding: var(--vx-space-5);
+  display: grid;
+  gap: var(--vx-space-3);
+}
+
+.dialogo:focus-visible {
+  outline: none;
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--vx-type-title-size);
+  line-height: var(--vx-type-title-line);
+  font-weight: var(--vx-type-title-weight);
+}
+
+.descricao {
+  margin: 0;
+  color: var(--vx-text-2);
+}
+
+.fechar {
+  position: absolute;
+  inset-block-start: var(--vx-space-3);
+  inset-inline-end: var(--vx-space-3);
+}
+
+.botaoDeIcone {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 32px;
+  block-size: 32px;
+  border: 0;
+  border-radius: var(--vx-radius-sm);
+  background: transparent;
+  color: var(--vx-text-2);
+  cursor: pointer;
+}
+
+.botaoDeIcone:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+
+.botaoDeIcone:active {
+  background: var(--vx-state-press);
+}
+
+/* Menus (dropdown e contexto compartilham a anatomia) */
+.menu {
+  min-inline-size: 200px;
+  max-block-size: var(--radix-popper-available-height);
+  overflow-y: auto;
+  padding: var(--vx-space-1);
+}
+
+.menu:focus-visible {
+  outline: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  padding: var(--vx-space-2) var(--vx-space-3);
+  border-radius: var(--vx-radius-sm);
+  color: var(--vx-text-1);
+  cursor: default;
+  user-select: none;
+}
+
+.item[data-highlighted] {
+  background: var(--vx-state-hover);
+}
+
+.item[data-disabled] {
+  color: var(--vx-text-4);
+  pointer-events: none;
+}
+
+.item[data-variante="perigo"] {
+  color: var(--vx-danger);
+}
+
+.item:focus-visible {
+  outline-offset: -2px;
+}
+
+.separador {
+  block-size: 1px;
+  margin: var(--vx-space-1) var(--vx-space-2);
+  background: var(--vx-border-subtle);
+}
+
+.rotulo {
+  padding: var(--vx-space-1) var(--vx-space-3);
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+
+/* Popover, dica e cartão */
+.popover {
+  padding: var(--vx-space-3);
+  max-inline-size: min(calc(100vw - 32px), 360px);
+}
+
+.popover:focus-visible {
+  outline: none;
+}
+
+.dica {
+  padding: var(--vx-space-1) var(--vx-space-2);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  max-inline-size: 240px;
+}
+
+.cartao {
+  padding: var(--vx-space-3);
+  inline-size: 288px;
+}
+
+/* Aviso */
+.areaDeAvisos {
+  position: fixed;
+  inset-block-end: var(--vx-space-4);
+  inset-inline-end: var(--vx-space-4);
+  z-index: 60;
+  display: grid;
+  gap: var(--vx-space-2);
+  inline-size: min(calc(100vw - 32px), 360px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aviso {
+  position: relative;
+  display: grid;
+  gap: var(--vx-space-1);
+  padding: var(--vx-space-3) var(--vx-space-8) var(--vx-space-3) var(--vx-space-4);
+  border-radius: var(--vx-radius-md);
+}
+
+.aviso[data-tipo="erro"] {
+  border-color: var(--vx-danger);
+}
+
+.avisoAcoes {
+  display: flex;
+  gap: var(--vx-space-2);
+  margin-block-start: var(--vx-space-1);
+}
+
+.botaoDeTexto {
+  padding: var(--vx-space-1) var(--vx-space-3);
+  border: 1px solid var(--vx-border-strong);
+  border-radius: var(--vx-radius-sm);
+  background: transparent;
+  color: var(--vx-text-1);
+  cursor: pointer;
+}
+
+.botaoDeTexto:hover {
+  background: var(--vx-state-hover);
+}
+
+.somenteLeitor {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

@@ -1,0 +1,39 @@
+.fundo {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--vx-backdrop-base);
+}
+
+/* Decoração: não carrega informação e nunca fica sob texto sem um painel. */
+.campo {
+  position: absolute;
+  z-index: -1;
+  border-radius: 50%;
+  filter: blur(var(--vx-blur-glow));
+  pointer-events: none;
+}
+.teal {
+  inline-size: 380px;
+  block-size: 420px;
+  inset-inline-start: -120px;
+  inset-block-start: -60px;
+  background: var(--vx-backdrop-glow-teal);
+  opacity: 0.22;
+}
+.indigo {
+  inline-size: 460px;
+  block-size: 380px;
+  inset-inline-end: -140px;
+  inset-block-start: -120px;
+  background: var(--vx-backdrop-glow-indigo);
+  opacity: 0.2;
+}
+.magenta {
+  inline-size: 480px;
+  block-size: 340px;
+  inset-inline-start: 30%;
+  inset-block-end: -160px;
+  background: var(--vx-backdrop-glow-magenta);
+  opacity: 0.12;
+}

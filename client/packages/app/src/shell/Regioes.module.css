@@ -1,0 +1,85 @@
+.painel {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  block-size: 100%;
+  min-inline-size: 0;
+  min-block-size: 0;
+  overflow: hidden;
+}
+
+.dock {
+  align-items: center;
+  padding: var(--vx-space-3) var(--vx-space-2);
+  gap: var(--vx-space-2);
+}
+
+.cabeca {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-2);
+  padding: var(--vx-space-3) var(--vx-space-4);
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-title-size);
+  line-height: var(--vx-type-title-line);
+  font-weight: var(--vx-type-title-weight);
+}
+
+.titulo {
+  margin: 0;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: inherit;
+}
+
+.vazio {
+  margin: 0;
+  padding: var(--vx-space-3) var(--vx-space-4);
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  text-align: center;
+  text-wrap: balance;
+}
+
+.corpo {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+}
+
+/* Só leitor de tela: o texto existe, a dock estreita não tem lugar para mostrá-lo. */
+.soLeitor {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Barra de título: arrastável; só o que for botão sai da região de arraste. */
+.barraDeTitulo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  block-size: 32px;
+  padding-inline: var(--vx-space-2);
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  font-weight: var(--vx-type-ui-weight);
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.janela {
+  display: flex;
+  gap: var(--vx-space-1);
+  -webkit-app-region: no-drag;
+}

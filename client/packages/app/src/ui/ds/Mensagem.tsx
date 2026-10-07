@@ -1,0 +1,151 @@
+import { memo, type ReactNode } from "react";
+
+import { chat, ds } from "../../textos";
+import { Imagem, MaisHorizontal, Responder, Sorriso } from "../icones";
+import { juntar } from "../juntar";
+import { Avatar } from "./Avatar";
+import { Botao } from "./Botao";
+import css from "./Mensagem.module.css";
+import { PainelVidro } from "./PainelVidro";
+
+export interface MensagemProps {
+  autor: { nome: string; id?: string; tom?: number };
+  /** Horário já formatado, ex. "14:32". */
+  hora: string;
+  /** Corpo da mensagem. Links (`<a>`) saem em `accent` com sublinhado. */
+  children?: ReactNode;
+  /** Mensagem seguinte do mesmo autor: sem avatar nem nome; a hora aparece no hover. */
+  continuacao?: boolean;
+  /** Citação de outra mensagem. */
+  resposta?: { autor: string; trecho: string };
+  /** Reserva o espaço da imagem pela proporção, ex. "16 / 9", antes dela carregar. */
+  anexo?: { proporcao?: string; rotulo?: string };
+  /**
+   * Barra flutuante no hover e no foco. Cada botão só existe se o consumidor
+   * passou o tratador dele (controle sem ação não aparece).
+   */
+  acoes?: boolean;
+  onReagir?: () => void;
+  onResponder?: () => void;
+  onMaisAcoes?: () => void;
+  tabIndex?: number;
+  className?: string;
+}
+
+/**
+ * Linha de mensagem. PURA: props entram, JSX sai; nenhuma leitura de store.
+ *
+ * Como ela vai se ligar ao estado (parte seguinte do M1, TRD §4): a lista
+ * virtualizada renderiza `LinhaDeMensagem({ id })`, um wrapper `memo` keyed
+ * pelo ID da mensagem que assina SÓ a própria entidade
+ * (`useSyncExternalStore` sobre o hook do `nucleo`, `getSnapshot` devolvendo a
+ * referência cacheada) e repassa o snapshot para este componente. Editar uma
+ * mensagem acorda uma linha, não a lista. Por isso aqui:
+ *  - nada de Context de entidade e nada de estado de hover em JS (hover e foco
+ *    são CSS puro, então passar o ponteiro não re-renderiza 10k linhas);
+ *  - `memo` raso: `autor` e `resposta` precisam vir do snapshot com referência
+ *    estável (o hook do `nucleo` cacheia), e `children` é criado pelo wrapper,
+ *    que é quem decide quando o corpo muda;
+ *  - o tamanho da linha depende só das props (anexo reserva a caixa por
+ *    `aspect-ratio`), o que mantém o virtualizador estável.
+ */
+function MensagemBase({
+  autor,
+  hora,
+  children,
+  continuacao = false,
+  resposta,
+  anexo,
+  acoes = true,
+  onReagir,
+  onResponder,
+  onMaisAcoes,
+  tabIndex,
+  className,
+}: MensagemProps) {
+  const temAcoes = acoes && (onReagir || onResponder || onMaisAcoes);
+
+  return (
+    <article
+      tabIndex={tabIndex}
+      aria-label={ds.mensagem.de(autor.nome)}
+      className={juntar(css.mensagem, continuacao && css.continuacao, className)}
+    >
+      <div className={css.calha}>
+        {continuacao ? (
+          <time className={css.horaNoHover}>{hora}</time>
+        ) : (
+          <Avatar nome={autor.nome} id={autor.id} tom={autor.tom} tamanho={36} />
+        )}
+      </div>
+
+      <div className={css.conteudo}>
+        {resposta && (
+          <div className={css.resposta} aria-label={ds.mensagem.respostaA(resposta.autor)}>
+            <span className={css.respostaAutor}>{resposta.autor}</span>
+            <span className={css.respostaTrecho}>{resposta.trecho}</span>
+          </div>
+        )}
+        {!continuacao && (
+          <div className={css.cabecalho}>
+            <span className={css.nome}>{autor.nome}</span>
+            <time className={css.hora}>{hora}</time>
+          </div>
+        )}
+        <div className={css.corpo}>{children}</div>
+        {anexo && (
+          <div
+            role="img"
+            aria-label={anexo.rotulo ?? ds.mensagem.imagem}
+            className={css.anexo}
+            style={{ aspectRatio: anexo.proporcao ?? "16 / 9" }}
+          >
+            <Imagem tamanho={20} />
+            {anexo.rotulo && <span className={css.anexoRotulo}>{anexo.rotulo}</span>}
+          </div>
+        )}
+      </div>
+
+      {temAcoes && (
+        <PainelVidro
+          variante="sobreposto"
+          raio="pill"
+          elevacao={1}
+          role="toolbar"
+          aria-label={ds.mensagem.acoes}
+          className={css.acoes}
+        >
+          {onReagir && (
+            <Botao
+              variante="fantasma"
+              tamanho="sm"
+              icone={<Sorriso />}
+              aria-label={ds.mensagem.reagir}
+              onClick={onReagir}
+            />
+          )}
+          {onResponder && (
+            <Botao
+              variante="fantasma"
+              tamanho="sm"
+              icone={<Responder />}
+              aria-label={chat.responder}
+              onClick={onResponder}
+            />
+          )}
+          {onMaisAcoes && (
+            <Botao
+              variante="fantasma"
+              tamanho="sm"
+              icone={<MaisHorizontal />}
+              aria-label={ds.mensagem.maisAcoes}
+              onClick={onMaisAcoes}
+            />
+          )}
+        </PainelVidro>
+      )}
+    </article>
+  );
+}
+
+export const Mensagem = memo(MensagemBase);
