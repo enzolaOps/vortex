@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  CANAL_POPOUT_PROTEGER,
+  CANAL_POPOUT_TOPO,
   NOME_DO_POPOUT,
   RECUO,
   TAMANHO_INICIAL,
@@ -10,6 +12,7 @@ import {
   decidirJanelaNova,
   opcoesDoPopout,
   posicaoInicial,
+  validarBooleanoDoPopout,
 } from "./popoutDeVozModelo";
 
 const LIVRE = { daPrincipal: true, popoutAberto: false };
@@ -231,5 +234,27 @@ describe("popout da chamada — trocar de forma", () => {
     );
     assert.equal(nova.width, area.width);
     assert.equal(nova.height, area.height);
+  });
+});
+
+describe("popout da chamada — os dois verbos da ponte", () => {
+  it("só um booleano passa", () => {
+    assert.equal(validarBooleanoDoPopout(true), true);
+    assert.equal(validarBooleanoDoPopout(false), false);
+  });
+
+  it("qualquer outro tipo é recusado — inclusive os que parecem sim ou não", () => {
+    for (const ruim of [1, 0, "true", "", null, undefined, {}, [], () => true]) {
+      assert.equal(validarBooleanoDoPopout(ruim), undefined, String(ruim));
+    }
+  });
+
+  it("argumento a mais é recusado: o verbo tem uma forma só", () => {
+    assert.equal(validarBooleanoDoPopout(true, "extra"), undefined);
+  });
+
+  it("os nomes dos canais são os do contrato do cliente", () => {
+    assert.equal(CANAL_POPOUT_TOPO, "popout:definir-topo");
+    assert.equal(CANAL_POPOUT_PROTEGER, "popout:proteger-conteudo");
   });
 });

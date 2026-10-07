@@ -103,6 +103,8 @@ export type PapelDoVideo = "foco" | "miniatura";
  * `definirQualidadeDeStream`.
  *
  * Faixa própria nunca é assinada (não é remota): `proprio` desliga o efeito.
+ *
+ * `documento` é onde o vídeo aparece (a janela destacada tem o dela).
  */
 export function useAssinaturaDeVideo(
   alvo: RefObject<Element | null>,
@@ -110,14 +112,18 @@ export function useAssinaturaDeVideo(
   fonte: FonteDeVideo,
   papel: PapelDoVideo,
   proprio: boolean,
+  documento: Document = document,
 ): void {
   const [naTela, setNaTela] = useState(true);
-  const [aberta, setAberta] = useState(() => document.visibilityState !== "hidden");
+  const [aberta, setAberta] = useState(() => documento.visibilityState !== "hidden");
 
   useEffect(() => {
     const el = alvo.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver((entradas) => {
+    // ⚠ O observador é da janela DONA do elemento: na janela destacada o ladrilho vive
+    // noutro documento, e o da principal observaria um nó que ele não renderiza.
+    const Observador = el?.ownerDocument.defaultView?.IntersectionObserver ?? globalThis.IntersectionObserver;
+    if (!el || typeof Observador === "undefined") return;
+    const io = new Observador((entradas) => {
       const ultima = entradas[entradas.length - 1];
       if (ultima) setNaTela(ultima.isIntersecting);
     });
@@ -128,14 +134,16 @@ export function useAssinaturaDeVideo(
   }, [alvo]);
 
   useEffect(() => {
+    // ⚠ A visibilidade é a do documento ONDE o vídeo aparece. A principal escondida
+    // (a pessoa está no jogo) não tira o vídeo de quem olha a janela destacada.
     const aoMudar = () => {
-      setAberta(document.visibilityState !== "hidden");
+      setAberta(documento.visibilityState !== "hidden");
     };
-    document.addEventListener("visibilitychange", aoMudar);
+    documento.addEventListener("visibilitychange", aoMudar);
     return () => {
-      document.removeEventListener("visibilitychange", aoMudar);
+      documento.removeEventListener("visibilitychange", aoMudar);
     };
-  }, []);
+  }, [documento]);
 
   const quer = !proprio && naTela && aberta;
   useEffect(() => {

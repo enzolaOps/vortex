@@ -1,6 +1,7 @@
 import { expect, test, type APIRequestContext, type Browser, type Page } from "@playwright/test";
 
 import { contasDeTeste } from "./globalSetup";
+import { comSessaoFalsa } from "./helpers/sessao";
 
 /**
  * Jornada 4.3 (PRD): "entrar na sala, assistir e transmitir, e sair para ler sem perder a tela". Duas contas, dois
@@ -28,11 +29,16 @@ async function entrarPelaApi(request: APIRequestContext, email: string, senha: s
 const cabecalho = (s: Sessao) => ({ "x-session-token": s.token });
 
 /** A cria o servidor e a sala de voz, e B entra por convite. Devolve o ID da sala. */
-async function prepararServidor(request: APIRequestContext, a: Sessao, b: Sessao): Promise<string> {
+async function prepararServidor(
+  request: APIRequestContext,
+  a: Sessao,
+  b: Sessao,
+  nomeDoServidor = NOME_DO_SERVIDOR,
+): Promise<string> {
   const { api } = contasDeTeste();
   const criado = await request.post(`${api}/servers/create`, {
     headers: cabecalho(a),
-    data: { name: NOME_DO_SERVIDOR },
+    data: { name: nomeDoServidor },
   });
   expect(criado.ok(), "criar servidor").toBe(true);
   const { server, channels } = (await criado.json()) as { server: { _id: string }; channels: { _id: string }[] };
@@ -52,7 +58,7 @@ async function prepararServidor(request: APIRequestContext, a: Sessao, b: Sessao
   return salaId;
 }
 
-async function abrirComoPessoa(browser: Browser, sessao: Sessao): Promise<Page> {
+async function abrirComoPessoa(browser: Browser, sessao: Sessao, nomeDoServidor = NOME_DO_SERVIDOR): Promise<Page> {
   const contexto = await browser.newContext({
     permissions: ["microphone", "camera"],
     viewport: { width: 1600, height: 900 },
@@ -62,7 +68,7 @@ async function abrirComoPessoa(browser: Browser, sessao: Sessao): Promise<Page> 
   }, sessao);
   const pagina = await contexto.newPage();
   await pagina.goto("/");
-  await pagina.getByRole("button", { name: NOME_DO_SERVIDOR }).click();
+  await pagina.getByRole("button", { name: nomeDoServidor }).click();
   return pagina;
 }
 
@@ -109,5 +115,117 @@ test.describe("4.3 palco @backend", () => {
     // A sai e a transmissão some para B em até 2 s.
     await paginaA.getByRole("button", { name: "Sair da chamada" }).click();
     await expect(paginaB.getByTestId("foco-do-palco")).toHaveCount(0, { timeout: PRAZO_MS });
+  });
+
+  test("B lê um canal com a chamada: o widget mostra a transmissão em PiP, arrasta ao canto e o canto sobrevive ao recarregar", async ({
+    browser,
+    request,
+  }) => {
+    const nome = `${NOME_DO_SERVIDOR} pip`;
+    const { a, b } = contasDeTeste();
+    const sessaoA = await entrarPelaApi(request, a.email, a.senha);
+    const sessaoB = await entrarPelaApi(request, b.email, b.senha);
+    await prepararServidor(request, sessaoA, sessaoB, nome);
+    const paginaA = await abrirComoPessoa(browser, sessaoA, nome);
+    const paginaB = await abrirComoPessoa(browser, sessaoB, nome);
+
+    await paginaA.getByRole("button", { name: new RegExp(NOME_DA_SALA) }).last().click();
+    await paginaA.getByRole("button", { name: "Entrar na sala" }).click();
+    await paginaA.getByRole("button", { name: "Compartilhar tela" }).click();
+    await paginaA.getByRole("dialog", { name: "O que você quer mostrar?" }).getByRole("button", { name: "Transmitir" }).click();
+    await expect(paginaA.getByTestId("foco-do-palco")).toBeVisible({ timeout: 10_000 });
+
+    await paginaB.getByRole("button", { name: new RegExp(NOME_DA_SALA) }).last().click();
+    await paginaB.getByRole("button", { name: "Entrar na sala" }).click();
+    await paginaB.getByRole("button", { name: /geral/ }).first().click();
+
+    // O PiP mostra a transmissão de A (vídeo, na camada média).
+    const widget = paginaB.getByRole("region", { name: "Chamada em andamento" });
+    await expect(widget).toBeVisible();
+    await expect(widget.getByTestId("video-do-pip").locator("video")).toBeVisible({ timeout: 10_000 });
+
+    // Arrasta o widget (pelo palco) até o canto superior esquerdo da área.
+    const antes = (await widget.boundingBox())!;
+    const palco = (await widget.getByTestId("video-do-pip").boundingBox())!;
+    await paginaB.mouse.move(palco.x + palco.width / 2, palco.y + palco.height / 2);
+    await paginaB.mouse.down();
+    await paginaB.mouse.move(400, 200, { steps: 10 });
+    await paginaB.mouse.up();
+    await expect.poll(async () => (await widget.boundingBox())!.y).toBeLessThan(antes.y / 2);
+    const depois = (await widget.boundingBox())!;
+    expect(depois.x).toBeLessThan(antes.x / 2);
+
+    // O canto é do dispositivo: sobrevive ao recarregar.
+    await paginaB.reload();
+    await paginaB.getByRole("button", { name: nome }).click();
+    const recarregado = paginaB.getByRole("region", { name: "Chamada em andamento" });
+    if (await recarregado.isVisible()) {
+      expect((await recarregado.boundingBox())!.x).toBeLessThan(antes.x / 2);
+    }
+  });
+
+  test("B destaca a chamada: o overlay mostra quem está na sala na janela PiP, e some quando B sai", async ({
+    browser,
+    request,
+  }) => {
+    const nome = `${NOME_DO_SERVIDOR} destacar`;
+    const { a, b } = contasDeTeste();
+    const sessaoA = await entrarPelaApi(request, a.email, a.senha);
+    const sessaoB = await entrarPelaApi(request, b.email, b.senha);
+    await prepararServidor(request, sessaoA, sessaoB, nome);
+    const paginaA = await abrirComoPessoa(browser, sessaoA, nome);
+    const paginaB = await abrirComoPessoa(browser, sessaoB, nome);
+
+    for (const p of [paginaA, paginaB]) {
+      await p.getByRole("button", { name: new RegExp(NOME_DA_SALA) }).last().click();
+      await p.getByRole("button", { name: "Entrar na sala" }).click();
+    }
+    await paginaB.getByRole("button", { name: /geral/ }).first().click();
+    const widget = paginaB.getByRole("region", { name: "Chamada em andamento" });
+    await widget.hover();
+
+    // O Document PiP exige gesto; o clique do Playwright o dá.
+    await paginaB.getByRole("button", { name: "Destacar chamada" }).click();
+    await expect.poll(() => paginaB.evaluate(() => !!(window as PipWindow).documentPictureInPicture?.window)).toBe(true);
+    await expect
+      .poll(() =>
+        paginaB.evaluate(
+          () => (window as PipWindow).documentPictureInPicture?.window?.document.querySelectorAll("li[data-pessoa]").length ?? 0,
+        ),
+      )
+      .toBeGreaterThanOrEqual(2);
+
+    // Sai da chamada: a janela destacada fecha junto.
+    await widget.hover();
+    await paginaB.getByRole("button", { name: "Sair da chamada" }).click();
+    await expect.poll(() => paginaB.evaluate(() => !!(window as PipWindow).documentPictureInPicture?.window)).toBe(false);
+  });
+});
+
+type PipWindow = Window & { documentPictureInPicture?: { window: Window | null } };
+
+/**
+ * PiP e destacar sem back-end: o que dá para provar sem uma sala de verdade. O
+ * resto (vídeo no widget, arrastar, janela destacada) está nos casos @backend acima
+ * e nos testes de navegador de `jornadas/voz/pip.browser.test.tsx`.
+ */
+test.describe("destacar, sem back-end", () => {
+  test("o Chromium do e2e tem Document PiP — a premissa dos casos @backend de destacar", async ({ page }) => {
+    await comSessaoFalsa(page);
+    await page.goto("/");
+    expect(await page.evaluate(() => typeof (window as unknown as { documentPictureInPicture?: { requestWindow: unknown } }).documentPictureInPicture?.requestWindow)).toBe("function");
+  });
+
+  test("onde não há Document PiP (Firefox, Safari) o app sobe sem erro e sem oferecer destacar", async ({ page }) => {
+    const erros: string[] = [];
+    page.on("pageerror", (e) => erros.push(e.message));
+    await page.addInitScript(() => {
+      Object.defineProperty(window, "documentPictureInPicture", { value: undefined, configurable: true });
+    });
+    await comSessaoFalsa(page);
+    await page.goto("/");
+    await expect(page.getByTestId("shell")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Destacar chamada" })).toHaveCount(0);
+    expect(erros).toEqual([]);
   });
 });

@@ -92,6 +92,21 @@ export const voz = {
     iniciando: "Iniciando…",
     semCaptura: "Este navegador não consegue compartilhar a tela.",
   },
+  pip: {
+    arrastar: "Mover a chamada para outro canto",
+    semVideo: "Sem vídeo agora",
+    videoDe: (nome: string) => `Vídeo de ${nome}`,
+  },
+  destacar: {
+    destacar: "Destacar chamada",
+    trazerDeVolta: "Trazer a chamada de volta",
+    janela: "Chamada destacada",
+    salaRotulo: (sala: string) => `Sala ${sala}, quem está na sala`,
+    abrirVortex: "Abrir Vortex",
+    controles: "Controles da sala",
+    transmissao: (nome: string) => `Transmissão de ${nome}`,
+    ninguem: "Ninguém por aqui",
+  },
   fixarNoCanto: {
     tl: "Fixar no canto superior esquerdo",
     tr: "Fixar no canto superior direito",

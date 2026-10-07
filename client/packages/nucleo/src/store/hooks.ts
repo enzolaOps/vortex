@@ -77,6 +77,7 @@ import {
   type EstadoDaConexao,
 } from "./conexao";
 import { assinarChamada, falando, lerChamada, type Chamada } from "./chamada";
+import { assinarJanelaDestacada, lerJanelaDestacada } from "./janelaDestacada";
 import { assinarPalco, lerPalco, type Palco } from "./palcoDeVoz";
 import { assinarFalhaDeVoz, lerFalhaDeVoz, type FalhaDeVoz } from "./falhaDeVoz";
 import { assinarSeletorDeTela, lerSeletorDeTela, type EstadoDoSeletor } from "./seletorDeTela";
@@ -860,4 +861,9 @@ export function useSeletorDeTela(): EstadoDoSeletor {
 export function useFaixaDeVideo(userId: string, fonte: FonteDeVideo): MediaStreamTrack | undefined {
   const chave = chaveDeVideo(userId, fonte);
   return useSyncExternalStore(faixasDeVideo.subscriber(chave), () => faixasDeVideo.getSnapshot(chave));
+}
+
+/** A janela destacada da chamada, ou `undefined` quando a chamada está só no app. */
+export function useJanelaDestacada(): Window | undefined {
+  return useSyncExternalStore(assinarJanelaDestacada, lerJanelaDestacada);
 }

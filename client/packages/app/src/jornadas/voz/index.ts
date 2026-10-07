@@ -4,3 +4,6 @@ export * from "./DialogoDeTransmissao";
 export * from "./hooks";
 export * from "./Palco";
 export * from "./WidgetDaChamadaConectado";
+export * from "./JanelaDestacada";
+export * from "./OverlayDaChamada";
+export * from "./destacar";
