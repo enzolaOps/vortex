@@ -1,3 +1,4 @@
+import { limparSalasDeVoz } from "./salasDeVoz";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -55,8 +56,8 @@ describe("chamada recebida — o sinal do protocolo", () => {
     vi.setSystemTime(QUARTA_15H);
     await seed(4);
     limparChamadaRecebida();
-    /* Esvazia a DM entre testes: o `ReactiveMap` do SDK sobrevive ao seed. */
-    client.channels.get(DM)?.voiceParticipants.clear();
+    /* Esvazia as salas entre testes: o store de salas sobrevive ao seed. */
+    limparSalasDeVoz();
   });
 
   afterEach(() => {
