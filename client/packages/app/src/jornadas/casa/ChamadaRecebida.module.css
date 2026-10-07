@@ -1,0 +1,134 @@
+.camada {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--vx-space-5);
+  background: var(--vx-scrim);
+}
+
+.cartao {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--vx-space-5);
+  inline-size: min(100%, 360px);
+  box-sizing: border-box;
+  padding: var(--vx-space-6) var(--vx-space-5);
+  border: 1px solid var(--vx-glass-border);
+  border-radius: var(--vx-radius-xl);
+  background: var(--vx-surface-overlay);
+  box-shadow: var(--vx-elev-3);
+  color: var(--vx-text-1);
+  text-align: center;
+}
+
+.rosto {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.anel {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--vx-speaking);
+  border-radius: 50%;
+  opacity: 0;
+  animation: tocar 2400ms ease-out infinite;
+}
+.anel:nth-child(2) {
+  animation-delay: 800ms;
+}
+@keyframes tocar {
+  0% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .anel {
+    animation: none;
+    opacity: 0.35;
+  }
+}
+
+.textos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+}
+.titulo {
+  margin: 0;
+  font-size: var(--vx-type-heading-size);
+  line-height: var(--vx-type-heading-line);
+  font-weight: var(--vx-type-heading-weight);
+  overflow-wrap: anywhere;
+}
+.subtitulo {
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+
+.botoes {
+  display: flex;
+  gap: var(--vx-space-6);
+}
+.opcao {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--vx-space-2);
+}
+.redondo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 56px;
+  block-size: 56px;
+  border: 0;
+  border-radius: 50%;
+  color: var(--vx-text-on-accent);
+  cursor: pointer;
+}
+.redondo:focus-visible {
+  outline: 2px solid var(--vx-focus-ring);
+  outline-offset: 3px;
+}
+.atender {
+  background: var(--vx-success);
+}
+.atender:hover {
+  filter: brightness(1.1);
+}
+.recusar {
+  background: var(--vx-danger);
+  color: var(--vx-text-on-danger);
+}
+.recusar:hover {
+  filter: brightness(1.1);
+}
+.legenda {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.tecla {
+  padding: 0 var(--vx-space-1);
+  border: 1px solid var(--vx-border-strong);
+  border-radius: var(--vx-radius-sm);
+  color: var(--vx-text-3);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-type-mono-size);
+  line-height: var(--vx-type-mono-line);
+}

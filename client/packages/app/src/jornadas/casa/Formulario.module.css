@@ -1,0 +1,100 @@
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-3);
+}
+.rotulo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.campo {
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-block-size: 40px;
+  padding: 0 var(--vx-space-3);
+  border: 1px solid var(--vx-border-strong);
+  border-radius: var(--vx-radius-sm);
+  background: var(--vx-surface-solid);
+  color: var(--vx-text-1);
+  font: inherit;
+}
+.campo:focus-visible {
+  outline: 2px solid var(--vx-focus-ring);
+  outline-offset: 2px;
+}
+.erro {
+  margin: 0;
+  color: var(--vx-danger);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.rodape {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--vx-space-2);
+}
+.secao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.secaoTitulo {
+  padding: 0;
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.pessoas {
+  display: flex;
+  flex-direction: column;
+  max-block-size: 240px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.pessoa {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+  min-block-size: 44px;
+  padding: var(--vx-space-1) var(--vx-space-2);
+  border-radius: var(--vx-radius-sm);
+  color: var(--vx-text-1);
+}
+.pessoa:hover {
+  background: var(--vx-state-hover);
+}
+.pessoaNome {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.etiqueta {
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+.nota {
+  margin: 0;
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.linhaDoNome {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--vx-space-2);
+}
+.linhaDoNome > .rotulo {
+  flex: 1;
+}

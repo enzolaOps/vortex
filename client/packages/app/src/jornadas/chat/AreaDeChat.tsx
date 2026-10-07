@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { Composer } from "./Composer";
 import css from "./AreaDeChat.module.css";
 import { DigitandoDoCanal } from "./DigitandoDoCanal";
@@ -12,8 +14,20 @@ import { ListaDeMensagens } from "./ListaDeMensagens";
  *
  * Remontada por canal (`key`): a lista reinicia a âncora e o composer troca de
  * rascunho, que mora fora do React e volta onde estava.
+ *
+ * `rodape` substitui o composer quando a conversa tem um motivo próprio para não
+ * aceitar escrita (a DM com alguém bloqueado): a frase do motivo ocupa o lugar do
+ * campo, na mesma coluna de leitura.
  */
-export function AreaDeChat({ canalId, servidorId }: { canalId: string; servidorId: string }) {
+export function AreaDeChat({
+  canalId,
+  servidorId,
+  rodape,
+}: {
+  canalId: string;
+  servidorId: string;
+  rodape?: ReactNode;
+}) {
   return (
     <div className={css.chat}>
       <div className={css.lista}>
@@ -21,8 +35,12 @@ export function AreaDeChat({ canalId, servidorId }: { canalId: string; servidorI
       </div>
       <div className={css.rodape}>
         <div className={css.colunaDoRodape}>
-          <DigitandoDoCanal canalId={canalId} servidorId={servidorId} />
-          <Composer canalId={canalId} servidorId={servidorId} />
+          {rodape ?? (
+            <>
+              <DigitandoDoCanal canalId={canalId} servidorId={servidorId} />
+              <Composer canalId={canalId} servidorId={servidorId} />
+            </>
+          )}
         </div>
       </div>
     </div>

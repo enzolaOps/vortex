@@ -4,6 +4,8 @@ export const chat = {
   mensagem: "Mensagem",
   campoDeMensagem: "Escrever mensagem",
   placeholderDoCampo: (canal: string) => `Conversar em ${canal}`,
+  placeholderDasNotas: "Escreva uma nota",
+  /** DM e grupo: o campo fala com pessoas, não com um canal. */
   placeholderDaConversa: (nome: string) => `Conversar com ${nome}`,
   enviar: "Enviar",
   responder: "Responder",
