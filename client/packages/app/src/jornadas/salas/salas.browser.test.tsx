@@ -20,7 +20,7 @@ import { irParaCasa } from "nucleo/store/navegacao";
 import { limparPreferenciasDaSala } from "nucleo/store/preferenciasDaSala";
 import { definirProntidao } from "nucleo/store/prontidao";
 import { abrirServidor, lembrarSala, lembrarTexto, limparUltimoLugar } from "nucleo/store/ultimoLugar";
-import { page, userEvent } from "vitest/browser";
+import { page } from "vitest/browser";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { salas, shell, voz } from "../../textos";
@@ -217,7 +217,7 @@ describe("widget da sala", () => {
     definirFalantes(["U1"]);
     await expect.poll(() => cartao.textContent).toContain(voz.estado.falando);
 
-    await userEvent.click(botao(salas.entrarNaSala));
+    botao(salas.entrarNaSala).click();
     expect(ctl.entrou).toEqual(["V1"]);
 
     // Depois: fixar no canto move o widget e o ponteiro fica para trás, então vem por último.
@@ -232,7 +232,7 @@ describe("widget da sala", () => {
     await page.getByRole("button", { name: /Jogatina/ }).last().click();
     await expect.element(page.getByRole("button", { name: salas.sairDaSala })).toBeVisible();
     expect(pegar("section[aria-label='Jogatina']")!.textContent).not.toContain(salas.entrarNaSala);
-    await userEvent.click(botao(salas.sairDaSala));
+    botao(salas.sairDaSala).click();
     expect(ctl.saiu).toBe(1);
   });
 
