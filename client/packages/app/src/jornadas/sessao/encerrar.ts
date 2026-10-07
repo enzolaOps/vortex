@@ -3,6 +3,8 @@ import { ligarLogoutDoServidor, restaurarSessao, sair } from "nucleo/sdk/autenti
 import { ligarAtalhosDeVoz } from "nucleo/sdk/atalhosDeVoz";
 import { ligarSonsDeVoz } from "nucleo/som/sons";
 
+import { ligarRotaDeEntrada } from "./rotaDeEntrada";
+
 /**
  * Sair é de DUAS origens e elas se separam aqui: a pessoa que clica em "Sair" e o
  * servidor que derruba a sessão (token revogado, senha trocada). O portão precisa
@@ -52,6 +54,9 @@ export function reiniciarEncerramento(): void {
  * das salas. Todos idempotentes.
  */
 export function iniciarSessao(): void {
+  // A URL da abertura (link de e-mail, convite, QR) é lida ANTES de a restauração decidir a tela
+  // e antes da projeção geral: é ela que guarda o destino pendente do link.
+  ligarRotaDeEntrada();
   ligarRota();
   ligarAtalhosDeVoz();
   ligarSonsDeVoz();

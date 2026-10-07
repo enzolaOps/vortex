@@ -3,7 +3,8 @@ import type { CausaDeErro } from "nucleo/store/sessao";
 
 import { sessao } from "../../textos";
 import { Botao } from "../../ui/ds";
-import { AvisoDeEntrada, fraseDaCausa } from "./AvisoDeEntrada";
+import { CodigoQrIcone } from "../../ui/icones";
+import { AvisoDeEntrada, AvisoSimples, fraseDaCausa } from "./AvisoDeEntrada";
 import { CampoDeTexto } from "./CampoDeTexto";
 import css from "./Entrada.module.css";
 import { MoldeDaEntrada } from "./MoldeDaEntrada";
@@ -14,7 +15,12 @@ export interface TelaDeEntradaProps {
   causa?: CausaDeErro;
   /** Frase pronta da camada de rede, para a causa que a tela não conhece. */
   motivo?: string;
+  /** Frase acima do formulário que não é erro (por exemplo, "entre para autorizar o outro aparelho"). */
+  aviso?: string;
   aoEntrar: (identificador: string, senha: string, manterConectado: boolean) => void;
+  aoRecuperarSenha: () => void;
+  aoCriarConta: () => void;
+  aoEntrarComQr: () => void;
 }
 
 /**
@@ -29,10 +35,20 @@ export interface TelaDeEntradaProps {
  * frase fica junto da senha. Rede, limite e servidor não são culpa dos campos:
  * viram aviso no alto, e os campos continuam intactos.
  *
- * Criar conta, recuperar senha e entrar por QR não estão aqui: são do M8, e um
- * controle que ainda não leva a lugar nenhum é pior que a ausência dele.
+ * Esqueci a senha, criar conta e entrar por QR são links para as telas irmãs
+ * (`Autenticacao`): esta tela só avisa o que a pessoa escolheu, e nenhum desses
+ * controles existe sem destino.
  */
-export function TelaDeEntrada({ entrando, causa, motivo, aoEntrar }: TelaDeEntradaProps) {
+export function TelaDeEntrada({
+  entrando,
+  causa,
+  motivo,
+  aviso: frase,
+  aoEntrar,
+  aoRecuperarSenha,
+  aoCriarConta,
+  aoEntrarComQr,
+}: TelaDeEntradaProps) {
   const [identificador, setIdentificador] = useState("");
   const [senha, setSenha] = useState("");
   const [manter, setManter] = useState(true);
@@ -49,6 +65,8 @@ export function TelaDeEntrada({ entrando, causa, motivo, aoEntrar }: TelaDeEntra
 
   return (
     <MoldeDaEntrada titulo={sessao.entrada.titulo} subtitulo={sessao.entrada.subtitulo}>
+      {frase !== undefined && <AvisoSimples tom="info">{frase}</AvisoSimples>}
+
       <form
         className={css.formulario}
         noValidate
@@ -86,20 +104,46 @@ export function TelaDeEntrada({ entrando, causa, motivo, aoEntrar }: TelaDeEntra
           onChange={(e) => setSenha(e.target.value)}
         />
 
-        <label className={css.manter}>
-          <input
-            type="checkbox"
-            checked={manter}
-            disabled={entrando}
-            onChange={(e) => setManter(e.target.checked)}
-          />
-          <span>{sessao.entrada.manterConectado}</span>
-        </label>
+        <div className={css.linhaDeApoio}>
+          <label className={css.manter}>
+            <input
+              type="checkbox"
+              checked={manter}
+              disabled={entrando}
+              onChange={(e) => setManter(e.target.checked)}
+            />
+            <span>{sessao.entrada.manterConectado}</span>
+          </label>
+          <button type="button" className={css.link} disabled={entrando} onClick={aoRecuperarSenha}>
+            {sessao.entrada.esqueciASenha}
+          </button>
+        </div>
 
         <Botao type="submit" className={css.largo} carregando={entrando} disabled={!podeEnviar && !entrando}>
           {entrando ? sessao.entrada.entrando : sessao.entrada.entrar}
         </Botao>
       </form>
+
+      <div className={css.separador} role="separator">
+        <span>{sessao.entrada.ou}</span>
+      </div>
+
+      <Botao
+        variante="secundario"
+        className={css.largo}
+        icone={<CodigoQrIcone />}
+        disabled={entrando}
+        onClick={aoEntrarComQr}
+      >
+        {sessao.entrada.comQr}
+      </Botao>
+
+      <p className={css.rodape}>
+        {sessao.entrada.semConta}{" "}
+        <button type="button" className={css.link} disabled={entrando} onClick={aoCriarConta}>
+          {sessao.entrada.criarConta}
+        </button>
+      </p>
     </MoldeDaEntrada>
   );
 }

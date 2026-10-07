@@ -17,6 +17,8 @@ export interface CampoDeTextoProps
   /** Mostra o botão de revelar (só faz sentido em `type="password"`). */
   revelavel?: boolean;
   campoRef?: Ref<HTMLInputElement>;
+  /** Texto fixo antes do valor (o "@" do nome de usuário). Decorativo: o rótulo já diz o que é. */
+  prefixo?: string;
 }
 
 /**
@@ -33,6 +35,7 @@ export function CampoDeTexto({
   erro,
   revelavel,
   campoRef,
+  prefixo,
   type = "text",
   ...resto
 }: CampoDeTextoProps) {
@@ -51,12 +54,17 @@ export function CampoDeTexto({
         {rotulo}
       </label>
       <div className={css.envoltorio}>
+        {prefixo !== undefined && (
+          <span className={css.prefixo} aria-hidden="true">
+            {prefixo}
+          </span>
+        )}
         <input
           {...resto}
           ref={campoRef}
           id={id}
           type={revelavel && revelado ? "text" : type}
-          className={juntar(css.entrada, revelavel && css.comRevelar)}
+          className={juntar(css.entrada, revelavel && css.comRevelar, prefixo !== undefined && css.comPrefixo)}
           aria-invalid={marcado ? true : undefined}
           aria-describedby={descricao || undefined}
         />
