@@ -1,6 +1,6 @@
 import { lerUltimoServidor, abrirServidor } from "nucleo/store/ultimoLugar";
 import { useLocal, useProntidao, useServerIds } from "nucleo/store/hooks";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 import { ShellDoApp } from "../../shell";
 import { AreaConectada } from "./AreaConectada";
@@ -29,7 +29,7 @@ function useChegada(): void {
 }
 
 /** O shell fixo ligado à jornada 4.2: dock, salas, área principal e membros. */
-export function ShellDasSalas() {
+export function ShellDasSalas({ rodapeDasSalas }: { rodapeDasSalas?: ReactNode }) {
   useChegada();
   const pronto = useProntidao();
   const local = useLocal();
@@ -38,7 +38,7 @@ export function ShellDasSalas() {
   return (
     <ShellDoApp
       dock={<ConteudoDaDock />}
-      salas={<ColunaConectada />}
+      salas={<ColunaConectada rodape={rodapeDasSalas} />}
       area={<AreaConectada />}
       membros={
         !pronto ? <EsqueletoDeMembros /> : serverId !== undefined ? <ListaDeMembros serverId={serverId} /> : undefined

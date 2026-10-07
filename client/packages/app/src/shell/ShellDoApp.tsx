@@ -22,6 +22,8 @@ export interface ShellDoAppProps {
   area?: ReactNode;
   /** Esconde a gaveta (fora de um servidor não há membros a listar). */
   gavetaOculta?: boolean;
+  /** O que é da pessoa (sair da conta), fixo no rodapé da coluna de salas. */
+  rodapeDasSalas?: ReactNode;
 }
 
 /**
@@ -30,14 +32,14 @@ export interface ShellDoAppProps {
  * props. O modo da gaveta é preferência do dispositivo e vive num store, não
  * aqui: sobrevive a fechar e abrir o app.
  */
-export function ShellDoApp({ principal, dock, salas, membros, area, gavetaOculta = false }: ShellDoAppProps) {
+export function ShellDoApp({ principal, dock, salas, membros, area, gavetaOculta = false, rodapeDasSalas }: ShellDoAppProps) {
   const modo = useModoDaGaveta();
   return (
     <Shell
       modoDaGaveta={gavetaOculta ? "oculta" : modo}
       barraDeTitulo={<BarraDeTitulo />}
       dock={<DockDeServidores>{dock}</DockDeServidores>}
-      salas={salas ?? <ColunaDeSalas />}
+      salas={salas ?? <ColunaDeSalas rodape={rodapeDasSalas} />}
       principal={area ?? <AreaPrincipal>{principal}</AreaPrincipal>}
       gaveta={
         <GavetaDeMembros modo={modo} aoMudarModo={definirModoDaGaveta}>

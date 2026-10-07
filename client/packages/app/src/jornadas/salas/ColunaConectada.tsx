@@ -14,7 +14,7 @@ import {
   useServer,
   useServidorAtivo,
 } from "nucleo/store/hooks";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { ColunaDeSalas } from "../../shell";
 import { salas, shell } from "../../textos";
@@ -175,7 +175,7 @@ function ListaDoServidor({ serverId }: { serverId: string }) {
  * vazia do catálogo; antes do `Ready`, esqueleto; com a conexão caída, a faixa
  * que diz que a presença pode estar desatualizada (e as salas, esmaecidas).
  */
-export function ColunaConectada() {
+export function ColunaConectada({ rodape }: { rodape?: ReactNode }) {
   const pronto = useProntidao();
   const local = useLocal();
   const serverId = useServidorAtivo();
@@ -183,16 +183,16 @@ export function ColunaConectada() {
 
   if (!pronto) {
     return (
-      <ColunaDeSalas titulo={salas.carregandoServidor}>
+      <ColunaDeSalas titulo={salas.carregandoServidor} rodape={rodape}>
         <EsqueletoDeSalas />
       </ColunaDeSalas>
     );
   }
   if (local.tipo !== "servidor" || !servidor) {
-    return <ColunaDeSalas>{<p className={css.nota}>{shell.salas.vazio}</p>}</ColunaDeSalas>;
+    return <ColunaDeSalas rodape={rodape}>{<p className={css.nota}>{shell.salas.vazio}</p>}</ColunaDeSalas>;
   }
   return (
-    <ColunaDeSalas titulo={servidor.name} aviso={<AvisoDeConexao />}>
+    <ColunaDeSalas titulo={servidor.name} rodape={rodape} aviso={<AvisoDeConexao />}>
       <ListaDoServidor serverId={serverId} />
     </ColunaDeSalas>
   );

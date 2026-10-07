@@ -53,6 +53,8 @@ const janela = new JSDOM("", { url: "http://localhost" }).window;
  * token que o teste tinha acabado de guardar, e não achava nada.
  */
 (globalThis as { localStorage?: Storage }).localStorage = janela.localStorage;
+/* `sessionStorage`: a sessão de quem desmarca "Manter conectado" vive aqui. */
+(globalThis as { sessionStorage?: Storage }).sessionStorage = janela.sessionStorage;
 
 /**
  * A REDE, fechada.

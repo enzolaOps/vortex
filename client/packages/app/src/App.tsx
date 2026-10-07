@@ -1,28 +1,17 @@
-import { ligarLogoutDoServidor, restaurarSessao } from "nucleo/sdk/autenticacao";
-import { useEffect } from "react";
-
 import { ShellDasSalas } from "./jornadas/salas";
+import { BotaoDeSair, PortaoDeSessao } from "./jornadas/sessao";
 import { Avisos } from "./ui/primitivos/Avisos";
 
-let iniciado = false;
-
 /**
- * Raiz do app. O shell fixo ligado à jornada de salas (4.2). A entrada (login,
- * criar conta) é a jornada de sessão e ainda não monta aqui: a sessão guardada é
- * restaurada na abertura, e sem ela o shell mostra o estado de carregamento.
+ * Raiz do app: o portão de sessão (M3) e, dentro dele, o shell fixo ligado à
+ * jornada de salas. A restauração da sessão é UMA só: a do portão.
  */
 export function App() {
-  useEffect(() => {
-    // Uma vez por página: StrictMode roda o efeito duas vezes em dev.
-    if (iniciado) return;
-    iniciado = true;
-    ligarLogoutDoServidor();
-    restaurarSessao();
-  }, []);
-
   return (
     <>
-      <ShellDasSalas />
+      <PortaoDeSessao>
+        <ShellDasSalas rodapeDasSalas={<BotaoDeSair />} />
+      </PortaoDeSessao>
       <Avisos />
     </>
   );

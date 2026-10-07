@@ -1,12 +1,18 @@
 import { expect, test } from "@playwright/test";
 
 import { acionarTodosOsControles } from "./helpers/acionarTodosOsControles";
+import { comSessaoFalsa } from "./helpers/sessao";
 
 /**
  * Fumaça: o shell sobe, a barra de título só tem o que o design aprova e nenhum controle
- * é inerte. Roda SEM back-end (é o que o job de CI executa).
+ * é inerte. Roda SEM back-end (é o que o job de CI executa). O shell fica atrás do portão
+ * de sessão, então estas specs entram com uma sessão guardada falsa.
  */
 test.describe("shell @fumaca", () => {
+  test.beforeEach(async ({ page }) => {
+    await comSessaoFalsa(page);
+  });
+
   test("renderiza as regiões e a barra de título não tem controle extra", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByTestId("shell")).toBeVisible();
@@ -39,9 +45,47 @@ test.describe("shell @fumaca", () => {
 
   test("todo controle focável produz efeito observável", async ({ page }) => {
     await page.goto("/");
-    const { acionados } = await acionarTodosOsControles(page, { isencoes: [] });
+    const { acionados } = await acionarTodosOsControles(page, {
+      isencoes: [
+        {
+          nome: "Sair",
+          motivo: "encerra a sessão e recarrega a página; o efeito é coberto por 4.1-sessao.spec.ts",
+        },
+      ],
+    });
     // A gaveta tem o botão de alternar modo: se o shell perder todos os controles, algo quebrou.
     expect(acionados).toBeGreaterThan(0);
+  });
+});
+
+test.describe("portão de sessão @fumaca", () => {
+  test("sem sessão guardada mostra a entrada, sem shell e sem controle inerte", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: "Entrar no Vortex" })).toBeVisible();
+    await expect(page.getByTestId("shell")).toHaveCount(0);
+    // Criar conta, recuperar senha e QR são do M8: ausentes, não inertes.
+    await expect(page.getByRole("button", { name: /criar conta|esqueci|qr/i })).toHaveCount(0);
+    const { acionados } = await acionarTodosOsControles(page, {
+      isencoes: [
+        { nome: "E-mail ou usuário", motivo: "campo de texto: o valor é propriedade, não aparece no HTML" },
+        { nome: "Senha", motivo: "campo de texto: o valor é propriedade, não aparece no HTML" },
+        { nome: "Manter conectado", motivo: "caixa de marcar: o estado é propriedade, não aparece no HTML" },
+      ],
+    });
+    expect(acionados).toBeGreaterThan(0);
+  });
+
+  test("a entrada não estoura nas três larguras de referência", async ({ page }) => {
+    for (const largura of [1280, 1920, 2560]) {
+      await page.setViewportSize({ width: largura, height: 900 });
+      await page.goto("/");
+      await expect(page.getByRole("heading", { name: "Entrar no Vortex" })).toBeVisible();
+      const doc = await page.evaluate(() => ({
+        scroll: document.documentElement.scrollWidth,
+        client: document.documentElement.clientWidth,
+      }));
+      expect(doc.scroll, `${largura}px`).toBeLessThanOrEqual(doc.client);
+    }
   });
 });
 

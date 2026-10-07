@@ -62,6 +62,9 @@ export default defineConfig({
         extends: true,
         test: {
           name: "navegador",
+          // A rede de `/api` fechada ANTES de o SDK ser avaliado: o construtor do cliente busca
+          // a configuração do servidor sozinho, e o servidor de teste responde com HTML.
+          setupFiles: ["./src/arnes/redeFalsa.ts"],
           include: ["src/**/*.browser.test.{ts,tsx}"],
           browser: {
             enabled: true,

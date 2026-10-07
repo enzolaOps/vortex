@@ -1,0 +1,145 @@
+.raiz {
+  position: relative;
+  block-size: 100%;
+}
+
+/* Cada painel do esqueleto empilha seus blocos com o respiro da região real. */
+.painel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-3);
+  box-sizing: border-box;
+  block-size: 100%;
+  padding: var(--vx-space-4);
+  overflow: hidden;
+}
+
+.dock {
+  align-items: center;
+  padding-inline: var(--vx-space-2);
+}
+
+.bloco {
+  display: block;
+  flex: none;
+  background: var(--vx-skeleton);
+}
+
+.linha {
+  block-size: 12px;
+  border-radius: var(--vx-radius-sm);
+}
+
+.circulo {
+  inline-size: 40px;
+  block-size: 40px;
+  border-radius: 50%;
+}
+
+.icone {
+  inline-size: 16px;
+  block-size: 16px;
+  border-radius: var(--vx-space-1);
+}
+
+.larguraP {
+  inline-size: 56px;
+}
+.larguraM {
+  inline-size: 96px;
+}
+.larguraG {
+  inline-size: 140px;
+}
+.larguraGG {
+  inline-size: min(100%, 320px);
+}
+
+.itemDeSala {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+  padding-block: var(--vx-space-2);
+}
+
+.cabecaDaConversa {
+  display: flex;
+  align-items: center;
+  margin: calc(var(--vx-space-4) * -1) calc(var(--vx-space-4) * -1) 0;
+  padding: var(--vx-space-4) var(--vx-space-5);
+  border-block-end: 1px solid var(--vx-border-subtle);
+}
+
+.mensagens {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: var(--vx-space-5);
+  min-block-size: 0;
+  overflow: hidden;
+}
+
+.mensagem {
+  display: flex;
+  gap: var(--vx-space-3);
+}
+
+.textoDaMensagem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+  padding-block-start: var(--vx-space-1);
+  min-inline-size: 0;
+}
+
+.composer {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+  padding: var(--vx-space-2);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-state-hover);
+}
+
+/* O aviso de estado fica centrado sobre a área principal, sem capturar clique. */
+.estado {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vx-space-3);
+  pointer-events: none;
+}
+
+.mensagemDeEstado {
+  font-size: var(--vx-type-title-size);
+  line-height: var(--vx-type-title-line);
+  font-weight: var(--vx-type-title-weight);
+  color: var(--vx-text-1);
+}
+
+.pulso {
+  animation: respira 1600ms ease-in-out infinite;
+}
+
+@keyframes respira {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.94);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso {
+    animation: none;
+  }
+}

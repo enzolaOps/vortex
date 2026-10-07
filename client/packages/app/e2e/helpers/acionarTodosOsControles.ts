@@ -66,8 +66,11 @@ export async function acionarTodosOsControles(
   for (let i = 0; i < total; i++) {
     const el = alvo.nth(i);
     if (!(await el.isVisible()) || !(await el.isEnabled())) continue;
+    // Campo de formulário não tem texto interno: o nome é o do rótulo associado.
+    const rotulo = await el.evaluate((n) => (n as HTMLInputElement).labels?.[0]?.textContent?.trim() ?? "");
     const nome =
-      (await el.getAttribute("aria-label")) ?? ((await el.innerText()).trim() || (await el.getAttribute("title")) || "");
+      (await el.getAttribute("aria-label")) ??
+      ((await el.innerText()).trim() || rotulo || (await el.getAttribute("title")) || "");
     const descricao = await el.evaluate((n) => n.outerHTML.slice(0, 120));
     controles.push({ indice: i, nome, descricao });
   }

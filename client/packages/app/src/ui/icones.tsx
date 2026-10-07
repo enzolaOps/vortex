@@ -8,7 +8,10 @@ import {
   ChevronLeft as LChevronLeft,
   ChevronRight as LChevronRight,
   ChevronUp as LChevronUp,
+  CircleAlert as LCircleAlert,
   Copy as LCopy,
+  Eye as LEye,
+  EyeOff as LEyeOff,
   Crown as LCrown,
   Ellipsis as LEllipsis,
   GripVertical as LGripVertical,
@@ -43,6 +46,7 @@ import {
   Trash2 as LTrash2,
   Users as LUsers,
   Video as LVideo,
+  WifiOff as LWifiOff,
   VideoOff as LVideoOff,
   Volume2 as LVolume2,
   VolumeX as LVolumeX,
@@ -104,6 +108,10 @@ export const SetaParaEsquerda = envolver(LChevronLeft);
 export const SetaParaDireita = envolver(LChevronRight);
 export const SetaParaCima = envolver(LChevronUp);
 export const Copiar = envolver(LCopy);
+export const Alerta = envolver(LCircleAlert);
+export const Olho = envolver(LEye);
+export const OlhoFechado = envolver(LEyeOff);
+export const SemConexao = envolver(LWifiOff);
 export const Coroa = envolver(LCrown);
 export const MaisHorizontal = envolver(LEllipsis);
 export const Alca = envolver(LGripVertical);

@@ -41,6 +41,7 @@ const client: {
 vi.mock("./client", () => ({
   client,
   conectado: () => true,
+  pausarReconexao: vi.fn(),
 }));
 
 /*
@@ -349,5 +350,83 @@ describe("restaurar sessão", () => {
     restaurarSessao();
     expect(lerSessao().estado).toBe("fora");
     expect(client.connect).not.toHaveBeenCalled();
+  });
+});
+
+describe("entrar — a categoria da falha", () => {
+  const falha = (corpo: unknown) => {
+    api.post.mockRejectedValueOnce(typeof corpo === "string" ? corpo : JSON.stringify(corpo));
+  };
+
+  it.each([
+    [{ type: "InvalidCredentials" }, "credenciais"],
+    [{ type: "ShortPassword" }, "credenciais"],
+    [{ type: "LockedOut" }, "limite"],
+    [{ type: "UnverifiedAccount" }, "naoVerificada"],
+    [{ retry_after: 4200 }, "limite"],
+    ["<html>502</html>", "rede"],
+    [{ type: "InternalError", status: 500 }, "outra"],
+  ])("%j vira a causa %s", async (corpo, causa) => {
+    falha(corpo);
+    await entrar("eu@exemplo.com", "x");
+    expect(lerSessao().estado).toBe("erro");
+    expect(lerSessao().causa?.tipo).toBe(causa);
+  });
+
+  it("o limite carrega os segundos que o servidor mandou esperar", async () => {
+    falha({ retry_after: 4200 });
+    await entrar("eu@exemplo.com", "x");
+    expect(lerSessao().causa).toEqual({ tipo: "limite", esperaSegundos: 5 });
+  });
+
+  it("falha sem corpo nenhum (a rede caiu) é rede", async () => {
+    api.post.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    await entrar("eu@exemplo.com", "x");
+    expect(lerSessao().causa?.tipo).toBe("rede");
+  });
+
+  it("conta desativada que vem como erro tipado tem estado próprio", async () => {
+    falha({ type: "DisabledAccount" });
+    await entrar("eu@exemplo.com", "x");
+    expect(lerSessao().estado).toBe("desativada");
+  });
+
+  it("conta só com autenticador explica em vez de pedir um código que não dá", async () => {
+    api.post.mockResolvedValueOnce({ result: "MFA", ticket: "t", allowed_methods: ["Totp"] });
+    await entrar("eu@exemplo.com", "x");
+    expect(lerSessao().estado).toBe("erro");
+    expect(lerSessao().causa?.tipo).toBe("soAutenticador");
+  });
+});
+
+describe("entrar — Manter conectado", () => {
+  it("marcado guarda no armazenamento persistente", async () => {
+    api.post.mockResolvedValueOnce(SESSAO_OK);
+    await entrar("eu@exemplo.com", "senha", true);
+    expect(localStorage.getItem("vortex.sessao")).toContain("tok");
+    expect(sessionStorage.getItem("vortex.sessao")).toBeNull();
+  });
+
+  it("desmarcado guarda só na aba, e recarregar continua dentro", async () => {
+    api.post.mockResolvedValueOnce(SESSAO_OK);
+    await entrar("eu@exemplo.com", "senha", false);
+    expect(localStorage.getItem("vortex.sessao")).toBeNull();
+    expect(sessionStorage.getItem("vortex.sessao")).toContain("tok");
+
+    limparSessao();
+    guardarToken({ _id: "01SESSAO", token: "tok", user_id: "01EU" }, { persistente: false });
+    restaurarSessao();
+    expect(lerSessao().estado).toBe("dentro");
+  });
+
+  it("sair apaga dos dois lugares", async () => {
+    const { sair } = await import("./autenticacao");
+    guardarToken({ _id: "a", token: "b", user_id: "c" }, { persistente: true });
+    sessionStorage.setItem("vortex.sessao", localStorage.getItem("vortex.sessao") ?? "");
+    client.logout.mockResolvedValueOnce(undefined);
+    await sair();
+    expect(localStorage.getItem("vortex.sessao")).toBeNull();
+    expect(sessionStorage.getItem("vortex.sessao")).toBeNull();
+    expect(lerSessao().estado).toBe("fora");
   });
 });
