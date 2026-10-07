@@ -17,5 +17,5 @@
     "allowImportingTsExtensions": true,
     "skipLibCheck": true
   },
-  "include": ["src", "csp.ts", "vite.config.ts", "eslint.config.mjs"]
+  "include": ["src", "e2e", "csp.ts", "vite.config.ts", "eslint.config.mjs"]
 }
