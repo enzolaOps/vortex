@@ -27,7 +27,6 @@ export const voz = {
   chamada: "Chamada em andamento",
   controles: "Controles de voz",
   pessoasNaChamada: "Pessoas na chamada",
-  tempoDeChamada: "Tempo de chamada",
   qualidadeDaTransmissao: "Qualidade da transmissão",
   verPalco: "Ver palco",
   voltarAoPalco: "Voltar ao palco",

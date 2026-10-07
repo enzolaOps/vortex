@@ -1,0 +1,124 @@
+.capsula {
+  position: relative;
+  display: inline-block;
+  font-family: var(--vx-font-sans);
+}
+
+.barra {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+  padding: var(--vx-space-2) var(--vx-space-2) var(--vx-space-2) var(--vx-space-4);
+}
+
+.info {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  min-inline-size: 0;
+}
+.sala {
+  max-inline-size: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  font-weight: var(--vx-type-ui-weight);
+}
+.tempo {
+  color: var(--vx-text-3);
+  font-family: var(--vx-font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Expande para CIMA: a cápsula mora no pé da tela. */
+.extra {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: calc(100% + var(--vx-space-2));
+  min-inline-size: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+  padding: var(--vx-space-3);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(6px);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease,
+    visibility 0s linear 160ms;
+}
+/* Ponte invisível sobre o vão entre a cápsula e o painel. */
+.extra::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: calc(var(--vx-space-2) * -1);
+  block-size: var(--vx-space-2);
+}
+.expandida .extra {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+  transition-delay: 0s;
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pessoa {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  font-weight: 400;
+}
+.pessoaNome {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-2);
+}
+.mudo {
+  display: inline-flex;
+  color: var(--vx-muted);
+}
+
+.rodape {
+  display: flex;
+  align-items: center;
+  padding-block-start: var(--vx-space-2);
+  border-block-start: 1px solid var(--vx-border-subtle);
+}
+.qualidade {
+  margin-inline-start: auto;
+  padding: 2px var(--vx-space-2);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-pill);
+  color: var(--vx-quality-good);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-type-mono-size);
+  line-height: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .extra {
+    transition: none;
+    transform: none;
+  }
+}

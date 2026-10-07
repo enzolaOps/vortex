@@ -167,6 +167,13 @@ export default tseslint.config(
     rules: { "no-restricted-syntax": ["error", ...SINTAXE, ...ITEM_INERTE] },
   },
 
+  // A galeria é bancada de desenvolvimento (fora do bundle de produção): o texto
+  // dela não é interface.
+  {
+    files: ["src/arnes/**/*.{ts,tsx}"],
+    rules: { "no-restricted-syntax": ["error", ...SINTAXE, ...ITEM_INERTE] },
+  },
+
   // Ferramentas de linha de comando e config: fora do projeto TypeScript do app.
   {
     files: ["eslint.config.mjs", "scripts/**/*.mjs"],

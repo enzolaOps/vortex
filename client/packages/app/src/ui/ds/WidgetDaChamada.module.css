@@ -1,0 +1,128 @@
+.widget {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+  inline-size: 280px;
+  box-sizing: border-box;
+  padding: var(--vx-space-2);
+  font-family: var(--vx-font-sans);
+  transition: transform 180ms ease;
+}
+.estatico {
+  position: relative;
+}
+
+.tl {
+  inset-block-start: var(--vx-space-4);
+  inset-inline-start: var(--vx-space-4);
+  transform-origin: top left;
+}
+.tr {
+  inset-block-start: var(--vx-space-4);
+  inset-inline-end: var(--vx-space-4);
+  transform-origin: top right;
+}
+.bl {
+  inset-block-end: var(--vx-space-4);
+  inset-inline-start: var(--vx-space-4);
+  transform-origin: bottom left;
+}
+.br {
+  inset-block-end: var(--vx-space-4);
+  inset-inline-end: var(--vx-space-4);
+  transform-origin: bottom right;
+}
+
+/* Ampliar a partir do canto: o widget cresce para dentro da área de leitura. */
+.ampliado {
+  transform: scale(1.18);
+}
+
+.palco {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--vx-radius-md);
+  /* Palco é `stage`, sem vidro e sem brilho: nada tinge a imagem. */
+  background: var(--vx-stage);
+}
+.rotulo {
+  position: absolute;
+  inset-block-end: var(--vx-space-2);
+  inset-inline-start: var(--vx-space-2);
+  padding: 2px var(--vx-space-2);
+  border-radius: var(--vx-radius-sm);
+  background: var(--vx-scrim);
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  font-weight: 600;
+}
+.vivo {
+  position: absolute;
+  inset-block-start: var(--vx-space-2);
+  inset-inline-start: var(--vx-space-2);
+}
+
+.sobre {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: var(--vx-space-2);
+  background: var(--vx-scrim);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 160ms ease,
+    visibility 0s linear 160ms;
+}
+.ampliado .sobre {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.faixa {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-2);
+  padding-inline: var(--vx-space-1);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+.sala {
+  color: var(--vx-text-2);
+  font-family: var(--vx-font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.quemFala {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-1);
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-2);
+}
+
+.controles {
+  align-self: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .widget,
+  .sobre {
+    transition: none;
+  }
+  .ampliado {
+    transform: none;
+  }
+}
