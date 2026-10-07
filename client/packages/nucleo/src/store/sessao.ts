@@ -52,8 +52,28 @@ export type EstadoDaSessao =
  */
 export type MetodoDeMfa = "senha" | "recuperacao";
 
+/**
+ * Por que a entrada falhou, em categoria — para a tela escolher a PRÓPRIA frase.
+ *
+ * `motivo` é texto pronto do tradutor de erros e serve de último recurso; a
+ * categoria existe porque cada causa pede um desenho diferente (credencial
+ * errada marca os campos, rede e limite viram aviso, conta só-TOTP explica) e
+ * porque o texto da interface mora no catálogo do app, não aqui.
+ */
+export type CausaDeErro =
+  | { readonly tipo: "credenciais" }
+  | { readonly tipo: "limite"; readonly esperaSegundos: number | undefined }
+  | { readonly tipo: "rede" }
+  | { readonly tipo: "servidor" }
+  | { readonly tipo: "naoVerificada" }
+  /** A conta só tem aplicativo autenticador, que o Vortex não responde. */
+  | { readonly tipo: "soAutenticador" }
+  | { readonly tipo: "outra" };
+
 export type Sessao = {
   readonly estado: EstadoDaSessao;
+  /** A categoria do erro. Só existe em `erro`, e só quando quem falhou sabe classificar. */
+  readonly causa?: CausaDeErro;
   /** Quem sou eu. Só existe em `dentro`. */
   readonly userId: string | undefined;
   /** O que deu errado, para a tela dizer. Só existe em `erro`. */
@@ -142,10 +162,10 @@ export type TokenGuardado = {
  * devolve `undefined` em vez de estourar. Sessão ilegível é sessão inexistente,
  * e a resposta certa é pedir login, não quebrar a abertura do app.
  */
-export function lerTokenGuardado(): TokenGuardado | undefined {
+function lerDe(armazenamento: () => Storage): TokenGuardado | undefined {
   let bruto: string | null;
   try {
-    bruto = localStorage.getItem(CHAVE);
+    bruto = armazenamento().getItem(CHAVE);
   } catch {
     // Aba anônima, armazenamento bloqueado. Sem sessão guardada, e sem drama.
     return undefined;
@@ -169,9 +189,32 @@ export function lerTokenGuardado(): TokenGuardado | undefined {
   return undefined;
 }
 
-export function guardarToken(t: TokenGuardado): void {
+/**
+ * O token guardado, ou nada.
+ *
+ * Primeiro o persistente, depois o da aba: quem desmarcou "Manter conectado"
+ * continua dentro ao recarregar, mas perde a sessão ao fechar o navegador.
+ */
+export function lerTokenGuardado(): TokenGuardado | undefined {
+  return lerDe(() => localStorage) ?? lerDe(() => sessionStorage);
+}
+
+/**
+ * Guarda a sessão.
+ *
+ * `persistente: false` (a caixa "Manter conectado" desmarcada) vai para
+ * `sessionStorage`, que o navegador apaga ao fechar. Escreve num e APAGA do
+ * outro: um token antigo sobrevivendo no armazenamento errado ressuscitaria a
+ * sessão que a pessoa pediu para não guardar.
+ */
+export function guardarToken(
+  t: TokenGuardado,
+  opcoes?: { readonly persistente?: boolean },
+): void {
+  const persistente = opcoes?.persistente ?? true;
   try {
-    localStorage.setItem(CHAVE, JSON.stringify(t));
+    (persistente ? localStorage : sessionStorage).setItem(CHAVE, JSON.stringify(t));
+    (persistente ? sessionStorage : localStorage).removeItem(CHAVE);
   } catch {
     /*
       Falhar ao guardar NÃO derruba o login.
@@ -184,10 +227,12 @@ export function guardarToken(t: TokenGuardado): void {
 }
 
 export function esquecerToken(): void {
-  try {
-    localStorage.removeItem(CHAVE);
-  } catch {
-    // Idem.
+  for (const armazenamento of [() => localStorage, () => sessionStorage]) {
+    try {
+      armazenamento().removeItem(CHAVE);
+    } catch {
+      // Idem.
+    }
   }
 }
 
@@ -288,9 +333,10 @@ export function desativada(): void {
  * diferentes com ações diferentes, e confundi-los faz a pessoa tentar a coisa
  * errada.
  */
-export function erro(motivo: string): void {
+export function erro(motivo: string, causa?: CausaDeErro): void {
   publicar({
     estado: "erro",
+    ...(causa ? { causa } : {}),
     userId: undefined,
     motivo,
     metodos: SEM_METODOS,
