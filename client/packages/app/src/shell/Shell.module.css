@@ -1,0 +1,105 @@
+/*
+  O shell fixo (lei nº 3): toda trilha flexível é `minmax(0, 1fr)`. `1fr` sozinho é
+  `minmax(auto, 1fr)` e respeita o `min-content` do filho; uma URL longa estoura o
+  grid. O gap entre regiões é uma TRILHA (não `column-gap`), porque quando a gaveta
+  colapsa a zero o espaço dela some junto, em vez de deixar vão morto.
+
+  Quem decide o que cabe é a largura do próprio shell (container query), não a da
+  janela: o mesmo componente serve a janela estreita, o ultrawide e o popout.
+*/
+.raiz {
+  container: shell / inline-size;
+  block-size: 100%;
+  min-inline-size: 0;
+}
+
+.grade {
+  --larg-dock: 64px;
+  --larg-salas: clamp(14rem, 16cqi, 17.25rem);
+  --larg-gaveta: clamp(15rem, 17cqi, 19rem);
+  --gap: var(--vx-space-4);
+  --gap-salas: var(--gap);
+  --gap-gaveta: var(--gap);
+
+  display: grid;
+  grid-template-columns:
+    var(--larg-dock)
+    var(--gap)
+    var(--larg-salas)
+    var(--gap-salas)
+    minmax(0, 1fr)
+    var(--gap-gaveta)
+    var(--larg-gaveta);
+  grid-template-rows: 32px minmax(0, 1fr);
+  row-gap: var(--vx-space-3);
+  box-sizing: border-box;
+  block-size: 100%;
+  padding: 0 var(--gap) var(--gap);
+  overflow: hidden;
+}
+
+.grade[data-gaveta="icones"] {
+  --larg-gaveta: 64px;
+}
+.grade[data-gaveta="oculta"] {
+  --larg-gaveta: 0px;
+  --gap-gaveta: 0px;
+}
+
+/* Janela estreita: a gaveta sai primeiro; abaixo disso, a coluna de salas também. */
+@container shell (inline-size < 1100px) {
+  .grade[data-gaveta] {
+    --larg-gaveta: 0px;
+    --gap-gaveta: 0px;
+  }
+}
+@container shell (inline-size < 760px) {
+  .grade[data-gaveta] {
+    --larg-salas: 0px;
+    --gap-salas: 0px;
+  }
+}
+
+.barra {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  min-inline-size: 0;
+}
+
+.dock,
+.salas,
+.principal,
+.gaveta {
+  grid-row: 2;
+  min-inline-size: 0;
+  min-block-size: 0;
+}
+.dock {
+  grid-column: 1;
+}
+.salas {
+  grid-column: 3;
+}
+.principal {
+  grid-column: 5;
+  position: relative; /* âncora dos widgets de sala fixados em canto */
+}
+.gaveta {
+  grid-column: 7;
+}
+
+/* Região colapsada some da árvore de foco e do leitor de tela, não só da vista. */
+.salas[data-colapsada],
+.gaveta[data-colapsada] {
+  display: none;
+}
+@container shell (inline-size < 1100px) {
+  .gaveta {
+    display: none;
+  }
+}
+@container shell (inline-size < 760px) {
+  .salas {
+    display: none;
+  }
+}

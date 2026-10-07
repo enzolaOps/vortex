@@ -1,9 +1,8 @@
 import {
-  useEffect,
-  useEffectEvent,
   useRef,
   useState,
   type FocusEvent,
+  type KeyboardEvent,
   type PointerEvent,
   type RefObject,
 } from "react";
@@ -29,8 +28,10 @@ const focoVisivelDentro = (raiz: Element) => {
  *    foco do TECLADO está dentro (clique de mouse deixa foco, mas não conta);
  *  - foco de teclado (`:focus-visible`) abre; sair do foco fecha, salvo se o
  *    ponteiro ainda está em cima;
- *  - Esc fecha de qualquer lugar da página (o ponteiro pode estar em cima e o
- *    foco em outro lugar) e, se pedido, devolve o foco sem reabrir.
+ *  - Esc fecha SÓ quando o foco está dentro do widget: o tratador é do próprio
+ *    elemento, não do documento, porque um Esc dado num diálogo, num menu ou no
+ *    campo de mensagem não pode recolher um widget que nem recebeu a tecla. Se
+ *    pedido, devolve o foco sem reabrir.
  * Toque não tem hover: abre pelo clique do chamador e fecha ao perder o foco.
  */
 export function useExpansao({ controlado, inicial = false, aoMudar, focoAoFechar }: Opcoes) {
@@ -44,7 +45,7 @@ export function useExpansao({ controlado, inicial = false, aoMudar, focoAoFechar
     if (valor !== aberto) aoMudar?.(valor);
   };
 
-  const fechar = useEffectEvent(() => {
+  const fechar = () => {
     sobre.current = false;
     const alvo = focoAoFechar?.current;
     if (alvo && document.activeElement !== alvo) {
@@ -52,20 +53,13 @@ export function useExpansao({ controlado, inicial = false, aoMudar, focoAoFechar
       alvo.focus();
     }
     definir(false);
-  });
-
-  useEffect(() => {
-    if (!aberto) return;
-    const aoTeclar = (e: KeyboardEvent) => {
-      if (e.key === "Escape") fechar();
-    };
-    document.addEventListener("keydown", aoTeclar);
-    return () => {
-      document.removeEventListener("keydown", aoTeclar);
-    };
-  }, [aberto]);
+  };
 
   const props = {
+    onKeyDown(e: KeyboardEvent<HTMLElement>) {
+      if (e.key !== "Escape" || e.defaultPrevented || !aberto) return;
+      fechar();
+    },
     onPointerEnter(e: PointerEvent<HTMLElement>) {
       if (e.pointerType === "touch") return;
       sobre.current = true;

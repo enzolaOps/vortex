@@ -293,6 +293,10 @@ describe("CapsulaDeControle", () => {
     expect(extra.textContent).toContain("1080p60");
     expect(extra.querySelector(`[aria-label="${voz.estado.mudo}"]`)).not.toBeNull();
 
+    // Esc só vale com o foco dentro: sem foco no widget a tecla não recolhe nada.
+    await userEvent.keyboard("{Escape}");
+    expect(visibilidade(extra)).toBe("visible");
+    botoes().mic.focus();
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => visibilidade(extra)).toBe("hidden");
   });
@@ -322,7 +326,9 @@ describe("CapsulaDeControle", () => {
     );
     const extra = pegar('[role="group"][aria-label="Pessoas na chamada"]')!;
     expect(visibilidade(extra)).toBe("visible");
+    botoes().mic.focus();
     await userEvent.keyboard("{Escape}");
+    expect(aoMudar).toHaveBeenCalledWith(false);
     expect(visibilidade(extra)).toBe("visible");
   });
 });

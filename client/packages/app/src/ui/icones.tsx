@@ -20,6 +20,7 @@ import {
   Lock as LLock,
   LogOut as LLogOut,
   Maximize2 as LMaximize2,
+  Minus as LMinus,
   MessageSquare as LMessageSquare,
   Mic as LMic,
   MicOff as LMicOff,
@@ -113,6 +114,7 @@ export const Casa = envolver(LHouse);
 export const Cadeado = envolver(LLock);
 export const Sair = envolver(LLogOut);
 export const Maximizar = envolver(LMaximize2);
+export const Minimizar = envolver(LMinus);
 export const Mensagem = envolver(LMessageSquare);
 export const Microfone = envolver(LMic);
 export const MicrofoneDesligado = envolver(LMicOff);
