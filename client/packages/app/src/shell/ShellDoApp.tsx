@@ -12,14 +12,20 @@ import { Shell } from "./Shell";
  * salas, membros) mostram o estado vazio do catálogo; `principal` é o que a
  * jornada ativa pendura na área central (o arnês pendura a lista de mensagens).
  */
-export function ShellDoApp({ principal }: { principal?: ReactNode }) {
+export function ShellDoApp({
+  principal,
+  rodapeDasSalas,
+}: {
+  principal?: ReactNode;
+  rodapeDasSalas?: ReactNode;
+}) {
   const [modo, setModo] = useState<ModoVisivelDaGaveta>("lista");
   return (
     <Shell
       modoDaGaveta={modo}
       barraDeTitulo={<BarraDeTitulo />}
       dock={<DockDeServidores />}
-      salas={<ColunaDeSalas />}
+      salas={<ColunaDeSalas rodape={rodapeDasSalas} />}
       principal={<AreaPrincipal>{principal}</AreaPrincipal>}
       gaveta={<GavetaDeMembros modo={modo} aoMudarModo={setModo} />}
     />

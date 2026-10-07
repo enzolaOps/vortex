@@ -53,7 +53,7 @@ export function PortaoDeSessao({ children }: { children: ReactNode }) {
     jaRestaurou.current = true;
 
     ligarLogoutDoServidor();
-    restaurarSessao();
+    void restaurarSessao();
   }, []);
 
   /*

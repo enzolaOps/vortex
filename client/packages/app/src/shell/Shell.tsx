@@ -12,6 +12,8 @@ export interface ShellProps {
   principal: ReactNode;
   gaveta: ReactNode;
   modoDaGaveta?: ModoDaGaveta;
+  /** O esqueleto de restauração é um Shell também; ele se identifica diferente para não passar pelo real. */
+  testId?: string;
 }
 
 /**
@@ -27,9 +29,10 @@ export function Shell({
   principal,
   gaveta,
   modoDaGaveta = "lista",
+  testId = "shell",
 }: ShellProps) {
   return (
-    <FundoVidro data-testid="shell" className={css.raiz}>
+    <FundoVidro data-testid={testId} className={css.raiz}>
       <div className={css.grade} data-testid="shell-grade" data-gaveta={modoDaGaveta}>
         <div className={css.barra}>{barraDeTitulo}</div>
         <div className={css.dock}>{dock}</div>

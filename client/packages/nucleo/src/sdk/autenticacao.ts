@@ -34,9 +34,10 @@
 import { toast } from "../ui-logica/toastStore";
 import { definirUsuarioLocal, startAdapter } from "./adapter";
 import { escolherNome, precisaEscolherNome } from "./conta";
-import { client } from "./client";
+import { client, pausarReconexao } from "./client";
 import { esperarConfiguracao } from "./config";
 import {
+  type CausaDeErro,
   dentro,
   desativada,
   entrando,
@@ -50,7 +51,7 @@ import {
   precisaDeNome,
   type MetodoDeMfa,
 } from "../store/sessao";
-import { motivoDoErro } from "./erros";
+import { esperaDoLimite, motivoDoErro, tipoDoErro } from "./erros";
 import { instalarPerfilDoServidor } from "./perfilDoServidor";
 import { lerEscolhaDeIdentidade } from "../store/entrada";
 
@@ -79,6 +80,47 @@ const NOME_AMIGAVEL = "Vortex (web)";
    produz, entao TODA falha virava "Sem resposta do servidor". */
 export function motivoDe(e: unknown): string {
   return motivoDoErro(e);
+}
+
+/**
+ * Em categoria, por que o login falhou — a tela escolhe a PRÓPRIA frase.
+ *
+ * O `type` do protocolo manda; o status só entra quando não há `type`. Sem
+ * nenhum dos dois o pedido nem chegou ao servidor, e isso é rede: é a
+ * distinção que importa a quem digitou a senha, porque errar a senha e estar
+ * sem conexão pedem ações opostas (corrigir x esperar).
+ */
+export function causaDoErroDeEntrada(e: unknown): CausaDeErro {
+  const tipo = tipoDoErro(e);
+  if (tipo === "InvalidCredentials" || tipo === "ShortPassword") {
+    return { tipo: "credenciais" };
+  }
+  const espera = esperaDoLimite(e);
+  if (tipo === "LockedOut" || espera !== undefined) {
+    return {
+      tipo: "limite",
+      esperaSegundos: espera === undefined ? undefined : Math.max(1, Math.ceil(espera / 1000)),
+    };
+  }
+  if (tipo === "UnverifiedAccount") return { tipo: "naoVerificada" };
+  if (tipo !== undefined) return { tipo: "outra" };
+
+  const corpo = typeof e === "string" ? safeParse(e) : e;
+  const status =
+    (corpo as { response?: { status?: number } } | null)?.response?.status ??
+    (corpo as { status?: number } | null)?.status;
+  if (typeof status !== "number") return { tipo: "rede" };
+  if (status === 429) return { tipo: "limite", esperaSegundos: undefined };
+  if (status >= 500) return { tipo: "servidor" };
+  return { tipo: "outra" };
+}
+
+function safeParse(texto: string): unknown {
+  try {
+    return JSON.parse(texto);
+  } catch {
+    return undefined;
+  }
 }
 
 /* ------------------------------------------------------------- protocolo */
@@ -115,6 +157,15 @@ function respostaDoProtocolo(
  * há um desafio e quais métodos servem; não precisa nunca ver o bilhete.
  */
 let bilhete: string | undefined;
+
+/**
+ * "Manter conectado" da última tentativa de entrada.
+ *
+ * Module-level pelo mesmo motivo do bilhete: o segundo fator é um segundo
+ * pedido da MESMA entrada, e a escolha feita na tela de senha precisa chegar
+ * até o `guardarToken` que roda no fim dele.
+ */
+let manterConectado = true;
 
 type RespostaDeLogin =
   | { result: "Success"; _id: string; token: string; user_id: string }
@@ -235,6 +286,7 @@ async function concluir(r: RespostaDeLogin): Promise<void> {
       erro(
         "Esta conta exige um aplicativo autenticador, e o Vortex não usa esse " +
           "método. Entre por outro cliente para desativá-lo.",
+        { tipo: "soAutenticador" },
       );
       return;
     }
@@ -249,7 +301,7 @@ async function concluir(r: RespostaDeLogin): Promise<void> {
 
   bilhete = undefined;
   const sessao = { _id: r._id, token: r.token, user_id: r.user_id };
-  guardarToken(sessao);
+  guardarToken(sessao, { persistente: manterConectado });
   instalar(sessao);
   /*
     `user_id` vem da RESPOSTA, não de `client.user`.
@@ -317,12 +369,22 @@ async function postLogin(corpo: Record<string, unknown>): Promise<void> {
 
 /* --------------------------------------------------------------- entrada */
 
-export async function entrar(email: string, senha: string): Promise<void> {
+export async function entrar(
+  email: string,
+  senha: string,
+  manter = true,
+): Promise<void> {
+  manterConectado = manter;
   entrando();
   try {
     await postLogin({ email, password: senha, friendly_name: NOME_AMIGAVEL });
   } catch (e) {
-    erro(motivoDe(e));
+    /* Conta desativada pode vir como erro tipado em vez de `Disabled`. */
+    if (tipoDoErro(e) === "DisabledAccount") {
+      desativada();
+      return;
+    }
+    erro(motivoDe(e), causaDoErroDeEntrada(e));
   }
 }
 
@@ -397,8 +459,12 @@ export function cancelarMfa(): void {
  * Otimista de propósito: mostrar o app e cair para o login se o token morreu é
  * melhor que segurar a pessoa numa tela de espera a cada abertura para
  * confirmar algo que quase sempre está certo.
+ *
+ * ⚠ **O token é gravado ANTES da tela de nome** (`concluir` instala e guarda,
+ * depois pergunta o onboarding). Sem esta checagem, F5 nessa tela ia para
+ * `dentro` e o app abria sem username.
  */
-export function restaurarSessao(): void {
+export async function restaurarSessao(): Promise<void> {
   const guardado = lerTokenGuardado();
   if (!guardado) {
     fora();
@@ -407,12 +473,18 @@ export function restaurarSessao(): void {
 
   try {
     instalar(guardado);
-    dentro(guardado.user_id);
   } catch {
     // Token com forma válida que o SDK recusou. Trata como ausência.
     esquecerToken();
     fora();
+    return;
   }
+
+  if (await precisaEscolherNome()) {
+    precisaDeNome(guardado.user_id);
+    return;
+  }
+  dentro(guardado.user_id);
 }
 
 /**
@@ -430,8 +502,12 @@ export async function sair(): Promise<void> {
   try {
     await client.logout();
   } catch {
-    // A sessão local já foi. Falhar em avisar o servidor não pode prender
-    // ninguém dentro do app.
+    /*
+      A sessão local já foi. Falhar em avisar o servidor não pode prender
+      ninguém dentro do app — mas o SDK só fecha o socket DEPOIS de o POST dar
+      certo, então sem rede ele ficaria aberto com o token na conexão.
+    */
+    pausarReconexao();
   }
 }
 

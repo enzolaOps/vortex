@@ -83,3 +83,11 @@
   gap: var(--vx-space-1);
   -webkit-app-region: no-drag;
 }
+
+/* Rodapé da coluna de salas: fixo sob a rolagem, separado por uma linha fina. */
+.rodape {
+  display: flex;
+  flex: none;
+  padding: var(--vx-space-2);
+  border-block-start: 1px solid var(--vx-border-subtle);
+}
