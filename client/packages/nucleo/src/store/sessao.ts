@@ -11,6 +11,7 @@
  * rodar de verdade quando houver servidor. Está isolada de propósito, para que
  * o dia em que ela falhar tenha um lugar só para olhar.
  */
+import { definirProntidao } from "./prontidao";
 
 /**
  * Os estados, e por que são cinco.
@@ -214,6 +215,7 @@ export function dentro(userId: string): void {
 }
 
 export function fora(): void {
+  definirProntidao(false);
   publicar({
     estado: "fora",
     userId: undefined,

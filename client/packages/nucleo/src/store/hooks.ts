@@ -4,6 +4,7 @@
 import { useMemo, useSyncExternalStore } from "react";
 
 import type { EntityStore } from "./entities";
+import { chaveDeMembro } from "../sdk/domain";
 
 import {
   canaisDeTexto,
@@ -35,6 +36,7 @@ import type {
   MemberSnapshot,
   SecaoDeMembros,
   MessageSnapshot,
+  EstadoDeVoz,
   ParticipanteDeVoz,
   PresenceStatus,
   Relacao,
@@ -67,6 +69,27 @@ import {
   type Recorte,
 } from "../sdk/topicos";
 import { assinarColapso, estaColapsada } from "./colapso";
+import {
+  assinarConexao,
+  lerConexao,
+  lerDetalheDaConexao,
+  type DetalheDaConexao,
+  type EstadoDaConexao,
+} from "./conexao";
+import { assinarChamada, falando, lerChamada } from "./chamada";
+import { assinarProntidao, lerProntidao } from "./prontidao";
+import {
+  assinarPreferenciasDaSala,
+  lerCantoDaSala,
+  lerModoDaGaveta,
+  type CantoDaSala,
+  type ModoDaGaveta,
+} from "./preferenciasDaSala";
+import {
+  assinarUltimoLugar,
+  lerUltimoLugar,
+  type UltimoLugar,
+} from "./ultimoLugar";
 import { assinarIdade, idadeConfirmada } from "./idade";
 import { rascunhos, RASCUNHO_VAZIO } from "./rascunhos";
 import { assinarLayout, lerSemente } from "./layout";
@@ -665,4 +688,138 @@ export function useForum(channelId: string): ForumSnapshot | null {
   const getSnapshot = () => foruns.getSnapshot(channelId) ?? null;
   if (import.meta.env.DEV) assertStable(getSnapshot, `useForum(${channelId})`);
   return useSyncExternalStore(foruns.subscriber(channelId), getSnapshot);
+}
+
+/* ------------------------------------------------- jornada de salas (4.2) */
+
+/** O estado da conexão com o servidor. String: estável por valor. */
+export function useConexao(): EstadoDaConexao {
+  return useSyncExternalStore(assinarConexao, lerConexao);
+}
+
+/** O detalhe da conexão (última sincronia). Referência cacheada no store. */
+export function useDetalheDaConexao(): DetalheDaConexao {
+  return useSyncExternalStore(assinarConexao, lerDetalheDaConexao);
+}
+
+/** O `Ready` desta sessão já chegou? Antes dele a interface mostra esqueleto. */
+export function useProntidao(): boolean {
+  return useSyncExternalStore(assinarProntidao, lerProntidao);
+}
+
+/**
+ * Em que canal de voz a pessoa está conectada (ou conectando). Vazio fora de
+ * chamada. String, então só acorda quem muda de sala, nunca quem muda o mudo.
+ */
+export function useCanalDaChamada(): string {
+  return useSyncExternalStore(assinarChamada, () => {
+    const c = lerChamada();
+    return c.estado === "fora" ? "" : c.channelId;
+  });
+}
+
+/** O estado da chamada ("fora", "conectando", "dentro", "reconectando"). */
+export function useEstadoDaChamada() {
+  return useSyncExternalStore(assinarChamada, () => lerChamada().estado);
+}
+
+export function useUltimoLugar(serverId: string): UltimoLugar {
+  return useSyncExternalStore(assinarUltimoLugar, () => lerUltimoLugar(serverId));
+}
+
+export function useCantoDaSala(): CantoDaSala {
+  return useSyncExternalStore(assinarPreferenciasDaSala, lerCantoDaSala);
+}
+
+export function useModoDaGaveta(): ModoDaGaveta {
+  return useSyncExternalStore(assinarPreferenciasDaSala, lerModoDaGaveta);
+}
+
+/** Alguém dentro de uma sala, com o nome que o servidor mostra. */
+export type PessoaNaSala = {
+  readonly id: string;
+  /** Vazio quando o membro ainda não chegou; quem desenha troca por um rótulo neutro. */
+  readonly nome: string;
+  readonly estado: EstadoDeVoz;
+  readonly mudo: boolean;
+  readonly surdo: boolean;
+};
+
+const PESSOAS_DA_SALA = new WeakMap<
+  readonly ParticipanteDeVoz[],
+  { readonly nomes: readonly string[]; readonly lista: readonly PessoaNaSala[] }
+>();
+
+/**
+ * Quem está na sala, com nome — a lista que o item da coluna e o widget
+ * desenham. Muda quando alguém entra, sai, muda de mudo/surdo/tela ou renomeia;
+ * **não** muda com presença nem com fala (esses têm store próprio).
+ *
+ * O resultado é cacheado por referência do snapshot de voz: o getter só aloca
+ * quando os nomes realmente mudaram, senão devolve o mesmo array.
+ */
+export function usePessoasDaSala(serverId: string, canalId: string): readonly PessoaNaSala[] {
+  const voz = useVozDoCanal(canalId);
+  const { subscribe, getSnapshot } = useMemo(() => {
+    const chaves = voz.map((p) => chaveDeMembro(serverId, p.userId));
+    return {
+      subscribe: (aoMudar: () => void) => {
+        const soltar = chaves.map((c) => members.subscriber(c)(aoMudar));
+        return () => {
+          for (const f of soltar) f();
+        };
+      },
+      getSnapshot: (): readonly PessoaNaSala[] => {
+        const nomes = chaves.map((c) => members.getSnapshot(c)?.displayName ?? "");
+        const guardado = PESSOAS_DA_SALA.get(voz);
+        if (guardado && guardado.nomes.every((n, i) => n === nomes[i])) return guardado.lista;
+        const lista = voz.map((p, i) => ({
+          id: p.userId,
+          nome: nomes[i] ?? "",
+          estado: p.estado,
+          mudo: p.mudo || p.mudoPeloServidor,
+          surdo: p.surdo || p.surdoPeloServidor,
+        }));
+        PESSOAS_DA_SALA.set(voz, { nomes, lista });
+        return lista;
+      },
+    };
+  }, [voz, serverId]);
+
+  if (import.meta.env.DEV) assertStable(getSnapshot, `usePessoasDaSala(${canalId})`);
+  return useSyncExternalStore(subscribe, getSnapshot);
+}
+
+const FALANTES = new Map<string, readonly string[]>();
+
+/**
+ * Quem, entre `ids`, está falando agora. Lê o store efêmero (throttle de 120 ms
+ * na fronteira), e só devolve referência nova quando o CONJUNTO muda.
+ */
+export function useFalantes(ids: readonly string[]): readonly string[] {
+  const chave = ids.join(",");
+  const { subscribe, getSnapshot } = useMemo(() => {
+    const lista = chave === "" ? [] : chave.split(",");
+    return {
+      subscribe: (aoMudar: () => void) => {
+        const soltar = lista.map((id) => falando.subscriber(id)(aoMudar));
+        return () => {
+          for (const f of soltar) f();
+        };
+      },
+      getSnapshot: (): readonly string[] => {
+        const agora = lista.filter((id) => falando.getSnapshot(id) === true);
+        const anterior = FALANTES.get(chave) ?? NO_IDS;
+        if (agora.length === anterior.length && agora.every((id, i) => id === anterior[i])) {
+          return anterior;
+        }
+        if (FALANTES.size >= TETO_DE_SOMAS) FALANTES.clear();
+        FALANTES.set(chave, agora);
+        return agora;
+      },
+    };
+  }, [chave]);
+
+  if (import.meta.env.DEV) assertStable(getSnapshot, `useFalantes(${chave})`);
+  return useSyncExternalStore(subscribe, getSnapshot);
 }
