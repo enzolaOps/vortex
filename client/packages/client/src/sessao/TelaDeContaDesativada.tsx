@@ -1,5 +1,5 @@
 import { Botao } from "../components/ui/Botao";
-import { sair } from "../sdk/autenticacao";
+import { sair } from "nucleo/sdk/autenticacao";
 import css from "./TelaDeLogin.module.css";
 
 /**

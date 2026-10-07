@@ -5,10 +5,10 @@ import { Avatar } from "../components/ui/Avatar";
 import { Botao } from "../components/ui/Botao";
 import { Dialog, DialogClose, DialogContent } from "../components/ui/Dialog";
 import { cn } from "../lib/cn";
-import { toast } from "../components/ui/toastStore";
-import { enviarMensagem } from "../sdk/adapter";
-import { pode } from "../sdk/permissoes";
-import { assinarAlvo, lerAlvo } from "../store/administracao";
+import { toast } from "nucleo/ui-logica/toastStore";
+import { enviarMensagem } from "nucleo/sdk/adapter";
+import { pode } from "nucleo/sdk/permissoes";
+import { assinarAlvo, lerAlvo } from "nucleo/store/administracao";
 import {
   useCanaisDeTexto,
   useChannel,
@@ -16,12 +16,12 @@ import {
   useMembro,
   useMessage,
   useServidorAtivo,
-} from "../store/hooks";
-import { chaveDeMembro } from "../sdk/domain";
+} from "nucleo/store/hooks";
+import { chaveDeMembro } from "nucleo/sdk/domain";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
 import { CampoDeBusca } from "../components/ui/CampoDeBusca";
 import css from "./Encaminhar.module.css";
-import { sigla } from "../lib/sigla";
+import { sigla } from "nucleo/lib/sigla";
 
 /**
  * Quantos destinos de uma vez.

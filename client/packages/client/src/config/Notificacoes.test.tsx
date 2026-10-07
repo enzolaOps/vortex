@@ -16,17 +16,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const { definirPresenca } = vi.hoisted(() => ({
   definirPresenca: vi.fn(() => Promise.resolve(true)),
 }));
-vi.mock("../sdk/perfil", () => ({ definirPresenca }));
+vi.mock("nucleo/sdk/perfil", () => ({ definirPresenca }));
 
 /* Objeto TROCADO pelo teste e devolvido sempre o mesmo: `getSnapshot` que
    aloca a cada leitura é o erro nº 1 do briefing, inclusive num dublê. */
 let status = { presenca: "dnd" };
-vi.mock("../store/meuStatus", () => ({
+vi.mock("nucleo/store/meuStatus", () => ({
   assinarMeuStatus: () => () => undefined,
   lerMeuStatus: () => status,
 }));
 
-vi.mock("../notificacao/push", () => ({
+vi.mock("nucleo/notificacao/push", () => ({
   assinarPush: () => () => undefined,
   lerPush: () => "desligado",
   ligarPush: () => undefined,

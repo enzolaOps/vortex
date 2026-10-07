@@ -15,8 +15,8 @@ import {
   podeModerarPedidos,
   recusarPedido,
   type ModoDeEntrada,
-} from "../sdk/seguranca";
-import { useFilaDePedidos, usePolitica } from "../store/seguranca";
+} from "nucleo/sdk/seguranca";
+import { useFilaDePedidos, usePolitica } from "nucleo/store/seguranca";
 import css from "./Acesso.module.css";
 
 const MODOS: readonly {

@@ -11,7 +11,7 @@ import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { Interruptor } from "../components/ui/Interruptor";
 import { Segmentado } from "../components/ui/Segmentado";
-import { pode } from "../sdk/permissoes";
+import { pode } from "nucleo/sdk/permissoes";
 import {
   aoVoltarParaAJanela,
   capacidadeDeCaptura,
@@ -22,15 +22,15 @@ import {
   type FonteDeTela,
   type Resolucao,
   type Taxa,
-} from "../sdk/seletorDeTela";
-import { lerChamada } from "../store/chamada";
-import { useChannel } from "../store/hooks";
-import { QUALIDADE_PADRAO } from "../store/qualidadeDaTela";
+} from "nucleo/sdk/seletorDeTela";
+import { lerChamada } from "nucleo/store/chamada";
+import { useChannel } from "nucleo/store/hooks";
+import { QUALIDADE_PADRAO } from "nucleo/store/qualidadeDaTela";
 import {
   assinarSeletorDeTela,
   lerSeletorDeTela,
   responderEscolhaDeTela,
-} from "../store/seletorDeTela";
+} from "nucleo/store/seletorDeTela";
 import { estadoDoTransmitir, motivoDoTransmitir } from "./estadoDoTransmitir";
 import css from "./SeletorDeTela.module.css";
 

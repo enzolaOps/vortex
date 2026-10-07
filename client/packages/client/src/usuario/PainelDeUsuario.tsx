@@ -20,21 +20,21 @@ import {
   DropdownMenuTrigger,
 } from "../components/ui/DropdownMenu";
 import { Tooltip } from "../components/ui/Tooltip";
-import { abrirConfig } from "../store/config";
-import { alternarMudo, alternarSurdo } from "../sdk/chamada";
-import { assinarChamada, lerChamada } from "../store/chamada";
-import { assinarMeuStatus, lerMeuStatus } from "../store/meuStatus";
-import { assinarSessao, lerSessao } from "../store/sessao";
+import { abrirConfig } from "nucleo/store/config";
+import { alternarMudo, alternarSurdo } from "nucleo/sdk/chamada";
+import { assinarChamada, lerChamada } from "nucleo/store/chamada";
+import { assinarMeuStatus, lerMeuStatus } from "nucleo/store/meuStatus";
+import { assinarSessao, lerSessao } from "nucleo/store/sessao";
 import { Avatar } from "../components/ui/Avatar";
-import { definirPresenca, definirStatusTexto, lerMeuPerfil } from "../sdk/perfil";
-import type { PresencaEscolhida } from "../sdk/domain";
+import { definirPresenca, definirStatusTexto, lerMeuPerfil } from "nucleo/sdk/perfil";
+import type { PresencaEscolhida } from "nucleo/sdk/domain";
 import css from "./PainelDeUsuario.module.css";
 import {
   assinarPreferenciasDeVoz,
   lerPreferenciasDeVoz,
   type ModoDeEntrada,
-} from "../store/preferenciasDeVoz";
-import { sigla } from "../lib/sigla";
+} from "nucleo/store/preferenciasDeVoz";
+import { sigla } from "nucleo/lib/sigla";
 
 /** Minúsculo e sem ponto: é subtexto sob o nome, como no design. */
 const ROTULO_DO_MODO: Record<ModoDeEntrada, string> = {

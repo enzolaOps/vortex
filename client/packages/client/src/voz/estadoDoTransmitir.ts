@@ -1,4 +1,4 @@
-import type { FaseDoSeletor, ModoDoSeletor } from "../store/seletorDeTela";
+import type { FaseDoSeletor, ModoDoSeletor } from "nucleo/store/seletorDeTela";
 
 /**
  * Os estados do botão "Transmitir", como o design os enumera.

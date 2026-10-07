@@ -5,13 +5,13 @@ import { ChatCircle, ICONE, SpeakerHigh, X } from "../components/ui/icones";
 import { Tooltip } from "../components/ui/Tooltip";
 import { Composer } from "../composer/Composer";
 import { MessageList } from "../list/MessageList";
-import { useChannel } from "../store/hooks";
+import { useChannel } from "nucleo/store/hooks";
 import {
   alternarChatDaSala,
   assinarChatDaSala,
   definirChatDaSala,
   lerChatDaSala,
-} from "../store/palcoDeVoz";
+} from "nucleo/store/palcoDeVoz";
 import css from "./ChatDaSala.module.css";
 
 /**

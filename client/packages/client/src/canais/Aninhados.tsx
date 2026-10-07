@@ -10,9 +10,9 @@
 import { memo } from "react";
 
 import { Selo } from "../components/ui/Selo";
-import { contagem } from "../lib/plural";
-import { useChannel, useSomaDeCanais, useTopico } from "../store/hooks";
-import { selecionarCanal } from "../store/navegacao";
+import { contagem } from "nucleo/lib/plural";
+import { useChannel, useSomaDeCanais, useTopico } from "nucleo/store/hooks";
+import { selecionarCanal } from "nucleo/store/navegacao";
 import css from "./Aninhados.module.css";
 
 /**

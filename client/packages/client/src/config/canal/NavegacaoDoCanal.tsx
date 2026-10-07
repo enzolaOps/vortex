@@ -1,15 +1,15 @@
 import { Hash, SpeakerHigh } from "../../components/ui/icones";
 
-import { copiarTexto } from "../../lib/copiar";
-import type { ChannelSnapshot } from "../../sdk/domain";
-import { administrar } from "../../store/administracao";
+import { copiarTexto } from "nucleo/lib/copiar";
+import type { ChannelSnapshot } from "nucleo/sdk/domain";
+import { administrar } from "nucleo/store/administracao";
 import {
   abrirConfig,
   DE_CANAL,
   fecharConfig,
   NOME_DA_SECAO,
   type SecaoId,
-} from "../../store/config";
+} from "nucleo/store/config";
 import css from "./NavegacaoDoCanal.module.css";
 
 /**

@@ -1,8 +1,8 @@
 import { Botao } from "../components/ui/Botao";
 import { DownloadSimple } from "../components/ui/icones";
-import { copiarTexto } from "../lib/copiar";
-import { linkDeDownload } from "../lib/downloadDoDesktop";
-import { voltarParaEntrar } from "../store/entrada";
+import { copiarTexto } from "nucleo/lib/copiar";
+import { linkDeDownload } from "nucleo/lib/downloadDoDesktop";
+import { voltarParaEntrar } from "nucleo/store/entrada";
 import css from "./TelaDeDownload.module.css";
 
 const WINDOWS = linkDeDownload("Windows");

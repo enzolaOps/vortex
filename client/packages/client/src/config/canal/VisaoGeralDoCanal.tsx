@@ -13,8 +13,8 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "../../components/ui/DropdownMenu";
-import { definirBarraDeSalvar } from "../../store/barraDeSalvar";
-import { nosDeVoz, salvarCanal } from "../../sdk/canal";
+import { definirBarraDeSalvar } from "nucleo/store/barraDeSalvar";
+import { nosDeVoz, salvarCanal } from "nucleo/sdk/canal";
 import {
   BITRATE_MAX,
   BITRATE_MIN,
@@ -27,9 +27,9 @@ import {
   useConfigDeVoz,
   type ModoDaSala,
   type ModoDeVideo,
-} from "../../sdk/vozDoCanal";
+} from "nucleo/sdk/vozDoCanal";
 import { Escolha } from "../../components/ui/Escolha";
-import { useChannel } from "../../store/hooks";
+import { useChannel } from "nucleo/store/hooks";
 import secao from "../Secao.module.css";
 import { CartaoDeOpcao } from "../../components/ui/CartaoDeOpcao";
 import { Selo } from "../../components/ui/Selo";

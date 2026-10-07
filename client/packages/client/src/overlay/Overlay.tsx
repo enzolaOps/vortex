@@ -18,7 +18,7 @@ import {
   type Ancora,
   type EstadoDoOverlay,
   type MensagemDoOverlay,
-} from "./modelo";
+} from "nucleo/ui-logica/overlay/modelo";
 import css from "./Overlay.module.css";
 
 const MAC = typeof navigator !== "undefined" && /mac/i.test(navigator.platform);

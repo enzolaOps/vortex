@@ -38,28 +38,28 @@ import {
   alternarTela,
   assinarVideo,
   sairDaChamada,
-} from "../sdk/chamada";
+} from "nucleo/sdk/chamada";
 import { Soundboard } from "../seletores/Soundboard";
-import { assinarChamada, lerChamada } from "../store/chamada";
-import { abrirConfig } from "../store/config";
+import { assinarChamada, lerChamada } from "nucleo/store/chamada";
+import { abrirConfig } from "nucleo/store/config";
 import {
   comNome,
   PADRAO_DO_SISTEMA,
   useDispositivos,
-} from "../store/dispositivos";
-import { abrirModal } from "../store/modais";
-import { fecharPalco } from "../store/palcoDeVoz";
-import { definirFormaDoPopout } from "../store/popout";
+} from "nucleo/store/dispositivos";
+import { abrirModal } from "nucleo/store/modais";
+import { fecharPalco } from "nucleo/store/palcoDeVoz";
+import { definirFormaDoPopout } from "nucleo/store/popout";
 import {
   assinarPreferenciasDeVoz,
   definirPreferenciasDeVoz,
   lerPreferenciasDeVoz,
-} from "../store/preferenciasDeVoz";
+} from "nucleo/store/preferenciasDeVoz";
 import {
   chaveDeVideo,
   faixasDeVideo,
   type FonteDeVideo,
-} from "../store/video";
+} from "nucleo/store/video";
 import css from "./pecasDeVoz.module.css";
 
 /**

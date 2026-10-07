@@ -3,15 +3,15 @@ import { useEffect, useRef, useState, type DragEvent } from "react";
 import { Avatar } from "../components/ui/Avatar";
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
-import { sigla } from "../lib/sigla";
-import { temServidorDeMidia, tetoDeUploadTexto } from "../sdk/anexos";
+import { sigla } from "nucleo/lib/sigla";
+import { temServidorDeMidia, tetoDeUploadTexto } from "nucleo/sdk/anexos";
 import {
   lerMeuBanner,
   lerMeuPerfil,
   salvarPerfil,
   TAG_DA_IMAGEM_DO_PERFIL,
   trocarImagemDoPerfil,
-} from "../sdk/perfil";
+} from "nucleo/sdk/perfil";
 import { useImagemEnviavel } from "./useImagemEnviavel";
 import css from "./Perfil.module.css";
 import secao from "./Secao.module.css";

@@ -1,7 +1,7 @@
-import { podeAbrirTopico, topicoDaMensagem } from "../sdk/topicos";
-import { pode } from "../sdk/permissoes";
-import { administrar } from "../store/administracao";
-import { selecionarCanal } from "../store/navegacao";
+import { podeAbrirTopico, topicoDaMensagem } from "nucleo/sdk/topicos";
+import { pode } from "nucleo/sdk/permissoes";
+import { administrar } from "nucleo/store/administracao";
+import { selecionarCanal } from "nucleo/store/navegacao";
 
 /**
  * "Criar tópico" a partir de uma mensagem — a barra de ações e o menu chamam isto.

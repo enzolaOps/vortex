@@ -3,13 +3,13 @@ import { useState } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
-import { enviarMensagem, marcarCanalLido, marcarTodosLidos } from "../sdk/adapter";
+import { enviarMensagem, marcarCanalLido, marcarTodosLidos } from "nucleo/sdk/adapter";
 import { MenuDaMensagem } from "../list/MessageRow";
 import { MenuDeContexto } from "../components/ui/MenuDeContexto";
-import { mirarAlvoDoMenu } from "../store/menuDeMensagem";
-import { contagem, plural } from "../lib/plural";
+import { mirarAlvoDoMenu } from "nucleo/store/menuDeMensagem";
+import { contagem, plural } from "nucleo/lib/plural";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
-import { irPara } from "../store/navegacao";
+import { irPara } from "nucleo/store/navegacao";
 import {
   useCanaisDeTexto,
   useChannel,
@@ -19,7 +19,7 @@ import {
   useTopico,
   useTopicosQueSigo,
   useTotaisNaoLidos,
-} from "../store/hooks";
+} from "nucleo/store/hooks";
 import css from "./CaixaDeEntrada.module.css";
 
 type Aba = "mencoes" | "naoLidos" | "topicos";

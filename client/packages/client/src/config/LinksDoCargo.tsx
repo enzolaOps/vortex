@@ -3,16 +3,16 @@ import { useEffect, useState } from "react";
 import { Botao } from "../components/ui/Botao";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { Girador } from "../components/ui/Girador";
-import { toast } from "../components/ui/toastStore";
-import { primeiroCanalDe } from "../sdk/adapter";
+import { toast } from "nucleo/ui-logica/toastStore";
+import { primeiroCanalDe } from "nucleo/sdk/adapter";
 import {
   criarLinkDeCargo,
   enderecoDoLink,
   listarLinksDoCargo,
   type LinkDeCargo,
-} from "../sdk/linksDeCargo";
-import { pode } from "../sdk/permissoes";
-import { revogarConvite } from "../sdk/servidores";
+} from "nucleo/sdk/linksDeCargo";
+import { pode } from "nucleo/sdk/permissoes";
+import { revogarConvite } from "nucleo/sdk/servidores";
 import css from "./LinksDoCargo.module.css";
 
 /**

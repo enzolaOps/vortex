@@ -17,17 +17,17 @@ import {
   Trash,
 } from "../components/ui/icones";
 import { ItemDeId } from "../components/ui/ItemDeId";
-import { copiarTexto } from "../lib/copiar";
-import { atalho } from "../lib/plataforma";
+import { copiarTexto } from "nucleo/lib/copiar";
+import { atalho } from "nucleo/lib/plataforma";
 import { menuAtalho } from "../components/ui/menu";
-import { entrarNaChamada } from "../sdk/chamada";
-import { marcarCanalLido } from "../sdk/adapter";
-import { pode } from "../sdk/permissoes";
-import { duplicarCanal } from "../sdk/servidores";
-import { administrar } from "../store/administracao";
-import { abrirConfigDeCanal } from "../store/config";
-import { useChannel } from "../store/hooks";
-import { selecionarCanal } from "../store/navegacao";
+import { entrarNaChamada } from "nucleo/sdk/chamada";
+import { marcarCanalLido } from "nucleo/sdk/adapter";
+import { pode } from "nucleo/sdk/permissoes";
+import { duplicarCanal } from "nucleo/sdk/servidores";
+import { administrar } from "nucleo/store/administracao";
+import { abrirConfigDeCanal } from "nucleo/store/config";
+import { useChannel } from "nucleo/store/hooks";
+import { selecionarCanal } from "nucleo/store/navegacao";
 import { SubmenuDeSilenciar } from "./SubmenuDeSilenciar";
 
 /**

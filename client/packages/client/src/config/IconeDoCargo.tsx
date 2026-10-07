@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { Botao } from "../components/ui/Botao";
 import { Plus } from "../components/ui/icones";
-import { subirAnexo, temServidorDeMidia } from "../sdk/anexos";
-import { definirIconeDoCargo, type Cargo } from "../sdk/cargos";
+import { subirAnexo, temServidorDeMidia } from "nucleo/sdk/anexos";
+import { definirIconeDoCargo, type Cargo } from "nucleo/sdk/cargos";
 import { aindaNao } from "../pendente/pendencias";
 import cargoCss from "./Cargos.module.css";
 

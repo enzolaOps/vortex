@@ -22,8 +22,8 @@ import { Shell } from "../shell/Shell";
 import { PainelDeUsuario } from "../usuario/PainelDeUsuario";
 import { OverlayDeDebug, contarCommit } from "../dev/OverlayDeDebug";
 import { observarTamanhoDeIcone } from "../dev/tamanhoDeIcone";
-import { assinarDev, lerDev } from "../store/dev";
-import { useCanalAtivo, useLocal } from "../store/hooks";
+import { assinarDev, lerDev } from "nucleo/store/dev";
+import { useCanalAtivo, useLocal } from "nucleo/store/hooks";
 
 /**
  * O cliente. O app de verdade, sem arnês.

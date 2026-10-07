@@ -1,7 +1,7 @@
-import { count } from "../dev/stats";
+import { count } from "nucleo/arnes/stats";
 import { cn } from "../lib/cn";
-import type { PresenceStatus } from "../sdk/domain";
-import { usePresence } from "../store/hooks";
+import type { PresenceStatus } from "nucleo/sdk/domain";
+import { usePresence } from "nucleo/store/hooks";
 import css from "./PontoDePresenca.module.css";
 
 const CLASSE: Record<PresenceStatus, string> = {

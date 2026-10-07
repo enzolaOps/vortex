@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
-import { subirAnexo, type TagDeAnexo } from "../sdk/anexos";
-import { toast } from "../components/ui/toastStore";
+import { subirAnexo, type TagDeAnexo } from "nucleo/sdk/anexos";
+import { toast } from "nucleo/ui-logica/toastStore";
 
 /**
  * Escolher, enviar e remover UMA imagem de identidade.

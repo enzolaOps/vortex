@@ -1,11 +1,11 @@
 import { useRef, useSyncExternalStore, type ReactNode } from "react";
 
 import { AlcaDeSlot } from "../layout/AlcaDeSlot";
-import { NOME_DO_PAINEL, type PainelId, type SlotId } from "../preset/schema";
+import { NOME_DO_PAINEL, type PainelId, type SlotId } from "nucleo/preset/schema";
 import { LimiteDeErro } from "../components/ui/LimiteDeErro";
-import { assinarDrawer, lerDrawer } from "../store/drawer";
-import { assinarEdicao, lerEdicao } from "../store/edicao";
-import { assinarLayout, lerLayout } from "../store/layout";
+import { assinarDrawer, lerDrawer } from "nucleo/store/drawer";
+import { assinarEdicao, lerEdicao } from "nucleo/store/edicao";
+import { assinarLayout, lerLayout } from "nucleo/store/layout";
 import drawerCss from "./Drawer.module.css";
 import css from "./Shell.module.css";
 

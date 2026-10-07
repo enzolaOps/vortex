@@ -1,5 +1,5 @@
 import { Avatar } from "../components/ui/Avatar";
-import type { AlvoDeMencao } from "../sdk/completarMencao";
+import type { AlvoDeMencao } from "nucleo/sdk/completarMencao";
 import css from "./SugestoesDeMencao.module.css";
 
 export function SugestoesDeMencao({

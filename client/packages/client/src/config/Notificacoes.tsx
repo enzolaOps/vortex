@@ -15,9 +15,9 @@ import {
   ligarPush,
   lerPush,
   type EstadoDoPush,
-} from "../notificacao/push";
-import { definirPresenca } from "../sdk/perfil";
-import { assinarMeuStatus, lerMeuStatus } from "../store/meuStatus";
+} from "nucleo/notificacao/push";
+import { definirPresenca } from "nucleo/sdk/perfil";
+import { assinarMeuStatus, lerMeuStatus } from "nucleo/store/meuStatus";
 import {
   alternarDia,
   alternarNaMatriz,
@@ -28,7 +28,7 @@ import {
   EVENTOS_DE_NOTIFICACAO,
   lerNotificacoes,
   type CanalDeEntrega,
-} from "../store/notificacoes";
+} from "nucleo/store/notificacoes";
 import {
   CabecalhoDeSecao,
   CartaoDeAjustes,

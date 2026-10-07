@@ -13,20 +13,20 @@ import {
   ContextMenuSubContent,
   ContextMenuSubTrigger,
 } from "../components/ui/ContextMenu";
-import { usuarioLocalId } from "../sdk/adapter";
+import { usuarioLocalId } from "nucleo/sdk/adapter";
 import {
   alternarCargo,
   cargosDoServidor,
   moderarVoz,
   moverParaCanalDeVoz,
-} from "../sdk/cargos";
-import { chaveDeMembro } from "../sdk/domain";
+} from "nucleo/sdk/cargos";
+import { chaveDeMembro } from "nucleo/sdk/domain";
 import {
   useCanaisDeVoz,
   useChannel,
   useMembro,
   useVozDoCanal,
-} from "../store/hooks";
+} from "nucleo/store/hooks";
 import css from "./SubmenusDeMembro.module.css";
 
 /**

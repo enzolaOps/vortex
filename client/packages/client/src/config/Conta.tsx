@@ -2,15 +2,15 @@ import { useState } from "react";
 
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
-import { sair } from "../sdk/autenticacao";
+import { sair } from "nucleo/sdk/autenticacao";
 import {
   administraServidor,
   lerMeuPerfil,
   trocarEmail,
   trocarNomeDeUsuario,
   trocarSenha,
-} from "../sdk/perfil";
-import { abrirModal } from "../store/modais";
+} from "nucleo/sdk/perfil";
+import { abrirModal } from "nucleo/store/modais";
 import css from "./Secao.module.css";
 
 /**

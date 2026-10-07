@@ -6,14 +6,14 @@ import { Campo } from "../components/ui/Campo";
 import { Interruptor } from "../components/ui/Interruptor";
 import { Selo } from "../components/ui/Selo";
 import { aindaNao } from "../pendente/pendencias";
-import { temServidorDeMidia } from "../sdk/anexos";
+import { temServidorDeMidia } from "nucleo/sdk/anexos";
 import {
   enviarEmblemaDaTag,
   removerEmblemaDaTag,
   salvarTagDoServidor,
-} from "../sdk/perfilDoServidor";
-import { definirBarraDeSalvar } from "../store/barraDeSalvar";
-import { usePerfilDoServidor } from "../store/perfilDoServidor";
+} from "nucleo/sdk/perfilDoServidor";
+import { definirBarraDeSalvar } from "nucleo/store/barraDeSalvar";
+import { usePerfilDoServidor } from "nucleo/store/perfilDoServidor";
 import { CartaoDeAjustes, LinhaDeAjuste } from "./Pagina";
 import css from "./Tag.module.css";
 

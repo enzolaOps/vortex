@@ -23,30 +23,30 @@ import { ItemDeId } from "../components/ui/ItemDeId";
 import {
   canalDeVozDe,
   usuarioLocalId,
-} from "../sdk/adapter";
-import { chaveDeMembro } from "../sdk/domain";
-import { pode } from "../sdk/permissoes";
-import { administrar } from "../store/administracao";
+} from "nucleo/sdk/adapter";
+import { chaveDeMembro } from "nucleo/sdk/domain";
+import { pode } from "nucleo/sdk/permissoes";
+import { administrar } from "nucleo/store/administracao";
 import {
   useMembro,
   useServidorAtivo,
   useVozDoCanal,
-} from "../store/hooks";
+} from "nucleo/store/hooks";
 import {
   abrirConversa,
   lerLocal,
-} from "../store/navegacao";
-import { alternarSilencioDe } from "../store/sobrePessoas";
+} from "nucleo/store/navegacao";
+import { alternarSilencioDe } from "nucleo/store/sobrePessoas";
 import {
   assinarVolume,
   definirVolume,
   lerVolume,
   VOLUME_MAXIMO,
-} from "../store/volumesDeVoz";
-import { moderarVoz } from "../sdk/cargos";
+} from "nucleo/store/volumesDeVoz";
+import { moderarVoz } from "nucleo/sdk/cargos";
 import { menuLargo } from "../components/ui/menu";
-import { entrarNaChamada } from "../sdk/chamada";
-import { abrirConversaCom } from "../sdk/social";
+import { entrarNaChamada } from "nucleo/sdk/chamada";
+import { abrirConversaCom } from "nucleo/sdk/social";
 import {
   SubmenuDeCargos,
   SubmenuDeVoz,

@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 
-import { assinarConexao, lerConexao } from "../store/conexao";
+import { assinarConexao, lerConexao } from "nucleo/store/conexao";
 import css from "./NotaDePresencaOffline.module.css";
 
 /**

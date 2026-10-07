@@ -15,10 +15,10 @@ import {
 import { MenuDeContexto } from "../components/ui/MenuDeContexto";
 import { ItensDoServidor } from "../menus/ItensDoServidor";
 import { Tooltip } from "../components/ui/Tooltip";
-import { contagem, plural, rotuloDeNaoLidas } from "../lib/plural";
-import { linkDeDownload, plataformaDoNavegador } from "../lib/downloadDoDesktop";
-import { assinarDesktop, lerDesktop } from "../store/desktop";
-import { corDoTextoDe, gradienteDe } from "../lib/gradiente";
+import { contagem, plural, rotuloDeNaoLidas } from "nucleo/lib/plural";
+import { linkDeDownload, plataformaDoNavegador } from "nucleo/lib/downloadDoDesktop";
+import { assinarDesktop, lerDesktop } from "nucleo/store/desktop";
+import { corDoTextoDe, gradienteDe } from "nucleo/lib/gradiente";
 import {
   useLocal,
   useServer,
@@ -27,8 +27,8 @@ import {
   useSomaDeServidores,
   useCorDeCargo,
   useNaoLidasDeConversas,
-} from "../store/hooks";
-import { administrar } from "../store/administracao";
+} from "nucleo/store/hooks";
+import { administrar } from "nucleo/store/administracao";
 import {
   agrupar,
   alternarColapsoDaPasta,
@@ -36,10 +36,10 @@ import {
   lerPastas,
   removerPasta,
   type Pasta,
-} from "../store/pastas";
-import { abrirModal } from "../store/modais";
-import { assinarChamadaRecebida, lerChamadaRecebida } from "../store/chamadaRecebida";
-import { irParaCasa, selecionarServidor } from "../store/navegacao";
+} from "nucleo/store/pastas";
+import { abrirModal } from "nucleo/store/modais";
+import { assinarChamadaRecebida, lerChamadaRecebida } from "nucleo/store/chamadaRecebida";
+import { irParaCasa, selecionarServidor } from "nucleo/store/navegacao";
 import { Selo } from "../components/ui/Selo";
 import css from "./Rail.module.css";
 import { ItemDeId } from "../components/ui/ItemDeId";

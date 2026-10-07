@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 
-import { copiarTexto } from "../../lib/copiar";
-import { assinarDev, modoDev } from "../../store/dev";
+import { copiarTexto } from "nucleo/lib/copiar";
+import { assinarDev, modoDev } from "nucleo/store/dev";
 import { ContextMenuItem } from "./ContextMenu";
 import { DropdownMenuItem } from "./DropdownMenu";
 import { menuItemId } from "./menu";

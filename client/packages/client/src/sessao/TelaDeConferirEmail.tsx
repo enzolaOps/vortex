@@ -2,8 +2,8 @@ import { useState } from "react";
 
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
-import { reenviarVerificacao } from "../sdk/conta";
-import { voltarParaEntrar } from "../store/entrada";
+import { reenviarVerificacao } from "nucleo/sdk/conta";
+import { voltarParaEntrar } from "nucleo/store/entrada";
 import css from "./TelaDeLogin.module.css";
 
 /**

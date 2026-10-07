@@ -3,7 +3,7 @@ import { memo } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
-import { contagem, rotuloDeNaoLidas } from "../lib/plural";
+import { contagem, rotuloDeNaoLidas } from "nucleo/lib/plural";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
 import {
   useCanalAtivo,
@@ -11,15 +11,15 @@ import {
   useConversas,
   useMessage,
   usePessoa,
-} from "../store/hooks";
-import { abrirConversa, irParaAmigos } from "../store/navegacao";
-import { useLocal } from "../store/hooks";
+} from "nucleo/store/hooks";
+import { abrirConversa, irParaAmigos } from "nucleo/store/navegacao";
+import { useLocal } from "nucleo/store/hooks";
 import { Selo } from "../components/ui/Selo";
 import css from "./ListaDeConversas.module.css";
 import { MenuDeContexto } from "../components/ui/MenuDeContexto";
 import { ItensDaConversa } from "../menus/ItensDaConversa";
 import { Tooltip } from "../components/ui/Tooltip";
-import { administrar } from "../store/administracao";
+import { administrar } from "nucleo/store/administracao";
 
 /**
  * A coluna da casa: conversas diretas, grupos e as notas.

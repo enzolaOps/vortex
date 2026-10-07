@@ -4,8 +4,8 @@ import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { Segmentado } from "../components/ui/Segmentado";
-import { desativarConta, type FatorDaConta } from "../sdk/perfil";
-import { sair } from "../sdk/autenticacao";
+import { desativarConta, type FatorDaConta } from "nucleo/sdk/perfil";
+import { sair } from "nucleo/sdk/autenticacao";
 
 const FATORES: readonly { readonly id: FatorDaConta; readonly rotulo: string }[] =
   [

@@ -1,4 +1,4 @@
-import { definirFormaDoPopout } from "../store/popout";
+import { definirFormaDoPopout } from "nucleo/store/popout";
 import { espelharEstilos, NOME_DA_JANELA } from "./popoutNoSistema";
 
 /**

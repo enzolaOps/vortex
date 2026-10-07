@@ -23,22 +23,22 @@ import {
   SLOTS,
   type PainelId,
   type SlotId,
-} from "../preset/schema";
-import { iniciarArraste, terminarArraste } from "../store/arraste";
+} from "nucleo/preset/schema";
+import { iniciarArraste, terminarArraste } from "nucleo/store/arraste";
 import {
   assinarEdicao,
   lerEdicao,
   reaplicarRetrato,
   sair,
   temMudanca,
-} from "../store/edicao";
+} from "nucleo/store/edicao";
 import { toast } from "../components/ui/Toast";
 import {
   assinarLayout,
   definirSlot,
   lerBruto,
   lerLayout,
-} from "../store/layout";
+} from "nucleo/store/layout";
 import { PickerDePaleta } from "./PickerDePaleta";
 import css from "./PainelDeEdicao.module.css";
 

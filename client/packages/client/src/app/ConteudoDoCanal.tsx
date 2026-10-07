@@ -4,7 +4,7 @@ import { PalcoDeVoz } from "../voz/PalcoDeVoz";
 import { useNaSala } from "../voz/useSalaDeVoz";
 import { GaleriaDeMidia } from "../forum/GaleriaDeMidia";
 import { TelaDoForum } from "../forum/TelaDoForum";
-import { useExigeConfirmacaoDeIdade, useForum, useTopico } from "../store/hooks";
+import { useExigeConfirmacaoDeIdade, useForum, useTopico } from "nucleo/store/hooks";
 import { RaizDoTopico } from "../topicos/RaizDoTopico";
 import { PortaoDeIdade } from "./PortaoDeIdade";
 

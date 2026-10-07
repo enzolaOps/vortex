@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 
-import { cancelarUpload } from "../store/uploads";
-import { progressoDeUpload } from "../store/uploads";
+import { cancelarUpload } from "nucleo/store/uploads";
+import { progressoDeUpload } from "nucleo/store/uploads";
 import css from "./CartaoDeUpload.module.css";
 
 /**

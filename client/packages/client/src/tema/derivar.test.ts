@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-import { TOKENS_DE_TEMA } from "../preset/tokens";
-import { hexParaOklch, oklchParaHex } from "./cor";
-import { derivar, LIMITES_DA_SEMENTE, SEMENTE_PADRAO, type Modo } from "./derivar";
-import { falhasQueContam, verificar } from "./pares";
+import { TOKENS_DE_TEMA } from "nucleo/preset/tokens";
+import { hexParaOklch, oklchParaHex } from "nucleo/tema/cor";
+import { derivar, LIMITES_DA_SEMENTE, SEMENTE_PADRAO, type Modo } from "nucleo/tema/derivar";
+import { falhasQueContam, verificar } from "nucleo/tema/pares";
 
 /**
  * A promessa do picker, e o teste que a torna verdadeira.

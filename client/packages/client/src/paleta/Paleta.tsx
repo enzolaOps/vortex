@@ -10,15 +10,15 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Dialog, DialogContent } from "../components/ui/Dialog";
-import { useServidorAtivo } from "../store/hooks";
+import { useServidorAtivo } from "nucleo/store/hooks";
 import {
   abrirConversa,
   selecionarCanal,
   selecionarServidor,
-} from "../store/navegacao";
-import { administrar } from "../store/administracao";
-import { abrirConversaCom } from "../sdk/social";
-import { plural } from "../lib/plural";
+} from "nucleo/store/navegacao";
+import { administrar } from "nucleo/store/administracao";
+import { abrirConversaCom } from "nucleo/sdk/social";
+import { plural } from "nucleo/lib/plural";
 import css from "./Paleta.module.css";
 import {
   alternarPrefixo,

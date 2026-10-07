@@ -19,14 +19,14 @@ import {
 import { Avatar } from "../components/ui/Avatar";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { Girador } from "../components/ui/Girador";
-import { toast } from "../components/ui/toastStore";
+import { toast } from "nucleo/ui-logica/toastStore";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
-import { baixarAnexo } from "../sdk/baixar";
-import { assinarAlvo, lerAlvo } from "../store/administracao";
-import { pedirIrParaMensagem } from "../store/comandos";
-import { fecharModal } from "../store/modais";
-import { useChannel, useMessage } from "../store/hooks";
-import { selecionarCanal } from "../store/navegacao";
+import { baixarAnexo } from "nucleo/sdk/baixar";
+import { assinarAlvo, lerAlvo } from "nucleo/store/administracao";
+import { pedirIrParaMensagem } from "nucleo/store/comandos";
+import { fecharModal } from "nucleo/store/modais";
+import { useChannel, useMessage } from "nucleo/store/hooks";
+import { selecionarCanal } from "nucleo/store/navegacao";
 import css from "./VisualizadorDeImagem.module.css";
 
 /**

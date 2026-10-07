@@ -7,10 +7,10 @@ import {
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { cn } from "../lib/cn";
-import { ponte } from "../sdk/desktop";
-import { assinarDesktop, lerDesktop } from "../store/desktop";
-import { assinarNavegacao, lerLocal } from "../store/navegacao";
-import { useChannel, useServer } from "../store/hooks";
+import { ponte } from "nucleo/sdk/desktop";
+import { assinarDesktop, lerDesktop } from "nucleo/store/desktop";
+import { assinarNavegacao, lerLocal } from "nucleo/store/navegacao";
+import { useChannel, useServer } from "nucleo/store/hooks";
 import css from "./BarraDeTitulo.module.css";
 
 /**

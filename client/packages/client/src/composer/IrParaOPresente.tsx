@@ -7,7 +7,7 @@ import {
   assinarLongeDoFim,
   lerLongeDoFim,
   pedirFimDaLista,
-} from "../store/comandos";
+} from "nucleo/store/comandos";
 import css from "./Composer.module.css";
 
 /**

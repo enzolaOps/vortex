@@ -1,11 +1,11 @@
-import { copiarTexto } from "../lib/copiar";
-import { EH_MAC } from "../lib/plataforma";
-import { usuarioLocalId } from "../sdk/adapter";
-import { pode } from "../sdk/permissoes";
-import { administrar } from "../store/administracao";
-import { responderA } from "../store/resposta";
-import { editar } from "../store/edicaoDeMensagem";
-import { channels, messages } from "../sdk/adapter";
+import { copiarTexto } from "nucleo/lib/copiar";
+import { EH_MAC } from "nucleo/lib/plataforma";
+import { usuarioLocalId } from "nucleo/sdk/adapter";
+import { pode } from "nucleo/sdk/permissoes";
+import { administrar } from "nucleo/store/administracao";
+import { responderA } from "nucleo/store/resposta";
+import { editar } from "nucleo/store/edicaoDeMensagem";
+import { channels, messages } from "nucleo/sdk/adapter";
 
 /**
  * Os atalhos que o menu da mensagem EXIBE.

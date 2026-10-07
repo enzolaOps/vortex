@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { encaixarNaFaixa, PASSO } from "./faixa";
-import { LARGURA } from "../preset/schema";
+import { LARGURA } from "nucleo/preset/schema";
 
 describe("encaixe com extremos exatos", () => {
   it("no meio da faixa, encaixa na grade", () => {

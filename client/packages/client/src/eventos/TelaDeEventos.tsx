@@ -7,8 +7,8 @@ import {
   ClockCounterClockwise,
   Rows,
 } from "../components/ui/icones";
-import { usuarioLocalId } from "../sdk/adapter";
-import { chaveDeMembro } from "../sdk/domain";
+import { usuarioLocalId } from "nucleo/sdk/adapter";
+import { chaveDeMembro } from "nucleo/sdk/domain";
 import {
   estadoDoEvento,
   eventosDaAba,
@@ -22,9 +22,9 @@ import {
   useRelogio,
   type AbaDeEventos,
   type EventoDoServidor,
-} from "../sdk/eventos";
-import { administrar } from "../store/administracao";
-import { useChannel, useMembro } from "../store/hooks";
+} from "nucleo/sdk/eventos";
+import { administrar } from "nucleo/store/administracao";
+import { useChannel, useMembro } from "nucleo/store/hooks";
 import {
   AvatarDeInteressado,
   BotaoDeInteresse,

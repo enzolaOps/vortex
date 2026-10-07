@@ -9,16 +9,16 @@ import {
   buscarEmComum,
   buscarPreviaDaConversa,
   denunciarPessoa,
-} from "../sdk/social";
-import { abrirConfig } from "../store/config";
-import { useChannel, usePessoa, useSolicitacoesDeMensagem } from "../store/hooks";
-import { abrirConversa } from "../store/navegacao";
-import { assinarPrivacidade, lerPrivacidade } from "../store/privacidade";
+} from "nucleo/sdk/social";
+import { abrirConfig } from "nucleo/store/config";
+import { useChannel, usePessoa, useSolicitacoesDeMensagem } from "nucleo/store/hooks";
+import { abrirConversa } from "nucleo/store/navegacao";
+import { assinarPrivacidade, lerPrivacidade } from "nucleo/store/privacidade";
 import {
   aceitarSolicitacao,
   recusarSolicitacao,
   sinalDeSuspeita,
-} from "../store/solicitacoes";
+} from "nucleo/store/solicitacoes";
 import css from "./SolicitacoesDeMensagem.module.css";
 
 /**

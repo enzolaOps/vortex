@@ -4,7 +4,7 @@ import { Botao } from "../components/ui/Botao";
 import {
   assinarBarraDeSalvar,
   lerBarraDeSalvar,
-} from "../store/barraDeSalvar";
+} from "nucleo/store/barraDeSalvar";
 import css from "./Configuracoes.module.css";
 
 /**

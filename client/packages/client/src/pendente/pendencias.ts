@@ -1,4 +1,4 @@
-import { toast } from "../components/ui/toastStore";
+import { toast } from "nucleo/ui-logica/toastStore";
 
 /**
  * Os controles DESENHADOS que ainda não fazem nada.

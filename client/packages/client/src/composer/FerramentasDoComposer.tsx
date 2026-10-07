@@ -17,18 +17,18 @@ import {
 import { Girador } from "../components/ui/Girador";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/Popover";
 import { Tooltip } from "../components/ui/Tooltip";
-import { enviarFigurinha } from "../sdk/adapter";
+import { enviarFigurinha } from "nucleo/sdk/adapter";
 import { SeletorDeEmoji } from "../seletores/SeletorDeEmoji";
 import { SeletorDeFigurinhas } from "../seletores/SeletorDeFigurinhas";
-import { fonteDeGifs } from "../sdk/fonteDeGifs";
+import { fonteDeGifs } from "nucleo/sdk/fonteDeGifs";
 import { CascaDeSeletor } from "../seletores/CascaDeSeletor";
 import { Soundboard } from "../seletores/Soundboard";
-import { administrar } from "../store/administracao";
+import { administrar } from "nucleo/store/administracao";
 import {
   assinarFerramentaDoComposer,
   definirFerramentaDoComposer,
   lerFerramentaDoComposer,
-} from "../store/ferramentaDoComposer";
+} from "nucleo/store/ferramentaDoComposer";
 import css from "./FerramentasDoComposer.module.css";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 

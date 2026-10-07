@@ -7,11 +7,11 @@ import { useState, useSyncExternalStore } from "react";
 import { Deslizante } from "../components/ui/Deslizante";
 import { SeletorDeCor } from "../components/ui/SeletorDeCor";
 import { Segmentado } from "../components/ui/Segmentado";
-import { assinarLayout, definirSemente, lerSemente } from "../store/layout";
-import { paletaFinal } from "../tema/aplicar";
-import { LIMITES_DA_SEMENTE, SEMENTE_PADRAO, type Modo } from "../tema/derivar";
-import { PALETAS, paletaDe } from "../tema/paletas";
-import { verificar } from "../tema/pares";
+import { assinarLayout, definirSemente, lerSemente } from "nucleo/store/layout";
+import { paletaFinal } from "nucleo/tema/aplicar";
+import { LIMITES_DA_SEMENTE, SEMENTE_PADRAO, type Modo } from "nucleo/tema/derivar";
+import { PALETAS, paletaDe } from "nucleo/tema/paletas";
+import { verificar } from "nucleo/tema/pares";
 import css from "./PickerDePaleta.module.css";
 
 const MODOS = [

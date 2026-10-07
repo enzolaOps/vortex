@@ -1,7 +1,7 @@
 import { CartaoDePerfil } from "../membros/CartaoDePerfil";
 import { IconeDeCargo } from "../membros/IconeDeCargo";
-import { chaveDeMembro } from "../sdk/domain";
-import { useCorDeCargo, useMembro, useServidorAtivo } from "../store/hooks";
+import { chaveDeMembro } from "nucleo/sdk/domain";
+import { useCorDeCargo, useMembro, useServidorAtivo } from "nucleo/store/hooks";
 import css from "./NomeDoAutor.module.css";
 
 /**

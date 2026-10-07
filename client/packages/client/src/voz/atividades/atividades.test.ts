@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../sdk/client", () => ({
+vi.mock("nucleo/sdk/client", () => ({
   client: {
     events: { on: vi.fn() },
     api: { config: { baseURL: "http://api.local", headers: {} } },
@@ -19,9 +19,9 @@ const {
   lerSessao,
   limparAtividades,
   TETO_DO_REGISTRO,
-} = await import("../../store/atividades");
+} = await import("nucleo/store/atividades");
 const { aplicarEventoDeAtividade, enviarOperacao, iniciarAtividade, operacaoCabe } = await import(
-  "../../sdk/atividades"
+  "nucleo/sdk/atividades"
 );
 
 const SESSAO = {

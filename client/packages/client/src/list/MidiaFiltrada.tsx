@@ -1,16 +1,16 @@
 import { useSyncExternalStore, type ReactNode } from "react";
 
-import { chaveDeMembro } from "../sdk/domain";
-import { usuarioLocalId } from "../sdk/adapter";
+import { chaveDeMembro } from "nucleo/sdk/domain";
+import { usuarioLocalId } from "nucleo/sdk/adapter";
 import {
   precisaVerificar,
   revelar,
   veladaPeloFiltroPessoal,
-} from "../store/filtroDeMidia";
+} from "nucleo/store/filtroDeMidia";
 import {
   assinarPrivacidadeDoServidor,
   lerPrivacidadeDoServidor,
-} from "../store/privacidadeDoServidor";
+} from "nucleo/store/privacidadeDoServidor";
 import {
   useChannel,
   useEhAmigo,
@@ -18,7 +18,7 @@ import {
   useMessage,
   usePoliticaDeMidia,
   useRevelado,
-} from "../store/hooks";
+} from "nucleo/store/hooks";
 import css from "./MidiaFiltrada.module.css";
 
 /**

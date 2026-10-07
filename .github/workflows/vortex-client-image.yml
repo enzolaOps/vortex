@@ -93,6 +93,7 @@ jobs:
             ${{ runner.os }}-client-
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter stoat.js build
+      - run: pnpm --filter nucleo check
       - run: pnpm --filter client check
 
   # Check required. Falha se o check do PR falhou; passa se não tocou client/.

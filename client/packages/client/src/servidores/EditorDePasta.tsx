@@ -5,11 +5,11 @@ import { Campo } from "../components/ui/Campo";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { Interruptor } from "../components/ui/Interruptor";
 import { cn } from "../lib/cn";
-import { corDoTextoDe, gradienteDe } from "../lib/gradiente";
+import { corDoTextoDe, gradienteDe } from "nucleo/lib/gradiente";
 import { DotsSixVertical, Plus } from "../components/ui/icones";
-import { empurrarItem, moverItem } from "../lib/reordenar";
-import { assinarAlvo, lerAlvo } from "../store/administracao";
-import { useServer } from "../store/hooks";
+import { empurrarItem, moverItem } from "nucleo/lib/reordenar";
+import { assinarAlvo, lerAlvo } from "nucleo/store/administracao";
+import { useServer } from "nucleo/store/hooks";
 import {
   assinarPastas,
   corDePastaValida,
@@ -17,7 +17,7 @@ import {
   editarPasta,
   lerPastas,
   removerPasta,
-} from "../store/pastas";
+} from "nucleo/store/pastas";
 import css from "./EditorDePasta.module.css";
 
 /**

@@ -3,8 +3,8 @@ import { useSyncExternalStore } from "react";
 import { Botao } from "../components/ui/Botao";
 import { Interruptor } from "../components/ui/Interruptor";
 import { Selo } from "../components/ui/Selo";
-import { toast } from "../components/ui/toastStore";
-import { assinarDev, definirDev, lerDev } from "../store/dev";
+import { toast } from "nucleo/ui-logica/toastStore";
+import { assinarDev, definirDev, lerDev } from "nucleo/store/dev";
 import {
   CabecalhoDeSecao,
   classes as pg,

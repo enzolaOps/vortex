@@ -1,18 +1,18 @@
 import { memo, useEffect, useState } from "react";
 
-import { achatar } from "../markdown/analisar";
-import { realcar, realceEmCache } from "../markdown/realce";
+import { achatar } from "nucleo/markdown/analisar";
+import { realcar, realceEmCache } from "nucleo/markdown/realce";
 import {
   chaveDeMembro,
   type BlocoDeMensagem,
   type TrechoDeMensagem,
-} from "../sdk/domain";
+} from "nucleo/sdk/domain";
 import { CartaoDePerfil } from "../membros/CartaoDePerfil";
-import { administrar } from "../store/administracao";
-import { useMembro, useServidorAtivo } from "../store/hooks";
-import { copiarTexto } from "../lib/copiar";
-import { urlDeEmoji } from "../sdk/anexos";
-import { nomeDeEmoji } from "../sdk/cargos";
+import { administrar } from "nucleo/store/administracao";
+import { useMembro, useServidorAtivo } from "nucleo/store/hooks";
+import { copiarTexto } from "nucleo/lib/copiar";
+import { urlDeEmoji } from "nucleo/sdk/anexos";
+import { nomeDeEmoji } from "nucleo/sdk/cargos";
 import css from "./TextoDaMensagem.module.css";
 
 /**

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-import { TOKENS_DE_TEMA } from "./tokens";
+import { TOKENS_DE_TEMA } from "nucleo/preset/tokens";
 
 /**
  * A união fechada contra a fonte real.

@@ -1,5 +1,5 @@
-import { chaveDeMembro } from "../sdk/domain";
-import { useMembro, useServidorAtivo, useTyping } from "../store/hooks";
+import { chaveDeMembro } from "nucleo/sdk/domain";
+import { useMembro, useServidorAtivo, useTyping } from "nucleo/store/hooks";
 import css from "./Composer.module.css";
 
 /**

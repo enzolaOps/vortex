@@ -3,17 +3,17 @@ import { useSyncExternalStore } from "react";
 import { Botao } from "../components/ui/Botao";
 import { Escolha } from "../components/ui/Escolha";
 import { Interruptor } from "../components/ui/Interruptor";
-import { fecharConfig } from "../store/config";
-import { useRelacao } from "../store/hooks";
+import { fecharConfig } from "nucleo/store/config";
+import { useRelacao } from "nucleo/store/hooks";
 import { ExportarDados } from "./ExportarDados";
-import { irParaAmigos } from "../store/navegacao";
+import { irParaAmigos } from "nucleo/store/navegacao";
 import {
   assinarPrivacidade,
   definirPrivacidade,
   lerPrivacidade,
   POLITICAS_DE_PEDIDO,
   ROTULO_DA_POLITICA,
-} from "../store/privacidade";
+} from "nucleo/store/privacidade";
 import {
   CabecalhoDeSecao,
   classes as pg,

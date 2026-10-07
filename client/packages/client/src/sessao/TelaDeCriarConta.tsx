@@ -3,15 +3,15 @@ import { useState } from "react";
 import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
-import { criarConta } from "../sdk/conta";
-import { exigeConvite } from "../sdk/config";
-import { voltarParaEntrar } from "../store/entrada";
+import { criarConta } from "nucleo/sdk/conta";
+import { exigeConvite } from "nucleo/sdk/config";
+import { voltarParaEntrar } from "nucleo/store/entrada";
 import {
   forcaDaSenha,
   MINIMO_DA_SENHA,
   nomeDeUsuarioInvalido,
 } from "./forcaDaSenha";
-import { guardarEscolhaDeIdentidade } from "../store/entrada";
+import { guardarEscolhaDeIdentidade } from "nucleo/store/entrada";
 import css from "./TelaDeLogin.module.css";
 
 /** As quatro barras do medidor. Constantes porque `key` nunca é índice. */

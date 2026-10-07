@@ -1,4 +1,4 @@
-import { ROTA_DO_OVERLAY } from "./overlay/modelo";
+import { ROTA_DO_OVERLAY } from "nucleo/ui-logica/overlay/modelo";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("#root ausente no index.html");

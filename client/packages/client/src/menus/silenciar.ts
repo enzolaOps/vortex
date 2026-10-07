@@ -10,7 +10,7 @@ import {
   silenciarServidor,
   silencioAte,
   silencioDoServidorAte,
-} from "../store/silencio";
+} from "nucleo/store/silencio";
 
 /**
  * Silenciar, com UMA forma para as cinco superfícies.

@@ -3,15 +3,15 @@ import { memo } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
-import { alternarFixada } from "../sdk/adapter";
-import { pode } from "../sdk/permissoes";
+import { alternarFixada } from "nucleo/sdk/adapter";
+import { pode } from "nucleo/sdk/permissoes";
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
-import { pedirIrParaMensagem } from "../store/comandos";
-import { useCanalAtivo, useChannel, useFixadas, useMessage } from "../store/hooks";
+import { pedirIrParaMensagem } from "nucleo/store/comandos";
+import { useCanalAtivo, useChannel, useFixadas, useMessage } from "nucleo/store/hooks";
 import { TextoDaMensagem } from "../list/TextoDaMensagem";
 import { MenuDaMensagem } from "../list/MessageRow";
 import { MenuDeContexto } from "../components/ui/MenuDeContexto";
-import { mirarAlvoDoMenu } from "../store/menuDeMensagem";
+import { mirarAlvoDoMenu } from "nucleo/store/menuDeMensagem";
 import css from "./PainelDeFixados.module.css";
 
 /**

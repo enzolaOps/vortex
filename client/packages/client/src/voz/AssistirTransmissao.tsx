@@ -23,7 +23,7 @@ import {
 import { Avatar } from "../components/ui/Avatar";
 import { Deslizante } from "../components/ui/Deslizante";
 import { Tooltip } from "../components/ui/Tooltip";
-import { toast } from "../components/ui/toastStore";
+import { toast } from "nucleo/ui-logica/toastStore";
 import {
   alternarCamera,
   alternarMudo,
@@ -32,23 +32,23 @@ import {
   assinarVideo,
   definirQualidadeDeStream,
   resolucaoRecebida,
-} from "../sdk/chamada";
-import { administrar } from "../store/administracao";
-import { assinarChamada, falando, lerChamada } from "../store/chamada";
-import { useChannel, usePessoa, useServer } from "../store/hooks";
-import { definirPalco } from "../store/palcoDeVoz";
+} from "nucleo/sdk/chamada";
+import { administrar } from "nucleo/store/administracao";
+import { assinarChamada, falando, lerChamada } from "nucleo/store/chamada";
+import { useChannel, usePessoa, useServer } from "nucleo/store/hooks";
+import { definirPalco } from "nucleo/store/palcoDeVoz";
 import {
   alternarSilencioDe,
   assinarSilencioDe,
   estaSilenciado,
-} from "../store/sobrePessoas";
+} from "nucleo/store/sobrePessoas";
 import {
   assinarVolume,
   definirVolume,
   lerVolume,
   VOLUME_MAXIMO,
-} from "../store/volumesDeVoz";
-import { chaveDeVideo, faixasDeVideo } from "../store/video";
+} from "nucleo/store/volumesDeVoz";
+import { chaveDeVideo, faixasDeVideo } from "nucleo/store/video";
 import { BotaoDeTelaCheia, FaixaDeVideo, SeloAoVivo } from "./pecasDeVoz";
 import { criarDetectorDeQueda } from "./quedaDeQualidade";
 import css from "./AssistirTransmissao.module.css";

@@ -1,8 +1,8 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 
-import { assinarDev, lerDev } from "../store/dev";
-import { assinarChamada, lerChamada } from "../store/chamada";
-import { estatisticasDeVoz } from "../sdk/chamada";
+import { assinarDev, lerDev } from "nucleo/store/dev";
+import { assinarChamada, lerChamada } from "nucleo/store/chamada";
+import { estatisticasDeVoz } from "nucleo/sdk/chamada";
 import css from "./OverlayDeDebug.module.css";
 
 /**

@@ -1,4 +1,4 @@
-import type { ParticipanteDeVoz } from "../sdk/domain";
+import type { ParticipanteDeVoz } from "nucleo/sdk/domain";
 
 /**
  * Os ícones de estado de uma linha da sala de voz — e o TETO de três.

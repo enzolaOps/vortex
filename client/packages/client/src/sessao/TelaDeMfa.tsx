@@ -4,8 +4,8 @@ import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
 import { Segmentado } from "../components/ui/Segmentado";
-import { cancelarMfa, responderMfa } from "../sdk/autenticacao";
-import type { MetodoDeMfa } from "../store/sessao";
+import { cancelarMfa, responderMfa } from "nucleo/sdk/autenticacao";
+import type { MetodoDeMfa } from "nucleo/store/sessao";
 import css from "./TelaDeLogin.module.css";
 
 /**

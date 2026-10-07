@@ -4,7 +4,7 @@ import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
 import { Selo } from "../components/ui/Selo";
-import { toast } from "../components/ui/toastStore";
+import { toast } from "nucleo/ui-logica/toastStore";
 import {
   aplicarModelo,
   buscarModelo,
@@ -17,10 +17,10 @@ import {
   type ModeloDoServidor,
   type PreviaDeModelo,
   type ResumoDeEstrutura,
-} from "../sdk/modeloDoServidor";
-import { souDono } from "../sdk/servidores";
-import { selecionarServidor } from "../store/navegacao";
-import { useServer } from "../store/hooks";
+} from "nucleo/sdk/modeloDoServidor";
+import { souDono } from "nucleo/sdk/servidores";
+import { selecionarServidor } from "nucleo/store/navegacao";
+import { useServer } from "nucleo/store/hooks";
 import css from "./Modelo.module.css";
 
 const DATA = new Intl.DateTimeFormat("pt-BR", {

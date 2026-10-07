@@ -13,13 +13,13 @@ import {
   type EfeitoSonoro,
   type Figurinha,
   type ListaDeExpressoes,
-} from "../sdk/expressoes";
-import { assertStable } from "../store/hooks";
+} from "nucleo/sdk/expressoes";
+import { assertStable } from "nucleo/store/hooks";
 import {
   assinarSoundboard,
   lerTocando,
   lerVolumeDoPainel,
-} from "../store/soundboard";
+} from "nucleo/store/soundboard";
 
 /** Referência única — a armadilha nº 1 do projeto. */
 const CARREGANDO = { estado: "carregando" } as const;

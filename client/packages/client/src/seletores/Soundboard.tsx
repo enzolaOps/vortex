@@ -2,13 +2,13 @@ import { useState, useSyncExternalStore } from "react";
 
 import { Deslizante } from "../components/ui/Deslizante";
 import { LockSimple } from "../components/ui/icones";
-import { TECLAS_DO_SOUNDBOARD } from "../expressoes/atalhos";
+import { TECLAS_DO_SOUNDBOARD } from "nucleo/ui-logica/expressoes/atalhos";
 import { useSonsDoServidor, useTocando, useVolumeDoPainel } from "../expressoes/hooks";
-import { podeUsarSoundboard, tocarNaSala } from "../sdk/efeitosSonoros";
-import type { EfeitoSonoro } from "../sdk/expressoes";
-import { assinarChamada, lerChamada } from "../store/chamada";
-import { useChannel, useServer } from "../store/hooks";
-import { definirVolumeDoPainel } from "../store/soundboard";
+import { podeUsarSoundboard, tocarNaSala } from "nucleo/sdk/efeitosSonoros";
+import type { EfeitoSonoro } from "nucleo/sdk/expressoes";
+import { assinarChamada, lerChamada } from "nucleo/store/chamada";
+import { useChannel, useServer } from "nucleo/store/hooks";
+import { definirVolumeDoPainel } from "nucleo/store/soundboard";
 import { CascaDeSeletor, CELULA_DA_GRADE } from "./CascaDeSeletor";
 import css from "./Seletores.module.css";
 

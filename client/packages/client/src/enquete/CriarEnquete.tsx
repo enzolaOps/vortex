@@ -11,9 +11,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../components/ui/DropdownMenu";
-import { criarEnquete } from "../sdk/enquetes";
-import { lerCanalAtivo } from "../store/navegacao";
-import { MARCAS } from "../store/enquetes";
+import { criarEnquete } from "nucleo/sdk/enquetes";
+import { lerCanalAtivo } from "nucleo/store/navegacao";
+import { MARCAS } from "nucleo/store/enquetes";
 import {
   Popover,
   PopoverContent,

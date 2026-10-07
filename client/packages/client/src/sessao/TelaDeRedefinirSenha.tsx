@@ -6,8 +6,8 @@ import { Caixa } from "../components/ui/Marcador";
 import { Campo } from "../components/ui/Campo";
 import { PASSOS_DA_SENHA, Passos } from "./Passos";
 import { forcaDaSenha, MINIMO_DA_SENHA } from "./forcaDaSenha";
-import { confirmarRedefinicao } from "../sdk/conta";
-import { voltarParaEntrar } from "../store/entrada";
+import { confirmarRedefinicao } from "nucleo/sdk/conta";
+import { voltarParaEntrar } from "nucleo/store/entrada";
 import css from "./TelaDeLogin.module.css";
 
 /**

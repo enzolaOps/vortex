@@ -10,7 +10,7 @@ import {
   assinarMenuDeMensagem,
   lerAlvoDoMenu,
   mirarAlvoDoMenu,
-} from "../store/menuDeMensagem";
+} from "nucleo/store/menuDeMensagem";
 import { MenuDoUsuario } from "./MenuDoUsuario";
 import {
   memo,
@@ -20,15 +20,15 @@ import {
   useSyncExternalStore,
 } from "react";
 
-import { count } from "../dev/stats";
+import { count } from "nucleo/arnes/stats";
 import { EstadoVazio } from "../components/ui/EstadoVazio";
 import { Avatar } from "../components/ui/Avatar";
-import { remedir } from "../lib/remedir";
+import { remedir } from "nucleo/lib/remedir";
 import { PontoDePresenca } from "../presenca/PontoDePresenca";
 import { TagDoServidor } from "../presenca/TagDoServidor";
 import { MenuDeContexto } from "../components/ui/MenuDeContexto";
-import { chaveDeMembro } from "../sdk/domain";
-import { assinarConexao, lerConexao } from "../store/conexao";
+import { chaveDeMembro } from "nucleo/sdk/domain";
+import { assinarConexao, lerConexao } from "nucleo/store/conexao";
 import { CartaoDePerfil } from "./CartaoDePerfil";
 import {
   usePinturaDeCargo,
@@ -36,7 +36,7 @@ import {
   useMembrosOffline,
   useSecoesOnline,
   useServidorAtivo,
-} from "../store/hooks";
+} from "nucleo/store/hooks";
 import css from "./ListaDeMembros.module.css";
 import { propsDoNome } from "./pinturaDoNome";
 import { IconeDeCargo } from "./IconeDeCargo";

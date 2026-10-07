@@ -4,8 +4,8 @@ import {
 } from "../components/ui/icones";
 import { useSyncExternalStore, type CSSProperties } from "react";
 
-import type { AnexoSnapshot } from "../sdk/domain";
-import { administrar } from "../store/administracao";
+import type { AnexoSnapshot } from "nucleo/sdk/domain";
+import { administrar } from "nucleo/store/administracao";
 import { aindaNao } from "../pendente/pendencias";
 import { MidiaFiltrada } from "./MidiaFiltrada";
 import { ReprodutorDeVoz } from "./ReprodutorDeVoz";
@@ -16,7 +16,7 @@ import {
   foiRevelado,
   revelar,
   superficie,
-} from "../sdk/superficieVortex";
+} from "nucleo/sdk/superficieVortex";
 import css from "./Anexos.module.css";
 
 /**

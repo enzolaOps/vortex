@@ -1,8 +1,8 @@
 import { Trophy } from "../components/ui/icones";
 
-import { republicarEnquete } from "../sdk/adapter";
-import { votarNaEnquete } from "../sdk/enquetes";
-import { administrar } from "../store/administracao";
+import { republicarEnquete } from "nucleo/sdk/adapter";
+import { votarNaEnquete } from "nucleo/sdk/enquetes";
+import { administrar } from "nucleo/store/administracao";
 import {
   estaEncerrada,
   porcentagem,
@@ -10,7 +10,7 @@ import {
   totalDeVotos,
   type Enquete,
   type OpcaoDeEnquete,
-} from "../store/enquetes";
+} from "nucleo/store/enquetes";
 import css from "./Enquete.module.css";
 
 /**

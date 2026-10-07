@@ -1,5 +1,5 @@
-import type { Atualizacao, PonteDesktop } from "../sdk/desktop";
-import { hidratarDesktop } from "../store/desktop";
+import type { Atualizacao, PonteDesktop } from "nucleo/sdk/desktop";
+import { hidratarDesktop } from "nucleo/store/desktop";
 
 /**
  * Uma casca Electron de mentira, para o arnês.

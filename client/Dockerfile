@@ -42,6 +42,7 @@ COPY client/package.json client/pnpm-workspace.yaml client/pnpm-lock.yaml ./
 # Só os manifests: copiar `packages/` inteiro invalidava o `pnpm install` a
 # cada linha de TS, e o cache GHA das camadas não tinha o que reaproveitar.
 COPY client/packages/client/package.json packages/client/package.json
+COPY client/packages/nucleo/package.json packages/nucleo/package.json
 COPY client/packages/stoat.js/package.json packages/stoat.js/package.json
 
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \

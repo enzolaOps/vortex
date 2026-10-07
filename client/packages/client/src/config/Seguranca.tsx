@@ -5,10 +5,10 @@ import { Botao } from "../components/ui/Botao";
 import { CartaoDeOpcao } from "../components/ui/CartaoDeOpcao";
 import { Interruptor } from "../components/ui/Interruptor";
 import { Selo } from "../components/ui/Selo";
-import { toast } from "../components/ui/toastStore";
+import { toast } from "nucleo/ui-logica/toastStore";
 import { aindaNao } from "../pendente/pendencias";
-import { motivoDoErro } from "../sdk/erros";
-import { salvarPoliticaDeMidia } from "../sdk/filtroDeMidia";
+import { motivoDoErro } from "nucleo/sdk/erros";
+import { salvarPoliticaDeMidia } from "nucleo/sdk/filtroDeMidia";
 import {
   ativarEmergencia,
   emergenciaVigente,
@@ -16,10 +16,10 @@ import {
   editarPolitica,
   podeGerenciarSeguranca,
   type NivelDeVerificacao,
-} from "../sdk/seguranca";
-import { definirPolitica, lerPolitica, type PoliticaDeMidia } from "../store/filtroDeMidia";
-import { usePoliticaDeMidia } from "../store/hooks";
-import { usePolitica } from "../store/seguranca";
+} from "nucleo/sdk/seguranca";
+import { definirPolitica, lerPolitica, type PoliticaDeMidia } from "nucleo/store/filtroDeMidia";
+import { usePoliticaDeMidia } from "nucleo/store/hooks";
+import { usePolitica } from "nucleo/store/seguranca";
 import css from "./Seguranca.module.css";
 
 const NIVEIS: readonly {

@@ -8,7 +8,7 @@ import {
   GRUPOS_DA_PAGINA,
   linhasDaPagina,
 } from "../atalhos/registro";
-import { atalho } from "../lib/plataforma";
+import { atalho } from "nucleo/lib/plataforma";
 import { classes as pg, PaginaDeAjustes } from "./Pagina";
 import css from "./Atalhos.module.css";
 

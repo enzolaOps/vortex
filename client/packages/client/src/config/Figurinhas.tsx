@@ -4,7 +4,7 @@ import { Banner } from "../components/ui/Banner";
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
 import { useFigurinhasDoServidor } from "../expressoes/hooks";
-import { temServidorDeMidia } from "../sdk/anexos";
+import { temServidorDeMidia } from "nucleo/sdk/anexos";
 import {
   apagarFigurinha,
   carregarFigurinhas,
@@ -13,8 +13,8 @@ import {
   limitesDeExpressoes,
   podeGerenciarExpressoes,
   type Figurinha,
-} from "../sdk/expressoes";
-import { nomeDoArquivo } from "../expressoes/nomes";
+} from "nucleo/sdk/expressoes";
+import { nomeDoArquivo } from "nucleo/ui-logica/expressoes/nomes";
 import css from "./Figurinhas.module.css";
 
 /**

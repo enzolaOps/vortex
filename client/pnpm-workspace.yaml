@@ -1,5 +1,6 @@
 packages:
   - packages/client
+  - packages/nucleo
   - packages/stoat.js
 
 # Cada pacote enxerga só o que declarou.

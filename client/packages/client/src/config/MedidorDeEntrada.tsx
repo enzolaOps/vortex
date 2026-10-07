@@ -8,12 +8,12 @@ import {
   faixaDaBarra,
   fracaoDoDb,
   textoDoDb,
-} from "../lib/nivelDeAudio";
+} from "nucleo/lib/nivelDeAudio";
 import {
   definirPreferenciasDeVoz,
   LIMIAR_MAX_DB,
   LIMIAR_MIN_DB,
-} from "../store/preferenciasDeVoz";
+} from "nucleo/store/preferenciasDeVoz";
 import { assinarNivelDeEntrada, lerNivelDeEntrada } from "./midiaDeTeste";
 import css from "./VozEVideo.module.css";
 

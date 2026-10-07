@@ -11,9 +11,9 @@ import {
   alternarSuperficie,
   assinarDrawer,
   superficieAberta,
-} from "../store/drawer";
-import { assinarLayout, painelVisivel } from "../store/layout";
-import { useChannel, useForum, useTopico } from "../store/hooks";
+} from "nucleo/store/drawer";
+import { assinarLayout, painelVisivel } from "nucleo/store/layout";
+import { useChannel, useForum, useTopico } from "nucleo/store/hooks";
 import { AcoesDaGaleria } from "../forum/GaleriaDeMidia";
 import { CabecalhoDeTopico } from "../topicos/CabecalhoDeTopico";
 import css from "./CabecalhoDeCanal.module.css";

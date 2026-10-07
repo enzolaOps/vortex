@@ -5,14 +5,14 @@ import { Botao } from "../components/ui/Botao";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
 import { Girador } from "../components/ui/Girador";
 import { Monitor } from "../components/ui/icones";
-import { motivoDoErro } from "../sdk/erros";
+import { motivoDoErro } from "nucleo/sdk/erros";
 import {
   autorizarQr,
   recusarQr,
   verPedidoDeQr,
   type PedidoParaAutorizar,
-} from "../sdk/qr";
-import { lerEntrada, voltarParaEntrar } from "../store/entrada";
+} from "nucleo/sdk/qr";
+import { lerEntrada, voltarParaEntrar } from "nucleo/store/entrada";
 import css from "./TelaDeQr.module.css";
 
 type Estado =

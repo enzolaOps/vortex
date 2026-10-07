@@ -15,7 +15,7 @@ import {
   assinarMenuDeMensagem,
   lerAlvoDoMenu,
   mirarAlvoDoMenu,
-} from "../store/menuDeMensagem";
+} from "nucleo/store/menuDeMensagem";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,7 +23,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "../components/ui/DropdownMenu";
-import type { FalhaDeLote } from "../lib/lote";
+import type { FalhaDeLote } from "nucleo/lib/lote";
 
 import { Avatar } from "../components/ui/Avatar";
 import { cn } from "../lib/cn";
@@ -37,12 +37,12 @@ import {
   meuAlcance,
   pessoasDoServidor,
   type Cargo,
-} from "../sdk/cargos";
-import { chaveDeMembro } from "../sdk/domain";
-import { members } from "../sdk/adapter";
-import { carregarMembros } from "../sdk/servidores";
-import { administrar } from "../store/administracao";
-import { useMembro, useMembrosDoServidor } from "../store/hooks";
+} from "nucleo/sdk/cargos";
+import { chaveDeMembro } from "nucleo/sdk/domain";
+import { members } from "nucleo/sdk/adapter";
+import { carregarMembros } from "nucleo/sdk/servidores";
+import { administrar } from "nucleo/store/administracao";
+import { useMembro, useMembrosDoServidor } from "nucleo/store/hooks";
 import { CabecalhoDeSecao } from "./Pagina";
 import { cargoAoAlcance, separarParaCargo } from "./selecaoDeCargo";
 import css from "./Membros.module.css";

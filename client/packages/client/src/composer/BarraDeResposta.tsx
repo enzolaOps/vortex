@@ -6,7 +6,7 @@ import {
 } from "../components/ui/icones";
 
 import { NomeDoAutor } from "../presenca/NomeDoAutor";
-import { useMessage } from "../store/hooks";
+import { useMessage } from "nucleo/store/hooks";
 import css from "./BarraDeResposta.module.css";
 
 /**

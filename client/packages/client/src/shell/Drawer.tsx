@@ -5,8 +5,8 @@ import { CaixaDeEntrada } from "../caixa/CaixaDeEntrada";
 import { PainelDeTopicos } from "../topicos/PainelDeTopicos";
 import { PainelDeFixados } from "../fixados/PainelDeFixados";
 import { LimiteDeErro } from "../components/ui/LimiteDeErro";
-import { LARGURA, NOME_DO_PAINEL, type PainelId } from "../preset/schema";
-import { assinarDrawer, fecharDrawer, lerDrawer } from "../store/drawer";
+import { LARGURA, NOME_DO_PAINEL, type PainelId } from "nucleo/preset/schema";
+import { assinarDrawer, fecharDrawer, lerDrawer } from "nucleo/store/drawer";
 import css from "./Drawer.module.css";
 
 /**

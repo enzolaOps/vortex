@@ -1,4 +1,4 @@
-import { carregarHistorico } from "./firehose";
+import { carregarHistorico } from "nucleo/arnes/firehose";
 
 /**
  * Mede se a âncora sobrevive ao prepend de histórico, em duas fases.

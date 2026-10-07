@@ -9,7 +9,7 @@ import {
   idDeInstante,
   listarAuditoria,
   type EntradaDeAuditoria,
-} from "../sdk/auditoria";
+} from "nucleo/sdk/auditoria";
 import { CampoDeBusca } from "../components/ui/CampoDeBusca";
 import css from "./Auditoria.module.css";
 import { ListaDeDiff } from "./ListaDeDiff";

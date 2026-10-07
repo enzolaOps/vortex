@@ -1,9 +1,9 @@
 import { useRef, type KeyboardEvent, type PointerEvent } from "react";
 
-import { LARGURA, type PainelId, type SlotId } from "../preset/schema";
+import { LARGURA, type PainelId, type SlotId } from "nucleo/preset/schema";
 import { encaixarNaFaixa, PASSO } from "./faixa";
-import { iniciarArraste, terminarArraste } from "../store/arraste";
-import { definirSlot } from "../store/layout";
+import { iniciarArraste, terminarArraste } from "nucleo/store/arraste";
+import { definirSlot } from "nucleo/store/layout";
 import css from "./AlcaDeSlot.module.css";
 
 /** Passo do teclado. Seta anda um passo; com Shift, um salto. */

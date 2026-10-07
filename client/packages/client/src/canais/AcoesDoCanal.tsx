@@ -11,25 +11,25 @@ import {
 import { useSyncExternalStore } from "react";
 
 import { cn } from "../lib/cn";
-import { NOME_DO_PAINEL, type PainelId } from "../preset/schema";
+import { NOME_DO_PAINEL, type PainelId } from "nucleo/preset/schema";
 import { Tooltip } from "../components/ui/Tooltip";
 import {
   despacharMenuEm,
   MenuDeContexto,
 } from "../components/ui/MenuDeContexto";
 import { ItensDoCanal } from "../menus/ItensDoCanal";
-import { assinarLayout, painelVisivel } from "../store/layout";
+import { assinarLayout, painelVisivel } from "nucleo/store/layout";
 import {
   alternarSuperficie,
   assinarDrawer,
   superficieAberta,
-} from "../store/drawer";
-import { administrar } from "../store/administracao";
-import { useChannel } from "../store/hooks";
+} from "nucleo/store/drawer";
+import { administrar } from "nucleo/store/administracao";
+import { useChannel } from "nucleo/store/hooks";
 import { GatilhoDeBusca } from "../components/ui/CampoDeBusca";
-import { ligar } from "../sdk/chamada";
-import type { CanalTipo } from "../sdk/domain";
-import { assinarChamada, lerChamada } from "../store/chamada";
+import { ligar } from "nucleo/sdk/chamada";
+import type { CanalTipo } from "nucleo/sdk/domain";
+import { assinarChamada, lerChamada } from "nucleo/store/chamada";
 import css from "./AcoesDoCanal.module.css";
 
 /**

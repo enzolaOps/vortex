@@ -12,11 +12,11 @@
  * combinação que a auditoria deu como "funciona" não funcionava onde importa.
  */
 import { ATALHOS, type Atalho } from "./registro";
-import { combinacaoDoEvento, mesmaCombinacao } from "../store/atalhosDeVoz";
-import { EH_MAC } from "../lib/plataforma";
-import { lerDrawer } from "../store/drawer";
-import { lerEdicaoDeMensagem } from "../store/edicaoDeMensagem";
-import { lerModal } from "../store/modais";
+import { combinacaoDoEvento, mesmaCombinacao } from "nucleo/store/atalhosDeVoz";
+import { EH_MAC } from "nucleo/lib/plataforma";
+import { lerDrawer } from "nucleo/store/drawer";
+import { lerEdicaoDeMensagem } from "nucleo/store/edicaoDeMensagem";
+import { lerModal } from "nucleo/store/modais";
 
 /**
  * Os do listener global. Os de `composer` chegam por `executarAtalho`, e os de

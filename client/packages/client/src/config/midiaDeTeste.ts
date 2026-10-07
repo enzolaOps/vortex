@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { dbDoRms, rmsDe } from "../lib/nivelDeAudio";
+import { dbDoRms, rmsDe } from "nucleo/lib/nivelDeAudio";
 
 /**
  * Câmera e microfone ABERTOS FORA DA CHAMADA, para as duas telas de teste.

@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 
-import { assinarChamada, lerChamada } from "../store/chamada";
-import { assinarPalco, lerPalco } from "../store/palcoDeVoz";
+import { assinarChamada, lerChamada } from "nucleo/store/chamada";
+import { assinarPalco, lerPalco } from "nucleo/store/palcoDeVoz";
 
 /**
  * A sala de voz está ocupando a coluna de conteúdo?

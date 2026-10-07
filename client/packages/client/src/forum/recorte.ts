@@ -1,4 +1,4 @@
-import type { TopicoSnapshot } from "../sdk/domain";
+import type { TopicoSnapshot } from "nucleo/sdk/domain";
 
 /**
  * O recorte da tela do fórum: busca, tag e ordem sobre os posts do canal.

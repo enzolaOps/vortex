@@ -6,10 +6,10 @@ import {
   assinarDensidade,
   definirDensidade,
   lerDensidade,
-} from "../store/densidade";
+} from "nucleo/store/densidade";
 import { PickerDePaleta } from "../layout/PickerDePaleta";
-import { fecharConfig } from "../store/config";
-import { entrar } from "../store/edicao";
+import { fecharConfig } from "nucleo/store/config";
+import { entrar } from "nucleo/store/edicao";
 import css from "./Secao.module.css";
 
 /**

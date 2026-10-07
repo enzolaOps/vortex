@@ -1,26 +1,26 @@
 import { useState, useSyncExternalStore } from "react";
 
 import { CampoDeBusca } from "../components/ui/CampoDeBusca";
-import { primeiroCanalDe } from "../sdk/adapter";
+import { primeiroCanalDe } from "nucleo/sdk/adapter";
 import {
   conjuntoPrivado,
   salvarPermissoesDaCategoria,
   sincronizarComCategoria,
-} from "../sdk/categorias";
-import { cargosDoServidor, type Cargo } from "../sdk/cargos";
-import { pode } from "../sdk/permissoes";
+} from "nucleo/sdk/categorias";
+import { cargosDoServidor, type Cargo } from "nucleo/sdk/cargos";
+import { pode } from "nucleo/sdk/permissoes";
 
 import { Botao } from "../components/ui/Botao";
 import { Campo } from "../components/ui/Campo";
-import { criarPasta } from "../store/pastas";
+import { criarPasta } from "nucleo/store/pastas";
 import { CaretRight, Hash, ICONE, Lock, LockSimple } from "../components/ui/icones";
 import { rotuloDePrevia } from "./previaDeCategoria";
 
 import { Escolha } from "../components/ui/Escolha";
 import { Interruptor } from "../components/ui/Interruptor";
 import { Caixa, MarcaDeCaixa, MarcaDeOpcao } from "../components/ui/Marcador";
-import { fecharCanal } from "../sdk/canal";
-import { CATEGORIA_PADRAO } from "../sdk/domain";
+import { fecharCanal } from "nucleo/sdk/canal";
+import { CATEGORIA_PADRAO } from "nucleo/sdk/domain";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
 import {
   criarCanal,
@@ -28,20 +28,20 @@ import {
   moverCanaisParaCategoria,
   renomearCanal,
   renomearCategoria,
-} from "../sdk/servidores";
-import { administrar, assinarAlvo, lerAlvo } from "../store/administracao";
+} from "nucleo/sdk/servidores";
+import { administrar, assinarAlvo, lerAlvo } from "nucleo/store/administracao";
 import {
   useCategorias,
   useChannel,
   useCorDeCargo,
   useServer,
-} from "../store/hooks";
-import { selecionarCanal } from "../store/navegacao";
+} from "nucleo/store/hooks";
+import { selecionarCanal } from "nucleo/store/navegacao";
 import {
   MODOS_DA_SALA,
   ROTULO_DA_SALA,
   type ModoDaSala,
-} from "../sdk/vozDoCanal";
+} from "nucleo/sdk/vozDoCanal";
 import css from "./AdicionarServidor.module.css";
 
 /**

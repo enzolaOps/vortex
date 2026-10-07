@@ -8,16 +8,16 @@ import {
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
-import { rotuloDeAmigosEmComum } from "../lib/plural";
+import { rotuloDeAmigosEmComum } from "nucleo/lib/plural";
 import { useEmComum } from "../membros/EmComum";
-import { atenderChamada, recusarChamada } from "../sdk/chamada";
-import { assinarChamada, lerChamada } from "../store/chamada";
+import { atenderChamada, recusarChamada } from "nucleo/sdk/chamada";
+import { assinarChamada, lerChamada } from "nucleo/store/chamada";
 import {
   assinarChamadaRecebida,
   lerChamadaRecebida,
   type ChamadaRecebida as Toque,
-} from "../store/chamadaRecebida";
-import { useChannel, usePessoa } from "../store/hooks";
+} from "nucleo/store/chamadaRecebida";
+import { useChannel, usePessoa } from "nucleo/store/hooks";
 import css from "./ChamadaRecebida.module.css";
 
 /**

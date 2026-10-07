@@ -5,21 +5,21 @@ import { Botao } from "../components/ui/Botao";
 import { CampoDeBusca } from "../components/ui/CampoDeBusca";
 import { MagnifyingGlass } from "../components/ui/icones";
 import { cn } from "../lib/cn";
-import { quando } from "../lib/quando";
-import { pode } from "../sdk/permissoes";
-import { carregarTopicos } from "../sdk/topicos";
-import type { ForumSnapshot, TagDeForum, TopicoSnapshot } from "../sdk/domain";
-import { administrar } from "../store/administracao";
+import { quando } from "nucleo/lib/quando";
+import { pode } from "nucleo/sdk/permissoes";
+import { carregarTopicos } from "nucleo/sdk/topicos";
+import type { ForumSnapshot, TagDeForum, TopicoSnapshot } from "nucleo/sdk/domain";
+import { administrar } from "nucleo/store/administracao";
 import {
   useChannel,
   useForum,
   usePessoa,
   useTopico,
   useTopicosDoCanal,
-} from "../store/hooks";
-import { selecionarCanal } from "../store/navegacao";
-import { useAgoraPorMinuto } from "../store/relogio";
-import { topicos } from "../sdk/topicos";
+} from "nucleo/store/hooks";
+import { selecionarCanal } from "nucleo/store/navegacao";
+import { useAgoraPorMinuto } from "nucleo/store/relogio";
+import { topicos } from "nucleo/sdk/topicos";
 import { GradeVirtual } from "./GradeVirtual";
 import { Pilulas } from "./Pilulas";
 import { estadoDoPost } from "./estado";

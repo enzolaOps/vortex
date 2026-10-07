@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ulid } from "ulid";
 
-import type { TopicoSnapshot } from "../sdk/domain";
+import type { TopicoSnapshot } from "nucleo/sdk/domain";
 import { recortarForum } from "./recorte";
 
 /**

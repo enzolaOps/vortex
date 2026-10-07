@@ -1,10 +1,10 @@
 import { useEffect } from "react";
 
-import { podeUsarSoundboard, tocarNaSala } from "../sdk/efeitosSonoros";
-import { sonsDoServidor } from "../sdk/expressoes";
-import { lerChamada } from "../store/chamada";
-import { useChannel } from "../store/hooks";
-import { indiceDaTecla } from "./atalhos";
+import { podeUsarSoundboard, tocarNaSala } from "nucleo/sdk/efeitosSonoros";
+import { sonsDoServidor } from "nucleo/sdk/expressoes";
+import { lerChamada } from "nucleo/store/chamada";
+import { useChannel } from "nucleo/store/hooks";
+import { indiceDaTecla } from "nucleo/ui-logica/expressoes/atalhos";
 
 /**
  * Liga as teclas 1–9 enquanto há chamada — o design escreve "Teclas 1–9

@@ -2,9 +2,9 @@ import { memo } from "react";
 
 import { Avatar } from "../components/ui/Avatar";
 import { CartaoDePerfil } from "../membros/CartaoDePerfil";
-import { chaveDeMembro } from "../sdk/domain";
+import { chaveDeMembro } from "nucleo/sdk/domain";
 import { PontoDePresenca } from "./PontoDePresenca";
-import { useMembro, useServidorAtivo } from "../store/hooks";
+import { useMembro, useServidorAtivo } from "nucleo/store/hooks";
 import css from "./AvatarDoAutor.module.css";
 
 /**

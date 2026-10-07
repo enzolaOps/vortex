@@ -2,7 +2,7 @@ import { useSyncExternalStore } from "react";
 
 import { Botao } from "../components/ui/Botao";
 import { Dialog, DialogContent } from "../components/ui/Dialog";
-import { assinarAlvo, lerAlvo } from "../store/administracao";
+import { assinarAlvo, lerAlvo } from "nucleo/store/administracao";
 import css from "./AvisoDeLink.module.css";
 
 /**

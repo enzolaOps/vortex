@@ -18,12 +18,12 @@ import {
   X,
 } from "../components/ui/icones";
 import { ItemDeId } from "../components/ui/ItemDeId";
-import { marcarCanalLido } from "../sdk/adapter";
-import { entrarNaChamada } from "../sdk/chamada";
-import { bloquear, desfazerAmizade, sairDaConversa } from "../sdk/social";
-import { administrar } from "../store/administracao";
-import { alternarFavorita, assinarFavoritos, ehFavorita } from "../store/favoritos";
-import { useChannel } from "../store/hooks";
+import { marcarCanalLido } from "nucleo/sdk/adapter";
+import { entrarNaChamada } from "nucleo/sdk/chamada";
+import { bloquear, desfazerAmizade, sairDaConversa } from "nucleo/sdk/social";
+import { administrar } from "nucleo/store/administracao";
+import { alternarFavorita, assinarFavoritos, ehFavorita } from "nucleo/store/favoritos";
+import { useChannel } from "nucleo/store/hooks";
 import { SubmenuDeSilenciar } from "./SubmenuDeSilenciar";
 
 /**

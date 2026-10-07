@@ -1,21 +1,21 @@
-import { toast } from "../components/ui/toastStore";
-import { ARNES_ATIVO } from "../dev/arnesAtivo";
-import { decidirLembreteDeEvento } from "../notificacao/decidir";
-import { ponteDeNotificacoes } from "../notificacao/notificador";
-import { usuarioLocalId } from "../sdk/adapter";
-import { conectado } from "../sdk/client";
+import { toast } from "nucleo/ui-logica/toastStore";
+import { ARNES_ATIVO } from "nucleo/arnes/arnesAtivo";
+import { decidirLembreteDeEvento } from "nucleo/notificacao/decidir";
+import { ponteDeNotificacoes } from "nucleo/notificacao/notificador";
+import { usuarioLocalId } from "nucleo/sdk/adapter";
+import { conectado } from "nucleo/sdk/client";
 import {
   carregarMeusInteresses,
   lembretesDevidos,
   lerTodosOsEventos,
   quandoLongo,
   type EventoDoServidor,
-} from "../sdk/eventos";
-import { tocar } from "../som/sons";
-import { lerMeuStatus } from "../store/meuStatus";
-import { irParaEventos } from "../store/navegacao";
-import { lerNotificacoes } from "../store/notificacoes";
-import { opcoesDoServidor } from "../store/silencio";
+} from "nucleo/sdk/eventos";
+import { tocar } from "nucleo/som/sons";
+import { lerMeuStatus } from "nucleo/store/meuStatus";
+import { irParaEventos } from "nucleo/store/navegacao";
+import { lerNotificacoes } from "nucleo/store/notificacoes";
+import { opcoesDoServidor } from "nucleo/store/silencio";
 
 /**
  * O lembrete de "10 minutos antes" — o que o interruptor "Lembrar

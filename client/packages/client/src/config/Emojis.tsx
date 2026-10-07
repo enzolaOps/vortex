@@ -8,10 +8,10 @@ import {
   listarEmojis,
   renomearEmoji,
   type Emoji,
-} from "../sdk/cargos";
+} from "nucleo/sdk/cargos";
 import { avaliarAlias, MAX_ALIAS } from "./aliasDeEmoji";
-import { subirAnexo, temServidorDeMidia } from "../sdk/anexos";
-import { toast } from "../components/ui/toastStore";
+import { subirAnexo, temServidorDeMidia } from "nucleo/sdk/anexos";
+import { toast } from "nucleo/ui-logica/toastStore";
 import css from "./Secao.module.css";
 import emojiCss from "./Emojis.module.css";
 import tab from "./Tabela.module.css";

@@ -16,17 +16,17 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-import { ligarSonsDeVoz } from "./som/sons";
-import { ligarAtalhosDeVoz } from "./sdk/atalhosDeVoz";
+import { ligarSonsDeVoz } from "nucleo/som/sons";
+import { ligarAtalhosDeVoz } from "nucleo/sdk/atalhosDeVoz";
 import { ligarAtalhos } from "./atalhos/ligar";
-import { ligarChamadasRecebidas } from "./notificacao/chamadas";
+import { ligarChamadasRecebidas } from "nucleo/notificacao/chamadas";
 import { ligarPublicadorDoOverlay } from "./overlay/publicador";
 import { ligarLembretesDeEventos } from "./eventos/lembretes";
 
-import { ARNES_ATIVO } from "./dev/arnesAtivo";
-import { ligarRota } from "./rota/rota";
-import { ouvirCliquesDoPush } from "./notificacao/push";
-import { iniciarPintura } from "./tema/pintor";
+import { ARNES_ATIVO } from "nucleo/arnes/arnesAtivo";
+import { ligarRota } from "nucleo/rota/rota";
+import { ouvirCliquesDoPush } from "nucleo/notificacao/push";
+import { iniciarPintura } from "nucleo/tema/pintor";
 import { App } from "./App";
 import { PortaoDeSessao } from "./sessao/PortaoDeSessao";
 import { Toaster } from "./components/ui/Toast";
@@ -34,7 +34,7 @@ import { FaixaDeConexao } from "./conexao/FaixaDeConexao";
 import { Atualizacao } from "./desktop/Atualizacao";
 import { BarraDeTitulo } from "./desktop/BarraDeTitulo";
 import css from "./main.module.css";
-import { hidratarDesktop } from "./store/desktop";
+import { hidratarDesktop } from "nucleo/store/desktop";
 import { TooltipProvider } from "./components/ui/Tooltip";
 import "./styles/tokens.css";
 

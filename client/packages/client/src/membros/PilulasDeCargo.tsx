@@ -1,9 +1,9 @@
 import { memo } from "react";
 
-import { cargosDoServidor } from "../sdk/cargos";
+import { cargosDoServidor } from "nucleo/sdk/cargos";
 import { IconeDeCargo } from "./IconeDeCargo";
-import { usePinturaDeCargo } from "../store/hooks";
-import { TINTA_HOLOGRAFICA } from "../tema/cargo";
+import { usePinturaDeCargo } from "nucleo/store/hooks";
+import { TINTA_HOLOGRAFICA } from "nucleo/tema/cargo";
 import css from "./PilulasDeCargo.module.css";
 
 /**

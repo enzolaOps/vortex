@@ -1,6 +1,6 @@
 import { cn } from "../lib/cn";
-import { useServidorAtivo } from "../store/hooks";
-import { useTagExibida } from "../store/perfilDoServidor";
+import { useServidorAtivo } from "nucleo/store/hooks";
+import { useTagExibida } from "nucleo/store/perfilDoServidor";
 import css from "./TagDoServidor.module.css";
 
 /**
