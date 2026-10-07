@@ -1,24 +1,10 @@
 /*
-  Receita das sobreposições (TRD §7): vidro + borda + realce interno + elevação.
-  É o único lugar dos primitivos que escreve `backdrop-filter`; quando o
-  `PainelVidro` do design system existir, esta classe passa a vir dele.
-  O palco nunca fica atrás de uma sobreposição de vidro, então o custo de
-  repintura é o do painel, não do vídeo.
+  O vidro (blur, borda, realce, elevação) vem de ds/PainelVidro, o único dono do
+  `backdrop-filter`. Aqui fica só a tipografia base das sobreposições.
 */
-.vidro {
-  background: var(--vx-surface-overlay);
-  -webkit-backdrop-filter: blur(var(--vx-blur-glass)) saturate(var(--vx-saturate-glass));
-  backdrop-filter: blur(var(--vx-blur-glass)) saturate(var(--vx-saturate-glass));
-  border: 1px solid var(--vx-glass-border);
-  border-radius: var(--vx-radius-md);
-  box-shadow: var(--vx-shadow-glass-inner), var(--vx-elev-2);
-  color: var(--vx-text-1);
+.texto {
   font-size: var(--vx-type-ui-size);
   line-height: var(--vx-type-ui-line);
-}
-
-.elevado {
-  box-shadow: var(--vx-shadow-glass-inner), var(--vx-elev-3);
 }
 
 .camada {
@@ -65,7 +51,6 @@
   max-block-size: calc(100vh - 64px);
   overflow-y: auto;
   padding: var(--vx-space-5);
-  border-radius: var(--vx-radius-lg);
   display: grid;
   gap: var(--vx-space-3);
 }
@@ -178,7 +163,6 @@
 
 .dica {
   padding: var(--vx-space-1) var(--vx-space-2);
-  border-radius: var(--vx-radius-sm);
   font-size: var(--vx-type-caption-size);
   line-height: var(--vx-type-caption-line);
   max-inline-size: 240px;

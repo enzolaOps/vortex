@@ -12,9 +12,10 @@
     "lint": "eslint .",
     "tokens": "node scripts/tokens.mjs",
     "tokens:conferir": "node scripts/tokens.mjs --conferir",
+    "vidro": "node scripts/vidro.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "guards": "pnpm tokens:conferir",
+    "guards": "pnpm tokens:conferir && pnpm vidro",
     "check": "pnpm typecheck && pnpm lint && pnpm guards && pnpm test && pnpm build"
   },
   "dependencies": {

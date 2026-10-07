@@ -129,7 +129,7 @@ const ITEM_INERTE = [
 ];
 
 export default tseslint.config(
-  { ignores: ["dist", "node_modules", "coverage", "src/tema/*.gerado.css"] },
+  { ignores: ["dist", "node_modules", "coverage", "src/tema/*.gerado.css", "scripts/*.d.mts"] },
 
   js.configs.recommended,
   tseslint.configs.recommendedTypeChecked,

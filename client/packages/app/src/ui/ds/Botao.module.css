@@ -1,0 +1,160 @@
+.botao {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vx-space-2);
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: var(--vx-radius-pill);
+  background: transparent;
+  color: var(--vx-text-1);
+  font-family: var(--vx-font-sans);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  font-weight: var(--vx-type-ui-weight);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 120ms ease;
+}
+
+.md {
+  min-block-size: 40px;
+  padding: 0 var(--vx-space-4);
+}
+.sm {
+  min-block-size: 32px;
+  padding: 0 var(--vx-space-3);
+}
+.soIcone.md {
+  inline-size: 40px;
+  padding: 0;
+}
+.soIcone.sm {
+  inline-size: 32px;
+  padding: 0;
+}
+
+/* Véu de estado: sobre a cor da variante, só opacidade anima. */
+.botao::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.botao:hover::before {
+  opacity: 1;
+}
+.botao:active {
+  transform: scale(0.98);
+}
+.botao > * {
+  position: relative;
+}
+
+.icone {
+  display: inline-flex;
+  flex: none;
+}
+
+.primario {
+  background: var(--vx-accent);
+  color: var(--vx-text-on-accent);
+}
+.primario::before {
+  background: var(--vx-accent-hover);
+}
+.primario:active {
+  background: var(--vx-accent-press);
+}
+
+/* Sem blur próprio: o botão vive dentro de um PainelVidro, que já desfoca. */
+.secundario {
+  background: var(--vx-surface-glass);
+  border-color: var(--vx-border-strong);
+}
+.secundario::before {
+  background: var(--vx-state-hover);
+}
+.secundario:active::before {
+  background: var(--vx-state-press);
+  opacity: 1;
+}
+
+.fantasma {
+  color: var(--vx-text-2);
+}
+.fantasma::before {
+  background: var(--vx-state-hover);
+}
+.fantasma:hover {
+  color: var(--vx-text-1);
+}
+.fantasma:active::before {
+  background: var(--vx-state-press);
+  opacity: 1;
+}
+
+.perigo {
+  background: var(--vx-danger);
+  color: var(--vx-text-on-danger);
+}
+.perigo::before {
+  background: var(--vx-state-hover);
+}
+.perigo:active::before {
+  background: var(--vx-state-press);
+  opacity: 1;
+}
+
+.botao:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.botao:disabled:hover::before {
+  opacity: 0;
+}
+.botao:disabled:active {
+  transform: none;
+}
+
+/* Carregando não esmaece: o rótulo continua legível e o estado é dito em texto. */
+.carregando {
+  cursor: progress;
+}
+.carregando:active {
+  transform: none;
+}
+
+.giro {
+  inline-size: 16px;
+  block-size: 16px;
+  flex: none;
+  box-sizing: border-box;
+  border: 2px solid currentcolor;
+  border-inline-end-color: transparent;
+  border-radius: 50%;
+  animation: giro 800ms linear infinite;
+}
+
+@keyframes giro {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .botao,
+  .botao::before {
+    transition: none;
+  }
+  .botao:active {
+    transform: none;
+  }
+  .giro {
+    animation-duration: 2400ms;
+  }
+}

@@ -3,7 +3,7 @@ import type { ComponentProps, ReactNode } from "react";
 
 import { comum } from "../../textos";
 import { Fechar } from "../icones";
-import { estilos, juntar } from "./classes";
+import { estilos, juntar, vidroElevado } from "./classes";
 
 /**
  * Diálogo. Foco preso enquanto aberto, foco devolvido ao gatilho ao fechar,
@@ -37,7 +37,7 @@ export function ConteudoDoDialogo({
         // Sem descrição o Radix avisa no console; `undefined` diz que é de propósito.
         {...(descricao === undefined ? { "aria-describedby": undefined } : {})}
         {...props}
-        className={juntar(estilos.vidro, estilos.elevado, estilos.dialogo, estilos.entrada, className)}
+        className={juntar(vidroElevado("lg"), estilos.dialogo, estilos.entrada, className)}
       >
         <Primitivo.Title className={tituloOculto ? estilos.somenteLeitor : estilos.titulo}>
           {titulo}

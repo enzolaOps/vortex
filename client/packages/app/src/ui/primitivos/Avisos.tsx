@@ -10,7 +10,7 @@ import {
 
 import { comum } from "../../textos";
 import { Fechar } from "../icones";
-import { estilos, juntar } from "./classes";
+import { estilos, juntar, vidroElevado } from "./classes";
 
 /**
  * Avisos. O estado vive no store do núcleo (module-level, fora do React): quem
@@ -32,7 +32,7 @@ export function Avisos() {
             if (!aberto) dispensarToast(aviso.id);
           }}
           data-tipo={aviso.tipo}
-          className={juntar(estilos.vidro, estilos.elevado, estilos.aviso, estilos.entrada)}
+          className={juntar(vidroElevado(), estilos.aviso, estilos.entrada)}
         >
           <Primitivo.Title>
             {aviso.titulo}

@@ -13,6 +13,7 @@ import {
   Ellipsis as LEllipsis,
   GripVertical as LGripVertical,
   Hash as LHash,
+  Image as LImage,
   HeadphoneOff as LHeadphoneOff,
   Headphones as LHeadphones,
   House as LHouse,
@@ -23,10 +24,18 @@ import {
   Mic as LMic,
   MicOff as LMicOff,
   MonitorUp as LMonitorUp,
+  Paperclip as LPaperclip,
   Pencil as LPencil,
   PhoneOff as LPhoneOff,
   PictureInPicture2 as LPictureInPicture2,
   Plus as LPlus,
+  Reply as LReply,
+  SendHorizontal as LSendHorizontal,
+  Smile as LSmile,
+  SquareArrowOutDownLeft as LSquareArrowOutDownLeft,
+  SquareArrowOutDownRight as LSquareArrowOutDownRight,
+  SquareArrowOutUpLeft as LSquareArrowOutUpLeft,
+  SquareArrowOutUpRight as LSquareArrowOutUpRight,
   Search as LSearch,
   Settings as LSettings,
   Shield as LShield,
@@ -122,3 +131,12 @@ export const CameraDesligada = envolver(LVideoOff);
 export const Volume = envolver(LVolume2);
 export const VolumeDesligado = envolver(LVolumeX);
 export const Fechar = envolver(LX);
+export const Anexo = envolver(LPaperclip);
+export const Imagem = envolver(LImage);
+export const Responder = envolver(LReply);
+export const Enviar = envolver(LSendHorizontal);
+export const Sorriso = envolver(LSmile);
+export const CantoSuperiorEsquerdo = envolver(LSquareArrowOutUpLeft);
+export const CantoSuperiorDireito = envolver(LSquareArrowOutUpRight);
+export const CantoInferiorEsquerdo = envolver(LSquareArrowOutDownLeft);
+export const CantoInferiorDireito = envolver(LSquareArrowOutDownRight);
