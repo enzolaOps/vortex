@@ -19,7 +19,7 @@ import { createEffect, createRoot, createSignal } from "solid-js";
 import { ligarAtividades } from "./atividades";
 import { ligarFiltroDeMidia } from "./filtroDeMidia";
 import { decodeTime, monotonicFactory } from "ulid";
-import { VoiceParticipant, type Message } from "stoat.js";
+import type { Message } from "stoat.js";
 /**
  * `ReactiveSet` do SDK, construído aqui.
  *
@@ -61,6 +61,13 @@ import {
 import { definirEuDasEnquetes, lerEnquete } from "../store/enquetes";
 import { anotarEventoDeEnquete, buscarMensagensComEnquetes } from "./enquetes";
 import { anotarEventoDeVoz, consumirModosAlterados } from "./vozDoCanal";
+import {
+  aplicarEventoDeVoz,
+  canalDeVozDaPessoa,
+  colocarNaSala,
+  participantesDaSala,
+  tirarDaSala,
+} from "./salasDeVoz";
 import {
   avisarMudoDoServidor,
   avisarSurdoDoServidor,
@@ -1197,6 +1204,9 @@ export function startAdapter() {
     /* A voz por canal do fork mora no evento cru pela mesma razão do
        `can_publish` abaixo — ver `sdk/vozDoCanal.ts`. */
     aplicarVozDoCanal(evento);
+    /* Quem está em cada sala vem do evento cru (ADR-003): o `ReactiveMap` do
+       SDK ignora `VoiceChannelMove` e deixava o fantasma na sala de origem. */
+    for (const id of aplicarEventoDeVoz(evento, usuarioLocal)) releituraDeVoz.get(id)?.();
     /* Enquete é campo do fork que a hidratação descarta — ver `sdk/enquetes.ts`. */
     for (const id of anotarEventoDeEnquete(evento)) republicarEnquete(id);
     /* Evento agendado é superfície do fork que o SDK não conhece — ver
@@ -2793,8 +2803,8 @@ function republicarVoz(): void {
  * `sonda_anexo` listado dentro da sala, na coluna de canais. Só recarregar
  * limpava.
  *
- * Mexe direto no `ReactiveMap` do SDK, que é o mesmo caminho por onde um
- * `VoiceChannelLeave` entraria — a mesma decisão já tomada para reação
+ * Mexe direto no store de salas (`salasDeVoz.ts`), que é o mesmo caminho por
+ * onde um `VoiceChannelLeave` entraria — a mesma decisão já tomada para reação
  * otimista. Não há um segundo caminho a reconciliar: se o servidor ainda
  * achar que você está lá, o próximo `Ready` traz a verdade de volta.
  *
@@ -2806,10 +2816,9 @@ function republicarVoz(): void {
  */
 export function sairDaSalaLocalmente(channelId: string): void {
   if (usuarioLocal === undefined) return;
-  const canal = client.channels.get(channelId);
-  if (!canal?.voiceParticipants.delete(usuarioLocal)) return;
+  if (!tirarDaSala(channelId, usuarioLocal)) return;
   /*
-    `voiceParticipants` é reativo, mas a releitura guardada é o caminho que
+    A releitura guardada é o caminho que
     `republicarVoz` já usa para o caso em que o sinal não acorda sozinho.
     Chamar as duas custa uma varredura de uma sala.
   */
@@ -2817,10 +2826,7 @@ export function sairDaSalaLocalmente(channelId: string): void {
 }
 
 export function canalDeVozDe(userId: string): string | undefined {
-  for (const canal of client.channels.values()) {
-    if (canal.voiceParticipants.has(userId)) return canal.id;
-  }
-  return undefined;
+  return canalDeVozDaPessoa(userId);
 }
 
 export const vozPorCanal = createEntityStore<readonly ParticipanteDeVoz[]>(
@@ -2830,26 +2836,23 @@ export const vozPorCanal = createEntityStore<readonly ParticipanteDeVoz[]>(
       if (!canal) return;
 
       const out: ParticipanteDeVoz[] = [];
-      for (const [userId, p] of canal.voiceParticipants) {
-        // Ler os três acessores DENTRO do efeito é o que faz ligar a câmera
-        // republicar a sala. Fora dele, o snapshot congelaria no estado de
-        // quando a pessoa entrou.
-        const estado: EstadoDeVoz = p.isScreensharing()
+      for (const [userId, p] of participantesDaSala(channelId)) {
+        const estado: EstadoDeVoz = p.tela
           ? "tela"
-          : p.isCamera()
+          : p.camera
             ? "video"
             : "voz";
         out.push({
           userId,
           estado,
-          desde: p.joinedAt.getTime(),
+          desde: p.desde,
           /*
             ⚠ Lidos DENTRO do efeito, como os três acessores acima: fora
             dele o snapshot congelaria no estado de quando a pessoa entrou, e
             silenciar o microfone não republicaria a sala.
           */
-          mudo: !p.isPublishing(),
-          surdo: !p.isReceiving(),
+          mudo: !p.publicando,
+          surdo: !p.recebendo,
           /*
             ⚠ Do SERVIDOR, e por isso vem de um mapa e não do participante: o
             protocolo põe `can_publish` em `ServerMember`, não em
@@ -2884,13 +2887,9 @@ export const vozPorCanal = createEntityStore<readonly ParticipanteDeVoz[]>(
     releituraDeVoz.set(channelId, ler);
 
     count("vozEfeitos");
-    return createRoot((dispose) => {
-      createEffect(ler);
-      return () => {
-        releituraDeVoz.delete(channelId);
-        dispose();
-      };
-    });
+    return () => {
+      releituraDeVoz.delete(channelId);
+    };
   },
 );
 
@@ -3689,7 +3688,7 @@ function traduzirSinalDeChamada(evento: unknown): void {
   if (canal?.type !== "DirectMessage" && canal?.type !== "Group") return;
 
   const outrosAlem = (quem: string | undefined) =>
-    [...canal.voiceParticipants.keys()].some((id) => id !== quem);
+    [...participantesDaSala(channelId).keys()].some((id) => id !== quem);
 
   if (e.type === "VoiceChannelLeave") {
     if (!outrosAlem(e.user)) sinalizarFimDeChamada(channelId);
@@ -4149,24 +4148,21 @@ export function semearVoz(
   if (!canal) return;
 
   for (const p of dentro) {
-    canal.voiceParticipants.set(
-      p.userId,
-      new VoiceParticipant(client, {
-        id: p.userId,
-        joined_at: new Date(p.desde).toISOString(),
-        /*
-          ⚠ Surdo IMPLICA mudo, e a implicação mora AQUI e não no arnês: é
-          regra do protocolo (quem não recebe também não publica), e deixá-la
-          na semeadura deixaria o rig capaz de produzir um estado que nenhum
-          servidor produz.
-        */
-        is_receiving: !(p.surdo ?? false),
-        is_publishing: !(p.mudo ?? false) && !(p.surdo ?? false),
-        screensharing: p.tela ?? false,
-        camera: p.camera ?? false,
-      } as never),
-    );
+    /*
+      ⚠ Surdo IMPLICA mudo, e a implicação mora AQUI e não no arnês: é regra
+      do protocolo (quem não recebe também não publica), e deixá-la na
+      semeadura deixaria o rig capaz de produzir um estado que nenhum servidor
+      produz.
+    */
+    colocarNaSala(channelId, p.userId, {
+      joined_at: new Date(p.desde).toISOString(),
+      is_receiving: !(p.surdo ?? false),
+      is_publishing: !(p.mudo ?? false) && !(p.surdo ?? false),
+      screensharing: p.tela ?? false,
+      camera: p.camera ?? false,
+    });
   }
+  releituraDeVoz.get(channelId)?.();
 }
 
 /**

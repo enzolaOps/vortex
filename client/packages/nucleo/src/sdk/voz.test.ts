@@ -90,14 +90,21 @@ describe("sala de voz", () => {
    * publicaria uma vez e nunca mais — e nada falharia. Este teste liga a câmera
    * de quem já está dentro e exige a republicação.
    */
-  it("ligar a câmera republica a sala — o efeito lê os acessores", () => {
+  it("ligar a câmera republica a sala — o evento cru atualiza o estado", () => {
     const notificado = assinar(VOZ_JOGOS);
     const antes = vozPorCanal.peek(VOZ_JOGOS) ?? [];
     const alvo = antes.find((p) => p.estado === "voz")!;
     expect(alvo).toBeDefined();
 
-    const canal = client.channels.get(VOZ_JOGOS)!;
-    canal.voiceParticipants.get(alvo.userId)!.update({ camera: true });
+    (client.events as unknown as { emit: (n: string, e: object) => void }).emit(
+      "event",
+      {
+        type: "UserVoiceStateUpdate",
+        id: alvo.userId,
+        channel_id: VOZ_JOGOS,
+        data: { camera: true },
+      },
+    );
 
     expect(notificado).toHaveBeenCalled();
     const depois = vozPorCanal.peek(VOZ_JOGOS) ?? [];
