@@ -290,6 +290,27 @@ describe("corpo da mensagem", () => {
     expect(linhaDe("a3")!.querySelector("pre code")?.textContent).toBe("let x = 1");
   });
 
+  it("bloco de código ganha cor depois, sem mudar texto nem altura", async () => {
+    const CERCA = "```";
+    const NL = String.fromCharCode(10);
+    semear([
+      snap("rc1", { content: [CERCA + "ts", "const realce: number = 42;", "function f() { return 1; }", CERCA].join(NL) }),
+      snap("rc2", { content: [CERCA + "linguagem-que-nao-existe", "sem realce", CERCA].join(NL) }),
+    ]);
+    abrir();
+    await expect.poll(() => linhas().length).toBe(2);
+    const pre = linhaDe("rc1")!.querySelector("pre")!;
+    const antes = pre.getBoundingClientRect().height;
+    const texto = pre.textContent;
+    await expect.poll(() => pre.querySelectorAll("code span[style*='color']").length, { timeout: 8_000 }).toBeGreaterThan(0);
+    expect(pre.getBoundingClientRect().height).toBe(antes);
+    expect(pre.textContent).toBe(texto);
+    // Língua desconhecida degrada para texto simples, sem cor.
+    const simples = linhaDe("rc2")!.querySelector("pre")!;
+    expect(simples.querySelectorAll("code span").length).toBe(0);
+    expect(simples.textContent).toBe("sem realce");
+  });
+
   it("link com esquema perigoso nunca vira link, e título não vira h1", async () => {
     semear([snap("b1", { content: "[x](javascript:alert(1))\n\n# grande" })]);
     abrir();
