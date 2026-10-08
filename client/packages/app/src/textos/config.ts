@@ -172,6 +172,7 @@ export const config = {
     saida: "Saída",
     padraoDoSistema: "Padrão do sistema",
     semMicrofone: "Nenhum microfone encontrado. Conecte um e escolha de novo.",
+    semSaida: "Nenhuma saída de áudio encontrada.",
     semNomes: "Dê permissão ao microfone para ver o nome dos dispositivos.",
     volumeDoMicrofone: "Volume do microfone",
     volumeDeSaida: "Volume de saída",

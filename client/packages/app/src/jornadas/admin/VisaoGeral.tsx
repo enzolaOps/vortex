@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 
 import { admin } from "../../textos";
 import { Avatar, Botao } from "../../ui/ds";
-import { Camera } from "../../ui/icones";
+import { Imagem } from "../../ui/icones";
 import { toast } from "../../ui/primitivos/Avisos";
 import { CampoDeTexto } from "../sessao/CampoDeTexto";
 import { AreaDeTexto, BarraDeSalvar, Bloco, estilosDeConfig as ec, Pagina } from "../config/controles";
@@ -63,43 +63,47 @@ export function VisaoGeral({ serverId }: { serverId: string }) {
         <p className={ec.rotuloDaSecao}>{t.icone}</p>
         <div className={css.linhaDoIcone}>
           <Avatar nome={servidor.name} id={serverId} tamanho={80} imagem={icone.url} />
-          <div className={ec.acoes}>
-            <Botao
-              variante="secundario"
-              tamanho="sm"
-              icone={<Camera />}
-              disabled={!temMidia || icone.estado === "removendo"}
-              carregando={icone.estado === "subindo"}
-              onClick={() => seletor.current?.click()}
-            >
-              {icone.estado === "subindo" ? t.enviando : t.trocarIcone}
-            </Botao>
-            {icone.url !== undefined && (
-              <Botao
-                variante="fantasma"
-                tamanho="sm"
-                disabled={!temMidia || icone.estado !== "parado"}
-                carregando={icone.estado === "removendo"}
-                onClick={icone.remover}
-              >
-                {t.removerIcone}
-              </Botao>
-            )}
-          </div>
-          <input
-            ref={seletor}
-            data-testid="seletor-do-icone"
-            type="file"
-            accept={ACEITA}
-            className={css.seletorOculto}
-            tabIndex={-1}
-            aria-hidden="true"
-            onChange={(e) => {
-              const arquivo = e.target.files?.[0];
-              e.target.value = "";
-              if (arquivo) icone.escolher(arquivo);
-            }}
-          />
+          {temMidia && (
+            <>
+              <div className={ec.acoes}>
+                <Botao
+                  variante="secundario"
+                  tamanho="sm"
+                  icone={<Imagem />}
+                  disabled={icone.estado === "removendo"}
+                  carregando={icone.estado === "subindo"}
+                  onClick={() => seletor.current?.click()}
+                >
+                  {icone.estado === "subindo" ? t.enviando : t.trocarIcone}
+                </Botao>
+                {icone.url !== undefined && (
+                  <Botao
+                    variante="fantasma"
+                    tamanho="sm"
+                    disabled={icone.estado !== "parado"}
+                    carregando={icone.estado === "removendo"}
+                    onClick={icone.remover}
+                  >
+                    {t.removerIcone}
+                  </Botao>
+                )}
+              </div>
+              <input
+                ref={seletor}
+                data-testid="seletor-do-icone"
+                type="file"
+                accept={ACEITA}
+                className={css.seletorOculto}
+                tabIndex={-1}
+                aria-hidden="true"
+                onChange={(e) => {
+                  const arquivo = e.target.files?.[0];
+                  e.target.value = "";
+                  if (arquivo) icone.escolher(arquivo);
+                }}
+              />
+            </>
+          )}
         </div>
       </Bloco>
 

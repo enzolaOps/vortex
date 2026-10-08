@@ -116,8 +116,12 @@
   min-inline-size: 0;
 }
 
-/* Lista nativa. O navegador desenha a lista aberta; o fechado segue os campos. */
+/* Seletor: o fechado é um botão com cara de campo; a lista aberta é o menu do app. */
 .seletor {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-3);
   box-sizing: border-box;
   inline-size: 100%;
   block-size: 44px;
@@ -128,11 +132,58 @@
   color: var(--vx-text-1);
   font-family: var(--vx-font-sans);
   font-size: var(--vx-type-ui-size);
-  color-scheme: dark;
+  text-align: start;
+  cursor: pointer;
 }
-.seletor option {
-  background: var(--vx-surface-solid);
-  color: var(--vx-text-1);
+.seletor:disabled {
+  color: var(--vx-text-4);
+  cursor: default;
+}
+.seletor svg {
+  flex: none;
+  color: var(--vx-text-3);
+}
+.seletorValor {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.seletorMenu {
+  inline-size: var(--radix-dropdown-menu-trigger-width);
+  max-inline-size: calc(100vw - var(--vx-space-6));
+}
+
+/* Esqueleto de página: só a opacidade anima. */
+.esqueleto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-3);
+  animation: pulsar 1.4s ease-in-out infinite;
+}
+.esqueletoTitulo,
+.esqueletoCampo {
+  display: block;
+  border-radius: var(--vx-radius-sm);
+  background: var(--vx-skeleton);
+}
+.esqueletoTitulo {
+  inline-size: 30%;
+  block-size: 14px;
+}
+.esqueletoCampo {
+  inline-size: 100%;
+  block-size: 44px;
+}
+@keyframes pulsar {
+  50% {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .esqueleto {
+    animation: none;
+  }
 }
 
 /* Deslizante */
