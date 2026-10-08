@@ -236,6 +236,8 @@ export const admin = {
     vazio: "Ninguém com esse nome.",
     vazioDica: "Confira a escrita ou escolha outro cargo no filtro.",
     carregando: "Carregando as pessoas…",
+    erro: "Não deu para carregar as pessoas.",
+    dadosDeAntes: "Não deu para atualizar a lista agora. Mostrando os dados de antes.",
     acoes: (nome: string) => `Ações para ${nome}`,
     gerenciarCargos: "Mudar cargos",
     cargosDe: (nome: string) => `Cargos de ${nome}`,

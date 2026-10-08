@@ -155,7 +155,7 @@ vi.mock("nucleo/sdk/moderacao", async (original) => ({
 
 vi.mock("nucleo/sdk/servidores", async (original) => ({
   ...(await original<Record<string, unknown>>()),
-  carregarMembros: () => feito(undefined),
+  carregarMembros: () => feito(!ctl.falhaNaLista),
   souDono: () => ctl.dono,
   listarConvites: () => (ctl.falhaNaLista ? feito(undefined) : (ctl.lento ?? feito(undefined)).then(() => ctl.convites)),
   revogarConvite: (_s: string, codigo: string) => {
@@ -531,6 +531,25 @@ describe("salas e canais", () => {
     expect(document.body.textContent).toContain(admin.canaisPagina.semCategoria);
   });
 
+  it("as ações da linha só aparecem com o ponteiro ou o foco, e apagar é de perigo", async () => {
+    await abrirSecao("canais");
+    const linha = document.querySelector<HTMLElement>('[data-testid="linha-de-canal"][data-canal="T1"]');
+    if (!linha) throw new Error("linha T1 não montou");
+    const grupo = linha.lastElementChild as HTMLElement;
+    const opacidade = () => getComputedStyle(grupo).opacity;
+    await expect.poll(opacidade).toBe("0");
+    await page.getByTestId("linha-de-canal").nth(1).hover();
+    await expect.poll(opacidade).toBe("1");
+    await page.getByTestId("linha-de-canal").nth(2).hover();
+    await expect.poll(opacidade).toBe("0");
+    // Teclado: o foco dentro da linha acende o grupo.
+    linha.querySelector<HTMLButtonElement>("button:not([aria-disabled])")?.focus();
+    await expect.poll(opacidade).toBe("1");
+    const apagar = linha.querySelector<HTMLElement>(`[aria-label="${admin.canaisPagina.apagar("geral")}"]`);
+    expect(apagar).not.toBeNull();
+    expect(getComputedStyle(apagar as HTMLElement).color).not.toBe(getComputedStyle(linha).color);
+  });
+
   it("servidor sem nenhum canal mostra o vazio com a próxima ação", async () => {
     categorias.set(S, []);
     await abrirSecao("canais");
@@ -752,8 +771,29 @@ describe("membros e moderação", () => {
     await expect.element(page.getByTestId("estado-vazio")).toBeVisible();
     expect(document.body.textContent).toContain(admin.membrosPagina.vazioDica);
     await page.getByLabelText(admin.membrosPagina.buscar).fill("");
-    await page.getByRole("button", { name: "Moderação", exact: true }).click();
+    await page.getByRole("button", { name: /^Moderação · 1$/ }).click();
     await expect.poll(() => linhas().length).toBe(1);
+  });
+
+  it("os filtros de cargo mostram quantas pessoas cada um tem", async () => {
+    await abrirSecao("membros");
+    await expect.poll(() => linhas().length).toBe(4);
+    await expect.element(page.getByRole("button", { name: /^Moderação · 1$/ })).toBeVisible();
+  });
+
+  it("falha ao atualizar com a tabela cheia avisa em voz baixa, sem tela de erro nem toast", async () => {
+    ctl.falhaNaLista = true;
+    await abrirSecao("membros");
+    await expect.poll(() => linhas().length).toBe(4);
+    await expect.element(page.getByTestId("aviso-dados-de-antes")).toBeVisible();
+    expect(document.querySelector('[data-testid="estado-de-erro"]')).toBeNull();
+    expect(lerToasts().length).toBe(0);
+  });
+
+  it("sem falha, nenhum aviso de dados antigos", async () => {
+    await abrirSecao("membros");
+    await expect.poll(() => linhas().length).toBe(4);
+    expect(document.querySelector('[data-testid="aviso-dados-de-antes"]')).toBeNull();
   });
 
   it("castigo em andamento aparece na linha", async () => {
