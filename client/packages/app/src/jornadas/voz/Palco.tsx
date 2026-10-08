@@ -160,6 +160,7 @@ export function PalcoDaSala({ serverId, canalId }: { serverId: string; canalId: 
   const pessoas: PessoaComTela[] = brutas.map((p) => ({
     id: p.id,
     nome: p.nome,
+    avatarUrl: p.avatarUrl,
     mudo: p.mudo,
     surdo: p.surdo,
     camera: p.id === eu ? chamada.camera : chamada.comCamera.includes(p.id),

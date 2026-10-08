@@ -11,6 +11,8 @@ export interface ItemDaDockProps extends Omit<ButtonHTMLAttributes<HTMLButtonEle
   nome: string;
   /** ID do servidor; escolhe o tom do avatar. */
   id?: string;
+  /** A imagem do servidor, quando há; cobre o gradiente. */
+  imagem?: string | undefined;
   /** Ícone no lugar do avatar (o botão de início). */
   icone?: ReactNode;
   /** O destino aberto. Um por dock. */
@@ -27,6 +29,7 @@ export interface ItemDaDockProps extends Omit<ButtonHTMLAttributes<HTMLButtonEle
 export function ItemDaDock({
   nome,
   id,
+  imagem,
   icone,
   selecionado = false,
   naoLida = false,
@@ -44,7 +47,7 @@ export function ItemDaDock({
       className={juntar(css.item, selecionado && css.selecionado, className)}
     >
       <span className={css.rosto} aria-hidden="true">
-        {icone ?? <Avatar nome={nome} id={id} tamanho={44} />}
+        {icone ?? <Avatar nome={nome} id={id} tamanho={44} imagem={imagem} />}
       </span>
       {mencoes > 0 ? (
         <Pilula tipo="mencao" valor={mencoes} className={css.selo} />

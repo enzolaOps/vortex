@@ -13,7 +13,7 @@ import {
   semearMeuStatus,
 } from "../store/meuStatus";
 import { toast } from "../ui-logica/toastStore";
-import { motivoDoErro } from "./erros";
+import { esperaDoLimite, motivoDoErro, tipoDoErro } from "./erros";
 
 export type MeuPerfil = {
   readonly displayName: string;
@@ -35,6 +35,8 @@ export type Dispositivo = {
   readonly nome: string;
   /** É a sessão desta aba. Não pode ser derrubada por engano. */
   readonly atual: boolean;
+  /** Quando a sessão foi aberta, em ms. Vem do próprio ID (ULID). */
+  readonly desde?: number;
 };
 
 /* Delega para o tradutor unico — ver `sdk/erros.ts`. O corpo que
@@ -516,6 +518,210 @@ export async function pedirExclusao(
     return true;
   } catch (e) {
     falhou("Não deu para pedir a exclusão.", e);
+    return false;
+  }
+}
+
+/* ------------------------------------------- configurações: com motivo */
+
+/*
+  As funções acima falam por TOAST: servem a quem não tem onde escrever o erro.
+  As configurações têm — "senha atual errada" aparece no campo da senha, e
+  "e-mail em uso" no do e-mail —, então precisam saber QUAL foi a falha, não só
+  que houve uma. O que segue devolve a causa classificada; a frase é do app.
+*/
+
+/** Por que uma ação de conta não passou. Só as causas que a tela trata à parte. */
+export type CausaDeConta =
+  | "senhaIncorreta"
+  | "senhaFraca"
+  | "emailEmUso"
+  | "nomeEmUso"
+  | "limite"
+  | "outra";
+
+export type ResultadoDeConta =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly causa: CausaDeConta; readonly motivo: string };
+
+function classificar(e: unknown, quandoOperacaoFalha: CausaDeConta): CausaDeConta {
+  switch (tipoDoErro(e)) {
+    case "InvalidCredentials":
+    case "InvalidToken":
+      return "senhaIncorreta";
+    case "ShortPassword":
+    case "CompromisedPassword":
+      return "senhaFraca";
+    case "UsernameTaken":
+      return "nomeEmUso";
+    case "EmailInUse":
+      return "emailEmUso";
+    /*
+      `OperationFailed` é o que o servidor devolve para e-mail já cadastrado; o
+      contexto decide o que ele quer dizer, e quem chama o diz.
+    */
+    case "OperationFailed":
+      return quandoOperacaoFalha;
+    default:
+      return esperaDoLimite(e) !== undefined ? "limite" : "outra";
+  }
+}
+
+async function comMotivo(
+  acao: () => Promise<unknown>,
+  quandoOperacaoFalha: CausaDeConta = "outra",
+): Promise<ResultadoDeConta> {
+  try {
+    await acao();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, causa: classificar(e, quandoOperacaoFalha), motivo: motivo(e) };
+  }
+}
+
+/**
+ * A bio e o banner, que não vêm no `Ready`.
+ *
+ * `undefined` é "não deu para saber" — e a tela NÃO libera o salvar nesse caso:
+ * salvar com a bio vazia por não ter conseguido lê-la apagaria a que existe.
+ */
+export async function lerMeuPerfilCompleto(): Promise<
+  { readonly bio: string; readonly bannerUrl: string | undefined } | undefined
+> {
+  try {
+    const perfil = await client.user?.fetchProfile();
+    if (!perfil) return undefined;
+    return { bio: perfil.content ?? "", bannerUrl: perfil.bannerURL };
+  } catch {
+    return undefined;
+  }
+}
+
+/** O e-mail da conta, ou `undefined` se não deu para consultar. */
+export async function lerMeuEmail(): Promise<string | undefined> {
+  try {
+    return await client.account.fetchEmail();
+  } catch {
+    return undefined;
+  }
+}
+
+export function trocarSenhaComMotivo(nova: string, atual: string): Promise<ResultadoDeConta> {
+  return comMotivo(() => client.account.changePassword(nova, atual));
+}
+
+export function trocarEmailComMotivo(novo: string, senha: string): Promise<ResultadoDeConta> {
+  return comMotivo(() => client.account.changeEmail(novo, senha), "emailEmUso");
+}
+
+export function trocarNomeDeUsuarioComMotivo(
+  novo: string,
+  senha: string,
+): Promise<ResultadoDeConta> {
+  return comMotivo(async () => {
+    if (!client.user) throw new Error("sem sessão");
+    await client.user.changeUsername(novo, senha);
+  });
+}
+
+/**
+ * Confere a senha trocando-a por um bilhete que ninguém usa.
+ *
+ * É o que permite pedir a senha UMA vez ao abrir Dispositivos: o bilhete vale
+ * pouco e some sozinho, e o que importa é o servidor ter dito que a senha é
+ * esta. As ações seguintes pedem o próprio bilhete.
+ */
+export function confirmarSenha(senha: string): Promise<ResultadoDeConta> {
+  return comMotivo(async () => {
+    const mfa = await client.account.mfa();
+    await mfa.createTicket({ password: senha });
+  });
+}
+
+export function derrubarDispositivoComMotivo(id: string, senha: string): Promise<ResultadoDeConta> {
+  return comMotivo(async () => {
+    const mfa = await client.account.mfa();
+    const bilhete = await mfa.createTicket({ password: senha });
+    await client.sessions.get(id)?.delete(bilhete);
+  });
+}
+
+export function derrubarOutrosComMotivo(senha: string): Promise<ResultadoDeConta> {
+  return comMotivo(async () => {
+    const mfa = await client.account.mfa();
+    const bilhete = await mfa.createTicket({ password: senha });
+    await client.sessions.deleteAll(bilhete, false);
+  });
+}
+
+/** Como `listarDispositivos`, mas sem toast e distinguindo falha de lista vazia. */
+export async function buscarDispositivos(): Promise<readonly Dispositivo[] | undefined> {
+  try {
+    const sessoes = await client.sessions.fetch();
+    const atual = client.sessionId;
+    return sessoes.map((s) => ({
+      id: s.id,
+      nome: s.name,
+      atual: s.id === atual,
+      desde: s.createdAt.getTime(),
+    }));
+  } catch {
+    return undefined;
+  }
+}
+
+export function renomearDispositivoComMotivo(id: string, nome: string): Promise<ResultadoDeConta> {
+  return comMotivo(async () => {
+    await client.sessions.get(id)?.rename(nome);
+  });
+}
+
+export function pedirExclusaoComMotivo(
+  fator: FatorDaConta,
+  valor: string,
+): Promise<ResultadoDeConta> {
+  return comMotivo(async () => {
+    const mfa = await client.account.mfa();
+    const bilhete = (await mfa.createTicket(
+      fator === "recuperacao" ? { recovery_code: valor } : { password: valor },
+    )) as { deleteAccount?: () => Promise<unknown>; token?: string };
+    if (typeof bilhete.deleteAccount === "function") {
+      await bilhete.deleteAccount();
+    } else if (bilhete.token) {
+      await client.api.post(
+        "/auth/account/delete" as never,
+        {} as never,
+        { headers: { "x-mfa-ticket": bilhete.token } } as never,
+      );
+    } else {
+      throw new Error("sem ticket");
+    }
+  });
+}
+
+/**
+ * Salva só o que as configurações mostram: nome de exibição e bio.
+ *
+ * Diferente de `salvarPerfil`, NÃO mexe nos pronomes e distingue "bio vazia" de
+ * "bio que não deu para carregar": com `bio` indefinida o campo não é tocado.
+ * Salvar o nome com a bio em branco por não tê-la lido apagaria a que existe.
+ */
+export async function salvarNomeEBio(
+  displayName: string,
+  bio: string | undefined,
+): Promise<boolean> {
+  try {
+    const remover: string[] = [];
+    if (!displayName) remover.push("DisplayName");
+    if (bio !== undefined && !bio) remover.push("ProfileContent");
+    await client.user?.edit({
+      ...(displayName ? { display_name: displayName } : {}),
+      ...(bio ? { profile: { content: bio } } : {}),
+      ...(remover.length ? { remove: remover as never } : {}),
+    });
+    return true;
+  } catch (e) {
+    falhou("Não deu para salvar o perfil.", e);
     return false;
   }
 }

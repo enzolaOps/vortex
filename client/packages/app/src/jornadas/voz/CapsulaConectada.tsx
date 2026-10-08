@@ -1,4 +1,5 @@
 import { alternarCamera, alternarMudo, alternarSurdo, alternarTela } from "nucleo/sdk/chamada";
+import { pode } from "nucleo/sdk/permissoes";
 import { assinarQualidadeDaTela, qualidadeEscolhida, rotuloDaQualidade } from "nucleo/store/qualidadeDaTela";
 import { useChamada, useFalantes, type PessoaNaSala } from "nucleo/store/hooks";
 import { toast } from "nucleo/ui-logica/toastStore";
@@ -39,6 +40,10 @@ export function CapsulaConectada({
         : undefined;
   // Mudo e fone são preferência (valem antes de a sala existir). Câmera e tela precisam de sala.
   const dentro = chamada.estado === "dentro" || chamada.estado === "reconectando";
+  // Controle que a pessoa não pode usar não aparece (PRD 4.7): sem `Speak` não há microfone,
+  // sem `Video` não há câmera nem transmissão.
+  const podeFalar = pode(chamada.channelId, "falarNaVoz");
+  const podeTransmitir = pode(chamada.channelId, "transmitirVideo");
 
   return (
     <CapsulaDeControle
@@ -49,6 +54,7 @@ export function CapsulaConectada({
       pessoas={pessoas.map((p) => ({
         id: p.id,
         nome: p.nome || salas.alguem,
+        imagem: p.avatarUrl,
         falando: falantes.includes(p.id),
         mudo: p.mudo || p.surdo,
       }))}
@@ -57,10 +63,10 @@ export function CapsulaConectada({
       surdo={chamada.surdo}
       camera={chamada.camera}
       tela={chamada.tela}
-      onMudo={() => void alternarMudo()}
+      onMudo={podeFalar ? () => void alternarMudo() : undefined}
       onSurdo={() => void alternarSurdo()}
-      onCamera={dentro ? () => void alternarCamera() : undefined}
-      onTela={dentro ? () => void alternarTela() : undefined}
+      onCamera={dentro && podeTransmitir ? () => void alternarCamera() : undefined}
+      onTela={dentro && podeTransmitir ? () => void alternarTela() : undefined}
       onSair={() => {
         void sairDaSala().then(() => {
           toast({ tipo: "info", titulo: voz.conexao.saiu(nomeDaSala) });

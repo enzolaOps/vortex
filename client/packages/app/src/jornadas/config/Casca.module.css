@@ -1,0 +1,170 @@
+/*
+  A casca ocupa quase a janela inteira por cima do shell. Especificidade dobrada
+  de propósito: o painel do Dialogo define largura, padding e grid com um seletor
+  de uma classe só, e a ordem dos módulos no bundle não é contrato.
+*/
+.casca.casca {
+  inline-size: min(calc(100vw - 48px), 1080px);
+  block-size: min(calc(100vh - 48px), 760px);
+  max-block-size: none;
+  padding: 0;
+  gap: 0;
+  grid-template-columns: 240px minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.navegacao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-4);
+  min-block-size: 0;
+  overflow-y: auto;
+  padding: var(--vx-space-5) var(--vx-space-3);
+  border-inline-end: 1px solid var(--vx-border-subtle);
+}
+
+.identidade {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+  padding: 0 var(--vx-space-2);
+  min-inline-size: 0;
+}
+.identidadeTextos {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+.identidadeNome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-body-strong-size);
+  line-height: var(--vx-type-body-strong-line);
+  font-weight: var(--vx-type-body-strong-weight);
+}
+.identidadeUsuario {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+
+.grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+}
+.tituloDoGrupo {
+  margin: 0;
+  padding: 0 var(--vx-space-3);
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-label-size);
+  line-height: var(--vx-type-label-line);
+  font-weight: var(--vx-type-label-weight);
+  letter-spacing: var(--vx-type-label-tracking);
+  text-transform: uppercase;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  inline-size: 100%;
+  block-size: 38px;
+  padding: 0 var(--vx-space-3);
+  border: 0;
+  border-radius: var(--vx-radius-md);
+  background: transparent;
+  color: var(--vx-text-2);
+  font-family: var(--vx-font-sans);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  text-align: start;
+  cursor: pointer;
+}
+.item:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+.item[aria-current="page"] {
+  background: var(--vx-state-selected);
+  color: var(--vx-text-1);
+  font-weight: var(--vx-type-ui-weight);
+}
+
+.sair {
+  margin-block-start: auto;
+}
+
+.painel {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  min-block-size: 0;
+}
+.cabecalho {
+  flex: none;
+  padding: var(--vx-space-5) var(--vx-space-8) var(--vx-space-3) var(--vx-space-7);
+}
+.tituloDaPagina {
+  margin: 0;
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-display-size);
+  line-height: var(--vx-type-display-line);
+  font-weight: var(--vx-type-display-weight);
+  letter-spacing: var(--vx-type-display-tracking);
+}
+.subtituloDaPagina {
+  margin: var(--vx-space-1) 0 0;
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.corpo {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  padding: var(--vx-space-3) var(--vx-space-7) var(--vx-space-6);
+}
+.corpo:focus-visible {
+  outline-offset: -2px;
+}
+
+@media (max-width: 720px) {
+  .casca.casca {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .navegacao {
+    flex-direction: row;
+    flex-wrap: wrap;
+    border-inline-end: 0;
+    border-block-end: 1px solid var(--vx-border-subtle);
+  }
+  .identidade {
+    display: none;
+  }
+  .grupo {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .tituloDoGrupo {
+    display: none;
+  }
+  .item {
+    inline-size: auto;
+  }
+  .sair {
+    margin-block-start: 0;
+  }
+  .cabecalho {
+    padding-inline: var(--vx-space-4);
+  }
+  .corpo {
+    padding-inline: var(--vx-space-4);
+  }
+}

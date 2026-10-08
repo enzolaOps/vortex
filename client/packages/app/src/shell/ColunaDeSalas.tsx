@@ -7,18 +7,18 @@ import css from "./Regioes.module.css";
 export interface ColunaDeSalasProps {
   /** O nome do servidor. Sem ele, o título genérico "Salas". */
   titulo?: string;
+  /** Ações à direita do nome: menu do servidor, ou "Novo grupo" na casa. */
+  acoes?: ReactNode;
   /** Faixa de aviso sob o cabeçalho (conexão, por exemplo). */
   aviso?: ReactNode;
   children?: ReactNode;
   /** Fixo sob a rolagem das salas. */
   rodape?: ReactNode;
-  /** Ações do cabeçalho (por exemplo, "Novo grupo" na casa). */
-  acoes?: ReactNode;
 }
 
 /** Coluna flutuante de salas e canais, com a contagem de cada sala no item. */
 /** `rodape` é o que é da pessoa e não da navegação (hoje, sair da conta): fica fixo sob a rolagem das salas. */
-export function ColunaDeSalas({ titulo = salas.titulo, aviso, children, rodape, acoes }: ColunaDeSalasProps) {
+export function ColunaDeSalas({ titulo = salas.titulo, acoes, aviso, children, rodape }: ColunaDeSalasProps) {
   return (
     <PainelVidro como="aside" raio="xl" aria-label={shell.salas.rotulo} className={css.painel}>
       <div className={css.cabeca}>

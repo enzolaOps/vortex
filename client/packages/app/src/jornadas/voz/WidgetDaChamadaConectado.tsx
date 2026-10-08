@@ -1,5 +1,6 @@
 import { usuarioLocalId } from "nucleo/sdk/adapter";
 import { alternarCamera, alternarMudo, alternarSurdo, alternarTela } from "nucleo/sdk/chamada";
+import { pode } from "nucleo/sdk/permissoes";
 import { podeDestacar } from "nucleo/sdk/popout";
 import { fixarSalaNoCanto } from "nucleo/store/preferenciasDaSala";
 import {
@@ -45,6 +46,10 @@ export function WidgetDaChamadaConectado({ servidorAberto }: { servidorAberto: s
 
   if (chamada.estado === "fora" || !canal) return null;
 
+  // Só aparece o que a pessoa pode usar: sem `Speak` não há microfone; sem `Video`, nem câmera nem tela.
+  const podeFalar = pode(chamada.channelId, "falarNaVoz");
+  const podeTransmitir = pode(chamada.channelId, "transmitirVideo");
+
   const nomeDe = (id: string) => pessoas.find((p) => p.id === id)?.nome || salas.alguem;
   const quemTransmite = pessoas.find((p) => p.estado === "tela");
   const quemFala = falantes[0];
@@ -65,7 +70,14 @@ export function WidgetDaChamadaConectado({ servidorAberto }: { servidorAberto: s
       transmissao={quemTransmite ? voz.palco.telaDe(nomeDe(quemTransmite.id)) : undefined}
       quemFala={quemFala !== undefined ? nomeDe(quemFala) : undefined}
       video={
-        foco ? <VideoEmFoco foco={foco} nome={nomeDe(foco.userId)} proprio={foco.userId === eu} /> : undefined
+        foco ? (
+          <VideoEmFoco
+            foco={foco}
+            nome={nomeDe(foco.userId)}
+            imagem={pessoas.find((p) => p.id === foco.userId)?.avatarUrl}
+            proprio={foco.userId === eu}
+          />
+        ) : undefined
       }
       onDestacar={
         podeDestacar() || destacada
@@ -88,10 +100,10 @@ export function WidgetDaChamadaConectado({ servidorAberto }: { servidorAberto: s
       surdo={chamada.surdo}
       camera={chamada.camera}
       tela={chamada.tela}
-      onMudo={() => void alternarMudo()}
+      onMudo={podeFalar ? () => void alternarMudo() : undefined}
       onSurdo={() => void alternarSurdo()}
-      onCamera={chamada.estado === "dentro" ? () => void alternarCamera() : undefined}
-      onTela={chamada.estado === "dentro" ? () => void alternarTela() : undefined}
+      onCamera={chamada.estado === "dentro" && podeTransmitir ? () => void alternarCamera() : undefined}
+      onTela={chamada.estado === "dentro" && podeTransmitir ? () => void alternarTela() : undefined}
       onSair={() => void sairDaSala()}
     />
   );

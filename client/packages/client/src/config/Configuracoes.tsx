@@ -346,6 +346,8 @@ export function Configuracoes() {
   const serverId = config.serverId ?? servidorAtivo;
 
   const CONTEUDO: Record<SecaoId, () => ReactNode> = {
+    /* Página do app novo (`app`); o cliente antigo não a abre. */
+    canais: () => null,
     perfil: () => <Perfil />,
     conta: () => <Conta />,
     sessoes: () => <Sessoes />,

@@ -36,6 +36,19 @@
 .membro[data-offline] {
   color: var(--vx-text-3);
 }
+.textos {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+.recado {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
 .nome {
   min-inline-size: 0;
   overflow: hidden;

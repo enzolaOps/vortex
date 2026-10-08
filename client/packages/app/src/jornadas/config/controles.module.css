@@ -1,0 +1,291 @@
+/* Blocos de uma página de configuração. */
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-6);
+  max-inline-size: 640px;
+}
+
+.bloco {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-3);
+  min-inline-size: 0;
+}
+
+.rotuloDaSecao {
+  margin: 0;
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-label-size);
+  line-height: var(--vx-type-label-line);
+  font-weight: var(--vx-type-label-weight);
+  letter-spacing: var(--vx-type-label-tracking);
+  text-transform: uppercase;
+}
+
+.titulo {
+  margin: 0;
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-heading-size);
+  line-height: var(--vx-type-heading-line);
+  font-weight: var(--vx-type-heading-weight);
+}
+
+.dica {
+  margin: 0;
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+
+.texto {
+  margin: 0;
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  font-weight: 400;
+}
+
+.erro {
+  margin: 0;
+  color: var(--vx-danger);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  font-weight: var(--vx-type-label-weight);
+}
+
+.divisor {
+  inline-size: 100%;
+  block-size: 1px;
+  margin: 0;
+  border: 0;
+  background: var(--vx-border-subtle);
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vx-space-2);
+}
+
+.cabecalhoDoCampo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vx-space-3);
+}
+
+.contador {
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Campo de várias linhas, no mesmo desenho do CampoDeTexto. */
+.areaDeTexto {
+  box-sizing: border-box;
+  inline-size: 100%;
+  padding: var(--vx-space-3) var(--vx-space-4);
+  border: 1px solid var(--vx-border-strong);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+  font-family: var(--vx-font-sans);
+  font-size: var(--vx-type-body-size);
+  line-height: var(--vx-type-body-line);
+  resize: none;
+}
+.areaDeTexto::placeholder {
+  color: var(--vx-text-4);
+}
+
+/* Rótulo em caixa alta pequena, como o do CampoDeTexto. */
+.rotulo {
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-label-size);
+  line-height: var(--vx-type-label-line);
+  font-weight: var(--vx-type-label-weight);
+}
+
+.campoComRotulo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+  min-inline-size: 0;
+}
+
+/* Lista nativa. O navegador desenha a lista aberta; o fechado segue os campos. */
+.seletor {
+  box-sizing: border-box;
+  inline-size: 100%;
+  block-size: 44px;
+  padding: 0 var(--vx-space-3);
+  border: 1px solid var(--vx-border-strong);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+  font-family: var(--vx-font-sans);
+  font-size: var(--vx-type-ui-size);
+  color-scheme: dark;
+}
+.seletor option {
+  background: var(--vx-surface-solid);
+  color: var(--vx-text-1);
+}
+
+/* Deslizante */
+.linhaDoValor {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vx-space-3);
+}
+.valor {
+  color: var(--vx-text-2);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  font-variant-numeric: tabular-nums;
+}
+.deslizante {
+  inline-size: 100%;
+  block-size: 20px;
+  margin: 0;
+  accent-color: var(--vx-accent);
+}
+
+/* Grupo de opções (rádio em cartões) */
+.opcoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vx-space-2);
+}
+.opcoesEmColuna {
+  flex-direction: column;
+}
+.opcao {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  gap: var(--vx-space-2);
+  min-inline-size: 0;
+  min-block-size: 44px;
+  box-sizing: border-box;
+  padding: var(--vx-space-2) var(--vx-space-3);
+  border: 1px solid var(--vx-glass-border);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-surface-glass);
+  color: var(--vx-text-1);
+  font-family: var(--vx-font-sans);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  font-weight: var(--vx-type-ui-weight);
+  text-align: start;
+  cursor: pointer;
+}
+.opcao:hover {
+  background: var(--vx-state-hover);
+}
+.opcao[aria-checked="true"] {
+  border-color: var(--vx-accent);
+  background: var(--vx-state-selected);
+}
+.opcaoTextos {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+.opcaoDescricao {
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  font-weight: 400;
+}
+.opcao:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+/* Interruptor */
+.interruptor {
+  position: relative;
+  flex: none;
+  inline-size: 40px;
+  block-size: 24px;
+  padding: 0;
+  border: 1px solid var(--vx-border-strong);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-state-hover);
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+.interruptor::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 2px;
+  inset-inline-start: 2px;
+  inline-size: 18px;
+  block-size: 18px;
+  border-radius: 50%;
+  background: var(--vx-text-2);
+  transition: transform 120ms ease;
+}
+.interruptor[aria-checked="true"] {
+  border-color: var(--vx-accent);
+  background: var(--vx-accent);
+}
+.interruptor[aria-checked="true"]::after {
+  background: var(--vx-text-on-accent);
+  transform: translateX(16px);
+}
+.interruptor:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interruptor,
+  .interruptor::after {
+    transition: none;
+  }
+}
+
+/* Linha de ajuste: texto de um lado, controle do outro. */
+.linhaDeAjuste {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-4);
+  min-block-size: 44px;
+}
+.linhaDeAjusteTextos {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+.linhaDeAjusteNome {
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  font-weight: var(--vx-type-ui-weight);
+}
+
+/* Barra de alterações não salvas, fixa no rodapé do painel. */
+.barraDeSalvar {
+  position: sticky;
+  inset-block-end: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-3);
+  padding: var(--vx-space-3) var(--vx-space-4);
+  border: 1px solid var(--vx-glass-border);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-surface-overlay);
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}

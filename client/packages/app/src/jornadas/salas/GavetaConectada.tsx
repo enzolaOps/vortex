@@ -44,6 +44,7 @@ function Membro({
       nome={nome}
       id={id}
       tamanho={modo === "icones" ? 36 : 32}
+      imagem={membro?.avatarUrl}
       status={desatualizada ? undefined : presenca}
     />
   );
@@ -57,7 +58,14 @@ function Membro({
   return (
     <div className={css.membro} data-offline={presenca === "offline" || undefined}>
       {avatar}
-      <span className={css.nome}>{nome}</span>
+      <span className={css.textos}>
+        <span className={css.nome}>{nome}</span>
+        {membro?.statusTexto !== undefined && (
+          <span className={css.recado} data-testid="recado-do-membro">
+            {membro.statusTexto}
+          </span>
+        )}
+      </span>
     </div>
   );
 }
