@@ -1,7 +1,7 @@
 import { contagem } from "nucleo/lib/plural";
-import type { ButtonHTMLAttributes } from "react";
+import { useId, type ButtonHTMLAttributes } from "react";
 
-import { ds, salas } from "../../textos";
+import { comum, ds, salas } from "../../textos";
 import { Volume } from "../icones";
 import { juntar } from "../juntar";
 import { PilhaDeAvatares } from "./Avatar";
@@ -30,6 +30,11 @@ export interface ItemDeSalaProps extends Omit<ButtonHTMLAttributes<HTMLButtonEle
   naoLida?: boolean;
   /** Canal com menções: Pilula de menção no lugar do ponto. */
   mencoes?: number;
+  /**
+   * A sala não aceita entrada agora, e este é o motivo (dito em texto, sem depender de cor).
+   * O item segue focável e anunciado — só não age —, e o motivo vai no tooltip e na descrição.
+   */
+  indisponivel?: string;
 }
 
 export function ItemDeSala({
@@ -42,17 +47,24 @@ export function ItemDeSala({
   aoVivo = false,
   naoLida = false,
   mencoes = 0,
+  indisponivel,
   className,
   type = "button",
   ...resto
 }: ItemDeSalaProps) {
   const ehSala = tipo === "sala";
   const vazia = ehSala && pessoas.length === 0;
+  const idDoMotivo = useId();
+  const bloqueada = ehSala && indisponivel !== undefined;
 
   return (
     <button
       {...resto}
       type={type}
+      aria-disabled={bloqueada || undefined}
+      aria-describedby={bloqueada ? idDoMotivo : undefined}
+      title={bloqueada ? indisponivel : resto.title}
+      onClick={bloqueada ? undefined : resto.onClick}
       aria-current={selecionado ? "true" : undefined}
       className={juntar(
         css.item,
@@ -60,6 +72,7 @@ export function ItemDeSala({
         selecionado && css.selecionado,
         conectado && css.conectado,
         vazia && css.vazia,
+        bloqueada && css.indisponivel,
         ehSala && desatualizada && css.desatualizada,
         !ehSala && naoLida && css.naoLidaTexto,
         className,
@@ -72,8 +85,31 @@ export function ItemDeSala({
       )}
       <span className={css.nome}>{nome}</span>
 
-      {ehSala && pessoas.length > 0 && <PilhaDeAvatares itens={pessoas} max={3} tamanho={20} />}
-      {ehSala && aoVivo && <Pilula tipo="aoVivo" />}
+      {/*
+        ⚠ O NOME tem prioridade: ele pega o que precisa e SÓ o que sobra vai para o resto.
+        O resto encolhe em degraus (avatares → "+N", selo → só o ponto) pela largura
+        que sobrou, e some antes de o nome virar reticências.
+      */}
+      {ehSala && (
+        <span className={css.extras}>
+          <span className={css.extrasInterno}>
+            {pessoas.length > 0 && (
+              <>
+                <PilhaDeAvatares itens={pessoas} max={3} tamanho={20} className={css.pilhaCheia} />
+                <span className={css.chipDePessoas} aria-hidden="true">
+                  +{contagem(pessoas.length)}
+                </span>
+              </>
+            )}
+            {aoVivo && (
+              <>
+                <Pilula tipo="aoVivo" className={css.seloCheio} />
+                <span role="img" aria-label={comum.sinalAoVivo} className={css.pontoVivo} />
+              </>
+            )}
+          </span>
+        </span>
+      )}
       {ehSala && conectado && (
         <span role="img" aria-label={ds.voceEstaAqui} className={css.aqui}>
           <Volume tamanho={16} />
@@ -93,6 +129,11 @@ export function ItemDeSala({
         </span>
       )}
 
+      {bloqueada && (
+        <span id={idDoMotivo} className={css.soLeitor}>
+          {indisponivel}
+        </span>
+      )}
       {!ehSala && mencoes > 0 && <Pilula tipo="mencao" valor={mencoes} />}
       {!ehSala && mencoes === 0 && naoLida && <Pilula tipo="naoLida" />}
     </button>

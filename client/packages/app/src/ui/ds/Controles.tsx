@@ -157,3 +157,24 @@ export function IndicadorDeFala({ falando }: { falando: boolean }) {
     />
   );
 }
+
+/**
+ * "Fulano está falando", sem cortar o que importa.
+ *
+ * A bolinha nunca encolhe nem é cortada (o contêiner não corta, só o nome), e o
+ * NOME é o que cede espaço com reticências; "está falando" fica inteiro. Sem
+ * `nome`, só a bolinha em repouso.
+ */
+export function QuemFala({ nome, className }: { nome?: string; className?: string }) {
+  return (
+    <span className={juntar(css.quemFala, className)}>
+      <IndicadorDeFala falando={Boolean(nome)} />
+      {nome ? (
+        <>
+          <span className={css.quemFalaNome}>{nome}</span>{" "}
+          <span className={css.quemFalaSufixo}>{voz.estaFalando}</span>
+        </>
+      ) : null}
+    </span>
+  );
+}

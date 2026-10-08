@@ -21,6 +21,7 @@ export const salas = {
   ultimaSincronia: (quando: string) => `Atualizada ${quando}`,
   conectando: "Entrando na sala…",
   vocePodeEntrar: "Você não pode entrar nesta sala.",
+  semConexaoParaEntrar: "Sem conexão: não dá para entrar na sala agora.",
   servidorVazio: {
     titulo: "Ainda não há salas",
     comPermissao: "Crie uma sala de voz para o grupo se encontrar e compartilhar a tela.",

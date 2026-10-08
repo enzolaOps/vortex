@@ -89,9 +89,8 @@ test.describe("4.3 palco @backend", () => {
     const paginaA = await abrirComoPessoa(browser, sessaoA);
     const paginaB = await abrirComoPessoa(browser, sessaoB);
 
-    // A entra: o palco abre na hora e a cápsula aparece.
+    // A entra com um clique na sala: o palco abre na hora e a cápsula aparece.
     await paginaA.getByRole("button", { name: new RegExp(NOME_DA_SALA) }).last().click();
-    await paginaA.getByRole("button", { name: "Entrar na sala" }).click();
     await expect(paginaA.getByTestId("palco")).toBeVisible();
     await expect(paginaA.getByRole("button", { name: "Sair da chamada" })).toBeVisible();
 
@@ -102,13 +101,13 @@ test.describe("4.3 palco @backend", () => {
 
     // B entra e vê a transmissão de A no foco, com vídeo.
     await paginaB.getByRole("button", { name: new RegExp(NOME_DA_SALA) }).last().click();
-    await paginaB.getByRole("button", { name: "Entrar na sala" }).click();
     const foco = paginaB.getByTestId("foco-do-palco");
     await expect(foco.locator("video")).toBeVisible({ timeout: 10_000 });
 
     // B vai ler um canal: a chamada segue no widget; volta ao palco no mesmo foco.
     await paginaB.getByRole("button", { name: /geral/ }).first().click();
     await expect(paginaB.getByRole("region", { name: "Chamada em andamento" })).toBeVisible();
+    await expect(paginaB.getByRole("region", { name: "Controles da chamada" })).toBeVisible();
     await paginaB.getByRole("button", { name: "Voltar ao palco" }).click({ force: true });
     await expect(paginaB.getByTestId("foco-do-palco")).toBeVisible();
 
@@ -130,13 +129,11 @@ test.describe("4.3 palco @backend", () => {
     const paginaB = await abrirComoPessoa(browser, sessaoB, nome);
 
     await paginaA.getByRole("button", { name: new RegExp(NOME_DA_SALA) }).last().click();
-    await paginaA.getByRole("button", { name: "Entrar na sala" }).click();
     await paginaA.getByRole("button", { name: "Compartilhar tela" }).click();
     await paginaA.getByRole("dialog", { name: "O que você quer mostrar?" }).getByRole("button", { name: "Transmitir" }).click();
     await expect(paginaA.getByTestId("foco-do-palco")).toBeVisible({ timeout: 10_000 });
 
     await paginaB.getByRole("button", { name: new RegExp(NOME_DA_SALA) }).last().click();
-    await paginaB.getByRole("button", { name: "Entrar na sala" }).click();
     await paginaB.getByRole("button", { name: /geral/ }).first().click();
 
     // O PiP mostra a transmissão de A (vídeo, na camada média).
@@ -176,13 +173,14 @@ test.describe("4.3 palco @backend", () => {
     const paginaA = await abrirComoPessoa(browser, sessaoA, nome);
     const paginaB = await abrirComoPessoa(browser, sessaoB, nome);
 
+    // Clicar na sala entra nela (o palco abre na hora).
     for (const p of [paginaA, paginaB]) {
       await p.getByRole("button", { name: new RegExp(NOME_DA_SALA) }).last().click();
-      await p.getByRole("button", { name: "Entrar na sala" }).click();
     }
     await paginaB.getByRole("button", { name: /geral/ }).first().click();
-    const widget = paginaB.getByRole("region", { name: "Chamada em andamento" });
-    await widget.hover();
+    // Ninguém transmite: sem janelinha, e os controles moram no painel da coluna de salas.
+    await expect(paginaB.getByRole("region", { name: "Chamada em andamento" })).toHaveCount(0);
+    await expect(paginaB.getByRole("region", { name: "Controles da chamada" })).toBeVisible();
 
     // O Document PiP exige gesto; o clique do Playwright o dá.
     await paginaB.getByRole("button", { name: "Destacar chamada" }).click();
@@ -196,7 +194,6 @@ test.describe("4.3 palco @backend", () => {
       .toBeGreaterThanOrEqual(2);
 
     // Sai da chamada: a janela destacada fecha junto.
-    await widget.hover();
     await paginaB.getByRole("button", { name: "Sair da chamada" }).click();
     await expect.poll(() => paginaB.evaluate(() => !!(window as PipWindow).documentPictureInPicture?.window)).toBe(false);
   });

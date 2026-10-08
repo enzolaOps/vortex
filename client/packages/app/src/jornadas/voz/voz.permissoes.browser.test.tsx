@@ -257,14 +257,13 @@ describe("foto e recado visíveis para os outros", () => {
     await expect.poll(() => ladrilhoDaAna.querySelector("img")?.getAttribute("src")).toBe(FOTO);
   });
 
-  it("o widget da sala (antes de entrar) lista a pessoa com a foto", async () => {
+  it("a sala na coluna (antes de entrar) lista a pessoa com a foto", async () => {
     await abrir();
-    await page.getByRole("button", { name: /Jogatina/ }).first().click();
-    const widget = await vi.waitFor(() => {
-      const w = pegar("section[aria-label='Jogatina']");
-      if (!w) throw new Error("sem widget");
-      return w;
+    const sala = await vi.waitFor(() => {
+      const b = [...document.querySelectorAll("aside button")].find((x) => x.textContent.includes("Jogatina"));
+      if (!b) throw new Error("sem sala na coluna");
+      return b;
     });
-    await expect.poll(() => widget.querySelector("img")?.getAttribute("src")).toBe(FOTO);
+    await expect.poll(() => sala.querySelector("img")?.getAttribute("src")).toBe(FOTO);
   });
 });

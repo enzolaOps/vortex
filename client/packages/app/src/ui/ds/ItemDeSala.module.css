@@ -43,11 +43,14 @@
 }
 
 .nome {
-  flex: 1;
+  flex: 0 1 auto;
   min-inline-size: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.canal .nome {
+  flex: 1 1 auto;
 }
 .hash {
   margin-inline-end: -2px;
@@ -113,4 +116,86 @@
 .desatualizada .contagem,
 .desatualizada > span:not(.nome):not(.hash) {
   opacity: 0.7;
+}
+
+/*
+  O que vem depois do nome (avatares e selo) mora num contêiner que só recebe a
+  SOBRA da linha: base zero, cresce, nunca empurra o nome. A largura dele decide o
+  degrau: cheio → "+N" e ponto → só o ponto → nada.
+*/
+.extras {
+  display: flex;
+  flex: 1 1 0;
+  justify-content: flex-end;
+  min-inline-size: 0;
+  overflow: hidden;
+  container-type: inline-size;
+}
+.extrasInterno {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-2);
+}
+.chipDePessoas,
+.pontoVivo {
+  display: none;
+}
+.chipDePessoas {
+  flex: none;
+  color: var(--vx-text-2);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-type-mono-size);
+  line-height: var(--vx-type-mono-line);
+  font-variant-numeric: tabular-nums;
+}
+.pontoVivo {
+  flex: none;
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: 50%;
+  background: var(--vx-live);
+}
+
+/* Sobra menor que avatares + selo: "+N" e só o ponto vermelho. */
+@container (inline-size < 9rem) {
+  /* Especificidade dobrada: precisam vencer o display do Avatar e da Pilula em qualquer ordem de CSS. */
+  .extras .pilhaCheia,
+  .extras .seloCheio {
+    display: none;
+  }
+  .extras .chipDePessoas,
+  .extras .pontoVivo {
+    display: inline-flex;
+  }
+}
+/* Sobra mínima: só o ponto (o "+N" já está na contagem à direita). */
+@container (inline-size < 3.5rem) {
+  .extras .chipDePessoas {
+    display: none;
+  }
+}
+/* Nem o ponto cabe: o nome fica com tudo. */
+@container (inline-size < 0.75rem) {
+  .extras .pontoVivo {
+    display: none;
+  }
+}
+
+.indisponivel {
+  color: var(--vx-text-3);
+  cursor: not-allowed;
+}
+.indisponivel:hover {
+  background: transparent;
+  color: var(--vx-text-3);
+}
+
+.soLeitor {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

@@ -12,6 +12,7 @@ import { alturaDoTipo, type TipoDeLinha } from "./alturas";
 
 import { AreaPrincipal } from "../../shell";
 import { desmontar, montar, pegar } from "../../ui/ds/montar";
+import { AreaDeChat } from "./AreaDeChat";
 import { ListaDeMensagens } from "./ListaDeMensagens";
 
 afterEach(() => {
@@ -86,14 +87,34 @@ describe("ListaDeMensagens", () => {
     expect(distanciaDoFim()).toBeLessThanOrEqual(80);
   });
 
-  it("a coluna respeita a medida de leitura em tela larga", async () => {
+  it("a coluna ocupa a largura toda, alinhada ao início, sem centralizar em tela larga", async () => {
     montarLista(2000);
     await expect.poll(() => linhas().length).toBeGreaterThan(0);
     const coluna = linhas()[0]!.parentElement!.parentElement!.getBoundingClientRect();
-    expect(coluna.width).toBeLessThanOrEqual(56 * 16 + 1);
     const area = log().getBoundingClientRect();
-    // Centrada: o respiro dos dois lados é igual.
-    expect(Math.abs(coluna.left - area.left - (area.right - coluna.right))).toBeLessThanOrEqual(20);
+    // Sem teto: a coluna só cede a calha da barra de rolagem.
+    expect(coluna.left).toBeCloseTo(area.left, 0);
+    expect(coluna.width).toBeGreaterThan(area.width - 24);
+    expect(coluna.width).toBeGreaterThan(56 * 16);
+  });
+
+  it("o composer fica sob a coluna: mesmo início, mesmo recuo lateral", async () => {
+    document.documentElement.dataset.tema = "vidro";
+    montar(
+      <div style={{ inlineSize: "2000px", blockSize: "600px", display: "grid" }}>
+        <AreaPrincipal>
+          <AreaDeChat canalId={CHANNEL_ID} servidorId={SERVER_ID} />
+        </AreaPrincipal>
+      </div>,
+    );
+    await expect.poll(() => linhas().length).toBeGreaterThan(0);
+    const area = log().getBoundingClientRect();
+    const composer = pegar<HTMLElement>("textarea")!;
+    await expect.poll(() => composer.getBoundingClientRect().width).toBeGreaterThan(56 * 16);
+    const campo = composer.getBoundingClientRect();
+    // O campo preenche a largura (menos o recuo e os botões da caixa), e não uma coluna centrada.
+    expect(campo.left - area.left).toBeLessThanOrEqual(80);
+    expect(area.right - campo.right).toBeLessThanOrEqual(120);
   });
 });
 

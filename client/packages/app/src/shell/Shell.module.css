@@ -16,7 +16,8 @@
 .grade {
   --larg-dock: 64px;
   --larg-salas: clamp(14rem, 16cqi, 17.25rem);
-  --larg-gaveta: clamp(15rem, 17cqi, 19rem);
+  /* Pelo conteúdo útil (avatar + nome + recado truncado): nunca a sobra do ultrawide. */
+  --larg-gaveta: clamp(var(--vx-gaveta-min), 16cqi, var(--vx-gaveta-max));
   --gap: var(--vx-space-4);
   --gap-salas: var(--gap);
   --gap-gaveta: var(--gap);

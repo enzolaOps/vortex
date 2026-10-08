@@ -4,8 +4,8 @@ import { contasDeTeste } from "./globalSetup";
 
 /**
  * Jornada 4.2 (PRD): "chegar ao servidor e ver quem está onde". Duas contas, dois
- * contextos de navegador = duas pessoas. A entra numa sala pela interface e B, no
- * widget e na lista de salas, vê A em até 2 s; A sai pela interface e some para B
+ * contextos de navegador = duas pessoas. A entra numa sala pela interface e B, na
+ * lista de salas, vê A em até 2 s; A sai pela interface e some para B
  * em até 2 s, sem esperar o socket cair (rota de saída da sala, ADR-002).
  *
  * Precisa da pilha local do pi-infra (ver `globalSetup.ts`); sem ela, pula.
@@ -84,23 +84,18 @@ test.describe("4.2 salas @backend", () => {
     const paginaA = await abrirComoPessoa(browser, sessaoA);
     const paginaB = await abrirComoPessoa(browser, sessaoB);
 
-    // B olha a sala: nada conectou sozinho, e a sala está vazia.
-    const salaDeB = paginaB.getByRole("button", { name: new RegExp(NOME_DA_SALA) }).last();
-    await salaDeB.click();
-    const cartaoDeB = paginaB.getByRole("region", { name: NOME_DA_SALA });
-    await expect(cartaoDeB).toContainText("Ninguém está na sala agora.");
+    // B olha a lista de salas sem clicar (clicar entraria): a sala está vazia.
+    await expect(paginaB.getByRole("img", { name: "0 pessoa na sala" })).toBeVisible();
 
-    // A abre a sala e entra com um clique (o app nunca entra sozinho).
+    // A clica na sala: entra na hora e o palco abre.
     await paginaA.getByRole("button", { name: new RegExp(NOME_DA_SALA) }).last().click();
-    await paginaA.getByRole("button", { name: "Entrar na sala" }).click();
+    await expect(paginaA.getByTestId("palco")).toBeVisible();
 
-    // B vê A no widget e na lista de salas, em até 2 s.
-    await expect(cartaoDeB).toContainText(a.username, { timeout: PRAZO_MS });
+    // B vê A na lista de salas, em até 2 s.
     await expect(paginaB.getByRole("img", { name: "1 pessoa na sala" })).toBeVisible({ timeout: PRAZO_MS });
 
     // A sai pela interface; B deixa de ver A em até 2 s, sem esperar o socket cair.
     await paginaA.getByRole("button", { name: "Sair da chamada" }).click();
-    await expect(cartaoDeB).not.toContainText(a.username, { timeout: PRAZO_MS });
     await expect(paginaB.getByRole("img", { name: "0 pessoa na sala" })).toBeVisible({ timeout: PRAZO_MS });
   });
 });

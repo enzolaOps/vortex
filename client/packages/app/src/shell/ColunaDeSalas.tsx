@@ -14,11 +14,13 @@ export interface ColunaDeSalasProps {
   children?: ReactNode;
   /** Fixo sob a rolagem das salas. */
   rodape?: ReactNode;
+  /** Os controles da chamada: fixos acima do rodapé, enquanto houver chamada. */
+  chamada?: ReactNode;
 }
 
 /** Coluna flutuante de salas e canais, com a contagem de cada sala no item. */
 /** `rodape` é o que é da pessoa e não da navegação (hoje, sair da conta): fica fixo sob a rolagem das salas. */
-export function ColunaDeSalas({ titulo = salas.titulo, acoes, aviso, children, rodape }: ColunaDeSalasProps) {
+export function ColunaDeSalas({ titulo = salas.titulo, acoes, aviso, children, rodape, chamada }: ColunaDeSalasProps) {
   return (
     <PainelVidro como="aside" raio="xl" aria-label={shell.salas.rotulo} className={css.painel}>
       <div className={css.cabeca}>
@@ -27,6 +29,7 @@ export function ColunaDeSalas({ titulo = salas.titulo, acoes, aviso, children, r
       </div>
       {aviso}
       <div className={css.corpo}>{children ?? <p className={css.vazio}>{shell.salas.vazio}</p>}</div>
+      {chamada}
       {rodape && <div className={css.rodape}>{rodape}</div>}
     </PainelVidro>
   );
