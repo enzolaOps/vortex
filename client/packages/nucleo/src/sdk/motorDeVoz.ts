@@ -84,6 +84,7 @@ import { sairDaSalaLocalmente } from "./adapter";
 import { avisarSaidaDaSala } from "./saidaDaSala";
 import { registrarRemocaoImposta } from "./vozImposta";
 import type { Chamada, QualidadeDeVoz } from "../store/chamada";
+import { camadaDe, pediuMenos, type QualidadeDeStream } from "./camadaDeVideo";
 import {
   alternarMudoNoStore,
   alternarSurdoNoStore,
@@ -809,7 +810,7 @@ export function assinarVideo(
  * manda o servidor PARAR de enviar aquela faixa, que e a unica coisa que
  * realmente devolve banda; pedir 180p continuaria baixando video.
  */
-export type QualidadeDeStream = "auto" | "alta" | "media" | "soAudio";
+export type { QualidadeDeStream };
 
 export function definirQualidadeDeStream(
   userId: string,
@@ -821,7 +822,7 @@ export function definirQualidadeDeStream(
 
   /* O espectador diz o que escolheu: "720p" pedido não é "720p (rede)", e só
      áudio deixa de contar como assistir. */
-  if (fonte === "tela") anuncio?.pediuMenos(userId, qualidade === "media");
+  if (fonte === "tela") anuncio?.pediuMenos(userId, pediuMenos(qualidade));
 
   if (qualidade === "soAudio") {
     pub.setEnabled(false);
@@ -834,8 +835,13 @@ export function definirQualidadeDeStream(
     nao ter teto imposto por voce. Fixar MEDIUM em "auto" seria pedir 720p
     para sempre e chamar isso de automatico.
   */
+  const camada = camadaDe(qualidade);
   pub.setVideoQuality(
-    qualidade === "media" ? VideoQuality.MEDIUM : VideoQuality.HIGH,
+    camada === "LOW"
+      ? VideoQuality.LOW
+      : camada === "MEDIUM"
+        ? VideoQuality.MEDIUM
+        : VideoQuality.HIGH,
   );
 }
 

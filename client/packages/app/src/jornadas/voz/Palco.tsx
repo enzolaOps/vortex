@@ -263,7 +263,7 @@ export function PalcoDaSala({ serverId, canalId }: { serverId: string; canalId: 
                 {pessoas
                   .filter((p) => p.id !== foco.id)
                   .map((p) => (
-                    <LadrilhoDePessoa key={p.id} pessoa={p} />
+                    <LadrilhoDePessoa key={p.id} pessoa={p} papel="miniatura" />
                   ))}
                 {transmissores
                   .filter((p) => p.id !== foco.id)
@@ -293,7 +293,7 @@ export function PalcoDaSala({ serverId, canalId }: { serverId: string; canalId: 
                 <div role="listitem" key={`tela-${p.id}`} className={css.itemDaGrade}>
                   <LadrilhoDeTela
                     pessoa={p}
-                    papel="miniatura"
+                    papel="grade"
                     aoAssistir={() => {
                       setEmGrade(false);
                       definirPalco({ tipo: "assistindo", userId: p.id });

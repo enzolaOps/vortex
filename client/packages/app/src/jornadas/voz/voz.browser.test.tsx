@@ -254,6 +254,19 @@ describe("palco em tela cheia", () => {
     expect(palco()).toBeNull();
   });
 
+  it("a tira do palco pede a camada baixa e a grade a média", async () => {
+    await abrir(quatro());
+    entrarNoPalco();
+    definirChamada({ comCamera: ["U2"] });
+    // Na tira (há foco): miniatura, a camada mais barata.
+    await expect.poll(() => ctl.assinaturas).toContain("q:U2:camera:baixa");
+    expect(ctl.assinaturas).not.toContain("q:U2:camera:media");
+
+    // Na grade o ladrilho pode ocupar boa parte da tela: camada média.
+    await page.getByRole("button", { name: voz.palco.verEmGrade }).click();
+    await expect.poll(() => ctl.assinaturas).toContain("q:U2:camera:media");
+  });
+
   it("a cápsula tem os cinco controles, com o recurso no nome e o estado em aria-pressed", async () => {
     await abrir(quatro());
     entrarNoPalco();

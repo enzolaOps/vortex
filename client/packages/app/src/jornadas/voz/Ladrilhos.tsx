@@ -35,7 +35,7 @@ function useFalando(id: string): boolean {
 /** O tile de uma pessoa: avatar (ou a câmera, se ela estiver ligada), nome, estado. */
 export function LadrilhoDePessoa({
   pessoa,
-  papel = "miniatura",
+  papel = "grade",
 }: {
   pessoa: PessoaDoPalco;
   papel?: PapelDoVideo;

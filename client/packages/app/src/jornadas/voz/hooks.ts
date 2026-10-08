@@ -1,3 +1,4 @@
+import type { QualidadeDeStream } from "nucleo/sdk/camadaDeVideo";
 import { assinarVideo, definirQualidadeDeStream } from "nucleo/sdk/chamada";
 import { escolherSala } from "nucleo/store/ultimoLugar";
 import {
@@ -75,10 +76,16 @@ export function useNaChamada(): boolean {
  * O papel do vídeo na tela decide a camada que se aceita receber.
  *
  * - `foco`: a transmissão grande do palco — camada alta.
- * - `miniatura`: tudo o que é pequeno (tira de pessoas, grade) — camada média,
- *   a menor que o motor sabe pedir (`QualidadeDeStream` não tem "baixa").
+ * - `grade`: ladrilho da grade, que pode ocupar boa parte da tela — camada média.
+ * - `miniatura`: tira do palco e PiP pequeno — camada baixa (LOW), a mais barata.
  */
-export type PapelDoVideo = "foco" | "miniatura";
+export type PapelDoVideo = "foco" | "grade" | "miniatura";
+
+const QUALIDADE_DO_PAPEL = {
+  foco: "alta",
+  grade: "media",
+  miniatura: "baixa",
+} as const satisfies Record<PapelDoVideo, QualidadeDeStream>;
 
 /**
  * A assinatura de vídeo de UM ladrilho, presa ao que está visível.
@@ -149,7 +156,7 @@ export function useAssinaturaDeVideo(
   useEffect(() => {
     if (!quer) return;
     if (assinarVideo(userId, fonte, true)) {
-      definirQualidadeDeStream(userId, fonte, papel === "foco" ? "alta" : "media");
+      definirQualidadeDeStream(userId, fonte, QUALIDADE_DO_PAPEL[papel]);
     }
     return () => {
       assinarVideo(userId, fonte, false);
