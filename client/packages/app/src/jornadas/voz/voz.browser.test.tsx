@@ -27,7 +27,7 @@ import {
   responderEscolhaDeTela,
 } from "nucleo/store/seletorDeTela";
 import { abrirServidor, limparUltimoLugar } from "nucleo/store/ultimoLugar";
-import { page } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { voz } from "../../textos";
@@ -252,6 +252,37 @@ describe("palco em tela cheia", () => {
     await page.getByRole("button", { name: /avisos/ }).click();
     await expect.poll(() => ctl.assinaturas).toContain("-U1:tela");
     expect(palco()).toBeNull();
+  });
+
+  it("com o palco aberto a coluna de salas vira uma faixa que abre por mouse e por foco, sem desmontar", async () => {
+    await abrir(quatro());
+    entrarNoPalco();
+    const faixa = () => pegar("[data-testid='faixa-de-salas']");
+    const lista = () => pegar("[data-testid='lista-de-salas']");
+    await expect.poll(faixa).not.toBeNull();
+
+    // Fechada: a faixa tem 56px, a lista está montada mas inerte.
+    const grade = pegar("[data-testid='shell-grade']")!;
+    await expect.poll(() => getComputedStyle(grade).gridTemplateColumns.split(" ")[2]).toBe("56px");
+    const listaAntes = lista()!;
+    expect(listaAntes.hasAttribute("inert")).toBe(true);
+    expect(listaAntes.textContent).toContain("Jogatina");
+    expect(faixa()!.querySelector("button[aria-label^='Jogatina']")).not.toBeNull();
+
+    // Mouse: abrir ao passar, fechar ao sair.
+    const raiz = listaAntes.closest("[data-faixa-raiz]") as HTMLElement;
+    await userEvent.hover(raiz.querySelector("[data-testid='faixa-de-salas']")!);
+    await expect.poll(() => lista()!.hasAttribute("inert")).toBe(false);
+    await userEvent.unhover(raiz);
+    await userEvent.hover(pegar("[data-testid='palco']")!);
+    await expect.poll(() => lista()!.hasAttribute("inert")).toBe(true);
+
+    // Teclado: foco em uma sala da faixa abre; foco fora fecha. Mesma lista (não desmontou).
+    faixa()!.querySelector<HTMLElement>("button")!.focus();
+    await expect.poll(() => lista()!.hasAttribute("inert")).toBe(false);
+    expect(lista()).toBe(listaAntes);
+    (document.activeElement as HTMLElement).blur();
+    await expect.poll(() => lista()!.hasAttribute("inert")).toBe(true);
   });
 
   it("a tira do palco pede a camada baixa e a grade a média", async () => {

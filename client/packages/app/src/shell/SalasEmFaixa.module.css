@@ -1,0 +1,49 @@
+/*
+  O espaço da faixa é a trilha do grid (56px); a lista aberta é uma camada por
+  cima do palco, ancorada ao início da faixa e com a largura da coluna normal.
+  A camada tem z-index próprio porque o palco é irmão posterior no grid.
+*/
+.raiz {
+  --larg-lista: 17.25rem;
+  position: relative;
+  z-index: 5;
+  block-size: 100%;
+  min-inline-size: 0;
+}
+
+.faixa {
+  position: absolute;
+  inset: 0;
+  transition: opacity 120ms ease;
+}
+.raiz[data-aberta] .faixa {
+  /* Continua focável (o teclado entra por ela), mas a lista a cobre. */
+  opacity: 0;
+  pointer-events: none;
+}
+
+.lista {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: var(--larg-lista);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(calc(var(--vx-space-2) * -1));
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+.raiz[data-aberta] .lista {
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faixa,
+  .lista {
+    transition: none;
+    transform: none;
+  }
+}

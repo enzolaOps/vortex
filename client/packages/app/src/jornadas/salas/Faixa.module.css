@@ -1,0 +1,69 @@
+.faixa {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--vx-space-3);
+  box-sizing: border-box;
+  block-size: 100%;
+  padding: var(--vx-space-3) 0;
+  overflow-y: auto;
+}
+
+.sala {
+  position: relative;
+  flex: none;
+  inline-size: 40px;
+  block-size: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+.sala[data-aqui] {
+  box-shadow: 0 0 0 2px var(--vx-accent);
+}
+.sala:focus-visible,
+.canais:focus-visible {
+  outline: 2px solid var(--vx-accent);
+  outline-offset: 2px;
+}
+
+.contagem {
+  position: absolute;
+  inset-block-end: -4px;
+  inset-inline-end: -4px;
+  box-sizing: border-box;
+  min-inline-size: 16px;
+  block-size: 16px;
+  padding-inline: var(--vx-space-1);
+  border: 1px solid var(--vx-glass-border);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-surface-solid);
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-caption-size);
+  line-height: 14px;
+  text-align: center;
+}
+
+.divisoria {
+  flex: none;
+  inline-size: 20px;
+  block-size: 1px;
+  background: var(--vx-border-subtle);
+}
+
+.canais {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  inline-size: 40px;
+  block-size: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+  cursor: pointer;
+}

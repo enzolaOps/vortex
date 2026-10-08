@@ -38,6 +38,10 @@
   overflow: hidden;
 }
 
+/* Palco em tela cheia: a coluna de salas é uma faixa de 56px (a lista abre por cima). */
+.grade[data-salas="faixa"] {
+  --larg-salas: 56px;
+}
 .grade[data-gaveta="icones"] {
   --larg-gaveta: 64px;
 }

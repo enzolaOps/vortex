@@ -14,6 +14,11 @@ export const shell = {
     rotulo: "Salas e canais",
     vazio: "Escolha um servidor para ver as salas.",
   },
+  faixa: {
+    rotulo: "Salas",
+    canais: "Canais de texto",
+    vazia: "vazia",
+  },
   principal: {
     rotulo: "Conversa",
     vazio: "Escolha uma sala para começar a conversar.",
