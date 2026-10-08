@@ -1,7 +1,7 @@
 import { podeDestacar } from "nucleo/sdk/popout";
-import { useChamada, useChannel, useFalantes, useJanelaDestacada, usePessoasDaSala } from "nucleo/store/hooks";
+import { useChamada, useChannel, useServer, useFalantes, useJanelaDestacada, usePessoasDaSala } from "nucleo/store/hooks";
 
-import { salas, voz } from "../../textos";
+import { salas } from "../../textos";
 import { PainelDaChamada } from "../../ui/ds";
 import { destacarChamada, trazerDeVolta } from "./destacar";
 import { useTempoDecorrido } from "./hooks";
@@ -25,16 +25,11 @@ export function PainelDaChamadaConectado() {
   const falantes = useFalantes(pessoas.map((p) => p.id));
   const tempo = useTempoDecorrido(chamada.estado === "dentro" ? chamada.desde : 0);
   const controles = useControlesDaChamada(canal?.name ?? "");
+  const servidor = useServer(canal?.serverId ?? "");
   const destacada = useJanelaDestacada() !== undefined;
 
   if (chamada.estado === "fora" || !canal) return null;
 
-  const status =
-    chamada.estado === "conectando"
-      ? voz.conexao.conectandoASala
-      : chamada.estado === "reconectando"
-        ? voz.conexao.reconectando
-        : undefined;
   const quemFala = falantes[0];
   const nomeDeQuemFala =
     quemFala !== undefined ? pessoas.find((p) => p.id === quemFala)?.nome || salas.alguem : undefined;
@@ -42,8 +37,9 @@ export function PainelDaChamadaConectado() {
   return (
     <PainelDaChamada
       sala={canal.name}
-      tempo={tempo}
-      status={status}
+      servidor={servidor?.name}
+      tempo={chamada.estado === "dentro" ? tempo : undefined}
+      estado={chamada.estado === "dentro" ? "conectado" : chamada.estado}
       quemFala={nomeDeQuemFala}
       // O overlay sobre o jogo não depende de transmissão: o botão mora aqui, e não no PiP.
       onDestacar={

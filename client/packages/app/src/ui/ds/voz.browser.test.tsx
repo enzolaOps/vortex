@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 
 import { salas, voz } from "../../textos";
-import { CapsulaDeControle, WidgetDaChamada, WidgetDaSala } from "./index";
+import { CapsulaDeControle, PainelDaChamada, PainelVidro, WidgetDaChamada, WidgetDaSala } from "./index";
 import { desmontar, montar, pegar, umSoAnel } from "./montar";
 
 afterEach(desmontar);
@@ -439,5 +439,148 @@ describe("WidgetDaChamada", () => {
     const e = getComputedStyle(regiao());
     expect(e.transitionProperty).toBe("transform");
     expect(parseFloat(e.transitionDuration) * 1000).toBeLessThanOrEqual(200);
+  });
+});
+
+describe("PainelDaChamada na coluna", () => {
+  const todos = { onMudo: () => undefined, onSurdo: () => undefined, onCamera: () => undefined, onTela: () => undefined, onSair: () => undefined };
+  const painel = () => pegar("section[aria-label]")!;
+  const botoes = () => Array.from(painel().querySelectorAll<HTMLElement>("[role=group] > button"));
+
+  /** O valor resolvido de um token, pela mesma via do navegador (sonda). */
+  function corDe(token: string, prop: "color" | "backgroundColor"): string {
+    const sonda = document.createElement("i");
+    sonda.style[prop] = `var(${token})`;
+    document.body.append(sonda);
+    const v = getComputedStyle(sonda)[prop];
+    sonda.remove();
+    return v;
+  }
+
+  /** A coluna de verdade: vidro, lista rolando e o rodapé da pessoa embaixo. */
+  function coluna(ui: React.ReactNode, largura = 276) {
+    document.documentElement.dataset.tema = "vidro";
+    return montar(
+      <div style={{ inlineSize: largura, blockSize: 480 }}>
+        <PainelVidro como="aside" raio="xl" style={{ display: "flex", flexDirection: "column", blockSize: "100%", overflow: "hidden" }}>
+          <div style={{ flex: 1 }}>lista</div>
+          {ui}
+          <div data-testid="rodape" style={{ borderBlockStart: "1px solid var(--vx-border-subtle)", padding: 8 }}>Configurações · Sair</div>
+        </PainelVidro>
+      </div>,
+    );
+  }
+
+  it("é parte da coluna: sem margem, sem fundo, sem raio, só a hairline em cima", () => {
+    coluna(<PainelDaChamada sala="Jogatina" servidor="Amigos" tempo="12:04" {...todos} />);
+    const e = getComputedStyle(painel());
+    expect(e.marginTop).toBe("0px");
+    expect(e.marginLeft).toBe("0px");
+    expect(e.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(e.borderTopLeftRadius).toBe("0px");
+    expect(e.borderTopWidth).toBe("1px");
+    expect(e.borderLeftWidth).toBe("0px");
+    // Encosta nas duas bordas da coluna: o mesmo recuo lateral do rodapé, não um cartão solto.
+    const col = painel().parentElement!.getBoundingClientRect();
+    expect(painel().getBoundingClientRect().width).toBeCloseTo(col.width - 2, 0);
+  });
+
+  for (const [estado, texto] of [
+    ["conectando", voz.conectando],
+    ["conectado", voz.conectado],
+    ["reconectando", voz.reconectando],
+  ] as const) {
+    it(`estado ${estado}: dito em texto, em verde-fala`, () => {
+      coluna(<PainelDaChamada sala="Jogatina" servidor="Amigos" estado={estado} tempo={estado === "conectado" ? "12:04" : undefined} {...todos} />);
+      const s = painel().querySelector("[role=status]")!;
+      expect(s.textContent).toBe(texto);
+      expect(getComputedStyle(s).color).toBe(corDe("--vx-speaking", "color"));
+      expect(painel().textContent).toContain("Jogatina");
+      expect(painel().textContent).toContain("Amigos");
+      expect(painel().textContent?.includes("12:04")).toBe(estado === "conectado");
+    });
+  }
+
+  it("tempo em mono, com algarismos tabulares", () => {
+    coluna(<PainelDaChamada sala="Jogatina" tempo="12:04" {...todos} />);
+    const t = Array.from(painel().querySelectorAll("span")).find((s) => s.textContent === "12:04")!;
+    expect(getComputedStyle(t).fontFamily).toMatch(/mono/i);
+    expect(getComputedStyle(t).fontVariantNumeric).toContain("tabular-nums");
+  });
+
+  it("falando: a linha aparece; ninguém falando: não há linha nem bolinha vazia", () => {
+    coluna(<PainelDaChamada sala="Jogatina" quemFala="Ana" {...todos} />);
+    expect(painel().textContent).toContain(voz.falando("Ana"));
+    expect(painel().querySelector(`[aria-label="${voz.estado.falando}"]`)).not.toBeNull();
+    desmontar();
+    coluna(<PainelDaChamada sala="Jogatina" {...todos} />);
+    expect(painel().textContent).not.toContain("falando");
+    expect(painel().querySelector('[role="img"]')).toBeNull();
+  });
+
+  it("falar não muda a altura do que está acima: só ocupa a linha própria", () => {
+    coluna(<PainelDaChamada sala="Jogatina" {...todos} />);
+    const sem = painel().getBoundingClientRect().height;
+    desmontar();
+    coluna(<PainelDaChamada sala="Jogatina" quemFala="Ana" {...todos} />);
+    const com = painel().getBoundingClientRect().height;
+    expect(com).toBeGreaterThan(sem);
+    expect(com - sem).toBeLessThan(32);
+  });
+
+  it("os cinco controles são iguais, alinhados e preenchem a fileira", () => {
+    coluna(<PainelDaChamada sala="Jogatina" {...todos} />);
+    expect(botoes()).toHaveLength(5);
+    const caixas = botoes().map((b) => b.getBoundingClientRect());
+    for (const c of caixas) {
+      expect(c.width).toBeCloseTo(caixas[0]!.width, 0);
+      expect(c.top).toBeCloseTo(caixas[0]!.top, 0);
+    }
+    const fileira = painel().querySelector("[role=group]")!.getBoundingClientRect();
+    expect(caixas.at(-1)!.right).toBeCloseTo(fileira.right, 0);
+    expect(caixas[0]!.left).toBeCloseTo(fileira.left, 0);
+  });
+
+  it("desligar é perigo; mudo e surdo são aria-pressed e o surdo implica mudo", () => {
+    coluna(<PainelDaChamada sala="Jogatina" mudo surdo {...todos} />);
+    const por = (n: string) => rotulo(n);
+    expect(por(voz.microfone).getAttribute("aria-pressed")).toBe("false");
+    expect(por(voz.audioRecebido).getAttribute("aria-pressed")).toBe("false");
+    expect(por(voz.camera).getAttribute("aria-pressed")).toBe("false");
+    expect(por(voz.sairDaChamada).hasAttribute("aria-pressed")).toBe(false);
+    expect(getComputedStyle(por(voz.sairDaChamada)).backgroundColor).toBe(corDe("--vx-danger", "backgroundColor"));
+    desmontar();
+    coluna(<PainelDaChamada sala="Jogatina" mudo {...todos} />);
+    expect(rotulo(voz.microfone).getAttribute("aria-pressed")).toBe("false");
+    expect(rotulo(voz.audioRecebido).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("destacar é discreto (menor que os controles) e alterna aria-pressed", () => {
+    coluna(<PainelDaChamada sala="Jogatina" onDestacar={() => undefined} {...todos} />);
+    const d = rotulo(voz.destacar.destacar);
+    expect(d.getAttribute("aria-pressed")).toBe("false");
+    expect(d.getBoundingClientRect().width).toBeLessThan(botoes()[0]!.getBoundingClientRect().width);
+    desmontar();
+    coluna(<PainelDaChamada sala="Jogatina" onDestacar={() => undefined} destacada {...todos} />);
+    expect(rotulo(voz.destacar.trazerDeVolta).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("nomes longos truncam sem empurrar estado, tempo nem botões", () => {
+    coluna(
+      <PainelDaChamada
+        sala="Uma sala com um nome absurdamente comprido"
+        servidor="Um servidor com nome igualmente enorme"
+        tempo="1:12:04"
+        quemFala="Alguém com um nome gigantesco de verdade"
+        onDestacar={() => undefined}
+        {...todos}
+      />,
+      220,
+    );
+    expect(painel().scrollWidth).toBeLessThanOrEqual(painel().clientWidth);
+    const t = Array.from(painel().querySelectorAll("span")).find((s) => s.textContent === "1:12:04")!;
+    expect(t.getBoundingClientRect().right).toBeLessThanOrEqual(painel().getBoundingClientRect().right);
+    expect(painel().textContent).toContain(voz.estaFalando);
+    for (const b of botoes()) expect(b.getBoundingClientRect().width).toBeGreaterThanOrEqual(24);
   });
 });
