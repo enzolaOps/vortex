@@ -352,7 +352,7 @@
 .canal:focus-within .acoesNoHover {
   opacity: 1;
 }
- (hover: none) {
+@media (hover: none) {
   .acoesNoHover {
     opacity: 1;
   }
