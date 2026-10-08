@@ -1,4 +1,5 @@
 import "../arnes/redeFalsa";
+import { useState } from "react";
 import { page } from "vitest/browser";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -80,5 +81,120 @@ describe("Shell fixo", () => {
     const barra = pegar('[data-testid="barra-de-titulo"]')!;
     expect(barra.textContent).toBe("Vortex");
     expect(barra.querySelectorAll("button, a, input, [tabindex]")).toHaveLength(0);
+  });
+});
+
+describe("Entrada e saída do palco", () => {
+  let alternar: () => void = () => undefined;
+  function Palco() {
+    const [palco, setPalco] = useState(false);
+    alternar = () => {
+      setPalco((p) => !p);
+    };
+    return (
+      <div style={{ inlineSize: 1600, blockSize: 700 }}>
+        <ShellDoApp
+          salasEmFaixa={palco}
+          faixaDeSalas={<span>faixa</span>}
+          salas={<div data-testid="coluna">salas</div>}
+          principal={<p data-testid="conteudo">área</p>}
+        />
+      </div>
+    );
+  }
+
+  const principal = () => pegar<HTMLElement>('[data-testid="shell-grade"] > :nth-child(4)')!;
+  const colunaDeSalas = () => pegar<HTMLElement>('[data-testid="shell-grade"] > :nth-child(3)')!;
+  const nomes = (el: Element) =>
+    el.getAnimations().map((a) => ({
+      nome: (a as CSSAnimation).animationName,
+      duracao: Number(a.effect!.getComputedTiming().duration),
+      props: new Set((a.effect as KeyframeEffect).getKeyframes().flatMap((k) => Object.keys(k).filter((p) => !["offset", "easing", "composite", "computedOffset"].includes(p)))),
+    }));
+  const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  async function preparar() {
+    await page.viewport(1600, 800);
+    document.documentElement.dataset.tema = "vidro";
+    montar(<Palco />);
+    await esperar(50);
+  }
+
+  it("abrir o app não anima; a trilha troca de largura num quadro só, sem transição", async () => {
+    await preparar();
+    expect(principal().getAnimations()).toHaveLength(0);
+    expect(trilhas()[2]).toBeGreaterThan(200);
+    alternar();
+    await esperar(0);
+    // Imediatamente no valor final: a trilha não é animada (nada de reflow por frame).
+    await expect.poll(() => trilhas()[2]).toBe(56);
+    const grade = pegar('[data-testid="shell-grade"]')!;
+    expect(getComputedStyle(grade).transitionProperty).not.toMatch(/grid|--larg/);
+  });
+
+  it("entrar: o palco chega por transform e opacity, em até 240ms; a coluna cheia se fecha como no hover", async () => {
+    await preparar();
+    alternar();
+    await expect.poll(() => nomes(principal()).length).toBeGreaterThan(0);
+    const [chega] = nomes(principal());
+    expect(chega!.nome).toMatch(/palcoChega/);
+    expect(chega!.duracao).toBeLessThanOrEqual(240);
+    expect([...chega!.props].sort()).toEqual(["opacity", "transform"]);
+    const lista = pegar('[data-testid="lista-de-salas"]')!;
+    const soltando = nomes(lista).find((a) => /listaSolta/.test(a.nome));
+    expect(soltando).toBeDefined();
+    expect([...soltando!.props].sort()).toEqual(["opacity", "transform"]);
+    const faixa = pegar('[data-testid="faixa-de-salas"]')!;
+    expect(nomes(faixa).some((a) => /faixaAparece/.test(a.nome))).toBe(true);
+    // Terminou: nada fica preso, e a lista fechada volta a ser inerte.
+    await expect.poll(() => principal().getAnimations().length).toBe(0);
+    expect(getComputedStyle(lista).opacity).toBe("0");
+    expect(lista.hasAttribute("inert")).toBe(true);
+  });
+
+  it("sair: o chat e a coluna voltam por transform e opacity", async () => {
+    await preparar();
+    alternar();
+    await expect.poll(() => trilhas()[2]).toBe(56);
+    await expect.poll(() => principal().getAnimations().length).toBe(0);
+    alternar();
+    await expect.poll(() => trilhas()[2]).toBeGreaterThan(200);
+    const volta = nomes(principal()).find((a) => /chatVolta/.test(a.nome));
+    expect(volta).toBeDefined();
+    expect(volta!.duracao).toBeLessThanOrEqual(240);
+    expect([...volta!.props].sort()).toEqual(["opacity", "transform"]);
+    const coluna = nomes(colunaDeSalas()).find((a) => /colunaVolta/.test(a.nome));
+    expect(coluna).toBeDefined();
+    expect([...coluna!.props].sort()).toEqual(["opacity", "transform"]);
+  });
+
+  it("o conteúdo não remede a cada frame: a caixa dele muda uma vez, não 11", async () => {
+    await preparar();
+    const alvo = pegar('[data-testid="conteudo"]')!;
+    let remedidas = 0;
+    const ro = new ResizeObserver(() => {
+      remedidas += 1;
+    });
+    ro.observe(alvo);
+    await esperar(50);
+    remedidas = 0;
+    alternar();
+    await esperar(400); // a animação inteira (180ms) e folga
+    ro.disconnect();
+    expect(remedidas).toBeLessThanOrEqual(1);
+  });
+
+  it("com movimento reduzido a animação é pulada (duração ~0) e o layout final vale igual", async () => {
+    await preparar();
+    document.documentElement.dataset.movimento = "reduzido";
+    try {
+      alternar();
+      await esperar(0);
+      for (const a of nomes(principal())) expect(a.duracao).toBeLessThanOrEqual(1);
+      expect(Number.parseFloat(getComputedStyle(principal()).animationDuration)).toBeLessThanOrEqual(0.001);
+      await expect.poll(() => trilhas()[2]).toBe(56);
+    } finally {
+      delete document.documentElement.dataset.movimento;
+    }
   });
 });

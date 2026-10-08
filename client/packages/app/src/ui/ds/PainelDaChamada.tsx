@@ -1,17 +1,27 @@
 import { voz } from "../../textos";
-import { ImagemSobreImagem, Volume } from "../icones";
+import { ImagemSobreImagem } from "../icones";
 import { juntar } from "../juntar";
 import { Botao } from "./Botao";
-import { ControlesDeVoz, QuemFala, type ControlesDeVozProps } from "./Controles";
+import { ControlesDeVoz, IndicadorDeFala, type ControlesDeVozProps } from "./Controles";
 import css from "./PainelDaChamada.module.css";
+
+export type EstadoDaChamadaNoPainel = "conectado" | "conectando" | "reconectando";
+
+const TEXTO_DO_ESTADO: Record<EstadoDaChamadaNoPainel, string> = {
+  conectado: voz.conectado,
+  conectando: voz.conectando,
+  reconectando: voz.reconectando,
+};
 
 export interface PainelDaChamadaProps extends ControlesDeVozProps {
   sala: string;
-  /** Tempo decorrido já formatado, ex. "12:04". */
+  /** O servidor da sala; DM e grupo não têm. */
+  servidor?: string;
+  /** Tempo decorrido já formatado, ex. "12:04". Some enquanto não houver. */
   tempo?: string;
-  /** Estado da conexão em palavras ("Conectando…"), no lugar do tempo enquanto não há tempo. */
-  status?: string;
-  /** Nome de quem fala; vazio = ninguém. */
+  /** Estado da conexão, dito em palavras no cabeçalho. Padrão: conectado. */
+  estado?: EstadoDaChamadaNoPainel;
+  /** Nome de quem fala; vazio = ninguém (e a linha inteira some). */
   quemFala?: string;
   /**
    * Destacar a chamada para uma janela própria (o overlay sobre o jogo). Só existe com
@@ -24,36 +34,57 @@ export interface PainelDaChamadaProps extends ControlesDeVozProps {
 }
 
 /**
- * Os controles da chamada fixados na coluna de salas, acima do rodapé da pessoa.
+ * Os controles da chamada, no pé da coluna de salas, acima do rodapé da pessoa.
  *
- * Um painel só, que vale em qualquer tela enquanto houver chamada: nome da sala,
- * tempo, quem fala e os cinco controles. O nome da sala é o que cede (reticências);
- * o tempo, a bolinha e os botões nunca.
+ * Não é um cartão: é um bloco da própria coluna, na mesma superfície do rodapé e
+ * separado dele por uma linha fina. Cabeçalho com o estado da conexão (verde-fala),
+ * o tempo em mono e a sala; "quem fala" só ocupa linha enquanto alguém fala; os
+ * cinco controles formam uma fileira de botões iguais. O nome da sala e do
+ * servidor é o que cede (reticências); estado, tempo e botões nunca.
  */
-export function PainelDaChamada({ sala, tempo, status, quemFala, onDestacar, destacada = false, className, ...controles }: PainelDaChamadaProps) {
+export function PainelDaChamada({
+  sala,
+  servidor,
+  tempo,
+  estado = "conectado",
+  quemFala,
+  onDestacar,
+  destacada = false,
+  className,
+  ...controles
+}: PainelDaChamadaProps) {
   return (
-    <section role="region" aria-label={voz.painelDaChamada} className={juntar(css.painel, className)}>
-      <div className={css.linha}>
-        <span className={css.icone} aria-hidden="true">
-          <Volume tamanho={16} />
+    <section role="region" aria-label={voz.painelDaChamada} data-estado={estado} className={juntar(css.painel, className)}>
+      <div className={css.cabeca}>
+        <span className={css.estado} role="status">
+          <span className={css.ponto} aria-hidden="true" />
+          {TEXTO_DO_ESTADO[estado]}
         </span>
-        <span className={css.sala}>{sala}</span>
-        {tempo ? <span className={css.tempo}>{tempo}</span> : status ? <span className={css.status}>{status}</span> : null}
+        {tempo && <span className={css.tempo}>{tempo}</span>}
         {onDestacar && (
           <Botao
             variante="fantasma"
             tamanho="sm"
             icone={<ImagemSobreImagem />}
+            className={css.destacar}
             aria-label={destacada ? voz.destacar.trazerDeVolta : voz.destacar.destacar}
             aria-pressed={destacada}
             onClick={onDestacar}
           />
         )}
       </div>
-      <QuemFala nome={quemFala} className={css.quemFala} />
-      <div className={css.controles}>
-        <ControlesDeVoz {...controles} />
-      </div>
+      <p className={css.lugar}>
+        <span className={css.sala}>{sala}</span>
+        {servidor && <span className={css.servidor}>{servidor}</span>}
+      </p>
+      {quemFala && (
+        <p className={css.quemFala}>
+          <IndicadorDeFala falando />
+          <span className={css.quemFalaNome}>{quemFala}</span>{" "}
+          <span className={css.quemFalaSufixo}>{voz.estaFalando}</span>
+        </p>
+      )}
+      <ControlesDeVoz {...controles} className={css.controles} />
     </section>
   );
 }

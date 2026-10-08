@@ -352,3 +352,90 @@ describe("CampoDeMensagem", () => {
     expect(area().placeholder).toBe("Conversar em geral");
   });
 });
+
+describe("ItemDeSala: extras medidos pela sobra real", () => {
+  const FOTO =
+    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='4' height='4'><rect width='4' height='4' fill='%23c33'/></svg>";
+  const gente = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({ nome: `Pessoa ${i + 1}`, id: `p${i}`, imagem: FOTO }));
+
+  function visivel(el: Element | null) {
+    return el !== null && getComputedStyle(el).visibility === "visible" && getComputedStyle(el).position !== "absolute";
+  }
+  const peca = (nome: string) => pegar(`[data-peca="${nome}"]`);
+  const grau = () => Number(pegar("[data-grau]")!.getAttribute("data-grau"));
+  const fotos = () => pegar('[data-peca="pilha"]')!.querySelectorAll("img").length;
+
+  function sala(largura: number, n: number, aoVivo = false, nome = "Geral") {
+    montar(
+      <div style={{ inlineSize: largura }}>
+        <ItemDeSala nome={nome} pessoas={gente(n)} aoVivo={aoVivo} />
+      </div>,
+    );
+  }
+
+  it("uma pessoa com espaço sobrando mostra a fotinha, nunca '+1'", () => {
+    sala(276, 1);
+    expect(visivel(peca("pilha"))).toBe(true);
+    expect(visivel(peca("chip"))).toBe(false);
+    expect(fotos()).toBe(1);
+  });
+
+  it("três pessoas: três fotos e nenhum excedente; seis: três fotos e '+3'", () => {
+    sala(276, 3);
+    expect(fotos()).toBe(3);
+    expect(peca("pilha")!.textContent).not.toContain("+");
+    desmontar();
+    sala(276, 6);
+    expect(fotos()).toBe(3);
+    expect(peca("pilha")!.textContent).toContain("+3");
+  });
+
+  it("degraus por sobra real: selo → ponto → '+N' → só o ponto → nada, com o nome intacto", () => {
+    const vistos: number[] = [];
+    for (const largura of [276, 220, 190, 160, 130, 100]) {
+      sala(largura, 6, true);
+      vistos.push(grau());
+      const nome = pegar("button span")!;
+      expect(nome.scrollWidth).toBeLessThanOrEqual(nome.clientWidth + 1);
+      desmontar();
+    }
+    // Monótono: estreitar nunca devolve peça.
+    expect([...vistos].sort((a, b) => a - b)).toEqual(vistos);
+    expect(vistos[0]).toBe(0);
+    expect(new Set(vistos).size).toBeGreaterThanOrEqual(3);
+  });
+
+  it("a mesma largura dá graus diferentes conforme quanta gente há (não é regra fixa)", () => {
+    let diferiu = false;
+    for (let largura = 120; largura <= 280; largura += 10) {
+      sala(largura, 1, true);
+      const um = grau();
+      desmontar();
+      sala(largura, 6, true);
+      const seis = grau();
+      desmontar();
+      expect(um).toBeLessThanOrEqual(seis);
+      if (um < seis) diferiu = true;
+    }
+    expect(diferiu).toBe(true);
+  });
+
+  it("nome longo tem prioridade: tudo some antes de o nome ganhar reticências além do necessário", () => {
+    sala(200, 6, true, "Uma sala com nome bem comprido mesmo");
+    expect(grau()).toBe(4);
+    expect(visivel(peca("pilha"))).toBe(false);
+    expect(visivel(peca("ponto"))).toBe(false);
+  });
+
+  it("reage ao redimensionar: estreitar o contêiner troca o grau sem remontar", async () => {
+    const alvo = montar(
+      <div id="cx" style={{ inlineSize: 276 }}>
+        <ItemDeSala nome="Geral" pessoas={gente(6)} aoVivo />
+      </div>,
+    );
+    expect(grau()).toBe(0);
+    (alvo.querySelector("#cx") as HTMLElement).style.inlineSize = "130px";
+    await expect.poll(grau).toBeGreaterThan(0);
+  });
+});

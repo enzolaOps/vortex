@@ -32,6 +32,8 @@ export interface ControlesDeVozProps {
   onCamera?: () => void;
   onTela?: () => void;
   onSair?: () => void;
+  /** Para o consumidor reorganizar a fileira (grade, por exemplo). */
+  className?: string;
 }
 
 /**
@@ -49,12 +51,13 @@ export function ControlesDeVoz({
   onCamera,
   onTela,
   onSair,
+  className,
 }: ControlesDeVozProps) {
   const microfoneLigado = !mudo && !surdo;
   const toggle = (ligado: boolean) => juntar(ligado ? css.ligado : css.desligado);
 
   return (
-    <div role="group" aria-label={voz.controles} className={css.controles}>
+    <div role="group" aria-label={voz.controles} className={juntar(css.controles, className)}>
       {onMudo && (
         <Botao
           variante="fantasma"

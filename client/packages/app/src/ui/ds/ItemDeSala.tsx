@@ -1,5 +1,5 @@
 import { contagem } from "nucleo/lib/plural";
-import { useId, type ButtonHTMLAttributes } from "react";
+import { useId, useLayoutEffect, useRef, type ButtonHTMLAttributes } from "react";
 
 import { comum, ds, salas } from "../../textos";
 import { Volume } from "../icones";
@@ -37,6 +37,24 @@ export interface ItemDeSalaProps extends Omit<ButtonHTMLAttributes<HTMLButtonEle
   indisponivel?: string;
 }
 
+/**
+ * Os degraus do que vem depois do nome, do mais cheio ao mais enxuto:
+ * 0 avatares + selo · 1 avatares + ponto · 2 "+N" + ponto · 3 só o ponto · 4 nada.
+ * O grau é o primeiro cuja largura NATURAL cabe na sobra — medida, não suposta.
+ */
+export function grauDosExtras(sobra: number, larguras: { pilha: number; selo: number; ponto: number; chip: number }, vivo: boolean, gente: boolean, vao: number): number {
+  const soma = (...p: number[]) => p.filter((x) => x > 0).reduce((a, b, i) => a + b + (i > 0 ? vao : 0), 0);
+  const { pilha, selo, ponto, chip } = larguras;
+  const graus = [
+    soma(gente ? pilha : 0, vivo ? selo : 0),
+    soma(gente ? pilha : 0, vivo ? ponto : 0),
+    soma(gente ? chip : 0, vivo ? ponto : 0),
+    soma(vivo ? ponto : 0),
+  ];
+  const g = graus.findIndex((w) => w <= sobra + 0.5);
+  return g === -1 ? 4 : g;
+}
+
 export function ItemDeSala({
   nome,
   tipo = "sala",
@@ -56,6 +74,33 @@ export function ItemDeSala({
   const vazia = ehSala && pessoas.length === 0;
   const idDoMotivo = useId();
   const bloqueada = ehSala && indisponivel !== undefined;
+  const extras = useRef<HTMLSpanElement>(null);
+  const vivo = aoVivo;
+  const gente = pessoas.length > 0;
+
+  /* Mede a sobra de verdade (container) contra a largura natural de cada peça. */
+  useLayoutEffect(() => {
+    const el = extras.current;
+    if (!el) return;
+    const medir = () => {
+      const w = (peca: string) => el.querySelector<HTMLElement>(`[data-peca="${peca}"]`)?.offsetWidth ?? 0;
+      const vao = Number.parseFloat(getComputedStyle(el.firstElementChild!).columnGap) || 0;
+      const grau = grauDosExtras(el.clientWidth, { pilha: w("pilha"), selo: w("selo"), ponto: w("ponto"), chip: w("chip") }, vivo, gente, vao);
+      if (el.dataset.grau !== String(grau)) el.dataset.grau = String(grau);
+    };
+    medir();
+    // Adiado para o próximo quadro: mexer no layout dentro do callback do RO dá "loop" no console.
+    let quadro = 0;
+    const ro = new ResizeObserver(() => {
+      cancelAnimationFrame(quadro);
+      quadro = requestAnimationFrame(medir);
+    });
+    ro.observe(el);
+    return () => {
+      cancelAnimationFrame(quadro);
+      ro.disconnect();
+    };
+  }, [vivo, gente, pessoas.length]);
 
   return (
     <button
@@ -91,20 +136,24 @@ export function ItemDeSala({
         que sobrou, e some antes de o nome virar reticências.
       */}
       {ehSala && (
-        <span className={css.extras}>
+        <span className={css.extras} ref={extras} data-grau="0">
           <span className={css.extrasInterno}>
-            {pessoas.length > 0 && (
+            {gente && (
               <>
-                <PilhaDeAvatares itens={pessoas} max={3} tamanho={20} className={css.pilhaCheia} />
-                <span className={css.chipDePessoas} aria-hidden="true">
+                <span data-peca="pilha" className={css.peca}>
+                  <PilhaDeAvatares itens={pessoas} max={3} tamanho={20} />
+                </span>
+                <span data-peca="chip" className={juntar(css.peca, css.chipDePessoas)} aria-hidden="true">
                   +{contagem(pessoas.length)}
                 </span>
               </>
             )}
             {aoVivo && (
               <>
-                <Pilula tipo="aoVivo" className={css.seloCheio} />
-                <span role="img" aria-label={comum.sinalAoVivo} className={css.pontoVivo} />
+                <span data-peca="selo" className={css.peca}>
+                  <Pilula tipo="aoVivo" />
+                </span>
+                <span data-peca="ponto" className={juntar(css.peca, css.pontoVivo)} role="img" aria-label={comum.sinalAoVivo} />
               </>
             )}
           </span>

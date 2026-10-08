@@ -93,6 +93,40 @@
   grid-column: 7;
 }
 
+/*
+  Entrada e saída do palco: só transform e opacity (compositor), 180ms com o easing do
+  hover da faixa. A trilha do grid NÃO anima — animar largura de coluna refaria o layout
+  da lista de mensagens a cada frame. O recém-chegado desliza do lado de onde o layout
+  mudou: o palco chega da direita (a coluna encolheu), o chat volta da esquerda.
+*/
+@keyframes palcoChega {
+  from {
+    opacity: 0;
+    transform: translateX(var(--vx-space-3));
+  }
+}
+@keyframes chatVolta {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--vx-space-3) * -1));
+  }
+}
+@keyframes colunaVolta {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--vx-space-2) * -1));
+  }
+}
+.principal[data-anim="entrando"] {
+  animation: palcoChega 180ms ease;
+}
+.principal[data-anim="saindo"] {
+  animation: chatVolta 180ms ease;
+}
+.salas[data-anim="saindo"] {
+  animation: colunaVolta 180ms ease;
+}
+
 /* Região colapsada some da árvore de foco e do leitor de tela, não só da vista. */
 .salas[data-colapsada],
 .gaveta[data-colapsada] {

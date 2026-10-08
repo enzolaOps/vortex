@@ -1,63 +1,122 @@
+/*
+  Bloco da coluna, não cartão: sem margem, sem fundo próprio, sem raio. A coluna
+  já é o vidro; a linha fina em cima separa do corpo da lista, e o rodapé logo
+  abaixo traz a sua. É a mesma superfície, o mesmo respiro lateral (space-2) e a
+  mesma hairline do rodapé.
+*/
 .painel {
   display: flex;
   flex: none;
   flex-direction: column;
   gap: var(--vx-space-2);
   box-sizing: border-box;
-  margin: var(--vx-space-2);
-  margin-block-end: 0;
-  padding: var(--vx-space-3);
-  border: 1px solid var(--vx-border-subtle);
-  border-radius: var(--vx-radius-md);
-  background: var(--vx-state-hover);
+  padding: var(--vx-space-3) var(--vx-space-2) var(--vx-space-2);
+  border-block-start: 1px solid var(--vx-border-subtle);
   font-family: var(--vx-font-sans);
 }
 
-.linha {
+.cabeca {
   display: flex;
   align-items: center;
   gap: var(--vx-space-2);
   min-inline-size: 0;
+  padding-inline: var(--vx-space-1);
 }
-.icone {
+.estado {
   display: inline-flex;
-  flex: none;
-  color: var(--vx-speaking);
-}
-.sala {
   flex: 1 1 auto;
+  align-items: center;
+  gap: var(--vx-space-2);
   min-inline-size: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--vx-speaking);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  font-weight: 600;
   white-space: nowrap;
-  color: var(--vx-text-1);
-  font-size: var(--vx-type-ui-size);
-  line-height: var(--vx-type-ui-line);
-  font-weight: var(--vx-type-ui-weight);
 }
-.tempo,
-.status {
+.ponto {
   flex: none;
-  color: var(--vx-text-3);
-  white-space: nowrap;
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: 50%;
+  background: currentcolor;
 }
 .tempo {
+  flex: none;
+  color: var(--vx-text-3);
   font-family: var(--vx-font-mono);
   font-size: var(--vx-type-mono-size);
   line-height: var(--vx-type-mono-line);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
-.status {
-  font-size: var(--vx-type-caption-size);
-  line-height: var(--vx-type-caption-line);
+/* Discreto: o botão de destacar não disputa com os cinco controles. */
+.painel .destacar {
+  flex: none;
+  inline-size: 24px;
+  min-block-size: 24px;
+  color: var(--vx-text-3);
 }
 
-.quemFala {
-  font-size: var(--vx-type-caption-size);
-  line-height: var(--vx-type-caption-line);
-}
-
-.controles {
+.lugar {
   display: flex;
-  justify-content: center;
+  align-items: baseline;
+  gap: var(--vx-space-2);
+  min-inline-size: 0;
+  margin: 0;
+  padding-inline: var(--vx-space-1);
+  white-space: nowrap;
+}
+.sala {
+  flex: 0 1 auto;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-body-strong-size);
+  line-height: var(--vx-type-body-strong-line);
+  font-weight: 600;
+}
+.servidor {
+  flex: 1 1 0;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+
+/* Só existe enquanto alguém fala; a bolinha é a de fala do DS, nunca a cinza vazia. */
+.quemFala {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  min-inline-size: 0;
+  margin: 0;
+  padding-inline: var(--vx-space-1);
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  white-space: nowrap;
+}
+.quemFalaNome {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.quemFalaSufixo {
+  flex: none;
+}
+
+/* Cinco botões do mesmo tamanho, repartindo a largura da coluna. */
+.painel .controles {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: var(--vx-space-1);
+}
+.painel .controles > button {
+  inline-size: 100%;
+  border-radius: var(--vx-radius-md);
 }
