@@ -40,7 +40,7 @@ const tique = () => new Promise((r) => setTimeout(r, 0));
  * consequência disso quando a pessoa compartilha som: a sessão do app que está
  * sendo transmitido é atenuada como qualquer outra, e quem assiste ouve pelo
  * mix já baixado. Quem decide não pedir a atenuação nessa hora é o CLIENTE,
- * em `client/packages/client/src/sdk/atenuacao.ts` — a casca não sabe que há
+ * em `client/packages/nucleo/src/sdk/atenuacao.ts` — a casca não sabe que há
  * transmissão, e ensiná-la significaria resolver PID → executável, que é
  * Win32 novo por uma exceção que o cliente exprime em um booleano.
  */

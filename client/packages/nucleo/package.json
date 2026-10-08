@@ -16,7 +16,6 @@
     "./store/*": "./src/store/*.ts",
     "./lib/*": "./src/lib/*.ts",
     "./markdown/*": "./src/markdown/*.ts",
-    "./tema/*": "./src/tema/*.ts",
     "./notificacao/*": "./src/notificacao/*.ts",
     "./rota/*": "./src/rota/*.ts",
     "./som/*": "./src/som/*.ts",

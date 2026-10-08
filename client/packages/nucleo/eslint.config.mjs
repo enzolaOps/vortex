@@ -7,8 +7,8 @@ import tseslint from "typescript-eslint";
 /**
  * Enforcement do núcleo — as fronteiras da lógica.
  *
- * Os blocos de estilo e de JSX do `client` não vêm para cá: o núcleo não tem
- * JSX nem CSS. Valem as regras de direção (§1 do TRD da reescrita).
+ * O núcleo não tem JSX nem CSS, então não há blocos de estilo ou de JSX
+ * aqui. Valem as regras de direção (§1 do TRD da reescrita).
  */
 export default tseslint.config(
   { ignores: ["dist", "node_modules"] },
@@ -47,7 +47,7 @@ export default tseslint.config(
      * A fronteira do SDK.
      *
      * `stoat.js` e `solid-js` só existem dentro de `src/sdk/`; e o núcleo nunca
-     * importa da interface (`client`, `app`). Com `nodeLinker: isolated` o
+     * importa da interface (`app`). Com `nodeLinker: isolated` o
      * segundo nem resolve — a regra deixa o motivo escrito.
      */
     files: ["src/**/*.{ts,tsx}"],
@@ -58,7 +58,7 @@ export default tseslint.config(
         {
           patterns: [
             {
-              regex: "^(client|app)(/|$)",
+              regex: "^app(/|$)",
               message:
                 "O núcleo nunca importa da interface. A dependência é UI → núcleo.",
             },
@@ -90,7 +90,7 @@ export default tseslint.config(
         {
           patterns: [
             {
-              regex: "^(client|app)(/|$)",
+              regex: "^app(/|$)",
               message:
                 "O núcleo nunca importa da interface. A dependência é UI → núcleo.",
             },
