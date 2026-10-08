@@ -1,5 +1,6 @@
 import { usuarioLocalId } from "nucleo/sdk/adapter";
 import { alternarCamera, alternarMudo, alternarSurdo, alternarTela } from "nucleo/sdk/chamada";
+import { pode } from "nucleo/sdk/permissoes";
 import { podeDestacar } from "nucleo/sdk/popout";
 import { fixarSalaNoCanto } from "nucleo/store/preferenciasDaSala";
 import {
@@ -10,6 +11,7 @@ import {
   useJanelaDestacada,
   usePessoasDaSala,
 } from "nucleo/store/hooks";
+import { abrirConversa } from "nucleo/store/navegacao";
 import { definirPalco } from "nucleo/store/palcoDeVoz";
 import { abrirServidor } from "nucleo/store/ultimoLugar";
 
@@ -34,7 +36,8 @@ export function WidgetDaChamadaConectado({ servidorAberto }: { servidorAberto: s
   const chamada = useChamada();
   const canto = useCantoDaSala();
   const canal = useChannel(chamada.channelId);
-  const serverId = canal?.serverId ?? servidorAberto;
+  // DM e grupo não têm servidor: os nomes se resolvem pela pessoa (chave de servidor vazia).
+  const serverId = canal === undefined ? servidorAberto : (canal.serverId ?? "");
   const pessoas = usePessoasDaSala(serverId, chamada.channelId);
   const falantes = useFalantes(pessoas.map((p) => p.id));
   const destacada = useJanelaDestacada() !== undefined;
@@ -42,6 +45,10 @@ export function WidgetDaChamadaConectado({ servidorAberto }: { servidorAberto: s
   const tempo = useTempoDecorrido(chamada.estado === "dentro" ? chamada.desde : 0);
 
   if (chamada.estado === "fora" || !canal) return null;
+
+  // Só aparece o que a pessoa pode usar: sem `Speak` não há microfone; sem `Video`, nem câmera nem tela.
+  const podeFalar = pode(chamada.channelId, "falarNaVoz");
+  const podeTransmitir = pode(chamada.channelId, "transmitirVideo");
 
   const nomeDe = (id: string) => pessoas.find((p) => p.id === id)?.nome || salas.alguem;
   const quemTransmite = pessoas.find((p) => p.estado === "tela");
@@ -63,7 +70,14 @@ export function WidgetDaChamadaConectado({ servidorAberto }: { servidorAberto: s
       transmissao={quemTransmite ? voz.palco.telaDe(nomeDe(quemTransmite.id)) : undefined}
       quemFala={quemFala !== undefined ? nomeDe(quemFala) : undefined}
       video={
-        foco ? <VideoEmFoco foco={foco} nome={nomeDe(foco.userId)} proprio={foco.userId === eu} /> : undefined
+        foco ? (
+          <VideoEmFoco
+            foco={foco}
+            nome={nomeDe(foco.userId)}
+            imagem={pessoas.find((p) => p.id === foco.userId)?.avatarUrl}
+            proprio={foco.userId === eu}
+          />
+        ) : undefined
       }
       onDestacar={
         podeDestacar() || destacada
@@ -77,17 +91,19 @@ export function WidgetDaChamadaConectado({ servidorAberto }: { servidorAberto: s
       canto={canto}
       onCanto={fixarSalaNoCanto}
       onVoltar={() => {
-        if (serverId !== servidorAberto) abrirServidor(serverId);
+        // Chamada de DM ou grupo: o palco é da conversa, não de um servidor.
+        if (canal.serverId === undefined) abrirConversa(chamada.channelId);
+        else if (serverId !== servidorAberto) abrirServidor(serverId);
         definirPalco({ tipo: "grade" });
       }}
       mudo={chamada.mudo}
       surdo={chamada.surdo}
       camera={chamada.camera}
       tela={chamada.tela}
-      onMudo={() => void alternarMudo()}
+      onMudo={podeFalar ? () => void alternarMudo() : undefined}
       onSurdo={() => void alternarSurdo()}
-      onCamera={chamada.estado === "dentro" ? () => void alternarCamera() : undefined}
-      onTela={chamada.estado === "dentro" ? () => void alternarTela() : undefined}
+      onCamera={chamada.estado === "dentro" && podeTransmitir ? () => void alternarCamera() : undefined}
+      onTela={chamada.estado === "dentro" && podeTransmitir ? () => void alternarTela() : undefined}
       onSair={() => void sairDaSala()}
     />
   );

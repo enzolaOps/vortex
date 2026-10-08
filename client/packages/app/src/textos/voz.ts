@@ -91,6 +91,7 @@ export const voz = {
     transmitir: "Transmitir",
     iniciando: "Iniciando…",
     semCaptura: "Este navegador não consegue compartilhar a tela.",
+    semPermissao: "Você não tem permissão para transmitir nesta sala. Peça a quem cuida do servidor.",
   },
   pip: {
     arrastar: "Mover a chamada para outro canto",

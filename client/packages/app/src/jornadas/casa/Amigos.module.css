@@ -1,0 +1,199 @@
+.tela {
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-block-size: 0;
+}
+
+.cabeca {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vx-space-3) var(--vx-space-5);
+  padding: var(--vx-space-3) var(--vx-space-5);
+  border-block-end: 1px solid var(--vx-border-subtle);
+}
+.titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  margin: 0;
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-title-size);
+  line-height: var(--vx-type-title-line);
+  font-weight: var(--vx-type-title-weight);
+}
+
+.abas {
+  display: flex;
+  gap: var(--vx-space-1);
+}
+.aba {
+  min-block-size: 32px;
+  padding: 0 var(--vx-space-3);
+  border: 0;
+  border-radius: var(--vx-radius-sm);
+  background: transparent;
+  color: var(--vx-text-2);
+  font: inherit;
+  font-size: var(--vx-type-ui-size);
+  font-weight: 500;
+  cursor: pointer;
+}
+.aba:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+.aba[aria-selected="true"] {
+  background: var(--vx-state-selected);
+  color: var(--vx-text-1);
+  font-weight: 700;
+}
+.aba:focus-visible {
+  outline: 2px solid var(--vx-focus-ring);
+  outline-offset: 2px;
+}
+
+.corpo {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  padding: var(--vx-space-4) var(--vx-space-5);
+}
+.coluna {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-4);
+  max-inline-size: 56rem;
+  margin-inline: auto;
+}
+
+.adicionar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+}
+.adicionarRotulo {
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  font-weight: 600;
+}
+.adicionarLinha {
+  display: flex;
+  gap: var(--vx-space-2);
+}
+.campo {
+  flex: 1;
+  box-sizing: border-box;
+  min-inline-size: 0;
+  min-block-size: 40px;
+  padding: 0 var(--vx-space-3);
+  border: 1px solid var(--vx-border-strong);
+  border-radius: var(--vx-radius-sm);
+  background: var(--vx-surface-solid);
+  color: var(--vx-text-1);
+  font: inherit;
+}
+.campo:focus-visible {
+  outline: 2px solid var(--vx-focus-ring);
+  outline-offset: 2px;
+}
+.campo[aria-invalid="true"] {
+  border-color: var(--vx-danger);
+}
+.retorno {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  margin: 0;
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.ok {
+  color: var(--vx-success);
+}
+.falha {
+  color: var(--vx-danger);
+}
+
+.secao {
+  margin: 0;
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  font-weight: 600;
+}
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pessoa {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+  min-block-size: 60px;
+  box-sizing: border-box;
+  padding: var(--vx-space-2) var(--vx-space-3);
+  border-radius: var(--vx-radius-md);
+}
+.pessoa:hover {
+  background: var(--vx-state-hover);
+}
+.texto {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+.nome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-body-strong-size);
+  line-height: var(--vx-type-body-strong-line);
+  font-weight: 600;
+}
+.sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+.acoes {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-2);
+}
+
+.vazio {
+  margin: 0;
+  padding: var(--vx-space-5) var(--vx-space-3);
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  text-align: center;
+  text-wrap: balance;
+}
+.aviso {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  padding: var(--vx-space-2) var(--vx-space-3);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-state-press);
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+
+

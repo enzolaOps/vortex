@@ -1,4 +1,7 @@
+import { ligarRota } from "nucleo/rota/rota";
 import { ligarLogoutDoServidor, restaurarSessao, sair } from "nucleo/sdk/autenticacao";
+import { ligarAtalhosDeVoz } from "nucleo/sdk/atalhosDeVoz";
+import { ligarSonsDeVoz } from "nucleo/som/sons";
 
 import { ligarRotaDeEntrada } from "./rotaDeEntrada";
 
@@ -44,10 +47,18 @@ export function reiniciarEncerramento(): void {
  * O que acontece uma vez, quando a página abre: ouvir o servidor derrubar a sessão
  * e tentar voltar com a guardada. A ORDEM importa: o ouvinte vem antes, porque a
  * restauração abre o socket e um token revogado é recusado nessa abertura.
+ *
+ * Também liga o que vive o tanto que a página vive e não pertence a componente
+ * nenhum, porque assina stores e o teclado: a URL de entrada (e-mail, convite, QR),
+ * o endereço do app (as configurações são rota), os atalhos de voz (push-to-talk,
+ * mutar, ensurdecer) e os sons de entrada e saída das salas. Todos idempotentes.
  */
 export function iniciarSessao(): void {
-  // A URL da abertura (link de e-mail, convite, QR) é lida ANTES de a restauração decidir a tela.
+  // A URL da abertura é lida ANTES de a restauração decidir a tela.
   ligarRotaDeEntrada();
+  ligarRota();
+  ligarAtalhosDeVoz();
+  ligarSonsDeVoz();
   ligarLogoutDoServidor();
   void restaurarSessao();
 }

@@ -1,0 +1,189 @@
+.corpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+  padding: var(--vx-space-2);
+}
+
+.linha {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+  inline-size: 100%;
+  min-block-size: 52px;
+  box-sizing: border-box;
+  padding: var(--vx-space-2) var(--vx-space-3);
+  border: 0;
+  border-radius: var(--vx-radius-md);
+  background: transparent;
+  color: var(--vx-text-2);
+  font-family: var(--vx-font-sans);
+  font-size: var(--vx-type-body-strong-size);
+  line-height: var(--vx-type-body-strong-line);
+  font-weight: 500;
+  text-align: start;
+  cursor: pointer;
+}
+.linha:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+.linha:active {
+  background: var(--vx-state-press);
+}
+.linha:focus-visible {
+  outline: 2px solid var(--vx-focus-ring);
+  outline-offset: -2px;
+}
+.selecionada {
+  background: var(--vx-state-selected);
+  color: var(--vx-text-1);
+}
+.selecionada::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 4px;
+  inset-block: 12px;
+  inline-size: 3px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-accent);
+}
+
+.texto {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+.nome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.previa {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  font-weight: 400;
+}
+.naoLida .nome {
+  color: var(--vx-text-1);
+  font-weight: 700;
+}
+.naoLida .previa {
+  color: var(--vx-text-2);
+}
+.silenciada {
+  opacity: 0.7;
+}
+
+.lado {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--vx-space-1);
+}
+.hora {
+  color: var(--vx-text-3);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-type-mono-size);
+  line-height: var(--vx-type-mono-line);
+  font-variant-numeric: tabular-nums;
+}
+
+.iconeRedondo {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  inline-size: 36px;
+  block-size: 36px;
+  border-radius: 50%;
+  background: var(--vx-state-press);
+  color: var(--vx-text-2);
+}
+
+.separador {
+  block-size: 1px;
+  margin: var(--vx-space-1) var(--vx-space-3);
+  background: var(--vx-border-subtle);
+}
+.rotuloDaSecao {
+  margin: 0;
+  padding: var(--vx-space-2) var(--vx-space-3) var(--vx-space-1);
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  font-weight: 600;
+}
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aviso {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  margin: 0 var(--vx-space-2) var(--vx-space-2);
+  padding: var(--vx-space-2) var(--vx-space-3);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-state-press);
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+
+.vazio {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+  margin: var(--vx-space-2);
+  padding: var(--vx-space-3);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-state-hover);
+}
+.vazioTitulo {
+  margin: 0;
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-body-strong-size);
+  line-height: var(--vx-type-body-strong-line);
+  font-weight: 600;
+}
+.vazioTexto {
+  margin: 0;
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+
+/* O convite para ativar avisos do sistema. */
+.convite {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+  margin: var(--vx-space-2);
+  padding: var(--vx-space-3);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-state-hover);
+}
+.conviteTexto {
+  margin: 0;
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.conviteAcoes {
+  display: flex;
+  gap: var(--vx-space-2);
+}

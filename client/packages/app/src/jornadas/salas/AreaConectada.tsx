@@ -5,6 +5,8 @@ import { shell } from "../../textos";
 import { PalcoDaSala } from "../voz/Palco";
 import { useSalaDoPalco } from "../voz/hooks";
 import { AreaDeChat } from "../chat/AreaDeChat";
+import { AreaDaDm } from "../casa/AreaDaDm";
+import { TelaDeAmigos } from "../casa/TelaDeAmigos";
 import css from "./Salas.module.css";
 import { WidgetConectado } from "./WidgetConectado";
 import { EsqueletoDeSalas } from "./ColunaConectada";
@@ -26,6 +28,8 @@ export function AreaConectada() {
       </AreaPrincipal>
     );
   }
+  if (local.tipo === "dm") return <AreaDaDm key={local.channelId} canalId={local.channelId} />;
+  if (local.tipo === "casa" || local.tipo === "amigos") return <TelaDeAmigos />;
   if (local.tipo !== "servidor") return <AreaPrincipal />;
 
   // Em voz o palco ocupa a área inteira: sem chat, sem widget. O chat volta pelo cabeçalho do palco.

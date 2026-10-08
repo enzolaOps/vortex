@@ -41,6 +41,7 @@ WORKDIR /build/client
 COPY client/package.json client/pnpm-workspace.yaml client/pnpm-lock.yaml ./
 # Só os manifests: copiar `packages/` inteiro invalidava o `pnpm install` a
 # cada linha de TS, e o cache GHA das camadas não tinha o que reaproveitar.
+COPY client/packages/app/package.json packages/app/package.json
 COPY client/packages/client/package.json packages/client/package.json
 COPY client/packages/nucleo/package.json packages/nucleo/package.json
 COPY client/packages/stoat.js/package.json packages/stoat.js/package.json
@@ -76,7 +77,7 @@ RUN pnpm --filter stoat.js build
 # variável segue sem ser declarada porque declarar não serve para nada: quem
 # precisar apontar para outro domínio passa `--build-arg` e a linha entra
 # junto, com o valor de verdade.
-RUN pnpm --filter client build
+RUN pnpm --filter app build
 
 # ============================================
 # Estágio 2: runtime mínimo
@@ -96,7 +97,7 @@ RUN npm install --omit=dev
 # camada de instalação e o build refaria o `npm install` sem precisar.
 COPY client/docker/servidor.mjs ./
 
-COPY --from=builder /build/client/packages/client/dist ./dist
+COPY --from=builder /build/client/packages/app/dist ./dist
 
 # 5000 mantém o contrato do cliente servido pelo compose.
 EXPOSE 5000

@@ -7,7 +7,8 @@ import {
   type Resolucao,
   type Taxa,
 } from "nucleo/sdk/seletorDeTela";
-import { useSeletorDeTela } from "nucleo/store/hooks";
+import { pode } from "nucleo/sdk/permissoes";
+import { useChamada, useSeletorDeTela } from "nucleo/store/hooks";
 import { QUALIDADE_PADRAO } from "nucleo/store/qualidadeDaTela";
 import { responderEscolhaDeTela, type ModoDoSeletor } from "nucleo/store/seletorDeTela";
 import { useEffect, useId, useState, type KeyboardEvent } from "react";
@@ -292,7 +293,10 @@ function Formulario({ modo, iniciando }: { modo: ModoDoSeletor; iniciando: boole
  */
 export function DialogoDeTransmissao() {
   const seletor = useSeletorDeTela();
+  const chamada = useChamada();
   const aberto = seletor.fase !== "fechado";
+  // Sem `Video` o formulário nem aparece: a pessoa escolheria fonte e qualidade para ser recusada no fim.
+  const podeTransmitir = pode(chamada.channelId, "transmitirVideo");
   return (
     <Dialogo
       open={aberto}
@@ -302,7 +306,14 @@ export function DialogoDeTransmissao() {
     >
       {aberto && (
         <ConteudoDoDialogo titulo={voz.transmitir.titulo} className={css.painel}>
-          <Formulario modo={seletor.modo} iniciando={seletor.fase === "iniciando"} />
+          {podeTransmitir ? (
+            <Formulario modo={seletor.modo} iniciando={seletor.fase === "iniciando"} />
+          ) : (
+            <p role="note" className={css.nota}>
+              <Alerta tamanho={16} />
+              {voz.transmitir.semPermissao}
+            </p>
+          )}
         </ConteudoDoDialogo>
       )}
     </Dialogo>
