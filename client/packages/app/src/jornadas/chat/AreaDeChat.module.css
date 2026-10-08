@@ -1,5 +1,4 @@
 .chat {
-  --medida-da-conversa: 56rem;
   display: flex;
   flex-direction: column;
   block-size: 100%;
@@ -20,6 +19,4 @@
 .colunaDoRodape {
   box-sizing: border-box;
   inline-size: 100%;
-  max-inline-size: var(--medida-da-conversa);
-  margin-inline: auto;
 }

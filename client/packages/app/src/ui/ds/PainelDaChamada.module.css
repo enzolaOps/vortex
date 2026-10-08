@@ -1,0 +1,63 @@
+.painel {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+  box-sizing: border-box;
+  margin: var(--vx-space-2);
+  margin-block-end: 0;
+  padding: var(--vx-space-3);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-state-hover);
+  font-family: var(--vx-font-sans);
+}
+
+.linha {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  min-inline-size: 0;
+}
+.icone {
+  display: inline-flex;
+  flex: none;
+  color: var(--vx-speaking);
+}
+.sala {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  font-weight: var(--vx-type-ui-weight);
+}
+.tempo,
+.status {
+  flex: none;
+  color: var(--vx-text-3);
+  white-space: nowrap;
+}
+.tempo {
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-type-mono-size);
+  line-height: var(--vx-type-mono-line);
+  font-variant-numeric: tabular-nums;
+}
+.status {
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+
+.quemFala {
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+
+.controles {
+  display: flex;
+  justify-content: center;
+}

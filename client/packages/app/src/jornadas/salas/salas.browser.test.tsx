@@ -14,15 +14,15 @@ import {
   vozPorCanal,
 } from "nucleo/sdk/adapter";
 import { chaveDeMembro, SEM_CARGO, type ParticipanteDeVoz } from "nucleo/sdk/domain";
-import { definirFalantes, limparChamada } from "nucleo/store/chamada";
+import { definirChamada, definirFalantes, limparChamada } from "nucleo/store/chamada";
 import { limparConexao, pausarConexao } from "nucleo/store/conexao";
 import { limparFalhaDeVoz } from "nucleo/store/falhaDeVoz";
-import { fecharPalco } from "nucleo/store/palcoDeVoz";
+import { definirPalco, fecharPalco } from "nucleo/store/palcoDeVoz";
 import { irParaCasa } from "nucleo/store/navegacao";
 import { limparPreferenciasDaSala } from "nucleo/store/preferenciasDaSala";
 import { definirProntidao } from "nucleo/store/prontidao";
 import { abrirServidor, lembrarSala, lembrarTexto, limparUltimoLugar } from "nucleo/store/ultimoLugar";
-import { page } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { salas, shell, voz } from "../../textos";
@@ -142,7 +142,7 @@ async function abrirNoServidor() {
   abrirServidor(S);
   montar(
     <div style={{ inlineSize: "1600px", blockSize: "860px" }}>
-      <ShellDasSalas />
+      <ShellDasSalas rodapeDasSalas={<button type="button">Configurações</button>} />
     </div>,
   );
   await expect.element(page.getByRole("heading", { name: "Grupo", level: 2 })).toBeVisible();
@@ -152,6 +152,13 @@ const botao = (nome: string) =>
   [...document.querySelectorAll("button")].find((b) => b.textContent.trim() === nome)!;
 const coluna = () => pegar("aside[aria-label='" + shell.salas.rotulo + "']")!;
 const correntes = () => coluna().querySelectorAll("[aria-current]");
+
+const sala = (nome: string) =>
+  [...coluna().querySelectorAll("button")].find((b) => b.textContent.includes(nome))!;
+const painel = () => pegar("section[aria-label='" + voz.painelDaChamada + "']");
+const palco = () => pegar("[data-testid='palco']");
+const pip = () => pegar("section[aria-label='" + voz.chamada + "']");
+const visivel = (el: Element | null) => el !== null && el.getClientRects().length > 0;
 
 describe("carregando", () => {
   it("mostra esqueleto na coluna, na dock e na gaveta até o Ready, sem afirmar nada", async () => {
@@ -186,17 +193,15 @@ describe("coluna de salas", () => {
     expect(correntes()[0]!.textContent).toContain("avisos");
   });
 
-  it("abre o servidor no último canal de texto, com a última sala no widget", async () => {
+  it("abre o servidor no último canal de texto, sem conectar nem mostrar widget de sala", async () => {
     lembrarTexto(S, "T2");
     lembrarSala(S, "V2");
     await abrirNoServidor();
     expect(correntes()[0]!.textContent).toContain("avisos");
-    expect(pegar("section[aria-label='Estudo']")).not.toBeNull();
+    expect(pegar("section[aria-label='Estudo']")).toBeNull();
     expect(pegar("section[aria-label='Jogatina']")).toBeNull();
-    // Trocar a sala mostrada não conecta a nada.
-    await page.getByRole("button", { name: /Jogatina/ }).first().click();
-    await expect.poll(() => pegar("section[aria-label='Jogatina']")).not.toBeNull();
     expect(ctl.entrou).toEqual([]);
+    expect(palco()).toBeNull();
   });
 
   it("marca 'você está aqui' na sala em que a pessoa está conectada", async () => {
@@ -207,54 +212,230 @@ describe("coluna de salas", () => {
   });
 });
 
-describe("widget da sala", () => {
-  it("nunca conecta ao abrir; Entrar chama a chamada; quem fala aparece; o canto persiste", async () => {
+describe("clicar numa sala de voz entra nela", () => {
+  it("nunca conecta ao abrir; o clique entra e abre o palco na hora", async () => {
     await abrirNoServidor();
     expect(ctl.entrou).toEqual([]);
+    expect(document.body.textContent).not.toContain(salas.entrarNaSala);
 
-    await page.getByRole("button", { name: /Jogatina/ }).last().click();
-    const cartao = pegar("section[aria-label='Jogatina']")!;
-    for (const nome of ["Ana", "Caio", "Eva"]) expect(cartao.textContent).toContain(nome);
-    expect(cartao.textContent).toContain(voz.estado.transmitindo);
-    expect(cartao.textContent).toContain(voz.estado.mudo);
-
-    definirFalantes(["U1"]);
-    await expect.poll(() => cartao.textContent).toContain(voz.estado.falando);
-
-    // Fixar no canto move o widget e o ponteiro fica para trás: antes de entrar.
-    await page.getByRole("button", { name: voz.fixarNoCanto.tl }).click();
-    expect(JSON.parse(localStorage.getItem("vortex:preferencias-da-sala")!)).toMatchObject({ canto: "tl" });
-
-    // Entrar abre o palco na hora (a conexão acontece com ele já na tela).
-    botao(salas.entrarNaSala).click();
+    sala("Jogatina").click();
     expect(ctl.entrou).toEqual(["V1"]);
-    await expect.poll(() => pegar("[data-testid='palco']")).not.toBeNull();
+    await expect.poll(palco).not.toBeNull();
   });
 
-  it("dentro da sala, o widget é o da chamada: oferece Sair e não Entrar", async () => {
-    const { definirChamada } = await import("nucleo/store/chamada");
+  it("Enter na sala (teclado) faz o mesmo", async () => {
+    await abrirNoServidor();
+    sala("Estudo").focus();
+    await userEvent.keyboard("{Enter}");
+    expect(ctl.entrou).toEqual(["V2"]);
+    await expect.poll(palco).not.toBeNull();
+  });
+
+  it("já em outra sala: troca direto para a nova", async () => {
+    definirChamada({ estado: "dentro", channelId: "V2" });
+    await abrirNoServidor();
+    sala("Jogatina").click();
+    expect(ctl.entrou).toEqual(["V1"]);
+    await expect.poll(palco).not.toBeNull();
+  });
+
+  it("já na mesma sala: só abre o palco, sem entrar de novo", async () => {
+    definirChamada({ estado: "dentro", channelId: "V2" });
+    await abrirNoServidor();
+    expect(palco()).toBeNull();
+    sala("Estudo").click();
+    await expect.poll(palco).not.toBeNull();
+    expect(ctl.entrou).toEqual([]);
+  });
+
+  it("sem permissão para conectar: não entra e diz o motivo, sem controle inerte", async () => {
+    ctl.permitir = false;
+    await abrirNoServidor();
+    const jogatina = sala("Jogatina");
+    expect(jogatina.getAttribute("aria-disabled")).toBe("true");
+    expect(jogatina.title).toBe(salas.vocePodeEntrar);
+    const descricao = document.getElementById(jogatina.getAttribute("aria-describedby")!);
+    expect(descricao?.textContent).toBe(salas.vocePodeEntrar);
+    jogatina.click();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(ctl.entrou).toEqual([]);
+    expect(palco()).toBeNull();
+  });
+
+  it("sem conexão: não entra e diz que é a conexão", async () => {
+    await abrirNoServidor();
+    pausarConexao();
+    await expect.poll(() => sala("Estudo").getAttribute("aria-disabled")).toBe("true");
+    expect(sala("Estudo").title).toBe(salas.semConexaoParaEntrar);
+    sala("Estudo").click();
+    expect(ctl.entrou).toEqual([]);
+  });
+
+  it("a faixa estreita do palco também entra na hora, e troca de sala", async () => {
     definirChamada({ estado: "dentro", channelId: "V1" });
     await abrirNoServidor();
-    await expect.element(page.getByRole("region", { name: voz.chamada })).toBeVisible();
-    expect(pegar("[data-testid='palco']")).toBeNull();
-    expect(document.body.textContent).not.toContain(salas.entrarNaSala);
+    definirPalco({ tipo: "grade" });
+    const faixa = () => pegar("[data-testid='faixa-de-salas']")!;
+    await expect.poll(() => faixa().querySelector("button[aria-label^='Estudo']")).not.toBeNull();
+    faixa().querySelector<HTMLElement>("button[aria-label^='Estudo']")!.click();
+    expect(ctl.entrou).toEqual(["V2"]);
+  });
+
+  it("a faixa estreita sem permissão: aria-disabled com o motivo, e o clique não entra", async () => {
+    ctl.permitir = false;
+    await abrirNoServidor();
+    definirPalco({ tipo: "grade" });
+    const faixa = () => pegar("[data-testid='faixa-de-salas']")!;
+    await expect.poll(() => faixa().querySelector("button[aria-label^='Estudo']")).not.toBeNull();
+    const botaoDaFaixa = faixa().querySelector<HTMLElement>("button[aria-label^='Estudo']")!;
+    expect(botaoDaFaixa.getAttribute("aria-disabled")).toBe("true");
+    expect(botaoDaFaixa.getAttribute("aria-label")).toContain(salas.vocePodeEntrar);
+    botaoDaFaixa.click();
+    expect(ctl.entrou).toEqual([]);
+  });
+});
+
+describe("painel da chamada na coluna de salas", () => {
+  it("fica fixo acima de Configurações/Sair, com sala, tempo, quem fala e os cinco controles", async () => {
+    definirChamada({ estado: "dentro", channelId: "V2", desde: Date.now() });
+    await abrirNoServidor();
+    const p = painel()!;
+    expect(p).not.toBeNull();
+    expect(coluna().contains(p)).toBe(true);
+    expect(p.textContent).toContain("Estudo");
+    for (const nome of [voz.microfone, voz.audioRecebido, voz.camera, voz.compartilharTela, voz.sairDaChamada]) {
+      expect(p.querySelector(`button[aria-label='${nome}']`)).not.toBeNull();
+    }
+    // Acima do rodapé da pessoa, e colado a ele (nada entre os dois).
+    const rodape = botao("Configurações").parentElement!;
+    expect(p.getBoundingClientRect().bottom).toBeLessThanOrEqual(rodape.getBoundingClientRect().top + 1);
+    expect(p.nextElementSibling).toBe(rodape);
+  });
+
+  it("não existe sem chamada", async () => {
+    await abrirNoServidor();
+    expect(painel()).toBeNull();
+  });
+
+  it("sair age na chamada", async () => {
+    definirChamada({ estado: "dentro", channelId: "V2", desde: Date.now() });
+    await abrirNoServidor();
     await page.getByRole("button", { name: voz.sairDaChamada }).click();
     expect(ctl.saiu).toBe(1);
   });
 
-  it("sem permissão para conectar, a sala aparece sem a ação de entrar", async () => {
-    ctl.permitir = false;
+  it("segue visível na casa, durante a chamada", async () => {
+    definirChamada({ estado: "dentro", channelId: "V2", desde: Date.now() });
     await abrirNoServidor();
-    await page.getByRole("button", { name: /Jogatina/ }).last().click();
-    expect(pegar("section[aria-label='Jogatina']")!.textContent).not.toContain(salas.entrarNaSala);
+    irParaCasa();
+    await expect.poll(() => painel()).not.toBeNull();
+    expect(visivel(painel())).toBe(true);
+    expect(painel()!.querySelector(`button[aria-label='${voz.sairDaChamada}']`)).not.toBeNull();
   });
 
-  it("não cobre o campo de escrever: a camada reserva o rodapé da área principal", async () => {
+  it("com o palco do servidor aberto a coluna vira faixa e só a cápsula do palco tem controles", async () => {
+    definirChamada({ estado: "dentro", channelId: "V2", desde: Date.now() });
     await abrirNoServidor();
-    await page.getByRole("button", { name: voz.fixarNoCanto.br }).click().catch(() => undefined);
+    sala("Estudo").click();
+    await expect.poll(palco).not.toBeNull();
+    expect(painel()).toBeNull();
+    expect(document.querySelectorAll(`button[aria-label='${voz.sairDaChamada}']`).length).toBe(1);
+    expect(document.querySelectorAll(`button[aria-label='${voz.microfone}']`).length).toBe(1);
+  });
+
+  it("sem transmissão não há PiP; com alguém transmitindo ele aparece, sem repetir os controles", async () => {
+    definirChamada({ estado: "dentro", channelId: "V2", desde: Date.now() });
+    await abrirNoServidor();
+    expect(pip()).toBeNull();
+    expect(painel()).not.toBeNull();
+
+    // Na Jogatina (V1) o Caio transmite.
+    definirChamada({ channelId: "V1" });
+    await expect.poll(pip).not.toBeNull();
+    expect(pip()!.querySelector(`button[aria-label='${voz.microfone}']`)).toBeNull();
+    expect(document.querySelectorAll(`button[aria-label='${voz.microfone}']`).length).toBe(1);
+  });
+
+  it("a janelinha não cobre o campo de escrever: a camada reserva o rodapé da área principal", async () => {
+    definirChamada({ estado: "dentro", channelId: "V1", desde: Date.now() });
+    await abrirNoServidor();
+    await expect.poll(pip).not.toBeNull();
     const principal = pegar("main")!.getBoundingClientRect();
-    const widget = pegar("section[aria-label='Jogatina']")!.parentElement!.getBoundingClientRect();
-    expect(widget.bottom).toBeLessThan(principal.bottom - 40);
+    expect(pip()!.getBoundingClientRect().bottom).toBeLessThan(principal.bottom - 40);
+  });
+});
+
+describe("quem fala, sem corte", () => {
+  const NOME_LONGO = "Fulano de Tal Sobrenome Muito Muito Comprido Mesmo";
+
+  it("o nome cede com reticências; a bolinha e o 'está falando' ficam inteiros", async () => {
+    members.set(chaveDeMembro(S, "U1"), parcial({ id: "U1", displayName: NOME_LONGO, sigla: "FU" }));
+    vozPorCanal.set("V2", [participante("U1")]);
+    definirChamada({ estado: "dentro", channelId: "V2", desde: Date.now() });
+    definirFalantes(["U1"]);
+    await abrirNoServidor();
+    const p = painel()!;
+    await expect.poll(() => p.textContent).toContain(voz.estaFalando);
+    const nome = [...p.querySelectorAll("span")].find((e) => e.textContent === NOME_LONGO)!;
+    const sufixo = [...p.querySelectorAll("span")].find((e) => e.textContent === voz.estaFalando)!;
+    const bolinha = p.querySelector(`[role="img"][aria-label="${voz.estado.falando}"]`)!;
+    const caixa = p.getBoundingClientRect();
+    // O nome está truncado...
+    expect(nome.scrollWidth).toBeGreaterThan(nome.clientWidth);
+    expect(getComputedStyle(nome).textOverflow).toBe("ellipsis");
+    // ...o resto não: a bolinha mantém os 10px e o sufixo cabe inteiro dentro do painel.
+    expect(bolinha.getBoundingClientRect().width).toBeGreaterThanOrEqual(10);
+    expect(sufixo.scrollWidth).toBeLessThanOrEqual(sufixo.clientWidth);
+    expect(sufixo.getBoundingClientRect().right).toBeLessThanOrEqual(caixa.right);
+    expect(bolinha.getBoundingClientRect().left).toBeGreaterThanOrEqual(caixa.left);
+  });
+
+  it("o PiP segue a mesma regra", async () => {
+    members.set(chaveDeMembro(S, "U1"), parcial({ id: "U1", displayName: NOME_LONGO, sigla: "FU" }));
+    definirChamada({ estado: "dentro", channelId: "V1", desde: Date.now() });
+    definirFalantes(["U1"]);
+    await abrirNoServidor();
+    await expect.poll(pip).not.toBeNull();
+    const w = pip()!;
+    await expect.poll(() => w.textContent).toContain(voz.estaFalando);
+    const nome = [...w.querySelectorAll("span")].find((e) => e.textContent === NOME_LONGO)!;
+    const bolinha = w.querySelector(`[role="img"][aria-label="${voz.estado.falando}"]`)!;
+    expect(bolinha.getBoundingClientRect().width).toBeGreaterThanOrEqual(10);
+    expect(getComputedStyle(nome).textOverflow).toBe("ellipsis");
+  });
+});
+
+describe("linha da sala: o nome tem prioridade", () => {
+  it("com avatares e AO VIVO sem espaço, o nome fica inteiro e o resto vira +N e ponto", async () => {
+    channels.set(
+      "V1",
+      parcial({ id: "V1", serverId: S, name: "Jogatina Noturna", tipo: "voz", naoLidas: 0, mencoes: 0, silenciado: false }),
+    );
+    await abrirNoServidor();
+    const linha = sala("Jogatina Noturna");
+    const nome = [...linha.querySelectorAll("span")].find((e) => e.textContent === "Jogatina Noturna")!;
+    expect(nome.scrollWidth).toBeLessThanOrEqual(nome.clientWidth);
+    // O selo cheio cedeu; o ponto vermelho (ou nada) fica, nunca o rótulo cortado.
+    const selo = [...linha.querySelectorAll("span")].find((e) => e.textContent.trim() === "AO VIVO");
+    expect(visivel(selo ?? null)).toBe(false);
+    expect(visivel(linha.querySelector('[role="img"][aria-label="AO VIVO"]'))).toBe(true);
+  });
+
+  it("com espaço de sobra, o selo aparece inteiro", async () => {
+    await page.viewport(1600, 900);
+    definirProntidao(true);
+    abrirServidor(S);
+    montar(
+      <div style={{ inlineSize: "1600px", blockSize: "860px" }}>
+        <ShellDasSalas />
+      </div>,
+    );
+    await expect.element(page.getByRole("heading", { name: "Grupo", level: 2 })).toBeVisible();
+    // A coluna é do usuário (ele arrasta): larga, a sobra cabe tudo.
+    pegar("[data-testid='shell-grade']")!.style.setProperty("--larg-salas", "26rem");
+    const linha = sala("Jogatina");
+    const selo = [...linha.querySelectorAll("span")].find((e) => e.textContent.trim() === "AO VIVO");
+    await expect.poll(() => visivel(selo ?? null)).toBe(true);
   });
 });
 
@@ -292,12 +473,9 @@ describe("sem conexão", () => {
     await expect.element(page.getByText(salas.semConexao)).toBeVisible();
     // A contagem segue visível, mas dita como desatualizada.
     expect(coluna().querySelector('[role="img"][aria-label*="desatualizada"]')).not.toBeNull();
-    // O widget troca a lista de gente pelo aviso e não oferece Entrar.
-    await page.getByRole("button", { name: /Jogatina/ }).last().click();
-    const cartao = pegar("section[aria-label='Jogatina']")!;
-    expect(cartao.textContent).toContain(salas.presencaDesatualizada);
-    expect(cartao.textContent).not.toContain("Ana");
-    expect(cartao.textContent).not.toContain(salas.entrarNaSala);
+    // A sala não oferece entrar enquanto a conexão não volta.
+    expect(sala("Jogatina").getAttribute("aria-disabled")).toBe("true");
+    expect(document.body.textContent).not.toContain(salas.entrarNaSala);
     // Na gaveta, nenhum indicador de presença é afirmado.
     const lista = pegar("[data-testid='lista-de-membros']")!;
     expect(lista.textContent).toContain(shell.gaveta.desatualizada);

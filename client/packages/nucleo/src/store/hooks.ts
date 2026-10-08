@@ -69,6 +69,7 @@ import {
   type Recorte,
 } from "../sdk/topicos";
 import { assinarColapso, estaColapsada } from "./colapso";
+import { assinarFaixaDoPalco, lerFaixaRecolhida } from "./faixaDoPalco";
 import {
   assinarConexao,
   lerConexao,
@@ -873,6 +874,11 @@ export function useFalantes(ids: readonly string[]): readonly string[] {
 }
 
 /* ------------------------------------------------------------- palco */
+
+/** A faixa de miniaturas do palco está recolhida (preferência local)? */
+export function useFaixaDoPalcoRecolhida(): boolean {
+  return useSyncExternalStore(assinarFaixaDoPalco, lerFaixaRecolhida);
+}
 
 /** O que o palco de voz mostra (`fechado` = a pessoa está lendo o chat). */
 export function usePalco(): Palco {

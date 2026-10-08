@@ -271,13 +271,14 @@ function CorpoDaCasa() {
  * grupo e notas). Cada linha assina a própria conversa; a lista só assina os
  * IDs, já ordenados quando a casa abre.
  */
-export function ColunaDaCasa({ rodape }: { rodape?: ReactNode }) {
+export function ColunaDaCasa({ rodape, chamada }: { rodape?: ReactNode; chamada?: ReactNode }) {
   const [criando, setCriando] = useState(false);
   return (
     <>
       <ColunaDeSalas
         titulo={casa.coluna.titulo}
         rodape={rodape}
+        chamada={chamada}
         acoes={
           <Botao
             variante="fantasma"

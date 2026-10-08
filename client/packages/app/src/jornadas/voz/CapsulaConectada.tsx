@@ -1,13 +1,11 @@
-import { alternarCamera, alternarMudo, alternarSurdo, alternarTela } from "nucleo/sdk/chamada";
 import { assinarQualidadeDaTela, qualidadeEscolhida, rotuloDaQualidade } from "nucleo/store/qualidadeDaTela";
-import { useChamada, useFalantes, usePode, type PessoaNaSala } from "nucleo/store/hooks";
-import { toast } from "nucleo/ui-logica/toastStore";
+import { useChamada, useFalantes, type PessoaNaSala } from "nucleo/store/hooks";
 import { useSyncExternalStore } from "react";
 
 import { salas, voz } from "../../textos";
 import { CapsulaDeControle } from "../../ui/ds";
-import { sairDaSala } from "./acoes";
 import { useTempoDecorrido } from "./hooks";
+import { useControlesDaChamada } from "./useControlesDaChamada";
 
 /**
  * A cápsula de controles da chamada, ligada aos stores.
@@ -37,12 +35,7 @@ export function CapsulaConectada({
       : chamada.estado === "reconectando"
         ? voz.conexao.reconectando
         : undefined;
-  // Mudo e fone são preferência (valem antes de a sala existir). Câmera e tela precisam de sala.
-  const dentro = chamada.estado === "dentro" || chamada.estado === "reconectando";
-  // Controle que a pessoa não pode usar não aparece (PRD 4.7): sem `Speak` não há microfone,
-  // sem `Video` não há câmera nem transmissão.
-  const podeFalar = usePode(chamada.channelId, "falarNaVoz");
-  const podeTransmitir = usePode(chamada.channelId, "transmitirVideo");
+  const controles = useControlesDaChamada(nomeDaSala);
 
   return (
     <CapsulaDeControle
@@ -58,19 +51,7 @@ export function CapsulaConectada({
         mudo: p.mudo || p.surdo,
       }))}
       qualidade={chamada.tela && escolhida ? rotuloDaQualidade(escolhida) : undefined}
-      mudo={chamada.mudo}
-      surdo={chamada.surdo}
-      camera={chamada.camera}
-      tela={chamada.tela}
-      onMudo={podeFalar ? () => void alternarMudo() : undefined}
-      onSurdo={() => void alternarSurdo()}
-      onCamera={dentro && podeTransmitir ? () => void alternarCamera() : undefined}
-      onTela={dentro && podeTransmitir ? () => void alternarTela() : undefined}
-      onSair={() => {
-        void sairDaSala().then(() => {
-          toast({ tipo: "info", titulo: voz.conexao.saiu(nomeDaSala) });
-        });
-      }}
+      {...controles}
     />
   );
 }

@@ -101,7 +101,22 @@ export function LadrilhoDeTela({
   const nome = pessoa.nome || salas.alguem;
   const rotulo = pessoa.proprio ? voz.palco.suaTela : voz.palco.telaDe(nome);
 
-  const conteudo = (
+  // Miniatura/grade da PRÓPRIA tela: um cartão, nunca o vídeo. Espelhar a própria
+  // captura dentro dela mesma gera o corredor infinito, e a faixa própria nem é
+  // assinada (`proprio` desliga a assinatura).
+  const cartaoProprio = pessoa.proprio && aoAssistir !== undefined;
+
+  const conteudo = cartaoProprio ? (
+    <>
+      <div className={css.aguardando} data-testid="cartao-voce-transmite">
+        <Tela tamanho={20} />
+        <span className={css.aguardandoTitulo}>{voz.palco.vocePassaTransmitindo}</span>
+      </div>
+      <span className={css.aoVivo}>
+        <Pilula tipo="aoVivo" />
+      </span>
+    </>
+  ) : (
     <>
       {faixa ? (
         <VideoDaFaixa faixa={faixa} rotulo={rotulo} />

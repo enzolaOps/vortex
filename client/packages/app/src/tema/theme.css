@@ -26,6 +26,18 @@
 
 @import "./theme.gerado.css";
 
+/* Dimensões de componente compartilhadas (não são escala de espaço). */
+:root {
+  --vx-gaveta-min: 220px;
+  --vx-gaveta-max: 240px;
+  --vx-tira-altura: 120px;
+  --vx-tira-razao: 16 / 9;
+  --vx-tira-recolhida: 28px;
+  --vx-scroll-largura: 10px;
+  --vx-scroll-polegar: color-mix(in srgb, var(--vx-text-3) 35%, transparent);
+  --vx-scroll-polegar-hover: color-mix(in srgb, var(--vx-text-3) 60%, transparent);
+}
+
 @layer base {
   html,
   body,
@@ -51,5 +63,39 @@
   :focus-visible {
     outline: 2px solid var(--vx-focus-ring);
     outline-offset: 2px;
+  }
+}
+
+/*
+  Barra de rolagem fina em todo o app: trilho transparente, polegar neutro que
+  ganha presença no hover. Padrão (Firefox/Chromium novo) + prefixado para o
+  Electron. Quem precisa de outra coisa sobrescreve a regra no seu módulo.
+*/
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--vx-scroll-polegar) transparent;
+  }
+  *:hover {
+    scrollbar-color: var(--vx-scroll-polegar-hover) transparent;
+  }
+  ::-webkit-scrollbar {
+    inline-size: var(--vx-scroll-largura);
+    block-size: var(--vx-scroll-largura);
+    background: transparent;
+  }
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: var(--vx-radius-pill);
+    background: var(--vx-scroll-polegar);
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--vx-scroll-polegar-hover);
+    background-clip: content-box;
   }
 }

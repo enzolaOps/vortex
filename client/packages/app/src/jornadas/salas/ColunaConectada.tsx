@@ -1,11 +1,10 @@
 import { podeNoServidor, pode } from "nucleo/sdk/permissoes";
-import { definirPalco, fecharPalco } from "nucleo/store/palcoDeVoz";
-import { abrirTexto, lembrarSala } from "nucleo/store/ultimoLugar";
+import { fecharPalco } from "nucleo/store/palcoDeVoz";
+import { abrirTexto } from "nucleo/store/ultimoLugar";
 import {
   useCanaisDeTexto,
   useCanaisDeVoz,
   useCanalAtivo,
-  useCanalDaChamada,
   useChannel,
   useConexao,
   useDetalheDaConexao,
@@ -22,14 +21,17 @@ import { ColunaDaCasa } from "../casa/ColunaDaCasa";
 import { salas, shell } from "../../textos";
 import { Botao, ItemDeSala } from "../../ui/ds";
 import { MenuDoServidor } from "../admin/MenuDoServidor";
+import { PainelDaChamadaConectado } from "../voz/PainelDaChamadaConectado";
+import { useSalaDoPalco } from "../voz/hooks";
 import { ConvidarPessoas } from "./ConvidarPessoas";
 import { CriarSala } from "./CriarSala";
+import { useEntradaNaSala } from "./useEntradaNaSala";
 import css from "./Salas.module.css";
 
 function SalaDaColuna({ serverId, canalId }: { serverId: string; canalId: string }) {
   const canal = useChannel(canalId);
   const pessoas = usePessoasDaSala(serverId, canalId);
-  const aqui = useCanalDaChamada() === canalId;
+  const { aqui, motivo, clicar } = useEntradaNaSala(serverId, canalId);
   const desatualizada = useConexao() !== "conectado";
   if (!canal) return null;
   return (
@@ -40,11 +42,9 @@ function SalaDaColuna({ serverId, canalId }: { serverId: string; canalId: string
         aoVivo={pessoas.some((p) => p.estado === "tela")}
         conectado={aqui}
         desatualizada={desatualizada}
-        onClick={() => {
-          lembrarSala(serverId, canalId);
-          // A sala em que a pessoa está volta ao palco; a outra só vira o widget (entrar é um clique).
-          if (aqui) definirPalco({ tipo: "grade" });
-        }}
+        indisponivel={motivo}
+        // Clicar entra na sala e abre o palco (na que já é a sua, só abre o palco).
+        onClick={clicar}
       />
     </li>
   );
@@ -187,26 +187,30 @@ export function ColunaConectada({ rodape }: { rodape?: ReactNode }) {
   const local = useLocal();
   const serverId = useServidorAtivo();
   const servidor = useServer(serverId);
+  // Com o palco em tela cheia a coluna vira faixa e a cápsula do palco assume os controles.
+  const emFaixa = useSalaDoPalco(local.tipo === "servidor" ? local.serverId : undefined).aberto;
+  const chamada = emFaixa ? undefined : <PainelDaChamadaConectado />;
 
   if (!pronto) {
     return (
-      <ColunaDeSalas titulo={salas.carregandoServidor} rodape={rodape}>
+      <ColunaDeSalas titulo={salas.carregandoServidor} rodape={rodape} chamada={chamada}>
         <EsqueletoDeSalas />
       </ColunaDeSalas>
     );
   }
   // Depois do Ready, a casa (amigos e conversas) tem a própria coluna; o resto do shell não sabe disso.
   if (local.tipo === "casa" || local.tipo === "amigos" || local.tipo === "dm") {
-    return <ColunaDaCasa rodape={rodape} />;
+    return <ColunaDaCasa rodape={rodape} chamada={chamada} />;
   }
   if (local.tipo !== "servidor" || !servidor) {
-    return <ColunaDeSalas rodape={rodape}>{<p className={css.nota}>{shell.salas.vazio}</p>}</ColunaDeSalas>;
+    return <ColunaDeSalas rodape={rodape} chamada={chamada}>{<p className={css.nota}>{shell.salas.vazio}</p>}</ColunaDeSalas>;
   }
   return (
     <ColunaDeSalas
       titulo={servidor.name}
       acoes={<MenuDoServidor serverId={serverId} />}
       rodape={rodape}
+      chamada={chamada}
       aviso={<AvisoDeConexao />}
     >
       <ListaDoServidor serverId={serverId} />

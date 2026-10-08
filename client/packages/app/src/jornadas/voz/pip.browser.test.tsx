@@ -178,36 +178,50 @@ describe("PiP dentro do app", () => {
     expect(videoDoPip()).toBeNull();
   });
 
-  it("sem transmissão, mostra quem fala — avatar enquanto a câmera está desligada, sem assinar nada", async () => {
+  it("sem transmissão não há PiP: os controles ficam no painel da coluna de salas", async () => {
     await abrir(semTransmissao());
     entrar();
-    await expect.element(page.getByRole("region", { name: voz.chamada })).toBeVisible();
+    await expect.element(page.getByRole("region", { name: voz.painelDaChamada })).toBeVisible();
+    expect(widget()).toBeNull();
     expect(videoDoPip()).toBeNull();
-
+    // Quem fala não faz a janelinha aparecer: ela é da transmissão.
     definirFalantes(["U2"]);
-    await expect.poll(videoDoPip).not.toBeNull();
-    expect(videoDoPip()!.dataset).toMatchObject({ pessoa: "U2", fonte: "camera" });
-    expect(videoDoPip()!.getAttribute("aria-label")).toBe(voz.pip.videoDe("Caio"));
+    await expect
+      .poll(() => pegar("section[aria-label='" + voz.painelDaChamada + "']")!.textContent)
+      .toContain(voz.falando("Caio"));
+    expect(widget()).toBeNull();
     expect(ctl.assinaturas.filter((a) => a.startsWith("+"))).toEqual([]);
-
-    // Quem fala muda: o foco acompanha.
-    definirFalantes(["U3"]);
-    await expect.poll(() => videoDoPip()?.dataset.pessoa).toBe("U3");
   });
 
-  it("câmera ligada de quem fala é assinada (camada média)", async () => {
-    await abrir(semTransmissao());
-    entrar({ comCamera: ["U2"] });
-    definirFalantes(["U2"]);
-    await expect.poll(() => ctl.assinaturas).toContain("+U2:camera");
-    expect(ctl.assinaturas).toContain("q:U2:camera:baixa");
-  });
-
-  it("ninguém falando e ninguém transmitindo: sem foco inventado", async () => {
+  it("a janelinha aparece quando alguém começa a transmitir e some quando para", async () => {
     await abrir(semTransmissao());
     entrar();
-    await expect.element(page.getByRole("region", { name: voz.chamada })).toBeVisible();
-    expect(videoDoPip()).toBeNull();
+    await expect.element(page.getByRole("region", { name: voz.painelDaChamada })).toBeVisible();
+    expect(widget()).toBeNull();
+
+    vozPorCanal.set("V1", quatro());
+    await expect.poll(widget).not.toBeNull();
+    await expect.poll(videoDoPip).not.toBeNull();
+
+    vozPorCanal.set("V1", semTransmissao());
+    await expect.poll(widget).toBeNull();
+  });
+
+  it("transmitir você mesmo também mostra a janelinha, com a sua tela", async () => {
+    await abrir(semTransmissao());
+    entrar({ tela: true });
+    await expect.poll(widget).not.toBeNull();
+    expect(widget()!.textContent).toContain(voz.palco.suaTela);
+  });
+
+  it("a janelinha não repete os controles: microfone, fone e sair só existem no painel", async () => {
+    await abrir(quatro());
+    entrar();
+    await expect.poll(widget).not.toBeNull();
+    for (const nome of [voz.microfone, voz.audioRecebido, voz.sairDaChamada]) {
+      expect(widget()!.querySelector(`button[aria-label='${nome}']`)).toBeNull();
+      expect(document.querySelectorAll(`button[aria-label='${nome}']`).length).toBe(1);
+    }
   });
 });
 
@@ -226,7 +240,7 @@ describe("arrastar o widget", () => {
   }
 
   it("solto no quadrante de cima, à esquerda, prende no canto superior esquerdo e salva", async () => {
-    await abrir(semTransmissao());
+    await abrir(quatro());
     entrar();
     await expect.element(page.getByRole("region", { name: voz.chamada })).toBeVisible();
     expect(lerCantoDaSala()).toBe("br");
@@ -249,7 +263,7 @@ describe("arrastar o widget", () => {
   });
 
   it("fica acima da reserva do composer em qualquer canto de baixo", async () => {
-    await abrir(semTransmissao());
+    await abrir(quatro());
     entrar();
     await expect.element(page.getByRole("region", { name: voz.chamada })).toBeVisible();
     const camada = widget()!.parentElement!.getBoundingClientRect();
@@ -259,7 +273,7 @@ describe("arrastar o widget", () => {
   });
 
   it("um clique sem mover não muda o canto, e começar em um botão não arrasta", async () => {
-    await abrir(semTransmissao());
+    await abrir(quatro());
     entrar();
     await expect.element(page.getByRole("region", { name: voz.chamada })).toBeVisible();
     const palco = widget()!.firstElementChild!;
@@ -278,7 +292,7 @@ describe("arrastar o widget", () => {
   });
 
   it("cancelar o arrasto (pointercancel) devolve o widget sem mudar o canto", async () => {
-    await abrir(semTransmissao());
+    await abrir(quatro());
     entrar();
     await expect.element(page.getByRole("region", { name: voz.chamada })).toBeVisible();
     const palco = widget()!.firstElementChild!;
@@ -289,7 +303,7 @@ describe("arrastar o widget", () => {
   });
 
   it("os quatro botões de canto continuam sendo o caminho do teclado", async () => {
-    await abrir(semTransmissao());
+    await abrir(quatro());
     entrar();
     await page.getByRole("region", { name: voz.chamada }).hover();
     await page.getByRole("button", { name: voz.fixarNoCanto.tr }).click();
@@ -301,7 +315,7 @@ describe("botão de destacar", () => {
   const botao = () => document.querySelector(`button[aria-label='${voz.destacar.destacar}']`);
 
   async function noWidget() {
-    await expect.element(page.getByRole("region", { name: voz.chamada })).toBeVisible();
+    await expect.element(page.getByRole("region", { name: voz.painelDaChamada })).toBeVisible();
   }
 
   it("some onde não há como destacar (sem casca e sem Document PiP)", async () => {
@@ -327,7 +341,6 @@ describe("botão de destacar", () => {
     await abrir(semTransmissao());
     entrar();
     await noWidget();
-    await page.getByRole("region", { name: voz.chamada }).hover();
     await expect.poll(botao).not.toBeNull();
     (botao() as HTMLElement).click();
 
@@ -339,7 +352,6 @@ describe("botão de destacar", () => {
     expect(filha.document.body.style.background).toContain("transparent");
 
     // O botão agora traz de volta.
-    await page.getByRole("region", { name: voz.chamada }).hover();
     await expect.poll(() => document.querySelector(`button[aria-label='${voz.destacar.trazerDeVolta}']`)).not.toBeNull();
   });
 
@@ -351,8 +363,7 @@ describe("botão de destacar", () => {
       await abrir(semTransmissao());
       entrar();
       await noWidget();
-      await page.getByRole("region", { name: voz.chamada }).hover();
-      await expect.poll(botao).not.toBeNull();
+        await expect.poll(botao).not.toBeNull();
       (botao() as HTMLElement).click();
       await expect.poll(lerJanelaDestacada).toBe(filha);
       expect(requestWindow).toHaveBeenCalledOnce();
@@ -362,7 +373,7 @@ describe("botão de destacar", () => {
     }
   });
 
-  it("recusado pela casca (window.open devolveu null): nada abre e o widget segue", async () => {
+  it("recusado pela casca (window.open devolveu null): nada abre e o painel segue", async () => {
     (window as { vortexPopout?: unknown }).vortexPopout = {
       definirTopo: vi.fn(),
       protegerConteudo: vi.fn(),
@@ -371,12 +382,11 @@ describe("botão de destacar", () => {
     await abrir(semTransmissao());
     entrar();
     await noWidget();
-    await page.getByRole("region", { name: voz.chamada }).hover();
     await expect.poll(botao).not.toBeNull();
     (botao() as HTMLElement).click();
     await new Promise((r) => setTimeout(r, 50));
     expect(lerJanelaDestacada()).toBeUndefined();
-    expect(widget()).not.toBeNull();
+    expect(pegar("section[aria-label='" + voz.painelDaChamada + "']")).not.toBeNull();
   });
 });
 

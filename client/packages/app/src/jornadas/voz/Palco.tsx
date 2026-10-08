@@ -3,19 +3,21 @@ import {
   useCanaisDeTexto,
   useChamada,
   useChannel,
+  useFaixaDoPalcoRecolhida,
   useFalhaDeVoz,
   usePalco,
   usePessoasDaSala,
   useUltimoLugar,
 } from "nucleo/store/hooks";
 import { abrirConversa } from "nucleo/store/navegacao";
+import { definirFaixaRecolhida } from "nucleo/store/faixaDoPalco";
 import { definirPalco, fecharPalco } from "nucleo/store/palcoDeVoz";
 import { abrirTexto } from "nucleo/store/ultimoLugar";
 import { useId, useState } from "react";
 
 import { voz } from "../../textos";
 import { Botao } from "../../ui/ds";
-import { Alerta, Mensagem, SetaEsquerda } from "../../ui/icones";
+import { Alerta, Mensagem, SetaEsquerda, SetaParaBaixo, SetaParaCima } from "../../ui/icones";
 import { CapsulaConectada } from "./CapsulaConectada";
 import { entrarComPalco, voltarDoPalco } from "./acoes";
 import { LadrilhoDePessoa, LadrilhoDeTela, type PessoaDoPalco } from "./Ladrilhos";
@@ -150,6 +152,8 @@ export function PalcoDaSala({ serverId, canalId }: { serverId: string; canalId: 
   const falha = useFalhaDeVoz();
   const brutas = usePessoasDaSala(serverId, canalId);
   const [emGrade, setEmGrade] = useState(false);
+  const recolhida = useFaixaDoPalcoRecolhida();
+  const idDaTira = useId();
   const eu = usuarioLocalId();
   const nome = canal?.name ?? voz.sala;
 
@@ -259,25 +263,44 @@ export function PalcoDaSala({ serverId, canalId }: { serverId: string; canalId: 
               <div className={css.foco}>
                 <LadrilhoDeTela pessoa={foco} papel="foco" />
               </div>
-              <div className={css.tira} data-testid="tira-do-palco">
-                {pessoas
-                  .filter((p) => p.id !== foco.id)
-                  .map((p) => (
-                    <LadrilhoDePessoa key={p.id} pessoa={p} papel="miniatura" />
-                  ))}
-                {transmissores
-                  .filter((p) => p.id !== foco.id)
-                  .map((p) => (
-                    <LadrilhoDeTela
-                      key={`tela-${p.id}`}
-                      pessoa={p}
-                      papel="miniatura"
-                      aoAssistir={() => {
-                        setEmGrade(false);
-                        definirPalco({ tipo: "assistindo", userId: p.id });
-                      }}
-                    />
-                  ))}
+              <div className={css.faixa} data-recolhida={recolhida || undefined} data-testid="faixa-do-palco">
+                <Botao
+                  variante="fantasma"
+                  tamanho="sm"
+                  className={css.recolher}
+                  icone={recolhida ? <SetaParaCima /> : <SetaParaBaixo />}
+                  aria-expanded={!recolhida}
+                  aria-controls={idDaTira}
+                  data-testid="recolher-faixa"
+                  onClick={() => {
+                    definirFaixaRecolhida(!recolhida);
+                  }}
+                >
+                  {recolhida ? voz.palco.expandirFaixa : voz.palco.recolherFaixa}
+                </Botao>
+                {/* Recolhida, nada monta: nenhuma miniatura, nenhuma assinatura de vídeo. */}
+                {!recolhida && (
+                  <div id={idDaTira} className={css.tira} data-testid="tira-do-palco">
+                    {pessoas
+                      .filter((p) => p.id !== foco.id)
+                      .map((p) => (
+                        <LadrilhoDePessoa key={p.id} pessoa={p} papel="miniatura" />
+                      ))}
+                    {transmissores
+                      .filter((p) => p.id !== foco.id)
+                      .map((p) => (
+                        <LadrilhoDeTela
+                          key={`tela-${p.id}`}
+                          pessoa={p}
+                          papel="miniatura"
+                          aoAssistir={() => {
+                            setEmGrade(false);
+                            definirPalco({ tipo: "assistindo", userId: p.id });
+                          }}
+                        />
+                      ))}
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -309,7 +332,8 @@ export function PalcoDaSala({ serverId, canalId }: { serverId: string; canalId: 
       {estado === "fora" && <Fora canalId={canalId} nome={nome} />}
       {estado === "falhou" && falha && <Falha canalId={canalId} nome={nome} motivo={falha.motivo} />}
 
-      {(estado === "conectando" || estado === "dentro" || estado === "reconectando") && (
+      {/* Num servidor a coluna de salas vira faixa e a cápsula é daqui; na DM a coluna segue à vista com o painel dela. */}
+      {serverId !== "" && (estado === "conectando" || estado === "dentro" || estado === "reconectando") && (
         <div className={css.capsulaNoPalco}>
           <CapsulaConectada nomeDaSala={nome} pessoas={brutas} />
         </div>

@@ -1,9 +1,6 @@
-import { definirPalco } from "nucleo/store/palcoDeVoz";
-import { lembrarSala } from "nucleo/store/ultimoLugar";
 import {
   useCanaisDeTexto,
   useCanaisDeVoz,
-  useCanalDaChamada,
   useChannel,
   usePessoasDaSala,
 } from "nucleo/store/hooks";
@@ -13,11 +10,12 @@ import { salas, shell } from "../../textos";
 import { Avatar, PainelVidro } from "../../ui/ds";
 import { Canal } from "../../ui/icones";
 import css from "./Faixa.module.css";
+import { useEntradaNaSala } from "./useEntradaNaSala";
 
 function SalaNaFaixa({ serverId, canalId }: { serverId: string; canalId: string }) {
   const canal = useChannel(canalId);
   const pessoas = usePessoasDaSala(serverId, canalId);
-  const aqui = useCanalDaChamada() === canalId;
+  const { aqui, motivo, clicar } = useEntradaNaSala(serverId, canalId);
   if (!canal) return null;
   const dito = pessoas.length === 0 ? shell.faixa.vazia : salas.naSala(pessoas.length);
   return (
@@ -25,11 +23,11 @@ function SalaNaFaixa({ serverId, canalId }: { serverId: string; canalId: string 
       type="button"
       className={css.sala}
       data-aqui={aqui || undefined}
-      aria-label={`${canal.name}, ${dito}`}
-      onClick={() => {
-        lembrarSala(serverId, canalId);
-        if (aqui) definirPalco({ tipo: "grade" });
-      }}
+      aria-label={motivo === undefined ? `${canal.name}, ${dito}` : `${canal.name}, ${dito}. ${motivo}`}
+      aria-disabled={motivo !== undefined || undefined}
+      title={motivo}
+      // Clicar entra na sala e abre o palco (na que já é a sua, só abre o palco).
+      onClick={clicar}
     >
       <Avatar nome={canal.name} id={canalId} tamanho={40} />
       <span className={css.contagem} aria-hidden="true">

@@ -94,17 +94,48 @@
   background: var(--vx-stage);
 }
 
-.tira {
+/*
+  A faixa de miniaturas: abaixo da transmissão em foco, centrada. Cada miniatura
+  é 16:9 com altura FIXA (`--vx-tira-altura`), nunca esticada até a largura toda;
+  não cabendo, a tira rola na horizontal. Recolhida, vira uma barra fina só com o
+  botão e devolve a altura ao foco.
+*/
+.faixa {
   display: flex;
   flex: none;
-  gap: 10px;
-  block-size: 108px;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--vx-space-1);
+  min-inline-size: 0;
+}
+.faixa[data-recolhida] {
+  block-size: var(--vx-tira-recolhida);
+  justify-content: center;
+}
+.recolher {
+  flex: none;
 }
 .tira {
+  display: flex;
+  inline-size: 100%;
+  min-inline-size: 0;
+  gap: 10px;
+  padding-block-end: var(--vx-space-1);
   overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
 }
 .tira > * {
-  flex: 1 0 140px;
+  flex: none;
+  block-size: var(--vx-tira-altura);
+  aspect-ratio: var(--vx-tira-razao);
+}
+/* Centra enquanto cabe; `margin: auto` nas pontas não corta o início quando rola. */
+.tira > :first-child {
+  margin-inline-start: auto;
+}
+.tira > :last-child {
+  margin-inline-end: auto;
 }
 
 .grade {

@@ -7,6 +7,7 @@ export * from "./Digitando";
 export * from "./FundoVidro";
 export * from "./ItemDeSala";
 export * from "./Mensagem";
+export * from "./PainelDaChamada";
 export * from "./PainelVidro";
 export * from "./Pilula";
 export * from "./WidgetDaChamada";

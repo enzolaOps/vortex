@@ -15,16 +15,14 @@
 }
 
 /*
-  A medida de leitura: a coluna da conversa trava e se centra, e o excedente do
-  ultrawide vira respiro dos dois lados em vez de texto esticado até 3000px.
-  O composer usa esta mesma coluna: o valor (`--medida-da-conversa`) é declarado por
-  quem monta os dois, `AreaDeChat`, e o fallback só vale fora dela.
+  A coluna da conversa ocupa TODA a largura disponível, alinhada ao início: o
+  recuo de leitura é o da própria linha (`--vx-space-4`) e o composer usa o mesmo
+  (`AreaDeChat`). Sem teto nem centralização — o excedente do ultrawide é
+  resolvido pelos painéis laterais, não por margem morta.
 */
 .coluna {
   box-sizing: border-box;
   inline-size: 100%;
-  max-inline-size: var(--medida-da-conversa, 56rem);
-  margin-inline: auto;
   min-inline-size: 0;
   padding-block: var(--vx-space-3);
 }
