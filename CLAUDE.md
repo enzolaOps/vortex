@@ -14,7 +14,7 @@ e pendências está no git.
 ```text
 client/                  pnpm workspace (lockfile próprio)
   packages/app/          a interface (React 19, Vite, Tailwind v4, Radix, Lucide)
-  packages/nucleo/       lógica sem UI: sdk/ (adapter), store/, markdown/, rota/, som/, tema/cor, arnes/
+  packages/nucleo/       lógica sem UI: sdk/ (adapter), store/, markdown/, rota/, som/, arnes/
   packages/stoat.js/     SDK do protocolo (submodule). Precisa de `pnpm build` antes de tudo
 server/                  backend Rust (fork do stoatchat). Só `delta` (API) e `bonfire` (events) são publicados
 brand/                   marca (vortex-simbolo, -cor, logotipo, icone-app) e `generate.mjs`, que gera os ícones do desktop
