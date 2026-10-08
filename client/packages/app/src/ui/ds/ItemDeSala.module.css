@@ -120,16 +120,18 @@
 
 /*
   O que vem depois do nome (avatares e selo) mora num contêiner que só recebe a
-  SOBRA da linha: base zero, cresce, nunca empurra o nome. A largura dele decide o
-  degrau: cheio → "+N" e ponto → só o ponto → nada.
+  SOBRA da linha: base zero, cresce, nunca empurra o nome. Quem decide o degrau é
+  `grauDosExtras`, que MEDE a largura natural de cada peça contra a sobra
+  (`data-grau`); nada aqui supõe um número. Peça que não é do grau sai do fluxo
+  (absoluta e invisível) em vez de display:none, para continuar medível.
 */
 .extras {
+  position: relative;
   display: flex;
   flex: 1 1 0;
   justify-content: flex-end;
   min-inline-size: 0;
   overflow: hidden;
-  container-type: inline-size;
 }
 .extrasInterno {
   display: inline-flex;
@@ -137,12 +139,13 @@
   align-items: center;
   gap: var(--vx-space-2);
 }
-.chipDePessoas,
-.pontoVivo {
-  display: none;
+.peca {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  inline-size: max-content;
 }
 .chipDePessoas {
-  flex: none;
   color: var(--vx-text-2);
   font-family: var(--vx-font-mono);
   font-size: var(--vx-type-mono-size);
@@ -150,36 +153,29 @@
   font-variant-numeric: tabular-nums;
 }
 .pontoVivo {
-  flex: none;
   inline-size: 8px;
   block-size: 8px;
   border-radius: 50%;
   background: var(--vx-live);
 }
 
-/* Sobra menor que avatares + selo: "+N" e só o ponto vermelho. */
-@container (inline-size < 9rem) {
-  /* Especificidade dobrada: precisam vencer o display do Avatar e da Pilula em qualquer ordem de CSS. */
-  .extras .pilhaCheia,
-  .extras .seloCheio {
-    display: none;
-  }
-  .extras .chipDePessoas,
-  .extras .pontoVivo {
-    display: inline-flex;
-  }
+/* Fora do grau: tira do fluxo, mas mantém a caixa medível. */
+.extras .peca {
+  position: absolute;
+  inset-inline-start: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
-/* Sobra mínima: só o ponto (o "+N" já está na contagem à direita). */
-@container (inline-size < 3.5rem) {
-  .extras .chipDePessoas {
-    display: none;
-  }
-}
-/* Nem o ponto cabe: o nome fica com tudo. */
-@container (inline-size < 0.75rem) {
-  .extras .pontoVivo {
-    display: none;
-  }
+.extras[data-grau="0"] [data-peca="pilha"],
+.extras[data-grau="0"] [data-peca="selo"],
+.extras[data-grau="1"] [data-peca="pilha"],
+.extras[data-grau="1"] [data-peca="ponto"],
+.extras[data-grau="2"] [data-peca="chip"],
+.extras[data-grau="2"] [data-peca="ponto"],
+.extras[data-grau="3"] [data-peca="ponto"] {
+  position: static;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .indisponivel {

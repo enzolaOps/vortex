@@ -158,7 +158,8 @@ const sala = (nome: string) =>
 const painel = () => pegar("section[aria-label='" + voz.painelDaChamada + "']");
 const palco = () => pegar("[data-testid='palco']");
 const pip = () => pegar("section[aria-label='" + voz.chamada + "']");
-const visivel = (el: Element | null) => el !== null && el.getClientRects().length > 0;
+/** Visível de verdade: tem caixa E não está escondido (peça fora do grau fica medível, mas invisível). */
+const visivel = (el: Element | null) => el !== null && el.getClientRects().length > 0 && getComputedStyle(el).visibility === "visible";
 
 describe("carregando", () => {
   it("mostra esqueleto na coluna, na dock e na gaveta até o Ready, sem afirmar nada", async () => {
