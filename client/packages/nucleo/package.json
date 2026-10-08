@@ -20,7 +20,6 @@
     "./notificacao/*": "./src/notificacao/*.ts",
     "./rota/*": "./src/rota/*.ts",
     "./som/*": "./src/som/*.ts",
-    "./preset/*": "./src/preset/*.ts",
     "./testes/*": "./src/testes/*.ts",
     "./ui-logica/*": "./src/ui-logica/*.ts",
     "./arnes/*": "./src/arnes/*.ts"

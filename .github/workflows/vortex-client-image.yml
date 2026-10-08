@@ -94,7 +94,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter stoat.js build
       - run: pnpm --filter nucleo check
-      - run: pnpm --filter client check
+      # Os testes do app rodam em navegador (vitest browser): sem o Chromium do
+      # Playwright o `check` morre em `browserType.launch` antes do primeiro teste.
+      - run: pnpm --filter app exec playwright install --with-deps chromium
+      - run: pnpm --filter app check
 
   # Check required. Falha se o check do PR falhou; passa se não tocou client/.
   result:
@@ -175,14 +178,7 @@ jobs:
         id: push
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
-          # ⚠ **Contexto na RAIZ, e não em `./client`.** O `vite.config.ts`
-          # tem um plugin que lê `brand/vortex-simbolo.svg` da raiz e o emite no bundle;
-          # com o contexto na ilha o build morre em `ENOENT: /brand/vortex-simbolo.svg`.
-          # Descoberto construindo a imagem localmente — o `pnpm build` do host
-          # passa, porque lá o arquivo está a três níveis acima.
-          #
-          # O `.dockerignore` da raiz derruba tudo que não é `brand/` ou
-          # `client/`, então o contexto não carrega `vendor/`.
+          # Contexto na RAIZ; o `.dockerignore` derruba `vendor/` e deixa só `client/` e `brand/`.
           context: .
           file: ./client/Dockerfile
           # amd64 custa quase nada aqui (o estágio de build é compartilhado) e

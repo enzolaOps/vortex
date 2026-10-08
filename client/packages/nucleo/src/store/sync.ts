@@ -6,7 +6,6 @@
  */
 
 export const CHAVES_SYNC = [
-  "vortex:preset",
   "vortex:privacidade",
   "vortex:voz",
   "vortex:notificacoes",

@@ -38,7 +38,7 @@ AGENTS.local.md
 /packages/
 
 # Mesma origem e mesmo risco: o lockfile de verdade e por ILHA
-# (`vendor/stoat-web/`, `client/`, `client/packages/client/`,
+# (`vendor/stoat-web/`, `client/`,
 # `vendor/stoat-desktop/`), e os quatro
 # sao rastreados. Um lockfile na raiz nao pertence a ilha nenhuma.
 /pnpm-lock.yaml

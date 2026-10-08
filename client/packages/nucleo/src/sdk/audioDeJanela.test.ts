@@ -109,8 +109,10 @@ describe("janela nunca leva o som do sistema", () => {
   );
 
   it("o cliente só pede áudio ao getDisplayMedia para tela inteira", () => {
-    expect(motor).toContain(
-      "const audioDoSistema = escolha.audio && !ehJanela(escolha.fonteId);",
+    // O invariante é "janela nunca pede áudio do sistema"; outras condições podem
+    // somar-se a ele (ex.: o mixer de apps) e a formatação pode quebrar a linha.
+    expect(motor).toMatch(
+      /const audioDoSistema =\s*escolha\.audio && !ehJanela\(escolha\.fonteId\)/,
     );
     expect(motor).toContain("audio: audioDoSistema ? AUDIO_DA_TELA : false,");
   });
