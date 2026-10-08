@@ -4,14 +4,16 @@ import { chaveDeMembro } from "nucleo/sdk/domain";
 import { pode } from "nucleo/sdk/permissoes";
 import { useChannel, useConexao, useMembro, useMessage, useRascunho } from "nucleo/store/hooks";
 import { limparRascunho, escreverRascunho } from "nucleo/store/rascunhos";
-import { cancelarResposta } from "nucleo/store/resposta";
+import { registrarEmojiRecente } from "nucleo/store/emojisRecentes";
+import { cancelarResposta, responderA } from "nucleo/store/resposta";
 import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent } from "react";
 
 import { chat } from "../../textos";
 import { CampoDeMensagem } from "../../ui/ds";
-import { Arquivo, Cadeado, Fechar, Imagem, SemConexao } from "../../ui/icones";
+import { Arquivo, Arroba, Cadeado, Fechar, Imagem, SemConexao } from "../../ui/icones";
 import { trechoDe } from "./CitacaoDeResposta";
 import css from "./Composer.module.css";
+import { SeletorNoComposer } from "./emoji/SeletoresDeEmoji";
 import { useAlvoDeResposta, usePendentesDoCanal } from "./hooks";
 import { pedirFimDaLista } from "./saltos";
 
@@ -20,10 +22,12 @@ const MAXIMO_DE_ANEXOS = 5;
 
 function PreviaDeResposta({
   alvoId,
+  mencionar,
   canalId,
   servidorId,
 }: {
   alvoId: string;
+  mencionar: boolean;
   canalId: string;
   servidorId: string;
 }) {
@@ -38,6 +42,20 @@ function PreviaDeResposta({
           {alvo === undefined ? chat.respostaIndisponivel : trechoDe(alvo.content, servidorId)}
         </span>
       </span>
+      {/* O nome do recurso é fixo e o estado vai no aria-pressed: um rótulo que alterna faz o leitor de tela anunciar o inverso. */}
+      <button
+        type="button"
+        className={css.mencionar}
+        aria-label={chat.mencionarResposta}
+        aria-pressed={mencionar}
+        title={chat.mencionarRespostaDica(mencionar)}
+        onClick={() => {
+          responderA(canalId, alvoId, !mencionar);
+        }}
+      >
+        <Arroba tamanho={14} />
+        {mencionar ? chat.respostaAvisa : chat.respostaSemAviso}
+      </button>
       <button
         type="button"
         className={css.fechar}
@@ -97,6 +115,7 @@ export function Composer({ canalId, servidorId }: { canalId: string; servidorId:
   const [aviso, setAviso] = useState<string | undefined>(undefined);
   const area = useRef<HTMLTextAreaElement | null>(null);
   const seletor = useRef<HTMLInputElement | null>(null);
+  const [emojiAberto, setEmojiAberto] = useState(false);
 
   // Armar uma resposta leva o foco ao campo: quem clicou em responder vai escrever.
   const alvoId = alvo?.messageId;
@@ -173,6 +192,19 @@ export function Composer({ canalId, servidorId }: { canalId: string; servidorId:
     }
   };
 
+  const inserirEmoji = (glifo: string) => {
+    registrarEmojiRecente(glifo);
+    const el = area.current;
+    // Na posição do cursor; concatenar no fim faria o glifo saltar para depois de uma frase já escrita.
+    const de = el?.selectionStart ?? rascunho.length;
+    const ate = el?.selectionEnd ?? rascunho.length;
+    mudar(`${rascunho.slice(0, de)}${glifo}${rascunho.slice(ate)}`);
+    setEmojiAberto(false);
+    requestAnimationFrame(() => {
+      el?.setSelectionRange(de + glifo.length, de + glifo.length);
+    });
+  };
+
   const aoColar = (e: ClipboardEvent<HTMLDivElement>) => {
     if (e.clipboardData.files.length === 0) return;
     // Imagem colada vira anexo; texto colado segue o caminho normal do campo.
@@ -190,7 +222,7 @@ export function Composer({ canalId, servidorId }: { canalId: string; servidorId:
   const topo =
     alvo !== undefined || arquivos.length > 0 || aviso !== undefined ? (
       <div className={css.topo}>
-        {alvo !== undefined && <PreviaDeResposta alvoId={alvo.messageId} canalId={canalId} servidorId={servidorId} />}
+        {alvo !== undefined && <PreviaDeResposta alvoId={alvo.messageId} mencionar={alvo.mencionar} canalId={canalId} servidorId={servidorId} />}
         {arquivos.length > 0 && (
           <ul className={css.fichas} aria-label={chat.anexosSelecionados}>
             {arquivos.map((arquivo, i) => (
@@ -213,6 +245,14 @@ export function Composer({ canalId, servidorId }: { canalId: string; servidorId:
     ) : undefined;
 
   return (
+    <SeletorNoComposer
+      aberto={emojiAberto}
+      aoMudar={setEmojiAberto}
+      aoEscolher={inserirEmoji}
+      aoFechar={() => {
+        area.current?.focus();
+      }}
+    >
     <div
       className={css.composer}
       onPaste={aoColar}
@@ -238,6 +278,9 @@ export function Composer({ canalId, servidorId }: { canalId: string; servidorId:
           area.current = el;
         }}
         onKeyDown={aoTeclar}
+        onEmoji={() => {
+          setEmojiAberto((a) => !a);
+        }}
         onAnexar={
           podeAnexar
             ? () => {
@@ -266,5 +309,6 @@ export function Composer({ canalId, servidorId }: { canalId: string; servidorId:
         </p>
       )}
     </div>
+    </SeletorNoComposer>
   );
 }

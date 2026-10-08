@@ -15,6 +15,9 @@ import { analisar } from "nucleo/markdown/analisar";
 import { chaveDeMembro, type ChannelSnapshot, type MessageSnapshot } from "nucleo/sdk/domain";
 import { limparConexao, pausarConexao } from "nucleo/store/conexao";
 import { limparEdicaoDeMensagem } from "nucleo/store/edicaoDeMensagem";
+import { limparEmojisRecentes } from "nucleo/store/emojisRecentes";
+import { fecharSeletorDeReacao } from "nucleo/store/seletorDeReacao";
+import { fecharVisualizador } from "nucleo/store/visualizadorDeImagem";
 import { limparFila, marcarPendente } from "nucleo/store/fila";
 import { escreverRascunho, limparRascunho } from "nucleo/store/rascunhos";
 import { cancelarResposta, responderA } from "nucleo/store/resposta";
@@ -938,5 +941,238 @@ describe("composer", () => {
     members.set(chaveDeMembro(S, "U2"), parcial({ ...base, displayName: "Ana Maria", avatarUrl: "http://localhost/a2.png" }));
     await expect.poll(() => linhaDe("f1")?.textContent).toContain("Ana Maria");
     expect(readCounters().rowRenders).toBeGreaterThan(0);
+  });
+});
+
+/* ================================= visualizador, seletor de emoji, resposta */
+
+describe("visualizador de imagem", () => {
+  const posicaoDe = (i: number, total: number) => `${i} ${chat.visualizador.de} ${total}`;
+  const img = (id: string, nome: string) => ({
+    id,
+    nome,
+    url: "/nao-existe.png",
+    tipo: "imagem" as const,
+    largura: 800,
+    altura: 600,
+    tamanhoTexto: "20 KB",
+  });
+  const dialogo = () => document.querySelector<HTMLElement>('[role="dialog"]');
+
+  beforeEach(() => {
+    fecharVisualizador();
+  });
+  afterEach(() => {
+    fecharVisualizador();
+  });
+
+  it("o anexo é um botão; clicar abre a mensagem com autor, canal e hora, e Esc fecha devolvendo o foco", async () => {
+    semear([snap("v1", { anexos: [img("a", "um.png"), img("b", "dois.png")] })]);
+    abrir();
+    await expect.poll(() => linhaDe("v1")?.querySelector("img")).not.toBeNull();
+    const gatilho = linhaDe("v1")!.querySelector<HTMLButtonElement>(`button[aria-label="${chat.abrirAnexo("um.png")}"]`)!;
+    expect(gatilho.tagName).toBe("BUTTON");
+    gatilho.focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(dialogo).not.toBeNull();
+    const texto = dialogo()!.textContent ?? "";
+    expect(texto).toContain("Ana");
+    expect(texto).toContain(chat.visualizador.emCanal("geral"));
+    expect(texto).toContain("14:32");
+    expect(texto).toContain(posicaoDe(1, 2));
+    expect(dialogo()!.querySelector<HTMLAnchorElement>("a[download]")?.getAttribute("download")).toBe("um.png");
+
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(dialogo).toBeNull();
+    await expect.poll(() => document.activeElement).toBe(gatilho);
+  });
+
+  it("as setas andam entre as imagens da mesma mensagem, no teclado e nos botões", async () => {
+    semear([snap("v2", { anexos: [img("a", "um.png"), img("b", "dois.png"), img("c", "tres.png")] })]);
+    abrir();
+    await expect.poll(() => linhaDe("v2")?.querySelector("img")).not.toBeNull();
+    linhaDe("v2")!.querySelector<HTMLButtonElement>(`button[aria-label="${chat.abrirAnexo("dois.png")}"]`)!.click();
+    await expect.poll(() => dialogo()?.textContent).toContain(posicaoDe(2, 3));
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => dialogo()?.textContent).toContain(posicaoDe(3, 3));
+    await page.getByRole("button", { name: chat.visualizador.proxima }).click();
+    await expect.poll(() => dialogo()?.textContent).toContain(posicaoDe(1, 3));
+    await userEvent.keyboard("{ArrowLeft}");
+    await expect.poll(() => dialogo()?.textContent).toContain(posicaoDe(3, 3));
+  });
+
+  it("com uma imagem só não há setas nem posição", async () => {
+    semear([snap("v3", { anexos: [img("a", "so.png")] })]);
+    abrir();
+    await expect.poll(() => linhaDe("v3")?.querySelector("img")).not.toBeNull();
+    linhaDe("v3")!.querySelector<HTMLButtonElement>(`button[aria-label="${chat.abrirAnexo("so.png")}"]`)!.click();
+    await expect.poll(dialogo).not.toBeNull();
+    expect(dialogo()!.querySelector(`[aria-label="${chat.visualizador.proxima}"]`)).toBeNull();
+    expect(dialogo()!.querySelector('[role="status"]')).toBeNull();
+  });
+});
+
+describe("seletor de emoji para reagir", () => {
+  const seletor = () => document.querySelector<HTMLElement>(`[aria-label="${chat.emoji.seletor}"]`);
+  const reagir = (id: string) =>
+    linhaDe(id)!.querySelector<HTMLButtonElement>("button[aria-label=Reagir]")!.click();
+
+  beforeEach(() => {
+    fecharSeletorDeReacao();
+    limparEmojisRecentes();
+  });
+
+  it("abre pela barra de ações, acha por nome sem acento, reage e fecha", async () => {
+    semear([snap("e1")]);
+    abrir();
+    await expect.poll(() => linhas().length).toBe(1);
+    reagir("e1");
+    await expect.poll(seletor).not.toBeNull();
+    // O módulo da lista carrega sob demanda, e a busca recebe o foco.
+    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe(chat.emoji.buscar);
+    await userEvent.keyboard("coracao");
+    await expect.poll(() => seletor()!.querySelectorAll("[data-emoji]").length).toBeGreaterThan(0);
+    const primeiro = seletor()!.querySelector<HTMLButtonElement>("[data-emoji]")!;
+    const glifo = primeiro.textContent;
+    primeiro.click();
+    expect(ctl.reacoes).toEqual([["e1", glifo]]);
+    await expect.poll(seletor).toBeNull();
+  });
+
+  it("busca sem resultado diz que não achou; categorias e recentes aparecem sem busca", async () => {
+    semear([snap("e2")]);
+    abrir();
+    await expect.poll(() => linhas().length).toBe(1);
+    reagir("e2");
+    await expect.poll(() => seletor()?.querySelector("[data-emoji]")).not.toBeNull();
+    expect(
+      seletor()!.querySelectorAll(`[role="group"][aria-label="${chat.emoji.categorias}"] button`).length,
+    ).toBeGreaterThan(3);
+    expect(seletor()!.textContent).not.toContain(chat.emoji.recentes);
+    await userEvent.keyboard("zzzzxx");
+    await expect.element(page.getByText(chat.emoji.semResultado("zzzzxx"))).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(seletor).toBeNull();
+
+    // Depois de escolher um, ele vira o primeiro dos recentes.
+    reagir("e2");
+    await expect.poll(() => seletor()?.querySelector("[data-emoji]")).not.toBeNull();
+    const escolhido = seletor()!.querySelectorAll<HTMLButtonElement>("[data-emoji]")[5]!;
+    const glifo = escolhido.textContent;
+    escolhido.click();
+    await expect.poll(seletor).toBeNull();
+    reagir("e2");
+    await expect.poll(() => seletor()?.textContent).toContain(chat.emoji.recentes);
+    expect(seletor()!.querySelector("[data-secao=recentes] [data-emoji]")!.textContent).toBe(glifo);
+  });
+
+  it("setas andam pela grade e Enter escolhe", async () => {
+    semear([snap("e3")]);
+    abrir();
+    await expect.poll(() => linhas().length).toBe(1);
+    reagir("e3");
+    await expect.poll(() => seletor()?.querySelector("[data-emoji]")).not.toBeNull();
+    const todos = () => Array.from(seletor()!.querySelectorAll<HTMLButtonElement>("[data-emoji]"));
+    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe(chat.emoji.buscar);
+    await userEvent.keyboard("{ArrowDown}");
+    expect(document.activeElement).toBe(todos()[0]);
+    await userEvent.keyboard("{ArrowRight}{ArrowDown}");
+    expect(document.activeElement).toBe(todos()[9]);
+    await userEvent.keyboard("{ArrowUp}{ArrowLeft}");
+    expect(document.activeElement).toBe(todos()[0]);
+    const primeiro = todos()[0]!.textContent;
+    await userEvent.keyboard("{Enter}");
+    expect(ctl.reacoes).toEqual([["e3", primeiro]]);
+  });
+
+  it("o menu de contexto tem Mais reações, que abre o mesmo seletor", async () => {
+    semear([snap("e4")]);
+    abrir();
+    await expect.poll(() => linhas().length).toBe(1);
+    clicarDireito(linhaDe("e4")!.querySelector("article")!);
+    await expect.poll(menu).not.toBeNull();
+    Array.from(menu()!.querySelectorAll<HTMLElement>('[role="menuitem"]'))
+      .find((i) => i.textContent?.includes(chat.emoji.maisReacoes))!
+      .click();
+    await expect.poll(seletor).not.toBeNull();
+    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe(chat.emoji.buscar);
+  });
+
+  it("sem permissão de reagir não há botão de reação na barra nem item no menu", async () => {
+    ctl.negadas.add("reagir");
+    semear([snap("e5")]);
+    abrir();
+    await expect.poll(() => linhas().length).toBe(1);
+    expect(linhaDe("e5")!.querySelector("button[aria-label=Reagir]")).toBeNull();
+    clicarDireito(linhaDe("e5")!.querySelector("article")!);
+    await expect.poll(menu).not.toBeNull();
+    expect(menu()!.textContent).not.toContain(chat.emoji.maisReacoes);
+  });
+});
+
+describe("seletor de emoji no composer", () => {
+  const seletor = () => document.querySelector<HTMLElement>(`[aria-label="${chat.emoji.seletor}"]`);
+  const botao = () => pegar<HTMLButtonElement>("button[data-gatilho-de-emoji]")!;
+  const area = () => pegar<HTMLTextAreaElement>("textarea")!;
+
+  beforeEach(() => {
+    limparEmojisRecentes();
+  });
+
+  it("insere na posição do cursor, devolve o foco ao campo e o botão também fecha", async () => {
+    semear([snap("c1")]);
+    abrir();
+    await expect.poll(() => pegar("textarea")).not.toBeNull();
+    escreverRascunho(C, "oi mundo");
+    await expect.poll(() => area().value).toBe("oi mundo");
+    area().focus();
+    area().setSelectionRange(2, 2);
+    botao().click();
+    await expect.poll(() => seletor()?.querySelector("[data-emoji]")).not.toBeNull();
+    const glifo = seletor()!.querySelector<HTMLButtonElement>("[data-emoji]")!.textContent;
+    seletor()!.querySelector<HTMLButtonElement>("[data-emoji]")!.click();
+    await expect.poll(() => area().value).toBe(`oi${glifo} mundo`);
+    await expect.poll(seletor).toBeNull();
+    await expect.poll(() => document.activeElement).toBe(area());
+    await expect.poll(() => area().selectionStart).toBe(2 + glifo.length);
+
+    botao().click();
+    await expect.poll(seletor).not.toBeNull();
+    await userEvent.click(botao());
+    await expect.poll(seletor).toBeNull();
+  });
+});
+
+describe("responder sem mencionar", () => {
+  const alternador = () => pegar<HTMLButtonElement>(`button[aria-label="${chat.mencionarResposta}"]`)!;
+
+  it("o padrão menciona; o alternador é visível, muda o envio e o rótulo é fixo", async () => {
+    semear([snap("r1", { content: "pergunta?" })]);
+    abrir();
+    await expect.poll(() => linhas().length).toBe(1);
+    responderA(C, "r1");
+    await expect.poll(alternador).not.toBeNull();
+    expect(alternador().getAttribute("aria-pressed")).toBe("true");
+    alternador().click();
+    await expect.poll(() => alternador().getAttribute("aria-pressed")).toBe("false");
+    await userEvent.click(pegar("textarea")!);
+    await userEvent.keyboard("ok{Enter}");
+    expect(ctl.enviados[0]).toEqual([C, "ok", { id: "r1", mencionar: false }, undefined]);
+  });
+
+  it("o menu da mensagem arma a resposta já sem mencionar", async () => {
+    semear([snap("r2")]);
+    abrir();
+    await expect.poll(() => linhas().length).toBe(1);
+    clicarDireito(linhaDe("r2")!.querySelector("article")!);
+    await expect.poll(menu).not.toBeNull();
+    Array.from(menu()!.querySelectorAll<HTMLElement>('[role="menuitem"]'))
+      .find((i) => i.textContent?.includes(chat.responderSemMencionar))!
+      .click();
+    await expect.poll(alternador).not.toBeNull();
+    expect(alternador().getAttribute("aria-pressed")).toBe("false");
+    await expect.poll(() => document.activeElement?.tagName).toBe("TEXTAREA");
+    await userEvent.keyboard("ok{Enter}");
+    expect(ctl.enviados[0]).toEqual([C, "ok", { id: "r2", mencionar: false }, undefined]);
   });
 });

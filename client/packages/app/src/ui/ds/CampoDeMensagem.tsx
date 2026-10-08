@@ -127,6 +127,7 @@ export function CampoDeMensagem({
               tamanho="sm"
               icone={<Sorriso />}
               aria-label={ds.campo.emoji}
+              data-gatilho-de-emoji=""
               disabled={desabilitado}
               onClick={onEmoji}
             />

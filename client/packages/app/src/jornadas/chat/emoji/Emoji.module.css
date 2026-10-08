@@ -1,0 +1,151 @@
+/* O painel do seletor: busca em cima, categorias, grade que rola por dentro. */
+.painel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+  box-sizing: border-box;
+  inline-size: 352px;
+  max-inline-size: calc(100vw - 32px);
+  block-size: 400px;
+  max-block-size: var(--radix-popper-available-height, 400px);
+  padding: var(--vx-space-3);
+}
+
+/* Mesma caixa antes do módulo chegar: o popover não pula quando a lista carrega. */
+.carregando {
+  align-items: center;
+  justify-content: center;
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+
+.busca {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  flex: none;
+  padding: 0 var(--vx-space-3);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-state-hover);
+  color: var(--vx-text-3);
+}
+.busca:has(.campo:focus-visible) {
+  outline: 2px solid var(--vx-focus-ring);
+  outline-offset: 1px;
+}
+.campo {
+  flex: 1;
+  min-inline-size: 0;
+  padding: var(--vx-space-2) 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--vx-text-1);
+  font: inherit;
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.campo::placeholder {
+  color: var(--vx-text-4);
+}
+
+.categorias {
+  display: flex;
+  flex: none;
+  gap: var(--vx-space-1);
+}
+.categoria {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  block-size: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--vx-radius-sm);
+  background: transparent;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  filter: grayscale(0.6);
+}
+.categoria:hover {
+  background: var(--vx-state-hover);
+  filter: none;
+}
+.categoriaAtiva {
+  background: var(--vx-state-hover);
+  filter: none;
+}
+
+.rolagem {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.secao {
+  margin: 0;
+}
+.tituloDaSecao {
+  margin: 0;
+  padding: var(--vx-space-1);
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-label-size);
+  line-height: var(--vx-type-label-line);
+  font-weight: var(--vx-type-label-weight);
+  letter-spacing: var(--vx-type-label-tracking);
+  text-transform: uppercase;
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: var(--vx-space-1);
+  padding-block-end: var(--vx-space-2);
+}
+.emoji {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  border-radius: var(--vx-radius-sm);
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.emoji:hover,
+.emoji:focus-visible {
+  background: var(--vx-state-hover);
+}
+.emoji:active {
+  background: var(--vx-state-press);
+}
+.emoji:focus-visible {
+  outline-offset: -2px;
+}
+
+.vazio {
+  margin: 0;
+  padding: var(--vx-space-6) var(--vx-space-3);
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  text-align: center;
+}
+
+/* Âncora invisível no retângulo do botão que abriu o seletor. */
+.ancora {
+  position: fixed;
+  pointer-events: none;
+}
+
+/* O painel tem o respiro dele; dobrar a classe vence o padding do popover em qualquer ordem de CSS. */
+.caixa.caixa {
+  padding: 0;
+  max-inline-size: none;
+}

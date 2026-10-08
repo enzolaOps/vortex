@@ -43,6 +43,14 @@ export const chat = {
   semPermissaoNaSala: "Você não pode escrever no chat desta sala.",
   respondendoA: (nome: string) => `Respondendo a ${nome}`,
   cancelarResposta: "Cancelar resposta",
+  mencionarResposta: "Mencionar",
+  mencionarRespostaDica: (mencionar: boolean) =>
+    mencionar
+      ? "Quem escreveu será avisado · toque para responder sem avisar"
+      : "Quem escreveu não será avisado · toque para avisar",
+  respostaAvisa: "Avisa",
+  respostaSemAviso: "Sem aviso",
+  responderSemMencionar: "Responder sem mencionar",
   respostaIndisponivel: "Mensagem indisponível",
   removerAnexo: (nome: string) => `Remover ${nome}`,
   anexosSelecionados: "Arquivos para enviar",
@@ -86,4 +94,23 @@ export const chat = {
   /* Anexos */
   baixar: "Baixar",
   abrirAnexo: (nome: string) => `Abrir ${nome}`,
+  visualizador: {
+    titulo: (autor: string) => `Imagem de ${autor}`,
+    anterior: "Imagem anterior",
+    proxima: "Próxima imagem",
+    de: "de",
+    emCanal: (canal: string) => `em #${canal}`,
+  },
+
+  /* Seletor de emoji */
+  emoji: {
+    maisReacoes: "Mais reações",
+    seletor: "Escolher emoji",
+    buscar: "Buscar emoji",
+    categorias: "Categorias",
+    recentes: "Usados recentemente",
+    resultados: "Resultados",
+    semResultado: (busca: string) => `Nenhum emoji para ${busca}.`,
+    carregando: "Carregando emojis…",
+  },
 } as const;
