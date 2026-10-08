@@ -94,6 +94,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter stoat.js build
       - run: pnpm --filter nucleo check
+      # Os testes do app rodam em navegador (vitest browser): sem o Chromium do
+      # Playwright o `check` morre em `browserType.launch` antes do primeiro teste.
+      - run: pnpm --filter app exec playwright install --with-deps chromium
       - run: pnpm --filter app check
 
   # Check required. Falha se o check do PR falhou; passa se não tocou client/.
