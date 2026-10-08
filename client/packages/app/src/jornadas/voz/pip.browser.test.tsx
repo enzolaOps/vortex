@@ -169,8 +169,8 @@ describe("PiP dentro do app", () => {
     await expect.poll(videoDoPip).not.toBeNull();
     expect(videoDoPip()!.dataset).toMatchObject({ pessoa: "U1", fonte: "tela" });
     await expect.poll(() => ctl.assinaturas).toContain("+U1:tela");
-    // A camada MÉDIA: o PiP nunca paga pela alta.
-    expect(ctl.assinaturas).toContain("q:U1:tela:media");
+    // A camada BAIXA: o PiP nunca paga pela alta.
+    expect(ctl.assinaturas).toContain("q:U1:tela:baixa");
     expect(ctl.assinaturas).not.toContain("q:U1:tela:alta");
 
     vozPorCanal.set("V1", semTransmissao());
@@ -200,7 +200,7 @@ describe("PiP dentro do app", () => {
     entrar({ comCamera: ["U2"] });
     definirFalantes(["U2"]);
     await expect.poll(() => ctl.assinaturas).toContain("+U2:camera");
-    expect(ctl.assinaturas).toContain("q:U2:camera:media");
+    expect(ctl.assinaturas).toContain("q:U2:camera:baixa");
   });
 
   it("ninguém falando e ninguém transmitindo: sem foco inventado", async () => {

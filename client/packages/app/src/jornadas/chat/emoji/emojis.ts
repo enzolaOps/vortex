@@ -1,0 +1,267 @@
+/**
+ * Os emojis do seletor: um conjunto CURADO, não o Unicode inteiro.
+ *
+ * O padrão tem cerca de 3.800 emojis com nome e alias; trazê-los exigiria uma
+ * dependência de dados (`emojibase`, `emoji-datasource`) de algumas centenas
+ * de kB, decisão que pede justificativa própria. Aqui ficam ~170 com nome em
+ * português, o que se usa de fato numa conversa. Este arquivo só é baixado
+ * quando o seletor abre (`import()` em `PainelPreguicoso`), e o dia em que o
+ * dataset completo entrar o que muda é ele — o seletor não sabe de onde vêm os
+ * dados.
+ *
+ * A ordem dentro de cada categoria é a de USO, não a do Unicode.
+ */
+
+export type Emoji = {
+  readonly glifo: string;
+  /** O nome curto, em português. É o que a busca casa e o rodapé mostra. */
+  readonly nome: string;
+};
+
+export type CategoriaDeEmoji = {
+  readonly id: string;
+  /** O glifo do rail. */
+  readonly icone: string;
+  readonly titulo: string;
+  readonly emojis: readonly Emoji[];
+};
+
+export const CATEGORIAS: readonly CategoriaDeEmoji[] = [
+  {
+    id: "rostos",
+    icone: "🙂",
+    titulo: "Rostos e pessoas",
+    emojis: [
+      { glifo: "🙂", nome: "sorriso" },
+      { glifo: "😄", nome: "alegre" },
+      { glifo: "😅", nome: "alívio" },
+      { glifo: "🤣", nome: "gargalhada" },
+      { glifo: "😍", nome: "apaixonado" },
+      { glifo: "😎", nome: "estiloso" },
+      { glifo: "🤔", nome: "pensando" },
+      { glifo: "🫡", nome: "continência" },
+      { glifo: "🙃", nome: "de cabeça para baixo" },
+      { glifo: "😴", nome: "dormindo" },
+      { glifo: "🥲", nome: "sorriso com lágrima" },
+      { glifo: "😭", nome: "chorando" },
+      { glifo: "😤", nome: "bufando" },
+      { glifo: "🤯", nome: "explodindo" },
+      { glifo: "🥶", nome: "congelando" },
+      { glifo: "🤝", nome: "aperto de mão" },
+      { glifo: "🙏", nome: "por favor" },
+      { glifo: "👀", nome: "olhos" },
+      { glifo: "👋", nome: "tchau" },
+      { glifo: "👍", nome: "joia" },
+      { glifo: "👎", nome: "não curti" },
+      { glifo: "💪", nome: "força" },
+      { glifo: "🧠", nome: "cérebro" },
+      { glifo: "🫶", nome: "coração com as mãos" },
+    ],
+  },
+  {
+    id: "natureza",
+    icone: "🐶",
+    titulo: "Animais e natureza",
+    emojis: [
+      { glifo: "🐶", nome: "cachorro" },
+      { glifo: "🐱", nome: "gato" },
+      { glifo: "🦊", nome: "raposa" },
+      { glifo: "🐻", nome: "urso" },
+      { glifo: "🐼", nome: "panda" },
+      { glifo: "🦆", nome: "pato" },
+      { glifo: "🐧", nome: "pinguim" },
+      { glifo: "🦉", nome: "coruja" },
+      { glifo: "🐝", nome: "abelha" },
+      { glifo: "🐛", nome: "bug" },
+      { glifo: "🦋", nome: "borboleta" },
+      { glifo: "🐙", nome: "polvo" },
+      { glifo: "🐢", nome: "tartaruga" },
+      { glifo: "🌱", nome: "broto" },
+      { glifo: "🌳", nome: "árvore" },
+      { glifo: "🌵", nome: "cacto" },
+      { glifo: "🌊", nome: "onda" },
+      { glifo: "🔥", nome: "fogo" },
+      { glifo: "⚡", nome: "raio" },
+      { glifo: "❄️", nome: "neve" },
+      { glifo: "🌙", nome: "lua" },
+      { glifo: "⭐", nome: "estrela" },
+      { glifo: "🌈", nome: "arco-íris" },
+      { glifo: "☀️", nome: "sol" },
+    ],
+  },
+  {
+    id: "comida",
+    icone: "🍔",
+    titulo: "Comida e bebida",
+    emojis: [
+      { glifo: "☕", nome: "café" },
+      { glifo: "🍺", nome: "cerveja" },
+      { glifo: "🍕", nome: "pizza" },
+      { glifo: "🍔", nome: "hambúrguer" },
+      { glifo: "🍟", nome: "batata frita" },
+      { glifo: "🌮", nome: "taco" },
+      { glifo: "🍜", nome: "lámen" },
+      { glifo: "🍣", nome: "sushi" },
+      { glifo: "🥐", nome: "croissant" },
+      { glifo: "🍞", nome: "pão" },
+      { glifo: "🧀", nome: "queijo" },
+      { glifo: "🍎", nome: "maçã" },
+      { glifo: "🍌", nome: "banana" },
+      { glifo: "🍉", nome: "melancia" },
+      { glifo: "🍫", nome: "chocolate" },
+      { glifo: "🍰", nome: "bolo" },
+      { glifo: "🍪", nome: "biscoito" },
+      { glifo: "🍦", nome: "sorvete" },
+      { glifo: "🥤", nome: "refrigerante" },
+      { glifo: "🍷", nome: "vinho" },
+      { glifo: "🧉", nome: "chimarrão" },
+      { glifo: "🥑", nome: "abacate" },
+      { glifo: "🌶️", nome: "pimenta" },
+      { glifo: "🧊", nome: "gelo" },
+    ],
+  },
+  {
+    id: "atividades",
+    icone: "⚽",
+    titulo: "Atividades",
+    emojis: [
+      { glifo: "⚽", nome: "futebol" },
+      { glifo: "🏀", nome: "basquete" },
+      { glifo: "🏐", nome: "vôlei" },
+      { glifo: "🎾", nome: "tênis" },
+      { glifo: "🏓", nome: "pingue-pongue" },
+      { glifo: "🥋", nome: "luta" },
+      { glifo: "🏆", nome: "troféu" },
+      { glifo: "🥇", nome: "primeiro lugar" },
+      { glifo: "🎯", nome: "alvo" },
+      { glifo: "🎲", nome: "dado" },
+      { glifo: "🕹", nome: "joystick" },
+      { glifo: "🎮", nome: "videogame" },
+      { glifo: "🎧", nome: "fone" },
+      { glifo: "🎸", nome: "guitarra" },
+      { glifo: "🥁", nome: "tambor" },
+      { glifo: "🎺", nome: "trompete" },
+      { glifo: "🎨", nome: "arte" },
+      { glifo: "🎬", nome: "cinema" },
+      { glifo: "🎤", nome: "microfone" },
+      { glifo: "📣", nome: "megafone" },
+      { glifo: "🎉", nome: "festa" },
+      { glifo: "🎊", nome: "confete" },
+      { glifo: "🧩", nome: "quebra-cabeça" },
+      { glifo: "🪄", nome: "varinha" },
+    ],
+  },
+  {
+    id: "viagem",
+    icone: "🚗",
+    titulo: "Viagem e lugares",
+    emojis: [
+      { glifo: "🚗", nome: "carro" },
+      { glifo: "🚕", nome: "táxi" },
+      { glifo: "🚌", nome: "ônibus" },
+      { glifo: "🚲", nome: "bicicleta" },
+      { glifo: "🛵", nome: "scooter" },
+      { glifo: "✈️", nome: "avião" },
+      { glifo: "🚀", nome: "foguete" },
+      { glifo: "🛸", nome: "disco voador" },
+      { glifo: "⛵", nome: "veleiro" },
+      { glifo: "🚂", nome: "trem" },
+      { glifo: "🗺", nome: "mapa" },
+      { glifo: "🏔", nome: "montanha" },
+      { glifo: "🏖", nome: "praia" },
+      { glifo: "🏕", nome: "acampamento" },
+      { glifo: "🏙", nome: "cidade" },
+      { glifo: "🌍", nome: "mundo" },
+      { glifo: "🗼", nome: "torre" },
+      { glifo: "🏠", nome: "casa" },
+      { glifo: "🏢", nome: "escritório" },
+      { glifo: "⛺", nome: "barraca" },
+      { glifo: "🌉", nome: "ponte" },
+      { glifo: "🚩", nome: "bandeira" },
+      { glifo: "🧭", nome: "bússola" },
+      { glifo: "🌅", nome: "amanhecer" },
+    ],
+  },
+  {
+    id: "objetos",
+    icone: "💡",
+    titulo: "Objetos",
+    emojis: [
+      { glifo: "💡", nome: "ideia" },
+      { glifo: "🛠", nome: "ferramentas" },
+      { glifo: "🔧", nome: "chave inglesa" },
+      { glifo: "🧱", nome: "tijolo" },
+      { glifo: "📦", nome: "caixa" },
+      { glifo: "📌", nome: "alfinete" },
+      { glifo: "📎", nome: "clipe" },
+      { glifo: "✂️", nome: "tesoura" },
+      { glifo: "📐", nome: "esquadro" },
+      { glifo: "🧪", nome: "experimento" },
+      { glifo: "🔬", nome: "microscópio" },
+      { glifo: "💻", nome: "computador" },
+      { glifo: "🖥", nome: "monitor" },
+      { glifo: "⌨️", nome: "teclado" },
+      { glifo: "🖱", nome: "mouse" },
+      { glifo: "📱", nome: "celular" },
+      { glifo: "🔋", nome: "bateria" },
+      { glifo: "🔌", nome: "tomada" },
+      { glifo: "📷", nome: "câmera" },
+      { glifo: "🔒", nome: "cadeado" },
+      { glifo: "🔑", nome: "chave" },
+      { glifo: "💰", nome: "dinheiro" },
+      { glifo: "📚", nome: "livros" },
+      { glifo: "🗑", nome: "lixeira" },
+    ],
+  },
+  {
+    id: "simbolos",
+    icone: "🚩",
+    titulo: "Símbolos",
+    emojis: [
+      { glifo: "✅", nome: "aprovado" },
+      { glifo: "❌", nome: "errado" },
+      { glifo: "⚠️", nome: "atenção" },
+      { glifo: "❓", nome: "dúvida" },
+      { glifo: "❗", nome: "importante" },
+      { glifo: "💬", nome: "conversa" },
+      { glifo: "🧵", nome: "tópico" },
+      { glifo: "⏱", nome: "cronômetro" },
+      { glifo: "📈", nome: "subindo" },
+      { glifo: "📉", nome: "caindo" },
+      { glifo: "🔁", nome: "repetir" },
+      { glifo: "➡️", nome: "seta direita" },
+      { glifo: "⬅️", nome: "seta esquerda" },
+      { glifo: "♻️", nome: "reciclar" },
+      { glifo: "🚫", nome: "proibido" },
+      { glifo: "💯", nome: "cem" },
+      { glifo: "❤️", nome: "coração" },
+      { glifo: "💔", nome: "coração partido" },
+      { glifo: "✨", nome: "brilho" },
+      { glifo: "🎁", nome: "presente" },
+      { glifo: "🏳️", nome: "bandeira branca" },
+      { glifo: "🏴", nome: "bandeira preta" },
+      { glifo: "🔔", nome: "sino" },
+      { glifo: "🔕", nome: "sino silenciado" },
+    ],
+  },
+];
+
+/**
+ * O índice plano, para a busca. Montado UMA vez no módulo: um `flatMap` por
+ * tecla seria o erro nº 4 do briefing com outra roupa.
+ */
+export const TODOS: readonly Emoji[] = CATEGORIAS.flatMap((c) => c.emojis);
+
+/** Minúsculas e sem acento: "coracao" acha "coração". */
+export function normalizar(texto: string): string {
+  return texto.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
+}
+
+const INDICE = TODOS.map((e) => ({ e, chave: normalizar(e.nome) }));
+
+/** Casa a busca contra o nome. Vazio devolve nada: quem não busca vê categorias. */
+export function buscar(q: string): readonly Emoji[] {
+  const alvo = normalizar(q);
+  if (!alvo) return [];
+  return INDICE.filter((x) => x.chave.includes(alvo)).map((x) => x.e);
+}

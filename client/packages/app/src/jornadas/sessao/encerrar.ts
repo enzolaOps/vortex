@@ -49,12 +49,13 @@ export function reiniciarEncerramento(): void {
  * restauração abre o socket e um token revogado é recusado nessa abertura.
  *
  * Também liga o que vive o tanto que a página vive e não pertence a componente
- * nenhum, porque assina stores e o teclado: a URL de entrada (e-mail, convite, QR),
- * o endereço do app (as configurações são rota), os atalhos de voz (push-to-talk,
- * mutar, ensurdecer) e os sons de entrada e saída das salas. Todos idempotentes.
+ * nenhum, porque assina stores e o teclado: o endereço (as configurações são rota),
+ * os atalhos de voz (push-to-talk, mutar, ensurdecer) e os sons de entrada e saída
+ * das salas. Todos idempotentes.
  */
 export function iniciarSessao(): void {
-  // A URL da abertura é lida ANTES de a restauração decidir a tela.
+  // A URL da abertura (link de e-mail, convite, QR) é lida ANTES de a restauração decidir a tela
+  // e antes da projeção geral: é ela que guarda o destino pendente do link.
   ligarRotaDeEntrada();
   ligarRota();
   ligarAtalhosDeVoz();

@@ -12,7 +12,7 @@ import { VideoDaFaixa } from "./VideoDaFaixa";
  * O vídeo do foco, num PiP: a transmissão ou a câmera de quem fala, e o avatar
  * quando não há imagem para mostrar.
  *
- * ⚠ **Pede a camada MÉDIA, que é a menor que o motor sabe pedir**, e pede só
+ * ⚠ **Pede a camada BAIXA (LOW)**, e pede só
  * enquanto este elemento está visível (`useAssinaturaDeVideo`). O PiP nunca é
  * o lugar de ver a transmissão em detalhe — o palco é —, então ele não paga
  * pela camada alta.

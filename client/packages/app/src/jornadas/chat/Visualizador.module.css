@@ -1,0 +1,124 @@
+/*
+  O painel é o do Dialog, com outra medida. A classe dobrada vence o tamanho e o
+  respiro do diálogo padrão independentemente da ordem em que os módulos de CSS
+  entram no bundle.
+*/
+.painel.painel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  inline-size: min(calc(100vw - 32px), 1100px);
+  max-inline-size: none;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* O Dialog põe o botão de fechar no canto: o cabeçalho deixa espaço para ele. */
+.cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-3);
+  padding: var(--vx-space-3) calc(var(--vx-space-7) + var(--vx-space-6)) var(--vx-space-3) var(--vx-space-4);
+  border-block-end: 1px solid var(--vx-border-subtle);
+}
+.quem {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+.autor {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  font-weight: 600;
+}
+.onde {
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+
+.baixar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  inline-size: 32px;
+  block-size: 32px;
+  border-radius: var(--vx-radius-sm);
+  color: var(--vx-text-2);
+}
+.baixar:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+.baixar:active {
+  background: var(--vx-state-press);
+}
+
+.palco {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-block-size: 200px;
+  background: var(--vx-skeleton);
+}
+.imagem {
+  display: block;
+  max-inline-size: 100%;
+  max-block-size: calc(100vh - 220px);
+  object-fit: contain;
+}
+
+.seta {
+  position: absolute;
+  inset-block-start: 50%;
+  translate: 0 -50%;
+  display: grid;
+  place-items: center;
+  inline-size: 40px;
+  block-size: 40px;
+  padding: 0;
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-surface-glass);
+  color: var(--vx-text-1);
+  cursor: pointer;
+}
+.seta:hover {
+  background: var(--vx-state-hover);
+}
+.seta:active {
+  background: var(--vx-state-press);
+}
+.anterior {
+  inset-inline-start: var(--vx-space-3);
+}
+.proxima {
+  inset-inline-end: var(--vx-space-3);
+}
+
+.rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-3);
+  padding: var(--vx-space-2) var(--vx-space-4);
+  border-block-start: 1px solid var(--vx-border-subtle);
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+.nome {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.posicao {
+  flex: none;
+  font-family: var(--vx-font-mono);
+}

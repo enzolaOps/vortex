@@ -184,7 +184,7 @@ export default tseslint.config(
     languageOptions: { globals: globals.node },
   },
   {
-    files: ["vite.config.ts", "csp.ts", "src/**/*.test.ts"],
+    files: ["vite.config.ts", "csp.ts", "mediapipe.ts", "src/**/*.test.ts"],
     languageOptions: { globals: globals.node },
   },
 );

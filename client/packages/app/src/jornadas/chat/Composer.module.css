@@ -56,6 +56,32 @@
   color: var(--vx-text-1);
 }
 
+/* O @ da resposta: ligado, a pessoa respondida é avisada. */
+.mencionar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-1);
+  padding: 0 var(--vx-space-2);
+  block-size: 24px;
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-pill);
+  background: transparent;
+  color: var(--vx-text-3);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-type-caption-size);
+  line-height: 1;
+  cursor: pointer;
+}
+.mencionar:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+.mencionar[aria-pressed="true"] {
+  border-color: var(--vx-accent);
+  color: var(--vx-accent);
+}
+
 .fichas {
   display: flex;
   flex-wrap: wrap;

@@ -6,6 +6,7 @@ import { ShellDoApp } from "../../shell";
 import { AreaConectada } from "./AreaConectada";
 import { ColunaConectada } from "./ColunaConectada";
 import { ConteudoDaDock } from "./DockConectada";
+import { FaixaDeSalas } from "./FaixaDeSalas";
 import { EsqueletoDeMembros, ListaDeMembros } from "./GavetaConectada";
 import { DialogoDeTransmissao } from "../voz/DialogoDeTransmissao";
 import { useSalaDoPalco } from "../voz/hooks";
@@ -48,6 +49,8 @@ export function ShellDasSalas({ rodapeDasSalas }: { rodapeDasSalas?: ReactNode }
       membros={
         !pronto ? <EsqueletoDeMembros /> : serverId !== undefined ? <ListaDeMembros serverId={serverId} /> : undefined
       }
+      salasEmFaixa={palcoAberto}
+      faixaDeSalas={serverId !== undefined ? <FaixaDeSalas serverId={serverId} /> : undefined}
       gavetaOculta={(pronto && serverId === undefined) || palcoAberto}
     />
     <DialogoDeTransmissao />

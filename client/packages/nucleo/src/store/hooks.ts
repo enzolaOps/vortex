@@ -97,6 +97,8 @@ import {
 } from "./ultimoLugar";
 import { assinarIdade, idadeConfirmada } from "./idade";
 import { rascunhos, RASCUNHO_VAZIO } from "./rascunhos";
+import { assinarPermissoes } from "./permissoes";
+import { pode, podeNoServidor, type Acao } from "../sdk/permissoes";
 import { assinarLayout, lerSemente } from "./layout";
 import { corDeCargo, pinturaDeCargo, type PinturaDeCargo } from "../tema/cargo";
 import type { Modo } from "../tema/derivar";
@@ -414,6 +416,42 @@ export function useMembro(chave: ChaveDeMembro): MemberSnapshot | undefined {
   const getSnapshot = () => members.getSnapshot(chave);
   if (import.meta.env.DEV) assertStable(getSnapshot, `useMembro(${chave})`);
   return useSyncExternalStore(members.subscriber(chave), getSnapshot);
+}
+
+/**
+ * SÓ o nome de exibição do membro: um string, comparado por valor.
+ *
+ * Quem precisa do nome mas não da foto assina isto e não `useMembro`: trocar o
+ * avatar republica o snapshot do membro, e a linha de mensagem não pode
+ * re-renderizar por causa disso (o avatar tem componente próprio).
+ */
+export function useNomeDoMembro(chave: ChaveDeMembro): string | undefined {
+  const getSnapshot = () => members.getSnapshot(chave)?.displayName;
+  return useSyncExternalStore(members.subscriber(chave), getSnapshot);
+}
+
+/** SÓ a foto do membro (URL ou ausência), pelo mesmo motivo de `useNomeDoMembro`. */
+export function useAvatarDoMembro(chave: ChaveDeMembro): string | undefined {
+  const getSnapshot = () => members.getSnapshot(chave)?.avatarUrl;
+  return useSyncExternalStore(members.subscriber(chave), getSnapshot);
+}
+
+/**
+ * A pessoa pode fazer isto neste canal, e o componente acorda se isso mudar.
+ *
+ * É o `pode()` com assinatura: cargo editado ou membro com cargo novo com a chamada
+ * aberta ajusta a cápsula, o widget, o overlay e o diálogo de transmissão sem
+ * recarregar. O snapshot é um booleano, então só re-renderiza quem teve a RESPOSTA
+ * trocada. Nas linhas da lista de mensagens continua valendo o `pode()` direto: lá o
+ * adapter republica os snapshots (ver `repensarPermissoes`).
+ */
+export function usePode(canalId: string, acao: Acao): boolean {
+  return useSyncExternalStore(assinarPermissoes, () => pode(canalId, acao));
+}
+
+/** Como `usePode`, para onde não há canal. */
+export function usePodeNoServidor(servidorId: string, acao: Acao): boolean {
+  return useSyncExternalStore(assinarPermissoes, () => podeNoServidor(servidorId, acao));
 }
 
 /**

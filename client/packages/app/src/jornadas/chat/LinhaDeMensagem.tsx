@@ -1,12 +1,14 @@
 import { count } from "nucleo/arnes/stats";
 import { chaveDeMembro } from "nucleo/sdk/domain";
 import { pode } from "nucleo/sdk/permissoes";
-import { useMembro, useMessage } from "nucleo/store/hooks";
+import { useMessage, useNomeDoMembro } from "nucleo/store/hooks";
+import { abrirSeletorDeReacao } from "nucleo/store/seletorDeReacao";
 import { responderA } from "nucleo/store/resposta";
 import { memo } from "react";
 
 import { chat } from "../../textos";
 import { Mensagem } from "../../ui/ds";
+import { AvatarDoAutor } from "./AvatarDoAutor";
 import { AnexosDaMensagem } from "./AnexosDaMensagem";
 import { CitacaoDeResposta } from "./CitacaoDeResposta";
 import { CorpoDaMensagem } from "./CorpoDaMensagem";
@@ -38,7 +40,7 @@ export interface LinhaDeMensagemProps {
 function LinhaBase({ id, servidorId }: LinhaDeMensagemProps) {
   count("rowRenders");
   const m = useMessage(id);
-  const autor = useMembro(chaveDeMembro(servidorId, m?.authorId ?? ""));
+  const nomeDoAutor = useNomeDoMembro(chaveDeMembro(servidorId, m?.authorId ?? ""));
   const editando = useEditandoEsta(id);
 
   if (!m) return <div className={css.placeholder} aria-hidden="true" />;
@@ -67,13 +69,14 @@ function LinhaBase({ id, servidorId }: LinhaDeMensagemProps) {
             <CitacaoDeResposta alvoId={m.respostas[0]} canalId={m.channelId} servidorId={servidorId} />
           )}
           <Mensagem
-            autor={{ nome: autor?.displayName ?? chat.autorDesconhecido, id: m.authorId }}
+            autor={{ nome: nomeDoAutor ?? chat.autorDesconhecido, id: m.authorId }}
+            avatar={<AvatarDoAutor servidorId={servidorId} autorId={m.authorId} nome={nomeDoAutor ?? chat.autorDesconhecido} />}
             hora={m.createdAtText}
             continuacao={!m.iniciaGrupo}
             destacada={m.mencionaVoce}
             esmaecida={!enviada}
             acoes={enviada && !editando}
-            onReagir={podeReagir ? (e) => abrirMenuDaMensagem(e.currentTarget) : undefined}
+            onReagir={podeReagir ? (e) => { abrirSeletorDeReacao(id, e.currentTarget); } : undefined}
             onResponder={
               podeResponder
                 ? () => {
@@ -84,7 +87,7 @@ function LinhaBase({ id, servidorId }: LinhaDeMensagemProps) {
             onMaisAcoes={(e) => abrirMenuDaMensagem(e.currentTarget)}
             rodape={
               <>
-                {m.anexos.length > 0 && <AnexosDaMensagem anexos={m.anexos} />}
+                {m.anexos.length > 0 && <AnexosDaMensagem anexos={m.anexos} mensagemId={id} />}
                 {temRodape(m) && <RodapeDaMensagem m={m} podeReagir={podeReagir} />}
               </>
             }

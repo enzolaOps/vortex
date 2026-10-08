@@ -1,3 +1,6 @@
+import { memo, useEffect, useState } from "react";
+
+import { realcar, realceEmCache } from "nucleo/markdown/realce";
 import { urlDeEmoji } from "nucleo/sdk/anexos";
 import { chaveDeMembro, type BlocoDeMensagem, type TrechoDeMensagem } from "nucleo/sdk/domain";
 import { useMembro } from "nucleo/store/hooks";
@@ -19,6 +22,57 @@ import css from "./Corpo.module.css";
  * `https:` e `mailto:` em `href`, e imagem de markdown vira link, nunca `<img>`.
  * Aqui os links saem com `rel="noopener noreferrer"` e nada de HTML cru.
  */
+
+/**
+ * O código, com realce carregado sob demanda.
+ *
+ * Pinta o texto simples primeiro e colore depois: o realce é a mesma string com
+ * `<span>`s por dentro, sem mudar linhas nem largura, então a altura do bloco é
+ * igual antes e depois e a âncora da lista não se mexe. O resultado vem do
+ * cache por (língua, conteúdo) do núcleo; com cache quente já entra no primeiro
+ * quadro. Nunca suspende e nunca realça no render.
+ */
+const Codigo = memo(function Codigo({ valor, lingua }: { valor: string; lingua: string | undefined }) {
+  const [resolvido, setResolvido] = useState(() => ({
+    chave: `${lingua ?? ""} ${valor}`,
+    linhas: realceEmCache(valor, lingua),
+  }));
+  const chave = `${lingua ?? ""} ${valor}`;
+  // Conteúdo mudou (edição): o realce guardado é do texto antigo e não vale.
+  const linhas = resolvido.chave === chave ? resolvido.linhas : realceEmCache(valor, lingua);
+
+  useEffect(() => {
+    if (linhas) return;
+    let vivo = true;
+    void realcar(valor, lingua).then((r) => {
+      if (vivo && r) setResolvido({ chave, linhas: r });
+    });
+    return () => {
+      vivo = false;
+    };
+    // `linhas` é o RESULTADO deste efeito; incluí-lo o reagendaria ao próprio sucesso.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chave]);
+
+  return (
+    <code>
+      {linhas
+        ? linhas.map((linha, i) => (
+            // Índice como chave: o array deriva de string imutável, nunca é reordenado.
+            // eslint-disable-next-line no-restricted-syntax
+            <span key={i}>
+              {linha.map((t, j) => (
+                <span key={j} style={t.cor ? { color: t.cor } : undefined}>
+                  {t.texto}
+                </span>
+              ))}
+              {i < linhas.length - 1 ? "\n" : ""}
+            </span>
+          ))
+        : valor}
+    </code>
+  );
+});
 
 function Mencao({ userId, servidorId }: { userId: string; servidorId: string }) {
   const membro = useMembro(chaveDeMembro(servidorId, userId));
@@ -108,7 +162,7 @@ function Blocos({ blocos, servidorId }: { blocos: readonly BlocoDeMensagem[]; se
           case "blocoDeCodigo":
             return (
               <pre key={b.de} className={`${css.bloco} ${css.pre}`}>
-                <code>{b.valor}</code>
+                <Codigo valor={b.valor} lingua={b.lingua} />
               </pre>
             );
           case "citacao":

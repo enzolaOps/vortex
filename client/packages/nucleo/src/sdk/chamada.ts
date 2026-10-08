@@ -23,6 +23,7 @@ import { abrirConversa } from "../store/navegacao";
 import { definirPalco } from "../store/palcoDeVoz";
 import { atenderNoStore, recusarNoStore } from "../notificacao/chamadas";
 import { enviarMensagem } from "./adapter";
+import type { QualidadeDeStream } from "./camadaDeVideo";
 import { abreNaGrade, lerConfigDeVoz } from "./vozDoCanal";
 
 type Motor = typeof import("./motorDeVoz");
@@ -256,7 +257,7 @@ export function assinarVideo(
 export function definirQualidadeDeStream(
   userId: string,
   fonte: "camera" | "tela",
-  qualidade: "auto" | "alta" | "media" | "soAudio",
+  qualidade: QualidadeDeStream,
 ): void {
   motor?.definirQualidadeDeStream(userId, fonte, qualidade);
 }

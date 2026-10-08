@@ -8,6 +8,8 @@ import { estilos, juntar, vidro } from "./classes";
 // Popover: conteúdo interativo ancorado num gatilho.
 export const Popover = Balao.Root;
 export const GatilhoDoPopover = Balao.Trigger;
+// Âncora: ancora o popover num elemento que não é o gatilho (o composer, um retângulo).
+export const AncoraDoPopover = Balao.Anchor;
 
 export function ConteudoDoPopover({ className, ...props }: ComponentProps<typeof Balao.Content>) {
   return (

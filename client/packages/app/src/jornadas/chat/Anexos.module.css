@@ -24,6 +24,13 @@
   display: block;
   inline-size: 100%;
   block-size: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+.abrir:focus-visible {
+  outline-offset: -2px;
 }
 
 .audio {

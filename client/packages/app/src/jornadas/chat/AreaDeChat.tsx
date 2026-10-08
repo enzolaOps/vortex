@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
 
 import { Composer } from "./Composer";
+import { SeletorDeReacao } from "./emoji/SeletoresDeEmoji";
 import css from "./AreaDeChat.module.css";
 import { DigitandoDoCanal } from "./DigitandoDoCanal";
 import { ListaDeMensagens } from "./ListaDeMensagens";
+import { VisualizadorDeImagem } from "./VisualizadorDeImagem";
 
 /**
  * O chat de um canal: a lista virtualizada e, embaixo, quem está digitando e o
@@ -33,6 +35,9 @@ export function AreaDeChat({
       <div className={css.lista}>
         <ListaDeMensagens canalId={canalId} servidorId={servidorId} />
       </div>
+      {/* Um de cada para o chat inteiro: nada disto é montado por linha. */}
+      <SeletorDeReacao />
+      <VisualizadorDeImagem servidorId={servidorId} />
       <div className={css.rodape}>
         <div className={css.colunaDoRodape}>
           {rodape ?? (

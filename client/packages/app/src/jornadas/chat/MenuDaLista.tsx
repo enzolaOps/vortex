@@ -3,14 +3,15 @@ import { pode } from "nucleo/sdk/permissoes";
 import { copiarTexto } from "nucleo/lib/copiar";
 import { editar } from "nucleo/store/edicaoDeMensagem";
 import { useMessage } from "nucleo/store/hooks";
+import { abrirSeletorDeReacao } from "nucleo/store/seletorDeReacao";
 import { assinarMenuDeMensagem, lerAlvoDoMenu, mirarAlvoDoMenu } from "nucleo/store/menuDeMensagem";
 import { responderA } from "nucleo/store/resposta";
 import { toast } from "nucleo/ui-logica/toastStore";
-import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 
 import { chat, comum } from "../../textos";
 import { Botao } from "../../ui/ds";
-import { Copiar, Desafixar, Editar, Fixar, Lixeira, Responder } from "../../ui/icones";
+import { Arroba, Copiar, Desafixar, Editar, Fixar, Lixeira, Responder, Sorriso } from "../../ui/icones";
 import { ConteudoDoDialogo, Dialogo, DialogoFechar } from "../../ui/primitivos/Dialogo";
 import {
   ConteudoDoMenuDeContexto,
@@ -45,6 +46,8 @@ export function abrirMenuDaMensagem(ancora: HTMLElement): void {
 }
 
 function ConteudoDoMenu({ aoApagar }: { aoApagar: (id: string) => void }) {
+  // Ação que espera o menu terminar de fechar (e devolver o foco) para rodar.
+  const depoisDeFechar = useRef<(() => void) | null>(null);
   const alvo = useSyncExternalStore(assinarMenuDeMensagem, lerAlvoDoMenu);
   const id = alvo?.tipo === "mensagem" ? alvo.id : "";
   const m = useMessage(id);
@@ -57,7 +60,18 @@ function ConteudoDoMenu({ aoApagar }: { aoApagar: (id: string) => void }) {
   const podeFixar = enviada && pode(m.channelId, "fixar");
 
   return (
-    <ConteudoDoMenuDeContexto aria-label={chat.menuDaMensagem} className={css.menu}>
+    <ConteudoDoMenuDeContexto
+      aria-label={chat.menuDaMensagem}
+      className={css.menu}
+      onCloseAutoFocus={(e) => {
+        const acao = depoisDeFechar.current;
+        if (acao === null) return;
+        // O foco não volta ao gatilho: quem abre em seguida (o seletor) fica com ele.
+        e.preventDefault();
+        depoisDeFechar.current = null;
+        acao();
+      }}
+    >
       {podeReagir && (
         <>
           <div role="group" aria-label={chat.reagirRotulo} className={css.reacoes}>
@@ -74,17 +88,40 @@ function ConteudoDoMenu({ aoApagar }: { aoApagar: (id: string) => void }) {
               </ItemDeMenuDeContexto>
             ))}
           </div>
+          <ItemDeMenuDeContexto
+            onSelect={() => {
+              const linha = document.querySelector(`[data-menu-mensagem="${CSS.escape(id)}"]`);
+              depoisDeFechar.current = () => {
+                abrirSeletorDeReacao(id, linha);
+              };
+            }}
+          >
+            <Sorriso /> {chat.emoji.maisReacoes}
+          </ItemDeMenuDeContexto>
           <SeparadorDeMenuDeContexto />
         </>
       )}
       {podeResponder && (
-        <ItemDeMenuDeContexto
-          onSelect={() => {
-            responderA(m.channelId, id);
-          }}
-        >
-          <Responder /> {chat.responder}
-        </ItemDeMenuDeContexto>
+        <>
+          <ItemDeMenuDeContexto
+            onSelect={() => {
+              depoisDeFechar.current = () => {
+                responderA(m.channelId, id);
+              };
+            }}
+          >
+            <Responder /> {chat.responder}
+          </ItemDeMenuDeContexto>
+          <ItemDeMenuDeContexto
+            onSelect={() => {
+              depoisDeFechar.current = () => {
+                responderA(m.channelId, id, false);
+              };
+            }}
+          >
+            <Arroba /> {chat.responderSemMencionar}
+          </ItemDeMenuDeContexto>
+        </>
       )}
       <ItemDeMenuDeContexto
         onSelect={() => {
