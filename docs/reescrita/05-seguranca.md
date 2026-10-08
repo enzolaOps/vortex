@@ -4,7 +4,7 @@
 > reabre decisão desses documentos. Os fatos do repositório foram conferidos
 > em 2026-10-07 na branch `integracao/desktop-voz`. Caminhos de cliente são
 > relativos a `client/packages/client/src` (que vira `nucleo/` no M0) e caminhos
-> de casca, a `vendor/stoat-desktop/src`. O `pi-infra` (Caddy, TLS, compose)
+> de casca, a `desktop/src`. O `pi-infra` (Caddy, TLS, compose)
 > **não está neste repositório** e não foi lido. Todo controle que depende dele
 > está marcado com "pi-infra".
 

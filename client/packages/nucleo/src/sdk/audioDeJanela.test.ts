@@ -102,7 +102,7 @@ describe("janela nunca leva o som do sistema", () => {
   const motor = readFileSync(new URL("./motorDeVoz.ts", import.meta.url), "utf8");
   const casca = readFileSync(
     new URL(
-      "../../../../../vendor/stoat-desktop/src/native/telaCompartilhada.ts",
+      "../../../../../desktop/src/native/telaCompartilhada.ts",
       import.meta.url,
     ),
     "utf8",

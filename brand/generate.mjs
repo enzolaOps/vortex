@@ -10,7 +10,7 @@
  *   vortex-logotipo.svg   -> wordmark.svg
  *
  * Saídas:
- *   vendor/stoat-desktop/assets/                                 (casca Electron)
+ *   desktop/assets/                                 (casca Electron)
  *   vendor/stoat-web/packages/client/scripts/assets_fallback/web (referência; o fork não tem o
  *                                                                 submódulo privado de marca)
  *
@@ -24,7 +24,7 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..");
 const webOut = resolve(root, "vendor/stoat-web/packages/client/scripts/assets_fallback/web");
-const desktopOut = resolve(root, "vendor/stoat-desktop/assets");
+const desktopOut = resolve(root, "desktop/assets");
 
 let sharp;
 try {
@@ -95,7 +95,7 @@ await render(preto, 40).toFile(resolve(desktopOut, "iconTemplate.png"));
 
 // --- Máscara do símbolo para o splash do instalador -------------------------
 // O GIF do instalador é gerado por código sem dependência de imagem
-// (vendor/stoat-desktop/scripts/splashDoInstalador.mjs). Em vez de rasterizar ali, ele lê uma
+// (desktop/scripts/splashDoInstalador.mjs). Em vez de rasterizar ali, ele lê uma
 // máscara de 1 bit a 216px (3x de 72) embutida num módulo gerado — 3x3 amostras por pixel de
 // saída de 72px, que é a mesma conta do desenho antigo.
 const LADO = 216;
@@ -108,7 +108,7 @@ const { data } = await sharp(Buffer.from(simbolo.replaceAll("#F2F4FA", "#FFFFFF"
 const bits = Buffer.alloc(Math.ceil((LADO * LADO) / 8));
 for (let i = 0; i < LADO * LADO; i++) if (data[i] > 127) bits[i >> 3] |= 1 << (i & 7);
 writeFileSync(
-  resolve(root, "vendor/stoat-desktop/scripts/simboloDoInstalador.mjs"),
+  resolve(root, "desktop/scripts/simboloDoInstalador.mjs"),
   `/* GERADO por brand/generate.mjs a partir de brand/vortex-simbolo.svg. Não edite. */
 export const LADO = ${LADO};
 export const MASCARA = "${gzipSync(bits, { level: 9 }).toString("base64")}";

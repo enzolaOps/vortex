@@ -1,6 +1,6 @@
 /**
  * "Atenuar outros apps", do lado do cliente: decide QUANDO. Quem baixa o
- * volume dos outros programas é a casca (`vendor/stoat-desktop/src/native/atenuacao.ts`).
+ * volume dos outros programas é a casca (`desktop/src/native/atenuacao.ts`).
  *
  * ⚠ **Liga na hora e desliga com atraso.** Fala tem pausa entre as palavras, e
  * `ActiveSpeakersChanged` acompanha cada uma: devolver o volume a cada pausa
@@ -29,7 +29,7 @@ export const SEGURAR_MS = 800;
  *
  * ⚠ **Transmitir som desliga a atenuação enquanto ela durar, e não é capricho.**
  * A casca baixa o volume de sessão de TODO aplicativo que não seja o Vortex —
- * medido em `vendor/stoat-desktop/src/native/atenuacaoModelo.test.ts`, sob
+ * medido em `desktop/src/native/atenuacaoModelo.test.ts`, sob
  * "alcance da atenuação". Compartilhar a tela inteira com som captura por
  * `audio: "loopback"`, que é o mix do DISPOSITIVO, ou seja o mix já atenuado:
  * quem assiste ouviria a transmissão cair pela metade a cada fala, sem nada na

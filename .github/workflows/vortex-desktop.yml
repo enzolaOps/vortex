@@ -1,4 +1,4 @@
-# Empacota o app desktop (`vendor/stoat-desktop/`) e o anexa à release.
+# Empacota o app desktop (`desktop/`) e o anexa à release.
 #
 # ⚠ **Roda em TODA release publicada, e é isso que faz o app se atualizar.**
 # `src/native/atualizacao.ts` usa `update.electronjs.org`, que lê a última
@@ -63,7 +63,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: vendor/stoat-desktop
+        working-directory: desktop
         shell: bash
 
     steps:
@@ -101,7 +101,7 @@ jobs:
             ${{ steps.pnpm.outputs.store }}
             ~/.cache/electron
             ~/AppData/Local/electron/Cache
-          key: ${{ runner.os }}-desktop-${{ hashFiles('vendor/stoat-desktop/pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-desktop-${{ hashFiles('desktop/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-desktop-
 
@@ -186,7 +186,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: vortex-desktop-${{ matrix.plataforma }}
-          path: vendor/stoat-desktop/entrega/
+          path: desktop/entrega/
           if-no-files-found: error
 
       - name: Anexar à release

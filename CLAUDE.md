@@ -18,8 +18,8 @@ client/                  pnpm workspace (lockfile próprio)
   packages/stoat.js/     SDK do protocolo (submodule). Precisa de `pnpm build` antes de tudo
 server/                  backend Rust (fork do stoatchat). Só `delta` (API) e `bonfire` (events) são publicados
 brand/                   marca (vortex-simbolo, -cor, logotipo, icone-app) e `generate.mjs`, que gera os ícones do desktop
-vendor/stoat-desktop/    casca Electron: carrega o app por URL (`VORTEX_APP_URL`), não empacota o build
-vendor/stoat-web/        upstream Solid: SÓ referência de protocolo e casos de borda. Nunca construído
+desktop/                 casca Electron, produto. Carrega o app por URL (`VORTEX_APP_URL`). Lockfile próprio. Não mora em `client/`
+vendor/stoat-web/        upstream Solid: SÓ referência. Nunca construído. `scripts/ci/fronteiras.sh` reprova o contrário
 docs/reescrita/          decisões, PRD, brief de design, TRD, segurança
 ```
 

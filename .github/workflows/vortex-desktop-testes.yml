@@ -1,4 +1,4 @@
-# Testes e lint da casca desktop (`vendor/stoat-desktop/`) nos PRs que a tocam.
+# Testes e lint da casca desktop (`desktop/`) nos PRs que a tocam.
 #
 # ⚠ **Até aqui, nada no CI rodava `pnpm test` da casca.** O único workflow
 # dela (`vortex-desktop.yml`) empacota em release; as guardas de segurança do
@@ -22,7 +22,7 @@ name: Vortex desktop — testes
 on:
   pull_request:
     paths:
-      - "vendor/stoat-desktop/**"
+      - "desktop/**"
       - ".github/workflows/vortex-desktop-testes.yml"
 
 concurrency:
@@ -39,7 +39,7 @@ jobs:
     timeout-minutes: 15
     defaults:
       run:
-        working-directory: vendor/stoat-desktop
+        working-directory: desktop
         shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -65,7 +65,7 @@ jobs:
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
           path: ${{ steps.pnpm.outputs.store }}
-          key: ${{ runner.os }}-desktop-${{ hashFiles('vendor/stoat-desktop/pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-desktop-${{ hashFiles('desktop/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-desktop-
 
