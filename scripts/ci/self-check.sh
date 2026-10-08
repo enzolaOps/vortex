@@ -16,7 +16,7 @@ FILES='client/foo.tsx' ./changed.sh client && r=0 || r=$?
 check "$r" 0 "client tsx"
 FILES='client/README.md' ./changed.sh client && r=0 || r=$?
 check "$r" 1 "client markdown"
-FILES='brand/mark.svg' ./changed.sh client && r=0 || r=$?
+FILES='brand/vortex-simbolo.svg' ./changed.sh client && r=0 || r=$?
 check "$r" 0 "client brand"
 FILES='server/Cargo.lock' ./changed.sh client && r=0 || r=$?
 check "$r" 1 "client ignores server"

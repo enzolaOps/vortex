@@ -29,7 +29,7 @@ import sirv from "sirv";
  *
  * - **Todo o resto revalida sempre.** `index.html` é o índice que aponta para
  *   os hashes; se ele ficar velho, a pessoa continua carregando o bundle
- *   anterior mesmo com o novo publicado ao lado. `mark.svg` cai na mesma regra
+ *   anterior mesmo com o novo publicado ao lado. `vortex-simbolo.svg` cai na mesma regra
  *   por não ter hash.
  *
  * ⚠ **`no-cache` não é "não guarde", é "guarde e pergunte".** Com o `ETag`

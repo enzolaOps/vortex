@@ -37,12 +37,12 @@ describe("animação do instalador", () => {
 
   /*
     A razão de o arquivo existir: sem ele o `electron-winstaller` usa a
-    animação de fábrica, cuja paleta é VERDE. As pontas da rampa são os dois
-    tokens da identidade.
+    animação de fábrica, cuja paleta é VERDE. As pontas da rampa são as duas
+    cores da marca.
   */
-  it("a rampa vai de --vx-surface-0 a --vx-accent", () => {
+  it("a rampa vai do fundo do ícone à tinta do símbolo", () => {
     const b = readFileSync(SPLASH);
-    assert.equal(b.subarray(13, 16).toString("hex"), "08090b");
-    assert.equal(b.subarray(13 + 63 * 3, 13 + 64 * 3).toString("hex"), "35c2cc");
+    assert.equal(b.subarray(13, 16).toString("hex"), "0a0c14");
+    assert.equal(b.subarray(13 + 63 * 3, 13 + 64 * 3).toString("hex"), "f2f4fa");
   });
 });

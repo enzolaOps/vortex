@@ -3,7 +3,7 @@ import { sessao } from "../../textos";
 import { PainelVidro } from "../../ui/ds";
 import { juntar } from "../../ui/juntar";
 import css from "./Restauracao.module.css";
-import { Marca } from "./Marca";
+import { Marca } from "../../ui/Marca";
 
 type Largura = "p" | "m" | "g" | "gg";
 const LARGURA = { p: css.larguraP, m: css.larguraM, g: css.larguraG, gg: css.larguraGG } as const;
@@ -94,7 +94,7 @@ export function TelaDeRestauracao() {
         }
       />
       <div role="status" aria-live="polite" className={css.estado}>
-        <Marca tamanho={40} className={css.pulso} />
+        <Marca tamanho={40} variante="cor" />
         <span className={css.mensagemDeEstado}>{sessao.restaurando.mensagem}</span>
       </div>
     </div>

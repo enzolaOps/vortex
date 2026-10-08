@@ -1,21 +1,38 @@
-import { juntar } from "../../ui/juntar";
+import { juntar } from "./juntar";
 import css from "./Marca.module.css";
 
 /**
- * A marca do Vortex (a espiral e o núcleo). Decorativa: o nome do produto está
- * sempre no texto ao lado, então o SVG fica escondido do leitor de tela.
- * As cores vêm de tokens (acento e a cor do núcleo) para acompanhar o tema.
+ * O símbolo do Vortex (`brand/vortex-simbolo.svg`): três braços em espiral e o núcleo.
+ * Decorativo: o nome do produto está sempre no texto ao lado, então o SVG fica escondido
+ * do leitor de tela.
+ *
+ * - `simples` (padrão): uma cor só, a tinta `--vx-text-1`. É a forma de uso corrente
+ *   (barra de título, 20px; favicon).
+ * - `cor`: braços em `--vx-accent` e núcleo em `--vx-speaking`. Só para momentos de marca
+ *   (tela de entrada, restauração).
+ *
+ * Tamanho mínimo 16px. Nunca gira, espelha nem anima: o único movimento contínuo da
+ * interface é o sinal de fala. O `viewBox` leva 4 unidades de margem porque a ponta do braço
+ * de cima sai do quadrado 0–64 (y = -2,9).
  */
-export function Marca({ tamanho, className }: { tamanho: number; className?: string }) {
+export function Marca({
+  tamanho,
+  variante = "simples",
+  className,
+}: {
+  tamanho: number;
+  variante?: "simples" | "cor";
+  className?: string;
+}) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 64 64"
+      viewBox="-4 -4 72 72"
       width={tamanho}
       height={tamanho}
       aria-hidden="true"
       focusable="false"
-      className={juntar(css.marca, className)}
+      className={juntar(css.marca, variante === "cor" ? css.cor : css.simples, className)}
     >
       <path className={css.espiral} d="M31.22 4.92L32.89 5.31L34.51 5.81L36.08 6.39L37.57 7.07L39 7.84L40.36 8.68L41.63 9.6L42.83 10.58L43.94 11.63L44.96 12.73L45.89 13.87L46.73 15.05L47.48 16.27L48.14 17.51L48.7 18.77L49.16 20.04L49.54 21.32L49.82 22.59L50.01 23.86L50.12 25.11L50.14 26.35L50.08 27.55L49.94 28.73L49.73 29.87L49.44 30.97L49.09 32.03L48.68 33.03L48.21 33.99L47.69 34.89L47.12 35.73L46.51 36.51L45.86 37.23L45.18 37.88L44.48 38.48L43.76 39L43.02 39.47A4 4 0 0 0 47.03 46.39L48.24 45.63L49.41 44.77L50.54 43.82L51.62 42.78L52.64 41.65L53.59 40.43L54.46 39.14L55.26 37.76L55.97 36.32L56.59 34.81L57.11 33.24L57.53 31.61L57.85 29.94L58.05 28.22L58.14 26.48L58.11 24.71L57.96 22.92L57.68 21.12L57.28 19.33L56.76 17.54L56.11 15.76L55.33 14.02L54.43 12.31L53.41 10.64L52.26 9.02L50.99 7.47L49.61 5.99L48.12 4.58L46.51 3.26L44.81 2.04L43.01 0.91L41.12 -0.1L39.14 -1L37.09 -1.77L34.96 -2.41L32.78 -2.92A4 4 0 0 0 31.22 4.92Z" />
       <path className={css.espiral} d="M55.84 44.86L54.67 46.12L53.43 47.27L52.14 48.33L50.8 49.29L49.42 50.15L48.01 50.9L46.58 51.54L45.13 52.09L43.67 52.53L42.21 52.86L40.75 53.1L39.31 53.23L37.88 53.27L36.48 53.22L35.11 53.07L33.78 52.84L32.48 52.53L31.24 52.14L30.04 51.67L28.91 51.14L27.83 50.54L26.81 49.88L25.86 49.17L24.98 48.42L24.17 47.62L23.43 46.79L22.77 45.93L22.17 45.04L21.66 44.14L21.21 43.23L20.84 42.31L20.54 41.39L20.31 40.47L20.15 39.57L20.06 38.68L20.03 37.81A4 4 0 0 0 12.03 37.82L12.08 39.25L12.23 40.69L12.49 42.15L12.85 43.6L13.32 45.05L13.9 46.48L14.59 47.89L15.38 49.26L16.27 50.6L17.27 51.89L18.37 53.13L19.57 54.31L20.86 55.42L22.24 56.45L23.71 57.4L25.26 58.26L26.89 59.02L28.58 59.68L30.33 60.23L32.15 60.68L34.01 61L35.91 61.2L37.84 61.27L39.8 61.22L41.77 61.03L43.75 60.71L45.72 60.26L47.69 59.67L49.63 58.94L51.55 58.08L53.42 57.08L55.24 55.94L57.01 54.68L58.7 53.29L60.32 51.77L61.85 50.14A4 4 0 0 0 55.84 44.86Z" />

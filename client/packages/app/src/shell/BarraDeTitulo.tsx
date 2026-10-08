@@ -1,5 +1,6 @@
 import { comum, shell } from "../textos";
 import { Botao } from "../ui/ds";
+import { Marca } from "../ui/Marca";
 import { Fechar, Maximizar, Minimizar } from "../ui/icones";
 import css from "./Regioes.module.css";
 
@@ -10,7 +11,7 @@ export interface BarraDeTituloProps {
   aoFechar?: () => void;
 }
 
-/** Só o nome do app e os botões da janela. Nada mais mora aqui. */
+/** Só o símbolo (20px) e o nome do app e os botões da janela. Nada mais mora aqui. */
 export function BarraDeTitulo({ aoMinimizar, aoMaximizar, aoFechar }: BarraDeTituloProps) {
   const temJanela = aoMinimizar ?? aoMaximizar ?? aoFechar;
   return (
@@ -20,7 +21,10 @@ export function BarraDeTitulo({ aoMinimizar, aoMaximizar, aoFechar }: BarraDeTit
       aria-label={shell.barraDeTitulo.rotulo}
       data-testid="barra-de-titulo"
     >
-      <span>{comum.nomeDoApp}</span>
+      <span className={css.nomeDoApp}>
+        <Marca tamanho={20} />
+        {comum.nomeDoApp}
+      </span>
       {temJanela && (
         <div className={css.janela}>
           {aoMinimizar && (

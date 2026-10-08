@@ -21,7 +21,12 @@ RUN corepack enable && corepack prepare pnpm@11.3.0 --activate
 
 WORKDIR /build
 
-# O contexto de build é a RAIZ do repositório (o workflow passa `context: .`).
+# O contexto de build é a RAIZ do repositório (o workflow passa `context: .`):
+# o `vite.config.ts` do app tem um plugin (`marca.ts`) que lê
+# `../../../brand/vortex-simbolo.svg` e o serve como favicon. `brand/` é o
+# diretório único da marca; copiá-lo para dentro de `client/` criaria uma
+# segunda fonte que divergiria em silêncio.
+COPY brand/ brand/
 
 WORKDIR /build/client
 
