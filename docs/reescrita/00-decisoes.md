@@ -148,3 +148,8 @@ decisão de produto por superfície**, não a stack nem a camada de lógica:
 **PRD → design (Claude Design, com link) → arquitetura e TRD → segurança.**
 Decisões pontuais viram ADRs curtos. O `CLAUDE.md` novo é curto e aponta para
 os documentos; histórico e medições moram fora dele.
+
+## Resultado
+
+O que foi entregue, as releases e as dívidas abertas estão em
+[06-entrega.md](06-entrega.md).
