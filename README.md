@@ -63,8 +63,6 @@ pnpm --filter app dev
 
 The desktop shell needs `VORTEX_APP_URL` at build time. Copy `desktop/.env.example` to `desktop/.env` and set it. The build fails on purpose if the URL is missing.
 
-Deployment lives in `pi-infra`, not in this repository.
-
 Publish a GitHub Release tagged `vX.Y.Z` to build whatever changed since the previous tag. Notes come from conventional commit subjects. Leave the release body empty.
 
 ## License
