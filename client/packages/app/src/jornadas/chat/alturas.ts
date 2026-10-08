@@ -1,4 +1,6 @@
-import { count, readCounters } from "nucleo/arnes/stats";
+import { count } from "nucleo/arnes/stats";
+import { lerAparencia } from "nucleo/store/aparencia";
+import { lerDensidade, type Densidade } from "nucleo/store/densidade";
 
 /**
  * Estimativa de altura de linha, por TIPO. Medida, não chutada.
@@ -22,6 +24,34 @@ export const ALTURA_POR_TIPO = {
 } as const;
 
 export type TipoDeLinha = keyof typeof ALTURA_POR_TIPO;
+
+/**
+ * A mesma estimativa por DENSIDADE. A compacta não tem avatar e tem menos respiro,
+ * mas o corpo da mensagem é quem manda na altura: medido nas MESMAS linhas, ela encolhe
+ * só ~9% a linha que abre grupo e ~6,5% a continuação (a linha de sistema não muda).
+ * Estimar com os números da confortável faria a barra de rolagem errar na proporção
+ * de cada tipo e a âncora derivar ao trocar de densidade.
+ */
+export const ALTURA_POR_DENSIDADE: Readonly<Record<Densidade, Readonly<Record<TipoDeLinha, number>>>> = {
+  confortavel: ALTURA_POR_TIPO,
+  compacto: { sistema: 34, abreGrupo: 87, continua: 72 },
+};
+
+/**
+ * Quanto a altura acompanha o tamanho do texto, medido nas mesmas linhas a 90% e a 125%.
+ * Texto maior quebra em mais linhas, então a altura sobe MAIS que a escala (125% dá ~1,35×);
+ * a 90% o ganho é menor (~0,915×). A linha de sistema é uma frase curta com respiro fixo.
+ */
+function fatorDeTexto(tipo: TipoDeLinha, texto: number): number {
+  const e = texto / 100 - 1;
+  if (tipo === "sistema") return 1 + e * 0.6;
+  return 1 + e * (e >= 0 ? 1.4 : 0.85);
+}
+
+/** A altura estimada de um tipo de linha na densidade e no tamanho de texto (%) dados. */
+export function alturaDoTipo(tipo: TipoDeLinha, densidade: Densidade, texto: number): number {
+  return Math.round(ALTURA_POR_DENSIDADE[densidade][tipo] * fatorDeTexto(tipo, texto));
+}
 
 /** Piso de quem ainda não foi resolvido. Nunca zero: zero realimenta a medição. */
 export const ALTURA_ESTIMADA = 80;
@@ -50,25 +80,30 @@ export const LIMIAR_DE_LONGE = 800;
 /** Quão longe do fim ainda conta como "no fim". Um número para os dois lados concordarem. */
 export const LIMIAR_DE_FIM = 80;
 
-const AVISADO = new Set<TipoDeLinha>();
+const AVISADO = new Set<string>();
 
-function conferir(tipo: TipoDeLinha, media: number) {
-  if (AVISADO.has(tipo)) return;
-  const esperada = ALTURA_POR_TIPO[tipo];
+/** Soma e contagem por (densidade, tamanho de texto, tipo): trocar de ajuste não mistura médias. */
+const AMOSTRAS = new Map<string, { soma: number; n: number }>();
+
+function conferir(tipo: TipoDeLinha, media: number, densidade: Densidade, texto: number) {
+  const chave = `${densidade}|${String(texto)}|${tipo}`;
+  if (AVISADO.has(chave)) return;
+  const esperada = alturaDoTipo(tipo, densidade, texto);
   const erro = Math.abs(media - esperada) / esperada;
   if (erro < 0.15) return;
-  AVISADO.add(tipo);
+  AVISADO.add(chave);
   console.error(
-    `[vortex] a estimativa de altura da linha "${tipo}" está a ${(erro * 100).toFixed(0)}% ` +
-      `do real: estima ${esperada}px, mede ${media.toFixed(1)}px. A linha mudou de forma. ` +
-      `Estimativa errada não quebra nada, só faz a barra de rolagem mentir sobre o histórico.`,
+    `[vortex] a estimativa de altura da linha "${tipo}" (${densidade}, texto ${String(texto)}%) está a ` +
+      `${(erro * 100).toFixed(0)}% do real: estima ${String(esperada)}px, mede ${media.toFixed(1)}px. ` +
+      `A linha mudou de forma. Estimativa errada não quebra nada, só faz a barra de rolagem mentir sobre o histórico.`,
   );
 }
 
 /**
  * Soma a altura medida de uma linha ao relatório do arnês e, em dev, confere a
  * estimativa do tipo contra a média (com amostra suficiente para ela significar
- * algo). Linhas com divisor de dia ficam fora: a constante descreve a linha sem ele.
+ * algo), na densidade e no tamanho de texto em uso. Linhas com divisor de dia ficam
+ * fora: a constante descreve a linha sem ele.
  */
 export function amostrarAltura(tipo: TipoDeLinha, altura: number, comDivisor: boolean) {
   if (altura <= 0) return;
@@ -86,12 +121,13 @@ export function amostrarAltura(tipo: TipoDeLinha, altura: number, comDivisor: bo
     count("alturaContinuaAmostras");
   }
   if (import.meta.env.DEV) {
-    const c = readCounters();
-    if (tipo === "abreGrupo" && c.alturaGrupoAmostras > 200)
-      conferir(tipo, c.alturaGrupoSoma / c.alturaGrupoAmostras);
-    if (tipo === "continua" && c.alturaContinuaAmostras > 200)
-      conferir(tipo, c.alturaContinuaSoma / c.alturaContinuaAmostras);
-    if (tipo === "sistema" && c.alturaSistemaAmostras > 200)
-      conferir(tipo, c.alturaSistemaSoma / c.alturaSistemaAmostras);
+    const densidade = lerDensidade();
+    const texto = lerAparencia().texto;
+    const chave = `${densidade}|${String(texto)}|${tipo}`;
+    const a = AMOSTRAS.get(chave) ?? { soma: 0, n: 0 };
+    a.soma += altura;
+    a.n += 1;
+    AMOSTRAS.set(chave, a);
+    if (a.n > 200) conferir(tipo, a.soma / a.n, densidade, texto);
   }
 }

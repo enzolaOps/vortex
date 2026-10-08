@@ -26,6 +26,32 @@
   outline-offset: -2px;
 }
 
+/*
+  Compacta: a calha vira a coluna da hora (mono, sempre à vista), o avatar some e o
+  espaçamento encolhe. A hora ocupa a calha de 36px sem mudar a largura do conteúdo.
+*/
+.compacta {
+  padding-block: 0;
+  gap: var(--vx-space-2);
+}
+.compacta:not(.continuacao) {
+  padding-block-start: var(--vx-space-1);
+}
+.horaCompacta {
+  align-self: baseline;
+  color: var(--vx-text-3);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-type-mono-size);
+  line-height: var(--vx-type-body-line);
+  font-weight: var(--vx-type-mono-weight);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+.compacta .calha {
+  justify-content: flex-end;
+  inline-size: 44px;
+}
+
 .calha {
   display: flex;
   flex: none;

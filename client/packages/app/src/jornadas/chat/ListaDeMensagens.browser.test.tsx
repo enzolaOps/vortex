@@ -1,14 +1,26 @@
 import "../../arnes/redeFalsa";
 
 import { CHANNEL_ID, SERVER_ID, seed, startFirehose } from "nucleo/arnes/firehose";
+import { messages } from "nucleo/sdk/adapter";
+import { definirAparencia, restaurarAparencia } from "nucleo/store/aparencia";
+import { definirDensidade } from "nucleo/store/densidade";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
+
+import { definirPersonalizacao } from "../../tema/personalizado";
+import { PERSONALIZACAO_PADRAO } from "../../tema/personalizar";
+import { alturaDoTipo, type TipoDeLinha } from "./alturas";
 
 import { AreaPrincipal } from "../../shell";
 import { desmontar, montar, pegar } from "../../ui/ds/montar";
 import { AreaDeChat } from "./AreaDeChat";
 import { ListaDeMensagens } from "./ListaDeMensagens";
 
-afterEach(desmontar);
+afterEach(() => {
+  desmontar();
+  restaurarAparencia();
+  definirDensidade("confortavel");
+  definirPersonalizacao({ ...PERSONALIZACAO_PADRAO });
+});
 
 let ids: readonly string[] = [];
 beforeAll(async () => {
@@ -103,5 +115,106 @@ describe("ListaDeMensagens", () => {
     // O campo preenche a largura (menos o recuo e os botões da caixa), e não uma coluna centrada.
     expect(campo.left - area.left).toBeLessThanOrEqual(80);
     expect(area.right - campo.right).toBeLessThanOrEqual(120);
+  });
+});
+
+describe("densidade e tamanho do texto na lista", () => {
+  type Amostra = { readonly altura: number; readonly tipo: TipoDeLinha };
+
+  /**
+   * A altura real de cada linha "limpa" (sem divisor, resposta, reação, anexo nem estado de
+   * envio), por índice: é para elas que a constante vale, o resto a lista soma por fora.
+   * Varre a lista em 150 pontos. Como a chave é o índice, duas configurações medem AS MESMAS
+   * linhas e o que se compara é a razão entre elas, sem o ruído de quais linhas cairam na janela.
+   */
+  async function varrer() {
+    await expect.poll(() => linhas().length).toBeGreaterThan(0);
+    const quadro = () => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+    const saida = new Map<number, Amostra>();
+    for (let passo = 0; passo <= 150; passo++) {
+      log().scrollTop = (log().scrollHeight - log().clientHeight) * (1 - passo / 150);
+      await quadro();
+      for (const l of linhas()) {
+        const i = Number(l.dataset["index"]);
+        const m = messages.getSnapshot(ids[i] ?? "");
+        if (!m || m.dia !== undefined || m.primeiraNaoLida || m.respostas.length > 0 || m.reactions.length > 0) continue;
+        if (m.sendState !== "sent" || m.anexos.length > 0) continue;
+        saida.set(i, { altura: l.offsetHeight, tipo: m.sistema ? "sistema" : m.iniciaGrupo ? "abreGrupo" : "continua" });
+      }
+    }
+    return saida;
+  }
+
+  const razao = (base: Map<number, Amostra>, outra: Map<number, Amostra>, tipo: TipoDeLinha) => {
+    let a = 0;
+    let b = 0;
+    let n = 0;
+    for (const [i, x] of base) {
+      const y = outra.get(i);
+      if (!y || x.tipo !== tipo) continue;
+      a += x.altura;
+      b += y.altura;
+      n += 1;
+    }
+    return { razao: b / a, n };
+  };
+
+  const casos = [
+    ["compacto", 100],
+    ["confortavel", 125],
+    ["compacto", 125],
+    ["confortavel", 90],
+    ["compacto", 90],
+  ] as const;
+
+  it("a estimativa de altura de cada tipo acompanha a densidade e o tamanho do texto (mesmas linhas, razão a menos de 15%)", async () => {
+    montarLista();
+    const base = await varrer();
+    const resultados: string[] = [];
+    const fora: string[] = [];
+    for (const [densidade, texto] of casos) {
+      definirDensidade(densidade);
+      definirAparencia({ texto });
+      await esperar(300);
+      const outra = await varrer();
+      for (const tipo of ["abreGrupo", "continua", "sistema"] as const) {
+        const medida = razao(base, outra, tipo);
+        if (medida.n < 5) continue;
+        const estimada = alturaDoTipo(tipo, densidade, texto) / alturaDoTipo(tipo, "confortavel", 100);
+        resultados.push(`${densidade} ${String(texto)}% ${tipo}: medida ${medida.razao.toFixed(3)} estimada ${estimada.toFixed(3)} (n=${String(medida.n)})`);
+        if (Math.abs(medida.razao - estimada) / estimada >= 0.15) fora.push(resultados.at(-1) ?? "");
+      }
+    }
+    // eslint-disable-next-line no-console
+    console.info(["[alturas]", ...resultados].join(" | "));
+    expect(fora).toEqual([]);
+  }, 120_000);
+
+  it("compacta não tem avatar e mostra a hora de toda mensagem na calha", async () => {
+    definirDensidade("compacto");
+    montarLista();
+    await expect.poll(() => linhas().length).toBeGreaterThan(0);
+    expect(log().querySelectorAll("article [class*='Avatar']").length).toBe(0);
+    const artigos = Array.from(log().querySelectorAll("article"));
+    expect(artigos.length).toBeGreaterThan(3);
+    for (const a of artigos) expect(a.querySelector("time")).not.toBeNull();
+  });
+
+  it("trocar a densidade com a lista aberta remede e mantém a lista colada no fim, sem sobreposição", async () => {
+    montarLista();
+    await expect.poll(distanciaDoFim, { timeout: 5000 }).toBeLessThanOrEqual(80);
+    definirDensidade("compacto");
+    await esperar(500);
+    const virtuais = linhas();
+    for (let i = 1; i < virtuais.length; i++) {
+      const anterior = virtuais[i - 1]!.getBoundingClientRect();
+      const atual = virtuais[i]!.getBoundingClientRect();
+      expect(atual.top).toBeGreaterThanOrEqual(anterior.bottom - 1);
+    }
+    expect(distanciaDoFim()).toBeLessThanOrEqual(80);
+    definirAparencia({ texto: 125 });
+    await esperar(500);
+    expect(distanciaDoFim()).toBeLessThanOrEqual(80);
+    for (const l of linhas()) expect(l.offsetHeight).toBeGreaterThan(0);
   });
 });

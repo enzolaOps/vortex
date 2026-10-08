@@ -12,6 +12,8 @@
   border-radius: 50%;
   filter: blur(var(--vx-blur-glow));
   pointer-events: none;
+  /* "Brilho de fundo" (Aparência): `--vx-glow-exibir: none` apaga as manchas. */
+  display: var(--vx-glow-exibir, block);
 }
 .teal {
   inline-size: 380px;
@@ -19,7 +21,7 @@
   inset-inline-start: -120px;
   inset-block-start: -60px;
   background: var(--vx-backdrop-glow-teal);
-  opacity: 0.22;
+  opacity: calc(0.22 * var(--vx-glow-escala, 1));
 }
 .indigo {
   inline-size: 460px;
@@ -27,7 +29,7 @@
   inset-inline-end: -140px;
   inset-block-start: -120px;
   background: var(--vx-backdrop-glow-indigo);
-  opacity: 0.2;
+  opacity: calc(0.2 * var(--vx-glow-escala, 1));
 }
 .magenta {
   inline-size: 480px;
@@ -35,5 +37,5 @@
   inset-inline-start: 30%;
   inset-block-end: -160px;
   background: var(--vx-backdrop-glow-magenta);
-  opacity: 0.12;
+  opacity: calc(0.12 * var(--vx-glow-escala, 1));
 }

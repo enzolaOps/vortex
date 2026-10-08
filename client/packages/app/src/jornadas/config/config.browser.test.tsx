@@ -4,6 +4,8 @@ import { page, userEvent } from "vitest/browser";
 import { ligarAtalhosDeVoz } from "nucleo/sdk/atalhosDeVoz";
 import { abrirConfig, lerConfig, limparConfig } from "nucleo/store/config";
 import { ATALHOS_PADRAO, definirAtalho, lerAtalhosDeVoz } from "nucleo/store/atalhosDeVoz";
+import { restaurarAparencia, lerAparencia } from "nucleo/store/aparencia";
+import { definirDensidade, lerDensidade } from "nucleo/store/densidade";
 import { limparMeuStatus, semearMeuStatus } from "nucleo/store/meuStatus";
 import {
   definirNotificacoes,
@@ -17,7 +19,7 @@ import {
 import { definirSegurando, lerSegurando, microfoneAberto } from "nucleo/store/pushToTalk";
 import type { Dispositivo, ResultadoDeConta } from "nucleo/sdk/perfil";
 
-import { config } from "../../textos";
+import { comum, config } from "../../textos";
 import { definirPersonalizacao, lerPersonalizacao } from "../../tema/personalizado";
 import { PERSONALIZACAO_PADRAO } from "../../tema/personalizar";
 import { desmontar, montar } from "../../ui/ds/montar";
@@ -170,6 +172,8 @@ afterEach(() => {
     fundo: "nenhum",
   });
   definirPersonalizacao({ ...PERSONALIZACAO_PADRAO });
+  restaurarAparencia();
+  definirDensidade("confortavel");
   vi.restoreAllMocks();
 });
 
@@ -692,47 +696,299 @@ describe("voz e vídeo", () => {
 });
 
 describe("aparência", () => {
-  it("o tema de fábrica é o padrão e não escreve nada no documento", async () => {
+  const a = config.aparenciaTela;
+  const raiz = () => document.documentElement.style;
+  const previa = () => document.querySelector<HTMLElement>('[data-testid="previa-da-paleta"]');
+  const abrirPersonalizar = async () => {
+    await userEvent.click(botao(a.personalizar)!);
+    await assentar();
+  };
+
+  it("o tema de fábrica (Vidro) é o padrão e não escreve nada no documento", async () => {
     await abrir("aparencia");
-    expect(radio(config.aparenciaTela.escuro)?.getAttribute("aria-checked")).toBe("true");
-    expect(document.documentElement.style.getPropertyValue("--vx-accent")).toBe("");
-    expect(texto()).toContain(config.aparenciaTela.soEscuro);
+    expect(radio(a.temas.vidro)?.getAttribute("aria-checked")).toBe("true");
+    expect(raiz().getPropertyValue("--vx-accent")).toBe("");
+    expect(texto()).toContain(a.soEscuro);
+    expect(document.querySelectorAll('[role="radiogroup"][aria-label="Tema"] [role="radio"]').length).toBeGreaterThanOrEqual(7);
   });
 
-  it("a paleta personalizada aplica as cores validadas e voltar ao tema de fábrica as remove", async () => {
+  it("escolher um tema aplica a paleta dele e voltar ao Vidro a remove", async () => {
     await abrir("aparencia");
-    await userEvent.click(radio(config.aparenciaTela.personalizado)!);
+    await userEvent.click(radio(a.temas.oceano)!);
     await assentar();
-    const raiz = document.documentElement.style;
-    expect(lerPersonalizacao().ativo).toBe(true);
-    const acentoLavanda = raiz.getPropertyValue("--vx-accent");
-    expect(acentoLavanda).toMatch(/^#[0-9a-f]{6}$/);
+    expect(lerPersonalizacao()).toMatchObject({ ativo: true, tema: "oceano", personalizado: false });
+    expect(radio(a.temas.oceano)?.getAttribute("aria-checked")).toBe("true");
+    expect(radio(a.temas.vidro)?.getAttribute("aria-checked")).toBe("false");
+    const acentoOceano = raiz().getPropertyValue("--vx-accent");
+    expect(acentoOceano).toMatch(/^#[0-9a-f]{6}$/);
 
-    await userEvent.click(radio(config.aparenciaTela.destaques.menta)!);
+    await userEvent.click(radio(a.temas.brasa)!);
     await assentar();
-    expect(raiz.getPropertyValue("--vx-accent")).not.toBe(acentoLavanda);
-    expect(radio(config.aparenciaTela.destaques.menta)?.getAttribute("aria-checked")).toBe("true");
-    expect(document.querySelector('[data-testid="previa-da-paleta"]')).not.toBeNull();
+    expect(raiz().getPropertyValue("--vx-accent")).not.toBe(acentoOceano);
 
-    const base = raiz.getPropertyValue("--vx-backdrop-base");
-    const matiz = campo(config.aparenciaTela.matiz) as HTMLInputElement;
-    await userEvent.fill(matiz, "120");
+    await userEvent.click(radio(a.temas.vidro)!);
     await assentar();
-    expect(raiz.getPropertyValue("--vx-backdrop-base")).not.toBe(base);
+    expect(raiz().getPropertyValue("--vx-accent")).toBe("");
+    expect(raiz().getPropertyValue("--vx-backdrop-base")).toBe("");
+  });
 
-    await userEvent.click(radio(config.aparenciaTela.escuro)!);
+  it("personalizar parte do tema escolhido e marca o cartão como personalizado", async () => {
+    await abrir("aparencia");
+    await userEvent.click(radio(a.temas.ametista)!);
     await assentar();
-    expect(raiz.getPropertyValue("--vx-accent")).toBe("");
-    expect(raiz.getPropertyValue("--vx-backdrop-base")).toBe("");
+    const baseDoTema = raiz().getPropertyValue("--vx-backdrop-base");
+    expect(texto()).not.toContain(a.personalizado);
+
+    await abrirPersonalizar();
+    await userEvent.fill(campo(a.matiz)!, "120");
+    await assentar();
+    expect(raiz().getPropertyValue("--vx-backdrop-base")).not.toBe(baseDoTema);
+    expect(lerPersonalizacao()).toMatchObject({ tema: "ametista", personalizado: true });
+    expect(radio(a.temas.ametista)?.textContent).toContain(a.personalizado);
+
+    await userEvent.click(radio(a.destaques.menta)!);
+    await assentar();
+    expect(radio(a.destaques.menta)?.getAttribute("aria-checked")).toBe("true");
+
+    await userEvent.click(botao(new RegExp(a.voltarAoTema))!);
+    await assentar();
+    expect(lerPersonalizacao()).toMatchObject({ tema: "ametista", personalizado: false });
+    expect(raiz().getPropertyValue("--vx-backdrop-base")).toBe(baseDoTema);
+  });
+
+  it("a prévia mostra o tema sob o mouse sem mexer no resto do app", async () => {
+    await abrir("aparencia");
+    const antes = raiz().getPropertyValue("--vx-accent");
+    expect(previa()?.style.getPropertyValue("--vx-accent")).toMatch(/^#[0-9a-f]{6}$/);
+    expect(previa()?.getAttribute("aria-label")).toBe(a.previaDe(a.temas.vidro));
+
+    const fundoAntes = previa()?.style.getPropertyValue("--vx-backdrop-base");
+    await userEvent.hover(radio(a.temas.brasa)!);
+    await assentar();
+    expect(previa()?.getAttribute("aria-label")).toBe(a.previaDe(a.temas.brasa));
+    expect(previa()?.style.getPropertyValue("--vx-backdrop-base")).not.toBe(fundoAntes);
+    // O documento continua como estava: só o contêiner da prévia recebeu as cores.
+    expect(raiz().getPropertyValue("--vx-accent")).toBe(antes);
+    expect(lerPersonalizacao().tema).toBe("vidro");
+    expect(previa()?.querySelector('[data-testid="previa-mencao"]')).not.toBeNull();
+    expect(previa()?.textContent).toContain(comum.sinalAoVivo);
+
+    await userEvent.click(radio(a.temas.brasa)!);
+    await assentar();
+    expect(raiz().getPropertyValue("--vx-accent")).toBe(previa()?.style.getPropertyValue("--vx-accent"));
+  });
+
+  it("cor de destaque livre: escura demais é ajustada e a tela mostra o antes e o depois", async () => {
+    await abrir("aparencia");
+    await abrirPersonalizar();
+    const hex = campo(a.campoHex) ?? document.querySelector<HTMLInputElement>(`input[aria-label="${a.campoHex}"]`)!;
+    await userEvent.fill(hex, "#00008b");
+    await assentar();
+    expect(lerPersonalizacao().destaqueLivre).toBe("#00008b");
+    expect(texto()).toContain(a.destaqueAjustado);
+    const antes = document.querySelector('[data-testid="destaque-Antes"]')?.textContent ?? "";
+    const depois = document.querySelector('[data-testid="destaque-Depois"]')?.textContent ?? "";
+    expect(antes).toContain("#00008b");
+    expect(depois).not.toContain("#00008b");
+    expect(raiz().getPropertyValue("--vx-accent")).toMatch(/^#[0-9a-f]{6}$/);
+    expect(raiz().getPropertyValue("--vx-accent")).not.toBe("#00008b");
+
+    // Uma cor que já se lê passa direto, sem aviso.
+    await userEvent.fill(hex, "#a99bff");
+    await assentar();
+    expect(lerPersonalizacao().destaqueLivre).toBe("#a99bff");
+    expect(texto()).not.toContain(a.destaqueAjustado);
+
+    // Código inválido não troca a cor e avisa.
+    await userEvent.fill(hex, "#12");
+    await assentar();
+    expect(texto()).toContain(a.hexInvalido);
+    expect(lerPersonalizacao().destaqueLivre).toBe("#a99bff");
   });
 
   it("a escolha fica guardada para a próxima abertura", async () => {
     await abrir("aparencia");
-    await userEvent.click(radio(config.aparenciaTela.personalizado)!);
-    await userEvent.click(radio(config.aparenciaTela.destaques.rosa)!);
+    await userEvent.click(radio(a.temas.floresta)!);
+    await abrirPersonalizar();
+    await userEvent.click(radio(a.destaques.rosa)!);
     await assentar();
     const guardado = JSON.parse(localStorage.getItem("vortex:tema-personalizado") ?? "{}") as Record<string, unknown>;
-    expect(guardado).toMatchObject({ ativo: true, destaque: "rosa" });
+    expect(guardado).toMatchObject({ ativo: true, tema: "floresta", personalizado: true, destaque: "rosa" });
+  });
+
+  describe("vidro e fundo", () => {
+    const vidro = () => campo(a.vidro) as HTMLInputElement;
+    const brilho = () => campo(a.brilho) as HTMLInputElement;
+    const painelDaPrevia = () => previa()?.querySelector<HTMLElement>('[class*="vidro"]');
+    const mancha = () => previa()?.querySelector<HTMLElement>('[class*="campo"]');
+
+    it("vidro sólido desliga o backdrop-filter e o translúcido o religa", async () => {
+      await abrir("aparencia");
+      expect(getComputedStyle(painelDaPrevia()!).backdropFilter).toContain("blur");
+      await userEvent.fill(vidro(), "0");
+      await assentar();
+      expect(lerAparencia().vidro).toBe(0);
+      expect(raiz().getPropertyValue("--vx-backdrop-glass")).toBe("none");
+      expect(getComputedStyle(painelDaPrevia()!).backdropFilter).toBe("none");
+      expect(texto()).toContain(a.vidroValor(0));
+      expect(getComputedStyle(painelDaPrevia()!).backgroundColor).toMatch(/^rgb\(/);
+
+      await userEvent.fill(vidro(), "100");
+      await assentar();
+      expect(raiz().getPropertyValue("--vx-backdrop-glass")).toBe("");
+      expect(getComputedStyle(painelDaPrevia()!).backdropFilter).toContain("blur");
+    });
+
+    it("no meio do controle o desfoque fica mais fraco e a superfície mais opaca", async () => {
+      await abrir("aparencia");
+      const alfaDe = () => Number(/,\s*([0-9.]+)\)$/.exec(raiz().getPropertyValue("--vx-surface-glass"))?.[1] ?? "1");
+      await userEvent.fill(vidro(), "50");
+      await assentar();
+      expect(raiz().getPropertyValue("--vx-blur-glass")).toBe("14px");
+      expect(alfaDe()).toBeGreaterThan(0.52);
+      expect(alfaDe()).toBeLessThan(1);
+      expect(raiz().getPropertyValue("--vx-backdrop-glass")).toBe("");
+    });
+
+    it("o ajuste de vidro vale também no tema espiado na prévia", async () => {
+      await abrir("aparencia");
+      await userEvent.fill(vidro(), "0");
+      await userEvent.hover(radio(a.temas.brasa)!);
+      await assentar();
+      expect(previa()?.getAttribute("aria-label")).toBe(a.previaDe(a.temas.brasa));
+      expect(previa()?.style.getPropertyValue("--vx-backdrop-glass")).toBe("none");
+    });
+
+    it("brilho de fundo: reduz a intensidade e, desligado, apaga as manchas", async () => {
+      await abrir("aparencia");
+      expect(getComputedStyle(mancha()!).display).toBe("block");
+      const cheia = Number(getComputedStyle(mancha()!).opacity);
+      await userEvent.fill(brilho(), "50");
+      await assentar();
+      expect(Number(getComputedStyle(mancha()!).opacity)).toBeCloseTo(cheia / 2, 2);
+      await userEvent.fill(brilho(), "0");
+      await assentar();
+      expect(lerAparencia().brilho).toBe(0);
+      expect(getComputedStyle(mancha()!).display).toBe("none");
+      expect(texto()).toContain(a.brilhoValor(0));
+    });
+
+    it("as cores das manchas acompanham o tema escolhido", async () => {
+      await abrir("aparencia");
+      // Os dois temas são escolhidos AQUI: partir do tema "atual" deixava o teste
+      // depender do que um teste anterior gravou no dispositivo (se já fosse Brasa,
+      // trocar para Brasa não mudava nada e o teste reprovava sozinho).
+      await userEvent.click(radio(a.temas.oceano)!);
+      await assentar();
+      const antes = getComputedStyle(mancha()!).backgroundColor;
+      await userEvent.click(radio(a.temas.brasa)!);
+      await assentar();
+      await expect.poll(() => getComputedStyle(mancha()!).backgroundColor).not.toBe(antes);
+    });
+
+    it("restaurar devolve vidro e brilho ao desenho de fábrica", async () => {
+      await abrir("aparencia");
+      await userEvent.fill(vidro(), "0");
+      await userEvent.fill(brilho(), "0");
+      await userEvent.click(botao(a.restaurarAjustes)!);
+      await assentar();
+      expect(lerAparencia()).toMatchObject({ vidro: 100, brilho: 100 });
+      expect(raiz().getPropertyValue("--vx-backdrop-glass")).toBe("");
+    });
+  });
+
+  describe("mensagens, texto e movimento", () => {
+    const campoDoTexto = () => campo(a.tamanhoDoTexto) as HTMLInputElement;
+    const interruptorDeMovimento = () => interruptor(a.reduzirAnimacoes)!;
+    const paragrafo = () => previa()?.querySelector<HTMLElement>("p[class*='texto']");
+
+    it("compacta tira a foto da prévia, junta as mensagens e fica guardada", async () => {
+      await abrir("aparencia");
+      // O vão entre as duas mensagens da prévia: a compacta junta as linhas.
+      const alturaDe = () => {
+        const [m1, m2] = previa()!.querySelectorAll<HTMLElement>("[class*='mensagem']");
+        return m2!.getBoundingClientRect().top - m1!.getBoundingClientRect().bottom;
+      };
+      const confortavel = alturaDe();
+      expect(document.documentElement.getAttribute("data-densidade")).toBe("confortavel");
+      await userEvent.click(radio(a.compacta)!);
+      await assentar();
+      expect(lerDensidade()).toBe("compacto");
+      expect(document.documentElement.getAttribute("data-densidade")).toBe("compacto");
+      expect(radio(a.compacta)?.getAttribute("aria-checked")).toBe("true");
+      expect(previa()?.querySelectorAll("[data-compacta]").length).toBe(2);
+      expect(previa()?.querySelectorAll('[class*="avatar"]').length).toBe(0);
+      expect(alturaDe()).toBeLessThan(confortavel);
+      expect(localStorage.getItem("vortex:densidade")).toBe("compacto");
+
+      await userEvent.click(radio(a.confortavel)!);
+      await assentar();
+      expect(previa()?.querySelectorAll("[data-compacta]").length).toBe(0);
+    });
+
+    it("tamanho do texto escala os tokens, e a prévia e a página não estouram a 125%", async () => {
+      await abrir("aparencia");
+      const base = parseFloat(getComputedStyle(paragrafo()!).fontSize);
+      await userEvent.fill(campoDoTexto(), "125");
+      await assentar();
+      expect(lerAparencia().texto).toBe(125);
+      expect(raiz().getPropertyValue("--vx-texto-escala")).toBe("1.25");
+      expect(parseFloat(getComputedStyle(paragrafo()!).fontSize)).toBeCloseTo(base * 1.25, 1);
+      expect(texto()).toContain(a.tamanhoDoTextoValor(125));
+      const prev = previa()!;
+      expect(prev.scrollWidth).toBeLessThanOrEqual(prev.clientWidth);
+      expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
+
+      await userEvent.fill(campoDoTexto(), "90");
+      await assentar();
+      expect(parseFloat(getComputedStyle(paragrafo()!).fontSize)).toBeCloseTo(base * 0.9, 1);
+
+      await userEvent.fill(campoDoTexto(), "100");
+      await assentar();
+      expect(raiz().getPropertyValue("--vx-texto-escala")).toBe("");
+    });
+
+    it("reduzir animações: sem escolha segue o sistema; escolhendo, vale o atributo", async () => {
+      await abrir("aparencia");
+      const sistema = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      expect(interruptorDeMovimento().getAttribute("aria-checked")).toBe(String(sistema));
+      expect(document.documentElement.hasAttribute("data-movimento")).toBe(false);
+
+      await userEvent.click(interruptorDeMovimento());
+      await assentar();
+      expect(lerAparencia().reduzirAnimacoes).toBe(!sistema);
+      expect(document.documentElement.getAttribute("data-movimento")).toBe(sistema ? "normal" : "reduzido");
+
+      if (sistema) {
+        await userEvent.click(interruptorDeMovimento());
+        await assentar();
+      }
+      const alvo = document.createElement("div");
+      alvo.style.transition = "opacity 200ms";
+      document.body.append(alvo);
+      expect(parseFloat(getComputedStyle(alvo).transitionDuration)).toBeLessThan(0.001);
+      alvo.remove();
+
+      await userEvent.click(botao(a.seguirOSistema)!);
+      await assentar();
+      expect(lerAparencia().reduzirAnimacoes).toBeNull();
+      expect(document.documentElement.hasAttribute("data-movimento")).toBe(false);
+      expect(botao(a.seguirOSistema)).toBeUndefined();
+    });
+
+    it("desligar de volta devolve as transições", async () => {
+      await abrir("aparencia");
+      const sistema = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (sistema) return;
+      await userEvent.click(interruptorDeMovimento());
+      await userEvent.click(interruptorDeMovimento());
+      await assentar();
+      const alvo = document.createElement("div");
+      alvo.style.transition = "opacity 200ms";
+      document.body.append(alvo);
+      expect(parseFloat(getComputedStyle(alvo).transitionDuration)).toBeCloseTo(0.2, 2);
+      alvo.remove();
+    });
   });
 });
 

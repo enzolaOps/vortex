@@ -29,6 +29,14 @@ export function valorCss(valor) {
   return valor.replace(/\{([a-z0-9-]+)\}/g, (_, nome) => `var(--vx-${nome})`);
 }
 
+/**
+ * Tamanho e entrelinha passam pela escala de texto da pessoa (`--vx-texto-escala`,
+ * 0,9 a 1,25, escrita no <html> por `tema/personalizado.ts`). Sem a variável vale 1.
+ */
+function escalar(px) {
+  return `calc(${px} * var(--vx-texto-escala, 1))`;
+}
+
 export function gerar(tokens) {
   const temas = tokens.color.themes;
   if (temas.length === 0) throw new Error("tokens.json sem tema");
@@ -53,8 +61,8 @@ export function gerar(tokens) {
   }
   for (const grupo of tokens.type.groups) {
     for (const e of grupo.styles) {
-      linhas.push(`  --vx-type-${e.name}-size: ${e.fontSize};`);
-      linhas.push(`  --vx-type-${e.name}-line: ${e.lineHeight};`);
+      linhas.push(`  --vx-type-${e.name}-size: ${escalar(e.fontSize)};`);
+      linhas.push(`  --vx-type-${e.name}-line: ${escalar(e.lineHeight)};`);
       linhas.push(`  --vx-type-${e.name}-weight: ${e.fontWeight};`);
       if (e.letterSpacing) linhas.push(`  --vx-type-${e.name}-tracking: ${e.letterSpacing};`);
     }

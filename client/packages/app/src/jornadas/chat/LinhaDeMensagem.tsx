@@ -1,10 +1,11 @@
 import { count } from "nucleo/arnes/stats";
 import { chaveDeMembro } from "nucleo/sdk/domain";
 import { pode } from "nucleo/sdk/permissoes";
+import { assinarDensidade, lerDensidade } from "nucleo/store/densidade";
 import { useMessage, useNomeDoMembro } from "nucleo/store/hooks";
 import { abrirSeletorDeReacao } from "nucleo/store/seletorDeReacao";
 import { responderA } from "nucleo/store/resposta";
-import { memo } from "react";
+import { memo, useSyncExternalStore } from "react";
 
 import { chat } from "../../textos";
 import { Mensagem } from "../../ui/ds";
@@ -42,6 +43,7 @@ function LinhaBase({ id, servidorId }: LinhaDeMensagemProps) {
   const m = useMessage(id);
   const nomeDoAutor = useNomeDoMembro(chaveDeMembro(servidorId, m?.authorId ?? ""));
   const editando = useEditandoEsta(id);
+  const compacta = useSyncExternalStore(assinarDensidade, lerDensidade) === "compacto";
 
   if (!m) return <div className={css.placeholder} aria-hidden="true" />;
 
@@ -70,7 +72,12 @@ function LinhaBase({ id, servidorId }: LinhaDeMensagemProps) {
           )}
           <Mensagem
             autor={{ nome: nomeDoAutor ?? chat.autorDesconhecido, id: m.authorId }}
-            avatar={<AvatarDoAutor servidorId={servidorId} autorId={m.authorId} nome={nomeDoAutor ?? chat.autorDesconhecido} />}
+            avatar={
+              compacta ? null : (
+                <AvatarDoAutor servidorId={servidorId} autorId={m.authorId} nome={nomeDoAutor ?? chat.autorDesconhecido} />
+              )
+            }
+            compacta={compacta}
             hora={m.createdAtText}
             continuacao={!m.iniciaGrupo}
             destacada={m.mencionaVoce}

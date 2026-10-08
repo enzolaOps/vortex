@@ -16,6 +16,8 @@
  *   VORTEX_CHROME          caminho do Chrome/Chromium (também aceita CHROME_PATH)
  *   VORTEX_GATE_JANELAS    janelas de medição; o veredito sai da MEDIANA (padrão 3)
  *   VORTEX_GATE_MENSAGENS  mensagens semeadas (padrão 10000)
+ *   VORTEX_GATE_DENSIDADE  "confortavel" (padrão) ou "compacto": a densidade das mensagens medida
+ *   VORTEX_GATE_TEXTO      tamanho do texto em % (90 a 125; padrão 100)
  *   VORTEX_GATE_SW=1       compõe por software (--disable-gpu). Só para DIAGNOSTICAR: inválido para veredito.
  *
  * Saída: 0 = PASS, 1 = FAIL, 2 = INVÁLIDA (ambiente ou carga: nem aprovada nem reprovada).
@@ -137,6 +139,17 @@ const av = async (expressao, ms = 300_000) => {
 };
 
 await enviar("Page.enable", {}, sessionId);
+// Preferências de aparência valem ANTES do app carregar: os stores leem do localStorage ao ser avaliados.
+const DENSIDADE = process.env.VORTEX_GATE_DENSIDADE ?? "confortavel";
+const TEXTO = Number(process.env.VORTEX_GATE_TEXTO ?? 100);
+await enviar(
+  "Page.addScriptToEvaluateOnNewDocument",
+  {
+    source: `try{localStorage.setItem("vortex:densidade",${JSON.stringify(DENSIDADE)});localStorage.setItem("vortex:aparencia",JSON.stringify({texto:${String(TEXTO)}}))}catch{}`,
+  },
+  sessionId,
+);
+console.log(`densidade: ${DENSIDADE} · texto: ${String(TEXTO)}%`);
 await enviar("Page.navigate", { url: URL_APP }, sessionId);
 
 // O arnês publica a API quando monta. Sem ela, a URL não é o arnês (ou o build não o inclui).

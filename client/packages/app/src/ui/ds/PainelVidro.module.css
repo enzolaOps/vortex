@@ -5,8 +5,9 @@
   O palco de vídeo nunca fica atrás de um painel de vidro.
 */
 .vidro {
-  -webkit-backdrop-filter: blur(var(--vx-blur-glass)) saturate(var(--vx-saturate-glass));
-  backdrop-filter: blur(var(--vx-blur-glass)) saturate(var(--vx-saturate-glass));
+  /* `--vx-backdrop-glass: none` (vidro sólido, na Aparência) desliga o filtro de vez. */
+  -webkit-backdrop-filter: var(--vx-backdrop-glass, blur(var(--vx-blur-glass)) saturate(var(--vx-saturate-glass)));
+  backdrop-filter: var(--vx-backdrop-glass, blur(var(--vx-blur-glass)) saturate(var(--vx-saturate-glass)));
   border: 1px solid var(--vx-glass-border);
   color: var(--vx-text-1);
   box-sizing: border-box;
