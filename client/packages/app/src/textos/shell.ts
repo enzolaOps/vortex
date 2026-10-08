@@ -23,6 +23,10 @@ export const shell = {
     rotulo: "Conversa",
     vazio: "Escolha uma sala para começar a conversar.",
   },
+  erro: {
+    rotulo: "Erro",
+    frase: "Algo deu errado aqui. O resto do app segue funcionando.",
+  },
   gaveta: {
     rotulo: "Membros online",
     titulo: "Online",

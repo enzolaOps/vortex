@@ -18,6 +18,7 @@ import { casa } from "../../textos";
 import { Avatar, Botao, Pilula } from "../../ui/ds";
 import { Mais, Mensagem, Pessoas, SemConexao } from "../../ui/icones";
 import { juntar } from "../../ui/juntar";
+import { nomeDaConversa } from "../useNomeDaConversa";
 import { useConviteDeAvisos } from "./hooks";
 import css from "./Coluna.module.css";
 import { NovoGrupo } from "./NovoGrupo";
@@ -97,7 +98,7 @@ function ConversaDireta({ id, selecionada }: { id: string; selecionada: boolean 
   const canal = useChannel(id);
   const pessoa = usePessoa(canal?.destinatarioId ?? "");
   if (!canal) return null;
-  const nome = pessoa?.displayName ?? canal.name;
+  const nome = nomeDaConversa(canal, pessoa);
   return (
     <LinhaDaConversa
       id={id}
@@ -119,8 +120,8 @@ function ConversaEmGrupo({ id, selecionada }: { id: string; selecionada: boolean
   return (
     <LinhaDaConversa
       id={id}
-      nome={canal.name}
-      rosto={<Avatar nome={canal.name} id={id} tamanho={36} />}
+      nome={nomeDaConversa(canal, undefined)}
+      rosto={<Avatar nome={nomeDaConversa(canal, undefined)} id={id} tamanho={36} />}
       detalhe={casa.coluna.grupo(canal.participantes)}
       ultimaMensagemId={canal.ultimaMensagemId}
       ultimaEm={canal.ultimaEm}

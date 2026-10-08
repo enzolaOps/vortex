@@ -118,6 +118,8 @@ export const casa = {
     bloqueadoPor: (nome: string) => `Você não pode enviar mensagens para ${nome}.`,
     desbloquear: "Desbloquear",
     notasTitulo: "Notas pessoais",
+    semNome: "Conversa",
+    grupoSemNome: "Grupo",
     notasTexto: "Só você vê estas mensagens.",
     perfil: (nome: string) => `Perfil de ${nome}`,
     sobre: "Sobre",

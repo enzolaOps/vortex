@@ -1,7 +1,9 @@
 import { useState, type ReactNode } from "react";
 
 import { FundoVidro } from "../ui/ds";
+import { LimiteDeErro } from "./LimiteDeErro";
 import { SalasEmFaixa } from "./SalasEmFaixa";
+import { shell } from "../textos";
 import css from "./Shell.module.css";
 
 export type ModoDaGaveta = "lista" | "icones" | "oculta";
@@ -22,6 +24,8 @@ export interface ShellProps {
   faixaDeSalas?: ReactNode;
   /** O esqueleto de restauração é um Shell também; ele se identifica diferente para não passar pelo real. */
   testId?: string;
+  /** Muda ao trocar de lugar (canal, servidor): os limites de erro das regiões esquecem a falha. */
+  chaveDoLugar?: string;
 }
 
 /**
@@ -40,6 +44,7 @@ export function Shell({
   salasEmFaixa = false,
   faixaDeSalas,
   testId = "shell",
+  chaveDoLugar,
 }: ShellProps) {
   const emFaixa = salasEmFaixa && faixaDeSalas !== undefined;
   /*
@@ -59,13 +64,17 @@ export function Shell({
     <FundoVidro data-testid={testId} className={css.raiz}>
       <div className={css.grade} data-testid="shell-grade" data-gaveta={modoDaGaveta} data-salas={emFaixa ? "faixa" : undefined}>
         <div className={css.barra}>{barraDeTitulo}</div>
-        <div className={css.dock}>{dock}</div>
+        <div className={css.dock}><LimiteDeErro rotulo={shell.dock.rotulo} chave={chaveDoLugar}>{dock}</LimiteDeErro></div>
         <div className={css.salas} data-anim={anim}>
-          {emFaixa ? <SalasEmFaixa faixa={faixaDeSalas} lista={salas} /> : salas}
+          <LimiteDeErro rotulo={shell.salas.rotulo} chave={chaveDoLugar}>
+            {emFaixa ? <SalasEmFaixa faixa={faixaDeSalas} lista={salas} /> : salas}
+          </LimiteDeErro>
         </div>
-        <div className={css.principal} data-anim={anim}>{principal}</div>
+        <div className={css.principal} data-anim={anim}>
+          <LimiteDeErro rotulo={shell.principal.rotulo} chave={chaveDoLugar}>{principal}</LimiteDeErro>
+        </div>
         <div className={css.gaveta} data-colapsada={modoDaGaveta === "oculta" || undefined}>
-          {gaveta}
+          <LimiteDeErro rotulo={shell.gaveta.rotulo} chave={chaveDoLugar}>{gaveta}</LimiteDeErro>
         </div>
       </div>
     </FundoVidro>

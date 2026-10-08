@@ -12,6 +12,7 @@ export const ds = {
     idle: "ausente",
     dnd: "não perturbe",
     offline: "offline",
+    semNome: "Sem nome",
   },
   maisPessoas: (n: number) => plural(n, "pessoa a mais", "pessoas a mais"),
   naoLida: "Não lida",
