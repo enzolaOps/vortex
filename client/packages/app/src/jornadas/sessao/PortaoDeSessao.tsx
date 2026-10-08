@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { cancelarMfa, entrar, responderMfa } from "nucleo/sdk/autenticacao";
 import { escolherNome } from "nucleo/sdk/conta";
+import { assinarEntrada, lerEntrada } from "nucleo/store/entrada";
 import { assinarSessao, lerSessao, type EstadoDaSessao } from "nucleo/store/sessao";
+import { abrirServidor } from "nucleo/store/ultimoLugar";
 
+import { Autenticacao } from "./Autenticacao";
+import { AutorizarQr } from "./AutorizarQr";
+import { ConviteRecebido } from "./ConviteRecebido";
+import { assinarDestino, esquecerConvite, esquecerPedidoDeQr, lerDestino } from "./destinoPendente";
 import { encerrarSessao, estaEncerrando, iniciarSessao, recarregarPagina } from "./encerrar";
+import { irParaOApp } from "./rotaDeEntrada";
 import { TelaDeContaDesativada } from "./TelaDeContaDesativada";
-import { TelaDeEntrada } from "./TelaDeEntrada";
 import { TelaDeMfa } from "./TelaDeMfa";
 import { TelaDeNome } from "./TelaDeNome";
 import { TelaDeRestauracao } from "./TelaDeRestauracao";
@@ -36,6 +42,39 @@ function TelaDeNomeDoPortao({ motivo }: { motivo: string | undefined }) {
 }
 
 /**
+ * O app, mais o que esperou pela sessão: o convite ou a autorização por QR que
+ * chegaram por link enquanto a pessoa ainda estava fora. Um diálogo por vez, e a
+ * autorização vem primeiro porque é do outro aparelho, que está esperando agora.
+ */
+function DentroDoApp({ children }: { children: ReactNode }) {
+  const destino = useSyncExternalStore(assinarDestino, lerDestino);
+
+  useEffect(() => {
+    // O endereço de uma tela de fora não pode ficar na barra de um app aberto.
+    irParaOApp();
+  }, []);
+
+  return (
+    <>
+      {children}
+      {destino.qr !== undefined ? (
+        <AutorizarQr key={destino.qr} id={destino.qr} aoFechar={esquecerPedidoDeQr} />
+      ) : destino.convite !== undefined ? (
+        <ConviteRecebido
+          key={destino.convite}
+          codigo={destino.convite}
+          aoDispensar={esquecerConvite}
+          aoAbrir={(serverId) => {
+            esquecerConvite();
+            abrirServidor(serverId);
+          }}
+        />
+      ) : null}
+    </>
+  );
+}
+
+/**
  * O portão: sem sessão não há canal, autor nem permissão.
  *
  * Vem antes do shell de propósito. Montar o app e esconder o conteúdo faria cada
@@ -48,6 +87,9 @@ function TelaDeNomeDoPortao({ motivo }: { motivo: string | undefined }) {
  * `desconhecida` (a primeira pergunta ao armazenamento ainda não terminou) mostra o
  * esqueleto do shell, nunca a tela de entrada: abrir o app com sessão guardada não
  * pode piscar um login.
+ *
+ * Fora do app, QUAL tela aparece (entrar, criar conta, recuperar senha, QR, convite,
+ * links de e-mail) é pergunta de outro store e outra tela: `Autenticacao`.
  */
 export function PortaoDeSessao({
   children,
@@ -55,6 +97,7 @@ export function PortaoDeSessao({
   aoSerDerrubada = recarregarPagina,
 }: PortaoDeSessaoProps) {
   const sessao = useSyncExternalStore(assinarSessao, lerSessao);
+  const tela = useSyncExternalStore(assinarEntrada, lerEntrada);
   const jaIniciou = useRef(false);
   const anterior = useRef<EstadoDaSessao>(sessao.estado);
 
@@ -74,13 +117,19 @@ export function PortaoDeSessao({
   }, [sessao.estado, aoSerDerrubada]);
 
   const entrada = (entrando: boolean) => (
-    <TelaDeEntrada
+    <Autenticacao
       entrando={entrando}
       causa={sessao.causa}
       motivo={sessao.motivo}
       aoEntrar={(identificador, senha, manter) => void entrar(identificador, senha, manter)}
     />
   );
+
+  // O link do e-mail abre onde o e-mail está, e isso pode ser uma aba já com sessão: a tela do
+  // link vale mais que o app, senão o token de uso único se perderia em silêncio.
+  if (sessao.estado === "dentro" && (tela.tipo === "verificar" || tela.tipo === "redefinir")) {
+    return entrada(false);
+  }
 
   const TELA: Record<EstadoDaSessao, () => ReactNode> = {
     desconhecida: () => <TelaDeRestauracao />,
@@ -99,7 +148,7 @@ export function PortaoDeSessao({
     ),
     nome: () => <TelaDeNomeDoPortao motivo={sessao.motivo} />,
     desativada: () => <TelaDeContaDesativada aoTrocarDeConta={() => void encerrarSessao()} />,
-    dentro: () => <>{children}</>,
+    dentro: () => <DentroDoApp>{children}</DentroDoApp>,
   };
 
   return TELA[sessao.estado]();

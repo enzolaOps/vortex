@@ -248,3 +248,285 @@
     transition: none;
   }
 }
+
+/* ======================================================= telas irmãs (M8) */
+
+/* Link de texto sublinhado: navegação entre as telas de fora. */
+.link {
+  padding: var(--vx-space-1) 0;
+  border: 0;
+  border-radius: var(--vx-radius-sm);
+  background: transparent;
+  color: var(--vx-text-1);
+  font-family: var(--vx-font-sans);
+  font-size: var(--vx-type-ui-size);
+  font-weight: var(--vx-type-label-weight);
+  text-decoration: underline;
+  text-decoration-color: var(--vx-text-4);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.link:hover:not(:disabled) {
+  text-decoration-color: var(--vx-text-1);
+}
+
+.link:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.linhaDeApoio {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-3);
+}
+
+.rodape {
+  margin: 0;
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  text-align: center;
+}
+
+.separador {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+}
+
+.separador::before,
+.separador::after {
+  content: "";
+  flex: 1;
+  block-size: 1px;
+  background: var(--vx-border-strong);
+}
+
+/* Pilha de ações do fim da tela: a principal em cima, as de saída embaixo. */
+.acoes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+}
+
+/* Estado final da tela (confira o e-mail, link enviado, senha alterada): um selo e o texto. */
+.resultado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--vx-space-3);
+  text-align: center;
+}
+
+.selo {
+  display: grid;
+  place-items: center;
+  inline-size: var(--vx-space-8);
+  block-size: var(--vx-space-8);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-accent-soft);
+  color: var(--vx-accent);
+}
+
+.seloDeErro {
+  background: var(--vx-danger-soft);
+  color: var(--vx-danger);
+}
+
+.destaque {
+  margin: 0;
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-body-size);
+  line-height: var(--vx-type-body-line);
+  font-weight: var(--vx-type-label-weight);
+  overflow-wrap: anywhere;
+}
+
+/* Prefixo fixo do campo (o "@"). */
+.prefixo {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: var(--vx-space-4);
+  display: flex;
+  align-items: center;
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-body-size);
+  pointer-events: none;
+}
+
+.comPrefixo {
+  padding-inline-start: calc(var(--vx-space-4) + var(--vx-space-4));
+}
+
+.avisoDeInfo {
+  background: var(--vx-info-soft);
+}
+.avisoDeInfo svg {
+  color: var(--vx-info);
+}
+
+.avisoDeSucesso {
+  background: var(--vx-success-soft);
+}
+.avisoDeSucesso svg {
+  color: var(--vx-success);
+}
+
+/* -------------------------------------------------- força da senha */
+.medidor {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--vx-space-1);
+  margin-block-start: var(--vx-space-2);
+}
+
+.barra {
+  block-size: var(--vx-space-1);
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-skeleton);
+}
+
+.barra[data-acesa="true"][data-nivel="fraca"] {
+  background: var(--vx-danger);
+}
+.barra[data-acesa="true"][data-nivel="media"] {
+  background: var(--vx-warning);
+}
+.barra[data-acesa="true"][data-nivel="boa"] {
+  background: var(--vx-info);
+}
+.barra[data-acesa="true"][data-nivel="forte"] {
+  background: var(--vx-success);
+}
+
+.apoioDaSenha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+  margin-block-start: var(--vx-space-2);
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+
+.rotuloDaForca {
+  color: var(--vx-text-2);
+  font-weight: var(--vx-type-label-weight);
+}
+
+.confirmacaoIgual {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  margin: 0;
+  color: var(--vx-success);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  font-weight: var(--vx-type-label-weight);
+}
+
+/* ----------------------------------------------------- opcional */
+.opcional {
+  color: var(--vx-text-3);
+  font-weight: var(--vx-type-ui-weight);
+}
+
+/* ------------------------------------------------------- convite */
+.servidor {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+  padding: var(--vx-space-3);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-state-hover);
+}
+
+.servidorNome {
+  margin: 0;
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-body-size);
+  line-height: var(--vx-type-body-line);
+  font-weight: var(--vx-type-heading-weight);
+  overflow-wrap: anywhere;
+}
+
+.servidorMeta {
+  margin: 0;
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+
+/* ------------------------------------------------------------ QR */
+.palcoDoQr {
+  display: grid;
+  place-items: center;
+  align-self: center;
+  box-sizing: border-box;
+  inline-size: 224px;
+  block-size: 224px;
+  border-radius: var(--vx-radius-md);
+  /* O código precisa de contraste próprio para a câmera: fundo claro fixo, qualquer que seja o tema. */
+  background: var(--vx-qr-fundo, #ffffff);
+}
+
+.qr {
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: var(--vx-radius-md);
+}
+
+.qrFundo {
+  fill: #ffffff;
+}
+
+.qrModulos {
+  fill: #000000;
+}
+
+.codigoDeConfirmacao {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--vx-space-1);
+}
+
+.codigoRotulo {
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+}
+
+.codigo {
+  color: var(--vx-text-1);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-type-heading-size);
+  letter-spacing: 0.12em;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .link {
+    transition: none;
+  }
+}
+
+/* ------------------------------------------------ prévia do nome */
+.previa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+}
+
+.previaMensagem {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+  padding: var(--vx-space-3);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-state-hover);
+}
