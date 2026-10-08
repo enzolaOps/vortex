@@ -1,6 +1,13 @@
 import { irParaCasa } from "nucleo/store/navegacao";
 import { abrirServidor } from "nucleo/store/ultimoLugar";
-import { useLocal, useProntidao, useServer, useServerIds, useServidorAtivo } from "nucleo/store/hooks";
+import {
+  useLocal,
+  useNaoLidasDeConversas,
+  useProntidao,
+  useServer,
+  useServerIds,
+  useServidorAtivo,
+} from "nucleo/store/hooks";
 
 import { salas } from "../../textos";
 import { ItemDaDock } from "../../ui/ds";
@@ -45,6 +52,7 @@ export function ConteudoDaDock() {
   const ids = useServerIds();
   const ativo = useServidorAtivo();
   const local = useLocal();
+  const naoLidasDeConversas = useNaoLidasDeConversas();
 
   if (!pronto) return <EsqueletoDaDock />;
   return (
@@ -52,7 +60,8 @@ export function ConteudoDaDock() {
       <ItemDaDock
         nome={salas.casa}
         icone={<Casa tamanho={20} />}
-        selecionado={local.tipo === "casa"}
+        selecionado={local.tipo === "casa" || local.tipo === "amigos" || local.tipo === "dm"}
+        naoLida={naoLidasDeConversas > 0}
         onClick={irParaCasa}
       />
       {ids.map((id) => (

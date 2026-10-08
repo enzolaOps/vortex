@@ -10,6 +10,7 @@ import {
   useJanelaDestacada,
   usePessoasDaSala,
 } from "nucleo/store/hooks";
+import { abrirConversa } from "nucleo/store/navegacao";
 import { definirPalco } from "nucleo/store/palcoDeVoz";
 import { abrirServidor } from "nucleo/store/ultimoLugar";
 
@@ -34,7 +35,8 @@ export function WidgetDaChamadaConectado({ servidorAberto }: { servidorAberto: s
   const chamada = useChamada();
   const canto = useCantoDaSala();
   const canal = useChannel(chamada.channelId);
-  const serverId = canal?.serverId ?? servidorAberto;
+  // DM e grupo não têm servidor: os nomes se resolvem pela pessoa (chave de servidor vazia).
+  const serverId = canal === undefined ? servidorAberto : (canal.serverId ?? "");
   const pessoas = usePessoasDaSala(serverId, chamada.channelId);
   const falantes = useFalantes(pessoas.map((p) => p.id));
   const destacada = useJanelaDestacada() !== undefined;
@@ -77,7 +79,9 @@ export function WidgetDaChamadaConectado({ servidorAberto }: { servidorAberto: s
       canto={canto}
       onCanto={fixarSalaNoCanto}
       onVoltar={() => {
-        if (serverId !== servidorAberto) abrirServidor(serverId);
+        // Chamada de DM ou grupo: o palco é da conversa, não de um servidor.
+        if (canal.serverId === undefined) abrirConversa(chamada.channelId);
+        else if (serverId !== servidorAberto) abrirServidor(serverId);
         definirPalco({ tipo: "grade" });
       }}
       mudo={chamada.mudo}
