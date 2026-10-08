@@ -1,3 +1,4 @@
+import { ChamadaRecebida } from "./jornadas/casa";
 import { BotaoDeConfiguracoes, CascaDeConfig } from "./jornadas/config";
 import { ShellDasSalas } from "./jornadas/salas";
 import { JanelaDestacada } from "./jornadas/voz";
@@ -27,6 +28,7 @@ export function App() {
         <ShellDasSalas rodapeDasSalas={<RodapeDaPessoa />} />
         <CascaDeConfig />
         <JanelaDestacada />
+        <ChamadaRecebida />
       </PortaoDeSessao>
       <Avisos />
     </>

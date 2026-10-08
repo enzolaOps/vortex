@@ -7,7 +7,7 @@ import css from "./Regioes.module.css";
 export interface ColunaDeSalasProps {
   /** O nome do servidor. Sem ele, o título genérico "Salas". */
   titulo?: string;
-  /** Ações do servidor, à direita do nome (hoje, o menu do servidor). */
+  /** Ações à direita do nome: menu do servidor, ou "Novo grupo" na casa. */
   acoes?: ReactNode;
   /** Faixa de aviso sob o cabeçalho (conexão, por exemplo). */
   aviso?: ReactNode;

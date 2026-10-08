@@ -1,0 +1,217 @@
+.conversa {
+  container-type: inline-size;
+  container-name: conversa;
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-block-size: 0;
+}
+
+.cabeca {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-3);
+  padding: var(--vx-space-3) var(--vx-space-5);
+  border-block-end: 1px solid var(--vx-border-subtle);
+}
+.identidade {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+  min-inline-size: 0;
+}
+.nomes {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+.titulo {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-body-strong-size);
+  line-height: var(--vx-type-body-strong-line);
+  font-weight: 700;
+}
+.subtitulo {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+.acoes {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-2);
+}
+
+.corpo {
+  display: flex;
+  flex: 1;
+  min-block-size: 0;
+}
+.chat {
+  flex: 1;
+  min-inline-size: 0;
+  min-block-size: 0;
+}
+
+/* O perfil só tem lugar quando a conversa é larga; abaixo disso o chat fica com tudo. */
+.perfil {
+  display: none;
+  flex: none;
+  flex-direction: column;
+  gap: var(--vx-space-4);
+  inline-size: 280px;
+  box-sizing: border-box;
+  padding: var(--vx-space-5) var(--vx-space-4);
+  overflow-y: auto;
+  border-inline-start: 1px solid var(--vx-border-subtle);
+}
+@container conversa (inline-size >= 900px) {
+  .perfil {
+    display: flex;
+  }
+}
+.perfilRosto {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--vx-space-2);
+  text-align: center;
+}
+.perfilNome {
+  margin: 0;
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-title-size);
+  line-height: var(--vx-type-title-line);
+  font-weight: var(--vx-type-title-weight);
+  overflow-wrap: anywhere;
+}
+.perfilUsuario {
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.secaoDoPerfil {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+}
+.rotuloDaSecao {
+  margin: 0;
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  font-weight: 600;
+}
+.itens {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  min-block-size: 36px;
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.itemNome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nota {
+  margin: 0;
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.erroDoPerfil {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--vx-space-2);
+  margin: 0;
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.acoesDoPerfil {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+}
+.acoesDoPerfil > button {
+  inline-size: 100%;
+}
+
+/* A frase que ocupa o lugar do campo quando não dá para escrever. */
+.semEscrita {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-3);
+  margin: 0;
+  padding: var(--vx-space-3) var(--vx-space-4);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-state-hover);
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.semEscritaTexto {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+}
+
+.vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vx-space-3);
+  block-size: 100%;
+  padding: var(--vx-space-5);
+  color: var(--vx-text-2);
+  text-align: center;
+}
+.vazioTexto {
+  margin: 0;
+  font-size: var(--vx-type-body-size);
+  line-height: var(--vx-type-body-line);
+}
+
+/* O palco no lugar da área principal, como nos servidores. */
+.areaDoPalco {
+  display: block;
+  block-size: 100%;
+  min-inline-size: 0;
+  min-block-size: 0;
+}
+
+/* A camada do widget da chamada: cobre a área menos a reserva do campo de escrever. */
+.camadaDeWidgets {
+  --reserva-do-composer: calc(var(--vx-space-8) * 2);
+  position: absolute;
+  inset: 0 0 var(--reserva-do-composer) 0;
+  z-index: 5;
+  pointer-events: none;
+}
+.camadaDeWidgets > * {
+  pointer-events: auto;
+}

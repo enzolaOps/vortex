@@ -225,7 +225,13 @@ export function Composer({ canalId, servidorId }: { canalId: string; servidorId:
         valor={rascunho}
         onChange={mudar}
         onEnviar={enviar}
-        placeholder={chat.placeholderDoCampo(nome)}
+        placeholder={
+          canal.tipo === "notas"
+            ? chat.placeholderDasNotas
+            : canal.tipo === "dm" || canal.tipo === "grupo"
+              ? chat.placeholderDaConversa(nome)
+              : chat.placeholderDoCampo(nome)
+        }
         permitirVazio={arquivos.length > 0}
         topo={topo}
         areaRef={(el) => {

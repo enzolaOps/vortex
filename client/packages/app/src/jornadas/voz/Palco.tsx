@@ -8,6 +8,7 @@ import {
   usePessoasDaSala,
   useUltimoLugar,
 } from "nucleo/store/hooks";
+import { abrirConversa } from "nucleo/store/navegacao";
 import { definirPalco, fecharPalco } from "nucleo/store/palcoDeVoz";
 import { abrirTexto } from "nucleo/store/ultimoLugar";
 import { useId, useState } from "react";
@@ -23,6 +24,27 @@ import css from "./Palco.module.css";
 type PessoaComTela = PessoaDoPalco & { readonly transmitindo: boolean };
 
 /** O botão do cabeçalho que leva ao chat: o único aceno ao texto dentro do palco. */
+/** Numa DM ou grupo o chat é a própria conversa: o botão volta para ela, sem escolher canal. */
+function BotaoDaConversa({ canalId }: { canalId: string }) {
+  const canal = useChannel(canalId);
+  if (!canal) return null;
+  const novas = canal.silenciado ? 0 : canal.naoLidas;
+  return (
+    <Botao
+      variante="secundario"
+      tamanho="sm"
+      icone={<Mensagem />}
+      aria-label={`${voz.palco.abrirChat}, ${canal.name}${novas > 0 ? `, ${String(novas)} ${novas === 1 ? "nova" : "novas"}` : ""}`}
+      onClick={() => {
+        fecharPalco();
+        abrirConversa(canalId);
+      }}
+    >
+      {novas > 0 ? `${canal.name} · ${String(novas)} ${novas === 1 ? "nova" : "novas"}` : canal.name}
+    </Botao>
+  );
+}
+
 function BotaoDoChat({ serverId }: { serverId: string }) {
   const lembrado = useUltimoLugar(serverId).texto;
   const canais = useCanaisDeTexto(serverId);
@@ -191,7 +213,7 @@ export function PalcoDaSala({ serverId, canalId }: { serverId: string; canalId: 
               {foco ? voz.palco.verEmGrade : voz.palco.verEmFoco}
             </Botao>
           )}
-          <BotaoDoChat serverId={serverId} />
+          {serverId === "" ? <BotaoDaConversa canalId={canalId} /> : <BotaoDoChat serverId={serverId} />}
         </div>
       </div>
 

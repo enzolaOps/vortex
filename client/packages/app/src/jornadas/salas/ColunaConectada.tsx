@@ -18,6 +18,7 @@ import {
 import { useState, type ReactNode } from "react";
 
 import { ColunaDeSalas } from "../../shell";
+import { ColunaDaCasa } from "../casa/ColunaDaCasa";
 import { salas, shell } from "../../textos";
 import { Botao, ItemDeSala } from "../../ui/ds";
 import { MenuDoServidor } from "../admin/MenuDoServidor";
@@ -193,6 +194,10 @@ export function ColunaConectada({ rodape }: { rodape?: ReactNode }) {
         <EsqueletoDeSalas />
       </ColunaDeSalas>
     );
+  }
+  // Depois do Ready, a casa (amigos e conversas) tem a própria coluna; o resto do shell não sabe disso.
+  if (local.tipo === "casa" || local.tipo === "amigos" || local.tipo === "dm") {
+    return <ColunaDaCasa rodape={rodape} />;
   }
   if (local.tipo !== "servidor" || !servidor) {
     return <ColunaDeSalas rodape={rodape}>{<p className={css.nota}>{shell.salas.vazio}</p>}</ColunaDeSalas>;
