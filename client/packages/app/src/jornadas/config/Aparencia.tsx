@@ -1,5 +1,8 @@
 import { useId, useState, useSyncExternalStore, type KeyboardEvent } from "react";
 
+import { assinarAparencia, definirAparencia, lerAparencia, restaurarAparencia, TEXTO_MAX, TEXTO_MIN } from "nucleo/store/aparencia";
+import { assinarDensidade, definirDensidade, lerDensidade } from "nucleo/store/densidade";
+
 import { config } from "../../textos";
 import {
   assinarPersonalizacao,
@@ -7,6 +10,7 @@ import {
   lerPersonalizacao,
   papeisDe,
   papeisDoTema,
+  papeisComAjustes,
   baseDoTema,
   personalizar,
 } from "../../tema/personalizado";
@@ -23,7 +27,7 @@ import { Botao } from "../../ui/ds";
 import { SetaParaDireita } from "../../ui/icones";
 import { juntar } from "../../ui/juntar";
 import css from "./Aparencia.module.css";
-import { Bloco, Deslizante, estilosDeConfig as ec, Pagina } from "./controles";
+import { Bloco, Deslizante, estilosDeConfig as ec, GrupoDeOpcoes, Interruptor, LinhaDeAjuste, Opcao, Pagina } from "./controles";
 import { estiloDosPapeis, PreviaDoApp } from "./PreviaDoApp";
 
 const t = config.aparenciaTela;
@@ -41,7 +45,10 @@ export function Aparencia() {
   const [emFoco, setEmFoco] = useState<TemaId | undefined>(undefined);
 
   const nomeAtual = p.personalizado ? t.previaPersonalizada : t.temas[p.tema];
-  const papeisDaPrevia = emFoco !== undefined ? papeisDoTema(emFoco) : papeisDe(p);
+  // Os ajustes de vidro e de brilho valem também no tema espiado: a prévia mostra o que o app mostraria.
+  // A aparência entra como ARGUMENTO: o compilador memoiza por entradas e não vê leitura de store.
+  const aparencia = useSyncExternalStore(assinarAparencia, lerAparencia);
+  const papeisDaPrevia = papeisComAjustes(emFoco !== undefined ? papeisDoTema(emFoco) : papeisDe(p), aparencia);
   const nomeDaPrevia = emFoco !== undefined ? t.temas[emFoco] : nomeAtual;
 
   const aoTeclar = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -93,6 +100,9 @@ export function Aparencia() {
       </Bloco>
 
       <Personalizar />
+      <VidroEFundo />
+      <MensagensETexto />
+      <Movimento />
     </Pagina>
   );
 }
@@ -294,5 +304,127 @@ function CorLivre({ cor, livre }: { cor: string; livre: boolean }) {
         {invalido && <span className={ec.erro}>{t.hexInvalido}</span>}
       </div>
     </div>
+  );
+}
+
+function VidroEFundo() {
+  const a = useSyncExternalStore(assinarAparencia, lerAparencia);
+  return (
+    <Bloco>
+      <h3 className={ec.titulo}>{t.vidroETitulo}</h3>
+      <p className={ec.dica}>{t.vidroEDica}</p>
+      <Deslizante
+        rotulo={t.vidro}
+        valor={a.vidro}
+        min={0}
+        max={100}
+        passo={5}
+        texto={t.vidroValor(a.vidro)}
+        aoMudar={(v) => {
+          definirAparencia({ vidro: v });
+        }}
+      />
+      <Deslizante
+        rotulo={t.brilho}
+        valor={a.brilho}
+        min={0}
+        max={100}
+        passo={5}
+        texto={t.brilhoValor(a.brilho)}
+        aoMudar={(v) => {
+          definirAparencia({ brilho: v });
+        }}
+      />
+      <p className={ec.dica}>{t.brilhoDica}</p>
+      <div className={ec.acoes}>
+        <Botao variante="secundario" tamanho="sm" onClick={restaurarAparencia}>
+          {t.restaurarAjustes}
+        </Botao>
+      </div>
+    </Bloco>
+  );
+}
+
+function MensagensETexto() {
+  const a = useSyncExternalStore(assinarAparencia, lerAparencia);
+  const densidade = useSyncExternalStore(assinarDensidade, lerDensidade);
+  return (
+    <Bloco>
+      <h3 className={ec.titulo}>{t.leituraTitulo}</h3>
+      <GrupoDeOpcoes rotulo={t.mensagens}>
+        <Opcao
+          marcada={densidade === "confortavel"}
+          descricao={t.confortavelDica}
+          aoEscolher={() => {
+            definirDensidade("confortavel");
+          }}
+        >
+          {t.confortavel}
+        </Opcao>
+        <Opcao
+          marcada={densidade === "compacto"}
+          descricao={t.compactaDica}
+          aoEscolher={() => {
+            definirDensidade("compacto");
+          }}
+        >
+          {t.compacta}
+        </Opcao>
+      </GrupoDeOpcoes>
+      <Deslizante
+        rotulo={t.tamanhoDoTexto}
+        valor={a.texto}
+        min={TEXTO_MIN}
+        max={TEXTO_MAX}
+        passo={5}
+        texto={t.tamanhoDoTextoValor(a.texto)}
+        aoMudar={(v) => {
+          definirAparencia({ texto: v });
+        }}
+      />
+    </Bloco>
+  );
+}
+
+const PEDE_MENOS_MOVIMENTO = "(prefers-reduced-motion: reduce)";
+
+function assinarMovimentoDoSistema(ouvinte: () => void): () => void {
+  const consulta = window.matchMedia(PEDE_MENOS_MOVIMENTO);
+  consulta.addEventListener("change", ouvinte);
+  return () => {
+    consulta.removeEventListener("change", ouvinte);
+  };
+}
+
+function Movimento() {
+  const a = useSyncExternalStore(assinarAparencia, lerAparencia);
+  const sistemaPede = useSyncExternalStore(assinarMovimentoDoSistema, () => window.matchMedia(PEDE_MENOS_MOVIMENTO).matches);
+  const ligado = a.reduzirAnimacoes ?? sistemaPede;
+  return (
+    <Bloco>
+      <h3 className={ec.titulo}>{t.movimentoTitulo}</h3>
+      <LinhaDeAjuste nome={t.reduzirAnimacoes} descricao={t.reduzirAnimacoesDica}>
+        <Interruptor
+          ligado={ligado}
+          rotulo={t.reduzirAnimacoes}
+          aoMudar={(v) => {
+            definirAparencia({ reduzirAnimacoes: v });
+          }}
+        />
+      </LinhaDeAjuste>
+      {a.reduzirAnimacoes !== null && (
+        <div className={ec.acoes}>
+          <Botao
+            variante="secundario"
+            tamanho="sm"
+            onClick={() => {
+              definirAparencia({ reduzirAnimacoes: null });
+            }}
+          >
+            {t.seguirOSistema}
+          </Botao>
+        </div>
+      )}
+    </Bloco>
   );
 }

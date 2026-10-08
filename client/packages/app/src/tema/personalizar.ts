@@ -48,7 +48,7 @@ export const SEMENTES: Readonly<Record<TemaId, Semente>> = {
   ametista: { matiz: 285, intensidade: 65, destaque: "rosa" },
   floresta: { matiz: 145, intensidade: 45, destaque: "limao" },
   brasa: { matiz: 15, intensidade: 60, destaque: "pessego" },
-  aurora: { matiz: 190, intensidade: 40, destaque: "lavanda" },
+  aurora: { matiz: 85, intensidade: 45, destaque: "rosa" },
 };
 
 export type Personalizacao = {

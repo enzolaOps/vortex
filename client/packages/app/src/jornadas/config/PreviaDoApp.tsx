@@ -1,4 +1,5 @@
-import type { CSSProperties } from "react";
+import { assinarDensidade, lerDensidade } from "nucleo/store/densidade";
+import { useSyncExternalStore, type CSSProperties } from "react";
 
 import { config } from "../../textos";
 import { Avatar, Botao, FundoVidro, PainelVidro, Pilula } from "../../ui/ds";
@@ -20,6 +21,7 @@ export function estiloDosPapeis(papeis: Readonly<Record<string, string>>): CSSPr
  * nome acessível diz de que tema ela fala.
  */
 export function PreviaDoApp({ papeis, nome }: { papeis: Readonly<Record<string, string>>; nome: string }) {
+  const compacta = useSyncExternalStore(assinarDensidade, lerDensidade) === "compacto";
   return (
     <div
       className={css.previa}
@@ -41,8 +43,8 @@ export function PreviaDoApp({ papeis, nome }: { papeis: Readonly<Record<string, 
           </span>
         </PainelVidro>
         <PainelVidro variante="leitura" raio="md" className={css.conversa}>
-          <div className={css.mensagem}>
-            <Avatar nome={t.previaNomeA} tamanho={28} status="online" falando />
+          <div className={css.mensagem} data-compacta={compacta || undefined}>
+            {!compacta && <Avatar nome={t.previaNomeA} tamanho={28} status="online" falando />}
             <div>
               <span className={css.autor}>{t.previaNomeA}</span>
               <p className={css.texto}>
@@ -53,8 +55,8 @@ export function PreviaDoApp({ papeis, nome }: { papeis: Readonly<Record<string, 
               </p>
             </div>
           </div>
-          <div className={css.mensagem}>
-            <Avatar nome={t.previaNomeB} tamanho={28} status="idle" />
+          <div className={css.mensagem} data-compacta={compacta || undefined}>
+            {!compacta && <Avatar nome={t.previaNomeB} tamanho={28} status="idle" />}
             <div>
               <span className={css.autor}>{t.previaNomeB}</span>
               <p className={css.texto}>{t.previaMensagemB}</p>

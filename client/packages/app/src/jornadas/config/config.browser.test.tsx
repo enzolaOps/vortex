@@ -4,6 +4,8 @@ import { page, userEvent } from "vitest/browser";
 import { ligarAtalhosDeVoz } from "nucleo/sdk/atalhosDeVoz";
 import { abrirConfig, lerConfig, limparConfig } from "nucleo/store/config";
 import { ATALHOS_PADRAO, definirAtalho, lerAtalhosDeVoz } from "nucleo/store/atalhosDeVoz";
+import { restaurarAparencia, lerAparencia } from "nucleo/store/aparencia";
+import { definirDensidade, lerDensidade } from "nucleo/store/densidade";
 import { limparMeuStatus, semearMeuStatus } from "nucleo/store/meuStatus";
 import {
   definirNotificacoes,
@@ -170,6 +172,8 @@ afterEach(() => {
     fundo: "nenhum",
   });
   definirPersonalizacao({ ...PERSONALIZACAO_PADRAO });
+  restaurarAparencia();
+  definirDensidade("confortavel");
   vi.restoreAllMocks();
 });
 
@@ -810,6 +814,176 @@ describe("aparência", () => {
     await assentar();
     const guardado = JSON.parse(localStorage.getItem("vortex:tema-personalizado") ?? "{}") as Record<string, unknown>;
     expect(guardado).toMatchObject({ ativo: true, tema: "floresta", personalizado: true, destaque: "rosa" });
+  });
+
+  describe("vidro e fundo", () => {
+    const vidro = () => campo(a.vidro) as HTMLInputElement;
+    const brilho = () => campo(a.brilho) as HTMLInputElement;
+    const painelDaPrevia = () => previa()?.querySelector<HTMLElement>('[class*="vidro"]');
+    const mancha = () => previa()?.querySelector<HTMLElement>('[class*="campo"]');
+
+    it("vidro sólido desliga o backdrop-filter e o translúcido o religa", async () => {
+      await abrir("aparencia");
+      expect(getComputedStyle(painelDaPrevia()!).backdropFilter).toContain("blur");
+      await userEvent.fill(vidro(), "0");
+      await assentar();
+      expect(lerAparencia().vidro).toBe(0);
+      expect(raiz().getPropertyValue("--vx-backdrop-glass")).toBe("none");
+      expect(getComputedStyle(painelDaPrevia()!).backdropFilter).toBe("none");
+      expect(texto()).toContain(a.vidroValor(0));
+      expect(getComputedStyle(painelDaPrevia()!).backgroundColor).toMatch(/^rgb\(/);
+
+      await userEvent.fill(vidro(), "100");
+      await assentar();
+      expect(raiz().getPropertyValue("--vx-backdrop-glass")).toBe("");
+      expect(getComputedStyle(painelDaPrevia()!).backdropFilter).toContain("blur");
+    });
+
+    it("no meio do controle o desfoque fica mais fraco e a superfície mais opaca", async () => {
+      await abrir("aparencia");
+      const alfaDe = () => Number(/,\s*([0-9.]+)\)$/.exec(raiz().getPropertyValue("--vx-surface-glass"))?.[1] ?? "1");
+      await userEvent.fill(vidro(), "50");
+      await assentar();
+      expect(raiz().getPropertyValue("--vx-blur-glass")).toBe("14px");
+      expect(alfaDe()).toBeGreaterThan(0.52);
+      expect(alfaDe()).toBeLessThan(1);
+      expect(raiz().getPropertyValue("--vx-backdrop-glass")).toBe("");
+    });
+
+    it("o ajuste de vidro vale também no tema espiado na prévia", async () => {
+      await abrir("aparencia");
+      await userEvent.fill(vidro(), "0");
+      await userEvent.hover(radio(a.temas.brasa)!);
+      await assentar();
+      expect(previa()?.getAttribute("aria-label")).toBe(a.previaDe(a.temas.brasa));
+      expect(previa()?.style.getPropertyValue("--vx-backdrop-glass")).toBe("none");
+    });
+
+    it("brilho de fundo: reduz a intensidade e, desligado, apaga as manchas", async () => {
+      await abrir("aparencia");
+      expect(getComputedStyle(mancha()!).display).toBe("block");
+      const cheia = Number(getComputedStyle(mancha()!).opacity);
+      await userEvent.fill(brilho(), "50");
+      await assentar();
+      expect(Number(getComputedStyle(mancha()!).opacity)).toBeCloseTo(cheia / 2, 2);
+      await userEvent.fill(brilho(), "0");
+      await assentar();
+      expect(lerAparencia().brilho).toBe(0);
+      expect(getComputedStyle(mancha()!).display).toBe("none");
+      expect(texto()).toContain(a.brilhoValor(0));
+    });
+
+    it("as cores das manchas acompanham o tema escolhido", async () => {
+      await abrir("aparencia");
+      const antes = getComputedStyle(mancha()!).backgroundColor;
+      await userEvent.click(radio(a.temas.brasa)!);
+      await assentar();
+      expect(getComputedStyle(mancha()!).backgroundColor).not.toBe(antes);
+    });
+
+    it("restaurar devolve vidro e brilho ao desenho de fábrica", async () => {
+      await abrir("aparencia");
+      await userEvent.fill(vidro(), "0");
+      await userEvent.fill(brilho(), "0");
+      await userEvent.click(botao(a.restaurarAjustes)!);
+      await assentar();
+      expect(lerAparencia()).toMatchObject({ vidro: 100, brilho: 100 });
+      expect(raiz().getPropertyValue("--vx-backdrop-glass")).toBe("");
+    });
+  });
+
+  describe("mensagens, texto e movimento", () => {
+    const campoDoTexto = () => campo(a.tamanhoDoTexto) as HTMLInputElement;
+    const interruptorDeMovimento = () => interruptor(a.reduzirAnimacoes)!;
+    const paragrafo = () => previa()?.querySelector<HTMLElement>("p[class*='texto']");
+
+    it("compacta tira a foto da prévia, junta as mensagens e fica guardada", async () => {
+      await abrir("aparencia");
+      // O vão entre as duas mensagens da prévia: a compacta junta as linhas.
+      const alturaDe = () => {
+        const [m1, m2] = previa()!.querySelectorAll<HTMLElement>("[class*='mensagem']");
+        return m2!.getBoundingClientRect().top - m1!.getBoundingClientRect().bottom;
+      };
+      const confortavel = alturaDe();
+      expect(document.documentElement.getAttribute("data-densidade")).toBe("confortavel");
+      await userEvent.click(radio(a.compacta)!);
+      await assentar();
+      expect(lerDensidade()).toBe("compacto");
+      expect(document.documentElement.getAttribute("data-densidade")).toBe("compacto");
+      expect(radio(a.compacta)?.getAttribute("aria-checked")).toBe("true");
+      expect(previa()?.querySelectorAll("[data-compacta]").length).toBe(2);
+      expect(previa()?.querySelectorAll('[class*="avatar"]').length).toBe(0);
+      expect(alturaDe()).toBeLessThan(confortavel);
+      expect(localStorage.getItem("vortex:densidade")).toBe("compacto");
+
+      await userEvent.click(radio(a.confortavel)!);
+      await assentar();
+      expect(previa()?.querySelectorAll("[data-compacta]").length).toBe(0);
+    });
+
+    it("tamanho do texto escala os tokens, e a prévia e a página não estouram a 125%", async () => {
+      await abrir("aparencia");
+      const base = parseFloat(getComputedStyle(paragrafo()!).fontSize);
+      await userEvent.fill(campoDoTexto(), "125");
+      await assentar();
+      expect(lerAparencia().texto).toBe(125);
+      expect(raiz().getPropertyValue("--vx-texto-escala")).toBe("1.25");
+      expect(parseFloat(getComputedStyle(paragrafo()!).fontSize)).toBeCloseTo(base * 1.25, 1);
+      expect(texto()).toContain(a.tamanhoDoTextoValor(125));
+      const prev = previa()!;
+      expect(prev.scrollWidth).toBeLessThanOrEqual(prev.clientWidth);
+      expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
+
+      await userEvent.fill(campoDoTexto(), "90");
+      await assentar();
+      expect(parseFloat(getComputedStyle(paragrafo()!).fontSize)).toBeCloseTo(base * 0.9, 1);
+
+      await userEvent.fill(campoDoTexto(), "100");
+      await assentar();
+      expect(raiz().getPropertyValue("--vx-texto-escala")).toBe("");
+    });
+
+    it("reduzir animações: sem escolha segue o sistema; escolhendo, vale o atributo", async () => {
+      await abrir("aparencia");
+      const sistema = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      expect(interruptorDeMovimento().getAttribute("aria-checked")).toBe(String(sistema));
+      expect(document.documentElement.hasAttribute("data-movimento")).toBe(false);
+
+      await userEvent.click(interruptorDeMovimento());
+      await assentar();
+      expect(lerAparencia().reduzirAnimacoes).toBe(!sistema);
+      expect(document.documentElement.getAttribute("data-movimento")).toBe(sistema ? "normal" : "reduzido");
+
+      if (sistema) {
+        await userEvent.click(interruptorDeMovimento());
+        await assentar();
+      }
+      const alvo = document.createElement("div");
+      alvo.style.transition = "opacity 200ms";
+      document.body.append(alvo);
+      expect(parseFloat(getComputedStyle(alvo).transitionDuration)).toBeLessThan(0.001);
+      alvo.remove();
+
+      await userEvent.click(botao(a.seguirOSistema)!);
+      await assentar();
+      expect(lerAparencia().reduzirAnimacoes).toBeNull();
+      expect(document.documentElement.hasAttribute("data-movimento")).toBe(false);
+      expect(botao(a.seguirOSistema)).toBeUndefined();
+    });
+
+    it("desligar de volta devolve as transições", async () => {
+      await abrir("aparencia");
+      const sistema = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (sistema) return;
+      await userEvent.click(interruptorDeMovimento());
+      await userEvent.click(interruptorDeMovimento());
+      await assentar();
+      const alvo = document.createElement("div");
+      alvo.style.transition = "opacity 200ms";
+      document.body.append(alvo);
+      expect(parseFloat(getComputedStyle(alvo).transitionDuration)).toBeCloseTo(0.2, 2);
+      alvo.remove();
+    });
   });
 });
 

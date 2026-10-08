@@ -37,6 +37,11 @@ export interface MensagemProps {
   onMaisAcoes?: (e: MouseEvent<HTMLButtonElement>) => void;
   /** Depois do corpo e dos anexos: reações, estado de envio, "editada". */
   rodape?: ReactNode;
+  /**
+   * Densidade compacta: sem avatar, hora em mono na calha, linhas mais juntas.
+   * Muda a ESTRUTURA, não só o espaçamento (ver `nucleo/store/densidade`).
+   */
+  compacta?: boolean;
   /** Menciona a pessoa: a linha ganha um realce e uma barra de acento. */
   destacada?: boolean;
   /** Ainda não confirmada pelo servidor (pendente ou falha): fica mais apagada. */
@@ -75,6 +80,7 @@ function MensagemBase({
   onResponder,
   onMaisAcoes,
   rodape,
+  compacta = false,
   destacada = false,
   esmaecida = false,
   tabIndex,
@@ -90,13 +96,16 @@ function MensagemBase({
       className={juntar(
         css.mensagem,
         continuacao && css.continuacao,
+        compacta && css.compacta,
         destacada && css.destacada,
         esmaecida && css.esmaecida,
         className,
       )}
     >
       <div className={css.calha}>
-        {continuacao ? (
+        {compacta ? (
+          <time className={css.horaCompacta}>{hora}</time>
+        ) : continuacao ? (
           <time className={css.horaNoHover}>{hora}</time>
         ) : (
           (avatar ?? <Avatar nome={autor.nome} id={autor.id} tom={autor.tom} tamanho={36} />)
@@ -113,7 +122,7 @@ function MensagemBase({
         {!continuacao && (
           <div className={css.cabecalho}>
             <span className={css.nome}>{autor.nome}</span>
-            <time className={css.hora}>{hora}</time>
+            {!compacta && <time className={css.hora}>{hora}</time>}
           </div>
         )}
         <div className={css.corpo}>{children}</div>

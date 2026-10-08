@@ -53,3 +53,33 @@
     outline-offset: 2px;
   }
 }
+
+/*
+  "Reduzir animações" (Aparência). Sem escolha, quem decide é o sistema
+  (`prefers-reduced-motion`); com escolha explícita, vale o atributo da raiz.
+  Mata transições e animações de TODO o app em um lugar só, em vez de cada
+  componente repetir a regra. O indicador de carregamento fica parado: o estado
+  (botão desabilitado, texto) continua dizendo que algo está em curso.
+*/
+@layer base {
+  @media (prefers-reduced-motion: reduce) {
+    :root:not([data-movimento="normal"]) *,
+    :root:not([data-movimento="normal"]) *::before,
+    :root:not([data-movimento="normal"]) *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      transition-delay: 0s !important;
+      scroll-behavior: auto !important;
+    }
+  }
+  :root[data-movimento="reduzido"] *,
+  :root[data-movimento="reduzido"] *::before,
+  :root[data-movimento="reduzido"] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}

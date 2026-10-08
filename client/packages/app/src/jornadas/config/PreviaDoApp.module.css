@@ -46,6 +46,13 @@
   display: flex;
   gap: var(--vx-space-2);
 }
+/* Compacta: sem foto e com as mensagens mais juntas, como a lista de verdade. */
+.mensagem[data-compacta] {
+  gap: var(--vx-space-1);
+}
+.conversa:has(.mensagem[data-compacta]) {
+  gap: var(--vx-space-1);
+}
 .autor {
   color: var(--vx-text-1);
   font-size: var(--vx-type-body-strong-size);

@@ -187,3 +187,8 @@
   font-size: var(--vx-type-caption-size);
   line-height: var(--vx-type-caption-line);
 }
+
+/* Densidade compacta: a calha é a coluna da hora (44px) e o vão é menor. */
+[data-densidade="compacto"] .citacao {
+  padding-inline-start: calc(var(--vx-space-4) + 44px + var(--vx-space-2));
+}

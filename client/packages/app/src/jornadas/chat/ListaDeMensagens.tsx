@@ -10,6 +10,8 @@ import {
   proximaMencao,
   temMencao,
 } from "nucleo/sdk/adapter";
+import { assinarAparencia, lerAparencia } from "nucleo/store/aparencia";
+import { assinarDensidade, lerDensidade } from "nucleo/store/densidade";
 import { useChannelMessageIds } from "nucleo/store/hooks";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
@@ -23,10 +25,10 @@ import {
   ALTURA_DO_DIVISOR_DE_NOVAS,
   ALTURA_DO_ESTADO_DE_ENVIO,
   ALTURA_ESTIMADA,
-  ALTURA_POR_TIPO,
   LIMIAR_DE_FIM,
   LIMIAR_DE_LONGE,
   LIMIAR_DE_PAGINACAO,
+  alturaDoTipo,
   amostrarAltura,
   type TipoDeLinha,
 } from "./alturas";
@@ -121,7 +123,7 @@ export function ListaDeMensagens({ canalId, servidorId }: ListaDeMensagensProps)
       if (!m) return ALTURA_ESTIMADA;
       const tipo: TipoDeLinha = m.sistema ? "sistema" : m.iniciaGrupo ? "abreGrupo" : "continua";
       return (
-        ALTURA_POR_TIPO[tipo] +
+        alturaDoTipo(tipo, lerDensidade(), lerAparencia().texto) +
         (m.dia === undefined ? 0 : ALTURA_DO_DIVISOR) +
         (m.primeiraNaoLida ? ALTURA_DO_DIVISOR_DE_NOVAS : 0) +
         (m.respostas.length > 0 ? ALTURA_DA_CITACAO : 0) +
@@ -251,6 +253,28 @@ export function ListaDeMensagens({ canalId, servidorId }: ListaDeMensagensProps)
     };
     // `ids.length` fora de propósito: reconectar o observador a cada frame do firehose.
   }, [virtualizer, temLista]);
+
+  // Densidade ou tamanho do texto mudou: as linhas mudam de altura sem a largura do
+  // container mudar, então o observador acima não dispara. Remede o que está montado
+  // (a estimativa do resto já lê o ajuste novo) e reancora quem estava no fim.
+  const ajuste = useSyncExternalStore(
+    (ouvir) => {
+      const a = assinarDensidade(ouvir);
+      const b = assinarAparencia(ouvir);
+      return () => {
+        a();
+        b();
+      };
+    },
+    () => `${lerDensidade()}|${String(lerAparencia().texto)}`,
+  );
+  const ajusteAnterior = useRef(ajuste);
+  useEffect(() => {
+    if (ajusteAnterior.current === ajuste) return;
+    ajusteAnterior.current = ajuste;
+    remedir(virtualizer);
+    if (colado.current) virtualizer.scrollToEnd();
+  }, [ajuste, virtualizer]);
 
   // `scrollToEnd` depois da carga inicial: o drift entre altura estimada e real
   // soma ~1000px em 10k linhas, a lista passa do limiar e `followOnAppend`
