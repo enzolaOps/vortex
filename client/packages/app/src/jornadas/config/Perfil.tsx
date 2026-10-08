@@ -25,10 +25,13 @@ import {
   GrupoDeOpcoes,
   Opcao,
   Pagina,
+  PaginaCarregando,
+  PaginaComFalha,
 } from "./controles";
 import { assinarPerfilMudou, avisarPerfilMudou, lerRevisaoDoPerfil } from "./perfilMudou";
 import css from "./Perfil.module.css";
 import { useImagemEnviavel } from "./useImagemEnviavel";
+import { useMeuPerfil } from "./useMeuPerfil";
 
 const LIMITE_NOME = 32;
 const LIMITE_BIO = 190;
@@ -45,6 +48,7 @@ type Carga =
 /** Perfil (PRD 4.6): carrega o que o `Ready` não manda e então libera o formulário. */
 export function Perfil() {
   const [carga, setCarga] = useState<Carga>({ estado: "carregando" });
+  const conta = useMeuPerfil();
 
   useEffect(() => {
     let vivo = true;
@@ -56,13 +60,10 @@ export function Perfil() {
     };
   }, []);
 
-  if (carga.estado === "carregando") {
-    return (
-      <p className={ec.texto} role="status">
-        {config.carregando}
-      </p>
-    );
+  if (conta.eu === undefined) {
+    return conta.falhou ? <PaginaComFalha aoTentarDeNovo={conta.tentarDeNovo} /> : <PaginaCarregando />;
   }
+  if (carga.estado === "carregando") return <PaginaCarregando />;
   return (
     <Formulario
       bioInicial={carga.estado === "ok" ? carga.bio : undefined}

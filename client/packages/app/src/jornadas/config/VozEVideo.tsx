@@ -63,9 +63,17 @@ function opcoesDeDispositivo(ds: readonly MediaDeviceInfo[], generico: string): 
     { valor: "", rotulo: t.padraoDoSistema },
     ...ds
       // Sem permissão o navegador entrega dispositivos sem id nem nome: não dá para escolhê-los.
-      .filter((d) => d.deviceId !== "" && d.deviceId !== "default" && d.deviceId !== "communications")
+      .filter(escolhivel)
       .map((d, i) => ({ valor: d.deviceId, rotulo: d.label || `${generico} ${i + 1}` })),
   ];
+}
+
+const escolhivel = (d: MediaDeviceInfo) =>
+  d.deviceId !== "" && d.deviceId !== "default" && d.deviceId !== "communications";
+
+/** O aviso do fim da lista quando não há dispositivo a escolher além do padrão. */
+function semDispositivo(ds: readonly MediaDeviceInfo[], aviso: string): string | undefined {
+  return ds.some(escolhivel) ? undefined : aviso;
 }
 
 /** Voz e vídeo (PRD 4.6). Cada controle escreve num store que o motor da chamada já lê. */
@@ -83,6 +91,7 @@ export function VozEVideo() {
           rotulo={t.microfone}
           valor={p.entradaId ?? ""}
           opcoes={opcoesDeDispositivo(microfones, t.microfone)}
+          semOpcoes={semDispositivo(microfones, t.semMicrofone)}
           aoMudar={(v) => {
             definirPreferenciasDeVoz({ entradaId: v === "" ? undefined : v });
           }}
@@ -91,6 +100,7 @@ export function VozEVideo() {
           rotulo={t.saida}
           valor={p.saidaId ?? ""}
           opcoes={opcoesDeDispositivo(saidas, t.saida)}
+          semOpcoes={semDispositivo(saidas, t.semSaida)}
           aoMudar={(v) => {
             definirPreferenciasDeVoz({ saidaId: v === "" ? undefined : v });
           }}
@@ -150,6 +160,7 @@ export function VozEVideo() {
           rotulo={t.cameraNome}
           valor={p.cameraId ?? ""}
           opcoes={opcoesDeDispositivo(cameras, t.camera)}
+          semOpcoes={semDispositivo(cameras, t.semCamera)}
           aoMudar={(v) => {
             definirPreferenciasDeVoz({ cameraId: v === "" ? undefined : v });
           }}

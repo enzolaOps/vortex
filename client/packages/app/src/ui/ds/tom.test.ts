@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { iniciais, tomDe } from "./tom";
+import { iniciais, siglasDeSalas, tomDe } from "./tom";
 
 describe("tom e iniciais do avatar", () => {
   it("tom explícito vence; sem ele o ID decide, sempre o mesmo", () => {
@@ -28,5 +28,18 @@ describe("tom e iniciais do avatar", () => {
     expect(iniciais("ana maria de souza")).toBe("AS");
     expect(iniciais("Davi")).toBe("D");
     expect(iniciais("  ")).toBe("");
+  });
+});
+
+describe("siglas de sala", () => {
+  it("tira o prefixo comum e usa duas letras", () => {
+    expect(siglasDeSalas(["voz-geral", "voz-jogos", "voz-silencio"])).toEqual(["GE", "JO", "SI"]);
+  });
+  it("salas com o mesmo início não ficam iguais", () => {
+    const s = siglasDeSalas(["voz-geral", "voz-games", "voz-gamer"]);
+    expect(new Set(s).size).toBe(3);
+  });
+  it("sala única usa as duas primeiras letras", () => {
+    expect(siglasDeSalas(["Lounge"])).toEqual(["LO"]);
   });
 });

@@ -3,12 +3,14 @@ import {
   useCanaisDeVoz,
   useCategorias,
   useChannel,
+  useNomesDosCanais,
   usePessoasDaSala,
 } from "nucleo/store/hooks";
 import type { MouseEvent } from "react";
 
 import { salas, shell } from "../../textos";
 import { Avatar, PainelVidro } from "../../ui/ds";
+import { siglasDeSalas } from "../../ui/ds/tom";
 import { Canal } from "../../ui/icones";
 import css from "./Faixa.module.css";
 import { useEntradaNaSala } from "./useEntradaNaSala";
@@ -16,9 +18,11 @@ import { useEntradaNaSala } from "./useEntradaNaSala";
 function SalaNaFaixa({
   serverId,
   canalId,
+  sigla,
 }: {
   serverId: string;
   canalId: string;
+  sigla: string;
 }) {
   const canal = useChannel(canalId);
   const pessoas = usePessoasDaSala(serverId, canalId);
@@ -37,11 +41,11 @@ function SalaNaFaixa({
           : `${canal.name}, ${dito}. ${motivo}`
       }
       aria-disabled={motivo !== undefined || undefined}
-      title={motivo}
+      title={motivo ?? canal.name}
       // Primeiro clique entra sem palco; na sala em que já está, abre o palco.
       onClick={clicar}
     >
-      <Avatar nome={canal.name} id={canalId} tamanho={40} />
+      <Avatar nome={canal.name} id={canalId} iniciais={sigla} tamanho={40} />
       <span className={css.contagem} aria-hidden="true">
         {pessoas.length}
       </span>
@@ -73,6 +77,8 @@ function useVozNaOrdem(serverId: string): readonly string[] {
 export function FaixaDeSalas({ serverId }: { serverId: string }) {
   const emVoz = useVozNaOrdem(serverId);
   const emTexto = useCanaisDeTexto(serverId);
+  const nomes = useNomesDosCanais(emVoz);
+  const siglas = siglasDeSalas(nomes);
   return (
     <PainelVidro
       como="nav"
@@ -80,8 +86,8 @@ export function FaixaDeSalas({ serverId }: { serverId: string }) {
       aria-label={shell.faixa.rotulo}
       className={css.faixa}
     >
-      {emVoz.map((id) => (
-        <SalaNaFaixa key={id} serverId={serverId} canalId={id} />
+      {emVoz.map((id, i) => (
+        <SalaNaFaixa key={id} serverId={serverId} canalId={id} sigla={siglas[i] ?? ""} />
       ))}
       {emTexto.length > 0 && (
         <>

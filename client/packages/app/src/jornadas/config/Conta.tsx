@@ -1,6 +1,5 @@
 import {
   lerMeuEmail,
-  lerMeuPerfil,
   pedirExclusaoComMotivo,
   servidoresQueEuDono,
   trocarEmailComMotivo,
@@ -8,7 +7,7 @@ import {
   trocarSenhaComMotivo,
   type CausaDeConta,
 } from "nucleo/sdk/perfil";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 
 import { config } from "../../textos";
 import { Botao } from "../../ui/ds";
@@ -19,13 +18,12 @@ import {
   estilosDeConfig as ec,
   LinhaDeAjuste,
   Pagina,
+  PaginaCarregando,
+  PaginaComFalha,
 } from "./controles";
 import { DialogoDeConta, type ErroNoDialogo } from "./DialogoDeConta";
-import {
-  assinarPerfilMudou,
-  avisarPerfilMudou,
-  lerRevisaoDoPerfil,
-} from "./perfilMudou";
+import { avisarPerfilMudou } from "./perfilMudou";
+import { useMeuPerfil } from "./useMeuPerfil";
 
 const t = config.contaTela;
 
@@ -72,8 +70,7 @@ type Aberto = "nome" | "email" | "senha" | "excluir" | undefined;
 
 /** Conta (PRD 4.6): nome de usuário, e-mail, senha e excluir. */
 export function Conta() {
-  useSyncExternalStore(assinarPerfilMudou, lerRevisaoDoPerfil);
-  const eu = lerMeuPerfil();
+  const { eu, falhou, tentarDeNovo } = useMeuPerfil();
   const [aberto, setAberto] = useState<Aberto>(undefined);
   const [email, setEmail] = useState<
     | { estado: "carregando" }
@@ -97,7 +94,7 @@ export function Conta() {
     };
   }, []);
 
-  if (!eu) return null;
+  if (!eu) return falhou ? <PaginaComFalha aoTentarDeNovo={tentarDeNovo} /> : <PaginaCarregando />;
   const fechar = (a: boolean) => {
     if (!a) setAberto(undefined);
   };

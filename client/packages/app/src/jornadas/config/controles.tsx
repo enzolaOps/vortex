@@ -1,14 +1,23 @@
 import {
   useId,
-  type ChangeEvent,
   type KeyboardEvent,
   type ReactNode,
   type TextareaHTMLAttributes,
 } from "react";
 
-import { config } from "../../textos";
+import { comum, config } from "../../textos";
 import { Botao } from "../../ui/ds";
+import { SetaParaBaixo } from "../../ui/icones";
 import { juntar } from "../../ui/juntar";
+import {
+  ConteudoDoMenu,
+  GatilhoDoMenu,
+  GrupoDeEscolha,
+  ItemDeEscolha,
+  MenuSuspenso,
+  RotuloDeMenu,
+  SeparadorDeMenu,
+} from "../../ui/primitivos/Menus";
 import css from "./controles.module.css";
 
 /** Uma página de configuração: coluna de blocos na medida de leitura. */
@@ -147,32 +156,80 @@ export interface SeletorProps {
   opcoes: readonly { readonly valor: string; readonly rotulo: string }[];
   aoMudar: (valor: string) => void;
   disabled?: boolean;
+  /** Aviso no fim da lista quando não há o que escolher além do padrão ("Nenhum microfone encontrado"). */
+  semOpcoes?: string;
 }
 
-/** Lista nativa: teclado, leitor de tela e lista de dispositivos do sistema de graça. */
-export function Seletor({ rotulo, valor, opcoes, aoMudar, disabled }: SeletorProps) {
+/**
+ * Lista de escolha única no menu do app: o fechado parece campo, o aberto é o
+ * mesmo menu das outras telas, com a opção atual marcada. A lista nativa saía
+ * do tema (seta e cores do sistema) e não dá para estilizá-la por dentro.
+ */
+export function Seletor({ rotulo, valor, opcoes, aoMudar, disabled, semOpcoes }: SeletorProps) {
   const id = useId();
+  const atual = opcoes.find((o) => o.valor === valor) ?? opcoes[0];
   return (
     <div className={css.campoComRotulo}>
-      <label htmlFor={id} className={css.rotulo}>
+      <span id={id} className={css.rotulo}>
         {rotulo}
-      </label>
-      <select
-        id={id}
-        className={css.seletor}
-        value={valor}
-        disabled={disabled}
-        onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-          aoMudar(e.target.value);
-        }}
-      >
-        {opcoes.map((o) => (
-          <option key={o.valor} value={o.valor}>
-            {o.rotulo}
-          </option>
-        ))}
-      </select>
+      </span>
+      <MenuSuspenso>
+        <GatilhoDoMenu asChild>
+          <button type="button" className={css.seletor} disabled={disabled} aria-labelledby={id}>
+            <span className={css.seletorValor}>{atual?.rotulo ?? ""}</span>
+            <SetaParaBaixo aria-hidden />
+          </button>
+        </GatilhoDoMenu>
+        <ConteudoDoMenu align="start" className={css.seletorMenu}>
+          <GrupoDeEscolha value={atual?.valor ?? ""} onValueChange={aoMudar} aria-label={rotulo}>
+            {opcoes.map((o) => (
+              <ItemDeEscolha key={o.valor} value={o.valor}>
+                {o.rotulo}
+              </ItemDeEscolha>
+            ))}
+          </GrupoDeEscolha>
+          {semOpcoes !== undefined && (
+            <>
+              <SeparadorDeMenu />
+              <RotuloDeMenu>{semOpcoes}</RotuloDeMenu>
+            </>
+          )}
+        </ConteudoDoMenu>
+      </MenuSuspenso>
     </div>
+  );
+}
+
+/* ------------------------------------------------- carregando e falha */
+
+/** O esqueleto de uma página que ainda não tem dados: dois blocos de campo. */
+export function PaginaCarregando({ rotulo = config.carregando }: { rotulo?: string }) {
+  return (
+    <Pagina>
+      <div className={css.esqueleto} role="status" aria-label={rotulo}>
+        <span className={css.esqueletoTitulo} />
+        <span className={css.esqueletoCampo} />
+        <span className={css.esqueletoCampo} />
+        <span className={css.esqueletoTitulo} />
+        <span className={css.esqueletoCampo} />
+      </div>
+    </Pagina>
+  );
+}
+
+/** A página que não conseguiu os dados: diz o erro e deixa tentar de novo. */
+export function PaginaComFalha({ aoTentarDeNovo }: { aoTentarDeNovo: () => void }) {
+  return (
+    <Pagina>
+      <p className={css.erro} role="alert">
+        {config.naoDeuParaCarregar}
+      </p>
+      <div className={css.acoes}>
+        <Botao variante="secundario" onClick={aoTentarDeNovo}>
+          {comum.tentarDeNovo}
+        </Botao>
+      </div>
+    </Pagina>
   );
 }
 

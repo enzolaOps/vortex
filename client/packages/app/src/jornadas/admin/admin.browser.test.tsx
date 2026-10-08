@@ -47,6 +47,7 @@ interface Controle {
   convitePrevia: Convite | { erro: string };
   entrada: { tipo: "entrou"; serverId: string } | { tipo: "pedido" } | { tipo: "banido" };
   falhaNaLista: boolean;
+  comMidia: boolean;
   lento: Promise<void> | undefined;
 }
 
@@ -63,9 +64,15 @@ const ctl = vi.hoisted(
     convitePrevia: { erro: "Isso não parece um convite." },
     entrada: { tipo: "entrou", serverId: "S2" },
     falhaNaLista: false,
+    comMidia: true,
     lento: undefined,
   }),
 );
+
+vi.mock("nucleo/sdk/anexos", async (original) => ({
+  ...(await original<Record<string, unknown>>()),
+  temServidorDeMidia: () => ctl.comMidia,
+}));
 
 const registrar = (...c: Chamada) => {
   ctl.chamadas.push(c);
@@ -300,6 +307,7 @@ beforeEach(() => {
   ctl.convitePrevia = { erro: "Isso não parece um convite." };
   ctl.entrada = { tipo: "entrou", serverId: "S2" };
   ctl.falhaNaLista = false;
+  ctl.comMidia = true;
   ctl.lento = undefined;
   definirProntidao(true);
   semear();
@@ -840,6 +848,22 @@ describe("banimentos", () => {
 });
 
 describe("visão geral", () => {
+  it("com envio de imagem: o botão de trocar o ícone aparece, com ícone de imagem", async () => {
+    await abrirSecao("servidor");
+    const botao = page.getByRole("button", { name: admin.visaoGeral.trocarIcone });
+    await expect.element(botao).toBeVisible();
+    expect(document.querySelector('[data-testid="seletor-do-icone"]')).not.toBeNull();
+    expect(botao.element().querySelector("svg.lucide-image")).not.toBeNull();
+  });
+
+  it("sem envio de imagem: diz por quê e não mostra controle inerte", async () => {
+    ctl.comMidia = false;
+    await abrirSecao("servidor");
+    await expect.element(page.getByText(admin.visaoGeral.semMidia)).toBeVisible();
+    expect(document.body.textContent).not.toContain(admin.visaoGeral.trocarIcone);
+    expect(document.querySelector('[data-testid="seletor-do-icone"]')).toBeNull();
+  });
+
   it("salva nome e descrição só quando algo mudou", async () => {
     await abrirSecao("servidor");
     expect(document.querySelector('[role="region"][aria-label*="alterações"]')).toBeNull();

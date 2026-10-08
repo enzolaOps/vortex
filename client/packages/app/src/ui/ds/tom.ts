@@ -30,3 +30,42 @@ export function iniciais(nome: string): string {
   const ultimaLetra = ultima === undefined ? "" : (Array.from(ultima).at(0) ?? "");
   return (primeiraLetra + ultimaLetra).toLocaleUpperCase("pt-BR");
 }
+
+const letras = (t: string) => Array.from(t);
+
+/**
+ * Siglas de duas letras para um conjunto de salas irmãs. O prefixo que todas
+ * repetem ("voz-geral", "voz-jogos") não identifica nenhuma e sai; sobra a
+ * palavra que as distingue ("JO"). Quando duas ainda coincidem, a segunda letra
+ * avança pela palavra até achar uma sigla livre; se não houver, repete (o nome
+ * completo continua no rótulo).
+ */
+export function siglasDeSalas(nomes: readonly string[]): string[] {
+  const partes = nomes.map((n) => n.trim().split(/[\s\-_]+/).filter(Boolean));
+  let corte = 0;
+  const primeira = partes[0]?.[0]?.toLocaleLowerCase("pt-BR");
+  if (
+    partes.length > 1 &&
+    primeira !== undefined &&
+    partes.every((p) => p.length > 1 && p[0]?.toLocaleLowerCase("pt-BR") === primeira)
+  ) {
+    corte = 1;
+  }
+  const usadas = new Set<string>();
+  return partes.map((p, i) => {
+    const uteis = p.slice(corte);
+    const base = uteis[0] ?? nomes[i] ?? "";
+    const letrasDaBase = letras(base);
+    const segunda = uteis[1] ? letras(uteis[1])[0] : undefined;
+    const candidatas: string[] = [];
+    const a = letrasDaBase[0] ?? "";
+    if (letrasDaBase.length > 1) candidatas.push(a + (letrasDaBase[1] ?? ""));
+    if (segunda) candidatas.push(a + segunda);
+    for (let k = 2; k < letrasDaBase.length; k++) candidatas.push(a + (letrasDaBase[k] ?? ""));
+    if (candidatas.length === 0) candidatas.push(a);
+    const cand = candidatas.map((c) => c.toLocaleUpperCase("pt-BR"));
+    const escolhida = cand.find((c) => !usadas.has(c)) ?? cand[0] ?? "";
+    usadas.add(escolhida);
+    return escolhida;
+  });
+}

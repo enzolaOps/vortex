@@ -121,6 +121,20 @@
   user-select: none;
 }
 
+.itemTexto {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemMarca {
+  display: inline-flex;
+  flex: none;
+  color: var(--vx-accent-text);
+}
+
 .item[data-highlighted] {
   background: var(--vx-state-hover);
 }

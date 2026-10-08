@@ -14,6 +14,8 @@ export interface AvatarProps {
   nome: string;
   /** ID da pessoa; escolhe o tom por hash quando `tom` não é dado. */
   id?: string;
+  /** Texto das iniciais, quando a regra de pessoa (primeira e última palavra) não serve; ex.: a sigla de uma sala. */
+  iniciais?: string;
   /** 1 a 8, token `avatar-N`. */
   tom?: number;
   /** Em px. Usados: 20, 28, 36, 44, 120. */
@@ -69,6 +71,7 @@ export function Avatar({
   nome,
   id,
   tom,
+  iniciais: siglaDada,
   tamanho = 36,
   status,
   falando = false,
@@ -94,7 +97,7 @@ export function Avatar({
       className={juntar(css.avatar, TONS[tomDe(id, nome, tom) - 1], className)}
       style={{ ...vars, ...style }}
     >
-      <span aria-hidden="true">{iniciais(nome)}</span>
+      <span aria-hidden="true">{siglaDada ?? iniciais(nome)}</span>
       {imagem !== undefined && imagem !== falhou && (
         <img
           className={css.foto}

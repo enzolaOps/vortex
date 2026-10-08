@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 
 import { Camera } from "../icones";
-import { Avatar, Botao, PainelVidro, PilhaDeAvatares, Pilula } from "./index";
+import { Avatar, Botao, ItemDaDock, PainelVidro, PilhaDeAvatares, Pilula } from "./index";
 import { desmontar, montar, pegar, umSoAnel } from "./montar";
 
 afterEach(desmontar);
@@ -185,5 +185,22 @@ describe("PilhaDeAvatares", () => {
   it("sem excedente não desenha o +k", () => {
     montar(<PilhaDeAvatares itens={[{ nome: "Ana" }]} />);
     expect(document.body.textContent).not.toContain("+");
+  });
+});
+
+describe("ItemDaDock", () => {
+  it("o selo de menção fica no canto e não cobre as iniciais", () => {
+    montar(
+      <div style={{ inlineSize: 64 }}>
+        <ItemDaDock nome="Pessoal" id="s1" mencoes={2} />
+      </div>,
+    );
+    const iniciais = pegar('[role="img"] > span')!.getBoundingClientRect();
+    const selo = pegar('button [class*="selo"]')!.getBoundingClientRect();
+    const sobrepoe =
+      selo.left < iniciais.right && selo.right > iniciais.left && selo.top < iniciais.bottom && selo.bottom > iniciais.top;
+    expect(sobrepoe).toBe(false);
+    const dock = pegar("button")!.getBoundingClientRect();
+    expect(selo.right).toBeLessThanOrEqual(dock.right);
   });
 });

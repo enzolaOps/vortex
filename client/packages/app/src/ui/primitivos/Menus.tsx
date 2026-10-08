@@ -2,7 +2,8 @@ import * as Contexto from "@radix-ui/react-context-menu";
 import * as Suspenso from "@radix-ui/react-dropdown-menu";
 import type { ComponentProps } from "react";
 
-import { classeDoItem, classeDoMenu, classeDoRotulo, classeDoSeparador, juntar } from "./classes";
+import { Marcar } from "../icones";
+import { classeDoItem, classeDoMenu, classeDoRotulo, classeDoSeparador, estilos, juntar } from "./classes";
 
 /**
  * Menus. Item sem `onSelect`, `disabled` ou `asChild` é erro de lint
@@ -31,6 +32,27 @@ export function ItemDeMenu({
 }: ComponentProps<typeof Suspenso.Item> & ComVariante) {
   return (
     <Suspenso.Item {...props} data-variante={variante} className={juntar(classeDoItem, className)} />
+  );
+}
+
+/**
+ * Escolha única dentro do menu (o "select" do app): a opção atual é marcada, e
+ * as setas, Enter e a digitação do início do nome vêm do Radix.
+ */
+export const GrupoDeEscolha = Suspenso.RadioGroup;
+
+export function ItemDeEscolha({
+  className,
+  children,
+  ...props
+}: ComponentProps<typeof Suspenso.RadioItem>) {
+  return (
+    <Suspenso.RadioItem {...props} className={juntar(classeDoItem, className)}>
+      <span className={estilos.itemTexto}>{children}</span>
+      <Suspenso.ItemIndicator className={estilos.itemMarca}>
+        <Marcar aria-hidden />
+      </Suspenso.ItemIndicator>
+    </Suspenso.RadioItem>
   );
 }
 

@@ -347,6 +347,20 @@ describe("clicar numa sala de voz entra nela", () => {
 		expect(ctl.entrou).toEqual([]);
 	});
 
+	it("a faixa mostra duas letras por sala, sem repetir, com o nome completo no rótulo", async () => {
+		await abrirNoServidor();
+		definirPalco({ tipo: "grade" });
+		const faixa = () => pegar("[data-testid='faixa-de-salas']")!;
+		await expect
+			.poll(() => faixa().querySelectorAll("button[aria-label*=',']").length)
+			.toBeGreaterThan(1);
+		const botoes = [...faixa().querySelectorAll<HTMLElement>("button[aria-label*=',']")];
+		const siglas = botoes.map((b) => b.querySelector("[role='img'] > span")?.textContent ?? "");
+		expect(new Set(siglas).size).toBe(siglas.length);
+		for (const sigla of siglas) expect(sigla.length).toBeGreaterThanOrEqual(2);
+		expect(botoes.some((b) => b.getAttribute("aria-label")?.startsWith("Estudo"))).toBe(true);
+	});
+
 	it("a faixa estreita do palco também entra na hora, e troca de sala", async () => {
 		definirChamada({ estado: "dentro", channelId: "V1" });
 		await abrirNoServidor();

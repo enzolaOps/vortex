@@ -18,7 +18,7 @@
   gap: var(--vx-space-5);
   box-sizing: border-box;
   inline-size: 100%;
-  max-inline-size: 400px;
+  max-inline-size: 440px;
   padding: var(--vx-space-7);
 }
 
@@ -38,9 +38,10 @@
 
 .titulo {
   margin: 0;
-  font-size: var(--vx-type-heading-size);
-  line-height: var(--vx-type-heading-line);
-  font-weight: var(--vx-type-heading-weight);
+  font-size: var(--vx-type-display-size);
+  line-height: var(--vx-type-display-line);
+  font-weight: var(--vx-type-display-weight);
+  letter-spacing: var(--vx-type-display-tracking);
 }
 
 .subtitulo {
@@ -210,10 +211,12 @@
 }
 
 .fator {
-  flex: 1;
+  /* Cresce pelo texto: "Código de recuperação" não quebra em duas linhas. */
+  flex: 1 1 auto;
   min-inline-size: 0;
   block-size: 36px;
   padding: 0 var(--vx-space-3);
+  white-space: nowrap;
   border: 0;
   border-radius: var(--vx-radius-pill);
   background: transparent;
