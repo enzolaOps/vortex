@@ -1,30 +1,74 @@
-# Vortex
+<p align="center">
+  <img src="brand/vortex-simbolo-cor.svg" alt="Vortex" width="96" />
+</p>
 
-Self-hosted chat platform with product source and upstream references in one repository:
+<h1 align="center">Vortex</h1>
+
+<p align="center">
+  Self-hosted chat. Voice and screen in the middle, everything else around it.
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img alt="AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-5EE6D0?style=flat-square" /></a>
+  <a href="https://github.com/enzolaOps/vortex/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/enzolaOps/vortex?style=flat-square&color=A99BFF" /></a>
+  <a href="https://github.com/stoatchat"><img alt="Protocol" src="https://img.shields.io/badge/protocol-Stoat-F2F4FA?style=flat-square&labelColor=0A0C14" /></a>
+  <img alt="Platforms" src="https://img.shields.io/badge/web%20%2B%20desktop-Electron-0A0C14?style=flat-square" />
+</p>
+
+<p align="center">
+  <a href="https://github.com/enzolaOps/vortex/releases/latest">Download</a>
+  ·
+  <a href="VORTEX.md">Fork notes</a>
+  ·
+  <a href="CLAUDE.md">Architecture</a>
+  ·
+  <a href="brand/README.md">Brand</a>
+</p>
+
+<p align="center">
+  <img src="brand/vortex-logotipo.svg" alt="Vortex wordmark" width="280" />
+</p>
+
+Vortex is a chat client and server you run yourself. It speaks the [Stoat](https://github.com/stoatchat) protocol and is not affiliated with or endorsed by the Stoat project.
+
+The web app and the Electron shell share one interface. The shell does not bundle the client: it loads your instance over HTTPS.
+
+## What you get
+
+- Servers, channels, and direct messages
+- Voice rooms, with screen share
+- A desktop installer, updated from GitHub Releases
+- Your own API and event server (`delta` and `bonfire`)
+
+## Layout
 
 | | |
 | --- | --- |
-| [`client/`](client/) | Vortex React client. Published as `ghcr.io/enzolaops/vortex-client`. |
-| [`server/`](server/) | Rust backend. Delta and bonfire share `ghcr.io/enzolaops/vortex-server`. |
-| [`desktop/`](desktop/) | Electron shell. Loads the client by URL. Packaged on each `v*` release. |
-| [`brand/`](brand/) | Shared identity assets and icon generator. |
-| [`vendor/`](vendor/) | Reference-only Stoat web source. Never built or published. |
+| [`client/`](client/) | React app. Image: `ghcr.io/enzolaops/vortex-client` |
+| [`server/`](server/) | Rust backend. Image: `ghcr.io/enzolaops/vortex-server` |
+| [`desktop/`](desktop/) | Electron shell. Installers ship on each `v*` release |
+| [`brand/`](brand/) | Mark, wordmark, and the icon generator |
+| [`vendor/`](vendor/) | Upstream Stoat web tree. Reference only. Never built |
 
-Built on [Stoat](https://github.com/stoatchat). The upstream web tree is retained
-under `vendor/` for reference. The desktop shell is product source in `desktop/`,
-not a vendored mirror. `server/` forks `stoatchat/stoatchat`. Not affiliated with
-or endorsed by the Stoat project.
+`client/`, `server/`, and `desktop/` each have their own toolchain. Run commands from inside the directory. `vendor/` is not a product build. A check in CI fails if a workflow starts packaging it.
 
-**Read [`VORTEX.md`](VORTEX.md) first.** It covers what diverges from upstream,
-which upstream commits to cherry-pick and which never to take, the AGPLv3
-obligations, and the configuration contract the deployment depends on.
+## Develop
 
-`client/`, `server/` and `desktop/` are independent product builds with their own
-toolchains. Run commands from inside the product directory; each has its own manifest.
-`vendor/` is not one of them.
+```bash
+cd client
+pnpm install
+pnpm --filter stoat.js build
+pnpm --filter app dev
+```
 
-Deployment lives in `pi-infra`, not here.
+The desktop shell needs `VORTEX_APP_URL` at build time. Copy `desktop/.env.example` to `desktop/.env` and set it. The build fails on purpose if the URL is missing.
 
-Publish a GitHub Release tagged `vX.Y.Z` to build whatever changed since the
-previous tag. Notes are generated from conventional commit subjects. Leave the
-release body empty.
+Deployment lives in `pi-infra`, not in this repository.
+
+Publish a GitHub Release tagged `vX.Y.Z` to build whatever changed since the previous tag. Notes come from conventional commit subjects. Leave the release body empty.
+
+## License
+
+[GNU AGPL-3.0](LICENSE). Anyone who uses a Vortex instance over the network is entitled to the source of that modified version. This repository is that source for the client, the server, and the desktop shell.
+
+Upstream Stoat code remains under its own license. Do not present this project as Stoat.
