@@ -8,8 +8,6 @@
   box-sizing: border-box;
   block-size: 100%;
   inline-size: 100%;
-  max-inline-size: var(--medida-da-conversa, 56rem);
-  margin-inline: auto;
   padding: var(--vx-space-5) var(--vx-space-4);
   color: var(--vx-text-2);
   font-size: var(--vx-type-ui-size);
@@ -43,8 +41,6 @@
   box-sizing: border-box;
   block-size: 100%;
   inline-size: 100%;
-  max-inline-size: var(--medida-da-conversa, 56rem);
-  margin-inline: auto;
   padding: var(--vx-space-5) var(--vx-space-4);
   overflow: hidden;
 }
