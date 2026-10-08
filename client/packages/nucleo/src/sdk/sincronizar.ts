@@ -7,10 +7,8 @@
  *
  * // ponytail: last-write-wins por chave (timestamp do protocolo).
  */
-import { escreverPreset, lerPreset } from "../preset/preset";
 import { definirDensidade, lerDensidade } from "../store/densidade";
 import { definirFavoritos, deTexto, lerFavoritos } from "../store/favoritos";
-import { aplicarPreset, lerBruto, lerLayout } from "../store/layout";
 import {
   definirNotificacoes,
   lerNotificacoes,
@@ -62,8 +60,6 @@ function ehChave(k: string): k is ChaveSync {
 
 function snapshot(chave: ChaveSync): string {
   switch (chave) {
-    case "vortex:preset":
-      return escreverPreset(lerLayout(), lerBruto());
     case "vortex:privacidade":
       return JSON.stringify(lerPrivacidade());
     case "vortex:voz":
@@ -88,11 +84,6 @@ function snapshot(chave: ChaveSync): string {
 function hidratar(chave: ChaveSync, data: string): void {
   aplicarRemoto(() => {
     switch (chave) {
-      case "vortex:preset": {
-        const lido = lerPreset(data);
-        aplicarPreset(lido.preset, lido.bruto);
-        break;
-      }
       case "vortex:privacidade":
         definirPrivacidade(JSON.parse(data) as Parameters<typeof definirPrivacidade>[0]);
         break;

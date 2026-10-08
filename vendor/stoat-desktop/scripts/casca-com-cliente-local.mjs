@@ -27,7 +27,7 @@ import { fileURLToPath } from "node:url";
 
 const AQUI = fileURLToPath(new URL(".", import.meta.url));
 const CASCA = resolve(AQUI, "..");
-const CLIENTE = resolve(AQUI, "../../../client/packages/client");
+const CLIENTE = resolve(AQUI, "../../../client/packages/app");
 
 /*
   ⚠ **O Node executa os binários, e não o `npx`.**

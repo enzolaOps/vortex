@@ -1,5 +1,4 @@
-# O contexto de build da imagem React é a RAIZ, porque o cliente lê `brand/`.
-# Ver `client/Dockerfile`. Sem esta lista o contexto levaria `vendor/`
+# O contexto de build da imagem React é a RAIZ (ver `client/Dockerfile`). Sem esta lista o contexto levaria `vendor/`
 # e todos os `node_modules` do repositório — gigabytes para um
 # build que precisa de duas pastas.
 #
