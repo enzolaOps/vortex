@@ -174,6 +174,8 @@ export const admin = {
     canal: "Canal",
     revogar: "Revogar",
     revogarConvite: (codigo: string) => `Revogar o convite ${codigo}`,
+    revogarTitulo: (codigo: string) => `Revogar o convite ${codigo}?`,
+    revogarTexto: "O link deixa de funcionar na hora. Quem já entrou continua no servidor.",
     vazio: "Nenhum convite ativo. Use criar convite para gerar um link.",
     carregando: "Carregando os convites…",
     erro: "Não deu para carregar os convites.",

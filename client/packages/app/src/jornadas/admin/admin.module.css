@@ -342,6 +342,24 @@
 .canal:hover {
   background: var(--vx-state-hover);
 }
+/* Ações da linha: aparecem com o ponteiro ou o foco na linha (:focus-within acende o grupo,
+   então o teclado sempre alcança) e ficam visíveis em tela sem hover. */
+.acoesNoHover {
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.canal:hover .acoesNoHover,
+.canal:focus-within .acoesNoHover {
+  opacity: 1;
+}
+ (hover: none) {
+  .acoesNoHover {
+    opacity: 1;
+  }
+}
+.apagar {
+  color: var(--vx-danger);
+}
 .canalIcone {
   display: inline-flex;
   color: var(--vx-text-3);

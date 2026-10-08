@@ -645,6 +645,7 @@ describe("convites", () => {
     await expect.poll(() => linhas().length).toBe(2);
     expect(linhas()[0]?.textContent).toContain("Ana");
     await page.getByRole("button", { name: admin.convitesPagina.revogarConvite("AB12") }).click();
+    await page.getByRole("dialog").getByRole("button", { name: admin.convitesPagina.revogar, exact: true }).click();
     await expect.poll(() => linhas().length).toBe(1);
     expect(chamou("revogarConvite")).toEqual([["revogarConvite", "AB12"]]);
   });
