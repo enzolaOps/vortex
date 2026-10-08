@@ -793,3 +793,36 @@ describe("segundo fator, conforme o desenho", () => {
     expect(aoCancelar).toHaveBeenCalledOnce();
   });
 });
+
+describe("escala da tela de entrada e botão principal", () => {
+  it("título na escala de display e cartão de 440px", () => {
+    montar(<TelaDeRecuperarSenha mandaEmail aoPedir={() => Promise.resolve(true)} aoVoltar={() => undefined} />);
+    expect(parseFloat(getComputedStyle(pegar("h1")!).fontSize)).toBe(22);
+    const cartao = pegar("main")!;
+    expect(getComputedStyle(cartao).maxWidth).toBe("440px");
+  });
+
+  it("os dois fatores cabem em uma linha cada, no cartão", async () => {
+    const { TelaDeMfa } = await import("./TelaDeMfa");
+    montar(
+      <TelaDeMfa
+        metodos={["senha", "recuperacao"]}
+        verificando={false}
+        incorreto={false}
+        aoVerificar={() => undefined}
+        aoCancelar={() => undefined}
+      />,
+    );
+    const abas = [...document.querySelectorAll<HTMLElement>('[role="group"] button')];
+    expect(abas).toHaveLength(2);
+    for (const aba of abas) expect(aba.getBoundingClientRect().height).toBeLessThanOrEqual(40);
+    const longa = abas.find((a) => a.textContent === sessao.mfa.recuperacao.aba)!;
+    expect(longa.scrollWidth).toBeLessThanOrEqual(longa.clientWidth);
+  });
+
+  it("campo vazio: o botão principal fica apagado na recuperação, como na entrada", () => {
+    montar(<TelaDeRecuperarSenha mandaEmail aoPedir={() => Promise.resolve(true)} aoVoltar={() => undefined} />);
+    expect(botao(sessao.recuperar.enviar)?.disabled).toBe(true);
+  });
+});
+
