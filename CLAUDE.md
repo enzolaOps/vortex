@@ -50,8 +50,11 @@ Colidiu com uma, pare e levante a questão em vez de contornar.
    proibidos por lint.
 5. **Biblioteca para o genérico, código seu para o específico.** Radix para
    primitivos, Lucide para ícones, `livekit-client` para transporte de voz.
-6. **Todo componente nasce movível:** container query, sem premissa de irmão ou
-   de lado, sem dimensão fixa, estado vindo do store.
+
+A antiga lei nº 6 ("todo componente nasce movível", para o layout de slots
+reorganizável) caiu com a reescrita: layout customizável está fora do produto
+(`docs/reescrita/02-prd.md`, não-objetivos). Container query continua sendo o
+jeito certo de um componente reagir ao próprio espaço.
 
 React Compiler está ativo: escreva código idiomático, meça antes de otimizar,
 e trate erro de lint do compiler como código errado, não como regra a desligar.
