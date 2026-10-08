@@ -40,6 +40,28 @@
   transform: none;
 }
 
+/*
+  Entrada no palco: a coluna cheia de um instante atrás se fecha como no hover-out
+  (a lista parte aberta e solta; a faixa aparece por baixo). Só opacity e transform.
+*/
+@keyframes listaSolta {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes faixaAparece {
+  from {
+    opacity: 0;
+  }
+}
+.raiz[data-recem]:not([data-aberta]) .lista {
+  animation: listaSolta 180ms ease;
+}
+.raiz[data-recem]:not([data-aberta]) .faixa {
+  animation: faixaAparece 180ms ease;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .faixa,
   .lista {

@@ -22,6 +22,8 @@ export function SalasEmFaixa({ faixa, lista }: { faixa: ReactNode; lista: ReactN
   const [ponteiro, setPonteiro] = useState(false);
   const [foco, setFoco] = useState(false);
   const aberta = ponteiro || foco;
+  /* Só a entrada no palco anima; depois dela o hover usa a transição de sempre. */
+  const [recem, setRecem] = useState(true);
 
   function aoPerderFoco(e: FocusEvent<HTMLDivElement>) {
     if (!e.currentTarget.contains(e.relatedTarget)) setFoco(false);
@@ -32,6 +34,10 @@ export function SalasEmFaixa({ faixa, lista }: { faixa: ReactNode; lista: ReactN
       className={css.raiz}
       data-faixa-raiz=""
       data-aberta={aberta || undefined}
+      data-recem={recem || undefined}
+      onAnimationEnd={(e) => {
+        if (/listaSolta|faixaAparece/.test(e.animationName)) setRecem(false);
+      }}
       onPointerEnter={() => {
         setPonteiro(true);
       }}
