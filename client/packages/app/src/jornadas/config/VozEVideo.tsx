@@ -84,7 +84,11 @@ export function VozEVideo() {
   const cameras = useDispositivos("videoinput");
 
   return (
-    <Pagina>
+    <Pagina larga>
+      {/* Largura suficiente: áudio à esquerda, entrada e câmera à direita; abaixo disso, uma coluna. */}
+      <div className={css.contexto}>
+      <div className={css.colunas}>
+      <div className={css.coluna}>
       <Bloco>
         <h3 className={ec.titulo}>{t.audio}</h3>
         <Seletor
@@ -128,7 +132,9 @@ export function VozEVideo() {
         <TesteDeMicrofone limiarDb={p.modo === "deteccao" && !p.sensibilidadeAutomatica ? p.limiarDb : undefined} />
       </Bloco>
 
-      <Divisor />
+      <div className={css.divisorEmUmaColuna}>
+        <Divisor />
+      </div>
 
       <Bloco>
         <h3 className={ec.titulo}>{t.ruido}</h3>
@@ -148,11 +154,17 @@ export function VozEVideo() {
         <p className={ec.dica}>{t.ruidoAjuda[p.ruido]}</p>
       </Bloco>
 
-      <Divisor />
+      <div className={css.divisorEmUmaColuna}>
+        <Divisor />
+      </div>
+      </div>
 
+      <div className={css.coluna}>
       <ModoDeEntrada />
 
-      <Divisor />
+      <div className={css.divisorEmUmaColuna}>
+        <Divisor />
+      </div>
 
       <Bloco>
         <h3 className={ec.titulo}>{t.camera}</h3>
@@ -182,6 +194,9 @@ export function VozEVideo() {
         </GrupoDeOpcoes>
         <p className={ec.dica}>{t.fundoDica}</p>
       </Bloco>
+      </div>
+      </div>
+      </div>
     </Pagina>
   );
 }

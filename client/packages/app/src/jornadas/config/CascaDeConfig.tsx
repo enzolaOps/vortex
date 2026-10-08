@@ -16,7 +16,8 @@ import {
 
 import { admin, config } from "../../textos";
 import { Avatar } from "../../ui/ds";
-import { ConteudoDoDialogo, Dialogo } from "../../ui/primitivos/Dialogo";
+import { Fechar, Sair } from "../../ui/icones";
+import { ConteudoDoDialogo, Dialogo, DialogoFechar } from "../../ui/primitivos/Dialogo";
 import { Banimentos } from "../admin/Banimentos";
 import { Canais } from "../admin/Canais";
 import { Cargos } from "../admin/Cargos";
@@ -24,6 +25,7 @@ import { Convites } from "../admin/Convites";
 import { Membros } from "../admin/Membros";
 import {
   GRUPOS_DO_SERVIDOR,
+  ICONE_DA_SECAO_DE_SERVIDOR,
   NOME_DA_SECAO_DE_SERVIDOR,
   podeAbrirSecao,
   secaoDeServidor,
@@ -43,6 +45,7 @@ import { Perfil } from "./Perfil";
 import { assinarPerfilMudou, lerRevisaoDoPerfil } from "./perfilMudou";
 import {
   GRUPOS_DA_NAVEGACAO,
+  ICONE_DA_SECAO,
   NOME_DA_SECAO,
   SUBTITULO_DA_SECAO,
   secaoEssencial,
@@ -98,6 +101,26 @@ function IdentidadeDoServidor({ serverId }: { serverId: string }) {
         <span className={css.identidadeUsuario}>{admin.servidor}</span>
       </div>
     </div>
+  );
+}
+
+function IconePessoal({ secao }: { secao: SecaoEssencial }) {
+  const Icone = ICONE_DA_SECAO[secao];
+  return <Icone tamanho={16} />;
+}
+
+function IconeDeServidor({ secao }: { secao: SecaoDeServidor }) {
+  const Icone = ICONE_DA_SECAO_DE_SERVIDOR[secao];
+  return <Icone tamanho={16} />;
+}
+
+/** O fechar da casca: a dica "Esc" escrita, porque é a tecla que a maioria usa. */
+function BotaoEsc() {
+  return (
+    <DialogoFechar className={css.fechar} aria-label={config.fechar}>
+      <span className={css.teclaEsc}>{config.dicaDeEsc}</span>
+      <Fechar tamanho={14} />
+    </DialogoFechar>
   );
 }
 
@@ -186,6 +209,7 @@ export function CascaDeConfig() {
         titulo={config.titulo}
         tituloOculto
         className={css.casca}
+        semBotaoDeFechar
         onOpenAutoFocus={(e) => {
           // O foco nasce no item da seção atual, e não no primeiro da lista.
           e.preventDefault();
@@ -211,7 +235,8 @@ export function CascaDeConfig() {
                         abrirConfig(s);
                       }}
                     >
-                      {NOME_DA_SECAO[s]}
+                      <IconePessoal secao={s} />
+                      <span>{NOME_DA_SECAO[s]}</span>
                     </button>
                   ))}
                 </div>
@@ -223,7 +248,8 @@ export function CascaDeConfig() {
                   setSaindo(true);
                 }}
               >
-                {config.sair}
+                <Sair tamanho={16} />
+                <span>{config.sair}</span>
               </button>
               <Confirmacao
                 aberto={saindo}
@@ -242,12 +268,15 @@ export function CascaDeConfig() {
               aria-label={NOME_DA_SECAO[secaoPessoal]}
             >
               <header className={css.cabecalho}>
+                <div className={css.cabecalhoTextos}>
                 <h2 className={css.tituloDaPagina}>
                   {NOME_DA_SECAO[secaoPessoal]}
                 </h2>
                 <p className={css.subtituloDaPagina}>
                   {SUBTITULO_DA_SECAO[secaoPessoal]}
                 </p>
+                </div>
+                <BotaoEsc />
               </header>
               <div className={css.corpo} tabIndex={-1}>
                 {CONTEUDO[secaoPessoal]()}
@@ -275,7 +304,8 @@ export function CascaDeConfig() {
                           abrirConfig(s, serverId);
                         }}
                       >
-                        {NOME_DA_SECAO_DE_SERVIDOR[s]}
+                        <IconeDeServidor secao={s} />
+                        <span>{NOME_DA_SECAO_DE_SERVIDOR[s]}</span>
                       </button>
                     ))}
                   </div>
@@ -287,12 +317,15 @@ export function CascaDeConfig() {
               aria-label={NOME_DA_SECAO_DE_SERVIDOR[secaoAdmin]}
             >
               <header className={css.cabecalho}>
+                <div className={css.cabecalhoTextos}>
                 <h2 className={css.tituloDaPagina}>
                   {NOME_DA_SECAO_DE_SERVIDOR[secaoAdmin]}
                 </h2>
                 <p className={css.subtituloDaPagina}>
                   {SUBTITULO_DA_SECAO_DE_SERVIDOR[secaoAdmin]}
                 </p>
+                </div>
+                <BotaoEsc />
               </header>
               <div className={css.corpo} tabIndex={-1}>
                 {CONTEUDO_DO_SERVIDOR[secaoAdmin](serverId)}

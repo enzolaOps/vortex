@@ -3,6 +3,7 @@ import { podeNoServidor } from "nucleo/sdk/permissoes";
 import type { SecaoId } from "nucleo/store/config";
 
 import { admin } from "../../textos";
+import { Canal, Casa, Coroa, Elo, Pessoas, Proibido, type Icone } from "../../ui/icones";
 
 /**
  * As seções de administração do servidor (PRD 4.7). Moram na mesma casca das
@@ -79,3 +80,13 @@ export function podeAbrirSecao(serverId: string, secao: SecaoDeServidor): boolea
 export function secoesPermitidas(serverId: string): readonly SecaoDeServidor[] {
   return GRUPOS_DO_SERVIDOR.flatMap((g) => g.itens).filter((s) => podeAbrirSecao(serverId, s));
 }
+
+/** O ícone de cada seção de administração na navegação. */
+export const ICONE_DA_SECAO_DE_SERVIDOR: Record<SecaoDeServidor, Icone> = {
+  servidor: Casa,
+  canais: Canal,
+  convites: Elo,
+  cargos: Coroa,
+  membros: Pessoas,
+  banimentos: Proibido,
+};
