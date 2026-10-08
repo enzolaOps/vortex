@@ -20,7 +20,7 @@ trees under `vendor/` are retained for reference and are never product CI inputs
 vortex/
 ├── client/     pnpm workspace, nodeLinker: isolated · Vortex product client
 ├── server/     Cargo workspace · ships one delta + bonfire runtime image
-├── brand/      mark.svg + the generator used by the clients
+├── brand/      the logo SVGs (see brand/README.md) + the generator used by the clients
 ├── vendor/     Stoat web and desktop reference source; not product builds
 ├── .github/    release-triggered image workflows
 ├── CLAUDE.md   architecture briefing — read before touching the front-end
@@ -131,16 +131,21 @@ publishing a release.
 
 ## Replacing the logo
 
-Replace `brand/mark.svg`, keeping the 512×512 viewBox, then:
+Replace the SVGs in `brand/` (`vortex-simbolo.svg`, `vortex-simbolo-cor.svg`,
+`vortex-logotipo.svg`, `vortex-icone-app.svg`; the rules are in `brand/README.md`), then:
 
 ```bash
 npm i -D sharp
 node brand/generate.mjs
 ```
 
-That regenerates every PNG and the `.ico` for the vendor reference trees.
-`brand/monochrome.svg` and `brand/wordmark.svg` are copied as-is, so update
-those by hand too.
+That regenerates every PNG and the `.ico` for the desktop shell
+(`vendor/stoat-desktop/assets/`) and the vendor web reference, plus the symbol mask
+the installer splash reads (`vendor/stoat-desktop/scripts/simboloDoInstalador.mjs`).
+After it, run `pnpm assets:splash` in `vendor/stoat-desktop/` to rebuild
+`instalacao.gif` (a test compares the bytes). If the wordmark in
+`vortex-logotipo.svg` is ever a `<text>` again, convert it with
+`node brand/logotipo-em-contornos.mjs <plus-jakarta-sans-700.woff>`.
 
 `npm i -D sharp` leaves a `package.json` and a `package-lock.json` at the root.
 Both are gitignored deliberately: nothing at the root belongs to one island,
@@ -148,7 +153,7 @@ and a root manifest carrying a single build-time tool is exactly the clutter
 that rule exists to prevent. Leave them where they are — deleting them only
 means recreating them the next time the mark changes.
 
-`client/` does not consume the rasters. It serves `brand/mark.svg` straight
+`client/` does not consume the rasters. It serves `brand/vortex-simbolo.svg` straight
 as its favicon through a small Vite plugin, so there is no fourth copy to keep
 in sync.
 

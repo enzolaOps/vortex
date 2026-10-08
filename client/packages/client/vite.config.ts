@@ -207,7 +207,7 @@ function cspDoVortex(): Plugin {
 }
 
 /**
- * Serve `brand/mark.svg` como `/mark.svg`, em dev e no build.
+ * Serve `brand/vortex-simbolo.svg` como `/vortex-simbolo.svg`, em dev e no build.
  *
  * `brand/` fica fora da raiz desta ilha. As saídas
  * óbvias seriam copiar o arquivo para `public/` ou abrir `server.fs.allow`
@@ -218,13 +218,13 @@ function cspDoVortex(): Plugin {
  * Lendo direto da fonte, trocar a marca é trocar um arquivo.
  */
 function marcaDoVortex(): Plugin {
-  const origem = fileURLToPath(new URL("../../../brand/mark.svg", import.meta.url));
+  const origem = fileURLToPath(new URL("../../../brand/vortex-simbolo.svg", import.meta.url));
 
   return {
     name: "vortex-marca",
 
     configureServer(server) {
-      server.middlewares.use("/mark.svg", (_req, res) => {
+      server.middlewares.use("/vortex-simbolo.svg", (_req, res) => {
         res.setHeader("Content-Type", "image/svg+xml");
         res.setHeader("Cache-Control", "no-cache");
         res.end(readFileSync(origem));
@@ -234,7 +234,7 @@ function marcaDoVortex(): Plugin {
     generateBundle() {
       this.emitFile({
         type: "asset",
-        fileName: "mark.svg",
+        fileName: "vortex-simbolo.svg",
         source: readFileSync(origem),
       });
     },

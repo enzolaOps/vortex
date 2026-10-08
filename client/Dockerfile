@@ -23,9 +23,9 @@ WORKDIR /build
 
 # ⚠ **O contexto de build é a RAIZ do repositório, não `client/`** — e
 # descobri isso construindo, não lendo. O `vite.config.ts` tem um plugin
-# (`vortex-marca`) que lê `../../../brand/mark.svg` e o emite no bundle; com o
+# (`vortex-marca`) que lê `../../../brand/vortex-simbolo.svg` e o emite no bundle; com o
 # contexto na ilha, o arquivo fica fora e o build morre em
-# `ENOENT: open '/brand/mark.svg'`.
+# `ENOENT: open '/brand/vortex-simbolo.svg'`.
 #
 # A alternativa era copiar `brand/` para dentro de `client/`. Recusada: o
 # CLAUDE.md registra `brand/` como diretório único da raiz, e uma segunda cópia é exatamente a

@@ -5,6 +5,7 @@ import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 
 import { cspDoVortex } from "./csp.ts";
+import { marcaDoVortex } from "./marca.ts";
 import { mediapipeLocal, VERSAO_DO_MEDIAPIPE } from "./mediapipe.ts";
 
 /**
@@ -30,6 +31,7 @@ export default defineConfig({
     // React Compiler ativo desde o dia 1, como no `client`.
     react({ compiler: true }),
     tailwindcss(),
+    marcaDoVortex(),
     mediapipeLocal(),
     cspDoVortex(),
   ],

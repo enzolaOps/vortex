@@ -60,7 +60,7 @@ CI packages the app on every published release — see "Releasing".
 
 ## Icons
 
-Generated from `brand/mark.svg` at the repository root, same generator as the
+Generated from `brand/vortex-icone-app.svg` (app icon) and `brand/vortex-simbolo.svg` (macOS tray template) at the repository root, same generator as the
 web client:
 
 ```bash

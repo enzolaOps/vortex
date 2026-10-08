@@ -176,8 +176,8 @@ jobs:
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           # ⚠ **Contexto na RAIZ, e não em `./client`.** O `vite.config.ts`
-          # tem um plugin que lê `brand/mark.svg` da raiz e o emite no bundle;
-          # com o contexto na ilha o build morre em `ENOENT: /brand/mark.svg`.
+          # tem um plugin que lê `brand/vortex-simbolo.svg` da raiz e o emite no bundle;
+          # com o contexto na ilha o build morre em `ENOENT: /brand/vortex-simbolo.svg`.
           # Descoberto construindo a imagem localmente — o `pnpm build` do host
           # passa, porque lá o arquivo está a três níveis acima.
           #

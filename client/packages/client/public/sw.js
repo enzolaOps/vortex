@@ -103,7 +103,7 @@ self.addEventListener("push", (evento) => {
   evento.waitUntil(
     self.registration.showNotification(texto.titulo, {
       body: texto.corpo,
-      icon: dados.icon || "/mark.svg",
+      icon: dados.icon || "/vortex-simbolo.svg",
       /* Por canal: dez mensagens seguidas no mesmo canal substituem a anterior
          em vez de empilhar dez avisos — mesma regra do notificador da aba. */
       tag: dados.tag || texto.destino,

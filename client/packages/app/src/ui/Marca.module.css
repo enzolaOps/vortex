@@ -3,10 +3,15 @@
   flex: none;
 }
 
-.espiral {
+.simples .espiral,
+.simples .nucleo {
+  fill: var(--vx-text-1);
+}
+
+.cor .espiral {
   fill: var(--vx-accent);
 }
 
-.nucleo {
+.cor .nucleo {
   fill: var(--vx-speaking);
 }

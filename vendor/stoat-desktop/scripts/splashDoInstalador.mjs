@@ -23,20 +23,25 @@
  * que ninguém consegue auditar.
  *
  * ⚠ **Sem dependência de imagem.** `sharp` não está na árvore da casca, e o que
- * se desenha aqui é geometria (um V e a barra de acento de 3px da identidade)
+ * se desenha aqui é geometria (o símbolo da marca e uma barra de 3px)
  * sobre uma rampa de 64 cores. O codificador GIF/LZW abaixo tem ~70 linhas;
  * uma dependência nova para isso não se paga.
  *
- * Cores: `--vx-surface-0` (#08090b) e `--vx-accent` (#35c2cc), de
- * `client/packages/client/src/styles/tokens.css`.
+ * Cores: fundo `#0a0c14` e tinta `#f2f4fa`, as do ícone do app e do símbolo em
+ * `brand/` (o símbolo é de uma cor por padrão). A máscara do símbolo vem de
+ * `simboloDoInstalador.mjs`, gerado por `node brand/generate.mjs`.
  */
+import { gunzipSync } from "node:zlib";
+
+import { LADO, MASCARA } from "./simboloDoInstalador.mjs";
+
 /* Mesmas medidas da animação de fábrica: a janela do `Setup.exe` é do tamanho
    do GIF, então mudá-las mudaria o tamanho do instalador na tela. */
 const LARGURA = 268;
 const ALTURA = 167;
 
-const FUNDO = "#08090b"; // --vx-surface-0
-const ACENTO = "#35c2cc"; // --vx-accent
+const FUNDO = "#0a0c14"; // fundo do ícone do app (brand/vortex-icone-app.svg)
+const ACENTO = "#f2f4fa"; // tinta do símbolo (brand/vortex-simbolo.svg)
 
 const TONS = 64; // 2^6 — o menor tamanho de paleta que dá degradê liso
 const QUADROS = 24;
@@ -79,29 +84,18 @@ function rampa(hexDe, hexAte, passos) {
 
 // --- Desenho -----------------------------------------------------------------
 
-/**
- * Distância de um ponto ao segmento AB.
- *
- * ⚠ `Math.sqrt` e não `Math.hypot`, pela mesma razão da rampa: `hypot` é
- * "implementation-approximated" e `sqrt` é exato. O serrilhado do V sai do
- * limiar `distância <= raio`, então um bit de diferença muda um pixel — e
- * muda o arquivo que o teste compara.
- */
-function distanciaAoSegmento(px, py, ax, ay, bx, by) {
-  const dx = bx - ax;
-  const dy = by - ay;
-  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)));
-  const ex = px - (ax + dx * t);
-  const ey = py - (ay + dy * t);
-  return Math.sqrt(ex * ex + ey * ey);
-}
-
-/* O V da marca — é o glifo que o design usa no ladrilho da identidade. */
-const V_CX = LARGURA / 2;
-const V_CY = 66;
-const V_MEIA_L = 27;
-const V_MEIA_A = 23;
-const V_RAIO = 5;
+/* O símbolo da marca (brand/vortex-simbolo.svg), vindo de uma máscara de 1 bit.
+   Cada pixel de saída amostra 3×3 bits da máscara: a máscara tem 3× o lado do
+   símbolo na tela, então o serrilhado some sem filtro e sem `Math.pow`. */
+const SIMBOLO_LADO = 72; // viewBox do SVG: -4 -4 72 72
+const SIMBOLO_X0 = (LARGURA - SIMBOLO_LADO) / 2;
+const SIMBOLO_Y0 = 26;
+const MASCARA_BITS = gunzipSync(Buffer.from(MASCARA, "base64"));
+const naMascara = (mx, my) => {
+  if (mx < 0 || my < 0 || mx >= LADO || my >= LADO) return 0;
+  const i = my * LADO + mx;
+  return (MASCARA_BITS[i >> 3] >> (i & 7)) & 1;
+};
 
 /* A barra de acento de 3px: a assinatura da identidade, a mesma do item ativo
    no rail e na lista de canais. */
@@ -112,7 +106,7 @@ const BARRA_X1 = 214;
 const BARRA_REPOUSO = 0.2;
 const REALCE_MEIA_L = 28;
 
-const AMOSTRAS = 3; // 3×3 por pixel: o serrilhado do V some sem filtro nenhum
+const AMOSTRAS = 3; // 3×3 por pixel = 1 pixel da máscara por amostra (ver SIMBOLO_LADO)
 
 /** Intensidade 0..1 de cada pixel do quadro `t` ∈ [0,1). */
 function quadro(t) {
@@ -126,19 +120,10 @@ function quadro(t) {
       let cobertura = 0;
       for (let sy = 0; sy < AMOSTRAS; sy++) {
         for (let sx = 0; sx < AMOSTRAS; sx++) {
-          const px = x + (sx + 0.5) / AMOSTRAS;
-          const py = y + (sy + 0.5) / AMOSTRAS;
-          const dEsquerda = distanciaAoSegmento(
-            px, py,
-            V_CX - V_MEIA_L, V_CY - V_MEIA_A,
-            V_CX, V_CY + V_MEIA_A,
+          cobertura += naMascara(
+            (x - SIMBOLO_X0) * AMOSTRAS + sx,
+            (y - SIMBOLO_Y0) * AMOSTRAS + sy,
           );
-          const dDireita = distanciaAoSegmento(
-            px, py,
-            V_CX, V_CY + V_MEIA_A,
-            V_CX + V_MEIA_L, V_CY - V_MEIA_A,
-          );
-          if (Math.min(dEsquerda, dDireita) <= V_RAIO) cobertura++;
         }
       }
       let intensidade = cobertura / (AMOSTRAS * AMOSTRAS);
