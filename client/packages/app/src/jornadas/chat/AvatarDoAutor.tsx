@@ -6,7 +6,7 @@ import { Avatar } from "../../ui/ds";
 
 export interface AvatarDoAutorProps {
   servidorId: string;
-  autorId: string;
+  autorId: string | undefined;
   nome: string;
 }
 
@@ -19,7 +19,7 @@ export interface AvatarDoAutorProps {
  * nunca o avatar padrão do servidor.
  */
 function AvatarDoAutorBase({ servidorId, autorId, nome }: AvatarDoAutorProps) {
-  const imagem = useAvatarDoMembro(chaveDeMembro(servidorId, autorId));
+  const imagem = useAvatarDoMembro(chaveDeMembro(servidorId, autorId ?? ""));
   return <Avatar nome={nome} id={autorId} tamanho={36} imagem={imagem} />;
 }
 
