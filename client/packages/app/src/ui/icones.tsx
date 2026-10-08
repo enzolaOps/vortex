@@ -150,6 +150,10 @@ export const Janela = envolver(LAppWindow);
 export const Editar = envolver(LPencil);
 export const EncerrarChamada = envolver(LPhoneOff);
 export const Telefone = envolver(LPhone);
+/** O fone girado, como no design: recusar e desligar sem o risco do "sem sinal" de EncerrarChamada. */
+export const TelefoneDesligando: Icone = function TelefoneDesligando({ style, ...props }: IconeProps) {
+  return <Telefone {...props} style={{ ...style, transform: "rotate(135deg)" }} />;
+};
 export const Proibido = envolver(LBan);
 export const ImagemSobreImagem = envolver(LPictureInPicture2);
 export const Mais = envolver(LPlus);
