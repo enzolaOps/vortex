@@ -1,0 +1,73 @@
+.previa {
+  box-sizing: border-box;
+  border: 1px solid var(--vx-glass-border);
+  border-radius: var(--vx-radius-lg);
+  overflow: hidden;
+  pointer-events: none;
+}
+.fundo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2.2fr);
+  gap: var(--vx-space-2);
+  padding: var(--vx-space-3);
+  min-block-size: 200px;
+}
+.coluna,
+.conversa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+  min-inline-size: 0;
+  padding: var(--vx-space-3);
+}
+.titulo {
+  margin: 0;
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.canal,
+.canalAtivo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-1);
+  padding: var(--vx-space-1) var(--vx-space-2);
+  border-radius: var(--vx-radius-sm);
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.canalAtivo {
+  background: var(--vx-state-selected);
+  color: var(--vx-accent);
+  box-shadow: inset 3px 0 0 var(--vx-accent);
+}
+.mensagem {
+  display: flex;
+  gap: var(--vx-space-2);
+}
+.autor {
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-body-strong-size);
+  line-height: var(--vx-type-body-strong-line);
+  font-weight: var(--vx-type-body-strong-weight);
+}
+.texto {
+  margin: 0;
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.mencao {
+  padding: 0 var(--vx-space-1);
+  border-radius: var(--vx-radius-sm);
+  background: var(--vx-mention);
+  color: var(--vx-text-on-mention);
+  font-weight: 600;
+}
+.rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-block-start: auto;
+}

@@ -2,11 +2,15 @@ import { lerTemas, resolverReferencias, type CampoDeCor } from "./contraste";
 import {
   DESTAQUES,
   PERSONALIZACAO_PADRAO,
+  SEMENTES,
+  TEMAS,
+  normalizarHex,
   paletaValidada,
   type BaseDoTema,
   type DestaqueId,
   type PaletaValidada,
   type Personalizacao,
+  type TemaId,
 } from "./personalizar";
 import tokensDoDs from "./tokens.json";
 import tokensCss from "./tokens.gerado.css?raw";
@@ -47,8 +51,15 @@ function ler(): Personalizacao {
     const cru = localStorage.getItem(CHAVE);
     if (!cru) return PERSONALIZACAO_PADRAO;
     const o = JSON.parse(cru) as Record<string, unknown>;
+    const ativo = o["ativo"] === true;
+    const tema = TEMAS.find((t) => t === o["tema"]);
+    const livre = typeof o["destaqueLivre"] === "string" ? normalizarHex(o["destaqueLivre"]) : undefined;
     return {
-      ativo: o["ativo"] === true,
+      ativo,
+      tema: tema ?? "vidro",
+      // Quem guardou uma paleta antes dos temas prontos já tinha mexido nos ajustes.
+      personalizado: tema === undefined ? ativo : o["personalizado"] === true,
+      destaqueLivre: livre ?? null,
       matiz: limitar(o["matiz"], 0, 360, PERSONALIZACAO_PADRAO.matiz),
       intensidade: limitar(o["intensidade"], 0, 100, PERSONALIZACAO_PADRAO.intensidade),
       destaque: DESTAQUES.find((d) => d === o["destaque"]) ?? PERSONALIZACAO_PADRAO.destaque,
@@ -103,6 +114,39 @@ export function aplicarPersonalizacao(p: Personalizacao, raiz: HTMLElement = doc
     escritas.push(nome);
   }
   return validada;
+}
+
+/** Escolhe um tema pronto: aplica a semente dele e desfaz qualquer personalização. */
+export function escolherTema(id: TemaId): void {
+  definirPersonalizacao({
+    ...SEMENTES[id],
+    tema: id,
+    ativo: id !== "vidro",
+    personalizado: false,
+    destaqueLivre: null,
+  });
+}
+
+/** Mexe num ajuste: parte do tema escolhido e marca a escolha como personalizada. */
+export function personalizar(mudanca: Partial<Pick<Personalizacao, "matiz" | "intensidade" | "destaque" | "destaqueLivre">>): void {
+  definirPersonalizacao({ ...mudanca, ativo: true, personalizado: true });
+}
+
+/** Os papéis de um estado de personalização, para a prévia e as miniaturas (o tema de fábrica quando inativo). */
+export function papeisDe(p: Personalizacao): Readonly<Record<string, string>> {
+  if (!p.ativo) return base().papeis;
+  return paletaValidada(base(), p)?.papeis ?? base().papeis;
+}
+
+const papeisDosTemas = new Map<TemaId, Readonly<Record<string, string>>>();
+
+/** Os papéis de um tema pronto, derivados da semente dele (e medidos como qualquer paleta). */
+export function papeisDoTema(id: TemaId): Readonly<Record<string, string>> {
+  const guardado = papeisDosTemas.get(id);
+  if (guardado) return guardado;
+  const papeis = papeisDe({ ...PERSONALIZACAO_PADRAO, ...SEMENTES[id], tema: id, ativo: id !== "vidro" });
+  papeisDosTemas.set(id, papeis);
+  return papeis;
 }
 
 export function definirPersonalizacao(mudanca: Partial<Personalizacao>): void {

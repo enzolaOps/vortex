@@ -17,7 +17,7 @@ import {
 import { definirSegurando, lerSegurando, microfoneAberto } from "nucleo/store/pushToTalk";
 import type { Dispositivo, ResultadoDeConta } from "nucleo/sdk/perfil";
 
-import { config } from "../../textos";
+import { comum, config } from "../../textos";
 import { definirPersonalizacao, lerPersonalizacao } from "../../tema/personalizado";
 import { PERSONALIZACAO_PADRAO } from "../../tema/personalizar";
 import { desmontar, montar } from "../../ui/ds/montar";
@@ -692,47 +692,124 @@ describe("voz e vídeo", () => {
 });
 
 describe("aparência", () => {
-  it("o tema de fábrica é o padrão e não escreve nada no documento", async () => {
+  const a = config.aparenciaTela;
+  const raiz = () => document.documentElement.style;
+  const previa = () => document.querySelector<HTMLElement>('[data-testid="previa-da-paleta"]');
+  const abrirPersonalizar = async () => {
+    await userEvent.click(botao(a.personalizar)!);
+    await assentar();
+  };
+
+  it("o tema de fábrica (Vidro) é o padrão e não escreve nada no documento", async () => {
     await abrir("aparencia");
-    expect(radio(config.aparenciaTela.escuro)?.getAttribute("aria-checked")).toBe("true");
-    expect(document.documentElement.style.getPropertyValue("--vx-accent")).toBe("");
-    expect(texto()).toContain(config.aparenciaTela.soEscuro);
+    expect(radio(a.temas.vidro)?.getAttribute("aria-checked")).toBe("true");
+    expect(raiz().getPropertyValue("--vx-accent")).toBe("");
+    expect(texto()).toContain(a.soEscuro);
+    expect(document.querySelectorAll('[role="radiogroup"][aria-label="Tema"] [role="radio"]').length).toBeGreaterThanOrEqual(7);
   });
 
-  it("a paleta personalizada aplica as cores validadas e voltar ao tema de fábrica as remove", async () => {
+  it("escolher um tema aplica a paleta dele e voltar ao Vidro a remove", async () => {
     await abrir("aparencia");
-    await userEvent.click(radio(config.aparenciaTela.personalizado)!);
+    await userEvent.click(radio(a.temas.oceano)!);
     await assentar();
-    const raiz = document.documentElement.style;
-    expect(lerPersonalizacao().ativo).toBe(true);
-    const acentoLavanda = raiz.getPropertyValue("--vx-accent");
-    expect(acentoLavanda).toMatch(/^#[0-9a-f]{6}$/);
+    expect(lerPersonalizacao()).toMatchObject({ ativo: true, tema: "oceano", personalizado: false });
+    expect(radio(a.temas.oceano)?.getAttribute("aria-checked")).toBe("true");
+    expect(radio(a.temas.vidro)?.getAttribute("aria-checked")).toBe("false");
+    const acentoOceano = raiz().getPropertyValue("--vx-accent");
+    expect(acentoOceano).toMatch(/^#[0-9a-f]{6}$/);
 
-    await userEvent.click(radio(config.aparenciaTela.destaques.menta)!);
+    await userEvent.click(radio(a.temas.brasa)!);
     await assentar();
-    expect(raiz.getPropertyValue("--vx-accent")).not.toBe(acentoLavanda);
-    expect(radio(config.aparenciaTela.destaques.menta)?.getAttribute("aria-checked")).toBe("true");
-    expect(document.querySelector('[data-testid="previa-da-paleta"]')).not.toBeNull();
+    expect(raiz().getPropertyValue("--vx-accent")).not.toBe(acentoOceano);
 
-    const base = raiz.getPropertyValue("--vx-backdrop-base");
-    const matiz = campo(config.aparenciaTela.matiz) as HTMLInputElement;
-    await userEvent.fill(matiz, "120");
+    await userEvent.click(radio(a.temas.vidro)!);
     await assentar();
-    expect(raiz.getPropertyValue("--vx-backdrop-base")).not.toBe(base);
+    expect(raiz().getPropertyValue("--vx-accent")).toBe("");
+    expect(raiz().getPropertyValue("--vx-backdrop-base")).toBe("");
+  });
 
-    await userEvent.click(radio(config.aparenciaTela.escuro)!);
+  it("personalizar parte do tema escolhido e marca o cartão como personalizado", async () => {
+    await abrir("aparencia");
+    await userEvent.click(radio(a.temas.ametista)!);
     await assentar();
-    expect(raiz.getPropertyValue("--vx-accent")).toBe("");
-    expect(raiz.getPropertyValue("--vx-backdrop-base")).toBe("");
+    const baseDoTema = raiz().getPropertyValue("--vx-backdrop-base");
+    expect(texto()).not.toContain(a.personalizado);
+
+    await abrirPersonalizar();
+    await userEvent.fill(campo(a.matiz)!, "120");
+    await assentar();
+    expect(raiz().getPropertyValue("--vx-backdrop-base")).not.toBe(baseDoTema);
+    expect(lerPersonalizacao()).toMatchObject({ tema: "ametista", personalizado: true });
+    expect(radio(a.temas.ametista)?.textContent).toContain(a.personalizado);
+
+    await userEvent.click(radio(a.destaques.menta)!);
+    await assentar();
+    expect(radio(a.destaques.menta)?.getAttribute("aria-checked")).toBe("true");
+
+    await userEvent.click(botao(new RegExp(a.voltarAoTema))!);
+    await assentar();
+    expect(lerPersonalizacao()).toMatchObject({ tema: "ametista", personalizado: false });
+    expect(raiz().getPropertyValue("--vx-backdrop-base")).toBe(baseDoTema);
+  });
+
+  it("a prévia mostra o tema sob o mouse sem mexer no resto do app", async () => {
+    await abrir("aparencia");
+    const antes = raiz().getPropertyValue("--vx-accent");
+    expect(previa()?.style.getPropertyValue("--vx-accent")).toMatch(/^#[0-9a-f]{6}$/);
+    expect(previa()?.getAttribute("aria-label")).toBe(a.previaDe(a.temas.vidro));
+
+    const fundoAntes = previa()?.style.getPropertyValue("--vx-backdrop-base");
+    await userEvent.hover(radio(a.temas.brasa)!);
+    await assentar();
+    expect(previa()?.getAttribute("aria-label")).toBe(a.previaDe(a.temas.brasa));
+    expect(previa()?.style.getPropertyValue("--vx-backdrop-base")).not.toBe(fundoAntes);
+    // O documento continua como estava: só o contêiner da prévia recebeu as cores.
+    expect(raiz().getPropertyValue("--vx-accent")).toBe(antes);
+    expect(lerPersonalizacao().tema).toBe("vidro");
+    expect(previa()?.querySelector('[data-testid="previa-mencao"]')).not.toBeNull();
+    expect(previa()?.textContent).toContain(comum.sinalAoVivo);
+
+    await userEvent.click(radio(a.temas.brasa)!);
+    await assentar();
+    expect(raiz().getPropertyValue("--vx-accent")).toBe(previa()?.style.getPropertyValue("--vx-accent"));
+  });
+
+  it("cor de destaque livre: escura demais é ajustada e a tela mostra o antes e o depois", async () => {
+    await abrir("aparencia");
+    await abrirPersonalizar();
+    const hex = campo(a.campoHex) ?? document.querySelector<HTMLInputElement>(`input[aria-label="${a.campoHex}"]`)!;
+    await userEvent.fill(hex, "#00008b");
+    await assentar();
+    expect(lerPersonalizacao().destaqueLivre).toBe("#00008b");
+    expect(texto()).toContain(a.destaqueAjustado);
+    const antes = document.querySelector('[data-testid="destaque-Antes"]')?.textContent ?? "";
+    const depois = document.querySelector('[data-testid="destaque-Depois"]')?.textContent ?? "";
+    expect(antes).toContain("#00008b");
+    expect(depois).not.toContain("#00008b");
+    expect(raiz().getPropertyValue("--vx-accent")).toMatch(/^#[0-9a-f]{6}$/);
+    expect(raiz().getPropertyValue("--vx-accent")).not.toBe("#00008b");
+
+    // Uma cor que já se lê passa direto, sem aviso.
+    await userEvent.fill(hex, "#a99bff");
+    await assentar();
+    expect(lerPersonalizacao().destaqueLivre).toBe("#a99bff");
+    expect(texto()).not.toContain(a.destaqueAjustado);
+
+    // Código inválido não troca a cor e avisa.
+    await userEvent.fill(hex, "#12");
+    await assentar();
+    expect(texto()).toContain(a.hexInvalido);
+    expect(lerPersonalizacao().destaqueLivre).toBe("#a99bff");
   });
 
   it("a escolha fica guardada para a próxima abertura", async () => {
     await abrir("aparencia");
-    await userEvent.click(radio(config.aparenciaTela.personalizado)!);
-    await userEvent.click(radio(config.aparenciaTela.destaques.rosa)!);
+    await userEvent.click(radio(a.temas.floresta)!);
+    await abrirPersonalizar();
+    await userEvent.click(radio(a.destaques.rosa)!);
     await assentar();
     const guardado = JSON.parse(localStorage.getItem("vortex:tema-personalizado") ?? "{}") as Record<string, unknown>;
-    expect(guardado).toMatchObject({ ativo: true, destaque: "rosa" });
+    expect(guardado).toMatchObject({ ativo: true, tema: "floresta", personalizado: true, destaque: "rosa" });
   });
 });
 
