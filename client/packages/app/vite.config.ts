@@ -5,6 +5,7 @@ import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 
 import { cspDoVortex } from "./csp.ts";
+import { mediapipeLocal, VERSAO_DO_MEDIAPIPE } from "./mediapipe.ts";
 
 /**
  * Condições de resolução do `solid-js` nos testes que rodam em Node.
@@ -29,6 +30,7 @@ export default defineConfig({
     // React Compiler ativo desde o dia 1, como no `client`.
     react({ compiler: true }),
     tailwindcss(),
+    mediapipeLocal(),
     cspDoVortex(),
   ],
 
@@ -36,12 +38,12 @@ export default defineConfig({
     Constantes de build que o `nucleo` espera (declaradas em `nucleo/src/global.d.ts`).
     O `nucleo/arnes/firehose` puxa o adapter, e o adapter puxa módulos que as leem no
     escopo do módulo: sem o `define`, o chunk do arnês lança ReferenceError ao carregar.
-    O runtime do MediaPipe (fundo de vídeo) é assunto de voz e ainda não é servido pelo
-    `app`, então a versão dele é um marcador.
+    O runtime do MediaPipe (fundo de vídeo) é servido pela própria origem em
+    `/mediapipe/<versão>/` (plugin `mediapipeLocal`); a versão vem da dependência.
   */
   define: {
     __VERSAO__: JSON.stringify("0.0.0"),
-    __VERSAO_MEDIAPIPE__: JSON.stringify("0.0.0"),
+    __VERSAO_MEDIAPIPE__: JSON.stringify(VERSAO_DO_MEDIAPIPE),
   },
 
   ssr: { resolve: { conditions: CONDICOES_NODE } },

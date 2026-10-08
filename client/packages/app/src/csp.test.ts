@@ -31,4 +31,10 @@ describe("CSP do app", () => {
   it("só o dev server aceita script inline", () => {
     expect(diretiva(montarPolitica({ dev: true }), "script-src")).toContain("'unsafe-inline'");
   });
+
+  it("fundo de vídeo: só compila wasm e usa worker/blob, sem abrir origem externa", () => {
+    expect(diretiva(prod, "script-src")).toContain("'wasm-unsafe-eval'");
+    expect(diretiva(prod, "worker-src")).toBe("worker-src 'self' blob:");
+    expect(prod).not.toMatch(/jsdelivr|googleapis/);
+  });
 });
