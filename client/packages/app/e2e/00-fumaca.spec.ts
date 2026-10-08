@@ -63,8 +63,8 @@ test.describe("portão de sessão @fumaca", () => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Entrar no Vortex" })).toBeVisible();
     await expect(page.getByTestId("shell")).toHaveCount(0);
-    // Criar conta, recuperar senha e QR são do M8: ausentes, não inertes.
-    await expect(page.getByRole("button", { name: /criar conta|esqueci|qr/i })).toHaveCount(0);
+    // Desde o M8, criar conta, recuperar senha e QR são telas de verdade.
+    await expect(page.getByRole("button", { name: /criar conta|esqueci|qr/i })).toHaveCount(3);
     const { acionados } = await acionarTodosOsControles(page, {
       isencoes: [
         { nome: "E-mail ou usuário", motivo: "campo de texto: o valor é propriedade, não aparece no HTML" },
