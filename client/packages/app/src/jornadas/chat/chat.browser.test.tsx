@@ -464,10 +464,15 @@ describe("lista: âncora, histórico e leitura como posição", () => {
     const anteriores = muitas(60, 0);
     for (const s of anteriores) messages.set(s.id, s);
     channelMessageIds.set(C, [...anteriores.map((s) => s.id), ...atuais.map((s) => s.id)]);
-    await esperar(400);
 
-    const depois = linhaDe(id)!.parentElement!.getBoundingClientRect().top;
-    expect(Math.abs(depois - antes)).toBeLessThanOrEqual(3);
+    // A reancoragem leva alguns quadros (medição das linhas novas + correção do
+    // scroll). Uma espera fixa reprovava no runner do CI, mais lento: espera-se
+    // o estado ASSENTADO, com a mesma tolerância de 3px.
+    await expect
+      .poll(() => Math.abs(linhaDe(id)!.parentElement!.getBoundingClientRect().top - antes), {
+        timeout: 4000,
+      })
+      .toBeLessThanOrEqual(3);
   });
 
   it("primeira não lida: divisor na linha e atalho que leva até ela", async () => {
