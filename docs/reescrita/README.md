@@ -12,6 +12,7 @@ foi aprovado antes do seguinte. Leia nesta ordem:
 | [03-brief-de-design.md](03-brief-de-design.md) | Tese visual, estrutura do shell, restrições, papéis de token e vocabulário de voz e tela |
 | [04-arquitetura-trd.md](04-arquitetura-trd.md) | Pacotes `nucleo` e `app`, a extração (M0), voz e PiP, rota de saída de sala, design system em código, requisitos técnicos, testes e o plano M0–M9 |
 | [05-seguranca.md](05-seguranca.md) | Modelo de ameaça, controles por área e os requisitos de segurança da v1 |
+| [06-entrega.md](06-entrega.md) | O resultado: marcos e PRs, releases, mudanças de rumo, o que ficou fora, ondas seguintes e dívidas abertas |
 
 Design (artefatos privados no claude.ai, compartilháveis pelo menu Share):
 

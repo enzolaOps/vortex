@@ -19,17 +19,7 @@ const ICONES = {
 const PADROES_GERAIS = [
   {
     regex: "^client($|/)",
-    message: "O app não importa do pacote `client` (interface velha, sai no cutover).",
-  },
-  {
-    group: [
-      "nucleo/store/layout",
-      "nucleo/store/drawer",
-      "nucleo/store/edicao",
-      "nucleo/preset/*",
-    ],
-    message:
-      "Layout customizável morreu com o `client` (TRD §4): layout, drawer, edicao e preset não são do app.",
+    message: "Não existe pacote `client`: a lógica vem de `nucleo`, a interface é este pacote.",
   },
 ];
 const CAMINHOS = [
