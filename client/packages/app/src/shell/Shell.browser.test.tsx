@@ -147,8 +147,9 @@ describe("Entrada e saída do palco", () => {
     const faixa = pegar('[data-testid="faixa-de-salas"]')!;
     expect(nomes(faixa).some((a) => /faixaAparece/.test(a.nome))).toBe(true);
     // Terminou: nada fica preso, e a lista fechada volta a ser inerte.
-    await expect.poll(() => principal().getAnimations().length).toBe(0);
-    expect(getComputedStyle(lista).opacity).toBe("0");
+    // O Chromium às vezes deixa a opacidade em ~1e-8 depois do ease-out, não em "0".
+    await expect.poll(() => principal().getAnimations().length + lista.getAnimations().length).toBe(0);
+    expect(Number(getComputedStyle(lista).opacity)).toBeLessThan(0.01);
     expect(lista.hasAttribute("inert")).toBe(true);
   });
 

@@ -2,20 +2,20 @@ import { podeNoServidor, pode } from "nucleo/sdk/permissoes";
 import { fecharPalco } from "nucleo/store/palcoDeVoz";
 import { abrirTexto } from "nucleo/store/ultimoLugar";
 import {
-  useCanaisDeTexto,
-  useCanaisDeVoz,
-  useCanalAtivo,
-  useCategorias,
-  useChannel,
-  useConexao,
-  useDetalheDaConexao,
-  useFalantes,
-  useLocal,
-  usePessoasDaSala,
-  useProntidao,
-  useServer,
-  useServidorAtivo,
-  type PessoaNaSala,
+	useCanaisDeTexto,
+	useCanaisDeVoz,
+	useCanalAtivo,
+	useCategorias,
+	useChannel,
+	useConexao,
+	useDetalheDaConexao,
+	useFalantes,
+	useLocal,
+	usePessoasDaSala,
+	useProntidao,
+	useServer,
+	useServidorAtivo,
+	type PessoaNaSala,
 } from "nucleo/store/hooks";
 import type { CategoriaDeCanais } from "nucleo/sdk/domain";
 import { useState, type ReactNode } from "react";
@@ -33,75 +33,75 @@ import { useEntradaNaSala } from "./useEntradaNaSala";
 import css from "./Salas.module.css";
 
 function PessoaNaColuna({ pessoa }: { pessoa: PessoaNaSala }) {
-  const falando = useFalantes([pessoa.id]).includes(pessoa.id);
-  const nome = pessoa.nome || salas.alguem;
-  return (
-    <li className={css.pessoa} data-falando={falando || undefined}>
-      <Avatar
-        nome={nome}
-        id={pessoa.id}
-        tamanho={22}
-        imagem={pessoa.avatarUrl}
-      />
-      <span className={css.nomeDaPessoa}>{nome}</span>
-      {falando && <span className={css.soLeitor}>{voz.estado.falando}</span>}
-    </li>
-  );
+	const falando = useFalantes([pessoa.id]).includes(pessoa.id);
+	const nome = pessoa.nome || salas.alguem;
+	return (
+		<li className={css.pessoa} data-falando={falando || undefined}>
+			<Avatar
+				nome={nome}
+				id={pessoa.id}
+				tamanho={22}
+				imagem={pessoa.avatarUrl}
+			/>
+			<span className={css.nomeDaPessoa}>{nome}</span>
+			{falando && <span className={css.soLeitor}>{voz.estado.falando}</span>}
+		</li>
+	);
 }
 
 function SalaDaColuna({
-  serverId,
-  canalId,
+	serverId,
+	canalId,
 }: {
-  serverId: string;
-  canalId: string;
+	serverId: string;
+	canalId: string;
 }) {
-  const canal = useChannel(canalId);
-  const pessoas = usePessoasDaSala(serverId, canalId);
-  const { aqui, motivo, clicar } = useEntradaNaSala(serverId, canalId);
-  const desatualizada = useConexao() !== "conectado";
-  if (!canal) return null;
-  return (
-    <li>
-      <ItemDeSala
-        nome={canal.name}
-        semPilha
-        pessoas={pessoas.map((p) => ({
-          id: p.id,
-          nome: p.nome || salas.alguem,
-          imagem: p.avatarUrl,
-        }))}
-        aoVivo={pessoas.some((p) => p.estado === "tela")}
-        conectado={aqui}
-        desatualizada={desatualizada}
-        indisponivel={motivo}
-        onClick={clicar}
-      />
-      {pessoas.length > 0 && (
-        <ul className={css.gente} aria-label={salas.naSala(pessoas.length)}>
-          {pessoas.map((p) => (
-            <PessoaNaColuna key={p.id} pessoa={p} />
-          ))}
-        </ul>
-      )}
-    </li>
-  );
+	const canal = useChannel(canalId);
+	const pessoas = usePessoasDaSala(serverId, canalId);
+	const { aqui, motivo, clicar } = useEntradaNaSala(serverId, canalId);
+	const desatualizada = useConexao() !== "conectado";
+	if (!canal) return null;
+	return (
+		<li>
+			<ItemDeSala
+				nome={canal.name}
+				semPilha
+				pessoas={pessoas.map((p) => ({
+					id: p.id,
+					nome: p.nome || salas.alguem,
+					imagem: p.avatarUrl,
+				}))}
+				aoVivo={pessoas.some((p) => p.estado === "tela")}
+				conectado={aqui}
+				desatualizada={desatualizada}
+				indisponivel={motivo}
+				onClick={clicar}
+			/>
+			{pessoas.length > 0 && (
+				<ul className={css.gente} aria-label={salas.naSala(pessoas.length)}>
+					{pessoas.map((p) => (
+						<PessoaNaColuna key={p.id} pessoa={p} />
+					))}
+				</ul>
+			)}
+		</li>
+	);
 }
 
 function LinhaDaColuna({
-  serverId,
-  canalId,
+	serverId,
+	canalId,
 }: {
-  serverId: string;
-  canalId: string;
+	serverId: string;
+	canalId: string;
 }) {
-  const canal = useChannel(canalId);
-  if (!canal) return null;
-  return canal.tipo === "voz" ? (
-    <SalaDaColuna serverId={serverId} canalId={canalId} />
-  ) : (
-    <CanalDaColuna serverId={serverId} canalId={canalId} />
-  );
+	const canal = useChannel(canalId);
+	if (!canal) return null;
+	return canal.tipo === "voz" ? (
+		<SalaDaColuna serverId={serverId} canalId={canalId} />
+	) : (
+		<CanalDaColuna serverId={serverId} canalId={canalId} />
+	);
 }
 
 /**
@@ -109,56 +109,56 @@ function LinhaDaColuna({
  * ordem voz+texto — produção sempre publica `orderedChannels`.
  */
 function useColuna(serverId: string): readonly CategoriaDeCanais[] {
-  const cats = useCategorias(serverId);
-  const voz = useCanaisDeVoz(serverId);
-  const texto = useCanaisDeTexto(serverId);
-  if (cats.length > 0) return cats;
-  if (voz.length === 0 && texto.length === 0) return cats;
-  return [{ id: "default", titulo: undefined, canais: [...voz, ...texto] }];
+	const cats = useCategorias(serverId);
+	const voz = useCanaisDeVoz(serverId);
+	const texto = useCanaisDeTexto(serverId);
+	if (cats.length > 0) return cats;
+	if (voz.length === 0 && texto.length === 0) return cats;
+	return [{ id: "default", titulo: undefined, canais: [...voz, ...texto] }];
 }
 
 function CanalDaColuna({
-  serverId,
-  canalId,
+	serverId,
+	canalId,
 }: {
-  serverId: string;
-  canalId: string;
+	serverId: string;
+	canalId: string;
 }) {
-  const canal = useChannel(canalId);
-  const ativo = useCanalAtivo() === canalId;
-  if (!canal) return null;
-  return (
-    <li>
-      <ItemDeSala
-        tipo="canal"
-        nome={canal.name}
-        selecionado={ativo}
-        naoLida={canal.naoLidas > 0 && !canal.silenciado}
-        mencoes={canal.silenciado ? 0 : canal.mencoes}
-        onClick={() => {
-          // Ler outro canal fecha o palco; a chamada segue no widget.
-          fecharPalco();
-          abrirTexto(serverId, canalId);
-        }}
-      />
-    </li>
-  );
+	const canal = useChannel(canalId);
+	const ativo = useCanalAtivo() === canalId;
+	if (!canal) return null;
+	return (
+		<li>
+			<ItemDeSala
+				tipo="canal"
+				nome={canal.name}
+				selecionado={ativo}
+				naoLida={canal.naoLidas > 0 && !canal.silenciado}
+				mencoes={canal.silenciado ? 0 : canal.mencoes}
+				onClick={() => {
+					// Ler outro canal fecha o palco; a chamada segue no widget.
+					fecharPalco();
+					abrirTexto(serverId, canalId);
+				}}
+			/>
+		</li>
+	);
 }
 
 /** Esqueleto até o `Ready`: a coluna existe, as linhas ainda não. */
 export function EsqueletoDeSalas() {
-  return (
-    <div
-      className={css.esqueleto}
-      role="status"
-      aria-label={salas.carregandoServidor}
-    >
-      <span className={css.bloco} />
-      <span className={css.bloco} />
-      <span className={css.bloco} />
-      <span className={`${css.bloco} ${css.blocoCurto}`} />
-    </div>
-  );
+	return (
+		<div
+			className={css.esqueleto}
+			role="status"
+			aria-label={salas.carregandoServidor}
+		>
+			<span className={css.bloco} />
+			<span className={css.bloco} />
+			<span className={css.bloco} />
+			<span className={`${css.bloco} ${css.blocoCurto}`} />
+		</div>
+	);
 }
 
 /**
@@ -167,112 +167,121 @@ export function EsqueletoDeSalas() {
  * canal. Quem não pode vê o aviso, sem botão.
  */
 function ServidorSemSalas({
-  serverId,
-  canalParaConvite,
+	serverId,
+	canalParaConvite,
 }: {
-  serverId: string;
-  canalParaConvite: string | undefined;
+	serverId: string;
+	canalParaConvite: string | undefined;
 }) {
-  const [criando, setCriando] = useState(false);
-  const [convidando, setConvidando] = useState(false);
-  const podeCriar = podeNoServidor(serverId, "gerenciarCanais");
-  const podeConvidar =
-    canalParaConvite !== undefined && pode(canalParaConvite, "criarConvite");
-  return (
-    <div className={css.vazio}>
-      <h3 className={css.vazioTitulo}>{salas.servidorVazio.titulo}</h3>
-      <p className={css.vazioTexto}>
-        {podeCriar
-          ? salas.servidorVazio.comPermissao
-          : salas.servidorVazio.semPermissao}
-      </p>
-      {(podeCriar || podeConvidar) && (
-        <div className={css.vazioAcoes}>
-          {podeCriar && (
-            <Botao
-              onClick={() => {
-                setCriando(true);
-              }}
-            >
-              {salas.criarSala}
-            </Botao>
-          )}
-          {podeConvidar && (
-            <Botao
-              variante="secundario"
-              onClick={() => {
-                setConvidando(true);
-              }}
-            >
-              {salas.servidorVazio.convidar}
-            </Botao>
-          )}
-        </div>
-      )}
-      {podeCriar && (
-        <CriarSala serverId={serverId} aberto={criando} aoMudar={setCriando} />
-      )}
-      {canalParaConvite !== undefined && podeConvidar && (
-        <ConvidarPessoas
-          canalId={canalParaConvite}
-          aberto={convidando}
-          aoMudar={setConvidando}
-        />
-      )}
-    </div>
-  );
+	const [criando, setCriando] = useState(false);
+	const [convidando, setConvidando] = useState(false);
+	const podeCriar = podeNoServidor(serverId, "gerenciarCanais");
+	const podeConvidar =
+		canalParaConvite !== undefined && pode(canalParaConvite, "criarConvite");
+	return (
+		<div className={css.vazio}>
+			<h3 className={css.vazioTitulo}>{salas.servidorVazio.titulo}</h3>
+			<p className={css.vazioTexto}>
+				{podeCriar
+					? salas.servidorVazio.comPermissao
+					: salas.servidorVazio.semPermissao}
+			</p>
+			{(podeCriar || podeConvidar) && (
+				<div className={css.vazioAcoes}>
+					{podeCriar && (
+						<Botao
+							onClick={() => {
+								setCriando(true);
+							}}
+						>
+							{salas.criarSala}
+						</Botao>
+					)}
+					{podeConvidar && (
+						<Botao
+							variante="secundario"
+							onClick={() => {
+								setConvidando(true);
+							}}
+						>
+							{salas.servidorVazio.convidar}
+						</Botao>
+					)}
+				</div>
+			)}
+			{podeCriar && (
+				<CriarSala serverId={serverId} aberto={criando} aoMudar={setCriando} />
+			)}
+			{canalParaConvite !== undefined && podeConvidar && (
+				<ConvidarPessoas
+					canalId={canalParaConvite}
+					aberto={convidando}
+					aoMudar={setConvidando}
+				/>
+			)}
+		</div>
+	);
 }
 
 function AvisoDeConexao() {
-  const detalhe = useDetalheDaConexao();
-  if (detalhe.estado === "conectado") return null;
-  return (
-    <div className={css.aviso} role="status">
-      <span>
-        {detalhe.estado === "reconectando"
-          ? salas.reconectando
-          : salas.semConexao}
-      </span>
-      {detalhe.ultimaSincroniaTexto !== undefined && (
-        <span className={css.avisoMiudo}>
-          {salas.ultimaSincronia(detalhe.ultimaSincroniaTexto)}
-        </span>
-      )}
-    </div>
-  );
+	const detalhe = useDetalheDaConexao();
+	if (detalhe.estado === "conectado") return null;
+	return (
+		<div className={css.aviso} role="status">
+			<span>
+				{detalhe.estado === "reconectando"
+					? salas.reconectando
+					: salas.semConexao}
+			</span>
+			{detalhe.ultimaSincroniaTexto !== undefined && (
+				<span className={css.avisoMiudo}>
+					{salas.ultimaSincronia(detalhe.ultimaSincroniaTexto)}
+				</span>
+			)}
+		</div>
+	);
 }
 
 function ListaDoServidor({ serverId }: { serverId: string }) {
-  const coluna = useColuna(serverId);
-  const emVoz = useCanaisDeVoz(serverId);
-  const emTexto = useCanaisDeTexto(serverId);
-  if (emVoz.length === 0 && emTexto.length === 0) {
-    return (
-      <ServidorSemSalas serverId={serverId} canalParaConvite={emTexto[0]} />
-    );
-  }
-  return (
-    <>
-      {coluna.map((cat) =>
-        cat.canais.length === 0 ? null : (
-          <section
-            key={cat.id}
-            className={css.secao}
-            aria-label={cat.titulo ?? salas.secaoDeSalas}
-          >
-            {cat.titulo !== undefined && (
-              <h3 className={css.rotuloDaSecao}>{cat.titulo}</h3>
-            )}
-            <ul className={css.lista}>
-              {cat.canais.map((id) => (
-                <LinhaDaColuna key={id} serverId={serverId} canalId={id} />
-              ))}
-            </ul>
-          </section>
-        ),
-      )}
-    </>
-  );
+	const coluna = useColuna(serverId);
+	const emVoz = useCanaisDeVoz(serverId);
+	const emTexto = useCanaisDeTexto(serverId);
+	const semSala = emVoz.length === 0;
+	if (semSala && emTexto.length === 0) {
+		return (
+			<ServidorSemSalas serverId={serverId} canalParaConvite={emTexto[0]} />
+		);
+	}
+	const voz = new Set(emVoz);
+	return (
+		<>
+			{semSala ? (
+				<ServidorSemSalas serverId={serverId} canalParaConvite={emTexto[0]} />
+			) : null}
+			{coluna.map((cat) => {
+				const canais = semSala
+					? cat.canais.filter((id) => !voz.has(id))
+					: cat.canais;
+				if (canais.length === 0) return null;
+				return (
+					<section
+						key={cat.id}
+						className={css.secao}
+						aria-label={cat.titulo ?? salas.secaoDeSalas}
+					>
+						{cat.titulo !== undefined && (
+							<h3 className={css.rotuloDaSecao}>{cat.titulo}</h3>
+						)}
+						<ul className={css.lista}>
+							{canais.map((id) => (
+								<LinhaDaColuna key={id} serverId={serverId} canalId={id} />
+							))}
+						</ul>
+					</section>
+				);
+			})}
+		</>
+	);
 }
 
 /**
@@ -281,47 +290,47 @@ function ListaDoServidor({ serverId }: { serverId: string }) {
  * que diz que a presença pode estar desatualizada (e as salas, esmaecidas).
  */
 export function ColunaConectada({ rodape }: { rodape?: ReactNode }) {
-  const pronto = useProntidao();
-  const local = useLocal();
-  const serverId = useServidorAtivo();
-  const servidor = useServer(serverId);
-  // Com o palco em tela cheia a coluna vira faixa e a cápsula do palco assume os controles.
-  const emFaixa = useSalaDoPalco(
-    local.tipo === "servidor" ? local.serverId : undefined,
-  ).aberto;
-  const chamada = emFaixa ? undefined : <PainelDaChamadaConectado />;
+	const pronto = useProntidao();
+	const local = useLocal();
+	const serverId = useServidorAtivo();
+	const servidor = useServer(serverId);
+	// Com o palco em tela cheia a coluna vira faixa e a cápsula do palco assume os controles.
+	const emFaixa = useSalaDoPalco(
+		local.tipo === "servidor" ? local.serverId : undefined,
+	).aberto;
+	const chamada = emFaixa ? undefined : <PainelDaChamadaConectado />;
 
-  if (!pronto) {
-    return (
-      <ColunaDeSalas
-        titulo={salas.carregandoServidor}
-        rodape={rodape}
-        chamada={chamada}
-      >
-        <EsqueletoDeSalas />
-      </ColunaDeSalas>
-    );
-  }
-  // Depois do Ready, a casa (amigos e conversas) tem a própria coluna; o resto do shell não sabe disso.
-  if (local.tipo === "casa" || local.tipo === "amigos" || local.tipo === "dm") {
-    return <ColunaDaCasa rodape={rodape} chamada={chamada} />;
-  }
-  if (local.tipo !== "servidor" || !servidor) {
-    return (
-      <ColunaDeSalas rodape={rodape} chamada={chamada}>
-        {<p className={css.nota}>{shell.salas.vazio}</p>}
-      </ColunaDeSalas>
-    );
-  }
-  return (
-    <ColunaDeSalas
-      titulo={servidor.name}
-      acoes={<MenuDoServidor serverId={serverId} />}
-      rodape={rodape}
-      chamada={chamada}
-      aviso={<AvisoDeConexao />}
-    >
-      <ListaDoServidor serverId={serverId} />
-    </ColunaDeSalas>
-  );
+	if (!pronto) {
+		return (
+			<ColunaDeSalas
+				titulo={salas.carregandoServidor}
+				rodape={rodape}
+				chamada={chamada}
+			>
+				<EsqueletoDeSalas />
+			</ColunaDeSalas>
+		);
+	}
+	// Depois do Ready, a casa (amigos e conversas) tem a própria coluna; o resto do shell não sabe disso.
+	if (local.tipo === "casa" || local.tipo === "amigos" || local.tipo === "dm") {
+		return <ColunaDaCasa rodape={rodape} chamada={chamada} />;
+	}
+	if (local.tipo !== "servidor" || !servidor) {
+		return (
+			<ColunaDeSalas rodape={rodape} chamada={chamada}>
+				{<p className={css.nota}>{shell.salas.vazio}</p>}
+			</ColunaDeSalas>
+		);
+	}
+	return (
+		<ColunaDeSalas
+			titulo={servidor.name}
+			acoes={<MenuDoServidor serverId={serverId} />}
+			rodape={rodape}
+			chamada={chamada}
+			aviso={<AvisoDeConexao />}
+		>
+			<ListaDoServidor serverId={serverId} />
+		</ColunaDeSalas>
+	);
 }

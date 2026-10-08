@@ -100,9 +100,6 @@ import { assinarIdade, idadeConfirmada } from "./idade";
 import { rascunhos, RASCUNHO_VAZIO } from "./rascunhos";
 import { assinarPermissoes } from "./permissoes";
 import { pode, podeNoServidor, type Acao } from "../sdk/permissoes";
-import { assinarLayout, lerSemente } from "./layout";
-import { corDeCargo, pinturaDeCargo, type PinturaDeCargo } from "../tema/cargo";
-import type { Modo } from "../tema/derivar";
 import {
   assinarPolitica,
   assinarRevelado,
@@ -591,48 +588,6 @@ export function useServidorAtivo(): string {
 
 export function useCanalAtivo(): string {
   return useSyncExternalStore(assinarNavegacao, lerCanalAtivo);
-}
-
-/* ----------------------------------------------------------------- tema */
-
-/**
- * O modo do tema — claro ou escuro.
- *
- * Devolve a STRING, não a semente. `lerSemente()` devolve referência estável
- * hoje (o preset é o mesmo objeto), mas depender disso amarraria a estabilidade
- * de todo consumidor a um detalhe do store de layout. Uma string é comparada
- * por valor pelo `Object.is`, e aí a garantia é do próprio React.
- */
-export function useModoDoTema(): Modo {
-  return useSyncExternalStore(assinarLayout, () => lerSemente().modo);
-}
-
-/**
- * A cor de cargo, já com a luminosidade decidida pelo app.
- *
- * Hook e não função pura porque o resultado depende do TEMA: a mesma cor de
- * servidor tem que sair mais clara no escuro e mais escura no claro, senão o
- * nome fica ilegível num dos dois — que era exatamente o bug, com 22 de 22
- * nomes reprovando 4,5:1 no tema claro.
- *
- * `undefined` entra e sai: cargo sem cor é ausência, e o componente cai na cor
- * de texto normal.
- */
-export function useCorDeCargo(bruta: string | undefined): string | undefined {
-  const modo = useModoDoTema();
-  return corDeCargo(bruta, modo);
-}
-
-/**
- * A pintura inteira — sólida ou gradiente —, para as DUAS superfícies onde o
- * design deixa o gradiente entrar: o nome na lista de membros e a pílula.
- * Todo o resto usa `useCorDeCargo`, que devolve a primeira parada.
- */
-export function usePinturaDeCargo(
-  bruta: string | undefined,
-): PinturaDeCargo | undefined {
-  const modo = useModoDoTema();
-  return pinturaDeCargo(bruta, modo);
 }
 
 /**
