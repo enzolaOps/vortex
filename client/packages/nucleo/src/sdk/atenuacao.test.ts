@@ -8,7 +8,7 @@ import { atenuacaoValeAgora, criarAtenuador, SEGURAR_MS } from "./atenuacao";
  * A casca baixa o volume de sessão de todo app que não é o Vortex — inclusive
  * o que está sendo transmitido —, e a captura de tela inteira é `loopback`, o
  * mix do dispositivo. Medido em
- * `vendor/stoat-desktop/src/native/atenuacaoModelo.test.ts`.
+ * `desktop/src/native/atenuacaoModelo.test.ts`.
  */
 describe("a preferência vale agora?", () => {
   it("sem transmissão de som, a preferência manda", () => {

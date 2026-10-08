@@ -26,6 +26,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - run: sh scripts/ci/fronteiras.sh
       - run: git fetch --tags --force
       - id: d
         env:

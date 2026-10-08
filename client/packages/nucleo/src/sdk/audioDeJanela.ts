@@ -7,7 +7,7 @@
  * incompleta, e `ponteDeTela()` desligaria o seletor inteiro. Ausente aqui só
  * quer dizer "a janela vai sem som".
  *
- * O lado da casca está em `vendor/stoat-desktop/src/native/audioDaJanela.ts`:
+ * O lado da casca está em `desktop/src/native/audioDaJanela.ts`:
  * loopback por PROCESSO do Windows, porque o do Electron é o som do sistema
  * inteiro.
  */

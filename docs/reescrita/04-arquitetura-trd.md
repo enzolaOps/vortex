@@ -43,7 +43,7 @@ muda de lugar:
 | `react` no núcleo só em `store/hooks.ts` e nos arquivos de hook listados | `react` como `peerDependency` do núcleo + lint por arquivo |
 | Texto visível só no catálogo (`app/src/textos/`) | teste de jargão + lint contra literal de string em JSX fora do catálogo |
 
-A casca (`vendor/stoat-desktop`, Electron 44, `contextIsolation: true`,
+A casca (`desktop`, Electron 44, `contextIsolation: true`,
 `nodeIntegration: false`, preload `ponteDoVortex`) carrega uma URL remota
 (`src/native/enderecoDoApp.ts`, `VORTEX_APP_URL` ou `--force-server`). Ela não
 importa código do cliente; continua sendo casca fina. A interface nova roda

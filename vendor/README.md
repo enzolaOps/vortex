@@ -1,23 +1,21 @@
 # Vendor references
 
-This directory contains upstream source retained for implementation reference:
+Upstream source kept for reading, not for building.
 
 - `stoat-web/` mirrors `stoatchat/for-web` via the `upstream` remote.
-- `stoat-desktop/` mirrors `stoatchat/for-desktop` via the `desktop-upstream` remote.
 
-Neither tree is product source. Product CI must not build or publish them. The
-desktop workflow is manual-only and uploads build artifacts without creating a
-release.
+This tree is not product source. Product CI must not build or publish it.
 
-Update with prefix-aware subtree pulls. A plain merge of upstream `main`
-recreates files at the repository root.
+The Electron shell used to live here as `stoat-desktop/`. It is product now, at
+`desktop/` in the repository root. Do not subtree-pull upstream desktop over
+that directory: it would wipe the fork.
+
+Update the web reference with a prefix-aware subtree pull. A plain merge of
+upstream `main` recreates files at the repository root.
 
 ```bash
 git fetch upstream
 git subtree pull --prefix=vendor/stoat-web upstream main
-
-git fetch desktop-upstream
-git subtree pull --prefix=vendor/stoat-desktop desktop-upstream main
 ```
 
 If an update recreates files at the repository root, abort it rather than

@@ -213,7 +213,7 @@ describe("portas do overlay — o que cada lado pode dizer", () => {
 
 describe("preload do overlay", () => {
   it("não manda nada por IPC: só recebe a porta", () => {
-    /* `pnpm test` roda a partir de vendor/stoat-desktop/. */
+    /* `pnpm test` roda a partir de desktop/. */
     const fonte = readFileSync(join(process.cwd(), "src", "preloadDoOverlay.ts"), "utf8");
     assert.match(fonte, /ipcRenderer\.on\(CANAL_DA_PORTA/);
     assert.doesNotMatch(fonte, /ipcRenderer\.(send|sendSync|invoke|postMessage|sendToHost)\b/);

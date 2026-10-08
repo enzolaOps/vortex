@@ -1,7 +1,7 @@
 /**
  * Escreve `assets/instalacao.gif` a partir de `splashDoInstalador.mjs`.
  *
- *   pnpm assets:splash        (a partir de vendor/stoat-desktop/)
+ *   pnpm assets:splash        (a partir de desktop/)
  *
  * O arquivo é commitado: o maker do Squirrel o lê no build e o CI não roda
  * geração de asset. `splashDoInstalador.test.ts` reconstrói os bytes e compara

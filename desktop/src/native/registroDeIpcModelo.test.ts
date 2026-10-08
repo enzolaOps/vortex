@@ -218,7 +218,7 @@ describe("registro de IPC", () => {
   });
 
   it("nenhum `ipcMain` fora do registro", () => {
-    /* `pnpm test` roda a partir de vendor/stoat-desktop/. */
+    /* `pnpm test` roda a partir de desktop/. */
     const src = join(process.cwd(), "src");
     assert.ok(statSync(src).isDirectory(), `src/ não encontrado em ${process.cwd()}`);
     const arquivos = (pasta: string): string[] =>

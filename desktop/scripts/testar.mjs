@@ -1,7 +1,7 @@
 /**
  * Os testes da lógica PURA da casca — `src/**\/*.test.ts`.
  *
- *   pnpm test        (a partir de vendor/stoat-desktop/)
+ *   pnpm test        (a partir de desktop/)
  *
  * ⚠ **`node:test` e não vitest, e a razão é dependência.** O que se testa aqui
  * é tradução sem Electron (que chave vira que campo, quando avisar sobre tela

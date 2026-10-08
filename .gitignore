@@ -1,7 +1,7 @@
 node_modules
 coverage
 dist
-# Build dedicado da referência Electron — ver vendor/stoat-desktop/scripts/casca-com-cliente-local.mjs
+# Build local da casca — ver desktop/scripts/casca-com-cliente-local.mjs
 dist-casca
 
 *.log
@@ -39,7 +39,7 @@ AGENTS.local.md
 
 # Mesma origem e mesmo risco: o lockfile de verdade e por ILHA
 # (`vendor/stoat-web/`, `client/`,
-# `vendor/stoat-desktop/`), e os quatro
+# `desktop/`), e os quatro
 # sao rastreados. Um lockfile na raiz nao pertence a ilha nenhuma.
 /pnpm-lock.yaml
 

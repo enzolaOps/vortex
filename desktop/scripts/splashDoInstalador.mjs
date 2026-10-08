@@ -1,7 +1,7 @@
 /**
  * A animação que o `Vortex-Setup.exe` mostra enquanto instala — os BYTES.
  *
- *   pnpm assets:splash        (a partir de vendor/stoat-desktop/)
+ *   pnpm assets:splash        (a partir de desktop/)
  *
  * ⚠ **Este módulo não escreve arquivo nenhum, e a separação é mecanismo.**
  * Quem escreve é `gerar-splash.mjs`. A primeira versão tinha os dois aqui, com
