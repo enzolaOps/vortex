@@ -4,14 +4,8 @@ import { lerChamada } from "nucleo/store/chamada";
 import { limparFalhaDeVoz } from "nucleo/store/falhaDeVoz";
 
 /**
- * Entrar numa sala a partir da interface: o palco abre NA HORA, antes da rede.
- *
- * É o que dá ao "conectando" um lugar para aparecer (PRD 4.3: "o palco abre e a
- * voz conecta") — esperar a conexão para abrir o palco deixaria a pessoa olhando
- * o chat sem saber se o clique pegou.
- *
- * Quando a entrada falha, o palco continua aberto: é nele que a falha e o
- * "Tentar de novo" aparecem.
+ * Entrar com o palco já pedido — o botão "Tentar de novo" e o "Entrar" de
+ * quem já está olhando o palco. O clique na coluna NÃO passa por aqui.
  */
 export async function entrarComPalco(canalId: string): Promise<boolean> {
   definirPalco({ tipo: "grade" });
@@ -19,8 +13,11 @@ export async function entrarComPalco(canalId: string): Promise<boolean> {
 }
 
 /**
- * Clicar numa sala de voz: entra nela. Na sala em que a pessoa já está, só abre
- * o palco; em outra, `entrarNaChamada` sai da atual antes de conectar à nova.
+ * Clicar numa sala: entra, sem abrir o palco.
+ *
+ * O segundo clique na sala em que a pessoa já está é que abre o palco. Trocar
+ * de sala fecha o palco da anterior — foco no meio é um segundo gesto, não um
+ * efeito colateral de entrar.
  */
 export async function abrirSala(canalId: string): Promise<boolean> {
   const c = lerChamada();
@@ -28,7 +25,8 @@ export async function abrirSala(canalId: string): Promise<boolean> {
     definirPalco({ tipo: "grade" });
     return true;
   }
-  return entrarComPalco(canalId);
+  fecharPalco();
+  return entrarNaChamada(canalId);
 }
 
 /** Sair da sala. O palco fica aberto no estado "você não está na sala". */

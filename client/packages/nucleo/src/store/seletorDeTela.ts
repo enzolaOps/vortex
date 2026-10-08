@@ -28,6 +28,8 @@ export type EscolhaDeTela = {
   readonly audio: boolean;
   readonly resolucao: Resolucao;
   readonly taxa: Taxa;
+  /** PIDs cujo som não entra. Só a casca. Vazio = som da superfície inteira. */
+  readonly excluir?: readonly string[];
 };
 
 /**

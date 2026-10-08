@@ -13,6 +13,18 @@
   line-height: var(--vx-type-caption-line);
   font-weight: 600;
 }
+.listaDaDock {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--vx-space-2);
+  min-block-size: 0;
+  overflow-y: auto;
+}
+.rodapeDaDock {
+  margin-top: auto;
+}
 .lista {
   display: flex;
   flex-direction: column;
@@ -23,6 +35,47 @@
 }
 .lista > li {
   display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+.gente {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0 0 var(--vx-space-1) var(--vx-space-4);
+  list-style: none;
+}
+.pessoa {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  min-block-size: 28px;
+  min-inline-size: 0;
+  color: var(--vx-text-2);
+}
+.pessoa[data-falando="true"] {
+  color: var(--vx-text-1);
+  font-weight: 600;
+}
+.pessoa[data-falando="true"] :global(img),
+.pessoa[data-falando="true"] > :first-child {
+  box-shadow: 0 0 0 2px var(--vx-success, var(--vx-accent));
+  border-radius: var(--vx-radius-pill);
+}
+.nomeDaPessoa {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--vx-type-ui-size);
+}
+.soLeitor {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
 }
 .nota {
   margin: 0;

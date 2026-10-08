@@ -4,6 +4,7 @@ import { app } from "electron";
 import { registrar, semArgumentos } from "./registroDeIpc";
 
 import { sinkName, sourceName } from "../constants";
+import { pidsExcluidos } from "./mixerDeApps";
 
 const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
@@ -115,6 +116,8 @@ export async function initVirtualMic() {
 
       for (const node of nodes) {
         const idAsNum = Number(node.id);
+        const dono = clients.find((c: { id: number; pid?: number }) => c.id === Number(node.props["client.id"]));
+        if (dono?.pid !== undefined && pidsExcluidos().has(String(dono.pid))) continue;
         // If this node hasn't been seen before (ie. new node)
         if (!savedNodes[idAsNum]) {
           // Link all of the new node's outputs to our virtual sink

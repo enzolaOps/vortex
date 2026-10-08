@@ -1,6 +1,7 @@
 import {
   useCanaisDeTexto,
   useCanaisDeVoz,
+  useCategorias,
   useChannel,
   usePessoasDaSala,
 } from "nucleo/store/hooks";
@@ -12,21 +13,32 @@ import { Canal } from "../../ui/icones";
 import css from "./Faixa.module.css";
 import { useEntradaNaSala } from "./useEntradaNaSala";
 
-function SalaNaFaixa({ serverId, canalId }: { serverId: string; canalId: string }) {
+function SalaNaFaixa({
+  serverId,
+  canalId,
+}: {
+  serverId: string;
+  canalId: string;
+}) {
   const canal = useChannel(canalId);
   const pessoas = usePessoasDaSala(serverId, canalId);
   const { aqui, motivo, clicar } = useEntradaNaSala(serverId, canalId);
   if (!canal) return null;
-  const dito = pessoas.length === 0 ? shell.faixa.vazia : salas.naSala(pessoas.length);
+  const dito =
+    pessoas.length === 0 ? shell.faixa.vazia : salas.naSala(pessoas.length);
   return (
     <button
       type="button"
       className={css.sala}
       data-aqui={aqui || undefined}
-      aria-label={motivo === undefined ? `${canal.name}, ${dito}` : `${canal.name}, ${dito}. ${motivo}`}
+      aria-label={
+        motivo === undefined
+          ? `${canal.name}, ${dito}`
+          : `${canal.name}, ${dito}. ${motivo}`
+      }
       aria-disabled={motivo !== undefined || undefined}
       title={motivo}
-      // Clicar entra na sala e abre o palco (na que já é a sua, só abre o palco).
+      // Primeiro clique entra sem palco; na sala em que já está, abre o palco.
       onClick={clicar}
     >
       <Avatar nome={canal.name} id={canalId} tamanho={40} />
@@ -39,7 +51,9 @@ function SalaNaFaixa({ serverId, canalId }: { serverId: string; canalId: string 
 
 /** Leva o foco para a lista que abriu: o botão de canais é um atalho até ela. */
 function irParaALista(e: MouseEvent<HTMLButtonElement>) {
-  const lista = e.currentTarget.closest("[data-faixa-raiz]")?.querySelector("[data-lista-de-salas]");
+  const lista = e.currentTarget
+    .closest("[data-faixa-raiz]")
+    ?.querySelector("[data-lista-de-salas]");
   lista?.querySelector<HTMLElement>("button")?.focus();
 }
 
@@ -48,18 +62,36 @@ function irParaALista(e: MouseEvent<HTMLButtonElement>) {
  * quem está dentro, e o atalho para os canais de texto. Receber foco em qualquer
  * um abre a lista completa (o `SalasEmFaixa` do shell cuida disso).
  */
-export function FaixaDeSalas({ serverId }: { serverId: string }) {
+function useVozNaOrdem(serverId: string): readonly string[] {
+  const cats = useCategorias(serverId);
   const emVoz = useCanaisDeVoz(serverId);
+  if (cats.length === 0) return emVoz;
+  const voz = new Set(emVoz);
+  return cats.flatMap((c) => c.canais.filter((id) => voz.has(id)));
+}
+
+export function FaixaDeSalas({ serverId }: { serverId: string }) {
+  const emVoz = useVozNaOrdem(serverId);
   const emTexto = useCanaisDeTexto(serverId);
   return (
-    <PainelVidro como="nav" raio="xl" aria-label={shell.faixa.rotulo} className={css.faixa}>
+    <PainelVidro
+      como="nav"
+      raio="xl"
+      aria-label={shell.faixa.rotulo}
+      className={css.faixa}
+    >
       {emVoz.map((id) => (
         <SalaNaFaixa key={id} serverId={serverId} canalId={id} />
       ))}
       {emTexto.length > 0 && (
         <>
           <span className={css.divisoria} aria-hidden="true" />
-          <button type="button" className={css.canais} aria-label={shell.faixa.canais} onClick={irParaALista}>
+          <button
+            type="button"
+            className={css.canais}
+            aria-label={shell.faixa.canais}
+            onClick={irParaALista}
+          >
             <Canal tamanho={16} />
           </button>
         </>

@@ -17,6 +17,9 @@ export const config = {
   notificacoes: "Notificações",
   aparencia: "Aparência",
   sair: "Sair",
+  sairTitulo: "Sair da conta?",
+  sairTexto:
+    "Encerra a sessão deste dispositivo. Os outros continuam conectados.",
   fechar: "Fechar as configurações",
   dicaDeEsc: "Esc",
   abrir: "Configurações",
@@ -58,7 +61,8 @@ export const config = {
     previa: "Prévia do seu cartão",
     previaLegenda: "Assim o grupo vê você ao clicar no seu nome.",
     sobre: "Sobre",
-    semMidia: "Este servidor não guarda imagens, então a foto e o banner não podem ser trocados.",
+    semMidia:
+      "Este servidor não guarda imagens, então a foto e o banner não podem ser trocados.",
     imagemInvalida: "Escolha uma imagem PNG, JPG ou GIF.",
     falhouImagem: "Não deu para enviar a imagem. Tente outra.",
     contador: (usados: number, maximo = 0) => `${usados} de ${maximo}`,
@@ -72,7 +76,8 @@ export const config = {
       online: "Todo mundo vê que você está disponível.",
       idle: "Aparece como ausente, sem avisar que você saiu.",
       dnd: "Aparece como ocupado e silencia os avisos sonoros.",
-      invisivel: "Você aparece offline para os outros, mas continua usando o app.",
+      invisivel:
+        "Você aparece offline para os outros, mas continua usando o app.",
     },
   },
 
@@ -102,7 +107,8 @@ export const config = {
     erroSenhaAtual: "A senha atual está incorreta.",
     erroEmailEmUso: "Esse e-mail já está em uso.",
     erroNomeEmUso: "Esse nome de usuário já está em uso.",
-    erroSenhaFraca: "Essa senha não é aceita. Use pelo menos 8 caracteres e algo que não tenha vazado.",
+    erroSenhaFraca:
+      "Essa senha não é aceita. Use pelo menos 8 caracteres e algo que não tenha vazado.",
     erroSenhasDiferentes: "As senhas não são iguais.",
     erroSenhaCurta: "Use pelo menos 8 caracteres.",
     erroLimite: "Tentativas demais. Espere um pouco e tente de novo.",
@@ -113,10 +119,12 @@ export const config = {
     trocarSenhaTitulo: "Trocar senha",
     trocarSenhaDescricao: "Use uma senha que você não usa em outros lugares.",
     excluirTitulo: "Excluir a conta?",
-    excluirAviso: "Isso apaga sua conta para sempre. Para confirmar, digite seu nome de usuário e a senha.",
+    excluirAviso:
+      "Isso apaga sua conta para sempre. Para confirmar, digite seu nome de usuário e a senha.",
     excluirConfirmarNome: "Nome de usuário para confirmar",
     excluirConfirmar: "Excluir para sempre",
-    excluirEnviado: "Enviamos um e-mail para confirmar a exclusão. A conta só some depois do clique no link.",
+    excluirEnviado:
+      "Enviamos um e-mail para confirmar a exclusão. A conta só some depois do clique no link.",
     excluirDono: (n: number) =>
       n === 1
         ? "Você é dono de 1 servidor. Transfira ou apague o servidor antes de excluir a conta."
@@ -132,7 +140,8 @@ export const config = {
     desde: (quando: string) => `Conectado desde ${quando}`,
     desconectar: "Desconectar",
     desconectarTodos: "Desconectar todos os outros",
-    desconectarOutros: (n: number) => `Desconectar ${plural(n, "outro", "outros")}`,
+    desconectarOutros: (n: number) =>
+      `Desconectar ${plural(n, "outro", "outros")}`,
     renomear: "Renomear",
     renomearRotulo: (nome: string) => `Renomear ${nome}`,
     nomeDoDispositivo: "Nome do dispositivo",
@@ -173,8 +182,10 @@ export const config = {
     testeMedindo: "Medindo o seu microfone…",
     testeParado: "O teste está parado.",
     nivel: "Nível do microfone",
-    limiarDica: "A linha marca o limiar: o microfone abre quando a sua voz passa dela.",
-    erroPermissao: "Permissão negada. Libere o microfone nas permissões do navegador.",
+    limiarDica:
+      "A linha marca o limiar: o microfone abre quando a sua voz passa dela.",
+    erroPermissao:
+      "Permissão negada. Libere o microfone nas permissões do navegador.",
     erroSemDispositivo: "Nenhum microfone encontrado.",
     erroEmUso: "O microfone está em uso por outro programa.",
     erroSumiu: "O microfone escolhido não está mais disponível.",
@@ -186,9 +197,11 @@ export const config = {
       agressiva: "Agressiva",
     },
     ruidoAjuda: {
-      desligada: "O microfone envia o som como ele chega, ruído de fundo incluído.",
+      desligada:
+        "O microfone envia o som como ele chega, ruído de fundo incluído.",
       padrao: "Tira ruídos constantes, como ventoinha e ar-condicionado.",
-      agressiva: "Corta também teclado e vozes ao fundo. Pode comer o fim das palavras.",
+      agressiva:
+        "Corta também teclado e vozes ao fundo. Pode comer o fim das palavras.",
     },
     modoDeEntrada: "Modo de entrada",
     deteccao: "Detecção de voz",
@@ -202,7 +215,8 @@ export const config = {
     mudarTecla: "Mudar tecla",
     gravandoTecla: "Aperte a nova tecla…",
     cancelarGravacao: "Cancelar",
-    teclaEmConflito: "Essa combinação já é usada por outra ação de voz, então nenhuma das duas funciona.",
+    teclaEmConflito:
+      "Essa combinação já é usada por outra ação de voz, então nenhuma das duas funciona.",
     teclaSegurando: "Segurando a tecla: o microfone está aberto.",
     atrasoAoSoltar: "Atraso ao soltar",
     camera: "Câmera",
@@ -212,7 +226,8 @@ export const config = {
     ligarPrevia: "Ligar prévia",
     desligarPrevia: "Desligar prévia",
     erroDaCamera: {
-      permissao: "Permissão negada. Libere a câmera nas permissões do navegador.",
+      permissao:
+        "Permissão negada. Libere a câmera nas permissões do navegador.",
       semDispositivo: "Nenhuma câmera encontrada.",
       emUso: "A câmera está em uso por outro programa.",
       sumiu: "A câmera escolhida não está mais disponível.",
@@ -237,7 +252,8 @@ export const config = {
     notificacaoDe: (evento: string) => `Notificação: ${evento}`,
     somDe: (evento: string) => `Som: ${evento}`,
     sonsDeVoz: "Sons de entrada e saída das salas",
-    sonsDeVozDica: "Um aviso curto quando alguém entra, sai ou você muda o microfone.",
+    sonsDeVozDica:
+      "Um aviso curto quando alguém entra, sai ou você muda o microfone.",
     silenciados: "Silenciados",
     silenciadosVazio: "Nada silenciado. Tudo chega até você.",
     silenciadoAte: (quando: string) => `Silenciado até ${quando}`,
@@ -261,7 +277,8 @@ export const config = {
     emUso: "Em uso",
     personalizado: "Personalizado",
     personalizar: "Personalizar",
-    personalizarDica: "Parte do tema escolhido. Mexer aqui marca o tema como personalizado.",
+    personalizarDica:
+      "Parte do tema escolhido. Mexer aqui marca o tema como personalizado.",
     voltarAoTema: "Voltar ao tema",
     matiz: "Matiz",
     intensidade: "Intensidade",
@@ -281,7 +298,8 @@ export const config = {
     destaqueAjustado: "Ajustamos o tom para manter a leitura",
     antes: "Antes",
     depois: "Depois",
-    semPaleta: "Essa combinação não ficaria legível, então o tema de fábrica continua valendo.",
+    semPaleta:
+      "Essa combinação não ficaria legível, então o tema de fábrica continua valendo.",
     ajusteAutomatico: "As cores se ajustam sozinhas para continuarem legíveis.",
     soEscuro: "Por enquanto só existe o tema escuro.",
     previa: "Prévia",
@@ -300,13 +318,16 @@ export const config = {
     valorGraus: (n: number) => `${n}°`,
     valorPorcento: (n: number) => `${n}%`,
     vidroETitulo: "Vidro e fundo",
-    vidroEDica: "Ajusta o quanto os painéis deixam o fundo aparecer. Sólido também deixa o app mais leve em computador fraco.",
+    vidroEDica:
+      "Ajusta o quanto os painéis deixam o fundo aparecer. Sólido também deixa o app mais leve em computador fraco.",
     vidro: "Vidro",
     vidroTranslucido: "Translúcido",
     vidroSolido: "Sólido",
-    vidroValor: (n: number) => (n === 0 ? "Sólido" : n === 100 ? "Translúcido" : `${n}%`),
+    vidroValor: (n: number) =>
+      n === 0 ? "Sólido" : n === 100 ? "Translúcido" : `${n}%`,
     brilho: "Brilho de fundo",
-    brilhoDica: "As manchas de cor atrás do app. As cores acompanham o tema escolhido.",
+    brilhoDica:
+      "As manchas de cor atrás do app. As cores acompanham o tema escolhido.",
     brilhoValor: (n: number) => (n === 0 ? "Desligado" : `${n}%`),
     leituraTitulo: "Mensagens e texto",
     mensagens: "Mensagens",
@@ -318,7 +339,8 @@ export const config = {
     tamanhoDoTextoValor: (n: number) => `${n}%`,
     movimentoTitulo: "Movimento",
     reduzirAnimacoes: "Reduzir animações",
-    reduzirAnimacoesDica: "Desliga transições e animações que não são essenciais.",
+    reduzirAnimacoesDica:
+      "Desliga transições e animações que não são essenciais.",
     seguirOSistema: "Seguir o que o sistema pede",
     restaurarAjustes: "Restaurar vidro, fundo e texto",
   },

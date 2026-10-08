@@ -41,13 +41,18 @@
 }
 
 /*
-  Entrada no palco: a coluna cheia de um instante atrás se fecha como no hover-out
-  (a lista parte aberta e solta; a faixa aparece por baixo). Só opacity e transform.
+Entrada no palco: o MESMO painel encolhe até a faixa. A trilha do grid já está
+em 56px (não anima largura — a lista do meio não remede por frame). O que se
+vê é este retângulo, scaleX a partir da borda de início.
 */
 @keyframes listaSolta {
   from {
     opacity: 1;
-    transform: none;
+    transform: scaleX(1);
+  }
+  to {
+    opacity: 0;
+    transform: scaleX(0.2);
   }
 }
 @keyframes faixaAparece {
@@ -56,7 +61,9 @@
   }
 }
 .raiz[data-recem]:not([data-aberta]) .lista {
-  animation: listaSolta 180ms ease;
+  inline-size: var(--larg-lista);
+  transform-origin: inline-start center;
+  animation: listaSolta 200ms ease-out;
 }
 .raiz[data-recem]:not([data-aberta]) .faixa {
   animation: faixaAparece 180ms ease;
@@ -66,6 +73,7 @@
   .faixa,
   .lista {
     transition: none;
+    animation: none;
     transform: none;
   }
 }

@@ -1,5 +1,10 @@
 import { contagem } from "nucleo/lib/plural";
-import { useId, useLayoutEffect, useRef, type ButtonHTMLAttributes } from "react";
+import {
+  useId,
+  useLayoutEffect,
+  useRef,
+  type ButtonHTMLAttributes,
+} from "react";
 
 import { comum, ds, salas } from "../../textos";
 import { Volume } from "../icones";
@@ -8,13 +13,21 @@ import { PilhaDeAvatares } from "./Avatar";
 import css from "./ItemDeSala.module.css";
 import { Pilula } from "./Pilula";
 
-export interface ItemDeSalaProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> {
+export interface ItemDeSalaProps
+  extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> {
   /** Nome da sala ou do canal (sem o "#", que o canal desenha). */
   nome: string;
   /** sala = sala de voz com pessoas; canal = canal de texto. Padrão sala. */
   tipo?: "sala" | "canal";
   /** Pessoas na sala; a contagem aparece sempre, inclusive 0. */
-  pessoas?: ReadonlyArray<{ nome: string; id?: string; tom?: number; imagem?: string | undefined }>;
+  pessoas?: ReadonlyArray<{
+    nome: string;
+    id?: string;
+    tom?: number;
+    imagem?: string | undefined;
+  }>;
+  /** A lista de nomes mora fora da linha. A pilha de fotos some; a contagem fica. */
+  semPilha?: boolean;
   /** Item ativo da coluna. Um por coluna. */
   selecionado?: boolean;
   /** Você está conectado nesta sala. */
@@ -42,8 +55,15 @@ export interface ItemDeSalaProps extends Omit<ButtonHTMLAttributes<HTMLButtonEle
  * 0 avatares + selo · 1 avatares + ponto · 2 "+N" + ponto · 3 só o ponto · 4 nada.
  * O grau é o primeiro cuja largura NATURAL cabe na sobra — medida, não suposta.
  */
-export function grauDosExtras(sobra: number, larguras: { pilha: number; selo: number; ponto: number; chip: number }, vivo: boolean, gente: boolean, vao: number): number {
-  const soma = (...p: number[]) => p.filter((x) => x > 0).reduce((a, b, i) => a + b + (i > 0 ? vao : 0), 0);
+export function grauDosExtras(
+  sobra: number,
+  larguras: { pilha: number; selo: number; ponto: number; chip: number },
+  vivo: boolean,
+  gente: boolean,
+  vao: number,
+): number {
+  const soma = (...p: number[]) =>
+    p.filter((x) => x > 0).reduce((a, b, i) => a + b + (i > 0 ? vao : 0), 0);
   const { pilha, selo, ponto, chip } = larguras;
   const graus = [
     soma(gente ? pilha : 0, vivo ? selo : 0),
@@ -59,6 +79,7 @@ export function ItemDeSala({
   nome,
   tipo = "sala",
   pessoas = [],
+  semPilha = false,
   selecionado = false,
   conectado = false,
   desatualizada = false,
@@ -83,9 +104,24 @@ export function ItemDeSala({
     const el = extras.current;
     if (!el) return;
     const medir = () => {
-      const w = (peca: string) => el.querySelector<HTMLElement>(`[data-peca="${peca}"]`)?.offsetWidth ?? 0;
-      const vao = Number.parseFloat(getComputedStyle(el.firstElementChild!).columnGap) || 0;
-      const grau = grauDosExtras(el.clientWidth, { pilha: w("pilha"), selo: w("selo"), ponto: w("ponto"), chip: w("chip") }, vivo, gente, vao);
+      const w = (peca: string) =>
+        el.querySelector<HTMLElement>(`[data-peca="${peca}"]`)?.offsetWidth ??
+        0;
+      const vao =
+        Number.parseFloat(getComputedStyle(el.firstElementChild!).columnGap) ||
+        0;
+      const grau = grauDosExtras(
+        el.clientWidth,
+        {
+          pilha: w("pilha"),
+          selo: w("selo"),
+          ponto: w("ponto"),
+          chip: w("chip"),
+        },
+        vivo,
+        gente,
+        vao,
+      );
       if (el.dataset.grau !== String(grau)) el.dataset.grau = String(grau);
     };
     medir();
@@ -138,12 +174,16 @@ export function ItemDeSala({
       {ehSala && (
         <span className={css.extras} ref={extras} data-grau="0">
           <span className={css.extrasInterno}>
-            {gente && (
+            {gente && !semPilha && (
               <>
                 <span data-peca="pilha" className={css.peca}>
                   <PilhaDeAvatares itens={pessoas} max={3} tamanho={20} />
                 </span>
-                <span data-peca="chip" className={juntar(css.peca, css.chipDePessoas)} aria-hidden="true">
+                <span
+                  data-peca="chip"
+                  className={juntar(css.peca, css.chipDePessoas)}
+                  aria-hidden="true"
+                >
                   +{contagem(pessoas.length)}
                 </span>
               </>
@@ -153,7 +193,12 @@ export function ItemDeSala({
                 <span data-peca="selo" className={css.peca}>
                   <Pilula tipo="aoVivo" />
                 </span>
-                <span data-peca="ponto" className={juntar(css.peca, css.pontoVivo)} role="img" aria-label={comum.sinalAoVivo} />
+                <span
+                  data-peca="ponto"
+                  className={juntar(css.peca, css.pontoVivo)}
+                  role="img"
+                  aria-label={comum.sinalAoVivo}
+                />
               </>
             )}
           </span>
