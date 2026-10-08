@@ -124,6 +124,7 @@ import {
 } from "../notificacao/notificador";
 import { avisarFalhaDeEnvio } from "../notificacao/falhaDeEnvio";
 import { pode } from "./permissoes";
+import { notificarMudancaDePermissoes } from "../store/permissoes";
 import { mudancaDeAmizade } from "../notificacao/decidir";
 import { emFila } from "../lib/fila";
 import { somarConversas, somarPorServidor } from "./somaDeNaoLidas";
@@ -1146,6 +1147,7 @@ export function republicarEnquete(messageId: string): void {
 }
 
 function repensarPermissoes(): void {
+  notificarMudancaDePermissoes();
   for (const id of messages.assinados()) {
     const message = client.messages.get(idDoSdk(id));
     if (!message) continue;

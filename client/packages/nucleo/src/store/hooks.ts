@@ -97,6 +97,8 @@ import {
 } from "./ultimoLugar";
 import { assinarIdade, idadeConfirmada } from "./idade";
 import { rascunhos, RASCUNHO_VAZIO } from "./rascunhos";
+import { assinarPermissoes } from "./permissoes";
+import { pode, podeNoServidor, type Acao } from "../sdk/permissoes";
 import { assinarLayout, lerSemente } from "./layout";
 import { corDeCargo, pinturaDeCargo, type PinturaDeCargo } from "../tema/cargo";
 import type { Modo } from "../tema/derivar";
@@ -432,6 +434,24 @@ export function useNomeDoMembro(chave: ChaveDeMembro): string | undefined {
 export function useAvatarDoMembro(chave: ChaveDeMembro): string | undefined {
   const getSnapshot = () => members.getSnapshot(chave)?.avatarUrl;
   return useSyncExternalStore(members.subscriber(chave), getSnapshot);
+}
+
+/**
+ * A pessoa pode fazer isto neste canal, e o componente acorda se isso mudar.
+ *
+ * É o `pode()` com assinatura: cargo editado ou membro com cargo novo com a chamada
+ * aberta ajusta a cápsula, o widget, o overlay e o diálogo de transmissão sem
+ * recarregar. O snapshot é um booleano, então só re-renderiza quem teve a RESPOSTA
+ * trocada. Nas linhas da lista de mensagens continua valendo o `pode()` direto: lá o
+ * adapter republica os snapshots (ver `repensarPermissoes`).
+ */
+export function usePode(canalId: string, acao: Acao): boolean {
+  return useSyncExternalStore(assinarPermissoes, () => pode(canalId, acao));
+}
+
+/** Como `usePode`, para onde não há canal. */
+export function usePodeNoServidor(servidorId: string, acao: Acao): boolean {
+  return useSyncExternalStore(assinarPermissoes, () => podeNoServidor(servidorId, acao));
 }
 
 /**

@@ -1,6 +1,5 @@
 import { usuarioLocalId } from "nucleo/sdk/adapter";
 import { alternarCamera, alternarMudo, alternarSurdo, alternarTela } from "nucleo/sdk/chamada";
-import { pode } from "nucleo/sdk/permissoes";
 import { podeDestacar } from "nucleo/sdk/popout";
 import { fixarSalaNoCanto } from "nucleo/store/preferenciasDaSala";
 import {
@@ -10,6 +9,7 @@ import {
   useFalantes,
   useJanelaDestacada,
   usePessoasDaSala,
+  usePode,
 } from "nucleo/store/hooks";
 import { abrirConversa } from "nucleo/store/navegacao";
 import { definirPalco } from "nucleo/store/palcoDeVoz";
@@ -44,11 +44,11 @@ export function WidgetDaChamadaConectado({ servidorAberto }: { servidorAberto: s
   const eu = usuarioLocalId();
   const tempo = useTempoDecorrido(chamada.estado === "dentro" ? chamada.desde : 0);
 
-  if (chamada.estado === "fora" || !canal) return null;
-
   // Só aparece o que a pessoa pode usar: sem `Speak` não há microfone; sem `Video`, nem câmera nem tela.
-  const podeFalar = pode(chamada.channelId, "falarNaVoz");
-  const podeTransmitir = pode(chamada.channelId, "transmitirVideo");
+  const podeFalar = usePode(chamada.channelId, "falarNaVoz");
+  const podeTransmitir = usePode(chamada.channelId, "transmitirVideo");
+
+  if (chamada.estado === "fora" || !canal) return null;
 
   const nomeDe = (id: string) => pessoas.find((p) => p.id === id)?.nome || salas.alguem;
   const quemTransmite = pessoas.find((p) => p.estado === "tela");

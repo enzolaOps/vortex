@@ -1,7 +1,6 @@
 import { alternarCamera, alternarMudo, alternarSurdo, alternarTela } from "nucleo/sdk/chamada";
-import { pode } from "nucleo/sdk/permissoes";
 import { assinarQualidadeDaTela, qualidadeEscolhida, rotuloDaQualidade } from "nucleo/store/qualidadeDaTela";
-import { useChamada, useFalantes, type PessoaNaSala } from "nucleo/store/hooks";
+import { useChamada, useFalantes, usePode, type PessoaNaSala } from "nucleo/store/hooks";
 import { toast } from "nucleo/ui-logica/toastStore";
 import { useSyncExternalStore } from "react";
 
@@ -42,8 +41,8 @@ export function CapsulaConectada({
   const dentro = chamada.estado === "dentro" || chamada.estado === "reconectando";
   // Controle que a pessoa não pode usar não aparece (PRD 4.7): sem `Speak` não há microfone,
   // sem `Video` não há câmera nem transmissão.
-  const podeFalar = pode(chamada.channelId, "falarNaVoz");
-  const podeTransmitir = pode(chamada.channelId, "transmitirVideo");
+  const podeFalar = usePode(chamada.channelId, "falarNaVoz");
+  const podeTransmitir = usePode(chamada.channelId, "transmitirVideo");
 
   return (
     <CapsulaDeControle

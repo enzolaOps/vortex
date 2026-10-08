@@ -7,8 +7,7 @@ import {
   type Resolucao,
   type Taxa,
 } from "nucleo/sdk/seletorDeTela";
-import { pode } from "nucleo/sdk/permissoes";
-import { useChamada, useSeletorDeTela } from "nucleo/store/hooks";
+import { useChamada, usePode, useSeletorDeTela } from "nucleo/store/hooks";
 import { QUALIDADE_PADRAO } from "nucleo/store/qualidadeDaTela";
 import { responderEscolhaDeTela, type ModoDoSeletor } from "nucleo/store/seletorDeTela";
 import { useEffect, useId, useState, type KeyboardEvent } from "react";
@@ -296,7 +295,7 @@ export function DialogoDeTransmissao() {
   const chamada = useChamada();
   const aberto = seletor.fase !== "fechado";
   // Sem `Video` o formulário nem aparece: a pessoa escolheria fonte e qualidade para ser recusada no fim.
-  const podeTransmitir = pode(chamada.channelId, "transmitirVideo");
+  const podeTransmitir = usePode(chamada.channelId, "transmitirVideo");
   return (
     <Dialogo
       open={aberto}

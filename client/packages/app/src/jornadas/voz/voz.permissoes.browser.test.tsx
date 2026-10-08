@@ -17,6 +17,7 @@ import {
 } from "nucleo/sdk/adapter";
 import { chaveDeMembro, SEM_CARGO, type ParticipanteDeVoz } from "nucleo/sdk/domain";
 import { definirChamada, limparChamada } from "nucleo/store/chamada";
+import { notificarMudancaDePermissoes } from "nucleo/store/permissoes";
 import { limparFalhaDeVoz } from "nucleo/store/falhaDeVoz";
 import { irParaCasa } from "nucleo/store/navegacao";
 import { definirPalco, fecharPalco } from "nucleo/store/palcoDeVoz";
@@ -153,6 +154,34 @@ describe("controles da chamada conforme a permissão", () => {
     expect(n).not.toContain(voz.camera);
     expect(n).not.toContain(voz.compartilharTela);
     expect(n).toEqual(expect.arrayContaining([voz.microfone, voz.audioRecebido, voz.sairDaChamada]));
+  });
+
+  it("cargo que muda com a chamada aberta ajusta os controles sem recarregar", async () => {
+    await abrir();
+    definirChamada({ estado: "dentro", channelId: "V1", desde: Date.now() });
+    await expect.poll(controles).not.toBeNull();
+    expect(nomes(controles()!)).toEqual(expect.arrayContaining([voz.microfone, voz.camera, voz.compartilharTela]));
+
+    ctl.negadas = new Set(["falarNaVoz", "transmitirVideo"]);
+    notificarMudancaDePermissoes();
+    await expect.poll(() => nomes(controles()!)).toEqual([voz.audioRecebido, voz.sairDaChamada]);
+
+    ctl.negadas = new Set();
+    notificarMudancaDePermissoes();
+    await expect.poll(() => nomes(controles()!)).toEqual(expect.arrayContaining([voz.microfone, voz.camera]));
+  });
+
+  it("o diálogo de transmissão aberto reage a perder a permissão", async () => {
+    await abrir();
+    definirChamada({ estado: "dentro", channelId: "V1", desde: Date.now() });
+    void pedirEscolhaDeTela("sistema");
+    await expect.element(page.getByRole("dialog")).toBeVisible();
+    expect(document.body.textContent).toContain(voz.transmitir.resolucao);
+
+    ctl.negadas = new Set(["transmitirVideo"]);
+    notificarMudancaDePermissoes();
+    await expect.element(page.getByText(voz.transmitir.semPermissao)).toBeVisible();
+    expect(document.body.textContent).not.toContain(voz.transmitir.resolucao);
   });
 
   it("a cápsula do palco esconde o mesmo que o widget", async () => {

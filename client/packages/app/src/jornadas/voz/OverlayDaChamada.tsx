@@ -1,8 +1,7 @@
 import { ponteDeNotificacoes } from "nucleo/notificacao/notificador";
 import { usuarioLocalId } from "nucleo/sdk/adapter";
 import { alternarMudo, alternarSurdo } from "nucleo/sdk/chamada";
-import { pode } from "nucleo/sdk/permissoes";
-import { useChamada, useChannel, useFalantes, usePessoasDaSala } from "nucleo/store/hooks";
+import { useChamada, useChannel, useFalantes, usePessoasDaSala, usePode } from "nucleo/store/hooks";
 import { useEffect, useRef } from "react";
 
 import { salas, voz } from "../../textos";
@@ -90,6 +89,9 @@ export function OverlayDaChamada({
     };
   }, [documento, aoMedir]);
 
+  // Sem `Speak` o microfone não aparece: um botão que não faz a pessoa ser ouvida é pior que a ausência.
+  const podeFalar = usePode(chamada.channelId, "falarNaVoz");
+
   if (chamada.estado === "fora" || !canal) return null;
 
   const nomeDe = (id: string) => pessoas.find((p) => p.id === id)?.nome || salas.alguem;
@@ -106,8 +108,6 @@ export function OverlayDaChamada({
   const visiveis = pessoas.slice(0, MAXIMO_DE_PESSOAS);
   const escondidas = pessoas.length - visiveis.length;
   const microfoneLigado = !chamada.mudo && !chamada.surdo;
-  // Sem `Speak` o microfone não aparece: um botão que não faz a pessoa ser ouvida é pior que a ausência.
-  const podeFalar = pode(chamada.channelId, "falarNaVoz");
 
   const conteudo = (
     <>
