@@ -17,7 +17,45 @@ export const chat = {
   editada: "editada",
   listaDeMensagens: "Mensagens",
   autorDesconhecido: "Alguém",
+  /** Só para tipo de evento que o cliente não conhece. */
   eventoDoCanal: "Aconteceu algo no canal.",
+
+  /** Cabeçalho do canal. */
+  cabecalho: {
+    rotulo: "Cabeçalho do canal",
+    restrito: "Canal restrito",
+  },
+
+  /**
+   * Linhas de sistema. Cada função recebe UM valor (o catálogo é varrido por
+   * amostras de um argumento só): a frase é montada em `FraseDeSistema`,
+   * juntando sujeito + verbo daqui. `n` é quantas pessoas a linha cobre, para
+   * a concordância (entrou / entraram).
+   */
+  sistema: {
+    conjuncao: "e",
+    maisN: (n: number) => `e mais ${n}`,
+    entrou: (n: number) => (n === 1 ? "entrou" : "entraram"),
+    saiu: (n: number) => (n === 1 ? "saiu" : "saíram"),
+    expulso: (n: number) => (n === 1 ? "foi expulso" : "foram expulsos"),
+    banido: (n: number) => (n === 1 ? "foi banido" : "foram banidos"),
+    entrouNoTopico: (n: number) => (n === 1 ? "entrou no tópico" : "entraram no tópico"),
+    adicionou: "adicionou",
+    removeu: "removeu",
+    renomeou: "renomeou o canal para",
+    transferiu: "passou o canal para",
+    moveu: "mudou para",
+    mudouDescricao: (por: string) => `${por} mudou a descrição do canal`,
+    mudouIcone: (por: string) => `${por} mudou o ícone do canal`,
+    fixou: (por: string) => `${por} fixou uma mensagem`,
+    desafixou: (por: string) => `${por} desafixou uma mensagem`,
+    chamadaEmAndamento: (por: string) => `${por} iniciou uma chamada`,
+    chamadaTerminou: (por: string) => `Chamada de ${por} terminou`,
+    durou: (duracao: string) => `durou ${duracao}`,
+    transmitiu: (a: string) => `${a} começou a transmitir a tela`,
+    canalDesconhecido: "outra sala",
+  },
+
   comecoDoCanal: "Este é o começo do canal.",
 
   /* Histórico */

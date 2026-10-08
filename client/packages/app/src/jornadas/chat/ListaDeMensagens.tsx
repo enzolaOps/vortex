@@ -1,5 +1,6 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { count } from "nucleo/arnes/stats";
+import { agruparSistema } from "nucleo/sdk/agrupamentoDeSistema";
 import { remedir } from "nucleo/lib/remedir";
 import {
   carregarHistorico,
@@ -13,7 +14,7 @@ import {
 import { assinarAparencia, lerAparencia } from "nucleo/store/aparencia";
 import { assinarDensidade, lerDensidade } from "nucleo/store/densidade";
 import { useChannelMessageIds } from "nucleo/store/hooks";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { chat } from "../../textos";
 import { Botao } from "../../ui/ds";
@@ -94,7 +95,15 @@ function criarSinal() {
  */
 export function ListaDeMensagens({ canalId, servidorId }: ListaDeMensagensProps) {
   count("listRenders");
-  const ids = useChannelMessageIds(canalId);
+  const bruto = useChannelMessageIds(canalId);
+  // Linhas de sistema seguidas do mesmo tipo viram UMA ("Ana e mais 4 entraram"). As absorvidas
+  // saem da lista que o virtualizador enxerga: linha com altura zero realimentaria a medição.
+  const grupoAnterior = useRef<ReadonlyMap<string, readonly string[]> | undefined>(undefined);
+  const { visiveis: ids, grupos } = useMemo(() => {
+    const r = agruparSistema(bruto, (id) => messages.getSnapshot(id), grupoAnterior.current);
+    grupoAnterior.current = r.grupos;
+    return r;
+  }, [bruto]);
   const historico = useEstadoDoHistorico(canalId);
   const rolagem = useRef<HTMLDivElement | null>(null);
   const medidor = useRef<HTMLDivElement | null>(null);
@@ -398,7 +407,7 @@ export function ListaDeMensagens({ canalId, servidorId }: ListaDeMensagensProps)
                   className={css.linha}
                   style={{ transform: `translateY(${item.start}px)` }}
                 >
-                  <LinhaDeMensagem id={String(item.key)} servidorId={servidorId} />
+                  <LinhaDeMensagem id={String(item.key)} servidorId={servidorId} grupo={grupos.get(String(item.key))} />
                 </div>
               ))}
             </div>
