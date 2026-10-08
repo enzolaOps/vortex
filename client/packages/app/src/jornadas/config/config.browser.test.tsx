@@ -875,10 +875,15 @@ describe("aparência", () => {
 
     it("as cores das manchas acompanham o tema escolhido", async () => {
       await abrir("aparencia");
+      // Os dois temas são escolhidos AQUI: partir do tema "atual" deixava o teste
+      // depender do que um teste anterior gravou no dispositivo (se já fosse Brasa,
+      // trocar para Brasa não mudava nada e o teste reprovava sozinho).
+      await userEvent.click(radio(a.temas.oceano)!);
+      await assentar();
       const antes = getComputedStyle(mancha()!).backgroundColor;
       await userEvent.click(radio(a.temas.brasa)!);
       await assentar();
-      expect(getComputedStyle(mancha()!).backgroundColor).not.toBe(antes);
+      await expect.poll(() => getComputedStyle(mancha()!).backgroundColor).not.toBe(antes);
     });
 
     it("restaurar devolve vidro e brilho ao desenho de fábrica", async () => {
