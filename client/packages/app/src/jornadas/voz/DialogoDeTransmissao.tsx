@@ -9,12 +9,22 @@ import {
 } from "nucleo/sdk/seletorDeTela";
 import { useChamada, usePode, useSeletorDeTela } from "nucleo/store/hooks";
 import { QUALIDADE_PADRAO } from "nucleo/store/qualidadeDaTela";
-import { responderEscolhaDeTela, type ModoDoSeletor } from "nucleo/store/seletorDeTela";
+import { ponteDoMixer, type AppDeAudio } from "nucleo/sdk/mixerDeApps";
+import {
+  responderEscolhaDeTela,
+  type ModoDoSeletor,
+} from "nucleo/store/seletorDeTela";
 import { useEffect, useId, useState, type KeyboardEvent } from "react";
 
 import { voz } from "../../textos";
 import { Botao } from "../../ui/ds";
-import { Alerta, CompartilharTela, Janela, Marcar, Tela } from "../../ui/icones";
+import {
+  Alerta,
+  CompartilharTela,
+  Janela,
+  Marcar,
+  Tela,
+} from "../../ui/icones";
 import { ConteudoDoDialogo, Dialogo } from "../../ui/primitivos/Dialogo";
 import css from "./Transmitir.module.css";
 
@@ -29,7 +39,9 @@ import css from "./Transmitir.module.css";
  * o painel desenha o que ela devolver, e a casca ainda não precisa existir
  * para o painel funcionar na web.
  */
-export async function listarFontes(modo: ModoDoSeletor): Promise<readonly FonteDeTela[]> {
+export async function listarFontes(
+  modo: ModoDoSeletor,
+): Promise<readonly FonteDeTela[]> {
   if (modo !== "casca") return [];
   const ponte = ponteDeTela();
   return ponte ? ponte.fontes() : [];
@@ -41,8 +53,18 @@ type Fontes =
   | { readonly estado: "falhou" };
 
 /** Setas movem a seleção de um grupo de rádios e levam o foco junto. */
-function moverComSetas<T>(e: KeyboardEvent<HTMLElement>, valores: readonly T[], atual: T, escolher: (v: T) => void) {
-  const passo = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+function moverComSetas<T>(
+  e: KeyboardEvent<HTMLElement>,
+  valores: readonly T[],
+  atual: T,
+  escolher: (v: T) => void,
+) {
+  const passo =
+    e.key === "ArrowRight" || e.key === "ArrowDown"
+      ? 1
+      : e.key === "ArrowLeft" || e.key === "ArrowUp"
+        ? -1
+        : 0;
   if (passo === 0) return;
   e.preventDefault();
   const i = valores.indexOf(atual);
@@ -68,7 +90,11 @@ function Segmentado<T extends string | number>({
   desabilitado: boolean;
 }) {
   return (
-    <div role="radiogroup" aria-labelledby={rotuloId} className={css.segmentado}>
+    <div
+      role="radiogroup"
+      aria-labelledby={rotuloId}
+      className={css.segmentado}
+    >
       {valores.map((v) => (
         <button
           key={v}
@@ -92,14 +118,28 @@ function Segmentado<T extends string | number>({
   );
 }
 
-function Formulario({ modo, iniciando }: { modo: ModoDoSeletor; iniciando: boolean }) {
+function Formulario({
+  modo,
+  iniciando,
+}: {
+  modo: ModoDoSeletor;
+  iniciando: boolean;
+}) {
   const ids = { som: useId(), res: useId(), fps: useId(), aviso: useId() };
   const captura = capacidadeDeCaptura();
-  const [fontes, setFontes] = useState<Fontes>(modo === "casca" ? { estado: "carregando" } : { estado: "pronto", lista: [] });
+  const [fontes, setFontes] = useState<Fontes>(
+    modo === "casca"
+      ? { estado: "carregando" }
+      : { estado: "pronto", lista: [] },
+  );
   const [aba, setAba] = useState<FonteDeTela["tipo"]>("tela");
   const [escolhida, setEscolhida] = useState<string | undefined>();
   const [audio, setAudio] = useState(modo === "casca" || captura.audio);
-  const [resolucao, setResolucao] = useState<Resolucao>(QUALIDADE_PADRAO.resolucao);
+  const [apps, setApps] = useState<readonly AppDeAudio[]>([]);
+  const [fora, setFora] = useState<ReadonlySet<string>>(() => new Set());
+  const [resolucao, setResolucao] = useState<Resolucao>(
+    QUALIDADE_PADRAO.resolucao,
+  );
   const [taxa, setTaxa] = useState<Taxa>(QUALIDADE_PADRAO.taxa);
 
   useEffect(() => {
@@ -118,8 +158,24 @@ function Formulario({ modo, iniciando }: { modo: ModoDoSeletor; iniciando: boole
     };
   }, [modo]);
 
-  const lista = fontes.estado === "pronto" ? fontes.lista.filter((f) => f.tipo === aba) : [];
-  const temJanelas = fontes.estado === "pronto" && fontes.lista.some((f) => f.tipo === "janela");
+  useEffect(() => {
+    const ponte = ponteDoMixer();
+    if (!ponte) return;
+    let vivo = true;
+    void ponte.listar().then((lista) => {
+      if (vivo) setApps(lista);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, []);
+
+  const lista =
+    fontes.estado === "pronto"
+      ? fontes.lista.filter((f) => f.tipo === aba)
+      : [];
+  const temJanelas =
+    fontes.estado === "pronto" && fontes.lista.some((f) => f.tipo === "janela");
   const fonteId = lista.find((f) => f.id === escolhida)?.id ?? lista[0]?.id;
 
   const semCaptura = modo === "sistema" && !captura.captura;
@@ -134,11 +190,23 @@ function Formulario({ modo, iniciando }: { modo: ModoDoSeletor; iniciando: boole
       onSubmit={(e) => {
         e.preventDefault();
         if (!podeTransmitir) return;
-        responderEscolhaDeTela({ fonteId, audio: audioDisponivel && audio, resolucao, taxa });
+        const excluir = [...fora];
+        void ponteDoMixer()?.definir(excluir);
+        responderEscolhaDeTela({
+          fonteId,
+          audio: audioDisponivel && audio,
+          resolucao,
+          taxa,
+          ...(excluir.length > 0 ? { excluir } : {}),
+        });
       }}
     >
       {modo === "casca" && temJanelas && (
-        <div role="tablist" aria-label={voz.transmitir.abas} className={css.abas}>
+        <div
+          role="tablist"
+          aria-label={voz.transmitir.abas}
+          className={css.abas}
+        >
           {(["tela", "janela"] as const).map((tipo) => (
             <button
               key={tipo}
@@ -171,7 +239,11 @@ function Formulario({ modo, iniciando }: { modo: ModoDoSeletor; iniciando: boole
         <p className={css.aviso}>{voz.transmitir.semFontes}</p>
       )}
       {modo === "casca" && lista.length > 0 && (
-        <div role="radiogroup" aria-label={voz.transmitir.fontes} className={css.fontes}>
+        <div
+          role="radiogroup"
+          aria-label={voz.transmitir.fontes}
+          className={css.fontes}
+        >
           {lista.map((f) => {
             const marcada = f.id === fonteId;
             const idsDasFontes = lista.map((x) => x.id);
@@ -181,7 +253,11 @@ function Formulario({ modo, iniciando }: { modo: ModoDoSeletor; iniciando: boole
                 type="button"
                 role="radio"
                 aria-checked={marcada}
-                aria-label={f.meta ? `${f.nome}, ${f.meta}${marcada ? voz.transmitir.escolhida : ""}` : `${f.nome}${marcada ? voz.transmitir.escolhida : ""}`}
+                aria-label={
+                  f.meta
+                    ? `${f.nome}, ${f.meta}${marcada ? voz.transmitir.escolhida : ""}`
+                    : `${f.nome}${marcada ? voz.transmitir.escolhida : ""}`
+                }
                 tabIndex={marcada ? 0 : -1}
                 className={css.fonte}
                 onClick={() => {
@@ -200,7 +276,12 @@ function Formulario({ modo, iniciando }: { modo: ModoDoSeletor; iniciando: boole
                   )}
                 </span>
                 <span className={css.rotuloDaFonte}>
-                  {f.tipo === "tela" ? <Tela tamanho={14} /> : <Janela tamanho={14} />} {f.nome}
+                  {f.tipo === "tela" ? (
+                    <Tela tamanho={14} />
+                  ) : (
+                    <Janela tamanho={14} />
+                  )}{" "}
+                  {f.nome}
                   {f.meta ? ` · ${f.meta}` : ""}
                 </span>
               </button>
@@ -208,7 +289,9 @@ function Formulario({ modo, iniciando }: { modo: ModoDoSeletor; iniciando: boole
           })}
         </div>
       )}
-      {modo === "sistema" && !semCaptura && <p className={css.aviso}>{voz.transmitir.seletorDoSistema}</p>}
+      {modo === "sistema" && !semCaptura && (
+        <p className={css.aviso}>{voz.transmitir.seletorDoSistema}</p>
+      )}
       {semCaptura && (
         <p role="alert" className={css.aviso}>
           {voz.transmitir.semCaptura}
@@ -223,7 +306,9 @@ function Formulario({ modo, iniciando }: { modo: ModoDoSeletor; iniciando: boole
             {voz.transmitir.som}
           </span>
           <span className={css.rotuloTexto}>
-            {audioDisponivel ? voz.transmitir.somDescricao : voz.transmitir.somIndisponivel}
+            {audioDisponivel
+              ? voz.transmitir.somDescricao
+              : voz.transmitir.somIndisponivel}
           </span>
         </div>
         <button
@@ -241,18 +326,56 @@ function Formulario({ modo, iniciando }: { modo: ModoDoSeletor; iniciando: boole
         </button>
       </div>
 
+      {apps.length > 0 && audio && (
+        <fieldset className={css.linha}>
+          <legend className={css.rotuloTitulo}>{voz.transmitir.faixas}</legend>
+          <span className={css.rotuloTexto}>
+            {voz.transmitir.faixasDescricao}
+          </span>
+          {apps.map((app) => (
+            <label key={app.id}>
+              <input
+                type="checkbox"
+                checked={!fora.has(app.id)}
+                onChange={() => {
+                  setFora((atual) => {
+                    const proximo = new Set(atual);
+                    if (proximo.has(app.id)) proximo.delete(app.id);
+                    else proximo.add(app.id);
+                    return proximo;
+                  });
+                }}
+              />
+              {app.nome}
+            </label>
+          ))}
+        </fieldset>
+      )}
+
       <div className={css.linha}>
         <span id={ids.res} className={css.rotuloTitulo}>
           {voz.transmitir.resolucao}
         </span>
-        <Segmentado rotuloId={ids.res} valores={RESOLUCOES} atual={resolucao} aoEscolher={setResolucao} desabilitado={iniciando} />
+        <Segmentado
+          rotuloId={ids.res}
+          valores={RESOLUCOES}
+          atual={resolucao}
+          aoEscolher={setResolucao}
+          desabilitado={iniciando}
+        />
       </div>
 
       <div className={css.linha}>
         <span id={ids.fps} className={css.rotuloTitulo}>
           {voz.transmitir.quadros}
         </span>
-        <Segmentado rotuloId={ids.fps} valores={TAXAS} atual={taxa} aoEscolher={setTaxa} desabilitado={iniciando} />
+        <Segmentado
+          rotuloId={ids.fps}
+          valores={TAXAS}
+          atual={taxa}
+          aoEscolher={setTaxa}
+          desabilitado={iniciando}
+        />
       </div>
 
       {pesado && (
@@ -271,7 +394,12 @@ function Formulario({ modo, iniciando }: { modo: ModoDoSeletor; iniciando: boole
         >
           {voz.transmitir.cancelar}
         </Botao>
-        <Botao type="submit" icone={<CompartilharTela />} carregando={iniciando} aria-disabled={!podeTransmitir || undefined}>
+        <Botao
+          type="submit"
+          icone={<CompartilharTela />}
+          carregando={iniciando}
+          aria-disabled={!podeTransmitir || undefined}
+        >
           {iniciando ? voz.transmitir.iniciando : voz.transmitir.transmitir}
         </Botao>
       </div>
@@ -304,9 +432,15 @@ export function DialogoDeTransmissao() {
       }}
     >
       {aberto && (
-        <ConteudoDoDialogo titulo={voz.transmitir.titulo} className={css.painel}>
+        <ConteudoDoDialogo
+          titulo={voz.transmitir.titulo}
+          className={css.painel}
+        >
           {podeTransmitir ? (
-            <Formulario modo={seletor.modo} iniciando={seletor.fase === "iniciando"} />
+            <Formulario
+              modo={seletor.modo}
+              iniciando={seletor.fase === "iniciando"}
+            />
           ) : (
             <p role="note" className={css.nota}>
               <Alerta tamanho={16} />

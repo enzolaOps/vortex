@@ -52,6 +52,18 @@ contextBridge.exposeInMainWorld("vortexTela", {
  * O ouvinte é embrulhado como em `assinarJanela`: só o bloco de PCM atravessa,
  * nunca o `IpcRendererEvent`.
  */
+contextBridge.exposeInMainWorld("vortexMixer", {
+  listar: () => ipcRenderer.invoke("mixerListar"),
+  definir: (ids: string[]) => ipcRenderer.invoke("mixerDefinir", ids),
+  iniciar: () => ipcRenderer.invoke("mixerIniciar"),
+  parar: () => ipcRenderer.invoke("mixerParar"),
+  assinar: (ouvinte: (bloco: Uint8Array) => void) => {
+    const alca = (_evento: unknown, bloco: Uint8Array) => ouvinte(bloco);
+    ipcRenderer.on("mixerBloco", alca);
+    return () => ipcRenderer.off("mixerBloco", alca);
+  },
+});
+
 contextBridge.exposeInMainWorld("vortexAudioDeJanela", {
   disponivel: () => ipcRenderer.invoke("audioJanelaDisponivel"),
   iniciar: () => ipcRenderer.invoke("audioJanelaIniciar"),

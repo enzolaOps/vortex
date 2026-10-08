@@ -22,6 +22,7 @@
 }
 
 .rosto {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -30,16 +31,15 @@
   border-radius: 50%;
 }
 
-/* Marcador de 3px na borda de início: a seleção tem forma, não só fundo. */
+/* Pílula no círculo, não na caixa da linha. Sem fundo lavado. */
 .selecionado {
-  background: var(--vx-state-selected);
   color: var(--vx-text-1);
 }
-.selecionado::before {
+.selecionado .rosto::before {
   content: "";
   position: absolute;
-  inset-inline-start: 0;
-  inset-block: 12px;
+  inset-inline-start: -6px;
+  inset-block: 8px;
   inline-size: 3px;
   border-radius: var(--vx-radius-pill);
   background: var(--vx-accent);

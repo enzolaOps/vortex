@@ -24,6 +24,7 @@ import {
 } from "./preferenciasDoCliente";
 import { registrarAtenuacao } from "./atenuacao";
 import { registrarAudioDaJanela } from "./audioDaJanela";
+import { registrarMixerDeApps } from "./mixerDeApps";
 import { registrarControles } from "./controles";
 import { registrarNotificacoes } from "./notificacoes";
 import { registrarOverlay } from "./overlay";
@@ -283,6 +284,7 @@ export function createMainWindow() {
   */
   registrarSeletorDeTela();
   registrarAudioDaJanela();
+  registrarMixerDeApps();
   registrarControles();
   registrarNotificacoes();
   registrarOverlay();

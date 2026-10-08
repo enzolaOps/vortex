@@ -8,8 +8,8 @@ import { abrirSala } from "../voz/acoes";
  * Clicar numa sala de voz ENTRA nela (decisão do dono): a coluna e a faixa do
  * palco usam esta mesma regra.
  *
- * - Já na sala: só abre o palco.
- * - Em outra sala: troca direto (a fachada sai da atual antes de entrar).
+ * - Já na sala: abre o palco (segundo clique).
+ * - Em outra sala: entra, sem palco. A fachada sai da atual antes de entrar.
  * - Sem permissão de conectar, ou sem conexão: não entra, e o `motivo` diz por quê
  *   (o item fica `aria-disabled` com o motivo — nunca um controle inerte e mudo).
  */

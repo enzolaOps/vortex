@@ -84,19 +84,25 @@ export const voz = {
     escolhida: ", escolhida",
     semFontes: "Nada para mostrar aqui.",
     carregandoFontes: "Procurando telas e janelas…",
-    falhaAoListar: "Não deu para listar as telas. Você ainda pode escolher no seletor do sistema.",
-    seletorDoSistema: "O seletor do sistema abre depois de você escolher transmitir.",
+    falhaAoListar:
+      "Não deu para listar as telas. Você ainda pode escolher no seletor do sistema.",
+    seletorDoSistema:
+      "O seletor do sistema abre depois de você escolher transmitir.",
     som: "Transmitir o som",
     somDescricao: "Quem assiste ouve o áudio do que você está mostrando.",
+    faixas: "Faixas de áudio",
+    faixasDescricao: "Desmarque o que não deve ir na transmissão.",
     somIndisponivel: "Este navegador não transmite o som da tela.",
     resolucao: "Resolução",
     quadros: "Quadros por segundo",
-    notaDeRede: "1440p a 60 quadros usa bastante internet. Se a transmissão travar, baixe a resolução ou os quadros.",
+    notaDeRede:
+      "1440p a 60 quadros usa bastante internet. Se a transmissão travar, baixe a resolução ou os quadros.",
     cancelar: "Cancelar",
     transmitir: "Transmitir",
     iniciando: "Iniciando…",
     semCaptura: "Este navegador não consegue compartilhar a tela.",
-    semPermissao: "Você não tem permissão para transmitir nesta sala. Peça a quem cuida do servidor.",
+    semPermissao:
+      "Você não tem permissão para transmitir nesta sala. Peça a quem cuida do servidor.",
   },
   pip: {
     arrastar: "Mover a chamada para outro canto",

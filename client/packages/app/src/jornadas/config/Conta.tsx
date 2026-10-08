@@ -13,10 +13,19 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { config } from "../../textos";
 import { Botao } from "../../ui/ds";
 import { toast } from "../../ui/primitivos/Avisos";
-import { encerrarSessao } from "../sessao/encerrar";
-import { Bloco, Divisor, estilosDeConfig as ec, LinhaDeAjuste, Pagina } from "./controles";
+import {
+  Bloco,
+  Divisor,
+  estilosDeConfig as ec,
+  LinhaDeAjuste,
+  Pagina,
+} from "./controles";
 import { DialogoDeConta, type ErroNoDialogo } from "./DialogoDeConta";
-import { assinarPerfilMudou, avisarPerfilMudou, lerRevisaoDoPerfil } from "./perfilMudou";
+import {
+  assinarPerfilMudou,
+  avisarPerfilMudou,
+  lerRevisaoDoPerfil,
+} from "./perfilMudou";
 
 const t = config.contaTela;
 
@@ -39,7 +48,12 @@ const FRASE_DA_CAUSA: Record<CausaDeConta, string> = {
 
 function traduzirCausa(
   causa: CausaDeConta,
-  campos: { readonly senha: string; readonly email?: string; readonly nome?: string; readonly nova?: string },
+  campos: {
+    readonly senha: string;
+    readonly email?: string;
+    readonly nome?: string;
+    readonly nova?: string;
+  },
 ): ErroNoDialogo {
   const chave =
     causa === "senhaIncorreta"
@@ -61,7 +75,11 @@ export function Conta() {
   useSyncExternalStore(assinarPerfilMudou, lerRevisaoDoPerfil);
   const eu = lerMeuPerfil();
   const [aberto, setAberto] = useState<Aberto>(undefined);
-  const [email, setEmail] = useState<{ estado: "carregando" } | { estado: "falhou" } | { estado: "ok"; valor: string }>({
+  const [email, setEmail] = useState<
+    | { estado: "carregando" }
+    | { estado: "falhou" }
+    | { estado: "ok"; valor: string }
+  >({
     estado: "carregando",
   });
   const [mostrar, setMostrar] = useState(false);
@@ -69,7 +87,10 @@ export function Conta() {
   useEffect(() => {
     let vivo = true;
     void lerMeuEmail().then((v) => {
-      if (vivo) setEmail(v === undefined ? { estado: "falhou" } : { estado: "ok", valor: v });
+      if (vivo)
+        setEmail(
+          v === undefined ? { estado: "falhou" } : { estado: "ok", valor: v },
+        );
     });
     return () => {
       vivo = false;
@@ -157,16 +178,6 @@ export function Conta() {
       <Divisor />
 
       <Bloco>
-        <LinhaDeAjuste nome={t.sairDaConta} descricao={t.sairDaContaDica}>
-          <Botao variante="secundario" tamanho="sm" onClick={() => void encerrarSessao()}>
-            {config.sair}
-          </Botao>
-        </LinhaDeAjuste>
-      </Bloco>
-
-      <Divisor />
-
-      <Bloco>
         <h3 className={ec.titulo}>{t.excluir}</h3>
         <p className={ec.texto}>{t.excluirDica}</p>
         <div className={ec.acoes}>
@@ -189,13 +200,34 @@ export function Conta() {
           titulo={t.nomeDeUsuario}
           descricao={t.nomeDeUsuarioDica}
           campos={[
-            { chave: "nome", rotulo: t.nomeDeUsuario, inicial: eu.username, autoComplete: "username" },
-            { chave: "senha", rotulo: t.senhaAtual, tipo: "password", autoComplete: "current-password" },
+            {
+              chave: "nome",
+              rotulo: t.nomeDeUsuario,
+              inicial: eu.username,
+              autoComplete: "username",
+            },
+            {
+              chave: "senha",
+              rotulo: t.senhaAtual,
+              tipo: "password",
+              autoComplete: "current-password",
+            },
           ]}
           confirmar={t.trocarNome}
-          validar={(v) => (v["nome"]?.trim() && v["senha"] ? undefined : { geral: t.erroGenerico })}
-          enviar={(v) => trocarNomeDeUsuarioComMotivo((v["nome"] ?? "").trim(), v["senha"] ?? "")}
-          traduzir={(f) => traduzirCausa(f.causa, { senha: "senha", nome: "nome" })}
+          validar={(v) =>
+            v["nome"]?.trim() && v["senha"]
+              ? undefined
+              : { geral: t.erroGenerico }
+          }
+          enviar={(v) =>
+            trocarNomeDeUsuarioComMotivo(
+              (v["nome"] ?? "").trim(),
+              v["senha"] ?? "",
+            )
+          }
+          traduzir={(f) =>
+            traduzirCausa(f.causa, { senha: "senha", nome: "nome" })
+          }
           aoConcluir={() => {
             avisarPerfilMudou();
             toast({ tipo: "info", titulo: t.nomeTrocado });
@@ -210,13 +242,31 @@ export function Conta() {
           titulo={t.emailNovo}
           descricao={t.emailDica}
           campos={[
-            { chave: "email", rotulo: t.emailNovo, tipo: "email", autoComplete: "email" },
-            { chave: "senha", rotulo: t.senhaAtual, tipo: "password", autoComplete: "current-password" },
+            {
+              chave: "email",
+              rotulo: t.emailNovo,
+              tipo: "email",
+              autoComplete: "email",
+            },
+            {
+              chave: "senha",
+              rotulo: t.senhaAtual,
+              tipo: "password",
+              autoComplete: "current-password",
+            },
           ]}
           confirmar={t.trocarEmail}
-          validar={(v) => (v["email"]?.trim() && v["senha"] ? undefined : { geral: t.erroGenerico })}
-          enviar={(v) => trocarEmailComMotivo((v["email"] ?? "").trim(), v["senha"] ?? "")}
-          traduzir={(f) => traduzirCausa(f.causa, { senha: "senha", email: "email" })}
+          validar={(v) =>
+            v["email"]?.trim() && v["senha"]
+              ? undefined
+              : { geral: t.erroGenerico }
+          }
+          enviar={(v) =>
+            trocarEmailComMotivo((v["email"] ?? "").trim(), v["senha"] ?? "")
+          }
+          traduzir={(f) =>
+            traduzirCausa(f.causa, { senha: "senha", email: "email" })
+          }
           aoConcluir={() => {
             toast({ tipo: "info", titulo: t.emailTrocado });
           }}
@@ -230,27 +280,49 @@ export function Conta() {
           titulo={t.trocarSenhaTitulo}
           descricao={t.trocarSenhaDescricao}
           campos={[
-            { chave: "atual", rotulo: t.senhaAtual, tipo: "password", autoComplete: "current-password" },
-            { chave: "nova", rotulo: t.senhaNova, tipo: "password", autoComplete: "new-password" },
-            { chave: "confirmar", rotulo: t.senhaConfirmar, tipo: "password", autoComplete: "new-password" },
+            {
+              chave: "atual",
+              rotulo: t.senhaAtual,
+              tipo: "password",
+              autoComplete: "current-password",
+            },
+            {
+              chave: "nova",
+              rotulo: t.senhaNova,
+              tipo: "password",
+              autoComplete: "new-password",
+            },
+            {
+              chave: "confirmar",
+              rotulo: t.senhaConfirmar,
+              tipo: "password",
+              autoComplete: "new-password",
+            },
           ]}
           confirmar={t.trocarSenha}
           validar={(v) => {
             const erros: Record<string, string> = {};
             if (!v["atual"]) erros["atual"] = t.erroSenhaAtual;
             if ((v["nova"] ?? "").length < 8) erros["nova"] = t.erroSenhaCurta;
-            else if (v["nova"] !== v["confirmar"]) erros["confirmar"] = t.erroSenhasDiferentes;
+            else if (v["nova"] !== v["confirmar"])
+              erros["confirmar"] = t.erroSenhasDiferentes;
             return Object.keys(erros).length > 0 ? erros : undefined;
           }}
-          enviar={(v) => trocarSenhaComMotivo(v["nova"] ?? "", v["atual"] ?? "")}
-          traduzir={(f) => traduzirCausa(f.causa, { senha: "atual", nova: "nova" })}
+          enviar={(v) =>
+            trocarSenhaComMotivo(v["nova"] ?? "", v["atual"] ?? "")
+          }
+          traduzir={(f) =>
+            traduzirCausa(f.causa, { senha: "atual", nova: "nova" })
+          }
           aoConcluir={() => {
             toast({ tipo: "info", titulo: t.senhaTrocada });
           }}
         />
       )}
 
-      {aberto === "excluir" && <ExcluirConta nomeDeUsuario={eu.username} aoMudar={fechar} />}
+      {aberto === "excluir" && (
+        <ExcluirConta nomeDeUsuario={eu.username} aoMudar={fechar} />
+      )}
     </Pagina>
   );
 }
@@ -276,17 +348,27 @@ function ExcluirConta({
           ? []
           : [
               { chave: "confirmar", rotulo: t.excluirConfirmarNome },
-              { chave: "senha", rotulo: t.senhaAtual, tipo: "password", autoComplete: "current-password" },
+              {
+                chave: "senha",
+                rotulo: t.senhaAtual,
+                tipo: "password",
+                autoComplete: "current-password",
+              },
             ]
       }
       aviso={
-        <p className={ec.texto}>{bloqueada ? t.excluirDono(donos.length) : t.excluirAviso}</p>
+        <p className={ec.texto}>
+          {bloqueada ? t.excluirDono(donos.length) : t.excluirAviso}
+        </p>
       }
       confirmar={t.excluirConfirmar}
       perigo
       validar={(v): Record<string, string> | undefined => {
         if (bloqueada) return { geral: t.excluirDono(donos.length) };
-        if ((v["confirmar"] ?? "").trim().toLowerCase() !== nomeDeUsuario.toLowerCase()) {
+        if (
+          (v["confirmar"] ?? "").trim().toLowerCase() !==
+          nomeDeUsuario.toLowerCase()
+        ) {
           return { confirmar: t.excluirConfirmarNome };
         }
         return v["senha"] ? undefined : { senha: t.erroSenhaAtual };

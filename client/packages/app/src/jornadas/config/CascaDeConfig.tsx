@@ -1,8 +1,18 @@
-import { abrirConfig, assinarConfig, fecharConfig, lerConfig } from "nucleo/store/config";
+import {
+  abrirConfig,
+  assinarConfig,
+  fecharConfig,
+  lerConfig,
+} from "nucleo/store/config";
 import { useServer, useServidorAtivo } from "nucleo/store/hooks";
 import { assinarMeuStatus, lerMeuStatus } from "nucleo/store/meuStatus";
 import { lerMeuPerfil } from "nucleo/sdk/perfil";
-import { useEffect, useSyncExternalStore, type ReactNode } from "react";
+import {
+  useEffect,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 
 import { admin, config } from "../../textos";
 import { Avatar } from "../../ui/ds";
@@ -22,6 +32,7 @@ import {
   type SecaoDeServidor,
 } from "../admin/secoes";
 import { VisaoGeral } from "../admin/VisaoGeral";
+import { Confirmacao } from "../admin/Confirmacao";
 import { encerrarSessao } from "../sessao/encerrar";
 import { Aparencia } from "./Aparencia";
 import css from "./Casca.module.css";
@@ -50,7 +61,10 @@ const CONTEUDO: Record<SecaoEssencial, () => ReactNode> = {
 };
 
 /** O conteúdo de cada seção de administração. `Record` exaustivo, como o de cima. */
-const CONTEUDO_DO_SERVIDOR: Record<SecaoDeServidor, (serverId: string) => ReactNode> = {
+const CONTEUDO_DO_SERVIDOR: Record<
+  SecaoDeServidor,
+  (serverId: string) => ReactNode
+> = {
   servidor: (s) => <VisaoGeral serverId={s} />,
   canais: (s) => <Canais serverId={s} />,
   convites: (s) => <Convites serverId={s} />,
@@ -60,7 +74,10 @@ const CONTEUDO_DO_SERVIDOR: Record<SecaoDeServidor, (serverId: string) => ReactN
 };
 
 /** Qual servidor se administra: o da URL ou, sem ele, o que está aberto. */
-function servidorDaAdministracao(doEndereco: string | undefined, ativo: string): string {
+function servidorDaAdministracao(
+  doEndereco: string | undefined,
+  ativo: string,
+): string {
   return doEndereco ?? ativo;
 }
 
@@ -70,7 +87,12 @@ function IdentidadeDoServidor({ serverId }: { serverId: string }) {
   if (!servidor) return null;
   return (
     <div className={css.identidade}>
-      <Avatar nome={servidor.name} id={serverId} tamanho={36} imagem={servidor.avatarUrl} />
+      <Avatar
+        nome={servidor.name}
+        id={serverId}
+        tamanho={36}
+        imagem={servidor.avatarUrl}
+      />
       <div className={css.identidadeTextos}>
         <span className={css.identidadeNome}>{servidor.name}</span>
         <span className={css.identidadeUsuario}>{admin.servidor}</span>
@@ -86,10 +108,17 @@ function Identidade() {
   const eu = lerMeuPerfil();
   const status = useSyncExternalStore(assinarMeuStatus, lerMeuStatus);
   if (!eu) return null;
-  const presenca = status.presenca === "invisivel" ? "offline" : status.presenca;
+  const presenca =
+    status.presenca === "invisivel" ? "offline" : status.presenca;
   return (
     <div className={css.identidade}>
-      <Avatar nome={eu.displayName} id={eu.username} tamanho={36} imagem={eu.avatarUrl} status={presenca} />
+      <Avatar
+        nome={eu.displayName}
+        id={eu.username}
+        tamanho={36}
+        imagem={eu.avatarUrl}
+        status={presenca}
+      />
       <div className={css.identidadeTextos}>
         <span className={css.identidadeNome}>{eu.displayName}</span>
         <span className={css.identidadeUsuario}>@{eu.username}</span>
@@ -111,6 +140,7 @@ function Identidade() {
  * mostram o que a pessoa pode usar.
  */
 export function CascaDeConfig() {
+  const [saindo, setSaindo] = useState(false);
   const aberta = useSyncExternalStore(assinarConfig, lerConfig);
   const ativo = useServidorAtivo();
   const aberto = aberta.secao !== null;
@@ -135,8 +165,14 @@ export function CascaDeConfig() {
   useEffect(() => {
     if (!aberto) return;
     if (secao === undefined) abrirConfig("perfil");
-    else if (secaoPedida !== undefined && secaoAdmin !== secaoPedida) abrirConfig(secaoAdmin ?? "perfil", serverId);
-    else if (secaoAdmin !== undefined && aberta.serverId === undefined && serverId !== "") abrirConfig(secaoAdmin, serverId);
+    else if (secaoPedida !== undefined && secaoAdmin !== secaoPedida)
+      abrirConfig(secaoAdmin ?? "perfil", serverId);
+    else if (
+      secaoAdmin !== undefined &&
+      aberta.serverId === undefined &&
+      serverId !== ""
+    )
+      abrirConfig(secaoAdmin, serverId);
   }, [aberto, secao, secaoPedida, secaoAdmin, aberta.serverId, serverId]);
 
   return (
@@ -153,7 +189,9 @@ export function CascaDeConfig() {
         onOpenAutoFocus={(e) => {
           // O foco nasce no item da seção atual, e não no primeiro da lista.
           e.preventDefault();
-          document.querySelector<HTMLElement>(`nav[aria-label] [aria-current="page"]`)?.focus();
+          document
+            .querySelector<HTMLElement>(`nav[aria-label] [aria-current="page"]`)
+            ?.focus();
         }}
       >
         {secaoPessoal !== undefined && (
@@ -181,15 +219,35 @@ export function CascaDeConfig() {
               <button
                 type="button"
                 className={`${css.item} ${css.sair}`}
-                onClick={() => void encerrarSessao()}
+                onClick={() => {
+                  setSaindo(true);
+                }}
               >
                 {config.sair}
               </button>
+              <Confirmacao
+                aberto={saindo}
+                aoMudar={setSaindo}
+                titulo={config.sairTitulo}
+                texto={config.sairTexto}
+                confirmar={config.sair}
+                aoConfirmar={async () => {
+                  await encerrarSessao();
+                  return true;
+                }}
+              />
             </nav>
-            <section className={css.painel} aria-label={NOME_DA_SECAO[secaoPessoal]}>
+            <section
+              className={css.painel}
+              aria-label={NOME_DA_SECAO[secaoPessoal]}
+            >
               <header className={css.cabecalho}>
-                <h2 className={css.tituloDaPagina}>{NOME_DA_SECAO[secaoPessoal]}</h2>
-                <p className={css.subtituloDaPagina}>{SUBTITULO_DA_SECAO[secaoPessoal]}</p>
+                <h2 className={css.tituloDaPagina}>
+                  {NOME_DA_SECAO[secaoPessoal]}
+                </h2>
+                <p className={css.subtituloDaPagina}>
+                  {SUBTITULO_DA_SECAO[secaoPessoal]}
+                </p>
               </header>
               <div className={css.corpo} tabIndex={-1}>
                 {CONTEUDO[secaoPessoal]()}
@@ -224,10 +282,17 @@ export function CascaDeConfig() {
                 );
               })}
             </nav>
-            <section className={css.painel} aria-label={NOME_DA_SECAO_DE_SERVIDOR[secaoAdmin]}>
+            <section
+              className={css.painel}
+              aria-label={NOME_DA_SECAO_DE_SERVIDOR[secaoAdmin]}
+            >
               <header className={css.cabecalho}>
-                <h2 className={css.tituloDaPagina}>{NOME_DA_SECAO_DE_SERVIDOR[secaoAdmin]}</h2>
-                <p className={css.subtituloDaPagina}>{SUBTITULO_DA_SECAO_DE_SERVIDOR[secaoAdmin]}</p>
+                <h2 className={css.tituloDaPagina}>
+                  {NOME_DA_SECAO_DE_SERVIDOR[secaoAdmin]}
+                </h2>
+                <p className={css.subtituloDaPagina}>
+                  {SUBTITULO_DA_SECAO_DE_SERVIDOR[secaoAdmin]}
+                </p>
               </header>
               <div className={css.corpo} tabIndex={-1}>
                 {CONTEUDO_DO_SERVIDOR[secaoAdmin](serverId)}

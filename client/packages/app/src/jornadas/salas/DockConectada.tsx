@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { abrirConfig } from "nucleo/store/config";
 import { irParaCasa } from "nucleo/store/navegacao";
 import { abrirServidor } from "nucleo/store/ultimoLugar";
 import {
@@ -10,13 +11,19 @@ import {
   useServidorAtivo,
 } from "nucleo/store/hooks";
 
-import { admin, salas } from "../../textos";
+import { admin, config, salas } from "../../textos";
 import { ItemDaDock } from "../../ui/ds";
-import { Casa, Mais } from "../../ui/icones";
+import { Casa, Configuracoes, Mais } from "../../ui/icones";
 import { CriarServidor } from "../admin/CriarServidor";
 import css from "./Salas.module.css";
 
-function ServidorNaDock({ id, selecionado }: { id: string; selecionado: boolean }) {
+function ServidorNaDock({
+  id,
+  selecionado,
+}: {
+  id: string;
+  selecionado: boolean;
+}) {
   const servidor = useServer(id);
   if (!servidor) return null;
   return (
@@ -37,7 +44,11 @@ function ServidorNaDock({ id, selecionado }: { id: string; selecionado: boolean 
 /** Esqueleto da dock até o `Ready`: ladrilhos no lugar dos servidores que ainda não chegaram. */
 export function EsqueletoDaDock() {
   return (
-    <div className={css.esqueletoDaDock} role="status" aria-label={salas.carregandoServidor}>
+    <div
+      className={css.esqueletoDaDock}
+      role="status"
+      aria-label={salas.carregandoServidor}
+    >
       <span className={css.bloco} />
       <span className={css.bloco} />
       <span className={css.bloco} />
@@ -80,14 +91,29 @@ export function ConteudoDaDock() {
       <ItemDaDock
         nome={salas.casa}
         icone={<Casa tamanho={20} />}
-        selecionado={local.tipo === "casa" || local.tipo === "amigos" || local.tipo === "dm"}
+        selecionado={
+          local.tipo === "casa" ||
+          local.tipo === "amigos" ||
+          local.tipo === "dm"
+        }
         naoLida={naoLidasDeConversas > 0}
         onClick={irParaCasa}
       />
-      {ids.map((id) => (
-        <ServidorNaDock key={id} id={id} selecionado={id === ativo} />
-      ))}
-      <AdicionarServidor />
+      <div className={css.listaDaDock}>
+        {ids.map((id) => (
+          <ServidorNaDock key={id} id={id} selecionado={id === ativo} />
+        ))}
+        <AdicionarServidor />
+      </div>
+      <div className={css.rodapeDaDock}>
+        <ItemDaDock
+          nome={config.abrir}
+          icone={<Configuracoes tamanho={20} />}
+          onClick={() => {
+            abrirConfig("perfil");
+          }}
+        />
+      </div>
     </>
   );
 }

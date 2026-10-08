@@ -79,7 +79,10 @@ import {
 } from "./atenuacao";
 import { ligarPortaDeVoz } from "./portaDeVoz";
 import { client } from "./client";
-import { lerConfigDeVoz, publicacaoDe as publicacaoDoCanal } from "./vozDoCanal";
+import {
+  lerConfigDeVoz,
+  publicacaoDe as publicacaoDoCanal,
+} from "./vozDoCanal";
 import { sairDaSalaLocalmente } from "./adapter";
 import { avisarSaidaDaSala } from "./saidaDaSala";
 import { registrarRemocaoImposta } from "./vozImposta";
@@ -100,6 +103,7 @@ import { chaveDeVideo, faixasDeVideo, type FonteDeVideo } from "../store/video";
 import { toast } from "../ui-logica/toastStore";
 import { definirFalhaDeVoz, limparFalhaDeVoz } from "../store/falhaDeVoz";
 import { ALTURA_DE, ponteDeTela } from "./seletorDeTela";
+import { ponteDoMixer } from "./mixerDeApps";
 import {
   concluirEscolhaDeTela,
   pedirEscolhaDeTela,
@@ -114,7 +118,10 @@ import {
 } from "../ui-logica/voz/processamento";
 import type { SupressorDeRuido } from "../ui-logica/voz/ruidoForte";
 import type { FundoDeVideo } from "../store/preferenciasDeVoz";
-import { criarAnuncioDeAssistir, type AnuncioDeAssistir } from "./anuncioDeAssistir";
+import {
+  criarAnuncioDeAssistir,
+  type AnuncioDeAssistir,
+} from "./anuncioDeAssistir";
 import { CHAVE_ASSISTE, decodificarAssistindo } from "./espectadores";
 import {
   definirAnuncio,
@@ -139,9 +146,14 @@ let anuncio: AnuncioDeAssistir | undefined;
  * sala" em vez de afirmar "0 assistindo".
  */
 function lerEspectadoresDaSala(r: Room): void {
-  definirContagemDisponivel(r.localParticipant.permissions?.canUpdateMetadata === true);
+  definirContagemDisponivel(
+    r.localParticipant.permissions?.canUpdateMetadata === true,
+  );
   for (const p of r.remoteParticipants.values()) {
-    definirAnuncio(p.identity, decodificarAssistindo(p.attributes[CHAVE_ASSISTE]));
+    definirAnuncio(
+      p.identity,
+      decodificarAssistindo(p.attributes[CHAVE_ASSISTE]),
+    );
   }
 }
 
@@ -153,8 +165,10 @@ function esquecerEspectadores(): void {
 
 function criarAnuncio(r: Room): AnuncioDeAssistir {
   return criarAnuncioDeAssistir({
-    podeEscrever: () => r.localParticipant.permissions?.canUpdateMetadata === true,
-    escrever: (valor) => r.localParticipant.setAttributes({ [CHAVE_ASSISTE]: valor }),
+    podeEscrever: () =>
+      r.localParticipant.permissions?.canUpdateMetadata === true,
+    escrever: (valor) =>
+      r.localParticipant.setAttributes({ [CHAVE_ASSISTE]: valor }),
     aoEscrever: (lista) => {
       const eu = r.localParticipant.identity;
       if (eu) definirAnuncio(eu, lista);
@@ -163,7 +177,8 @@ function criarAnuncio(r: Room): AnuncioDeAssistir {
     async medir(dono) {
       const pub = publicacaoDeVideo(dono, "tela");
       if (!pub?.isSubscribed) return undefined;
-      const faixa = pub.track instanceof RemoteVideoTrack ? pub.track : undefined;
+      const faixa =
+        pub.track instanceof RemoteVideoTrack ? pub.track : undefined;
       /*
         A altura que CHEGA sai da estatística do receptor, e não das
         `settings` da faixa: o simulcast troca de camada sem avisar a faixa, e
@@ -172,7 +187,8 @@ function criarAnuncio(r: Room): AnuncioDeAssistir {
       const stats = await faixa?.getReceiverStats().catch(() => undefined);
       return {
         ativa: pub.isEnabled,
-        recebida: stats?.frameHeight ?? faixa?.mediaStreamTrack.getSettings().height,
+        recebida:
+          stats?.frameHeight ?? faixa?.mediaStreamTrack.getSettings().height,
         publicada: pub.dimensions?.height,
       };
     },
@@ -256,7 +272,11 @@ function motivoDeMidia(e: unknown): string | undefined {
 async function noMaisRapido(): Promise<string | undefined> {
   const feature = (
     client.configuration as
-      | { features?: { livekit?: { nodes?: { name: string; public_url: string }[] } } }
+      | {
+          features?: {
+            livekit?: { nodes?: { name: string; public_url: string }[] };
+          };
+        }
       | undefined
   )?.features?.livekit;
   const nos = feature?.nodes ?? [];
@@ -297,7 +317,12 @@ function opcoesDaSala(channelId: string): RoomOptions {
         : { audioPreset: { maxBitrate: p.audioMaxBitrate } }),
       ...(p.video === undefined
         ? {}
-        : { videoEncoding: { maxBitrate: p.video.maxBitrate, maxFramerate: p.video.fps } }),
+        : {
+            videoEncoding: {
+              maxBitrate: p.video.maxBitrate,
+              maxFramerate: p.video.fps,
+            },
+          }),
     },
     ...(p.video === undefined
       ? {}
@@ -343,7 +368,9 @@ function ligarEventos(r: Room, channelId: string): void {
   });
   r.on(RoomEvent.ParticipantPermissionsChanged, (_antes, participante) => {
     if (participante.identity !== r.localParticipant.identity) return;
-    definirContagemDisponivel(participante.permissions?.canUpdateMetadata === true);
+    definirContagemDisponivel(
+      participante.permissions?.canUpdateMetadata === true,
+    );
   });
 
   r.on(RoomEvent.Connected, () => {
@@ -413,7 +440,9 @@ function ligarEventos(r: Room, channelId: string): void {
     }
     encerrarChamada();
   });
-  r.on(RoomEvent.Reconnecting, () => definirChamada({ estado: "reconectando" }));
+  r.on(RoomEvent.Reconnecting, () =>
+    definirChamada({ estado: "reconectando" }),
+  );
 
   /*
     ⚠ **Reconectar RE-VARRE quem publica o quê, e não só marca "dentro".**
@@ -596,7 +625,10 @@ function ligarEventos(r: Room, channelId: string): void {
         Antes dela não há onde aplicar, e aplicar só quando o deslizante mexe
         faria quem você baixou ontem voltar a 100% em toda chamada nova.
       */
-      definirVolumeDe(participante.identity, volumeEfetivo(participante.identity));
+      definirVolumeDe(
+        participante.identity,
+        volumeEfetivo(participante.identity),
+      );
       return;
     }
 
@@ -857,7 +889,9 @@ export function definirQualidadeDeStream(
 export async function resolucaoRecebida(
   userId: string,
   fonte: FonteDeVideo,
-): Promise<{ recebida: number | undefined; publicada: number | undefined } | undefined> {
+): Promise<
+  { recebida: number | undefined; publicada: number | undefined } | undefined
+> {
   const pub = publicacaoDeVideo(userId, fonte);
   const faixa = pub?.track;
   if (!pub || !faixa || !ehVideoRemoto(faixa)) return undefined;
@@ -1172,7 +1206,10 @@ let ruidoFalhou = false;
  * `restart` chega quando a faixa de entrada é trocada (outro microfone) e SEM
  * `audioContext` — por isso o contexto do `init` fica guardado.
  */
-function processadorDeRuido(): TrackProcessor<Track.Kind.Audio, AudioProcessorOptions> {
+function processadorDeRuido(): TrackProcessor<
+  Track.Kind.Audio,
+  AudioProcessorOptions
+> {
   let supressor: SupressorDeRuido | undefined;
   let contexto: AudioContext | undefined;
   const processador: TrackProcessor<Track.Kind.Audio, AudioProcessorOptions> = {
@@ -1200,7 +1237,9 @@ function processadorDeRuido(): TrackProcessor<Track.Kind.Audio, AudioProcessorOp
 }
 
 function faixaDoMicrofone(): LocalAudioTrack | undefined {
-  const t = sala?.localParticipant.getTrackPublication(Track.Source.Microphone)?.track;
+  const t = sala?.localParticipant.getTrackPublication(
+    Track.Source.Microphone,
+  )?.track;
   return t instanceof LocalAudioTrack ? t : undefined;
 }
 
@@ -1243,7 +1282,9 @@ let processadorDeFundo: BackgroundProcessorWrapper | undefined;
 let fundoFalhou: FundoDeVideo | undefined;
 
 function faixaDaCamera(): LocalVideoTrack | undefined {
-  const t = sala?.localParticipant.getTrackPublication(Track.Source.Camera)?.track;
+  const t = sala?.localParticipant.getTrackPublication(
+    Track.Source.Camera,
+  )?.track;
   return t instanceof LocalVideoTrack ? t : undefined;
 }
 
@@ -1257,11 +1298,17 @@ function faixaDaCamera(): LocalVideoTrack | undefined {
 const aplicarFundo = coalescer(async () => {
   const faixa = faixaDaCamera();
   /* A faixa trocou ou sumiu: o processador que eu conhecia não está nela. */
-  if (!faixa || (processadorDeFundo && faixa.getProcessor() !== processadorDeFundo)) {
+  if (
+    !faixa ||
+    (processadorDeFundo && faixa.getProcessor() !== processadorDeFundo)
+  ) {
     processadorDeFundo = undefined;
     fundoAplicado = "nenhum";
   }
-  const desejado = fundoEfetivo(lerPreferenciasDeVoz().fundo, lerChamada().camera);
+  const desejado = fundoEfetivo(
+    lerPreferenciasDeVoz().fundo,
+    lerChamada().camera,
+  );
   if (desejado !== fundoFalhou) fundoFalhou = undefined;
   if (!faixa || desejado === fundoFalhou) return;
 
@@ -1571,6 +1618,46 @@ async function publicarAudioDaJanela(p: LocalParticipant): Promise<void> {
   }
 }
 
+async function publicarAudioDoMixer(p: LocalParticipant): Promise<void> {
+  const ponte = ponteDoMixer();
+  const pcm = criarFaixaDePcm();
+  if (!ponte || !pcm) return;
+  const soltar = ponte.assinar(pcm.escrever);
+  const parar = () => {
+    soltar();
+    pcm.fechar();
+    void ponte.parar().catch(() => undefined);
+  };
+  const iniciou = await ponte.iniciar().catch(() => false);
+  if (!iniciou) {
+    parar();
+    toast({
+      tipo: "info",
+      titulo: "A tela está sendo transmitida sem o som dos apps.",
+      descricao: "Não deu para capturar as faixas marcadas.",
+    });
+    return;
+  }
+  audioDeJanelaEmCurso = { parar };
+  try {
+    await p.publishTrack(pcm.faixa, {
+      source: Track.Source.ScreenShareAudio,
+      audioPreset: AudioPresets.musicHighQualityStereo,
+      dtx: false,
+      red: false,
+      forceStereo: true,
+    });
+  } catch (e) {
+    parar();
+    audioDeJanelaEmCurso = undefined;
+    toast({
+      tipo: "erro",
+      titulo: "Não deu para enviar o som da tela.",
+      descricao: motivo(e),
+    });
+  }
+}
+
 function pararAudioDaJanela(): void {
   audioDeJanelaEmCurso?.parar();
   audioDeJanelaEmCurso = undefined;
@@ -1670,6 +1757,7 @@ async function transmitir(
     definirQualidadeEscolhida(escolha.qualidade);
     /* Antes de ler `telaAudio` abaixo: é esta publicação que decide se há som. */
     if (escolha.audioDeJanela) await publicarAudioDaJanela(p);
+    if (escolha.audioMixado) await publicarAudioDoMixer(p);
     definirChamada({
       tela: true,
       telaPausada: false,
@@ -1753,7 +1841,6 @@ async function transmitir(
     });
   }
 }
-
 
 /**
  * A faixa de vídeo da transmissão, para a prévia local.
@@ -1959,6 +2046,7 @@ async function comSeletorDoSistema(): Promise<
       opcoes: ScreenShareCaptureOptions;
       qualidade: QualidadeDaTela;
       audioDeJanela: boolean;
+      audioMixado: boolean;
     }
   | undefined
 > {
@@ -1976,6 +2064,7 @@ async function comSeletorDoSistema(): Promise<
     },
     qualidade,
     audioDeJanela: false,
+    audioMixado: false,
   };
 }
 
@@ -1996,6 +2085,7 @@ async function comSeletorProprio(
       qualidade: QualidadeDaTela;
       /** O som vem da captura por processo da casca, e não do `getDisplayMedia`. */
       audioDeJanela: boolean;
+      audioMixado: boolean;
     }
   | undefined
 > {
@@ -2015,7 +2105,13 @@ async function comSeletorProprio(
     escolha.audio &&
     ehJanela(escolha.fonteId) &&
     ponteDeAudioDeJanela() !== undefined;
-  const audioDoSistema = escolha.audio && !ehJanela(escolha.fonteId);
+  const audioMixado =
+    escolha.audio &&
+    !ehJanela(escolha.fonteId) &&
+    (escolha.excluir?.length ?? 0) > 0 &&
+    ponteDoMixer() !== undefined;
+  const audioDoSistema =
+    escolha.audio && !ehJanela(escolha.fonteId) && !audioMixado;
 
   const armou = await ponte.escolher(escolha.fonteId, audioDoSistema);
   if (!armou) {
@@ -2038,6 +2134,7 @@ async function comSeletorProprio(
     },
     qualidade,
     audioDeJanela,
+    audioMixado,
   };
 }
 
@@ -2108,7 +2205,11 @@ export function estadoBruto(): string {
 export async function estatisticasDeVoz(): Promise<number | undefined> {
   const engine = (
     sala as unknown as {
-      engine?: { pcManager?: { publisher?: { getStats?: () => Promise<RTCStatsReport> } } };
+      engine?: {
+        pcManager?: {
+          publisher?: { getStats?: () => Promise<RTCStatsReport> };
+        };
+      };
     }
   )?.engine;
   const obter = engine?.pcManager?.publisher?.getStats;
