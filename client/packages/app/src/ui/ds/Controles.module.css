@@ -31,6 +31,29 @@
   transform: scale(1.15);
 }
 
+/* Quem fala: a bolinha é fixa; o nome cede com reticências; "está falando" não corta. */
+.quemFala {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-1);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  white-space: nowrap;
+  color: var(--vx-text-2);
+}
+.quemFala .fala {
+  flex: 0 0 auto;
+  min-inline-size: 10px;
+}
+.quemFalaNome {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.quemFalaSufixo {
+  flex: none;
+}
+
 /* Fixar no canto */
 .cantos {
   display: inline-flex;

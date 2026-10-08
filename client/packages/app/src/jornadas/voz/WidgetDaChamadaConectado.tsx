@@ -1,15 +1,11 @@
 import { usuarioLocalId } from "nucleo/sdk/adapter";
-import { alternarCamera, alternarMudo, alternarSurdo, alternarTela } from "nucleo/sdk/chamada";
-import { podeDestacar } from "nucleo/sdk/popout";
 import { fixarSalaNoCanto } from "nucleo/store/preferenciasDaSala";
 import {
   useCantoDaSala,
   useChamada,
   useChannel,
   useFalantes,
-  useJanelaDestacada,
   usePessoasDaSala,
-  usePode,
 } from "nucleo/store/hooks";
 import { abrirConversa } from "nucleo/store/navegacao";
 import { definirPalco } from "nucleo/store/palcoDeVoz";
@@ -17,8 +13,6 @@ import { abrirServidor } from "nucleo/store/ultimoLugar";
 
 import { salas, voz } from "../../textos";
 import { WidgetDaChamada } from "../../ui/ds";
-import { sairDaSala } from "./acoes";
-import { destacarChamada, trazerDeVolta } from "./destacar";
 import { escolherFoco } from "./foco";
 import { useTempoDecorrido } from "./hooks";
 import { VideoEmFoco } from "./VideoEmFoco";
@@ -40,18 +34,17 @@ export function WidgetDaChamadaConectado({ servidorAberto }: { servidorAberto: s
   const serverId = canal === undefined ? servidorAberto : (canal.serverId ?? "");
   const pessoas = usePessoasDaSala(serverId, chamada.channelId);
   const falantes = useFalantes(pessoas.map((p) => p.id));
-  const destacada = useJanelaDestacada() !== undefined;
   const eu = usuarioLocalId();
   const tempo = useTempoDecorrido(chamada.estado === "dentro" ? chamada.desde : 0);
 
-  // Só aparece o que a pessoa pode usar: sem `Speak` não há microfone; sem `Video`, nem câmera nem tela.
-  const podeFalar = usePode(chamada.channelId, "falarNaVoz");
-  const podeTransmitir = usePode(chamada.channelId, "transmitirVideo");
-
   if (chamada.estado === "fora" || !canal) return null;
 
-  const nomeDe = (id: string) => pessoas.find((p) => p.id === id)?.nome || salas.alguem;
+  // ⚠ A janelinha existe SÓ para a transmissão (inclusive a sua). Sem ninguém transmitindo não há
+  // o que espiar: os controles da chamada ficam na coluna de salas.
   const quemTransmite = pessoas.find((p) => p.estado === "tela");
+  if (quemTransmite === undefined && !chamada.tela) return null;
+
+  const nomeDe = (id: string) => pessoas.find((p) => p.id === id)?.nome || salas.alguem;
   const quemFala = falantes[0];
   const foco = escolherFoco(
     pessoas.map((p) => ({
@@ -67,7 +60,7 @@ export function WidgetDaChamadaConectado({ servidorAberto }: { servidorAberto: s
     <WidgetDaChamada
       sala={canal.name}
       tempo={tempo}
-      transmissao={quemTransmite ? voz.palco.telaDe(nomeDe(quemTransmite.id)) : undefined}
+      transmissao={quemTransmite ? voz.palco.telaDe(nomeDe(quemTransmite.id)) : voz.palco.suaTela}
       quemFala={quemFala !== undefined ? nomeDe(quemFala) : undefined}
       video={
         foco ? (
@@ -79,15 +72,6 @@ export function WidgetDaChamadaConectado({ servidorAberto }: { servidorAberto: s
           />
         ) : undefined
       }
-      onDestacar={
-        podeDestacar() || destacada
-          ? () => {
-              if (destacada) trazerDeVolta();
-              else void destacarChamada();
-            }
-          : undefined
-      }
-      destacada={destacada}
       canto={canto}
       onCanto={fixarSalaNoCanto}
       onVoltar={() => {
@@ -96,15 +80,6 @@ export function WidgetDaChamadaConectado({ servidorAberto }: { servidorAberto: s
         else if (serverId !== servidorAberto) abrirServidor(serverId);
         definirPalco({ tipo: "grade" });
       }}
-      mudo={chamada.mudo}
-      surdo={chamada.surdo}
-      camera={chamada.camera}
-      tela={chamada.tela}
-      onMudo={podeFalar ? () => void alternarMudo() : undefined}
-      onSurdo={() => void alternarSurdo()}
-      onCamera={chamada.estado === "dentro" && podeTransmitir ? () => void alternarCamera() : undefined}
-      onTela={chamada.estado === "dentro" && podeTransmitir ? () => void alternarTela() : undefined}
-      onSair={() => void sairDaSala()}
     />
   );
 }

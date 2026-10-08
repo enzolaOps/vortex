@@ -120,14 +120,9 @@
   white-space: nowrap;
 }
 .quemFala {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--vx-space-1);
+  flex: 1 1 0;
+  justify-content: flex-end;
   min-inline-size: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--vx-text-2);
 }
 
 .controles {

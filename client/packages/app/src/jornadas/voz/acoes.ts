@@ -1,5 +1,6 @@
 import { entrarNaChamada, sairDaChamada } from "nucleo/sdk/chamada";
 import { definirPalco, fecharPalco } from "nucleo/store/palcoDeVoz";
+import { lerChamada } from "nucleo/store/chamada";
 import { limparFalhaDeVoz } from "nucleo/store/falhaDeVoz";
 
 /**
@@ -15,6 +16,19 @@ import { limparFalhaDeVoz } from "nucleo/store/falhaDeVoz";
 export async function entrarComPalco(canalId: string): Promise<boolean> {
   definirPalco({ tipo: "grade" });
   return entrarNaChamada(canalId);
+}
+
+/**
+ * Clicar numa sala de voz: entra nela. Na sala em que a pessoa já está, só abre
+ * o palco; em outra, `entrarNaChamada` sai da atual antes de conectar à nova.
+ */
+export async function abrirSala(canalId: string): Promise<boolean> {
+  const c = lerChamada();
+  if (c.estado !== "fora" && c.channelId === canalId) {
+    definirPalco({ tipo: "grade" });
+    return true;
+  }
+  return entrarComPalco(canalId);
 }
 
 /** Sair da sala. O palco fica aberto no estado "você não está na sala". */

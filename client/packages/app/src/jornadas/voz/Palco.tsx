@@ -309,7 +309,8 @@ export function PalcoDaSala({ serverId, canalId }: { serverId: string; canalId: 
       {estado === "fora" && <Fora canalId={canalId} nome={nome} />}
       {estado === "falhou" && falha && <Falha canalId={canalId} nome={nome} motivo={falha.motivo} />}
 
-      {(estado === "conectando" || estado === "dentro" || estado === "reconectando") && (
+      {/* Num servidor a coluna de salas vira faixa e a cápsula é daqui; na DM a coluna segue à vista com o painel dela. */}
+      {serverId !== "" && (estado === "conectando" || estado === "dentro" || estado === "reconectando") && (
         <div className={css.capsulaNoPalco}>
           <CapsulaConectada nomeDaSala={nome} pessoas={brutas} />
         </div>

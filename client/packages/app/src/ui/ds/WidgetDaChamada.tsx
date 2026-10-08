@@ -4,7 +4,7 @@ import { voz } from "../../textos";
 import { ImagemSobreImagem, SetaEsquerda } from "../icones";
 import { juntar } from "../juntar";
 import { Botao } from "./Botao";
-import { CantosDeFixacao, ControlesDeVoz, IndicadorDeFala, type CantoVoz, type ControlesDeVozProps } from "./Controles";
+import { CantosDeFixacao, ControlesDeVoz, QuemFala, type CantoVoz, type ControlesDeVozProps } from "./Controles";
 import { PainelVidro } from "./PainelVidro";
 import { Pilula } from "./Pilula";
 import css from "./WidgetDaChamada.module.css";
@@ -69,6 +69,10 @@ export function WidgetDaChamada({
 }: WidgetDaChamadaProps) {
   const { aberto, props } = useExpansao({});
   const arrasto = useArrastoParaCanto(onCanto);
+  // Sem nenhum tratador, não há o que mostrar: a chamada tem os controles na coluna de salas.
+  const temControles = Boolean(
+    controles.onMudo ?? controles.onSurdo ?? controles.onCamera ?? controles.onTela ?? controles.onSair,
+  );
   const faixa = [sala, tempo].filter(Boolean).join(" · ");
 
   return (
@@ -119,15 +123,14 @@ export function WidgetDaChamada({
 
       <div className={css.faixa}>
         {faixa && <span className={css.sala}>{faixa}</span>}
-        <span className={css.quemFala}>
-          <IndicadorDeFala falando={Boolean(quemFala)} />
-          {quemFala ? voz.falando(quemFala) : null}
-        </span>
+        <QuemFala nome={quemFala} className={css.quemFala} />
       </div>
 
-      <div className={css.controles}>
-        <ControlesDeVoz {...controles} />
-      </div>
+      {temControles && (
+        <div className={css.controles}>
+          <ControlesDeVoz {...controles} />
+        </div>
+      )}
     </PainelVidro>
   );
 }
