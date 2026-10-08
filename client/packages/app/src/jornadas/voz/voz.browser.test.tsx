@@ -16,6 +16,7 @@ import {
 import { chaveDeMembro, SEM_CARGO, type ParticipanteDeVoz } from "nucleo/sdk/domain";
 import { definirChamada, definirFalantes, limparChamada } from "nucleo/store/chamada";
 import { definirFalhaDeVoz, limparFalhaDeVoz } from "nucleo/store/falhaDeVoz";
+import { limparFaixaDoPalco } from "nucleo/store/faixaDoPalco";
 import { irParaCasa } from "nucleo/store/navegacao";
 import { definirPalco, fecharPalco, lerPalco } from "nucleo/store/palcoDeVoz";
 import { limparPreferenciasDaSala } from "nucleo/store/preferenciasDaSala";
@@ -119,6 +120,7 @@ beforeEach(() => {
   limparPreferenciasDaSala();
   limparChamada();
   limparFalhaDeVoz();
+  limparFaixaDoPalco();
   fecharPalco();
   irParaCasa();
   ctl.chamadas = [];
@@ -209,6 +211,86 @@ describe("palco em tela cheia", () => {
     await page.getByRole("button", { name: voz.palco.assistir("Caio") }).click();
     expect(lerPalco()).toEqual({ tipo: "assistindo", userId: "U2" });
     await expect.poll(() => pegar("[data-testid='foco-do-palco']")!.dataset.pessoa).toBe("U2");
+  });
+
+  it("a faixa tem miniaturas 16:9 de altura fixa, centradas e sem esticar", async () => {
+    await abrir([
+      participante("U1", { estado: "tela" }),
+      participante("U2", { estado: "tela" }),
+      participante("U3"),
+      participante("U4"),
+    ]);
+    entrarNoPalco();
+    await expect.poll(() => pegar("[data-testid='tira-do-palco']")).not.toBeNull();
+    const tira = pegar("[data-testid='tira-do-palco']")!;
+    const filhos = [...tira.children] as HTMLElement[];
+    expect(filhos.length).toBe(4);
+    const alturaToken = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--vx-tira-altura"));
+    for (const f of filhos) {
+      const r = f.getBoundingClientRect();
+      expect(r.height).toBeCloseTo(alturaToken, 0);
+      expect(r.width / r.height).toBeCloseTo(16 / 9, 1);
+    }
+    // Cabendo, a faixa fica centrada (a mesma folga dos dois lados), e não esticada.
+    const t = tira.getBoundingClientRect();
+    const primeiro = filhos[0]!.getBoundingClientRect();
+    const ultimo = filhos[filhos.length - 1]!.getBoundingClientRect();
+    expect(Math.abs(primeiro.left - t.left - (t.right - ultimo.right))).toBeLessThanOrEqual(2);
+    expect(ultimo.right - primeiro.left).toBeLessThan(t.width);
+  });
+
+  it("não cabendo, a faixa rola na horizontal sem cortar o início", async () => {
+    await page.viewport(700, 900);
+    const muitos = Array.from({ length: 14 }, (_, i) => participante(`P${String(i)}`));
+    await abrir([participante("U1", { estado: "tela" }), participante("U4"), ...muitos]);
+    entrarNoPalco();
+    await expect.poll(() => pegar("[data-testid='tira-do-palco']")).not.toBeNull();
+    const tira = pegar("[data-testid='tira-do-palco']")!;
+    expect(tira.scrollWidth).toBeGreaterThan(tira.clientWidth);
+    expect(tira.scrollLeft).toBe(0);
+    expect(tira.children[0]!.getBoundingClientRect().left).toBeGreaterThanOrEqual(tira.getBoundingClientRect().left - 1);
+  });
+
+  it("a seta recolhe a faixa a uma barra fina, devolve a altura ao foco e lembra a escolha", async () => {
+    await abrir([
+      participante("U1", { estado: "tela" }),
+      participante("U2"),
+      participante("U3"),
+      participante("U4"),
+    ]);
+    entrarNoPalco();
+    definirChamada({ comCamera: ["U2"] });
+    await expect.poll(() => ctl.assinaturas).toContain("+U2:camera");
+    const focoAntes = pegar("[data-testid='foco-do-palco']")!.getBoundingClientRect().height;
+
+    await page.getByRole("button", { name: voz.palco.recolherFaixa }).click();
+    await expect.poll(() => pegar("[data-testid='tira-do-palco']")).toBeNull();
+    // Nada de miniatura montada: a assinatura do vídeo de U2 foi devolvida.
+    await expect.poll(() => ctl.assinaturas).toContain("-U2:camera");
+    expect(pegar("[data-testid='faixa-do-palco']")!.getBoundingClientRect().height).toBeLessThanOrEqual(40);
+    await expect
+      .poll(() => pegar("[data-testid='foco-do-palco']")!.getBoundingClientRect().height)
+      .toBeGreaterThan(focoAntes);
+    expect(localStorage.getItem("vortex:faixa-do-palco-recolhida")).toBe("1");
+    expect(document.querySelector("button[aria-expanded='false']")).not.toBeNull();
+
+    await page.getByRole("button", { name: voz.palco.expandirFaixa }).click();
+    await expect.poll(() => pegar("[data-testid='tira-do-palco']")).not.toBeNull();
+    await expect.poll(() => ctl.assinaturas.filter((a) => a === "+U2:camera").length).toBe(2);
+  });
+
+  it("a PRÓPRIA tela na miniatura é um cartão, sem vídeo e sem assinar", async () => {
+    await abrir([
+      participante("U1", { estado: "tela" }),
+      participante("U2"),
+      participante("U4", { estado: "tela" }),
+    ]);
+    entrarNoPalco();
+    await expect.poll(() => pegar("[data-testid='foco-do-palco']")?.dataset.pessoa).toBe("U1");
+    const mini = pegar("[data-testid='ladrilho-de-tela'][data-pessoa='U4']")!;
+    expect(mini.textContent).toContain(voz.palco.vocePassaTransmitindo);
+    expect(mini.querySelector("video")).toBeNull();
+    expect(ctl.assinaturas).not.toContain("+U4:tela");
   });
 
   it("ver em grade tira o foco; sem transmissão o palco mostra só as pessoas, sem buraco", async () => {

@@ -9,10 +9,9 @@ import { VisualizadorDeImagem } from "./VisualizadorDeImagem";
 
 /**
  * O chat de um canal: a lista virtualizada e, embaixo, quem está digitando e o
- * composer. Lista e composer partilham UMA medida de leitura
- * (`--medida-da-conversa`), declarada aqui — assim o campo de escrever fica
- * alinhado à coluna de mensagens em qualquer largura, e em ultrawide o excedente
- * vira respiro nos dois lados.
+ * composer. Lista e composer ocupam a largura toda, alinhados ao início e com o
+ * mesmo recuo lateral: o campo de escrever fica sob a coluna de mensagens em
+ * qualquer largura, sem centralização.
  *
  * Remontada por canal (`key`): a lista reinicia a âncora e o composer troca de
  * rascunho, que mora fora do React e volta onde estava.
