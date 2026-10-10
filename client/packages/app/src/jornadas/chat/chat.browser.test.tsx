@@ -808,7 +808,14 @@ describe("menu de contexto: um só, no nível da lista", () => {
     await expect.poll(menu).toBeNull();
     clicarDireito(linhaDe("z1")!.querySelector("article")!);
     await expect.poll(menu).not.toBeNull();
-    Array.from(menu()!.querySelectorAll<HTMLElement>('[role="menuitem"]')).find((i) => i.textContent?.includes(chat.marcarNaoLida))!.click();
+    const naoLida = Array.from(menu()!.querySelectorAll<HTMLElement>('[role="menuitem"]')).find((i) =>
+      i.textContent?.includes(chat.marcarNaoLida),
+    )!;
+    // Com ícone, como os outros itens: o texto começa na mesma coluna.
+    const fixarItem = Array.from(menu()!.querySelectorAll<HTMLElement>('[role="menuitem"]')).find((i) => i.textContent?.includes(chat.copiarTexto))!;
+    expect(naoLida.querySelector("svg")).not.toBeNull();
+    expect(naoLida.querySelector("svg")!.getBoundingClientRect().left).toBeCloseTo(fixarItem.querySelector("svg")!.getBoundingClientRect().left, 0);
+    naoLida.click();
     expect(ctl.naoLidas).toEqual(["z1"]);
   });
 });
@@ -986,6 +993,23 @@ describe("composer", () => {
     expect(alerta.textContent).toContain("grande.zip");
     expect(alerta.textContent).toContain(chat.limiteDeEnvio("1 KB"));
     expect(pegar('ul[aria-label="Arquivos para enviar"]')).toBeNull();
+  });
+
+  it("o '+' de anexar fica à esquerda do campo e abre o seletor de arquivos", async () => {
+    semear([snap("c6")]);
+    abrir();
+    const botao = await vi.waitFor(() => {
+      const b = pegar(`button[aria-label="${chat.anexar}"]`);
+      if (!b) throw new Error("sem botão");
+      return b as HTMLButtonElement;
+    });
+    const campo = pegar("textarea")!;
+    expect(botao.compareDocumentPosition(campo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(botao.getBoundingClientRect().right).toBeLessThanOrEqual(campo.getBoundingClientRect().left + 1);
+    const seletor = pegar('[data-testid="seletor-de-arquivos"]') as HTMLInputElement;
+    const abriu = vi.spyOn(seletor, "click").mockImplementation(() => undefined);
+    botao.click();
+    expect(abriu).toHaveBeenCalledOnce();
   });
 
   it("sem servidor de arquivos o botão de anexar nem existe", () => {

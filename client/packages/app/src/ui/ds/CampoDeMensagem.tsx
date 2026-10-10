@@ -1,7 +1,7 @@
 import { useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 
 import { chat, ds } from "../../textos";
-import { Anexo, Enviar, Sorriso } from "../icones";
+import { Enviar, Mais, Sorriso } from "../icones";
 import { juntar } from "../juntar";
 import { Botao } from "./Botao";
 import css from "./CampoDeMensagem.module.css";
@@ -98,7 +98,7 @@ export function CampoDeMensagem({
             <Botao
               variante="fantasma"
               tamanho="sm"
-              icone={<Anexo />}
+              icone={<Mais />}
               aria-label={chat.anexar}
               disabled={desabilitado}
               onClick={onAnexar}
