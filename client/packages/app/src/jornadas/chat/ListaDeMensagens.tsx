@@ -1,6 +1,6 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { count } from "nucleo/arnes/stats";
-import { agruparSistema } from "nucleo/sdk/agrupamentoDeSistema";
+import { criarAgrupadorDeSistema } from "nucleo/sdk/agrupamentoDeSistema";
 import { remedir } from "nucleo/lib/remedir";
 import {
   carregarHistorico,
@@ -98,12 +98,9 @@ export function ListaDeMensagens({ canalId, servidorId }: ListaDeMensagensProps)
   const bruto = useChannelMessageIds(canalId);
   // Linhas de sistema seguidas do mesmo tipo viram UMA ("Ana e mais 4 entraram"). As absorvidas
   // saem da lista que o virtualizador enxerga: linha com altura zero realimentaria a medição.
-  const grupoAnterior = useRef<ReadonlyMap<string, readonly string[]> | undefined>(undefined);
-  const { visiveis: ids, grupos } = useMemo(() => {
-    const r = agruparSistema(bruto, (id) => messages.getSnapshot(id), grupoAnterior.current);
-    grupoAnterior.current = r.grupos;
-    return r;
-  }, [bruto]);
+  // Incremental: só o trecho que mudou é reavaliado (append reavalia o fim, não as 10k).
+  const agrupador = useMemo(() => criarAgrupadorDeSistema((id) => messages.getSnapshot(id)), []);
+  const { visiveis: ids, grupos } = useMemo(() => agrupador(bruto), [agrupador, bruto]);
   const historico = useEstadoDoHistorico(canalId);
   const rolagem = useRef<HTMLDivElement | null>(null);
   const medidor = useRef<HTMLDivElement | null>(null);
