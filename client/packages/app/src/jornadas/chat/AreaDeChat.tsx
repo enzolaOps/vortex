@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, type RefObject, useEffect, useRef } from "react";
 
 import { Composer } from "./Composer";
 import { SeletorDeReacao } from "./emoji/SeletoresDeEmoji";
@@ -20,6 +20,33 @@ import { VisualizadorDeImagem } from "./VisualizadorDeImagem";
  * aceitar escrita (a DM com alguém bloqueado): a frase do motivo ocupa o lugar do
  * campo, na mesma coluna de leitura.
  */
+/**
+ * Os avisos flutuam no canto da janela e o campo de escrever mora no mesmo canto:
+ * sem folga, o aviso cobre "Enviar" e os botões do campo. A altura do rodapé vira
+ * a variável `--vx-folga-de-avisos`, que a área de avisos soma à própria margem.
+ * Escrita só quando muda (ResizeObserver), nunca por render.
+ */
+function useFolgaDosAvisos(rodape: RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    const el = rodape.current;
+    if (el === null) return;
+    const raiz = document.documentElement;
+    const aplicar = () => {
+      const topo = el.getBoundingClientRect().top;
+      raiz.style.setProperty("--vx-folga-de-avisos", `${String(Math.max(0, window.innerHeight - topo))}px`);
+    };
+    aplicar();
+    const obs = new ResizeObserver(aplicar);
+    obs.observe(el);
+    window.addEventListener("resize", aplicar);
+    return () => {
+      obs.disconnect();
+      window.removeEventListener("resize", aplicar);
+      raiz.style.removeProperty("--vx-folga-de-avisos");
+    };
+  }, [rodape]);
+}
+
 export function AreaDeChat({
   canalId,
   servidorId,
@@ -29,6 +56,8 @@ export function AreaDeChat({
   servidorId: string;
   rodape?: ReactNode;
 }) {
+  const rodapeRef = useRef<HTMLDivElement | null>(null);
+  useFolgaDosAvisos(rodapeRef);
   return (
     <div className={css.chat}>
       <div className={css.lista}>
@@ -37,7 +66,7 @@ export function AreaDeChat({
       {/* Um de cada para o chat inteiro: nada disto é montado por linha. */}
       <SeletorDeReacao />
       <VisualizadorDeImagem servidorId={servidorId} />
-      <div className={css.rodape}>
+      <div ref={rodapeRef} className={css.rodape}>
         <div className={css.colunaDoRodape}>
           {rodape ?? (
             <>

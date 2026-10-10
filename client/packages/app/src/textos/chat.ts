@@ -1,4 +1,5 @@
 import { plural } from "nucleo/lib/plural";
+import { causaDaFalha } from "nucleo/notificacao/falhaDeEnvio";
 
 export const chat = {
   mensagem: "Mensagem",
@@ -102,11 +103,24 @@ export const chat = {
   /* Estados de envio */
   enviando: "Enviando…",
   naFilaSemConexao: "Na fila · sem conexão",
-  naoEnviada: "Não foi enviada.",
+  naoEnviada: "Não enviada",
+  /** A causa vem do núcleo: linha, aviso e rodapé do campo usam a mesma frase. */
+  causaDaFalha,
+  falhadasNoCanal: (n: number, conectado: boolean) =>
+    `${plural(n, "mensagem não enviada", "mensagens não enviadas")} · ${causaDaFalha(conectado)}`,
   reenviar: "Reenviar",
   descartar: "Descartar",
   enviandoArquivo: (porcento: number) => `Enviando arquivo… ${porcento}%`,
   cancelarEnvio: "Cancelar envio",
+
+  /* Player de áudio */
+  player: {
+    reproduzir: "Reproduzir",
+    pausar: "Pausar",
+    posicao: (nome: string) => `Posição de ${nome}`,
+    valorDaPosicao: (atual: string, total = "0:00") => `${atual} de ${total}`,
+    falhou: "Não foi possível tocar o áudio.",
+  },
 
   /* Ações da mensagem */
   reagirComEmoji: (emoji: string) => `Reagir com ${emoji}`,

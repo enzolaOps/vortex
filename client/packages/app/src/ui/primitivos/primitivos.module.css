@@ -176,7 +176,8 @@
 /* Aviso */
 .areaDeAvisos {
   position: fixed;
-  inset-block-end: var(--vx-space-4);
+  /* A folga é a altura do rodapé do chat (campo de escrever), medida por AreaDeChat. */
+  inset-block-end: calc(var(--vx-space-4) + var(--vx-folga-de-avisos, 0px));
   inset-inline-end: var(--vx-space-4);
   z-index: 60;
   display: grid;

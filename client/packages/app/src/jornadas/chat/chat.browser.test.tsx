@@ -18,7 +18,9 @@ import { limparEdicaoDeMensagem } from "nucleo/store/edicaoDeMensagem";
 import { limparEmojisRecentes } from "nucleo/store/emojisRecentes";
 import { fecharSeletorDeReacao } from "nucleo/store/seletorDeReacao";
 import { fecharVisualizador } from "nucleo/store/visualizadorDeImagem";
-import { limparFila, marcarPendente } from "nucleo/store/fila";
+import { limparFila, marcarFalhada, marcarPendente } from "nucleo/store/fila";
+import { dispensarToast, lerToasts } from "nucleo/ui-logica/toastStore";
+import { avisarFalhaDeEnvio } from "nucleo/notificacao/falhaDeEnvio";
 import { escreverRascunho, limparRascunho } from "nucleo/store/rascunhos";
 import { cancelarResposta, responderA } from "nucleo/store/resposta";
 import { progressoDeUpload } from "nucleo/store/uploads";
@@ -28,6 +30,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { chat } from "../../textos";
 import { AreaPrincipal } from "../../shell";
 import { desmontar, montar, pegar } from "../../ui/ds/montar";
+import { Avisos } from "../../ui/primitivos/Avisos";
 import { AreaDeChat } from "./AreaDeChat";
 import { AreaDoCanal } from "./CabecalhoDoCanal";
 
@@ -376,11 +379,38 @@ describe("anexos", () => {
     expect(cartao.textContent).toContain("relatorio.pdf");
     expect(cartao.textContent).toContain("1,2 MB");
     expect(cartao.getBoundingClientRect().height).toBe(56);
-    expect(linhaDe("f1")!.querySelector("audio[controls]")).not.toBeNull();
+    const player = linhaDe("f1")!.querySelector<HTMLElement>('[role="slider"]');
+    expect(player).not.toBeNull();
+    expect(linhaDe("f1")!.querySelector("audio[controls]")).toBeNull();
+    expect(linhaDe("f1")!.querySelector("audio")).not.toBeNull();
   });
 });
 
 /* ========================================================= estados da lista */
+
+describe("aviso de falha de envio", () => {
+  it("fica acima do campo (não cobre o botão Enviar) e o botão diz o que faz", async () => {
+    semear([snap("x5", { authorId: EU, sendState: "failed" })]);
+    montar(
+      <div style={{ inlineSize: "100vw", blockSize: "100vh", display: "grid" }}>
+        <AreaPrincipal>
+          <AreaDeChat canalId={C} servidorId={S} />
+        </AreaPrincipal>
+        <Avisos />
+      </div>,
+    );
+    avisarFalhaDeEnvio("#geral", true, () => undefined);
+    const reenviar = page.getByRole("button", { name: "Reenviar mensagem" });
+    await expect.element(reenviar).toBeVisible();
+    const aviso = reenviar.element().closest<HTMLElement>("[data-tipo]")!;
+    const enviar = page.getByRole("button", { name: chat.enviar, exact: true }).element().getBoundingClientRect();
+    const a = aviso.getBoundingClientRect();
+    const sobrepoe = a.left < enviar.right && a.right > enviar.left && a.top < enviar.bottom && a.bottom > enviar.top;
+    expect(sobrepoe).toBe(false);
+    expect(reenviar.element().getBoundingClientRect().height).toBeGreaterThanOrEqual(24);
+    for (const x of lerToasts()) dispensarToast(x.id);
+  });
+});
 
 describe("estados da lista", () => {
   it("carregando: o esqueleto avisa a espera, e nada de começo-do-canal ainda", async () => {
@@ -547,6 +577,36 @@ describe("linha da mensagem", () => {
     await page.getByRole("button", { name: chat.descartar }).click();
     expect(ctl.reenviadas).toEqual(["x1"]);
     expect(ctl.descartadas).toEqual(["x1"]);
+  });
+
+  it("falha com a rede de pé diz que o servidor recusou; sem rede diz sem conexão", async () => {
+    semear([snap("x2", { authorId: EU, sendState: "failed" })]);
+    abrir();
+    const linha = () => linhaDe("x2")!.textContent ?? "";
+    await expect.poll(linha).toContain(`${chat.naoEnviada} · ${chat.causaDaFalha(true)}`);
+    expect(linha()).toContain("o servidor recusou a mensagem");
+    pausarConexao();
+    await expect.poll(linha).toContain(`${chat.naoEnviada} · sem conexão`);
+  });
+
+  it("Reenviar e Descartar têm alvo de pelo menos 24px", async () => {
+    semear([snap("x3", { authorId: EU, sendState: "failed" })]);
+    abrir();
+    await expect.element(page.getByText(chat.naoEnviada)).toBeVisible();
+    for (const nome of [chat.reenviar, chat.descartar]) {
+      const r = page.getByRole("button", { name: nome }).element().getBoundingClientRect();
+      expect(r.height).toBeGreaterThanOrEqual(24);
+      expect(r.width).toBeGreaterThanOrEqual(24);
+    }
+  });
+
+  it("o rodapé do campo conta a mesma história da linha", async () => {
+    semear([snap("x4", { authorId: EU, sendState: "failed" })]);
+    abrir();
+    marcarFalhada("x4", C);
+    await expect.element(page.getByText(chat.falhadasNoCanal(1, true))).toBeVisible();
+    pausarConexao();
+    await expect.element(page.getByText(chat.falhadasNoCanal(1, false))).toBeVisible();
   });
 
   it("subindo arquivo mostra o progresso, que vem do store efêmero", async () => {

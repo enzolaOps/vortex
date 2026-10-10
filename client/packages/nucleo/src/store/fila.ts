@@ -41,6 +41,14 @@ const ouvintes = new Set<() => void>();
 const canalDePendente = new Map<string, string>();
 const porCanal = new Map<string, number>();
 
+/**
+ * As que FALHARAM, por canal — o rodapé do composer conta a mesma história da
+ * linha e do aviso, então precisa saber quantas são. Mesma estrutura das
+ * pendentes: um mapa ID → canal garante idempotência.
+ */
+const canalDeFalhada = new Map<string, string>();
+const falhadasPorCanal = new Map<string, number>();
+
 export function assinarFila(ouvinte: () => void): () => void {
   ouvintes.add(ouvinte);
   return () => {
@@ -67,7 +75,8 @@ export function confirmarNaFila(id: string): void {
  */
 export function esquecerDaFila(id: string): void {
   const saiu = desmarcarPendente(id);
-  if (!confirmadas.delete(id) && !saiu) return;
+  const falhada = desmarcarFalhada(id);
+  if (!confirmadas.delete(id) && !saiu && !falhada) return;
   for (const o of ouvintes) o();
 }
 
@@ -97,6 +106,32 @@ export function desmarcarPendente(id: string): boolean {
   return true;
 }
 
+/** Esta mensagem falhou, neste canal. */
+export function marcarFalhada(id: string, channelId: string): void {
+  if (canalDeFalhada.get(id) === channelId) return;
+  desmarcarFalhada(id);
+  canalDeFalhada.set(id, channelId);
+  falhadasPorCanal.set(channelId, (falhadasPorCanal.get(channelId) ?? 0) + 1);
+  for (const o of ouvintes) o();
+}
+
+/** Esta mensagem não está mais falhada. Devolve se havia o que tirar. */
+export function desmarcarFalhada(id: string): boolean {
+  const channelId = canalDeFalhada.get(id);
+  if (channelId === undefined) return false;
+  canalDeFalhada.delete(id);
+  const restam = (falhadasPorCanal.get(channelId) ?? 1) - 1;
+  if (restam > 0) falhadasPorCanal.set(channelId, restam);
+  else falhadasPorCanal.delete(channelId);
+  for (const o of ouvintes) o();
+  return true;
+}
+
+/** Quantas mensagens deste canal falharam. Zero é o caso normal. */
+export function lerFalhadasDoCanal(channelId: string): number {
+  return falhadasPorCanal.get(channelId) ?? 0;
+}
+
 /** Quantas mensagens deste canal esperam a rede. Zero é o caso normal. */
 export function lerPendentesDoCanal(channelId: string): number {
   return porCanal.get(channelId) ?? 0;
@@ -107,4 +142,6 @@ export function limparFila(): void {
   confirmadas.clear();
   canalDePendente.clear();
   porCanal.clear();
+  canalDeFalhada.clear();
+  falhadasPorCanal.clear();
 }

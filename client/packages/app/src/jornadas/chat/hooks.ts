@@ -1,6 +1,6 @@
 import { estadoDoHistoricoDoCanal, type EstadoDoHistorico } from "nucleo/sdk/adapter";
 import { assinarEdicaoDeMensagem, lerEdicaoDeMensagem } from "nucleo/store/edicaoDeMensagem";
-import { assinarFila, lerPendentesDoCanal } from "nucleo/store/fila";
+import { assinarFila, lerFalhadasDoCanal, lerPendentesDoCanal } from "nucleo/store/fila";
 import { assinarResposta, alvoDeResposta, type AlvoDeResposta } from "nucleo/store/resposta";
 import { progressoDeUpload, type ProgressoDeUpload } from "nucleo/store/uploads";
 import { useSyncExternalStore } from "react";
@@ -38,6 +38,11 @@ export function useEditandoEsta(id: string): boolean {
 /** Quantas mensagens do canal esperam a rede. Zero é o caso normal. */
 export function usePendentesDoCanal(canalId: string): number {
   return useSyncExternalStore(assinarFila, () => lerPendentesDoCanal(canalId));
+}
+
+/** Quantas mensagens do canal falharam. Zero é o caso normal. */
+export function useFalhadasDoCanal(canalId: string): number {
+  return useSyncExternalStore(assinarFila, () => lerFalhadasDoCanal(canalId));
 }
 
 /** O progresso do upload desta mensagem (store efêmero: muda dezenas de vezes por segundo). */

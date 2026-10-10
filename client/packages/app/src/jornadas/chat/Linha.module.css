@@ -129,7 +129,10 @@
   color: var(--vx-danger);
 }
 .acaoDoEstado {
-  padding: 0;
+  /* Alvo de pelo menos 24px de altura e largura, sem crescer a linha de texto. */
+  min-inline-size: 24px;
+  min-block-size: 24px;
+  padding: 0 var(--vx-space-1);
   border: 0;
   background: transparent;
   color: var(--vx-accent);
