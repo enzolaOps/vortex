@@ -238,7 +238,7 @@ export const admin = {
     carregando: "Carregando as pessoas…",
     erro: "Não deu para carregar as pessoas.",
     dadosDeAntes: "Não deu para atualizar a lista agora. Mostrando os dados de antes.",
-    acoes: (nome: string) => `Ações para ${nome}`,
+    acoes: (nome: string) => `Ações de ${nome}`,
     gerenciarCargos: "Mudar cargos",
     cargosDe: (nome: string) => `Cargos de ${nome}`,
     semCargosNoServidor: "O servidor ainda não tem cargos.",
