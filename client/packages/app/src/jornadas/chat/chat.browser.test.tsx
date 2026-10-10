@@ -121,6 +121,7 @@ function instalarDubles() {
   });
   vi.mocked(adapter.primeiraNaoLida).mockImplementation(() => ctl.naoLida);
   vi.mocked(adapter.temMencao).mockImplementation(() => ctl.mencoes.length > 0);
+  vi.mocked(adapter.idsDeMencao).mockImplementation(() => ctl.mencoes);
   vi.mocked(adapter.proximaMencao).mockImplementation((_c, depoisDe) => {
     const i = depoisDe === undefined ? -1 : ctl.mencoes.indexOf(depoisDe);
     return ctl.mencoes[(i + 1) % ctl.mencoes.length];
@@ -557,6 +558,31 @@ describe("lista: âncora, histórico e leitura como posição", () => {
     await expect.poll(() => linhaDe(ctl.mencoes[1]!), { timeout: 3000 }).not.toBeNull();
     await botao.click();
     await expect.poll(() => linhaDe(ctl.mencoes[0]!), { timeout: 3000 }).not.toBeNull();
+  });
+
+  it("menção à vista não mostra o atalho; só a que está fora da tela", async () => {
+    const todas = muitas(400);
+    ctl.mencoes = [todas[399]!.id];
+    semear(todas);
+    abrir();
+    await expect.poll(distanciaDoFim, { timeout: 5000 }).toBeLessThanOrEqual(80);
+    await esperar(500);
+    expect(
+      Array.from(document.querySelectorAll("button")).some((b) => b.textContent === chat.proximaMencao),
+    ).toBe(false);
+  });
+
+  it("a hora é curta ('14:32'), com a completa no title e o instante no datetime", async () => {
+    semear([snap("h1", { createdAtText: "14:32:09", createdAtCurto: "14:32", createdAt: Date.UTC(2026, 0, 2, 14, 32, 9) })]);
+    abrir();
+    const hora = await vi.waitFor(() => {
+      const el = document.querySelector("time");
+      if (!el) throw new Error("sem hora");
+      return el;
+    });
+    expect(hora.textContent).toBe("14:32");
+    expect(hora.getAttribute("title")).toBe("14:32:09");
+    expect(hora.getAttribute("datetime")).toBe("2026-01-02T14:32:09.000Z");
   });
 
   it("ack ao ler: no fim da lista o canal é marcado lido, sem esperar sair", async () => {
