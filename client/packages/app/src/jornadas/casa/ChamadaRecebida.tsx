@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 
 import { casa } from "../../textos";
 import { Avatar, Botao } from "../../ui/ds";
-import { Camera, EncerrarChamada, Telefone } from "../../ui/icones";
+import { Telefone, TelefoneDesligando } from "../../ui/icones";
 import css from "./ChamadaRecebida.module.css";
 import { useChamadaRecebida } from "./hooks";
 
@@ -69,7 +69,7 @@ function Aviso({ channelId, quemLigou }: { channelId: string; quemLigou: string 
                 recusarChamada();
               }}
             >
-              <EncerrarChamada tamanho={20} />
+              <TelefoneDesligando tamanho={20} />
             </button>
             <span className={css.legenda}>
               {casa.chamada.recusar}
@@ -86,7 +86,7 @@ function Aviso({ channelId, quemLigou }: { channelId: string; quemLigou: string 
                 void atenderChamada({ comCamera: true });
               }}
             >
-              <Camera tamanho={20} />
+              <Telefone tamanho={20} />
             </button>
             <span className={css.legenda}>
               {casa.chamada.atender}

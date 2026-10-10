@@ -23,7 +23,7 @@ import {
 import { Interruptor } from "../config/controles";
 import css from "./admin.module.css";
 import { Confirmacao } from "./Confirmacao";
-import { Carregando, Vazio } from "./Estados";
+import { Carregando, Falhou, Vazio } from "./Estados";
 
 const t = admin.membrosPagina;
 
@@ -395,12 +395,22 @@ export function Membros({ serverId }: { serverId: string }) {
   const [cargoFiltro, setCargoFiltro] = useState<string | undefined>();
   const [limite, setLimite] = useState(PAGINA);
   const [acao, setAcao] = useState<Acao | undefined>();
+  const [revisao, setRevisao] = useState(0);
+  const [resposta, setResposta] = useState<{ para: string; revisao: number; ok: boolean } | undefined>();
   const cargos = cargosDoServidor(serverId);
   const pessoas = pessoasDoServidor(serverId, ids);
 
   useEffect(() => {
-    void carregarMembros(serverId);
-  }, [serverId]);
+    let vivo = true;
+    void carregarMembros(serverId, false).then((ok) => {
+      if (vivo) setResposta({ para: serverId, revisao, ok });
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [serverId, revisao]);
+  // Falha é derivada de para quem a resposta é; só vira tela de erro se não há lista nenhuma.
+  const falhou = resposta?.para === serverId && resposta.revisao === revisao && !resposta.ok;
 
   const procurado = busca.trim().toLowerCase();
   const visiveis = pessoas.filter(
@@ -449,7 +459,7 @@ export function Membros({ serverId }: { serverId: string }) {
                   setCargoFiltro(c.id);
                 }}
               >
-                {c.nome}
+                {c.nome} · {pessoas.filter((p) => p.cargosIds.includes(c.id)).length}
               </button>
             ))}
           </div>
@@ -460,11 +470,25 @@ export function Membros({ serverId }: { serverId: string }) {
       </div>
 
       {ids.length === 0 ? (
-        <Carregando texto={t.carregando} />
+        falhou ? (
+          <Falhou
+            texto={t.erro}
+            aoTentar={() => {
+              setRevisao((r) => r + 1);
+            }}
+          />
+        ) : (
+          <Carregando texto={t.carregando} />
+        )
       ) : visiveis.length === 0 ? (
         <Vazio titulo={t.vazio} texto={t.vazioDica} />
       ) : (
         <>
+          {falhou && (
+            <p className={css.dica} role="status" data-testid="aviso-dados-de-antes">
+              {t.dadosDeAntes}
+            </p>
+          )}
           <ul
             className={css.tabela}
             aria-label={admin.navegacao.membros}

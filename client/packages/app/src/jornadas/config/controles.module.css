@@ -6,6 +6,10 @@
   max-inline-size: 640px;
 }
 
+.larga {
+  max-inline-size: none;
+}
+
 .bloco {
   display: flex;
   flex-direction: column;

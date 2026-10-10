@@ -21,8 +21,9 @@ import {
 import css from "./controles.module.css";
 
 /** Uma página de configuração: coluna de blocos na medida de leitura. */
-export function Pagina({ children }: { children: ReactNode }) {
-  return <div className={css.pagina}>{children}</div>;
+/** `larga` tira o teto de 640px: a página que se divide em colunas decide a própria largura. */
+export function Pagina({ children, larga = false }: { children: ReactNode; larga?: boolean }) {
+  return <div className={larga ? `${css.pagina} ${css.larga}` : css.pagina}>{children}</div>;
 }
 
 export function Bloco({ children }: { children: ReactNode }) {
