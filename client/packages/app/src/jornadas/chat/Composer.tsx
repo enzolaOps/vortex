@@ -2,13 +2,14 @@ import { digitacao, enviarMensagem } from "nucleo/sdk/adapter";
 import { temServidorDeMidia, tetoDeUploadBytes, tetoDeUploadTexto } from "nucleo/sdk/anexos";
 import { chaveDeMembro } from "nucleo/sdk/domain";
 import { pode } from "nucleo/sdk/permissoes";
-import { useChannel, useConexao, useMembro, useMessage, useRascunho } from "nucleo/store/hooks";
+import { useChannel, useConexao, useMembro, useMessage, usePessoa, useRascunho } from "nucleo/store/hooks";
 import { limparRascunho, escreverRascunho } from "nucleo/store/rascunhos";
 import { registrarEmojiRecente } from "nucleo/store/emojisRecentes";
 import { cancelarResposta, responderA } from "nucleo/store/resposta";
 import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent } from "react";
 
 import { chat } from "../../textos";
+import { nomeDaConversa } from "../useNomeDaConversa";
 import { CampoDeMensagem } from "../../ui/ds";
 import { Arquivo, Arroba, Cadeado, Fechar, Imagem, SemConexao } from "../../ui/icones";
 import { trechoDe } from "./CitacaoDeResposta";
@@ -107,6 +108,7 @@ function envolver(el: HTMLTextAreaElement, marca: string, escrever: (texto: stri
  */
 export function Composer({ canalId, servidorId }: { canalId: string; servidorId: string }) {
   const canal = useChannel(canalId);
+  const pessoaDaDm = usePessoa(canal?.tipo === "dm" ? (canal.destinatarioId ?? "") : "");
   const rascunho = useRascunho(canalId);
   const alvo = useAlvoDeResposta(canalId);
   const conectado = useConexao() === "conectado";
@@ -218,7 +220,7 @@ export function Composer({ canalId, servidorId }: { canalId: string; servidorId:
   };
 
   const podeAnexar = temServidorDeMidia();
-  const nome = canal.name;
+  const nome = nomeDaConversa(canal, pessoaDaDm);
   const topo =
     alvo !== undefined || arquivos.length > 0 || aviso !== undefined ? (
       <div className={css.topo}>

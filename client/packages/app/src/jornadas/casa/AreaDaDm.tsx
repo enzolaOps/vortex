@@ -19,6 +19,7 @@ import { Cadeado, Camera, Configuracoes, Mensagem, Sino, SinoMudo, Telefone } fr
 import { AreaDeChat } from "../chat/AreaDeChat";
 import { WidgetDaChamadaConectado } from "../voz/WidgetDaChamadaConectado";
 import { PalcoDaSala } from "../voz/Palco";
+import { nomeDaConversa } from "../useNomeDaConversa";
 import { ligarNaConversa } from "./acoes";
 import css from "./Conversa.module.css";
 import { GerenciarGrupo } from "./GerenciarGrupo";
@@ -140,7 +141,7 @@ export function AreaDaDm({ canalId }: { canalId: string }) {
 
   const ehDm = canal.tipo === "dm";
   const ehGrupo = canal.tipo === "grupo";
-  const nome = ehDm ? (pessoa?.displayName ?? canal.name) : ehGrupo ? canal.name : casa.conversa.notasTitulo;
+  const nome = nomeDaConversa(canal, pessoa);
   const subtitulo = ehDm
     ? pessoa !== undefined
       ? casa.amigos.status[pessoa.status]

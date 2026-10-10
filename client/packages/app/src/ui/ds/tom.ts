@@ -15,14 +15,16 @@ function hash(texto: string): number {
  * nome. Estável entre sessões: o tom é identidade decorativa, quem a pessoa é
  * vem das iniciais e do nome.
  */
-export function tomDe(id: string | undefined, nome: string, tom?: number): Tom {
+export function tomDe(id: string | undefined, nome: string | undefined, tom?: number): Tom {
   if (tom !== undefined && Number.isInteger(tom) && tom >= 1 && tom <= 8) return tom as Tom;
-  return ((hash(id ?? nome) % 8) + 1) as Tom;
+  const chave = id ?? nome ?? "";
+  if (chave === "") return 1; // sem identidade: tom neutro e estável
+  return ((hash(chave) % 8) + 1) as Tom;
 }
 
 /** Primeira letra da primeira e da última palavra; uma palavra só dá uma letra. */
-export function iniciais(nome: string): string {
-  const palavras = nome.trim().split(/\s+/).filter(Boolean);
+export function iniciais(nome: string | undefined): string {
+  const palavras = (typeof nome === "string" ? nome : "").trim().split(/\s+/).filter(Boolean);
   const primeira = palavras[0];
   if (primeira === undefined) return "";
   const ultima = palavras.length > 1 ? palavras[palavras.length - 1] : undefined;

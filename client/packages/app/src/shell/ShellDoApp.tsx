@@ -28,6 +28,8 @@ export interface ShellDoAppProps {
   salasEmFaixa?: boolean;
   /** O que é da pessoa (sair da conta), fixo no rodapé da coluna de salas. */
   rodapeDasSalas?: ReactNode;
+  /** Muda ao trocar de lugar: faz os limites de erro das regiões esquecerem uma falha. */
+  chaveDoLugar?: string;
 }
 
 /**
@@ -36,10 +38,11 @@ export interface ShellDoAppProps {
  * props. O modo da gaveta é preferência do dispositivo e vive num store, não
  * aqui: sobrevive a fechar e abrir o app.
  */
-export function ShellDoApp({ principal, dock, salas, membros, area, gavetaOculta = false, rodapeDasSalas, faixaDeSalas, salasEmFaixa = false }: ShellDoAppProps) {
+export function ShellDoApp({ principal, dock, salas, membros, area, gavetaOculta = false, rodapeDasSalas, faixaDeSalas, salasEmFaixa = false, chaveDoLugar }: ShellDoAppProps) {
   const modo = useModoDaGaveta();
   return (
     <Shell
+      chaveDoLugar={chaveDoLugar}
       salasEmFaixa={salasEmFaixa}
       faixaDeSalas={faixaDeSalas}
       modoDaGaveta={gavetaOculta ? "oculta" : modo}

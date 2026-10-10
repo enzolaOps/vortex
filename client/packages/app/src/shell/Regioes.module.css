@@ -98,3 +98,26 @@
   padding: var(--vx-space-2);
   border-block-start: 1px solid var(--vx-border-subtle);
 }
+
+/* O limite de erro não pode mudar a caixa da região: preenche e deixa o filho esticar. */
+.regiao {
+  display: contents;
+}
+
+.erro {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vx-space-3);
+  padding: var(--vx-space-6);
+  text-align: center;
+}
+
+.erroTexto {
+  margin: 0;
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-body-size);
+  line-height: var(--vx-type-body-line);
+}
