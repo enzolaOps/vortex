@@ -135,6 +135,8 @@ function CanalDaColuna({
 				selecionado={ativo}
 				naoLida={canal.naoLidas > 0 && !canal.silenciado}
 				mencoes={canal.silenciado ? 0 : canal.mencoes}
+				restrito={canal.privado}
+				modoLentoSegundos={canal.modoLentoSegundos}
 				onClick={() => {
 					// Ler outro canal fecha o palco; a chamada segue no widget.
 					fecharPalco();
