@@ -631,14 +631,13 @@ describe("gaveta de membros", () => {
 });
 
 describe("sem conexão", () => {
-	it("avisa que a presença pode estar desatualizada e não afirma quem está onde", async () => {
+	it("marca a presença como desatualizada e não afirma quem está onde", async () => {
 		await abrirNoServidor();
 		pausarConexao();
-		await expect.element(page.getByText(salas.semConexao)).toBeVisible();
 		// A contagem segue visível, mas dita como desatualizada.
-		expect(
-			coluna().querySelector('[role="img"][aria-label*="desatualizada"]'),
-		).not.toBeNull();
+		await expect
+			.poll(() => coluna().querySelector('[role="img"][aria-label*="desatualizada"]'))
+			.not.toBeNull();
 		// A sala não oferece entrar enquanto a conexão não volta.
 		expect(sala("Jogatina").getAttribute("aria-disabled")).toBe("true");
 		expect(document.body.textContent).not.toContain(salas.entrarNaSala);

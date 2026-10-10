@@ -8,7 +8,6 @@ import {
 	useCategorias,
 	useChannel,
 	useConexao,
-	useDetalheDaConexao,
 	useFalantes,
 	useLocal,
 	usePessoasDaSala,
@@ -223,25 +222,6 @@ function ServidorSemSalas({
 	);
 }
 
-function AvisoDeConexao() {
-	const detalhe = useDetalheDaConexao();
-	if (detalhe.estado === "conectado") return null;
-	return (
-		<div className={css.aviso} role="status">
-			<span>
-				{detalhe.estado === "reconectando"
-					? salas.reconectando
-					: salas.semConexao}
-			</span>
-			{detalhe.ultimaSincroniaTexto !== undefined && (
-				<span className={css.avisoMiudo}>
-					{salas.ultimaSincronia(detalhe.ultimaSincroniaTexto)}
-				</span>
-			)}
-		</div>
-	);
-}
-
 function ListaDoServidor({ serverId }: { serverId: string }) {
 	const coluna = useColuna(serverId);
 	const emVoz = useCanaisDeVoz(serverId);
@@ -328,7 +308,6 @@ export function ColunaConectada({ rodape }: { rodape?: ReactNode }) {
 			acoes={<MenuDoServidor serverId={serverId} />}
 			rodape={rodape}
 			chamada={chamada}
-			aviso={<AvisoDeConexao />}
 		>
 			<ListaDoServidor serverId={serverId} />
 		</ColunaDeSalas>

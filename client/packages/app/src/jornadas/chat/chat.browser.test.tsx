@@ -1039,14 +1039,24 @@ describe("composer", () => {
     expect(pegar('[role="status"]')?.textContent).not.toContain("Vini");
   });
 
-  it("sem conexão o aviso diz que as mensagens saem quando voltar, e conta a fila", async () => {
+  it("sem conexão o campo não repete o aviso (ele mora na barra de título)", async () => {
     semear([snap("c8")]);
     abrir();
     pausarConexao();
-    await expect.element(page.getByText(chat.semConexao)).toBeVisible();
     marcarPendente("p1", C);
-    marcarPendente("p2", C);
-    await expect.element(page.getByText(chat.naFila(2), { exact: false })).toBeVisible();
+    await expect.poll(() => campo() as unknown).not.toBeNull();
+    await esperar(300);
+    expect(document.body.textContent).not.toMatch(/sem conexão/i);
+  });
+
+  it("sem o canal resolvido o campo é um esqueleto, e o campo de verdade entra no lugar", async () => {
+    abrir("SEM_CANAL");
+    await expect.poll(() => pegar("[data-esqueleto-do-campo]")).not.toBeNull();
+    const antes = pegar("[data-esqueleto-do-campo]")!.getBoundingClientRect();
+    canal("SEM_CANAL");
+    await expect.poll(() => pegar("[data-esqueleto-do-campo]")).toBeNull();
+    const depois = pegar("textarea")!.closest("div")!.parentElement!.getBoundingClientRect();
+    expect(Math.abs(antes.height - depois.height)).toBeLessThanOrEqual(8);
   });
 
   it("o rascunho é por canal: sair e voltar devolve o texto", async () => {

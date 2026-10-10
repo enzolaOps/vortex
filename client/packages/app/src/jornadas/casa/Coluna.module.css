@@ -130,19 +130,6 @@
   list-style: none;
 }
 
-.aviso {
-  display: flex;
-  align-items: center;
-  gap: var(--vx-space-2);
-  margin: 0 var(--vx-space-2) var(--vx-space-2);
-  padding: var(--vx-space-2) var(--vx-space-3);
-  border-radius: var(--vx-radius-md);
-  background: var(--vx-state-press);
-  color: var(--vx-text-1);
-  font-size: var(--vx-type-ui-size);
-  line-height: var(--vx-type-ui-line);
-}
-
 .vazio {
   display: flex;
   flex-direction: column;

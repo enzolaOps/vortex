@@ -84,6 +84,22 @@
   gap: var(--vx-space-2);
 }
 
+/* Um aviso só para a queda de conexão, no meio da barra; some quando volta. */
+.conexao {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+  padding: 0 var(--vx-space-3);
+  block-size: 24px;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-state-press);
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  font-variant-numeric: tabular-nums;
+  -webkit-app-region: no-drag;
+}
+
 .janela {
   display: flex;
   gap: var(--vx-space-1);

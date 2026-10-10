@@ -4,7 +4,6 @@ import { abrirConversa, irParaAmigos } from "nucleo/store/navegacao";
 import { useAgoraPorMinuto } from "nucleo/store/relogio";
 import {
   useChannel,
-  useConexao,
   useConversas,
   useLocal,
   useMessage,
@@ -16,7 +15,7 @@ import { useState, type ReactNode } from "react";
 import { ColunaDeSalas } from "../../shell";
 import { casa } from "../../textos";
 import { Avatar, Botao, Pilula } from "../../ui/ds";
-import { Mais, Mensagem, Pessoas, SemConexao } from "../../ui/icones";
+import { Mais, Mensagem, Pessoas } from "../../ui/icones";
 import { juntar } from "../../ui/juntar";
 import { nomeDaConversa } from "../useNomeDaConversa";
 import { useConviteDeAvisos } from "./hooks";
@@ -226,16 +225,9 @@ function ConviteDeAvisos() {
 function CorpoDaCasa() {
   const ids = useConversas();
   const local = useLocal();
-  const conexao = useConexao();
   const aberta = local.tipo === "dm" ? local.channelId : undefined;
   return (
     <>
-      {conexao !== "conectado" && (
-        <div className={css.aviso} role="status">
-          <SemConexao tamanho={16} />
-          <span>{casa.coluna.semConexao}</span>
-        </div>
-      )}
       <div className={css.corpo}>
         <EntradaDeAmigos />
         <div className={css.separador} />

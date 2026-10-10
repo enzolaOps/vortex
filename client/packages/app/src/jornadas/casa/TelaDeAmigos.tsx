@@ -7,7 +7,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { AreaPrincipal } from "../../shell";
 import { casa } from "../../textos";
 import { Avatar, Botao } from "../../ui/ds";
-import { Alerta, Marcar, MaisHorizontal, Pessoas, SemConexao } from "../../ui/icones";
+import { Alerta, Marcar, MaisHorizontal, Pessoas } from "../../ui/icones";
 import { juntar } from "../../ui/juntar";
 import { ConteudoDoMenu, GatilhoDoMenu, ItemDeMenu, MenuSuspenso } from "../../ui/primitivos/Menus";
 import { WidgetDaChamadaConectado } from "../voz/WidgetDaChamadaConectado";
@@ -287,7 +287,6 @@ function ListaDaAba({ aba }: { aba: Aba }) {
  */
 export function TelaDeAmigos() {
   const local = useLocal();
-  const conexao = useConexao();
   const [soOnline, setSoOnline] = useState(true);
   const pedidos = useRelacao("recebido").length;
   const emChamada = useEstadoDaChamada() !== "fora";
@@ -376,12 +375,6 @@ export function TelaDeAmigos() {
         <div className={css.corpo} tabIndex={0}>
           <div className={css.coluna}>
             <AdicionarPorNome />
-            {conexao !== "conectado" && (
-              <p className={css.aviso} role="status">
-                <SemConexao tamanho={16} />
-                {casa.amigos.semConexao}
-              </p>
-            )}
             <div id="painel-de-amigos" role="tabpanel" aria-labelledby={`aba-${aba}`}>
               <ListaDaAba aba={aba} />
             </div>
