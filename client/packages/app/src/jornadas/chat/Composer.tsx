@@ -10,12 +10,12 @@ import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent, type 
 
 import { chat } from "../../textos";
 import { nomeDaConversa } from "../useNomeDaConversa";
-import { CampoDeMensagem } from "../../ui/ds";
-import { Alerta, Arquivo, Arroba, Cadeado, Fechar, Imagem, SemConexao } from "../../ui/icones";
+import { CampoDeMensagem, PainelVidro } from "../../ui/ds";
+import { Alerta, Arquivo, Arroba, Cadeado, Fechar, Imagem } from "../../ui/icones";
 import { trechoDe } from "./CitacaoDeResposta";
 import css from "./Composer.module.css";
 import { SeletorNoComposer } from "./emoji/SeletoresDeEmoji";
-import { useAlvoDeResposta, useFalhadasDoCanal, usePendentesDoCanal } from "./hooks";
+import { useAlvoDeResposta, useFalhadasDoCanal } from "./hooks";
 import { pedirFimDaLista } from "./saltos";
 
 /** O protocolo aceita até cinco anexos por mensagem. */
@@ -84,6 +84,20 @@ function FichaDeAnexo({ arquivo, aoRemover }: { arquivo: File; aoRemover: () => 
   );
 }
 
+/**
+ * O campo ainda sem canal resolvido: a mesma caixa, vazia. Quando o canal chega o
+ * campo de verdade entra no lugar dela, sem a tela pular.
+ */
+function EsqueletoDoCampo() {
+  return (
+    <PainelVidro variante="leitura" raio="xl" className={css.esqueletoDoCampo} aria-hidden="true" data-esqueleto-do-campo="">
+      <span className={css.esqueletoBotao} />
+      <span className={css.esqueletoBarra} />
+      <span className={css.esqueletoBotao} />
+    </PainelVidro>
+  );
+}
+
 /** Envolve a seleção do campo numa marca de markdown (Ctrl+B, Ctrl+I). */
 function envolver(el: HTMLTextAreaElement, marca: string, escrever: (texto: string) => void) {
   const { selectionStart: de, selectionEnd: ate, value } = el;
@@ -112,7 +126,6 @@ export function Composer({ canalId, servidorId }: { canalId: string; servidorId:
   const rascunho = useRascunho(canalId);
   const alvo = useAlvoDeResposta(canalId);
   const conectado = useConexao() === "conectado";
-  const naFila = usePendentesDoCanal(canalId);
   const falhadas = useFalhadasDoCanal(canalId);
   const [arquivos, setArquivos] = useState<File[]>([]);
   const [aviso, setAviso] = useState<string | undefined>(undefined);
@@ -126,7 +139,7 @@ export function Composer({ canalId, servidorId }: { canalId: string; servidorId:
     if (alvoId !== undefined) area.current?.focus();
   }, [alvoId]);
 
-  if (!canal) return null;
+  if (!canal) return <EsqueletoDoCampo />;
 
   if (!pode(canalId, "enviar")) {
     return (
@@ -308,13 +321,6 @@ export function Composer({ canalId, servidorId }: { canalId: string; servidorId:
         <p className={`${css.conexao} ${css.conexaoFalha}`} role="status">
           <Alerta tamanho={14} />
           {chat.falhadasNoCanal(falhadas, conectado)}
-        </p>
-      )}
-      {(!conectado || naFila > 0) && (
-        <p className={css.conexao} role="status">
-          <SemConexao tamanho={14} />
-          {chat.semConexao}
-          {naFila > 0 && <span> · {chat.naFila(naFila)}</span>}
         </p>
       )}
     </div>

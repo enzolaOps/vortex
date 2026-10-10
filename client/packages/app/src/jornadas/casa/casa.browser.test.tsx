@@ -366,11 +366,9 @@ describe("casa: conversas e amigos", () => {
     expect(campo.element().getAttribute("aria-invalid")).toBe("true");
   });
 
-  it("sem conexão: avisa que a lista pode estar velha e não tenta pedir amizade", async () => {
+  it("sem conexão: não tenta pedir amizade (o aviso mora na barra de título)", async () => {
     await abrir();
     pausarConexao();
-    await expect.element(page.getByText(casa.amigos.semConexao)).toBeVisible();
-    await expect.element(page.getByText(casa.coluna.semConexao)).toBeVisible();
     await page.getByLabelText(casa.amigos.adicionar.rotulo).fill("ana");
     await page.getByRole("button", { name: casa.amigos.adicionar.botao }).click();
     await expect.element(page.getByRole("alert").filter({ hasText: casa.amigos.adicionar.semConexao })).toBeVisible();

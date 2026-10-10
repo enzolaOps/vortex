@@ -120,6 +120,17 @@
   pointer-events: auto;
 }
 
+/* No TOPO: o canto de baixo é onde está a última mensagem, que o botão não pode cobrir. */
+.saltoDeMencao {
+  position: absolute;
+  inset-block-start: var(--vx-space-2);
+  inset-inline-end: var(--vx-space-5);
+  pointer-events: none;
+}
+.saltoDeMencao > * {
+  pointer-events: auto;
+}
+
 .saltos {
   position: absolute;
   inset-block-end: var(--vx-space-3);

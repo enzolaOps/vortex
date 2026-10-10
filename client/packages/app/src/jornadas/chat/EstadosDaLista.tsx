@@ -8,12 +8,12 @@ import css from "./Estados.module.css";
 
 /** Placeholders sem identidade: nomeados à mão, porque `key` não pode ser índice. */
 const LINHAS_DO_ESQUELETO = [
-  { id: "a", curto: true },
-  { id: "b", curto: false },
-  { id: "c", curto: true },
-  { id: "d", curto: false },
-  { id: "e", curto: true },
-  { id: "f", curto: false },
+  { id: "a", curto: true, duas: false },
+  { id: "b", curto: false, duas: true },
+  { id: "c", curto: true, duas: false },
+  { id: "d", curto: false, duas: true },
+  { id: "e", curto: true, duas: false },
+  { id: "f", curto: false, duas: true },
 ] as const;
 
 /**
@@ -29,6 +29,7 @@ export function CarregandoHistorico() {
           <span className={css.linhas}>
             <span className={css.nome} />
             <span className={css.texto} data-curto={l.curto || undefined} />
+            {l.duas && <span className={css.texto} data-curto="" />}
           </span>
         </div>
       ))}

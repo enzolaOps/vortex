@@ -78,13 +78,14 @@
   font-weight: var(--vx-type-heading-weight);
 }
 
+/* Na fonte do texto (só a hora da calha do compacto fica em mono, por alinhamento). */
 .hora,
 .horaNoHover {
   color: var(--vx-text-3);
-  font-family: var(--vx-font-mono);
-  font-size: var(--vx-type-mono-size);
-  line-height: var(--vx-type-mono-line);
-  font-weight: var(--vx-type-mono-weight);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  font-weight: var(--vx-type-caption-weight);
+  font-variant-numeric: tabular-nums;
 }
 
 .horaNoHover {

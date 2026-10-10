@@ -184,16 +184,4 @@
   text-align: center;
   text-wrap: balance;
 }
-.aviso {
-  display: flex;
-  align-items: center;
-  gap: var(--vx-space-2);
-  padding: var(--vx-space-2) var(--vx-space-3);
-  border-radius: var(--vx-radius-md);
-  background: var(--vx-state-press);
-  color: var(--vx-text-1);
-  font-size: var(--vx-type-ui-size);
-  line-height: var(--vx-type-ui-line);
-}
-
 

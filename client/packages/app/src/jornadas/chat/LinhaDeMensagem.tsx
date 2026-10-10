@@ -83,7 +83,9 @@ function LinhaBase({ id, servidorId, grupo }: LinhaDeMensagemProps) {
               )
             }
             compacta={compacta}
-            hora={m.createdAtText}
+            hora={m.createdAtCurto}
+            horaCompleta={m.createdAtText}
+            dataHora={new Date(m.createdAt).toISOString()}
             continuacao={!m.iniciaGrupo}
             destacada={m.mencionaVoce}
             esmaecida={!enviada}

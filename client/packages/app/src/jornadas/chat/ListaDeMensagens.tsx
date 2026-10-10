@@ -9,7 +9,7 @@ import {
   messages,
   primeiraNaoLida,
   proximaMencao,
-  temMencao,
+  idsDeMencao,
 } from "nucleo/sdk/adapter";
 import { assinarAparencia, lerAparencia } from "nucleo/store/aparencia";
 import { assinarDensidade, lerDensidade } from "nucleo/store/densidade";
@@ -379,7 +379,17 @@ export function ListaDeMensagens({ canalId, servidorId }: ListaDeMensagensProps)
   const indiceDaNaoLida = naoLida === undefined ? -1 : ids.indexOf(naoLida);
   const primeiraVisivel = itens[0]?.index ?? 0;
   const naoLidaAcima = indiceDaNaoLida !== -1 && indiceDaNaoLida < primeiraVisivel;
-  const haMencao = temMencao(canalId);
+  // Só vale o atalho quando há menção que a pessoa NÃO está vendo: com todas à tela, ele
+  // seria um botão cobrindo texto para ir a lugar nenhum.
+  const faixa = virtualizer.range;
+  const mencoes = idsDeMencao(canalId);
+  const haMencao =
+    mencoes.length > 0 &&
+    (faixa === null ||
+      mencoes.some((id) => {
+        const i = ids.indexOf(id);
+        return i !== -1 && (i < faixa.startIndex || i > faixa.endIndex);
+      }));
 
   return (
     <div className={css.raiz}>
@@ -434,12 +444,15 @@ export function ListaDeMensagens({ canalId, servidorId }: ListaDeMensagensProps)
         </div>
       )}
 
-      <div className={css.saltos}>
-        {haMencao && (
+      {haMencao && (
+        <div className={css.saltoDeMencao}>
           <Botao variante="secundario" tamanho="sm" icone={<Arroba />} onClick={saltarParaMencao}>
             {chat.proximaMencao}
           </Botao>
-        )}
+        </div>
+      )}
+
+      <div className={css.saltos}>
         {estaLonge && (
           <Botao
             variante="secundario"

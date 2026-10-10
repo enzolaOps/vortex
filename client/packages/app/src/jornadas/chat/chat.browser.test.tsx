@@ -121,6 +121,7 @@ function instalarDubles() {
   });
   vi.mocked(adapter.primeiraNaoLida).mockImplementation(() => ctl.naoLida);
   vi.mocked(adapter.temMencao).mockImplementation(() => ctl.mencoes.length > 0);
+  vi.mocked(adapter.idsDeMencao).mockImplementation(() => ctl.mencoes);
   vi.mocked(adapter.proximaMencao).mockImplementation((_c, depoisDe) => {
     const i = depoisDe === undefined ? -1 : ctl.mencoes.indexOf(depoisDe);
     return ctl.mencoes[(i + 1) % ctl.mencoes.length];
@@ -559,6 +560,31 @@ describe("lista: âncora, histórico e leitura como posição", () => {
     await expect.poll(() => linhaDe(ctl.mencoes[0]!), { timeout: 3000 }).not.toBeNull();
   });
 
+  it("menção à vista não mostra o atalho; só a que está fora da tela", async () => {
+    const todas = muitas(400);
+    ctl.mencoes = [todas[399]!.id];
+    semear(todas);
+    abrir();
+    await expect.poll(distanciaDoFim, { timeout: 5000 }).toBeLessThanOrEqual(80);
+    await esperar(500);
+    expect(
+      Array.from(document.querySelectorAll("button")).some((b) => b.textContent === chat.proximaMencao),
+    ).toBe(false);
+  });
+
+  it("a hora é curta ('14:32'), com a completa no title e o instante no datetime", async () => {
+    semear([snap("h1", { createdAtText: "14:32:09", createdAtCurto: "14:32", createdAt: Date.UTC(2026, 0, 2, 14, 32, 9) })]);
+    abrir();
+    const hora = await vi.waitFor(() => {
+      const el = document.querySelector("time");
+      if (!el) throw new Error("sem hora");
+      return el;
+    });
+    expect(hora.textContent).toBe("14:32");
+    expect(hora.getAttribute("title")).toBe("14:32:09");
+    expect(hora.getAttribute("datetime")).toBe("2026-01-02T14:32:09.000Z");
+  });
+
   it("ack ao ler: no fim da lista o canal é marcado lido, sem esperar sair", async () => {
     semear(muitas(30));
     abrir();
@@ -782,7 +808,14 @@ describe("menu de contexto: um só, no nível da lista", () => {
     await expect.poll(menu).toBeNull();
     clicarDireito(linhaDe("z1")!.querySelector("article")!);
     await expect.poll(menu).not.toBeNull();
-    Array.from(menu()!.querySelectorAll<HTMLElement>('[role="menuitem"]')).find((i) => i.textContent?.includes(chat.marcarNaoLida))!.click();
+    const naoLida = Array.from(menu()!.querySelectorAll<HTMLElement>('[role="menuitem"]')).find((i) =>
+      i.textContent?.includes(chat.marcarNaoLida),
+    )!;
+    // Com ícone, como os outros itens: o texto começa na mesma coluna.
+    const fixarItem = Array.from(menu()!.querySelectorAll<HTMLElement>('[role="menuitem"]')).find((i) => i.textContent?.includes(chat.copiarTexto))!;
+    expect(naoLida.querySelector("svg")).not.toBeNull();
+    expect(naoLida.querySelector("svg")!.getBoundingClientRect().left).toBeCloseTo(fixarItem.querySelector("svg")!.getBoundingClientRect().left, 0);
+    naoLida.click();
     expect(ctl.naoLidas).toEqual(["z1"]);
   });
 });
@@ -962,6 +995,23 @@ describe("composer", () => {
     expect(pegar('ul[aria-label="Arquivos para enviar"]')).toBeNull();
   });
 
+  it("o '+' de anexar fica à esquerda do campo e abre o seletor de arquivos", async () => {
+    semear([snap("c6")]);
+    abrir();
+    const botao = await vi.waitFor(() => {
+      const b = pegar(`button[aria-label="${chat.anexar}"]`);
+      if (!b) throw new Error("sem botão");
+      return b as HTMLButtonElement;
+    });
+    const campo = pegar("textarea")!;
+    expect(botao.compareDocumentPosition(campo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(botao.getBoundingClientRect().right).toBeLessThanOrEqual(campo.getBoundingClientRect().left + 1);
+    const seletor = pegar('[data-testid="seletor-de-arquivos"]') as HTMLInputElement;
+    const abriu = vi.spyOn(seletor, "click").mockImplementation(() => undefined);
+    botao.click();
+    expect(abriu).toHaveBeenCalledOnce();
+  });
+
   it("sem servidor de arquivos o botão de anexar nem existe", () => {
     ctl.midia = false;
     semear([snap("c5")]);
@@ -989,14 +1039,24 @@ describe("composer", () => {
     expect(pegar('[role="status"]')?.textContent).not.toContain("Vini");
   });
 
-  it("sem conexão o aviso diz que as mensagens saem quando voltar, e conta a fila", async () => {
+  it("sem conexão o campo não repete o aviso (ele mora na barra de título)", async () => {
     semear([snap("c8")]);
     abrir();
     pausarConexao();
-    await expect.element(page.getByText(chat.semConexao)).toBeVisible();
     marcarPendente("p1", C);
-    marcarPendente("p2", C);
-    await expect.element(page.getByText(chat.naFila(2), { exact: false })).toBeVisible();
+    await expect.poll(() => campo() as unknown).not.toBeNull();
+    await esperar(300);
+    expect(document.body.textContent).not.toMatch(/sem conexão/i);
+  });
+
+  it("sem o canal resolvido o campo é um esqueleto, e o campo de verdade entra no lugar", async () => {
+    abrir("SEM_CANAL");
+    await expect.poll(() => pegar("[data-esqueleto-do-campo]")).not.toBeNull();
+    const antes = pegar("[data-esqueleto-do-campo]")!.getBoundingClientRect();
+    canal("SEM_CANAL");
+    await expect.poll(() => pegar("[data-esqueleto-do-campo]")).toBeNull();
+    const depois = pegar("textarea")!.closest("div")!.parentElement!.getBoundingClientRect();
+    expect(Math.abs(antes.height - depois.height)).toBeLessThanOrEqual(8);
   });
 
   it("o rascunho é por canal: sair e voltar devolve o texto", async () => {
