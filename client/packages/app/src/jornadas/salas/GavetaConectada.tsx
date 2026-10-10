@@ -162,7 +162,7 @@ export function ListaDeMembros({ serverId }: { serverId: string }) {
                   <div className={css.divisoria} role="separator" aria-label={linha.rotulo} />
                 ) : (
                   <h3 className={css.cabecalho}>
-                    {linha.rotulo} <span className={css.total}>{linha.total}</span>
+                    {linha.rotulo} <span className={css.total}>— {linha.total}</span>
                   </h3>
                 )
               ) : (

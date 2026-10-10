@@ -728,3 +728,32 @@ describe("servidor sem salas", () => {
 		).not.toBeNull();
 	});
 });
+
+describe("polimento das colunas", () => {
+	it("o grupo da lista de membros vai em caixa-alta com travessão e contagem", async () => {
+		await abrirNoServidor();
+		const cab = [
+			...document.querySelectorAll<HTMLElement>(
+				"[data-testid='lista-de-membros'] h3",
+			),
+		].find((h) => h.textContent.includes("Moderação"))!;
+		expect(cab.textContent.replace(/\s+/g, " ").trim()).toBe("Moderação — 1");
+		expect(getComputedStyle(cab).textTransform).toBe("uppercase");
+	});
+
+	it("canal restrito leva cadeado e modo lento leva o relógio; canal comum, nenhum dos dois", async () => {
+		canal("T2", "avisos", "texto", { privado: true, modoLentoSegundos: 30 });
+		await abrirNoServidor();
+		const avisos = [...coluna().querySelectorAll("button")].find((b) =>
+			b.textContent.includes("avisos"),
+		)!;
+		expect(avisos.querySelector("[data-testid='canal-restrito']")).not.toBeNull();
+		const lento = avisos.querySelector("[data-testid='canal-modo-lento']")!;
+		expect(lento.getAttribute("aria-label")).toBe("Modo lento: 30 s entre mensagens");
+		const geral = [...coluna().querySelectorAll("button")].find((b) =>
+			b.textContent.includes("geral"),
+		)!;
+		expect(geral.querySelector("[data-testid='canal-restrito']")).toBeNull();
+		expect(geral.querySelector("[data-testid='canal-modo-lento']")).toBeNull();
+	});
+});

@@ -17,6 +17,9 @@ export const ds = {
   naoLida: "Não lida",
   mencoes: (n: number) => plural(n, "menção", "menções"),
   voceEstaAqui: "Você está aqui",
+  canalRestrito: "Canal restrito",
+  modoLento: (segundos: number) =>
+    `Modo lento: ${segundos >= 60 ? `${String(Math.round(segundos / 60))} min` : `${String(segundos)} s`} entre mensagens`,
   mensagem: {
     de: (autor: string) => `Mensagem de ${autor}`,
     respostaA: (autor: string) => `Resposta a ${autor}`,
