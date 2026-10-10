@@ -18,7 +18,9 @@ import { limparEdicaoDeMensagem } from "nucleo/store/edicaoDeMensagem";
 import { limparEmojisRecentes } from "nucleo/store/emojisRecentes";
 import { fecharSeletorDeReacao } from "nucleo/store/seletorDeReacao";
 import { fecharVisualizador } from "nucleo/store/visualizadorDeImagem";
-import { limparFila, marcarPendente } from "nucleo/store/fila";
+import { limparFila, marcarFalhada, marcarPendente } from "nucleo/store/fila";
+import { dispensarToast, lerToasts } from "nucleo/ui-logica/toastStore";
+import { avisarFalhaDeEnvio } from "nucleo/notificacao/falhaDeEnvio";
 import { escreverRascunho, limparRascunho } from "nucleo/store/rascunhos";
 import { cancelarResposta, responderA } from "nucleo/store/resposta";
 import { progressoDeUpload } from "nucleo/store/uploads";
@@ -28,7 +30,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { chat } from "../../textos";
 import { AreaPrincipal } from "../../shell";
 import { desmontar, montar, pegar } from "../../ui/ds/montar";
+import { Avisos } from "../../ui/primitivos/Avisos";
 import { AreaDeChat } from "./AreaDeChat";
+import { AreaDoCanal } from "./CabecalhoDoCanal";
 
 const C = "C1";
 const C2 = "C2";
@@ -375,11 +379,38 @@ describe("anexos", () => {
     expect(cartao.textContent).toContain("relatorio.pdf");
     expect(cartao.textContent).toContain("1,2 MB");
     expect(cartao.getBoundingClientRect().height).toBe(56);
-    expect(linhaDe("f1")!.querySelector("audio[controls]")).not.toBeNull();
+    const player = linhaDe("f1")!.querySelector<HTMLElement>('[role="slider"]');
+    expect(player).not.toBeNull();
+    expect(linhaDe("f1")!.querySelector("audio[controls]")).toBeNull();
+    expect(linhaDe("f1")!.querySelector("audio")).not.toBeNull();
   });
 });
 
 /* ========================================================= estados da lista */
+
+describe("aviso de falha de envio", () => {
+  it("fica acima do campo (não cobre o botão Enviar) e o botão diz o que faz", async () => {
+    semear([snap("x5", { authorId: EU, sendState: "failed" })]);
+    montar(
+      <div style={{ inlineSize: "100vw", blockSize: "100vh", display: "grid" }}>
+        <AreaPrincipal>
+          <AreaDeChat canalId={C} servidorId={S} />
+        </AreaPrincipal>
+        <Avisos />
+      </div>,
+    );
+    avisarFalhaDeEnvio("#geral", true, () => undefined);
+    const reenviar = page.getByRole("button", { name: "Reenviar mensagem" });
+    await expect.element(reenviar).toBeVisible();
+    const aviso = reenviar.element().closest<HTMLElement>("[data-tipo]")!;
+    const enviar = page.getByRole("button", { name: chat.enviar, exact: true }).element().getBoundingClientRect();
+    const a = aviso.getBoundingClientRect();
+    const sobrepoe = a.left < enviar.right && a.right > enviar.left && a.top < enviar.bottom && a.bottom > enviar.top;
+    expect(sobrepoe).toBe(false);
+    expect(reenviar.element().getBoundingClientRect().height).toBeGreaterThanOrEqual(24);
+    for (const x of lerToasts()) dispensarToast(x.id);
+  });
+});
 
 describe("estados da lista", () => {
   it("carregando: o esqueleto avisa a espera, e nada de começo-do-canal ainda", async () => {
@@ -570,6 +601,36 @@ describe("linha da mensagem", () => {
     await page.getByRole("button", { name: chat.descartar }).click();
     expect(ctl.reenviadas).toEqual(["x1"]);
     expect(ctl.descartadas).toEqual(["x1"]);
+  });
+
+  it("falha com a rede de pé diz que o servidor recusou; sem rede diz sem conexão", async () => {
+    semear([snap("x2", { authorId: EU, sendState: "failed" })]);
+    abrir();
+    const linha = () => linhaDe("x2")!.textContent ?? "";
+    await expect.poll(linha).toContain(`${chat.naoEnviada} · ${chat.causaDaFalha(true)}`);
+    expect(linha()).toContain("o servidor recusou a mensagem");
+    pausarConexao();
+    await expect.poll(linha).toContain(`${chat.naoEnviada} · sem conexão`);
+  });
+
+  it("Reenviar e Descartar têm alvo de pelo menos 24px", async () => {
+    semear([snap("x3", { authorId: EU, sendState: "failed" })]);
+    abrir();
+    await expect.element(page.getByText(chat.naoEnviada)).toBeVisible();
+    for (const nome of [chat.reenviar, chat.descartar]) {
+      const r = page.getByRole("button", { name: nome }).element().getBoundingClientRect();
+      expect(r.height).toBeGreaterThanOrEqual(24);
+      expect(r.width).toBeGreaterThanOrEqual(24);
+    }
+  });
+
+  it("o rodapé do campo conta a mesma história da linha", async () => {
+    semear([snap("x4", { authorId: EU, sendState: "failed" })]);
+    abrir();
+    marcarFalhada("x4", C);
+    await expect.element(page.getByText(chat.falhadasNoCanal(1, true))).toBeVisible();
+    pausarConexao();
+    await expect.element(page.getByText(chat.falhadasNoCanal(1, false))).toBeVisible();
   });
 
   it("subindo arquivo mostra o progresso, que vem do store efêmero", async () => {
@@ -1219,5 +1280,215 @@ describe("responder sem mencionar", () => {
     await expect.poll(() => document.activeElement?.tagName).toBe("TEXTAREA");
     await userEvent.keyboard("ok{Enter}");
     expect(ctl.enviados[0]).toEqual([C, "ok", { id: "r2", mencionar: false }, undefined]);
+  });
+});
+
+describe("linhas de sistema", () => {
+  const sis = (id: string, sistema: NonNullable<MessageSnapshot["sistema"]>, patch: Partial<MessageSnapshot> = {}) =>
+    snap(id, { sistema, authorId: "U2", content: "", ...patch });
+
+  beforeEach(() => {
+    for (const [id, nome] of [
+      ["U4", "Duda"],
+      ["U5", "Edu"],
+      ["U6", "Fabi"],
+      ["U7", "Gabi"],
+    ] as const) {
+      members.set(chaveDeMembro(S, id), parcial({ id, displayName: nome, sigla: nome.slice(0, 2) }));
+    }
+    canal("C3", { name: "bastidores" });
+  });
+
+  it("cada tipo do protocolo vira uma frase curta com o nome da pessoa, sem jargão", async () => {
+    const casos: readonly (readonly [NonNullable<MessageSnapshot["sistema"]>, string])[] = [
+      [{ tipo: "entrou", userId: "U2" }, "Ana entrou"],
+      [{ tipo: "saiu", userId: "U3" }, "Caio saiu"],
+      [{ tipo: "expulso", userId: "U2" }, "Ana foi expulso"],
+      [{ tipo: "banido", userId: "U3" }, "Caio foi banido"],
+      [{ tipo: "adicionou", userId: "U3", porId: "U2" }, "Ana adicionou Caio"],
+      [{ tipo: "removeu", userId: "U2", porId: "U3" }, "Caio removeu Ana"],
+      [{ tipo: "renomeou", porId: "U2", nome: "bastidores" }, "Ana renomeou o canal para “bastidores”"],
+      [{ tipo: "mudouDescricao", porId: "U3" }, "Caio mudou a descrição do canal"],
+      [{ tipo: "mudouIcone", porId: "U2" }, "Ana mudou o ícone do canal"],
+      [{ tipo: "transferiu", deId: "U2", paraId: "U3" }, "Ana passou o canal para Caio"],
+      [{ tipo: "fixou", porId: "U2" }, "Ana fixou uma mensagem"],
+      [{ tipo: "desafixou", porId: "U3" }, "Caio desafixou uma mensagem"],
+      [{ tipo: "chamada", porId: "U2", duracaoTexto: undefined }, "Ana iniciou uma chamada"],
+      [{ tipo: "chamada", porId: "U3", duracaoTexto: "12 min" }, "Chamada de Caio terminou · durou 12 min"],
+      [{ tipo: "moveu", userId: "U2", paraId: "C3" }, "Ana mudou para #bastidores"],
+      [{ tipo: "transmitiu", userId: "U3" }, "Caio começou a transmitir a tela"],
+      [{ tipo: "entrouNoTopico", userIds: ["U2", "U3"] }, "Ana e Caio entraram no tópico"],
+      [{ tipo: "texto", texto: "Manutenção às 22h" }, "Manutenção às 22h"],
+    ];
+    semear(casos.map(([s], i) => sis(`s${String(i).padStart(2, "0")}`, s)));
+    abrir(C, 1400);
+    await expect.poll(() => linhas().length).toBe(casos.length);
+    const textos = linhas().map((l) => l.textContent.trim());
+    casos.forEach(([, frase], i) => {
+      expect(textos[i]).toBe(frase);
+    });
+    // Nenhuma caiu no genérico, e nenhuma deixou o nome do protocolo escapar.
+    expect(document.body.textContent).not.toContain(chat.eventoDoCanal);
+    expect(document.body.textContent).not.toMatch(/user_|channel_|message_pinned|call_started/);
+  });
+
+  it("tipo desconhecido é o ÚNICO que usa a frase genérica", async () => {
+    semear([sis("d1", { tipo: "desconhecido" })]);
+    abrir();
+    await expect.element(page.getByText(chat.eventoDoCanal)).toBeVisible();
+  });
+
+  it("quem não carregou aparece como 'Alguém', nunca em branco", async () => {
+    semear([sis("n1", { tipo: "entrou", userId: "U99" })]);
+    abrir();
+    await expect.element(page.getByText(`${chat.autorDesconhecido} entrou`)).toBeVisible();
+  });
+
+  it("entradas seguidas viram UMA linha: 'Duda e mais 4 entraram'", async () => {
+    const quem = ["U4", "U5", "U6", "U7", "U3"] as const;
+    semear(quem.map((u, i) => sis(`e${i}`, { tipo: "entrou", userId: u })));
+    abrir();
+    await expect.poll(() => linhas().length).toBe(1);
+    expect(linhas()[0]!.textContent.trim()).toBe("Duda e mais 4 entraram");
+  });
+
+  it("duas pessoas citam as duas; tipos diferentes e dias diferentes não se fundem", async () => {
+    semear([
+      sis("f0", { tipo: "entrou", userId: "U2" }),
+      sis("f1", { tipo: "entrou", userId: "U3" }),
+      sis("f2", { tipo: "saiu", userId: "U1" }),
+      sis("f3", { tipo: "entrou", userId: "U4" }),
+      sis("f4", { tipo: "entrou", userId: "U5" }, { dia: "Hoje" }),
+    ]);
+    abrir(C, 900);
+    await expect.poll(() => linhas().length).toBe(4);
+    expect(linhas().map((l) => l.textContent.trim().replace(/^Hoje/, ""))).toEqual([
+      "Ana e Caio entraram",
+      "Vini saiu",
+      "Duda entrou",
+      "Edu entrou",
+    ]);
+  });
+
+  it("fusão respeita quem fez a ação: adicionar por pessoas diferentes fica separado", async () => {
+    semear([
+      sis("a0", { tipo: "adicionou", userId: "U4", porId: "U2" }),
+      sis("a1", { tipo: "adicionou", userId: "U5", porId: "U2" }),
+      sis("a2", { tipo: "adicionou", userId: "U6", porId: "U3" }),
+    ]);
+    abrir();
+    await expect.poll(() => linhas().length).toBe(2);
+    expect(linhas().map((l) => l.textContent.trim())).toEqual([
+      "Ana adicionou Duda e Edu",
+      "Caio adicionou Fabi",
+    ]);
+  });
+
+  it("mensagem de gente entre as entradas quebra a fusão", async () => {
+    semear([
+      sis("g0", { tipo: "entrou", userId: "U4" }),
+      snap("g1", { content: "oi, pessoal" }),
+      sis("g2", { tipo: "entrou", userId: "U5" }),
+    ]);
+    abrir();
+    await expect.poll(() => linhas().length).toBe(3);
+  });
+});
+
+describe("cabeçalho do canal", () => {
+  function abrirComCabecalho(canalId = C) {
+    return montar(
+      <div style={{ inlineSize: "960px", blockSize: "640px", display: "grid" }}>
+        <AreaPrincipal>
+          <AreaDoCanal key={canalId} canalId={canalId} servidorId={S} />
+        </AreaPrincipal>
+      </div>,
+    );
+  }
+  const cabecalho = () => pegar<HTMLElement>(`header[aria-label="${chat.cabecalho.rotulo}"]`);
+  const cadeado = () => cabecalho()?.querySelector(`[aria-label="${chat.cabecalho.restrito}"]`) ?? null;
+
+  it("traz o nome e o tópico, e fica acima da lista", async () => {
+    canal(C, { name: "avisos", topico: "Comunicados do grupo" });
+    semear(muitas(3));
+    abrirComCabecalho();
+    await expect.poll(cabecalho).not.toBeNull();
+    await expect.element(page.getByRole("heading", { name: "avisos", level: 2 })).toBeVisible();
+    expect(cabecalho()!.textContent).toContain("Comunicados do grupo");
+    expect(cadeado()).toBeNull();
+    await expect.poll(() => linhas().length).toBe(3);
+    expect(cabecalho()!.getBoundingClientRect().bottom).toBeLessThanOrEqual(log().getBoundingClientRect().top + 1);
+  });
+
+  it("sem tópico: só o nome, sem fio nem espaço reservado", async () => {
+    canal(C, { name: "geral", topico: undefined });
+    semear(muitas(3));
+    abrirComCabecalho();
+    await expect.poll(cabecalho).not.toBeNull();
+    expect(cabecalho()!.textContent).toBe("geral");
+    expect(cabecalho()!.querySelectorAll("p").length).toBe(0);
+  });
+
+  it("tópico só com espaços conta como sem tópico", async () => {
+    canal(C, { name: "geral", topico: "   " });
+    semear(muitas(3));
+    abrirComCabecalho();
+    await expect.poll(cabecalho).not.toBeNull();
+    expect(cabecalho()!.querySelectorAll("p").length).toBe(0);
+  });
+
+  it("canal restrito leva cadeado nomeado para leitor de tela", async () => {
+    canal(C, { name: "liderança", privado: true });
+    semear(muitas(3));
+    abrirComCabecalho();
+    await expect.poll(cabecalho).not.toBeNull();
+    expect(cadeado()).not.toBeNull();
+  });
+
+  it("tópico longo termina em reticências sem empurrar o cabeçalho", async () => {
+    canal(C, { name: "avisos", topico: "muito ".repeat(80) });
+    semear(muitas(3));
+    abrirComCabecalho();
+    await expect.poll(cabecalho).not.toBeNull();
+    const c = cabecalho()!;
+    expect(c.scrollWidth).toBeLessThanOrEqual(c.clientWidth);
+    expect(c.getBoundingClientRect().height).toBeLessThan(80);
+  });
+});
+
+describe("poucas mensagens ficam logo acima do campo", () => {
+  const colunaDe = () => linhas()[0]!.parentElement!.parentElement!;
+
+  it("com duas mensagens, ancoram embaixo (não coladas no topo)", async () => {
+    semear(muitas(2));
+    abrir(C, 640);
+    await expect.poll(() => linhas().length).toBe(2);
+    const area = log().getBoundingClientRect();
+    const ultima = linhas().at(-1)!.getBoundingClientRect();
+    const primeira = linhas()[0]!.getBoundingClientRect();
+    // A última linha termina junto ao fundo (só o respiro da coluna sobra)...
+    expect(area.bottom - ultima.bottom).toBeLessThanOrEqual(24);
+    // ...e o vazio ficou em cima, não embaixo.
+    expect(primeira.top - area.top).toBeGreaterThan(200);
+    expect(log().scrollHeight).toBeLessThanOrEqual(log().clientHeight);
+  });
+
+  it("com muitas mensagens nada muda: sem folga, ancorada no fim e rolável", async () => {
+    semear(muitas(300));
+    abrir(C, 640);
+    await expect.poll(() => linhas().length).toBeGreaterThan(0);
+    await expect.poll(distanciaDoFim, { timeout: 5000 }).toBeLessThanOrEqual(80);
+    expect(getComputedStyle(colunaDe()).marginBlockStart).toBe("0px");
+    expect(log().scrollHeight).toBeGreaterThan(log().clientHeight * 3);
+  });
+
+  it("chega mensagem num canal quase vazio: continua colada no fundo", async () => {
+    semear(muitas(2));
+    abrir(C, 640);
+    await expect.poll(() => linhas().length).toBe(2);
+    semear(muitas(3));
+    await expect.poll(() => linhas().length).toBe(3);
+    const area = log().getBoundingClientRect();
+    expect(area.bottom - linhas().at(-1)!.getBoundingClientRect().bottom).toBeLessThanOrEqual(24);
   });
 });

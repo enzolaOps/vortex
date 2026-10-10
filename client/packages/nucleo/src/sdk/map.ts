@@ -14,6 +14,9 @@ import { TextEmbed, WebsiteEmbed } from "stoat.js";
 import type {
   Channel,
   CallStartedSystemMessage,
+  ChannelEditSystemMessage,
+  ChannelOwnershipChangeSystemMessage,
+  MessagePinnedSystemMessage,
   ChannelRenamedSystemMessage,
   Message,
   Server,
@@ -127,27 +130,6 @@ const HORA_CURTA = new Intl.DateTimeFormat("pt-BR", {
 });
 
 /**
- * Tipos do protocolo que este cliente ainda não estrutura.
- *
- * Rotulados em português aqui, e não deixados vazar como `"message_pinned"`:
- * string de protocolo na interface é vazamento da forma do Stoat para dentro
- * do produto, que é exatamente o que esta camada existe para impedir.
- */
-const ROTULO_BRUTO: Record<string, string> = {
-  channel_description_changed: "mudou a descrição do canal",
-  channel_icon_changed: "mudou o ícone do canal",
-  channel_ownership_changed: "transferiu o canal",
-  message_pinned: "fixou uma mensagem",
-  message_unpinned: "desafixou uma mensagem",
-  /*
-    ⚠ `call_started` SAIU daqui e virou variante estruturada. Ele era o pior
-    caso do fallback: a frase pronta descartava `byId`, `startedAt` e
-    `finishedAt` — sujeito, duração e "ainda está rolando" —, e num canal de
-    voz é a única linha que existe. Ver `toSistema`.
-  */
-};
-
-/**
  * SDK → domínio, para linha de sistema.
  *
  * As cinco estruturadas cobrem o que um servidor produz o dia inteiro. O resto
@@ -160,6 +142,8 @@ const ROTULO_BRUTO: Record<string, string> = {
   traduções PURAS, e o caminho alternativo seria montar um `Message`
   inteiro para exercer um `switch`.
 */
+const TIPO_NAO_SUPORTADO = /^[a-z_]+ is not supported\.$/;
+
 export function toSistema(message: Message): SistemaSnapshot | undefined {
   /* Entrou/saiu/moveu na sala de voz: linha LOCAL, o fato mora no registro. */
   const daSala = linhaDeSala(message.id);
@@ -211,13 +195,35 @@ export function toSistema(message: Message): SistemaSnapshot | undefined {
               ),
       };
     }
-    case "text":
-      return { tipo: "texto", texto: (sm as TextSystemMessage).content };
-    default:
+    case "user_kicked":
+      return { tipo: "expulso", userId: (sm as UserSystemMessage).userId };
+    case "user_banned":
+      return { tipo: "banido", userId: (sm as UserSystemMessage).userId };
+    case "message_pinned":
+      return { tipo: "fixou", porId: (sm as MessagePinnedSystemMessage).byId };
+    case "message_unpinned":
+      return { tipo: "desafixou", porId: (sm as MessagePinnedSystemMessage).byId };
+    case "channel_description_changed":
+      return { tipo: "mudouDescricao", porId: (sm as ChannelEditSystemMessage).byId };
+    case "channel_icon_changed":
+      return { tipo: "mudouIcone", porId: (sm as ChannelEditSystemMessage).byId };
+    case "channel_ownership_changed":
       return {
-        tipo: "texto",
-        texto: ROTULO_BRUTO[sm.type] ?? "evento do sistema",
+        tipo: "transferiu",
+        deId: (sm as ChannelOwnershipChangeSystemMessage).fromId,
+        paraId: (sm as ChannelOwnershipChangeSystemMessage).toId,
       };
+    case "text": {
+      const texto = (sm as TextSystemMessage).content;
+      /*
+        O SDK converte tipo que não conhece em `text` com "<tipo> is not
+        supported." — frase em inglês com o nome do protocolo. Não é texto de
+        ninguém: é o nosso "desconhecido".
+      */
+      return TIPO_NAO_SUPORTADO.test(texto) ? { tipo: "desconhecido" } : { tipo: "texto", texto };
+    }
+    default:
+      return { tipo: "desconhecido" };
   }
 }
 

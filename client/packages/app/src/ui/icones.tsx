@@ -37,6 +37,8 @@ import {
   Monitor as LMonitor,
   MonitorUp as LMonitorUp,
   Paperclip as LPaperclip,
+  Pause as LPause,
+  Play as LPlay,
   Pencil as LPencil,
   Phone as LPhone,
   PhoneOff as LPhoneOff,
@@ -159,6 +161,8 @@ export const Escudo = envolver(LShield);
 export const Lixeira = envolver(LTrash2);
 export const Pessoas = envolver(LUsers);
 export const Camera = envolver(LVideo);
+export const Reproduzir = envolver(LPlay);
+export const Pausar = envolver(LPause);
 export const CameraDesligada = envolver(LVideoOff);
 export const Volume = envolver(LVolume2);
 export const VolumeDesligado = envolver(LVolumeX);

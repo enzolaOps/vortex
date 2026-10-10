@@ -139,7 +139,7 @@ describe("toast de falha de envio (D-NOTIF-24)", () => {
     });
   });
 
-  it("é erro que EXPIRA, com △ e a ação Tentar", () => {
+  it("é erro que EXPIRA, com △ e a ação Reenviar mensagem", () => {
     const tentar = vi.fn();
     avisarFalhaDeEnvio("#produto", false, tentar);
 
@@ -147,7 +147,7 @@ describe("toast de falha de envio (D-NOTIF-24)", () => {
     expect(t?.tipo).toBe("erro");
     expect(t?.expira).toBe(true);
     expect(t?.icone).toBe("alerta");
-    expect(t?.acao?.rotulo).toBe("Tentar");
+    expect(t?.acao?.rotulo).toBe("Reenviar mensagem");
     t?.acao?.aoAtivar();
     expect(tentar).toHaveBeenCalledOnce();
   });

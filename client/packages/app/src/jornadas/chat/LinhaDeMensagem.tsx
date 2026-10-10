@@ -14,6 +14,7 @@ import { AnexosDaMensagem } from "./AnexosDaMensagem";
 import { CitacaoDeResposta } from "./CitacaoDeResposta";
 import { CorpoDaMensagem } from "./CorpoDaMensagem";
 import { EditorInline } from "./EditorInline";
+import { FraseDeSistema } from "./FraseDeSistema";
 import { useEditandoEsta } from "./hooks";
 import linha from "./Linha.module.css";
 import css from "./ListaDeMensagens.module.css";
@@ -23,6 +24,8 @@ import { RodapeDaMensagem, temRodape } from "./RodapeDaMensagem";
 export interface LinhaDeMensagemProps {
   id: string;
   servidorId: string;
+  /** Linha de sistema que absorveu as seguintes do mesmo tipo: todas as pessoas do grupo. */
+  grupo?: readonly string[] | undefined;
 }
 
 /**
@@ -38,7 +41,7 @@ export interface LinhaDeMensagemProps {
  * Mensagem não resolvida devolve um placeholder COM altura: linha medindo 0px
  * realimenta o virtualizador e trava a aba.
  */
-function LinhaBase({ id, servidorId }: LinhaDeMensagemProps) {
+function LinhaBase({ id, servidorId, grupo }: LinhaDeMensagemProps) {
   count("rowRenders");
   const m = useMessage(id);
   const nomeDoAutor = useNomeDoMembro(chaveDeMembro(servidorId, m?.authorId ?? ""));
@@ -64,7 +67,9 @@ function LinhaBase({ id, servidorId }: LinhaDeMensagemProps) {
         </div>
       )}
       {m.sistema ? (
-        <p className={css.sistema}>{chat.eventoDoCanal}</p>
+        <p className={css.sistema}>
+          <FraseDeSistema sistema={m.sistema} servidorId={servidorId} grupo={grupo} />
+        </p>
       ) : (
         <>
           {m.respostas[0] !== undefined && (

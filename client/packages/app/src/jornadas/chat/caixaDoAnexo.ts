@@ -11,7 +11,7 @@ import type { AnexoSnapshot } from "nucleo/sdk/domain";
  */
 export const LARGURA_MAXIMA_DO_ANEXO = 360;
 export const ALTURA_MAXIMA_DO_ANEXO = 320;
-export const ALTURA_DO_AUDIO = 40;
+export const ALTURA_DO_AUDIO = 56;
 export const ALTURA_DO_ARQUIVO = 56;
 /** Respiro entre o texto e o anexo, e entre anexos. Espelha `--vx-space-2`. */
 export const RESPIRO_DO_ANEXO = 8;
