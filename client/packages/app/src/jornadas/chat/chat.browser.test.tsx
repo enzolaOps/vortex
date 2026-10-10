@@ -485,9 +485,28 @@ describe("lista: âncora, histórico e leitura como posição", () => {
     // Sobe até perto do topo: pede a página anterior.
     log().scrollTop = 600;
     await expect.poll(() => ctl.paginas.length, { timeout: 3000 }).toBeGreaterThan(0);
-    await esperar(200);
 
-    const referencia = linhas().find((l) => l.getBoundingClientRect().top > log().getBoundingClientRect().top + 40)!;
+    // Sem espera fixa: no runner do CI o virtualizador pode levar mais de 200ms
+    // para montar as linhas da nova janela. Espera-se uma linha de referência
+    // existir e PARAR (mesma posição em duas leituras seguidas) antes de medir.
+    const linhaDeReferencia = () =>
+      linhas().find((l) => l.getBoundingClientRect().top > log().getBoundingClientRect().top + 40);
+    let ultimaPosicao = Number.NaN;
+    await expect
+      .poll(
+        () => {
+          const linha = linhaDeReferencia();
+          if (!linha) return false;
+          const top = linha.getBoundingClientRect().top;
+          const parada = top === ultimaPosicao;
+          ultimaPosicao = top;
+          return parada;
+        },
+        { timeout: 4000, interval: 100 },
+      )
+      .toBe(true);
+
+    const referencia = linhaDeReferencia()!;
     const id = referencia.querySelector<HTMLElement>("[data-menu-mensagem]")!.dataset.menuMensagem!;
     const antes = referencia.getBoundingClientRect().top;
 
@@ -495,10 +514,15 @@ describe("lista: âncora, histórico e leitura como posição", () => {
     const anteriores = muitas(60, 0);
     for (const s of anteriores) messages.set(s.id, s);
     channelMessageIds.set(C, [...anteriores.map((s) => s.id), ...atuais.map((s) => s.id)]);
-    await esperar(400);
 
-    const depois = linhaDe(id)!.parentElement!.getBoundingClientRect().top;
-    expect(Math.abs(depois - antes)).toBeLessThanOrEqual(3);
+    // A reancoragem leva alguns quadros (medição das linhas novas + correção do
+    // scroll). Uma espera fixa reprovava no runner do CI, mais lento: espera-se
+    // o estado ASSENTADO, com a mesma tolerância de 3px.
+    await expect
+      .poll(() => Math.abs(linhaDe(id)!.parentElement!.getBoundingClientRect().top - antes), {
+        timeout: 4000,
+      })
+      .toBeLessThanOrEqual(3);
   });
 
   it("primeira não lida: divisor na linha e atalho que leva até ela", async () => {
