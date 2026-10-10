@@ -13,7 +13,7 @@ import { abrirConversa } from "nucleo/store/navegacao";
 import { definirFaixaRecolhida } from "nucleo/store/faixaDoPalco";
 import { definirPalco, fecharPalco } from "nucleo/store/palcoDeVoz";
 import { abrirTexto } from "nucleo/store/ultimoLugar";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { voz } from "../../textos";
 import { Botao } from "../../ui/ds";
@@ -65,7 +65,8 @@ function BotaoDoChat({ serverId }: { serverId: string }) {
         abrirTexto(serverId, id);
       }}
     >
-      {novas > 0 ? `${canal.name} · ${String(novas)} ${novas === 1 ? "nova" : "novas"}` : canal.name}
+      {`# ${canal.name}`}
+      {novas > 0 ? ` · ${String(novas)} ${novas === 1 ? "nova" : "novas"}` : ""}
     </Botao>
   );
 }
@@ -154,6 +155,8 @@ export function PalcoDaSala({ serverId, canalId }: { serverId: string; canalId: 
   const [emGrade, setEmGrade] = useState(false);
   const recolhida = useFaixaDoPalcoRecolhida();
   const idDaTira = useId();
+  const palcoRef = useRef<HTMLElement>(null);
+  const telaCheia = useTelaCheia(palcoRef);
   const eu = usuarioLocalId();
   const nome = canal?.name ?? voz.sala;
 
@@ -194,7 +197,7 @@ export function PalcoDaSala({ serverId, canalId }: { serverId: string; canalId: 
   const comConteudo = estado === "conectando" || estado === "dentro" || estado === "reconectando" || estado === "falhou";
 
   return (
-    <section className={css.palco} aria-label={voz.palco.rotulo(nome)} data-testid="palco" data-estado={estado}>
+    <section ref={palcoRef} className={css.palco} aria-label={voz.palco.rotulo(nome)} data-testid="palco" data-estado={estado}>
       <div className={css.cabecalho}>
         <div className={css.nome}>
           <h2 className={css.titulo}>{nome}</h2>
@@ -261,7 +264,7 @@ export function PalcoDaSala({ serverId, canalId }: { serverId: string; canalId: 
           {(estado === "dentro" || estado === "reconectando") && foco && (
             <>
               <div className={css.foco}>
-                <LadrilhoDeTela pessoa={foco} papel="foco" />
+                <LadrilhoDeTela pessoa={foco} papel="foco" telaCheia={telaCheia} />
               </div>
               <div className={css.faixa} data-recolhida={recolhida || undefined} data-testid="faixa-do-palco">
                 <Botao
@@ -281,8 +284,9 @@ export function PalcoDaSala({ serverId, canalId }: { serverId: string; canalId: 
                 {/* Recolhida, nada monta: nenhuma miniatura, nenhuma assinatura de vídeo. */}
                 {!recolhida && (
                   <div id={idDaTira} className={css.tira} data-testid="tira-do-palco">
+                    {/* A pessoa em foco já aparece na tela; as outras, e você, ficam na tira. */}
                     {pessoas
-                      .filter((p) => p.id !== foco.id)
+                      .filter((p) => p.id !== foco.id || p.proprio)
                       .map((p) => (
                         <LadrilhoDePessoa key={p.id} pessoa={p} papel="miniatura" />
                       ))}
@@ -340,4 +344,29 @@ export function PalcoDaSala({ serverId, canalId }: { serverId: string; canalId: 
       )}
     </section>
   );
+}
+
+/**
+ * Tela cheia do palco (Fullscreen API). `Esc` sai pelo próprio navegador; o
+ * estado vem do evento, nunca do clique, para o botão não mentir quando a
+ * saída foi pelo teclado.
+ */
+function useTelaCheia(alvo: React.RefObject<HTMLElement | null>): { ativa: boolean; alternar: () => void } {
+  const [ativa, setAtiva] = useState(false);
+  useEffect(() => {
+    const ler = () => {
+      setAtiva(alvo.current !== null && document.fullscreenElement === alvo.current);
+    };
+    document.addEventListener("fullscreenchange", ler);
+    return () => {
+      document.removeEventListener("fullscreenchange", ler);
+    };
+  }, [alvo]);
+  return {
+    ativa,
+    alternar: () => {
+      if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
+      else void alvo.current?.requestFullscreen().catch(() => undefined);
+    },
+  };
 }

@@ -15,6 +15,7 @@ import {
 } from "nucleo/sdk/adapter";
 import { chaveDeMembro, SEM_CARGO, type ParticipanteDeVoz } from "nucleo/sdk/domain";
 import { definirChamada, definirFalantes, limparChamada } from "nucleo/store/chamada";
+import { definirQualidadeEscolhida } from "nucleo/store/qualidadeDaTela";
 import { definirFalhaDeVoz, limparFalhaDeVoz } from "nucleo/store/falhaDeVoz";
 import { limparFaixaDoPalco } from "nucleo/store/faixaDoPalco";
 import { irParaCasa } from "nucleo/store/navegacao";
@@ -568,5 +569,81 @@ describe("escolher o que transmitir", () => {
     await expect.element(page.getByRole("radio", { name: /Deadlock, escolhida/ })).toBeVisible();
     await clicar(page.getByRole("button", { name: voz.transmitir.transmitir }));
     expect(await escolha).toMatchObject({ fonteId: "window:9", audio: true });
+  });
+});
+
+describe("polimento do palco", () => {
+  const transmitindoEu = () => [participante("U1"), participante("U2"), participante("U4", { estado: "tela" })];
+  function transmitir() {
+    definirChamada({ estado: "dentro", channelId: "V1", desde: Date.now() });
+    definirPalco({ tipo: "transmitindo" });
+  }
+
+  afterEach(() => {
+    definirQualidadeEscolhida(undefined);
+    definirFalantes([]);
+  });
+
+  it("a própria tela, antes do primeiro quadro, tem um rótulo só e centralizado", async () => {
+    await abrir(transmitindoEu());
+    transmitir();
+    await expect.poll(() => pegar("[data-testid='foco-do-palco']")?.dataset.pessoa).toBe("U4");
+    const foco = pegar("[data-testid='foco-do-palco']")!;
+    expect(foco.textContent.split(voz.palco.suaTela).length - 1).toBe(1);
+    expect(foco.textContent).not.toContain(voz.palco.recebendoQuadro);
+  });
+
+  it("você aparece nas miniaturas mesmo transmitindo", async () => {
+    await abrir(transmitindoEu());
+    transmitir();
+    await expect.poll(() => pegar("[data-testid='tira-do-palco']")).not.toBeNull();
+    const meu = pegar("[data-testid='tira-do-palco'] [data-testid='ladrilho-de-pessoa'][data-pessoa='U4']")!;
+    expect(meu.textContent).toContain(voz.palco.voce);
+  });
+
+  it("microfone cortado vence a fala: o ladrilho não diz 'falando'", async () => {
+    await abrir(quatro());
+    entrarNoPalco();
+    await page.getByRole("button", { name: voz.palco.verEmGrade }).click();
+    await expect.poll(() => ladrilhos().length).toBe(4);
+    definirFalantes(["U3", "U2"]);
+    const de = (id: string) => ladrilhos().find((l) => l.dataset.pessoa === id)!;
+    await expect.poll(() => de("U2").dataset.falando).toBe("true");
+    expect(de("U2").textContent).toContain(voz.estado.falando.toLowerCase());
+    expect(de("U3").dataset.falando).toBe("false");
+    expect(de("U3").textContent).not.toContain(voz.estado.falando.toLowerCase());
+    expect(de("U3").textContent).toContain(voz.estado.mudo.toLowerCase());
+  });
+
+  it("selo de qualidade: o escolhido na própria transmissão; sem dado, sem selo", async () => {
+    await abrir(transmitindoEu());
+    transmitir();
+    await expect.poll(() => pegar("[data-testid='foco-do-palco']")).not.toBeNull();
+    expect(pegar("[data-testid='selo-de-qualidade']")).toBeNull();
+    definirQualidadeEscolhida({ resolucao: "1080p", taxa: 60 });
+    await expect.poll(() => pegar("[data-testid='selo-de-qualidade']")?.textContent).toBe("1080p60");
+    definirQualidadeEscolhida({ resolucao: "Fonte", taxa: 30 });
+    await expect.poll(() => pegar("[data-testid='selo-de-qualidade']")).toBeNull();
+  });
+
+  it("tela cheia pede o elemento do palco e o botão acompanha a saída (Esc)", async () => {
+    await abrir(quatro());
+    entrarNoPalco();
+    await expect.poll(() => pegar("[data-testid='tela-cheia']")).not.toBeNull();
+    const botao = pegar("[data-testid='tela-cheia']")!;
+    expect(botao.getAttribute("aria-pressed")).toBe("false");
+    botao.click();
+    await expect.poll(() => document.fullscreenElement).toBe(palco());
+    await expect.poll(() => pegar("[data-testid='tela-cheia']")!.getAttribute("aria-pressed")).toBe("true");
+    await document.exitFullscreen();
+    await expect.poll(() => pegar("[data-testid='tela-cheia']")!.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("o atalho para o chat mostra o canal e quantas mensagens novas há", async () => {
+    await abrir(quatro());
+    entrarNoPalco();
+    const b = page.getByRole("button", { name: /Abrir o chat, geral, 3 novas/ });
+    await expect.element(b).toBeVisible();
+    expect((b.element() as HTMLElement).textContent.replace(/\s+/g, " ").trim()).toBe("# geral · 3 novas");
   });
 });
