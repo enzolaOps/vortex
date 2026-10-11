@@ -1,4 +1,9 @@
-import { entrarNaChamada, sairDaChamada } from "nucleo/sdk/chamada";
+import {
+	entrarNaChamada,
+	precarregarMotorDeVoz,
+	precarregarMotorQuandoOcioso,
+	sairDaChamada,
+} from "nucleo/sdk/chamada";
 import { definirPalco, fecharPalco } from "nucleo/store/palcoDeVoz";
 import { lerChamada } from "nucleo/store/chamada";
 import { limparFalhaDeVoz } from "nucleo/store/falhaDeVoz";
@@ -39,4 +44,14 @@ export async function sairDaSala(): Promise<void> {
 export function voltarDoPalco(): void {
   limparFalhaDeVoz();
   fecharPalco();
+}
+
+/** Aquece o chunk do motor de voz em tempo ocioso (sessão de pé). */
+export function aquecerVozQuandoOcioso(): void {
+  precarregarMotorQuandoOcioso();
+}
+
+/** Aquece o chunk já: hover/foco num canal de voz é intenção de entrar. */
+export function aquecerVoz(): void {
+  precarregarMotorDeVoz();
 }
