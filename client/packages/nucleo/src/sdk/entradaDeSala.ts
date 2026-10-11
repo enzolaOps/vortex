@@ -84,3 +84,20 @@ export function soSeVigente<A extends unknown[]>(
     if (vigente()) fn(...args);
   };
 }
+
+/**
+ * Publicação do estado da chamada (`channelId` + `participantes`) que só vale
+ * enquanto a sala é a atual. Entre o clique em outra sala e a desmontagem da
+ * antiga, `ParticipantConnected`/`Disconnected` dela ainda chegam; sem esta
+ * guarda reescreveriam o canal e a lista que o clique acabou de trocar.
+ */
+export function publicadorDaSala(a: {
+  vigente: () => boolean;
+  canal: string;
+  participantes: () => string[];
+  escrever: (p: { channelId: string; participantes: string[] }) => void;
+}): () => void {
+  return soSeVigente(a.vigente, () =>
+    a.escrever({ channelId: a.canal, participantes: a.participantes() }),
+  );
+}

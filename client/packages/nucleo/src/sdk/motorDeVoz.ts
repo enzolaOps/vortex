@@ -84,9 +84,18 @@ import {
   lerConfigDeVoz,
   publicacaoDe as publicacaoDoCanal,
 } from "./vozDoCanal";
-import { sairDaSalaLocalmente } from "./adapter";
+import {
+  desfazerEntradaOtimista,
+  entrarNaSalaLocalmente,
+  sairDaSalaLocalmente,
+} from "./adapter";
 import { avisarSaidaDaSala } from "./saidaDaSala";
-import { conectarComMicrofone, encerrarSala, soSeVigente } from "./entradaDeSala";
+import {
+  conectarComMicrofone,
+  encerrarSala,
+  publicadorDaSala,
+  soSeVigente,
+} from "./entradaDeSala";
 import { escolherNoMaisRapido, type NoDeVoz } from "./sondaDeNos";
 import { registrarRemocaoImposta } from "./vozImposta";
 import type { Chamada, QualidadeDeVoz } from "../store/chamada";
@@ -330,8 +339,17 @@ function participantesDe(r: Room): string[] {
 }
 
 function ligarEventos(r: Room, channelId: string): void {
-  const publicar = () =>
-    definirChamada({ channelId, participantes: participantesDe(r) });
+  /* Evento tardio de uma sala que já não é a atual (troca rápida, queda que
+     chega depois do `disconnect`) não pode sobrescrever o estado da nova. */
+  const vigente = () => sala === r;
+  /* Escreve `channelId`/`participantes` — o que o clique em outra sala acabou
+     de trocar no store — então também passa pela checagem de vigência. */
+  const publicar = publicadorDaSala({
+    vigente,
+    canal: channelId,
+    participantes: () => participantesDe(r),
+    escrever: definirChamada,
+  });
 
   anuncio?.limpar();
   anuncio = criarAnuncio(r);
@@ -359,10 +377,6 @@ function ligarEventos(r: Room, channelId: string): void {
     );
   });
 
-  /* Evento tardio de uma sala que já não é a atual (troca rápida, queda que
-     chega depois do `disconnect`) não pode sobrescrever o estado da nova. */
-  const vigente = () => sala === r;
-
   r.on(RoomEvent.Connected, soSeVigente(vigente, () => {
     lerEspectadoresDaSala(r);
     definirChamada({
@@ -372,6 +386,8 @@ function ligarEventos(r: Room, channelId: string): void {
       participantes: participantesDe(r),
     });
     publicarFontes(r);
+    /* Você na lista da sala já, sem esperar o `VoiceChannelJoin` do webhook. */
+    entrarNaSalaLocalmente(channelId, { publicando: deveTransmitir() });
     /*
       ⚠ **Entrar numa sala ABRE a sala, e isto e o que faltava.** Antes daqui,
       entrar num canal de voz nao mudava nada na coluna de conteudo: a conversa
@@ -406,6 +422,8 @@ function ligarEventos(r: Room, channelId: string): void {
        assinantes fantasmas e a primeira borda nunca chegaria a zero. */
     assinatura.limpar();
     esquecerEspectadores();
+    /* Queda antes do eco do servidor: o palpite não pode virar fantasma. */
+    desfazerEntradaOtimista(channelId);
 
     /*
       ⚠ **Sair porque alguém te TIROU era indistinguível de a rede cair**, e a

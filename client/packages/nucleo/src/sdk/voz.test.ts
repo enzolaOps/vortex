@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { seed } from "../arnes/firehose";
-import { semearVoz, vozPorCanal } from "./adapter";
+import {
+  definirUsuarioLocal,
+  desfazerEntradaOtimista,
+  entrarNaSalaLocalmente,
+  sairDaSalaLocalmente,
+  semearVoz,
+  vozPorCanal,
+} from "./adapter";
 import { dadosDaModeracao } from "./cargos";
 import { client } from "./client";
 
@@ -171,5 +178,61 @@ describe("sala de voz", () => {
     expect(dadosDaModeracao({ tipo: "mudo", ligar: false })).toEqual({ can_publish: true });
     expect(dadosDaModeracao({ tipo: "surdo", ligar: true })).toEqual({ can_receive: false });
     expect(dadosDaModeracao({ tipo: "desconectar" })).toEqual({ remove: ["VoiceChannel"] });
+  });
+
+  describe("entrada otimista", () => {
+    const EU = "01JQ00000000000000000000EU";
+    const emitir = (e: object) =>
+      (client.events as unknown as { emit: (n: string, e: object) => void }).emit(
+        "event",
+        e,
+      );
+    const ids = () => (vozPorCanal.peek(VOZ_VAZIA) ?? []).map((p) => p.userId);
+
+    beforeEach(() => definirUsuarioLocal(EU));
+
+    it("você aparece na sala antes do eco do servidor", () => {
+      const notificado = assinar(VOZ_VAZIA);
+      entrarNaSalaLocalmente(VOZ_VAZIA);
+      expect(notificado).toHaveBeenCalled();
+      expect(ids()).toEqual([EU]);
+    });
+
+    it("o VoiceChannelJoin real reconcilia sem duplicar", () => {
+      assinar(VOZ_VAZIA);
+      entrarNaSalaLocalmente(VOZ_VAZIA);
+      emitir({ type: "VoiceChannelJoin", id: VOZ_VAZIA, state: { id: EU, camera: true } });
+      expect(ids()).toEqual([EU]);
+      expect(vozPorCanal.peek(VOZ_VAZIA)?.[0]?.estado).toBe("video");
+    });
+
+    it("eco que chegou primeiro vale: a entrada otimista não sobrescreve", () => {
+      assinar(VOZ_VAZIA);
+      emitir({ type: "VoiceChannelJoin", id: VOZ_VAZIA, state: { id: EU, camera: true } });
+      entrarNaSalaLocalmente(VOZ_VAZIA);
+      expect(ids()).toEqual([EU]);
+      expect(vozPorCanal.peek(VOZ_VAZIA)?.[0]?.estado).toBe("video");
+    });
+
+    it("falha ou saída antes do eco desfaz", () => {
+      assinar(VOZ_VAZIA);
+      entrarNaSalaLocalmente(VOZ_VAZIA);
+      sairDaSalaLocalmente(VOZ_VAZIA);
+      expect(ids()).toEqual([]);
+    });
+
+    it("queda antes do eco desfaz; depois do eco não toca (o Leave é do servidor)", () => {
+      assinar(VOZ_VAZIA);
+      entrarNaSalaLocalmente(VOZ_VAZIA);
+      desfazerEntradaOtimista(VOZ_VAZIA);
+      expect(ids()).toEqual([]);
+
+      entrarNaSalaLocalmente(VOZ_VAZIA);
+      emitir({ type: "VoiceChannelJoin", id: VOZ_VAZIA, state: { id: EU } });
+      desfazerEntradaOtimista(VOZ_VAZIA);
+      expect(ids()).toEqual([EU]);
+      emitir({ type: "VoiceChannelLeave", id: VOZ_VAZIA, user: EU });
+      expect(ids()).toEqual([]);
+    });
   });
 });

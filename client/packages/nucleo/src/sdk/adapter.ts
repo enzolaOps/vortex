@@ -65,6 +65,8 @@ import {
   aplicarEventoDeVoz,
   canalDeVozDaPessoa,
   colocarNaSala,
+  colocarOtimista,
+  desfazerOtimista,
   participantesDaSala,
   tirarDaSala,
 } from "./salasDeVoz";
@@ -2901,6 +2903,34 @@ export function sairDaSalaLocalmente(channelId: string): void {
     `republicarVoz` já usa para o caso em que o sinal não acorda sozinho.
     Chamar as duas custa uma varredura de uma sala.
   */
+  releituraDeVoz.get(channelId)?.();
+}
+
+/**
+ * Põe você na lista da sala NA HORA em que o LiveKit conecta, sem esperar o
+ * `VoiceChannelJoin` voltar pelo webhook (centenas de ms a segundos).
+ *
+ * Reconcilia sozinho: o eco real escreve a mesma pessoa na mesma sala (mapa por
+ * usuário, sem duplicar) e tira a marca de palpite. Desfaz por
+ * `sairDaSalaLocalmente` (falha / saída) ou `desfazerEntradaOtimista`
+ * (queda antes do eco). `publicando` espelha o mudo atual, para o ícone não
+ * piscar de microfone aberto.
+ */
+export function entrarNaSalaLocalmente(
+  channelId: string,
+  opcoes: { publicando: boolean } = { publicando: true },
+): void {
+  if (usuarioLocal === undefined) return;
+  if (!colocarOtimista(channelId, usuarioLocal, { is_publishing: opcoes.publicando })) {
+    return;
+  }
+  releituraDeVoz.get(channelId)?.();
+}
+
+/** Tira a entrada otimista só se o servidor ainda não a confirmou. */
+export function desfazerEntradaOtimista(channelId: string): void {
+  if (usuarioLocal === undefined) return;
+  if (!desfazerOtimista(channelId, usuarioLocal)) return;
   releituraDeVoz.get(channelId)?.();
 }
 

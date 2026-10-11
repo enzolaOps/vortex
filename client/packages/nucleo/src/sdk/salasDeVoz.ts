@@ -26,6 +26,17 @@ export type EstadoCruDeVoz = {
 
 const salas = new Map<string, Map<string, EstadoCruDeVoz>>();
 
+/**
+ * Entradas postas por NÓS antes do eco do servidor (`canal:usuário`).
+ *
+ * A chave sai quando o evento real (`VoiceChannelJoin`, `Move`,
+ * `UserVoiceStateUpdate`) escreve a mesma pessoa na mesma sala — reconciliou,
+ * e não há segunda entrada porque a sala é um `Map` por usuário — ou quando
+ * ela sai da sala por qualquer caminho.
+ */
+const otimistas = new Set<string>();
+const chaveOtimista = (canal: string, userId: string) => `${canal}:${userId}`;
+
 type Cru = {
   id?: unknown;
   joined_at?: unknown;
@@ -73,11 +84,38 @@ export function colocarNaSala(
     salas.set(canal, sala);
   }
   sala.set(userId, lerEstado(cru, sala.get(userId)));
+  // Escrita real: o que era palpite vira verdade.
+  otimistas.delete(chaveOtimista(canal, userId));
   return true;
+}
+
+/**
+ * Põe você na sala ANTES do eco do servidor. Não sobrescreve quem já está
+ * (o eco chegou primeiro: vale o real). Devolve se algo mudou.
+ */
+export function colocarOtimista(
+  canal: string,
+  userId: string,
+  cru?: Cru,
+): boolean {
+  if (salas.get(canal)?.has(userId)) return false;
+  colocarNaSala(canal, userId, cru);
+  otimistas.add(chaveOtimista(canal, userId));
+  return true;
+}
+
+/**
+ * Desfaz uma entrada otimista que o servidor ainda não confirmou. Se o eco já
+ * chegou, não toca em nada — a saída real é do `VoiceChannelLeave`.
+ */
+export function desfazerOtimista(canal: string, userId: string): boolean {
+  if (!otimistas.has(chaveOtimista(canal, userId))) return false;
+  return tirarDaSala(canal, userId);
 }
 
 /** Tira uma pessoa. Sair de onde não está é no-op e devolve `false`. */
 export function tirarDaSala(canal: string, userId: string): boolean {
+  otimistas.delete(chaveOtimista(canal, userId));
   const sala = salas.get(canal);
   if (!sala?.delete(userId)) return false;
   if (sala.size === 0) salas.delete(canal);
@@ -86,6 +124,7 @@ export function tirarDaSala(canal: string, userId: string): boolean {
 
 export function limparSalasDeVoz(): void {
   salas.clear();
+  otimistas.clear();
 }
 
 /** `Ready.voice_states`: a verdade do servidor, substitui o que havia. */
@@ -94,6 +133,7 @@ function semearDoReady(estados: unknown): string[] {
   if (!Array.isArray(estados)) return [];
   const afetados = new Set(salas.keys());
   salas.clear();
+  otimistas.clear();
   if (Array.isArray(estados)) {
     for (const s of estados as { id?: unknown; participants?: unknown }[]) {
       if (typeof s.id !== "string" || !Array.isArray(s.participants)) continue;

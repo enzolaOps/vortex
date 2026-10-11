@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { conectarComMicrofone, encerrarSala, soSeVigente } from "./entradaDeSala";
+import {
+  conectarComMicrofone,
+  encerrarSala,
+  publicadorDaSala,
+  soSeVigente,
+} from "./entradaDeSala";
 
 function adiado<T = void>() {
   let resolve!: (v: T) => void;
@@ -133,5 +138,25 @@ describe("soSeVigente", () => {
     atual = "nova";
     handler();
     expect(aoDesconectar).toHaveBeenCalledOnce();
+  });
+});
+
+describe("publicadorDaSala", () => {
+  it("evento da sala antiga não reescreve canal nem participantes", () => {
+    let atual = "antiga";
+    const escrever = vi.fn();
+    const publicarAntiga = publicadorDaSala({
+      vigente: () => atual === "antiga",
+      canal: "A",
+      participantes: () => ["a"],
+      escrever,
+    });
+    publicarAntiga();
+    expect(escrever).toHaveBeenCalledWith({ channelId: "A", participantes: ["a"] });
+
+    atual = "nova"; // o clique trocou de sala
+    escrever.mockClear();
+    publicarAntiga();
+    expect(escrever).not.toHaveBeenCalled();
   });
 });
