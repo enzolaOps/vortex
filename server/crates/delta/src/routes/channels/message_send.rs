@@ -175,10 +175,12 @@ pub async fn message_send(
     query.are_we_a_member().await;
 
     // Create model user / members
-    let model_user = user
-        .clone()
-        .into_known_static(revolt_presence::is_online(&user.id).await)
-        .await;
+    //
+    // Vortex: `author` acabou de consultar `sessions:{id}` no Redis (é o
+    // próprio usuário, então `can_see_profile` é verdadeiro) e já aplicou o
+    // filtro de invisível — o mesmo que `into_known_static` aplica. Reusar
+    // `author.online` dá o mesmo valor sem uma segunda ida ao Redis.
+    let model_user = user.clone().into_known_static(author.online).await;
 
     let model_member: Option<v0::Member> = query
         .member_ref()
