@@ -5,6 +5,9 @@
 */
 .rolagem {
   block-size: 100%;
+  /* Coluna flex só para a coluna de mensagens poder ancorar embaixo (ver `.coluna`). */
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
   /* Reserva a calha da barra sempre: o conteúdo não salta de lado durante o scroll. */
   scrollbar-gutter: stable;
@@ -25,6 +28,14 @@
   inline-size: 100%;
   min-inline-size: 0;
   padding-block: var(--vx-space-3);
+  /*
+    Convenção de chat: com poucas mensagens (menos que a área), elas ficam logo acima do
+    campo, não coladas no topo. A margem automática só tem folga quando o conteúdo é menor
+    que a área — aí não há rolagem e o virtualizador não depende de deslocamento. Com o
+    histórico cheio a folga é zero e nada muda (âncora e prepend seguem intactos).
+  */
+  flex: none;
+  margin-block-start: auto;
 }
 
 .medidor {

@@ -94,8 +94,10 @@ import {
 } from "../store/conexao";
 import {
   confirmarNaFila,
+  desmarcarFalhada,
   desmarcarPendente,
   esquecerDaFila,
+  marcarFalhada,
   marcarPendente,
 } from "../store/fila";
 import { assinarSilencio, estaMudo, segueTopicosAutomaticamente } from "../store/silencio";
@@ -466,6 +468,9 @@ function marcarEnvio(id: string, estado: SendState) {
   */
   if (estado === "pending" && message) marcarPendente(id, message.channelId);
   else desmarcarPendente(id);
+  /* O rodapé do campo conta as falhadas do canal: mesma história da linha. */
+  if (estado === "failed" && message) marcarFalhada(id, message.channelId);
+  else desmarcarFalhada(id);
   if (message && messages.subscriberCount(id) > 0) {
     messages.set(
       id,

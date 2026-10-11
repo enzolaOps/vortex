@@ -72,10 +72,12 @@ function EnvioPendente() {
 }
 
 function EnvioFalhou({ id }: { id: string }) {
+  /* Só as falhadas montam isto: a mesma causa do aviso e do rodapé do campo. */
+  const conectado = useConexao() === "conectado";
   return (
     <span className={`${css.estado} ${css.estadoFalha}`} role="alert">
       <Alerta tamanho={14} />
-      {chat.naoEnviada}
+      {`${chat.naoEnviada} · ${chat.causaDaFalha(conectado)}`}
       <button
         type="button"
         className={css.acaoDoEstado}

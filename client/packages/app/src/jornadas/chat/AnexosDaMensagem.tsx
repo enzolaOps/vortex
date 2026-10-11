@@ -5,6 +5,7 @@ import { chat } from "../../textos";
 import { Arquivo, Baixar } from "../../ui/icones";
 import { caixaDoAnexo } from "./caixaDoAnexo";
 import css from "./Anexos.module.css";
+import { PlayerDeAudio } from "./PlayerDeAudio";
 
 function Midia({ a, mensagemId }: { a: AnexoSnapshot; mensagemId: string }) {
   const caixa = caixaDoAnexo(a);
@@ -33,10 +34,6 @@ function Midia({ a, mensagemId }: { a: AnexoSnapshot; mensagemId: string }) {
   );
 }
 
-function AnexoDeAudio({ a }: { a: AnexoSnapshot }) {
-  return <audio className={css.audio} src={a.url} controls preload="none" aria-label={a.nome} />;
-}
-
 function CartaoDeArquivo({ a }: { a: AnexoSnapshot }) {
   return (
     <a className={css.arquivo} href={a.url} target="_blank" rel="noopener noreferrer" download={a.nome}>
@@ -54,7 +51,7 @@ export function AnexosDaMensagem({ anexos, mensagemId }: { anexos: readonly Anex
     <div className={css.anexos}>
       {anexos.map((a) =>
         a.tipo === "audio" ? (
-          <AnexoDeAudio key={a.id} a={a} />
+          <PlayerDeAudio key={a.id} a={a} />
         ) : a.tipo === "arquivo" ? (
           <CartaoDeArquivo key={a.id} a={a} />
         ) : (

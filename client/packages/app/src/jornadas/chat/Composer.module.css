@@ -127,6 +127,11 @@
   line-height: var(--vx-type-caption-line);
 }
 
+/* Falha de envio: mesma frase da linha e do aviso, em tom de erro. */
+.conexaoFalha {
+  color: var(--vx-danger);
+}
+
 /* Sem permissão o campo sai e a frase entra: não há o que tentar. */
 .semPermissao {
   display: flex;

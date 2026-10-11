@@ -526,6 +526,14 @@ export type SistemaSnapshot =
       readonly porId: string;
     }
   | { readonly tipo: "renomeou"; readonly porId: string; readonly nome: string }
+  /** Moderação: a pessoa foi expulsa ou banida (o protocolo não diz por quem). */
+  | { readonly tipo: "expulso" | "banido"; readonly userId: string }
+  /** Mensagem fixada ou desafixada, e edições do canal que o protocolo só atribui a alguém. */
+  | {
+      readonly tipo: "fixou" | "desafixou" | "mudouDescricao" | "mudouIcone";
+      readonly porId: string;
+    }
+  | { readonly tipo: "transferiu"; readonly deId: string; readonly paraId: string }
   /**
    * Sala de voz: alguém foi movido (D-LAC-27). SEM autor: quem moveu só é
    * contado à pessoa movida, por evento privado.
@@ -575,7 +583,12 @@ export type SistemaSnapshot =
        */
       readonly duracaoTexto: string | undefined;
     }
-  | { readonly tipo: "texto"; readonly texto: string };
+  | { readonly tipo: "texto"; readonly texto: string }
+  /**
+   * Tipo que este cliente não conhece (evento novo do upstream). É o único caso
+   * em que a interface cai na frase genérica: o resto tem frase própria.
+   */
+  | { readonly tipo: "desconhecido" };
 
 /**
  * O que uma linha da coluna representa.

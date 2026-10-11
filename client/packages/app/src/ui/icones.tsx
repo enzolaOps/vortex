@@ -40,6 +40,8 @@ import {
   Paperclip as LPaperclip,
   Link as LLink,
   Palette as LPalette,
+  Pause as LPause,
+  Play as LPlay,
   Pencil as LPencil,
   Phone as LPhone,
   PhoneOff as LPhoneOff,
@@ -171,6 +173,8 @@ export const Pessoa = envolver(LUser);
 export const Paleta = envolver(LPalette);
 export const Elo = envolver(LLink);
 export const Camera = envolver(LVideo);
+export const Reproduzir = envolver(LPlay);
+export const Pausar = envolver(LPause);
 export const CameraDesligada = envolver(LVideoOff);
 export const Volume = envolver(LVolume2);
 export const VolumeDesligado = envolver(LVolumeX);

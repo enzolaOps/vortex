@@ -158,3 +158,44 @@ describe("tradução de call_started", () => {
     expect(s).toMatchObject({ tipo: "chamada", duracaoTexto: "0 s" });
   });
 });
+
+describe("tradução dos demais tipos de sistema", () => {
+  const msg = (systemMessage: object) => ({ systemMessage }) as unknown as Message;
+
+  it("expulso e banido trazem a pessoa, sem virar texto cru", () => {
+    expect(toSistema(msg({ type: "user_kicked", userId: ANA }))).toEqual({ tipo: "expulso", userId: ANA });
+    expect(toSistema(msg({ type: "user_banned", userId: BRUNO }))).toEqual({ tipo: "banido", userId: BRUNO });
+  });
+
+  it("fixar, desafixar e edições do canal trazem QUEM fez", () => {
+    expect(toSistema(msg({ type: "message_pinned", byId: ANA }))).toEqual({ tipo: "fixou", porId: ANA });
+    expect(toSistema(msg({ type: "message_unpinned", byId: ANA }))).toEqual({ tipo: "desafixou", porId: ANA });
+    expect(toSistema(msg({ type: "channel_description_changed", byId: BRUNO }))).toEqual({
+      tipo: "mudouDescricao",
+      porId: BRUNO,
+    });
+    expect(toSistema(msg({ type: "channel_icon_changed", byId: BRUNO }))).toEqual({
+      tipo: "mudouIcone",
+      porId: BRUNO,
+    });
+  });
+
+  it("transferência de dono traz de quem para quem", () => {
+    expect(toSistema(msg({ type: "channel_ownership_changed", fromId: ANA, toId: BRUNO }))).toEqual({
+      tipo: "transferiu",
+      deId: ANA,
+      paraId: BRUNO,
+    });
+  });
+
+  it("texto de verdade passa; tipo que o SDK não conhece vira 'desconhecido', não inglês cru", () => {
+    expect(toSistema(msg({ type: "text", content: "Manutenção às 22h" }))).toEqual({
+      tipo: "texto",
+      texto: "Manutenção às 22h",
+    });
+    expect(toSistema(msg({ type: "text", content: "user_muted is not supported." }))).toEqual({
+      tipo: "desconhecido",
+    });
+    expect(toSistema(msg({ type: "algo_novo" }))).toEqual({ tipo: "desconhecido" });
+  });
+});

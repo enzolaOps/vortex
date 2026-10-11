@@ -1,0 +1,126 @@
+/* Altura FIXA = ALTURA_DO_AUDIO (caixaDoAnexo.ts): a estimativa da linha não depende do estado. */
+.player {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+  inline-size: min(100%, 360px);
+  block-size: 56px;
+  padding-inline: var(--vx-space-3);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.player[data-falhou] {
+  border-color: var(--vx-danger);
+}
+
+.botao {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  inline-size: 32px;
+  block-size: 32px;
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-accent);
+  color: var(--vx-text-on-accent);
+  cursor: pointer;
+}
+.botao:hover {
+  background: var(--vx-accent-hover);
+}
+
+.corpo {
+  flex: 1;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+}
+
+.titulo {
+  display: flex;
+  align-items: baseline;
+  gap: var(--vx-space-2);
+  min-inline-size: 0;
+}
+.nome {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.peso {
+  flex: none;
+  color: var(--vx-text-3);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-type-mono-size);
+}
+
+.linha {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-3);
+}
+
+/* Alvo de 24px de altura; o trilho de 4px é desenhado dentro. */
+.barra {
+  position: relative;
+  flex: 1;
+  min-inline-size: 0;
+  block-size: 24px;
+  cursor: pointer;
+  touch-action: none;
+}
+.barra::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 50%;
+  block-size: 4px;
+  translate: 0 -50%;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-skeleton);
+}
+.progresso {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 50%;
+  block-size: 4px;
+  translate: 0 -50%;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-accent);
+  transform-origin: left center;
+}
+.alca {
+  position: absolute;
+  inset-block-start: 50%;
+  inline-size: 12px;
+  block-size: 12px;
+  translate: -50% -50%;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-accent);
+}
+.barra:focus-visible {
+  outline-offset: 2px;
+}
+
+.tempo {
+  flex: none;
+  color: var(--vx-text-3);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-type-mono-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.erro {
+  flex: none;
+  color: var(--vx-danger);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}

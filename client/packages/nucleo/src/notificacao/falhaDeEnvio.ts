@@ -2,7 +2,7 @@ import { toast } from "../ui-logica/toastStore";
 
 /**
  * O toast de erro da falha de envio (D-NOTIF-24): △ "Falha ao enviar
- * mensagem · #produto · sem conexão", com a ação "Tentar".
+ * mensagem · #produto · sem conexão", com a ação "Reenviar mensagem".
  *
  * ⚠ **A decisão anterior era não avisar, e ela tinha razão num ponto que
  * continua valendo:** a falha já está na LINHA, com o texto e o "tentar de
@@ -21,13 +21,31 @@ import { toast } from "../ui-logica/toastStore";
  * O toast é o que faltava para quem NÃO está olhando o canal — mandou e
  * trocou de conversa antes de o servidor responder.
  */
+/**
+ * A causa, em UMA frase — a linha, o aviso e o rodapé do campo a repetem, e é
+ * por vir daqui que os três contam a mesma história. "Recusou" (a rede estava
+ * de pé e o servidor disse não) e "sem conexão" (a mensagem nem chegou lá) são
+ * casos distintos e nunca aparecem trocados.
+ */
+export const CAUSA_DA_FALHA = {
+  recusou: "o servidor recusou a mensagem",
+  semConexao: "sem conexão",
+} as const;
+
+export function causaDaFalha(conectado: boolean): string {
+  return conectado ? CAUSA_DA_FALHA.recusou : CAUSA_DA_FALHA.semConexao;
+}
+
+/** O que o botão do aviso faz: reenvia as mensagens que falharam no canal. */
+export const ROTULO_DE_REENVIO = "Reenviar mensagem";
+
 export function textoDaFalhaDeEnvio(
   onde: string,
   conectado: boolean,
 ): { titulo: string; descricao: string } {
   return {
     titulo: "Falha ao enviar mensagem",
-    descricao: `${onde} · ${conectado ? "o servidor não aceitou" : "sem conexão"}`,
+    descricao: `${onde} · ${causaDaFalha(conectado)}`,
   };
 }
 
@@ -42,9 +60,9 @@ export function avisarFalhaDeEnvio(
     icone: "alerta",
     expira: true,
     acao: {
-      rotulo: "Tentar",
+      rotulo: ROTULO_DE_REENVIO,
       descricaoAlternativa:
-        "A mensagem continua na conversa, com a opção de tentar de novo ao lado",
+        "A mensagem continua na conversa, com as opções de reenviar ou descartar ao lado",
       aoAtivar: tentar,
     },
   });

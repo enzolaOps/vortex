@@ -11,11 +11,11 @@ import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent, type 
 import { chat } from "../../textos";
 import { nomeDaConversa } from "../useNomeDaConversa";
 import { CampoDeMensagem } from "../../ui/ds";
-import { Arquivo, Arroba, Cadeado, Fechar, Imagem, SemConexao } from "../../ui/icones";
+import { Alerta, Arquivo, Arroba, Cadeado, Fechar, Imagem, SemConexao } from "../../ui/icones";
 import { trechoDe } from "./CitacaoDeResposta";
 import css from "./Composer.module.css";
 import { SeletorNoComposer } from "./emoji/SeletoresDeEmoji";
-import { useAlvoDeResposta, usePendentesDoCanal } from "./hooks";
+import { useAlvoDeResposta, useFalhadasDoCanal, usePendentesDoCanal } from "./hooks";
 import { pedirFimDaLista } from "./saltos";
 
 /** O protocolo aceita até cinco anexos por mensagem. */
@@ -113,6 +113,7 @@ export function Composer({ canalId, servidorId }: { canalId: string; servidorId:
   const alvo = useAlvoDeResposta(canalId);
   const conectado = useConexao() === "conectado";
   const naFila = usePendentesDoCanal(canalId);
+  const falhadas = useFalhadasDoCanal(canalId);
   const [arquivos, setArquivos] = useState<File[]>([]);
   const [aviso, setAviso] = useState<string | undefined>(undefined);
   const area = useRef<HTMLTextAreaElement | null>(null);
@@ -303,6 +304,12 @@ export function Composer({ canalId, servidorId }: { canalId: string; servidorId:
           e.target.value = "";
         }}
       />
+      {falhadas > 0 && (
+        <p className={`${css.conexao} ${css.conexaoFalha}`} role="status">
+          <Alerta tamanho={14} />
+          {chat.falhadasNoCanal(falhadas, conectado)}
+        </p>
+      )}
       {(!conectado || naFila > 0) && (
         <p className={css.conexao} role="status">
           <SemConexao tamanho={14} />

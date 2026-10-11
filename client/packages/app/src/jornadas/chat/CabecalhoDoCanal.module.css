@@ -1,0 +1,68 @@
+.cabeca {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-3);
+  min-inline-size: 0;
+  padding: var(--vx-space-3) var(--vx-space-5);
+  border-block-end: 1px solid var(--vx-border-subtle);
+}
+
+.nome {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-2);
+  max-inline-size: 60%;
+  min-inline-size: 0;
+  margin: 0;
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-body-strong-size);
+  line-height: var(--vx-type-body-strong-line);
+  font-weight: 700;
+}
+
+.icone {
+  flex: none;
+  color: var(--vx-text-3);
+}
+
+.texto {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cadeado {
+  display: inline-flex;
+  flex: none;
+  color: var(--vx-text-3);
+}
+
+/* Um fio separa o nome do tópico; o tópico cede espaço primeiro e termina em reticências. */
+.topico {
+  flex: 1;
+  min-inline-size: 0;
+  margin: 0;
+  padding-inline-start: var(--vx-space-3);
+  border-inline-start: 1px solid var(--vx-border-subtle);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+
+/* A área do canal: cabeçalho fixo em cima e o chat tomando o resto. */
+.canal {
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-block-size: 0;
+}
+
+.chat {
+  flex: 1;
+  min-block-size: 0;
+}
