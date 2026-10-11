@@ -25,7 +25,7 @@ import { chaveDeVideo, faixasDeVideo, type FonteDeVideo } from "../store/video";
  * o pedido era descartado ("sem publicação não conta"), o efeito do ladrilho
  * não rodava de novo e nada no motor reagia ao `TrackPublished` de vídeo. Agora
  * o pedido fica, e quem o cumpre é o TRANSPORTE mudando: `publicacaoChegou`
- * (`TrackPublished`).
+ * (`TrackPublished`) e `reconciliar` (`Reconnected`, `ParticipantConnected`).
  */
 
 /** O pedaço de `RemoteTrackPublication` que a contabilidade usa. */
@@ -77,6 +77,12 @@ export interface AssinaturaDeVideo {
    */
   esquecer(userId: string, fonte: FonteDeVideo): void;
   /**
+   * Varre todo pedido ativo e assina a publicação ATUAL quando ela não é a que
+   * foi assinada — inclusive o mesmo `trackSid` num OBJETO novo, que é o que o
+   * reinício completo do LiveKit produz.
+   */
+  reconciliar(): void;
+  /**
    * O `ScreenShareAudio` apareceu. Assina só se alguém está assistindo a tela
    * dessa pessoa — o som de uma tela que ninguém abriu não desce.
    */
@@ -110,14 +116,14 @@ export function criarAssinaturaDeVideo(
    */
   const pendentes = new Map<string, ReturnType<typeof setTimeout>>();
   /**
-   * O que está assinado NO TRANSPORTE, e DE QUAL publicação.
+   * O que está assinado NO TRANSPORTE, e QUAL publicação — o objeto.
    *
-   * ⚠ **Guarda a publicação, e não só a chave.** A chave é `usuário:fonte`,
-   * estável entre transmissões. Quando a pessoa parava e voltava a
-   * transmitir, a publicação nova tinha outro `trackSid`, mas a chave
-   * continuava marcada como assinada: o pedido era pulado, a faixa nova nunca
-   * descia, e a tela esperava para sempre. Com o `trackSid`, publicação nova é
-   * pedido novo.
+   * ⚠ **O objeto, e não só a chave ou o `trackSid`.** A chave é
+   * `usuário:fonte`, estável entre transmissões: parar e voltar a transmitir
+   * dá outra publicação. E o `trackSid` sozinho também não basta: no reinício
+   * completo o LiveKit desfaz os participantes remotos e os recria com
+   * publicações NOVAS e sem assinatura, mas com o MESMO `trackSid` (quem
+   * publica não caiu). Comparar o objeto cobre os dois casos.
    */
   const assinado = new Map<string, PublicacaoAssinavel>();
 
@@ -142,7 +148,7 @@ export function criarAssinaturaDeVideo(
     const pub = fontes.video(p.userId, p.fonte);
     if (!pub) return;
 
-    const nova = assinado.get(chave)?.trackSid !== pub.trackSid;
+    const nova = assinado.get(chave) !== pub;
     if (nova) {
       assinado.set(chave, pub);
       pub.setSubscribed(true);
@@ -213,6 +219,10 @@ export function criarAssinaturaDeVideo(
     esquecer(userId, fonte) {
       const chave = chaveDeVideo(userId, fonte);
       assinado.delete(chave);
+    },
+
+    reconciliar() {
+      for (const chave of pedidos.keys()) cumprir(chave, false);
     },
 
     audioDaTelaPublicado(userId) {

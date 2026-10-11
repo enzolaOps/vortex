@@ -154,10 +154,61 @@ describe("TrackPublished cumpre o pedido guardado", () => {
   });
 });
 
+describe("reconexão completa", () => {
+  it("o Reconnected reassina a publicação recriada com o mesmo trackSid", () => {
+    const assinatura = montar();
+    const ana = anaEntra();
+    const antes = publicacao("TR_tela");
+    publicar(ana, antes);
+    assinatura.pedir(ANA, "tela", "alta");
+    expect(antes.pedidos).toEqual([true]);
+
+    /* `handleRestarting`: o remoto é desfeito… */
+    sala.remoteParticipants.delete(ANA);
+    sala.emit(RoomEvent.ParticipantDisconnected, ana);
+    /* …e volta como objeto novo, com publicação nova do MESMO `trackSid`,
+       sem eventos de participante — só o `Reconnected` no fim. */
+    const outra = new ParticipanteFalso(ANA);
+    const depois = publicacao("TR_tela");
+    outra.publicacoes.set(Track.Source.ScreenShare, depois);
+    sala.remoteParticipants.set(ANA, outra);
+    sala.emit(RoomEvent.Reconnected);
+
+    expect(depois.pedidos).toEqual([true]);
+    expect(qualidades).toEqual([`${ANA}:tela:alta`, `${ANA}:tela:alta`]);
+  });
+
+  it("o ParticipantConnected também reassina", () => {
+    const assinatura = montar();
+    const ana = anaEntra();
+    publicar(ana, publicacao("TR_tela"));
+    assinatura.pedir(ANA, "tela");
+
+    sala.remoteParticipants.delete(ANA);
+    sala.emit(RoomEvent.ParticipantDisconnected, ana);
+    const outra = new ParticipanteFalso(ANA);
+    const depois = publicacao("TR_tela");
+    outra.publicacoes.set(Track.Source.ScreenShare, depois);
+    sala.remoteParticipants.set(ANA, outra);
+    sala.emit(RoomEvent.ParticipantConnected, outra);
+    expect(depois.pedidos).toEqual([true]);
+  });
+
+  it("o Reconnected de uma retomada (mesmos objetos) não reassina", () => {
+    const assinatura = montar();
+    const ana = anaEntra();
+    const tela = publicacao("TR_tela");
+    publicar(ana, tela);
+    assinatura.pedir(ANA, "tela");
+    sala.emit(RoomEvent.Reconnected);
+    expect(tela.pedidos).toEqual([true]);
+  });
+});
+
 describe("os ouvintes saem", () => {
   it("a função devolvida desliga todos os eventos", () => {
     montar();
-    expect(sala.eventNames().length).toBe(2);
+    expect(sala.eventNames().length).toBe(5);
     desligar();
     expect(sala.eventNames()).toEqual([]);
   });

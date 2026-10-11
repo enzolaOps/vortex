@@ -250,6 +250,49 @@ describe("pedido feito antes da publicação", () => {
 });
 
 /**
+ * ⚠ **"Só volta relogando."** No reinício completo do LiveKit, as publicações
+ * remotas são recriadas — objetos novos, sem assinatura — com o MESMO
+ * `trackSid`.
+ */
+describe("reconexão completa", () => {
+  it("o mesmo trackSid num objeto novo é reassinado por `reconciliar`", () => {
+    const a = criar();
+    a.pedir(USUARIO, "tela", "media");
+    expect(chamadas).toEqual([true]);
+
+    /* `ParticipantDisconnected`: a publicação some, o ladrilho continua. */
+    video = undefined;
+    a.esquecer(USUARIO, "tela");
+    /* Volta, com o mesmo `trackSid`, num objeto novo. */
+    video = publicacao("TR_v1", () => chamadas);
+    a.reconciliar();
+    expect(chamadas).toEqual([true, true]);
+    expect(qualidades).toEqual(["media", "media"]);
+  });
+
+  it("reassina mesmo SEM o `esquecer` — basta o objeto ser outro", () => {
+    const a = criar();
+    a.pedir(USUARIO, "tela");
+    video = publicacao("TR_v1", () => chamadas);
+    a.reconciliar();
+    expect(chamadas).toEqual([true, true]);
+  });
+
+  it("`reconciliar` não reassina a publicação que já está assinada", () => {
+    const a = criar();
+    a.pedir(USUARIO, "tela");
+    a.reconciliar();
+    a.reconciliar();
+    expect(chamadas).toEqual([true]);
+  });
+
+  it("`reconciliar` não assina o que ninguém pediu", () => {
+    criar().reconciliar();
+    expect(chamadas).toEqual([]);
+  });
+});
+
+/**
  * ⚠ **"Em algumas horas fica só em 'recebendo o primeiro quadro…'" —
  * relatado por quem usa.** A chave `usuário:tela` é estável entre
  * transmissões; a publicação não é.

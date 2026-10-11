@@ -56,13 +56,34 @@ export function ligarAssinaturaDeVideo(
     const fonte = fonteDe(pub.source);
     if (fonte) assinatura.esquecer(participante.identity, fonte);
   };
+  /*
+    ⚠ **Reconectar REASSINA, e é a segunda porta do mesmo defeito.** No
+    reinício completo, o LiveKit desfaz os remotos e os recria com publicações
+    novas, sem assinatura (`autoSubscribe: false`) e com o MESMO `trackSid`. O
+    protocolo segue dizendo `screensharing: true`, o ladrilho continua montado
+    e o efeito dele não roda de novo: sem esta varredura, só sair da sala
+    destravava.
+  */
+  const aoReconciliar = () => {
+    assinatura.reconciliar();
+  };
+  const aoSair = (participante: RemoteParticipant) => {
+    assinatura.esquecer(participante.identity, "tela");
+    assinatura.esquecer(participante.identity, "camera");
+  };
 
   r.on(RoomEvent.TrackPublished, aoPublicar);
   r.on(RoomEvent.TrackUnpublished, aoDespublicar);
+  r.on(RoomEvent.Reconnected, aoReconciliar);
+  r.on(RoomEvent.ParticipantConnected, aoReconciliar);
+  r.on(RoomEvent.ParticipantDisconnected, aoSair);
 
   return () => {
     r.off(RoomEvent.TrackPublished, aoPublicar);
     r.off(RoomEvent.TrackUnpublished, aoDespublicar);
+    r.off(RoomEvent.Reconnected, aoReconciliar);
+    r.off(RoomEvent.ParticipantConnected, aoReconciliar);
+    r.off(RoomEvent.ParticipantDisconnected, aoSair);
   };
 }
 
