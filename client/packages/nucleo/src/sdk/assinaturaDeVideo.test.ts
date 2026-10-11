@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { readFileSync } from "node:fs";
 
+import type { QualidadeDeStream } from "./camadaDeVideo";
 import { faixasDeVideo, type FonteDeVideo } from "../store/video";
 import {
   criarAssinaturaDeVideo,
@@ -23,6 +24,7 @@ const CHAVE = `${USUARIO}:tela`;
 
 let chamadas: boolean[];
 let audio: boolean[];
+let qualidades: QualidadeDeStream[];
 let video: PublicacaoAssinavel | undefined;
 let somDaTela: PublicacaoAssinavel | undefined;
 
@@ -47,6 +49,7 @@ function criar() {
     video: () => video,
     audioDaTela: (_u: string, fonte: FonteDeVideo) =>
       fonte === "tela" ? somDaTela : undefined,
+    aplicarQualidade: (_u, _f, q) => qualidades.push(q),
   });
 }
 
@@ -54,6 +57,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   chamadas = [];
   audio = [];
+  qualidades = [];
   video = publicacao("TR_v1", () => chamadas, faixa("f1"));
   somDaTela = publicacao("TR_a1", () => audio);
   faixasDeVideo.limpar();
@@ -65,15 +69,14 @@ afterEach(() => {
 
 describe("o áudio da tela acompanha o vídeo", () => {
   it("assinar a tela pede o som junto", () => {
-    criar().assinar(USUARIO, "tela", true);
+    criar().pedir(USUARIO, "tela");
     expect(chamadas).toEqual([true]);
     expect(audio).toEqual([true]);
   });
 
   it("devolver a tela devolve o som junto", () => {
-    const a = criar();
-    a.assinar(USUARIO, "tela", true);
-    a.assinar(USUARIO, "tela", false);
+    const devolver = criar().pedir(USUARIO, "tela");
+    devolver();
     vi.advanceTimersByTime(1000);
     expect(chamadas).toEqual([true, false]);
     expect(audio).toEqual([true, false]);
@@ -81,15 +84,14 @@ describe("o áudio da tela acompanha o vídeo", () => {
 
   it("trocar de superfície não reconsulta o som", () => {
     const a = criar();
-    a.assinar(USUARIO, "tela", true);
-    a.assinar(USUARIO, "tela", false);
-    a.assinar(USUARIO, "tela", true);
+    a.pedir(USUARIO, "tela")();
+    a.pedir(USUARIO, "tela");
     vi.advanceTimersByTime(1000);
     expect(audio).toEqual([true]);
   });
 
   it("câmera NÃO pede som de tela", () => {
-    criar().assinar(USUARIO, "camera", true);
+    criar().pedir(USUARIO, "camera");
     expect(chamadas).toEqual([true]);
     expect(audio).toEqual([]);
   });
@@ -108,7 +110,7 @@ describe("o áudio da tela acompanha o vídeo", () => {
   it("som da tela publicado DEPOIS do vídeo, com alguém assistindo, é assinado", () => {
     const a = criar();
     somDaTela = undefined;
-    a.assinar(USUARIO, "tela", true);
+    a.pedir(USUARIO, "tela");
     expect(audio).toEqual([]);
 
     somDaTela = publicacao("TR_a1", () => audio);
@@ -118,8 +120,7 @@ describe("o áudio da tela acompanha o vídeo", () => {
 
   it("som da tela publicado depois de parar de assistir não é assinado", () => {
     const a = criar();
-    a.assinar(USUARIO, "tela", true);
-    a.assinar(USUARIO, "tela", false);
+    a.pedir(USUARIO, "tela")();
     vi.advanceTimersByTime(1000);
     audio = [];
     a.audioDaTelaPublicado(USUARIO);
@@ -130,19 +131,17 @@ describe("o áudio da tela acompanha o vídeo", () => {
 describe("troca de dono da faixa de vídeo", () => {
   it("trocar da grade para 'Assistir' NÃO consulta o servidor", () => {
     const a = criar();
-    a.assinar(USUARIO, "tela", true);
-    a.assinar(USUARIO, "tela", false);
-    a.assinar(USUARIO, "tela", true);
+    a.pedir(USUARIO, "tela")();
+    a.pedir(USUARIO, "tela");
     vi.advanceTimersByTime(1000);
     expect(chamadas).toEqual([true]);
     expect(faixasDeVideo.getSnapshot(CHAVE)?.id).toBe("f1");
   });
 
   it("o último a soltar DEVOLVE a faixa, depois da espera", () => {
-    const a = criar();
-    a.assinar(USUARIO, "tela", true);
+    const devolver = criar().pedir(USUARIO, "tela");
     chamadas = [];
-    a.assinar(USUARIO, "tela", false);
+    devolver();
     expect(chamadas).toEqual([]);
     vi.advanceTimersByTime(250);
     expect(chamadas).toEqual([false]);
@@ -151,23 +150,102 @@ describe("troca de dono da faixa de vídeo", () => {
 
   it("dois consumidores ao mesmo tempo assinam uma vez só", () => {
     const a = criar();
-    a.assinar(USUARIO, "tela", true);
-    a.assinar(USUARIO, "tela", true);
-    a.assinar(USUARIO, "tela", false);
+    a.pedir(USUARIO, "tela");
+    a.pedir(USUARIO, "tela")();
     vi.advanceTimersByTime(1000);
     expect(chamadas).toEqual([true]);
     expect(faixasDeVideo.getSnapshot(CHAVE)?.id).toBe("f1");
   });
 
   it("assinar escreve a faixa que já está na publicação", () => {
-    criar().assinar(USUARIO, "tela", true);
+    criar().pedir(USUARIO, "tela");
     expect(faixasDeVideo.getSnapshot(CHAVE)?.id).toBe("f1");
   });
 
-  it("sem publicação, pedir devolve false e não assina nada", () => {
+  it("a camada pedida é aplicada junto com a assinatura", () => {
+    criar().pedir(USUARIO, "tela", "alta");
+    expect(qualidades).toEqual(["alta"]);
+  });
+
+  it("outro ladrilho pedindo outra camada a reaplica sem reassinar", () => {
+    const a = criar();
+    a.pedir(USUARIO, "tela", "alta");
+    a.pedir(USUARIO, "tela", "baixa");
+    expect(chamadas).toEqual([true]);
+    expect(qualidades).toEqual(["alta", "baixa"]);
+  });
+});
+
+/**
+ * ⚠ **"Fica preso em 'Recebendo o primeiro quadro…'" — relatado por quem
+ * usa.** O ladrilho de tela monta pelo `screensharing` do protocolo Stoat, que
+ * pode chegar ANTES da publicação do LiveKit.
+ */
+describe("pedido feito antes da publicação", () => {
+  it("é guardado, e cumprido quando a publicação chega, com a camada pedida", () => {
+    const a = criar();
     video = undefined;
-    expect(criar().assinar(USUARIO, "tela", true)).toBe(false);
+    a.pedir(USUARIO, "tela", "alta");
     expect(chamadas).toEqual([]);
+    expect(qualidades).toEqual([]);
+
+    video = publicacao("TR_v1", () => chamadas);
+    a.publicacaoChegou(USUARIO, "tela");
+    expect(chamadas).toEqual([true]);
+    expect(audio).toEqual([true]);
+    expect(qualidades).toEqual(["alta"]);
+
+    /* Uma segunda notícia da mesma publicação não pede de novo. */
+    a.publicacaoChegou(USUARIO, "tela");
+    expect(chamadas).toEqual([true]);
+  });
+
+  it("publicação que chega depois de devolvido NÃO é assinada", () => {
+    const a = criar();
+    video = undefined;
+    a.pedir(USUARIO, "tela")();
+    vi.advanceTimersByTime(1000);
+    video = publicacao("TR_v1", () => chamadas);
+    a.publicacaoChegou(USUARIO, "tela");
+    expect(chamadas).toEqual([]);
+  });
+
+  /*
+    ⚠ **A devolução de quem nunca contou derrubava a faixa de OUTRO ladrilho.**
+    O foco montava cedo e não contava; a miniatura pedia com publicação e
+    contava 1; o foco desmontava e descontava o que nunca contou.
+  */
+  it("o foco pede sem publicação, a miniatura pede com, o foco sai: a miniatura segue", () => {
+    const a = criar();
+    video = undefined;
+    const devolverFoco = a.pedir(USUARIO, "tela", "alta");
+    video = publicacao("TR_v1", () => chamadas, faixa("f1"));
+    a.pedir(USUARIO, "tela", "baixa");
+    devolverFoco();
+    vi.advanceTimersByTime(1000);
+    expect(chamadas).toEqual([true]);
+    expect(faixasDeVideo.getSnapshot(CHAVE)?.id).toBe("f1");
+  });
+
+  it("devolver duas vezes desconta uma só", () => {
+    const a = criar();
+    const devolver = a.pedir(USUARIO, "tela");
+    a.pedir(USUARIO, "tela");
+    devolver();
+    devolver();
+    vi.advanceTimersByTime(1000);
+    expect(chamadas).toEqual([true]);
+  });
+
+  it("a devolução de um pedido de antes de `limpar` não desconta o da sala nova", () => {
+    const a = criar();
+    const daSalaVelha = a.pedir(USUARIO, "tela");
+    a.limpar();
+    chamadas = [];
+    a.pedir(USUARIO, "tela");
+    daSalaVelha();
+    vi.advanceTimersByTime(1000);
+    expect(chamadas).toEqual([true]);
   });
 });
 
@@ -179,11 +257,11 @@ describe("troca de dono da faixa de vídeo", () => {
 describe("a pessoa para e volta a transmitir", () => {
   it("publicação NOVA é pedida de novo, mesmo com a chave já assinada", () => {
     const a = criar();
-    a.assinar(USUARIO, "tela", true);
+    const devolver = a.pedir(USUARIO, "tela");
 
     /* A transmissão acaba: a publicação some ANTES de a tela desmontar. */
     video = undefined;
-    a.assinar(USUARIO, "tela", false);
+    devolver();
     vi.advanceTimersByTime(1000);
 
     /* Volta a transmitir, com outro `trackSid`, e a pessoa clica em assistir. */
@@ -191,7 +269,7 @@ describe("a pessoa para e volta a transmitir", () => {
     audio = [];
     video = publicacao("TR_v2", () => chamadas);
     somDaTela = publicacao("TR_a2", () => audio);
-    expect(a.assinar(USUARIO, "tela", true)).toBe(true);
+    a.pedir(USUARIO, "tela");
     expect(chamadas).toEqual([true]);
     expect(audio).toEqual([true]);
   });
@@ -200,10 +278,12 @@ describe("a pessoa para e volta a transmitir", () => {
      ainda está montada, sem a devolução nunca ter rodado. */
   it("republicação com a tela ainda montada também pede a faixa nova", () => {
     const a = criar();
-    a.assinar(USUARIO, "tela", true);
+    a.pedir(USUARIO, "tela");
     chamadas = [];
+    video = undefined;
+    a.esquecer(USUARIO, "tela");
     video = publicacao("TR_v2", () => chamadas);
-    a.assinar(USUARIO, "tela", true);
+    a.publicacaoChegou(USUARIO, "tela");
     expect(chamadas).toEqual([true]);
   });
 
@@ -211,23 +291,21 @@ describe("a pessoa para e volta a transmitir", () => {
      seguinte herdava um assinante fantasma e nunca era devolvida. */
   it("a devolução sem publicação desconta, e a próxima transmissão é devolvida", () => {
     const a = criar();
-    a.assinar(USUARIO, "tela", true);
+    const devolver = a.pedir(USUARIO, "tela");
     video = undefined;
-    a.assinar(USUARIO, "tela", false);
+    devolver();
     vi.advanceTimersByTime(1000);
 
     chamadas = [];
     video = publicacao("TR_v2", () => chamadas);
-    a.assinar(USUARIO, "tela", true);
-    a.assinar(USUARIO, "tela", false);
+    a.pedir(USUARIO, "tela")();
     vi.advanceTimersByTime(1000);
     expect(chamadas).toEqual([true, false]);
   });
 
   it("limpar zera tudo, inclusive devoluções pendentes", () => {
     const a = criar();
-    a.assinar(USUARIO, "tela", true);
-    a.assinar(USUARIO, "tela", false);
+    a.pedir(USUARIO, "tela")();
     a.limpar();
     vi.advanceTimersByTime(1000);
     expect(chamadas).toEqual([true]);
@@ -237,9 +315,9 @@ describe("a pessoa para e volta a transmitir", () => {
 /**
  * O motor usa a contabilidade como ela é testada aqui.
  *
- * Não é prova de comportamento — o motor carrega `livekit-client` e não abre
- * no jsdom. É prova de que as três ligações que decidem os defeitos relatados
- * continuam lá.
+ * Não é prova de comportamento — isso está em `ligarAssinaturaDeVideo.test.ts`,
+ * com um `Room` falso. É prova de que as ligações que decidem os defeitos
+ * relatados continuam no motor.
  */
 describe("o motor liga a contabilidade", () => {
   const motor = readFileSync(
@@ -247,8 +325,18 @@ describe("o motor liga a contabilidade", () => {
     "utf8",
   );
 
-  it("assinarVideo delega para a contabilidade", () => {
-    expect(motor).toContain("return assinatura.assinar(userId, fonte, sim);");
+  it("pedirVideo delega para a contabilidade", () => {
+    expect(motor).toContain("return assinatura.pedir(userId, fonte, qualidade);");
+  });
+
+  it("os eventos que cumprem o pedido são ligados a cada sala", () => {
+    expect(motor).toContain(
+      "desligarAssinaturaDeVideo = ligarAssinaturaDeVideo(r, assinatura);",
+    );
+  });
+
+  it("a camada é aplicada pela contabilidade", () => {
+    expect(motor).toContain("aplicarQualidade: definirQualidadeDeStream,");
   });
 
   it("o som da tela publicado passa pela contabilidade, não pelo áudio geral", () => {

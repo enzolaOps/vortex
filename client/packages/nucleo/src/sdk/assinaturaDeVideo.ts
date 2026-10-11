@@ -1,3 +1,4 @@
+import type { QualidadeDeStream } from "./camadaDeVideo";
 import { chaveDeVideo, faixasDeVideo, type FonteDeVideo } from "../store/video";
 
 /**
@@ -16,6 +17,15 @@ import { chaveDeVideo, faixasDeVideo, type FonteDeVideo } from "../store/video";
  * Sair do palco, rolar para fora ou ocultar a aba devolve a faixa (a devolução
  * espera `atraso` ms para a troca foco/miniatura não passar por zero). O motor
  * segue com `autoSubscribe: false`: áudio por evento, vídeo só por este pedido.
+ *
+ * ⚠ **O PEDIDO é guardado mesmo sem publicação — o conserto do "Recebendo o
+ * primeiro quadro…" que ficava para sempre.** O ladrilho de tela monta pelo
+ * `screensharing` do protocolo Stoat, que chega pelo websocket; a publicação
+ * chega pelo sinal do LiveKit, e os dois não têm ordem. Quando o Stoat ganhava,
+ * o pedido era descartado ("sem publicação não conta"), o efeito do ladrilho
+ * não rodava de novo e nada no motor reagia ao `TrackPublished` de vídeo. Agora
+ * o pedido fica, e quem o cumpre é o TRANSPORTE mudando: `publicacaoChegou`
+ * (`TrackPublished`).
  */
 
 /** O pedaço de `RemoteTrackPublication` que a contabilidade usa. */
@@ -32,14 +42,40 @@ export interface FontesDePublicacao {
     userId: string,
     fonte: FonteDeVideo,
   ): PublicacaoAssinavel | undefined;
+  /**
+   * Aplica a camada pedida na publicação já assinada. Chamado pela
+   * contabilidade no momento em que a assinatura ACONTECE — que pode ser muito
+   * depois do pedido, quando a publicação chega.
+   */
+  aplicarQualidade?(
+    userId: string,
+    fonte: FonteDeVideo,
+    qualidade: QualidadeDeStream,
+  ): void;
 }
 
 export interface AssinaturaDeVideo {
   /**
-   * Pede (`true`) ou devolve (`false`) a faixa. Devolve `false` quando não há
-   * o que assinar — a pessoa saiu, ou nunca publicou aquela fonte.
+   * Pede a faixa e devolve a função que a DEVOLVE.
+   *
+   * ⚠ **A devolução é a função, e não um `assinar(false)` solto.** Com um
+   * booleano, uma devolução de quem nunca contou descontava o pedido de outro
+   * ladrilho da mesma tela (miniatura, PiP) e derrubava o vídeo dele. Com a
+   * função, só devolve quem pediu, e só uma vez: chamá-la de novo não faz nada.
    */
-  assinar(userId: string, fonte: FonteDeVideo, sim: boolean): boolean;
+  pedir(
+    userId: string,
+    fonte: FonteDeVideo,
+    qualidade?: QualidadeDeStream,
+  ): () => void;
+  /** A publicação de vídeo (`TrackPublished`) apareceu: cumpre o pedido guardado. */
+  publicacaoChegou(userId: string, fonte: FonteDeVideo): void;
+  /**
+   * A publicação deixou de existir (`TrackUnpublished`, `ParticipantDisconnected`).
+   * Esquece de QUAL publicação era a assinatura, sem tocar na contagem: o
+   * ladrilho continua querendo, e a próxima publicação será pedida.
+   */
+  esquecer(userId: string, fonte: FonteDeVideo): void;
   /**
    * O `ScreenShareAudio` apareceu. Assina só se alguém está assistindo a tela
    * dessa pessoa — o som de uma tela que ninguém abriu não desce.
@@ -49,16 +85,24 @@ export interface AssinaturaDeVideo {
   limpar(): void;
 }
 
+interface Pedido {
+  readonly userId: string;
+  readonly fonte: FonteDeVideo;
+  /**
+   * Quantas superfícies querem esta faixa. O ladrilho da grade e a tela de
+   * assistir pedem a mesma, e sem contagem quem soltava primeiro derrubava a
+   * de quem chegava.
+   */
+  contagem: number;
+  /** A última camada pedida; reaplicada a cada vez que a assinatura acontece. */
+  qualidade: QualidadeDeStream | undefined;
+}
+
 export function criarAssinaturaDeVideo(
   fontes: FontesDePublicacao,
   atraso = 250,
 ): AssinaturaDeVideo {
-  /**
-   * Quantas superfícies querem cada faixa. O ladrilho da grade e a tela de
-   * assistir pedem a mesma, e sem contagem quem soltava primeiro derrubava a
-   * de quem chegava.
-   */
-  const assinantes = new Map<string, number>();
+  const pedidos = new Map<string, Pedido>();
   /**
    * Devoluções adiadas. O React roda a limpeza do que sai ANTES do efeito do
    * que entra, então trocar de superfície passa por zero; a espera deixa o
@@ -68,88 +112,117 @@ export function criarAssinaturaDeVideo(
   /**
    * O que está assinado NO TRANSPORTE, e DE QUAL publicação.
    *
-   * ⚠ **Guarda o `trackSid`, e não só a chave — é o conserto do "recebendo o
-   * primeiro quadro…" que nunca resolvia.** A chave é `usuário:fonte`, estável
-   * entre transmissões. Quando a pessoa parava e voltava a transmitir, a
-   * publicação nova tinha outro `trackSid`, mas a chave continuava marcada
-   * como assinada: o pedido era pulado, a faixa nova nunca descia, e a tela
-   * esperava para sempre. Com o `trackSid`, publicação nova é pedido novo.
+   * ⚠ **Guarda a publicação, e não só a chave.** A chave é `usuário:fonte`,
+   * estável entre transmissões. Quando a pessoa parava e voltava a
+   * transmitir, a publicação nova tinha outro `trackSid`, mas a chave
+   * continuava marcada como assinada: o pedido era pulado, a faixa nova nunca
+   * descia, e a tela esperava para sempre. Com o `trackSid`, publicação nova é
+   * pedido novo.
    */
-  const assinado = new Map<string, string>();
+  const assinado = new Map<string, PublicacaoAssinavel>();
 
-  function devolverDepois(userId: string, fonte: FonteDeVideo, chave: string) {
+  function cancelar(
+    mapa: Map<string, ReturnType<typeof setTimeout>>,
+    chave: string,
+  ) {
+    const t = mapa.get(chave);
+    if (t === undefined) return;
+    clearTimeout(t);
+    mapa.delete(chave);
+  }
+
+  /**
+   * Assina a publicação atual do pedido, se ainda não for ela a assinada.
+   * `reaplicar` reaplica a camada mesmo sem assinatura nova — um ladrilho que
+   * pede outra camada para a mesma faixa.
+   */
+  function cumprir(chave: string, reaplicar: boolean) {
+    const p = pedidos.get(chave);
+    if (!p || p.contagem === 0) return;
+    const pub = fontes.video(p.userId, p.fonte);
+    if (!pub) return;
+
+    const nova = assinado.get(chave)?.trackSid !== pub.trackSid;
+    if (nova) {
+      assinado.set(chave, pub);
+      pub.setSubscribed(true);
+      fontes.audioDaTela(p.userId, p.fonte)?.setSubscribed(true);
+    }
+    if ((nova || reaplicar) && p.qualidade !== undefined) {
+      fontes.aplicarQualidade?.(p.userId, p.fonte, p.qualidade);
+    }
+
+    /*
+      `TrackSubscribed` é evento de CHEGADA: assinar o que já chegou não o
+      dispara de novo. A faixa já está na publicação; escrevê-la é ler o que
+      existe.
+    */
+    const faixa = pub.track?.mediaStreamTrack;
+    if (faixa) faixasDeVideo.set(chave, faixa);
+  }
+
+  function devolverDepois(p: Pedido, chave: string) {
     pendentes.set(
       chave,
       setTimeout(() => {
         pendentes.delete(chave);
         /* Alguém pode ter voltado a querer entre o agendamento e agora. */
-        if ((assinantes.get(chave) ?? 0) > 0) return;
+        if (pedidos.get(chave) !== p || p.contagem > 0) return;
+        pedidos.delete(chave);
         assinado.delete(chave);
-        fontes.video(userId, fonte)?.setSubscribed(false);
+        fontes.video(p.userId, p.fonte)?.setSubscribed(false);
         /* Devolver os dois, senão o som de uma tela que ninguém vê continua
            tocando — e é o que quem usa ouve primeiro. */
-        fontes.audioDaTela(userId, fonte)?.setSubscribed(false);
+        fontes.audioDaTela(p.userId, p.fonte)?.setSubscribed(false);
         faixasDeVideo.apagar(chave);
       }, atraso),
     );
   }
 
   return {
-    assinar(userId, fonte, sim) {
+    pedir(userId, fonte, qualidade) {
       const chave = chaveDeVideo(userId, fonte);
-      const pub = fontes.video(userId, fonte);
-      /*
-        ⚠ **Pedir sem publicação não conta; devolver sem publicação CONTA.**
-        A devolução chega quando a transmissão já acabou — o palco volta para a
-        grade porque a publicação sumiu, e só então a limpeza roda. Retornar
-        cedo ali deixava um assinante fantasma, e a próxima transmissão da
-        mesma pessoa começava com a contagem errada.
-      */
-      if (sim && !pub) return false;
-
-      const depois = Math.max(
-        0,
-        (assinantes.get(chave) ?? 0) + (sim ? 1 : -1),
-      );
-      if (depois === 0) assinantes.delete(chave);
-      else assinantes.set(chave, depois);
-
-      const adiado = pendentes.get(chave);
-      if (adiado !== undefined) {
-        clearTimeout(adiado);
-        pendentes.delete(chave);
+      let p = pedidos.get(chave);
+      if (!p) {
+        p = { userId, fonte, contagem: 0, qualidade };
+        pedidos.set(chave, p);
       }
+      p.contagem += 1;
+      if (qualidade !== undefined) p.qualidade = qualidade;
+      cancelar(pendentes, chave);
 
-      if (!sim) {
-        if (depois === 0) devolverDepois(userId, fonte, chave);
-        return pub !== undefined;
-      }
-      if (!pub) return false;
+      cumprir(chave, true);
 
-      if (assinado.get(chave) !== pub.trackSid) {
-        assinado.set(chave, pub.trackSid);
-        pub.setSubscribed(true);
-        fontes.audioDaTela(userId, fonte)?.setSubscribed(true);
-      }
+      const meu = p;
+      let devolvido = false;
+      return () => {
+        if (devolvido) return;
+        devolvido = true;
+        /* Depois de `limpar`, o pedido desta sala já não existe — e o de uma
+           sala nova com a mesma chave não é deste ladrilho. */
+        if (pedidos.get(chave) !== meu) return;
+        meu.contagem = Math.max(0, meu.contagem - 1);
+        if (meu.contagem === 0) devolverDepois(meu, chave);
+      };
+    },
 
-      /*
-        `TrackSubscribed` é evento de CHEGADA: assinar o que já chegou não o
-        dispara de novo. A faixa já está na publicação; escrevê-la é ler o que
-        existe.
-      */
-      const faixa = pub.track?.mediaStreamTrack;
-      if (faixa) faixasDeVideo.set(chave, faixa);
-      return true;
+    publicacaoChegou(userId, fonte) {
+      cumprir(chaveDeVideo(userId, fonte), false);
+    },
+
+    esquecer(userId, fonte) {
+      const chave = chaveDeVideo(userId, fonte);
+      assinado.delete(chave);
     },
 
     audioDaTelaPublicado(userId) {
       const chave = chaveDeVideo(userId, "tela");
-      if ((assinantes.get(chave) ?? 0) === 0) return;
+      if ((pedidos.get(chave)?.contagem ?? 0) === 0) return;
       fontes.audioDaTela(userId, "tela")?.setSubscribed(true);
     },
 
     limpar() {
-      assinantes.clear();
+      pedidos.clear();
       assinado.clear();
       for (const t of pendentes.values()) clearTimeout(t);
       pendentes.clear();

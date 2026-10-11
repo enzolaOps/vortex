@@ -239,19 +239,23 @@ export async function trocarFonteDaTela(): Promise<void> {
 }
 
 /**
- * Pede (ou devolve) o vídeo de alguém.
+ * Pede o vídeo de alguém, na camada pedida, e devolve a função que o devolve.
  *
  * ⚠ **SÍNCRONA e sem carregar o motor, ao contrário das outras.** Quem chama
  * é um efeito de montagem de ladrilho, e a limpeza dele roda no desmonte —
  * um `await` no caminho de limpeza é como se esquece de devolver uma
  * assinatura. Sem motor não há sala, e sem sala não há o que assinar.
  */
-export function assinarVideo(
+export function pedirVideo(
   userId: string,
   fonte: "camera" | "tela",
-  sim: boolean,
-): boolean {
-  return motor?.assinarVideo(userId, fonte, sim) ?? false;
+  qualidade: QualidadeDeStream,
+): () => void {
+  return motor?.pedirVideo(userId, fonte, qualidade) ?? semPedido;
+}
+
+function semPedido(): void {
+  /* Sem motor, nada foi pedido, e não há o que devolver. */
 }
 
 export function definirQualidadeDeStream(

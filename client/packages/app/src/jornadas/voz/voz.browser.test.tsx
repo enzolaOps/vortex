@@ -38,6 +38,12 @@ import { ShellDasSalas } from "../salas/ShellDasSalas";
 const ctl = vi.hoisted(() => ({
   chamadas: [] as string[],
   assinaturas: [] as string[],
+  /** Chaves (`usuário:fonte`) cuja publicação ainda NÃO chegou ao LiveKit. */
+  semPublicacao: new Set<string>(),
+  /** A publicação chega: o `TrackPublished` do motor, na contabilidade real. */
+  publicar: undefined as ((userId: string, fonte: "camera" | "tela") => void) | undefined,
+  /** Zera a contabilidade entre testes, como a saída da sala. */
+  limparAssinaturas: (): void => undefined,
 }));
 
 vi.mock("nucleo/sdk/permissoes", async (original) => ({
@@ -46,6 +52,88 @@ vi.mock("nucleo/sdk/permissoes", async (original) => ({
   podeNoServidor: () => true,
 }));
 vi.mock("nucleo/sdk/chamada", async (original) => {
+  /*
+    ⚠ **A dublagem antiga devolvia `true` para todo pedido, e a corrida ficava
+    invisível.** O ladrilho de tela monta pelo protocolo Stoat e pode pedir antes
+    de a publicação existir no LiveKit; com "sempre deu certo" não havia como ver
+    o pedido ser descartado. Esta usa a CONTABILIDADE de verdade
+    (`criarAssinaturaDeVideo`), com publicações falsas que o teste controla.
+
+    Por padrão toda chave tem publicação, mas ela NÃO entrega faixa — os testes
+    anteriores contam com o "Recebendo o primeiro quadro…". A publicação que
+    `ctl.publicar` cria entrega: `setSubscribed(true)` faz o papel do
+    `TrackSubscribed` e escreve uma faixa de vídeo real (de um canvas).
+  */
+  async function dublarPedirVideo() {
+    const { criarAssinaturaDeVideo } = await import("nucleo/sdk/assinaturaDeVideo");
+    const { chaveDeVideo, faixasDeVideo } = await import("nucleo/store/video");
+    type Publicacao = { trackSid: string; setSubscribed: (sim: boolean) => void };
+    const publicacoes = new Map<string, Publicacao>();
+
+    function faixaDeCanvas(): MediaStreamTrack {
+      const c = document.createElement("canvas");
+      c.width = 16;
+      c.height = 16;
+      c.getContext("2d")?.fillRect(0, 0, 16, 16);
+      const [faixa] = c.captureStream().getVideoTracks();
+      if (!faixa) throw new Error("sem faixa de canvas");
+      return faixa;
+    }
+
+    function publicacao(chave: string, entrega: boolean): Publicacao {
+      return {
+        trackSid: `TR_${chave}`,
+        setSubscribed: (sim) => {
+          if (!entrega) return;
+          if (sim) faixasDeVideo.set(chave, faixaDeCanvas());
+          else faixasDeVideo.apagar(chave);
+        },
+      };
+    }
+
+    function video(userId: string, fonte: "camera" | "tela") {
+      const chave = chaveDeVideo(userId, fonte);
+      if (ctl.semPublicacao.has(chave)) return undefined;
+      let pub = publicacoes.get(chave);
+      if (!pub) {
+        pub = publicacao(chave, false);
+        publicacoes.set(chave, pub);
+      }
+      return pub;
+    }
+
+    const assinatura = criarAssinaturaDeVideo({
+      video,
+      audioDaTela: () => undefined,
+      aplicarQualidade: (userId, fonte, q) => {
+        ctl.assinaturas.push(`q:${userId}:${fonte}:${q}`);
+      },
+    });
+
+    ctl.publicar = (userId, fonte) => {
+      const chave = chaveDeVideo(userId, fonte);
+      ctl.semPublicacao.delete(chave);
+      publicacoes.set(chave, publicacao(chave, true));
+      assinatura.publicacaoChegou(userId, fonte);
+    };
+    ctl.limparAssinaturas = () => {
+      assinatura.limpar();
+      publicacoes.clear();
+      ctl.semPublicacao.clear();
+      faixasDeVideo.limpar();
+    };
+
+    return (userId: string, fonte: "camera" | "tela", q: Parameters<typeof assinatura.pedir>[2]) => {
+      ctl.assinaturas.push(`+${userId}:${fonte}`);
+      const devolver = assinatura.pedir(userId, fonte, q);
+      return () => {
+        ctl.assinaturas.push(`-${userId}:${fonte}`);
+        devolver();
+      };
+    };
+  }
+  const pedirVideo = await dublarPedirVideo();
+
   const registra = (nome: string) => () => {
     ctl.chamadas.push(nome);
     return Promise.resolve();
@@ -61,13 +149,7 @@ vi.mock("nucleo/sdk/chamada", async (original) => {
     alternarSurdo: registra("surdo"),
     alternarCamera: registra("camera"),
     alternarTela: registra("tela"),
-    assinarVideo: (userId: string, fonte: string, sim: boolean) => {
-      ctl.assinaturas.push(`${sim ? "+" : "-"}${userId}:${fonte}`);
-      return true;
-    },
-    definirQualidadeDeStream: (userId: string, fonte: string, q: string) => {
-      ctl.assinaturas.push(`q:${userId}:${fonte}:${q}`);
-    },
+    pedirVideo,
   };
 });
 
@@ -125,6 +207,7 @@ beforeEach(() => {
   irParaCasa();
   ctl.chamadas = [];
   ctl.assinaturas = [];
+  ctl.limparAssinaturas();
   definirProntidao(false);
   definirUsuarioLocal("U4");
 });
@@ -334,6 +417,31 @@ describe("palco em tela cheia", () => {
     await page.getByRole("button", { name: /avisos/ }).click();
     await expect.poll(() => ctl.assinaturas).toContain("-U1:tela");
     expect(palco()).toBeNull();
+  });
+
+  /*
+    ⚠ **"Fica preso em 'Recebendo o primeiro quadro…'" — relatado por quem
+    usa.** O `screensharing` do Stoat monta o ladrilho antes de o LiveKit
+    publicar a faixa. O pedido tem de ficar guardado e ser cumprido quando ela
+    chega, sem o ladrilho desmontar.
+  */
+  it("a faixa publicada DEPOIS de o ladrilho mostrar 'Recebendo o primeiro quadro…' faz o vídeo aparecer", async () => {
+    ctl.semPublicacao.add("U1:tela");
+    await abrir(quatro());
+    entrarNoPalco();
+    const foco = () => pegar("[data-testid='foco-do-palco']");
+    await expect.poll(() => foco()?.textContent ?? "").toContain(voz.palco.recebendoQuadro);
+    await expect.poll(() => ctl.assinaturas).toContain("+U1:tela");
+    // Pedido feito, nada assinado ainda: não há publicação para receber a camada.
+    expect(ctl.assinaturas).not.toContain("q:U1:tela:alta");
+    const antes = foco()!;
+
+    ctl.publicar?.("U1", "tela");
+    await expect.poll(() => foco()?.querySelector("video") ?? null).not.toBeNull();
+    expect(foco()).toBe(antes);
+    expect(foco()!.textContent).not.toContain(voz.palco.recebendoQuadro);
+    expect(ctl.assinaturas).toContain("q:U1:tela:alta");
+    expect(ctl.assinaturas).not.toContain("-U1:tela");
   });
 
   it("com o palco aberto a coluna de salas vira uma faixa que abre por mouse e por foco, sem desmontar", async () => {

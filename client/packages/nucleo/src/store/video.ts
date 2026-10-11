@@ -16,7 +16,7 @@ import { createEphemeralStore } from "./ephemeral";
  * uma sessão de 8h acumularia uma entrada por pessoa que já saiu da sala.
  *
  * ⚠ **Ninguém assina isto por assinar.** Com `autoSubscribe: false`, faixa de
- * vídeo só chega depois de alguém PEDIR (`assinarVideo` no motor). Uma tela
+ * vídeo só chega depois de alguém PEDIR (`pedirVideo` no motor). Uma tela
  * que monta e lê daqui sem pedir vai encontrar `undefined` e desenhar o
  * avatar, que é o comportamento certo — não um bug.
  */
