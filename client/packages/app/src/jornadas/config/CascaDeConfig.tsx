@@ -16,6 +16,7 @@ import {
 
 import { admin, config } from "../../textos";
 import { Avatar } from "../../ui/ds";
+import { LimiteDeErro } from "../../shell/LimiteDeErro";
 import { ConteudoDoDialogo, Dialogo } from "../../ui/primitivos/Dialogo";
 import { Banimentos } from "../admin/Banimentos";
 import { Canais } from "../admin/Canais";
@@ -250,7 +251,7 @@ export function CascaDeConfig() {
                 </p>
               </header>
               <div className={css.corpo} tabIndex={-1}>
-                {CONTEUDO[secaoPessoal]()}
+                <LimiteDeErro chave={secaoPessoal}>{CONTEUDO[secaoPessoal]()}</LimiteDeErro>
               </div>
             </section>
           </>
@@ -295,7 +296,7 @@ export function CascaDeConfig() {
                 </p>
               </header>
               <div className={css.corpo} tabIndex={-1}>
-                {CONTEUDO_DO_SERVIDOR[secaoAdmin](serverId)}
+                <LimiteDeErro chave={`${serverId}:${secaoAdmin}`}>{CONTEUDO_DO_SERVIDOR[secaoAdmin](serverId)}</LimiteDeErro>
               </div>
             </section>
           </>
