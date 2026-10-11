@@ -1,7 +1,7 @@
 import { publicarRelacoes } from "nucleo/sdk/adapter";
 import { aceitarAmizade, bloquear, desbloquear, desfazerAmizade, pedirAmizade } from "nucleo/sdk/social";
 import { irParaAmigos } from "nucleo/store/navegacao";
-import { useConexao, useEstadoDaChamada, useLocal, usePessoa, useRelacao } from "nucleo/store/hooks";
+import { useCantoDaSala, useConexao, useEstadoDaChamada, useLocal, usePessoa, useRelacao } from "nucleo/store/hooks";
 import { useEffect, useState, type FormEvent } from "react";
 
 import { AreaPrincipal } from "../../shell";
@@ -290,6 +290,7 @@ export function TelaDeAmigos() {
   const [soOnline, setSoOnline] = useState(true);
   const pedidos = useRelacao("recebido").length;
   const emChamada = useEstadoDaChamada() !== "fora";
+  const canto = useCantoDaSala();
 
   // A aba inteira é varredura sobre todo mundo que o cliente conhece: publica ao abrir a tela.
   useEffect(() => {
@@ -372,7 +373,12 @@ export function TelaDeAmigos() {
             ))}
           </div>
         </header>
-        <div className={css.corpo} tabIndex={0}>
+        <div
+          className={css.corpo}
+          tabIndex={0}
+          // O widget da chamada flutua num canto: a lista ganha folga desse lado para que ele não cubra os botões das linhas.
+          data-reserva={emChamada ? (canto.startsWith("t") ? "inicio" : "fim") : undefined}
+        >
           <div className={css.coluna}>
             <AdicionarPorNome />
             <div id="painel-de-amigos" role="tabpanel" aria-labelledby={`aba-${aba}`}>

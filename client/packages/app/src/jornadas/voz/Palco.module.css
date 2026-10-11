@@ -416,3 +416,26 @@ button.ladrilho:focus-visible {
     animation: none;
   }
 }
+
+/* Canto superior direito do foco: selo de qualidade + tela cheia. */
+.cantoDoFoco {
+  position: absolute;
+  inset-block-start: var(--vx-space-3);
+  inset-inline-end: var(--vx-space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-2);
+}
+.seloDeQualidade {
+  padding: var(--vx-space-1) var(--vx-space-2);
+  border-radius: var(--vx-radius-sm);
+  background: var(--vx-scrim);
+  color: var(--vx-text-1);
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  font-variant-numeric: tabular-nums;
+}
+.palco:fullscreen {
+  background: var(--vx-surface-0);
+}

@@ -195,3 +195,15 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* Cadeado e modo lento do canal: metadado, mais baixo que o nome. */
+.marcas {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-1);
+  color: var(--vx-text-3);
+}
+.marcas > span {
+  display: inline-flex;
+}

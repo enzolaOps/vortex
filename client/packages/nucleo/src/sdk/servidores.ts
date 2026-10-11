@@ -786,15 +786,21 @@ export function apagarCategoria(
  * do SDK. Devolver a lista daria um segundo caminho de dado para a mesma
  * informação, e os dois teriam de concordar.
  */
-export async function carregarMembros(serverId: string): Promise<void> {
+export async function carregarMembros(serverId: string, avisar = true): Promise<boolean> {
   try {
     await client.servers.get(serverId)?.fetchMembers();
+    return true;
   } catch (e) {
-    toast({
-      tipo: "erro",
-      titulo: "Não deu para carregar os membros.",
-      descricao: motivo(e),
-    });
+    // Quem já mostra a lista de antes passa `avisar = false` e decide sozinho o que dizer:
+    // um aviso de erro por cima de uma tabela cheia contradiz o que a pessoa vê.
+    if (avisar) {
+      toast({
+        tipo: "erro",
+        titulo: "Não deu para carregar os membros.",
+        descricao: motivo(e),
+      });
+    }
+    return false;
   }
 }
 

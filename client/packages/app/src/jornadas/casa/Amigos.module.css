@@ -56,10 +56,18 @@
 }
 
 .corpo {
+  --reserva-do-widget: 17.5rem;
   flex: 1;
   min-block-size: 0;
   overflow-y: auto;
   padding: var(--vx-space-4) var(--vx-space-5);
+}
+/* Folga para o widget flutuante da chamada, do lado em que ele estiver. */
+.corpo[data-reserva="fim"] {
+  padding-block-end: var(--reserva-do-widget);
+}
+.corpo[data-reserva="inicio"] {
+  padding-block-start: var(--reserva-do-widget);
 }
 .coluna {
   display: flex;

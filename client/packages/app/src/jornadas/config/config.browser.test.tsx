@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 
+import { limparDispositivos } from "nucleo/store/dispositivos";
 import { ligarAtalhosDeVoz } from "nucleo/sdk/atalhosDeVoz";
 import { abrirConfig, lerConfig, limparConfig } from "nucleo/store/config";
 import { ATALHOS_PADRAO, definirAtalho, lerAtalhosDeVoz } from "nucleo/store/atalhosDeVoz";
@@ -27,7 +28,7 @@ import { Avisos } from "../../ui/primitivos/Avisos";
 import { CascaDeConfig } from "./CascaDeConfig";
 
 interface Controle {
-  eu: { displayName: string; username: string; pronomes: string; bio: string; avatarUrl: string | undefined };
+  eu: { displayName: string; username: string; pronomes: string; bio: string; avatarUrl: string | undefined } | undefined;
   completo: { bio: string; bannerUrl: string | undefined } | undefined;
   email: string | undefined;
   donos: { id: string; nome: string }[];
@@ -153,6 +154,7 @@ beforeEach(async () => {
   ctl.senhasUsadas = [];
   ctl.comMidia = true;
   ctl.lento = undefined;
+  ctl.eu = { displayName: "Rafa", username: "rafa", pronomes: "", bio: "", avatarUrl: undefined };
   semearMeuStatus({ presenca: "online", texto: undefined });
 });
 
@@ -235,6 +237,21 @@ describe("a casca", () => {
     expect(document.querySelector('[data-testid="shell"]')).toBe(shell);
   });
 
+  it("a navegação tem ícones e o fechar mostra a dica Esc e fecha ao clicar", async () => {
+    await abrir("perfil");
+    const nav = document.querySelector(`nav[aria-label="${config.navegacao}"]`)!;
+    const itens = [...nav.querySelectorAll("button[aria-current], button")];
+    expect(itens.length).toBeGreaterThan(5);
+    for (const item of itens) expect(item.querySelector("svg")).not.toBeNull();
+    const fechar = page.getByRole("button", { name: config.fechar });
+    await expect.element(fechar).toBeVisible();
+    expect(fechar.element().textContent).toContain(config.dicaDeEsc);
+    expect(document.querySelectorAll(`[aria-label="${comum.fechar}"]`).length).toBe(0);
+    await fechar.click();
+    await assentar();
+    expect(lerConfig().secao).toBeNull();
+  });
+
   it("navega pelas seis seções e marca a atual", async () => {
     await abrir("perfil");
     const nav = document.querySelector(`nav[aria-label="${config.navegacao}"]`)!;
@@ -269,7 +286,7 @@ describe("perfil", () => {
       liberar = r;
     });
     await abrir();
-    expect(texto()).toContain(config.carregando);
+    expect(document.querySelector(`[role="status"][aria-label="${config.carregando}"]`)).not.toBeNull();
     expect(campo(config.perfilTela.sobreVoce)).toBeUndefined();
     liberar({ bio: "Oi", bannerUrl: undefined });
     ctl.lento = undefined;
@@ -496,7 +513,7 @@ describe("dispositivos", () => {
   it("mostra o carregando enquanto a lista não chega", async () => {
     ctl.lento = new Promise<unknown>(() => undefined);
     await abrir("sessoes");
-    expect(texto()).toContain(config.dispositivosTela.carregando);
+    expect(document.querySelector(`[role="status"][aria-label="${config.dispositivosTela.carregando}"]`)).not.toBeNull();
   });
 
   it("falha ao listar não vira lista vazia: diz o erro e deixa tentar de novo", async () => {
@@ -560,7 +577,92 @@ describe("dispositivos", () => {
   });
 });
 
+describe("conta que ainda não chegou", () => {
+  for (const secao of ["perfil", "conta"] as const) {
+    it(`${secao}: mostra o esqueleto e depois o erro com "Tentar de novo", sem ficar em branco`, async () => {
+      ctl.eu = undefined;
+      await abrir(secao);
+      expect(document.querySelector(`[role="status"][aria-label="${config.carregando}"]`)).not.toBeNull();
+      await expect.poll(() => alertas(), { timeout: 6000 }).toContain(config.naoDeuParaCarregar);
+      expect(document.querySelector(`[role="status"][aria-label="${config.carregando}"]`)).toBeNull();
+
+      // Os dados chegam e a pessoa tenta de novo: a tela se completa.
+      ctl.eu = { displayName: "Rafa", username: "rafa", pronomes: "", bio: "", avatarUrl: undefined };
+      await userEvent.click(botao(comum.tentarDeNovo)!);
+      await expect.poll(() => alertas()).not.toContain(config.naoDeuParaCarregar);
+      await assentar();
+      expect(document.querySelector(`[role="status"][aria-label="${config.carregando}"]`)).toBeNull();
+      expect(texto()).toContain(secao === "conta" ? "@rafa" : config.perfilTela.sobreVoce);
+    });
+  }
+});
+
 describe("voz e vídeo", () => {
+  const colunasDaPagina = () =>
+    [...document.querySelectorAll("h3")].find((h) => h.textContent === config.vozTela.audio)?.closest("section")?.parentElement
+      ?.parentElement as HTMLElement;
+
+  it("em painel largo divide em duas colunas; em painel estreito, uma", async () => {
+    await page.viewport(1440, 900);
+    await abrir("vozEVideo");
+    const faixas = () => getComputedStyle(colunasDaPagina()).gridTemplateColumns.split(" ").length;
+    await expect.poll(() => getComputedStyle(colunasDaPagina()).display).toBe("grid");
+    expect(faixas()).toBe(2);
+    await page.viewport(900, 900);
+    await expect.poll(() => getComputedStyle(colunasDaPagina()).display).toBe("flex");
+    await page.viewport(414, 896);
+  });
+
+  const dispositivo = (kind: MediaDeviceKind, deviceId: string, label: string) =>
+    ({ kind, deviceId, label, groupId: "g" }) as MediaDeviceInfo;
+  const simular = (lista: MediaDeviceInfo[]) => {
+    limparDispositivos();
+    vi.spyOn(navigator.mediaDevices, "enumerateDevices").mockResolvedValue(lista);
+  };
+  const gatilho = (rotulo: string) =>
+    [...document.querySelectorAll<HTMLButtonElement>("button")].find(
+      (b) => b.getAttribute("aria-labelledby") && document.getElementById(b.getAttribute("aria-labelledby")!)?.textContent === rotulo,
+    );
+
+  it("microfone e saída são o menu do app: lista, marca o atual e guarda a escolha pelo teclado", async () => {
+    simular([
+      dispositivo("audioinput", "mic1", "Microfone USB"),
+      dispositivo("audioinput", "mic2", "Headset"),
+      dispositivo("audiooutput", "out1", "Alto-falantes"),
+    ]);
+    await abrir("vozEVideo");
+    expect(document.querySelector("select")).toBeNull();
+    await expect.poll(() => lerPreferenciasDeVoz().entradaId).toBeUndefined();
+
+    const mic = gatilho(config.vozTela.microfone)!;
+    expect(mic.textContent).toContain(config.vozTela.padraoDoSistema);
+    mic.focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => document.querySelectorAll('[role="menuitemradio"]').length).toBe(3);
+    const marcado = () => document.querySelector('[role="menuitemradio"][aria-checked="true"]')?.textContent;
+    expect(marcado()).toBe(config.vozTela.padraoDoSistema);
+
+    await assentar();
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(() => document.activeElement?.textContent).toBe("Microfone USB");
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => lerPreferenciasDeVoz().entradaId).toBe("mic1");
+    await assentar();
+    expect(gatilho(config.vozTela.microfone)!.textContent).toContain("Microfone USB");
+
+    await userEvent.click(gatilho(config.vozTela.microfone)!);
+    await expect.poll(() => marcado()).toBe("Microfone USB");
+    await userEvent.keyboard("{Escape}");
+  });
+
+  it("sem nenhum dispositivo: só o padrão do sistema e o aviso de que não há outro", async () => {
+    simular([]);
+    await abrir("vozEVideo");
+    await userEvent.click(gatilho(config.vozTela.microfone)!);
+    await expect.poll(() => document.querySelectorAll('[role="menuitemradio"]').length).toBe(1);
+    expect(document.querySelector('[role="menu"]')?.textContent).toContain(config.vozTela.semMicrofone);
+  });
+
   it("escolher o modo pressionar mostra a tecla e o atraso, e guarda a preferência que o motor lê", async () => {
     await abrir("vozEVideo");
     expect(campo(config.vozTela.atrasoAoSoltar)).toBeUndefined();

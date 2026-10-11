@@ -1,9 +1,10 @@
 import { useFaixaDeVideo, useFalantes } from "nucleo/store/hooks";
-import { useRef } from "react";
+import { assinarQualidadeDaTela, qualidadeEscolhida } from "nucleo/store/qualidadeDaTela";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { salas, voz } from "../../textos";
-import { Avatar, Pilula } from "../../ui/ds";
-import { MicrofoneDesligado, Tela } from "../../ui/icones";
+import { Avatar, Botao, Pilula } from "../../ui/ds";
+import { Maximizar, MicrofoneDesligado, Tela } from "../../ui/icones";
 import { juntar } from "../../ui/juntar";
 import { useAssinaturaDeVideo, type PapelDoVideo } from "./hooks";
 import css from "./Palco.module.css";
@@ -40,16 +41,17 @@ export function LadrilhoDePessoa({
   pessoa: PessoaDoPalco;
   papel?: PapelDoVideo;
 }) {
-  const falando = useFalando(pessoa.id);
+  const falandoBruto = useFalando(pessoa.id);
   const faixa = useFaixaDeVideo(pessoa.id, "camera");
   const alvo = useRef<HTMLDivElement>(null);
   useAssinaturaDeVideo(alvo, pessoa.id, "camera", papel, pessoa.proprio || !pessoa.camera);
 
   const nome = pessoa.proprio ? voz.palco.voce : pessoa.nome || salas.alguem;
   const semAudio = pessoa.mudo || pessoa.surdo;
+  // Microfone cortado vence a fala: um sinal atrasado do store não pode pintar o anel nem o texto.
+  const falando = falandoBruto && !semAudio;
   const comVideo = pessoa.camera && faixa !== undefined;
-  // Falando e sem áudio não coexistem; o texto diz só o que é verdade agora.
-  const estado = falando ? voz.estado.falando : semAudio ? voz.estado.mudo : undefined;
+  const estado = semAudio ? voz.estado.mudo : falando ? voz.estado.falando : undefined;
 
   return (
     <div
@@ -89,17 +91,21 @@ export function LadrilhoDeTela({
   pessoa,
   papel,
   aoAssistir,
+  telaCheia,
 }: {
   pessoa: PessoaDoPalco;
   papel: PapelDoVideo;
   /** Só na miniatura. */
   aoAssistir?: () => void;
+  /** Só no foco: o botão de tela cheia do canto. */
+  telaCheia?: { readonly ativa: boolean; readonly alternar: () => void };
 }) {
   const faixa = useFaixaDeVideo(pessoa.id, "tela");
   const alvo = useRef<HTMLDivElement>(null);
   useAssinaturaDeVideo(alvo, pessoa.id, "tela", papel, pessoa.proprio);
   const nome = pessoa.nome || salas.alguem;
   const rotulo = pessoa.proprio ? voz.palco.suaTela : voz.palco.telaDe(nome);
+  const qualidade = useQualidadeDaTela(faixa, pessoa.proprio, papel === "foco");
 
   // Miniatura/grade da PRÓPRIA tela: um cartão, nunca o vídeo. Espelhar a própria
   // captura dentro dela mesma gera o corredor infinito, e a faixa própria nem é
@@ -124,15 +130,38 @@ export function LadrilhoDeTela({
         <div className={css.aguardando} role="status">
           <Tela tamanho={papel === "foco" ? 20 : 16} />
           {papel === "foco" && <span className={css.aguardandoTitulo}>{rotulo}</span>}
-          {papel === "foco" && <span>{voz.palco.recebendoQuadro}</span>}
+          {papel === "foco" && !pessoa.proprio && <span>{voz.palco.recebendoQuadro}</span>}
         </div>
       )}
       <span className={css.aoVivo}>
         <Pilula tipo="aoVivo" />
       </span>
-      <span className={juntar(css.rotuloDoLadrilho, css.rotuloSobreVideo)} aria-hidden="true">
-        {pessoa.proprio ? voz.palco.suaTela : voz.palco.emTransmissao(nome)}
-      </span>
+      {/* Sem quadro ainda, o rótulo é o do centro: repeti-lo embaixo diria a mesma coisa duas vezes. */}
+      {faixa && (
+        <span className={juntar(css.rotuloDoLadrilho, css.rotuloSobreVideo)} aria-hidden="true">
+          {pessoa.proprio ? voz.palco.suaTela : voz.palco.emTransmissao(nome)}
+        </span>
+      )}
+      {papel === "foco" && (qualidade !== undefined || telaCheia) && (
+        <span className={css.cantoDoFoco}>
+          {qualidade !== undefined && (
+            <span className={css.seloDeQualidade} data-testid="selo-de-qualidade">
+              {qualidade}
+            </span>
+          )}
+          {telaCheia && (
+            <Botao
+              variante="fantasma"
+              tamanho="sm"
+              icone={<Maximizar />}
+              aria-label={voz.palco.telaCheia}
+              aria-pressed={telaCheia.ativa}
+              data-testid="tela-cheia"
+              onClick={telaCheia.alternar}
+            />
+          )}
+        </span>
+      )}
     </>
   );
 
@@ -164,4 +193,43 @@ export function LadrilhoDeTela({
       {conteudo}
     </div>
   );
+}
+
+/**
+ * O selo "1080p60" da transmissão em foco.
+ *
+ * - Sua: o que você ESCOLHEU (resolução e taxa); "Fonte" não vira número, então fica sem selo.
+ * - De outra pessoa: o que a faixa RECEBIDA reporta agora, lido de tempos em tempos —
+ *   altura e taxa vêm do navegador, nunca de um valor pedido.
+ *
+ * Sem dado, sem selo: um número inventado é pior que a ausência.
+ */
+function useQualidadeDaTela(
+  faixa: MediaStreamTrack | undefined,
+  proprio: boolean,
+  ativo: boolean,
+): string | undefined {
+  const escolhida = useSyncExternalStore(assinarQualidadeDaTela, qualidadeEscolhida);
+  const [medida, setMedida] = useState<string | undefined>();
+  useEffect(() => {
+    if (!ativo || proprio || !faixa) return;
+    const ler = () => {
+      const s = faixa.getSettings();
+      const altura = s.height ? Math.round(s.height) : 0;
+      const fps = s.frameRate ? Math.round(s.frameRate / 5) * 5 : 0;
+      setMedida(altura > 0 ? `${String(altura)}p${fps > 0 ? String(fps) : ""}` : undefined);
+    };
+    ler();
+    const t = window.setInterval(ler, 2000);
+    return () => {
+      window.clearInterval(t);
+    };
+  }, [faixa, proprio, ativo]);
+  if (!ativo) return undefined;
+  if (proprio) {
+    return escolhida && escolhida.resolucao !== "Fonte"
+      ? `${escolhida.resolucao}${String(escolhida.taxa)}`
+      : undefined;
+  }
+  return faixa ? medida : undefined;
 }

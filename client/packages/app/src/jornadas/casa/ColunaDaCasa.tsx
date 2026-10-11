@@ -81,12 +81,19 @@ function LinhaDaConversa({
       >
         {rosto}
         <span className={css.texto}>
-          <span className={css.nome}>{nome}</span>
-          <Previa ultimaMensagemId={ultimaMensagemId} vazia={casa.coluna.semMensagens} />
-        </span>
-        <span className={css.lado} aria-hidden="true">
-          <Hora em={ultimaEm} />
-          {temNova && mencoes > 0 ? <Pilula tipo="mencao" valor={mencoes} /> : temNova && <Pilula tipo="naoLida" />}
+          {/* A hora fica na linha do nome: a prévia, embaixo, ganha a largura toda. */}
+          <span className={css.cabeca}>
+            <span className={css.nome}>{nome}</span>
+            <span aria-hidden="true">
+              <Hora em={ultimaEm} />
+            </span>
+          </span>
+          <span className={css.rodape}>
+            <Previa ultimaMensagemId={ultimaMensagemId} vazia={casa.coluna.semMensagens} />
+            <span className={css.lado} aria-hidden="true">
+              {temNova && mencoes > 0 ? <Pilula tipo="mencao" valor={mencoes} /> : temNova && <Pilula tipo="naoLida" />}
+            </span>
+          </span>
         </span>
       </button>
     </li>
@@ -182,8 +189,8 @@ function EntradaDeAmigos() {
         <span className={css.nome}>{casa.coluna.amigos}</span>
       </span>
       {pedidos > 0 && (
-        <span className={css.lado} aria-hidden="true">
-          <Pilula tipo="contagem" valor={pedidos} />
+        <span className={css.seloDePedidos} aria-hidden="true">
+          {casa.coluna.pedidosNoSelo(pedidos)}
         </span>
       )}
     </button>

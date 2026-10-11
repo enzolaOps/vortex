@@ -63,9 +63,17 @@ function opcoesDeDispositivo(ds: readonly MediaDeviceInfo[], generico: string): 
     { valor: "", rotulo: t.padraoDoSistema },
     ...ds
       // Sem permissão o navegador entrega dispositivos sem id nem nome: não dá para escolhê-los.
-      .filter((d) => d.deviceId !== "" && d.deviceId !== "default" && d.deviceId !== "communications")
+      .filter(escolhivel)
       .map((d, i) => ({ valor: d.deviceId, rotulo: d.label || `${generico} ${i + 1}` })),
   ];
+}
+
+const escolhivel = (d: MediaDeviceInfo) =>
+  d.deviceId !== "" && d.deviceId !== "default" && d.deviceId !== "communications";
+
+/** O aviso do fim da lista quando não há dispositivo a escolher além do padrão. */
+function semDispositivo(ds: readonly MediaDeviceInfo[], aviso: string): string | undefined {
+  return ds.some(escolhivel) ? undefined : aviso;
 }
 
 /** Voz e vídeo (PRD 4.6). Cada controle escreve num store que o motor da chamada já lê. */
@@ -76,13 +84,18 @@ export function VozEVideo() {
   const cameras = useDispositivos("videoinput");
 
   return (
-    <Pagina>
+    <Pagina larga>
+      {/* Largura suficiente: áudio à esquerda, entrada e câmera à direita; abaixo disso, uma coluna. */}
+      <div className={css.contexto}>
+      <div className={css.colunas}>
+      <div className={css.coluna}>
       <Bloco>
         <h3 className={ec.titulo}>{t.audio}</h3>
         <Seletor
           rotulo={t.microfone}
           valor={p.entradaId ?? ""}
           opcoes={opcoesDeDispositivo(microfones, t.microfone)}
+          semOpcoes={semDispositivo(microfones, t.semMicrofone)}
           aoMudar={(v) => {
             definirPreferenciasDeVoz({ entradaId: v === "" ? undefined : v });
           }}
@@ -91,6 +104,7 @@ export function VozEVideo() {
           rotulo={t.saida}
           valor={p.saidaId ?? ""}
           opcoes={opcoesDeDispositivo(saidas, t.saida)}
+          semOpcoes={semDispositivo(saidas, t.semSaida)}
           aoMudar={(v) => {
             definirPreferenciasDeVoz({ saidaId: v === "" ? undefined : v });
           }}
@@ -118,7 +132,9 @@ export function VozEVideo() {
         <TesteDeMicrofone limiarDb={p.modo === "deteccao" && !p.sensibilidadeAutomatica ? p.limiarDb : undefined} />
       </Bloco>
 
-      <Divisor />
+      <div className={css.divisorEmUmaColuna}>
+        <Divisor />
+      </div>
 
       <Bloco>
         <h3 className={ec.titulo}>{t.ruido}</h3>
@@ -138,11 +154,17 @@ export function VozEVideo() {
         <p className={ec.dica}>{t.ruidoAjuda[p.ruido]}</p>
       </Bloco>
 
-      <Divisor />
+      <div className={css.divisorEmUmaColuna}>
+        <Divisor />
+      </div>
+      </div>
 
+      <div className={css.coluna}>
       <ModoDeEntrada />
 
-      <Divisor />
+      <div className={css.divisorEmUmaColuna}>
+        <Divisor />
+      </div>
 
       <Bloco>
         <h3 className={ec.titulo}>{t.camera}</h3>
@@ -150,6 +172,7 @@ export function VozEVideo() {
           rotulo={t.cameraNome}
           valor={p.cameraId ?? ""}
           opcoes={opcoesDeDispositivo(cameras, t.camera)}
+          semOpcoes={semDispositivo(cameras, t.semCamera)}
           aoMudar={(v) => {
             definirPreferenciasDeVoz({ cameraId: v === "" ? undefined : v });
           }}
@@ -171,6 +194,9 @@ export function VozEVideo() {
         </GrupoDeOpcoes>
         <p className={ec.dica}>{t.fundoDica}</p>
       </Bloco>
+      </div>
+      </div>
+      </div>
     </Pagina>
   );
 }
