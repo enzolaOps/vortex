@@ -14,6 +14,12 @@ use revolt_result::{create_error, Result};
 
 use rocket::{serde::json::Json, State};
 
+/// Teto da chamada HTTP (Twirp) ao LiveKit dentro de `join_call`.
+///
+/// Vortex: sem ele, um LiveKit travado segurava a requisição até o timeout do
+/// proxy, e o cliente via "conectando" indefinidamente em vez de um erro.
+const LIVEKIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
+
 /// # Join Call
 ///
 /// Asks the voice server for a token to join the call.
@@ -53,8 +59,25 @@ pub async fn call(
 
     let user_voice_channel = UserVoiceChannel::from_channel(&channel);
 
-    if get_voice_channel_members(&user_voice_channel)
-        .await?
+    // Vortex: as três leituras do Redis são independentes e iam em série —
+    // três idas e voltas onde cabe uma. Rodam juntas, e os resultados são
+    // conferidos depois NA ORDEM ORIGINAL, para que o erro devolvido continue
+    // o mesmo quando mais de uma condição falha (sala cheia antes de nó
+    // desconhecido antes de "já está em voz"). `raise_if_in_voice` só é
+    // consultado sem `force_disconnect`, como antes.
+    let (members, existing_node, in_voice) = futures::join!(
+        get_voice_channel_members(&user_voice_channel),
+        get_channel_node(channel.id()),
+        async {
+            if force_disconnect == Some(true) {
+                Ok(())
+            } else {
+                raise_if_in_voice(&user, &user_voice_channel).await
+            }
+        },
+    );
+
+    if members?
         .zip(voice_info.max_users.filter(|&n| n > 0))
         .is_some_and(|(ms, max_users)| ms.len() >= max_users)
         && !current_permissions.has(ChannelPermission::ManageChannel as u64)
@@ -62,7 +85,7 @@ pub async fn call(
         return Err(create_error!(CannotJoinCall));
     }
 
-    let existing_node = get_channel_node(channel.id()).await?;
+    let existing_node = existing_node?;
     let has_existing_node = existing_node.is_some(); // we move existing_node in the next statement so this is the quickest way to know if we need to set it.
 
     // Vortex: a região fixada no canal ganha do nó que o cliente sugeriu. Sala
@@ -97,14 +120,31 @@ pub async fn call(
             delete_voice_state(&previous_channel, &user.id).await?;
         }
     } else {
-        raise_if_in_voice(&user, &user_voice_channel).await?;
+        in_voice?;
     }
 
-    let token = voice_client
-        .create_token(&node, db, &user, current_permissions, &channel)
-        .await?;
-
-    let room = voice_client.create_room(&node, &channel).await?;
+    // Vortex: o token (Mongo: limites e perfil do usuário) e a sala (HTTP ao
+    // LiveKit) não dependem um do outro. `create_room` continua sendo chamado
+    // em toda entrada, mesmo com sala aberta: ele é idempotente no LiveKit,
+    // devolve `num_participants` (que decide a notificação de chamada abaixo)
+    // e recria a sala com os metadados certos se o LiveKit reiniciou e o
+    // `node:` do Redis ficou velho — pular a chamada nesse caso deixaria o
+    // auto-create do LiveKit abrir a sala SEM o `server` nos metadados, e o
+    // voice-ingress não saberia de que servidor ela é.
+    let (token, room) = futures::join!(
+        voice_client.create_token(&node, db, &user, current_permissions, &channel),
+        async {
+            tokio::time::timeout(LIVEKIT_TIMEOUT, voice_client.create_room(&node, &channel))
+                .await
+                .map_err(|_| {
+                    // Mesmo erro que uma falha HTTP do `create_room` já dava.
+                    log::warn!("create_room no nó {node} passou de {LIVEKIT_TIMEOUT:?}");
+                    create_error!(InternalError)
+                })?
+        },
+    );
+    let token = token?;
+    let room = room?;
 
     if !has_existing_node {
         set_channel_node(channel.id(), &node).await?;
