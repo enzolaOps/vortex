@@ -815,21 +815,75 @@ export async function editarMensagem(
 }
 
 /**
+ * Apagadas otimisticamente e ainda sem resposta do servidor, por chave local.
+ *
+ * `anterior` é o vizinho de cima NO MOMENTO da remoção: a lista muda enquanto
+ * o `DELETE` voa (mensagem nova no fim, página de histórico no começo), então
+ * o índice guardado envelheceria; o vizinho não. `confirmada` marca que o eco
+ * `MessageDelete` já chegou — se o `DELETE` falhar depois dele, a mensagem
+ * realmente não existe mais e devolvê-la seria mentir.
+ */
+const apagadasOtimistas = new Map<
+  string,
+  { channelId: string; anterior: string | undefined; confirmada: boolean }
+>();
+
+/**
  * Apaga.
  *
- * NÃO é otimista, ao contrário de editar e reagir: apagar é irreversível, e
- * sumir com a linha antes da confirmação deixaria a pessoa achando que
- * conseguiu quando o servidor recusou. A linha some quando o evento chega.
+ * **Otimista**: a linha sai da lista na hora, pelo MESMO caminho do eco do
+ * servidor (`splice` + layout dos vizinhos + `publish` coalescido por frame) —
+ * sem varredura extra. Se o `DELETE` falhar ela volta onde estava e a função
+ * devolve `false` (quem chama avisa). O eco `MessageDelete` que chegar depois
+ * não encontra a chave na lista e é no-op, então não remove duas vezes.
  */
 export async function apagarMensagem(messageId: string): Promise<boolean> {
   const alvo = client.messages.get(idDoSdk(messageId));
   if (!alvo) return false;
+  const channelId = alvo.channelId;
+  const ids = channelId ? idsOf(channelId) : undefined;
+  const at = ids ? ids.indexOf(messageId) : -1;
+  if (channelId && ids && at !== -1 && !apagadasOtimistas.has(messageId)) {
+    apagadasOtimistas.set(messageId, {
+      channelId,
+      anterior: ids[at - 1],
+      confirmada: false,
+    });
+    ids.splice(at, 1);
+    recalcularLayout(channelId, at, at);
+    publish(channelId);
+  }
   try {
     await alvo.delete();
+    apagadasOtimistas.delete(messageId);
     return true;
   } catch {
+    devolverApagada(messageId);
     return false;
   }
+}
+
+/** Desfaz a remoção otimista, no mesmo lugar, se o servidor não a confirmou. */
+function devolverApagada(chave: string): void {
+  const pendente = apagadasOtimistas.get(chave);
+  apagadasOtimistas.delete(chave);
+  if (!pendente || pendente.confirmada) return;
+  const ids = idsOf(pendente.channelId);
+  if (ids.includes(chave)) return;
+  let at: number;
+  const acima = pendente.anterior ? ids.indexOf(pendente.anterior) : -1;
+  if (pendente.anterior === undefined) {
+    at = 0;
+  } else if (acima !== -1) {
+    at = acima + 1;
+  } else {
+    // O vizinho saiu da lista nesse meio-tempo: cai pela ordem dos IDs.
+    at = ids.findIndex((id) => id > chave);
+    if (at === -1) at = ids.length;
+  }
+  ids.splice(at, 0, chave);
+  recalcularLayout(pendente.channelId, at - 1, at + 1);
+  publish(pendente.channelId);
 }
 
 /* -------------------------------------------------------------- entidade */
@@ -1601,7 +1655,12 @@ export function startAdapter() {
     const ids = idsOf(channelId);
     // `chaveLocal`: se esta mensagem foi enviada por aqui, a lista a conhece
     // pelo ID otimista, e o servidor está falando do ID dele.
-    const at = ids.indexOf(chaveLocal(message.id));
+    const chave = chaveLocal(message.id);
+    // Eco de uma remoção otimista: o servidor confirmou, então um `DELETE`
+    // que ainda falhe por outro caminho não pode devolver a linha.
+    const pendente = apagadasOtimistas.get(chave);
+    if (pendente) pendente.confirmada = true;
+    const at = ids.indexOf(chave);
     if (at === -1) return;
     ids.splice(at, 1);
     // A que vinha depois passa a olhar para outro vizinho — pode deixar de

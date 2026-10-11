@@ -183,8 +183,8 @@ function ConteudoDoMenu({ aoApagar }: { aoApagar: (id: string) => void }) {
  * DOM a partir do nó que recebeu o gesto — o mesmo código atende o clique
  * direito, o toque longo e o botão "mais ações" da barra de ações.
  *
- * Apagar não é otimista: pede confirmação e só some a linha quando o evento
- * chega do servidor.
+ * Apagar é otimista: pede confirmação e a linha some na hora; se o `DELETE`
+ * falhar ela volta ao lugar e o aviso de erro aparece.
  */
 export function MenuDaLista({ children }: { children: ReactNode }) {
   const [apagando, setApagando] = useState<string | null>(null);
