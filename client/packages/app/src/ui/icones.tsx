@@ -28,6 +28,7 @@ import {
   Headphones as LHeadphones,
   House as LHouse,
   Lock as LLock,
+  Timer as LTimer,
   LogOut as LLogOut,
   Maximize2 as LMaximize2,
   Minus as LMinus,
@@ -141,6 +142,7 @@ export const FoneDesligado = envolver(LHeadphoneOff);
 export const Fone = envolver(LHeadphones);
 export const Casa = envolver(LHouse);
 export const Cadeado = envolver(LLock);
+export const ModoLento = envolver(LTimer);
 export const Sair = envolver(LLogOut);
 export const Maximizar = envolver(LMaximize2);
 export const Minimizar = envolver(LMinus);

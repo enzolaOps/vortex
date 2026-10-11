@@ -7,7 +7,7 @@ import {
 } from "react";
 
 import { comum, ds, salas } from "../../textos";
-import { Volume } from "../icones";
+import { Cadeado, ModoLento, Volume } from "../icones";
 import { juntar } from "../juntar";
 import { PilhaDeAvatares } from "./Avatar";
 import css from "./ItemDeSala.module.css";
@@ -43,6 +43,10 @@ export interface ItemDeSalaProps
   naoLida?: boolean;
   /** Canal com menções: Pilula de menção no lugar do ponto. */
   mencoes?: number;
+  /** Canal com acesso limitado: cadeado discreto depois do nome (só canal). */
+  restrito?: boolean;
+  /** Segundos entre mensagens; 0 ou ausente = sem modo lento (só canal). */
+  modoLentoSegundos?: number;
   /**
    * A sala não aceita entrada agora, e este é o motivo (dito em texto, sem depender de cor).
    * O item segue focável e anunciado — só não age —, e o motivo vai no tooltip e na descrição.
@@ -86,6 +90,8 @@ export function ItemDeSala({
   aoVivo = false,
   naoLida = false,
   mencoes = 0,
+  restrito = false,
+  modoLentoSegundos = 0,
   indisponivel,
   className,
   type = "button",
@@ -165,6 +171,25 @@ export function ItemDeSala({
         </span>
       )}
       <span className={css.nome}>{nome}</span>
+      {!ehSala && (restrito || modoLentoSegundos > 0) && (
+        <span className={css.marcas}>
+          {restrito && (
+            <span role="img" aria-label={ds.canalRestrito} title={ds.canalRestrito} data-testid="canal-restrito">
+              <Cadeado tamanho={14} />
+            </span>
+          )}
+          {modoLentoSegundos > 0 && (
+            <span
+              role="img"
+              aria-label={ds.modoLento(modoLentoSegundos)}
+              title={ds.modoLento(modoLentoSegundos)}
+              data-testid="canal-modo-lento"
+            >
+              <ModoLento tamanho={14} />
+            </span>
+          )}
+        </span>
+      )}
 
       {/*
         ⚠ O NOME tem prioridade: ele pega o que precisa e SÓ o que sobra vai para o resto.

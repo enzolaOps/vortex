@@ -72,6 +72,8 @@
   font-size: var(--vx-type-caption-size);
   line-height: var(--vx-type-caption-line);
   font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 .total {
   font-family: var(--vx-font-mono);
