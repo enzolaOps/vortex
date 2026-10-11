@@ -99,6 +99,11 @@ import {
 import { definirPalco, lerPalco } from "../store/palcoDeVoz";
 import { assinarVolumeEfetivo, volumeEfetivo } from "../store/volumesDeVoz";
 import { criarAssinaturaDeVideo } from "./assinaturaDeVideo";
+import {
+  fonteDe,
+  ligarAssinaturaDeVideo,
+  publicacoesDaSala,
+} from "./ligarAssinaturaDeVideo";
 import { chaveDeVideo, faixasDeVideo, type FonteDeVideo } from "../store/video";
 import { toast } from "../ui-logica/toastStore";
 import { definirFalhaDeVoz, limparFalhaDeVoz } from "../store/falhaDeVoz";
@@ -353,6 +358,10 @@ function ligarEventos(r: Room, channelId: string): void {
 
   anuncio?.limpar();
   anuncio = criarAnuncio(r);
+
+  /* Os eventos que CUMPREM o pedido de vídeo — ver `ligarAssinaturaDeVideo.ts`. */
+  desligarAssinaturaDeVideo?.();
+  desligarAssinaturaDeVideo = ligarAssinaturaDeVideo(r, assinatura);
 
   /*
     Espectadores: o atributo `vx.assiste` de cada participante (ver
@@ -677,7 +686,7 @@ function ligarEventos(r: Room, channelId: string): void {
 
     ⚠ **Assina so AUDIO, e o video continua entrando sob pedido.** O que mudou
     e que agora existe quem PECA: a grade e a tela de assistir chamam
-    `assinarVideo`. Baixar camera de dez pessoas ao entrar continua sendo
+    `pedirVideo`. Baixar camera de dez pessoas ao entrar continua sendo
     desperdicio puro - o design diz a mesma coisa em prosa: "quem entra no
     canal depois ve o stream com um clique, nao recebe nada automaticamente".
 
@@ -685,6 +694,9 @@ function ligarEventos(r: Room, channelId: string): void {
     alguem esta ao vivo seria indistinguivel de uma sala vazia, porque com
     `autoSubscribe: false` "existe stream" e "tenho o stream" sao fatos
     diferentes.
+
+    O video pedido ANTES de a publicacao chegar e cumprido pelo ouvinte de
+    `ligarAssinaturaDeVideo.ts`, que tambem escuta este evento.
   */
   r.on(RoomEvent.TrackPublished, (pub, participante) => {
     /*
@@ -734,7 +746,6 @@ function ligarEventos(r: Room, channelId: string): void {
   });
 }
 
-/** A fonte do LiveKit no vocabulario do app, ou nada quando nao interessa. */
 /**
  * Áudio já publicado quando você entra. `TrackPublished` cobre o que chega
  * depois; isto cobre o que já estava no ar — senão a tela compartilhada
@@ -753,12 +764,6 @@ function assinarAudioExistente(r: Room): void {
       }
     }
   }
-}
-
-function fonteDe(fonte: Track.Source): FonteDeVideo | undefined {
-  if (fonte === Track.Source.Camera) return "camera";
-  if (fonte === Track.Source.ScreenShare) return "tela";
-  return undefined;
 }
 
 /**
@@ -816,22 +821,30 @@ function mesmaLista(a: readonly string[], b: readonly string[]): boolean {
 const assinatura = criarAssinaturaDeVideo({
   video: publicacaoDeVideo,
   audioDaTela: publicacaoDeAudioDaTela,
+  /* A camada é aplicada quando a assinatura ACONTECE, que pode ser bem depois
+     do pedido: a publicação chega, a sala reconecta. */
+  aplicarQualidade: definirQualidadeDeStream,
 });
 
+/** Os ouvintes de `ligarAssinaturaDeVideo`, desligados na saída da sala. */
+let desligarAssinaturaDeVideo: (() => void) | undefined;
+
 /**
- * Pede (ou devolve) a faixa de video de uma pessoa.
+ * Pede a faixa de video de uma pessoa, na camada pedida, e devolve a funcao
+ * que a devolve.
  *
  * ⚠ **E a unica porta para video remoto, e ela e EXPLICITA por decisao de
  * custo.** Com `autoSubscribe: false` nada de video desce sozinho; quem quer
- * ver chama isto e, ao desmontar, chama de novo com `false`. O som da tela
- * vai junto, sob a mesma contagem.
+ * ver chama isto e, ao desmontar, chama a devolucao. O som da tela vai junto,
+ * sob a mesma contagem. Sem publicacao ainda, o pedido fica guardado e e
+ * cumprido quando ela chegar.
  */
-export function assinarVideo(
+export function pedirVideo(
   userId: string,
   fonte: FonteDeVideo,
-  sim: boolean,
-): boolean {
-  return assinatura.assinar(userId, fonte, sim);
+  qualidade: QualidadeDeStream,
+): () => void {
+  return assinatura.pedir(userId, fonte, qualidade);
 }
 
 /**
@@ -922,22 +935,17 @@ function definirVolumeDe(userId: string, volume: number): void {
   p?.setVolume(ganho, Track.Source.ScreenShareAudio);
 }
 
+const publicacoes = publicacoesDaSala(() => sala);
+
 function participanteRemoto(userId: string): RemoteParticipant | undefined {
-  for (const p of sala?.remoteParticipants.values() ?? []) {
-    if (p.identity === userId) return p;
-  }
-  return undefined;
+  return publicacoes.participante(userId);
 }
 
 function publicacaoDeVideo(
   userId: string,
   fonte: FonteDeVideo,
 ): RemoteTrackPublication | undefined {
-  const p = participanteRemoto(userId);
-  if (!p) return undefined;
-  return p.getTrackPublication(
-    fonte === "camera" ? Track.Source.Camera : Track.Source.ScreenShare,
-  );
+  return publicacoes.video(userId, fonte);
 }
 
 /**
@@ -946,7 +954,7 @@ function publicacaoDeVideo(
  * ⚠ **Ele é uma publicação SEPARADA, e é por isso que a tela chegava muda.**
  * `getDisplayMedia` captura o som do sistema junto (ver `AUDIO_DA_TELA`) e o
  * LiveKit o publica como `ScreenShareAudio`, ao lado de `ScreenShare` — duas
- * faixas, dois `setSubscribed`. `assinarVideo` só conhecia a de vídeo, então
+ * faixas, dois `setSubscribed`. `pedirVideo` só conhecia a de vídeo, então
  * quem assistia recebia a imagem e nunca pedia o som. O defeito não estava na
  * captura nem na reprodução: o áudio era capturado, era publicado, e ninguém
  * do outro lado o assinava.
@@ -958,10 +966,7 @@ function publicacaoDeAudioDaTela(
   userId: string,
   fonte: FonteDeVideo,
 ): RemoteTrackPublication | undefined {
-  if (fonte !== "tela") return undefined;
-  return participanteRemoto(userId)?.getTrackPublication(
-    Track.Source.ScreenShareAudio,
-  );
+  return publicacoes.audioDaTela(userId, fonte);
 }
 
 /**
@@ -1112,6 +1117,11 @@ export async function sairDaChamada(): Promise<void> {
   esquecerProcessadores();
   pararDeOuvirVolumes?.();
   pararDeOuvirVolumes = undefined;
+  desligarAssinaturaDeVideo?.();
+  desligarAssinaturaDeVideo = undefined;
+  /* Pedidos e novas tentativas morrem com a sala, como no `Disconnected` —
+     que não roda aqui, porque os ouvintes saem antes do `disconnect`. */
+  assinatura.limpar();
   if (!r) return;
   r.removeAllListeners();
   /* Os ouvintes saíram antes do `disconnect`, então o `Disconnected` não
