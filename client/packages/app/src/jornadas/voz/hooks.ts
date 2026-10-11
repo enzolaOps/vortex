@@ -1,5 +1,5 @@
 import type { QualidadeDeStream } from "nucleo/sdk/camadaDeVideo";
-import { assinarVideo, definirQualidadeDeStream } from "nucleo/sdk/chamada";
+import { pedirVideo } from "nucleo/sdk/chamada";
 import { escolherSala } from "nucleo/store/ultimoLugar";
 import {
   useCanaisDeVoz,
@@ -103,8 +103,10 @@ const QUALIDADE_DO_PAPEL = {
  * (dois ladrilhos para a mesma faixa não derrubam um ao outro, e a devolução
  * espera 250 ms para a troca de foco → miniatura não passar por zero).
  *
- * A camada vem do `papel` e é pedida DEPOIS da assinatura, porque
- * `definirQualidadeDeStream` age sobre a publicação já assinada.
+ * A camada vem do `papel` e vai JUNTO com o pedido: quem a aplica é a
+ * contabilidade, no momento em que a assinatura acontece. O ladrilho de tela
+ * monta pelo protocolo Stoat e pode pedir antes de a publicação existir no
+ * LiveKit; o pedido fica guardado e é cumprido quando ela chega.
  *
  * `soAudio` não é decidido aqui: é escolha explícita da pessoa, pela mesma
  * `definirQualidadeDeStream`.
@@ -155,11 +157,7 @@ export function useAssinaturaDeVideo(
   const quer = !proprio && naTela && aberta;
   useEffect(() => {
     if (!quer) return;
-    if (assinarVideo(userId, fonte, true)) {
-      definirQualidadeDeStream(userId, fonte, QUALIDADE_DO_PAPEL[papel]);
-    }
-    return () => {
-      assinarVideo(userId, fonte, false);
-    };
+    // A devolução é a função que o pedido devolveu: só desconta o que ESTE ladrilho pediu.
+    return pedirVideo(userId, fonte, QUALIDADE_DO_PAPEL[papel]);
   }, [quer, userId, fonte, papel]);
 }
