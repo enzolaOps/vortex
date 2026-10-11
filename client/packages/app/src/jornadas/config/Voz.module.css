@@ -113,3 +113,30 @@
   font-size: var(--vx-type-caption-size);
   line-height: var(--vx-type-caption-line);
 }
+
+/* Duas colunas quando o painel comporta (medido no próprio painel, não na janela). */
+.contexto {
+  container-type: inline-size;
+}
+.colunas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-6);
+}
+.coluna {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-6);
+  min-inline-size: 0;
+}
+@container (min-width: 880px) {
+  .colunas {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--vx-space-8);
+    align-items: start;
+  }
+  .divisorEmUmaColuna {
+    display: none;
+  }
+}

@@ -237,6 +237,21 @@ describe("a casca", () => {
     expect(document.querySelector('[data-testid="shell"]')).toBe(shell);
   });
 
+  it("a navegação tem ícones e o fechar mostra a dica Esc e fecha ao clicar", async () => {
+    await abrir("perfil");
+    const nav = document.querySelector(`nav[aria-label="${config.navegacao}"]`)!;
+    const itens = [...nav.querySelectorAll("button[aria-current], button")];
+    expect(itens.length).toBeGreaterThan(5);
+    for (const item of itens) expect(item.querySelector("svg")).not.toBeNull();
+    const fechar = page.getByRole("button", { name: config.fechar });
+    await expect.element(fechar).toBeVisible();
+    expect(fechar.element().textContent).toContain(config.dicaDeEsc);
+    expect(document.querySelectorAll(`[aria-label="${comum.fechar}"]`).length).toBe(0);
+    await fechar.click();
+    await assentar();
+    expect(lerConfig().secao).toBeNull();
+  });
+
   it("navega pelas seis seções e marca a atual", async () => {
     await abrir("perfil");
     const nav = document.querySelector(`nav[aria-label="${config.navegacao}"]`)!;
@@ -583,6 +598,21 @@ describe("conta que ainda não chegou", () => {
 });
 
 describe("voz e vídeo", () => {
+  const colunasDaPagina = () =>
+    [...document.querySelectorAll("h3")].find((h) => h.textContent === config.vozTela.audio)?.closest("section")?.parentElement
+      ?.parentElement as HTMLElement;
+
+  it("em painel largo divide em duas colunas; em painel estreito, uma", async () => {
+    await page.viewport(1440, 900);
+    await abrir("vozEVideo");
+    const faixas = () => getComputedStyle(colunasDaPagina()).gridTemplateColumns.split(" ").length;
+    await expect.poll(() => getComputedStyle(colunasDaPagina()).display).toBe("grid");
+    expect(faixas()).toBe(2);
+    await page.viewport(900, 900);
+    await expect.poll(() => getComputedStyle(colunasDaPagina()).display).toBe("flex");
+    await page.viewport(414, 896);
+  });
+
   const dispositivo = (kind: MediaDeviceKind, deviceId: string, label: string) =>
     ({ kind, deviceId, label, groupId: "g" }) as MediaDeviceInfo;
   const simular = (lista: MediaDeviceInfo[]) => {

@@ -24,6 +24,7 @@ import {
   SetaParaCima,
   Volume,
 } from "../../ui/icones";
+import { juntar } from "../../ui/juntar";
 import { toast } from "../../ui/primitivos/Avisos";
 import { ConteudoDoDialogo, Dialogo } from "../../ui/primitivos/Dialogo";
 import css from "./admin.module.css";
@@ -240,7 +241,7 @@ function LinhaDeCanal({
       <span className={css.celula}>
         {canal.name} <span className={css.meta}>{voz ? t.sala : t.canal}</span>
       </span>
-      <span className={css.acoesDaLinha}>
+      <span className={juntar(css.acoesDaLinha, css.acoesNoHover)}>
         <Botao
           variante="fantasma"
           tamanho="sm"
@@ -276,6 +277,7 @@ function LinhaDeCanal({
         <Botao
           variante="fantasma"
           tamanho="sm"
+          className={css.apagar}
           icone={<Lixeira />}
           aria-label={t.apagar(canal.name)}
           onClick={() => {

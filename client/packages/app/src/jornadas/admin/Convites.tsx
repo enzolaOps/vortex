@@ -13,6 +13,7 @@ import { Botao } from "../../ui/ds";
 import { Copiar } from "../../ui/icones";
 import { toast } from "../../ui/primitivos/Avisos";
 import { ConteudoDoDialogo, Dialogo } from "../../ui/primitivos/Dialogo";
+import { Confirmacao } from "./Confirmacao";
 import css from "./admin.module.css";
 import { Carregando, Falhou, Vazio } from "./Estados";
 
@@ -196,13 +197,12 @@ export function Convites({ serverId }: { serverId: string }) {
   const atual = resposta?.para === serverId && resposta.revisao === revisao ? resposta : undefined;
 
   const revogar = async (codigo: string) => {
-    setRevogando(codigo);
     const ok = await revogarConvite(serverId, codigo);
-    setRevogando(undefined);
     if (ok) {
       toast({ tipo: "info", titulo: admin.convitesPagina.revogado });
       setRevisao((r) => r + 1);
     }
+    return ok;
   };
 
   return (
@@ -252,12 +252,11 @@ export function Convites({ serverId }: { serverId: string }) {
               </span>
               <span className={css.acoesDaLinha}>
                 <Botao
-                  variante="perigo"
+                  variante="fantasma"
                   tamanho="sm"
                   aria-label={admin.convitesPagina.revogarConvite(c.codigo)}
-                  carregando={revogando === c.codigo}
                   onClick={() => {
-                    void revogar(c.codigo);
+                    setRevogando(c.codigo);
                   }}
                 >
                   {admin.convitesPagina.revogar}
@@ -267,6 +266,17 @@ export function Convites({ serverId }: { serverId: string }) {
           ))}
         </ul>
       )}
+
+      <Confirmacao
+        aberto={revogando !== undefined}
+        aoMudar={(a) => {
+          if (!a) setRevogando(undefined);
+        }}
+        titulo={admin.convitesPagina.revogarTitulo(revogando ?? "")}
+        texto={admin.convitesPagina.revogarTexto}
+        confirmar={admin.convitesPagina.revogar}
+        aoConfirmar={() => (revogando === undefined ? Promise.resolve(false) : revogar(revogando))}
+      />
 
       <CriarConvite
         serverId={serverId}

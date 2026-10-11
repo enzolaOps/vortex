@@ -37,6 +37,8 @@ import {
   Monitor as LMonitor,
   MonitorUp as LMonitorUp,
   Paperclip as LPaperclip,
+  Link as LLink,
+  Palette as LPalette,
   Pencil as LPencil,
   Phone as LPhone,
   PhoneOff as LPhoneOff,
@@ -55,6 +57,7 @@ import {
   Settings as LSettings,
   Shield as LShield,
   Trash2 as LTrash2,
+  User as LUser,
   Users as LUsers,
   Video as LVideo,
   WifiOff as LWifiOff,
@@ -150,6 +153,10 @@ export const Janela = envolver(LAppWindow);
 export const Editar = envolver(LPencil);
 export const EncerrarChamada = envolver(LPhoneOff);
 export const Telefone = envolver(LPhone);
+/** O fone girado, como no design: recusar e desligar sem o risco do "sem sinal" de EncerrarChamada. */
+export const TelefoneDesligando: Icone = function TelefoneDesligando({ style, ...props }: IconeProps) {
+  return <Telefone {...props} style={{ ...style, transform: "rotate(135deg)" }} />;
+};
 export const Proibido = envolver(LBan);
 export const ImagemSobreImagem = envolver(LPictureInPicture2);
 export const Mais = envolver(LPlus);
@@ -158,6 +165,9 @@ export const Configuracoes = envolver(LSettings);
 export const Escudo = envolver(LShield);
 export const Lixeira = envolver(LTrash2);
 export const Pessoas = envolver(LUsers);
+export const Pessoa = envolver(LUser);
+export const Paleta = envolver(LPalette);
+export const Elo = envolver(LLink);
 export const Camera = envolver(LVideo);
 export const CameraDesligada = envolver(LVideoOff);
 export const Volume = envolver(LVolume2);

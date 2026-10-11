@@ -1,6 +1,7 @@
 import type { SecaoId } from "nucleo/store/config";
 
 import { config } from "../../textos";
+import { Escudo, Microfone, Paleta, Pessoa, Sino, Tela, type Icone } from "../../ui/icones";
 
 /**
  * As seções desta jornada (PRD 4.6). O núcleo conhece mais — servidor, cargos,
@@ -49,3 +50,13 @@ export const GRUPOS_DA_NAVEGACAO: readonly {
 export function secaoEssencial(secao: SecaoId | null): SecaoEssencial | undefined {
   return SECOES_ESSENCIAIS.find((s) => s === secao);
 }
+
+/** O ícone de cada seção na navegação. `Record` exaustivo, como o nome e o subtítulo. */
+export const ICONE_DA_SECAO: Record<SecaoEssencial, Icone> = {
+  perfil: Pessoa,
+  conta: Escudo,
+  sessoes: Tela,
+  vozEVideo: Microfone,
+  notificacoes: Sino,
+  aparencia: Paleta,
+};
