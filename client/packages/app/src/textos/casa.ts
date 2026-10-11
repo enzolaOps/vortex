@@ -9,6 +9,7 @@ export const casa = {
     novoGrupo: "Novo grupo",
     amigos: "Amigos",
     amigosComPedidos: (n: number) => `Amigos, ${plural(n, "pedido pendente", "pedidos pendentes")}`,
+    pedidosNoSelo: (n: number) => plural(n, "pedido", "pedidos"),
     semConversas: {
       titulo: "Nenhuma conversa ainda",
       texto: "Abra a conversa com um amigo ou peça amizade pelo nome de usuário.",

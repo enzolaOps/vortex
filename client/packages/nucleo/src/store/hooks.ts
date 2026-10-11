@@ -402,6 +402,26 @@ export function useChannel(id: string): ChannelSnapshot | undefined {
   return useSyncExternalStore(channels.subscriber(id), getSnapshot);
 }
 
+const SEPARADOR_DE_NOMES = " ";
+
+/**
+ * Os nomes de vários canais de uma vez, na ordem dos IDs. Serve a quem precisa
+ * comparar irmãos (as siglas da faixa de salas). O snapshot é uma string única,
+ * comparada por valor, então não aloca nem acorda sem mudança de nome.
+ */
+export function useNomesDosCanais(ids: readonly string[]): readonly string[] {
+  const getSnapshot = () =>
+    ids.map((id) => channels.getSnapshot(id)?.name ?? "").join(SEPARADOR_DE_NOMES);
+  const subscribe = (aviso: () => void) => {
+    const saidas = ids.map((id) => channels.subscriber(id)(aviso));
+    return () => {
+      for (const sair of saidas) sair();
+    };
+  };
+  const juntos = useSyncExternalStore(subscribe, getSnapshot);
+  return useMemo(() => (ids.length === 0 ? [] : juntos.split(SEPARADOR_DE_NOMES)), [juntos, ids.length]);
+}
+
 /**
  * Um membro, pela chave composta.
  *

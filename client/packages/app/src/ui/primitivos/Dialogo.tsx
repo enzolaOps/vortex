@@ -20,12 +20,15 @@ type Props = Omit<ComponentProps<typeof Primitivo.Content>, "title"> & {
   /** Esconde o título da tela mas o mantém para o leitor de tela. */
   tituloOculto?: boolean;
   descricao?: string;
+  /** Quem desenha o próprio botão de fechar (com `DialogoFechar`) desliga o padrão. */
+  semBotaoDeFechar?: boolean;
 };
 
 export function ConteudoDoDialogo({
   titulo,
   tituloOculto = false,
   descricao,
+  semBotaoDeFechar = false,
   className,
   children,
   ...props
@@ -48,12 +51,11 @@ export function ConteudoDoDialogo({
           <Primitivo.Description className={estilos.descricao}>{descricao}</Primitivo.Description>
         )}
         {children}
-        <Primitivo.Close
-          className={juntar(estilos.botaoDeIcone, estilos.fechar)}
-          aria-label={comum.fechar}
-        >
-          <Fechar />
-        </Primitivo.Close>
+        {!semBotaoDeFechar && (
+          <Primitivo.Close className={juntar(estilos.botaoDeIcone, estilos.fechar)} aria-label={comum.fechar}>
+            <Fechar />
+          </Primitivo.Close>
+        )}
       </Primitivo.Content>
     </Primitivo.Portal>
   );

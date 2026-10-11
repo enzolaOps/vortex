@@ -298,9 +298,25 @@ describe("casa: conversas e amigos", () => {
     await expect.poll(() => coluna().querySelector("[aria-current]")?.getAttribute("data-conversa")).toBe("D1");
   });
 
+  it("a prévia da última mensagem usa a largura da linha, sem dividir a faixa com a hora", async () => {
+    await abrir();
+    const previa = [...coluna().querySelectorAll<HTMLElement>("span")].find((s) => s.textContent === "kkkk já vou entrar");
+    const linha = coluna().querySelector<HTMLElement>(`[data-conversa="D1"]`);
+    if (!previa || !linha) throw new Error("linha da conversa não montou");
+    const hora = linha.querySelector<HTMLElement>("[aria-hidden] > span");
+    expect(hora).not.toBeNull();
+    // A hora fica acima da prévia, não ao lado dela.
+    expect((hora as HTMLElement).getBoundingClientRect().bottom).toBeLessThanOrEqual(previa.getBoundingClientRect().top + 1);
+    expect(previa.getBoundingClientRect().width).toBeGreaterThan(linha.getBoundingClientRect().width * 0.5);
+  });
+
   it("a entrada de amigos mostra os pedidos pendentes", async () => {
     await abrir();
     await expect.element(page.getByRole("button", { name: casa.coluna.amigosComPedidos(1) })).toBeVisible();
+    // O selo diz em palavra o que o número conta.
+    expect(page.getByRole("button", { name: casa.coluna.amigosComPedidos(1) }).element().textContent).toContain(
+      casa.coluna.pedidosNoSelo(1),
+    );
   });
 
   it("Online mostra só quem não está offline; Todos mostra todo mundo", async () => {
@@ -546,6 +562,17 @@ describe("chamada recebida", () => {
     await expect.element(page.getByText(casa.chamada.sinalTeclaRecusar)).toBeVisible();
     // O foco já está em Atender: Enter atende sem procurar o botão.
     await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe(casa.chamada.atenderDe("Bia"));
+  });
+
+  it("recusar usa o telefone desligando e atender o telefone, não câmera", async () => {
+    await abrir();
+    tocar();
+    await expect.element(page.getByRole("alertdialog")).toBeVisible();
+    const recusar = page.getByRole("button", { name: casa.chamada.recusarDe("Bia") }).element();
+    const atender = page.getByRole("button", { name: casa.chamada.atenderDe("Bia") }).element();
+    expect(atender.querySelector("svg")?.getAttribute("class")).toContain("lucide-phone");
+    expect(atender.querySelector("svg")?.getAttribute("class")).not.toContain("lucide-video");
+    expect(recusar.querySelector("svg")?.getAttribute("style")).toContain("rotate(135deg)");
   });
 
   it("Atender entra com vídeo; só com áudio entra sem câmera; Recusar para de tocar", async () => {

@@ -128,7 +128,7 @@ export function TelaDeRecuperarSenha({ mandaEmail, motivo, aoPedir, aoVoltar }: 
           erro={tentou && !valido ? t.emailInvalido : undefined}
           onChange={(e) => setEmail(e.target.value)}
         />
-        <Botao type="submit" className={css.largo} carregando={enviando}>
+        <Botao type="submit" className={css.largo} carregando={enviando} disabled={email.trim() === "" && !enviando}>
           {enviando ? t.enviando : t.enviar}
         </Botao>
       </form>

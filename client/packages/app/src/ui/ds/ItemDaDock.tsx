@@ -48,12 +48,13 @@ export function ItemDaDock({
     >
       <span className={css.rosto} aria-hidden="true">
         {icone ?? <Avatar nome={nome} id={id} tamanho={44} imagem={imagem} />}
+        {/* No canto do rosto, abaixo das iniciais: o selo nunca as cobre. */}
+        {mencoes > 0 ? (
+          <Pilula tipo="mencao" valor={mencoes} className={css.selo} />
+        ) : (
+          naoLida && <Pilula tipo="naoLida" className={css.selo} />
+        )}
       </span>
-      {mencoes > 0 ? (
-        <Pilula tipo="mencao" valor={mencoes} className={css.selo} />
-      ) : (
-        naoLida && <Pilula tipo="naoLida" className={css.selo} />
-      )}
       {mencoes > 0 && <span className={css.soLeitor}>{ds.mencoes(mencoes)}</span>}
     </button>
   );

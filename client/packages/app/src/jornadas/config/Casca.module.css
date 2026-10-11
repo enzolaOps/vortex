@@ -4,12 +4,13 @@
   de uma classe só, e a ordem dos módulos no bundle não é contrato.
 */
 .casca.casca {
-  inline-size: min(calc(100vw - 48px), 1080px);
-  block-size: min(calc(100vh - 48px), 760px);
+  /* O painel do design: quase a janela toda, com a margem das bordas do app. */
+  inline-size: min(calc(100vw - 48px), 1328px);
+  block-size: min(calc(100vh - 48px), 828px);
   max-block-size: none;
   padding: 0;
   gap: 0;
-  grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-columns: 264px minmax(0, 1fr);
   overflow: hidden;
 }
 
@@ -72,6 +73,7 @@
 .item {
   display: flex;
   align-items: center;
+  gap: var(--vx-space-3);
   box-sizing: border-box;
   inline-size: 100%;
   block-size: 38px;
@@ -108,7 +110,42 @@
 }
 .cabecalho {
   flex: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--vx-space-4);
   padding: var(--vx-space-5) var(--vx-space-8) var(--vx-space-3) var(--vx-space-7);
+}
+.cabecalhoTextos {
+  min-inline-size: 0;
+}
+/* "Esc ×": a tecla escrita ao lado do ícone, como no design. */
+.fechar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-2);
+  block-size: 32px;
+  padding: 0 var(--vx-space-3);
+  border: 1px solid var(--vx-border-strong);
+  border-radius: var(--vx-radius-pill);
+  background: transparent;
+  color: var(--vx-text-2);
+  font-family: var(--vx-font-sans);
+  cursor: pointer;
+}
+.fechar:hover {
+  background: var(--vx-state-hover);
+  color: var(--vx-text-1);
+}
+.fechar:focus-visible {
+  outline: 2px solid var(--vx-focus-ring);
+  outline-offset: 2px;
+}
+.teclaEsc {
+  font-family: var(--vx-font-mono);
+  font-size: var(--vx-type-mono-size);
+  line-height: var(--vx-type-mono-line);
 }
 .tituloDaPagina {
   margin: 0;
