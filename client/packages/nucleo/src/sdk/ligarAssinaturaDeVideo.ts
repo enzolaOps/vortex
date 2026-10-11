@@ -2,6 +2,7 @@ import {
   RoomEvent,
   Track,
   type RemoteParticipant,
+  type RemoteTrack,
   type RemoteTrackPublication,
   type Room,
 } from "livekit-client";
@@ -56,6 +57,17 @@ export function ligarAssinaturaDeVideo(
     const fonte = fonteDe(pub.source);
     if (fonte) assinatura.esquecer(participante.identity, fonte);
   };
+  const aoAssinar = (
+    _faixa: RemoteTrack,
+    pub: RemoteTrackPublication,
+    participante: RemoteParticipant,
+  ) => {
+    const fonte = fonteDe(pub.source);
+    if (fonte) assinatura.faixaChegou(participante.identity, fonte);
+  };
+  const aoFalhar = (trackSid: string, participante: RemoteParticipant) => {
+    assinatura.falhou(participante.identity, trackSid);
+  };
   /*
     ⚠ **Reconectar REASSINA, e é a segunda porta do mesmo defeito.** No
     reinício completo, o LiveKit desfaz os remotos e os recria com publicações
@@ -74,6 +86,8 @@ export function ligarAssinaturaDeVideo(
 
   r.on(RoomEvent.TrackPublished, aoPublicar);
   r.on(RoomEvent.TrackUnpublished, aoDespublicar);
+  r.on(RoomEvent.TrackSubscribed, aoAssinar);
+  r.on(RoomEvent.TrackSubscriptionFailed, aoFalhar);
   r.on(RoomEvent.Reconnected, aoReconciliar);
   r.on(RoomEvent.ParticipantConnected, aoReconciliar);
   r.on(RoomEvent.ParticipantDisconnected, aoSair);
@@ -81,6 +95,8 @@ export function ligarAssinaturaDeVideo(
   return () => {
     r.off(RoomEvent.TrackPublished, aoPublicar);
     r.off(RoomEvent.TrackUnpublished, aoDespublicar);
+    r.off(RoomEvent.TrackSubscribed, aoAssinar);
+    r.off(RoomEvent.TrackSubscriptionFailed, aoFalhar);
     r.off(RoomEvent.Reconnected, aoReconciliar);
     r.off(RoomEvent.ParticipantConnected, aoReconciliar);
     r.off(RoomEvent.ParticipantDisconnected, aoSair);

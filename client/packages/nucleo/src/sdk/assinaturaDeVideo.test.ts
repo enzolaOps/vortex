@@ -292,6 +292,66 @@ describe("reconexão completa", () => {
   });
 });
 
+describe("falha de assinatura", () => {
+  it("tenta de novo com espera crescente e para no limite", () => {
+    const a = criar();
+    a.pedir(USUARIO, "tela");
+    expect(chamadas).toEqual([true]);
+
+    a.falhou(USUARIO, "TR_v1");
+    vi.advanceTimersByTime(999);
+    expect(chamadas).toEqual([true]);
+    vi.advanceTimersByTime(1);
+    expect(chamadas).toEqual([true, true]);
+
+    a.falhou(USUARIO, "TR_v1");
+    vi.advanceTimersByTime(1999);
+    expect(chamadas.length).toBe(2);
+    vi.advanceTimersByTime(1);
+    expect(chamadas.length).toBe(3);
+
+    a.falhou(USUARIO, "TR_v1");
+    vi.advanceTimersByTime(4000);
+    expect(chamadas.length).toBe(4);
+
+    /* A quarta falha esgota: nem o tempo nem uma reconciliação tentam de novo. */
+    a.falhou(USUARIO, "TR_v1");
+    vi.advanceTimersByTime(60_000);
+    a.reconciliar();
+    expect(chamadas.length).toBe(4);
+  });
+
+  it("falha de outra publicação não mexe nesta", () => {
+    const a = criar();
+    a.pedir(USUARIO, "tela");
+    a.falhou(USUARIO, "TR_outra");
+    vi.advanceTimersByTime(10_000);
+    expect(chamadas).toEqual([true]);
+  });
+
+  it("a faixa que chega zera as falhas", () => {
+    const a = criar();
+    a.pedir(USUARIO, "tela");
+    for (let i = 0; i < 3; i++) {
+      a.falhou(USUARIO, "TR_v1");
+      vi.advanceTimersByTime(10_000);
+    }
+    a.faixaChegou(USUARIO, "tela");
+    a.falhou(USUARIO, "TR_v1");
+    vi.advanceTimersByTime(1000);
+    expect(chamadas.length).toBe(5);
+  });
+
+  it("devolver cancela a nova tentativa pendente", () => {
+    const a = criar();
+    const devolver = a.pedir(USUARIO, "tela");
+    a.falhou(USUARIO, "TR_v1");
+    devolver();
+    vi.advanceTimersByTime(10_000);
+    expect(chamadas).toEqual([true, false]);
+  });
+});
+
 /**
  * ⚠ **"Em algumas horas fica só em 'recebendo o primeiro quadro…'" —
  * relatado por quem usa.** A chave `usuário:tela` é estável entre

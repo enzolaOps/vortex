@@ -205,10 +205,48 @@ describe("reconexão completa", () => {
   });
 });
 
+describe("TrackSubscriptionFailed", () => {
+  it("tenta de novo e para no limite", () => {
+    const assinatura = montar();
+    const ana = anaEntra();
+    const tela = publicacao("TR_tela");
+    publicar(ana, tela);
+    assinatura.pedir(ANA, "tela");
+    expect(tela.pedidos).toEqual([true]);
+
+    for (let i = 0; i < 3; i++) {
+      sala.emit(RoomEvent.TrackSubscriptionFailed, "TR_tela", ana);
+      vi.advanceTimersByTime(10_000);
+    }
+    expect(tela.pedidos).toEqual([true, true, true, true]);
+
+    sala.emit(RoomEvent.TrackSubscriptionFailed, "TR_tela", ana);
+    vi.advanceTimersByTime(60_000);
+    sala.emit(RoomEvent.Reconnected);
+    expect(tela.pedidos.length).toBe(4);
+  });
+
+  it("o TrackSubscribed que chega zera a contagem de falhas", () => {
+    const assinatura = montar();
+    const ana = anaEntra();
+    const tela = publicacao("TR_tela");
+    publicar(ana, tela);
+    assinatura.pedir(ANA, "tela");
+    for (let i = 0; i < 3; i++) {
+      sala.emit(RoomEvent.TrackSubscriptionFailed, "TR_tela", ana);
+      vi.advanceTimersByTime(10_000);
+    }
+    sala.emit(RoomEvent.TrackSubscribed, { kind: Track.Kind.Video }, tela, ana);
+    sala.emit(RoomEvent.TrackSubscriptionFailed, "TR_tela", ana);
+    vi.advanceTimersByTime(1000);
+    expect(tela.pedidos.length).toBe(5);
+  });
+});
+
 describe("os ouvintes saem", () => {
   it("a função devolvida desliga todos os eventos", () => {
     montar();
-    expect(sala.eventNames().length).toBe(5);
+    expect(sala.eventNames().length).toBe(7);
     desligar();
     expect(sala.eventNames()).toEqual([]);
   });

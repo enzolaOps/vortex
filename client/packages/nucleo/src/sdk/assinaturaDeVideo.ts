@@ -82,6 +82,13 @@ export interface AssinaturaDeVideo {
    * reinício completo do LiveKit produz.
    */
   reconciliar(): void;
+  /** A faixa chegou (`TrackSubscribed`): as falhas daquela chave são esquecidas. */
+  faixaChegou(userId: string, fonte: FonteDeVideo): void;
+  /**
+   * O servidor recusou a assinatura (`TrackSubscriptionFailed`). Tenta de novo
+   * com espera crescente, até `MAXIMO_DE_TENTATIVAS` por publicação.
+   */
+  falhou(userId: string, trackSid: string): void;
   /**
    * O `ScreenShareAudio` apareceu. Assina só se alguém está assistindo a tela
    * dessa pessoa — o som de uma tela que ninguém abriu não desce.
@@ -90,6 +97,11 @@ export interface AssinaturaDeVideo {
   /** A sala acabou: nada do que foi contado vale para a próxima. */
   limpar(): void;
 }
+
+/** Novas tentativas depois de uma falha de assinatura, por publicação. */
+export const MAXIMO_DE_TENTATIVAS = 3;
+/** Espera antes da 1ª nova tentativa; dobra a cada falha seguinte. */
+export const ESPERA_DA_TENTATIVA = 1000;
 
 interface Pedido {
   readonly userId: string;
@@ -126,6 +138,9 @@ export function criarAssinaturaDeVideo(
    * publica não caiu). Comparar o objeto cobre os dois casos.
    */
   const assinado = new Map<string, PublicacaoAssinavel>();
+  /** Falhas de assinatura por chave, da publicação de `sid`. */
+  const falhas = new Map<string, { sid: string; n: number }>();
+  const novasTentativas = new Map<string, ReturnType<typeof setTimeout>>();
 
   function cancelar(
     mapa: Map<string, ReturnType<typeof setTimeout>>,
@@ -150,6 +165,9 @@ export function criarAssinaturaDeVideo(
 
     const nova = assinado.get(chave) !== pub;
     if (nova) {
+      /* Desistiu desta publicação: só um pedido novo ou outra publicação tentam de novo. */
+      const f = falhas.get(chave);
+      if (f?.sid === pub.trackSid && f.n > MAXIMO_DE_TENTATIVAS) return;
       assinado.set(chave, pub);
       pub.setSubscribed(true);
       fontes.audioDaTela(p.userId, p.fonte)?.setSubscribed(true);
@@ -176,6 +194,8 @@ export function criarAssinaturaDeVideo(
         if (pedidos.get(chave) !== p || p.contagem > 0) return;
         pedidos.delete(chave);
         assinado.delete(chave);
+        falhas.delete(chave);
+        cancelar(novasTentativas, chave);
         fontes.video(p.userId, p.fonte)?.setSubscribed(false);
         /* Devolver os dois, senão o som de uma tela que ninguém vê continua
            tocando — e é o que quem usa ouve primeiro. */
@@ -193,6 +213,8 @@ export function criarAssinaturaDeVideo(
         p = { userId, fonte, contagem: 0, qualidade };
         pedidos.set(chave, p);
       }
+      /* Interesse novo: quem desistiu da publicação por falhas tenta de novo. */
+      if (p.contagem === 0) falhas.delete(chave);
       p.contagem += 1;
       if (qualidade !== undefined) p.qualidade = qualidade;
       cancelar(pendentes, chave);
@@ -219,10 +241,45 @@ export function criarAssinaturaDeVideo(
     esquecer(userId, fonte) {
       const chave = chaveDeVideo(userId, fonte);
       assinado.delete(chave);
+      cancelar(novasTentativas, chave);
     },
 
     reconciliar() {
       for (const chave of pedidos.keys()) cumprir(chave, false);
+    },
+
+    faixaChegou(userId, fonte) {
+      falhas.delete(chaveDeVideo(userId, fonte));
+    },
+
+    falhou(userId, trackSid) {
+      for (const fonte of ["tela", "camera"] as const) {
+        const chave = chaveDeVideo(userId, fonte);
+        if (assinado.get(chave)?.trackSid !== trackSid) continue;
+        assinado.delete(chave);
+        const antes = falhas.get(chave);
+        const n = antes?.sid === trackSid ? antes.n + 1 : 1;
+        falhas.set(chave, { sid: trackSid, n });
+        cancelar(novasTentativas, chave);
+        if (n > MAXIMO_DE_TENTATIVAS) {
+          if (import.meta.env.DEV) {
+            console.warn(
+              `[voz] assinatura de ${chave} falhou ${String(n)} vezes; desistindo desta publicação.`,
+            );
+          }
+          continue;
+        }
+        novasTentativas.set(
+          chave,
+          setTimeout(
+            () => {
+              novasTentativas.delete(chave);
+              cumprir(chave, false);
+            },
+            ESPERA_DA_TENTATIVA * 2 ** (n - 1),
+          ),
+        );
+      }
     },
 
     audioDaTelaPublicado(userId) {
@@ -234,8 +291,11 @@ export function criarAssinaturaDeVideo(
     limpar() {
       pedidos.clear();
       assinado.clear();
+      falhas.clear();
       for (const t of pendentes.values()) clearTimeout(t);
       pendentes.clear();
+      for (const t of novasTentativas.values()) clearTimeout(t);
+      novasTentativas.clear();
     },
   };
 }
