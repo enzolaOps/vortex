@@ -18,6 +18,10 @@ export interface MensagemProps {
   avatar?: ReactNode;
   /** Horário já formatado, ex. "14:32". */
   hora: string;
+  /** A hora completa (com segundos), para o `title` da hora curta. */
+  horaCompleta?: string;
+  /** O instante em ISO 8601, para o `datetime` de quem lê a página sem a tela. */
+  dataHora?: string;
   /** Corpo da mensagem. Links (`<a>`) saem em `accent` com sublinhado. */
   children?: ReactNode;
   /** Mensagem seguinte do mesmo autor: sem avatar nem nome; a hora aparece no hover. */
@@ -71,6 +75,8 @@ function MensagemBase({
   autor,
   avatar,
   hora,
+  horaCompleta,
+  dataHora,
   children,
   continuacao = false,
   resposta,
@@ -104,9 +110,9 @@ function MensagemBase({
     >
       <div className={css.calha}>
         {compacta ? (
-          <time className={css.horaCompacta}>{hora}</time>
+          <time className={css.horaCompacta} title={horaCompleta} dateTime={dataHora}>{hora}</time>
         ) : continuacao ? (
-          <time className={css.horaNoHover}>{hora}</time>
+          <time className={css.horaNoHover} title={horaCompleta} dateTime={dataHora}>{hora}</time>
         ) : (
           (avatar ?? <Avatar nome={autor.nome} id={autor.id} tom={autor.tom} tamanho={36} />)
         )}
@@ -122,7 +128,7 @@ function MensagemBase({
         {!continuacao && (
           <div className={css.cabecalho}>
             <span className={css.nome}>{autor.nome}</span>
-            {!compacta && <time className={css.hora}>{hora}</time>}
+            {!compacta && <time className={css.hora} title={horaCompleta} dateTime={dataHora}>{hora}</time>}
           </div>
         )}
         <div className={css.corpo}>{children}</div>

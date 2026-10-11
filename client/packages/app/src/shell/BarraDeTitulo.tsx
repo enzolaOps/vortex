@@ -1,6 +1,7 @@
 import { comum, shell } from "../textos";
 import { Botao } from "../ui/ds";
 import { Marca } from "../ui/Marca";
+import { AvisoDeConexao } from "./AvisoDeConexao";
 import { Fechar, Maximizar, Minimizar } from "../ui/icones";
 import css from "./Regioes.module.css";
 
@@ -25,6 +26,7 @@ export function BarraDeTitulo({ aoMinimizar, aoMaximizar, aoFechar }: BarraDeTit
         <Marca tamanho={20} />
         {comum.nomeDoApp}
       </span>
+      <AvisoDeConexao />
       {temJanela && (
         <div className={css.janela}>
           {aoMinimizar && (

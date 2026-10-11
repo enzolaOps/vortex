@@ -20,7 +20,6 @@ export const casa = {
     naoLidas: (n: number) => plural(n, "não lida", "não lidas"),
     semMensagens: "Sem mensagens ainda",
     silenciada: "silenciada",
-    semConexao: "Sem conexão: as conversas podem estar desatualizadas",
   },
 
   amigos: {
@@ -46,7 +45,6 @@ export const casa = {
       pedidos: "Nenhum pedido pendente.",
       bloqueados: "Você não bloqueou ninguém.",
     },
-    semConexao: "Sem conexão: a lista pode estar desatualizada.",
     adicionar: {
       rotulo: "Adicionar por nome de usuário",
       placeholder: "Nome de usuário, por exemplo @ana",

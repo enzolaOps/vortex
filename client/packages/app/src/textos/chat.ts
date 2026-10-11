@@ -95,8 +95,6 @@ export const chat = {
   anexosSelecionados: "Arquivos para enviar",
   arquivoGrande: (nome: string) => `${nome} é grande demais para enviar.`,
   limiteDeEnvio: (teto: string) => `O limite aqui é ${teto}.`,
-  semConexao: "Sem conexão. As mensagens saem quando voltar.",
-  naFila: (n: number) => plural(n, "mensagem na fila", "mensagens na fila"),
   negrito: "Negrito",
   italico: "Itálico",
 

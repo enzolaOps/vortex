@@ -51,6 +51,15 @@ export type DetalheDaConexao = {
   ultimaSincroniaTexto: string | undefined;
   /** A pessoa pediu para parar de tentar. Só sai com "Tentar agora". */
   pausada: boolean;
+  /**
+   * Instante em que a conexão CAIU, em ms. `undefined` = conectado.
+   *
+   * Não é `ultimaSincronia`: aquele é o início do último período de pé, e o
+   * aviso "há 12 s" conta desde a queda. Fixado na primeira saída de
+   * "conectado" e mantido até voltar — trocar de "reconectando" para
+   * "sem-conexão" não reinicia o relógio.
+   */
+  caiuEm: number | undefined;
 };
 
 /**
@@ -71,6 +80,7 @@ let bruto: EstadoDaConexao = "conectado";
 let tentativa = 0;
 let ultimaSincronia: number | undefined;
 let pausada = false;
+let caiuEm: number | undefined;
 let agendado: ReturnType<typeof setTimeout> | undefined;
 
 let detalhe: DetalheDaConexao = {
@@ -79,6 +89,7 @@ let detalhe: DetalheDaConexao = {
   ultimaSincronia: undefined,
   ultimaSincroniaTexto: undefined,
   pausada: false,
+  caiuEm: undefined,
 };
 
 const ouvintes = new Set<() => void>();
@@ -124,7 +135,8 @@ function publicar() {
     detalhe.tentativa === tentativa &&
     detalhe.ultimaSincronia === ultimaSincronia &&
     detalhe.ultimaSincroniaTexto === ultimaSincroniaTexto &&
-    detalhe.pausada === pausada
+    detalhe.pausada === pausada &&
+    detalhe.caiuEm === caiuEm
   ) {
     return;
   }
@@ -134,6 +146,7 @@ function publicar() {
     ultimaSincronia,
     ultimaSincroniaTexto,
     pausada,
+    caiuEm,
   };
   for (const ouvinte of ouvintes) ouvinte();
 }
@@ -146,6 +159,8 @@ function publicar() {
  * que demora a sumir depois de resolvido é pior que não ter havido aviso.
  */
 export function definirConexao(novo: EstadoDaConexao): void {
+  // A queda conta desde o primeiro sinal, mesmo dentro da espera antes de avisar.
+  if (novo !== "conectado" && caiuEm === undefined) caiuEm = Date.now();
   bruto = novo;
 
   if (agendado !== undefined) {
@@ -158,6 +173,7 @@ export function definirConexao(novo: EstadoDaConexao): void {
     tentativa = 0;
     ultimaSincronia = Date.now();
     pausada = false;
+    caiuEm = undefined;
     publicar();
     return;
   }
@@ -212,6 +228,7 @@ export function pausarConexao(): void {
   bruto = "sem-conexao";
   estado = "sem-conexao";
   pausada = true;
+  caiuEm ??= Date.now();
   publicar();
 }
 
@@ -224,11 +241,13 @@ export function limparConexao(): void {
   tentativa = 0;
   ultimaSincronia = undefined;
   pausada = false;
+  caiuEm = undefined;
   detalhe = {
     estado: "conectado",
     tentativa: 0,
     ultimaSincronia: undefined,
     ultimaSincroniaTexto: undefined,
     pausada: false,
+    caiuEm: undefined,
   };
 }

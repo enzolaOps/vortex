@@ -6,6 +6,13 @@ export const shell = {
     maximizar: "Maximizar a janela",
     fechar: "Fechar a janela",
   },
+  conexao: {
+    rotulo: "Estado da conexão",
+    reconectando: (desde: string) => `Reconectando… há ${desde}`,
+    semConexao: (desde: string) => `Sem conexão · há ${desde}`,
+    reconectandoSemTempo: "Reconectando…",
+    semConexaoSemTempo: "Sem conexão",
+  },
   dock: {
     rotulo: "Servidores",
     vazio: "Nenhum servidor ainda.",

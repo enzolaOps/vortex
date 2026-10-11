@@ -18,6 +18,7 @@ import {
   Download as LDownload,
   File as LFile,
   Eye as LEye,
+  MessageSquareDot as LMessageSquareDot,
   EyeOff as LEyeOff,
   Crown as LCrown,
   Ellipsis as LEllipsis,
@@ -37,7 +38,6 @@ import {
   MicOff as LMicOff,
   Monitor as LMonitor,
   MonitorUp as LMonitorUp,
-  Paperclip as LPaperclip,
   Link as LLink,
   Palette as LPalette,
   Pause as LPause,
@@ -179,7 +179,7 @@ export const CameraDesligada = envolver(LVideoOff);
 export const Volume = envolver(LVolume2);
 export const VolumeDesligado = envolver(LVolumeX);
 export const Fechar = envolver(LX);
-export const Anexo = envolver(LPaperclip);
+export const NaoLida = envolver(LMessageSquareDot);
 export const Imagem = envolver(LImage);
 export const Responder = envolver(LReply);
 export const Enviar = envolver(LSendHorizontal);

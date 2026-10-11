@@ -3,6 +3,8 @@ import { useState } from "react";
 import { page } from "vitest/browser";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { definirConexao, limparConexao, pausarConexao } from "nucleo/store/conexao";
+
 import { shell } from "../textos";
 import { desmontar, montar, pegar } from "../ui/ds/montar";
 import { ShellDoApp } from "./ShellDoApp";
@@ -197,5 +199,33 @@ describe("Entrada e saída do palco", () => {
     } finally {
       delete document.documentElement.dataset.movimento;
     }
+  });
+});
+
+describe("aviso de conexão", () => {
+  afterEach(limparConexao);
+
+  it("um só, na barra de título, com o tempo desde a queda; some quando volta", async () => {
+    document.documentElement.dataset.tema = "vidro";
+    montar(
+      <div style={{ inlineSize: "1280px", blockSize: "700px" }}>
+        <ShellDoApp principal={<p>conteúdo</p>} />
+      </div>,
+    );
+    const barra = () => pegar<HTMLElement>('[data-testid="barra-de-titulo"]')!;
+    expect(barra().querySelector('[role="status"]')).toBeNull();
+
+    definirConexao("reconectando");
+    await expect.poll(() => barra().querySelector('[role="status"]')?.textContent, { timeout: 4000 }).toMatch(
+      /^Reconectando… há \d+ s$/,
+    );
+    // Um aviso só: nenhum outro status de conexão fora da barra.
+    expect(document.querySelectorAll(`[aria-label="${shell.conexao.rotulo}"]`)).toHaveLength(1);
+
+    pausarConexao();
+    await expect.poll(() => barra().querySelector('[role="status"]')?.textContent).toMatch(/^Sem conexão · há \d+ s$/);
+
+    definirConexao("conectado");
+    await expect.poll(() => barra().querySelector('[role="status"]')).toBeNull();
   });
 });

@@ -147,3 +147,42 @@
   font-size: var(--vx-type-ui-size);
   line-height: var(--vx-type-ui-line);
 }
+
+/* Campo em esqueleto: mesma caixa do campo (padding + linha de 40px), só opacidade anima. */
+.esqueletoDoCampo {
+  display: flex;
+  align-items: center;
+  gap: var(--vx-space-1);
+  box-sizing: border-box;
+  padding: var(--vx-space-2);
+  animation: pulsar 1.4s ease-in-out infinite;
+}
+.esqueletoBotao {
+  flex: none;
+  inline-size: 32px;
+  block-size: 32px;
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-skeleton);
+}
+.esqueletoBarra {
+  flex: 1;
+  block-size: 12px;
+  margin-inline: var(--vx-space-2);
+  max-inline-size: 40%;
+  border-radius: var(--vx-radius-sm);
+  background: var(--vx-skeleton);
+}
+@keyframes pulsar {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .esqueletoDoCampo {
+    animation: none;
+  }
+}

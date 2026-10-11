@@ -11,7 +11,7 @@ import { useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 
 import { chat, comum } from "../../textos";
 import { Botao } from "../../ui/ds";
-import { Arroba, Copiar, Desafixar, Editar, Fixar, Lixeira, Responder, Sorriso } from "../../ui/icones";
+import { Arroba, Copiar, Desafixar, Editar, Fixar, Lixeira, NaoLida, Responder, Sorriso } from "../../ui/icones";
 import { ConteudoDoDialogo, Dialogo, DialogoFechar } from "../../ui/primitivos/Dialogo";
 import {
   ConteudoDoMenuDeContexto,
@@ -154,7 +154,7 @@ function ConteudoDoMenu({ aoApagar }: { aoApagar: (id: string) => void }) {
             marcarNaoLidaA(id);
           }}
         >
-          {chat.marcarNaoLida}
+          <NaoLida /> {chat.marcarNaoLida}
         </ItemDeMenuDeContexto>
       )}
       {enviada && minha && (

@@ -3703,6 +3703,15 @@ export function temMencao(channelId: string): boolean {
 }
 
 /**
+ * Os IDs das menções a você neste canal, na ordem da lista. Quem decide se há
+ * alguma FORA da área visível (o atalho "próxima menção") precisa deles; é a
+ * mesma lista cacheada de `temMencao`, sem varredura nova.
+ */
+export function idsDeMencao(channelId: string): readonly string[] {
+  return mencoesDe(channelId);
+}
+
+/**
  * A próxima menção depois de uma posição, ou a primeira se não houver posição.
  *
  * `depoisDe` é um ID e não um índice: índice muda quando chega histórico pelo
