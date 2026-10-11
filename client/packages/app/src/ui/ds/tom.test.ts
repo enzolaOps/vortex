@@ -43,3 +43,13 @@ describe("siglas de sala", () => {
     expect(siglasDeSalas(["Lounge"])).toEqual(["LO"]);
   });
 });
+
+describe("nome vazio ou ausente", () => {
+  it("não lança e devolve tom neutro estável e sem iniciais", () => {
+    const vazio = undefined as unknown as string;
+    expect(tomDe(undefined, vazio)).toBe(1);
+    expect(tomDe(undefined, "")).toBe(1);
+    expect(iniciais(vazio)).toBe("");
+    expect(iniciais("   ")).toBe("");
+  });
+});

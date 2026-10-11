@@ -43,6 +43,7 @@ export function ShellDasSalas({ rodapeDasSalas }: { rodapeDasSalas?: ReactNode }
   return (
     <>
     <ShellDoApp
+      chaveDoLugar={JSON.stringify(local)}
       dock={<ConteudoDaDock />}
       salas={<ColunaConectada rodape={rodapeDasSalas} />}
       area={<AreaConectada />}
