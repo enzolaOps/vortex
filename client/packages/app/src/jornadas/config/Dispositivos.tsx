@@ -8,11 +8,11 @@ import {
 } from "nucleo/sdk/perfil";
 import { useEffect, useState } from "react";
 
-import { comum, config } from "../../textos";
+import { config } from "../../textos";
 import { Botao } from "../../ui/ds";
 import { toast } from "../../ui/primitivos/Avisos";
 import { CampoDeTexto } from "../sessao/CampoDeTexto";
-import { Bloco, estilosDeConfig as ec, Pagina } from "./controles";
+import { Bloco, estilosDeConfig as ec, Pagina, PaginaCarregando, PaginaComFalha } from "./controles";
 import { DialogoDeConta } from "./DialogoDeConta";
 import css from "./Dispositivos.module.css";
 
@@ -82,31 +82,15 @@ export function Dispositivos() {
     toast({ tipo: "erro", titulo: t.falhou });
   }
 
-  if (lista === undefined) {
-    return (
-      <p className={ec.texto} role="status">
-        {t.carregando}
-      </p>
-    );
-  }
+  if (lista === undefined) return <PaginaCarregando rotulo={t.carregando} />;
   if (lista === null) {
     return (
-      <Pagina>
-        <p className={ec.erro} role="alert">
-          {config.naoDeuParaCarregar}
-        </p>
-        <div className={ec.acoes}>
-          <Botao
-            variante="secundario"
-            onClick={() => {
-              setLista(undefined);
-              void recarregar();
-            }}
-          >
-            {comum.tentarDeNovo}
-          </Botao>
-        </div>
-      </Pagina>
+      <PaginaComFalha
+        aoTentarDeNovo={() => {
+          setLista(undefined);
+          void recarregar();
+        }}
+      />
     );
   }
 
