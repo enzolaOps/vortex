@@ -1,3 +1,5 @@
+import { createEffect, createRoot } from "solid-js";
+
 import { client } from "./client";
 
 /**
@@ -144,21 +146,39 @@ export function instanciaMandaEmail(): boolean {
 
 /** Quanto esperar pela configuração antes de desistir. */
 const TETO_DA_CONFIGURACAO_MS = 15_000;
-const PASSO_MS = 50;
 
 /**
  * Espera o `GET {baseURL}/` que o construtor do `Client` dispara.
  *
- * O SDK não emite evento quando a configuração chega, então a espera é por
- * sondagem. Devolve `false` se ela não chegar dentro do teto.
+ * Sem sondagem: o SDK expõe `client.configured`, um signal que vira `true`
+ * logo depois de preencher `configuration`, e a promessa resolve no instante
+ * em que ele acorda. O teto de 15 s continua: devolve `false` se a
+ * configuração não chegar a tempo. O efeito sai (`dispose`) ao resolver, nos
+ * dois caminhos — nada fica assinado ao signal depois da espera.
  */
-export async function esperarConfiguracao(): Promise<boolean> {
-  const limite = Date.now() + TETO_DA_CONFIGURACAO_MS;
-  while (client.configuration?.ws === undefined) {
-    if (Date.now() > limite) return false;
-    await new Promise((r) => setTimeout(r, PASSO_MS));
-  }
-  return true;
+export function esperarConfiguracao(): Promise<boolean> {
+  if (client.configuration?.ws !== undefined) return Promise.resolve(true);
+  return new Promise<boolean>((resolve) => {
+    createRoot((dispose) => {
+      let resolvida = false;
+      const terminar = (ok: boolean) => {
+        if (resolvida) return;
+        resolvida = true;
+        clearTimeout(temporizador);
+        dispose();
+        resolve(ok);
+      };
+      const temporizador = setTimeout(
+        () => terminar(false),
+        TETO_DA_CONFIGURACAO_MS,
+      );
+      createEffect(() => {
+        if (client.configured() && client.configuration?.ws !== undefined) {
+          terminar(true);
+        }
+      });
+    });
+  });
 }
 
 /**
