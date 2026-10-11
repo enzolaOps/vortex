@@ -11,7 +11,7 @@ export type StatusDePresenca = "online" | "idle" | "dnd" | "offline";
 
 export interface AvatarProps {
   /** Nome completo; gera as iniciais e o rótulo acessível. */
-  nome: string;
+  nome: string | undefined;
   /** ID da pessoa; escolhe o tom por hash quando `tom` não é dado. */
   id?: string;
   /** 1 a 8, token `avatar-N`. */
@@ -79,7 +79,8 @@ export function Avatar({
 }: AvatarProps) {
   /* A URL que falhou, não um booleano: trocar de foto dá nova chance à imagem. */
   const [falhou, setFalhou] = useState<string | undefined>();
-  const partes = [nome];
+  const rotulo = typeof nome === "string" && nome.trim() !== "" ? nome : ds.avatar.semNome;
+  const partes = [rotulo];
   if (falando) partes.push(ds.avatar.falando);
   if (transmitindo) partes.push(ds.avatar.transmitindo);
   if (status) partes.push(ds.avatar[status]);
@@ -94,7 +95,7 @@ export function Avatar({
       className={juntar(css.avatar, TONS[tomDe(id, nome, tom) - 1], className)}
       style={{ ...vars, ...style }}
     >
-      <span aria-hidden="true">{iniciais(nome)}</span>
+      <span aria-hidden="true">{iniciais(nome) || "?"}</span>
       {imagem !== undefined && imagem !== falhou && (
         <img
           className={css.foto}
