@@ -50,12 +50,11 @@ vi.mock("nucleo/sdk/chamada", async (original) => {
     alternarSurdo: registra("surdo"),
     alternarCamera: registra("camera"),
     alternarTela: registra("tela"),
-    assinarVideo: (userId: string, fonte: string, sim: boolean) => {
-      ctl.assinaturas.push(`${sim ? "+" : "-"}${userId}:${fonte}`);
-      return true;
-    },
-    definirQualidadeDeStream: (userId: string, fonte: string, q: string) => {
-      ctl.assinaturas.push(`q:${userId}:${fonte}:${q}`);
+    pedirVideo: (userId: string, fonte: string, q: string) => {
+      ctl.assinaturas.push(`+${userId}:${fonte}`, `q:${userId}:${fonte}:${q}`);
+      return () => {
+        ctl.assinaturas.push(`-${userId}:${fonte}`);
+      };
     },
   };
 });
