@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { HOSTS_DE_PLAYER } from "nucleo/sdk/traduzirEmbeds";
+
 import { montarPolitica } from "../csp";
 
 function diretiva(politica: string, nome: string): string {
@@ -26,6 +28,12 @@ describe("CSP do app", () => {
   it("deriva a origem da API e o socket", () => {
     expect(diretiva(prod, "connect-src")).toContain("https://vortex.example");
     expect(diretiva(prod, "connect-src")).toContain("wss://vortex.example");
+  });
+
+  it("frame-src só abre para os players do embed, e na mesma lista do núcleo", () => {
+    const hosts = diretiva(prod, "frame-src").split(" ").filter((x) => x.startsWith("https://")).map((x) => new URL(x).hostname);
+    expect(new Set(hosts)).toEqual(new Set(HOSTS_DE_PLAYER));
+    expect(diretiva(prod, "frame-src").split(" ")).not.toContain("https:");
   });
 
   it("só o dev server aceita script inline", () => {
