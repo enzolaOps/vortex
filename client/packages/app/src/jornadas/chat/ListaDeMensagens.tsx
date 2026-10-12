@@ -14,7 +14,7 @@ import {
 import { assinarAparencia, lerAparencia } from "nucleo/store/aparencia";
 import { assinarDensidade, lerDensidade } from "nucleo/store/densidade";
 import { useChannelMessageIds } from "nucleo/store/hooks";
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { chat } from "../../textos";
 import { Botao } from "../../ui/ds";
@@ -44,6 +44,42 @@ import { aoPedirFim, aoPedirSalto } from "./saltos";
 export interface ListaDeMensagensProps {
   canalId: string;
   servidorId: string;
+}
+
+/** Quanto tempo um salto espera a mensagem de destino aparecer na lista. */
+const PRAZO_DO_SALTO_PENDENTE_MS = 8000;
+
+/** Quanto tempo a linha de destino fica realçada. */
+const DURACAO_DO_REALCE_MS = 2200;
+
+/**
+ * Realça a linha de uma mensagem por um instante. A linha pode ainda não estar
+ * montada (o virtualizador acabou de rolar até ela), então procura por alguns
+ * quadros. Devolve quem desfaz.
+ */
+function realcarLinha(raiz: HTMLElement, chave: string): () => void {
+  let quadro = 0;
+  let fim = 0;
+  let tentativas = 0;
+  let alvo: HTMLElement | null = null;
+  const tentar = () => {
+    alvo = raiz.querySelector<HTMLElement>(`[data-menu-mensagem="${CSS.escape(chave)}"]`);
+    if (alvo === null) {
+      tentativas += 1;
+      if (tentativas < 90) quadro = requestAnimationFrame(tentar);
+      return;
+    }
+    alvo.dataset.realcada = "true";
+    fim = window.setTimeout(() => {
+      alvo?.removeAttribute("data-realcada");
+    }, DURACAO_DO_REALCE_MS);
+  };
+  tentar();
+  return () => {
+    cancelAnimationFrame(quadro);
+    clearTimeout(fim);
+    alvo?.removeAttribute("data-realcada");
+  };
 }
 
 /** Rolagem iniciada por gente: só ela pode DESCOLAR a lista do fim. */
@@ -292,8 +328,25 @@ export function ListaDeMensagens({ canalId, servidorId }: ListaDeMensagensProps)
     virtualizer.scrollToEnd();
   }, [ids.length, virtualizer]);
 
+  // O realce da linha de destino: imperativo, sem estado nem assinatura por linha.
+  // Uma subscrição a mais em cada uma das milhares de linhas custaria o gate para
+  // acender UMA por vez; o atributo no DOM custa nada e some sozinho.
+  const saltoPendente = useRef<{ alvo: string; ate: number } | undefined>(undefined);
+  const desfazerRealce = useRef<(() => void) | undefined>(undefined);
+  const realcarDepois = useCallback((alvo: string) => {
+    desfazerRealce.current?.();
+    const raiz = rolagem.current;
+    desfazerRealce.current = raiz ? realcarLinha(raiz, alvo) : undefined;
+  }, []);
+  useEffect(
+    () => () => {
+      desfazerRealce.current?.();
+    },
+    [],
+  );
+
   // Pedidos de fora: ir ao fim (depois de enviar) e saltar para uma mensagem
-  // (citação de resposta, próxima menção).
+  // (citação de resposta, próxima menção, resultado de busca).
   useEffect(() => {
     const desfazFim = aoPedirFim(canalId, () => {
       colado.current = true;
@@ -301,15 +354,38 @@ export function ListaDeMensagens({ canalId, servidorId }: ListaDeMensagensProps)
     });
     const desfazSalto = aoPedirSalto(canalId, (alvo) => {
       const i = idsAtuais.current.indexOf(alvo);
-      if (i === -1) return;
+      if (i === -1) {
+        // A mensagem acabou de ser carregada (resultado de busca antigo): a lista
+        // só a enxerga no próximo render. Guarda o pedido por alguns segundos.
+        saltoPendente.current = { alvo, ate: Date.now() + PRAZO_DO_SALTO_PENDENTE_MS };
+        return;
+      }
+      saltoPendente.current = undefined;
       colado.current = false;
       virtualizer.scrollToIndex(i, { align: "center" });
+      realcarDepois(alvo);
     });
     return () => {
       desfazFim();
       desfazSalto();
     };
-  }, [canalId, virtualizer]);
+  }, [canalId, virtualizer, realcarDepois]);
+
+  // O salto que esperava a mensagem existir na lista.
+  useEffect(() => {
+    const pendente = saltoPendente.current;
+    if (pendente === undefined) return;
+    if (Date.now() > pendente.ate) {
+      saltoPendente.current = undefined;
+      return;
+    }
+    const i = ids.indexOf(pendente.alvo);
+    if (i === -1) return;
+    saltoPendente.current = undefined;
+    colado.current = false;
+    virtualizer.scrollToIndex(i, { align: "center" });
+    realcarDepois(pendente.alvo);
+  }, [ids, virtualizer, realcarDepois]);
 
   // Ack ao ler: quem está no fim, com a janela à vista, leu. O cursor do divisor só
   // anda ao SAIR do canal; isto avisa o servidor e zera as contagens. Reiniciado a
