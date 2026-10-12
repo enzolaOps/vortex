@@ -57,7 +57,7 @@ const DURACAO_DO_REALCE_MS = 2200;
  * montada (o virtualizador acabou de rolar até ela), então procura por alguns
  * quadros. Devolve quem desfaz.
  */
-function realcarLinha(raiz: HTMLElement, chave: string): () => void {
+function realcarLinha(raiz: HTMLElement, chave: string, reapontar?: () => void): () => void {
   let quadro = 0;
   let fim = 0;
   let tentativas = 0;
@@ -66,6 +66,10 @@ function realcarLinha(raiz: HTMLElement, chave: string): () => void {
     alvo = raiz.querySelector<HTMLElement>(`[data-menu-mensagem="${CSS.escape(chave)}"]`);
     if (alvo === null) {
       tentativas += 1;
+      // O salto pode ter pousado no lugar errado: a estimativa de altura das linhas ainda não
+      // medidas desvia o destino, e o scroll termina com a linha fora da janela montada.
+      // Reapontar com as medidas que já chegaram converge; sem isto o realce desiste calado.
+      if (tentativas % 10 === 0) reapontar?.();
       if (tentativas < 90) quadro = requestAnimationFrame(tentar);
       return;
     }
@@ -336,8 +340,13 @@ export function ListaDeMensagens({ canalId, servidorId }: ListaDeMensagensProps)
   const realcarDepois = useCallback((alvo: string) => {
     desfazerRealce.current?.();
     const raiz = rolagem.current;
-    desfazerRealce.current = raiz ? realcarLinha(raiz, alvo) : undefined;
-  }, []);
+    desfazerRealce.current = raiz
+      ? realcarLinha(raiz, alvo, () => {
+          const i = idsAtuais.current.indexOf(alvo);
+          if (i !== -1) virtualizer.scrollToIndex(i, { align: "center" });
+        })
+      : undefined;
+  }, [virtualizer]);
   useEffect(
     () => () => {
       desfazerRealce.current?.();
