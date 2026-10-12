@@ -86,6 +86,7 @@ import {
 } from "./eventosDaSala";
 import { assinarChamada, lerChamada } from "../store/chamada";
 import { definirProntidao } from "../store/prontidao";
+import { aplicarFixacao, removerFixada } from "../store/fixados";
 import { anotarEventoDeServidor } from "./eventos";
 import { semearStatusDoServidor } from "./perfil";
 import { aguardar, desistir, reconciliar } from "./nonce";
@@ -1073,6 +1074,9 @@ export function alternarFixada(messageId: string): void {
   } as never);
 
   publicarFixadas(message.channelId);
+  // O painel de fixados acompanha na hora, sem refazer a busca. A chave é a do SDK:
+  // é a que `Channel.search` devolve, e `chaveLocal` a resolve ao saltar.
+  aplicarFixacao(message.channelId, message.id, fixando);
 
   // A rede, como na reação: otimista na tela, contado ao servidor depois.
   if (!conectado()) return;
@@ -1649,9 +1653,23 @@ export function startAdapter() {
     avisarChegada(message);
   });
 
+  /*
+    Fixar/desafixar por OUTRA pessoa chega como `MessageUpdate` com `pinned`. O
+    painel de fixados mantém a lista por este evento, sem refazer a busca. Só
+    reage à MUDANÇA do campo: o eco da nossa própria ação já encontra o valor
+    escrito (`alternarFixada` é otimista) e não repete nada.
+  */
+  client.on("messageUpdate", (message, anterior) => {
+    const antes = (anterior as { pinned?: boolean | null }).pinned === true;
+    if (message.pinned === antes) return;
+    publicarFixadas(message.channelId);
+    aplicarFixacao(message.channelId, message.id, message.pinned);
+  });
+
   client.on("messageDelete", (message) => {
     const channelId = message.channelId;
     if (!channelId) return;
+    removerFixada(channelId, message.id);
     const ids = idsOf(channelId);
     // `chaveLocal`: se esta mensagem foi enviada por aqui, a lista a conhece
     // pelo ID otimista, e o servidor está falando do ID dele.
