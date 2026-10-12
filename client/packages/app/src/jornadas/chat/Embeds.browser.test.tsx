@@ -79,16 +79,36 @@ const cartoes = () => Array.from(document.querySelectorAll<HTMLElement>("[data-e
 const MARCA = "Um post sobre cartões";
 const MARCA_URL = "https://exemplo.com/";
 
+/** Espera a lista PARAR: posição e altura iguais em leituras seguidas (âncora e remedição quietas). */
+async function assentar() {
+  let anterior = "";
+  let iguais = 0;
+  await expect
+    .poll(
+      () => {
+        const agora = `${String(log().scrollTop)}|${String(log().scrollHeight)}`;
+        iguais = agora === anterior ? iguais + 1 : 0;
+        anterior = agora;
+        return iguais;
+      },
+      { timeout: 8000, interval: 80 },
+    )
+    .toBeGreaterThanOrEqual(6);
+}
+
 async function prontaNoFim() {
   montarLista();
   await expect.poll(distanciaDoFim, { timeout: 5000 }).toBeLessThanOrEqual(80);
+  // Colada não é parada: a âncora e a remedição ainda movem a janela de linhas montadas.
+  await assentar();
+  expect(distanciaDoFim()).toBeLessThanOrEqual(80);
 }
 
 describe("prévia de link", () => {
   it("cartão de site: origem, título como link, descrição e barra de cor", async () => {
     await prontaNoFim();
     chegar(ultimaId(), [site()]);
-    await expect.poll(() => cartoes().length).toBe(1);
+    await expect.poll(() => cartoes().length, { timeout: 5000 }).toBe(1);
     const c = cartoes()[0]!;
     expect(c.textContent).toContain("Exemplo");
     expect(c.textContent).toContain("O resumo do post");
@@ -105,7 +125,7 @@ describe("prévia de link", () => {
     chegar(ultimaId(), [
       site({ imagemGrande: true, imagem: { url: SEM_REDE, largura: 800, altura: 400 } }),
     ]);
-    await expect.poll(() => cartoes().length).toBe(1);
+    await expect.poll(() => cartoes().length, { timeout: 5000 }).toBe(1);
     const moldura = cartoes()[0]!.querySelector<HTMLElement>("[data-embed-midia='imagem']")!;
     const img = moldura.querySelector("img")!;
     // Sem um byte da imagem, a caixa já tem a proporção 2:1 na largura máxima.
@@ -117,7 +137,7 @@ describe("prévia de link", () => {
   it("sem imagem (servidor sem proxy) o cartão é só de texto", async () => {
     await prontaNoFim();
     chegar(ultimaId(), [site()]);
-    await expect.poll(() => cartoes().length).toBe(1);
+    await expect.poll(() => cartoes().length, { timeout: 5000 }).toBe(1);
     expect(cartoes()[0]!.querySelector("img")).toBeNull();
   });
 
@@ -134,7 +154,7 @@ describe("prévia de link", () => {
         },
       }),
     ]);
-    await expect.poll(() => cartoes().length).toBe(1);
+    await expect.poll(() => cartoes().length, { timeout: 5000 }).toBe(1);
     const player = cartoes()[0]!.querySelector<HTMLElement>("[data-player='YouTube']")!;
     expect(document.querySelector("iframe")).toBeNull();
     expect(Math.round(player.offsetHeight)).toBe(225);
@@ -154,18 +174,18 @@ describe("prévia de link", () => {
       ultimaId(),
       Array.from({ length: 5 }, (_, i) => site({ id: `https://exemplo.com/${String(i)}`, titulo: `Link ${String(i)}` })),
     );
-    await expect.poll(() => cartoes().length).toBe(3);
+    await expect.poll(() => cartoes().length, { timeout: 5000 }).toBe(3);
     expect(cartoes()[0]!.closest("[data-embeds]")!.textContent).toContain("e mais 2");
   });
 
   it("desligar a prévia nas configurações esconde os cartões", async () => {
     await prontaNoFim();
     chegar(ultimaId(), [site()]);
-    await expect.poll(() => cartoes().length).toBe(1);
+    await expect.poll(() => cartoes().length, { timeout: 5000 }).toBe(1);
     definirAparencia({ previasDeLink: false });
-    await expect.poll(() => cartoes().length).toBe(0);
+    await expect.poll(() => cartoes().length, { timeout: 5000 }).toBe(0);
     definirAparencia({ previasDeLink: true });
-    await expect.poll(() => cartoes().length).toBe(1);
+    await expect.poll(() => cartoes().length, { timeout: 5000 }).toBe(1);
   });
 });
 
@@ -178,60 +198,98 @@ describe("chegada tardia do embed", () => {
     await expect.poll(distanciaDoFim, { timeout: 4000 }).toBeLessThanOrEqual(80);
   });
 
+  /**
+   * Sobe com gesto de verdade. A lista só solta o fim se o `scroll` chegar DENTRO da janela
+   * de 150ms que um `wheel` abre; sob carga o `scroll` atrasa e a janela fecha antes. Por
+   * isso o `wheel` é disparado na captura do próprio `scroll`, imediatamente antes do
+   * ouvinte da lista — o mesmo que uma roda de verdade faz, sem depender do relógio.
+   */
+  async function subirComGesto() {
+    const gesto = () => {
+      log().dispatchEvent(new WheelEvent("wheel", { deltaY: -400, bubbles: true }));
+    };
+    window.addEventListener("scroll", gesto, { capture: true });
+    try {
+      const rolou = new Promise<void>((resolver) => {
+        log().addEventListener("scroll", () => { resolver(); }, { once: true });
+      });
+      log().scrollTop = Math.max(0, log().scrollTop - 4000);
+      await Promise.race([rolou, esperar(1000)]);
+    } finally {
+      window.removeEventListener("scroll", gesto, { capture: true });
+    }
+  }
+
   async function lerNoMeio() {
     await prontaNoFim();
-    // Sobe até o meio, com gesto de verdade para a lista soltar o fim. Repete: sob carga
-    // (suíte em paralelo) a lista ainda está assentando a âncora e pode puxar de volta.
+    // Sobe até o meio, com gesto de verdade para a lista soltar o fim, e só conta como
+    // "lendo" quando FICA lá: sob carga a âncora ainda age e puxa de volta ao fim, e aí
+    // sobe de novo. Pronto = longe do fim e parada por várias leituras seguidas.
+    let anterior = "";
+    let iguais = 0;
     await expect
       .poll(
-        () => {
-          log().dispatchEvent(new WheelEvent("wheel", { deltaY: -400, bubbles: true }));
-          log().scrollTop = Math.max(0, log().scrollTop - 4000);
-          return distanciaDoFim();
+        async () => {
+          if (distanciaDoFim() <= 800) {
+            await subirComGesto();
+            iguais = 0;
+            return 0;
+          }
+          const agora = `${String(log().scrollTop)}|${String(log().scrollHeight)}`;
+          iguais = agora === anterior ? iguais + 1 : 0;
+          anterior = agora;
+          return iguais;
         },
-        { timeout: 5000, interval: 100 },
+        { timeout: 10_000, interval: 80 },
       )
-      .toBeGreaterThan(800);
-    await esperar(400);
+      .toBeGreaterThanOrEqual(8);
     expect(distanciaDoFim()).toBeGreaterThan(800);
+  }
+
+  /** Linha de referência longe das bordas: a do meio das inteiras na tela (a primeira se couberem só duas). */
+  function referencia() {
+    const caixa = log().getBoundingClientRect();
+    const inteiras = linhas().filter((l) => topo(l) >= caixa.top && l.getBoundingClientRect().bottom <= caixa.bottom);
+    expect(inteiras.length).toBeGreaterThan(1);
+    // Com poucas linhas altas na tela, a do meio seria a última: fica a primeira.
+    return { caixa, inteiras, ancora: inteiras[inteiras.length > 2 ? Math.floor((inteiras.length - 1) / 2) : 0]! };
+  }
+
+  /** O topo da âncora depois do embed, relido até estabilizar; o índice pode remontar. */
+  async function topoDepois(indice: string) {
+    await expect.poll(() => cartoes().length, { timeout: 5000 }).toBeGreaterThan(0);
+    await assentar();
+    const linha = linhas().find((l) => l.dataset.index === indice);
+    expect(linha, `índice ${indice} sumiu; fim a ${String(distanciaDoFim())}px, rolagem ${String(log().scrollTop)}`).toBeDefined();
+    return topo(linha!);
   }
   const idDaLinha = (l: HTMLElement) => l.querySelector("[data-menu-mensagem]")!.getAttribute("data-menu-mensagem")!;
   const topo = (l: HTMLElement) => l.getBoundingClientRect().top;
 
   it("lendo no meio: cartão numa linha ACIMA da tela não move o que se lê", async () => {
     await lerNoMeio();
-    const caixa = log().getBoundingClientRect();
-    const inteiras = linhas().filter((l) => topo(l) >= caixa.top && l.getBoundingClientRect().bottom <= caixa.bottom);
-    expect(inteiras.length).toBeGreaterThan(1);
-    const ancora = inteiras[0]!;
+    const { caixa, ancora } = referencia();
     // Uma linha montada (overscan) que está INTEIRA acima da borda de cima.
     const acima = linhas().filter((l) => l.getBoundingClientRect().bottom <= caixa.top);
     expect(acima.length).toBeGreaterThan(0);
     const topoAntes = topo(ancora);
+    const indice = ancora.dataset.index!;
 
     chegar(idDaLinha(acima[acima.length - 1]!), [
       site({ imagemGrande: true, imagem: { url: SEM_REDE, largura: 800, altura: 400 } }),
     ]);
-    await expect.poll(() => cartoes().length, { timeout: 4000 }).toBeGreaterThan(0);
-    await esperar(300);
 
-    const depois = linhas().find((l) => l.dataset.index === ancora.dataset.index)!;
-    expect(Math.abs(topo(depois) - topoAntes)).toBeLessThanOrEqual(2);
+    expect(Math.abs((await topoDepois(indice)) - topoAntes)).toBeLessThanOrEqual(2);
   });
 
   it("lendo no meio: cartão numa linha mais ABAIXO na tela não move as linhas de cima", async () => {
     await lerNoMeio();
-    const caixa = log().getBoundingClientRect();
-    const inteiras = linhas().filter((l) => topo(l) >= caixa.top && l.getBoundingClientRect().bottom <= caixa.bottom);
-    expect(inteiras.length).toBeGreaterThan(1);
-    const ancora = inteiras[0]!;
+    const { inteiras, ancora } = referencia();
     const topoAntes = topo(ancora);
+    const indice = ancora.dataset.index!;
 
     chegar(idDaLinha(inteiras[inteiras.length - 1]!), [site()]);
-    await expect.poll(() => cartoes().length, { timeout: 4000 }).toBeGreaterThan(0);
-    await esperar(300);
 
-    const depois = linhas().find((l) => l.dataset.index === ancora.dataset.index)!;
-    expect(Math.abs(topo(depois) - topoAntes)).toBeLessThanOrEqual(2);
+    expect(Math.abs((await topoDepois(indice)) - topoAntes)).toBeLessThanOrEqual(2);
   });
 });
