@@ -56,7 +56,7 @@ describe("chegada tardia do embed", () => {
     for (const id of [a, b]) {
       client.messages.getOrCreate(
         id,
-        { _id: id, channel: CHANNEL_ID, author: "01JQ0000000000000001000005", content: "https://exemplo.com" } as never,
+        { _id: id, channel: CHANNEL_ID, author: "01JQ0000000000000001000005", content: "https://exemplo.com" },
         true,
       );
       messages.subscriber(id)(() => {});

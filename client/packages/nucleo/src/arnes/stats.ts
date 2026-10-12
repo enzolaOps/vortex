@@ -88,6 +88,8 @@ export type Counters = {
   alturaGrupoAmostras: number;
   alturaContinuaSoma: number;
   alturaContinuaAmostras: number;
+  alturaComEmbedSoma: number;
+  alturaComEmbedAmostras: number;
 };
 
 const zero = (): Counters => ({
@@ -114,6 +116,8 @@ const zero = (): Counters => ({
   alturaGrupoAmostras: 0,
   alturaContinuaSoma: 0,
   alturaContinuaAmostras: 0,
+  alturaComEmbedSoma: 0,
+  alturaComEmbedAmostras: 0,
 });
 
 let counters = zero();

@@ -31,9 +31,11 @@ import {
   LIMIAR_DE_PAGINACAO,
   alturaDoTipo,
   amostrarAltura,
+  amostrarAlturaDeEmbeds,
   type TipoDeLinha,
 } from "./alturas";
 import { alturaDeAnexos } from "./caixaDoAnexo";
+import { alturaDeEmbeds, RESPIRO_DO_EMBED } from "./caixaDoEmbed";
 import { CarregandoHistorico, ComecoDoCanal, FalhaNoHistorico } from "./EstadosDaLista";
 import { useEstadoDoHistorico } from "./hooks";
 import { LinhaDeMensagem } from "./LinhaDeMensagem";
@@ -125,6 +127,7 @@ export function ListaDeMensagens({ canalId, servidorId }: ListaDeMensagensProps)
     // Lê do store direto: `getSnapshot` é leitura de Map, e o virtualizador pergunta
     // por linhas que ainda nem estão na tela (não há componente para perguntar).
     estimateSize: (i) => {
+      const previasLigadas = lerAparencia().previasDeLink;
       const m = messages.getSnapshot(ids[i] ?? "");
       if (!m) return ALTURA_ESTIMADA;
       const tipo: TipoDeLinha = m.sistema ? "sistema" : m.iniciaGrupo ? "abreGrupo" : "continua";
@@ -135,7 +138,8 @@ export function ListaDeMensagens({ canalId, servidorId }: ListaDeMensagensProps)
         (m.respostas.length > 0 ? ALTURA_DA_CITACAO : 0) +
         (m.reactions.length > 0 ? ALTURA_DAS_REACOES : 0) +
         (m.sendState !== "sent" ? ALTURA_DO_ESTADO_DE_ENVIO : 0) +
-        alturaDeAnexos(m.anexos)
+        alturaDeAnexos(m.anexos) +
+        (previasLigadas ? alturaDeEmbeds(m.embeds) : 0)
       );
     },
     getItemKey: (i) => ids[i] ?? i,
@@ -272,7 +276,7 @@ export function ListaDeMensagens({ canalId, servidorId }: ListaDeMensagensProps)
         b();
       };
     },
-    () => `${lerDensidade()}|${String(lerAparencia().texto)}`,
+    () => `${lerDensidade()}|${String(lerAparencia().texto)}|${String(lerAparencia().previasDeLink)}`,
   );
   const ajusteAnterior = useRef(ajuste);
   useEffect(() => {
@@ -349,15 +353,23 @@ export function ListaDeMensagens({ canalId, servidorId }: ListaDeMensagensProps)
   // os 44px sobreviveram. Mede no render, depois do virtualizador ter medido. Linha
   // com extra estimado (divisor, resposta, anexo, reação, estado) fica fora: a
   // constante descreve a linha sem eles.
+  const previasLigadas = lerAparencia().previasDeLink;
   for (const item of itens) {
     const m = messages.getSnapshot(String(item.key));
     if (!m) continue;
+    // O bloco de embeds é conferido à parte (altura MEDIDA do bloco contra `alturaDeEmbeds`).
+    // Só em dev: lê o DOM da linha, e a assertion some do bundle de produção.
+    if (import.meta.env.DEV && previasLigadas && m.embeds.length > 0) {
+      const bloco = rolagem.current?.querySelector<HTMLElement>(`[data-index="${String(item.index)}"] [data-embeds]`);
+      if (bloco) amostrarAlturaDeEmbeds(bloco.offsetHeight + RESPIRO_DO_EMBED, alturaDeEmbeds(m.embeds));
+    }
     const comExtra =
       m.dia !== undefined ||
       m.primeiraNaoLida ||
       m.respostas.length > 0 ||
       m.reactions.length > 0 ||
       m.anexos.length > 0 ||
+      (previasLigadas && m.embeds.length > 0) ||
       m.sendState !== "sent";
     amostrarAltura(m.sistema ? "sistema" : m.iniciaGrupo ? "abreGrupo" : "continua", item.size, comExtra);
   }
