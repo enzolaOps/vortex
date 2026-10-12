@@ -2008,6 +2008,72 @@ export async function carregarPaginaAnterior(channelId: string): Promise<void> {
   }
 }
 
+export type ChegadaAMensagem =
+  /** A mensagem está na lista; `chave` é como a lista a conhece (o ID local, se for sua). */
+  | { readonly estado: "pronta"; readonly chave: string }
+  /** O histórico chegou ao começo e ela não está nele (apagada, ou de outro canal). */
+  | { readonly estado: "ausente" }
+  /** Sem conexão, canal desconhecido ou a rede falhou no meio do caminho. */
+  | { readonly estado: "falhou" };
+
+/** Teto de páginas por salto: 40 × 100 = 4.000 mensagens para trás. */
+const LIMITE_DE_PAGINAS_NO_SALTO = 40;
+
+const dormir = (ms: number) => new Promise<void>((resolver) => setTimeout(resolver, ms));
+
+/**
+ * Faz a mensagem existir na lista, para a tela poder saltar até ela.
+ *
+ * ⚠ **Carrega para trás até a encontrar, e não "em volta" dela.** O protocolo
+ * tem `nearby`, mas uma janela em volta de uma mensagem antiga seria uma
+ * SEGUNDA janela, separada da que a lista já tem: o que ficasse entre as duas
+ * seria um buraco que a timeline desenharia como se fosse contínuo — a
+ * interface afirmando um histórico sem as mensagens do meio. Paginar com o
+ * cursor que já existe (`carregarPaginaAnterior`) mantém uma lista só,
+ * contígua até o presente, e o virtualizador reancora pela chave como em
+ * qualquer prepend. O custo é uma chamada por 100 mensagens de distância,
+ * limitado por `LIMITE_DE_PAGINAS_NO_SALTO`.
+ *
+ * A comparação para saber que passou do ponto é de ULID (ordem do ID = ordem
+ * do tempo): se a mais antiga da lista já é anterior ao alvo e o alvo não está
+ * nela, ele não existe mais — para de pedir.
+ */
+export async function carregarAteMensagem(
+  channelId: string,
+  messageId: string,
+): Promise<ChegadaAMensagem> {
+  const chave = chaveLocal(messageId);
+  for (let volta = 0; volta <= LIMITE_DE_PAGINAS_NO_SALTO; volta += 1) {
+    const ids = idsOf(channelId);
+    if (ids.includes(chave)) return { estado: "pronta", chave };
+
+    const maisAntiga = ids[0];
+    if (maisAntiga !== undefined && idDoSdk(maisAntiga) < messageId && historicoPedido.has(channelId)) {
+      return { estado: "ausente" };
+    }
+    if (historicoNoFim.has(channelId)) return { estado: "ausente" };
+    if (volta === LIMITE_DE_PAGINAS_NO_SALTO) return { estado: "falhou" };
+
+    if (!historicoPedido.has(channelId)) {
+      await carregarHistorico(channelId);
+      if (!historicoPedido.has(channelId)) return { estado: "falhou" };
+      continue;
+    }
+    if (paginaEmVoo.has(channelId)) {
+      await dormir(120);
+      continue;
+    }
+
+    const antes = ids.length;
+    await carregarPaginaAnterior(channelId);
+    if (idsOf(channelId).length === antes && !historicoNoFim.has(channelId)) {
+      /* Nada entrou e o histórico não acabou: a página falhou (rede). */
+      return { estado: "falhou" };
+    }
+  }
+  return { estado: "falhou" };
+}
+
 /**
  * SONDA: por que este canal está vazio?
  *

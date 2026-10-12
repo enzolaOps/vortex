@@ -5,10 +5,12 @@ import {
   escolherAutor,
   acrescentarFiltro,
   analisarConsulta,
+  definirFiltro,
   intervaloDasDatas,
   menorCursor,
   tipoDoFiltro,
   tirarFiltro,
+  valorDoFiltro,
 } from "./filtros";
 
 /**
@@ -126,5 +128,27 @@ describe("menorCursor", () => {
     expect(menorCursor("B", "A")).toBe("A");
     expect(menorCursor(undefined, "A")).toBe("A");
     expect(menorCursor("B", undefined)).toBe("B");
+  });
+});
+
+describe("definirFiltro", () => {
+  it("põe, troca e tira um filtro sem tocar no resto do texto", () => {
+    let c = definirFiltro("reunião", "de", "Ana");
+    expect(c).toBe("reunião de:Ana");
+    c = definirFiltro(c, "de", "Bia");
+    expect(c).toBe("reunião de:Bia");
+    expect(valorDoFiltro(c, "de")).toBe("Bia");
+    c = definirFiltro(c, "de", "");
+    expect(c).toBe("reunião");
+    expect(valorDoFiltro(c, "de")).toBeUndefined();
+  });
+
+  it("um filtro só por chave, e as outras chaves ficam", () => {
+    const c = definirFiltro(definirFiltro("x antes:2026-01-02", "tem", "link"), "antes", "2026-03-04");
+    expect(c).toBe("x tem:link antes:2026-03-04");
+  });
+
+  it("corta o valor no primeiro espaço", () => {
+    expect(definirFiltro("", "de", "Ana Souza")).toBe("de:Ana");
   });
 });
