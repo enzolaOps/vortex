@@ -1,7 +1,7 @@
 import "../../arnes/redeFalsa";
 
 import { CHANNEL_ID, SERVER_ID, seed } from "nucleo/arnes/firehose";
-import { channelMessageIds, definirCanalAberto } from "nucleo/sdk/adapter";
+import { channelMessageIds, definirCanalAberto, estadoDoHistorico } from "nucleo/sdk/adapter";
 import { client } from "nucleo/sdk/client";
 import { limparBusca } from "nucleo/store/busca";
 import { definirConexao, limparConexao } from "nucleo/store/conexao";
@@ -305,26 +305,41 @@ describe("ir até a mensagem", () => {
     const bruta = (id: string) => ({ _id: id, channel: CHANNEL_ID, author: "01JQ0000000000000001000001", content: `antiga ${id.slice(-6)}` });
     // A mensagem fixada antiga já está no cache do SDK (a busca a materializa), mas fora da lista.
     client.messages.getOrCreate(alvo, bruta(alvo));
-    vi.spyOn(client.api, "get").mockImplementation(((rota: string, params?: { before?: string }) => {
+    /*
+      Determinístico, sem ler o estado ao vivo: o cursor é procurado nas próprias `antigas`, e um
+      cursor que não é delas (o da primeira página, vindo da lista semeada) devolve as mais novas.
+      Antes ele comparava com `ids()[0]` — o snapshot PUBLICADO, que anda um frame atrás da
+      lista —, e numa máquina lenta essa defasagem podia entregar a mesma página duas vezes.
+    */
+    const todas = [...antigas].reverse();
+    vi.spyOn(client.api, "get").mockImplementation(((rota: string, params?: { before?: string; limit?: number }) => {
       if (!rota.endsWith("/messages")) return Promise.resolve({});
       if (params?.before === undefined) return Promise.resolve({ messages: [], users: [], members: [] });
-      const todas = [...antigas].reverse();
-      const idx = params.before === ids()[0] ? 0 : todas.findIndex((x) => x === params.before) + 1;
-      return Promise.resolve({ messages: todas.slice(idx, idx + 100).map(bruta), users: [], members: [] });
+      const limite = params.limit ?? 100;
+      const idx = todas.indexOf(params.before) + 1; // não é delas: -1 + 1 = 0, as mais novas
+      return Promise.resolve({ messages: todas.slice(idx, idx + limite).map(bruta), users: [], members: [] });
     }));
     dublarFixadas(() => [alvo]);
 
     await abrir();
     expect(ids()).not.toContain(alvo);
+    // Espera a carga inicial ASSENTAR antes de pedir o salto: pedir com ela em voo faz a corrida
+    // de páginas depender da velocidade da máquina, e não do que o teste quer provar.
+    await expect
+      .poll(() => {
+        const h = estadoDoHistorico(CHANNEL_ID);
+        return h.pedido && !h.paginaEmVoo && !h.acabou && ids().length > 0;
+      }, { timeout: 20_000 })
+      .toBe(true);
     await botao().click();
     await expect.poll(() => itens().length).toBe(1);
     await userEvent.click(itens()[0]!);
 
-    await expect.poll(() => ids().includes(alvo), { timeout: 10_000 }).toBe(true);
+    await expect.poll(() => ids().includes(alvo), { timeout: 20_000 }).toBe(true);
     await expect
-      .poll(() => document.querySelector(`[data-menu-mensagem="${alvo}"]`)?.getAttribute("data-realcada"), { timeout: 10_000 })
+      .poll(() => document.querySelector(`[data-menu-mensagem="${alvo}"]`)?.getAttribute("data-realcada"), { timeout: 20_000 })
       .toBe("true");
-  });
+  }, 60_000);
 
   it("de uma que não existe mais: avisa, e não deixa o painel preso", async () => {
     ligarSocket();
