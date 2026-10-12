@@ -72,8 +72,6 @@ pub async fn ingress(
                 server_id: server_id.clone(),
             };
 
-            let channel = Reference::from_unchecked(channel_id).as_channel(db).await?;
-
             let joined_at = Timestamp::UNIX_EPOCH
                 .checked_add(Duration::seconds(event.created_at))
                 .unwrap();
@@ -102,7 +100,14 @@ pub async fn ingress(
             let participants = voice_client.get_room_participants(node, channel_id).await?;
 
             if participants.len() == 1 {
-                let user = Reference::from_unchecked(user_id).as_user(db).await?;
+                // Vortex: o canal só serve à mensagem de sistema de início de
+                // chamada e ao toque de DM, então é buscado aqui — depois do
+                // evento de entrada, que antes esperava esta ida ao Mongo para
+                // sair — e só para o primeiro a entrar.
+                let channel_ref = Reference::from_unchecked(channel_id);
+                let user_ref = Reference::from_unchecked(user_id);
+                let (channel, user) =
+                    futures::try_join!(channel_ref.as_channel(db), user_ref.as_user(db))?;
                 let message_id = Ulid::from_datetime(
                     Timestamp::UNIX_EPOCH
                         .checked_add(Duration::seconds(event.created_at))
