@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 
+import { quadros } from "../../testes/esperas";
 import { salas, voz } from "../../textos";
 import { CapsulaDeControle, PainelDaChamada, PainelVidro, WidgetDaChamada, WidgetDaSala } from "./index";
 import { desmontar, montar, pegar, umSoAnel } from "./montar";
@@ -66,7 +67,9 @@ describe("WidgetDaSala", () => {
     await userEvent.hover(pilula());
     await expect.poll(() => visibilidade(cartao())).toBe("visible");
     await userEvent.hover(cartao());
-    await new Promise((r) => setTimeout(r, 250));
+    // Não há temporizador de fechamento (useExpansao fecha no próprio pointerleave): se
+    // atravessar o vão fechasse, o render seguinte já mostraria. Dois quadros, não 250ms.
+    await quadros(2);
     expect(pilula().getAttribute("aria-expanded")).toBe("true");
   });
 

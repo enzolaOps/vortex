@@ -15,6 +15,7 @@ import { userEvent, page } from "vitest/browser";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { chat } from "../../textos";
+import { quadros } from "../../testes/esperas";
 import { AreaPrincipal } from "../../shell";
 import { desmontar, montar, pegar } from "../../ui/ds/montar";
 import { AreaDeChat } from "./AreaDeChat";
@@ -45,7 +46,6 @@ afterEach(() => {
   definirCanalAberto(undefined);
 });
 
-const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const campo = () => pegar<HTMLTextAreaElement>("textarea")!;
 const linhas = () => Array.from(document.querySelectorAll<HTMLElement>("[data-menu-mensagem]"));
 const daUltima = (texto: string) => linhas().filter((l) => l.textContent?.includes(texto)).at(-1);
@@ -107,7 +107,10 @@ describe("chat contra o adapter real", () => {
     await expect.poll(() => linhas().length).toBeGreaterThan(5);
     await enviar("minha, não é novidade");
     await expect.poll(() => daUltima("minha, não é novidade")).toBeDefined();
-    await esperar(300);
+    // Quem poderia marcá-la como nova é a CONFIRMAÇÃO (o evento do servidor, simulado com
+    // 40ms de latência): espera-se ela chegar, e não 300ms fixos que a CPU disputada estoura.
+    await expect.poll(() => daUltima("minha, não é novidade")?.textContent?.includes(chat.enviando)).toBe(false);
+    await quadros(2);
     expect(primeiraNaoLida(CHANNEL_ID)).toBeUndefined();
     expect(document.querySelector("[data-novas]")).toBeNull();
   });

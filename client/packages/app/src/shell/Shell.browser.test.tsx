@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { definirConexao, limparConexao, pausarConexao } from "nucleo/store/conexao";
 
+import { quadros } from "../testes/esperas";
 import { shell } from "../textos";
 import { desmontar, montar, pegar } from "../ui/ds/montar";
 import { ShellDoApp } from "./ShellDoApp";
@@ -113,13 +114,13 @@ describe("Entrada e saída do palco", () => {
       duracao: Number(a.effect!.getComputedTiming().duration),
       props: new Set((a.effect as KeyframeEffect).getKeyframes().flatMap((k) => Object.keys(k).filter((p) => !["offset", "easing", "composite", "computedOffset"].includes(p)))),
     }));
-  const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
   async function preparar() {
     await page.viewport(1600, 800);
     document.documentElement.dataset.tema = "vidro";
     montar(<Palco />);
-    await esperar(50);
+    // O primeiro layout pintado, não 50ms: é contra ele que "abrir não anima" é medido.
+    await quadros(2);
   }
 
   it("abrir o app não anima; a trilha troca de largura num quadro só, sem transição", async () => {
@@ -127,7 +128,6 @@ describe("Entrada e saída do palco", () => {
     expect(principal().getAnimations()).toHaveLength(0);
     expect(trilhas()[2]).toBeGreaterThan(200);
     alternar();
-    await esperar(0);
     // Imediatamente no valor final: a trilha não é animada (nada de reflow por frame).
     await expect.poll(() => trilhas()[2]).toBe(56);
     const grade = pegar('[data-testid="shell-grade"]')!;
@@ -179,10 +179,15 @@ describe("Entrada e saída do palco", () => {
       remedidas += 1;
     });
     ro.observe(alvo);
-    await esperar(50);
+    // A observação inicial sempre entrega uma medida: espera-se ela, e zera.
+    await expect.poll(() => remedidas).toBeGreaterThan(0);
     remedidas = 0;
     alternar();
-    await esperar(400); // a animação inteira (180ms) e folga
+    // A animação inteira terminar (180ms numa máquina folgada, mais sob CPU disputada),
+    // e dois quadros para o ResizeObserver entregar o que ela tiver causado.
+    await expect.poll(() => trilhas()[2]).toBe(56);
+    await expect.poll(() => document.getAnimations().length, { timeout: 5000 }).toBe(0);
+    await quadros(2);
     ro.disconnect();
     expect(remedidas).toBeLessThanOrEqual(1);
   });
@@ -192,7 +197,7 @@ describe("Entrada e saída do palco", () => {
     document.documentElement.dataset.movimento = "reduzido";
     try {
       alternar();
-      await esperar(0);
+      await quadros(1);
       for (const a of nomes(principal())) expect(a.duracao).toBeLessThanOrEqual(1);
       expect(Number.parseFloat(getComputedStyle(principal()).animationDuration)).toBeLessThanOrEqual(0.001);
       await expect.poll(() => trilhas()[2]).toBe(56);
