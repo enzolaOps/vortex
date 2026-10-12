@@ -889,6 +889,23 @@ function devolverApagada(chave: string): void {
 /* -------------------------------------------------------------- entidade */
 
 /**
+ * Prévia de link que chega tarde NÃO é edição.
+ *
+ * O SDK carimba `editedAt = new Date()` em TODO `MessageUpdate`, e o servidor
+ * manda um quando o `january` termina de resolver o link (ou quando fixam, etc.).
+ * Sem isto a linha ganharia "(editada)" segundos depois de enviada, por causa
+ * de um cartão. Se o texto é o mesmo, a edição que vale é a que já estava.
+ */
+export function preservarEdicao(
+  anterior: MessageSnapshot | undefined,
+  novo: MessageSnapshot,
+): MessageSnapshot {
+  if (!anterior || anterior.content !== novo.content || anterior.editedAt === novo.editedAt) return novo;
+  return { ...novo, editedAt: anterior.editedAt };
+}
+
+
+/**
  * Efeito Solid por mensagem assinada. Os getters do SDK são backed por store
  * Solid, então ler `content` aqui dentro rastreia AQUELE campo: o efeito só
  * re-roda quando aquela mensagem muda.
@@ -918,16 +935,14 @@ export const messages = createEntityStore<MessageSnapshot>((id) => {
       // do instante do envio, sem nada falhar.
       const message = client.messages.get(idDoSdk(id));
       if (message) {
-        messages.set(
-          id,
-          toMessageSnapshot(
-            message,
-            layoutDe(id),
-            estadoDeEnvioDe(id),
-            usuarioLocal,
-            lerEnquete(id),
-          ),
+        const novo = toMessageSnapshot(
+          message,
+          layoutDe(id),
+          estadoDeEnvioDe(id),
+          usuarioLocal,
+          lerEnquete(id),
         );
+        messages.set(id, preservarEdicao(messages.peek(id), novo));
         count("snapshots");
       }
     });

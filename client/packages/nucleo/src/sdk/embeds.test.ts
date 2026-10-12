@@ -1,3 +1,4 @@
+import { MessageEmbed } from "stoat.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CHANNEL_ID, seed } from "../arnes/firehose";
@@ -45,5 +46,34 @@ describe("remover embeds", () => {
     const depois = messages.peek(id)?.embeds ?? [];
     expect(depois).toHaveLength(1);
     expect(depois[0]?.titulo).toBe("Nota");
+  });
+});
+
+describe("chegada tardia do embed", () => {
+  it("atualiza só a mensagem afetada e não marca como editada", () => {
+    const a = "01JQ00000000000000000E0002";
+    const b = "01JQ00000000000000000E0003";
+    for (const id of [a, b]) {
+      client.messages.getOrCreate(
+        id,
+        { _id: id, channel: CHANNEL_ID, author: "01JQ0000000000000001000005", content: "https://exemplo.com" } as never,
+        true,
+      );
+      messages.subscriber(id)(() => {});
+    }
+    expect(messages.peek(a)?.embeds).toHaveLength(0);
+    const antesDeB = messages.peek(b);
+
+    // O que o evento `MessageUpdate` faz no SDK: troca os embeds E carimba `editedAt`.
+    client.messages.updateUnderlyingObject(a, {
+      embeds: [
+        MessageEmbed.from(client, { type: "Website", url: "https://exemplo.com", title: "Exemplo" } as never),
+      ],
+      editedAt: new Date(),
+    } as never);
+
+    expect(messages.peek(a)?.embeds.map((e) => e.titulo)).toEqual(["Exemplo"]);
+    expect(messages.peek(a)?.editedAt).toBeUndefined();
+    expect(messages.peek(b)).toBe(antesDeB);
   });
 });

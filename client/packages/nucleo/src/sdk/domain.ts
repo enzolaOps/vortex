@@ -170,43 +170,78 @@ export type AnexoSnapshot = {
 };
 
 /**
- * O cartão de um link — o embed que o design desenha sob a mensagem do Rafa.
+ * Uma mídia de embed (imagem ou vídeo) JÁ PROXIFICADA.
+ *
+ * ⚠ **`url` é sempre a do proxy de mídia do servidor (`january`), nunca a do
+ * site.** Buscar a URL original direto do navegador entregaria o IP de quem abre
+ * o canal a um terceiro, sem clique nenhum. Quando o servidor não tem proxy, a
+ * mídia simplesmente não existe aqui — o cartão fica só de texto.
+ *
+ * `largura`/`altura` vêm do metadata do protocolo e reservam a caixa antes do
+ * primeiro byte, como no anexo.
+ */
+export type EmbedMidia = {
+  readonly url: string;
+  readonly largura: number;
+  readonly altura: number;
+};
+
+/**
+ * Serviço com player incorporável (YouTube, Twitch, Spotify…).
+ *
+ * `playerUrl` é a URL do iframe, restrita por construção a um conjunto fechado
+ * de hosts https. NUNCA é montada num iframe até a pessoa clicar em "reproduzir":
+ * carregar um player de terceiro sozinho entregaria IP e cookies.
+ */
+export type EmbedEspecial = {
+  readonly servico: string;
+  readonly playerUrl: string;
+  /** Spotify, SoundCloud e Bandcamp: player baixo, sem proporção de vídeo. */
+  readonly audio: boolean;
+};
+
+/**
+ * O cartão de um link — o embed que o design desenha sob a mensagem.
  *
  * ⚠ **Não é o embed do protocolo, e a distância é de propósito.** O protocolo
  * tem quatro variantes (`Website`, `Image`, `Video`, `Text`) com dezenas de
- * campos entre elas; a interface desenha UMA coisa — um cartão com origem,
- * título, resumo e miniatura. Trazer as quatro para o componente faria a forma
- * do protocolo vazar para a linha mais quente do app, que é exatamente o que a
- * camada anticorrupção existe para impedir.
+ * campos entre elas; a interface desenha poucas coisas — origem, título,
+ * resumo, mídia reservada e, às vezes, um player. Trazer as variantes para o
+ * componente faria a forma do protocolo vazar para a linha mais quente do app,
+ * que é exatamente o que a camada anticorrupção existe para impedir.
  *
- * Quem gera o embed é o SERVIDOR, a partir do link — o cliente não pede nada e
- * não busca nada. É por isso que o cartão não tem estado de carregamento: ou
- * ele veio no snapshot da mensagem, ou não existe.
- *
- * ⚠ **A miniatura NÃO é buscada.** `imagemUrl` é desenhado, mas o mesmo
- * argumento da imagem de markdown vale aqui com força menor: a URL vem de um
- * terceiro. A diferença é que quem a resolveu foi o servidor, não o autor da
- * mensagem — o autor escreveu um link, e o servidor decidiu o que mostrar. Por
- * isso ela passa, e a de markdown não.
+ * Quem gera o embed é o SERVIDOR, a partir do link, e o entrega DEPOIS do envio
+ * (`MessageUpdate`/`MessageAppend`, segundos mais tarde). Por isso o cartão não
+ * tem estado de carregamento: ou veio no snapshot, ou ainda não existe — e a
+ * chegada tardia muda a altura da linha (ver `alturas.ts`).
  */
 export type EmbedSnapshot = {
-  /** Chave de lista. O protocolo não dá id ao embed; é a URL, que é única. */
+  /** Chave de lista. O protocolo não dá id ao embed; é a URL, ou a posição. */
   readonly id: string;
+  /**
+   * `site` = cartão de link; `texto` = cartão escrito por quem enviou (bots,
+   * webhooks); `imagem`/`video` = o link era só uma mídia.
+   */
+  readonly tipo: "site" | "texto" | "imagem" | "video";
   /** Para onde o cartão leva. `undefined` = cartão sem link, só texto. */
   readonly url: string | undefined;
   /** "vortex.dev" — a origem, e é o que ancora a confiança no cartão. */
   readonly origem: string | undefined;
   readonly titulo: string | undefined;
+  /** Texto simples (site). Vazio no tipo `texto`, que usa `blocos`. */
   readonly descricao: string | undefined;
-  /** Miniatura à direita. `undefined` = cartão só de texto. */
-  readonly imagemUrl: string | undefined;
+  /** O markdown do cartão `texto`, já analisado (cache por conteúdo). */
+  readonly blocos: readonly BlocoDeMensagem[] | undefined;
+  /** Imagem proxificada. `undefined` = sem proxy, ou sem imagem. */
+  readonly imagem: EmbedMidia | undefined;
+  /** Imagem grande abaixo do texto (`true`) ou miniatura à direita (`false`). */
+  readonly imagemGrande: boolean;
+  /** Vídeo proxificado (tipo `video`, ou um site que traz o arquivo). */
+  readonly video: EmbedMidia | undefined;
+  readonly especial: EmbedEspecial | undefined;
   /**
-   * A cor da barra à esquerda, escolhida por quem publicou.
-   *
-   * ⚠ **Passa pelo mesmo tratamento do cargo colorido**, e pela mesma razão: é
-   * cor CRUA de terceiro, e o projeto garante contraste. Aqui ela só pinta uma
-   * barra de 2px, então o risco é menor — mas a barra encosta na superfície do
-   * cartão, e uma cor que suma nela é uma barra que não existe.
+   * A cor da barra à esquerda, escolhida por quem publicou, JÁ validada como
+   * hex: cor crua de terceiro não chega ao `style`.
    */
   readonly cor: string | undefined;
 };
