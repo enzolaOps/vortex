@@ -1,4 +1,5 @@
 import { abrirBusca, assinarBusca, fecharBusca, lerBusca, type EstadoDeBusca } from "nucleo/store/busca";
+import { fecharFixados, lerFixados } from "nucleo/store/fixados";
 import { useEffect, useSyncExternalStore } from "react";
 
 import { devolverFoco, ehMac, lembrarOrigemDoFoco, pedirFocoNoCampo } from "./foco";
@@ -8,9 +9,13 @@ export function useBusca(): EstadoDeBusca {
   return useSyncExternalStore(assinarBusca, lerBusca);
 }
 
-/** Abre a busca neste canal, lembrando de onde o foco veio. */
+/**
+ * Abre a busca neste canal, lembrando de onde o foco veio. Busca e fixados dividem
+ * a gaveta: abrir uma fecha a outra (e então a origem do foco já está guardada).
+ */
 export function abrirBuscaDoCanal(canalId: string, servidorId: string): void {
-  lembrarOrigemDoFoco();
+  if (!lerFixados().aberto && !lerBusca().aberta) lembrarOrigemDoFoco();
+  fecharFixados();
   abrirBusca(canalId, servidorId === "" ? undefined : servidorId);
 }
 

@@ -1086,6 +1086,18 @@ export function alternarFixada(messageId: string): void {
 }
 
 /**
+ * Desafixa — e só isso. O painel de fixados oferece "Desafixar" sobre uma lista
+ * que pode estar um instante atrás da mensagem (outra pessoa já desafixou): o
+ * alternar a FIXARIA de novo. Mensagem que já não está fixada só sai da lista.
+ */
+export function desafixarMensagem(messageId: string): void {
+  const message = client.messages.get(idDoSdk(messageId));
+  if (!message) return;
+  if (message.pinned) alternarFixada(messageId);
+  else aplicarFixacao(message.channelId, message.id, false);
+}
+
+/**
  * Aplica um evento CRU da superfície do Vortex e republica quem mudou.
  *
  * Exportado para a escrita otimista: quem acabou de gravar `spoiler` ou
