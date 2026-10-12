@@ -1,3 +1,4 @@
+import { createSignal } from "solid-js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
@@ -22,9 +23,13 @@ const api = { post: vi.fn(), get: vi.fn() };
 
   Ela é mutável de propósito: o teste da guarda a zera.
 */
+/* `client.configured` é o signal que a espera de configuração assina. */
+const [configurado, setConfigurado] = createSignal(true);
+
 const client: {
   api: typeof api;
   configuration: { ws: string } | undefined;
+  configured: () => boolean;
   useExistingSession: ReturnType<typeof vi.fn>;
   connect: ReturnType<typeof vi.fn>;
   logout: ReturnType<typeof vi.fn>;
@@ -32,6 +37,7 @@ const client: {
 } = {
   api,
   configuration: { ws: "ws://localhost/ws" },
+  configured: configurado,
   useExistingSession: vi.fn(),
   connect: vi.fn(),
   logout: vi.fn(),
@@ -80,6 +86,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   limparSessao();
   client.configuration = { ws: "ws://localhost/ws" };
+  setConfigurado(true);
 });
 
 describe("entrar — o caminho de sucesso", () => {
@@ -147,6 +154,7 @@ describe("entrar — o caminho de sucesso", () => {
       para recarregar que não adiantava, porque a corrida se repetia.
     */
     client.configuration = undefined;
+    setConfigurado(false);
     api.post.mockResolvedValueOnce({
       result: "Success",
       _id: "01SE",
@@ -160,6 +168,7 @@ describe("entrar — o caminho de sucesso", () => {
     await new Promise((r) => setTimeout(r, 20));
     expect(client.connect).not.toHaveBeenCalled();
     client.configuration = { ws: "ws://localhost/ws" };
+    setConfigurado(true);
 
     await emVoo;
     await tick();
@@ -169,6 +178,7 @@ describe("entrar — o caminho de sucesso", () => {
   it("desiste quando a configuração NUNCA chega — o token não vai para terceiro", async () => {
     vi.useFakeTimers();
     client.configuration = undefined;
+    setConfigurado(false);
     api.post.mockResolvedValueOnce({
       result: "Success",
       _id: "01SE",

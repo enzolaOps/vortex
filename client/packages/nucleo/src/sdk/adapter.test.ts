@@ -2,7 +2,7 @@ import { monotonicFactory } from "ulid";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CHANNEL_ID, seed } from "../arnes/firehose";
-import { channelMessageIds, prependHistory } from "./adapter";
+import { apagarMensagem, channelMessageIds, prependHistory } from "./adapter";
 import { client } from "./client";
 
 /**
@@ -145,5 +145,105 @@ describe("prepend de histórico", () => {
 
     expect(publicacoes).not.toHaveBeenCalled();
     expect(Object.is(antes, channelMessageIds.getSnapshot(CHANNEL_ID))).toBe(true);
+  });
+});
+
+describe("apagar mensagem otimista", () => {
+  const ids = () => [...(channelMessageIds.getSnapshot(CHANNEL_ID) ?? [])];
+
+  /** Troca o `delete` do SDK por um controlável. */
+  function prender(id: string) {
+    const msg = client.messages.get(id)!;
+    let resolver!: () => void;
+    let rejeitar!: (e: unknown) => void;
+    (msg as unknown as { delete: () => Promise<void> }).delete = () =>
+      new Promise<void>((res, rej) => {
+        resolver = res;
+        rejeitar = rej;
+      });
+    return { resolver: () => resolver(), rejeitar: (e: unknown) => rejeitar(e) };
+  }
+
+  beforeEach(async () => {
+    await seed(8);
+    virarFrame();
+  });
+
+  it("a linha some na hora, antes do DELETE responder", async () => {
+    const todas = ids();
+    const alvo = todas[todas.length - 3]!;
+    const delete_ = prender(alvo);
+
+    const resultado = apagarMensagem(alvo);
+    virarFrame();
+    expect(ids()).toEqual(todas.filter((i) => i !== alvo));
+
+    delete_.resolver();
+    await expect(resultado).resolves.toBe(true);
+    virarFrame();
+    expect(ids()).not.toContain(alvo);
+  });
+
+  it("DELETE que falha devolve a linha no mesmo lugar", async () => {
+    const todas = ids();
+    const alvo = todas[todas.length - 3]!;
+    const delete_ = prender(alvo);
+
+    const resultado = apagarMensagem(alvo);
+    virarFrame();
+    // Chega mensagem nova enquanto o DELETE voa: o índice antigo envelheceu.
+    criarMensagem(999);
+
+    delete_.rejeitar(new Error("403"));
+    await expect(resultado).resolves.toBe(false);
+    virarFrame();
+
+    const depois = ids();
+    expect(depois.indexOf(alvo)).toBe(todas.indexOf(alvo));
+    expect(depois).toHaveLength(todas.length + 1);
+    expect(new Set(depois).size).toBe(depois.length);
+  });
+
+  it("devolver a primeira linha vai para o começo", async () => {
+    const todas = ids();
+    const alvo = todas[0]!;
+    const delete_ = prender(alvo);
+    const resultado = apagarMensagem(alvo);
+    virarFrame();
+    expect(ids()[0]).not.toBe(alvo);
+    delete_.rejeitar(new Error("500"));
+    await resultado;
+    virarFrame();
+    expect(ids()[0]).toBe(alvo);
+  });
+
+  it("o eco MessageDelete depois de apagar não remove de novo nem lança", async () => {
+    const todas = ids();
+    const alvo = todas[todas.length - 2]!;
+    const delete_ = prender(alvo);
+    const resultado = apagarMensagem(alvo);
+    virarFrame();
+    delete_.resolver();
+    await resultado;
+
+    const emitir = (client as unknown as { emit: (n: string, m: unknown) => void }).emit;
+    expect(() => emitir.call(client, "messageDelete", { id: alvo, channelId: CHANNEL_ID })).not.toThrow();
+    virarFrame();
+    expect(ids()).toEqual(todas.filter((i) => i !== alvo));
+  });
+
+  it("eco que chega antes de um DELETE que falha: não ressuscita", async () => {
+    const todas = ids();
+    const alvo = todas[todas.length - 2]!;
+    const delete_ = prender(alvo);
+    const resultado = apagarMensagem(alvo);
+    virarFrame();
+
+    const emitir = (client as unknown as { emit: (n: string, m: unknown) => void }).emit;
+    emitir.call(client, "messageDelete", { id: alvo, channelId: CHANNEL_ID });
+    delete_.rejeitar(new Error("404"));
+    await resultado;
+    virarFrame();
+    expect(ids()).not.toContain(alvo);
   });
 });

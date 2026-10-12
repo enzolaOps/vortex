@@ -13,6 +13,7 @@
 import {
   alternarMudoNoStore,
   alternarSurdoNoStore,
+  definirChamada,
   encerrarChamada,
   lerChamada,
 } from "../store/chamada";
@@ -77,9 +78,47 @@ async function motorOuAviso(): Promise<Motor | undefined> {
   }
 }
 
+/**
+ * Baixa o chunk do motor sem entrar em sala nenhuma, para o clique seguinte
+ * não pagar o download. Falha em silêncio: é só aquecimento, e o clique de
+ * verdade tenta de novo (e avisa) se o chunk não veio.
+ */
+export function precarregarMotorDeVoz(): void {
+  if (motor) return;
+  void carregar().catch(() => undefined);
+}
+
+/** Aquece o motor quando o navegador está ocioso — nunca no caminho crítico. */
+export function precarregarMotorQuandoOcioso(): void {
+  if (motor) return;
+  const g = globalThis as {
+    requestIdleCallback?: (fn: () => void, o?: { timeout: number }) => number;
+  };
+  if (typeof g.requestIdleCallback === "function") {
+    g.requestIdleCallback(precarregarMotorDeVoz, { timeout: 5000 });
+  } else {
+    setTimeout(precarregarMotorDeVoz, 2000);
+  }
+}
+
+/** Cada pedido de entrada ganha um número; sair invalida os pendentes. */
+let pedidoDeEntrada = 0;
+
 export async function entrarNaChamada(channelId: string): Promise<boolean> {
+  const meu = ++pedidoDeEntrada;
+  /*
+    ⚠ **"Conectando" é definido NO CLIQUE, antes do `import()` do motor.** O
+    chunk (~500 kB) pode estar sem cache; a interface responde na hora em vez
+    de ficar parada até o download. O motor lê a sala pelo próprio estado
+    (`canalDaSala`), então o store já apontar para a nova não o confunde.
+  */
+  definirChamada({ estado: "conectando", channelId });
   const m = await motorOuAviso();
-  if (m === undefined) return false;
+  if (m === undefined) {
+    if (meu === pedidoDeEntrada) encerrarChamada();
+    return false;
+  }
+  if (meu !== pedidoDeEntrada) return false;
   const entrou = await m.entrarNaChamada(channelId);
   /*
     Sala de VÍDEO abre na grade (D-VOZ-04) — é o layout inicial, e só isso:
@@ -163,6 +202,7 @@ export function recusarChamada(recado?: string): void {
  * que sobra nesse caso.
  */
 export async function sairDaChamada(): Promise<void> {
+  pedidoDeEntrada += 1;
   if (!motor) {
     encerrarChamada();
     return;

@@ -17,7 +17,7 @@ import {
 	type PessoaNaSala,
 } from "nucleo/store/hooks";
 import type { CategoriaDeCanais } from "nucleo/sdk/domain";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { ColunaDeSalas } from "../../shell";
 import { ColunaDaCasa } from "../casa/ColunaDaCasa";
@@ -25,6 +25,7 @@ import { salas, shell, voz } from "../../textos";
 import { Avatar, Botao, ItemDeSala } from "../../ui/ds";
 import { MenuDoServidor } from "../admin/MenuDoServidor";
 import { PainelDaChamadaConectado } from "../voz/PainelDaChamadaConectado";
+import { aquecerVoz, aquecerVozQuandoOcioso } from "../voz/acoes";
 import { useSalaDoPalco } from "../voz/hooks";
 import { ConvidarPessoas } from "./ConvidarPessoas";
 import { CriarSala } from "./CriarSala";
@@ -61,7 +62,7 @@ function SalaDaColuna({
 	const desatualizada = useConexao() !== "conectado";
 	if (!canal) return null;
 	return (
-		<li>
+		<li onPointerEnter={aquecerVoz} onFocus={aquecerVoz}>
 			<ItemDeSala
 				nome={canal.name}
 				semPilha
@@ -281,6 +282,10 @@ export function ColunaConectada({ rodape }: { rodape?: ReactNode }) {
 		local.tipo === "servidor" ? local.serverId : undefined,
 	).aberto;
 	const chamada = emFaixa ? undefined : <PainelDaChamadaConectado />;
+	// Sessão de pé: baixa o chunk do motor de voz quando o navegador estiver ocioso.
+	useEffect(() => {
+		if (pronto) aquecerVozQuandoOcioso();
+	}, [pronto]);
 
 	if (!pronto) {
 		return (

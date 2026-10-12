@@ -186,7 +186,7 @@ describe("chat contra o adapter real", () => {
     expect(item.textContent).toContain(chat.desafixar);
   });
 
-  it("apagar não é otimista: sem o servidor aceitar, a linha continua", async () => {
+  it("apagar é otimista: a linha some sem esperar o eco do servidor", async () => {
     abrir();
     await expect.poll(() => linhas().length).toBeGreaterThan(5);
     await enviar("não apague já");
@@ -195,7 +195,8 @@ describe("chat contra o adapter real", () => {
     await vi.waitUntil(() => document.querySelector('[role="dialog"]'));
     await page.getByRole("button", { name: chat.apagar }).click();
     await expect.poll(() => document.querySelector('[role="dialog"]')).toBeNull();
-    // Sem socket a chamada falha: a mensagem fica, em vez de sumir como se tivesse dado certo.
-    expect(daUltima("não apague já")).toBeDefined();
+    // Sem socket não há eco `MessageDelete`; a linha sai mesmo assim. A volta em
+    // caso de falha do DELETE é coberta em `adapter.test.ts`.
+    await expect.poll(() => daUltima("não apague já")).toBeUndefined();
   });
 });

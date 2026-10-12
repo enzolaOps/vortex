@@ -37,6 +37,7 @@ import {
 } from "../store/pushToTalk";
 import {
   AudioPresets,
+  createLocalAudioTrack,
   ConnectionState,
   DisconnectReason,
   Room,
@@ -83,8 +84,19 @@ import {
   lerConfigDeVoz,
   publicacaoDe as publicacaoDoCanal,
 } from "./vozDoCanal";
-import { sairDaSalaLocalmente } from "./adapter";
+import {
+  desfazerEntradaOtimista,
+  entrarNaSalaLocalmente,
+  sairDaSalaLocalmente,
+} from "./adapter";
 import { avisarSaidaDaSala } from "./saidaDaSala";
+import {
+  conectarComMicrofone,
+  encerrarSala,
+  publicadorDaSala,
+  soSeVigente,
+} from "./entradaDeSala";
+import { escolherNoMaisRapido, type NoDeVoz } from "./sondaDeNos";
 import { registrarRemocaoImposta } from "./vozImposta";
 import type { Chamada, QualidadeDeVoz } from "../store/chamada";
 import { camadaDe, pediuMenos, type QualidadeDeStream } from "./camadaDeVideo";
@@ -263,42 +275,16 @@ function motivoDeMidia(e: unknown): string | undefined {
 }
 
 /**
- * Escolhe o nó de voz mais próximo.
- *
- * O protocolo entrega uma lista de nós com URL pública, e o upstream corre uma
- * sonda de latência entre eles. Aqui é a mesma ideia, com `Promise.any`: o
- * primeiro que responder ganha. Sem nós declarados, `undefined` deixa o
- * servidor escolher.
- *
- * ⚠ `replace(/^ws/, "http")` é ANCORADO — sem a âncora, um nó chamado
- * `wsproxy` teria o nome trocado no meio. O upstream tem a mesma linha, e a
- * âncora é a diferença entre funcionar e falhar em um nó específico.
+ * O nó de voz mais próximo — ver `sondaDeNos.ts` (teto de tempo, pulada com
+ * no máximo um nó). Sem nós declarados, `undefined` deixa o servidor escolher.
  */
 async function noMaisRapido(): Promise<string | undefined> {
   const feature = (
     client.configuration as
-      | {
-          features?: {
-            livekit?: { nodes?: { name: string; public_url: string }[] };
-          };
-        }
+      | { features?: { livekit?: { nodes?: NoDeVoz[] } } }
       | undefined
   )?.features?.livekit;
-  const nos = feature?.nodes ?? [];
-  if (nos.length === 0) return undefined;
-
-  try {
-    return await Promise.any(
-      nos.map(async (no) => {
-        await fetch(no.public_url.replace(/^ws/, "http"), { mode: "no-cors" });
-        return no.name;
-      }),
-    );
-  } catch {
-    // Nenhum respondeu. Entrar mesmo assim é melhor que não entrar: o servidor
-    // tem um padrão, e a sonda é otimização, não requisito.
-    return undefined;
-  }
+  return escolherNoMaisRapido(feature?.nodes ?? []);
 }
 
 /**
@@ -353,8 +339,17 @@ function participantesDe(r: Room): string[] {
 }
 
 function ligarEventos(r: Room, channelId: string): void {
-  const publicar = () =>
-    definirChamada({ channelId, participantes: participantesDe(r) });
+  /* Evento tardio de uma sala que já não é a atual (troca rápida, queda que
+     chega depois do `disconnect`) não pode sobrescrever o estado da nova. */
+  const vigente = () => sala === r;
+  /* Escreve `channelId`/`participantes` — o que o clique em outra sala acabou
+     de trocar no store — então também passa pela checagem de vigência. */
+  const publicar = publicadorDaSala({
+    vigente,
+    canal: channelId,
+    participantes: () => participantesDe(r),
+    escrever: definirChamada,
+  });
 
   anuncio?.limpar();
   anuncio = criarAnuncio(r);
@@ -382,7 +377,7 @@ function ligarEventos(r: Room, channelId: string): void {
     );
   });
 
-  r.on(RoomEvent.Connected, () => {
+  r.on(RoomEvent.Connected, soSeVigente(vigente, () => {
     lerEspectadoresDaSala(r);
     definirChamada({
       estado: "dentro",
@@ -391,6 +386,8 @@ function ligarEventos(r: Room, channelId: string): void {
       participantes: participantesDe(r),
     });
     publicarFontes(r);
+    /* Você na lista da sala já, sem esperar o `VoiceChannelJoin` do webhook. */
+    entrarNaSalaLocalmente(channelId, { publicando: deveTransmitir() });
     /*
       ⚠ **Entrar numa sala ABRE a sala, e isto e o que faltava.** Antes daqui,
       entrar num canal de voz nao mudava nada na coluna de conteudo: a conversa
@@ -403,7 +400,7 @@ function ligarEventos(r: Room, channelId: string): void {
     */
     definirPalco({ tipo: "grade" });
     assinarAudioExistente(r);
-  });
+  }));
 
   /*
     ⚠ **Sair da chamada apaga as faixas, e isto NÃO existia.**
@@ -413,7 +410,7 @@ function ligarEventos(r: Room, channelId: string): void {
     é o vazamento, é a faixa MORTA reaparecendo na chamada seguinte, porque
     as chaves (`usuário:fonte`) são estáveis entre chamadas.
   */
-  r.on(RoomEvent.Disconnected, (motivo?: DisconnectReason) => {
+  r.on(RoomEvent.Disconnected, soSeVigente(vigente, (motivo?: DisconnectReason) => {
     /* Queda pelo servidor não passa por `sairDaChamada` — sem isto o ouvinte
        de volume ficaria preso a uma sala morta (erro nº 5 do briefing). */
     pararDeOuvirVolumes?.();
@@ -425,6 +422,8 @@ function ligarEventos(r: Room, channelId: string): void {
        assinantes fantasmas e a primeira borda nunca chegaria a zero. */
     assinatura.limpar();
     esquecerEspectadores();
+    /* Queda antes do eco do servidor: o palpite não pode virar fantasma. */
+    desfazerEntradaOtimista(channelId);
 
     /*
       ⚠ **Sair porque alguém te TIROU era indistinguível de a rede cair**, e a
@@ -448,9 +447,10 @@ function ligarEventos(r: Room, channelId: string): void {
       });
     }
     encerrarChamada();
-  });
-  r.on(RoomEvent.Reconnecting, () =>
-    definirChamada({ estado: "reconectando" }),
+  }));
+  r.on(
+    RoomEvent.Reconnecting,
+    soSeVigente(vigente, () => definirChamada({ estado: "reconectando" })),
   );
 
   /*
@@ -466,7 +466,7 @@ function ligarEventos(r: Room, channelId: string): void {
     É o mesmo motivo pelo qual `publicarFontes` varre a sala inteira em vez de
     somar e subtrair: reconexão é justamente quando o incremental diverge.
   */
-  r.on(RoomEvent.Reconnected, () => {
+  r.on(RoomEvent.Reconnected, soSeVigente(vigente, () => {
     definirChamada({ estado: "dentro", participantes: participantesDe(r) });
     publicarFontes(r);
     lerEspectadoresDaSala(r);
@@ -487,7 +487,7 @@ function ligarEventos(r: Room, channelId: string): void {
     */
     rescanearFontesLocais(r.localParticipant);
     assinarAudioExistente(r);
-  });
+  }));
 
   /*
     A qualidade da conexão, do LiveKit.
@@ -976,12 +976,34 @@ function publicacaoDeAudioDaTela(
  * Stoat, e vale para uma sala só. É a única chamada de rede desta etapa que
  * passa pelo `stoat.js`.
  */
+/** O canal da sala ATUAL (não o do store, que já pode apontar para a próxima). */
+let canalDaSala = "";
+/** Gera-se um por entrada; sair ou trocar invalida a anterior. */
+let sessao = 0;
+/** Canal que está sendo entrado agora — o segundo clique no mesmo não repete. */
+let entrandoEm = "";
+
 export async function entrarNaChamada(channelId: string): Promise<boolean> {
-  if (lerChamada().channelId === channelId && lerChamada().estado !== "fora") {
+  if (entrandoEm === channelId) return true;
+  if (
+    sala !== undefined &&
+    canalDaSala === channelId &&
+    lerChamada().estado !== "fora"
+  ) {
     return true;
   }
 
-  await sairDaChamada();
+  const minha = ++sessao;
+  entrandoEm = channelId;
+  const vigente = () => minha === sessao;
+
+  /*
+    ⚠ **Trocar de sala não espera o `leave_call`.** O aviso ao servidor roda
+    junto com o `disconnect` e a entrada na nova começa assim que o
+    `disconnect` local termina; o aviso nunca lança e tem teto de 2 s.
+  */
+  await desmontarSala(false);
+  if (!vigente()) return false;
   limparFalhaDeVoz();
   definirChamada({ estado: "conectando", channelId, participantes: [] });
 
@@ -989,32 +1011,56 @@ export async function entrarNaChamada(channelId: string): Promise<boolean> {
     const canal = client.channels.get(channelId);
     if (!canal) throw new Error("canal desconhecido");
 
-    const no = await noMaisRapido();
-    const auth = await canal.joinCall(no);
+    let saida: Promise<void> = Promise.resolve();
+    const r = await conectarComMicrofone<Room, LocalAudioTrack>({
+      /* Mudo (ou sem permissão de falar) não pede o dispositivo. */
+      querMicrofone: deveTransmitir(),
+      capturar: () => createLocalAudioTrack(constraintsDeAudio()),
+      aindaQuerMicrofone: deveTransmitir,
+      vigente,
+      soltar: (faixa) => faixa.stop(),
+      publicar: async (sala, faixa) => {
+        await sala.localParticipant.publishTrack(faixa, {
+          source: Track.Source.Microphone,
+        });
+      },
+      publicarAgora: async (sala) => {
+        await sala.localParticipant.setMicrophoneEnabled(
+          true,
+          constraintsDeAudio(),
+        );
+      },
+      entrar: async () => {
+        const no = await noMaisRapido();
+        if (!vigente()) throw new EntradaCancelada();
+        const auth = await canal.joinCall(no);
+        if (!vigente()) throw new EntradaCancelada();
 
-    const r = new Room(opcoesDaSala(channelId));
-    sala = r;
-    ligarEventos(r, channelId);
+        const nova = new Room(opcoesDaSala(channelId));
+        sala = nova;
+        canalDaSala = channelId;
+        ligarEventos(nova, channelId);
 
-    /*
-      `autoSubscribe: false` é o padrão daqui, e é decisão de custo: com ele
-      ligado, entrar numa sala de dez pessoas começa a baixar dez faixas de
-      vídeo que ninguém pediu. O áudio é assinado por evento, acima.
-    */
-    await r.connect(auth.url, auth.token, { autoSubscribe: false });
+        /*
+          `autoSubscribe: false` é o padrão daqui, e é decisão de custo: com ele
+          ligado, entrar numa sala de dez pessoas começa a baixar dez faixas de
+          vídeo que ninguém pediu. O áudio é assinado por evento, acima.
+        */
+        await nova.connect(auth.url, auth.token, { autoSubscribe: false });
+        /* Em paralelo com a captura do microfone que ainda possa estar pendente. */
+        saida = aplicarSaida(nova);
+        return nova;
+      },
+    });
     /*
       ⚠ **As preferências de Voz e vídeo chegam ao WebRTC AQUI**, e são as três
       que o navegador sabe cumprir: supressão de ruído, cancelamento de eco e
-      controle de ganho são `MediaTrackConstraints`, mais o `deviceId` da
-      entrada. Sem esta linha a tela de configurações guardaria escolhas que
-      nada lê — que é exatamente o defeito que ela existe para não ter.
+      controle de ganho são `MediaTrackConstraints` (`constraintsDeAudio`,
+      usadas na captura acima), mais o `deviceId` da entrada.
     */
-    await r.localParticipant.setMicrophoneEnabled(
-      deveTransmitir(),
-      constraintsDeAudio(),
-    );
+    if (!vigente()) throw new EntradaCancelada();
+    await saida;
     void aplicarRuido();
-    await aplicarSaida(r);
     let modo = lerPreferenciasDeVoz().modo;
     pararDeOuvirPreferencias = assinarPreferenciasDeVoz(() => {
       void trocarDispositivos(r);
@@ -1042,8 +1088,12 @@ export async function entrarNaChamada(channelId: string): Promise<boolean> {
     pararDeOuvirVolumes = assinarVolumeEfetivo((userId) =>
       definirVolumeDe(userId, volumeEfetivo(userId)),
     );
+    entrandoEm = "";
     return true;
   } catch (e) {
+    /* Superada por sair ou por outra sala: quem superou já cuidou do estado, e
+       limpar aqui derrubaria a sala NOVA. */
+    if (!vigente()) return false;
     /*
       ⚠ **DESCONECTA a sala, e não só limpa o store — o caminho de falha
       deixava você conectado de verdade.**
@@ -1097,17 +1147,34 @@ export async function entrarNaChamada(channelId: string): Promise<boolean> {
 /**
  * Sai.
  *
- * Avisa o servidor pela rota `leave_call` (ADR-002) ANTES de desconectar, sem
- * bloquear por mais de 2 s: se falhar, o webhook do LiveKit continua de plano B.
+ * Avisa o servidor pela rota `leave_call` (ADR-002) EM PARALELO com o
+ * `disconnect`, sem bloquear por mais de 2 s: se falhar, o webhook do LiveKit
+ * continua de plano B.
  */
 export async function sairDaChamada(): Promise<void> {
+  /* Invalida uma entrada em andamento: ela não pode terminar de conectar
+     depois que a pessoa mandou sair. */
+  sessao += 1;
+  entrandoEm = "";
+  await desmontarSala(true);
+  encerrarChamada();
+}
+
+class EntradaCancelada extends Error {}
+
+/**
+ * Desfaz a sala atual. `esperarAviso: false` (trocar de sala) volta assim que
+ * o `disconnect` local termina — o `leave_call` segue em segundo plano.
+ */
+async function desmontarSala(esperarAviso: boolean): Promise<void> {
   const r = sala;
   /*
-    Lido ANTES de `encerrarChamada`, que zera o store — depois dela não há
-    mais de qual canal sair.
+    O canal da SALA, e não o do store: na troca o store já pode apontar para a
+    próxima sala, e o `leave_call` iria para o canal errado.
   */
-  const canalId = lerChamada().channelId;
+  const canalId = canalDaSala;
   sala = undefined;
+  canalDaSala = "";
   pararDeOuvirPreferencias?.();
   pararDeOuvirPreferencias = undefined;
   pararDeOuvirTecla?.();
@@ -1127,8 +1194,11 @@ export async function sairDaChamada(): Promise<void> {
   /* Os ouvintes saíram antes do `disconnect`, então o `Disconnected` não
      roda: o anúncio e o que os outros anunciavam morrem aqui. */
   esquecerEspectadores();
-  await avisarSaidaDaSala(canalId);
-  await r.disconnect();
+  await encerrarSala({
+    avisar: () => avisarSaidaDaSala(canalId),
+    desconectar: () => r.disconnect().then(() => undefined),
+    esperarAviso,
+  });
   encerrarChamada();
 
   /*
