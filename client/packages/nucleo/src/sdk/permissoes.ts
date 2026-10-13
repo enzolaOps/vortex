@@ -98,7 +98,9 @@ export type Acao =
   /** Fechar categoria, sincronizar canal com ela. `ManagePermissions`. */
   | "gerenciarPermissoes"
   /** Criar link que dá cargo — dar cargo por link é dar cargo. `AssignRoles`. */
-  | "atribuirCargos";
+  | "atribuirCargos"
+  /** Ler o registro de auditoria do servidor. `ViewAuditLogs` (bit 40 do fork). */
+  | "verAuditoria";
 
 /**
  * A permissão do protocolo por trás de cada ação.
@@ -141,7 +143,14 @@ const PERMISSAO: Record<Acao, string | undefined> = {
 
   gerenciarPermissoes: "ManagePermissions",
   atribuirCargos: "AssignRoles",
+  verAuditoria: "ViewAuditLogs",
 };
+
+/**
+ * Permissões que o servidor deste fork conhece e o `stoat.js` não: o nome não
+ * existe em `Permission`, então `havePermission` não serve e o bit é lido direto.
+ */
+const BITS_FORA_DO_SDK: Record<string, bigint> = { ViewAuditLogs: 1n << 40n };
 
 /**
  * O que responder quando não há servidor para perguntar.
@@ -202,6 +211,8 @@ export function podeNoServidor(serverId: string, acao: Acao): boolean {
   if (!servidor) return false;
 
   try {
+    const bit = BITS_FORA_DO_SDK[permissao];
+    if (bit !== undefined) return (servidor.permission & bit) === bit;
     return servidor.havePermission(permissao as never);
   } catch {
     /* Mesma regra de `pode`: com servidor presente, "não sei" é `false`. */
