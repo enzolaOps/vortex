@@ -113,7 +113,16 @@ function TriEstado({
  * O rascunho vive aqui e só vai ao servidor no "Salvar". Se o servidor recusar,
  * o rascunho fica: quem mexeu em dez permissões não refaz o trabalho.
  */
-export function PermissoesDoAlvo({ serverId, alvo }: { serverId: string; alvo: AlvoDePermissoes }) {
+export function PermissoesDoAlvo({
+  serverId,
+  alvo,
+  aoMudarSujo,
+}: {
+  serverId: string;
+  alvo: AlvoDePermissoes;
+  /** Avisa quem hospeda o diálogo se há rascunho, para pedir confirmação ao fechar. */
+  aoMudarSujo: (sujo: boolean) => void;
+}) {
   const canal = useChannel(alvo.tipo === "canal" ? alvo.id : "");
   const permitido =
     alvo.tipo === "canal" ? pode(alvo.id, "gerenciarPermissoes") : podeNoServidor(serverId, "gerenciarPermissoes");
@@ -152,11 +161,14 @@ export function PermissoesDoAlvo({ serverId, alvo }: { serverId: string; alvo: A
   const mudar = (id: string, estado: Estado) => {
     const bit = bitDaPermissao(id);
     if (bit === 0n) return;
-    setRascunho(comValor(rascunho, escolhido, comEstado(atual, bit, estado)));
+    const novo = comValor(rascunho, escolhido, comEstado(atual, bit, estado));
+    setRascunho(novo);
+    aoMudarSujo(alvosMudados(inicial, novo).length > 0);
   };
 
   const descartar = () => {
     setRascunho(inicial);
+    aoMudarSujo(false);
     setFalhou(false);
   };
 
@@ -178,8 +190,9 @@ export function PermissoesDoAlvo({ serverId, alvo }: { serverId: string; alvo: A
     }
     setSalvando(false);
     setInicial(aplicado);
+    aoMudarSujo(alvosMudados(aplicado, rascunho).length > 0);
     if (ok) toast({ tipo: "info", titulo: t.salvo });
-    else setFalhou(true);
+    else if (alvo.tipo === "canal") setFalhou(true); // categoria: o aviso vem do toast do nucleo
   };
 
   const nomeDe = (chave: string) => (chave === TODOS ? t.todos : (cargos.find((c) => c.id === chave)?.nome ?? chave));

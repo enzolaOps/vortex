@@ -19,4 +19,7 @@ export const permissoesDeAlvo = {
   salvo: "Permissões salvas.",
   falhou: "Não deu para salvar. Suas alterações continuam aqui; tente de novo.",
   fechar: "Fechar",
+  descartarTitulo: "Descartar as alterações?",
+  descartarTexto: "Você mudou permissões que ainda não foram salvas. Se fechar agora, elas se perdem.",
+  descartarConfirmar: "Descartar",
 } as const;

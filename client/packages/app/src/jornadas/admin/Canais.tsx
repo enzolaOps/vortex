@@ -312,6 +312,8 @@ export function Canais({ serverId }: { serverId: string }) {
   const categorias = useCategorias(serverId);
   const [alvo, setAlvo] = useState<Alvo | undefined>();
   const [permissoesDe, setPermissoesDe] = useState<AlvoDePermissoes | undefined>();
+  const [permissoesSujas, setPermissoesSujas] = useState(false);
+  const [descartando, setDescartando] = useState(false);
   const canalDasPermissoes = useChannel(permissoesDe?.tipo === "canal" ? permissoesDe.id : "");
   const [apagando, setApagando] = useState<Apagando | undefined>();
   const [categoriaNova, setCategoriaNova] = useState<
@@ -500,7 +502,10 @@ export function Canais({ serverId }: { serverId: string }) {
       <Dialogo
         open={permissoesDe !== undefined}
         onOpenChange={(a) => {
-          if (!a) setPermissoesDe(undefined);
+          if (a) return;
+          // Rascunho não salvo: pergunta antes de jogar fora.
+          if (permissoesSujas) setDescartando(true);
+          else setPermissoesDe(undefined);
         }}
       >
         <ConteudoDoDialogo
@@ -513,9 +518,24 @@ export function Canais({ serverId }: { serverId: string }) {
               : permissoesDeAlvo.tituloCanal(canalDasPermissoes?.name ?? "")
           }
         >
-          {permissoesDe !== undefined && <PermissoesDoAlvo serverId={serverId} alvo={permissoesDe} />}
+          {permissoesDe !== undefined && (
+            <PermissoesDoAlvo serverId={serverId} alvo={permissoesDe} aoMudarSujo={setPermissoesSujas} />
+          )}
         </ConteudoDoDialogo>
       </Dialogo>
+
+      <Confirmacao
+        aberto={descartando}
+        aoMudar={setDescartando}
+        titulo={permissoesDeAlvo.descartarTitulo}
+        texto={permissoesDeAlvo.descartarTexto}
+        confirmar={permissoesDeAlvo.descartarConfirmar}
+        aoConfirmar={() => {
+          setPermissoesSujas(false);
+          setPermissoesDe(undefined);
+          return Promise.resolve(true);
+        }}
+      />
 
       <Dialogo
         open={categoriaNova !== undefined}

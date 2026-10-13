@@ -999,6 +999,22 @@ describe("permissões por canal e por categoria", () => {
     expect(chamou("salvarPermissaoDeCanal")).toHaveLength(0);
   });
 
+  it("fechar com rascunho pergunta; cancelar mantém e confirmar descarta", async () => {
+    await abrirDoCanal("geral");
+    await radio("Reagir", permissoesDeAlvo.negar).click();
+    await page.getByRole("button", { name: "Fechar", exact: true }).first().click();
+    const pergunta = page.getByRole("dialog", { name: permissoesDeAlvo.descartarTitulo });
+    await expect.element(pergunta).toBeVisible();
+    await page.getByRole("button", { name: "Cancelar" }).click();
+    await expect.element(pergunta).not.toBeInTheDocument();
+    expect(radio("Reagir", permissoesDeAlvo.negar).element().getAttribute("aria-checked")).toBe("true");
+
+    await page.getByRole("button", { name: "Fechar", exact: true }).first().click();
+    await page.getByRole("button", { name: permissoesDeAlvo.descartarConfirmar }).click();
+    await expect.element(page.getByRole("dialog", { name: permissoesDeAlvo.tituloCanal("geral") })).not.toBeInTheDocument();
+    expect(chamou("salvarPermissaoDeCanal")).toHaveLength(0);
+  });
+
   it("erro do servidor mantém o rascunho e avisa", async () => {
     ctl.falhaNaPermissao = true;
     await abrirDoCanal("geral");
