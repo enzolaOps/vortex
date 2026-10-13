@@ -15,6 +15,7 @@ import {
   servers,
   vozPorCanal,
 } from "nucleo/sdk/adapter";
+import type { EntradaDeAuditoria, FiltroDeAuditoria, InformacaoDeBanimento } from "nucleo/sdk/auditoria";
 import type { Cargo } from "nucleo/sdk/cargos";
 import { chaveDeMembro, SEM_CARGO } from "nucleo/sdk/domain";
 import type { Banido, Convite, ConviteDoServidor } from "nucleo/sdk/servidores";
@@ -47,6 +48,9 @@ interface Controle {
   convitePrevia: Convite | { erro: string };
   entrada: { tipo: "entrou"; serverId: string } | { tipo: "pedido" } | { tipo: "banido" };
   falhaNaLista: boolean;
+  auditoria: readonly EntradaDeAuditoria[] | undefined;
+  autoria: ReadonlyMap<string, InformacaoDeBanimento> | undefined;
+  consultasDeAuditoria: FiltroDeAuditoria[];
   comMidia: boolean;
   lento: Promise<void> | undefined;
 }
@@ -64,6 +68,9 @@ const ctl = vi.hoisted(
     convitePrevia: { erro: "Isso não parece um convite." },
     entrada: { tipo: "entrou", serverId: "S2" },
     falhaNaLista: false,
+    auditoria: [],
+    autoria: new Map(),
+    consultasDeAuditoria: [],
     comMidia: true,
     lento: undefined,
   }),
@@ -135,6 +142,24 @@ vi.mock("nucleo/sdk/cargos", async (original) => ({
   },
   moderarVoz: () => feito(true),
   moverParaCanalDeVoz: () => feito(true),
+}));
+
+vi.mock("nucleo/sdk/auditoria", async (original) => ({
+  ...(await original<Record<string, unknown>>()),
+  // Imita o servidor: filtra por tipo e autor, ordena do mais recente e pagina pelo id da entrada.
+  listarAuditoria: (_s: string, f: FiltroDeAuditoria = {}) => {
+    ctl.consultasDeAuditoria.push(f);
+    if (ctl.auditoria === undefined) return feito(undefined);
+    let lista = ctl.auditoria.filter(
+      (e) => (f.tipo === undefined || e.tipo === f.tipo) && (f.autorId === undefined || e.autorId === f.autorId),
+    );
+    if (f.antesDe !== undefined) {
+      const i = lista.findIndex((e) => e.id === f.antesDe);
+      lista = i < 0 ? [] : lista.slice(i + 1);
+    }
+    return feito(lista.slice(0, f.limite ?? 50));
+  },
+  autoriaDosBanimentos: () => feito(ctl.autoria),
 }));
 
 vi.mock("nucleo/sdk/moderacao", async (original) => ({
@@ -307,6 +332,9 @@ beforeEach(() => {
   ctl.convitePrevia = { erro: "Isso não parece um convite." };
   ctl.entrada = { tipo: "entrou", serverId: "S2" };
   ctl.falhaNaLista = false;
+  ctl.auditoria = [];
+  ctl.autoria = new Map();
+  ctl.consultasDeAuditoria = [];
   ctl.comMidia = true;
   ctl.lento = undefined;
   definirProntidao(true);
@@ -347,12 +375,12 @@ const nav = () => page.getByRole("navigation", { name: admin.navegacao.rotulo })
 const chamou = (nome: string) => ctl.chamadas.filter((c) => c[0] === nome);
 
 describe("navegação das configurações do servidor", () => {
-  it("mostra as seis seções, em três grupos, para quem administra tudo", async () => {
+  it("mostra as sete seções, em três grupos, para quem administra tudo", async () => {
     await abrirSecao("servidor");
     for (const nome of Object.values(admin.navegacao).filter((n) => !n.startsWith("Seções") && n !== "Servidor" && n !== "Pessoas" && n !== "Moderação")) {
       await expect.element(nav().getByRole("button", { name: nome, exact: true })).toBeVisible();
     }
-    expect(nav().element().querySelectorAll("button").length).toBe(6);
+    expect(nav().element().querySelectorAll("button").length).toBe(7);
   });
 
   it("deixa AUSENTE (não cinza) a seção que a pessoa não pode usar", async () => {
@@ -858,6 +886,97 @@ describe("membros e moderação", () => {
   });
 });
 
+function entrada(n: number, extra: Partial<EntradaDeAuditoria> = {}): EntradaDeAuditoria {
+  return {
+    id: `E${String(1000 - n).padStart(4, "0")}`,
+    autor: n % 2 === 0 ? "Ana" : "Caio",
+    autorId: n % 2 === 0 ? "U1" : "U2",
+    alvoId: undefined,
+    alvo: undefined,
+    frase: n % 3 === 0 ? "baniu alguém" : "apagou uma mensagem",
+    tipo: n % 3 === 0 ? "BanCreate" : "MessageDelete",
+    razao: undefined,
+    quandoMs: 1_700_000_000_000 - n * 60_000,
+    quandoTexto: `há ${n} min`,
+    mudancas: [],
+    ...extra,
+  };
+}
+const entradas = (n: number) => Array.from({ length: n }, (_, i) => entrada(i));
+const totalNaLista = () => document.querySelector('[data-testid="lista-de-auditoria"]')?.getAttribute("data-total");
+
+describe("registro de atividade", () => {
+  it("sem permissão para ver o registro, a seção fica ausente", async () => {
+    ctl.acoes = new Set(["banir"]);
+    await abrirSecao("banimentos");
+    const botoes = [...nav().element().querySelectorAll("button")].map((b) => b.textContent);
+    expect(botoes).not.toContain(admin.navegacao.auditoria);
+  });
+
+  it("abre a seção com permissão e mostra a frase de cada entrada", async () => {
+    ctl.auditoria = [entrada(0, { razao: "spam", alvo: "Rui" })];
+    await abrirSecao("auditoria");
+    await expect.element(page.getByTestId("entrada-de-auditoria")).toBeVisible();
+    const texto = document.querySelector('[data-testid="entrada-de-auditoria"]')?.textContent ?? "";
+    expect(texto).toContain("Ana");
+    expect(texto).toContain("baniu alguém");
+    expect(texto).toContain(admin.auditoriaPagina.motivo("spam"));
+    expect(texto).toContain(admin.auditoriaPagina.alvo("Rui"));
+  });
+
+  it("sem entradas, o vazio explica; falha na consulta é erro, não vazio", async () => {
+    await abrirSecao("auditoria");
+    await expect.element(page.getByTestId("estado-vazio")).toBeVisible();
+    expect(document.body.textContent).toContain(admin.auditoriaPagina.vazio);
+    desmontar();
+    ctl.auditoria = undefined;
+    await abrirSecao("auditoria");
+    await expect.element(page.getByTestId("estado-de-erro")).toBeVisible();
+    expect(document.querySelector('[data-testid="estado-vazio"]')).toBeNull();
+  });
+
+  it("virtualiza: 50 entradas não montam 50 linhas", async () => {
+    ctl.auditoria = entradas(50);
+    await abrirSecao("auditoria");
+    await expect.poll(totalNaLista).toBe("50");
+    expect(document.querySelectorAll('[data-testid="entrada-de-auditoria"]').length).toBeLessThan(25);
+  });
+
+  it("filtra por tipo de ação e por autor, pedindo ao servidor", async () => {
+    ctl.auditoria = entradas(12);
+    await abrirSecao("auditoria");
+    await expect.poll(totalNaLista).toBe("12");
+    await page.getByRole("combobox", { name: admin.auditoriaPagina.filtroAcao }).selectOptions("BanCreate");
+    await expect.poll(totalNaLista).toBe("4");
+    expect(ctl.consultasDeAuditoria.at(-1)?.tipo).toBe("BanCreate");
+    await page.getByRole("combobox", { name: admin.auditoriaPagina.filtroAcao }).selectOptions("");
+    await page.getByRole("combobox", { name: admin.auditoriaPagina.filtroAutor }).selectOptions("U2");
+    await expect.poll(totalNaLista).toBe("6");
+    expect(ctl.consultasDeAuditoria.at(-1)?.autorId).toBe("U2");
+  });
+
+  it("filtro sem resultado diz que é o filtro, não que o registro está vazio", async () => {
+    ctl.auditoria = [entrada(1)];
+    await abrirSecao("auditoria");
+    await expect.poll(totalNaLista).toBe("1");
+    await page.getByRole("combobox", { name: admin.auditoriaPagina.filtroAcao }).selectOptions("BanCreate");
+    await expect.element(page.getByText(admin.auditoriaPagina.vazioComFiltro)).toBeVisible();
+  });
+
+  it("carregar mais pagina pelo id da última entrada e some quando acaba", async () => {
+    ctl.auditoria = entradas(53);
+    await abrirSecao("auditoria");
+    await expect.poll(totalNaLista).toBe("50");
+    expect(document.body.textContent).not.toContain(admin.auditoriaPagina.fim);
+    await page.getByRole("button", { name: admin.auditoriaPagina.carregarMais }).click();
+    await expect.poll(totalNaLista).toBe("53");
+    expect(ctl.consultasDeAuditoria.at(-1)?.antesDe).toBe(entrada(49).id);
+    await expect.element(page.getByText(admin.auditoriaPagina.fim)).toBeVisible();
+    const botoes = [...document.querySelectorAll("button")].map((b) => b.textContent);
+    expect(botoes).not.toContain(admin.auditoriaPagina.carregarMais);
+  });
+});
+
 describe("banimentos", () => {
   it("sem banidos, o vazio explica", async () => {
     await abrirSecao("banimentos");
@@ -878,6 +997,28 @@ describe("banimentos", () => {
     await page.getByRole("button", { name: admin.banimentosPagina.perdoarPessoa("Rui") }).click();
     await expect.poll(() => linhas().length).toBe(1);
     expect(chamou("perdoar")).toEqual([["perdoar", "B1"]]);
+  });
+
+  it("mostra quem baniu quando o registro sabe, e degrada sem erro quando não sabe", async () => {
+    ctl.banidos = [
+      { userId: "B1", nome: "Rui", razao: "spam" },
+      { userId: "B2", nome: "Lia", razao: undefined },
+    ];
+    ctl.autoria = new Map([["B1", { porNome: "Ana", quandoMs: 1, quandoTexto: "3 abr" }]]);
+    await abrirSecao("banimentos");
+    const celulas = () => [...document.querySelectorAll('[data-testid="banido-por"]')].map((c) => c.textContent);
+    await expect.poll(celulas).toEqual(["Ana", admin.banimentosPagina.autoriaDesconhecida]);
+    expect(document.querySelector('[data-testid="estado-de-erro"]')).toBeNull();
+  });
+
+  it("se o registro não pôde ser lido, a lista segue e a coluna diz que não consta", async () => {
+    ctl.banidos = [{ userId: "B1", nome: "Rui", razao: "spam" }];
+    ctl.autoria = undefined;
+    await abrirSecao("banimentos");
+    await expect
+      .poll(() => document.querySelector('[data-testid="banido-por"]')?.textContent)
+      .toBe(admin.banimentosPagina.autoriaDesconhecida);
+    expect(document.querySelector('[data-testid="estado-de-erro"]')).toBeNull();
   });
 
   it("falha na consulta é erro, não lista vazia", async () => {
