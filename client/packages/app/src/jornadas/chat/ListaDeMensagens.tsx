@@ -158,16 +158,40 @@ export function ListaDeMensagens({ canalId, servidorId }: ListaDeMensagensProps)
     if (!el) return;
     let limpeza = 0;
     let quadro = 0;
+    let segurando = false;
     const aoDirigir = () => {
       dirigindo.current = true;
       if (limpeza !== 0) clearTimeout(limpeza);
       // 150ms: uma roda de mouse emite uma rajada com o `scroll` vindo atrás.
       limpeza = window.setTimeout(() => {
-        dirigindo.current = false;
+        dirigindo.current = segurando;
       }, 150);
     };
     const aoTeclar = (e: KeyboardEvent) => {
       if (TECLAS_DE_ROLAGEM.has(e.key)) aoDirigir();
+    };
+    // Ponteiro pressionado sobre o PRÓPRIO container: arrastar a barra de rolagem (ou
+    // clicar na calha dela) é rolagem de gente tanto quanto a roda, mas não emite
+    // `wheel` nem tecla. Clique dentro de uma linha tem a linha como alvo e não conta,
+    // então selecionar texto não descola. O gesto vale enquanto o botão estiver
+    // pressionado, sem prazo: um arraste da barra pode durar segundos.
+    const soltar = () => {
+      if (!segurando) return;
+      segurando = false;
+      // O `scroll` do último movimento chega depois do `pointerup`: a janela de
+      // sempre cobre a cauda.
+      aoDirigir();
+    };
+    const aoPressionar = (e: PointerEvent) => {
+      if (e.target !== el) return;
+      segurando = true;
+      dirigindo.current = true;
+    };
+    // Rede de segurança: se o `pointerup` se perder (soltar fora da janela), o próximo
+    // movimento sem botão encerra o gesto — senão a ancoragem programática passaria a
+    // descolar a lista para sempre.
+    const aoMover = (e: PointerEvent) => {
+      if (segurando && e.buttons === 0) soltar();
     };
     // Descolar exige gesto; colar não. Posição sozinha mente: a lista também se
     // afasta do fim quando o conteúdo cresce embaixo.
@@ -194,7 +218,18 @@ export function ListaDeMensagens({ canalId, servidorId }: ListaDeMensagensProps)
     el.addEventListener("wheel", aoDirigir, { passive: true });
     el.addEventListener("touchstart", aoDirigir, { passive: true });
     el.addEventListener("keydown", aoTeclar);
+    el.addEventListener("pointerdown", aoPressionar, { passive: true });
+    // Na janela, não no container: o botão pode ser solto fora dele.
+    window.addEventListener("pointerup", soltar, { passive: true });
+    window.addEventListener("pointercancel", soltar, { passive: true });
+    window.addEventListener("pointermove", aoMover, { passive: true });
+    window.addEventListener("blur", soltar);
     return () => {
+      el.removeEventListener("pointerdown", aoPressionar);
+      window.removeEventListener("pointerup", soltar);
+      window.removeEventListener("pointercancel", soltar);
+      window.removeEventListener("pointermove", aoMover);
+      window.removeEventListener("blur", soltar);
       el.removeEventListener("scroll", aoRolar);
       el.removeEventListener("wheel", aoDirigir);
       el.removeEventListener("touchstart", aoDirigir);
