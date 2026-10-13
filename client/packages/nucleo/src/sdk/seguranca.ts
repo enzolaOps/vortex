@@ -181,17 +181,28 @@ export const politicas = createEntityStore<PoliticaDoServidor>((serverId) => {
   void recarregarPolitica(serverId);
 });
 
-async function recarregarPolitica(serverId: string): Promise<void> {
-  if (client.user === undefined) return;
+/**
+ * Lê a política do servidor. Devolve se deu para ler: a página de Segurança
+ * precisa distinguir "ainda não veio" e "não deu" de "é o padrão".
+ */
+export async function carregarPolitica(serverId: string): Promise<boolean> {
+  /* Sem sessão (arnês) não há o que perguntar: vale o padrão. */
+  if (client.user === undefined) return true;
   try {
     const bruto = (await client.api.get(`/servers/${serverId}` as never)) as {
       security?: unknown;
     };
     politicas.set(serverId, politicaDe(bruto.security));
+    return true;
   } catch {
-    /* Sem política lida, a página mostra o padrão. Falhar aqui não merece
-       toast: a próxima escrita devolve o servidor inteiro e corrige. */
+    /* Sem política lida, a assinatura mostra o padrão. Falhar aqui não merece
+       toast: quem precisa saber (a página) recebe `false`. */
+    return false;
   }
+}
+
+async function recarregarPolitica(serverId: string): Promise<void> {
+  await carregarPolitica(serverId);
 }
 
 /* ------------------------------------------------------ pedidos */
