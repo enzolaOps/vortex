@@ -1,4 +1,5 @@
 import { CATEGORIA_PADRAO } from "nucleo/sdk/domain";
+import { pode, podeNoServidor } from "nucleo/sdk/permissoes";
 import {
   apagarCanal,
   apagarCategoria,
@@ -12,9 +13,10 @@ import {
 import { useCategorias, useChannel } from "nucleo/store/hooks";
 import { useId, useState, type FormEvent } from "react";
 
-import { admin, comum, salas } from "../../textos";
+import { admin, comum, permissoesDeAlvo, salas } from "../../textos";
 import { Botao } from "../../ui/ds";
 import {
+  Cadeado,
   Canal as IconeDeCanal,
   Copiar,
   Editar,
@@ -30,6 +32,7 @@ import { ConteudoDoDialogo, Dialogo } from "../../ui/primitivos/Dialogo";
 import css from "./admin.module.css";
 import { Confirmacao } from "./Confirmacao";
 import { Vazio } from "./Estados";
+import { PermissoesDoAlvo, type AlvoDePermissoes } from "./PermissoesDoAlvo";
 
 const t = admin.canaisPagina;
 
@@ -218,6 +221,7 @@ function LinhaDeCanal({
   aoSubir,
   aoDescer,
   aoEditar,
+  aoPermissoes,
   aoDuplicar,
   aoApagar,
 }: {
@@ -227,6 +231,7 @@ function LinhaDeCanal({
   aoSubir: () => void;
   aoDescer: () => void;
   aoEditar: (nome: string) => void;
+  aoPermissoes: () => void;
   aoDuplicar: () => void;
   aoApagar: (nome: string, voz: boolean) => void;
 }) {
@@ -267,6 +272,15 @@ function LinhaDeCanal({
             aoEditar(canalId);
           }}
         />
+        {pode(canalId, "gerenciarPermissoes") && (
+          <Botao
+            variante="fantasma"
+            tamanho="sm"
+            icone={<Cadeado />}
+            aria-label={permissoesDeAlvo.abrirCanal(canal.name)}
+            onClick={aoPermissoes}
+          />
+        )}
         <Botao
           variante="fantasma"
           tamanho="sm"
@@ -297,6 +311,8 @@ type Apagando =
 export function Canais({ serverId }: { serverId: string }) {
   const categorias = useCategorias(serverId);
   const [alvo, setAlvo] = useState<Alvo | undefined>();
+  const [permissoesDe, setPermissoesDe] = useState<AlvoDePermissoes | undefined>();
+  const canalDasPermissoes = useChannel(permissoesDe?.tipo === "canal" ? permissoesDe.id : "");
   const [apagando, setApagando] = useState<Apagando | undefined>();
   const [categoriaNova, setCategoriaNova] = useState<
     { readonly tipo: "criar" } | { readonly tipo: "renomear"; readonly id: string; readonly nome: string } | undefined
@@ -390,6 +406,17 @@ export function Canais({ serverId }: { serverId: string }) {
                           setCategoriaNova({ tipo: "renomear", id: c.id, nome });
                         }}
                       />
+                      {podeNoServidor(serverId, "gerenciarPermissoes") && (
+                        <Botao
+                          variante="fantasma"
+                          tamanho="sm"
+                          icone={<Cadeado />}
+                          aria-label={permissoesDeAlvo.abrirCategoria(nome)}
+                          onClick={() => {
+                            setPermissoesDe({ tipo: "categoria", id: c.id });
+                          }}
+                        />
+                      )}
                       <Botao
                         variante="fantasma"
                         tamanho="sm"
@@ -435,6 +462,9 @@ export function Canais({ serverId }: { serverId: string }) {
                       aoEditar={(canalId) => {
                         setAlvo({ tipo: "editar", canalId });
                       }}
+                      aoPermissoes={() => {
+                        setPermissoesDe({ tipo: "canal", id });
+                      }}
                       aoDuplicar={() => {
                         void duplicar(id);
                       }}
@@ -464,6 +494,26 @@ export function Canais({ serverId }: { serverId: string }) {
               setAlvo(undefined);
             }}
           />
+        </ConteudoDoDialogo>
+      </Dialogo>
+
+      <Dialogo
+        open={permissoesDe !== undefined}
+        onOpenChange={(a) => {
+          if (!a) setPermissoesDe(undefined);
+        }}
+      >
+        <ConteudoDoDialogo
+          className={css.dialogoLargo}
+          titulo={
+            permissoesDe?.tipo === "categoria"
+              ? permissoesDeAlvo.tituloCategoria(
+                  categorias.find((c) => c.id === permissoesDe.id)?.titulo ?? t.semCategoria,
+                )
+              : permissoesDeAlvo.tituloCanal(canalDasPermissoes?.name ?? "")
+          }
+        >
+          {permissoesDe !== undefined && <PermissoesDoAlvo serverId={serverId} alvo={permissoesDe} />}
         </ConteudoDoDialogo>
       </Dialogo>
 
