@@ -132,7 +132,7 @@
 .itemMarca {
   display: inline-flex;
   flex: none;
-  color: var(--vx-accent-text);
+  color: var(--vx-accent);
 }
 
 .item[data-highlighted] {

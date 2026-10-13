@@ -26,7 +26,7 @@
 .pre {
   /* Cores do realce (tema de variáveis do shiki) ligadas aos tokens do tema. */
   --shiki-foreground: var(--vx-text-1);
-  --shiki-token-keyword: var(--vx-accent-text);
+  --shiki-token-keyword: var(--vx-accent);
   --shiki-token-function: var(--vx-accent);
   --shiki-token-string: var(--vx-success);
   --shiki-token-string-expression: var(--vx-success);
@@ -34,7 +34,7 @@
   --shiki-token-parameter: var(--vx-text-1);
   --shiki-token-comment: var(--vx-text-3);
   --shiki-token-punctuation: var(--vx-text-2);
-  --shiki-token-link: var(--vx-accent-text);
+  --shiki-token-link: var(--vx-accent);
   box-sizing: border-box;
   max-inline-size: 100%;
   padding: var(--vx-space-2) var(--vx-space-3);
