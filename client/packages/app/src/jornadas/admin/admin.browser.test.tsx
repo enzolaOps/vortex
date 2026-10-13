@@ -17,8 +17,11 @@ import {
 } from "nucleo/sdk/adapter";
 import type { Cargo } from "nucleo/sdk/cargos";
 import { chaveDeMembro, SEM_CARGO } from "nucleo/sdk/domain";
+import { client } from "nucleo/sdk/client";
+import { POLITICA_PADRAO, politicas } from "nucleo/sdk/seguranca";
 import type { Banido, Convite, ConviteDoServidor } from "nucleo/sdk/servidores";
 import { abrirConfig, limparConfig, lerConfig } from "nucleo/store/config";
+import { limparFiltroDeMidia } from "nucleo/store/filtroDeMidia";
 import { irParaCasa } from "nucleo/store/navegacao";
 import { dispensarToast, lerToasts } from "nucleo/ui-logica/toastStore";
 import { definirProntidao } from "nucleo/store/prontidao";
@@ -49,6 +52,8 @@ interface Controle {
   falhaNaLista: boolean;
   comMidia: boolean;
   lento: Promise<void> | undefined;
+  /** Segura a leitura da política de segurança; `true`/`false` é se deu para ler. */
+  politicaLenta: Promise<boolean> | undefined;
 }
 
 const ctl = vi.hoisted(
@@ -66,8 +71,18 @@ const ctl = vi.hoisted(
     falhaNaLista: false,
     comMidia: true,
     lento: undefined,
+    politicaLenta: undefined,
   }),
 );
+
+vi.mock("nucleo/sdk/seguranca", async (original) => {
+  const real = await original<typeof import("nucleo/sdk/seguranca")>();
+  return {
+    ...real,
+    podeGerenciarSeguranca: () => permitido("gerenciarSeguranca"),
+    carregarPolitica: (serverId: string) => ctl.politicaLenta ?? real.carregarPolitica(serverId),
+  };
+});
 
 vi.mock("nucleo/sdk/anexos", async (original) => ({
   ...(await original<Record<string, unknown>>()),
@@ -309,6 +324,9 @@ beforeEach(() => {
   ctl.falhaNaLista = false;
   ctl.comMidia = true;
   ctl.lento = undefined;
+  ctl.politicaLenta = undefined;
+  politicas.set(S, POLITICA_PADRAO);
+  limparFiltroDeMidia();
   definirProntidao(true);
   semear();
 });
@@ -347,12 +365,12 @@ const nav = () => page.getByRole("navigation", { name: admin.navegacao.rotulo })
 const chamou = (nome: string) => ctl.chamadas.filter((c) => c[0] === nome);
 
 describe("navegação das configurações do servidor", () => {
-  it("mostra as seis seções, em três grupos, para quem administra tudo", async () => {
+  it("mostra as sete seções, em três grupos, para quem administra tudo", async () => {
     await abrirSecao("servidor");
     for (const nome of Object.values(admin.navegacao).filter((n) => !n.startsWith("Seções") && n !== "Servidor" && n !== "Pessoas" && n !== "Moderação")) {
       await expect.element(nav().getByRole("button", { name: nome, exact: true })).toBeVisible();
     }
-    expect(nav().element().querySelectorAll("button").length).toBe(6);
+    expect(nav().element().querySelectorAll("button").length).toBe(7);
   });
 
   it("deixa AUSENTE (não cinza) a seção que a pessoa não pode usar", async () => {
@@ -925,5 +943,145 @@ describe("visão geral", () => {
     // `click` do Playwright falha se outro elemento interceptar o ponteiro.
     await page.getByRole("button", { name: admin.navegacao.convites, exact: true }).click();
     await expect.poll(() => lerConfig().secao).toBe("convites");
+  });
+});
+
+describe("segurança", () => {
+  const t = admin.segurancaPagina;
+  const adiado = <T,>() => {
+    let ok!: (v: T) => void;
+    let nao!: (e: unknown) => void;
+    const p = new Promise<T>((a, b) => {
+      ok = a;
+      nao = b;
+    });
+    return { p, ok, nao };
+  };
+  const radio = (nome: string) => page.getByRole("radio", { name: new RegExp(`^${nome}`) });
+  const marcado = (nome: string) => radio(nome).element().getAttribute("aria-checked");
+  const interruptor = (nome: string) => page.getByRole("switch", { name: nome, exact: true });
+  const ligado = (nome: string) => interruptor(nome).element().getAttribute("aria-checked");
+  const espiar = (metodo: "patch" | "put" | "delete", resposta: Promise<unknown>) =>
+    vi.spyOn(client.api, metodo).mockImplementation((() => resposta) as never);
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("aparece na navegação para quem gerencia o servidor e fica AUSENTE para quem não", async () => {
+    await abrirSecao("seguranca");
+    await expect.element(nav().getByRole("button", { name: admin.navegacao.seguranca, exact: true })).toBeVisible();
+    desmontar();
+    ctl.acoes = new Set(["gerenciarCanais"]);
+    await abrirSecao("seguranca");
+    await expect.poll(() => lerConfig().secao).toBe("canais");
+    const botoes = [...nav().element().querySelectorAll("button")].map((b) => b.textContent);
+    expect(botoes).toEqual([admin.navegacao.salasECanais]);
+  });
+
+  it("carregando, depois erro com nova tentativa, depois a página", async () => {
+    const lento = adiado<boolean>();
+    ctl.politicaLenta = lento.p;
+    await abrirSecao("seguranca");
+    await expect.element(page.getByText(t.carregando)).toBeVisible();
+    lento.ok(false);
+    await expect.element(page.getByTestId("estado-de-erro")).toBeVisible();
+    ctl.politicaLenta = undefined;
+    await page.getByRole("button", { name: admin.estados.tentarDeNovo }).click();
+    await expect.element(radio("Nenhum")).toBeVisible();
+    expect(marcado("Nenhum")).toBe("true");
+  });
+
+  it("nível de verificação é otimista: responde no clique e mantém o que o servidor confirmou", async () => {
+    const resposta = adiado<unknown>();
+    const patch = espiar("patch", resposta.p);
+    await abrirSecao("seguranca");
+    await radio("Médio").click();
+    await expect.poll(() => marcado("Médio")).toBe("true");
+    expect(patch).toHaveBeenCalledWith("/servers/S1", { security: { verification_level: "Medium" } });
+    resposta.ok({ security: { verification_level: "Medium" } });
+    await expect.poll(() => marcado("Médio")).toBe("true");
+    expect(marcado("Nenhum")).toBe("false");
+  });
+
+  it("nível de verificação: se o servidor recusa, desfaz e avisa", async () => {
+    const resposta = adiado<unknown>();
+    espiar("patch", resposta.p);
+    await abrirSecao("seguranca");
+    await radio("Alto").click();
+    await expect.poll(() => marcado("Alto")).toBe("true");
+    resposta.nao(new Error("recusou"));
+    await expect.poll(() => marcado("Nenhum")).toBe("true");
+    expect(marcado("Alto")).toBe("false");
+    expect(lerToasts().some((x) => x.tipo === "erro")).toBe(true);
+  });
+
+  it("mensagens privadas entre membros: liga e, se falha, volta", async () => {
+    const ok = adiado<unknown>();
+    const patch = espiar("patch", ok.p);
+    await abrirSecao("seguranca");
+    await interruptor(t.dm).click();
+    await expect.poll(() => ligado(t.dm)).toBe("true");
+    expect(patch).toHaveBeenCalledWith("/servers/S1", { security: { allow_member_dms: true } });
+    ok.ok({ security: { allow_member_dms: true } });
+    await expect.poll(() => ligado(t.dm)).toBe("true");
+
+    vi.restoreAllMocks();
+    const falha = adiado<unknown>();
+    espiar("patch", falha.p);
+    await interruptor(t.convitesEmDm).click();
+    await expect.poll(() => ligado(t.convitesEmDm)).toBe("true");
+    falha.nao(new Error("recusou"));
+    await expect.poll(() => ligado(t.convitesEmDm)).toBe("false");
+  });
+
+  it("filtro de mídia: otimista e com rollback em falha", async () => {
+    const falha = adiado<unknown>();
+    const patch = espiar("patch", falha.p);
+    await abrirSecao("seguranca");
+    await radio("Verificar todo mundo").click();
+    await expect.poll(() => marcado("Verificar todo mundo")).toBe("true");
+    expect(patch).toHaveBeenCalledWith("/servers/S1", { explicit_content_filter: "AllMembers" });
+    falha.nao(new Error("recusou"));
+    await expect.poll(() => marcado("Não verificar")).toBe("true");
+    expect(marcado("Verificar todo mundo")).toBe("false");
+    expect(lerToasts().some((x) => x.titulo === t.filtroFalhou)).toBe(true);
+  });
+
+  it("emergência: pede confirmação, mostra quando termina e encerra", async () => {
+    const ate = new Date(Date.now() + 3_600_000).toISOString();
+    const ativa = {
+      security: { emergency: { until: ate, pause_invites: true, silence_everyone: true, freeze_joins: true } },
+    };
+    const put = espiar("put", Promise.resolve(ativa));
+    await abrirSecao("seguranca");
+    await interruptor(t.emergenciaTitulo).click();
+    // Só pergunta: nada foi para o servidor ainda.
+    await expect.element(page.getByText(t.confirmarTitulo)).toBeVisible();
+    expect(put).not.toHaveBeenCalled();
+    await page.getByRole("button", { name: t.confirmarAcao }).click();
+    await expect.poll(() => put.mock.calls.length).toBe(1);
+    expect(put.mock.calls[0]?.[0]).toBe("/servers/S1/emergency");
+    await expect.element(page.getByTestId("emergencia-ativa")).toBeVisible();
+    const hora = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(Date.parse(ate));
+    expect(page.getByTestId("emergencia-ativa").element().textContent).toContain(t.emergenciaAtiva(hora));
+    expect(ligado(t.emergenciaTitulo)).toBe("true");
+
+    const del = espiar("delete", Promise.resolve({ security: {} }));
+    await page.getByRole("button", { name: t.encerrar }).click();
+    await expect.poll(() => del.mock.calls.length).toBe(1);
+    expect(del.mock.calls[0]?.[0]).toBe("/servers/S1/emergency");
+    await expect.poll(() => document.querySelector('[data-testid="emergencia-ativa"]')).toBeNull();
+    expect(ligado(t.emergenciaTitulo)).toBe("false");
+  });
+
+  it("emergência recusada pelo servidor não liga o aviso", async () => {
+    const put = vi.spyOn(client.api, "put").mockRejectedValue(new Error("recusou"));
+    await abrirSecao("seguranca");
+    await interruptor(t.emergenciaTitulo).click();
+    await page.getByRole("button", { name: t.confirmarAcao }).click();
+    await expect.poll(() => put.mock.calls.length).toBe(1);
+    await expect.poll(() => lerToasts().some((x) => x.tipo === "erro")).toBe(true);
+    expect(document.querySelector('[data-testid="emergencia-ativa"]')).toBeNull();
   });
 });

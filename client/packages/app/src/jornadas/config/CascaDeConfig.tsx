@@ -20,6 +20,7 @@ import { LimiteDeErro } from "../../shell/LimiteDeErro";
 import { Fechar, Sair } from "../../ui/icones";
 import { ConteudoDoDialogo, Dialogo, DialogoFechar } from "../../ui/primitivos/Dialogo";
 import { Banimentos } from "../admin/Banimentos";
+import { Seguranca } from "../admin/Seguranca";
 import { Canais } from "../admin/Canais";
 import { Cargos } from "../admin/Cargos";
 import { Convites } from "../admin/Convites";
@@ -74,6 +75,7 @@ const CONTEUDO_DO_SERVIDOR: Record<
   convites: (s) => <Convites serverId={s} />,
   cargos: (s) => <Cargos serverId={s} />,
   membros: (s) => <Membros serverId={s} />,
+  seguranca: (s) => <Seguranca serverId={s} />,
   banimentos: (s) => <Banimentos serverId={s} />,
 };
 
