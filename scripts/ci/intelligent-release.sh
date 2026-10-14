@@ -364,14 +364,14 @@ $pre_summary"
         echo "PR #$number chunk $chunk_index/$chunk_count second pass => $chunk_choice (p=$chunk_confidence)"
         if [[ "$chunk_choice" == "review" ]] || ! awk -v p="$chunk_confidence" -v min="$MIN_CONFIDENCE" 'BEGIN { exit !(p >= min) }'; then
           echo "::warning::PR #$number chunk $chunk_index/$chunk_count remains ambiguous after second pass (impact=$chunk_choice, p=$chunk_confidence); deferring to whole-PR synthesis."
-          jq -c --arg choice "$chunk_choice" --argjson confidence "$chunk_confidence" --argjson chunk_index "$chunk_index" \
-            '{chunk_index:$chunk_index,choice:$choice,confidence:$confidence,probabilities:.answers.impact.probabilities,needs_synthesis:true,analysis:.answers.impact}' \
+          jq -c --arg choice "$chunk_choice" --argjson confidence "$chunk_confidence" --argjson chunk_index "$chunk_index" --argjson files "$chunk_files" \
+            '{chunk_index:$chunk_index,files:$files,choice:$choice,confidence:$confidence,probabilities:.answers.impact.probabilities,needs_synthesis:true,analysis:.answers.impact}' \
             <<< "$chunk_result" >> "$TMP/pr-$number-chunk-results.jsonl"
           continue
         fi
       fi
-      jq -c --arg choice "$chunk_choice" --argjson confidence "$chunk_confidence" --argjson chunk_index "$chunk_index" \
-        '{chunk_index:$chunk_index,choice:$choice,confidence:$confidence,probabilities:.answers.impact.probabilities,needs_synthesis:false,analysis:.answers.impact}' \
+      jq -c --arg choice "$chunk_choice" --argjson confidence "$chunk_confidence" --argjson chunk_index "$chunk_index" --argjson files "$chunk_files" \
+        '{chunk_index:$chunk_index,files:$files,choice:$choice,confidence:$confidence,probabilities:.answers.impact.probabilities,needs_synthesis:false,analysis:.answers.impact}' \
         <<< "$chunk_result" >> "$TMP/pr-$number-chunk-results.jsonl"
     done < <(jq -c '.[]' "$TMP/pr-$number-chunks.json")
 
