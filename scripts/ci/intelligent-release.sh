@@ -159,8 +159,7 @@ while IFS= read -r pr; do
     continue
   fi
 
-  # Give Jev the actual patch, not only PR metadata and file paths.
-  # Bound the payload so unusually large PRs cannot overwhelm the classifier.
+  # Send the complete unified diff to Jev; never classify a partial patch.
   diff_file="$TMP/pr-$number.diff"
   if ! gh pr diff "$number" --repo "$REPOSITORY" > "$diff_file"; then
     echo "::warning::Could not retrieve diff for PR #$number; requiring manual review."
@@ -177,14 +176,9 @@ while IFS= read -r pr; do
     ((review_count+=1))
     continue
   fi
-  max_diff_bytes=40000
+  echo "PR #$number diff: $diff_bytes bytes; sending complete diff to Jev."
+  diff_content="$(cat "$diff_file")"
   diff_truncated=false
-  if (( diff_bytes > max_diff_bytes )); then
-    diff_content="$(head -c "$max_diff_bytes" "$diff_file")"
-    diff_truncated=true
-  else
-    diff_content="$(cat "$diff_file")"
-  fi
 
   jq -n \
     --argjson number "$number" \
