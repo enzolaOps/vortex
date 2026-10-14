@@ -6,7 +6,8 @@ import { SalasEmFaixa } from "./SalasEmFaixa";
 import { shell } from "../textos";
 import css from "./Shell.module.css";
 
-export type ModoDaGaveta = "lista" | "icones" | "oculta";
+/** `busca`: o painel de busca ocupa a gaveta (mais larga, e não some em janela média). */
+export type ModoDaGaveta = "lista" | "icones" | "oculta" | "busca";
 
 export interface ShellProps {
   barraDeTitulo: ReactNode;
@@ -73,7 +74,7 @@ export function Shell({
         <div className={css.principal} data-anim={anim}>
           <LimiteDeErro rotulo={shell.principal.rotulo} chave={chaveDoLugar}>{principal}</LimiteDeErro>
         </div>
-        <div className={css.gaveta} data-colapsada={modoDaGaveta === "oculta" || undefined}>
+        <div className={css.gaveta} data-colapsada={modoDaGaveta === "oculta" || undefined} data-busca={modoDaGaveta === "busca" || undefined}>
           <LimiteDeErro rotulo={shell.gaveta.rotulo} chave={chaveDoLugar}>{gaveta}</LimiteDeErro>
         </div>
       </div>

@@ -219,3 +219,34 @@ export function menorCursor(
   if (b === undefined) return a;
   return a < b ? a : b;
 }
+
+/** O valor do primeiro filtro de uma chave, ou nada — o que os controles do painel mostram. */
+export function valorDoFiltro(
+  consulta: string,
+  chave: ChaveDeFiltro,
+): string | undefined {
+  return analisarConsulta(consulta).filtros.find((f) => f.chave === chave)?.valor;
+}
+
+/**
+ * Põe, troca ou tira o filtro de uma chave no texto do campo.
+ *
+ * Os controles do painel (pessoa, datas, tipo de conteúdo) escrevem AQUI, no
+ * mesmo texto que a pessoa digita: um filtro só por chave, o texto continua
+ * sendo a fonte e as fichas continuam sendo projeção dele. `valor` vazio tira.
+ * Espaço no valor não cabe (o filtro termina nele), então o valor é cortado no
+ * primeiro espaço — "Ana Souza" filtra por "Ana", que a busca de autor aceita
+ * como começo de nome.
+ */
+export function definirFiltro(
+  consulta: string,
+  chave: ChaveDeFiltro,
+  valor: string | undefined,
+): string {
+  let saida = consulta;
+  for (const f of analisarConsulta(consulta).filtros) {
+    if (f.chave === chave) saida = tirarFiltro(saida, f.bruto);
+  }
+  const limpo = valor?.trim().split(/\s+/u)[0] ?? "";
+  return limpo.length === 0 ? saida : acrescentarFiltro(saida, `${chave}:${limpo}`);
+}

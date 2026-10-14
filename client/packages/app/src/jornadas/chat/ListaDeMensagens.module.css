@@ -144,3 +144,27 @@
 .saltos > * {
   pointer-events: auto;
 }
+
+/*
+  A linha de destino de um salto (resultado de busca, citação): um véu de seleção que
+  se dissolve. Só cor anima, e quem pediu movimento reduzido vê o véu parado e depois sumir.
+*/
+.rolagem [data-realcada="true"] {
+  border-radius: var(--vx-radius-md);
+  animation: realce 2200ms ease-out both;
+}
+@keyframes realce {
+  0%,
+  35% {
+    background-color: var(--vx-state-selected);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rolagem [data-realcada="true"] {
+    animation-duration: 2200ms;
+    animation-timing-function: steps(1, end);
+  }
+}

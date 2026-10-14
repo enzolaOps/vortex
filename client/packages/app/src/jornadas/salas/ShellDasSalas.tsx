@@ -1,8 +1,11 @@
+import { fecharBusca } from "nucleo/store/busca";
 import { lerUltimoServidor, abrirServidor } from "nucleo/store/ultimoLugar";
 import { useLocal, useProntidao, useServerIds } from "nucleo/store/hooks";
 import { useEffect, useRef, type ReactNode } from "react";
 
 import { ShellDoApp } from "../../shell";
+import { useBusca } from "../busca/hooks";
+import { PainelDeBusca } from "../busca/PainelDeBusca";
 import { AreaConectada } from "./AreaConectada";
 import { ColunaConectada } from "./ColunaConectada";
 import { ConteudoDaDock } from "./DockConectada";
@@ -39,6 +42,13 @@ export function ShellDasSalas({ rodapeDasSalas }: { rodapeDasSalas?: ReactNode }
   const serverId = local.tipo === "servidor" ? local.serverId : undefined;
   // O palco ocupa a área principal inteira, sem coluna à direita.
   const palcoAberto = useSalaDoPalco(serverId).aberto;
+  const busca = useBusca();
+  const canalAtual = local.tipo === "servidor" || local.tipo === "dm" ? local.channelId : undefined;
+  // A busca é do canal em que foi aberta: trocar de canal a fecha (os resultados são dele).
+  useEffect(() => {
+    if (busca.aberta && busca.channelId !== canalAtual) fecharBusca();
+  }, [busca.aberta, busca.channelId, canalAtual]);
+  const buscaVisivel = busca.aberta && canalAtual !== undefined && busca.channelId === canalAtual && !palcoAberto;
 
   return (
     <>
@@ -52,7 +62,8 @@ export function ShellDasSalas({ rodapeDasSalas }: { rodapeDasSalas?: ReactNode }
       }
       salasEmFaixa={palcoAberto}
       faixaDeSalas={serverId !== undefined ? <FaixaDeSalas serverId={serverId} /> : undefined}
-      gavetaOculta={(pronto && serverId === undefined) || palcoAberto}
+      busca={buscaVisivel && canalAtual !== undefined ? <PainelDeBusca key={canalAtual} canalId={canalAtual} servidorId={serverId ?? ""} /> : undefined}
+      gavetaOculta={(pronto && serverId === undefined && !buscaVisivel) || palcoAberto}
     />
     <DialogoDeTransmissao />
     </>
