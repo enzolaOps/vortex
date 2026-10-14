@@ -370,6 +370,7 @@ $pre_summary"
           continue
         fi
       fi
+      echo "PR #$number chunk $chunk_index/$chunk_count => $chunk_choice (p=$chunk_confidence)"
       jq -c --arg choice "$chunk_choice" --argjson confidence "$chunk_confidence" --argjson chunk_index "$chunk_index" --argjson files "$chunk_files" \
         '{chunk_index:$chunk_index,files:$files,choice:$choice,confidence:$confidence,probabilities:.answers.impact.probabilities,needs_synthesis:false,analysis:.answers.impact}' \
         <<< "$chunk_result" >> "$TMP/pr-$number-chunk-results.jsonl"
@@ -415,12 +416,15 @@ $pre_summary"
       continue
     fi
     choice="$(jq -s 'if any(.[]; .choice == "major") then "major" elif any(.[]; .choice == "minor") then "minor" elif any(.[]; .choice == "patch") then "patch" else "none" end' "$TMP/pr-$number-chunk-results.jsonl" | tr -d '"')"
-    confidence="$(jq -s '[.[].confidence] | min' "$TMP/pr-$number-chunk-results.jsonl")"
+    # One chunk evidencing the highest impact is enough for the whole PR, so its
+    # confidence comes from the chunks that chose it; chunks confidently
+    # assessed as lower impact must not dilute it.
+    confidence="$(jq -s --arg choice "$choice" '[.[] | select(.choice == $choice) | .confidence] | max' "$TMP/pr-$number-chunk-results.jsonl")"
     probabilities="$(jq -s 'reduce .[].probabilities as $p ({"major":0,"minor":0,"patch":0,"none":0,"review":0}; reduce ["major","minor","patch","none","review"][] as $k (. ; .[$k] = ([.[$k], ($p[$k] // 0)] | max)))' "$TMP/pr-$number-chunk-results.jsonl")"
     result="$(jq -n --arg choice "$choice" --argjson confidence "$confidence" --argjson probabilities "$probabilities" \
       '{answers:{impact:{choice:$choice,probabilities:($probabilities | .[$choice]=$confidence)}}}')"
       classification_method_override="jev-chunked"
-      echo "PR #$number combined chunk result => $choice (minimum chunk confidence=$confidence)"
+      echo "PR #$number combined chunk result => $choice (strongest chunk confidence=$confidence)"
     fi
   fi
   if ! initial_choice="$(jq -er '.answers.impact.choice' <<< "$result")" ||
