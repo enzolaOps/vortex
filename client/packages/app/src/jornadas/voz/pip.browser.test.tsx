@@ -31,6 +31,7 @@ import { ShellDasSalas } from "../salas/ShellDasSalas";
 import { JanelaDestacada } from "./JanelaDestacada";
 import { OverlayDaChamada } from "./OverlayDaChamada";
 import { espelharEstilos } from "./espelharEstilos";
+import { definirFamilia } from "../../tema/personalizado";
 
 const ctl = vi.hoisted(() => ({ chamadas: [] as string[], assinaturas: [] as string[] }));
 
@@ -481,6 +482,17 @@ describe("janela destacada", () => {
     const filha = await comJanela();
     await expect.poll(() => filha.document.documentElement.dataset.tema).toBe("vidro");
     expect(filha.document.head.querySelectorAll("style, link[rel='stylesheet']").length).toBeGreaterThan(0);
+
+    // Trocar para o claro com a janela aberta: ela acompanha, color-scheme inclusive.
+    try {
+      definirFamilia("claro");
+      await expect.poll(() => filha.document.documentElement.dataset.tema).toBe("claro");
+      await expect.poll(() => filha.getComputedStyle(filha.document.documentElement).colorScheme).toBe("light");
+      definirFamilia("vidro");
+      await expect.poll(() => filha.document.documentElement.dataset.tema).toBe("vidro");
+    } finally {
+      definirFamilia("vidro");
+    }
   });
 
   it("sair da chamada fecha a janela destacada", async () => {
