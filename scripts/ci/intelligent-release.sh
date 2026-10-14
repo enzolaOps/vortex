@@ -175,7 +175,7 @@ while IFS= read -r pr; do
 
   # Test-only changes do not ship behavior. Treat a PR as no-impact only when
   # every changed path is explicitly a test file or inside a test directory.
-  if jq -e 'length > 0 and all(.[]; test("(^|/)(__tests__|tests?|testdata)/|(^|/)[^/]+([._-](test|spec))[.][^/]+$|(^|/)[^/]+_test[.][^/]+$"))' <<< "$files" >/dev/null; then
+  if jq -e 'length > 0 and all(.[]; test("(^|/)(__tests__|tests?|testdata|testes)/|(^|/)[^/]+([._-](test|spec))[.][^/]+$|(^|/)[^/]+_test[.][^/]+$"))' <<< "$files" >/dev/null; then
     printf '{"number":%s,"title":%s,"url":%s,"impact":"none","probability":1.0,"method":"test-only-path-policy","needs_review":false}\n' \
       "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" >> "$TMP/decisions.jsonl"
     ((none_count+=1))
@@ -244,7 +244,7 @@ while IFS= read -r pr; do
       chunk_index="$(jq -r '.index' <<< "$chunk")"
       chunk_diff="$(jq -r '.diff' <<< "$chunk")"
       chunk_files="$(jq -c '.files' <<< "$chunk")"
-      if jq -e 'length > 0 and all(.[]; test("(^|/)(__tests__|tests?|testdata)/|(^|/)[^/]+([._-](test|spec))[.][^/]+$|(^|/)[^/]+_test[.][^/]+$"))' <<< "$chunk_files" >/dev/null; then
+      if jq -e 'length > 0 and all(.[]; test("(^|/)(__tests__|tests?|testdata|testes)/|(^|/)[^/]+([._-](test|spec))[.][^/]+$|(^|/)[^/]+_test[.][^/]+$"))' <<< "$chunk_files" >/dev/null; then
         echo "PR #$number chunk $chunk_index/$chunk_count => none (deterministic: test-only paths)"
         jq -cn '{choice:"none",confidence:1.0,probabilities:{none:1.0}}' >> "$TMP/pr-$number-chunk-results.jsonl"
         continue
@@ -277,10 +277,33 @@ while IFS= read -r pr; do
         chunk_failed=true
         continue
       fi
+
+      # Give an ambiguous chunk the same targeted second pass as a full diff.
+      # Keep the original chunk and response together so Jev can resolve its uncertainty.
       if [[ "$chunk_choice" == "review" ]] || ! awk -v p="$chunk_confidence" -v min="$MIN_CONFIDENCE" 'BEGIN { exit !(p >= min) }'; then
-        echo "::warning::PR #$number chunk $chunk_index/$chunk_count is ambiguous (impact=$chunk_choice, p=$chunk_confidence); requiring manual review."
-        chunk_failed=true
-        continue
+        echo "PR #$number chunk $chunk_index/$chunk_count is ambiguous (impact=$chunk_choice, p=$chunk_confidence); running targeted second pass."
+        jq --argjson initial_analysis "$chunk_result" \
+          '. + {review_pass:true,initial_analysis:$initial_analysis}' \
+          "$TMP/pr-$number-chunk-$chunk_index.json" > "$TMP/pr-$number-chunk-$chunk_index-review.json"
+        if ! chunk_result="$(jev ask --preset release-impact --param "pr=@$TMP/pr-$number-chunk-$chunk_index-review.json")"; then
+          echo "::warning::Jev second pass failed for PR #$number chunk $chunk_index/$chunk_count; requiring manual review."
+          chunk_failed=true
+          continue
+        fi
+        if ! chunk_choice="$(jq -er '.answers.impact.choice' <<< "$chunk_result")" ||
+           ! chunk_confidence="$(jq -er --arg choice "$chunk_choice" '.answers.impact.probabilities[$choice]' <<< "$chunk_result")" ||
+           ! [[ "$chunk_confidence" =~ ^[0-9]+([.][0-9]+)?$ ]] ||
+           ! [[ "$chunk_choice" =~ ^(major|minor|patch|none|review)$ ]]; then
+          echo "::warning::Jev second pass returned an invalid result for PR #$number chunk $chunk_index/$chunk_count; requiring manual review."
+          chunk_failed=true
+          continue
+        fi
+        echo "PR #$number chunk $chunk_index/$chunk_count second pass => $chunk_choice (p=$chunk_confidence)"
+        if [[ "$chunk_choice" == "review" ]] || ! awk -v p="$chunk_confidence" -v min="$MIN_CONFIDENCE" 'BEGIN { exit !(p >= min) }'; then
+          echo "::warning::PR #$number chunk $chunk_index/$chunk_count remains ambiguous after second pass (impact=$chunk_choice, p=$chunk_confidence); requiring manual review."
+          chunk_failed=true
+          continue
+        fi
       fi
       jq -c --arg choice "$chunk_choice" --argjson confidence "$chunk_confidence" \
         '{choice:$choice,confidence:$confidence,probabilities:.answers.impact.probabilities}' \
