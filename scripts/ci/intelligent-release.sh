@@ -486,6 +486,7 @@ $pre_summary"
     confidence=0
   fi
 
+  echo "PR #$number probabilities: $(jq -c '.answers.impact.probabilities' <<< "$result")"
   review_reason=""
   if [[ "$diff_truncated" == true ]]; then
     review_reason="Diff was truncated at $max_diff_bytes bytes; manual review is required"
@@ -500,7 +501,16 @@ $pre_summary"
          'BEGIN { exit !(p >= low && high < 0.20) }'; then
       echo "PR #$number accepted under low-risk policy (p=$confidence; combined major/minor/review probability=$high_impact_probability)"
     else
-      review_reason="Confidence $confidence remains below $MIN_CONFIDENCE after the second pass"
+      # Low confidence only matters if it could change the version bump; that
+      # depends on the whole batch, so the decision is deferred past the loop.
+      jq -cn --argjson number "$number" --arg title "$title" --arg url "$url" \
+        --arg choice "$choice" --argjson confidence "$confidence" \
+        --arg initial_choice "$initial_choice" --argjson initial_confidence "$initial_confidence" \
+        --arg method "$classification_method" --argjson probabilities "$(jq -c '.answers.impact.probabilities' <<< "$result")" \
+        '{number:$number,title:$title,url:$url,choice:$choice,confidence:$confidence,initial_choice:$initial_choice,initial_confidence:$initial_confidence,method:$method,probabilities:$probabilities}' \
+        >> "$TMP/uncertain.jsonl"
+      echo "PR #$number => uncertain $choice (p=$confidence); deciding against the batch's version bump"
+      continue
     fi
   fi
 
@@ -529,6 +539,47 @@ $pre_summary"
   esac
   echo "PR #$number => $choice (p=$confidence; $classification_method)"
 done < "$TMP/eligible.jsonl"
+
+# Batch gate: an uncertain PR blocks only when it could raise the version
+# bump already set by confident PRs. Its argmax may not exceed that bump, and
+# the probability above it (plus review) must stay under 1 - MIN_CONFIDENCE.
+touch "$TMP/uncertain.jsonl"
+if (( major_count > 0 )); then bump_rank=3
+elif (( minor_count > 0 )); then bump_rank=2
+elif (( patch_count > 0 )); then bump_rank=1
+else bump_rank=0
+fi
+while IFS= read -r pending; do
+  read -r number choice confidence above_mass < <(jq -r --argjson bump "$bump_rank" '
+    {none:0,patch:1,minor:2,major:3} as $rank
+    | [.number, .choice, .confidence,
+       ([.probabilities | to_entries[] | select(.key == "review" or ($rank[.key] // 0) > $bump) | .value] | add // 0)]
+    | @tsv' <<< "$pending")
+  title="$(jq -r '.title' <<< "$pending")"
+  url="$(jq -r '.url' <<< "$pending")"
+  choice_rank="$(jq -rn --arg c "$choice" '{none:0,patch:1,minor:2,major:3}[$c] // 4')"
+  echo "PR #$number batch gate: choice=$choice (p=$confidence), bump rank=$bump_rank, mass above bump=$above_mass, limit=$(awk -v m="$MIN_CONFIDENCE" 'BEGIN { print 1 - m }')"
+  if (( choice_rank > bump_rank )) ||
+     ! awk -v mass="$above_mass" -v min="$MIN_CONFIDENCE" 'BEGIN { exit !(mass < 1 - min) }'; then
+    review_reason="Confidence $confidence remains below $MIN_CONFIDENCE and the PR could raise the version bump (mass above bump=$above_mass)"
+    jq -c --arg reason "$review_reason" \
+      '{number,title,url,impact:"review",probability:.confidence,initial_impact:.initial_choice,initial_probability:.initial_confidence,method,needs_review:true,review_reason:$reason}' \
+      <<< "$pending" >> "$TMP/decisions.jsonl"
+    ((review_count+=1))
+    echo "PR #$number => review (p=$confidence; $review_reason)"
+    continue
+  fi
+  jq -c '{number,title,url,impact:.choice,probability:.confidence,initial_impact:.initial_choice,initial_probability:.initial_confidence,method:(.method + "+batch-gate"),needs_review:false}' \
+    <<< "$pending" >> "$TMP/decisions.jsonl"
+  item="- **#$number** $title ([PR](<$url>))"
+  case "$choice" in
+    major) printf '%s\n' "$item" >> "$TMP/major.md"; ((major_count+=1)) ;;
+    minor) printf '%s\n' "$item" >> "$TMP/minor.md"; ((minor_count+=1)) ;;
+    patch) printf '%s\n' "$item" >> "$TMP/patch.md"; ((patch_count+=1)) ;;
+    none) ((none_count+=1)) ;;
+  esac
+  echo "PR #$number => $choice (p=$confidence; accepted: cannot change the version bump)"
+done < "$TMP/uncertain.jsonl"
 
 
 if (( review_count > 0 )); then
