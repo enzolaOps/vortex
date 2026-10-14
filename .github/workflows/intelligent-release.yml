@@ -60,7 +60,7 @@ jobs:
           JEV_INSTALL_DIR: ${{ runner.temp }}/jev-bin
         run: |
           set -euo pipefail
-          curl -fsSL https://raw.githubusercontent.com/model-clis/jev/main/scripts/install.sh | sh
+          curl -fsSL https://raw.githubusercontent.com/model-clis/jev/v2026.919.0/scripts/install.sh | sh
           echo "$JEV_INSTALL_DIR" >> "$GITHUB_PATH"
           "$JEV_INSTALL_DIR/jev" --version
 
