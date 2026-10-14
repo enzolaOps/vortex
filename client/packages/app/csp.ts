@@ -43,7 +43,9 @@ export function montarPolitica(opcoes: { dev: boolean; apiUrl?: string }): strin
     ["media-src 'self' blob:", ...origens].join(" "),
     "font-src 'self' data:",
     ["connect-src 'self'", ...extras].join(" "),
-    "frame-src 'self'",
+    // Players de terceiros: só aparecem depois do CLIQUE em "reproduzir" (nunca montados sozinhos).
+    // Fechado em sincronia com `HOSTS_DE_PLAYER` em `nucleo/src/sdk/traduzirEmbeds.ts`.
+    "frame-src 'self' https://www.youtube-nocookie.com https://player.twitch.tv https://open.spotify.com https://w.soundcloud.com https://bandcamp.com https://streamable.com https://new.lightspeed.tv",
     "object-src 'none'",
     "worker-src 'self' blob:",
     "base-uri 'self'",

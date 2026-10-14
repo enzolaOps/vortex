@@ -4,5 +4,18 @@
     "config:recommended"
   ],
   "cloneSubmodules": true,
-  "automerge": true
+  "automerge": true,
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/bower_components/**",
+    "**/vendor/**",
+    "**/examples/**",
+    "**/__tests__/**",
+    "**/test/**",
+    "**/tests/**",
+    "**/__fixtures__/**",
+    "client/packages/stoat.js/**"
+  ],
+  "minimumReleaseAge": "1 day",
+  "internalChecksFilter": "strict"
 }

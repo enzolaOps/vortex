@@ -1,0 +1,222 @@
+/* O painel de fixados: ocupa a área da gaveta de membros enquanto está aberto. */
+.painel {
+  box-sizing: border-box;
+  block-size: 100%;
+  min-inline-size: 0;
+  min-block-size: 0;
+  overflow: hidden;
+}
+.miolo {
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-block-size: 0;
+}
+.miolo:focus-visible {
+  outline: 2px solid var(--vx-focus-ring);
+  outline-offset: -2px;
+}
+
+.cabeca {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-2);
+  padding: var(--vx-space-3) var(--vx-space-4);
+}
+.titulo {
+  margin: 0;
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-title-size);
+  line-height: var(--vx-type-title-line);
+  font-weight: var(--vx-type-title-weight);
+}
+
+.corpo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-block-size: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-block-start: 1px solid var(--vx-border-subtle);
+}
+
+.contagem {
+  flex: none;
+  margin: 0;
+  padding: var(--vx-space-3) var(--vx-space-4) var(--vx-space-1);
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+  margin: 0;
+  padding: var(--vx-space-1) var(--vx-space-2);
+  list-style: none;
+}
+.item {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  gap: var(--vx-space-1);
+  border-radius: var(--vx-radius-sm);
+}
+.item:hover {
+  background: var(--vx-state-hover);
+}
+.item[data-ativo] {
+  background: var(--vx-state-selected);
+}
+.ir {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--vx-space-1);
+  min-inline-size: 0;
+  padding: var(--vx-space-2) var(--vx-space-3);
+  border: 0;
+  border-radius: var(--vx-radius-sm);
+  background: transparent;
+  color: var(--vx-text-1);
+  font-family: var(--vx-font-sans);
+  text-align: start;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.ir:focus-visible {
+  outline: 2px solid var(--vx-focus-ring);
+  outline-offset: -2px;
+}
+.ir[aria-busy="true"] {
+  opacity: 0.7;
+}
+.cabecaDoItem {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vx-space-2);
+}
+.autor {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  font-weight: 600;
+}
+.hora {
+  flex: none;
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+  font-variant-numeric: tabular-nums;
+}
+.trecho {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.semTexto {
+  color: var(--vx-text-3);
+  font-style: italic;
+}
+.anexo,
+.indo {
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: var(--vx-type-caption-line);
+}
+.indo {
+  color: var(--vx-text-2);
+}
+
+.rodape {
+  display: flex;
+  flex: none;
+  justify-content: center;
+  padding: var(--vx-space-3) var(--vx-space-4) var(--vx-space-4);
+}
+
+/* Vazio e erro: texto curto no alto da área, com a saída ao lado. */
+.estado {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--vx-space-2);
+  padding: var(--vx-space-5) var(--vx-space-4);
+}
+.estado p {
+  margin: 0;
+}
+.estadoTitulo {
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-body-size);
+  line-height: var(--vx-type-body-line);
+  overflow-wrap: anywhere;
+}
+.estadoDica {
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+.aviso {
+  margin: var(--vx-space-3) var(--vx-space-4);
+  padding: var(--vx-space-2) var(--vx-space-3);
+  border-radius: var(--vx-radius-sm);
+  background: var(--vx-state-press);
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+}
+
+/* Esqueleto: a forma de um item; só a opacidade anima. */
+.esqueleto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-4);
+  padding: var(--vx-space-4);
+}
+.esqueletoLinha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+  animation: pulsar 1400ms ease-in-out infinite;
+}
+.esqueletoNome,
+.esqueletoTexto {
+  display: block;
+  block-size: 12px;
+  border-radius: var(--vx-radius-sm);
+  background: var(--vx-skeleton);
+}
+.esqueletoNome {
+  inline-size: 96px;
+}
+.esqueletoTexto {
+  inline-size: 90%;
+}
+.esqueletoTexto[data-curto] {
+  inline-size: 55%;
+}
+@keyframes pulsar {
+  50% {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .esqueletoLinha {
+    animation: none;
+  }
+}
