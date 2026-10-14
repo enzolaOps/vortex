@@ -17,9 +17,11 @@ on:
   push:
     branches: [main]
 
+# Só um PR cancela a execução anterior. Na main, cada merge cancelaria a
+# análise ou o aquecimento em andamento, e com merges seguidos nada terminaria.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
