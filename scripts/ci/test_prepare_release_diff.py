@@ -2,6 +2,7 @@ import importlib.util
 import json
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 MODULE_PATH = Path(__file__).with_name("prepare-release-diff.py")
@@ -45,6 +46,14 @@ class PrepareReleaseDiffTests(unittest.TestCase):
         diff = section("pnpm-lock.yaml")
         prepared = MODULE.prepare(diff, "chore(deps): update formatter", "Release notes: formatting and lint compatibility changes for the build tooling.")
         self.assertEqual(prepared["action"], "none")
+
+    def test_linked_upstream_changelog_security_fix_is_patch(self):
+        body = "Release notes: [solidjs/solid](https://redirect.github.com/solidjs/solid/compare/solid-js@1.9.15...v1.9.16)"
+        changelog = "## 1.9.16\n\n### Patch Changes\n\n- Update dependencies; includes seroval security fixes (CVE-2026-104846).\n\n## 1.9.15\n\n- Previous release.\n"
+        with mock.patch.object(MODULE, "linked_upstream_release_notes", return_value=changelog):
+            prepared = MODULE.prepare(section("pnpm-lock.yaml"), "chore(deps): update dependency solid-js to v1.9.17", body)
+        self.assertEqual(prepared["action"], "patch")
+        self.assertIn("dependency-lockfile", prepared["paths_by_category"])
 
     def test_unclear_dependency_update_requires_review(self):
         prepared = MODULE.prepare(section("pnpm-lock.yaml"), "chore(deps): update library", "Automated dependency update.")
