@@ -1,0 +1,76 @@
+# CodeQL em configuração avançada: o default setup analisa toda linguagem em
+# todo PR, e o Rust leva ~11 min. Aqui cada linguagem só roda no PR que toca
+# o código dela. Na main e no agendamento semanal rodam todas.
+name: CodeQL
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 6 * * 1"
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  detect:
+    name: Detect
+    runs-on: ubuntu-latest
+    outputs:
+      linguagens: ${{ steps.d.outputs.linguagens }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: d
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          todas='["actions","javascript-typescript","python","rust"]'
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "linguagens=$todas" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          files=$(git diff --name-only "$BASE"...HEAD)
+          if printf '%s\n' "$files" | grep -qx '.github/workflows/codeql.yml'; then
+            echo "linguagens=$todas" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          tem() { printf '%s\n' "$files" | grep -qE "$1"; }
+          l=()
+          tem '^\.github/(workflows|actions)/' && l+=(actions)
+          tem '\.(js|jsx|mjs|cjs|ts|tsx|mts|cts|vue|html)$' && l+=(javascript-typescript)
+          tem '\.py$' && l+=(python)
+          tem '^server/.*\.rs$|^server/(.*/)?Cargo\.(toml|lock)$' && l+=(rust)
+          echo "linguagens=$(printf '%s\n' "${l[@]}" | jq -Rnc '[inputs | select(length > 0)]')" | tee -a "$GITHUB_OUTPUT"
+
+  analyze:
+    name: Analyze (${{ matrix.linguagem }})
+    needs: detect
+    if: needs.detect.outputs.linguagens != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        linguagem: ${{ fromJSON(needs.detect.outputs.linguagens) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          languages: ${{ matrix.linguagem }}
+          build-mode: none
+      - uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          category: /language:${{ matrix.linguagem }}
