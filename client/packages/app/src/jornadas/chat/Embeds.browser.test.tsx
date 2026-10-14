@@ -7,6 +7,7 @@ import { definirAparencia, restaurarAparencia } from "nucleo/store/aparencia";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { AreaPrincipal } from "../../shell";
+import { assentarRolagem, quadros } from "../../testes/esperas";
 import { desmontar, montar, pegar } from "../../ui/ds/montar";
 import { ListaDeMensagens } from "./ListaDeMensagens";
 
@@ -28,7 +29,6 @@ beforeAll(async () => {
 const log = () => pegar<HTMLElement>('[role="log"]')!;
 const distanciaDoFim = () => log().scrollHeight - log().clientHeight - log().scrollTop;
 const linhas = () => Array.from(document.querySelectorAll<HTMLElement>("[data-index]"));
-const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function montarLista() {
   document.documentElement.dataset.tema = "vidro";
@@ -79,22 +79,8 @@ const cartoes = () => Array.from(document.querySelectorAll<HTMLElement>("[data-e
 const MARCA = "Um post sobre cartões";
 const MARCA_URL = "https://exemplo.com/";
 
-/** Espera a lista PARAR: posição e altura iguais em leituras seguidas (âncora e remedição quietas). */
-async function assentar() {
-  let anterior = "";
-  let iguais = 0;
-  await expect
-    .poll(
-      () => {
-        const agora = `${String(log().scrollTop)}|${String(log().scrollHeight)}`;
-        iguais = agora === anterior ? iguais + 1 : 0;
-        anterior = agora;
-        return iguais;
-      },
-      { timeout: 8000, interval: 80 },
-    )
-    .toBeGreaterThanOrEqual(6);
-}
+/** Espera a lista PARAR: posição e altura iguais em 7 leituras seguidas (âncora e remedição quietas). */
+const assentar = () => assentarRolagem(log, { leituras: 7 });
 
 async function prontaNoFim() {
   montarLista();
@@ -214,7 +200,10 @@ describe("chegada tardia do embed", () => {
         log().addEventListener("scroll", () => { resolver(); }, { once: true });
       });
       log().scrollTop = Math.max(0, log().scrollTop - 4000);
-      await Promise.race([rolou, esperar(1000)]);
+      // Teto, não espera: se a posição não mudou (já no topo) o `scroll` nunca vem. Quando
+      // muda, ele é despachado nos passos de renderização do quadro seguinte, antes dos
+      // callbacks de rAF — dois quadros pintados sem ele significam que não virá.
+      await Promise.race([rolou, quadros(2)]);
     } finally {
       window.removeEventListener("scroll", gesto, { capture: true });
     }
