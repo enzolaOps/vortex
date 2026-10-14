@@ -8,6 +8,7 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { definirPersonalizacao } from "../../tema/personalizado";
 import { PERSONALIZACAO_PADRAO } from "../../tema/personalizar";
+import { assentar } from "../../testes/esperas";
 import { alturaDoTipo, type TipoDeLinha } from "./alturas";
 
 import { AreaPrincipal } from "../../shell";
@@ -30,7 +31,15 @@ beforeAll(async () => {
 const log = () => pegar<HTMLElement>('[role="log"]')!;
 const distanciaDoFim = () => log().scrollHeight - log().clientHeight - log().scrollTop;
 const linhas = () => Array.from(document.querySelectorAll<HTMLElement>("[data-index]"));
-const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/**
+ * A lista PAROU: rolagem, altura total e a janela montada (índice e altura de cada linha)
+ * iguais em leituras seguidas. Espera fixa aqui media a lista no meio da remedição quando o
+ * runner do CI estava com a CPU disputada.
+ */
+const assentarLista = () =>
+  assentar(() =>
+    [log().scrollTop, log().scrollHeight, linhas().map((l) => `${l.dataset.index ?? ""}:${String(l.offsetHeight)}`).join(",")].join("|"),
+  );
 
 function montarLista(largura = 900) {
   document.documentElement.dataset.tema = "vidro";
@@ -64,9 +73,11 @@ describe("ListaDeMensagens", () => {
     await expect.poll(distanciaDoFim, { timeout: 5000 }).toBeLessThanOrEqual(80);
     const antes = log().scrollHeight;
     const parar = startFirehose(500, ids);
-    await esperar(3000);
+    // Esta espera FICA: é a duração do estímulo (3s de firehose a 500 eventos/s), não uma
+    // aposta sobre quando algo termina. O que vem depois espera estado.
+    await new Promise((r) => setTimeout(r, 3000));
     parar();
-    await esperar(300);
+    await assentarLista();
     expect(log().scrollHeight).toBeGreaterThan(antes);
     expect(distanciaDoFim()).toBeLessThanOrEqual(80);
   }, 20_000);
@@ -75,7 +86,7 @@ describe("ListaDeMensagens", () => {
     const alvo = montarLista(900);
     await expect.poll(distanciaDoFim, { timeout: 5000 }).toBeLessThanOrEqual(80);
     (alvo.firstElementChild as HTMLElement).style.inlineSize = "420px";
-    await esperar(400);
+    await assentarLista();
     const virtuais = linhas();
     expect(virtuais.length).toBeGreaterThan(0);
     // Sem remedição, as linhas ficariam posicionadas pela estimativa e se sobreporiam.
@@ -175,7 +186,7 @@ describe("densidade e tamanho do texto na lista", () => {
     for (const [densidade, texto] of casos) {
       definirDensidade(densidade);
       definirAparencia({ texto });
-      await esperar(300);
+      await assentarLista();
       const outra = await varrer();
       for (const tipo of ["abreGrupo", "continua", "sistema"] as const) {
         const medida = razao(base, outra, tipo);
@@ -204,7 +215,7 @@ describe("densidade e tamanho do texto na lista", () => {
     montarLista();
     await expect.poll(distanciaDoFim, { timeout: 5000 }).toBeLessThanOrEqual(80);
     definirDensidade("compacto");
-    await esperar(500);
+    await assentarLista();
     const virtuais = linhas();
     for (let i = 1; i < virtuais.length; i++) {
       const anterior = virtuais[i - 1]!.getBoundingClientRect();
@@ -213,7 +224,7 @@ describe("densidade e tamanho do texto na lista", () => {
     }
     expect(distanciaDoFim()).toBeLessThanOrEqual(80);
     definirAparencia({ texto: 125 });
-    await esperar(500);
+    await assentarLista();
     expect(distanciaDoFim()).toBeLessThanOrEqual(80);
     for (const l of linhas()) expect(l.offsetHeight).toBeGreaterThan(0);
   });
