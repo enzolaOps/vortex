@@ -192,7 +192,13 @@ while IFS= read -r pr; do
     '{number:$number,title:$title,body:$body,url:$url,labels:$labels,changed_files:$files,diff:$diff,diff_truncated:$diff_truncated}' \
     > "$TMP/pr-$number.json"
 
-  result="$(jev ask --preset release-impact --param "pr=@$TMP/pr-$number.json")"
+  if ! result="$(jev ask --preset release-impact --param "pr=@$TMP/pr-$number.json")"; then
+    echo "::warning::Jev could not process the complete diff for PR #$number; requiring manual review."
+    printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"jev","needs_review":true,"review_reason":"Jev failed to process complete PR diff"}\n' \
+      "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" >> "$TMP/decisions.jsonl"
+    ((review_count+=1))
+    continue
+  fi
   if ! initial_choice="$(jq -er '.answers.impact.choice' <<< "$result")" ||
      ! initial_confidence="$(jq -er --arg choice "$initial_choice" '.answers.impact.probabilities[$choice]' <<< "$result")" ||
      ! [[ "$initial_confidence" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
@@ -212,7 +218,14 @@ while IFS= read -r pr; do
     jq --argjson initial_analysis "$result" \
       '. + {review_pass:true,initial_analysis:$initial_analysis}' \
       "$TMP/pr-$number.json" > "$TMP/pr-$number-review.json"
-    result="$(jev ask --preset release-impact --param "pr=@$TMP/pr-$number-review.json")"
+    if ! result="$(jev ask --preset release-impact --param "pr=@$TMP/pr-$number-review.json")"; then
+      echo "::warning::Jev's second pass could not process the complete diff for PR #$number; requiring manual review."
+      printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"initial_impact":%s,"initial_probability":%s,"method":"jev-second-pass","needs_review":true,"review_reason":"Jev second pass failed to process complete PR diff"}\n' \
+        "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" \
+        "$(jq -Rn --arg v "$initial_choice" '$v')" "$initial_confidence" >> "$TMP/decisions.jsonl"
+      ((review_count+=1))
+      continue
+    fi
     classification_method=jev-second-pass
     if ! choice="$(jq -er '.answers.impact.choice' <<< "$result")" ||
        ! confidence="$(jq -er --arg choice "$choice" '.answers.impact.probabilities[$choice]' <<< "$result")" ||
