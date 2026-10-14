@@ -6,6 +6,10 @@ on:
       - ".github/workflows/intelligent-release.yml"
       - ".jev/presets/release-impact.json"
       - "scripts/ci/intelligent-release.sh"
+      - "scripts/ci/split-release-diff.py"
+      - "scripts/ci/prepare-release-diff.py"
+      - "scripts/ci/test_prepare_release_diff.py"
+      - "scripts/ci/test_split_release_diff.py"
       - "scripts/ci/release-notes.sh"
   push:
     branches: [main]
@@ -13,6 +17,16 @@ on:
     inputs:
       force:
         description: "Reanalyze an already processed main commit (manual review/retry)"
+        required: false
+        default: false
+        type: boolean
+      stabilization_seconds:
+        description: "Seconds to wait for late merge-queue entries (use 0 for immediate testing)"
+        required: false
+        default: 900
+        type: number
+      dry_run:
+        description: "Test the selected branch without creating tags or publishing a release"
         required: false
         default: false
         type: boolean
@@ -41,6 +55,8 @@ jobs:
         run: bash -n scripts/ci/intelligent-release.sh
       - name: Check existing release-notes script syntax
         run: sh -n scripts/ci/release-notes.sh
+      - name: Test release diff pre-analysis and chunking
+        run: python3 -m unittest scripts/ci/test_prepare_release_diff.py scripts/ci/test_split_release_diff.py
       - name: Validate Jev preset JSON
         run: jq empty .jev/presets/release-impact.json
       - name: Check whitespace errors
@@ -57,7 +73,9 @@ jobs:
       - name: Checkout full history and tags
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: main
+          # For a manual dry run, execute the workflow/script from the selected branch.
+          # All normal release runs continue to execute the main branch.
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && github.ref || 'main' }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -88,4 +106,6 @@ jobs:
           REPOSITORY_OWNER: ${{ github.repository_owner }}
           GITHUB_SHA_AT_START: ${{ github.sha }}
           FORCE_REANALYZE: ${{ inputs.force }}
+          STABILIZATION_SECONDS: ${{ inputs.stabilization_seconds }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: bash scripts/ci/intelligent-release.sh
