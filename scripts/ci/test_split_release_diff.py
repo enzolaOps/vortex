@@ -27,8 +27,8 @@ class SplitReleaseDiffTests(unittest.TestCase):
         self.assertEqual(chunks[0]["diff"], diff)
 
     def test_oversized_single_file_requires_manual_review(self):
-        diff = section("huge.txt", "+" + ("x" * 200) + "\n")
-        with self.assertRaisesRegex(ValueError, "no independently splittable hunks"):
+        diff = section("huge.txt", "@@ -1 +1 @@\n-" + ("x" * 200) + "\n")
+        with self.assertRaisesRegex(ValueError, "single diff line exceeds"):
             MODULE.split_diff(diff, 100)
 
 
