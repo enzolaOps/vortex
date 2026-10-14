@@ -26,9 +26,8 @@ jobs:
           private-key: ${{ secrets.CI_APP_PRIVATE_KEY }}
           owner: enzolaOps
           repositories: vortex
-          permission-pull-requests: write
-          permission-contents: read
-          permission-merge-queues: write
+          # No permission-* inputs: the token inherits the permissions granted
+          # to this app installation, including merge-queues: write.
 
       - name: Add PR to merge queue
         env:
