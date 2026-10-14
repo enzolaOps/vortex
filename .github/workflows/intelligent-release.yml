@@ -16,6 +16,11 @@ on:
         required: false
         default: false
         type: boolean
+      stabilization_seconds:
+        description: "Seconds to wait for late merge-queue entries (use 0 for immediate testing)"
+        required: false
+        default: 60
+        type: number
 
 # Never run two release decisions concurrently. A later main push stays queued
 # while an earlier decision finishes or safely aborts.
@@ -88,4 +93,5 @@ jobs:
           REPOSITORY_OWNER: ${{ github.repository_owner }}
           GITHUB_SHA_AT_START: ${{ github.sha }}
           FORCE_REANALYZE: ${{ inputs.force }}
+          STABILIZATION_SECONDS: ${{ inputs.stabilization_seconds }}
         run: bash scripts/ci/intelligent-release.sh
