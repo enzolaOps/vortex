@@ -205,7 +205,7 @@ while IFS= read -r pr; do
   prep_file="$TMP/pr-$number-prepared.json"
   if ! python3 scripts/ci/prepare-release-diff.py "$diff_file" "$title" "$body" > "$prep_file"; then
     echo "::warning::PR #$number diff pre-analysis failed; requiring manual review."
-    printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"pre-analysis","needs_review":true,"review_reason":"Diff pre-analysis failed"}\\n' \\
+    printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"pre-analysis","needs_review":true,"review_reason":"Diff pre-analysis failed"}\n' \
       "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" >> "$TMP/decisions.jsonl"
     ((review_count+=1))
     continue
@@ -217,17 +217,17 @@ while IFS= read -r pr; do
   pre_impact="$(jq -r '.policy_impact // ""' "$prep_file")"
   if [[ "$pre_action" != "jev" ]]; then
     if [[ "$pre_action" == "review" ]]; then
-      printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"deterministic-pre-analysis","needs_review":true,"review_reason":%s}\\n' \\
+      printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"deterministic-pre-analysis","needs_review":true,"review_reason":%s}\n' \
         "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" "$(jq -Rn --arg v "$pre_reason" '$v')" >> "$TMP/decisions.jsonl"
       ((review_count+=1))
       echo "PR #$number => review (deterministic pre-analysis: $pre_reason)"
     else
-      printf '{"number":%s,"title":%s,"url":%s,"impact":%s,"probability":1.0,"method":"deterministic-pre-analysis","needs_review":false,"reason":%s}\\n' \\
+      printf '{"number":%s,"title":%s,"url":%s,"impact":%s,"probability":1.0,"method":"deterministic-pre-analysis","needs_review":false,"reason":%s}\n' \
         "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" "$(jq -Rn --arg v "$pre_action" '$v')" "$(jq -Rn --arg v "$pre_reason" '$v')" >> "$TMP/decisions.jsonl"
       case "$pre_action" in
-        major) printf '%s\\n' "- **#$number** $title ([PR](<$url>))" >> "$TMP/major.md"; ((major_count+=1)) ;;
-        minor) printf '%s\\n' "- **#$number** $title ([PR](<$url>))" >> "$TMP/minor.md"; ((minor_count+=1)) ;;
-        patch) printf '%s\\n' "- **#$number** $title ([PR](<$url>))" >> "$TMP/patch.md"; ((patch_count+=1)) ;;
+        major) printf '%s\n' "- **#$number** $title ([PR](<$url>))" >> "$TMP/major.md"; ((major_count+=1)) ;;
+        minor) printf '%s\n' "- **#$number** $title ([PR](<$url>))" >> "$TMP/minor.md"; ((minor_count+=1)) ;;
+        patch) printf '%s\n' "- **#$number** $title ([PR](<$url>))" >> "$TMP/patch.md"; ((patch_count+=1)) ;;
         none) ((none_count+=1)) ;;
       esac
       echo "PR #$number => $pre_action (deterministic pre-analysis: $pre_reason)"
@@ -247,7 +247,7 @@ $pre_summary"
   diff_bytes="$(wc -c < "$diff_file" | tr -d ' ')"
   if (( diff_bytes == 0 )); then
     echo "::warning::PR #$number has no implementation diff after pre-analysis; requiring manual review."
-    printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"pre-analysis","needs_review":true,"review_reason":"No implementation diff remains after pre-analysis"}\\n' \\
+    printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"pre-analysis","needs_review":true,"review_reason":"No implementation diff remains after pre-analysis"}\n' \
       "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" >> "$TMP/decisions.jsonl"
     ((review_count+=1))
     continue
@@ -418,8 +418,8 @@ $pre_summary"
   classification_method="${classification_method_override:-jev}"
   if [[ "$pre_impact" == "review" ]]; then
     review_reason="Dependency changes lack sufficient release-note evidence for a safe impact decision"
-    printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":%s,"initial_impact":%s,"initial_probability":%s,"method":"pre-analysis+jev","needs_review":true,"review_reason":%s}\\n' \\
-      "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" \\
+    printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":%s,"initial_impact":%s,"initial_probability":%s,"method":"pre-analysis+jev","needs_review":true,"review_reason":%s}\n' \
+      "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" \
       "$confidence" "$(jq -Rn --arg v "$initial_choice" '$v')" "$initial_confidence" "$(jq -Rn --arg v "$pre_reason" '$v')" >> "$TMP/decisions.jsonl"
     ((review_count+=1))
     echo "PR #$number => review ($pre_reason)"
