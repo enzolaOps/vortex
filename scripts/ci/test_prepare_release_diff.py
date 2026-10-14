@@ -25,34 +25,32 @@ class PrepareReleaseDiffTests(unittest.TestCase):
         prepared = MODULE.prepare(section("docs/api.md") + section("README.md"), "docs", "")
         self.assertEqual(prepared["action"], "none")
 
-    def test_lockfile_dependency_with_user_facing_release_note_is_patch(self):
+    def test_dependency_only_pr_is_none_even_with_user_facing_upstream_notes(self):
         diff = section("server/docs/pnpm-lock.yaml") + section("server/docs/package-lock.json")
-        body = "Release notes: Apply formatting and lint compatibility changes. Order theme overrides by specificity while preserving existing styles."
+        body = "Release notes: Fix rendering bug and add a new feature."
         prepared = MODULE.prepare(diff, "chore(deps): update Scalar", body)
-        self.assertEqual(prepared["action"], "patch")
+        self.assertEqual(prepared["action"], "none")
         self.assertEqual(prepared["analysis_diff"], "")
 
-    def test_reqwest_release_notes_starting_with_fix_are_patch(self):
+    def test_dependency_only_pr_with_fix_notes_is_none(self):
         body = "Release notes: Fix hickory-dns to prefer IPv6. Fix sending wrong proxy-auth if multiple proxies intercept a given URL."
         prepared = MODULE.prepare(section("Cargo.lock"), "chore(deps): update reqwest to v0.13.5", body)
-        self.assertEqual(prepared["action"], "patch")
+        self.assertEqual(prepared["action"], "none")
 
-    def test_livekit_release_notes_starting_with_fix_are_patch(self):
-        body = "Patch Changes: Fix Document Picture-in-Picture detection. Fix unhandled RPC timeout rejections."
-        prepared = MODULE.prepare(section("pnpm-lock.yaml"), "chore(deps): update livekit-client", body)
-        self.assertEqual(prepared["action"], "patch")
+    def test_dependency_only_pr_does_not_fetch_upstream_changelog(self):
+        body = "Release notes: [solidjs/solid](https://redirect.github.com/solidjs/solid/compare/solid-js@1.9.15...v1.9.16)"
+        with mock.patch.object(MODULE, "linked_upstream_release_notes", side_effect=AssertionError("should not fetch")):
+            prepared = MODULE.prepare(section("pnpm-lock.yaml"), "chore(deps): update dependency solid-js to v1.9.17", body)
+        self.assertEqual(prepared["action"], "none")
 
     def test_tooling_only_dependency_update_is_none(self):
         diff = section("pnpm-lock.yaml")
         prepared = MODULE.prepare(diff, "chore(deps): update formatter", "Release notes: formatting and lint compatibility changes for the build tooling.")
         self.assertEqual(prepared["action"], "none")
 
-    def test_linked_upstream_changelog_security_fix_is_patch(self):
-        body = "Release notes: [solidjs/solid](https://redirect.github.com/solidjs/solid/compare/solid-js@1.9.15...v1.9.16)"
-        changelog = "## 1.9.16\n\n### Patch Changes\n\n- Update dependencies; includes seroval security fixes (CVE-2026-104846).\n\n## 1.9.15\n\n- Previous release.\n"
-        with mock.patch.object(MODULE, "linked_upstream_release_notes", return_value=changelog):
-            prepared = MODULE.prepare(section("pnpm-lock.yaml"), "chore(deps): update dependency solid-js to v1.9.17", body)
-        self.assertEqual(prepared["action"], "patch")
+    def test_unclear_dependency_only_update_is_none_not_review(self):
+        prepared = MODULE.prepare(section("pnpm-lock.yaml"), "chore(deps): update library", "Automated dependency update.")
+        self.assertEqual(prepared["action"], "none")
         self.assertIn("dependency-lockfile", prepared["paths_by_category"])
 
     def test_unclear_dependency_update_requires_review(self):
