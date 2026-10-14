@@ -4,7 +4,7 @@ on:
   pull_request_review:
     types: [submitted]
   workflow_run:
-    workflows: ["Vortex client image"]
+    workflows: ["CI"]
     types: [completed]
 
 permissions:
@@ -28,7 +28,7 @@ jobs:
           owner: enzolaOps
           repositories: vortex
 
-      - name: Resolve PR and verify approval and required client check
+      - name: Resolve PR and verify approval and the required CI check
         id: verify
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
@@ -78,13 +78,13 @@ jobs:
           fi
 
           CHECKS="$(gh api "repos/enzolaOps/vortex/commits/$HEAD_SHA/check-runs")"
-          CLIENT_CHECK="$(jq -c '[.check_runs[] | select(.name == "Vortex client")] | sort_by(.started_at // .created_at) | last // empty' <<< "$CHECKS")"
-          if [ -z "$CLIENT_CHECK" ] || [ "$(jq -r '.status' <<< "$CLIENT_CHECK")" != "completed" ]; then
-            echo "Vortex client is not complete yet; the workflow_run trigger will retry after it finishes."
+          CI_CHECK="$(jq -c '[.check_runs[] | select(.name == "CI")] | sort_by(.started_at // .created_at) | last // empty' <<< "$CHECKS")"
+          if [ -z "$CI_CHECK" ] || [ "$(jq -r '.status' <<< "$CI_CHECK")" != "completed" ]; then
+            echo "CI is not complete yet; the workflow_run trigger will retry after it finishes."
             exit 0
           fi
-          if [ "$(jq -r '.conclusion' <<< "$CLIENT_CHECK")" != "success" ]; then
-            echo "Vortex client did not succeed; skipping enqueue."
+          if [ "$(jq -r '.conclusion' <<< "$CI_CHECK")" != "success" ]; then
+            echo "CI did not succeed; skipping enqueue."
             exit 0
           fi
 
