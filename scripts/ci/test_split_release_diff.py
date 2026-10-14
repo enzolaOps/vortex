@@ -48,8 +48,8 @@ class SplitReleaseDiffTests(unittest.TestCase):
 
 
     def test_splits_one_large_hunk_without_dropping_lines(self):
-        body = "".join(f"-old line {i:03d}\\n+new line {i:03d}\\n" for i in range(40))
-        diff = section("large-hunk.txt", "@@ -1,40 +1,40 @@\\n" + body)
+        body = "".join(f"-old line {i:03d}\n+new line {i:03d}\n" for i in range(40))
+        diff = section("large-hunk.txt", "@@ -1,40 +1,40 @@\n" + body)
         chunks = MODULE.split_diff(diff, 220)
         self.assertGreater(len(chunks), 1)
         self.assertTrue(all(c["bytes"] <= 220 for c in chunks))
