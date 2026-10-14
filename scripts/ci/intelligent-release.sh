@@ -133,6 +133,7 @@ major_count=0
 minor_count=0
 patch_count=0
 none_count=0
+review_count=0
 : > "$TMP/major.md"
 : > "$TMP/minor.md"
 : > "$TMP/patch.md"
@@ -146,10 +147,28 @@ while IFS= read -r pr; do
   labels="$(jq -c '[.labels[].name]' <<< "$pr")"
   files="$(jq -c '[.files[].path]' <<< "$pr")"
 
+  # Release/CI automation changes cannot alter Vortex's shipped behavior.
+  # Keep this policy narrow and deterministic; mixed product+automation PRs go to Jev.
+  if jq -e 'length > 0 and all(.[]; startswith(".github/workflows/") or startswith("scripts/ci/") or startswith(".jev/"))' <<< "$files" >/dev/null; then
+    choice=none
+    confidence=1.0
+    printf '{"number":%s,"title":%s,"url":%s,"impact":"none","probability":1.0,"method":"path-policy","needs_review":false}\n' \
+      "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" >> "$TMP/decisions.jsonl"
+    ((none_count+=1))
+    echo "PR #$number => none (deterministic: release/CI-only paths)"
+    continue
+  fi
+
   # Give Jev the actual patch, not only PR metadata and file paths.
   # Bound the payload so unusually large PRs cannot overwhelm the classifier.
   diff_file="$TMP/pr-$number.diff"
-  gh pr diff "$number" --repo "$REPOSITORY" > "$diff_file"
+  if ! gh pr diff "$number" --repo "$REPOSITORY" > "$diff_file"; then
+    echo "::warning::Could not retrieve diff for PR #$number; requiring manual review."
+    printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"jev","needs_review":true,"review_reason":"Could not retrieve PR diff"}\n' \
+      "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" >> "$TMP/decisions.jsonl"
+    ((review_count+=1))
+    continue
+  fi
   diff_bytes="$(wc -c < "$diff_file" | tr -d ' ')"
   max_diff_bytes=40000
   diff_truncated=false
@@ -173,25 +192,75 @@ while IFS= read -r pr; do
     > "$TMP/pr-$number.json"
 
   result="$(jev ask --preset release-impact --param "pr=@$TMP/pr-$number.json")"
-  choice="$(jq -er '.answers.impact.choice' <<< "$result")"
-  confidence="$(jq -er --arg choice "$choice" '.answers.impact.probabilities[$choice]' <<< "$result")"
+  if ! initial_choice="$(jq -er '.answers.impact.choice' <<< "$result")" ||
+     ! initial_confidence="$(jq -er --arg choice "$initial_choice" '.answers.impact.probabilities[$choice]' <<< "$result")" ||
+     ! [[ "$initial_confidence" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+    echo "::warning::Jev returned an invalid classification for PR #$number; requiring manual review."
+    printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"jev","needs_review":true,"review_reason":"Invalid initial Jev response"}\n' \
+      "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" >> "$TMP/decisions.jsonl"
+    ((review_count+=1))
+    continue
+  fi
 
-  if ! [[ "$confidence" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
-    echo "::error::Jev returned no valid probability for PR #$number; refusing to publish."
-    exit 1
+  choice="$initial_choice"
+  confidence="$initial_confidence"
+  classification_method=jev
+  # Ambiguous results get a second, targeted pass with the original response
+  # included so Jev can revisit its uncertainty instead of repeating blindly.
+  if [[ "$choice" == "review" ]] || ! awk -v p="$confidence" -v min="$MIN_CONFIDENCE" 'BEGIN { exit !(p >= min) }'; then
+    jq --argjson initial_analysis "$result" \
+      '. + {review_pass:true,initial_analysis:$initial_analysis}' \
+      "$TMP/pr-$number.json" > "$TMP/pr-$number-review.json"
+    result="$(jev ask --preset release-impact --param "pr=@$TMP/pr-$number-review.json")"
+    classification_method=jev-second-pass
+    if ! choice="$(jq -er '.answers.impact.choice' <<< "$result")" ||
+       ! confidence="$(jq -er --arg choice "$choice" '.answers.impact.probabilities[$choice]' <<< "$result")" ||
+       ! [[ "$confidence" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+      echo "::warning::Jev's second pass returned an invalid classification for PR #$number; requiring manual review."
+      printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"initial_impact":%s,"initial_probability":%s,"method":"jev-second-pass","needs_review":true,"review_reason":"Invalid second-pass Jev response"}\n' \
+        "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" \
+        "$(jq -Rn --arg v "$initial_choice" '$v')" "$initial_confidence" >> "$TMP/decisions.jsonl"
+      ((review_count+=1))
+      continue
+    fi
   fi
-  if awk -v p="$confidence" -v min="$MIN_CONFIDENCE" 'BEGIN { exit !(p >= min) }'; then
-    :
-  else
-    needs_review "Jev confidence $confidence for PR #$number is below $MIN_CONFIDENCE; manual review required."
+
+  if ! [[ "$choice" =~ ^(major|minor|patch|none|review)$ ]]; then
+    choice=review
+    confidence=0
   fi
+
+  review_reason=""
   if [[ "$choice" == "review" ]]; then
-    needs_review "Jev marked PR #$number for manual review; no release will be published."
+    review_reason="Jev still marked this PR for manual review after the second pass"
+  elif ! awk -v p="$confidence" -v min="$MIN_CONFIDENCE" 'BEGIN { exit !(p >= min) }'; then
+    # Patch vs. no-release ambiguity is low risk only when Jev assigns very
+    # little probability to a feature, breaking change, or unresolved review.
+    high_impact_probability="$(jq -r '[.answers.impact.probabilities.major // 0, .answers.impact.probabilities.minor // 0, .answers.impact.probabilities.review // 0] | max' <<< "$result")"
+    if [[ "$choice" =~ ^(patch|none)$ ]] &&
+       awk -v p="$confidence" -v low=0.55 -v high="$high_impact_probability" \
+         'BEGIN { exit !(p >= low && high < 0.20) }'; then
+      echo "PR #$number accepted under low-risk policy (p=$confidence; highest major/minor/review probability=$high_impact_probability)"
+    else
+      review_reason="Confidence $confidence remains below $MIN_CONFIDENCE after the second pass"
+    fi
   fi
 
-  printf '{"number":%s,"title":%s,"url":%s,"impact":%s,"probability":%s}\n' \
+  if [[ -n "$review_reason" ]]; then
+    printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":%s,"initial_impact":%s,"initial_probability":%s,"method":%s,"needs_review":true,"review_reason":%s}\n' \
+      "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" \
+      "$confidence" "$(jq -Rn --arg v "$initial_choice" '$v')" "$initial_confidence" \
+      "$(jq -Rn --arg v "$classification_method" '$v')" "$(jq -Rn --arg v "$review_reason" '$v')" >> "$TMP/decisions.jsonl"
+    ((review_count+=1))
+    echo "PR #$number => review (p=$confidence; $review_reason)"
+    continue
+  fi
+
+  printf '{"number":%s,"title":%s,"url":%s,"impact":%s,"probability":%s,"initial_impact":%s,"initial_probability":%s,"method":%s,"needs_review":false}\n' \
     "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" \
-    "$(jq -Rn --arg v "$choice" '$v')" "$confidence" >> "$TMP/decisions.jsonl"
+    "$(jq -Rn --arg v "$choice" '$v')" "$confidence" \
+    "$(jq -Rn --arg v "$initial_choice" '$v')" "$initial_confidence" \
+    "$(jq -Rn --arg v "$classification_method" '$v')" >> "$TMP/decisions.jsonl"
 
   item="- **#$number** $title ([PR](<$url>))"
   case "$choice" in
@@ -199,10 +268,28 @@ while IFS= read -r pr; do
     minor) printf '%s\n' "$item" >> "$TMP/minor.md"; ((minor_count+=1)) ;;
     patch) printf '%s\n' "$item" >> "$TMP/patch.md"; ((patch_count+=1)) ;;
     none) ((none_count+=1)) ;;
-    *) echo "::error::Unexpected Jev label '$choice' for PR #$number."; exit 1 ;;
   esac
-  echo "PR #$number => $choice (p=$confidence)"
+  echo "PR #$number => $choice (p=$confidence; $classification_method)"
 done < "$TMP/eligible.jsonl"
+
+
+if (( review_count > 0 )); then
+  {
+    echo "### Intelligent release paused for manual review"
+    echo
+    echo "No release was published. $review_count of $eligible_count PR(s) still require review after classification and targeted re-analysis."
+    echo
+    echo "Rerun this workflow with \`force=true\` after reviewing the decisions."
+    echo
+    echo "#### PRs requiring review"
+    jq -r 'select(.needs_review == true) | "- #\(.number) \(.title): \(.review_reason // "insufficient confidence") (initial=\(.initial_impact // "unavailable"), final probability=\(.probability // "unavailable"))"' "$TMP/decisions.jsonl"
+    echo
+    echo "#### All classifier decisions"
+    jq -r '"- #\(.number) \(.title): \(.impact) (p=\(.probability // "n/a"), method=\(.method // "n/a"))"' "$TMP/decisions.jsonl"
+  } >> "$GITHUB_STEP_SUMMARY"
+  mark_processed
+  exit 0
+fi
 
 if (( major_count + minor_count + patch_count == 0 )); then
   {
