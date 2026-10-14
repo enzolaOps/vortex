@@ -1,7 +1,8 @@
-/* GERADO por scripts/tokens.mjs a partir de tokens.json. NÃO EDITAR. */
+/* GERADO por scripts/tokens.mjs a partir de tokens.json e temas/*.json. NÃO EDITAR. */
 
 :root,
-:root[data-tema="vidro"] {
+[data-tema="vidro"] {
+  color-scheme: dark;
   --vx-backdrop-base: #0a0c14;
   --vx-backdrop-glow-teal: #1fb6c9;
   --vx-backdrop-glow-indigo: #5b5bd6;
@@ -63,6 +64,83 @@
   --vx-avatar-6: #6a4a2e;
   --vx-avatar-7: #2f4f7f;
   --vx-avatar-8: #5c5c7a;
+  --vx-elev-1: 0 2px 8px rgba(0,0,0,0.30);
+  --vx-elev-2: 0 12px 40px rgba(0,0,0,0.35);
+  --vx-elev-3: 0 24px 64px rgba(0,0,0,0.50);
+  --vx-shadow-glass-inner: inset 0 1px 0 rgba(255,255,255,0.14);
+  --vx-shadow-speaking: 0 0 0 2px #5ee6d0, 0 0 0 4px rgba(94,230,208,0.25);
+  --vx-shadow-selected: 0 0 0 2px #121420, 0 0 0 4px #a99bff;
+}
+
+[data-tema="claro"] {
+  color-scheme: light;
+  --vx-backdrop-base: #eceef7;
+  --vx-backdrop-glow-teal: #66d0e0;
+  --vx-backdrop-glow-indigo: #919afb;
+  --vx-backdrop-glow-magenta: #e891c0;
+  --vx-surface-base: var(--vx-backdrop-base);
+  --vx-surface-glass: rgba(251,252,255,0.60);
+  --vx-surface-glass-reading: rgba(253,253,255,0.74);
+  --vx-surface-overlay: rgba(253,253,255,0.80);
+  --vx-surface-solid: #fdfdff;
+  --vx-stage: #07080c;
+  --vx-glass-border: rgba(22,26,41,0.10);
+  --vx-glass-highlight: rgba(255,255,255,0.70);
+  --vx-scrim: rgba(19,21,31,0.45);
+  --vx-text-1: #171a26;
+  --vx-text-2: #383c4d;
+  --vx-text-3: #4c5265;
+  --vx-text-4: #5a5f74;
+  --vx-text-on-accent: #faf9ff;
+  --vx-text-on-live: #fff8f9;
+  --vx-text-on-danger: #fff9f7;
+  --vx-text-on-mention: #edecfe;
+  --vx-border-subtle: rgba(22,26,41,0.10);
+  --vx-border-strong: #797f96;
+  --vx-accent: #6848c9;
+  --vx-accent-hover: #5a38b8;
+  --vx-accent-press: #4d2ba3;
+  --vx-accent-soft: rgba(104,72,201,0.10);
+  --vx-state-hover: rgba(22,26,41,0.05);
+  --vx-state-press: rgba(22,26,41,0.09);
+  --vx-state-selected: rgba(104,72,201,0.10);
+  --vx-focus-ring: #4057da;
+  --vx-live: #c9214e;
+  --vx-speaking: #117366;
+  --vx-muted: #555a6c;
+  --vx-deafened: #555a6c;
+  --vx-quality-good: #11733e;
+  --vx-quality-fair: #875a06;
+  --vx-quality-poor: #a34a0b;
+  --vx-unread: #6848c9;
+  --vx-mention: #372272;
+  --vx-danger: #b53700;
+  --vx-danger-soft: rgba(181,55,0,0.12);
+  --vx-warning: #875a06;
+  --vx-warning-soft: rgba(135,90,6,0.14);
+  --vx-success: #327122;
+  --vx-success-soft: rgba(50,113,34,0.12);
+  --vx-info: #2564ab;
+  --vx-info-soft: rgba(37,100,171,0.12);
+  --vx-presence-online: #117366;
+  --vx-presence-idle: #875a06;
+  --vx-presence-dnd: #c9214e;
+  --vx-presence-offline: #6b7186;
+  --vx-skeleton: rgba(22,26,41,0.08);
+  --vx-avatar-1: #3b4a7a;
+  --vx-avatar-2: #5a3f7a;
+  --vx-avatar-3: #2e6a6e;
+  --vx-avatar-4: #7a3f5a;
+  --vx-avatar-5: #4a5a3a;
+  --vx-avatar-6: #6a4a2e;
+  --vx-avatar-7: #2f4f7f;
+  --vx-avatar-8: #5c5c7a;
+  --vx-elev-1: 0 2px 8px rgba(22,26,41,0.10);
+  --vx-elev-2: 0 12px 40px rgba(22,26,41,0.14);
+  --vx-elev-3: 0 24px 64px rgba(22,26,41,0.22);
+  --vx-shadow-glass-inner: inset 0 1px 0 rgba(255,255,255,0.70);
+  --vx-shadow-speaking: 0 0 0 2px #117366, 0 0 0 4px rgba(17,115,102,0.25);
+  --vx-shadow-selected: 0 0 0 2px #fdfdff, 0 0 0 4px #6848c9;
 }
 
 :root {
@@ -79,12 +157,6 @@
   --vx-radius-lg: 18px;
   --vx-radius-xl: 22px;
   --vx-radius-pill: 999px;
-  --vx-elev-1: 0 2px 8px rgba(0,0,0,0.30);
-  --vx-elev-2: 0 12px 40px rgba(0,0,0,0.35);
-  --vx-elev-3: 0 24px 64px rgba(0,0,0,0.50);
-  --vx-shadow-glass-inner: inset 0 1px 0 rgba(255,255,255,0.14);
-  --vx-shadow-speaking: 0 0 0 2px #5ee6d0, 0 0 0 4px rgba(94,230,208,0.25);
-  --vx-shadow-selected: 0 0 0 2px #121420, 0 0 0 4px #a99bff;
   --vx-blur-glass: 28px;
   --vx-saturate-glass: 160%;
   --vx-blur-glow: 90px;
