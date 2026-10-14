@@ -31,6 +31,21 @@ class SplitReleaseDiffTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "single-file diff exceeds"):
             MODULE.split_diff(diff, 100)
 
+
+    def test_splits_large_file_only_at_hunk_boundaries(self):
+        diff = (
+            "diff --git a/large.txt b/large.txt\\n"
+            "index 1111111..2222222 100644\\n"
+            "--- a/large.txt\\n+++ b/large.txt\\n"
+            "@@ -1 +1 @@\\n-" + ("a" * 35) + "\\n+" + ("b" * 35) + "\\n"
+            "@@ -100 +100 @@\\n-" + ("c" * 35) + "\\n+" + ("d" * 35) + "\\n"
+        )
+        chunks = MODULE.split_diff(diff, 100)
+        self.assertEqual(len(chunks), 2)
+        self.assertTrue(all(c["bytes"] <= 100 for c in chunks))
+        self.assertTrue(all(c["diff"].startswith("diff --git a/large.txt") for c in chunks))
+        self.assertEqual(sum(c["diff"].count("@@ -") for c in chunks), 2)
+
     def test_empty_diff_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "diff is empty"):
             MODULE.split_diff("", 100)
