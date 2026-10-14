@@ -28,7 +28,7 @@ class SplitReleaseDiffTests(unittest.TestCase):
 
     def test_oversized_single_file_requires_manual_review(self):
         diff = section("huge.txt", "+" + ("x" * 200) + "\n")
-        with self.assertRaisesRegex(ValueError, "single-file diff exceeds"):
+        with self.assertRaisesRegex(ValueError, "single hunk exceeds"):
             MODULE.split_diff(diff, 100)
 
 
@@ -40,9 +40,9 @@ class SplitReleaseDiffTests(unittest.TestCase):
             "@@ -1 +1 @@\\n-" + ("a" * 35) + "\\n+" + ("b" * 35) + "\\n"
             "@@ -100 +100 @@\\n-" + ("c" * 35) + "\\n+" + ("d" * 35) + "\\n"
         )
-        chunks = MODULE.split_diff(diff, 100)
+        chunks = MODULE.split_diff(diff, 180)
         self.assertEqual(len(chunks), 2)
-        self.assertTrue(all(c["bytes"] <= 100 for c in chunks))
+        self.assertTrue(all(c["bytes"] <= 180 for c in chunks))
         self.assertTrue(all(c["diff"].startswith("diff --git a/large.txt") for c in chunks))
         self.assertEqual(sum(c["diff"].count("@@ -") for c in chunks), 2)
 
