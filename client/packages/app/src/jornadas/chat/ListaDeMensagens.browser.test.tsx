@@ -82,6 +82,50 @@ describe("ListaDeMensagens", () => {
     expect(distanciaDoFim()).toBeLessThanOrEqual(80);
   }, 20_000);
 
+  it("arrastar a barra de rolagem descola do fim: mensagem nova não puxa de volta", async () => {
+    montarLista();
+    const el = log();
+    // Leitura assentada: a mesma posição e a mesma altura em duas leituras seguidas.
+    // O `scrollToEnd` da carga inicial segue reconciliando por alguns quadros, e um
+    // arraste no meio dele seria atropelado pelo próprio virtualizador.
+    const assentada = async (condicao: () => boolean) => {
+      let anterior = "";
+      await expect
+        .poll(
+          () => {
+            const atual = `${String(el.scrollTop)}|${String(el.scrollHeight)}`;
+            const parado = atual === anterior;
+            anterior = atual;
+            return parado && condicao();
+          },
+          { timeout: 5000, interval: 100 },
+        )
+        .toBe(true);
+    };
+    await assentada(() => distanciaDoFim() <= 80);
+
+    // Arraste da barra: o alvo do ponteiro é o PRÓPRIO container (a barra pertence a
+    // ele), e não há `wheel` nem tecla — só a rolagem que o navegador aplica.
+    el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, buttons: 1, pointerType: "mouse" }));
+    el.scrollTop = Math.round((el.scrollHeight - el.clientHeight) / 2);
+    await assentada(() => distanciaDoFim() > 400);
+    el.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, buttons: 0, pointerType: "mouse" }));
+    await assentada(() => distanciaDoFim() > 400);
+    const posicao = el.scrollTop;
+    const altura = el.scrollHeight;
+
+    // Só mensagens: cada uma cresce o conteúdo no fim, que é o que reancorava.
+    const parar = startFirehose(60, ids, { message: 1, update: 0, reaction: 0, typing: 0, presence: 0 });
+    try {
+      await expect.poll(() => el.scrollHeight, { timeout: 5000 }).toBeGreaterThan(altura + 200);
+    } finally {
+      parar();
+    }
+    await assentada(() => true);
+    expect(Math.abs(el.scrollTop - posicao)).toBeLessThanOrEqual(2);
+    expect(distanciaDoFim()).toBeGreaterThan(400);
+  }, 30_000);
+
   it("remede ao mudar a largura: todas as linhas na janela batem com a altura do DOM", async () => {
     const alvo = montarLista(900);
     await expect.poll(distanciaDoFim, { timeout: 5000 }).toBeLessThanOrEqual(80);
