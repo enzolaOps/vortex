@@ -28,6 +28,7 @@ jobs:
           repositories: vortex
           permission-pull-requests: write
           permission-contents: read
+          permission-merge-queues: write
 
       - name: Add PR to merge queue
         env:
