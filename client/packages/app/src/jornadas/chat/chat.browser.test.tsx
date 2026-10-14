@@ -28,10 +28,12 @@ import { userEvent, page } from "vitest/browser";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { chat } from "../../textos";
+import { assentar, assentarRolagem, quadros } from "../../testes/esperas";
 import { AreaPrincipal } from "../../shell";
 import { desmontar, montar, pegar } from "../../ui/ds/montar";
 import { Avisos } from "../../ui/primitivos/Avisos";
 import { AreaDeChat } from "./AreaDeChat";
+import { LIMIAR_DE_LONGE } from "./alturas";
 import { AreaDoCanal } from "./CabecalhoDoCanal";
 
 const C = "C1";
@@ -238,12 +240,12 @@ afterEach(() => {
   desmontar();
 });
 
-const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const log = () => pegar<HTMLElement>('[role="log"]')!;
 const distanciaDoFim = () => log().scrollHeight - log().clientHeight - log().scrollTop;
 const linhas = () => Array.from(document.querySelectorAll<HTMLElement>("[data-index]"));
 const linhaDe = (id: string) => document.querySelector<HTMLElement>(`[data-menu-mensagem="${id}"]`);
 const menu = () => document.querySelector<HTMLElement>('[role="menu"]');
+const temBotao = (texto: string) => Array.from(document.querySelectorAll("button")).some((b) => b.textContent === texto);
 
 function abrir(canalId = C, altura = 640) {
   return montar(
@@ -253,6 +255,30 @@ function abrir(canalId = C, altura = 640) {
       </AreaPrincipal>
     </div>,
   );
+}
+
+/**
+ * Rola para `scrollTop = alvo` como uma PESSOA rola, e espera a lista parar ali.
+ *
+ * Só gesto descola a lista do fim (roda, toque, tecla): `scrollTop` sozinho não, de
+ * propósito. E o gesto vale por 150ms: com a CPU disputada o evento `scroll` da
+ * atribuição pode chegar depois disso, a lista continua "colada" e a próxima medição
+ * de linha a devolve ao fim. Por isso o gesto é repetido até a posição segurar.
+ */
+async function subirComGesto(alvo: number) {
+  await expect
+    .poll(
+      async () => {
+        log().dispatchEvent(new WheelEvent("wheel", { deltaY: -3000 }));
+        log().scrollTop = alvo;
+        await quadros(2);
+        return distanciaDoFim();
+      },
+      { timeout: 5000 },
+    )
+    .toBeGreaterThan(LIMIAR_DE_LONGE);
+  await assentarRolagem(log);
+  expect(distanciaDoFim()).toBeGreaterThan(LIMIAR_DE_LONGE);
 }
 
 function clicarDireito(alvo: Element) {
@@ -348,8 +374,11 @@ describe("anexos", () => {
     const antes = caixa();
     expect(antes.width).toBe(360);
     expect(Math.abs(antes.height - 202.5)).toBeLessThan(2);
-    // A imagem falha (404): a caixa continua do mesmo tamanho.
-    await esperar(500);
+    // A imagem falha (404): a caixa continua do mesmo tamanho. `complete` vira verdadeiro
+    // quando a carga TERMINA, com sucesso ou erro; dois quadros pintam o que o erro mudou.
+    const img = linhaDe("i1")!.querySelector("img")!;
+    await expect.poll(() => img.complete, { timeout: 5000 }).toBe(true);
+    await quadros(2);
     const depois = caixa();
     expect(depois.width).toBe(antes.width);
     expect(depois.height).toBe(antes.height);
@@ -483,30 +512,16 @@ describe("lista: âncora, histórico e leitura como posição", () => {
     abrir();
     await expect.poll(distanciaDoFim, { timeout: 5000 }).toBeLessThanOrEqual(80);
 
-    // Sobe até perto do topo: pede a página anterior.
-    log().scrollTop = 600;
+    // Sobe até perto do topo, com gesto: pede a página anterior. Antes isto era um
+    // `scrollTop = 600` cru, que NÃO descola a lista — a primeira medição de linha a
+    // devolvia ao fim, e o teste media uma linha do fim da lista, onde prepend nenhum
+    // move nada. Passava por acaso, e reprovava quando o retorno ao fim chegava DEPOIS
+    // de a referência ser escolhida (o que acontece com a CPU disputada).
+    await subirComGesto(600);
     await expect.poll(() => ctl.paginas.length, { timeout: 3000 }).toBeGreaterThan(0);
 
-    // Sem espera fixa: no runner do CI o virtualizador pode levar mais de 200ms
-    // para montar as linhas da nova janela. Espera-se uma linha de referência
-    // existir e PARAR (mesma posição em duas leituras seguidas) antes de medir.
     const linhaDeReferencia = () =>
       linhas().find((l) => l.getBoundingClientRect().top > log().getBoundingClientRect().top + 40);
-    let ultimaPosicao = Number.NaN;
-    await expect
-      .poll(
-        () => {
-          const linha = linhaDeReferencia();
-          if (!linha) return false;
-          const top = linha.getBoundingClientRect().top;
-          const parada = top === ultimaPosicao;
-          ultimaPosicao = top;
-          return parada;
-        },
-        { timeout: 4000, interval: 100 },
-      )
-      .toBe(true);
-
     const referencia = linhaDeReferencia()!;
     const id = referencia.querySelector<HTMLElement>("[data-menu-mensagem]")!.dataset.menuMensagem!;
     const antes = referencia.getBoundingClientRect().top;
@@ -517,13 +532,13 @@ describe("lista: âncora, histórico e leitura como posição", () => {
     channelMessageIds.set(C, [...anteriores.map((s) => s.id), ...atuais.map((s) => s.id)]);
 
     // A reancoragem leva alguns quadros (medição das linhas novas + correção do
-    // scroll). Uma espera fixa reprovava no runner do CI, mais lento: espera-se
-    // o estado ASSENTADO, com a mesma tolerância de 3px.
-    await expect
-      .poll(() => Math.abs(linhaDe(id)!.parentElement!.getBoundingClientRect().top - antes), {
-        timeout: 4000,
-      })
-      .toBeLessThanOrEqual(3);
+    // scroll): espera-se o estado ASSENTADO, com a mesma tolerância de 3px, e a lista
+    // continua longe do fim (voltar ao fim também deixaria a linha "parada" na tela).
+    const deslocamento = () => Math.abs(linhaDe(id)!.parentElement!.getBoundingClientRect().top - antes);
+    await expect.poll(deslocamento, { timeout: 5000 }).toBeLessThanOrEqual(3);
+    await assentarRolagem(log);
+    expect(deslocamento()).toBeLessThanOrEqual(3);
+    expect(distanciaDoFim()).toBeGreaterThan(LIMIAR_DE_LONGE);
   });
 
   it("primeira não lida: divisor na linha e atalho que leva até ela", async () => {
@@ -538,11 +553,10 @@ describe("lista: âncora, histórico e leitura como posição", () => {
     await botao.click();
     await expect.poll(() => linhaDe(todas[60]!.id), { timeout: 3000 }).not.toBeNull();
     expect(linhaDe(todas[60].id)!.querySelector("[data-novas]")?.textContent).toBe(chat.novas);
-    // Com a marca à vista o atalho some.
-    await expect.poll(() => pegar("button")?.textContent !== undefined).toBe(true);
-    expect(
-      Array.from(document.querySelectorAll("button")).some((b) => b.textContent === chat.irParaNaoLida),
-    ).toBe(false);
+    // Com a marca à vista o atalho some. O salto leva alguns quadros para assentar (a
+    // janela montada e a faixa que decide o atalho andam atrás da rolagem): espera-se parar.
+    await assentar(() => [log().scrollTop, log().scrollHeight, temBotao(chat.irParaNaoLida)].join("|"));
+    expect(temBotao(chat.irParaNaoLida)).toBe(false);
   });
 
   it("próxima menção percorre as menções e dá a volta", async () => {
@@ -566,10 +580,17 @@ describe("lista: âncora, histórico e leitura como posição", () => {
     semear(todas);
     abrir();
     await expect.poll(distanciaDoFim, { timeout: 5000 }).toBeLessThanOrEqual(80);
-    await esperar(500);
-    expect(
-      Array.from(document.querySelectorAll("button")).some((b) => b.textContent === chat.proximaMencao),
-    ).toBe(false);
+    // "Colada no fim" chega ANTES de as linhas da janela nova renderizarem: medido, há um
+    // quadro com a rolagem já em 0px do fim e o DOM ainda mostrando a janela anterior (até
+    // a linha 391 de 400), e nele o atalho aparece, porque a faixa visível que o decide é
+    // a velha. Sob CPU disputada a remedição repete esse quadro várias vezes, e uma espera
+    // fixa de 500ms o pegava. Espera-se a lista inteira parar — rolagem, janela montada e
+    // o próprio atalho — e só então se olha.
+    await assentar(() =>
+      [log().scrollTop, log().scrollHeight, linhas().at(-1)?.dataset.index, temBotao(chat.proximaMencao)].join("|"),
+    );
+    expect(linhas().at(-1)?.dataset.index).toBe("399");
+    expect(temBotao(chat.proximaMencao)).toBe(false);
   });
 
   it("a hora é curta ('14:32'), com a completa no title e o instante no datetime", async () => {
@@ -597,10 +618,9 @@ describe("lista: âncora, histórico e leitura como posição", () => {
     abrir();
     await expect.poll(distanciaDoFim, { timeout: 5000 }).toBeLessThanOrEqual(80);
     // A medição das linhas assenta primeiro; uma pessoa só rola depois de ver a tela.
-    await esperar(800);
+    await assentarRolagem(log);
     // Gesto de verdade: só ele descola a lista do fim (posição sozinha mente).
-    log().dispatchEvent(new WheelEvent("wheel", { deltaY: -3000 }));
-    log().scrollTop = Math.max(0, log().scrollTop - 3000);
+    await subirComGesto(Math.max(0, log().scrollTop - 3000));
     const botao = page.getByRole("button", { name: chat.irParaOFim });
     await expect.element(botao).toBeVisible();
     await botao.click();
@@ -758,7 +778,9 @@ describe("menu de contexto: um só, no nível da lista", () => {
     abrir();
     await expect.poll(() => linhas().length).toBe(1);
     clicarDireito(log());
-    await esperar(150);
+    // Asserção negativa: o menu abriria no render seguinte ao evento. Dois quadros
+    // pintados bastam e acompanham a CPU, ao contrário de 150ms fixos.
+    await quadros(2);
     expect(menu()).toBeNull();
   });
 
@@ -1045,7 +1067,9 @@ describe("composer", () => {
     pausarConexao();
     marcarPendente("p1", C);
     await expect.poll(() => campo() as unknown).not.toBeNull();
-    await esperar(300);
+    // Asserção negativa: `pausarConexao` publica na hora (sem a espera de 1,5s, que é só
+    // da queda vinda do SDK), então um aviso, se houvesse, estaria no próximo render.
+    await quadros(2);
     expect(document.body.textContent).not.toMatch(/sem conexão/i);
   });
 
@@ -1099,7 +1123,8 @@ describe("composer", () => {
     resetCounters();
     members.set(chaveDeMembro(S, "U2"), parcial({ ...base, avatarUrl: "http://localhost/a2.png" }));
     await expect.poll(() => foto()?.getAttribute("src")).toBe("http://localhost/a2.png");
-    await esperar(100);
+    // Um re-render da linha, se viesse, viria no mesmo commit da foto ou no seguinte.
+    await quadros(2);
     expect(readCounters().rowRenders).toBe(0);
 
     // O nome é da linha: trocar o nome a acorda.
