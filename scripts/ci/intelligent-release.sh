@@ -327,10 +327,10 @@ if (( review_count > 0 )); then
     fi
     echo
     echo "#### PRs requiring review"
-    jq -r 'select(.needs_review == true) | "- #\\(.number) \\(.title): \\(.review_reason // "insufficient confidence") (initial=\\(.initial_impact // "unavailable"), final probability=\\(.probability // "unavailable"))"' "$TMP/decisions.jsonl"
+    jq -r 'select(.needs_review == true) | "- #\(.number) \(.title): \(.review_reason // "insufficient confidence") (initial=\(.initial_impact // "unavailable"), final probability=\(.probability // "unavailable"))"' "$TMP/decisions.jsonl"
     echo
     echo "#### All classifier decisions"
-    jq -r '"- #\\(.number) \\(.title): \\(.impact) (p=\\(.probability // "n/a"), method=\\(.method // "n/a"))"' "$TMP/decisions.jsonl"
+    jq -r '"- #\(.number) \(.title): \(.impact) (p=\(.probability // "n/a"), method=\(.method // "n/a"))"' "$TMP/decisions.jsonl"
   } >> "$GITHUB_STEP_SUMMARY"
   if [[ "$DRY_RUN" == "true" ]]; then
     echo "Dry run blocked by $review_count PR(s) requiring manual review; no repository mutations were made."
