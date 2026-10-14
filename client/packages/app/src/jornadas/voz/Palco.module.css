@@ -437,5 +437,5 @@ button.ladrilho:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 .palco:fullscreen {
-  background: var(--vx-surface-0);
+  background: var(--vx-stage);
 }
