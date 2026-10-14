@@ -382,12 +382,13 @@ $pre_summary"
       continue
     fi
 
-    # If any chunk remains ambiguous, ask Jev to reconcile the full set of
-    # per-chunk analyses in PR context. This is a synthesis, not a fresh diff
-    # classification: no chunk's uncertainty is silently discarded.
-    needs_synthesis="$(jq -s 'any(.[]; .needs_synthesis == true)' "$TMP/pr-$number-chunk-results.jsonl")"
+    # Synthesize the whole PR when any chunk remains ambiguous, or when every
+    # chunk says "none". Multiple individually harmless chunks can still be
+    # related, but that is a reason to assess the combined PR—not to force review.
+    # The aggregate result still must meet the normal confidence threshold.
+    needs_synthesis="$(jq -s 'any(.[]; .needs_synthesis == true) or (length > 1 and all(.[]; .choice == "none"))' "$TMP/pr-$number-chunk-results.jsonl")"
     if [[ "$needs_synthesis" == true ]]; then
-      echo "PR #$number has ambiguous chunks; running whole-PR synthesis over all chunk analyses."
+      echo "PR #$number needs whole-PR synthesis; reconciling all chunk analyses."
       jq --slurpfile chunk_results "$TMP/pr-$number-chunk-results.jsonl" \
         '. + {analysis_mode:"chunk-aggregate",diff:"",chunk_results:$chunk_results}' \
         "$TMP/pr-$number.json" > "$TMP/pr-$number-aggregate.json"
@@ -414,12 +415,6 @@ $pre_summary"
       continue
     fi
     choice="$(jq -s 'if any(.[]; .choice == "major") then "major" elif any(.[]; .choice == "minor") then "minor" elif any(.[]; .choice == "patch") then "patch" else "none" end' "$TMP/pr-$number-chunk-results.jsonl" | tr -d '"')"
-    if [[ "$choice" == "none" && "$chunk_count" -gt 1 ]]; then
-      printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"jev-chunked","needs_review":true,"review_reason":"All chunks independently indicate no impact; combined cross-file behavior needs review"}\n' \
-        "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" >> "$TMP/decisions.jsonl"
-      ((review_count+=1))
-      continue
-    fi
     confidence="$(jq -s '[.[].confidence] | min' "$TMP/pr-$number-chunk-results.jsonl")"
     probabilities="$(jq -s 'reduce .[].probabilities as $p ({"major":0,"minor":0,"patch":0,"none":0,"review":0}; reduce ["major","minor","patch","none","review"][] as $k (. ; .[$k] = ([.[$k], ($p[$k] // 0)] | max)))' "$TMP/pr-$number-chunk-results.jsonl")"
     result="$(jq -n --arg choice "$choice" --argjson confidence "$confidence" --argjson probabilities "$probabilities" \
