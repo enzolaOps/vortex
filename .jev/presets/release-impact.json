@@ -1,7 +1,7 @@
 {
   "description": "Classify the release impact of one merged pull request.",
   "params": {
-    "pr": "Pull request metadata and actual unified diff: title, description, labels, changed file paths, URL, and diff content (possibly truncated when very large)."
+    "pr": "Pull request metadata and actual unified diff: title, description, labels, changed file paths, URL, and diff content (possibly truncated). On a second-pass request, also includes review_pass=true and initial_analysis with the first classification response."
   },
   "state": {
     "repository": "Vortex",
@@ -10,13 +10,13 @@
   "questions": {
     "impact": {
       "type": "choice",
-      "instructions": "Choose the single highest user-facing release impact of this merged pull request. Analyze the actual code diff first, using the title, description, labels, and changed file paths as supporting context. Cite concrete changed behavior from the diff in your reasoning. Do not infer a feature from implementation-only work. If the diff is truncated, binary-only, empty, or does not provide enough evidence to determine impact, choose review. If the evidence is ambiguous, contradictory, or could plausibly imply a breaking change, choose review.",
+      "instructions": "Choose the single highest user-facing release impact of this merged pull request. Analyze the actual code diff first, using the title, description, labels, and changed file paths as supporting context. Cite concrete changed behavior from the diff in your reasoning. Do not infer a feature from implementation-only work. If review_pass=true, independently reassess the diff and initial_analysis, explicitly address why the first classification was uncertain, and correct it when the evidence supports a clearer answer. If diff_truncated is true, the diff is empty, binary-only, or evidence is insufficient, choose review. Choose major only when a breaking change is explicitly evidenced; choose minor only for an evidenced additive user-facing capability. If uncertainty is only whether a compatible maintenance change warrants a patch or no release, prefer patch when a user-facing fix/reliability/performance improvement is evidenced, otherwise none. Choose review when ambiguity could plausibly change the outcome to major/minor, when compatibility risk is unresolved, or when the diff does not support a reliable decision.",
       "criteria": {
         "major": "A change that breaks compatibility for existing users, configuration, data, APIs, or supported workflows. Choose only when a breaking change is explicitly evidenced.",
-        "minor": "A new user-facing capability or meaningful additive behavior that remains backward-compatible.",
-        "patch": "A user-facing bug fix, reliability improvement, performance improvement, or compatible maintenance change worth shipping.",
-        "none": "Documentation-only, tests-only, CI-only, dependency or internal changes with no meaningful user-facing impact.",
-        "review": "The available evidence is ambiguous, insufficient, contradictory, or suggests possible compatibility risk that cannot be established confidently."
+        "minor": "A new user-facing capability or meaningful additive behavior that remains backward-compatible and is evidenced by the diff.",
+        "patch": "A user-facing bug fix, reliability improvement, performance improvement, or compatible maintenance change worth shipping, evidenced by the diff.",
+        "none": "Documentation-only, tests-only, CI/release-automation-only, dependency or internal changes with no meaningful user-facing impact. Do not use none if the diff demonstrates a user-facing fix.",
+        "review": "The diff is truncated, empty, binary-only, insufficient, or ambiguous in a way that could materially affect major/minor classification or compatibility safety."
       }
     }
   }
