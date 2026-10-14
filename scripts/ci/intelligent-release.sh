@@ -166,12 +166,20 @@ while IFS= read -r pr; do
   # Release/CI automation changes cannot alter Vortex's shipped behavior.
   # Keep this policy narrow and deterministic; mixed product+automation PRs go to Jev.
   if jq -e 'length > 0 and all(.[]; startswith(".github/workflows/") or startswith("scripts/ci/") or startswith(".jev/"))' <<< "$files" >/dev/null; then
-    choice=none
-    confidence=1.0
     printf '{"number":%s,"title":%s,"url":%s,"impact":"none","probability":1.0,"method":"path-policy","needs_review":false}\n' \
       "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" >> "$TMP/decisions.jsonl"
     ((none_count+=1))
     echo "PR #$number => none (deterministic: release/CI-only paths)"
+    continue
+  fi
+
+  # Test-only changes do not ship behavior. Treat a PR as no-impact only when
+  # every changed path is explicitly a test file or inside a test directory.
+  if jq -e 'length > 0 and all(.[]; test("(^|/)(__tests__|tests?|testdata)/|(^|/)[^/]+([._-](test|spec))\\.[^/]+$|(^|/)[^/]+_test\\.[^/]+$"))' <<< "$files" >/dev/null; then
+    printf '{"number":%s,"title":%s,"url":%s,"impact":"none","probability":1.0,"method":"test-only-path-policy","needs_review":false}\n' \
+      "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" >> "$TMP/decisions.jsonl"
+    ((none_count+=1))
+    echo "PR #$number => none (deterministic: test-only paths)"
     continue
   fi
 
@@ -254,7 +262,7 @@ while IFS= read -r pr; do
       if ! chunk_result="$(jev ask --preset release-impact --param "pr=@$TMP/pr-$number-chunk-$chunk_index.json")"; then
         echo "::warning::Jev failed on PR #$number chunk $chunk_index/$chunk_count; requiring manual review."
         chunk_failed=true
-        break
+        continue
       fi
       if ! chunk_choice="$(jq -er '.answers.impact.choice' <<< "$chunk_result")" ||
          ! chunk_confidence="$(jq -er --arg choice "$chunk_choice" '.answers.impact.probabilities[$choice]' <<< "$chunk_result")" ||
@@ -262,12 +270,12 @@ while IFS= read -r pr; do
          ! [[ "$chunk_choice" =~ ^(major|minor|patch|none|review)$ ]]; then
         echo "::warning::Jev returned an invalid result for PR #$number chunk $chunk_index/$chunk_count; requiring manual review."
         chunk_failed=true
-        break
+        continue
       fi
       if [[ "$chunk_choice" == "review" ]] || ! awk -v p="$chunk_confidence" -v min="$MIN_CONFIDENCE" 'BEGIN { exit !(p >= min) }'; then
         echo "::warning::PR #$number chunk $chunk_index/$chunk_count is ambiguous (impact=$chunk_choice, p=$chunk_confidence); requiring manual review."
         chunk_failed=true
-        break
+        continue
       fi
       jq -c --arg choice "$chunk_choice" --argjson confidence "$chunk_confidence" \
         '{choice:$choice,confidence:$confidence,probabilities:.answers.impact.probabilities}' \
