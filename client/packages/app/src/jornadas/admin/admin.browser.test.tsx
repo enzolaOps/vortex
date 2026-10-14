@@ -18,7 +18,6 @@ import {
 import type { Cargo } from "nucleo/sdk/cargos";
 import { client } from "nucleo/sdk/client";
 import { chaveDeMembro, SEM_CARGO } from "nucleo/sdk/domain";
-import { client } from "nucleo/sdk/client";
 import { filas, politicas, POLITICA_PADRAO } from "nucleo/sdk/seguranca";
 import type { Banido, Convite, ConviteDoServidor } from "nucleo/sdk/servidores";
 import { abrirConfig, limparConfig, lerConfig } from "nucleo/store/config";
@@ -104,9 +103,12 @@ vi.mock("nucleo/sdk/seguranca", async (original) => {
     podeModerarPedidos: () => permitido("moderarPedidos"),
     carregarPolitica: (serverId: string) =>
       ctl.politicaLenta ?? real.carregarPolitica(serverId),
-    editarPolitica: (_s: string, mudanca: object) => {
+    editarPolitica: (
+      s: string,
+      mudanca: Parameters<typeof real.editarPolitica>[1],
+    ) => {
       registrar("editarPolitica", mudanca);
-      return feito(true);
+      return real.editarPolitica(s, mudanca);
     },
     aprovarPedido: (_s: string, usuario: string) => {
       registrar("aprovarPedido", usuario);
@@ -1374,6 +1376,7 @@ describe("acesso", () => {
   });
 
   it("escolher como se entra grava a política; fila vazia explica", async () => {
+    vi.spyOn(client.api, "patch").mockResolvedValue({ security: { join_mode: "Closed" } } as never);
     lerPedidos.mockResolvedValue(pedidos());
     await abrirSecao("acesso");
     await expect
