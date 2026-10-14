@@ -6,6 +6,8 @@ on:
       - ".github/workflows/intelligent-release.yml"
       - ".jev/presets/release-impact.json"
       - "scripts/ci/intelligent-release.sh"
+      - "scripts/ci/split-release-diff.py"
+      - "scripts/ci/test_split_release_diff.py"
       - "scripts/ci/release-notes.sh"
   push:
     branches: [main]
@@ -51,6 +53,8 @@ jobs:
         run: bash -n scripts/ci/intelligent-release.sh
       - name: Check existing release-notes script syntax
         run: sh -n scripts/ci/release-notes.sh
+      - name: Test safe release diff chunking
+        run: python3 -m unittest scripts/ci/test_split_release_diff.py
       - name: Validate Jev preset JSON
         run: jq empty .jev/presets/release-impact.json
       - name: Check whitespace errors
