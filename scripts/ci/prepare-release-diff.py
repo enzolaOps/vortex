@@ -80,8 +80,8 @@ def dependency_impact(text: str) -> tuple[str, str]:
         return "minor", "Upstream release notes explicitly indicate an additive capability."
     if re.search(
         r"\b(bug fix|fixes? |fixed |correctness|security fix|vulnerability|"
-        r"improv(e|es|ed|ement)|performance|rendering|styling|theme override|"
-        r"preserv(e|es|ed) existing styles|reliability|regression)\b",
+        r"improv(e|es|ed|ement)|performance|rendering|styling|theme overrides?|"
+        r"preserv\\w* existing styles|reliability|regression)\b",
         text,
     ):
         return "patch", "Upstream release notes describe a user-facing fix or improvement."
