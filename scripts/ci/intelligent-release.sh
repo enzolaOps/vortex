@@ -8,6 +8,11 @@ set -euo pipefail
 OWNER="${REPOSITORY%%/*}"
 REPO="${REPOSITORY#*/}"
 STABILIZATION_SECONDS="${STABILIZATION_SECONDS:-900}"
+DRY_RUN="${DRY_RUN:-false}"
+if [[ "$DRY_RUN" != "true" && "$DRY_RUN" != "false" ]]; then
+  echo "::error::DRY_RUN must be true or false."
+  exit 1
+fi
 if ! [[ "$STABILIZATION_SECONDS" =~ ^[0-9]+$ ]]; then
   echo "::error::STABILIZATION_SECONDS must be a non-negative integer."
   exit 1
@@ -52,12 +57,16 @@ fi
 git fetch --force origin main --tags
 MAIN_SHA="$(git rev-parse origin/main)"
 MARKER_TAG="release-state/processed/$MAIN_SHA"
-if [[ "${FORCE_REANALYZE:-false}" != "true" ]] && git show-ref --verify --quiet "refs/tags/$MARKER_TAG"; then
+if [[ "$DRY_RUN" != "true" && "${FORCE_REANALYZE:-false}" != "true" ]] && git show-ref --verify --quiet "refs/tags/$MARKER_TAG"; then
   echo "Main commit $MAIN_SHA was already analyzed; no repeated classification."
   exit 0
 fi
 
 mark_processed() {
+  if [[ "$DRY_RUN" == "true" ]]; then
+    echo "Dry run: not creating processed marker $MARKER_TAG."
+    return 0
+  fi
   if ! git show-ref --verify --quiet "refs/tags/$MARKER_TAG"; then
     gh api --method POST "repos/$REPOSITORY/git/refs" \
       -f "ref=refs/tags/$MARKER_TAG" -f "sha=$MAIN_SHA" >/dev/null
@@ -77,9 +86,12 @@ needs_review() {
   mark_processed
   exit 0
 }
-if [[ "$MAIN_SHA" != "$(git rev-parse HEAD)" ]]; then
+if [[ "$DRY_RUN" != "true" && "$MAIN_SHA" != "$(git rev-parse HEAD)" ]]; then
   echo "Checkout is not at the latest main commit; aborting safely."
   exit 1
+fi
+if [[ "$DRY_RUN" == "true" ]]; then
+  echo "Dry run enabled: executing this branch's script against current main; no release mutations will be made."
 fi
 
 LAST_TAG="$(git tag -l 'v[0-9]*' --sort=-version:refname | head -n 1)"
@@ -375,6 +387,24 @@ final_queue="$(queue_size)"
 final_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
 if [[ "$final_queue" != "0" || "$final_main" != "$MAIN_SHA" ]]; then
   echo "Queue or main changed during classification; aborting. A later push/schedule will retry."
+  exit 0
+fi
+
+if [[ "$DRY_RUN" == "true" ]]; then
+  {
+    echo "### Intelligent release dry run"
+    echo
+    echo "- No release or processed-marker tag was created."
+    echo "- Would publish: $NEXT_TAG"
+    echo "- Target main commit: $MAIN_SHA"
+    echo "- Previous tag: $LAST_TAG"
+    echo "- PRs classified: $eligible_count"
+    echo "- Major: $major_count; minor: $minor_count; patch: $patch_count; no release impact: $none_count"
+    echo
+    echo "#### Classifier decisions"
+    jq -r '"- #\(.number) \(.title): \(.impact) (p=\(.probability))"' "$TMP/decisions.jsonl"
+  } >> "$GITHUB_STEP_SUMMARY"
+  echo "Dry run complete. No release was published and no processed marker was created."
   exit 0
 fi
 
