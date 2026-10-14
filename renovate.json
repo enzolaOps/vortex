@@ -15,5 +15,7 @@
     "**/tests/**",
     "**/__fixtures__/**",
     "client/packages/stoat.js/**"
-  ]
+  ],
+  "minimumReleaseAge": "1 day",
+  "internalChecksFilter": "strict"
 }
