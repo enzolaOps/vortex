@@ -376,7 +376,7 @@ $pre_summary"
     done < <(jq -c '.[]' "$TMP/pr-$number-chunks.json")
 
     if [[ "$chunk_failed" == true ]] || (( $(wc -l < "$TMP/pr-$number-chunk-results.jsonl" | tr -d ' ') != chunk_count )); then
-      printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"jev-chunked","needs_review":true,"review_reason":"At least one diff chunk failed or was ambiguous"}\n' \
+      printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"jev-chunked","needs_review":true,"review_reason":"At least one diff chunk failed or was unavailable"}\n' \
         "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" >> "$TMP/decisions.jsonl"
       ((review_count+=1))
       continue
@@ -393,7 +393,7 @@ $pre_summary"
         "$TMP/pr-$number.json" > "$TMP/pr-$number-aggregate.json"
       if ! result="$(jev ask --preset release-impact --param "pr=@$TMP/pr-$number-aggregate.json")"; then
         echo "::warning::Jev could not synthesize chunk results for PR #$number; requiring manual review."
-        printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"jev-chunk-aggregate","needs_review":true,"review_reason":"Whole-PR synthesis failed"}\\n' \
+        printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"jev-chunk-aggregate","needs_review":true,"review_reason":"Whole-PR synthesis failed"}\n' \
           "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" >> "$TMP/decisions.jsonl"
         ((review_count+=1))
         continue
