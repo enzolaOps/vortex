@@ -1,7 +1,7 @@
 import "../../arnes/redeFalsa";
 
 import { CHANNEL_ID, SERVER_ID, seed } from "nucleo/arnes/firehose";
-import { channelMessageIds, definirCanalAberto } from "nucleo/sdk/adapter";
+import { channelMessageIds, definirCanalAberto, estadoDoHistorico } from "nucleo/sdk/adapter";
 import { client } from "nucleo/sdk/client";
 import { limparBusca } from "nucleo/store/busca";
 import { definirConexao, limparConexao } from "nucleo/store/conexao";
@@ -12,6 +12,7 @@ import { ulidDoInstante } from "nucleo/lib/ulid";
 import { page, userEvent } from "vitest/browser";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { quadros } from "../../testes/esperas";
 import { busca } from "../../textos";
 import { desmontar, montar, pegar } from "../../ui/ds/montar";
 import { ShellDasSalas } from "../salas/ShellDasSalas";
@@ -91,7 +92,6 @@ const botao = () => page.getByRole("button", { name: busca.botao });
 const painel = () => pegar("[data-testid='painel-de-busca']");
 const campo = () => page.getByRole("combobox", { name: busca.campo });
 const membros = () => pegar("[data-testid='lista-de-membros']");
-const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function digitarNoCampo(texto: string) {
   await campo().click();
@@ -198,8 +198,9 @@ describe("filtros", () => {
     await abrir();
     await botao().click();
     await digitarNoCampo("tem:planilha");
+    // O aviso só existe depois de a busca RODAR e parar no filtro (`executar`, já fora da
+    // pausa de digitação): com ele na tela a decisão de não chamar a rede já foi tomada.
     await expect.element(page.getByText(busca.estados.filtroInvalido("tem:planilha"))).toBeVisible();
-    await esperar(400);
     expect(busca1).not.toHaveBeenCalled();
   });
 });
@@ -294,7 +295,10 @@ describe("digitação", () => {
     await userEvent.keyboard("prazo");
     expect(busca1).not.toHaveBeenCalled();
     await expect.poll(() => busca1.mock.calls.length).toBe(1);
-    await esperar(500);
+    // "Nada encontrado" só aparece quando a busca da ÚLTIMA tecla terminou: toda tecla volta o
+    // estado a "buscando", e só a resposta da geração vigente o desliga. Com o vazio na tela
+    // não há pausa pendente que pudesse fazer uma segunda chamada.
+    await expect.element(page.getByText(busca.estados.vazio("prazo"))).toBeVisible();
     expect(busca1).toHaveBeenCalledTimes(1);
     expect(busca1.mock.calls[0]?.[0]).toMatchObject({ query: "prazo" });
   });
@@ -304,16 +308,19 @@ describe("digitação", () => {
     const antiga = new Promise((r) => {
       soltarAntiga = r;
     });
-    dublarBusca((params) => (params.query === "pra" ? antiga : resposta([{ id: ids()[6]!, conteudo: "prazo certo" }])));
+    const busca1 = dublarBusca((params) => (params.query === "pra" ? antiga : resposta([{ id: ids()[6]!, conteudo: "prazo certo" }])));
     await abrir();
     await botao().click();
     await digitarNoCampo("pra");
-    await esperar(450); // a busca por "pra" sai e fica pendurada
+    // A busca por "pra" saiu (e fica pendurada na promessa acima).
+    await expect.poll(() => busca1.mock.calls.some((c) => (c[0] as { query?: string }).query === "pra")).toBe(true);
     await digitarNoCampo("prazo");
     await expect.element(page.getByText(busca.resultados.contagem(1))).toBeVisible();
 
     soltarAntiga(resposta([{ id: ids()[7]!, conteudo: "ANTIGA pra" }, { id: ids()[8]!, conteudo: "ANTIGA pra 2" }]));
-    await esperar(100);
+    // Asserção NEGATIVA: se a resposta antiga fosse escrita, seria na cadeia da promessa e no
+    // render seguinte — depois de dois quadros pintados ela já estaria na tela.
+    await quadros(2);
     expect(painel()!.textContent).not.toContain("ANTIGA");
     await expect.element(page.getByText(busca.resultados.contagem(1))).toBeVisible();
   });
@@ -340,30 +347,41 @@ describe("ir até a mensagem", () => {
     const antigas = Array.from({ length: 130 }, (_, i) => ulidDoInstante(Date.now() - 20 * 86_400_000 + i * 1000)!);
     const alvo = antigas[20]!; // fica na segunda página para trás (a página cheia vem primeiro)
     const bruta = (id: string) => ({ _id: id, channel: CHANNEL_ID, author: "01JQ0000000000000001000001", content: `antiga ${id.slice(-6)}` });
-    const api = vi.spyOn(client.api, "get").mockImplementation(((rota: string, params?: { before?: string }) => {
+    // Determinístico, como no teste de fixados: o cursor é procurado nas próprias `antigas`, e um
+    // cursor que não é delas (o da lista semeada) devolve as mais novas. Comparar com `ids()[0]`
+    // lia o snapshot PUBLICADO, que anda um quadro atrás da lista, e sob carga podia entregar a
+    // mesma página duas vezes.
+    const todas = [...antigas].reverse();
+    const api = vi.spyOn(client.api, "get").mockImplementation(((rota: string, params?: { before?: string; limit?: number }) => {
       if (!rota.endsWith("/messages")) return Promise.resolve({});
       if (params?.before === undefined) return Promise.resolve({ messages: [], users: [], members: [] });
-      // Mais novo → mais velho, 100 por página; a segunda página tem o alvo e acaba o histórico.
-      const todas = [...antigas].reverse();
-      const idx = params.before === ids()[0] ? 0 : todas.findIndex((x) => x === params.before) + 1;
-      const pagina = todas.slice(idx, idx + 100);
-      return Promise.resolve({ messages: pagina.map(bruta), users: [], members: [] });
+      const limite = params.limit ?? 100;
+      const idx = todas.indexOf(params.before) + 1; // não é delas: -1 + 1 = 0, as mais novas
+      return Promise.resolve({ messages: todas.slice(idx, idx + limite).map(bruta), users: [], members: [] });
     }));
     dublarBusca(() => resposta([{ id: alvo, conteudo: "antiga procurada" }]));
 
     await abrir();
     expect(ids()).not.toContain(alvo);
+    // A carga inicial ASSENTA antes do salto: pedir com ela em voo faz a corrida de páginas
+    // depender da velocidade da máquina, e não do que o teste quer provar.
+    await expect
+      .poll(() => {
+        const h = estadoDoHistorico(CHANNEL_ID);
+        return h.pedido && !h.paginaEmVoo && !h.acabou && ids().length > 0;
+      }, { timeout: 20_000 })
+      .toBe(true);
     await botao().click();
     await digitarNoCampo("antiga");
     await page.getByRole("option").first().click();
 
-    await expect.poll(() => ids().includes(alvo), { timeout: 10_000 }).toBe(true);
+    await expect.poll(() => ids().includes(alvo), { timeout: 20_000 }).toBe(true);
     const chamadas = api.mock.calls as unknown as [string, { before?: string } | undefined][];
     expect(chamadas.filter((c) => c[1]?.before !== undefined).length).toBeGreaterThanOrEqual(2);
     await expect
-      .poll(() => document.querySelector(`[data-menu-mensagem="${alvo}"]`)?.getAttribute("data-realcada"), { timeout: 10_000 })
+      .poll(() => document.querySelector(`[data-menu-mensagem="${alvo}"]`)?.getAttribute("data-realcada"), { timeout: 20_000 })
       .toBe("true");
-  });
+  }, 60_000);
 
   it("de uma que não existe mais: avisa, e não deixa a lista presa", async () => {
     ligarSocket();

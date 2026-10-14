@@ -4,7 +4,7 @@ import { CHANNEL_ID, SERVER_ID, seed } from "nucleo/arnes/firehose";
 import { channelMessageIds, definirCanalAberto, estadoDoHistorico } from "nucleo/sdk/adapter";
 import { client } from "nucleo/sdk/client";
 import { limparBusca } from "nucleo/store/busca";
-import { definirConexao, limparConexao } from "nucleo/store/conexao";
+import { definirConexao, lerConexao, limparConexao } from "nucleo/store/conexao";
 import { limparFixados } from "nucleo/store/fixados";
 import { irPara } from "nucleo/store/navegacao";
 import { definirProntidao } from "nucleo/store/prontidao";
@@ -13,6 +13,7 @@ import { ulidDoInstante } from "nucleo/lib/ulid";
 import { page, userEvent } from "vitest/browser";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { quadros } from "../../testes/esperas";
 import { busca, fixados } from "../../textos";
 import { desmontar, montar, pegar } from "../../ui/ds/montar";
 import { ShellDasSalas } from "../salas/ShellDasSalas";
@@ -191,8 +192,9 @@ describe("os estados", () => {
   it("sem conexão: avisa, não busca, e busca quando a conexão volta", async () => {
     const api = dublarFixadas(() => [ids()[10]!]);
     definirConexao("sem-conexao");
-    // A conexão só diz que caiu depois de 1,5s: antes disso o silêncio é mais honesto.
-    await new Promise((r) => setTimeout(r, 1700));
+    // A conexão só diz que caiu depois de 1,5s (antes disso o silêncio é mais honesto): espera
+    // o ESTADO publicado virar, e não um relógio maior que o dela.
+    await expect.poll(lerConexao, { timeout: 5000 }).toBe("sem-conexao");
     await abrir();
     await botao().click();
     await expect.element(page.getByText(fixados.estados.semConexao)).toBeVisible();
@@ -251,7 +253,8 @@ describe("ao vivo", () => {
 
     client.emit("messageUpdate", mensagem(a), { pinned: false, channelId: CHANNEL_ID } as never);
     client.emit("messageUpdate", mensagem(ids()[12]!), { pinned: false, channelId: CHANNEL_ID } as never);
-    await userEvent.keyboard("{Tab}");
+    // Asserção NEGATIVA: uma mudança na lista viria no render seguinte ao evento.
+    await quadros(2);
     expect(itens().length).toBe(1);
   });
 });
