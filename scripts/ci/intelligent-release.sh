@@ -311,7 +311,7 @@ while IFS= read -r pr; do
 
   choice="$initial_choice"
   confidence="$initial_confidence"
-  classification_method=jev
+  classification_method="${classification_method_override:-jev}"
   # Ambiguous results get a second, targeted pass with the original response
   # included so Jev can revisit its uncertainty instead of repeating blindly.
   if [[ "$choice" == "review" ]] || ! awk -v p="$confidence" -v min="$MIN_CONFIDENCE" 'BEGIN { exit !(p >= min) }'; then
