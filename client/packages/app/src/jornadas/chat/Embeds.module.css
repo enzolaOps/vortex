@@ -1,0 +1,164 @@
+.embeds {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--vx-space-2);
+  margin-block-start: var(--vx-space-2);
+}
+
+/* Vidro de leitura SEM backdrop-filter: blur por cartão numa lista virtualizada custa repintura. */
+.cartao {
+  --cor-do-embed: var(--vx-border-strong);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vx-space-2);
+  box-sizing: border-box;
+  inline-size: min(100%, 432px);
+  padding: var(--vx-space-3) var(--vx-space-3) var(--vx-space-3) var(--vx-space-4);
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-surface-glass-reading);
+  overflow: hidden;
+}
+.cartao::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: 4px;
+  background: var(--cor-do-embed);
+}
+
+.conteudo {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--vx-space-3);
+  min-inline-size: 0;
+}
+.texto {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--vx-space-0);
+  min-inline-size: 0;
+}
+
+.origem {
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.titulo {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-ui-size);
+  font-weight: 600;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+a.titulo {
+  color: var(--vx-accent);
+}
+a.titulo:hover {
+  text-decoration: underline;
+}
+.descricao {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-caption-size);
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+.markdown {
+  max-block-size: 108px;
+  overflow: hidden;
+  color: var(--vx-text-2);
+  font-size: var(--vx-type-caption-size);
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+
+.miniatura {
+  flex: none;
+  box-sizing: border-box;
+  inline-size: 80px;
+  block-size: 80px;
+  overflow: hidden;
+  border-radius: var(--vx-radius-sm);
+  background: var(--vx-skeleton);
+}
+.miniatura img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+.moldura {
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid var(--vx-border-subtle);
+  border-radius: var(--vx-radius-md);
+  background: var(--vx-skeleton);
+}
+.moldura img,
+.moldura video,
+.moldura iframe {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  border: 0;
+  object-fit: cover;
+}
+.moldura a {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+.moldura a:focus-visible {
+  outline-offset: -2px;
+}
+
+.tocar {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: auto;
+  inline-size: 56px;
+  block-size: 56px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--vx-radius-pill);
+  background: var(--vx-surface-overlay);
+  color: var(--vx-text-1);
+  cursor: pointer;
+}
+.tocar:hover {
+  background: var(--vx-state-press);
+}
+.tocar:focus-visible {
+  outline-offset: 2px;
+}
+
+.mais {
+  margin: 0;
+  color: var(--vx-text-3);
+  font-size: var(--vx-type-caption-size);
+  line-height: 16px;
+}

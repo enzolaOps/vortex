@@ -54,6 +54,15 @@
   line-height: var(--vx-type-ui-line);
 }
 
+/* As ações do canal ficam na ponta, depois do tópico que cede espaço. */
+.acoes {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-2);
+  margin-inline-start: auto;
+}
+
 /* A área do canal: cabeçalho fixo em cima e o chat tomando o resto. */
 .canal {
   display: flex;

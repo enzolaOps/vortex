@@ -271,7 +271,8 @@ export function escritasDePermissao(
  */
 export async function salvarPermissaoDeCanal(
   channelId: string,
-  roleId: string,
+  /** `undefined` é o cargo padrão (@everyone), como em `setPermissions`. */
+  roleId: string | undefined,
   override: OverrideDeCanal,
 ): Promise<boolean> {
   if (!conectado()) return false;

@@ -250,6 +250,8 @@ export async function salvarPermissoesDaCategoria(
   serverId: string,
   categoriaId: string,
   conjunto: ConjuntoDeSobreposicoes,
+  /** O título do aviso de erro; quem fecha a categoria diz "fechar", quem edita diz "salvar". */
+  titulo?: string,
 ): Promise<boolean> {
   if (!conectado()) return false;
   try {
@@ -266,7 +268,7 @@ export async function salvarPermissoesDaCategoria(
   } catch (e) {
     toast({
       tipo: "erro",
-      titulo: "Não deu para fechar a categoria.",
+      titulo: titulo ?? "Não deu para salvar as permissões da categoria.",
       descricao: motivoDoErro(e),
     });
     return false;

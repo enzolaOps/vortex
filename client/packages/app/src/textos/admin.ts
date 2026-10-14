@@ -38,6 +38,7 @@ export const admin = {
     cargos: "Cargos",
     membros: "Membros",
     seguranca: "Segurança",
+    acesso: "Acesso",
     banimentos: "Banimentos",
   },
   subtitulos: {
@@ -47,6 +48,7 @@ export const admin = {
     cargos: "Quem pode fazer o quê no servidor.",
     membros: "Quem está no servidor e o que cada pessoa pode fazer.",
     seguranca: "Regras de entrada, mensagens privadas e o botão de emergência.",
+    acesso: "Quem consegue entrar no servidor e quem decide os pedidos.",
     banimentos: "Quem foi banido e não pode voltar.",
   },
 
@@ -275,6 +277,28 @@ export const admin = {
     recusou: "O servidor recusou a ação.",
     voce: "você",
     dono: "dono",
+  },
+
+  /** Acesso: como as pessoas entram e a fila de pedidos. */
+  acessoPagina: {
+    quemEntra: "Quem pode entrar",
+    convite: { titulo: "Qualquer pessoa com convite", detalhe: "Entra na hora, sem esperar ninguém." },
+    aprovacao: { titulo: "Só com aprovação", detalhe: "Cada pedido espera a decisão da moderação." },
+    fechado: { titulo: "Fechado", detalhe: "Nenhum convite funciona até você reabrir." },
+    fila: "Pedidos para entrar",
+    aprovar: "Aprovar",
+    recusar: "Recusar",
+    aprovarTodos: "Aprovar todos",
+    aprovarPessoa: (nome: string) => `Aprovar ${nome}`,
+    recusarPessoa: (nome: string) => `Recusar ${nome}`,
+    contaNova: "conta nova",
+    contagem: (n: number) => (n === 1 ? "1 pedido esperando" : `${String(n)} pedidos esperando`),
+    carregando: "Carregando os pedidos…",
+    erro: "Não deu para carregar os pedidos.",
+    vazio: "Nenhum pedido esperando.",
+    vazioDica: "Quando alguém pedir para entrar, o pedido aparece aqui na hora.",
+    semFila: "Neste servidor ninguém precisa de aprovação para entrar.",
+    semFilaDica: "Os pedidos só aparecem aqui quando a entrada for só com aprovação.",
   },
 
   /** Banimentos. */

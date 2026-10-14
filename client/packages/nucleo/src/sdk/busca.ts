@@ -225,17 +225,13 @@ export async function buscarNoCanal(opcoes: {
       quando: HORA.format(m.createdAt),
       anexo: m.attachments?.[0]?.filename,
     }));
-  } catch (e) {
+  } catch {
     /*
-      Toast e `undefined`, não exceção: quem chama é um `onChange` de campo, e
-      uma promessa rejeitada ali derruba o painel inteiro por causa de uma
-      digitação com a rede fora.
+      `undefined`, não exceção: quem chama é um temporizador de digitação, e uma
+      promessa rejeitada ali derruba o painel inteiro por causa de uma busca
+      com a rede fora. Sem toast: o painel diz a falha no lugar dos resultados,
+      com o botão de tentar de novo — um aviso por tecla seria ruído.
     */
-    toast({
-      tipo: "erro",
-      titulo: "A busca não foi.",
-      descricao: e instanceof Error ? e.message : "Tente de novo.",
-    });
     return undefined;
   }
 }

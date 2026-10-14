@@ -19,6 +19,7 @@ import { Avatar } from "../../ui/ds";
 import { LimiteDeErro } from "../../shell/LimiteDeErro";
 import { Fechar, Sair } from "../../ui/icones";
 import { ConteudoDoDialogo, Dialogo, DialogoFechar } from "../../ui/primitivos/Dialogo";
+import { Acesso } from "../admin/Acesso";
 import { Banimentos } from "../admin/Banimentos";
 import { Seguranca } from "../admin/Seguranca";
 import { Canais } from "../admin/Canais";
@@ -76,6 +77,7 @@ const CONTEUDO_DO_SERVIDOR: Record<
   cargos: (s) => <Cargos serverId={s} />,
   membros: (s) => <Membros serverId={s} />,
   seguranca: (s) => <Seguranca serverId={s} />,
+  acesso: (s) => <Acesso serverId={s} />,
   banimentos: (s) => <Banimentos serverId={s} />,
 };
 

@@ -3,16 +3,27 @@
 //   node scripts/tokens.mjs             escreve o arquivo
 //   node scripts/tokens.mjs --conferir  falha se o arquivo em disco difere do gerado
 //
-// Dois blocos, de propósito:
-//  1. papéis de COR sob :root e :root[data-tema="<id>"]. Um tema novo repete este
-//     bloco com os mesmos papéis (o teste de contraste confere os dois sentidos).
-//  2. o resto (espaço, raio, sombra, blur, tipografia) em :root, igual em todo tema.
-import { readFileSync, writeFileSync } from "node:fs";
+// Um bloco POR TEMA, e depois um bloco comum:
+//  1. cada tema: `color-scheme`, os papéis de COR e as SOMBRAS (que carregam cor:
+//     o anel de seleção leva a cor do painel e do destaque, o reflexo do vidro é
+//     branco no escuro e as elevações são pretas). O tema de fábrica (Vidro, de
+//     tokens.json) sai sob `:root, [data-tema="vidro"]`; cada tema de
+//     `src/tema/temas/<id>.json` sai sob `[data-tema="<id>"]`, SEM `:root` e sem
+//     exigir que o atributo esteja no <html>: um contêiner com `data-tema` (o
+//     cartão de prévia da Aparência) pinta o próprio pedaço no tema dele.
+//  2. o resto (espaço, raio, blur, tipografia) em :root, igual em todo tema.
+//
+// Por que JSON gerado e não `temas/<id>.css` escrito à mão: o tema precisa das
+// mesmas referências (`{backdrop-base}`), das sombras e do `color-scheme` que o
+// gerador já emite para o Vidro, e o `--conferir` passa a guardar todos os temas
+// de uma vez. O gerador reprova tema com papel faltando ou a mais.
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const aqui = dirname(fileURLToPath(import.meta.url));
 const FONTE = join(aqui, "../src/tema/tokens.json");
+const PASTA_TEMAS = join(aqui, "../src/tema/temas");
 const SAIDA = join(aqui, "../src/tema/tokens.gerado.css");
 const SAIDA_THEME = join(aqui, "../src/tema/theme.gerado.css");
 
@@ -37,24 +48,79 @@ function escalar(px) {
   return `calc(${px} * var(--vx-texto-escala, 1))`;
 }
 
-export function gerar(tokens) {
-  const temas = tokens.color.themes;
-  if (temas.length === 0) throw new Error("tokens.json sem tema");
-  const seletor = [":root", ...temas.map((t) => `:root[data-tema="${t.id}"]`)].join(",\n");
+/** Confere que `valores` tem exatamente os `nomes` do DS; lança com a lista do que diverge. */
+function conferirPapeis(id, grupo, nomes, valores) {
+  const faltam = nomes.filter((n) => !(n in valores));
+  const sobram = Object.keys(valores).filter((n) => !nomes.includes(n));
+  if (faltam.length > 0 || sobram.length > 0) {
+    throw new Error(
+      `tema "${id}" (${grupo}): faltam [${faltam.join(", ")}], sobram [${sobram.join(", ")}]`,
+    );
+  }
+}
+
+/**
+ * Os temas a emitir. O primeiro é o de fábrica, lido de tokens.json; os demais
+ * vêm de `temas/<id>.json` com `{ id, name, colorScheme, color, shadow }`.
+ */
+export function temasDe(tokens, extras = []) {
+  const [fabrica, ...resto] = tokens.color.themes;
+  if (!fabrica) throw new Error("tokens.json sem tema");
+  if (resto.length > 0) throw new Error("tokens.json declara um tema só; os demais moram em temas/<id>.json");
+  const nomesCor = tokens.color.tokens.map((t) => t.name);
+  const nomesSombra = tokens.shadow.tokens.map((t) => t.name);
+  const temas = [
+    {
+      id: fabrica.id,
+      colorScheme: fabrica.colorScheme,
+      color: Object.fromEntries(tokens.color.tokens.map((t) => [t.name, t.value])),
+      shadow: Object.fromEntries(tokens.shadow.tokens.map((t) => [t.name, t.value])),
+    },
+    ...extras,
+  ];
+  const ids = new Set();
+  for (const t of temas) {
+    if (!/^[a-z][a-z0-9-]*$/.test(t.id ?? "")) throw new Error(`id de tema inválido: "${t.id}"`);
+    if (ids.has(t.id)) throw new Error(`tema repetido: "${t.id}"`);
+    ids.add(t.id);
+    if (t.colorScheme !== "dark" && t.colorScheme !== "light") {
+      throw new Error(`tema "${t.id}": colorScheme deve ser "dark" ou "light"`);
+    }
+    conferirPapeis(t.id, "color", nomesCor, t.color ?? {});
+    conferirPapeis(t.id, "shadow", nomesSombra, t.shadow ?? {});
+  }
+  return temas;
+}
+
+function blocoDoTema(tema, seletor) {
+  const linhas = [`${seletor} {`, `  color-scheme: ${tema.colorScheme};`];
+  for (const [nome, valor] of Object.entries(tema.color)) linhas.push(`  --vx-${nome}: ${valorCss(valor)};`);
+  for (const [nome, valor] of Object.entries(tema.shadow)) linhas.push(`  --vx-${nome}: ${valorCss(valor)};`);
+  linhas.push("}");
+  return linhas;
+}
+
+export function gerar(tokens, extras = []) {
+  const [fabrica, ...outros] = temasDe(tokens, extras);
+  // Ordem dos papéis: a do DS, em todo tema (o diff entre temas fica legível).
+  const ordenar = (t) => ({
+    ...t,
+    color: Object.fromEntries(tokens.color.tokens.map((d) => [d.name, t.color[d.name]])),
+    shadow: Object.fromEntries(tokens.shadow.tokens.map((d) => [d.name, t.shadow[d.name]])),
+  });
 
   const linhas = [];
-  linhas.push("/* GERADO por scripts/tokens.mjs a partir de tokens.json. NÃO EDITAR. */");
+  linhas.push("/* GERADO por scripts/tokens.mjs a partir de tokens.json e temas/*.json. NÃO EDITAR. */");
   linhas.push("");
-  linhas.push(`${seletor} {`);
-  for (const t of tokens.color.tokens) {
-    linhas.push(`  --vx-${t.name}: ${valorCss(t.value)};`);
+  linhas.push(...blocoDoTema(ordenar(fabrica), `:root,\n[data-tema="${fabrica.id}"]`));
+  for (const t of outros) {
+    linhas.push("");
+    linhas.push(...blocoDoTema(ordenar(t), `[data-tema="${t.id}"]`));
   }
-  linhas.push("}");
   linhas.push("");
   linhas.push(":root {");
   for (const t of tokens.spacing.tokens) linhas.push(`  --vx-${t.name}: ${t.value};`);
   for (const t of tokens.radius.tokens) linhas.push(`  --vx-${t.name}: ${t.value};`);
-  for (const t of tokens.shadow.tokens) linhas.push(`  --vx-${t.name}: ${t.value};`);
   for (const t of tokens.blur.tokens) linhas.push(`  --vx-${t.name}: ${t.value};`);
   for (const [nome, familia] of Object.entries(tokens.type.families)) {
     linhas.push(`  --vx-font-${nome}: ${familiaEmbarcada(familia)};`);
@@ -99,9 +165,20 @@ export function gerarTheme(tokens) {
   return l.join("\n");
 }
 
+/** Os temas de `temas/*.json`, em ordem alfabética de arquivo (saída estável). */
+export function lerTemasExtras(pasta = PASTA_TEMAS) {
+  if (!existsSync(pasta)) return [];
+  const arquivos = readdirSync(pasta).filter((f) => f.endsWith(".json")).sort();
+  return arquivos.map((f) => {
+    const tema = JSON.parse(readFileSync(join(pasta, f), "utf8"));
+    if (`${tema.id}.json` !== f) throw new Error(`temas/${f}: o id "${tema.id}" tem de ser o nome do arquivo`);
+    return tema;
+  });
+}
+
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const tokens = JSON.parse(readFileSync(FONTE, "utf8"));
-  const css = gerar(tokens);
+  const css = gerar(tokens, lerTemasExtras());
   const theme = gerarTheme(tokens);
   if (process.argv.includes("--conferir")) {
     const ler = (c) => {

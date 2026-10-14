@@ -24,12 +24,14 @@ import { abrirServidor, limparUltimoLugar } from "nucleo/store/ultimoLugar";
 import { page } from "vitest/browser";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { quadros } from "../../testes/esperas";
 import { voz } from "../../textos";
 import { desmontar, montar, pegar } from "../../ui/ds/montar";
 import { ShellDasSalas } from "../salas/ShellDasSalas";
 import { JanelaDestacada } from "./JanelaDestacada";
 import { OverlayDaChamada } from "./OverlayDaChamada";
 import { espelharEstilos } from "./espelharEstilos";
+import { definirFamilia } from "../../tema/personalizado";
 
 const ctl = vi.hoisted(() => ({ chamadas: [] as string[], assinaturas: [] as string[] }));
 
@@ -377,13 +379,16 @@ describe("botão de destacar", () => {
       definirTopo: vi.fn(),
       protegerConteudo: vi.fn(),
     };
-    vi.spyOn(window, "open").mockReturnValue(null);
+    const abrirJanela = vi.spyOn(window, "open").mockReturnValue(null);
     await abrir(semTransmissao());
     entrar();
     await noWidget();
     await expect.poll(botao).not.toBeNull();
     (botao() as HTMLElement).click();
-    await new Promise((r) => setTimeout(r, 50));
+    // A recusa já aconteceu quando a casca foi consultada; depois, dois quadros para o
+    // que a recusa poderia ter mudado na tela (nada, é o que se afirma).
+    await expect.poll(() => abrirJanela.mock.calls.length).toBeGreaterThan(0);
+    await quadros(2);
     expect(lerJanelaDestacada()).toBeUndefined();
     expect(pegar("section[aria-label='" + voz.painelDaChamada + "']")).not.toBeNull();
   });
@@ -477,6 +482,17 @@ describe("janela destacada", () => {
     const filha = await comJanela();
     await expect.poll(() => filha.document.documentElement.dataset.tema).toBe("vidro");
     expect(filha.document.head.querySelectorAll("style, link[rel='stylesheet']").length).toBeGreaterThan(0);
+
+    // Trocar para o claro com a janela aberta: ela acompanha, color-scheme inclusive.
+    try {
+      definirFamilia("claro");
+      await expect.poll(() => filha.document.documentElement.dataset.tema).toBe("claro");
+      await expect.poll(() => filha.getComputedStyle(filha.document.documentElement).colorScheme).toBe("light");
+      definirFamilia("vidro");
+      await expect.poll(() => filha.document.documentElement.dataset.tema).toBe("vidro");
+    } finally {
+      definirFamilia("vidro");
+    }
   });
 
   it("sair da chamada fecha a janela destacada", async () => {
@@ -527,7 +543,8 @@ describe("OverlayDaChamada fora de uma chamada", () => {
   it("não desenha nada", async () => {
     semear(semTransmissao());
     montar(<OverlayDaChamada documento={document} />);
-    await new Promise((r) => setTimeout(r, 30));
+    // Asserção negativa: montar é síncrono; dois quadros cobrem os efeitos que desenhariam.
+    await quadros(2);
     expect(document.querySelector("li[data-pessoa]")).toBeNull();
   });
 });
@@ -576,7 +593,8 @@ describe("espelharEstilos", () => {
     const parar = espelharEstilos(origem, destino);
     parar();
     origem.documentElement.dataset.espelhoTeste = "2";
-    await new Promise((r) => setTimeout(r, 30));
+    // O MutationObserver entrega em microtarefa; dois quadros pintados já passaram dela.
+    await quadros(2);
     expect(destino.documentElement.dataset.espelhoTeste).toBeUndefined();
     delete origem.documentElement.dataset.espelhoTeste;
   });

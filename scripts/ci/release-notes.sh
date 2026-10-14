@@ -20,6 +20,16 @@ fi
 	exit 1
 }
 
+if [ "$print" = 0 ]; then
+	body=$(gh release view "$tag" --json body --jq '.body')
+	case "$body" in
+		*'<!-- vortex-intelligent-release -->'*)
+			echo "Release $tag already has Jev-generated notes; preserving them."
+			exit 0
+			;;
+	esac
+fi
+
 if [ -z "${PREV+x}" ]; then
 	prev=$(git tag -l 'v[0-9]*' --sort=-version:refname | while IFS= read -r t; do
 		[ "$t" = "$tag" ] && continue

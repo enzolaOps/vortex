@@ -275,7 +275,7 @@ export const filas = createEntityStore<EstadoDaFila>((serverId) => {
   void recarregarFila(serverId);
 });
 
-async function recarregarFila(serverId: string): Promise<void> {
+export async function recarregarFila(serverId: string): Promise<void> {
   if (filas.peek(serverId) === undefined) filas.set(serverId, "carregando");
   try {
     const bruto = (await client.api.get(

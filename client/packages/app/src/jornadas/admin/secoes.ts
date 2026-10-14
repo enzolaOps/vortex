@@ -1,6 +1,6 @@
 import { meuAlcance } from "nucleo/sdk/cargos";
-import { podeGerenciarSeguranca } from "nucleo/sdk/seguranca";
 import { podeNoServidor } from "nucleo/sdk/permissoes";
+import { podeGerenciarSeguranca, podeModerarPedidos } from "nucleo/sdk/seguranca";
 import type { SecaoId } from "nucleo/store/config";
 
 import { admin } from "../../textos";
@@ -16,6 +16,7 @@ export const SECOES_DE_SERVIDOR = [
   "convites",
   "cargos",
   "membros",
+  "acesso",
   "seguranca",
   "banimentos",
 ] as const satisfies readonly SecaoId[];
@@ -34,6 +35,7 @@ export const NOME_DA_SECAO_DE_SERVIDOR: Record<SecaoDeServidor, string> = {
   cargos: admin.navegacao.cargos,
   membros: admin.navegacao.membros,
   seguranca: admin.navegacao.seguranca,
+  acesso: admin.navegacao.acesso,
   banimentos: admin.navegacao.banimentos,
 };
 
@@ -44,6 +46,7 @@ export const SUBTITULO_DA_SECAO_DE_SERVIDOR: Record<SecaoDeServidor, string> = {
   cargos: admin.subtitulos.cargos,
   membros: admin.subtitulos.membros,
   seguranca: admin.subtitulos.seguranca,
+  acesso: admin.subtitulos.acesso,
   banimentos: admin.subtitulos.banimentos,
 };
 
@@ -53,7 +56,7 @@ export const GRUPOS_DO_SERVIDOR: readonly {
   readonly itens: readonly SecaoDeServidor[];
 }[] = [
   { titulo: admin.navegacao.grupoServidor, itens: ["servidor", "canais", "convites"] },
-  { titulo: admin.navegacao.grupoPessoas, itens: ["cargos", "membros"] },
+  { titulo: admin.navegacao.grupoPessoas, itens: ["cargos", "membros", "acesso"] },
   { titulo: admin.navegacao.grupoModeracao, itens: ["seguranca", "banimentos"] },
 ];
 
@@ -74,6 +77,7 @@ const REGRA_DE_ACESSO: Record<SecaoDeServidor, (serverId: string) => boolean> = 
     podeNoServidor(s, "silenciarMembro") ||
     podeNoServidor(s, "atribuirCargos"),
   seguranca: podeGerenciarSeguranca,
+  acesso: (s) => podeGerenciarSeguranca(s) || podeModerarPedidos(s),
   banimentos: (s) => podeNoServidor(s, "banir"),
 };
 
@@ -93,6 +97,7 @@ export const ICONE_DA_SECAO_DE_SERVIDOR: Record<SecaoDeServidor, Icone> = {
   convites: Elo,
   cargos: Coroa,
   membros: Pessoas,
+  acesso: Elo,
   seguranca: Escudo,
   banimentos: Proibido,
 };
