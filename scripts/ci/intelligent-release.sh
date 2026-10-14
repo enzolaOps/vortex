@@ -405,7 +405,7 @@ $pre_summary"
       # aggregate remains uncertain but every independently reviewed chunk
       # agrees on minor, use that explicit repository convention rather than
       # blocking a consistently classified feature.
-      if [[ "$title" =~ ^feat([(:![:space:]]) ]] &&
+      if [[ "$title" =~ ^feat(\([^)]*\))?!?: ]] &&
          [[ "$(jq -s 'all(.[]; .choice == "minor")' "$TMP/pr-$number-chunk-results.jsonl")" == true ]]; then
         result="$(jq -n '{answers:{impact:{choice:"minor",probabilities:{major:0,minor:1,patch:0,none:0,review:0}}}}')"
         classification_method_override="conventional-commit+chunk-consensus"
