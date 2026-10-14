@@ -292,6 +292,12 @@ while IFS= read -r pr; do
       continue
     fi
     choice="$(jq -s 'if any(.[]; .choice == "major") then "major" elif any(.[]; .choice == "minor") then "minor" elif any(.[]; .choice == "patch") then "patch" else "none" end' "$TMP/pr-$number-chunk-results.jsonl" | tr -d '"')"
+    if [[ "$choice" == "none" && "$chunk_count" -gt 1 ]]; then
+      printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"jev-chunked","needs_review":true,"review_reason":"All chunks independently indicate no impact; combined cross-file behavior needs review"}\\n' \\
+        "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" >> "$TMP/decisions.jsonl"
+      ((review_count+=1))
+      continue
+    fi
     confidence="$(jq -s '[.[].confidence] | min' "$TMP/pr-$number-chunk-results.jsonl")"
     probabilities="$(jq -s 'reduce .[].probabilities as $p ({"major":0,"minor":0,"patch":0,"none":0,"review":0}; reduce ["major","minor","patch","none","review"][] as $k (. ; .[$k] = ([.[$k], ($p[$k] // 0)] | max)))' "$TMP/pr-$number-chunk-results.jsonl")"
     result="$(jq -n --arg choice "$choice" --argjson confidence "$confidence" --argjson probabilities "$probabilities" \
