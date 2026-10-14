@@ -400,6 +400,17 @@ $pre_summary"
       fi
       classification_method_override="jev-chunk-aggregate"
       review_input_file="$TMP/pr-$number-aggregate.json"
+
+      # Conventional Commits gives "feat" a minor-version meaning. If Jev's
+      # aggregate remains uncertain but every independently reviewed chunk
+      # agrees on minor, use that explicit repository convention rather than
+      # blocking a consistently classified feature.
+      if [[ "$title" =~ ^feat([(:![:space:]]) ]] &&
+         [[ "$(jq -s 'all(.[]; .choice == "minor")' "$TMP/pr-$number-chunk-results.jsonl")" == true ]]; then
+        result="$(jq -n '{answers:{impact:{choice:"minor",probabilities:{major:0,minor:1,patch:0,none:0,review:0}}}}')"
+        classification_method_override="conventional-commit+chunk-consensus"
+        echo "PR #$number => minor (Conventional Commit feat + unanimous minor chunk analyses)."
+      fi
       echo "PR #$number whole-PR synthesis completed; validating its impact and confidence."
     else
       # Combine by highest impact across all chunks. A major/minor disagreement
