@@ -85,22 +85,17 @@ describe("ListaDeMensagens", () => {
   it("arrastar a barra de rolagem descola do fim: mensagem nova não puxa de volta", async () => {
     montarLista();
     const el = log();
-    // Leitura assentada: a mesma posição e a mesma altura em duas leituras seguidas.
-    // O `scrollToEnd` da carga inicial segue reconciliando por alguns quadros, e um
+    // Leitura assentada: rolagem, altura total e a janela montada (índice e altura de cada
+    // linha) iguais em várias leituras seguidas, e só então a condição. Duas leituras a 100ms
+    // não bastavam: sob CPU disputada um quadro passa de 100ms, e a posição era guardada com
+    // linhas recém-montadas ainda por medir — a compensação de medida delas (legítima: segura
+    // o conteúdo no lugar) movia o `scrollTop` depois, e o teste acusava um puxão que não houve.
+    // O `scrollToEnd` da carga inicial também segue reconciliando por alguns quadros, e um
     // arraste no meio dele seria atropelado pelo próprio virtualizador.
     const assentada = async (condicao: () => boolean) => {
-      let anterior = "";
-      await expect
-        .poll(
-          () => {
-            const atual = `${String(el.scrollTop)}|${String(el.scrollHeight)}`;
-            const parado = atual === anterior;
-            anterior = atual;
-            return parado && condicao();
-          },
-          { timeout: 5000, interval: 100 },
-        )
-        .toBe(true);
+      await expect.poll(condicao, { timeout: 5000 }).toBe(true);
+      await assentarLista();
+      expect(condicao()).toBe(true);
     };
     await assentada(() => distanciaDoFim() <= 80);
 
