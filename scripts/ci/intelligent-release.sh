@@ -48,7 +48,7 @@ fi
 git fetch --force origin main --tags
 MAIN_SHA="$(git rev-parse origin/main)"
 MARKER_TAG="release-state/processed/$MAIN_SHA"
-if git show-ref --verify --quiet "refs/tags/$MARKER_TAG"; then
+if [[ "${FORCE_REANALYZE:-false}" != "true" ]] && git show-ref --verify --quiet "refs/tags/$MARKER_TAG"; then
   echo "Main commit $MAIN_SHA was already analyzed; no repeated classification."
   exit 0
 fi
@@ -153,12 +153,10 @@ while IFS= read -r pr; do
   if awk -v p="$confidence" -v min="$MIN_CONFIDENCE" 'BEGIN { exit !(p >= min) }'; then
     :
   else
-    echo "::error::Jev confidence $confidence for PR #$number is below $MIN_CONFIDENCE; manual review required."
-    exit 1
+    needs_review "Jev confidence $confidence for PR #$number is below $MIN_CONFIDENCE; manual review required."
   fi
   if [[ "$choice" == "review" ]]; then
-    echo "::error::Jev marked PR #$number for manual review; no release will be published."
-    exit 1
+    needs_review "Jev marked PR #$number for manual review; no release will be published."
   fi
 
   printf '{"number":%s,"title":%s,"url":%s,"impact":%s,"probability":%s}\n' \
