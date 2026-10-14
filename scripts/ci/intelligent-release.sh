@@ -406,9 +406,11 @@ $pre_summary"
       # agrees on minor, use that explicit repository convention rather than
       # blocking a consistently classified feature.
       feature_title=false
-      case "$title" in
-        feat:*|feat\\(*\\):*|feat!:*|feat\\(*\\)!:*) feature_title=true ;;
-      esac
+      title_prefix="${title%%:*}"
+      if [[ "$title_prefix" == "feat" || "$title_prefix" == feat\\(*\\) ||
+            "$title_prefix" == "feat!" || "$title_prefix" == feat\\(*\\)! ]]; then
+        feature_title=true
+      fi
       if [[ "$feature_title" == true ]] &&
          [[ "$(jq -s 'all(.[]; .choice == "minor")' "$TMP/pr-$number-chunk-results.jsonl")" == true ]]; then
         result="$(jq -n '{answers:{impact:{choice:"minor",probabilities:{major:0,minor:1,patch:0,none:0,review:0}}}}')"
