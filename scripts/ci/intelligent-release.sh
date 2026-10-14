@@ -245,11 +245,11 @@ while IFS= read -r pr; do
   elif ! awk -v p="$confidence" -v min="$MIN_CONFIDENCE" 'BEGIN { exit !(p >= min) }'; then
     # Patch vs. no-release ambiguity is low risk only when Jev assigns very
     # little probability to a feature, breaking change, or unresolved review.
-    high_impact_probability="$(jq -r '[.answers.impact.probabilities.major // 0, .answers.impact.probabilities.minor // 0, .answers.impact.probabilities.review // 0] | max' <<< "$result")"
+    high_impact_probability="$(jq -r '[.answers.impact.probabilities.major // 0, .answers.impact.probabilities.minor // 0, .answers.impact.probabilities.review // 0] | add' <<< "$result")"
     if [[ "$diff_truncated" == false && "$choice" =~ ^(patch|none)$ ]] &&
        awk -v p="$confidence" -v low=0.55 -v high="$high_impact_probability" \
          'BEGIN { exit !(p >= low && high < 0.20) }'; then
-      echo "PR #$number accepted under low-risk policy (p=$confidence; highest major/minor/review probability=$high_impact_probability)"
+      echo "PR #$number accepted under low-risk policy (p=$confidence; combined major/minor/review probability=$high_impact_probability)"
     else
       review_reason="Confidence $confidence remains below $MIN_CONFIDENCE after the second pass"
     fi
