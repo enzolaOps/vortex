@@ -59,6 +59,20 @@ mark_processed() {
       -f "ref=refs/tags/$MARKER_TAG" -f "sha=$MAIN_SHA" >/dev/null
   fi
 }
+
+needs_review() {
+  message="$1"
+  echo "::warning::$message"
+  {
+    echo "### Intelligent release paused for manual review"
+    echo
+    echo "$message"
+    echo
+    echo "No release was published. Review the PR metadata and rerun this workflow with force=true when ready."
+  } >> "$GITHUB_STEP_SUMMARY"
+  mark_processed
+  exit 0
+}
 if [[ "$MAIN_SHA" != "$(git rev-parse HEAD)" ]]; then
   echo "Checkout is not at the latest main commit; aborting safely."
   exit 1
