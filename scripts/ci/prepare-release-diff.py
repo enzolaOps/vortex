@@ -106,15 +106,20 @@ def prepare(diff: str, title: str, body: str) -> dict:
         for kind in sorted(kinds)
     }
 
-    if kinds <= {"release-automation"}:
-        return result("none", "Changes are confined to release/CI automation.", counts, paths_by_kind)
-    if kinds <= {"tests"}:
-        return result("none", "Changes are confined to tests, fixtures, or test helpers.", counts, paths_by_kind)
-    if kinds <= {"documentation"}:
-        return result("none", "Changes are confined to documentation; no implementation behavior changed.", counts, paths_by_kind)
-    if kinds <= {"dependency-lockfile"}:
-        impact, reason = dependency_impact(title + "\n" + body)
-        return result(impact, reason, counts, paths_by_kind)
+    non_implementation = {"release-automation", "tests", "documentation", "dependency-lockfile"}
+    if kinds <= non_implementation:
+        if "dependency-lockfile" in kinds:
+            impact, reason = dependency_impact(title + "\n" + body)
+            return result(impact, reason, counts, paths_by_kind)
+        if kinds <= {"release-automation"}:
+            reason = "Changes are confined to release/CI automation."
+        elif kinds <= {"tests"}:
+            reason = "Changes are confined to tests, fixtures, or test helpers."
+        elif kinds <= {"documentation"}:
+            reason = "Changes are confined to documentation; no implementation behavior changed."
+        else:
+            reason = "Changes are confined to tests, documentation, and release automation."
+        return result("none", reason, counts, paths_by_kind)
 
     # Only implementation-bearing sections reach Jev. The metadata summary keeps
     # the excluded categories visible so mixed PRs are not misrepresented.
