@@ -244,6 +244,11 @@ while IFS= read -r pr; do
       chunk_index="$(jq -r '.index' <<< "$chunk")"
       chunk_diff="$(jq -r '.diff' <<< "$chunk")"
       chunk_files="$(jq -c '.files' <<< "$chunk")"
+      if jq -e 'length > 0 and all(.[]; test("(^|/)(__tests__|tests?|testdata)/|(^|/)[^/]+([._-](test|spec))\\\\.[^/]+$|(^|/)[^/]+_test\\\\.[^/]+$"))' <<< "$chunk_files" >/dev/null; then
+        echo "PR #$number chunk $chunk_index/$chunk_count => none (deterministic: test-only paths)"
+        jq -cn '{choice:"none",confidence:1.0,probabilities:{none:1.0}}' >> "$TMP/pr-$number-chunk-results.jsonl"
+        continue
+      fi
       jq -n \
         --argjson number "$number" \
         --arg title "$title" \
