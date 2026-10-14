@@ -46,6 +46,18 @@ class SplitReleaseDiffTests(unittest.TestCase):
         self.assertTrue(all(c["diff"].startswith("diff --git a/large.txt") for c in chunks))
         self.assertEqual(sum(c["diff"].count("@@ -") for c in chunks), 2)
 
+
+    def test_splits_one_large_hunk_without_dropping_lines(self):
+        body = "".join(f"-old line {i:03d}\\n+new line {i:03d}\\n" for i in range(40))
+        diff = section("large-hunk.txt", "@@ -1,40 +1,40 @@\\n" + body)
+        chunks = MODULE.split_diff(diff, 220)
+        self.assertGreater(len(chunks), 1)
+        self.assertTrue(all(c["bytes"] <= 220 for c in chunks))
+        combined = "".join(c["diff"] for c in chunks)
+        self.assertEqual(combined.count("-old line "), 40)
+        self.assertEqual(combined.count("+new line "), 40)
+        self.assertEqual(combined.count("@@ -"), len(chunks))
+
     def test_empty_diff_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "diff is empty"):
             MODULE.split_diff("", 100)
