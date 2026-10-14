@@ -307,22 +307,38 @@ done < "$TMP/eligible.jsonl"
 
 if (( review_count > 0 )); then
   {
-    echo "### Intelligent release paused for manual review"
-    echo
-    echo "No release was published. $review_count of $eligible_count PR(s) still require review after classification and targeted re-analysis."
-    echo
-    echo "Rerun this workflow with \`force=true\` after reviewing the decisions."
+    if [[ "$DRY_RUN" == "true" ]]; then
+      echo "### Intelligent release dry run — blocked by manual review"
+      echo
+      echo "- **No release or processed-marker tag was created.**"
+      echo "- Main commit: $MAIN_SHA"
+      echo "- Previous tag: $LAST_TAG"
+      echo "- PRs classified: $eligible_count"
+      echo "- Resolved: major $major_count; minor $minor_count; patch $patch_count; no impact $none_count"
+      echo "- Still requiring review: $review_count"
+      echo
+      echo "The next version cannot be finalized until all review decisions are resolved."
+    else
+      echo "### Intelligent release paused for manual review"
+      echo
+      echo "No release was published. $review_count of $eligible_count PR(s) still require review after classification and targeted re-analysis."
+      echo
+      echo "Rerun this workflow with `force=true` after reviewing the decisions."
+    fi
     echo
     echo "#### PRs requiring review"
-    jq -r 'select(.needs_review == true) | "- #\(.number) \(.title): \(.review_reason // "insufficient confidence") (initial=\(.initial_impact // "unavailable"), final probability=\(.probability // "unavailable"))"' "$TMP/decisions.jsonl"
+    jq -r 'select(.needs_review == true) | "- #\\(.number) \\(.title): \\(.review_reason // "insufficient confidence") (initial=\\(.initial_impact // "unavailable"), final probability=\\(.probability // "unavailable"))"' "$TMP/decisions.jsonl"
     echo
     echo "#### All classifier decisions"
-    jq -r '"- #\(.number) \(.title): \(.impact) (p=\(.probability // "n/a"), method=\(.method // "n/a"))"' "$TMP/decisions.jsonl"
+    jq -r '"- #\\(.number) \\(.title): \\(.impact) (p=\\(.probability // "n/a"), method=\\(.method // "n/a"))"' "$TMP/decisions.jsonl"
   } >> "$GITHUB_STEP_SUMMARY"
+  if [[ "$DRY_RUN" == "true" ]]; then
+    echo "Dry run blocked by $review_count PR(s) requiring manual review; no repository mutations were made."
+    exit 0
+  fi
   mark_processed
   exit 0
 fi
-
 if (( major_count + minor_count + patch_count == 0 )); then
   {
     echo "### Intelligent release"
