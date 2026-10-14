@@ -46,6 +46,9 @@
 .grade[data-gaveta="icones"] {
   --larg-gaveta: 64px;
 }
+.grade[data-gaveta="busca"] {
+  --larg-gaveta: clamp(20rem, 24cqi, 26rem);
+}
 .grade[data-gaveta="oculta"] {
   --larg-gaveta: 0px;
   --gap-gaveta: 0px;
@@ -53,7 +56,7 @@
 
 /* Janela estreita: a gaveta sai primeiro; abaixo disso, a coluna de salas também. */
 @container shell (inline-size < 1100px) {
-  .grade[data-gaveta] {
+  .grade[data-gaveta]:not([data-gaveta="busca"]) {
     --larg-gaveta: 0px;
     --gap-gaveta: 0px;
   }
@@ -62,6 +65,10 @@
   .grade[data-gaveta] {
     --larg-salas: 0px;
     --gap-salas: 0px;
+  }
+  .grade[data-gaveta="busca"] {
+    --larg-gaveta: 0px;
+    --gap-gaveta: 0px;
   }
 }
 
@@ -133,7 +140,13 @@
   display: none;
 }
 @container shell (inline-size < 1100px) {
-  .gaveta {
+  .gaveta:not([data-busca]) {
+    display: none;
+  }
+}
+/* A busca é uma tarefa em curso, não um complemento: ela segue na tela até a janela ficar estreita demais. */
+@container shell (inline-size < 760px) {
+  .gaveta[data-busca] {
     display: none;
   }
 }

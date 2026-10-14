@@ -86,6 +86,7 @@ import {
 } from "./eventosDaSala";
 import { assinarChamada, lerChamada } from "../store/chamada";
 import { definirProntidao } from "../store/prontidao";
+import { aplicarFixacao, removerFixada } from "../store/fixados";
 import { anotarEventoDeServidor } from "./eventos";
 import { semearStatusDoServidor } from "./perfil";
 import { aguardar, desistir, reconciliar } from "./nonce";
@@ -889,6 +890,23 @@ function devolverApagada(chave: string): void {
 /* -------------------------------------------------------------- entidade */
 
 /**
+ * Prévia de link que chega tarde NÃO é edição.
+ *
+ * O SDK carimba `editedAt = new Date()` em TODO `MessageUpdate`, e o servidor
+ * manda um quando o `january` termina de resolver o link (ou quando fixam, etc.).
+ * Sem isto a linha ganharia "(editada)" segundos depois de enviada, por causa
+ * de um cartão. Se o texto é o mesmo, a edição que vale é a que já estava.
+ */
+export function preservarEdicao(
+  anterior: MessageSnapshot | undefined,
+  novo: MessageSnapshot,
+): MessageSnapshot {
+  if (!anterior || anterior.content !== novo.content || anterior.editedAt === novo.editedAt) return novo;
+  return { ...novo, editedAt: anterior.editedAt };
+}
+
+
+/**
  * Efeito Solid por mensagem assinada. Os getters do SDK são backed por store
  * Solid, então ler `content` aqui dentro rastreia AQUELE campo: o efeito só
  * re-roda quando aquela mensagem muda.
@@ -918,16 +936,14 @@ export const messages = createEntityStore<MessageSnapshot>((id) => {
       // do instante do envio, sem nada falhar.
       const message = client.messages.get(idDoSdk(id));
       if (message) {
-        messages.set(
-          id,
-          toMessageSnapshot(
-            message,
-            layoutDe(id),
-            estadoDeEnvioDe(id),
-            usuarioLocal,
-            lerEnquete(id),
-          ),
+        const novo = toMessageSnapshot(
+          message,
+          layoutDe(id),
+          estadoDeEnvioDe(id),
+          usuarioLocal,
+          lerEnquete(id),
         );
+        messages.set(id, preservarEdicao(messages.peek(id), novo));
         count("snapshots");
       }
     });
@@ -1073,12 +1089,27 @@ export function alternarFixada(messageId: string): void {
   } as never);
 
   publicarFixadas(message.channelId);
+  // O painel de fixados acompanha na hora, sem refazer a busca. A chave é a do SDK:
+  // é a que `Channel.search` devolve, e `chaveLocal` a resolve ao saltar.
+  aplicarFixacao(message.channelId, message.id, fixando);
 
   // A rede, como na reação: otimista na tela, contado ao servidor depois.
   if (!conectado()) return;
   const alvo = client.messages.get(idDoSdk(messageId));
   if (fixando) void alvo?.pin().catch(() => undefined);
   else void alvo?.unpin().catch(() => undefined);
+}
+
+/**
+ * Desafixa — e só isso. O painel de fixados oferece "Desafixar" sobre uma lista
+ * que pode estar um instante atrás da mensagem (outra pessoa já desafixou): o
+ * alternar a FIXARIA de novo. Mensagem que já não está fixada só sai da lista.
+ */
+export function desafixarMensagem(messageId: string): void {
+  const message = client.messages.get(idDoSdk(messageId));
+  if (!message) return;
+  if (message.pinned) alternarFixada(messageId);
+  else aplicarFixacao(message.channelId, message.id, false);
 }
 
 /**
@@ -1649,9 +1680,23 @@ export function startAdapter() {
     avisarChegada(message);
   });
 
+  /*
+    Fixar/desafixar por OUTRA pessoa chega como `MessageUpdate` com `pinned`. O
+    painel de fixados mantém a lista por este evento, sem refazer a busca. Só
+    reage à MUDANÇA do campo: o eco da nossa própria ação já encontra o valor
+    escrito (`alternarFixada` é otimista) e não repete nada.
+  */
+  client.on("messageUpdate", (message, anterior) => {
+    const antes = (anterior as { pinned?: boolean | null }).pinned === true;
+    if (message.pinned === antes) return;
+    publicarFixadas(message.channelId);
+    aplicarFixacao(message.channelId, message.id, message.pinned);
+  });
+
   client.on("messageDelete", (message) => {
     const channelId = message.channelId;
     if (!channelId) return;
+    removerFixada(channelId, message.id);
     const ids = idsOf(channelId);
     // `chaveLocal`: se esta mensagem foi enviada por aqui, a lista a conhece
     // pelo ID otimista, e o servidor está falando do ID dele.
@@ -2006,6 +2051,72 @@ export async function carregarPaginaAnterior(channelId: string): Promise<void> {
     paginaEmVoo.delete(channelId);
     atualizarHistorico(channelId, { pagina: false });
   }
+}
+
+export type ChegadaAMensagem =
+  /** A mensagem está na lista; `chave` é como a lista a conhece (o ID local, se for sua). */
+  | { readonly estado: "pronta"; readonly chave: string }
+  /** O histórico chegou ao começo e ela não está nele (apagada, ou de outro canal). */
+  | { readonly estado: "ausente" }
+  /** Sem conexão, canal desconhecido ou a rede falhou no meio do caminho. */
+  | { readonly estado: "falhou" };
+
+/** Teto de páginas por salto: 40 × 100 = 4.000 mensagens para trás. */
+const LIMITE_DE_PAGINAS_NO_SALTO = 40;
+
+const dormir = (ms: number) => new Promise<void>((resolver) => setTimeout(resolver, ms));
+
+/**
+ * Faz a mensagem existir na lista, para a tela poder saltar até ela.
+ *
+ * ⚠ **Carrega para trás até a encontrar, e não "em volta" dela.** O protocolo
+ * tem `nearby`, mas uma janela em volta de uma mensagem antiga seria uma
+ * SEGUNDA janela, separada da que a lista já tem: o que ficasse entre as duas
+ * seria um buraco que a timeline desenharia como se fosse contínuo — a
+ * interface afirmando um histórico sem as mensagens do meio. Paginar com o
+ * cursor que já existe (`carregarPaginaAnterior`) mantém uma lista só,
+ * contígua até o presente, e o virtualizador reancora pela chave como em
+ * qualquer prepend. O custo é uma chamada por 100 mensagens de distância,
+ * limitado por `LIMITE_DE_PAGINAS_NO_SALTO`.
+ *
+ * A comparação para saber que passou do ponto é de ULID (ordem do ID = ordem
+ * do tempo): se a mais antiga da lista já é anterior ao alvo e o alvo não está
+ * nela, ele não existe mais — para de pedir.
+ */
+export async function carregarAteMensagem(
+  channelId: string,
+  messageId: string,
+): Promise<ChegadaAMensagem> {
+  const chave = chaveLocal(messageId);
+  for (let volta = 0; volta <= LIMITE_DE_PAGINAS_NO_SALTO; volta += 1) {
+    const ids = idsOf(channelId);
+    if (ids.includes(chave)) return { estado: "pronta", chave };
+
+    const maisAntiga = ids[0];
+    if (maisAntiga !== undefined && idDoSdk(maisAntiga) < messageId && historicoPedido.has(channelId)) {
+      return { estado: "ausente" };
+    }
+    if (historicoNoFim.has(channelId)) return { estado: "ausente" };
+    if (volta === LIMITE_DE_PAGINAS_NO_SALTO) return { estado: "falhou" };
+
+    if (!historicoPedido.has(channelId)) {
+      await carregarHistorico(channelId);
+      if (!historicoPedido.has(channelId)) return { estado: "falhou" };
+      continue;
+    }
+    if (paginaEmVoo.has(channelId)) {
+      await dormir(120);
+      continue;
+    }
+
+    const antes = ids.length;
+    await carregarPaginaAnterior(channelId);
+    if (idsOf(channelId).length === antes && !historicoNoFim.has(channelId)) {
+      /* Nada entrou e o histórico não acabou: a página falhou (rede). */
+      return { estado: "falhou" };
+    }
+  }
+  return { estado: "falhou" };
 }
 
 /**

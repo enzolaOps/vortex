@@ -25,9 +25,11 @@ export interface Aparencia {
   readonly texto: number;
   /** `null` = segue o sistema (`prefers-reduced-motion`). */
   readonly reduzirAnimacoes: boolean | null;
+  /** Mostra a prévia de links (cartões) sob as mensagens. */
+  readonly previasDeLink: boolean;
 }
 
-export const APARENCIA_PADRAO: Aparencia = { vidro: 100, brilho: 100, texto: 100, reduzirAnimacoes: null };
+export const APARENCIA_PADRAO: Aparencia = { vidro: 100, brilho: 100, texto: 100, reduzirAnimacoes: null, previasDeLink: true };
 
 type Ouvinte = () => void;
 const ouvintes = new Set<Ouvinte>();
@@ -43,6 +45,7 @@ function normalizar(o: Record<string, unknown>): Aparencia {
     brilho: limitar(o["brilho"], 0, 100, APARENCIA_PADRAO.brilho),
     texto: limitar(o["texto"], TEXTO_MIN, TEXTO_MAX, APARENCIA_PADRAO.texto),
     reduzirAnimacoes: typeof o["reduzirAnimacoes"] === "boolean" ? o["reduzirAnimacoes"] : null,
+    previasDeLink: typeof o["previasDeLink"] === "boolean" ? o["previasDeLink"] : true,
   };
 }
 
@@ -77,7 +80,8 @@ export function definirAparencia(mudanca: Partial<Aparencia>): void {
     proxima.vidro === atual.vidro &&
     proxima.brilho === atual.brilho &&
     proxima.texto === atual.texto &&
-    proxima.reduzirAnimacoes === atual.reduzirAnimacoes
+    proxima.reduzirAnimacoes === atual.reduzirAnimacoes &&
+    proxima.previasDeLink === atual.previasDeLink
   ) {
     return;
   }

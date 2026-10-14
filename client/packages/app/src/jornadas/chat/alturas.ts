@@ -131,3 +131,39 @@ export function amostrarAltura(tipo: TipoDeLinha, altura: number, comDivisor: bo
     if (a.n > 200) conferir(tipo, a.soma / a.n, densidade, texto);
   }
 }
+
+/** Soma real e estimada do bloco de embeds, por (densidade, tamanho de texto). */
+const AMOSTRAS_DE_EMBED = new Map<string, { real: number; estimada: number; n: number }>();
+let embedAvisado = false;
+
+/**
+ * A prévia de link chega DEPOIS do envio e muda a altura da linha. A constante do tipo
+ * descreve a linha sem ela; o bloco de embeds tem estimativa própria (`alturaDeEmbeds`,
+ * calculada do metadata) e é conferida aqui, à parte: a média de uma linha com cartão
+ * não pode contaminar a do tipo, nem a do tipo esconder um cartão que mudou de forma.
+ *
+ * `real` é a altura MEDIDA do bloco (respiro de cima incluído), não a da linha menos
+ * uma constante: a linha varia com o texto e o ruído esconderia o cartão. Em dev, se a
+ * média real sair 20% da estimada (com amostra suficiente), avisa.
+ */
+export function amostrarAlturaDeEmbeds(real: number, estimada: number) {
+  if (real <= 0 || estimada <= 0) return;
+  count("alturaComEmbedSoma", real);
+  count("alturaComEmbedAmostras");
+  if (!import.meta.env.DEV || embedAvisado) return;
+  const chave = `${lerDensidade()}|${String(lerAparencia().texto)}`;
+  const a = AMOSTRAS_DE_EMBED.get(chave) ?? { real: 0, estimada: 0, n: 0 };
+  a.real += real;
+  a.estimada += estimada;
+  a.n += 1;
+  AMOSTRAS_DE_EMBED.set(chave, a);
+  if (a.n <= 30) return;
+  const erro = Math.abs(a.real - a.estimada) / a.estimada;
+  if (erro < 0.2) return;
+  embedAvisado = true;
+  console.error(
+    `[vortex] a estimativa de altura dos embeds está a ${(erro * 100).toFixed(0)}% do real: ` +
+      `estima ${(a.estimada / a.n).toFixed(0)}px, mede ${(a.real / a.n).toFixed(0)}px por linha. ` +
+      `O cartão mudou de forma: remeça \`caixaDoEmbed.ts\`. Estimativa errada não quebra nada, só faz a barra de rolagem mentir.`,
+  );
+}

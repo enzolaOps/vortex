@@ -38,6 +38,7 @@ import {
 import { page, userEvent } from "vitest/browser";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { quadros } from "../../testes/esperas";
 import { salas, shell, voz } from "../../textos";
 import { desmontar, montar, pegar } from "../../ui/ds/montar";
 import { ShellDasSalas } from "./ShellDasSalas";
@@ -290,7 +291,8 @@ describe("clicar numa sala de voz entra nela", () => {
 
 		sala("Jogatina").click();
 		expect(ctl.entrou).toEqual(["V1"]);
-		await new Promise((r) => setTimeout(r, 50));
+		// Asserção negativa: o palco abriria no render seguinte ao clique.
+		await quadros(2);
 		expect(palco()).toBeNull();
 	});
 
@@ -331,7 +333,8 @@ describe("clicar numa sala de voz entra nela", () => {
 		);
 		expect(descricao?.textContent).toBe(salas.vocePodeEntrar);
 		jogatina.click();
-		await new Promise((r) => setTimeout(r, 50));
+		// Asserção negativa: entrar e abrir o palco seriam síncronos ao clique.
+		await quadros(2);
 		expect(ctl.entrou).toEqual([]);
 		expect(palco()).toBeNull();
 	});
