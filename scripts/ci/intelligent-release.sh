@@ -192,28 +192,112 @@ while IFS= read -r pr; do
     ((review_count+=1))
     continue
   fi
-  echo "PR #$number diff: $diff_bytes bytes; sending complete diff to Jev."
   diff_content="$(cat "$diff_file")"
   diff_truncated=false
+  classification_method_override=""
+  : > "$TMP/pr-$number-chunk-results.jsonl"
 
-  jq -n \
-    --argjson number "$number" \
-    --arg title "$title" \
-    --arg body "$body" \
-    --arg url "$url" \
-    --argjson labels "$labels" \
-    --argjson files "$files" \
-    --arg diff "$diff_content" \
-    --argjson diff_truncated "$diff_truncated" \
-    '{number:$number,title:$title,body:$body,url:$url,labels:$labels,changed_files:$files,diff:$diff,diff_truncated:$diff_truncated}' \
-    > "$TMP/pr-$number.json"
+  # Small PRs keep the single-call path. Large PRs are split only at file
+  # boundaries; an oversized individual file or any failed chunk blocks release.
+  if (( diff_bytes <= 18000 )); then
+    echo "PR #$number diff: $diff_bytes bytes; sending complete diff to Jev."
+    jq -n \
+      --argjson number "$number" \
+      --arg title "$title" \
+      --arg body "$body" \
+      --arg url "$url" \
+      --argjson labels "$labels" \
+      --argjson files "$files" \
+      --arg diff "$diff_content" \
+      --argjson diff_truncated "$diff_truncated" \
+      '{number:$number,title:$title,body:$body,url:$url,labels:$labels,changed_files:$files,diff:$diff,diff_truncated:$diff_truncated}' \
+      > "$TMP/pr-$number.json"
 
-  if ! result="$(jev ask --preset release-impact --param "pr=@$TMP/pr-$number.json")"; then
-    echo "::warning::Jev could not process the complete diff for PR #$number; requiring manual review."
-    printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"jev","needs_review":true,"review_reason":"Jev failed to process complete PR diff"}\n' \
-      "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" >> "$TMP/decisions.jsonl"
-    ((review_count+=1))
-    continue
+    if ! result="$(jev ask --preset release-impact --param "pr=@$TMP/pr-$number.json")"; then
+      echo "::warning::Jev could not process the complete diff for PR #$number; requiring manual review."
+      printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"jev","needs_review":true,"review_reason":"Jev failed to process complete PR diff"}\n' \
+        "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" >> "$TMP/decisions.jsonl"
+      ((review_count+=1))
+      continue
+    fi
+  else
+    echo "PR #$number diff: $diff_bytes bytes; splitting into complete-file batches (12,000-byte maximum each)."
+    if ! python3 scripts/ci/split-release-diff.py "$diff_file" 12000 > "$TMP/pr-$number-chunks.json"; then
+      echo "::warning::PR #$number could not be safely chunked (likely an oversized individual file); requiring manual review."
+      printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"jev-chunked","needs_review":true,"review_reason":"Diff could not be split safely at file boundaries"}\n' \
+        "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" >> "$TMP/decisions.jsonl"
+      ((review_count+=1))
+      continue
+    fi
+
+    chunk_count="$(jq 'length' "$TMP/pr-$number-chunks.json")"
+    chunk_failed=false
+    while IFS= read -r chunk; do
+      chunk_index="$(jq -r '.index' <<< "$chunk")"
+      chunk_diff="$(jq -r '.diff' <<< "$chunk")"
+      chunk_files="$(jq -c '.files' <<< "$chunk")"
+      jq -n \
+        --argjson number "$number" \
+        --arg title "$title" \
+        --arg body "$body" \
+        --arg url "$url" \
+        --argjson labels "$labels" \
+        --argjson files "$chunk_files" \
+        --arg diff "$chunk_diff" \
+        --argjson diff_truncated false \
+        --argjson chunk_index "$chunk_index" \
+        --argjson chunk_count "$chunk_count" \
+        '{number:$number,title:$title,body:$body,url:$url,labels:$labels,changed_files:$files,diff:$diff,diff_truncated:$diff_truncated,chunk_index:$chunk_index,chunk_count:$chunk_count,analysis_mode:"complete-file-chunk"}' \
+        > "$TMP/pr-$number-chunk-$chunk_index.json"
+
+      echo "PR #$number chunk $chunk_index/$chunk_count ($(jq -r '.bytes' <<< "$chunk") bytes; files: $(jq -r '.files | join(", ")' <<< "$chunk"))"
+      if ! chunk_result="$(jev ask --preset release-impact --param "pr=@$TMP/pr-$number-chunk-$chunk_index.json")"; then
+        echo "::warning::Jev failed on PR #$number chunk $chunk_index/$chunk_count; requiring manual review."
+        chunk_failed=true
+        break
+      fi
+      if ! chunk_choice="$(jq -er '.answers.impact.choice' <<< "$chunk_result")" ||
+         ! chunk_confidence="$(jq -er --arg choice "$chunk_choice" '.answers.impact.probabilities[$choice]' <<< "$chunk_result")" ||
+         ! [[ "$chunk_confidence" =~ ^[0-9]+([.][0-9]+)?$ ]] ||
+         ! [[ "$chunk_choice" =~ ^(major|minor|patch|none|review)$ ]]; then
+        echo "::warning::Jev returned an invalid result for PR #$number chunk $chunk_index/$chunk_count; requiring manual review."
+        chunk_failed=true
+        break
+      fi
+      if [[ "$chunk_choice" == "review" ]] || ! awk -v p="$chunk_confidence" -v min="$MIN_CONFIDENCE" 'BEGIN { exit !(p >= min) }'; then
+        echo "::warning::PR #$number chunk $chunk_index/$chunk_count is ambiguous (impact=$chunk_choice, p=$chunk_confidence); requiring manual review."
+        chunk_failed=true
+        break
+      fi
+      jq -c --arg choice "$chunk_choice" --argjson confidence "$chunk_confidence" \
+        '{choice:$choice,confidence:$confidence,probabilities:.answers.impact.probabilities}' \
+        <<< "$chunk_result" >> "$TMP/pr-$number-chunk-results.jsonl"
+    done < <(jq -c '.[]' "$TMP/pr-$number-chunks.json")
+
+    if [[ "$chunk_failed" == true ]] || (( $(wc -l < "$TMP/pr-$number-chunk-results.jsonl" | tr -d ' ') != chunk_count )); then
+      printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"jev-chunked","needs_review":true,"review_reason":"At least one diff chunk failed or was ambiguous"}\n' \
+        "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" >> "$TMP/decisions.jsonl"
+      ((review_count+=1))
+      continue
+    fi
+
+    # Combine by highest impact across all chunks. A major/minor disagreement
+    # is a semantic conflict and requires review rather than an arbitrary choice.
+    has_major="$(jq -s 'any(.[]; .choice == "major")' "$TMP/pr-$number-chunk-results.jsonl")"
+    has_minor="$(jq -s 'any(.[]; .choice == "minor")' "$TMP/pr-$number-chunk-results.jsonl")"
+    if [[ "$has_major" == true && "$has_minor" == true ]]; then
+      printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"jev-chunked","needs_review":true,"review_reason":"Chunks disagree between major and minor impact"}\n' \
+        "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" >> "$TMP/decisions.jsonl"
+      ((review_count+=1))
+      continue
+    fi
+    choice="$(jq -s 'if any(.[]; .choice == "major") then "major" elif any(.[]; .choice == "minor") then "minor" elif any(.[]; .choice == "patch") then "patch" else "none" end' "$TMP/pr-$number-chunk-results.jsonl" | tr -d '"')"
+    confidence="$(jq -s '[.[].confidence] | min' "$TMP/pr-$number-chunk-results.jsonl")"
+    probabilities="$(jq -s 'reduce .[].probabilities as $p ({"major":0,"minor":0,"patch":0,"none":0,"review":0}; reduce ["major","minor","patch","none","review"][] as $k (. ; .[$k] = ([.[$k], ($p[$k] // 0)] | max)))' "$TMP/pr-$number-chunk-results.jsonl")"
+    result="$(jq -n --arg choice "$choice" --argjson confidence "$confidence" --argjson probabilities "$probabilities" \
+      '{answers:{impact:{choice:$choice,probabilities:($probabilities | .[$choice]=$confidence)}}}')"
+    classification_method_override="jev-chunked"
+    echo "PR #$number combined chunk result => $choice (minimum chunk confidence=$confidence)"
   fi
   if ! initial_choice="$(jq -er '.answers.impact.choice' <<< "$result")" ||
      ! initial_confidence="$(jq -er --arg choice "$initial_choice" '.answers.impact.probabilities[$choice]' <<< "$result")" ||
