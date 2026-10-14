@@ -146,6 +146,20 @@ while IFS= read -r pr; do
   labels="$(jq -c '[.labels[].name]' <<< "$pr")"
   files="$(jq -c '[.files[].path]' <<< "$pr")"
 
+  # Give Jev the actual patch, not only PR metadata and file paths.
+  # Bound the payload so unusually large PRs cannot overwhelm the classifier.
+  diff_file="$TMP/pr-$number.diff"
+  gh pr diff "$number" --repo "$REPOSITORY" > "$diff_file"
+  diff_bytes="$(wc -c < "$diff_file" | tr -d ' ')"
+  max_diff_bytes=40000
+  diff_truncated=false
+  if (( diff_bytes > max_diff_bytes )); then
+    diff_content="$(head -c "$max_diff_bytes" "$diff_file")"
+    diff_truncated=true
+  else
+    diff_content="$(cat "$diff_file")"
+  fi
+
   jq -n \
     --argjson number "$number" \
     --arg title "$title" \
@@ -153,7 +167,9 @@ while IFS= read -r pr; do
     --arg url "$url" \
     --argjson labels "$labels" \
     --argjson files "$files" \
-    '{number:$number,title:$title,body:$body,url:$url,labels:$labels,changed_files:$files}' \
+    --arg diff "$diff_content" \
+    --argjson diff_truncated "$diff_truncated" \
+    '{number:$number,title:$title,body:$body,url:$url,labels:$labels,changed_files:$files,diff:$diff,diff_truncated:$diff_truncated}' \
     > "$TMP/pr-$number.json"
 
   result="$(jev ask --preset release-impact --param "pr=@$TMP/pr-$number.json")"
