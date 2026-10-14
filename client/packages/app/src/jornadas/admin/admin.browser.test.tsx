@@ -16,7 +16,9 @@ import {
   vozPorCanal,
 } from "nucleo/sdk/adapter";
 import type { Cargo } from "nucleo/sdk/cargos";
+import { client } from "nucleo/sdk/client";
 import { chaveDeMembro, SEM_CARGO } from "nucleo/sdk/domain";
+import { filas, politicas, POLITICA_PADRAO } from "nucleo/sdk/seguranca";
 import type { Banido, Convite, ConviteDoServidor } from "nucleo/sdk/servidores";
 import { abrirConfig, limparConfig, lerConfig } from "nucleo/store/config";
 import { irParaCasa } from "nucleo/store/navegacao";
@@ -84,6 +86,28 @@ vi.mock("nucleo/sdk/permissoes", async (original) => ({
   ...(await original<Record<string, unknown>>()),
   pode: (_canal: string, acao: string) => permitido(acao),
   podeNoServidor: (_servidor: string, acao: string) => permitido(acao),
+}));
+
+vi.mock("nucleo/sdk/seguranca", async (original) => ({
+  ...(await original<Record<string, unknown>>()),
+  podeGerenciarSeguranca: () => permitido("gerenciarServidor"),
+  podeModerarPedidos: () => permitido("moderarPedidos"),
+  editarPolitica: (_s: string, mudanca: object) => {
+    registrar("editarPolitica", mudanca);
+    return feito(true);
+  },
+  aprovarPedido: (_s: string, usuario: string) => {
+    registrar("aprovarPedido", usuario);
+    return feito(true);
+  },
+  recusarPedido: (_s: string, usuario: string) => {
+    registrar("recusarPedido", usuario);
+    return feito(true);
+  },
+  aprovarTodos: () => {
+    registrar("aprovarTodos");
+    return feito(undefined);
+  },
 }));
 
 vi.mock("nucleo/sdk/cargos", async (original) => ({
@@ -347,12 +371,12 @@ const nav = () => page.getByRole("navigation", { name: admin.navegacao.rotulo })
 const chamou = (nome: string) => ctl.chamadas.filter((c) => c[0] === nome);
 
 describe("navegação das configurações do servidor", () => {
-  it("mostra as seis seções, em três grupos, para quem administra tudo", async () => {
+  it("mostra as sete seções, em três grupos, para quem administra tudo", async () => {
     await abrirSecao("servidor");
     for (const nome of Object.values(admin.navegacao).filter((n) => !n.startsWith("Seções") && n !== "Servidor" && n !== "Pessoas" && n !== "Moderação")) {
       await expect.element(nav().getByRole("button", { name: nome, exact: true })).toBeVisible();
     }
-    expect(nav().element().querySelectorAll("button").length).toBe(6);
+    expect(nav().element().querySelectorAll("button").length).toBe(7);
   });
 
   it("deixa AUSENTE (não cinza) a seção que a pessoa não pode usar", async () => {
@@ -855,6 +879,87 @@ describe("membros e moderação", () => {
     await expect.element(page.getByRole("dialog", { name: admin.membrosPagina.cargosDe("Caio") })).toBeVisible();
     await page.getByRole("switch", { name: "Artistas" }).click();
     await expect.poll(() => chamou("alternarCargo")).toEqual([["alternarCargo", "U2", "R2"]]);
+  });
+});
+
+describe("acesso", () => {
+  const pedidos = (...ids: string[]) => ({
+    requests: ids.map((id) => ({ user: id, created_at: "2026-10-01T10:00:00.000Z" })),
+    users: ids.map((id) => ({ _id: id, username: id.toLowerCase(), display_name: `Pessoa ${id}` })),
+  });
+  const lerPedidos = vi.fn<(caminho: string) => Promise<unknown>>();
+  let espiao: { mockRestore: () => void };
+
+  beforeEach(() => {
+    politicas.set(S, { ...POLITICA_PADRAO, modo: "aprovacao" });
+    filas.set(S, "carregando");
+    lerPedidos.mockResolvedValue(pedidos("P1", "P2"));
+    espiao = vi.spyOn(client.api, "get").mockImplementation(((caminho: string) => lerPedidos(caminho)) as never);
+  });
+  afterEach(() => {
+    espiao.mockRestore();
+  });
+
+  const linhas = () => document.querySelectorAll('[data-testid="linha-de-pedido"]');
+
+  it("a fila lista os pedidos, e aprovar e recusar chamam o adapter", async () => {
+    await abrirSecao("acesso");
+    await expect.poll(() => linhas().length).toBe(2);
+    await page.getByRole("button", { name: admin.acessoPagina.aprovarPessoa("Pessoa P1") }).click();
+    await expect.poll(() => chamou("aprovarPedido")).toEqual([["aprovarPedido", "P1"]]);
+    await page.getByRole("button", { name: admin.acessoPagina.recusarPessoa("Pessoa P2") }).click();
+    await expect.poll(() => chamou("recusarPedido")).toEqual([["recusarPedido", "P2"]]);
+    await page.getByRole("button", { name: admin.acessoPagina.aprovarTodos }).click();
+    await expect.poll(() => chamou("aprovarTodos").length).toBe(1);
+  });
+
+  it("o evento de pedido removido tira a linha, com o módulo importado depois", async () => {
+    await abrirSecao("acesso");
+    await expect.poll(() => linhas().length).toBe(2);
+    // A ligação ao socket acontece na avaliação do módulo; importar tarde não pode perdê-la.
+    await import("nucleo/sdk/seguranca");
+    (client.events as unknown as { emit: (n: string, e: unknown) => void }).emit("event", {
+      type: "ServerJoinRequestDelete",
+      id: S,
+      user: "P1",
+    });
+    await expect.poll(() => linhas().length).toBe(1);
+    expect(linhas()[0]?.getAttribute("data-pessoa")).toBe("P2");
+  });
+
+  it("escolher como se entra grava a política; fila vazia explica", async () => {
+    lerPedidos.mockResolvedValue(pedidos());
+    await abrirSecao("acesso");
+    await expect.element(page.getByText(admin.acessoPagina.vazio)).toBeVisible();
+    await page.getByRole("radio", { name: admin.acessoPagina.fechado.titulo }).click();
+    await expect.poll(() => chamou("editarPolitica")).toEqual([["editarPolitica", { modo: "fechado" }]]);
+  });
+
+  it("falha ao ler a fila é erro, não lista vazia", async () => {
+    lerPedidos.mockRejectedValue(new Error("falhou"));
+    await abrirSecao("acesso");
+    await expect.element(page.getByTestId("estado-de-erro")).toBeVisible();
+    expect(document.querySelector('[data-testid="estado-vazio"]')).toBeNull();
+  });
+
+  it("quem só modera pedidos vê a fila e não a escolha de entrada", async () => {
+    ctl.acoes = new Set(["moderarPedidos"]);
+    await abrirSecao("acesso");
+    await expect.poll(() => linhas().length).toBe(2);
+    expect(document.querySelector('[role="radiogroup"]')).toBeNull();
+  });
+
+  it("quem só gerencia o servidor vê a escolha, e a fila fica fora", async () => {
+    ctl.acoes = new Set(["gerenciarServidor"]);
+    await abrirSecao("acesso");
+    await expect.element(page.getByRole("radiogroup")).toBeVisible();
+    expect(linhas().length).toBe(0);
+  });
+
+  it("sem permissão a seção não existe na navegação", async () => {
+    ctl.acoes = new Set(["gerenciarCanais"]);
+    await abrirSecao("canais");
+    expect(nav().element().textContent).not.toContain(admin.navegacao.acesso);
   });
 });
 
