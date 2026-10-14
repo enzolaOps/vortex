@@ -28,7 +28,7 @@ import { abrirServidor, limparUltimoLugar } from "nucleo/store/ultimoLugar";
 import { page } from "vitest/browser";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { admin } from "../../textos";
+import { admin, permissoesDeAlvo } from "../../textos";
 import { desmontar, montar, pegar } from "../../ui/ds/montar";
 import { Avisos } from "../../ui/primitivos/Avisos";
 import { CascaDeConfig } from "../config/CascaDeConfig";
@@ -51,6 +51,7 @@ interface Controle {
   falhaNaLista: boolean;
   comMidia: boolean;
   lento: Promise<void> | undefined;
+  falhaNaPermissao: boolean;
 }
 
 const ctl = vi.hoisted(
@@ -68,6 +69,7 @@ const ctl = vi.hoisted(
     falhaNaLista: false,
     comMidia: true,
     lento: undefined,
+    falhaNaPermissao: false,
   }),
 );
 
@@ -161,7 +163,29 @@ vi.mock("nucleo/sdk/cargos", async (original) => ({
   moverParaCanalDeVoz: () => feito(true),
 }));
 
-vi.mock("nucleo/sdk/moderacao", async (original) => ({
+vi.mock("nucleo/sdk/canal", async (original) => ({
+  ...(await original<Record<string, unknown>>()),
+  salvarPermissaoDeCanal: (canal: string, cargo: string | undefined, o: { allow: bigint; deny: bigint }) => {
+    registrar("salvarPermissaoDeCanal", canal, cargo, o.allow, o.deny);
+    return feito(!ctl.falhaNaPermissao);
+  },
+}));
+
+vi.mock("nucleo/sdk/categorias", async (original) => ({
+  ...(await original<Record<string, unknown>>()),
+  conjuntoDoCanal: () => ({ padrao: undefined, cargos: {} }),
+  conjuntoDaCategoriaPorId: () => ({ padrao: undefined, cargos: {} }),
+  salvarPermissoesDaCategoria: (
+    _s: string,
+    categoria: string,
+    c: { padrao?: { allow: bigint; deny: bigint }; cargos: Record<string, { allow: bigint; deny: bigint }> },
+  ) => {
+    registrar("salvarPermissoesDaCategoria", categoria, c.padrao?.allow, c.padrao?.deny, Object.keys(c.cargos));
+    return feito(!ctl.falhaNaPermissao);
+  },
+}));
+
+vi.mock("nucleo/sdk/moderacao",async (original) => ({
   ...(await original<Record<string, unknown>>()),
   expulsarEmLote: (_s: string, ids: readonly string[]) => {
     registrar("expulsar", [...ids]);
@@ -333,6 +357,7 @@ beforeEach(() => {
   ctl.falhaNaLista = false;
   ctl.comMidia = true;
   ctl.lento = undefined;
+  ctl.falhaNaPermissao = false;
   definirProntidao(true);
   semear();
 });
@@ -1030,5 +1055,97 @@ describe("visão geral", () => {
     // `click` do Playwright falha se outro elemento interceptar o ponteiro.
     await page.getByRole("button", { name: admin.navegacao.convites, exact: true }).click();
     await expect.poll(() => lerConfig().secao).toBe("convites");
+  });
+});
+
+describe("permissões por canal e por categoria", () => {
+  const nomeDoEstado = (permissao: string, estado: string) => `${permissao}: ${estado}`;
+  const barra = () => document.querySelector('[role="region"][aria-label*="alterações"]');
+  const radio = (permissao: string, estado: string) =>
+    page.getByRole("radio", { name: nomeDoEstado(permissao, estado), exact: true });
+
+  async function abrirDoCanal(nome: string) {
+    await abrirSecao("canais");
+    await page.getByRole("button", { name: permissoesDeAlvo.abrirCanal(nome) }).click();
+    await expect.element(page.getByRole("dialog", { name: permissoesDeAlvo.tituloCanal(nome) })).toBeVisible();
+  }
+
+  it("troca bits (inclusive acima de 31) e salva allow e deny certos por cargo", async () => {
+    await abrirDoCanal("Jogatina");
+    await page.getByRole("button", { name: /^Artistas/ }).click();
+    expect(barra()).toBeNull();
+    await radio("Ver o canal", permissoesDeAlvo.permitir).click();
+    await radio("Falar", permissoesDeAlvo.negar).click();
+    await radio("Mencionar cargos", permissoesDeAlvo.negar).click();
+    await expect.element(page.getByRole("region", { name: /alterações não salvas/i })).toBeVisible();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
+    await expect
+      .poll(() => chamou("salvarPermissaoDeCanal"))
+      .toEqual([["salvarPermissaoDeCanal", "V1", "R2", 1n << 20n, (1n << 31n) | (1n << 38n)]]);
+    await expect.poll(barra).toBeNull();
+  });
+
+  it("'todos' grava no cargo padrão (sem cargo)", async () => {
+    await abrirDoCanal("geral");
+    await radio("Enviar mensagem", permissoesDeAlvo.negar).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
+    await expect
+      .poll(() => chamou("salvarPermissaoDeCanal"))
+      .toEqual([["salvarPermissaoDeCanal", "T1", undefined, 0n, 1n << 22n]]);
+  });
+
+  it("descartar volta ao que o servidor tem e não escreve nada", async () => {
+    await abrirDoCanal("geral");
+    await radio("Reagir", permissoesDeAlvo.negar).click();
+    expect(radio("Reagir", permissoesDeAlvo.negar).element().getAttribute("aria-checked")).toBe("true");
+    await page.getByRole("button", { name: admin.cargosPagina.descartar }).click();
+    await expect.poll(() => radio("Reagir", permissoesDeAlvo.negar).element().getAttribute("aria-checked")).toBe("false");
+    expect(barra()).toBeNull();
+    expect(chamou("salvarPermissaoDeCanal")).toHaveLength(0);
+  });
+
+  it("fechar com rascunho pergunta; cancelar mantém e confirmar descarta", async () => {
+    await abrirDoCanal("geral");
+    await radio("Reagir", permissoesDeAlvo.negar).click();
+    await page.getByRole("button", { name: "Fechar", exact: true }).first().click();
+    const pergunta = page.getByRole("dialog", { name: permissoesDeAlvo.descartarTitulo });
+    await expect.element(pergunta).toBeVisible();
+    await page.getByRole("button", { name: "Cancelar" }).click();
+    await expect.element(pergunta).not.toBeInTheDocument();
+    expect(radio("Reagir", permissoesDeAlvo.negar).element().getAttribute("aria-checked")).toBe("true");
+
+    await page.getByRole("button", { name: "Fechar", exact: true }).first().click();
+    await page.getByRole("button", { name: permissoesDeAlvo.descartarConfirmar }).click();
+    await expect.element(page.getByRole("dialog", { name: permissoesDeAlvo.tituloCanal("geral") })).not.toBeInTheDocument();
+    expect(chamou("salvarPermissaoDeCanal")).toHaveLength(0);
+  });
+
+  it("erro do servidor mantém o rascunho e avisa", async () => {
+    ctl.falhaNaPermissao = true;
+    await abrirDoCanal("geral");
+    await radio("Reagir", permissoesDeAlvo.negar).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
+    await expect.element(page.getByText(permissoesDeAlvo.falhou)).toBeVisible();
+    expect(barra()).not.toBeNull();
+    expect(radio("Reagir", permissoesDeAlvo.negar).element().getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("a categoria salva o conjunto inteiro", async () => {
+    await abrirSecao("canais");
+    await page.getByRole("button", { name: permissoesDeAlvo.abrirCategoria("Salas") }).click();
+    await page.getByRole("button", { name: /^Artistas/ }).click();
+    await radio("Anexar arquivo", permissoesDeAlvo.negar).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
+    await expect
+      .poll(() => chamou("salvarPermissoesDaCategoria"))
+      .toEqual([["salvarPermissoesDaCategoria", "CAT", undefined, undefined, ["R2"]]]);
+  });
+
+  it("sem permissão de gerenciar permissões, nenhuma entrada aparece", async () => {
+    ctl.acoes = new Set(["gerenciarCanais"]);
+    await abrirSecao("canais");
+    await expect.element(page.getByRole("button", { name: admin.canaisPagina.editar("geral") })).toBeVisible();
+    expect(document.querySelector('[aria-label^="Permissões de"]')).toBeNull();
+    expect(document.querySelector('[aria-label^="Permissões da categoria"]')).toBeNull();
   });
 });
