@@ -33,4 +33,15 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
           PR_URL: ${{ github.event.pull_request.html_url }}
-        run: gh pr merge "$PR_URL" --auto --squash
+        run: |
+          PR_ID="$(gh pr view "$PR_URL" --json id --jq .id)"
+          gh api graphql \
+            -f query='mutation($pullRequestId: ID!) {
+              enqueuePullRequest(input: {pullRequestId: $pullRequestId}) {
+                mergeQueueEntry {
+                  id
+                  position
+                }
+              }
+            }' \
+            -F pullRequestId="$PR_ID"
