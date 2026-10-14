@@ -28,17 +28,17 @@ class SplitReleaseDiffTests(unittest.TestCase):
 
     def test_oversized_single_file_requires_manual_review(self):
         diff = section("huge.txt", "+" + ("x" * 200) + "\n")
-        with self.assertRaisesRegex(ValueError, "single hunk exceeds"):
+        with self.assertRaisesRegex(ValueError, "no independently splittable hunks"):
             MODULE.split_diff(diff, 100)
 
 
     def test_splits_large_file_only_at_hunk_boundaries(self):
         diff = (
-            "diff --git a/large.txt b/large.txt\\n"
-            "index 1111111..2222222 100644\\n"
-            "--- a/large.txt\\n+++ b/large.txt\\n"
-            "@@ -1 +1 @@\\n-" + ("a" * 35) + "\\n+" + ("b" * 35) + "\\n"
-            "@@ -100 +100 @@\\n-" + ("c" * 35) + "\\n+" + ("d" * 35) + "\\n"
+            "diff --git a/large.txt b/large.txt\n"
+            "index 1111111..2222222 100644\n"
+            "--- a/large.txt\n+++ b/large.txt\n"
+            "@@ -1 +1 @@\n-" + ("a" * 35) + "\n+" + ("b" * 35) + "\n"
+            "@@ -100 +100 @@\n-" + ("c" * 35) + "\n+" + ("d" * 35) + "\n"
         )
         chunks = MODULE.split_diff(diff, 180)
         self.assertEqual(len(chunks), 2)
