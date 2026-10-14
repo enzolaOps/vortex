@@ -200,13 +200,61 @@ while IFS= read -r pr; do
     ((review_count+=1))
     continue
   fi
-  diff_content="$(cat "$diff_file")"
+  # Deterministically separate implementation from tests, docs, lockfiles,
+  # and release automation before paying for semantic model analysis.
+  prep_file="$TMP/pr-$number-prepared.json"
+  if ! python3 scripts/ci/prepare-release-diff.py "$diff_file" "$title" "$body" > "$prep_file"; then
+    echo "::warning::PR #$number diff pre-analysis failed; requiring manual review."
+    printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"pre-analysis","needs_review":true,"review_reason":"Diff pre-analysis failed"}\\n' \\
+      "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" >> "$TMP/decisions.jsonl"
+    ((review_count+=1))
+    continue
+  fi
+
+  pre_action="$(jq -r '.action' "$prep_file")"
+  pre_reason="$(jq -r '.policy_reason' "$prep_file")"
+  pre_summary="$(jq -r '.summary' "$prep_file")"
+  pre_impact="$(jq -r '.policy_impact // ""' "$prep_file")"
+  if [[ "$pre_action" != "jev" ]]; then
+    if [[ "$pre_action" == "review" ]]; then
+      printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"deterministic-pre-analysis","needs_review":true,"review_reason":%s}\\n' \\
+        "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" "$(jq -Rn --arg v "$pre_reason" '$v')" >> "$TMP/decisions.jsonl"
+      ((review_count+=1))
+      echo "PR #$number => review (deterministic pre-analysis: $pre_reason)"
+    else
+      printf '{"number":%s,"title":%s,"url":%s,"impact":%s,"probability":1.0,"method":"deterministic-pre-analysis","needs_review":false,"reason":%s}\\n' \\
+        "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" "$(jq -Rn --arg v "$pre_action" '$v')" "$(jq -Rn --arg v "$pre_reason" '$v')" >> "$TMP/decisions.jsonl"
+      case "$pre_action" in
+        major) printf '%s\\n' "- **#$number** $title ([PR](<$url>))" >> "$TMP/major.md"; ((major_count+=1)) ;;
+        minor) printf '%s\\n' "- **#$number** $title ([PR](<$url>))" >> "$TMP/minor.md"; ((minor_count+=1)) ;;
+        patch) printf '%s\\n' "- **#$number** $title ([PR](<$url>))" >> "$TMP/patch.md"; ((patch_count+=1)) ;;
+        none) ((none_count+=1)) ;;
+      esac
+      echo "PR #$number => $pre_action (deterministic pre-analysis: $pre_reason)"
+    fi
+    continue
+  fi
+
+  diff_content="$(jq -r '.analysis_diff' "$prep_file")"
+  files="$(jq -c '.analysis_files' "$prep_file")"
+  body="$body
+
+$pre_summary"
   diff_truncated=false
   classification_method_override=""
   : > "$TMP/pr-$number-chunk-results.jsonl"
+  printf '%s' "$diff_content" > "$diff_file"
+  diff_bytes="$(wc -c < "$diff_file" | tr -d ' ')"
+  if (( diff_bytes == 0 )); then
+    echo "::warning::PR #$number has no implementation diff after pre-analysis; requiring manual review."
+    printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"pre-analysis","needs_review":true,"review_reason":"No implementation diff remains after pre-analysis"}\\n' \\
+      "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" >> "$TMP/decisions.jsonl"
+    ((review_count+=1))
+    continue
+  fi
 
-  # Small PRs keep the single-call path. Large PRs are split only at file
-  # boundaries; an oversized individual file or any failed chunk blocks release.
+  # Only the filtered implementation diff reaches Jev; large remaining diffs
+  # are split after filtering, not before.
   if (( diff_bytes <= 18000 )); then
     echo "PR #$number diff: $diff_bytes bytes; sending complete diff to Jev."
     jq -n \
@@ -354,6 +402,24 @@ while IFS= read -r pr; do
   choice="$initial_choice"
   confidence="$initial_confidence"
   classification_method="${classification_method_override:-jev}"
+  if [[ "$pre_impact" == "review" ]]; then
+    review_reason="Dependency changes lack sufficient release-note evidence for a safe impact decision"
+    printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":%s,"initial_impact":%s,"initial_probability":%s,"method":"pre-analysis+jev","needs_review":true,"review_reason":%s}\\n' \\
+      "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" \\
+      "$confidence" "$(jq -Rn --arg v "$initial_choice" '$v')" "$initial_confidence" "$(jq -Rn --arg v "$pre_reason" '$v')" >> "$TMP/decisions.jsonl"
+    ((review_count+=1))
+    echo "PR #$number => review ($pre_reason)"
+    continue
+  fi
+  # A dependency's documented compatible user-facing fix establishes a patch
+  # floor for the whole PR, while Jev still determines implementation impact.
+  if [[ "$pre_impact" == "patch" && "$choice" == "none" ]]; then
+    choice="patch"
+  elif [[ "$pre_impact" == "minor" && "$choice" =~ ^(none|patch)$ ]]; then
+    choice="minor"
+  elif [[ "$pre_impact" == "major" && "$choice" != "major" ]]; then
+    choice="major"
+  fi
   # Ambiguous results get a second, targeted pass with the original response
   # included so Jev can revisit its uncertainty instead of repeating blindly.
   if [[ "$choice" == "review" ]] || ! awk -v p="$confidence" -v min="$MIN_CONFIDENCE" 'BEGIN { exit !(p >= min) }'; then
