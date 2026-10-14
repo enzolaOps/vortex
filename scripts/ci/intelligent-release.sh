@@ -47,6 +47,18 @@ fi
 
 git fetch --force origin main --tags
 MAIN_SHA="$(git rev-parse origin/main)"
+MARKER_TAG="release-state/processed/$MAIN_SHA"
+if git show-ref --verify --quiet "refs/tags/$MARKER_TAG"; then
+  echo "Main commit $MAIN_SHA was already analyzed; no repeated classification."
+  exit 0
+fi
+
+mark_processed() {
+  if ! git show-ref --verify --quiet "refs/tags/$MARKER_TAG"; then
+    gh api --method POST "repos/$REPOSITORY/git/refs" \
+      -f "ref=refs/tags/$MARKER_TAG" -f "sha=$MAIN_SHA" >/dev/null
+  fi
+}
 if [[ "$MAIN_SHA" != "$(git rev-parse HEAD)" ]]; then
   echo "Checkout is not at the latest main commit; aborting safely."
   exit 1
@@ -94,6 +106,7 @@ done < <(jq -c '.[]' "$TMP/candidates.json")
 eligible_count="$(wc -l < "$TMP/eligible.jsonl" | tr -d ' ')"
 if (( eligible_count == 0 )); then
   echo "No merged PRs after $LAST_TAG; no release."
+  mark_processed
   exit 0
 fi
 if (( eligible_count > MAX_PRS )); then
@@ -171,6 +184,7 @@ if (( major_count + minor_count + patch_count == 0 )); then
     echo "Baseline: $LAST_TAG"
     echo "Commit: $MAIN_SHA"
   } >> "$GITHUB_STEP_SUMMARY"
+  mark_processed
   exit 0
 fi
 
