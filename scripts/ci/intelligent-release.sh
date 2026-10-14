@@ -293,7 +293,7 @@ while IFS= read -r pr; do
     fi
     choice="$(jq -s 'if any(.[]; .choice == "major") then "major" elif any(.[]; .choice == "minor") then "minor" elif any(.[]; .choice == "patch") then "patch" else "none" end' "$TMP/pr-$number-chunk-results.jsonl" | tr -d '"')"
     if [[ "$choice" == "none" && "$chunk_count" -gt 1 ]]; then
-      printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"jev-chunked","needs_review":true,"review_reason":"All chunks independently indicate no impact; combined cross-file behavior needs review"}\\n' \\
+      printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"jev-chunked","needs_review":true,"review_reason":"All chunks independently indicate no impact; combined cross-file behavior needs review"}\n' \
         "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" >> "$TMP/decisions.jsonl"
       ((review_count+=1))
       continue
