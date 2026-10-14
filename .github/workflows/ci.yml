@@ -25,8 +25,6 @@ permissions:
   contents: read
 
 env:
-  # O rust-cache hasheia variáveis CARGO_*: iguais em todo job, para que o
-  # aquecimento e o consumo caiam na mesma chave.
   CARGO_TERM_COLOR: always
   SERVER_PACOTES: -p revolt-delta -p revolt-bonfire -p revolt-models -p revolt-database
 
@@ -196,14 +194,21 @@ jobs:
           persist-credentials: false
       # A toolchain vem de server/rust-toolchain.toml.
       - run: rustup show active-toolchain || rustup toolchain install
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: Restaurar o cache do cargo
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
-          workspaces: server
-          shared-key: server-testes
-          save-if: false
-      - uses: taiki-e/install-action@4cef1412cce204788f482e778a0b9187f9626a29 # v2.87.21
-        with:
-          tool: cargo-nextest
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            server/target
+          key: ${{ runner.os }}-cargo-testes-${{ hashFiles('server/Cargo.lock', 'server/rust-toolchain.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-testes-
+      - name: Instalar o cargo-nextest
+        run: |
+          mkdir -p ~/.cargo/bin
+          curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ~/.cargo/bin
+          cargo nextest --version
       # Dois testes de privacidade seguem excluídos, como no workflow anterior.
       - name: Testes
         run: >-
@@ -225,11 +230,16 @@ jobs:
         with:
           persist-credentials: false
       - run: (rustup show active-toolchain || rustup toolchain install) && rustup component add clippy
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: Restaurar o cache do cargo
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
-          workspaces: server
-          shared-key: server-clippy
-          save-if: false
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            server/target
+          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('server/Cargo.lock', 'server/rust-toolchain.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-clippy-
       - run: cargo clippy --locked $SERVER_PACOTES -- -D warnings
 
   # ----------------------------------------------------------------- desktop
@@ -298,14 +308,22 @@ jobs:
         with:
           persist-credentials: false
       - run: (rustup show active-toolchain || rustup toolchain install) && rustup component add clippy
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      # Chave nova a cada Cargo.lock/toolchain; a mesma chave nunca é regravada.
+      - name: Cache do cargo
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
-          workspaces: server
-          shared-key: server-${{ matrix.tarefa }}
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            server/target
+          key: ${{ runner.os }}-cargo-${{ matrix.tarefa }}-${{ hashFiles('server/Cargo.lock', 'server/rust-toolchain.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ matrix.tarefa }}-
       - if: matrix.tarefa == 'testes'
-        uses: taiki-e/install-action@4cef1412cce204788f482e778a0b9187f9626a29 # v2.87.21
-        with:
-          tool: cargo-nextest
+        name: Instalar o cargo-nextest
+        run: |
+          mkdir -p ~/.cargo/bin
+          curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ~/.cargo/bin
       - if: matrix.tarefa == 'testes'
         run: cargo nextest run --locked $SERVER_PACOTES --no-run
       - if: matrix.tarefa == 'clippy'
