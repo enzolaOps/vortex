@@ -336,6 +336,9 @@ export const config = {
     confortavelDica: "Foto de cada pessoa e mais espaço entre as mensagens.",
     compacta: "Compacta",
     compactaDica: "Sem foto, com a hora ao lado e as mensagens mais juntas.",
+    previasDeLink: "Prévia de links",
+    previasDeLinkDica:
+      "Mostra um cartão com título, descrição e imagem sob as mensagens que trazem um link. Vídeos de outros sites só carregam quando você clica em reproduzir.",
     tamanhoDoTexto: "Tamanho do texto",
     tamanhoDoTextoValor: (n: number) => `${n}%`,
     movimentoTitulo: "Movimento",

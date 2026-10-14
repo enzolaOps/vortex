@@ -1,8 +1,14 @@
+import { fecharBusca } from "nucleo/store/busca";
+import { fecharFixados } from "nucleo/store/fixados";
 import { lerUltimoServidor, abrirServidor } from "nucleo/store/ultimoLugar";
 import { useLocal, useProntidao, useServerIds } from "nucleo/store/hooks";
 import { useEffect, useRef, type ReactNode } from "react";
 
 import { ShellDoApp } from "../../shell";
+import { useBusca } from "../busca/hooks";
+import { PainelDeBusca } from "../busca/PainelDeBusca";
+import { useFixados } from "../fixados/hooks";
+import { PainelDeFixados } from "../fixados/PainelDeFixados";
 import { AreaConectada } from "./AreaConectada";
 import { ColunaConectada } from "./ColunaConectada";
 import { ConteudoDaDock } from "./DockConectada";
@@ -39,6 +45,21 @@ export function ShellDasSalas({ rodapeDasSalas }: { rodapeDasSalas?: ReactNode }
   const serverId = local.tipo === "servidor" ? local.serverId : undefined;
   // O palco ocupa a área principal inteira, sem coluna à direita.
   const palcoAberto = useSalaDoPalco(serverId).aberto;
+  const busca = useBusca();
+  const canalAtual = local.tipo === "servidor" || local.tipo === "dm" ? local.channelId : undefined;
+  // A busca é do canal em que foi aberta: trocar de canal a fecha (os resultados são dele).
+  useEffect(() => {
+    if (busca.aberta && busca.channelId !== canalAtual) fecharBusca();
+  }, [busca.aberta, busca.channelId, canalAtual]);
+  const buscaVisivel = busca.aberta && canalAtual !== undefined && busca.channelId === canalAtual && !palcoAberto;
+  const fixados = useFixados();
+  // Idem: as fixadas são do canal em que foram abertas.
+  useEffect(() => {
+    if (fixados.aberto && fixados.channelId !== canalAtual) fecharFixados();
+  }, [fixados.aberto, fixados.channelId, canalAtual]);
+  const fixadosVisiveis =
+    fixados.aberto && canalAtual !== undefined && fixados.channelId === canalAtual && !palcoAberto;
+  const painelAberto = buscaVisivel || fixadosVisiveis;
 
   return (
     <>
@@ -52,7 +73,14 @@ export function ShellDasSalas({ rodapeDasSalas }: { rodapeDasSalas?: ReactNode }
       }
       salasEmFaixa={palcoAberto}
       faixaDeSalas={serverId !== undefined ? <FaixaDeSalas serverId={serverId} /> : undefined}
-      gavetaOculta={(pronto && serverId === undefined) || palcoAberto}
+      painel={
+        canalAtual === undefined ? undefined : buscaVisivel ? (
+          <PainelDeBusca key={canalAtual} canalId={canalAtual} servidorId={serverId ?? ""} />
+        ) : fixadosVisiveis ? (
+          <PainelDeFixados key={canalAtual} canalId={canalAtual} servidorId={serverId ?? ""} />
+        ) : undefined
+      }
+      gavetaOculta={(pronto && serverId === undefined && !painelAberto) || palcoAberto}
     />
     <DialogoDeTransmissao />
     </>
