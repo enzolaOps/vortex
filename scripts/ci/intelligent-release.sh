@@ -202,6 +202,8 @@ if gh release view "$NEXT_TAG" --repo "$REPOSITORY" >/dev/null 2>&1; then
 fi
 
 {
+  echo "<!-- vortex-intelligent-release -->"
+  echo
   echo "## Vortex $NEXT_TAG"
   echo
   echo "Changes since `$LAST_TAG`."
