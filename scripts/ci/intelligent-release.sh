@@ -253,6 +253,20 @@ $pre_summary"
     continue
   fi
 
+  # Keep a canonical filtered request available for both single-call and
+  # chunked paths, including the targeted second pass after chunk aggregation.
+  jq -n \
+    --argjson number "$number" \
+    --arg title "$title" \
+    --arg body "$body" \
+    --arg url "$url" \
+    --argjson labels "$labels" \
+    --argjson files "$files" \
+    --arg diff "$diff_content" \
+    --argjson diff_truncated false \
+    '{number:$number,title:$title,body:$body,url:$url,labels:$labels,changed_files:$files,diff:$diff,diff_truncated:$diff_truncated}' \
+    > "$TMP/pr-$number.json"
+
   # Only the filtered implementation diff reaches Jev; large remaining diffs
   # are split after filtering, not before.
   if (( diff_bytes <= 18000 )); then
