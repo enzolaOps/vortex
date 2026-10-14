@@ -7,7 +7,11 @@ set -euo pipefail
 
 OWNER="${REPOSITORY%%/*}"
 REPO="${REPOSITORY#*/}"
-STABILIZATION_SECONDS=900
+STABILIZATION_SECONDS="${STABILIZATION_SECONDS:-60}"
+if ! [[ "$STABILIZATION_SECONDS" =~ ^[0-9]+$ ]]; then
+  echo "::error::STABILIZATION_SECONDS must be a non-negative integer."
+  exit 1
+fi
 MIN_CONFIDENCE=0.70
 MAX_PRS=50
 TMP="$(mktemp -d)"
