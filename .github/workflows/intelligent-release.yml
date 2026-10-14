@@ -21,6 +21,11 @@ on:
         required: false
         default: 900
         type: number
+      dry_run:
+        description: "Test the selected branch without creating tags or publishing a release"
+        required: false
+        default: false
+        type: boolean
 
 # Never run two release decisions concurrently. A later main push stays queued
 # while an earlier decision finishes or safely aborts.
@@ -62,7 +67,9 @@ jobs:
       - name: Checkout full history and tags
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: main
+          # For a manual dry run, execute the workflow/script from the selected branch.
+          # All normal release runs continue to execute the main branch.
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && github.ref || 'main' }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -94,4 +101,5 @@ jobs:
           GITHUB_SHA_AT_START: ${{ github.sha }}
           FORCE_REANALYZE: ${{ inputs.force }}
           STABILIZATION_SECONDS: ${{ inputs.stabilization_seconds }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: bash scripts/ci/intelligent-release.sh
