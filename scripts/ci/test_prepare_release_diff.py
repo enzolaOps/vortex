@@ -31,6 +31,16 @@ class PrepareReleaseDiffTests(unittest.TestCase):
         self.assertEqual(prepared["action"], "patch")
         self.assertEqual(prepared["analysis_diff"], "")
 
+    def test_reqwest_release_notes_starting_with_fix_are_patch(self):
+        body = "Release notes: Fix hickory-dns to prefer IPv6. Fix sending wrong proxy-auth if multiple proxies intercept a given URL."
+        prepared = MODULE.prepare(section("Cargo.lock"), "chore(deps): update reqwest to v0.13.5", body)
+        self.assertEqual(prepared["action"], "patch")
+
+    def test_livekit_release_notes_starting_with_fix_are_patch(self):
+        body = "Patch Changes: Fix Document Picture-in-Picture detection. Fix unhandled RPC timeout rejections."
+        prepared = MODULE.prepare(section("pnpm-lock.yaml"), "chore(deps): update livekit-client", body)
+        self.assertEqual(prepared["action"], "patch")
+
     def test_tooling_only_dependency_update_is_none(self):
         diff = section("pnpm-lock.yaml")
         prepared = MODULE.prepare(diff, "chore(deps): update formatter", "Release notes: formatting and lint compatibility changes for the build tooling.")
