@@ -542,7 +542,8 @@ done < "$TMP/eligible.jsonl"
 
 # Batch gate: an uncertain PR blocks only when it could raise the version
 # bump already set by confident PRs. Its argmax may not exceed that bump, and
-# the probability above it (plus review) must stay under 1 - MIN_CONFIDENCE.
+# the probability above it must stay under 1 - MIN_CONFIDENCE. Review mass is
+# "unsure", not a direction, so it is spread across impacts proportionally.
 touch "$TMP/uncertain.jsonl"
 if (( major_count > 0 )); then bump_rank=3
 elif (( minor_count > 0 )); then bump_rank=2
@@ -553,7 +554,8 @@ while IFS= read -r pending; do
   read -r number choice confidence above_mass < <(jq -r --argjson bump "$bump_rank" '
     {none:0,patch:1,minor:2,major:3} as $rank
     | [.number, .choice, .confidence,
-       ([.probabilities | to_entries[] | select(.key == "review" or ($rank[.key] // 0) > $bump) | .value] | add // 0)]
+       ((([.probabilities | to_entries[] | select(.key != "review" and ($rank[.key] // 0) > $bump) | .value] | add // 0)
+         / ([1 - (.probabilities.review // 0), 0.01] | max) * 100 | round / 100))]
     | @tsv' <<< "$pending")
   title="$(jq -r '.title' <<< "$pending")"
   url="$(jq -r '.url' <<< "$pending")"
