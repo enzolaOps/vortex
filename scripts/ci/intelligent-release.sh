@@ -407,8 +407,8 @@ $pre_summary"
       # blocking a consistently classified feature.
       feature_title=false
       title_prefix="${title%%:*}"
-      if [[ "$title_prefix" == "feat" || "$title_prefix" == feat\\(*\\) ||
-            "$title_prefix" == "feat!" || "$title_prefix" == feat\\(*\\)! ]]; then
+      if [[ "$title_prefix" == "feat" || "$title_prefix" == feat\(*\) ||
+            "$title_prefix" == "feat!" || "$title_prefix" == feat\(*\)! ]]; then
         feature_title=true
       fi
       if [[ "$feature_title" == true ]] &&
