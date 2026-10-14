@@ -21,6 +21,14 @@ export const chat = {
   /** Só para tipo de evento que o cliente não conhece. */
   eventoDoCanal: "Aconteceu algo no canal.",
 
+  /** Prévias de link sob a mensagem. */
+  embeds: {
+    maisN: (n: number) => `e mais ${n}`,
+    reproduzir: (servico: string) => `Reproduzir ${servico}`,
+    abrirImagem: "Abrir a imagem do link",
+    video: "Vídeo do link",
+  },
+
   /** Cabeçalho do canal. */
   cabecalho: {
     rotulo: "Cabeçalho do canal",

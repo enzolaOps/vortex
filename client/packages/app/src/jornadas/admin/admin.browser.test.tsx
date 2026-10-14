@@ -16,7 +16,9 @@ import {
   vozPorCanal,
 } from "nucleo/sdk/adapter";
 import type { Cargo } from "nucleo/sdk/cargos";
+import { client } from "nucleo/sdk/client";
 import { chaveDeMembro, SEM_CARGO } from "nucleo/sdk/domain";
+import { filas, politicas, POLITICA_PADRAO } from "nucleo/sdk/seguranca";
 import type { Banido, Convite, ConviteDoServidor } from "nucleo/sdk/servidores";
 import { abrirConfig, limparConfig, lerConfig } from "nucleo/store/config";
 import { irParaCasa } from "nucleo/store/navegacao";
@@ -26,7 +28,7 @@ import { abrirServidor, limparUltimoLugar } from "nucleo/store/ultimoLugar";
 import { page } from "vitest/browser";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { admin } from "../../textos";
+import { admin, permissoesDeAlvo } from "../../textos";
 import { desmontar, montar, pegar } from "../../ui/ds/montar";
 import { Avisos } from "../../ui/primitivos/Avisos";
 import { CascaDeConfig } from "../config/CascaDeConfig";
@@ -49,6 +51,7 @@ interface Controle {
   falhaNaLista: boolean;
   comMidia: boolean;
   lento: Promise<void> | undefined;
+  falhaNaPermissao: boolean;
 }
 
 const ctl = vi.hoisted(
@@ -66,6 +69,7 @@ const ctl = vi.hoisted(
     falhaNaLista: false,
     comMidia: true,
     lento: undefined,
+    falhaNaPermissao: false,
   }),
 );
 
@@ -84,6 +88,28 @@ vi.mock("nucleo/sdk/permissoes", async (original) => ({
   ...(await original<Record<string, unknown>>()),
   pode: (_canal: string, acao: string) => permitido(acao),
   podeNoServidor: (_servidor: string, acao: string) => permitido(acao),
+}));
+
+vi.mock("nucleo/sdk/seguranca", async (original) => ({
+  ...(await original<Record<string, unknown>>()),
+  podeGerenciarSeguranca: () => permitido("gerenciarServidor"),
+  podeModerarPedidos: () => permitido("moderarPedidos"),
+  editarPolitica: (_s: string, mudanca: object) => {
+    registrar("editarPolitica", mudanca);
+    return feito(true);
+  },
+  aprovarPedido: (_s: string, usuario: string) => {
+    registrar("aprovarPedido", usuario);
+    return feito(true);
+  },
+  recusarPedido: (_s: string, usuario: string) => {
+    registrar("recusarPedido", usuario);
+    return feito(true);
+  },
+  aprovarTodos: () => {
+    registrar("aprovarTodos");
+    return feito(undefined);
+  },
 }));
 
 vi.mock("nucleo/sdk/cargos", async (original) => ({
@@ -137,7 +163,29 @@ vi.mock("nucleo/sdk/cargos", async (original) => ({
   moverParaCanalDeVoz: () => feito(true),
 }));
 
-vi.mock("nucleo/sdk/moderacao", async (original) => ({
+vi.mock("nucleo/sdk/canal", async (original) => ({
+  ...(await original<Record<string, unknown>>()),
+  salvarPermissaoDeCanal: (canal: string, cargo: string | undefined, o: { allow: bigint; deny: bigint }) => {
+    registrar("salvarPermissaoDeCanal", canal, cargo, o.allow, o.deny);
+    return feito(!ctl.falhaNaPermissao);
+  },
+}));
+
+vi.mock("nucleo/sdk/categorias", async (original) => ({
+  ...(await original<Record<string, unknown>>()),
+  conjuntoDoCanal: () => ({ padrao: undefined, cargos: {} }),
+  conjuntoDaCategoriaPorId: () => ({ padrao: undefined, cargos: {} }),
+  salvarPermissoesDaCategoria: (
+    _s: string,
+    categoria: string,
+    c: { padrao?: { allow: bigint; deny: bigint }; cargos: Record<string, { allow: bigint; deny: bigint }> },
+  ) => {
+    registrar("salvarPermissoesDaCategoria", categoria, c.padrao?.allow, c.padrao?.deny, Object.keys(c.cargos));
+    return feito(!ctl.falhaNaPermissao);
+  },
+}));
+
+vi.mock("nucleo/sdk/moderacao",async (original) => ({
   ...(await original<Record<string, unknown>>()),
   expulsarEmLote: (_s: string, ids: readonly string[]) => {
     registrar("expulsar", [...ids]);
@@ -309,6 +357,7 @@ beforeEach(() => {
   ctl.falhaNaLista = false;
   ctl.comMidia = true;
   ctl.lento = undefined;
+  ctl.falhaNaPermissao = false;
   definirProntidao(true);
   semear();
 });
@@ -347,12 +396,12 @@ const nav = () => page.getByRole("navigation", { name: admin.navegacao.rotulo })
 const chamou = (nome: string) => ctl.chamadas.filter((c) => c[0] === nome);
 
 describe("navegação das configurações do servidor", () => {
-  it("mostra as seis seções, em três grupos, para quem administra tudo", async () => {
+  it("mostra as sete seções, em três grupos, para quem administra tudo", async () => {
     await abrirSecao("servidor");
     for (const nome of Object.values(admin.navegacao).filter((n) => !n.startsWith("Seções") && n !== "Servidor" && n !== "Pessoas" && n !== "Moderação")) {
       await expect.element(nav().getByRole("button", { name: nome, exact: true })).toBeVisible();
     }
-    expect(nav().element().querySelectorAll("button").length).toBe(6);
+    expect(nav().element().querySelectorAll("button").length).toBe(7);
   });
 
   it("deixa AUSENTE (não cinza) a seção que a pessoa não pode usar", async () => {
@@ -858,6 +907,87 @@ describe("membros e moderação", () => {
   });
 });
 
+describe("acesso", () => {
+  const pedidos = (...ids: string[]) => ({
+    requests: ids.map((id) => ({ user: id, created_at: "2026-10-01T10:00:00.000Z" })),
+    users: ids.map((id) => ({ _id: id, username: id.toLowerCase(), display_name: `Pessoa ${id}` })),
+  });
+  const lerPedidos = vi.fn<(caminho: string) => Promise<unknown>>();
+  let espiao: { mockRestore: () => void };
+
+  beforeEach(() => {
+    politicas.set(S, { ...POLITICA_PADRAO, modo: "aprovacao" });
+    filas.set(S, "carregando");
+    lerPedidos.mockResolvedValue(pedidos("P1", "P2"));
+    espiao = vi.spyOn(client.api, "get").mockImplementation(((caminho: string) => lerPedidos(caminho)) as never);
+  });
+  afterEach(() => {
+    espiao.mockRestore();
+  });
+
+  const linhas = () => document.querySelectorAll('[data-testid="linha-de-pedido"]');
+
+  it("a fila lista os pedidos, e aprovar e recusar chamam o adapter", async () => {
+    await abrirSecao("acesso");
+    await expect.poll(() => linhas().length).toBe(2);
+    await page.getByRole("button", { name: admin.acessoPagina.aprovarPessoa("Pessoa P1") }).click();
+    await expect.poll(() => chamou("aprovarPedido")).toEqual([["aprovarPedido", "P1"]]);
+    await page.getByRole("button", { name: admin.acessoPagina.recusarPessoa("Pessoa P2") }).click();
+    await expect.poll(() => chamou("recusarPedido")).toEqual([["recusarPedido", "P2"]]);
+    await page.getByRole("button", { name: admin.acessoPagina.aprovarTodos }).click();
+    await expect.poll(() => chamou("aprovarTodos").length).toBe(1);
+  });
+
+  it("o evento de pedido removido tira a linha, com o módulo importado depois", async () => {
+    await abrirSecao("acesso");
+    await expect.poll(() => linhas().length).toBe(2);
+    // A ligação ao socket acontece na avaliação do módulo; importar tarde não pode perdê-la.
+    await import("nucleo/sdk/seguranca");
+    (client.events as unknown as { emit: (n: string, e: unknown) => void }).emit("event", {
+      type: "ServerJoinRequestDelete",
+      id: S,
+      user: "P1",
+    });
+    await expect.poll(() => linhas().length).toBe(1);
+    expect(linhas()[0]?.getAttribute("data-pessoa")).toBe("P2");
+  });
+
+  it("escolher como se entra grava a política; fila vazia explica", async () => {
+    lerPedidos.mockResolvedValue(pedidos());
+    await abrirSecao("acesso");
+    await expect.element(page.getByText(admin.acessoPagina.vazio)).toBeVisible();
+    await page.getByRole("radio", { name: admin.acessoPagina.fechado.titulo }).click();
+    await expect.poll(() => chamou("editarPolitica")).toEqual([["editarPolitica", { modo: "fechado" }]]);
+  });
+
+  it("falha ao ler a fila é erro, não lista vazia", async () => {
+    lerPedidos.mockRejectedValue(new Error("falhou"));
+    await abrirSecao("acesso");
+    await expect.element(page.getByTestId("estado-de-erro")).toBeVisible();
+    expect(document.querySelector('[data-testid="estado-vazio"]')).toBeNull();
+  });
+
+  it("quem só modera pedidos vê a fila e não a escolha de entrada", async () => {
+    ctl.acoes = new Set(["moderarPedidos"]);
+    await abrirSecao("acesso");
+    await expect.poll(() => linhas().length).toBe(2);
+    expect(document.querySelector('[role="radiogroup"]')).toBeNull();
+  });
+
+  it("quem só gerencia o servidor vê a escolha, e a fila fica fora", async () => {
+    ctl.acoes = new Set(["gerenciarServidor"]);
+    await abrirSecao("acesso");
+    await expect.element(page.getByRole("radiogroup")).toBeVisible();
+    expect(linhas().length).toBe(0);
+  });
+
+  it("sem permissão a seção não existe na navegação", async () => {
+    ctl.acoes = new Set(["gerenciarCanais"]);
+    await abrirSecao("canais");
+    expect(nav().element().textContent).not.toContain(admin.navegacao.acesso);
+  });
+});
+
 describe("banimentos", () => {
   it("sem banidos, o vazio explica", async () => {
     await abrirSecao("banimentos");
@@ -925,5 +1055,97 @@ describe("visão geral", () => {
     // `click` do Playwright falha se outro elemento interceptar o ponteiro.
     await page.getByRole("button", { name: admin.navegacao.convites, exact: true }).click();
     await expect.poll(() => lerConfig().secao).toBe("convites");
+  });
+});
+
+describe("permissões por canal e por categoria", () => {
+  const nomeDoEstado = (permissao: string, estado: string) => `${permissao}: ${estado}`;
+  const barra = () => document.querySelector('[role="region"][aria-label*="alterações"]');
+  const radio = (permissao: string, estado: string) =>
+    page.getByRole("radio", { name: nomeDoEstado(permissao, estado), exact: true });
+
+  async function abrirDoCanal(nome: string) {
+    await abrirSecao("canais");
+    await page.getByRole("button", { name: permissoesDeAlvo.abrirCanal(nome) }).click();
+    await expect.element(page.getByRole("dialog", { name: permissoesDeAlvo.tituloCanal(nome) })).toBeVisible();
+  }
+
+  it("troca bits (inclusive acima de 31) e salva allow e deny certos por cargo", async () => {
+    await abrirDoCanal("Jogatina");
+    await page.getByRole("button", { name: /^Artistas/ }).click();
+    expect(barra()).toBeNull();
+    await radio("Ver o canal", permissoesDeAlvo.permitir).click();
+    await radio("Falar", permissoesDeAlvo.negar).click();
+    await radio("Mencionar cargos", permissoesDeAlvo.negar).click();
+    await expect.element(page.getByRole("region", { name: /alterações não salvas/i })).toBeVisible();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
+    await expect
+      .poll(() => chamou("salvarPermissaoDeCanal"))
+      .toEqual([["salvarPermissaoDeCanal", "V1", "R2", 1n << 20n, (1n << 31n) | (1n << 38n)]]);
+    await expect.poll(barra).toBeNull();
+  });
+
+  it("'todos' grava no cargo padrão (sem cargo)", async () => {
+    await abrirDoCanal("geral");
+    await radio("Enviar mensagem", permissoesDeAlvo.negar).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
+    await expect
+      .poll(() => chamou("salvarPermissaoDeCanal"))
+      .toEqual([["salvarPermissaoDeCanal", "T1", undefined, 0n, 1n << 22n]]);
+  });
+
+  it("descartar volta ao que o servidor tem e não escreve nada", async () => {
+    await abrirDoCanal("geral");
+    await radio("Reagir", permissoesDeAlvo.negar).click();
+    expect(radio("Reagir", permissoesDeAlvo.negar).element().getAttribute("aria-checked")).toBe("true");
+    await page.getByRole("button", { name: admin.cargosPagina.descartar }).click();
+    await expect.poll(() => radio("Reagir", permissoesDeAlvo.negar).element().getAttribute("aria-checked")).toBe("false");
+    expect(barra()).toBeNull();
+    expect(chamou("salvarPermissaoDeCanal")).toHaveLength(0);
+  });
+
+  it("fechar com rascunho pergunta; cancelar mantém e confirmar descarta", async () => {
+    await abrirDoCanal("geral");
+    await radio("Reagir", permissoesDeAlvo.negar).click();
+    await page.getByRole("button", { name: "Fechar", exact: true }).first().click();
+    const pergunta = page.getByRole("dialog", { name: permissoesDeAlvo.descartarTitulo });
+    await expect.element(pergunta).toBeVisible();
+    await page.getByRole("button", { name: "Cancelar" }).click();
+    await expect.element(pergunta).not.toBeInTheDocument();
+    expect(radio("Reagir", permissoesDeAlvo.negar).element().getAttribute("aria-checked")).toBe("true");
+
+    await page.getByRole("button", { name: "Fechar", exact: true }).first().click();
+    await page.getByRole("button", { name: permissoesDeAlvo.descartarConfirmar }).click();
+    await expect.element(page.getByRole("dialog", { name: permissoesDeAlvo.tituloCanal("geral") })).not.toBeInTheDocument();
+    expect(chamou("salvarPermissaoDeCanal")).toHaveLength(0);
+  });
+
+  it("erro do servidor mantém o rascunho e avisa", async () => {
+    ctl.falhaNaPermissao = true;
+    await abrirDoCanal("geral");
+    await radio("Reagir", permissoesDeAlvo.negar).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
+    await expect.element(page.getByText(permissoesDeAlvo.falhou)).toBeVisible();
+    expect(barra()).not.toBeNull();
+    expect(radio("Reagir", permissoesDeAlvo.negar).element().getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("a categoria salva o conjunto inteiro", async () => {
+    await abrirSecao("canais");
+    await page.getByRole("button", { name: permissoesDeAlvo.abrirCategoria("Salas") }).click();
+    await page.getByRole("button", { name: /^Artistas/ }).click();
+    await radio("Anexar arquivo", permissoesDeAlvo.negar).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
+    await expect
+      .poll(() => chamou("salvarPermissoesDaCategoria"))
+      .toEqual([["salvarPermissoesDaCategoria", "CAT", undefined, undefined, ["R2"]]]);
+  });
+
+  it("sem permissão de gerenciar permissões, nenhuma entrada aparece", async () => {
+    ctl.acoes = new Set(["gerenciarCanais"]);
+    await abrirSecao("canais");
+    await expect.element(page.getByRole("button", { name: admin.canaisPagina.editar("geral") })).toBeVisible();
+    expect(document.querySelector('[aria-label^="Permissões de"]')).toBeNull();
+    expect(document.querySelector('[aria-label^="Permissões da categoria"]')).toBeNull();
   });
 });

@@ -2,6 +2,7 @@ import { assinarDensidade, lerDensidade } from "nucleo/store/densidade";
 import { useSyncExternalStore, type CSSProperties } from "react";
 
 import { config } from "../../textos";
+import type { TemaDaRaiz } from "../../tema/personalizado";
 import { Avatar, Botao, FundoVidro, PainelVidro, Pilula } from "../../ui/ds";
 import { Canal } from "../../ui/icones";
 import css from "./PreviaDoApp.module.css";
@@ -17,14 +18,24 @@ export function estiloDosPapeis(papeis: Readonly<Record<string, string>>): CSSPr
 
 /**
  * Uma réplica pequena do app, desenhada com os componentes de verdade e os
- * tokens da escolha. É decoração: fica inerte (não recebe foco nem clique) e o
+ * tokens da escolha (escuro ou claro, pelo `data-tema` do próprio contêiner). É decoração: fica inerte (não recebe foco nem clique) e o
  * nome acessível diz de que tema ela fala.
  */
-export function PreviaDoApp({ papeis, nome }: { papeis: Readonly<Record<string, string>>; nome: string }) {
+export function PreviaDoApp({
+  papeis,
+  nome,
+  tema = "vidro",
+}: {
+  papeis: Readonly<Record<string, string>>;
+  nome: string;
+  /** A família da prévia: o `data-tema` do contêiner traz os tokens dela, e `papeis` vai por cima. */
+  tema?: TemaDaRaiz;
+}) {
   const compacta = useSyncExternalStore(assinarDensidade, lerDensidade) === "compacto";
   return (
     <div
       className={css.previa}
+      data-tema={tema}
       style={estiloDosPapeis(papeis)}
       role="img"
       aria-label={t.previaDe(nome)}

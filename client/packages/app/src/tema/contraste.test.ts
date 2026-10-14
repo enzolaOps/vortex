@@ -15,10 +15,16 @@ interface TokenDoDs {
 }
 const ds = JSON.parse(readFileSync(join(DIR, "tokens.json"), "utf8")) as {
   color: { tokens: TokenDoDs[] };
+  shadow: { tokens: TokenDoDs[] };
 };
 
-/** Os papéis do DS: tudo que um tema tem que declarar, e nada além. */
-const PAPEIS = ds.color.tokens.map((t) => t.name);
+/**
+ * Os papéis do DS: tudo que um tema tem que declarar, e nada além. As sombras
+ * contam: carregam cor (anel de seleção, reflexo do vidro, elevação) e por isso
+ * são declaradas por tema.
+ */
+const PAPEIS_DE_COR = ds.color.tokens.map((t) => t.name);
+const PAPEIS = [...PAPEIS_DE_COR, ...ds.shadow.tokens.map((t) => t.name)];
 
 /** Opacidade de pico de cada campo de cor, lida do `usage` do próprio DS. */
 const CAMPOS: CampoDeCor[] = ds.color.tokens
@@ -29,17 +35,33 @@ const CAMPOS: CampoDeCor[] = ds.color.tokens
     return { papel: t.name, opacidade: Number(m[1]) };
   });
 
-/** Todo arquivo de tema: o gerado do DS mais cada um de `temas/`. */
+/**
+ * Todo arquivo de tema: o gerado (Vidro de tokens.json mais cada `temas/<id>.json`)
+ * e qualquer `temas/*.css` escrito à mão, se um dia existir.
+ */
 function arquivosDeTema(): string[] {
   const arquivos = [join(DIR, "tokens.gerado.css")];
-  try {
-    for (const f of readdirSync(join(DIR, "temas"))) {
-      if (f.endsWith(".css")) arquivos.push(join(DIR, "temas", f));
-    }
-  } catch {
-    /* ainda não há temas nomeados além do Vidro */
+  for (const f of readdirSync(join(DIR, "temas"))) {
+    if (f.endsWith(".css")) arquivos.push(join(DIR, "temas", f));
   }
   return arquivos;
+}
+
+/** Os ids declarados em `temas/*.json`: cada um tem de aparecer no CSS gerado. */
+const IDS_DE_TEMAS_JSON = readdirSync(join(DIR, "temas"))
+  .filter((f) => f.endsWith(".json"))
+  .map((f) => f.slice(0, -".json".length));
+
+/** `color-scheme` de cada bloco `[data-tema]` do CSS gerado. */
+function esquemas(css: string): Record<string, string> {
+  const saida: Record<string, string> = {};
+  for (const bloco of css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const esquema = /color-scheme\s*:\s*([a-z ]+);/.exec(bloco[2] ?? "")?.[1]?.trim();
+    for (const m of (bloco[1] ?? "").matchAll(/\[data-tema="([^"]+)"\]/g)) {
+      if (esquema !== undefined) saida[m[1] ?? ""] = esquema;
+    }
+  }
+  return saida;
 }
 
 const temas: [string, Record<string, string>][] = [];
@@ -54,6 +76,19 @@ describe("temas", () => {
     expect(temas.map(([n]) => n.split(" ")[0])).toContain("vidro");
   });
 
+  it("todo tema de temas/*.json foi gerado (rode `pnpm tokens` se falhar)", () => {
+    expect(IDS_DE_TEMAS_JSON.length).toBeGreaterThan(0);
+    const ids = temas.map(([n]) => n.split(" ")[0]);
+    for (const id of IDS_DE_TEMAS_JSON) expect(ids).toContain(id);
+  });
+
+  it("cada tema declara o próprio color-scheme (claro em tema claro, escuro em tema escuro)", () => {
+    const e = esquemas(readFileSync(join(DIR, "tokens.gerado.css"), "utf8"));
+    expect(e["vidro"]).toBe("dark");
+    expect(e["claro"]).toBe("light");
+    for (const [n] of temas) expect(e[n.split(" ")[0] ?? ""], n).toMatch(/^(dark|light)$/);
+  });
+
   it.each(temas)("%s declara todo papel do DS e nenhum a mais", (_nome, papeis) => {
     const declarados = Object.keys(papeis).sort();
     expect(declarados).toEqual([...PAPEIS].sort());
@@ -61,7 +96,7 @@ describe("temas", () => {
 
   describe.each(temas)("contraste: %s", (_nome, papeis) => {
     // Papel faltando falha aqui, com nome, em vez de derrubar a coleta inteira.
-    const faltam = PAPEIS.filter((p) => !(p in papeis));
+    const faltam = PAPEIS_DE_COR.filter((p) => !(p in papeis));
     if (faltam.length > 0) {
       it("tem todos os papéis para medir", () => expect(faltam).toEqual([]));
       return;
@@ -110,6 +145,13 @@ describe("o teste detecta tema ruim (mutação permanente)", () => {
     const antes = base.find((r) => r.par === "text-3 (texto)")?.piorCaso ?? 0;
     const agora = depois.find((r) => r.par === "text-3 (texto)")?.piorCaso ?? 0;
     expect(agora).toBeLessThan(antes);
+  });
+
+  it("no tema claro, um texto clareado reprova (a régua vale nos dois sentidos de luz)", () => {
+    const claro = temas.find(([n]) => n.startsWith("claro"))?.[1] ?? {};
+    const ruim = resolverReferencias({ ...claro, "text-4": "#8a8fa3" });
+    const falhas = medir(ruim, PARES, CAMPOS).filter((r) => !r.ok);
+    expect(falhas.map((f) => f.par)).toContain("text-4 (texto)");
   });
 
   it("papel faltando é erro, não par ignorado", () => {

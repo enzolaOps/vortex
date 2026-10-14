@@ -24,8 +24,11 @@ const ds = JSON.parse(readFileSync(join(DIR, "tokens.json"), "utf8")) as {
 const CAMPOS: CampoDeCor[] = ds.color.tokens
   .filter((t) => t.name.startsWith("backdrop-glow-"))
   .map((t) => ({ papel: t.name, opacidade: Number(/opacidade ([0-9.]+)/.exec(t.usage)?.[1]) }));
-const VIDRO = lerTemas(readFileSync(join(DIR, "tokens.gerado.css"), "utf8"))["vidro"] ?? {};
+const TEMAS_CSS = lerTemas(readFileSync(join(DIR, "tokens.gerado.css"), "utf8"));
+const VIDRO = TEMAS_CSS["vidro"] ?? {};
 const BASE: BaseDoTema = { papeis: resolverReferencias(VIDRO), campos: CAMPOS };
+/** O claro não tem temas prontos nem personalização: os controles valem sobre o desenho de fábrica dele. */
+const CLARO: BaseDoTema = { papeis: resolverReferencias(TEMAS_CSS["claro"] ?? {}), campos: CAMPOS };
 
 const PONTOS_DE_VIDRO = [0, 5, 20, 35, 50, 65, 80, 95, 100];
 const PONTOS_DE_BRILHO = [0, 10, 40, 70, 100];
@@ -104,6 +107,20 @@ describe("vidro e brilho de fundo", () => {
           const falhas = falhasDeContraste(base, final);
           if (falhas.length > 0) reprovadas.push(`${nome} vidro=${String(vidro)} brilho=${String(brilho)}: ${falhas.join(", ")}`);
         }
+      }
+    }
+    expect(reprovadas).toEqual([]);
+  });
+
+  it("no tema claro o contraste também passa em todos os pontos dos dois controles (varredura)", () => {
+    expect(Object.keys(CLARO.papeis).length).toBeGreaterThan(0);
+    const reprovadas: string[] = [];
+    for (const vidro of PONTOS_DE_VIDRO) {
+      for (const brilho of PONTOS_DE_BRILHO) {
+        const ajustes = ajustesDeVidro(CLARO.papeis, { vidro, brilho });
+        const base: BaseDoTema = { papeis: CLARO.papeis, campos: camposComBrilho(CAMPOS, brilho) };
+        const falhas = falhasDeContraste(base, ajustes);
+        if (falhas.length > 0) reprovadas.push(`claro vidro=${String(vidro)} brilho=${String(brilho)}: ${falhas.join(", ")}`);
       }
     }
     expect(reprovadas).toEqual([]);

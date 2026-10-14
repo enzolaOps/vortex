@@ -2,6 +2,7 @@ import { count } from "nucleo/arnes/stats";
 import { chaveDeMembro } from "nucleo/sdk/domain";
 import { pode } from "nucleo/sdk/permissoes";
 import { assinarDensidade, lerDensidade } from "nucleo/store/densidade";
+import { assinarAparencia, lerAparencia } from "nucleo/store/aparencia";
 import { useMessage, useNomeDoMembro } from "nucleo/store/hooks";
 import { abrirSeletorDeReacao } from "nucleo/store/seletorDeReacao";
 import { responderA } from "nucleo/store/resposta";
@@ -13,6 +14,7 @@ import { AvatarDoAutor } from "./AvatarDoAutor";
 import { AnexosDaMensagem } from "./AnexosDaMensagem";
 import { CitacaoDeResposta } from "./CitacaoDeResposta";
 import { CorpoDaMensagem } from "./CorpoDaMensagem";
+import { EmbedsDaMensagem } from "./EmbedsDaMensagem";
 import { EditorInline } from "./EditorInline";
 import { FraseDeSistema } from "./FraseDeSistema";
 import { useEditandoEsta } from "./hooks";
@@ -47,6 +49,7 @@ function LinhaBase({ id, servidorId, grupo }: LinhaDeMensagemProps) {
   const nomeDoAutor = useNomeDoMembro(chaveDeMembro(servidorId, m?.authorId ?? ""));
   const editando = useEditandoEsta(id);
   const compacta = useSyncExternalStore(assinarDensidade, lerDensidade) === "compacto";
+  const previas = useSyncExternalStore(assinarAparencia, lerAparencia).previasDeLink;
 
   if (!m) return <div className={css.placeholder} aria-hidden="true" />;
 
@@ -102,6 +105,7 @@ function LinhaBase({ id, servidorId, grupo }: LinhaDeMensagemProps) {
             rodape={
               <>
                 {m.anexos.length > 0 && <AnexosDaMensagem anexos={m.anexos} mensagemId={id} />}
+                {previas && m.embeds.length > 0 && <EmbedsDaMensagem embeds={m.embeds} servidorId={servidorId} />}
                 {temRodape(m) && <RodapeDaMensagem m={m} podeReagir={podeReagir} />}
               </>
             }

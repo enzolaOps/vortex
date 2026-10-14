@@ -100,6 +100,7 @@ Kept deliberately small, so merging upstream stays cheap.
 | `brand/` | Source artwork plus the two scripts below. New directory. |
 | `vendor/stoat-web/` | Historical Solid implementation retained as reference only. |
 | `.gitmodules` | Tracks the client SDK and the public vendor gitlinks. |
+| `.github/workflows/ci.yml` | PR and merge-queue checks; `CI` is the only required check. |
 | `.github/workflows/vortex-client-image.yml` | Client image, on GitHub Release if `client/` changed. |
 | `.github/workflows/vortex-server-image.yml` | Server runtime image, on GitHub Release if `server/` changed. |
 | `.github/workflows/` | Every other upstream workflow deleted — see below. |
