@@ -88,4 +88,4 @@ jobs:
           REPOSITORY_OWNER: ${{ github.repository_owner }}
           GITHUB_SHA_AT_START: ${{ github.sha }}
           FORCE_REANALYZE: ${{ inputs.force }}
-        run: scripts/ci/intelligent-release.sh
+        run: bash scripts/ci/intelligent-release.sh
