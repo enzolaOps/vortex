@@ -37,7 +37,9 @@ jobs:
       - name: Validate Jev preset JSON
         run: jq empty .jev/presets/release-impact.json
       - name: Check whitespace errors
-        run: git diff --check origin/main...HEAD
+        run: |
+          git fetch origin main:refs/remotes/origin/main
+          git diff --check origin/main...HEAD
 
   release:
     if: github.event_name != 'pull_request'
