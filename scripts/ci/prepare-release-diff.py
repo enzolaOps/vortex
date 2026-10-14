@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import re
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 TEST_PATH = re.compile(
@@ -27,6 +29,12 @@ LOCKFILE = re.compile(
     re.IGNORECASE,
 )
 RELEASE_AUTOMATION = (".github/workflows/", "scripts/ci/", ".jev/")
+UPSTREAM_CHANGELOG_LINK = re.compile(
+    r"https?://(?:redirect\.)?github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)/"
+    r"(?:compare|releases/tag)/"
+)
+VERSION_HEADING = re.compile(r"^#{1,4}\s+v?(\d+\.\d+\.\d+)\b", re.MULTILINE)
+VERSION_NUMBER = re.compile(r"\bv?(\d+\.\d+\.\d+)\b")
 
 
 def category(path: str) -> str:
@@ -72,6 +80,37 @@ def split_sections(diff: str) -> list[tuple[str, str]]:
     return sections
 
 
+def linked_upstream_release_notes(title: str, body: str) -> str:
+    """Fetch versioned changelog sections only from GitHub repos linked by release notes."""
+    repos = list(dict.fromkeys(UPSTREAM_CHANGELOG_LINK.findall(body)))
+    if not repos:
+        return ""
+    versions = set(VERSION_NUMBER.findall(title + "\n" + body))
+    notes: list[str] = []
+    for owner, repo in repos[:3]:
+        if repo.endswith(".git"):
+            repo = repo[:-4]
+        changelog = ""
+        for branch in ("main", "master"):
+            url = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/CHANGELOG.md"
+            try:
+                request = urllib.request.Request(url, headers={"User-Agent": "vortex-release-classifier"})
+                with urllib.request.urlopen(request, timeout=3) as response:
+                    changelog = response.read(1_500_000).decode("utf-8", errors="replace")
+                break
+            except (urllib.error.URLError, TimeoutError, OSError):
+                continue
+        if not changelog:
+            continue
+        headings = list(VERSION_HEADING.finditer(changelog))
+        for index, heading in enumerate(headings):
+            if heading.group(1) not in versions:
+                continue
+            end = headings[index + 1].start() if index + 1 < len(headings) else len(changelog)
+            notes.append(f"Upstream changelog {owner}/{repo} {heading.group(1)}:\n{changelog[heading.start():end]}")
+    return "\n".join(notes)
+
+
 def dependency_impact(text: str) -> tuple[str, str]:
     text = re.sub(r"[^a-z0-9]+", " ", text.lower())
     if re.search(r"\b(breaking change|breaking changes|not backward compatible|incompatible api)\b", text):
@@ -79,7 +118,7 @@ def dependency_impact(text: str) -> tuple[str, str]:
     if re.search(r"\b(new feature|new capability|adds support for|introduces support for)\b", text):
         return "minor", "Upstream release notes explicitly indicate an additive capability."
     if re.search(
-        r"\b(fix(es|ed|ing)?|bug fix|correctness|security fix|vulnerability|"
+        r"\b(fix(es|ed|ing)?|bug fix|correctness|security fixes?|vulnerability|"
         r"improv(e|es|ed|ement)|performance|rendering|styling|theme overrides?|"
         r"preserv\w* existing styles|reliability|regression)\b",
         text,
@@ -109,7 +148,12 @@ def prepare(diff: str, title: str, body: str) -> dict:
     non_implementation = {"release-automation", "tests", "documentation", "dependency-lockfile"}
     if kinds <= non_implementation:
         if "dependency-lockfile" in kinds:
-            impact, reason = dependency_impact(title + "\n" + body)
+            dependency_notes = title + "\n" + body
+            impact, reason = dependency_impact(dependency_notes)
+            if impact == "review":
+                upstream_notes = linked_upstream_release_notes(title, body)
+                if upstream_notes:
+                    impact, reason = dependency_impact(dependency_notes + "\n" + upstream_notes)
             return result(impact, reason, counts, paths_by_kind)
         if kinds <= {"release-automation"}:
             reason = "Changes are confined to release/CI automation."
@@ -131,7 +175,12 @@ def prepare(diff: str, title: str, body: str) -> dict:
     dependency_floor = "none"
     dependency_reason = ""
     if "dependency-lockfile" in kinds:
-        dependency_floor, dependency_reason = dependency_impact(title + "\n" + body)
+        dependency_notes = title + "\n" + body
+        dependency_floor, dependency_reason = dependency_impact(dependency_notes)
+        if dependency_floor == "review":
+            upstream_notes = linked_upstream_release_notes(title, body)
+            if upstream_notes:
+                dependency_floor, dependency_reason = dependency_impact(dependency_notes + "\n" + upstream_notes)
         if dependency_floor == "review":
             dependency_reason = "Dependency update also needs review: " + dependency_reason
 
