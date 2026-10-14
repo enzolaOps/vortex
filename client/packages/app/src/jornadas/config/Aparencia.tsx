@@ -382,6 +382,15 @@ function MensagensETexto() {
           definirAparencia({ texto: v });
         }}
       />
+      <LinhaDeAjuste nome={t.previasDeLink} descricao={t.previasDeLinkDica}>
+        <Interruptor
+          ligado={a.previasDeLink}
+          rotulo={t.previasDeLink}
+          aoMudar={(v) => {
+            definirAparencia({ previasDeLink: v });
+          }}
+        />
+      </LinhaDeAjuste>
     </Bloco>
   );
 }

@@ -8,7 +8,7 @@ beforeEach(() => {
 
 describe("aparência", () => {
   it("nasce no desenho de fábrica e segue o sistema nas animações", () => {
-    expect(lerAparencia()).toEqual({ vidro: 100, brilho: 100, texto: 100, reduzirAnimacoes: null });
+    expect(lerAparencia()).toEqual({ vidro: 100, brilho: 100, texto: 100, reduzirAnimacoes: null, previasDeLink: true });
   });
 
   it("limita cada ajuste à própria faixa", () => {
@@ -26,6 +26,13 @@ describe("aparência", () => {
     definirAparencia({ vidro: 40 });
     expect(ouvinte).toHaveBeenCalledTimes(1);
     sair();
+  });
+
+  it("a prévia de link nasce ligada, desliga e lixo no armazenamento volta ao padrão", () => {
+    expect(lerAparencia().previasDeLink).toBe(true);
+    definirAparencia({ previasDeLink: false });
+    expect(lerAparencia().previasDeLink).toBe(false);
+    expect(JSON.parse(localStorage.getItem("vortex:aparencia") ?? "{}")).toMatchObject({ previasDeLink: false });
   });
 
   it("referência estável entre leituras", () => {
