@@ -91,15 +91,20 @@ def linked_upstream_release_notes(title: str, body: str) -> str:
         if repo.endswith(".git"):
             repo = repo[:-4]
         changelog = ""
+        repo_slug = repo.split("/")[-1]
+        changelog_paths = ("CHANGELOG.md", f"packages/{repo_slug}/CHANGELOG.md", "packages/solid/CHANGELOG.md")
         for branch in ("main", "master"):
-            url = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/CHANGELOG.md"
-            try:
-                request = urllib.request.Request(url, headers={"User-Agent": "vortex-release-classifier"})
-                with urllib.request.urlopen(request, timeout=3) as response:
-                    changelog = response.read(1_500_000).decode("utf-8", errors="replace")
+            for path in dict.fromkeys(changelog_paths):
+                url = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}"
+                try:
+                    request = urllib.request.Request(url, headers={"User-Agent": "vortex-release-classifier"})
+                    with urllib.request.urlopen(request, timeout=3) as response:
+                        changelog = response.read(1_500_000).decode("utf-8", errors="replace")
+                    break
+                except (urllib.error.URLError, TimeoutError, OSError):
+                    continue
+            if changelog:
                 break
-            except (urllib.error.URLError, TimeoutError, OSError):
-                continue
         if not changelog:
             continue
         headings = list(VERSION_HEADING.finditer(changelog))
