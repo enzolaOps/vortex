@@ -5,7 +5,7 @@ import { limparDispositivos } from "nucleo/store/dispositivos";
 import { ligarAtalhosDeVoz } from "nucleo/sdk/atalhosDeVoz";
 import { abrirConfig, lerConfig, limparConfig } from "nucleo/store/config";
 import { ATALHOS_PADRAO, definirAtalho, lerAtalhosDeVoz } from "nucleo/store/atalhosDeVoz";
-import { restaurarAparencia, lerAparencia } from "nucleo/store/aparencia";
+import { definirAparencia, restaurarAparencia, lerAparencia } from "nucleo/store/aparencia";
 import { definirDensidade, lerDensidade } from "nucleo/store/densidade";
 import { limparMeuStatus, semearMeuStatus } from "nucleo/store/meuStatus";
 import {
@@ -21,7 +21,7 @@ import { definirSegurando, lerSegurando, microfoneAberto } from "nucleo/store/pu
 import type { Dispositivo, ResultadoDeConta } from "nucleo/sdk/perfil";
 
 import { comum, config } from "../../textos";
-import { definirPersonalizacao, lerPersonalizacao } from "../../tema/personalizado";
+import { aplicarTemaSalvo, definirFamilia, definirPersonalizacao, lerFamilia, lerPersonalizacao } from "../../tema/personalizado";
 import { PERSONALIZACAO_PADRAO } from "../../tema/personalizar";
 import { desmontar, montar } from "../../ui/ds/montar";
 import { Avisos } from "../../ui/primitivos/Avisos";
@@ -174,6 +174,7 @@ afterEach(() => {
     fundo: "nenhum",
   });
   definirPersonalizacao({ ...PERSONALIZACAO_PADRAO });
+  definirFamilia("vidro");
   restaurarAparencia();
   definirDensidade("confortavel");
   vi.restoreAllMocks();
@@ -811,7 +812,7 @@ describe("aparência", () => {
     expect(radio(a.temas.vidro)?.getAttribute("aria-checked")).toBe("true");
     expect(raiz().getPropertyValue("--vx-accent")).toBe("");
     expect(texto()).toContain(a.soEscuro);
-    expect(document.querySelectorAll('[role="radiogroup"][aria-label="Tema"] [role="radio"]').length).toBeGreaterThanOrEqual(7);
+    expect(document.querySelectorAll(`[role="radiogroup"][aria-label="${a.temasProntos}"] [role="radio"]`).length).toBeGreaterThanOrEqual(7);
   });
 
   it("escolher um tema aplica a paleta dele e voltar ao Vidro a remove", async () => {
@@ -916,6 +917,119 @@ describe("aparência", () => {
     await assentar();
     const guardado = JSON.parse(localStorage.getItem("vortex:tema-personalizado") ?? "{}") as Record<string, unknown>;
     expect(guardado).toMatchObject({ ativo: true, tema: "floresta", personalizado: true, destaque: "rosa" });
+  });
+
+  describe("escuro ou claro", () => {
+    const html = () => document.documentElement;
+    const esquema = () => getComputedStyle(html()).colorScheme;
+    const token = (nome: string) => getComputedStyle(html()).getPropertyValue(nome).trim();
+    // O que o main.tsx faz ao abrir o app, antes da primeira pintura.
+    beforeEach(aplicarTemaSalvo);
+
+    it("o escuro é o padrão: três cartões, Escuro marcado, color-scheme escuro", async () => {
+      await abrir("aparencia");
+      const grupo = document.querySelector(`[role="radiogroup"][aria-label="${a.tema}"]`);
+      expect(grupo?.querySelectorAll('[role="radio"]').length).toBe(3);
+      expect(radio(a.familias.vidro)?.getAttribute("aria-checked")).toBe("true");
+      expect(html().dataset.tema).toBe("vidro");
+      expect(esquema()).toBe("dark");
+      // A prévia do cartão claro desenha com os tokens do claro, sem mexer no documento.
+      const miniClaro = radio(a.familias.claro)?.querySelector<HTMLElement>('[data-tema="claro"]');
+      expect(miniClaro).not.toBeNull();
+      expect(getComputedStyle(miniClaro!).backgroundColor).toBe("rgb(236, 238, 247)");
+    });
+
+    it("trocar para o claro muda o tema e o color-scheme, tira a paleta escura e guarda a escolha", async () => {
+      await abrir("aparencia");
+      await userEvent.click(radio(a.temas.oceano)!);
+      await assentar();
+      const acentoOceano = raiz().getPropertyValue("--vx-accent");
+      expect(acentoOceano).toMatch(/^#[0-9a-f]{6}$/);
+
+      await userEvent.click(radio(a.familias.claro)!);
+      await expect.poll(() => html().dataset.tema).toBe("claro");
+      expect(esquema()).toBe("light");
+      // Nenhuma cor do tema pronto fica escrita no <html>: valem as do bloco claro.
+      expect(raiz().getPropertyValue("--vx-accent")).toBe("");
+      expect(raiz().getPropertyValue("--vx-backdrop-base")).toBe("");
+      expect(raiz().getPropertyValue("--vx-shadow-selected")).toBe("");
+      expect(token("--vx-accent")).toBe("#6848c9");
+      expect(token("--vx-surface-solid")).toBe("#fdfdff");
+      expect(localStorage.getItem("vortex:tema-familia")).toBe("claro");
+      expect(radio(a.familias.claro)?.getAttribute("aria-checked")).toBe("true");
+      // A escolha escura continua guardada, só não vale aqui.
+      expect(lerPersonalizacao()).toMatchObject({ ativo: true, tema: "oceano" });
+
+      // Sem controle inerte: os temas prontos e o personalizar somem, e a frase diz por quê.
+      await expect.poll(() => radio(a.temas.oceano)).toBeUndefined();
+      expect(botao(a.personalizar)).toBeUndefined();
+      expect(document.querySelector('[data-testid="so-no-escuro"]')?.textContent).toBe(a.soEscuro);
+      expect(previa()?.dataset.tema).toBe("claro");
+      expect(previa()?.getAttribute("aria-label")).toBe(a.previaDe(a.familias.claro));
+
+      // Voltar ao escuro devolve o tema pronto que estava.
+      await userEvent.click(radio(a.familias.vidro)!);
+      await expect.poll(() => html().dataset.tema).toBe("vidro");
+      expect(esquema()).toBe("dark");
+      expect(raiz().getPropertyValue("--vx-accent")).toBe(acentoOceano);
+      await expect.poll(() => radio(a.temas.oceano)?.getAttribute("aria-checked")).toBe("true");
+    });
+
+    it("a personalização volta inteira ao sair do claro", async () => {
+      await abrir("aparencia");
+      await abrirPersonalizar();
+      await userEvent.click(radio(a.destaques.menta)!);
+      await assentar();
+      const fundo = raiz().getPropertyValue("--vx-backdrop-base");
+      const acento = raiz().getPropertyValue("--vx-accent");
+      expect(acento).not.toBe("");
+
+      definirFamilia("claro");
+      await expect.poll(() => raiz().getPropertyValue("--vx-accent")).toBe("");
+      expect(raiz().getPropertyValue("--vx-backdrop-base")).toBe("");
+
+      definirFamilia("vidro");
+      await expect.poll(() => raiz().getPropertyValue("--vx-accent")).toBe(acento);
+      expect(raiz().getPropertyValue("--vx-backdrop-base")).toBe(fundo);
+      expect(lerPersonalizacao()).toMatchObject({ personalizado: true, destaque: "menta" });
+    });
+
+    it("o vidro e o brilho continuam valendo no claro, sobre as superfícies do claro", async () => {
+      definirFamilia("claro");
+      definirAparencia({ vidro: 0 });
+      await expect.poll(() => raiz().getPropertyValue("--vx-surface-glass")).toBe("rgba(251,252,255,1)");
+      expect(raiz().getPropertyValue("--vx-backdrop-glass")).toBe("none");
+    });
+
+    it("a escolha sobrevive a reabrir o app: o módulo novo lê o claro guardado", async () => {
+      definirPersonalizacao({ ...PERSONALIZACAO_PADRAO, ativo: true, tema: "brasa" });
+      definirFamilia("claro");
+      vi.resetModules();
+      const novo = await import("../../tema/personalizado");
+      expect(novo.lerFamilia()).toBe("claro");
+      const alvo = document.createElement("div");
+      novo.aplicarPersonalizacao(novo.lerPersonalizacao(), alvo);
+      expect(alvo.dataset.tema).toBe("claro");
+      expect(alvo.style.getPropertyValue("--vx-accent")).toBe("");
+    });
+
+    it("seguir o sistema acompanha o pedido de cor do sistema", async () => {
+      const pedeClaro = { matches: true };
+      const original = window.matchMedia.bind(window);
+      vi.spyOn(window, "matchMedia").mockImplementation((q: string) =>
+        q === "(prefers-color-scheme: light)" ? ({ ...original(q), matches: pedeClaro.matches }) : original(q),
+      );
+      await abrir("aparencia");
+      await userEvent.click(radio(a.familias.sistema)!);
+      await expect.poll(() => html().dataset.tema).toBe("claro");
+      expect(lerFamilia()).toBe("sistema");
+      expect(localStorage.getItem("vortex:tema-familia")).toBe("sistema");
+
+      pedeClaro.matches = false;
+      definirFamilia("sistema");
+      await expect.poll(() => html().dataset.tema).toBe("vidro");
+      expect(esquema()).toBe("dark");
+    });
   });
 
   describe("vidro e fundo", () => {

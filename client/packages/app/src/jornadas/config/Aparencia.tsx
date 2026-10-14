@@ -6,13 +6,19 @@ import { assinarDensidade, definirDensidade, lerDensidade } from "nucleo/store/d
 import { config } from "../../textos";
 import {
   assinarPersonalizacao,
+  definirFamilia,
   escolherTema,
+  FAMILIAS,
+  lerFamilia,
   lerPersonalizacao,
   papeisDe,
   papeisDoTema,
   papeisComAjustes,
   baseDoTema,
   personalizar,
+  temaDaRaiz,
+  type Familia,
+  type TemaDaRaiz,
 } from "../../tema/personalizado";
 import {
   corDoDestaque,
@@ -32,15 +38,132 @@ import { estiloDosPapeis, PreviaDoApp } from "./PreviaDoApp";
 
 const t = config.aparenciaTela;
 
+/** Setas andam entre os cartões de um grupo de rádio e já escolhem, como num rádio nativo. */
+function navegarPorSetas(e: KeyboardEvent<HTMLDivElement>) {
+  const avanca = e.key === "ArrowRight" || e.key === "ArrowDown";
+  const recua = e.key === "ArrowLeft" || e.key === "ArrowUp";
+  if (!avanca && !recua) return;
+  const cartoes = Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>(':scope > [role="radio"]'));
+  const atual = cartoes.findIndex((c) => c === document.activeElement);
+  if (atual < 0) return;
+  e.preventDefault();
+  const proximo = cartoes[(atual + (avanca ? 1 : -1) + cartoes.length) % cartoes.length];
+  proximo?.focus();
+  proximo?.click();
+}
+
 /**
- * Aparência (PRD 4.6): temas prontos e uma personalização por cima deles.
+ * Aparência (PRD 4.6): escuro ou claro e, no escuro, os temas prontos e uma
+ * personalização por cima deles.
  *
  * Todo tema pronto é uma semente do mesmo derivador da paleta personalizada: a
  * pessoa escolhe matiz, intensidade e destaque, e a luminosidade de cada papel
  * é do app, medida contra os pares de contraste do tema de fábrica antes de
- * valer (`tema/personalizar.ts`). Por enquanto só existe o tema escuro.
+ * valer (`tema/personalizar.ts`). O derivador é ESCURO, então no claro os temas
+ * prontos e a personalização ficam guardados e indisponíveis — sem controle
+ * inerte na tela, só a frase dizendo por quê.
  */
 export function Aparencia() {
+  const tema = useSyncExternalStore(assinarPersonalizacao, temaDaRaiz);
+  return (
+    <Pagina>
+      <EscolhaDeTema />
+      {tema === "vidro" ? <TemasProntos /> : <SoNoEscuro />}
+      {tema === "vidro" && <Personalizar />}
+      <VidroEFundo />
+      <MensagensETexto />
+      <Movimento />
+    </Pagina>
+  );
+}
+
+function EscolhaDeTema() {
+  const familia = useSyncExternalStore(assinarPersonalizacao, lerFamilia);
+  return (
+    <Bloco>
+      <h3 className={ec.titulo}>{t.tema}</h3>
+      <p className={ec.dica}>{t.modoDica}</p>
+      <div role="radiogroup" aria-label={t.tema} className={css.cartoes} onKeyDown={navegarPorSetas}>
+        {FAMILIAS.map((f) => (
+          <CartaoDeFamilia key={f} familia={f} marcado={familia === f} />
+        ))}
+      </div>
+    </Bloco>
+  );
+}
+
+function CartaoDeFamilia({ familia, marcado }: { familia: Familia; marcado: boolean }) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={marcado}
+      tabIndex={marcado ? 0 : -1}
+      className={css.cartao}
+      data-familia={familia}
+      onClick={() => {
+        definirFamilia(familia);
+      }}
+    >
+      {familia === "sistema" ? (
+        <span className={css.miniDupla} aria-hidden="true">
+          <Miniatura tema="vidro" />
+          <Miniatura tema="claro" />
+        </span>
+      ) : (
+        <Miniatura tema={familia} />
+      )}
+      <span className={css.cartaoNome}>{t.familias[familia]}</span>
+      {marcado && <span className={css.cartaoEstado}>{t.emUso}</span>}
+    </button>
+  );
+}
+
+/**
+ * A miniatura de uma família: o `data-tema` do próprio contêiner traz os tokens dela. A do
+ * escuro leva por cima a paleta escura escolhida, que é o que voltar ao escuro mostraria.
+ */
+function Miniatura({ tema }: { tema: TemaDaRaiz }) {
+  const p = useSyncExternalStore(assinarPersonalizacao, lerPersonalizacao);
+  return (
+    <span
+      className={css.miniatura}
+      data-tema={tema}
+      style={tema === "vidro" ? estiloDosPapeis(papeisDe(p)) : undefined}
+      aria-hidden="true"
+    >
+      <span className={css.miniCampo} />
+      <span className={css.miniPainel}>
+        <span className={css.miniLinha} />
+        <span className={css.miniLinhaCurta} />
+        <span className={css.miniAcao} />
+      </span>
+    </span>
+  );
+}
+
+/** No claro: nada para clicar, a frase do porquê e a prévia do que está valendo. */
+function SoNoEscuro() {
+  const aparencia = useSyncExternalStore(assinarAparencia, lerAparencia);
+  return (
+    <Bloco>
+      <h3 className={ec.titulo}>{t.temasProntos}</h3>
+      <p className={ec.dica} data-testid="so-no-escuro">
+        {t.soEscuro}
+      </p>
+      <div className={css.janela}>
+        <div className={css.vitrine}>
+          <div className={css.lateral}>
+            <p className={ec.rotuloDaSecao}>{t.previa}</p>
+            <PreviaDoApp tema="claro" papeis={papeisComAjustes({}, aparencia, "claro")} nome={t.familias.claro} />
+          </div>
+        </div>
+      </div>
+    </Bloco>
+  );
+}
+
+function TemasProntos() {
   const p = useSyncExternalStore(assinarPersonalizacao, lerPersonalizacao);
   const [emFoco, setEmFoco] = useState<TemaId | undefined>(undefined);
 
@@ -51,31 +174,17 @@ export function Aparencia() {
   const papeisDaPrevia = papeisComAjustes(emFoco !== undefined ? papeisDoTema(emFoco) : papeisDe(p), aparencia);
   const nomeDaPrevia = emFoco !== undefined ? t.temas[emFoco] : nomeAtual;
 
-  const aoTeclar = (e: KeyboardEvent<HTMLDivElement>) => {
-    const avanca = e.key === "ArrowRight" || e.key === "ArrowDown";
-    const recua = e.key === "ArrowLeft" || e.key === "ArrowUp";
-    if (!avanca && !recua) return;
-    const cartoes = Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]'));
-    const atual = cartoes.findIndex((c) => c === document.activeElement);
-    if (atual < 0) return;
-    e.preventDefault();
-    const proximo = cartoes[(atual + (avanca ? 1 : -1) + cartoes.length) % cartoes.length];
-    proximo?.focus();
-    proximo?.click();
-  };
-
   return (
-    <Pagina>
-      <Bloco>
-        <h3 className={ec.titulo}>{t.tema}</h3>
-        <p className={ec.dica}>{t.temaDica}</p>
-        <div className={css.janela}>
+    <Bloco>
+      <h3 className={ec.titulo}>{t.temasProntos}</h3>
+      <p className={ec.dica}>{t.temaDica}</p>
+      <div className={css.janela}>
         <div className={css.vitrine}>
           <div
             role="radiogroup"
-            aria-label={t.tema}
+            aria-label={t.temasProntos}
             className={css.cartoes}
-            onKeyDown={aoTeclar}
+            onKeyDown={navegarPorSetas}
             onMouseLeave={() => {
               setEmFoco(undefined);
             }}
@@ -95,15 +204,9 @@ export function Aparencia() {
             <PreviaDoApp papeis={papeisDaPrevia} nome={nomeDaPrevia} />
           </div>
         </div>
-        </div>
-        <p className={ec.dica}>{t.soEscuro}</p>
-      </Bloco>
-
-      <Personalizar />
-      <VidroEFundo />
-      <MensagensETexto />
-      <Movimento />
-    </Pagina>
+      </div>
+      <p className={ec.dica}>{t.soEscuro}</p>
+    </Bloco>
   );
 }
 
@@ -126,7 +229,7 @@ function CartaoDeTema({
       aria-checked={marcado}
       tabIndex={marcado ? 0 : -1}
       className={css.cartao}
-      data-tema={id}
+      data-tema-pronto={id}
       onClick={() => {
         escolherTema(id);
       }}

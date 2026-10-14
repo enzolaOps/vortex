@@ -265,6 +265,13 @@ export const config = {
 
   aparenciaTela: {
     tema: "Tema",
+    modoDica: "Vale para o app inteiro e fica guardado neste dispositivo.",
+    familias: {
+      vidro: "Escuro",
+      claro: "Claro",
+      sistema: "Seguir o sistema",
+    },
+    temasProntos: "Temas prontos",
     temaDica: "Passe o mouse para espiar na prévia; clique para usar.",
     temas: {
       vidro: "Vidro",
@@ -302,7 +309,8 @@ export const config = {
     semPaleta:
       "Essa combinação não ficaria legível, então o tema de fábrica continua valendo.",
     ajusteAutomatico: "As cores se ajustam sozinhas para continuarem legíveis.",
-    soEscuro: "Por enquanto só existe o tema escuro.",
+    soEscuro:
+      "Por enquanto, os temas prontos e a personalização valem só no tema escuro.",
     previa: "Prévia",
     previaDe: (nome: string) => `Prévia do tema ${nome}`,
     previaPersonalizada: "Sua personalização",

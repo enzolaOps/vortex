@@ -57,6 +57,15 @@
   background: var(--vx-backdrop-base);
   isolation: isolate;
 }
+/* "Seguir o sistema": as duas famílias lado a lado, na mesma altura de uma miniatura. */
+.miniDupla {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--vx-space-1);
+}
+.miniDupla .miniPainel {
+  inset: 10px 8px 10px 16px;
+}
 .miniCampo {
   position: absolute;
   inset: -20px auto auto -20px;

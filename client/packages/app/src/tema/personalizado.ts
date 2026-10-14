@@ -46,6 +46,61 @@ export function baseDoTema(): BaseDoTema {
   return base();
 }
 
+/**
+ * Escuro ou claro: a FAMÍLIA do tema, que decide o `data-tema` do `<html>`.
+ *
+ * Mora fora da `Personalizacao` de propósito. Os temas prontos e a paleta
+ * personalizada são sementes de um derivador ESCURO e só valem nele; guardar a
+ * família à parte faz a escolha escura sobreviver intacta a uma ida ao claro —
+ * voltar ao escuro devolve exatamente o que estava, sem nada para restaurar.
+ *
+ * `vidro` é o id do tema escuro no CSS gerado (`:root, [data-tema="vidro"]`).
+ */
+export const FAMILIAS = ["vidro", "claro", "sistema"] as const;
+export type Familia = (typeof FAMILIAS)[number];
+/** O que chega ao `data-tema`: "sistema" se resolve num dos dois. */
+export type TemaDaRaiz = Exclude<Familia, "sistema">;
+
+const CHAVE_FAMILIA = "vortex:tema-familia";
+const PEDE_CLARO = "(prefers-color-scheme: light)";
+
+function lerFamiliaGuardada(): Familia {
+  try {
+    const v = localStorage.getItem(CHAVE_FAMILIA);
+    return FAMILIAS.find((f) => f === v) ?? "vidro";
+  } catch {
+    return "vidro";
+  }
+}
+
+let familia: Familia = lerFamiliaGuardada();
+
+function sistemaPedeClaro(): boolean {
+  return typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia(PEDE_CLARO).matches;
+}
+
+/** A família escolhida, como foi escolhida ("sistema" inclusive). */
+export function lerFamilia(): Familia {
+  return familia;
+}
+
+/** O tema que vale agora no `<html>`. */
+export function temaDaRaiz(): TemaDaRaiz {
+  return familia === "sistema" ? (sistemaPedeClaro() ? "claro" : "vidro") : familia;
+}
+
+const papeisPorTema = new Map<TemaDaRaiz, Readonly<Record<string, string>>>();
+
+/** Os papéis de fábrica de uma família, resolvidos do CSS gerado. */
+export function papeisDaFamilia(tema: TemaDaRaiz): Readonly<Record<string, string>> {
+  if (tema === "vidro") return base().papeis;
+  const guardado = papeisPorTema.get(tema);
+  if (guardado) return guardado;
+  const papeis = resolverReferencias(lerTemas(tokensCss)[tema] ?? {});
+  papeisPorTema.set(tema, papeis);
+  return papeis;
+}
+
 function limitar(n: unknown, min: number, max: number, recuo: number): number {
   return typeof n === "number" && Number.isFinite(n) ? Math.min(max, Math.max(min, Math.round(n))) : recuo;
 }
@@ -109,7 +164,14 @@ export function aplicarPersonalizacao(p: Personalizacao, raiz: HTMLElement = doc
     escritas.push(nome);
   };
 
-  const validada = p.ativo ? paletaValidada(base(), p) : undefined;
+  // O `color-scheme` vem do bloco do tema no CSS: trocar o atributo basta.
+  const tema = temaDaRaiz();
+  if (raiz.getAttribute("data-tema") !== tema) raiz.setAttribute("data-tema", tema);
+
+  // Temas prontos e paleta personalizada só existem no escuro: no claro, nenhuma cor
+  // deles é escrita (superfície escura com texto escuro do claro seria ilegível). A
+  // escolha continua guardada e volta sozinha com o escuro.
+  const validada = tema === "vidro" && p.ativo ? paletaValidada(base(), p) : undefined;
   if (validada) {
     for (const [papel, valor] of Object.entries(validada.papeis)) escrever(propriedade(papel), valor);
     // O anel de seleção do avatar nasce com as duas cores escritas dentro do valor.
@@ -121,7 +183,7 @@ export function aplicarPersonalizacao(p: Personalizacao, raiz: HTMLElement = doc
   }
 
   const a = lerAparencia();
-  const resolvidos = { ...base().papeis, ...(validada?.papeis ?? {}) };
+  const resolvidos = { ...papeisDaFamilia(tema), ...(validada?.papeis ?? {}) };
   for (const [papel, valor] of Object.entries(ajustesDeVidro(resolvidos, a))) escrever(propriedade(papel), valor);
   if (a.texto !== 100) escrever("--vx-texto-escala", String(a.texto / 100));
 
@@ -138,8 +200,9 @@ export function aplicarPersonalizacao(p: Personalizacao, raiz: HTMLElement = doc
 export function papeisComAjustes(
   papeis: Readonly<Record<string, string>>,
   a: Pick<Aparencia, "vidro" | "brilho">,
+  tema: TemaDaRaiz = "vidro",
 ): Readonly<Record<string, string>> {
-  return { ...papeis, ...ajustesDeVidro({ ...base().papeis, ...papeis }, a) };
+  return { ...papeis, ...ajustesDeVidro({ ...papeisDaFamilia(tema), ...papeis }, a) };
 }
 
 /** Escolhe um tema pronto: aplica a semente dele e desfaz qualquer personalização. */
@@ -186,7 +249,19 @@ export function definirPersonalizacao(mudanca: Partial<Personalizacao>): void {
   for (const o of ouvintes) o();
 }
 
-/** Liga a paleta guardada ao abrir o app, antes da primeira pintura. */
+/** Escolhe escuro, claro ou seguir o sistema; vale na hora e fica guardado no dispositivo. */
+export function definirFamilia(f: Familia): void {
+  familia = f;
+  try {
+    localStorage.setItem(CHAVE_FAMILIA, f);
+  } catch {
+    /* vale nesta aba */
+  }
+  aplicarPersonalizacao(atual);
+  for (const o of ouvintes) o();
+}
+
+/** Liga o tema e a paleta guardados ao abrir o app, antes da primeira pintura. */
 export function aplicarTemaSalvo(): void {
   aplicarPersonalizacao(atual);
 }
@@ -198,6 +273,15 @@ const reaplicar = () => {
 };
 assinarAparencia(reaplicar);
 assinarDensidade(reaplicar);
+
+// "Seguir o sistema" acompanha a troca do sistema com o app aberto.
+if (typeof window !== "undefined" && typeof window.matchMedia === "function") {
+  window.matchMedia(PEDE_CLARO).addEventListener("change", () => {
+    if (familia !== "sistema") return;
+    aplicarPersonalizacao(atual);
+    for (const o of ouvintes) o();
+  });
+}
 
 /** A paleta que a combinação atual produz, com a medição, para a tela dizer se ajustou. */
 export function paletaAtual(): PaletaValidada | undefined {
