@@ -1,6 +1,11 @@
 name: Intelligent release
 
 on:
+  pull_request:
+    paths:
+      - ".github/workflows/intelligent-release.yml"
+      - ".jev/presets/release-impact.json"
+      - "scripts/ci/intelligent-release.sh"
   push:
     branches: [main]
   schedule:
@@ -18,7 +23,23 @@ permissions:
   pull-requests: read
 
 jobs:
+  validate:
+    if: github.event_name == 'pull_request'
+    name: Validate release automation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Check shell syntax
+        run: bash -n scripts/ci/intelligent-release.sh
+      - name: Validate Jev preset JSON
+        run: jq empty .jev/presets/release-impact.json
+      - name: Check whitespace errors
+        run: git diff --check origin/main...HEAD
+
   release:
+    if: github.event_name != 'pull_request'
     name: Release when the merge queue is drained
     runs-on: ubuntu-latest
     timeout-minutes: 15
