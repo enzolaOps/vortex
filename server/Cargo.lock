@@ -3550,7 +3550,7 @@ dependencies = [
  "idna 1.1.0",
  "ipnet",
  "jni 0.22.4",
- "rand 0.10.2",
+ "rand 0.10.3",
  "thiserror 2.0.18",
  "tinyvec",
  "tokio",
@@ -3570,7 +3570,7 @@ dependencies = [
  "jni 0.22.4",
  "once_cell",
  "prefix-trie",
- "rand 0.10.2",
+ "rand 0.10.3",
  "ring",
  "thiserror 2.0.18",
  "tinyvec",
@@ -3595,7 +3595,7 @@ dependencies = [
  "ndk-context",
  "once_cell",
  "parking_lot",
- "rand 0.10.2",
+ "rand 0.10.3",
  "resolv-conf",
  "smallvec",
  "system-configuration 0.7.0",
@@ -5920,7 +5920,7 @@ dependencies = [
  "hmac 0.12.1",
  "pkcs12",
  "pkcs5",
- "rand 0.10.2",
+ "rand 0.10.3",
  "rc2",
  "sha1 0.10.6",
  "sha2 0.10.9",
@@ -6939,9 +6939,9 @@ dependencies = [
 
 [[package]]
 name = "rand"
-version = "0.10.2"
+version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7f5fa3a058cd35567ef9bfa5e75732bee0f9e4c55fa90477bef2dfcdbc4be80"
+checksum = "65c9fb96cbc91e3478eaae79a69fcd3f1ae4ad052e471fe6732fff548984b4af"
 dependencies = [
  "chacha20",
  "getrandom 0.4.3",
@@ -7474,7 +7474,7 @@ dependencies = [
  "mongodb",
  "nanoid",
  "once_cell",
- "rand 0.10.2",
+ "rand 0.10.3",
  "redis-kiss",
  "regex",
  "reqwest 0.13.4",
@@ -7525,7 +7525,7 @@ dependencies = [
  "nanoid",
  "num_enum",
  "once_cell",
- "rand 0.10.2",
+ "rand 0.10.3",
  "redis-kiss",
  "regex",
  "reqwest 0.13.4",
@@ -7680,7 +7680,7 @@ version = "0.15.3"
 dependencies = [
  "log",
  "once_cell",
- "rand 0.10.2",
+ "rand 0.10.3",
  "redis-kiss",
  "revolt-config",
  "tokio",
@@ -9456,7 +9456,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand 2.4.1",
- "getrandom 0.4.3",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix 1.1.4",
  "windows-sys 0.61.2",
