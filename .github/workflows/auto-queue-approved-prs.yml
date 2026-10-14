@@ -78,7 +78,7 @@ jobs:
           fi
 
           CHECKS="$(gh api "repos/enzolaOps/vortex/commits/$HEAD_SHA/check-runs")"
-          CLIENT_CHECK="$(jq -c '[.check_runs[] | select(.name == "Vortex client")] | last // empty' <<< "$CHECKS")"
+          CLIENT_CHECK="$(jq -c '[.check_runs[] | select(.name == "Vortex client")] | sort_by(.started_at // .created_at) | last // empty' <<< "$CHECKS")"
           if [ -z "$CLIENT_CHECK" ] || [ "$(jq -r '.status' <<< "$CLIENT_CHECK")" != "completed" ]; then
             echo "Vortex client is not complete yet; the workflow_run trigger will retry after it finishes."
             exit 0
