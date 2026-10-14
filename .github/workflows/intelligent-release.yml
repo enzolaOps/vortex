@@ -12,6 +12,12 @@ on:
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
+    inputs:
+      force:
+        description: "Reanalyze an already processed main commit (manual review/retry)"
+        required: false
+        default: false
+        type: boolean
 
 # Never run two release decisions concurrently. A later main push stays queued
 # while an earlier decision finishes or safely aborts.
@@ -83,4 +89,5 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           REPOSITORY_OWNER: ${{ github.repository_owner }}
           GITHUB_SHA_AT_START: ${{ github.sha }}
+          FORCE_REANALYZE: ${{ inputs.force }}
         run: scripts/ci/intelligent-release.sh
