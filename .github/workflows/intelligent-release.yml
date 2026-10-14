@@ -19,7 +19,7 @@ on:
       stabilization_seconds:
         description: "Seconds to wait for late merge-queue entries (use 0 for immediate testing)"
         required: false
-        default: 60
+        default: 900
         type: number
 
 # Never run two release decisions concurrently. A later main push stays queued
