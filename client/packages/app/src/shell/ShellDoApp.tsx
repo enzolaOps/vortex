@@ -20,8 +20,8 @@ export interface ShellDoAppProps {
   membros?: ReactNode;
   /** A área central já montada pela jornada (substitui `principal`). */
   area?: ReactNode;
-  /** O painel de busca: quando existe, ocupa a gaveta no lugar dos membros. */
-  busca?: ReactNode;
+  /** O painel de busca ou de fixados: quando existe, ocupa a gaveta no lugar dos membros. */
+  painel?: ReactNode;
   /** Esconde a gaveta (fora de um servidor não há membros a listar). */
   gavetaOculta?: boolean;
   /** A faixa estreita que substitui a coluna de salas com o palco em tela cheia (ver `Shell`). */
@@ -40,20 +40,20 @@ export interface ShellDoAppProps {
  * props. O modo da gaveta é preferência do dispositivo e vive num store, não
  * aqui: sobrevive a fechar e abrir o app.
  */
-export function ShellDoApp({ principal, dock, salas, membros, area, busca, gavetaOculta = false, rodapeDasSalas, faixaDeSalas, salasEmFaixa = false, chaveDoLugar }: ShellDoAppProps) {
+export function ShellDoApp({ principal, dock, salas, membros, area, painel, gavetaOculta = false, rodapeDasSalas, faixaDeSalas, salasEmFaixa = false, chaveDoLugar }: ShellDoAppProps) {
   const modo = useModoDaGaveta();
   return (
     <Shell
       chaveDoLugar={chaveDoLugar}
       salasEmFaixa={salasEmFaixa}
       faixaDeSalas={faixaDeSalas}
-      modoDaGaveta={gavetaOculta ? "oculta" : busca !== undefined ? "busca" : modo}
+      modoDaGaveta={gavetaOculta ? "oculta" : painel !== undefined ? "busca" : modo}
       barraDeTitulo={<BarraDeTitulo />}
       dock={<DockDeServidores>{dock}</DockDeServidores>}
       salas={salas ?? <ColunaDeSalas rodape={rodapeDasSalas} />}
       principal={area ?? <AreaPrincipal>{principal}</AreaPrincipal>}
       gaveta={
-        busca ?? (
+        painel ?? (
           <GavetaDeMembros modo={modo} aoMudarModo={definirModoDaGaveta}>
             {membros}
           </GavetaDeMembros>

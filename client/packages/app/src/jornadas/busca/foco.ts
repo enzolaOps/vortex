@@ -18,11 +18,11 @@ export function lembrarOrigemDoFoco(el: Element | null = document.activeElement)
  * trocou de canal, o painel do outro lado desmontou), cai no botão da busca no
  * cabeçalho — o foco nunca fica no vazio, que é onde o teclado deixa de servir.
  */
-export function devolverFoco(): void {
+export function devolverFoco(gatilho = "[data-busca-gatilho]"): void {
   const alvo =
     origem !== null && origem.isConnected
       ? origem
-      : document.querySelector<HTMLElement>("[data-busca-gatilho]");
+      : document.querySelector<HTMLElement>(gatilho);
   origem = null;
   alvo?.focus();
 }

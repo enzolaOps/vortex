@@ -17,6 +17,7 @@ import { casa, shell } from "../../textos";
 import { Avatar, Botao } from "../../ui/ds";
 import { Cadeado, Camera, Configuracoes, Mensagem, Sino, SinoMudo, Telefone } from "../../ui/icones";
 import { BotaoDeBusca } from "../busca/BotaoDeBusca";
+import { BotaoDeFixados } from "../fixados/BotaoDeFixados";
 import { useAtalhoDeBusca } from "../busca/hooks";
 import { AreaDeChat } from "../chat/AreaDeChat";
 import { WidgetDaChamadaConectado } from "../voz/WidgetDaChamadaConectado";
@@ -178,6 +179,7 @@ export function AreaDaDm({ canalId }: { canalId: string }) {
             </div>
           </div>
           <div className={css.acoes}>
+            <BotaoDeFixados canalId={canalId} />
             <BotaoDeBusca canalId={canalId} servidorId="" />
             {(ehDm || ehGrupo) && !bloqueada && <Chamar canalId={canalId} nome={nome} grupo={ehGrupo} />}
             {(ehDm || ehGrupo) && (
