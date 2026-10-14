@@ -170,6 +170,13 @@ while IFS= read -r pr; do
     continue
   fi
   diff_bytes="$(wc -c < "$diff_file" | tr -d ' ')"
+  if (( diff_bytes == 0 )); then
+    echo "::warning::PR #$number has an empty diff; requiring manual review."
+    printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"jev","needs_review":true,"review_reason":"Empty or binary-only diff"}\n' \
+      "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" >> "$TMP/decisions.jsonl"
+    ((review_count+=1))
+    continue
+  fi
   max_diff_bytes=40000
   diff_truncated=false
   if (( diff_bytes > max_diff_bytes )); then
@@ -231,13 +238,15 @@ while IFS= read -r pr; do
   fi
 
   review_reason=""
-  if [[ "$choice" == "review" ]]; then
+  if [[ "$diff_truncated" == true ]]; then
+    review_reason="Diff was truncated at $max_diff_bytes bytes; manual review is required"
+  elif [[ "$choice" == "review" ]]; then
     review_reason="Jev still marked this PR for manual review after the second pass"
   elif ! awk -v p="$confidence" -v min="$MIN_CONFIDENCE" 'BEGIN { exit !(p >= min) }'; then
     # Patch vs. no-release ambiguity is low risk only when Jev assigns very
     # little probability to a feature, breaking change, or unresolved review.
     high_impact_probability="$(jq -r '[.answers.impact.probabilities.major // 0, .answers.impact.probabilities.minor // 0, .answers.impact.probabilities.review // 0] | max' <<< "$result")"
-    if [[ "$choice" =~ ^(patch|none)$ ]] &&
+    if [[ "$diff_truncated" == false && "$choice" =~ ^(patch|none)$ ]] &&
        awk -v p="$confidence" -v low=0.55 -v high="$high_impact_probability" \
          'BEGIN { exit !(p >= low && high < 0.20) }'; then
       echo "PR #$number accepted under low-risk policy (p=$confidence; highest major/minor/review probability=$high_impact_probability)"
