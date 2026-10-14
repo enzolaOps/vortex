@@ -268,9 +268,9 @@ $pre_summary"
     '{number:$number,title:$title,body:$body,url:$url,labels:$labels,changed_files:$files,diff:$diff,diff_truncated:$diff_truncated}' \
     > "$TMP/pr-$number.json"
 
-  # Only the filtered implementation diff reaches Jev; large remaining diffs
-  # are split after filtering, not before.
-  if (( diff_bytes <= 18000 )); then
+  # Only the filtered implementation diff reaches Jev; diffs above 12 KB are
+  # split after filtering, so medium-sized ambiguous PRs get file-level analysis too.
+  if (( diff_bytes <= 12000 )); then
     echo "PR #$number diff: $diff_bytes bytes; sending complete diff to Jev."
     jq -n \
       --argjson number "$number" \
