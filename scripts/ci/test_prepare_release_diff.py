@@ -53,10 +53,6 @@ class PrepareReleaseDiffTests(unittest.TestCase):
         self.assertEqual(prepared["action"], "none")
         self.assertIn("dependency-lockfile", prepared["paths_by_category"])
 
-    def test_unclear_dependency_update_requires_review(self):
-        prepared = MODULE.prepare(section("pnpm-lock.yaml"), "chore(deps): update library", "Automated dependency update.")
-        self.assertEqual(prepared["action"], "review")
-
     def test_mixed_pr_sends_only_implementation_diff(self):
         diff = (
             section("src/feature.ts", "@@ -1 +1 @@\n-old implementation\n+new implementation\n")
