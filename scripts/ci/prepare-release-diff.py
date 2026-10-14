@@ -152,14 +152,16 @@ def prepare(diff: str, title: str, body: str) -> dict:
 
     non_implementation = {"release-automation", "tests", "documentation", "dependency-lockfile"}
     if kinds <= non_implementation:
+        # Dependency-only PRs maintain the dependency graph but do not change
+        # first-party behavior directly. Keep them out of user-facing release
+        # notes and never block release classification on upstream changelogs.
         if "dependency-lockfile" in kinds:
-            dependency_notes = title + "\n" + body
-            impact, reason = dependency_impact(dependency_notes)
-            if impact == "review":
-                upstream_notes = linked_upstream_release_notes(title, body)
-                if upstream_notes:
-                    impact, reason = dependency_impact(dependency_notes + "\n" + upstream_notes)
-            return result(impact, reason, counts, paths_by_kind)
+            return result(
+                "none",
+                "Changes are limited to dependency lockfiles, tests, documentation, or release automation; no first-party implementation changed.",
+                counts,
+                paths_by_kind,
+            )
         if kinds <= {"release-automation"}:
             reason = "Changes are confined to release/CI automation."
         elif kinds <= {"tests"}:
