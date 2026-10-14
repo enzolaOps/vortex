@@ -24,7 +24,7 @@
     "./arnes/*": "./src/arnes/*.ts"
   },
   "dependencies": {
-    "@livekit/track-processors": "0.8.0",
+    "@livekit/track-processors": "0.8.2",
     "@sapphi-red/web-noise-suppressor": "0.4.0",
     "@solid-primitives/set": "^0.7.4",
     "@tanstack/react-virtual": "3.14.10",
