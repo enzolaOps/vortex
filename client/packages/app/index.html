@@ -3,7 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="dark" />
+    <!--
+      Sem <meta name="color-scheme">: o `color-scheme` vem do bloco de cada tema no CSS
+      gerado, e `aplicarTemaSalvo` (main.tsx) troca o `data-tema` antes da primeira pintura.
+    -->
     <!--
       A <meta http-equiv="Content-Security-Policy"> é injetada pelo plugin `cspDoVortex`
       (csp.ts), nunca escrita aqui. Script inline não existe: nenhum <script> sem `src`.
