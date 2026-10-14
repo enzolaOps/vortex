@@ -175,7 +175,7 @@ while IFS= read -r pr; do
 
   # Test-only changes do not ship behavior. Treat a PR as no-impact only when
   # every changed path is explicitly a test file or inside a test directory.
-  if jq -e 'length > 0 and all(.[]; test("(^|/)(__tests__|tests?|testdata)/|(^|/)[^/]+([._-](test|spec))\\.[^/]+$|(^|/)[^/]+_test\\.[^/]+$"))' <<< "$files" >/dev/null; then
+  if jq -e 'length > 0 and all(.[]; test("(^|/)(__tests__|tests?|testdata)/|(^|/)[^/]+([._-](test|spec))[.][^/]+$|(^|/)[^/]+_test[.][^/]+$"))' <<< "$files" >/dev/null; then
     printf '{"number":%s,"title":%s,"url":%s,"impact":"none","probability":1.0,"method":"test-only-path-policy","needs_review":false}\n' \
       "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" >> "$TMP/decisions.jsonl"
     ((none_count+=1))
@@ -244,7 +244,7 @@ while IFS= read -r pr; do
       chunk_index="$(jq -r '.index' <<< "$chunk")"
       chunk_diff="$(jq -r '.diff' <<< "$chunk")"
       chunk_files="$(jq -c '.files' <<< "$chunk")"
-      if jq -e 'length > 0 and all(.[]; test("(^|/)(__tests__|tests?|testdata)/|(^|/)[^/]+([._-](test|spec))\\\\.[^/]+$|(^|/)[^/]+_test\\\\.[^/]+$"))' <<< "$chunk_files" >/dev/null; then
+      if jq -e 'length > 0 and all(.[]; test("(^|/)(__tests__|tests?|testdata)/|(^|/)[^/]+([._-](test|spec))[.][^/]+$|(^|/)[^/]+_test[.][^/]+$"))' <<< "$chunk_files" >/dev/null; then
         echo "PR #$number chunk $chunk_index/$chunk_count => none (deterministic: test-only paths)"
         jq -cn '{choice:"none",confidence:1.0,probabilities:{none:1.0}}' >> "$TMP/pr-$number-chunk-results.jsonl"
         continue
