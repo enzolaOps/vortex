@@ -242,6 +242,7 @@ while IFS= read -r pr; do
 $pre_summary"
   diff_truncated=false
   classification_method_override=""
+  review_input_file="$TMP/pr-$number.json"
   : > "$TMP/pr-$number-chunk-results.jsonl"
   printf '%s' "$diff_content" > "$diff_file"
   diff_bytes="$(wc -c < "$diff_file" | tr -d ' ')"
@@ -362,13 +363,15 @@ $pre_summary"
         fi
         echo "PR #$number chunk $chunk_index/$chunk_count second pass => $chunk_choice (p=$chunk_confidence)"
         if [[ "$chunk_choice" == "review" ]] || ! awk -v p="$chunk_confidence" -v min="$MIN_CONFIDENCE" 'BEGIN { exit !(p >= min) }'; then
-          echo "::warning::PR #$number chunk $chunk_index/$chunk_count remains ambiguous after second pass (impact=$chunk_choice, p=$chunk_confidence); requiring manual review."
-          chunk_failed=true
+          echo "::warning::PR #$number chunk $chunk_index/$chunk_count remains ambiguous after second pass (impact=$chunk_choice, p=$chunk_confidence); deferring to whole-PR synthesis."
+          jq -c --arg choice "$chunk_choice" --argjson confidence "$chunk_confidence" --argjson chunk_index "$chunk_index" \
+            '{chunk_index:$chunk_index,choice:$choice,confidence:$confidence,probabilities:.answers.impact.probabilities,needs_synthesis:true,analysis:.answers.impact}' \
+            <<< "$chunk_result" >> "$TMP/pr-$number-chunk-results.jsonl"
           continue
         fi
       fi
-      jq -c --arg choice "$chunk_choice" --argjson confidence "$chunk_confidence" \
-        '{choice:$choice,confidence:$confidence,probabilities:.answers.impact.probabilities}' \
+      jq -c --arg choice "$chunk_choice" --argjson confidence "$chunk_confidence" --argjson chunk_index "$chunk_index" \
+        '{chunk_index:$chunk_index,choice:$choice,confidence:$confidence,probabilities:.answers.impact.probabilities,needs_synthesis:false,analysis:.answers.impact}' \
         <<< "$chunk_result" >> "$TMP/pr-$number-chunk-results.jsonl"
     done < <(jq -c '.[]' "$TMP/pr-$number-chunks.json")
 
@@ -379,9 +382,29 @@ $pre_summary"
       continue
     fi
 
-    # Combine by highest impact across all chunks. A major/minor disagreement
-    # is a semantic conflict and requires review rather than an arbitrary choice.
-    has_major="$(jq -s 'any(.[]; .choice == "major")' "$TMP/pr-$number-chunk-results.jsonl")"
+    # If any chunk remains ambiguous, ask Jev to reconcile the full set of
+    # per-chunk analyses in PR context. This is a synthesis, not a fresh diff
+    # classification: no chunk's uncertainty is silently discarded.
+    needs_synthesis="$(jq -s 'any(.[]; .needs_synthesis == true)' "$TMP/pr-$number-chunk-results.jsonl")"
+    if [[ "$needs_synthesis" == true ]]; then
+      echo "PR #$number has ambiguous chunks; running whole-PR synthesis over all chunk analyses."
+      jq --slurpfile chunk_results "$TMP/pr-$number-chunk-results.jsonl" \
+        '. + {analysis_mode:"chunk-aggregate",diff:"",chunk_results:$chunk_results}' \
+        "$TMP/pr-$number.json" > "$TMP/pr-$number-aggregate.json"
+      if ! result="$(jev ask --preset release-impact --param "pr=@$TMP/pr-$number-aggregate.json")"; then
+        echo "::warning::Jev could not synthesize chunk results for PR #$number; requiring manual review."
+        printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"jev-chunk-aggregate","needs_review":true,"review_reason":"Whole-PR synthesis failed"}\\n' \
+          "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" >> "$TMP/decisions.jsonl"
+        ((review_count+=1))
+        continue
+      fi
+      classification_method_override="jev-chunk-aggregate"
+      review_input_file="$TMP/pr-$number-aggregate.json"
+      echo "PR #$number whole-PR synthesis completed; validating its impact and confidence."
+    else
+      # Combine by highest impact across all chunks. A major/minor disagreement
+      # is a semantic conflict and requires review rather than an arbitrary choice.
+      has_major="$(jq -s 'any(.[]; .choice == "major")' "$TMP/pr-$number-chunk-results.jsonl")"
     has_minor="$(jq -s 'any(.[]; .choice == "minor")' "$TMP/pr-$number-chunk-results.jsonl")"
     if [[ "$has_major" == true && "$has_minor" == true ]]; then
       printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"method":"jev-chunked","needs_review":true,"review_reason":"Chunks disagree between major and minor impact"}\n' \
@@ -400,8 +423,9 @@ $pre_summary"
     probabilities="$(jq -s 'reduce .[].probabilities as $p ({"major":0,"minor":0,"patch":0,"none":0,"review":0}; reduce ["major","minor","patch","none","review"][] as $k (. ; .[$k] = ([.[$k], ($p[$k] // 0)] | max)))' "$TMP/pr-$number-chunk-results.jsonl")"
     result="$(jq -n --arg choice "$choice" --argjson confidence "$confidence" --argjson probabilities "$probabilities" \
       '{answers:{impact:{choice:$choice,probabilities:($probabilities | .[$choice]=$confidence)}}}')"
-    classification_method_override="jev-chunked"
-    echo "PR #$number combined chunk result => $choice (minimum chunk confidence=$confidence)"
+      classification_method_override="jev-chunked"
+      echo "PR #$number combined chunk result => $choice (minimum chunk confidence=$confidence)"
+    fi
   fi
   if ! initial_choice="$(jq -er '.answers.impact.choice' <<< "$result")" ||
      ! initial_confidence="$(jq -er --arg choice "$initial_choice" '.answers.impact.probabilities[$choice]' <<< "$result")" ||
@@ -439,7 +463,7 @@ $pre_summary"
   if [[ "$choice" == "review" ]] || ! awk -v p="$confidence" -v min="$MIN_CONFIDENCE" 'BEGIN { exit !(p >= min) }'; then
     jq --argjson initial_analysis "$result" \
       '. + {review_pass:true,initial_analysis:$initial_analysis}' \
-      "$TMP/pr-$number.json" > "$TMP/pr-$number-review.json"
+      "$review_input_file" > "$TMP/pr-$number-review.json"
     if ! result="$(jev ask --preset release-impact --param "pr=@$TMP/pr-$number-review.json")"; then
       echo "::warning::Jev's second pass could not process the complete diff for PR #$number; requiring manual review."
       printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":null,"initial_impact":%s,"initial_probability":%s,"method":"jev-second-pass","needs_review":true,"review_reason":"Jev second pass failed to process complete PR diff"}\n' \
