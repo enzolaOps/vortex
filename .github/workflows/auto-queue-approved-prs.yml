@@ -1,0 +1,26 @@
+name: Auto-queue approved pull requests
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  enqueue:
+    name: Add approved PR to merge queue
+    if: >-
+      github.event.review.state == 'approved' &&
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.review.commit_id == github.event.pull_request.head.sha
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Add PR to merge queue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge "$PR_URL" --auto --squash
