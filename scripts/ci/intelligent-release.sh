@@ -602,7 +602,7 @@ if (( review_count > 0 )); then
       echo
       echo "No release was published. $review_count of $eligible_count PR(s) still require review after classification and targeted re-analysis."
       echo
-      echo "Rerun this workflow with `force=true` after reviewing the decisions."
+      echo "Rerun this workflow with \`force=true\` after reviewing the decisions."
     fi
     echo
     echo "#### PRs requiring review"
@@ -648,7 +648,7 @@ fi
   echo
   echo "## Vortex $NEXT_TAG"
   echo
-  echo "Changes since `$LAST_TAG`."
+  echo "Changes since \`$LAST_TAG\`."
   if (( major_count > 0 )); then
     echo
     echo "### Breaking changes"
