@@ -118,8 +118,8 @@ importers:
         specifier: 0.8.2
         version: 0.8.2(@types/dom-mediacapture-transform@0.1.12)(livekit-client@2.22.4(@types/dom-mediacapture-record@1.0.22))
       '@sapphi-red/web-noise-suppressor':
-        specifier: 0.4.0
-        version: 0.4.0
+        specifier: 0.4.1
+        version: 0.4.1
       '@solid-primitives/set':
         specifier: ^0.7.4
         version: 0.7.4(solid-js@1.9.17)
@@ -1125,8 +1125,8 @@ packages:
   '@rolldown/pluginutils@1.0.1':
     resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
 
-  '@sapphi-red/web-noise-suppressor@0.4.0':
-    resolution: {integrity: sha512-vkBEL/VDkbeP3qqSRQFRtPLGa19a38JUzO6J0r5D/MQSumrlERy671DAMaETgY6etXjDCoJcD7JBIaXnuGVtVw==}
+  '@sapphi-red/web-noise-suppressor@0.4.1':
+    resolution: {integrity: sha512-hy2GnF079+zi4n9BZUf+GGIQ1IofApAk6rgGMyMQ3soHfz/GKu1pcCsmePyIHVvUuv1LrFudw9BmmBqoOKay5w==}
 
   '@shikijs/core@4.4.3':
     resolution: {integrity: sha512-QCR4q2ZO/ILJEuwiBMel4wdcTDb1JGwfjKTxPDF6x8ixOaluPrVqIn06C99AcRPhmYlBR56d/Fb+GN58GzExpg==}
@@ -3739,7 +3739,7 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.1': {}
 
-  '@sapphi-red/web-noise-suppressor@0.4.0': {}
+  '@sapphi-red/web-noise-suppressor@0.4.1': {}
 
   '@shikijs/core@4.4.3':
     dependencies:
