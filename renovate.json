@@ -17,5 +17,17 @@
     "client/packages/stoat.js/**"
   ],
   "minimumReleaseAge": "1 day",
-  "internalChecksFilter": "strict"
+  "internalChecksFilter": "strict",
+  "packageRules": [
+    {
+      "description": [
+        "Atualização só de lockfile (rangeStrategy update-lockfile, que o 'auto' escolhe quando a faixa já cobre a versão nova) faz o Renovate rodar `pnpm update --no-save <pkg>@<versão> --lockfile-only --recursive` no workspace de client/.",
+        "O --recursive aplica a versão EXATA a todo importer que declara o pacote, inclusive packages/stoat.js (submódulo em ignorePaths, cujo package.json o Renovate não edita): o lock grava uma versão fora do specifier dele e o CI cai em ERR_PNPM_OUTDATED_LOCKFILE (#364, #405).",
+        "Com bump o Renovate edita a faixa no package.json do pacote e regenera o lock com `pnpm install --lockfile-only`, que respeita o specifier de cada importer e não mexe no stoat.js."
+      ],
+      "matchManagers": ["npm"],
+      "matchFileNames": ["client/**"],
+      "rangeStrategy": "bump"
+    }
+  ]
 }
