@@ -37,6 +37,7 @@ export const admin = {
     convites: "Convites",
     cargos: "Cargos",
     membros: "Membros",
+    seguranca: "Segurança",
     acesso: "Acesso",
     auditoria: "Registro de atividade",
     banimentos: "Banimentos",
@@ -47,6 +48,7 @@ export const admin = {
     convites: "Quem tiver o link entra no servidor. Revogue para o link parar de funcionar.",
     cargos: "Quem pode fazer o quê no servidor.",
     membros: "Quem está no servidor e o que cada pessoa pode fazer.",
+    seguranca: "Regras de entrada, mensagens privadas e o botão de emergência.",
     acesso: "Quem consegue entrar no servidor e quem decide os pedidos.",
     auditoria: "O que a equipe fez no servidor e quando.",
     banimentos: "Quem foi banido e não pode voltar.",
@@ -314,6 +316,47 @@ export const admin = {
     vazioDica: "Quando alguém for banido, aparece aqui e pode ser perdoado.",
     carregando: "Carregando os banimentos…",
     erro: "Não deu para carregar os banimentos.",
+  },
+
+  /** Segurança: entrada, mensagens privadas e emergência. */
+  segurancaPagina: {
+    carregando: "Carregando as regras de segurança…",
+    erro: "Não deu para carregar as regras de segurança.",
+    nivel: "Nível de verificação",
+    niveis: [
+      { id: "nenhum", titulo: "Nenhum", detalhe: "Sem restrição para falar." },
+      { id: "baixo", titulo: "Baixo", detalhe: "Só fala quem confirmou o e-mail da conta." },
+      { id: "medio", titulo: "Médio", detalhe: "Além do e-mail, a conta precisa ter mais de 5 minutos." },
+      { id: "alto", titulo: "Alto", detalhe: "Além disso, a pessoa precisa estar há 10 minutos no servidor." },
+    ],
+    filtro: "Filtro de mídia sensível",
+    filtros: [
+      { id: "nao", titulo: "Não verificar", detalhe: "Nenhuma imagem ou vídeo é escondido." },
+      {
+        id: "semCargo",
+        titulo: "Verificar quem não tem cargo",
+        detalhe: "Recomendado para comunidades abertas. A mídia chega escondida, com um botão para mostrar.",
+      },
+      { id: "todos", titulo: "Verificar todo mundo", detalhe: "Vale também para quem modera e para quem tem cargo." },
+    ],
+    contato: "Contato entre membros",
+    dm: "Permitir mensagens privadas entre membros",
+    dmDica: "Desligado, só quem é amigo pode abrir uma conversa privada.",
+    convitesEmDm: "Filtrar convites em mensagens privadas",
+    convitesEmDmDica: "Remove links de convite de outros servidores nas conversas que começam aqui.",
+    filtroFalhou: "Não deu para salvar o filtro de mídia.",
+    emergencia: "Emergência",
+    emergenciaTitulo: "Modo de emergência",
+    emergenciaDica:
+      "Pausa os convites, silencia @everyone e congela a entrada de novas pessoas por 1 hora. Fica registrado na auditoria.",
+    emergenciaAtiva: (ate: string) => `Emergência ativa até ${ate}`,
+    emergenciaEfeitos:
+      "Convites pausados, @everyone silenciado e entradas congeladas. Tudo volta ao normal sozinho no fim do prazo.",
+    encerrar: "Encerrar a emergência",
+    confirmarTitulo: "Ativar o modo de emergência?",
+    confirmarTexto:
+      "Por 1 hora, os convites ficam pausados, @everyone fica silenciado e ninguém novo consegue entrar. Você pode encerrar antes a qualquer momento.",
+    confirmarAcao: "Ativar emergência",
   },
 
   /** Registro de atividade (auditoria do servidor). */

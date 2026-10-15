@@ -1,0 +1,14 @@
+/* Faixa que diz que a emergência está valendo, com a saída ao lado. */
+.faixa {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vx-space-3);
+  padding: var(--vx-space-3) var(--vx-space-4);
+  border: 1px solid var(--vx-danger);
+  border-radius: var(--vx-radius-lg);
+  color: var(--vx-text-1);
+  font-size: var(--vx-type-ui-size);
+  line-height: var(--vx-type-ui-line);
+  font-weight: var(--vx-type-label-weight);
+}
