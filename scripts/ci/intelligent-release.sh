@@ -440,14 +440,10 @@ $pre_summary"
   choice="$initial_choice"
   confidence="$initial_confidence"
   classification_method="${classification_method_override:-jev}"
+  # Missing upstream notes set no floor: Jev already sees the manifest diff,
+  # and its confidence plus the batch gate decide, as for any other PR.
   if [[ "$pre_impact" == "review" ]]; then
-    review_reason="Dependency changes lack sufficient release-note evidence for a safe impact decision"
-    printf '{"number":%s,"title":%s,"url":%s,"impact":"review","probability":%s,"initial_impact":%s,"initial_probability":%s,"method":"pre-analysis+jev","needs_review":true,"review_reason":%s}\n' \
-      "$number" "$(jq -Rn --arg v "$title" '$v')" "$(jq -Rn --arg v "$url" '$v')" \
-      "$confidence" "$(jq -Rn --arg v "$initial_choice" '$v')" "$initial_confidence" "$(jq -Rn --arg v "$pre_reason" '$v')" >> "$TMP/decisions.jsonl"
-    ((review_count+=1))
-    echo "PR #$number => review ($pre_reason)"
-    continue
+    echo "PR #$number has no dependency release-note evidence; using Jev's classification without a floor."
   fi
   # A dependency's documented compatible user-facing fix establishes a patch
   # floor for the whole PR, while Jev still determines implementation impact.
@@ -606,7 +602,7 @@ if (( review_count > 0 )); then
       echo
       echo "No release was published. $review_count of $eligible_count PR(s) still require review after classification and targeted re-analysis."
       echo
-      echo "Rerun this workflow with `force=true` after reviewing the decisions."
+      echo "Rerun this workflow with \`force=true\` after reviewing the decisions."
     fi
     echo
     echo "#### PRs requiring review"
@@ -652,7 +648,7 @@ fi
   echo
   echo "## Vortex $NEXT_TAG"
   echo
-  echo "Changes since `$LAST_TAG`."
+  echo "Changes since \`$LAST_TAG\`."
   if (( major_count > 0 )); then
     echo
     echo "### Breaking changes"
