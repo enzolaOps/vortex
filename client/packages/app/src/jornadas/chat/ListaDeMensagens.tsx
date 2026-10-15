@@ -41,7 +41,6 @@ import { useEstadoDoHistorico } from "./hooks";
 import { LinhaDeMensagem } from "./LinhaDeMensagem";
 import css from "./ListaDeMensagens.module.css";
 import { MenuDaLista } from "./MenuDaLista";
-import { observarRolagem } from "./observarRolagem";
 import { aoPedirFim, aoPedirSalto } from "./saltos";
 
 export interface ListaDeMensagensProps {
@@ -70,7 +69,8 @@ function realcarLinha(raiz: HTMLElement, chave: string, reapontar?: () => void):
     if (alvo === null) {
       tentativas += 1;
       // Defesa, não conserto: a causa do salto que parava fora da janela (o fim de rolagem
-      // relatando posição velha) está em `observarRolagem`. Fica porque a reconciliação do
+      // relatando posição velha) era do TanStack, corrigida na `virtual-core@3.19` e guardada por
+      // `fimDeRolagem.test.ts`. Fica porque a reconciliação do
       // TanStack só reescreve quando o ALVO muda: qualquer outro deslocamento depois do salto
       // ficaria parado ali, e o realce desistiria calado. Custa um `indexOf` a cada 10
       // quadros, e só enquanto a linha não aparece.
@@ -186,9 +186,6 @@ export function ListaDeMensagens({ canalId, servidorId }: ListaDeMensagensProps)
       );
     },
     getItemKey: (i) => ids[i] ?? i,
-    // O fim da rolagem relido do DOM: o padrão adota a posição do último `scroll` e, sob
-    // CPU disputada, desfaz um salto recém-escrito (ver `observarRolagem`).
-    observeElementOffset: observarRolagem,
     measureElement: (el) => (el as HTMLElement).offsetHeight,
     anchorTo: "end",
     followOnAppend: true,
