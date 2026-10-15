@@ -10,7 +10,7 @@ import urllib.request
 from pathlib import Path
 
 TEST_PATH = re.compile(
-    r"(^|/)(__tests__|tests?|testdata|testes|__mocks__)/|"
+    r"(^|/)(__tests__|tests?|testdata|testes|__mocks__|__screenshots__|__snapshots__)/|"
     r"(^|/)[^/]+([._-](test|spec))[.][^/]+$|"
     r"(^|/)[^/]+_test[.][^/]+$",
     re.IGNORECASE,
@@ -49,6 +49,23 @@ def category(path: str) -> str:
     return "implementation"
 
 
+# Binary and pure-rename sections have no `---`/`+++` lines.
+SECTION_PATH = (
+    re.compile(r"^\+\+\+ b/(.+)$", re.MULTILINE),
+    re.compile(r"^--- a/(.+)$", re.MULTILINE),
+    re.compile(r"^rename to (.+)$", re.MULTILINE),
+    re.compile(r"^Binary files .* and b/(.+) differ$", re.MULTILINE),
+)
+
+
+def section_path(section: str) -> str:
+    for pattern in SECTION_PATH:
+        match = pattern.search(section)
+        if match:
+            return match.group(1)
+    raise ValueError("diff section has no recognizable file path")
+
+
 def split_sections(diff: str) -> list[tuple[str, str]]:
     sections: list[tuple[str, str]] = []
     current: list[str] = []
@@ -56,12 +73,7 @@ def split_sections(diff: str) -> list[tuple[str, str]]:
         if line.startswith("diff --git "):
             if current:
                 section = "".join(current)
-                match = re.search(r"^\+\+\+ b/(.+)$", section, re.MULTILINE)
-                if not match:
-                    match = re.search(r"^--- a/(.+)$", section, re.MULTILINE)
-                if not match:
-                    raise ValueError("diff section has no recognizable file path")
-                sections.append((match.group(1), section))
+                sections.append((section_path(section), section))
             current = [line]
         elif current:
             current.append(line)
@@ -69,12 +81,7 @@ def split_sections(diff: str) -> list[tuple[str, str]]:
             raise ValueError("unexpected content before first diff section")
     if current:
         section = "".join(current)
-        match = re.search(r"^\+\+\+ b/(.+)$", section, re.MULTILINE)
-        if not match:
-            match = re.search(r"^--- a/(.+)$", section, re.MULTILINE)
-        if not match:
-            raise ValueError("diff section has no recognizable file path")
-        sections.append((match.group(1), section))
+        sections.append((section_path(section), section))
     if not sections:
         raise ValueError("diff is empty or contains no file sections")
     return sections

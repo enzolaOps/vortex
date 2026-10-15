@@ -74,6 +74,28 @@ class PrepareReleaseDiffTests(unittest.TestCase):
         self.assertEqual(prepared["action"], "jev")
         self.assertEqual(prepared["analysis_files"], ["src/theme.generated.css"])
 
+    def test_binary_file_section_is_recognized(self):
+        # Seção binária não tem `---`/`+++`; o #378 travou a release com um screenshot novo.
+        png = "src/admin/__screenshots__/admin.browser.test.tsx/lista-1.png"
+        diff = section("src/admin/Lista.tsx") + (
+            f"diff --git a/{png} b/{png}\n"
+            "new file mode 100644\n"
+            "index 000000000..9d7c1ee23\n"
+            f"Binary files /dev/null and b/{png} differ\n"
+        )
+        prepared = MODULE.prepare(diff, "feat: lista", "")
+        self.assertEqual(prepared["action"], "jev")
+        self.assertEqual(prepared["analysis_files"], ["src/admin/Lista.tsx"])
+
+    def test_pure_rename_section_uses_new_path(self):
+        diff = (
+            "diff --git a/src/velho.ts b/src/novo.ts\n"
+            "similarity index 100%\n"
+            "rename from src/velho.ts\n"
+            "rename to src/novo.ts\n"
+        )
+        self.assertEqual(MODULE.split_sections(diff)[0][0], "src/novo.ts")
+
     def test_malformed_diff_fails_closed(self):
         with self.assertRaisesRegex(ValueError, "unexpected content"):
             MODULE.prepare("@@ -1 +1 @@\n-old\n+new\n", "title", "")
