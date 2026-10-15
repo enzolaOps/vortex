@@ -3,6 +3,7 @@ import {
   ArrowLeft as LArrowLeft,
   AtSign as LAtSign,
   Ban as LBan,
+  ScrollText as LScrollText,
   Bell as LBell,
   BellOff as LBellOff,
   Check as LCheck,
@@ -162,6 +163,7 @@ export const TelefoneDesligando: Icone = function TelefoneDesligando({ style, ..
   return <Telefone {...props} style={{ ...style, transform: "rotate(135deg)" }} />;
 };
 export const Proibido = envolver(LBan);
+export const Registro = envolver(LScrollText);
 export const ImagemSobreImagem = envolver(LPictureInPicture2);
 export const Mais = envolver(LPlus);
 export const Buscar = envolver(LSearch);

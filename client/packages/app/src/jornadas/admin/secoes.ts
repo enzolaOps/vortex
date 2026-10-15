@@ -4,7 +4,7 @@ import { podeGerenciarSeguranca, podeModerarPedidos } from "nucleo/sdk/seguranca
 import type { SecaoId } from "nucleo/store/config";
 
 import { admin } from "../../textos";
-import { Canal, Casa, Coroa, Elo, Escudo, Pessoas, Proibido, type Icone } from "../../ui/icones";
+import { Canal, Casa, Coroa, Elo, Escudo, Pessoas, Proibido, Registro, type Icone } from "../../ui/icones";
 
 /**
  * As seções de administração do servidor (PRD 4.7). Moram na mesma casca das
@@ -18,6 +18,7 @@ export const SECOES_DE_SERVIDOR = [
   "membros",
   "acesso",
   "seguranca",
+  "auditoria",
   "banimentos",
 ] as const satisfies readonly SecaoId[];
 
@@ -36,6 +37,7 @@ export const NOME_DA_SECAO_DE_SERVIDOR: Record<SecaoDeServidor, string> = {
   membros: admin.navegacao.membros,
   seguranca: admin.navegacao.seguranca,
   acesso: admin.navegacao.acesso,
+  auditoria: admin.navegacao.auditoria,
   banimentos: admin.navegacao.banimentos,
 };
 
@@ -47,6 +49,7 @@ export const SUBTITULO_DA_SECAO_DE_SERVIDOR: Record<SecaoDeServidor, string> = {
   membros: admin.subtitulos.membros,
   seguranca: admin.subtitulos.seguranca,
   acesso: admin.subtitulos.acesso,
+  auditoria: admin.subtitulos.auditoria,
   banimentos: admin.subtitulos.banimentos,
 };
 
@@ -57,7 +60,7 @@ export const GRUPOS_DO_SERVIDOR: readonly {
 }[] = [
   { titulo: admin.navegacao.grupoServidor, itens: ["servidor", "canais", "convites"] },
   { titulo: admin.navegacao.grupoPessoas, itens: ["cargos", "membros", "acesso"] },
-  { titulo: admin.navegacao.grupoModeracao, itens: ["seguranca", "banimentos"] },
+  { titulo: admin.navegacao.grupoModeracao, itens: ["seguranca", "auditoria", "banimentos"] },
 ];
 
 /**
@@ -78,6 +81,7 @@ const REGRA_DE_ACESSO: Record<SecaoDeServidor, (serverId: string) => boolean> = 
     podeNoServidor(s, "atribuirCargos"),
   seguranca: podeGerenciarSeguranca,
   acesso: (s) => podeGerenciarSeguranca(s) || podeModerarPedidos(s),
+  auditoria: (s) => podeNoServidor(s, "verAuditoria"),
   banimentos: (s) => podeNoServidor(s, "banir"),
 };
 
@@ -99,5 +103,6 @@ export const ICONE_DA_SECAO_DE_SERVIDOR: Record<SecaoDeServidor, Icone> = {
   membros: Pessoas,
   acesso: Elo,
   seguranca: Escudo,
+  auditoria: Registro,
   banimentos: Proibido,
 };

@@ -39,6 +39,7 @@ export const admin = {
     membros: "Membros",
     seguranca: "Segurança",
     acesso: "Acesso",
+    auditoria: "Registro de atividade",
     banimentos: "Banimentos",
   },
   subtitulos: {
@@ -49,6 +50,7 @@ export const admin = {
     membros: "Quem está no servidor e o que cada pessoa pode fazer.",
     seguranca: "Regras de entrada, mensagens privadas e o botão de emergência.",
     acesso: "Quem consegue entrar no servidor e quem decide os pedidos.",
+    auditoria: "O que a equipe fez no servidor e quando.",
     banimentos: "Quem foi banido e não pode voltar.",
   },
 
@@ -305,6 +307,8 @@ export const admin = {
   banimentosPagina: {
     razao: "Motivo",
     semRazao: "Sem motivo",
+    banidoPor: "Banido por",
+    autoriaDesconhecida: "Não consta",
     perdoar: "Perdoar",
     perdoarPessoa: (nome: string) => `Perdoar ${nome}`,
     perdoada: (nome: string) => `${nome} pode voltar ao servidor.`,
@@ -353,6 +357,30 @@ export const admin = {
     confirmarTexto:
       "Por 1 hora, os convites ficam pausados, @everyone fica silenciado e ninguém novo consegue entrar. Você pode encerrar antes a qualquer momento.",
     confirmarAcao: "Ativar emergência",
+  },
+
+  /** Registro de atividade (auditoria do servidor). */
+  auditoriaPagina: {
+    filtroAcao: "Tipo de ação",
+    todasAsAcoes: "Todas as ações",
+    filtroAutor: "Quem fez",
+    todosOsAutores: "Todas as pessoas",
+    lista: "Registro de atividade",
+    carregarMais: "Carregar mais",
+    carregandoMais: "Carregando…",
+    erroAoCarregarMais: "Não deu para carregar mais entradas.",
+    fim: "Isso é tudo que há no registro.",
+    total: (n: number) => (n === 1 ? "1 entrada" : `${n} entradas`),
+    carregando: "Carregando o registro…",
+    erro: "Não deu para carregar o registro. Isso não quer dizer que nada aconteceu.",
+    vazio: "Nada registrado ainda.",
+    vazioDica: "As ações da equipe, como banir ou editar um cargo, aparecem aqui.",
+    vazioComFiltro: "Nenhuma entrada com esses filtros.",
+    vazioComFiltroDica: "Tente outro tipo de ação ou outra pessoa.",
+    semPermissao: "Você não pode ver o registro",
+    semPermissaoDica: "Peça a quem administra o servidor para liberar essa permissão.",
+    motivo: (texto: string) => `Motivo: ${texto}`,
+    alvo: (nome: string) => `em ${nome}`,
   },
 
   /** Quando a pessoa não pode estar numa seção. */

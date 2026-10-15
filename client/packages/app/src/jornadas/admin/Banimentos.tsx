@@ -1,3 +1,4 @@
+import { autoriaDosBanimentos, type InformacaoDeBanimento } from "nucleo/sdk/auditoria";
 import { listarBanidos, perdoar, type Banido } from "nucleo/sdk/servidores";
 import { useEffect, useState } from "react";
 
@@ -10,9 +11,16 @@ import { Carregando, Falhou, Vazio } from "./Estados";
 type Lista = { readonly para: string; readonly revisao: number; readonly lista: readonly Banido[] | undefined };
 
 /** Banimentos (PRD 4.7): quem foi banido, o motivo e o perdão. */
+type Autoria = {
+  readonly para: string;
+  readonly revisao: number;
+  readonly mapa: ReadonlyMap<string, InformacaoDeBanimento> | undefined;
+};
+
 export function Banimentos({ serverId }: { serverId: string }) {
   const [revisao, setRevisao] = useState(0);
   const [resposta, setResposta] = useState<Lista | undefined>();
+  const [autoria, setAutoria] = useState<Autoria | undefined>();
   const [perdoando, setPerdoando] = useState<string | undefined>();
 
   useEffect(() => {
@@ -24,6 +32,20 @@ export function Banimentos({ serverId }: { serverId: string }) {
       vivo = false;
     };
   }, [serverId, revisao]);
+
+  // "Banido por" é complemento vindo do registro de atividade: se falhar (ou a
+  // pessoa não pode ver o registro), a coluna diz "Não consta" e a lista segue.
+  useEffect(() => {
+    let vivo = true;
+    void autoriaDosBanimentos(serverId).then((mapa) => {
+      if (vivo) setAutoria({ para: serverId, revisao, mapa });
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [serverId, revisao]);
+
+  const autoriaAtual = autoria?.para === serverId && autoria.revisao === revisao ? autoria : undefined;
 
   const atual = resposta?.para === serverId && resposta.revisao === revisao ? resposta : undefined;
 
@@ -54,11 +76,12 @@ export function Banimentos({ serverId }: { serverId: string }) {
         <ul
           className={css.tabela}
           aria-label={admin.navegacao.banimentos}
-          style={{ ["--colunas" as string]: "minmax(0,1fr) minmax(0,1.2fr) auto" }}
+          style={{ ["--colunas" as string]: "minmax(0,1fr) minmax(0,1.2fr) minmax(0,0.8fr) auto" }}
         >
           <li className={css.cabecalhoDaTabela} aria-hidden="true">
             <span>{admin.membrosPagina.pessoa}</span>
             <span>{admin.banimentosPagina.razao}</span>
+            <span>{admin.banimentosPagina.banidoPor}</span>
             <span />
           </li>
           {atual.lista.map((b) => (
@@ -69,6 +92,15 @@ export function Banimentos({ serverId }: { serverId: string }) {
               </span>
               <span className={`${css.celula} ${b.razao === undefined ? css.meta : ""}`}>
                 {b.razao ?? admin.banimentosPagina.semRazao}
+              </span>
+              <span
+                className={`${css.celula} ${css.meta}`}
+                data-testid="banido-por"
+                title={autoriaAtual?.mapa?.get(b.userId)?.quandoTexto}
+              >
+                {autoriaAtual === undefined
+                  ? ""
+                  : (autoriaAtual.mapa?.get(b.userId)?.porNome ?? admin.banimentosPagina.autoriaDesconhecida)}
               </span>
               <span className={css.acoesDaLinha}>
                 <Botao

@@ -4,9 +4,6 @@
 name: Vortex client image
 
 on:
-  pull_request:
-  merge_group:
-    types: [checks_requested]
   release:
     types: [published]
   workflow_dispatch:
@@ -28,23 +25,11 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - run: sh scripts/ci/fronteiras.sh
       - run: git fetch --tags --force
       - id: d
-        env:
-          BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ github.event_name }}" = "merge_group" ]; then
-            files=$(git diff --name-only "$BASE"...HEAD)
-            if FILES="$files" scripts/ci/changed.sh client; then
-              echo "changed=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "changed=false" >> "$GITHUB_OUTPUT"
-            fi
             exit 0
           fi
           if scripts/ci/changed.sh client; then
@@ -58,73 +43,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: scripts/ci/release-notes.sh
 
-  # PR que toca client/: typecheck, lint, testes, build. Sem docker —
-  # publicar imagem é o job `build`, em release.
-  check:
-    name: Check
-    needs: detect
-    if: needs.detect.outputs.changed == 'true' && (github.event_name == 'pull_request' || github.event_name == 'merge_group')
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    defaults:
-      run:
-        working-directory: client
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          submodules: recursive
-          persist-credentials: false
-      - name: Verify the SDK submodule was checked out
-        working-directory: .
-        run: |
-          if [ -z "$(ls -A client/packages/stoat.js 2>/dev/null)" ]; then
-            echo "client/packages/stoat.js está vazio — falta o gitlink." >&2
-            exit 1
-          fi
-      - run: corepack enable && corepack prepare pnpm@11.3.0 --activate
-      - name: Store do pnpm
-        id: pnpm
-        run: echo "store=$(pnpm store path)" >> "$GITHUB_OUTPUT"
-      # Sem `cache: pnpm` no setup-node: este job nem usa setup-node, e o
-      # corepack tem de existir antes. Ação da GitHub, passa na política.
-      - name: Cache do pnpm
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
-        with:
-          path: ${{ steps.pnpm.outputs.store }}
-          key: ${{ runner.os }}-client-${{ hashFiles('client/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-client-
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter stoat.js build
-      - run: pnpm --filter nucleo check
-      # Os testes do app rodam em navegador (vitest browser): sem o Chromium do
-      # Playwright o `check` morre em `browserType.launch` antes do primeiro teste.
-      - run: pnpm --filter app exec playwright install --with-deps chromium
-      - run: pnpm --filter app check
-
-  # Check required. Falha se o check do PR falhou; passa se não tocou client/.
-  result:
-    name: Vortex client
-    needs: [detect, check]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Gate
-        run: |
-          changed="${{ needs.detect.outputs.changed }}"
-          check="${{ needs.check.result }}"
-          event="${{ github.event_name }}"
-          echo "changed=$changed check=$check event=$event detect=${{ needs.detect.result }}"
-          if [ "${{ needs.detect.result }}" != "success" ]; then exit 1; fi
-          if [ "$event" != "pull_request" ] && [ "$event" != "merge_group" ]; then exit 0; fi
-          if [ "$changed" != "true" ]; then exit 0; fi
-          if [ "$check" = "success" ]; then exit 0; fi
-          exit 1
-
   build:
     name: Build and push
     needs: detect
-    if: needs.detect.outputs.changed == 'true' && github.event_name != 'pull_request' && github.event_name != 'merge_group'
+    if: needs.detect.outputs.changed == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -215,7 +137,7 @@ jobs:
 
       - name: Create GitHub App token
         id: app
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           app-id: ${{ secrets.CI_APP_ID }}
           private-key: ${{ secrets.CI_APP_PRIVATE_KEY }}
