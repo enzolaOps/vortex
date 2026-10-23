@@ -13,16 +13,22 @@ export async function conversarCom(userId: string): Promise<boolean> {
 }
 
 /**
- * Ligar na conversa: o palco abre na hora, antes da rede, para o "conectando"
- * ter onde aparecer (a mesma regra de `entrarComPalco` nos servidores). Câmera
- * só liga depois de dentro — é uma escolha de quem clicou em "Vídeo".
+ * Ligar na conversa. O primeiro clique entra e a conversa fica na tela — o
+ * mesmo contrato de `abrirSala`. O segundo clique, já nesta chamada, abre o
+ * palco. Câmera só liga depois de dentro, e também nesse segundo clique em
+ * "Vídeo".
  */
 export async function ligarNaConversa(canalId: string, comCamera: boolean): Promise<boolean> {
-  definirPalco({ tipo: "grade" });
+  const c = lerChamada();
+  if (c.estado !== "fora" && c.channelId === canalId) {
+    definirPalco({ tipo: "grade" });
+    if (comCamera && c.estado === "dentro" && !c.camera) await alternarCamera();
+    return true;
+  }
   const entrou = await ligar(canalId);
   if (entrou && comCamera) {
-    const c = lerChamada();
-    if (c.estado === "dentro" && !c.camera) await alternarCamera();
+    const depois = lerChamada();
+    if (depois.estado === "dentro" && !depois.camera) await alternarCamera();
   }
   return entrou;
 }

@@ -87,6 +87,11 @@ export function pararLocalmente(somId: string): void {
   }
 }
 
+/** Para tudo o que esta máquina está tocando agora. O surdo chama isto. */
+export function pararTodos(): void {
+  for (const id of [...tocandoAgora.keys()]) pararLocalmente(id);
+}
+
 /**
  * Toca o arquivo nesta máquina. Não fala com a rede.
  *
@@ -136,7 +141,12 @@ export function tocarLocalmente(som: EfeitoSonoro): void {
  * tocou só para quem clicou, que é o erro menos ruim.
  */
 export function tocarNaSala(channelId: string, som: EfeitoSonoro): void {
-  tocarLocalmente(som);
+  /*
+    Surdo é "não quero ouvir a sala", inclusive o som que eu cliquei. O POST
+    segue: os outros ouvem. A prévia de configuração usa `tocarLocalmente`
+    direto e não passa por aqui.
+  */
+  if (!lerChamada().surdo) tocarLocalmente(som);
   if (!conectado()) return;
   void client.api
     .post(`/channels/${channelId}/soundboard/${som.id}` as never)

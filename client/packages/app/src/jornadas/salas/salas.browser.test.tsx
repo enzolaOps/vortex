@@ -27,7 +27,7 @@ import { limparConexao, pausarConexao } from "nucleo/store/conexao";
 import { limparFalhaDeVoz } from "nucleo/store/falhaDeVoz";
 import { definirPalco, fecharPalco } from "nucleo/store/palcoDeVoz";
 import { irParaCasa } from "nucleo/store/navegacao";
-import { limparPreferenciasDaSala } from "nucleo/store/preferenciasDaSala";
+import { definirColunaDeSalas, limparPreferenciasDaSala } from "nucleo/store/preferenciasDaSala";
 import { definirProntidao } from "nucleo/store/prontidao";
 import {
 	abrirServidor,
@@ -352,7 +352,7 @@ describe("clicar numa sala de voz entra nela", () => {
 
 	it("a faixa mostra duas letras por sala, sem repetir, com o nome completo no rótulo", async () => {
 		await abrirNoServidor();
-		definirPalco({ tipo: "grade" });
+		definirColunaDeSalas("faixa");
 		const faixa = () => pegar("[data-testid='faixa-de-salas']")!;
 		await expect
 			.poll(() => faixa().querySelectorAll("button[aria-label*=',']").length)
@@ -367,7 +367,7 @@ describe("clicar numa sala de voz entra nela", () => {
 	it("a faixa estreita do palco também entra na hora, e troca de sala", async () => {
 		definirChamada({ estado: "dentro", channelId: "V1" });
 		await abrirNoServidor();
-		definirPalco({ tipo: "grade" });
+		definirColunaDeSalas("faixa");
 		const faixa = () => pegar("[data-testid='faixa-de-salas']")!;
 		await expect
 			.poll(() => faixa().querySelector("button[aria-label^='Estudo']"))
@@ -379,7 +379,7 @@ describe("clicar numa sala de voz entra nela", () => {
 	it("a faixa estreita sem permissão: aria-disabled com o motivo, e o clique não entra", async () => {
 		ctl.permitir = false;
 		await abrirNoServidor();
-		definirPalco({ tipo: "grade" });
+		definirColunaDeSalas("faixa");
 		const faixa = () => pegar("[data-testid='faixa-de-salas']")!;
 		await expect
 			.poll(() => faixa().querySelector("button[aria-label^='Estudo']"))
@@ -444,11 +444,12 @@ describe("painel da chamada na coluna de salas", () => {
 		).not.toBeNull();
 	});
 
-	it("com o palco do servidor aberto a coluna vira faixa e só a cápsula do palco tem controles", async () => {
+	it("abrir o palco não recolhe a coluna; só a cápsula do palco tem controles", async () => {
 		definirChamada({ estado: "dentro", channelId: "V2", desde: Date.now() });
 		await abrirNoServidor();
 		sala("Estudo").click();
 		await expect.poll(palco).not.toBeNull();
+		expect(pegar("[data-testid='faixa-de-salas']")).toBeNull();
 		expect(painel()).toBeNull();
 		expect(
 			document.querySelectorAll(`button[aria-label='${voz.sairDaChamada}']`)

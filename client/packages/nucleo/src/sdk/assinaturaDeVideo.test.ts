@@ -128,6 +128,69 @@ describe("o áudio da tela acompanha o vídeo", () => {
   });
 });
 
+describe("áudio da tela que já chegou", () => {
+  function comAviso(avisos: string[]) {
+    return criarAssinaturaDeVideo({
+      video: () => video,
+      audioDaTela: (_u: string, fonte: FonteDeVideo) =>
+        fonte === "tela" ? somDaTela : undefined,
+      audioDaTelaJaPresente: (id) => avisos.push(id),
+    });
+  }
+
+  it("pedir a tela com a faixa já presente avisa", () => {
+    const avisos: string[] = [];
+    somDaTela = publicacao("TR_a1", () => audio, faixa("a1"));
+    comAviso(avisos).pedir(USUARIO, "tela");
+    expect(avisos).toEqual([USUARIO]);
+  });
+
+  it("pedir a tela sem a faixa ainda não avisa", () => {
+    const avisos: string[] = [];
+    comAviso(avisos).pedir(USUARIO, "tela");
+    expect(avisos).toEqual([]);
+    expect(audio).toEqual([true]);
+  });
+
+  it("câmera não avisa", () => {
+    const avisos: string[] = [];
+    somDaTela = publicacao("TR_a1", () => audio, faixa("a1"));
+    comAviso(avisos).pedir(USUARIO, "camera");
+    expect(avisos).toEqual([]);
+  });
+
+  it("publicado depois, já com faixa, avisa", () => {
+    const avisos: string[] = [];
+    const a = comAviso(avisos);
+    somDaTela = undefined;
+    a.pedir(USUARIO, "tela");
+    expect(avisos).toEqual([]);
+    somDaTela = publicacao("TR_a1", () => audio, faixa("a1"));
+    a.audioDaTelaPublicado(USUARIO);
+    expect(avisos).toEqual([USUARIO]);
+  });
+
+  it("publicado depois sem faixa ainda não avisa", () => {
+    const avisos: string[] = [];
+    const a = comAviso(avisos);
+    somDaTela = undefined;
+    a.pedir(USUARIO, "tela");
+    somDaTela = publicacao("TR_a1", () => audio);
+    a.audioDaTelaPublicado(USUARIO);
+    expect(avisos).toEqual([]);
+    expect(audio).toEqual([true]);
+  });
+
+  it("reaplicar a camada não avisa de novo", () => {
+    const avisos: string[] = [];
+    somDaTela = publicacao("TR_a1", () => audio, faixa("a1"));
+    const a = comAviso(avisos);
+    a.pedir(USUARIO, "tela", "alta");
+    a.pedir(USUARIO, "tela", "baixa");
+    expect(avisos).toEqual([USUARIO]);
+  });
+});
+
 describe("troca de dono da faixa de vídeo", () => {
   it("trocar da grade para 'Assistir' NÃO consulta o servidor", () => {
     const a = criar();

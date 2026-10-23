@@ -52,6 +52,12 @@ export interface FontesDePublicacao {
     fonte: FonteDeVideo,
     qualidade: QualidadeDeStream,
   ): void;
+  /**
+   * A publicação de áudio da tela JÁ traz a faixa. `TrackSubscribed` não
+   * dispara de novo para o que já chegou. Só quando a faixa está presente —
+   * câmera não tem este áudio, e publicação sem faixa ainda espera o evento.
+   */
+  audioDaTelaJaPresente?(userId: string): void;
 }
 
 export interface AssinaturaDeVideo {
@@ -170,7 +176,10 @@ export function criarAssinaturaDeVideo(
       if (f?.sid === pub.trackSid && f.n > MAXIMO_DE_TENTATIVAS) return;
       assinado.set(chave, pub);
       pub.setSubscribed(true);
-      fontes.audioDaTela(p.userId, p.fonte)?.setSubscribed(true);
+      const audioPub = fontes.audioDaTela(p.userId, p.fonte);
+      audioPub?.setSubscribed(true);
+      /* Só na assinatura nova, e só se a faixa já chegou. Reaplicar camada não repete. */
+      if (audioPub?.track) fontes.audioDaTelaJaPresente?.(p.userId);
     }
     if ((nova || reaplicar) && p.qualidade !== undefined) {
       fontes.aplicarQualidade?.(p.userId, p.fonte, p.qualidade);
@@ -285,7 +294,9 @@ export function criarAssinaturaDeVideo(
     audioDaTelaPublicado(userId) {
       const chave = chaveDeVideo(userId, "tela");
       if ((pedidos.get(chave)?.contagem ?? 0) === 0) return;
-      fontes.audioDaTela(userId, "tela")?.setSubscribed(true);
+      const audioPub = fontes.audioDaTela(userId, "tela");
+      audioPub?.setSubscribed(true);
+      if (audioPub?.track) fontes.audioDaTelaJaPresente?.(userId);
     },
 
     limpar() {

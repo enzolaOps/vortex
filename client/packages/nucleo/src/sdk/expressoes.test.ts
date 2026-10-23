@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CHANNEL_ID, seed } from "../arnes/firehose";
 import { indiceDaTecla } from "../ui-logica/expressoes/atalhos";
@@ -8,7 +8,14 @@ import { definirChamada, limparChamada } from "../store/chamada";
 import { channelMessageIds, enviarFigurinha, messages } from "./adapter";
 import { bitDaPermissao } from "./cargos";
 import { client } from "./client";
-import { aoTocarNaSala, podeUsarSoundboard, volumeFinal } from "./efeitosSonoros";
+import {
+  aoTocarNaSala,
+  pararTodos,
+  podeUsarSoundboard,
+  tocarLocalmente,
+  tocarNaSala,
+  volumeFinal,
+} from "./efeitosSonoros";
 import {
   aplicarEventoDeExpressao,
   figurinhasDoServidor,
@@ -17,6 +24,7 @@ import {
   paraFigurinha,
   semearExpressoes,
   sonsDoServidor,
+  type EfeitoSonoro,
   type Figurinha,
 } from "./expressoes";
 import { anotarFigurinhas, figurinhaDaMensagem, limparFigurinhasDeMensagem } from "./figurinhasDeMensagem";
@@ -256,6 +264,55 @@ describe("tocar para a sala", () => {
 
   it("o bit de UseSoundboard é o 43 do fork", () => {
     expect(bitDaPermissao("UseSoundboard")).toBe(1n << 43n);
+  });
+});
+
+describe("surdo e o som que já está tocando", () => {
+  const construidos: { pause: ReturnType<typeof vi.fn> }[] = [];
+  const Original = globalThis.Audio;
+
+  beforeEach(() => {
+    limparChamada();
+    construidos.length = 0;
+    globalThis.Audio = class {
+      volume = 1;
+      pause = vi.fn();
+      play = vi.fn(() => Promise.resolve());
+      addEventListener = vi.fn();
+      constructor() {
+        construidos.push(this);
+      }
+    } as unknown as typeof Audio;
+  });
+
+  afterEach(() => {
+    pararTodos();
+    globalThis.Audio = Original;
+    limparChamada();
+  });
+
+  const som: EfeitoSonoro = {
+    id: "S1",
+    serverId: "SRV",
+    nome: "tambor",
+    emoji: "🥁",
+    volume: 80,
+    url: "https://exemplo.invalid/s.mp3",
+    autorId: "A",
+    autorNome: "Ana",
+  };
+
+  it("tocar localmente constrói o áudio e pararTodos pausa", () => {
+    tocarLocalmente(som);
+    expect(construidos).toHaveLength(1);
+    pararTodos();
+    expect(construidos[0]!.pause).toHaveBeenCalled();
+  });
+
+  it("surdo não ouve o próprio clique", () => {
+    definirChamada({ estado: "dentro", channelId: "C1", surdo: true });
+    tocarNaSala("C1", som);
+    expect(construidos).toHaveLength(0);
   });
 });
 

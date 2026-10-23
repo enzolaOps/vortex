@@ -1,4 +1,5 @@
 import { podeNoServidor, pode } from "nucleo/sdk/permissoes";
+import { definirColunaDeSalas } from "nucleo/store/preferenciasDaSala";
 import { fecharPalco } from "nucleo/store/palcoDeVoz";
 import { abrirTexto } from "nucleo/store/ultimoLugar";
 import {
@@ -7,6 +8,7 @@ import {
 	useCanalAtivo,
 	useCategorias,
 	useChannel,
+	useColunaDeSalas,
 	useConexao,
 	useFalantes,
 	useLocal,
@@ -23,6 +25,7 @@ import { ColunaDeSalas } from "../../shell";
 import { ColunaDaCasa } from "../casa/ColunaDaCasa";
 import { salas, shell, voz } from "../../textos";
 import { Avatar, Botao, ItemDeSala } from "../../ui/ds";
+import { SetaParaEsquerda } from "../../ui/icones";
 import { MenuDoServidor } from "../admin/MenuDoServidor";
 import { PainelDaChamadaConectado } from "../voz/PainelDaChamadaConectado";
 import { aquecerVoz, aquecerVozQuandoOcioso } from "../voz/acoes";
@@ -272,16 +275,31 @@ function ListaDoServidor({ serverId }: { serverId: string }) {
  * vazia do catálogo; antes do `Ready`, esqueleto; com a conexão caída, a faixa
  * que diz que a presença pode estar desatualizada (e as salas, esmaecidas).
  */
+/** Recolhe a coluna numa faixa. Some quando ela já está recolhida: o botão de mostrar fica na faixa. */
+function BotaoDeRecolher() {
+	return (
+		<Botao
+			variante="fantasma"
+			tamanho="sm"
+			icone={<SetaParaEsquerda />}
+			aria-label={shell.faixa.recolher}
+			onClick={() => definirColunaDeSalas("faixa")}
+		/>
+	);
+}
+
 export function ColunaConectada({ rodape }: { rodape?: ReactNode }) {
 	const pronto = useProntidao();
 	const local = useLocal();
 	const serverId = useServidorAtivo();
 	const servidor = useServer(serverId);
-	// Com o palco em tela cheia a coluna vira faixa e a cápsula do palco assume os controles.
-	const emFaixa = useSalaDoPalco(
+	const colunaRecolhida = useColunaDeSalas() === "faixa";
+	// A cápsula do palco assume os controles. A faixa, sozinha, não: o painel
+	// continua na coluna (e no overlay que ela abre) enquanto o palco está fechado.
+	const palcoAberto = useSalaDoPalco(
 		local.tipo === "servidor" ? local.serverId : undefined,
 	).aberto;
-	const chamada = emFaixa ? undefined : <PainelDaChamadaConectado />;
+	const chamada = palcoAberto ? undefined : <PainelDaChamadaConectado />;
 	// Sessão de pé: baixa o chunk do motor de voz quando o navegador estiver ocioso.
 	useEffect(() => {
 		if (pronto) aquecerVozQuandoOcioso();
@@ -312,7 +330,12 @@ export function ColunaConectada({ rodape }: { rodape?: ReactNode }) {
 	return (
 		<ColunaDeSalas
 			titulo={servidor.name}
-			acoes={<MenuDoServidor serverId={serverId} />}
+			acoes={
+				<span className={css.acoes}>
+					{!colunaRecolhida && <BotaoDeRecolher />}
+					<MenuDoServidor serverId={serverId} />
+				</span>
+			}
 			rodape={rodape}
 			chamada={chamada}
 		>

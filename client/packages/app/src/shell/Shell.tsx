@@ -17,9 +17,9 @@ export interface ShellProps {
   gaveta: ReactNode;
   modoDaGaveta?: ModoDaGaveta;
   /**
-   * Com o palco em tela cheia, a coluna de salas vira uma faixa estreita (o
+   * Quando a pessoa recolhe a coluna, ela vira uma faixa estreita (o
    * `faixaDeSalas`) que abre a coluna por cima ao passar o mouse ou receber foco.
-   * A coluna segue montada.
+   * A coluna segue montada. Não depende do palco estar aberto.
    */
   salasEmFaixa?: boolean;
   faixaDeSalas?: ReactNode;
@@ -49,7 +49,7 @@ export function Shell({
 }: ShellProps) {
   const emFaixa = salasEmFaixa && faixaDeSalas !== undefined;
   /*
-    Entrar/sair do palco troca a trilha de salas (276 ↔ 56px) NUM quadro só — o layout
+    Recolher/mostrar a coluna troca a trilha de salas (276 ↔ 56px) NUM quadro só — o layout
     final vale desde o primeiro frame, e a lista de mensagens/palco remedem uma vez, não
     por frame. O que anima é só opacity/transform, em cima de quem acabou de mudar:
     `data-anim` é a pista para o CSS, e só existe depois da primeira mudança (abrir o

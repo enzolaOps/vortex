@@ -62,6 +62,7 @@ export const voz = {
     mudoDe: (nome: string) => `${nome} está sem áudio`,
     grade: "Pessoas na sala",
     telaCheia: "Tela cheia",
+    volumeDe: (nome: string) => `Volume de ${nome}`,
   },
   conexao: {
     conectandoASala: "Conectando à sala…",

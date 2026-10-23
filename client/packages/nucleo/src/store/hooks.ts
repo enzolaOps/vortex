@@ -87,8 +87,10 @@ import { assinarProntidao, lerProntidao } from "./prontidao";
 import {
   assinarPreferenciasDaSala,
   lerCantoDaSala,
+  lerColunaDeSalas,
   lerModoDaGaveta,
   type CantoDaSala,
+  type ModoDaColuna,
   type ModoDaGaveta,
 } from "./preferenciasDaSala";
 import {
@@ -752,6 +754,10 @@ export function useCantoDaSala(): CantoDaSala {
 
 export function useModoDaGaveta(): ModoDaGaveta {
   return useSyncExternalStore(assinarPreferenciasDaSala, lerModoDaGaveta);
+}
+
+export function useColunaDeSalas(): ModoDaColuna {
+  return useSyncExternalStore(assinarPreferenciasDaSala, lerColunaDeSalas);
 }
 
 /** Alguém dentro de uma sala, com o nome que o servidor mostra. */

@@ -1,7 +1,7 @@
 import { fecharBusca } from "nucleo/store/busca";
 import { fecharFixados } from "nucleo/store/fixados";
 import { lerUltimoServidor, abrirServidor } from "nucleo/store/ultimoLugar";
-import { useLocal, useProntidao, useServerIds } from "nucleo/store/hooks";
+import { useColunaDeSalas, useLocal, useProntidao, useServerIds } from "nucleo/store/hooks";
 import { useEffect, useRef, type ReactNode } from "react";
 
 import { ShellDoApp } from "../../shell";
@@ -43,8 +43,10 @@ export function ShellDasSalas({ rodapeDasSalas }: { rodapeDasSalas?: ReactNode }
   const pronto = useProntidao();
   const local = useLocal();
   const serverId = local.tipo === "servidor" ? local.serverId : undefined;
-  // O palco ocupa a área principal inteira, sem coluna à direita.
+  // O palco ocupa a área principal inteira, sem a gaveta de membros.
   const palcoAberto = useSalaDoPalco(serverId).aberto;
+  // A faixa é preferência, não consequência de entrar na chamada.
+  const salasEmFaixa = useColunaDeSalas() === "faixa";
   const busca = useBusca();
   const canalAtual = local.tipo === "servidor" || local.tipo === "dm" ? local.channelId : undefined;
   // A busca é do canal em que foi aberta: trocar de canal a fecha (os resultados são dele).
@@ -71,7 +73,7 @@ export function ShellDasSalas({ rodapeDasSalas }: { rodapeDasSalas?: ReactNode }
       membros={
         !pronto ? <EsqueletoDeMembros /> : serverId !== undefined ? <ListaDeMembros serverId={serverId} /> : undefined
       }
-      salasEmFaixa={palcoAberto}
+      salasEmFaixa={salasEmFaixa}
       faixaDeSalas={serverId !== undefined ? <FaixaDeSalas serverId={serverId} /> : undefined}
       painel={
         canalAtual === undefined ? undefined : buscaVisivel ? (

@@ -468,12 +468,19 @@ describe("conversa direta", () => {
     expect(principal().textContent).toContain("Bia");
   });
 
-  it("Ligar entra na chamada da conversa e abre o palco na hora", async () => {
+  it("Ligar entra na chamada e fica na conversa; o segundo clique abre o palco", async () => {
     abrirConversa("D1");
     await abrir();
-    await page.getByRole("button", { name: casa.conversa.ligarPara("Bia") }).click();
+    const botao = page.getByRole("button", { name: casa.conversa.ligarPara("Bia") });
+    await botao.click();
     await expect.poll(() => ctl.chamadas).toEqual(["D1"]);
-    expect(lerPalco().tipo).toBe("grade");
+    expect(lerPalco().tipo).toBe("fechado");
+    await expect.element(page.getByRole("heading", { name: "Bia", level: 2 })).toBeVisible();
+
+    definirChamada({ estado: "dentro", channelId: "D1", desde: Date.now() });
+    await botao.click();
+    await expect.poll(() => lerPalco().tipo).toBe("grade");
+    expect(ctl.chamadas).toEqual(["D1"]);
   });
 
   it("sem permissão para conectar, a pessoa nem vê os botões de ligar", async () => {

@@ -1,3 +1,4 @@
+import { definirColunaDeSalas } from "nucleo/store/preferenciasDaSala";
 import {
   useCanaisDeTexto,
   useCanaisDeVoz,
@@ -11,7 +12,7 @@ import type { MouseEvent } from "react";
 import { salas, shell } from "../../textos";
 import { Avatar, PainelVidro } from "../../ui/ds";
 import { siglasDeSalas } from "../../ui/ds/tom";
-import { Canal } from "../../ui/icones";
+import { Canal, SetaParaDireita } from "../../ui/icones";
 import css from "./Faixa.module.css";
 import { useEntradaNaSala } from "./useEntradaNaSala";
 
@@ -62,9 +63,10 @@ function irParaALista(e: MouseEvent<HTMLButtonElement>) {
 }
 
 /**
- * A faixa estreita do palco em tela cheia: uma sala por botão, com a contagem de
- * quem está dentro, e o atalho para os canais de texto. Receber foco em qualquer
- * um abre a lista completa (o `SalasEmFaixa` do shell cuida disso).
+ * A faixa estreita, quando a pessoa recolhe a coluna: uma sala por botão, com a
+ * contagem de quem está dentro, o botão que devolve a coluna e o atalho para os
+ * canais de texto. Receber foco em qualquer um abre a lista completa (o
+ * `SalasEmFaixa` do shell cuida disso).
  */
 function useVozNaOrdem(serverId: string): readonly string[] {
   const cats = useCategorias(serverId);
@@ -86,6 +88,14 @@ export function FaixaDeSalas({ serverId }: { serverId: string }) {
       aria-label={shell.faixa.rotulo}
       className={css.faixa}
     >
+      <button
+        type="button"
+        className={css.canais}
+        aria-label={shell.faixa.expandir}
+        onClick={() => definirColunaDeSalas("aberta")}
+      >
+        <SetaParaDireita tamanho={16} />
+      </button>
       {emVoz.map((id, i) => (
         <SalaNaFaixa key={id} serverId={serverId} canalId={id} sigla={siglas[i] ?? ""} />
       ))}
