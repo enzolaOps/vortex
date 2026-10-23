@@ -90,13 +90,14 @@ const MOTIVOS: Record<Som, { readonly notas: readonly number[]; readonly ganho: 
 const NOTA_S = 0.09;
 
 /**
- * O pico de ganho, e ele é BAIXO de propósito.
+ * O pico de ganho.
  *
- * Som de interface compete com a voz de quem está na chamada. 0,05 é audível
- * num fone em volume de conversa e não sobressalta — o teto foi escolhido
- * ouvindo, não calculado.
+ * 0,05 sumia debaixo da voz da chamada. 0,14 com o ganho 1,2 do toque chega
+ * perto de 0,17 na saída no máximo — audível e ainda abaixo do corte. Seno,
+ * ataque de 6ms e decaimento exponencial continuam: onda quadrada ou serrilhada
+ * vira clique.
  */
-const PICO = 0.05;
+const PICO = 0.14;
 
 /**
  * Silêncio antes de soltar o dispositivo de áudio.

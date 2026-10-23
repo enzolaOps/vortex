@@ -1,3 +1,10 @@
+.acoes {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--vx-space-1);
+}
+
 /* ------------------------------------------------------------ listas */
 .secao {
   display: flex;

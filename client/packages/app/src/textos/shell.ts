@@ -25,6 +25,8 @@ export const shell = {
     rotulo: "Salas",
     canais: "Canais de texto",
     vazia: "vazia",
+    recolher: "Recolher as salas",
+    expandir: "Mostrar as salas",
   },
   principal: {
     rotulo: "Conversa",

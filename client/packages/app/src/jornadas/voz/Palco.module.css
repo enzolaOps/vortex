@@ -417,14 +417,26 @@ button.ladrilho:focus-visible {
   }
 }
 
-/* Canto superior direito do foco: selo de qualidade + tela cheia. */
+/*
+  Canto superior do foco: volume da transmissão, selo e tela cheia.
+  Estica na largura do tile para o deslizante encolher com ele; o que sobra
+  fica no fim, então selo e tela cheia continuam no canto quando não há volume.
+*/
 .cantoDoFoco {
   position: absolute;
   inset-block-start: var(--vx-space-3);
-  inset-inline-end: var(--vx-space-3);
+  inset-inline: var(--vx-space-3);
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: var(--vx-space-2);
+}
+.volumeDoFoco {
+  min-inline-size: 0;
+  flex: 1 1 auto;
+  padding: var(--vx-space-2);
+  border-radius: var(--vx-radius-sm);
+  background: var(--vx-scrim);
 }
 .seloDeQualidade {
   padding: var(--vx-space-1) var(--vx-space-2);

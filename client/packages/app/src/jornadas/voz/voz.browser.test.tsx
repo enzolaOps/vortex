@@ -20,7 +20,7 @@ import { definirFalhaDeVoz, limparFalhaDeVoz } from "nucleo/store/falhaDeVoz";
 import { limparFaixaDoPalco } from "nucleo/store/faixaDoPalco";
 import { irParaCasa } from "nucleo/store/navegacao";
 import { definirPalco, fecharPalco, lerPalco } from "nucleo/store/palcoDeVoz";
-import { limparPreferenciasDaSala } from "nucleo/store/preferenciasDaSala";
+import { definirColunaDeSalas, limparPreferenciasDaSala } from "nucleo/store/preferenciasDaSala";
 import { definirProntidao } from "nucleo/store/prontidao";
 import {
   concluirEscolhaDeTela,
@@ -32,7 +32,7 @@ import { abrirServidor, limparUltimoLugar } from "nucleo/store/ultimoLugar";
 import { page, userEvent } from "vitest/browser";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { voz } from "../../textos";
+import { shell, voz } from "../../textos";
 import { desmontar, montar, pegar } from "../../ui/ds/montar";
 import { ShellDasSalas } from "../salas/ShellDasSalas";
 
@@ -288,6 +288,10 @@ describe("palco em tela cheia", () => {
     expect(pegar("[data-testid='foco-do-palco']")!.dataset.pessoa).toBe("U1");
     expect(pegar("[data-testid='foco-do-palco']")!.textContent).toContain(voz.palco.recebendoQuadro);
     expect(pegar("[data-testid='foco-do-palco']")!.textContent).toContain("AO VIVO");
+    await expect
+      .element(page.getByRole("slider", { name: voz.palco.volumeDe("Ana") }))
+      .toBeVisible();
+    expect(pegar("[data-testid='tira-do-palco']")!.querySelector("input[type='range']")).toBeNull();
 
     // A tira tem as pessoas que não são o foco e a miniatura da outra transmissão.
     const tira = pegar("[data-testid='tira-do-palco']")!;
@@ -445,11 +449,15 @@ describe("palco em tela cheia", () => {
     expect(ctl.assinaturas).not.toContain("-U1:tela");
   });
 
-  it("com o palco aberto a coluna de salas vira uma faixa que abre por mouse e por foco, sem desmontar", async () => {
+  it("o palco aberto deixa a coluna de salas aberta; recolher é uma preferência e a faixa abre por mouse e por foco, sem desmontar", async () => {
     await abrir(quatro());
     entrarNoPalco();
     const faixa = () => pegar("[data-testid='faixa-de-salas']");
     const lista = () => pegar("[data-testid='lista-de-salas']");
+    await expect.poll(faixa).toBeNull();
+    expect(pegar("aside[aria-label='" + shell.salas.rotulo + "']")).not.toBeNull();
+
+    definirColunaDeSalas("faixa");
     await expect.poll(faixa).not.toBeNull();
 
     // Fechada: a faixa tem 56px, a lista está montada mas inerte.
@@ -469,7 +477,7 @@ describe("palco em tela cheia", () => {
     await expect.poll(() => lista()!.hasAttribute("inert")).toBe(true);
 
     // Teclado: foco em uma sala da faixa abre; foco fora fecha. Mesma lista (não desmontou).
-    faixa()!.querySelector<HTMLElement>("button")!.focus();
+    faixa()!.querySelector<HTMLElement>("button[aria-label^='Jogatina']")!.focus();
     await expect.poll(() => lista()!.hasAttribute("inert")).toBe(false);
     expect(lista()).toBe(listaAntes);
     (document.activeElement as HTMLElement).blur();
@@ -699,6 +707,7 @@ describe("polimento do palco", () => {
     const foco = pegar("[data-testid='foco-do-palco']")!;
     expect(foco.textContent.split(voz.palco.suaTela).length - 1).toBe(1);
     expect(foco.textContent).not.toContain(voz.palco.recebendoQuadro);
+    expect(foco.querySelector("input[type='range']")).toBeNull();
   });
 
   it("você aparece nas miniaturas mesmo transmitindo", async () => {

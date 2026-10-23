@@ -111,6 +111,7 @@ import {
 import { definirPalco, lerPalco } from "../store/palcoDeVoz";
 import { assinarVolumeEfetivo, volumeEfetivo } from "../store/volumesDeVoz";
 import { criarAssinaturaDeVideo } from "./assinaturaDeVideo";
+import { pararTodos } from "./efeitosSonoros";
 import {
   fonteDe,
   ligarAssinaturaDeVideo,
@@ -389,16 +390,12 @@ function ligarEventos(r: Room, channelId: string): void {
     /* Você na lista da sala já, sem esperar o `VoiceChannelJoin` do webhook. */
     entrarNaSalaLocalmente(channelId, { publicando: deveTransmitir() });
     /*
-      ⚠ **Entrar numa sala ABRE a sala, e isto e o que faltava.** Antes daqui,
-      entrar num canal de voz nao mudava nada na coluna de conteudo: a conversa
-      continuava, e a unica prova de que voce estava dentro era o cartao
-      flutuante do canto. "Clicar no canal e ver quem esta la" e o gesto mais
-      basico da superficie, e ele nao existia.
-
-      No `Connected` e nao no `Reconnected`: voltar de uma queda nao deve tirar
-      da tela o chat que a pessoa escolheu ver enquanto ouvia.
+      Entrar NÃO abre o palco. O clique já fechou a página que a pessoa estava
+      lendo (`abrirSala`); reabrir a grade aqui desfazia isso. O palco só volta
+      no segundo clique da mesma sala, ou quando a própria transmissão pede
+      pré-visualização. Reconectar também não rouba a página: este handler é
+      `Connected`, não `Reconnected`.
     */
-    definirPalco({ tipo: "grade" });
     assinarAudioExistente(r);
   }));
 
@@ -818,12 +815,29 @@ function mesmaLista(a: readonly string[], b: readonly string[]): boolean {
  * Quem quer cada faixa de vídeo remota. A contabilidade mora em
  * `assinaturaDeVideo.ts`, sem LiveKit, para o teste exercitar o código real.
  */
+/**
+ * O áudio da tela já estava na publicação quando alguém passou a assistir.
+ *
+ * `TrackSubscribed` não dispara de novo nesse caso, e o LiveKit trata volume 0
+ * como "ainda não definido" no attach. Anexa se ninguém anexou e escreve o
+ * ganho efetivo — que é 0 enquanto a pessoa está surda.
+ */
+function audioDaTelaJaPresente(userId: string): void {
+  const faixa = publicacaoDeAudioDaTela(userId, "tela")?.track;
+  if (!faixa || faixa.kind !== Track.Kind.Audio) return;
+  if (faixa.attachedElements.length === 0) {
+    elementoDeAudio().appendChild(faixa.attach());
+  }
+  definirVolumeDe(userId, volumeEfetivo(userId));
+}
+
 const assinatura = criarAssinaturaDeVideo({
   video: publicacaoDeVideo,
   audioDaTela: publicacaoDeAudioDaTela,
   /* A camada é aplicada quando a assinatura ACONTECE, que pode ser bem depois
      do pedido: a publicação chega, a sala reconecta. */
   aplicarQualidade: definirQualidadeDeStream,
+  audioDaTelaJaPresente,
 });
 
 /** Os ouvintes de `ligarAssinaturaDeVideo`, desligados na saída da sala. */
@@ -1540,11 +1554,16 @@ export async function alternarMudo(): Promise<void> {
  * estava muda antes, voltar a transmitir seria uma decisão que ela não tomou.
  */
 export async function alternarSurdo(): Promise<void> {
-  alternarSurdoNoStore();
+  const { surdo } = alternarSurdoNoStore();
   await aplicarMicrofone();
-  /* O estado já está no store; aqui só se reaplica o ganho de quem JÁ está na
-     sala. Quem chegar depois pega o mesmo valor em `TrackSubscribed`. */
+  /*
+    O estado já está no store; aqui se reaplica o ganho de quem JÁ está na
+    sala. Quem chegar depois pega o mesmo valor em `TrackSubscribed`. O áudio
+    de uma tela que JÁ tinha chegado não dispara esse evento de novo: a
+    contabilidade chama `audioDaTelaJaPresente`.
+  */
   aplicarVolumeDeTodos();
+  if (surdo) pararTodos();
 }
 
 /**
@@ -1555,7 +1574,9 @@ export async function alternarSurdo(): Promise<void> {
  * NAQUELE instante: ensurdecer e depois abrir a transmissão de alguém fazia o
  * som da tela tocar, e quem entrasse na sala depois do ensurdecer era ouvido.
  * Agora o surdo mora em `volumeEfetivo` (ver `store/volumesDeVoz.ts`), que é
- * por onde TODA faixa passa — a nova, em `TrackSubscribed`, e as antigas aqui.
+ * por onde TODA faixa passa — a nova, em `TrackSubscribed`, a que já estava
+ * anexada, aqui, e a de tela que chegou antes do pedido, em
+ * `audioDaTelaJaPresente`.
  */
 function aplicarVolumeDeTodos(): void {
   for (const p of sala?.remoteParticipants.values() ?? []) {

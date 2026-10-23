@@ -1,11 +1,18 @@
 import { useFaixaDeVideo, useFalantes } from "nucleo/store/hooks";
 import { assinarQualidadeDaTela, qualidadeEscolhida } from "nucleo/store/qualidadeDaTela";
+import {
+  VOLUME_MAXIMO,
+  assinarVolume,
+  definirVolume,
+  lerVolume,
+} from "nucleo/store/volumesDeVoz";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { salas, voz } from "../../textos";
 import { Avatar, Botao, Pilula } from "../../ui/ds";
 import { Maximizar, MicrofoneDesligado, Tela } from "../../ui/icones";
 import { juntar } from "../../ui/juntar";
+import { Deslizante } from "../config/controles";
 import { useAssinaturaDeVideo, type PapelDoVideo } from "./hooks";
 import css from "./Palco.module.css";
 import { VideoDaFaixa } from "./VideoDaFaixa";
@@ -142,8 +149,9 @@ export function LadrilhoDeTela({
           {pessoa.proprio ? voz.palco.suaTela : voz.palco.emTransmissao(nome)}
         </span>
       )}
-      {papel === "foco" && (qualidade !== undefined || telaCheia) && (
+      {papel === "foco" && (qualidade !== undefined || telaCheia || !pessoa.proprio) && (
         <span className={css.cantoDoFoco}>
+          {!pessoa.proprio && <VolumeDoFoco userId={pessoa.id} nome={nome} />}
           {qualidade !== undefined && (
             <span className={css.seloDeQualidade} data-testid="selo-de-qualidade">
               {qualidade}
@@ -192,6 +200,32 @@ export function LadrilhoDeTela({
     >
       {conteudo}
     </div>
+  );
+}
+
+/**
+ * O volume desta pessoa, no canto da transmissão em foco.
+ *
+ * Lê o valor GUARDADO, não o efetivo: surdo zera o que se ouve sem apagar o
+ * ajuste, e o deslizante é o jeito de voltar de um 0 que ficou salvo.
+ * Um controle só muda o microfone e o áudio da tela dessa pessoa.
+ */
+function VolumeDoFoco({ userId, nome }: { userId: string; nome: string }) {
+  const valor = useSyncExternalStore(
+    (avisar) => assinarVolume(userId, avisar),
+    () => lerVolume(userId),
+  );
+  return (
+    <span className={css.volumeDoFoco}>
+      <Deslizante
+        rotulo={voz.palco.volumeDe(nome)}
+        valor={valor}
+        min={0}
+        max={VOLUME_MAXIMO}
+        texto={`${String(valor)}%`}
+        aoMudar={(proximo) => definirVolume(userId, proximo)}
+      />
+    </span>
   );
 }
 
