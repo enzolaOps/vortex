@@ -66,6 +66,14 @@ export type Chamada = {
    */
   readonly transmitindo: readonly string[];
   /**
+   * Quem, entre os que transmitem, publica o SOM da tela. Não inclui você.
+   *
+   * Fato separado de `transmitindo` porque o som é opcional: o navegador só o
+   * entrega quando a pessoa marca a caixa no seletor do sistema. É o que decide
+   * se o volume da transmissão tem o que controlar.
+   */
+  readonly telaComSom: readonly string[];
+  /**
    * Quem está com o microfone silenciado, por ID.
    *
    * ⚠ **Estado de TRANSPORTE de outra pessoa, e por isso vive aqui e não no
@@ -141,6 +149,7 @@ const VAZIA: Chamada = {
   channelId: "",
   participantes: [],
   transmitindo: [],
+  telaComSom: [],
   comCamera: [],
   mudos: [],
   mudo: false,
