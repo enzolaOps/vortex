@@ -49,6 +49,7 @@ import {
   Track,
   VideoQuality,
   type LocalParticipant,
+  type RemoteAudioTrack,
   type RemoteParticipant,
   type RemoteTrack,
   type RemoteTrackPublication,
@@ -110,6 +111,11 @@ import {
 } from "../store/chamada";
 import { definirPalco, lerPalco } from "../store/palcoDeVoz";
 import { assinarVolumeEfetivo, volumeEfetivo } from "../store/volumesDeVoz";
+import {
+  assinarQualquerVolumeDaTransmissao,
+  volumeEfetivoDaTransmissao,
+} from "../store/volumesDeTransmissao";
+import { criarAudioDaTransmissao } from "./audioDaTransmissao";
 import { criarAssinaturaDeVideo } from "./assinaturaDeVideo";
 import { pararTodos } from "./efeitosSonoros";
 import {
@@ -412,6 +418,7 @@ function ligarEventos(r: Room, channelId: string): void {
        de volume ficaria preso a uma sala morta (erro nº 5 do briefing). */
     pararDeOuvirVolumes?.();
     pararDeOuvirVolumes = undefined;
+    somDaTela.fechar();
     atenuador.atualizar(false, false, true);
     pararAudioDaJanela();
     faixasDeVideo.limpar();
@@ -625,16 +632,22 @@ function ligarEventos(r: Room, channelId: string): void {
   */
   r.on(RoomEvent.TrackSubscribed, (faixa: RemoteTrack, pub, participante) => {
     if (faixa.kind === Track.Kind.Audio) {
+      /*
+        O som da tela tem caminho próprio: contexto de Web Audio para o ganho
+        passar de 100%. Re-assinar ou reconectar entrega uma faixa NOVA, e é
+        por aqui que ela recebe o contexto e o volume guardado de novo.
+      */
+      if (pub.source === Track.Source.ScreenShareAudio) {
+        somDaTela.receber(participante.identity, faixa as RemoteAudioTrack);
+        return;
+      }
       elementoDeAudio().appendChild(faixa.attach());
       /*
         O volume guardado desta pessoa chega AQUI, na faixa recém-assinada.
         Antes dela não há onde aplicar, e aplicar só quando o deslizante mexe
         faria quem você baixou ontem voltar a 100% em toda chamada nova.
       */
-      definirVolumeDe(
-        participante.identity,
-        volumeEfetivo(participante.identity),
-      );
+      definirVolumeDe(participante.identity);
       return;
     }
 
@@ -779,12 +792,16 @@ function assinarAudioExistente(r: Room): void {
  */
 function publicarFontes(r: Room): void {
   const transmitindo: string[] = [];
+  const telaComSom: string[] = [];
   const comCamera: string[] = [];
   const mudos: string[] = [];
 
   for (const p of r.remoteParticipants.values()) {
     if (p.getTrackPublication(Track.Source.ScreenShare)) {
       transmitindo.push(p.identity);
+      if (p.getTrackPublication(Track.Source.ScreenShareAudio)) {
+        telaComSom.push(p.identity);
+      }
     }
     if (p.getTrackPublication(Track.Source.Camera)) comCamera.push(p.identity);
     /*
@@ -802,6 +819,7 @@ function publicarFontes(r: Room): void {
   if (!mesmaLista(atual.transmitindo, transmitindo)) {
     mudanca.transmitindo = transmitindo;
   }
+  if (!mesmaLista(atual.telaComSom, telaComSom)) mudanca.telaComSom = telaComSom;
   if (!mesmaLista(atual.comCamera, comCamera)) mudanca.comCamera = comCamera;
   if (!mesmaLista(atual.mudos, mudos)) mudanca.mudos = mudos;
   if (Object.keys(mudanca).length > 0) definirChamada(mudanca);
@@ -825,10 +843,7 @@ function mesmaLista(a: readonly string[], b: readonly string[]): boolean {
 function audioDaTelaJaPresente(userId: string): void {
   const faixa = publicacaoDeAudioDaTela(userId, "tela")?.track;
   if (!faixa || faixa.kind !== Track.Kind.Audio) return;
-  if (faixa.attachedElements.length === 0) {
-    elementoDeAudio().appendChild(faixa.attach());
-  }
-  definirVolumeDe(userId, volumeEfetivo(userId));
+  somDaTela.receber(userId, faixa as RemoteAudioTrack);
 }
 
 const assinatura = criarAssinaturaDeVideo({
@@ -931,23 +946,39 @@ function ehVideoRemoto(t: RemoteTrack): t is RemoteVideoTrack {
 }
 
 /**
- * O volume de UMA pessoa, so para voce.
+ * O volume de UMA pessoa, so para voce: a voz e o som da tela dela.
  *
- * `0` e o "silenciar so para mim" do design. Vale de 0 a 2 no LiveKit (200% no
- * desenho), e o ganho acima de 1 e o que salva quem fala baixo.
+ * `0` e o "silenciar so para mim" do design.
  */
-function definirVolumeDe(userId: string, volume: number): void {
+function definirVolumeDe(userId: string): void {
   /*
-    ⚠ **Limitado a 1, e acima disso LANÇAVA.** Sem `webAudioMix` o LiveKit
-    escreve em `HTMLMediaElement.volume`, que dá `IndexSizeError` fora de
-    [0, 1] — o deslizante de 200% derrubava o handler a partir de 101. Ver
-    `VOLUME_MAXIMO` em `store/volumesDeVoz.ts`.
+    ⚠ **A voz fica limitada a 1, e acima disso LANÇAVA.** Sem `webAudioMix` o
+    LiveKit escreve em `HTMLMediaElement.volume`, que dá `IndexSizeError` fora
+    de [0, 1]. Ver `VOLUME_MAXIMO` em `store/volumesDeVoz.ts`.
   */
-  const ganho = Math.min(1, Math.max(0, volume));
-  const p = participanteRemoto(userId);
-  p?.setVolume(ganho, Track.Source.Microphone);
-  p?.setVolume(ganho, Track.Source.ScreenShareAudio);
+  const ganho = Math.min(1, Math.max(0, volumeEfetivo(userId)));
+  participanteRemoto(userId)?.setVolume(ganho, Track.Source.Microphone);
+  /*
+    O som da tela NÃO passa por `participante.setVolume`: aquele guarda o valor
+    num mapa e o reaplica em toda faixa nova ANTES de ela ter contexto — um 3
+    ali lançaria no `attach`. O ganho dela é o da transmissão, até 300%.
+  */
+  const tela = publicacaoDeAudioDaTela(userId, "tela")?.track;
+  if (tela && tela.kind === Track.Kind.Audio) {
+    somDaTela.aplicar(userId, tela as RemoteAudioTrack);
+  }
 }
+
+/**
+ * O som das telas que você assiste — ver `sdk/audioDaTransmissao.ts`. Um
+ * contexto por sala, criado na primeira faixa e fechado na saída.
+ */
+const somDaTela = criarAudioDaTransmissao({
+  criarContexto: () =>
+    typeof AudioContext === "undefined" ? undefined : new AudioContext(),
+  destino: elementoDeAudio,
+  ganho: volumeEfetivoDaTransmissao,
+});
 
 const publicacoes = publicacoesDaSala(() => sala);
 
@@ -1099,9 +1130,12 @@ export async function entrarNaChamada(channelId: string): Promise<boolean> {
         r.localParticipant.getTrackPublication(Track.Source.Microphone)
           ?.audioTrack,
     );
-    pararDeOuvirVolumes = assinarVolumeEfetivo((userId) =>
-      definirVolumeDe(userId, volumeEfetivo(userId)),
-    );
+    const pararVoz = assinarVolumeEfetivo(definirVolumeDe);
+    const pararTela = assinarQualquerVolumeDaTransmissao(definirVolumeDe);
+    pararDeOuvirVolumes = () => {
+      pararVoz();
+      pararTela();
+    };
     entrandoEm = "";
     return true;
   } catch (e) {
@@ -1198,6 +1232,7 @@ async function desmontarSala(esperarAviso: boolean): Promise<void> {
   esquecerProcessadores();
   pararDeOuvirVolumes?.();
   pararDeOuvirVolumes = undefined;
+  somDaTela.fechar();
   desligarAssinaturaDeVideo?.();
   desligarAssinaturaDeVideo = undefined;
   /* Pedidos e novas tentativas morrem com a sala, como no `Disconnected` —
@@ -1482,6 +1517,8 @@ function revisarAtenuacao(): void {
 
 async function aplicarSaida(r: Room): Promise<void> {
   const { saidaId } = lerPreferenciasDeVoz();
+  /* O som da tela toca pelo contexto próprio, que a sala não conhece. */
+  await somDaTela.trocarSaida(saidaId);
   if (saidaId === undefined) return;
   try {
     await r.switchActiveDevice("audiooutput", saidaId);
@@ -1580,7 +1617,7 @@ export async function alternarSurdo(): Promise<void> {
  */
 function aplicarVolumeDeTodos(): void {
   for (const p of sala?.remoteParticipants.values() ?? []) {
-    definirVolumeDe(p.identity, volumeEfetivo(p.identity));
+    definirVolumeDe(p.identity);
   }
 }
 
