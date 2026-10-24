@@ -9,12 +9,14 @@ import {
   definirVolumeDaTransmissao,
   lerVolumeDaTransmissao,
 } from "nucleo/store/volumesDeTransmissao";
+import { VOLUME_MAXIMO, assinarVolume, definirVolume, lerVolume } from "nucleo/store/volumesDeVoz";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { salas, voz } from "../../textos";
 import { Avatar, Botao, Pilula } from "../../ui/ds";
-import { Maximizar, MicrofoneDesligado, Tela } from "../../ui/icones";
+import { MaisHorizontal, Maximizar, MicrofoneDesligado, Tela } from "../../ui/icones";
 import { juntar } from "../../ui/juntar";
+import { ConteudoDoPopover, GatilhoDoPopover, Popover } from "../../ui/primitivos/Flutuantes";
 import { Deslizante } from "../config/controles";
 import { useAssinaturaDeVideo, type PapelDoVideo } from "./hooks";
 import css from "./Palco.module.css";
@@ -62,6 +64,7 @@ export function LadrilhoDePessoa({
   const falando = falandoBruto && !semAudio;
   const comVideo = pessoa.camera && faixa !== undefined;
   const estado = semAudio ? voz.estado.mudo : falando ? voz.estado.falando : undefined;
+  const [menuAberto, setMenuAberto] = useState(false);
 
   return (
     <div
@@ -69,6 +72,14 @@ export function LadrilhoDePessoa({
       role="group"
       aria-label={estado ? `${nome}, ${estado.toLowerCase()}` : nome}
       className={css.ladrilho}
+      onContextMenu={
+        pessoa.proprio
+          ? undefined
+          : (e) => {
+              e.preventDefault();
+              setMenuAberto(true);
+            }
+      }
       data-falando={falando}
       data-testid="ladrilho-de-pessoa"
       data-pessoa={pessoa.id}
@@ -86,7 +97,72 @@ export function LadrilhoDePessoa({
       <span className={juntar(css.rotuloDoLadrilho, comVideo && css.rotuloSobreVideo)} aria-hidden="true">
         {estado ? `${nome} · ${estado.toLowerCase()}` : nome}
       </span>
+      {!pessoa.proprio && (
+        <MenuDoParticipante userId={pessoa.id} nome={nome} aberto={menuAberto} aoMudar={setMenuAberto} />
+      )}
     </div>
+  );
+}
+
+function MenuDeQuemTransmite({ userId, nome }: { userId: string; nome: string }) {
+  const [aberto, setAberto] = useState(false);
+  return <MenuDoParticipante userId={userId} nome={nome} aberto={aberto} aoMudar={setAberto} noCanto />;
+}
+
+/**
+ * O menu de uma pessoa na sala: o volume da VOZ dela, só para você (0–100%).
+ *
+ * Abre pelo `⋯` do canto (teclado e toque) ou pelo botão direito no ladrilho.
+ * É popover e não menu do Radix: o menu só deixa as setas andarem entre itens,
+ * e um deslizante dentro dele ficaria inalcançável pelo teclado.
+ *
+ * ⚠ Eixo separado do volume da TRANSMISSÃO, que mora no canto do foco: a voz
+ * e o som da tela de uma pessoa pedem ajustes opostos com frequência.
+ */
+function MenuDoParticipante({
+  userId,
+  nome,
+  aberto,
+  aoMudar,
+  noCanto = false,
+}: {
+  userId: string;
+  nome: string;
+  aberto: boolean;
+  aoMudar: (aberto: boolean) => void;
+  /** No canto do foco fica sempre visível, ao lado do volume da transmissão. */
+  noCanto?: boolean;
+}) {
+  const valor = useSyncExternalStore(
+    (avisar) => assinarVolume(userId, avisar),
+    () => lerVolume(userId),
+  );
+  return (
+    <Popover open={aberto} onOpenChange={aoMudar}>
+      <GatilhoDoPopover asChild>
+        <Botao
+          variante="fantasma"
+          tamanho="sm"
+          icone={<MaisHorizontal />}
+          aria-label={voz.palco.opcoesDe(nome)}
+          className={noCanto ? undefined : css.opcoesDoLadrilho}
+          data-testid="opcoes-do-participante"
+        />
+      </GatilhoDoPopover>
+      <ConteudoDoPopover className={css.menuDoParticipante} data-testid="menu-do-participante">
+        <Deslizante
+          rotulo={voz.palco.volumeDe(nome)}
+          valor={valor}
+          min={0}
+          max={VOLUME_MAXIMO}
+          passo={VOLUME_DA_TRANSMISSAO_PASSO}
+          texto={`${String(valor)}%`}
+          aoMudar={(proximo) => {
+            definirVolume(userId, proximo);
+          }}
+        />
+      </ConteudoDoPopover>
+    </Popover>
   );
 }
 
@@ -155,6 +231,8 @@ export function LadrilhoDeTela({
       {papel === "foco" && (qualidade !== undefined || telaCheia || !pessoa.proprio) && (
         <span className={css.cantoDoFoco}>
           {!pessoa.proprio && <VolumeDaTransmissao userId={pessoa.id} nome={nome} />}
+          {/* Quem está em foco não aparece na tira: o menu dela mora aqui. */}
+          {!pessoa.proprio && <MenuDeQuemTransmite userId={pessoa.id} nome={nome} />}
           {qualidade !== undefined && (
             <span className={css.seloDeQualidade} data-testid="selo-de-qualidade">
               {qualidade}

@@ -30,6 +30,7 @@ import {
 } from "nucleo/store/seletorDeTela";
 import { abrirServidor, limparUltimoLugar } from "nucleo/store/ultimoLugar";
 import { lerVolumeDaTransmissao, limparVolumesDaTransmissao } from "nucleo/store/volumesDeTransmissao";
+import { lerVolume, limparVolumes } from "nucleo/store/volumesDeVoz";
 import { page, userEvent } from "vitest/browser";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -206,6 +207,7 @@ beforeEach(() => {
   limparFalhaDeVoz();
   limparFaixaDoPalco();
   limparVolumesDaTransmissao();
+  limparVolumes();
   fecharPalco();
   irParaCasa();
   ctl.chamadas = [];
@@ -342,6 +344,41 @@ describe("palco em tela cheia", () => {
       await userEvent.keyboard("{Home}");
       await expect.poll(() => lerVolumeDaTransmissao("U1")).toBe(0);
       await expect.element(deslizante()).toHaveAttribute("aria-valuetext", "0%");
+    });
+
+    it("o menu da pessoa muda a VOZ dela e não a transmissão, e vice-versa", async () => {
+      await abrirTransmissao(true);
+      const volumeDaVoz = () => page.getByRole("slider", { name: voz.palco.volumeDe("Ana") });
+
+      await page.getByRole("button", { name: voz.palco.opcoesDe("Ana") }).click();
+      await expect.element(volumeDaVoz()).toBeVisible();
+      const vozEl = volumeDaVoz().element() as HTMLInputElement;
+      expect(vozEl.max).toBe("100");
+      expect(vozEl.getAttribute("aria-valuetext")).toBe("100%");
+      vozEl.focus();
+      await userEvent.keyboard("{ArrowLeft}");
+      await expect.poll(() => lerVolume("U1")).toBe(95);
+      await userEvent.keyboard("{Home}");
+      await expect.poll(() => lerVolume("U1")).toBe(0);
+      expect(lerVolumeDaTransmissao("U1")).toBe(100);
+      await userEvent.keyboard("{Escape}");
+      await expect.poll(() => document.querySelector("[data-testid='menu-do-participante']")).toBeNull();
+
+      elemento().focus();
+      await userEvent.keyboard("{End}");
+      await expect.poll(() => lerVolumeDaTransmissao("U1")).toBe(300);
+      expect(lerVolume("U1")).toBe(0);
+
+      // Na tira, o botão direito no ladrilho abre o menu daquela pessoa.
+      const eva = ladrilhos().find((l) => l.dataset.pessoa === "U3")!;
+      eva.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
+      const volumeDaEva = page.getByRole("slider", { name: voz.palco.volumeDe("Eva") });
+      await expect.element(volumeDaEva).toBeVisible();
+      (volumeDaEva.element() as HTMLInputElement).focus();
+      await userEvent.keyboard("{Home}");
+      await expect.poll(() => lerVolume("U3")).toBe(0);
+      expect(lerVolume("U1")).toBe(0);
+      expect(lerVolumeDaTransmissao("U3")).toBe(100);
     });
 
     it("o mouse muda o valor, e ele sobrevive a fechar e abrir de novo", async () => {
