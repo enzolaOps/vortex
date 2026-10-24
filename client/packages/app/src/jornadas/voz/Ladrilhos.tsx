@@ -1,11 +1,14 @@
 import { useFaixaDeVideo, useFalantes } from "nucleo/store/hooks";
 import { assinarQualidadeDaTela, qualidadeEscolhida } from "nucleo/store/qualidadeDaTela";
+import { assinarChamada, lerChamada } from "nucleo/store/chamada";
 import {
-  VOLUME_MAXIMO,
-  assinarVolume,
-  definirVolume,
-  lerVolume,
-} from "nucleo/store/volumesDeVoz";
+  VOLUME_DA_TRANSMISSAO_MAXIMO,
+  VOLUME_DA_TRANSMISSAO_PADRAO,
+  VOLUME_DA_TRANSMISSAO_PASSO,
+  assinarVolumeDaTransmissao,
+  definirVolumeDaTransmissao,
+  lerVolumeDaTransmissao,
+} from "nucleo/store/volumesDeTransmissao";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { salas, voz } from "../../textos";
@@ -151,7 +154,7 @@ export function LadrilhoDeTela({
       )}
       {papel === "foco" && (qualidade !== undefined || telaCheia || !pessoa.proprio) && (
         <span className={css.cantoDoFoco}>
-          {!pessoa.proprio && <VolumeDoFoco userId={pessoa.id} nome={nome} />}
+          {!pessoa.proprio && <VolumeDaTransmissao userId={pessoa.id} nome={nome} />}
           {qualidade !== undefined && (
             <span className={css.seloDeQualidade} data-testid="selo-de-qualidade">
               {qualidade}
@@ -203,27 +206,43 @@ export function LadrilhoDeTela({
   );
 }
 
+/** Marca no trilho: onde está o som como a pessoa transmitiu. */
+const MARCAS_DO_VOLUME = [VOLUME_DA_TRANSMISSAO_PADRAO] as const;
+
 /**
- * O volume desta pessoa, no canto da transmissão em foco.
+ * O volume do SOM da transmissão em foco, de 0% a 300%, só para quem assiste.
  *
  * Lê o valor GUARDADO, não o efetivo: surdo zera o que se ouve sem apagar o
- * ajuste, e o deslizante é o jeito de voltar de um 0 que ficou salvo.
- * Um controle só muda o microfone e o áudio da tela dessa pessoa.
+ * ajuste, e o deslizante é o jeito de voltar de um 0 que ficou salvo. A voz
+ * da pessoa é outro eixo e não muda aqui.
+ *
+ * ⚠ **Sem som, o controle fica DESLIGADO com o motivo, e não some.** O som da
+ * tela é opcional (a caixa do seletor do sistema), e pode chegar depois do
+ * vídeo; sumir e aparecer faria o canto pular sob o ponteiro. E um controle
+ * ausente não diz nada — desligado com a frase responde "por que não ouço?".
  */
-function VolumeDoFoco({ userId, nome }: { userId: string; nome: string }) {
+function VolumeDaTransmissao({ userId, nome }: { userId: string; nome: string }) {
   const valor = useSyncExternalStore(
-    (avisar) => assinarVolume(userId, avisar),
-    () => lerVolume(userId),
+    (avisar) => assinarVolumeDaTransmissao(userId, avisar),
+    () => lerVolumeDaTransmissao(userId),
   );
+  /* Booleano: a chamada acorda por muita coisa, e só a troca disto re-renderiza. */
+  const comSom = useSyncExternalStore(assinarChamada, () => lerChamada().telaComSom.includes(userId));
   return (
-    <span className={css.volumeDoFoco}>
+    <span className={css.volumeDoFoco} data-testid="volume-da-transmissao">
       <Deslizante
-        rotulo={voz.palco.volumeDe(nome)}
+        rotulo={voz.palco.volumeDaTransmissao(nome)}
         valor={valor}
         min={0}
-        max={VOLUME_MAXIMO}
+        max={VOLUME_DA_TRANSMISSAO_MAXIMO}
+        passo={VOLUME_DA_TRANSMISSAO_PASSO}
+        marcas={MARCAS_DO_VOLUME}
         texto={`${String(valor)}%`}
-        aoMudar={(proximo) => definirVolume(userId, proximo)}
+        disabled={!comSom}
+        descricao={comSom ? undefined : voz.palco.transmissaoSemSom}
+        aoMudar={(proximo) => {
+          definirVolumeDaTransmissao(userId, proximo);
+        }}
       />
     </span>
   );
