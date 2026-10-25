@@ -28,6 +28,35 @@ LOCKFILE = re.compile(
     r"Podfile[.]lock|pubspec[.]lock)$",
     re.IGNORECASE,
 )
+# Manifesto não é lockfile: package.json e Cargo.toml também guardam script,
+# bin e a versão do próprio pacote. Só um diff que não mexe em nada disso
+# pode sair do Jev.
+MANIFEST = re.compile(r"(^|/)(package[.]json|Cargo[.]toml)$")
+VERSION_SPEC = re.compile(
+    r"^(?:[\^~]|>=|<=|>|<)?"
+    r"\d+\.\d+\.\d+"
+    r"(?:[-+][0-9A-Za-z.-]+)?"
+    r"$"
+)
+PACKAGE_JSON_DEP = re.compile(
+    r'^\s*"(?P<key>[^"]+)"\s*:\s*"(?P<spec>[^"]+)"\s*,?\s*$'
+)
+PACKAGE_JSON_RESERVED = {
+    "author", "bin", "browser", "bugs", "config", "cpu", "description",
+    "directories", "engines", "exports", "files", "funding", "homepage",
+    "keywords", "license", "main", "man", "module", "name", "os",
+    "packageManager", "private", "publishConfig", "repository", "scripts",
+    "sideEffects", "type", "types", "typings", "version", "workspaces",
+}
+CARGO_DEP = re.compile(
+    r'^\s*(?P<key>[A-Za-z0-9_-]+)\s*=\s*"(?P<spec>[^"]+)"\s*$'
+)
+CARGO_RESERVED = {
+    "authors", "autobenches", "autobins", "autoexamples", "autotests",
+    "description", "documentation", "edition", "homepage", "license",
+    "name", "publish", "readme", "repository", "resolver", "rust-version",
+    "version",
+}
 RELEASE_AUTOMATION = (".github/workflows/", "scripts/ci/", ".jev/")
 UPSTREAM_CHANGELOG_LINK = re.compile(
     r"https?://(?:redirect\.)?github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)/"
@@ -35,6 +64,42 @@ UPSTREAM_CHANGELOG_LINK = re.compile(
 )
 VERSION_HEADING = re.compile(r"^#{1,4}\s+v?(\d+\.\d+\.\d+)\b", re.MULTILINE)
 VERSION_NUMBER = re.compile(r"\bv?(\d+\.\d+\.\d+)\b")
+
+
+def changed_payloads(section: str) -> list[str]:
+    payloads = []
+    for line in section.splitlines():
+        if line.startswith(("+++", "---")):
+            continue
+        if line.startswith(("+", "-")):
+            payloads.append(line[1:])
+    return payloads
+
+
+def is_manifest_version_bump(path: str, section: str) -> bool:
+    """True quando o manifesto só troca especificador de dependência.
+
+    `version` do próprio pacote, script, bin e tabela inline ficam de fora:
+    isso volta para o Jev em vez de virar `none` calado.
+    """
+    if MANIFEST.search(path) is None:
+        return False
+    payloads = changed_payloads(section)
+    if not payloads:
+        return False
+    if path.endswith("package.json"):
+        pattern, reserved = PACKAGE_JSON_DEP, PACKAGE_JSON_RESERVED
+    elif path.endswith("Cargo.toml"):
+        pattern, reserved = CARGO_DEP, CARGO_RESERVED
+    else:
+        return False
+    for payload in payloads:
+        match = pattern.match(payload)
+        if match is None or match.group("key") in reserved:
+            return False
+        if VERSION_SPEC.match(match.group("spec")) is None:
+            return False
+    return True
 
 
 def category(path: str) -> str:
@@ -158,6 +223,29 @@ def prepare(diff: str, title: str, body: str) -> dict:
     }
 
     non_implementation = {"release-automation", "tests", "documentation", "dependency-lockfile"}
+    # package.json e Cargo.toml contam como código, então um Renovate que só
+    # sobe a versão caía no Jev. `review` ali trava a release inteira. O bump
+    # puro é o mesmo caso do lockfile: grafo de dependência, sem código nosso.
+    implementation = [(path, section) for path, section, kind in classified if kind == "implementation"]
+    other_kinds = {kind for _, _, kind in classified if kind != "implementation"}
+    if implementation and other_kinds <= non_implementation and all(
+        is_manifest_version_bump(path, section) for path, section in implementation
+    ):
+        bumped = {path for path, _ in implementation}
+        for kind, paths in list(paths_by_kind.items()):
+            paths_by_kind[kind] = [path for path in paths if path not in bumped]
+        paths_by_kind.setdefault("dependency-lockfile", [])
+        paths_by_kind["dependency-lockfile"] = sorted(
+            set(paths_by_kind["dependency-lockfile"]) | bumped
+        )
+        paths_by_kind = {kind: paths for kind, paths in paths_by_kind.items() if paths}
+        counts["dependency-lockfile"] = counts.get("dependency-lockfile", 0) + counts.pop("implementation", 0)
+        return result(
+            "none",
+            "Changes are limited to dependency version bumps in manifests and lockfiles; no first-party implementation changed.",
+            counts,
+            paths_by_kind,
+        )
     if kinds <= non_implementation:
         # Dependency-only PRs maintain the dependency graph but do not change
         # first-party behavior directly. Keep them out of user-facing release
