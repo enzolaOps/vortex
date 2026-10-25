@@ -451,3 +451,24 @@ button.ladrilho:focus-visible {
 .palco:fullscreen {
   background: var(--vx-stage);
 }
+
+/*
+  O `⋯` do ladrilho: no canto de início (o de fim é do ícone de mudo). Aparece
+  no hover e no foco; com opacidade, e não `visibility`, para continuar
+  alcançável pelo Tab — são poucos ladrilhos, não uma lista longa.
+*/
+.opcoesDoLadrilho {
+  position: absolute;
+  inset-block-start: var(--vx-space-2);
+  inset-inline-start: var(--vx-space-2);
+  background: var(--vx-scrim);
+  opacity: 0;
+}
+.ladrilho:hover .opcoesDoLadrilho,
+.opcoesDoLadrilho:focus-visible,
+.opcoesDoLadrilho[data-state="open"] {
+  opacity: 1;
+}
+.menuDoParticipante {
+  inline-size: 240px;
+}

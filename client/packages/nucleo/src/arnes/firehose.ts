@@ -1515,6 +1515,7 @@ export function chamadaEmVideoFalsa(): void {
   definirChamada({
     comCamera: dentro.filter((_, i) => i % 2 === 1),
     transmitindo: dentro.slice(1, 2),
+    telaComSom: dentro.slice(1, 2),
     mudos: dentro.filter((_, i) => i % 3 === 2),
   });
   definirPalco({ tipo: "grade" });

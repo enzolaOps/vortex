@@ -246,10 +246,27 @@ export interface DeslizanteProps {
   texto: string;
   aoMudar: (valor: number) => void;
   disabled?: boolean;
+  /** Valores marcados no trilho (ex.: 100% num controle que vai além). */
+  marcas?: readonly number[];
+  /** Uma frase curta embaixo, ligada ao controle (ex.: por que está desligado). */
+  descricao?: string;
 }
 
-export function Deslizante({ rotulo, valor, min, max, passo = 1, texto, aoMudar, disabled }: DeslizanteProps) {
+export function Deslizante({
+  rotulo,
+  valor,
+  min,
+  max,
+  passo = 1,
+  texto,
+  aoMudar,
+  disabled,
+  marcas,
+  descricao,
+}: DeslizanteProps) {
   const id = useId();
+  const idDasMarcas = `${id}-marcas`;
+  const idDaDescricao = `${id}-descricao`;
   return (
     <div className={css.campoComRotulo}>
       <div className={css.linhaDoValor}>
@@ -268,10 +285,24 @@ export function Deslizante({ rotulo, valor, min, max, passo = 1, texto, aoMudar,
         value={valor}
         disabled={disabled}
         aria-valuetext={texto}
+        aria-describedby={descricao ? idDaDescricao : undefined}
+        list={marcas && marcas.length > 0 ? idDasMarcas : undefined}
         onChange={(e) => {
           aoMudar(Number(e.target.value));
         }}
       />
+      {marcas && marcas.length > 0 && (
+        <datalist id={idDasMarcas}>
+          {marcas.map((m) => (
+            <option key={m} value={m} />
+          ))}
+        </datalist>
+      )}
+      {descricao && (
+        <p id={idDaDescricao} className={css.dica}>
+          {descricao}
+        </p>
+      )}
     </div>
   );
 }

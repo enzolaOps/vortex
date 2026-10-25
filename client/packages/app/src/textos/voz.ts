@@ -63,6 +63,9 @@ export const voz = {
     grade: "Pessoas na sala",
     telaCheia: "Tela cheia",
     volumeDe: (nome: string) => `Volume de ${nome}`,
+    opcoesDe: (nome: string) => `Opções de ${nome}`,
+    volumeDaTransmissao: (nome: string) => `Volume da transmissão de ${nome}`,
+    transmissaoSemSom: "Esta transmissão está sem som.",
   },
   conexao: {
     conectandoASala: "Conectando à sala…",
