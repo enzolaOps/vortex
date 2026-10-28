@@ -291,7 +291,7 @@ jobs:
             echo "VORTEX_SERVER_IMAGE=ghcr.io/${{ steps.dono.outputs.nome }}/vortex-server:${{ github.sha }}@${{ steps.server.outputs.digest }}"
             echo '```'
             echo
-            echo "O build atualiza o PR de imagens do pi-infra; o merge dispara o deploy."
+            echo "O build atualiza o PR de imagens do infra-pi; o merge dispara o deploy."
             echo
             echo "⚠ Os outros cinco serviços seguem pinados no upstream de propósito."
           } >> "$GITHUB_STEP_SUMMARY"
@@ -303,7 +303,7 @@ jobs:
           app-id: ${{ secrets.CI_APP_ID }}
           private-key: ${{ secrets.CI_APP_PRIVATE_KEY }}
           owner: enzolaOps
-          repositories: pi-infra
+          repositories: infra-pi
 
       - name: Update the deployment PR
         env:
@@ -321,4 +321,4 @@ jobs:
               --header "Authorization: Bearer $GH_TOKEN" \
               --header "X-GitHub-Api-Version: 2022-11-28" \
               --data @- \
-              https://api.github.com/repos/enzolaOps/pi-infra/dispatches
+              https://api.github.com/repos/enzolaOps/infra-pi/dispatches
